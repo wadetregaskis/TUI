@@ -39,6 +39,12 @@ extension EnvironmentValues {
     /// lazy grid outside a scroll view pass it on, and each box below takes
     /// the whole of it.
     ///
+    /// A presentation the sheet's content makes — an alert, a popover,
+    /// another sheet — draws a box of its own, sized as over a page: its
+    /// presenter takes this off the environment its content draws in
+    /// (`RenderContext.leavePresenter()`), wherever in the sheet it is
+    /// attached, even outside the sheet's box.
+    ///
     /// Content with no box (a bare `Text`, a stack of controls) has nothing to
     /// stretch: the presenter lays it on blank cells of the detent's size
     /// instead, so the sheet is as tall as its detent whatever it holds, as

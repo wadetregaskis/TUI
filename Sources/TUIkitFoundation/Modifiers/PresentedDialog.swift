@@ -32,15 +32,23 @@ extension RenderContext {
     /// Leaves behind, for a presented surface's content — a sheet's or a
     /// cover's, an alert's, a popover's, a menu's — what the place its
     /// presenter is drawn in asks of the views drawn there: its scroll canvas
-    /// (``leaveScrollCanvas()``) and the text alignment it states for nothing
-    /// in particular (``EnvironmentValues/leaveUnstatedTextAlignment()``).
-    /// The surface is attached inside the content that presents it, but drawn
-    /// over the screen.
+    /// (``leaveScrollCanvas()``), the text alignment it states for nothing
+    /// in particular (``EnvironmentValues/leaveUnstatedTextAlignment()``),
+    /// and the size and corners of a sheet it is drawn in
+    /// (``consumeSheetSize()``). The surface is attached inside the content
+    /// that presents it, but drawn over the screen.
+    ///
+    /// The sheet's size is its own box's. An alert written at the root of a
+    /// sheet's content — outside the box the content draws, where a sheet's
+    /// detent and proposed width still stand — took them for its own box,
+    /// and filled the whole sheet; so did a popover there, and a sheet with
+    /// no detent of its own presented from it.
     ///
     /// One method for every presenter, so that what one leaves behind, each
     /// does.
     package mutating func leavePresenter() {
         leaveScrollCanvas()
         environment.leaveUnstatedTextAlignment()
+        consumeSheetSize()
     }
 }
