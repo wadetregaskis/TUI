@@ -105,6 +105,15 @@ final class Terminal: HostStateKeeping {
     /// buffered, so ``endFrame()`` arms the debt again once it is out.
     private var hostStateOwedInFrame = false
 
+    /// Arms what ``hostState`` owes at once where a frame being buffered has
+    /// changed it: for a setting written straight to the terminal
+    /// (``writeImmediate(_:)``) rather than with the frame, which goes out
+    /// before the frame does and so must be owed before then. The frame's own
+    /// arm (``endFrame()``) still follows, for what the frame changed.
+    func armHostStateBeforeImmediateWrite() {
+        if hostStateOwedInFrame { armSignalRestore() }
+    }
+
     /// All input bytes that have been drained from stdin but not yet
     /// dispatched as events. Bytes are appended at the back by
     /// ``appendDrain()`` (one `read()` syscall per call) and consumed

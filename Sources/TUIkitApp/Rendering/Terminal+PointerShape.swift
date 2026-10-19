@@ -18,13 +18,16 @@ extension Terminal {
     ///
     /// The first write since the last reset makes the reset owed
     /// (``TerminalHostSetting/isOwed``), and the debt a signal pays is armed
-    /// with it as the ledger changes (``hostState``), before the write goes
-    /// out, so no signal can find a shape set and nothing owed for it.
+    /// with it before the write goes out, so no signal can find a shape set
+    /// and nothing owed for it: as the ledger changes (``hostState``) outside
+    /// a frame, and inside one at once too, since the shape is written ahead
+    /// of the frame, where the ledger's own arm waits for the frame to go out.
     func showPointerShape(_ shape: PointerShape?) {
         guard isRawMode, let host = pointerShapeHost, hostState.pointerShape != nil else { return }
         let wanted = shape.flatMap(host.name(for:))
         guard let bytes = hostState.pointerShape?.update(to: wanted, spelling: PointerShapeHost.sequence(naming:))
         else { return }
+        armHostStateBeforeImmediateWrite()
         writeImmediate(bytes)
     }
 }

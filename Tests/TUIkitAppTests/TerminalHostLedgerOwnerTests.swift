@@ -105,6 +105,26 @@ struct TerminalHostLedgerOwnerTests {
         #expect(armed.contains(PointerShapeHost.reset), "the pointer is raw mode's to put back")
     }
 
+    @Test("Inside a frame a shape is still owed before it is written, as it goes out ahead of the frame")
+    func shapeInsideAFrameArmedBeforeItsWrite() throws {
+        let (terminal, output) = ScriptedTerminalOutput.terminal(environment: Self.ghostty)
+        terminal.enableRawMode()
+        let loop = RenderLoopHarness().loop(TitledApp(), on: terminal)
+        _ = loop.render()
+        output.clear()
+
+        terminal.beginFrame()
+        terminal.showPointerShape(.link)
+        let isShape: (String) -> Bool = { $0 == "\u{1B}]22;pointer\u{1B}\\" }
+        let written = try #require(output.writes.firstIndex(where: isShape), "the shape goes out at once")
+        let owesPointer: (ScriptedTerminalOutput.Arming) -> Bool = {
+            $0.signalDebt.contains(PointerShapeHost.reset + Terminal.inputModesOff)
+        }
+        let arming = try #require(output.armings.first(where: owesPointer), "armed inside the frame")
+        #expect(arming.afterWrites <= written, "owed before the shape is written")
+        terminal.endFrame()
+    }
+
     @Test("A frame that changes nothing the ledger owes arms nothing")
     func unchangedFrameArmsNothing() {
         let (terminal, output) = ScriptedTerminalOutput.terminal(environment: Self.ghostty)
