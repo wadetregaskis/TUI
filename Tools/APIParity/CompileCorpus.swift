@@ -1180,6 +1180,51 @@ private struct TableOutlineShapes: View {
     }
 }
 
+// MARK: - Outlines over a binding to a tree
+
+private struct BindingTreeShapes: View {
+    struct Folder: Identifiable {
+        let id: Int
+        var name: String
+        var children: [Self]?
+    }
+
+    @State private var folders: [Folder] = []
+    @State private var root = Folder(id: 0, name: "root")
+    @State private var selection: Folder.ID?
+    @State private var required: Folder.ID = 0
+    @State private var picked = Set<Folder.ID>()
+
+    var body: some View {
+        VStack {
+            OutlineGroup($folders, children: \.children) { folder in
+                TextField("Name", text: folder.name)
+            }
+            OutlineGroup($root, children: \.children) { Text($0.wrappedValue.name) }
+            OutlineGroup($folders, id: \.id, children: \.children) { Text($0.wrappedValue.name) }
+            OutlineGroup($root, id: \.id, children: \.children) { Text($0.wrappedValue.name) }
+            List($folders, children: \.children) { Text($0.wrappedValue.name) }
+            List($folders, id: \.id, children: \.children) { Text($0.wrappedValue.name) }
+            List($folders, children: \.children, selection: $selection) { Text($0.wrappedValue.name) }
+            List($folders, children: \.children, selection: $picked) { Text($0.wrappedValue.name) }
+            List($folders, children: \.children, selection: $required) { Text($0.wrappedValue.name) }
+            List($folders, id: \.id, children: \.children, selection: $selection) { Text($0.wrappedValue.name) }
+            List($folders, id: \.id, children: \.children, selection: $picked) { Text($0.wrappedValue.name) }
+            List($folders, id: \.id, children: \.children, selection: $required) { Text($0.wrappedValue.name) }
+            List {
+                Text("Mail").badge(3).badgeProminence(.decreased)
+                Section("Inbox") { Text("Unread") }.padding(.leading, 1)
+            }
+            .bold()
+            Picker("Fruit", selection: $required) {
+                Section("Fruit") { Text("Apple").tag(0) }
+                Section { Text("Kale").tag(1) }
+            }
+            .pickerStyle(.menu)
+        }
+    }
+}
+
 private struct PaddedTableStyle: TableStyle {
     func makeBody(configuration: Configuration) -> some View {
         InsetTableStyle().makeBody(configuration: configuration)

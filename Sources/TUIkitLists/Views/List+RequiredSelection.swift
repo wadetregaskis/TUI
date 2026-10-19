@@ -21,8 +21,8 @@ import TUIkitFoundation
 // `SelectionValue` the wrapped type, not the optional) and `$selection` for a
 // `Set` on the multi-selection form; measured against SwiftUI's own
 // overloads (Xcode 26.3, macOS 26.2 SDK). SwiftUI's two forms over a binding
-// to a tree (`List($items, children: …)`) are absent, as their optional and
-// multi-selection twins are.
+// to a tree (`List($items, children: …)`) are in `List+BindingTree.swift`,
+// with their optional and multi-selection twins.
 
 extension List where Footer == EmptyView {
     /// Creates a list with single selection that cannot be emptied.
