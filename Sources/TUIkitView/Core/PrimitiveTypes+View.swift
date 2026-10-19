@@ -154,7 +154,9 @@ extension RenderContext {
                 frameAnimation: frame.canAnimate ? environment.transaction.effectiveAnimation : nil)
         else { return nil }
         declaresDepartureInFlight()
-        return picture
+        // A matched view among what left moves with the one arriving in its
+        // place (`DepartureStore.carrying(_:leftFrom:)`).
+        return store.carrying(picture, leftFrom: identity)
     }
 
     /// The size a departing view of `type` is still holding open here, or

@@ -447,6 +447,22 @@ struct MatchedGeometryEffectTests {
         #expect(end.overlays.flatMap { layerFades($0.content) }.isEmpty, "arrived, and at rest")
     }
 
+    /// SwiftUI carries the view leaving toward the one arriving as it fades
+    /// (`mg3.out` A1, A2). Its picture keeps the size it was — a cell cannot
+    /// be scaled — and is placed in the frame the one arriving is drawn at, as
+    /// a content of its size is placed in a matched frame: a fifth of the way,
+    /// that frame is (4, 1) 5×2, and the leaving 4×1 sits a cell in and down
+    /// (decisions B-O4-1). It used to fade where it was, at (0, 0).
+    @Test("A view removed as another of its id arrives is carried with it while it fades")
+    func leavingViewIsCarried() {
+        let frames = Frames()
+        frames.draw(Hero(expanded: false))
+        frames.draw(Hero(expanded: true), atMillis: 0, animation: .linear(duration: 1))
+        let early = frames.draw(Hero(expanded: true), atMillis: 200)
+        #expect(rect(of: "s", in: early) == CellRect(x: 5, y: 2, width: 4, height: 1), "\(early)")
+        #expect(rect(of: "s", in: frames.draw(Hero(expanded: true), atMillis: 1100)) == nil, "gone once it has played")
+    }
+
     @Test("A chip moving between two columns is carried across, and the columns lay out as they will end")
     func chipBetweenColumns() {
         let frames = Frames()

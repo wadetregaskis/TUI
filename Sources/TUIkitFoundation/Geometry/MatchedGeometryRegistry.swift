@@ -121,6 +121,10 @@ package struct MatchedMemberState {
     /// Where it drew itself, in the global space — filled in once the scene
     /// root has found it.
     package var presented: CellRect?
+    /// The member of its group that left as it arrived, and where that one
+    /// was drawn, while this one is carried from there — so the picture it
+    /// left is carried with it (decisions B-O4-1). `nil` at rest.
+    package var leaving: (identity: ViewIdentity, presented: CellRect)?
 
     package init(
         key: MatchedGeometryKey, followed: ViewIdentity?, epoch: Int, offsets: MatchedEdgeOffsets

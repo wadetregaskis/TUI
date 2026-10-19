@@ -74,6 +74,16 @@ the picture past its slot by the difference (`FrameBuffer.drawnPastSlot`).
 About a day, mostly in `DepartureStore` and `DepartingSlot`, which lane FB16
 is reworking now; best done after it lands.
 
+**Done 2026-10-19 (lane TRANSITIONS2).** A member arriving as another of its
+group leaves notes, on each frame it is carried, how far the one that left
+moves (`DepartureStore.noteCarried`): its picture is placed in the frame the
+arriving one is drawn at, as a content of its size is placed in a matched
+frame, so the two move together. Whatever plays the removal — the `nil` an
+`if` became, the stack that saw a branch or a row go (decisions
+B-TRANSITIONS2-1), a conditional drawn whole — draws the picture past its
+place by that much. A picture drawn before the arriving member has drawn
+takes the last frame's carry.
+
 ### B-O4-2. A transition fades a member where it is laid out, not where it is drawn
 
 *`View.matchedGeometryEffect(id:in:properties:anchor:isSource:)`, `AnyTransition.opacity`*

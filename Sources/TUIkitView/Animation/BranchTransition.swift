@@ -196,7 +196,10 @@ private struct BranchAnimator {
             if var picture = picture(of: leaving) {
                 // What is leaving takes no clicks, and is not where anything is.
                 picture.hitTestRegions = []
-                let past = picture.drawnPastSlot(width: 0, height: 0, offsetX: 0, offsetY: 0)
+                // Where a matched view in it is carried, with the one
+                // arriving in its place (`DepartureStore.carrying`).
+                let carry = storage.departures.carriedOffset(within: identity(ofBranch: leaving.isTrueBranch))
+                let past = picture.drawnPastSlot(width: 0, height: 0, offsetX: carry?.x ?? 0, offsetY: carry?.y ?? 0)
                 drawn.overlays = past.overlays + drawn.overlays
             } else {
                 record.leaving = nil

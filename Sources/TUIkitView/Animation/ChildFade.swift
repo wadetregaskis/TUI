@@ -179,17 +179,26 @@ struct ChildFade {
                 let value = animations.value(
                     for: key, target: 0.0, animation: animation, nowNanos: nowNanos, isMeasuring: false)
                 guard animations.isAnimating(at: key, nowNanos: nowNanos) else { continue }
-                drawn.append((DefaultTransition.faded(picture, by: min(1, max(0, value))), leaver.placement, leaver.zIndex))
+                let faded = DefaultTransition.faded(picture, by: min(1, max(0, value)))
+                drawn.append((carried(faded, leaver), leaver.placement, leaver.zIndex))
             case .playing(let identity, let type):
                 guard
                     let picture = storage.departures.departing(
                         at: identity, ofType: type, nowNanos: nowNanos, frameAnimation: animation)
                 else { continue }
-                drawn.append((picture, leaver.placement, leaver.zIndex))
+                drawn.append((carried(picture, leaver), leaver.placement, leaver.zIndex))
             }
             still.append(leaver)
         }
         leaving = still
         return drawn
+    }
+
+    /// `picture` of `leaver` where it is carried: a matched view among what
+    /// left moves with the one arriving in its place
+    /// (`DepartureStore.carrying(_:leftFrom:)`).
+    private func carried(_ picture: FrameBuffer, _ leaver: LeavingChild) -> FrameBuffer {
+        let departures = storage.departures
+        return departures.carrying(picture, leftFrom: leaver.step.identity(under: context.identity))
     }
 }

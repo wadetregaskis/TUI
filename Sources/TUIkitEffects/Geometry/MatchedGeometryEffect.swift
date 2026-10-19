@@ -111,10 +111,13 @@ extension View {
     ///   scale a cell (`mg3.out`). A source that its parent moves is not animated by this
     ///   effect: that is the layout's own animation, and its followers follow
     ///   it frame by frame. Under reduce motion the change is drawn at once.
-    /// - **A removed view stays where it was** while its removal transition
-    ///   plays, rather than moving toward the inserted one as SwiftUI's does:
-    ///   what a removed view draws is the picture it last drew
-    ///   (Deliberate deviations A3, A8).
+    /// - **A removed view is carried with the inserted one** while its
+    ///   removal transition plays, as SwiftUI's is (`mg3.out` A1, A2): the
+    ///   picture it last drew — the size it was, since a removed view no longer
+    ///   exists to lay out again (Deliberate deviations A3, A8) — is placed in
+    ///   the frame the inserted one is drawn at on each frame, as a content of
+    ///   its size is placed in a matched frame, a whole cell at a time. A fade
+    ///   reaches both as they move.
     ///
     /// - Parameters:
     ///   - id: The identifier, often derived from the identifier of the data
@@ -205,6 +208,7 @@ extension _MatchedGeometryEffectView: Renderable, Layoutable {
                 drawn = placed(
                     own, at: frame, member: &member, checkpoint: checkpoint, context: context)
             }
+            carryLeaving(of: member, to: frame, departures: storage.departures)
         }
 
         if isSource { member.registration.expectedOrigin = ask.expectedOrigin(in: .global) }
@@ -243,6 +247,21 @@ extension _MatchedGeometryEffectView: Renderable, Layoutable {
             return picture.drawnPastSlot(width: ownFrame.width, height: ownFrame.height, offsetX: dx, offsetY: dy)
         }
         return Self.floating(picture, by: dx, dy, from: ownFrame.size)
+    }
+
+    /// Tells the departure store how far the member of the group that left as
+    /// this one arrived is carried on this frame: its picture is placed in
+    /// the frame this one is drawn at, as a content of its size is placed in a
+    /// matched frame (``MatchedGeometryPlacement/contentOffset(in:content:anchor:matchesPosition:)``),
+    /// so the two move together as SwiftUI's do (`mg3.out` A1, A2), and the
+    /// picture fades where they are (decisions B-O4-1). The picture is the one
+    /// it last drew, so it keeps its size: a cell cannot be scaled.
+    private func carryLeaving(of member: MatchedMemberDrawing, to frame: CellRect, departures: DepartureStore) {
+        guard member.isCarried, let leaving = member.registration.state.leaving else { return }
+        let left = leaving.presented
+        let inside = MatchedGeometryPlacement.contentOffset(
+            in: frame.size, content: left.size, anchor: anchor, matchesPosition: member.matchesPosition)
+        departures.noteCarried(leaving.identity, byX: frame.x + inside.x - left.x, y: frame.y + inside.y - left.y)
     }
 
     /// `picture` drawn `(dx, dy)` from a footprint of `size`, floating over
@@ -303,6 +322,7 @@ private struct MatchedMemberDrawing {
             state: MatchedMemberState(
                 key: key, followed: source?.identity, epoch: previous?.epoch ?? 0,
                 offsets: previous?.offsets ?? .zero))
+        registration.state.leaving = previous?.leaving
         registration.followed = source
         if !effect.isSource {
             // A follower is carried when what it follows changes: its id, or
@@ -313,9 +333,11 @@ private struct MatchedMemberDrawing {
                 startsFrom = nil
             }
         } else if !registry.wasMember(identity, of: key), let departed = registry.departed(from: key, arriving: identity) {
-            // A source arriving as another of its group leaves.
+            // A source arriving as another of its group leaves, which is
+            // carried with it.
             startsFrom = departed.presented
             registration.assumedDeparted = departed.identity
+            registration.state.leaving = (departed.identity, departed.presented)
         } else {
             startsFrom = nil
         }
@@ -360,7 +382,10 @@ private struct MatchedMemberDrawing {
             registration.state.epoch += 1
             registration.state.offsets = MatchedEdgeOffsets(from: startsFrom, to: target)
         }
-        guard !registration.state.offsets.isZero else { return target }
+        guard !registration.state.offsets.isZero else {
+            registration.state.leaving = nil
+            return target
+        }
         // Under the member's own wrapper type, as its state is kept: two
         // effects on one view run apart.
         let key = AnimationStore.Key(
@@ -374,6 +399,7 @@ private struct MatchedMemberDrawing {
             isMeasuring: false)
         guard animations.isAnimating(at: key, nowNanos: now) else {
             registration.state.offsets = .zero
+            registration.state.leaving = nil
             return target
         }
         return registration.state.offsets.applied(to: target, remaining: 1 - phase)

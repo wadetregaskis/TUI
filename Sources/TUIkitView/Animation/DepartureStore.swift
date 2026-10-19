@@ -117,6 +117,13 @@ public final class DepartureStore: @unchecked Sendable {
 
     private var entries: [ViewIdentity: Entry] = [:]
 
+    /// How far the matched view that left from each identity is carried on
+    /// this pass, toward the one of its group arriving as it left
+    /// (``noteCarried(_:byX:y:)``), and on the pass before — kept a pass, for
+    /// a picture drawn before the view arriving has said where it is.
+    private var carried: [ViewIdentity: (x: Int, y: Int)] = [:]
+    private var carriedLastPass: [ViewIdentity: (x: Int, y: Int)] = [:]
+
     /// Where a removal starting is reported, for the completions waiting on
     /// the change that removed the view — see ``AnimationCompletionTracker``.
     /// Wired by the ``StateStorage`` that owns both.
@@ -426,6 +433,44 @@ extension DepartureStore {
         for key in entries.keys {
             entries[key]?.presentThisPass = false
         }
+        if !carried.isEmpty || !carriedLastPass.isEmpty {
+            carriedLastPass = carried
+            carried.removeAll()
+        }
+    }
+
+    /// Notes that the matched view that drew at `member` and has left is
+    /// carried `(dx, dy)` from where it was this pass: the member of its
+    /// group that arrived as it left is carried from its frame toward its
+    /// own, and SwiftUI moves the one leaving with it (measured,
+    /// `Tools/SwiftUIProbes/Matched geometry/mg3.out` A1, A2). Said by the
+    /// member arriving, on each frame it is carried (decisions B-O4-1).
+    package func noteCarried(_ member: ViewIdentity, byX dx: Int, y dy: Int) {
+        carried[member] = (dx, dy)
+    }
+
+    /// How far the picture of a view leaving from `identity` is carried: the
+    /// carry noted for a matched view that left from `identity` or from
+    /// inside it, this pass or — drawn before the view arriving said — the
+    /// one before; `nil` where nothing it held is carried.
+    package func carriedOffset(within identity: ViewIdentity) -> (x: Int, y: Int)? {
+        guard !carried.isEmpty || !carriedLastPass.isEmpty else { return nil }
+        func within(_ notes: [ViewIdentity: (x: Int, y: Int)]) -> (x: Int, y: Int)? {
+            if let exact = notes[identity] { return exact }
+            return notes.first { identity.isAncestor(of: $0.key) }?.value
+        }
+        return within(carried) ?? within(carriedLastPass)
+    }
+
+    /// `picture`, left by a view leaving from `identity`, drawn where it is
+    /// carried: past its own frame by the carry noted for what it held, or
+    /// as it was.
+    package func carrying(_ picture: FrameBuffer, leftFrom identity: ViewIdentity) -> FrameBuffer {
+        guard let (dx, dy) = carriedOffset(within: identity), dx != 0 || dy != 0 else { return picture }
+        var moved = picture
+        // What is leaving takes no clicks, and is not where anything is.
+        moved.hitTestRegions = []
+        return moved.drawnPastSlot(width: picture.width, height: picture.lines.count, offsetX: dx, offsetY: dy)
     }
 
     /// Ends a pass: drops the entries of views that vanished without anything
@@ -455,5 +500,7 @@ extension DepartureStore {
     /// Drops everything.
     public func removeAll() {
         entries.removeAll()
+        carried.removeAll()
+        carriedLastPass.removeAll()
     }
 }
