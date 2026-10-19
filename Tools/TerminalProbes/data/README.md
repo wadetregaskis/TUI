@@ -3,7 +3,7 @@
 Written by a probe and never by hand. These are the evidence behind the
 tables in `Documentation/Terminals/Terminal compatibility survey.md`. The doc explains what
 the numbers *mean*; these say who measured what, when, and under which
-conditions. Thirteen kinds of file live here:
+conditions. Fifteen kinds of file live here:
 
 - **`width-corpus.json`** — the shared cluster corpus: every cluster the
   probes measure and the Swift tests ask about, one id per row, duplicated
