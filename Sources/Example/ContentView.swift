@@ -199,23 +199,13 @@ struct ContentView: View {
                     }
                     return false
                 case .f2:
-                    // Load the next built-in preset into the app palette. Function
-                    // keys are used (not a letter) so the shortcut works on EVERY
-                    // page without colliding with TextField / SecureField input.
-                    // From the palette on SCREEN, not from this view's own
-                    // cursor: the Theme page's picker changes the palette
-                    // without touching `presetIndex`, after which F2 advanced
-                    // from a stale cursor — a visible no-op, or a jump back.
-                    // A customised palette matches no preset; then the cursor
-                    // is the best answer left.
-                    let current = PaletteRegistry.all.firstIndex { $0.id == palette.id } ?? presetIndex
-                    presetIndex = (current + 1) % PaletteRegistry.all.count
-                    palette = CustomizablePalette(from: PaletteRegistry.all[presetIndex])
+                    // Function keys are used (not a letter) so the shortcut
+                    // works on EVERY page without colliding with TextField /
+                    // SecureField input.
+                    nextPalette()
                     return true
                 case .f3:
-                    // Cycle the border appearance globally. `@Environment`
-                    // resolves correctly inside this handler.
-                    appearanceManager?.cycleNext()
+                    nextBorder()
                     return true
                 default:
                     return false
@@ -229,6 +219,33 @@ struct ContentView: View {
                 ToolbarItem(placement: .primaryAction) { DemoVersionInfo() }
                 ToolbarItem(placement: .bottomBar) { StatusBar() }
             }
+            // What the menu bar's commands act on (`ExampleCommands`): the
+            // page, and what F2 and F3 do — published for the scene, so the
+            // commands see them wherever the focus is.
+            .focusedSceneValue(\.examplePage, pageSetter)
+            .focusedSceneValue(
+                \.exampleThemeActions, ExampleThemeActions(nextPalette: nextPalette, nextBorder: nextBorder))
+    }
+
+    /// Loads the next built-in preset into the app palette: F2, and the View
+    /// menu's Next Palette.
+    ///
+    /// From the palette on SCREEN, not from this view's own cursor: the Theme
+    /// page's picker changes the palette without touching `presetIndex`, after
+    /// which F2 advanced from a stale cursor — a visible no-op, or a jump back.
+    /// A customised palette matches no preset; then the cursor is the best
+    /// answer left.
+    private func nextPalette() {
+        let current = PaletteRegistry.all.firstIndex { $0.id == palette.id } ?? presetIndex
+        presetIndex = (current + 1) % PaletteRegistry.all.count
+        palette = CustomizablePalette(from: PaletteRegistry.all[presetIndex])
+    }
+
+    /// Cycles the border appearance globally: F3, and the View menu's Next
+    /// Border Style. `@Environment` resolves correctly inside the handlers
+    /// that call it.
+    private func nextBorder() {
+        appearanceManager?.cycleNext()
     }
 
     @ViewBuilder

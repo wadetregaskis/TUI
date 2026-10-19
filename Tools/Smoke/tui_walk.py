@@ -216,8 +216,16 @@ def main() -> int:
 
     def title() -> str:
         """The title row: the menu's own while the menu shows, a page's while
-        one does — what says which of the two the app is showing."""
-        return screen.display[1]
+        one does — what says which of the two the app is showing.
+
+        The top bar's first row of content: the row under its box's top wall,
+        which is the screen's second row, or its third where a menu bar takes
+        the first (the Example declares commands)."""
+        rows = screen.display
+        for index in range(min(3, len(rows) - 1)):
+            if rows[index].lstrip().startswith("╭"):
+                return rows[index + 1]
+        return rows[1]
 
     def waited(condition, since: float, timeout: float = None) -> tuple:
         """Polls `condition` to the paint deadline (or `timeout`): whether it

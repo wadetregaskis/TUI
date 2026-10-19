@@ -186,6 +186,10 @@ struct MenusPage: View {
                         "page.menus.typed", editor.isEmpty ? "—" : editor)
                 }
             }
+            DemoSection("page.menus.menuBarSection") {
+                Text("page.menus.menuBarInstruction")
+                    .foregroundStyle(.palette.foregroundSecondary)
+            }
         }
     }
 }
