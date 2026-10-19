@@ -117,7 +117,11 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // width when borderless), matching render.
         let hasBorder = style.hasBorder
         var innerContext = base.forBorderedContent(hasBorder: hasBorder)
-        innerContext.environment.focusIndicator = nil
+        // Cleared only where one is set, as `consumeSheetSize()` clears its
+        // values: a write copies the whole environment, which the context
+        // shares with its parent's (`deep`: 1.0% of a frame, one copy per
+        // box measured, almost never with an indicator to clear).
+        if innerContext.environment.focusIndicator != nil { innerContext.environment.focusIndicator = nil }
         // A detented sheet's height belongs to the box, and to this box only —
         // see ``EnvironmentValues/sheetDetentHeight``. Consumed here so a
         // nested container does not stretch to the sheet's height as well.
@@ -291,9 +295,10 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // Padding width reduction is handled by PaddingModifier.adjustContext.
         var innerContext = context.forBorderedContent(hasBorder: hasBorder)
 
-        // Consume focus indicator so nested containers don't also show it.
+        // Consume focus indicator so nested containers don't also show it —
+        // where there is one (see `sizeThatFits`).
         let indicator = context.environment.focusIndicator
-        innerContext.environment.focusIndicator = nil
+        if indicator != nil { innerContext.environment.focusIndicator = nil }
         // Likewise the sheet detent's height: this box takes it, its children
         // do not (see ``EnvironmentValues/sheetDetentHeight``).
         let sheetHeight = context.environment.sheetDetentHeight.map {
