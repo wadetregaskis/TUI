@@ -158,8 +158,12 @@ struct TerminalLedgerConformanceTests {
     ///
     /// It was empty from 2026-08-28 — when Screen Recording was restored and
     /// all four hosts were measured over the whole corpus — until 2026-09-04,
-    /// when the complex-script rows were added. Every id below is one of those:
-    /// a cluster the corpus can now ask about and no terminal has yet answered.
+    /// when the complex-script rows were added. Every id below is one of those
+    /// or a chrome glyph: a cluster the corpus can now ask about and no landing
+    /// record has measured. The advance records have the complex-script rows
+    /// (every host's primary screen on 2026-09-04, and Ghostty's two screens on
+    /// 2026-10-19), but an advance is one of a row's four facts, and this
+    /// ledger reads the records that have all four.
     /// Listed explicitly so a missing measurement cannot look like a pass:
     /// ``ledgerCoversTheCorpus`` fails for a row that is absent from a ledger
     /// AND absent from this list, and fails the other way when a measured row
@@ -175,8 +179,9 @@ struct TerminalLedgerConformanceTests {
     /// ```
     ///
     /// run inside each host. Until then ``ComplexScriptWidthTests`` records
-    /// what each of the two width rules claims about these rows, and which of
-    /// them disagree — the disagreements are what a measurement settles.
+    /// what each of the two width rules claims about these rows and which of
+    /// them disagree, and asserts that the claim is the advance Ghostty
+    /// measured with mode 2027 set. What a landing record adds is the paint.
     static let awaitingLandingMeasurement: Set<String> = [
         "fullwidth_latin_a", "combining_stack",
         "conjunct_deva_ksha", "conjunct_deva_stra", "conjunct_deva_shtra",
@@ -209,7 +214,8 @@ struct TerminalLedgerConformanceTests {
         "chrome_full_block", "chrome_left_half", "chrome_right_half", "chrome_shade",
         "chrome_box_h", "chrome_box_v",
         // The keyboard symbols added 2026-10-05, when the keys took macOS's
-        // symbols. Not even their advance is in a record yet (see
+        // symbols. Their advance is in Ghostty's record since 2026-10-19 and in
+        // no other host's yet (see
         // `ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement`).
         "key_return_hook", "key_home", "key_end", "key_page_up", "key_page_down",
         // The drop-operation badges added 2026-10-13 (decisions B10): their

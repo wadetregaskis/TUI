@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUIkitCore
@@ -33,20 +34,36 @@ import TUIkitWidthCorpus
 /// for the same text, and which one a caller gets depends only on whether the
 /// standard library fused it — nothing about the terminal.
 ///
-/// **No host has been measured on any of this**, so this suite does not pick a
-/// winner. It records what each rule claims today, asserts they agree where
-/// they agree, and wraps the disagreements in `withKnownIssue` — which fails if
-/// the divergence silently disappears just as loudly as a new one fails
-/// ``rulesAgreeExceptWhereRecorded``. Either direction of a quiet change is a
-/// test failure; only a measurement licenses an intentional one.
+/// ## What the hosts measured
+///
+/// The answer is the host's, not one rule's. Ghostty 1.3.1 with DEC mode 2027
+/// set — a host that clusters graphemes — advances every row here by the
+/// cluster rule's number, the five disagreements included, on both screens
+/// (2026-10-19; its primary screen gave the same on 2026-09-04).
+/// ``claimIsGhosttysMeasuredAdvance(row:)`` asserts that from the records.
+/// The hosts that advance per code point — Apple Terminal 455.1, iTerm2 3.6.11
+/// and Warp v0.2026.09.02, on the primary screen on 2026-09-04 — gave the
+/// three conjuncts the per-scalar numbers, and split on the jamo.
+///
+/// So the claim, which is the cluster rule's on every host, is measured right
+/// on a host that clusters graphemes and a cell or two short on those three,
+/// and nothing models that yet. The disagreements therefore stay pinned two
+/// ways in `withKnownIssue`, which fails if a divergence silently disappears
+/// just as loudly as a new one fails ``rulesAgreeExceptWhereRecorded``: a
+/// change would be a per-host trait, and what it would rest on — the paint
+/// (`landing_probe.py`) on every host, and the advance on the alternate screen
+/// of the three per-code-point hosts — is unmeasured. The per-host numbers are
+/// in `Documentation/Terminals/Terminal compatibility survey.md`, "Complex
+/// scripts".
 ///
 /// - Note: The direction of the error is not the same for every disagreement,
 ///   which is exactly why "make one rule call the other" is not the fix. For a
-///   three-consonant conjunct the cluster rule's 2 is the suspect number (a
-///   wcwidth-per-codepoint host advances 3). For decomposed Hangul the cluster
-///   rule's 2 is almost certainly right — 한 is two cells however it is spelled
-///   — and the per-scalar rule's 3 and 4 are the suspect ones, because it
-///   prices the conjoining V and T jamo at 1 each where `wcwidth` gives
+///   three-consonant conjunct the cluster rule's 2 is right on a host that
+///   clusters graphemes and short on one that advances per code point, which
+///   measured 3 (4 for स्त्री). For decomposed Hangul the cluster rule's 2 is
+///   what three of the four hosts advance — 한 is two cells however it is
+///   spelled — and the per-scalar rule's 3 and 4 are the suspect ones, because
+///   it prices the conjoining V and T jamo at 1 each where `wcwidth` gives
 ///   U+1160…U+11FF zero.
 @Suite("Complex script widths")
 struct ComplexScriptWidthTests {
@@ -211,9 +228,10 @@ struct ComplexScriptWidthTests {
     ///
     /// A `withKnownIssue` fails when the issue does NOT occur, so this is a
     /// two-way pin: a sixth divergence fails here, and any of the five quietly
-    /// resolving fails here too. Neither may happen without a measurement,
-    /// because 2 and 3 (and 2 and 4) cannot both be right and nothing has yet
-    /// asked a terminal which is.
+    /// resolving fails here too. The hosts measured say 2 and 3 (and 2 and 4)
+    /// are each right somewhere — 2 where graphemes are clustered, the
+    /// per-scalar number for a conjunct where they are not — so neither rule
+    /// may simply become the other (the suite's "What the hosts measured").
     @Test("The cluster rule and the per-scalar rule agree, except where recorded",
           arguments: rows)
     func rulesAgreeExceptWhereRecorded(row: Row) throws {
@@ -222,10 +240,14 @@ struct ComplexScriptWidthTests {
             withKnownIssue(
                 """
                 \(row.id) (\(entry.codepoints)): the cluster rule says \(row.cluster), \
-                the per-scalar rule \(row.perScalar). Settle it by measuring the row — \
-                `advance_probe.py` for the internal column, `landing_probe.py` + \
-                `landing_analyze.py` for the paint — on each host in \
-                Documentation/Terminals/Terminal compatibility survey.md, and only then change a rule.
+                the per-scalar rule \(row.perScalar). Measured: a host that clusters \
+                graphemes (Ghostty 1.3.1, mode 2027 set) advances the cluster rule's \
+                number on both screens (claimIsGhosttysMeasuredAdvance); the hosts that \
+                advance per code point gave the conjuncts the per-scalar number on the \
+                primary screen. Still unmeasured: the paint (`landing_probe.py` + \
+                `landing_analyze.py`) on every host, and those hosts' alternate screen. \
+                Change a rule only as a per-host trait, from both — see "Complex scripts" \
+                in Documentation/Terminals/Terminal compatibility survey.md.
                 """,
                 isIntermittent: false
             ) {
@@ -236,14 +258,70 @@ struct ComplexScriptWidthTests {
         }
     }
 
-    // MARK: - The rows are known to be unmeasured
+    // MARK: - What a host that clusters graphemes measured
+
+    /// Ghostty's advance records, one per screen, read rather than restated:
+    /// a re-run on a new version updates the assertion instead of dating it.
+    private static let ghosttyRecords: [(file: String, record: AdvanceRecord)] = {
+        let directory = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()  // TUIkitAppTests/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // repository root
+            .appendingPathComponent("Tools/TerminalProbes/data")
+        return ["ghostty-1.3.1-advance.json", "ghostty-1.3.1-alternate.json"].map { file in
+            let url = directory.appendingPathComponent(file)
+            guard let data = try? Data(contentsOf: url),
+                let record = try? JSONDecoder().decode(AdvanceRecord.self, from: data)
+            else {
+                // A missing record is not a skipped test: "not measured" must
+                // not look like "measured and fine".
+                fatalError("Cannot read the advance record \(url.path)")
+            }
+            return (file, record)
+        }
+    }()
+
+    /// The part of the question a measurement has settled: on a host that
+    /// clusters graphemes, the claim is what the terminal advances, for every
+    /// row — the five where the two rules disagree included, each of which
+    /// Ghostty advanced by the cluster rule's number.
+    ///
+    /// Only with mode 2027 set: reset, Ghostty advances per code point and
+    /// moves six of eleven emoji classes (the survey's "Ghostty's model is
+    /// conditional on mode 2027"), so a record taken that way would be asking
+    /// another question, and fails here instead of being read as this one.
+    /// Asked under Ghostty's own traits, the claim its users get.
+    @Test("On a host that clusters graphemes, the claim is the measured advance", arguments: rows)
+    func claimIsGhosttysMeasuredAdvance(row: Row) throws {
+        let entry = try Self.entry(for: row)
+        let claim = TerminalWidthTraits.withTraits(TerminalClient.widthTraits(of: .ghostty)) {
+            entry.character.terminalWidth
+        }
+        for (file, record) in Self.ghosttyRecords {
+            #expect(
+                record.stamp.graphemeClustering == "set",
+                "\(file) was taken with mode 2027 \(record.stamp.graphemeClustering ?? "unread")")
+            let measured = try #require(
+                record.advances[row.id]?.advance, "\(file) has no advance for \(row.id)")
+            #expect(
+                claim == measured,
+                """
+                \(row.id) (\(entry.codepoints)): claimed \(claim), Ghostty advanced \(measured) \
+                on the \(record.stamp.screen) screen (\(file))
+                """)
+        }
+    }
+
+    // MARK: - The rows' paint is known to be unmeasured
 
     /// Until a landing record measures a row, its absence must be recorded
-    /// rather than invisible — otherwise "no terminal has been asked" reads
+    /// rather than invisible — otherwise "no landing record has it" reads
     /// exactly like "every model passes", which is the failure mode
     /// ``TerminalLedgerConformanceTests/awaitingLandingMeasurement`` exists to
     /// prevent. This is the other end of that: a row this suite reasons about
-    /// is either measured somewhere or listed there.
+    /// is either measured somewhere or listed there. (Its advance is in the
+    /// advance records, and ``claimIsGhosttysMeasuredAdvance(row:)`` reads
+    /// Ghostty's; a landing record adds the paint.)
     @Test("Every complex-script row is measured, or recorded as awaiting measurement",
           arguments: rows)
     func rowIsMeasuredOrRecordedAsAwaiting(row: Row) {
@@ -302,9 +380,13 @@ struct ComplexScriptWidthTests {
     /// rule 2, per-scalar 3) — so the word claims four cells while its scalars
     /// price five.
     ///
-    /// Whichever number is right, every column after this word on a row is
-    /// placed by the claim, so a wrong claim shears the rest of the row by one
-    /// cell per such cluster and clips a truncation one cell late.
+    /// Which number is right is the host's: `conjunct_deva_shtra` advanced 2
+    /// on Ghostty with mode 2027 set (both screens, 2026-10-19) and 3 on the
+    /// three hosts that advance per code point (primary screen, 2026-09-04).
+    /// `रा` is no corpus row, so the word itself is unmeasured. Every column
+    /// after this word on a row is placed by the claim, so on a host whose
+    /// advance is wider it shears the rest of the row by one cell per such
+    /// cluster and clips a truncation one cell late.
     @Test("A word of two conjunct clusters carries the divergence")
     func wordCarriesTheDivergence() {
         let word = "\u{930}\u{93E}\u{937}\u{94D}\u{91F}\u{94D}\u{930}"  // राष्ट्र
@@ -314,8 +396,11 @@ struct ComplexScriptWidthTests {
             #expect(perScalar == 5)
             withKnownIssue(
                 """
-                राष्ट्र claims 4 cells (रा 2 + ष्ट्र 2) against a per-scalar 5. Measure \
-                `conjunct_deva_shtra` before changing either number.
+                राष्ट्र claims 4 cells (रा 2 + ष्ट्र 2) against a per-scalar 5. \
+                `conjunct_deva_shtra` is measured: Ghostty 1.3.1 with mode 2027 set \
+                advances it 2, the hosts that advance per code point 3 (primary screen \
+                only). The paint is unmeasured on every host; change either number \
+                only as a per-host trait.
                 """,
                 isIntermittent: false
             ) {
@@ -324,4 +409,28 @@ struct ComplexScriptWidthTests {
             #expect(word.strippedLength == 4, "the claim the layout uses today")
         }
     }
+}
+
+// MARK: - Reading an advance record
+
+/// As much of an `advance_probe.py` record as ``ComplexScriptWidthTests``
+/// reads. At file scope rather than inside the suite, which would nest its
+/// coding keys one level deeper than the project allows.
+private struct AdvanceRecord: Decodable {
+    struct Stamp: Decodable {
+        let screen: String
+        /// What DECRQM said of mode 2027 before the run: `set`, `reset`, or why
+        /// it was not asked.
+        let graphemeClustering: String?
+
+        enum CodingKeys: String, CodingKey {
+            case screen
+            case graphemeClustering = "mode_2027_grapheme_clustering"
+        }
+    }
+
+    struct Advance: Decodable { let advance: Int }
+
+    let stamp: Stamp
+    let advances: [String: Advance]
 }

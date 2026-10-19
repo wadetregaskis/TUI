@@ -7288,7 +7288,10 @@ The framework therefore contains two answers for the same text, and which one
 you get depends only on whether the standard library fused it — nothing about
 the host. `ComplexScriptWidthTests` records both numbers for every new row and
 wraps the disagreements in `withKnownIssue`, so they are visible in every test
-run and neither answer can quietly become the other.
+run and neither answer can quietly become the other. Since 2026-10-19 it also
+asserts that the claim is Ghostty's measured advance for every one of the 38
+rows, on both screens, from the records — and that each record was taken with
+mode 2027 set.
 
 **Five of the 38 rows disagree, and not all in the same direction.** Asking
 every new row rather than only the Indic ones turned up a second divergence
