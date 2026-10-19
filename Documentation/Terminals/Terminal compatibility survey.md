@@ -5935,9 +5935,10 @@ ahead of the first event.
 
 ## Pointer shapes (OSC 22)
 
-**Status: sent since 2026-10-19 where a host DOCUMENTS it; the shape is
-UNMEASURED on every host, and `Tools/TerminalProbes/pointer_shape_card.py`
-awaits the owner's reading.**
+**Status: sent since 2026-10-19 where a host DOCUMENTS it. iTerm2 3.7.6's
+names MEASURED 2026-10-19 (its reset still unread); every other host
+UNMEASURED, and `Tools/TerminalProbes/pointer_shape_card.py` awaits the
+owner's reading of each.**
 
 **What TUIkit does.** `View.pointerStyle(_:)` files a region the size of its
 view with the style's shape. After every batch of input, and after every
@@ -5967,7 +5968,7 @@ documentation and its source (copies under the lane's notes, `O12/docs`):
 | Ghostty | 1.0.0 (its VT reference) | CSS, and xterm's X11 names as aliases (`mouse.zig`) | `default`: an empty name is ignored before its `mouse_shape_reset` | any mouse mode set gives the arrow, any reset the I-beam (`stream_handler.zig`); an empty name gives one of those (newer releases) | `TERM_PROGRAM=ghostty` with its version, or `TERM=xterm-ghostty` | UNMEASURED |
 | kitty | 0.31.0 (its pointer-shapes page) | CSS (thirty) | empty | empty; a stack per screen, so leaving the alternate screen leaves its shapes behind | `TERM=xterm-kitty`, or `KITTY_WINDOW_ID` where no other terminal is named (every program a shell starts inherits it) | UNMEASURED |
 | foot | 1.12.0 (its changelog) | CSS, X11 fallbacks | empty | empty | `TERM=foot`, `foot-…` | UNMEASURED |
-| iTerm2 | 3.5.0, the table unchanged to 3.6.11 (`PTYSession.screenSetPointerShape`) | nineteen X11 names; no open or closed hand, zoom, vertical I-beam or diagonal | empty | empty (an unknown name is its own pointer) | `TERM_PROGRAM=iTerm.app` or `LC_TERMINAL=iTerm2`, with the version beside it | UNMEASURED |
+| iTerm2 | 3.5.0, the table unchanged to 3.6.11 (`PTYSession.screenSetPointerShape`) | nineteen X11 names; no open or closed hand, zoom, vertical I-beam or diagonal | empty | empty (an unknown name is its own pointer) | `TERM_PROGRAM=iTerm.app` or `LC_TERMINAL=iTerm2`, with the version beside it | 3.7.6, 2026-10-19: every name draws; a new shape shows only after a click; the reset UNREAD (below) |
 | xterm | patch #367 (its changelog) | the X11 cursor font | empty | empty: the `pointerShape` resource's default | `XTERM_VERSION`, where no other terminal is named | UNMEASURED |
 | Apple Terminal | — | documents none | — | — | not sent | — |
 | Warp | — | documents none | — | — | not sent | — |
@@ -5992,6 +5993,28 @@ needs) and a suspend. Its reading, per host, belongs in this section; a host
 whose reset reads clean turns on TUIkit's own controls' shapes there
 (`PointerShapeHost.resetIsMeasured`). `pointerVisibility(_:)` stays refused
 unless the card shows a name that hides the pointer.
+
+**iTerm2 3.7.6, 2026-10-19** (the card, which took iTerm2's names from the
+environment, read by the owner on this machine, primary screen, macOS
+15.8.1):
+
+- **Every box with an iTerm2 name drew its shape**: the twelve the table
+  gives one, `arrow`, `xterm`, `hand2`, the four single arrows, the two
+  double arrows (for a column, a row and a frame's top edge both ways) and
+  `crosshair`.
+- **Every box without one showed iTerm2's own pointer**, the I-beam over its
+  text: `.verticalText`, `.grabIdle`, `.grabActive`, `.zoomIn`, `.zoomOut`
+  and the three diagonal frame boxes. That is the empty name doing what the
+  table says it does, and what TUIkit sends for a style a host has no name
+  for. (`.horizontalText` shows the I-beam too, as its own name, `xterm`.)
+- **A new shape showed only after a click in the window**, even with the
+  window frontmost and focused: moving onto a box was not enough. So on
+  iTerm2 a style's shape appears under a resting pointer only once the
+  person clicks; TUIkit's sequence is the same as to every other host, and
+  nothing it can send was found to make iTerm2 show the shape sooner.
+- The ways out (`q`, `1`–`3`), the mode change (`m`) and the suspend (`z`)
+  are unread, so iTerm2's reset is not yet measured and TUIkit's own
+  controls' shapes stay off there.
 
 ## Focus reporting (mode 1004)
 
