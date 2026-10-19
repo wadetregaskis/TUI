@@ -3912,6 +3912,9 @@ private struct CorpusShadowedStyles: View {
             Text("Pressed").padding().background(.blue.shadow(.inner(radius: 1, x: 1, y: 1)))
             Text("Raised").foregroundStyle(.white.shadow(.drop(radius: 0, x: 1, y: 1)))
             Text("Well").padding().background().backgroundStyle(.shadow(.inner(radius: 2)))
+            Rectangle().fill(.image(Image(.file("tile.png")), sourceRect: CGRect(x: 0, y: 0, width: 0.5, height: 1), scale: 0.5))
+            Circle().fill(ImagePaint(image: Image(.file("tile.png")), scale: 2))
+            Text("Grain").foregroundStyle(ImagePaint(image: Image(.file("grain.png"))))
         }
     }
 }

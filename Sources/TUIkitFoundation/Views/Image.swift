@@ -92,7 +92,7 @@ public struct Image: View {
     ///
     /// They share nothing but the name: one is decoded, resampled and converted
     /// to coloured cells, the other is a single character looked up in a table.
-    package enum Content: Equatable {
+    package enum Content: Equatable, Sendable {
         /// A raster image: the picture the bitmap path made (``_ImageRaster``)
         /// from a file, a URL, a bundle or pixels already decoded.
         case raster(any _ImageRaster)
@@ -195,3 +195,10 @@ extension Image: @preconcurrency Equatable {
         return lhs.resizing == rhs.resizing
     }
 }
+
+// MARK: - Sendable
+
+/// An image is a value — a picture's source or a symbol's name, and what its
+/// own modifiers asked — so it crosses isolation as SwiftUI's does, which is
+/// what lets an ``ImagePaint`` holding one be a style.
+extension Image: Sendable {}

@@ -122,6 +122,41 @@ Where the measurement did not reach:
 included — a change to how every hit area is found, which TUIkit's
 frame-as-hit-area rule does not ask for. No price until a port needs it.
 
+### B-W1B-4. An image paint is sampled cell by cell, and paints nothing until its picture is there
+
+*`ImagePaint`, `ShapeStyle.image(_:sourceRect:scale:)`*
+
+What was measured, and is drawn so (`Tools/SwiftUIProbes/Image paint/`): the
+tile is the source rectangle's share of the image's size in points, times the
+scale, repeated from the top-leading corner of the frame filled — a shape's, a
+background's, a text's. A tile is its size in points over the terminal cell's
+width in points columns across, a row being the cell aspect of them down, so a
+shape's half-block rasterizer samples the same picture at twice the rows; each
+cell is the mean of four samples, weighted by their alpha, the alpha a claim,
+as a translucent ramp's is.
+
+Where the measurement left a call:
+
+- **The cell's size not known** (under tmux, over ssh to Ghostty), one tile
+  spans what is filled, across, at the scale — as an `Image` that is not
+  resizable fits the space it is offered there.
+- **A picture that loads** — a file, a URL — paints nothing until it has,
+  as an `Image` shows its placeholder. It loads as an image does, its state at
+  a child identity of whatever draws with the paint (a foreground style once,
+  for everything under it), and is converted once; SwiftUI's images are never
+  late.
+- **A symbol**, `Image(systemName:)`, is a character here with no pixels, and
+  paints nothing.
+- **Cells, never a picture.** On a terminal that takes pictures a gradient
+  behind blank cells is one; an image paint is not, being sampled already — a
+  picture of it would sample the image again at the terminal's pixels.
+- **A new picture shows at once** under `withAnimation`.
+
+**The fuller version:** an image paint behind blank cells sent as a picture —
+the tile drawn at the terminal's pixel resolution, half a day with
+`GradientRaster`'s picture path; a symbol's paint drawn as the glyph repeated, a
+day, since a paint names colours, not glyphs.
+
 ## C. Declined
 
 ### C-W1B-1. `ContentShapeKinds.focusEffect` and `.accessibility`

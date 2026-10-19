@@ -68,6 +68,13 @@ public enum Paint: Equatable, Sendable {
     /// Indirect for a mesh's reason: a shadow is a handful of words, and every
     /// environment that holds a paint would otherwise carry the room for one.
     indirect case shadowed(Self, ShadowStyle)
+
+    /// An ``ImagePaint``: a region of an image, repeated, sampled cell by cell.
+    ///
+    /// Indirect for a mesh's reason: an image and its region are several
+    /// words, and every environment that holds a paint would otherwise carry
+    /// the room for them.
+    indirect case image(ImagePaintSource)
 }
 
 extension Paint {
@@ -83,6 +90,7 @@ extension Paint {
         case .gradient(let paint): paint.gradient.representative
         case .mesh(let mesh): mesh.representative
         case .shadowed(let base, _): base.representative
+        case .image(let source): source.representative
         }
     }
 
@@ -95,7 +103,7 @@ extension Paint {
         switch self {
         case .color(let colour): colour
         case .shadowed(let base, _): base.solid
-        case .gradient, .mesh: nil
+        case .gradient, .mesh, .image: nil
         }
     }
 
@@ -112,6 +120,7 @@ extension Paint {
         case .gradient(let paint): paint.gradient.isOpaqueThroughout
         case .mesh(let mesh): mesh.isOpaqueThroughout
         case .shadowed(let base, _): base.isOpaqueThroughout
+        case .image(let source): source.opacity >= 1 && source.pixels?.isOpaque == true
         }
     }
 
@@ -141,6 +150,9 @@ extension Paint {
             // would fade it twice — and SwiftUI draws `.red.shadow(s).opacity(½)`
             // and `.red.opacity(½).shadow(s)` alike, both shadows at half.
             return .shadowed(base.faded(opacity), shadow)
+        case .image(var source):
+            source.opacity *= min(1, max(0, opacity.isNaN ? 0 : opacity))
+            return .image(source)
         }
     }
 }

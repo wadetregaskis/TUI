@@ -78,6 +78,11 @@ struct ImageRasterTests {
             phase.value = .success(ImageRasterTests.pixels)
             return inner.renderToBuffer(options: options, context: context)
         }
+
+        @MainActor
+        func paintPixels(context: RenderContext) -> ImagePaintPixels? {
+            inner.paintPixels(context: context)
+        }
     }
 
     @Test("A picture keeps its loaded pixels while the image's own sampling comes and goes")

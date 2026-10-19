@@ -60,6 +60,11 @@ struct _SourcedImageRaster: _ImageRaster {
         return Self.sampled(core, by: samplingFactor).renderToBuffer(context: context)
     }
 
+    @MainActor
+    func paintPixels(context: RenderContext) -> ImagePaintPixels? {
+        _ImageCore(source: source, decoded: decoded).paintPixels(context: context)
+    }
+
     /// The core that draws this picture as `options` say.
     @MainActor
     private func core(_ options: _ImageRasterOptions) -> _ImageCore {

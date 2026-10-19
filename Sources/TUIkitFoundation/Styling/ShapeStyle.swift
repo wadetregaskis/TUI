@@ -206,7 +206,7 @@ struct _FixedExtentShapeStyle<Base: ShapeStyle>: ShapeStyle {
     func paint(in environment: EnvironmentValues) -> Paint {
         base.paint(in: environment).mappingUnshadowed { drawn in
             switch drawn {
-            case .color, .shadowed:
+            case .color, .shadowed, .image:
                 return drawn
             case .gradient(var ramp):
                 ramp.extent = extent

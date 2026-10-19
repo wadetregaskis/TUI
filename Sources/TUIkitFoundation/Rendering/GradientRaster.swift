@@ -162,6 +162,9 @@ package enum GradientRaster {
         if case .mesh(let mesh) = paint {
             return meshSource(mesh, frame: frame, size: size, cellPixels: cellPixels)
         }
+        // An image paint is drawn in cells: a picture of it would sample the
+        // image again at the terminal's pixels (decisions W1B, B-W1B-4).
+        if case .image = paint { return nil }
         // The extent in pixels — every cell coordinate times the cell — and
         // the sampler over it at that resolution. The factor is applied by
         // SAMPLING every `factor`-th pixel rather than by shrinking the frame,

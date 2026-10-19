@@ -70,6 +70,9 @@ enum PaintAnimation {
             // B-W1B-1). The base keeps the slots it has unshadowed, so adding
             // or removing a shadow does not restart a colour's fade.
             return .shadowed(resolving(base, owner: owner, context: context), shadow)
+        case .image:
+            // A picture does not move between two: a new one shows at once.
+            return target
         }
     }
 

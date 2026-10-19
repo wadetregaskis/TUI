@@ -44,6 +44,12 @@ package protocol _ImageRaster: Sendable {
     /// ``Renderable/renderToBuffer(context:)`` for the picture.
     @MainActor
     func renderToBuffer(options: _ImageRasterOptions, context: RenderContext) -> FrameBuffer
+
+    /// The picture's pixels for an ``ImagePaint`` drawn in `context`, or `nil`
+    /// while they load: loaded as the picture itself loads them, its state
+    /// kept at `context`'s identity, and converted once.
+    @MainActor
+    func paintPixels(context: RenderContext) -> ImagePaintPixels?
 }
 
 /// What an image's own modifiers ask of its picture: everything an ``Image``

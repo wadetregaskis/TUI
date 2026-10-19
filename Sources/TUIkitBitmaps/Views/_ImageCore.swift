@@ -341,7 +341,7 @@ extension _ImageCore {
     /// cancel-on-disappear handler. Split from `renderToBuffer` so the
     /// `!isMeasuring` gate wraps one call (and the body stays within the
     /// function-length limit).
-    private func manageLoadLifecycle(
+    func manageLoadLifecycle(
         lifecycle: LifecycleManager,
         token: String,
         phaseBox: StateBox<ImageLoadingPhase>,

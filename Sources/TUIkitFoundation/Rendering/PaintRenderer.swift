@@ -577,6 +577,12 @@ package struct RampSampler {
             // What is drawn: the shadows are cast by whatever draws, from what
             // it drew (`FrameBuffer.castingShadows(of:context:owner:)`).
             self.init(paint: base, extent: extent, depth: depth, cellAspect: cellAspect)
+        case .image(let source):
+            // Without its pixels — loading, or a symbol — an image paints its
+            // representative, which is nothing.
+            guard let raster = ImageTileRaster(source, extent: extent, cellAspect: cellAspect) else { return nil }
+            self.init(
+                sampled: SampledCells(raster: raster, columns: max(1, extent.width - extent.originX), depth: depth))
         }
     }
 

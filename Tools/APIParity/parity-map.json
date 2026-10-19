@@ -698,9 +698,6 @@
     "Image.transferRepresentation": {
       "why": "Image's Transferable conformance. CoreTransferable is Apple-only, and the terminal's clipboard holds text: TUIkit's copyable/draggable payloads need no Transferable conformance, so there is no representation for an image to declare."
     },
-    "ImagePaint": {
-      "why": "A ShapeStyle that fills a shape with a tiled or scaled image, resolved per pixel against the shape's coverage. There are no shapes to fill (O0 of the refusal review), and a raster draws through `Image`, which is TUIkit's raster-to-cell renderer."
-    },
     "ImportFromDevicesCommands": {
       "why": "Its items import photos and scans from nearby devices (Continuity Camera), which macOS offers to a window it can present a camera picker over. A terminal app has no such service to call, and nothing on the screen for the picker; the menu bar (TUIkitCommands) carries every other standard command set."
     },
