@@ -298,6 +298,11 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
 final class KeyboardShortcutAssignment: @unchecked Sendable {
     let shortcut: KeyboardShortcut
 
+    /// Whether the control claiming it registers its action on the shortcut —
+    /// `false` for a hint (``View/keyboardShortcutHint(_:)``), which a menu row
+    /// prints and something else binds.
+    let registers: Bool
+
     /// Who holds the claim, tracked SEPARATELY for measuring and for drawing.
     ///
     /// Keyed by identity rather than a bare "claimed" flag because a control
@@ -330,8 +335,9 @@ final class KeyboardShortcutAssignment: @unchecked Sendable {
     /// a property of where it is rendered.
     private var plantedAtEffectRecordingDepth = 0
 
-    init(_ shortcut: KeyboardShortcut) {
+    init(_ shortcut: KeyboardShortcut, registers: Bool = true) {
         self.shortcut = shortcut
+        self.registers = registers
     }
 
     /// Records that this carrier was planted where `depth` value memos were

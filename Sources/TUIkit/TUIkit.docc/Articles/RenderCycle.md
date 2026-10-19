@@ -149,6 +149,8 @@ Three managers finalize the frame:
 
 All state changes inside the lifecycle manager are `NSLock`-protected. Callbacks execute **outside** the lock to prevent deadlocks.
 
+Once the frame is on the screen, the run loop presses the keys a menu bar's item owes (`KeysAfterFrame`): an item such as Copy does what ⌘C does to the focused view, and the focus is the page's again only in the frame that closed the menu. Each key goes through the whole input chain, as if typed then, and another frame shows what it did.
+
 ### Chrome Rendering (Step 6)
 
 The window's chrome host draws the bars after the content, as views, into the same frame:

@@ -138,7 +138,9 @@ enum KeyboardShortcutRegistrar {
             let shortcut = assignment.claim(by: context.identity, isMeasuring: context.isMeasuring)
         else { return nil }
         let resolved = shortcut.resolved(commandKey: context.environment.commandKey)
-        if let resolved, !context.isMeasuring, register(resolved, repeats: repeats, action: action, context: context) {
+        if let resolved, assignment.registers, !context.isMeasuring,
+            register(resolved, repeats: repeats, action: action, context: context)
+        {
             declare(resolved, repeats: repeats, action: action, carrier: assignment, context: context)
         }
         return resolved

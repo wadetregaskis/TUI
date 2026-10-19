@@ -691,7 +691,14 @@ SwiftUI's order (measured on macOS 15.8, the main menu read back: session
 notes `O13/probe/menus.swift`): the standard menus that have something in
 them (the app's, File, Edit, Format, View, Window, Help — a `CommandGroup`
 goes into its placement's), with the app's own menus between View and
-Window in order of declaration. Within a group the newest `before:` comes
+Window in order of declaration. The scene's own commands are TUIkit's: the
+app's menu, titled with the process's name, holds About (an alert with the
+name, and the version where the app is bundled) and Quit (the quit key, so it
+quits when `q` would); the Edit menu holds Undo and Redo (the app's
+`UndoManager`, showing the scene's undo keys) and Cut, Copy and Paste (⌘X, ⌘C
+and ⌘V, through `commandKey`, to the focused view). Each item whose key acts on
+the focused view presses that key once the menu has closed and handed the
+focus back. Within a group the newest `before:` comes
 first, the `after:`s follow, and the last `replacing:` stands; commands on
 several modifiers add up, the innermost first, and `commandsRemoved()` and
 `commandsReplaced(content:)` take away what is inside them, keeping what is

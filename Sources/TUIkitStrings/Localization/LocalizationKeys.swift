@@ -179,6 +179,12 @@ public enum LocalizationKey {
         case format = "menu.format"
         /// The menu bar's Window menu.
         case window = "menu.window"
+        /// The menu bar's About item: `%@` is the app's name.
+        case about = "menu.about"
+        /// The menu bar's Quit item: `%@` is the app's name.
+        case quitApp = "menu.quitApp"
+        /// The About alert's version line: `%@` is the app's bundle version.
+        case aboutVersion = "menu.aboutVersion"
         case new = "menu.new"
         case open = "menu.open"
         case save = "menu.save"

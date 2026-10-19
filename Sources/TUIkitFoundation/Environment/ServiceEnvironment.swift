@@ -287,6 +287,7 @@ extension EnvironmentValues {
         detached.lifecycle = nil
         detached.keyEventDispatcher = nil
         detached.synthesizeKeyEvent = nil
+        detached.keysAfterFrame = nil
         detached.mouseEventDispatcher = nil
         detached.dragAndDropSession = nil
         detached.typedClipboard = nil

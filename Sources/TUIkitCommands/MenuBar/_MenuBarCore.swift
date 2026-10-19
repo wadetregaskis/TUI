@@ -39,6 +39,9 @@ struct _MenuBarCore: View, Renderable {
     /// What the scene's commands modifiers gathered.
     let commands: SceneCommands
 
+    /// Shows the app menu's About alert (``_MenuBar``).
+    let showAbout: () -> Void
+
     /// StateStorage property indices. The bar is drawn at an identity of the
     /// chrome host's, where no composite content renders.
     private enum StateIndex {
@@ -53,7 +56,7 @@ struct _MenuBarCore: View, Renderable {
     @MainActor
     static func menuBar(for commands: SceneCommands) -> AnyView? {
         let declares = commands.declarations.contains { ($0 as? CommandsDeclaration)?.commands != nil }
-        return declares ? AnyView(Self(commands: commands)) : nil
+        return declares ? AnyView(_MenuBar(commands: commands)) : nil
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
@@ -94,7 +97,8 @@ struct _MenuBarCore: View, Renderable {
     // MARK: The menus
 
     /// The bar's menus this frame: every declaration's commands walked, in
-    /// the order the modifiers stand from the inside out.
+    /// the order the modifiers stand from the inside out, over the scene's own
+    /// commands unless a modifier took them away.
     private func resolvedMenus(context: RenderContext) -> [ResolvedCommandMenu] {
         var collector = CommandsCollector(
             environment: context.environment, storage: context.stateStorage,
@@ -103,7 +107,9 @@ struct _MenuBarCore: View, Renderable {
             guard let commands = (declaration as? CommandsDeclaration)?.commands else { continue }
             collector.step(index, commands)
         }
-        return collector.resolvedMenus()
+        guard commands.includesSceneCommands else { return collector.resolvedMenus() }
+        let own = SceneOwnCommands(showAbout: showAbout)
+        return collector.resolvedMenus { own.items(for: $0, context: context) }
     }
 
     /// The open menu, presented as a pop-up `Menu`'s is, hanging from its

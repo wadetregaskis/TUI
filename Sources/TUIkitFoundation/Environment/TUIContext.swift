@@ -337,6 +337,10 @@ package final class TUIContext: @unchecked Sendable {
     /// `BEL` owed to the terminal at the next frame. See ``TerminalBell``.
     package let terminalBell = TerminalBell()
 
+    /// The keys to press once the frame being drawn is on the screen — a menu
+    /// bar's item's key (``KeysAfterFrame``).
+    package let keysAfterFrame = KeysAfterFrame()
+
     /// ``clipboardWriter`` as the environment hands it to controls, built once
     /// per writer rather than once per frame.
     package var clipboardAccess: ClipboardAccess { _clipboardAccess }

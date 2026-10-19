@@ -486,7 +486,7 @@ extension AppRunner {
                 renderer: renderer,
                 cursorTimer: cursorTimer,
                 scheduler: animationScheduler)
-            self.maskQuitKeyForBindings(of: inputHandler)
+            self.finishFrame(with: inputHandler)
             return frame
         }
 
@@ -619,6 +619,25 @@ extension AppRunner {
     private func maskQuitKeyForBindings(of inputHandler: InputHandler) {
         terminal.maskQuitKey(
             for: inputHandler.quitKeyBindings(byte: terminal.quitKeyByte, hostAliases: hostQuitByteAliases))
+    }
+
+    /// What follows every frame once it is on the screen: the driver's quit
+    /// key masked or given back for the bindings it registered, and the keys
+    /// it owes pressed.
+    private func finishFrame(with inputHandler: InputHandler) {
+        maskQuitKeyForBindings(of: inputHandler)
+        pressKeysAfterFrame(to: inputHandler)
+    }
+
+    /// Presses the keys owed once a frame is on the screen (`KeysAfterFrame`):
+    /// a menu bar's item's key, which goes once the frame that closed the
+    /// menu has handed the focus back. Each through the whole chain, as a key
+    /// typed now; another frame shows what they did.
+    private func pressKeysAfterFrame(to inputHandler: InputHandler) {
+        let keys = tuiContext.keysAfterFrame.take()
+        guard !keys.isEmpty else { return }
+        for key in keys { _ = inputHandler.handle(key) }
+        appState.setNeedsRender()
     }
 
     /// Starts the stall watchdog (`StallWatchdog`), which pops the kitty

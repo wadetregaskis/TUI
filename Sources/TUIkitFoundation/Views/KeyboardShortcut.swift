@@ -552,7 +552,19 @@ extension View {
     ///     .keyboardShortcut(isPrimary ? .defaultAction : nil)
     /// ```
     public func keyboardShortcut(_ shortcut: KeyboardShortcut?) -> some View {
-        KeyboardShortcutModifier(content: self, assignment: shortcut.map(KeyboardShortcutAssignment.init))
+        KeyboardShortcutModifier(content: self, assignment: shortcut.map { KeyboardShortcutAssignment($0) })
+    }
+
+    /// Shows `shortcut` as the wrapped control's key — the key a menu row
+    /// prints at its trailing edge — without binding it: for a menu item whose
+    /// key something else binds, which choosing the item presses. The menu
+    /// bar's standard items (TUIkitCommands) are such: Undo's key is the
+    /// scene's undo key, Copy's the focused view's ⌘C, Quit's the quit key.
+    ///
+    /// TUI-internal: SwiftUI's menu items draw the key they are bound to.
+    package func keyboardShortcutHint(_ shortcut: KeyboardShortcut?) -> some View {
+        KeyboardShortcutModifier(
+            content: self, assignment: shortcut.map { KeyboardShortcutAssignment($0, registers: false) })
     }
 
     /// Assigns a key-equivalent shortcut to the wrapped control — SwiftUI's

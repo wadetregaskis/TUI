@@ -64,9 +64,10 @@ private struct BareApp: App {
     var body: some Scene { WindowGroup { NotesPage() } }
 }
 
+/// The scene's own commands taken away, so the bar is Note's alone.
 private struct CommandsApp: App {
     init() {}
-    var body: some Scene { WindowGroup { NotesPage() }.commands { NoteCommands() } }
+    var body: some Scene { WindowGroup { NotesPage() }.commandsRemoved().commands { NoteCommands() } }
 }
 
 /// The page binds the command's key itself.
@@ -90,10 +91,12 @@ private struct SheetApp: App {
     }
 }
 
+/// Two modifiers' menus, the scene's own commands taken away.
 private struct TwoModifiersApp: App {
     init() {}
     var body: some Scene {
         WindowGroup { Text("PAGE") }
+            .commandsRemoved()
             .commands { CommandMenu("Alpha") {} }
             .commands { CommandMenu("Beta") {} }
     }
@@ -118,13 +121,14 @@ private struct ReplacedApp: App {
     }
 }
 
-/// A menu bar over a boxed top bar.
+/// A menu bar over a boxed top bar, the scene's own commands taken away.
 private struct BarsApp: App {
     init() {}
     var body: some Scene {
         WindowGroup {
             Text("PAGE").toolbar { ToolbarItem(placement: .navigation) { Text("HEADER") } }
         }
+        .commandsRemoved()
         .commands { CommandMenu("Note") {} }
     }
 }

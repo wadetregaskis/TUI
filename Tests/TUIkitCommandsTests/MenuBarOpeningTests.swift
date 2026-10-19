@@ -23,7 +23,8 @@ private final class OpeningProbe: @unchecked Sendable {
     var log: [String] = []
 }
 
-/// Two menus of two items each, over a page of two buttons.
+/// Two menus of two items each, over a page of two buttons; the scene's own
+/// commands taken away, so the bar's first menu is Alpha.
 private struct TwoMenusApp: App {
     init() {}
     var body: some Scene {
@@ -33,6 +34,7 @@ private struct TwoMenusApp: App {
                 Button("PageB") { OpeningProbe.shared.log.append("page b") }
             }
         }
+        .commandsRemoved()
         .commands {
             CommandMenu("Alpha") {
                 Button("A1") { OpeningProbe.shared.log.append("a1") }

@@ -122,3 +122,51 @@ keeps the Alt chords it edits with.
 of its title, as Windows assigns them) and underlines it where the terminal is
 known to send Option as Meta, which the host cannot be asked. About two hours;
 the underline waits on knowing the host's Option setting.
+
+### B-O13-6. The scene's own commands do what their keys do, and are not validated
+
+*`SceneOwnCommands`*
+
+On macOS a `WindowGroup` brings its own commands — the app's menu, the Edit
+menu's Undo, Redo, Cut, Copy, Paste, Delete and Select All, and more — and
+AppKit enables each by asking the responder chain whether anything would take
+it. TUIkit has the keys those commands stand for, and no responder chain.
+
+**Shipped:** the commands a terminal app has, each the way to a key the app
+already has, so the menu bar is a way to them and never the only one: About
+(an alert), Quit (the quit key), Undo and Redo (the app's `UndoManager`,
+disabled with no step to take), Cut, Copy and Paste (⌘X, ⌘C, ⌘V through
+`commandKey`). An item that acts on what has the focus presses its key once the
+frame that closed the menu has handed the focus back (`KeysAfterFrame`, a new
+hook the run loop drains after each frame): while the menu is open it holds the
+focus and the keyboard. Each item shows its key (`keyboardShortcutHint`), which
+it does not bind again. Cut, Copy and Paste are always enabled; choosing one
+with nothing to take it does what the key does then (rings the bell). No Delete
+or Select All: a terminal app has no key for either that every text control
+takes.
+
+**The fuller version** validates them: before drawing, ask the focused view
+whether its focus path or its own key handling would take ⌘X, ⌘C or ⌘V
+(`KeyEventDispatcher.declaresFocusPathBinding` already answers it for the
+commands; a text field's own copy would need asking too), and disable the item
+that nothing would. About half a day. Separately, a disabled item shows no key
+(as every disabled menu row in TUIkit does today, `KeyboardShortcutRegistrar.claim`),
+where macOS greys the key with the item: a one-line change to every menu, so
+not made here.
+
+### B-O13-7. Settings… waits for O9
+
+*`CommandGroupPlacement.appSettings`*
+
+The lane brief maps `.appSettings` to `openSettings`, which lane O9 (`Settings`
+scenes) is building in parallel; it is not on this lane's base.
+
+**Shipped:** the group is empty by default, as the app menu's other groups are.
+An app's `CommandGroup(replacing: .appSettings)` (or `after:`) puts its own
+Settings item there today.
+
+**The fuller version** is one case in `SceneOwnCommands.items(for:)` once O9
+lands: a "Settings…" item, on SwiftUI's ⌘, (through `commandKey`), that calls
+the environment's `openSettings` when the scene has a `Settings` scene. About
+an hour, with its test. The Window menu's groups (`windowList`,
+`singleWindowList`, `windowArrangement`) wait on O9 (b) likewise.

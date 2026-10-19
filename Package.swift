@@ -74,7 +74,7 @@ let package = Package(
         .library(name: "TUIkitColorPicker", targets: ["TUIkitColorPicker"]),
         // TUIkitCommands: SwiftUI's commands — `Commands`, `CommandMenu`, `CommandGroup` and the placements —
         // and the scene they are declared on: `Scene.commands(content:)` and its kin draw the menu bar.
-        // Re-exports TUIkitApp, whose `Scene` they extend.
+        // Re-exports TUIkitApp, whose `Scene` they extend, and TUIkitPresentation.
         .library(name: "TUIkitCommands", targets: ["TUIkitCommands"]),
         // TUIkitCurveEditors: the tone-curve and channel-curve editor panels, which host `ColorPickerPanel`'s
         // body. Re-exports TUIkitColorPicker, TUIkitImage (their initializers take an `ASCIIToneCurve`),
@@ -257,14 +257,14 @@ let package = Package(
         // `CommandMenu`, `CommandGroup`, `CommandGroupPlacement` and `EmptyCommands`. On TUIkitApp because
         // `Scene.commands(content:)` is a modifier of TUIkitApp's `Scene`, and no lower module may see a scene;
         // the menu bar's drop-downs are TUIkitFoundation's menu engine, the one a pop-up `Menu` uses, so it needs
-        // nothing of TUIkitMenus. The run loop and the chrome host reach the bar through hooks of their own
-        // that name nothing of this module (an opaque scene declaration, the window chrome's menu-bar view), so
-        // an app that declares no commands links none of it. Nothing in TUIkitFoundation may use it
-        // (Tools/ModuleMap's upward check), so the umbrella re-exports it. It re-exports TUIkitApp and
-        // TUIkitFoundation (Sources/TUIkitCommands/Exports.swift).
+        // nothing of TUIkitMenus; on TUIkitPresentation for the app menu's About alert. The run loop and the
+        // chrome host reach the bar through hooks of their own that name nothing of this module (an opaque scene
+        // declaration, the window chrome's menu-bar view), so an app that declares no commands links none of it. Nothing in TUIkitFoundation may use it
+        // (Tools/ModuleMap's upward check), so the umbrella re-exports it. It re-exports TUIkitApp,
+        // TUIkitFoundation and TUIkitPresentation (Sources/TUIkitCommands/Exports.swift).
         .target(
             name: "TUIkitCommands",
-            dependencies: ["TUIkitApp", "TUIkitFoundation"],
+            dependencies: ["TUIkitApp", "TUIkitFoundation", "TUIkitPresentation"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 

@@ -31,6 +31,7 @@ extension EnvironmentValues {
         typedClipboard = context.typedClipboard
         clipboardAccess = context.clipboardAccess
         terminalBell = context.terminalBell
+        keysAfterFrame = context.keysAfterFrame
         urlOpener = context.urlOpener
         screenSelection = context.screenSelection
         tooltipState = context.tooltipState

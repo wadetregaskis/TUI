@@ -302,6 +302,25 @@ package final class AppUndoKeys: @unchecked Sendable {
         return kept[command].name(writtenWith: writeName)
     }
 
+    /// The key the menu bar's Undo or Redo shows for `command` on this
+    /// terminal (TUIkitCommands): the one the status bar names, as a
+    /// shortcut, or `nil` where none of its keys can be sent.
+    ///
+    /// Kept as the names are, until the table, the ⌘ binding or what the
+    /// terminal reports changes: the menu's items are drawn every frame.
+    package func shortcut(for command: UndoCommand) -> KeyboardShortcut? {
+        let key = HintKey(shortcuts: shortcuts, commandKey: commandKey, reporting: reporting)
+        if let kept = keptShortcuts, kept.key == key { return command == .undo ? kept.undo : kept.redo }
+        let resolve = { key.shortcuts.hintShortcut(for: $0, on: key.reporting, commandKey: key.commandKey) }
+        let kept = (key: key, undo: resolve(.undo), redo: resolve(.redo))
+        keptShortcuts = kept
+        return command == .undo ? kept.undo : kept.redo
+    }
+
+    /// What ``shortcut(for:)`` answered for each command, and the inputs it
+    /// was worked out from.
+    private var keptShortcuts: (key: HintKey, undo: KeyboardShortcut?, redo: KeyboardShortcut?)?
+
     // MARK: The kept hints
 
     /// What ``hint(for:)`` answered for each command, and the inputs it was

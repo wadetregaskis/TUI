@@ -140,6 +140,9 @@ package final class HeadlessApp<A: App> {
         // sets mid-frame, so a pointer's move in an app that declares no
         // `.mouseSupport` was dropped here, though the app hears it.
         tuiContext.mouseEventDispatcher.setActiveSupport(renderer.effectiveMouseSupport(), isFrameFinal: true)
+        // As `AppRunner` presses them, once the frame is drawn: a menu bar's
+        // item's key. The next frame shows what they did.
+        for key in tuiContext.keysAfterFrame.take() { inputHandler.handle(key) }
     }
 
     /// Delivers a key through the five-layer chain, as a keypress is — noted

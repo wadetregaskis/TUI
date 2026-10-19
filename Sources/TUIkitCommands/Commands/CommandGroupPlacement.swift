@@ -23,9 +23,11 @@ import TUIkitFoundation
 /// is not drawn.
 ///
 /// What each group holds before an app changes it is TUIkit's: the commands a
-/// terminal app has. A terminal app has no documents, no windows to arrange
-/// and no services menu, so most are empty, and an app fills them with
-/// ``CommandGroup``.
+/// terminal app has — About and Quit in the app's menu, Undo, Redo, Cut, Copy
+/// and Paste in the Edit menu, each doing what its key does. A terminal app has
+/// no documents, no windows to arrange and no services menu, so the other
+/// groups are empty, and an app fills them with ``CommandGroup``.
+/// `commandsRemoved()` takes TUIkit's away.
 public struct CommandGroupPlacement: Hashable, Sendable {
     /// Which group: also the order of the groups across the menu bar.
     let group: Group
@@ -62,11 +64,14 @@ public struct CommandGroupPlacement: Hashable, Sendable {
 
     /// Placement for commands that provide information about the app, the
     /// terms of the user's license agreement, and so on.
+    ///
+    /// By default, this group includes "About" the app, an alert with the
+    /// app's name and, where it is bundled with one, its version.
     public static let appInfo = Self(.appInfo)
 
     /// Placement for commands that expose app settings and preferences.
     ///
-    /// Empty by default.
+    /// Empty by default: TUIkit has no `Settings` scene yet.
     public static let appSettings = Self(.appSettings)
 
     /// Placement for commands that expose services other apps provide.
@@ -80,6 +85,10 @@ public struct CommandGroupPlacement: Hashable, Sendable {
     public static let appVisibility = Self(.appVisibility)
 
     /// Placement for commands that result in app termination.
+    ///
+    /// By default, this group includes "Quit" the app, which presses the app's
+    /// quit key (`StatusBarState.quitShortcut`, `q` unless the app moved it)
+    /// once the menu has closed — so it quits exactly when the key would.
     public static let appTermination = Self(.appTermination)
 
     /// Placement for commands that create and open different kinds of
@@ -105,10 +114,20 @@ public struct CommandGroupPlacement: Hashable, Sendable {
     public static let printItem = Self(.printItem)
 
     /// Placement for commands that control the Undo Manager.
+    ///
+    /// By default, this group includes Undo and Redo, on the app's
+    /// `UndoManager`, titled with the step's action name, each disabled with
+    /// no step to take, and showing the scene's undo and redo keys
+    /// (`Scene.undoShortcuts(_:)`).
     public static let undoRedo = Self(.undoRedo)
 
     /// Placement for commands that interact with the Clipboard and manipulate
     /// content that is currently selected in the app's view hierarchy.
+    ///
+    /// By default, this group includes Cut, Copy and Paste, which press ⌘X,
+    /// ⌘C and ⌘V — through the scene's `commandKey` — once the menu has closed:
+    /// what those keys do to the focused view (a text field's own cut, copy
+    /// and paste, a view's `onCopyCommand`).
     public static let pasteboard = Self(.pasteboard)
 
     /// Placement for commands that manipulate and transform text selections.

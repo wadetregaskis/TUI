@@ -223,8 +223,9 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     ///
     /// Anything unrecognised is emitted verbatim, so a stray `%` in a
     /// translation degrades to itself rather than eating the character after
-    /// it.
-    static func substituting(_ arguments: [String], into template: String) -> String {
+    /// it. `package` for the menu bar's items (TUIkitCommands), whose titles
+    /// name the app.
+    package static func substituting(_ arguments: [String], into template: String) -> String {
         if let plain = substitutingBarePlaceholders(arguments, into: template) { return plain }
         return substitutingByWalk(arguments, into: template)
     }
