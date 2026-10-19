@@ -41,6 +41,11 @@ struct ConditionalRecord {
     /// Whether it had rendered before: `false` on a record made just now, a
     /// first sight, which is never a flip.
     var seen = false
+    /// The render pass that last wrote it (`StateStorage.currentPass`): a
+    /// record a pass went by without is of a conditional that went and has
+    /// come back, whose branch is a first sight, not a flip to play
+    /// (`StateStorage.wasOnScreenLastPass(writtenOn:at:)`).
+    var pass: UInt32 = 0
     /// Whether the branch it took is fading in.
     var arriving = false
     /// What the branch drew when the conditional was last drawn whole, or
@@ -97,19 +102,33 @@ extension ConditionalView {
         flipped: Bool, drawn: FrameBuffer
     ) {
         let identity = context.identity
+        let pass = storage.currentPass
         return storage.recordingConditionalBranch(identity, isTrueBranch: isTrueBranch) { record in
+            // Flipped since it last rendered — the branch left loses its state
+            // whatever happened in between — and, unless the conditional has
+            // come back after a pass unseen, since the last frame anyone saw,
+            // which is what plays: one that has come back is a new view.
             let flipped = record.seen && record.isTrueBranch != isTrueBranch
+            let cameBack =
+                (flipped || record.arriving || record.leaving != nil)
+                && !storage.wasOnScreenLastPass(writtenOn: record.pass, at: identity)
             let left = record.picture
             record.isTrueBranch = isTrueBranch
             record.seen = true
+            record.pass = pass
             record.picture = buffer
+            if cameBack {
+                record.arriving = false
+                record.leaving = nil
+            }
             // The settled frame — every render of every conditional drawn
             // whole — ends here: what the animator reads of the environment,
             // and the closure it is handed, are paid only by a frame something
             // comes or goes on.
-            guard flipped || record.arriving || record.leaving != nil else { return (flipped, buffer) }
+            let plays = flipped && !cameBack
+            guard plays || record.arriving || record.leaving != nil else { return (flipped, buffer) }
             let animator = BranchAnimator(context: context, storage: storage, pictureType: Self.pictureType(ofBranch:))
-            if flipped {
+            if plays {
                 record.leaving = animator.leaver(left, isTrueBranch: !isTrueBranch)
                 record.arriving = animator.startsArriving(isTrueBranch)
             }

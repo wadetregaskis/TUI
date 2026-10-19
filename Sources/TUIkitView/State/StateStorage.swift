@@ -305,6 +305,10 @@ public final class StateStorage: @unchecked Sendable {
     /// only, as the pass is.
     package private(set) var currentPass: UInt32 = 0
 
+    /// The pass before ``currentPass``, of this storage: the serials are one
+    /// count for the process, so this one's passes are not consecutive.
+    package private(set) var previousPass: UInt32 = 0
+
     /// Creates an empty state storage.
     public init() {
         restoreDepth.initialize(to: 0)
@@ -519,12 +523,26 @@ extension StateStorage {
     ///   - isTrueBranch: `true` if the `.trueContent` branch rendered this frame.
     /// - Returns: `true` if the branch differs from the last recorded one.
     public func recordConditionalBranch(_ identity: ViewIdentity, isTrueBranch: Bool) -> Bool {
-        recordingConditionalBranch(identity, isTrueBranch: isTrueBranch) { record in
+        let pass = currentPass
+        return recordingConditionalBranch(identity, isTrueBranch: isTrueBranch) { record in
             let flipped = record.seen && record.isTrueBranch != isTrueBranch
             record.isTrueBranch = isTrueBranch
             record.seen = true
+            record.pass = pass
             return flipped
         }
+    }
+
+    /// Whether a view whose record was last written on `pass` — an `if`'s, a
+    /// conditional's — was on screen on the pass before this one, or earlier
+    /// in this one: written then, or standing in a subtree a memo served then
+    /// (``PlacementStore/wasServedLastPass(_:)``), which renders nothing and
+    /// is on screen as it was. A record a pass went by without is of a view
+    /// that went and has come back: a new view, as SwiftUI's is, whose first
+    /// frame is a first sight — not a change to play from what the record
+    /// kept of a frame nobody has seen since.
+    func wasOnScreenLastPass(writtenOn pass: UInt32, at identity: ViewIdentity) -> Bool {
+        pass == currentPass || pass == previousPass || placements.wasServedLastPass(identity)
     }
 
     /// ``recordConditionalBranch(_:isTrueBranch:)``'s access to the record of
@@ -609,6 +627,7 @@ extension StateStorage {
     /// made with a view value is then taken for one made before the pass, and
     /// restarts at its defaults every frame.
     public func beginRenderPass() {
+        previousPass = currentPass
         currentPass = renderPassSerials.withLock { serial in
             // Wrapping, and skipping `0`: at sixty passes a second the count
             // goes round after two years and three months.

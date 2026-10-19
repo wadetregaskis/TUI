@@ -31,7 +31,10 @@ import TUIkitCore
 // An arrival is an `if` that was empty and now holds a view. One seen for the
 // first time is not, so an `if` inside a view that is itself arriving does not
 // fade a second time: SwiftUI transitions the view that was inserted, not each
-// view inside it.
+// view inside it. Nor is one seen again after a pass unseen — inside a view
+// that went and has come back — whose record is of a frame nobody has seen
+// since; and a view it held then does not leave now
+// (`StateStorage.wasOnScreenLastPass(writtenOn:at:)`).
 
 /// A view that carries a transition of its own, so the default one stands
 /// aside for it.
@@ -171,23 +174,29 @@ extension StateStorage {
     /// active set: the record carries the pass that wrote it, which is what
     /// the sweep keeps it by. A lookup, a store and a mark per `if` per frame
     /// cost up to 3.4% of a cold `menus` frame (A/B, 2026-10-14).
+    ///
+    /// An `if` that has come back after a pass unseen is a new view's, and
+    /// what it holds appears rather than arrives
+    /// (``wasOnScreenLastPass(writtenOn:at:)``).
     func presentOptional(
         at scope: ViewIdentity, identity: ViewIdentity, picture: FrameBuffer, animation: Animation?,
         nowNanos: Int64
     ) -> Double {
         Self.present(
             &optionalPresence[scope, default: OptionalPresence()], identity: identity, picture: picture,
-            animation: animation, nowNanos: nowNanos, pass: currentPass)
+            animation: animation, nowNanos: nowNanos, pass: currentPass,
+            wasOnScreen: { self.wasOnScreenLastPass(writtenOn: $0, at: scope) })
     }
 
     /// ``presentOptional(at:identity:picture:animation:nowNanos:)`` on the
-    /// record in place.
+    /// record in place; `wasOnScreen` answers for the pass the record was
+    /// last written on, and is asked only of an `if` that held nothing.
     private static func present(
         _ record: inout OptionalPresence, identity: ViewIdentity, picture: FrameBuffer, animation: Animation?,
-        nowNanos: Int64, pass: UInt32
+        nowNanos: Int64, pass: UInt32, wasOnScreen: (UInt32) -> Bool
     ) -> Double {
         // Seen before, empty, and put there by an animated change: arriving.
-        if record.seen, record.picture == nil, let animation {
+        if record.seen, record.picture == nil, let animation, wasOnScreen(record.pass) {
             record.arrival = animation
             record.arrivalStartNanos = nowNanos
         }
@@ -221,16 +230,19 @@ extension StateStorage {
         let pass = isMeasuring ? nil : currentPass
         Self.absent(
             &optionalPresence[scope, default: OptionalPresence()], pictureType: pictureType,
-            frameAnimation: frameAnimation, nowNanos: nowNanos, pass: pass, departures: departures)
+            frameAnimation: frameAnimation, nowNanos: nowNanos, pass: pass, departures: departures,
+            wasOnScreen: { self.wasOnScreenLastPass(writtenOn: $0, at: scope) })
     }
 
     /// ``absentOptional(at:pictureType:frameAnimation:nowNanos:isMeasuring:)``
     /// on the record in place; `pass` is `nil` on a measure, which stamps
-    /// nothing.
+    /// nothing. A view the `if` held before it went unseen for a pass is
+    /// not one anybody saw leave: its picture is dropped, not played.
     private static func absent(
         _ record: inout OptionalPresence, pictureType: Any.Type, frameAnimation: Animation?, nowNanos: Int64,
-        pass: UInt32?, departures: DepartureStore
+        pass: UInt32?, departures: DepartureStore, wasOnScreen: (UInt32) -> Bool
     ) {
+        let lastWritten = record.pass
         if let pass {
             record.pass = pass
             record.seen = true
@@ -242,7 +254,7 @@ extension StateStorage {
         // .padding()`), its picture would lose that, and the whole picture
         // fades instead, as a view with no transition does.
         if let frameAnimation, let identity = record.identity,
-            !departures.hasEntry(at: identity, leftBy: pictureType)
+            !departures.hasEntry(at: identity, leftBy: pictureType), wasOnScreen(lastWritten)
         {
             var arrived = 1.0
             if let arrival = record.arrival {

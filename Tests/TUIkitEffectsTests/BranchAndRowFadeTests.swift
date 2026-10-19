@@ -147,6 +147,38 @@ private struct TimedIf: View {
     }
 }
 
+/// A view an `if` holds below a row that stays, and what that view holds
+/// changing while the `if` is empty: an `if`/`else` drawn whole, a stack's
+/// rows, an `if` of its own.
+private struct Hidden: View {
+    let showing: Bool
+    let inner: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("----")
+            if showing { HiddenContent(inner: inner) }
+        }
+    }
+}
+
+/// ``Hidden``'s view: its own `if`/`else`, a column of rows and an `if`.
+private struct HiddenContent: View {
+    let inner: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            WholeBody(first: inner)
+            Rows(ids: inner ? [1, 2] : [1])
+            HStack(spacing: 0) {
+                Text("<")
+                if inner { Text("CCCC") }
+                Text(">")
+            }
+        }
+    }
+}
+
 /// An `if` holding two views, which has no one slot to keep.
 private struct Several: View {
     let showing: Bool
@@ -387,6 +419,26 @@ struct BranchAndRowFadeTests {
         let half = frames.draw(scene(false), atMillis: 2500)
         #expect(half.count > 1 && half[1].hasSuffix("XX") && !half[1].hasPrefix("XX"), "sliding out: \(half)")
         #expect(frames.draw(scene(false), atMillis: 3100) == remaining)
+    }
+
+    /// A view an `if` brings back is a new view, as SwiftUI's is: it fades in
+    /// whole, and nothing inside it fades or glides from what it showed
+    /// before it went. The records a conditional, a stack and an `if` keep
+    /// of their last frame outlast a view that goes, and one that came back
+    /// played what had changed while it was gone — the branch it no longer
+    /// takes, the row it no longer has, the view its `if` no longer holds —
+    /// as ghosts fading over it.
+    @Test("A view that comes back after a pass unseen shows nothing of what it showed before it went")
+    func returningViewHasNoGhosts() {
+        let frames = Frames()
+        _ = frames.draw(Hidden(showing: true, inner: true), atMillis: 0)
+        _ = frames.draw(Hidden(showing: false, inner: true), atMillis: 1000)
+        _ = frames.draw(Hidden(showing: false, inner: false), atMillis: 2000)
+        _ = frames.draw(Hidden(showing: true, inner: false), atMillis: 3000, changed: true)
+        let back = frames.draw(Hidden(showing: true, inner: false), atMillis: 3250)
+        #expect(back == ["----", "YY", "1111", "----", "<>"], "\(back)")
+        let fading = fades(frames.buffer(Hidden(showing: true, inner: false), atMillis: 3500))
+        #expect(fading == [0.5], "the view fades in whole, and nothing in it: \(fading)")
     }
 
     /// An `if` holding several views keeps no one slot for its `nil` to

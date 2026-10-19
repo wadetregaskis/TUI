@@ -59,9 +59,13 @@ import TUIkitCore
 /// below ``minimumPruneThreshold`` — which a page whose containers stay the
 /// same never reaches, and which a list scrolled through reaches once per
 /// doubling: amortised, a constant per record. Until then a record that
-/// went off screen lingers, harmlessly: nothing reads it unless its container
-/// renders again, and a container that renders again finds where it was last
-/// drawn, which is where it was last seen.
+/// went off screen lingers, and a container that renders again after a pass
+/// in which it was neither rendered nor served is a first sight, its record
+/// made afresh (``record(at:)``): it went, and it is back as a view SwiftUI
+/// inserts. Read, the lingering record faded out the rows its container had
+/// lost while it was gone and glided the rest from places nobody had seen
+/// since — `if show { Column() }`, its rows changed while hidden, shown again
+/// under an animation.
 ///
 /// Main-actor by discipline rather than by annotation, exactly as
 /// ``StateStorage`` is — it is a stored property of one, and rendering is
@@ -146,6 +150,11 @@ public final class PlacementStore: @unchecked Sendable {
     /// The subtrees a memo served this pass (``retainServedSubtree(_:)``).
     private var servedRoots: [ViewIdentity] = []
 
+    /// The subtrees a memo served on the pass before this one, and an index of
+    /// them made the first time this pass asks (``wasServedLastPass(_:)``).
+    private var servedRootsLastPass: [ViewIdentity] = []
+    private var servedLastPassIndex: RetainedSubtreeIndex?
+
     /// The fewest records a prune is run at: see "When records are
     /// forgotten".
     package static let minimumPruneThreshold = 512
@@ -164,14 +173,35 @@ public final class PlacementStore: @unchecked Sendable {
 
 extension PlacementStore {
     /// The record of the container at `identity`, stamped as asked about this
-    /// pass, or `nil` the first time it is seen.
+    /// pass, or `nil` the first time it is seen — and the first time it is
+    /// seen again after a pass it was not on screen: neither rendered nor in
+    /// a subtree a memo served. Such a record is of a frame nobody has seen
+    /// since, and is dropped (see "When records are forgotten").
     package func record(at identity: ViewIdentity) -> Record? {
         guard let record = records[identity] else { return nil }
         if record.lastPass != pass {
+            guard record.lastPass == pass &- 1 || wasServedLastPass(identity) else {
+                records.removeValue(forKey: identity)
+                return nil
+            }
             record.lastPass = pass
             askedThisPass += 1
         }
         return record
+    }
+
+    /// Whether the view at `identity` stood in a subtree a memo served on the
+    /// pass before this one — on screen as it was last drawn, though nothing
+    /// in it rendered. Asked of a record a pass went by without, which is
+    /// rare: a container rendered on every pass never asks.
+    package func wasServedLastPass(_ identity: ViewIdentity) -> Bool {
+        guard !servedRootsLastPass.isEmpty else { return false }
+        // Taken out while it is asked, so the verdicts it keeps are written
+        // in place rather than into a copy.
+        var index = servedLastPassIndex ?? RetainedSubtreeIndex(roots: servedRootsLastPass)
+        servedLastPassIndex = nil
+        defer { servedLastPassIndex = index }
+        return index.retains(identity) || servedRootsLastPass.contains(identity)
     }
 
     /// Remembers `entries`, drawing `pictures`, as the container at `identity`
@@ -195,7 +225,9 @@ extension PlacementStore {
     public func beginRenderPass() {
         pass &+= 1
         askedThisPass = 0
+        swap(&servedRoots, &servedRootsLastPass)
         servedRoots.removeAll(keepingCapacity: true)
+        servedLastPassIndex = nil
     }
 
     /// Declares that a memo served the subtree at `root` this pass: the
@@ -231,6 +263,8 @@ extension PlacementStore {
     /// Forgets everything.
     public func removeAll() {
         records.removeAll()
+        servedRootsLastPass.removeAll()
+        servedLastPassIndex = nil
         askedThisPass = 0
         pruneThreshold = Self.minimumPruneThreshold
     }
