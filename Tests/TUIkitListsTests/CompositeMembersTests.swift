@@ -165,6 +165,30 @@ private struct LabelledPair: View {
     }
 }
 
+/// How many times a body was evaluated.
+@MainActor
+private final class Evaluations {
+    var count = 0
+
+    /// `content`, counted as one evaluation of the body it is.
+    func counted<Content: View>(@ViewBuilder _ content: () -> Content) -> Content {
+        count += 1
+        return content()
+    }
+}
+
+/// A body of one view or none: an `if`/`else` whose other arm is an
+/// `EmptyView`.
+private struct OneOrNone: View {
+    let index: Int
+    let evaluations: Evaluations
+    var body: some View {
+        evaluations.counted {
+            if index >= 0 { Text("row \(index)") } else { EmptyView() }
+        }
+    }
+}
+
 /// What a layout was handed.
 @MainActor
 private final class Count {
@@ -262,6 +286,24 @@ struct CompositeMembersTests {
             ScrollView { LazyVStack(alignment: .leading, spacing: 0) { loop } }.frame(height: 4), height: 4)
         let heads: [String] = drawn.prefix(3).map { String($0.prefix(2)) }
         #expect(heads == ["0a", "0b", "1a"], "\(drawn)")
+    }
+
+    /// An `if`/`else` of one view and an `EmptyView` is one view or none, as an
+    /// `if` is, so a loop places such a row whole as it places an `if`'s:
+    /// counted as its arms disagree, every row of the loop was built to draw
+    /// ten (9,000 body evaluations for 3,000 rows, where an `if` takes 71).
+    @Test("A loop of rows whose body is one view or an EmptyView builds only the rows a lazy stack draws")
+    func loopOfOneViewOrNone() {
+        #expect(staticRowMemberCount(ConditionalView<Text, EmptyView>.self) == 1)
+        #expect(staticRowMemberCount(ConditionalView<EmptyView, Text>.self) == 1)
+        let evaluations = Evaluations()
+        let loop = ForEach(0..<3000, id: \.self) { OneOrNone(index: $0, evaluations: evaluations) }
+        #expect(loop.rowShape(sectionWholeness: .apart) == .single)
+        let drawn = lines(
+            ScrollView { LazyVStack(alignment: .leading, spacing: 0) { loop } }.frame(height: 10), width: 40,
+            height: 10)
+        #expect(drawn.first?.hasPrefix("row 0") == true, "\(drawn)")
+        #expect(evaluations.count < 300, "evaluated \(evaluations.count) row bodies")
     }
 
     @Test("Beside another section in a List, a section of the app's own is a section: its header drawn, its rows selected by element and deletable")

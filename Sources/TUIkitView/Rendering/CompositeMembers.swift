@@ -30,7 +30,9 @@ extension ConditionalView {
     /// `if flag { a; b } else { c }` as a body lays `a` and `b` along an
     /// `HStack`). An `if`/`else` of one view each — the body of many of the
     /// framework's own controls (`TextField`'s is) — answers `false`, and is
-    /// never evaluated to find out.
+    /// never evaluated to find out. One of one view and an `EmptyView` answers
+    /// `true`, as an `if` does: it is one view or none, and a loop still
+    /// places it whole (``staticRowMemberCount(_:)``).
     public static var _handsOverChildren: Bool {
         TrueContent._handsOverChildren || FalseContent._handsOverChildren
     }

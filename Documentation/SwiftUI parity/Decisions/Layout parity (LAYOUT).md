@@ -280,7 +280,11 @@ the app's own asks it once per type and keeps the answer
 (`BodyWitnessMemo`), as the guide witness does since B19: an arm can hold
 the view's own type (`CompositeMembersTests`). An `if`/`else` of one view
 each — `TextField`'s body — still answers `false`, and is never evaluated to
-find out.
+find out. One of one view and an `EmptyView` (a `switch` whose `default` is
+one, too) is one view or none, as an `if` is, and a loop places such a row
+whole, as it places an `if`'s (`staticRowMemberCount`): counted as its arms
+disagree, a lazy stack of 3,000 of them evaluated 9,000 row bodies to draw
+ten (found in review; an `if` takes 71).
 
 Not shipped:
 

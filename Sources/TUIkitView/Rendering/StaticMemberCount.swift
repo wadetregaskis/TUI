@@ -68,7 +68,8 @@ package func staticMemberCount<V: View>(_ type: V.Type) -> Int? {
 
 /// How many children a view of type `type` contributes as a `ForEach`'s whole
 /// row: ``staticMemberCount(_:)``, except that an `if` without `else` around
-/// ONE view is one, and so is an `AnyView` — through the wrappers that hand
+/// ONE view is one — and so is an `if`/`else` of one view and an `EmptyView`
+/// — and so is an `AnyView` — through the wrappers that hand
 /// over their content's children, the arms of an `if`/`else` and the content
 /// of an `if`, too. A loop places such a row whole — one child, drawing
 /// nothing while an `if`'s condition is false — as it always has here, where
@@ -192,9 +193,23 @@ extension ConditionalView: StaticMemberCounting {
     /// never consulted (`modifiers`: 1,611 measures a frame to 22,412). Its
     /// rings count one now (`_BorderRings`); an app's own erased arm still
     /// needs this.
+    ///
+    /// One, too, for an arm of one view beside an arm of none — `if shown {
+    /// row } else { EmptyView() }`, or a `switch` whose `default` is an
+    /// `EmptyView` — which is the row an `if` without `else` around one view
+    /// is, and is placed whole as that one is (`Optional`): one child,
+    /// drawing nothing while the empty arm is live. Counted as the arms
+    /// disagree, such a row was built and counted on every walk — a lazy
+    /// stack of 3,000 of them evaluated every row's body to draw ten, since
+    /// `EmptyView` became no member (decisions B-LAYOUT-5).
     package static var staticRowMemberCount: Int? {
         let whenTrue = TUIkitView.staticRowMemberCount(TrueContent.self)
-        return whenTrue == TUIkitView.staticRowMemberCount(FalseContent.self) ? whenTrue : nil
+        let whenFalse = TUIkitView.staticRowMemberCount(FalseContent.self)
+        if whenTrue == whenFalse { return whenTrue }
+        switch (whenTrue, whenFalse) {
+        case (1, 0), (0, 1): return 1
+        default: return nil
+        }
     }
 }
 
