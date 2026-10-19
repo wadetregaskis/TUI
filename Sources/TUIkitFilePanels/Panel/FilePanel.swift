@@ -178,7 +178,16 @@ struct FilePanel: View {
             browser.open(request.homeDirectory)
             return .handled
         }
+        // Escape among them: items a presented sheet's content declares take
+        // the place of the sheet's own Escape item, and without one here a
+        // page's "⎋ back" outside the sheet answered Escape, taking the page
+        // away from under the panel (`StatusBarState.registerSectionItems`).
         .statusBarItems {
+            StatusBarItem(
+                shortcut: Shortcut.escape, label: LocalizationService.shared.string(for: LocalizationKey.StatusBar.cancel)
+            ) {
+                finish(.cancelled(ending))
+            }
             StatusBarItem(
                 shortcut: Shortcut.arrowLeft,
                 label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusEnclosingFolder))

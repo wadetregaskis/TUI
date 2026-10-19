@@ -12,6 +12,7 @@ import Testing
 
 @testable import TUIkitApp
 @testable import TUIkitAppTestSupport
+@testable import TUIkitChrome
 @testable import TUIkitCore
 @testable import TUIkitFilePanels
 @testable import TUIkitFoundation
@@ -105,6 +106,25 @@ struct FileImporterPanelTests {
         #expect(!caller.isPresented)
         #expect(caller.heard == ["cancelled (presented: false)"])
         #expect(!driver.screen().contains("notes.md"))
+    }
+
+    @Test("Escape cancels the panel, not a page's own Escape item outside it")
+    func escapeBeatsPageItem() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        var pageWentBack = false
+        // The Example's pages carry "⎋ back" outside everything they present.
+        let driver = FilePanelDriver {
+            panel(fixture, caller: caller)
+                .statusBarItems {
+                    StatusBarItem(shortcut: Shortcut.escape, label: "back") { pageWentBack = true }
+                }
+        }
+        await driver.waitFor("notes.md")
+        driver.press(.escape)
+        #expect(!pageWentBack)
+        #expect(caller.heard == ["cancelled (presented: false)"])
     }
 
     @Test("A file of a type not allowed cannot be chosen or selected; one of an allowed type is chosen")
