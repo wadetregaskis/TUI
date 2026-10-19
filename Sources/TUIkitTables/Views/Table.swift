@@ -632,11 +632,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     var dropInsertion: (accepts: (Any) -> Bool, perform: (Int, [Any]) -> Void)?
 
     /// The table's rows as a tree, when it is hierarchical; ``data`` is empty
-    /// until ``resolvingOutline(_:)`` flattens it.
+    /// until ``resolveRows(_:)`` flattens it.
     let rowTree: [_TableRowNode<Value>]?
 
     /// This frame's flattening of ``rowTree``: the rows that show and where
-    /// each sits. Set only on the copy ``resolvingRows(_:)`` returns.
+    /// each sits. Set only on the copy ``prepared(_:)`` makes (``resolveRows(_:)``).
     var outline: _TableOutline<Value>?
 
     /// What the row modifiers said about each row, parallel to ``data``, or
@@ -656,29 +656,28 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     var columnCustomization: Binding<TableColumnCustomization<Value>>?
 
     /// Where those headers fall among this frame's rows, when there are any.
-    /// Filled in by ``resolvingRows(_:)``.
+    /// Filled in by ``resolveRows(_:)``.
     var sections: _TableSectionLayout?
 
     /// The rows a `.selectionDisabled()` reached, by their index in ``data``.
-    /// Filled in by ``resolvingRows(_:)``.
+    /// Filled in by ``resolveRows(_:)``.
     var selectionDisabledRows: Set<Int> = []
 
     /// Whether any row has a menu of its own (`TableRow.contextMenu`). Filled
-    /// in by ``resolvingRows(_:)``, so a frame asks the traits once.
+    /// in by ``resolveRows(_:)``, so a frame asks the traits once.
     var hasRowMenus = false
 
-    /// Whether ``resolvingRows(_:)`` has run for this copy.
-    var rowsAreResolved = false
-
-    /// Whether ``sizingRows(_:)`` has run for this copy.
-    var rowHeightsAreSized = false
+    /// Whether this copy is the one a pass laid out (``prepared(_:)``): its
+    /// rows sized and resolved, the widths the table keeps applied, and
+    /// ``cascadesCellText`` answered.
+    var isPrepared = false
 
     /// Whether the style cascade says something to a `String` or plain `Text`
-    /// cell's text this pass — ``cellTextAttributes(_:)`` is not empty — once
-    /// ``textingCells(_:)`` has asked; `nil` before. Asked once for the table
-    /// rather than by every cell: the question builds a set of scopes and walks
-    /// the cascade, and every reader of every cell asks it, the fit scan over
-    /// every row among them.
+    /// cell's text this pass — ``cellTextAttributes(_:)`` is not empty — on
+    /// the copy ``prepared(_:)`` made; `nil` on any other. Asked once for the
+    /// table rather than by every cell: the question builds a set of scopes
+    /// and walks the cascade, and every reader of every cell asks it, the fit
+    /// scan over every row among them.
     var cascadesCellText: Bool?
 
     var body: Never {
@@ -686,13 +685,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     /// Whether this table's rows need resolving before it draws — a tree to
-    /// flatten, or rows a modifier reached — and have not been: true only at
-    /// the two entry points, before they resolve them.
+    /// flatten, or rows a modifier reached. Asked by ``prepared(_:)`` alone,
+    /// before it resolves them.
     private var needsResolution: Bool {
-        !rowsAreResolved && (rowTree != nil || rowTraits != nil || !sectionHeaders.isEmpty)
+        rowTree != nil || rowTraits != nil || !sectionHeaders.isEmpty
     }
 
-    /// This table with its rows as this frame draws them: a tree flattened
+    /// Resolves this table's rows as this frame draws them: a tree flattened
     /// into the rows that show, its first column drawing each row's place in
     /// the tree, and what the row modifiers said gathered by row.
     ///
@@ -700,9 +699,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// a tree's open branches are state, kept at this table's identity, which
     /// only a pass's context can reach. Everything past the entry points then
     /// reads an ordinary table of rows.
-    private func resolvingRows(_ context: RenderContext) -> Self {
-        var resolved = self
-        resolved.rowsAreResolved = true
+    private mutating func resolveRows(_ context: RenderContext) {
         if let rowTree {
             let expansion: StateBox<Set<AnyHashable>> =
                 context.stateStorage?.storage(
@@ -710,88 +707,81 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                         identity: context.identity, propertyIndex: StateIndex.outlineExpansion),
                     default: []) ?? StateBox([])
             let outline = _TableOutline(tree: rowTree, expansion: expansion)
-            resolved.data = outline.values
-            resolved.rowTraits = outline.traits
-            resolved.outline = outline
+            data = outline.values
+            rowTraits = outline.traits
+            self.outline = outline
             if let first = columns.first {
-                resolved.columns[0] = outline.disclosing(first)
+                columns[0] = outline.disclosing(first)
             }
         }
-        if let traits = resolved.rowTraits {
-            resolved.selectionDisabledRows = Set(
+        if let traits = rowTraits {
+            selectionDisabledRows = Set(
                 traits.indices.lazy.filter { traits[$0].selectionDisabled == true })
-            resolved.hasRowMenus = traits.contains { $0.contextMenu != nil }
+            hasRowMenus = traits.contains { $0.contextMenu != nil }
         }
         if !sectionHeaders.isEmpty {
-            resolved.sections = _TableSectionLayout(sectionHeaders, rowCount: resolved.data.count)
+            sections = _TableSectionLayout(sectionHeaders, rowCount: data.count)
         }
-        return resolved
     }
 
     /// This table as a pass lays it out, when that is not this copy: its row
-    /// heights sized (``sizingRows(_:)``), then its rows resolved
-    /// (``resolvingRows(_:)``). `nil` for the copy that already is.
+    /// heights sized (``sizeRows(_:)``), the widths it keeps for its columns
+    /// applied (``applyKeptWidths(_:)``), its rows resolved
+    /// (``resolveRows(_:)``) and ``cascadesCellText`` answered — `nil` for the
+    /// copy that already is. `context` is the one the entry points prepare,
+    /// its text claimed for `.control(.table)` (``claimingCellText(_:)``).
+    ///
+    /// All of it on one copy, which each entry point makes once. Prepared a
+    /// step at a time, a copy a step, each copy went round the entry point
+    /// again and asked every question again: the kept widths' state lookup
+    /// twice a pass, and the table copied twice where its rows were sized.
     private func prepared(_ context: RenderContext) -> Self? {
-        if let sized = sizingRows(context.environment) { return sized }
-        if let resized = resizingColumns(context) { return resized }
-        if needsResolution { return resolvingRows(context) }
-        return textingCells(context)
+        guard !isPrepared else { return nil }
+        var table = self
+        table.isPrepared = true
+        table.sizeRows(context.environment)
+        table.applyKeptWidths(context)
+        if table.needsResolution { table.resolveRows(context) }
+        table.cascadesCellText = Self.cellTextAttributes(context.environment) != StyleAttributes()
+        return table
     }
 
-    /// This table with ``cascadesCellText`` answered for the pass — `nil` when
-    /// it is. `context` is the one the entry points prepare, its text claimed
-    /// for `.control(.table)` (``claimingCellText(_:)``).
-    private func textingCells(_ context: RenderContext) -> Self? {
-        guard cascadesCellText == nil else { return nil }
-        var texted = self
-        texted.cascadesCellText = Self.cellTextAttributes(context.environment) != StyleAttributes()
-        return texted
-    }
-
-    /// This table with the widths a user gave its columns where no
-    /// customization records them (``ItemListHandler/transientColumnWidths``):
-    /// a table with no customization binding, or a column with no identifier
-    /// — `nil` when it keeps none, or they are applied already. Read off the
+    /// Gives the columns the widths a user gave them where no customization
+    /// records them (``ItemListHandler/transientColumnWidths``): a table with
+    /// no customization binding, or a column with no identifier. Read off the
     /// table's handler without making one: a table nobody has resized pays a
     /// state lookup and nothing else (decisions B-D4T-7).
-    private func resizingColumns(_ context: RenderContext) -> Self? {
-        guard let storage = context.stateStorage else { return nil }
+    private mutating func applyKeptWidths(_ context: RenderContext) {
+        guard let storage = context.stateStorage else { return }
         let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.handler)
-        guard let box: StateBox<ItemListHandler<Value.ID>> = storage.existingStorage(for: key) else { return nil }
+        guard let box: StateBox<ItemListHandler<Value.ID>> = storage.existingStorage(for: key) else { return }
         let widths = box.value.transientColumnWidths
-        guard !widths.isEmpty else { return nil }
-        var resized = self
-        var changed = false
-        for index in resized.columns.indices where resized.columns[index].resizedWidth == nil {
-            if let width = widths[resized.columns[index].columnKey] {
-                resized.columns[index].resizedWidth = width
-                changed = true
+        guard !widths.isEmpty else { return }
+        for index in columns.indices where columns[index].resizedWidth == nil {
+            if let width = widths[columns[index].columnKey] {
+                columns[index].resizedWidth = width
             }
         }
-        return changed ? resized : nil
     }
 
-    /// This table with its columns' line limits as ``EnvironmentValues/tableRowHeights``
-    /// says — `nil` when it says what they already are, which is the default.
+    /// Gives the columns the line limits ``EnvironmentValues/tableRowHeights``
+    /// says — nothing to do where it says what they already are, which is the
+    /// default.
     ///
     /// A column that grows to its content is given ``_TableCellSizing/naturalLines``
     /// as its limit, which puts the table on the multi-line layout and tells
     /// its view cells to be measured before they are drawn.
-    private func sizingRows(_ environment: EnvironmentValues) -> Self? {
-        guard !rowHeightsAreSized else { return nil }
+    private mutating func sizeRows(_ environment: EnvironmentValues) {
         let heights = environment.tableRowHeights
-        guard heights != .lineLimited else { return nil }
-        var sized = self
-        sized.rowHeightsAreSized = true
-        for index in sized.columns.indices where !sized.columns[index].lineLimitIsStated {
-            switch sized.columns[index].cell {
+        guard heights != .lineLimited else { return }
+        for index in columns.indices where !columns[index].lineLimitIsStated {
+            switch columns[index].cell {
             case .view: break
             case .text where heights == .automatic: break
             case .text, .string: continue
             }
-            sized.columns[index].lineLimit = _TableCellSizing.naturalLines
+            columns[index].lineLimit = _TableCellSizing.naturalLines
         }
-        return sized
     }
 
     /// Whether this table lays its rows out as rows of their own heights —
