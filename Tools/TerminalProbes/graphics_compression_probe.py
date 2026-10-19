@@ -110,7 +110,12 @@ def main():
         os.write(fd, b"\r\n\r\n\r\n")
         answers["RAW_DISPLAY"] = raw_reply
         answers["DEFLATED_DISPLAY"] = deflated_reply
-        os.write(fd, b"\x1b_Ga=d,d=I,q=2,i=901\x1b\\\x1b_Ga=d,d=I,q=2,i=902\x1b\\")
+        # The card is for a person: it stays until they have looked. Deleting
+        # the images at once (as this probe did until 2026-10-19) left nothing
+        # but the space they had taken, raw and deflated alike.
+        os.write(fd, b"  Compare the two ramps, then press Return to clear them.")
+        os.read(fd, 1)
+        os.write(fd, b"\r\n\x1b_Ga=d,d=I,q=2,i=901\x1b\\\x1b_Ga=d,d=I,q=2,i=902\x1b\\")
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
