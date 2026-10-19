@@ -140,6 +140,7 @@ struct AnimationPage: View {
             modifiers
             comingAndGoing
             AnimatorsDemo()
+            MatchedGeometryDemo(animation: animation)
             KeyboardHelpSection(shortcuts: [
                 "page.animation.help.tab",
                 "page.animation.help.activate",

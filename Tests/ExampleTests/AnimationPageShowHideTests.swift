@@ -382,8 +382,10 @@ struct AnimationPageShowHideTests {
         arguments: [false, true])
     func wholePageFadesAndKeepsItsSpace(reservesSpace: Bool) {
         ColorDepth.withCurrent(.truecolor) {
+            // Tall enough for the whole page down to its keyboard help, the
+            // matched geometry demo above it included.
             let page = PageDriver(
-                AnimationPageApp(), width: 100, height: 70, belowText: "demo.keyboardControls")
+                AnimationPageApp(), width: 100, height: 100, belowText: "demo.keyboardControls")
             if reservesSpace {
                 // "Its space" is a picker: opened on its value, then the choice.
                 #expect(page.click("page.animation.space.closesUp"), "precondition: the picker took the click")
