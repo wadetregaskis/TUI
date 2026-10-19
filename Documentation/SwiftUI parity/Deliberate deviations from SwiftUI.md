@@ -1272,6 +1272,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   frames; the removed view moves toward the inserted one's frame as it fades.
 - **TUIkit:** every carried view is laid out again at each frame's size,
   edges rounded to whole cells, and only moved while its size is its own;
+  while it is carried it floats over every view, as `.offset` draws one
+  (L6), and only at rest is it drawn at its place in the stacking order —
+  there a terminal's blank cells paint, so a view carried toward the views
+  before it would be lost under every container after it;
   the removed view's picture stays where it last drew it while its removal
   plays; and a transition that fades the inserted view fades it where it is
   laid out, not the cells it draws at another view's frame. A source that its

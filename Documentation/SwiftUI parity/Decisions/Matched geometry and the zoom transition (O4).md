@@ -183,6 +183,28 @@ rounded corner glyphs and clip the uncovered screen to them — half a day; once
 O6 lands, draw the source's shadow round the rectangle — a couple of hours on
 top of O6's own drawing.
 
+### B-O4-7. A carried member floats over every view while it moves
+
+*`View.matchedGeometryEffect(id:in:properties:anchor:isSource:)`*
+
+At rest, a member drawn at another view's frame is drawn there at its own
+place in the stacking order, over the views before it and under the views
+after it, as SwiftUI draws a view past its frame. Carried by an animation,
+that hid it: a terminal's blank cells paint, so a chip carried from the
+right-hand list back to the left one (the left list being earlier in the
+tree) was lost under the right list's box, blanks and all, until it had
+cleared it — the Example's "Reopen one" showed the chip vanish and reappear
+half-way. So while it is carried it floats over every view, as `.offset`
+draws a view (Deliberate deviations L6), and drops back into the stacking
+order when it arrives.
+
+**Fuller version:** draw a carried view in the stacking order with the
+later views' unstyled blanks letting it through — a notion of "painted"
+for covering that leaves out blank cells with no background, which the
+overflow machinery (`FrameBuffer.coverOverflow(under:at:)`) does not have.
+About a day, and it would change how every overflowing view is covered, so
+it wants an owner's look first.
+
 ## Interaction with lane FB16 (stack children gliding)
 
 FB16 animates a stack child's placement when the layout changes under an

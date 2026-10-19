@@ -85,7 +85,11 @@ extension View {
     ///   its own place in the stacking order — over the views before it and
     ///   under the views after it — with only the cells it paints drawn, and
     ///   its clicks where it is drawn (as content drawn past its frame is,
-    ///   decisions B-GUIDE-3). Nothing is drawn where it is laid out.
+    ///   decisions B-GUIDE-3). Nothing is drawn where it is laid out. While an
+    ///   animation carries it, it floats over every view, as `.offset` draws
+    ///   one: a terminal's blank cells paint, so in its place in the stacking
+    ///   order a view carried toward the views before it would be lost under
+    ///   the views after it (Deliberate deviations A8).
     /// - **A follower's `anchor` lands on the source's.** The source shares
     ///   the point of it its own `anchor` names; a follower matching
     ///   `.position` is drawn with the point its `anchor` names there.
@@ -229,9 +233,33 @@ extension _MatchedGeometryEffectView: Renderable, Layoutable {
         }
         member.registration.drawn = CellRect(
             x: frame.x - ownFrame.x, y: frame.y - ownFrame.y, width: frame.width, height: frame.height)
-        return picture.drawnPastSlot(
-            width: ownFrame.width, height: ownFrame.height,
-            offsetX: origin.x - ownFrame.x, offsetY: origin.y - ownFrame.y)
+        let (dx, dy) = (origin.x - ownFrame.x, origin.y - ownFrame.y)
+        guard member.isCarried else {
+            return picture.drawnPastSlot(width: ownFrame.width, height: ownFrame.height, offsetX: dx, offsetY: dy)
+        }
+        return Self.floating(picture, by: dx, dy, from: ownFrame.size)
+    }
+
+    /// `picture` drawn `(dx, dy)` from a footprint of `size`, floating over
+    /// everything on the page as `.offset` draws a view (``View/offset(x:y:)``,
+    /// Deliberate deviations L6): a view in flight is drawn over the views
+    /// after it as well as those before it — at its place in the stacking
+    /// order, a terminal's blank cells paint, so a view carried toward the
+    /// views before it was lost under every container after it until it
+    /// cleared them. Its clicks go with it; its geometry markers stay in the
+    /// footprint, where it is laid out, as they do for a view drawn past its
+    /// slot. It stays where it is put at the screen's edge rather than sliding
+    /// back on.
+    private static func floating(_ picture: FrameBuffer, by dx: Int, _ dy: Int, from size: CellSize) -> FrameBuffer {
+        var content = picture
+        content.hitTestRegions.removeAll(where: \.isGeometryMarker)
+        var footprint = FrameBuffer(footprintWidth: size.width, height: size.height)
+        footprint.hitTestRegions = picture.hitTestRegions.filter(\.isGeometryMarker)
+        footprint.overlays.append(
+            OverlayLayer(
+                offsetX: dx, offsetY: dy, content: content, level: .popover,
+                zIndex: OverlayLayer.displacedDrawingZIndex, clampsToScreen: false, isOpaque: false))
+        return footprint
     }
 }
 
@@ -292,6 +320,13 @@ private struct MatchedMemberDrawing {
     mutating func drew(size: CellSize) {
         ownFrame = CellRect(x: ownFrame.x, y: ownFrame.y, width: size.width, height: size.height)
         registration.size = size
+    }
+
+    /// Whether the member is being carried this frame: an animated change
+    /// is moving its drawing. Asked once ``frame(at:animations:context:)`` has
+    /// said where it is drawn.
+    var isCarried: Bool {
+        !registration.state.offsets.isZero
     }
 
     /// Whether this frame may draw the member anywhere but its own place.

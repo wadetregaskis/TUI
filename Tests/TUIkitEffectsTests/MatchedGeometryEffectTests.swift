@@ -383,6 +383,19 @@ struct MatchedGeometryEffectTests {
         #expect(end[1].hasPrefix("                    x"), "the right column's rows are where they end")
     }
 
+    @Test("A view carried toward the views before it is drawn over the views after it while it moves")
+    func carriedOverLaterViews() {
+        let frames = Frames()
+        frames.draw(Columns(right: true))
+        frames.draw(Columns(right: false), atMillis: 0, animation: .linear(duration: 1))
+        // A tenth of the way back from (20, 2): over the right column, which
+        // comes after the left one and still draws the chip leaving it.
+        let early = frames.draw(Columns(right: false), atMillis: 100)
+        #expect(rect(of: "a", in: early) == CellRect(x: 18, y: 2, width: 3, height: 1))
+        #expect(rect(of: "a", in: frames.draw(Columns(right: false), atMillis: 1000))
+            == CellRect(x: 0, y: 1, width: 3, height: 1))
+    }
+
     @Test("A view inserted with nothing of its id leaving appears where it is laid out")
     func plainInsertion() {
         let frames = Frames()
