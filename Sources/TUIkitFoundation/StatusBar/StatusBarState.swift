@@ -304,6 +304,14 @@ public final class StatusBarState: @unchecked Sendable {
     /// (`claimEscape(_:)`).
     var pendingEscapeClaimFlag: PendingEscapeClaimFlag?
 
+    /// What the bar calls Escape where nothing has claimed it this walk: named
+    /// by a surface that takes the key at the lowest priority before its
+    /// content draws — a window opened over another, which Escape closes —
+    /// for a bar drawn before the surface can know whether anything in it
+    /// claims the key. A claim made later names the key instead
+    /// (``escapeLabelOverride``). Emptied before each walk.
+    package var escapeFallbackLabel: String?
+
     /// The page's claim on Escape this frame — made outside every pane — if
     /// anything has made one: see ``EscapeClaim``.
     var escapeClaim: EscapeClaim?
@@ -413,7 +421,7 @@ public final class StatusBarState: @unchecked Sendable {
         // A page that publishes its OWN escape or return item wins the shortcut
         // dedup below and keeps its action; these are the fallback for a page
         // that has not.
-        if showEscapeItem, let label = escapeLabelOverride {
+        if showEscapeItem, let label = escapeLabelOverride ?? escapeFallbackLabel {
             items.append(SystemStatusBarItem.escape(label: label))
         }
         if showReturnItem, let label = activationLabelOverride {
@@ -735,6 +743,7 @@ extension StatusBarState {
         escapeClaim = nil
         if !paneEscapeClaims.isEmpty { paneEscapeClaims.removeAll() }
         pendingEscapeClaimFlag = nil
+        escapeFallbackLabel = nil
         itemActionsSuppressed = false
         // Same contract for the Return verb: published by whichever control
         // holds the focus this frame, so its absence has to be the default or a

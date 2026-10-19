@@ -94,11 +94,22 @@ extension ScenePresenter {
             context.environment.focusManager?.registerSection(id: window.focusSection)
         }
         let escapeHandlerSlot = context.environment.keyEventDispatcher?.handlerCount ?? 0
+        // Named before the window draws, for its status bar, which draws
+        // before the claim below can be made; anything in the window that
+        // claims Escape names it instead.
+        if !context.isMeasuring, windows.count > 1 {
+            context.environment.statusBar?.escapeFallbackLabel = Self.closeWindowLabel
+        }
         let buffer = scene.renderSceneTree(context: context)
         guard !context.isMeasuring else { return buffer }
         window.showsModalPresentation = context.environment.focusManager?.activeSectionIsModal == true
         if windows.count > 1 { claimEscape(closing: window, at: escapeHandlerSlot, context: context) }
         return buffer
+    }
+
+    /// What the status bar calls Escape that closes a window.
+    private static var closeWindowLabel: String {
+        LocalizationService.shared.string(for: LocalizationKey.StatusBar.closeWindow)
     }
 
     /// Makes Escape close `window`, where nothing in it claimed the key and no
@@ -107,7 +118,7 @@ extension ScenePresenter {
         let statusBar = context.environment.statusBar
         let focusManager = context.environment.focusManager
         guard statusBar?.hasEscapeClaimHere != true, focusManager?.activeSectionIsModal != true else { return }
-        statusBar?.escapeLabelOverride = LocalizationService.shared.string(for: LocalizationKey.StatusBar.closeWindow)
+        statusBar?.escapeLabelOverride = Self.closeWindowLabel
         statusBar?.escapeClaimGrabsInput = false
         let serial = window.serial
         context.environment.keyEventDispatcher?.insertHandler(

@@ -78,6 +78,19 @@ private struct WindowsApp: App {
     }
 }
 
+/// Two windows, each with a line of key hints in its bottom bar.
+private struct HintsApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            Text("main hints").toolbar { ToolbarItem(placement: .bottomBar) { StatusBar() } }
+        }
+        Window("Hints", id: "hints") {
+            Text("other hints").toolbar { ToolbarItem(placement: .bottomBar) { StatusBar() } }
+        }
+    }
+}
+
 /// A `Window` first: the window opened at launch.
 private struct WindowFirstApp: App {
     init() {}
@@ -262,6 +275,16 @@ struct WindowPresentationTests {
         frame(app)
         #expect(app.quitsRequested == 1)
         #expect(app.scenes.windows.isEmpty)
+    }
+
+    @Test("The status bar names Escape \"close window\" in a window with another behind it, and not in the last")
+    mutating func closeWindowHint() {
+        let app = launched(HintsApp())
+        #expect(!screen(app).contains("close window"), "\(screen(app))")
+        app.scenes.open(WindowTarget(id: "hints"))
+        frame(app)
+        frame(app)
+        #expect(screen(app).contains("⎋ close window"), "\(screen(app))")
     }
 
     @Test("A Window first in the body is the window opened at launch")
