@@ -62,6 +62,24 @@ offered and means it, and it is cut from its top-leading corner (B-D3M-2).
 3. A fixed `.frame(width:)` that keeps its width when offered less: the change
    to every container's contract that B-GUIDE-1 prices at 1.5 to 2.5 weeks.
 
+**Shipped 2026-10-18 (lane LAYOUT): parts 1 and 2.** `.fixedSize()` had become
+SwiftUI's in the meantime (c3faf8a02): a `Text` under it reports and draws its
+unwrapped width. A view drawn at its own size whatever it is offered —
+`.fixedSize()`, an `Image` at its natural size (`DrawsAtItsOwnSize`, found
+through single-content wrappers and app views' bodies, kept per type) — is now
+offered its own size by a `.frame`, an `.overlay` or a `.background` it is
+larger than, so it comes back whole rather than cut to the region, and placed
+by the region's alignment past its edges, the part past it drawn as overflow at
+the view's place in the stacking order: `Text("0123456789").fixedSize()
+.frame(width: 4, alignment: .center)` draws three digits past each side, over
+the views before it and under the views after it (`OwnSizeOverflowTests`), and
+a picture at its natural size in a centred frame shows its middle, the rest
+past the frame (`ImageNaturalSizeTests`). Other content larger than its region
+is cut to it as before: a `Text` is truncated to its offer, as SwiftUI's is,
+and a `Text` taller than a one-row frame keeps its rows past the frame cut.
+Part 3 stays deferred (B-GUIDE3-1-P3). A view that is neither pays one table
+read per frame or layer render; one that is pays a measure more.
+
 ### B-GUIDE3-2. Which guide a push past the bound blames, and how far the variable may raise the bound
 
 *`AlignmentGuideRun.maximumPush`, `TUIKIT_MAX_ALIGNMENT_PUSH`*

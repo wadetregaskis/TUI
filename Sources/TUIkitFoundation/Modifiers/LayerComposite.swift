@@ -79,6 +79,20 @@ private func placeLayer<Layer: View>(
     var framedContext = overlayContext
     if baseBuffer.width > 0 { framedContext.availableWidth = baseBuffer.width }
     if baseBuffer.height > 0 { framedContext.availableHeight = baseBuffer.height }
+    // A layer drawn at its own size, larger than the base (`.fixedSize()`, an
+    // image at its natural size): offered that size, so it comes back whole,
+    // and placed by the alignment past the base's frame (below; decisions
+    // B-GUIDE3-1). Only where the base has a frame on both axes.
+    var drawsPast = false
+    if baseBuffer.width > 0, baseBuffer.height > 0,
+        let own = ownSizePastOffer(
+            of: layer, width: framedContext.availableWidth, height: framedContext.availableHeight,
+            context: framedContext)
+    {
+        framedContext.availableWidth = own.width
+        framedContext.availableHeight = own.height
+        drawsPast = true
+    }
     // Where the alignment will put the layer, for a ramp spanning the base and
     // the carried geometry origin — from the layer's MEASURED size, worked out
     // only when one of them will be read. A layer that fills the base (a
@@ -105,16 +119,22 @@ private func placeLayer<Layer: View>(
     // `.alignmentGuide` when it set one, so a badge can hang off the corner
     // it is aligned to rather than sit squarely on it.
     let overlaySize = (width: overlayBuffer.width, height: overlayBuffer.height)
-    let horizontalGuide = horizontalGuidePlacement(
-        of: layer, size: overlaySize, alignment: alignment.horizontal, in: baseBuffer.width,
-        context: framedContext)
+    let horizontalGuide =
+        horizontalGuidePlacement(
+            of: layer, size: overlaySize, alignment: alignment.horizontal, in: baseBuffer.width,
+            context: framedContext)
+        ?? (drawsPast && overlaySize.width > baseBuffer.width
+            ? alignment.horizontal.offsetDrawingPast(childWidth: overlaySize.width, in: baseBuffer.width) : nil)
     let horizontalOffset =
         horizontalGuide ?? alignment.horizontal.childOffset(childWidth: overlaySize.width, in: baseBuffer.width)
 
     // Calculate vertical position
-    let verticalGuide = verticalGuidePlacement(
-        of: layer, size: overlaySize, alignment: alignment.vertical, in: baseBuffer.height,
-        context: framedContext)
+    let verticalGuide =
+        verticalGuidePlacement(
+            of: layer, size: overlaySize, alignment: alignment.vertical, in: baseBuffer.height,
+            context: framedContext)
+        ?? (drawsPast && overlaySize.height > baseBuffer.height
+            ? alignment.vertical.offsetDrawingPast(childHeight: overlaySize.height, in: baseBuffer.height) : nil)
     let verticalOffset =
         verticalGuide ?? alignment.vertical.childOffset(childHeight: overlaySize.height, in: baseBuffer.height)
 
@@ -125,10 +145,11 @@ private func placeLayer<Layer: View>(
     // drawn past it, at the layer's place in the stacking order. Only where the
     // base has a frame on both axes (see above for one with none), never on a
     // measure pass, which draws nothing and cuts the layer to the base, and
-    // only along a guided axis: a layer larger than its base on an axis its
-    // alignment places is cut to the base as it always was
-    // (decisions-GUIDE3 B-GUIDE3-1), so the region there holds all of it and
-    // the clamp below cuts it.
+    // only along a placed axis — a guided one, or one a layer drawn at its own
+    // size overhangs (``DrawsAtItsOwnSize``): any other layer larger than its
+    // base on an axis its alignment places is cut to the base as it always
+    // was (decisions-GUIDE3 B-GUIDE3-1), so the region there holds all of it
+    // and the clamp below cuts it.
     let position = (x: horizontalOffset, y: verticalOffset)
     if horizontalGuide != nil || verticalGuide != nil, baseBuffer.width > 0, baseBuffer.height > 0,
         !framedContext.isMeasuring

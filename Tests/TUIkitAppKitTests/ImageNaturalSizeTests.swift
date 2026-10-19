@@ -95,6 +95,34 @@ struct ImageNaturalSizeTests {
         #expect(drawn.contains("255;0;0") && !drawn.contains("0;0;255"), "only the red left half shows")
     }
 
+    @Test("In a frame narrower than it, it is placed by the frame's alignment and drawn past the frame")
+    func drawnPastAFrameByItsAlignment() {
+        // Red on the left half (columns 0 to 9 of 20), blue on the right. In an
+        // eight-cell centred frame it sits six cells left of the frame, so the
+        // frame shows columns 6 to 13, red and blue, and the rest is drawn past
+        // it (decisions B-GUIDE3-1). Cut from its top-leading corner, the frame
+        // showed red alone.
+        let pixels = (0..<(140 * 70)).map { index in index % 140 < 70 ? Self.red : RGBA(r: 0, g: 0, b: 255) }
+        let image = Image(
+            .url("tuikit-test://halves-framed"), decoded: _DecodedImage(RGBAImage(width: 140, height: 70, pixels: pixels)))
+        let tui = TUIContext(
+            lifecycle: LifecycleManager(firesEffects: false), keyEventDispatcher: KeyEventDispatcher(),
+            preferences: PreferenceStorage(), stateStorage: StateStorage())
+        var environment = EnvironmentValues()
+        environment.applyRuntimeServices(from: tui)
+        environment.imageCellPoints = Self.cell
+        let context = RenderContext(availableWidth: 30, availableHeight: 8, environment: environment, tuiContext: tui)
+        tui.stateStorage.beginRenderPass()
+        defer { tui.stateStorage.endRenderPass() }
+        let buffer = renderToBuffer(
+            image.imageColorMode(.trueColor).frame(width: 8, height: 5, alignment: .center), context: context)
+        let drawn = buffer.lines.joined()
+        #expect(buffer.width == 8)
+        #expect(drawn.contains("255;0;0") && drawn.contains("0;0;255"), "the frame shows both halves")
+        let drawsPast = buffer.overlays.contains { $0.isOverflow }
+        #expect(drawsPast, "the rest is drawn past the frame")
+    }
+
     @Test("Its pixels over its scale are its size in points")
     func scaleHalvesIt() {
         #expect(box(picture(140, 70, scale: 2)) == (10, 3))

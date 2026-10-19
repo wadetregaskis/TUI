@@ -45,11 +45,13 @@ extension View {
     /// with an unspecified proposal, and is that size whatever its container
     /// offers: `Text("Name").fixedSize()` in a crowded `HStack` keeps its whole
     /// title on one line and leaves its neighbours what remains, where it would
-    /// otherwise share the squeeze. A view fixed wider than its container
-    /// overflows it, cut at the container's edge as anything wider than its
-    /// region is. A view with no ideal size along an axis — one that fills what
-    /// it is offered, a `Color` or a `.frame(maxWidth: .infinity)` — keeps the
-    /// size it is offered there.
+    /// otherwise share the squeeze. A view fixed wider than the `.frame`, the
+    /// `.overlay` or the `.background` placing it is drawn at its size, placed
+    /// by their alignment, what lies past them drawn past them, as SwiftUI's
+    /// is; in any other container it overflows, cut at the container's edge,
+    /// as anything wider than its region is. A view with no ideal size along
+    /// an axis — one that fills what it is offered, a `Color` or a
+    /// `.frame(maxWidth: .infinity)` — keeps the size it is offered there.
     ///
     /// A `List` fixed horizontally hugs its content, sizing to the widest of
     /// **all** its rows (stable as you scroll — it does not track only the rows

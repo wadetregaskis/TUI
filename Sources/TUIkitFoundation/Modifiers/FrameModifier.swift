@@ -267,6 +267,18 @@ extension FlexibleFrameView: Renderable {
             contentContext.hasExplicitHeight = true
         }
 
+        // Content drawn at its own size, larger than the frame (`.fixedSize()`,
+        // an image at its natural size): offered that size, so it comes back
+        // whole rather than cut to the frame, and placed past the frame's edge
+        // by its alignment (`alignBuffer`; decisions B-GUIDE3-1).
+        let drawsPast = ownSizePastOffer(
+            of: content, width: contentContext.availableWidth, height: contentContext.availableHeight,
+            context: contentContext)
+        if let drawsPast {
+            contentContext.availableWidth = drawsPast.width
+            contentContext.availableHeight = drawsPast.height
+        }
+
         // Where the frame will align the content, for a ramp spanning the frame
         // and the carried geometry origin — worked out only when one of them
         // will be read.
@@ -296,7 +308,8 @@ extension FlexibleFrameView: Renderable {
 
         // Otherwise, align content within the frame
         return alignBuffer(
-            buffer, toWidth: finalWidth, height: finalHeight, fitsAsIs: fitsAsIs, contentContext: contentContext)
+            buffer, toWidth: finalWidth, height: finalHeight, fitsAsIs: fitsAsIs, drawsPast: drawsPast != nil,
+            contentContext: contentContext)
     }
 
     /// `contentContext` with the content placed where ``alignBuffer`` will put
@@ -320,25 +333,38 @@ extension FlexibleFrameView: Renderable {
 
     /// Aligns buffer content within the target frame size.
     ///
-    /// - Parameter fitsAsIs: Whether the content is the frame's size already,
-    ///   so that it comes back untouched when its own guide places it on
-    ///   neither axis.
+    /// - Parameters:
+    ///   - fitsAsIs: Whether the content is the frame's size already, so that
+    ///     it comes back untouched when its own guide places it on neither
+    ///     axis.
+    ///   - drawsPast: Whether the content is drawn at its own size
+    ///     (``DrawsAtItsOwnSize``) and larger than the frame: on an axis it is
+    ///     larger along, it is placed by the alignment past the frame's edge,
+    ///     as a guide places it, and drawn there.
     private func alignBuffer(
         _ buffer: FrameBuffer, toWidth targetWidth: Int, height targetHeight: Int, fitsAsIs: Bool,
-        contentContext: RenderContext
+        drawsPast: Bool = false, contentContext: RenderContext
     ) -> FrameBuffer {
         // The content's own explicit `.alignmentGuide`, when it set one. The
         // frame is a fixed region holding one child, so there is no run to
         // merge — the child's guide meets the frame's. The content is placed
         // as a BLOCK (one offset for every line) whatever places it
-        // (`placeBuffer`).
+        // (`placeBuffer`). Content drawn at its own size and larger than the
+        // frame is placed by the alignment past the frame's edge, as a guide
+        // would place it.
         let contentSize = (width: buffer.width, height: buffer.height)
-        let horizontalGuide = horizontalGuidePlacement(
-            of: content, size: contentSize, alignment: alignment.horizontal, in: targetWidth,
-            context: contentContext)
-        let verticalGuide = verticalGuidePlacement(
-            of: content, size: contentSize, alignment: alignment.vertical, in: targetHeight,
-            context: contentContext)
+        let horizontalGuide =
+            horizontalGuidePlacement(
+                of: content, size: contentSize, alignment: alignment.horizontal, in: targetWidth,
+                context: contentContext)
+            ?? (drawsPast && buffer.width > targetWidth
+                ? alignment.horizontal.offsetDrawingPast(childWidth: buffer.width, in: targetWidth) : nil)
+        let verticalGuide =
+            verticalGuidePlacement(
+                of: content, size: contentSize, alignment: alignment.vertical, in: targetHeight,
+                context: contentContext)
+            ?? (drawsPast && buffer.height > targetHeight
+                ? alignment.vertical.offsetDrawingPast(childHeight: buffer.height, in: targetHeight) : nil)
         let verticalOffset =
             verticalGuide ?? alignment.vertical.childOffset(childHeight: buffer.height, in: targetHeight)
         guard horizontalGuide != nil || verticalGuide != nil else {
@@ -355,11 +381,13 @@ extension FlexibleFrameView: Renderable {
         // pass draws nothing, so it keeps the content inside, at the nearest
         // place, which sizes the same.
         //
-        // Only along a guided axis. Content larger than the frame on an axis
-        // its alignment places is handled as it always was — its rows past
-        // the frame dropped here, its columns left for a clamp to cut — so the
-        // region on that axis is taken to hold all of it (decisions-GUIDE3
-        // B-GUIDE3-1).
+        // Only along a placed axis — a guided one, or one content drawn at
+        // its own size overhangs (``DrawsAtItsOwnSize``). Other content larger
+        // than the frame on an axis its alignment places is handled as it
+        // always was — its rows past the frame dropped here, its columns left
+        // for a clamp to cut, as a `Text` taller than its frame is cut where
+        // SwiftUI's truncates — so the region on that axis is taken to hold
+        // all of it (decisions-GUIDE3 B-GUIDE3-1).
         var position = (
             x: horizontalGuide ?? alignment.horizontal.childOffset(childWidth: buffer.width, in: targetWidth),
             y: verticalOffset)

@@ -1118,8 +1118,10 @@ the cell, and a surface — a menu, a popover, a sheet, a dialog — at its edge
 (decisions-GUIDE3 B-GUIDE3-3). A border, a box's divider and its footer are
 drawn over what the content draws past its region, and past the border it is
 still drawn, as SwiftUI's border is (measured; decisions-GUIDE3 B-GUIDE3-5).
-Content larger than its frame or base is still
-cut to it, as before (decisions-GUIDE3 B-GUIDE3-1).
+Content drawn at its own size — `.fixedSize()`, an image at its
+natural size — larger than its frame or base is drawn the same way since
+2026-10-18, placed by the region's alignment, the rest past it; other content
+larger than its region is cut to it, as before (decisions-GUIDE3 B-GUIDE3-1).
 
 **A presentation is not content and is never clipped.** A menu, a drop-down, a
 dialog or a toast is a window over the page — the layer flag is `isOpaque` —

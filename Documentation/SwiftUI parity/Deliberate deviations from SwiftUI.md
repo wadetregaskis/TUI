@@ -225,8 +225,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **TUIkit:** a container reports at most what it was offered and draws into a
   buffer of that size. An oversized overlay is cut to its base's box. An image
   larger than its space is cut from its top-leading corner, where SwiftUI's
-  overflows centred. What a placement puts outside its region is the
-  exception (since 2026-10-12): a single child whose guide places it outside
+  overflows centred — except in a `.frame`, an `.overlay` or a `.background`,
+  which since 2026-10-18 place a view drawn at its own size (an image at its
+  natural size, `.fixedSize()`) by their alignment and draw what lies past
+  them past them, as SwiftUI does (B-GUIDE3-1). What a placement puts outside
+  its region is the other exception (since 2026-10-12): a single child whose guide places it outside
   its `.frame`, `.overlay` or `.background` is drawn there, as SwiftUI's is, at
   its place in the stacking order and clicked where it is drawn, and a run of
   guided views larger than a region that cannot grow keeps every guide on one
@@ -239,8 +242,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   [B-D3M-2](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-2-an-images-natural-size-is-known-on-four-hosts-and-ghosttys-only-locally>), [B-GUIDE-1](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-1-a-region-smaller-than-the-run-keeps-the-runs-leading-edge-on-its-own>),
   [B-GUIDE-3](<Decisions/Alignment guides outside their view (GUIDE).md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>). **Recorded**; the guide placements were
   closed by the owner's 2026-10-12 ruling ("try to support it"), and content
-  larger than its region was not
-  ([B-GUIDE3-1](<Decisions/Drawing past a region (GUIDE3).md#b-guide3-1-content-larger-than-its-frame-or-base-is-still-cut>)). The other exceptions are displaced drawing, L6,
+  drawn at its own size in a frame, an overlay or a background on 2026-10-18
+  ([B-GUIDE3-1](<Decisions/Drawing past a region (GUIDE3).md#b-guide3-1-content-larger-than-its-frame-or-base-is-still-cut>));
+  a stack or another container still cuts what overhangs it (B-GUIDE3-1-P3).
+  The other exceptions are displaced drawing, L6,
   and a drop shadow, which is drawn past its view the same way, at the view's
   place in the stacking order (since 2026-10-18, C6).
 
