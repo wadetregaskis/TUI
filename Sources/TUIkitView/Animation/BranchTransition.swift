@@ -99,14 +99,20 @@ extension ConditionalView {
         let identity = context.identity
         return storage.recordingConditionalBranch(identity, isTrueBranch: isTrueBranch) { record in
             let flipped = record.seen && record.isTrueBranch != isTrueBranch
-            let animator = BranchAnimator(context: context, storage: storage, pictureType: Self.pictureType(ofBranch:))
-            if flipped {
-                record.leaving = animator.leaver(record.picture, isTrueBranch: !isTrueBranch)
-                record.arriving = animator.startsArriving(isTrueBranch)
-            }
+            let left = record.picture
             record.isTrueBranch = isTrueBranch
             record.seen = true
             record.picture = buffer
+            // The settled frame — every render of every conditional drawn
+            // whole — ends here: what the animator reads of the environment,
+            // and the closure it is handed, are paid only by a frame something
+            // comes or goes on.
+            guard flipped || record.arriving || record.leaving != nil else { return (flipped, buffer) }
+            let animator = BranchAnimator(context: context, storage: storage, pictureType: Self.pictureType(ofBranch:))
+            if flipped {
+                record.leaving = animator.leaver(left, isTrueBranch: !isTrueBranch)
+                record.arriving = animator.startsArriving(isTrueBranch)
+            }
             guard record.arriving || record.leaving != nil else { return (flipped, buffer) }
             return (flipped, animator.drawn(buffer, isTrueBranch: isTrueBranch, record: &record))
         }
