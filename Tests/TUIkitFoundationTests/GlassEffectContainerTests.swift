@@ -51,23 +51,30 @@ struct GlassEffectContainerTests {
         #expect(frames(pair(spacing: 0), width: 6).last == ["(A)(B)"])
     }
 
-    @Test("In a container, glass that touches is drawn as one shape from the next pass")
+    @Test("In a container, glass that touches is drawn as one shape from the first pass")
     func touchingJoins() {
         let drawn = frames(GlassEffectContainer { pair(spacing: 0) }, width: 6)
-        // The first pass learns who touches; each glass has drawn itself by then.
-        #expect(drawn[0] == ["(A)(B)"])
+        #expect(drawn[0] == ["(A  B)"])
         #expect(drawn[1] == ["(A  B)"])
     }
 
-    @Test("The pass a group forms, its glass is drawn as it would be outside a container")
-    func formingPassIsTheGlassAlone() {
-        func firstPass(_ view: some View) -> [String] {
-            var environment = EnvironmentValues()
-            environment.palette = SystemPalette.green
-            let context = RenderContext(availableWidth: 6, availableHeight: 1, environment: environment, tuiContext: TUIContext())
-            return ColorDepth.withCurrent(.truecolor) { renderToScreen(view, context: context).lines }
+    @Test("The pass a group forms is drawn as every pass after it: one glass, not the members' own under it")
+    func formingPassIsTheGroup() {
+        var environment = EnvironmentValues()
+        environment.palette = SystemPalette.green
+        let tui = TUIContext()
+        let context = RenderContext(availableWidth: 6, availableHeight: 1, environment: environment, tuiContext: tui)
+        let passes = (0..<2).map { _ in
+            tui.stateStorage.beginRenderPass()
+            tui.renderCache.beginRenderPass()
+            let lines = ColorDepth.withCurrent(.truecolor) {
+                renderToScreen(GlassEffectContainer { pair(spacing: 0) }, context: context).lines
+            }
+            tui.renderCache.removeInactive()
+            tui.stateStorage.endRenderPass()
+            return lines
         }
-        #expect(firstPass(GlassEffectContainer { pair(spacing: 0) }) == firstPass(pair(spacing: 0)))
+        #expect(passes[0] == passes[1])
     }
 
     @Test("Glass the container's spacing apart stays apart; closer, it joins")
@@ -106,14 +113,33 @@ struct GlassEffectContainerTests {
         #expect(frames(none, width: 9).last == ["(A)   (B)"], "outside a container a union is nothing")
     }
 
-    @Test("Glass that leaves a group is drawn apart at once, and draws itself again after")
+    @Test("Glass that leaves a group is drawn apart at once")
     func leaving() {
         let tui = TUIContext()
         let joined = frames(GlassEffectContainer { pair(spacing: 0) }, width: 8, tui: tui)
         #expect(joined.last == ["(A  B)"])
         let apart = frames(GlassEffectContainer { pair(spacing: 2) }, count: 2, width: 8, tui: tui)
-        #expect(apart[0] == ["(A)  (B)"], "the container draws them apart while they still leave it their glass")
+        #expect(apart[0] == ["(A)  (B)"], "apart on the pass they part")
         #expect(apart[1] == ["(A)  (B)"])
+    }
+
+    @Test("Glass that comes to touch a group joins it on that pass; the group never comes apart")
+    func joiningAGroup() {
+        func row(gap: Int) -> some View {
+            GlassEffectContainer {
+                HStack(spacing: 0) {
+                    Text("A").padding(.horizontal).glassEffect()
+                    Text("B").padding(.horizontal).glassEffect()
+                    Color.clear.frame(width: gap)
+                    Text("C").padding(.horizontal).glassEffect()
+                }
+            }
+        }
+        let tui = TUIContext()
+        #expect(frames(row(gap: 1), width: 10, tui: tui).last == ["(A  B) (C)"])
+        let joining = frames(row(gap: 0), width: 10, tui: tui)
+        #expect(joining[0] == joining[1], "joined on the pass it comes to touch")
+        #expect(joining[1] == ["(A  B  C)"])
     }
 
     @Test("Glass in a scroll view in a container is drawn by itself")

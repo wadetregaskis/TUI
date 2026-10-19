@@ -146,10 +146,16 @@ is one shape round all of its members. A cell is joined or not, so here:
   where the pointer is over any member.
 - **How:** each glass draws itself and tells the container where it is (a
   geometry marker it finds in what the content drew, `GlassEffectGathering`).
-  The container keeps who was in a joined group; next pass they leave their
-  glass to it. So a group forms one pass after its members come together —
-  the change of who is joined is a state write, which draws that next pass —
-  and a member that leaves is drawn apart at once. Glass in a container
+  The container keeps who was in a joined group, and those leave their glass
+  to it. Where a drawing of the content finds them joined otherwise — the pass
+  a group forms, a glass joins one or leaves — the container puts the walk
+  back (`RenderWalkCheckpoint`) and draws its content again, knowing who is
+  joined, as a coordinate space draws its readers again. Glass changes no
+  layout, so the second drawing finds what the first did: every pass shows
+  the glass joined as it stands. The second walk is paid only on a pass that
+  changes who is joined, and is the coordinate spaces' second walk, with its
+  known cost: what a drawing does rather than registers — an `onChange` that
+  fires, a task that starts — happens on both. Glass in a container
   declares a render side effect, so no memo keeps a subtree with one.
 - **Where it stops:** a glass in a `ScrollView` inside the container draws
   itself, since what the container draws is not clipped to the viewport. A
@@ -161,10 +167,11 @@ is one shape round all of its members. A cell is joined or not, so here:
 
 1. **No joining:** the container is its content. Free; a container would be
    a no-op, which rule 2 forbids.
-2. **Join in the same pass**, drawing the content twice when who is joined
-   changes: no frame with the members apart, at the price of a second walk of
-   the container's content on each change — and a second walk re-registers
-   every handler and marker in it (`RenderWalkCheckpoint`). Half a day.
+2. **Join a pass late**, from who the last pass found joined, with no second
+   walk: what the lane first shipped. Every change of who is joined showed one
+   frame drawn as it was before — a group forming drawn apart, and a group a
+   glass joined drawn apart for that frame, its members each alone (found in
+   review). Free; a flicker on every join.
 
 **The fuller version:** the union of the members' own shapes rather than a
 rectangle round them — each member's coverage, joined by a bridge across the

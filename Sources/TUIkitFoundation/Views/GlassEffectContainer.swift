@@ -70,12 +70,19 @@ public struct GlassEffectContainer<Content: View>: View {
 /// kept at a child identity of its own (``GlassContainerRecord``), so marking
 /// it live keeps no other view's `@State` (decisions A40's finding).
 private enum GlassContainerStateIndex {
-    /// The glasses the container drew last pass as members of a joined group.
-    static let drawnByContainer = 0
+    /// Who the container found joined (``GlassJoins``).
+    static let joins = 0
 }
 
 /// The identity a glass container keeps its record at: a child of its own.
 private enum GlassContainerRecord {}
+
+/// Who a glass container found joined, the glass of whom it draws: kept from
+/// one pass to the next, and from one drawing of its content to the next
+/// within a pass.
+private final class GlassJoins {
+    var joined: Set<ViewIdentity> = []
+}
 
 /// ``GlassEffectContainer``'s drawing: its content, told it is in a container,
 /// and the joined glass behind it.
@@ -84,12 +91,14 @@ private enum GlassContainerRecord {}
 /// but telling the container it is there (``GlassEffectGathering``). The
 /// container then finds where each glass ended up, joins them
 /// (``GlassGroup/grouping(_:spacing:)``), and draws each joined group as one
-/// glass behind the content. A glass in a group this pass drew its own glass
-/// this pass, which is not undone, so the group is drawn as one only once
-/// every member leaves its glass to the container: the container keeps who was
-/// in a group, and next pass they do. Until then each glass is drawn alone, as
-/// outside a container. A change in who is joined is a state change, which
-/// draws the next pass.
+/// glass behind the content. A glass leaves its glass to the container when it
+/// was joined last pass: the container keeps who was. Where the content draws
+/// its glass joined otherwise than it finds it — the pass a group forms, a
+/// glass joins one or leaves — the container puts the walk back and draws the
+/// content again, now knowing who is joined (``RenderWalkCheckpoint``, as a
+/// coordinate space draws its readers again). Glass changes no layout, so the
+/// second drawing finds what the first did, and every pass shows the glass
+/// joined as it stands.
 struct _GlassEffectContainerCore<Content: View>: View {
     let spacing: Int
     let content: Content
@@ -102,8 +111,39 @@ extension _GlassEffectContainerCore: Renderable {
         guard !context.isMeasuring, let record = record(context) else {
             return TUIkitView.renderToBuffer(content, context: context)
         }
-        let gathering = GlassEffectGathering(
-            spacing: spacing, drawnByContainer: record.value, container: context.identity)
+        // Noted before the content draws, so a walk that drew the glass joined
+        // otherwise than it stands can be put back and drawn again.
+        let checkpoint = RenderWalkCheckpoint(context: context)
+        var walk = drawContent(leavingToContainer: record.joined, context: context)
+        if walk.joined != record.joined {
+            record.joined = walk.joined
+            checkpoint.rollBack(context: context)
+            walk = drawContent(leavingToContainer: walk.joined, context: context)
+            // Kept whatever the second drawing found: glass changes no layout,
+            // so it finds what the first did, and if not, the next pass draws
+            // from this.
+            record.joined = walk.joined
+        }
+        var base = walk.base
+        let drawn = walk.groups.flatMap(\.drawnByContainer)
+        guard !drawn.isEmpty, base.width > 0, base.height > 0 else { return base }
+        let layer = Self.layer(drawn, columns: base.width, rows: base.height, context: context)
+        base.opacityRegions += base.claimsShowingGlyphs(of: layer)
+        return compositeDrawnLayer(layer.buffer(), at: (0, 0), under: base, context: context, modifierType: Self.self)
+    }
+
+    /// One drawing of the content: what it drew, the glass in it grouped, and
+    /// who of it is joined.
+    private struct ContentWalk {
+        var base: FrameBuffer
+        var groups: [GlassGroup]
+        var joined: Set<ViewIdentity>
+    }
+
+    /// The content drawn with the glass of `joined` left to the container, and
+    /// where its glass ended up.
+    private func drawContent(leavingToContainer joined: Set<ViewIdentity>, context: RenderContext) -> ContentWalk {
+        let gathering = GlassEffectGathering(spacing: spacing, drawnByContainer: joined, container: context.identity)
         var contentContext = context
         contentContext.environment.glassEffectGathering = gathering
         var base = TUIkitView.renderToBuffer(content, context: contentContext)
@@ -116,25 +156,25 @@ extension _GlassEffectContainerCore: Renderable {
         }
         base.hitTestRegions.removeAll { gathering.owns($0.handlerID) }
         let groups = GlassGroup.grouping(placed, spacing: spacing)
-        let joined = Set(groups.filter { $0.members.count > 1 }.flatMap { $0.members.map(\.glass.identity) })
-        if joined != record.value { record.value = joined }
-        let drawn = groups.flatMap(\.drawnByContainer)
-        guard !drawn.isEmpty, base.width > 0, base.height > 0 else { return base }
-        let layer = Self.layer(drawn, columns: base.width, rows: base.height, context: context)
-        base.opacityRegions += base.claimsShowingGlyphs(of: layer)
-        return compositeDrawnLayer(layer.buffer(), at: (0, 0), under: base, context: context, modifierType: Self.self)
+        let found = Set(groups.filter { $0.members.count > 1 }.flatMap { $0.members.map(\.glass.identity) })
+        return ContentWalk(base: base, groups: groups, joined: found)
     }
 
-    /// Who was in a joined group last pass, kept at the container's own child
-    /// identity and marked live — `nil` with no state storage, where the
-    /// content draws as it would outside a container.
-    private func record(_ context: RenderContext) -> StateBox<Set<ViewIdentity>>? {
+    /// Who the container found joined, kept at its own child identity and
+    /// marked live — `nil` with no state storage, where the content draws as
+    /// it would outside a container.
+    ///
+    /// A ``GlassJoins`` the box holds rather than the value itself: who is
+    /// joined is the container's own bookkeeping, settled within the pass it
+    /// changes, so writing it asks for no other pass, as a box's value would.
+    private func record(_ context: RenderContext) -> GlassJoins? {
         guard let storage = context.stateStorage else { return nil }
         let identity = context.withChildIdentity(erasedType: GlassContainerRecord.self, index: 0).identity
         storage.markActive(identity)
         return storage.storage(
-            for: StateStorage.StateKey(identity: identity, propertyIndex: GlassContainerStateIndex.drawnByContainer),
-            default: [])
+            for: StateStorage.StateKey(identity: identity, propertyIndex: GlassContainerStateIndex.joins),
+            default: GlassJoins()
+        ).value
     }
 
     /// `groups` drawn into one layer `columns` × `rows`, each its first

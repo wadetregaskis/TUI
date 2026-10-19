@@ -40,17 +40,17 @@ struct GatheredGlass {
 /// at its top-left and registers what it is. Once the content has drawn, the
 /// container finds each marker in what it drew — where that glass ended up —
 /// and joins the glass that touch, overlap, come closer than the container's
-/// spacing, or share a union. A glass that was in a joined group last pass
-/// draws no glass of its own this pass (``drawnByContainer``): the container
-/// draws the group as one shape behind the content.
+/// spacing, or share a union. A glass the container found joined draws no
+/// glass of its own (``drawnByContainer``): the container draws the group as
+/// one shape behind the content.
 @MainActor
 final class GlassEffectGathering {
     /// How close two glasses come before they are drawn as one: fewer than
     /// this many cells apart (and touching, whatever it is).
     let spacing: Int
 
-    /// The glasses the container drew last pass, as members of a joined
-    /// group: each draws no glass of its own this pass.
+    /// The glasses the container found joined — last pass, or in its first
+    /// drawing of this one: each draws no glass of its own.
     let drawnByContainer: Set<ViewIdentity>
 
     /// What each glass inside said, in the order they drew.
@@ -124,9 +124,10 @@ struct GlassGroup {
 
     /// What the container draws of this group: the group, as one shape, when
     /// every member left its glass to the container; each member that left
-    /// its glass, alone, when some drew their own — the pass a group forms,
-    /// or a glass joins one, before they all leave theirs to it — and nothing
-    /// when every member drew its own, as a glass alone does.
+    /// its glass, alone, when some drew their own — which a drawing the
+    /// container makes knowing who is joined never leaves, and a group drawn
+    /// over its members' own glass would show twice — and nothing when every
+    /// member drew its own, as a glass alone does.
     var drawnByContainer: [Self] {
         let leftToContainer = members.filter { !$0.glass.drewItself }
         guard leftToContainer.count < members.count else { return [self] }
