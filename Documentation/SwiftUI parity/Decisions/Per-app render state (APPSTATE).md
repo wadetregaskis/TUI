@@ -159,3 +159,19 @@ access list a scope read, which only Observation's `@_spi(SwiftUI)`
 `ObservationTracking._installTracking` exposes: an SPI dependency the Linux,
 Windows and WebAssembly toolchains need not keep, and one more registration
 a body. Not worth it for a scope that animates nothing.
+
+### B-APPSTATE-3. `AppState` stays public, though nothing public hands out an app's
+
+*`AppState`, `StatusBarState.init(appState:)`*
+
+`AppState.shared` was the one public way to an app's render state; with it
+gone an app can make an `AppState`, but not reach the one its views ask.
+Nothing an app writes needs it — `@State` and `@Observable` models reach their
+app's themselves — and the type stays public only because
+`StatusBarState.init(appState:)`, public, takes one. Its documentation now
+says so.
+
+**The fuller version** makes both `package`, which takes the type out of the
+public API and its documentation. **Price:** a few minutes, and a second
+public API removal in one lane; left for the owner's API review, since
+nothing depends on it either way.
