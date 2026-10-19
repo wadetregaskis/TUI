@@ -795,6 +795,27 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   [DragAndDropSession.swift](../../Sources/TUIkitFoundation/Input/DragAndDropSession.swift#L16-L23).
   **Medium.**
 
+### I11. A content shape is whole cells, and shapes only the frame it is written on
+
+- **SwiftUI:** `contentShape(_:eoFill:)` makes a view hit-test against the
+  shape's path, in points; each view is hit-tested against its own shape, so
+  in `.contentShape(Circle()).padding().onTapGesture { … }` the gesture
+  answers inside the circle only, the padding taking no hits (Apple's
+  documentation; not measured).
+- **TUIkit:** a content shape is the cells its shape covers at least half of,
+  the rule a clip keeps a cell by ([C9](#c9-a-clip-shape-keeps-or-clears-whole-cells)).
+  The view's own regions are cut to them, and so are those of the modifiers
+  whose frame is the shape's — `.contentShape(Circle()).onTapGesture { … }`,
+  a `Button` whose label it shapes; a modifier with a `.padding()` or a
+  `.frame` between it and the shape has a frame of its own, and takes all of
+  it. A `Rectangle` keeps the frame (`ContentShapeTests`).
+- **Why:** a view's hit area is its frame here (refusal review P3), and the
+  shape reaches the modifiers around it as markers in its buffer, at the
+  frame's corners: a modifier laid out at another frame finds none of its own
+  size. Hit-testing each view against its shape would change how every hit
+  area is found, which the frame-as-hit-area rule does not ask for.
+- **Decided:** [B-W1B-3](<Decisions/What the shapes unblocked (W1B).md#b-w1b-3-a-content-shape-is-carried-to-the-modifiers-around-it-as-geometry-markers>). **Lane.**
+
 ---
 
 ## Text
@@ -1147,6 +1168,28 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   [B-GLASS-5](<Decisions/Glass (GLASS).md#b-glass-5-a-container-draws-glass-that-comes-near-as-one-shape-round-all-of-it>),
   [B-GLASS-6](<Decisions/Glass (GLASS).md#b-glass-6-glass-arriving-in-a-container-fades-in-an-id-keeps-a-glass-that-moves>). **Owner**, with **Lane** choices.
 
+### C12. An image paint is one colour a cell, and its tile is a span of the fill where the cell's size is unknown
+
+- **SwiftUI:** an `ImagePaint` repeats its region of the image at the
+  region's size in points times the scale, from the top-leading corner of
+  what is filled, or from the origin `in(_:)` names; its pixels are drawn,
+  and an image is never late (measured on macOS 15.8,
+  `Tools/SwiftUIProbes/Image paint/`).
+- **TUIkit:** each cell is one colour, the mean of four samples of the
+  picture, on every terminal: an image paint is never sent as a picture. A
+  tile is its size in points over the terminal cell's
+  (`\.imageCellPoints`); where the cell's size is not known (under tmux,
+  over ssh to Ghostty) one tile spans what is filled, across, at the scale,
+  and the tiling in points is lost. A picture that loads — a file, a URL —
+  paints nothing until it has; a symbol, `Image(systemName:)`, has no pixels
+  and paints nothing; a new picture shows at once under `withAnimation`
+  (`ImagePaintTests`).
+- **Why:** a cell holds one colour of field or ink; a picture of the tiles
+  would sample the image a second time, at the terminal's pixels, and a
+  terminal composites a picture against its own cell, not against what is
+  behind it ([C8](#c8-every-other-shape-is-antialiased-per-half-cell-and-never-a-picture)).
+  Without the cell's size there are no points to tile by ([C4](#c4-images-size-by-cells-and-are-read-once)).
+- **Decided:** [B-W1B-4](<Decisions/What the shapes unblocked (W1B).md#b-w1b-4-an-image-paint-is-sampled-cell-by-cell-and-paints-nothing-until-its-picture-is-there>). **Lane**, with **Medium** limits.
 ---
 
 ## Animation
