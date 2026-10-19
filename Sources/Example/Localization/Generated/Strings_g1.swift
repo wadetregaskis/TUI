@@ -143,6 +143,11 @@ extension ExampleStrings {
             "page.colors.shadow.caption": "each card casts its shadow two columns right and a row down onto the panel; its number is the radius, the cells the shadow fades out across (the units are cells, as .padding's are)",
             "page.colors.shadow.text": "a label with no background casts its letters",
             "page.colors.shadow.glow": "a coloured shadow on a dark page reads as a glow",
+            "page.colors.section.glass": "Glass",
+            "page.colors.glass.caption": "glass is a material's surface with a highlighted rim, drawn in the appearance's lines (cycle the appearance to see them); the last one lifts its rim under the pointer",
+            "page.colors.glass.container": "glass that touches, alone and then in a GlassEffectContainer, which draws it as one shape",
+            "page.colors.glass.button": "Glass",
+            "page.colors.glass.prominent": "Prominent",
 
             // page.containers
             "page.containers.aCardView": "A Card view",
@@ -479,6 +484,11 @@ extension ExampleStrings {
             "page.colors.shadow.caption": "jede Karte wirft ihren Schatten zwei Spalten nach rechts und eine Zeile nach unten auf die Fläche; ihre Zahl ist der Radius, die Zellen, über die der Schatten ausläuft (die Einheit sind Zellen, wie bei .padding)",
             "page.colors.shadow.text": "eine Beschriftung ohne Hintergrund wirft ihre Buchstaben",
             "page.colors.shadow.glow": "ein farbiger Schatten auf einer dunklen Seite wirkt wie ein Leuchten",
+            "page.colors.section.glass": "Glas",
+            "page.colors.glass.caption": "Glas ist die Fläche eines Materials mit einem hervorgehobenen Rand, gezeichnet in den Linien der Darstellung (wechsle die Darstellung, um sie zu sehen); das letzte hebt seinen Rand unter dem Zeiger an",
+            "page.colors.glass.container": "Glas, das sich berührt, allein und dann in einem GlassEffectContainer, der es als eine Form zeichnet",
+            "page.colors.glass.button": "Glas",
+            "page.colors.glass.prominent": "Hervorgehoben",
 
             // page.containers
             "page.containers.aCardView": "Eine Card-Ansicht",
@@ -815,6 +825,11 @@ extension ExampleStrings {
             "page.colors.shadow.caption": "chaque carte projette son ombre deux colonnes à droite et une rangée plus bas sur le panneau ; son numéro est le rayon, les cellules sur lesquelles l’ombre s’estompe (l’unité est la cellule, comme pour .padding)",
             "page.colors.shadow.text": "un libellé sans fond projette ses lettres",
             "page.colors.shadow.glow": "une ombre colorée sur une page sombre se lit comme une lueur",
+            "page.colors.section.glass": "Verre",
+            "page.colors.glass.caption": "le verre est la surface d’un matériau avec un bord mis en valeur, tracé dans les lignes de l’apparence (changez d’apparence pour les voir) ; le dernier fait ressortir son bord sous le pointeur",
+            "page.colors.glass.container": "du verre qui se touche, seul puis dans un GlassEffectContainer, qui le dessine comme une seule forme",
+            "page.colors.glass.button": "Verre",
+            "page.colors.glass.prominent": "Mis en avant",
 
             // page.containers
             "page.containers.aCardView": "Une vue Card",
@@ -1151,6 +1166,11 @@ extension ExampleStrings {
             "page.colors.shadow.caption": "ogni scheda proietta la sua ombra due colonne a destra e una riga più in basso sul pannello; il suo numero è il raggio, le celle lungo cui l’ombra sfuma (l’unità è la cella, come per .padding)",
             "page.colors.shadow.text": "un’etichetta senza sfondo proietta le sue lettere",
             "page.colors.shadow.glow": "un’ombra colorata su una pagina scura si legge come un bagliore",
+            "page.colors.section.glass": "Vetro",
+            "page.colors.glass.caption": "il vetro è la superficie di un materiale con un bordo evidenziato, disegnato nelle linee dell’aspetto (cambia aspetto per vederle); l’ultimo fa risaltare il bordo sotto il puntatore",
+            "page.colors.glass.container": "vetro che si tocca, da solo e poi in un GlassEffectContainer, che lo disegna come un’unica forma",
+            "page.colors.glass.button": "Vetro",
+            "page.colors.glass.prominent": "In evidenza",
 
             // page.containers
             "page.containers.aCardView": "Una vista Card",
@@ -1487,6 +1507,11 @@ extension ExampleStrings {
             "page.colors.shadow.caption": "cada tarjeta proyecta su sombra dos columnas a la derecha y una fila más abajo sobre el panel; su número es el radio, las celdas a lo largo de las que la sombra se desvanece (la unidad es la celda, como en .padding)",
             "page.colors.shadow.text": "una etiqueta sin fondo proyecta sus letras",
             "page.colors.shadow.glow": "una sombra de color sobre una página oscura se ve como un resplandor",
+            "page.colors.section.glass": "Vidrio",
+            "page.colors.glass.caption": "el vidrio es la superficie de un material con un borde resaltado, dibujado con las líneas de la apariencia (cambia de apariencia para verlas); el último realza su borde bajo el puntero",
+            "page.colors.glass.container": "vidrio que se toca, solo y luego en un GlassEffectContainer, que lo dibuja como una sola forma",
+            "page.colors.glass.button": "Vidrio",
+            "page.colors.glass.prominent": "Destacado",
 
             // page.containers
             "page.containers.aCardView": "Una vista Card",
@@ -1823,6 +1848,11 @@ extension ExampleStrings {
             "page.colors.shadow.caption": "每张卡片把阴影投在面板上，向右偏两列、向下偏一行；卡片上的数字是半径，即阴影逐渐淡出所跨越的单元格数（单位是单元格，与 .padding 相同）",
             "page.colors.shadow.text": "没有背景的标签投下的是它的字母",
             "page.colors.shadow.glow": "深色页面上的彩色阴影看起来像光晕",
+            "page.colors.section.glass": "玻璃",
+            "page.colors.glass.caption": "玻璃是带有高亮边缘的材质表面，边缘用当前外观的线条绘制（切换外观即可看到）；最后一个在指针悬停时会提亮边缘",
+            "page.colors.glass.container": "相互接触的玻璃：先是单独的，然后放在 GlassEffectContainer 中，它会把它们绘制成一个形状",
+            "page.colors.glass.button": "玻璃",
+            "page.colors.glass.prominent": "醒目",
 
             // page.containers
             "page.containers.aCardView": "一个 Card 视图",
@@ -2159,6 +2189,11 @@ extension ExampleStrings {
             "page.colors.shadow.caption": "各カードはパネルの上に、右へ2列・下へ1行ずらして影を落とします。数字は半径で、影が消えていくまでのセル数です（単位は .padding と同じくセルです）",
             "page.colors.shadow.text": "背景のないラベルは文字の形の影を落とします",
             "page.colors.shadow.glow": "暗いページ上の色付きの影は光彩のように見えます",
+            "page.colors.section.glass": "ガラス",
+            "page.colors.glass.caption": "ガラスはハイライトされた縁を持つマテリアルの面で、縁は外観の線で描かれます（外観を切り替えると見られます）。最後のものはポインタを重ねると縁が明るくなります",
+            "page.colors.glass.container": "接し合うガラス：単独の場合と、1つの形として描く GlassEffectContainer に入れた場合",
+            "page.colors.glass.button": "ガラス",
+            "page.colors.glass.prominent": "強調",
 
             // page.containers
             "page.containers.aCardView": "Card ビュー",

@@ -13,7 +13,7 @@ import TUIkit
 /// - Terminal colours: the sixteen ANSI slots, standard and bright
 /// - Semantic colors (primary, success, warning, error)
 /// - Gradients, as strips and as styles
-/// - Materials, shadows and the colour effects
+/// - Materials, glass, shadows and the colour effects
 struct ColorsPage: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
@@ -230,6 +230,8 @@ struct ColorsPage: View {
                     }
                 }
             }
+
+            GlassDemo()
 
             ShadowsDemo()
 
