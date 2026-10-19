@@ -119,6 +119,21 @@ extension PreferenceValues {
         storage[ObjectIdentifier(key)] != nil
     }
 
+    /// Takes `key`'s value out of this scope, so that what the scope merges
+    /// into its parent says nothing about it — for a view that consumes a
+    /// preference its subtree declared, as a navigation stack consumes its
+    /// screen's transition (``PreferenceStorage/pop(transforming:)``).
+    ///
+    /// - Parameter key: The key whose value is taken out.
+    /// - Returns: The value the scope held, or the key's `defaultValue` where
+    ///   it held none.
+    @discardableResult
+    package mutating func removeValue<K: PreferenceKey>(for key: K.Type) -> K.Value {
+        let value = self[key]
+        storage.removeValue(forKey: ObjectIdentifier(key))
+        return value
+    }
+
     /// Merges another set of preference values into this one.
     ///
     /// Through each key's own ``PreferenceKey/reduce(value:nextValue:)``, not by assignment: a key

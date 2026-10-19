@@ -34,6 +34,10 @@ private struct Zooming: View {
     /// a root of a few links does: its picture is then shorter than the
     /// screen pushed over it, which fills the stack.
     var hugging = false
+    /// Where set, the screen pushed declares no zoom and holds a stack of its
+    /// own, showing this path, beside a source `k` 4×2 that stack's screen
+    /// zooms from.
+    var inner: Binding<NavigationPath>?
     @Namespace private var space
 
     var body: some View {
@@ -48,7 +52,23 @@ private struct Zooming: View {
                 if !hugging { GlyphFill(".").frame(width: 40, height: 7) }
             }
             .navigationDestination(for: Int.self) { _ in
-                screen.navigationTransition(.zoom(sourceID: sourceID, in: space))
+                if let inner {
+                    nested(inner)
+                } else {
+                    screen.navigationTransition(.zoom(sourceID: sourceID, in: space))
+                }
+            }
+        }
+    }
+
+    private func nested(_ inner: Binding<NavigationPath>) -> some View {
+        HStack(alignment: .top, spacing: 0) {
+            GlyphFill("k").frame(width: 4, height: 2).matchedTransitionSource(id: 2, in: space)
+            NavigationStack(path: inner) {
+                GlyphFill("r")
+                    .navigationDestination(for: Int.self) { _ in
+                        GlyphFill("D").navigationTransition(.zoom(sourceID: 2, in: space))
+                    }
             }
         }
     }
@@ -202,6 +222,30 @@ struct ZoomNavigationTransitionTests {
         navigator.path.append(1)
         let start = navigator.lines(navigator.draw(view, atMillis: 0, transaction: linear))
         #expect(rect(of: "D", in: start) == CellRect(x: 10, y: 3, width: 4, height: 2))
+    }
+
+    @Test("A screen holding a stack of its own takes no zoom from that stack's screens")
+    func nestedStackKeepsItsZoom() {
+        var inner = NavigationPath()
+        let navigator = Navigator()
+        let view = { (path: Binding<NavigationPath>) in
+            Zooming(path: path, inner: Binding(get: { inner }, set: { inner = $0 }))
+        }
+        navigator.draw(view, atMillis: 0)
+        navigator.path.append(1)
+        navigator.draw(view, atMillis: 0)
+        inner.append(1)
+        navigator.draw(view, atMillis: 0)
+        let pushed = navigator.lines(navigator.draw(view, atMillis: 2000))
+        #expect(rect(of: "D", in: pushed) != nil, "the inner stack shows its screen")
+        // The outer screen declared no zoom, so it goes at once when popped:
+        // it does not fold into the source the inner stack's screen zooms from.
+        navigator.path.removeLast()
+        navigator.draw(view, atMillis: 2000, transaction: linear)
+        let halfway = navigator.lines(navigator.draw(view, atMillis: 2500))
+        #expect(rect(of: "k", in: halfway) == nil)
+        #expect(rect(of: "D", in: halfway) == nil)
+        #expect(rect(of: "s", in: halfway) == CellRect(x: 10, y: 3, width: 4, height: 2))
     }
 
     @Test("A push with no animation of its own zooms under the default one")

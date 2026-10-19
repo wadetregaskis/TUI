@@ -369,7 +369,11 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
                 TUIkitView.renderToBuffer(
                     $0, context: screenContext.withChildIdentity(type: NavigationScreen.self))
             } ?? FrameBuffer()
-        let published = preferences?.pop()
+        // The screen's transition is this stack's alone: merged up, it was
+        // the transition of the screen of a stack this one is in, which
+        // folded that screen into this one's source when it was popped.
+        var zoom: MatchedGeometryKey?
+        let published = preferences?.pop { zoom = $0.removeValue(for: NavigationZoomKey.self) }
         let title = published?[NavigationTitleKey.self] ?? ""
         let subtitle = published?[NavigationSubtitleKey.self] ?? ""
         let hidesBack = published?[NavigationBackButtonHiddenKey.self] ?? false
@@ -383,7 +387,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             title: title, subtitle: subtitle, hidesBack: hidesBack, hidesTitle: hidesTitle, width: width,
             escapeHandlerSlot: escapeHandlerSlot, context: context)
         buffer.appendVertically(content)
-        return (buffer, published?[NavigationZoomKey.self].flatMap { $0 })
+        return (buffer, zoom)
     }
 }
 

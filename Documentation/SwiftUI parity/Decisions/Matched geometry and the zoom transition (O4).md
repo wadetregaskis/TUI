@@ -163,7 +163,8 @@ Four calls the ruling left open:
 - **Which declaration.** A screen can declare more than one transition — a
   view inside it declaring `.automatic`, say, under the `.zoom` written on the
   screen. The outermost is the screen's, the one written where it is pushed,
-  and of two side by side the first; SwiftUI's rule could not be measured.
+  and of two side by side the first; SwiftUI's rule could not be measured. A
+  stack inside a screen keeps its own screens' declarations to itself.
 - **The pictures.** The screen being covered is drawn from its last picture,
   so it holds still while the new one grows over it; what is uncovered is
   live, so its controls take clicks inside the rectangle from the first frame.
