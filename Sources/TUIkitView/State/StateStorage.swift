@@ -222,7 +222,8 @@ public final class StateStorage: @unchecked Sendable {
     private var lastConditionalCase: [ViewIdentity: Bool] = [:]
 
     /// What each `if` without an `else` held when it last rendered — see
-    /// `OptionalPresence`. Pruned as ``lastConditionalCase`` is.
+    /// `OptionalPresence`. Pruned as ``lastConditionalCase`` is, by the pass
+    /// stamped on each record rather than the active set.
     var optionalPresence: [ViewIdentity: OptionalPresence] = [:]
 
     /// How many presence records the last sweep of ``optionalPresence`` kept.
@@ -711,7 +712,12 @@ extension StateStorage {
             conditionalRecordsAfterSweep = lastConditionalCase.count
         }
         if optionalPresence.count > 2 * optionalRecordsAfterSweep + 64 {
-            let stale = optionalPresence.keys.filter { !activeIdentities.contains($0) && !retained.retains($0) }
+            // By the pass that last wrote each record, which an `if` stamps
+            // rather than marking itself active (`presentOptional`).
+            var stale: [ViewIdentity] = []
+            for (identity, record) in optionalPresence where record.pass != currentPass && !retained.retains(identity) {
+                stale.append(identity)
+            }
             for identity in stale { optionalPresence.removeValue(forKey: identity) }
             optionalRecordsAfterSweep = optionalPresence.count
         }

@@ -43,6 +43,12 @@ struct OptionalPresence {
     /// The arrival in progress, if the view is still fading in.
     var arrival: Animation?
     var arrivalStartNanos: Int64 = 0
+    /// The render pass that last wrote the record (`StateStorage.currentPass`),
+    /// which keeps it through the sweep.
+    var pass: UInt32 = 0
+    /// Whether the `if` had rendered before: `false` on a record made just
+    /// now, which is a first sight and never an arrival.
+    var seen = false
 }
 
 /// An `if`'s present view as a stack draws it: unchanged, with its picture
@@ -148,33 +154,43 @@ extension StateStorage {
     /// Records that the `if` at `scope` holds a view that drew `picture` at
     /// `identity`, and returns how far it has arrived: `1` at rest, less while
     /// it fades in after an animated change put it there.
+    ///
+    /// One access to the table a render — the record is read and written where
+    /// it lies, through the dictionary's in-place accessor — and no mark in the
+    /// active set: the record carries the pass that wrote it, which is what
+    /// the sweep keeps it by. A lookup, a store and a mark per `if` per frame
+    /// cost up to 3.4% of a cold `menus` frame (A/B, 2026-10-14).
     func presentOptional(
         at scope: ViewIdentity, identity: ViewIdentity, picture: FrameBuffer, animation: Animation?,
         nowNanos: Int64
     ) -> Double {
-        markActive(scope)
-        let previous = optionalPresence[scope]
-        var record = OptionalPresence(picture: picture, identity: identity)
-        if let previous {
-            if previous.picture == nil, let animation {
-                record.arrival = animation
-                record.arrivalStartNanos = nowNanos
-            } else if let arrival = previous.arrival {
-                record.arrival = arrival
-                record.arrivalStartNanos = previous.arrivalStartNanos
-            }
+        Self.present(
+            &optionalPresence[scope, default: OptionalPresence()], identity: identity, picture: picture,
+            animation: animation, nowNanos: nowNanos, pass: currentPass)
+    }
+
+    /// ``presentOptional(at:identity:picture:animation:nowNanos:)`` on the
+    /// record in place.
+    private static func present(
+        _ record: inout OptionalPresence, identity: ViewIdentity, picture: FrameBuffer, animation: Animation?,
+        nowNanos: Int64, pass: UInt32
+    ) -> Double {
+        // Seen before, empty, and put there by an animated change: arriving.
+        if record.seen, record.picture == nil, let animation {
+            record.arrival = animation
+            record.arrivalStartNanos = nowNanos
         }
-        var phase = 1.0
-        if let arrival = record.arrival {
-            let elapsed = Double(nowNanos - record.arrivalStartNanos) / 1_000_000_000
-            if arrival.isFinished(at: elapsed) {
-                record.arrival = nil
-            } else {
-                phase = arrival.fraction(at: elapsed)
-            }
+        record.picture = picture
+        record.identity = identity
+        record.pass = pass
+        record.seen = true
+        guard let arrival = record.arrival else { return 1 }
+        let elapsed = Double(nowNanos - record.arrivalStartNanos) / 1_000_000_000
+        guard !arrival.isFinished(at: elapsed) else {
+            record.arrival = nil
+            return 1
         }
-        optionalPresence[scope] = record
-        return phase
+        return arrival.fraction(at: elapsed)
     }
 
     /// Records that the `if` at `scope` is empty. If it held a view that drew
@@ -183,31 +199,48 @@ extension StateStorage {
     ///
     /// A measure may start the departure — it is what the render that follows
     /// would start, and the slot must be measured with it — but writes nothing
-    /// else.
+    /// else, so it looks the record up rather than making one. A render makes
+    /// or changes the record in place, with one access, as
+    /// ``presentOptional(at:identity:picture:animation:nowNanos:)`` does.
     func absentOptional(
         at scope: ViewIdentity, pictureType: Any.Type, frameAnimation: Animation?, nowNanos: Int64,
         isMeasuring: Bool
     ) {
-        if !isMeasuring { markActive(scope) }
-        let previous = optionalPresence[scope]
-        if let previous, let picture = previous.picture {
-            // A view with a transition of its own left its picture here too,
-            // and plays its removal itself.
-            if let frameAnimation, let identity = previous.identity, !departures.hasEntry(at: identity) {
-                var arrived = 1.0
-                if let arrival = previous.arrival {
-                    arrived = min(1, max(0, arrival.fraction(at: Double(nowNanos - previous.arrivalStartNanos) / 1_000_000_000)))
-                }
-                departures.beginDeparture(
-                    DepartureStore.Departure(
-                        viewType: pictureType, width: picture.width, height: picture.lines.count,
-                        explicitAnimation: nil,
-                        render: { phase in DefaultTransition.faded(picture, by: phase * arrived) }),
-                    at: identity, animation: frameAnimation, nowNanos: nowNanos)
-            }
-            optionalPresence[scope] = OptionalPresence()
-        } else if previous == nil, !isMeasuring {
-            optionalPresence[scope] = OptionalPresence()
+        if isMeasuring, optionalPresence[scope]?.picture == nil { return }
+        let pass = isMeasuring ? nil : currentPass
+        Self.absent(
+            &optionalPresence[scope, default: OptionalPresence()], pictureType: pictureType,
+            frameAnimation: frameAnimation, nowNanos: nowNanos, pass: pass, departures: departures)
+    }
+
+    /// ``absentOptional(at:pictureType:frameAnimation:nowNanos:isMeasuring:)``
+    /// on the record in place; `pass` is `nil` on a measure, which stamps
+    /// nothing.
+    private static func absent(
+        _ record: inout OptionalPresence, pictureType: Any.Type, frameAnimation: Animation?, nowNanos: Int64,
+        pass: UInt32?, departures: DepartureStore
+    ) {
+        if let pass {
+            record.pass = pass
+            record.seen = true
         }
+        guard let picture = record.picture else { return }
+        // A view with a transition of its own left its picture here too, and
+        // plays its removal itself.
+        if let frameAnimation, let identity = record.identity, !departures.hasEntry(at: identity) {
+            var arrived = 1.0
+            if let arrival = record.arrival {
+                arrived = min(1, max(0, arrival.fraction(at: Double(nowNanos - record.arrivalStartNanos) / 1_000_000_000)))
+            }
+            departures.beginDeparture(
+                DepartureStore.Departure(
+                    viewType: pictureType, width: picture.width, height: picture.lines.count,
+                    explicitAnimation: nil,
+                    render: { phase in DefaultTransition.faded(picture, by: phase * arrived) }),
+                at: identity, animation: frameAnimation, nowNanos: nowNanos)
+        }
+        record.picture = nil
+        record.identity = nil
+        record.arrival = nil
     }
 }

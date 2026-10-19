@@ -64,6 +64,36 @@ private struct Explicit: View {
     }
 }
 
+/// How many `Stamped` views have been made: a `@State` box kept from an
+/// earlier frame shows the number it was made with, a new one the latest.
+@MainActor
+private enum Made {
+    static var count = 0
+
+    static func next() -> Int {
+        count += 1
+        return count
+    }
+}
+
+/// A view whose `@State` says when its box was made.
+private struct Stamped: View {
+    @State private var made = Made.next()
+
+    var body: some View {
+        Text("\(made)")
+    }
+}
+
+/// An `if` that is the whole body, holding a view with `@State`.
+private struct DirectStamped: View {
+    let showing: Bool
+
+    var body: some View {
+        if showing { Stamped() }
+    }
+}
+
 @MainActor
 private final class Screen {
     var context = makeRenderContext(width: 8, height: 4)
@@ -162,6 +192,20 @@ struct DefaultTransitionTests {
         _ = screen.draw(Nested(outer: false), atMillis: 0, animated: false)
         _ = screen.draw(Nested(outer: true), atMillis: 10, animated: true)
         #expect(fades(screen.draw(Nested(outer: true), atMillis: 510, animated: false)) == [0.5])
+    }
+
+    /// The view an `if` takes out is gone, and so is its `@State`, as in
+    /// SwiftUI. An `if` that is a whole body draws its view at its own
+    /// address, and it used to mark that address as in use on every frame it
+    /// was empty — keeping the view's `@State` for when it came back.
+    @Test("A view an if that is a whole body takes out loses its state")
+    func directRemovalDropsState() {
+        let screen = Screen()
+        let first = screen.draw(DirectStamped(showing: true), atMillis: 0, animated: false).lines.map(\.stripped)
+        _ = screen.draw(DirectStamped(showing: false), atMillis: 10, animated: false)
+        let again = screen.draw(DirectStamped(showing: true), atMillis: 20, animated: false).lines.map(\.stripped)
+        #expect(!first.isEmpty)
+        #expect(first != again, "the state it had before it went: \(again)")
     }
 
     @Test("A transition of the view's own plays instead of the fade")
