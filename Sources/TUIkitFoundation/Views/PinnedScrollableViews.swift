@@ -211,6 +211,7 @@ extension PinningStackCore {
     /// axis, a `ZStack` or an axis-less `Layout` through
     /// `RenderContext.takingSectionsApart()`).
     func scopingPinnedSections(_ context: RenderContext) -> RenderContext {
+        let context = clearingSheetSize(context)
         let scope = pinnedSectionScope(context)
         let layout = scope.map { _ in pinnedSectionLayout }
         if let cache = context.renderCache {
@@ -246,12 +247,27 @@ extension PinningStackCore {
     /// children are resolved (``sectionStaysWhole(in:)``), and every walk of a
     /// pinned stack must decide it the same way.
     func withPinnedSectionScope(_ context: RenderContext) -> RenderContext {
+        let context = clearingSheetSize(context)
         guard let scope = pinnedSectionScope(context) else { return context }
         var scoped = context
         scoped.environment.pinnedSectionScope = scope
         scoped.environment.pinnedSectionLayout = pinnedSectionLayout
         scoped.sectionWholeness = scope.wholeness
         return scoped
+    }
+
+    /// `context` without a sheet's size along this stack's axis
+    /// (``EnvironmentValues/sheetDetentHeight`` down a column,
+    /// ``EnvironmentValues/sheetProposedWidth`` along a row), as a scroll view
+    /// clears it along the axes it scrolls: a box in a lazy stack is its
+    /// content's size that way, as SwiftUI's is, where passed on, its first
+    /// box took the whole sheet and the rest were not drawn (decisions
+    /// B-D2C-5). Across, a box still spans the sheet. Only a lazy stack's
+    /// walks come here; an eager stack's boxes share the sheet.
+    private func clearingSheetSize(_ context: RenderContext) -> RenderContext {
+        var cleared = context
+        cleared.consumeSheetSize(along: pinnedSectionLayout.axis == .vertical ? .vertical : .horizontal)
+        return cleared
     }
 
     /// The scope this stack hands its rows in `context`, or `nil` when it

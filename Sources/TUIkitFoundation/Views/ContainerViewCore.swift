@@ -1022,7 +1022,7 @@ extension RenderContext {
     /// stores the nil — so each box paid two, and grew the environment every
     /// view inside it copies, for a size almost no box is ever offered. A read
     /// of a key nobody wrote is a lookup that misses.
-    mutating func consumeSheetSize() {
+    package mutating func consumeSheetSize() {
         consumeSheetSize(along: [.horizontal, .vertical])
         // The corner radius is the box's alone, not a size a scroll view passes
         // on along one axis: only a box takes it.
@@ -1033,7 +1033,7 @@ extension RenderContext {
     /// view offers its content as much as it wants along the axes it scrolls,
     /// and the rest of the sheet's size across them, so a box in a vertical
     /// scroll view still spans the sheet's width.
-    mutating func consumeSheetSize(along axes: Axis.Set) {
+    package mutating func consumeSheetSize(along axes: Axis.Set) {
         if axes.contains(.vertical), environment.sheetDetentHeight != nil { environment.sheetDetentHeight = nil }
         if axes.contains(.horizontal), environment.sheetProposedWidth != nil { environment.sheetProposedWidth = nil }
     }

@@ -316,6 +316,8 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         var context = context.publishingContainerAxis(.vertical)
         context.availableWidth = proposal.width ?? context.availableWidth
         context.availableHeight = proposal.height ?? context.availableHeight
+        // A sheet's size is not a cell's (see `renderToBuffer(context:)`).
+        context.consumeSheetSize()
         let rows = rows(context: context)
         guard !rows.isEmpty else { return ViewSize.fixed(0, 0) }
         let lattice = lattice(rows, context: context)
@@ -343,7 +345,11 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         // is not the same as publishing this: with nothing published, a grid
         // placed inside an `HStack` handed that full-width child the ROW's
         // axis, and the rule collapsed to a single `│` in column 0.
-        let context = context.publishingContainerAxis(.vertical)
+        var context = context.publishingContainerAxis(.vertical)
+        // A box in a cell is its content's size, as SwiftUI's is, not the
+        // sheet's: passed on, the first box took the whole sheet and the cells
+        // after it were not drawn (decisions B-D2C-5).
+        context.consumeSheetSize()
         let rows = rows(context: context)
         guard !rows.isEmpty else { return FrameBuffer() }
         let lattice = lattice(rows, context: context)

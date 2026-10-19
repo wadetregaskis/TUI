@@ -110,6 +110,15 @@ two entry points; a lazy grid's paths are still to be traced. An hour or two
 with the tests, and a drawing change only for sheets that hold such a
 container.
 
+**Shipped 2026-10-18 (lane LAYOUT): the fuller version.** A `Grid` clears the
+size on both axes at both its entry points, and a lazy stack along its own
+axis in the two helpers every lazy walk takes its rows' context from, so the
+boxes in either are their content's size, and a box in a lazy column still
+spans the sheet's width, as one in a vertical scroll view does
+(`SheetSizeContainerTests`). A lazy grid needed nothing: run on the base, its
+boxes were their content's size already, which the test now guards. A
+`ZStack` passes the size on, as before.
+
 ## Found on the way
 
 Not decisions; recorded so they are not lost.
