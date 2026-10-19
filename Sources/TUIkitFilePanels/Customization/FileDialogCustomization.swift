@@ -31,6 +31,9 @@ struct FileDialogCustomization: Equatable, Sendable {
     /// The confirmation button's label.
     var confirmationLabel: String?
 
+    /// The label of a save panel's name field (`fileExporterFilenameLabel(_:)`).
+    var filenameLabel: String?
+
     /// The folder a panel opens on.
     var defaultDirectory: URL?
 

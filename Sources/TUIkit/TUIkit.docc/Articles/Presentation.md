@@ -444,6 +444,19 @@ moves the file (or files) into the folder selected, or the one shown, and
 `onCompletion` hears the new URLs, or the error — an item of the same name
 already in the folder is one.
 
+`fileExporter` presents the panel titled Save, with a name field above the
+folder, offering the item's suggested name (or `defaultFilename`); Return in
+the field saves, a name without the type's extension is given it, and saving
+over a file asks first. The item is exported through its
+`transferRepresentation` — on Apple platforms, since `Transferable` is
+CoreTransferable's — and `fileExporterFilenameLabel(_:)` labels the field.
+
+```swift
+.fileExporter(isPresented: $exporting, item: note, contentTypes: [.plainText]) { result in
+    if case .success(let url) = result { print("Saved to \(url.path)") }
+}
+```
+
 The `fileDialog` modifiers customize the panel, written outside the modifier
 that presents it, as with SwiftUI:
 

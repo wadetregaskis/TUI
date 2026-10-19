@@ -1,9 +1,10 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  FilePanel.swift
 //
-//  The open panel TUIkit draws for `fileImporter`: a folder's items in a
-//  table, the folder's path above it, and the buttons that end it below —
-//  SwiftUI's system panel, adapted to a terminal.
+//  The open and save panel TUIkit draws for `fileImporter`, `fileMover` and
+//  `fileExporter`: a folder's items in a table, the folder's path above it,
+//  a name field to save, and the buttons that end it below — SwiftUI's
+//  system panels, adapted to a terminal.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -12,6 +13,10 @@ import Foundation
 import TUIkitFoundation
 import TUIkitPresentation
 import TUIkitTables
+
+#if canImport(UniformTypeIdentifiers)
+    import UniformTypeIdentifiers
+#endif
 
 /// The panel a file panel modifier presents in a sheet.
 ///
@@ -32,6 +37,11 @@ import TUIkitTables
 /// - Escape cancels.
 /// Every one of them is also a click: a double-click opens or chooses, the
 /// `..` button goes up, and the buttons are buttons.
+///
+/// To save, a name field sits above the folder and takes the focus first;
+/// Return in it saves. A file of a type the panel saves as is not dimmed, and
+/// Return on it puts its name in the field. Saving over an existing file asks
+/// first; a name that is an existing folder cannot be saved under.
 struct FilePanel: View {
     let request: FilePanelRequest
 
@@ -47,12 +57,23 @@ struct FilePanel: View {
     /// The item selected, where one may be chosen.
     @State private var singleSelection: URL?
 
+    /// The name typed in a save panel's field.
+    @State private var name: String
+
+    /// The file a save would replace, while the panel asks whether to.
+    @State private var replacing: URL?
+
+    /// Whether the name field holds the focus: Return on a file puts its name
+    /// there and moves the focus to it.
+    @FocusState private var nameIsFocused: Bool
+
     init(request: FilePanelRequest, finish: @escaping (FilePanelOutcome) -> Void) {
         self.request = request
         self.finish = finish
         _browser = State(
             initialValue: FileBrowser(
                 directory: request.startDirectory, rule: request.rule, showsHiddenFiles: request.showsHiddenFiles))
+        _name = State(initialValue: request.defaultFilename ?? "")
     }
 
     var body: some View {
@@ -65,16 +86,58 @@ struct FilePanel: View {
             config: ContainerConfig(
                 titleColor: .palette.accent, padding: EdgeInsets(horizontal: 1, vertical: 0),
                 footerAlignment: .trailing),
-            content: VStack(alignment: .leading, spacing: 0) {
-                if let message = request.message {
-                    Text(message).foregroundStyle(.palette.foregroundSecondary)
-                }
-                FilePanelPathBar(browser: browser, home: request.homeDirectory)
-                rows
-            },
+            content: replaceAlert(on: panelContent),
             footer: footer
         )
         .task(id: browser.refreshKey) { await browser.refresh() }
+    }
+
+    /// What the box holds: the message, a save panel's name field, the path
+    /// and the folder's items.
+    private var panelContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let message = request.message {
+                Text(message).foregroundStyle(.palette.foregroundSecondary)
+            }
+            if request.saveContentTypes != nil {
+                FilePanelNameField(
+                    label: request.filenameLabel
+                        ?? LocalizationService.shared.string(for: LocalizationKey.FilePanel.saveAs),
+                    name: $name
+                )
+                .focused($nameIsFocused)
+                .onSubmit { confirm() }
+            }
+            FilePanelPathBar(browser: browser, home: request.homeDirectory)
+            rows
+        }
+    }
+
+    /// The alert a save asks before replacing a file, on `content`: inside
+    /// the box, not on it, since the box takes the sheet's size and clears it
+    /// for what it holds, and an alert presented where the sheet's size is
+    /// still in the environment took that size too.
+    private func replaceAlert(on content: some View) -> some View {
+        content.alert(
+            replaceTitle, isPresented: Binding(get: { replacing != nil }, set: { if !$0 { replacing = nil } })
+        ) {
+            Button(LocalizationService.shared.string(for: LocalizationKey.Button.cancel), role: .cancel) {}
+            Button(LocalizationService.shared.string(for: LocalizationKey.Button.replace), role: .destructive) {
+                if let replacing { finish(.chose([replacing], ending)) }
+            }
+        } message: {
+            Text(
+                String(
+                    format: LocalizationService.shared.string(for: LocalizationKey.FilePanel.replaceMessage),
+                    DirectoryListing.displayName(of: browser.directory)))
+        }
+    }
+
+    /// The replace alert's title, naming the file.
+    private var replaceTitle: String {
+        String(
+            format: LocalizationService.shared.string(for: LocalizationKey.FilePanel.replaceTitle),
+            replacing?.lastPathComponent ?? "")
     }
 
     // MARK: - The folder's items
@@ -196,7 +259,22 @@ struct FilePanel: View {
     /// the one folder selected, as a macOS panel's Open opens a folder that
     /// cannot be chosen.
     private var canConfirm: Bool {
-        !confirmable.isEmpty || openableSelection != nil
+        if request.saveContentTypes != nil { return saveDestination != nil }
+        return !confirmable.isEmpty || openableSelection != nil
+    }
+
+    /// Where a save panel saves now: the folder shown and the name resolved
+    /// (``SaveName/resolve(_:contentTypes:)``); `nil` for a name no file can
+    /// have, or one that is a folder's in the folder shown.
+    private var saveDestination: URL? {
+        guard let types = request.saveContentTypes, let resolved = SaveName.resolve(name, contentTypes: types)
+        else { return nil }
+        let destination = browser.directory.appendingPathComponent(resolved)
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: destination.path, isDirectory: &isDirectory), isDirectory.boolValue {
+            return nil
+        }
+        return destination
     }
 
     /// The one folder selected, when the selection is one folder that cannot
@@ -219,6 +297,10 @@ struct FilePanel: View {
 
     /// The confirmation button.
     private func confirm() {
+        if request.saveContentTypes != nil {
+            save()
+            return
+        }
         if let folder = openableSelection {
             browser.open(folder)
             return
@@ -237,8 +319,27 @@ struct FilePanel: View {
             browser.open(entry.url)
             return
         }
+        // To save, a file is a name to save under, not a choice.
+        if request.saveContentTypes != nil {
+            if let entry = entries.first(where: \.isChoosable) {
+                name = entry.name
+                nameIsFocused = true
+            }
+            return
+        }
         let chosen = entries.filter(\.isChoosable).map(chosenURL)
         guard !chosen.isEmpty, request.allowsMultipleSelection || chosen.count == 1 else { return }
         finish(.chose(chosen, ending))
+    }
+
+    /// Saves under the name typed, in the folder shown — once the user says
+    /// to replace the file already there, if there is one.
+    private func save() {
+        guard let destination = saveDestination else { return }
+        if FileManager.default.fileExists(atPath: destination.path) {
+            replacing = destination
+            return
+        }
+        finish(.chose([destination], ending))
     }
 }

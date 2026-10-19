@@ -108,6 +108,10 @@
   "filePanel.status.enclosingFolder": "übergeordneter Ordner",
   "filePanel.status.home": "Benutzerordner",
   "filePanel.move": "Verschieben",
+  "filePanel.saveAs": "Sichern unter:",
+  "filePanel.untitled": "Ohne Titel",
+  "filePanel.replaceTitle": "„%@“ ist bereits vorhanden. Möchtest du es ersetzen?",
+  "filePanel.replaceMessage": "Im Ordner „%@“ ist bereits eine Datei mit diesem Namen vorhanden. Durch Ersetzen wird ihr aktueller Inhalt überschrieben.",
 
   "menu.file": "Datei",
   "menu.edit": "Bearbeiten",

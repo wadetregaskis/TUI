@@ -4551,3 +4551,34 @@ private struct CorpusFileMovers: View {
         }
     }
 }
+
+/// The `Transferable` exporters and the name field's label, as Apple's
+/// documentation writes them: `String` is `Transferable`.
+@MainActor
+private struct CorpusFileExporters: View {
+    @State private var exporting = false
+    var note: String
+    var notes: [String]
+
+    var body: some View {
+        VStack {
+            Button("Export") { exporting = true }
+                .fileExporter(isPresented: $exporting, item: note, contentTypes: [.plainText], defaultFilename: "Note") {
+                    result in
+                    _ = result
+                } onCancellation: {
+                    print("cancelled")
+                }
+            Button("Export item") { exporting = true }
+                .fileExporter(isPresented: $exporting, item: Optional(note)) { _ in }
+            Button("Export all") { exporting = true }
+                .fileExporter(isPresented: $exporting, items: notes) { result in _ = result }
+            Button("Export all as text") { exporting = true }
+                .fileExporter(isPresented: $exporting, items: notes, contentTypes: [.plainText]) { _ in }
+                    onCancellation: {}
+        }
+        .fileExporterFilenameLabel("Export As:")
+        .fileExporterFilenameLabel(Text("Export As:"))
+        .fileExporterFilenameLabel(String("Export As:"))
+    }
+}

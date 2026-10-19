@@ -108,6 +108,10 @@
   "filePanel.status.enclosingFolder": "carpeta contenedora",
   "filePanel.status.home": "carpeta de inicio",
   "filePanel.move": "Mover",
+  "filePanel.saveAs": "Guardar como:",
+  "filePanel.untitled": "Sin título",
+  "filePanel.replaceTitle": "“%@” ya existe. ¿Quieres reemplazarlo?",
+  "filePanel.replaceMessage": "Ya existe un archivo con el mismo nombre en la carpeta “%@”. Si lo reemplazas, se sobrescribirá su contenido actual.",
 
   "menu.file": "Archivo",
   "menu.edit": "Editar",

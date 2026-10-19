@@ -108,6 +108,10 @@
   "filePanel.status.enclosingFolder": "親フォルダ",
   "filePanel.status.home": "ホームフォルダ",
   "filePanel.move": "移動",
+  "filePanel.saveAs": "名前:",
+  "filePanel.untitled": "名称未設定",
+  "filePanel.replaceTitle": "“%@”はすでに存在します。置き換えますか?",
+  "filePanel.replaceMessage": "同じ名前のファイルがフォルダ“%@”内にすでにあります。置き換えると、現在の内容が上書きされます。",
 
   "menu.file": "ファイル",
   "menu.edit": "編集",

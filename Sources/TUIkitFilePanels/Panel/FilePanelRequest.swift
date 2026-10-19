@@ -9,6 +9,10 @@
 import Foundation
 import TUIkitFoundation
 
+#if canImport(UniformTypeIdentifiers)
+    import UniformTypeIdentifiers
+#endif
+
 /// What a presented file panel is asked for: the modifiers that present one
 /// (`fileImporter`, …) each fill one in from their arguments and the
 /// environment's customizations.
@@ -17,6 +21,8 @@ struct FilePanelRequest {
     enum Purpose: Equatable {
         /// Existing items to open: one, or as many as the user selects.
         case open(allowsMultipleSelection: Bool)
+        /// A name, in a folder, to save a file of one of these types under.
+        case save(contentTypes: [UTType])
     }
 
     /// What the user is choosing.
@@ -33,6 +39,12 @@ struct FilePanelRequest {
 
     /// A line the panel shows above its folder (`fileDialogMessage(_:)`).
     var message: String?
+
+    /// The name a save panel offers.
+    var defaultFilename: String?
+
+    /// The label of a save panel's name field (`fileExporterFilenameLabel(_:)`).
+    var filenameLabel: String?
 
     /// The folder the panel opens on.
     var startDirectory: URL
@@ -52,7 +64,14 @@ struct FilePanelRequest {
     var allowsMultipleSelection: Bool {
         switch purpose {
         case .open(let multiple): multiple
+        case .save: false
         }
+    }
+
+    /// The types a save panel saves as, or `nil` for a panel that opens.
+    var saveContentTypes: [UTType]? {
+        if case .save(let types) = purpose { return types }
+        return nil
     }
 
     /// The folder a panel opens on when nothing names one: the process's

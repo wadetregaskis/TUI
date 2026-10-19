@@ -138,6 +138,10 @@ extension LocalizationService {
       "filePanel.status.enclosingFolder": "enclosing folder",
       "filePanel.status.home": "home",
       "filePanel.move": "Move",
+      "filePanel.saveAs": "Save As:",
+      "filePanel.untitled": "Untitled",
+      "filePanel.replaceTitle": "“%@” already exists. Do you want to replace it?",
+      "filePanel.replaceMessage": "A file with the same name already exists in the folder “%@”. Replacing it will overwrite its current contents.",
 
       "menu.file": "File",
       "menu.edit": "Edit",

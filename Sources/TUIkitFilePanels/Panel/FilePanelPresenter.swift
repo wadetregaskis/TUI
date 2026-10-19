@@ -94,6 +94,7 @@ struct FilePanelPresenter<Content: View>: View {
     static func apply(_ customization: FileDialogCustomization, to request: inout FilePanelRequest) {
         if let message = customization.message { request.message = message }
         if let label = customization.confirmationLabel { request.confirmationLabel = label }
+        if let label = customization.filenameLabel { request.filenameLabel = label }
         if let folder = customization.defaultDirectory { request.startDirectory = folder }
         request.showsHiddenFiles = customization.browserOptions.contains(.includeHiddenFiles)
         request.rule.enumeratesPackages = customization.browserOptions.contains(.enumeratePackages)

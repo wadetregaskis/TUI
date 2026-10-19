@@ -217,6 +217,14 @@ public enum LocalizationKey {
         case statusHome = "filePanel.status.home"
         /// A mover's title and confirmation button.
         case move = "filePanel.move"
+        /// The name field's label, where `fileExporterFilenameLabel(_:)` gives none.
+        case saveAs = "filePanel.saveAs"
+        /// The name a save panel offers where neither the caller nor the item gives one.
+        case untitled = "filePanel.untitled"
+        /// The replace alert's title, the item's name as `%@`.
+        case replaceTitle = "filePanel.replaceTitle"
+        /// The replace alert's message, the folder's name as `%@`.
+        case replaceMessage = "filePanel.replaceMessage"
     }
 
     /// Menu items and sections

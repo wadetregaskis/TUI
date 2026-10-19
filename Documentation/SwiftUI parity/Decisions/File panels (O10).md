@@ -179,3 +179,49 @@ Moving a file to the folder it is already in is a success that moves nothing.
 **The fuller version** asks to replace, as the save panel does (B-O10-10), with
 the replaced item kept in the Trash where there is one: half a day, and a
 question of whether a mover should ever destroy an item.
+
+### B-O10-10. The save panel: a name field first, the type's extension added, and a question before replacing
+
+*`View.fileExporter(isPresented:item:contentTypes:defaultFilename:onCompletion:onCancellation:)`,
+`fileExporter(isPresented:items:contentTypes:onCompletion:onCancellation:)`,
+`View.fileExporterFilenameLabel(_:)`*
+
+SwiftUI presents the system's save panel. TUIkit's is the open panel titled
+Save with a name field above the folder, as a macOS save panel has one: Save
+As:, or the `fileExporterFilenameLabel(_:)`, offering `defaultFilename`, else
+the item's suggested file name, else Untitled. The field takes the focus, and
+Return in it saves; Tab reaches the folder. A file of a type the panel saves
+as is not dimmed, and Return on it puts its name in the field and the focus
+back there, as a click on such a file does on macOS — it does not save. The
+name typed is the file's, trimmed, and given the first type's extension when it
+has none of the types' own (`SaveName.resolve`): `notes` saved as plain text is
+`notes.txt`, `notes.md` stays, since Markdown is plain text, and `notes.pdf` is
+`notes.pdf.txt` (macOS asks which extension to use; this panel does not ask).
+A name no file can have (empty, `.`, `..`, a `/`) or that is a folder's in the
+folder shown cannot be saved under: Save is disabled. Saving over a file asks
+first — "“beta.txt” already exists. Do you want to replace it?", Cancel and
+Replace, as macOS words it — and Replace writes over it.
+
+`items:` saves several files, so it asks for a folder, as the mover does, and
+saves each item into it under its suggested name, else Untitled, Untitled 2, …,
+with its type's extension (`ExportNames`). They are written in order and the
+first failure ends the operation; an item of the same name already in the
+folder is one — the panel shows no question per file. **The fuller version**
+asks once to replace whichever already exist: half a day.
+
+### B-O10-11. A `Transferable` is exported through an item provider, on Apple platforms only
+
+SwiftUI exports an item through its `transferRepresentation`.
+`Transferable.exported(as:)` would do that, but it is macOS 15.2's and TUIkit
+runs on macOS 14, so the item is registered with an `NSItemProvider` (macOS 13)
+and loaded from it (`TransferableExport`): the provider says which types the
+item exports as and the name it suggests, and loads its data as the type the
+file's name names — of `contentTypes`, or of the types it exports when
+`contentTypes` is empty, as SwiftUI documents. The data is written atomically,
+off the main actor. The provider is made when the panel is presented and again
+when it saves, from the item the latest body gave, never on every body.
+`Transferable` is CoreTransferable's, which Linux does not have, so on Linux
+these two forms are absent and fail to compile (decisions A18, option 1:
+platform API where the feature is intrinsically the platform's). **The fuller
+version** for Linux is a TUIkit protocol a value conforms to with its data and
+type — about a day — which the owner did not ask for.

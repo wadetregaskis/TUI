@@ -108,6 +108,10 @@
   "filePanel.status.enclosingFolder": "cartella superiore",
   "filePanel.status.home": "cartella Inizio",
   "filePanel.move": "Sposta",
+  "filePanel.saveAs": "Salva come:",
+  "filePanel.untitled": "Senza titolo",
+  "filePanel.replaceTitle": "“%@” esiste già. Vuoi sostituirlo?",
+  "filePanel.replaceMessage": "Nella cartella “%@” esiste già un file con lo stesso nome. Sostituendolo, il contenuto attuale verrà sovrascritto.",
 
   "menu.file": "File",
   "menu.edit": "Modifica",

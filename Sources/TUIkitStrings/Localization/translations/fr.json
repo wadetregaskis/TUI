@@ -108,6 +108,10 @@
   "filePanel.status.enclosingFolder": "dossier parent",
   "filePanel.status.home": "dossier de départ",
   "filePanel.move": "Déplacer",
+  "filePanel.saveAs": "Enregistrer sous :",
+  "filePanel.untitled": "Sans titre",
+  "filePanel.replaceTitle": "« %@ » existe déjà. Voulez-vous le remplacer ?",
+  "filePanel.replaceMessage": "Un fichier du même nom existe déjà dans le dossier « %@ ». Le remplacer écrasera son contenu actuel.",
 
   "menu.file": "Fichier",
   "menu.edit": "Modifier",

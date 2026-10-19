@@ -108,6 +108,10 @@
   "filePanel.status.enclosingFolder": "上层文件夹",
   "filePanel.status.home": "个人文件夹",
   "filePanel.move": "移动",
+  "filePanel.saveAs": "存储为：",
+  "filePanel.untitled": "未命名",
+  "filePanel.replaceTitle": "“%@”已经存在。要替换它吗？",
+  "filePanel.replaceMessage": "文件夹“%@”中已存在同名文件。替换它将覆盖其当前内容。",
 
   "menu.file": "文件",
   "menu.edit": "编辑",
