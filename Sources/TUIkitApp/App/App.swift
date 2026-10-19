@@ -270,6 +270,44 @@ extension AppRunner {
         terminal.showPointerShape(tuiContext.mouseEventDispatcher.pointerShapeUnderPointer())
     }
 
+    /// Names the terminal where the environment did not, and asks what may be
+    /// asked only of a named one: before the render loop, whose
+    /// `FrameDiffWriter` freezes what it reads of the host at construction.
+    private func identifyHost() {
+        // If nothing in the environment named the host, ask the terminal
+        // itself — which is the only question that survives an ssh hop, where
+        // `TERM_PROGRAM` does not (see TerminalHost.hostProgram). One write and
+        // one round trip, and only in the case that is otherwise rendering
+        // incorrectly: an Apple Terminal reached over ssh, painting every VS-16
+        // emoji, lone regional indicator and SF Symbol two cells wide while
+        // advancing one.
+        //
+        // BEFORE the render loop, and deliberately: TerminalHost's detectors
+        // are `static let`, so each freezes on first read, and the loop's
+        // FrameDiffWriter reads all of them as its init defaults. Under tmux
+        // there is nothing to ask — the pane's grid is tmux's, not the
+        // client's, and `$TMUX` has already answered.
+        if !TerminalHost.hostIsNamedByEnvironment, !TerminalHost.isTmux {
+            TerminalHost.identify(using: terminal)
+            // An Apple Terminal named only now keeps autowrap on, as one the
+            // environment named does; raw mode turned it off before anything
+            // knew (`Terminal.keepsAutowrap`).
+            terminal.keepAutowrapIfAppleTerminal(environment: ProcessInfo.processInfo.environment)
+        }
+
+        // AFTER identification, because the question is only safe to ask a host
+        // known to answer it: DECRQM's `CSI ? Ps $ p` is the one CSI shape
+        // Apple Terminal prints instead of consuming. Before the render loop,
+        // for the same reason identification is — the advance model this
+        // protects is frozen into `FrameDiffWriter` at construction. And
+        // whether a copy can carry more than text (OSC 5522), asked under the
+        // same rule.
+        terminal.askModesOfIdentifiedHost()
+
+        // Which other chords the host may send ⌃\'s byte for, now that it
+        // is named.
+        hostQuitByteAliases = TerminalClient.quitByteAliases(TerminalClient.current.program)
+    }
     /// Turns on the kitty keyboard protocol where the terminal speaks it, and
     /// publishes what the terminal reports: to the environment
     /// (`\.keyboardReporting`), and to the undo keys, which name in the status
@@ -391,39 +429,9 @@ extension AppRunner {
         terminal.hideCursor()
         terminal.enableRawMode()
 
-        // If nothing in the environment named the host, ask the terminal
-        // itself — which is the only question that survives an ssh hop, where
-        // `TERM_PROGRAM` does not (see TerminalHost.hostProgram). One write and
-        // one round trip, and only in the case that is otherwise rendering
-        // incorrectly: an Apple Terminal reached over ssh, painting every VS-16
-        // emoji, lone regional indicator and SF Symbol two cells wide while
-        // advancing one.
-        //
-        // BEFORE the render loop below, and deliberately: TerminalHost's
-        // detectors are `static let`, so each freezes on first read, and the
-        // loop's FrameDiffWriter reads all of them as its init defaults. Under
-        // tmux there is nothing to ask — the pane's grid is tmux's, not the
-        // client's, and `$TMUX` has already answered.
-        if !TerminalHost.hostIsNamedByEnvironment, !TerminalHost.isTmux {
-            TerminalHost.identify(using: terminal)
-            // An Apple Terminal named only now keeps autowrap on, as one the
-            // environment named does; raw mode turned it off before anything
-            // knew (`Terminal.keepsAutowrap`).
-            terminal.keepAutowrapIfAppleTerminal(environment: ProcessInfo.processInfo.environment)
-        }
-
-        // AFTER identification, because the question is only safe to ask a host
-        // known to answer it: DECRQM's `CSI ? Ps $ p` is the one CSI shape
-        // Apple Terminal prints instead of consuming. Before the render loop,
-        // for the same reason identification is — the advance model this
-        // protects is frozen into `FrameDiffWriter` at construction. And
-        // whether a copy can carry more than text (OSC 5522), asked under the
-        // same rule.
-        terminal.askModesOfIdentifiedHost()
-
-        // Which other chords the host may send ⌃\'s byte for, now that it
-        // is named.
-        hostQuitByteAliases = TerminalClient.quitByteAliases(TerminalClient.current.program)
+        // Who the terminal is, where the environment did not say, and what may
+        // be asked of it now that it is named: before the render loop below.
+        identifyHost()
 
         // The host's width traits, published before anything measures a view:
         // the claim follows the host now, so layout must see it from frame one.
