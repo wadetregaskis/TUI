@@ -60,28 +60,42 @@ package func statedTypeSelectEquivalent(of row: any View) -> String?? {
     return .some(carrier.typeSelectEquivalent)
 }
 
-/// ``statedTypeSelectEquivalent(of:)`` for a row a child walk holds, seeing
-/// past `ForEach`'s value memo — `extractRowBadge(from:)`'s shape, for the
-/// same wrapper.
+/// What a row a child walk holds states for type select, seeing past
+/// `ForEach`'s value memo — `extractRowBadge(from:)`'s shape, for the same
+/// wrapper — without building the row.
 ///
 /// A looped row of an `Equatable` element reaches a walk that splices it among
 /// hand-written rows (or a `Section`'s walk) wrapped in `_MemoizedRow`, which
 /// is `Renderable` and so opaque to the wrapper walk: the equivalent it stated
 /// was simply not there, and the row answered to its drawn text instead.
 ///
-/// The memo's TYPE is asked before its content — walked through the same
-/// single-content wrappers the instance walk looks through, so
-/// `.typeSelectEquivalent(_:).padding()` is found as the hand-written row's
-/// is — and only a row type that states an equivalent is built:
-/// ``_ValueMemoWrapping/memoizedContent`` BUILDS the row, and the memo exists
-/// so that most rows are not.
-@MainActor
-package func statedRowTypeSelectEquivalent(of row: any View) -> String?? {
-    if let stated = statedTypeSelectEquivalent(of: row) { return stated }
-    guard let memo = row as? any _ValueMemoWrapping,
-        viewTypeStatesTypeSelectEquivalent(memo.memoizedContentType)
-    else { return nil }
-    return statedTypeSelectEquivalent(of: memo.memoizedContent)
+/// The memo's TYPE is asked, walked through the same single-content wrappers
+/// the instance walk looks through, so `.typeSelectEquivalent(_:).padding()`
+/// is found as the hand-written row's is. Its content is NOT built here:
+/// ``_ValueMemoWrapping/memoizedContent`` BUILDS the row, the memo exists so
+/// that most rows are not, and this is asked of every such row on every frame
+/// — so the memo is handed back, for the probe to build when the user types.
+private enum TypeSelectStatement {
+    /// The row states nothing: it is matched by its own text.
+    case none
+    /// The row states this text (`""` takes it out of type select), or `nil`
+    /// to be matched by its own text.
+    case stated(String?)
+    /// A looped row whose type states an equivalent, behind the memo.
+    case behindMemo(any _ValueMemoWrapping)
+
+    @MainActor
+    init(of row: any View) {
+        if let stated = statedTypeSelectEquivalent(of: row) {
+            self = .stated(stated)
+        } else if let memo = row as? any _ValueMemoWrapping,
+            viewTypeStatesTypeSelectEquivalent(memo.memoizedContentType)
+        {
+            self = .behindMemo(memo)
+        } else {
+            self = .none
+        }
+    }
 }
 
 /// Whether a view of `type` states a type-select equivalent, at its outside or
@@ -105,13 +119,45 @@ extension SingleContentWrapper {
 }
 
 /// The type-select text `row` states, as a row's probe, for a row handed to
-/// the list already drawn — `nil` where it states none, so its drawn text is
-/// used. A looped row behind `ForEach`'s value memo is seen through it (see
-/// ``statedRowTypeSelectEquivalent(of:)``).
+/// the list already drawn as `drawn` — `nil` where it states none, so its
+/// drawn text is used. A looped row behind `ForEach`'s value memo is seen
+/// through it, and built only when the probe is asked: when the user types,
+/// not on every frame (see `TypeSelectStatement`).
 @MainActor
-package func typeSelectProbe(statedBy row: any View) -> (() -> String?)? {
-    guard let stated = statedRowTypeSelectEquivalent(of: row), let stated else { return nil }
-    return { stated }
+package func typeSelectProbe(statedBy row: any View, drawn: FrameBuffer) -> (() -> String?)? {
+    switch TypeSelectStatement(of: row) {
+    case .none, .stated(nil):
+        return nil
+    case .stated(let text?):
+        return { text }
+    case .behindMemo(let memo):
+        return { statedText(of: memo) ?? LazyListRowContent.typeSelectText(drawnIn: drawn) }
+    }
+}
+
+/// The type-select text `row` states, as a row's probe, else what `ownText`
+/// finds — for a row a list draws only when it must, so its own text is a
+/// measure's.
+@MainActor
+package func typeSelectProbe(
+    statedBy row: any View, otherwise ownText: @escaping () -> String?
+) -> () -> String? {
+    switch TypeSelectStatement(of: row) {
+    case .none, .stated(nil):
+        return ownText
+    case .stated(let text?):
+        return { text }
+    case .behindMemo(let memo):
+        return { statedText(of: memo) ?? ownText() }
+    }
+}
+
+/// The text the row behind `memo` states, built to ask — `nil` where it states
+/// none, so its own text is used.
+@MainActor
+private func statedText(of memo: any _ValueMemoWrapping) -> String? {
+    guard let stated = statedTypeSelectEquivalent(of: memo.memoizedContent) else { return nil }
+    return stated
 }
 
 extension View {

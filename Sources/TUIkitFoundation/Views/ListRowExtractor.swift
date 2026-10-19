@@ -597,11 +597,11 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
                     of: member, size: (buffer.width, buffer.height), row: listRowIndex, context: rowContext)
                 return (buffer, extractRowBadge(from: member.wrappedView))
             })
-        box.typeSelectProbe = typeSelectProbe(statedBy: member.wrappedView) ?? {
+        box.typeSelectProbe = typeSelectProbe(statedBy: member.wrappedView) {
             var probe = context
             probe.isMeasuring = true
-            return member.render(width: context.availableWidth, height: context.availableHeight, context: probe)
-                .lines.first.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+            return LazyListRowContent.typeSelectText(
+                drawnIn: member.render(width: context.availableWidth, height: context.availableHeight, context: probe))
         }
         return box
     }

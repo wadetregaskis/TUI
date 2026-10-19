@@ -259,7 +259,13 @@ package final class LazyListRowContent {
     /// otherwise.
     package var typeSelectText: String? {
         if let typeSelectProbe { return typeSelectProbe() }
-        return buffer.lines.first.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+        return Self.typeSelectText(drawnIn: buffer)
+    }
+
+    /// The text a typed prefix matches a row by, read off its drawn `buffer`:
+    /// its first line, without its styling or the spaces around it.
+    package static func typeSelectText(drawnIn buffer: FrameBuffer) -> String? {
+        buffer.lines.first.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
     }
 
     /// Defers rendering until the buffer (or badge) is first read.

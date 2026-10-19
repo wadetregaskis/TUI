@@ -70,6 +70,38 @@ struct ListRowBuildDeferralTests {
             "a warm frame built \(secondFrameBuilds) row views for \(servedRows) visible rows, then discarded them against its cache hits")
     }
 
+    /// A `ForEach` beside a hand-written row reaches the list's child walk
+    /// inside its value memo, and the type-select text a looped row states
+    /// sits behind that memo. Reading it means building the row, which the
+    /// list did for every such row on every frame, as the walk attached each
+    /// row's probe; it is built when the probe is asked — when the user types.
+    @Test("A spliced looped row's type-select text builds nothing on a steady-state frame")
+    func splicedTypeSelectEquivalentBuildsNothing() {
+        final class Counter { var builds = 0 }
+        let counter = Counter()
+        func makeRow(_ i: Int) -> some View {
+            counter.builds += 1
+            return Text("• \(i)").typeSelectEquivalent("row \(i)")
+        }
+
+        let view = List {
+            Text("Top")
+            ForEach(0..<8, id: \.self) { makeRow($0) }
+        }
+        let renderContext = context()
+        _ = renderToBuffer(view, context: renderContext)
+        _ = renderToBuffer(view, context: renderContext)
+        let settledBuilds = counter.builds
+
+        let warm = renderToBuffer(view, context: renderContext)
+        let warmBuilds = counter.builds - settledBuilds
+        let servedRows = warm.lines.filter { $0.stripped.contains("• ") }.count
+        #expect(servedRows == 8, "every looped row drawn: \(warm.lines.map(\.stripped))")
+        #expect(
+            warmBuilds == verifierRenders(hits: servedRows),
+            "a warm frame built \(warmBuilds) looped rows for \(servedRows) served ones, to read their type-select text")
+    }
+
     @Test("A badged row still renders its badge through the deferral")
     func badgedRowsKeepTheirBadges() {
         let view = List {

@@ -745,7 +745,7 @@ extension Section: ListRowExtractor where Parent: View, Content: View, Footer: V
                 restrictions?.currentRowIndex = nil
                 reportSeparatorGuides(of: child, size: (buffer.width, buffer.height), row: listRow, context: context)
                 let row = ListRow(askedID: rowID, buffer: buffer, badge: badge)
-                row.content.typeSelectProbe = typeSelectProbe(statedBy: child.wrappedView)
+                row.content.typeSelectProbe = typeSelectProbe(statedBy: child.wrappedView, drawn: buffer)
                 rows.append(row)
                 rowKeys.append(child.identityChildKey)
             }

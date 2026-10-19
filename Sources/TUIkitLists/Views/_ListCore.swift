@@ -3940,7 +3940,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // a looped row's answer can cost a build of the row, and the hug
             // measure walks every row for its width alone.
             let rowContent = LazyListRowContent(buffer: buffer, rowBadge: badge)
-            rowContent.typeSelectProbe = typeSelectProbe(statedBy: child.wrappedView)
+            rowContent.typeSelectProbe = typeSelectProbe(statedBy: child.wrappedView, drawn: buffer)
             result.append(
                 EagerListRow(
                     asked: rowIDs.askedID(ofChildAt: childIndices[childIndex], ordinal: result.count),
