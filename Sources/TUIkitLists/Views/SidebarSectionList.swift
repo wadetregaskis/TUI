@@ -61,9 +61,9 @@ package struct _SidebarRow: Equatable {
     /// a selection.
     var id: _SidebarPlace { _SidebarPlace(place: place) }
 
-    /// What the row draws, as far as it can be compared. A part that cannot —
-    /// a view of the app's own — is the row's to declare (an unkeyed read), so
-    /// the memo does not keep it.
+    /// What the row draws, as far as it can be compared. A row with a part
+    /// that cannot — a view of the app's own — holds a look that never equals
+    /// the last, so the memo misses it on every frame, and only it.
     package let look: AnyHashable
 
     /// The memberwise initializer, spelled out because the synthesized one is

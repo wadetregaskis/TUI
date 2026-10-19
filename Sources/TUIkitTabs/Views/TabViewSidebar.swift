@@ -136,7 +136,7 @@ private struct _TabSidebarList: View {
         return _TabRowLook(
             title: tab.title, badge: tab.badgeSuffix.isEmpty ? nil : tab.badge?.displayText,
             isDisabled: tab.isDisabled, springLoads: tab.springLoads(inheriting: springLoading),
-            hasCustomLabel: tab.customLabel != nil, hasContextMenu: interactions.contextMenu != nil,
+            drawnAfresh: tab.customLabel == nil ? nil : _DrawnAfresh(), hasContextMenu: interactions.contextMenu != nil,
             popoversShown: interactions.popovers.map(\.isPresented.wrappedValue),
             isDraggable: interactions.dragPayload != nil, drops: interactions.drops.count)
     }
@@ -215,11 +215,12 @@ private struct _TabSidebarList: View {
     /// A tab's label in the sidebar: the app's own label view, or the title.
     ///
     /// The app's own is drawn afresh on every frame: its row's look
-    /// (``_TabRowLook``) cannot say what it draws, so its row is not kept.
+    /// (``_TabRowLook``) cannot say what it draws, so the look never matches
+    /// the last (``_DrawnAfresh``).
     @ViewBuilder
     private func label(of tab: _RawTab) -> some View {
         if let customLabel = tab.customLabel {
-            _DrawnAfresh(content: customLabel)
+            customLabel
         } else {
             Text(verbatim: tab.title)
         }
@@ -239,30 +240,31 @@ private struct _TabRowLook: Hashable {
     let badge: String?
     let isDisabled: Bool
     let springLoads: Bool
-    /// A label view of the app's own, which the look cannot compare: the row
-    /// draws it afresh every frame (``_DrawnAfresh``).
-    let hasCustomLabel: Bool
+    /// A part of the row the look cannot compare — a label view of the
+    /// app's own — or `nil` for none: the row is drawn afresh every frame
+    /// (``_DrawnAfresh``).
+    let drawnAfresh: _DrawnAfresh?
     let hasContextMenu: Bool
     let popoversShown: [Bool]
     let isDraggable: Bool
     let drops: Int
 }
 
-/// `content`, drawn afresh on every frame: it is a view of the app's own
-/// that nothing above it can compare, so it declares a read no memo keys on
-/// and the memos above it decline to keep it.
-private struct _DrawnAfresh<Content: View>: View, Renderable, Layoutable {
-    let content: Content
+/// A mark in a row's look that only it compares equal to, made anew with
+/// each look: a look holding one never matches the last, so the list's row
+/// memo misses that row on every frame and it is drawn afresh — for a row
+/// that draws what its look cannot compare, a view of the app's own.
+///
+/// It is the row's own memo that misses, and only it. The memos around the
+/// tab view are keyed by what the app hands them, which the app's view is a
+/// function of, and keep what they kept. A read no memo keys on, which the
+/// row declared before, turned every one of them off on every frame — an
+/// `.equatable()` around the tab view, a row of a loop it is in.
+private final class _DrawnAfresh: Hashable {
+    static func == (lhs: _DrawnAfresh, rhs: _DrawnAfresh) -> Bool { lhs === rhs }
 
-    var body: Never { fatalError("_DrawnAfresh renders via Renderable") }
-
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        if !context.isMeasuring { context.environment.volatileReadTracker?.recordUnkeyedRead() }
-        return TUIkitView.renderToBuffer(content, context: context)
-    }
-
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(content, proposal: proposal, context: context)
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(ObjectIdentifier(self))
     }
 }
 
