@@ -178,6 +178,9 @@ extension NavigationCoordinator {
     /// cells of `top` inside the rectangle, its hit regions and runs cut with
     /// them, over `base`'s lines. The base is a picture — its regions, runs and
     /// layers left behind — unless `keepsBase`, where it is the live drawing.
+    /// Where `top` is the live drawing, its geometry markers are kept whole,
+    /// as every clip keeps them: they say where its views are laid out, drawn
+    /// or not.
     ///
     /// The result is as large as the larger of the two: a root that hugs its
     /// rows is shorter than a pushed screen, which fills the stack, and the
@@ -199,7 +202,15 @@ extension NavigationCoordinator {
             width: min(rect.maxX, size.width) - max(0, rect.x), height: min(rect.maxY, size.height) - max(0, rect.y))
         guard visible.width > 0, visible.height > 0,
             let part = layer.cropped(x: visible.x, y: visible.y, width: visible.width, height: visible.height)
-        else { return result }
+        else {
+            // Nothing of it is inside — a source of no size, or outside the
+            // stack — but a live drawing's markers still ride in flow, as a
+            // clip's do (`OverlayLayer.cropped`); dropped, a reader or a
+            // matched view on a screen being revealed was not found on the
+            // zoom's first frame. A picture has none to keep.
+            if !keepsBase { result.hitTestRegions += top.hitTestRegions.filter(\.isGeometryMarker) }
+            return result
+        }
         return result.composited(with: part.content, at: (part.offsetX, part.offsetY))
     }
 

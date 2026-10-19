@@ -93,6 +93,32 @@ private struct Zooming: View {
     }
 }
 
+/// A source `s` 4×2 above a stack 40×10, whose screen zooms from it — so the
+/// zoom's rectangle starts outside the stack — and says where its `D` is. The
+/// root reads where it is, so the stack is told where it is in the walk that
+/// draws the zoom, and no walk draws the screen whole.
+private struct ZoomingFromOutside: View {
+    let path: Binding<NavigationPath>
+    let seen: MainActorBox<[CellRect]>
+    @Namespace private var space
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            GlyphFill("s").frame(width: 4, height: 2).matchedTransitionSource(id: 1, in: space)
+            NavigationStack(path: path) {
+                GeometryReader { proxy in Text(verbatim: "root at \(proxy.frame(in: .global).minY)") }
+                    .navigationDestination(for: Int.self) { _ in
+                        GlyphFill("D")
+                            .onGeometryChange(for: CellRect.self) { $0.frame(in: .global) } action: {
+                                seen.value.append($0)
+                            }
+                            .navigationTransition(.zoom(sourceID: 1, in: space))
+                    }
+            }
+        }
+    }
+}
+
 /// A stack and the path it shows, drawn frame by frame.
 @MainActor
 private final class Navigator {
@@ -246,6 +272,24 @@ struct ZoomNavigationTransitionTests {
         #expect(rect(of: "k", in: halfway) == nil)
         #expect(rect(of: "D", in: halfway) == nil)
         #expect(rect(of: "s", in: halfway) == CellRect(x: 10, y: 3, width: 4, height: 2))
+    }
+
+    @Test("A screen revealed through a rectangle with nothing of it inside the stack is still found where it is")
+    func revealedFromOutsideTheStack() {
+        let harness = InputChainHarness(width: 40, height: 12) { $0.canAnimate = true }
+        var path = NavigationPath()
+        let seen = MainActorBox<[CellRect]>([])
+        let view = { ZoomingFromOutside(path: Binding(get: { path }, set: { path = $0 }), seen: seen) }
+        harness.frame(view())
+        harness.frame(view())
+        path.append(1)
+        harness.transaction = linear
+        let start = harness.frame(view()).lines.map(\.stripped)
+        // The rectangle is the source's, above the stack: none of the screen
+        // is drawn, but where it is laid out is known — under the stack's
+        // bar, two rows below the source — as it is for a clipped view.
+        #expect(rect(of: "D", in: start) == nil)
+        #expect(seen.value == [CellRect(x: 0, y: 4, width: 40, height: 8)])
     }
 
     @Test("A push with no animation of its own zooms under the default one")
