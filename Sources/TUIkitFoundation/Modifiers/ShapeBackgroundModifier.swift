@@ -61,7 +61,8 @@ extension _ShapeBackground: Renderable {
         let aspect = environment.imageCellAspect
         let drawn = resolvedDrawing(of: shape, as: .fill(fillStyle), in: context, columns: columns, rows: rows)
         let painter = ShapePainter(
-            paint: style.paint(in: environment), extent: context.gradientFrame ?? GradientFrame(width: columns, height: rows),
+            paint: style.paint(in: environment).unshadowed,
+            extent: context.gradientFrame ?? GradientFrame(width: columns, height: rows),
             aspect: aspect, palette: environment.palette)
         // In colour: with none, a field is a block glyph, and the view's blank
         // cells have always covered those.

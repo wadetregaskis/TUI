@@ -137,7 +137,7 @@ extension View {
     /// - Returns: A view that publishes the style to its descendants.
     public func backgroundStyle<S: ShapeStyle>(_ style: S) -> some View {
         _StyleEnvironmentView(
-            content: self, style: style, slot: \.backgroundStyle, fades: false)
+            content: self, style: style, slot: \.backgroundStyle, fades: false, implicitIsBackground: true)
     }
 
     /// The colour spelling, so `.backgroundStyle(.red)` keeps inferring — the
@@ -146,7 +146,7 @@ extension View {
     @_disfavoredOverload
     public func backgroundStyle(_ style: Color) -> some View {
         _StyleEnvironmentView(
-            content: self, style: style, slot: \.backgroundStyle, fades: false)
+            content: self, style: style, slot: \.backgroundStyle, fades: false, implicitIsBackground: true)
     }
 }
 
@@ -182,6 +182,11 @@ struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
     /// below it.
     var clearsLevels = false
 
+    /// Whether the current style — the static ``ShapeStyle/shadow(_:)``'s base
+    /// — is the background style where this one resolves: true for a
+    /// ``View/backgroundStyle(_:)-(S)``, as SwiftUI documents and draws it.
+    var implicitIsBackground = false
+
     var body: Never {
         fatalError("_StyleEnvironmentView renders via Renderable")
     }
@@ -215,7 +220,14 @@ struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
         // `some Equatable` parameter does by type. Tracking the resolved paint
         // also means a style that resolves to the same colour does not count as
         // a change, which is the right answer as well as the cheap one.
-        var paint = style.paint(in: context.environment)
+        var paint: Paint
+        if implicitIsBackground {
+            var environment = context.environment
+            environment.implicitStyleIsBackground = true
+            paint = style.paint(in: environment)
+        } else {
+            paint = style.paint(in: context.environment)
+        }
         // A ramp fades as a colour does: every stop and every number of the
         // geometry moves on its own store entry. See ``PaintAnimation``.
         if fades {
@@ -267,7 +279,8 @@ extension _StyleEnvironmentView: ContentRewrapping {
 
     func rewrapping<V: View>(_ view: V) -> any View {
         _StyleEnvironmentView<V, S>(
-            content: view, style: style, slot: slot, fades: fades, clearsLevels: clearsLevels)
+            content: view, style: style, slot: slot, fades: fades, clearsLevels: clearsLevels,
+            implicitIsBackground: implicitIsBackground)
     }
 }
 

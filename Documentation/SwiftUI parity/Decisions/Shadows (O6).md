@@ -150,3 +150,6 @@ style — a shape's fill and stroke, `.background(_:)`'s fill (a drop shadow
 under the fill, an inner one over the fill and under the content), `Text`'s
 ink, a border's lines — through the two functions above. About two days, most
 of it going through the consumers; the drawing itself is shared.
+
+**Shipped** by lane W1B (2026-10-19), as this fuller version describes it:
+[B-W1B-1](<What the shapes unblocked (W1B).md#b-w1b-1-a-styles-shadow-is-cast-by-whatever-draws-with-it-from-the-cells-it-drew>).

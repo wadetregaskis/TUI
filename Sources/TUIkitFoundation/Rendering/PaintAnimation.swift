@@ -64,6 +64,12 @@ enum PaintAnimation {
             return .gradient(resolving(ramped, owner: owner, context: context))
         case .mesh(let mesh):
             return .mesh(resolving(mesh, owner: owner, context: context))
+        case .shadowed(let base, let shadow):
+            // What is drawn moves; the shadow is the one asked for now, so a
+            // shadow changed inside `withAnimation` jumps (decisions W1B,
+            // B-W1B-1). The base keeps the slots it has unshadowed, so adding
+            // or removing a shadow does not restart a colour's fade.
+            return .shadowed(resolving(base, owner: owner, context: context), shadow)
         }
     }
 

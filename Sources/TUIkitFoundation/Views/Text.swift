@@ -1033,6 +1033,17 @@ extension Text: Renderable, Layoutable {
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        var shadowing: Paint?
+        let buffer = drawn(context: context, shadowing: &shadowing)
+        guard let shadowing else { return buffer }
+        // A shadowed foreground style's shadows, cast from the letters drawn
+        // in it (``ShapeStyle/shadow(_:)``).
+        return buffer.castingShadows(of: shadowing, context: context, owner: Text.self)
+    }
+
+    /// The text drawn, and in `shadowing` the paint whose shadows it casts:
+    /// the foreground style's, where the letters are drawn in it.
+    private func drawn(context: RenderContext, shadowing: inout Paint?) -> FrameBuffer {
         if localization != nil, let read = relocalized(in: context) {
             return read.renderToBuffer(context: context)
         }
@@ -1069,7 +1080,7 @@ extension Text: Renderable, Layoutable {
         // semantic-role lookup, an attributed run) has one.
         let ramp = Self.resolveForeground(
             into: &effectiveStyle, stated: style.foregroundColor, cascade: cascade,
-            cascaded: cascaded, context: context)
+            cascaded: cascaded, context: context, shadowing: &shadowing)
         if effectiveStyle.backgroundColor == nil {
             effectiveStyle.backgroundColor = cascaded.background
         }
@@ -1427,13 +1438,15 @@ extension Text: Renderable, Layoutable {
     /// A ramp comes back separately rather than in the style, because a
     /// `TextStyle` names one colour and the whole point of a ramp is that it
     /// does not. The style still gets the ramp's representative so that
-    /// anything asking for one colour has one.
+    /// anything asking for one colour has one. A shadowed environment paint
+    /// comes back in `shadowing`, its shadows being the drawn letters' to cast.
     private static func resolveForeground(
         into style: inout TextStyle,
         stated: Color?,
         cascade: StyleCascade,
         cascaded: StyleAttributes,
-        context: RenderContext
+        context: RenderContext,
+        shadowing: inout Paint?
     ) -> Paint? {
         if let stated {
             if case .semantic(let role) = stated.value {
@@ -1451,7 +1464,8 @@ extension Text: Renderable, Layoutable {
             return nil
         }
         style.foregroundColor = paint.representative
-        return paint.solid == nil ? paint : nil
+        if paint.hasShadows { shadowing = paint }
+        return paint.solid == nil ? paint.unshadowed : nil
     }
 
     /// The palette role this text draws with, used to match `.semanticColor`

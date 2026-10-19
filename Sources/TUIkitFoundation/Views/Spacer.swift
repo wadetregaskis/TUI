@@ -204,6 +204,17 @@ extension Divider: Renderable, Layoutable {
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        let paint = context.environment.foregroundStyle
+        let rule = drawnRule(in: paint, context: context)
+        // A shadowed foreground style casts its shadows from the rule drawn in
+        // it (``ShapeStyle/shadow(_:)``).
+        guard let paint else { return rule }
+        return rule.castingShadows(of: paint, context: context, owner: Divider.self)
+    }
+
+    /// The rule, in `paint`'s colour — the foreground style's — or the
+    /// palette's border.
+    private func drawnRule(in paint: Paint?, context: RenderContext) -> FrameBuffer {
         let vertical = isVertical(in: context)
         let glyph = character ?? (vertical ? "│" : "─")
         // A separator is chrome, not content: it defaults to the palette's
@@ -211,8 +222,7 @@ extension Divider: Renderable, Layoutable {
         // containers draw), rather than shouting in the body-text colour. A
         // `.foregroundStyle(_:)` on or above it takes precedence.
         let palette = context.environment.palette
-        let color = (context.environment.foregroundStyle?.representative ?? palette.border)
-            .resolve(with: palette)
+        let color = (paint?.representative ?? palette.border).resolve(with: palette)
         // The bytes state the opaque spelling and the alpha travels as a claim:
         // `foregroundStyle(.gray.opacity(0.5))` on a rule, or a theme whose
         // `border` role is faded. The rule is a single run of one colour, so its

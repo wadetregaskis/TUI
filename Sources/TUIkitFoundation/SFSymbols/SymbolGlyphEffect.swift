@@ -113,7 +113,19 @@
         }
 
         func renderToBuffer(context: RenderContext) -> FrameBuffer {
-            guard let effect, !context.isMeasuring else { return drawn(nil, context: context) }
+            let glyph = breathing(context: context)
+            // A breath draws in inks of its own, faded from the foreground
+            // style's, so the glyph's `Text` casts no shadow: a shadowed style's
+            // shadows are cast here instead (``ShapeStyle/shadow(_:)``). A glyph
+            // drawn in the style itself has cast them already.
+            guard glyph.inked, let paint = context.environment.foregroundStyle else { return glyph.buffer }
+            return glyph.buffer.castingShadows(of: paint, context: context, owner: Self.self)
+        }
+
+        /// The glyph at this frame of its effect, and whether it is drawn in an
+        /// ink of the effect's own rather than in the foreground style.
+        private func breathing(context: RenderContext) -> (buffer: FrameBuffer, inked: Bool) {
+            guard let effect, !context.isMeasuring else { return (drawn(nil, context: context), false) }
             let now = context.environment.frameNowNanos
             switch effect {
             case .breathing(let breath, let frameTicks):
@@ -129,10 +141,10 @@
                             offsetX: 0, offsetY: 0, width: first.strippedLength, frames: frames,
                             frameTicks: frameTicks, clock: .content))
                 }
-                return buffer
+                return (buffer, true)
             case .playing(let breath, let frameTicks, let start, let cycles):
                 let length = SymbolGlyphEffect.playLength(frameTicks: frameTicks, cycles: cycles)
-                guard now >= start, now < start &+ length else { return drawn(nil, context: context) }
+                guard now >= start, now < start &+ length else { return (drawn(nil, context: context), false) }
                 let tick = AnimationClock.tick(atNanoseconds: now &- start)
                 let frame = Int(tick / Int64(frameTicks) % Int64(SymbolBreath.frameCount))
                 // A frame at the next step, until the play is over; the modifier
@@ -140,7 +152,7 @@
                 context.requestWake(
                     token: "symbol-effect-\(context.identity.path)",
                     atNanos: start &+ AnimationClock.nanoseconds(atTick: (tick / Int64(frameTicks) + 1) * Int64(frameTicks)))
-                return drawn(ink(breath.opacity(atFrame: frame), context: context), context: context)
+                return (drawn(ink(breath.opacity(atFrame: frame), context: context), context: context), true)
             }
         }
     }

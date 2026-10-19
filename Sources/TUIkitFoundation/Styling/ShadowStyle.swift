@@ -44,9 +44,16 @@ import TUIkitStyling
 ///     .shadow(radius: 1, x: 2, y: 1)
 /// ```
 ///
-/// `View.shadow(color:radius:x:y:)` draws a drop shadow. SwiftUI's
-/// `ShapeStyle.shadow(_:)`, the one place that takes a `ShadowStyle`, waits on
-/// shapes (decisions O6).
+/// `View.shadow(color:radius:x:y:)` draws a drop shadow, and
+/// ``ShapeStyle/shadow(_:)`` — the one place SwiftUI takes a `ShadowStyle` — a
+/// style drawn with either kind, cast by whatever draws with the style from
+/// the cells it drew:
+///
+/// ```swift
+/// Text("Pressed")
+///     .padding(1)
+///     .background(.blue.shadow(.inner(radius: 1, x: 1, y: 1)))
+/// ```
 public struct ShadowStyle: Equatable, Sendable {
     /// Which side of the view the shadow is drawn on.
     enum Kind: UInt8, Sendable {

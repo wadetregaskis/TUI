@@ -38,10 +38,22 @@ extension FrameBuffer {
     ///   the shadow lays nothing.
     @MainActor
     func castingDropShadow(_ style: ShadowStyle, context: RenderContext, owner: Any.Type) -> FrameBuffer {
+        guard width > 0, !lines.isEmpty else { return self }
+        return castingDropShadow(style, from: ShadowFootprint(self), context: context, owner: owner)
+    }
+
+    /// ``castingDropShadow(_:context:owner:)`` cast from `footprint` rather than
+    /// from the cells this buffer paints: what a paint's shadows are cast from
+    /// when there are several, each from the drawing as it was before any of
+    /// them (``castingShadows(of:context:owner:)``).
+    @MainActor
+    func castingDropShadow(
+        _ style: ShadowStyle, from footprint: ShadowFootprint, context: RenderContext, owner: Any.Type
+    ) -> FrameBuffer {
         let palette = context.environment.palette
         let colour = style.color.resolve(with: palette)
         guard width > 0, !lines.isEmpty,
-            let field = ShadowField.drop(footprint: ShadowFootprint(self), style: style, peak: colour.alpha),
+            let field = ShadowField.drop(footprint: footprint, style: style, peak: colour.alpha),
             !field.isEmpty
         else { return self }
         let layer = Self.shadowLayer(field, escape: ANSIRenderer.backgroundCode(for: colour.opaqueSpelling))
@@ -71,9 +83,17 @@ extension FrameBuffer {
     /// - Returns: The composite, this buffer's size; this buffer as it is when
     ///   the shadow lays nothing.
     func castingInnerShadow(_ style: ShadowStyle, palette: any Palette) -> FrameBuffer {
+        guard width > 0, !lines.isEmpty else { return self }
+        return castingInnerShadow(style, from: ShadowFootprint(self), palette: palette)
+    }
+
+    /// ``castingInnerShadow(_:palette:)`` cast from `footprint` rather than
+    /// from the cells this buffer paints — see
+    /// ``castingDropShadow(_:from:context:owner:)``.
+    func castingInnerShadow(_ style: ShadowStyle, from footprint: ShadowFootprint, palette: any Palette) -> FrameBuffer {
         let colour = style.color.resolve(with: palette)
         guard width > 0, !lines.isEmpty,
-            let field = ShadowField.inner(footprint: ShadowFootprint(self), style: style, peak: colour.alpha),
+            let field = ShadowField.inner(footprint: footprint, style: style, peak: colour.alpha),
             !field.isEmpty
         else { return self }
         let escape = ANSIRenderer.backgroundCode(for: colour.opaqueSpelling)
@@ -88,6 +108,49 @@ extension FrameBuffer {
             ).map { [$0] } ?? []
             result.compositeCarryingClaimsOverNothing(
                 with: block, at: (x: piece.offsetX, y: piece.offsetY), palette: palette)
+        }
+        return result
+    }
+
+    /// This buffer — what was drawn with `paint`, and nothing else — with the
+    /// paint's shadows cast from it (``ShapeStyle/shadow(_:)``): its inner
+    /// shadows over it, then its drop shadows beneath it, each cast from the
+    /// cells this buffer paints as it was drawn, so one shadow never casts
+    /// another — as SwiftUI casts them, measured on macOS 15.8.
+    ///
+    /// Each shadow is at the strength of what casts it
+    /// (``Paint/castingStrength(in:)``). A paint with no shadow, and a
+    /// measure, return this buffer as it is: one enum test.
+    ///
+    /// - Parameters:
+    ///   - paint: The paint this buffer was drawn with, shadows and all.
+    ///   - context: The drawing view's context: the palette, the compositor's
+    ///     wakes, and whether this is a measure.
+    ///   - owner: The drawing view's own type, for those wakes.
+    ///   - glyphsOnly: Whether only the cells this buffer draws a glyph in cast,
+    ///     for a drawing that fills cells of its own beside the glyphs the
+    ///     paint inked (a table's rows).
+    /// - Returns: This buffer with the shadows composited; this buffer when
+    ///   there are none.
+    @MainActor
+    package func castingShadows(
+        of paint: Paint, context: RenderContext, owner: Any.Type, glyphsOnly: Bool = false
+    ) -> FrameBuffer {
+        guard paint.hasShadows, !context.isMeasuring, width > 0, !lines.isEmpty else { return self }
+        let palette = context.environment.palette
+        let strength = paint.castingStrength(in: palette)
+        let shadows = paint.shadows.map { shadow in
+            var weakened = shadow
+            weakened.color = shadow.color.opacity(strength)
+            return weakened
+        }
+        let footprint = ShadowFootprint(self, glyphsOnly: glyphsOnly)
+        var result = self
+        for shadow in shadows where shadow.kind == .inner {
+            result = result.castingInnerShadow(shadow, from: footprint, palette: palette)
+        }
+        for shadow in shadows where shadow.kind == .drop {
+            result = result.castingDropShadow(shadow, from: footprint, context: context, owner: owner)
         }
         return result
     }

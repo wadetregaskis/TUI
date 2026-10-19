@@ -288,33 +288,43 @@ struct _ImageCore: View, Renderable, Layoutable {
             // A template is drawn as cells: its pixels are recoloured, and a
             // picture of them would be one more thing to keep current.
             // So is an image in slices: its pixels are made for the box.
+            let monoColours = ImageMonoColours(for: colorMode, in: context.environment)
+            let picture: FrameBuffer
             if !isTemplate, resizing?.slices != true, let drawn = renderWithTerminalGraphics(
                 rawImage, width: drawWidth, height: drawHeight, stretches: resizing != nil, context: context)
             {
-                return drawn
+                picture = drawn
+            } else {
+                picture = renderImage(
+                    rawImage,
+                    width: drawWidth,
+                    height: drawHeight,
+                    characterSet: characterSet,
+                    shapeAware: shapeAware,
+                    colorMode: colorMode,
+                    dithering: dithering,
+                    toneCurve: context.environment.imageToneCurve?.resolved(
+                        with: context.environment.palette),
+                    supersampling: context.environment.imageSupersampling,
+                    edgeThreshold: context.environment.imageEdgeThreshold,
+                    edgeContrast: context.environment.imageEdgeContrast,
+                    contentMode: contentMode,
+                    aspectRatioOverride: aspectRatioOverride,
+                    cellAspect: context.environment.imageCellAspect,
+                    monoColours: monoColours,
+                    templateInk: isTemplate ? Self.templateInk(in: context.environment) : nil,
+                    resizing: resizing,
+                    stateStorage: stateStorage,
+                    identity: identity
+                )
             }
-            return renderImage(
-                rawImage,
-                width: drawWidth,
-                height: drawHeight,
-                characterSet: characterSet,
-                shapeAware: shapeAware,
-                colorMode: colorMode,
-                dithering: dithering,
-                toneCurve: context.environment.imageToneCurve?.resolved(
-                    with: context.environment.palette),
-                supersampling: context.environment.imageSupersampling,
-                edgeThreshold: context.environment.imageEdgeThreshold,
-                edgeContrast: context.environment.imageEdgeContrast,
-                contentMode: contentMode,
-                aspectRatioOverride: aspectRatioOverride,
-                cellAspect: context.environment.imageCellAspect,
-                monoColours: ImageMonoColours(for: colorMode, in: context.environment),
-                templateInk: isTemplate ? Self.templateInk(in: context.environment) : nil,
-                resizing: resizing,
-                stateStorage: stateStorage,
-                identity: identity
-            )
+            // A picture drawn in the foreground style — a template's pixels, a
+            // mono picture's ink — casts a shadowed style's shadows from the
+            // cells it drew (`ShapeStyle.shadow(_:)`).
+            guard isTemplate || monoColours != nil, let paint = context.environment.foregroundStyle else {
+                return picture
+            }
+            return picture.castingShadows(of: paint, context: context, owner: Self.self)
 
         case .failure(let message):
             return renderError(message, width: renderWidth, height: renderHeight, context: context)

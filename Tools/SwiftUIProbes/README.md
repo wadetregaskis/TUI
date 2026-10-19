@@ -395,3 +395,23 @@ messages cite that path), and what cites it.
   `Tests/TUIkitEffectsTests/MatchedGeometryEffectTests.swift`; `Documentation/SwiftUI parity/Deliberate
   deviations from SwiftUI.md` (A8), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the
   Animation row); `Documentation/SwiftUI parity/Decisions/Matched geometry and the zoom transition (O4).md`.
+
+### Shadowed shape styles
+
+- **Asks:** what `ShapeStyle.shadow(_:)` casts, read back as pixels from an `ImageRenderer` at scale 1 (a
+  100 × 100 frame round a 40 × 40 view, `(30, 30)`–`(70, 70)`). `shadowstyle.swift`: which style the static
+  `.shadow(_:)` takes in a `.background(_:)` and in a `.backgroundStyle(_:)` (Q1, Q2); `.secondary` and
+  `.foreground` under a shadowed foreground style (Q4); a fade before and after the shadow (Q5); whether a
+  background's inner shadow is over the content in front of it (Q9); a text's letters, a stroke, a background
+  and a border casting (Q10–Q13). `stacked.swift`: two shadows on one style, each kind first (Q6), a
+  translucent shadow colour (Q14) and a ramp fading along its length (Q15). Each is a program alone (`@main`,
+  built with `-parse-as-library`).
+  Found: the static form's style is the foreground, and the background style inside `backgroundStyle(_:)`;
+  `.secondary` keeps the shadow at half; a fade on either side of the shadow halves it; an inner shadow in a
+  background darkens the fill and not the content in front of it; two shadows are each cast from the style's
+  drawing, not one from the other; a ramp's shadow follows its alpha pixel by pixel.
+- **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-19; both print the same on a rerun.
+- **Was:** `W1B/probe/` (`stacked.swift` as `q6.swift`).
+- **Cited by:** `Sources/TUIkitFoundation/Styling/ShapeStyle+Shadow.swift`,
+  `Tests/TUIkitIntegrationTests/ShapeStyleShadowTests.swift`; `Documentation/SwiftUI parity/Decisions/What the
+  shapes unblocked (W1B).md` (B-W1B-1).

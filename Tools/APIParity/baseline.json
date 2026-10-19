@@ -47,7 +47,6 @@
   "ScrollDismissesKeyboardMode.never",
   "ShapeStyle.blendMode(_:)",
   "ShapeStyle.image(_:sourceRect:scale:)",
-  "ShapeStyle.shadow(_:)",
   "TabContent.swipeActions(edge:allowsFullSwipe:content:)",
   "TabSearchActivation",
   "TabSearchActivation.automatic",

@@ -1101,7 +1101,12 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   where SwiftUI's is eight points; and a label with no background casts the
   shape of its letters a whole cell at a time. What the
   shadow falls on keeps its glyphs, ink and field darkened together
-  (`ShadowTests`, `ShadowFieldTests`).
+  (`ShadowTests`, `ShadowFieldTests`). A shadowed style
+  (`ShapeStyle.shadow(_:)`) is cast the same way from the cells drawn with
+  the style alone — a shape's, a background's fill, a text's letters — at
+  the style's own alpha, a ramp's at its representative colour's
+  ([B-W1B-1](<Decisions/What the shapes unblocked (W1B).md#b-w1b-1-a-styles-shadow-is-cast-by-whatever-draws-with-it-from-the-cells-it-drew>);
+  `ShapeStyleShadowTests`).
 - **Why:** a terminal addresses whole cells (U1), and the one alpha a cell has
   that matters to a shadow is whether the view paints it. The limit is cost: a
   shadow costs the square of its radius at every render and every frame

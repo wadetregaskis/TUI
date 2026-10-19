@@ -54,6 +54,20 @@ public enum Paint: Equatable, Sendable {
     /// is two arrays and a handful of flags, and every environment that holds a
     /// paint would otherwise carry the room for one.
     indirect case mesh(MeshPaint)
+
+    /// A paint drawn with a shadow: ``ShapeStyle/shadow(_:)``'s.
+    ///
+    /// The first paint is what is drawn, and may itself be shadowed: each
+    /// shadow is cast from what that paint draws, independently of the others,
+    /// as SwiftUI casts them (``unshadowed``, ``shadows``). Whatever draws with
+    /// a paint casts its shadows from the cells it painted with it, through
+    /// `FrameBuffer.castingShadows(of:context:owner:)`; whatever only derives a
+    /// colour from one — a contrast floor, a hover lift — reads through the
+    /// shadow as it reads through a ramp (``representative``, ``solid``).
+    ///
+    /// Indirect for a mesh's reason: a shadow is a handful of words, and every
+    /// environment that holds a paint would otherwise carry the room for one.
+    indirect case shadowed(Self, ShadowStyle)
 }
 
 extension Paint {
@@ -68,14 +82,21 @@ extension Paint {
         case .color(let colour): colour
         case .gradient(let paint): paint.gradient.representative
         case .mesh(let mesh): mesh.representative
+        case .shadowed(let base, _): base.representative
         }
     }
 
     /// Whether this paint is a single colour — the fast path everything that
     /// does not yet handle a ramp takes.
+    ///
+    /// A shadowed colour is that colour: the shadow is cast by whatever draws
+    /// it, and is not a second colour of the paint's.
     public var solid: Color? {
-        if case .color(let colour) = self { return colour }
-        return nil
+        switch self {
+        case .color(let colour): colour
+        case .shadowed(let base, _): base.solid
+        case .gradient, .mesh: nil
+        }
     }
 
     /// Whether nothing in this paint carries alpha.
@@ -90,6 +111,7 @@ extension Paint {
         case .color(let colour): colour.isOpaque
         case .gradient(let paint): paint.gradient.isOpaqueThroughout
         case .mesh(let mesh): mesh.isOpaqueThroughout
+        case .shadowed(let base, _): base.isOpaqueThroughout
         }
     }
 
@@ -113,6 +135,12 @@ extension Paint {
             mesh.colors = mesh.colors.map { $0.opacity(opacity) }
             mesh.background = mesh.background.opacity(opacity)
             return .mesh(mesh)
+        case .shadowed(let base, let shadow):
+            // The paint, not its shadow: a shadow is cast at the strength of
+            // what casts it (`castingStrength`), so fading the shadow as well
+            // would fade it twice — and SwiftUI draws `.red.shadow(s).opacity(½)`
+            // and `.red.opacity(½).shadow(s)` alike, both shadows at half.
+            return .shadowed(base.faded(opacity), shadow)
         }
     }
 }

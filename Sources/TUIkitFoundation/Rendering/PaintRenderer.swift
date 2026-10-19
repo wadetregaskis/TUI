@@ -573,6 +573,10 @@ package struct RampSampler {
             // `.in(_:)` re-anchors a mesh as it does a ramp, below.
             let extent = mesh.extent.map { GradientFrame(width: $0.width, height: $0.height) } ?? extent
             self.init(mesh: MeshCells(paint: mesh, extent: extent, depth: depth))
+        case .shadowed(let base, _):
+            // What is drawn: the shadows are cast by whatever draws, from what
+            // it drew (`FrameBuffer.castingShadows(of:context:owner:)`).
+            self.init(paint: base, extent: extent, depth: depth, cellAspect: cellAspect)
         }
     }
 

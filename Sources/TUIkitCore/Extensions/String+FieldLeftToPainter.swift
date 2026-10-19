@@ -75,6 +75,15 @@ extension String {
         }
     }
 
+    /// For each of the first `width` columns of this line, whether it draws a
+    /// glyph: a character other than a space, whatever its colours. A column past
+    /// the end of the line does not.
+    ///
+    /// - Parameter width: How many columns to answer for.
+    /// - Returns: One entry per column, `true` where the cell holds a glyph.
+    package func columnsDrawingAGlyph(width: Int) -> [Bool] {
+        columns(width: width, beyondTheEnd: false) { _, _, character in character != " " }
+    }
     /// For each of the first `width` columns of this line, whether reverse video is
     /// in force on it: a cell that shows its ink as its field. A column past the end
     /// of the line is not.

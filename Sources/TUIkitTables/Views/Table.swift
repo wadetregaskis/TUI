@@ -2014,11 +2014,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func sectionHeaderContext(
         _ index: Int, width: Int, height: Int, context: RenderContext
     ) -> RenderContext {
-        sectionChromeContext(
+        var header = sectionChromeContext(
             context
                 .withChildIdentity(erasedType: _TableSectionHeader.self, index: index)
                 .withAvailableSize(width: width, height: height),
             .sectionHeader)
+        // Drawn among the rows, which cast a shadowed style's shadows.
+        Self.castingNoShadows(&header)
+        return header
     }
 
     /// What a table with no rows draws where the rows would be: its
@@ -4716,6 +4719,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// container in a cell worked out placements no better than the origin.
     /// A space declared inside the cell starts an origin of its own, and is
     /// answered exactly.
+    ///
+    /// And a shadowed foreground style without its shadows: the rows cast them
+    /// from their glyphs, a view cell's among them, all at once
+    /// (`_TableContentView`), so a cell's views cast none of their own — one
+    /// shadow a glyph, as a text column's has.
     private func cellContext(
         _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> RenderContext {
@@ -4727,8 +4735,18 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         cellContext.environment.lineLimit = .lines(column.lineLimit)
         cellContext.environment.truncationMode = column.truncationMode
         if cellContext.carriesGeometryOrigin { cellContext.geometryOrigin = nil }
+        Self.castingNoShadows(&cellContext)
         RowContextMenuHost.yieldSecondaryClicks(in: &cellContext.environment, rowsIdentifiedBy: Value.ID.self)
         return cellContext
+    }
+
+    /// `context` with a shadowed foreground style's shadows taken off: what a
+    /// view drawn among the rows renders under, the rows casting the shadows
+    /// from every glyph they hold at once (`_TableContentView`).
+    private static func castingNoShadows(_ context: inout RenderContext) {
+        if let paint = context.environment.foregroundStyle, paint.hasShadows {
+            context.environment.foregroundStyle = paint.unshadowed
+        }
     }
 
     /// Raises the background prominence of the focused, selected row — the row
@@ -6162,7 +6180,11 @@ private struct _TableContentView: View, Renderable, Layoutable {
         buffer.opacityRegions = claims.map(TableRowInset.inset)
         buffer.hitTestRegions = payload.hitTestRegions.map { $0.shifted(byX: 1, y: 0) }
         buffer.overlays = payload.overlays.map { $0.shifted(byX: 1, y: 0) }
-        return buffer
+        // The rows' text is inked in the foreground style, so a shadowed one's
+        // shadows are cast from the rows' glyphs — not from a focused row's
+        // fill (`ShapeStyle.shadow(_:)`).
+        guard let paint = context.environment.foregroundStyle else { return buffer }
+        return buffer.castingShadows(of: paint, context: context, owner: Self.self, glyphsOnly: true)
     }
 }
 

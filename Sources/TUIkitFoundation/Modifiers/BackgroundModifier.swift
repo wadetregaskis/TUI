@@ -43,7 +43,29 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         // then abandoned.
         let paint = PaintAnimation.resolving(
             style.paint(in: context.environment), owner: owner, context: context)
-        return filling(buffer, with: paint, context: context, owner: owner)
+        guard paint.hasShadows else { return filling(buffer, with: paint, context: context, owner: owner) }
+        return shadowedFilling(buffer, with: paint, context: context, owner: owner)
+    }
+
+    /// `buffer` with `paint` — a shadowed style (``ShapeStyle/shadow(_:)``) —
+    /// behind it: the fill drawn on a layer of its own, the paint's shadows cast
+    /// from that layer — its inner shadows over the fill, its drop shadows
+    /// beneath it and past the frame — and the content laid over all of it, as
+    /// `.background { … }` lays a view. So an inner shadow darkens the fill's
+    /// edges and leaves the content in front of them alone, as SwiftUI draws it
+    /// (measured on macOS 15.8).
+    ///
+    /// The layer is a picture only where a plain fill would be one: behind
+    /// nothing.
+    private func shadowedFilling(
+        _ buffer: FrameBuffer, with paint: Paint, context: RenderContext, owner: Any.Type
+    ) -> FrameBuffer {
+        let layer = filling(
+            FrameBuffer(emptyWithWidth: buffer.width, height: buffer.height), with: paint.unshadowed,
+            context: context, owner: owner, picturing: buffer.isBlank && buffer.animatedCells.isEmpty)
+        return compositeDrawnLayer(
+            layer.castingShadows(of: paint, context: context, owner: owner), at: (x: 0, y: 0), under: buffer,
+            context: context, modifierType: owner)
     }
 
     /// `buffer` with `paint` filled behind its content: every cell's field
@@ -54,9 +76,12 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     ///   - paint: The paint, resolved and animated.
     ///   - context: The modifier's context.
     ///   - owner: The enclosing view's type, for the picture's token.
+    ///   - picturing: Whether a ramp may be a picture here, where `buffer`
+    ///     lets it be: false for a shadowed style's layer under content that
+    ///     is not blank, which would cover the picture's cells.
     /// - Returns: The filled buffer.
     private func filling(
-        _ buffer: FrameBuffer, with paint: Paint, context: RenderContext, owner: Any.Type
+        _ buffer: FrameBuffer, with paint: Paint, context: RenderContext, owner: Any.Type, picturing: Bool = true
     ) -> FrameBuffer {
         let width = buffer.width
 
@@ -66,7 +91,9 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         let extent =
             context.gradientFrame ?? GradientFrame(width: width, height: buffer.lines.count)
 
-        if let pictured = Self.pictured(buffer, paint: paint, extent: extent, context: context, owner: owner) {
+        if picturing,
+            let pictured = Self.pictured(buffer, paint: paint, extent: extent, context: context, owner: owner)
+        {
             return pictured
         }
 

@@ -122,7 +122,8 @@ func resolvedDrawing(
 /// The paint is the style resolved in the environment, through the animator so
 /// a colour changed inside `withAnimation` fades; a gradient is sampled per
 /// cell for the box tier and per half cell for the rasterizer, over the view's
-/// own box or the rectangle a `.gradientExtent(.subtree)` names.
+/// own box or the rectangle a `.gradientExtent(.subtree)` names. A shadowed
+/// style's shadows are cast from the cells drawn.
 struct _ShapeCore<Content: Shape, Style: ShapeStyle>: View, Renderable, Layoutable {
     let shape: Content
     let style: Style
@@ -142,13 +143,16 @@ struct _ShapeCore<Content: Shape, Style: ShapeStyle>: View, Renderable, Layoutab
         let aspect = environment.imageCellAspect
         let paint = PaintAnimation.resolving(Self.paint(style, in: environment), owner: Self.self, context: context)
         let extent = context.gradientFrame ?? GradientFrame(width: columns, height: rows)
-        let painter = ShapePainter(paint: paint, extent: extent, aspect: aspect, palette: environment.palette)
+        let painter = ShapePainter(
+            paint: paint.unshadowed, extent: extent, aspect: aspect, palette: environment.palette)
         let monochrome = ColorDepth.current == .noColor
         let drawn = resolvedDrawing(of: shape, as: drawing, in: context, columns: columns, rows: rows)
         let cells = ShapeCells.drawing(
             drawn.shape, as: drawn.drawing, frame: ShapeFrame(columns: columns, rows: rows, aspect: aspect),
             painter: painter, monochrome: monochrome, wholeCells: !environment.blockElementsFillTheLine)
-        return cells.buffer()
+        // A shadowed style's shadows, cast from the cells the shape drew — its
+        // fill's, or its stroke's (``ShapeStyle/shadow(_:)``).
+        return cells.buffer().castingShadows(of: paint, context: context, owner: Self.self)
     }
 
     /// The style's paint in `environment` — the palette's border for a

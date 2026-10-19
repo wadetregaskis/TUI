@@ -3894,6 +3894,22 @@ private let corpusShadowStyles: [ShadowStyle] = [
     .drop(radius: 2), .drop(color: .black.opacity(0.4), radius: 1, x: 1, y: 2), .inner(radius: 1, y: 1),
 ]
 
+/// `ShapeStyle.shadow(_:)` as Apple's documentation writes it — on a colour, and
+/// the static form on the current style — and where a style goes: a shape, a
+/// background, the foreground, the background style.
+private struct CorpusShadowedStyles: View {
+    var body: some View {
+        VStack {
+            Rectangle().fill(.red.shadow(.drop(radius: 2, y: 3)))
+            Circle().fill(.shadow(.inner(radius: 1, y: 1)))
+            Capsule().stroke(.blue.shadow(.drop(color: .black.opacity(0.4), radius: 1, x: 1)), lineWidth: 1)
+            Text("Pressed").padding().background(.blue.shadow(.inner(radius: 1, x: 1, y: 1)))
+            Text("Raised").foregroundStyle(.white.shadow(.drop(radius: 0, x: 1, y: 1)))
+            Text("Well").padding().background().backgroundStyle(.shadow(.inner(radius: 2)))
+        }
+    }
+}
+
 // MARK: - Commands
 
 /// SwiftUI's command vocabulary as its documentation writes it: a menu of the

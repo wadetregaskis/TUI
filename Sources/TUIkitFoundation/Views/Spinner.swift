@@ -508,10 +508,20 @@ private struct _SpinnerCore: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        let paint = color == nil ? context.environment.foregroundStyle : nil
+        let spinner = drawnSpinner(in: paint, context: context)
+        // Drawn in a shadowed foreground style, the spinner casts its shadows
+        // (``ShapeStyle/shadow(_:)``); an explicit colour has none.
+        guard let paint else { return spinner }
+        return spinner.castingShadows(of: paint, context: context, owner: Self.self)
+    }
+
+    /// The spinner — its glyph and its label — without a shadow, the glyph in
+    /// `paint`'s colour where there is no explicit one.
+    private func drawnSpinner(in paint: Paint?, context: RenderContext) -> FrameBuffer {
         let palette = context.environment.palette
         // Explicit colour > environment foregroundStyle > palette accent.
-        let effectiveColor =
-            color ?? context.environment.foregroundStyle?.representative ?? palette.accent
+        let effectiveColor = color ?? paint?.representative ?? palette.accent
         let resolvedColor = effectiveColor.resolve(with: palette)
 
         /// The whole cycle, already styled — one entry per frame of the STYLE,

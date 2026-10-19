@@ -28,16 +28,22 @@ struct ShadowFootprint {
     /// The smallest rectangle holding every painted cell, `nil` when none is.
     let bounds: (minX: Int, minY: Int, maxX: Int, maxY: Int)?
 
-    init(_ buffer: FrameBuffer) {
+    /// The cells `buffer` paints — or, `glyphsOnly`, the cells it draws a
+    /// glyph in, leaving out a cell that only states a field: what a drawing
+    /// with fills of its own beside the glyphs a style inked casts from (a
+    /// table's rows, whose focused row is filled).
+    init(_ buffer: FrameBuffer, glyphsOnly: Bool = false) {
         width = buffer.width
         height = buffer.lines.count
         var painted = [Bool]()
         painted.reserveCapacity(width * height)
         var bounds: (minX: Int, minY: Int, maxX: Int, maxY: Int)?
         for (row, line) in buffer.lines.enumerated() {
-            let nothing = line.columnsShowingNothing(width: width)
+            let paintsAt =
+                glyphsOnly
+                ? line.columnsDrawingAGlyph(width: width) : line.columnsShowingNothing(width: width).map { !$0 }
             for column in 0..<width {
-                let paints = !nothing[column]
+                let paints = paintsAt[column]
                 painted.append(paints)
                 guard paints else { continue }
                 if let known = bounds {

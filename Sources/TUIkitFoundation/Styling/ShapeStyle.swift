@@ -204,15 +204,17 @@ struct _FixedExtentShapeStyle<Base: ShapeStyle>: ShapeStyle {
     typealias Resolved = Never
 
     func paint(in environment: EnvironmentValues) -> Paint {
-        switch base.paint(in: environment) {
-        case .color(let colour):
-            return .color(colour)
-        case .gradient(var ramp):
-            ramp.extent = extent
-            return .gradient(ramp)
-        case .mesh(var mesh):
-            mesh.extent = extent
-            return .mesh(mesh)
+        base.paint(in: environment).mappingUnshadowed { drawn in
+            switch drawn {
+            case .color, .shadowed:
+                return drawn
+            case .gradient(var ramp):
+                ramp.extent = extent
+                return .gradient(ramp)
+            case .mesh(var mesh):
+                mesh.extent = extent
+                return .mesh(mesh)
+            }
         }
     }
 }
