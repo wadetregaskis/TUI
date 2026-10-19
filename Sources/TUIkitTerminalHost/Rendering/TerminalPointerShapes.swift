@@ -128,10 +128,12 @@ package enum PointerShapeHost: Equatable, Sendable {
     /// where this is so, because a pointer left in a shape the app never
     /// asked for is a defect of TUIkit's, not of the app's.
     ///
-    /// No host yet: each one's reset is documented (the table above), and
-    /// `pointer_shape_card.py` is what turns a host's row on, once its reading
-    /// is in the compatibility survey.
-    package var resetIsMeasured: Bool { false }
+    /// iTerm2 alone so far: the owner read `pointer_shape_card.py` in iTerm2
+    /// 3.7.6 on 2026-10-19 and had the shell's own pointer back once the card
+    /// closed. Quit and suspend write the same reset, the empty name. Every
+    /// other host's reset is documented (the table above), and the card is
+    /// what turns its row on, once its reading is in the compatibility survey.
+    package var resetIsMeasured: Bool { self == .iTerm2 }
 }
 
 // MARK: - The names
@@ -376,7 +378,7 @@ extension TerminalClient {
     /// asked — the I-beam over a text field, a hand over a link or a button,
     /// a resize arrow over a divider — on `host`: where a person has seen its
     /// pointer put back as the app leaves (``PointerShapeHost/resetIsMeasured``,
-    /// no host yet), or where `TUIKIT_POINTER_SHAPES=all` asks for them.
+    /// iTerm2 so far), or where `TUIKIT_POINTER_SHAPES=all` asks for them.
     package static func builtInPointerShapes(host: PointerShapeHost?, environment: [String: String]) -> Bool {
         guard let host else { return false }
         return environment["TUIKIT_POINTER_SHAPES"] == "all" || host.resetIsMeasured

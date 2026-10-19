@@ -5984,10 +5984,11 @@ ahead of the first event.
 
 ## Pointer shapes (OSC 22)
 
-**Status: sent since 2026-10-19 where a host DOCUMENTS it. iTerm2 3.7.6's
-names MEASURED 2026-10-19 (its reset still unread); every other host
-UNMEASURED, and `Tools/TerminalProbes/pointer_shape_card.py` awaits the
-owner's reading of each.**
+**Status: sent since 2026-10-19 where a host DOCUMENTS it. iTerm2 3.7.6
+MEASURED 2026-10-19, its names and its reset, so TUIkit's own controls' shapes
+are on there; every other host UNMEASURED, and
+`Tools/TerminalProbes/pointer_shape_card.py` awaits the owner's reading of
+each.**
 
 **What TUIkit does.** `View.pointerStyle(_:)` files a region the size of its
 view with the style's shape. After every batch of input, and after every
@@ -6000,14 +6001,15 @@ style is on screen. Once a shape has been sent, the teardown — a quit and a
 Ctrl-Z alike — writes the empty name, every host's reset, BEFORE the mouse
 modes go off, and the debt a fatal signal pays begins with the same
 (`Terminal.inputModesOwed`); an app that has sent none writes no OSC 22 as it
-leaves, since no host's reset has been read off the card yet. After any
+leaves: it has nothing to put back, and on a host whose reset is unread the
+empty name is unmeasured too. After any
 mouse mode change the shape is written again, because Ghostty resets it on
 one. A host not in the table below is sent nothing and owed nothing.
 `TUIKIT_POINTER_SHAPES=0` turns it off, `1` turns it on for a host not in the
 table (in CSS names), and `all` also turns on TUIkit's own controls' shapes
 (the I-beam over a text field, a hand over a link or a button, a resize arrow
-over a divider or a table's column edge), which are otherwise off on every
-host until its reset is read off the card.
+over a divider or a table's column edge), which are otherwise on only where
+a host's reset has been read off the card: iTerm2, so far.
 
 **What each host is documented to do**, read 2026-10-19 from its
 documentation and its source (copies under the lane's notes, `O12/docs`):
@@ -6017,7 +6019,7 @@ documentation and its source (copies under the lane's notes, `O12/docs`):
 | Ghostty | 1.0.0 (its VT reference) | CSS, and xterm's X11 names as aliases (`mouse.zig`) | `default`: an empty name is ignored before its `mouse_shape_reset` | any mouse mode set gives the arrow, any reset the I-beam (`stream_handler.zig`); an empty name gives one of those (newer releases) | `TERM_PROGRAM=ghostty` with its version, or `TERM=xterm-ghostty` | UNMEASURED |
 | kitty | 0.31.0 (its pointer-shapes page) | CSS (thirty) | empty | empty; a stack per screen, so leaving the alternate screen leaves its shapes behind | `TERM=xterm-kitty`, or `KITTY_WINDOW_ID` where no other terminal is named (every program a shell starts inherits it) | UNMEASURED |
 | foot | 1.12.0 (its changelog) | CSS, X11 fallbacks | empty | empty | `TERM=foot`, `foot-…` | UNMEASURED |
-| iTerm2 | 3.5.0, the table unchanged to 3.6.11 (`PTYSession.screenSetPointerShape`) | nineteen X11 names; no open or closed hand, zoom, vertical I-beam or diagonal | empty | empty (an unknown name is its own pointer) | `TERM_PROGRAM=iTerm.app` or `LC_TERMINAL=iTerm2`, with the version beside it | 3.7.6, 2026-10-19: every name draws; a new shape shows only after a click; the reset UNREAD (below) |
+| iTerm2 | 3.5.0, the table unchanged to 3.6.11 (`PTYSession.screenSetPointerShape`) | nineteen X11 names; no open or closed hand, zoom, vertical I-beam or diagonal | empty | empty (an unknown name is its own pointer) | `TERM_PROGRAM=iTerm.app` or `LC_TERMINAL=iTerm2`, with the version beside it | 3.7.6, 2026-10-19: every name draws; a new shape shows only after a click; the shell's pointer is back after the card (below) |
 | xterm | patch #367 (its changelog) | the X11 cursor font | empty | empty: the `pointerShape` resource's default | `XTERM_VERSION`, where no other terminal is named | UNMEASURED |
 | Apple Terminal | — | documents none | — | — | not sent | — |
 | Warp | — | documents none | — | — | not sent | — |
@@ -6061,9 +6063,14 @@ environment, read by the owner on this machine, primary screen, macOS
   iTerm2 a style's shape appears under a resting pointer only once the
   person clicks; TUIkit's sequence is the same as to every other host, and
   nothing it can send was found to make iTerm2 show the shape sooner.
-- The ways out (`q`, `1`–`3`), the mode change (`m`) and the suspend (`z`)
-  are unread, so iTerm2's reset is not yet measured and TUIkit's own
-  controls' shapes stay off there.
+- **The pointer is put back:** once the card closed, the owner had the
+  shell's own pointer over the window again. So iTerm2's reset is measured
+  (`PointerShapeHost.resetIsMeasured`), and TUIkit's own controls' shapes —
+  the I-beam over a text field, the hand over a button, the resize arrows —
+  are on there, shown, like any shape there, once the person clicks. A
+  suspend writes the same reset as a quit, the empty name. The mode change
+  (`m`), the suspend (`z`) and which of the card's ways out was taken were
+  not reported.
 
 ## Focus reporting (mode 1004)
 

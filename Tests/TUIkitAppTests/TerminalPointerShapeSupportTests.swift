@@ -153,9 +153,12 @@ struct TerminalPointerShapeSupportTests {
             "the app's override beats the environment")
     }
 
-    @Test("TUIkit's own controls set shapes only where TUIKIT_POINTER_SHAPES=all asks: no host's reset is measured yet")
+    @Test("TUIkit's own controls set shapes where a host's reset is measured, iTerm2 so far, or where TUIKIT_POINTER_SHAPES=all asks")
     func builtInShapes() {
-        #expect(!TerminalClient.builtInPointerShapes(host: .ghostty, environment: [:]))
+        #expect(TerminalClient.builtInPointerShapes(host: .iTerm2, environment: [:]), "its reset read by the owner")
+        for host: PointerShapeHost in [.ghostty, .kitty, .foot, .xterm, .unnamed] {
+            #expect(!TerminalClient.builtInPointerShapes(host: host, environment: [:]), "\(host): reset unread")
+        }
         #expect(TerminalClient.builtInPointerShapes(host: .ghostty, environment: ["TUIKIT_POINTER_SHAPES": "all"]))
         #expect(!TerminalClient.builtInPointerShapes(host: nil, environment: ["TUIKIT_POINTER_SHAPES": "all"]))
     }

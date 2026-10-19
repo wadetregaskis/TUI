@@ -195,10 +195,13 @@ resizable `Table` column's title, a row's over `VSplitView`'s; the edges of a
 `userResizable` view, its corner the diagonal. Each asks for motion
 reporting while it is on screen, as a style does: a shape shows where the
 pointer rests, which nothing else reports. A style the app set beats a
-control's own (B-O12-2). No host's reset has been read yet
-(`PointerShapeHost.resetIsMeasured` is `false` for all), so they are off
-everywhere unless `TUIKIT_POINTER_SHAPES=all` asks for them; a host's row turns
-on once the card is read there. Off, a control's call files nothing.
+control's own (B-O12-2). They are on where a host's reset has been read
+(`PointerShapeHost.resetIsMeasured`): iTerm2, since the owner read the card
+there on 2026-10-19 and had the shell's own pointer back once it closed.
+Everywhere else they are off unless `TUIKIT_POINTER_SHAPES=all` asks for them;
+a host's row turns on once the card is read there. Off, a control's call files
+nothing. On iTerm2 a shape shows only after a click in the window (measured,
+the same day), so a control's shape there appears once the person clicks.
 
 ## C. Declined
 
