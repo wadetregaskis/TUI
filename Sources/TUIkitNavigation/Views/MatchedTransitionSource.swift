@@ -166,8 +166,12 @@ private struct _MatchedTransitionSourceView<Content: View>: View, Renderable, La
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard !context.isMeasuring, let coordinator = context.geometryCoordinator,
-            // Before the content, for the ordinal the marker's id is.
-            let ask = context.makeGeometryAsk(role: .reader)
+            // Before the content, for the ordinal the marker's id is. Only
+            // found, as `onGeometryChange` is: nothing is drawn from where it
+            // is predicted to be — a zoom starts from where the root found it
+            // in a frame it was on screen — so it keeps no carried origin in
+            // force.
+            let ask = context.makeGeometryAsk(role: .reporter)
         else { return TUIkitView.renderToBuffer(content, context: context) }
         // Joined to its group on every frame it draws: work a served buffer
         // cannot do.
