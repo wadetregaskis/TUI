@@ -30,13 +30,14 @@
 /// centres it in the toolbar and says nothing of the title — as the A28
 /// design study decided (§3.2, §3.6).
 ///
-/// In presented content — a sheet, a full-screen cover, a popover — the
-/// window's bars are inert, and a `.toolbar` draws its items itself, round the
-/// view it is attached to: the modal actions and the bottom bar's placements
-/// (``keyboard`` among them) in a button row below it (``destructiveAction`` leading,
-/// ``cancellationAction`` then ``confirmationAction`` trailing, the
+/// In presented content the window's bars are inert. A sheet or a full-screen
+/// cover hosts its toolbar's items at its own edges, wherever in its content
+/// they are declared; a popover's `.toolbar` draws them round the view it is
+/// attached to. Either way, the modal actions and the bottom bar's placements
+/// (``keyboard`` among them) are in a button row below (``destructiveAction``
+/// leading, ``cancellationAction`` then ``confirmationAction`` trailing, the
 /// confirmation button the default button and the cancellation one the cancel
-/// button), every other placement in a row above it.
+/// button), every other placement in a row above.
 public struct ToolbarItemPlacement: Sendable, Equatable {
     /// The roles a placement can have.
     package enum Role: Sendable, Equatable {

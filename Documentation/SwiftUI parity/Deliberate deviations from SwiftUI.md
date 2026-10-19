@@ -1702,15 +1702,17 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** a bar's rows must be known before the page is laid out.
 - **Decided:** [§2.6](<SwiftUI compatibility guide.md#26-toolbars-are-the-windows-bars-commands-are-its-menu-bar>). **Recorded.**
 
-### W2. A toolbar in a sheet draws round the view that declared it
+### W2. A toolbar in a popover draws round the view that declared it
 
-- **SwiftUI:** a sheet's toolbar items go to the sheet's edges (not
+- **SwiftUI:** a presentation's toolbar items go to its edges (not
   measured).
-- **TUIkit:** in a sheet, cover or popover, `.toolbar` draws its modal actions
-  in a button row below the view it is attached to, and its other placements in
-  a row above it. A `.toolbar` on an inner view puts its rows there.
-- **Why:** the window's bars are inert while a presentation holds the input,
-  so a sheet's own items have to be drawn inside it.
+- **TUIkit:** a sheet and a full-screen cover host their toolbar items at
+  their edges, as SwiftUI's do (lane TOOLBARS, B-D5C-3's fuller version). In
+  a popover, `.toolbar` draws its modal actions in a button row below the view
+  it is attached to, and its other placements in a row above it, so a
+  `.toolbar` on an inner view of a popover puts its rows there.
+- **Why:** the popover's presenter is in TUIkitFoundation, which cannot see
+  the toolbar's module; the sheet's is in TUIkitPresentation, which can.
 - **Decided:** [B-D5C-3](<Decisions/Toolbars and opt-in window chrome (D5C).md#b-d5c-3-a-toolbar-in-a-sheet-draws-its-items-round-the-view-that-declared-it>). **Lane.**
 
 ### W3. Sheets are their content's size

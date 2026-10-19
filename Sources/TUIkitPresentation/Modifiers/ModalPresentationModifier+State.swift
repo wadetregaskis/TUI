@@ -26,6 +26,7 @@ enum ModalPresentationStateIndex {
     /// Whether the sheet has taken the focus since it was presented, and for
     /// which item (`PresentationEntry`): a live sheet takes it on entry only.
     static let entry = 6
+    static let toolbar = 7
 }
 
 extension ModalPresentationModifier {
@@ -48,6 +49,10 @@ extension ModalPresentationModifier {
             entry.isKeptOffTheDock = false
             entry.rowsShortOfDetent = nil
         }
+        // Presented again, its toolbar rows are seeded again.
+        (context.stateStorage?.existingStorage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.toolbar))
+            as StateBox<PresentationToolbarItems>?)?.value.startOver()
     }
 
     /// Starts over (``startOver(context:)``) when the sheet is presented for
@@ -116,6 +121,15 @@ extension ModalPresentationModifier {
     }
 
     /// The same record, if the sheet was ever presented — to empty.
+    /// The toolbar items the presentation hosts at its edges, kept for its
+    /// life (``PresentationToolbarItems``).
+    func presentationToolbar(context: RenderContext) -> PresentationToolbarItems {
+        context.stateStorage?.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.toolbar),
+            default: PresentationToolbarItems()
+        ).value ?? PresentationToolbarItems()
+    }
+
     func existingPresentationEntry(context: RenderContext) -> PresentationEntry? {
         (context.stateStorage?.existingStorage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.entry))

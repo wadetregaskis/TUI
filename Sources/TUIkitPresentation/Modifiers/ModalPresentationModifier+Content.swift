@@ -39,9 +39,10 @@ extension ModalPresentationModifier {
             .withAvailableWidth(context.environment.terminalWidth)
             .withAvailableHeight(overlayHeight)
         modalContext.environment.activeFocusSectionID = sectionID
-        // Its `.toolbar`s draw their items themselves, in the sheet: the
-        // window's bars are inert while it is up.
+        // Its `.toolbar`s' items are the presentation's, drawn at its edges:
+        // the window's bars are inert while it is up.
         modalContext.environment.presentationHostsToolbar = true
+        modalContext.environment.presentationToolbar = presentationToolbar(context: context)
         modalContext.leaveScrollCanvas()
         modalContext.environment.leaveUnstatedTextAlignment()
         modalContext.environment.dismiss = dismissAction()
@@ -96,6 +97,28 @@ extension ModalPresentationModifier {
         return box
     }
 
+    /// The presented content drawn by `draw` with the toolbar items it hosts
+    /// at its edges (`PresentationToolbarItems`, TUIkitChrome): `draw` is
+    /// handed the context and the cap on the content's height less the rows
+    /// they take — and a detent's height, which a `Dialog` takes as its own,
+    /// less them too.
+    private func hostingToolbar(
+        context: RenderContext, capHeight: Int, draw: (RenderContext, Int) -> FrameBuffer
+    ) -> FrameBuffer {
+        guard let toolbar = context.environment.presentationToolbar else { return draw(context, capHeight) }
+        return toolbar.hosting(
+            context: context, capHeight: capHeight,
+            seed: { seeding in _ = draw(seeding, capHeight) },
+            draw: { inner, cap in
+                var inner = inner
+                let rows = context.availableHeight - inner.availableHeight
+                if let detent = inner.environment.sheetDetentHeight {
+                    inner.environment.sheetDetentHeight = max(1, detent - rows)
+                }
+                return draw(inner, cap)
+            })
+    }
+
     /// Renders the presented content at the size its style gives it: a sheet
     /// at its own height or its detent's (`detentHeight`), a cover over the
     /// whole content area.
@@ -145,12 +168,14 @@ extension ModalPresentationModifier {
                 capHeight = detentHeight
             }
             if let background {
-                return renderPresentedDialog(
-                    background.presentationBackground(behind: modal), context: sheetContext,
-                    capHeight: capHeight)
+                return hostingToolbar(context: sheetContext, capHeight: capHeight) { inner, cap in
+                    renderPresentedDialog(background.presentationBackground(behind: modal), context: inner, capHeight: cap)
+                }
             }
             return Self.sheetBox(
-                renderPresentedDialog(modal, context: sheetContext, capHeight: capHeight),
+                hostingToolbar(context: sheetContext, capHeight: capHeight) { inner, cap in
+                    renderPresentedDialog(modal, context: inner, capHeight: cap)
+                },
                 detentHeight: detentHeight, palette: context.environment.palette)
         case .fullScreen:
             // The cover IS the screen: full width and the whole content area,
@@ -163,14 +188,15 @@ extension ModalPresentationModifier {
             // smaller than the screen, with the whole screen as its stage, and
             // SwiftUI centres it. Left at the default, a three-line message
             // huddles in the top-left corner of an otherwise empty terminal.
-            let cover = modal.frame(
-                width: context.environment.terminalWidth, height: overlayHeight, alignment: .center)
-            if let background {
-                return renderPresentedDialog(
-                    background.presentationBackground(behind: cover), context: modalContext,
-                    capHeight: overlayHeight)
+            let width = context.environment.terminalWidth
+            return hostingToolbar(context: modalContext, capHeight: overlayHeight) { inner, height in
+                let cover = modal.frame(width: width, height: height, alignment: .center)
+                if let background {
+                    return renderPresentedDialog(
+                        background.presentationBackground(behind: cover), context: inner, capHeight: height)
+                }
+                return renderPresentedDialog(cover, context: inner, capHeight: height)
             }
-            return renderPresentedDialog(cover, context: modalContext, capHeight: overlayHeight)
         }
     }
 }

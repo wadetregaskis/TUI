@@ -34,11 +34,13 @@ extension View {
     /// draws, not the keys: they still work. A hidden bar's items keep their
     /// `@State`, so the bar comes back as it went.
     ///
-    /// In presented content — a sheet's, a full-screen cover's, a popover's —
-    /// it states nothing. The presentation draws its own `.toolbar` items (see
-    /// ``ToolbarItemPlacement``), and the window's bars are not its to hide: a
-    /// sheet that hid the bottom bar took away the line of key hints that says
-    /// how to close it.
+    /// In presented content it states nothing about the window's bars, which
+    /// are not its to hide: a sheet that hid the bottom bar took away the line
+    /// of key hints that says how to close it. In a sheet or a full-screen
+    /// cover it is the presentation's, for the rows it hosts its toolbar's
+    /// items in: ``ToolbarPlacement/bottomBar`` its button row,
+    /// ``ToolbarPlacement/windowToolbar`` (or ``ToolbarPlacement/automatic``)
+    /// its top row.
     ///
     /// - Parameters:
     ///   - visibility: The preferred visibility of the bar.
@@ -146,6 +148,11 @@ struct _ToolbarBarStatementModifier<Content: View>: View, Renderable, Layoutable
     var body: Never { fatalError("_ToolbarBarStatementModifier renders via Renderable") }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // In a sheet or a cover, a visibility is the presentation's, for the
+        // rows it hosts its toolbar's items in (`PresentationToolbarItems`).
+        if !context.isMeasuring || context.environment.presentationToolbar?.isSeeding == true {
+            declareToPresentation(context: context)
+        }
         // Not from presented content: a sheet's toolbar is the sheet's
         // (`ToolbarPresentationRows.swift`), and a sheet hiding the window's
         // bottom bar took the line of key hints that says how to close it.
@@ -163,9 +170,28 @@ struct _ToolbarBarStatementModifier<Content: View>: View, Renderable, Layoutable
         return TUIkitView.renderToBuffer(content, context: context)
     }
 
-    /// The statement is the window's, so this measures as `content`.
+    /// The statement is the window's, so this measures as `content` — but for
+    /// a presentation's first frame, whose seed finds its rows by a measure.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(content, proposal: proposal, context: context)
+        if context.environment.presentationToolbar?.isSeeding == true { declareToPresentation(context: context) }
+        return measureChild(content, proposal: proposal, context: context)
+    }
+
+    /// Records a visibility for the rows of the sheet or cover this content is
+    /// presented in: the top row for the window toolbar's placements, the
+    /// button row for the bottom bar's. Nothing else a bar modifier says
+    /// reaches them.
+    private func declareToPresentation(context: RenderContext) {
+        guard let host = context.environment.presentationToolbar, case .visibility(let visibility) = statement
+        else { return }
+        context.environment.volatileReadTracker?.recordRenderSideEffect()
+        for bar in bars.isEmpty ? [.automatic] : bars {
+            switch bar.edge {
+            case .bottom: host.declare(visibility, for: .bottom)
+            case .automatic, .top: host.declare(visibility, for: .top)
+            case .accessory: break
+            }
+        }
     }
 }
 

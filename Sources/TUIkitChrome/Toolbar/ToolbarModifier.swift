@@ -81,7 +81,14 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
         // In a sheet, a cover or a popover the items are drawn here, round the
         // content (`ToolbarPresentationRows.swift`): the window's bars are
         // inert while the presentation holds the input.
-        if context.environment.presentationHostsToolbar { return renderInPresentation(context: context) }
+        if context.environment.presentationHostsToolbar {
+            // A sheet or a cover hosts the items at its edges; a popover's
+            // content draws them round this view.
+            guard let host = context.environment.presentationToolbar else {
+                return renderInPresentation(context: context)
+            }
+            return hostInPresentation(host, context: context, measuring: false).render()
+        }
         let (depth, contentContext) = declaring(in: context)
         if let chrome = context.environment.windowChrome,
             !context.isMeasuring || context.environment.seedsWindowChrome
@@ -149,7 +156,10 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
     /// — except in presented content, which draws them round it.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         if context.environment.presentationHostsToolbar {
-            return sizeInPresentation(proposal: proposal, context: context)
+            guard let host = context.environment.presentationToolbar else {
+                return sizeInPresentation(proposal: proposal, context: context)
+            }
+            return hostInPresentation(host, context: context, measuring: true).measure(proposal)
         }
         return measureChild(content, proposal: proposal, context: declaring(in: context).content)
     }

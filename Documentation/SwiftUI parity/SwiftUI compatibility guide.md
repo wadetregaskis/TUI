@@ -656,14 +656,20 @@ from its end; a cut bar lays its items out in the rows of it that show, and one
 that shows none of them draws no item — none is in the Tab ring or on its key
 while nobody can see it — keeping their `@State` for when the terminal grows.
 
-**In a sheet** (and a full-screen cover, and a popover) the window's bars are
-inert while it holds the input, so a `.toolbar` in its content draws its items
-itself, round the view it is attached to, live in the sheet: the modal actions
-and the bottom bar's placements in a button row below that view —
-`.destructiveAction` leading, `.cancellationAction` then
+**In a sheet** (and a full-screen cover) the window's bars are inert while it
+holds the input, so the sheet hosts its toolbar's items itself, at its own
+edges, wherever in its content a `.toolbar` declares them, as SwiftUI's sheet
+does: the modal actions and the bottom bar's placements in a button row along
+its bottom — `.destructiveAction` leading, `.cancellationAction` then
 `.confirmationAction` trailing, the confirmation item the default button
 (Return) and the cancellation item the cancel button — and the other
-placements in a row above it (decisions D5C, B-D5C-3). Escape presses the cancel
+placements in a row along its top; several `.toolbar`s share the rows, and
+`.toolbarVisibility(.hidden, for: .bottomBar)` (or `.windowToolbar`) in the
+sheet takes its button row (or its top row) away. The rows are reserved from
+the frame before, as the window's bars are, and a sheet's first frame seeds
+them, so it opens with them (decisions D5C, B-D5C-3, its fuller version, lane
+TOOLBARS). A popover draws its `.toolbar`'s items round the view it is attached
+to, in the same two rows. Escape presses the cancel
 button, as on macOS: the sheet's own Escape runs its action in place of
 dismissing, so a Cancel that discards a draft discards it, and the status bar
 names the key `⎋ cancel` — unless a `dismissalConfirmationDialog` would ask,

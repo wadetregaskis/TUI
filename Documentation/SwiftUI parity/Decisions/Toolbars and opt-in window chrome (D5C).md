@@ -101,3 +101,9 @@ to a sheet, with the sheet's state keeping last frame's rows — and honours
 `.toolbarVisibility` in a sheet for its rows. About a day; it touches the
 modal presenter, which another lane is changing for `presentationSizing`.
 
+**Shipped 2026-10-19 (lane TOOLBARS)** for sheets and full-screen covers
+(`PresentationToolbarItems`): the presentation's first frame seeds its rows
+from a measuring render of its content, so it opens with them. A popover,
+whose presenter is in TUIkitFoundation, still draws round the view (deviation
+W2).
+

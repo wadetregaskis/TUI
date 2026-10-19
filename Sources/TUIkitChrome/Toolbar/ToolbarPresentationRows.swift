@@ -1,8 +1,9 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  ToolbarPresentationRows.swift
 //
-//  A `.toolbar` inside a sheet, a full-screen cover or a popover: its items
-//  drawn by the view that declared them, in a row above it and a row below.
+//  A `.toolbar` inside presented content: its items declared to the sheet or
+//  cover that hosts them at its edges, or — in a popover — drawn by the view
+//  that declared them, in a row above it and a row below.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -11,8 +12,11 @@ import TUIkitFoundation
 
 // MARK: - The Rows
 
-/// A `.toolbar` in presented content draws its items in two rows round the view
-/// it is attached to, inside the presentation, as macOS lays a sheet's out:
+/// A `.toolbar` in a sheet or a full-screen cover declares its items to the
+/// presentation, which draws them at its own edges
+/// (``PresentationToolbarItems``). In a popover, whose presenter cannot host
+/// them, it draws them in two rows round the view it is attached to, inside the
+/// presentation, as macOS lays a sheet's out:
 ///
 /// - BELOW the view, the sheet's button row: ``ToolbarItemPlacement/destructiveAction``
 ///   items at the leading end, then the bottom bar's (``ToolbarItemPlacement/bottomBar``,
@@ -33,6 +37,29 @@ import TUIkitFoundation
 /// focused when it opens. They are part of the view's own layout — it is
 /// proposed what they leave — so they appear and go with it, in the same frame.
 extension _ToolbarModifier {
+    /// Declares the items into the sheet or cover that hosts them at its
+    /// edges (``PresentationToolbarItems``) — on a drawn walk, or the
+    /// presentation's seeding measure — and hands back this view's content to
+    /// draw or measure, plainly.
+    func hostInPresentation(
+        _ host: PresentationToolbarItems, context: RenderContext, measuring: Bool
+    ) -> (render: () -> FrameBuffer, measure: (ProposedSize) -> ViewSize) {
+        let declaration = declaring(in: context)
+        // On a drawn walk, and in the presentation's first-frame seed — a
+        // measuring render — however it reaches this view.
+        if host.isSeeding || (!measuring && !context.isMeasuring) {
+            // Declared afresh by every walk: a memoised ancestor serving its
+            // buffer would leave the presentation with no items.
+            context.environment.volatileReadTracker?.recordRenderSideEffect()
+            let (top, bottom) = presentationEntries(depth: declaration.depth, context: context)
+            for entry in top + bottom { host.declare(entry) }
+        }
+        return (
+            render: { TUIkitView.renderToBuffer(content, context: declaration.content) },
+            measure: { measureChild(content, proposal: $0, context: declaration.content) }
+        )
+    }
+
     /// The rows' items, top and bottom, at their identities under this view.
     private func presentationEntries(
         depth: Int, context: RenderContext
