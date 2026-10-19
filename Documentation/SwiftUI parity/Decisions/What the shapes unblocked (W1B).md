@@ -172,3 +172,27 @@ reader reads a terminal from its text. Both are omitted, so a ported
 with the effects they shape (O8); they are not in the macOS symbol graphs the
 parity check reads.
 
+## Owed
+
+What [Shapes (W1).md](<Shapes (W1).md#owed>) owes that this lane did not do, and
+why. None is a decision.
+
+- **`mask(alignment:_:)`** — decisions A27, the owner's: excluded from this lane
+  by its brief. The cell-coverage rule a clip and a content shape keep by is
+  the natural one (B-W1-11, B-W1B-3).
+- **`Canvas` and `GraphicsContext`** — the refusal review's D3, which needs a
+  design of its own: excluded by the brief.
+- **`glassEffect(_:in:)` and `DefaultGlassEffectShape`** — lane GLASS's work,
+  which is not on this lane's base; whatever of it takes a `Shape` lands there.
+- **A picture for a shape on a terminal that takes one** (B-W1-4's fuller
+  version) — a day, and a terminal-graphics A/B: more than the brief's S or M.
+- **One half-block emitter shared by images and shapes** (B-W1-1's fuller
+  version) — half a day, but it moves the image glyph path's inner loop, whose
+  retains are counted, across a module boundary: it wants an A/B before it
+  lands, which a lane cannot run. Left for a pass that can measure it.
+- **The A/B of the box path** W1 owed (a sheet's corner radius read in
+  `ContainerViewCore`), and this lane's own: `textwall`, `fanout` and
+  `gradients` for the one enum test a text, a background and a shape pay for a
+  paint without a shadow (B-W1B-1); `menus` and `dashboard` for the marker scan
+  each region a modifier registers over a view's frame now makes (B-W1B-3).
+

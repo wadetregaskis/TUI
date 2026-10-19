@@ -490,6 +490,11 @@ Keys: `ImagePaint`, with W13's `ShapeStyle.image(_:sourceRect:scale:)`.
   gradients are.
 - **Why the reason fails:** "no ShapeStyle" is stale (X2).
 
+**Shipped 2026-10-19** with lane W1B (`Sources/TUIkitFoundation/Styling/ImagePaint.swift`,
+sampled through `SampledCells` as a mesh is; decisions
+[B-W1B-4](<Decisions/What the shapes unblocked (W1B).md#b-w1b-4-an-image-paint-is-sampled-cell-by-cell-and-paints-nothing-until-its-picture-is-there>)).
+The picture over blank cells is not taken: an image paint is cells.
+
 ---
 
 ## PARTLY WRONG
@@ -532,6 +537,13 @@ redefine `.headline`.
 
 `.contentShape(Rectangle())` is among the most-ported idioms. Measured, it is
 pixel-identical on macOS, since its effect is only on hit-testing.
+
+**Shipped 2026-10-19** with lane W1B: `.interaction` with any shape cuts the
+hit area to the cells it keeps, carried to the modifiers around it as geometry
+markers, and `.dragPreview` cuts a drag's preview; `.focusEffect` and
+`.accessibility` are omitted (`Sources/TUIkitFoundation/Modifiers/ContentShapeModifier.swift`,
+decisions [B-W1B-3](<Decisions/What the shapes unblocked (W1B).md#b-w1b-3-a-content-shape-is-carried-to-the-modifiers-around-it-as-geometry-markers>),
+C-W1B-1).
 
 ### P4. `SymbolEffectTransition` — M, with W12's `symbolEffect`
 
@@ -975,8 +987,9 @@ deviations A8, decisions O4).
 **The zoom transition shipped 2026-10-18** (`ZoomNavigationTransition`,
 `matchedTransitionSource` and the source configuration's `background(_:)`,
 `Sources/TUIkitNavigation/Views/NavigationZoom.swift`; Deliberate deviations
-A9). The configuration's `clipShape(_:)` and `shadow(color:radius:x:y:)` wait on
-W1 and O6 (decisions O4, B-O4-6).
+A9). The configuration's `clipShape(_:)` and `shadow(color:radius:x:y:)`
+**shipped 2026-10-19** with lane W1B (decisions
+[B-W1B-2](<Decisions/What the shapes unblocked (W1B).md#b-w1b-2-a-zoom-sources-clip-shape-and-shadow-shrink-to-nothing-as-the-rectangle-grows>)).
 
 ### O5. Materials and Glass: `MaterialActiveAppearance`, plus differentShape `Material`, W13's `*Material`, `\.backgroundMaterial`, P14's `Glass*`
 
@@ -1030,7 +1043,9 @@ look too heavy in the Example.
 (`Sources/TUIkitFoundation/Modifiers/ShadowModifier.swift`, Deliberate
 deviations C10, decisions [Shadows (O6)](<Decisions/Shadows (O6).md>)).
 `ShapeStyle.shadow(_:)`, the one consumer of a `ShadowStyle` and so the only
-route to `.inner`, is still owed after W1.
+route to `.inner`, **shipped 2026-10-19** with lane W1B
+(`Sources/TUIkitFoundation/Styling/ShapeStyle+Shadow.swift`, decisions
+[B-W1B-1](<Decisions/What the shapes unblocked (W1B).md#b-w1b-1-a-styles-shadow-is-cast-by-whatever-draws-with-it-from-the-cells-it-drew>)).
 
 ### O7. `ScrollEdgeEffectStyle` (+ W10 `scrollEdgeEffectStyle`/`Hidden`) — S–M
 

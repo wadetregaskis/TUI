@@ -323,20 +323,24 @@ constant that compiles and means nothing. A parity-map family names it.
 ## Owed
 
 What the shapes unblock and this lane did not reach. None is a decision; each is
-work.
+work. Lane W1B (2026-10-19) took the first three and `ImagePaint`; what it left,
+and why, is in its decisions,
+[What the shapes unblocked (W1B).md](<What the shapes unblocked (W1B).md#owed>).
 
 - **`contentShape(_:_:eoFill:)` and `ContentShapeKinds`** (refusal review P3), and
   `contentShape` for shapes other than a rectangle (B-W1-10's fuller version).
+  *Shipped by W1B (B-W1B-3).*
 - **`ShapeStyle.shadow(_:)`** with lane O6's `ShadowStyle`, **`glassEffect(_:in:)`**
   and `DefaultGlassEffectShape` with lane GLASS, and the zoom transition's
   `MatchedTransitionSourceConfiguration.clipShape(_:)` with lane O4: each takes a
-  `Shape`, which is here now.
+  `Shape`, which is here now. *`ShapeStyle.shadow(_:)` and the zoom's clip shape
+  shipped by W1B (B-W1B-1, B-W1B-2); the glass effect's shape is lane GLASS's.*
 - **`mask(alignment:_:)`** (decisions A27): the cell-coverage rule a clip shape
   keeps by (B-W1-11) is the natural one, but A27's choice is the owner's.
 - **`Canvas` and `GraphicsContext`** (the refusal review's D3): a drawing context
   of paths, filled and stroked through this lane's rasterizer.
 - **`ImagePaint`** (W9): a shape filled with an image, which the rasterizer's
-  per-pixel paint is ready for.
+  per-pixel paint is ready for. *Shipped by W1B (B-W1B-4).*
 - **A picture for a shape on a terminal that takes one** (B-W1-4's fuller
   version), and the half-block emitter shared with images (B-W1-1's).
 - **An A/B** of the box path (`ContainerViewCore` reads one more environment value
