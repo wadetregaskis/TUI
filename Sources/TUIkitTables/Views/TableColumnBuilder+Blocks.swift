@@ -27,8 +27,8 @@ extension TableColumnBuilder {
         RowValue == C0.TableRowValue, C1.TableRowValue == C0.TableRowValue
     {
         TupleTableColumnContent((c0, c1)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
         }
     }
 
@@ -44,8 +44,8 @@ extension TableColumnBuilder {
         C0.TableColumnSortComparator == Never, C1.TableColumnSortComparator == Never
     {
         TupleTableColumnContent((c0, c1)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
         }
     }
 
@@ -60,9 +60,9 @@ extension TableColumnBuilder {
         C2.TableRowValue == C0.TableRowValue
     {
         TupleTableColumnContent((c0, c1, c2)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
         }
     }
 
@@ -79,9 +79,9 @@ extension TableColumnBuilder {
         C1.TableColumnSortComparator == Never, C2.TableColumnSortComparator == Never
     {
         TupleTableColumnContent((c0, c1, c2)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
         }
     }
 
@@ -97,10 +97,10 @@ extension TableColumnBuilder {
         C2.TableRowValue == C0.TableRowValue, C3.TableRowValue == C0.TableRowValue
     {
         TupleTableColumnContent((c0, c1, c2, c3)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
         }
     }
 
@@ -119,10 +119,10 @@ extension TableColumnBuilder {
         C2.TableColumnSortComparator == Never, C3.TableColumnSortComparator == Never
     {
         TupleTableColumnContent((c0, c1, c2, c3)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
         }
     }
 
@@ -139,11 +139,11 @@ extension TableColumnBuilder {
         C4.TableRowValue == C0.TableRowValue
     {
         TupleTableColumnContent((c0, c1, c2, c3, c4)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
-            appendTableColumns(c4, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
+            appendTableColumns(c4, to: &columns, at: "/4")
         }
     }
 
@@ -163,11 +163,11 @@ extension TableColumnBuilder {
         C3.TableColumnSortComparator == Never, C4.TableColumnSortComparator == Never
     {
         TupleTableColumnContent((c0, c1, c2, c3, c4)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
-            appendTableColumns(c4, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
+            appendTableColumns(c4, to: &columns, at: "/4")
         }
     }
 
@@ -185,12 +185,12 @@ extension TableColumnBuilder {
         C4.TableRowValue == C0.TableRowValue, C5.TableRowValue == C0.TableRowValue
     {
         TupleTableColumnContent((c0, c1, c2, c3, c4, c5)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
-            appendTableColumns(c4, to: &columns)
-            appendTableColumns(c5, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
+            appendTableColumns(c4, to: &columns, at: "/4")
+            appendTableColumns(c5, to: &columns, at: "/5")
         }
     }
 
@@ -212,12 +212,12 @@ extension TableColumnBuilder {
         C4.TableColumnSortComparator == Never, C5.TableColumnSortComparator == Never
     {
         TupleTableColumnContent((c0, c1, c2, c3, c4, c5)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
-            appendTableColumns(c4, to: &columns)
-            appendTableColumns(c5, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
+            appendTableColumns(c4, to: &columns, at: "/4")
+            appendTableColumns(c5, to: &columns, at: "/5")
         }
     }
 
@@ -237,13 +237,13 @@ extension TableColumnBuilder {
         C6.TableRowValue == C0.TableRowValue
     {
         TupleTableColumnContent((c0, c1, c2, c3, c4, c5, c6)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
-            appendTableColumns(c4, to: &columns)
-            appendTableColumns(c5, to: &columns)
-            appendTableColumns(c6, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
+            appendTableColumns(c4, to: &columns, at: "/4")
+            appendTableColumns(c5, to: &columns, at: "/5")
+            appendTableColumns(c6, to: &columns, at: "/6")
         }
     }
 
@@ -267,13 +267,13 @@ extension TableColumnBuilder {
         C5.TableColumnSortComparator == Never, C6.TableColumnSortComparator == Never
     {
         TupleTableColumnContent((c0, c1, c2, c3, c4, c5, c6)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
-            appendTableColumns(c4, to: &columns)
-            appendTableColumns(c5, to: &columns)
-            appendTableColumns(c6, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
+            appendTableColumns(c4, to: &columns, at: "/4")
+            appendTableColumns(c5, to: &columns, at: "/5")
+            appendTableColumns(c6, to: &columns, at: "/6")
         }
     }
 
@@ -293,14 +293,14 @@ extension TableColumnBuilder {
         C6.TableRowValue == C0.TableRowValue, C7.TableRowValue == C0.TableRowValue
     {
         TupleTableColumnContent((c0, c1, c2, c3, c4, c5, c6, c7)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
-            appendTableColumns(c4, to: &columns)
-            appendTableColumns(c5, to: &columns)
-            appendTableColumns(c6, to: &columns)
-            appendTableColumns(c7, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
+            appendTableColumns(c4, to: &columns, at: "/4")
+            appendTableColumns(c5, to: &columns, at: "/5")
+            appendTableColumns(c6, to: &columns, at: "/6")
+            appendTableColumns(c7, to: &columns, at: "/7")
         }
     }
 
@@ -325,14 +325,14 @@ extension TableColumnBuilder {
         C6.TableColumnSortComparator == Never, C7.TableColumnSortComparator == Never
     {
         TupleTableColumnContent((c0, c1, c2, c3, c4, c5, c6, c7)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
-            appendTableColumns(c4, to: &columns)
-            appendTableColumns(c5, to: &columns)
-            appendTableColumns(c6, to: &columns)
-            appendTableColumns(c7, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
+            appendTableColumns(c4, to: &columns, at: "/4")
+            appendTableColumns(c5, to: &columns, at: "/5")
+            appendTableColumns(c6, to: &columns, at: "/6")
+            appendTableColumns(c7, to: &columns, at: "/7")
         }
     }
 
@@ -353,15 +353,15 @@ extension TableColumnBuilder {
         C8.TableRowValue == C0.TableRowValue
     {
         TupleTableColumnContent((c0, c1, c2, c3, c4, c5, c6, c7, c8)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
-            appendTableColumns(c4, to: &columns)
-            appendTableColumns(c5, to: &columns)
-            appendTableColumns(c6, to: &columns)
-            appendTableColumns(c7, to: &columns)
-            appendTableColumns(c8, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
+            appendTableColumns(c4, to: &columns, at: "/4")
+            appendTableColumns(c5, to: &columns, at: "/5")
+            appendTableColumns(c6, to: &columns, at: "/6")
+            appendTableColumns(c7, to: &columns, at: "/7")
+            appendTableColumns(c8, to: &columns, at: "/8")
         }
     }
 
@@ -387,15 +387,15 @@ extension TableColumnBuilder {
         C7.TableColumnSortComparator == Never, C8.TableColumnSortComparator == Never
     {
         TupleTableColumnContent((c0, c1, c2, c3, c4, c5, c6, c7, c8)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
-            appendTableColumns(c4, to: &columns)
-            appendTableColumns(c5, to: &columns)
-            appendTableColumns(c6, to: &columns)
-            appendTableColumns(c7, to: &columns)
-            appendTableColumns(c8, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
+            appendTableColumns(c4, to: &columns, at: "/4")
+            appendTableColumns(c5, to: &columns, at: "/5")
+            appendTableColumns(c6, to: &columns, at: "/6")
+            appendTableColumns(c7, to: &columns, at: "/7")
+            appendTableColumns(c8, to: &columns, at: "/8")
         }
     }
 
@@ -417,16 +417,16 @@ extension TableColumnBuilder {
         C8.TableRowValue == C0.TableRowValue, C9.TableRowValue == C0.TableRowValue
     {
         TupleTableColumnContent((c0, c1, c2, c3, c4, c5, c6, c7, c8, c9)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
-            appendTableColumns(c4, to: &columns)
-            appendTableColumns(c5, to: &columns)
-            appendTableColumns(c6, to: &columns)
-            appendTableColumns(c7, to: &columns)
-            appendTableColumns(c8, to: &columns)
-            appendTableColumns(c9, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
+            appendTableColumns(c4, to: &columns, at: "/4")
+            appendTableColumns(c5, to: &columns, at: "/5")
+            appendTableColumns(c6, to: &columns, at: "/6")
+            appendTableColumns(c7, to: &columns, at: "/7")
+            appendTableColumns(c8, to: &columns, at: "/8")
+            appendTableColumns(c9, to: &columns, at: "/9")
         }
     }
 
@@ -454,16 +454,16 @@ extension TableColumnBuilder {
         C8.TableColumnSortComparator == Never, C9.TableColumnSortComparator == Never
     {
         TupleTableColumnContent((c0, c1, c2, c3, c4, c5, c6, c7, c8, c9)) { columns in
-            appendTableColumns(c0, to: &columns)
-            appendTableColumns(c1, to: &columns)
-            appendTableColumns(c2, to: &columns)
-            appendTableColumns(c3, to: &columns)
-            appendTableColumns(c4, to: &columns)
-            appendTableColumns(c5, to: &columns)
-            appendTableColumns(c6, to: &columns)
-            appendTableColumns(c7, to: &columns)
-            appendTableColumns(c8, to: &columns)
-            appendTableColumns(c9, to: &columns)
+            appendTableColumns(c0, to: &columns, at: "/0")
+            appendTableColumns(c1, to: &columns, at: "/1")
+            appendTableColumns(c2, to: &columns, at: "/2")
+            appendTableColumns(c3, to: &columns, at: "/3")
+            appendTableColumns(c4, to: &columns, at: "/4")
+            appendTableColumns(c5, to: &columns, at: "/5")
+            appendTableColumns(c6, to: &columns, at: "/6")
+            appendTableColumns(c7, to: &columns, at: "/7")
+            appendTableColumns(c8, to: &columns, at: "/8")
+            appendTableColumns(c9, to: &columns, at: "/9")
         }
     }
 }

@@ -188,6 +188,6 @@ struct _AnyTableColumnContent<RowValue: Identifiable, Sort: SortComparator>:
 
 extension _AnyTableColumnContent {
     static func _appendColumns(_ content: Self, to columns: inout _TableColumnList<RowValue>) {
-        columns.specs += content.columns
+        columns.splice(content.columns)
     }
 }

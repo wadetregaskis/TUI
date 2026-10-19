@@ -112,7 +112,7 @@ extension TableColumnForEach {
     /// Appends the columns built for each element, in order.
     public static func _appendColumns(_ content: Self, to columns: inout _TableColumnList<RowValue>) {
         for element in content.data {
-            appendTableColumns(content.content(element), to: &columns)
+            appendTableColumns(content.content(element), to: &columns, at: "/\(content.elementID(element))")
         }
     }
 }

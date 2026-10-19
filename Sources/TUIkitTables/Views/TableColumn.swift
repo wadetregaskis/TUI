@@ -154,7 +154,9 @@ public struct TableColumn<RowValue: Identifiable, Sort: SortComparator, Content:
 extension TableColumn {
     /// Appends this column: a column hands itself to the table directly.
     public static func _appendColumns(_ content: Self, to columns: inout _TableColumnList<RowValue>) {
-        columns.specs.append(content.spec)
+        var spec = content.spec
+        spec.place = columns.place
+        columns.specs.append(spec)
     }
 
     /// The characters this column's cell holds for `item` under `context`: a

@@ -199,8 +199,9 @@ without a binding, and a column without an identifier in one with, resizes
 as any other — its gap dragged, or `-`/`+` in the column mode, which Ctrl-K
 now opens on every table with a header — the width kept in the table's own
 state (`ItemListHandler.transientColumnWidths`, by the column's identifier
-or its place) for as long as the table is shown, as SwiftUI keeps it in the
-outline view. Reordering and the column menu still need a binding and an
+or its place in the column closure, `_TableColumnSpec.place`, which a
+condition before it does not move) for as long as the table is shown, as
+SwiftUI keeps it in the outline view. Reordering and the column menu still need a binding and an
 identifier, as measured. The price, paid by every table: a state lookup per
 frame (`resizingColumns`), and a mouse region per resizable column gap
 registered each frame on a table that had none. A/B owed: tables,

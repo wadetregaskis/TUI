@@ -47,6 +47,14 @@ struct _TableColumnSpec<Value> {
     /// keyed by, so that they stay with the column rather than its position.
     var declarationIndex = 0
 
+    /// Where the column sits in the table's column closure: the steps that
+    /// reach it, one per tuple position, branch of an `if` with an `else`,
+    /// and loop element by its identifier — `"/2"` for the third statement,
+    /// `"/1/0"` for the first column of an `if` that is the second, `"/3/else"`.
+    /// Unlike ``declarationIndex``, which counts the columns built, it does not
+    /// move when a condition before the column adds or drops one.
+    var place = ""
+
     /// How this column is sized, as declared.
     var width: _TableColumnWidth
 
@@ -59,9 +67,11 @@ struct _TableColumnSpec<Value> {
     var effectiveWidth: _TableColumnWidth { resizedWidth.map(_TableColumnWidth.fixed) ?? width }
 
     /// The key a table keeps this column's transient width and its keyboard
-    /// pick by: its customization identifier, else its place among the
-    /// declared columns.
-    var columnKey: String { customizationID ?? "#\(declarationIndex)" }
+    /// pick by: its customization identifier, else its ``place`` in the column
+    /// closure — not its index among the columns built, which a condition
+    /// before it moves: a width the user gave `Kind` went to `Size` when an
+    /// `if showSize { TableColumn("Size") }` before it was turned on.
+    var columnKey: String { customizationID ?? "#\(place)" }
 
     /// Whether a user may `behavior` this column: only a column with an
     /// identifier can be customized at all, and its

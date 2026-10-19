@@ -98,6 +98,27 @@ public protocol _TableRowValued {
 public struct _TableColumnList<RowValue> {
     /// The columns, in order.
     var specs: [_TableColumnSpec<RowValue>] = []
+
+    /// Where the content being appended sits in the column closure's
+    /// structure: the steps taken to reach it, one per tuple position, `if`
+    /// branch and loop element (``_TableColumnSpec/place``).
+    var place = ""
+
+    /// Appends `specs`, columns another list flattened, each placed from
+    /// here: their places are relative to the content they were flattened
+    /// from, which sits at ``place``.
+    mutating func splice(_ specs: [_TableColumnSpec<RowValue>]) {
+        guard !place.isEmpty else {
+            self.specs += specs
+            return
+        }
+        let base = place
+        self.specs += specs.map { spec in
+            var placed = spec
+            placed.place = base + spec.place
+            return placed
+        }
+    }
 }
 
 extension TableColumnContent {
@@ -115,7 +136,7 @@ extension TableColumnContent {
                 "\(Self.self)'s tableColumnBody has rows of another type than its TableRowValue")
             return
         }
-        columns.specs += typed
+        columns.splice(typed)
     }
 }
 
@@ -135,6 +156,19 @@ func appendTableColumns<Content: TableColumnContent>(
     _ content: Content, to columns: inout _TableColumnList<Content.TableRowValue>
 ) {
     Content._appendColumns(content, to: &columns)
+}
+
+/// Appends `content`'s columns to `columns`, placed one `step` further into the
+/// column closure's structure than the content around it: a tuple position
+/// (`"/2"`), an `if`'s branch, a loop's element.
+@MainActor
+func appendTableColumns<Content: TableColumnContent>(
+    _ content: Content, to columns: inout _TableColumnList<Content.TableRowValue>, at step: String
+) {
+    let outer = columns.place
+    columns.place += step
+    Content._appendColumns(content, to: &columns)
+    columns.place = outer
 }
 
 // MARK: - Never
@@ -246,8 +280,8 @@ where
         _ content: Self, to columns: inout _TableColumnList<TrueContent.TableRowValue>
     ) {
         switch content {
-        case .trueContent(let content): appendTableColumns(content, to: &columns)
-        case .falseContent(let content): appendTableColumns(content, to: &columns)
+        case .trueContent(let content): appendTableColumns(content, to: &columns, at: "/if")
+        case .falseContent(let content): appendTableColumns(content, to: &columns, at: "/else")
         }
     }
 }
