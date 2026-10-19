@@ -61,9 +61,6 @@ struct FilePanelPresenter<Content: View>: View {
         var lastDirectory: URL?
         /// The request this presentation was made with.
         var current: FilePanelRequest?
-        /// How many presentations have been made: the panel's identity
-        /// (``FilePanelSheet``).
-        var presentations = 0
     }
 
     var body: some View {
@@ -73,16 +70,15 @@ struct FilePanelPresenter<Content: View>: View {
                 // on every frame, presented or not, and a request made then
                 // was the first frame's — a mover's file still `nil`, say —
                 // kept until a dismissal that never came.
-                FilePanelSheet(presentation: currentPresentation, finish: finish)
+                FilePanelSheet(request: currentRequest, finish: finish)
                     .presentationSizing(.page)
             }
     }
 
-    /// The request this presentation was made with, and which presentation
-    /// it is: made the first time the sheet's content is built, and kept
-    /// until it is dismissed.
-    private func currentPresentation() -> (request: FilePanelRequest, number: Int) {
-        if let current = session.current { return (current, session.presentations) }
+    /// The request this presentation was made with: made the first time the
+    /// sheet's content is built, and kept until it is dismissed.
+    private func currentRequest() -> FilePanelRequest {
+        if let current = session.current { return current }
         var made = request()
         made.rule.locale = locale
         Self.apply(customization, to: &made)
@@ -94,8 +90,7 @@ struct FilePanelPresenter<Content: View>: View {
             made.showsHiddenFiles = kept.showsHiddenFiles
         }
         session.current = made
-        session.presentations += 1
-        return (made, session.presentations)
+        return made
     }
 
     /// `customization` applied to `request`: the words, the default folder,
@@ -170,19 +165,15 @@ struct FilePanelPresenter<Content: View>: View {
 /// A presented panel, made from its request only when it is drawn: what a
 /// presenter hands `sheet`, which builds its content on every frame.
 ///
-/// Each presentation is a panel of its own identity, so its `@State` — the
-/// folder, the selection, the name typed — starts from the request, whatever
-/// the last one left. A sheet's content usually loses its state when the
-/// sheet is dismissed, but not under a view that keeps its subtree's state —
-/// a `List` or `Table` row, a toolbar — where a panel presented again came
-/// back in the folder the last was cancelled in, its new request unread.
+/// Its `@State` — the folder, the selection, the name typed — starts from
+/// the request each time it is presented: a sheet's content loses its state
+/// when the sheet is dismissed, under a view that keeps its subtree's state
+/// too.
 private struct FilePanelSheet: View {
-    let presentation: () -> (request: FilePanelRequest, number: Int)
+    let request: () -> FilePanelRequest
     let finish: (FilePanelOutcome) -> Void
 
     var body: some View {
-        let presentation = presentation()
-        FilePanel(request: presentation.request, finish: finish)
-            .id(presentation.number)
+        FilePanel(request: request(), finish: finish)
     }
 }

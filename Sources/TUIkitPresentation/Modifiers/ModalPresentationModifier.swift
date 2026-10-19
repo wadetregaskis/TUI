@@ -163,6 +163,8 @@ extension ModalPresentationModifier: Renderable {
         // section, and the presentation's ways out (`presentedContext`).
         let overlayHeight = context.environment.overlayContentHeight
         var modalContext = presentedContext(sectionID: sectionID, gate: gate, overlayHeight: overlayHeight, context: context)
+        // Where the content's state lies, for the frame it goes (`startOver`).
+        if !context.isMeasuring { notePresentedContent(at: modalContext.identity, context: context) }
 
         // A detent, if the content named one, decides the height instead of the
         // content's own. It has to be read BEFORE the render — it is the height

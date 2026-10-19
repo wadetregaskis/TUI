@@ -763,17 +763,26 @@ extension StateStorage {
     /// Called by ``ConditionalView`` when switching branches to clean up
     /// state from the now-inactive branch.
     ///
-    /// - Parameter ancestor: The branch identity whose descendants should be removed.
-    public func invalidateDescendants(of ancestor: ViewIdentity) {
-        let staleKeys = values.keys.filter { ancestor.isAncestor(of: $0.identity) }
+    /// - Parameters:
+    ///   - ancestor: The branch identity whose descendants should be removed.
+    ///   - includingItself: Whether the state kept AT `ancestor` goes too: a
+    ///     composite view's `@State` is kept at the view's own identity, so a
+    ///     view that has gone, rather than a branch label above one, is
+    ///     dropped with its own. A presentation drops its content this way
+    ///     when it is dismissed (`ModalPresentationModifier`).
+    public func invalidateDescendants(of ancestor: ViewIdentity, includingItself: Bool = false) {
+        let isStale = { (identity: ViewIdentity) in
+            ancestor.isAncestor(of: identity) || (includingItself && identity == ancestor)
+        }
+        let staleKeys = values.keys.filter { isStale($0.identity) }
         for key in staleKeys {
             dropValue(forKey: key)
         }
-        let staleTrackedKeys = trackedValues.keys.filter { ancestor.isAncestor(of: $0.identity) }
+        let staleTrackedKeys = trackedValues.keys.filter { isStale($0.identity) }
         for key in staleTrackedKeys {
             trackedValues.removeValue(forKey: key)
         }
-        animations.removeDescendants(of: ancestor)
+        animations.removeDescendants(of: ancestor, includingItself: includingItself)
     }
 
     /// Removes all stored state. Used during app cleanup.

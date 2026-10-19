@@ -111,6 +111,12 @@ final class PresentationEntry {
     /// the `item:` forms — `nil` for the `isPresented:` forms, which are
     /// about nothing.
     var itemKey: String?
+
+    /// The identity the presented content is drawn at, from the first frame
+    /// it is drawn there until the sheet is closed or presented for another
+    /// item: the subtree whose state goes then
+    /// (`ModalPresentationModifier.startOver(context:)`).
+    var contentIdentity: ViewIdentity?
 }
 
 // MARK: - Presenting live

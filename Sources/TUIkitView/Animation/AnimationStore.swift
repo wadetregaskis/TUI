@@ -662,14 +662,17 @@ extension AnimationStore {
         }
     }
 
-    /// Drops the animations of everything below `ancestor` — the
-    /// conditional-branch switch that `StateStorage/invalidateDescendants(of:)`
+    /// Drops the animations of everything below `ancestor`, and at it where
+    /// `includingItself` — what `StateStorage/invalidateDescendants(of:includingItself:)`
     /// performs for state.
-    public func removeDescendants(of ancestor: ViewIdentity) {
-        for key in records.keys where ancestor.isAncestor(of: key.identity) {
+    public func removeDescendants(of ancestor: ViewIdentity, includingItself: Bool = false) {
+        let isStale = { (identity: ViewIdentity) in
+            ancestor.isAncestor(of: identity) || (includingItself && identity == ancestor)
+        }
+        for key in records.keys where isStale(key.identity) {
             records.removeValue(forKey: key)
         }
-        for key in triggers.keys where ancestor.isAncestor(of: key.identity) {
+        for key in triggers.keys where isStale(key.identity) {
             triggers.removeValue(forKey: key)
             triggerPasses.removeValue(forKey: key)
         }

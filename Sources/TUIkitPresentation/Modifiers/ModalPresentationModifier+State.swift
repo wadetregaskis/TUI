@@ -41,6 +41,14 @@ extension ModalPresentationModifier {
     /// of a list, which keeps every row's state, or the root of a test harness
     /// — was never pruned, and a sheet presented again came back as it was
     /// left.
+    ///
+    /// The content's own state goes too, once, on the frame the sheet closes
+    /// — or is presented for another item — as a branch an `if` leaves loses
+    /// its own (``PresentationEntry/contentIdentity``). The same containers
+    /// keep it: a sheet presented again from a `List` or `Table` row, a lazy
+    /// stack's row or a toolbar item came back with its content's `@State` as
+    /// it was left, and what its modifier said now — a `State(initialValue:)`
+    /// made from it — was never read.
     func startOver(context: RenderContext) {
         DialogDrag.reset(context: context, propertyIndex: StateIndex.dragHandler)
         existingKeptSheetSize(context: context)?.size = nil
@@ -49,6 +57,10 @@ extension ModalPresentationModifier {
             entry.hasEntered = false
             entry.isKeptOffTheDock = false
             entry.rowsShortOfDetent = nil
+            if let content = entry.contentIdentity {
+                context.stateStorage?.invalidateDescendants(of: content, includingItself: true)
+                entry.contentIdentity = nil
+            }
         }
         // Presented again, its toolbar rows are seeded again.
         (context.stateStorage?.existingStorage(
@@ -121,7 +133,14 @@ extension ModalPresentationModifier {
         ).value ?? PresentationEntry()
     }
 
-    /// The same record, if the sheet was ever presented — to empty.
+    /// Notes, in the presenter's entry, the identity its content is drawn at
+    /// this frame (``PresentationEntry/contentIdentity``): kept from the first
+    /// frame the content is drawn there, for the frame it goes.
+    func notePresentedContent(at identity: ViewIdentity, context: RenderContext) {
+        let entry = presentationEntry(context: context)
+        if entry.contentIdentity == nil { entry.contentIdentity = identity }
+    }
+
     /// The toolbar items the presentation hosts at its edges, kept for its
     /// life (``PresentationToolbarItems``).
     func presentationToolbar(context: RenderContext) -> PresentationToolbarItems {
@@ -131,6 +150,7 @@ extension ModalPresentationModifier {
         ).value ?? PresentationToolbarItems()
     }
 
+    /// The same record, if the sheet was ever presented — to empty.
     func existingPresentationEntry(context: RenderContext) -> PresentationEntry? {
         (context.stateStorage?.existingStorage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.entry))
