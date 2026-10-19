@@ -41,9 +41,16 @@ import TUIkitFoundation
 /// here, as SwiftUI keeps it. From the keyboard, **Ctrl-K** on the focused
 /// table picks a column (←/→ choose another): `<` and `>` move it, `-` and
 /// `+` resize it, Return opens the menu on it, Escape lets it go. Only a
-/// column with a ``TableColumnContent/customizationID(_:)`` takes part, and
-/// a column's ``TableColumnContent/disabledCustomizationBehavior(_:)`` takes
-/// away the gestures it names.
+/// column with a ``TableColumnContent/customizationID(_:)`` is moved, hidden
+/// or shown, and a column's ``TableColumnContent/disabledCustomizationBehavior(_:)``
+/// takes away the gestures it names.
+///
+/// Resizing needs neither a binding nor an identifier, as on macOS, where
+/// every column of every table resizes (measured, decisions B-D4T-7): a
+/// width given to a column this records nothing for — a column with no
+/// identifier, or any column of a table bound to none — is kept by the table
+/// itself, for as long as it is shown, by the column's identifier, or by its
+/// place in the table's column closure.
 public struct TableColumnCustomization<RowValue: Identifiable>: Equatable, Sendable, Codable {
     /// Each customizable column's stated visibility, by identifier. A column
     /// with no entry is `.automatic`.

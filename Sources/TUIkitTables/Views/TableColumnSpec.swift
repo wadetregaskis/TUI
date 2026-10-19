@@ -73,10 +73,12 @@ struct _TableColumnSpec<Value> {
     /// `if showSize { TableColumn("Size") }` before it was turned on.
     var columnKey: String { customizationID ?? "#\(place)" }
 
-    /// Whether a user may `behavior` this column: only a column with an
-    /// identifier can be customized at all, and its
+    /// Whether a user may `behavior` this column through the table's
+    /// customization — move it, or hide or show it: only a column with an
+    /// identifier is recorded there, and its
     /// ``TableColumnContent/disabledCustomizationBehavior(_:)`` takes away
-    /// what it names.
+    /// what it names. Resizing asks ``resizeBounds(upTo:)`` instead, which
+    /// needs no identifier.
     func allows(_ behavior: TableColumnCustomizationBehavior) -> Bool {
         customizationID != nil && !(disabledCustomizationBehavior?.contains(behavior) ?? false)
     }
