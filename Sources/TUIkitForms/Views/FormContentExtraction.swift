@@ -121,7 +121,7 @@ private func rewrappedRow<V: View>(_ view: V, in walk: RenderContext) -> _FormRo
 @MainActor
 private func row<W: FormRowRewrapping>(inside wrapper: W, in walk: RenderContext) -> _FormRow? {
     row(
-        of: wrapper.formRowContent, in: walk, leadingInset: wrapper.formRowLeadingInset,
+        of: wrapper.formRowContent, in: contentWalk(of: wrapper, walk), leadingInset: wrapper.formRowLeadingInset,
         putBack: { wrapper.rewrappingFormRow($0) })
 }
 
@@ -129,7 +129,16 @@ private func row<W: FormRowRewrapping>(inside wrapper: W, in walk: RenderContext
 /// group (``ContentRewrapping``): it is put back the same way.
 @MainActor
 private func row<W: ContentRewrapping>(inside wrapper: W, in walk: RenderContext) -> _FormRow? {
-    row(of: wrapper.wrappedContent, in: walk, leadingInset: 0, putBack: { wrapper.rewrapping($0) })
+    row(of: wrapper.wrappedContent, in: contentWalk(of: wrapper, walk), leadingInset: 0, putBack: { wrapper.rewrapping($0) })
+}
+
+/// The walk inside `wrapper`: the context it lays its content out in, where
+/// it states one (``SingleContentWrapper/wrappedContentContext(_:)``) — an
+/// environment write such as `.labelsHidden()` — so the row inside is read
+/// in the environment it is drawn in.
+@MainActor
+private func contentWalk<W>(of wrapper: W, _ walk: RenderContext) -> RenderContext {
+    (wrapper as? any SingleContentWrapper)?.wrappedContentContext(walk) ?? walk
 }
 
 /// The row `inner` is — itself under modifiers, or a labelled row, a checkbox
@@ -146,6 +155,10 @@ private func row<Inner: View>(
     } else if inner is any FormLabeledRow || inner is FormControlRow || inner is FormButtonRow {
         guard case .row(let innerRow) = formElements(from: inner, in: walk).first else { return nil }
         row = innerRow
+        // `.labelsHidden()` written on the row hides its label and takes it
+        // out of the label column, as SwiftUI's form does (measured): the
+        // value stays in the value column.
+        row.hidesLabel = walk.environment.controlLabelsAreHidden
     } else {
         return nil
     }

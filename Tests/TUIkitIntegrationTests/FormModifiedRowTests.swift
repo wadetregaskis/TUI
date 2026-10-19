@@ -92,6 +92,19 @@ struct FormModifiedRowTests {
         #expect(column(of: "Alice", in: out) == 6 && column(of: "a@b.c", in: out) == 6, "\(out)")
     }
 
+    @Test("labelsHidden written on a LabeledContent row hides its label, out of the column, its value in the value column")
+    func hiddenLabelRow() {
+        // Measured: the hidden label takes no part in the label column, and the
+        // row's value starts where the other rows' values do.
+        let out = lines(
+            Form {
+                LabeledContent("A much longer label", value: "Alice").labelsHidden()
+                LabeledContent("Email", value: "a@b.c")
+            })
+        #expect(!out.contains { $0.contains("longer") }, "\(out)")
+        #expect(column(of: "a@b.c", in: out) == 6 && column(of: "Alice", in: out) == 6, "\(out)")
+    }
+
     @Test("Padding, help, a tag or an id written on a Toggle row keeps it in the control column")
     func modifiedControlRow() {
         func toggleColumn(_ toggle: some View) -> Int? {

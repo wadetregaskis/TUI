@@ -94,6 +94,12 @@ struct _FormRow {
     /// column: SwiftUI's form widens the column by them, the label staying in
     /// it (measured). Zero for a row written bare.
     var leadingInset = 0
+    /// Whether the row's label is hidden by a `.labelsHidden()` written on the
+    /// row: a field row then draws no label and takes no part in the label
+    /// column, its value staying in the value column, as SwiftUI's form lays
+    /// it out (measured). A form whose labels are all hidden has no label
+    /// column at all (``_FormLayout``'s pillar).
+    var hidesLabel = false
 
     init(_ kind: _FormRowKind, alignment: HorizontalAlignment? = nil) {
         self.kind = kind
@@ -211,7 +217,9 @@ private func controlIndent(pillar: Int) -> Int { pillar == 0 ? 0 : pillar + 1 }
 private func baseRowView(_ row: _FormRow, pillar: Int) -> some View {
     switch row.kind {
     case .field(let label, let content):
-        _FormFieldRow(label: label, content: content, pillar: pillar, leadingInset: row.leadingInset)
+        _FormFieldRow(
+            label: label, content: content, pillar: pillar, leadingInset: row.leadingInset,
+            hidesLabel: row.hidesLabel)
     case .control(let view, let parts):
         _FormControlRowView(view: view, parts: parts, indent: controlIndent(pillar: pillar))
     case .button(let view):
@@ -541,7 +549,7 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
         guard !context.environment.controlLabelsAreHidden else { return 0 }
         return formRows(of: elements)
             .compactMap { row -> Int? in
-                guard case .field(let label, _) = row.kind else { return nil }
+                guard case .field(let label, _) = row.kind, !row.hidesLabel else { return nil }
                 return row.leadingInset
                     + measureChild(label, proposal: ProposedSize(width: nil, height: nil), context: context).width
             }
@@ -576,6 +584,9 @@ private struct _FormFieldRow: View {
     /// label column already counts: the label's share of the pillar is what is
     /// left (``_FormRow/leadingInset``).
     let leadingInset: Int
+    /// Whether `.labelsHidden()` written on the row hides its label
+    /// (``_FormRow/hidesLabel``); a grouped row's label hides itself.
+    let hidesLabel: Bool
     @Environment(\.labeledContentStyleChain) private var styles
     @Environment(\.labeledContentPlacement) private var placement
 
@@ -599,7 +610,13 @@ private struct _FormFieldRow: View {
             // padding fills the column — would take the stack's spacing with
             // it, and its content would start a cell short of the others'.
             HStack(spacing: 0) {
-                label.frame(width: max(0, pillar - leadingInset), alignment: .trailing).padding(.trailing, 1)
+                if !hidesLabel {
+                    label.frame(width: max(0, pillar - leadingInset), alignment: .trailing).padding(.trailing, 1)
+                } else {
+                    // A hidden label keeps no cell of the column but its place:
+                    // the value stays in the value column.
+                    Color.clear.frame(width: max(0, pillar - leadingInset) + 1, height: 1)
+                }
                 content
             }
         }
