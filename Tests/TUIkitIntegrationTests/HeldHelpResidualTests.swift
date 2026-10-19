@@ -160,6 +160,30 @@ struct HeldHelpResidualTests {
         #expect(!driver.shows("HELP-A"), "the help stayed on a view the page carried away: \(driver.lines)")
     }
 
+    /// Found by the INPUT lane's review, unit level: a help held through the
+    /// bar's reflow, taken back as the pointer enters its view again under
+    /// the id the view's region registered at since, kept the id it was held
+    /// with, and the dispatcher's next account of the observers the pointer
+    /// is over, which names the new id, dropped it.
+    @Test("A held help taken back under a new region id stays, anchored to that region")
+    func heldHelpTakenBackUnderANewID() {
+        let tooltips = TooltipState()
+        let old = HitTestRegion.HandlerID(1)
+        let new = HitTestRegion.HandlerID(2)
+        tooltips.hovering("HELP", owner: "row", handlerID: old, nowNanos: 0)
+        tooltips.observersHovered([old])
+        tooltips.beginReshape(movedByTooltip: true, presentations: [])
+        tooltips.leaving("HELP", owner: "row")
+        tooltips.observersHovered([])
+        tooltips.endReshape(tooltipRows: 9..<10, pointerRow: 9, reaching: { _ in false }, region: { _ in nil })
+        #expect(tooltips.resolved(nowNanos: 1_000_000_000)?.text == "HELP", "precondition: held")
+        tooltips.hovering("HELP", owner: "row", handlerID: new, nowNanos: 1)
+        tooltips.observersHovered([new])
+        let shown = tooltips.resolved(nowNanos: 1_000_000_000)
+        #expect(shown?.text == "HELP", "the help went as it was taken back")
+        #expect(shown?.handlerID == new, "anchored to a region no longer registered")
+    }
+
     /// Unit level, as the run loop drives it: the hold begins on the rows the
     /// bar covers with one surface up, and a frame then takes it down and
     /// puts another up. The count was compared, one and one, and the help

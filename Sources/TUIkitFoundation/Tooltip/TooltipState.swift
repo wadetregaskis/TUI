@@ -265,8 +265,14 @@ public final class TooltipState: @unchecked Sendable {
         func isSame(_ candidate: Candidate) -> Bool {
             candidate.text == text || (owner != nil && candidate.owner == owner)
         }
+        // Either way it takes the id the view's region has now: the
+        // dispatcher names the observers the pointer is over by their
+        // current ids (``observersHovered(_:renamed:)``), and one held
+        // through a reshape that re-registered its region under another went
+        // as soon as it was taken back (the lane's review).
         if var held, isSame(held) {
             held.text = text
+            if let handlerID { held.handlerID = handlerID }
             hoveredViews.removeAll(where: isSame)
             hoveredViews.append(held)
             self.held = nil
@@ -274,6 +280,7 @@ public final class TooltipState: @unchecked Sendable {
         }
         if let index = hoveredViews.firstIndex(where: isSame) {
             hoveredViews[index].text = text
+            if let handlerID { hoveredViews[index].handlerID = handlerID }
             return
         }
         hoveredViews.append(
