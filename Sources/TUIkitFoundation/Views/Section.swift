@@ -659,11 +659,11 @@ extension Section: ListRowExtractor where Parent: View, Content: View, Footer: V
                 // for it when the list wants it, not here: a looped row's
                 // answer can cost a build of the row.
                 let rowID = rowIDs.askedID(ofChildAt: index, ordinal: rows.count)
-                // See `extractRowBadgeValue(from:)`: a `ForEach` row inside
+                // See `extractRowBadge(from:)`: a `ForEach` row inside
                 // this Section arrives wrapped in `_MemoizedRow`, which the
                 // plain cast cannot see through, and its badge was dropped
                 // while the static row beside it kept its own.
-                let badge = extractRowBadgeValue(from: child.wrappedView)
+                let badge = extractRowBadge(from: child.wrappedView)
                 // Stamped, as a looped row's thunk stamps its own, so what the
                 // row reports — a separator, a refusal — names THIS list row.
                 let restrictions = context.environment.listRowEditRestrictions
@@ -683,7 +683,7 @@ extension Section: ListRowExtractor where Parent: View, Content: View, Footer: V
         }
 
         // Fallback: render content as a single row, carrying its badge.
-        let badge = extractBadgeValue(from: content)
+        let badge = extractListRowBadge(from: content)
         let buffer = TUIkitView.renderToBuffer(content, context: context)
         guard !buffer.lines.isEmpty else { return ([], nil) }
         return (

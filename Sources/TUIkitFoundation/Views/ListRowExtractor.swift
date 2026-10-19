@@ -64,18 +64,18 @@ package struct ListRow<ID: Hashable> {
     }
 
     /// Creates a row from an already-rendered buffer (fallback / chrome paths).
-    init(id: ID?, buffer: FrameBuffer, badge: BadgeValue?) {
+    init(id: ID?, buffer: FrameBuffer, badge: ListRowBadge?) {
         self.knownID = id
         self.askedID = nil
-        self.content = LazyListRowContent(buffer: buffer, badge: badge)
+        self.content = LazyListRowContent(buffer: buffer, rowBadge: badge)
     }
 
     /// Creates a flattened child's row from its already-rendered buffer, its
     /// id still to be asked.
-    init(askedID: AskedRowID<ID>, buffer: FrameBuffer, badge: BadgeValue?) {
+    init(askedID: AskedRowID<ID>, buffer: FrameBuffer, badge: ListRowBadge?) {
         self.knownID = nil
         self.askedID = askedID
-        self.content = LazyListRowContent(buffer: buffer, badge: badge)
+        self.content = LazyListRowContent(buffer: buffer, rowBadge: badge)
     }
 }
 
@@ -456,10 +456,11 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
                     // anyway priced every List frame in row views the next cache
                     // hit discarded. The badge is the one thing read off the BUILT
                     // view every frame, so rows whose static type cannot carry one
-                    // — all but a `.badge(_:)`-outermost row — skip that build too.
-                    let badge: BadgeValue? =
+                    // — all but a `.badge(_:)`-outermost row, or one with only
+                    // environment writes around it — skip that build too.
+                    let badge: ListRowBadge? =
                         viewTypeCarriesBadge(Content.self)
-                        ? extractBadgeValue(from: content(element)) : nil
+                        ? extractListRowBadge(from: content(element)) : nil
                     let buffer = Self.renderMemoizedRow(
                         keyedBy: equatableElement, element: element, build: content, context: rowContext)
                     Self.reportSeparatorGuides(
@@ -472,7 +473,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
                 let buffer = TUIkitView.renderToBuffer(view, context: rowContext)
                 Self.reportSeparatorGuides(
                     build: { _ in view }, element: element, buffer: buffer, row: listRowIndex, context: rowContext)
-                return (buffer, extractBadgeValue(from: view))
+                return (buffer, extractListRowBadge(from: view))
             })
         // The row's type-select text, asked only when the user types to find a
         // row: its stated equivalent, else its first line drawn as a measure,
@@ -574,7 +575,7 @@ extension ForEach: ListRowExtractor, WindowedListRowExtractor where Content: Vie
                 // Cleared after, as the eager paths clear it, so what draws
                 // next outside a row reports against none.
                 context.environment.listRowEditRestrictions?.currentRowIndex = nil
-                return (buffer, extractRowBadgeValue(from: member.wrappedView))
+                return (buffer, extractRowBadge(from: member.wrappedView))
             })
         box.typeSelectProbe = typeSelectProbe(statedBy: member.wrappedView) ?? {
             var probe = context

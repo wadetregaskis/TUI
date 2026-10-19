@@ -75,9 +75,10 @@ struct BadgeProminenceKey: EnvironmentKey {
 extension EnvironmentValues {
     /// The prominence to apply to badges associated with this environment.
     ///
-    /// Read by a `List` for the badges on its rows: the value in the list's
-    /// own environment, so `.badgeProminence(_:)` applies to a list from the
-    /// list or from anything containing it.
+    /// Read by a `List` for the badges on its rows: the value in the
+    /// environment each badge is written in — the list's own, so
+    /// `.badgeProminence(_:)` applies to a list from the list or from anything
+    /// containing it, or one written around a row's `.badge(_:)`.
     @inlinable
     public var badgeProminence: BadgeProminence {
         get { self[BadgeProminenceKey.self] }
@@ -96,11 +97,16 @@ extension View {
     /// .badgeProminence(.decreased)
     /// ```
     ///
-    /// A `List` reads the prominence from its own environment, so the modifier
-    /// belongs on the list or on something containing it. Written inside a
-    /// row, around or within that row's `.badge(_:)`, it does not reach the
-    /// badge: the list draws a row's badge itself, from the row's view value,
-    /// in the list's environment (decisions B72).
+    /// A badge is drawn in the prominence of the environment its `.badge(_:)`
+    /// is written in, as any view sees its environment: on the list or on
+    /// anything containing it, it reaches every row's badge; written on a row
+    /// around its `.badge(_:)` — `.badge(5).badgeProminence(.decreased)` — it
+    /// reaches that badge, and wins over the list's; written inside it —
+    /// `.badgeProminence(.decreased).badge(5)` — it does not, as measured on
+    /// macOS 15.8 (decisions B72). Between the badge and the prominence only
+    /// other environment writes are seen through: a `.badge(_:)` with any
+    /// other modifier after it is not seen as the row's badge at all
+    /// (decisions B-LISTS-1).
     ///
     /// - Parameter prominence: The prominence to apply to badges.
     public func badgeProminence(_ prominence: BadgeProminence) -> some View {

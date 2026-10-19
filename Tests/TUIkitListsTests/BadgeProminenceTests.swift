@@ -73,6 +73,61 @@ struct BadgeProminenceTests {
         #expect(badgedRow(.increased) == badgedRow(.standard))
     }
 
+    /// The line of `list`'s row `name`.
+    private func row(_ name: String, in list: some View) -> String {
+        renderToBuffer(list, context: context()).lines.first { $0.stripped.contains(name) } ?? ""
+    }
+
+    /// Measured on macOS 15.8 (`Tools/SwiftUIProbes/Badge prominence/badgeprom.swift`):
+    /// a prominence written around a row's `.badge(_:)` is the badge's, and
+    /// one written inside it is not — the badge sees the environment where it
+    /// is written, as any view does.
+    @Test("A prominence written around a row's badge reaches it", arguments: [false, true])
+    func aroundTheBadge(looped: Bool) {
+        let list = List {
+            Text("Plain").badge(12)
+            if looped {
+                ForEach(["Quiet"], id: \.self) { Text($0).badge(12).badgeProminence(.decreased) }
+            } else {
+                Text("Quiet").badge(12).badgeProminence(.decreased)
+            }
+        }
+        let quiet = row("Quiet", in: list)
+        #expect(quiet.contains(badge(in: palette.foregroundQuaternary)), "\(quiet.debugDescription)")
+        let plain = row("Plain", in: list)
+        #expect(plain.contains(badge(in: palette.foregroundTertiary)), "\(plain.debugDescription)")
+    }
+
+    @Test("A looped row's own prominence reaches its badge in a list of looped rows only")
+    func aroundTheBadgeInALoop() {
+        let list = List(["Quiet", "Loud"], id: \.self) { name in
+            Text(name).badge(12).badgeProminence(name == "Quiet" ? .decreased : .standard)
+        }
+        let quiet = row("Quiet", in: list)
+        #expect(quiet.contains(badge(in: palette.foregroundQuaternary)), "\(quiet.debugDescription)")
+        let loud = row("Loud", in: list)
+        #expect(loud.contains(badge(in: palette.foregroundTertiary)), "\(loud.debugDescription)")
+    }
+
+    @Test("A row's own prominence wins over the list's")
+    func rowOverridesList() {
+        let list = List {
+            Text("Loud").badge(12).badgeProminence(.standard)
+            Text("Quiet").badge(12)
+        }
+        .badgeProminence(.decreased)
+        let loud = row("Loud", in: list)
+        #expect(loud.contains(badge(in: palette.foregroundTertiary)), "\(loud.debugDescription)")
+        let quiet = row("Quiet", in: list)
+        #expect(quiet.contains(badge(in: palette.foregroundQuaternary)), "\(quiet.debugDescription)")
+    }
+
+    @Test("A prominence written inside a row's badge does not reach it, as measured")
+    func withinTheBadge() {
+        let within = row("Inbox", in: List { Text("Inbox").badgeProminence(.decreased).badge(12) })
+        #expect(within.contains(badge(in: palette.foregroundTertiary)), "\(within.debugDescription)")
+    }
+
     @Test("The environment value defaults to .standard and reads back what was set")
     func environmentValue() {
         var environment = EnvironmentValues()

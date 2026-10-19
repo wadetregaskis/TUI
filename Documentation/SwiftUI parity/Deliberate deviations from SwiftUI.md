@@ -1740,7 +1740,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 |---|---|---|---|
 | `listRowInsets` written twice on a row | the inner replaces the outer | the two add up | [ListRowStyleModifiers.swift](../../Sources/TUIkitLists/Modifiers/ListRowStyleModifiers.swift#L51-L54), **Recorded** |
 | A row's `.top` separator | drawn where the style allows | declined; the line between rows is the upper row's `.bottom` | [B-D6L-2](<Decisions/List and table stripes, surfaces, pinned headers and separators (D6L).md#b-d6l-2-a-rows-top-separator-is-the-styles-to-decline>), **Lane** |
-| `.badgeProminence` inside a row | reaches the row's badge | does not; set it on the list | [B72](<Decisions/SwiftUI API completion decisions.md#b72-badge-prominence-two-inks-read-from-the-lists-environment>), **Lane** |
+| A row's `.badge(_:)` with a modifier after it other than an environment write (`.badge(5).padding()`) | the badge is drawn | no badge is drawn; write the badge outermost | [B-LISTS-1](<Decisions/List, table and section fixes (LISTS).md#b-lists-1-a-rows-badge-is-read-through-environment-writes-only>), **Lane** |
 | Return on a segmented picker | does nothing | chooses the segment under the cursor | [B-D2C-1](<Decisions/Pickers and sheet sizes (D2C).md#b-d2c-1-a-segmented-pickers-return-chooses-where-macoss-does-nothing>), **Lane** |
 | `Stepper` and `Slider` | draw no value | draw a value read-out | [§1](<SwiftUI compatibility guide.md#1-match>) (Controls row), **Recorded** |
 | `.automatic` and `.tabBarOnly` tab views | a segmented bar in the toolbar (measured) | a compact strip; `.grouped` draws folder tabs | [§1](<SwiftUI compatibility guide.md#1-match>) (Containers row), **Recorded** |

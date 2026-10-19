@@ -2640,13 +2640,16 @@ foreground, which is closer to macOS's `.decreased` than to its `.standard`.
 
 **Shipped:** `.standard` keeps that look, `.decreased` draws in the quaternary
 foreground (the dimmest text a palette has), and `.increased` draws as
-`.standard`, as measured. The list reads the prominence from its own
-environment, so `.badgeProminence(_:)` works on the list or anything around it.
-Written inside a row — around or within the row's `.badge(_:)` — it does not
-reach that badge: the list draws a row's badge itself, from the row's view
-value, in the list's environment.
+`.standard`, as measured. The list reads the prominence from the environment
+each badge is written in: its own, so `.badgeProminence(_:)` works on the list
+or anything around it, or one written on a row around its `.badge(_:)`, which
+wins over the list's. Written inside the badge (`.badgeProminence(.decreased)
+.badge(5)`) it does not reach it. Both measured on macOS 15.8
+(`Tools/SwiftUIProbes/Badge prominence/badgeprom.swift`); since 2026-10-18
+(lane LISTS). A badge with another kind of modifier after it is a gap of its
+own (B-LISTS-1).
 
-**The fuller version** has two parts.
+**The fuller version:**
 
 - **A capsule for `.standard`.** Draw the badge on a tinted field one cell
   wider on each side (` 12 `), the terminal's capsule, and keep today's plain
@@ -2654,10 +2657,6 @@ value, in the list's environment.
   golden or render test that reads a badged row needs re-baselining. Half a
   day, most of it the tests and choosing the field colour per palette (it has
   to read on the cursor row's breath too).
-- **A row's own prominence.** Read a `.badgeProminence(_:)` written inside the
-  row by peeling the environment modifier off the row value the way the badge
-  is peeled off, or by rendering the row's badge inside the row's own
-  environment. A couple of hours; nothing else changes.
 
 ### B73. Background prominence: raised on the rows a list builds itself
 

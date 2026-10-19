@@ -3778,7 +3778,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
 
         // Fallback: render as a single content row, carrying its badge
         // (`List { Text("Notifications").badge(5) }`).
-        let badge = extractBadgeValue(from: content)
+        let badge = extractListRowBadge(from: content)
         // One row IS the whole list, so a ramp spanning the list spans this row
         // and nothing else — its own measured height is the extent.
         var rowRenderContext = context
@@ -3807,7 +3807,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             SelectableListRow(
                 type: staticListRowID(of: content, ordinal: 0, as: SelectionValue.self)
                     .map { .content(id: $0) } ?? .unselectable,
-                content: LazyListRowContent(buffer: buffer, badge: badge))
+                content: LazyListRowContent(buffer: buffer, rowBadge: badge))
         ])
     }
 
@@ -3894,7 +3894,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // a `ForEach` row arrives wrapped in `_MemoizedRow`, which is
             // `Renderable` and so opaque to the plain cast — the same opacity
             // `sectionRow(of:)` above goes through `_ValueMemoWrapping` for.
-            let badge = extractRowBadgeValue(from: child.wrappedView)
+            let badge = extractRowBadge(from: child.wrappedView)
             // Stamped, as a looped row's thunk stamps its own, so what the row
             // reports — a separator, a refusal — names THIS row.
             let restrictions = context.environment.listRowEditRestrictions
@@ -3915,7 +3915,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // exist for. ASKED when the list wants the row's type, not here:
             // a looped row's answer can cost a build of the row, and the hug
             // measure walks every row for its width alone.
-            let rowContent = LazyListRowContent(buffer: buffer, badge: badge)
+            let rowContent = LazyListRowContent(buffer: buffer, rowBadge: badge)
             rowContent.typeSelectProbe = typeSelectProbe(statedBy: child.wrappedView)
             result.append(
                 EagerListRow(
@@ -4166,9 +4166,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // Check for badge on the row (only for content rows, on first line only)
         let badge = row.badge
         let shouldRenderBadge = badge != nil && !badge!.isHidden && row.isSelectable
-        // The badge's ink, by the prominence in the list's environment: the
-        // claim and the bytes below both draw in it.
-        let badgeInk = context.environment.badgeProminence.badgeInk(in: palette)
+        // The badge's ink, by the prominence written around the row's own
+        // `.badge(_:)`, else the one in the list's environment — the
+        // environment the badge is written in, as measured (decisions B72):
+        // the claim and the bytes below both draw in it.
+        let badgeProminence = (shouldRenderBadge ? row.badgeProminence : nil) ?? context.environment.badgeProminence
+        let badgeInk = badgeProminence.badgeInk(in: palette)
         // Where its glyphs land, worked out once: the claim below and the bytes in
         // `renderLineWithBadge` have to name the same cells, and a badge is the one
         // text a list row draws ITSELF rather than taking from its content buffer.

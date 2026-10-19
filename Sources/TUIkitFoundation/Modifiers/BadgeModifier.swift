@@ -88,10 +88,62 @@ extension BadgeValue: Equatable {
 @MainActor
 private protocol BadgeCarrying {
     var carriedBadgeValue: BadgeValue { get }
+    /// The `\.badgeProminence` written around the badge, the write nearest it
+    /// winning — `nil` where none is.
+    var carriedBadgeProminence: BadgeProminence? { get }
 }
 
 extension BadgeModifier: BadgeCarrying {
     fileprivate var carriedBadgeValue: BadgeValue { value }
+    fileprivate var carriedBadgeProminence: BadgeProminence? { nil }
+}
+
+/// A row whose badge has an environment write around it is still a badged
+/// row, and a `.badgeProminence(_:)` written there is that badge's: the badge
+/// sees the environment where `.badge(_:)` is written, as any view does —
+/// measured on macOS 15.8 (`Tools/SwiftUIProbes/Badge prominence/badgeprom.swift`):
+/// `.badge(5).badgeProminence(.decreased)` draws the decreased badge, and
+/// `.badgeProminence(.decreased).badge(5)`, written inside the badge, the
+/// standard one (decisions B72).
+///
+/// A conformance rather than a walk through the row's wrappers, so that the
+/// type gate (``viewTypeCarriesBadge(_:)``) still answers from the row's type
+/// alone and an unbadged row pays nothing for it.
+///
+/// The write is recognised by its value's TYPE, not by comparing its key path
+/// with `\.badgeProminence`: the environment has one value of that type, and
+/// key-path equality compares getter addresses, which the linker's
+/// deduplication can fold (the `key_path_identity` lint rule).
+extension EnvironmentModifier: BadgeCarrying where Content: BadgeCarrying {
+    fileprivate var carriedBadgeValue: BadgeValue { content.carriedBadgeValue }
+    fileprivate var carriedBadgeProminence: BadgeProminence? {
+        content.carriedBadgeProminence ?? value as? BadgeProminence
+    }
+}
+
+/// A list row's badge as the list draws it: its value, and the prominence
+/// written around the row's `.badge(_:)` — `nil` where none is, so the list's
+/// own applies.
+///
+/// `@usableFromInline`, with its fields, for `LazyListRowContent`'s
+/// `@inlinable` ``LazyListRowContent/badge``, which reads it in place.
+@usableFromInline
+package struct ListRowBadge: Sendable {
+    @usableFromInline package let value: BadgeValue
+    @usableFromInline package let prominence: BadgeProminence?
+
+    package init(value: BadgeValue, prominence: BadgeProminence? = nil) {
+        self.value = value
+        self.prominence = prominence
+    }
+}
+
+/// The badge a row carries and the prominence written around it —
+/// ``extractBadgeValue(from:)`` for a list, which draws both.
+@MainActor
+package func extractListRowBadge<V: View>(from view: V) -> ListRowBadge? {
+    guard let carrier = view as? any BadgeCarrying else { return nil }
+    return ListRowBadge(value: carrier.carriedBadgeValue, prominence: carrier.carriedBadgeProminence)
 }
 
 /// Extracts the badge value from a view if it's wrapped in a BadgeModifier.
@@ -116,7 +168,7 @@ public func viewTypeCarriesBadge<V: View>(_ type: V.Type) -> Bool {
     type is any BadgeCarrying.Type
 }
 
-/// The badge a `List` ROW carries — ``extractBadgeValue(from:)``, but seeing
+/// The badge a `List` ROW carries — ``extractListRowBadge(from:)``, but seeing
 /// past `ForEach`'s value memo.
 ///
 /// The two walks that read a row's badge off its view value — `_ListCore`'s
@@ -144,12 +196,12 @@ public func viewTypeCarriesBadge<V: View>(_ type: V.Type) -> Bool {
 /// two arrangements are priced alike, instead of the badge being cheap in one
 /// and absent in the other.
 @MainActor
-package func extractRowBadgeValue(from view: any View) -> BadgeValue? {
-    if let badge = extractBadgeValue(from: view) { return badge }
+package func extractRowBadge(from view: any View) -> ListRowBadge? {
+    if let badge = extractListRowBadge(from: view) { return badge }
     guard let memo = view as? any _ValueMemoWrapping,
         viewTypeCarriesBadge(memo.memoizedContentType)
     else { return nil }
-    return extractBadgeValue(from: memo.memoizedContent)
+    return extractListRowBadge(from: memo.memoizedContent)
 }
 
 // MARK: - Renderable

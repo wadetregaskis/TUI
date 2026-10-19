@@ -76,7 +76,7 @@ package protocol ListRowSeparatorDeciding: AnyObject {
 @MainActor
 @usableFromInline
 package final class LazyListRowContent {
-    private var thunk: ((GradientFrame?, BackgroundProminence) -> (buffer: FrameBuffer, badge: BadgeValue?))?
+    private var thunk: ((GradientFrame?, BackgroundProminence) -> (buffer: FrameBuffer, badge: ListRowBadge?))?
 
     /// The row's render, once it has one: what ``buffer`` and ``badge`` lend.
     ///
@@ -106,7 +106,7 @@ package final class LazyListRowContent {
     /// check. Do not copy it for a property with no such check, whose
     /// accesses are statically enforced, such as the storage under
     /// ``separatorDecider``.
-    @usableFromInline var cached: (buffer: FrameBuffer, badge: BadgeValue?)?
+    @usableFromInline var cached: (buffer: FrameBuffer, badge: ListRowBadge?)?
 
     /// The prominence of the background the list paints under this row — raised
     /// for the focused, selected row, whose content then renders with
@@ -267,7 +267,7 @@ package final class LazyListRowContent {
         identity: ViewIdentity? = nil,
         carriesBadge: Bool = true,
         measure: (() -> (size: ViewSize, availableWidth: Int))? = nil,
-        render: @escaping (GradientFrame?, BackgroundProminence) -> (buffer: FrameBuffer, badge: BadgeValue?)
+        render: @escaping (GradientFrame?, BackgroundProminence) -> (buffer: FrameBuffer, badge: ListRowBadge?)
     ) {
         self.rowIdentity = identity
         self.carriesBadge = carriesBadge
@@ -282,10 +282,16 @@ package final class LazyListRowContent {
     /// `nonisolated` so the (nonisolated) `SelectableListRow` / `ListRow`
     /// buffer initializers can wrap an already-rendered buffer without hopping
     /// to the main actor — it only stores a `Sendable` tuple, runs no pipeline.
-    package nonisolated init(buffer: FrameBuffer, badge: BadgeValue?) {
+    package nonisolated init(buffer: FrameBuffer, rowBadge: ListRowBadge?) {
         self.rowIdentity = nil
-        self.carriesBadge = badge != nil
-        self.cached = (buffer, badge)
+        self.carriesBadge = rowBadge != nil
+        self.cached = (buffer, rowBadge)
+    }
+
+    /// Wraps an already-rendered buffer and a badge with no prominence of its
+    /// own — see ``init(buffer:rowBadge:)``.
+    package nonisolated convenience init(buffer: FrameBuffer, badge: BadgeValue?) {
+        self.init(buffer: buffer, rowBadge: badge.map { ListRowBadge(value: $0) })
     }
 
     /// Forgets the render, so the next read of ``buffer`` renders the row again
@@ -348,7 +354,15 @@ package final class LazyListRowContent {
     @inlinable
     package var badge: BadgeValue? {
         resolveIfNeeded()
-        return cached!.badge
+        return cached!.badge?.value
+    }
+
+    /// The prominence written around the row's badge, inside the row — `nil`
+    /// where none is, so the list's own applies (decisions B72). Renders the
+    /// row first if need be, as ``badge`` does.
+    package var badgeProminence: BadgeProminence? {
+        resolveIfNeeded()
+        return cached!.badge?.prominence
     }
 
     /// The row's buffer without the line its separator is drawn on: the row

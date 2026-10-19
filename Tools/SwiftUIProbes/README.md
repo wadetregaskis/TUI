@@ -464,3 +464,17 @@ messages cite that path), and what cites it.
   from SwiftUI.md` (A3, A6), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Animation row);
   `Documentation/SwiftUI parity/Decisions/Transition follow-ups (TRANSITIONS2).md`,
   `Documentation/SwiftUI parity/Decisions/Matched geometry and the zoom transition (O4).md` (B-O4-2).
+
+### Badge prominence
+
+- **Asks:** where a `.badgeProminence(_:)` written on a `List` row reaches that row's badge: around the
+  `.badge(_:)`, inside it, around a padding after it, and on the list with a row's own `.standard` around its
+  badge; and whether a `.badge(_:)` with a padding after it is still drawn (`badgeprom.swift`, `badgeprom.out`,
+  built with `common.swift`). Counts the non-white pixels in each row's trailing 70 points: a `.standard` badge
+  sits in a light grey capsule (1128 pixels), a `.decreased` one is bare grey text (157).
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-18.
+- **Was:** `LISTS/probe/`.
+- **Cited by:** `Sources/TUIkitFoundation/Modifiers/BadgeModifier.swift`,
+  `Tests/TUIkitListsTests/BadgeProminenceTests.swift`;
+  `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (B72),
+  `Documentation/SwiftUI parity/Decisions/List, table and section fixes (LISTS).md` (B-LISTS-1).

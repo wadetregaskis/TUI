@@ -25,8 +25,10 @@
 //
 //  Both call the actual production method whose BODY is what `95798a0b`
 //  changed (a plain `extractBadgeValue` to the row-unwrapping
-//  `extractRowBadgeValue`), so which one runs depends on whichever `Sources`
-//  are checked out — the same way a full render would, but without one.
+//  `extractRowBadgeValue`, since renamed `extractRowBadge` when the badge
+//  gained the prominence written around it), so which one runs depends on
+//  whichever `Sources` are checked out — the same way a full render would,
+//  but without one.
 //
 //  The other three stay rendered, because the arrangement they exercise —
 //  a static row beside a `ForEach`, *without* a `Section` — is walked by

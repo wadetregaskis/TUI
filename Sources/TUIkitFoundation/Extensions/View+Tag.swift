@@ -178,7 +178,7 @@ func extractTagValue<V: View, Value: Hashable>(from view: V, as valueType: Value
 }
 
 /// ``extractTagValue(from:as:)`` for a row a child walk holds, seeing past
-/// `ForEach`'s value memo — `extractRowBadgeValue(from:)`'s shape, for the same
+/// `ForEach`'s value memo — `extractRowBadge(from:)`'s shape, for the same
 /// wrapper.
 ///
 /// A looped row of an `Equatable` element reaches a flattening walk wrapped in

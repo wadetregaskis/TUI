@@ -93,6 +93,11 @@ public struct SelectableListRow<SelectionValue: Hashable & Sendable>: Sendable {
     /// The badge value for this row (from environment). Forces the lazy render.
     @MainActor public var badge: BadgeValue? { content.badge }
 
+    /// The prominence written around the row's own `.badge(_:)`, or `nil` for
+    /// the list's — see ``LazyListRowContent/badgeProminence``. Forces the
+    /// lazy render.
+    @MainActor var badgeProminence: BadgeProminence? { content.badgeProminence }
+
     /// ``badge``, without rendering the row to find there is none — see
     /// ``LazyListRowContent/carriesBadge``.
     @MainActor var badgeWithoutRendering: BadgeValue? { content.carriesBadge ? content.badge : nil }
