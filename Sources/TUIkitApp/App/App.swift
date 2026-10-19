@@ -649,22 +649,9 @@ extension AppRunner {
             // positive interval, never a spurious "block forever".
             pacer.renderIfDue(now: now, renderOneFrame)
 
-            // The progress bar, sent again where it has gone unsent long enough
-            // for a terminal to drop it: a write between frames, which draws
-            // nothing, so a still screen with a bar up renders no frame for it.
-            keepHostStateAlive(renderer: renderer, now: now)
-
-            // How long to wait until the next render is due (cap and/or animation
-            // folded into one instant), or nil to block until woken. While the
-            // input parser holds something that resolves on a timeout — a lone
-            // ESC being disambiguated from a sequence, or a split sequence
-            // awaiting its tail — the wait is shortened to a poll, so the partial
-            // resolves on a bounded wall-clock deadline (a prompt Escape) instead
-            // of waiting for unrelated input or an animation tick. The progress
-            // bar's next send shortens it too, and owes no frame.
-            let waitNanos = pacer.waitNanos(
-                now: now, pollingPendingInput: terminal.hasPendingInput,
-                until: renderer.hostState.keepAliveDeadline.map { UInt64(bitPattern: $0) })
+            // What is owed between frames — the progress bar, sent again where
+            // it is due — and then how long to wait, or nil to block until woken.
+            let waitNanos = betweenFrames(renderer: renderer, pacer: pacer, now: now)
 
             // Block until woken (stdin data or a render-request `wake()`), or —
             // when a render is pending or an animation is due — until that target.
@@ -680,6 +667,50 @@ extension AppRunner {
 
         // Cleanup
         cleanup(renderer: renderer)
+    }
+}
+
+// MARK: - Between frames, and the exit's farewell
+
+extension AppRunner {
+    /// What the loop does at `now` once any frame due is drawn, and how long it
+    /// may then wait: `nil` to block until woken.
+    ///
+    /// First the progress bar, sent again where it has gone unsent long enough
+    /// for a terminal to drop it (`RenderLoop.keepHostStateAlive(atNanos:)`): a
+    /// write between frames, which draws nothing, so a still screen with a bar
+    /// up renders no frame for it. Then the wait until the next render is due
+    /// (cap and/or animation folded into one instant). While the input parser
+    /// holds something that resolves on a timeout — a lone ESC being
+    /// disambiguated from a sequence, or a split sequence awaiting its tail —
+    /// the wait is shortened to a poll, so the partial resolves on a bounded
+    /// wall-clock deadline (a prompt Escape) instead of waiting for unrelated
+    /// input or an animation tick. The progress bar's next send shortens it
+    /// too, and owes no frame.
+    ///
+    /// Internal rather than `fileprivate` only so a test can name it, for the
+    /// reason `foldPendingWork` gives: its one caller is the `while isRunning`
+    /// loop, which nothing a unit test can drive reaches.
+    func betweenFrames(renderer: RenderLoop<A>, pacer: FramePacer, now: UInt64) -> UInt64? {
+        renderer.keepHostStateAlive(atNanos: Int64(bitPattern: now))
+        return pacer.waitNanos(
+            now: now, pollingPendingInput: terminal.hasPendingInput,
+            until: renderer.hostState.keepAliveDeadline.map { UInt64(bitPattern: $0) })
+    }
+
+    /// What the exit writes before the terminal leaves the alternate screen:
+    /// the image deletes, and then a copy made in the last moments — a Ctrl-C
+    /// and then `q` before a frame drew — which is still owed to the terminal's
+    /// clipboard; likewise attention asked for on the way out
+    /// (`requestAttention("Done")` and then `dismiss()`), which no frame would
+    /// write; and what the app set on the terminal emulator, given back.
+    ///
+    /// Internal rather than `fileprivate` only so a test can name it: its one
+    /// caller is the exit's cleanup, which hands back the console.
+    func exitFarewell(renderer: RenderLoop<A>) -> String {
+        let attention = renderer.attentionWrites()
+        return tuiContext.terminalImageStore.takePending() + tuiContext.clipboardWriter.takePendingSequences()
+            + attention.notifications + attention.bell + handBackHostState(renderer)
     }
 }
 
@@ -1066,14 +1097,6 @@ extension AppRunner {
         showPointerShape()
     }
 
-    /// Sends the progress bar again where it is due (`TerminalHostState.keepAlive(atNanos:)`),
-    /// at `now` on the monotonic clock, straight to the terminal: no frame is
-    /// being written between frames.
-    fileprivate func keepHostStateAlive(renderer: RenderLoop<A>, now: UInt64) {
-        let resend = renderer.hostState.keepAlive(atNanos: Int64(bitPattern: now))
-        if !resend.isEmpty { terminal.write(resend) }
-    }
-
     /// What the app set on the terminal emulator, given back — the window
     /// title restored where it was saved, the progress bar taken down — and
     /// owed no more.
@@ -1098,18 +1121,8 @@ extension AppRunner {
         // nobody can see. Written directly rather than queued: there is no
         // further frame to drain it.
         tuiContext.terminalImageStore.releaseAll()
-        // The same hand-back as `suspendUntilContinued`'s, with the farewell:
-        // the image deletes, and then a copy made in the last moments — a
-        // Ctrl-C and then `q` before a frame drew — which is still owed to the
-        // terminal's clipboard; and likewise attention asked for on the way
-        // out (`requestAttention("Done")` and then `dismiss()`), which no
-        // frame would write.
-        let attention = renderer.attentionWrites()
-        terminal.handBack(
-            farewell: tuiContext.terminalImageStore.takePending()
-                + tuiContext.clipboardWriter.takePendingSequences() + attention.notifications + attention.bell
-                + handBackHostState(renderer),
-            restoringStyling: renderer.restoreTerminalStyling)
+        // The same hand-back as `suspendUntilContinued`'s, with the farewell.
+        terminal.handBack(farewell: exitFarewell(renderer: renderer), restoringStyling: renderer.restoreTerminalStyling)
         SoftTrap.terminalRestored()
         signals.stop()
         appState.clearObservers()

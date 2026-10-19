@@ -251,11 +251,11 @@ package final class HeadlessApp<A: App> {
     }
 
     /// What the app's run loop writes between frames at `nanos`, where the
-    /// progress bar is due to be sent again, written as it writes it — with
-    /// no frame (`AppRunner.keepHostStateAlive`).
+    /// progress bar is due to be sent again — with no frame
+    /// (`RenderLoop.keepHostStateAlive(atNanos:)`, as `AppRunner.betweenFrames`
+    /// calls it).
     func keepHostStateAlive(atNanos nanos: Int64) {
-        let resend = renderer.hostState.keepAlive(atNanos: nanos)
-        if !resend.isEmpty { terminal.write(resend) }
+        renderer.keepHostStateAlive(atNanos: nanos)
     }
 
     /// When the run loop would next send the progress bar again, with nothing

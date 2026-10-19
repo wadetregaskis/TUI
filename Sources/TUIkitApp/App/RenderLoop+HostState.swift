@@ -66,6 +66,14 @@ extension RenderLoop {
             showsProgress: showsProgress, postsNotifications: features.postsNotifications)
     }
 
+    /// Sends the progress bar again where it is due at `now` on the monotonic
+    /// clock (``TerminalHostState/keepAlive(atNanos:)``), straight to the
+    /// terminal: the run loop's write between frames, which draws nothing.
+    func keepHostStateAlive(atNanos now: Int64) {
+        let resend = hostState.keepAlive(atNanos: now)
+        if !resend.isEmpty { terminal.write(resend) }
+    }
+
     /// What this frame writes to get the person's attention: a notification
     /// for each message the app asked with (`requestAttention(_:)`), where the
     /// terminal posts one (``TerminalFeatures/postsNotifications``); and the
