@@ -27,8 +27,13 @@ package struct CustomizableToolbarDeclaration {
         package let view: AnyView
         /// Whether the person may take it out of the bar (`.default`).
         package let isRemovable: Bool
-        /// Whether the person may move it (`.default`, `.reorderable`).
-        package let isMovable: Bool
+        /// Whether the person may move it one place earlier: it is movable
+        /// (`.default`, `.reorderable`), and so is an item before it in its
+        /// place in the bar.
+        package let canMoveEarlier: Bool
+        /// Whether the person may move it one place later, as
+        /// ``canMoveEarlier``.
+        package let canMoveLater: Bool
         /// Whether it is in the bar now — the person's choice, else its
         /// default (`defaultCustomization(_:options:)`).
         package let isShown: Bool
@@ -37,12 +42,14 @@ package struct CustomizableToolbarDeclaration {
         package let isHiddenByApp: Bool
 
         package init(
-            id: String, view: AnyView, isRemovable: Bool, isMovable: Bool, isShown: Bool, isHiddenByApp: Bool
+            id: String, view: AnyView, isRemovable: Bool, canMoveEarlier: Bool, canMoveLater: Bool, isShown: Bool,
+            isHiddenByApp: Bool
         ) {
             self.id = id
             self.view = view
             self.isRemovable = isRemovable
-            self.isMovable = isMovable
+            self.canMoveEarlier = canMoveEarlier
+            self.canMoveLater = canMoveLater
             self.isShown = isShown
             self.isHiddenByApp = isHiddenByApp
         }
@@ -51,7 +58,7 @@ package struct CustomizableToolbarDeclaration {
     /// The toolbar's identifier.
     package let id: String
 
-    /// Its customizable items, in the order the bar draws them.
+    /// Its customizable items, in the order the bars draw them.
     package let items: [Item]
 
     /// The environment of the view that declared it, for the panel to draw
@@ -61,8 +68,9 @@ package struct CustomizableToolbarDeclaration {
     /// Puts the item with `id` in the bar or takes it out.
     package let setShown: @MainActor (_ id: String, _ isShown: Bool) -> Void
 
-    /// Moves the item with `id` past `offset` of the movable items beside it:
-    /// −1 is one earlier.
+    /// Moves the item with `id` past the movable item before it in its place
+    /// in the bar (`offset` −1) or after it (`offset` 1): an item moved past
+    /// one in another place would stay where it was in the bar.
     package let move: @MainActor (_ id: String, _ offset: Int) -> Void
 
     /// Forgets everything the person chose: the items as the app declared

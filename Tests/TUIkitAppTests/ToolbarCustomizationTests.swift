@@ -71,6 +71,25 @@ private struct KeyboardCustomizableApp: App {
     }
 }
 
+/// A customizable toolbar with items in two places: two at the top bar's
+/// leading end, declared either side of one at its trailing end.
+private struct MixedPlacementsApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            Text("PAGE")
+                .toolbar(id: "mixed") {
+                    ToolbarItem(id: "lead", placement: .navigation) { Text("LEAD") }
+                    ToolbarItem(id: "act", placement: .primaryAction) { Text("ACT") }
+                    ToolbarItem(id: "second", placement: .navigation) { Text("SECOND") }
+                }
+        }
+        .defaultAppStorage(CustomizationProbe.shared.store)
+        .windowToolbarStyle(.unifiedCompact)
+    }
+}
+
 @MainActor
 @Suite("Toolbar customization", .serialized)
 struct ToolbarCustomizationTests {
@@ -83,11 +102,12 @@ struct ToolbarCustomizationTests {
 
     /// The app and its frame clock.
     @MainActor
-    private final class Driver {
-        let app = HeadlessApp(CustomizableApp(), width: 70, height: 16)
+    private final class Driver<Probe: App> {
+        let app: HeadlessApp<Probe>
         var now: Int64 = 0
 
-        init() {
+        init(_ probe: Probe) {
+            app = HeadlessApp(probe, width: 70, height: 16)
             frames(2)
         }
 
@@ -125,7 +145,7 @@ struct ToolbarCustomizationTests {
     func startsAsDeclared() {
         reset()
         defer { reset() }
-        let bar = Driver().rows.first ?? ""
+        let bar = Driver(CustomizableApp()).rows.first ?? ""
         #expect(bar.contains("SHARE") && bar.contains("PRINT") && bar.contains("FIXED"), "\(bar)")
         #expect(!bar.contains("MAIL") && !bar.contains("DOWNLOADS"), "\(bar)")
         #expect(bar.contains("»"), "the overflow menu: \(bar)")
@@ -135,7 +155,7 @@ struct ToolbarCustomizationTests {
     func overflowWorks() {
         reset()
         defer { reset() }
-        let driver = Driver()
+        let driver = Driver(CustomizableApp())
         driver.click("»")
         driver.click("DOWNLOADS")
         #expect(CustomizationProbe.shared.downloads == 1, "\(driver.rows)")
@@ -145,7 +165,7 @@ struct ToolbarCustomizationTests {
     func checkboxAddsAnItem() {
         reset()
         defer { reset() }
-        let driver = Driver()
+        let driver = Driver(CustomizableApp())
         driver.openPanel()
         #expect(driver.rows.contains { $0.contains("MAIL") }, "the panel lists every item: \(driver.rows)")
         driver.click("□", after: "MAIL")
@@ -154,14 +174,14 @@ struct ToolbarCustomizationTests {
         #expect(driver.rows.first?.contains("MAIL") == true, "\(driver.rows)")
         #expect(CustomizationProbe.shared.store.hasValue(forKey: "TUIkit Toolbar Configuration main"))
         // Kept: a new run of the app finds it.
-        #expect(Driver().rows.first?.contains("MAIL") == true)
+        #expect(Driver(CustomizableApp()).rows.first?.contains("MAIL") == true)
     }
 
     @Test("▼ moves an item past the next, in the bar")
     func arrowMovesAnItem() {
         reset()
         defer { reset() }
-        let driver = Driver()
+        let driver = Driver(CustomizableApp())
         driver.openPanel()
         driver.click("▼", after: "SHARE")
         driver.frames(2)
@@ -174,12 +194,43 @@ struct ToolbarCustomizationTests {
         }
     }
 
+    @Test("The panel lists the items in the bars' order, and ▼ moves one past the next of its own place")
+    func arrowsKeepToThePlace() {
+        reset()
+        defer { reset() }
+        let driver = Driver(MixedPlacementsApp())
+        driver.click("LEAD", button: .right)
+        driver.click("Customize Toolbar")
+        // The leading items, then the trailing one: the bar's order, not the
+        // declaration's.
+        let panel = driver.rows
+        let lead = panel.firstIndex { $0.contains("LEAD") && $0.contains("▼") }
+        let second = panel.firstIndex { $0.contains("SECOND") && $0.contains("▼") }
+        let act = panel.firstIndex { $0.contains("ACT") && $0.contains("▼") }
+        if let lead, let second, let act {
+            #expect(lead < second && second < act, "\(panel)")
+        } else {
+            Issue.record("\(panel)")
+        }
+        // ▼ takes the first leading item past the second, not past the
+        // trailing one, which would change nothing in the bar.
+        driver.click("▼", after: "LEAD")
+        driver.frames(2)
+        driver.click("Done")
+        let bar = driver.rows.first ?? ""
+        if let first = bar.range(of: "LEAD"), let next = bar.range(of: "SECOND") {
+            #expect(next.lowerBound < first.lowerBound, "\(bar)")
+        } else {
+            Issue.record("\(bar)")
+        }
+    }
+
     @Test("An item the app hides is out of the bar, whatever the person chose")
     func appHidden() {
         reset()
         defer { reset() }
         CustomizationProbe.shared.hidesShare = true
-        let bar = Driver().rows.first ?? ""
+        let bar = Driver(CustomizableApp()).rows.first ?? ""
         #expect(!bar.contains("SHARE") && bar.contains("PRINT"), "\(bar)")
     }
 
@@ -219,7 +270,7 @@ struct ToolbarCustomizationTests {
     func resetForgets() {
         reset()
         defer { reset() }
-        let driver = Driver()
+        let driver = Driver(CustomizableApp())
         driver.openPanel()
         driver.click("□", after: "MAIL")
         driver.frames(2)

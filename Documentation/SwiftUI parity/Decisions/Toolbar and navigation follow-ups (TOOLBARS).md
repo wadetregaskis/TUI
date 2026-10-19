@@ -85,8 +85,9 @@ customisation family, option 1 (settled 2026-10-18)*
 
 **Shipped:** a customizable toolbar's identified items are customized from a
 panel that hangs from the top bar (the bottom bar, where the window has no top
-bar): a checkbox per item, ▲ ▼ to move it among the movable items, the label
-styles where the scene bound them, Reset and Done. It opens from the bar's
+bar): the items in the order the bars draw them, a checkbox per item, ▲ ▼ to
+move it among the movable items of its place, the label styles where the scene
+bound them, Reset and Done. It opens from the bar's
 context menu — a right-click, or Shift+F10 while one of the bar's items has the
 focus — and from the menu bar's View ▸ Customize Toolbar… (`ToolbarCommands`).
 What the person chose is kept per toolbar identifier in the app's default
@@ -95,9 +96,11 @@ written until they change something; Reset forgets it.
 
 Where it differs from macOS:
 
-- **Moving is within a placement.** The bar lays its items out by placement —
-  leading, principal, trailing — so an item moves among the others of its
-  placement; macOS drags an item anywhere in the toolbar.
+- **Moving is within a place.** A bar's row lays its items out region by
+  region — leading, principal, secondary, trailing — so an item moves among the
+  others of its region of its bar's row (an accessory bar is a row of its own);
+  an arrow with no movable item beyond it in that place is disabled. macOS
+  drags an item anywhere in the toolbar.
 - **No palette of spacers.** macOS offers Space and Flexible Space to drag in;
   a `ToolbarSpacer` here stays where it was declared.
 - **The keyboard's way in needs a stop or the menu bar.** Shift+F10 opens the

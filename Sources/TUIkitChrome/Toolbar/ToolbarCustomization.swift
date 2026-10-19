@@ -23,7 +23,8 @@ extension View {
     /// while one of its items has the focus) or the menu bar's View ▸
     /// Customize Toolbar… (`ToolbarCommands`), a panel lists them, where the
     /// person puts each in the bar or takes it out, and moves it among the
-    /// others, with the keyboard or the mouse.
+    /// others in its place — its region of its bar's row — with the keyboard
+    /// or the mouse.
     ///
     /// ```swift
     /// BrowserView()
@@ -134,6 +135,55 @@ extension _ToolbarItemSpec {
     var isMovableCustomization: Bool {
         id != nil && customization.behavior != .disabled
     }
+
+    /// Where the bars draw the item, as far as its order goes: its bar, and
+    /// the region of the bar's row it is in. A bar lays out each region's
+    /// items in their order, one region after another, so the person moves an
+    /// item among those of its own place: moved past an item in another, it
+    /// would stay where it was in the bar.
+    var customizationPlace: _ToolbarCustomizationPlace {
+        _ToolbarCustomizationPlace(
+            bar: placement.bar, accessoryBar: placement.accessoryBar, region: placement.region)
+    }
+}
+
+/// A place in the bars a customizable toolbar's items are moved within: a
+/// region of one bar's row (``_ToolbarItemSpec/customizationPlace``).
+struct _ToolbarCustomizationPlace: Hashable {
+    let bar: WindowChromeState.Edge
+    let accessoryBar: AccessoryBarID?
+    let region: ToolbarItemPlacement.Region
+
+    /// Where the place comes in the bars: the top bar's own row, then its
+    /// accessory bars, then the bottom bar — each row's regions in the order
+    /// it lays them out.
+    var rank: (bar: Int, region: Int) {
+        let bar = self.bar == .bottom ? 2 : accessoryBar == nil ? 0 : 1
+        let region: Int
+        switch self.region {
+        case .leading: region = 0
+        case .principal: region = 1
+        case .secondary: region = 2
+        case .trailing: region = 3
+        }
+        return (bar, region)
+    }
+
+    /// `items` in the order the bars draw them, place by place (``rank``) —
+    /// the accessory bars in the order their first items come — and each
+    /// place's items in their order.
+    static func inBarOrder(_ items: [_ToolbarItemSpec]) -> [_ToolbarItemSpec] {
+        var firstOfBar: [AccessoryBarID: Int] = [:]
+        for (index, item) in items.enumerated() {
+            if let bar = item.placement.accessoryBar, firstOfBar[bar] == nil { firstOfBar[bar] = index }
+        }
+        func key(_ offset: Int) -> [Int] {
+            let place = items[offset].customizationPlace
+            let rank = place.rank
+            return [rank.bar, place.accessoryBar.flatMap { firstOfBar[$0] } ?? 0, rank.region, offset]
+        }
+        return items.indices.sorted { key($0).lexicographicallyPrecedes(key($1)) }.map { items[$0] }
+    }
 }
 
 // MARK: - Applying It
@@ -172,19 +222,33 @@ extension _ToolbarModifier {
 
     /// Records this customizable toolbar in the window's chrome, for its panel
     /// and the menu bar's Customize Toolbar…: its customizable items in the
-    /// person's order, whether each is in the bar, and the ways to change it.
+    /// order the bars draw them, whether each is in the bar, and the ways to
+    /// change it.
     func declareCustomizable(into chrome: WindowChromeState, context: RenderContext) {
         guard let customizationID else { return }
         let store = context.environment.defaultAppStorage?.store ?? StorageDefaults.backend
         let record = _ToolbarCustomizationRecord.load(customizationID, from: store)
         let arranged = record.arranged(toolbarItems(of: items)).filter { $0.id != nil && !$0.isTitleMenu }
+        // The record's order is the arranged one; the panel's, the bars'.
         let ids = arranged.compactMap(\.id)
-        let movable = arranged.filter(\.isMovableCustomization).compactMap(\.id)
-        let items = arranged.map { item in
-            CustomizableToolbarDeclaration.Item(
-                id: item.id ?? "", view: item.view, isRemovable: item.isRemovableCustomization,
-                isMovable: item.isMovableCustomization, isShown: record.isChosen(item),
-                isHiddenByApp: item.customization.isHiddenByApp)
+        let listed = _ToolbarCustomizationPlace.inBarOrder(arranged)
+        // Each movable item's neighbours: the movable items before and after
+        // it in its own place.
+        var neighbours: [String: (earlier: String?, later: String?)] = [:]
+        for place in Set(listed.map(\.customizationPlace)) {
+            let movable = listed.filter { $0.isMovableCustomization && $0.customizationPlace == place }.compactMap(\.id)
+            for (index, id) in movable.enumerated() {
+                neighbours[id] = (
+                    index > 0 ? movable[index - 1] : nil, index + 1 < movable.count ? movable[index + 1] : nil
+                )
+            }
+        }
+        let items = listed.map { item in
+            let id = item.id ?? ""
+            return CustomizableToolbarDeclaration.Item(
+                id: id, view: item.view, isRemovable: item.isRemovableCustomization,
+                canMoveEarlier: neighbours[id]?.earlier != nil, canMoveLater: neighbours[id]?.later != nil,
+                isShown: record.isChosen(item), isHiddenByApp: item.customization.isHiddenByApp)
         }
         chrome.declare(
             CustomizableToolbarDeclaration(
@@ -195,15 +259,15 @@ extension _ToolbarModifier {
                     record.save(customizationID, to: store)
                 },
                 move: { id, offset in
-                    guard let at = movable.firstIndex(of: id) else { return }
-                    let to = at + offset
-                    guard movable.indices.contains(to) else { return }
-                    var order = movable
+                    guard let other = offset < 0 ? neighbours[id]?.earlier : neighbours[id]?.later,
+                        let at = ids.firstIndex(of: id), let to = ids.firstIndex(of: other)
+                    else { return }
+                    // The whole order, with the two items of one place swapped:
+                    // every other item, of that place or another, stays put.
+                    var order = ids
                     order.swapAt(at, to)
                     var record = _ToolbarCustomizationRecord.load(customizationID, from: store)
-                    // The whole order, the immovable ones where they are.
-                    var moved = order.makeIterator()
-                    record.order = ids.map { movable.contains($0) ? moved.next() ?? $0 : $0 }
+                    record.order = order
                     record.save(customizationID, to: store)
                 },
                 reset: { _ToolbarCustomizationRecord().save(customizationID, to: store) }))

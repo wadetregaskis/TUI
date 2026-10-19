@@ -67,14 +67,16 @@ struct _ToolbarCustomizationHost<Content: View>: View {
 // MARK: - The Panel
 
 /// The customization panel: each of the toolbar's customizable items, in the
-/// order the bar draws them — a checkbox that puts it in the bar or takes it
-/// out, and ▲ and ▼ to move it among the others — then the label styles where
-/// the scene bound its label style, Reset, and Done.
+/// order the bars draw them — a checkbox that puts it in the bar or takes it
+/// out, and ▲ and ▼ to move it among the others in its place, its region of
+/// its bar's row — then the label styles where the scene bound its label
+/// style, Reset, and Done.
 ///
 /// Every control is a `Toggle` or a `Button`, so Tab walks them, Space and
 /// Return act, and a click does what the key would. An item the person may
 /// not take out (`.reorderable`, `.disabled`) has its checkbox disabled, and
-/// one they may not move (`.disabled`) its arrows. An item the app hid
+/// one they may not move (`.disabled`) its arrows, as has an arrow with no
+/// movable item beyond it in the item's place. An item the app hid
 /// (`hidden(_:)`) is listed, as SwiftUI lists it during customization, and
 /// stays out of the bar whatever its checkbox says, until the app shows it.
 struct _ToolbarCustomizationPanel: View {
@@ -97,10 +99,9 @@ struct _ToolbarCustomizationPanel: View {
     }
 
     var body: some View {
-        let movable = toolbar.items.filter(\.isMovable).map(\.id)
         VStack(alignment: .leading, spacing: 0) {
             ForEach(toolbar.items.indices, id: \.self) { index in
-                row(toolbar.items[index], movable: movable)
+                row(toolbar.items[index])
             }
             if let choose = choosesLabelStyle {
                 Divider()
@@ -125,18 +126,17 @@ struct _ToolbarCustomizationPanel: View {
 
     /// One item: its checkbox, labelled with the item as the bar draws it —
     /// inert here — and its arrows.
-    private func row(_ item: CustomizableToolbarDeclaration.Item, movable: [String]) -> some View {
+    private func row(_ item: CustomizableToolbarDeclaration.Item) -> some View {
         let toolbar = toolbar
-        let place = movable.firstIndex(of: item.id)
         return HStack(spacing: 1) {
             Toggle(isOn: Binding(get: { item.isShown }, set: { toolbar.setShown(item.id, $0) })) {
                 item.view.disabled(true)
             }
             .disabled(!item.isRemovable)
             Button("▲") { toolbar.move(item.id, -1) }
-                .disabled(place.map { $0 == 0 } ?? true)
+                .disabled(!item.canMoveEarlier)
             Button("▼") { toolbar.move(item.id, 1) }
-                .disabled(place.map { $0 == movable.count - 1 } ?? true)
+                .disabled(!item.canMoveLater)
         }
     }
 }
