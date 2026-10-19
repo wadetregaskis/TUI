@@ -7,10 +7,11 @@
 import TUIkitCore
 
 // The default transition for the children a container places itself: a child
-// the change puts in fades in where it lands, and one it takes out fades out
-// where it was, beneath its siblings, as SwiftUI's do with no `.transition`
-// written — an `if`/`else` whose branch flips, a `switch`, a `ForEach`'s rows
-// (measured, `Tools/SwiftUIProbes/Transitions/tr1.out` T1–T3).
+// the change puts in fades in where it lands, as SwiftUI's does with no
+// `.transition` written — an `if`/`else` whose branch flips, a `switch`, a
+// `ForEach`'s rows (measured, `Tools/SwiftUIProbes/Transitions/tr1.out`
+// T1–T3). One the change takes out goes at once, unless it carries a
+// transition of its own, which plays its removal where it was.
 //
 // ## Why the container, and not the view that changed
 //
@@ -20,18 +21,29 @@ import TUIkitCore
 // gone has no `ForEach` element left to render it. What sees all three is the
 // container that places them: on the frame of the change it is handed
 // children it has never seen and is not handed ones it had, and it remembers
-// where each was (`PlacementStore`). It also keeps what each drew on its last
-// frame (``PlacementStore/Record/pictures``) — the one thing a child that has
-// gone leaves — which costs a stored array a frame, the array the container
-// already holds, and the memory of the buffers in it, kept from one frame to
-// the next: on a nested page, what every level below drew (decisions
-// B-TRANSITIONS2-1).
+// where each was (`PlacementStore`).
+//
+// ## Why one that goes does not fade out
+//
+// SwiftUI fades it out where it was. Here that needs the picture it drew on
+// its last frame — the one thing a child that has gone leaves — kept by its
+// container on every frame, settled or not, since the frame a child goes is
+// the first that does not draw it. Lane TRANSITIONS2 kept them (decisions
+// B-TRANSITIONS2-1), and the A/B of 2026-10-19 priced that with nothing
+// animating at all: up to +7.2% a frame (`tables-scroll`), +2–3.5% across
+// a dozen scenarios, and `deep`'s footprint 17.1 → 32.6 MB, each level of a
+// nested page keeping what every level below it drew. Keeping only the
+// pictures of children that can go still keeps a branch's, which is what a
+// nested page's levels are (decisions TR2PERF). So by the owner's rule of
+// 2026-10-14 — fade both ways, falling back to fading in only at a
+// significant cost, above all with no animation — it fades in only
+// (Deliberate deviations A10). A transition of the view's own leaves its own
+// picture in the `DepartureStore` on each frame it renders, and plays it.
 //
 // A child's presence, `0` gone through `1` there, is an animated value in the
-// `AnimationStore`, keyed under the container as a glide is, so a child that
-// comes back while it leaves turns round from where it is, and a
-// `withAnimation` completion waits for it. A fade is not motion, so reduce
-// motion leaves it alone.
+// `AnimationStore`, keyed under the container as a glide is, so a
+// `withAnimation` completion waits for it as it waits for a glide. A fade is
+// not motion, so reduce motion leaves it alone.
 //
 // ## What stands aside
 //
@@ -105,7 +117,7 @@ struct ChildFade {
             return false
         }
         let key = key(child.identityStep)
-        // From where it is if it was on its way out, and from nothing if not.
+        // From nothing, whatever an arrival before it had got to.
         storage.animations.settle(key, at: 0.0, nowNanos: nowNanos)
         _ = storage.animations.value(for: key, target: 1.0, animation: animation, nowNanos: nowNanos, isMeasuring: false)
         return true
@@ -138,64 +150,41 @@ struct ChildFade {
 
     /// What `entry`, which has gone, leaves as while this frame's change
     /// plays, drawn at `placement` — or `nil` where it simply goes: it drew
-    /// nothing, it was a removal's slot already played, a transition of its
-    /// own says it goes at once, or — for one with none, or none that names
-    /// an animation — nothing animates the change.
+    /// nothing, it was a removal's slot already played, it carries no
+    /// transition of its own whose picture is all it drew, or that
+    /// transition says it goes at once.
     ///
     /// A transition that names an animation of its own plays under it with
     /// no animated change at all, as SwiftUI's does (measured,
     /// `Tools/SwiftUIProbes/Transitions/tr1.out` T6), and as an `if`'s view
-    /// does where its `nil` plays the removal.
-    func leaver(from entry: ChildPlacementEntry, picture: FrameBuffer?, at placement: ChildPlacement) -> LeavingChild? {
+    /// does where its `nil` plays the removal. One with something drawn round
+    /// it (`X.transition(t).padding()`) goes at once: its picture would lose
+    /// what was drawn round it, and no picture of the whole is kept.
+    func leaver(from entry: ChildPlacementEntry, at placement: ChildPlacement) -> LeavingChild? {
         guard !entry.isDeparting, !entry.drawsNothing else { return nil }
-        let identity = entry.step.identity(under: context.identity)
         let departures = storage.departures
-        if departures.hasEntry(at: identity) {
-            let type = departingPictureType(heldAs: entry.step.type ?? entry.viewType)
-            // Its own transition's picture, where that is all it drew.
-            if departures.hasEntry(at: identity, leftBy: type) {
-                guard
-                    departures.hasDeparture(
-                        at: identity, ofType: type, nowNanos: nowNanos, frameAnimation: animation)
-                else { return nil }
-                return LeavingChild(
-                    step: entry.step, placement: placement, zIndex: entry.zIndex,
-                    picture: .playing(identity: identity, type: type))
-            }
-            // A transition with something drawn round it: its picture would
-            // lose that, so the whole picture fades instead.
-        }
-        guard let animation, let picture, !picture.isEmpty else { return nil }
-        let key = key(entry.step)
-        // From where it is if it was still on its way in.
-        storage.animations.settle(key, at: 1.0, nowNanos: nowNanos)
-        _ = storage.animations.value(for: key, target: 0.0, animation: animation, nowNanos: nowNanos, isMeasuring: false)
-        return LeavingChild(step: entry.step, placement: placement, zIndex: entry.zIndex, picture: .fading(picture))
+        guard !departures.isEmpty else { return nil }
+        let identity = entry.step.identity(under: context.identity)
+        let type = departingPictureType(heldAs: entry.step.type ?? entry.viewType)
+        guard departures.hasEntry(at: identity, leftBy: type),
+            departures.hasDeparture(at: identity, ofType: type, nowNanos: nowNanos, frameAnimation: animation)
+        else { return nil }
+        return LeavingChild(
+            step: entry.step, placement: placement, zIndex: entry.zIndex, identity: identity, type: type)
     }
 
     /// The pictures of `leaving` on this frame, each where it was; `leaving`
     /// loses each that has gone for good.
     func pictures(of leaving: inout [LeavingChild]) -> [(picture: FrameBuffer, placement: ChildPlacement, zIndex: Double)] {
         guard !leaving.isEmpty else { return [] }
-        let animations = storage.animations
         var drawn: [(picture: FrameBuffer, placement: ChildPlacement, zIndex: Double)] = []
         var still: [LeavingChild] = []
         for leaver in leaving {
-            switch leaver.picture {
-            case .fading(let picture):
-                let key = key(leaver.step)
-                let value = animations.value(
-                    for: key, target: 0.0, animation: animation, nowNanos: nowNanos, isMeasuring: false)
-                guard animations.isAnimating(at: key, nowNanos: nowNanos) else { continue }
-                let faded = DefaultTransition.faded(picture, by: min(1, max(0, value)))
-                drawn.append((carried(faded, leaver), leaver.placement, leaver.zIndex))
-            case .playing(let identity, let type):
-                guard
-                    let picture = storage.departures.departing(
-                        at: identity, ofType: type, nowNanos: nowNanos, frameAnimation: animation)
-                else { continue }
-                drawn.append((carried(picture, leaver), leaver.placement, leaver.zIndex))
-            }
+            guard
+                let picture = storage.departures.departing(
+                    at: leaver.identity, ofType: leaver.type, nowNanos: nowNanos, frameAnimation: animation)
+            else { continue }
+            drawn.append((carried(picture, leaver), leaver.placement, leaver.zIndex))
             still.append(leaver)
         }
         leaving = still
@@ -206,7 +195,6 @@ struct ChildFade {
     /// left moves with the one arriving in its place
     /// (`DepartureStore.carrying(_:leftFrom:)`).
     private func carried(_ picture: FrameBuffer, _ leaver: LeavingChild) -> FrameBuffer {
-        let departures = storage.departures
-        return departures.carrying(picture, leftFrom: leaver.step.identity(under: context.identity))
+        storage.departures.carrying(picture, leftFrom: leaver.identity)
     }
 }

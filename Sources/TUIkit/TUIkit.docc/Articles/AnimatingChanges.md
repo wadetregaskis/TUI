@@ -205,12 +205,20 @@ names one,
 once inside any `withAnimation`, and the animation written nearest the view
 wins.
 
-A view with no `.transition` that comes or goes under an animated change fades,
-as SwiftUI's does: the default is ``AnyTransition/opacity``. That is an `if`'s
-view, the branch an `if`/`else` takes and the one it leaves, a `switch`'s case
-and a `ForEach`'s row — fading in where it lands and out where it was. In a lazy
-stack, a `Grid`, a `List` and a `Table` a branch, a case and a row still change
-at once; an `if`'s view fades there too.
+A view with no `.transition` that comes under an animated change fades in
+where it lands, as SwiftUI's does: the default is ``AnyTransition/opacity``.
+That is an `if`'s view, the branch an `if`/`else` takes, a `switch`'s case and a
+`ForEach`'s row. On the way out an `if`'s view fades where it was, as SwiftUI's
+does. The branch an `if`/`else` leaves, a `switch`'s case and a `ForEach`'s row
+go at once, where SwiftUI's fade out, and so, in a stack, do the views an `if`
+hands the stack rather than holding them itself (several views, a `Group`, an
+`if`/`else`) and the view of an `if` with `.id` written on it. Fading them would
+mean every container keeping what each of its children drew from one frame to
+the next, which cost too much on frames where nothing animates. An `if` that is
+a view's whole `body` fades out whatever it holds. Write `.transition(.opacity)`
+on a branch, a case or a row to have it fade out as well. In a lazy stack, a
+`Grid`, a `List` and a `Table` a branch, a case and a row change at once both
+ways; an `if`'s view fades there too.
 
 A ``Transition`` of your own describes the view at each ``TransitionPhase`` with
 ordinary modifiers, and what animates is each modifier's value between one phase

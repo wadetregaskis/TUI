@@ -3,9 +3,12 @@
 //
 //  The default transition for what is not an `if`: the branch an `if`/`else`
 //  flips to, a `switch`'s case, a `ForEach`'s row. Each fades in where it
-//  lands and out where it was, beneath the views around it, while they
-//  glide, as SwiftUI's do with no `.transition` written (measured,
-//  `Tools/SwiftUIProbes/Transitions/tr1.out` T1–T3 and T8).
+//  lands while the views around it glide, as SwiftUI's do with no
+//  `.transition` written (measured, `Tools/SwiftUIProbes/Transitions/tr1.out`
+//  T1–T3 and T8). The one leaving goes at once, where SwiftUI's fades out: the
+//  owner's fallback, fading in only, since keeping every child's picture for
+//  the fade-out cost too much with nothing animating (decisions TR2PERF). One
+//  with a transition of its own plays it on the way out.
 //
 //  A fade is an opacity claim on the cells, and where two pictures overlap
 //  the compositor resolves the top one's claim against the cells beneath:
@@ -194,6 +197,78 @@ private struct Several: View {
     }
 }
 
+/// What an `if` holds that, in a stack, it hands the stack rather than
+/// holding it itself — so the stack, not the `if`, sees it go.
+enum HandedOverShape: String, CaseIterable, Sendable {
+    /// `if a { Group { X } }`.
+    case group
+    /// `if a { Group { X }.foregroundStyle(.red) }`: a modifier on the
+    /// structure that draws nothing.
+    case styledGroup
+    /// `if a { Group { X }.padding() }`: one that draws.
+    case paddedGroup
+    /// `if a { if c { X } else { Y } }`.
+    case conditional
+    /// `(a ? X : nil).id(k)`: `.id` written on the `if`.
+    case identified
+}
+
+/// `shape` in a column, below a row that stays.
+private struct HandedOverInStack: View {
+    let showing: Bool
+    let shape: HandedOverShape
+    /// Read by the shape with a second condition, so its `if` is a real one.
+    let other = true
+
+    var body: some View {
+        switch shape {
+        case .group:
+            VStack(alignment: .leading, spacing: 0) {
+                Text("----")
+                if showing { Group { Text("XXXX") } }
+            }
+        case .styledGroup:
+            VStack(alignment: .leading, spacing: 0) {
+                Text("----")
+                if showing { Group { Text("XXXX") }.foregroundStyle(.red) }
+            }
+        case .paddedGroup:
+            VStack(alignment: .leading, spacing: 0) {
+                Text("----")
+                if showing { Group { Text("XXXX") }.padding(.leading, 2) }
+            }
+        case .conditional:
+            VStack(alignment: .leading, spacing: 0) {
+                Text("----")
+                if showing { if other { Text("XXXX") } else { Text("never") } }
+            }
+        case .identified:
+            VStack(alignment: .leading, spacing: 0) {
+                Text("----")
+                (showing ? Text("XXXX") : nil).id("k")
+            }
+        }
+    }
+}
+
+/// `shape` rendered directly, as a view's whole `body`.
+private struct HandedOverDirectly: View {
+    let showing: Bool
+    let shape: HandedOverShape
+    /// Read by the shape with a second condition, so its `if` is a real one.
+    let other = true
+
+    var body: some View {
+        switch shape {
+        case .group: if showing { Group { Text("XXXX") } }
+        case .styledGroup: if showing { Group { Text("XXXX") }.foregroundStyle(.red) }
+        case .paddedGroup: if showing { Group { Text("XXXX") }.padding(.leading, 2) }
+        case .conditional: if showing { if other { Text("XXXX") } else { Text("never") } }
+        case .identified: (showing ? Text("XXXX") : nil).id("k")
+        }
+    }
+}
+
 /// A view whose whole body is an `if`/`else`: drawn whole, not taken apart.
 private struct WholeBody: View {
     let first: Bool
@@ -241,36 +316,32 @@ private func fades(_ buffer: FrameBuffer) -> [Double] {
 }
 
 @MainActor
-@Suite("A branch, a case and a row fade in and out by default")
+@Suite("A branch, a case and a row fade in by default, and go at once")
 struct BranchAndRowFadeTests {
 
     // MARK: - A branch flip
 
-    /// The leaving branch fades out where it was, beneath, and the new one in
-    /// over it: the old glyphs show until half-way, the new from there, and
-    /// what of the old the new does not cover goes on fading.
-    @Test("An if/else whose branch flips fades the old branch out and the new one in")
+    /// The new branch fades in where it lands; the one it replaces is gone
+    /// on the frame of the change, where SwiftUI's fades out beneath it.
+    @Test("An if/else whose branch flips fades the new branch in, and the old one goes at once")
     func branchFlipFades() {
         let frames = Frames()
         _ = frames.draw(Flip(first: true), atMillis: 0)
-        #expect(frames.draw(Flip(first: false), atMillis: 1000, changed: true) == ["XXXX", "----"], "from the old")
-        #expect(frames.draw(Flip(first: false), atMillis: 1250) == ["XXXX", "----"], "the old still shows")
+        #expect(frames.draw(Flip(first: false), atMillis: 1000, changed: true) == ["YY", "----"], "the old gone")
         let late = frames.buffer(Flip(first: false), atMillis: 1750)
-        #expect(late.withLayersDrawn().lines.map(\.stripped).first == "YYXX", "the new over what is left")
-        #expect(fades(late).contains(0.25), "what is left of the old fading: \(fades(late))")
-        let end = frames.buffer(Flip(first: false), atMillis: 2100)
-        #expect(end.withLayersDrawn().lines.map(\.stripped).first == "YY  ")
-        #expect(fades(end).isEmpty)
+        #expect(late.withLayersDrawn().lines.map(\.stripped).first == "YY  ", "nothing of the old")
+        #expect(fades(late) == [0.75], "the new fading in: \(fades(late))")
+        #expect(fades(frames.buffer(Flip(first: false), atMillis: 2100)).isEmpty)
     }
 
-    @Test("A switch fades its old case out and its new one in", arguments: [1, 2])
+    @Test("A switch fades its new case in, and the old one goes at once", arguments: [1, 2])
     func switchFades(to which: Int) {
         let frames = Frames()
+        let drawn = which == 1 ? "ZZZ" : "YY"
         _ = frames.draw(Cases(which: 0), atMillis: 0)
-        #expect(frames.draw(Cases(which: which), atMillis: 1000, changed: true).first == "XXXX")
-        let late = frames.draw(Cases(which: which), atMillis: 1750)
-        #expect(late.first == (which == 1 ? "ZZZX" : "YYXX"), "\(late)")
-        #expect(frames.draw(Cases(which: which), atMillis: 2100).first == (which == 1 ? "ZZZ" : "YY"))
+        #expect(frames.draw(Cases(which: which), atMillis: 1000, changed: true).first == drawn, "the old gone")
+        #expect(fades(frames.buffer(Cases(which: which), atMillis: 1750)) == [0.75], "the new fading in")
+        #expect(frames.draw(Cases(which: which), atMillis: 2100).first == drawn)
     }
 
     @Test("Without an animation a branch flips at once")
@@ -282,18 +353,18 @@ struct BranchAndRowFadeTests {
         #expect(fades(flipped).isEmpty)
     }
 
-    /// Drawn whole, the two branches overlap at the conditional's origin, as
-    /// SwiftUI's do (T8): the new one where the layout puts it, the old one
-    /// drawn past it while it fades.
-    @Test("A body that is an if/else fades its old branch out over its new one")
+    /// Drawn whole, the new branch fades in where the layout puts it, and
+    /// nothing of the old is drawn past it: SwiftUI's two overlap at the
+    /// conditional's origin while the old fades out (T8).
+    @Test("A body that is an if/else fades its new branch in, and the old one goes at once")
     func wholeBodyFlipFades() {
         let frames = Frames()
         _ = frames.draw(WholeBody(first: true), atMillis: 0)
         _ = frames.buffer(WholeBody(first: false), atMillis: 1000, changed: true)
         let half = frames.buffer(WholeBody(first: false), atMillis: 1750)
         #expect(half.lines.map(\.stripped) == ["YY"], "laid out as the new branch")
-        #expect(half.withLayersDrawn().lines.map(\.stripped) == ["XXXX"], "the old drawn past it")
-        #expect(fades(half).sorted() == [0.25, 0.75], "\(fades(half))")
+        #expect(half.withLayersDrawn().lines.map(\.stripped) == ["YY"], "nothing of the old drawn past it")
+        #expect(fades(half) == [0.75], "\(fades(half))")
         let end = frames.buffer(WholeBody(first: false), atMillis: 2100)
         #expect(end.withLayersDrawn().lines.map(\.stripped) == ["YY"])
         #expect(fades(end).isEmpty)
@@ -315,29 +386,30 @@ struct BranchAndRowFadeTests {
         #expect(fades(frames.buffer(Rows(ids: [1, 2, 3]), atMillis: 2100)).isEmpty)
     }
 
-    /// The row fades out where it was, beneath the rows gliding up over it.
-    @Test("A row removed fades out where it was while the rows below glide up")
-    func rowRemovedFades() {
+    /// The row is gone on the frame of the change, and the rows below glide
+    /// up into its room: SwiftUI's fades out where it was, beneath them.
+    @Test("A row removed goes at once while the rows below glide up")
+    func rowRemovedGoes() {
         let frames = Frames()
         _ = frames.draw(Rows(ids: [1, 2, 3]), atMillis: 0)
-        #expect(frames.draw(Rows(ids: [1, 3]), atMillis: 1000, changed: true).prefix(3) == ["1111", "2222", "3333"])
-        let early = frames.buffer(Rows(ids: [1, 3]), atMillis: 1300)
-        #expect(early.withLayersDrawn().lines.map(\.stripped).prefix(3) == ["1111", "2222", "3333"])
-        #expect(fades(early) == [0.7], "fading out: \(fades(early))")
+        let start = frames.draw(Rows(ids: [1, 3]), atMillis: 1000, changed: true)
+        #expect(start.prefix(3) == ["1111", "", "3333"], "gone, and the row below not yet moved: \(start)")
+        #expect(fades(frames.buffer(Rows(ids: [1, 3]), atMillis: 1300)).isEmpty, "nothing fading")
         let late = frames.draw(Rows(ids: [1, 3]), atMillis: 1700)
-        #expect(late.prefix(2) == ["1111", "3333"], "the row below has glided over it: \(late)")
+        #expect(late.prefix(2) == ["1111", "3333"], "the row below has glided up: \(late)")
         #expect(frames.draw(Rows(ids: [1, 3]), atMillis: 2100) == ["1111", "3333", "----"])
     }
 
-    /// Its presence is one value, so the arrival starts where the removal
-    /// had got to rather than from nothing.
-    @Test("A row that comes back while it leaves turns round from where it is")
-    func returningRowTurnsRound() {
+    /// Gone at once, it has no presence left to turn round from: it fades in
+    /// again from nothing, as a row inserted does.
+    @Test("A row that comes back after it went fades in from nothing")
+    func returningRowFadesIn() {
         let frames = Frames()
         _ = frames.draw(Rows(ids: [1, 2, 3]), atMillis: 0)
         _ = frames.draw(Rows(ids: [1, 3]), atMillis: 1000, changed: true)
         let back = frames.buffer(Rows(ids: [1, 2, 3]), atMillis: 1300, changed: true)
-        #expect(fades(back) == [0.7], "no jump: \(fades(back))")
+        #expect(fades(back) == [0], "from nothing: \(fades(back))")
+        #expect(fades(frames.buffer(Rows(ids: [1, 2, 3]), atMillis: 1600)) == [0.3])
         #expect(fades(frames.buffer(Rows(ids: [1, 2, 3]), atMillis: 2400)).isEmpty)
     }
 
@@ -442,15 +514,41 @@ struct BranchAndRowFadeTests {
     }
 
     /// An `if` holding several views keeps no one slot for its `nil` to
-    /// play in; the stack sees each of them go.
-    @Test("An if holding several views fades each out where it was")
-    func severalFadeOut() {
+    /// play in, and no picture of them: the stack sees each of them go, and
+    /// lets it go, as it does a row.
+    @Test("An if holding several views lets each go at once")
+    func severalGoAtOnce() {
         let frames = Frames()
         _ = frames.draw(Several(showing: true), atMillis: 0)
-        _ = frames.draw(Several(showing: false), atMillis: 1000, changed: true)
-        let early = frames.buffer(Several(showing: false), atMillis: 1300)
-        #expect(early.withLayersDrawn().lines.map(\.stripped) == ["----", "AAAA", "BBBB"])
-        #expect(fades(early) == [0.7, 0.7])
-        #expect(frames.draw(Several(showing: false), atMillis: 2100) == ["----"])
+        #expect(frames.draw(Several(showing: false), atMillis: 1000, changed: true) == ["----"])
+        #expect(fades(frames.buffer(Several(showing: false), atMillis: 1300)).isEmpty)
+    }
+
+    /// What an `if` in a stack hands the stack is the stack's child, as a
+    /// row is: it fades in where it lands, and goes at once. TRANSITIONS2's
+    /// stack faded it out from the picture it kept of every child.
+    @Test("An if in a stack fades in what it hands the stack, and lets it go at once",
+        arguments: HandedOverShape.allCases)
+    func handedOverGoesAtOnce(shape: HandedOverShape) {
+        let frames = Frames()
+        _ = frames.draw(HandedOverInStack(showing: false, shape: shape), atMillis: 0)
+        _ = frames.draw(HandedOverInStack(showing: true, shape: shape), atMillis: 1000, changed: true)
+        let arriving = fades(frames.buffer(HandedOverInStack(showing: true, shape: shape), atMillis: 1500))
+        #expect(arriving == [0.5], "fading in: \(arriving)")
+        _ = frames.draw(HandedOverInStack(showing: true, shape: shape), atMillis: 2100)
+        let removed = frames.draw(HandedOverInStack(showing: false, shape: shape), atMillis: 3000, changed: true)
+        #expect(removed == ["----"], "gone on the frame of the change: \(removed)")
+        #expect(fades(frames.buffer(HandedOverInStack(showing: false, shape: shape), atMillis: 3500)).isEmpty)
+    }
+
+    /// Rendered directly, the `if` holds whatever it holds, and keeps its
+    /// picture: it fades it out where it was.
+    @Test("An if rendered directly fades out whatever it holds", arguments: HandedOverShape.allCases)
+    func heldDirectlyFadesOut(shape: HandedOverShape) {
+        let frames = Frames()
+        _ = frames.draw(HandedOverDirectly(showing: true, shape: shape), atMillis: 0)
+        _ = frames.draw(HandedOverDirectly(showing: false, shape: shape), atMillis: 1000, changed: true)
+        let leaving = fades(frames.buffer(HandedOverDirectly(showing: false, shape: shape), atMillis: 1500))
+        #expect(leaving == [0.5], "fading out: \(leaving)")
     }
 }

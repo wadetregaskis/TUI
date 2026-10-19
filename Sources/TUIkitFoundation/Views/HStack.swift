@@ -511,8 +511,10 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
         let split = stackChildren(of: content, context: context)
         let children = split.laidOut
         guard !children.isEmpty else {
-            // Nothing laid out, and still what has left may be playing:
-            // the slot an `if` keeps, or a column the change took out (`ChildFade`).
+            // Nothing laid out, and still what has left may be playing: the
+            // slot an `if` keeps, or a column the change took out with a
+            // transition of its own. Asked, too, so the record lasts for a
+            // column that comes to fade in (`ChildFade`).
             return context.glidingStackBuffer(
                 [], buffers: [], at: [], departing: split.departing, width: 0, height: 0) ?? FrameBuffer()
         }

@@ -104,41 +104,53 @@ extension View {
     /// it, where that is an eager `VStack`, `HStack` or `ZStack` or a
     /// `Layout`. It plays the removal where the view was, from what the view
     /// left behind, when the view the container held is the one carrying the
-    /// transition, give or take the wrappers above; otherwise it fades the
-    /// view's whole picture there. An `if`/`else` drawn whole — a view's whole
-    /// `body`, a modifier's content — plays the branch it leaves the same way,
-    /// at its own origin, past its frame.
+    /// transition, give or take the wrappers above; otherwise the view goes at
+    /// once, as one with no transition does there. An `if`/`else` drawn whole
+    /// — a view's whole `body`, a modifier's content — plays the branch it
+    /// leaves the same way, at its own origin, past its frame.
     ///
     /// ## A view with no transition
     ///
-    /// A view that comes or goes under an animated change fades when no
-    /// transition is written on it: the default is ``AnyTransition/opacity``,
-    /// as SwiftUI's is — an `if`'s view, the branch an `if`/`else` takes and
-    /// the one it leaves, a `switch`'s case, a `ForEach`'s row (measured,
-    /// `Tools/SwiftUIProbes/Transitions/tr1.out`). The view arriving fades in
-    /// where it lands; the one leaving fades out where it was, beneath the
-    /// views around it. A fade is not motion, so it plays under reduce motion
-    /// too. The `if` keeps what its view last drew, and the container a
-    /// branch, a case or a row is a child of keeps what each of its children
-    /// drew, so the removal has a picture to play. In a lazy stack, a `Grid`,
-    /// a `List` and a `Table`, which keep no such memory, a branch, a case and
-    /// a row still change at once; an `if`'s view fades there too. An
-    /// `if`/`else` drawn whole draws the branch it leaves over the branch it
-    /// takes, not beneath it — the same blend, the weights the other way
-    /// round — since only a container can draw beneath.
+    /// A view that comes under an animated change fades in where it lands
+    /// when no transition is written on it: the default is
+    /// ``AnyTransition/opacity``, as SwiftUI's is — an `if`'s view, the branch
+    /// an `if`/`else` takes, a `switch`'s case, a `ForEach`'s row (measured,
+    /// `Tools/SwiftUIProbes/Transitions/tr1.out`). A fade is not motion, so it
+    /// plays under reduce motion too.
+    ///
+    /// On the way out an `if`'s view fades where it was, beneath the views
+    /// around it, as SwiftUI's does: the `if` keeps what its view last drew.
+    /// The branch an `if`/`else` leaves, a `switch`'s case and a `ForEach`'s
+    /// row go at once, where SwiftUI's fade, and in a stack so do the views an
+    /// `if` hands the stack rather than holding them itself — several views, a
+    /// `Group` with or without a modifier on it, an `if`/`else` — and the view
+    /// of an `if` with `.id` written on it. Fading them would take every
+    /// container keeping what each of its children drew from one frame to the
+    /// next, which cost too much with nothing animating — the owner's
+    /// fallback, fading in only (Deliberate deviations A10). An `if` rendered
+    /// directly — a view's whole `body`, a modifier's content — fades out
+    /// whatever it holds. Written on a branch, a case or a row,
+    /// `.transition(.opacity)` fades it out as well. In a lazy stack, a
+    /// `Grid`, a `List` and a `Table`, which keep no memory of their children,
+    /// a branch, a case and a row come at once too; an `if`'s view fades there
+    /// both ways.
     ///
     /// ## What does not play its transition
     ///
     /// The claim finds a departure only where the view carrying the transition
     /// rendered at exactly that address, so these removals do not play it.
-    /// The view fades instead, its whole picture where it was, as one with no
-    /// transition does; the last of these goes at once:
+    /// The view does instead what one with no transition does there: where
+    /// its `if` holds it, it fades, its whole picture where it was; where the
+    /// stack does — the first of these in a stack, `.id` written on the `if`
+    /// in a stack, and the last — it goes at once:
     ///
     /// - One view behind a modifier on the structure around it that draws,
     ///   `if a { Group { X }.padding() }`, whose picture the transition's
-    ///   would lose. With one that draws nothing, `.foregroundStyle(.red)` on
-    ///   that `Group`, the member is a child of the stack, which sees it go:
-    ///   it plays.
+    ///   would lose. In a stack the member is a child of the stack, which
+    ///   keeps no picture of it, so it goes at once; rendered directly, the
+    ///   `if` fades it. With a modifier that draws nothing,
+    ///   `.foregroundStyle(.red)` on that `Group`, the stack sees the member
+    ///   go: it plays.
     /// - Where the optional is rendered directly — a view's whole `body`, or a
     ///   modifier's content such as `.overlay { if a { … } }` — a `Group` or an
     ///   `if`/`else` inside the `if`: `if a { Group { X } }`, `if a { if c { X }
@@ -150,8 +162,9 @@ extension View {
     ///   view with a body, such as `.tag` or `.zIndex` — rather than on the
     ///   view the `if` holds; one inside a presentation modifier (`.sheet`,
     ///   `.alert`, `.popover`, `.contextMenu`); or one with an `.id` outside
-    ///   it — `X.transition(t).id(k)`, or `.id` written on the `if` itself.
-    ///   `X.id(k).transition(t)` plays.
+    ///   it — `X.transition(t).id(k)`, or `.id` written on the `if` itself in
+    ///   a stack, where the view goes at once. `X.id(k).transition(t)` plays,
+    ///   and so does `.id` on an `if` rendered directly.
     /// - A transition with a modifier outside it in the `if` that moves,
     ///   resizes or draws: `X.transition(t).padding()`, and so `.frame`,
     ///   `.offset`, `.position`, `.background`, `.overlay`, `.border`,
@@ -167,10 +180,11 @@ extension View {
     ///   fades — it played until 2026-09-24, when a removal began checking the
     ///   type of the view that left its picture; write the transition after
     ///   them.
-    /// - In a lazy stack, a `Grid`, a `List` and a `Table`: a view with no
-    ///   `nil` to stand in for it — the branch an `if`/`else` leaves, a
-    ///   `switch`'s case, a `ForEach`'s row, the views of an `if` holding
-    ///   several. Nothing there remembers what it drew.
+    /// - A view with no `nil` to stand in for it — the branch an `if`/`else`
+    ///   leaves, a `switch`'s case, a `ForEach`'s row, the views of an `if`
+    ///   holding several — whose transition has a modifier outside it that
+    ///   draws, as above, or that is in a lazy stack, a `Grid`, a `List` or a
+    ///   `Table`. Nothing keeps a picture of the whole to fade.
     ///
     /// - Parameter transition: How to come and go.
     /// - Returns: A view that transitions.

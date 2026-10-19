@@ -388,9 +388,9 @@ extension ConditionalView: Renderable {
         // early cannot change what any frame contains.
         guard !context.isMeasuring, let stateStorage = context.stateStorage else { return buffer }
 
-        // The branch taken is recorded with what it drew, in one access, and
-        // under an animated change the branch left fades out from its last
-        // picture while this one fades in (`BranchTransition`).
+        // The branch taken is recorded, in one access, and under an animated
+        // change it fades in while the branch left goes — at once, or by a
+        // transition of its own (`BranchTransition`).
         let (flipped, drawn) = present(buffer, isTrueBranch: isTrueBranch, context: context, storage: stateStorage)
 
         // Only when the case actually FLIPPED since the last rendered frame is

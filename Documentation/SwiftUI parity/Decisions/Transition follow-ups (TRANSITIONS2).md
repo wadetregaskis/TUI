@@ -80,9 +80,19 @@ animation different from its change's.
 
 ## B. Shipped the safe option
 
-### B-TRANSITIONS2-1. A branch, a case and a row fade where a container remembers its children
+### B-TRANSITIONS2-1. A branch, a case and a row fade in where a container remembers its children
 
-*`ChildFade`, `PlacementStore.Record.pictures`, `View.transition(_:)`*
+*`ChildFade`, `PlacementStore.Record`, `View.transition(_:)`*
+
+**Since 2026-10-19 they fade in only, and go at once** (decisions
+[B-TR2PERF-1](<Default fade cost (TR2PERF).md#b-tr2perf-1-a-branch-a-case-and-a-row-fade-in-and-go-at-once>)).
+The fade-out this lane shipped kept the picture of every child of every eager
+container from one frame to the next. The A/B priced that with nothing
+animating at up to +7.2% a frame (`tables-scroll`), +2–3.5% across a dozen
+scenarios, and `deep`'s footprint 17.1 → 32.6 MB. The middle way below,
+prototyped, still kept the rows and branches that `churn` and `deep` are made
+of, so the owner's fallback of 2026-10-14, fade-in only, was taken. What
+follows is this lane's work as it stands now.
 
 SwiftUI fades a view in and out with no `.transition` written — an `if`/`else`
 whose branch flips, a `switch`'s case, a `ForEach`'s row alike (`tr1.out`
@@ -94,68 +104,49 @@ rendered, and a row that has gone has no element left to render.
 
 **What shipped:** the container that places them does it. An eager `VStack`,
 `HStack` or `ZStack` and a `Layout` already remember where each child was
-(lane FB16's `PlacementStore`); they now also keep what each child drew on
-the frame before (`Record.pictures`, the array they already hold, stored once
-a frame). On a change under an animation, a child they are handed for the
-first time fades in where it lands, and one they no longer are fades out
-where it was, beneath the others, from its last picture. A child's presence
-is an animated value under the container, as its glide is, so one that comes
-back while it leaves turns round from where it is, a `withAnimation`
-completion waits for it, and reduce motion — which holds motion still, A-D3M-1
-— lets it play: a fade is not motion.
+(lane FB16's `PlacementStore`). On a change under an animation, a child they
+are handed for the first time fades in where it lands. A child's presence is
+an animated value under the container, as its glide is, so a `withAnimation`
+completion waits for it, and reduce motion, which holds motion still
+(A-D3M-1), lets it play: a fade is not motion. One they no longer are handed
+goes at once (it faded out where it was, beneath the others, from a picture
+of its last frame the container kept, until lane TR2PERF).
 
 The same memory plays a transition of the view's own: a branch or a row
 carrying one plays its removal where it was, from what it left in the
 `DepartureStore`, where nothing could before (the branch an `if`/`else` left
 was replaced at once). A view the container held behind something that draws
-round its transition (`X.transition(t).padding()`) fades its whole picture
-instead, padding and all; so does such a view in an `if`, whose record now
-keeps the picture for that (it snapped).
+round its transition (`X.transition(t).padding()`) goes at once; such a view
+in an `if` fades its whole picture instead, padding and all, from the `if`'s
+record (it snapped).
 
 A conditional drawn whole — a view's whole `body`, a modifier's content,
-not taken apart by a stack — keeps its branch's picture in the record of the
-branch it took, which it already wrote every frame (`ConditionalRecord`,
-`BranchTransition`), and fades the two the same way (B-TRANSITIONS2-2).
+not taken apart by a stack — fades the branch it takes in, and plays the
+own transition of the branch it leaves, from the record of the branch it
+took, which it already wrote every frame (`ConditionalRecord`,
+`BranchTransition`; B-TRANSITIONS2-2).
 
-**What it costs, and the A/B owed.** A settled eager container stores one
-array a frame; an empty one now looks its record up, so that its last rows
-can fade. A conditional drawn whole stores its picture in the access it
-already made, which is now one in-place access where it was a lookup and a
-store. A change under an animation works out the identities of what came and
-went.
+**What it costs.** A settled eager container writes nothing, as before; an
+empty one looks its record up, so that a row arriving in it fades in. A
+conditional drawn whole writes a record of eight bytes in one in-place access
+where it wrote a `Bool` in a lookup and a store. A change under an animation
+works out the identities of what came and went. TR2PERF's profiles and the
+A/B owed for this are in B-TR2PERF-1.
 
-The pictures also cost memory, which the time does not show: kept from one
-frame to the next, they keep the buffers alive, and each level of a nested
-page keeps what the levels below it drew, so what is kept grows with depth
-times area. Measured by walking the records after one frame and counting the
-line storage they keep that the frame drawn does not share
-(`TRANSITIONS2/memprobe` in the session notes): a nest 40 deep of bordered,
-padded columns whose bodies are `if`/`else`s — the shape of Stress's `deep` —
-on a 120×200 canvas keeps 3.4 MB of lines, half in the containers' records
-and half in the conditionals', against 0.19 MB for the canvas itself; a 30×6
-grid of labels keeps 12 KB, about twice its own lines.
+**A middle way, measured and not taken:** keep the pictures only of children
+that can go — a `ForEach`'s rows, a branch, a case, an `if`'s views — and not
+of a tuple's plain members, which cannot leave while their container stays.
+TR2PERF prototyped it: `churn`'s column still kept 300 rows drawn afresh each
+frame, and every level of `deep` still kept its branch's picture (footprint
+37.3 MB). Rows and branches are exactly what it keeps.
 
-The owner's criterion was "C (fade-in only) if significant cost esp. with no
-animation": C would save the stored array and all of that memory, since
-fading in needs only the record of where each child was. The A/B on `deep`,
-`fanout`, `dashboard`, `kitchensink`, `menus` and `churn`, cold and warm, is
-owed, with the peak footprint (`--bench` prints it) beside the time: on this
-machine, with other lanes building, the footprint moved by more between runs
-of one binary than between the two builds, so it was not taken here.
-
-A middle way, if the memory proves significant and the fade-out is kept: keep
-the pictures only of children that can go — a `ForEach`'s rows, a branch, a
-case, an `if`'s views — and not of a tuple's plain members, which cannot
-leave while their container stays; that is most of what a deep page keeps.
-About half a day, the work being to tell the two kinds of child apart at
-resolution, and a child misjudged as one that cannot go would go at once.
-
-**The fuller version:** the same in the containers that keep no memory of
-their children yet — a lazy stack, a `Grid`, a `List`'s and a `Table`'s
-rows, where a branch, a case and a row still change at once (deviations,
-Slated). Each needs the placement memory first, priced with it in decisions
-FB16 (B-FB16-2, B-FB16-3, B-FB16-5): about two days for the lazy stacks, half
-a day for `Grid`, and the list's row work for `List` and `Table`.
+**The fuller version:** the fade-in in the containers that keep no memory of
+their children yet — a lazy stack, a `Grid`, a `List`'s and a `Table`'s rows,
+where a branch, a case and a row still change at once (deviations, Slated).
+Each needs the placement memory first, priced with it in decisions FB16
+(B-FB16-2, B-FB16-3, B-FB16-5): about two days for the lazy stacks, half a
+day for `Grid`, and the list's row work for `List` and `Table`. Fading out
+as well is B as this lane shipped it; its price is above.
 
 ### B-TRANSITIONS2-2. A conditional drawn whole draws the branch it leaves over the one it takes
 
@@ -171,7 +162,9 @@ frame, as content drawn past a view's region is (`FrameBuffer.drawnPastSlot`),
 which lands it over the new branch. For two fades crossing, over and beneath
 are the same blend with the weights swapped: half-way, each is half there.
 What it covers past the new branch's frame is covered over, not under, as an
-overflow is. It takes no clicks.
+overflow is. It takes no clicks. Since 2026-10-19 only a branch leaving by a
+transition of its own is drawn so: one with none goes at once
+(B-TR2PERF-1).
 
 **The fuller version:** move the layering compositor (`FrameBuffer.layered`
 and the claims it resolves, `FrameBuffer+ClaimsOverNothing.swift`, with the

@@ -1316,9 +1316,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   arriving in it does not move with the gap the empty stack gives back
   (§3: a child with no extent takes no stack spacing); a removal animated
   longer than the change finishes at the stack's new place. A conditional
-  drawn whole — a view's whole `body`, a modifier's content — draws the
-  branch it leaves over the branch it takes, past its frame, where SwiftUI
-  draws it beneath (measured, [`Tools/SwiftUIProbes/Transitions/tr1.out`](<../../Tools/SwiftUIProbes/Transitions/tr1.out>) T8).
+  drawn whole — a view's whole `body`, a modifier's content — draws a
+  branch it leaves by a transition of its own over the branch it takes,
+  past its frame, where SwiftUI draws it beneath (measured, [`Tools/SwiftUIProbes/Transitions/tr1.out`](<../../Tools/SwiftUIProbes/Transitions/tr1.out>) T8);
+  one with none goes at once (A10).
 - **Why:** a terminal draws whole cells; a glide is remembered per
   container (`PlacementStore`), and the containers that window their rows or
   lay out a lattice have not been given that memory yet. A size that glides
@@ -1415,6 +1416,42 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [O4](<Refusals re-examined, wave 17 (2026-10-03).md#o4-matched-geometry-matchedgeometryproperties--w12-matchedgeometryeffect-zoom-matchedtransitionsourceconfiguration-emptymatchedtransitionsourceconfiguration--w09-matchedtransitionsource-navigationtransitionzoom>),
   [B-O4-5](<Decisions/Matched geometry and the zoom transition (O4).md>). **Owner** (the reveal),
   **Lane** (the default animation).
+
+### A10. A branch, a case and a row with no transition fade in, and go at once
+
+- **SwiftUI (measured, macOS 15.8, 2026-10-19,
+  [`Tools/SwiftUIProbes/Transitions/tr1.out`](<../../Tools/SwiftUIProbes/Transitions/tr1.out>) T1–T3, T8):** with
+  no `.transition` written, a view an animated change puts in fades in where
+  it lands, and one it takes out fades out where it was, drawn beneath its
+  siblings while they glide: the branch an `if`/`else` flips to and the one
+  it leaves, a `switch`'s case, a `ForEach`'s row and an `if`'s view alike.
+- **TUIkit:** an `if`'s view fades in and out. The branch an `if`/`else`
+  takes, a `switch`'s case and a `ForEach`'s row fade in where they land;
+  the branch it leaves, the case left, a row removed and, in a stack, what
+  an `if` hands the stack rather than holding itself — several views, a
+  `Group`, an `if`/`else`, or a view under an `.id` written on the `if` — go
+  on the frame of the change, while the views around them glide into the
+  room. An `if` rendered directly fades out whatever it holds. A branch, a
+  case or a row with a transition of its own plays it on the way out, where
+  it was, unless something is drawn round the transition, when it goes at
+  once. The branch a conditional drawn whole leaves goes the same way
+  (`BranchAndRowFadeTests`, `ConditionalRecordTests`). Where nothing
+  remembers the children — a lazy stack, a `Grid`, a `List`, a `Table` —
+  they come at once as well (Slated).
+- **Why:** fading a view out after it has gone needs what it drew on the
+  frame before, the one thing left of it, so every container kept every
+  child's picture from one frame to the next, settled or not. With nothing
+  animating that cost up to +7.2% a frame (`tables-scroll`), +2–3.5% across
+  a dozen scenarios, and `deep`'s footprint 17.1 → 32.6 MB (A/B,
+  2026-10-19). Keeping only the pictures of children that can go still kept
+  the rows and branches those scenarios are made of. The owner's rule for
+  the default transition (2026-10-14) was to fade both ways and fall back to
+  fading in only at a significant cost, above all with no animation. An
+  `if`'s view keeps its fade-out: its `if` keeps one picture, which passed
+  its own A/B on 2026-10-14.
+- **Decided:** [B-TR2PERF-1](<Decisions/Default fade cost (TR2PERF).md#b-tr2perf-1-a-branch-a-case-and-a-row-fade-in-and-go-at-once>),
+  [B-TR2PERF-2](<Decisions/Default fade cost (TR2PERF).md#b-tr2perf-2-an-ifs-view-keeps-its-fade-out>).
+  **Owner** (the fallback, 2026-10-14); **Lane** (the measurement).
 
 ---
 
@@ -1995,7 +2032,7 @@ on. Each waits on the work, or on the ruling, its State names.
 | An alignment guide does not travel out of a view type of the app's own | [B19](<Decisions/SwiftUI API completion decisions.md#b19-a-guide-does-not-travel-out-of-a-view-type-of-the-apps-own>), [B-D1S-6](<Decisions/Sections and subview counting in stacks and loops (D1S).md#b-d1s-6-a-modified-view-of-the-apps-own-or-one-whose-body-is-an-ifelse-is-one-child>) | Owner 2026-10-12: explore the cost; the fuller version and its A/B are owed |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
 | A column places its children of one priority in order, cutting the trailing ones, where SwiftUI's shares its height as it shares a row's width (rows have since L14, 2026-10-13) | [`distributeInOrder`](../../Sources/TUIkitFoundation/Rendering/LinearSpaceDistribution.swift) | Owner 2026-10-13: follow SwiftUI. Waits on a fix: shared, a column squeezes a control of several lines in the middle, and a squeezed inline `Menu` draws differently served from the cache than drawn afresh (the focus storm's trial 3) |
-| In a lazy stack, a `Grid`, a `List` and a `Table`, a view that an `if`/`else`'s branch, a `switch` or a `ForEach` row puts in or takes out under an animation appears and goes at once, where SwiftUI's fades (`.opacity`) or plays its `.transition(_:)` on the way out. An `if`'s view fades everywhere (2026-10-14); a branch, a case and a row fade, or play their own removal, in an eager stack, a `ZStack`, a `Layout` and a conditional drawn whole (2026-10-19) | [ChildFade.swift](../../Sources/TUIkitView/Animation/ChildFade.swift), [B-TRANSITIONS2-1](<Decisions/Transition follow-ups (TRANSITIONS2).md#b-transitions2-1-a-branch-a-case-and-a-row-fade-where-a-container-remembers-its-children>) | Lane: the containers that window their rows or lay out a lattice keep no memory of their children yet (B-FB16-2, B-FB16-3, B-FB16-5); the fuller version is priced with theirs |
+| In a lazy stack, a `Grid`, a `List` and a `Table`, a view that an `if`/`else`'s branch, a `switch` or a `ForEach` row puts in under an animation appears at once, where SwiftUI's fades in (`.opacity`), and one with a `.transition(_:)` goes at once, where SwiftUI's plays it on the way out. An `if`'s view fades in and out everywhere (2026-10-14); a branch, a case and a row fade in, and play their own removal, in an eager stack, a `ZStack`, a `Layout` and a conditional drawn whole (2026-10-19), and go at once with none (A10) | [ChildFade.swift](../../Sources/TUIkitView/Animation/ChildFade.swift), [B-TRANSITIONS2-1](<Decisions/Transition follow-ups (TRANSITIONS2).md#b-transitions2-1-a-branch-a-case-and-a-row-fade-in-where-a-container-remembers-its-children>) | Lane: the containers that window their rows or lay out a lattice keep no memory of their children yet (B-FB16-2, B-FB16-3, B-FB16-5); the fuller version is priced with theirs |
 | A `TabView` takes `Tab`s only: SwiftUI's plain-view content (`TabView { Text("A").tag(0) }`, its older form) does not compile | [TabView.swift](../../Sources/TUIkitTabs/Views/TabView.swift) | Known gap, the semantic audit's item 82: the fix draws the tagged children as pages; no ruling |
 | A `TableColumn`'s header and a `Tab`'s title draw their key's Markdown words but not its styles (a field's title is plain words, as SwiftUI's placeholder is); every other control's title key is drawn styled (2026-10-15, 2026-10-18) | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-the-title-keys-of-controls-other-than-text-is-not-parsed-yet>), [B-PARITYMISC-3](<Decisions/Small parity items (PARITYMISC).md#b-paritymisc-3-a-column-header-and-a-tab-title-draw-their-keys-markdown-words-not-its-styles>) | Lane: the fuller version draws the styles |
 | The fifteen named colours do not adapt to a dark appearance | [§1](<SwiftUI compatibility guide.md#1-match>) (Color values), [§2.5](<SwiftUI compatibility guide.md#25-colorscheme-is-a-read-the-write-is-palette--appearance>) | "Not yet" |

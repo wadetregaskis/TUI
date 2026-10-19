@@ -31,7 +31,7 @@ package struct GlidingPlacements {
     package var presence: [Double]?
 
     /// The children that have gone, as each is drawn on this frame where it
-    /// was: faded, or part-way through a removal of its own (`ChildFade`).
+    /// was: part-way through a removal of its own (`ChildFade`).
     package var leaving: [(picture: FrameBuffer, placement: ChildPlacement, zIndex: Double)] = []
 }
 
@@ -49,8 +49,8 @@ extension RenderContext {
     /// transition is what animates it. A child that has gone is drawn where it
     /// last was while its removal plays (`DepartureStore`), taking no room.
     /// With no transition of its own, a child the change put here fades in,
-    /// and one it took out — a branch, a case, a row — fades out where it was
-    /// from the picture it last drew, which the record keeps (`ChildFade`).
+    /// and one it took out — a branch, a case, a row — goes at once; one with
+    /// a transition of its own plays that removal where it was (`ChildFade`).
     ///
     /// A glide is the child's placement as an animated value in the
     /// ``AnimationStore``, asked about only while it moves, so it is interrupted
@@ -91,8 +91,7 @@ extension RenderContext {
         let store = storage.placements
         guard let record = store.record(at: identity) else {
             store.remember(
-                Self.entries(children, buffers, targets), pictures: buffers, at: identity,
-                walk: storage.animations.currentWalk)
+                Self.entries(children, buffers, targets), at: identity, walk: storage.animations.currentWalk)
             guard !departing.isEmpty else { return nil }
             return GlidingPlacements(presented: targets, departing: departing.map { _ in nil })
         }
@@ -100,12 +99,9 @@ extension RenderContext {
         let still = record.gliding == nil && record.arriving == nil && record.leaving.isEmpty
         // The settled frame: the layout it had, nothing moving, nothing
         // coming or going. Every container on every frame nothing animates in
-        // it — which keeps what its children drew, for the frame one of them
-        // goes on (`ChildFade`), and nothing else.
-        if unchanged, still, departing.isEmpty {
-            record.pictures = buffers
-            return nil
-        }
+        // it, which writes nothing: a child that goes with no transition of
+        // its own goes at once, so nothing it drew is kept (`ChildFade`).
+        if unchanged, still, departing.isEmpty { return nil }
 
         // A change nothing animates, with nothing moving and nothing leaving:
         // every child is where the layout put it, and all the record needs is
@@ -114,14 +110,13 @@ extension RenderContext {
         // price, which a stack whose rows change on every frame — `churn` —
         // paid on every frame for nothing (4–6% of its frame, profiled
         // 2026-10-18). Under reduce motion an animated change still fades
-        // what comes and goes, so only a frame with no animation at all is
+        // in what comes, so only a frame with no animation at all is
         // this one — and one where no child that went has a transition naming
         // an animation of its own, which plays with none (`ChildFade`).
         if !unchanged, still, departing.isEmpty, !Self.frameAnimates(in: self),
             !storage.departures.hasUnstartedRemovalOfItsOwn(below: identity)
         {
             record.entries = Self.entries(children, buffers, targets)
-            record.pictures = buffers
             record.departed = [:]
             record.held = [:]
             return nil
@@ -143,9 +138,7 @@ extension RenderContext {
             // A child that comes back while it leaves is a child again.
             record.leaving.removeAll { leaver in children.contains { $0.hasIdentityStep(leaver.step) } }
             for index in old.indices where !claimed.contains(index) {
-                let picture = index < record.pictures.count ? record.pictures[index] : nil
-                guard let leaver = fade.leaver(from: old[index], picture: picture, at: glide.picture(of: old[index]))
-                else { continue }
+                guard let leaver = fade.leaver(from: old[index], at: glide.picture(of: old[index])) else { continue }
                 record.leaving.append(leaver)
             }
             // A container seen for the first time has no arrivals: what it
@@ -158,7 +151,6 @@ extension RenderContext {
         let presence = fade.presence(of: children, arriving: &arriving)
         let leaving = fade.pictures(of: &record.leaving)
         record.arriving = arriving
-        record.pictures = buffers
         record.gliding = glide.anyMoving ? glide.moving : nil
         record.held = glide.anyMoving ? glide.held : [:]
         // Landed, and nothing coming or going: drawn as a settled container

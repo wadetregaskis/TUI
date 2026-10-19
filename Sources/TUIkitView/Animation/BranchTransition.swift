@@ -8,72 +8,55 @@ import TUIkitCore
 
 // The default transition for an `if`/`else` — and so a `switch`, which is
 // nested ones — drawn WHOLE: a view's whole body, a modifier's content. The
-// branch taken under an animated change fades in, and the branch left fades
-// out from the picture it drew last, at the same origin, as SwiftUI draws the
-// two (measured, `Tools/SwiftUIProbes/Transitions/tr1.out` T8). A conditional
-// inside a stack is not drawn whole: the stack takes it apart, and its
-// branches come and go as the stack's children do (`ChildFade`).
+// branch taken under an animated change fades in; the branch left goes at
+// once, unless it carries a transition of its own, which plays its removal
+// at the same origin. A conditional inside a stack is not drawn whole: the
+// stack takes it apart, and its branches come and go as the stack's children
+// do (`ChildFade`, which says why what goes does not fade out, where
+// SwiftUI's does: measured, `Tools/SwiftUIProbes/Transitions/tr1.out` T8).
 //
 // ## Where the leaving branch is drawn
 //
 // Past the conditional's frame, as content drawn past a view's region is
 // (`FrameBuffer.drawnPastSlot`): the layout is the new branch's, at once, and
-// the old picture has no room in it. Drawn there it is composited by the
-// compositor that resolves fades against what is behind them, which this
-// module does not have; it lands over the new branch's cells rather than
-// beneath them, which for two fades crossing is the same blend with the
-// weights the other way round. Its hit regions are dropped: what is leaving
-// takes no clicks.
+// the old picture has no room in it. Drawn there it lands over the new
+// branch's cells rather than beneath them, as only a container composites
+// what it draws against what is behind it, and that compositor is above this
+// module. Its hit regions are dropped: what is leaving takes no clicks.
 //
 // ## What it costs
 //
-// The record the conditional already keeps of the branch it took
-// (`ConditionalRecord`) holds the picture as well, written in the one access
-// the record already took: a lookup and a store before, one in-place access
-// now. Nothing else happens on a frame nothing changes. The picture is kept
-// alive until the next frame, which is memory: a view whose body is an
-// `if`/`else`, nested in itself, keeps at each level what every level below
-// drew (decisions B-TRANSITIONS2-1).
+// The record the conditional already kept of the branch it took — a `Bool`
+// until lane TRANSITIONS2 — is a few flags and the pass that wrote it,
+// written in one in-place access (`ConditionalRecord`). It keeps no picture:
+// that was what the fade-out cost, a nested page keeping at each level what
+// every level below it drew (decisions B-TRANSITIONS2-1, TR2PERF). Nothing
+// else happens on a frame nothing changes.
 
-/// What a conditional did when it last rendered: the branch it took, and —
-/// where it was drawn whole — what that branch drew and what is still
-/// playing.
+/// What a conditional did when it last rendered: the branch it took, and
+/// what of that is still playing.
+///
+/// The pass first, then the flags: eight bytes, with no padding between.
 struct ConditionalRecord {
-    /// The branch it took: `true` for `.trueContent`.
-    var isTrueBranch: Bool
-    /// Whether it had rendered before: `false` on a record made just now, a
-    /// first sight, which is never a flip.
-    var seen = false
     /// The render pass that last wrote it (`StateStorage.currentPass`): a
     /// record a pass went by without is of a conditional that went and has
     /// come back, whose branch is a first sight, not a flip to play
     /// (`StateStorage.wasOnScreenLastPass(writtenOn:at:)`).
     var pass: UInt32 = 0
+    /// The branch it took: `true` for `.trueContent`.
+    var isTrueBranch: Bool
+    /// Whether it had rendered before: `false` on a record made just now, a
+    /// first sight, which is never a flip.
+    var seen = false
     /// Whether the branch it took is fading in.
     var arriving = false
-    /// What the branch drew when the conditional was last drawn whole, or
-    /// `nil` where it was only asked which branch it took.
-    var picture: FrameBuffer?
-    /// The branch it left, while that is still leaving.
-    var leaving: LeavingBranch?
+    /// The branch it left — `true` for `.trueContent` — while that branch
+    /// plays a transition of its own, from what it left in the
+    /// `DepartureStore` at its branch's identity.
+    var leavingBranch: Bool?
 
     init(isTrueBranch: Bool) {
         self.isTrueBranch = isTrueBranch
-    }
-}
-
-/// The branch a conditional left, while it leaves.
-enum LeavingBranch {
-    /// Fading out from the picture it drew last.
-    case fading(FrameBuffer, isTrueBranch: Bool)
-    /// Playing a transition of its own, from what it left in the
-    /// `DepartureStore` at its branch's identity.
-    case playing(isTrueBranch: Bool)
-
-    var isTrueBranch: Bool {
-        switch self {
-        case .fading(_, let isTrueBranch), .playing(let isTrueBranch): isTrueBranch
-        }
     }
 }
 
@@ -113,29 +96,27 @@ extension ConditionalView {
             // which is what plays: one that has come back is a new view.
             let flipped = record.seen && record.isTrueBranch != isTrueBranch
             let cameBack =
-                (flipped || record.arriving || record.leaving != nil)
+                (flipped || record.arriving || record.leavingBranch != nil)
                 && !storage.wasOnScreenLastPass(writtenOn: record.pass, at: identity)
-            let left = record.picture
             record.isTrueBranch = isTrueBranch
             record.seen = true
             record.pass = pass
-            record.picture = buffer
             if cameBack {
                 record.arriving = false
-                record.leaving = nil
+                record.leavingBranch = nil
             }
             // The settled frame — every render of every conditional drawn
             // whole — ends here: what the animator reads of the environment,
             // and the closure it is handed, are paid only by a frame something
             // comes or goes on.
             let plays = flipped && !cameBack
-            guard plays || record.arriving || record.leaving != nil else { return (flipped, buffer) }
+            guard plays || record.arriving || record.leavingBranch != nil else { return (flipped, buffer) }
             let animator = BranchAnimator(context: context, storage: storage, pictureType: Self.pictureType(ofBranch:))
             if plays {
-                record.leaving = animator.leaver(left, isTrueBranch: !isTrueBranch)
+                record.leavingBranch = animator.playsRemoval(ofBranch: !isTrueBranch) ? !isTrueBranch : nil
                 record.arriving = animator.startsArriving(isTrueBranch)
             }
-            guard record.arriving || record.leaving != nil else { return (flipped, buffer) }
+            guard record.arriving || record.leavingBranch != nil else { return (flipped, buffer) }
             return (flipped, animator.drawn(buffer, isTrueBranch: isTrueBranch, record: &record))
         }
     }
@@ -171,29 +152,17 @@ private struct BranchAnimator {
         context.identity.branch(isTrueBranch ? "true" : "false")
     }
 
-    /// How the branch labelled `isTrueBranch`, which drew `picture` last and
-    /// has just been left, leaves — or `nil` where it simply goes. A
-    /// transition of its own that names an animation plays under it whether
-    /// or not the change is animated, as ``ChildFade/leaver(from:picture:at:)``
-    /// says.
-    func leaver(_ picture: FrameBuffer?, isTrueBranch: Bool) -> LeavingBranch? {
+    /// Whether the branch labelled `isTrueBranch`, just left, plays a
+    /// transition of its own as it goes — or goes at once, as one with none
+    /// does. A transition that names an animation plays under it whether or
+    /// not the change is animated, as ``ChildFade/leaver(from:at:)`` says.
+    func playsRemoval(ofBranch isTrueBranch: Bool) -> Bool {
         let departures = storage.departures
+        guard !departures.isEmpty else { return false }
         let identity = identity(ofBranch: isTrueBranch)
-        if departures.hasEntry(at: identity, leftBy: pictureType(isTrueBranch)) {
-            // A transition of its own, which plays unless it says it goes at
-            // once.
-            guard
-                departures.hasDeparture(
-                    at: identity, ofType: pictureType(isTrueBranch), nowNanos: nowNanos, frameAnimation: animation)
-            else { return nil }
-            return .playing(isTrueBranch: isTrueBranch)
-        }
-        guard let animation, let picture, !picture.isEmpty else { return nil }
-        let key = key(isTrueBranch)
-        // From where it is if it was still on its way in.
-        storage.animations.settle(key, at: 1.0, nowNanos: nowNanos)
-        _ = storage.animations.value(for: key, target: 0.0, animation: animation, nowNanos: nowNanos, isMeasuring: false)
-        return .fading(picture, isTrueBranch: isTrueBranch)
+        let type = pictureType(isTrueBranch)
+        return departures.hasEntry(at: identity, leftBy: type)
+            && departures.hasDeparture(at: identity, ofType: type, nowNanos: nowNanos, frameAnimation: animation)
     }
 
     /// Whether the branch labelled `isTrueBranch`, just taken, fades in:
@@ -201,7 +170,7 @@ private struct BranchAnimator {
     func startsArriving(_ isTrueBranch: Bool) -> Bool {
         guard let animation, !storage.departures.isPresent(at: identity(ofBranch: isTrueBranch)) else { return false }
         let key = key(isTrueBranch)
-        // From where it is if it was on its way out.
+        // From nothing, whatever an arrival before it had got to.
         storage.animations.settle(key, at: 0.0, nowNanos: nowNanos)
         _ = storage.animations.value(for: key, target: 1.0, animation: animation, nowNanos: nowNanos, isMeasuring: false)
         return true
@@ -222,39 +191,26 @@ private struct BranchAnimator {
                 record.arriving = false
             }
         }
-        if let leaving = record.leaving {
-            if let picture = picture(of: leaving) {
+        if let leaving = record.leavingBranch {
+            if let picture = storage.departures.departing(
+                at: identity(ofBranch: leaving), ofType: pictureType(leaving), nowNanos: nowNanos,
+                frameAnimation: animation)
+            {
                 // A matched view in it carried with the one arriving in its
                 // place (`DepartureStore.carrying`).
-                var carried = storage.departures.carrying(picture, leftFrom: identity(ofBranch: leaving.isTrueBranch))
+                var carried = storage.departures.carrying(picture, leftFrom: identity(ofBranch: leaving))
                 // What is leaving takes no clicks, and is not where anything is.
                 carried.hitTestRegions = []
                 let past = carried.drawnPastSlot(width: 0, height: 0, offsetX: 0, offsetY: 0)
                 drawn.overlays = past.overlays + drawn.overlays
             } else {
-                record.leaving = nil
+                record.leavingBranch = nil
             }
         }
-        if record.arriving || record.leaving != nil {
+        if record.arriving || record.leavingBranch != nil {
             // A function of the clock, which no memo may keep.
             context.environment.volatileReadTracker?.recordRenderSideEffect()
         }
         return drawn
-    }
-
-    /// The picture of `leaving` on this frame, or `nil` once it has gone.
-    private func picture(of leaving: LeavingBranch) -> FrameBuffer? {
-        switch leaving {
-        case .fading(let picture, let isTrueBranch):
-            let key = key(isTrueBranch)
-            let presence = storage.animations.value(
-                for: key, target: 0.0, animation: animation, nowNanos: nowNanos, isMeasuring: false)
-            guard storage.animations.isAnimating(at: key, nowNanos: nowNanos) else { return nil }
-            return DefaultTransition.faded(picture, by: min(1, max(0, presence)))
-        case .playing(let isTrueBranch):
-            return storage.departures.departing(
-                at: identity(ofBranch: isTrueBranch), ofType: pictureType(isTrueBranch), nowNanos: nowNanos,
-                frameAnimation: animation)
-        }
     }
 }

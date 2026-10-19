@@ -86,6 +86,9 @@ private struct Selection: View {
 /// at (20, 6) — the hero.
 private struct Hero: View {
     let expanded: Bool
+    /// A transition of `small`'s own, which plays as it leaves: with none it
+    /// goes at once, a branch fading in only (decisions TR2PERF).
+    var removal: AnyTransition?
     @Namespace private var space
 
     var body: some View {
@@ -94,9 +97,15 @@ private struct Hero: View {
                 GlyphFill("B").matchedGeometryEffect(id: "card", in: space).frame(width: 8, height: 3)
                     .padding(.leading, 20).padding(.top, 6)
             } else {
-                GlyphFill("s").matchedGeometryEffect(id: "card", in: space).frame(width: 4, height: 1)
+                small
             }
         }
+    }
+
+    @ViewBuilder
+    private var small: some View {
+        let drawn = GlyphFill("s").matchedGeometryEffect(id: "card", in: space).frame(width: 4, height: 1)
+        if let removal { drawn.transition(removal) } else { drawn }
     }
 }
 
@@ -372,11 +381,12 @@ struct MatchedGeometryEffectTests {
     func hero() {
         let frames = MatchedFrames()
         frames.draw(Hero(expanded: false))
-        // It fades in as it is carried, from nothing where the one leaving
-        // still is (`mg3.out` A1).
+        // It fades in as it is carried, from nothing (`mg3.out` A1); the one
+        // leaving, with no transition of its own, has gone at once (SwiftUI's
+        // fades: decisions TR2PERF).
         let start = frames.draw(Hero(expanded: true), atMillis: 0, animation: .linear(duration: 1))
         #expect(rect(of: "B", in: start) == nil)
-        #expect(rect(of: "s", in: start) == CellRect(x: 0, y: 0, width: 4, height: 1))
+        #expect(rect(of: "s", in: start) == nil)
         // Halfway: 0 → 20, 4 → 28, 0 → 6, 1 → 9.
         #expect(rect(of: "B", in: frames.draw(Hero(expanded: true), atMillis: 500))
             == CellRect(x: 10, y: 3, width: 6, height: 2))
@@ -408,15 +418,19 @@ struct MatchedGeometryEffectTests {
     /// be scaled — and is placed in the frame the one arriving is drawn at, as
     /// a content of its size is placed in a matched frame: a fifth of the way,
     /// that frame is (4, 1) 5×2, and the leaving 4×1 sits a cell in and down
-    /// (decisions B-O4-1). It used to fade where it was, at (0, 0).
+    /// (decisions B-O4-1). It used to fade where it was, at (0, 0). The fade
+    /// is written, SwiftUI's default: a branch with no transition of its own
+    /// goes at once (decisions TR2PERF).
     @Test("A view removed as another of its id arrives is carried with it while it fades")
     func leavingViewIsCarried() {
         let frames = MatchedFrames()
-        frames.draw(Hero(expanded: false))
-        frames.draw(Hero(expanded: true), atMillis: 0, animation: .linear(duration: 1))
-        let early = frames.draw(Hero(expanded: true), atMillis: 200)
+        frames.draw(Hero(expanded: false, removal: .opacity))
+        frames.draw(Hero(expanded: true, removal: .opacity), atMillis: 0, animation: .linear(duration: 1))
+        let early = frames.draw(Hero(expanded: true, removal: .opacity), atMillis: 200)
         #expect(rect(of: "s", in: early) == CellRect(x: 5, y: 2, width: 4, height: 1), "\(early)")
-        #expect(rect(of: "s", in: frames.draw(Hero(expanded: true), atMillis: 1100)) == nil, "gone once it has played")
+        #expect(
+            rect(of: "s", in: frames.draw(Hero(expanded: true, removal: .opacity), atMillis: 1100)) == nil,
+            "gone once it has played")
     }
 
     @Test("A chip moving between two columns is carried across, and the columns lay out as they will end")
@@ -425,7 +439,9 @@ struct MatchedGeometryEffectTests {
         frames.draw(Columns(right: false))
         let start = frames.draw(Columns(right: true), atMillis: 0, animation: .linear(duration: 1))
         #expect(rect(of: "b", in: start) == nil, "it fades in as it is carried")
-        #expect(rect(of: "a", in: start) == CellRect(x: 0, y: 1, width: 3, height: 1))
+        // What the `if` holds is an `if`/`else` of its own (`chip(_:)`), whose
+        // branch is the stack's child, and goes at once (decisions TR2PERF).
+        #expect(rect(of: "a", in: start) == nil, "the one leaving has gone")
         // Halfway: x 0 → 20, y 1 → 2 (half a row from the far end, rounded
         // away from it).
         #expect(rect(of: "b", in: frames.draw(Columns(right: true), atMillis: 500))

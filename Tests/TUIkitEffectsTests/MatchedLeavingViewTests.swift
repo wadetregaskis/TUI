@@ -19,8 +19,9 @@ import Testing
 // MARK: - Scenes
 
 /// The hero with company: collapsed, a card `s` 4×1 at (0, 0) with a line
-/// `dd` below it and an avatar `a` 2×1 below that, all in one branch;
-/// expanded, the card `B` 8×3 at (20, 6) and the avatar `A` 2×1 at (30, 9).
+/// `dd` below it and an avatar `a` 2×1 below that, all in one branch, which
+/// fades as it leaves; expanded, the card `B` 8×3 at (20, 6) and the avatar
+/// `A` 2×1 at (30, 9).
 private struct HeroWithDetails: View {
     let expanded: Bool
     @Namespace private var space
@@ -40,6 +41,9 @@ private struct HeroWithDetails: View {
                     Text("dd")
                     GlyphFill("a").matchedGeometryEffect(id: "avatar", in: space).frame(width: 2, height: 1)
                 }
+                // SwiftUI's default, written: a branch with no transition of
+                // its own goes at once (decisions TR2PERF).
+                .transition(.opacity)
             }
         }
     }

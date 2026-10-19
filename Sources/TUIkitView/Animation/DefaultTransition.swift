@@ -8,9 +8,10 @@ import TUIkitCore
 
 // The default transition: a view an `if` puts in or takes out under an animated
 // change fades, as SwiftUI's does with no `.transition` written. The branch an
-// `if`/`else` takes and leaves, a `switch`'s case and a `ForEach`'s row fade
-// too, through the container that places them (`ChildFade`) or, for a
-// conditional drawn whole, through its own branch record (`BranchTransition`).
+// `if`/`else` takes, a `switch`'s case and a `ForEach`'s row fade in too,
+// through the container that places them (`ChildFade`) or, for a conditional
+// drawn whole, through its own branch record (`BranchTransition`); what they
+// leave goes at once, which `ChildFade` says why.
 //
 // ## Why one record per `if`, and not a re-declaration per frame
 //

@@ -84,8 +84,8 @@ extension RenderContext {
             let picture = departed.render(width: size.width, height: size.height, context: self)
             layers.append((picture, placement.x, placement.y, (zIndex, 0, index)))
         }
-        // A branch, a case or a row that has gone, fading out or playing its
-        // own removal where it was (`ChildFade`): beneath, as a slot is.
+        // A branch, a case or a row that has gone, playing its own removal
+        // where it was (`ChildFade`): beneath, as a slot is.
         for (index, leaver) in placements.leaving.enumerated() {
             layers.append(
                 (leaver.picture, leaver.placement.x, leaver.placement.y, (leaver.zIndex, 0, departing.count + index)))

@@ -405,7 +405,9 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
         let (subviews, placements) = resolve(context: context)
         guard !subviews.isEmpty else {
             // Nothing to place, and still a subview the change took out may
-            // be fading where it was (`ChildFade`).
+            // be playing a transition of its own where it was; and asked, so
+            // the record lasts for a subview that comes to fade in
+            // (`ChildFade`).
             return context.glidingStackBuffer([], buffers: [], at: [], departing: [], width: 0, height: 0)
                 ?? FrameBuffer()
         }

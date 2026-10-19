@@ -79,8 +79,9 @@ group leaves notes, on each frame it is carried, how far the one that left
 moves (`DepartureStore.noteCarried`): its picture is placed in the frame the
 arriving one is drawn at, as a content of its size is placed in a matched
 frame, so the two move together. Whatever plays the removal — the `nil` an
-`if` became, the stack that saw a branch or a row go (decisions
-B-TRANSITIONS2-1), a conditional drawn whole — draws the picture past its
+`if` became, the stack that saw a branch or a row with a transition of its
+own go (decisions B-TRANSITIONS2-1; one with none goes at once since
+B-TR2PERF-1), a conditional drawn whole — draws the picture past its
 place by that much: the matched view's own cells, found in the picture by
 its geometry marker, so a branch holding a card and a line of text carries
 the card and fades the text in place, and one holding two matched views

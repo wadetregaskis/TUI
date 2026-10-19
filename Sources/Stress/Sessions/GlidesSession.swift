@@ -42,7 +42,8 @@ final class GlidesModel {
     /// body changes the view's height between its phases.
     var fold = false
     /// Whether the middle row of a loop is there: a row the change puts in
-    /// or takes out fades, with no transition written.
+    /// fades in, with no transition written, and one it takes out goes at
+    /// once.
     var row = true
     /// Moved every step, unanimated: a frame is drawn on every step, and each
     /// card is served on every one its value has not changed on.
@@ -141,8 +142,8 @@ private struct GlidesClock: View {
 /// it: the row below glides in a subtree a memo serves on every frame the
 /// card's value has not changed on. A branch swap, not a `.transition` — a
 /// view with one is drawn afresh on every frame anyway, and would hide a memo
-/// that kept a frame of the glide; the branches fade by default only while
-/// they come and go.
+/// that kept a frame of the glide; the branch taken fades in by default only
+/// while it comes.
 private struct GlidesCard: View, @MainActor Equatable {
     let open: Bool
 
