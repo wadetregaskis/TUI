@@ -90,9 +90,20 @@ extension Material: ShapeStyle {
     /// The colour stays semantic, so the material follows a palette change as
     /// every palette colour does.
     public func paint(in environment: EnvironmentValues) -> Paint {
-        let surface = isBar ? Color.palette.statusBarBackground : Color.palette.background
+        .color(surface(isBar ? Color.palette.statusBarBackground : Color.palette.background, in: environment))
+    }
+
+    /// `surface` as this material paints it in `environment`: at the
+    /// material's opacity while it appears active, and at full strength while
+    /// it does not.
+    ///
+    /// - Parameters:
+    ///   - surface: The colour the material is made of.
+    ///   - environment: Where it is painted, for its active appearance.
+    /// - Returns: The colour to paint.
+    func surface(_ surface: Color, in environment: EnvironmentValues) -> Color {
         let appearance = activeAppearance == .automatic ? environment.materialActiveAppearance : activeAppearance
-        return .color(appearance.appearsActive(in: environment) ? surface.opacity(opacity) : surface)
+        return appearance.appearsActive(in: environment) ? surface.opacity(opacity) : surface
     }
 }
 
