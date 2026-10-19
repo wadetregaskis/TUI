@@ -1229,6 +1229,12 @@ shows it; F10, Alt-letter and a click open it; it is not in the Tab ring) and
 not built. Lane owed: about six days, a new leaf module over the app, chrome
 and menu modules; its Window menu comes with O9.
 
+**Built by lane O13 (2026-10-18)**, as TUIkitCommands: the vocabulary, the
+scene modifiers, the bar with its keys, the scene's own commands and four of
+the standard sets. What it decided, and what waits (Settings… and the Window
+menu on O9, `TextFormattingCommands` on A42), is in
+[`Decisions/The menu bar (O13).md`](<Decisions/The menu bar (O13).md>).
+
 ### O14. `ControlSize` (+ W06 `controlSize` modifiers) — M–L
 
 Measured on macOS: `.large` makes a `Button` 20 → 28 pt tall, `.mini` 24×13.

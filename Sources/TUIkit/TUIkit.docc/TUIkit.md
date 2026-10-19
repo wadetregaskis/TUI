@@ -37,6 +37,7 @@ struct MyApp: App {
 - **Theming system**: 16 built-in palettes (6 phosphor presets + 10 terminal profiles) with full RGB color support
 - **Focus management**: Keyboard-driven navigation between interactive elements
 - **Status bar**: Configurable shortcut bar with context stack
+- **Menu bar**: SwiftUI's commands (`CommandMenu`, `CommandGroup`) draw a menu bar on the window's top row, opened with F10 or a click
 - **No terminal libraries**: Rendering is pure Swift, with no ncurses or system terminal C libraries
 - **Cross-platform**: macOS and Linux
 
@@ -80,6 +81,19 @@ struct MyApp: App {
 - ``Scene``
 - ``WindowGroup``
 - ``renderOnce(content:)``
+
+### Commands and the Menu Bar
+
+- ``Commands``
+- ``CommandsBuilder``
+- ``CommandMenu``
+- ``CommandGroup``
+- ``CommandGroupPlacement``
+- ``EmptyCommands``
+- ``SidebarCommands``
+- ``InspectorCommands``
+- ``ToolbarCommands``
+- ``TextEditingCommands``
 
 ### Views
 
