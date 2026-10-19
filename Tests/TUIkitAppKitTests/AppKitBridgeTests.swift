@@ -152,6 +152,10 @@ private enum ImportScan {
         // rest were: with only `import Symbols`, `NSColor` is not in scope, and
         // neither is SwiftUICore's `FormatStyle.offset(to:)`.
         "Symbols",
+        // `Transferable`, which the file exporter writes (lane O10). Checked
+        // 2026-10-19 the same way: with only `import CoreTransferable`,
+        // neither `NSColor` nor `FormatStyle.offset(to:)` is in scope.
+        "CoreTransferable",
     ]
 
     /// The kinds a scoped import names (`import struct AppKit.NSColor`).
