@@ -21,7 +21,7 @@
 ///
 /// ## Environment values
 ///
-/// Extend ``EnvironmentValues`` with a property and attach the macro to it:
+/// Extend `EnvironmentValues` with a property and attach the macro to it:
 ///
 /// ```swift
 /// extension EnvironmentValues {

@@ -64,7 +64,7 @@ public protocol PickerStyle: Sendable {}
 // MARK: - Built-in Picker Styles
 
 /// The default picker style, based on the picker's context: what
-/// ``PickerStyle/automatic`` names, as in SwiftUI.
+/// `PickerStyle.automatic` names, as in SwiftUI.
 ///
 /// In TUIkit the default resolves to ``MenuPickerStyle`` — a collapsed
 /// control that opens a drop-down list.

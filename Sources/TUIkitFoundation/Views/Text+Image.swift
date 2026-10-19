@@ -11,7 +11,7 @@ extension Text {
     /// line with other text — mirrors SwiftUI's `Text(_:)` taking an image.
     ///
     /// A system symbol is a character in a terminal, so it becomes its glyph
-    /// (``SFSymbol/glyph(named:)``, what `Image(systemName:)` draws), and the
+    /// (`SFSymbol.glyph(named:)`, what `Image(systemName:)` draws), and the
     /// text styles it as it styles any other character. A picture cannot sit
     /// in a line of text, so it becomes an empty text. Both are what
     /// interpolating the image into a key gives:

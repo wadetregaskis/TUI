@@ -38,7 +38,7 @@ extension EnvironmentValues {
 extension View {
     /// Sets the text content type for text fields and editors within this
     /// view — mirrors SwiftUI's `textContentType(_:)`, whose
-    /// `NSTextContentType` spellings ``TextContentType`` carries.
+    /// `NSTextContentType` spellings `TextContentType` carries.
     ///
     /// There is no autofill in a terminal, so a content type is a filter:
     /// typed characters and pasted text are checked against the type's
