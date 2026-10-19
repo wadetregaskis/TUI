@@ -161,13 +161,25 @@ is one shape round all of its members. A cell is joined or not, so here:
   them — the pass a group forms, a glass joins one, leaves, moves or changes
   size — the container puts the walk back (`RenderWalkCheckpoint`) and draws
   its content again, knowing each part, as a coordinate space draws its
-  readers again. Glass changes no
-  layout, so the second drawing finds what the first did: every pass shows
-  the glass joined as it stands. The second walk is paid only on a pass that
-  changes who is joined, and is the coordinate spaces' second walk, with its
-  known cost: what a drawing does rather than registers — an `onChange` that
-  fires, a task that starts — happens on both. Glass in a container
-  declares a render side effect, so no memo keeps a subtree with one.
+  readers again. Glass changes no layout, so the second drawing finds what
+  the first did: every pass shows the glass joined as it stands. The second
+  walk is paid only on a pass that changes how the glass is joined, and is
+  the coordinate spaces' second walk, with its known cost: what a drawing
+  does rather than registers — an `onChange` that fires, a task that starts
+  — happens on both.
+- **What it costs:** glass in a container declares a render side effect, as
+  a view with a `.transition` does: the container learns of its glass only
+  from glass that draws, and an arriving glass's record lasts only while it
+  is asked for. So no memo keeps the container's subtree, nor any view above
+  it up to the root, and every frame something draws — the focus breathing,
+  any animation — draws that chain again, the container's content and its
+  glass with it (found in review; not measured — an A/B is owed on a page
+  with a container while the focus breathes). The remedy: the container's
+  markers numbered by the dispatcher, which keeps a view's marker across
+  passes, rather than by the drawing's count; a glass's telling and its
+  arrival's asking recorded in the effect journal, so a served subtree makes
+  them again and declares no side effect. A part a served glass drew stale is
+  already settled by the container's second drawing. About half a day.
 - **Where it stops:** a glass in a `ScrollView`, a `.clipped()` or
   `.clipShape(_:)`, a `.hidden()` view or an `.opacity(_:)` below 1 inside
   the container draws itself and joins nothing: a joined shape reaches past
