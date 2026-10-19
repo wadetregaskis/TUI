@@ -174,21 +174,30 @@ extension View {
     ///   row and an `if` do not. To line views up across containers by an
     ///   edge, declare a custom ``AlignmentID`` whose default is that edge.
     ///
-    /// `.padding` reports its content's guides moved by the inset, and a
-    /// custom ``Layout`` can state one of its own
+    /// A custom ``Layout`` can state one of its own
     /// (``Layout/explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``).
+    ///
+    /// A guide passes the modifiers written after it, each moving it by where
+    /// it puts its content, as SwiftUI's does: `.padding` by its inset,
+    /// `.frame` by where it places its content, `.position` by where it
+    /// centres it, `.border()` by its ring (a line and a blank cell across,
+    /// a line down — SwiftUI strokes inside the view, so its guide does not
+    /// move); `.offset` passes it unmoved, being laid out where its view is;
+    /// `.overlay` and `.background` pass their base's; and a modifier that
+    /// keeps its content where it is — environment, style, effect, focus,
+    /// gesture and lifecycle modifiers, `.id`, `.tag`, `.opacity`,
+    /// `.fixedSize()` — passes it unmoved.
     /// A view type of your own reports what its `body` does, through an `if`,
     /// an `if`/`else` and a `switch` too, so a guide inside `struct Row:
     /// View`'s body travels out of `Row` as SwiftUI's does.
     ///
-    /// - Important: It travels on through a modifier written after it that
-    ///   draws the view unchanged — `.onTapGesture`, `.tint`, `.onAppear`, an
-    ///   environment write such as `.lineLimit(_:)`, the last asked under the
-    ///   value it writes — and stops at any other (`.border()`, a `.frame`,
-    ///   `.offset`). Put the guide on the view the container places, or
-    ///   outside such a modifier. A guide is a closure evaluated against the
-    ///   dimensions the view laid out at, and a wrapper that does not
-    ///   translate it would report a position from the wrong coordinate space.
+    /// - Important: It stops at a modifier that moves or resizes its content
+    ///   without saying by how much — a `.badge`, a `.toolbar`, a list row's
+    ///   insets or colours, a ``BufferModifier`` of your own (unless it states
+    ///   ``BufferModifier/_keepsContentGeometry``). Put the guide outside such a
+    ///   modifier. A guide is a closure evaluated against the dimensions the
+    ///   view laid out at, and a wrapper that does not translate it would
+    ///   report a position from the wrong coordinate space.
     ///
     /// - Parameters:
     ///   - g: The guide to set.
@@ -216,8 +225,8 @@ extension View {
     /// }
     /// ```
     ///
-    /// - Important: Apply this as the **outermost** modifier on the child —
-    ///   see the horizontal overload for why.
+    /// How far it travels, and through which modifiers, is as for the
+    /// horizontal overload.
     ///
     /// - Parameters:
     ///   - g: The guide to set.
@@ -330,13 +339,19 @@ package func explicitGuide<V: View>(
     if let provider = view as? AlignmentGuideProviding {
         return provider.explicitAlignmentGuide(for: query.key, in: dimensions)
     }
-    // A wrapper that draws its content unchanged at its own identity is its
-    // content's size, so the content's guide is its own — asked in the context
-    // the wrapper lays its content out in, which an environment write changes
-    // (`.lineLimit(1)` around a column). One that does not state that context
-    // stops the guide here (`ContentContextStating`, deviation L11).
+    // A wrapper that lays its content out where it is itself: its content's
+    // guide, unmoved, at this identity, as such a wrapper draws it — asked in
+    // the context the wrapper lays its content out in, which an environment
+    // write changes (`.lineLimit(1)` around a column), where it states that
+    // context, else in this one where it says it keeps its content's geometry
+    // itself. A wrapper that draws its content unchanged but states neither
+    // may write to the environment, and stops the guide here
+    // (`ContentContextStating`, deviation L11).
     if let wrapper = view as? any ContentContextStating {
         return explicitGuide(throughUnchanged: wrapper, query, in: dimensions, context: context)
+    }
+    if let wrapper = view as? any SingleContentWrapper, statesItKeepsContentGeometry(wrapper) {
+        return explicitGuide(ofContentOf: wrapper, query, in: dimensions, context: context)
     }
     guard V.Body.self != Never.self, !(view is Renderable) else { return nil }
     // The body as the measure walk evaluates it: `@Environment` resolved and
@@ -359,6 +374,26 @@ private func explicitGuide<Wrapper: ContentContextStating>(
 ) -> Double? {
     explicitGuide(
         of: wrapper.wrappedContent, query, in: dimensions, context: wrapper.contentLayoutContext(context))
+}
+
+/// Whether `wrapper` says it lays its content out where it is itself
+/// (``SingleContentWrapper/_keepsContentGeometry``), the existential opened.
+/// Not ``DrawsContentUnchanged`` alone, which `keepsContentGeometry(_:)` also
+/// counts: such a wrapper is its content's size, but may lay its content out
+/// in another context, and is stepped through only where it states that one.
+@MainActor
+private func statesItKeepsContentGeometry<W: SingleContentWrapper>(_: W) -> Bool {
+    W._keepsContentGeometry
+}
+
+/// ``explicitGuide(of:_:in:context:)`` of `wrapper`'s content, the existential
+/// opened: unmoved, at this identity, as a wrapper that keeps its content's
+/// geometry draws it.
+@MainActor
+private func explicitGuide<W: SingleContentWrapper>(
+    ofContentOf wrapper: W, _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
+) -> Double? {
+    explicitGuide(of: wrapper.wrappedContent, query, in: dimensions, context: context)
 }
 
 // MARK: - Reading a Child's Guide

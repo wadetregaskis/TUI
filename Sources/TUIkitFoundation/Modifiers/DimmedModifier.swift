@@ -300,6 +300,10 @@ extension DimmedModifier: Layoutable {
 ///   member and doing it once over the pair produce the same cells — the
 ///   members do not overlap in a stack, and each carries its own styling in.
 extension DimmedModifier: ContentRewrapping {
+    /// Its content's geometry is its own — it dims the cells its content drew, where they are — so a guide
+    /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
+    public static var _keepsContentGeometry: Bool { true }
+
     public var wrappedContent: Content { content }
 
     public func rewrapping<V: View>(_ view: V) -> any View {

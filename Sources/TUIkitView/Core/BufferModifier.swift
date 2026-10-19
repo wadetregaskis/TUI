@@ -81,6 +81,18 @@ public protocol BufferModifier {
     /// the context-carrying guide query itself.
     static var _translatesAlignmentGuides: Bool { get }
 
+    /// Static witness: whether this modifier lays its content out exactly
+    /// where the modified view is laid out — its own size, origin and
+    /// identity — rewriting only what its content drew (an `.id`, a
+    /// background, a shadow), so a guide inside it is the modified view's,
+    /// unmoved, as SwiftUI's is through every single-child modifier.
+    ///
+    /// `false` by default: a modifier of the app's own that draws cells
+    /// beside its content moves the content off its origin, and a guide that
+    /// passed it unmoved would report the wrong position. See
+    /// ``SingleContentWrapper/_keepsContentGeometry``.
+    static var _keepsContentGeometry: Bool { get }
+
     /// Static witness: whether this modifier lays its content out anew —
     /// changes the size it is offered or reports — so that a priority written
     /// inside it (``View/layoutPriority(_:)``) is not the modified view's.
@@ -173,6 +185,11 @@ extension BufferModifier {
     /// modifier translates it.
     @inlinable
     public static var _translatesAlignmentGuides: Bool { false }
+
+    /// A modifier is not taken to keep its content where it is unless it
+    /// says so.
+    @inlinable
+    public static var _keepsContentGeometry: Bool { false }
 
     /// A modifier draws its content where it lays out, at the size it was
     /// given, unless it says otherwise.
@@ -308,14 +325,18 @@ extension ModifiedView: Renderable {
 /// different question with a different answer per wrapper.
 extension ModifiedView: SingleContentWrapper {
     public var wrappedContent: Content { content }
+
+    /// The modifier's answer (``BufferModifier/_keepsContentGeometry``).
+    public static var _keepsContentGeometry: Bool { Modifier._keepsContentGeometry }
 }
 
 extension ModifiedView {
     /// A guide inside the content is the modified view's only when the
     /// modifier translates guides (``BufferModifier/_translatesAlignmentGuides``)
-    /// — padding — and the content holds one.
+    /// — padding — or keeps its content where it is
+    /// (``BufferModifier/_keepsContentGeometry``), and the content holds one.
     public static var _providesAlignmentGuide: Bool {
-        Modifier._translatesAlignmentGuides && Content._providesAlignmentGuide
+        (Modifier._translatesAlignmentGuides || Modifier._keepsContentGeometry) && Content._providesAlignmentGuide
     }
 
     /// A priority inside the content is the modified view's unless the

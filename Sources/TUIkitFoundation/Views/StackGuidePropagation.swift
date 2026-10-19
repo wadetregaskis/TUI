@@ -116,12 +116,20 @@ extension PaddingModifier {
     public static var _changesLayout: Bool { true }
 }
 
-extension ModifiedView: AlignmentGuideQuerying where Modifier == PaddingModifier {
-    /// The content's guide, laid out at the padded view's size less the
-    /// insets, moved by the leading and top insets.
+extension ModifiedView: AlignmentGuideQuerying {
+    /// Padded, the content's guide, laid out at the padded view's size less
+    /// the insets, moved by the leading and top insets. Under a modifier that
+    /// keeps its content where it is (``BufferModifier/_keepsContentGeometry``),
+    /// the content's guide unmoved, in the context the modifier hands its
+    /// content (an `.id` splices its key into the identity there).
     package func explicitGuide(
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
+        guard let modifier = modifier as? PaddingModifier else {
+            guard Modifier._keepsContentGeometry else { return nil }
+            return TUIkitFoundation.explicitGuide(
+                of: content, query, in: dimensions, context: self.modifier.adjustContext(context))
+        }
         let insets = modifier.insets
         var contentContext = context
         contentContext.availableWidth = max(0, dimensions.width - insets.leading - insets.trailing)

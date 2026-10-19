@@ -96,15 +96,16 @@ package struct BodyWitnessMemo {
         return Int(truncatingIfNeeded: (bits >> 4) ^ (bits >> 13)) & (frontCount - 1)
     }
 
-    /// `V`'s answer, which is `ask()` — its body's — unless `V` is drawn
-    /// procedurally (``Renderable``), which has a body of no meaning here and
-    /// answers `false`, or `V` is met again while its own body is being asked,
-    /// where it answers `false` as well.
+    /// `V`'s answer, which is `ask()` — its body's, or its content's — kept
+    /// once worked out, and `false` where `V` is met again while its own
+    /// answer is being asked.
     ///
     /// - Parameters:
     ///   - memo: The witness's memo (``alignmentGuide``).
     ///   - type: The view type asked about.
-    ///   - ask: Its body's answer: `V.Body.<witness>`.
+    ///   - ask: Its answer, asked once: `V.Body.<witness>` for a view of the
+    ///     app's own, `false` for one drawn procedurally (``Renderable``),
+    ///     whose body is not what is drawn.
     @inline(__always)
     package static func answer<V: View>(
         in memo: UnsafeMutablePointer<Self>, for type: V.Type, _ ask: () -> Bool
@@ -127,10 +128,6 @@ package struct BodyWitnessMemo {
         }
         if let depth = memo.pointee.open[key] {
             memo.pointee.outermostMet = min(memo.pointee.outermostMet, depth)
-            return false
-        }
-        guard V.Body.self != Never.self, !(type is any Renderable.Type) else {
-            memo.pointee.keep(false, for: key)
             return false
         }
         let depth = memo.pointee.open.count

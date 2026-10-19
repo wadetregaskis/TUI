@@ -203,6 +203,10 @@ private struct _HitTestingView<Content: View>: View, Renderable, Layoutable {
 /// - Note: Blanking each member is blanking the pair, and the geometry each
 ///   member reports is unchanged — which is the whole point of `.hidden()`.
 extension _HiddenView: ContentRewrapping {
+    /// Its content's geometry is its own — it blanks the cells its content takes, where they are — so a guide
+    /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
+    static var _keepsContentGeometry: Bool { true }
+
     var wrappedContent: Content { content }
 
     func rewrapping<V: View>(_ view: V) -> any View {

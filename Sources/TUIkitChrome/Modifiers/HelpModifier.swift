@@ -266,5 +266,9 @@ extension View {
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
 extension HelpModifier: SingleContentWrapper {
+    /// Its content's geometry is its own — its help text is published to its content, drawn as it is — so a guide
+    /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
+    public static var _keepsContentGeometry: Bool { true }
+
     public var wrappedContent: Content { content }
 }

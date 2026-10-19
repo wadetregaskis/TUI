@@ -125,7 +125,7 @@ extension View {
         if width <= 0 {
             self
         } else {
-            _BorderRings(
+            _BorderRings<Self>(
                 rings: (1..<max(1, width)).reduce(
                     AnyView(ring(style: style, colour: colour))
                 ) { inner, _ in
@@ -172,11 +172,17 @@ extension View {
 /// Not a provider of children, so its type counts one; drawn and measured as
 /// the `AnyView` it holds, at the same identity — the rings stay erased,
 /// which is faster than their nested type spelt out (an un-erased ring
-/// measured +20.5% on the `anyview` scenario).
-struct _BorderRings: View, Renderable, Layoutable {
+/// measured +20.5% on the `anyview` scenario). The bordered view's type is
+/// kept as a parameter alone, so a guide inside it can be found and reported
+/// out through the rings (`WrapperGuidePropagation.swift`).
+struct _BorderRings<Bordered: View>: View, Renderable, Layoutable {
     let rings: AnyView
 
     var body: Never { fatalError("_BorderRings renders via Renderable") }
+
+    /// The bordered view's answer: the rings hold it, and report its guides
+    /// moved in by their lines and padding.
+    static var _providesAlignmentGuide: Bool { Bordered._providesAlignmentGuide }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         rings.renderToBuffer(context: context)

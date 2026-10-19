@@ -32,6 +32,10 @@ final class LinkLabelText {
 /// `Label`'s icon, `􀫊 apple/swift` — and pasted anywhere else it is a box,
 /// so Copy Label copies `apple/swift`.
 struct RecordsLinkLabelText: BufferModifier {
+    /// Its content stays where it is laid out — it records the label's text and moves nothing — so a guide inside it
+    /// passes unmoved (``BufferModifier/_keepsContentGeometry``).
+    static var _keepsContentGeometry: Bool { true }
+
     let record: LinkLabelText
 
     func modify(buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {

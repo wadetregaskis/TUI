@@ -73,24 +73,19 @@ struct AlignmentGuideModifierTests {
         #expect(wrapped == [1, 5])
     }
 
-    @Test("A guide under a wrapper that does not translate it stops there, deliberately")
-    func guideUnderABorderIsInert() {
-        // PINS A LIMITATION. A border also moves its content, but nothing here
-        // translates a guide through it, and a wrong position is worse than a
-        // documented no-op: the guide is not read at all.
+    @Test("A guide travels out through a border, moved in by its ring")
+    func guideThroughABorder() {
+        // A border moves its content in by a line and a blank cell, and moves
+        // a guide inside it by the same: "aaaa"'s trailing edge, 4, is 6 in
+        // the bordered view, so "bb" starts there. The closure still sees the
+        // content's own width (decisions SA-L11; `AlignmentGuideWrapperTests`).
         let wrapped = indents(renderToBuffer(
             VStack(alignment: .leading) {
                 Text("aaaa").alignmentGuide(.leading) { Double($0.width) }.border(.red)
                 Text("bb")
             },
             context: makeBareRenderContext(width: 20, height: 4)))
-        let plain = indents(renderToBuffer(
-            VStack(alignment: .leading) {
-                Text("aaaa").border(.red)
-                Text("bb")
-            },
-            context: makeBareRenderContext(width: 20, height: 4)))
-        #expect(wrapped == plain)
+        #expect(wrapped == [0, 0, 0, 6])
     }
 
     @Test("A hanging guide widens the column and indents its siblings")

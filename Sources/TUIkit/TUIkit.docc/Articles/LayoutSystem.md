@@ -156,12 +156,15 @@ Three things worth knowing before you reach for it:
   own.
   A view type of your own reports what its `body` does, so a decimal point
   marked on a `Text` inside each row of a column — a row view of your own or
-  not — lines the rows up on it. A guide travels on through a modifier that
-  draws its view unchanged — `.onTapGesture`, `.tint`, `.onAppear`, an
-  environment write such as `.lineLimit(_:)`, which it is asked under — and
-  stops at any other modifier written after it (`.border()`, a `.frame`,
-  `.offset`): one that does not translate it would report it from the wrong
-  coordinate space.
+  not — lines the rows up on it. A guide passes the modifiers written after
+  it, each moving it by where it puts its content (`.padding`, `.frame`,
+  `.position`, `.border()`), or not at all (`.offset`, `.overlay`,
+  `.background`, and the modifiers that keep their content where it is, an
+  environment write such as `.lineLimit(_:)` asking it under the value it
+  writes). It
+  stops only at one that moves its content without saying by how much — a
+  `.badge`, a `.toolbar`, a `BufferModifier` of your own — which would
+  report it from the wrong coordinate space.
 
 Guides are read by ``VStack``, ``HStack``, ``ZStack`` and their lazy twins, and
 by the single-child regions `.frame(alignment:)`, `.overlay(alignment:)` and

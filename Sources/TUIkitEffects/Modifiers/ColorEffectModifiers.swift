@@ -371,6 +371,10 @@ extension _ColorEffect {
 ///   overlap, so rewriting each member's colours and rewriting the pair's
 ///   buffer produce the same cells.
 extension _ColorEffectView: ContentRewrapping {
+    /// Its content's geometry is its own — it recolours the cells its content drew, where they are — so a guide
+    /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
+    static var _keepsContentGeometry: Bool { true }
+
     var wrappedContent: Content { content }
 
     func rewrapping<V: View>(_ view: V) -> any View {

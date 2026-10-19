@@ -12,6 +12,10 @@ import TUIkitStyling
 /// - Important: This is framework infrastructure. Use `.background()` on any
 ///   ``View`` instead of instantiating this type directly.
 public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
+    /// Its content stays where it is laid out — a background is drawn behind the cells its content drew, where they are — so a guide inside it
+    /// passes unmoved (``BufferModifier/_keepsContentGeometry``).
+    public static var _keepsContentGeometry: Bool { true }
+
     /// What to fill with.
     package let style: S
 

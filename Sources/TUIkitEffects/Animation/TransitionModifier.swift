@@ -391,5 +391,9 @@ extension _TransitionView {
 extension _TransitionView: CarriesTransition {}
 
 extension _TransitionView: SingleContentWrapper {
+    /// Its content's geometry is its own — a transition draws its view displaced, but lays it out where it is, as an offset does — so a guide
+    /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
+    static var _keepsContentGeometry: Bool { true }
+
     var wrappedContent: Content { content }
 }

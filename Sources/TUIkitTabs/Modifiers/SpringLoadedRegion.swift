@@ -61,5 +61,9 @@ extension _SpringLoadedRegion: Renderable, Layoutable {
 /// can look through this wrapper instead of stopping at it. Read-only: it does
 /// NOT conform to ``ContentRewrapping``.
 extension _SpringLoadedRegion: SingleContentWrapper {
+    /// Its content's geometry is its own — it registers a region over its content, where it is — so a guide
+    /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
+    static var _keepsContentGeometry: Bool { true }
+
     var wrappedContent: Content { content }
 }

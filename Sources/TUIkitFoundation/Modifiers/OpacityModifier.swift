@@ -455,6 +455,10 @@ extension _OpacityView: Layoutable {
 ///   opacity written on each member — both give rgb(156,99,53) at the centre
 ///   pixel, against rgb(255,84,62) with no opacity at all.
 extension _OpacityView: ContentRewrapping {
+    /// Its content's geometry is its own — it fades the cells its content drew, where they are — so a guide
+    /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
+    package static var _keepsContentGeometry: Bool { true }
+
     package var wrappedContent: Content { content }
 
     package func rewrapping<V: View>(_ view: V) -> any View {

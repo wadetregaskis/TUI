@@ -228,6 +228,7 @@ identifier_name:
     - _statesSpacingPreference
     - _handsOverChildren
     - _translatesAlignmentGuides
+    - _keepsContentGeometry
     - _definesExplicitAlignment
     - _isAnimatable
     - _animated

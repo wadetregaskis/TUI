@@ -331,31 +331,35 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [B6](<Decisions/SwiftUI API completion decisions.md#b6-safeareainset-puts-the-bar-beside-the-view-there-is-no-safe-area>), [B25](<Decisions/SwiftUI API completion decisions.md#b25-safeareapadding-is-padding-or-a-scroll-views-content-margin>). **Owner** (2026-10-12: not
   convinced; do not build the safe area).
 
-### L11. An alignment guide stops at a border, a frame or an offset
+### L11. A border moves a guide by its ring, and a few wrappers stop one
 
-- **SwiftUI:** `.alignmentGuide` passes out through the modifiers written after
-  it, each translating it by where it put its content (measured, including
-  `.padding(0)`: [§1](<SwiftUI compatibility guide.md#1-match>), the Layout row).
-- **TUIkit:** `.padding` passes a guide on, translated by its inset
-  (`PaddingModifier`'s `_translatesAlignmentGuides`), and a wrapper that draws
-  its content unchanged — `.onTapGesture`, `.tint`, `.onAppear`, an environment
-  write — passes it on as it is, being its content's size (since 2026-10-18,
-  `DrawsContentUnchanged`), the content asked in the context the wrapper lays
-  it out in, so a guide under `.lineLimit(1)` is found where the limited
-  content draws it (`ContentContextStating`; a wrapper that does not state
-  that context stops the guide); so does a view of the app's own (since
-  2026-10-18, decisions B19); but `.border()`, a `.frame` or an `.offset`
-  written after it stops it (L3's lazy stacks honour a guide that reaches
-  them). `layoutValue(key:value:)` and `layoutPriority(_:)` are read off
-  the outermost view the same way.
-- **Why:** a guide is a closure evaluated against the dimensions the view laid
-  out at. A wrapper that passed it on untranslated would report a position from
-  the wrong coordinate space, and TUIkit's buffers carry no guide to translate.
-  A wrong position is worse than a documented stop.
-- **Decided:** [AlignmentGuide.swift](../../Sources/TUIkitFoundation/Views/AlignmentGuide.swift#L145-L158),
-  [§1](<SwiftUI compatibility guide.md#1-match>) (the Layout row calls it a gap),
-  [§3](<SwiftUI compatibility guide.md#3-open-divergence>). **Recorded.** The owner's A-GUIDE-2 ruling (uniform
-  behaviour, no special exceptions) bears on it.
+- **SwiftUI:** `.alignmentGuide` passes out through every single-child
+  modifier written after it, each translating it by where it put its content;
+  `.border` strokes inside the view and moves nothing, so a leading guide of 5
+  under `.border(_:width: 2)` still reports 5 (measured 2026-10-18,
+  `Tools/SwiftUIProbes/Alignment guides/layout1.out`, case B).
+- **TUIkit:** the same through `.padding`, `.frame`, `.position`, `.offset`,
+  `.overlay`, `.background` and every wrapper that keeps its content's
+  geometry (`AlignmentGuideWrapperTests`): `.onTapGesture`, `.tint`,
+  `.onAppear`, and an environment write, whose content is asked in the
+  context the write lays it out in, so a guide under `.lineLimit(1)` is found
+  where the limited content draws it (`ContentContextStating`).
+  `.border()` moves the guide in by
+  its ring — a line and a blank cell across, a line down — and a `.badge`, a
+  `.toolbar`, a list row's insets or colours and a `BufferModifier` of the
+  app's own that does not state `_keepsContentGeometry` stop it.
+  `layoutValue(key:value:)` and `layoutPriority(_:)` are read through every
+  single-content wrapper but the ones that lay their content out anew
+  (`.padding`, `.frame`, `.position`, `.fixedSize()`), as SwiftUI loses a
+  priority there (`Tools/SwiftUIProbes/Layout priority/priority.out`).
+- **Why:** a terminal border takes cells round its content, so the content's
+  guide is where the content is, inside the ring; and a guide is a closure
+  evaluated against the dimensions its view laid out at, so a wrapper that
+  moves its content without saying by how much would report a position from
+  the wrong coordinate space. A wrong position is worse than a documented
+  stop.
+- **Decided:** [SA-L11](<Decisions/Layout parity (LAYOUT).md#b-layout-3-a-border-moves-a-guide-by-its-ring-and-a-few-wrappers-stop-one>).
+  **Lane.**
 
 ### L13. A guide pushes a view at most 2^20 cells, and a runaway guide is reported
 

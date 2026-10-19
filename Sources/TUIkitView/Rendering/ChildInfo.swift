@@ -205,6 +205,36 @@ public protocol SingleContentWrapper {
 
     /// The content this wrapper was built around.
     var wrappedContent: WrappedContent { get }
+
+    /// Static witness: whether this wrapper lays its content out exactly
+    /// where it is itself laid out — at its own size, origin and identity —
+    /// so that a guide its content sets is its own, unmoved. The witness for
+    /// size-neutrality that a guide needs before it may pass a wrapper: a
+    /// guide is a closure evaluated against the dimensions its view laid out
+    /// at, and one handed a wrapper's dimensions that are not its view's
+    /// reports a position from the wrong coordinate space.
+    ///
+    /// `false` by default, so a wrapper that moves or resizes its content
+    /// (a badge beside it, a toolbar round it) stops a guide rather than
+    /// report it wrongly; a wrapper that only publishes to its subtree,
+    /// rewrites the cells its content drew or records an effect answers
+    /// `true`. A wrapper that moves its content by a known offset answers the
+    /// guide query itself instead (`.padding`, `.frame`, `.border`).
+    static var _keepsContentGeometry: Bool { get }
+}
+
+extension SingleContentWrapper {
+    /// A wrapper is not taken to keep its content's geometry unless it says so.
+    public static var _keepsContentGeometry: Bool { false }
+}
+
+/// Whether wrappers of `type` lay their content out where they are laid out
+/// themselves: they say so (``SingleContentWrapper/_keepsContentGeometry``),
+/// or they draw their content unchanged at their own identity
+/// (``DrawsContentUnchanged``), which keeps its geometry a fortiori.
+@MainActor
+package func keepsContentGeometry<W: SingleContentWrapper>(_ type: W.Type) -> Bool {
+    W._keepsContentGeometry || type is any DrawsContentUnchanged.Type
 }
 
 /// The nearest thing at or inside `view` that conforms to `T`, looking through
@@ -251,8 +281,8 @@ package func throughWrappers<T>(_ view: any View, as type: T.Type = T.self) -> T
 /// is what makes a z-index safe to forward too; and SwiftUI documents and does
 /// exactly this for it: a value "is unaffected by views that aren't
 /// containers", so `Text("a").tag(5).padding()` still has tag 5 for the
-/// container that reads it. The other two witnesses are NOT forwarded, and
-/// neither omission is an oversight:
+/// container that reads it. The other two witnesses are NOT forwarded as they
+/// stand, and neither omission is an oversight:
 ///
 /// - ``View/_isSpacer`` is a claim about LAYOUT PARTICIPATION, and a wrapper is
 ///   entitled to change it. `Spacer().frame(width: 5)` is a fixed five-cell gap,
@@ -272,31 +302,38 @@ package func throughWrappers<T>(_ view: any View, as type: T.Type = T.self) -> T
 ///   that know where they put their content — the stacks, and padding through
 ///   `BufferModifier._translatesAlignmentGuides` — forward the witness and
 ///   answer a context-carrying guide query that moves the content's guide by
-///   that offset. A wrapper that draws its content unchanged at its own
-///   identity (``DrawsContentUnchanged``) forwards it too, as it demonstrably
-///   does not change size: its own extension below. Every other wrapper leaves
-///   the witness `false`, so a guide stops there rather than report the wrong
+///   that offset — and `.frame`, `.border` and `.offset` since 2026-10-18.
+///   A wrapper that does not change its content's geometry at all forwards
+///   it unmoved, and says so with the witness for size-neutrality,
+///   ``SingleContentWrapper/_keepsContentGeometry``, or by drawing its
+///   content unchanged at its own identity (``DrawsContentUnchanged``): a
+///   list row's separator guide written inside `.onTapGesture` was not found
+///   without it (decisions B-D6L-3), nor a stack's alignment guide inside
+///   one. Every other wrapper stops a guide rather than report the wrong
 ///   position.
-extension View where Self: DrawsContentUnchanged {
-    /// The content's answer: a wrapper that draws its content unchanged at its
-    /// own identity — `.onTapGesture`, `.tint`, `.onAppear`, an environment
-    /// write — is its content's size, so a guide its content states is the
-    /// wrapper's at the same dimensions, with nothing to translate. Without
-    /// it a list row's separator guide written inside `.onTapGesture` was not
-    /// found (decisions B-D6L-3), nor a stack's alignment guide inside one.
-    ///
-    /// The witness only says a guide may be inside. The guide query
-    /// (`explicitGuide(of:_:in:context:)` in TUIkitFoundation) steps through
-    /// such a wrapper only where it states the context it lays its content
-    /// out in (``ContentContextStating``), and asks in that context: an
-    /// environment write draws the same content at another size, and a stack
-    /// measured without it reported its guide where nothing is drawn. Where
-    /// a wrapper states nothing the query answers `nil`, as for a wrapper
-    /// whose witness is `false`.
-    public static var _providesAlignmentGuide: Bool { WrappedContent._providesAlignmentGuide }
-}
-
+///
+///   The witness only says a guide may be inside. The guide query
+///   (`explicitGuide(of:_:in:context:)` in TUIkitFoundation) steps through a
+///   ``DrawsContentUnchanged`` wrapper only where it states the context it
+///   lays its content out in (``ContentContextStating``), and asks in that
+///   context: an environment write draws the same content at another size,
+///   and a stack measured without it reported its guide where nothing is
+///   drawn. Where such a wrapper states nothing the query answers `nil`, as
+///   for a wrapper whose witness is `false`.
 extension View where Self: SingleContentWrapper {
+    /// The content's answer where this wrapper keeps its content's geometry
+    /// (``keepsContentGeometry(_:)``): a guide set inside it is then the
+    /// wrapper's own, as SwiftUI passes a guide through every single-child
+    /// modifier. Otherwise the body's, as for any view. Kept per type
+    /// (``BodyWitnessMemo``), since the question is a conformance check.
+    public static var _providesAlignmentGuide: Bool {
+        BodyWitnessMemo.answer(in: BodyWitnessMemo.alignmentGuide, for: Self.self) {
+            if keepsContentGeometry(Self.self) { return WrappedContent._providesAlignmentGuide }
+            guard Body.self != Never.self, !(Self.self is any Renderable.Type) else { return false }
+            return Body._providesAlignmentGuide
+        }
+    }
+
     /// The content's answer: a z-index bound inside this wrapper is still a
     /// z-index, so the gate that decides whether to look for one has to say so.
     ///

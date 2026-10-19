@@ -18,6 +18,10 @@ import TUIkitStyling
 /// drop shadow that reaches past it is drawn past it at the view's place in
 /// the stacking order.
 struct ShadowModifier: BufferModifier, Equatable {
+    /// Its content stays where it is laid out — a shadow is drawn past the cells its view paints, which stay where they are — so a guide inside it
+    /// passes unmoved (``BufferModifier/_keepsContentGeometry``).
+    static var _keepsContentGeometry: Bool { true }
+
     /// The shadow.
     var style: ShadowStyle
 

@@ -188,6 +188,10 @@ extension _FixedSizeView: Layoutable {
 }
 
 extension _FixedSizeView: ContentRewrapping {
+    /// Its content's geometry is its own — its content is laid out at its own size, the ideal one on a fixed axis — so a guide
+    /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
+    static var _keepsContentGeometry: Bool { true }
+
     var wrappedContent: Content { content }
 
     func rewrapping<V: View>(_ view: V) -> any View {

@@ -125,5 +125,9 @@ extension SelectionDisabledModifier: Layoutable {
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
 extension SelectionDisabledModifier: SingleContentWrapper {
+    /// Its content's geometry is its own — it dims the cells its content drew, where they are — so a guide
+    /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
+    public static var _keepsContentGeometry: Bool { true }
+
     public var wrappedContent: Content { content }
 }

@@ -82,6 +82,10 @@ extension View {
 /// Applied by the scrollables themselves; apps use
 /// ``TUIkit/View/scrollContentBackground(_:)``.
 package struct ScrollContentBackgroundModifier: BufferModifier, Equatable {
+    /// Its content stays where it is laid out — a scroll view's background is drawn behind its content, where it is — so a guide inside it
+    /// passes unmoved (``BufferModifier/_keepsContentGeometry``).
+    package static var _keepsContentGeometry: Bool { true }
+
     /// Whether the environment is read at all — see
     /// ``TUIkit/View/paintingScrollContentBackground(reads:)``.
     let reads: Bool

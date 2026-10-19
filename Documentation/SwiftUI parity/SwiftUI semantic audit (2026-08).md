@@ -135,6 +135,7 @@ witness for size-neutrality that does not exist yet — and that, rather than th
 per-wrapper cost this finding worried about, is what the remainder is blocked
 on.
 - *Status (2026-10-14 sweep):* **DOCUMENTED** — a z-index forwards; alignment guides and layout values stop at a border, frame or offset (Deliberate deviations L11).
+- *Status (2026-10-18, lane LAYOUT):* **RESOLVED** — the size-neutrality witness this asked for exists (`SingleContentWrapper._keepsContentGeometry`, with `DrawsContentUnchanged`), and a guide passes `.frame`, `.border`, `.offset`, `.position`, `.overlay`, `.background` and every wrapper that keeps its content's geometry, translated where the wrapper moves its content; layout values were already read through the wrappers that do not lay their content out anew. What still stops a guide is in deviations L11. The pinned stop (`guideUnderAWrapperIsInert`, later `guideUnderABorderIsInert`) became `guideThroughABorder`.
 
 **2. A modifier makes a view opaque to child resolution.** `resolveChildViews`
 unwraps `ChildViewProvider`s, and `ModifiedView` is not one — so

@@ -560,6 +560,10 @@ extension View {
 /// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
 /// the members of multi-view content.
 extension DraggableModifier: SingleContentWrapper {
+    /// Its content's geometry is its own — it registers a drag source over its content, where it is — so a guide
+    /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
+    public static var _keepsContentGeometry: Bool { true }
+
     public var wrappedContent: Content { content }
 }
 

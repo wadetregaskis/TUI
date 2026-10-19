@@ -25,6 +25,10 @@ import TUIkitView
 /// and departure phases. Two numbers rather than one signed one, so an
 /// arriving spring's overshoot (presence above 1) stays the insertion's.
 struct _TransitionEffectModifier: BufferModifier, Animatable {
+    /// Its content stays where it is laid out — a transition draws its view displaced, but lays it out where it is, as an offset does — so a guide inside it
+    /// passes unmoved (``BufferModifier/_keepsContentGeometry``).
+    static var _keepsContentGeometry: Bool { true }
+
     let insertion: AnyTransition.Effect
     let removal: AnyTransition.Effect
 

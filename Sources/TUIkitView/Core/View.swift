@@ -277,7 +277,7 @@ public extension View {
     static var _providesAlignmentGuide: Bool {
         guard Body.self != Never.self else { return false }
         return BodyWitnessMemo.answer(in: BodyWitnessMemo.alignmentGuide, for: Self.self) {
-            Body._providesAlignmentGuide
+            !(Self.self is any Renderable.Type) && Body._providesAlignmentGuide
         }
     }
 

@@ -268,6 +268,10 @@ extension View {
 /// when there IS more than one row: a single-run link needs no identity, and
 /// the parameter is bytes on every frame.
 private struct TerminalHyperlinkModifier: BufferModifier {
+    /// Its content stays where it is laid out — a hyperlink marks the cells its label drew, where they are — so a guide inside it
+    /// passes unmoved (``BufferModifier/_keepsContentGeometry``).
+    static var _keepsContentGeometry: Bool { true }
+
     let destination: URL
     let enabled: Bool
 

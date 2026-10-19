@@ -77,6 +77,10 @@ extension AnimatedCellsModifier: Layoutable {
 ///   a member's buffer is its own — so each member animates its own cells,
 ///   which is what the same runs over one combined buffer did.
 extension AnimatedCellsModifier: ContentRewrapping {
+    /// Its content's geometry is its own — it animates the cells its content drew, where they are — so a guide
+    /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
+    static var _keepsContentGeometry: Bool { true }
+
     var wrappedContent: Content { content }
 
     func rewrapping<V: View>(_ view: V) -> any View {

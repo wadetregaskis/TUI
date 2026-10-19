@@ -217,5 +217,9 @@ struct _ToolbarBarStatementModifier<Content: View>: View, Renderable, Layoutable
 /// inside it still reaches the container around it — see `_ToolbarModifier`'s
 /// conformance. Read-only: not ``ContentRewrapping``.
 extension _ToolbarBarStatementModifier: SingleContentWrapper {
+    /// Its content's geometry is its own — its statement is the window's, and its content is drawn as it is — so a guide
+    /// inside it passes unmoved (``SingleContentWrapper/_keepsContentGeometry``).
+    static var _keepsContentGeometry: Bool { true }
+
     var wrappedContent: Content { content }
 }

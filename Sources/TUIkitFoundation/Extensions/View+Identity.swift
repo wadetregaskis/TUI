@@ -11,6 +11,10 @@
 /// measure and render passes, `@State` keys off the same spliced identity in
 /// each, preserving measure/render alignment.
 private struct _IDModifier: BufferModifier {
+    /// Its content stays where it is laid out — an identity moves nothing — so a guide inside it
+    /// passes unmoved (``BufferModifier/_keepsContentGeometry``).
+    static var _keepsContentGeometry: Bool { true }
+
     let key: String
 
     /// The witness that makes this key readable from outside the modified
