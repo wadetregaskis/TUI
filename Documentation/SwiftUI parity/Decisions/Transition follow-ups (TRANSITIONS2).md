@@ -21,6 +21,63 @@ SDK, 2026-10-19) by two offscreen `NSHostingView` probes,
 presentation frames and opacities of the layer tree every half second under a
 linear animation.*
 
+## A. Needs your decision
+
+### A-TRANSITIONS2-1. B52: a custom transition that changes its view's size — lay the body out at each frame's size?
+
+*`Transition` with a body of the app's own, B52; owner rulings 2026-10-04
+("measure the per-frame re-layout cost first") and 2026-10-18 (FB16 (a′))*
+
+**What SwiftUI does** (`tr1.out` T7, T7b, a `Transition` whose body sets
+`.frame(height: phase.isIdentity ? nil : 0)` on a 60-point view between two
+10-point ones, under an 8 s change): the view's frame grows and shrinks, and
+the view below moves with it in step — 70 → 63 → 55 → … → 10 as it folds
+away, 10 → 17 → 25 → … → 70 as it opens.
+
+**What TUIkit does now.** The body is drawn by scrubbing between its phases
+(B52) inside the size it has at rest, and since FB16 the layout changes at
+once and every child whose place changed glides there with the change: the
+row below goes 70 → 10 as the view folds, in step with it when the
+transition runs under the change's animation, which is SwiftUI's picture in
+an eager `VStack`, `HStack`, `ZStack` or `Layout`. The folding view's own
+picture shrinks inside its slot as the body is scrubbed. Stress's
+`session/glides` now plays such a transition (`GlidesFold`), under the memo
+verifiers and as a benchmark (`--bench --scenario session/glides`, which
+`ab_bench.py` can A/B), so the transition no longer lacks a scenario.
+
+**What the per-frame re-layout costs — measured by construction.** A view
+with a transition declares a render side effect on every frame it renders,
+at rest as well as while it plays (`_TransitionView`: its departure is
+re-declared each frame, which no memo may skip), so the container it is in is
+laid out again on every frame already, whether or not anything plays, and
+FB16's glides lay out every container a change animates again on each frame
+of the change. What B52's fuller version adds is one measure of the body at
+each frame's phase, scrubbed, while it plays — about the cost of one of the
+two scrubbed renders it already makes — and a slot whose size follows it.
+
+**The options:**
+
+1. **Leave it** (shipped). Free. Differs from SwiftUI where the view's
+   neighbours do not glide — a lazy stack, a `Grid`, a `List`, a `Table`,
+   and a removal's room in a `Layout` (B-FB16-2 to B-FB16-5), where the room
+   goes at once after the removal has played; where the transition's own
+   animation differs from the change's, so the neighbours glide on the
+   change's clock and the body on its own; and in the size of the container
+   round it, which changes at once (A-FB16-1).
+2. **Lay the body out at each frame's phase** in the containers that glide:
+   the slot takes the scrubbed body's size each frame, and the neighbours
+   follow it rather than gliding. About two days (the measure walk has to
+   scrub too, and the measure memo must not keep a scrubbed size); one
+   scrubbed measure of the body per playing frame. Fixes the second
+   difference above only.
+3. **SwiftUI's whole model** — every frame of every view glides, sizes
+   included — is A-FB16-1's option 3, not priced.
+
+**Recommendation:** 1. The case B52 was opened for — a collapsing transition
+whose gap does not close — closes now, through FB16, in every container that
+glides; what option 2 would add is visible only where a transition names an
+animation different from its change's.
+
 ## B. Shipped the safe option
 
 ### B-TRANSITIONS2-1. A branch, a case and a row fade where a container remembers its children

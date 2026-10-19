@@ -38,6 +38,12 @@ final class GlidesModel {
     /// A banner that is the whole content of a stack of its own, in a stack
     /// with gaps.
     var banner = true
+    /// A detail that folds away under a transition of the app's own, whose
+    /// body changes the view's height between its phases.
+    var fold = false
+    /// Whether the middle row of a loop is there: a row the change puts in
+    /// or takes out fades, with no transition written.
+    var row = true
     /// Moved every step, unanimated: a frame is drawn on every step, and each
     /// card is served on every one its value has not changed on.
     var tick = 0
@@ -91,8 +97,32 @@ struct GlidesPage: View {
                 }
                 Text(verbatim: "below")
             }
+            VStack(alignment: .leading, spacing: 0) {
+                Text(verbatim: "folds")
+                if model.fold {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(verbatim: "fold one")
+                        Text(verbatim: "fold two")
+                    }
+                    .transition(GlidesFold())
+                }
+                ForEach(model.row ? ["row a", "row b", "row c"] : ["row a", "row c"], id: \.self) { row in
+                    Text(verbatim: row)
+                }
+                Text(verbatim: "folds end")
+            }
             GlidesClock(model: model)
         }
+    }
+}
+
+/// A transition of the app's own that folds its two rows away to none: its
+/// body is drawn by scrubbing between its phases, inside the size it has at
+/// rest, while the rows below glide with the change (decisions B52,
+/// A-TRANSITIONS2-1).
+private struct GlidesFold: Transition {
+    func body(content: Content, phase: TransitionPhase) -> some View {
+        content.frame(height: phase.isIdentity ? 2 : 0, alignment: .top)
     }
 }
 
@@ -109,9 +139,10 @@ private struct GlidesClock: View {
 
 /// A card memoized by its value, whose detail is swapped for a line inside
 /// it: the row below glides in a subtree a memo serves on every frame the
-/// card's value has not changed on. A branch swap, not a transition — a view
-/// transitioning is drawn afresh on every frame anyway, and would hide a memo
-/// that kept a frame of the glide.
+/// card's value has not changed on. A branch swap, not a `.transition` — a
+/// view with one is drawn afresh on every frame anyway, and would hide a memo
+/// that kept a frame of the glide; the branches fade by default only while
+/// they come and go.
 private struct GlidesCard: View, @MainActor Equatable {
     let open: Bool
 
@@ -161,7 +192,7 @@ private struct GlidesNote: View, @MainActor Equatable {
 final class GlidesSession: StressSession {
     /// The parts that come and go, each with the text that shows it.
     enum Part: String, CaseIterable {
-        case detail, badge, wide, extra, card, note, banner
+        case detail, badge, wide, extra, card, note, banner, fold, row
 
         @MainActor var keyPath: ReferenceWritableKeyPath<GlidesModel, Bool> {
             switch self {
@@ -172,6 +203,8 @@ final class GlidesSession: StressSession {
             case .card: \.cardOpen
             case .note: \.noteOpen
             case .banner: \.banner
+            case .fold: \.fold
+            case .row: \.row
             }
         }
 
@@ -184,6 +217,8 @@ final class GlidesSession: StressSession {
             case .card: "card detail"
             case .note: "note detail"
             case .banner: "BANNER"
+            case .fold: "fold one"
+            case .row: "row b"
             }
         }
     }
@@ -266,6 +301,12 @@ final class GlidesSession: StressSession {
         {
             return "column end is \(end - top) rows below column, with the detail \(model.detail ? "open" : "closed")"
         }
+        if landed.contains(.fold), landed.contains(.row), let top = row("folds"), let end = row("folds end"),
+            end != top + 1 + (model.fold ? 2 : 0) + (model.row ? 3 : 2)
+        {
+            return "folds end is \(end - top) rows below folds, with the fold \(model.fold ? "open" : "closed")"
+                + " and the middle row \(model.row ? "in" : "out")"
+        }
         if landed.contains(.banner), let above = row("above"), let below = row("below"),
             below != above + (model.banner ? 6 : 2)
         {
@@ -298,7 +339,8 @@ final class GlidesSession: StressSession {
             "siblings gliding in an eager VStack and HStack, a ZStack re-centring a layer, a Layout's subviews, "
             + "a glide inside an .equatable() card and a removal inside an .equatable() note, each served "
             + "between changes, a view leaving a stack "
-            + "of its own in a spaced stack; linear, eased and spring animations interrupted mid-flight",
+            + "of its own in a spaced stack, a transition of the app's own folding a detail away, a loop's "
+            + "row fading in and out; linear, eased and spring animations interrupted mid-flight",
         make: { config, width, height, cold in
             DrivenSession(GlidesSession(config: config), width: width, height: height, cold: cold)
         })

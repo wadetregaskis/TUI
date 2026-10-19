@@ -1250,7 +1250,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   exists in it; a transition's parts share one presence, which a part with an
   animation of its own would split.
 - **Decided:** [§2.9](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>), [B52](<Decisions/SwiftUI API completion decisions.md#b52-a-custom-transitions-body-is-drawn-at-each-frames-point-between-its-phases>), [B54](<Decisions/SwiftUI API completion decisions.md#b54-a-scale-transition-uncovers-from-its-anchor-and-a-scale-above-1-draws-the-view-whole>),
-  [B-TRANSITIONS2-4](<Decisions/Transition follow-ups (TRANSITIONS2).md#b-transitions2-4-a-combined-transition-plays-under-one-animation-for-each-half>).
+  [B-TRANSITIONS2-4](<Decisions/Transition follow-ups (TRANSITIONS2).md#b-transitions2-4-a-combined-transition-plays-under-one-animation-for-each-half>);
+  the size a custom body changes waits on [A-TRANSITIONS2-1](<Decisions/Transition follow-ups (TRANSITIONS2).md#a-transitions2-1-b52-a-custom-transition-that-changes-its-views-size--lay-the-body-out-at-each-frames-size>).
   **Medium.**
 
 ### A4. A content transition dissolves everything the modifier wraps

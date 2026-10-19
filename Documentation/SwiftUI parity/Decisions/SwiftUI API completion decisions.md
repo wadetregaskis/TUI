@@ -2063,6 +2063,14 @@ cost the buffer-based design exists to avoid — and needs the measure walk to
 scrub as well, which the memoised measure path makes delicate. About two days.
 I would wait for a port that needs it.
 
+**Measured and put to you again (2026-10-19, lane TRANSITIONS2):** since
+FB16 the neighbours of a collapsing transition glide with the change, which
+closes its gap as SwiftUI's does in every container that glides (measured,
+`Tools/SwiftUIProbes/Transitions/tr1.out` T7); the container is already laid
+out again on every frame a transition is on screen. What is left, and its
+price, is decisions
+[A-TRANSITIONS2-1](<Transition follow-ups (TRANSITIONS2).md#a-transitions2-1-b52-a-custom-transition-that-changes-its-views-size--lay-the-body-out-at-each-frames-size>).
+
 ### B54. A scale transition uncovers from its anchor, and a scale above 1 draws the view whole
 
 *`ScaleTransition` (`init(_:anchor:)`, `scale`, `anchor`),
