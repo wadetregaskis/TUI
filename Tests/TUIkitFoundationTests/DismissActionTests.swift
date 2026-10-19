@@ -10,42 +10,40 @@ import Testing
 @testable import TUIkitTestSupport
 
 @MainActor
-@Suite("Dismiss Action Tests", .serialized)
+@Suite("Dismiss Action Tests")
 struct DismissActionTests {
 
-    /// Drains any exit request left over from a previous test or runner.
-    private func drainExitFlag() {
-        _ = AppState.shared.consumeShouldExit()
-    }
-
-    @Test("Calling dismiss requests an exit on AppState.shared")
+    @Test("Calling dismiss requests an exit of the app whose work calls it")
     func dismissRequestsExit() {
-        drainExitFlag()
+        let app = AppState()
         let dismiss = DismissAction()
-        dismiss()
-        #expect(AppState.shared.consumeShouldExit() == true)
+        AmbientApp.$renderState.withValue(app) { dismiss() }
+        #expect(app.consumeShouldExit() == true)
         // Flag clears after one consume.
-        #expect(AppState.shared.consumeShouldExit() == false)
+        #expect(app.consumeShouldExit() == false)
     }
 
-    @Test("The default environment dismiss action signals an exit")
+    @Test("The default environment dismiss action signals an exit of the app whose work calls it")
     func defaultEnvironmentDismissSignalsExit() {
-        drainExitFlag()
-        EnvironmentValues().dismiss()
-        #expect(AppState.shared.consumeShouldExit() == true)
+        let app = AppState()
+        AmbientApp.$renderState.withValue(app) { EnvironmentValues().dismiss() }
+        #expect(app.consumeShouldExit() == true)
+    }
+
+    @Test("A context's top-level dismiss action exits that context's app, from anywhere")
+    func contextExitActionExitsItsApp() {
+        let tui = TUIContext()
+        let other = AppState()
+        AmbientApp.$renderState.withValue(other) { tui.exitAction() }
+        #expect(tui.appState.consumeShouldExit() == true)
+        #expect(other.consumeShouldExit() == false, "the app whose work called it is not the one it names")
     }
 
     @Test("requestExit is independent of needsRender flag")
     func requestExitDoesNotInterfereWithRender() {
-        drainExitFlag()
-        AppState.shared.didRender()  // clear needsRender
-        AppState.shared.requestExit()
-        // Only the exit flag is asserted. `needsCacheClear` lives on
-        // `AppState.shared`, which every suite in this process shares, so
-        // "nobody set it" was never this test's claim to make: an `@AppStorage`
-        // write or a translation registration in a concurrently running suite
-        // sets it legitimately, and `.serialized` orders this suite only
-        // against itself.
-        #expect(AppState.shared.consumeShouldExit() == true)
+        let app = AppState()
+        app.requestExit()
+        #expect(!app.needsRender)
+        #expect(app.consumeShouldExit() == true)
     }
 }

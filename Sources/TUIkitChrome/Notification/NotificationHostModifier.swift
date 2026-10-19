@@ -58,6 +58,8 @@ extension NotificationHostModifier: Renderable {
         guard let service = context.environment.notificationService else {
             return baseBuffer
         }
+        // This app draws the service, so a post asks it for a frame.
+        service.noteDisplayed(by: context.renderCache?.link)
         // The service is a process-wide object that no memo keys on, and a post
         // writes nothing the render cache sees. So the read DECLARES itself
         // (`recordUnkeyedRead`), as a view sizing itself to the scroll viewport
@@ -77,7 +79,8 @@ extension NotificationHostModifier: Renderable {
         startAnimationTask(
             entries: activeEntries,
             service: service,
-            lifecycle: context.environment.lifecycle!
+            lifecycle: context.environment.lifecycle!,
+            frames: context.renderCache?.link
         )
 
         // The frame's stamp, so every toast in one frame fades by one instant and a
@@ -212,10 +215,15 @@ extension NotificationHostModifier {
     ///
     /// Uses a single shared token so only one animation task runs at a time.
     /// The task stops automatically when no notifications are active.
+    ///
+    /// The frames it asks for are asked of the app drawing the host, through
+    /// its render cache's link (`frames`), which drops nothing the cache keeps:
+    /// the host's read of the service is unkeyed, so no memo holds a toast.
     fileprivate func startAnimationTask(
         entries: [NotificationEntry],
         service: NotificationService,
-        lifecycle: LifecycleManager
+        lifecycle: LifecycleManager,
+        frames: RenderCache.Link?
     ) {
         let token = "notification-host-animation"
 
@@ -267,7 +275,7 @@ extension NotificationHostModifier {
                 let current = nowNanos()
                 try? await Task.sleep(nanoseconds: wake > current ? wake - current : 0)
                 guard !Task.isCancelled else { break }
-                AppState.shared.setNeedsRender()
+                frames?.requestFrame()
             }
 
             // Only when the loop ran to its own end. A CANCELLED task is being
@@ -278,7 +286,7 @@ extension NotificationHostModifier {
             guard !Task.isCancelled else { return }
             // Final render to clear expired notifications.
             lifecycle.resetAppearance(token: token)
-            AppState.shared.setNeedsRender()
+            frames?.requestFrame()
         }
     }
 }

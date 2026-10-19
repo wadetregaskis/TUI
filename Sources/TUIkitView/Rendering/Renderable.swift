@@ -448,11 +448,12 @@ package func observingKeptResult<T>(
 ///   - identity: The identity whose body read the property.
 ///   - link: The link of the cache the body was drawn with; `nil` when it was
 ///     drawn with no cache.
-///   - fallback: What a change does to a render with no cache: clears
-///     everything and asks for a frame. A parameter so a test can see it run.
+///   - fallback: What a change does to a render with no cache: asks the app
+///     whose work made the change (``AmbientApp``), if any, for a frame drawn
+///     from an empty cache. A parameter so a test can see it run.
 package func reportObservedChange(
     at identity: ViewIdentity, to link: RenderCache.Link?,
-    fallback: () -> Void = { AppState.shared.setNeedsRenderWithCacheClear() }
+    fallback: () -> Void = { AmbientApp.renderState?.setNeedsRenderWithCacheClear() }
 ) {
     if let link {
         link.invalidateRender(for: identity)

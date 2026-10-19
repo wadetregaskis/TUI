@@ -140,6 +140,12 @@ package final class HeadlessApp<A: App> {
     /// Events sent after it arrive at `nanos`, and so does a hover the frame
     /// itself moves onto a resting pointer.
     package func frame(atNanos nanos: Int64, date: Date = FrameClock.nowDate) {
+        // This app's work, as `AppRunner.run()` binds its whole run: a change
+        // made with no view in hand asks this app for its frame.
+        AmbientApp.$renderState.withValue(tuiContext.appState) { drawFrame(atNanos: nanos, date: date) }
+    }
+
+    private func drawFrame(atNanos nanos: Int64, date: Date) {
         eventClock.nanos = UInt64(bitPattern: nanos)
         if clearsRenderCacheEachFrame { tuiContext.renderCache.clearAll() }
         animationScheduler.beginFrame()
@@ -164,7 +170,7 @@ package final class HeadlessApp<A: App> {
     @discardableResult
     package func send(_ event: KeyEvent) -> Bool {
         focusManager.noteInputSource(.keyboard)
-        return inputHandler.handle(event)
+        return AmbientApp.$renderState.withValue(tuiContext.appState) { inputHandler.handle(event) }
     }
 
     /// Delivers a mouse event to the handlers the last frame registered, as
@@ -176,7 +182,9 @@ package final class HeadlessApp<A: App> {
     @discardableResult
     package func send(_ event: MouseEvent) -> Bool {
         focusManager.noteInputSource(.pointer)
-        return tuiContext.mouseEventDispatcher.dispatch(event, noting: focusManager)
+        return AmbientApp.$renderState.withValue(tuiContext.appState) {
+            tuiContext.mouseEventDispatcher.dispatch(event, noting: focusManager)
+        }
     }
 
     /// Changes the terminal's size, as `SIGWINCH` reports it: the next frame

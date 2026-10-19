@@ -99,17 +99,10 @@ struct RunLoopFoldTests {
         }
     }
 
-    /// The queue the fold drains, owned by the test.
-    ///
-    /// An app's runner binds to `AppState.shared`, deliberately, since that is
-    /// the instance every `@State` write signals through. These tests assert on
-    /// what the fold CONSUMED, though, and swift-testing runs suites
-    /// concurrently in one process: read from the shared instance, "the flag
-    /// must be consumed by the fold" is really "no other suite asked for a
-    /// frame in the last microsecond". A fresh queue per test — swift-testing
-    /// builds a new suite value for each — is reached by nothing else.
-    /// (`.serialized` is kept: the loop these drive still reaches
-    /// `AppState.shared` in places of its own.)
+    /// The queue the fold drains, owned by the test: the runner's own render
+    /// state, which every app has. A fresh queue per test — swift-testing
+    /// builds a new suite value for each — is reached by nothing else, so "the
+    /// flag must be consumed by the fold" means what it says.
     private let appState = AppState()
 
     private func freshRunner<A: App>(_ app: A) -> AppRunner<A> {

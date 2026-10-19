@@ -298,8 +298,9 @@ private struct FrameProbeApp: App {
 /// The run loop's half: the request follows the frame it comes after, a thrown
 /// away screen asks again, and the fence the parser kept reaches the requester.
 ///
-/// Serialized because it drives whole frames through `AppState.shared`, as
-/// `RunLoopFoldTests` does.
+/// Serialized from when every loop drove its frames through one process-wide
+/// render state, as `RunLoopFoldTests` is; every app has its own now
+/// (`AppIsolationTests`).
 @MainActor
 @Suite("The run loop asks after its first frame", .serialized)
 struct TerminalColorRequestWiringTests {
@@ -591,8 +592,8 @@ struct TerminalColorFocusReQueryTests {
 /// The run loop's half of focus-in: the report the parser turns into a scene
 /// phase is also what asks the terminal again.
 ///
-/// Serialized with the suites above because the loop these drive still reaches
-/// `AppState.shared` in places of its own.
+/// Serialized with the suites above, from when the loop these drive reached a
+/// process-wide render state in places of its own; every app has its own now.
 @MainActor
 @Suite("A focus report asks the terminal again", .serialized)
 struct TerminalColorFocusWiringTests {
@@ -600,10 +601,8 @@ struct TerminalColorFocusWiringTests {
     /// The runner's render-request queue, owned by the test.
     ///
     /// Nothing here asserts on it — these tests watch the terminal — but a
-    /// focus report SETS it, and clearing it afterwards on the shared instance
-    /// is precisely the stray write that breaks a concurrent suite's
-    /// `#expect(needsRender)`. See `TerminalFocusPhaseTests`, which asserts on
-    /// the flag and now owns one too.
+    /// focus report SETS it. See `TerminalFocusPhaseTests`, which asserts on
+    /// the flag.
     private let appState = AppState()
 
     private func freshRunner() -> AppRunner<FrameProbeApp> {

@@ -51,6 +51,9 @@ extension EnvironmentValues {
         // because the phase it is derived from already has one.
         scenePhase = context.scenePhase
         appearsActive = context.scenePhase == .active
+        // The top-level `dismiss()`, which exits this app and no other in the
+        // process: one action for the context's life, equal every frame.
+        dismiss = context.exitAction
         // The app's undo manager: a running app always has one, and nothing
         // else does, so the key's `nil` default stands everywhere else.
         if let undoManager = context.undoManager {

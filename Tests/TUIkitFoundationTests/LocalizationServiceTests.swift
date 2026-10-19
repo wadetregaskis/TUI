@@ -33,10 +33,12 @@ final class LocalizationServiceTests {
     func registeringClearsTheMemo() {
         // A memoized row's strings are outside its memo key, so a plain
         // re-render served the pre-registration text for as long as the row's
-        // element compared equal.
-        _ = AppState.shared.consumeNeedsCacheClear()
-        sut.register(translations: ["en": ["greeting": "Hello"]])
-        #expect(AppState.shared.consumeNeedsCacheClear())
+        // element compared equal. Asked of the app whose work registered them.
+        let app = AppState()
+        AmbientApp.$renderState.withValue(app) {
+            sut.register(translations: ["en": ["greeting": "Hello"]])
+        }
+        #expect(app.consumeNeedsCacheClear())
     }
 
     @Test("Changing the language asks for the frame that shows it")
@@ -44,10 +46,13 @@ final class LocalizationServiceTests {
         // The one thing that makes a language change from a timer or a task
         // reach the screen: nothing else asks for a frame then. A click on a
         // language picker asks for one of its own, so a smoke that clicks
-        // cannot tell whether this did.
-        AppState.shared.didRender()
-        sut.setLanguage(.german)
-        #expect(AppState.shared.needsRender)
+        // cannot tell whether this did. Asked of the app whose work changed it,
+        // and of no other.
+        let app = AppState()
+        let bystander = AppState()
+        AmbientApp.$renderState.withValue(app) { sut.setLanguage(.german) }
+        #expect(app.needsRender)
+        #expect(!bystander.needsRender)
     }
 
     deinit {

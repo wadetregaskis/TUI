@@ -9,23 +9,27 @@ import TUIkitCore
 
 // MARK: - App State
 
-/// Application state that triggers re-renders when modified.
+/// An app's render state: whether a frame is owed, the transaction the change
+/// behind it was made under, the clocks that ticked, and an exit asked for.
 ///
 /// `AppState` is thread-safe: ``setNeedsRender()`` can be called from any thread
 /// (e.g., from an animation timer on a background queue). Internal state is protected
-/// by an `NSLock`.
+/// by a lock.
 ///
-/// The `AppRunner` subscribes to state changes and re-renders when notified.
-/// Property wrappers like ``State`` and ``AppStorage`` access the shared instance
-/// via `AppState.shared`.
+/// Every app has its own — there is no process-wide instance. The app's
+/// `TUIContext` owns it, its run loop polls it and draws the transaction
+/// pending in it, and whatever changes what the app draws asks it for a frame:
+/// a ``State`` write and an `@Observable` change through the render cache the
+/// app draws with, the run loop's own seams through the context, and the few
+/// changes made with no view in hand — an `AppStorage` write, a change of
+/// language — through the app whose work is under way (`AmbientApp`). Two apps
+/// in one process, as parallel tests have, so never draw each other's change
+/// under the other's transaction.
 ///
-/// - Important: This is framework infrastructure. Prefer using ``State`` for reactive state
-///   management in your views. Direct use of `AppState` is only necessary in advanced scenarios
-///   where you manage state outside the view hierarchy.
+/// - Important: This is framework infrastructure. Use ``State`` and `@Observable`
+///   models for reactive state in your views: they reach their app's render state
+///   themselves.
 public final class AppState: Sendable {
-    /// The global shared instance.
-    public static let shared = AppState()
-
     /// Internal state protected by a lock.
     private struct StateData: Sendable {
         var needsRender = false
@@ -160,8 +164,8 @@ extension AppState {
     /// no render cache to scope it to. An `@Observable` property and an
     /// `@AppStorage` or `@SceneStorage` key are observed where they are read,
     /// and invalidate only those views. Unlike ``setNeedsRender()``, this also
-    /// sets a flag that tells the render loop to clear the entire render cache —
-    /// a process-wide flag, which the next app to draw takes.
+    /// sets a flag that tells this app's render loop to clear its entire render
+    /// cache at its next frame.
     ///
     /// Thread-safe: can be called from any thread.
     public func setNeedsRenderWithCacheClear() {
@@ -224,11 +228,11 @@ extension AppState {
     /// Requests that the application's run loop exit gracefully on the next
     /// iteration.
     ///
-    /// Backs the SwiftUI-parity `@Environment(\.dismiss)` action. Setting
-    /// this flag makes `AppRunner` fall out of its run loop, restore the
-    /// terminal to its prior state, and return from `App.main()` — exactly
-    /// the same shutdown path that the built-in quit key follows. Safe to
-    /// call from any thread.
+    /// Backs the SwiftUI-parity `@Environment(\.dismiss)` action at the top
+    /// level of the app. Setting this flag makes `AppRunner` fall out of its
+    /// run loop, restore the terminal to its prior state, and return from
+    /// `App.main()` — exactly the same shutdown path that the built-in quit
+    /// key follows. Safe to call from any thread.
     public func requestExit() {
         let observers = lock.withLock { state -> [@Sendable () -> Void] in
             state.shouldExit = true
@@ -252,6 +256,12 @@ extension AppState {
     }
 }
 
+// MARK: - The App Whose Work Is Under Way
+
+/// What code with no handle on its app reaches through ``AmbientApp``: the
+/// requests above, of the app whose event, frame or task is running.
+extension AppState: AppRenderState {}
+
 // MARK: - Render Invalidation Sink
 
 /// Receives render-invalidation requests raised by state mutations.
@@ -264,9 +274,10 @@ extension AppState {
 /// invalidation behind a lock and applies it on the main-actor frame boundary.
 ///
 /// ``RenderCache`` conforms (it is the per-context object that owns the cached
-/// buffers, so routing through it keeps each context's invalidations isolated).
-/// Keeping the seam a protocol lets ``StateBox`` stay free of both the concrete
-/// cache type and the app-state singleton name.
+/// buffers, so routing through it keeps each context's invalidations isolated),
+/// and so does its link, which a box actually holds, and which asks the app the
+/// cache draws for the frame. Keeping the seam a protocol lets ``StateBox`` stay
+/// free of the concrete cache type.
 public protocol RenderInvalidationSink: AnyObject, Sendable {
     /// Records that the subtree rooted at `identity` (or the whole cache, when
     /// `identity` is `nil`) needs its cached buffers dropped, and requests a
@@ -562,7 +573,8 @@ public struct Binding<Value> {
 /// places keeps a state for each: each place's copy is bound to its own box,
 /// as SwiftUI installs each place's state in its own copy.
 ///
-/// Mutations signal re-renders through `AppState.shared`.
+/// A mutation drops what the render cache kept for the view and asks the
+/// view's app for a frame, through the cache's link the box is bound to.
 @propertyWrapper
 public struct State<Value> {
     /// Reference-typed backing whose `box` is bound to the persistent

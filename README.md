@@ -373,7 +373,7 @@ For complete documentation, see the [Localization Guide](https://github.com/wade
 ## Architecture
 
 - **Modular package**: 28 Swift library modules, a macro plugin and 1 in-tree C target, offered as 26 library products: the `TUIkit` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIkitAppKit` and `TUIkitMacros` ([Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md); Project Structure below)
-- **No singletons for state**: application state flows through the Environment system
+- **Per-app state**: every app owns its render state — whether a frame is owed, and the transaction the change behind it was made under — and its views' `@State` and `@Observable` changes reach it through the render cache the app draws with, so two apps in one process never take each other's frames; application state flows through the Environment system. Still process-wide: the localization service (`LocalizationService.shared`), the notification queue (`NotificationService.current`) and the default `@AppStorage` store (`StorageDefaults.backend`)
 - **Pure ANSI rendering**: no ncurses runtime dependency; the only C is the bundled `stb_image` decoder, and only as the fallback where ImageIO is unavailable (selected via `canImport(ImageIO)`, not a hard-coded platform list)
 - **Linux compatible**: works on macOS and Linux (XDG paths supported)
 - **Runs in a browser**: builds for `wasm32-unknown-wasip1`; `Tools/Web/build.sh` compiles the Example app to WebAssembly and `Tools/Web/serve.py` serves it into a terminal made of DOM ([how it works](<Documentation/WebAssembly port.md>))

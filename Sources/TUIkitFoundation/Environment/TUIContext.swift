@@ -335,7 +335,8 @@ package final class TUIContext: @unchecked Sendable {
 
     /// The terminal's bell, rung when a control turns input away, and the
     /// `BEL` owed to the terminal at the next frame. See ``TerminalBell``.
-    package let terminalBell = TerminalBell()
+    /// Its ring asks this context's render state for the frame.
+    package let terminalBell: TerminalBell
 
     /// The keys to press once the frame being drawn is on the screen — a menu
     /// bar's item's key (``KeysAfterFrame``).
@@ -413,6 +414,13 @@ package final class TUIContext: @unchecked Sendable {
     /// transaction.
     package let appState: AppState
 
+    /// The app's top-level `dismiss()`: asks ``appState`` to exit, so it exits
+    /// this app, wherever it is called from. What `\.dismiss` holds at the
+    /// top of every frame's environment (`applyRuntimeServices(from:)`), until
+    /// a presentation puts its own below; one action for the context's life,
+    /// so it is equal from frame to frame and keeps the memos below it on.
+    package let exitAction: DismissAction
+
     /// Persistent `@State` value storage indexed by `ViewIdentity`.
     package let stateStorage: StateStorage
 
@@ -473,7 +481,10 @@ package final class TUIContext: @unchecked Sendable {
         appState: AppState = AppState()
     ) {
         self.appState = appState
-        self._clipboardWriter = ClipboardWriter(system: clipboard)
+        self.exitAction = DismissAction(box: DismissAction.Box { [appState] in appState.requestExit() })
+        self.terminalBell = TerminalBell(requestFrame: { [appState] in appState.setNeedsRender() })
+        self._clipboardWriter = ClipboardWriter(
+            system: clipboard, requestFrame: { [appState] in appState.setNeedsRender() })
         self.urlOpener = urlOpener
         self.lifecycle = LifecycleManager()
         self.keyEventDispatcher = KeyEventDispatcher()
@@ -529,9 +540,12 @@ package final class TUIContext: @unchecked Sendable {
         appState: AppState = AppState()
     ) {
         self.appState = appState
+        self.exitAction = DismissAction(box: DismissAction.Box { [appState] in appState.requestExit() })
+        self.terminalBell = TerminalBell(requestFrame: { [appState] in appState.setNeedsRender() })
         // A snapshot's or a test's: its copies and URLs stay in memory (see
         // init(clipboard:urlOpener:appState:)).
-        self._clipboardWriter = ClipboardWriter(system: InMemoryClipboard())
+        self._clipboardWriter = ClipboardWriter(
+            system: InMemoryClipboard(), requestFrame: { [appState] in appState.setNeedsRender() })
         self.urlOpener = InMemoryURLOpener()
         self.lifecycle = lifecycle
         self.keyEventDispatcher = keyEventDispatcher

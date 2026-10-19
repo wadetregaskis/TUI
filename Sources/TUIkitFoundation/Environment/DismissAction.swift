@@ -55,7 +55,8 @@ import TUIkitCore
 /// action written is then equal from frame to frame, the memos below stay
 /// on, and an action read on an earlier frame does what dismissing means now.
 public struct DismissAction: Sendable, Equatable {
-    /// What dismissing does here, or `nil` for the top-level meaning (exit).
+    /// What dismissing does here, or `nil` for the top-level meaning (exit
+    /// the app whose work calls it).
     ///
     /// A stored closure rather than a subclass or a flag, because the set of
     /// things that can present a view is open-ended: whatever presents one
@@ -82,7 +83,14 @@ public struct DismissAction: Sendable, Equatable {
         }
     }
 
-    /// Creates a dismiss action that exits the application's run loop.
+    /// Creates a dismiss action that exits the run loop of the app whose work
+    /// calls it — its event handler, or a task it started.
+    ///
+    /// An app's views find a top-level action at `\.dismiss` that names their
+    /// app, which its run loop puts there (`TUIContext.exitAction`), so the
+    /// action exits that app wherever it is called from. This one names no
+    /// app: called on no app's task — on a queue of a framework's own — it
+    /// does nothing.
     public init() {
         self.box = nil
     }
@@ -108,12 +116,12 @@ public struct DismissAction: Sendable, Equatable {
         if let box {
             box.action()
         } else {
-            AppState.shared.requestExit()
+            AmbientApp.renderState?.requestExit()
         }
     }
 
     /// Whether the two are the same action: the same box, or both the
-    /// top-level one.
+    /// top-level one that names no app.
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.box === rhs.box
     }
@@ -140,6 +148,10 @@ extension EnvironmentValues {
     /// The call returns immediately; the run loop notices the request on its
     /// next iteration and shuts down cleanly. The terminal is restored to
     /// its prior state before `App.main()` returns.
+    ///
+    /// At the top of an app this is the app's own exit action, which its run
+    /// loop puts in every frame's environment, so it exits that app — and no
+    /// other in the process — wherever it is called from.
     public var dismiss: DismissAction {
         get { self[DismissActionKey.self] }
         set { self[DismissActionKey.self] = newValue }

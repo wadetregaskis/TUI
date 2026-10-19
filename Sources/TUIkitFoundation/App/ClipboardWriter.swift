@@ -284,7 +284,9 @@ package final class ClipboardWriter: @unchecked Sendable {
 
     /// A writer over `system`, this machine's clipboard. The other answers
     /// default to this process's: the terminal it is drawn in, and whether the
-    /// user is at this machine.
+    /// user is at this machine. `requestFrame` asks the app the writer is
+    /// drawn in for a frame — its context passes its render state's — and
+    /// asks nothing by default, for a writer no app draws.
     init(
         terminalSupport: @escaping @MainActor () -> TerminalClient.ClipboardWriteSupport = {
             TerminalClient.clipboardWrites
@@ -293,7 +295,7 @@ package final class ClipboardWriter: @unchecked Sendable {
         mimeSupport: @escaping @MainActor () -> Bool = { TerminalClient.mimeClipboard },
         system: any ClipboardBackend,
         nowNanos: @escaping @Sendable () -> UInt64 = { MonotonicClock.nowNanoseconds },
-        requestFrame: @escaping @Sendable () -> Void = { AppState.shared.setNeedsRender() }
+        requestFrame: @escaping @Sendable () -> Void = {}
     ) {
         self.terminalSupport = terminalSupport
         self.isLocal = isLocal

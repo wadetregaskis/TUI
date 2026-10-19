@@ -33,7 +33,7 @@ The `@main` attribute tells Swift to call the static `main()` method provided by
 
 ## Subsystem Initialization
 
-`AppRunner.init()` creates and wires the core subsystems: Terminal, AppState, StatusBarState, FocusManager, TUIContext (containing LifecycleManager, KeyEventDispatcher, PreferenceStorage, StateStorage, and RenderCache), and two ThemeManagers (palette and appearance). `run()` then creates the remaining runtime components: InputHandler, RenderLoop, and CursorTimer (50 ms) — the one animation timer, behind two clocks: the focus-relative one the cursor's blink and every focus indicator's breath read, and the monotonic one every spinner and indeterminate bar reads.
+`AppRunner.init()` creates and wires the core subsystems: Terminal, AppState, StatusBarState, FocusManager, TUIContext (containing LifecycleManager, KeyEventDispatcher, PreferenceStorage, StateStorage, and RenderCache, and holding the AppState, which is the app's own — there is no process-wide one), and two ThemeManagers (palette and appearance). `run()` then creates the remaining runtime components: InputHandler, RenderLoop, and CursorTimer (50 ms) — the one animation timer, behind two clocks: the focus-relative one the cursor's blink and every focus indicator's breath read, and the monotonic one every spinner and indeterminate bar reads.
 
 @Image(source: "lifecycle-subsystem-init.svg", alt: "Diagram showing subsystem initialization: @main calls App.main(), which creates the app instance via Self(), then AppRunner.init() creates Terminal, AppState, StatusBarState, WindowChromeState, FocusManager, TUIContext with 5 children (LifecycleManager, KeyEventDispatcher, PreferenceStorage, StateStorage, RenderCache), and two ThemeManagers.")
 
@@ -125,7 +125,7 @@ struct ContentView: View {
 }
 ```
 
-`dismiss()` sets a flag on the shared `AppState` that the main loop
+`dismiss()` sets a flag on the app's own `AppState` that the main loop
 notices on its next iteration. The terminal is restored to its prior
 state and `App.main()` returns normally — exactly the same teardown path
 the built-in `q` key and `SIGINT` follow. This is the recommended way to

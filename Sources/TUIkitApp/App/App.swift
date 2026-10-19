@@ -125,22 +125,17 @@ internal final class AppRunner<A: App> {
 
     /// - Parameters:
     ///   - app: The app whose scene this runner drives.
-    ///   - appState: The render-request queue the loop polls, and the one every
-    ///     seam here signals — and the runner's context's (`TUIContext.appState`),
-    ///     which a `@State` write and an `@Observable` change reach through the
-    ///     render cache's link. An app MUST leave this at the shared singleton:
-    ///     `AppStorage`, a notification, a language change and the top-level
-    ///     `dismiss()` still signal re-renders through `AppState.shared`, and the
-    ///     loop polls *this* instance's `needsRender`, so it has to be the same
-    ///     object — otherwise those changes never reach the loop.
+    ///   - appState: The app's render state: the render-request queue the loop
+    ///     polls, the one every seam here signals, and the runner's context's
+    ///     (`TUIContext.appState`), which a `@State` write and an `@Observable`
+    ///     change reach through the render cache's link, and the changes made
+    ///     with no view in hand reach as the app whose work is under way
+    ///     (`AmbientApp`, bound by ``run()``). A fresh one by default: every app
+    ///     has its own.
     ///
-    ///     It is a parameter only so a TEST can watch the instance this runner
-    ///     signals rather than the one the whole process shares. swift-testing
-    ///     runs suites concurrently inside one process and a dozen-odd of them
-    ///     touch `AppState.shared`, so `#expect(!AppState.shared.needsRender)`
-    ///     after driving a runner asserts on a flag a stranger may have set in
-    ///     between — and its positive twin passes on a flag a stranger set.
-    init(app: A, appState: AppState = .shared) {
+    ///     A parameter only so a TEST can hold the instance this runner signals
+    ///     before it makes one; `tuiContext.appState` is the same object.
+    init(app: A, appState: AppState = AppState()) {
         self.app = app
         self.appState = appState
         self.appearanceManager = ThemeManager(items: AppearanceRegistry.all, renderTrigger: { [appState] in appState.setNeedsRender() })
@@ -300,7 +295,18 @@ extension AppRunner {
         }
     }
 
+    /// Runs the app until it quits, with this app the one whose work is under
+    /// way (`AmbientApp`) for all of it: every event it handles, every frame it
+    /// draws, and every task they start, so a change made there with no view in
+    /// hand — an `@AppStorage` write, a change of language — asks this app for
+    /// its frame.
     func run() async {
+        await AmbientApp.$renderState.withValue(appState) {
+            await runLoop()
+        }
+    }
+
+    private func runLoop() async {
         makeUndoManager()
         // Create run-loop dependencies (previously IUOs, now local variables)
         let inputHandler = makeInputHandler()
@@ -510,10 +516,10 @@ extension AppRunner {
 
             // Check for an in-app `@Environment(\.dismiss)` call. Lets a
             // view exit the run loop cleanly without resorting to `exit()`,
-            // which would skip the terminal-restore teardown below. Routed
-            // through the shared `AppState` because that's the singleton
-            // every other in-app trigger uses (`Spinner`, `AppStorage`, …).
-            if AppState.shared.consumeShouldExit() {
+            // which would skip the terminal-restore teardown below. The
+            // top-level action asks this app's render state
+            // (`TUIContext.exitAction`).
+            if appState.consumeShouldExit() {
                 isRunning = false
                 break
             }

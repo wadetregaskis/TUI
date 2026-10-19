@@ -5,13 +5,13 @@
 //  property of an `@Observable` changes — the mechanism `@State` and friends
 //  rely on to request a re-render.
 //
-//  Isolation note: these tests own an `AppState` INSTANCE rather than touching
-//  `AppState.shared`. They used to use the shared one, which made the two
-//  negative assertions ("this must NOT have flagged a render") flaky under the
-//  parallel suite — any other test that set the flag between the arrange and
-//  the assert would fail them. Measured before the change: one failure in five
-//  full runs, always green in isolation. Nothing here needs a global; the
-//  `onChange` closure is supplied by the test, so it can point anywhere.
+//  Isolation note: these tests own an `AppState` INSTANCE. They used to use
+//  the process-wide one there was then, which made the two negative assertions
+//  ("this must NOT have flagged a render") flaky under the parallel suite —
+//  any other test that set the flag between the arrange and the assert would
+//  fail them. Measured before the change: one failure in five full runs,
+//  always green in isolation. Every app has its own now; the `onChange`
+//  closure is supplied by the test, so it can point anywhere.
 //
 //  Created by LAYERED.work
 //  License: MIT

@@ -130,11 +130,12 @@ public struct RefreshAction: Equatable, Sendable {
     /// over a running one, and it must not matter whether the request came from
     /// the key binding or from a button reaching this through the environment.
     public func callAsFunction() async {
+        // Starting and finishing each drop what the cache kept of the
+        // `.refreshable` and ask its app for a frame, through the cache's link
+        // the run state is bound to — the app that drew the indicator.
         guard state.beginIfIdle() else { return }
-        await MainActor.run { AppState.shared.setNeedsRender() }
         await action()
         state.finish()
-        await MainActor.run { AppState.shared.setNeedsRender() }
     }
 
     /// Two handles to the same `.refreshable` are equal. The run state carries

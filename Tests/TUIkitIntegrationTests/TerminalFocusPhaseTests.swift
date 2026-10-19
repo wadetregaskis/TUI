@@ -25,19 +25,12 @@ import TUIkit
 @Suite("A terminal focus report sets the scene phase", .serialized)
 struct TerminalFocusPhaseTests {
 
-    /// The render-request queue these tests drive and assert on: their own, not
-    /// `AppState.shared`.
+    /// The render-request queue these tests drive and assert on: the runner's
+    /// own, as every app's is.
     ///
-    /// An app's runner binds to the shared singleton, and must — every `@State`
-    /// write, `@Observable` change and animated cell posts there (see
-    /// `AppRunner.init`). A TEST reading it is reading a flag any other suite
-    /// may set: swift-testing runs suites concurrently inside one process,
-    /// sixteen test files touch that singleton, and the render paths beneath
-    /// them set it from spawned tasks. `.serialized` does not help — it orders
-    /// the tests within this suite and nothing else.
-    ///
-    /// Both directions were affected, not only the flaky one: a stranger's
-    /// `setNeedsRender()` breaks `#expect(!needsRender)` and *satisfies*
+    /// It used to be a process-wide singleton that every runner bound to, and
+    /// a test reading it read a flag any other suite might set — a stranger's
+    /// `setNeedsRender()` broke `#expect(!needsRender)` and *satisfied*
     /// `#expect(needsRender)`. swift-testing builds a fresh suite value per
     /// test, so this is one clean queue per test that nothing else can reach,
     /// and the assertions below are exact rather than merely usually right.

@@ -20,9 +20,8 @@ struct StateStorageIdentityTests {
 
     /// Creates a fresh StateStorage for test isolation.
     ///
-    /// State mutations during tests call `setNeedsRender()` on the shared
-    /// `AppState.shared` instance — that's harmless and avoids race
-    /// conditions with parallel suites.
+    /// Its boxes have no render cache, so a state mutation during these tests
+    /// asks no app for a frame.
     private func testStorage() -> StateStorage {
         StateStorage()
     }

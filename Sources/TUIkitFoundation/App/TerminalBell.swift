@@ -38,7 +38,9 @@ package final class TerminalBell: @unchecked Sendable {
     /// whatever draws next.
     private let requestFrame: @Sendable () -> Void
 
-    package init(requestFrame: @escaping @Sendable () -> Void = { AppState.shared.setNeedsRender() }) {
+    /// A bell whose ring asks `requestFrame` for a frame: its context's
+    /// render state's, in an app.
+    package init(requestFrame: @escaping @Sendable () -> Void) {
         self.requestFrame = requestFrame
     }
 

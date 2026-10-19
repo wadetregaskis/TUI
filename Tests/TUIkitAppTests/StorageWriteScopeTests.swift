@@ -167,6 +167,23 @@ struct StorageWriteScopeTests {
         #expect(counter.renders == renders, "another app's write redrew this one's kept view")
     }
 
+    /// The frame a write asks for besides its observed readers' — for a
+    /// control that read the key unobserved — is asked of the app whose work
+    /// made it (`AmbientApp`): its event handler's, its task's. It used to be
+    /// asked of the process's one render state, which whichever app drew next
+    /// took, under whatever transaction was pending there.
+    @Test("A write asks the app whose work made it for a frame, and no other app")
+    func writeAsksItsOwnApp() {
+        let store = MockStorageBackend()
+        let writer = AppState()
+        let bystander = AppState()
+        AmbientApp.$renderState.withValue(writer) {
+            AppStorage(wrappedValue: false, "scope.ambient", store: store).wrappedValue = true
+        }
+        #expect(writer.needsRender, "the writing app was not asked for a frame")
+        #expect(!bystander.needsRender, "another app was asked for a frame")
+    }
+
     // MARK: - Rows that capture a stored value their parent read
 
     private struct Item: Identifiable, Equatable {

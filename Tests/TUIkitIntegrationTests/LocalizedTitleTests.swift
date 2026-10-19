@@ -49,12 +49,12 @@ struct LocalizedTitleTests {
     /// The suite's one registration, made on first use rather than per test.
     ///
     /// Swift Testing builds a fresh instance for every test case, so doing this
-    /// in `init()` ran it once per case — and `register` ends by calling
-    /// `AppState.shared.setNeedsRenderWithCacheClear()`
-    /// (`Sources/TUIkitStrings/Localization/LocalizationService.swift`), which empties
-    /// the GLOBAL render memo. Those clears landed in the middle of the run,
-    /// throwing away what every other suite rendering at the same time had just
-    /// built. Registrations merge and nothing ever removes one, so once is all
+    /// in `init()` ran it once per case — and `register` used to end by asking
+    /// the process-wide render state of the time for a cache clear, which
+    /// emptied the render memo of whichever app drew next. Those clears landed
+    /// in the middle of the run, throwing away what every other suite rendering
+    /// at the same time had just built. (It asks only the app whose work
+    /// registers now: `AmbientApp`.) Registrations merge and nothing ever removes one, so once is all
     /// this suite needs; a `static let` is initialized on first use, under
     /// `swift_once`.
     ///

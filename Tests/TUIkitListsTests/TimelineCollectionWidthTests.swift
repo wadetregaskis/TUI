@@ -199,9 +199,9 @@ struct TimelineCollectionWidthTests {
     /// A second the app's whole cache was cleared in is driven again, with a
     /// fresh app: a clear drops the kept width with everything else, and row
     /// 200 is rightly built again, but it is not this app that asked. Another
-    /// test in the process did — a localization change asks for a clear
-    /// through the process-wide `AppState.shared`, and whichever app draws next
-    /// takes it. Once, on CI's macOS 26 · Swift 6.4 lane (2026-09-30),
+    /// test in the process did — a localization change asked for a clear of
+    /// the process-wide render state there was then, and whichever app drew
+    /// next took it; it asks only the app whose work made it now. Once, on CI's macOS 26 · Swift 6.4 lane (2026-09-30),
     /// `huggingList` counted two builds of row 200 that no local run of this
     /// suite, alone or beside the rest of its target, ever did; the request was
     /// then an `@AppStorage` or `@SceneStorage` write's, which no longer clears

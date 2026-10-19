@@ -26,8 +26,8 @@ struct StatePropertyWrapperTests {
         // time; mutating it routes `StateBox.didSet` through that cache (its
         // `RenderInvalidationSink`), which drops the affected subtree's cached
         // buffers at the next frame and requests a render. We assert on the
-        // per-context cache — deterministic — rather than the process-wide
-        // `AppState.shared.needsRender` flag, which parallel tests pollute.
+        // per-context cache — deterministic — rather than on an app's
+        // `needsRender`: this storage's cache belongs to no app.
         let storage = StateStorage()
         let cache = RenderCache()
         storage.renderCache = cache

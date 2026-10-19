@@ -55,8 +55,11 @@ struct PresentationDismissTests {
         let id = 1
     }
 
-    /// Renders `view` one frame the way the run loop does.
-    private func frame(_ view: some View) {
+    /// Renders `view` one frame the way the run loop does, and returns the
+    /// context it rendered in: its render state is what a top-level
+    /// `dismiss()` asks to exit.
+    @discardableResult
+    private func frame(_ view: some View) -> TUIContext {
         let tui = TUIContext()
         var environment = EnvironmentValues()
         environment.focusManager = FocusManager()
@@ -70,6 +73,7 @@ struct PresentationDismissTests {
         _ = renderToBuffer(view, context: context)
         tui.stateStorage.endRenderPass()
         environment.focusManager?.endRenderPass()
+        return tui
     }
 
     /// Presents `content` through `present`, runs the `\.dismiss` it saw, and
@@ -84,13 +88,11 @@ struct PresentationDismissTests {
         let box = StateBox(true)
         let binding = Binding(get: { box.value }, set: { box.value = $0 })
 
-        frame(present(binding, { AnyView(Capture(sink: sink)) }))
+        let tui = frame(present(binding, { AnyView(Capture(sink: sink)) }))
 
-        // Clear any exit request left by an earlier test before measuring ours.
-        _ = AppState.shared.consumeShouldExit()
         let dismiss = try #require(sink.captured, "the presented content never rendered")
         dismiss()
-        return (closed: !box.value, askedToExit: AppState.shared.consumeShouldExit())
+        return (closed: !box.value, askedToExit: tui.appState.consumeShouldExit())
     }
 
     @Test("a sheet's own Done button closes the sheet")
@@ -138,13 +140,12 @@ struct PresentationDismissTests {
         let box = StateBox<Presented?>(Presented())
         let item = Binding(get: { box.value }, set: { box.value = $0 })
 
-        frame(Text(verbatim: "page").sheet(item: item) { _ in Capture(sink: sink) })
+        let tui = frame(Text(verbatim: "page").sheet(item: item) { _ in Capture(sink: sink) })
 
-        _ = AppState.shared.consumeShouldExit()
         let dismiss = try #require(sink.captured)
         dismiss()
         #expect(box.value == nil, "dismiss() should clear the item binding")
-        #expect(!AppState.shared.consumeShouldExit(), "and must not quit the application")
+        #expect(!tui.appState.consumeShouldExit(), "and must not quit the application")
     }
 
     /// `\.isPresented` is the read-only companion: the same presentations that
@@ -178,11 +179,28 @@ struct PresentationDismissTests {
     }
 
     /// The top-level meaning is unchanged: outside any presentation, dismissing
-    /// a terminal app IS quitting it, and that is what `DismissAction()` means.
-    @Test("outside a presentation, dismiss() still means quit")
-    func topLevelStillExits() {
-        _ = AppState.shared.consumeShouldExit()
+    /// a terminal app IS quitting it — the app the view is drawn in, and no
+    /// other in the process, wherever the action is called from.
+    @Test("outside a presentation, dismiss() still means quit, and quits its own app")
+    func topLevelStillExits() throws {
+        let sink = DismissSink()
+        let tui = frame(Capture(sink: sink))
+        let bystander = frame(Text(verbatim: "another app"))
+        let dismiss = try #require(sink.captured, "the content never rendered")
+        dismiss()
+        #expect(tui.appState.consumeShouldExit(), "the top-level action must still exit")
+        #expect(!bystander.appState.consumeShouldExit(), "another app was asked to exit")
+    }
+
+    /// `DismissAction()` names no app: it quits the one whose work calls it
+    /// (`AmbientApp`) — an event handler's, a task's — and outside every app's
+    /// work it does nothing.
+    @Test("DismissAction() quits the app whose work calls it")
+    func bareActionQuitsTheAmbientApp() {
+        let app = AppState()
+        AmbientApp.$renderState.withValue(app) { DismissAction()() }
+        #expect(app.consumeShouldExit())
         DismissAction()()
-        #expect(AppState.shared.consumeShouldExit(), "the default action must still exit")
+        #expect(!app.consumeShouldExit(), "called on no app's task, it asked an app to exit")
     }
 }

@@ -395,9 +395,10 @@ restored in one synchronous stretch (the memo verifiers' switches,
 the real signals `SignalManagerTests` sends. What the harness cannot fix stays
 true: swift-testing runs suites concurrently inside one process, so
 process-global state is shared, whether or not the suite is split across
-processes. That includes `AppState.shared` (`DismissActionTests` requests an
-exit through it), `LocalizationService.shared` (one test redirects its
-persistence) and the process environment.
+processes. That includes `LocalizationService.shared` (one test redirects its
+persistence) and the process environment. (It included `AppState.shared`,
+whose pending transaction one test's frame could take from another's — the
+flaky `TransitionMemoTests`; every app has its own render state now.)
 
 ## Toolchains and platforms
 

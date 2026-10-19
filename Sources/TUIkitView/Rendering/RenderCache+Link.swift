@@ -161,6 +161,22 @@ extension RenderCache {
             appState?.setNeedsRender()
         }
 
+        /// Asks the app the cache draws for a frame, and drops nothing the
+        /// cache keeps — for a change the drawing shows that no memo keeps:
+        /// one a view reads as an unkeyed read (`recordUnkeyedRead`), so no
+        /// memo above it stores what it drew. Thread-safe. Does nothing once
+        /// the cache has gone.
+        package func requestFrame() {
+            let appState = queue.withLock { $0.attached ? $0.appState : nil }
+            appState?.setNeedsRender()
+        }
+
+        /// Whether the cache is still there: `false` from the start of its
+        /// `deinit` on. Thread-safe, unlike ``cache``.
+        package var isAttached: Bool {
+            queue.withLock { $0.attached }
+        }
+
         /// Takes what has been queued since the last drain, leaving the queue
         /// empty. Called by the cache, on the main actor.
         func drain() -> Pending {

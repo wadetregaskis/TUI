@@ -105,8 +105,6 @@ public final class NotificationService: @unchecked Sendable {
     /// closure at render time; one that does not, and any code reached from
     /// outside the view tree at all, has only this.
     ///
-    /// `AppState.shared` stands for the same reason.
-    ///
     /// For tests, construct a fresh instance rather than reaching for
     /// `current`, which every test in the process shares.
     ///
@@ -120,6 +118,18 @@ public final class NotificationService: @unchecked Sendable {
 
     /// The active notification entries, ordered by posting time.
     private var entries: [NotificationEntry] = []
+
+    /// The links of the render caches of the apps that draw this service's
+    /// notifications, which a post asks for a frame: one per app, noted by
+    /// its host as it draws (``noteDisplayed(by:)``).
+    ///
+    /// A post can come from anywhere — an event handler, a task, a callback on
+    /// a queue of its own — so it cannot ask "the app" for a frame: the host
+    /// that draws the service is how the service knows which apps that is. A
+    /// link, not the app's render state: it holds nothing that holds the cache
+    /// or the app, and once its cache has gone it asks no one, and the next
+    /// host to note itself drops it.
+    private var displays: [RenderCache.Link] = []
 
     /// The clock a notification's age is measured on.
     ///
@@ -176,8 +186,23 @@ extension NotificationService {
             message: String(message), duration: duration, postedAtNanos: nowNanos())
         lock.lock()
         entries.append(entry)
+        let displays = self.displays
         lock.unlock()
-        AppState.shared.setNeedsRender()
+        // Outside the lock: a frame request calls the app's observers.
+        for link in displays { link.requestFrame() }
+    }
+
+    /// Notes that the app whose render cache `link` is draws this service's
+    /// notifications, so a post asks it for a frame. Called by the host on
+    /// every frame it draws; `nil` — a render with no cache — notes nothing.
+    package func noteDisplayed(by link: RenderCache.Link?) {
+        guard let link else { return }
+        lock.lock()
+        defer { lock.unlock() }
+        // The usual case: noted already, one comparison.
+        guard !displays.contains(where: { $0 === link }) else { return }
+        displays.removeAll { !$0.isAttached }
+        displays.append(link)
     }
 
     /// Returns a snapshot of all currently active notifications.

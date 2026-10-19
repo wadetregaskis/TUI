@@ -229,15 +229,14 @@ public final class LocalizationService: @unchecked Sendable {
     /// Sets the active language WITHOUT persisting it and without asking for a
     /// re-render — the seam a test suite needs against the shared service.
     ///
-    /// ``setLanguage(_:)`` is the wrong tool for a test on two counts, both of
-    /// them process-global state a concurrently running test can see:
+    /// ``setLanguage(_:)`` is the wrong tool for a test on two counts:
     ///
     /// * it **persists**, into the directory named after `ProcessInfo.processName`
     ///   — under the test runner a real file in the developer's own home (see
     ///   ``withPersistence(redirectedTo:)``), read back as the stored preference
     ///   by every later run on that machine;
-    /// * it calls `AppState.shared.setNeedsRender()`, a second process-global
-    ///   flag that several suites assert on.
+    /// * it asks the app whose work calls it for a frame, which a suite
+    ///   pinning a language for its renders has no reason to.
     ///
     /// This does neither: it moves `currentLanguage` under the lock and stops.
     ///

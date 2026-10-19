@@ -150,13 +150,16 @@ public final class StoredKey: Observable, Sendable {
     ///
     /// ``StorageBackend/setValue(_:forKey:)`` and
     /// ``StorageBackend/removeValue(forKey:)`` call this; a store calls it
-    /// itself for a change it learns of some other way. The frame is asked
-    /// for whether or not any reader was observed: a control drawn every frame
-    /// outside any kept result reads the key unobserved, and shows the new
-    /// value only when a frame is drawn.
+    /// itself for a change it learns of some other way. A view that read the
+    /// key under observation asks its own app for a frame. The app whose work
+    /// made the change — its event handler, its frame, a task it started — is
+    /// asked for one besides, whether or not any reader was observed: a
+    /// control drawn every frame outside any kept result reads the key
+    /// unobserved, and shows the new value only when a frame is drawn. A
+    /// change made on no app's task asks only the observed readers' apps.
     public func didChange() {
         registrar.withMutation(of: self, keyPath: Self.changesPath) {}
-        AppState.shared.setNeedsRender()
+        AmbientApp.renderState?.setNeedsRender()
     }
 }
 

@@ -313,6 +313,30 @@ struct NotificationTests {
         #expect(frame().contains("Saved"), "the memo served the page from before the post")
     }
 
+    /// A post comes from anywhere — an event handler, a task, a callback on a
+    /// queue of its own — so the frame it asks for is asked of the apps whose
+    /// hosts draw the service, which they note as they draw it, and of no
+    /// other app in the process.
+    @Test("A post asks the app drawing its host for a frame, and no other app")
+    func postAsksTheDrawingApp() {
+        let service = NotificationService()
+        let drawing = TUIContext(
+            lifecycle: LifecycleManager(firesEffects: false), keyEventDispatcher: KeyEventDispatcher(),
+            preferences: PreferenceStorage())
+        let elsewhere = TUIContext()
+        var env = EnvironmentValues()
+        env.applyRuntimeServices(from: drawing)
+        env.notificationService = service
+        let context = RenderContext(
+            availableWidth: 60, availableHeight: 12, environment: env, tuiContext: drawing)
+        _ = renderToBuffer(Text("Base").notificationHost(), context: context)
+        drawing.appState.didRender()
+
+        service.post("Saved")
+        #expect(drawing.appState.needsRender, "the app drawing the host was not asked for a frame")
+        #expect(!elsewhere.appState.needsRender, "an app that draws no host was asked for a frame")
+    }
+
     // MARK: - The clock a toast fades on
 
     /// The screen a host over `Text("Base")` draws for `service`, with the frame

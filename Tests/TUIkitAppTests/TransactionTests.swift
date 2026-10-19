@@ -127,8 +127,7 @@ struct TransactionTests {
 
     @Test("A change made under an animation stamps the render that follows")
     func changeStampsTheNextRender() {
-        // A private instance, not `AppState.shared`: suites run in parallel and
-        // the pending transaction is process-wide state.
+        // An app's render state, of which every app has its own.
         let state = AppState()
         withAnimation(.linear(duration: 2)) { state.setNeedsRender() }
         #expect(state.consumePendingTransaction()?.animation == .linear(duration: 2))

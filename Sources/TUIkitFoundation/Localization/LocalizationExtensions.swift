@@ -33,6 +33,12 @@ extension Text {
 /// and the app's render state (`AppState`), and once TUIkit is split into
 /// modules it cannot name them. So the service keeps the change and this asks
 /// for the frame, with no hook or registry between the two.
+///
+/// The frame is asked of the app whose work made the change (`AmbientApp`): a
+/// language picked in its settings, translations registered as it draws. A
+/// change made outside every app's work — translations registered before the
+/// app runs, as an app's `main` does — asks no app, and needs none: the first
+/// frame is still to come.
 extension LocalizationService {
     /// Changes the active language and persists the preference.
     ///
@@ -41,7 +47,7 @@ extension LocalizationService {
     /// - Parameter language: The new language to activate.
     public func setLanguage(_ language: Language) {
         setLanguageWithoutRendering(language)
-        AppState.shared.setNeedsRender()
+        AmbientApp.renderState?.setNeedsRender()
     }
 
     /// Registers additional translations supplied by the host application.
@@ -68,32 +74,7 @@ extension LocalizationService {
         // key, so a re-render alone served the pre-registration text for as
         // long as the row's element compared equal. Asked once the service
         // has let go of its lock, as `setLanguage(_:)` has always asked.
-        AppState.shared.setNeedsRenderWithCacheClear()
-    }
-}
-
-// MARK: - AppState Language Convenience
-
-extension AppState {
-    /// Gets the currently active language.
-    public var currentLanguage: LocalizationService.Language {
-        LocalizationService.shared.currentLanguage
-    }
-
-    /// Changes the active language and triggers a re-render.
-    ///
-    /// The language preference is persisted to disk and will survive app restarts.
-    /// The UI automatically re-renders with the new language strings.
-    ///
-    /// # Example
-    ///
-    /// ```swift
-    /// AppState.shared.setLanguage(.german)
-    /// ```
-    ///
-    /// - Parameter language: The language to activate.
-    public func setLanguage(_ language: LocalizationService.Language) {
-        LocalizationService.shared.setLanguage(language)
+        AmbientApp.renderState?.setNeedsRenderWithCacheClear()
     }
 }
 
