@@ -98,8 +98,14 @@ extension TerminalOutputTests {
     /// The real syscalls: a non-blocking pipe far smaller than what is
     /// written, drained by a reader on another thread, stands in for a
     /// terminal a crashed program left non-blocking.
+    ///
+    /// The reader is a thread of its own, not a task: the writer blocks the
+    /// thread it runs on while it waits for room, and a detached task's reader
+    /// waited for a pool thread that a busy parallel suite had none of, so the
+    /// write ran out its deadline (gate g57, 2026-10-19; lane LISTS saw the
+    /// same, 83 s against 30).
     @Test("A non-blocking descriptor too small for a write takes all of it as it drains")
-    func nonBlockingDescriptorTakesEverything() async {
+    func nonBlockingDescriptorTakesEverything() {
         var ends: [Int32] = [0, 0]
         guard pipe(&ends) == 0 else {
             Issue.record("no pipe")
@@ -109,15 +115,18 @@ extension TerminalOutputTests {
         defer { close(readEnd) }
         _ = fcntl(writeEnd, F_SETFL, fcntl(writeEnd, F_GETFL) | O_NONBLOCK)
         let payload = [UInt8](repeating: 0x78, count: 1 << 20)
-        let reader = Task.detached { () -> Int in
+        let drained = DrainedCount()
+        let reader = Thread {
             var total = 0
             var chunk = [UInt8](repeating: 0, count: 1 << 16)
             while true {
                 let count = chunk.withUnsafeMutableBytes { read(readEnd, $0.baseAddress, $0.count) }
-                guard count > 0 else { return total }
+                guard count > 0 else { break }
                 total += count
             }
+            drained.finish(total)
         }
+        reader.start()
         // A deadline only so a regression fails rather than hangs.
         let deadline = Date().addingTimeInterval(30)
         let complete = payload.withUnsafeBufferPointer { buffer in
@@ -127,7 +136,7 @@ extension TerminalOutputTests {
         }
         close(writeEnd)
         #expect(complete)
-        #expect(await reader.value == payload.count)
+        #expect(drained.wait() == payload.count)
     }
 
     @Test("Waiting for room on a full descriptor nobody drains gives up at its deadline")
@@ -325,5 +334,24 @@ extension TerminalOutputTests {
         #expect(
             appleOutput.writes == ["\u{1B}7\u{1B}[1;1H\u{1B}[7m[TUIkit] No frame data to dump\u{1B}[0m\u{1B}8"],
             "where autowrap stays on there is nothing to put back")
+    }
+}
+
+/// What a reader thread drained, handed to the test when it finishes.
+private final class DrainedCount: @unchecked Sendable {
+    private let done = DispatchSemaphore(value: 0)
+    private var total = 0
+
+    /// Called once, on the reader's thread, with everything it read.
+    func finish(_ total: Int) {
+        self.total = total
+        done.signal()
+    }
+
+    /// Blocks until the reader has finished, then returns what it read. The
+    /// semaphore orders the write before this read.
+    func wait() -> Int {
+        done.wait()
+        return total
     }
 }
