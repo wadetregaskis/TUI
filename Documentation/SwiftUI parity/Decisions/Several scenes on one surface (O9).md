@@ -372,6 +372,30 @@ the GUI hosts show the title and keep the stack is owed to a look
 terminal's own title where a host keeps no stack and reports its title —
 once the look is taken; about an hour each.
 
+### B-O9-14. A scene's `onChange(of:)` is compared once a frame, for the scene
+
+*`Scene.onChange(of:initial:_:)`*
+
+SwiftUI's documentation: the modifier is a scene's, and `initial` runs the
+action "when this scene initially appears"; on macOS a scene has as many
+windows as are open. With no window openable on this machine, what it does with
+several, or none, is taken from that, unmeasured.
+
+**Shipped:** the value is compared once a frame, before any window draws, for
+the scene rather than for any window of it: the action runs once for a change
+however many of the scene's windows are open — none included, the scene being
+declared for the life of the app — and `initial` runs it on the app's first
+frame, not again as windows open. The scene catalogue gathers the watches each
+frame, and the run loop compares them, each at a place of the scene's own in
+the state storage that no window's walk reaches. (Compared as each window drew,
+as this lane first had it, the action ran once for every open window, and again
+with `initial` for each window opened.)
+
+**The fuller version** is a measurement, in a session that can open windows:
+whether SwiftUI runs a scene's action while none of its windows is open, and
+whether `initial` waits for its first window. If it waits, the compare skips a
+scene with no window open and keeps its last value; about an hour.
+
 ## C. Declined
 
 ### C-O9-1. Managing windows on a desktop

@@ -20,12 +20,16 @@ import TUIkitFoundation
 extension RenderLoop {
 
     /// Adopts this frame's scenes: the presenter's windows follow the
-    /// catalogue — the launch window opens on the first frame — and the window
-    /// in front's statements and the app's commands are applied to
+    /// catalogue — the launch window opens on the first frame — the scenes'
+    /// watched values are compared, and the window in front's statements and the app's commands are applied to
     /// `environment`, which is kept first, as it is, for the windows held
     /// behind it to start from, on a frame that holds one.
     func adoptScenes(_ catalog: SceneCatalog, environment: inout EnvironmentValues) {
         scenes.sync(with: catalog)
+        // The scenes' own `onChange(of:)`, once each, for the scene rather
+        // than any window of it; before the windows are read below, since an
+        // action may open one.
+        catalog.compareWatches(in: tuiContext.stateStorage)
         // Not kept on a frame of one window: the copy would share the
         // environment's storage, which its next write would then duplicate.
         windowBaseEnvironment = scenes.holdsWindows ? environment : nil

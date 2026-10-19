@@ -69,6 +69,11 @@ struct SceneCatalog {
     /// drawn from.
     private(set) var commands = SceneCommands()
 
+    /// The scenes' watched values (`onChange(of:)`), in declaration order,
+    /// each scene's from the outside in: compared once a frame, for the scene
+    /// rather than any one of its windows (``compareWatches(in:)``).
+    private(set) var watches: [SceneWatch] = []
+
     /// Gathers what `scene`, drawn at `identity`, declares.
     init(_ scene: any Scene, identity: ViewIdentity) {
         commands = walk(scene, configuration: SceneConfiguration(), path: [], identity: identity)
@@ -103,6 +108,10 @@ struct SceneCatalog {
         guard let configuring = scene as? any ConfiguringScene else { return SceneCommands() }
         var configuration = configuration
         configuring.configure(&configuration)
+        if let watching = configuring as? any WatchingScene {
+            let place = SceneWatch.place(under: identity)
+            watches.append(SceneWatch(watching, at: place, index: watches.count { $0.key.identity == place }))
+        }
         guard let content = configuring.configuredContent else {
             // The end of a chain: the scene itself.
             guard let window = configuring as? any WindowScene else { return SceneCommands() }
@@ -122,9 +131,8 @@ struct SceneCatalog {
 /// Which scene of the app a walk of its scene tree draws: at each container on
 /// the way, the index of the scene that leads to it (``SceneContainer``).
 ///
-/// Carried down the scene tree in the environment, as the walk passes through
-/// modifiers that draw their content inside a view (`.onChange`), and taken off
-/// before the scene's content draws.
+/// Carried down the scene tree in the environment, and taken off before the
+/// scene's content draws.
 struct SceneRenderTarget: Equatable {
     /// The indices still to follow, the next container's first.
     let path: [Int]
