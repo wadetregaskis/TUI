@@ -41,6 +41,10 @@ struct _TabSidebarLayout: View {
 
     @Environment(\.tabViewSidebarAccessories) private var accessories
 
+    /// `.contentToolbar(for: .tabViewSidebar)`'s, from TUIkitFoundation, where
+    /// its toolbar-content form (TUIkitChrome) can write it too.
+    @Environment(\.tabViewSidebarToolbar) private var toolbar
+
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
@@ -51,7 +55,7 @@ struct _TabSidebarLayout: View {
                     if let header = accessories.header { header }
                     _TabSidebarList(tabs: tabs, selection: selection)
                     if let footer = accessories.footer { footer }
-                    if let toolbar = accessories.toolbar { toolbar }
+                    if let toolbar { toolbar }
                     if let bottomBar = accessories.bottomBar { bottomBar }
                 }
                 .fixedSize(horizontal: true, vertical: false)
@@ -181,11 +185,12 @@ private struct _TabSidebarList: View {
 /// badge is, rather than through an environment modifier: a view cannot be
 /// compared, and an incomparable value would turn every memo below the tab
 /// view off. Only the sidebar reads them, and it draws them every frame.
+///
+/// The sidebar's toolbar, `.contentToolbar(for: .tabViewSidebar)`, is
+/// carried the same way, in TUIkitFoundation (`tabViewSidebarToolbar`).
 struct _TabViewSidebarAccessories {
     var header: AnyView?
     var footer: AnyView?
-    /// The sidebar's toolbar: `.contentToolbar(for: .tabViewSidebar)`.
-    var toolbar: AnyView?
     var bottomBar: AnyView?
 }
 
@@ -344,6 +349,7 @@ public enum TabViewBottomAccessoryPlacement: Hashable, Sendable {
 extension _TabSidebarLayout: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _accessories.resolveEnvironment(environment)
+        _toolbar.resolveEnvironment(environment)
         _horizontalSizeClass.resolveEnvironment(environment)
     }
 }

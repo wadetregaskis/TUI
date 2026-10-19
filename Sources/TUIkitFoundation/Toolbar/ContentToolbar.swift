@@ -4,10 +4,14 @@
 //  `.contentToolbar(for:content:)`: toolbar content a container's own view
 //  keeps, whatever content it shows — the foot of a tab view's sidebar.
 //
+//  Here, below the tab view (TUIkitTabs) that draws it and the toolbar content
+//  (TUIkitChrome) that one of the two modifiers takes: each of those modules
+//  sees this one, and neither sees the other.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkitFoundation
+import TUIkitView
 
 // MARK: - Content Toolbar Placement
 
@@ -64,7 +68,60 @@ extension View {
     public func contentToolbar<Content: View>(
         for placement: ContentToolbarPlacement, @ViewBuilder content: () -> Content
     ) -> some View {
-        let toolbar = AnyView(HStack(spacing: 1) { content() })
-        return _TabViewSidebarAccessoryModifier(content: self) { $0.toolbar = toolbar }
+        contentToolbar(for: placement, drawing: AnyView(HStack(spacing: 1) { content() }))
+    }
+
+    /// Makes `toolbar` the content toolbar of `placement`'s content views:
+    /// what both forms of ``contentToolbar(for:content:)`` — the views', and
+    /// the toolbar content's (TUIkitChrome) — hand the tab view sidebar.
+    package func contentToolbar(for placement: ContentToolbarPlacement, drawing toolbar: AnyView) -> some View {
+        _ContentToolbarModifier(content: self, toolbar: toolbar)
+    }
+}
+
+// MARK: - Environment
+
+/// Environment key for the toolbar a tab view's sidebar draws at its foot.
+private struct TabViewSidebarToolbarKey: EnvironmentKey {
+    // Computed: a stored view is not `Sendable`, and this is `nil`.
+    static var defaultValue: AnyView? { nil }
+}
+
+extension EnvironmentValues {
+    /// The toolbar a `.sidebarAdaptable` tab view's sidebar draws at its foot
+    /// (``View/contentToolbar(for:content:)``), or `nil` for none.
+    ///
+    /// Written straight into the environment, as the sidebar's header and
+    /// footer are (TUIkitTabs), rather than through an environment modifier: a
+    /// view cannot be compared, and an incomparable value would turn every
+    /// memo below the tab view off. Only the sidebar reads it, and it draws
+    /// it every frame.
+    package var tabViewSidebarToolbar: AnyView? {
+        get { self[TabViewSidebarToolbarKey.self] }
+        set { self[TabViewSidebarToolbarKey.self] = newValue }
+    }
+}
+
+// MARK: - The Modifier
+
+/// Sets the tab view sidebar's toolbar for `content`.
+struct _ContentToolbarModifier<Content: View>: View, Renderable, Layoutable {
+    let content: Content
+    let toolbar: AnyView
+
+    var body: Never { fatalError("_ContentToolbarModifier renders via Renderable") }
+
+    private func withToolbar(_ context: RenderContext) -> RenderContext {
+        var context = context
+        context.environment.tabViewSidebarToolbar = toolbar
+        return context
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        TUIkitView.renderToBuffer(content, context: withToolbar(context))
+    }
+
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measureChild(content, proposal: proposal, context: withToolbar(context))
     }
 }
