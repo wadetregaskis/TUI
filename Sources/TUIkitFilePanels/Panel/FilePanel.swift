@@ -23,8 +23,9 @@ import TUIkitTables
 /// Composed of TUIkit's own controls, as ``ColorPickerPanel`` stands in for
 /// the system's colour panel: a dialog's box titled for what is being chosen,
 /// the folder's path, its items in a ``Table`` (Name, Size, Date Modified,
-/// Kind; sortable by any, folders always first), and below them the hidden-
-/// files switch and the Cancel and confirmation buttons.
+/// Kind; sortable by any, folders always first; the last three giving way in
+/// a narrow panel, ``FilePanelColumns``), and below them the hidden-files
+/// switch and the Cancel and confirmation buttons.
 ///
 /// The keys are a terminal file browser's:
 /// - ↑ and ↓ move through the folder, and typing a name's first letters
@@ -172,26 +173,15 @@ struct FilePanel: View {
 
     // MARK: - The folder's items
 
-    /// The table of the folder's items, one selection binding or the other.
+    /// The table of the folder's items, with the columns its width has room
+    /// for (``FilePanelColumns/shown(inWidth:)``).
     @ViewBuilder private var rows: some View {
-        Group {
-            if request.allowsMultipleSelection {
-                Table(browser.rows, selection: selectable, sortOrder: sortOrder) {
-                    FilePanelColumns.all
-                }
-                .tableEmptyPlaceholder(emptyText)
-            } else {
-                Table(browser.rows, selection: selectableSingle, sortOrder: sortOrder) {
-                    FilePanelColumns.all
-                }
-                .tableEmptyPlaceholder(emptyText)
-            }
+        // A reader is greedy: the table has the rest of the sheet's height,
+        // however few the rows, and the panel is the same size from one
+        // folder to the next.
+        GeometryReader { proxy in
+            table(width: proxy.size.width)
         }
-        // Inset, not bordered: the panel's box is the table's border.
-        .tableStyle(.inset)
-        // The rest of the sheet's height, however few the rows: the panel is the
-        // same size from one folder to the next.
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         // A folder is a new table: its cursor starts on the first row and its
         // scroll at the top, rather than at the place the last folder's were.
         .id(browser.directory)
@@ -231,6 +221,26 @@ struct FilePanel: View {
             StatusBarItem(
                 shortcut: "/", label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusGoTo))
         }
+    }
+
+    /// The table, with one selection binding or the other, `width` cells wide.
+    @ViewBuilder private func table(width: Int) -> some View {
+        Group {
+            if request.allowsMultipleSelection {
+                Table(browser.rows, selection: selectable, sortOrder: sortOrder) {
+                    FilePanelColumns.fitting(width)
+                }
+                .tableEmptyPlaceholder(emptyText)
+            } else {
+                Table(browser.rows, selection: selectableSingle, sortOrder: sortOrder) {
+                    FilePanelColumns.fitting(width)
+                }
+                .tableEmptyPlaceholder(emptyText)
+            }
+        }
+        // Inset, not bordered: the panel's box is the table's border.
+        .tableStyle(.inset)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     /// The selection, through a binding that refuses an item that can be

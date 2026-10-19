@@ -62,7 +62,10 @@ area's height), titled Open, holding
 - the folder's items in a `Table` — Name, Size, Date Modified and Kind, sorted
   by any of them from its header or the table's sort keys — a folder's name in
   bold and ending in `/`, as `ls -F` marks one, rather than an icon some
-  terminals draw at another width; an item of a type the caller does not allow
+  terminals draw at another width; in a narrow panel Kind gives way, then Date
+  Modified, then Size, each where the name would have fewer than 20 cells
+  (`FilePanelColumns.shown(inWidth:)`; with every column kept at its width, a
+  name had four cells at 64 columns, beside eighteen of Kind); an item of a type the caller does not allow
   is dimmed (`FileEntry.isDimmed`): the cursor lands on it, as the review's
   sketch has a macOS panel's, but the selection binding refuses it and Return
   chooses nothing. Not `.selectionDisabled()`, which would also take the
