@@ -45,13 +45,13 @@ func mayStateSpacing(_ child: ChildView, along axis: Axis) -> Bool {
 }
 
 /// ``mayStateSpacing(_:along:)`` worked out, past the witness — in the order
-/// `statedSpacing(ofView:context:)` asks: a stack by the edges its views form,
-/// a view that is several by any of them, any other view that states one
-/// itself as "may", a wrapper by its content, a view of the app's own by its
-/// body.
+/// `statedSpacing(ofView:context:)` asks: a type that says itself (a stack by
+/// the edges its views form), a view that is several by any of them, any
+/// other view that states one itself as "may", a wrapper by its content, a
+/// view of the app's own by its body.
 @MainActor
 private func spacingReach<V: View>(of type: V.Type, along axis: Axis) -> Bool {
-    if let stack = type as? any SpacingAlongStack.Type { return stack.mayStateSpacing(along: axis) }
+    if let reaching = type as? any SpacingReaching.Type { return reaching.mayStateSpacing(along: axis) }
     if let several = type as? any SpacingMembers.Type {
         return several.anyMemberMayStateSpacing(along: axis, countingSpacers: true)
     }
@@ -82,25 +82,31 @@ private func memberMayStateSpacing<V: View>(_ type: V.Type, along axis: Axis, co
     return mayStateSpacing(type, along: axis)
 }
 
-// MARK: - The stacks
+// MARK: - The types that say
 
-/// An eager stack, which states the edges its views form
-/// (`edgesFormed(by:along:context:)`): along its own axis its first view's
-/// and its last one's, a spacer's among them; across, every view's but a
-/// spacer's.
+/// A view type that answers ``mayStateSpacing(_:along:)`` itself, where the
+/// generic reading — "may" for any view that states a preference itself —
+/// says more than it can.
 @MainActor
-protocol SpacingAlongStack {
-    /// Whether the stack may state a preference on its edges along `axis`.
+protocol SpacingReaching {
+    /// Whether a view of this type may state a preference on its edges along
+    /// `axis`.
     static func mayStateSpacing(along axis: Axis) -> Bool
 }
 
-extension _VStackCore: SpacingAlongStack {
+// MARK: - The stacks
+
+// An eager stack states the edges its views form
+// (`edgesFormed(by:along:context:)`): along its own axis its first view's and
+// its last one's, a spacer's among them; across, every view's but a spacer's.
+
+extension _VStackCore: SpacingReaching {
     static func mayStateSpacing(along axis: Axis) -> Bool {
         memberMayStateSpacing(Content.self, along: axis, countingSpacers: axis == .vertical)
     }
 }
 
-extension _HStackCore: SpacingAlongStack {
+extension _HStackCore: SpacingReaching {
     static func mayStateSpacing(along axis: Axis) -> Bool {
         memberMayStateSpacing(Content.self, along: axis, countingSpacers: axis == .horizontal)
     }
