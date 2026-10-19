@@ -256,11 +256,21 @@ extension FrameBuffer {
 
     /// `layers` with the overflow among them cut away where `later`,
     /// placed at `position`, paints.
+    ///
+    /// Only `later`'s lines that some overflow reaches are read for what they
+    /// paint (``overflowReach(of:over:at:)``): a line's painted cells are a
+    /// scan of its text, and the view after an overflowing one is often a
+    /// page of lines the overflow never reaches — an `.offset` view's cells
+    /// drawn a column aside, over nothing below them, cost `geometry` a scan
+    /// of the scroll view under it on every frame. The cut is the same: a
+    /// block of lines outside the reach meets no overflow, and one cut to it
+    /// meets every overflow cell it met whole, which is all a cut reads.
     private static func covering(
         _ layers: [OverlayLayer], under later: FrameBuffer, at position: (x: Int, y: Int)
     ) -> [OverlayLayer] {
+        guard let reach = overflowReach(of: layers, over: later, at: position) else { return layers }
         var covered = layers
-        for block in later.paintedBlocks() {
+        for block in later.paintedBlocks(inRows: reach) {
             covered = covered.flatMap { layer -> [OverlayLayer] in
                 guard layer.isOverflow else { return [layer] }
                 return layer.excluding(
@@ -271,12 +281,37 @@ extension FrameBuffer {
         return covered
     }
 
+    /// The lines of `later`, placed at `position`, that the overflow among
+    /// `layers` reaches — from the first line any of it covers to the last,
+    /// in `later`'s own rows — or `nil` where none reaches `later` at all.
+    ///
+    /// Every line where an overflow layer has no cells: any cut drops such a
+    /// layer (``OverlayLayer/excluding(x:y:width:height:)``), so whether it
+    /// stays turns on whether `later` paints anything at all.
+    private static func overflowReach(
+        of layers: [OverlayLayer], over later: FrameBuffer, at position: (x: Int, y: Int)
+    ) -> Range<Int>? {
+        var reach: Range<Int>?
+        for layer in layers where layer.isOverflow {
+            guard layer.content.width > 0, layer.content.height > 0 else { return 0..<later.height }
+            let top = max(0, layer.offsetY - position.y)
+            let bottom = min(later.height, layer.offsetY + layer.content.height - position.y)
+            guard top < bottom else { continue }
+            reach = reach.map { min($0.lowerBound, top)..<max($0.upperBound, bottom) } ?? top..<bottom
+        }
+        return reach
+    }
+
     /// Each line's painted columns (``String/paintedColumns()``), widened to
     /// the cells an animated run repaints on it — a caret blinking on a blank
-    /// cell is drawn there, whatever the line holds under it.
-    func paintedColumnsByLine() -> [Range<Int>?] {
-        var painted = lines.map { $0.paintedColumns() }
-        for run in animatedCells where painted.indices.contains(run.offsetY) && run.width > 0 {
+    /// cell is drawn there, whatever the line holds under it. Only the lines
+    /// in `rows` are read; every other is `nil`, as a line that paints
+    /// nothing is.
+    func paintedColumnsByLine(inRows rows: Range<Int>? = nil) -> [Range<Int>?] {
+        let read = (rows ?? lines.indices).clamped(to: lines.indices)
+        var painted = [Range<Int>?](repeating: nil, count: lines.count)
+        for row in read { painted[row] = lines[row].paintedColumns() }
+        for run in animatedCells where read.contains(run.offsetY) && run.width > 0 {
             let cells = run.offsetX..<(run.offsetX + run.width)
             painted[run.offsetY] =
                 painted[run.offsetY].map {
@@ -286,12 +321,13 @@ extension FrameBuffer {
         return painted
     }
 
-    /// The cells this buffer paints (``paintedColumnsByLine()``), as blocks
-    /// of consecutive lines whose painted columns agree — one rect for a block
-    /// of text the same width, one a line for ragged text.
-    func paintedBlocks() -> [(rows: Range<Int>, columns: Range<Int>)] {
+    /// The cells this buffer paints (``paintedColumnsByLine(inRows:)``), as
+    /// blocks of consecutive lines whose painted columns agree — one rect for
+    /// a block of text the same width, one a line for ragged text — of the
+    /// lines in `rows`, or all of them.
+    func paintedBlocks(inRows rows: Range<Int>? = nil) -> [(rows: Range<Int>, columns: Range<Int>)] {
         var blocks: [(rows: Range<Int>, columns: Range<Int>)] = []
-        for (row, painted) in paintedColumnsByLine().enumerated() {
+        for (row, painted) in paintedColumnsByLine(inRows: rows).enumerated() {
             guard let columns = painted else { continue }
             if let last = blocks.last, last.rows.upperBound == row, last.columns == columns {
                 blocks[blocks.count - 1].rows = last.rows.lowerBound..<(row + 1)
