@@ -111,9 +111,14 @@ struct ScrollWindowRelay {
         if let rows = contentReply.targetLayoutRows {
             reply.targetLayoutRows = rows.shifted(by: linesAbove)
         }
+        // Columns as they are: the relay moves the content only down. Every
+        // field the content may answer is moved across — one left behind in
+        // the content's reply is one the scroll view never reads (a column a
+        // padded carousel sought, until 2026-10-19: `scrollTo` moved nothing).
         if let columns = contentReply.targetLayoutColumns { reply.targetLayoutColumns = columns }
         if let rows = contentReply.targetVisibleRows { reply.targetVisibleRows = rows.shifted(by: linesAbove) }
         if let columns = contentReply.targetVisibleColumns { reply.targetVisibleColumns = columns }
+        if let column = contentReply.seekResolvedColumn { reply.seekResolvedColumn = column }
         if let ids = contentReply.targetIDs { reply.targetIDs = ids }
         guard let origin = contentReply.sliceOriginY, let total = contentReply.sliceTotalHeight
         else {

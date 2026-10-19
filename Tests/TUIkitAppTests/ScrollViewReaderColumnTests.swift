@@ -87,6 +87,64 @@ struct ScrollViewReaderColumnTests {
         let unknown = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
         #expect(unknown.first == trailing.first, "an unknown id moves nothing: \(unknown)")
     }
+
+    /// What lies between a purely horizontal scroll view and the stack of its
+    /// columns: lines above and below the stack, which relay the scroll window
+    /// to it (`ScrollWindowRelay`).
+    enum LinesAround: CaseIterable, Sendable, CustomStringConvertible {
+        case padding, contentMargins
+
+        var description: String { self == .padding ? ".padding(.vertical, 1)" : ".contentMargins(.vertical, 1)" }
+    }
+
+    /// A column sought below lines drawn above the stack is still found: the
+    /// relay hands the stack a reply of its own, and the column the stack
+    /// writes there has to reach the scroll view's. Dropped, `scrollTo` and a
+    /// `.scrollPosition` request on a padded carousel moved nothing.
+    @Test(
+        "scrollTo seeks a column below lines drawn above the stack",
+        arguments: [false, true], LinesAround.allCases)
+    func columnSeekThroughARelay(lazy: Bool, around: LinesAround) {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        let box = ProxyBox()
+        let columns = ForEach(0..<40, id: \.self) { i in Text("c" + (i < 10 ? "0" : "") + "\(i)") }
+        let view = ScrollViewReader { proxy in
+            let _ = box.proxy = proxy
+            switch around {
+            case .padding:
+                ScrollView(.horizontal) {
+                    if lazy {
+                        LazyHStack(spacing: 1) { columns }.padding(.vertical, 1)
+                    } else {
+                        HStack(spacing: 1) { columns }.padding(.vertical, 1)
+                    }
+                }
+                .frame(width: 30, height: 4)
+            case .contentMargins:
+                ScrollView(.horizontal) {
+                    if lazy {
+                        LazyHStack(spacing: 1) { columns }
+                    } else {
+                        HStack(spacing: 1) { columns }
+                    }
+                }
+                .contentMargins(.vertical, 1)
+                .frame(width: 30, height: 4)
+            }
+        }
+        func row(_ screen: [String]) -> String? { screen.first { $0.contains("c") } }
+        let first = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(row(first)?.hasPrefix("c00") == true, "starts at the start: \(first)")
+
+        box.proxy?.scrollTo(20, anchor: .leading)
+        let leading = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(row(leading)?.hasPrefix("c20") == true, ".leading puts c20 first: \(leading)")
+
+        box.proxy?.scrollTo(30, anchor: .trailing)
+        let trailing = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(row(trailing)?.hasSuffix("c30") == true, ".trailing puts c30 last: \(trailing)")
+    }
 }
 
 // swiftlint:enable redundant_discardable_let
