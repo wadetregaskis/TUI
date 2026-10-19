@@ -457,6 +457,6 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIkitEffects/Animation/AnyTransition.swift`,
   `Sources/TUIkitEffects/Animation/TransitionModifier.swift`, `Sources/TUIkitView/Animation/ChildFade.swift`,
   `Sources/TUIkitView/Animation/BranchTransition.swift`; `Tests/TUIkitEffectsTests/TransitionTests.swift`,
-  `Tests/TUIkitEffectsTests/BranchAndRowFadeTests.swift`; `Documentation/SwiftUI parity/Deliberate deviations
+  `Tests/TUIkitEffectsTests/TransitionAnimationTests.swift`, `Tests/TUIkitEffectsTests/BranchAndRowFadeTests.swift`; `Documentation/SwiftUI parity/Deliberate deviations
   from SwiftUI.md` (A3, A6), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Animation row);
   `Documentation/SwiftUI parity/Decisions/Transition follow-ups (TRANSITIONS2).md`.
