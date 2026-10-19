@@ -1,0 +1,107 @@
+{
+  "probe": "title_probe",
+  "measured": "2026-10-19T03:12:06-07:00",
+  "screen": "primary",
+  "os": "macOS 15.8.1",
+  "machine": "arm64",
+  "env": {
+    "TERM": "tmux-256color",
+    "TERM_PROGRAM": "tmux",
+    "TERM_PROGRAM_VERSION": "3.7c",
+    "COLORTERM": "truecolor",
+    "TMUX": "/private/tmp/tmux-501/o9title,95226,0",
+    "TMUX_PANE": "%0",
+    "__CFBundleIdentifier": "com.anthropic.claudefordesktop"
+  },
+  "mode_2027_grapheme_clustering": "not recognised",
+  "method": "DSR cursor report — confirm any disagreement with visual_card.py",
+  "leaks": {
+    "primary": {
+      "osc2_st": {
+        "what": "OSC 2 ended by ST, as TUIkit sends it",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]2;tuikit-leak<ESC>\\"
+      },
+      "osc2_bel": {
+        "what": "OSC 2 ended by BEL",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]2;tuikit-leak<BEL>"
+      },
+      "push": {
+        "what": "XTWINOPS 22;2: push the window title",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[22;2t"
+      },
+      "pop": {
+        "what": "XTWINOPS 23;2: pop it",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[23;2t"
+      },
+      "report": {
+        "what": "XTWINOPS 21: report the title (its answer read and dropped)",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[21t"
+      },
+      "pop_empty": {
+        "what": "a pop with nothing pushed",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[23;2t"
+      }
+    },
+    "alternate": {
+      "osc2_st": {
+        "what": "OSC 2 ended by ST, as TUIkit sends it",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]2;tuikit-leak<ESC>\\"
+      },
+      "osc2_bel": {
+        "what": "OSC 2 ended by BEL",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]2;tuikit-leak<BEL>"
+      },
+      "push": {
+        "what": "XTWINOPS 22;2: push the window title",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[22;2t"
+      },
+      "pop": {
+        "what": "XTWINOPS 23;2: pop it",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[23;2t"
+      },
+      "report": {
+        "what": "XTWINOPS 21: report the title (its answer read and dropped)",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[21t"
+      }
+    }
+  },
+  "titles": {
+    "first": "tuikit-probe-A-95231-1792404733",
+    "second": "tuikit-probe-B-95231-1792404733"
+  },
+  "steps": {
+    "before": "tmux pane_title: <hostname>",
+    "after_set": "tmux pane_title: tuikit-probe-A-95231-1792404733",
+    "after_push_and_set": "tmux pane_title: tuikit-probe-B-95231-1792404733",
+    "after_pop": "tmux pane_title: tuikit-probe-A-95231-1792404733",
+    "after_final_pop": "tmux pane_title: <hostname>"
+  },
+  "verdict": {
+    "reports_title": true,
+    "takes_osc2": true,
+    "keeps_stack": true,
+    "restores_own": true
+  }
+}

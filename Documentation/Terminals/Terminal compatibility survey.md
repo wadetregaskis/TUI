@@ -3,8 +3,8 @@
 The canonical record of how each terminal emulator behaves on every axis
 TUIkit cares about — input encodings (keys, mouse, trackpad) and output
 behaviour (cursor advance vs painted width, emoji handling, glyph cell
-coverage, colour depth, OSC 8 hyperlinks, OSC 52 clipboard writes, graphics
-protocols) — plus the environment variables each one defines and the exact
+coverage, colour depth, OSC 8 hyperlinks, OSC 52 clipboard writes, the window
+title, graphics protocols) — plus the environment variables each one defines and the exact
 versions the observations were made against.
 
 **Maintenance contract:** whenever anything new is observed or learned
@@ -3635,6 +3635,53 @@ rule needs an exception there. The answer is `hyperlink_probe.py`'s three
 `file` rows (no host, the machine's name, `localhost`) run on iTerm2, owed
 alongside Ghostty and kitty. Until it is recorded here, nothing about
 host-named file links on iTerm2 is established.
+
+---
+
+## The window title: OSC 2, and its stack (XTWINOPS 22 and 23) — measured 2026-10-19
+
+TUIkit titles the terminal's window, or tab, with the window in front's
+title (`TerminalHostState`, refusal review P15; decisions O9, B-O9-13): its
+scene's title, or a root `.navigationTitle` no top bar shows. What it sends,
+and when:
+
+| When | Bytes |
+|---|---|
+| The first title | `CSI 22 ; 2 t` (push the window title), then `ESC ] 2 ; title ESC \` |
+| Another title | `ESC ] 2 ; title ESC \` alone |
+| No title (a window with none in front), a suspend, the exit, a fatal signal | `CSI 23 ; 2 t` (pop), where it pushed |
+| The first title after one of those | the push and the title again |
+
+The title is UTF-8 with every control character dropped (a `BEL` or `ESC`
+would end the OSC early) and line breaks as spaces. `OSC 2`, not `OSC 0`,
+which sets the icon name as well; nothing is sent for an app that names no
+title.
+
+Measured with `Tools/TerminalProbes/title_probe.py` (records:
+`Tools/TerminalProbes/data/*-title.json`): the cursor column after each
+sequence on both screens (a moved cursor means the host printed some of it),
+and the title as `CSI 21 t` reports it, after a set, a push and a set, and a
+pop.
+
+| Host | Every sequence swallowed, both screens | Reports the title (`CSI 21 t`) | Takes OSC 2 | Keeps the stack |
+|---|---|---|---|---|
+| Apple Terminal 455.1 | yes | no answer | unmeasured | unmeasured |
+| iTerm2 3.7.6 | yes | no answer (default settings) | unmeasured | unmeasured |
+| Warp v0.2026.09.30 | yes | no answer | unmeasured | unmeasured |
+| tmux 3.7c | yes | no answer; its `#{pane_title}` read instead | yes: the pane's title | **yes**: a pop restores the title before the push, and the last pop the pane's own |
+| Ghostty 1.3.1 | not run (a new script path needs Ghostty's consent, with no one there to give it) | only with `title-report = true`, per its reference | — | — |
+
+So the writes are **safe on every host measured**: nothing is printed, on
+either screen, and a pop with nothing pushed is swallowed too. Whether the
+GUI hosts show the title in the tab or window, and whether they keep the
+stack, no answered query says; it is owed to a look, with
+`title_probe.py --hold 20` holding the probe's title up. Where a host keeps
+no stack, the pop does nothing and the app's title stays until the shell's
+prompt sets its own, which shell integration does on every host that has it.
+
+Under tmux the title is the PANE's (`#{pane_title}`); the outer terminal's
+window changes only with `set-titles on`, off by default, as the Ghostty
+adoption study (C2) expected.
 
 ---
 

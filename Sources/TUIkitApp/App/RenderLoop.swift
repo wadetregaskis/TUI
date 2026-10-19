@@ -151,6 +151,10 @@ internal final class RenderLoop<A: App> {
     /// which the held window's own are applied (`RenderLoop+Scene.swift`).
     var windowBaseEnvironment = EnvironmentValues()
 
+    /// What the app has set on the terminal emulator beyond the screen — the
+    /// window title — written with the frames (`RenderLoop+HostState.swift`).
+    var hostState = TerminalHostState()
+
     /// The focus manager (cleared each frame).
     let focusManager: FocusManager
 
@@ -1007,6 +1011,9 @@ extension RenderLoop {
         // The bell a control rang for input it turned away, likewise.
         let bell = tuiContext.terminalBell.takePending()
         if !bell.isEmpty { terminal.write(bell) }
+        // The window title, where it changed; see `RenderLoop+HostState.swift`.
+        let host = hostStateWrites()
+        if !host.isEmpty { terminal.write(host) }
 
         // The terminal holds its display from here to the frame's end, if the
         // frame writes more than one row. After the transmissions, which draw

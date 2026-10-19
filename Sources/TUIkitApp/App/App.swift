@@ -790,8 +790,10 @@ extension AppRunner {
         let effective = renderer.effectiveMouseSupport()
         terminal.applyMouseSupport(effective)
         tuiContext.mouseEventDispatcher.setActiveSupport(effective, isFrameFinal: true)
-        // What a SIGQUIT owes for the images this frame put in or took out.
+        // What a SIGQUIT owes for the images this frame put in or took out,
+        // and a signal for the title it saved.
         terminal.oweFarewell(for: tuiContext.terminalImageStore)
+        terminal.oweHostState(renderer.hostState.debt)
         return FramePacer.Frame(
             renderedAtNanos: MonotonicClock.nowNanoseconds,
             animationDeadlineNanos: deadline)
@@ -838,8 +840,11 @@ extension AppRunner {
         // The pointer goes where it likes, unreported, until the mode is back.
         tuiContext.mouseEventDispatcher.forgetRestingPointer()
         // The styling reset first: a frame may have ended with styling in
-        // force, and leaving the alternate screen does not restore SGR.
-        terminal.handBack(restoringStyling: renderer.restoreTerminalStyling)
+        // force, and leaving the alternate screen does not restore SGR. The
+        // shell's window title back with it; the first frame after the resume
+        // sets the app's again.
+        terminal.handBack(
+            farewell: handBackHostState(renderer), restoringStyling: renderer.restoreTerminalStyling)
         // The shell's screen is back, so held soft-trap reports can be read there.
         SoftTrap.terminalRestored()
         // Our own resume delivers a SIGCONT too; the repaint is already
@@ -1002,6 +1007,14 @@ extension AppRunner {
             terminal.takeVolunteeredColorReplies(), sawStatusFence: terminal.takeStatusFence())
     }
 
+    /// What the app set on the terminal emulator, given back — the window
+    /// title restored where it was saved — and owed no more.
+    fileprivate func handBackHostState(_ renderer: RenderLoop<A>) -> String {
+        let restore = renderer.handBackHostState()
+        terminal.oweHostState(renderer.hostState.debt)
+        return restore
+    }
+
     fileprivate func cleanup(renderer: RenderLoop<A>) {
         // Before the terminal teardown: this forks tmux, and doing it while our
         // pane is still alive is the tidy window. A crash skips this — then the
@@ -1023,7 +1036,7 @@ extension AppRunner {
         // terminal's clipboard.
         terminal.handBack(
             farewell: tuiContext.terminalImageStore.takePending()
-                + tuiContext.clipboardWriter.takePendingSequences(),
+                + tuiContext.clipboardWriter.takePendingSequences() + handBackHostState(renderer),
             restoringStyling: renderer.restoreTerminalStyling)
         SoftTrap.terminalRestored()
         signals.stop()

@@ -361,6 +361,20 @@ package final class WindowChromeState: @unchecked Sendable {
         _titleRemoved = true
     }
 
+    /// Whether the top bar shows ``title`` in its title slot, as this walk
+    /// declared it: the walk placed items in the bar and did not hide it, the
+    /// window's toolbar style shows titles, nothing removed the title, and no
+    /// principal item takes its place. A bar too short for a row, or one a
+    /// frame from being adopted, counts as showing it.
+    ///
+    /// Where it does not, a ``title`` titles the terminal's window instead
+    /// (TUIkitApp's `RenderLoop.terminalWindowTitle`).
+    package var topBarShowsTitle: Bool {
+        guard showsTitle, !titleRemoved, !title.isEmpty else { return false }
+        let entries = toolbarEntries(for: .top)
+        return !entries.isEmpty && !entries.contains { $0.placement.region == .principal }
+    }
+
     // MARK: The search field's place
 
     /// Whether a `DefaultToolbarItem(kind: .search)` claimed the window's

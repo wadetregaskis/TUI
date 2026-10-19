@@ -342,6 +342,36 @@ File ▸ New Window for it to be the key of (B-O9-9), and ⌘N would arrive as
 **The fuller version** adds File ▸ New *Title* Window with SwiftUI's ⌘N on the
 first group, B-O9-9's fuller version; with it, a group's key is the item's.
 
+### B-O9-13. The window in front titles the terminal
+
+*`WindowGroup`'s and `Window`'s titles, a root `.navigationTitle` (refusal review P15; the A28 design study, §9; Ghostty adoption study, C2)*
+
+On macOS a window's title is its root navigation title, or its scene's
+title where it has none, drawn in the title bar. A terminal app's window is
+the terminal's, whose title bar or tab the app can set with `OSC 2`.
+
+**Shipped:** while a window is in front, the terminal's title is its root
+`.navigationTitle` where no top bar shows it — A28 §9: a title alone makes
+no top bar, and titles the terminal instead — and otherwise its scene's
+title (`WindowGroup("Notes")`, `Window("Inspector", id:)`). It is written
+on a change only, through a ledger of what the app has set on the terminal
+emulator (`TerminalHostState`, which progress, pointer shapes and attention
+are to join, Ghostty adoption study V8–V10). Before the first title the
+terminal's own is pushed on its title stack (`CSI 22 ; 2 t`); it is popped
+(`CSI 23 ; 2 t`) when the window in front has no title, on suspend, on exit
+and on a fatal signal, so the shell gets its title back, and pushed and set
+again on resume. The title is sanitised: control characters dropped (a `BEL`
+or `ESC` would end the sequence early), line breaks as spaces. An app with
+no title sends nothing. Measured safe on every host run (no host prints any
+of it, on either screen); tmux keeps the stack for its pane title; whether
+the GUI hosts show the title and keep the stack is owed to a look
+(`title_probe.py --hold`; the survey's "The window title").
+
+**The fuller version** follows a host's measured behaviour where it differs
+— `OSC 0` on a host whose tab shows the icon name, an `OSC 2` of the
+terminal's own title where a host keeps no stack and reports its title —
+once the look is taken; about an hour each.
+
 ## C. Declined
 
 ### C-O9-1. Managing windows on a desktop

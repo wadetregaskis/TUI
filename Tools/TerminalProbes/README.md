@@ -198,6 +198,14 @@ when unset), the visual/aspect probes print to the terminal.
   HONOURS the link — hover, ⌘-click — no query reports, so the probe prints
   a card for a person and records their answer beside the measurement
   instead of pretending to have derived it.
+- `title_probe.py` — the window title TUIkit sets (`OSC 2`) and the stack it
+  saves the terminal's own on (`CSI 22 ; 2 t`, `CSI 23 ; 2 t`): whether each
+  sequence is swallowed on both screens (the DSR question again), and, where
+  the host reports its title (`CSI 21 t`, or tmux's `#{pane_title}`), whether
+  a set takes and a pop restores. It pushes the terminal's own title first
+  and pops it last. `--hold N` keeps the probe's title up for a look at the
+  tab. JSON to `$PROBE_OUT`. Run 2026-10-19 on Apple Terminal, iTerm2, Warp
+  and tmux (records `data/*-title.json`); Ghostty is owed.
 - `graphics_probe.py` — Sixel, the iTerm2 inline-image protocol and the Kitty
   graphics protocol: what the host advertises (DA1's Sixel parameter, Kitty's
   `a=q` handshake, and a *virtual placement* probe — the feature a TUI actually

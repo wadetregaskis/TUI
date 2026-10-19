@@ -402,6 +402,15 @@ final class Terminal: TerminalProtocol {
     /// The image store's generation ``quitFarewell`` was last spelled from.
     private var owedImageGeneration = 0
 
+    /// What the app owes the terminal emulator beyond the screen — its own
+    /// window title, saved on its title stack (`TerminalHostState.debt`) —
+    /// kept current after every frame and paid by a signal (``signalDebt``).
+    private(set) var hostStateDebt = "" {
+        didSet {
+            if hostStateDebt != oldValue { armSignalRestore() }
+        }
+    }
+
     /// Whether frame buffering is active.
     ///
     /// When `true`, ``write(_:)`` appends to ``frameBuffer`` instead of
@@ -946,6 +955,7 @@ extension Terminal {
         if keyboardFlagsPushed { owed += KeyboardProtocolQuery.pop }
         owed += inputModesOwed
         if pinnedGraphemeClustering { owed += Self.graphemeClusteringOff }
+        owed += hostStateDebt
         owed += ANSIRenderer.showCursor
         return owed
     }
@@ -969,6 +979,13 @@ extension Terminal {
         guard images.generation != owedImageGeneration else { return }
         owedImageGeneration = images.generation
         quitFarewell = images.farewell(fitting: Self.quitFarewellCapacity)
+    }
+
+    /// Owes the terminal `debt` for what the app set on it beyond the screen
+    /// (`TerminalHostState.debt`): after each frame, and after a hand-back
+    /// paid it.
+    func oweHostState(_ debt: String) {
+        hostStateDebt = debt
     }
 
     /// The most bytes ``quitFarewell`` may be: what the signal handler's

@@ -730,6 +730,11 @@ editing: defer it, not refuse it.
       record the behaviour there.
     - Titling is not opening, placing or dismissing a window, which is all the
       family's reason covers.
+    - **Shipped (2026-10-19, lane O9):** the window in front's title, or its
+      root `.navigationTitle` where no top bar shows it, titles the terminal
+      through a ledger (`TerminalHostState`), pushed and popped as above;
+      `title_probe.py` measured the writes safe on four hosts (decisions O9,
+      B-O9-13).
 - **Multi-scene is §O9:** `Window` scenes, `openWindow`/`dismissWindow`/`openSettings`
   and their actions, `WindowGroup(id:/for:)`, `AlertScene`.
 - **CONFIRM:** size, position, resizability, level, style, toolbar style,

@@ -235,6 +235,20 @@ package final class HeadlessApp<A: App> {
     /// The app's windows: which are open, in what order.
     package var scenes: ScenePresenter { renderer.scenes }
 
+    /// The title the frames have given the terminal's window, or `nil` while
+    /// it shows its own (``TerminalHostState``).
+    var terminalWindowTitle: String? { renderer.hostState.writtenTitle }
+
+    /// What the frames wrote to the terminal beyond its cells — each title
+    /// change, with the save before the first — in order.
+    var hostWrites: [String] { terminal.hostWrites }
+
+    /// What handing the terminal back — a suspend, the exit — would write,
+    /// written to it as the app's hand-back does.
+    func handBackHostState() {
+        terminal.write(renderer.handBackHostState())
+    }
+
     /// How many views' parting pictures the app is holding — every view with a
     /// transition that is on screen, and every removal still playing. A removal
     /// that has played out is no longer counted.
@@ -272,6 +286,8 @@ final class InMemoryTerminal: TerminalProtocol {
     /// Where the cursor was last put, in cells from the top-left, or `nil`
     /// once something has been drawn after it, which moved it on.
     private(set) var cursor: CellPoint?
+    /// The writes that set or restored the window title (``TerminalHostState``).
+    private(set) var hostWrites: [String] = []
 
     init(width: Int, height: Int) {
         size = (width, height)
@@ -281,6 +297,11 @@ final class InMemoryTerminal: TerminalProtocol {
     func write(_ string: String) {
         bytesWritten &+= string.utf8.count
         if string == "\u{07}" { bellsWritten += 1 }
+        if string.hasPrefix(TerminalHostState.saveTitle) || string.hasPrefix(TerminalHostState.restoreTitle)
+            || string.hasPrefix("\u{1B}]2;")
+        {
+            hostWrites.append(string)
+        }
         if cursor != nil, !string.stripped.isEmpty { cursor = nil }
     }
     func readKeyEvent() -> KeyEvent? { nil }

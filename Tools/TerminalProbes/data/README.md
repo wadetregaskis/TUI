@@ -3,7 +3,7 @@
 Written by a probe and never by hand. These are the evidence behind the
 tables in `Documentation/Terminals/Terminal compatibility survey.md`. The doc explains what
 the numbers *mean*; these say who measured what, when, and under which
-conditions. Eight kinds of file live here:
+conditions. Nine kinds of file live here:
 
 - **`width-corpus.json`** — the shared cluster corpus: every cluster the
   probes measure and the Swift tests ask about, one id per row, duplicated
@@ -56,6 +56,14 @@ conditions. Eight kinds of file live here:
   `…-hairline-aborted.json` when it was stopped and `…-hairline-auto.json`
   when it ran `--auto` or went unanswered. Two so far, both answered to the
   end on 2026-10-08: Ghostty 1.3.1 and iTerm2 3.7.3.
+- **`<terminal>-<version>-title.json`** — WINDOW-TITLE records
+  (`title_probe.py`): the DSR column after each title sequence TUIkit sends
+  (`OSC 2`, the push and the pop of the title stack, a pop with nothing
+  pushed, the report request) on both screens, and the title the host
+  reports (`CSI 21 t`, or tmux's `#{pane_title}`) after a set, a push and a
+  set, and a pop. The machine's name is recorded as `<hostname>`. Four so
+  far, 2026-10-19: Apple Terminal 455.1, iTerm2 3.7.6 and Warp (none
+  answers the report) and tmux 3.7c.
 - **`tmux-3.7b-tonebases.json`** — the full Emoji_Modifier_Base sweep
   (`advance_probe.py --modifier-bases`): which of the 134 bases tmux merges
   with a following tone (70) and which it detaches (64). The source of

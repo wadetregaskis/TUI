@@ -362,6 +362,13 @@ that rule. Ghostty's page (and its config reference) adds:
 - **Ownership.** Build it **once**. Recommended: this track builds the ledger
   and OSC 2 right after A28 lands, and closes P15's title bullet. The A28 lane
   routes the root `.navigationTitle` into the ledger and writes no OSC itself.
+- **Built (2026-10-19, lane O9, which P15 was given to):** the ledger is
+  `TerminalHostState` (`Sources/TUIkitApp/Rendering/TerminalHostState.swift`),
+  owned by the render loop, which writes its changes with each frame
+  (`RenderLoop+HostState.swift`); the hand-back (suspend, exit) writes its
+  restore, and `Terminal.signalDebt` carries it for a fatal signal. V8–V10
+  add their state to it. `title_probe.py` ran on Apple Terminal, iTerm2,
+  Warp and tmux; Ghostty is owed. Decisions O9, B-O9-13.
 
 #### C3. Progress (OSC 9;4) — adopt if the owner wants the API (Q3)
 
@@ -903,7 +910,7 @@ lane's OSC 52 drain. Land V2 before that lane launches, or after it lands.
 
 | Step | What | Files | Tests | Terminals / probe |
 |---|---|---|---|---|
-| V7 | The ledger plus C2's window title (P15's `WindowGroup` titles; a root `.navigationTitle` per A28 §9) | new `Sources/TUIkitApp/Rendering/TerminalHostState.swift`, new `Sources/TUIkitApp/App/RenderLoop+HostState.swift`, `App.swift` (suspend, cleanup, resume), `Scene.swift`, `FatalSignalTerminalRestore.swift`, the capability environment value, `Tools/APIParity` baseline, map and corpus, compat doc | change-only writes; sanitiser (BEL, ESC, C1 in a title); push/pop around suspend; SwiftUI-shaped corpus | new `title_probe.py` on four hosts and tmux |
+| V7 | **Done 2026-10-19 (lane O9; see C2).** The ledger plus C2's window title (P15's `WindowGroup` titles; a root `.navigationTitle` per A28 §9) | new `Sources/TUIkitApp/Rendering/TerminalHostState.swift`, new `Sources/TUIkitApp/App/RenderLoop+HostState.swift`, `App.swift` (suspend, cleanup, resume), `Scene.swift`, `FatalSignalTerminalRestore.swift`, the capability environment value, `Tools/APIParity` baseline, map and corpus, compat doc | change-only writes; sanitiser (BEL, ESC, C1 in a title); push/pop around suspend; SwiftUI-shaped corpus | new `title_probe.py` on four hosts and tmux |
 | V8 | C3: progress (Q3) | new `Sources/TUIkitFoundation/Modifiers/TerminalProgressModifier.swift`, the ledger, the run-loop timed wake, compat doc, new `progress_probe.py` | states and clamping; keep-alive without renders; teardown | `progress_probe.py` on Ghostty, iTerm2, kitty, tmux; `idle_cpu.py` with a bar shown |
 | V9 | C4: pointer shapes (Q2) | new `PointerStyle.swift` and `PointerStyleModifier.swift`, new per-host name table beside `TerminalHyperlinkSupport.swift`, `MouseEventDispatcher` (region resolution), the ledger, parity map (refusal removed), baseline, corpus, compat doc, new `pointer_probe.py` | topmost style wins; change-only writes; reset on exit and suspend; inert on unidentified hosts | `pointer_probe.py` with screenshots: Ghostty, iTerm2, kitty, tmux |
 | V10 | C6: attention (Q4) | new `RequestAttentionAction.swift`, the ledger's write queue, compat doc | ConEmu guard; sanitiser; BEL fallback outside strings | four hosts and tmux, by eye |

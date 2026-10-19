@@ -1,0 +1,112 @@
+{
+  "probe": "title_probe",
+  "measured": "2026-10-19T03:04:35-07:00",
+  "screen": "primary",
+  "os": "macOS 15.8.1",
+  "machine": "arm64",
+  "env": {
+    "TERM": "xterm-256color",
+    "TERM_PROGRAM": "iTerm.app",
+    "TERM_PROGRAM_VERSION": "3.7.6",
+    "COLORTERM": "truecolor",
+    "TERM_SESSION_ID": "w0t0p0:44C6C6F2-8F88-4EB7-8F09-19E8D2713962",
+    "ITERM_SESSION_ID": "w0t0p0:44C6C6F2-8F88-4EB7-8F09-19E8D2713962",
+    "ITERM_PROFILE": "Default",
+    "LC_TERMINAL": "iTerm2",
+    "LC_TERMINAL_VERSION": "3.7.6",
+    "COLORFGBG": "0;15",
+    "TERMINFO_DIRS": "/Applications/iTerm.app/Contents/Resources/terminfo:/usr/share/terminfo",
+    "__CFBundleIdentifier": "com.googlecode.iterm2"
+  },
+  "mode_2027_grapheme_clustering": "permanently reset",
+  "method": "DSR cursor report — confirm any disagreement with visual_card.py",
+  "leaks": {
+    "primary": {
+      "osc2_st": {
+        "what": "OSC 2 ended by ST, as TUIkit sends it",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]2;tuikit-leak<ESC>\\"
+      },
+      "osc2_bel": {
+        "what": "OSC 2 ended by BEL",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]2;tuikit-leak<BEL>"
+      },
+      "push": {
+        "what": "XTWINOPS 22;2: push the window title",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[22;2t"
+      },
+      "pop": {
+        "what": "XTWINOPS 23;2: pop it",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[23;2t"
+      },
+      "report": {
+        "what": "XTWINOPS 21: report the title (its answer read and dropped)",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[21t"
+      },
+      "pop_empty": {
+        "what": "a pop with nothing pushed",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[23;2t"
+      }
+    },
+    "alternate": {
+      "osc2_st": {
+        "what": "OSC 2 ended by ST, as TUIkit sends it",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]2;tuikit-leak<ESC>\\"
+      },
+      "osc2_bel": {
+        "what": "OSC 2 ended by BEL",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]2;tuikit-leak<BEL>"
+      },
+      "push": {
+        "what": "XTWINOPS 22;2: push the window title",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[22;2t"
+      },
+      "pop": {
+        "what": "XTWINOPS 23;2: pop it",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[23;2t"
+      },
+      "report": {
+        "what": "XTWINOPS 21: report the title (its answer read and dropped)",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>[21t"
+      }
+    }
+  },
+  "titles": {
+    "first": "tuikit-probe-A-89803-1792404275",
+    "second": "tuikit-probe-B-89803-1792404275"
+  },
+  "steps": {
+    "before": null,
+    "after_set": null,
+    "after_push_and_set": null,
+    "after_pop": null,
+    "after_final_pop": null
+  },
+  "verdict": {
+    "reports_title": false,
+    "takes_osc2": null,
+    "keeps_stack": null,
+    "restores_own": null
+  }
+}

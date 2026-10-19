@@ -105,6 +105,7 @@ struct SynchronizedOutputTests {
         terminal.enableRawMode()
         terminal.keyboardFlagsPushed = true
         terminal.pinnedGraphemeClustering = true
+        terminal.oweHostState(TerminalHostState.restoreTitle)
         #expect(terminal.signalDebt.utf8.count <= FatalSignalTerminalRestore.capacity)
         #expect(terminal.quitDebt.utf8.count <= FatalSignalTerminalRestore.capacity)
 
