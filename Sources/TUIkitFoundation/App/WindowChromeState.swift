@@ -235,27 +235,29 @@ package final class WindowChromeState: @unchecked Sendable {
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _tooltipRows: Range<Int> = 0..<0
 
-    /// How many surfaces the walk drawn presented over the page — a sheet,
-    /// docked or not, a cover, an alert, a popover, a menu, a drop-down —
-    /// counting those presented from inside another; `0` while the page is
-    /// in front.
+    /// The surfaces the walk drawn presented over the page — a sheet, docked
+    /// or not, a cover, an alert, a popover, a menu, a drop-down — counting
+    /// those presented from inside another; empty while the page is in
+    /// front.
     ///
     /// What a help held on the rows the bar took for it asks: it stays while
     /// what is presented is what was when the hold began
-    /// (`TooltipState.held`, decisions-HELP A-HELP-1). Counted from the
+    /// (`TooltipState.held`, decisions-HELP A-HELP-1). Taken from the
     /// layers the chrome host composites onto the content area, which every
     /// presentation is drawn as, rather than from what holds the focus: a
     /// sheet docked live beside the page never takes the input, and it still
     /// takes the rows the bar covers (found by the BUGS13 lane's second
-    /// review).
-    package var presentationsOverPage: Int {
+    /// review). Each surface, not their count, which was compared until
+    /// 2026-10-18: a frame that took one surface down as it put another up
+    /// left the count, and the help, as they were.
+    package var presentationsOverPage: [PresentedSurface] {
         get { _presentationsOverPage }
         set { _presentationsOverPage = newValue }
     }
 
     /// ``presentationsOverPage``'s storage: private, under the `package`
     /// accessor (CONTRIBUTING.md, "Crossing a module boundary").
-    private var _presentationsOverPage = 0
+    private var _presentationsOverPage: [PresentedSurface] = []
 
     /// The window's title: the OUTERMOST `.navigationTitle` the window's
     /// content declared this walk (see ``offer(_:as:at:)``) — kept until the
@@ -580,7 +582,7 @@ package final class WindowChromeState: @unchecked Sendable {
         declaredVisibility.removeAll(keepingCapacity: true)
         _appLineHandlerIDs.removeAll(keepingCapacity: true)
         _tooltipRows = 0..<0
-        _presentationsOverPage = 0
+        _presentationsOverPage = []
         titleOffers.removeAll(keepingCapacity: true)
         subtitleOffers.removeAll(keepingCapacity: true)
         chosenTitles = nil
@@ -756,5 +758,28 @@ extension EnvironmentValues {
     package var windowChrome: WindowChromeState? {
         get { self[WindowChromeKey.self] }
         set { self[WindowChromeKey.self] = newValue }
+    }
+}
+
+/// A surface presented over the page, as a frame's chrome found it
+/// (``WindowChromeState/presentationsOverPage``): enough to tell two
+/// presentations apart from one frame to the next.
+package struct PresentedSurface: Equatable, Sendable {
+    /// Whether it is placed over the content area — a sheet, a cover, an
+    /// alert — rather than beside what opened it.
+    package var isScreenLevel: Bool
+
+    /// Whether it holds the input — a popover, a menu, a drop-down.
+    package var holdsInput: Bool
+
+    /// The first hit region it files, which is its own control's and keeps
+    /// its id while it is up (interned per view): another surface in its
+    /// place files another. `nil` for a surface with none.
+    package var firstRegion: HitTestRegion.HandlerID?
+
+    package init(isScreenLevel: Bool, holdsInput: Bool, firstRegion: HitTestRegion.HandlerID?) {
+        self.isScreenLevel = isScreenLevel
+        self.holdsInput = holdsInput
+        self.firstRegion = firstRegion
     }
 }

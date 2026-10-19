@@ -86,9 +86,9 @@ extension RenderLoop {
             // under the pointer: the next frame draws it.
             scheduler?.requestWake("held-drag-reshape", at: nowNanos &+ 1)
         }
-        let tooltipRows = windowChrome.tooltipRows
-        let onTooltipRows = dispatcher.restingPointer.map { tooltipRows.contains($0.y) } ?? false
-        tooltips.endReshape(pointerOnTooltipRows: onTooltipRows) { dispatcher.reachesHoverObserver($0) }
+        tooltips.endReshape(
+            tooltipRows: windowChrome.tooltipRows, pointerRow: dispatcher.restingPointer?.y,
+            reaching: { dispatcher.reachesHoverObserver($0) }, region: { dispatcher.regionRect(for: $0) })
         guard Self.popoverText(tooltips.resolved(nowNanos: nowNanos)) != popoverDrawn else { return }
         // A wake an instant after this frame: the next frame the cap allows.
         scheduler?.requestWake("tooltip-popover", at: nowNanos &+ 1)

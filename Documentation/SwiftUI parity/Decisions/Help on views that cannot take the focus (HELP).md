@@ -116,10 +116,17 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
   over a sheet docked live, which never holds the input,
   `HelpRunLoopTests.heldHelpOnACoveredRowGoesUnderASheet`).
   Left: a pointer that moves along a covered row lets the help go, the row
-  comes back under it, and the help returns after its delay; and a view
-  removed from the page while the pointer rests on its covered row keeps
-  its help up until the pointer moves, as does a frame that takes one
-  surface down as it puts another up.
+  comes back under it, and the help returns after its delay — fixed (lane
+  INPUT, 2026-10-18): a move along the rows the bar took keeps the hold
+  (`TooltipState.notePointerMoved(toRow:)`); a frame that takes one surface
+  down as it puts another up kept the help, the count unchanged — fixed
+  too: the surfaces are compared, each by its kind and its first region
+  (`WindowChromeState.presentationsOverPage`, `PresentedSurface`); and a
+  view removed from the page while the pointer rests on its covered row
+  keeps its help up until the pointer moves — still open (decisions-INPUT
+  B-INPUT-1): a covered row has no region to probe, and a row a scroll view
+  windows out registers nothing either, so nothing yet tells a covered
+  view from a removed one (`HeldHelpResidualTests`).
 - **No `.entered` for a view a reshape slides under a pointer resting on
   nothing — fixed (lane BUGS13).** The dispatcher re-resolved the hover
   after a reshape only for a lane that was already hovering something (the
@@ -158,11 +165,14 @@ Pinned by `HelpRunLoopTests`: `hoverOverACentredPage` (every frame drawn),
   reshape is asked for (`RenderLoop.publishHitTestRegions`,
   `HelpRunLoopTests.popoverGoesWhenAReshapeReplacesItsView`); held help
   outlives reshapes the bar did not cause while its view stays reachable —
-  still open: letting it go when its view moves would let it go whenever a
-  centred page re-centres (a change of width anywhere on it), and the bar
-  giving back its rows would then slide the view back under the pointer and
-  restart its delay, so the fix has to tell the bar's moves from the page's
-  own first; and
+  fixed (lane INPUT, 2026-10-18): the hold records where the bar's last
+  reflow left its view, and a reshape the bar did not cause that finds the
+  view elsewhere lets it go (`TooltipState.endReshape`, `heldRegion`). The
+  bar's moves are told from the page's own by whether the reshape's frame
+  changed the rows the bar takes. A centred page that re-centres (a change
+  of width anywhere on it) moves the view too, so its help goes, and if the
+  bar's giving back its rows slides the view under the pointer again the
+  help returns after its delay, once: the price this item named, taken; and
   `MouseEventDispatcher.reachesHoverObserver` probed only the top-left cell
   of the held view's region — fixed (lane BUGS13): it probes every cell of
   the view's regions until one is heard by the view

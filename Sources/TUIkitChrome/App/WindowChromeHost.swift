@@ -190,16 +190,23 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         return frame
     }
 
-    /// How many of `layers` are surfaces presented over the page, those
-    /// riding in another's content counted too (an alert presented from a
-    /// sheet): a panel placed over the content area — a sheet, docked or
-    /// not, a cover, an alert (``OverlayLayer/isScreenLevel``) — or a layer
-    /// holding the input — a popover, a menu, a drop-down
-    /// (``OverlayLayer/holdsInput``). Not a tooltip's panel, a toast, a
-    /// dragged row's picture or a view's own displaced drawing.
-    static func presentations(in layers: [OverlayLayer]) -> Int {
-        layers.reduce(0) { count, layer in
-            count + (layer.isScreenLevel || layer.holdsInput ? 1 : 0) + presentations(in: layer.content.overlays)
+    /// The surfaces among `layers` presented over the page, those riding in
+    /// another's content too (an alert presented from a sheet): a panel
+    /// placed over the content area — a sheet, docked or not, a cover, an
+    /// alert (``OverlayLayer/isScreenLevel``) — or a layer holding the input
+    /// — a popover, a menu, a drop-down (``OverlayLayer/holdsInput``). Not a
+    /// tooltip's panel, a toast, a dragged row's picture or a view's own
+    /// displaced drawing.
+    static func presentations(in layers: [OverlayLayer]) -> [PresentedSurface] {
+        layers.flatMap { layer in
+            let own =
+                layer.isScreenLevel || layer.holdsInput
+                ? [
+                    PresentedSurface(
+                        isScreenLevel: layer.isScreenLevel, holdsInput: layer.holdsInput,
+                        firstRegion: layer.content.hitTestRegions.first?.handlerID)
+                ] : []
+            return own + presentations(in: layer.content.overlays)
         }
     }
 

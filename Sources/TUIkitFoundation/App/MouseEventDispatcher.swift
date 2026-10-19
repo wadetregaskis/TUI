@@ -1254,7 +1254,7 @@ extension MouseEventDispatcher {
     /// Everything below the cursor row then read as "dragged past the bottom",
     /// which armed auto-scroll from the middle of a list whose cursor was still
     /// at its top.
-    func regionRect(for id: HitTestRegion.HandlerID) -> HitTestRegion? {
+    package func regionRect(for id: HitTestRegion.HandlerID) -> HitTestRegion? {
         regions.filter { $0.handlerID == id }.max { $0.width * $0.height < $1.width * $1.height }
     }
 

@@ -396,7 +396,7 @@ extension MouseEventDispatcher {
         // the status bar's reflow when the move lands on its view again
         // (`TooltipState.held`); one the move left behind goes, and its
         // going is the frame this motion asks for.
-        if movedCell, tooltipState?.notePointerMoved() == true { fired = true }
+        if movedCell, tooltipState?.notePointerMoved(toRow: event.y) == true { fired = true }
         return fired
     }
 

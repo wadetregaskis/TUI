@@ -150,7 +150,7 @@ public final class TooltipState: @unchecked Sendable {
 
     /// How many surfaces are presented over the page for the reshape under
     /// way; see ``beginReshape(movedByTooltip:presentations:)``.
-    private var reshapePresentations = 0
+    private var reshapePresentations: [PresentedSurface] = []
 
     /// How many surfaces were presented over the page when ``held`` began, as
     /// ``reshapePresentations`` said it: while the pointer rests on the rows
@@ -166,7 +166,18 @@ public final class TooltipState: @unchecked Sendable {
     /// modal section, so the help stayed in the bar over it (the lane's second
     /// review), and a pane inside a modal taking the focus let a help held in
     /// that modal go though nothing new was presented.
-    private var heldPresentations = 0
+    private var heldPresentations: [PresentedSurface] = []
+
+    /// Where the held view was as the bar's last reflow left it, `nil` until
+    /// the reshape that began the hold has found it: a reshape the bar did
+    /// not cause that finds it elsewhere lets the hold go
+    /// (``endReshape(tooltipRows:pointerRow:reaching:region:)``).
+    private var heldRegion: HitTestRegion?
+
+    /// The rows the bar took from the page for its tooltip, as of the last
+    /// reshape: a held help stays while the pointer moves along them
+    /// (``notePointerMoved(toRow:)``).
+    private var coveredRows: Range<Int> = 0..<0
 
     /// The pointer's candidate as a frame shows it: the one ``held`` through
     /// the bar's reflow, or else the one the pointer is over.
@@ -337,6 +348,7 @@ public final class TooltipState: @unchecked Sendable {
         if reshapeIsTooltipReflow, held == nil, index == hoveredViews.count - 1 {
             held = hoveredViews[index]
             heldPresentations = reshapePresentations
+            heldRegion = nil
         }
         hoveredViews.remove(at: index)
     }
@@ -362,11 +374,11 @@ public final class TooltipState: @unchecked Sendable {
     ///   - movedByTooltip: Whether this frame's status-bar tooltip changed the
     ///     rows the bar takes from the page, so that the page may have moved
     ///     under the pointer because of the tooltip (``held``).
-    ///   - presentations: How many surfaces the frame presents over the page
-    ///     — sheets, docked or not, covers, alerts, popovers, menus
-    ///     (`WindowChromeState.presentationsOverPage`) — `0` when the page is
+    ///   - presentations: The surfaces the frame presents over the page —
+    ///     sheets, docked or not, covers, alerts, popovers, menus
+    ///     (`WindowChromeState.presentationsOverPage`) — none when the page is
     ///     in front (``heldPresentations``).
-    package func beginReshape(movedByTooltip: Bool, presentations: Int) {
+    package func beginReshape(movedByTooltip: Bool, presentations: [PresentedSurface]) {
         reshapeIsTooltipReflow = movedByTooltip
         reshapePresentations = presentations
     }
@@ -387,15 +399,53 @@ public final class TooltipState: @unchecked Sendable {
     ///   - reaching: Whether a pointer on the region a handler registered
     ///     this frame would be heard by that handler
     ///     (`MouseEventDispatcher.reachesHoverObserver`).
-    package func endReshape(pointerOnTooltipRows: Bool, reaching: (HitTestRegion.HandlerID) -> Bool) {
+    ///
+    /// Let go too when the page moves the held view on its own: a reshape
+    /// the bar's rows did not cause — a key that scrolls the page, content
+    /// that grows above it — that finds the view somewhere other than where
+    /// the bar's last reflow left it (``heldRegion``). The help explained a
+    /// view the pointer had rested on; one the page has carried elsewhere is
+    /// not that, and it stayed up until the pointer moved (decisions-HELP
+    /// A-HELP-1, "Left open"). A page laid out in the middle that re-centres
+    /// (a change of width anywhere on it) moves the view too, so its help
+    /// goes, and if the bar's giving back its rows slides the view under the
+    /// pointer again, the help comes back after its delay, once.
+    ///
+    /// - Parameters:
+    ///   - tooltipRows: The rows the bar took from the page for the tooltip
+    ///     it shows (`WindowChromeState.tooltipRows`): a pointer moving along
+    ///     them keeps a help held there (``notePointerMoved(toRow:)``).
+    ///   - pointerRow: The row the pointer rests on, if that is known.
+    ///   - reaching: Whether a pointer on the region a handler registered
+    ///     this frame would be heard by that handler
+    ///     (`MouseEventDispatcher.reachesHoverObserver`).
+    ///   - region: Where the region a handler registered this frame is
+    ///     (`MouseEventDispatcher.regionRect(for:)`).
+    package func endReshape(
+        tooltipRows: Range<Int>, pointerRow: Int?, reaching: (HitTestRegion.HandlerID) -> Bool,
+        region: (HitTestRegion.HandlerID) -> HitTestRegion?
+    ) {
+        let movedByTooltip = reshapeIsTooltipReflow
         reshapeIsTooltipReflow = false
+        coveredRows = tooltipRows
         guard let held else { return }
-        if pointerOnTooltipRows {
+        if let pointerRow, tooltipRows.contains(pointerRow) {
             if heldPresentations == reshapePresentations { return }
         } else if let id = held.handlerID, reaching(id) {
-            return
+            let now = region(id)
+            if movedByTooltip || heldRegion == nil {
+                heldRegion = now
+                return
+            }
+            guard let now, let was = heldRegion, !Self.samePlace(now, was) else { return }
         }
         self.held = nil
+        heldRegion = nil
+    }
+
+    /// Whether two regions are in the same place, the same size.
+    private static func samePlace(_ a: HitTestRegion, _ b: HitTestRegion) -> Bool {
+        a.offsetX == b.offsetX && a.offsetY == b.offsetY && a.width == b.width && a.height == b.height
     }
 
     /// Lets go of a ``held`` candidate: the pointer has moved to another
@@ -405,11 +455,21 @@ public final class TooltipState: @unchecked Sendable {
     ///
     /// - Returns: Whether one was let go: the frame that takes it away is
     ///   owed, and nothing else may ask for it.
-    package func notePointerMoved() -> Bool {
+    ///
+    /// A move along the rows the bar took from the page for the held help
+    /// (``coveredRows``) keeps it: the pointer is on them as it was, over
+    /// the view they covered as far as anyone can tell. Let go there, the
+    /// help gave the rows back, the row came back under the pointer, and the
+    /// help returned after its delay (decisions-HELP A-HELP-1, "Left open").
+    ///
+    /// - Parameter row: The row the pointer moved to, `nil` when not given.
+    package func notePointerMoved(toRow row: Int? = nil) -> Bool {
         let wasSilenced = pointerSilenced
         pointerSilenced = false
         guard held != nil else { return wasSilenced && hovered != nil }
+        if let row, coveredRows.contains(row) { return wasSilenced }
         held = nil
+        heldRegion = nil
         return true
     }
 
@@ -422,6 +482,7 @@ public final class TooltipState: @unchecked Sendable {
     package func pointerLeft() -> Bool {
         let had = held ?? hovered != nil
         held = nil
+        heldRegion = nil
         hoveredViews = []
         pointerSilenced = false
         return had
