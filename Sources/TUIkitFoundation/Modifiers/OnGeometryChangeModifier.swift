@@ -192,3 +192,13 @@ extension OnGeometryChangeModifier: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension OnGeometryChangeModifier: DrawsContentUnchanged {}
+
+// MARK: - In a Form
+
+/// A geometry action written on a form row watches the row the form lays out,
+/// which keeps its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
+extension OnGeometryChangeModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        OnGeometryChangeModifier<V, T>(content: row, transform: transform, action: action)
+    }
+}

@@ -376,3 +376,19 @@ struct _ImplicitDialogActions<A: View>: View, ButtonProvider {
         return [Button(LocalizationService.shared.string(for: LocalizationKey.Button.ok), action: {})]
     }
 }
+
+// MARK: - In a Form
+
+/// An alert or a confirmation dialog written on a form row — `Button("Delete")
+/// { … }.confirmationDialog(…)` — goes around the row the form lays out, which
+/// keeps its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
+extension AlertPresentationModifier: FormRowRewrapping {
+    package var formRowContent: Content { content }
+
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        AlertPresentationModifier<V, Actions, Message>(
+            content: row, isPresented: isPresented, title: title, message: message, actions: actions,
+            borderStyle: borderStyle, borderColor: borderColor, titleColor: titleColor,
+            verticalButtons: verticalButtons, presentsError: presentsError)
+    }
+}

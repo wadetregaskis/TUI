@@ -158,3 +158,15 @@ extension FocusPathModifier: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension FocusPathModifier: DrawsContentUnchanged {}
+
+// MARK: - In a Form
+
+/// A key press handler or a command written on a form row — `Picker(…)
+/// .onKeyPress(.space) { … }` — goes around the row the form lays out, which
+/// keeps its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`). Every
+/// control in the row renders below it, so it is on their focus path still.
+extension FocusPathModifier: FormRowRewrapping {
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        FocusPathModifier<V>(content: row, stage: stage, declares: declares, bind: bind)
+    }
+}

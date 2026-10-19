@@ -122,3 +122,14 @@ extension OnModifierKeysChangedModifier: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension OnModifierKeysChangedModifier: DrawsContentUnchanged {}
+
+// MARK: - In a Form
+
+/// A modifier-keys action written on a form row goes around the row the form
+/// lays out, which keeps its place, as SwiftUI's form keeps a row under the
+/// modifiers measured (`Tools/SwiftUIProbes/Form rows`).
+extension OnModifierKeysChangedModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        OnModifierKeysChangedModifier<V>(content: row, mask: mask, initial: initial, action: action)
+    }
+}

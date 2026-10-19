@@ -400,3 +400,16 @@ extension _TransitionView: SingleContentWrapper {
     /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
+
+// MARK: - In a Form
+
+/// A transition written on a form row — the row an animated `if` holds — is
+/// the row's the form lays out, which keeps its place, as SwiftUI's form keeps
+/// it (measured, `Tools/SwiftUIProbes/Form rows`).
+extension _TransitionView: FormRowRewrapping {
+    var formRowContent: Content { content }
+
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        _TransitionView<V>(content: row, transition: transition)
+    }
+}

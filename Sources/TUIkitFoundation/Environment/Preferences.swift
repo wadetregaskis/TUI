@@ -266,3 +266,13 @@ extension PreferenceModifier: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension PreferenceModifier: DrawsContentUnchanged {}
+
+// MARK: - In a Form
+
+/// A preference written on a form row is set by the row the form lays out,
+/// which keeps its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
+extension PreferenceModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        PreferenceModifier<V, K>(content: row, value: value)
+    }
+}

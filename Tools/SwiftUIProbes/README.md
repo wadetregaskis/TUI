@@ -541,15 +541,20 @@ messages cite that path), and what cites it.
   (`unlabelled.out`) asks where a row with no label goes: a `Slider(value:)`, a control or a `LabeledContent` whose
   label is an `EmptyView`, a `Picker("")`. In a columns form each is in the value column, as a `Text` written bare
   is; in a grouped form the control trails the row (a slider from 45% of it), as a labelled one's does.
+  `more-modifiers.swift` (`more-modifiers.out`) writes the modifiers `rows.swift` did not try on a `LabeledContent`,
+  a `Picker` and a `Button` — `.onKeyPress`, `.transition`, `.zIndex`, `.layoutPriority`, `.focusedValue`,
+  `.preference`, `.onGeometryChange`, `.sheet`, `.popover`, `.alert`, `.confirmationDialog`, `.badge` — and each row
+  stays in its place, in both styles.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4; `modified.swift` 2026-10-14, `rows.swift` 2026-10-19,
-  `unlabelled.swift` 2026-10-19.
+  `unlabelled.swift` and `more-modifiers.swift` 2026-10-19.
 - **Was:** `PROBES-1014/labeledcontent/` (`p3-modified-rows.swift`) and `FORMS/probes/` (`p4-form-rows.swift`,
-  `p5/unlabelled.swift`).
+  `p5/unlabelled.swift`, `p5/modifiers2.swift`).
 - **Cited by:** `Sources/TUIkitForms/Views/FormContentExtraction.swift`,
   `Sources/TUIkitForms/Views/Form.swift` (a field row's label column),
   `Sources/TUIkitFoundation/Views/FormRowRewrapping.swift` and the modifiers' conformances to it (in
   `LifecycleModifier.swift`, `OnChangeModifier.swift`, `GestureModifier.swift`, `KeyboardShortcutModifier.swift`,
-  `ContextMenuModifier.swift`, `OverlayModifier.swift` and beside them), `Sources/TUIkitFoundation/Views/FormControlRow.swift`
+  `ContextMenuModifier.swift`, `OverlayModifier.swift`, `FocusPathModifier.swift`, `DragAndDrop+Form.swift`,
+  `TransitionModifier.swift`, the presentation modifiers and beside them), `Sources/TUIkitFoundation/Views/FormControlRow.swift`
   and the labelled controls' conformances (`Sources/TUIkitPickers/Views/Picker+Form.swift`,
   `Sources/TUIkitNumericControls/Views/NumericControls+Form.swift`, `Sources/TUIkitColorPicker/Views/ColorPicker.swift`),
   `Tests/TUIkitIntegrationTests/FormModifiedRowTests.swift`, `Tests/TUIkitIntegrationTests/FormLabelledControlTests.swift`;

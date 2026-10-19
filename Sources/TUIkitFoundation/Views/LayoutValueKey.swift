@@ -257,3 +257,14 @@ extension _LayoutValueView: ChildViewProvider where Content: ChildViewProvider {
 
 /// Each of a row's cells with the value, as each member is.
 extension _LayoutValueView: GridRowProviding where Content: GridRowProviding {}
+
+// MARK: - In a Form
+
+/// A layout value — a ``View/layoutPriority(_:)`` — written on a form row is
+/// the row's the form lays out, which keeps its place, as SwiftUI's form keeps
+/// it (measured, `Tools/SwiftUIProbes/Form rows`).
+extension _LayoutValueView: FormRowRewrapping {
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        _LayoutValueView<V>(key: key, value: value, content: row)
+    }
+}

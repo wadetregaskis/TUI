@@ -108,3 +108,13 @@ extension _ZIndexView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Each of a row's cells at the z-index, as each member is.
 extension _ZIndexView: GridRowProviding where Content: GridRowProviding {}
+
+// MARK: - In a Form
+
+/// A z-index written on a form row is the row's the form lays out, which keeps
+/// its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
+extension _ZIndexView: FormRowRewrapping {
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        _ZIndexView<V>(zIndexValue: zIndexValue, content: row)
+    }
+}

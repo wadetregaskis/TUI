@@ -449,6 +449,25 @@ struct _AdaptiveModal<Base: View, Modal: View>: View {
     }
 }
 
+/// A sheet or a full-screen cover written on a form row goes around the row
+/// the form lays out, which keeps its place, as SwiftUI's form keeps a row
+/// under a sheet (measured, `Tools/SwiftUIProbes/Form rows`).
+extension _AdaptiveModal: FormRowRewrapping {
+    var formRowContent: Base { base }
+
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        // The style is a type of each specialisation's own, so it is spelled
+        // again for the new one.
+        let style: ModalPresentationModifier<V, Modal>.Style =
+            switch self.style {
+            case .sheet: .sheet
+            case .fullScreen: .fullScreen
+            }
+        return _AdaptiveModal<V, Modal>(
+            base: row, isPresented: isPresented, modal: modal, style: style, itemKey: itemKey)
+    }
+}
+
 // MARK: - Full-Screen Cover
 
 extension View {

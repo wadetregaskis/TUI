@@ -148,6 +148,71 @@ struct FormModifiedRowTests {
         }
     }
 
+    /// The modifiers of ``rowsUnderMetadataModifiers()``, each written on `row`.
+    private static func metadataModified(_ row: some View) -> [(String, AnyView)] {
+        [
+            ("onKeyPress", AnyView(row.onKeyPress(.space) { .handled })),
+            ("transition", AnyView(row.transition(.opacity))),
+            ("zIndex", AnyView(row.zIndex(1))),
+            ("layoutPriority", AnyView(row.layoutPriority(1))),
+            ("focusedValue", AnyView(row.focusedValue(\.formRowProbe, 1))),
+            ("preference", AnyView(row.preference(key: FormRowProbeKey.self, value: 1))),
+            ("onGeometryChange", AnyView(row.onGeometryChange(for: Int.self) { $0.size.width } action: { _ in })),
+            ("onModifierKeysChanged", AnyView(row.onModifierKeysChanged { _, _ in })),
+            ("draggable", AnyView(row.draggable("payload"))),
+            ("dropDestination", AnyView(row.dropDestination(for: String.self) { _, _ in true })),
+            ("alert", AnyView(row.alert("Sure?", isPresented: .constant(false)) { Button("OK") {} })),
+            ("confirmationDialog", AnyView(row.confirmationDialog("Sure?", isPresented: .constant(false)) { Button("OK") {} })),
+            ("sheet", AnyView(row.sheet(isPresented: .constant(false)) { Text("Sheet") })),
+            ("popover", AnyView(row.popover(isPresented: .constant(false)) { Text("Popover") })),
+            ("badge", AnyView(row.badge(3))),
+            ("focusSection", AnyView(row.focusSection())),
+            ("onKeyPress under padding", AnyView(row.onKeyPress(.space) { .handled }.padding(.leading, 0))),
+        ]
+    }
+
+    @Test("A key press, a transition, a z-index, a layout priority, a focused value, a presentation or a drag written on a row keeps it in its place")
+    func rowsUnderMetadataModifiers() {
+        // Measured: SwiftUI's form keeps a row in place under each of these
+        // it was tried with, in both styles (`Tools/SwiftUIProbes/Form
+        // rows/more-modifiers.out`). Each made the row a plain one, drawn
+        // whole, its label out of the column.
+        func rows(_ row: some View) -> [String] {
+            lines(Form { LabeledContent("Email address", value: "a@b.c"); row })
+        }
+        let labelled = LabeledContent("Name", value: "Alice")
+        for (name, row) in Self.metadataModified(labelled) {
+            let out = rows(row)
+            #expect(column(of: "Alice", in: out) == 14 && column(of: "Name", in: out) == 9, "labelled content, \(name): \(out)")
+        }
+        let picker = Picker("Mode", selection: .constant(1)) { Text("One").tag(1) }
+        for (name, row) in Self.metadataModified(picker) {
+            let out = rows(row)
+            #expect(column(of: "Mode", in: out) == 9 && column(of: "One", in: out).map { $0 > 13 } == true, "picker, \(name): \(out)")
+        }
+        let toggle = Toggle("Wi-Fi", isOn: .constant(true))
+        let bareToggle = column(of: "Wi-Fi", in: rows(toggle))
+        for (name, row) in Self.metadataModified(toggle) {
+            #expect(column(of: "Wi-Fi", in: rows(row)) == bareToggle, "toggle, \(name)")
+        }
+        let button = Button("Sign Out") {}
+        let bareButton = rows(button).first { $0.contains("Sign Out") }
+        #expect(bareButton?.hasPrefix(" ") == true)
+        for (name, row) in Self.metadataModified(button) {
+            #expect(rows(row).first { $0.contains("Sign Out") } == bareButton, "button, \(name)")
+        }
+    }
+
+    @Test("A default focus, a focus scope or a preference for the default focus written on a row keeps it in its place")
+    func rowsUnderFocusScopeModifiers() {
+        let out = lines(FocusScopedRows(row: LabeledContent("Name", value: "Alice")))
+        let rows = out.filter { $0.contains("Alice") }
+        #expect(rows.count == 3, "\(out)")
+        for row in rows {
+            #expect(row.hasPrefix("         Name Alice"), "\(out)")
+        }
+    }
+
     @Test("A change action on a Toggle row, or a shortcut on a Button row, keeps it in its place")
     func controlAndButtonRowsUnderEventModifiers() {
         func rows(_ row: some View) -> [String] {
@@ -171,4 +236,40 @@ struct FormModifiedRowTests {
         #expect(bare.hasPrefix(" "))
         #expect(buttonRow(Button("Sign Out") {}.help("Leave")) == bare)
     }
+}
+
+/// A form whose rows after the first are `row` under a default focus, a focus
+/// scope and a preference for the default focus in one, which need a focus
+/// state and a namespace of a view's own.
+private struct FocusScopedRows<Row: View>: View {
+    let row: Row
+    @FocusState private var isFocused: Bool
+    @Namespace private var namespace
+
+    var body: some View {
+        Form {
+            LabeledContent("Email address", value: "a@b.c")
+            row.defaultFocus($isFocused, true)
+            row.focusScope(namespace)
+            row.prefersDefaultFocus(in: namespace)
+        }
+    }
+}
+
+/// A focused value for a form row to publish.
+private struct FormRowProbeFocusedKey: FocusedValueKey {
+    typealias Value = Int
+}
+
+extension FocusedValues {
+    fileprivate var formRowProbe: Int? {
+        get { self[FormRowProbeFocusedKey.self] }
+        set { self[FormRowProbeFocusedKey.self] = newValue }
+    }
+}
+
+/// A preference for a form row to set.
+private struct FormRowProbeKey: PreferenceKey {
+    static let defaultValue = 0
+    static func reduce(value: inout Int, nextValue: () -> Int) { value = nextValue() }
 }

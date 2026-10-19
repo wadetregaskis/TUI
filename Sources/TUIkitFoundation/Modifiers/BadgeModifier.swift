@@ -263,3 +263,13 @@ extension BadgeModifier: GridRowProviding where Content: GridRowProviding {}
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension BadgeModifier: DrawsContentUnchanged {}
+
+// MARK: - In a Form
+
+/// A badge written on a form row is the row's the form lays out, which keeps
+/// its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
+extension BadgeModifier: FormRowRewrapping {
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        BadgeModifier<V>(content: row, value: value)
+    }
+}

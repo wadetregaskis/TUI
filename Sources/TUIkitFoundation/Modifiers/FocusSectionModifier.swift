@@ -168,3 +168,14 @@ extension FocusSectionModifier: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension FocusSectionModifier: DrawsContentUnchanged {}
+
+// MARK: - In a Form
+
+/// A focus section written on a form row is the row the form lays out, which
+/// keeps its place, as SwiftUI's form keeps a row under the modifiers
+/// measured (`Tools/SwiftUIProbes/Form rows`).
+extension FocusSectionModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        FocusSectionModifier<V>(content: row, declaredSectionID: declaredSectionID)
+    }
+}

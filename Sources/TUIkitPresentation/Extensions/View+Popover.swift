@@ -137,3 +137,17 @@ struct _AdaptivePopover<Base: View, Popover: View>: View {
             set: { isPresented.wrappedValue = $0 })
     }
 }
+
+// MARK: - In a Form
+
+/// A popover written on a form row goes around the row the form lays out,
+/// which keeps its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
+extension _AdaptivePopover: FormRowRewrapping {
+    var formRowContent: Base { base }
+
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        _AdaptivePopover<V, Popover>(
+            base: row, isPresented: isPresented, popover: popover, attachmentAnchor: attachmentAnchor,
+            arrowEdge: arrowEdge, itemKey: itemKey)
+    }
+}

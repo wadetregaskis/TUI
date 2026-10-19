@@ -241,3 +241,14 @@ extension _FocusedValueModifier: SingleContentWrapper {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _FocusedValueModifier: DrawsContentUnchanged {}
+
+// MARK: - In a Form
+
+/// A focused value written on a form row is published by the row the form lays
+/// out, which keeps its place, as SwiftUI's form keeps it (measured,
+/// `Tools/SwiftUIProbes/Form rows`): every control in the row renders below it.
+extension _FocusedValueModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        _FocusedValueModifier<V, Publishing>(content: row, publishing: publishing, isScene: isScene)
+    }
+}

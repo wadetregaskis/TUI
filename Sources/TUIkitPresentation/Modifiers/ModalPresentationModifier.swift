@@ -449,3 +449,25 @@ extension ModalPresentationModifier: Layoutable {
             context: context.withChildIdentity(type: Content.self, index: 0))
     }
 }
+
+// MARK: - In a Form
+
+/// A modal written on a form row — `.modal { … }`, and the sheet or the
+/// full-screen cover `.sheet(…)` and `.fullScreenCover(…)` draw through one —
+/// goes around the row the form lays out, which keeps its place, as SwiftUI's
+/// form keeps a row under a sheet (measured, `Tools/SwiftUIProbes/Form rows`).
+extension ModalPresentationModifier: FormRowRewrapping {
+    package var formRowContent: Content { content }
+
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        // The style is a type of each specialisation's own, so it is spelled
+        // again for the new one.
+        let style: ModalPresentationModifier<V, Modal>.Style =
+            switch self.style {
+            case .sheet: .sheet
+            case .fullScreen: .fullScreen
+            }
+        return ModalPresentationModifier<V, Modal>(
+            content: row, isPresented: isPresented, modal: modal, style: style, itemKey: itemKey)
+    }
+}

@@ -507,3 +507,20 @@ extension MouseEventDispatcher {
         return consumed
     }
 }
+
+// MARK: - In a Form
+
+/// A focus scope, or a preference for the default focus in one, written on a
+/// form row goes around the row the form lays out, which keeps its place, as
+/// SwiftUI's form keeps a row under the modifiers measured (`Tools/SwiftUIProbes/Form rows`).
+extension _FocusScopeModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        _FocusScopeModifier<V>(content: row, namespace: namespace)
+    }
+}
+
+extension _PrefersDefaultFocusModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        _PrefersDefaultFocusModifier<V>(content: row, prefers: prefers, namespace: namespace)
+    }
+}

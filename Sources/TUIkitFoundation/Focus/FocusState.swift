@@ -553,3 +553,14 @@ extension _FocusedModifier: DrawsContentUnchanged {}
 extension _DefaultFocusModifier: DrawsContentUnchanged {}
 
 extension FocusState: FrameworkDynamicProperty {}
+
+// MARK: - Default Focus in a Form
+
+/// A default focus written on a form row goes around the row the form lays
+/// out, which keeps its place, as SwiftUI's form keeps a row under the
+/// modifiers measured (`Tools/SwiftUIProbes/Form rows`).
+extension _DefaultFocusModifier: FormRowRewrapping {
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        _DefaultFocusModifier<V, Value>(content: row, store: store, value: value, priority: priority)
+    }
+}
