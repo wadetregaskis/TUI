@@ -330,26 +330,23 @@ struct TableColumnGestureTests {
         #expect(harness.columns.customization[width: "alpha"] == nil)
     }
 
-    /// One registration for every gap of a header, not one a gap: the gaps
-    /// are pieces of the header line's one region, so each hears a press in
-    /// the line's own columns and the handler finds whose gap it is (lane
-    /// LISTSPERF: a handler a gap, each holding a copy of the table, was 1% of
-    /// a frame of every table with a header).
-    @Test("The gaps after a header's titles are pieces of one region, with one handler")
-    func gapsShareOneHandler() throws {
+    /// The gaps are the table's own handler's: no region or registration of
+    /// their own, on every frame of every table with a header (lane
+    /// LISTSPERF: a region and a handler a gap, which a memo serving the
+    /// table replayed and moved on every frame).
+    @Test("The gaps after a header's titles are the table's own region's, with no region of their own")
+    func gapsAreTheTablesOwn() throws {
         let harness = Harness()
         let y = try #require(harness.headerY)
         let beta = try #require(harness.column(of: "Beta", on: y))
         let gamma = try #require(harness.column(of: "Gamma", on: y))
-        let regions = harness.app.services.mouseEventDispatcher.regions
-        // The two cells before Beta and before Gamma; Gamma may not be
+        let dispatcher = harness.app.services.mouseEventDispatcher
+        // The two cells before Beta and before Gamma: Gamma may not be
         // resized, and Delta is the last column, so those are all the gaps.
-        let gaps = [beta - 2, gamma - 2].compactMap { x in
-            regions.first { $0.offsetY == y && $0.offsetX == x && $0.width == 2 }
+        for x in [beta - 2, beta - 1, gamma - 2, gamma - 1] {
+            let innermost = try #require(dispatcher.matchingRegions(at: x, y: y).first, "x \(x)")
+            #expect(innermost.focusID != nil, "the table's own region, which carries its focus: x \(x), \(innermost)")
         }
-        #expect(gaps.count == 2, "\(regions)")
-        #expect(Set(gaps.map(\.handlerID)).count == 1, "\(gaps)")
-        #expect(gaps.allSatisfy { $0.localOriginX == gaps[0].localOriginX }, "\(gaps)")
     }
 
     @Test("A column whose resizing is disabled has no gap to drag")
