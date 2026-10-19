@@ -9,13 +9,21 @@ import TUIkitFoundation
 // MARK: - Picker Entry
 
 /// A picker option whose tag has been resolved to the picker's concrete
-/// selection-value type — or a divider between option groups.
+/// selection-value type — or a divider between option groups, or the title a
+/// `Section`'s header puts over its group.
 enum _PickerEntry<SelectionValue: Hashable> {
     /// An option: the value selected when it is chosen, and its label view.
     case option(tag: SelectionValue, label: AnyView)
 
     /// A rule between option groups. Never selectable.
     case divider
+
+    /// A `Section`'s header, over its options: drawn by a drop-down as a title
+    /// that is no option, as a macOS menu picker draws it — an
+    /// `NSMenuItem.sectionHeader` after the separator, measured
+    /// (`Tools/SwiftUIProbes/Picker sections/pickersection.swift`). Never
+    /// selectable, and drawn by no other style.
+    case title(AnyView)
 
     /// The option's tag, or `nil` for a divider.
     var tag: SelectionValue? {

@@ -15,12 +15,16 @@ import TUIkitView
 /// members, and its content's — or a run of members outside any section.
 @MainActor
 package struct SubviewGroup {
-    /// The section header's members; none for a run outside any section.
+    /// The section header's members; none for a run outside any section, or
+    /// for a section with no header.
     package let header: [Subview]
     /// The members, each a proxy that draws its view and answers its
     /// ``Subview/containerValues``: its tag through any modifier written
     /// after `.tag(_:)`, and the element id a `ForEach` row is tagged with.
     package let members: [Subview]
+    /// Whether these are a `Section`'s, with a header or without one — where
+    /// a run outside any section is not.
+    package let isSection: Bool
 }
 
 /// The members of `base`, resolved in `scope` as ``Group/init(subviews:transform:)``
@@ -41,7 +45,7 @@ package func subviewGroups(of base: some View, in scope: RenderContext) -> [Subv
     var run: [SubviewMembers.Member] = []
     func endRun() {
         guard !run.isEmpty else { return }
-        groups.append(SubviewGroup(header: [], members: proxies(run)))
+        groups.append(SubviewGroup(header: [], members: proxies(run), isSection: false))
         run = []
     }
     for member in top {
@@ -55,7 +59,7 @@ package func subviewGroups(of base: some View, in scope: RenderContext) -> [Subv
         appendMembers(of: parts[0].view, in: parts[0].scope, flatteningSections: true, into: &header)
         var content: [SubviewMembers.Member] = []
         appendMembers(of: parts[1].view, in: parts[1].scope, flatteningSections: true, into: &content)
-        groups.append(SubviewGroup(header: proxies(header), members: proxies(content)))
+        groups.append(SubviewGroup(header: proxies(header), members: proxies(content), isSection: true))
     }
     endRun()
     return groups

@@ -97,7 +97,9 @@ struct PickerOptionsResolutionTests {
             }
         ) { _ in EmptyView() }
         .entries(in: makeRenderContext(width: 40, height: 12))
-        #expect(options.map(\.tag) == [.chocolate, nil, .vanilla, .strawberry], "\(options.map(\.tag))")
+        // Each section's header is its group's title (`PickerSectionTitleTests`),
+        // the first's at the top, where the rule before it collapses.
+        #expect(options.map(\.tag) == [nil, .chocolate, nil, nil, .vanilla, .strawberry], "\(options.map(\.tag))")
     }
 
     @Test("A Divider is a rule, never an option, and none is left at an edge or doubled")

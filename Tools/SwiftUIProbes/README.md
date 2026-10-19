@@ -478,3 +478,14 @@ messages cite that path), and what cites it.
   `Tests/TUIkitListsTests/BadgeProminenceTests.swift`;
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (B72),
   `Documentation/SwiftUI parity/Decisions/List, table and section fixes (LISTS).md` (B-LISTS-1).
+
+### Picker sections
+
+- **Asks:** how a macOS menu `Picker` draws a `Section` among its options: reads back the menu of the
+  `NSPopUpButton` SwiftUI makes and prints each item's kind and title (`pickersection.swift`, `pickersection.out`,
+  built with `common.swift`). Each section is wrapped in separators, its header an `NSMenuItem` section header
+  over its options.
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-18.
+- **Was:** `LISTS/probe/`.
+- **Cited by:** `Sources/TUIkitPickers/Views/Picker.swift`, `Tests/TUIkitPickersTests/PickerSectionTitleTests.swift`;
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§1, Pickers).

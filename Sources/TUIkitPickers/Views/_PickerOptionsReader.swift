@@ -46,13 +46,21 @@ struct _PickerOptionsReader<SelectionValue: Hashable, Content: View, Built: View
     }
 
     /// The options of `content`, each whose tag answers for `SelectionValue`,
-    /// with a rule between groups; edge and doubled rules collapsed, so a
-    /// group a condition empties leaves none behind.
+    /// with a rule between groups and a section's header as the title of its
+    /// group, under the rule; edge and doubled rules collapsed, so a group a
+    /// condition empties leaves none behind.
     func entries(in context: RenderContext) -> [_PickerEntry<SelectionValue>] {
         let groups = subviewGroups(of: content, in: context.withChildIdentity(type: Content.self, index: 0))
         var entries: [_PickerEntry<SelectionValue>] = []
         for group in groups {
-            if !group.header.isEmpty { entries.append(.divider) }
+            // A section is set apart by rules with a header or without one,
+            // as a macOS menu picker sets it apart (`Tools/SwiftUIProbes/Picker
+            // sections/pickersection.out`); its header is its title, under the
+            // first rule.
+            if group.isSection {
+                entries.append(.divider)
+                if let title = Self.title(of: group.header) { entries.append(.title(title)) }
+            }
             for member in group.members {
                 if member.isDivider {
                     entries.append(.divider)
@@ -60,11 +68,22 @@ struct _PickerOptionsReader<SelectionValue: Hashable, Content: View, Built: View
                     entries.append(.option(tag: tag, label: AnyView(member)))
                 }
             }
-            if !group.header.isEmpty { entries.append(.divider) }
+            if group.isSection { entries.append(.divider) }
         }
         return DropdownMenu.normalizedEntries(entries) { entry in
             if case .divider = entry { return true }
             return false
+        }
+    }
+
+    /// A section header's members as one title view: the member itself where
+    /// there is one, side by side where there are several, `nil` where the
+    /// section has no header.
+    private static func title(of header: [Subview]) -> AnyView? {
+        switch header.count {
+        case 0: nil
+        case 1: AnyView(header[0])
+        default: AnyView(HStack(spacing: 1) { ForEach(header) { $0 } })
         }
     }
 }

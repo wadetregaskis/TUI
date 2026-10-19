@@ -105,7 +105,13 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             max(context.availableWidth, context.environment.terminalWidth))
         labelContext.leaveScrollCanvas()
         return entries.map { entry in
-            entry.label.map { $0.renderToBuffer(context: labelContext).lines.first ?? "" }
+            // A section's title draws under the section-header chrome role,
+            // as a `List`'s header and a menu's section title do.
+            if case .title(let title) = entry {
+                return title.renderToBuffer(context: sectionChromeContext(labelContext, .sectionHeader))
+                    .lines.first ?? ""
+            }
+            return entry.label.map { $0.renderToBuffer(context: labelContext).lines.first ?? "" }
         }
     }
 
@@ -125,9 +131,14 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
 
     private func dropdownEntries(labels: [String?]) -> [DropdownMenu.Entry] {
         entries.indices.map { index in
-            guard let tag = entries[index].tag else { return .divider }
-            return .option(
-                label: labels[index] ?? "", isSelected: !isMixed && tag == selection.wrappedValue)
+            switch entries[index] {
+            case .option(let tag, _):
+                return .option(label: labels[index] ?? "", isSelected: !isMixed && tag == selection.wrappedValue)
+            case .divider:
+                return .divider
+            case .title:
+                return .title(label: labels[index] ?? "")
+            }
         }
     }
 

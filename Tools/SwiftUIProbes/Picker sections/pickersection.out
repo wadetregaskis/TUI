@@ -1,0 +1,20 @@
+sectioned: 10 items, selected=3
+  [separator] '' enabled=false indent=0
+  [sectionHeader] 'Fruit' enabled=true indent=0
+  [option] 'Apple' enabled=true indent=0
+  [option] 'Pear' enabled=true indent=0
+  [separator] '' enabled=false indent=0
+  [separator] '' enabled=false indent=0
+  [sectionHeader] 'Veg' enabled=true indent=0
+  [option] 'Kale' enabled=true indent=0
+  [separator] '' enabled=false indent=0
+  [option] 'Loose' enabled=true indent=0
+headerOnlyFirst: 8 items, selected=0
+  [option] 'First' enabled=true indent=0
+  [separator] '' enabled=false indent=0
+  [sectionHeader] 'Group' enabled=true indent=0
+  [option] 'Second' enabled=true indent=0
+  [separator] '' enabled=false indent=0
+  [separator] '' enabled=false indent=0
+  [option] 'Third' enabled=true indent=0
+  [separator] '' enabled=false indent=0

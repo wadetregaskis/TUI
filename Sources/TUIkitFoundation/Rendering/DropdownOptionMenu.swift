@@ -33,6 +33,11 @@ extension DropdownMenu {
 
         /// A rule between groups of options.
         case divider
+
+        /// A group's title — a `Section`'s header in a `Picker` — drawn as it
+        /// was rendered, on the options' left edge, and no option: never
+        /// highlighted, hovered or chosen, and no ordinal of its own.
+        case title(label: String)
     }
 
     /// Everything a control passes to
@@ -96,8 +101,10 @@ extension DropdownMenu {
     package static func innerWidth(for entries: [Entry], context: RenderContext) -> Int {
         let maxLabelWidth =
             entries.compactMap { entry -> Int? in
-                guard case .option(let label, _) = entry else { return nil }
-                return label.strippedLength
+                switch entry {
+                case .option(let label, _), .title(let label): label.strippedLength
+                case .divider: nil
+                }
             }.max() ?? 0
         let wantsBar = wantsScrollbar(rowCount: entries.count, context: context)
         let desired = maxLabelWidth + 4 + (wantsBar ? 1 : 0)
@@ -136,6 +143,10 @@ extension DropdownMenu {
             switch entry {
             case .divider:
                 rows.append(.divider)
+            case .title(let label):
+                // On the options' left edge — past the space and the marker
+                // column an option's row starts with — and drawn as rendered.
+                rows.append(.rendered("   " + label, isSelectable: false))
             case .option(let label, let isSelected):
                 // The marker column keeps every label on one left edge whether
                 // or not its row is the selected one.
