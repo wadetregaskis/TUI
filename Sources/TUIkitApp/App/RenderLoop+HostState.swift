@@ -62,7 +62,7 @@ extension RenderLoop {
         let showsProgress = sendsProgressReports && (!isTmux || capabilities.drawsProgressBars)
         let features = tuiContext.terminalFeatures
         guard features.showsProgress != showsProgress else { return }
-        tuiContext.terminalFeatures = TerminalFeatures(
+        tuiContext.terminalFeatures = features.withProgress(
             showsProgress: showsProgress, postsNotifications: features.postsNotifications)
     }
 

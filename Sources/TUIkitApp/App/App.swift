@@ -254,8 +254,8 @@ extension AppRunner {
         TerminalClient.applyHyperlinkSupport()
         TerminalClient.applyURLOpeningSupport()
         let pointerHost = terminal.pointerShapeHost
-        tuiContext.terminalFeatures = TerminalFeatures(
-            pointerShapes: pointerHost != nil,
+        tuiContext.terminalFeatures = tuiContext.terminalFeatures.withPointerShapes(
+            pointerHost != nil,
             controlPointerShapes: TerminalClient.builtInPointerShapes(
                 host: pointerHost, environment: ProcessInfo.processInfo.environment))
     }
@@ -486,7 +486,7 @@ extension AppRunner {
         // the frames send the bar goes to the loop (`makeRenderLoop`), which
         // publishes whether it is seen with each frame: under tmux that
         // follows the clients attached.
-        tuiContext.terminalFeatures = TerminalFeatures(
+        tuiContext.terminalFeatures = tuiContext.terminalFeatures.withProgress(
             showsProgress: false, postsNotifications: TerminalClient.notificationsSupported)
 
         let renderer = makeRenderLoop()

@@ -101,6 +101,25 @@ public struct TerminalFeatures: Hashable, Sendable {
         self.showsProgress = showsProgress
         self.postsNotifications = postsNotifications
     }
+
+    /// This terminal's features with what it does with the pointer answered
+    /// anew, the rest kept. The app runner learns these as the terminal is
+    /// made, and the progress answers elsewhere and later, so each publishes
+    /// its own half and keeps the other's.
+    package func withPointerShapes(_ pointerShapes: Bool, controlPointerShapes: Bool) -> Self {
+        Self(
+            pointerShapes: pointerShapes, controlPointerShapes: controlPointerShapes, showsProgress: showsProgress,
+            postsNotifications: postsNotifications)
+    }
+
+    /// This terminal's features with whether the progress bar shows and
+    /// whether it posts notifications answered anew, what it does with the
+    /// pointer kept (see ``withPointerShapes(_:controlPointerShapes:)``).
+    package func withProgress(showsProgress: Bool, postsNotifications: Bool) -> Self {
+        Self(
+            pointerShapes: pointerShapes, controlPointerShapes: controlPointerShapes, showsProgress: showsProgress,
+            postsNotifications: postsNotifications)
+    }
 }
 
 // MARK: - Environment key
