@@ -174,7 +174,8 @@ extension _GlassEffect: Renderable {
             GatheredGlass(
                 identity: context.identity, glass: glass, shape: shape,
                 size: CellSize(width: buffer.width, height: buffer.height),
-                union: context.environment.glassEffectUnion, isHovered: hovered, presence: presence, piece: piece))
+                union: context.environment.glassEffectUnion, isHovered: hovered, presence: presence, piece: piece,
+                environment: context.environment))
         buffer.hitTestRegions.append(.geometryMarker(marker))
     }
 

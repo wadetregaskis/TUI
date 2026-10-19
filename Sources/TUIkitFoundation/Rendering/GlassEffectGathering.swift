@@ -31,6 +31,10 @@ struct GatheredGlass {
     /// The part of a joined shape it drew, or `nil` where it drew its own
     /// glass whole.
     let piece: GlassPiece?
+    /// The environment it drew in: a joined shape's first member's is the one
+    /// what lies between the members is drawn in, as their parts are drawn in
+    /// theirs.
+    let environment: EnvironmentValues
 }
 
 /// The part of a joined shape one glass in it draws: the joined shape's
@@ -115,6 +119,14 @@ final class GlassEffectGathering {
         guard piece.leader != identity else { return (piece, nil) }
         guard let shape = shapes[piece.leader] else { return nil }
         return (piece, shape)
+    }
+
+    /// Lets go of what the glass inside said, once the container has found
+    /// it: each glass keeps the environment it drew in, and that environment
+    /// keeps this gathering.
+    func close() {
+        effects = []
+        shapes = [:]
     }
 
     /// Whether `id` is one of this container's markers.

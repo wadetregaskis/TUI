@@ -44,9 +44,9 @@ import TUIkitView
 /// member's shape and glass. Each member draws its own part of it, where its
 /// own glass would be, so what is applied to a member — a background, a
 /// colour effect — acts on its part as on its glass alone; what lies between
-/// the members is drawn over a background inside the container, and under
-/// anything drawn there. A glass
-/// inside a ``ScrollView``, a clip, a hidden view or an opacity below 1 in the
+/// the members is drawn in the first member's environment, over a background
+/// inside the container and under anything drawn there. A glass inside a
+/// ``ScrollView``, a clip, a hidden view or an opacity below 1 in the
 /// container is drawn by itself, joining nothing: what the container draws
 /// would not be clipped, hidden or faded with it (decisions B-GLASS-5).
 public struct GlassEffectContainer<Content: View>: View {
@@ -205,6 +205,7 @@ extension _GlassEffectContainerCore: Renderable {
             if let glass = gathering.placed(marked: id, x: x, y: y) { placed.append(glass) }
         }
         base.hitTestRegions.removeAll { gathering.owns($0.handlerID) }
+        gathering.close()
         let groups = GlassGroup.grouping(placed, spacing: spacing)
         var found: [ViewIdentity: GlassPiece] = [:]
         for group in groups {
@@ -232,10 +233,10 @@ extension _GlassEffectContainerCore: Renderable {
 
     /// What lies between the members of `groups`, drawn into one layer
     /// `columns` × `rows`: each group's joined shape — its first member's
-    /// glass in its first member's shape, filling the frame round its
-    /// members, its rim lifted where the pointer is over any of them — less
-    /// every cell a glass in `placed` covers, which that glass draws itself.
-    /// All of it there: only glass that has arrived joins.
+    /// glass in its first member's shape and environment, filling the frame
+    /// round its members, its rim lifted where the pointer is over any of
+    /// them — less every cell a glass in `placed` covers, which that glass
+    /// draws itself. All of it there: only glass that has arrived joins.
     @MainActor
     private static func between(
         _ groups: [GlassGroup], placed: [PlacedGlass], columns: Int, rows: Int, context: RenderContext
@@ -245,9 +246,11 @@ extension _GlassEffectContainerCore: Renderable {
             guard let leader = group.leader?.glass else { continue }
             let frame = group.frame
             guard frame.width > 0, frame.height > 0 else { continue }
+            var drawing = context
+            drawing.environment = leader.environment
             var cells = GlassCells.drawing(
                 leader.glass, in: leader.shape, columns: frame.width, rows: frame.height,
-                hovered: group.members.contains { $0.glass.isHovered }, context: context, owner: nil)
+                hovered: group.members.contains { $0.glass.isHovered }, context: drawing, owner: nil)
             for glass in placed {
                 cells.clearing(
                     CellRect(

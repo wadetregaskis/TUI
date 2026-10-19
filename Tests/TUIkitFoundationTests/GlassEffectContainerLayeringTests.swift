@@ -104,4 +104,16 @@ struct GlassEffectContainerLayeringTests {
         }
         #expect(settled(GlassEffectContainer { pair }, width: 7) == settled(pair, width: 7))
     }
+
+    @Test("What bridges a joined shape is drawn in its members' environment, as their parts are")
+    func bridgeInTheMembersEnvironment() {
+        let view = GlassEffectContainer(spacing: 2) {
+            HStack(spacing: 1) {
+                Text("A").padding().glassEffect()
+                Text("B").padding().glassEffect()
+            }
+            .environment(\.appearance, .heavy)
+        }
+        #expect(settled(view, width: 7, height: 3).map(\.stripped) == ["┏━━━━━┓", "┃A   B┃", "┗━━━━━┛"])
+    }
 }
