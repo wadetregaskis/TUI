@@ -2695,6 +2695,9 @@ private struct ToolbarShapes: View {
                     } label: {
                         Label("Format", systemImage: "textformat")
                     }
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Button("Done") {}
+                    }
                     ToolbarItem { Image(systemName: "person.crop.circle") }
                         .sharedBackgroundVisibility(.hidden)
                 }

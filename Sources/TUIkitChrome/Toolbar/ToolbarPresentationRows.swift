@@ -51,7 +51,17 @@ extension _ToolbarModifier {
             let entry = WindowChromeState.ToolbarEntry(
                 placement: item.placement, view: view, environment: context.environment,
                 identity: itemIdentity(item, depth: depth, context: context),
-                isFlexibleSpace: item.isFlexibleSpace)
+                isFlexibleSpace: item.isFlexibleSpace,
+                keyboardScope: item.placement.role == .keyboard ? context.identity : nil)
+            // A keyboard item, while a text input of the view's has the focus;
+            // undrawn meanwhile, and its state kept for when it is.
+            guard entry.isShown(focus: context.environment.focusManager) else {
+                if !context.isMeasuring, let storage = context.stateStorage {
+                    storage.markActive(entry.identity)
+                    storage.retainSubtree(entry.identity)
+                }
+                continue
+            }
             if item.placement.isPresentationButtonRow {
                 bottom.append(entry)
             } else {
@@ -143,7 +153,7 @@ extension ToolbarItemPlacement {
     /// bottom bar's placements.
     var isPresentationButtonRow: Bool {
         switch role {
-        case .confirmationAction, .cancellationAction, .destructiveAction, .bottomBar, .status: true
+        case .confirmationAction, .cancellationAction, .destructiveAction, .bottomBar, .status, .keyboard: true
         default: false
         }
     }

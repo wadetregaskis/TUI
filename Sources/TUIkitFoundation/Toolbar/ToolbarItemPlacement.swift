@@ -21,6 +21,7 @@
 /// | ``secondaryAction`` | top bar, trailing, before the primary items |
 /// | ``confirmationAction``, ``cancellationAction``, ``destructiveAction`` | top bar, trailing (macOS's reading outside a sheet) |
 /// | ``bottomBar``, ``status`` | bottom bar |
+/// | ``keyboard`` | bottom bar, leading — while a text input inside the view that declared it has the focus |
 ///
 /// ``status`` takes iOS's reading, the bottom bar, where macOS centres it in
 /// the window toolbar: the bottom bar is where a terminal app's status lives.
@@ -31,7 +32,7 @@
 /// In presented content — a sheet, a full-screen cover, a popover — the
 /// window's bars are inert, and a `.toolbar` draws its items itself, round the
 /// view it is attached to: the modal actions and the bottom bar's placements
-/// in a button row below it (``destructiveAction`` leading,
+/// (``keyboard`` among them) in a button row below it (``destructiveAction`` leading,
 /// ``cancellationAction`` then ``confirmationAction`` trailing, the
 /// confirmation button the default button and the cancellation one the cancel
 /// button), every other placement in a row above it.
@@ -50,6 +51,7 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
         case bottomBar
         case topBarLeading
         case topBarTrailing
+        case keyboard
     }
 
     /// This placement's role.
@@ -107,10 +109,21 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
     /// spelling of ``primaryAction``.
     public static let topBarTrailing = Self(role: .topBarTrailing)
 
+    /// The item is placed in the keyboard section: the bottom bar's leading
+    /// end, while a text input — a `TextField`, a `SecureField`, a
+    /// `TextEditor` — inside the view that declared it has the focus.
+    ///
+    /// SwiftUI puts these items above iOS's software keyboard, or in a Mac's
+    /// Touch Bar. A terminal has neither, so they go where a person typing
+    /// looks for the keys: beside the line of key hints, for as long as the
+    /// typing lasts. Like any change to a bar's rows, the bar that appears or
+    /// goes for them does so a frame later.
+    public static let keyboard = Self(role: .keyboard)
+
     /// The window bar an item of this placement joins.
     var bar: WindowChromeState.Edge {
         switch role {
-        case .status, .bottomBar: .bottom
+        case .status, .bottomBar, .keyboard: .bottom
         default: .top
         }
     }
@@ -118,7 +131,7 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
     /// Where in its bar the item sits.
     package var region: Region {
         switch role {
-        case .navigation, .topBarLeading: .leading
+        case .navigation, .topBarLeading, .keyboard: .leading
         case .principal: .principal
         case .secondaryAction: .secondary
         default: .trailing

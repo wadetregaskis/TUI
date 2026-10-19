@@ -76,12 +76,17 @@ package final class WindowChromeState: @unchecked Sendable {
         /// Whether it is a `ToolbarTitleMenu`: the top bar draws it as its
         /// title, a pull-down, rather than beside the title.
         package var isTitleMenu = false
+        /// For a ``ToolbarItemPlacement/keyboard`` item, the identity of the
+        /// view that declared it: the item is shown while a text input inside
+        /// that view has the focus. `nil` for every other item.
+        package var keyboardScope: ViewIdentity?
 
         /// The memberwise initializer, spelled out because the synthesized one is internal and the
         /// toolbars (TUIkitChrome) declare these.
         package init(
             placement: ToolbarItemPlacement, view: AnyView, environment: EnvironmentValues, identity: ViewIdentity,
-            isFlexibleSpace: Bool = false, defaultKind: ToolbarDefaultItemKind.Kind? = nil, isTitleMenu: Bool = false
+            isFlexibleSpace: Bool = false, defaultKind: ToolbarDefaultItemKind.Kind? = nil, isTitleMenu: Bool = false,
+            keyboardScope: ViewIdentity? = nil
         ) {
             self.placement = placement
             self.view = view
@@ -90,6 +95,20 @@ package final class WindowChromeState: @unchecked Sendable {
             self.isFlexibleSpace = isFlexibleSpace
             self.defaultKind = defaultKind
             self.isTitleMenu = isTitleMenu
+            self.keyboardScope = keyboardScope
+        }
+
+        /// Whether the item is shown while `focusManager` holds the focus as it
+        /// does: every item but a ``ToolbarItemPlacement/keyboard`` one, which
+        /// is shown while a text input inside the view that declared it has
+        /// the focus.
+        @MainActor
+        package func isShown(focus focusManager: FocusManager?) -> Bool {
+            guard let keyboardScope else { return true }
+            guard let focusManager, focusManager.hasTextInputFocus,
+                let focused = focusManager.focusedIdentity
+            else { return false }
+            return focused == keyboardScope || keyboardScope.isAncestor(of: focused)
         }
     }
 

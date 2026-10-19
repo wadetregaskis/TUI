@@ -92,7 +92,8 @@ struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View, Renderable,
                         placement: item.placement, view: item.view, environment: context.environment,
                         identity: itemIdentity(item, depth: depth, context: context),
                         isFlexibleSpace: item.isFlexibleSpace, defaultKind: item.defaultKind,
-                        isTitleMenu: item.isTitleMenu))
+                        isTitleMenu: item.isTitleMenu,
+                        keyboardScope: item.placement.role == .keyboard ? context.identity : nil))
                 // A default item moves the framework's own from where it is
                 // drawn by default (`DefaultToolbarItem`).
                 switch item.defaultKind {

@@ -76,7 +76,6 @@
   "ToolbarCustomizationOptions.init(rawValue:)",
   "ToolbarCustomizationOptions.rawValue",
   "ToolbarItemPlacement.accessoryBar(id:)",
-  "ToolbarItemPlacement.keyboard",
   "ToolbarPlacement.accessoryBar(id:)",
   "Transition.blurReplace",
   "Transition.blurReplace(_:)",

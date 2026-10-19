@@ -603,6 +603,7 @@ exists while something is placed in it:
 | `.secondaryAction` | top bar, trailing, before the primary items |
 | `.confirmationAction`, `.cancellationAction`, `.destructiveAction` | top bar, trailing (macOS's reading outside a sheet) |
 | `.bottomBar`, `.status` | bottom bar — `.status` takes iOS's reading, where macOS centres it in the window toolbar |
+| `.keyboard` | bottom bar, leading, while a text input inside the view that declared it has the focus — where SwiftUI puts it above iOS's keyboard or in a Mac's Touch Bar |
 
 **Every bar is opt-in.** An app that places nothing in a bar draws on every row
 of the terminal. TUIkit's line of key hints is a view the app places in the
@@ -711,7 +712,7 @@ it on every platform). `ToolbarContent.sharedBackgroundVisibility(_:)` is
 honoured as it stands: a terminal bar sets no glass under a group of items,
 so every item already sits on the one background they share, the bar's fill.
 
-**Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, a
+**Not yet:** the `.accessoryBar(id:)` placement, a
 `NavigationStack`'s bar hosting a pushed screen's items, and the customisation
 family (`toolbar(id:)`).
 

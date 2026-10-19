@@ -11,11 +11,13 @@ import TUIkitFoundation
 
 extension WindowChromeState {
     /// The items of the toolbar at `edge` as the bar draws them: those the
-    /// page declared and, at the front of the top bar, the window's sidebar
-    /// button (``automaticSidebarToggle``) where it has one.
+    /// page declared that are shown while `focusManager` holds the focus as it
+    /// does (``ToolbarEntry/isShown(focus:)``: a keyboard item, while a text
+    /// input of its view's is focused) and, at the front of the top bar, the
+    /// window's sidebar button (``automaticSidebarToggle``) where it has one.
     @MainActor
-    func barEntries(for edge: Edge) -> [ToolbarEntry] {
-        let entries = toolbarEntries(for: edge)
+    func barEntries(for edge: Edge, focus focusManager: FocusManager?) -> [ToolbarEntry] {
+        let entries = toolbarEntries(for: edge).filter { $0.isShown(focus: focusManager) }
         guard edge == .top, !entries.isEmpty else { return entries }
         return [automaticSidebarToggle, automaticToggle(.content, kind: .contentColumnToggle)].compactMap { $0 }
             + entries

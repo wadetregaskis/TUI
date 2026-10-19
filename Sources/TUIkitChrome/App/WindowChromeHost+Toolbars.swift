@@ -23,7 +23,7 @@ extension _WindowChromeHost {
     func toolbarContentRows(
         _ edge: WindowChromeState.Edge, chrome: WindowChromeState, width: Int, context: RenderContext
     ) -> Int {
-        let entries = chrome.barEntries(for: edge)
+        let entries = chrome.barEntries(for: edge, focus: context.environment.focusManager)
         guard !entries.isEmpty else { return 0 }
         let style = chrome.style(edge)
         let measureContext = barContext(edge, width: width, rows: context.availableHeight, style: style, context: context)
@@ -66,7 +66,7 @@ extension _WindowChromeHost {
     ) -> FrameBuffer? {
         // A bar the page no longer declares anything for keeps its reserved
         // rows for the frame, blank: the caller pads them with its background.
-        let entries = chrome.barEntries(for: edge)
+        let entries = chrome.barEntries(for: edge, focus: context.environment.focusManager)
         let hasItems = contentRows > 0 && !entries.isEmpty
         guard hasItems || !tooltip.isEmpty else { return nil }
         let style = chrome.style(edge)
@@ -162,9 +162,11 @@ extension _WindowChromeHost {
     /// so an item that stops being declared is collected the pass after.
     func retainUndrawnItems(_ chrome: WindowChromeState, itemRows: Rows, context: RenderContext) {
         guard let storage = context.stateStorage else { return }
-        for edge in WindowChromeState.Edge.allCases
-        where chrome.isHidden(edge) || (edge == .top ? itemRows.top : itemRows.bottom) <= 0 {
-            for entry in chrome.declaredEntries(for: edge) {
+        let focus = context.environment.focusManager
+        for edge in WindowChromeState.Edge.allCases {
+            let drawsNone = chrome.isHidden(edge) || (edge == .top ? itemRows.top : itemRows.bottom) <= 0
+            // A keyboard item with no typing to be beside is undrawn too.
+            for entry in chrome.declaredEntries(for: edge) where drawsNone || !entry.isShown(focus: focus) {
                 storage.markActive(entry.identity)
                 storage.retainSubtree(entry.identity)
             }
