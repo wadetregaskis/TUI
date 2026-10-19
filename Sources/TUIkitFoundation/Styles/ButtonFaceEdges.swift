@@ -202,22 +202,19 @@ extension _ButtonAppearance {
         guard !isPlain else { return self }
         var sized = self
         let tall = size >= .large
-        switch size {
-        case .mini, .small: sized.horizontalPadding = 0
-        case .regular, .large: break
-        case .extraLarge: sized.horizontalPadding += 1
-        }
+        sized.horizontalPadding = size.padding(regular: horizontalPadding)
+        let caps = size.drawsEndCaps
         switch family {
         case .blank:
             sized.edges = .bareOutline
         case .solid:
-            sized.edges = size == .mini ? .none : Self.solidEdges(shape, tall: tall, wholeCells: !blockElementsFillTheLine)
+            sized.edges = caps ? Self.solidEdges(shape, tall: tall, wholeCells: !blockElementsFillTheLine) : .none
             if shape.kind == .circle { sized.horizontalPadding = tall ? 2 : 0 }
         case .lines(let style):
-            sized.edges = size == .mini ? .bareOutline : Self.lineEdges(shape, tall: tall, style: style)
+            sized.edges = caps ? Self.lineEdges(shape, tall: tall, style: style) : .bareOutline
             if shape.kind == .circle { sized.horizontalPadding = tall ? 1 : 0 }
         case .braille(let thickness):
-            sized.edges = size == .mini ? .bareOutline : Self.dotEdges(shape, tall: tall, thickness: thickness)
+            sized.edges = caps ? Self.dotEdges(shape, tall: tall, thickness: thickness) : .bareOutline
             if shape.kind == .circle { sized.horizontalPadding = tall ? 2 : 0 }
         }
         return sized

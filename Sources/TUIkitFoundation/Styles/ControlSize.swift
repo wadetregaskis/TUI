@@ -115,3 +115,32 @@ extension ControlSize {
         return min(max(size, smallest), largest)
     }
 }
+
+// MARK: - The Density Table
+
+extension ControlSize {
+    /// The cells of padding a control draws between its chrome and its content
+    /// at this size, given `regular`, what it draws at `.regular`: none at
+    /// `.mini` and `.small`, `regular` at `.regular` and `.large`, and one more
+    /// at `.extraLarge`.
+    ///
+    /// The bordered button's table (``ButtonBorderShape``, `ButtonFaceEdges`),
+    /// and the one-row controls' that follow it — the space round a segmented
+    /// picker's options and a stepper's value, the gap between a slider's
+    /// arrows and its track.
+    ///
+    /// - Parameter regular: The control's padding at `.regular`.
+    /// - Returns: The control's padding at this size.
+    package func padding(regular: Int) -> Int {
+        switch self {
+        case .mini, .small: 0
+        case .regular, .large: regular
+        case .extraLarge: regular + 1
+        }
+    }
+
+    /// Whether a control draws the chrome at its ends at this size — a face's
+    /// caps, a field's: at every size but `.mini`, where a bordered button draws
+    /// its label alone and its breath shows the focus.
+    package var drawsEndCaps: Bool { self != .mini }
+}
