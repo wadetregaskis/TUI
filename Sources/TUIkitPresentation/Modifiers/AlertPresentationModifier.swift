@@ -271,8 +271,7 @@ extension AlertPresentationModifier: Renderable {
             .withAvailableWidth(context.environment.terminalWidth)
             .withAvailableHeight(context.environment.overlayContentHeight)
         alertContext.environment.activeFocusSectionID = sectionID
-        alertContext.leaveScrollCanvas()
-        alertContext.environment.leaveUnstatedTextAlignment()
+        alertContext.leavePresenter()
         alertContext.environment.dialogPresentsError = presentsError
         // Choosing an action dismisses the alert, as it does in SwiftUI: an
         // alert is a question, and any of its buttons is an answer. `Button`

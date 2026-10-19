@@ -259,8 +259,7 @@ package func presentMenuPopover<Items: View>(
     menuContext.environment.activeFocusSectionID = sectionID
     // A menu opened from inside this one is no menu bar's.
     menuContext.environment.menuBarStep = nil
-    menuContext.leaveScrollCanvas()
-    menuContext.environment.leaveUnstatedTextAlignment()
+    menuContext.leavePresenter()
     menuContext.environment.dismissMenu = DismissMenuAction(action: dismiss)
     // Explicitly NOT the top-border ●: that mark reads as "this titled
     // container has the focus", and a menu has no title, so a lone dot floating

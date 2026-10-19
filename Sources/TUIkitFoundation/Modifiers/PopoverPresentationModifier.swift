@@ -199,8 +199,7 @@ extension PopoverPresentationModifier: Renderable {
         // It holds the keyboard, so a sheet presented from it is a modal
         // (`LiveSheet.dock`).
         popoverContext.environment.isInModalPresentation = true
-        popoverContext.leaveScrollCanvas()
-        popoverContext.environment.leaveUnstatedTextAlignment()
+        popoverContext.leavePresenter()
         // `@Environment(\.dismiss)` inside the popover closes the POPOVER — the
         // same act as its Escape handler above. Left unset it would mean the
         // top-level dismissal, which is to quit the application.

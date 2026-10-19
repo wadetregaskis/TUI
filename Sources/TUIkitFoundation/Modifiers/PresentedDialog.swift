@@ -27,3 +27,20 @@ package func renderPresentedDialog<V: View>(
     }
     return TUIkitView.renderToBuffer(content, context: context)
 }
+
+extension RenderContext {
+    /// Leaves behind, for a presented surface's content — a sheet's or a
+    /// cover's, an alert's, a popover's, a menu's — what the place its
+    /// presenter is drawn in asks of the views drawn there: its scroll canvas
+    /// (``leaveScrollCanvas()``) and the text alignment it states for nothing
+    /// in particular (``EnvironmentValues/leaveUnstatedTextAlignment()``).
+    /// The surface is attached inside the content that presents it, but drawn
+    /// over the screen.
+    ///
+    /// One method for every presenter, so that what one leaves behind, each
+    /// does.
+    package mutating func leavePresenter() {
+        leaveScrollCanvas()
+        environment.leaveUnstatedTextAlignment()
+    }
+}

@@ -44,8 +44,7 @@ extension ModalPresentationModifier {
         // the window's bars are inert while it is up.
         modalContext.environment.presentationHostsToolbar = true
         modalContext.environment.presentationToolbar = presentationToolbar(context: context)
-        modalContext.leaveScrollCanvas()
-        modalContext.environment.leaveUnstatedTextAlignment()
+        modalContext.leavePresenter()
         modalContext.environment.dismiss = dismissAction()
         modalContext.environment.isPresented = true
         modalContext.environment.dismissalGate = gate
