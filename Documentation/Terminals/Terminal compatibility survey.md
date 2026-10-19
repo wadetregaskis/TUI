@@ -4007,7 +4007,7 @@ it as supporting placements.
 present) while its DA1 advertises Sixel; Ghostty answers `DCS 1 + r 5375 ST` —
 a success flag with no value — while supporting no Sixel at all. Use DA1.
 
-### Deflated transmissions (`o=z`) — asked by the handshake; Ghostty acknowledges (measured 2026-10-19), the other hosts NOT YET MEASURED
+### Deflated transmissions (`o=z`) — asked by the handshake; Ghostty acknowledges and draws them (measured 2026-10-19), the other hosts NOT YET MEASURED
 
 TUIkit's startup handshake asks a second question since 2026-09-04: whether a
 zlib-deflated transmission is understood. It transmits a 32×32 block as
@@ -4023,7 +4023,7 @@ a little.
 |---|---|---|
 | Apple Terminal | never asked (prints APC) | — |
 | iTerm2 | unmeasured | unmeasured |
-| Ghostty 1.3.1 | **yes**, 2026-10-19 | awaiting the owner's look (2026-10-19) |
+| Ghostty 1.3.1 | **yes**, 2026-10-19 | **yes**, the same as raw (the owner's reading, 2026-10-19) |
 | Warp | unmeasured | unmeasured (draws no placeholders anyway) |
 
 **Ghostty 1.3.1, 2026-10-19** (`graphics_compression_probe.py`, primary
@@ -4032,10 +4032,12 @@ screen, macOS 15.8.1; record
 command was acknowledged: the handshake's virtual placement
 (`ESC _ G i=16777215;OK ESC \`), its twenty-six-byte deflated block
 (`i=16777214;OK`), and both displays of the card's hue ramp, raw (`i=901;OK`)
-and deflated (`i=902;OK`) — 24,576 bytes raw, 1,002 deflated. Whether the
-deflated ramp DRAWS the same as the raw one is a person's reading of the
-card; the owner is making it, and the record's `rendered` field and the cell
-above are where it goes.
+and deflated (`i=902;OK`) — 24,576 bytes raw, 1,002 deflated. Both ramps
+draw, and look the same (the owner's reading; the record's `rendered`
+field). The first run, at 08:36, showed only the space the ramps took: the
+probe deleted both images in the write that followed them, so nothing was
+left to see. It now keeps them up until Return; the record is the 11:05
+rerun, whose replies are identical.
 
 Run `Tools/TerminalProbes/graphics_compression_probe.py` inside each host: it
 asks both questions and prints the same ramp raw and deflated, one under the

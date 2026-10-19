@@ -1,6 +1,6 @@
 {
   "probe": "graphics_compression_probe",
-  "measured": "2026-10-19T08:36:28-07:00",
+  "measured": "2026-10-19T11:05:26-07:00",
   "screen": "primary",
   "os": "macOS 15.8.1",
   "machine": "arm64",
@@ -28,5 +28,5 @@
       "DEFLATED_DISPLAY": "<ESC>_Gi=902;OK<ESC>\\"
     }
   },
-  "rendered": "unmeasured — compare the two ramps above and fill this in by hand"
+  "rendered": "same: the raw and the deflated ramp both draw, and look the same (the owner's reading, 2026-10-19, of this run, which keeps them up until Return)"
 }
