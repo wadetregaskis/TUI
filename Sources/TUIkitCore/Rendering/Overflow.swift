@@ -42,7 +42,7 @@ extension OverlayLayer {
         return parts
     }
 
-    /// This layer as the cells it paints (``FrameBuffer/paintedColumnsByLine()``):
+    /// This layer as the cells it paints (``FrameBuffer/paintedColumnsByLine(inRows:)``):
     /// on each line, from its first painted cell to its last, with the unstyled
     /// blank cells either side of them left out — and every payload that rides on
     /// the lines (hit regions, opacity regions, animated runs) cut to the cells
@@ -169,7 +169,7 @@ extension FrameBuffer {
     /// operations that place later content — a stack's next child, a
     /// composited overlay — cut the earlier overflow out from under it.
     ///
-    /// Under the cells it PAINTS (``paintedColumnsByLine()``): on each line,
+    /// Under the cells it PAINTS (``paintedColumnsByLine(inRows:)``): on each line,
     /// from its first painted cell to its last. The unstyled blank space either
     /// side is not the later view drawing — it is a stack's alignment padding,
     /// an overlay's `Spacer`, an `.offset` view's footprint — and SwiftUI shows

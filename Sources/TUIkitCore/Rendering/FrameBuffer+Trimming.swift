@@ -18,7 +18,7 @@ extension FrameBuffer {
     /// line — so a multi-line preview keeps its own silhouette.
     ///
     /// A blank cell an animated run repaints is kept too, as the overflow's
-    /// painted columns keep it (`paintedColumnsByLine()`): a caret blinking on
+    /// painted columns keep it (`paintedColumnsByLine(inRows:)`): a caret blinking on
     /// a trailing blank of a dragged row, or of a row a transition slides, is
     /// drawn there whatever the line holds under it, and trimmed it lost its
     /// cell — and the caret with it — for the length of the drag.
