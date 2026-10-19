@@ -120,6 +120,12 @@ struct NavigationPage: View {
             // Tab walked the links, then landed on the list to walk them again
             // with the arrows. A list earns its own cursor when it is the only
             // way to reach its rows — these rows reach themselves.
+            //
+            // Borderless, because a link outside a `List` is drawn as a
+            // button, as SwiftUI's is: with the default look each full-width
+            // row was a capsule, "( Mercury … ☾ 4 )", the moon glyph reading
+            // as a second parenthesis beside the cap in Apple Terminal (FB15).
+            // A borderless link is a row of text that takes the focus.
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(planets) { planet in
                     NavigationLink(value: planet) {
@@ -134,6 +140,7 @@ struct NavigationPage: View {
                     }
                 }
             }
+            .buttonStyle(.borderless)
 
             LabeledContent("page.navigation.note") {
                 TextField("page.navigation.notePlaceholder", text: $note)
