@@ -269,6 +269,45 @@ struct GlassEffectTests {
         #expect(plain.hitTestRegions.isEmpty)
     }
 
+    @Test("Joined interactive glass lifts the whole shape's rim while the pointer is over any member, each part with it")
+    func interactiveHoverJoined() {
+        let tui = TUIContext()
+        let dispatcher = tui.mouseEventDispatcher
+        dispatcher.setActiveSupport(.full)
+        let view = GlassEffectContainer {
+            HStack(spacing: 0) {
+                Text("A").padding().glassEffect(.regular.interactive())
+                Text("B").padding().glassEffect(.regular.interactive())
+            }
+        }
+        let renderContext = pointerContext(tui)
+        func frame() -> FrameBuffer {
+            dispatcher.beginRenderPass()
+            tui.stateStorage.beginRenderPass()
+            tui.renderCache.beginRenderPass()
+            let buffer = ColorDepth.withCurrent(.truecolor) { renderToScreen(view, context: renderContext) }
+            tui.renderCache.removeInactive()
+            tui.stateStorage.endRenderPass()
+            dispatcher.setRegions(buffer.hitTestRegions)
+            return buffer
+        }
+        let environment = renderEnvironment(.rounded)
+        let (resting, lifted) = (
+            ink(Glass.regular.rimInk(hovered: false, in: environment)),
+            ink(Glass.regular.rimInk(hovered: true, in: environment))
+        )
+        func rim(_ buffer: FrameBuffer) -> [SGRState.Colour?] {
+            // The top row: A's part, then B's.
+            [1, 4].map { paintedCells(buffer.lines[0])[$0].ink }
+        }
+        #expect(frame().lines.map(\.stripped) == ["╭────╮", "│A  B│", "╰────╯"])
+        #expect(rim(frame()) == [resting, resting])
+        _ = dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 1, y: 1))
+        #expect(rim(frame()) == [lifted, lifted], "over A: B's part lifts with it")
+        _ = dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 30, y: 10))
+        #expect(rim(frame()) == [resting, resting])
+    }
+
     // MARK: - Helpers
 
     /// The environment a render under `appearance` draws its glass in.
