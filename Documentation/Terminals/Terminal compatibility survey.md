@@ -5641,6 +5641,44 @@ scrolling (B27). Mode 1016 (SGR-Pixels) reports pixel positions, not scroll
 amounts, and shares one setting with 1006 (the last mode set wins); see
 [Future options](<../Future options.md#sgr-pixels-mouse-reports-mode-1016>).
 
+## Shift-clicks reaching the app (XTSHIFTESCAPE)
+
+**Status: sent since 2026-10-18; every host UNMEASURED.**
+
+**What TUIkit does.** Whenever it turns mouse reporting on it sends
+XTSHIFTESCAPE, `CSI > 1 s`, asking the terminal to report Shift-modified
+mouse events to the app rather than keep them for its own selection; as
+reporting goes off it sends `CSI > 0 s`, handing Shift back, and the teardown
+and the debt a signal pays owe the same (`Terminal.applyMouseSupport`,
+`inputModesOwed`). App-wide, as the Ghostty study's C5 recommended once
+TUIkit drew its own screen selection (A13): a Shift-click extends a list's,
+a table's or a text control's selection, and TUIkit's own drag selects the
+screen, so the terminal's Shift-drag selection is the one given up. Not sent
+on Apple Terminal, which reports the Shift bit and has no Shift bypass to
+turn off, and whose reading of `CSI > … s` is unmeasured (a parser that
+ignored the `>` would save the cursor, SCOSC). `TUIKIT_SHIFT_CLICKS=0` keeps
+it from being sent anywhere, the user's way back to the terminal's own
+Shift-click and Shift-drag.
+
+**What each host is expected to do**, from its documentation, none of it
+measured here:
+
+| Host | `CSI > 1 s` | Shift-click with it | Measured |
+|---|---|---|---|
+| Ghostty | honoured under the default `mouse-shift-capture = false`; its `never` and `always` override the app (Ghostty's VT reference) | reported, +4 | UNMEASURED |
+| iTerm2 | nothing documented; expected to ignore it | selects text (the OSC 8 table above) | UNMEASURED |
+| Warp | nothing documented; expected to ignore it | selects text (the OSC 8 table above) | UNMEASURED |
+| kitty, xterm | xterm defines it (`shiftEscape`); kitty unknown | — | UNMEASURED |
+| Apple Terminal | not sent | reported, +4 (no bypass; the Shift-drag note above) | UNMEASURED |
+| tmux | unknown whether it forwards it | — | UNMEASURED |
+
+**To measure**, by hand, since a probe cannot press Shift on a click:
+`PROBE_SHIFT_ESCAPE=1 python3 Tools/TerminalProbes/mouse_probe.py` in each
+host, Shift-click and Shift-drag, then the same without the variable; a
+reported Shift-click is a `<4;x;yM` line in the log, one the terminal kept is
+no line at all, and anything the terminal answers to the sequence is logged
+ahead of the first event.
+
 ## Focus reporting (mode 1004)
 
 **Status: tmux 3.7c MEASURED; every native host UNMEASURED.**

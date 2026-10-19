@@ -81,6 +81,34 @@ lifecycle from running, since an alternate's `onAppear` must wait until it is
 drawn — a render mode no walk has yet. About half a day, and a hidden render
 of every alternate on every frame that has one.
 
+### B-INPUT-3. Shift-clicks are asked for app-wide, not on Apple Terminal, and `TUIKIT_SHIFT_CLICKS=0` turns them off
+
+*XTSHIFTESCAPE (`CSI > Ps s`); the Ghostty study's C5, phase 3's V6*
+
+The policy was settled (the study's Q1, owner 2026-10-04: only while a
+Shift-click consumer is focused now, app-wide once A13's own drag selection
+shipped; A13 has). Two calls the study left open:
+
+- **Not on Apple Terminal.** Its reading of `CSI > … s` is unmeasured, and a
+  parser that ignored the `>` would take it for SCOSC and save the cursor.
+  It needs nothing either: it has no Shift bypass, and reports the Shift bit
+  on a click. So TUIkit sends nothing there, rather than risk a sequence for
+  no gain. The other hosts get it whatever they document: one that ignores it
+  is unchanged.
+- **`TUIKIT_SHIFT_CLICKS=0`** keeps it from being sent anywhere: the user's
+  way back to the terminal's own Shift-click and Shift-drag, as
+  `TUIKIT_KEYBOARD_PROTOCOL=0` is for the kitty protocol (B-D1K-4). A new
+  user-facing switch, so recorded.
+
+**Shipped:** as above (`Terminal.capturesShiftClicks`, `applyMouseSupport`,
+`inputModesOwed`; `TerminalOutputTests`).
+
+**The fuller version:** measure it per host by hand (`mouse_probe.py` with
+`PROBE_SHIFT_ESCAPE=1`, Shift-click and Shift-drag with and without), and a
+programmatic override for an app, as `TerminalClient.hyperlinkSupport` is for
+links. About an hour of hand measurement on five hosts and tmux; the override
+a quarter of a day, and nothing yet says an app needs one.
+
 ## Found on the way
 
 Not decisions; recorded so they are not lost.

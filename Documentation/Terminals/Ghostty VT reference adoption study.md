@@ -439,6 +439,14 @@ that rule. Ghostty's page (and its config reference) adds:
 
 #### C5. XTSHIFTESCAPE (`CSI > Ps s`) — adopt after the owner picks the policy (Q1)
 
+**Built 2026-10-18 (lane INPUT), app-wide** — the Q1 recommendation's second
+step, A13's screen selection having shipped: `> 1` as mouse reporting comes
+on, `> 0` as it goes off and at every teardown and in the signal debt; not on
+Apple Terminal; `TUIKIT_SHIFT_CLICKS=0` the user's switch;
+`mouse_probe.py`'s `PROBE_SHIFT_ESCAPE=1` the probe. The per-host measurements
+are owed, by hand (`Terminal compatibility survey.md`, "Shift-clicks reaching
+the app").
+
 - **Mechanism.** `CSI > 1 s` asks the terminal to report Shift in mouse events
   instead of keeping Shift-drag for its own selection. `CSI > 0 s` hands Shift
   back.

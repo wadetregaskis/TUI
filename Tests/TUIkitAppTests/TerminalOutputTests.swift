@@ -46,6 +46,51 @@ struct TerminalOutputTests {
     }
 }
 
+// MARK: - Shift-clicks (XTSHIFTESCAPE)
+
+extension TerminalOutputTests {
+    /// The Ghostty study's C5: Shift-clicks go to the app while it reports
+    /// the mouse, asked for as reporting comes on and handed back as it goes
+    /// off and at the teardown, which a signal is owed too.
+    @Test("Mouse reporting asks for Shift-clicks, and hands Shift back when it goes off and at the teardown")
+    func shiftEscapeFollowsReporting() {
+        let (terminal, output) = ScriptedTerminalOutput.terminal(environment: ["TERM_PROGRAM": "ghostty"])
+        terminal.enableRawMode()
+        output.clear()
+        terminal.applyMouseSupport(.standard)
+        #expect(output.bytes.contains("\u{1B}[?1006h") && output.bytes.contains(Terminal.shiftEscapeOn))
+        output.clear()
+        terminal.applyMouseSupport(.full)
+        #expect(output.bytes.contains("\u{1B}[?1003h"))
+        #expect(!output.bytes.contains(Terminal.shiftEscapeOn), "asked once, as reporting came on")
+        output.clear()
+        terminal.applyMouseSupport(.disabled)
+        #expect(output.bytes.contains(Terminal.shiftEscapeOff))
+        terminal.applyMouseSupport(.standard)
+        #expect(terminal.signalDebt.contains(Terminal.shiftEscapeOff), "a signal owes it")
+        output.clear()
+        terminal.disableRawMode()
+        #expect(output.bytes.contains(Terminal.inputModesOff + Terminal.shiftEscapeOff))
+    }
+
+    /// `TUIKIT_SHIFT_CLICKS=0`, the user's way back to the terminal's own
+    /// Shift-click and Shift-drag; and Apple Terminal, which keeps no Shift
+    /// bypass and whose reading of the sequence is unmeasured.
+    @Test(
+        "Nothing is asked where TUIKIT_SHIFT_CLICKS=0 is set, or on Apple Terminal",
+        arguments: [["TERM_PROGRAM": "ghostty", "TUIKIT_SHIFT_CLICKS": "0"], ["TERM_PROGRAM": "Apple_Terminal"]])
+    func shiftEscapeWithheld(environment: [String: String]) {
+        let (terminal, output) = ScriptedTerminalOutput.terminal(environment: environment)
+        terminal.enableRawMode()
+        terminal.applyMouseSupport(.standard)
+        terminal.applyMouseSupport(.disabled)
+        terminal.disableRawMode()
+        #expect(!output.bytes.contains(Terminal.shiftEscapeOn))
+        #expect(!output.bytes.contains(Terminal.shiftEscapeOff))
+        #expect(!terminal.signalDebt.contains(Terminal.shiftEscapeOff))
+    }
+}
+
 // MARK: - A non-blocking descriptor
 
 extension TerminalOutputTests {

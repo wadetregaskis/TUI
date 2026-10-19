@@ -116,6 +116,10 @@ when unset), the visual/aspect probes print to the terminal.
   rows double-width (DECDWL) for the capture.
 - `mouse_probe.py` — raw-mode SGR mouse byte capture (1000/1002/1006);
   every input sequence is appended human-readably. `q` quits.
+  `PROBE_SHIFT_ESCAPE=1` also sends XTSHIFTESCAPE (`CSI > 1 s`), as TUIkit
+  does while it reports the mouse: Shift-click with it and without, and a
+  click the terminal now reports carries +4 (`<4;x;yM`) where one it kept
+  for its own selection is missing from the log.
 - `keyboard_protocol_probe.py` — does the terminal speak the kitty keyboard
   protocol, and which of the five flags TUIkit pushes (31) does it take? Asks
   exactly as TUIkit does — `CSI ? u` fenced by DA1 — then pushes 31, asks

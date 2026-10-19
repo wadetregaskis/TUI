@@ -3,6 +3,14 @@
 
 Writes captured bytes to $PROBE_OUT if set, else to ./mouse_probe.log
 (stdout is unusable: the probe holds the tty in raw mode).
+
+PROBE_SHIFT_ESCAPE=1 also sends XTSHIFTESCAPE (`CSI > 1 s`) once reporting is
+on, asking the terminal to report Shift-modified clicks rather than keep them
+for its own selection, as TUIkit does; `CSI > 0 s` hands Shift back at exit.
+Shift-click with it set and without, and compare: a Shift-click the terminal
+reports carries +4 in the button code (`<4;x;yM`); one it keeps is not in the
+log at all. Anything the terminal answers to the sequence lands in the log as
+well, ahead of the first event.
 """
 import os, sys, termios, tty, signal, select, time
 
@@ -12,8 +20,12 @@ sys.stderr.write(f"logging to {os.path.abspath(out_path)}\n")
 fd = sys.stdin.fileno()
 old = termios.tcgetattr(fd)
 
+shift_escape = os.environ.get("PROBE_SHIFT_ESCAPE") == "1"
+
 def cleanup(*_):
     os.write(1, b"\x1b[?1003l\x1b[?1002l\x1b[?1000l\x1b[?1006l\x1b[0m")
+    if shift_escape:
+        os.write(1, b"\x1b[>0s")
     termios.tcsetattr(fd, termios.TCSADRAIN, old)
     out.close()
     sys.exit(0)
@@ -22,9 +34,11 @@ signal.signal(signal.SIGTERM, cleanup)
 tty.setraw(fd)
 os.write(1, b"\x1b[42;30m\x1b[2J\x1b[H  MOUSE PROBE READY - aim events here ('q' quits)\r\n")
 os.write(1, b"\x1b[?1000h\x1b[?1002h\x1b[?1006h")
+if shift_escape:
+    os.write(1, b"\x1b[>1s")
 term = os.environ.get("TERM_PROGRAM", "?")
 version = os.environ.get("TERM_PROGRAM_VERSION", "?")
-out.write(f"--- start tty={os.ttyname(fd)} term={term} {version} ---\n")
+out.write(f"--- start tty={os.ttyname(fd)} term={term} {version} shift_escape={shift_escape} ---\n")
 last_beat = time.time()
 try:
     while True:

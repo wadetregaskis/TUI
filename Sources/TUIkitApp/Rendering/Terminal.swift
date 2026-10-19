@@ -63,6 +63,15 @@ final class Terminal: TerminalProtocol {
     /// frame at no cost.
     private var appliedMouseMode: MouseTrackingMode = .none
 
+    /// Whether TUIkit asks for Shift-modified mouse events while it reports
+    /// the mouse (XTSHIFTESCAPE, ``shiftEscapeOn``): not where
+    /// `TUIKIT_SHIFT_CLICKS=0` is set, the user's way back to the terminal's
+    /// own Shift-click and Shift-drag, and not on Apple Terminal, which keeps
+    /// no Shift bypass to turn off and whose reading of `CSI > … s` is
+    /// unmeasured (one that ignored the `>` would save the cursor, SCOSC).
+    /// Read once, as the terminal is made.
+    let capturesShiftClicks: Bool
+
     /// All input bytes that have been drained from stdin but not yet
     /// dispatched as events. Bytes are appended at the back by
     /// ``appendDrain()`` (one `read()` syscall per call) and consumed
@@ -461,6 +470,9 @@ final class Terminal: TerminalProtocol {
         // The pure detector, not `TerminalHost.isAppleTerminal`: that one
         // freezes on its first read, which must wait for the startup exchange.
         keepsAutowrap = TerminalHost.detectAppleTerminal(environment: environment)
+        capturesShiftClicks =
+            !TerminalHost.detectAppleTerminal(environment: environment)
+            && Self.shiftClicksAllowed(environment: environment)
     }
 
     /// Destructor ensures raw mode is disabled.
@@ -762,7 +774,7 @@ extension Terminal {
         // shell reads next are the legacy bytes it expects.
         popKeyboardFlags()
 
-        writeImmediate(Self.inputModesOff)
+        writeImmediate(inputModesOwed)
         appliedMouseMode = .none
 
         // Put grapheme clustering back only if we turned it on: the mode
@@ -840,6 +852,9 @@ extension Terminal {
     /// - OSC 5522 paste events, where they were set (a terminal ignores a
     ///   reset of a mode it does not have, as Apple Terminal does 2031's);
     /// - bracketed paste.
+    ///
+    /// Shift is handed back after it (``shiftEscapeOff``) where it was asked
+    /// for: see ``inputModesOwed``.
     static let inputModesOff =
         "\u{1B}[>1;0m"
         + "\u{1B}[?1006l\u{1B}[?1003l\u{1B}[?1002l\u{1B}[?1000l"
@@ -847,6 +862,16 @@ extension Terminal {
         + "\u{1B}[?2031l"
         + "\u{1B}[?5522l"
         + "\u{1B}[?2004l"
+
+    /// ``inputModesOff``, and Shift handed back to the terminal
+    /// (``shiftEscapeOff``) where this terminal asks for Shift-clicks
+    /// (``capturesShiftClicks``): what a teardown writes and a signal is
+    /// owed. Owed whether or not reporting is on now: `CSI > 0 s` is the
+    /// terminal's default, so handing back what was not taken changes
+    /// nothing.
+    var inputModesOwed: String {
+        capturesShiftClicks ? Self.inputModesOff + Self.shiftEscapeOff : Self.inputModesOff
+    }
 
     /// Puts back the grapheme-clustering mode this process pinned on
     /// (``pinnedGraphemeClustering``).
@@ -919,7 +944,7 @@ extension Terminal {
     var signalDebt: String {
         var owed = outputModesOff
         if keyboardFlagsPushed { owed += KeyboardProtocolQuery.pop }
-        owed += Self.inputModesOff
+        owed += inputModesOwed
         if pinnedGraphemeClustering { owed += Self.graphemeClusteringOff }
         owed += ANSIRenderer.showCursor
         return owed
@@ -991,10 +1016,42 @@ extension Terminal {
             writeImmediate("\u{1B}[?\(target.escapeNumber)h")
             // SGR coords are paired with whichever tracking mode is on.
             writeImmediate("\u{1B}[?1006h")
+            // Shift-clicks to the app while it reports the mouse, asked once
+            // as reporting comes on (``shiftEscapeOn``).
+            if appliedMouseMode == .none, capturesShiftClicks { writeImmediate(Self.shiftEscapeOn) }
         } else {
             writeImmediate("\u{1B}[?1006l")
+            if capturesShiftClicks { writeImmediate(Self.shiftEscapeOff) }
         }
         appliedMouseMode = target
+    }
+
+    /// XTSHIFTESCAPE asking for Shift-modified mouse events to be reported
+    /// to the app (`CSI > 1 s`), rather than kept by the terminal for its own
+    /// selection.
+    ///
+    /// Sent whenever TUIkit turns mouse reporting on, app-wide: Shift-click
+    /// extends a list's or a text control's selection, and TUIkit draws its
+    /// own screen selection by dragging, so the terminal's Shift-drag
+    /// selection is not what the app needs it for (the Ghostty study's C5,
+    /// the owner's Q1 answer, made app-wide once the screen selection, A13,
+    /// shipped). Ghostty honours it under its default
+    /// `mouse-shift-capture = false` (its documentation; its `never` and
+    /// `always` override the app); the other measured hosts document
+    /// nothing, and are expected to ignore it. `TUIKIT_SHIFT_CLICKS=0`
+    /// keeps it from being sent. See `Terminal compatibility survey.md`,
+    /// "Shift-clicks reaching the app (XTSHIFTESCAPE)".
+    static let shiftEscapeOn = "\u{1B}[>1s"
+
+    /// XTSHIFTESCAPE handing Shift back to the terminal (`CSI > 0 s`): sent
+    /// as mouse reporting goes off, and owed at every teardown
+    /// (``inputModesOff``).
+    static let shiftEscapeOff = "\u{1B}[>0s"
+
+    /// Whether the environment lets TUIkit ask for Shift-clicks: yes, unless
+    /// `TUIKIT_SHIFT_CLICKS` is `0`.
+    nonisolated static func shiftClicksAllowed(environment: [String: String]) -> Bool {
+        environment["TUIKIT_SHIFT_CLICKS"] != "0"
     }
 
     /// The tracking modes we know about. Higher values are strict
