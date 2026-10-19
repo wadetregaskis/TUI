@@ -123,7 +123,11 @@ ruling is in the review under its item. In brief, with the ruling:
   ([The menu bar (O13)](<The menu bar (O13).md>)).
 - **O14** `ControlSize`. **(b)**, with extra render styles per size. The
   type, the environment value, both modifiers and the button's table shipped
-  2026-10-15 (`ButtonFaceEdges.swift`); the other controls are owed.
+  2026-10-15 (`ButtonFaceEdges.swift`); the other controls' rows 2026-10-19,
+  on one row each: a segmented picker, a stepper, a slider and a text field
+  follow the button's padding and caps, a checkbox and a switch draw alike at
+  every size ([Forms and control density (FORMS)](<Forms and control density (FORMS).md>),
+  B-FORMS-4 to B-FORMS-6).
 - **O15** `ButtonBorderShape`. **Support it.** Shipped 2026-10-15 in O14's
   table, without the `Shape` conformance, which waits on O0.
 - **O16** `TextRenderer`, with `View.textRenderer(_:)` and `Text.customAttribute(_:)`.

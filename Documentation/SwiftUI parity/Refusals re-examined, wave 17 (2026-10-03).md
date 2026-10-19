@@ -1321,7 +1321,16 @@ breathes the focus instead), three rows at `.large` and `.extraLarge` with a
 ring that breathes with the caps, one more cell of padding at `.extraLarge`.
 A face-less (plain, borderless, link) button is unchanged, as SwiftUI changes
 only its font. `ButtonToggleStyle` draws through the same body, so it follows.
-The other controls' density is owed.
+
+**Shipped 2026-10-19 (lane FORMS), the other controls:** the button's padding
+and caps on one row (`ControlSize.padding(regular:)`, `drawsEndCaps`) — a
+segmented or palette picker drops the space round its options at `.small` and
+its caps at `.mini` and takes two spaces at `.extraLarge`; a stepper the space
+round its value; a slider the gap between its arrows and its track; a text
+field its caps at `.mini`. A checkbox and a switch draw alike at every size.
+Three-row segmented pickers and fields at `.large` are the fuller version, left
+with the appearance families. See
+[Forms and control density (FORMS)](<Decisions/Forms and control density (FORMS).md>).
 
 ### O15. `ButtonBorderShape` (+ W04 `buttonBorderShape`) — M
 
