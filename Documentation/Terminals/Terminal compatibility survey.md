@@ -7621,8 +7621,8 @@ cluster, which is the trade TUIkit already takes for SF Symbols on Ghostty;
 
 **tmux keeps the cluster rule**, although it advances per code point: its table
 gives a spacing vowel sign no cell, so the per-code-point claim would put
-स्त्री at 4 against tmux's 3, and the six matra rows are 1 there under either
-claim. A pricing of tmux's own — per code point, spacing marks zero — matches
+स्त्री at 4 against tmux's 3, and the six matra rows, which tmux advances 1,
+are claimed 2 under either. A pricing of tmux's own — per code point, spacing marks zero — matches
 all 38 of its rows; it waits on a tmux built against another width table being
 measured, since the one measured is Homebrew's on macOS.
 
