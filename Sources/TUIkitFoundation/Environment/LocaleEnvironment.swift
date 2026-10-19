@@ -38,11 +38,14 @@ extension EnvironmentValues {
     ///
     /// Matches SwiftUI's `\.locale`. It is populated each frame from the app's
     /// localization service (`applyRuntimeServices(from:)`), so by default it
-    /// is the app's language with the user's region (`LocalizationService`'s
-    /// `currentLocale`: `de` under `LANG=en_GB.UTF-8` writes dates as Britain
-    /// orders them) — but because it's a stored, settable key, a
-    /// subtree can override it with `.environment(\.locale, _)` to format its
-    /// numbers and dates in a different locale than the surrounding UI.
+    /// is the user's locale, as SwiftUI's is (`LocalizationService`'s
+    /// `currentLocale`): their language and region, `pt_BR` under
+    /// `LANG=pt_BR.UTF-8` whether or not TUIkit ships Portuguese, or, once the
+    /// app chooses a language, that language with the user's region — `de`
+    /// under `LANG=en_GB.UTF-8` writes dates as Britain orders them. Because
+    /// it's a stored, settable key, a subtree can override it with
+    /// `.environment(\.locale, _)` to format its numbers and dates in a
+    /// different locale than the surrounding UI.
     ///
     /// `Table`, `List`, and `ScrollView`'s number chrome read it, so an override
     /// re-locales their formatted output.

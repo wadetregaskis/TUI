@@ -59,10 +59,20 @@ public final class LocalizationService: @unchecked Sendable {
     /// message re-entered `string(for:)`, and the lock is not recursive.
     public private(set) var currentLanguage: Language
 
-    /// The locale the app formats in: ``currentLanguage`` with the user's
-    /// region (``Language/locale(in:)``), so `de` under `LANG=en_GB.UTF-8` is
-    /// German written for Britain. Moved with ``currentLanguage``, under
-    /// `lock`; what `\.locale` is, each frame, unless a subtree sets its own.
+    /// The locale the app formats in, and what `\.locale` is each frame
+    /// unless a subtree sets its own: the user's locale, as SwiftUI's
+    /// `\.locale` is.
+    ///
+    /// With no language chosen it is the environment's first language with
+    /// the user's region, whether TUIkit ships that language or not: under
+    /// `LANG=pt_BR.UTF-8` it is `pt_BR`, so numbers and dates are written as
+    /// Brazil writes them, while the words are the app's Portuguese ones where
+    /// it has them and TUIkit's English (``currentLanguage``) where it does
+    /// not. Once a language is chosen (``setLanguage(_:)``, or the choice
+    /// stored by it) it is that language with the user's region
+    /// (``Language/locale(in:)``) — `de` under `LANG=en_GB.UTF-8` is German
+    /// written for Britain — as macOS's per-app language makes
+    /// `Locale.current`. Moved with ``currentLanguage``, under `lock`.
     ///
     /// Read under the lock, unlike ``currentLanguage``: a `Locale` holds a
     /// reference, which a read racing ``setLanguage(_:)`` must not tear.
@@ -148,7 +158,7 @@ public final class LocalizationService: @unchecked Sendable {
         self.currentLanguage = initial.language
         self.lookupCodes = initial.codes
         self.region = Self.systemRegion()
-        self._currentLocale = initial.language.locale(in: region)
+        self._currentLocale = Self.userLocale(initial, region: region)
 
         // Preload current language translations
         lock.lock()
@@ -178,7 +188,7 @@ public final class LocalizationService: @unchecked Sendable {
         self.currentLanguage = initial.language
         self.lookupCodes = initial.codes
         self.region = Self.systemRegion(environment: environment, current: nil)
-        self._currentLocale = initial.language.locale(in: region)
+        self._currentLocale = Self.userLocale(initial, region: region)
 
         lock.lock()
         _ = _translations(for: currentLanguage.rawValue)
@@ -269,13 +279,30 @@ public final class LocalizationService: @unchecked Sendable {
 
     /// The language a service starts in, and the codes it looks keys up in:
     /// the `stored` choice alone, else the languages the environment `asked`
-    /// for, else English.
-    private static func initialLanguage(stored: Language?, asked: [String]) -> (language: Language, codes: [String]) {
+    /// for, else English. `chosen` says which: a stored choice is the app's.
+    private static func initialLanguage(
+        stored: Language?, asked: [String]
+    ) -> (language: Language, codes: [String], chosen: Bool) {
         if let stored {
-            return (stored, lookupCodes(asked: [], language: stored))
+            return (stored, lookupCodes(asked: [], language: stored), true)
         }
         let language = asked.last.flatMap(Language.init(rawValue:)) ?? .english
-        return (language, lookupCodes(asked: asked, language: language))
+        return (language, lookupCodes(asked: asked, language: language), false)
+    }
+
+    /// The user's locale, as a service starting in `initial` sees it (see
+    /// ``currentLocale``): the chosen language with `region`, or, with none
+    /// chosen, the first language the environment asked for with `region` —
+    /// which is ``currentLanguage`` unless that first language is one TUIkit
+    /// does not ship.
+    private static func userLocale(
+        _ initial: (language: Language, codes: [String], chosen: Bool), region: Locale.Region?
+    ) -> Locale {
+        guard !initial.chosen, let asked = initial.codes.first, asked != initial.language.rawValue,
+            Language(rawValue: asked) == nil
+        else { return initial.language.locale(in: region) }
+        guard let region else { return Locale(identifier: asked) }
+        return Locale(languageCode: Locale.LanguageCode(asked), languageRegion: region)
     }
 
     /// `asked`, then `language`'s code, then English's, each once.

@@ -39,8 +39,9 @@ extension EnvironmentValues {
         renderCache = context.renderCache
         preferenceStorage = context.preferences
         localizationService = LocalizationService.shared
-        // Publish the app's locale — its language, with the user's region —
-        // as the environment locale each frame (the single source of truth),
+        // Publish the user's locale — their language, or the one the app
+        // chose, with their region — as the environment locale each frame
+        // (the single source of truth),
         // so `\.locale` tracks it by default while a subtree may still
         // override it. See LocaleEnvironment.swift.
         locale = LocalizationService.shared.currentLocale

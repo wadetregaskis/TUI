@@ -104,3 +104,50 @@ struct AppLocaleRegionTests {
         #expect(environment.locale == LocalizationService.shared.currentLocale)
     }
 }
+
+// MARK: - The user's locale (option B, 2026-10-14)
+
+@Suite("The locale is the user's, in a language TUIkit does not ship too")
+struct AppUserLocaleTests {
+    private func service(_ environment: [String: String]) -> LocalizationService {
+        LocalizationService(
+            configDirectoryPath: NSTemporaryDirectory() + "tuikit-userlocale-\(UUID().uuidString)",
+            environment: environment)
+    }
+
+    @Test("The user's locale stays the user's when TUIkit has no translations of its language")
+    func unshippedLanguageKeepsItsLocale() {
+        // Audit item 7: this was `en_BR`, English numbers for a Brazilian user.
+        let brazil = service(["LANG": "pt_BR.UTF-8"])
+        #expect(brazil.currentLocale.language.languageCode?.identifier == "pt")
+        #expect(brazil.currentLocale.region?.identifier == "BR")
+        #expect(brazil.currentLanguage == .english, "TUIkit's own words are still English")
+        #expect(1234.5.formatted(.number.locale(brazil.currentLocale)) == "1.234,5")
+    }
+
+    @Test("A shipped language and its region are the user's locale as before")
+    func shippedLanguage() {
+        let germany = service(["LANG": "de_DE.UTF-8"])
+        #expect(germany.currentLocale.language.languageCode?.identifier == "de")
+        #expect(germany.currentLocale.region?.identifier == "DE")
+        let britain = service(["LANG": "en_GB.UTF-8"])
+        #expect(britain.currentLocale.language.languageCode?.identifier == "en")
+        #expect(britain.currentLocale.region?.identifier == "GB")
+    }
+
+    @Test("A list whose first language is unshipped keeps that language in the locale")
+    func languageList() {
+        let user = service(["LANGUAGE": "pt:es", "LANG": "pt_BR.UTF-8"])
+        #expect(user.currentLanguage == .spanish, "TUIkit's words in the first language it ships")
+        #expect(user.currentLocale.language.languageCode?.identifier == "pt")
+        #expect(user.currentLocale.region?.identifier == "BR")
+    }
+
+    @Test("A language the app chooses replaces the user's, and keeps their region")
+    func chosenLanguage() {
+        let user = service(["LANG": "pt_BR.UTF-8"])
+        user.pinLanguageForTesting(.french)
+        #expect(user.currentLocale.language.languageCode?.identifier == "fr")
+        #expect(user.currentLocale.region?.identifier == "BR")
+    }
+}
