@@ -147,8 +147,11 @@ extension ModifierKeyAlternateModifier: Renderable {
     /// frame (`withThrowawayFrameDemand`): the alternate is what is drawn,
     /// and takes the keys.
     ///
-    /// The first in a chain to show its alternate walks the modified view; an
-    /// inner one renders only while no outer one shows its own.
+    /// The first in a chain to show its alternate walks the rest of the
+    /// chain, so an inner alternate renders here too, at this identity, and
+    /// answers for its own keys alone — perhaps that none of them is held.
+    /// That answer does not undo this one's claim on the focus: see
+    /// ``ModifierKeyMonitor/modifiedViewShown(at:focusManager:)``.
     private func walkHidden(context: RenderContext) {
         context.isolatedForBackground().withThrowawayFrameDemand { hidden in
             _ = TUIkitView.renderToBuffer(content, context: hidden)
@@ -158,10 +161,15 @@ extension ModifierKeyAlternateModifier: Renderable {
     /// Keeps the modified view's state, and its focus, through the frames an
     /// alternate replaces it. Render path only; the claims are per pass.
     ///
-    /// Asked of every modifier in a chain that renders, and every one of them
-    /// gives the same answer — whether ANY alternate in the chain shows — since
-    /// an inner one renders only while no outer one shows its own. Each step is
-    /// idempotent, so a chain of two makes the same claims as one.
+    /// Asked of every modifier in a chain that renders. Drawn, every one of
+    /// them gives the same answer — whether ANY alternate in the chain shows
+    /// — since each asks the chain inside it, and an outer one that shows
+    /// draws its alternate rather than the rest. Walked unseen beneath an
+    /// outer one that shows (``walkHidden(context:)``), an inner one may
+    /// answer that none does, on keys that do not overlap the outer one's;
+    /// the monitor keeps the claim an alternate made at this identity in the
+    /// same walk. Each step is idempotent, so a chain of two makes the same
+    /// claims as one.
     private func keepModifiedView(context: RenderContext, monitor: ModifierKeyMonitor) {
         let focusManager = context.environment.focusManager
         guard mostSpecificMatch(held: monitor.current) != nil else {

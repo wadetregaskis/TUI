@@ -131,6 +131,37 @@ struct ModifierKeyAlternateTests {
         #expect(harness.focusManager.currentFocusedID == "forward")
     }
 
+    /// A chain of two alternates on keys that don't overlap: the outer one,
+    /// shown, walks the inner one hidden, where the inner one sees none of
+    /// its own keys held. That must not undo the outer one's hold on the
+    /// focus.
+    private func chainPage() -> some View {
+        VStack {
+            Button("Forward") {}.focusID("forward")
+                .modifierKeyAlternate(.option) { Text("Go to…") }
+                .modifierKeyAlternate(.shift) { Text("Back") }
+            Button("Other") {}.focusID("other")
+            Button("Third") {}.focusID("third")
+        }
+    }
+
+    @Test(
+        "The focus goes back to a view in a chain of alternates on keys that don't overlap",
+        arguments: [ModifierKeyState(shift: true), ModifierKeyState(option: true)])
+    func focusReturnsThroughAChain(held: ModifierKeyState) {
+        let harness = InputChainHarness(keyboard: .requested)
+        harness.frame(chainPage())
+        harness.frame(chainPage())
+        #expect(harness.focusManager.currentFocusedID == "forward")
+        hold(harness, held)
+        harness.frame(chainPage())
+        harness.frame(chainPage())
+        #expect(harness.focusManager.currentFocusedID == "other", "precondition: the recovery's neighbour")
+        hold(harness, ModifierKeyState())
+        harness.frame(chainPage())
+        #expect(harness.focusManager.currentFocusedID == "forward")
+    }
+
     @Test("The focus comes back after a frame the run loop walked twice", arguments: [1, 3])
     func focusReturnsAfterACorrectedFrame(framesHeld: Int) {
         let harness = InputChainHarness(keyboard: .requested)

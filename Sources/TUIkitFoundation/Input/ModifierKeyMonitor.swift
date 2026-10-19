@@ -133,8 +133,19 @@ package final class ModifierKeyMonitor: @unchecked Sendable {
     /// Notes that the view at `identity` is drawn this walk, and if an
     /// alternate replaced it while it held the focus and the keys' release
     /// did not already give it back (``record(_:)``), gives it back now.
+    ///
+    /// Not where an alternate at `identity` was drawn this same walk. The
+    /// modified view an outer alternate stands in for is walked unseen
+    /// (`ModifierKeyAlternateModifier.walkHidden`), and an inner alternate
+    /// in the chain renders there at the same identity, knowing only its own
+    /// keys: on keys that do not overlap the outer one's, none of its own
+    /// match, and it says its modified view is drawn. Taken at its word, it
+    /// gave the focus back mid-walk to a control that was not drawn, the
+    /// recovery moved it to a neighbour, and the release found nothing to
+    /// give back.
     func modifiedViewShown(at identity: ViewIdentity, focusManager: FocusManager?) {
-        guard !heldFocus.isEmpty, let held = heldFocus.removeValue(forKey: identity) else { return }
+        guard !heldFocus.isEmpty, let held = heldFocus[identity], held.touched != walk else { return }
+        heldFocus[identity] = nil
         giveBack(held, at: identity)
     }
 
