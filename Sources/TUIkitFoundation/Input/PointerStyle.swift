@@ -23,7 +23,7 @@ import TUIkitTerminalHost
 /// the case. See *Terminal compatibility survey*, "Pointer shapes (OSC 22)".
 ///
 /// A style a terminal has no name for — a closed hand on iTerm2, say — shows
-/// that terminal's own pointer. ``image(_:hotSpot:)`` is not available: no
+/// that terminal's own pointer. SwiftUI's `image(_:hotSpot:)` is not available: no
 /// terminal takes a picture for its pointer.
 public struct PointerStyle: Hashable, Sendable {
     /// What the style asks the terminal for.
@@ -83,7 +83,7 @@ public struct PointerStyle: Hashable, Sendable {
     /// The pointer style for resizing a column, or vertical division.
     ///
     /// - Parameter directions: The horizontal directions in which a column can
-    ///   be resized. Both, or none, is ``columnResize``.
+    ///   be resized. Both, or none, is `.columnResize`.
     /// - Returns: A pointer style for resizing a column.
     public static func columnResize(directions: HorizontalDirection.Set) -> Self {
         switch directions {
@@ -96,7 +96,7 @@ public struct PointerStyle: Hashable, Sendable {
     /// The pointer style for resizing a row, or horizontal division.
     ///
     /// - Parameter directions: The vertical directions in which a row can be
-    ///   resized. Both, or none, is ``rowResize``.
+    ///   resized. Both, or none, is `.rowResize`.
     /// - Returns: A pointer style for resizing a row.
     public static func rowResize(directions: VerticalDirection.Set) -> Self {
         switch directions {

@@ -317,7 +317,7 @@ extension TerminalClient {
     /// in CSS's names); `false` turns them off on one that has it. `nil` (the
     /// default) means the table, unless `TUIKIT_POINTER_SHAPES` is set in the
     /// environment: `1` on, `0` off, and `all` on with TUIkit's own controls'
-    /// shapes as well (``builtInPointerShapes``).
+    /// shapes as well.
     ///
     /// Read once, as the app starts: set it in your `App`'s `init`.
     @MainActor public static var pointerShapeSupport: Bool?
