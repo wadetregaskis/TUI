@@ -1,0 +1,103 @@
+{
+ "stamp": {
+  "probe": "clipboard_probe",
+  "measured": "2026-10-19T08:36:15-07:00",
+  "screen": "primary",
+  "os": "macOS 15.8.1",
+  "machine": "arm64",
+  "env": {
+   "TERM": "xterm-ghostty",
+   "TERM_PROGRAM": "ghostty",
+   "TERM_PROGRAM_VERSION": "1.3.1",
+   "COLORTERM": "truecolor",
+   "TERMINFO": "/Applications/Ghostty.app/Contents/Resources/terminfo",
+   "__CFBundleIdentifier": "com.mitchellh.ghostty",
+   "GHOSTTY_RESOURCES_DIR": "/Applications/Ghostty.app/Contents/Resources/ghostty"
+  },
+  "mode_2027_grapheme_clustering": "set",
+  "method": "DSR cursor report — confirm any disagreement with visual_card.py"
+ },
+ "remote": {},
+ "read_back": "pbpaste",
+ "identity": {
+  "xtversion": "ghostty 1.3.1",
+  "da1": "\u001b[?62;22;52c",
+  "da1_has_52": true,
+  "da2": "\u001b[>1;10;0c"
+ },
+ "leak": {
+  "before": [
+   20,
+   1
+  ],
+  "after": [
+   20,
+   1
+  ],
+  "clean": true
+ },
+ "write_st": {
+  "fenced": true,
+  "arrived": true,
+  "read_length": 25
+ },
+ "tmux": null,
+ "write_bel": {
+  "fenced": true,
+  "arrived": true,
+  "read_length": 16
+ },
+ "write_empty_selector": {
+  "fenced": true,
+  "arrived": true,
+  "read_length": 27
+ },
+ "ceiling": {
+  "sizes": {
+   "1KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 1024,
+    "base64_bytes": 1368
+   },
+   "8KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 8192,
+    "base64_bytes": 10924
+   },
+   "64KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 65536,
+    "base64_bytes": 87384
+   },
+   "100KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 102400,
+    "base64_bytes": 136536
+   },
+   "256KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 262144,
+    "base64_bytes": 349528
+   },
+   "512KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 524288,
+    "base64_bytes": 699052
+   },
+   "1024KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 1048576,
+    "base64_bytes": 1398104
+   }
+  },
+  "largest_intact_kib": 1024
+ },
+ "restored": true
+}

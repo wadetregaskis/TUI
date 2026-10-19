@@ -1,0 +1,80 @@
+{
+  "stamp": {
+    "probe": "identity_probe",
+    "measured": "2026-10-19T08:36:04-07:00",
+    "screen": "primary",
+    "os": "macOS 15.8.1",
+    "machine": "arm64",
+    "env": {
+      "TERM": "xterm-256color",
+      "TERM_PROGRAM": "iTerm.app",
+      "TERM_PROGRAM_VERSION": "3.7.6",
+      "COLORTERM": "truecolor",
+      "TERM_SESSION_ID": "w0t0p0:DD14137F-8D7E-41E7-BDEE-93306D9B0558",
+      "ITERM_SESSION_ID": "w0t0p0:DD14137F-8D7E-41E7-BDEE-93306D9B0558",
+      "ITERM_PROFILE": "Default",
+      "LC_TERMINAL": "iTerm2",
+      "LC_TERMINAL_VERSION": "3.7.6",
+      "COLORFGBG": "0;15",
+      "TERMINFO_DIRS": "/Applications/iTerm.app/Contents/Resources/terminfo:/usr/share/terminfo",
+      "__CFBundleIdentifier": "com.googlecode.iterm2"
+    },
+    "mode_2027_grapheme_clustering": "permanently reset",
+    "method": "DSR cursor report — confirm any disagreement with visual_card.py"
+  },
+  "environment": {
+    "TERM": "xterm-256color",
+    "TERM_PROGRAM": "iTerm.app",
+    "TERM_PROGRAM_VERSION": "3.7.6",
+    "COLORTERM": "truecolor",
+    "TERM_SESSION_ID": "w0t0p0:DD14137F-8D7E-41E7-BDEE-93306D9B0558",
+    "ITERM_SESSION_ID": "w0t0p0:DD14137F-8D7E-41E7-BDEE-93306D9B0558",
+    "LC_TERMINAL": "iTerm2",
+    "LC_TERMINAL_VERSION": "3.7.6",
+    "__CFBundleIdentifier": "com.googlecode.iterm2"
+  },
+  "answers": {
+    "DA1": {
+      "query": "<ESC>[c",
+      "reply": "<ESC>[?64;1;2;4;6;17;18;21;22;52c",
+      "raw": "\u001b[?64;1;2;4;6;17;18;21;22;52c",
+      "what": "Primary Device Attributes — ESC[?…c"
+    },
+    "DA2": {
+      "query": "<ESC>[>c",
+      "reply": "<ESC>[>64;2500;0c",
+      "raw": "\u001b[>64;2500;0c",
+      "what": "Secondary Device Attributes — ESC[>…c"
+    },
+    "DA3": {
+      "query": "<ESC>[=c",
+      "reply": "<ESC>P!|6954726D<ESC>\\",
+      "raw": "\u001bP!|6954726D\u001b\\",
+      "what": "Tertiary Device Attributes — DCS!|…ST"
+    },
+    "XTVERSION": {
+      "query": "<ESC>[>0q",
+      "reply": "<ESC>P>|iTerm2 3.7.6<ESC>\\",
+      "raw": "\u001bP>|iTerm2 3.7.6\u001b\\",
+      "what": "Terminal name and version — DCS>|…ST"
+    },
+    "XTGETTCAP_TN": {
+      "query": "<ESC>P+q544e<ESC>\\",
+      "reply": "<ESC>P1+r544E=787465726D2D323536636F6C6F72<ESC>\\",
+      "raw": "\u001bP1+r544E=787465726D2D323536636F6C6F72\u001b\\",
+      "what": "terminfo 'TN' (terminal name) — DCS…ST"
+    },
+    "DSR5": {
+      "query": "<ESC>[5n",
+      "reply": "<ESC>[0n",
+      "raw": "\u001b[0n",
+      "what": "Device status — ESC[0n; TUIkit's exchange fence"
+    },
+    "XTVERSION+DSR5": {
+      "query": "<ESC>[>0q<ESC>[5n",
+      "reply": "<ESC>P>|iTerm2 3.7.6<ESC>\\<ESC>[0n",
+      "raw": "\u001bP>|iTerm2 3.7.6\u001b\\\u001b[0n",
+      "what": "XTVERSION's reply (if any), THEN ESC[0n"
+    }
+  }
+}

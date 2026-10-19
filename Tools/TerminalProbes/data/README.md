@@ -3,7 +3,7 @@
 Written by a probe and never by hand. These are the evidence behind the
 tables in `Documentation/Terminals/Terminal compatibility survey.md`. The doc explains what
 the numbers *mean*; these say who measured what, when, and under which
-conditions. Nine kinds of file live here:
+conditions. Thirteen kinds of file live here:
 
 - **`width-corpus.json`** — the shared cluster corpus: every cluster the
   probes measure and the Swift tests ask about, one id per row, duplicated
@@ -64,6 +64,38 @@ conditions. Nine kinds of file live here:
   set, and a pop. The machine's name is recorded as `<hostname>`. Four so
   far, 2026-10-19: Apple Terminal 455.1, iTerm2 3.7.6 and Warp (none
   answers the report) and tmux 3.7c.
+- **`<terminal>-<version>-clipboard.json`** — OSC 52 records
+  (`clipboard_probe.py`): whether the write printed anything (the cursor
+  before and after), the host's DA1 and whether it lists `52`, whether each
+  spelling (ST, BEL, an empty selector) reached the clipboard as the helper
+  named in `read_back` read it, the largest copy that arrived intact (sizes
+  stop at the first that does not), and whether the clipboard was put back.
+  Inside tmux, `tmux` holds `set-clipboard` and
+  whether tmux kept the write as a buffer; the two tmux runs are named by
+  that option, `…-clipboard-on.json` and `…-clipboard-external.json`.
+  Six so far, 2026-10-19: Apple Terminal 455.1, iTerm2 3.7.6, Warp, Ghostty
+  1.3.1 and tmux 3.7c twice.
+- **`<terminal>-<version>-identity.json`** — IDENTITY records
+  (`identity_probe.py`): the reply to each query a host could be identified
+  by — DA1, DA2, DA3, XTVERSION, XTGETTCAP `TN` — and to the status report
+  `CSI 5 n` TUIkit fences its exchanges with, and in `XTVERSION+DSR5` the
+  replies to an XTVERSION with the status report behind it, in the order
+  they arrived. Four
+  so far, 2026-10-19: Apple Terminal 455.1, iTerm2 3.7.6, Warp and Ghostty
+  1.3.1.
+- **`<terminal>-<version>-m3m7.json`** — MODE 2031 and SGR 7 records
+  (`osc_colour_probe.py` with `PROBE_SUITE=m3m7`): each step's request, the
+  cursor before and after it, and every reply, DECRQM's and DECRQSS's
+  among them. `python3 osc_colour_probe.py --summarise <file>` prints them
+  a line per step. The colour queries' own records are not kept; this
+  suite's are, since 2026-10-19. One so far: Ghostty 1.3.1.
+- **`<terminal>-<version>-graphics-compression.json`** — DEFLATED
+  TRANSMISSION records (`graphics_compression_probe.py`): the replies to
+  the startup handshake's virtual placement and its deflated 32×32 block
+  (`o=z`), and to the same hue ramp displayed raw and deflated. `rendered`
+  is the human half — whether the two ramps drew the same — and says
+  `unmeasured` until somebody fills it in. One so far, 2026-10-19: Ghostty
+  1.3.1.
 - **`tmux-3.7b-tonebases.json`** — the full Emoji_Modifier_Base sweep
   (`advance_probe.py --modifier-bases`): which of the 134 bases tmux merges
   with a following tone (70) and which it detaches (64). The source of
@@ -93,6 +125,16 @@ stamp is what makes it look trustworthy.
 So the test is **is it wrong, or merely old**. Old is evidence. Wrong is a
 trap, and the fact that it was written by a probe rather than by hand is
 exactly why somebody would believe it.
+
+**A re-run of the same version that reproduced every row replaced its
+record.** Ghostty 1.3.1's two advance records were rewritten on 2026-10-19 by a
+re-run on the same screens with mode 2027 set, as before: every row the old
+records held came back the same (`pua_bmp_sf` under its corrected name,
+`pua16_second`), and the battery had grown by fifteen rows on the primary
+screen and eighty-two on the alternate. Nothing was lost — every number the old
+files held is in the new ones, and the old files are in the history. A re-run
+that differed, iTerm2 3.7.4's of 2026-10-13, was kept out of this directory
+instead until its cause is known (the survey's "The drop-operation badge").
 
 ## Why the conditions are in the file
 

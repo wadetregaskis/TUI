@@ -1,0 +1,66 @@
+{
+ "stamp": {
+  "probe": "clipboard_probe",
+  "measured": "2026-10-19T08:36:00-07:00",
+  "screen": "primary",
+  "os": "macOS 15.8.1",
+  "machine": "arm64",
+  "env": {
+   "TERM": "xterm-256color",
+   "TERM_PROGRAM": "Apple_Terminal",
+   "TERM_PROGRAM_VERSION": "455.1",
+   "TERM_SESSION_ID": "F4F2C4E4-E426-41AB-A149-CFE8C556294E",
+   "__CFBundleIdentifier": "com.apple.Terminal"
+  },
+  "mode_2027_grapheme_clustering": "not asked (Apple Terminal prints this query's final byte)",
+  "method": "DSR cursor report — confirm any disagreement with visual_card.py",
+  "terminal_app_build": "455.1"
+ },
+ "remote": {},
+ "read_back": "pbpaste",
+ "identity": {
+  "xtversion": null,
+  "da1": "\u001b[?1;2c",
+  "da1_has_52": false,
+  "da2": "\u001b[>1;95;0c"
+ },
+ "leak": {
+  "before": [
+   23,
+   1
+  ],
+  "after": [
+   23,
+   1
+  ],
+  "clean": true
+ },
+ "write_st": {
+  "fenced": true,
+  "arrived": false,
+  "read_length": 0
+ },
+ "tmux": null,
+ "write_bel": {
+  "fenced": true,
+  "arrived": false,
+  "read_length": 0
+ },
+ "write_empty_selector": {
+  "fenced": true,
+  "arrived": false,
+  "read_length": 0
+ },
+ "ceiling": {
+  "sizes": {
+   "1KiB": {
+    "fenced": true,
+    "arrived": false,
+    "read_length": 0,
+    "base64_bytes": 1368
+   }
+  },
+  "largest_intact_kib": null
+ },
+ "restored": true
+}

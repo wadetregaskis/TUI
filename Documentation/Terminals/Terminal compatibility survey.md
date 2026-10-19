@@ -486,7 +486,7 @@ widens it.
 | Apple Terminal | 455.1 | 1 each | 3 | UNMEASURED |
 | iTerm2, ambiguous narrow (the default) | 3.7.3 | 1 each | 3 | UNMEASURED |
 | iTerm2, "ambiguous characters are wide" | — | UNMEASURED (`⇧`, the arrows, `↖ ↘` expected 2) | — | UNMEASURED |
-| Ghostty | — | UNMEASURED (not reached: the launch waited on a prompt) | — | UNMEASURED |
+| Ghostty | 1.3.1 | not reached on 2026-10-05 (the launch waited on a prompt); on 2026-10-19 `advance_probe.py` read every key row of the corpus at 1, `↩ ↖ ↘ ⇞ ⇟` included, on both screens | not asked | UNMEASURED |
 | Warp | v0.2026.09.30.08.29 | 1 each | 3 | UNMEASURED |
 | kitty | — | UNMEASURED (did not launch) | — | UNMEASURED |
 | tmux, no outer terminal recorded | 3.7c | 1 each | 3 | UNMEASURED |
@@ -508,9 +508,11 @@ here in prose and in no file under `Tools/TerminalProbes/data/`. The five
 glyphs are corpus rows now (`key_return_hook`, `key_home`, `key_end`,
 `key_page_up`, `key_page_down`, class `chrome_key`), in `advance_probe.py`'s
 battery and on `overhang_card.py`, so a re-run of the committed probes records
-their advance and draws them for the ink reading. Until it does,
-`ChromeGlyphAdvanceTests` and `TerminalLedgerConformanceTests` list them as
-awaiting measurement on every host, and assert nothing about them.
+their advance and draws them for the ink reading. Ghostty's re-run was
+committed on 2026-10-19 (`ghostty-1.3.1-advance.json`), so
+`ChromeGlyphAdvanceTests` asserts their advance there. On the other hosts it
+lists them as awaiting measurement, and `TerminalLedgerConformanceTests`, which
+reads landing records, does on every host.
 
 A glyph that overhangs on a host joins that host's table in
 `TerminalWidthTraits.ChromeOverhang`, whose rows must be corpus rows — which
@@ -573,8 +575,9 @@ on nine rows outside the chrome classes**: `hangul_jamo_lv` 3 → 2,
 2 → 4 (committed record → this run). Whether that is the new version or a
 profile setting (its Unicode version) was not followed up; the run's record
 is kept with the lane's notes, not committed. No record was rewritten, so
-`ChromeGlyphAdvanceTests` lists the two badge rows as awaiting measurement on
-every host until a re-run is committed. **The ink is
+`ChromeGlyphAdvanceTests` listed the two badge rows as awaiting measurement on
+every host until a re-run was committed. Ghostty's was, on 2026-10-19 (both
+rows 1, on both screens), so they wait on the other three. **The ink is
 unmeasured**: what a DSR cannot see — a glyph overhanging its cell, or a font
 with no glyph for it drawing a box — needs `overhang_card.py` (which draws the
 two rows now) read by a person. Until it is, the claim is one cell and no
@@ -706,14 +709,17 @@ every run replayed over it.
 rows, run in each host from a `.command` file on the primary screen, on macOS
 15.8.1: **one cell for all eight** on Apple Terminal 455.1, iTerm2 3.7.4
 (ambiguous narrow, the default), Warp v0.2026.09.30.08.29 and tmux 3.7c (its own
-grid). Ghostty is **UNMEASURED**: it asks once per new script path before
-running one, and nobody was there to answer. The four Ambiguous rows join the
+grid). Ghostty was not reached that day: it asks once per new script path
+before running one, and nobody was there to answer. On 2026-10-19
+`advance_probe.py` read all eight at one cell there, on both screens, mode 2027
+set (`ghostty-1.3.1-advance.json`, `ghostty-1.3.1-alternate.json`). The four
+Ambiguous rows join the
 borders' class (two cells where a host draws ambiguous characters wide, which
 TUIkit answers with autowrap off); the quadrants are Neutral. Ink is
 **UNMEASURED** on every host (`overhang_card.py` draws the rows; a person reads
 it). As on 2026-10-13 the records were not rewritten, so the rows wait in
-`ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` and the ledger's
-`awaitingLandingMeasurement`.
+`ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` — except on Ghostty, whose
+record was, on 2026-10-19 — and in the ledger's `awaitingLandingMeasurement`.
 
 **Since the evening of 2026-10-15 a button's face follows the `Appearance`**,
 the owner's choice from a live prototype and two cards of candidate families
@@ -921,23 +927,43 @@ halves — asked only of Ghostty, set only when off, reset only if set — and
 both were mutation-checked: removing the host gate makes the unidentified case
 fail, and pinning unconditionally makes the three already-fine cases fail.
 
-### Asking the terminal — Device Attributes (measured 2026-08-26)
+### Asking the terminal — Device Attributes (measured 2026-08-26 and 2026-10-19)
 
 Device Attributes are answered by terminals that answer no XTVERSION, and
-cross an ssh hop like any other escape. Measured with `identity_probe.py`
-through ssh (Apple Terminal 455.1 / macOS 15.7); Ghostty's and Warp's DA
-strings were read out of their shipped binaries, and iTerm2's DA2 format
-string (`ESC[>%d;%d;0c`) likewise.
+cross an ssh hop like any other escape. First measured with
+`identity_probe.py` through ssh (Apple Terminal 455.1 / macOS 15.7), with
+Ghostty's and Warp's DA strings read out of their shipped binaries and
+iTerm2's DA2 format string (`ESC[>%d;%d;0c`) likewise.
 
-| Query | Apple Terminal | Ghostty | Warp | iTerm2 |
+**Every host asked directly, 2026-10-19:** `identity_probe.py` run inside
+each one on this machine, primary screen, macOS 15.8.1. The records are
+`Tools/TerminalProbes/data/apple-terminal-455.1-identity.json`,
+`ghostty-1.3.1-identity.json`,
+`warpterminal-v0.2026.09.30.08.29.stable_01-identity.json` and
+`iterm2-3.7.6-identity.json`, and the table is theirs. Where it differs from
+the table this one replaced: Ghostty's DA1 lists `52`, Warp answers DA2, and
+iTerm2's DA1 begins `64`, not `62`.
+
+| Query | Apple Terminal 455.1 | Ghostty 1.3.1 | Warp v0.2026.09.30.08.29 | iTerm2 3.7.6 |
 |---|---|---|---|---|
-| XTVERSION | *silent* | answers | answers | answers |
-| DA1 `ESC[c` | `ESC[?1;2c` | `ESC[?62;22c` | `ESC[?62c` | `ESC[?62;…c` |
-| DA2 `ESC[>c` | `ESC[>1;95;0c` | `ESC[>1;10;0c` | — | `ESC[>…;…;0c` |
-| DA3 `ESC[=c` | `ESC[?1;2c` (!) | — | — | — |
+| XTVERSION `ESC[>0q` | *silent* | `ghostty 1.3.1` | `Warp(v0.2026.09.30.08.29.stable_01)` | `iTerm2 3.7.6` |
+| DA1 `ESC[c` | `ESC[?1;2c` | `ESC[?62;22;52c` | `ESC[?62c` | `ESC[?64;1;2;4;6;17;18;21;22;52c` |
+| DA2 `ESC[>c` | `ESC[>1;95;0c` | `ESC[>1;10;0c` | `ESC[>0;95;0c` | `ESC[>64;2500;0c` |
+| DA3 `ESC[=c` | `ESC[?1;2c` (!) | *silent* | *silent* | a DCS report, `6954726D` (`iTrm` in hex) |
+| XTGETTCAP `TN` | *silent* | `xterm-ghostty` (hex-encoded) | *silent* | `xterm-256color` (hex-encoded) |
+| `CSI 5 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` |
 
 Apple Terminal answers DA3 with a **DA1 reply** — it ignores the `=` and
 treats `ESC[=c` as `ESC[c`. Noted as a curiosity; nothing depends on it.
+
+**iTerm2 lists `52` in DA1 with its clipboard setting presumably off.**
+In the same minute, `clipboard_probe.py` wrote OSC 52 three ways and none of
+them reached the clipboard (see "OSC 52 clipboard writes"). The setting,
+"Applications in terminal may access clipboard", was not changed for the run;
+off is its default and the owner's choice, and nothing in the run read it.
+If it was off, DA1's `52` does not follow the setting, and cannot tell an
+application whether a write will land. iTerm2 with the setting on is
+unmeasured.
 
 ⚠️ **Do not send DCS queries at startup.** XTGETTCAP (`ESC P + q … ESC \`)
 is not safe: Apple Terminal does not parse DCS and *prints the payload* —
@@ -1032,7 +1058,11 @@ Apple Terminal identified. **In order, measured 2026-10-05** with
 Apple Terminal 455.1, Warp v0.2026.09.16, tmux 3.7c and GNU screen 4.00.03
 each answer `CSI 0 n`, and where XTVERSION is answered (Warp, tmux) its reply
 comes first. iTerm2, Ghostty and kitty were not reached (their windows did
-not run the probe while the screen was locked); still owed.
+not run the probe while the screen was locked). **iTerm2 and Ghostty measured
+2026-10-19** with the same probe (the records above): iTerm2 3.7.6 and Ghostty
+1.3.1 each answered XTVERSION, then `CSI 0 n`, in that order, and so did Warp
+v0.2026.09.30 again; Apple Terminal 455.1 answered `CSI 0 n` alone, as it is
+silent to XTVERSION. kitty is still owed.
 
 One cost of a shared fence: a reply that comes in after its own exchange gave
 up (a link slower than the half-second deadline) can end the NEXT exchange's
@@ -2851,7 +2881,7 @@ slot and hold the fence was observed; why was not established.
   and `OSC 11;?` twice;
 - at detach: `?2004l`, `?1004l` and `?2031l`.
 
-### Colour-palette update notifications (mode 2031) — measured 2026-09-14
+### Colour-palette update notifications (mode 2031) — measured 2026-09-14, Ghostty 2026-10-19
 
 DEC private mode 2031 is how an application asks to be TOLD its colours changed
 rather than having to ask: with it set, a terminal that repaints its palette
@@ -2859,11 +2889,14 @@ sends `CSI ? 997 ; Ps n`, the same report `CSI ? 996 n` asks for on demand
 (above). tmux sets it on its own clients at attach and resets it at detach
 (measured, listed just above), which is what made it worth measuring here.
 
-**Status:** measured on five hosts. **Ghostty is UNMEASURED**, for both this and
-reverse video: `open -na Ghostty.app --args -e <script>` made a window and
-started no child, on 2026-09-14 (twice) and again on 2026-09-15. The earlier
-session's `error initializing surface err=error.OutOfMemory` was not reproduced,
-so the cause is unknown.
+**Status:** measured on six hosts. Ghostty, the sixth, was measured on
+2026-10-19, for this and for reverse video's cursor half (below). Before that
+it was unmeasured: `open -na Ghostty.app --args -e <script>` made a window and
+started no child, on 2026-09-14 (twice) and again on 2026-09-15 — on
+2026-09-14 at least, Ghostty was waiting to be allowed to run a script path new
+to it, and nobody was there to answer (the probes' README). Its record is
+`Tools/TerminalProbes/data/ghostty-1.3.1-m3m7.json`: primary screen, macOS
+15.8.1, 8.6 s, no fence timed out.
 
 | Host | `CSI ? 2031 h` / `l` | Unsolicited `997` on enable | DECRQM `CSI ? 2031 $ p` | Does the DECRQM print? |
 |---|---|---|---|---|
@@ -2872,20 +2905,22 @@ so the cause is unknown.
 | Warp v0.2026.09.02.08.27.stable_01 | nothing printed, cursor unmoved | none | *silent* | no |
 | GNU screen 4.00.03, inside Apple Terminal 455.1 | nothing printed, cursor unmoved | none | *silent* | no — screen consumes the query, so Apple Terminal's leak never reaches the outer screen |
 | tmux 3.7c, inside Apple Terminal 455.1 | nothing printed, cursor unmoved | none | `;2` reset, `;1` set, `;2` after reset, in 0.03–0.13 ms — per pane | no |
-| Ghostty 1.3.1 | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| Ghostty 1.3.1 (2026-10-19) | nothing printed, cursor unmoved, in all 9 steps | none | `ESC[?2031;2$y` reset, `ESC[?2031;1$y` set, `ESC[?2031;2$y` after reset, in 0.04–0.11 ms — it tracks the mode | no, nor did the `?25` control (`ESC[?25;1$y`) |
 
 The `?25` control matters: on Apple Terminal it leaked a cell exactly as `?2031`
 did, so the leak is that host's `?`-plus-intermediate CSI rule (see "Asking the
 terminal — Device Attributes") and not something about this mode. **So mode 2031
 may be set and reset anywhere, and its DECRQM may not be sent to a bare Apple
-Terminal.** There is also nothing to gain by asking: the one host that answers
-it natively is iTerm2, and the answer only says whether the mode this process
-just set is set.
+Terminal.** There is also nothing to gain by asking: the hosts that answer it
+natively are iTerm2 and Ghostty, and the answer only says whether the mode this
+process just set is set.
 
 **Provenance.**
 - `Tools/TerminalProbes/osc_colour_probe.py` with `PROBE_SUITE=m3m7`, run inside
   each host; macOS 15.7.9 (24G830), system appearance Light, on the virtual Mac
-  above. Records not committed, as that probe's never are.
+  above. Those records were not committed. Ghostty's, of 2026-10-19 on macOS
+  15.8.1, is: `Tools/TerminalProbes/data/ghostty-1.3.1-m3m7.json`, which
+  `python3 osc_colour_probe.py --summarise` prints a line per step.
 - Judged by the cursor, as the reverse-video rows below are: a step "printed"
   when the cursor is not where it should have left it. Output that moves no
   cursor goes unseen, and under screen and tmux the report comes from the
@@ -2898,7 +2933,7 @@ focus reporting's `?1004h`, and `disableRawMode` resets it just after `?1004l`,
 so a suspend (SIGTSTP, or a Ctrl-Z the undo keys leave unbound) and quitting both turn it off and resuming turns it back on —
 the mode outlives the process, and the shell never asked to be told about themes.
 `Tools/Smoke/suspend_probe.py` checks all four, beside the focus-reporting rows
-it already checked. It is sent blind to every host, as the focus request is: five
+it already checked. It is sent blind to every host, as the focus request is: six
 printed nothing, tmux sets it on its own clients anyway, and the DECRQM that
 could ask first is the one shape Apple Terminal prints. A `CSI ? 997` that then
 arrives is not a colour — it names light or dark — so the framework asks the
@@ -3035,14 +3070,15 @@ under the setting.
 - **Measured:** SGR 7 printed nothing, and text under it advanced exactly as
   plain text. The hosts were Apple Terminal 455.1, iTerm2 3.7.1, Warp
   v0.2026.09.02.08.27.stable_01, and GNU screen 4.00.03 and tmux 3.7c, both
-  inside Apple Terminal.
+  inside Apple Terminal; and Ghostty 1.3.1 on 2026-10-19.
 - **Measured 2026-09-19** — what a reversed cell PAINTS, read by eye off
   `Tools/TerminalProbes/reverse_video_card.py` by the owner, in six hosts.
   **iTerm2, Ghostty and Warp render the card correctly** on every row.
   **Apple Terminal does not, raw or under GNU screen** — and the fault is in the
   card's REFERENCE column, not in SGR 7. Under tmux the same card is correct.
-- **Ghostty:** now measured for paint (correct); still unmeasured for the cursor
-  half, which was the 2026-09-14 run.
+- **Ghostty:** measured for paint on 2026-09-19 (correct), and for the cursor
+  half on 2026-10-19 (the row below; record
+  `Tools/TerminalProbes/data/ghostty-1.3.1-m3m7.json`).
 
 **What Apple Terminal actually showed** (owner's reading): row A's reference is
 missing its background colour, row C's reference is neither reversed nor bold,
@@ -3216,7 +3252,7 @@ check, below.
 | Warp v0.2026.09.02.08.27.stable_01 | nothing printed; the cursor stayed put | exactly +2, all four | silent, 5 of 5; nothing printed |
 | GNU screen 4.00.03, inside Apple Terminal 455.1 | nothing printed; the cursor stayed put, in screen's grid | exactly +2, all four | not sent: screen passes a DCS payload to its outer terminal |
 | tmux 3.7c, inside Apple Terminal 455.1 | nothing printed; the cursor stayed put, in tmux's grid | exactly +2, all four | `ESC P 0 $ r ESC \`, 5 of 5, in ~0.03 ms. `0` means "invalid request", so tmux does not report SGR state |
-| Ghostty 1.3.1 | UNMEASURED | UNMEASURED | UNMEASURED |
+| Ghostty 1.3.1 (2026-10-19, macOS 15.8.1) | nothing printed; the cursor stayed put | exactly +2, all four | answered, ST-terminated, 5 of 5, in 0.03–0.07 ms; the replies are below |
 
 **iTerm2 reports a reversed pair already exchanged, and the 7 as well.** Its
 DECRQSS replies, verbatim:
@@ -3236,6 +3272,22 @@ DECRQSS replies, verbatim:
 - Whether iTerm2 stores the pair exchanged or only reports it that way, the reply
   cannot say. What it paints is the question of the card's rows B and D.
 - TUIkit never sends DECRQSS, so nothing reads this today.
+
+**Ghostty reports the state as it was set, the 7 included** (2026-10-19):
+
+| State set | Ghostty 1.3.1's reply |
+|---|---|
+| `ESC[7m` | `ESC P 1 $ r 0;7m ESC \` |
+| `ESC[7;31;44m` | `ESC P 1 $ r 0;7;31;44m ESC \` |
+| `ESC[7;1m` | `ESC P 1 $ r 0;1;7m ESC \` |
+| `ESC[7;38;2;10;20;30;48;2;200;200;200m` | `ESC P 1 $ r 0;7;38:2::10:20:30;48:2::200:200:200m ESC \` |
+| `ESC[m` | `ESC P 1 $ r 0m ESC \` |
+
+- The pair is not exchanged: 31 on 44 with 7 comes back as 31 on 44 with 7.
+- The 24-bit pair comes back in the colon form with the colour-space field
+  empty (`38:2::10:20:30`), where iTerm2 writes `1` there.
+- So iTerm2 and Ghostty answer the same question two ways, and a reader of the
+  reply would have to know which host it asked.
 
 **What a reversed cell paints: UNMEASURED on every host.** Screen capture on
 this machine returns only the wallpaper, so nobody has seen the card in a real
@@ -3265,9 +3317,11 @@ treats as the foreground is unknown. Reading the setting "off" would mean
 changing a Warp preference, and that is for the owner to do.
 
 **Not measured, and why:**
-- **Ghostty 1.3.1:** two launches with `open -na Ghostty.app --args -e <script>`
-  each opened a window but started no child, so the probe never ran. The cause
-  was not established.
+- **Ghostty 1.3.1, until 2026-10-19:** two launches with
+  `open -na Ghostty.app --args -e <script>` on 2026-09-14 each opened a window
+  but started no child, so the probe never ran: Ghostty asks before it runs a
+  script path it has not run before, and nobody answered. The 2026-10-19 run
+  went through a script path it had been allowed to run.
 - **Not captured:** what tmux sends its outer terminal during these steps.
 - **Not attempted:** screen or tmux inside iTerm2, Warp or Ghostty, and ssh.
 - **Hyper:** dropped from these measurements.
@@ -3774,7 +3828,7 @@ it as supporting placements.
 present) while its DA1 advertises Sixel; Ghostty answers `DCS 1 + r 5375 ST` —
 a success flag with no value — while supporting no Sixel at all. Use DA1.
 
-### Deflated transmissions (`o=z`) — asked by the handshake, NOT YET MEASURED
+### Deflated transmissions (`o=z`) — asked by the handshake; Ghostty acknowledges (measured 2026-10-19), the other hosts NOT YET MEASURED
 
 TUIkit's startup handshake asks a second question since 2026-09-04: whether a
 zlib-deflated transmission is understood. It transmits a 32×32 block as
@@ -3790,8 +3844,19 @@ a little.
 |---|---|---|
 | Apple Terminal | never asked (prints APC) | — |
 | iTerm2 | unmeasured | unmeasured |
-| Ghostty | unmeasured | unmeasured |
+| Ghostty 1.3.1 | **yes**, 2026-10-19 | awaiting the owner's look (2026-10-19) |
 | Warp | unmeasured | unmeasured (draws no placeholders anyway) |
+
+**Ghostty 1.3.1, 2026-10-19** (`graphics_compression_probe.py`, primary
+screen, macOS 15.8.1; record
+`Tools/TerminalProbes/data/ghostty-1.3.1-graphics-compression.json`). Every
+command was acknowledged: the handshake's virtual placement
+(`ESC _ G i=16777215;OK ESC \`), its twenty-six-byte deflated block
+(`i=16777214;OK`), and both displays of the card's hue ramp, raw (`i=901;OK`)
+and deflated (`i=902;OK`) — 24,576 bytes raw, 1,002 deflated. Whether the
+deflated ramp DRAWS the same as the raw one is a person's reading of the
+card; the owner is making it, and the record's `rendered` field and the cell
+above are where it goes.
 
 Run `Tools/TerminalProbes/graphics_compression_probe.py` inside each host: it
 asks both questions and prints the same ramp raw and deflated, one under the
@@ -4087,7 +4152,10 @@ re-measured the same day too — identical, so the harness is
 cross-validated). Every cell here is measured; none is inferred. Full battery in
 `Tools/TerminalProbes/` (`PROBE_ALT=1`). Claim = `Character.terminalWidth`.
 Terminal.app and Ghostty measure identically in both screen modes; iTerm2
-and (much more so) Warp do NOT — always probe with `PROBE_ALT=1`.
+and (much more so) Warp do NOT — always probe with `PROBE_ALT=1`. Ghostty's
+column was measured again on 2026-10-19, mode 2027 set, on both screens
+(`ghostty-1.3.1-advance.json`, `ghostty-1.3.1-alternate.json`): every row below
+came back the same, and the two screens agreed on every row of the battery.
 
 **Bold = diverges from the claim** (i.e. needs compensation, or shears).
 
@@ -4115,6 +4183,11 @@ and (much more so) Warp do NOT — always probe with `PROBE_ALT=1`.
 | 🖥 🛡 🕹 🕷 🎞 🏙 (bare SMP pictograph) | 2 | **1** | **1** | **1** | **1** |
 | ⤷ *(compensated since 2026-07-14 — all four CUF)* | | ✓ | ✓ | ✓ | ✓ |
 | 🁠 🂡 (domino / card — in-block non-emoji) | 2 | **1** | **1** | **1** | **1** |
+| स्त्र ष्ट्र स्त्री (Devanagari conjuncts of three consonants or more, one cluster under GB9c) | 2 | not measured here; primary screen 2026-09-04: **3 / 3 / 4** | not measured here; primary screen 2026-09-04: **3 / 3 / 4** | 2 / 2 / 2 (2026-10-19) | not measured here; primary screen 2026-09-04 (v0.2026.09.02): **3 / 3 / 4** |
+
+The conjunct row and the rest of the 38 complex-script rows are in "Complex
+scripts", below; no host has had them measured on the alternate screen except
+Ghostty.
 
 tmux is a fifth advance model and is measured separately (its grid is
 client-independent, so it needs no per-client column) — see
@@ -5995,7 +6068,7 @@ Kitty graphics line, re-placed every frame, steady with the mode and without
 it ("A line on a row boundary", under the graphics protocols), which is a
 different test from the `splitdrag` column's.
 
-## OSC 52 clipboard writes — sent since 2026-10-05; tmux measured, the hosts NOT yet
+## OSC 52 clipboard writes — sent since 2026-10-05; measured on tmux, and on four hosts 2026-10-19
 
 OSC 52 (`ESC ] 52 ; c ; <base64> ESC \`) asks the terminal to set the
 clipboard. The terminal acting on it runs on the user's machine, so it is the
@@ -6161,19 +6234,22 @@ goes: the ladder reads the terminal actually detected, unlike OSC 8's.
 
 | Host | Writes OSC 52 | Source | TUIkit's rung |
 |---|---|---|---|
-| Ghostty 1.3.1 | yes, by default (`clipboard-write = allow`) | its OSC 52 page and config reference | 1 |
+| Ghostty 1.3.1 | yes, by default (`clipboard-write = allow`) | its OSC 52 page and config reference; measured 2026-10-19 (below) | 1 |
 | kitty | yes, by default (`clipboard_control` allows writes) | its documentation | 1 (`TERM=xterm-kitty`, `KITTY_WINDOW_ID`) |
 | WezTerm | yes, by default | its documentation | 1 (`TERM_PROGRAM=WezTerm`, `TERM=wezterm`) |
 | foot | yes, by default | its documentation | 1 (`TERM=foot`, `foot-extra`) |
-| iTerm2 3.6 | only with Settings > General > Selection > "Applications in terminal may access clipboard", off by default | its documentation; its DA1 lists `52` | 3 |
+| iTerm2 3.6, 3.7.6 | only with Settings > General > Selection > "Applications in terminal may access clipboard", off by default | its documentation; its DA1 lists `52`; measured 2026-10-19 with the setting presumably off: no write arrived (below) | 3 |
 | tmux 3.7c | `external` (the default) ignores an application's write; `on` keeps it as a paste buffer and passes it on to clients whose features include `clipboard` | measured, below; the manual | 3 with `on`, else none |
-| Apple Terminal 455.1 | hypothesis: no | no OSC 52 anywhere in the app | none |
-| Warp | unknown | — | none |
+| Apple Terminal 455.1 | no | no OSC 52 anywhere in the app; measured 2026-10-19 (below) | none |
+| Warp v0.2026.09.30.08.29 | no | measured 2026-10-19 (below) | none |
 | unidentified | — | — | none, unless its DA1 lists `52` (rung 3) |
 
-DA1 can only ADD a host: Ghostty writes by default and its `ESC[?62;22c`
-lists no `52`. Whether iTerm2's `52` follows its setting is the one question
-that would make that setting detectable, and the probe asks it.
+DA1 can only ADD a host: a terminal that writes by default need not say so.
+(Ghostty was the example here, with the `ESC[?62;22c` read out of its binary;
+asked on 2026-10-19, Ghostty 1.3.1 answered `ESC[?62;22;52c`, which does list
+it.) Nor does DA1 follow iTerm2's setting, as far as one run can tell: with the
+setting presumably off, iTerm2 3.7.6 listed `52` and no write arrived. Whether
+a write lands with the setting on is still to measure.
 
 Where TUIkit stands on locality inside tmux depends on tmux: the clients are
 asked for (`list-clients`) and `set-clipboard` read (`show-options -sv`) when
@@ -6187,24 +6263,63 @@ external` the write left no buffer; with `on` tmux kept it as its newest
 buffer (`show-buffer` returned the nonce). Whether tmux then passes the
 write to an attached client is the next row to measure.
 
+### Measured: four hosts, and tmux with a client, 2026-10-19
+
+`clipboard_probe.py` in its default mode — not `--destructive`, so no empty
+or malformed payload was sent — run inside each host on this machine, primary
+screen, macOS 15.8.1, one host at a time, reading the clipboard back with
+`pbpaste` and putting it back after every run (every record says
+`restored: true`). The records, in `Tools/TerminalProbes/data/`, are
+`apple-terminal-455.1-clipboard.json`, `iterm2-3.7.6-clipboard.json`,
+`ghostty-1.3.1-clipboard.json` and
+`warpterminal-v0.2026.09.30.08.29.stable_01-clipboard.json`.
+
+- **Ghostty 1.3.1 writes every spelling** — ST, BEL, and the empty selector
+  (which it reads as `c`) — and every size tried, 1 KiB to 1 MiB, arrived
+  whole. Its DA1 lists `52`.
+- **iTerm2 3.7.6 wrote nothing**, in any spelling, while its DA1 listed
+  `52`. Its "Applications in terminal may access clipboard" setting was not
+  changed for the run and is presumably off: its default, and the owner's
+  choice. Nothing in the run read the setting.
+- **Apple Terminal 455.1 and Warp v0.2026.09.30.08.29 ignore OSC 52**: no
+  spelling arrived. Neither lists `52`.
+- **None of the four printed any of it**: the cursor did not move across
+  the write.
+
+tmux 3.7c was run in a server of its own (`tmux -L tuikitprobe -f /dev/null`)
+with one client attached, an Apple Terminal window, twice: with
+`set-clipboard on` and then `external`
+(`tmux-3.7c-clipboard-on.json`, `tmux-3.7c-clipboard-external.json`). tmux
+listed the client's features as including `clipboard`. With `on` it kept the
+write as its newest buffer, and with `external` it kept none, as on
+2026-10-05. Nothing reached the clipboard either way, which is what a client
+that ignores OSC 52 predicts; whether tmux sent the write on to the client was
+not captured. With a client that writes it (Ghostty), unmeasured. (Both tmux
+records name `com.anthropic.claudefordesktop` as the bundle: the pane
+inherits the environment the server was started in, not the client's.)
+
 ### To measure — `Tools/TerminalProbes/clipboard_probe.py`
 
 Run it inside each host, on the machine the host runs on, so the probe reads
 the clipboard back itself (`pbpaste`, `wl-paste`, `xclip`, `xsel`); over ssh,
 `--manual` asks for a paste instead. `--destructive` adds the empty and the
-malformed payloads. Run iTerm2 twice, with its setting on and off, and note
-whether DA1's `52` changes.
+malformed payloads. Still to run: iTerm2 with its setting on, kitty,
+`--destructive` on every host, and tmux with `on` under a client that writes
+OSC 52.
 
 | Host | Prints nothing | DA1 lists 52 | Write arrives | Largest copy | Empty payload | Malformed payload |
 |---|---|---|---|---|---|---|
-| Apple Terminal | UNMEASURED | UNMEASURED | UNMEASURED | — | — | — |
-| iTerm2, setting off | UNMEASURED | UNMEASURED | UNMEASURED | — | — | — |
+| Apple Terminal 455.1 | yes | no (`ESC[?1;2c`) | no | — | — | — |
+| iTerm2 3.7.6, setting presumably off | yes | **yes** | **no** | — | — | — |
 | iTerm2, setting on | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
-| Ghostty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | documented: cleared |
-| Warp | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| Ghostty 1.3.1 | yes | yes (`ESC[?62;22;52c`) | yes — ST, BEL and an empty selector | 1 MiB, the largest tried | UNMEASURED | documented: cleared; UNMEASURED |
+| Warp v0.2026.09.30.08.29 | yes | no (`ESC[?62c`) | no | — | — | — |
 | kitty | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
-| tmux 3.7c, `external` | yes | no (`ESC[?1;2;4c`, tmux's own) | no buffer | — | — | — |
-| tmux 3.7c, `on` | yes | no | buffer kept; the client UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+| tmux 3.7c, `external` | yes | no (`ESC[?1;2;4c`, tmux's own) | no buffer; nothing arrived through an Apple Terminal client | — | — | — |
+| tmux 3.7c, `on` | yes | no | buffer kept; nothing arrived through an Apple Terminal client; through Ghostty UNMEASURED | UNMEASURED | UNMEASURED | UNMEASURED |
+
+The tmux rows' first two columns are tmux's own: under tmux the probe's cursor
+and DA1 are the pane's, not the client's.
 
 ## OSC 5522 clipboard: any MIME type — measured 2026-10-17 on three hosts
 
@@ -7121,12 +7236,28 @@ default-ignorable. Zero is still the right number for three hosts out of four
 and for the standard, and TUIkit emits none of these controls itself — this can
 only arrive in content the user pastes.
 
-## Complex scripts — 38 corpus rows, and NOT ONE of them measured
+## Complex scripts — 38 corpus rows: the advance measured on four hosts, the paint on none
 
-Added to the corpus 2026-09-04. Every one is listed in
+Added to the corpus 2026-09-04. **Their ADVANCE is measured** — the DSR
+column, which governs wrapping (see "What the hosts advance", below):
+
+- on Ghostty 1.3.1 with mode 2027 set, on both screens, on 2026-10-19
+  (`Tools/TerminalProbes/data/ghostty-1.3.1-advance.json` and
+  `ghostty-1.3.1-alternate.json`);
+- on the primary screen of Apple Terminal 455.1, iTerm2 3.6.11, Ghostty 1.3.1
+  and Warp v0.2026.09.02, on 2026-09-04. The `advance_probe.py` run that
+  measured the chrome glyphs that afternoon carried these rows too, and its
+  records (`Apple-Terminal-advance.json`, `iTerm2-advance.json`,
+  `Warp-advance.json`, and Ghostty's, which the 2026-10-19 run reproduced row
+  for row and replaced) were committed. This section had been written that
+  morning, and was not updated with them until 2026-10-19.
+
+**Their PAINT is measured on no host.** Landing and ink come from
+`landing_probe.py`, and every row is still listed in
 `TerminalLedgerConformanceTests.awaitingLandingMeasurement`, which is what stops
-"nobody has asked a terminal" from reading as "the models pass". **Nothing below
-is a measurement. It is a list of questions.**
+"no landing record has it" from reading as "the models pass". Also unmeasured:
+the alternate screen of Apple Terminal, iTerm2 and Warp, those hosts' current
+versions, and Ghostty with mode 2027 reset.
 
 ### Why they exist
 
@@ -7176,18 +7307,60 @@ jamo and the per-scalar rule is wrong: it prices the conjoining V and T jamo at
 one cell each, where `wcwidth` gives the whole U+1160…U+11FF range zero. That
 is why "make one rule call the other" is not the fix for either half.
 
-Both rows are pinned rather than repaired, because what a host does with a bare
-jamo is as unmeasured as the rest of this section. A composed syllable always
-reaches the cluster rule and is claimed 2, which is right; the per-scalar 1 is
-only reachable for a **lone** V or T jamo — orphaned text, not a spelling of a
-syllable — and no terminal has been asked what it advances one by. Correcting
-it to `wcwidth`'s zero would be a change nothing here measured, in a file whose
-per-scalar answers are otherwise derived from measurements.
+Both rows are pinned rather than repaired, because what a host does with a
+lone jamo is unmeasured. A composed syllable always reaches the cluster rule
+and is claimed 2 — which three of the four hosts advance (below); the per-scalar
+1 is only reachable for a **lone** V or T jamo — orphaned text, not a spelling
+of a syllable — and no terminal has been asked what it advances one by.
+Correcting it to `wcwidth`'s zero would be a change nothing here measured, in a
+file whose per-scalar answers are otherwise derived from measurements.
 
-**The rule has not been changed, and must not be, until these rows are
-measured.** Under a wcwidth-per-codepoint host (Ghostty, kitty, xterm, VTE, tmux)
-3 is the plausible answer; under a grapheme-cluster host (DEC mode 2027) 1 is.
-Both differ from 2, in opposite directions. This project has twice drawn a wrong
+### What the hosts advance
+
+DSR, from the records named above. The Ghostty column is both screens, with
+mode 2027 set; the other three are the primary screen only, on 2026-09-04.
+**Bold** is an advance that differs from the claim, which is the cluster
+rule's number on every host.
+
+| Row | Cluster rule (the claim) | Per-scalar rule | Ghostty 1.3.1, 2026-10-19 | Apple Terminal 455.1 | iTerm2 3.6.11 | Warp v0.2026.09.02 |
+|---|---|---|---|---|---|---|
+| स्त्र `conjunct_deva_stra` | 2 | 3 | 2 | **3** | **3** | **3** |
+| ष्ट्र `conjunct_deva_shtra` | 2 | 3 | 2 | **3** | **3** | **3** |
+| स्त्री `conjunct_deva_stri` | 2 | 4 | 2 | **4** | **4** | **4** |
+| `hangul_jamo_lvt` | 2 | 4 | 2 | 2 | **4** | 2 |
+| `hangul_jamo_lv` | 2 | 3 | 2 | 2 | **3** | 2 |
+| ന്‍ `chillu_malayalam_zwj` | 1 | 1 | 1 | **2** | 1 | 1 |
+| a‍ `latin_zwj`, a‌ `latin_zwnj` | 1 | 1 | 1 | **2** | 1 | 1 |
+| LRM `bidi_lrm`, RLM `bidi_rlm` | 0 | 0 | 0 | **1** | 0 | 0 |
+| ரா `matra_tamil_aa` | 2 | 2 | 2 | 2 | 2 | **1** |
+| the other 27 rows | — | — | the claim | the claim | the claim | the claim |
+
+- **Ghostty with mode 2027 set advances the claim on all 38 rows, on both
+  screens**, and gave the same numbers on the primary screen on 2026-09-04. On
+  the one host measured that clusters graphemes, the cluster rule is right
+  about all five rows where the two rules disagree — the three conjuncts
+  included.
+- **The three hosts that advance per code point give the conjuncts the
+  per-scalar number**, so the claim is a cell short for स्त्र and ष्ट्र and
+  two for स्त्री on each of them — on the primary screen. Nothing in TUIkit
+  models that yet: no host trait covers these clusters.
+- **The jamo split the other three**: Apple Terminal and Warp advance the
+  claim, iTerm2 3.6.11 the per-scalar numbers. iTerm2 3.7.4 advanced both
+  rows 2 on 2026-10-13, in a run whose record was not committed (see "The
+  drop-operation badge"), so its column may be its version's.
+- Apple Terminal advances a ZWJ, a ZWNJ, an LRM and an RLM a cell each, where
+  the claim counts none. Two other format characters, the bidi overrides, were
+  seen drawn there as a box (see "Right-to-left text").
+
+**The rule has not been changed.** This section once predicted 3 for a
+host that advances per code point and 1 for one that clusters graphemes (DEC
+mode 2027), each differing from 2 in its own direction. The first half held;
+the second did not: Ghostty with mode 2027 set advances 2, the cluster rule's
+number. So the right answer is the host's, as it is for emoji, and a
+change would be a per-host trait, made from the advance AND the paint. The
+paint is unmeasured everywhere, and the advance is unmeasured on the
+alternate screen of the three per-code-point hosts, on Ghostty with mode 2027
+reset, and on kitty, xterm, VTE and tmux. This project has twice drawn a wrong
 conclusion from one of a row's four facts, and this would be the third.
 
 ### What the 38 rows cover
@@ -7221,7 +7394,9 @@ conclusion from one of a row's four facts, and this would be the third.
 ### Measure them
 
 The DSR half needs no display, no screenshot and no Screen Recording grant —
-`advance_probe.py` carries all 38 under the same ids as the corpus:
+`advance_probe.py` carries all 38 under the same ids as the corpus. It has run
+on Ghostty on both screens and on the other three on the primary screen
+(above); their alternate screen is owed:
 
 ```sh
 cd Tools/TerminalProbes

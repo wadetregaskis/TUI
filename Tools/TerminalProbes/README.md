@@ -172,9 +172,11 @@ when unset), the visual/aspect probes print to the terminal.
   the leak check, which needs no reader. `test_clipboard_probe.py` pins
   those rules (`python3 -m unittest test_clipboard_probe`, no terminal
   needed; CI runs it). JSON to `$PROBE_OUT`; `PROBE_ALT=1` for the
-  alternate screen. NOT YET RUN on any host (2026-10-05): Ghostty, iTerm2 with
-  its clipboard setting on and off, Apple Terminal, Warp, kitty, and tmux with
-  `set-clipboard on` and `external` are owed.
+  alternate screen. Run 2026-10-19, without `--destructive`, on Apple
+  Terminal 455.1, iTerm2 3.7.6 (its clipboard setting not changed, and
+  presumably off), Warp, Ghostty 1.3.1, and tmux 3.7c with `set-clipboard on`
+  and `external` under an Apple Terminal client (`data/*-clipboard*.json`).
+  Owed: iTerm2 with the setting on, kitty, and `--destructive` anywhere.
 - `clipboard_mime_probe.py` — does the terminal speak OSC 5522, kitty's
   clipboard protocol for any MIME type? DECRQM for mode 5522, then a write of
   text/plain, text/html, text/markdown and a 2×2 PNG, the acknowledgement,
@@ -187,7 +189,8 @@ when unset), the visual/aspect probes print to the terminal.
 - `identity_probe.py` — asks the terminal WHO it is over escape queries
   (DA1/DA2/DA3, XTVERSION, XTGETTCAP), DSR-fenced so a silent terminal
   cannot stall it. This is the measurement behind identifying a host over
-  ssh, where `TERM_PROGRAM` does not survive the hop.
+  ssh, where `TERM_PROGRAM` does not survive the hop. Records of Apple
+  Terminal, iTerm2, Warp and Ghostty, 2026-10-19: `data/*-identity.json`.
 - `hyperlink_probe.py` — is OSC 8 SAFE to emit here? A terminal with an OSC
   parser swallows the whole sequence whether or not it implements the
   command; one without prints the URI as text and leaves the cursor
@@ -234,7 +237,10 @@ when unset), the visual/aspect probes print to the terminal.
   refuse it — and then draws the same hue ramp raw and deflated, one under
   the other, for a person to compare. "Acknowledged" and "drawn" are
   different facts about a terminal, and the JSON records the first and asks
-  for the second. Unmeasured on every host as of 2026-09-04; the rows in
+  for the second. Run on Ghostty 1.3.1 on 2026-10-19
+  (`data/ghostty-1.3.1-graphics-compression.json`): both acknowledged, and
+  whether the deflated ramp draws the same as the raw one awaits the
+  owner's look. The other hosts' rows in
   `Documentation/Terminals/Terminal compatibility survey.md` ("Deflated transmissions") are
   waiting on it.
 - `pixel_format_probe.py` — the question `OK` does not answer: which
@@ -468,7 +474,8 @@ whether it can land after the `CSI 6n` / `CSI 5n` fence sent behind it, whether
 a batch costs one wait or one per query, and whether anything prints. Results
 and their versions are written up in `Documentation/Terminals/Terminal compatibility survey.md`,
 "What an ANSI colour actually paints". As with `palette_probe.py`, no records
-are kept in `data/`.
+of the colour queries are kept in `data/`; the `m3m7` suite's are, since
+2026-10-19 (`data/README.md`).
 
 Run the probe inside the terminal under test; it only queries and sets nothing:
 

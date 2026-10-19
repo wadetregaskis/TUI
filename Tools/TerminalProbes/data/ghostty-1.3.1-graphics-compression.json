@@ -1,0 +1,32 @@
+{
+  "probe": "graphics_compression_probe",
+  "measured": "2026-10-19T08:36:28-07:00",
+  "screen": "primary",
+  "os": "macOS 15.8.1",
+  "machine": "arm64",
+  "env": {
+    "TERM": "xterm-ghostty",
+    "TERM_PROGRAM": "ghostty",
+    "TERM_PROGRAM_VERSION": "1.3.1",
+    "COLORTERM": "truecolor",
+    "TERMINFO": "/Applications/Ghostty.app/Contents/Resources/terminfo",
+    "__CFBundleIdentifier": "com.mitchellh.ghostty",
+    "GHOSTTY_RESOURCES_DIR": "/Applications/Ghostty.app/Contents/Resources/ghostty"
+  },
+  "mode_2027_grapheme_clustering": "set",
+  "method": "DSR cursor report — confirm any disagreement with visual_card.py",
+  "deflated": {
+    "placement_ok": true,
+    "deflated_transmit_ok": true,
+    "block_bytes": 26,
+    "ramp_bytes_raw": 24576,
+    "ramp_bytes_deflated": 1002,
+    "replies": {
+      "PLACEMENT": "<ESC>_Gi=16777215;OK<ESC>\\",
+      "DEFLATED_TRANSMIT": "<ESC>_Gi=16777214;OK<ESC>\\",
+      "RAW_DISPLAY": "<ESC>_Gi=901;OK<ESC>\\",
+      "DEFLATED_DISPLAY": "<ESC>_Gi=902;OK<ESC>\\"
+    }
+  },
+  "rendered": "unmeasured — compare the two ramps above and fill this in by hand"
+}

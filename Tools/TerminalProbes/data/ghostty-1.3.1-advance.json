@@ -96,6 +96,22 @@
    "advance": 1,
    "cluster": "U+25BC"
   },
+  "chrome_drop_forbidden": {
+   "advance": 1,
+   "cluster": "U+2298"
+  },
+  "chrome_drop_link": {
+   "advance": 1,
+   "cluster": "U+2197"
+  },
+  "chrome_eighth_left": {
+   "advance": 1,
+   "cluster": "U+258F"
+  },
+  "chrome_eighth_right": {
+   "advance": 1,
+   "cluster": "U+2595"
+  },
   "chrome_full_block": {
    "advance": 1,
    "cluster": "U+2588"
@@ -107,6 +123,26 @@
   "chrome_left_tri": {
    "advance": 1,
    "cluster": "U+25C0"
+  },
+  "chrome_lower_half": {
+   "advance": 1,
+   "cluster": "U+2584"
+  },
+  "chrome_quadrant_lower_left": {
+   "advance": 1,
+   "cluster": "U+2596"
+  },
+  "chrome_quadrant_lower_right": {
+   "advance": 1,
+   "cluster": "U+2597"
+  },
+  "chrome_quadrant_upper_left": {
+   "advance": 1,
+   "cluster": "U+2598"
+  },
+  "chrome_quadrant_upper_right": {
+   "advance": 1,
+   "cluster": "U+259D"
   },
   "chrome_radio_dis": {
    "advance": 1,
@@ -135,6 +171,10 @@
   "chrome_up_tri": {
    "advance": 1,
    "cluster": "U+25B2"
+  },
+  "chrome_upper_half": {
+   "advance": 1,
+   "cluster": "U+2580"
   },
   "cjk": {
    "advance": 2,
@@ -256,17 +296,37 @@
    "advance": 1,
    "cluster": "U+2326"
   },
+  "key_end": {
+   "advance": 1,
+   "cluster": "U+2198"
+  },
   "key_escape": {
    "advance": 1,
    "cluster": "U+238B"
+  },
+  "key_home": {
+   "advance": 1,
+   "cluster": "U+2196"
   },
   "key_option": {
    "advance": 1,
    "cluster": "U+2325"
   },
+  "key_page_down": {
+   "advance": 1,
+   "cluster": "U+21DF"
+  },
+  "key_page_up": {
+   "advance": 1,
+   "cluster": "U+21DE"
+  },
   "key_return": {
    "advance": 1,
    "cluster": "U+21B5"
+  },
+  "key_return_hook": {
+   "advance": 1,
+   "cluster": "U+21A9"
   },
   "key_return_symbol": {
    "advance": 1,
@@ -576,10 +636,10 @@
    "__CFBundleIdentifier": "com.mitchellh.ghostty"
   },
   "machine": "arm64",
-  "measured": "2026-09-04T13:03:04-07:00",
+  "measured": "2026-10-19T08:36:27-07:00",
   "method": "DSR cursor report \u2014 confirm any disagreement with visual_card.py",
   "mode_2027_grapheme_clustering": "set",
-  "os": "macOS 15.7.9",
+  "os": "macOS 15.8.1",
   "probe": "advance_probe.py",
   "screen": "primary"
  }

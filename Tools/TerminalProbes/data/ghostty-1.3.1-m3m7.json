@@ -1,0 +1,1706 @@
+{
+ "probe": "osc_colour_probe (m3m7 suite)",
+ "label": "ghostty",
+ "measured": "2026-10-19T08:36:19-07:00",
+ "os": "macOS 15.8.1",
+ "machine": "arm64",
+ "env": {
+  "TERM": "xterm-ghostty",
+  "TERM_PROGRAM": "ghostty",
+  "TERM_PROGRAM_VERSION": "1.3.1",
+  "COLORTERM": "truecolor",
+  "TERMINFO": "/Applications/Ghostty.app/Contents/Resources/terminfo",
+  "__CFBundleIdentifier": "com.mitchellh.ghostty",
+  "GHOSTTY_RESOURCES_DIR": "/Applications/Ghostty.app/Contents/Resources/ghostty"
+ },
+ "env_extra": {},
+ "screen": "primary",
+ "method": "raw-mode tty; fences CSI 6n / CSI 5n; printed = cursor not at the reference (+ expected_advance) after a step",
+ "grace_s": {
+  "osc10_11": 0.4,
+  "osc4": 0.12,
+  "batch": 0.8,
+  "fence_timeout": 1.0,
+  "batch_fence_timeout": 10.0,
+  "unsolicited_997": 1.5
+ },
+ "app_bundle_versions": {
+  "Apple Terminal": "455.1",
+  "iTerm2": "3.7.6",
+  "Ghostty": "15212",
+  "Warp": "0.2026.09.30.08.29.01",
+  "Hyper": null
+ },
+ "parent_chain": [
+  {
+   "pid": 70817,
+   "comm": "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python"
+  },
+  {
+   "pid": 70775,
+   "comm": "/bin/zsh"
+  },
+  {
+   "pid": 70772,
+   "comm": "/bin/zsh"
+  },
+  {
+   "pid": 70771,
+   "comm": "/usr/bin/login"
+  },
+  {
+   "pid": 70767,
+   "comm": "/Applications/Ghostty.app/Contents/MacOS/ghostty"
+  }
+ ],
+ "tmux": null,
+ "tty": "/dev/tty",
+ "winsize": [
+  123,
+  37
+ ],
+ "t0_wall": 1792424179.294705,
+ "hard_limit_hit": false,
+ "pre_existing_input": [],
+ "suite": "m3m7",
+ "reference_cursor": [
+  3,
+  1
+ ],
+ "reference_probe": {
+  "name": "position",
+  "request": "\u001b[6n",
+  "request_hex": "1b5b366e",
+  "fence": "6n",
+  "fence_requested": "6n",
+  "grace_s": 0.0,
+  "t_write_ms": 255.772,
+  "fence_reply": {
+   "kind": "csi",
+   "raw": "\u001b[3;1R",
+   "hex": "1b5b333b3152",
+   "first_byte_ms": 0.114,
+   "complete_ms": 0.114,
+   "read_index": 0,
+   "first_read_index": 0
+  },
+  "cursor_after": [
+   3,
+   1
+  ],
+  "replies": [],
+  "other_tokens": []
+ },
+ "decrqss": "asked",
+ "late_drain": [],
+ "elapsed_s": 8.598,
+ "fence_timeouts": {
+  "6n": 0,
+  "5n": 0
+ },
+ "exchanges": [
+  {
+   "name": "m3",
+   "request": "\u001b[?2031h",
+   "request_hex": "1b5b3f3230333168",
+   "fence": "none",
+   "fence_requested": "none",
+   "grace_s": 1.5,
+   "t_write_ms": 255.936,
+   "step": "m3-h-nofence",
+   "replies": [
+    null
+   ],
+   "other_tokens": [],
+   "cursor_check": [
+    3,
+    1
+   ],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m3",
+   "request": "\u001b[?2031l",
+   "request_hex": "1b5b3f323033316c",
+   "fence": "none",
+   "fence_requested": "none",
+   "grace_s": 0.3,
+   "t_write_ms": 1756.641,
+   "step": "m3-l-nofence",
+   "replies": [],
+   "other_tokens": [],
+   "cursor_check": [
+    3,
+    1
+   ],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m3",
+   "request": "\u001b[?2031h\u001b[6n",
+   "request_hex": "1b5b3f32303331681b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 1.5,
+   "t_write_ms": 1756.933,
+   "step": "m3-h-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.344,
+    "complete_ms": 0.344,
+    "read_index": 3,
+    "first_read_index": 3
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [
+    null
+   ],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m3",
+   "request": "\u001b[?2031h\u001b[6n",
+   "request_hex": "1b5b3f32303331681b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 1.5,
+   "t_write_ms": 3262.385,
+   "step": "m3-h-again-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.104,
+    "complete_ms": 0.104,
+    "read_index": 4,
+    "first_read_index": 4
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [
+    null
+   ],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m3",
+   "request": "\u001b[?2031l\u001b[6n",
+   "request_hex": "1b5b3f323033316c1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.3,
+   "t_write_ms": 4766.447,
+   "step": "m3-l-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.099,
+    "complete_ms": 0.099,
+    "read_index": 5,
+    "first_read_index": 5
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m3",
+   "request": "\u001b[?2031h\u001b[5n",
+   "request_hex": "1b5b3f32303331681b5b356e",
+   "fence": "5n",
+   "fence_requested": "5n",
+   "grace_s": 1.5,
+   "t_write_ms": 4766.571,
+   "step": "m3-h-5n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[0n",
+    "hex": "1b5b306e",
+    "first_byte_ms": 0.193,
+    "complete_ms": 0.193,
+    "read_index": 6,
+    "first_read_index": 6
+   },
+   "replies": [
+    null
+   ],
+   "other_tokens": [],
+   "cursor_check": [
+    3,
+    1
+   ],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m3",
+   "request": "\u001b[?2031l\u001b[5n",
+   "request_hex": "1b5b3f323033316c1b5b356e",
+   "fence": "5n",
+   "fence_requested": "5n",
+   "grace_s": 0.3,
+   "t_write_ms": 6272.452,
+   "step": "m3-l-5n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[0n",
+    "hex": "1b5b306e",
+    "first_byte_ms": 0.059,
+    "complete_ms": 0.059,
+    "read_index": 8,
+    "first_read_index": 8
+   },
+   "replies": [],
+   "other_tokens": [],
+   "cursor_check": [
+    3,
+    1
+   ],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "rqm",
+   "request": "\u001b[?2031$p\u001b[6n",
+   "request_hex": "1b5b3f3230333124701b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 6272.716,
+   "step": "rqm-2031-reset-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.079,
+    "complete_ms": 0.079,
+    "read_index": 11,
+    "first_read_index": 11
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [
+    {
+     "kind": "csi",
+     "raw": "\u001b[?2031;2$y",
+     "hex": "1b5b3f323033313b322479",
+     "first_byte_ms": 0.051,
+     "complete_ms": 0.051,
+     "read_index": 10,
+     "first_read_index": 10,
+     "vs_fence": "before",
+     "same_read_as_fence": false
+    }
+   ],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "rqm",
+   "request": "\u001b[?2031$p\u001b[5n",
+   "request_hex": "1b5b3f3230333124701b5b356e",
+   "fence": "5n",
+   "fence_requested": "5n",
+   "grace_s": 0.4,
+   "t_write_ms": 6272.832,
+   "step": "rqm-2031-reset-5n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[0n",
+    "hex": "1b5b306e",
+    "first_byte_ms": 0.066,
+    "complete_ms": 0.066,
+    "read_index": 13,
+    "first_read_index": 13
+   },
+   "replies": [
+    {
+     "kind": "csi",
+     "raw": "\u001b[?2031;2$y",
+     "hex": "1b5b3f323033313b322479",
+     "first_byte_ms": 0.044,
+     "complete_ms": 0.044,
+     "read_index": 12,
+     "first_read_index": 12,
+     "vs_fence": "before",
+     "same_read_as_fence": false
+    }
+   ],
+   "other_tokens": [],
+   "cursor_check": [
+    3,
+    1
+   ],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "rqm",
+   "request": "\u001b[?25$p\u001b[6n",
+   "request_hex": "1b5b3f323524701b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 6273.034,
+   "step": "rqm-25-control-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.084,
+    "complete_ms": 0.084,
+    "read_index": 16,
+    "first_read_index": 16
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [
+    {
+     "kind": "csi",
+     "raw": "\u001b[?25;1$y",
+     "hex": "1b5b3f32353b312479",
+     "first_byte_ms": 0.055,
+     "complete_ms": 0.055,
+     "read_index": 15,
+     "first_read_index": 15,
+     "vs_fence": "before",
+     "same_read_as_fence": false
+    }
+   ],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m3",
+   "request": "\u001b[?2031h\u001b[6n",
+   "request_hex": "1b5b3f32303331681b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 1.5,
+   "t_write_ms": 6273.148,
+   "step": "m3-h-before-rqm-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.051,
+    "complete_ms": 0.051,
+    "read_index": 17,
+    "first_read_index": 17
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [
+    null
+   ],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "rqm",
+   "request": "\u001b[?2031$p\u001b[6n",
+   "request_hex": "1b5b3f3230333124701b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7782.022,
+   "step": "rqm-2031-set-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.134,
+    "complete_ms": 0.134,
+    "read_index": 19,
+    "first_read_index": 19
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [
+    {
+     "kind": "csi",
+     "raw": "\u001b[?2031;1$y",
+     "hex": "1b5b3f323033313b312479",
+     "first_byte_ms": 0.087,
+     "complete_ms": 0.087,
+     "read_index": 18,
+     "first_read_index": 18,
+     "vs_fence": "before",
+     "same_read_as_fence": false
+    }
+   ],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m3",
+   "request": "\u001b[?2031l\u001b[6n",
+   "request_hex": "1b5b3f323033316c1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.3,
+   "t_write_ms": 7782.19,
+   "step": "m3-l-after-rqm-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.084,
+    "complete_ms": 0.084,
+    "read_index": 20,
+    "first_read_index": 20
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "rqm",
+   "request": "\u001b[?2031$p\u001b[6n",
+   "request_hex": "1b5b3f3230333124701b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7782.303,
+   "step": "rqm-2031-after-reset-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.111,
+    "complete_ms": 0.111,
+    "read_index": 21,
+    "first_read_index": 21
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [
+    {
+     "kind": "csi",
+     "raw": "\u001b[?2031;2$y",
+     "hex": "1b5b3f323033313b322479",
+     "first_byte_ms": 0.111,
+     "complete_ms": 0.111,
+     "read_index": 21,
+     "first_read_index": 21,
+     "vs_fence": "before",
+     "same_read_as_fence": true
+    }
+   ],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[7m\u001b[6n",
+   "request_hex": "1b5b376d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7782.483,
+   "case": "A",
+   "step": "m7-A-sgr-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.093,
+    "complete_ms": 0.093,
+    "read_index": 22,
+    "first_read_index": 22
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001bP$qm\u001b\\\u001b[6n",
+   "request_hex": "1b5024716d1b5c1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7782.602,
+   "case": "A",
+   "step": "m7-A-decrqss-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.112,
+    "complete_ms": 0.112,
+    "read_index": 24,
+    "first_read_index": 24
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [
+    {
+     "kind": "dcs",
+     "raw": "\u001bP1$r0;7m\u001b\\",
+     "hex": "1b50312472303b376d1b5c",
+     "first_byte_ms": 0.072,
+     "complete_ms": 0.072,
+     "read_index": 23,
+     "first_read_index": 23,
+     "terminator": "ST",
+     "vs_fence": "before",
+     "same_read_as_fence": false
+    }
+   ],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[0m\u001b[6n",
+   "request_hex": "1b5b306d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7782.744,
+   "case": "A",
+   "step": "m7-A-reset-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.128,
+    "complete_ms": 0.128,
+    "read_index": 25,
+    "first_read_index": 25
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[7mab\u001b[0m\u001b[6n",
+   "request_hex": "1b5b376d61621b5b306d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7782.899,
+   "case": "A",
+   "expected_advance": 2,
+   "step": "m7-A-sgr-text-reset-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;3R",
+    "hex": "1b5b333b3352",
+    "first_byte_ms": 0.045,
+    "complete_ms": 0.045,
+    "read_index": 26,
+    "first_read_index": 26
+   },
+   "cursor_after": [
+    3,
+    3
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    2
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[7;31;44m\u001b[6n",
+   "request_hex": "1b5b373b33313b34346d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7782.984,
+   "case": "B",
+   "step": "m7-B-sgr-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.061,
+    "complete_ms": 0.061,
+    "read_index": 27,
+    "first_read_index": 27
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001bP$qm\u001b\\\u001b[6n",
+   "request_hex": "1b5024716d1b5c1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7783.067,
+   "case": "B",
+   "step": "m7-B-decrqss-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.083,
+    "complete_ms": 0.083,
+    "read_index": 29,
+    "first_read_index": 29
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [
+    {
+     "kind": "dcs",
+     "raw": "\u001bP1$r0;7;31;44m\u001b\\",
+     "hex": "1b50312472303b373b33313b34346d1b5c",
+     "first_byte_ms": 0.066,
+     "complete_ms": 0.066,
+     "read_index": 28,
+     "first_read_index": 28,
+     "terminator": "ST",
+     "vs_fence": "before",
+     "same_read_as_fence": false
+    }
+   ],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[0m\u001b[6n",
+   "request_hex": "1b5b306d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7783.179,
+   "case": "B",
+   "step": "m7-B-reset-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.087,
+    "complete_ms": 0.087,
+    "read_index": 30,
+    "first_read_index": 30
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[7;31;44mab\u001b[0m\u001b[6n",
+   "request_hex": "1b5b373b33313b34346d61621b5b306d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7783.295,
+   "case": "B",
+   "expected_advance": 2,
+   "step": "m7-B-sgr-text-reset-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;3R",
+    "hex": "1b5b333b3352",
+    "first_byte_ms": 0.082,
+    "complete_ms": 0.082,
+    "read_index": 31,
+    "first_read_index": 31
+   },
+   "cursor_after": [
+    3,
+    3
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    2
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[7;1m\u001b[6n",
+   "request_hex": "1b5b373b316d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7783.407,
+   "case": "C",
+   "step": "m7-C-sgr-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.05,
+    "complete_ms": 0.05,
+    "read_index": 32,
+    "first_read_index": 32
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001bP$qm\u001b\\\u001b[6n",
+   "request_hex": "1b5024716d1b5c1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7783.488,
+   "case": "C",
+   "step": "m7-C-decrqss-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.103,
+    "complete_ms": 0.103,
+    "read_index": 34,
+    "first_read_index": 34
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [
+    {
+     "kind": "dcs",
+     "raw": "\u001bP1$r0;1;7m\u001b\\",
+     "hex": "1b50312472303b313b376d1b5c",
+     "first_byte_ms": 0.07,
+     "complete_ms": 0.07,
+     "read_index": 33,
+     "first_read_index": 33,
+     "terminator": "ST",
+     "vs_fence": "before",
+     "same_read_as_fence": false
+    }
+   ],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[0m\u001b[6n",
+   "request_hex": "1b5b306d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7783.641,
+   "case": "C",
+   "step": "m7-C-reset-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.057,
+    "complete_ms": 0.057,
+    "read_index": 35,
+    "first_read_index": 35
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[7;1mab\u001b[0m\u001b[6n",
+   "request_hex": "1b5b373b316d61621b5b306d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7783.727,
+   "case": "C",
+   "expected_advance": 2,
+   "step": "m7-C-sgr-text-reset-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;3R",
+    "hex": "1b5b333b3352",
+    "first_byte_ms": 0.042,
+    "complete_ms": 0.042,
+    "read_index": 36,
+    "first_read_index": 36
+   },
+   "cursor_after": [
+    3,
+    3
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    2
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[7;38;2;10;20;30;48;2;200;200;200m\u001b[6n",
+   "request_hex": "1b5b373b33383b323b31303b32303b33303b34383b323b3230303b3230303b3230306d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7783.804,
+   "case": "D",
+   "step": "m7-D-sgr-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.032,
+    "complete_ms": 0.032,
+    "read_index": 37,
+    "first_read_index": 37
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001bP$qm\u001b\\\u001b[6n",
+   "request_hex": "1b5024716d1b5c1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7783.863,
+   "case": "D",
+   "step": "m7-D-decrqss-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.067,
+    "complete_ms": 0.067,
+    "read_index": 39,
+    "first_read_index": 39
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [
+    {
+     "kind": "dcs",
+     "raw": "\u001bP1$r0;7;38:2::10:20:30;48:2::200:200:200m\u001b\\",
+     "hex": "1b50312472303b373b33383a323a3a31303a32303a33303b34383a323a3a3230303a3230303a3230306d1b5c",
+     "first_byte_ms": 0.041,
+     "complete_ms": 0.041,
+     "read_index": 38,
+     "first_read_index": 38,
+     "terminator": "ST",
+     "vs_fence": "before",
+     "same_read_as_fence": false
+    }
+   ],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[0m\u001b[6n",
+   "request_hex": "1b5b306d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7783.956,
+   "case": "D",
+   "step": "m7-D-reset-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.031,
+    "complete_ms": 0.031,
+    "read_index": 40,
+    "first_read_index": 40
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[7;38;2;10;20;30;48;2;200;200;200mab\u001b[0m\u001b[6n",
+   "request_hex": "1b5b373b33383b323b31303b32303b33303b34383b323b3230303b3230303b3230306d61621b5b306d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7784.011,
+   "case": "D",
+   "expected_advance": 2,
+   "step": "m7-D-sgr-text-reset-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;3R",
+    "hex": "1b5b333b3352",
+    "first_byte_ms": 0.023,
+    "complete_ms": 0.023,
+    "read_index": 41,
+    "first_read_index": 41
+   },
+   "cursor_after": [
+    3,
+    3
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    2
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[7m\u001b[27m\u001b[6n",
+   "request_hex": "1b5b376d1b5b32376d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7784.049,
+   "case": "A",
+   "step": "m7-A-27m-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.032,
+    "complete_ms": 0.032,
+    "read_index": 42,
+    "first_read_index": 42
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001b[m\u001b[6n",
+   "request_hex": "1b5b6d1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7784.11,
+   "step": "m7-bare-reset-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.032,
+    "complete_ms": 0.032,
+    "read_index": 43,
+    "first_read_index": 43
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  },
+  {
+   "name": "m7",
+   "request": "\u001bP$qm\u001b\\\u001b[6n",
+   "request_hex": "1b5024716d1b5c1b5b366e",
+   "fence": "6n",
+   "fence_requested": "6n",
+   "grace_s": 0.4,
+   "t_write_ms": 7784.155,
+   "step": "m7-after-reset-decrqss-6n",
+   "fence_reply": {
+    "kind": "csi",
+    "raw": "\u001b[3;1R",
+    "hex": "1b5b333b3152",
+    "first_byte_ms": 0.053,
+    "complete_ms": 0.053,
+    "read_index": 45,
+    "first_read_index": 45
+   },
+   "cursor_after": [
+    3,
+    1
+   ],
+   "replies": [
+    {
+     "kind": "dcs",
+     "raw": "\u001bP1$r0m\u001b\\",
+     "hex": "1b50312472306d1b5c",
+     "first_byte_ms": 0.027,
+     "complete_ms": 0.027,
+     "read_index": 44,
+     "first_read_index": 44,
+     "terminator": "ST",
+     "vs_fence": "before",
+     "same_read_as_fence": false
+    }
+   ],
+   "other_tokens": [],
+   "cursor_delta": [
+    0,
+    0
+   ],
+   "printed": false
+  }
+ ],
+ "printing_events": [],
+ "unparsed_tail_hex": "",
+ "summary": {
+  "rows": [
+   {
+    "step": "m3-h-nofence",
+    "fence": "none",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": null,
+    "replies": [
+     null
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "m3-l-nofence",
+    "fence": "none",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": null,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m3-h-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.344,
+    "replies": [
+     null
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "m3-h-again-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.104,
+    "replies": [
+     null
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "m3-l-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.099,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m3-h-5n",
+    "fence": "5n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.193,
+    "replies": [
+     null
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "m3-l-5n",
+    "fence": "5n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.059,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "rqm-2031-reset-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.079,
+    "replies": [
+     {
+      "raw": "ESC[?2031;2$y",
+      "ms": 0.051,
+      "vs_fence": "before"
+     }
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "rqm-2031-reset-5n",
+    "fence": "5n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.066,
+    "replies": [
+     {
+      "raw": "ESC[?2031;2$y",
+      "ms": 0.044,
+      "vs_fence": "before"
+     }
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "rqm-25-control-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.084,
+    "replies": [
+     {
+      "raw": "ESC[?25;1$y",
+      "ms": 0.055,
+      "vs_fence": "before"
+     }
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "m3-h-before-rqm-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.051,
+    "replies": [
+     null
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "rqm-2031-set-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.134,
+    "replies": [
+     {
+      "raw": "ESC[?2031;1$y",
+      "ms": 0.087,
+      "vs_fence": "before"
+     }
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "m3-l-after-rqm-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.084,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "rqm-2031-after-reset-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.111,
+    "replies": [
+     {
+      "raw": "ESC[?2031;2$y",
+      "ms": 0.111,
+      "vs_fence": "before"
+     }
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-A-sgr-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.093,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-A-decrqss-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.112,
+    "replies": [
+     {
+      "raw": "ESCP1$r0;7mESC\\",
+      "ms": 0.072,
+      "vs_fence": "before"
+     }
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-A-reset-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.128,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-A-sgr-text-reset-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     2
+    ],
+    "fence_ms": 0.045,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-B-sgr-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.061,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-B-decrqss-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.083,
+    "replies": [
+     {
+      "raw": "ESCP1$r0;7;31;44mESC\\",
+      "ms": 0.066,
+      "vs_fence": "before"
+     }
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-B-reset-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.087,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-B-sgr-text-reset-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     2
+    ],
+    "fence_ms": 0.082,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-C-sgr-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.05,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-C-decrqss-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.103,
+    "replies": [
+     {
+      "raw": "ESCP1$r0;1;7mESC\\",
+      "ms": 0.07,
+      "vs_fence": "before"
+     }
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-C-reset-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.057,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-C-sgr-text-reset-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     2
+    ],
+    "fence_ms": 0.042,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-D-sgr-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.032,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-D-decrqss-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.067,
+    "replies": [
+     {
+      "raw": "ESCP1$r0;7;38:2::10:20:30;48:2::200:200:200mESC\\",
+      "ms": 0.041,
+      "vs_fence": "before"
+     }
+    ],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-D-reset-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.031,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-D-sgr-text-reset-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     2
+    ],
+    "fence_ms": 0.023,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-A-27m-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.032,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-bare-reset-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.032,
+    "replies": [],
+    "other_tokens": []
+   },
+   {
+    "step": "m7-after-reset-decrqss-6n",
+    "fence": "6n",
+    "printed": false,
+    "cursor_delta": [
+     0,
+     0
+    ],
+    "fence_ms": 0.053,
+    "replies": [
+     {
+      "raw": "ESCP1$r0mESC\\",
+      "ms": 0.027,
+      "vs_fence": "before"
+     }
+    ],
+    "other_tokens": []
+   }
+  ],
+  "scheme_reports": [],
+  "printed_steps": [],
+  "unchecked_steps": []
+ }
+}

@@ -34,9 +34,10 @@ import Testing
 ///
 /// Five keyboard symbols joined the chrome rows on 2026-10-05, when the keys
 /// took macOS's symbols — `↩ ↖ ↘ ⇞ ⇟`, which the framework had never drawn.
-/// No record has them yet: they are listed per host in
-/// ``awaitingAdvanceMeasurement`` until the probe is re-run, so that "not
-/// measured" cannot read as "measured and fine".
+/// Only Ghostty's record has them, since its re-run of 2026-10-19: on the
+/// other hosts they are listed in ``awaitingAdvanceMeasurement`` until the
+/// probe is re-run there, so that "not measured" cannot read as "measured
+/// and fine".
 @Suite("Chrome glyph advance")
 struct ChromeGlyphAdvanceTests {
 
@@ -106,6 +107,11 @@ struct ChromeGlyphAdvanceTests {
     /// border shape joined on 2026-10-15 (`ButtonFaceEdges`), and wait the
     /// same way: the survey's "A button's face at each control size" has what
     /// the probe read.
+    ///
+    /// Ghostty waits for none of them. Its record was rewritten on 2026-10-19
+    /// by a re-run whose battery had all fifteen, and which reproduced every
+    /// row the old record held (Tools/TerminalProbes/data/README.md says why
+    /// that re-run replaced the record).
     private static let buttonFaceGlyphs: Set<String> = [
         "chrome_eighth_right", "chrome_eighth_left", "chrome_lower_half", "chrome_upper_half",
         "chrome_quadrant_lower_right", "chrome_quadrant_lower_left",
@@ -118,7 +124,7 @@ struct ChromeGlyphAdvanceTests {
         ]
         let awaiting = newKeySymbols.union(["chrome_drop_link", "chrome_drop_forbidden"]).union(buttonFaceGlyphs)
         return [
-            .ghostty: awaiting, .iTerm2: awaiting,
+            .ghostty: [], .iTerm2: awaiting,
             .appleTerminal: awaiting, .warp: awaiting,
         ]
     }()

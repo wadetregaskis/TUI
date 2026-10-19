@@ -1,0 +1,70 @@
+{
+  "stamp": {
+    "probe": "identity_probe",
+    "measured": "2026-10-19T08:36:08-07:00",
+    "screen": "primary",
+    "os": "macOS 15.8.1",
+    "machine": "arm64",
+    "env": {
+      "TERM": "xterm-256color",
+      "TERM_PROGRAM": "WarpTerminal",
+      "TERM_PROGRAM_VERSION": "v0.2026.09.30.08.29.stable_01",
+      "COLORTERM": "truecolor",
+      "__CFBundleIdentifier": "dev.warp.Warp-Stable"
+    },
+    "mode_2027_grapheme_clustering": null,
+    "method": "DSR cursor report — confirm any disagreement with visual_card.py"
+  },
+  "environment": {
+    "TERM": "xterm-256color",
+    "TERM_PROGRAM": "WarpTerminal",
+    "TERM_PROGRAM_VERSION": "v0.2026.09.30.08.29.stable_01",
+    "COLORTERM": "truecolor",
+    "WARP_TERMINAL_SESSION_UUID": "985fd67a5e61411fa3b385b214d64153",
+    "__CFBundleIdentifier": "dev.warp.Warp-Stable"
+  },
+  "answers": {
+    "DA1": {
+      "query": "<ESC>[c",
+      "reply": "<ESC>[?62c",
+      "raw": "\u001b[?62c",
+      "what": "Primary Device Attributes — ESC[?…c"
+    },
+    "DA2": {
+      "query": "<ESC>[>c",
+      "reply": "<ESC>[>0;95;0c",
+      "raw": "\u001b[>0;95;0c",
+      "what": "Secondary Device Attributes — ESC[>…c"
+    },
+    "DA3": {
+      "query": "<ESC>[=c",
+      "reply": "<silent>",
+      "raw": "",
+      "what": "Tertiary Device Attributes — DCS!|…ST"
+    },
+    "XTVERSION": {
+      "query": "<ESC>[>0q",
+      "reply": "<ESC>P>|Warp(v0.2026.09.30.08.29.stable_01)<ESC>\\",
+      "raw": "\u001bP>|Warp(v0.2026.09.30.08.29.stable_01)\u001b\\",
+      "what": "Terminal name and version — DCS>|…ST"
+    },
+    "XTGETTCAP_TN": {
+      "query": "<ESC>P+q544e<ESC>\\",
+      "reply": "<silent>",
+      "raw": "",
+      "what": "terminfo 'TN' (terminal name) — DCS…ST"
+    },
+    "DSR5": {
+      "query": "<ESC>[5n",
+      "reply": "<ESC>[0n",
+      "raw": "\u001b[0n",
+      "what": "Device status — ESC[0n; TUIkit's exchange fence"
+    },
+    "XTVERSION+DSR5": {
+      "query": "<ESC>[>0q<ESC>[5n",
+      "reply": "<ESC>P>|Warp(v0.2026.09.30.08.29.stable_01)<ESC>\\<ESC>[0n",
+      "raw": "\u001bP>|Warp(v0.2026.09.30.08.29.stable_01)\u001b\\\u001b[0n",
+      "what": "XTVERSION's reply (if any), THEN ESC[0n"
+    }
+  }
+}
