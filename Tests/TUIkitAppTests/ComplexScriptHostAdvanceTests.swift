@@ -183,6 +183,35 @@ struct ComplexScriptHostAdvanceTests {
                 "\(program.rawValue)/\(entry.id) (\(entry.codepoints)): \(asCluster) clustered, \(perPoint) per code point")
         }
     }
+
+    /// A flag carrying a Fitzpatrick modifier is ONE cluster — the modifier is
+    /// `Extend` — and an emoji one, so the skin-tone rule prices it, as it did
+    /// before the text-cluster trait existed: the flag's 2 and the swatch's 2
+    /// on a host that detaches every swatch (Warp), and the composed 2 where
+    /// the rule wants a modifier base (Apple Terminal's separation), a BMP base
+    /// (iTerm2, tmux) or nothing (merging hosts). The shortcut that answers a
+    /// PLAIN regional-indicator pair before reading the traits once caught
+    /// these first and claimed 2 on Warp too — an emoji claim moved by a change
+    /// that was only about text, and one the trait flip above cannot see, since
+    /// the shortcut does not read the trait and the corpus has no toned flag.
+    /// No host's advance over a toned flag is measured; this pins the rule,
+    /// not a record.
+    @Test(
+        "A toned flag is priced by the skin-tone rule, not cut to a flag's two",
+        arguments: TerminalClient.Program.allCases)
+    func tonedFlagKeepsTheSkinToneRule(program: TerminalClient.Program) throws {
+        let traits = TerminalClient.widthTraits(of: program)
+        let expected = traits.skinTone == .detached ? 4 : 2
+        // 🇺🇸 + 🏽, and a lone 🇦 + 🏽 (a lone indicator is two cells too).
+        for text in ["\u{1F1FA}\u{1F1F8}\u{1F3FD}", "\u{1F1E6}\u{1F3FD}"] {
+            try #require(text.count == 1, "one grapheme cluster")
+            let character = Character(text)
+            let claim = TerminalWidthTraits.withTraits(traits) { character.terminalWidth }
+            #expect(
+                claim == expected,
+                "\(program.rawValue) \(text.unicodeScalars.map { String($0.value, radix: 16) }): \(claim)")
+        }
+    }
 }
 
 // MARK: - A border after a conjunct

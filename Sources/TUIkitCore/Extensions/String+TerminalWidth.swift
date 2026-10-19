@@ -287,19 +287,23 @@ extension Character {
     /// Out of line deliberately: see the call site.
     @inline(never)
     static func hostWidenedWidth(_ scalars: String.UnicodeScalarView) -> Int? {
-        // A flag — a regional-indicator pair — is two cells on every host and
-        // no trait widens it, so it answers before the traits are read, which
-        // is a task-local lookup rather than a plain load. (Keycaps and tag
-        // flags never reach here: their extras add no width.)
-        guard let first = scalars.first, !(0x1F1E6...0x1F1FF).contains(first.value) else {
-            return nil
-        }
+        guard let first = scalars.first else { return nil }
         // Only a joiner or a Fitzpatrick modifier can make a host widen an
         // EMOJI cluster — testing two scalar ranges is cheaper than asking
         // the traits about decomposition for every other cluster.
         let mayDecompose = scalars.contains { scalar in
             scalar.value == 0x200D || (0x1F3FB...0x1F3FF).contains(scalar.value)
         }
+        // A PLAIN flag — a regional-indicator pair, carrying nothing that could
+        // decompose — is two cells on every host and no trait widens it, so it
+        // answers before the traits are read, which is a task-local lookup
+        // rather than a plain load. (Keycaps and tag flags never reach here:
+        // their extras add no width.) A flag carrying a Fitzpatrick modifier is
+        // NOT plain: it is still one cluster, the modifier being `Extend`, and
+        // the skin-tone rule below prices it — on Warp, which detaches every
+        // swatch, the flag's 2 and the swatch's 2. Answering it here instead
+        // cut that to 2.
+        if !mayDecompose, (0x1F1E6...0x1F1FF).contains(first.value) { return nil }
         let traits = TerminalWidthTraits.current
         // NOT `traits != .composing`, which is the whole value: the traits
         // carry dimensions — the chrome-overhang set, the text-cluster
