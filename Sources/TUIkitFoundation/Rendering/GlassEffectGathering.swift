@@ -26,6 +26,8 @@ struct GatheredGlass {
     let union: GlassNamespacedID?
     /// Whether the pointer is over it, where it is interactive.
     let isHovered: Bool
+    /// How far it has arrived: below 1 while it fades in.
+    let presence: Double
     /// Whether it drew its own glass this pass, rather than leaving it to the
     /// container.
     let drewItself: Bool

@@ -137,7 +137,8 @@ extension _GlassEffectContainerCore: Renderable {
 
     /// `groups` drawn into one layer `columns` × `rows`, each its first
     /// member's glass in its first member's shape, filling the frame round its
-    /// members, its rim lifted where the pointer is over any of them.
+    /// members, its rim lifted where the pointer is over any of them, and as
+    /// present as the most present of them.
     @MainActor
     private static func layer(_ groups: [GlassGroup], columns: Int, rows: Int, context: RenderContext) -> ShapeCells {
         var layer = ShapeCells(width: columns, height: rows)
@@ -147,7 +148,8 @@ extension _GlassEffectContainerCore: Renderable {
             guard frame.width > 0, frame.height > 0 else { continue }
             let cells = GlassCells.drawing(
                 first.glass, in: first.shape, columns: frame.width, rows: frame.height,
-                hovered: group.members.contains { $0.glass.isHovered }, context: context, owner: nil)
+                hovered: group.members.contains { $0.glass.isHovered },
+                presence: group.members.map(\.glass.presence).max() ?? 1, context: context, owner: nil)
             layer.laying(cells, at: (frame.x, frame.y))
         }
         return layer

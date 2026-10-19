@@ -3974,3 +3974,31 @@ private struct CorpusGlassContainers: View {
         }
     }
 }
+
+/// `glassEffectID(_:in:)` and `glassEffectTransition(_:)` as Apple's
+/// documentation writes them, with every transition spelled.
+@MainActor
+private struct CorpusGlassTransitions: View {
+    var isExpanded: Bool
+    @Namespace private var namespace
+
+    var body: some View {
+        GlassEffectContainer(spacing: 10) {
+            HStack(spacing: 10) {
+                Image(systemName: "pencil")
+                    .frame(width: 20, height: 20)
+                    .glassEffect()
+                    .glassEffectID("pencil", in: namespace)
+                if isExpanded {
+                    Image(systemName: "note")
+                        .frame(width: 20, height: 20)
+                        .glassEffect()
+                        .glassEffectID("note", in: namespace)
+                        .glassEffectTransition(.matchedGeometry)
+                }
+                Text("Fades").glassEffect().glassEffectTransition(.materialize)
+                Text("At once").glassEffect().glassEffectTransition(.identity)
+            }
+        }
+    }
+}

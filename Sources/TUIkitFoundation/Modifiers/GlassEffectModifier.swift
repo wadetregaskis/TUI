@@ -105,17 +105,28 @@ extension _GlassEffect: Renderable {
         // joined group leaves its glass to the container again.
         let gathering = context.isMeasuring ? nil : context.environment.glassEffectGathering
         let drawsItself = gathering?.drawnByContainer.contains(context.identity) != true
+        let presence = arrival(in: gathering, context: context)
         var buffer = base
         if drawsItself {
             let layer = GlassCells.drawing(
-                glass, in: shape, columns: base.width, rows: base.height, hovered: hovered, context: context,
-                owner: Self.self)
+                glass, in: shape, columns: base.width, rows: base.height, hovered: hovered, presence: presence,
+                context: context, owner: Self.self)
             base.opacityRegions += base.claimsShowingGlyphs(of: layer)
             buffer = compositeDrawnLayer(layer.buffer(), at: (0, 0), under: base, context: context, modifierType: Self.self)
         }
-        if let gathering { tell(gathering, about: &buffer, drewItself: drawsItself, hovered: hovered, context: context) }
+        if let gathering {
+            tell(gathering, about: &buffer, drewItself: drawsItself, hovered: hovered, presence: presence, context: context)
+        }
         if let hover { observeHover(into: hover, buffer: &buffer, context: context) }
         return buffer
+    }
+
+    /// How far this glass has arrived, 0 to 1: in a container, glass arriving
+    /// under an animation fades in (`glassEffectTransition(_:)`); anywhere
+    /// else it comes with its view, whose own transition it shares.
+    private func arrival(in gathering: GlassEffectGathering?, context: RenderContext) -> Double {
+        guard gathering != nil, let storage = context.stateStorage else { return 1 }
+        return context.environment.glassArrival(at: context.identity, storage: storage)
     }
 
     /// Tells the ``GlassEffectContainer`` this glass is in what it is, and
@@ -126,7 +137,7 @@ extension _GlassEffect: Renderable {
     /// of a subtree that does it.
     private func tell(
         _ gathering: GlassEffectGathering, about buffer: inout FrameBuffer, drewItself: Bool, hovered: Bool,
-        context: RenderContext
+        presence: Double, context: RenderContext
     ) {
         context.environment.volatileReadTracker?.recordRenderSideEffect()
         let marker = gathering.gather(
@@ -134,7 +145,8 @@ extension _GlassEffect: Renderable {
                 identity: context.identity, glass: glass,
                 shape: resolvedShape(shape, in: context, columns: buffer.width, rows: buffer.height),
                 size: CellSize(width: buffer.width, height: buffer.height),
-                union: context.environment.glassEffectUnion, isHovered: hovered, drewItself: drewItself))
+                union: context.environment.glassEffectUnion, isHovered: hovered, presence: presence,
+                drewItself: drewItself))
         buffer.hitTestRegions.append(.geometryMarker(marker))
     }
 

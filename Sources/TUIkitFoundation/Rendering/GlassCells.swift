@@ -45,6 +45,9 @@ enum GlassCells {
     ///   - columns: The frame's width.
     ///   - rows: The frame's height.
     ///   - hovered: Whether the pointer is over interactive glass.
+    ///   - presence: How far the glass has arrived, 0 to 1
+    ///     (`glassEffectTransition(_:)`): its surface at that fraction of its
+    ///     opacity, and its rim's lines drawn from half-way.
     ///   - context: The context the glass is drawn in.
     ///   - owner: The type drawing it, which keys the surface's colour
     ///     animation at the context's identity; `nil` to draw the surface as it
@@ -52,26 +55,32 @@ enum GlassCells {
     /// - Returns: The glass's cells.
     @MainActor
     static func drawing(
-        _ glass: Glass, in shape: any Shape, columns: Int, rows: Int, hovered: Bool, context: RenderContext,
-        owner: Any.Type?
+        _ glass: Glass, in shape: any Shape, columns: Int, rows: Int, hovered: Bool, presence: Double = 1,
+        context: RenderContext, owner: Any.Type?
     ) -> ShapeCells {
         let environment = context.environment
         let frame = ShapeFrame(columns: columns, rows: rows, aspect: environment.imageCellAspect)
         let drawn = resolvedShape(shape, in: context, columns: columns, rows: rows)
         let target = glass.surface(in: environment)
-        let surface = owner.map { ColorAnimation.resolving(target, owner: $0, context: context) } ?? target
+        let animated = owner.map { ColorAnimation.resolving(target, owner: $0, context: context) } ?? target
+        let surface = presence < 1 ? animated.opacity(presence) : animated
         let painter = ShapePainter(
             paint: .color(surface), extent: GradientFrame(width: columns, height: rows), aspect: frame.aspect,
             palette: environment.palette)
         let fill = ShapeCells.drawing(
             drawn, as: .fill(FillStyle()), frame: frame, painter: painter, monochrome: false,
             wholeCells: !environment.blockElementsFillTheLine)
+        // A glyph is drawn or not, by the ½ rule every glyph decision takes, so
+        // a glass part-way arrived draws its rim's lines from half-way, in its
+        // ink part-way from the surface they land on.
+        let ink = glass.rimInk(hovered: hovered, in: environment)
         let rim = rimCells(
             of: drawn, frame: frame, family: ButtonFaceFamily(environment.appearance), fill: fill,
-            ink: glass.rimInk(hovered: hovered, in: environment))
+            ink: presence < 1 ? ink.opacity(presence, over: environment.enclosingSurface) : ink)
         let monochrome = ColorDepth.current == .noColor
         var cells = monochrome ? ShapeCells(width: columns, height: rows) : fill
         cells.laying(rim)
+        if presence < 0.5 { cells.droppingGlyphs() }
         if monochrome { cells.dropColours() }
         return cells
     }
@@ -231,6 +240,14 @@ enum GlassCells {
 }
 
 extension ShapeCells {
+    /// These cells with their glyphs taken away: a glyph's cell keeps only its
+    /// field, and one with none draws nothing.
+    mutating func droppingGlyphs() {
+        for index in cells.indices where cells[index].glyph != " " {
+            cells[index] = cells[index].field.map { Cell(ink: nil, field: $0, glyph: " ") } ?? .empty
+        }
+    }
+
     /// `top` laid over these cells with its top-left at `origin`, cut to these
     /// cells' bounds: each cell `top` draws takes the place of the one under
     /// it, keeping that one's field under a glyph that states none — a rim's

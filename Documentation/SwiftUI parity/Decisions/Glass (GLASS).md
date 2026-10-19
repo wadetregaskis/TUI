@@ -166,3 +166,37 @@ gaps closer than the spacing, its rim traced round the union's outline with
 the box glyphs' junctions — closer to SwiftUI's blended shape, at cell
 resolution. About a day and a half; and a list's rows stopping the container
 as a scroll view does, an hour.
+
+### B-GLASS-6. Glass arriving in a container fades in; an id keeps a glass that moves
+
+*`View.glassEffectTransition(_:)`, `GlassEffectTransition` (`.matchedGeometry`,
+`.materialize`, `.identity`), `View.glassEffectID(_:in:)`*
+
+SwiftUI animates glass in a container as it comes and goes: `.materialize`
+fades the glass in and out, `.matchedGeometry` grows a new glass out of a
+nearby one's geometry (and shrinks a leaving one into it), and an id lets a
+glass that moves from one view to another be animated from its old shape to
+its new.
+
+- **Arriving:** in a container, glass arriving under an animation — a view
+  inserted in `withAnimation`, or `.identity` glass becoming glass — fades
+  in with the animation (the animation store's arrival phase): its surface at
+  that fraction of its opacity, and its rim's lines from half-way, since a
+  glyph is drawn or not. `.matchedGeometry` (SwiftUI's default, taken as the
+  default here too, unmeasured) arrives as `.materialize` does; `.identity`
+  appears at once.
+- **Leaving:** with its view, whose own removal transition plays the glass out
+  with it; a joined group loses a member at once.
+- **An id:** the arrival is kept by the id in its namespace rather than by
+  the view, so a glass that moves to another view under an animation does
+  not arrive again; without one it materializes in its new place.
+- **Outside a container,** where SwiftUI's documentation does not use these,
+  glass comes with its view: tracking an arrival there would keep every glass
+  out of the render memo, which glass in a container already is.
+
+**The fuller version:** the geometry — a new glass grown out of the nearest
+glass within the container's spacing, a leaving one shrunk into it, and an
+identified glass that moves drawn sliding from its old frame to its new — all
+drawn by the container from the frames it kept, over the animation, with the
+leaving glass kept until it has gone. About a day and a half; matched geometry
+of views generally (refusal review O4) is its own lane.
