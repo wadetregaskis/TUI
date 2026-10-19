@@ -84,7 +84,6 @@
   "View.multilineTextAlignment(strategy:)",
   "View.onDragSessionUpdated(_:)",
   "View.onDropSessionUpdated(_:)",
-  "View.onScrollTargetVisibilityChange(idType:threshold:_:)",
   "View.overlay(_:ignoresSafeAreaEdges:)",
   "View.projectionEffect(_:)",
   "View.rotation3DEffect(_:axis:anchor:anchorZ:perspective:)",

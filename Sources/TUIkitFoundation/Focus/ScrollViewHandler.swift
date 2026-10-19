@@ -134,6 +134,16 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// first value as old and new.
     var geometryObserverValues: [Any?] = []
 
+    /// The ids each `onScrollTargetVisibilityChange` observer was last told
+    /// of, by its place among the observers this view reports to; `nil` until
+    /// the first report.
+    var targetVisibilityValues: [[AnyHashable]?] = []
+
+    /// The rows or columns the content's stack reported for the visibility
+    /// observers on the frame's last drawing, and how to name them — measured
+    /// against the viewport once the frame's offset is final.
+    var targetVisibility: ScrollTargetVisibilityReport?
+
     /// What the user's scrolling is doing — see ``ScrollPhase``. Set to
     /// `.interacting` by ``noteUserScroll()``, and returned to `.idle` by a
     /// render once the scrolling has been quiet long enough, which a render

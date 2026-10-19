@@ -29,7 +29,8 @@ struct ScrollContentWindow: Sendable, Hashable {
             lhs.columnReport == rhs.columnReport,
             lhs.linesAbove == rhs.linesAbove, lhs.linesBelow == rhs.linesBelow
         else { return false }
-        return lhs.reportsTargetLayout == rhs.reportsTargetLayout && lhs.topRowHold == rhs.topRowHold
+        return lhs.reportsTargetLayout == rhs.reportsTargetLayout
+            && lhs.reportsTargetVisibility == rhs.reportsTargetVisibility && lhs.topRowHold == rhs.topRowHold
     }
 
     func hash(into hasher: inout Hasher) {
@@ -44,6 +45,7 @@ struct ScrollContentWindow: Sendable, Hashable {
         hasher.combine(linesAbove)
         hasher.combine(linesBelow)
         hasher.combine(reportsTargetLayout)
+        hasher.combine(reportsTargetVisibility)
         hasher.combine(topRowHold)
     }
 
@@ -202,6 +204,14 @@ struct ScrollContentWindow: Sendable, Hashable {
     /// nothing for it.
     var reportsTargetLayout = false
 
+    /// Whether the stack that consumes this window reports its rows' or
+    /// columns' extents and how to name each (``ScrollContentReply/targetVisibleRows``,
+    /// ``ScrollContentReply/targetVisibleColumns``, ``ScrollContentReply/targetIDs``),
+    /// marked or not — for the scroll view to tell
+    /// `onScrollTargetVisibilityChange` which it shows. Asked only by a
+    /// scroll view such an observer is stated above.
+    var reportsTargetVisibility = false
+
     /// What the stack that consumes this window does about the row at the
     /// viewport's top (``ScrollWindowHold``): nothing, keep track of it, or
     /// keep track of it and hold it in place this frame. The scroll view
@@ -355,6 +365,22 @@ final class ScrollContentReply: @unchecked Sendable, Hashable {
     /// `scrollTargetLayout()` — eager or lazy, which both lay every column out
     /// — in the content's coordinates, when the window asked.
     var targetLayoutColumns: TargetLayoutSpans?
+
+    /// The extents of the rows of the stack that is the content, marked or
+    /// not, each with its ordinal, when the window asked
+    /// (``ScrollContentWindow/reportsTargetVisibility``): what the scroll view
+    /// measures against its viewport for `onScrollTargetVisibilityChange`.
+    /// As ``targetLayoutRows`` reports them, which the anchored window knows
+    /// only for its band — the rows on screen.
+    var targetVisibleRows: TargetLayoutSpans?
+
+    /// The same for the columns of a horizontal stack.
+    var targetVisibleColumns: TargetLayoutSpans?
+
+    /// The id of the row or column at an ordinal of ``targetVisibleRows`` or
+    /// ``targetVisibleColumns`` — its element's `id`, or its `.id(_:)` tag
+    /// (`StackRowIDs`) — asked only for the ones on screen.
+    var targetIDs: (@MainActor (Int) -> AnyHashable?)?
 
     /// Where the column ``ScrollContentWindow/columnSeek`` names sits, in the
     /// content's coordinates — `nil` when nothing was sought or no column

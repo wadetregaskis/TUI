@@ -1578,8 +1578,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   documentation).
 - **TUIkit:** a vertical stack's rows, lazy or eager (the eager since
   2026-10-15), and a horizontal stack's columns in a horizontal-only scroll
-  view (since 2026-10-15), are reported whether or not marked; the mark
-  matters only to `.viewAligned`, which aligns to the marked stack's rows. So
+  view (since 2026-10-15), are reported whether or not marked, to
+  `.scrollPosition(id:)` and (since 2026-10-19) to
+  `onScrollTargetVisibilityChange`; the mark matters only to `.viewAligned`,
+  which aligns to the marked stack's rows. So
   SwiftUI code without the mark (forgotten, or a binding used only to scroll)
   behaves differently: a user's scroll writes the binding here, and can fire
   an `onChange` SwiftUI never fires. A scroll view that scrolls both ways

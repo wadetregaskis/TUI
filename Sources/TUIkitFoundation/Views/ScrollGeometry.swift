@@ -160,11 +160,13 @@ extension View {
 struct ScrollObservers: Equatable {
     var geometry: [ScrollGeometryObserver] = []
     var phase: [ScrollPhaseObserver] = []
+    var targetVisibility: [ScrollTargetVisibilityObserver] = []
 
-    var isEmpty: Bool { geometry.isEmpty && phase.isEmpty }
+    var isEmpty: Bool { geometry.isEmpty && phase.isEmpty && targetVisibility.isEmpty }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.geometry.count == rhs.geometry.count && lhs.phase.count == rhs.phase.count
+            && lhs.targetVisibility.count == rhs.targetVisibility.count
     }
 }
 
@@ -237,6 +239,7 @@ extension _ScrollViewCore {
         reportScrollGeometry(
             handler: handler, contentWidth: contentWidth, viewportHeight: viewportHeight,
             context: context)
+        reportScrollTargetVisibility(handler: handler, contentWidth: contentWidth, context: context)
         reportScrollPhase(
             geometry: {
                 scrollGeometry(

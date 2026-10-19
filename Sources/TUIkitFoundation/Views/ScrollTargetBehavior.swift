@@ -112,10 +112,14 @@ public struct ScrollTargetBehaviorContext {
 /// of a marked stack — as its last frame laid them out, in the scroll
 /// content's coordinates.
 struct TargetLayoutSpans: Equatable, Sendable {
-    /// One view: where it starts along the axis, and how long it is.
+    /// One view: where it starts along the axis, and how long it is — and
+    /// its ordinal among its stack's children, which names it to
+    /// `onScrollTargetVisibilityChange` (`ScrollContentReply.targetIDs`), or
+    /// `-1` where nothing names it.
     struct Span: Equatable, Sendable {
         var origin: Int
         var length: Int
+        var ordinal = -1
     }
 
     /// Rows of one height at a constant pitch from `origin` — a uniform lazy
@@ -143,7 +147,7 @@ struct TargetLayoutSpans: Equatable, Sendable {
             let last = min(uniform.total - 1, (range.upperBound - uniform.origin) / uniform.pitch + 1)
             guard first <= last else { return [] }
             return (first...last).map {
-                Span(origin: uniform.origin + $0 * uniform.pitch, length: uniform.length)
+                Span(origin: uniform.origin + $0 * uniform.pitch, length: uniform.length, ordinal: $0)
             }
         }
         return placed.filter {
@@ -156,7 +160,7 @@ struct TargetLayoutSpans: Equatable, Sendable {
         guard lines != 0 else { return self }
         var shifted = self
         shifted.uniform?.origin += lines
-        shifted.placed = placed.map { Span(origin: $0.origin + lines, length: $0.length) }
+        shifted.placed = placed.map { Span(origin: $0.origin + lines, length: $0.length, ordinal: $0.ordinal) }
         return shifted
     }
 }

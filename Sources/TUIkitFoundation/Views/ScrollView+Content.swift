@@ -423,6 +423,8 @@ extension _ScrollViewCore {
                 },
             // The rows of a marked stack, for a behaviour to settle on.
             reportsTargetLayout: handler?.scrollTargeting != nil,
+            // Any stack's rows, and their ids, for the visibility observers.
+            reportsTargetVisibility: asksTargetVisibility(context),
             // The row at the top, held as the content above it changes — on
             // the frame's first drawing, which the caller says.
             topRowHold: context.isMeasuring ? .off : topRowHold)
@@ -491,6 +493,7 @@ extension _ScrollViewCore {
             handler.scrollTargeting?.rows = contentReply.targetLayoutRows ?? .none
             handler.scrollTargeting?.columns = contentReply.targetLayoutColumns ?? .none
         }
+        if let handler, asksTargetVisibility(context) { recordTargetVisibility(contentReply, handler: handler) }
         // After the row is reported: a user scroll since the last frame turns a
         // bound position's request into the user's position. Once a frame — the
         // flag is spent here, and the content's later renders find it clear.

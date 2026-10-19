@@ -2877,6 +2877,36 @@ private struct ScrollVisibilityShapes: View {
     }
 }
 
+// MARK: - Scroll target visibility (lane SCROLL)
+
+/// SwiftUI's own example for `onScrollTargetVisibilityChange` (its doc writes
+/// the first label `for:`; the declaration's is `idType:`), and the default
+/// threshold.
+@MainActor
+private struct ScrollTargetVisibilityShapes: View {
+    struct Model: Identifiable {
+        let id: Int
+    }
+
+    let models = [Model(id: 1), Model(id: 2)]
+    @State private var onScreen: [Model.ID] = []
+
+    var body: some View {
+        ScrollView {
+            LazyVStack {
+                ForEach(models) { model in
+                    Text("card \(model.id)")
+                }
+            }
+            .scrollTargetLayout()
+        }
+        .onScrollTargetVisibilityChange(idType: Model.ID.self, threshold: 0.2) { onScreenCards in
+            onScreen = onScreenCards
+        }
+        .onScrollTargetVisibilityChange(idType: Int.self) { onScreen = $0 }
+    }
+}
+
 // MARK: - Coordinate spaces (lane D5G)
 
 /// SwiftUI's own example for `coordinateSpace(_:)` — a drag located in a named

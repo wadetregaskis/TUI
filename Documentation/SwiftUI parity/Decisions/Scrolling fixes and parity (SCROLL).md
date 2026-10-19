@@ -64,3 +64,36 @@ memo either, where today only pagers pay it. Without a behaviour the drift is
 not a defect, only the horizontal-only card's last line is, and
 `.scrollIndicators(.visible, axes: .horizontal)` or a card a line shorter
 avoids it.
+
+### B-SCROLL-3. `onScrollTargetVisibilityChange` measures the stack's views along its axis, from what the stack reports
+
+*`View.onScrollTargetVisibilityChange(idType:threshold:_:)` (A7, the reader
+left unbuilt when `onScrollVisibilityChange` shipped)*
+
+**Shipped:** the scroll view the observer is stated above asks its content's
+stack for its views' extents and how to name each — the extents a scroll
+target behaviour settles on (`TargetLayoutSpans`), now with each view's
+ordinal, and the per-child ids `.scrollPosition` reads back
+(`StackRowIDs`) — and, once the frame's offset is final, lists the ids of
+those that show at least the threshold of themselves along the stack's axis,
+and at least a cell. Reported on the first frame and whenever the list
+changes. Every stack path reports them: eager, the full walk, the uniform
+window (by arithmetic) and the anchored window (its band, which holds every
+row on screen), and a horizontal stack's columns, eager or lazy, through a
+section's header and the content margins. A scroll view with no such
+observer asks for nothing.
+
+Where it differs from SwiftUI, recorded in the guide: rows are reported
+whether or not the stack is marked with `scrollTargetLayout()` (as
+`.scrollPosition` reads them, deviation R6); the fraction is along the
+stack's axis only, so a row a two-axis view has scrolled out sideways still
+counts; and a threshold of 0 counts a view once a cell of it shows, where
+`onScrollVisibilityChange` reports every view shown at 0, as SwiftUI's does —
+for this one that would list every row of a lazy stack's data.
+
+**The fuller version:** G1's markers on each view of the target layout (what
+`onScrollVisibilityChange` measures): a view's true drawn rect, so both axes
+count and a view inside a nested container is measured where it is drawn.
+Price: a marker and a registration per row drawn in each of the stack's six
+paths, on the render's hot path whenever an observer is stated, about a day;
+and nothing seen needs it yet.
