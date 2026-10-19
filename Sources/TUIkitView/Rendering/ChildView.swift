@@ -439,19 +439,28 @@ public struct ChildView {
     /// enclosing stack as a spacer, and re-reading the flag off the wrapper
     /// would answer `false`.
     ///
+    /// What a wrapper sets itself is the exception: a z-index wrapper's value
+    /// (``ZIndexProviding``) is the member's z-index now, the outermost one
+    /// winning as it does on a single view, and a layout-value wrapper (a
+    /// `.layoutPriority(_:)`) makes the member one that states a layout value,
+    /// so `Group { a; b }.zIndex(1)` and `.layoutPriority(1)` reach each
+    /// member, as SwiftUI's do.
+    ///
     /// The existential is opened by ``SingleContentWrapper/rewrapping(_:)``
     /// being generic, so no cast happens here and nothing is boxed twice.
     package func rewrapped(by wrapper: some ContentRewrapping) -> Self {
-        Self(
-            view: wrapper.rewrapping(view),
+        let wrapped = wrapper.rewrapping(view)
+        return Self(
+            view: wrapped,
             identityType: identityType,
             childIndex: childIndex,
             identityKey: identityKey,
             providerSlot: providerSlot,
             isSpacer: isSpacer,
             spacerMinLength: spacerMinLength,
-            zIndex: zIndex,
-            providesAlignmentGuide: providesAlignmentGuide, providesLayoutValues: providesLayoutValues,
+            zIndex: (wrapper as? ZIndexProviding)?.zIndexValue ?? zIndex,
+            providesAlignmentGuide: providesAlignmentGuide,
+            providesLayoutValues: providesLayoutValues || type(of: wrapped)._providesLayoutValues,
             resolvedIdentity: resolvedIdentity, isDeparting: isDeparting)
     }
 

@@ -241,3 +241,19 @@ func layoutPriorities(of children: [ChildView]) -> [Double]? {
 extension _LayoutValueView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 }
+
+/// A layout value — a `.layoutPriority(_:)` among them — on several views is
+/// each one's, as SwiftUI's modifier on a `Group` reaches each member: the
+/// members of `Group { a; b }.layoutPriority(1)` are each served first.
+extension _LayoutValueView: ContentRewrapping {
+    public func rewrapping<V: View>(_ view: V) -> any View {
+        _LayoutValueView<V>(key: key, value: value, content: view)
+    }
+}
+
+/// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
+/// for a ``ContentRewrapping`` wrapper.
+extension _LayoutValueView: ChildViewProvider where Content: ChildViewProvider {}
+
+/// Each of a row's cells with the value, as each member is.
+extension _LayoutValueView: GridRowProviding where Content: GridRowProviding {}

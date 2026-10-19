@@ -1322,7 +1322,7 @@ wrapper and generic over the new content, which is what lets the caller's
 existential be opened rather than converted. A wrapper that conforms picks up
 child resolution and grid rows with an empty
 `extension X: ChildViewProvider where Content: ChildViewProvider {}`.
-**Nineteen** wrappers conform, in three families whose equivalence is provable
+**Twenty-six** wrappers conform, in four families whose equivalence is provable
 or measured rather than assumed:
 
 - *Environment publishers* — `EnvironmentModifier` (`.environment(_:_:)`),
@@ -1336,9 +1336,17 @@ or measured rather than assumed:
   `.grayscale` and friends), `DimmedModifier`, `_HiddenView`,
   `_HitTestingView`, `AnimatedCellsModifier`. These rewrite cells the content
   already drew, and members of a stack do not overlap.
-- *Geometry* — `FlexibleFrameView` (`.frame`), `OffsetView` (`.offset`).
-  Measured: `.frame(width: 80)` on a two-member `Group` gives frames
-  byte-identical to writing the frame on each member.
+- *Geometry* — `FlexibleFrameView` (`.frame`), `OffsetView` (`.offset`),
+  `PositionView` (`.position`, since 2026-10-18). Measured: `.frame(width:
+  80)` on a two-member `Group` gives frames byte-identical to writing the
+  frame on each member.
+- *Values and traits* — `_ContainerValueView` (`.containerValue`), and
+  since 2026-10-18 (S3-WRAPPERS) `_TaggedView` (`.tag`), `_ZIndexView`
+  (`.zIndex`), `_LayoutValueView` (`.layoutValue`, `.layoutPriority`),
+  `BadgeModifier` (`.badge`), `HelpModifier` (`.help`). A value is the same
+  whatever size its view ends up, so each member carries it; a member
+  rewrapped in a z-index or layout-value wrapper takes the wrapper's value
+  (`ChildView.rewrapped(by:)`), the outermost winning as on one view.
 
 Content with NO members gets nothing, which is the rule's other edge and the
 one that bites: an `Optional` that is `nil` — an `if` whose condition is
@@ -1368,9 +1376,12 @@ effect modifier on it (`EmptyView().onAppear {}.frame(height: 5)`), since an
 effect wrapper does not hand its content's members on (it must fire once,
 not per member). Pinned by `EmptyContentLayoutTests`.
 
-**Every other wrapper is still opaque to child resolution** — `.badge` builds
-`BadgeModifier`, `.position` builds `PositionView`, `.tag` builds `_TaggedView`,
-and so on. The scale is dozens, not a handful — walking
+**Every other wrapper is still opaque to child resolution** — the effect
+wrappers (`.onAppear`, `.task`, `.onChange`, the gesture, focus, key and
+mouse modifiers, `.keyboardShortcut`), which must fire once rather than once
+per member, the presentation and list-row traits, `.toolbar`, `.transition`,
+`.coordinateSpace`, the preference writers and `.alignmentGuide`, and so on.
+The scale was dozens, not a handful — walking
 every `extension View` factory that returns `some View` and taking the first
 `View`-conforming type each body builds names 85 distinct types, which is an
 upper bound rather than a total: a few of those (`Text`, `Image`, `ForEach`,
@@ -1382,10 +1393,10 @@ stacked vertically with no spacing. So
 ```swift
 HStack { Group { Text("A"); Text("B") } }                       // "A B"
 HStack { Group { Text("A"); Text("B") }.foregroundStyle(.red) } // "A B"  (conforms)
-HStack { Group { Text("A"); Text("B") }.badge(2) }              // A over B
+HStack { Group { Text("A"); Text("B") }.onAppear {} }           // A over B
 ```
 
-— a purely cosmetic modifier rotates the row 90° — and a `GridRow` carrying one
+— an effect modifier rotates the row 90° — and a `GridRow` carrying one
 stops being a row, leaving the grid's columns to be laid out by `GridRow`'s own
 fallback `HStack`.
 

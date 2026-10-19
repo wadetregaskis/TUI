@@ -180,3 +180,32 @@ here its content is drawn without the flag, so a frame with an ideal width
 in one is drawn as offered a width — not checked beyond that (an hour, with
 a test). Setting the flag for a scroll view's content would also make a
 `List` in it hug its rows, which wants its own look.
+
+### B-LAYOUT-7. A modifier on several views reaches each through the value and trait wrappers, not the effect ones
+
+*`.badge`, `.tag`, `.containerValue`, `.zIndex`, `.layoutValue`,
+`.layoutPriority`, `.position`, `.help` (the S3-WRAPPERS item)*
+
+Shipped: `_TaggedView`, `_ZIndexView`, `_LayoutValueView`, `BadgeModifier`,
+`PositionView` and `HelpModifier` hand a `Group`'s or a loop's members on to
+the container, each member inside a copy of the wrapper
+(`ContentRewrapping`), as the environment, paint and geometry wrappers
+already did: `HStack { Group { a; b }.badge(2) }` lays `a` and `b` side by
+side, where it drew `a` over `b`, and `ZStack { Group { a; b }.zIndex(1); c
+}` lifts both over `c` (`GroupRenderTests`, `HelpOnGroupTests`). A member
+rewrapped in a z-index or layout-value wrapper takes the wrapper's value
+(`ChildView.rewrapped(by:)`), which it kept from before the wrapper until now.
+
+Kept opaque, by judgement: the effect wrappers, which SwiftUI fires once on a
+`Group` of several (measured: `.onAppear` fires once on a two-member `Group`,
+semantic audit item 50), so handing
+each member a copy would fire the effect per member; the presentation and
+list-row traits, which a container reads through a wrapper list of its own;
+`.toolbar`, `.transition`, `.coordinateSpace`, the preference writers and
+`.gradientExtent(.subtree)`, each of which means something different per
+member than once.
+
+**The fuller version** distributes the effect wrappers' layout while firing
+their effect once: the members reach the container as separate children, and
+the effect is put on exactly one of them. About a day, with a test per effect
+wrapper that the effect fires once.

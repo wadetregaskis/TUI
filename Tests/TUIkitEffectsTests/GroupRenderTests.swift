@@ -403,6 +403,53 @@ struct GroupRenderTests {
         #expect(grouped.lines.count == 1)
     }
 
+    @Test("A badge, a tag, a z-index and a layout priority on a Group reach each member, keeping the row axis")
+    func valueModifiersOnGroupKeepTheRowAxis() {
+        // Each drew the two members as one column before 2026-10-18 (S3-WRAPPERS):
+        // the wrapper handed the stack one opaque child, which the `TupleView`
+        // beneath had stacked.
+        let plain = renderToBuffer(
+            HStack(spacing: 1) { Group { Text("A"); Text("B") } }, context: ctx())
+        expectRowAxis(
+            renderToBuffer(HStack(spacing: 1) { Group { Text("A"); Text("B") }.badge(2) }, context: ctx()),
+            matches: plain)
+        expectRowAxis(
+            renderToBuffer(HStack(spacing: 1) { Group { Text("A"); Text("B") }.tag(1) }, context: ctx()),
+            matches: plain)
+        expectRowAxis(
+            renderToBuffer(HStack(spacing: 1) { Group { Text("A"); Text("B") }.zIndex(1) }, context: ctx()),
+            matches: plain)
+        expectRowAxis(
+            renderToBuffer(HStack(spacing: 1) { Group { Text("A"); Text("B") }.layoutPriority(1) }, context: ctx()),
+            matches: plain)
+    }
+
+    @Test("A z-index on a Group lifts each member over a later sibling, as writing it on each does")
+    func zIndexOnGroupAppliesPerMember() {
+        let grouped = renderToBuffer(
+            ZStack(alignment: .leading) { Group { Text("AAA"); Text("B") }.zIndex(1); Text("ccccc") },
+            context: ctx())
+        let written = renderToBuffer(
+            ZStack(alignment: .leading) { Text("AAA").zIndex(1); Text("B").zIndex(1); Text("ccccc") },
+            context: ctx())
+        #expect(grouped.lines.map { $0.stripped } == written.lines.map { $0.stripped })
+    }
+
+    @Test("A position on a Group positions each member, as writing it on each does")
+    func positionOnGroupAppliesPerMember() {
+        let grouped = renderToBuffer(
+            HStack(spacing: 0) { Group { Text("A"); Text("B") }.position(x: 1, y: 0) },
+            context: ctx(width: 10, height: 2))
+        let written = renderToBuffer(
+            HStack(spacing: 0) {
+                Text("A").position(x: 1, y: 0)
+                Text("B").position(x: 1, y: 0)
+            },
+            context: ctx(width: 10, height: 2))
+        #expect(grouped.lines.map { $0.stripped } == written.lines.map { $0.stripped })
+        #expect(grouped.overlays.count == written.overlays.count)
+    }
+
     // MARK: - Transparent Child Resolution (the metadata channel)
     //
     // Everything above travels the two-pass `childViews` path, which is what

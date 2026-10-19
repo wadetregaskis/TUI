@@ -231,12 +231,27 @@ extension BadgeModifier: Layoutable {
 // MARK: - Seeing Through the Wrapper (the READ direction)
 
 /// Names its content so a container asking for a z-index or an alignment guide
-/// can look through this wrapper instead of stopping at it. Read-only: it does
-/// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
-/// the members of multi-view content.
+/// can look through this wrapper instead of stopping at it.
 extension BadgeModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
 }
+
+/// A badge on several views is each one's, as SwiftUI's modifier on a `Group`
+/// reaches each member: `Group { a; b }.badge(2)` in a `List` badges both
+/// rows, and in an `HStack` lays them side by side, where it drew `a` over
+/// `b`.
+extension BadgeModifier: ContentRewrapping {
+    public func rewrapping<V: View>(_ view: V) -> any View {
+        BadgeModifier<V>(content: view, value: value)
+    }
+}
+
+/// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
+/// for a ``ContentRewrapping`` wrapper.
+extension BadgeModifier: ChildViewProvider where Content: ChildViewProvider {}
+
+/// Each of a row's cells badged, as each member is.
+extension BadgeModifier: GridRowProviding where Content: GridRowProviding {}
 
 // MARK: - Removal Transitions
 

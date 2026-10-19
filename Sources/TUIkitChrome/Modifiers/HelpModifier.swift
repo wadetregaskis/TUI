@@ -272,3 +272,16 @@ extension HelpModifier: SingleContentWrapper {
 
     public var wrappedContent: Content { content }
 }
+
+/// Help on several views is each one's, as SwiftUI's modifier on a `Group`
+/// reaches each member: hovering either member of `Group { a; b }.help("…")`
+/// shows it, and an `HStack` lays the members side by side.
+extension HelpModifier: ContentRewrapping {
+    public func rewrapping<V: View>(_ view: V) -> any View {
+        HelpModifier<V>(content: view, text: text)
+    }
+}
+
+/// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
+/// for a ``ContentRewrapping`` wrapper.
+extension HelpModifier: ChildViewProvider where Content: ChildViewProvider {}

@@ -121,9 +121,7 @@ extension PositionView {
 // MARK: - Seeing Through the Wrapper (the READ direction)
 
 /// Names its content so a container asking for a z-index or an alignment guide
-/// can look through this wrapper instead of stopping at it. Read-only: it does
-/// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
-/// the members of multi-view content.
+/// can look through this wrapper instead of stopping at it.
 extension PositionView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 
@@ -132,3 +130,17 @@ extension PositionView: SingleContentWrapper {
     /// modifier, as a frame and padding are.
     public static var _providesLayoutValues: Bool { false }
 }
+
+/// A position on several views positions each of them, as SwiftUI's modifier
+/// on a `Group` reaches each member: each fills the space it is given and
+/// centres its member on the point, so `HStack { Group { a; b }.position(x: 1,
+/// y: 0) }` is two positioned views side by side, not one column of two.
+extension PositionView: ContentRewrapping {
+    public func rewrapping<V: View>(_ view: V) -> any View {
+        PositionView<V>(content: view, x: x, y: y)
+    }
+}
+
+/// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
+/// for a ``ContentRewrapping`` wrapper.
+extension PositionView: ChildViewProvider where Content: ChildViewProvider {}

@@ -92,3 +92,19 @@ extension View {
 extension _ZIndexView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 }
+
+/// A z-index on several views is each one's: `ZStack { Group { a; b
+/// }.zIndex(1); c }` draws both `a` and `b` over `c`, and an `HStack` lays the
+/// members side by side, as SwiftUI's modifier on a `Group` reaches each.
+extension _ZIndexView: ContentRewrapping {
+    public func rewrapping<V: View>(_ view: V) -> any View {
+        _ZIndexView<V>(zIndexValue: zIndexValue, content: view)
+    }
+}
+
+/// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
+/// for a ``ContentRewrapping`` wrapper.
+extension _ZIndexView: ChildViewProvider where Content: ChildViewProvider {}
+
+/// Each of a row's cells at the z-index, as each member is.
+extension _ZIndexView: GridRowProviding where Content: GridRowProviding {}

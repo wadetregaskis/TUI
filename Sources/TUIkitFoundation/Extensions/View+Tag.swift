@@ -261,3 +261,20 @@ package func resolveTag<Value: Hashable>(
 extension _TaggedView: SingleContentWrapper {
     public var wrappedContent: Content { content }
 }
+
+/// A tag on several views tags each of them, as SwiftUI's modifier on a
+/// `Group` reaches each member: `Group { Text("a"); Text("b") }.tag(1)` in a
+/// `List` is two rows tagged `1`, and in an `HStack` two children side by
+/// side, not one column of two.
+extension _TaggedView: ContentRewrapping {
+    public func rewrapping<V: View>(_ view: V) -> any View {
+        _TaggedView<V>(tagValue: tagValue, includeOptional: includeOptional, content: view)
+    }
+}
+
+/// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
+/// for a ``ContentRewrapping`` wrapper — each member comes back tagged.
+extension _TaggedView: ChildViewProvider where Content: ChildViewProvider {}
+
+/// Each of a row's cells tagged, as each member is.
+extension _TaggedView: GridRowProviding where Content: GridRowProviding {}
