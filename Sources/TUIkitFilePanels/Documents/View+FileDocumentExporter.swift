@@ -55,12 +55,7 @@
                 set: { isPresented.wrappedValue = $0 })
             return FilePanelPresenter(
                 content: self, isPresented: shown,
-                request: {
-                    .save(
-                        contentTypes: types,
-                        defaultFilename: defaultFilename
-                            ?? LocalizationService.shared.string(for: LocalizationKey.FilePanel.untitled))
-                },
+                request: { .save(contentTypes: types, defaultFilename: defaultFilename) },
                 onChoose: { urls in
                     guard let document, let url = urls.first else { return }
                     let type = SaveName.type(for: url.lastPathComponent, among: types) ?? .data

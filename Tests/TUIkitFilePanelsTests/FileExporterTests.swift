@@ -114,6 +114,27 @@ struct SaveNameTests {
             #expect(contents(fixture.url("note.txt")) == "hello")
         }
 
+        @Test("An item that suggests no name is offered Untitled, as a document is")
+        func unnamedItemOffersUntitled() async throws {
+            let fixture = try FilePanelFixture()
+            defer { fixture.remove() }
+            let caller = FileExporterCaller()
+            let driver = FilePanelDriver {
+                Text("Page")
+                    .fileExporter(
+                        isPresented: caller.binding, item: UnnamedNote(text: "unnamed"),
+                        onCompletion: { caller.completed($0) }
+                    )
+                    .fileDialogDefaultDirectory(fixture.root)
+            }
+            let shown = await driver.waitFor("notes.md")
+            #expect(shown.contains("Untitled"), "\(shown)")
+            driver.press(.enter)
+            await settle(until: { !caller.heard.isEmpty }, timeout: .seconds(10))
+            #expect(caller.saved.map(\.path) == [fixture.url("Untitled.txt").path])
+            #expect(contents(fixture.url("Untitled.txt")) == "unnamed")
+        }
+
         @Test("A default name without the type's extension is given it")
         func defaultNameGetsExtension() async throws {
             let fixture = try FilePanelFixture()

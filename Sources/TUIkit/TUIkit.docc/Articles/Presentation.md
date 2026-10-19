@@ -449,7 +449,8 @@ moves the file (or files) into the folder selected, or the one shown, and
 already in the folder is one.
 
 `fileExporter` presents the panel titled Save, with a name field above the
-folder, offering the item's suggested name (or `defaultFilename`); Return in
+folder, offering `defaultFilename`, else the item's suggested name, else
+Untitled; Return in
 the field saves, a name without the type's extension is given it, and saving
 over a file asks first. The item is exported through its
 `transferRepresentation` — on Apple platforms, since `Transferable` is

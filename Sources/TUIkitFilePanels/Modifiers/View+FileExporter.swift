@@ -53,14 +53,17 @@ extension View {
 // MARK: - The save panel's two shapes
 
 extension FilePanelRequest {
-    /// A save panel: a name, in a folder, for one file of `contentTypes`.
+    /// A save panel: a name, in a folder, for one file of `contentTypes`,
+    /// offering `defaultFilename`, else Untitled, as a macOS save panel offers
+    /// one: never an empty field, in which Save does nothing.
     static func save(contentTypes: [UTType], defaultFilename: String?) -> Self {
         let save = LocalizationService.shared.string(for: LocalizationKey.Button.save)
         var request = Self(
             purpose: .save(contentTypes: contentTypes),
             rule: FileChoiceRule(allowedContentTypes: contentTypes), title: save, confirmationLabel: save,
             startDirectory: defaultStartDirectory)
-        request.defaultFilename = defaultFilename
+        request.defaultFilename =
+            defaultFilename ?? LocalizationService.shared.string(for: LocalizationKey.FilePanel.untitled)
         return request
     }
 
@@ -258,7 +261,8 @@ enum FileExportWrite {
             provider.register(item)
             self.provider = provider
             self.contentTypes = contentTypes.isEmpty ? provider.registeredContentTypes : contentTypes
-            self.suggestedFilename = provider.suggestedName
+            // An empty suggestion is none: the panel offers Untitled instead.
+            self.suggestedFilename = provider.suggestedName.flatMap { $0.isEmpty ? nil : $0 }
         }
 
         /// The item exported as the type `url`'s name names and written there.
