@@ -173,7 +173,7 @@ extension _MenuBarCore {
         let widths: [Int]
 
         /// Each title's mnemonic: its first letter, if that is an ASCII
-        /// letter, lowercased.
+        /// letter, lowercased; none for the app's menu.
         let mnemonics: [Character?]
     }
 
@@ -201,7 +201,12 @@ extension _MenuBarCore {
             let width = drawn.strippedLength
             columns.append(column)
             widths.append(width)
-            mnemonics.append(drawn.stripped.trimmingCharacters(in: .whitespaces).first.flatMap(Self.mnemonic))
+            // The app's menu has no letter: its title is the app's name, whose
+            // first letter would take Edit's or File's from them, and F10 opens
+            // it, as the first menu.
+            let isAppMenu = if case .standard(.app) = menu.title { true } else { false }
+            mnemonics.append(
+                isAppMenu ? nil : drawn.stripped.trimmingCharacters(in: .whitespaces).first.flatMap(Self.mnemonic))
             line += drawn
             column += width
         }

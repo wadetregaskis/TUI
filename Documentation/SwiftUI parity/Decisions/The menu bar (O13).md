@@ -112,6 +112,9 @@ underlines a mnemonic in each title, chosen per menu; macOS has none.
 
 **Shipped:** a title's first letter, when it is an ASCII letter, lowercased;
 where two titles share one, the first menu has it (the other is one Right away).
+The app's menu has none: its title is the app's name, whose first letter would
+take another menu's (the Example's "Example" took Edit's E), and F10 opens it,
+as the first menu.
 No letter is drawn underlined: Apple Terminal, iTerm2 and Ghostty send Alt and
 a letter only when set to (none is by default), and an underline promising a
 key that does nothing on most Macs would mislead. The chords are framework

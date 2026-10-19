@@ -40,7 +40,8 @@ extension _MenuBarCore {
 
     /// With every menu closed: F10 opens the first menu, and Alt with a
     /// title's first letter opens that menu — each with its first item
-    /// highlighted, since the keyboard opened it.
+    /// highlighted, since the keyboard opened it. The app's menu has no letter
+    /// (``TitleRow/mnemonics``): F10 is its key.
     ///
     /// F10 is a key handler: a function key is no keyboard shortcut. Alt and a
     /// letter are framework defaults (``KeyboardShortcutRegistry/registerDefault(_:holdsFocus:action:)``),

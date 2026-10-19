@@ -161,6 +161,19 @@ struct MenuBarOwnCommandsTests {
         #expect(rows(app).contains { $0.contains("OK") }, "\(rows(app))")
     }
 
+    @Test("The app's menu takes no Alt letter: Alt-E is Edit's, whatever the app is called")
+    mutating func appMenuHasNoLetter() {
+        let app = launched(OwnApp())
+        app.send(KeyEvent(key: .character(Character(_MenuBarCore.appName.prefix(1).lowercased())), alt: true))
+        frame(app)
+        #expect(!rows(app).dropFirst().contains { $0.contains("About") }, "\(rows(app))")
+        app.send(KeyEvent(key: .escape))
+        frame(app)
+        app.send(KeyEvent(key: .character("e"), alt: true))
+        frame(app)
+        #expect(rows(app).contains { $0.contains("Copy") }, "\(rows(app))")
+    }
+
     @Test("commandsRemoved takes the scene's own commands away")
     func removed() {
         let app = launched(RemovedOwnApp())
