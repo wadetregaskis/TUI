@@ -111,9 +111,7 @@ struct _TextSelectionScope<Content: View>: View, Renderable, Layoutable {
         guard !context.isMeasuring, let dispatcher = context.environment.mouseEventDispatcher
         else { return buffer }
         let id = dispatcher.registerSelectionScope(allowsSelection, in: context)
-        buffer.hitTestRegions.insert(
-            HitTestRegion(offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height, handlerID: id),
-            at: 0)
+        buffer.hitTestRegions.insert(contentsOf: buffer.frameHitRegions(handlerID: id), at: 0)
         return buffer
     }
 

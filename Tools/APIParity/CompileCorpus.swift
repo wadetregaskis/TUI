@@ -3828,6 +3828,9 @@ private struct CorpusShapeModifiers: View {
             Color.orange.clipShape(.rect(cornerRadius: 3), style: FillStyle(eoFill: false))
             HStack { Text("Row"); Spacer() }.contentShape(Rectangle()).onTapGesture {}
             Text("Row").contentShape(.rect)
+            Image(systemName: "circle.fill").contentShape(Circle()).onTapGesture {}
+            Text("Card").contentShape(.dragPreview, RoundedRectangle(cornerRadius: 10)).draggable("card")
+            Text("Both").contentShape([.interaction, .dragPreview], Capsule(), eoFill: false)
         }
     }
 }

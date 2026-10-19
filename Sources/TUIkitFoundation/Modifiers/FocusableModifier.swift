@@ -156,14 +156,7 @@ extension FocusableModifier: Renderable {
                     return false
                 }
             }
-            buffer.hitTestRegions.append(
-                HitTestRegion(
-                    offsetX: 0,
-                    offsetY: 0,
-                    width: buffer.width,
-                    height: buffer.height,
-                    handlerID: handlerID,
-                    focusID: focusID))
+            buffer.hitTestRegions += buffer.frameHitRegions(handlerID: handlerID, focusID: focusID)
         }
 
         return buffer

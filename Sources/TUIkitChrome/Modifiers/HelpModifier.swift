@@ -139,10 +139,7 @@ extension HelpModifier: Renderable {
             }
         }
         idBox.id = handlerID
-        buffer.hitTestRegions.append(
-            HitTestRegion(
-                offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height,
-                handlerID: handlerID))
+        buffer.hitTestRegions += buffer.frameHitRegions(handlerID: handlerID)
 
         // The popover presentation, attached HERE rather than by the run loop,
         // because the anchor is this buffer and an overlay's offsets are in its

@@ -1,7 +1,8 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  View+Shapes.swift
 //
-//  A shape behind a view, over it, as its clip, and as its hit area.
+//  A shape behind a view, over it, and as its clip. A shape as its hit area
+//  is `ContentShapeModifier.swift`'s.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -90,28 +91,5 @@ extension View {
     /// - Returns: The view, clipped.
     public func clipShape<S: Shape>(_ shape: S, style: FillStyle = FillStyle()) -> some View {
         _ShapeClip(content: clipped(), shape: shape, fillStyle: style)
-    }
-}
-
-// MARK: - A shape as the hit area
-
-extension View {
-    /// Defines the content shape for hit testing: a rectangle, the view's
-    /// whole frame.
-    ///
-    /// A view's hit area is already its frame here — a click on a spacer or a
-    /// padding inside a tappable stack reaches it — so the rectangle, the shape
-    /// this is nearly always written with, asks for what is already so, and
-    /// this returns the view as it is (refusal review P3: measured, it changes
-    /// no pixel on macOS either). Other shapes would need a hit area cut to the
-    /// shape's cells, which the pointer dispatch does not take yet: they do not
-    /// compile (decisions W1, B-W1-10).
-    ///
-    /// - Parameters:
-    ///   - shape: The rectangle.
-    ///   - eoFill: The fill rule, which a rectangle does not need.
-    /// - Returns: The view.
-    public func contentShape(_ shape: Rectangle, eoFill: Bool = false) -> some View {
-        self
     }
 }

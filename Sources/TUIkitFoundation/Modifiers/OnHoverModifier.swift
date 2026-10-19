@@ -107,15 +107,7 @@ extension OnHoverModifier: Renderable {
             }
         }
         spaceOrigin?.handlerID = handlerID
-        buffer.hitTestRegions.append(
-            HitTestRegion(
-                offsetX: 0,
-                offsetY: 0,
-                width: buffer.width,
-                height: buffer.height,
-                handlerID: handlerID
-            )
-        )
+        buffer.hitTestRegions += buffer.frameHitRegions(handlerID: handlerID)
         return buffer
     }
 }

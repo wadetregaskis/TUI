@@ -219,6 +219,10 @@ the whole frame. The `ContentShapeKinds` form waits on P3.
 and context-menu modifiers outside it, cut from the shape's cells as a clip is.
 A day, and a field on every buffer that has to stay free for views without one.
 
+**Shipped** by lane W1B (2026-10-19), with no field on any buffer: the mask
+rides as geometry markers
+([B-W1B-3](<What the shapes unblocked (W1B).md#b-w1b-3-a-content-shape-is-carried-to-the-modifiers-around-it-as-geometry-markers>)).
+
 ### B-W1-11. A clip keeps a cell at half coverage, and leaves the hit area alone
 
 *`View.clipShape(_:style:)`*

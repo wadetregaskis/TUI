@@ -313,9 +313,7 @@ extension GestureAttachment: Renderable {
         // needs nothing from the render either — the run loop ticks the arena
         // and asks for the wake (`advanceGestures`, `gestureDeadline`).
         let id = dispatcher.registerGesture(in: context, role)
-        buffer.hitTestRegions.insert(
-            HitTestRegion(offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height, handlerID: id),
-            at: 0)
+        buffer.hitTestRegions.insert(contentsOf: buffer.frameHitRegions(handlerID: id), at: 0)
         return buffer
     }
 }

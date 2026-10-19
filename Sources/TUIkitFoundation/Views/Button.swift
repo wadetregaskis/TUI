@@ -756,19 +756,12 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                     return false
                 }
             }
-            buffer.hitTestRegions.append(
-                HitTestRegion(
-                    offsetX: 0,
-                    offsetY: 0,
-                    width: buffer.width,
-                    height: buffer.height,
-                    handlerID: handlerID,
-                    // A menu row names itself by its ordinal: it has no focus id
-                    // to be found by, and a tall menu still has to scroll its
-                    // highlighted row into view.
-                    focusID: menuOrdinal.map(menuRowRegionID) ?? persistedFocusID
-                )
-            )
+            buffer.hitTestRegions += buffer.frameHitRegions(
+                handlerID: handlerID,
+                // A menu row names itself by its ordinal: it has no focus id
+                // to be found by, and a tall menu still has to scroll its
+                // highlighted row into view.
+                focusID: menuOrdinal.map(menuRowRegionID) ?? persistedFocusID)
             // A drag held still over the button presses it, as a click would —
             // under `.enabled` only: an `.automatic` button does not
             // spring-load on macOS (measured on 15.8). Never a menu's trigger

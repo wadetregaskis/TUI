@@ -48,11 +48,7 @@ extension _SpringLoadedRegion: Renderable, Layoutable {
         // content, and spring-load targeting matches ids rather than taking
         // the innermost region, so it finds this one at any depth.
         let handlerID = dispatcher.registerPassive(in: context) { _ in false }
-        buffer.hitTestRegions.insert(
-            HitTestRegion(
-                offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height,
-                handlerID: handlerID),
-            at: 0)
+        buffer.hitTestRegions.insert(contentsOf: buffer.frameHitRegions(handlerID: handlerID), at: 0)
         session.registerSpringLoadTarget(
             DragAndDropSession.SpringLoadTarget(
                 handlerID: handlerID, identity: context.identity, activate: activate),

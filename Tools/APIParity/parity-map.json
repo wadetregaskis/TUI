@@ -629,8 +629,11 @@
     "ColorRenderingMode": {
       "why": "It selects the colour space a Canvas or an ImageRenderer composites in, linear or non-linear sRGB. TUIkit has neither, and its one blend, `opacity`, is done in encoded sRGB, so the mode would have nothing to select. If `drawingGroup(opaque:colorMode:)` ships (decisions A27), the type comes with it."
     },
-    "ContentShapeKinds": {
-      "why": "The option set naming which shape is being set (interaction / dragPreview / contextMenuPreview / focusEffect). Hit regions are cell rectangles with no shape to specify (Sources/TUIkitCore/Input/HitTestRegion.swift:29-42); the drag-preview kind is served by `.draggable(_:preview:)"
+    "ContentShapeKinds.accessibility": {
+      "why": "The accessibility frame and path of a view's accessibility element, for VoiceOver's focus ring and ordering. A screen reader reads a terminal from the text on screen; TUIkit publishes no accessibility elements with frames for a shape to replace. Omitted so the kind fails to compile rather than shape nothing (refusal review P3); ContentShapeKinds ships `.interaction` and `.dragPreview`."
+    },
+    "ContentShapeKinds.focusEffect": {
+      "why": "The shape of the focus ring macOS draws round a focused view. TUIkit draws no focus ring a shape could give its outline: focus is shown by the control's own drawing breathing (focus-selection colour rules). Omitted so the kind fails to compile rather than shape nothing (refusal review P3); ContentShapeKinds ships `.interaction` and `.dragPreview`."
     },
     "ControlSize.init(_:)": {
       "why": "Converts from AppKit's NSControl.ControlSize. TUIkit links no AppKit, as it must build on Linux; the five sizes are TUIkit's own enum's cases."

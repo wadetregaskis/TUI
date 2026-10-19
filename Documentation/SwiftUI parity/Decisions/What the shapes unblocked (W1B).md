@@ -85,3 +85,55 @@ they were before the clip.
 **The fuller version:** the screen's hit regions cut with its corners — an
 hour, with the mask a `contentShape` uses (B-W1B-3).
 
+### B-W1B-3. A content shape is carried to the modifiers around it as geometry markers
+
+*`View.contentShape(_:eoFill:)`, `View.contentShape(_:_:eoFill:)`, `ContentShapeKinds`*
+
+A content shape is the cells its shape covers at least half of — the rule a
+clip keeps a cell by (B-W1-11). For `.interaction` the view takes the pointer
+only there: the hit regions its content registered are cut to them, and so is
+the region a gesture, hover, context-menu, `.help`, drag, drop, spring-loading
+or text-selection modifier registers over the view, so a click outside the
+shape reaches what is behind the view. For `.dragPreview` the preview a
+`.draggable` view carries is cut to them, and where a drag starts is left
+alone, as SwiftUI documents.
+
+The cells travel in the buffer as zero-area geometry markers, beside the hit
+regions — the frame's two corners, then each run's two ends — as a picture's
+corners do; a modifier registering over the view asks for its cut
+(`FrameBuffer.frameHitRegions(handlerID:focusID:width:height:)`), which is the
+whole frame where no shape covers it. So no buffer carries anything for a view
+with no content shape, a memo serves the shape with the buffer, and the pointer
+dispatch needed no change: a region cut into pieces is several regions with
+one handler, and each records what was cut above and before it, so a handler
+is still handed points from the frame's origin.
+
+Where the measurement did not reach:
+
+- **A shape reaches the modifiers whose frame is its own.** SwiftUI hit-tests
+  each view against its content shape, so a `.padding` between the shape and a
+  gesture leaves the gesture the shape (its padding takes no hits there). Here
+  a view's hit area is its frame (refusal review P3), so the gesture takes its
+  whole padded frame.
+- **A click on a cut corner of a hovered view** leaves it as moving off it does;
+  moving from one piece to another inside the shape is staying on it.
+
+**The fuller version:** hit-testing per view against its shape, the padding
+included — a change to how every hit area is found, which TUIkit's
+frame-as-hit-area rule does not ask for. No price until a port needs it.
+
+## C. Declined
+
+### C-W1B-1. `ContentShapeKinds.focusEffect` and `.accessibility`
+
+*as the refusal review's P3 ruled*
+
+`.focusEffect` shapes the focus ring macOS draws round a focused view, and
+TUIkit draws none a shape could outline: focus is the control's own drawing
+breathing. `.accessibility` shapes a view's accessibility frame, and a screen
+reader reads a terminal from its text. Both are omitted, so a ported
+`.contentShape(.focusEffect, …)` fails to compile; parity-map entries say why.
+`.contextMenuPreview` and `.hoverEffect` are unavailable on macOS and declined
+with the effects they shape (O8); they are not in the macOS symbol graphs the
+parity check reads.
+

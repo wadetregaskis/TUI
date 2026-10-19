@@ -119,6 +119,11 @@ extension DraggableModifier: Renderable, Layoutable {
         } else {
             previewBuffer = buffer
         }
+        // Cut to its drag-preview content shape, where one covers it
+        // (`contentShape(.dragPreview, _:)`).
+        if let kept = previewBuffer.contentShapeRuns(.dragPreview) {
+            previewBuffer = previewBuffer.clearing(keeping: kept)
+        }
         previewBuffer.hitTestRegions = []
         previewBuffer.overlays = []
 
@@ -287,15 +292,7 @@ package enum _DragHandle {
         if context.environment.textSelectionAllowed == true || dispatcher.hasEnabledSelectionScope {
             dispatcher.filePressRole(.dragSource, for: id, in: context)
         }
-        buffer.hitTestRegions.append(
-            HitTestRegion(
-                offsetX: 0,
-                offsetY: 0,
-                width: buffer.width,
-                height: buffer.height,
-                handlerID: id
-            )
-        )
+        buffer.hitTestRegions += buffer.frameHitRegions(handlerID: id)
     }
 }
 
@@ -406,16 +403,7 @@ package enum DropZone {
         // matches hit ids against the registered targets and skips
         // non-targets, so the zone is still found at any depth.
         let id = dispatcher.registerPassive(in: context) { _ in false }
-        buffer.hitTestRegions.insert(
-            HitTestRegion(
-                offsetX: 0,
-                offsetY: 0,
-                width: buffer.width,
-                height: buffer.height,
-                handlerID: id
-            ),
-            at: 0
-        )
+        buffer.hitTestRegions.insert(contentsOf: buffer.frameHitRegions(handlerID: id), at: 0)
 
         // The THIRD per-frame write a destination makes. The handler above is
         // replayed and the region travels in the buffer, but the session's

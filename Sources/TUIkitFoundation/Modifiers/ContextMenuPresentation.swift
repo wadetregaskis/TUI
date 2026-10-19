@@ -232,10 +232,8 @@ package enum ContextMenuPresentation {
             }
         }
         buffer.hitTestRegions.insert(
-            HitTestRegion(
-                offsetX: 0, offsetY: 0,
-                width: max(1, buffer.width), height: max(1, buffer.height),
-                handlerID: handlerID, focusID: focusID),
+            contentsOf: buffer.frameHitRegions(
+                handlerID: handlerID, focusID: focusID, width: max(1, buffer.width), height: max(1, buffer.height)),
             at: 0)
     }
 }

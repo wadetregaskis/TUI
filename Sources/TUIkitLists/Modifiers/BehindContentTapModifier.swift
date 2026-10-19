@@ -50,11 +50,7 @@ extension _BehindContentTapModifier: Renderable {
             default: return false
             }
         }
-        buffer.hitTestRegions.insert(
-            HitTestRegion(
-                offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height,
-                handlerID: handlerID),
-            at: 0)
+        buffer.hitTestRegions.insert(contentsOf: buffer.frameHitRegions(handlerID: handlerID), at: 0)
         return buffer
     }
 }
