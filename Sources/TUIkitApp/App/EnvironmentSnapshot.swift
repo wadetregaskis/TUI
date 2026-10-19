@@ -88,6 +88,14 @@ internal struct EnvironmentSnapshot: Equatable {
     let terminalWidth: Int
     let terminalHeight: Int
 
+    /// What the terminal does with what the app asks of it beyond the screen
+    /// (`\.terminalFeatures`). Under tmux whether the progress bar shows
+    /// CHANGES mid-run, as a client that draws one attaches or the last one
+    /// detaches, with no view value changing; without it here a memoized view
+    /// that drew its own progress where the terminal showed none went on
+    /// drawing it, or not, as before the change.
+    let terminalFeatures: TerminalFeatures
+
     /// Creates a snapshot from fully-built environment values.
     init(from environment: EnvironmentValues) {
         self.palette = ComparablePalette(environment.palette)
@@ -101,5 +109,6 @@ internal struct EnvironmentSnapshot: Equatable {
         self.accessibilityReduceMotion = environment.accessibilityReduceMotion
         self.terminalWidth = environment.terminalWidth
         self.terminalHeight = environment.terminalHeight
+        self.terminalFeatures = environment.terminalFeatures
     }
 }

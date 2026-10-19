@@ -31,7 +31,7 @@
 /// One probe's answer — what the attached clients can render — plus whether
 /// it might improve on a short retry.
 ///
-/// Three capabilities, because they genuinely differ per terminal (measured):
+/// Five capabilities, because they genuinely differ per terminal (measured):
 /// - `emojiChrome`: all clients draw tmux's re-emission of the ⬛︎/⬜︎ VS-15
 ///   chrome correctly (Apple Terminal, iTerm2, Warp — NOT Ghostty, whose
 ///   native support depends on a compensation that cannot cross tmux).
@@ -53,6 +53,14 @@
 ///   `TerminalHost.cornerTrianglesFillTheCell`). When false, a double-width
 ///   scrollbar's arrows are `▲▲` and `▼▼` rather than one triangle across both
 ///   cells.
+/// - `drawsProgressBars`: every client has tmux's `progressbar` feature, so
+///   tmux passes a pane's progress bar on to it (iTerm2's, by its XTVERSION
+///   answer; not Ghostty's, Apple Terminal's or Warp's unless the user gives
+///   it — measured, `progress_probe.py --tmux-forwarding`). When false, the
+///   person sees no bar the app sends: `\.terminalFeatures.showsProgress` is
+///   false, so the app draws its own. Off tmux nothing stands between the
+///   app and the terminal, and this is `true`: whether that terminal draws a
+///   bar is `TerminalClient.honoursProgressReports`'s question.
 ///
 /// `mayImproveShortly` covers a measured race: the `client-attached` tmux hook
 /// fires — and the app probes — before the new client's XTVERSION reply has
@@ -65,18 +73,20 @@ package struct ClientCapabilities: Equatable, Sendable {
     package let skinTonesSafe: Bool
     package let blockElementsFillTheLine: Bool
     package let cornerTrianglesFillTheCell: Bool
+    package let drawsProgressBars: Bool
     package let mayImproveShortly: Bool
 
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and the run loop (TUIkitApp, since step B3) makes these values.
     package init(
         emojiChrome: Bool, skinTonesSafe: Bool, blockElementsFillTheLine: Bool, cornerTrianglesFillTheCell: Bool,
-        mayImproveShortly: Bool
+        drawsProgressBars: Bool, mayImproveShortly: Bool
     ) {
         self.emojiChrome = emojiChrome
         self.skinTonesSafe = skinTonesSafe
         self.blockElementsFillTheLine = blockElementsFillTheLine
         self.cornerTrianglesFillTheCell = cornerTrianglesFillTheCell
+        self.drawsProgressBars = drawsProgressBars
         self.mayImproveShortly = mayImproveShortly
     }
 }

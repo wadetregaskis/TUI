@@ -300,6 +300,14 @@ package enum TerminalHost {
         /// pane's shares its windows, so its clients' lists name it too
         /// (measured, tmux 3.7c).
         var sessionPanes: [String]?
+
+        /// Whether tmux lists the `progressbar` feature for the client
+        /// (`#{client_termfeatures}`): tmux passes a pane's progress bar on to
+        /// a client that has it, and to no other (measured, tmux 3.7c,
+        /// `progress_probe.py --tmux-forwarding`). tmux gives it from the
+        /// client's XTVERSION answer — iTerm2's and mintty's, by its built-in
+        /// table — or from the user's `terminal-features`.
+        var drawsProgressBars = false
     }
 
     /// Whether the terminals currently attached to a tmux session all draw the
@@ -342,14 +350,16 @@ package enum TerminalHost {
             // No clients: nothing to please. No emoji chrome (nobody has earned
             // it), but skin tones stay — tmux's own grid joins them correctly,
             // and an attach fires the hooks, which re-probe and fully redraw.
+            // No progress bar either: nobody sees one.
             return ClientCapabilities(
                 emojiChrome: false, skinTonesSafe: true, blockElementsFillTheLine: true,
-                cornerTrianglesFillTheCell: true, mayImproveShortly: false)
+                cornerTrianglesFillTheCell: true, drawsProgressBars: false, mayImproveShortly: false)
         }
         var chrome = true
         var skinTones = true
         var blocksFill = true
         var trianglesFill = true
+        var progressBars = true
         var mayImprove = false
         for client in clients {
             switch classifyClient(client) {
@@ -386,10 +396,34 @@ package enum TerminalHost {
             {
                 trianglesFill = false
             }
+            // The progress bar: tmux passes it on only to a client it lists
+            // with `progressbar`, which it gives by the XTVERSION answer — so
+            // an iTerm2 whose answer is still in flight (the attach race above)
+            // is about to have it, though its owner already named it.
+            if !client.drawsProgressBars {
+                progressBars = false
+                // The process walk only for a silent client, the one it can name.
+                let owner = client.termtype.isEmpty ? client.pid.flatMap(owningApplicationPath(ofTmuxClient:)) : nil
+                if clientMayGainProgressBars(termtype: client.termtype, owningApplication: owner) {
+                    mayImprove = true
+                }
+            }
         }
         return ClientCapabilities(
             emojiChrome: chrome, skinTonesSafe: skinTones, blockElementsFillTheLine: blocksFill,
-            cornerTrianglesFillTheCell: trianglesFill, mayImproveShortly: mayImprove)
+            cornerTrianglesFillTheCell: trianglesFill, drawsProgressBars: progressBars, mayImproveShortly: mayImprove)
+    }
+
+    /// Whether a client tmux lists without the `progressbar` feature may have
+    /// it in a moment: one silent so far (no termtype) whose owning
+    /// application is iTerm2, which answers XTVERSION — the answer tmux gives
+    /// iTerm2 the feature by — and has not yet. Any other client's answer
+    /// stands: Apple Terminal answers nothing, and tmux's table gives the
+    /// feature to neither Ghostty nor Warp, so a retry would only re-learn it.
+    static func clientMayGainProgressBars(termtype: String, owningApplication: String?) -> Bool {
+        guard termtype.isEmpty, let owningApplication else { return false }
+        return owningApplication.contains("/iTerm.app/Contents/MacOS/")
+            || owningApplication.contains("/iTerm2/iTermServer-")
     }
 
     /// Whether one tmux client draws Block Elements the full height of the
@@ -641,10 +675,11 @@ package enum TerminalHost {
         // One line per attached client. The pid comes first because it is always
         // digits, then the session's pane ids run together (`%0%1%2`: each
         // starts with its `%`, and a loop's comma would name the active pane's
-        // format), and the termtype takes the rest of the line, spaces and all.
-        guard
-            let output = runTmux(["list-clients", "-F", "#{client_pid} #{W:#{P:#{pane_id}}} #{client_termtype}"])
-        else { return nil }
+        // format), then the features tmux gives the client, comma-separated
+        // with no space (`bpaste,…,progressbar,title`), and the termtype takes
+        // the rest of the line, spaces and all.
+        let format = "#{client_pid} #{W:#{P:#{pane_id}}} #{client_termfeatures} #{client_termtype}"
+        guard let output = runTmux(["list-clients", "-F", format]) else { return nil }
         return parseTmuxClients(output)
     }
 
@@ -730,14 +765,18 @@ package enum TerminalHost {
         let lines = output.split(separator: "\n", omittingEmptySubsequences: false)
         let withoutTrailingNewlineArtefact = output.hasSuffix("\n") ? lines.dropLast() : lines[...]
         return withoutTrailingNewlineArtefact.map { line in
-            let fields = line.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: false)
+            let fields = line.split(separator: " ", maxSplits: 3, omittingEmptySubsequences: false)
             // A tmux too old to know `client_pid` substitutes nothing for it, so
             // the pid is absent rather than wrong: identification falls back to
-            // the termtype alone, which is exactly the old behaviour.
+            // the termtype alone, which is exactly the old behaviour. One too
+            // old for `client_termfeatures` (before 3.2) substitutes nothing
+            // either, and lists no feature.
             let pid = fields.first.flatMap { Int32($0) }
             let panes = fields.count > 1 ? parseTmuxPaneIDs(fields[1]) : nil
-            let termtype = fields.count > 2 ? String(fields[2]) : ""
-            return TmuxClient(termtype: termtype, pid: pid, sessionPanes: panes)
+            let features = fields.count > 2 ? fields[2].split(separator: ",") : []
+            let termtype = fields.count > 3 ? String(fields[3]) : ""
+            return TmuxClient(
+                termtype: termtype, pid: pid, sessionPanes: panes, drawsProgressBars: features.contains("progressbar"))
         }
     }
 

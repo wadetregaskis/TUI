@@ -528,33 +528,85 @@ struct TmuxCompatibilityTests {
     @Test(
         "list-clients output parses to one client per line, pid first",
         arguments: [
-            // tmux emits "#{client_pid} #{W:#{P:#{pane_id}}} #{client_termtype}"
-            // per client, newline-terminated. The termtype takes the rest of
-            // the line because it contains spaces; the pid never does, nor the
-            // pane ids, which run together, each from its `%`.
-            ("32465 %0 iTerm2 3.6.11\n", [(32465 as Int32?, ["%0"] as [String]?, "iTerm2 3.6.11")]),
+            // tmux emits "#{client_pid} #{W:#{P:#{pane_id}}} #{client_termfeatures}
+            // #{client_termtype}" per client, newline-terminated. The termtype
+            // takes the rest of the line because it contains spaces; the pid
+            // never does, nor the pane ids, which run together, each from its
+            // `%`, nor the features, comma-separated.
+            ("32465 %0 256,progressbar,title iTerm2 3.6.11\n", [(32465 as Int32?, ["%0"] as [String]?, "iTerm2 3.6.11", true)]),
             // Apple Terminal: a real client, pid present, termtype empty. This
             // is the line that used to be written off as unknown.
-            ("32465 %0 \n", [(32465 as Int32?, ["%0"], "")]),
+            ("32465 %0 bpaste,title \n", [(32465 as Int32?, ["%0"], "", false)]),
             (
-                "1 %0%1%2 iTerm2 3.6.11\n2 %3 ghostty 1.3.1\n",
-                [(1 as Int32?, ["%0", "%1", "%2"], "iTerm2 3.6.11"), (2 as Int32?, ["%3"], "ghostty 1.3.1")]
+                "1 %0%1%2 progressbar iTerm2 3.6.11\n2 %3 clipboard,title ghostty 1.3.1\n",
+                [(1 as Int32?, ["%0", "%1", "%2"], "iTerm2 3.6.11", true), (2 as Int32?, ["%3"], "ghostty 1.3.1", false)]
             ),
-            ("1 %0 \n2 %12 ghostty 1.3.1\n", [(1 as Int32?, ["%0"], ""), (2 as Int32?, ["%12"], "ghostty 1.3.1")]),
+            ("1 %0 title \n2 %12 title ghostty 1.3.1\n", [(1 as Int32?, ["%0"], "", false), (2 as Int32?, ["%12"], "ghostty 1.3.1", false)]),
             ("", []),
-            ("32465 %0 iTerm2 3.6.11", [(32465 as Int32?, ["%0"], "iTerm2 3.6.11")]),  // no trailing newline
+            ("32465 %0 progressbar iTerm2 3.6.11", [(32465 as Int32?, ["%0"], "iTerm2 3.6.11", true)]),  // no trailing newline
+            // A feature whose name merely contains the one asked for is not it.
+            ("32465 %0 noprogressbar,progressbars iTerm2\n", [(32465 as Int32?, ["%0"], "iTerm2", false)]),
             // A tmux too old to know `client_pid` leaves it empty rather than
             // wrong, and identification falls back to the termtype alone.
-            (" %0 iTerm2 3.6.11\n", [(nil as Int32?, ["%0"], "iTerm2 3.6.11")]),
+            (" %0 title iTerm2 3.6.11\n", [(nil as Int32?, ["%0"], "iTerm2 3.6.11", false)]),
             // One too old for the loops leaves the panes empty: not listed,
             // which is not "no panes" (a session always holds one).
-            ("32465  iTerm2 3.6.11\n", [(32465 as Int32?, nil, "iTerm2 3.6.11")]),
-            ("32465 %0%x iTerm2\n", [(32465 as Int32?, nil, "iTerm2")]),
-            ("32465 %0% iTerm2\n", [(32465 as Int32?, nil, "iTerm2")]),
-        ] as [(String, [(Int32?, [String]?, String)])])
-    func clientListParsing(output: String, expected: [(Int32?, [String]?, String)]) {
+            ("32465  title iTerm2 3.6.11\n", [(32465 as Int32?, nil, "iTerm2 3.6.11", false)]),
+            // One too old for `client_termfeatures` (before 3.2) leaves it
+            // empty: no feature listed, and the termtype still whole.
+            ("32465 %0  iTerm2 3.6.11\n", [(32465 as Int32?, ["%0"], "iTerm2 3.6.11", false)]),
+            ("32465 %0%x title iTerm2\n", [(32465 as Int32?, nil, "iTerm2", false)]),
+            ("32465 %0% title iTerm2\n", [(32465 as Int32?, nil, "iTerm2", false)]),
+        ] as [(String, [(Int32?, [String]?, String, Bool)])])
+    func clientListParsing(output: String, expected: [(Int32?, [String]?, String, Bool)]) {
         let parsed = TerminalHost.parseTmuxClients(output)
         #expect(
-            parsed == expected.map { TerminalHost.TmuxClient(termtype: $0.2, pid: $0.0, sessionPanes: $0.1) })
+            parsed
+                == expected.map {
+                    TerminalHost.TmuxClient(termtype: $0.2, pid: $0.0, sessionPanes: $0.1, drawsProgressBars: $0.3)
+                })
+    }
+
+    /// tmux passes a pane's progress bar on only to a client it lists with
+    /// the `progressbar` feature (measured, 3.7c, `progress_probe.py
+    /// --tmux-forwarding`), so the person sees the bar only where every
+    /// client watching has it: else the app draws its own
+    /// (`\.terminalFeatures.showsProgress`).
+    @Test(
+        "The progress bar shows through tmux only where every client has the progressbar feature",
+        arguments: [
+            ([true], true, "an iTerm2, which tmux gives the feature"),
+            ([true, true], true, "two that have it"),
+            ([false], false, "a Ghostty, an Apple Terminal or a Warp, which tmux does not give it"),
+            ([true, false], false, "one without it sees no bar"),
+            ([], false, "nobody attached sees anything"),
+        ] as [([Bool], Bool, String)])
+    func progressBarsFollowTheClients(features: [Bool], expected: Bool, what: String) {
+        let clients = features.map {
+            TerminalHost.TmuxClient(termtype: "iTerm2 3.6.11", pid: nil, drawsProgressBars: $0)
+        }
+        #expect(TerminalHost.clientCapabilities(tmuxClients: clients).drawsProgressBars == expected, "\(what)")
+    }
+
+    /// The attach race (``TerminalHost/clientCapabilities(tmuxClients:)``):
+    /// tmux gives iTerm2 the feature by its XTVERSION answer, which is still in
+    /// flight when the hook fires, though the process walk already names it.
+    /// Only that client is worth asking again for the bar: Apple Terminal
+    /// answers nothing, and tmux's table gives the feature to neither Ghostty
+    /// nor Warp.
+    @Test("Only a silent iTerm2 client may be about to draw the progress bar")
+    func silentITerm2MayGainProgressBars() {
+        let iTerm2 = "/Applications/iTerm.app/Contents/MacOS/iTerm2"
+        let iTermServer = "/Users/someone/Library/Application Support/iTerm2/iTermServer-3.7.6"
+        let ghostty = "/Applications/Ghostty.app/Contents/MacOS/ghostty"
+        let terminal = "/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal"
+        let warp = "/Applications/Warp.app/Contents/MacOS/stable"
+        #expect(TerminalHost.clientMayGainProgressBars(termtype: "", owningApplication: iTerm2))
+        #expect(TerminalHost.clientMayGainProgressBars(termtype: "", owningApplication: iTermServer))
+        #expect(!TerminalHost.clientMayGainProgressBars(termtype: "iTerm2 3.6.11", owningApplication: iTerm2), "it answered")
+        #expect(!TerminalHost.clientMayGainProgressBars(termtype: "", owningApplication: ghostty))
+        #expect(!TerminalHost.clientMayGainProgressBars(termtype: "", owningApplication: terminal))
+        #expect(!TerminalHost.clientMayGainProgressBars(termtype: "", owningApplication: warp))
+        #expect(!TerminalHost.clientMayGainProgressBars(termtype: "", owningApplication: nil))
     }
 }

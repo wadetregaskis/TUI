@@ -262,6 +262,14 @@ package final class HeadlessApp<A: App> {
     /// else to wake it (``TerminalHostState/keepAliveDeadline``).
     var hostStateKeepAliveDeadline: Int64? { renderer.hostState.keepAliveDeadline }
 
+    /// Whether the frames send the terminal the progress bar the views state,
+    /// as the app runner sets it for a terminal that takes one
+    /// (`RenderLoop.sendsProgressReports`): `false` until a test says so.
+    var sendsProgressReports: Bool {
+        get { renderer.sendsProgressReports }
+        set { renderer.sendsProgressReports = newValue }
+    }
+
     /// How many views' parting pictures the app is holding — every view with a
     /// transition that is on screen, and every removal still playing. A removal
     /// that has played out is no longer counted.

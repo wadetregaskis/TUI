@@ -63,7 +63,7 @@ struct ClientCapabilityRefresherTests {
     nonisolated private static func settled(_ supported: Bool) -> ClientCapabilities {
         ClientCapabilities(
             emojiChrome: supported, skinTonesSafe: supported, blockElementsFillTheLine: supported, cornerTrianglesFillTheCell: supported,
-            mayImproveShortly: false)
+            drawsProgressBars: supported, mayImproveShortly: false)
     }
 
     @Test("resolve() seeds once and is a pure cache read after")
@@ -172,7 +172,7 @@ struct ClientCapabilityRefresherTests {
         // NO further external event — there is none coming.
         let reading = Mutable(ClientCapabilities(
             emojiChrome: false, skinTonesSafe: false, blockElementsFillTheLine: false, cornerTrianglesFillTheCell: false,
-            mayImproveShortly: true))
+            drawsProgressBars: false, mayImproveShortly: true))
         nonisolated(unsafe) var changes = 0
         let refresher = ClientCapabilityRefresher(
             isRefreshable: true,
@@ -196,7 +196,7 @@ struct ClientCapabilityRefresherTests {
                 probes += 1
                 return ClientCapabilities(
                     emojiChrome: false, skinTonesSafe: false, blockElementsFillTheLine: false, cornerTrianglesFillTheCell: false,
-            mayImproveShortly: true)
+            drawsProgressBars: false, mayImproveShortly: true)
             },
             onChange: {},
             retryDelaysNanos: [5_000_000, 5_000_000, 5_000_000])
@@ -280,5 +280,18 @@ struct EnvironmentSnapshotTests {
         environment.locale = Locale(identifier: "fr")
         let after = EnvironmentSnapshot(from: environment)
         #expect(before != after, "a language switch must clear the render cache")
+    }
+
+    /// Under tmux whether the person sees the progress bar changes as clients
+    /// attach and detach, with no view value changing, so a memoized view that
+    /// drew its own progress (or did not) would go on doing so as before.
+    @Test("A change of what the terminal shows invalidates the render cache (snapshot inequality)")
+    func terminalFeaturesChangeChangesSnapshot() {
+        var environment = EnvironmentValues()
+        environment.terminalFeatures = TerminalFeatures(showsProgress: true, postsNotifications: false)
+        let before = EnvironmentSnapshot(from: environment)
+        environment.terminalFeatures = TerminalFeatures(showsProgress: false, postsNotifications: false)
+        let after = EnvironmentSnapshot(from: environment)
+        #expect(before != after, "a client that draws no bar attaching must clear the render cache")
     }
 }

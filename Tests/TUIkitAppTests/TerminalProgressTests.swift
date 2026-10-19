@@ -2,10 +2,11 @@
 //  TerminalProgressTests.swift
 //
 //  A view's `.terminalProgress(_:)` (the Ghostty adoption study, C3): sent as
-//  `OSC 9 ; 4` to a terminal that draws a progress bar, on a change, and again
+//  `OSC 9 ; 4` to a terminal that takes a progress bar, on a change, and again
 //  between frames when it has gone five seconds unsent; never to one that
 //  does not; taken down on the hand-back. And `\.terminalFeatures`, which
-//  tells a view which it is.
+//  tells a view whether the person sees it: under tmux, only where every
+//  client attached draws the bar tmux passes on.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -13,7 +14,9 @@
 import Testing
 
 @testable import TUIkitApp
+@testable import TUIkitAppTestSupport
 @testable import TUIkitFoundation
+@testable import TUIkitTerminalHost
 
 // MARK: - Fixtures
 
@@ -48,10 +51,11 @@ private struct FeaturesReader: View {
     var body: some View { Text(features.showsProgress ? "shows progress" : "shows none") }
 }
 
+/// States a bar at a half, and says whether the person sees it.
 private struct FeaturesApp: App {
     init() {}
     var body: some Scene {
-        WindowGroup { FeaturesReader() }
+        WindowGroup { FeaturesReader().terminalProgress(.value(0.5)) }
     }
 }
 
@@ -67,9 +71,11 @@ struct TerminalProgressTests {
         "\u{1B}]9;4;\(state)" + (percent.map { ";\($0)" } ?? "") + "\u{1B}\\"
     }
 
-    private mutating func launched<A: App>(_ app: A, showsProgress: Bool = true) -> HeadlessApp<A> {
+    /// `app`, run on a terminal that takes a progress bar, or, with `sends`
+    /// `false`, one that does not; one frame drawn.
+    private mutating func launched<A: App>(_ app: A, sends: Bool = true) -> HeadlessApp<A> {
         let headless = HeadlessApp(app, width: 40, height: 8)
-        headless.services.terminalFeatures = TerminalFeatures(showsProgress: showsProgress, postsNotifications: false)
+        headless.sendsProgressReports = sends
         frame(headless)
         return headless
     }
@@ -93,7 +99,7 @@ struct TerminalProgressTests {
     mutating func notSentWhereNotShown() {
         let script = ProgressScript()
         script.outer = .value(0.5)
-        let app = launched(ProgressApp(script), showsProgress: false)
+        let app = launched(ProgressApp(script), sends: false)
         frame(app, after: 6 * Self.second)
         app.keepHostStateAlive(atNanos: now + 6 * Self.second)
         #expect(app.hostWrites.isEmpty)
@@ -179,7 +185,38 @@ struct TerminalProgressTests {
     mutating func featuresReachViews() {
         let showing = launched(FeaturesApp())
         #expect(showing.screen.map(\.stripped).joined().contains("shows progress"))
-        let none = launched(FeaturesApp(), showsProgress: false)
+        let none = launched(FeaturesApp(), sends: false)
         #expect(none.screen.map(\.stripped).joined().contains("shows none"))
+    }
+
+    /// What tmux says about the clients attached to it, those that draw the
+    /// bar tmux passes on (`progressbar`, `#{client_termfeatures}`) or not.
+    private static func clients(drawProgressBars: Bool) -> ClientCapabilities {
+        ClientCapabilities(
+            emojiChrome: false, skinTonesSafe: true, blockElementsFillTheLine: true, cornerTrianglesFillTheCell: true,
+            drawsProgressBars: drawProgressBars, mayImproveShortly: false)
+    }
+
+    /// The review's case: inside tmux in Ghostty, Apple Terminal or Warp, tmux
+    /// keeps the bar for the pane and passes it on to no client (measured,
+    /// 3.7c), so a view told the bar shows would hide its own progress and the
+    /// person would see none anywhere. Sent all the same: tmux hands the bar
+    /// to a client that can draw it when one attaches (measured).
+    @Test(
+        "Under tmux the bar is sent, and shown only where every client attached draws it",
+        arguments: [
+            (true, true, true),
+            (true, false, false),
+            // Off tmux nothing stands between the app and the terminal.
+            (false, false, true),
+        ] as [(Bool, Bool, Bool)])
+    func tmuxClientsDecideWhetherItShows(isTmux: Bool, clientsDrawIt: Bool, shows: Bool) {
+        let harness = RenderLoopHarness()
+        let loop = harness.loop(
+            FeaturesApp(), isTmux: isTmux, clientCapabilities: Self.clients(drawProgressBars: clientsDrawIt))
+        loop.sendsProgressReports = true
+        _ = loop.render()
+        #expect(harness.terminal.allOutput.contains(Self.progress(1, 50)))
+        #expect(loop.diffWriter.shownLines.map(\.stripped).joined().contains(shows ? "shows progress" : "shows none"))
     }
 }

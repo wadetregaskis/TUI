@@ -11,23 +11,26 @@ import TUIkitCore
 
 extension TerminalClient {
 
-    /// Whether `program` is documented to **draw** a progress report — ConEmu's
+    /// Whether `program` is documented to **take** a progress report — ConEmu's
     /// `OSC 9 ; 4`, which TUIkit sends for a view's `.terminalProgress(_:)` —
-    /// as a bar on its tab, its window or its pane.
+    /// drawing it as a bar on its tab, its window or its pane, or, for tmux,
+    /// keeping it for the pane and passing it on to a client that draws one.
     ///
     /// A capability, so the default is "no", for the reason
     /// ``honoursHyperlinks(_:)`` gives: an unmeasured terminal gets the answer
-    /// that cannot hurt. TUIkit sends the report only where this says yes, and
-    /// where it says no an app learns as much from
-    /// `TerminalFeatures.showsProgress` and draws its progress itself.
+    /// that cannot hurt. TUIkit sends the report only where this says yes.
+    /// Whether the person then SEES it is `TerminalFeatures.showsProgress`,
+    /// which says no wherever this does, and under tmux asks tmux which
+    /// clients it passes the bar on to; where it says no an app draws its
+    /// progress itself.
     ///
     /// ## The table
     ///
-    /// | Host | Draws it | Evidence |
+    /// | Host | Takes it | Evidence |
     /// |---|---|---|
-    /// | Ghostty | yes | `progress-style` (default `true`): "graphical progress bars using the ConEmu OSC 9;4 escape sequence" (its configuration reference, 1.3.1) |
-    /// | iTerm2 | yes | its "Enable Progress Bars" setting, and its triggers' "progress protocol (OSC 9;4)" (3.7.6's own help text) |
-    /// | tmux | yes, for a client that can | keeps a bar per pane (`#{pane_pb_state}`, "can be set by application") and passes it on to a client with the `progressbar` feature, which tmux 3.7c gives iTerm2 and nothing else of these four (its manual; measured, `progress_probe.py`) |
+    /// | Ghostty | yes, and draws it | `progress-style` (default `true`): "graphical progress bars using the ConEmu OSC 9;4 escape sequence" (its configuration reference, 1.3.1) |
+    /// | iTerm2 | yes, and draws it | its "Enable Progress Bars" setting, and its triggers' "progress protocol (OSC 9;4)" (3.7.6's own help text) |
+    /// | tmux | yes, and passes it on to a client that can draw it | keeps a bar per pane (`#{pane_pb_state}`, "can be set by application"), hands it to a client that attaches later, and passes each change — never a repeat — to a client with the `progressbar` feature, which tmux 3.7c gives iTerm2 and nothing else of these four (its manual and its built-in table; measured, `progress_probe.py`) |
     /// | Apple Terminal | no | nothing in the app |
     /// | Warp | no | nothing in the app names either sequence |
     /// | unidentified | no | an unmeasured host gets the answer that cannot hurt |
@@ -44,8 +47,8 @@ extension TerminalClient {
         }
     }
 
-    /// Whether the terminal in front of the user draws a progress report: the
-    /// environment, then the table (``honoursProgressReports(_:)``).
+    /// Whether TUIkit sends the terminal in front of the user a progress
+    /// report: the environment, then the table (``honoursProgressReports(_:)``).
     ///
     /// Reads the DETECTED program, never ``simulated``, as
     /// ``clipboardWrites`` does: simulating a terminal changes how the app is

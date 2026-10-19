@@ -60,11 +60,15 @@ internal final class ClientCapabilityRefresher {
             // Native: the chrome is the static allowlist, and skin tones
             // are the writer's per-host business (each native path strips
             // or keeps them itself) — `true` here means "don't ALSO strip".
+            // Likewise the progress bar: nothing between the app and the
+            // terminal holds it back, and whether the terminal draws one is
+            // the table's question (`RenderLoop.sendsProgressReports`).
             return ClientCapabilities(
                 emojiChrome: TerminalHost.supportsEmojiChrome,
                 skinTonesSafe: true,
                 blockElementsFillTheLine: TerminalHost.blockElementsFillTheLine,
                 cornerTrianglesFillTheCell: TerminalHost.cornerTrianglesFillTheCell,
+                drawsProgressBars: true,
                 mayImproveShortly: false)
         }
         // nil propagates ("could not ask; keep the previous answer") —
@@ -103,14 +107,15 @@ internal final class ClientCapabilityRefresher {
     func resolve() -> ClientCapabilities {
         if let current { return current }
         // At launch there is no previous answer to keep, so a failed seed probe
-        // falls to the safe answers — no chrome, strip tones — the same
-        // fail-closed answer the probe layer gives for an unreachable tmux.
+        // falls to the safe answers — no chrome, strip tones, no progress bar
+        // seen (so the app draws its own) — the same fail-closed answer the
+        // probe layer gives for an unreachable tmux.
         let reading = probe()
         let seeded =
             reading
             ?? ClientCapabilities(
                 emojiChrome: false, skinTonesSafe: false, blockElementsFillTheLine: false,
-                cornerTrianglesFillTheCell: false, mayImproveShortly: false)
+                cornerTrianglesFillTheCell: false, drawsProgressBars: false, mayImproveShortly: false)
         current = seeded
         if isRefreshable, reading?.mayImproveShortly == true {
             retriesRemaining = retryDelaysNanos.count

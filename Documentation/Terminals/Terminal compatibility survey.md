@@ -3759,12 +3759,26 @@ the terminal posts one (iTerm2's `OSC 9`), and rings the bell everywhere else
 | No view drawn states progress any more; a suspend; the exit; a fatal signal (the signal debt) | `ESC ] 9 ; 4 ; 0 ESC \` |
 | The first frame after a resume | the bar again |
 
-Only to a host documented to draw one (`TerminalClient.honoursProgressReports`):
-Ghostty, iTerm2 and tmux. Elsewhere nothing is sent, and
-`\.terminalFeatures.showsProgress` is `false`, so an app can draw its own.
+Only to a host documented to take one (`TerminalClient.honoursProgressReports`):
+Ghostty and iTerm2, which draw it, and tmux, which keeps it for the pane and
+passes it on to a client that draws it. Elsewhere nothing is sent.
 `TUIKIT_PROGRESS=1` turns it on for any host, `0` off for every one. The
 5 s is a margin inside Ghostty's limit (below); a host that keeps a bar
 unprompted is sent the same dozen bytes again every 5 s.
+
+**Whether the person sees it** is `\.terminalFeatures.showsProgress`, which
+an app reads to draw its own progress where the terminal shows none: `false`
+wherever nothing is sent, `true` on Ghostty and iTerm2, and under tmux `true`
+only while every client attached has tmux's `progressbar` feature — the
+clients tmux passes the bar on to (measured below). TUIkit asks tmux
+(`#{client_termfeatures}`, in the `list-clients` it already runs to name the
+clients) at launch and again whenever a client attaches or detaches, so the
+answer changes while the app runs; a client that has not yet answered
+XTVERSION but that its process names as iTerm2 is asked about again shortly,
+since the answer is what earns it the feature. In Ghostty, Apple Terminal or
+Warp under tmux it is `false` unless the user gives the client the feature.
+The bar is sent to tmux whether or not a client draws it: tmux hands it to
+one that attaches later.
 
 ### What each host documents
 
@@ -3772,7 +3786,7 @@ unprompted is sent the same dozen bytes again every 5 s.
 |---|---|---|---|
 | Ghostty 1.3.1 | yes, by default | `progress-style` (default `true`): "graphical progress bars using the ConEmu OSC 9;4 escape sequence" (its configuration reference, `ghostty.5`) | removed after about 15 s (its VT reference, as the adoption study read it, C3); unmeasured |
 | iTerm2 3.7.6 | yes | an "Enable Progress Bars" setting, and its triggers' help text naming "the progress protocol (OSC 9;4)", both read from the app's binary; the setting's default is not read | unknown |
-| tmux 3.7c | keeps a bar per pane, and passes it on to a client that can draw one | its manual: `#{pane_pb_state}`, `#{pane_pb_progress}` "(can be set by application)", and the `progressbar` terminal feature; measured below | kept (measured) |
+| tmux 3.7c | keeps a bar per pane, and passes it on to a client with the `progressbar` feature (iTerm2's, by its built-in table) | its manual: `#{pane_pb_state}`, `#{pane_pb_progress}` "(can be set by application)", and the `progressbar` terminal feature; measured below | kept (measured) |
 | kitty 0.49.1 | yes, from 0.47.0 (`progress_bar`, default `top`) | its changelog and configuration reference. Not a host TUIkit models, so not sent; before 0.38 kitty posted every `OSC 9` as a notification, a report's digits included | unknown |
 | Apple Terminal 455.1 | no | nothing in the app | — |
 | Warp v0.2026.09.30 | no | nothing in its binary names the sequence | — |

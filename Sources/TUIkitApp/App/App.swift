@@ -320,7 +320,7 @@ extension AppRunner {
 
     /// The loop that renders this app's frames to its terminal.
     private func makeRenderLoop() -> RenderLoop<A> {
-        RenderLoop(
+        let loop = RenderLoop(
             app: app,
             terminal: terminal,
             statusBar: statusBar,
@@ -333,6 +333,10 @@ extension AppRunner {
             reducesMotion: TerminalClient.reduceMotionRequested,
             keyNotation: TerminalClient.keyNotationRequested
         )
+        // And the one that sends the terminal a progress bar, where the
+        // terminal it identified takes one.
+        loop.sendsProgressReports = TerminalClient.progressReportsSupported
+        return loop
     }
 
     /// Starts reading the host's own Reduce Motion, where the user is provably
@@ -477,11 +481,13 @@ extension AppRunner {
         negotiateKeyboardProtocol()
         // And what it does with what the app asks of it beyond the screen — a
         // progress bar on its tab, a desktop notification — by which terminal
-        // it is, now that it is named: published to `\.terminalFeatures`
-        // before the first frame, and what decides what the frames send.
+        // it is, now that it is named: whether it posts a notification,
+        // published to `\.terminalFeatures` before the first frame. Whether
+        // the frames send the bar goes to the loop (`makeRenderLoop`), which
+        // publishes whether it is seen with each frame: under tmux that
+        // follows the clients attached.
         tuiContext.terminalFeatures = TerminalFeatures(
-            showsProgress: TerminalClient.progressReportsSupported,
-            postsNotifications: TerminalClient.notificationsSupported)
+            showsProgress: false, postsNotifications: TerminalClient.notificationsSupported)
 
         let renderer = makeRenderLoop()
         startHostMotion(renderer: renderer)

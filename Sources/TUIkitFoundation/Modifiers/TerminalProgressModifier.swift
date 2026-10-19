@@ -62,10 +62,12 @@ extension View {
     /// ```
     ///
     /// The terminal draws it outside the app's cells, so it is seen from other
-    /// tabs and windows as well: Ghostty, iTerm2, and tmux, which passes it on
-    /// to a terminal that draws one. Elsewhere nothing is sent, and
-    /// `\.terminalFeatures`'s ``TerminalFeatures/showsProgress`` is `false`,
-    /// so an app can draw its own instead.
+    /// tabs and windows as well: Ghostty and iTerm2 draw it, and tmux passes
+    /// it on to a client it gives the `progressbar` feature (iTerm2, not
+    /// Ghostty, Apple Terminal or Warp, unless the user says so). Where the
+    /// person sees no bar — elsewhere nothing is sent — `\.terminalFeatures`'s
+    /// ``TerminalFeatures/showsProgress`` is `false`, so an app can draw its
+    /// own instead.
     ///
     /// Where several views drawn at once state progress, the last one drawn
     /// wins: the innermost of nested views, the last of siblings. The app's

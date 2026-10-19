@@ -279,13 +279,27 @@ internal final class RenderLoop<A: App> {
 
     /// Whether the app is running inside tmux, which decides what the terminal
     /// is asked about its colours once frames are being drawn (see
-    /// ``TerminalColorRequester``).
+    /// ``TerminalColorRequester``), and whether the person sees the progress
+    /// bar the app sends (`publishTerminalFeatures(_:)`).
     ///
     /// Taken at init rather than read from `TerminalHost.isTmux` at the point of
     /// use, for the reason `Terminal.askColors(isTmux:)` takes it too: the
     /// process's own answer is resolved once from the environment at launch, so
     /// a test that needs the other branch has no way to say so otherwise.
-    private let isTmux: Bool
+    /// Not private only because `RenderLoop+HostState.swift` reads it.
+    let isTmux: Bool
+
+    /// Whether the frames send the terminal the progress bar the views state
+    /// (`.terminalProgress(_:)`): set by the app runner from the terminal it
+    /// identified (`TerminalClient.progressReportsSupported`) — Ghostty,
+    /// iTerm2, or tmux, which keeps the bar for its pane and passes it on.
+    ///
+    /// `false` in every loop but the app runner's, for the reason
+    /// ``reducesMotion`` gives: what a test sends must not depend on the
+    /// terminal its process was started in. Whether the person SEES the bar is
+    /// `\.terminalFeatures.showsProgress`, published each frame from this and
+    /// the tmux clients (`publishTerminalFeatures(_:)`).
+    var sendsProgressReports = false
 
     /// Where ``terminalColors`` publishes what the terminal says about its
     /// colours: `TerminalColors.current` in an app, through
@@ -819,6 +833,11 @@ extension RenderLoop {
         diffWriter.tmuxSkinToneScope =
             capabilities.skinTonesSafe ? .keepingTmuxMerged : .all
 
+        // Whether the person sees the progress bar: under tmux it follows the
+        // clients attached, so it is published from the same answer, before
+        // the runtime services below carry it into the environment.
+        publishTerminalFeatures(capabilities)
+
         // Runtime services (shared with ViewRenderer's one-off path so
         // the wired set can't drift — see EnvironmentValues.applyRuntimeServices).
         environment.applyRuntimeServices(from: tuiContext)
@@ -1091,9 +1110,9 @@ extension RenderLoop {
     /// Compares this frame's `EnvironmentSnapshot` with the previous frame's. On
     /// mismatch, all `EquatableView`-cached subtrees are invalidated so they
     /// re-render with the new palette, appearance, glyphs, locale, scene phase,
-    /// cell geometry or terminal size.
+    /// cell geometry, terminal size or terminal features.
     ///
-    /// This runs once per frame (a palette comparison and eight small ones) and
+    /// This runs once per frame (a palette comparison and eleven small ones) and
     /// ensures developers never need to manually invalidate the cache after theme
     /// changes — including a palette whose colours were edited under the same id.
     fileprivate func invalidateCacheIfEnvironmentChanged(environment: EnvironmentValues) {

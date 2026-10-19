@@ -33,7 +33,11 @@ would also be safe, but kitty before 0.38 posted any `OSC 9` as a desktop
 notification, a progress report's `4;1;50` included, and an unmodelled host
 could do the same. Under tmux it is sent, and tmux decides who sees it: it
 passes the bar on only to a client with the `progressbar` feature, which 3.7c
-gives iTerm2 and not Ghostty (measured), as it does with hyperlinks.
+gives iTerm2 and not Ghostty, Apple Terminal or Warp (measured), as it does
+with hyperlinks; it keeps the bar for the pane, and hands it to a client
+that can draw it when one attaches (measured), so it is sent whoever is
+attached. Whether the person sees it is B-GHOSTTY-4's
+`\.terminalFeatures.showsProgress`, which under tmux asks tmux.
 
 **The fuller version:** kitty, which draws the bar from 0.47.0, recognised by
 its `TERM` and its XTVERSION answer's version, so an old kitty is never sent
@@ -81,9 +85,16 @@ time. The study asked for one environment value, shaped like
 `\.keyboardReporting`, that each terminal feature adds a field to.*
 
 **Shipped:** `TerminalFeatures`, at `\.terminalFeatures`, with
-`showsProgress`; constant for the run, published by the run loop from the
-terminal identified at startup and the user's switches; `false` outside a
-running app.
+`showsProgress`, whether the person sees the bar: published by the run loop
+from the terminal identified at startup and the user's switches, and under
+tmux from the clients attached, asked of tmux (`#{client_termfeatures}`, in
+the `list-clients` it already runs to name them) at launch and again as
+clients attach and detach, so it is `true` there only while every client
+has the `progressbar` feature tmux passes the bar on by. `false` outside a
+running app. (The first version said `true` under tmux whoever was attached,
+and an app that drew its own progress only where the terminal shows none
+showed none anywhere inside tmux in Ghostty, Apple Terminal or Warp; the
+lane's review found it.)
 
 **The fuller version:** the features shipped before it — whether OSC 8 links
 are honoured, and whether a copy has a route to the person's clipboard —

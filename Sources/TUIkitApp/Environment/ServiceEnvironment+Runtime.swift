@@ -77,7 +77,9 @@ extension EnvironmentValues {
         // What the terminal does outside its grid — the pointer's shape, a
         // progress bar, a notification — on the same terms: written only where
         // it does something, so a terminal that does none pays no write per
-        // frame.
+        // frame. Not constant for the run under tmux, where whether the
+        // progress bar shows follows the clients attached, so the render
+        // loop's `EnvironmentSnapshot` holds it.
         if context.terminalFeatures != .none {
             terminalFeatures = context.terminalFeatures
         }

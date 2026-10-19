@@ -37,14 +37,33 @@ extension RenderLoop {
 
     /// What this frame, drawn at `now` on the monotonic clock, writes to the
     /// terminal beyond its cells: the window title, where it changed since the
-    /// last frame wrote it; and, on a terminal that draws one
-    /// (``TerminalFeatures/showsProgress``), the progress bar, where it
-    /// changed, or where it is due to be sent again.
+    /// last frame wrote it; and, to a terminal that takes one
+    /// (``sendsProgressReports``), the progress bar, where it changed, or
+    /// where it is due to be sent again.
+    ///
+    /// Under tmux the bar is sent whether or not a client attached draws it:
+    /// tmux keeps it for the pane and hands it to a client that can when one
+    /// attaches (measured), so the app does not have to be told.
     func hostStateWrites(atNanos now: Int64) -> String {
         let title = hostState.show(title: terminalWindowTitle)
-        guard tuiContext.terminalFeatures.showsProgress else { return title }
+        guard sendsProgressReports else { return title }
         return title + hostState.show(progress: terminalProgress, atNanos: now)
             + hostState.keepAlive(atNanos: now)
+    }
+
+    /// Publishes, to `\.terminalFeatures`, whether the person sees the
+    /// progress bar the frames send: where it is sent at all
+    /// (``sendsProgressReports``), and under tmux only where every client
+    /// attached draws the bar tmux passes on (`capabilities`, the tmux clients'
+    /// answer, push-refreshed as they attach and detach). A change takes a
+    /// frame: the render loop's `EnvironmentSnapshot` holds the value, so a
+    /// memoized view that read it draws again.
+    func publishTerminalFeatures(_ capabilities: ClientCapabilities) {
+        let showsProgress = sendsProgressReports && (!isTmux || capabilities.drawsProgressBars)
+        let features = tuiContext.terminalFeatures
+        guard features.showsProgress != showsProgress else { return }
+        tuiContext.terminalFeatures = TerminalFeatures(
+            showsProgress: showsProgress, postsNotifications: features.postsNotifications)
     }
 
     /// What this frame writes to get the person's attention: a notification
