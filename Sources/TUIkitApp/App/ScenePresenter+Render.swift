@@ -53,6 +53,7 @@ extension ScenePresenter {
         // when the last one closes.
         context.environment.dismiss = DismissAction(box: window.dismissBox)
         context.environment.dismissWindow = DismissWindowAction(handler: actions, window: window.serial)
+        context.environment.presentedWindow = window.presented
         if !window.isLaunchWindow { context.environment.activeFocusSectionID = window.focusSection }
         return context
     }

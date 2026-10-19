@@ -4071,3 +4071,34 @@ private struct CorpusDismissWindowButton: View {
         Button("Close") { dismissWindow() }
     }
 }
+
+/// A window group that presents data, opened and dismissed by value, as
+/// `OpenWindowAction`'s documentation writes it.
+private struct CorpusPresentedDataApp: App {
+    var body: some Scene {
+        WindowGroup { CorpusOpenMessageButton() }
+        WindowGroup(for: Int.self) { $messageID in
+            Text("Message \(messageID ?? 0)")
+        }
+        WindowGroup("Drafts", id: "drafts", for: String.self) { $draft in
+            Text(draft)
+        } defaultValue: {
+            "New draft"
+        }
+    }
+}
+
+@MainActor
+private struct CorpusOpenMessageButton: View {
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
+
+    var body: some View {
+        Button("Open message") { openWindow(value: 42) }
+        Button("Open draft") { openWindow(id: "drafts", value: "Hello") }
+        Button("Close message") { dismissWindow(value: 42) }
+        Button("Share") {
+            Task { try await openWindow(id: "drafts", sharingBehavior: .requested) }
+        }
+    }
+}

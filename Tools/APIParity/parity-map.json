@@ -266,9 +266,6 @@
       "match": [
         "AlertScene*",
         "EnvironmentValues.openSettings",
-        "OpenWindowAction.SharingBehavior*",
-        "OpenWindowAction.callAsFunction(*sharingBehavior:)",
-        "WindowGroup.init(*for:*",
         "View.windowDismissBehavior(_:)",
         "WindowInteractionBehavior*",
         "WindowVisibilityToggle*"
@@ -474,7 +471,6 @@
         "Scene.menuBarExtraStyle(_:)",
         "Scene.defaultWindowPlacement(_:)",
         "UtilityWindow*",
-        "PresentedWindowContent",
         "DefaultWindowVisibilityToggleLabel",
         "SceneLaunchBehavior*",
         "SceneRestorationBehavior*",

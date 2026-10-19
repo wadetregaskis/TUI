@@ -106,6 +106,8 @@ extension Window: WindowScene {
     var windowTitle: Text? { group.title }
 
     var opensOneWindow: Bool { true }
+
+    var presentedValueType: Any.Type? { nil }
 }
 
 // MARK: - Window Scenes
@@ -125,4 +127,8 @@ protocol WindowScene: ConfiguringScene {
     /// Whether it opens one window at most — a `Window` — so that opening it
     /// again brings that window to the front.
     var opensOneWindow: Bool { get }
+
+    /// The type of value its windows present — a `WindowGroup(for:)`'s — or
+    /// `nil` for a scene whose windows present none.
+    var presentedValueType: Any.Type? { get }
 }

@@ -105,4 +105,8 @@ extension WindowGroup: WindowScene {
     var windowTitle: Text? { title }
 
     var opensOneWindow: Bool { false }
+
+    var presentedValueType: Any.Type? {
+        (Content.self as? any PresentingWindowContent.Type)?.presentedValueType
+    }
 }

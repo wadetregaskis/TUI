@@ -22,8 +22,9 @@ import TUIkitCore
 /// equality turns every memo below it off.
 @MainActor
 package final class SceneActionHandler {
-    /// Opens, or brings to the front, the window `target` names.
-    package var openWindow: (_ target: WindowTarget) -> Void = { _ in }
+    /// Opens, or brings to the front, the window `target` names, and says
+    /// whether a scene answered to it.
+    package var openWindow: (_ target: WindowTarget) -> Bool = { _ in false }
 
     /// Closes the windows `dismissal` names.
     package var dismissWindow: (_ dismissal: WindowDismissal) -> Void = { _ in }
@@ -116,7 +117,7 @@ public struct OpenWindowAction: Sendable, Equatable {
     /// - Parameter id: The identifier of the scene to present.
     @MainActor
     public func callAsFunction(id: String) {
-        handler?.openWindow(WindowTarget(id: id))
+        _ = handler?.openWindow(WindowTarget(id: id))
     }
 
     /// Opens a window defined by a window group that presents the type of the
@@ -128,7 +129,7 @@ public struct OpenWindowAction: Sendable, Equatable {
     /// - Parameter value: The value to present.
     @MainActor
     public func callAsFunction<D: Decodable & Encodable & Hashable>(value: D) {
-        handler?.openWindow(WindowTarget(id: nil, value: AnyHashable(value), valueType: D.self))
+        _ = handler?.openWindow(WindowTarget(id: nil, value: AnyHashable(value), valueType: D.self))
     }
 
     /// Opens a window defined by the window group that presents the specified
@@ -140,7 +141,7 @@ public struct OpenWindowAction: Sendable, Equatable {
     ///   - value: The value to present.
     @MainActor
     public func callAsFunction<D: Decodable & Encodable & Hashable>(id: String, value: D) {
-        handler?.openWindow(WindowTarget(id: id, value: AnyHashable(value), valueType: D.self))
+        _ = handler?.openWindow(WindowTarget(id: id, value: AnyHashable(value), valueType: D.self))
     }
 
     /// Whether the two reach the same app, or are both outside one.
@@ -265,4 +266,96 @@ extension EnvironmentValues {
     /// See `Documentation/SwiftUI parity/Decisions/Several scenes on one surface (O9).md`,
     /// A-O9-1, the owner's to overrule.
     public var supportsMultipleWindows: Bool { true }
+}
+
+// MARK: - Sharing a Window
+
+extension OpenWindowAction {
+    /// Whether a window opened is to be shared with a sharing session —
+    /// mirrors SwiftUI's `OpenWindowAction.SharingBehavior`.
+    ///
+    /// A terminal app has no sharing session to share a window with, so no
+    /// window it opens is ever shared: ``requested`` opens it as it is, and
+    /// ``required`` does not open it and throws, as SwiftUI documents for a
+    /// window that could not be shared.
+    public struct SharingBehavior: Sendable, Equatable {
+        /// Whether the window opens only when it is shared.
+        let isRequired: Bool
+
+        /// The window is shared where there is a sharing session and the
+        /// person agrees, and opened regardless.
+        public static let requested = Self(isRequired: false)
+
+        /// The window is opened only if it is shared.
+        public static let required = Self(isRequired: true)
+    }
+
+    /// Opens a window that's associated with the specified identifier, using
+    /// the specified sharing behavior — mirrors SwiftUI's
+    /// `callAsFunction(id:sharingBehavior:)`.
+    ///
+    /// - Parameters:
+    ///   - id: The identifier of the scene to present.
+    ///   - sharingBehavior: Whether the window opens only if it is shared,
+    ///     which here it never is.
+    /// - Throws: Where `sharingBehavior` is ``SharingBehavior/required``, or no
+    ///   scene has the identifier.
+    @MainActor
+    public func callAsFunction(id: String, sharingBehavior: SharingBehavior) async throws {
+        try open(WindowTarget(id: id), sharingBehavior: sharingBehavior)
+    }
+
+    /// Opens a window defined by a window group that presents the type of the
+    /// specified value, using the specified sharing behavior — mirrors
+    /// SwiftUI's `callAsFunction(value:sharingBehavior:)`.
+    ///
+    /// - Parameters:
+    ///   - value: The value to present.
+    ///   - sharingBehavior: Whether the window opens only if it is shared,
+    ///     which here it never is.
+    /// - Throws: Where `sharingBehavior` is ``SharingBehavior/required``, or no
+    ///   window group presents values of the type.
+    @MainActor
+    public func callAsFunction<D: Decodable & Encodable & Hashable>(
+        value: D, sharingBehavior: SharingBehavior
+    ) async throws {
+        try open(WindowTarget(id: nil, value: AnyHashable(value), valueType: D.self), sharingBehavior: sharingBehavior)
+    }
+
+    /// Opens a window defined by the window group that presents the specified
+    /// value type and that's associated with the specified identifier, using
+    /// the specified sharing behavior — mirrors SwiftUI's
+    /// `callAsFunction(id:value:sharingBehavior:)`.
+    ///
+    /// - Parameters:
+    ///   - id: The identifier of the scene to present.
+    ///   - value: The value to present.
+    ///   - sharingBehavior: Whether the window opens only if it is shared,
+    ///     which here it never is.
+    /// - Throws: Where `sharingBehavior` is ``SharingBehavior/required``, or no
+    ///   window group answers to the identifier and the value's type.
+    @MainActor
+    public func callAsFunction<D: Decodable & Encodable & Hashable>(
+        id: String, value: D, sharingBehavior: SharingBehavior
+    ) async throws {
+        try open(WindowTarget(id: id, value: AnyHashable(value), valueType: D.self), sharingBehavior: sharingBehavior)
+    }
+
+    /// Opens `target` unless sharing is required, which no window here can be.
+    @MainActor
+    private func open(_ target: WindowTarget, sharingBehavior: SharingBehavior) throws {
+        guard !sharingBehavior.isRequired else { throw WindowOpeningError.notShared }
+        guard handler?.openWindow(target) == true else { throw WindowOpeningError.noScene }
+    }
+}
+
+/// Why an `OpenWindowAction` that throws did not open its window.
+enum WindowOpeningError: Error {
+    /// The window was to be opened only if shared, and a terminal app has no
+    /// sharing session.
+    case notShared
+
+    /// No scene the app declares answers to what the action named, or the
+    /// action was not read from a running app's environment.
+    case noScene
 }

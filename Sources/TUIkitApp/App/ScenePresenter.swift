@@ -84,10 +84,15 @@ package final class ScenePresenter {
         /// window's first frame takes so its bars are there from the start.
         var needsSeeding = true
 
-        init(serial: Int, sceneKey: ViewIdentity, isLaunchWindow: Bool) {
+        /// The value it presents, for a window of a group that presents data
+        /// (`WindowGroup(for:)`); `nil` for any other.
+        let presented: PresentedWindowSlot?
+
+        init(serial: Int, sceneKey: ViewIdentity, isLaunchWindow: Bool, presented: PresentedWindowSlot?) {
             self.serial = serial
             self.sceneKey = sceneKey
             self.isLaunchWindow = isLaunchWindow
+            self.presented = presented
         }
 
         /// The focus section its content registers in: the page's for the
@@ -141,7 +146,7 @@ package final class ScenePresenter {
     private let closedChrome = WindowChromeState()
 
     init() {
-        actions.openWindow = { [weak self] target in self?.open(target) }
+        actions.openWindow = { [weak self] target in self?.open(target) ?? false }
         actions.dismissWindow = { [weak self] dismissal in self?.dismiss(dismissal) }
     }
 
@@ -183,15 +188,23 @@ package final class ScenePresenter {
 
     /// Opens the window `target` names: brings a `Window`'s open window, or a
     /// window presenting an equal value, to the front; otherwise opens a new
-    /// window of the scene. A target no scene answers to opens nothing.
-    func open(_ target: WindowTarget) {
-        guard let entry = entries.first(where: { $0.answers(to: target) }) else { return }
-        if entry.window.opensOneWindow, let open = windows.firstIndex(where: { $0.sceneKey == entry.identity }) {
-            bringToFront(windows[open].serial)
-            return
+    /// window of the scene, presenting the target's value.
+    ///
+    /// - Returns: Whether a scene answers to `target`: a target none does
+    ///   opens nothing.
+    @discardableResult
+    func open(_ target: WindowTarget) -> Bool {
+        guard let entry = entries.first(where: { $0.answers(to: target) }) else { return false }
+        let ofScene = windows.filter { $0.sceneKey == entry.identity }
+        if let value = target.value, let showing = ofScene.first(where: { $0.presented?.value == value }) {
+            bringToFront(showing.serial)
+        } else if entry.window.opensOneWindow, let open = ofScene.first {
+            bringToFront(open.serial)
+        } else {
+            windows.append(makeWindow(of: entry, isLaunchWindow: false, value: target.value))
+            requestFrame()
         }
-        windows.append(makeWindow(of: entry, isLaunchWindow: false))
-        requestFrame()
+        return true
     }
 
     /// Brings the window `serial` to the front of the others.
@@ -208,7 +221,10 @@ package final class ScenePresenter {
             close([serial])
         case .target(let target):
             let keys = entries.filter { $0.answers(to: target) }.map(\.identity)
-            close(windows.filter { keys.contains($0.sceneKey) }.map(\.serial))
+            let named = windows.filter { window in
+                keys.contains(window.sceneKey) && (target.value == nil || window.presented?.value == target.value)
+            }
+            close(named.map(\.serial))
         }
     }
 
@@ -223,9 +239,13 @@ package final class ScenePresenter {
         if windows.isEmpty { quit() }
     }
 
-    /// A new window of `entry`.
-    private func makeWindow(of entry: SceneCatalog.WindowEntry, isLaunchWindow: Bool) -> OpenWindow {
-        let window = OpenWindow(serial: nextSerial, sceneKey: entry.identity, isLaunchWindow: isLaunchWindow)
+    /// A new window of `entry`, presenting `value` if its scene presents data.
+    private func makeWindow(
+        of entry: SceneCatalog.WindowEntry, isLaunchWindow: Bool, value: AnyHashable? = nil
+    ) -> OpenWindow {
+        let presented = entry.window.presentedValueType.map { _ in PresentedWindowSlot(openedValue: value) }
+        let window = OpenWindow(
+            serial: nextSerial, sceneKey: entry.identity, isLaunchWindow: isLaunchWindow, presented: presented)
         nextSerial += 1
         let serial = window.serial
         window.dismissBox.action = { [weak self] in self?.close([serial]) }
@@ -259,8 +279,14 @@ package final class ScenePresenter {
 @MainActor
 extension SceneCatalog.WindowEntry {
     /// Whether `openWindow` or `dismissWindow` with `target` names this scene:
-    /// its identifier, where the target names one.
+    /// its identifier, where the target names one, and for a target with a
+    /// value, a group presenting values of its type.
     func answers(to target: WindowTarget) -> Bool {
+        if let valueType = target.valueType {
+            guard let presented = window.presentedValueType, ObjectIdentifier(presented) == ObjectIdentifier(valueType)
+            else { return false }
+            return target.id.map { window.sceneID == $0 } ?? true
+        }
         guard let id = target.id else { return false }
         return window.sceneID == id
     }
