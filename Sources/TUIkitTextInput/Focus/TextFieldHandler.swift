@@ -1020,6 +1020,7 @@ extension TextFieldHandler {
     ///   caret (``TextUndoHistory/record(text:caret:continuingTyping:)``).
     func pushUndoState(continuingTyping: Bool = false) {
         forgetHistoryIfReplaced()
+        if continuingTyping { undoHistory.endTypingRun(unlessNewestIn: undoManager) }
         if let mark = undoHistory.record(
             text: text.wrappedValue, caret: cursorPosition, continuingTyping: continuingTyping),
             let undoManager

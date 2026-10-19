@@ -98,7 +98,46 @@ package enum TextUndoBridge {
             // captured here.
             MainActor.assumeIsolated { step.run(mark: mark) }
         }
+        label(manager, with: mark)
         if needsGroup { manager.endUndoGrouping() }
+    }
+
+    /// Puts `mark` in the user info of the step being built, so a control can
+    /// ask whether its step is still the newest (``isNewestStep(_:on:)``).
+    /// Only inside the step's group: `NSUndoManager` raises with none open,
+    /// and with registration disabled the registration opened none.
+    @MainActor
+    private static func label(_ manager: UndoManager, with mark: TextUndoMark) {
+        guard #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) else { return }
+        guard manager.groupingLevel > 0 else { return }
+        manager.setActionUserInfoValue(mark, forKey: UndoManager.UserInfoKey(markKey))
+    }
+
+    /// The user-info key a text control's step carries its mark under.
+    private static let markKey = "TUIkit.TextUndoMark"
+
+    /// Whether the step registered against `mark` is the newest in `manager`:
+    /// the one its undo would take back.
+    ///
+    /// What ends a run of typing as the macOS text system ends one (measured
+    /// on macOS 15.8 with `NSTextView`s sharing a window's undo manager, the
+    /// INPUT lane's probe): typing that follows a step registered by anything
+    /// else — another text control's typing, an action of the app's — is a
+    /// step of its own, so the undos come back in the order of the edits.
+    /// The focus moving away and back with nothing registered meanwhile does
+    /// not end the run.
+    ///
+    /// Before macOS 15 a step's user info cannot be asked, and the answer is
+    /// `true`: the run goes on, as it did before this was asked at all.
+    package static func isNewestStep(_ mark: TextUndoMark, on manager: UndoManager) -> Bool {
+        let manager = MainActorUndoManager(manager)
+        return MainActor.assumeIsolated { newest(mark, on: manager.manager) }
+    }
+
+    @MainActor
+    private static func newest(_ mark: TextUndoMark, on manager: UndoManager) -> Bool {
+        guard #available(macOS 15, iOS 18, tvOS 18, watchOS 11, visionOS 2, *) else { return true }
+        return manager.undoActionUserInfoValue(forKey: UndoManager.UserInfoKey(markKey)) as AnyObject? === mark
     }
 
     /// Takes the steps registered against `marks` out of `manager`, at once.

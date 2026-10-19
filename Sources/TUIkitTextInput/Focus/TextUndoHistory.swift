@@ -36,7 +36,11 @@ import TUIkitFoundation
 /// (``record(text:caret:continuingTyping:)``, ``noteTyped(text:caret:)``).
 /// Inside a running app the app's undo manager groups each event's steps into
 /// one undo too, as it does on macOS — see ``TextUndoBridge``; a key that
-/// continues a run registers nothing there.
+/// continues a run registers nothing there, and a step registered there by
+/// anything else since the run's own ends the run, as it does on macOS
+/// (``endTypingRun(unlessNewestIn:)``), so the undos come back in the order
+/// of the edits. The focus moving away and back with nothing registered
+/// meanwhile does not end it.
 ///
 /// It keeps redo as well: an undo puts the state it replaces on the redo
 /// stack, a redo puts it back, and a new edit forgets redo.
@@ -65,8 +69,10 @@ struct TextUndoHistory<Caret: Equatable> {
 
     /// The text and caret the last edit of a run of typing left, while that
     /// run may go on: a typing edit made from exactly this state is part of
-    /// the same step (``record(text:caret:continuingTyping:)``).
-    private var typingRun: (text: String, caret: Caret)?
+    /// the same step (``record(text:caret:continuingTyping:)``). With them,
+    /// the mark of that step, which the app's undo manager is asked about
+    /// (``endTypingRun(unlessNewestIn:)``).
+    private var typingRun: (text: String, caret: Caret, mark: TextUndoMark?)?
 
     /// How many states are kept. Recording one more drops the oldest.
     let limit: Int
@@ -144,7 +150,20 @@ struct TextUndoHistory<Caret: Equatable> {
     /// Notes the state a typing edit — a character, or Backspace — has just
     /// left, so a typing edit made from it next continues the same step.
     mutating func noteTyped(text: String, caret: Caret) {
-        typingRun = (text, caret)
+        typingRun = (text, caret, states.last?.mark)
+    }
+
+    /// Ends the run of typing unless its step is still the newest in the
+    /// app's undo manager, `manager`: a step registered there since — another
+    /// control's typing, an action of the app's — leaves the run's below it,
+    /// and the next key continuing the run would be undone after that step,
+    /// though typed after it. Measured on macOS 15.8: `NSTextView` makes the
+    /// typing after such a step a step of its own
+    /// (`TextUndoBridge.isNewestStep(_:on:)`). Nothing to ask with no
+    /// manager.
+    mutating func endTypingRun(unlessNewestIn manager: UndoManager?) {
+        guard let manager, let mark = typingRun?.mark, !TextUndoBridge.isNewestStep(mark, on: manager) else { return }
+        typingRun = nil
     }
 
     /// Notes the text the control has just written, as its binding reads it

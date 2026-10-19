@@ -320,6 +320,7 @@ final class TextEditorHandler: PersistedFocusable {
         let caretBefore = cursor
         let handled = edit()
         if text.wrappedValue != textBefore {
+            if continuingTyping { undoHistory.endTypingRun(unlessNewestIn: undoManager) }
             if let mark = undoHistory.record(text: textBefore, caret: caretBefore, continuingTyping: continuingTyping),
                 let undoManager
             {

@@ -37,16 +37,21 @@ struct TextUndoCoalescingTests {
         case field, editor
     }
 
-    /// A control of `kind` over empty text.
-    private func make(_ kind: Control) -> (handle: (KeyEvent) -> Void, text: () -> String) {
+    /// A control of `kind` over empty text, registering its steps with
+    /// `manager` as a running app's controls do with the app's.
+    private func make(
+        _ kind: Control, manager: UndoManager? = nil
+    ) -> (handle: (KeyEvent) -> Void, text: () -> String) {
         let box = TextBox("")
         let binding = Binding(get: { box.text }, set: { box.text = $0 })
         switch kind {
         case .field:
             let field = TextFieldHandler(focusID: "field", text: binding)
+            field.undoManager = manager
             return ({ _ = field.handleKeyEvent($0) }, { box.text })
         case .editor:
             let editor = TextEditorHandler(focusID: "editor", text: binding)
+            editor.undoManager = manager
             return ({ _ = editor.handleKeyEvent($0) }, { box.text })
         }
     }
@@ -187,6 +192,87 @@ struct TextUndoCoalescingTests {
         #expect(undone(control).isEmpty)
         type("cd", into: control.handle)
         #expect(undone(control).isEmpty)
+    }
+
+    // MARK: - Beside other steps in the app's undo manager
+
+    /// Steps are explicit groups, so a test does not depend on a run loop
+    /// turning: each registration is its own step, as each event's are in a
+    /// running app.
+    private func makeManager() -> UndoManager {
+        let manager = UndoManager()
+        manager.groupsByEvent = false
+        return manager
+    }
+
+    /// Whether an undo step's user info can be asked, which is how a run
+    /// knows its step is no longer the newest: from macOS 15, and always
+    /// where TUIkit's own `UndoManager` stands in for Foundation's.
+    nonisolated static var stepsCanBeAsked: Bool {
+        if #available(macOS 15, *) { true } else { false }
+    }
+
+    /// Measured on macOS 15.8 with two `NSTextView`s sharing a window's undo
+    /// manager: "ab" in one, "x" in the other, and "c" back in the first
+    /// undo as "c", then "x", then "ab". The first control's run went on
+    /// under the other's step, so "c" was undone with "ab", after "x".
+    @Test(
+        "Typing after another control's step is a step of its own, so the undos keep the edits' order",
+        .enabled(if: stepsCanBeAsked), arguments: Control.allCases)
+    func runEndsUnderAnotherControlsStep(kind: Control) {
+        let manager = makeManager()
+        let first = make(kind, manager: manager)
+        let second = make(kind, manager: manager)
+        type("ab", into: first.handle)
+        type("x", into: second.handle)
+        type("c", into: first.handle)
+        manager.undo()
+        #expect(first.text() == "ab" && second.text() == "x", "\(first.text()) / \(second.text())")
+        manager.undo()
+        #expect(first.text() == "ab" && second.text().isEmpty, "\(first.text()) / \(second.text())")
+        manager.undo()
+        #expect(first.text().isEmpty)
+    }
+
+    private final class Flag {
+        var on = true
+    }
+
+    /// Measured the same way: an action the app registers in the middle of a
+    /// run ends it.
+    @Test(
+        "Typing after a step of the app's is a step of its own", .enabled(if: stepsCanBeAsked),
+        arguments: Control.allCases)
+    func runEndsUnderTheAppsStep(kind: Control) {
+        let manager = makeManager()
+        let control = make(kind, manager: manager)
+        let flag = Flag()
+        type("ab", into: control.handle)
+        manager.beginUndoGrouping()
+        manager.registerUndo(withTarget: flag) { $0.on = false }
+        manager.endUndoGrouping()
+        type("c", into: control.handle)
+        manager.undo()
+        #expect(control.text() == "ab" && flag.on)
+        manager.undo()
+        #expect(control.text() == "ab" && !flag.on)
+        manager.undo()
+        #expect(control.text().isEmpty)
+    }
+
+    /// Measured the same way: the focus going to the other view and back,
+    /// with nothing typed there, does not end the run. Here the other
+    /// control takes a key that registers nothing.
+    @Test("With nothing registered meanwhile, the run goes on", arguments: Control.allCases)
+    func runGoesOnPastAnotherControlsKeys(kind: Control) {
+        let manager = makeManager()
+        let first = make(kind, manager: manager)
+        let second = make(kind, manager: manager)
+        type("ab", into: first.handle)
+        second.handle(Self.left)
+        type("c", into: first.handle)
+        manager.undo()
+        #expect(first.text().isEmpty)
     }
 
     /// In a running app the run is one step in the app's undo manager too:

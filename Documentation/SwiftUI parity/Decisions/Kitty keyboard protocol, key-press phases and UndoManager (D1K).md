@@ -232,6 +232,23 @@ registers nothing with the app's undo manager, so the run is one step there
 too (`TextUndoCoalescingTests`, every measured case in a field and an
 editor).
 
+The lane's review found the run going on under a step registered after it:
+"ab" in one field, "x" in another, and "c" back in the first undid "x" first
+and then "abc", the "c" after the "x" it was typed before. Measured again,
+with two `NSTextView`s sharing a window's undo manager: there "c" is a step
+of its own, undone first, and so is typing after an action the app
+registers mid-run, while the focus going away and back with nothing
+registered meanwhile leaves the run going. So a run goes on only while its
+step is the newest in the app's undo manager: each text step carries its
+mark in the step's user info (macOS 15's `setActionUserInfoValue(_:forKey:)`,
+which TUIkit's own `UndoManager` keeps too), and a key that would continue a
+run asks whether the newest step is still its own
+(`TextUndoBridge.isNewestStep(_:on:)`,
+`TextUndoHistory.endTypingRun(unlessNewestIn:)`;
+`TextUndoCoalescingTests.runEndsUnderAnotherControlsStep`,
+`.runEndsUnderTheAppsStep`, `.runGoesOnPastAnotherControlsKeys`). Before
+macOS 15 the step cannot be asked, and the run goes on as before.
+
 ### B-D1K-7. The undo and redo keys are data, Ctrl-Z among them; redo's reach only some terminals, and the status bar is the route everywhere
 
 *`EnvironmentValues.undoManager`, `UndoCommand`, `UndoShortcuts`,
