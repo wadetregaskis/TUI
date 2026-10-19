@@ -3807,3 +3807,15 @@ private struct CorpusDefaultPickerStyleAndSpacer: View {
         }
     }
 }
+
+/// A selection erased to `AnyHashable`, handed a binding to a concrete
+/// `Hashable` value.
+@MainActor
+private struct CorpusAnyHashableBinding: View {
+    @State private var count = 0
+
+    var body: some View {
+        let erased: Binding<AnyHashable> = Binding($count)
+        return Text("\(erased.wrappedValue.description)")
+    }
+}

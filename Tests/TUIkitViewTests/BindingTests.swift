@@ -244,4 +244,31 @@ struct BindingUnwrapTests {
         optional.wrappedValue = nil
         #expect(value == 7, "nil has nothing to store")
     }
+
+    @Test("A binding projected to AnyHashable reads the value erased and writes it through under the base's transaction")
+    func anyHashableProjection() {
+        nonisolated(unsafe) var value = 5
+        nonisolated(unsafe) var animated: [Bool] = []
+        let base = Binding(get: { value }, set: { (new: Int, transaction: Transaction) in
+            value = new
+            animated.append(transaction.animation != nil)
+        })
+        let erased: Binding<AnyHashable> = Binding(base.animation(.easeIn(duration: 1)))
+        #expect(erased.wrappedValue == AnyHashable(5))
+        erased.wrappedValue = AnyHashable(7)
+        #expect(value == 7)
+        #expect(erased.wrappedValue == AnyHashable(7))
+        #expect(animated == [true], "the base's own transaction is in force: \(animated)")
+    }
+
+    @Test("A write of the wrong type through an AnyHashable projection is reported in words naming both types")
+    func anyHashableMistypedWrite() {
+        // SwiftUI traps; TUIkit reports through SoftTrap, which a debug build
+        // stops at, so the report goes to a log of the test's own.
+        var reports: [String] = []
+        Binding<AnyHashable>.reportMistypedWrite(AnyHashable("seven"), expected: Int.self) { reports.append($0) }
+        #expect(reports.count == 1)
+        #expect(reports.first?.contains("a String was written") == true, "\(reports)")
+        #expect(reports.first?.contains("Binding<Int>") == true, "\(reports)")
+    }
 }

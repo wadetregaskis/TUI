@@ -539,6 +539,23 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   back when it is shown again.
 - **Decided:** [B-DYNVFIX-3](<Decisions/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-is-the-objects-every-view-drawn-holding-it-is-redrawn-by-its-writes-each-reads-its-own-environment-while-it-draws-and-an-object-made-with-a-view-value-keeps-its-views-state>). **Lane.**
 
+### S7. A wrong-typed write through an `AnyHashable` projection is dropped and reported
+
+- **SwiftUI:** `Binding<AnyHashable>(_:)` force-casts a written value to the
+  base binding's type, so a value of any other type traps (measured
+  2026-10-18: `AnyHashable(Int8(7))` written through a projection of a
+  `Binding<Int>` fails its cast; probe in the session notes,
+  `PARITYMISC/probes/binding_anyhashable.swift`).
+- **TUIkit:** reports it through `SoftTrap`, which stops a debug build as
+  SwiftUI's trap would; a release build drops the write and the base keeps its
+  value
+  ([Binding+AnyHashable.swift](../../Sources/TUIkitView/State/Binding+AnyHashable.swift),
+  `BindingTests`).
+- **Why:** a soft trap is the framework's answer to a programming error with a
+  safe fallback: loud where the developer is looking, never a crash in someone's
+  terminal. S4 drops a write past a collection's end for the same reason.
+- **Decided:** [B-PARITYMISC-1](<Decisions/Small parity items (PARITYMISC).md#b-paritymisc-1-a-wrong-typed-write-through-an-anyhashable-projection-is-reported-and-dropped>). **Lane.**
+
 ---
 
 ## Environment
