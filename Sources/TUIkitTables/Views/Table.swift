@@ -673,6 +673,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// Whether ``sizingRows(_:)`` has run for this copy.
     var rowHeightsAreSized = false
 
+    /// Whether the style cascade says something to a `String` or plain `Text`
+    /// cell's text this pass — ``cellTextAttributes(_:)`` is not empty — once
+    /// ``textingCells(_:)`` has asked; `nil` before. Asked once for the table
+    /// rather than by every cell: the question builds a set of scopes and walks
+    /// the cascade, and every reader of every cell asks it, the fit scan over
+    /// every row among them.
+    var cascadesCellText: Bool?
+
     var body: Never {
         fatalError("_TableCore renders via Renderable")
     }
@@ -726,7 +734,18 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func prepared(_ context: RenderContext) -> Self? {
         if let sized = sizingRows(context.environment) { return sized }
         if let resized = resizingColumns(context) { return resized }
-        return needsResolution ? resolvingRows(context) : nil
+        if needsResolution { return resolvingRows(context) }
+        return textingCells(context)
+    }
+
+    /// This table with ``cascadesCellText`` answered for the pass — `nil` when
+    /// it is. `context` is the one the entry points prepare, its text claimed
+    /// for `.control(.table)` (``claimingCellText(_:)``).
+    private func textingCells(_ context: RenderContext) -> Self? {
+        guard cascadesCellText == nil else { return nil }
+        var texted = self
+        texted.cascadesCellText = Self.cellTextAttributes(context.environment) != StyleAttributes()
+        return texted
     }
 
     /// This table with the widths a user gave its columns where no
@@ -1986,7 +2005,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // ``cellValue(_:for:width:context:)`` they were joined into one string
         // only to be split here again, which on table-multiline was most of
         // what that path cost.
-        if let text = Self.cascadedTextCell(column, for: item, environment: context.environment) {
+        if let text = cascadedTextCell(column, for: item, environment: context.environment) {
             context.renderCache?.rowWork.cellValues += 1
             return renderedCell(text, column, for: item, width: width, context: context)
                 .split(separator: "\n", omittingEmptySubsequences: false)
@@ -4713,7 +4732,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         _ column: _TableColumnSpec<Value>, for item: Value, width: Int, context: RenderContext
     ) -> String {
         context.renderCache?.rowWork.cellValues += 1
-        if let text = Self.cascadedTextCell(column, for: item, environment: context.environment) {
+        if let text = cascadedTextCell(column, for: item, environment: context.environment) {
             return renderedCell(text, column, for: item, width: width, context: context)
         }
         switch column.cell {
@@ -4772,17 +4791,21 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// `Text` it takes the cascade as any `Text` does, where the string path,
     /// which draws the characters in the table's own ink, took none of it.
     /// `nil` for a view cell, which renders its own `Text`s, and wherever the
-    /// cascade is silent — every table without such a modifier above it,
-    /// which pays one environment read per cell for the question.
+    /// cascade is silent to a cell's text — every table without such a
+    /// modifier above it, and every one whose cascade speaks only to other
+    /// scopes (a theme's `.control(.button)` styles), which pays a stored
+    /// flag's read per cell for the question: the pass answers it once
+    /// (``cascadesCellText``). A copy of the table no pass prepared asks the
+    /// cascade itself.
     ///
     /// Every reader of a cell's characters asks this — the fit scan, a row's
     /// height and its drawing alike — so a cascaded `textCase` that turns "ß"
     /// into "SS" is measured as it is drawn.
-    private static func cascadedTextCell(
+    private func cascadedTextCell(
         _ column: _TableColumnSpec<Value>, for item: Value, environment: EnvironmentValues
     ) -> Text? {
         if case .view = column.cell { return nil }
-        guard cellTextAttributes(environment) != StyleAttributes() else { return nil }
+        guard cascadesCellText ?? (Self.cellTextAttributes(environment) != StyleAttributes()) else { return nil }
         switch column.cell {
         case .string(let extract): return Text(verbatim: extract(item))
         case .text(let make): return make(item)
