@@ -128,6 +128,41 @@ view asks), so an A/B with it. Lane NESTEDLAZY's design C, where the scroll
 view pulls only the rows it needs, is the owner-ruled answer to the same cost
 and would replace it; this lane leaves that shape to it.
 
+### B-SCROLL-5. A row widened off screen is drawn whole when it scrolls in: rows entering the band are checked (Q1)
+
+*A two-axis `ScrollView` over a `LazyVStack` past the full walk's threshold
+(the owner's Q1 ruling of 2026-09-23: an extent may be an estimate, a drawn
+row is never cut; option 3, detect, stop and replan)*
+
+**Re-run on 2026-10-19 first.** A row widened through its data is caught now
+by the width record's challenge, and the full walk under 256 rows measures
+every row's slot each frame. What still cut a row: one that reads an
+`@Observable` no drawn row read, widened while off screen. The write clears
+nothing, the record keeps its old widest row, and scrolled in (End) the row
+was drawn on the old canvas with an ellipsis — and stayed so, since nothing
+asked again (`WidenedRowDrawnWholeTests`).
+
+**Shipped:** the uniform and anchored windows measure the rows that ENTER
+their band against the record as they record the band
+(`_VStackCore.recordDrawnBand`), their sizes forgotten first, as the
+challenge measures the widest row. One wider than the record raises it; one
+past the width the record was measured at falls it, for a walk. Then the
+pass's measures are dropped and the scroll view measures and draws once more,
+that frame (`ScrollContentReply.measureWentStale`, the replan the uniform
+window's refuted hypothesis already uses), on which no row enters. A
+screenful of row measures when the band jumps, a row or three when it
+scrolls, nothing when it rests, and nothing in a view that does not scroll
+across, which keeps no record: an A/B is owed on two-axis scenarios.
+
+**The fuller version** (the 14-commit plan of 2026-09-23, about 1,900 lines of
+source): the same check for a lazy stack nested in the content (risers that
+carry the need out through the stacks around it), for a stack inside a
+`.frame(width:)` that fixes its canvas, and for the classic paths; the scroll
+bars re-resolved on the replan, where today a bar the wider row brings
+appears on the next frame; and a bounded replan loop for a replan that
+reveals another. None of these was seen to cut a row on the base; each is
+about a day.
+
 ## C. Declined
 
 ### C-SCROLL-1. `scrollTo` a row of a vertical stack inside `ScrollView(.horizontal)`

@@ -367,7 +367,7 @@ extension _VStackCore {
         band: Range<Int>, all ordinals: @autoclosure () -> [Int], of children: ChildViewCollection,
         state: StackWindowState, context: RenderContext
     ) {
-        state.drawnOrdinals = band
+        recordDrawnBand(band, children: children, state: state, context: context)
         guard !context.isMeasuring, let stateStorage = context.stateStorage, stateStorage.notesWindowedRows
         else { return }
         let ordinals = Set(ordinals())

@@ -958,6 +958,11 @@ window**, not a deferred-creation machine:
   every path that answers, and it never shrinks while the content is
   unchanged. It is also never narrower than the band on screen: a stack
   scrolled to a wide row reports that row, however narrow the first rows are.
+  And a row is never drawn cut by it (the owner's ruling of 2026-09-23): rows
+  entering the band are measured against it first, and one wider than it —
+  widened while off screen, through an `@Observable` no drawn row read — has
+  the scroll view measure and draw once more that frame (decisions-SCROLL
+  B-SCROLL-5).
 - **`pinnedViews:`** (`LazyVStack(alignment:spacing:pinnedViews:content:)`,
   `PinnedScrollableViews`) pins by SwiftUI's rule, measured on macOS 15.8: a
   `Section`'s header stays at the top of the enclosing vertical `ScrollView`

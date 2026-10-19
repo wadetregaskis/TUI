@@ -514,7 +514,8 @@ extension _VStackCore {
     /// memo: a row measured but never drawn, of a type never seen to read
     /// while drawn, reads its `@Observable`s untracked, so a change to one
     /// moves nothing — no clear, so no challenge — and the extent learns it
-    /// when the row is drawn, or when the next write challenges the record. A
+    /// when the row enters the drawn band (``recordDrawnBand(_:children:state:context:)``),
+    /// or when the next write challenges the record. A
     /// row of a type known to read is observed as it is measured, and its
     /// write clears as a drawn row's does.
     ///
@@ -551,8 +552,9 @@ extension _VStackCore {
     /// because a collection that only grew is extended. Past the maximum, the
     /// extent is short at once; past only the runner-up, it is short once the
     /// widest row narrows below that other row, since the bound it was lowered
-    /// against was stale. Scrolled into view, such a row is drawn, and the next
-    /// write measures it; with no write, nothing asks. And the drawn rows are
+    /// against was stale. Scrolled into a banded view, such a row is measured as
+    /// it enters the band, before the frame is shown
+    /// (``recordDrawnBand(_:children:state:context:)``). And the drawn rows are
     /// measured only for a write that left the collection as it was (see the
     /// caller): one that ALSO grew it — a paste of several lines into a line —
     /// leaves the edited line to the next write that does not. The exact
@@ -658,6 +660,84 @@ extension _VStackCore {
             width: min(widest, limit), height: 0,
             isWidthFlexible: wholeContentFlexibility(isFlexible, width: widest, limit: limit),
             isHeightFlexible: false)
+    }
+}
+
+// MARK: - Rows entering the drawn band
+
+extension _VStackCore {
+    /// Records the rows a band render drew (``StackWindowState/drawnOrdinals``)
+    /// and, where the stack keeps a width record — it is the content of a view
+    /// that scrolls across, whose canvas is that record's width — measures the
+    /// rows that ENTERED the band against it, before the frame is shown.
+    ///
+    /// The challenge after a write (``challenge(_:children:drawn:context:)``)
+    /// measures the record's widest row and the rows the last frame drew. A
+    /// row that reads an `@Observable` it was never drawn reading is widened
+    /// with no clear at all, so nothing asks, and scrolled into view it was
+    /// drawn on a canvas narrower than itself — cut with an ellipsis, and left
+    /// so until some later write measured it (the owner's ruling of
+    /// 2026-09-23: an extent may be an estimate, a drawn row is never cut).
+    /// So the rows the band takes on are measured as the challenge measures
+    /// the widest one, their sizes forgotten first. One wider than the record
+    /// raises it — exact, on the premise the record keeps: every other row is
+    /// at most what it says — and one past the width the record was measured
+    /// at falls it, for a walk. Either way the canvas the scroll view laid
+    /// this frame out on is too narrow: its measures are dropped, and the
+    /// scroll view measures again and draws once more, this frame
+    /// (``ScrollContentReply/measureWentStale``), on which no row enters.
+    ///
+    /// The detect-stop-replan design the owner chose for Q1, on the two paths
+    /// that band: the uniform and anchored windows. (The full walk under 256
+    /// rows measures every row's slot on every frame, and draws such a row
+    /// whole already.) A screenful of row measures when the band jumps (End),
+    /// a row or three when it scrolls, nothing while it rests, and nothing for
+    /// a view that does not scroll across, which keeps no record.
+    func recordDrawnBand(
+        _ band: Range<Int>, children: ChildViewCollection, state: StackWindowState, context: RenderContext
+    ) {
+        let previous = state.drawnOrdinals
+        state.drawnOrdinals = band
+        guard state.contentWidth != nil, !context.isMeasuring else { return }
+        let entering = band.filter { !previous.contains($0) }
+        guard !entering.isEmpty, widensRecord(entering, children: children, state: state, context: context)
+        else { return }
+        context.renderCache?.forgetPassMeasures()
+        context.environment.scrollContentWindow?.reply?.measureWentStale = true
+    }
+
+    /// Measures the rows `entering` against the width record, and says
+    /// whether one of them moved it — see ``recordDrawnBand(_:children:state:context:)``.
+    private func widensRecord(
+        _ entering: [Int], children: ChildViewCollection, state: StackWindowState, context: RenderContext
+    ) -> Bool {
+        guard var record = state.contentWidth, record.isCurrent(in: context) else { return false }
+        let (measureContext, tracker) = rowWidthContext(context, width: record.measuredAt)
+        let mark = tracker.beginScope()
+        defer { tracker.endScope(mark) }
+        let unproposed = ProposedSize(width: nil, height: nil)
+        var moved = false
+        for ordinal in entering where ordinal < min(record.covered, children.count) {
+            let row = children[ordinal]
+            context.renderCache?.forgetSizes(
+                of: row.identity(under: measureContext), measureGeneration: measureContext.measureGeneration)
+            let size = row.measure(proposal: unproposed, context: measureContext)
+            if hasNoWidthOfItsOwn(size, limit: record.measuredAt) { continue }
+            guard size.width < record.measuredAt else {
+                state.contentWidth = nil
+                return true
+            }
+            if size.width > record.widest {
+                record.runnerUp = max(record.runnerUp, record.widest)
+                record.widest = size.width
+                record.widestOrdinal = ordinal
+                moved = true
+            } else {
+                record.runnerUp = max(record.runnerUp, size.width)
+            }
+        }
+        state.contentWidth = record
+        return moved
     }
 }
 
