@@ -620,6 +620,12 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         handler.values = tabs.map(\.value)
         handler.disabledValues = Set(tabs.filter(\.isDisabled).map(\.value))
         handler.canBeFocused = !isDisabled
+        // The core's state — the size memo above all — is kept for the next
+        // frame whether or not the strip registers, which marks it too.
+        // Beside a sidebar nothing did: the memo the measure pass wrote was
+        // gone by the next pass, which wrote it again, so every frame asked
+        // for another and cleared every memo around the tab view.
+        if !context.isMeasuring { stateStorage.markActive(context.identity) }
         // Beside a sidebar the strip is not drawn and is no focus stop: the
         // sidebar's list takes the keys and the clicks.
         if !context.isMeasuring, showsStrip(context) {

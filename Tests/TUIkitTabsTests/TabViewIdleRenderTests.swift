@@ -95,4 +95,30 @@ struct TabViewIdleRenderTests {
             frame(view, tui: tui, width: 60) == 0,
             "...and it is still doing it on the frame after that")
     }
+
+    /// Beside a sidebar the strip is not drawn and registers no focus stop,
+    /// and that registration was what kept the tab view's own state from one
+    /// frame to the next. Nothing kept it, so the size memo the measure pass
+    /// wrote was gone by the next pass, which wrote it again: every frame of
+    /// a page with a `.sidebarAdaptable` tab view asked for another, and the
+    /// write cleared every memo around the tab view as it did.
+    @Test("A settled sidebar tab view asks for no further frames")
+    func settledSidebarTabViewIsQuiet() {
+        let tui = TUIContext()
+        let view = TabView(selection: .constant(0)) {
+            Tab("One", value: 0) { Text("a short tab") }
+            Tab("Two", value: 1) { Text("a considerably wider tab body") }
+        }
+        .tabViewStyle(.sidebarAdaptable)
+
+        frame(view, tui: tui, width: 60)
+        frame(view, tui: tui, width: 60)
+
+        #expect(
+            frame(view, tui: tui, width: 60) == 0,
+            "a settled sidebar tab view dirtied state, so the loop would render again")
+        #expect(
+            frame(view, tui: tui, width: 60) == 0,
+            "...and it is still doing it on the frame after that")
+    }
 }
