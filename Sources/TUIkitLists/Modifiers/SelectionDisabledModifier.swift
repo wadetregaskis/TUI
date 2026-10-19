@@ -18,10 +18,10 @@ import TUIkitFoundation
 /// rather than by inspecting the row's structure, so a modifier written
 /// outside this one (`.selectionDisabled(_:).padding()`) still counts. That
 /// also means the restriction is only known for a row that has actually
-/// drawn: Up/Down and Page Up/Page Down route around a `.selectionDisabled()`
-/// row once it has rendered at least once (`ItemListHandler.moveFocus(by:wrap:)`),
-/// the same on-screen-only guarantee `.deleteDisabled()` documents — Home and
-/// End jump straight to a boundary and do not yet consult it.
+/// drawn: Up/Down, Page Up/Page Down and Home/End route around a
+/// `.selectionDisabled()` row once it has rendered at least once
+/// (`ItemListHandler.moveFocus(by:wrap:)`, `firstLandableRow(orElse:)`), the
+/// same on-screen-only guarantee `.deleteDisabled()` documents.
 ///
 /// ## Usage
 ///

@@ -111,12 +111,12 @@ extension ItemListHandler {
             return true
 
         case .home:
-            focusedIndex = firstLandingRow(orElse: 0)
+            if let row = firstLandableRow(orElse: 0) { focusedIndex = row }
             ensureFocusedItemVisible()
             return true
 
         case .end:
-            focusedIndex = lastLandingRow(orElse: itemCount - 1)
+            if let row = lastLandableRow(orElse: itemCount - 1) { focusedIndex = row }
             ensureFocusedItemVisible()
             return true
 
@@ -212,11 +212,11 @@ extension ItemListHandler {
             return true
 
         case .home:
-            extendSelection(to: firstLandingRow(orElse: 0))
+            if let row = firstLandableRow(orElse: 0) { extendSelection(to: row) }
             return true
 
         case .end:
-            extendSelection(to: lastLandingRow(orElse: itemCount - 1))
+            if let row = lastLandableRow(orElse: itemCount - 1) { extendSelection(to: row) }
             return true
 
         case .pageUp:
@@ -293,24 +293,21 @@ extension ItemListHandler {
                 } else {
                     // If the jump overshoots a boundary (common for Page Up /
                     // Page Down within one page of the top/bottom), land on the
-                    // nearest selectable item AT that boundary rather than
+                    // nearest landable item AT that boundary rather than
                     // refusing to move. The previous `return` here made
                     // Page Up/Down "stop short" — it did nothing whenever the
                     // jump would pass the first/last item instead of clamping
-                    // to it.
-                    //
-                    // Not re-checked against `selectionDisabledRows`: the same
-                    // simplification the boundary already made for
-                    // `selectableIndices` (a boundary index is landable by
-                    // definition of `.min()`/`.max()`, but a `.selectionDisabled()`
-                    // row sitting exactly at the boundary is a corner case this
-                    // clamp does not chase further).
+                    // to it. A `.selectionDisabled()` row at the boundary is
+                    // passed over like any other unlandable row; with none
+                    // landable the cursor stays put.
                     if newIndex < 0 {
-                        newIndex = firstLandingRow(orElse: 0)
+                        guard let row = firstLandableRow(orElse: 0) else { return }
+                        newIndex = row
                         break
                     }
                     if newIndex >= itemCount {
-                        newIndex = lastLandingRow(orElse: itemCount - 1)
+                        guard let row = lastLandableRow(orElse: itemCount - 1) else { return }
+                        newIndex = row
                         break
                     }
                 }
@@ -348,11 +345,35 @@ extension ItemListHandler {
     /// (the header/footer exclusion `List`'s `Section` path builds), AND not a
     /// row a `.selectionDisabled()` reported this frame (see
     /// ``ItemListHandler/selectionDisabledRows``). Consulted by
-    /// `moveFocus(by:wrap:)` and by the cursor's landing after a delete
-    /// (``ItemListHandler/deleteFocusedRow()``) — Home/End jump straight to a
-    /// boundary and do not yet route around a disabled row sitting there.
+    /// `moveFocus(by:wrap:)`, by Home/End and the Page clamp (through
+    /// ``firstLandableRow(orElse:)`` / ``lastLandableRow(orElse:)``), and by
+    /// the cursor's landing after a delete
+    /// (``ItemListHandler/deleteFocusedRow()``).
     func isLandable(_ index: Int) -> Bool {
         isInLandingSet(index) && !selectionDisabledRows.contains(index)
+    }
+
+    /// The first row the cursor may land on (Home, and the Page clamp at the
+    /// top): ``ItemListHandler/firstLandingRow(orElse:)`` walked forward past
+    /// any `.selectionDisabled()` rows, as `moveFocus(by:wrap:)` walks past
+    /// them. `nil` when no row from there on is landable, so the caller leaves
+    /// the cursor where it is rather than parking it on a refused row.
+    ///
+    /// The walk runs only when a row has reported itself disabled this frame;
+    /// otherwise this is exactly `firstLandingRow(orElse:)`, so the windowed
+    /// path's unsettled answers are not settled by it.
+    func firstLandableRow(orElse fallback: Int) -> Int? {
+        let first = firstLandingRow(orElse: fallback)
+        guard !selectionDisabledRows.isEmpty else { return first }
+        return stride(from: max(0, first), to: itemCount, by: 1).first(where: isLandable)
+    }
+
+    /// The last row the cursor may land on (End, and the Page clamp at the
+    /// bottom) — see ``firstLandableRow(orElse:)``, walked backward.
+    func lastLandableRow(orElse fallback: Int) -> Int? {
+        let last = lastLandingRow(orElse: fallback)
+        guard !selectionDisabledRows.isEmpty else { return last }
+        return stride(from: min(last, itemCount - 1), through: 0, by: -1).first(where: isLandable)
     }
 
     /// The extent that ``ScrollableOffsetState`` measures

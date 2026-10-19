@@ -188,6 +188,90 @@ struct SelectionDisabledModifierTests {
         #expect(handler.focusedIndex == 2, "row 1 is selection-disabled and should be skipped")
     }
 
+    /// Five rows whose two ends are locked: Home, End and the Page clamp each
+    /// land on the boundary, and must walk inward past the refused row there
+    /// as Up/Down do.
+    private func lockedEnds(_ fixture: Fixture) -> ItemListHandler<Int>? {
+        var selection: Int?
+        fixture.render(
+            lockedList(fixture, selection: Binding(get: { selection }, set: { selection = $0 })))
+        return fixture.handler
+    }
+
+    private static let lockedEndRows = [
+        Row(id: 0, name: "top", locked: true),
+        Row(id: 1, name: "b", locked: false),
+        Row(id: 2, name: "c", locked: false),
+        Row(id: 3, name: "d", locked: false),
+        Row(id: 4, name: "bottom", locked: true),
+    ]
+
+    @Test("Home and End skip a selection-disabled row at the boundary")
+    func homeAndEndSkipADisabledBoundary() {
+        let fixture = Fixture(Self.lockedEndRows)
+        guard let handler = lockedEnds(fixture) else {
+            Issue.record("the list took focus")
+            return
+        }
+        handler.focusedIndex = 2
+        #expect(handler.handleKeyEvent(KeyEvent(key: .home)) == true)
+        #expect(handler.focusedIndex == 1, "row 0 is selection-disabled: Home lands on row 1")
+        #expect(handler.handleKeyEvent(KeyEvent(key: .end)) == true)
+        #expect(handler.focusedIndex == 3, "row 4 is selection-disabled: End lands on row 3")
+    }
+
+    @Test("The Page clamp skips a selection-disabled row at the boundary")
+    func pageClampSkipsADisabledBoundary() {
+        let fixture = Fixture(Self.lockedEndRows)
+        guard let handler = lockedEnds(fixture) else {
+            Issue.record("the list took focus")
+            return
+        }
+        handler.focusedIndex = 2
+        #expect(handler.handleKeyEvent(KeyEvent(key: .pageUp)) == true)
+        #expect(handler.focusedIndex == 1, "the page overshoots the top onto a locked row 0")
+        handler.focusedIndex = 2
+        #expect(handler.handleKeyEvent(KeyEvent(key: .pageDown)) == true)
+        #expect(handler.focusedIndex == 3, "the page overshoots the bottom onto a locked row 4")
+    }
+
+    @Test("Shift+Home and Shift+End extend only to a landable row")
+    func shiftHomeAndEndSkipADisabledBoundary() {
+        let fixture = Fixture(Self.lockedEndRows)
+        var selection = Set<Int>()
+        fixture.render(
+            List(selection: Binding(get: { selection }, set: { selection = $0 })) {
+                ForEach(fixture.rows) { row in
+                    Text(row.name).selectionDisabled(row.locked)
+                }
+            }
+            .frame(height: 8))
+        guard let handler = fixture.handler else {
+            Issue.record("the list took focus")
+            return
+        }
+        handler.focusedIndex = 2
+        #expect(handler.handleKeyEvent(KeyEvent(key: .home, shift: true)) == true)
+        #expect(handler.focusedIndex == 1, "row 0 is selection-disabled: the span stops at row 1")
+        #expect(handler.handleKeyEvent(KeyEvent(key: .end, shift: true)) == true)
+        #expect(handler.focusedIndex == 3, "row 4 is selection-disabled: the span stops at row 3")
+    }
+
+    @Test("Home leaves the cursor where it is when every row is selection-disabled")
+    func homeWithNothingLandable() {
+        let fixture = Fixture([
+            Row(id: 0, name: "a", locked: true),
+            Row(id: 1, name: "b", locked: true),
+        ])
+        guard let handler = lockedEnds(fixture) else {
+            Issue.record("the list took focus")
+            return
+        }
+        handler.focusedIndex = 1
+        #expect(handler.handleKeyEvent(KeyEvent(key: .home)) == true)
+        #expect(handler.focusedIndex == 1, "no row is landable, so the cursor stays put")
+    }
+
     @Test("A selection-disabled row renders dimmed")
     func rendersDimmed() {
         let context = makeRenderContext(width: 24, height: 3)
