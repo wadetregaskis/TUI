@@ -182,7 +182,17 @@ struct ShadowField {
     ///   - peak: The alpha at ring `0`.
     static func alphaRamp(radius: Int, peak: UInt8) -> [UInt8] {
         let rings = Double(radius) + 1
-        return (0...radius).map { ring in UInt8((Double(peak) * (rings - Double(ring)) / rings).rounded()) } + [0]
+        let top = Double(peak)
+        // A loop, not `map { … } + [0]`: that spelling took the type checker
+        // past CI's solver threshold.
+        var ramp: [UInt8] = []
+        ramp.reserveCapacity(radius + 2)
+        for ring in 0...radius {
+            let alpha: Double = top * (rings - Double(ring)) / rings
+            ramp.append(UInt8(alpha.rounded()))
+        }
+        ramp.append(0)
+        return ramp
     }
 
     /// The ring a cell `squaredDistance` from the footprint is in: the distance

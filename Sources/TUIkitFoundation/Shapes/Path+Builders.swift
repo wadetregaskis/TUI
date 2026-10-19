@@ -179,9 +179,12 @@ extension Path {
         hold(&br)
         // The largest overflow of any side sets one shrink for all four, so
         // corners keep their proportions.
-        let fits = [(tl + tr, rect.width), (bl + br, rect.width), (tl + bl, rect.height), (tr + br, rect.height)]
-            .map { sum, side in sum > side && sum > 0 ? side / sum : 1 }
-            .min() ?? 1
+        // Spelled as one call per side, typed: the array of tuples mapped
+        // through a ternary took the type checker past CI's solver threshold.
+        func fit(_ sum: CGFloat, _ side: CGFloat) -> CGFloat { sum > side && sum > 0 ? side / sum : 1 }
+        let widths: CGFloat = min(fit(tl + tr, rect.width), fit(bl + br, rect.width))
+        let heights: CGFloat = min(fit(tl + bl, rect.height), fit(tr + br, rect.height))
+        let fits = min(widths, heights)
         func size(_ radius: CGFloat) -> CGSize { CGSize(width: radius * fits, height: radius * fits) }
         let corners = CornerSizes(topLeading: size(tl), topTrailing: size(tr), bottomLeading: size(bl), bottomTrailing: size(br))
         addPath(Self.roundedRect(rect, corners: corners, style: style), transform: transform)
