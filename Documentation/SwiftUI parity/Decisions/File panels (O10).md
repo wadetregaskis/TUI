@@ -65,9 +65,12 @@ SwiftUI's panel opens on the folder the app last used (AppKit keeps it). A
 TUIkit panel opens on the process's working directory — the folder its user
 started a terminal app from, the likeliest place for the file — and after a
 choice on the folder that choice was made in, for as long as the view that
-presents it lives (`FilePanelPresenter`). **The fuller version** remembers the
-folder across views and launches, which `fileDialogCustomizationID(_:)` asks
-for per panel and which needs the app's storage: about half a day.
+presents it lives (`FilePanelPresenter`). `fileDialogDefaultDirectory(_:)`
+comes before that memory, and a `fileDialogCustomizationID(_:)`'s kept folder
+before both (B-O10-8). **The fuller version** remembers the last folder
+app-wide and across launches with no identifier, as AppKit does: an hour, but
+it is a process-wide store, which TUIkit keeps out of its views (no
+singletons), so it would be the app's storage under a key of TUIkit's choosing.
 
 ### B-O10-4. Return acts on the cursor; → is not bound
 
@@ -122,3 +125,36 @@ process); Linux's Foundation has no such method, so code shared with Linux keeps
 it in `#if canImport(Darwin)`. TUIkit does not add one to `URL` on Linux: a
 method of its own on a Foundation type would turn ambiguous the day Foundation
 adds the real one. The docs say so.
+
+### B-O10-8. The customizations are read when a panel is presented; an identifier keeps the folder and the hidden switch
+
+*`View.fileDialogMessage(_:)`, `fileDialogConfirmationLabel(_:)`,
+`fileDialogDefaultDirectory(_:)`, `fileDialogBrowserOptions(_:)`
+(`FileDialogBrowserOptions`), `fileDialogURLEnabled(_:)`,
+`fileDialogImportsUnresolvedAliases(_:)`, `fileDialogCustomizationID(_:)`*
+
+SwiftUI's documentation says what each does to the system panel on macOS, and
+nothing of when a change takes effect. TUIkit's are one environment value
+(`FileDialogCustomization`) written where the modifiers are — outside the
+presenting modifier, as Apple's examples write them — and read when a panel is
+presented, as `allowedContentTypes` is ("will apply the next time it is
+presented"). The message is a line above the folder, the label the
+confirmation button's (the title stays Open). `.includeHiddenFiles` starts the
+hidden-files switch on; `.enumeratePackages` lists a package as the folder it
+is; `.displayFileExtensions` does nothing, as on macOS, where Apple documents
+it as inert. `fileDialogURLEnabled(_:)`'s predicate is evaluated as the folder
+is read, off the main actor; an item it refuses or throws on is dimmed and
+cannot be chosen, and a folder it refuses can still be opened. The predicate is
+handed down in a box the modifier keeps, so the environment value compares
+equal from frame to frame and the memos beneath it stay on.
+
+`fileDialogCustomizationID(_:)` is documented to keep "the current directory,
+view style, recent places, and expanded window size". A TUIkit panel has no
+view styles or window size, so it keeps the folder it was left in and whether
+it listed hidden files, whenever the user ends it (a choice or Cancel; not an
+app clearing the binding), under `TUIkitFilePanels.<id>.directory` and
+`….showsHiddenFiles` in the app's storage (the store `defaultAppStorage(_:)`
+names, else `StorageDefaults.backend`). It opens there next time, in place of
+the default directory, as Apple documents; a kept folder that no longer exists
+is passed over. **The fuller version** keeps the sort order and recent folders
+too (once there is a sidebar to show them in): an hour each.

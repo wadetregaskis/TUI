@@ -173,6 +173,8 @@
   "TUIkitFilePanels/Browser/FileEntry.swift": "TUIkitFilePanels",
   "TUIkitFilePanels/ContentTypes/ContentTypeTable.swift": "TUIkitFilePanels",
   "TUIkitFilePanels/ContentTypes/UTType.swift": "TUIkitFilePanels",
+  "TUIkitFilePanels/Customization/FileDialogBrowserOptions.swift": "TUIkitFilePanels",
+  "TUIkitFilePanels/Customization/FileDialogCustomization.swift": "TUIkitFilePanels",
   "TUIkitFilePanels/Exports.swift": "TUIkitFilePanels",
   "TUIkitFilePanels/Modifiers/View+FileImporter.swift": "TUIkitFilePanels",
   "TUIkitFilePanels/Panel/FilePanel.swift": "TUIkitFilePanels",

@@ -439,6 +439,29 @@ The callbacks come in SwiftUI's order: `isPresented` becomes `false`, then
 was started from, and later on the folder of the last choice. It browses the
 machine the app runs on — over `ssh`, the remote one.
 
+The `fileDialog` modifiers customize the panel, written outside the modifier
+that presents it, as with SwiftUI:
+
+```swift
+.fileImporter(isPresented: $importing, allowedContentTypes: [.pdf], allowsMultipleSelection: true) { result in
+    …
+}
+.fileDialogMessage("Choose the PDFs to combine")
+.fileDialogConfirmationLabel("Combine")
+.fileDialogDefaultDirectory(documents)
+.fileDialogBrowserOptions(.includeHiddenFiles)
+.fileDialogCustomizationID("combine")
+```
+
+The message is a line above the folder and the label the confirmation
+button's. `.includeHiddenFiles` starts the hidden-files switch on and
+`.enumeratePackages` opens a package as a folder. `fileDialogURLEnabled(_:)`
+dims, and refuses, the items whose URL its predicate rejects, and
+`fileDialogImportsUnresolvedAliases(true)` hands back a chosen link rather
+than what it leads to. With a `fileDialogCustomizationID(_:)` the panel keeps
+the folder it was left in, and its hidden-files switch, in the app's storage,
+and opens there next time, launches later included.
+
 `allowedContentTypes` takes UniformTypeIdentifiers' `UTType` on Apple
 platforms (import that module where you name the type, as beside SwiftUI);
 where the framework does not exist, `TUIkitFilePanels` declares a `UTType` of

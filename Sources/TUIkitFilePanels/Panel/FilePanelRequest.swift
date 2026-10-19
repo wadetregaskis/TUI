@@ -31,6 +31,9 @@ struct FilePanelRequest {
     /// The confirmation button's label.
     var confirmationLabel: String
 
+    /// A line the panel shows above its folder (`fileDialogMessage(_:)`).
+    var message: String?
+
     /// The folder the panel opens on.
     var startDirectory: URL
 
@@ -64,8 +67,24 @@ struct FilePanelRequest {
 
 /// How a presented file panel ended.
 enum FilePanelOutcome: Equatable {
-    /// The user chose these items, in the folder the panel was showing.
-    case chose([URL], in: URL)
+    /// The user chose these items.
+    case chose([URL], FilePanelEnding)
     /// The user dismissed the panel without choosing.
-    case cancelled
+    case cancelled(FilePanelEnding)
+
+    /// Where the panel was when it ended.
+    var ending: FilePanelEnding {
+        switch self {
+        case .chose(_, let ending), .cancelled(let ending): ending
+        }
+    }
+}
+
+/// Where a panel was when it ended: what `fileDialogCustomizationID(_:)`
+/// keeps, and the folder the next presentation opens on.
+struct FilePanelEnding: Equatable {
+    /// The folder the panel was showing.
+    var directory: URL
+    /// Whether it was listing hidden files.
+    var showsHiddenFiles: Bool
 }

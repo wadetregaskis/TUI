@@ -66,6 +66,9 @@ struct FilePanel: View {
                 titleColor: .palette.accent, padding: EdgeInsets(horizontal: 1, vertical: 0),
                 footerAlignment: .trailing),
             content: VStack(alignment: .leading, spacing: 0) {
+                if let message = request.message {
+                    Text(message).foregroundStyle(.palette.foregroundSecondary)
+                }
                 FilePanelPathBar(browser: browser, home: request.homeDirectory)
                 rows
             },
@@ -161,7 +164,7 @@ struct FilePanel: View {
                 isOn: Binding(get: { browser.showsHiddenFiles }, set: { browser.showsHiddenFiles = $0 }))
             Spacer()
             Button(LocalizationService.shared.string(for: LocalizationKey.Button.cancel)) {
-                finish(.cancelled)
+                finish(.cancelled(ending))
             }
             .keyboardShortcut(.cancelAction)
             Button(request.confirmationLabel) {
@@ -204,6 +207,11 @@ struct FilePanel: View {
         return entry.url
     }
 
+    /// Where the panel is now, for the presenter to keep.
+    private var ending: FilePanelEnding {
+        FilePanelEnding(directory: browser.directory, showsHiddenFiles: browser.showsHiddenFiles)
+    }
+
     /// The URL the caller is handed for `entry`.
     private func chosenURL(_ entry: FileEntry) -> URL {
         entry.chosenURL(resolvingLinks: request.resolvesSymbolicLinks)
@@ -217,7 +225,7 @@ struct FilePanel: View {
         }
         let urls = confirmable
         guard !urls.isEmpty else { return }
-        finish(.chose(urls, in: browser.directory))
+        finish(.chose(urls, ending))
     }
 
     /// Return or a double-click on `urls`: the rows under the cursor, or the
@@ -231,6 +239,6 @@ struct FilePanel: View {
         }
         let chosen = entries.filter(\.isChoosable).map(chosenURL)
         guard !chosen.isEmpty, request.allowsMultipleSelection || chosen.count == 1 else { return }
-        finish(.chose(chosen, in: browser.directory))
+        finish(.chose(chosen, ending))
     }
 }

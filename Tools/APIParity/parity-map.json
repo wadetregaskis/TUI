@@ -273,8 +273,6 @@
         "OpenDocumentAction*",
         "View.fileExporter*",
         "View.fileMover*",
-        "View.fileDialog*",
-        "FileDialog*",
         "View.exportableToServices*",
         "View.importableFromServices*",
         "View.exportsItemProviders*",
@@ -284,7 +282,7 @@
         "DocumentBaseBox*",
         "DefaultDocumentGroupLaunchActions*"
       ],
-      "why": "The document architecture, the Services menu, and the file panels lane O10 has not reached yet. DocumentGroup and its configurations read and write through FileWrapper, which Linux's Foundation lacks, and ReferenceFileDocument is an ObservableObject, a family TUIkit does not have (compatibility guide §2.3). The Services menu (exportsItemProviders, importsItemProviders, exportableToServices, importableFromServices) is macOS's system-wide menu of other apps' services, which a terminal app has no way into. `fileImporter` ships: TUIkit draws the open panel in a sheet (TUIkitFilePanels; decisions File panels (O10))."
+      "why": "The document architecture, the Services menu, and the file panels lane O10 has not reached yet. DocumentGroup and its configurations read and write through FileWrapper, which Linux's Foundation lacks, and ReferenceFileDocument is an ObservableObject, a family TUIkit does not have (compatibility guide §2.3). The Services menu (exportsItemProviders, importsItemProviders, exportableToServices, importableFromServices) is macOS's system-wide menu of other apps' services, which a terminal app has no way into. `fileImporter` and the `fileDialog` customizations ship: TUIkit draws the open panel in a sheet (TUIkitFilePanels; decisions File panels (O10))."
     },
     {
       "match": [

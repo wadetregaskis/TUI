@@ -4488,3 +4488,28 @@ private struct CorpusFileImporters: View {
         }
     }
 }
+
+/// The `fileDialog` customizations as Apple's documentation writes them,
+/// outside the presenting modifier, every form of each.
+@MainActor
+private struct CorpusFileDialogCustomizations: View {
+    @State private var importing = false
+    var documents: URL
+
+    var body: some View {
+        Button("Combine") { importing = true }
+            .fileImporter(isPresented: $importing, allowedContentTypes: [.pdf], allowsMultipleSelection: true) { _ in }
+            .fileDialogMessage("Choose the PDFs to combine")
+            .fileDialogMessage(Text("Choose"))
+            .fileDialogMessage(String("Choose"))
+            .fileDialogConfirmationLabel("Combine")
+            .fileDialogConfirmationLabel(Text("Combine"))
+            .fileDialogConfirmationLabel(String("Combine"))
+            .fileDialogDefaultDirectory(documents)
+            .fileDialogDefaultDirectory(nil)
+            .fileDialogBrowserOptions([.includeHiddenFiles, .enumeratePackages, .displayFileExtensions])
+            .fileDialogURLEnabled(#Predicate<URL> { $0.pathExtension == "pdf" })
+            .fileDialogImportsUnresolvedAliases(true)
+            .fileDialogCustomizationID("combine")
+    }
+}
