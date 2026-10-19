@@ -544,9 +544,12 @@ messages cite that path), and what cites it.
   `more-modifiers.swift` (`more-modifiers.out`) writes the modifiers `rows.swift` did not try on a `LabeledContent`,
   a `Picker` and a `Button` — `.onKeyPress`, `.transition`, `.zIndex`, `.layoutPriority`, `.focusedValue`,
   `.preference`, `.onGeometryChange`, `.sheet`, `.popover`, `.alert`, `.confirmationDialog`, `.badge` — and each row
-  stays in its place, in both styles.
+  stays in its place, in both styles. `appview.swift` (`appview.out`) writes each control — a `Picker`, a `Toggle` as
+  a checkbox and as a switch, a `Slider`, a `Stepper`, a `Button`, a `LabeledContent`, a `TextField` — directly and
+  as the whole body of a `struct` of the app's own, and a picker two such views deep and under a modifier: every
+  one lays out exactly as written bare, label and row frames and drawn extent alike, in both styles.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4; `modified.swift` 2026-10-14, `rows.swift` 2026-10-19,
-  `unlabelled.swift` and `more-modifiers.swift` 2026-10-19.
+  `unlabelled.swift`, `more-modifiers.swift` and `appview.swift` 2026-10-19.
 - **Was:** `PROBES-1014/labeledcontent/` (`p3-modified-rows.swift`) and `FORMS/probes/` (`p4-form-rows.swift`,
   `p5/unlabelled.swift`, `p5/modifiers2.swift`).
 - **Cited by:** `Sources/TUIkitForms/Views/FormContentExtraction.swift`,

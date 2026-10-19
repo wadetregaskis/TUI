@@ -1,0 +1,38 @@
+Form(.columns): A LabeledContent with a long label, then B
+Picker                  A label    0..120  | B label   90..124  row   90..560  control  132..560 
+struct Picker           A label    0..120  | B label   90..124  row   90..560  control  132..560 
+struct struct Picker    A label    0..120  | B label   90..124  row   90..560  control  132..560 
+struct Picker.padding   A label    0..120  | B label   90..124  row   90..560  control  132..560 
+Toggle                  A label    0..120  | B label  152..200  row  132..200  control  nothing
+struct Toggle           A label    0..120  | B label  152..200  row  132..200  control  nothing
+Toggle .switch          A label    0..120  | B label   76..124  row   76..170  control  132..170 
+struct Toggle .switch   A label    0..120  | B label   76..124  row   76..170  control  132..170 
+Slider                  A label    0..120  | B label   93..124  row   93..560  control  336..356 
+struct Slider           A label    0..120  | B label   93..124  row   93..560  control  336..356 
+Stepper                 A label    0..120  | B label   88..124  row   88..146  control  132..146 
+struct Stepper          A label    0..120  | B label   88..124  row   88..146  control  132..146 
+Button                  A label    0..120  | B label  140..158  row  132..166  control  164..559 
+struct Button           A label    0..120  | B label  140..158  row  132..166  control  164..559 
+LabeledContent          A label    0..120  | B label   89..124  row   89..162  control  nothing
+struct LabeledContent   A label    0..120  | B label   89..124  row   89..162  control  nothing
+TextField               A label    0..120  | B label   98..124  row   98..560  control  134..560 
+struct TextField        A label    0..120  | B label   98..124  row   98..560  control  134..560 
+Form(.grouped): A LabeledContent with a long label, then B
+Picker                  A label   30..150  | B label   30..64   row   30..530  control  484..540 
+struct Picker           A label   30..150  | B label   30..64   row   30..530  control  484..540 
+struct struct Picker    A label   30..150  | B label   30..64   row   30..530  control  484..540 
+struct Picker.padding   A label   30..150  | B label   30..64   row   30..530  control  484..540 
+Toggle                  A label   30..150  | B label   30..79   row   30..530  control  504..530 
+struct Toggle           A label   30..150  | B label   30..79   row   30..530  control  504..530 
+Toggle .switch          A label   30..150  | B label   30..79   row   30..530  control  504..530 
+struct Toggle .switch   A label   30..150  | B label   30..79   row   30..530  control  504..530 
+Slider                  A label   30..150  | B label   30..62   row   30..530  control  256..540 
+struct Slider           A label   30..150  | B label   30..62   row   30..530  control  256..540 
+Stepper                 A label   30..150  | B label   30..66   row   30..530  control  516..540 
+struct Stepper          A label   30..150  | B label   30..66   row   30..530  control  516..540 
+Button                  A label   30..150  | B label   38..56   row   30..64   control   62..560 
+struct Button           A label   30..150  | B label   38..56   row   30..64   control   62..560 
+LabeledContent          A label   30..150  | B label   30..66   row   30..530  control  500..540 
+struct LabeledContent   A label   30..150  | B label   30..66   row   30..530  control  500..540 
+TextField               A label   30..150  | B label   30..56   row   30..530  control  524..540 
+struct TextField        A label   30..150  | B label   30..56   row   30..530  control  524..540 

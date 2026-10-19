@@ -34,8 +34,9 @@ enum _FormContentWalk {}
 /// Extracts the form elements of `view`: its own contribution if it is a
 /// ``FormContentExtractor``; otherwise a control row (checkbox/radio), a button
 /// row, a field row (a labelled control, ``FormFieldControl``), the elements of
-/// the body of a view of the app's own whose body is several views or a
-/// section, or a plain full-width row depending on its kind.
+/// the body of a view of the app's own whose body is several views, a section
+/// or one row the form lays out, or a plain full-width row depending on its
+/// kind.
 ///
 /// `walk` is the form's context with an identity for the place the walk has
 /// reached: a step for each tuple slot, loop element, `if`/`else` arm and
@@ -83,8 +84,13 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
     // body: some View { Section("General") { … } } }` is a section of the
     // form, its `Toggle` in the control column. It was a plain row, drawn as
     // the section's parts since a section outside a `List` became its parts
-    // (B16). The body is evaluated as a render evaluates it — `@State` bound
-    // here, `@Environment` resolved, observed — and read one step in.
+    // (B16). So is one whose body is one row the form lays out — a labelled
+    // control, a checkbox, a button, a `LabeledContent`, under modifiers or
+    // not (`readsThroughBody(_:depth:)`): SwiftUI lays `struct ModeRow` whose
+    // body is a `Picker` out as the picker written bare (measured,
+    // `Tools/SwiftUIProbes/Form rows/appview.swift`). The body is evaluated as
+    // a render evaluates it — `@State` bound here, `@Environment` resolved,
+    // observed — and read one step in.
     if readsThroughBody(V.self), walk.stateStorage != nil {
         // As a stack's members are (`compositeMembers(of:context:)`): what the
         // walk hands a class property's `@Environment`s is put back after the
@@ -181,18 +187,50 @@ extension LabeledContent: FormLabeledRow {}
 
 /// Whether the form reads through the body of a view of type `V`: a view of
 /// the app's own whose body is several views, a loop, an `if` or a section —
-/// what a stack takes apart — or whose body is one view the form itself takes
-/// apart, a `LabeledContent` above all: `struct NameRow: View { var body: some
-/// View { LabeledContent("Name") { TextField(…) } } }` is a labelled row of the
-/// form, its field in the control column, as SwiftUI's form lays out the same
-/// row written bare. A body of any other one view is the view's own business,
-/// drawn as a row whole.
+/// what a stack takes apart — or whose body is one row the form lays out
+/// (``isFormRow(_:depth:)``): `struct NameRow: View { var body: some View {
+/// LabeledContent("Name") { TextField(…) } } }` is a labelled row of the form,
+/// its field in the control column, and `struct ModeRow` whose body is a
+/// `Picker("Mode", …)` a field row, as SwiftUI's form lays out the same rows
+/// written bare (measured, `Tools/SwiftUIProbes/Form rows/appview.swift`: every
+/// control, nested two deep and under a modifier, in both styles). A body of
+/// any other one view is the view's own business, drawn as a row whole.
 @MainActor
-private func readsThroughBody<V: View>(_ type: V.Type) -> Bool {
+private func readsThroughBody<V: View>(_ type: V.Type, depth: Int = 0) -> Bool {
     if isCompositeHandingOverChildren(V.self) { return true }
     guard V.Body.self != Never.self, !(type is any ChildViewProvider.Type), !(type is any Renderable.Type)
     else { return false }
-    return V.Body.self is any FormContentExtractor.Type
+    return isFormRow(V.Body.self, depth: depth)
+}
+
+/// Whether the form lays a view of type `T` out as one of its own rows, by
+/// its type alone: a view the form takes apart (``FormContentExtractor``), a
+/// labelled row, a checkbox or radio group, a button, a labelled control —
+/// or one of those under modifiers the form puts back around it
+/// (``FormRowRewrapping``, ``ContentRewrapping``), or as the body of another
+/// view of the app's own. Decided from the types, so a body is evaluated only
+/// where it is a row; a view nested in itself stops at `depth` 16, a plain row.
+@MainActor
+private func isFormRow<T: View>(_ type: T.Type, depth: Int) -> Bool {
+    guard depth < 16 else { return false }
+    if type is any FormContentExtractor.Type || type is any FormLabeledRow.Type || type is any FormControlRow.Type
+        || type is any FormButtonRow.Type || type is any FormFieldControl.Type
+    {
+        return true
+    }
+    if type is any FormRowRewrapping.Type || type is any ContentRewrapping.Type,
+        let wrapper = type as? any SingleContentWrapper.Type
+    {
+        return isFormRow(wrappedBy: wrapper, depth: depth + 1)
+    }
+    return readsThroughBody(type, depth: depth + 1)
+}
+
+/// ``isFormRow(_:depth:)`` of what wrappers of type `W` wrap, the existential
+/// opened to reach it.
+@MainActor
+private func isFormRow<W: SingleContentWrapper>(wrappedBy _: W.Type, depth: Int) -> Bool {
+    isFormRow(W.WrappedContent.self, depth: depth)
 }
 
 /// Stamps an explicit alignment onto an element's row(s), without clobbering an
