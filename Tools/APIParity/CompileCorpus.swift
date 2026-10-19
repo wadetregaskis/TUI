@@ -4102,3 +4102,18 @@ private struct CorpusOpenMessageButton: View {
         }
     }
 }
+
+/// A window dismissed whatever it shows, as `DismissBehavior`'s documentation
+/// writes it.
+@MainActor
+private struct CorpusDestructiveDismissButton: View {
+    @Environment(\.dismissWindow) private var dismissWindow
+
+    var body: some View {
+        Button("Close Auxiliary Window") {
+            withTransaction(\.dismissBehavior, .destructive) {
+                dismissWindow(id: "auxiliary")
+            }
+        }
+    }
+}

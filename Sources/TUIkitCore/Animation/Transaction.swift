@@ -47,6 +47,7 @@ public struct Transaction: Sendable, Equatable {
     private static let disablesScrollAdjustmentBit: UInt8 = 1 << 2
     private static let isContinuousBit: UInt8 = 1 << 3
     private static let tracksVelocityBit: UInt8 = 1 << 4
+    private static let dismissesDestructivelyBit: UInt8 = 1 << 5
 
     private func flag(_ bit: UInt8) -> Bool { flags & bit != 0 }
 
@@ -101,6 +102,15 @@ public struct Transaction: Sendable, Equatable {
     public var tracksVelocity: Bool {
         get { flag(Self.tracksVelocityBit) }
         set { setFlag(Self.tracksVelocityBit, newValue) }
+    }
+
+    /// Where `dismissBehavior` keeps its one bit — whether a window is
+    /// dismissed under this transaction even with a presentation up — the
+    /// property and its type being declared above this module, beside the
+    /// window actions they qualify.
+    package var dismissesDestructively: Bool {
+        get { flag(Self.dismissesDestructivelyBit) }
+        set { setFlag(Self.dismissesDestructivelyBit, newValue) }
     }
 
     /// Where TUIkit's `scrollContentOffsetAdjustmentBehavior` keeps its one

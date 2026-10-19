@@ -404,6 +404,15 @@ and joins the decline.
 
 **Decided with O9 (2026-10-12): (b), so this ships with O9's lane.**
 
+**Shipped (2026-10-18, lane O9).** `DismissBehavior` with `.interactive` and
+`.destructive`, and `Transaction.dismissBehavior` (a bit of the transaction's
+flags, so no `Binding` grew). Under `.interactive`, the default, `dismissWindow`
+leaves open a window showing a modal presentation — a sheet, a cover, an alert
+or a confirmation dialog, which hold its keyboard; a popover or an open menu does
+not count — whether it is the window in front or one held behind it; under
+`.destructive` it closes it with them
+([B-O9-4](<Several scenes on one surface (O9).md#b-o9-4-an-interactive-dismissal-leaves-a-window-with-a-modal-presentation-open>)).
+
 ### A23. `matchedTransitionSource` waits on O4
 
 *`View.matchedTransitionSource(id:in:)`,

@@ -120,3 +120,23 @@ only one open, that quits the app, as it did before.
 **The fuller version** keeps an app with commands running with only its menu
 bar on an empty surface, from which a command opens a window — an app shape
 nobody has asked for in a terminal; about two hours.
+
+### B-O9-4. An interactive dismissal leaves a window with a modal presentation open
+
+*`DismissBehavior`, `Transaction.dismissBehavior` (decisions A22)*
+
+SwiftUI's documentation: under `.interactive`, the default, `dismissWindow`
+does not dismiss a window "currently showing a modal presentation, such as a
+sheet or alert" on macOS; under `.destructive` it does.
+
+**Shipped:** that, with "modal presentation" read as a presentation holding the
+window's keyboard — a sheet, a full-screen cover, an alert, a confirmation
+dialog — as the presenter saw it on the window's last frame: the window in front
+asks the focus manager, and a window held behind another asks the throwaway one
+its off-screen frame was drawn with. A popover or an open menu does not keep a
+window open. `dismiss()` at a window's root and Escape close their own window
+without asking, as they can only be reached when nothing modal is up in it.
+
+**The fuller version** is a measurement: whether macOS counts a popover, and
+whether `dismiss()` at the root follows the transaction too. It needs a session
+that can open windows (none could here); five minutes there with the probe.

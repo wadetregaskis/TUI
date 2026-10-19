@@ -26,8 +26,8 @@ package final class SceneActionHandler {
     /// whether a scene answered to it.
     package var openWindow: (_ target: WindowTarget) -> Bool = { _ in false }
 
-    /// Closes the windows `dismissal` names.
-    package var dismissWindow: (_ dismissal: WindowDismissal) -> Void = { _ in }
+    /// Closes the windows `dismissal` names, as `behavior` allows.
+    package var dismissWindow: (_ dismissal: WindowDismissal, _ behavior: DismissBehavior) -> Void = { _, _ in }
 
     /// Presents the app's `Settings` scene.
     package var openSettings: () -> Void = {}
@@ -168,6 +168,10 @@ public struct OpenWindowAction: Sendable, Equatable {
 /// The window under the one dismissed comes back. Dismissing the last window
 /// quits the app: a terminal app with no window open would show nothing, where
 /// a macOS app can stay running with only its menu bar.
+///
+/// A window showing a sheet, a cover or an alert is not dismissed, unless the
+/// action is called in a transaction whose ``Transaction/dismissBehavior`` is
+/// ``DismissBehavior/destructive``.
 public struct DismissWindowAction: Sendable, Equatable {
     /// Where the action goes, or `nil` outside a running app.
     private let handler: SceneActionHandler?
@@ -187,7 +191,7 @@ public struct DismissWindowAction: Sendable, Equatable {
     @MainActor
     public func callAsFunction() {
         guard let window else { return }
-        handler?.dismissWindow(.current(window))
+        handler?.dismissWindow(.current(window), Self.behavior)
     }
 
     /// Dismisses the window that's associated with the specified identifier —
@@ -197,7 +201,7 @@ public struct DismissWindowAction: Sendable, Equatable {
     /// - Parameter id: The identifier of the scene to dismiss.
     @MainActor
     public func callAsFunction(id: String) {
-        handler?.dismissWindow(.target(WindowTarget(id: id)))
+        handler?.dismissWindow(.target(WindowTarget(id: id)), Self.behavior)
     }
 
     /// Dismisses the window defined by the window group that is presenting the
@@ -206,7 +210,7 @@ public struct DismissWindowAction: Sendable, Equatable {
     /// - Parameter value: The value the window to dismiss presents.
     @MainActor
     public func callAsFunction<D: Decodable & Encodable & Hashable>(value: D) {
-        handler?.dismissWindow(.target(WindowTarget(id: nil, value: AnyHashable(value), valueType: D.self)))
+        handler?.dismissWindow(.target(WindowTarget(id: nil, value: AnyHashable(value), valueType: D.self)), Self.behavior)
     }
 
     /// Dismisses the window defined by the window group that is presenting the
@@ -218,7 +222,12 @@ public struct DismissWindowAction: Sendable, Equatable {
     ///   - value: The value the window to dismiss presents.
     @MainActor
     public func callAsFunction<D: Decodable & Encodable & Hashable>(id: String, value: D) {
-        handler?.dismissWindow(.target(WindowTarget(id: id, value: AnyHashable(value), valueType: D.self)))
+        handler?.dismissWindow(.target(WindowTarget(id: id, value: AnyHashable(value), valueType: D.self)), Self.behavior)
+    }
+
+    /// The behavior of a dismissal made now: the transaction's in force.
+    private static var behavior: DismissBehavior {
+        Transaction.ambient?.dismissBehavior ?? .interactive
     }
 
     /// Whether the two reach the same app's same window.

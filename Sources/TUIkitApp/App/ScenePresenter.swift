@@ -88,6 +88,11 @@ package final class ScenePresenter {
         /// (`WindowGroup(for:)`); `nil` for any other.
         let presented: PresentedWindowSlot?
 
+        /// Whether it showed a modal presentation — a sheet, a cover, an
+        /// alert, holding its keyboard — when last drawn: what an interactive
+        /// dismissal leaves open.
+        var showsModalPresentation = false
+
         init(serial: Int, sceneKey: ViewIdentity, isLaunchWindow: Bool, presented: PresentedWindowSlot?) {
             self.serial = serial
             self.sceneKey = sceneKey
@@ -147,7 +152,7 @@ package final class ScenePresenter {
 
     init() {
         actions.openWindow = { [weak self] target in self?.open(target) ?? false }
-        actions.dismissWindow = { [weak self] dismissal in self?.dismiss(dismissal) }
+        actions.dismissWindow = { [weak self] dismissal, behavior in self?.dismiss(dismissal, behavior: behavior) }
     }
 
     // MARK: Each Frame
@@ -214,15 +219,18 @@ package final class ScenePresenter {
         requestFrame()
     }
 
-    /// Closes the windows `dismissal` names.
-    func dismiss(_ dismissal: WindowDismissal) {
+    /// Closes the windows `dismissal` names — under an interactive `behavior`,
+    /// those not showing a modal presentation.
+    func dismiss(_ dismissal: WindowDismissal, behavior: DismissBehavior = .interactive) {
+        let closable = { (window: OpenWindow) in behavior == .destructive || !window.showsModalPresentation }
         switch dismissal {
         case .current(let serial):
-            close([serial])
+            close(windows.filter { $0.serial == serial && closable($0) }.map(\.serial))
         case .target(let target):
             let keys = entries.filter { $0.answers(to: target) }.map(\.identity)
             let named = windows.filter { window in
                 keys.contains(window.sceneKey) && (target.value == nil || window.presented?.value == target.value)
+                    && closable(window)
             }
             close(named.map(\.serial))
         }

@@ -68,6 +68,9 @@ extension ScenePresenter {
         held.environment = environment(entry.configuration)
         let backdrop = self.context(for: window, entry: entry, from: held).isolatedForBackground()
         _ = backdrop.withThrowawayFrameDemand { hidden in scene.renderSceneTree(context: hidden) }
+        // Its presenters held the backdrop's focus manager as a presentation
+        // holds the live one: a modal one is still up behind the window in front.
+        window.showsModalPresentation = backdrop.environment.focusManager?.activeSectionIsModal == true
     }
 
     /// Draws `window`, in front, over the whole surface.
@@ -88,9 +91,9 @@ extension ScenePresenter {
         }
         let escapeHandlerSlot = context.environment.keyEventDispatcher?.handlerCount ?? 0
         let buffer = scene.renderSceneTree(context: context)
-        if !context.isMeasuring, windows.count > 1 {
-            claimEscape(closing: window, at: escapeHandlerSlot, context: context)
-        }
+        guard !context.isMeasuring else { return buffer }
+        window.showsModalPresentation = context.environment.focusManager?.activeSectionIsModal == true
+        if windows.count > 1 { claimEscape(closing: window, at: escapeHandlerSlot, context: context) }
         return buffer
     }
 
