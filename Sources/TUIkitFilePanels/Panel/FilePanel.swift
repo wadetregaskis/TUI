@@ -236,22 +236,21 @@ struct FilePanel: View {
     /// cursor past them: that needs the table's row builder, which builds
     /// every row's traits on every frame — 195 ms a frame for a folder of
     /// 20,000 items in a debug build, where the data form takes 22.
+    ///
+    /// Each URL offered is looked up (``FileBrowser/entry(for:)``): a URL the
+    /// folder does not list is kept, as the selection keeps what was chosen
+    /// in another folder, and only a dimmed row is refused.
     private var selectable: Binding<Set<URL>> {
         Binding(
             get: { selection },
-            set: { urls in selection = urls.filter { !dimmedURLs.contains($0) } })
+            set: { urls in selection = urls.filter { browser.entry(for: $0)?.isDimmed != true } })
     }
 
     /// ``selectable``, for a single selection.
     private var selectableSingle: Binding<URL?> {
         Binding(
             get: { singleSelection },
-            set: { url in singleSelection = url.flatMap { dimmedURLs.contains($0) ? nil : $0 } })
-    }
-
-    /// The dimmed rows' URLs: read only when the selection changes.
-    private var dimmedURLs: Set<URL> {
-        Set(browser.rows.lazy.filter(\.isDimmed).map(\.url))
+            set: { url in singleSelection = url.flatMap { browser.entry(for: $0)?.isDimmed == true ? nil : $0 } })
     }
 
     /// The table's order, which the browser keeps.
@@ -296,18 +295,20 @@ struct FilePanel: View {
 
     // MARK: - Choosing
 
-    /// The items selected now, in the rows' order.
+    /// The items of the folder shown that are selected now, in the rows'
+    /// order: looked up, so that it costs the selection's size, not the
+    /// folder's, on every body.
     private var selectedEntries: [FileEntry] {
-        let chosen: Set<URL> = request.allowsMultipleSelection ? selection : Set(singleSelection.map { [$0] } ?? [])
-        return browser.rows.filter { chosen.contains($0.url) }
+        if request.allowsMultipleSelection { return browser.entries(for: selection) }
+        return browser.entries(for: singleSelection.map { [$0] } ?? [])
     }
 
-    /// What the confirmation button chooses now: the selection's choosable
-    /// items, or else the folder shown when a folder may be chosen.
-    private var confirmable: [URL] {
-        let chosen = selectedEntries.filter(\.isChoosable).map(chosenURL)
+    /// What the confirmation button chooses now, of `selected`: its
+    /// choosable items, or else the folder shown when a folder may be chosen.
+    private func confirmable(_ selected: [FileEntry]) -> [URL] {
+        let chosen = selected.filter(\.isChoosable).map(chosenURL)
         if !chosen.isEmpty { return chosen }
-        return request.rule.choosesFolders && selectedEntries.isEmpty ? [browser.directory] : []
+        return request.rule.choosesFolders && selected.isEmpty ? [browser.directory] : []
     }
 
     /// Whether the confirmation button does anything: it chooses, or it opens
@@ -315,7 +316,8 @@ struct FilePanel: View {
     /// cannot be chosen.
     private var canConfirm: Bool {
         if request.saveContentTypes != nil { return saveDestination != nil }
-        return !confirmable.isEmpty || openableSelection != nil
+        let selected = selectedEntries
+        return !confirmable(selected).isEmpty || openableSelection(selected) != nil
     }
 
     /// Where a save panel saves now: the folder shown and the name resolved
@@ -332,11 +334,10 @@ struct FilePanel: View {
         return destination
     }
 
-    /// The one folder selected, when the selection is one folder that cannot
-    /// be chosen: the confirmation button opens it.
-    private var openableSelection: URL? {
-        let entries = selectedEntries
-        guard entries.count == 1, let entry = entries.first, entry.isFolder, !entry.isChoosable else { return nil }
+    /// The one folder of `selected`, when it is one folder that cannot be
+    /// chosen: the confirmation button opens it.
+    private func openableSelection(_ selected: [FileEntry]) -> URL? {
+        guard selected.count == 1, let entry = selected.first, entry.isFolder, !entry.isChoosable else { return nil }
         return entry.url
     }
 
@@ -356,11 +357,12 @@ struct FilePanel: View {
             save()
             return
         }
-        if let folder = openableSelection {
+        let selected = selectedEntries
+        if let folder = openableSelection(selected) {
             browser.open(folder)
             return
         }
-        let urls = confirmable
+        let urls = confirmable(selected)
         guard !urls.isEmpty else { return }
         finish(.chose(urls, ending))
     }
@@ -369,7 +371,7 @@ struct FilePanel: View {
     /// selection when the cursor is in it. One folder opens; otherwise the
     /// items that can be chosen are.
     private func activate(_ urls: Set<URL>) {
-        let entries = browser.rows.filter { urls.contains($0.url) }
+        let entries = browser.entries(for: urls)
         if entries.count == 1, let entry = entries.first, entry.isFolder {
             browser.open(entry.url)
             return

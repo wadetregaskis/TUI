@@ -48,6 +48,12 @@ final class FileBrowser {
     /// ``showsHiddenFiles``, folders first. Empty until the folder is read.
     private(set) var rows: [FileEntry] = []
 
+    /// Each row's place in ``rows``, by its URL: how the panel finds the rows
+    /// a selection names (``entry(for:)``, ``entries(for:)``). A scan of the
+    /// rows for each URL made selecting every item of a folder of 3,000 take
+    /// seconds, where a frame of it takes milliseconds.
+    private(set) var rowIndex: [URL: Int] = [:]
+
     /// How many hidden items the folder holds, shown or not.
     private(set) var hiddenCount = 0
 
@@ -94,6 +100,7 @@ final class FileBrowser {
         guard folder != directory else { return }
         directory = folder
         rows = []
+        rowIndex = [:]
         hiddenCount = 0
         state = .loading
     }
@@ -152,6 +159,7 @@ final class FileBrowser {
             case .failure(let failure):
                 listed = nil
                 rows = []
+                rowIndex = [:]
                 hiddenCount = 0
                 state = .failed(failure)
                 return
@@ -164,16 +172,18 @@ final class FileBrowser {
         // cancelled in time.
         guard !Task.isCancelled, refreshKey == key else { return }
         rows = arranged.rows
+        rowIndex = arranged.rowIndex
         hiddenCount = arranged.hiddenCount
         state = .loaded
     }
 
     /// `entries` as the rows show them, off the main actor: hidden ones left
-    /// out unless shown, folders first, each group in `sortOrder`.
+    /// out unless shown, folders first, each group in `sortOrder`; and each
+    /// row's place, by its URL.
     @concurrent
     nonisolated static func arrange(
         _ entries: [FileEntry], showsHiddenFiles: Bool, sortOrder: [KeyPathComparator<FileEntry>]
-    ) async -> (rows: [FileEntry], hiddenCount: Int) {
+    ) async -> (rows: [FileEntry], rowIndex: [URL: Int], hiddenCount: Int) {
         let hiddenCount = entries.count { $0.isHidden }
         let shown = showsHiddenFiles ? entries : entries.filter { !$0.isHidden }
         let rows = shown.sorted { lhs, rhs in
@@ -187,6 +197,23 @@ final class FileBrowser {
             }
             return false
         }
-        return (rows, hiddenCount)
+        // A folder names each item once; should a URL come twice all the
+        // same, the first row is the one found, rather than a trap.
+        let rowIndex = Dictionary(
+            rows.indices.lazy.map { (rows[$0].url, $0) }, uniquingKeysWith: { first, _ in first })
+        return (rows, rowIndex, hiddenCount)
+    }
+
+    // MARK: - Finding rows
+
+    /// The row of `url`, if the folder shown lists it.
+    func entry(for url: URL) -> FileEntry? {
+        rowIndex[url].map { rows[$0] }
+    }
+
+    /// The rows of `urls` the folder shown lists, in the rows' order: a
+    /// lookup per URL, never a scan of the folder.
+    func entries(for urls: some Sequence<URL>) -> [FileEntry] {
+        urls.compactMap { rowIndex[$0] }.sorted().map { rows[$0] }
     }
 }
