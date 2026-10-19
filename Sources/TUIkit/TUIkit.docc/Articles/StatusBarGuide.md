@@ -114,6 +114,8 @@ Both entries are **informational**: they carry no action, so they display and do
 
 A page that wants Escape (or Return) to do something of its own publishes an ordinary user item for it. That wins the shortcut dedup, keeps its action — and is still renamed in place while a presented surface claims the key, so "⎋ back" reads "⎋ close popover" for as long as the popover is up.
 
+A sheet's Escape is the sheet's. Items its content declares with `.statusBarItems` are added to the sheet's own "⎋ dismiss" (or "⎋ cancel", where Escape presses the content's cancel button), never put in its place, so a page's "⎋ back" declared around the view presenting the sheet does not answer Escape while the sheet is up. Content that declares an Escape item of its own keeps it: that item answers the key instead.
+
 ### Overriding `q quit`
 
 A user-defined status bar item with shortcut `q` overrides the built-in quit binding for that view context:

@@ -671,10 +671,11 @@ extension StatusBarState {
         declaredGlobalItems = items
     }
 
-    /// Registers status bar items for a focus section.
+    /// Registers status bar items for a focus section, in place of any
+    /// registered for it earlier this pass.
     ///
     /// - Returns: The registration's serial, for
-    ///   ``replaceSectionItems(registeredAs:with:)``.
+    ///   ``keepPresentationItem(_:inSection:registeredAs:)``.
     @discardableResult
     package func registerSectionItems(
         sectionID: String,
@@ -687,30 +688,50 @@ extension StatusBarState {
         return sectionRegistrations
     }
 
-    /// Replaces the items of the registration `serial` names, if it is still
-    /// its section's — a later registration into the section has replaced it
-    /// otherwise, and stands.
+    /// Keeps `item`, a presentation's own item — its Escape — among the
+    /// items of its section `sectionID`, once the presentation's content has
+    /// drawn and named it for what the key does now.
     ///
-    /// For a presenter, which registers its item before its content renders
-    /// (so the content's own items into its section replace it) and knows
-    /// only afterwards what its Escape does this frame.
-    package func replaceSectionItems(registeredAs serial: Int, with items: [any StatusBarItemProtocol]) {
-        guard let index = sectionItems.firstIndex(where: { $0.serial == serial }) else { return }
-        sectionItems[index].items = items
+    /// - As the items of the registration `serial` names, where that is still
+    ///   the section's: the presenter's own, made before its content drew.
+    /// - Added to the section's registration otherwise — the content's, whose
+    ///   `.statusBarItems` registered into the section the presentation
+    ///   activated it in — unless an item of the content's binds the same
+    ///   key, which then stands, as a child's item stands over its parent's.
+    /// - Registered alone, merged with the items outside, where nothing is
+    ///   registered in the section.
+    ///
+    /// The content's items are ADDED to the presentation's, never put in its
+    /// place. Put in its place, the presentation's Escape item was gone
+    /// whenever its content declared a status bar item of its own; the
+    /// section's items merge with the items declared outside the
+    /// presentation, which are live, and a page's "⎋ back" declared around
+    /// the view presenting a sheet then answered Escape at the bar's layer —
+    /// ahead of the presenter's own key handler — and took the page away from
+    /// under the sheet.
+    package func keepPresentationItem(
+        _ item: any StatusBarItemProtocol, inSection sectionID: String, registeredAs serial: Int? = nil
+    ) {
+        if let serial, let index = sectionItems.firstIndex(where: { $0.serial == serial }) {
+            sectionItems[index].items = [item]
+            return
+        }
+        guard let index = sectionItems.firstIndex(where: { $0.sectionID == sectionID }) else {
+            registerSectionItems(sectionID: sectionID, items: [item], composition: .merge)
+            return
+        }
+        guard !sectionItems[index].items.contains(where: { $0.shortcut == item.shortcut }) else { return }
+        sectionItems[index].items.append(item)
     }
 
     /// Holds Escape in `sectionID` without offering it
-    /// (``SystemStatusBarItem/heldEscape``): added to what the section's own
-    /// content registered there — which an Escape item of its own keeps — or
-    /// registered alone, merged with the items outside, whose Escape it
-    /// displaces.
+    /// (``SystemStatusBarItem/heldEscape``), kept among the section's items
+    /// as ``keepPresentationItem(_:inSection:registeredAs:)`` keeps a
+    /// presentation's: added to what the section's own content registered
+    /// there — which an Escape item of its own keeps — or registered alone,
+    /// merged with the items outside, whose Escape it displaces.
     package func holdEscape(inSection sectionID: String) {
-        guard let index = sectionItems.firstIndex(where: { $0.sectionID == sectionID }) else {
-            registerSectionItems(sectionID: sectionID, items: [SystemStatusBarItem.heldEscape], composition: .merge)
-            return
-        }
-        guard !sectionItems[index].items.contains(where: { $0.shortcut == Shortcut.escape }) else { return }
-        sectionItems[index].items.append(SystemStatusBarItem.heldEscape)
+        keepPresentationItem(SystemStatusBarItem.heldEscape, inSection: sectionID)
     }
 
     /// Drops everything the view tree declared last pass, at the start of the

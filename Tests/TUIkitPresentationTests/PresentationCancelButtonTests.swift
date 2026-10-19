@@ -51,7 +51,7 @@ struct PresentationCancelButtonTests {
     }
 
     /// A sheet whose content puts items of its own in the sheet's section,
-    /// which replace its ESC item: Escape reaches the sheet's key handler.
+    /// beside which the sheet keeps its ESC item.
     private func sheetWithItems(_ model: Model) -> some View {
         Text("page").sheet(isPresented: model.binding) {
             draft(model).statusBarItems([StatusBarItem(shortcut: "r", label: "reload")])
@@ -141,7 +141,7 @@ struct PresentationCancelButtonTests {
         #expect(holdEscape(repeating) { sheet(repeating, repeats: true) }.cancels == 3)
     }
 
-    @Test("So does a held Escape that reaches the sheet's key handler, with no ESC item on the bar")
+    @Test("So does a held Escape where the sheet's content declares items of its own")
     func sheetHandlerRepeatsOnlyIfTheButtonDoes() {
         let model = Model()
         let held = holdEscape(model) { sheetWithItems(model) }

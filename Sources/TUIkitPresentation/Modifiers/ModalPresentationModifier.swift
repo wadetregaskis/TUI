@@ -316,20 +316,26 @@ extension ModalPresentationModifier: Renderable {
                 overlayHeight: context.environment.overlayContentHeight,
                 detentHeight: detents?.height.map { isGrabbed && !inTopBorder ? max(1, $0 - 1) : $0 })
         }
-        // Registered before the content drew, so that the content's own items
-        // in this section replace it, the ESC item is named for what Escape
-        // does now it has: "cancel" where it presses the content's cancel
-        // button, which may keep the sheet up — not "dismiss" — and repeating
-        // only if that button does.
-        // Where the content forbade interactive dismissal and drew no cancel
-        // button, the item stays — Escape is still the presentation's — but
-        // is hidden and does nothing (`SystemStatusBarItem.heldEscape`).
-        if let escapeItemRegistration, gate.escapePressesCancelButton {
-            context.environment.statusBar?.replaceSectionItems(
-                registeredAs: escapeItemRegistration, with: [escapeItem(gate: gate, escape: escape)])
-        } else if let escapeItemRegistration, gate.interactiveDismissIsDisabled {
-            context.environment.statusBar?.replaceSectionItems(
-                registeredAs: escapeItemRegistration, with: [SystemStatusBarItem.heldEscape])
+        // Registered before the content drew, the ESC item is named again for
+        // what Escape does now it has: "cancel" where it presses the content's
+        // cancel button, which may keep the sheet up — not "dismiss" — and
+        // repeating only if that button does. Where the content forbade
+        // interactive dismissal and drew no cancel button, the item stays —
+        // Escape is still the presentation's — but is hidden and does nothing
+        // (`SystemStatusBarItem.heldEscape`).
+        //
+        // And kept: where the content's own `.statusBarItems` registered into
+        // the sheet's section, they took the place of the registration made
+        // before they drew, and the item goes in among them — unless they bind
+        // Escape themselves (`StatusBarState.keepPresentationItem`). Left out,
+        // a page's "⎋ back" declared around the view presenting the sheet
+        // answered Escape from behind it.
+        if let escapeItemRegistration {
+            let item =
+                gate.interactiveDismissIsDisabled && !gate.escapePressesCancelButton
+                ? SystemStatusBarItem.heldEscape : escapeItem(gate: gate, escape: escape)
+            context.environment.statusBar?.keepPresentationItem(
+                item, inSection: sectionID, registeredAs: escapeItemRegistration)
         }
         guard !modalBuffer.isEmpty, isGrabbed, let detents, detents.height != nil else { return modalBuffer }
         let interaction = presentationTrait(PresentationContentInteractionProviding.self, of: modal)
