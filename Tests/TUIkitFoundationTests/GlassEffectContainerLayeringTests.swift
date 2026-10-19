@@ -1,9 +1,10 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  GlassEffectContainerLayeringTests.swift
 //
-//  What lies between a glass and its `GlassEffectContainer` — a background —
-//  acts on the glass in a joined shape as it acts on glass alone, on every
-//  pass; what lies between the glass it joins is drawn over the background.
+//  What lies between a glass and its `GlassEffectContainer` — a background,
+//  `.hidden()`, `.opacity`, a clip — acts on the glass in a joined shape as it
+//  acts on glass alone, on every pass; what lies between the glass it joins
+//  is drawn over the background.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -81,5 +82,26 @@ struct GlassEffectContainerLayeringTests {
             }
         }
         #expect(settled(view, width: 7).map(\.stripped) == ["(A x B)"])
+    }
+
+    @Test("Glass in a hidden view joins nothing")
+    func hidden() {
+        let pair = HStack(spacing: 0) { glass("A"); glass("B").hidden() }
+        #expect(settled(GlassEffectContainer { pair }, width: 6) == settled(pair, width: 6))
+    }
+
+    @Test("Glass faded by an opacity is drawn by itself, as faded as outside a container")
+    func faded() {
+        let pair = HStack(spacing: 0) { glass("A"); glass("B").opacity(0.3) }
+        #expect(settled(GlassEffectContainer { pair }, width: 6) == settled(pair, width: 6))
+    }
+
+    @Test("Glass inside a clip is drawn by itself, cut as outside a container")
+    func clipped() {
+        let pair = HStack(spacing: 0) {
+            Text("AAAA").padding(.horizontal).glassEffect().frame(width: 4, alignment: .leading).clipped()
+            glass("B")
+        }
+        #expect(settled(GlassEffectContainer { pair }, width: 7) == settled(pair, width: 7))
     }
 }

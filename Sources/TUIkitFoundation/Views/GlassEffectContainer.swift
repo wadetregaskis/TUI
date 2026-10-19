@@ -46,8 +46,9 @@ import TUIkitView
 /// colour effect — acts on its part as on its glass alone; what lies between
 /// the members is drawn over a background inside the container, and under
 /// anything drawn there. A glass
-/// inside a ``ScrollView`` in the container is drawn by itself, since what the
-/// container draws is not clipped to the scroll view (decisions B-GLASS-5).
+/// inside a ``ScrollView``, a clip, a hidden view or an opacity below 1 in the
+/// container is drawn by itself, joining nothing: what the container draws
+/// would not be clipped, hidden or faded with it (decisions B-GLASS-5).
 public struct GlassEffectContainer<Content: View>: View {
     /// How close glass shapes come before they are drawn as one, in cells.
     let spacing: Int?

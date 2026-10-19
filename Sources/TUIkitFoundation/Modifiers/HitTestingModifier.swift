@@ -131,10 +131,12 @@ private struct _HiddenView<Content: View>: View, Renderable, Layoutable {
         // and ignored by SECTIONS, which is exactly the split "hidden" needs —
         // and deliberately not what `.dimmed()` does, that one being inert on
         // purpose.
-        let drawn = TUIkitView.renderToBuffer(
-            content,
-            context: context.withEnvironment(
-                context.environment.setting(\.isFocusSuppressed, to: true)))
+        //
+        // Nor does glass in here join a container's shape: the shape would
+        // reach across a view that is not there.
+        var environment = context.environment.setting(\.isFocusSuppressed, to: true)
+        environment.leaveGlassEffectContainer()
+        let drawn = TUIkitView.renderToBuffer(content, context: context.withEnvironment(environment))
         // Spaces, not zero-width nothing: this is the same convention `Spacer`
         // uses for space that is occupied but blank, and it is what stops the
         // hole from collapsing in a stack. Hit regions and animated runs are

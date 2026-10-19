@@ -247,11 +247,24 @@ private struct GlassEffectGatheringKey: EnvironmentKey {
 
 extension EnvironmentValues {
     /// The ``GlassEffectContainer`` the glass in this subtree tells where it
-    /// is, or `nil` outside one — and inside a ``ScrollView`` within one: what
-    /// the container draws is not clipped to the scroll view's viewport, so a
-    /// glass in there is drawn by itself.
+    /// is, or `nil` outside one — and inside a view that leaves it
+    /// (``leaveGlassEffectContainer()``).
     var glassEffectGathering: GlassEffectGathering? {
         get { self[GlassEffectGatheringKey.self] }
         set { self[GlassEffectGatheringKey.self] = newValue }
+    }
+
+    /// Leaves the ``GlassEffectContainer`` this subtree is in, if any: the
+    /// glass in it draws itself and joins nothing.
+    ///
+    /// For a view that hides, fades or clips what it draws — a ``ScrollView``,
+    /// `.clipped()` and `.clipShape(_:)`, `.hidden()`, `.opacity(_:)` below 1.
+    /// A joined shape reaches past each member, and what lies between the
+    /// members is the container's to draw: it would not be hidden, faded or
+    /// clipped as the subtree is, and the other members' parts would draw a
+    /// shape open towards a glass that is not there (decisions B-GLASS-5).
+    /// Written only when there is a container to leave.
+    mutating func leaveGlassEffectContainer() {
+        if glassEffectGathering != nil { glassEffectGathering = nil }
     }
 }

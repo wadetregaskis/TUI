@@ -49,7 +49,11 @@ struct _ClippedView<Content: View>: View {
 
 extension _ClippedView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIkitView.renderToBuffer(content, context: context)
+        // What a glass container draws is not clipped as this is, so the
+        // glass in here draws itself.
+        var contentContext = context
+        contentContext.environment.leaveGlassEffectContainer()
+        var buffer = TUIkitView.renderToBuffer(content, context: contentContext)
         guard !buffer.overlays.isEmpty else { return buffer }
         // A surface (`isOpaque`) is a window over the page, not content: the
         // rule a scroll view's clip keeps (`ScrollView+Content.swift`).

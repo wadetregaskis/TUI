@@ -102,7 +102,12 @@ extension _OpacityView: Animatable {
 
 extension _OpacityView: Renderable {
     package func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var buffer = TUIkitView.renderToBuffer(content, context: context)
+        // Glass faded here joins no shape in a glass container: a joined shape
+        // has one surface, and the container draws what lies between its
+        // members, which would not fade with this view.
+        var contentContext = context
+        if opacity < 1 { contentContext.environment.leaveGlassEffectContainer() }
+        var buffer = TUIkitView.renderToBuffer(content, context: contentContext)
         // `isEmpty` asks about the LINES, and a subtree can draw nothing in
         // flow while drawing plenty in an overlay: `.offset` and `.position`
         // return a placeholder of zero-width lines and put the content in a

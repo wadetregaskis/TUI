@@ -168,11 +168,16 @@ is one shape round all of its members. A cell is joined or not, so here:
   known cost: what a drawing does rather than registers — an `onChange` that
   fires, a task that starts — happens on both. Glass in a container
   declares a render side effect, so no memo keeps a subtree with one.
-- **Where it stops:** a glass in a `ScrollView` inside the container draws
-  itself, since what the container draws is not clipped to the viewport. A
-  `List` does not stop it; a glass in a list row inside a container joins as
-  though the list were not clipping it. Nothing else in TUIkit draws glass in
-  lists.
+- **Where it stops:** a glass in a `ScrollView`, a `.clipped()` or
+  `.clipShape(_:)`, a `.hidden()` view or an `.opacity(_:)` below 1 inside
+  the container draws itself and joins nothing: a joined shape reaches past
+  each member, and what the container draws between them would not be
+  clipped, hidden or faded with it — the other members' parts would draw a
+  shape open towards a glass not there (found in review: a hidden member's
+  rim was drawn, and a faded one's glass at full strength). A faded glass is
+  also a surface of its own, and one shape has one. A `List` does not stop
+  it; a glass in a list row inside a container joins as though the list were
+  not clipping it. Nothing else in TUIkit draws glass in lists.
 
 **Alternatives.**
 
