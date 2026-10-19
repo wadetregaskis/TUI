@@ -25,6 +25,10 @@ private final class Probe: @unchecked Sendable {
     var renders = 0
     /// The text a tab's label view of the app's own draws.
     var name = "Alpha"
+    /// The tab view's selection: the first tab, whose chip is carried.
+    var selected = 1
+    /// What the drops a tab took said.
+    var dropped: [String] = []
 }
 
 /// Counts its draws: a tab's content, which a memo around the tab view keeps
@@ -117,5 +121,85 @@ struct TabSidebarRowLookTests {
         probe.name = "Beta"
         let drawn = harness.frame(view()).lines.map(\.stripped).joined(separator: "\n")
         #expect(drawn.contains("Beta") && !drawn.contains("Alpha"), "\(drawn)")
+    }
+
+    /// Where `text` is last drawn on screen, in cells.
+    private func lastCell(of text: String, in buffer: FrameBuffer) -> (x: Int, y: Int)? {
+        for (y, line) in buffer.lines.map(\.stripped).enumerated().reversed() {
+            if let range = line.range(of: text) {
+                return (String(line[..<range.lowerBound]).strippedLength, y)
+            }
+        }
+        return nil
+    }
+
+    /// Draws `tabs(true)` settled, then `tabs(false)` — what changed between
+    /// the two the test's to say — and carries the chip `tabs` draws onto the
+    /// last row titled "Untitled", then holds it there, or drops it there.
+    private func carryOntoTheLastUntitledRow(drop: Bool, _ tabs: (_ before: Bool) -> some View) {
+        let harness = InputChainHarness(width: 50, height: 12)
+        for _ in 0..<3 { harness.frame(tabs(true)) }
+        harness.frame(tabs(false))
+        let drawn = harness.frame(tabs(false))
+        guard let chip = lastCell(of: "CHIP", in: drawn), let row = lastCell(of: "Untitled", in: drawn) else {
+            Issue.record("no chip or row in \(drawn.lines.map(\.stripped))")
+            return
+        }
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: chip.x, y: chip.y))
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: chip.x + 1, y: chip.y))
+        harness.frame(tabs(false))
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: row.x + 1, y: row.y))
+        harness.frame(tabs(false))
+        if drop {
+            harness.mouse(MouseEvent(button: .left, phase: .released, x: row.x + 1, y: row.y))
+            harness.frame(tabs(false))
+            return
+        }
+        let session = harness.tui.dragAndDropSession
+        _ = session.driveSpringLoading(nowNanos: 0)
+        harness.frame(tabs(false))
+        _ = session.driveSpringLoading(nowNanos: UInt64(DragAndDropSession.SpringLoading.delayNanos))
+        harness.frame(tabs(false))
+    }
+
+    /// A row is its place; served from the memo, it replays what it
+    /// registered for the tab it held then. With the tab's value left out of
+    /// its look, a row whose tab left and whose place another tab took,
+    /// looking just the same, kept the leaver's: a pause on it selected a tab
+    /// no longer there, and its menu's opener was filed under that one.
+    @Test("A pause on a sidebar row selects the tab it holds now, not the one it held")
+    func springLoadsTheTabTheRowHolds() {
+        let probe = Probe()
+        let selection = Binding(get: { probe.selected }, set: { probe.selected = $0 })
+        carryOntoTheLastUntitledRow(drop: false) { showsSecond in
+            TabView(selection: selection) {
+                Tab("Home", value: 1) { Text("CHIP").draggable("apple") }
+                if showsSecond { Tab("Untitled", value: 2) { Text("SECOND BODY") } }
+                Tab("Untitled", value: 3) { Text("THIRD BODY") }
+            }
+            .tabViewStyle(.sidebarAdaptable)
+        }
+        #expect(probe.selected == 3, "the pause selected \(probe.selected)")
+    }
+
+    /// A drop's action is a closure of the app's, which a look cannot
+    /// compare: the row of a tab that takes drops is drawn afresh, and a drop
+    /// on it runs the action its tab has now — not one from a frame when
+    /// the tab looked the same.
+    @Test("A drop on a sidebar row runs the action its tab has now")
+    func dropRunsTheTabsActionNow() {
+        let probe = Probe()
+        let selection = Binding(get: { probe.selected }, set: { probe.selected = $0 })
+        carryOntoTheLastUntitledRow(drop: true) { before in
+            // The action names the frame it was made in.
+            let made = before ? "before" : "now"
+            return TabView(selection: selection) {
+                Tab("Home", value: 1) { Text("CHIP").draggable("apple") }
+                Tab("Untitled", value: 2) { Text("SECOND BODY") }
+                    .dropDestination(for: String.self) { probe.dropped.append("\($0) \(made)") }
+            }
+            .tabViewStyle(.sidebarAdaptable)
+        }
+        #expect(probe.dropped == ["[\"apple\"] now"], "\(probe.dropped)")
     }
 }

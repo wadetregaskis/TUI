@@ -130,15 +130,21 @@ private struct _TabSidebarList: View {
         return { order in binding.wrappedValue.orderSections(order.compactMap { identifiers[$0] }) }
     }
 
-    /// What `tab`'s row draws, as ``row(_:)`` draws it.
+    /// What `tab`'s row draws and does, as ``row(_:)`` makes it.
     private func look(of tab: _RawTab) -> _TabRowLook {
         let interactions = tab.interactions
+        let popoversShown = interactions.popovers.map(\.isPresented.wrappedValue)
+        // What the look cannot compare: a view of the app's own the row
+        // draws — its label, a popover it shows — or a closure of the app's
+        // it calls, a drag's payload or a drop's action.
+        let uncomparable =
+            tab.customLabel != nil || popoversShown.contains(true) || interactions.dragPayload != nil
+            || !interactions.drops.isEmpty
         return _TabRowLook(
-            title: tab.title, badge: tab.badgeSuffix.isEmpty ? nil : tab.badge?.displayText,
+            value: tab.value, title: tab.title, badge: tab.badgeSuffix.isEmpty ? nil : tab.badge?.displayText,
             isDisabled: tab.isDisabled, springLoads: tab.springLoads(inheriting: springLoading),
-            drawnAfresh: tab.customLabel == nil ? nil : _DrawnAfresh(), hasContextMenu: interactions.contextMenu != nil,
-            popoversShown: interactions.popovers.map(\.isPresented.wrappedValue),
-            isDraggable: interactions.dragPayload != nil, drops: interactions.drops.count)
+            hasContextMenu: interactions.contextMenu != nil, popoversShown: popoversShown,
+            drawnAfresh: uncomparable ? _DrawnAfresh() : nil)
     }
 
     /// The row the selection names, by its place in ``tabs``.
@@ -227,33 +233,41 @@ private struct _TabSidebarList: View {
     }
 }
 
-/// What a tab's sidebar row draws, compared to decide whether the list's row
-/// memo may serve it (``_SidebarRow``): its title and badge, whether it is
-/// disabled or spring-loads, and which interactions hang from it — a context
-/// menu, its popovers and whether each is showing, a drag, its drops.
+/// What a tab's sidebar row draws and does, compared to decide whether the
+/// list's row memo may serve it (``_SidebarRow``): which tab it is, its title
+/// and badge, whether it is disabled or spring-loads, whether a context menu
+/// and popovers hang from it and whether each popover is showing.
 ///
-/// What a menu or a popover holds is not here: the row draws only their
-/// presence, and an open menu or popover is state of the row's own, whose
-/// change clears its memo.
+/// Which tab, by its value: the row registers what it does under it — its
+/// menu's opener, the selection a pause over it makes — and a row served for
+/// a tab that left, whose place another took looking just the same, did it
+/// for the one that left.
+///
+/// What a menu holds is not here: the row draws only its presence, and an
+/// open menu is state of the row's own, whose change clears its memo. What
+/// the look cannot compare — a view of the app's own the row draws, a closure
+/// of the app's it calls — makes the row drawn afresh (``drawnAfresh``).
 private struct _TabRowLook: Hashable {
+    let value: AnyHashable
     let title: String
     let badge: String?
     let isDisabled: Bool
     let springLoads: Bool
-    /// A part of the row the look cannot compare — a label view of the
-    /// app's own — or `nil` for none: the row is drawn afresh every frame
-    /// (``_DrawnAfresh``).
-    let drawnAfresh: _DrawnAfresh?
     let hasContextMenu: Bool
     let popoversShown: [Bool]
-    let isDraggable: Bool
-    let drops: Int
+    /// A part of the row the look cannot compare — a label view of the app's
+    /// own, a popover's content while it shows, a drag's payload, a drop's
+    /// action — or `nil` for none: the row is drawn afresh every frame
+    /// (``_DrawnAfresh``).
+    let drawnAfresh: _DrawnAfresh?
 }
 
 /// A mark in a row's look that only it compares equal to, made anew with
 /// each look: a look holding one never matches the last, so the list's row
 /// memo misses that row on every frame and it is drawn afresh — for a row
-/// that draws what its look cannot compare, a view of the app's own.
+/// that draws or calls what its look cannot compare, a view or a closure of
+/// the app's own. Served, the row replayed a drop's action, say, from a frame
+/// when its tab looked the same.
 ///
 /// It is the row's own memo that misses, and only it. The memos around the
 /// tab view are keyed by what the app hands them, which the app's view is a

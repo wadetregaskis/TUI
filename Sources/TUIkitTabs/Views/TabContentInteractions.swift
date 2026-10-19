@@ -293,10 +293,9 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
     /// entry is then the one thing that files its opener:
     /// `TabInteractionsMemoTests.keyboardOnAServedRow` serves every row of
     /// the sidebar's parts composed over such rows, and Shift+F10 opened
-    /// nothing without it. A tab view's own sidebar rows are not served
-    /// across frames today (decisions D2C, found on the way: each is drawn at
-    /// two sizes a frame, and each tab's menu is a new value every time the
-    /// body that makes the tab view runs), so there it is belt and braces.
+    /// nothing without it. A tab view's own sidebar rows are served while
+    /// their look is unchanged (`_TabRowLook`), which holds the tab's value:
+    /// the entry files the opener under the tab the row drew.
     private func fileOpener(for stateBox: StateBox<ContextMenuState>, context: RenderContext) {
         let onOpen = context.environment.menuOpenAction
         let value = self.value

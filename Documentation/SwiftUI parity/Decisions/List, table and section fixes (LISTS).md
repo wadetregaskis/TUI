@@ -81,8 +81,11 @@ row alone), then drop the render. About two hours, an A/B on the tabs
 scenarios and on sectioned lists (`session`, `inbox`: the render is a second
 draw of every section row, every frame). **Done in that order (lane LISTS2,
 2026-10-19):** the sidebar's rows are `_SidebarRow`s, keyed by place and
-compared by their tab's look, and `SectionInfo` has no content buffer; the
-A/B is owed.
+compared by their tab's look — which tab it is, by its value, beside what
+the row draws — and `SectionInfo` has no content buffer; the A/B is owed. A
+row whose look cannot say what it draws or calls (a label view of the
+app's own, a popover's content while it shows, a drag's payload, a drop's
+action) is drawn afresh every frame by its own memo alone.
 
 **The second and third** are decisions B73's option 1 (draw hand-written rows
 lazily, as looped rows are drawn), which lane LISTS2 built in the same two

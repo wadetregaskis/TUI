@@ -162,11 +162,9 @@ struct TabInteractionsMemoTests {
 
     /// The selected tab's row served from the memo files its menu's opener
     /// only through the entry the memo replays (`tabMenu.opener`): the
-    /// sidebar starts its openers afresh on every render. A tab view's own
-    /// sidebar rows are not served across frames today (decisions D2C, found
-    /// on the way), so in the test above the selected row files its opener as
-    /// it is drawn; this composes the sidebar's parts over rows that are the
-    /// same every frame, which are.
+    /// sidebar starts its openers afresh on every render. This composes the
+    /// sidebar's parts over rows that are the same every frame, so that every
+    /// row is served on a quiet frame whatever else the tab view draws.
     @Test("Shift+F10 opens the selected tab's menu from its row served from the memo")
     func keyboardOnAServedRow() {
         let tabs = Tabs()
