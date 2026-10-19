@@ -32,7 +32,7 @@ struct ImageURLPage: View {
                         .onSubmit {
                             activeURL = imageURL
                         }
-                        .textContentType(.url)
+                        .textContentType(.URL)
                     Toggle("page.imageURL.asyncImage", isOn: $usesAsyncImage)
                 }
                 picture

@@ -21,7 +21,7 @@ struct TextContentTypeTests {
     @Test(
         "Each type keeps exactly the characters it documents",
         arguments: [
-            (TextContentType.url, "http://a.com/x y<>", "http://a.com/xy"),
+            (TextContentType.URL, "http://a.com/x y<>", "http://a.com/xy"),
             // `!` is RFC 5322 `atext`; a space and a comma are not.
             (.emailAddress, "a b@c!.d+e-f_g,", "ab@c!.d+e-f_g"),
             (.telephoneNumber, "+1 (555) 123-4567 ext#9*", "+1 (555) 123-4567 #9*"),
@@ -29,6 +29,14 @@ struct TextContentTypeTests {
             (.oneTimeCode, "12ab34", "1234"),
             (.integer, "a-1b2", "-12"),
             (.decimal, "1a.5-x", "1.5-"),
+            (.creditCardNumber, "4111 1111-x1111", "4111 1111-1111"),
+            (.creditCardSecurityCode, "12a3", "123"),
+            (.creditCardExpiration, "12/27 (exp)", "12/27 "),
+            (.postalCode, "SW1A 1AA!", "SW1A 1AA"),
+            (.shipmentTrackingNumber, "1Z 999-AA1#", "1Z 999-AA1"),
+            (.flightNumber, "QF 1!", "QF 1"),
+            (.birthdateMonth, "Sept.,", "Sept."),
+            (.birthdateYear, "1990s", "1990"),
         ])
     func filterKeepsTheDocumentedSet(
         type: TextContentType, input: String, expected: String
@@ -47,9 +55,26 @@ struct TextContentTypeTests {
         #expect(awkward.allSatisfy { TextContentType.password.isAllowed($0) })
     }
 
+    @Test(
+        "A type whose values are free text filters nothing",
+        arguments: [
+            TextContentType.newPassword, .name, .namePrefix, .givenName, .middleName, .familyName, .nameSuffix,
+            .nickname, .jobTitle, .organizationName, .location, .fullStreetAddress, .streetAddressLine1,
+            .streetAddressLine2, .addressCity, .addressState, .addressCityAndState, .sublocality, .countryName,
+            .creditCardName, .creditCardGivenName, .creditCardMiddleName, .creditCardFamilyName, .creditCardType,
+            .dateTime, .birthdate,
+        ])
+    func freeTextIsUnfiltered(type: TextContentType) {
+        #expect(type.allowedCharacters == nil, "\(type)")
+        let anything = "Zoë O'Brien-Smith, 3rd · 東京 🙂"
+        #expect(type.filterString(anything) == anything)
+    }
+
     @Test("Every other type has a set", arguments: [
-        TextContentType.url, .emailAddress, .telephoneNumber, .username,
-        .oneTimeCode, .integer, .decimal,
+        TextContentType.URL, .emailAddress, .telephoneNumber, .username,
+        .oneTimeCode, .integer, .decimal, .creditCardNumber, .creditCardSecurityCode, .creditCardExpiration,
+        .creditCardExpirationMonth, .creditCardExpirationYear, .postalCode, .shipmentTrackingNumber,
+        .flightNumber, .birthdateDay, .birthdateMonth, .birthdateYear,
     ])
     func everyOtherTypeFilters(type: TextContentType) {
         #expect(type.allowedCharacters != nil, "\(type)")

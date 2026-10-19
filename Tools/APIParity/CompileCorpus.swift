@@ -3845,3 +3845,22 @@ private struct CorpusScrollViewProperties: View {
         return scroller
     }
 }
+
+/// Content types as SwiftUI spells them on macOS (`NSTextContentType`).
+@MainActor
+private struct CorpusTextContentTypes: View {
+    @State private var url = ""
+    @State private var card = ""
+    @State private var notes = ""
+
+    var body: some View {
+        VStack {
+            TextField("URL", text: $url)
+                .textContentType(.URL)
+            TextField("Card", text: $card)
+                .textContentType(.creditCardNumber)
+            TextEditor(text: $notes)
+                .textContentType(.fullStreetAddress)
+        }
+    }
+}

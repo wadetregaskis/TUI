@@ -890,7 +890,12 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   character set: typed and pasted characters that no valid value holds are
   dropped, and the terminal's bell rings — once for a paste, however many it
   drops (`.oneTimeCode` takes digits only, `.emailAddress` letters, digits,
-  `@`, `.` and the rest of RFC 5322's ``!#$%&'*+-/=?^_`{|}~``).
+  `@`, `.` and the rest of RFC 5322's ``!#$%&'*+-/=?^_`{|}~``). Every
+  `NSTextContentType` member is spelled; one whose values are free text (a
+  name, an address part, `.dateTime`) filters nothing. A `TextEditor` filters
+  as a field does, and a line break is a character like any other, refused
+  where the type cannot hold one, as in a vertical field (2026-10-18,
+  [B-PARITYMISC-2](<Decisions/Small parity items (PARITYMISC).md#b-paritymisc-2-every-nstextcontenttype-is-spelled-free-text-types-filter-nothing-and-a-texteditor-filters-as-a-field-does>)).
 - **Why:** a terminal has no autofill, so the type was given a meaning a
   terminal can carry.
 - **Decided:** [TextContentType.swift](../../Sources/TUIkitStyling/Styles/TextContentType.swift#L11-L17).

@@ -96,6 +96,14 @@ final class TextEditorHandler: PersistedFocusable {
     /// tab puts the columns after it.
     var tabWidth: TabWidth = .periodic(4)
 
+    /// The characters the editor takes, from `.textContentType(_:)` — synced
+    /// by the rendering core each frame (``admitted(_:)-(KeyEvent)``).
+    var textContentType: TextContentType?
+
+    /// What rings for input the content type turns away — synced by the
+    /// rendering core each frame.
+    var bell: TerminalBell?
+
     /// Remembers the cursor's display column for vertical motion.
     func syncDesiredColumn(_ lines: [[Character]]? = nil) {
         if let rows = wrappedRows() {
@@ -300,6 +308,9 @@ final class TextEditorHandler: PersistedFocusable {
     /// Every key but the Command-key stand-ins
     /// (``standInCommand(for:)``).
     private func handleEditingKey(_ event: KeyEvent) -> Bool {
+        // What the content type turns away goes no further, and leaves the
+        // selection be: it is consumed, with a ring of the bell.
+        guard let event = admitted(event) else { return true }
         // A drag/Shift-click selection is consumed by the next edit (delete, or
         // delete-then-insert) and cleared by any other key. This lets mouse
         // selection drive editing without the editor carrying a full
@@ -760,6 +771,10 @@ final class TextEditorHandler: PersistedFocusable {
     /// Ctrl-O: splits the line at the cursor but leaves the cursor in place, so
     /// the text after it opens onto a new line below.
     private func openLine() {
+        guard textContentType?.isAllowed("\n") ?? true else {
+            bell?.ring()
+            return
+        }
         var lines = readLines()
         var line = lines[cursorLine]
         let tail = Array(line[cursorColumn...])

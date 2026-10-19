@@ -15,16 +15,17 @@ private struct TextContentTypeKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    /// The text content type for text fields.
+    /// The text content type for text fields and editors.
     ///
-    /// When set, text fields filter both typed characters and pasted text
-    /// against the allowed character set of the content type.
+    /// When set, text fields, secure fields and text editors filter both
+    /// typed characters and pasted text against the allowed character set of
+    /// the content type, and ring the terminal's bell for what they drop.
     ///
     /// Set this value using the `.textContentType(_:)` modifier:
     ///
     /// ```swift
     /// TextField("URL", text: $url)
-    ///     .textContentType(.url)
+    ///     .textContentType(.URL)
     /// ```
     public var textContentType: TextContentType? {
         get { self[TextContentTypeKey.self] }
@@ -35,15 +36,22 @@ extension EnvironmentValues {
 // MARK: - View Extension
 
 extension View {
-    /// Sets the text content type for text fields within this view.
+    /// Sets the text content type for text fields and editors within this
+    /// view — mirrors SwiftUI's `textContentType(_:)`, whose
+    /// `NSTextContentType` spellings ``TextContentType`` carries.
     ///
-    /// When a content type is set, both typed characters and pasted text
-    /// are filtered against the allowed character set. Invalid characters
-    /// are silently dropped.
+    /// There is no autofill in a terminal, so a content type is a filter:
+    /// typed characters and pasted text are checked against the type's
+    /// allowed character set, in a ``TextField``, a ``SecureField`` and a
+    /// ``TextEditor`` alike, and a character that could not be part of a valid
+    /// value is dropped with a ring of the terminal's bell — once for a paste,
+    /// however many it drops. A line break is a character like any other: a
+    /// vertical field or an editor whose content type cannot hold one takes
+    /// none.
     ///
     /// ```swift
     /// TextField("URL", text: $url)
-    ///     .textContentType(.url)
+    ///     .textContentType(.URL)
     /// ```
     ///
     /// - Parameter type: The content type, or `nil` to disable filtering.

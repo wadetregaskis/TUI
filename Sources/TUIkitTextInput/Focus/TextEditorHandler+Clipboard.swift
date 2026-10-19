@@ -55,10 +55,13 @@ extension TextEditorHandler {
             return true
         case .paste:
             // Over the selection, as a typed key goes; the clipboard's line
-            // breaks kept, as the terminal's own paste keeps them.
+            // breaks kept, as the terminal's own paste keeps them. What the
+            // content type turns away is dropped first, and a paste with
+            // nothing left leaves the selection be.
+            guard let pasted = clipboard.read(), !pasted.isEmpty, let kept = admitted(pasted) else { return true }
             if let span = selectionRange { deleteSelection(span) }
             if let block { deleteBlock(block) }
-            if let pasted = clipboard.read(), !pasted.isEmpty { insert(pasted) }
+            insert(kept)
             return true
         case .undo, .redo, .erase:
             return false

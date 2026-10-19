@@ -346,6 +346,8 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         // same *visual* column the renderer draws the caret at.
         let tabWidth = context.environment.tabWidth
         handler.tabWidth = tabWidth
+        handler.textContentType = context.environment.textContentType
+        handler.bell = context.environment.terminalBell
         handler.clampCursor()
         handler.selectionChannel = selection
         handler.selectionAffinity = context.environment.textSelectionAffinity

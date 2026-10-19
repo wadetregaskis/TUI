@@ -210,4 +210,71 @@ struct TextContentTypeFilteringTests {
     func refusesInvalidCharacters(contentType: TextContentType, value: String, kept: String) {
         #expect(contentType.filterString(value) == kept)
     }
+
+    // MARK: - TextEditor
+
+    /// An editor on its own binding, bell and clipboard.
+    private func makeEditor(
+        _ contentType: TextContentType?, clipboard: FakeClipboard = FakeClipboard()
+    ) -> (TextEditorHandler, TextBox, TerminalBell) {
+        let box = TextBox("")
+        let binding = Binding(get: { box.text }, set: { box.text = $0 })
+        let handler = TextEditorHandler(focusID: "editor", text: binding, clipboard: clipboard.access)
+        let bell = TerminalBell(requestFrame: {})
+        handler.textContentType = contentType
+        handler.bell = bell
+        return (handler, box, bell)
+    }
+
+    @Test("An editor filters typing as a field does, line breaks included, and rings for each refusal")
+    func editorTypingIsFiltered() {
+        let (editor, box, bell) = makeEditor(.integer)
+        for key in [Key.character("a"), .character("1"), .enter, .space, .character("2")] {
+            #expect(editor.handleKeyEvent(KeyEvent(key: key)), "a refused key is still the editor's")
+        }
+        #expect(box.text == "12")
+        #expect(bell.ringCount == 3)
+
+        // The control: without a content type every key lands, line break and all.
+        let (plain, plainBox, plainBell) = makeEditor(nil)
+        for key in [Key.character("a"), .character("1"), .enter, .character("2")] {
+            _ = plain.handleKeyEvent(KeyEvent(key: key))
+        }
+        #expect(plainBox.text == "a1\n2")
+        #expect(plainBell.ringCount == 0)
+    }
+
+    @Test("An editor's paste loses what the content type turns away, with one ring; a free-text type keeps it all")
+    func editorPasteIsFiltered() {
+        let (editor, box, bell) = makeEditor(.creditCardNumber)
+        _ = editor.handleKeyEvent(KeyEvent(key: .paste("4111 1111-x1111\n1111")))
+        #expect(box.text == "4111 1111-11111111")
+        #expect(bell.ringCount == 1)
+
+        let board = FakeClipboard()
+        board.contents = "Rue de l'Église 3\nParis"
+        let (address, addressBox, addressBell) = makeEditor(.fullStreetAddress, clipboard: board)
+        #expect(address.handleKeyEvent(KeyEvent(key: .character("v"), ctrl: true)))
+        #expect(addressBox.text == "Rue de l'Église 3\nParis")
+        #expect(addressBell.ringCount == 0)
+    }
+
+    @MainActor
+    @Test("A TextEditor reads the content type and the bell from its environment")
+    func editorReadsItsEnvironment() {
+        let box = StateBox("")
+        let binding = Binding(get: { box.value }, set: { box.value = $0 })
+        let focusManager = FocusManager()
+        let bell = TerminalBell(requestFrame: {})
+        let context = makeRenderContext { environment, _ in
+            environment.focusManager = focusManager
+            environment.terminalBell = bell
+        }
+        focusManager.beginRenderPass()
+        _ = renderToBuffer(TextEditor(text: binding).textContentType(.oneTimeCode), context: context)
+        focusManager.endRenderPass()
+        for character in "1x2" { _ = focusManager.dispatchKeyEvent(KeyEvent(key: .character(character))) }
+        #expect(box.value == "12")
+        #expect(bell.ringCount == 1)
+    }
 }
