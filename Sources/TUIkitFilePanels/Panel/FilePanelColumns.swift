@@ -29,7 +29,7 @@ enum FilePanelColumns {
             LocalizationService.shared.string(for: LocalizationKey.FilePanel.columnSize),
             sortUsing: KeyPathComparator(\FileEntry.sortSize)
         ) { entry in
-            Text(entry.sizeText)
+            cell(entry.sizeText, entry)
         }
         .width(9)
         .alignment(.trailing)
@@ -37,14 +37,14 @@ enum FilePanelColumns {
             LocalizationService.shared.string(for: LocalizationKey.FilePanel.columnDateModified),
             sortUsing: KeyPathComparator(\FileEntry.sortDate)
         ) { entry in
-            Text(entry.modifiedText)
+            cell(entry.modifiedText, entry)
         }
         .width(20)
         TableColumn(
             LocalizationService.shared.string(for: LocalizationKey.FilePanel.columnKind),
             sortUsing: KeyPathComparator(\FileEntry.kind)
         ) { entry in
-            Text(entry.kind)
+            cell(entry.kind, entry)
         }
         .width(min: 6, ideal: 14, max: 18)
     }
@@ -52,9 +52,15 @@ enum FilePanelColumns {
     /// An item's name: a folder's bold and ending in a slash. Typing finds it
     /// by the name alone, without the slash.
     private static func nameCell(_ entry: FileEntry) -> some View {
-        Text(entry.displayName)
-            .bold(entry.isFolder)
+        cell(entry.displayName, entry, bold: entry.isFolder)
             .typeSelectEquivalent(entry.name)
+    }
+
+    /// A cell's text, in the faint tier where the row is dimmed
+    /// (``FileEntry/isDimmed``), as a disabled row of a table draws.
+    private static func cell(_ text: String, _ entry: FileEntry, bold: Bool = false) -> Text {
+        let drawn = Text(text).bold(bold)
+        return entry.isDimmed ? drawn.foregroundStyle(.palette.foregroundTertiary) : drawn
     }
 }
 

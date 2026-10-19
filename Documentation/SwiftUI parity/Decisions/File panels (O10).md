@@ -29,7 +29,12 @@ area's height), titled Open, holding
   by any of them from its header or the table's sort keys — a folder's name in
   bold and ending in `/`, as `ls -F` marks one, rather than an icon some
   terminals draw at another width; an item of a type the caller does not allow
-  is dimmed and the cursor passes over it (`.selectionDisabled`);
+  is dimmed (`FileEntry.isDimmed`): the cursor lands on it, as the review's
+  sketch has a macOS panel's, but the selection binding refuses it and Return
+  chooses nothing. Not `.selectionDisabled()`, which would also take the
+  cursor past it: that needs the table's row builder, which builds every row's
+  traits every frame (195 ms a frame for 20,000 items in a debug build, against
+  22 for the data form);
 - the hidden-files switch, Cancel and Open.
 
 The keys are a terminal file browser's: the arrows move the table's cursor and

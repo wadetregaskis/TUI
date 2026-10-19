@@ -106,8 +106,12 @@ struct FileDialogCustomizationTests {
                 .fileDialogURLEnabled(#Predicate<URL> { $0.lastPathComponent != refused })
         }
         await driver.waitFor("notes.md")
-        // Alpha/, linked/, then beta.txt — refused, so passed over — and gamma.pdf.
+        // Alpha/, linked/, then beta.txt — refused: Return chooses nothing —
+        // and gamma.pdf.
         driver.press(.down, times: 2)
+        driver.press(.enter)
+        #expect(caller.heard.isEmpty)
+        driver.press(.down)
         driver.press(.enter)
         #expect(caller.chosenPaths == [fixture.url("gamma.pdf").path])
     }

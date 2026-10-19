@@ -67,6 +67,10 @@ struct FileEntry: Identifiable, Sendable {
 
     var id: URL { url }
 
+    /// Whether the row is drawn dimmed: an item that can be neither chosen
+    /// nor opened — a file of a type the panel does not take.
+    var isDimmed: Bool { !isChoosable && !isFolder }
+
     /// The URL a panel hands its caller for the item: a symbolic link's
     /// target, when links are resolved, and otherwise the item's own.
     func chosenURL(resolvingLinks: Bool) -> URL {

@@ -30,7 +30,7 @@ struct FileImporterPanelTests {
     /// A panel presented over a page, opening on `fixture`'s root, which is
     /// also its home.
     private func panel(
-        _ fixture: FilePanelFixture, caller: FilePanelCaller, multiple: Bool = false, types: [UTType] = []
+        _ fixture: FilePanelFixture, caller: FilePanelCaller, types: [UTType] = [], multiple: Bool = false
     ) -> some View {
         FilePanelPresenter(
             content: Text("Page"), isPresented: caller.binding,
@@ -107,15 +107,21 @@ struct FileImporterPanelTests {
         #expect(!driver.screen().contains("notes.md"))
     }
 
-    @Test("A file of a type not allowed is passed over; one of an allowed type is chosen")
+    @Test("A file of a type not allowed cannot be chosen or selected; one of an allowed type is chosen")
     func typesFilterChoices() async throws {
         let fixture = try FilePanelFixture()
         defer { fixture.remove() }
         let caller = FilePanelCaller()
-        let driver = FilePanelDriver { panel(fixture, caller: caller, types: [.pdf]) }
+        let driver = FilePanelDriver { panel(fixture, caller: caller, types: [.pdf], multiple: true) }
         await driver.waitFor("notes.md")
-        // Alpha/, linked/, then beta.txt — passed over — and gamma.pdf.
+        // Alpha/, linked/, then beta.txt: dimmed, but the cursor lands on it.
+        // Space does not select it, and Return chooses nothing.
         driver.press(.down, times: 2)
+        driver.press(.space)
+        driver.press(.enter)
+        #expect(caller.heard.isEmpty)
+        // gamma.pdf is chosen.
+        driver.press(.down)
         driver.press(.enter)
         #expect(caller.chosenPaths == [fixture.url("gamma.pdf").path])
     }

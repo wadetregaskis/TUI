@@ -146,17 +146,13 @@ struct FilePanel: View {
     @ViewBuilder private var rows: some View {
         Group {
             if request.allowsMultipleSelection {
-                Table(of: FileEntry.self, selection: $selection, sortOrder: sortOrder) {
+                Table(browser.rows, selection: selectable, sortOrder: sortOrder) {
                     FilePanelColumns.all
-                } rows: {
-                    rowContent
                 }
                 .tableEmptyPlaceholder(emptyText)
             } else {
-                Table(of: FileEntry.self, selection: $singleSelection, sortOrder: sortOrder) {
+                Table(browser.rows, selection: selectableSingle, sortOrder: sortOrder) {
                     FilePanelColumns.all
-                } rows: {
-                    rowContent
                 }
                 .tableEmptyPlaceholder(emptyText)
             }
@@ -191,12 +187,30 @@ struct FilePanel: View {
         }
     }
 
-    /// Each item, a row that cannot be selected when it can be neither
-    /// chosen nor opened: drawn dimmed, and passed over by the cursor.
-    @TableRowBuilder<FileEntry> private var rowContent: some TableRowContent<FileEntry> {
-        ForEach(browser.rows) { entry in
-            TableRow(entry).selectionDisabled(!entry.isChoosable && !entry.isFolder)
-        }
+    /// The selection, through a binding that refuses an item that can be
+    /// neither chosen nor opened (``FileEntry/isDimmed``): the cursor still
+    /// lands on one, as on a macOS panel, but Space does not select it.
+    ///
+    /// Not `.selectionDisabled()` on the rows, which would also take the
+    /// cursor past them: that needs the table's row builder, which builds
+    /// every row's traits on every frame — 195 ms a frame for a folder of
+    /// 20,000 items in a debug build, where the data form takes 22.
+    private var selectable: Binding<Set<URL>> {
+        Binding(
+            get: { selection },
+            set: { urls in selection = urls.filter { !dimmedURLs.contains($0) } })
+    }
+
+    /// ``selectable``, for a single selection.
+    private var selectableSingle: Binding<URL?> {
+        Binding(
+            get: { singleSelection },
+            set: { url in singleSelection = url.flatMap { dimmedURLs.contains($0) ? nil : $0 } })
+    }
+
+    /// The dimmed rows' URLs: read only when the selection changes.
+    private var dimmedURLs: Set<URL> {
+        Set(browser.rows.lazy.filter(\.isDimmed).map(\.url))
     }
 
     /// The table's order, which the browser keeps.

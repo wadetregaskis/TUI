@@ -414,8 +414,8 @@ so TUIkit draws one (the `TUIkitFilePanels` module), in a sheet as large as a
 page. It lists a folder's items in a table — Name, Size, Date Modified and
 Kind, sortable by any of them, folders first and marked with a trailing `/` —
 under the folder's path, with the hidden-files switch and the buttons below.
-Items of a type the caller does not take are dimmed, and the cursor passes over
-them.
+Items of a type the caller does not take are dimmed: the cursor lands on them,
+but they can be neither selected nor chosen.
 
 ```swift
 @State private var importing = false
