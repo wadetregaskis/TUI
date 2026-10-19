@@ -251,13 +251,14 @@ extension _TransitionView: Renderable {
 }
 
 extension _TransitionView {
-    /// The animation the view arrives with: the transition's own for its
-    /// insertion, or else the change's, where the frame can animate. How it
-    /// leaves is decided on the frame it goes, from the transition's own for
-    /// its removal (``AnyTransition/removalAnimation``) or that frame's change.
+    /// The animation the view arrives with: the one the transition names for
+    /// its insertion — `nil`, for none, included — or else the change's, where
+    /// the frame can animate. How it leaves is decided on the frame it goes,
+    /// from the one the transition names for its removal
+    /// (``AnyTransition/removalAnimation``) or that frame's change.
     static func insertionAnimation(of transition: AnyTransition, context: RenderContext) -> Animation? {
-        transition.insertionAnimation
-            ?? (context.environment.canAnimate ? context.environment.transaction.effectiveAnimation : nil)
+        if case .some(let named) = transition.insertionAnimation { return named }
+        return context.environment.canAnimate ? context.environment.transaction.effectiveAnimation : nil
     }
 }
 

@@ -124,7 +124,10 @@ extension Transition {
     }
 
     /// Attaches an animation to this transition: it runs with `animation`
-    /// whatever the change that caused it was made under.
+    /// whatever the change that caused it was made under — or, with `nil`, at
+    /// once, even inside `withAnimation`. An animation this transition already
+    /// names for a phase is kept: the one nearest the view wins, as
+    /// ``AnyTransition/animation(_:)`` says.
     public func animation(_ animation: Animation?) -> some Transition {
         _AnimatedTransition(base: self, animation: animation)
     }

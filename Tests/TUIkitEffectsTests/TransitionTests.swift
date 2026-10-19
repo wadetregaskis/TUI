@@ -518,6 +518,49 @@ struct TransitionTests {
         #expect(screen.draw(false, atMillis: 5100) == ["----"])
     }
 
+    /// SwiftUI plays a transition whose animation is `nil` at once under
+    /// `withAnimation`, both ways, and a half whose animation is `nil` at once
+    /// while the other runs under the change (measured,
+    /// `Tools/SwiftUIProbes/Transitions/tr1.out` T5, `tr2.out` T13): `nil`
+    /// said is not `nil` unsaid. Stored as the same `nil`, it ran under the
+    /// change.
+    @Test("A transition whose animation is nil comes and goes at once under an animated change")
+    func nilAnimationIsInstant() {
+        let instant = AnyTransition.move(edge: .leading).animation(nil)
+        let screen = RemovalScreen(animation: .linear(duration: 1)) { showing in
+            VStack(alignment: .leading, spacing: 0) {
+                Text("----")
+                if showing { Text("XXXX").transition(instant) }
+            }
+        }
+        _ = screen.draw(false, atMillis: 0)
+        #expect(screen.draw(true, atMillis: 0) == ["----", "XXXX"], "in at once")
+        _ = screen.draw(true, atMillis: 100)
+        #expect(screen.draw(false, atMillis: 100) == ["----"], "and out at once")
+
+        let leavesAtOnce = AnyTransition.asymmetric(insertion: .move(edge: .leading), removal: .opacity.animation(nil))
+        let halves = RemovalScreen(animation: .linear(duration: 1)) { showing in
+            VStack(alignment: .leading, spacing: 0) {
+                Text("----")
+                if showing { Text("XXXX").transition(leavesAtOnce) }
+            }
+        }
+        _ = halves.draw(false, atMillis: 0)
+        _ = halves.draw(true, atMillis: 0)
+        #expect(halves.draw(true, atMillis: 500) == ["----", "XX  "], "in under the change")
+        _ = halves.draw(true, atMillis: 1100)
+        #expect(halves.draw(false, atMillis: 1100) == ["----"], "out at once")
+    }
+
+    @Test("Nil is kept as an animation nearer the view than one written outside it")
+    func nilIsNearest() {
+        let nilThen = AnyTransition.opacity.animation(nil).animation(.linear(duration: 8))
+        #expect(nilThen.insertionAnimation == .some(nil))
+        let thenNil = AnyTransition.opacity.animation(.linear(duration: 8)).animation(nil)
+        #expect(thenNil.insertionAnimation == .some(.linear(duration: 8)))
+        #expect(AnyTransition.opacity.insertionAnimation == nil, "nothing named")
+    }
+
     /// The animation nearest the view wins, as in SwiftUI (measured,
     /// `Tools/SwiftUIProbes/Transitions/tr2.out` T9, T10).
     @Test("An animation written outside a transition leaves the halves that have their own alone")

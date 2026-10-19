@@ -50,11 +50,17 @@ public final class DepartureStore: @unchecked Sendable {
         /// The number of rows it occupied.
         public let height: Int
 
-        /// The animation the transition itself names, if any — the only part
-        /// of the removal's timing knowable while the view is still present.
-        /// How the view actually leaves is resolved on the frame it goes:
-        /// this, or the transaction of the change that removed it.
-        public let explicitAnimation: Animation?
+        /// The animation the transition itself names, if it names one — the
+        /// only part of the removal's timing knowable while the view is still
+        /// present. How the view actually leaves is resolved on the frame it
+        /// goes: this, or the transaction of the change that removed it.
+        ///
+        /// `nil` where the transition names none, and `.some(nil)` where it
+        /// names none at all (`.animation(nil)`): the view then goes at once,
+        /// whatever the change's animation, as SwiftUI's does — a double
+        /// optional, the third state ``removalAnimation(frameAnimation:)``
+        /// reads.
+        public let explicitAnimation: Animation??
 
         /// The type of the view that left this picture — the view carrying the
         /// transition. A slot plays the picture only if the view it held WAS
@@ -64,7 +70,7 @@ public final class DepartureStore: @unchecked Sendable {
 
         /// Creates a departure record.
         public init(
-            viewType: Any.Type, width: Int, height: Int, explicitAnimation: Animation?,
+            viewType: Any.Type, width: Int, height: Int, explicitAnimation: Animation??,
             render: @escaping (Double) -> FrameBuffer
         ) {
             self.viewType = ObjectIdentifier(viewType)
@@ -72,6 +78,14 @@ public final class DepartureStore: @unchecked Sendable {
             self.height = height
             self.explicitAnimation = explicitAnimation
             self.render = render
+        }
+
+        /// The animation the view leaves with on a frame whose change runs
+        /// under `frameAnimation`: the one the transition names, `nil` for none
+        /// included, or else the frame's.
+        func removalAnimation(frameAnimation: Animation?) -> Animation? {
+            if case .some(let named) = explicitAnimation { return named }
+            return frameAnimation
         }
     }
 
@@ -192,7 +206,7 @@ extension DepartureStore {
         else { return nil }
         guard
             let animation = entry.animation
-                ?? entry.departure.explicitAnimation ?? frameAnimation
+                ?? entry.departure.removalAnimation(frameAnimation: frameAnimation)
         else {
             entries.removeValue(forKey: identity)
             return nil
@@ -374,7 +388,8 @@ extension DepartureStore {
     /// exists only for one that will — an unanimated removal snaps, and its
     /// slot must close up on the same frame.
     private func willPlay(_ entry: Entry, frameAnimation: Animation?) -> Bool {
-        let animation: Animation? = entry.animation ?? entry.departure.explicitAnimation ?? frameAnimation
+        let animation: Animation? =
+            entry.animation ?? entry.departure.removalAnimation(frameAnimation: frameAnimation)
         return animation != nil
     }
 

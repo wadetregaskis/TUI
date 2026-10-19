@@ -124,20 +124,28 @@ public struct AnyTransition: Sendable, Equatable {
     let custom: _AnyTransitionBox?
 
     /// The animation the view arrives with where this transition names one,
-    /// overriding the change's; `nil` where it arrives under the change's.
+    /// overriding the change's: `nil` where it names none and arrives under
+    /// the change's, and `.some(nil)` where it names none at all —
+    /// `.animation(nil)` — and arrives at once whatever the change's.
     ///
-    /// One for each half, as SwiftUI keeps them (measured,
-    /// `Tools/SwiftUIProbes/Transitions/tr1.out` T4): `asymmetric(insertion:
+    /// A double optional, the third state the style cascade's `Font??` and
+    /// `TextCase??` carry for the same reason: `nil` stated is not `nil`
+    /// unsaid. SwiftUI plays `.opacity.animation(nil)` at once under
+    /// `withAnimation`, both ways (measured,
+    /// `Tools/SwiftUIProbes/Transitions/tr1.out` T5).
+    ///
+    /// One for each half, as SwiftUI keeps them (T4): `asymmetric(insertion:
     /// .opacity.animation(.linear(duration: 2)), removal:
     /// .opacity.animation(.linear(duration: 8)))` arrives in two seconds and
     /// leaves in eight, whatever the change's animation.
-    var insertionAnimation: Animation?
+    var insertionAnimation: Animation??
 
-    /// The animation the view leaves with where this transition names one;
-    /// `nil` where it leaves under the change's. See ``insertionAnimation``.
-    var removalAnimation: Animation?
+    /// The animation the view leaves with where this transition names one,
+    /// or names none at all; `nil` where it leaves under the change's. See
+    /// ``insertionAnimation``.
+    var removalAnimation: Animation??
 
-    init(insertion: Effect, removal: Effect, insertionAnimation: Animation? = nil, removalAnimation: Animation? = nil) {
+    init(insertion: Effect, removal: Effect, insertionAnimation: Animation?? = nil, removalAnimation: Animation?? = nil) {
         self.insertion = insertion
         self.removal = removal
         self.custom = nil
@@ -146,7 +154,7 @@ public struct AnyTransition: Sendable, Equatable {
     }
 
     /// A transition drawn through a ``Transition``'s body.
-    init(custom: _AnyTransitionBox, insertionAnimation: Animation? = nil, removalAnimation: Animation? = nil) {
+    init(custom: _AnyTransitionBox, insertionAnimation: Animation?? = nil, removalAnimation: Animation?? = nil) {
         self.insertion = .identity
         self.removal = .identity
         self.custom = custom
@@ -267,12 +275,15 @@ extension AnyTransition {
     /// This transition and another, applied together.
     ///
     /// The pair plays as one effect, so each half runs under one animation:
-    /// this transition's own, or else `other`'s. SwiftUI runs each part under
-    /// its own (`Tools/SwiftUIProbes/Transitions/tr2.out` T12) — a deviation only where
-    /// both parts name different animations.
+    /// the one this transition names, `nil` included, or else the one
+    /// `other` names. SwiftUI runs each part under its own
+    /// (`Tools/SwiftUIProbes/Transitions/tr2.out` T12) — a deviation only
+    /// where both parts name different animations.
     public func combined(with other: AnyTransition) -> AnyTransition {
-        let insertionAnimation = insertionAnimation ?? other.insertionAnimation
-        let removalAnimation = removalAnimation ?? other.removalAnimation
+        // Spelt out rather than `??`, which on a double optional could as well
+        // unwrap one level as choose between two.
+        let insertionAnimation = insertionAnimation == nil ? other.insertionAnimation : insertionAnimation
+        let removalAnimation = removalAnimation == nil ? other.removalAnimation : removalAnimation
         guard custom == nil, other.custom == nil else {
             return AnyTransition(
                 custom: _AnyTransitionBox(.combined, self, other),
@@ -285,18 +296,20 @@ extension AnyTransition {
     }
 
     /// This transition, run with a particular animation whatever the change
-    /// that caused it was made under.
+    /// that caused it was made under — or, with `nil`, with none: the view
+    /// then comes and goes at once, even inside `withAnimation`, as SwiftUI's
+    /// does (measured, `Tools/SwiftUIProbes/Transitions/tr1.out` T5).
     ///
-    /// A half that already has an animation of its own keeps it, as in
-    /// SwiftUI, where the animation nearest the view wins (measured,
-    /// `Tools/SwiftUIProbes/Transitions/tr2.out` T9, T10):
+    /// A half that already names an animation of its own keeps it, as in
+    /// SwiftUI, where the animation nearest the view wins (`tr2.out` T9–T11):
     /// `.opacity.animation(.linear(duration: 2)).animation(.linear(duration: 8))`
-    /// runs in two seconds, and an `asymmetric` whose insertion has one keeps
-    /// it while its removal takes `animation`.
+    /// runs in two seconds, `.opacity.animation(nil).animation(.linear(duration: 8))`
+    /// at once, and an `asymmetric` whose insertion has one keeps it while its
+    /// removal takes `animation`.
     public func animation(_ animation: Animation?) -> AnyTransition {
         var animated = self
-        animated.insertionAnimation = insertionAnimation ?? animation
-        animated.removalAnimation = removalAnimation ?? animation
+        if insertionAnimation == nil { animated.insertionAnimation = .some(animation) }
+        if removalAnimation == nil { animated.removalAnimation = .some(animation) }
         return animated
     }
 }

@@ -198,7 +198,9 @@ type of its own — ``OpacityTransition``, ``MoveTransition`` and the rest — a
 that caused it was animated, so leaving one on a view that also appears for
 other reasons — a page opening, a list rebuilding — stays instant. Each half of
 an `asymmetric` transition runs under its own animation where it names one,
-and the animation written nearest the view wins.
+``AnyTransition/animation(_:)`` with `nil` makes a transition come and go at
+once inside any `withAnimation`, and the animation written nearest the view
+wins.
 
 A view with no `.transition` that an `if` puts in or takes out under an
 animated change fades, as SwiftUI's does: the default is
