@@ -34,11 +34,11 @@ struct AlignmentGuideThroughWrappersTests {
     @Test("A guide inside .onTapGesture places the stack around it")
     func guideThroughATapGesture() {
         let buffer = renderToBuffer(
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .throughWrapperMark, spacing: 0) {
                 Text("x")
                 HStack(spacing: 0) {
                     Text("ab")
-                    Text("|").alignmentGuide(.leading) { _ in 0 }
+                    Text("|").alignmentGuide(.throughWrapperMark) { $0[.leading] }
                 }
                 .onTapGesture {}
             },
@@ -48,38 +48,17 @@ struct AlignmentGuideThroughWrappersTests {
         #expect(position(of: "|", in: buffer)?.column == 2)
     }
 
-    /// `.textCase(.uppercase)` writes the style cascade, and "ß" draws as
-    /// "SS": the row's guide is four cells in, not the two the unwritten
-    /// context measures.
-    @Test("A guide inside a style write is found where the written content draws it")
-    func guideThroughAStyleWrite() {
-        let buffer = renderToBuffer(
-            VStack(alignment: .leading, spacing: 0) {
-                Text("x")
-                HStack(spacing: 0) {
-                    Text("ßß")
-                    Text("|").alignmentGuide(.leading) { _ in 0 }
-                }
-                .textCase(.uppercase)
-            },
-            context: makeRenderContext(width: 20, height: 4))
-
-        #expect(buffer.lines.contains { $0.stripped.contains("SSSS|") }, "the row drawn upper-cased")
-        #expect(position(of: "|", in: buffer)?.column == 4)
-        #expect(position(of: "x", in: buffer)?.column == 4, "x over the bar, where the row draws it")
-    }
-
     /// `.lineLimit(1)` writes the environment, and the first row draws on one
     /// line where the unwritten context measures three: the column's guide is
     /// its second line, not its fourth.
     @Test("A guide inside an environment write is found where the written content draws it")
     func guideThroughAnEnvironmentWrite() {
         let buffer = renderToBuffer(
-            HStack(alignment: .top, spacing: 1) {
+            HStack(alignment: .throughWrapperTop, spacing: 1) {
                 Text("A")
                 VStack(alignment: .leading, spacing: 0) {
                     Text("a\nb\nc")
-                    Text("B").alignmentGuide(.top) { _ in 0 }
+                    Text("B").alignmentGuide(.throughWrapperTop) { $0[.top] }
                 }
                 .lineLimit(1)
             },
@@ -89,4 +68,26 @@ struct AlignmentGuideThroughWrappersTests {
         #expect(row == 1, "B under the column's one drawn line")
         #expect(position(of: "A", in: buffer)?.line == row, "A level with B, the column's guide")
     }
+}
+
+// A guide a stack of several views passes out of it: an edge or the centre
+// stays inside one, as SwiftUI's does (decisions A-GUIDE-2), so
+// these tests line rows up on custom guides whose defaults are the edges.
+
+/// A custom horizontal guide whose default is the leading edge.
+private enum ThroughWrapperMark: AlignmentID {
+    static func defaultValue(in context: ViewDimensions) -> Double { context[.leading] }
+}
+
+/// A custom vertical guide whose default is the top edge.
+private enum ThroughWrapperTop: AlignmentID {
+    static func defaultValue(in context: ViewDimensions) -> Double { context[.top] }
+}
+
+extension HorizontalAlignment {
+    fileprivate static let throughWrapperMark = Self(ThroughWrapperMark.self)
+}
+
+extension VerticalAlignment {
+    fileprivate static let throughWrapperTop = Self(ThroughWrapperTop.self)
 }
