@@ -180,14 +180,17 @@ extension _MatchedGeometryEffectView: Renderable, Layoutable {
         // others can draw from it.
         ask.want(.global)
 
-        let checkpoint = RenderWalkCheckpoint(context: context)
-        let own = TUIkitView.renderToBuffer(content, context: context)
         var member = MatchedMemberDrawing(
-            effect: self, identity: context.identity, marker: ask.id, size: own.cellSize,
-            registry: coordinator.matchedGeometry)
+            effect: self, identity: context.identity, marker: ask.id, registry: coordinator.matchedGeometry)
+        // Where the walk stands before the content draws, for a second drawing
+        // at another size to start from — taken only where the member may be
+        // drawn anywhere but its own place, which a source at rest is not.
+        let checkpoint = member.needsPlacement ? RenderWalkCheckpoint(context: context) : nil
+        let own = TUIkitView.renderToBuffer(content, context: context)
+        member.drew(size: own.cellSize)
 
         var drawn = own
-        if member.needsPlacement, let origin = ask.observation(in: .global)?.origin {
+        if let checkpoint, let origin = ask.observation(in: .global)?.origin {
             let frame = member.frame(at: origin, animations: storage.animations, context: context)
             if frame != member.ownFrame {
                 drawn = placed(
@@ -252,17 +255,18 @@ private struct MatchedMemberDrawing {
 
     init(
         effect: _MatchedGeometryEffectView<some View>, identity: ViewIdentity, marker: HitTestRegion.HandlerID,
-        size: CellSize, registry: MatchedGeometryRegistry
+        registry: MatchedGeometryRegistry
     ) {
         let key = effect.key
         let previous = registry.state(of: identity)
         properties = effect.properties
         anchor = effect.anchor
-        ownFrame = CellRect(x: 0, y: 0, width: size.width, height: size.height)
+        ownFrame = CellRect(x: 0, y: 0, width: 0, height: 0)
         let source = effect.isSource ? nil : registry.source(of: key, excluding: identity)
         self.source = source
         registration = MatchedRegistration(
-            identity: identity, marker: marker, isSource: effect.isSource, anchor: effect.anchor, size: size,
+            identity: identity, marker: marker, isSource: effect.isSource, anchor: effect.anchor,
+            size: CellSize(width: 0, height: 0),
             state: MatchedMemberState(
                 key: key, followed: source?.identity, epoch: previous?.epoch ?? 0,
                 offsets: previous?.offsets ?? .zero))
@@ -282,6 +286,12 @@ private struct MatchedMemberDrawing {
         } else {
             startsFrom = nil
         }
+    }
+
+    /// Notes the member's own size, as its content drew at it.
+    mutating func drew(size: CellSize) {
+        ownFrame = CellRect(x: ownFrame.x, y: ownFrame.y, width: size.width, height: size.height)
+        registration.size = size
     }
 
     /// Whether this frame may draw the member anywhere but its own place.
