@@ -290,9 +290,14 @@ Not shipped:
   modifier, in the walk's context — without what an environment wrapper sets
   for its content (`Rows().disabled(true)`), so a body that reads
   `@Environment` to choose its views would choose them as if the wrapper were
-  not there. By reading the code, `Group { Rows() }.disabled(true)` already
-  evaluates `Rows`'s body that way, since the wrappers hand their content's
-  members on in the context they are given; no test pins it either way.
+  not there. **A defect found on the way, not fixed:** a view of the app's
+  own already has its body evaluated that way when it is inside a `Group`
+  under such a wrapper, since the wrappers hand their content's members on in
+  the context they are given: `HStack { Group { LabelledPair() }
+  .environment(\.memberLabel, "set") }`, whose body is `Text(label);
+  Text("x")`, draws `unset x` (`CompositeMembersTests`, a known issue). What
+  the body made is drawn inside a copy of the wrapper, so only what the body
+  itself read is wrong.
 - **A body that is an `AnyView`** (SwiftUI: several, measured): an `AnyView`'s
   type says nothing of what it erases, and answering "may" for every one
   would evaluate each such view's body in the walk.
@@ -305,7 +310,10 @@ Not shipped:
 
 **The fuller version:** a requirement on the wrappers that hand members on,
 giving the context their content is resolved in (an environment wrapper's
-adjusted context), used wherever they hand members on; then a wrapper over
+adjusted context, which each already computes for its render, some with a
+side effect — an applied value noted in the render cache — that the
+resolution must not repeat), used wherever they hand members on, which fixes
+the defect above; then a wrapper over
 such a view hands on the view's members, each in a copy of the wrapper, and
 the static counts (`staticMemberCount`, the row counts, `mayHandOver`, a
 loop's row shape, the keyed row runs, `List`, `Form`, `Section`) are taught

@@ -144,6 +144,27 @@ private struct Tree: View {
     }
 }
 
+/// A test-local environment value.
+private struct LabelKey: EnvironmentKey {
+    static let defaultValue = "unset"
+}
+
+extension EnvironmentValues {
+    fileprivate var memberLabel: String {
+        get { self[LabelKey.self] }
+        set { self[LabelKey.self] = newValue }
+    }
+}
+
+/// A body of two views, the first reading the environment.
+private struct LabelledPair: View {
+    @Environment(\.memberLabel) private var label
+    var body: some View {
+        Text(label)
+        Text("x")
+    }
+}
+
 /// What a layout was handed.
 @MainActor
 private final class Count {
@@ -281,6 +302,20 @@ struct CompositeMembersTests {
         var appeared = 0
         _ = lines(HStack(spacing: 1) { AppearingPair { appeared += 1 } })
         #expect(appeared == 1)
+    }
+
+    /// A wrapper hands its content's members on in the context it was given
+    /// (`ChildViewProvider` for a `ContentRewrapping`), so a view of the
+    /// app's own among them has its body evaluated without the value the
+    /// wrapper publishes, and draws "unset x" (decisions B-LAYOUT-8). Each
+    /// member is drawn inside a copy of the wrapper, so a view the body made
+    /// reads the value; only what the body itself read is wrong.
+    @Test("A body taken apart under an environment wrapper reads the wrapper's value")
+    func takenApartUnderAnEnvironmentWrapper() {
+        let drawn = lines(HStack(spacing: 1) { Group { LabelledPair() }.environment(\.memberLabel, "set") })
+        withKnownIssue("a wrapper hands members on without its environment (decisions B-LAYOUT-8)") {
+            #expect(drawn.first == "set x", "\(drawn)")
+        }
     }
 
     @Test("A view whose body holds its own type in an arm is asked once whether it hands over children")
