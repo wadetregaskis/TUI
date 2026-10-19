@@ -275,6 +275,6 @@ struct MeshGradientRenderingTests {
         let row = 750_000
         let entry = sampler.entry(column: 3, rowTerm: sampler.rowTerm(row))
         #expect(sampler.ramp[entry].rgbComponents?.red == 191)
-        #expect(sampler.ramp.count <= MeshCells.bandRows, "more than one band was worked out")
+        #expect(sampler.ramp.count <= SampledCells.bandRows, "more than one band was worked out")
     }
 }

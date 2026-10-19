@@ -1,8 +1,9 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  MeshCells.swift
+//  SampledCells.swift
 //
-//  A mesh gradient as a ramp sampler's entries: its colours over the cells of
-//  an extent, worked out a band of rows at a time as they are asked for.
+//  A paint sampled cell by cell — a mesh gradient — as a ramp sampler's
+//  entries: its colours over the cells of an extent, worked out a band of rows
+//  at a time as they are asked for.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -10,7 +11,16 @@
 import TUIkitCore
 import TUIkitStyling
 
-/// A mesh's colours over a ramp's extent, for ``RampSampler``.
+/// A paint whose colour is worked out for each cell on its own — a mesh's
+/// (``MeshRaster``) — rather than read off a ramp.
+protocol CellColourRaster {
+    /// The colours of the cells in `columns` × `rows`, row by row.
+    func colours(columns: Range<Int>, rows: Range<Int>) -> [Color]
+}
+
+extension MeshRaster: CellColourRaster {}
+
+/// A per-cell paint's colours over a ramp's extent, for ``RampSampler``.
 ///
 /// A ramp's sampler knows every colour it can hand out before the first cell is
 /// asked — they are the steps of the ramp — and its callers key their escape
@@ -26,11 +36,11 @@ import TUIkitStyling
 ///
 /// A class because the sampler that holds it is a value its callers copy and
 /// ask from, and what has been worked out has to stay worked out.
-final class MeshCells {
+final class SampledCells {
     /// How many rows are worked out at a time.
     static let bandRows = 8
 
-    private let raster: MeshRaster
+    private let raster: any CellColourRaster
     /// How many columns, from the block's own first, a band covers.
     private let columns: Int
     private let depth: ColorDepth
@@ -44,11 +54,19 @@ final class MeshCells {
 
     /// The cells of `paint` over `extent`, from its origin: column 0 of the
     /// block is the extent's `originX`, and row 0 its `originY`.
-    init(paint: MeshPaint, extent: GradientFrame, depth: ColorDepth) {
-        raster = MeshRaster(
-            paint: paint, offset: SIMD2(Double(extent.originX), Double(extent.originY)),
-            extent: SIMD2(Double(max(1, extent.width)), Double(max(1, extent.height))))
-        columns = max(1, extent.width - extent.originX)
+    convenience init(mesh paint: MeshPaint, extent: GradientFrame, depth: ColorDepth) {
+        self.init(
+            raster: MeshRaster(
+                paint: paint, offset: SIMD2(Double(extent.originX), Double(extent.originY)),
+                extent: SIMD2(Double(max(1, extent.width)), Double(max(1, extent.height)))),
+            columns: max(1, extent.width - extent.originX), depth: depth)
+    }
+
+    /// The cells `raster` colours, `columns` of them a row, quantised for
+    /// `depth`.
+    init(raster: any CellColourRaster, columns: Int, depth: ColorDepth) {
+        self.raster = raster
+        self.columns = max(1, columns)
         self.depth = depth
     }
 

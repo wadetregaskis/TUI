@@ -492,11 +492,11 @@ package struct RampSampler {
     /// has no memory of its neighbours, which is the banding that repair
     /// exists to remove.
     ///
-    /// For a mesh, the colours met so far (``MeshCells``): this GROWS as cells
+    /// For a mesh, the colours met so far (``SampledCells``): this GROWS as cells
     /// are asked about, so read it after ``entry(column:rowTerm:)``, not before
     /// — `ramp[entry(…)]` evaluates `ramp` first.
     var ramp: [Color] {
-        if case .mesh(let cells) = mapping { return cells.colours }
+        if case .sampled(let cells) = mapping { return cells.colours }
         return gradientRamp
     }
 
@@ -537,7 +537,7 @@ package struct RampSampler {
 
         /// No `t` at all: a mesh's cell is looked up, and its row term is
         /// the row itself.
-        case mesh(MeshCells)
+        case sampled(SampledCells)
     }
 
     private let mapping: Mapping
@@ -572,7 +572,7 @@ package struct RampSampler {
         case .mesh(let mesh):
             // `.in(_:)` re-anchors a mesh as it does a ramp, below.
             let extent = mesh.extent.map { GradientFrame(width: $0.width, height: $0.height) } ?? extent
-            self.init(mesh: MeshCells(paint: mesh, extent: extent, depth: depth))
+            self.init(sampled: SampledCells(mesh: mesh, extent: extent, depth: depth))
         case .shadowed(let base, _):
             // What is drawn: the shadows are cast by whatever draws, from what
             // it drew (`FrameBuffer.castingShadows(of:context:owner:)`).
@@ -580,11 +580,11 @@ package struct RampSampler {
         }
     }
 
-    /// A mesh: every cell looked up, so none of the arithmetic below applies.
-    /// It varies both ways — a mesh that happens not to is not worth the walk
-    /// that would find out.
-    private init(mesh cells: MeshCells) {
-        mapping = .mesh(cells)
+    /// A paint sampled cell by cell, a mesh's: every cell looked up, so none of
+    /// the arithmetic below applies. It varies both ways — one that happens not
+    /// to is not worth the walk that would find out.
+    private init(sampled cells: SampledCells) {
+        mapping = .sampled(cells)
         gradientRamp = []
         variesAcrossRow = true
         variesDownColumn = true
@@ -774,7 +774,7 @@ package struct RampSampler {
             } else {
                 along = span > 0 ? turn / span : 0
             }
-        case .mesh(let cells):
+        case .sampled(let cells):
             return cells.entry(column: column, row: Int(rowTerm))
         }
         // Clamped BEFORE the conversion, not after: `Int(_: Double)` traps on
@@ -846,7 +846,7 @@ package struct RampSampler {
     var alphaShape: AlphaShape {
         // A mesh's colours are not all known until every cell has been asked
         // about, and it varies both ways: the general shape, whatever it holds.
-        if case .mesh = mapping { return .perCell }
+        if case .sampled = mapping { return .perCell }
         guard let first = ramp.first else { return .opaque }
         var sharesOneAlpha = true
         var allOpaque = true
