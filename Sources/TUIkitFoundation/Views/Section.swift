@@ -508,6 +508,76 @@ extension TransformEnvironmentModifier: SectionRowExtractor where Content: Secti
     }
 }
 
+/// As ``EnvironmentModifier``'s: an observable written around a section
+/// reaches each of its parts.
+extension ObjectEnvironmentModifier: SectionRowExtractor where Content: SectionRowExtractor {
+    package func extractSectionInfo(context: RenderContext) -> SectionInfo {
+        content.extractSectionInfo(context: objectContext(context))
+    }
+
+    package func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {
+        content.extractSectionContentRows(context: objectContext(context))
+    }
+
+    /// `context` with the object written, as the modifier's own render
+    /// writes it.
+    private func objectContext(_ context: RenderContext) -> RenderContext {
+        var environment = context.environment
+        environment[observable: T.self] = object
+        return context.withEnvironment(environment)
+    }
+}
+
+/// A container value written on a section is its own, and changes nothing
+/// the list draws: the section's parts, a step inside this view's identity —
+/// where drawing it through its `body` puts the section.
+extension _ContainerValueView: SectionRowExtractor where Content: SectionRowExtractor {
+    package func extractSectionInfo(context: RenderContext) -> SectionInfo {
+        content.extractSectionInfo(context: context.withChildIdentity(type: Content.self))
+    }
+
+    package func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {
+        content.extractSectionContentRows(context: context.withChildIdentity(type: Content.self))
+    }
+}
+
+/// A section with a buffer modifier on it — `.padding()`, `.background(_:)`,
+/// `.frame(height:)` — is still a section to its `List`: its header, each of
+/// its rows and its footer a row of the list, the modifier applied to each,
+/// as ``SectionPartsProviding`` applies it to each part in every other
+/// container. Drawn as ONE row before, the section lost its rows' badges,
+/// their tags and with them the selection, and its separators.
+///
+/// Each row's content is laid out in the context the modifier gives its
+/// content (`adjustContext`) and its buffer modified as the row renders, so a
+/// looped row is still built only when it is drawn.
+extension ModifiedView: SectionRowExtractor where Content: SectionRowExtractor {
+    package func extractSectionInfo(context: RenderContext) -> SectionInfo {
+        let info = content.extractSectionInfo(context: modifier.adjustContext(context))
+        return SectionInfo(
+            headerBuffer: info.headerBuffer.map { modified($0, context: context) },
+            footerBuffer: info.footerBuffer.map { modified($0, context: context) },
+            contentBuffer: info.contentBuffer, separator: info.separator)
+    }
+
+    package func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {
+        var extracted: SectionContentRows<RowID> = content.extractSectionContentRows(
+            context: modifier.adjustContext(context))
+        extracted.rows = extracted.rows.map { row in
+            row.mappingBuffer { modified($0, context: context) }
+        }
+        return extracted
+    }
+
+    /// `buffer`, a part of the section drawn in the modifier's content
+    /// context, modified as ``ModifiedView`` modifies what it draws.
+    private func modified(_ buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+        var result = modifier._modify(buffer: buffer, context: context, owner: Self.self)
+        if result.overlays.isEmpty && !buffer.overlays.isEmpty { result.overlays = buffer.overlays }
+        return result
+    }
+}
+
 extension Section: SectionRowExtractor where Parent: View, Content: View, Footer: View {
     package func extractSectionContentRows<RowID: Hashable>(
         context: RenderContext

@@ -452,6 +452,19 @@ extension _TextSuggestionsReader: ChildViewProvider where Content: ChildViewProv
 /// still a section.
 extension _TextSuggestionsReader: SectionPartsProviding where Content: SectionPartsProviding {}
 
+/// A section with suggestions on it is still a section to its `List`: its
+/// parts drawn under the suggestions resolved here, as the reader draws its
+/// content.
+extension _TextSuggestionsReader: SectionRowExtractor where Content: SectionRowExtractor {
+    package func extractSectionInfo(context: RenderContext) -> SectionInfo {
+        publishing(in: context).extractSectionInfo(context: context)
+    }
+
+    package func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {
+        publishing(in: context).extractSectionContentRows(context: context)
+    }
+}
+
 /// Body deliberately empty, as above: a grid row with suggestions on it is
 /// still a row.
 extension _TextSuggestionsReader: GridRowProviding where Content: GridRowProviding {}

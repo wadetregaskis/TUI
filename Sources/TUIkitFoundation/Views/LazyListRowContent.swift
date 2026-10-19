@@ -294,6 +294,26 @@ package final class LazyListRowContent {
         self.init(buffer: buffer, rowBadge: badge.map { ListRowBadge(value: $0) })
     }
 
+    /// A box drawing this row with `transform` applied to the buffer its render
+    /// makes: its identity, badge and type-select text this one's. For a
+    /// modifier written on a `Section`, which reaches each of the section's
+    /// rows. It has no measure of its own — what `transform` does to a size is
+    /// the render's to say — so a question about its size renders it.
+    package func mapped(_ transform: @escaping (FrameBuffer) -> FrameBuffer) -> LazyListRowContent {
+        let mapped: LazyListRowContent
+        if let thunk {
+            mapped = LazyListRowContent(identity: rowIdentity, carriesBadge: carriesBadge) { placement, prominence in
+                let rendered = thunk(placement, prominence)
+                return (transform(rendered.buffer), rendered.badge)
+            }
+        } else {
+            let rendered = cached!
+            mapped = LazyListRowContent(buffer: transform(rendered.buffer), rowBadge: rendered.badge)
+        }
+        mapped.typeSelectProbe = typeSelectProbe
+        return mapped
+    }
+
     /// Forgets the render, so the next read of ``buffer`` renders the row again
     /// — for a row whose cached render the list cleared after this box was
     /// served it. Nothing for a box handed its buffer already rendered.

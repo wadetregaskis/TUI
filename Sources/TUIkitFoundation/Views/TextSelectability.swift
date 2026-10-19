@@ -156,6 +156,23 @@ extension _TextSelectionScope: GridRowProviding where Content: GridRowProviding 
 /// implementation for a ``SingleContentWrapper``.
 extension _TextSelectionScope: SectionPartsProviding where Content: SectionPartsProviding {}
 
+/// A section under a text-selection scope is still a section to its `List`:
+/// its parts drawn with the scope's value written, as the scope draws its
+/// content. The region a scope files is the section's whole rectangle, which
+/// a list's rows have none of; the list files its own rows for the selection
+/// where the value says to.
+extension _TextSelectionScope: SectionRowExtractor where Content: SectionRowExtractor {
+    func extractSectionInfo(context: RenderContext) -> SectionInfo {
+        EnvironmentModifier(content: content, keyPath: \.textSelectionAllowed, value: allowsSelection)
+            .extractSectionInfo(context: context)
+    }
+
+    func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {
+        EnvironmentModifier(content: content, keyPath: \.textSelectionAllowed, value: allowsSelection)
+            .extractSectionContentRows(context: context)
+    }
+}
+
 /// Draws its content unchanged, at its own identity — the region it files is
 /// geometry, nothing drawn — so a removal transition written inside it plays;
 /// see `DrawsContentUnchanged`.

@@ -70,6 +70,21 @@ package struct ListRow<ID: Hashable> {
         self.content = LazyListRowContent(buffer: buffer, rowBadge: badge)
     }
 
+    /// This row with `transform` applied to its buffer as it renders — a
+    /// modifier on its section, which reaches each of the section's rows (see
+    /// `ModifiedView`'s `SectionRowExtractor` conformance). Its id, badge and
+    /// type-select text are this row's.
+    @MainActor
+    package func mappingBuffer(_ transform: @escaping (FrameBuffer) -> FrameBuffer) -> Self {
+        Self(knownID: knownID, askedID: askedID, content: content.mapped(transform))
+    }
+
+    private init(knownID: ID?, askedID: AskedRowID<ID>?, content: LazyListRowContent) {
+        self.knownID = knownID
+        self.askedID = askedID
+        self.content = content
+    }
+
     /// Creates a flattened child's row from its already-rendered buffer, its
     /// id still to be asked.
     init(askedID: AskedRowID<ID>, buffer: FrameBuffer, badge: ListRowBadge?) {
