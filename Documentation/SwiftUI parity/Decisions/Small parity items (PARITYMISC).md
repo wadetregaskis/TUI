@@ -10,6 +10,39 @@ decisions file:*
   would be, and its price.
 - **C-PARITYMISC-n — declined.** With the reason.
 
+## A. Needs your decision
+
+### A-PARITYMISC-1. Core Data's FetchRequest family: build it now, or when an app asks?
+
+*`FetchRequest`, `FetchedResults`, `SectionedFetchRequest`,
+`SectionedFetchResults`, `EnvironmentValues.managedObjectContext`*
+
+Your A18 ruling (2026-10-12, option 1) allows Apple-only API behind
+`#if canImport` where it is honoured on Apple platforms, and says Core Data's
+`FetchRequest` "becomes possible" — not that it be built. Nothing is built;
+the parity map now says the family is permitted and waiting on this, where it
+used to say a policy forbade it.
+
+**Options.**
+
+1. **Build it now.** The property wrappers over `NSFetchRequest` (entity,
+   sort descriptors, predicate, animation, and the `fetchRequest:` forms),
+   the results collections with their settable `nsPredicate`,
+   `sortDescriptors` and section identifier, and `\.managedObjectContext`;
+   redrawn when the context announces changes
+   (`NSManagedObjectContextObjectsDidChange`), tested on an in-memory store.
+   Honoured on macOS, absent on Linux and Windows. *Price:* three to four
+   days, and an Apple-only surface to keep working on every macOS SDK the CI
+   builds.
+2. **When an app asks.** Leave it permitted and unbuilt; the map says why.
+   *Price:* nothing now; Core Data code that ports does not compile until
+   then.
+3. **Decline it after all.** *Price:* nothing; it contradicts nothing in A18,
+   which allowed rather than required it.
+
+**Recommendation:** 2. A Core Data app is a GUI app's data layer; a
+terminal port of one is rare, and the work is days.
+
 ## B. Shipped the safe option
 
 ### B-PARITYMISC-1. A wrong-typed write through an AnyHashable projection is reported and dropped

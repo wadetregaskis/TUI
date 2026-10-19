@@ -1412,6 +1412,11 @@ Note: `#if canImport(CoreData)` could offer it to macOS-only apps. That is a
 *policy* call — no Apple-only public API surface — not a medium limit, and the
 plan already treats it as settled.
 
+*2026-10-18:* the policy was ruled the other way — decisions A18 (owner,
+2026-10-12, option 1) allows Apple-only API behind `canImport` where it is
+honoured — so the family is permitted and unbuilt, its priority the owner's
+call ([A-PARITYMISC-1](<Decisions/Small parity items (PARITYMISC).md#a-paritymisc-1-core-datas-fetchrequest-family-build-it-now-or-when-an-app-asks>)).
+
 ### Windows
 
 **`WindowManagerRole`, `WindowToolbarFullScreenVisibility`.** These are the
