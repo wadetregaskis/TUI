@@ -148,13 +148,9 @@ extension View {
 /// The `BadgeCarrying` shape from `BadgeModifier`: a private protocol the
 /// generic wrapper conforms to, so a container holding its row as `any View`
 /// can ask it. `Picker` has no need of it — it reads each member's
-/// ``ContainerValues/tag(for:)``, which sees through every modifier — but a
-/// `List` row arrives already resolved to one child, and the question
-/// there is only ever about the child's own wrapper.
-///
-/// Which is the limit worth stating: this reads the view's OWN tag, not its
-/// subtree's. `Text("a").tag("a").padding()` has no tag from here, exactly as
-/// a `.badge(_:)` written under a `.padding()` is not the row's badge.
+/// ``ContainerValues/tag(for:)`` — but a `List` row arrives already resolved
+/// to one child, and asks it here, through the same wrappers
+/// (``extractTagValue(from:as:)``).
 @MainActor
 private protocol TagCarrying {
     var carriedTag: (value: AnyHashable, includeOptional: Bool) { get }
@@ -166,15 +162,36 @@ extension _TaggedView: TagCarrying {
     }
 }
 
-/// The selection value `view`'s own `.tag(_:)` names — `nil` when it carries no
+/// The selection value `view`'s `.tag(_:)` names — `nil` when it carries no
 /// tag, or one that cannot be expressed as `Value`.
+///
+/// Read through every single-content wrapper written after the tag, as
+/// ``ContainerValues/tag(for:)`` reads it for a `Picker`: a tag is a container
+/// value, and SwiftUI documents a value as "unaffected by views that aren't
+/// containers", so `Text("a").tag("a").padding()` names "a". The outermost
+/// `.tag(_:)` wins where there are several, as the outermost write of a
+/// container value does. Until 2026-10-18 only an outermost `.tag(_:)` was
+/// read, and such a row fell back on its ordinal or its element's id.
+///
+/// Gated by the static witness ``View/_providesContainerValues``, a
+/// compile-time constant chain: a row type with no tag inside it answers
+/// without a cast, and the walk is a cast per wrapper only for a row that
+/// carries a container value.
 ///
 /// Used by `List` to key a row: a statically-built one, where the fallback is
 /// the row's ordinal, and a `ForEach` row, where it is the element's own `id`.
 @MainActor
 func extractTagValue<V: View, Value: Hashable>(from view: V, as valueType: Value.Type) -> Value? {
-    guard let tag = (view as? any TagCarrying)?.carriedTag else { return nil }
-    return resolveTag(tag.value, includeOptional: tag.includeOptional, as: valueType)
+    guard V._providesContainerValues else { return nil }
+    var current: any View = view
+    while type(of: current)._providesContainerValues {
+        if let tag = (current as? any TagCarrying)?.carriedTag {
+            return resolveTag(tag.value, includeOptional: tag.includeOptional, as: valueType)
+        }
+        guard let wrapper = current as? any SingleContentWrapper else { return nil }
+        current = wrapper.wrappedContent
+    }
+    return nil
 }
 
 /// ``extractTagValue(from:as:)`` for a row a child walk holds, seeing past
@@ -186,9 +203,9 @@ func extractTagValue<V: View, Value: Hashable>(from view: V, as valueType: Value
 /// tag was simply not there. `FlattenedRowIDs` asks the row's loop instead
 /// wherever it can place the row, and asks this for a looped row it could not.
 ///
-/// The memo's TYPE is asked before its content, and only a `.tag(_:)`-outermost
-/// row type is built — ``_ValueMemoWrapping/memoizedContent`` BUILDS the row,
-/// and the memo exists so that most rows are not.
+/// The memo's TYPE is asked before its content, and only a row type carrying
+/// a `.tag(_:)` is built — ``_ValueMemoWrapping/memoizedContent`` BUILDS the
+/// row, and the memo exists so that most rows are not.
 @MainActor
 func extractRowTagValue<Value: Hashable>(from view: any View, as valueType: Value.Type) -> Value? {
     if let tag = extractTagValue(from: view, as: valueType) { return tag }
@@ -204,11 +221,12 @@ func extractRowTagValue<Value: Hashable>(from view: any View, as valueType: Valu
 /// ``viewTypeCarriesBadge(_:)``'s gate, for the same reason it exists: a
 /// `ForEach` row's tag can only be read off the BUILT row, and a `List` asks
 /// for a row's id on every frame, for the whole visible window. A row type
-/// that cannot be carrying a tag — anything but a `.tag(_:)`-outermost row —
-/// skips that build and keeps the key-path read it had.
+/// that cannot be carrying a tag — one with no container value anywhere
+/// inside its wrappers (``View/_providesContainerValues``, a compile-time
+/// constant) — skips that build and keeps the key-path read it had.
 @MainActor
 func viewTypeCarriesTag<V: View>(_ type: V.Type) -> Bool {
-    type is any TagCarrying.Type
+    type._providesContainerValues
 }
 
 /// Resolves a type-erased tag against a container's selection-value type.

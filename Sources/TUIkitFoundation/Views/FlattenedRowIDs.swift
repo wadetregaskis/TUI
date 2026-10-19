@@ -112,7 +112,7 @@
 ///
 /// Nothing is walked, placed or resolved until the first answer is asked for,
 /// and then only the answer asked for is resolved: a looped row's is its
-/// loop's rule, which for a `.tag(_:)`-outermost row means BUILDING the row to
+/// loop's rule, which for a `.tag(_:)`-carrying row means BUILDING the row to
 /// read the tag. The one answer that asks others is an untagged hand-written
 /// row's ordinal, which has to know whether a looped row answers it (see
 /// ``ordinalID(_:)``). The placement is made once, on that first question, and

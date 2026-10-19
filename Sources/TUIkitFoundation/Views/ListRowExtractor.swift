@@ -30,7 +30,7 @@ package struct ListRow<ID: Hashable> {
     ///
     /// A row a `Section` flattened out of mixed content is asked for it here,
     /// through ``askedID``: a looped row's answer is its loop's rule, which
-    /// for a `.tag(_:)`-outermost row BUILDS the row, and the list asks for
+    /// for a `.tag(_:)`-carrying row BUILDS the row, and the list asks for
     /// the ids of the rows it draws and the handler wants, not of every row.
     @MainActor package var id: ID? {
         if let askedID { return askedID.id }

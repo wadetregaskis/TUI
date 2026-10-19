@@ -1562,7 +1562,7 @@ extension ItemListHandler {
     /// per-frame).
     ///
     /// What one row costs: an array read from ``itemIDs``; through ``idAt`` a
-    /// key-path read or a cast, except that a `.tag(_:)`-outermost looped row
+    /// key-path read or a cast, except that a `.tag(_:)`-carrying looped row
     /// is BUILT to read its tag, and among flattened rows an untagged
     /// hand-written row's ordinal is checked against the answers of the
     /// looped rows beside it (`FlattenedRowIDs`), in order up to the first

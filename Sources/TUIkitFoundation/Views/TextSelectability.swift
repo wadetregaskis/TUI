@@ -129,8 +129,7 @@ struct _TextSelectionScope<Content: View>: View, Renderable, Layoutable {
 /// collapsed `List { ForEach(names) { Text($0) }.textSelection(.enabled) }`
 /// into one row, took a stack's spacing from between a `ForEach`'s members,
 /// and hid a `.zIndex`, a container value or a removal transition written
-/// inside it. (A `List` row's `.tag(_:)` is read off the row's outermost view
-/// only, under any modifier — see `TagCarrying`.)
+/// inside it.
 ///
 /// - Note: Each member's scope files its own region, which is the member's
 ///   rectangle: what a selection begun on it keeps to, as SwiftUI keeps a

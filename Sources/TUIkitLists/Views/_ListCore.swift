@@ -73,7 +73,7 @@ private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSepar
     var allContentIfKnown: Bool? { knownAllContent }
 
     /// Resolves a row's type/id on demand — builds no content box (a
-    /// `.tag(_:)`-outermost row's VIEW is built to read the tag), so the
+    /// `.tag(_:)`-carrying row's VIEW is built to read the tag), so the
     /// windowed path resolves ids only for the rows the handler / window
     /// actually touch (the visible window + the focused row), not all N.
     ///
@@ -208,11 +208,11 @@ private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSepar
     /// ``content(at:)`` / ``row(at:)``), but is not always cheap. A known type
     /// is an array read. Windowed, it is the loop's rule asked afresh on
     /// every call: a key-path read or a cast, except that a
-    /// `.tag(_:)`-outermost row is BUILT to read its tag. A row whose type
+    /// `.tag(_:)`-carrying row is BUILT to read its tag. A row whose type
     /// is still to be asked (a flattened child — of a list, or of a
     /// `Section` in one, whose content is several views: a hand-written row,
     /// a looped row beside one, or a row of two `ForEach`es side by side) is
-    /// asked now. For a `.tag(_:)`-outermost looped row that BUILDS the row
+    /// asked now. For a `.tag(_:)`-carrying looped row that BUILDS the row
     /// to read its tag; for an untagged hand-written row beside a loop, under
     /// a selection its ordinal casts into, it asks the looped rows their
     /// answers, in order, until one holds this row's ordinal — every one of
@@ -410,7 +410,7 @@ private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSepar
 /// ``FlattenedRowIDs`` of the container it came from (``AskedRowID``).
 ///
 /// A looped row's selection value is its loop's rule, and for a
-/// `.tag(_:)`-outermost row that rule BUILDS the row to read the tag. The
+/// `.tag(_:)`-carrying row that rule BUILDS the row to read the tag. The
 /// child walk used to ask it of every child as it rendered them, so a frame
 /// that wanted only the rows' widths — the measure a `NavigationSplitView`
 /// takes of its sidebar every frame — built every tagged row once more for
