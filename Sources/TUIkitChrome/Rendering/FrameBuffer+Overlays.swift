@@ -72,6 +72,16 @@ extension FrameBuffer {
                 if lhs.layer.zIndex != rhs.layer.zIndex {
                     return lhs.layer.zIndex < rhs.layer.zIndex
                 }
+                // Content past its region is its view's own cells at its place
+                // in the stacking order (`OverlayLayer.isOverflow`); a displaced
+                // drawing floats over every view, after it as well as before it
+                // (Deliberate deviations L6). So at one level and z index the
+                // overflow goes first, whatever order the tree emitted them in:
+                // a removal playing past its stack, later in the tree, covered a
+                // matched view carried over it.
+                if lhs.layer.isOverflow != rhs.layer.isOverflow {
+                    return lhs.layer.isOverflow
+                }
                 return lhs.order < rhs.order
             }
             let layer = queue.removeFirst().layer
