@@ -5658,6 +5658,19 @@ never as a key, including directly behind an Escape. The run loop
 `.inactive`. Nothing is detected: a terminal without the mode ignores the
 request, sends nothing, and the phase stays `.active`.
 
+**Focus out lets go of the pointer** (since 2026-10-18,
+`MouseEventDispatcher.pointerLeft()`): the control and the hover observers
+under it are exited, the pointer rests nowhere known, and its help goes, held
+through the status bar's reflow or not. No mouse mode reports the pointer
+leaving the window (xterm's protocols have no leave report), and a terminal
+reports no motion once the pointer is outside it, so until then a control
+stayed lit and a help stayed in the bar for as long as the pointer was away.
+Focus out is the one report there is that the pointer has gone elsewhere; a
+pointer that leaves the window without the window losing the focus is still
+not heard. Nothing is entered again until the pointer next reports motion;
+whether a host reports motion over an unfocused window is the table's
+"Motion while unfocused" column, unmeasured.
+
 **No startup loss window.** `enableRawMode` runs before the identity query,
 Ghostty's DECRQM and the graphics query, which read stdin. A report a terminal
 sends the instant reporting is enabled lands in whichever of them is reading,

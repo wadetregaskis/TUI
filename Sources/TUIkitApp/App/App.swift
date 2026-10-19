@@ -903,10 +903,15 @@ extension AppRunner {
     ///   of the colour plan — see ``TerminalColorRequester``). Only when the
     ///   phase actually moved, so the report a terminal may send as reporting is
     ///   enabled costs nothing.
+    /// - Focus out lets go of the pointer, whatever the phase: its hover is
+    ///   exited and its help goes (``MouseEventDispatcher/pointerLeft()``).
     /// - Otherwise it asks for a frame, which draws the new look. After a focus-out
     ///   frame nothing reads the cursor clock or leaves runs on it, so the
     ///   timer stops, or keeps running only for content animations.
     func terminalFocusChanged(isFocused: Bool, cursorTimer: CursorTimer, renderer: RenderLoop<A>) {
+        // The pointer goes with the focus: nothing reports it while it is in
+        // another window (`MouseEventDispatcher.pointerLeft()`).
+        if !isFocused, tuiContext.mouseEventDispatcher.pointerLeft() { appState.setNeedsRender() }
         guard tuiContext.scenePhase != .background else { return }
         let phase: ScenePhase = isFocused ? .active : .inactive
         guard tuiContext.scenePhase != phase else { return }

@@ -187,6 +187,14 @@ package final class HeadlessApp<A: App> {
         }
     }
 
+    /// Reports the terminal's window gaining or losing the focus, as a focus
+    /// report (mode 1004) does: losing it lets go of the pointer, as the app's
+    /// event funnel does (``MouseEventDispatcher/pointerLeft()``). The scene's
+    /// phase is the app's run loop's, which a script does not run.
+    package func reportFocus(_ isFocused: Bool) {
+        if !isFocused { tuiContext.mouseEventDispatcher.pointerLeft() }
+    }
+
     /// Changes the terminal's size, as `SIGWINCH` reports it: the next frame
     /// is laid out at the new size and rewrites every line.
     package func resize(width: Int, height: Int) {

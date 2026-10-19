@@ -75,6 +75,53 @@ extension MouseEventDispatcher {
         let handler: (MouseEvent) -> Bool
     }
 
+    /// Lets go of the pointer: the terminal says it has left the window, as
+    /// far as a terminal says so at all — the window has lost the focus (a
+    /// focus-out report, mode 1004). Every lane is exited, as a move off the
+    /// screen would exit it, the pointer rests nowhere known
+    /// (``restingPosition``), and the help it was showing goes, held or not
+    /// (`TooltipState.pointerLeft()`).
+    ///
+    /// A terminal reports no motion once the pointer is outside its window,
+    /// and no mouse mode reports the pointer leaving it (`Terminal
+    /// compatibility survey.md`, "Focus reporting"): a control stayed lit and
+    /// a help stayed in the bar for as long as the pointer was away, and a
+    /// reshape went on entering what it slid under the cell the pointer had
+    /// left. A pointer that leaves without the focus going is still not
+    /// heard. Nothing is entered again until the pointer next reports motion.
+    ///
+    /// - Returns: Whether anything was exited, or a help went: the frame that
+    ///   draws it is owed.
+    @discardableResult
+    package func pointerLeft() -> Bool {
+        let position = restingPosition ?? lastMotionPosition ?? (x: 0, y: 0)
+        restingPosition = nil
+        lastMotionPosition = nil
+        var fired = exitLane(&hover, at: position)
+        fired = exitLane(&observedHover, at: position) || fired
+        if tooltipState?.pointerLeft() == true { fired = true }
+        return fired
+    }
+
+    /// Exits `slot`'s hovered region, its handler told the pointer at
+    /// `position` has left it, and leaves the lane on nothing.
+    ///
+    /// - Returns: Whether a handler was told.
+    private func exitLane(_ slot: inout HoverSlot, at position: (x: Int, y: Int)) -> Bool {
+        defer { slot = HoverSlot() }
+        let target: PendingHoverExit? =
+            slot.pendingExit
+            ?? slot.handlerID.flatMap { id in
+                slot.region.flatMap { region in handlers[id].map { PendingHoverExit(region: region, handler: $0) } }
+            }
+        guard let target else { return false }
+        _ = target.handler(
+            MouseEvent(
+                button: .none, phase: .exited,
+                x: position.x - target.region.localOriginX, y: position.y - target.region.localOriginY))
+        return true
+    }
+
     /// Re-resolves the hover after the tree reshapes under a resting cursor.
     ///
     /// A reshape can slide a different control under a cursor that has not

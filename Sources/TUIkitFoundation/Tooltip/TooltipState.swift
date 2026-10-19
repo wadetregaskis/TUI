@@ -354,6 +354,20 @@ public final class TooltipState: @unchecked Sendable {
         return true
     }
 
+    /// Drops the pointer's candidate, held through the bar's reflow or not:
+    /// the pointer has left the terminal's window
+    /// (`MouseEventDispatcher.pointerLeft()`). The focused view's tooltip is
+    /// not the pointer's and stays.
+    ///
+    /// - Returns: Whether one went: the frame that takes it away is owed.
+    package func pointerLeft() -> Bool {
+        let had = held ?? hovered != nil
+        held = nil
+        hovered = nil
+        pointerSilenced = false
+        return had
+    }
+
     /// Sends the pointer's tooltip away until the pointer moves to another
     /// cell (``notePointerMoved()``), as a key press does on a Mac.
     ///
