@@ -100,14 +100,16 @@ struct SynchronizedOutputTests {
     #if !canImport(WASILibc)
     @Test("The longest debts fit the buffers a signal handler writes from")
     func debtFits() {
-        // Ghostty's: it is handed Shift back, and its pointer's shape put back,
-        // on top of everything else.
+        // Ghostty's: it is handed Shift back, and its pointer's shape put back
+        // once one has been sent, on top of everything else.
         let (terminal, _) = ScriptedTerminalOutput.terminal(environment: ["TERM_PROGRAM": "ghostty"])
         terminal.enterAlternateScreen()
         terminal.enableRawMode()
+        terminal.showPointerShape(.link)
         terminal.keyboardFlagsPushed = true
         terminal.pinnedGraphemeClustering = true
         terminal.oweHostState(TerminalHostState.restoreTitle)
+        #expect(terminal.signalDebt.contains("\u{1B}]22;"), "the pointer's reset is not in the debt posed")
         #expect(terminal.signalDebt.utf8.count <= FatalSignalTerminalRestore.capacity)
         #expect(terminal.quitDebt.utf8.count <= FatalSignalTerminalRestore.capacity)
 

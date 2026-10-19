@@ -214,10 +214,10 @@ extension PointerShapeHost {
     }
 
     /// The sequence that puts the pointer back as the app leaves — on a quit,
-    /// a suspend, and in the debt a signal pays: the empty name, every host's
-    /// reset. Written before the mouse modes go off, because on Ghostty
-    /// their going off is itself the reset, to the I-beam a shell has, and a
-    /// name after them would undo it.
+    /// a suspend, and in the debt a signal pays, once a shape has been sent:
+    /// the empty name, every host's reset. Written before the mouse modes go
+    /// off, because on Ghostty their going off is itself the reset, to the
+    /// I-beam a shell has, and a name after them would undo it.
     package static let reset = sequence(naming: "")
 }
 

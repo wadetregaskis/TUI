@@ -5739,9 +5739,11 @@ style on the view in front there, or the control's own — and writes
 `ESC ] 22 ; name ESC \` when it differs from what it last sent
 (`Terminal.showPointerShape`, `TerminalHostState`), in the host's own names
 (`PointerShapeHost`). Motion reporting (mode 1003) is asked for only while a
-style is on screen. The teardown — a quit and a Ctrl-Z alike — writes the
-empty name, every host's reset, BEFORE the mouse modes go off, and the debt a
-fatal signal pays begins with the same (`Terminal.inputModesOwed`). After any
+style is on screen. Once a shape has been sent, the teardown — a quit and a
+Ctrl-Z alike — writes the empty name, every host's reset, BEFORE the mouse
+modes go off, and the debt a fatal signal pays begins with the same
+(`Terminal.inputModesOwed`); an app that has sent none writes no OSC 22 as it
+leaves, since no host's reset has been read off the card yet. After any
 mouse mode change the shape is written again, because Ghostty resets it on
 one. A host not in the table below is sent nothing and owed nothing.
 `TUIKIT_POINTER_SHAPES=0` turns it off, `1` turns it on for a host not in the

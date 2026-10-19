@@ -134,10 +134,27 @@ answers it: turning any mouse mode off gives the I-beam a shell has, and
 newer releases read an empty name as a reset. So the teardown — a quit and a
 Ctrl-Z alike — writes the empty name, every host's documented reset, BEFORE the
 mouse modes go off (a name after them would undo Ghostty's), and the debt a
-fatal signal pays begins with the same. It is owed from the start, since an
-empty name is harmless on every host here when nothing was set. After any
-mouse mode change the shape is written again, as Ghostty resets it on one;
-after a resume, the first motion sends it afresh.
+fatal signal pays begins with the same. After any mouse mode change the
+shape is written again, as Ghostty resets it on one; after a resume, the
+first motion sends it afresh.
+
+The reset is owed only once a shape has been sent, and the debt is armed with
+it before that first shape goes out; paid, it is owed again only by the next.
+An app that never sets a shape writes no OSC 22 at all, as it leaves or to a
+signal. **A departure from the study**, whose rule (§4) keeps an OSC 22 reset
+out of the debt until the probe has shown it gives the shell its own pointer
+back; no host's has been read yet (`pointer_shape_card.py` awaits the
+owner). The lane first owed it from the start, to every detected host, on the
+documentation and the sources alone; the review held that to the rule. Where
+the app has set a shape, though, the reset is still sent: the pointer left in
+the app's last shape is the defect the study's reset exists to prevent, and an
+empty name read as "the arrow" rather than "the shell's own" (xterm's handling
+is the least clear) is no worse than that. Once a host's reset is read off the
+card, the rule is met there.
+
+**The fuller version.** Each host's reset read off the card, and the debt
+holding it from the start where it reads clean (with the card's reading, an
+hour).
 
 The study's "one mechanism for state outside the grid" (§1.2) is built here
 as `TerminalHostState`, one `TerminalHostSetting` per value (wanted, last

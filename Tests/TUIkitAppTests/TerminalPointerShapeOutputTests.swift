@@ -70,6 +70,24 @@ struct TerminalPointerShapeOutputTests {
         #expect(output.bytes.isEmpty, "the shell has the terminal now")
     }
 
+    @Test("An app that has sent no shape is sent no reset as it leaves, and owes a signal none")
+    func noResetUntilAShapeIsSent() {
+        let (terminal, output) = ScriptedTerminalOutput.terminal(environment: Self.ghostty)
+        terminal.enableRawMode()
+        terminal.applyMouseSupport(.full)
+        terminal.showPointerShape(nil)
+        #expect(!terminal.signalDebt.contains("\u{1B}]22;"))
+        output.clear()
+        terminal.disableRawMode()
+        #expect(!output.bytes.contains("\u{1B}]22;"), "a quit or a suspend wrote a reset nothing asked for")
+        terminal.enableRawMode()
+        terminal.showPointerShape(.link)
+        #expect(terminal.signalDebt.contains(PointerShapeHost.reset + Terminal.inputModesOff))
+        terminal.disableRawMode()
+        terminal.enableRawMode()
+        #expect(!terminal.signalDebt.contains("\u{1B}]22;"), "the suspend's reset paid it; nothing is owed until a shape is sent")
+    }
+
     @Test("After a suspend's reset, the resume sends the shape again")
     func resentOnResume() {
         let (terminal, output) = ScriptedTerminalOutput.terminal(environment: Self.ghostty)

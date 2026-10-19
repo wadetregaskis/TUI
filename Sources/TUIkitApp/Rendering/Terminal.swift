@@ -900,8 +900,8 @@ extension Terminal {
     /// nothing.
     ///
     /// Headed by what the app set outside the grid put back
-    /// (``TerminalHostState/resets``): the pointer's shape, where it sets
-    /// one, by the empty name every host reads as a reset. Before the mouse
+    /// (``TerminalHostState/resets``): the pointer's shape, once one has been
+    /// sent, by the empty name every host reads as a reset. Before the mouse
     /// modes go off, because on Ghostty their going off is itself the reset,
     /// to the I-beam a shell has, and nothing may follow it that sets a shape.
     var inputModesOwed: String {

@@ -143,13 +143,23 @@ struct TerminalHostSetting: Equatable {
     let unset: String
 
     /// The bytes that put back the terminal's own value as the app leaves —
-    /// a quit, a suspend, the debt a signal pays. Harmless when nothing was
-    /// set: they are owed from the start.
+    /// a quit, a suspend, the debt a signal pays — once they are owed
+    /// (``isOwed``).
     let reset: String
 
     /// What the terminal was last sent: `.some(nil)` its own value, `nil`
     /// unknown, which the next ``update(to:)`` settles by sending.
     private var sent: String?? = .some(nil)
+
+    /// Whether anything has been sent since the last ``reset`` went out, so
+    /// that one is owed.
+    ///
+    /// Not from the start: the Ghostty study's rule is that a reset joins
+    /// the debt a signal pays only once it is measured harmless where nothing
+    /// was set, and no host's is yet (`pointer_shape_card.py`). An app that
+    /// never sets the value sends the terminal nothing, as it leaves either;
+    /// one that set it owes the reset, which beats leaving its value behind.
+    private(set) var isOwed = false
 
     init(unset: String, reset: String) {
         self.unset = unset
@@ -161,6 +171,7 @@ struct TerminalHostSetting: Equatable {
     mutating func update(to wanted: String?) -> String? {
         if case .some(let last) = sent, last == wanted { return nil }
         sent = .some(wanted)
+        isOwed = true
         return wanted ?? unset
     }
 
@@ -170,9 +181,11 @@ struct TerminalHostSetting: Equatable {
     }
 
     /// Takes note that ``reset`` went out: the terminal shows its own again,
-    /// so a resume sends the wanted value afresh.
+    /// so a resume sends the wanted value afresh, and nothing is owed until
+    /// it does.
     mutating func noteReset() {
         sent = .some(nil)
+        isOwed = false
     }
 }
 
@@ -186,9 +199,11 @@ struct TerminalHostSetting: Equatable {
 /// Ghostty change the pointer's shape themselves.
 extension TerminalHostState {
     /// What every value owes as the app leaves, in one string: written before
-    /// the input modes go off (`Terminal.inputModesOwed`).
+    /// the input modes go off (`Terminal.inputModesOwed`). Empty until a
+    /// value has been sent (``TerminalHostSetting/isOwed``).
     var resets: String {
-        pointerShape?.reset ?? ""
+        guard let pointerShape, pointerShape.isOwed else { return "" }
+        return pointerShape.reset
     }
 
     /// Takes note that ``resets`` went out.
