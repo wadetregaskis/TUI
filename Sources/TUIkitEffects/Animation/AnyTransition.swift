@@ -123,22 +123,35 @@ public struct AnyTransition: Sendable, Equatable {
     /// See ``Transition``.
     let custom: _AnyTransitionBox?
 
-    /// An animation this transition insists on, overriding the ambient one.
-    var explicitAnimation: Animation?
+    /// The animation the view arrives with where this transition names one,
+    /// overriding the change's; `nil` where it arrives under the change's.
+    ///
+    /// One for each half, as SwiftUI keeps them (measured,
+    /// `Tools/SwiftUIProbes/Transitions/tr1.out` T4): `asymmetric(insertion:
+    /// .opacity.animation(.linear(duration: 2)), removal:
+    /// .opacity.animation(.linear(duration: 8)))` arrives in two seconds and
+    /// leaves in eight, whatever the change's animation.
+    var insertionAnimation: Animation?
 
-    init(insertion: Effect, removal: Effect, explicitAnimation: Animation? = nil) {
+    /// The animation the view leaves with where this transition names one;
+    /// `nil` where it leaves under the change's. See ``insertionAnimation``.
+    var removalAnimation: Animation?
+
+    init(insertion: Effect, removal: Effect, insertionAnimation: Animation? = nil, removalAnimation: Animation? = nil) {
         self.insertion = insertion
         self.removal = removal
         self.custom = nil
-        self.explicitAnimation = explicitAnimation
+        self.insertionAnimation = insertionAnimation
+        self.removalAnimation = removalAnimation
     }
 
     /// A transition drawn through a ``Transition``'s body.
-    init(custom: _AnyTransitionBox, explicitAnimation: Animation? = nil) {
+    init(custom: _AnyTransitionBox, insertionAnimation: Animation? = nil, removalAnimation: Animation? = nil) {
         self.insertion = .identity
         self.removal = .identity
         self.custom = custom
-        self.explicitAnimation = explicitAnimation
+        self.insertionAnimation = insertionAnimation
+        self.removalAnimation = removalAnimation
     }
 
     private init(_ effect: Effect) {
@@ -158,7 +171,9 @@ public struct AnyTransition: Sendable, Equatable {
     /// reduces motion and it has some — a fade, with its own animation.
     func reducingMotion(in environment: EnvironmentValues) -> Self {
         guard environment.accessibilityReduceMotion, hasMotion else { return self }
-        return Self(insertion: .opacity, removal: .opacity, explicitAnimation: explicitAnimation)
+        return Self(
+            insertion: .opacity, removal: .opacity, insertionAnimation: insertionAnimation,
+            removalAnimation: removalAnimation)
     }
 
     /// Create an instance that type-erases `transition`.
@@ -232,39 +247,56 @@ extension AnyTransition {
     }
 
     /// A transition that arrives one way and leaves another.
+    ///
+    /// Each half keeps the animation it was given: `insertion`'s arrives with
+    /// its own, and `removal`'s leaves with its own, as SwiftUI's do
+    /// (measured, `Tools/SwiftUIProbes/Transitions/tr1.out` T4).
     public static func asymmetric(
         insertion: AnyTransition, removal: AnyTransition
     ) -> AnyTransition {
-        let animation = insertion.explicitAnimation ?? removal.explicitAnimation
         guard insertion.custom == nil, removal.custom == nil else {
             return AnyTransition(
                 custom: _AnyTransitionBox(.asymmetric, insertion, removal),
-                explicitAnimation: animation)
+                insertionAnimation: insertion.insertionAnimation, removalAnimation: removal.removalAnimation)
         }
         return AnyTransition(
             insertion: insertion.insertion, removal: removal.removal,
-            explicitAnimation: animation)
+            insertionAnimation: insertion.insertionAnimation, removalAnimation: removal.removalAnimation)
     }
 
     /// This transition and another, applied together.
+    ///
+    /// The pair plays as one effect, so each half runs under one animation:
+    /// this transition's own, or else `other`'s. SwiftUI runs each part under
+    /// its own (`Tools/SwiftUIProbes/Transitions/tr2.out` T12) — a deviation only where
+    /// both parts name different animations.
     public func combined(with other: AnyTransition) -> AnyTransition {
-        let animation = explicitAnimation ?? other.explicitAnimation
+        let insertionAnimation = insertionAnimation ?? other.insertionAnimation
+        let removalAnimation = removalAnimation ?? other.removalAnimation
         guard custom == nil, other.custom == nil else {
             return AnyTransition(
                 custom: _AnyTransitionBox(.combined, self, other),
-                explicitAnimation: animation)
+                insertionAnimation: insertionAnimation, removalAnimation: removalAnimation)
         }
         return AnyTransition(
             insertion: .combined(insertion, other.insertion),
             removal: .combined(removal, other.removal),
-            explicitAnimation: animation)
+            insertionAnimation: insertionAnimation, removalAnimation: removalAnimation)
     }
 
     /// This transition, run with a particular animation whatever the change
     /// that caused it was made under.
+    ///
+    /// A half that already has an animation of its own keeps it, as in
+    /// SwiftUI, where the animation nearest the view wins (measured,
+    /// `Tools/SwiftUIProbes/Transitions/tr2.out` T9, T10):
+    /// `.opacity.animation(.linear(duration: 2)).animation(.linear(duration: 8))`
+    /// runs in two seconds, and an `asymmetric` whose insertion has one keeps
+    /// it while its removal takes `animation`.
     public func animation(_ animation: Animation?) -> AnyTransition {
         var animated = self
-        animated.explicitAnimation = animation
+        animated.insertionAnimation = insertionAnimation ?? animation
+        animated.removalAnimation = removalAnimation ?? animation
         return animated
     }
 }

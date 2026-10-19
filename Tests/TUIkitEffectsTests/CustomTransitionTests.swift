@@ -152,7 +152,8 @@ struct CustomTransitionTests {
             AnyTransition(AsymmetricTransition(insertion: OpacityTransition(), removal: SlideTransition()))
                 == .asymmetric(insertion: .opacity, removal: .slide))
         let animated = AnyTransition(OpacityTransition().animation(.linear(duration: 1)))
-        #expect(animated.explicitAnimation == .linear(duration: 1))
+        #expect(animated.insertionAnimation == .linear(duration: 1))
+        #expect(animated.removalAnimation == .linear(duration: 1))
         #expect(AnyTransition(Indent()).custom != nil, "a body of the app's own is drawn through it")
     }
 

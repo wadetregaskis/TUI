@@ -1235,16 +1235,20 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 - **SwiftUI:** a transition interpolates its modifiers; `.scale` shrinks the
   view; a removed view's content stays live; a transition may change the
-  view's size and re-lay its siblings (Apple's documentation, B52).
+  view's size and re-lay its siblings (Apple's documentation, B52); each part
+  of a `combined` transition runs under its own animation (measured,
+  [`Tools/SwiftUIProbes/Transitions/tr2.out`](<../../Tools/SwiftUIProbes/Transitions/tr2.out>) T12).
 - **TUIkit:** `.move`, `.offset` and `.slide` move in whole cells; `.scale`
   uncovers the view from its anchor a cell at a time, and a scale above 1 draws
   the view whole. A custom `Transition`'s body is drawn by rendering it at its
   end phase and at `.identity` and interpolating the values between; while a
   view leaves, its content is the picture it last drew, and the view keeps its
   `.identity` size throughout. The views around it glide as SwiftUI's do
-  where A6 says.
+  where A6 says. A `combined` transition plays as one effect under one
+  animation for each half: the first part's own, or else the second's.
 - **Why:** a frame is rebuilt from the tree, and a removed view no longer
-  exists in it.
+  exists in it; a transition's parts share one presence, which a part with an
+  animation of its own would split.
 - **Decided:** [§2.9](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>), [B52](<Decisions/SwiftUI API completion decisions.md#b52-a-custom-transitions-body-is-drawn-at-each-frames-point-between-its-phases>), [B54](<Decisions/SwiftUI API completion decisions.md#b54-a-scale-transition-uncovers-from-its-anchor-and-a-scale-above-1-draws-the-view-whole>).
   **Medium.**
 

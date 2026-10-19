@@ -199,10 +199,7 @@ extension _TransitionView: Renderable {
         let buffer = TUIkitView.renderToBuffer(content, context: context)
         guard !context.isMeasuring, let storage = context.stateStorage else { return buffer }
 
-        let animation =
-            transition.explicitAnimation
-            ?? (context.environment.canAnimate
-                ? context.environment.transaction.effectiveAnimation : nil)
+        let animation = Self.insertionAnimation(of: transition, context: context)
 
         // The departure re-declaration and the parting picture are per-frame
         // work no memo may skip: a cached buffer would starve the store of the
@@ -236,7 +233,7 @@ extension _TransitionView: Renderable {
         storage.departures.present(
             DepartureStore.Departure(
                 viewType: Self.self, width: buffer.width, height: buffer.lines.count,
-                explicitAnimation: transition.explicitAnimation,
+                explicitAnimation: transition.removalAnimation,
                 render: { departurePhase in
                     removal.apply(to: buffer, phase: departurePhase * arrival, context: context)
                         .slotBuffer()
@@ -250,6 +247,17 @@ extension _TransitionView: Renderable {
         // unanimated arrival, so the fast path still catches every idle frame.
         guard phase != 1 else { return buffer }
         return transition.insertion.apply(to: buffer, phase: phase, context: context).slotBuffer()
+    }
+}
+
+extension _TransitionView {
+    /// The animation the view arrives with: the transition's own for its
+    /// insertion, or else the change's, where the frame can animate. How it
+    /// leaves is decided on the frame it goes, from the transition's own for
+    /// its removal (``AnyTransition/removalAnimation``) or that frame's change.
+    static func insertionAnimation(of transition: AnyTransition, context: RenderContext) -> Animation? {
+        transition.insertionAnimation
+            ?? (context.environment.canAnimate ? context.environment.transaction.effectiveAnimation : nil)
     }
 }
 
@@ -287,10 +295,7 @@ extension _TransitionView {
             return custom.render(phase: .identity, content: live, context: context)
         }
 
-        let animation =
-            transition.explicitAnimation
-            ?? (context.environment.canAnimate
-                ? context.environment.transaction.effectiveAnimation : nil)
+        let animation = Self.insertionAnimation(of: transition, context: context)
         // Per-frame work no memo may skip, for the reasons the effects path
         // gives.
         context.environment.volatileReadTracker?.recordRenderSideEffect()
@@ -322,7 +327,7 @@ extension _TransitionView {
         storage.departures.present(
             DepartureStore.Departure(
                 viewType: Self.self, width: width, height: height,
-                explicitAnimation: transition.explicitAnimation,
+                explicitAnimation: transition.removalAnimation,
                 render: { departurePhase in
                     custom.render(
                         presence: departurePhase * arrival, from: .didDisappear,

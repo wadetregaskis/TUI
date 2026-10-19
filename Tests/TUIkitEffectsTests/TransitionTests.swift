@@ -491,4 +491,45 @@ struct TransitionTests {
         #expect(transition.insertion == AnyTransition.opacity.insertion)
         #expect(transition.removal == AnyTransition.scale.removal)
     }
+
+    /// SwiftUI keeps each half's animation (measured,
+    /// `Tools/SwiftUIProbes/Transitions/tr1.out` T4: two seconds in and eight
+    /// out under a change of four). One animation for both, the insertion's,
+    /// had this removal over in a second. The row stays above the view, so
+    /// nothing glides over it.
+    @Test("Each half of an asymmetric transition keeps its own animation")
+    func asymmetricHalvesKeepTheirAnimations() {
+        let halves = AnyTransition.asymmetric(
+            insertion: .move(edge: .leading).animation(.linear(duration: 1)),
+            removal: .move(edge: .trailing).animation(.linear(duration: 4)))
+        let screen = RemovalScreen(animation: .linear(duration: 2)) { showing in
+            VStack(alignment: .leading, spacing: 0) {
+                Text("----")
+                if showing { Text("XXXX").transition(halves) }
+            }
+        }
+        _ = screen.draw(false, atMillis: 0)
+        _ = screen.draw(true, atMillis: 0)
+        #expect(screen.draw(true, atMillis: 500) == ["----", "XX  "], "half-way in after half its own second")
+        #expect(screen.draw(true, atMillis: 1000) == ["----", "XXXX"])
+        _ = screen.draw(false, atMillis: 1000)
+        #expect(screen.draw(false, atMillis: 2000) == ["----", " XXX"], "a quarter out after one of its four")
+        #expect(screen.draw(false, atMillis: 4000) == ["----", "   X"])
+        #expect(screen.draw(false, atMillis: 5100) == ["----"])
+    }
+
+    /// The animation nearest the view wins, as in SwiftUI (measured,
+    /// `Tools/SwiftUIProbes/Transitions/tr2.out` T9, T10).
+    @Test("An animation written outside a transition leaves the halves that have their own alone")
+    func innerAnimationWins() {
+        let twice = AnyTransition.opacity.animation(.linear(duration: 2)).animation(.linear(duration: 8))
+        #expect(twice.insertionAnimation == .linear(duration: 2))
+        #expect(twice.removalAnimation == .linear(duration: 2))
+        let outer = AnyTransition.asymmetric(insertion: .opacity.animation(.linear(duration: 2)), removal: .opacity)
+            .animation(.linear(duration: 8))
+        #expect(outer.insertionAnimation == .linear(duration: 2))
+        #expect(outer.removalAnimation == .linear(duration: 8))
+        let combined = AnyTransition.opacity.combined(with: AnyTransition.scale.animation(.linear(duration: 3)))
+        #expect(combined.insertionAnimation == .linear(duration: 3), "a part with none takes the other's")
+    }
 }

@@ -454,4 +454,6 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-19. Samples move by a point or two, and an
   opacity by a hundredth, with the frame's timing.
 - **Was:** `TRANSITIONS2/probe/`.
-- **Cited by:** the commits that follow, as they cite it.
+- **Cited by:** `Sources/TUIkitEffects/Animation/AnyTransition.swift`;
+  `Tests/TUIkitEffectsTests/TransitionTests.swift`; `Documentation/SwiftUI parity/Deliberate deviations from
+  SwiftUI.md` (A3), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Animation row).

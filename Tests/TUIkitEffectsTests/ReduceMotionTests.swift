@@ -118,7 +118,8 @@ struct ReduceMotionTests {
         let slow = AnyTransition.move(edge: .top).animation(.linear(duration: 3))
         let reduced = slow.reducingMotion(in: environment)
         #expect(!reduced.hasMotion)
-        #expect(reduced.explicitAnimation == slow.explicitAnimation)
+        #expect(reduced.insertionAnimation == slow.insertionAnimation)
+        #expect(reduced.removalAnimation == slow.removalAnimation)
     }
 
     @Test("The user asks with TUIKIT_REDUCE_MOTION=1, and nothing else asks")
