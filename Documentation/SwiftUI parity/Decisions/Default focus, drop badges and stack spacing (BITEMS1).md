@@ -205,3 +205,34 @@ children's merged preference (half a day, and it puts a row holding a nested
 row of layouts on the per-pair path); app views' bodies, with B19; a
 `BufferModifier` requirement naming the edges it draws beside; and a lazy row
 asking only the children its walk reaches.
+
+**Shipped 2026-10-18 (lane LAYOUT): app views' bodies and nested stacks.**
+Measured first (`Tools/SwiftUIProbes/Stack spacing per pair/nested.out`): a
+nested row's leading edge is its first child's and its trailing edge its last
+child's (`HStack { HStack { tight; box }; box }` keeps the default gap after
+the inner box, `HStack { HStack { box; tight }; box }` none); a column's
+leading and trailing edges, and a `ZStack`'s every edge, are every child's
+merged — but a spacer's "none" only along the stack's own axis (`HStack {
+VStack { box; Spacer() }; box }` keeps the gap, `HStack { HStack { box;
+Spacer() }; box }` does not); a lazy stack states nothing (the default gap);
+and a view of the app's own states its body's through a stack, an `if`/`else`
+and a padding.
+
+- `View._statesSpacingPreference` defaults to the body's answer, asked once
+  per type through `BodyWitnessMemo` as B19's guide witness is (so a recursive
+  body ends, and a body that holds no layout states none, where the old
+  default, `_handsOverChildren`, said "may" for every body of several views).
+- `statedSpacing(of:context:)` looks into the body of a view of the app's own
+  (evaluated as the walk evaluates it, at its identity), and through an
+  `if`/`else` or an `if` to its live view.
+- The eager `HStack`, `VStack` and `ZStack` state the edges their children
+  form (`edgesFormed(by:along:context:)`), their witnesses their content's;
+  `LazyVStack` and `LazyHStack` state none.
+
+Still the default here, where SwiftUI's is not: an `AnyView` (the A/B on
+`anyview` and `kitchensink` comes first, and was not run in this lane: no
+benchmarks while other lanes build), an app's own `BufferModifier` (no
+requirement yet names its edges), and a lazy row still asks every child, not
+only those its window reaches. **A/B owed:** a row whose children's types hold
+a layout now asks each child each walk, through its body where it is a view of
+the app's own: `deep`, `kitchensink`, `table`, `customlayout`.

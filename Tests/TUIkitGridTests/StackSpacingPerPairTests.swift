@@ -304,7 +304,10 @@ struct StackSpacingPerPairTests {
     @Test("A recursive view of the app's own in a row is asked about once, not for ever")
     func recursiveViewTerminates() {
         func statesSpacing<V: View>(_: V) -> Bool { V._statesSpacingPreference }
-        #expect(statesSpacing(Group { Tree(depth: 1); Text("b") }), "a view of several views MAY state one")
+        // Asked of its body once per type (`BodyWitnessMemo`), a view that
+        // holds itself states what the rest of its body does: here nothing.
+        #expect(!statesSpacing(Group { Tree(depth: 1); Text("b") }), "a body that holds no layout states none")
+        #expect(statesSpacing(Group { Pair(); Text("b") }), "a body that holds one states it")
         #expect(lines(HStack { Tree(depth: 3); Text("b") }) == ["b"])
         #expect(lines(HStackLayout { Tree(depth: 2); Row { Text("a") }; Text("b") }) == ["ab"])
     }
@@ -314,8 +317,55 @@ struct StackSpacingPerPairTests {
         #expect(lines(HStack { AnyView(Row { Text("a") }); Text("b") }) == ["a b"])
     }
 
-    @Test("Not yet: a view of the app's own whose body is a tight layout states the default (SwiftUI: wrapped +0)")
-    func appViewsDoNotForward() {
-        #expect(lines(HStack { Wrapped(text: "a"); Text("b") }) == ["a b"])
+    @Test("A view of the app's own states what its body states (SwiftUI: wrapped|wrapped +0, wrappedStack|box +0)")
+    func appViewsStateTheirBodys() {
+        #expect(lines(HStack { Wrapped(text: "a"); Text("b") }) == ["ab"])
+        #expect(lines(HStack { Branchy(flag: true); Text("b") }) == ["ab"], "through an if/else body")
+        #expect(lines(HStack { Branchy(flag: false); Text("b") }) == ["a b"], "the live branch's")
+        #expect(lines(HStack { InAStack(); Text("b") }) == ["ab"], "through a stack in the body")
     }
+
+    @Test("A nested row states its first child's leading edge and its last child's trailing one (SwiftUI: hstack(all, box)|box +8, hstack(box, all)|box +0)")
+    func nestedRowStatesItsEndChildren() {
+        #expect(lines(HStack { HStack(spacing: 0) { Row { Text("a") }; Text("x") }; Text("b") }) == ["ax b"])
+        #expect(lines(HStack { HStack(spacing: 0) { Text("x"); Row { Text("a") } }; Text("b") }) == ["xab"])
+        #expect(lines(HStack { Text("b"); HStack(spacing: 0) { Row { Text("a") }; Text("x") } }) == ["bax"])
+    }
+
+    /// SwiftUI: vstack(all, box)|box +0, zstack(all)|box +0, lazyhstack(all)|box +8.
+    @Test("A nested column and a ZStack state every child's edges across, merged; a lazy row states none")
+    func nestedColumnAndLayersStateEveryChild() {
+        let column = VStack(alignment: .leading, spacing: 0) {
+            Row { Text("a") }
+            Text("x")
+        }
+        #expect(lines(HStack { column; Text("b") }) == ["ab", "x "])
+        #expect(lines(HStack { ZStack { Row { Text("a") } }; Text("b") }) == ["ab"])
+        #expect(lines(HStack { LazyHStack { Row { Text("a") } }; Text("b") }) == ["a b"])
+    }
+
+    /// SwiftUI: vstack(box, spacer)|box +8, zstack(box, spacer)|box +8.
+    @Test("A spacer in a nested stack states nothing across it")
+    func nestedSpacerStatesNothingAcross() {
+        #expect(lines(HStack { VStack(spacing: 0) { Text("hi"); Spacer() }; Text("b") }).first == "hi b")
+        #expect(lines(HStack { ZStack { Text("hi"); Spacer() }; Text("b") }).first == "hi b")
+    }
+}
+
+/// A view of the app's own whose body is an `if`/`else` of a tight row and a
+/// plain text.
+private struct Branchy: View {
+    let flag: Bool
+    var body: some View {
+        if flag {
+            Row { Text("a") }
+        } else {
+            Text("a")
+        }
+    }
+}
+
+/// A view of the app's own whose body is a row holding a tight row.
+private struct InAStack: View {
+    var body: some View { HStack { Row { Text("a") } } }
 }

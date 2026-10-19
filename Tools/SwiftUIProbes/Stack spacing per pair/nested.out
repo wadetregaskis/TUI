@@ -1,0 +1,20 @@
+== hstack vstack(all)|box: a@0 +0 b@20
+== hstack vstack(all, box)|box: x@0 +-20 a@0 +0 b@20
+== hstack vstack(box)|box: a@0 +8 b@28
+== hstack hstack(box)|box: a@0 +8 b@28
+== hstack hstack(all, box)|box: a@0 +0 x@20 +8 b@48
+== hstack hstack(box, all)|box: x@0 +0 a@20 +0 b@40
+== hstack box|hstack(all, box): b@0 +0 a@20 +0 x@40
+== hstack zstack(all)|box: a@0 +0 b@20
+== hstack wrappedStack|box: a@0 +0 b@20
+== hstack wrappedBranch|box: a@0 +0 b@20
+== hstack wrappedPadded|box: a@0 +0 b@20
+== hstack lazyvstack(all)|box: a@176 +184 b@380
+== hstack lazyhstack(all)|box: a@0 +8 b@28
+== hstack vstack(box, spacer)|box: a@0 +8 b@28
+== hstack vstack(spacer, box)|box: a@0 +8 b@28
+== hstack hstack(box, spacer)|box: a@0 +60 b@80
+== hstack zstack(box, spacer)|box: a@0 +8 b@28
+== hstack spacer-only vstack|box: a@0 +16 b@36
+== vstack hstack(box, spacer)/box: a@0 +8 b@18
+== hstack vstack(all, spacer)|box: a@0 +0 b@20

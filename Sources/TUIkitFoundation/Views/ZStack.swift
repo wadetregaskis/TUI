@@ -356,6 +356,35 @@ extension _ZStackCore: AlignmentGuideQuerying {
     }
 }
 
+// MARK: - Spacing Beside the Layers
+
+extension ZStack {
+    /// Its content's answer: a `ZStack` states its layers' edges, merged.
+    public static var _statesSpacingPreference: Bool { Content._statesSpacingPreference }
+}
+
+extension _ZStackCore {
+    /// See ``ZStack/_statesSpacingPreference``.
+    static var _statesSpacingPreference: Bool { Content._statesSpacingPreference }
+}
+
+/// A `ZStack`'s layers each form every edge, so it states them all merged, as
+/// SwiftUI's does (measured, `Tools/SwiftUIProbes/Stack spacing per
+/// pair/nested.out`: `HStack { ZStack { tight }; box }` keeps no gap).
+extension _ZStackCore: SpacingPreferenceProviding {
+    func preferredSpacing(context: RenderContext) -> ViewSpacing {
+        let context = context.takingSectionsApart()
+        var merged = ViewSpacing()
+        // A spacer's "none" is along a stack's axis, and a `ZStack` has none:
+        // a spacer among its layers states nothing (measured: `HStack {
+        // ZStack { box; Spacer() }; box }` keeps the default gap).
+        for child in stackChildren(of: content, context: context).laidOut where !child.isSpacer {
+            if let stated = statedSpacing(of: child, context: context) { merged.formUnion(stated) }
+        }
+        return merged
+    }
+}
+
 // MARK: - Equatable
 
 extension ZStack: @preconcurrency Equatable where Content: Equatable {

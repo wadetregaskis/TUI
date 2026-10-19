@@ -81,6 +81,9 @@ package struct BodyWitnessMemo {
     /// The memo for ``View/_providesAlignmentGuide``.
     package static let alignmentGuide = permanentMemo()
 
+    /// The memo for ``View/_statesSpacingPreference``.
+    package static let spacingPreference = permanentMemo()
+
     private static func permanentMemo() -> UnsafeMutablePointer<Self> {
         let pointer = UnsafeMutablePointer<Self>.allocate(capacity: 1)
         pointer.initialize(to: Self())

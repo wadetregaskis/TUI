@@ -164,8 +164,9 @@ public protocol View {
     /// of its own (a `ViewSpacing` other than the default) — because it is a
     /// `Layout` (whose `spacing(subviews:cache:)` says), or holds one where a
     /// row's `spacing: nil` would ask it: in a tuple, a loop, a `Group`, an
-    /// `if`, or inside a wrapper that changes none of its edges. `false` for
-    /// every other view.
+    /// `if`, an eager stack, inside a wrapper that changes none of its edges,
+    /// or in the body of a view of the app's own. `false` for every other
+    /// view.
     ///
     /// Same shape and same reason as ``_providesZIndex``: a row resolves its
     /// gaps per pair of neighbours only when its content's type says a child
@@ -299,20 +300,25 @@ public extension View {
     /// default follows `Body` loops for ever on a view that holds itself.
     static var _paintsToItsEdges: Bool { false }
 
-    /// Default: whether this view hands its container several views
-    /// (``_handsOverChildren``) — a view of the app's own whose body is several
-    /// views is taken apart into them, a layout possibly among them, so a row
-    /// of it MAY have to ask them. A primitive's answer is `false`; a `Layout`'s
-    /// view overrides this with `true`, and the providers that hand their
-    /// content over forward it.
+    /// Default: what this view's `body` answers — a view of the app's own
+    /// states the spacing its body does (a row of `struct Row: View { var body:
+    /// some View { MyLayout { … } } }` asks it, as SwiftUI's does), and a view
+    /// whose body is several views is taken apart into them. A primitive's
+    /// answer is `false`, and one drawn procedurally (``Renderable``) states
+    /// its own or none; a `Layout`'s view answers `true`, and the providers and
+    /// eager stacks forward their content's.
     ///
-    /// Not the body's own answer, though that would be exact: the providers
-    /// forward theirs to their content, so a recursive view — `Tree` whose body
-    /// is `if depth > 0 { Tree(…) }` — would ask itself through its `Optional`
-    /// for ever, a stack overflow on the first row that held one.
-    /// ``_handsOverChildren`` ends at the first provider, which answers it with
-    /// a constant, so the question cannot come back round.
-    static var _statesSpacingPreference: Bool { _handsOverChildren }
+    /// Not asked of the body through the type system alone: the providers
+    /// forward it, so a view whose body holds its own type — `Tree` whose body
+    /// is `if depth > 0 { Tree(…) }` — would ask itself for ever.
+    /// ``BodyWitnessMemo`` asks once per type, ends the question where it
+    /// comes back round, and keeps the answer.
+    static var _statesSpacingPreference: Bool {
+        guard Body.self != Never.self else { return false }
+        return BodyWitnessMemo.answer(in: BodyWitnessMemo.spacingPreference, for: Self.self) {
+            !(Self.self is any Renderable.Type) && Body._statesSpacingPreference
+        }
+    }
 
     /// Default: what this view's `body` answers — to a container a view of the
     /// app's own is what its body is. A tuple, an `if`, a loop, a `Group` of

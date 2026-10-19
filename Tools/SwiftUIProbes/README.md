@@ -355,10 +355,12 @@ messages cite that path), and what cites it.
   `.foregroundStyle`, `.frame` (fitting, wider, height-only, and a leading `maxWidth`), `.border`, `.background`,
   `.offset`, `.position`, `AnyView`, a view of the app's own, `AnyLayout`,
   `ForEach`, `Group`, an `if` and a nested `HStack`; in `HStack`, `HStackLayout`, `LazyHStack` and `VStack`; and
-  with `spacing:` stated. Built alone, each with `-parse-as-library`.
+  with `spacing:` stated. Built alone, each with `-parse-as-library`. `nested.swift` (`nested.out`, lane LAYOUT,
+  2026-10-18): which edges a nested `HStack`, `VStack`, `ZStack` and lazy stack state, and a view of the app's own
+  whose body is a stack, an `if`/`else` or a padding.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-13 (the wider frames, `.position` and `AnyView` rows in the
-  review of B20, the same day).
-- **Was:** `BITEMS1/probe/`.
+  review of B20, the same day); `nested.swift` 2026-10-18.
+- **Was:** `BITEMS1/probe/`; `nested.swift` was `LAYOUT/probe/sp1.swift`.
 - **Cited by:** `Sources/TUIkitFoundation/Views/ViewSpacing.swift`, `Sources/TUIkitFoundation/Views/Layout.swift`,
   `Sources/TUIkitFoundation/Views/StackSpacingPreference.swift`, `Sources/TUIkitView/Rendering/ChildInfo.swift`;
   `Tests/TUIkitGridTests/ViewSpacingTests.swift`, `Tests/TUIkitGridTests/StackSpacingPerPairTests.swift`;
