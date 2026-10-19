@@ -2055,6 +2055,26 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** refusal review [O10](<Refusals re-examined, wave 17 (2026-10-03).md#o10-file-panels-from-p16--ml>),
   ruled 2026-10-12; the details are [B-O10-1 to B-O10-4](<Decisions/File panels (O10).md>).
   **Owner** (the panel), **Lane** (the details).
+
+### W15. A dialog's default button answers the Return its focused button lets through
+
+- **SwiftUI:** an alert or confirmation dialog keeps `.disabled` and
+  `.keyboardShortcut` written on its buttons and shows none of `.help`, `.tint`
+  and `.foregroundStyle`; the button marked `.keyboardShortcut(.defaultAction)`
+  is the default button, which Return chooses wherever the keyboard focus is
+  (measured on macOS 15.8, the `NSAlert` read back:
+  `Tools/SwiftUIProbes/Menu items and alert buttons/alert.out`).
+- **TUIkit:** keeps the same two and drops the same three (`AlertAction`,
+  `AlertButtonModifierTests`), but the default button answers Return only when
+  the focused control lets the key through — TUIkit's rule for every default
+  button, under which a focused button keeps its own Return
+  (``KeyboardShortcut``). A dialog opens with the focus on its first button, so
+  Return chooses that one until the focus moves.
+- **Why:** the dialog's buttons are ordinary `Button`s in its focus section, and
+  the default button's rule is the framework's, not the dialog's; opening on the
+  default button is the fuller version, priced in the decision.
+- **Decided:** [B-MENUS-1](<Decisions/Menu parity (MENUS).md#b-menus-1-an-alert-keeps-disabled-and-keyboardshortcut-on-its-buttons-its-default-button-answers-the-return-the-focused-button-lets-through>).
+  **Lane**.
 ---
 
 ## Lifecycle

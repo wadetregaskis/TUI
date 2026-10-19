@@ -121,7 +121,7 @@ extension AlertPresentationModifier {
     /// it has a single button that is not destructive, is not critical, and
     /// holds no text field (a TUIkit dialog holds none). No buttons is the one
     /// standard OK button SwiftUI shows then.
-    static func preventsTermination(stated: Bool?, buttons: [Button], isCritical: Bool) -> Bool {
+    static func preventsTermination(stated: Bool?, buttons: [AlertAction], isCritical: Bool) -> Bool {
         if let stated { return stated }
         let isOneHarmlessButton = buttons.count <= 1 && buttons.first?.role != .destructive
         return !isOneHarmlessButton || isCritical

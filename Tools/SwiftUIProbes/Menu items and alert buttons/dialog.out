@@ -1,0 +1,27 @@
+## set a
+window _NSAlertPanel title= visible=true default=Def sheet=nil
+  NSButton "Dis" enabled=false key=[] tooltip=nil bezelColor=nil hasDestructiveAction=false
+  NSButton "Key" enabled=true key=[⌘U+006B] tooltip=nil bezelColor=nil hasDestructiveAction=false
+  NSButton "Def" enabled=true key=[] tooltip=nil bezelColor=nil hasDestructiveAction=false
+  NSButton "OK" enabled=true key=[U+001B] tooltip=nil bezelColor=nil hasDestructiveAction=false
+## set b
+window _NSAlertPanel title= visible=true default=Help sheet=nil
+  NSButton "Help" enabled=true key=[U+000D] tooltip=nil bezelColor=nil hasDestructiveAction=false
+  NSButton "Tint" enabled=true key=[] tooltip=nil bezelColor=nil hasDestructiveAction=false
+  NSButton "Can" enabled=true key=[U+001B] tooltip=nil bezelColor=nil hasDestructiveAction=false
+## set c
+window _NSAlertPanel title= visible=true default=Def sheet=nil
+  NSButton "Plain" enabled=true key=[] tooltip=nil bezelColor=nil hasDestructiveAction=false
+  NSButton "Def" enabled=true key=[U+000D] tooltip=nil bezelColor=nil hasDestructiveAction=false
+  NSButton "Can" enabled=true key=[U+001B] tooltip=nil bezelColor=nil hasDestructiveAction=false
+## set d
+window _NSAlertPanel title= visible=true default=nil sheet=nil
+  NSButton "Del" enabled=true key=[] tooltip=nil bezelColor=nil hasDestructiveAction=true
+  NSButton "Fg" enabled=true key=[] tooltip=nil bezelColor=nil hasDestructiveAction=false
+  NSButton "OK" enabled=true key=[U+001B] tooltip=nil bezelColor=nil hasDestructiveAction=false
+  NSButton "Can2" enabled=true key=[U+001B] tooltip=nil bezelColor=nil hasDestructiveAction=false
+## set f
+window _NSAlertPanel title= visible=true default=DisDef sheet=nil
+  NSButton "Plain" enabled=true key=[] tooltip=nil bezelColor=nil hasDestructiveAction=false
+  NSButton "DisDef" enabled=false key=[] tooltip=nil bezelColor=nil hasDestructiveAction=false
+  NSButton "Cancel" enabled=true key=[U+001B] tooltip=nil bezelColor=nil hasDestructiveAction=false

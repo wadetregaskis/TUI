@@ -648,3 +648,25 @@ messages cite that path), and what cites it.
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (Containers, `Form`);
   `Documentation/SwiftUI parity/SwiftUI semantic audit (2026-08).md` (item 8, and the verifiers' finding on labelled
   controls).
+
+### Menu items and alert buttons
+
+- **Asks:** what SwiftUI builds for the content of a menu — a `Picker` in each style, with a `Section` or a
+  `Divider` among its options, disabled, unlabelled or matching nothing; a `Menu` nested two deep, empty,
+  disabled, under `.menuStyle(.button)`, with a primary action, under `.help` or `.keyboardShortcut` — read back
+  from the main menu's `NSMenu` items of a `CommandMenu` (`menus.swift` built with `-D CASE_pickers`,
+  `pickers.out`); and which modifiers written on an alert's buttons the `NSAlert` it presents keeps — `.disabled`,
+  a key equivalent, `.defaultAction`, `.cancelAction`, `.help`, `.tint`, `.foregroundStyle`, a role — read back
+  from the alert panel's `NSButton`s (`-D CASE_alert`, `alert.out`; `-D CASE_dialog` for a
+  `confirmationDialog`, `dialog.out`). The usage is at the top of `menus.swift`.
+- **Answers:** a `Picker` of the menu, segmented or palette style is a submenu titled by its label, its options
+  items with the selected one checked; an `.inline` one is its label as a section header over its options,
+  between separators; a nested `Menu` is a submenu whatever its style, and a disabled one is a submenu of
+  disabled items. An alert keeps `.disabled` and the key equivalent (`.defaultAction` is Return, `.cancelAction`
+  Escape) and shows none of `.help`, `.tint` and `.foregroundStyle`.
+- **Ran:** macOS 15.8, 2026-10-19, with Xcode's `swiftc`; the window the alert is presented on is made by the
+  probe, since a `WindowGroup` opened none in that session.
+- **Was:** `MENUS/probe/`.
+- **Cited by:** `Sources/TUIkitPresentation/Views/AlertActions.swift`,
+  `Tests/TUIkitPresentationTests/AlertButtonModifierTests.swift`;
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (W15).

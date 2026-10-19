@@ -202,7 +202,7 @@ struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
         if let width = proposal.width {
             alertProposal = ProposedSize(width: min(width, Self.maxWidth), height: proposal.height)
         }
-        let buttons = alertActionButtons(from: actions, in: context)
+        let buttons = alertActions(from: actions, in: context)
         let config = resolvedConfig(context)
         let shownTitle = resolvedTitle(context)
         let body = messageBody(context)
@@ -216,12 +216,12 @@ struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
         if verticalButtons {
             return measureContainer(
                 title: shownTitle, config: config, content: body,
-                footer: buttons.isEmpty ? nil : AlertButtonColumn(buttons: buttons),
+                footer: buttons.isEmpty ? nil : AlertButtonColumn(actions: buttons),
                 proposal: alertProposal, context: alertContext)
         }
         return measureContainer(
             title: shownTitle, config: config, content: body,
-            footer: buttons.isEmpty ? nil : AlertButtonRow(buttons: buttons),
+            footer: buttons.isEmpty ? nil : AlertButtonRow(actions: buttons),
             proposal: alertProposal, context: alertContext)
     }
 
@@ -230,7 +230,7 @@ struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
         var alertContext = context
         alertContext.availableWidth = min(context.availableWidth, Self.maxWidth)
 
-        let buttons = alertActionButtons(from: actions, in: context)
+        let buttons = alertActions(from: actions, in: context)
         let config = resolvedConfig(context)
         let shownTitle = resolvedTitle(context)
         let body = messageBody(context)
@@ -246,12 +246,12 @@ struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
         if verticalButtons {
             return renderContainer(
                 title: shownTitle, config: config, content: body,
-                footer: buttons.isEmpty ? nil : AlertButtonColumn(buttons: buttons),
+                footer: buttons.isEmpty ? nil : AlertButtonColumn(actions: buttons),
                 context: alertContext)
         }
         return renderContainer(
             title: shownTitle, config: config, content: body,
-            footer: buttons.isEmpty ? nil : AlertButtonRow(buttons: buttons),
+            footer: buttons.isEmpty ? nil : AlertButtonRow(actions: buttons),
             context: alertContext)
     }
 
@@ -297,19 +297,19 @@ struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
 
 /// Internal view that renders buttons horizontally for alerts.
 struct AlertButtonRow: View, Renderable {
-    let buttons: [Button]
+    let actions: [AlertAction]
 
     var body: Never {
         fatalError("AlertButtonRow renders via Renderable")
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        guard !buttons.isEmpty else {
+        guard !actions.isEmpty else {
             return FrameBuffer(lines: [])
         }
 
         // Sort buttons: cancel on left, others on right
-        let sortedButtons = buttons.sorted { lhs, rhs in
+        let sortedButtons = actions.sorted { lhs, rhs in
             let lhsIsCancel = lhs.role == .cancel
             let rhsIsCancel = rhs.role == .cancel
             if lhsIsCancel != rhsIsCancel {
@@ -321,9 +321,9 @@ struct AlertButtonRow: View, Renderable {
         // Render each button under its OWN child identity — see the note in
         // `AlertButtonColumn`, which had the identical defect.
         var buttonBuffers: [FrameBuffer] = []
-        for (index, button) in sortedButtons.enumerated() {
+        for (index, action) in sortedButtons.enumerated() {
             let childContext = context.withChildIdentity(type: Button.self, index: index)
-            let buffer = TUIkitView.renderToBuffer(button, context: childContext)
+            let buffer = TUIkitView.renderToBuffer(action.view, context: childContext)
             buttonBuffers.append(buffer)
         }
 
@@ -403,19 +403,19 @@ struct AlertButtonRow: View, Renderable {
 /// dialogs (action sheets). A cancel-role button is sorted to the bottom, and
 /// each button is centred within the dialog width.
 struct AlertButtonColumn: View, Renderable {
-    let buttons: [Button]
+    let actions: [AlertAction]
 
     var body: Never {
         fatalError("AlertButtonColumn renders via Renderable")
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        guard !buttons.isEmpty else {
+        guard !actions.isEmpty else {
             return FrameBuffer(lines: [])
         }
 
         // Cancel goes last (bottom), matching action-sheet convention.
-        let sortedButtons = buttons.sorted { lhs, rhs in
+        let sortedButtons = actions.sorted { lhs, rhs in
             let lhsIsCancel = lhs.role == .cancel
             let rhsIsCancel = rhs.role == .cancel
             if lhsIsCancel != rhsIsCancel {
@@ -452,9 +452,9 @@ struct AlertButtonColumn: View, Renderable {
         //
         // Indexed by SORTED position, which is both the drawn order and the
         // order the focus ring walks, so Tab runs top to bottom.
-        for (index, button) in sortedButtons.enumerated() {
+        for (index, action) in sortedButtons.enumerated() {
             let childContext = context.withChildIdentity(type: Button.self, index: index)
-            let buffer = TUIkitView.renderToBuffer(button, context: childContext)
+            let buffer = TUIkitView.renderToBuffer(action.view, context: childContext)
             let leftPadding = max(0, (width - buffer.width) / 2)
             let pad = String.spaces(leftPadding)
             let startY = lines.count

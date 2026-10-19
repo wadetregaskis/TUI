@@ -647,14 +647,14 @@ struct FocusIndicatorAnimationTests {
     @Test("A dialog's horizontal button row carries them too")
     func alertButtonRowLiftsRuns() {
         let buffer = focusedRender(
-            AlertButtonRow(buttons: [Button("Delete") {}, Button("Cancel") {}]))
+            AlertButtonRow(actions: [AlertAction(Button("Delete") {}), AlertAction(Button("Cancel") {})]))
         expectAnimates(buffer, runs: 1, "focused button in an alert row")
     }
 
     @Test("A dialog's stacked button column carries them too")
     func alertButtonColumnLiftsRuns() {
         let buffer = focusedRender(
-            AlertButtonColumn(buttons: [Button("Delete") {}, Button("Cancel") {}]))
+            AlertButtonColumn(actions: [AlertAction(Button("Delete") {}), AlertAction(Button("Cancel") {})]))
         expectAnimates(buffer, runs: 1, "focused button in an alert column")
     }
 

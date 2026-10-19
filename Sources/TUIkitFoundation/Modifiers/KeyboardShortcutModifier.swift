@@ -244,6 +244,27 @@ extension KeyboardShortcutModifier: FormRowRewrapping {
     }
 }
 
+// MARK: - Read by a View That Draws the Control Itself
+
+/// A wrapper that binds a keyboard shortcut to the control inside it, read by
+/// a view that takes the control out from under its modifiers to draw it
+/// itself — an alert, whose actions are drawn as the alert's buttons — and
+/// puts the shortcut back on it there.
+@MainActor
+package protocol KeyboardShortcutBinding {
+    /// The shortcut bound: `nil` for `.keyboardShortcut(nil)`, which leaves a
+    /// shortcut written further out in force, and for a hint, which binds
+    /// nothing (``View/keyboardShortcutHint(_:)``).
+    var boundShortcut: KeyboardShortcut? { get }
+}
+
+extension KeyboardShortcutModifier: KeyboardShortcutBinding {
+    package var boundShortcut: KeyboardShortcut? {
+        guard let assignment, assignment.registers else { return nil }
+        return assignment.shortcut
+    }
+}
+
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition

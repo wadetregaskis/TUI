@@ -288,21 +288,22 @@ struct _DismissalActions<A: View>: View, ButtonProvider {
 
     var body: some View { actions }
 
-    func extractButtons(in context: RenderContext) -> [Button] {
+    func extractActions(in context: RenderContext) -> [AlertAction] {
         let pending = pending
-        var buttons = alertActionButtons(from: actions, in: context).map { button in
-            guard button.role != .cancel else { return button }
-            return Button(button, action: {
-                button.action()
+        var actions = alertActions(from: actions, in: context).map { action in
+            guard action.role != .cancel else { return action }
+            return action.running {
+                action.button.action()
                 pending.run()
-            })
+            }
         }
-        if !buttons.contains(where: { $0.role == .cancel }) {
-            buttons.append(
-                Button(
-                    LocalizationService.shared.string(for: LocalizationKey.Button.cancel),
-                    role: .cancel, action: {}))
+        if !actions.contains(where: { $0.role == .cancel }) {
+            actions.append(
+                AlertAction(
+                    Button(
+                        LocalizationService.shared.string(for: LocalizationKey.Button.cancel),
+                        role: .cancel, action: {})))
         }
-        return buttons
+        return actions
     }
 }

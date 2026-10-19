@@ -1,0 +1,64 @@
+== case pickers
+MENU Pickers
+    "Default" ▸
+        "D1" (on)
+        "D2"
+    ----
+    "Inline" (sectionHeader)
+    "I1" (on)
+    "I2"
+    ----
+    "MenuStyle" ▸
+        "M1"
+        "M2" (on)
+    "Segmented" ▸
+        "G1" (on)
+        "G2"
+    "Palette" ▸
+        "A1" (on)
+        "A2"
+    "Radio" (disabled)
+    "" (disabled)
+    "R1"
+    "R2"
+    "Sectioned" ▸
+        "S1"
+        ----
+        "Group" (sectionHeader)
+        "S2"
+        "S3" (on)
+        ----
+    "Disabled" ▸
+        "X1" (on) (disabled)
+    "Labelled" ▸
+        "L1" (on)
+    "" ▸
+        "E1" (on)
+        "E2"
+    "Nothing" ▸
+        "N1"
+        "N2"
+    "WithDivider" ▸
+        "V1" (on)
+        ----
+        "V2"
+MENU Menus
+    "Outer" ▸
+        "O1"
+        "Inner" ▸
+            "In1"  [⌘j]
+    "Empty" ▸
+    "DisabledSub" ▸
+        "DS1" (disabled)
+    "ButtonStyle" ▸
+        "B1"
+    "WithPrimary" ▸
+        "P1"
+    "AllDisabled" ▸
+        "AD1" (disabled)
+    "LabelMenu" ▸
+        "Lb1"
+    "Key" ▸
+        "K1"  [⌘u]
+    "Help" ▸ (tooltip menu tip)
+        "H1"

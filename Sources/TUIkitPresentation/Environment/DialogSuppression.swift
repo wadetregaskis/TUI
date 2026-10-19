@@ -165,7 +165,7 @@ struct _DialogSuppressionModifier<Content: View>: View {
 /// it opens with, as on macOS, where the checkbox is never where the focus
 /// starts.
 struct _AlertFooter: View, Renderable, Layoutable {
-    let buttons: [Button]
+    let buttons: [AlertAction]
     let verticalButtons: Bool
     let suppression: DialogSuppression?
 
@@ -210,14 +210,14 @@ struct _AlertFooter: View, Renderable, Layoutable {
 
 /// The buttons, in a row or a column.
 struct _AlertButtons: View {
-    let buttons: [Button]
+    let buttons: [AlertAction]
     let vertical: Bool
 
     @ViewBuilder var body: some View {
         if vertical {
-            AlertButtonColumn(buttons: buttons)
+            AlertButtonColumn(actions: buttons)
         } else {
-            AlertButtonRow(buttons: buttons)
+            AlertButtonRow(actions: buttons)
         }
     }
 }

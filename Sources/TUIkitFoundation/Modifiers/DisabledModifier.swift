@@ -111,6 +111,20 @@ extension DisabledModifier: ContentRewrapping {
     }
 }
 
+/// A wrapper that disables the controls inside it, read by a view that takes a
+/// control out from under its modifiers to draw it itself — an alert, whose
+/// actions are drawn as the alert's buttons — and disables it there.
+@MainActor
+package protocol ContentDisabling {
+    /// Whether the content is disabled: `false` for `.disabled(false)`, which
+    /// cannot re-enable what a wrapper further out disabled.
+    var disablesContent: Bool { get }
+}
+
+extension DisabledModifier: ContentDisabling {
+    package var disablesContent: Bool { disabled }
+}
+
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``SingleContentWrapper``.
 extension DisabledModifier: ChildViewProvider where Content: ChildViewProvider {}
