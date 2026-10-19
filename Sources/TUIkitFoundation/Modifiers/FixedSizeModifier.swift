@@ -135,6 +135,7 @@ struct _FixedSizeView<Content: View>: View {
         let budget = naturalExtentStartingBudget(forVisible: offered)
         var probe = context.askingIdealWidth(axis == .horizontal)
         probe.environment.fixedSizeWidth = false
+        probe.environment.offeredNoWidth = false
         switch axis {
         case .horizontal: probe.availableWidth = budget
         case .vertical: probe.availableHeight = budget
@@ -151,11 +152,15 @@ struct _FixedSizeView<Content: View>: View {
 
     /// `context` with the flag a `List` and a split view read
     /// (``EnvironmentValues/fixedSizeWidth``) said: set where the width is
-    /// fixed, cleared where it is not.
+    /// fixed, cleared where it is not — and with it whether the content was
+    /// offered no width (``EnvironmentValues/offeredNoWidth``), which a frame
+    /// with an ideal width reads.
     fileprivate func flagged(_ context: RenderContext) -> RenderContext {
-        guard context.environment.fixedSizeWidth != horizontal else { return context }
+        let environment = context.environment
+        guard environment.fixedSizeWidth != horizontal || environment.offeredNoWidth != horizontal else { return context }
         var flagged = context
         flagged.environment.fixedSizeWidth = horizontal
+        flagged.environment.offeredNoWidth = horizontal
         return flagged
     }
 }

@@ -40,7 +40,7 @@ extension FlexibleFrameView: AlignmentGuideQuerying {
         let offeredNoWidth = isOfferedNoWidth(in: context)
         contentContext.availableWidth = contentTargetWidth(
             availableWidth: dimensions.width, offeredNothing: offeredNoWidth)
-        if offeredNoWidth { contentContext.environment.fixedSizeWidth = false }
+        if offeredNoWidth { contentContext = offeringItsIdeal(contentContext) }
         if let height = contentTargetHeight(availableHeight: dimensions.height) {
             contentContext.availableHeight = height
         }

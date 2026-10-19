@@ -192,13 +192,26 @@ extension FlexibleFrameView {
     /// Whether this frame, laid out in `context`, was offered no width though
     /// the context carries one: it is laid out or drawn under `.fixedSize()`,
     /// which asked it its ideal width — SwiftUI's unspecified proposal — and
-    /// hands it the width it answered (``EnvironmentValues/fixedSizeWidth``).
-    /// Only a frame with an ideal width tells the two apart: offered nothing it
-    /// is exactly that ideal, where offered a width it is its content's
-    /// (`Tools/SwiftUIProbes/Alignment guides/layout1.out`, case D2). Such a
-    /// frame offers its content its ideal, a width, so the flag stops at it.
+    /// hands it the width it answered, through nothing that offers it a width
+    /// (``EnvironmentValues/offeredNoWidth``: a row passes the unspecified
+    /// width on, a column of several does not). Only a frame with an ideal
+    /// width tells the two apart: offered nothing it is exactly that ideal,
+    /// where offered a width it is its content's
+    /// (`Tools/SwiftUIProbes/Alignment guides/layout1.out`, case D2;
+    /// `Flexible frames/ideal-placed.out`). Such a frame offers its content
+    /// its ideal, a width, so the flag stops at it — `fixedSizeWidth` too, so
+    /// a `List` inside it does not hug.
     func isOfferedNoWidth(in context: RenderContext) -> Bool {
-        idealWidth != nil && context.environment.fixedSizeWidth
+        idealWidth != nil && context.environment.offeredNoWidth
+    }
+
+    /// `context` as this frame offers it to its content when it was offered no
+    /// width (``isOfferedNoWidth(in:)``): offered its ideal, a width.
+    func offeringItsIdeal(_ context: RenderContext) -> RenderContext {
+        var offered = context
+        offered.environment.fixedSizeWidth = false
+        offered.environment.offeredNoWidth = false
+        return offered
     }
 
     /// The frame's width around content `content` wide when it was offered
@@ -251,7 +264,7 @@ extension FlexibleFrameView: Renderable {
             contentContext.availableHeight = height
         }
         // Offered no width, this frame offers its content its ideal: a width.
-        if offeredNoWidth { contentContext.environment.fixedSizeWidth = false }
+        if offeredNoWidth { contentContext = offeringItsIdeal(contentContext) }
 
         // Mark that an explicit width constraint was set
         if minWidth != nil || idealWidth != nil || maxWidth != nil {
@@ -564,7 +577,7 @@ extension FlexibleFrameView: Layoutable {
         }
         contentContext.hasExplicitWidth = true
         // As the render path: offered no width, the content is offered the ideal.
-        if isOfferedNoWidth(in: context) { contentContext.environment.fixedSizeWidth = false }
+        if isOfferedNoWidth(in: context) { contentContext = offeringItsIdeal(contentContext) }
         // As the render path: a height constraint is an explicit height.
         if minHeight != nil || idealHeight != nil || maxHeight != nil {
             contentContext.hasExplicitHeight = true
@@ -660,7 +673,7 @@ extension FlexibleFrameView: Layoutable {
             contentContext.hasExplicitWidth = true
         }
         // As the render path: offered no width, the content is offered the ideal.
-        if isOfferedNoWidth(in: context) { contentContext.environment.fixedSizeWidth = false }
+        if isOfferedNoWidth(in: context) { contentContext = offeringItsIdeal(contentContext) }
         // As the render path: a height constraint is an explicit height.
         if minHeight != nil || idealHeight != nil || maxHeight != nil {
             contentContext.hasExplicitHeight = true

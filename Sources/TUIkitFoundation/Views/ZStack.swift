@@ -83,7 +83,7 @@ private struct _ZStackCore<Content: View>: View, Renderable {
         // A container of its own, it takes its sections apart, whatever the
         // walk that drew it kept whole (`RenderContext.takingSectionsApart()`):
         // it publishes no axis, which is how every stack clears that.
-        let context = context.takingSectionsApart()
+        let context = context.takingSectionsApart().offeringAWidth(unless: isStaticallyOneView(Content.self))
         // A layer that has left takes no room, and is drawn where it was while
         // its removal plays (`StackGlide`).
         let split = stackChildren(of: content, context: context)
@@ -231,7 +231,7 @@ extension _ZStackCore: Layoutable {
     /// so the stack does too. Alignment and z-index affect placement/draw order,
     /// not size.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        let context = context.takingSectionsApart()
+        let context = context.takingSectionsApart().offeringAWidth(unless: isStaticallyOneView(Content.self))
         // A layer that has left takes no room (`StackGlide`).
         let children = stackChildren(of: content, context: context).laidOut
         guard !children.isEmpty else { return ViewSize.fixed(0, 0) }
@@ -330,7 +330,7 @@ extension _ZStackCore: AlignmentGuideQuerying {
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
         guard !query.staysInside(contentOf: Content.self) else { return nil }
-        let context = context.takingSectionsApart()
+        let context = context.takingSectionsApart().offeringAWidth(unless: isStaticallyOneView(Content.self))
         let children = stackChildren(of: content, context: context).laidOut
         guard anyAlignmentGuide(in: children) else { return nil }
         let drawn = children.filter { !$0.isSpacer }
@@ -380,7 +380,7 @@ extension _ZStackCore {
 /// pair/nested.out`: `HStack { ZStack { tight }; box }` keeps no gap).
 extension _ZStackCore: SpacingPreferenceProviding {
     func preferredSpacing(context: RenderContext) -> ViewSpacing {
-        let context = context.takingSectionsApart()
+        let context = context.takingSectionsApart().offeringAWidth(unless: isStaticallyOneView(Content.self))
         var merged = ViewSpacing()
         // A spacer's "none" is along a stack's axis, and a `ZStack` has none:
         // a spacer among its layers states nothing (measured: `HStack {

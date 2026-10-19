@@ -47,6 +47,15 @@ package func staticViewListCount<V: View>(_ type: V.Type) -> Int? {
     return CompositeBodyDescent.counting(type) { staticViewListCount(V.Body.self) }
 }
 
+/// Whether a value of `type` is statically one view (``staticViewListCount(_:)``
+/// is one), kept per type (``BodyWitnessMemo``): for a container that asks it
+/// of its content on every walk — a stack of one view passes an unspecified
+/// width on to it, as SwiftUI's does.
+@MainActor
+package func isStaticallyOneView<V: View>(_ type: V.Type) -> Bool {
+    BodyWitnessMemo.answer(in: BodyWitnessMemo.staticallyOneView, for: type) { staticViewListCount(type) == 1 }
+}
+
 /// ``staticViewListCount(_:)`` of a wrapper's content, the existential opened.
 @MainActor
 private func wrappedViewListCount<W: SingleContentWrapper>(_: W.Type) -> Int? {

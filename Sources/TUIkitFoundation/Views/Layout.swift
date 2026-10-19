@@ -368,15 +368,20 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
     /// Either way the layout is a container of its own, and takes its sections
     /// apart (`RenderContext.takingSectionsApart()`): in a row of a lazy stack
     /// that keeps its own sections whole, a layout with no axis kept them
-    /// whole too, one subview each.
+    /// whole too, one subview each. And it offers its subviews a width as it
+    /// places them (``EnvironmentValues/offeredNoWidth``), unless it lays them
+    /// along the width or holds statically one view, as SwiftUI's stack
+    /// layouts do (`HStackLayout` passes an unspecified width on,
+    /// `VStackLayout` and `ZStackLayout` of several do not).
     private func publishingChildAxis(_ context: RenderContext) -> RenderContext {
         guard
             let axis = L.layoutProperties.stackOrientation
                 ?? (layout as? any AxisPublishingLayout)?.containerAxis
         else {
-            return context.takingSectionsApart()
+            return context.takingSectionsApart().offeringAWidth(unless: isStaticallyOneView(Content.self))
         }
-        return context.publishingContainerAxis(axis)
+        return context.publishingContainerAxis(
+            axis, passesNoWidthOn: axis == .horizontal || isStaticallyOneView(Content.self))
     }
 
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {

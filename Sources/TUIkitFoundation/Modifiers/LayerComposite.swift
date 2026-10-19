@@ -27,8 +27,12 @@
 /// the inner one, so both render at one identity, and a step keyed on `Badge`
 /// put both badges on one path, sharing state. The outer modifier's type
 /// contains the inner's, so the two steps differ.
+///
+/// A layer is offered its base's size, a width, though its base may have
+/// been offered none (``EnvironmentValues/offeredNoWidth``): SwiftUI's
+/// overlay proposes its base's size to what it lays over it.
 func layerContext(_ context: RenderContext, modifierType: Any.Type) -> RenderContext {
-    context.withChildIdentity(erasedType: modifierType, index: 1)
+    context.withChildIdentity(erasedType: modifierType, index: 1).offeringAWidth()
 }
 
 /// Where a layer goes in a base's frame — or why it goes nowhere.

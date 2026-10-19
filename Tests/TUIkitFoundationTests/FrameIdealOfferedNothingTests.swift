@@ -54,6 +54,40 @@ struct FrameIdealOfferedNothingTests {
         #expect(renderToBuffer(Text("short").frame(idealWidth: 10).frame(width: 30), context: context).width == 30)
     }
 
+    /// A frame with an ideal width, its text drawn at its trailing edge.
+    private var framed: some View { Text("abc").frame(idealWidth: 10, alignment: .trailing) }
+
+    /// A line wider than the frame's ideal.
+    private let long = "0123456789012345678901234"
+
+    /// Measured on SwiftUI (`Tools/SwiftUIProbes/Flexible frames/ideal-placed.out`):
+    /// under `.fixedSize()`, a column of several views, a `ZStack` of several,
+    /// `VStackLayout`, a `Grid` and an overlay's layer offer the frame a width
+    /// as they place it, so it is its content's width (the text at 0); a row,
+    /// a column of one view, `HStackLayout` and a padding pass the unspecified
+    /// width on, so it is its ideal (the text at 7). The flag reached the whole
+    /// subtree, and the column's frame was drawn ten wide (found in review).
+    @Test("Under .fixedSize(), a frame a column or a ZStack of several places is offered a width; a row passes none on")
+    func placedUnderFixedSize() {
+        func first(_ view: some View) -> Int { indent(renderToBuffer(view, context: context).lines.first ?? "") }
+        let column = VStack(alignment: .leading, spacing: 0) { framed; Text(long) }.fixedSize()
+        #expect(first(column) == 0)
+        #expect(measureChild(column, proposal: .unspecified, context: context).width == 25)
+        #expect(first(VStack(spacing: 0) { framed }.fixedSize()) == 7, "a column of one passes it on")
+        #expect(first(ZStack(alignment: .leading) { framed; Color.clear.frame(width: 25, height: 1) }.fixedSize()) == 0)
+        #expect(first(HStack(spacing: 0) { framed; Text("xyz") }.fixedSize()) == 7)
+        let nested = VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 0) { framed; Text("xyz") }
+            Text(long)
+        }
+        #expect(first(nested.fixedSize()) == 0, "a row in a column is offered a width")
+        #expect(first(VStackLayout(alignment: .leading, spacing: 0) { framed; Text(long) }.fixedSize()) == 0)
+        #expect(first(HStackLayout(spacing: 0) { framed; Text("xyz") }.fixedSize()) == 7)
+        let overlaid = Color.clear.frame(width: 25, height: 1).overlay(alignment: .leading) { framed }.fixedSize()
+        #expect(first(overlaid) == 0)
+        #expect(first(framed.padding(.leading, 1).fixedSize()) == 8)
+    }
+
     @Test("Down the column the ideal is not read: its content's height (deviations L16)")
     func idealHeightIsNotRead() {
         // SwiftUI: 3 rows (`layout1.out`, case D2). A stack asks every child

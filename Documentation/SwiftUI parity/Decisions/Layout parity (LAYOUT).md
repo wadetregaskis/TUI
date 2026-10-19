@@ -222,11 +222,23 @@ Shipped: offered no width, a frame with an ideal width is exactly that ideal
 ideal and placed in it by the frame's alignment, as SwiftUI's is (measured,
 `layout1.out` case D2: `Text("short").frame(idealWidth: 10).fixedSize()` is
 ten wide, the text at 2.5). "Offered no width" is the ideal-width ask, and the
-drawing under `.fixedSize()` that follows it: `_FixedSizeView` already set
-`EnvironmentValues.fixedSizeWidth` for its content, and a frame with an ideal
-width now reads it as "offered nothing" and clears it for its own content,
-which it offers a width (so a `List` inside such a frame no longer hugs).
-Measure and render agree (`FrameIdealOfferedNothingTests`).
+drawing under `.fixedSize()` that follows it: `_FixedSizeView` sets
+`EnvironmentValues.offeredNoWidth` for its content, beside the
+`fixedSizeWidth` a `List` reads, and a frame with an ideal width reads it as
+"offered nothing" and clears both for its own content, which it offers a
+width (so a `List` inside such a frame no longer hugs). The flag goes where
+SwiftUI passes an unspecified width on (measured,
+`Tools/SwiftUIProbes/Flexible frames/ideal-placed.out`): through modifiers, a
+row, `HStackLayout` and a stack of one view; a column or a `ZStack` of
+several, `VStackLayout`, `ZStackLayout`, a `Grid` and an overlay's layer offer
+their views a width as they place them, and clear it. It rides on the
+container's axis entry, which every stack writes anyway, so a column clears it
+for nothing and a row pays one read. The first version read `fixedSizeWidth`
+itself, which reaches the whole subtree: `VStack(alignment: .leading) {
+Text("abc").frame(idealWidth: 10, alignment: .trailing); Text(long) }
+.fixedSize()` drew the frame ten wide where SwiftUI's, and the base's, is
+its content's (found in review). Measure and render agree
+(`FrameIdealOfferedNothingTests`).
 
 **Not shipped: the height** (deviations L16). A TUIkit stack asks a child its
 natural height with no height, so a frame answering its ideal height to that

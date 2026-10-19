@@ -510,3 +510,11 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIkitPickers/Views/Picker.swift`, `Sources/TUIkitPickers/Views/_PickerOptionsReader.swift`,
   `Tests/TUIkitPickersTests/PickerSectionTitleTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§1, Pickers).
+
+- **Also asks** (`ideal-placed.swift`, `ideal-placed.out`): a frame with an ideal width and no maximum round a
+  5-wide box, under `.fixedSize()`, as each container places it. A row (`HStack`, `HStackLayout`), a stack of one
+  view, `.padding`, `.border` and a background's base pass the unspecified width on (the frame is its ideal, 10);
+  a column or a `ZStack` of several, `VStackLayout`, `ZStackLayout`, a `Grid` and an overlay's layer offer it a
+  width as they place it (its content's, 5). Ran 2026-10-19, macOS 15.8.1, with Xcode's `swiftc`; cited by
+  `EnvironmentValues.offeredNoWidth` (`ContainerAxisEnvironment.swift`) and
+  `Tests/TUIkitFoundationTests/FrameIdealOfferedNothingTests.swift`.

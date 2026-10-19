@@ -43,7 +43,7 @@ extension _VStackCore: AlignmentGuideQuerying {
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
         guard overflow == .clip, !query.staysInside(contentOf: Content.self) else { return nil }
-        let context = context.publishingContainerAxis(.vertical)
+        let context = context.publishingContainerAxis(.vertical, passesNoWidthOn: isStaticallyOneView(Content.self))
         let children = stackChildren(of: content, context: context).laidOut
         guard anyAlignmentGuide(in: children) else { return nil }
 

@@ -27,6 +27,10 @@ struct ContainerRelationship {
 
     /// The pinned stack whose sections the children may be.
     var pinnedSections: PinnedSectionScope?
+
+    /// Whether the view laying these out offered them no width — see
+    /// ``EnvironmentValues/offeredNoWidth``.
+    var offersNoWidth = false
 }
 
 private struct ContainerAxisKey: EnvironmentKey {
@@ -63,6 +67,26 @@ extension EnvironmentValues {
         get { self[ContainerAxisKey.self].pinnedSections }
         set { self[ContainerAxisKey.self].pinnedSections = newValue }
     }
+
+    /// Whether the view laying this one out offered it no width — SwiftUI's
+    /// unspecified proposal, which a frame with an ideal width answers with
+    /// that ideal (`FlexibleFrameView.isOfferedNoWidth(in:)`).
+    ///
+    /// Set by `.fixedSize()` for its content. Passed on as SwiftUI passes an
+    /// unspecified width on, measured (`Tools/SwiftUIProbes/Flexible
+    /// frames/ideal-placed.out`): by a modifier, which lays its content out
+    /// where it is itself (`.padding`, `.border`, a background's base), by a
+    /// row, which lays its views along the width it was not offered, and by a
+    /// stack or a layout of statically one view; cleared by what offers its
+    /// views a width as it places them — a column of several, a `ZStack`
+    /// of several, a `Grid`, a layout with no axis, an overlay's or a
+    /// background's layer — and by the frame that reads it, which offers its
+    /// content its ideal. One entry with the container's axis, which every
+    /// stack writes anyway, so a column clears it at no cost.
+    var offeredNoWidth: Bool {
+        get { self[ContainerAxisKey.self].offersNoWidth }
+        set { self[ContainerAxisKey.self].offersNoWidth = newValue }
+    }
 }
 
 extension RenderContext {
@@ -77,10 +101,29 @@ extension RenderContext {
     /// A new container's walk takes its sections apart, whatever the walk that
     /// drew it kept whole (`RenderContext.keepsSectionsWhole`): a stack in a
     /// pinned stack's row lays out its own sections' parts.
-    package func publishingContainerAxis(_ axis: Axis) -> Self {
+    ///
+    /// The stack offers its views a width — ``EnvironmentValues/offeredNoWidth``
+    /// cleared with the rest of the relationship — unless `passesNoWidthOn`
+    /// and it was offered none itself: a row, which lays its views along the
+    /// width, and a stack of statically one view pass the unspecified width
+    /// on, as SwiftUI's do. Read only where it may pass it on.
+    package func publishingContainerAxis(_ axis: Axis, passesNoWidthOn: Bool = false) -> Self {
         var copy = self
+        let offersNoWidth = passesNoWidthOn && environment.offeredNoWidth
         copy.environment.containerAxis = axis
+        if offersNoWidth { copy.environment.offeredNoWidth = true }
         copy.sectionWholeness = .apart
+        return copy
+    }
+
+    /// This context with ``EnvironmentValues/offeredNoWidth`` cleared — for a
+    /// container that publishes no axis and offers its views a width as it
+    /// places them (a `ZStack` of several layers, a layout with no axis, an
+    /// overlay's layer) — unless `passesNoWidthOn`.
+    package func offeringAWidth(unless passesNoWidthOn: Bool = false) -> Self {
+        guard !passesNoWidthOn, environment.offeredNoWidth else { return self }
+        var copy = self
+        copy.environment.offeredNoWidth = false
         return copy
     }
 }

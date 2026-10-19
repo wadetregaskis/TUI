@@ -357,7 +357,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
 
     /// Measures the HStack without rendering.
     package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        let context = context.publishingContainerAxis(.horizontal)
+        let context = context.publishingContainerAxis(.horizontal, passesNoWidthOn: true)
         switch overflow {
         case .clip: return clipSizeThatFits(proposal: proposal, context: context)
         case .window: return windowSizeThatFits(proposal: proposal, context: withPinnedSectionScope(context))
@@ -495,7 +495,7 @@ package struct _HStackCore<Content: View>: View, Renderable, Layoutable {
     }
 
     package func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let context = context.publishingContainerAxis(.horizontal)
+        let context = context.publishingContainerAxis(.horizontal, passesNoWidthOn: true)
         switch overflow {
         case .clip: return renderClip(context: context)
         case .window: return renderWindow(context: scopingPinnedSections(context))
@@ -882,7 +882,7 @@ extension _HStackCore: AlignmentGuideQuerying {
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
         guard overflow == .clip, !query.staysInside(contentOf: Content.self) else { return nil }
-        let context = context.publishingContainerAxis(.horizontal)
+        let context = context.publishingContainerAxis(.horizontal, passesNoWidthOn: true)
         let children = stackChildren(of: content, context: context).laidOut
         guard anyAlignmentGuide(in: children) else { return nil }
         let gaps = gaps(between: children, context: context)

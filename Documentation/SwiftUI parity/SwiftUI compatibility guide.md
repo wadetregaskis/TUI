@@ -206,7 +206,11 @@ is offered nothing, as under `.fixedSize()`, where a frame with an ideal is
 exactly its ideal — `Text("short").frame(idealWidth: 10).fixedSize()` is ten
 wide, its text placed by the frame's alignment (since 2026-10-18; the frame
 drawn under `.fixedSize()` knows it was offered nothing,
-`EnvironmentValues.fixedSizeWidth`). One difference, down the column: offered
+`EnvironmentValues.offeredNoWidth`). Offered nothing means what it means in
+SwiftUI (measured, `Tools/SwiftUIProbes/Flexible frames/ideal-placed.out`):
+through modifiers, a row and a stack of one view; a column or a `ZStack` of
+several, a `Grid` and an overlay's layer offer the frame a width as they
+place it, so there it is its content's. One difference, down the column: offered
 nothing, a frame with an ideal height and **no** maximum is its content's
 height, where SwiftUI's is the ideal — a TUIkit stack asks every child its
 natural height by offering none, so that ask is not SwiftUI's unspecified

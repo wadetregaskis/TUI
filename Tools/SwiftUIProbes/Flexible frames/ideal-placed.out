@@ -1,0 +1,20 @@
+== F3: a frame(idealWidth: 10) round a 5-wide box, under .fixedSize(), placed by a container
+fr.fixedSize() || T.x=5 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=10 F.h=1 outer.w=10 outer.h=1
+VStack(lead){fr; box25}.fixedSize() || T.x=0 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=5 F.h=1 S.x=0 S.y=1 S.w=25 S.h=1 outer.w=25 outer.h=2
+VStack{fr}.fixedSize() || T.x=5 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=10 F.h=1 outer.w=10 outer.h=1
+VStack{fr; box3}.fixedSize() || T.x=0 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=5 F.h=1 S.x=1 S.y=1 S.w=3 S.h=1 outer.w=10 outer.h=2
+ZStack(lead){fr; box25}.fixedSize() || T.x=0 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=5 F.h=1 S.x=0 S.y=0 S.w=25 S.h=1 outer.w=25 outer.h=1
+ZStack{fr}.fixedSize() || T.x=5 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=10 F.h=1 outer.w=10 outer.h=1
+HStack{fr; box3}.fixedSize() || T.x=5 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=10 F.h=1 S.x=10 S.y=0 S.w=3 S.h=1 outer.w=13 outer.h=1
+VStackLayout(lead){fr; box25}.fixedSize() || T.x=0 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=5 F.h=1 S.x=0 S.y=1 S.w=25 S.h=1 outer.w=25 outer.h=2
+HStackLayout{fr; box3}.fixedSize() || T.x=5 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=10 F.h=1 S.x=10 S.y=0 S.w=3 S.h=1 outer.w=13 outer.h=1
+ZStackLayout(lead){fr; box25}.fixedSize() || T.x=0 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=5 F.h=1 S.x=0 S.y=0 S.w=25 S.h=1 outer.w=25 outer.h=1
+HStack{VStack(lead){fr; box7}; box3}.fixedSize() || T.x=0 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=5 F.h=1 S.x=0 S.y=1 S.w=7 S.h=1 U.x=10 U.y=0.50 U.w=3 U.h=1 outer.w=13 outer.h=2
+VStack(lead){HStack{fr; box3}; box25}.fixedSize() || T.x=0 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=5 F.h=1 U.x=5 U.y=0 U.w=3 U.h=1 S.x=0 S.y=1 S.w=25 S.h=1 outer.w=25 outer.h=2
+fr.padding(1).fixedSize() || T.x=6 T.y=1 T.w=5 T.h=1 F.x=1 F.y=1 F.w=10 F.h=1 outer.w=12 outer.h=3
+fr.border.fixedSize() || T.x=5 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=10 F.h=1 outer.w=10 outer.h=1
+fr.background{box30}.fixedSize() || T.x=5 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=10 F.h=1 B.x=-10 B.y=0 B.w=30 B.h=1 outer.w=10 outer.h=1
+box25.overlay(alignment: .leading){fr}.fixedSize() || T.x=0 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=5 F.h=1 S.x=0 S.y=0 S.w=25 S.h=1 outer.w=25 outer.h=1
+Grid(lead){GridRow{fr}; GridRow{box25}}.fixedSize() || T.x=0 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=5 F.h=1 S.x=0 S.y=1 S.w=25 S.h=1 outer.w=25 outer.h=2
+VStack(lead){fr; box25} in 400 (no fixedSize) || T.x=0 T.y=0 T.w=5 T.h=1 F.x=0 F.y=0 F.w=5 F.h=1 S.x=0 S.y=1 S.w=25 S.h=1 outer.w=25 outer.h=2
+ScrollView(.horizontal){VStack(lead){fr; box25}} || T.x=0 T.y=0.50 T.w=5 T.h=1 F.x=0 F.y=0.50 F.w=5 F.h=1 S.x=0 S.y=1.50 S.w=25 S.h=1 outer.w=40 outer.h=3
