@@ -49,10 +49,13 @@ the quiet machine. A40's default dissolve was measured on 2026-10-15 and, as
 agreed, not shipped: it cost far more than 1% (see A40).
 
 **Decided, lane owed.** A0's ruled O items but O1, O2, O7, O17 and O16 (deferred), and with them
-A22 and A26 (O9), A23 and A36 (O4), A24 (O0, O15), A38 (O3) and
-A41 (O5); A42, B19 (after its A/B), B22 (a look at the faint tiers).
+A22 and A26 (O9), A24 (O0, O15) and A41 (O5's glass); A42, B19 (after its
+A/B), B22 (a look at the faint tiers).
 B3's lane shipped on 2026-10-13 with most of A21; A21 lists what is left.
 Shipped on 2026-10-14: A25; O7 with A12; O1; O17; O2 with A37.
+Shipped on 2026-10-18: O0's shapes (lane W1); O3's merging and additive
+retargets with A38; O5's materials; O6's shadows; O13's menu bar; O4 with A23
+and A36.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
@@ -83,7 +86,8 @@ ruling is in the review under its item. In brief, with the ruling:
   `Shape`, `Rectangle` and its members (`path(in:)`, `inset(by:)`,
   `corners(in:)`, `InsetShape`), `clipShape`, `contentShape`, `background(_:in:)`.
   **Keep (B)**, square units: the display scale cancels out of the cell's
-  ratio, which (C)'s absolute size cannot say.
+  ratio, which (C)'s absolute size cannot say. Shipped 2026-10-18
+  ([Shapes (W1)](<Shapes (W1).md>)).
 - **O1** Reduce-motion and the other accessibility preferences. **(b), but
   only `TUIKIT_REDUCE_MOTION`** (B53, shipped) unless TUIkit can be confident
   the terminal is on the same machine; then the host's setting too, by the
@@ -93,11 +97,16 @@ ruling is in the review under its item. In brief, with the ruling:
 - **O3** `CustomAnimation`. **Detect, else live**: integrated lazily and
   memoised, a finished animation is its own pre-sampled table. Shipped
   2026-10-14 (`CustomAnimationCurve`); merging a retarget by `shouldMerge`,
-  and running two side by side, is still owed — a retarget restarts from rest.
+  and running two side by side, shipped 2026-10-18: an interrupted animation
+  carries its motion on, and an interpolating spring adds to the change it
+  interrupts.
 - **O4** Matched geometry and zoom transitions. **(b), with (a) where
-  possible.**
+  possible.** Shipped 2026-10-18 with A23 and A36
+  ([Matched geometry and the zoom transition (O4)](<Matched geometry and the zoom transition (O4).md>));
+  the zoom source's clip shape and shadow follow in lane W1B (B-O4-6).
 - **O5** Materials and Glass (A41 lists the material symbols waiting on it).
-  **(b) for both**; a cell-resolution blur is an optional add-on.
+  **(b) for both**; a cell-resolution blur is an optional add-on. Materials
+  shipped 2026-10-18; glass is in lane GLASS.
 - **O6** `ShadowStyle`. **(b)**, radius and offsets in cells. `View.shadow(color:radius:x:y:)`
   and `ShadowStyle` shipped 2026-10-18; `ShapeStyle.shadow` waits on W1 ([Shadows (O6)](<Shadows (O6).md>)).
 - **O7** `ScrollEdgeEffectStyle`. **Only `.hard`**; no `.soft`. Shipped 2026-10-14.
@@ -109,7 +118,8 @@ ruling is in the review under its item. In brief, with the ruling:
 - **O12** `PointerStyle`. **(b)**, inert where unsupported (the review's
   facts about which terminals take OSC 22 were corrected).
 - **O13** `Commands`, as a menu bar. **A full menu bar**; the app header
-  optional, either, both or neither.
+  optional, either, both or neither. Shipped 2026-10-18
+  ([The menu bar (O13)](<The menu bar (O13).md>)).
 - **O14** `ControlSize`. **(b)**, with extra render styles per size. The
   type, the environment value, both modifiers and the button's table shipped
   2026-10-15 (`ButtonFaceEdges.swift`); the other controls are owed.
@@ -403,7 +413,9 @@ geometry and zoom transitions) covers. `NavigationTransition` and `.automatic`
 shipped (the stack's own transition); `.zoom` and these two follow O4.
 
 **Decided with O4 (2026-10-12): lane owed,** after matched geometry; the
-source configuration needs O0's shapes (W1).
+source configuration needs O0's shapes (W1). **Shipped 2026-10-18** with O4,
+the configuration with its `background(_:)`; its `clipShape(_:)` and
+`shadow(color:radius:x:y:)` follow in lane W1B (B-O4-6).
 
 ### A24. `presentationCornerRadius(_:)` waits on O0/O15
 
@@ -565,7 +577,8 @@ position-only (whole cells, size snaps) to a full re-layout per frame.
 Nothing ships until O4 is answered.
 
 **Decided with O4 (2026-10-12): a full re-layout per frame, translating only
-when the sizes are equal.** Lane owed: about three to four days.
+when the sizes are equal.** **Shipped 2026-10-18** with O4 (Deliberate
+deviations A8).
 
 ### A37. `phaseAnimator(_:trigger:content:animation:)` waits on O2
 
@@ -595,7 +608,9 @@ and the closed-form velocity respectively.
 
 **Decided with O3 (2026-10-12): live, memoised integration**, so both become
 real rather than constant answers: `shouldMerge` is asked on a retarget to the
-same custom type, and the velocity is the integration's. Lane owed with O3.
+same custom type, and the velocity is the integration's. **Shipped
+2026-10-18** with O3's retargets: an interrupted animation carries its motion
+on.
 
 ### A39. The geometric visual effects wait on Wave 16 (A27)
 
