@@ -1009,8 +1009,7 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
 
     /// Type select: the characters typed so far, and when the last of them
     /// came — a gap of a second starts a new prefix (``typeSelect(_:)``).
-    var typeSelectPrefix = ""
-    var typeSelectLastKey: ContinuousClock.Instant?
+    var typeSelected = TypeSelectBuffer()
 
     /// A prefix typed since the last render, for the next render to find a row
     /// for: the rows' text is the render's to give (``typeSelect(_:)``).

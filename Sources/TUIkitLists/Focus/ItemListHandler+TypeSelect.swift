@@ -11,17 +11,10 @@ import TUIkitCore
 import TUIkitFoundation
 
 extension ItemListHandler: TypeSelectingFocusHandler {
-    package var isTypeSelecting: Bool {
-        guard !typeSelectPrefix.isEmpty, let last = typeSelectLastKey else { return false }
-        return ContinuousClock.now - last <= Self.typeSelectTimeout
-    }
+    package var isTypeSelecting: Bool { typeSelected.isTypeSelecting }
 }
 
 extension ItemListHandler {
-    /// How long a pause starts a new prefix: macOS's type select forgets what
-    /// was typed after about a second.
-    static var typeSelectTimeout: Duration { .seconds(1) }
-
     /// Takes a typed character for type select: adds it to the prefix (or
     /// starts a new one after a pause) and leaves the prefix for the next
     /// render, which knows the rows' text, to find a row for.
@@ -36,15 +29,8 @@ extension ItemListHandler {
     ///
     /// - Returns: Whether the key was taken.
     func typeSelect(_ event: KeyEvent) -> Bool {
-        guard case .character(let character) = event.key, !event.ctrl, !event.alt,
-            character != " ", !character.isNewline,
-            character.unicodeScalars.allSatisfy({ !$0.properties.isDefaultIgnorableCodePoint && $0.value >= 0x20 })
-        else { return false }
-        let now = ContinuousClock.now
-        if let last = typeSelectLastKey, now - last > Self.typeSelectTimeout { typeSelectPrefix = "" }
-        typeSelectLastKey = now
-        typeSelectPrefix.append(character)
-        pendingTypeSelect = typeSelectPrefix
+        guard typeSelected.take(event) else { return false }
+        pendingTypeSelect = typeSelected.prefix
         return true
     }
 
@@ -56,15 +42,9 @@ extension ItemListHandler {
     /// - Parameter text: A row's type-select text, or `nil` for a row type
     ///   select passes over.
     func typeSelectMatch(_ prefix: String, text: (Int) -> String?) -> Int? {
-        guard itemCount > 0, !prefix.isEmpty else { return nil }
-        let wanted = prefix.lowercased()
-        let start = prefix.count > 1 ? focusedIndex : focusedIndex + 1
-        for step in 0..<itemCount {
-            let index = (start + step) % itemCount
-            guard isLandable(index), let rowText = text(index), !rowText.isEmpty else { continue }
-            if rowText.lowercased().hasPrefix(wanted) { return index }
+        TypeSelectBuffer.match(prefix, count: itemCount, current: focusedIndex) { index in
+            isLandable(index) ? text(index) : nil
         }
-        return nil
     }
 
     /// Resolves a typed prefix, if one is waiting: moves the cursor to the row
