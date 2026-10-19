@@ -439,6 +439,11 @@ The callbacks come in SwiftUI's order: `isPresented` becomes `false`, then
 was started from, and later on the folder of the last choice. It browses the
 machine the app runs on — over `ssh`, the remote one.
 
+`fileMover` presents the same panel titled Move, to choose a folder: Move
+moves the file (or files) into the folder selected, or the one shown, and
+`onCompletion` hears the new URLs, or the error — an item of the same name
+already in the folder is one.
+
 The `fileDialog` modifiers customize the panel, written outside the modifier
 that presents it, as with SwiftUI:
 

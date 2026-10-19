@@ -177,6 +177,7 @@
   "TUIkitFilePanels/Customization/FileDialogCustomization.swift": "TUIkitFilePanels",
   "TUIkitFilePanels/Exports.swift": "TUIkitFilePanels",
   "TUIkitFilePanels/Modifiers/View+FileImporter.swift": "TUIkitFilePanels",
+  "TUIkitFilePanels/Modifiers/View+FileMover.swift": "TUIkitFilePanels",
   "TUIkitFilePanels/Panel/FilePanel.swift": "TUIkitFilePanels",
   "TUIkitFilePanels/Panel/FilePanelColumns.swift": "TUIkitFilePanels",
   "TUIkitFilePanels/Panel/FilePanelPresenter.swift": "TUIkitFilePanels",

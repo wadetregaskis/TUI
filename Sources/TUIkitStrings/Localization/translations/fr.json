@@ -107,6 +107,7 @@
   "filePanel.unreadableFolder": "Impossible d’ouvrir le dossier « %@ ».",
   "filePanel.status.enclosingFolder": "dossier parent",
   "filePanel.status.home": "dossier de départ",
+  "filePanel.move": "Déplacer",
 
   "menu.file": "Fichier",
   "menu.edit": "Modifier",

@@ -158,3 +158,24 @@ names, else `StorageDefaults.backend`). It opens there next time, in place of
 the default directory, as Apple documents; a kept folder that no longer exists
 is passed over. **The fuller version** keeps the sort order and recent folders
 too (once there is a sidebar to show them in): an hour each.
+
+### B-O10-9. A mover chooses a folder, moves in order, and fails on a name already there
+
+*`View.fileMover(isPresented:file:onCompletion:)`, `fileMover(isPresented:files:onCompletion:)`
+and their `onCancellation:` forms*
+
+Apple documents what the mover is for and not how it decides. TUIkit's is the
+open panel titled Move, choosing a folder: its files are dimmed, Return opens a
+folder, and Move moves into the folder selected, or the folder shown when none
+is. It opens on the folder that holds the (first) file, the natural place to
+go from, unless a customization names another. The move is
+`FileManager.moveItem(at:to:)`, off the main actor; `onCompletion` is called
+on the main actor once it is done, after `isPresented` was cleared. The files
+move in the collection's order and the first that fails ends the operation
+with its error — the ones before it stay moved, since moving them back could
+fail too. An item of the same name already in the folder is such an error
+(`CocoaError.fileWriteFileExists`): the panel does not offer to replace it.
+Moving a file to the folder it is already in is a success that moves nothing.
+**The fuller version** asks to replace, as the save panel does (B-O10-10), with
+the replaced item kept in the Trash where there is one: half a day, and a
+question of whether a mover should ever destroy an item.

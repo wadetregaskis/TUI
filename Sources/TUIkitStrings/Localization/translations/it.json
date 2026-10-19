@@ -107,6 +107,7 @@
   "filePanel.unreadableFolder": "Impossibile aprire la cartella “%@”.",
   "filePanel.status.enclosingFolder": "cartella superiore",
   "filePanel.status.home": "cartella Inizio",
+  "filePanel.move": "Sposta",
 
   "menu.file": "File",
   "menu.edit": "Modifica",

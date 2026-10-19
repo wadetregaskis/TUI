@@ -137,6 +137,7 @@ extension LocalizationService {
       "filePanel.unreadableFolder": "The folder “%@” can’t be opened.",
       "filePanel.status.enclosingFolder": "enclosing folder",
       "filePanel.status.home": "home",
+      "filePanel.move": "Move",
 
       "menu.file": "File",
       "menu.edit": "Edit",

@@ -107,6 +107,7 @@
   "filePanel.unreadableFolder": "Der Ordner „%@“ kann nicht geöffnet werden.",
   "filePanel.status.enclosingFolder": "übergeordneter Ordner",
   "filePanel.status.home": "Benutzerordner",
+  "filePanel.move": "Verschieben",
 
   "menu.file": "Datei",
   "menu.edit": "Bearbeiten",

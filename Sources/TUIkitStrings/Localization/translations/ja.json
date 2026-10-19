@@ -107,6 +107,7 @@
   "filePanel.unreadableFolder": "フォルダ“%@”を開けません。",
   "filePanel.status.enclosingFolder": "親フォルダ",
   "filePanel.status.home": "ホームフォルダ",
+  "filePanel.move": "移動",
 
   "menu.file": "ファイル",
   "menu.edit": "編集",

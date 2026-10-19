@@ -107,6 +107,7 @@
   "filePanel.unreadableFolder": "无法打开文件夹“%@”。",
   "filePanel.status.enclosingFolder": "上层文件夹",
   "filePanel.status.home": "个人文件夹",
+  "filePanel.move": "移动",
 
   "menu.file": "文件",
   "menu.edit": "编辑",

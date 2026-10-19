@@ -4513,3 +4513,41 @@ private struct CorpusFileDialogCustomizations: View {
             .fileDialogCustomizationID("combine")
     }
 }
+
+/// The four movers as Apple's documentation writes them.
+@MainActor
+private struct CorpusFileMovers: View {
+    @State private var showFileMover = false
+    var file: URL
+    var files: [URL]
+    var onCompletion: (URL) -> Void
+    var onCancellation: (() -> Void)?
+
+    var body: some View {
+        VStack {
+            Button {
+                showFileMover = true
+            } label: {
+                Label("Choose destination", systemImage: "folder.circle")
+            }
+            .fileMover(isPresented: $showFileMover, file: file) { result in
+                switch result {
+                case .success(let url):
+                    guard url.startAccessingSecurityScopedResource() else { return }
+                    onCompletion(url)
+                    url.stopAccessingSecurityScopedResource()
+                case .failure(let error):
+                    print(error)
+                }
+            } onCancellation: {
+                onCancellation?()
+            }
+            Button("Move") { showFileMover = true }
+                .fileMover(isPresented: $showFileMover, file: Optional(file)) { _ in }
+            Button("Move all") { showFileMover = true }
+                .fileMover(isPresented: $showFileMover, files: files) { result in _ = result }
+            Button("Move set") { showFileMover = true }
+                .fileMover(isPresented: $showFileMover, files: Set(files)) { _ in } onCancellation: {}
+        }
+    }
+}

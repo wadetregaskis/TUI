@@ -215,6 +215,8 @@ public enum LocalizationKey {
         case statusEnclosingFolder = "filePanel.status.enclosingFolder"
         /// The status bar's word for the key to the home folder.
         case statusHome = "filePanel.status.home"
+        /// A mover's title and confirmation button.
+        case move = "filePanel.move"
     }
 
     /// Menu items and sections
