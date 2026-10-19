@@ -416,6 +416,17 @@ struct MatchedGeometryEffectTests {
             == CellRect(x: 0, y: 1, width: 2, height: 1))
     }
 
+    @Test("A source at rest with no follower is only found: it starts no carried origin")
+    func sourceAtRestIsOnlyFound() {
+        let frames = Frames()
+        frames.draw(Hero(expanded: false))
+        frames.draw(Hero(expanded: false))
+        #expect(!frames.harness.tui.mouseEventDispatcher.geometry.keepsReaders)
+        frames.draw(Followed())
+        frames.draw(Followed())
+        #expect(frames.harness.tui.mouseEventDispatcher.geometry.keepsReaders, "a follower reads where it is")
+    }
+
     @Test("Placement arithmetic rounds once, down")
     func placementArithmetic() {
         let source = MatchedSource(

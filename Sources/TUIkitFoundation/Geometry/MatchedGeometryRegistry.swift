@@ -252,6 +252,15 @@ extension MatchedGeometryRegistry {
         }
     }
 
+    /// Whether `key`'s group has a member that follows its source — last
+    /// frame, in this frame's last resolved walk, or registered so far in this
+    /// one — so a source must say where it expects to be found.
+    package func hasFollowers(of key: MatchedGeometryKey) -> Bool {
+        if lastFrame[key]?.contains(where: { !$0.isSource }) == true { return true }
+        if settled?[key]?.contains(where: { !$0.isSource }) == true { return true }
+        return walk[key]?.contains(where: \.isFollower) == true
+    }
+
     /// The member of `key`'s group that left as `identity` arrived — what an
     /// arriving member animates from, SwiftUI's "a view inserted in the same
     /// transaction that another view with the same key is removed" — or `nil`

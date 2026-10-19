@@ -172,11 +172,22 @@ extension _MatchedGeometryEffectView: Renderable, Layoutable {
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard !context.isMeasuring, let coordinator = context.geometryCoordinator,
-            let storage = context.stateStorage,
-            // Claimed BEFORE the content renders, as a visual effect claims its
-            // ask: the marker's id is the ordinal of the claim at this identity.
-            let ask = context.makeGeometryAsk(role: .reader)
+            let storage = context.stateStorage
         else { return TUIkitView.renderToBuffer(content, context: context) }
+        let registry = coordinator.matchedGeometry
+        var member = MatchedMemberDrawing(effect: self, identity: context.identity, registry: registry)
+        // A reader — told where it is predicted to be, held to it, and keeping
+        // the carried origin in force for the frames after — only where it may
+        // be drawn somewhere else, or a follower draws from where it is: a
+        // source at rest with none is only found, as `onGeometryChange` is.
+        // Claimed BEFORE the content renders, as a visual effect claims its
+        // ask: the marker's id is the ordinal of the claim at this identity.
+        let role: GeometryAsk.Role =
+            member.needsPlacement || registry.hasFollowers(of: key) ? .reader : .reporter
+        guard let ask = context.makeGeometryAsk(role: role) else {
+            return TUIkitView.renderToBuffer(content, context: context)
+        }
+        member.registration.marker = ask.id
         // Joined to the group on every frame it draws, and drawn from where
         // the others are: work a served buffer cannot do.
         context.environment.volatileReadTracker?.recordRenderSideEffect()
@@ -184,8 +195,6 @@ extension _MatchedGeometryEffectView: Renderable, Layoutable {
         // others can draw from it.
         ask.want(.global)
 
-        var member = MatchedMemberDrawing(
-            effect: self, identity: context.identity, marker: ask.id, registry: coordinator.matchedGeometry)
         // Where the walk stands before the content draws, for a second drawing
         // at another size to start from — taken only where the member may be
         // drawn anywhere but its own place, which a source at rest is not.
@@ -281,10 +290,7 @@ private struct MatchedMemberDrawing {
     /// The member's own frame, once its origin is known.
     private(set) var ownFrame: CellRect
 
-    init(
-        effect: _MatchedGeometryEffectView<some View>, identity: ViewIdentity, marker: HitTestRegion.HandlerID,
-        registry: MatchedGeometryRegistry
-    ) {
+    init(effect: _MatchedGeometryEffectView<some View>, identity: ViewIdentity, registry: MatchedGeometryRegistry) {
         let key = effect.key
         let previous = registry.state(of: identity)
         properties = effect.properties
@@ -293,7 +299,7 @@ private struct MatchedMemberDrawing {
         let source = effect.isSource ? nil : registry.source(of: key, excluding: identity)
         self.source = source
         registration = MatchedRegistration(
-            identity: identity, marker: marker, isSource: effect.isSource, anchor: effect.anchor,
+            identity: identity, marker: HitTestRegion.HandlerID(0), isSource: effect.isSource, anchor: effect.anchor,
             size: CellSize(width: 0, height: 0),
             state: MatchedMemberState(
                 key: key, followed: source?.identity, epoch: previous?.epoch ?? 0,
