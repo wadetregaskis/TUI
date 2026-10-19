@@ -14,7 +14,8 @@ import TUIkitFoundation
 
 /// The state of one file panel's browsing.
 ///
-/// A panel keeps one as `@State` for as long as it is presented. Its folder
+/// A panel keeps one as `@State`, a new one for each presentation, and lets
+/// go of what it read (``close()``) when it is dismissed. Its folder
 /// changes on the main actor, at once (``open(_:)``, ``goUp()``); what the
 /// folder holds follows when ``refresh()`` — run by the panel's
 /// `.task(id: refreshKey)`, so that a newer folder or order cancels it —
@@ -115,6 +116,16 @@ final class FileBrowser {
     /// Reads the folder again, as it is now.
     func reload() {
         generation += 1
+    }
+
+    /// Lets go of what the folder holds, which ``refresh()`` reads again:
+    /// for a panel that has gone, whose state may outlive it.
+    func close() {
+        listed = nil
+        rows = []
+        rowIndex = [:]
+        hiddenCount = 0
+        state = .loading
     }
 
     /// Whether the folder shown is the file system's root, which has no folder

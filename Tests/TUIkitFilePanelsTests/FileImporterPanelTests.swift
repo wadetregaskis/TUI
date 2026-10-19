@@ -219,6 +219,53 @@ struct FileImporterPanelTests {
         #expect(!driver.screen().contains(".hidden"))
     }
 
+    @Test("A panel presented again is a new panel, even from a list row, which keeps its rows' state")
+    func presentedAgainFromListRow() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        // A `List` keeps the state of everything in its rows, the sheet's
+        // content included: a panel whose folder was its own `@State` came
+        // back in the folder it was cancelled in.
+        let driver = FilePanelDriver {
+            List {
+                panel(fixture, caller: caller)
+            }
+        }
+        await driver.waitFor("notes.md")
+        driver.press(.enter)
+        await driver.waitFor("inner.txt")
+        driver.press(.escape)
+        #expect(caller.heard == ["cancelled (presented: false)"])
+        driver.screen()
+        caller.isPresented = true
+        let shown = await driver.waitFor("notes.md", timeout: .seconds(10))
+        #expect(!shown.contains("inner.txt"), "\(shown)")
+    }
+
+    @Test("A panel presented again from a list row takes the types its modifier names now")
+    func presentedAgainReadsNewTypes() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        var types: [UTType] = [.pdf]
+        let driver = FilePanelDriver {
+            List {
+                panel(fixture, caller: caller, types: types)
+            }
+        }
+        await driver.waitFor("notes.md")
+        driver.press(.escape)
+        driver.screen()
+        // Plain text now: beta.txt, the third row, is chosen.
+        types = [.plainText]
+        caller.isPresented = true
+        await driver.waitFor("notes.md")
+        driver.press(.down, times: 2)
+        driver.press(.enter)
+        #expect(caller.chosenPaths == [fixture.url("beta.txt").path])
+    }
+
     @Test("~ goes to the home folder")
     func tildeGoesHome() async throws {
         let fixture = try FilePanelFixture()

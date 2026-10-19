@@ -101,6 +101,11 @@ struct FilePanel: View {
             footer: footer
         )
         .task(id: browser.refreshKey) { await browser.refresh() }
+        // Gone, it lets go of the folder's rows, most of what it holds: under
+        // a view that keeps its subtree's state — a list row, a toolbar — a
+        // dismissed panel's `@State` outlives it (`FilePanelSheet`). Drawn
+        // again, its task reads the folder anew.
+        .onDisappear { browser.close() }
     }
 
     /// What the box holds: the message, a save panel's name field, the path
