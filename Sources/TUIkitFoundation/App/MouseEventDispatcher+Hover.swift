@@ -64,9 +64,28 @@ extension MouseEventDispatcher {
     /// modifier key, or any report from the mouse — so the reshapes from
     /// here on are its effect, not the hover handlers' own: the controls
     /// reshapes took a lane off since the last input are forgotten
-    /// (``leftByReshape``). The mouse's are noted by ``dispatch(_:)`` itself.
+    /// (``leftByReshape``), but for those resting under the pointer now. The
+    /// mouse's are noted by ``dispatch(_:)`` itself, after the pointer's new
+    /// cell.
+    ///
+    /// One resting under the pointer unentered is where its own hover's
+    /// reshape left it — an `.onHover` that moved its view off the pointer
+    /// and back as it was exited — and is kept until the pointer moves onto
+    /// it (``dispatchMotion(_:)`` enters it then, as it enters anything).
+    /// Forgotten, it was entered again at the next frame, and flickered once
+    /// more, at every key typed anywhere (the lane's review). One that is
+    /// elsewhere is forgotten, so a row a key scrolls away and back is
+    /// entered as it comes back.
     package func noteInput() {
-        leftByReshape.removeAll(keepingCapacity: true)
+        guard !leftByReshape.isEmpty else { return }
+        guard let position = restingPosition else {
+            leftByReshape.removeAll(keepingCapacity: true)
+            return
+        }
+        let resolved = resolveHover(at: position.x, y: position.y)
+        leftByReshape = leftByReshape.filter { id in
+            resolved.target?.handlerID == id || resolved.observers.contains { $0.handlerID == id }
+        }
     }
 
     /// Lets go of the pointer: the terminal says it has left the window, as

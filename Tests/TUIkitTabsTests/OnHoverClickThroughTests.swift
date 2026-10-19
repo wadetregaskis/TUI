@@ -428,6 +428,38 @@ struct HoverReshapeTests {
         #expect(Array(events.suffix(2)) == ["hovering exited", "other entered"], "the newcomer: \(events)")
     }
 
+    /// Found by the INPUT lane's review: an input forgot every control a
+    /// reshape had taken a lane off, the one resting unentered under the
+    /// pointer included, so a hover whose change moves its own view off the
+    /// pointer was entered again, and flickered once more, at every key.
+    @Test("An input does not put a lane back on a control a reshape left resting under the pointer",
+          arguments: [false, true])
+    func inputDoesNotReenterWhatSettledUnderThePointer(observer: Bool) {
+        let dispatcher = MouseEventDispatcher()
+        dispatcher.setActiveSupport(.full, isFrameFinal: true)
+        let row = dispatcher.handlerIDs.freshID()
+        var events: [MousePhase] = []
+
+        func frame(rowAt y: Int) {
+            dispatcher.beginRenderPass()
+            _ = dispatcher.register(id: row) { events.append($0.phase); return true }
+            if observer { dispatcher.noteHoverObserver(row) }
+            dispatcher.setRegions([HitTestRegion(offsetX: 0, offsetY: y, width: 6, height: 1, handlerID: row)])
+        }
+
+        frame(rowAt: 2)
+        _ = dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 2, y: 2))
+        // Its hover moves it down a row, off the pointer; its exit moves it back.
+        frame(rowAt: 3)
+        frame(rowAt: 2)
+        #expect(events == [.entered, .exited], "precondition: settled: \(events)")
+        for _ in 0..<3 {
+            dispatcher.noteInput()  // a key typed somewhere else
+            frame(rowAt: 2)
+        }
+        #expect(events == [.entered, .exited], "a key entered it again: \(events)")
+    }
+
     /// decisions-BUGS13 B-BUGS13-2: a loop through two hover views — one
     /// whose change puts the other under the resting cursor and takes it
     /// away as it leaves — moved the lane from one to the other at every

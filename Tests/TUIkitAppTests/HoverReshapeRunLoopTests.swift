@@ -272,6 +272,27 @@ struct HoverReshapeRunLoopTests {
         }
     }
 
+    /// Found by the INPUT lane's review: every key forgot the row the reshape
+    /// had taken the hover off, though it rested under the pointer, so each
+    /// one entered it again, showed its details for a frame and took them
+    /// away, and called the `.onHover` twice.
+    @Test("An .onHover that settled under a resting pointer stays settled through keys")
+    func selfDisplacingHoverStaysSettledThroughKeys() throws {
+        let log = HoverLog()
+        let driver = Driver(SelfDisplacingApp(log: log, declaresMotion: true, centred: false))
+        let row = try #require(driver.position(of: "hover me"), "precondition: drawn")
+        driver.app.send(MouseEvent(button: .none, phase: .moved, x: row.x + 1, y: row.y))
+        for _ in 0..<12 { driver.step() }
+        let settled = log.heard
+        #expect(settled == [true, false], "precondition: it settled: \(settled)")
+        for character in "abc" {
+            driver.app.send(KeyEvent(character: character))
+            for _ in 0..<4 { driver.step() }
+        }
+        #expect(log.heard == settled, "a key entered it again: \(log.heard)")
+        #expect(!driver.shows("details"))
+    }
+
     /// decisions-BUGS13 B-BUGS13-2: each reshape moved the lane from one
     /// view to the other, and the app never idled.
     @Test("A loop through two .onHover views under a resting pointer settles")

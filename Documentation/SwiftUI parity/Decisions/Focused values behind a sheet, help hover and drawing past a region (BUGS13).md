@@ -112,3 +112,9 @@ entered again without waiting for the pointer
 (`HoverReshapeTests.reshapeLoopThroughTwoControlsSettles`,
 `.inputLetsALeftControlBeEnteredAgain`;
 `HoverReshapeRunLoopTests.twoViewLoopSettles`, `.keyMovedRowIsEnteredAgain`).
+An input forgets only the controls that are not under the resting pointer:
+the lane's review found that forgetting the one an `.onHover` had settled
+on, resting under the pointer unentered, entered it again at every key
+typed anywhere, and it flickered once per key
+(`HoverReshapeTests.inputDoesNotReenterWhatSettledUnderThePointer`,
+`HoverReshapeRunLoopTests.selfDisplacingHoverStaysSettledThroughKeys`).

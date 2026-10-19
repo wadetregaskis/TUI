@@ -146,7 +146,8 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// The controls a reshape has taken a hover lane off since the last
     /// input (``noteInput()``), by their ids, which are their own across
     /// frames (interned per view): no reshape enters one of them again until
-    /// an input is dispatched, the pointer's moves included.
+    /// an input is dispatched, the pointer's moves included — and one resting
+    /// under the pointer, not until the pointer moves onto it.
     ///
     /// A hover whose change moves its own view out from under a resting
     /// pointer — `.onHover` showing a line of details above its row —
