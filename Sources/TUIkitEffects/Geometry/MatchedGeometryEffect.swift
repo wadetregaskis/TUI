@@ -210,6 +210,10 @@ extension _MatchedGeometryEffectView: Renderable, Layoutable {
             }
             carryLeaving(of: member, to: frame, departures: storage.departures)
         }
+        // Landed, or never carried: the member that left is carried no
+        // further, and the store keeps where it was last carried to for as
+        // long as its picture is still drawn.
+        if !member.isCarried { member.registration.state.leaving = nil }
 
         if isSource { member.registration.expectedOrigin = ask.expectedOrigin(in: .global) }
         ask.finishRecording(size: own.cellSize)
@@ -250,14 +254,15 @@ extension _MatchedGeometryEffectView: Renderable, Layoutable {
     }
 
     /// Tells the departure store how far the member of the group that left as
-    /// this one arrived is carried on this frame: its picture is placed in
-    /// the frame this one is drawn at, as a content of its size is placed in a
-    /// matched frame (``MatchedGeometryPlacement/contentOffset(in:content:anchor:matchesPosition:)``),
+    /// this one arrived is carried on this frame — the frame it lands on
+    /// included: its picture is placed in the frame this one is drawn at, as
+    /// a content of its size is placed in a matched frame
+    /// (``MatchedGeometryPlacement/contentOffset(in:content:anchor:matchesPosition:)``),
     /// so the two move together as SwiftUI's do (`mg3.out` A1, A2), and the
     /// picture fades where they are (decisions B-O4-1). The picture is the one
     /// it last drew, so it keeps its size: a cell cannot be scaled.
     private func carryLeaving(of member: MatchedMemberDrawing, to frame: CellRect, departures: DepartureStore) {
-        guard member.isCarried, let leaving = member.registration.state.leaving else { return }
+        guard let leaving = member.registration.state.leaving else { return }
         let left = leaving.presented
         let inside = MatchedGeometryPlacement.contentOffset(
             in: frame.size, content: left.size, anchor: anchor, matchesPosition: member.matchesPosition)
@@ -382,10 +387,7 @@ private struct MatchedMemberDrawing {
             registration.state.epoch += 1
             registration.state.offsets = MatchedEdgeOffsets(from: startsFrom, to: target)
         }
-        guard !registration.state.offsets.isZero else {
-            registration.state.leaving = nil
-            return target
-        }
+        guard !registration.state.offsets.isZero else { return target }
         // Under the member's own wrapper type, as its state is kept: two
         // effects on one view run apart.
         let key = AnimationStore.Key(
@@ -399,7 +401,6 @@ private struct MatchedMemberDrawing {
             isMeasuring: false)
         guard animations.isAnimating(at: key, nowNanos: now) else {
             registration.state.offsets = .zero
-            registration.state.leaving = nil
             return target
         }
         return registration.state.offsets.applied(to: target, remaining: 1 - phase)

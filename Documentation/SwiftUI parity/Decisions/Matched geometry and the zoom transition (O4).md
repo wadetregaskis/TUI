@@ -82,7 +82,9 @@ frame, so the two move together. Whatever plays the removal — the `nil` an
 `if` became, the stack that saw a branch or a row go (decisions
 B-TRANSITIONS2-1), a conditional drawn whole — draws the picture past its
 place by that much. A picture drawn before the arriving member has drawn
-takes the last frame's carry.
+takes the last frame's carry, and one whose removal outlasts the carry stays
+where the carry landed — in the frame the arriving one ends at, as SwiftUI's
+does — for as long as it is drawn.
 
 ### B-O4-2. A transition fades a member where it is laid out, not where it is drawn
 

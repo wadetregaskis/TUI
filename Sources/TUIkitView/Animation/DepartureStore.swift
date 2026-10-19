@@ -117,12 +117,13 @@ public final class DepartureStore: @unchecked Sendable {
 
     private var entries: [ViewIdentity: Entry] = [:]
 
-    /// How far the matched view that left from each identity is carried on
-    /// this pass, toward the one of its group arriving as it left
-    /// (``noteCarried(_:byX:y:)``), and on the pass before — kept a pass, for
-    /// a picture drawn before the view arriving has said where it is.
-    private var carried: [ViewIdentity: (x: Int, y: Int)] = [:]
-    private var carriedLastPass: [ViewIdentity: (x: Int, y: Int)] = [:]
+    /// How far the matched view that left from each identity is carried,
+    /// toward the one of its group arriving as it left
+    /// (``noteCarried(_:byX:y:)``) — kept while it is noted or drawn, so a
+    /// picture drawn before the view arriving has said where it is takes the
+    /// last frame's carry, and one that leaves for longer than the carry
+    /// takes stays where the carry landed.
+    private var carries: [ViewIdentity: Carry] = [:]
 
     /// Where a removal starting is reported, for the completions waiting on
     /// the change that removed the view — see ``AnimationCompletionTracker``.
@@ -451,9 +452,11 @@ extension DepartureStore {
         for key in entries.keys {
             entries[key]?.presentThisPass = false
         }
-        if !carried.isEmpty || !carriedLastPass.isEmpty {
-            carriedLastPass = carried
-            carried.removeAll()
+        if !carries.isEmpty {
+            // A carry neither noted nor drawn for a whole pass is of a view
+            // that has gone for good.
+            carries = carries.filter(\.value.touched)
+            for key in carries.keys { carries[key]?.touched = false }
         }
     }
 
@@ -462,22 +465,23 @@ extension DepartureStore {
     /// group that arrived as it left is carried from its frame toward its
     /// own, and SwiftUI moves the one leaving with it (measured,
     /// `Tools/SwiftUIProbes/Matched geometry/mg3.out` A1, A2). Said by the
-    /// member arriving, on each frame it is carried (decisions B-O4-1).
+    /// member arriving, on each frame it is carried and the frame it lands
+    /// (decisions B-O4-1).
     package func noteCarried(_ member: ViewIdentity, byX dx: Int, y dy: Int) {
-        carried[member] = (dx, dy)
+        carries[member] = Carry(dx: dx, dy: dy, touched: true)
     }
 
     /// How far the picture of a view leaving from `identity` is carried: the
-    /// carry noted for a matched view that left from `identity` or from
-    /// inside it, this pass or — drawn before the view arriving said — the
-    /// one before; `nil` where nothing it held is carried.
+    /// carry last noted for a matched view that left from `identity` or from
+    /// inside it; `nil` where nothing it held is carried.
     package func carriedOffset(within identity: ViewIdentity) -> (x: Int, y: Int)? {
-        guard !carried.isEmpty || !carriedLastPass.isEmpty else { return nil }
-        func within(_ notes: [ViewIdentity: (x: Int, y: Int)]) -> (x: Int, y: Int)? {
-            if let exact = notes[identity] { return exact }
-            return notes.first { identity.isAncestor(of: $0.key) }?.value
-        }
-        return within(carried) ?? within(carriedLastPass)
+        guard !carries.isEmpty else { return nil }
+        let member =
+            carries[identity] != nil ? identity : carries.keys.first { identity.isAncestor(of: $0) }
+        guard let member, let carry = carries[member] else { return nil }
+        // Drawn: kept for as long as its picture is.
+        carries[member]?.touched = true
+        return (carry.dx, carry.dy)
     }
 
     /// `picture`, left by a view leaving from `identity`, drawn where it is
@@ -518,7 +522,15 @@ extension DepartureStore {
     /// Drops everything.
     public func removeAll() {
         entries.removeAll()
-        carried.removeAll()
-        carriedLastPass.removeAll()
+        carries.removeAll()
     }
+}
+
+/// How far a matched view that left is carried
+/// (``DepartureStore/noteCarried(_:byX:y:)``).
+private struct Carry {
+    var dx: Int
+    var dy: Int
+    /// Whether it was noted or drawn this pass.
+    var touched: Bool
 }
