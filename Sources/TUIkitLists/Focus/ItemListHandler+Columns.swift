@@ -14,8 +14,9 @@ import TUIkitFoundation
 // MARK: - What the keys reach
 
 /// A table's column customization as the keyboard reaches it: built each frame
-/// by a table bound to a ``TableColumnCustomization``, from the columns it is
-/// showing.
+/// by a table with a header, from the columns it is showing — every one it may
+/// resize, and with a ``TableColumnCustomization`` bound, every one it may
+/// move, hide or open the menu on (decisions B-D4T-7).
 package struct TableColumnEditing {
     /// The shown columns a user may customize, by identifier, in the order
     /// they are shown — as they stand now, asked of the customization: a key

@@ -194,11 +194,17 @@ before anything can be done to it, and keys inside a mode need no modifier a
 terminal might not send. Only Ctrl-K is a rebindable `RowAction`; free Ctrl
 letters are too few for three pairs.
 
-**The fuller version:** gestures on a table without a binding and on columns
-without an identifier, kept in the table's own state as SwiftUI keeps them in
-the outline view — resizing everywhere, reordering with a binding. It costs a
-state lookup per table per frame for the transient widths, which every table
-would pay; half a day.
+**Since 2026-10-18 (lane LISTS), the fuller version's resizing:** a table
+without a binding, and a column without an identifier in one with, resizes
+as any other — its gap dragged, or `-`/`+` in the column mode, which Ctrl-K
+now opens on every table with a header — the width kept in the table's own
+state (`ItemListHandler.transientColumnWidths`, by the column's identifier
+or its place) for as long as the table is shown, as SwiftUI keeps it in the
+outline view. Reordering and the column menu still need a binding and an
+identifier, as measured. The price, paid by every table: a state lookup per
+frame (`resizingColumns`), and a mouse region per resizable column gap
+registered each frame on a table that had none. A/B owed: tables,
+tables-scroll.
 
 ## C. Declined, with the reason
 

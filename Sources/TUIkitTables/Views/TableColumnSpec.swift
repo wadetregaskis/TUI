@@ -58,6 +58,11 @@ struct _TableColumnSpec<Value> {
     /// declared.
     var effectiveWidth: _TableColumnWidth { resizedWidth.map(_TableColumnWidth.fixed) ?? width }
 
+    /// The key a table keeps this column's transient width and its keyboard
+    /// pick by: its customization identifier, else its place among the
+    /// declared columns.
+    var columnKey: String { customizationID ?? "#\(declarationIndex)" }
+
     /// Whether a user may `behavior` this column: only a column with an
     /// identifier can be customized at all, and its
     /// ``TableColumnContent/disabledCustomizationBehavior(_:)`` takes away
@@ -68,9 +73,13 @@ struct _TableColumnSpec<Value> {
 
     /// The widths a user may resize this column to, from its declaration — or
     /// `nil` for one that cannot be resized: a fixed width, as SwiftUI's
-    /// `width(_:)` is (measured: its minimum and maximum are that width).
+    /// `width(_:)` is (measured: its minimum and maximum are that width), or
+    /// one whose `disabledCustomizationBehavior` names resizing. An identifier
+    /// is not needed: macOS resizes every column of every table (measured,
+    /// decisions B-D4T-7), and a width no customization can record is kept by
+    /// the table (``ItemListHandler/transientColumnWidths``).
     func resizeBounds(upTo widest: Int) -> ClosedRange<Int>? {
-        guard allows(.resize) else { return nil }
+        guard !(disabledCustomizationBehavior?.contains(.resize) ?? false) else { return nil }
         switch width {
         case .fixed:
             return nil

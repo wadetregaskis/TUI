@@ -531,9 +531,9 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _openContextMenu: (() -> Bool)?
 
-    /// What a `Table`'s column keys reach — set each frame by a table a user
-    /// may customize, `nil` for a `List` and for a table with no
-    /// customization binding. See ``TableColumnEditing``.
+    /// What a `Table`'s column keys reach — set each frame by a table with a
+    /// header, `nil` for a `List` and a table without one. See
+    /// ``TableColumnEditing``.
     package var columnEditing: TableColumnEditing? { get { _columnEditing } set { _columnEditing = newValue } }
 
     /// ``columnEditing``'s storage: private, under the `package` accessor
@@ -560,6 +560,21 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// ``headerColumnsWidest``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _headerColumnsWidest = 1
+
+    /// The widths a user gave a `Table`'s columns where no customization
+    /// records them — a table with no customization binding, or a column with
+    /// no identifier — by the table's column key (its identifier, else its
+    /// place among the declared columns). The table's own state, as SwiftUI
+    /// keeps them in its outline view (decisions B-D4T-7): for as long as the
+    /// table is shown, and gone with it.
+    package var transientColumnWidths: [String: Int] {
+        get { _transientColumnWidths }
+        set { _transientColumnWidths = newValue }
+    }
+
+    /// ``transientColumnWidths``'s storage: private, under the `package`
+    /// accessor (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _transientColumnWidths: [String: Int] = [:]
 
     /// The column picked for the keyboard's customization (``RowAction/customizeColumns``),
     /// by identifier, or `nil` when none is. Persisted with the handler, and

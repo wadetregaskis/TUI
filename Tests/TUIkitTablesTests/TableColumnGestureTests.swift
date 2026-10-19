@@ -237,6 +237,38 @@ struct TableColumnGestureTests {
         #expect(harness.lines[y].contains("Alpha"))
     }
 
+    /// macOS resizes every column of every table, bound or not (measured,
+    /// decisions B-D4T-7); the width a table with nothing to record it in
+    /// keeps is its own, for as long as it is shown.
+    @Test("Without a customization binding, dragging the gap after a title resizes the column, and the table keeps it")
+    func unboundDragResizes() throws {
+        let harness = Harness(bound: false)
+        let y = try #require(harness.lines.firstIndex { $0.contains("Alpha") && $0.contains("Beta") })
+        let beta = try #require(harness.column(of: "Beta", on: y))
+        harness.drag(from: (beta - 1, y), toX: beta + 2)
+        #expect(harness.column(of: "Beta", on: y) == beta + 3, "\(harness.screen)")
+        harness.frame()
+        harness.frame()
+        #expect(harness.column(of: "Beta", on: y) == beta + 3, "the width is kept from frame to frame")
+        #expect(harness.columns.sortOrder == [KeyPathComparator(\Entry.alpha)], "a resize must not sort")
+    }
+
+    @Test("Without a customization binding, Ctrl-K picks a column and - and + resize it; nothing moves")
+    func unboundKeyboardResizes() throws {
+        let harness = Harness(bound: false)
+        let y = try #require(harness.lines.firstIndex { $0.contains("Alpha") && $0.contains("Beta") })
+        let beta = try #require(harness.column(of: "Beta", on: y))
+        harness.key(KeyEvent(key: .character("k"), ctrl: true))
+        harness.key(KeyEvent(key: .character("+")))
+        harness.key(KeyEvent(key: .character("+")))
+        #expect(harness.column(of: "Beta", on: y) == beta + 2, "\(harness.screen)")
+        harness.key(KeyEvent(key: .character("-")))
+        #expect(harness.column(of: "Beta", on: y) == beta + 1, "\(harness.screen)")
+        harness.key(KeyEvent(key: .character(">")))
+        let alpha = try #require(harness.column(of: "Alpha", on: y))
+        #expect(alpha < beta, "nothing records an order, so nothing moves: \(harness.screen)")
+    }
+
     @Test("Dragging a title moves its column, and the customization records the order")
     func dragReorders() throws {
         let harness = Harness()

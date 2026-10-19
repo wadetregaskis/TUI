@@ -393,6 +393,17 @@ struct TableSortOrderTests {
 
     // MARK: - Where the click has to land
 
+    /// The header line's title regions, left to right: its regions less the
+    /// gap after each title but the last, which a drag resizes the column by
+    /// (decisions B-D4T-7) — two cells, the table's column spacing, where the
+    /// title's region ends.
+    private func titleRegions(in buffer: FrameBuffer) -> [HitTestRegion] {
+        let regions = buffer.hitTestRegions.filter { $0.offsetY == 1 && $0.height == 1 }
+            .sorted { $0.offsetX < $1.offsetX }
+        let ends = Set(regions.map { $0.offsetX + $0.width })
+        return regions.filter { !($0.width == 2 && ends.contains($0.offsetX)) }
+    }
+
     /// The regions have to line up with the titles as DRAWN — the whole point
     /// of deriving both from one column-width list.
     @Test("Each header region covers its own column and no other")
@@ -400,10 +411,10 @@ struct TableSortOrderTests {
         let harness = Harness(sortOrder: [KeyPathComparator(\Row.name)])
         let buffer = harness.render()
         let header = buffer.lines[1].stripped
-        let regions = buffer.hitTestRegions.filter { $0.offsetY == 1 && $0.height == 1 }
+        let regions = titleRegions(in: buffer)
         #expect(regions.count == 2, "one per sortable column: \(regions)")
 
-        for (title, region) in zip(["Name", "Size"], regions.sorted { $0.offsetX < $1.offsetX }) {
+        for (title, region) in zip(["Name", "Size"], regions) {
             guard let found = header.range(of: title) else {
                 Issue.record("\(title) missing from \(header.debugDescription)")
                 continue
@@ -434,9 +445,9 @@ struct TableSortOrderTests {
             header.hasPrefix("\u{2502} Name"),
             "the border, its pad, then the title: \(header.debugDescription)")
 
-        let regions = buffer.hitTestRegions.filter { $0.offsetY == 1 && $0.height == 1 }
+        let regions = titleRegions(in: buffer)
         #expect(regions.count == 2, "one per sortable column: \(regions)")
-        for (title, region) in zip(["Name", "Size"], regions.sorted { $0.offsetX < $1.offsetX }) {
+        for (title, region) in zip(["Name", "Size"], regions) {
             guard let found = header.range(of: title) else {
                 Issue.record("\(title) missing from \(header.debugDescription)")
                 continue
