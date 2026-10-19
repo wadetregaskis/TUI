@@ -42,6 +42,17 @@ changes the drawing of every horizontal view under an unlabelled `.bottom` or
 already centred position (an item drawn past the view's bounds, measured), which
 looks like a SwiftUI bug and would not be copied.
 
+**Done 2026-10-19 (lane SCROLL).** The content's own width is measured as the
+scroll view's extents measure it (`naturalContentWidth`), only for a view
+with an alignment anchor that scrolls across, and the drawn window slides
+right by the anchor's `x` of the room, to a column — the lines, hit regions,
+layers and runs with it, the offset staying 0 — reported in `ScrollGeometry`
+as a leading inset, as the vertical shift is a top one. So a horizontal view
+under the unlabelled `.top` or `.bottom` now centres narrow content, as
+SwiftUI's does. Content that fills whatever width it is offered has no width
+of its own and is not moved (SwiftUI lays it out at its ideal width), and a
+two-axis view places each axis by its own coordinate.
+
 ### B-D2S-2. `List` and `Table` honour the built-in behaviours, and no behaviour of the app's own
 
 *`View.scrollTargetBehavior(_:)`, `ScrollTargetBehavior` (A6)*

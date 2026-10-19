@@ -269,6 +269,9 @@ extension _ScrollViewCore {
         let contentWidthTotal = axes.contains(.horizontal) ? handler.horizontal.extent : contentWidth
         let horizontalOffset = axes.contains(.horizontal) ? handler.horizontal.scrollOffset : 0
         insets.top += aligned
+        // The same for narrow content placed across (``horizontalAlignmentShift(contentWidth:viewportHeight:context:)``),
+        // as a leading inset.
+        insets.leading += axes.contains(.horizontal) ? handler.horizontalAlignmentShift : 0
         return ScrollGeometry(
             contentOffset: CellPoint(
                 x: horizontalOffset - insets.leading,

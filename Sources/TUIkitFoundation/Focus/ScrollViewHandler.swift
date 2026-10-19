@@ -110,6 +110,13 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// indicators. Published by the render, consumed by ``pageDistance``.
     var textIndicatorInset = 0
 
+    /// How many columns across the viewport the frame draws content narrower
+    /// than it — the alignment anchor's `x` of the room
+    /// (`_ScrollViewCore.horizontalAlignmentShift(contentWidth:viewportHeight:context:)`).
+    /// Published by the render with the chrome, read by everything that maps
+    /// the content's columns to the viewport's.
+    var horizontalAlignmentShift = 0
+
     /// The `.scrollPosition` freshness memory: the request token last acted
     /// on, and the row id last written back. On the HANDLER — which persists
     /// across frames — and not on the environment box that carries the

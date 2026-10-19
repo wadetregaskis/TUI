@@ -789,7 +789,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             viewportHeight: height,
             viewportWidth: width,
             horizontalEnabled: horizontal,
-            horizontalOffset: handler.horizontal.scrollOffset,
+            horizontalOffset: handler.horizontal.scrollOffset - handler.horizontalAlignmentShift,
             clipsLayers: clips
         )
         var drawn = applyOverscroll(to: window, handler: handler, width: width, clips: clips, context: context)
@@ -957,11 +957,12 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // already outside it. That is the whole of `ScrollChrome.edgeInset`'s
         // answer, and the seek, the content window and the reveal read it too.
         handler.textIndicatorInset = chrome.edgeInset
-        return (
-            chrome,
-            max(1, viewportWidth - (bars.vertical ? context.environment.scrollbarWidth + indicatorMargins.trailing : 0)),
-            contentViewportHeight,
-            bars.settled)
+        let contentWidth = max(
+            1, viewportWidth - (bars.vertical ? context.environment.scrollbarWidth + indicatorMargins.trailing : 0))
+        // Where narrow content sits across the window, decided with the window.
+        handler.horizontalAlignmentShift = horizontalAlignmentShift(
+            contentWidth: contentWidth, viewportHeight: contentViewportHeight, context: context)
+        return (chrome, contentWidth, contentViewportHeight, bars.settled)
     }
 
     /// What chrome a frame draws around its content: the two bars, whether the

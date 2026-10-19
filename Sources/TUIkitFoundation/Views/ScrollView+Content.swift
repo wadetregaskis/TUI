@@ -443,7 +443,9 @@ extension _ScrollViewCore {
         // the carried origin of everything below moves as the content does
         // (design study A2, rung 2). The ramp a gradient runs down the content
         // stays put — it spans the content, not the viewport.
-        let placement = CellPoint(x: horizontal ? -horizontalScrollOffset : 0, y: -verticalScrollOffset - slide)
+        let placement = CellPoint(
+            x: horizontal ? (handler?.horizontalAlignmentShift ?? 0) - horizontalScrollOffset : 0,
+            y: -verticalScrollOffset - slide)
         measureContext = measureContext.placingChild(gradient: nil, x: placement.x, y: placement.y)
         let buffer = TUIkitView.renderToBuffer(content, context: measureContext)
         if contentReply.measureWentStale, !remeasured, !context.isMeasuring {
@@ -558,10 +560,13 @@ extension _ScrollViewCore {
         visibleWidths.reserveCapacity(viewportHeight)
         for (offset, line) in window.enumerated() {
             if horizontalEnabled {
+                // A negative offset is narrow content placed across the window
+                // by its alignment anchor: blank columns first.
+                let lead = max(0, -horizontalOffset)
                 let sliced = line.ansiAwareSlice(
-                    visibleStart: horizontalOffset, visibleCount: viewportWidth)
-                visibleLines.append(sliced.padToVisibleWidth(viewportWidth))
-                visibleWidths.append(max(viewportWidth, sliced.strippedLength))
+                    visibleStart: max(0, horizontalOffset), visibleCount: max(0, viewportWidth - lead))
+                visibleLines.append((lead > 0 ? String.spaces(lead) + sliced : sliced).padToVisibleWidth(viewportWidth))
+                visibleWidths.append(max(viewportWidth, lead + sliced.strippedLength))
                 continue
             }
             let known: Int? =

@@ -88,12 +88,14 @@ public struct ScrollAnchorRole: Hashable, Sendable {
     ///
     /// Read by ``ScrollView`` on its vertical axis, at the anchor's `y` as a
     /// fraction of the room left over (a `y` of 0.5 centres the content),
-    /// rounded down to a whole line. Like SwiftUI's on macOS, ``List`` and
+    /// rounded down to a whole line, and on its horizontal axis at the
+    /// anchor's `x`, to a whole column: `.trailing` puts narrow content
+    /// against the trailing edge, and the unlabelled `.top` or `.bottom`
+    /// (whose `x` is 0.5) centres it, as SwiftUI's do (measured). A view that
+    /// scrolls both ways places each axis by its own coordinate. Content that
+    /// fills whatever width it is offered has none of its own to place, where
+    /// SwiftUI places its ideal width. Like SwiftUI's on macOS, ``List`` and
     /// ``Table`` ignore it: their rows always start at the top.
-    ///
-    /// > Note: The anchor's `x` is ignored, as it is for the other two roles:
-    /// > a horizontal scroll view places narrow content at its leading edge
-    /// > whatever the anchor says. See ``TUIkit/View/defaultScrollAnchor(_:)``.
     public static let alignment = Self("alignment")
 }
 
@@ -231,8 +233,9 @@ extension View {
     ///   every anchor does (`Tools/SwiftUIProbes/Scroll anchoring/hold.out`
     ///   cases 22–23); here it means "no anchor". The alignment role is not
     ///   quantised: it places short content at its `y` to the line.
-    /// - `x` is ignored, for every role. Horizontal scrolling exists, but the
-    ///   anchor modes are defined over rows.
+    /// - `x` is ignored for where the view opens and what it holds: the
+    ///   anchor modes are defined over rows. The alignment role reads it on a
+    ///   view that scrolls across.
     ///
     /// - Parameter anchor: The unit point to anchor content to, or `nil`
     ///   for the default (no anchor — the top).

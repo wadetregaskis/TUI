@@ -296,4 +296,48 @@ extension _ScrollViewCore {
         else { return 0 }
         return min(room, Int((anchor.y * Double(room)).rounded(.down)))
     }
+
+    /// How many columns across the viewport this frame draws content NARROWER
+    /// than it: the ``ScrollAnchorRole/alignment`` anchor's `x` of the room
+    /// left over, rounded down to a column — `0` for content that fills the
+    /// viewport's width, for a view with no alignment anchor, and for one that
+    /// does not scroll across. The vertical shift's twin
+    /// (``alignmentShift(handler:viewportHeight:context:)``), as SwiftUI places
+    /// short content by `y` on a vertical view and narrow content by `x` on a
+    /// horizontal one (measured, decisions D2S B-D2S-1); on a view that
+    /// scrolls both ways each axis is placed by its own coordinate, where
+    /// SwiftUI adds the room to a position already centred and draws the
+    /// content past its bounds — not copied.
+    ///
+    /// The content's width is measured as `contentExtents` measures it — its
+    /// own width first (``naturalContentWidth(contentWidth:canvas:)``), which
+    /// says whether it is narrower than the view at all, then its height at
+    /// the view's width, the proposal it is drawn under, whose answer says how
+    /// wide it is drawn — so the pass's memo answers both, and only a view
+    /// with such an anchor asks. Content that fills whatever width it is
+    /// offered (a `.frame(maxWidth: .infinity)`) takes the view's width and
+    /// has no room to place, where SwiftUI lays it out at its ideal width and
+    /// places that.
+    ///
+    /// A slide of the drawn window, as the vertical one is: the offset stays 0
+    /// and the maximum 0, and the lines, the hit regions, the layers and the
+    /// runs move across together (`windowedBuffer`).
+    func horizontalAlignmentShift(contentWidth: Int, viewportHeight: Int, context: RenderContext) -> Int {
+        guard axes.contains(.horizontal), !isChrome,
+            let anchor = context.environment.scrollAnchor(for: .alignment), anchor.x > 0
+        else { return 0 }
+        var canvas = contentCanvasContext(
+            contentWidth: contentWidth, viewportHeight: viewportHeight, horizontal: true, context: context)
+        canvas.availableHeight = naturalExtentStartingBudget(forVisible: viewportHeight)
+        guard let natural = naturalContentWidth(contentWidth: contentWidth, canvas: canvas), natural < contentWidth
+        else { return 0 }
+        canvas.availableWidth = contentWidth
+        let drawn = measureNaturalExtent(
+            content, along: .vertical, proposal: ProposedSize(width: contentWidth, height: nil), context: canvas,
+            startingBudget: naturalExtentStartingBudget(forVisible: viewportHeight)
+        ).width
+        let room = contentWidth - drawn
+        guard room > 0 else { return 0 }
+        return min(room, Int((anchor.x * Double(room)).rounded(.down)))
+    }
 }

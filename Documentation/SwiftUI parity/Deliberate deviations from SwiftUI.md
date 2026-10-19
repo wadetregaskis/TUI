@@ -1491,14 +1491,18 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   both changes, as SwiftUI reports it, and to add a bounce under `.always`;
   both shipped 2026-10-13.
 
-### R2. A default scroll anchor quantises to three edges, and ignores x
+### R2. A default scroll anchor quantises to three edges, and ignores x but to align
 
 - **SwiftUI:** `.center` keeps the centre fixed; `x` places content on a
   horizontal view (measured, macOS 15, B-D2S-1).
 - **TUIkit:** for where a view opens and what it holds, `y ≥ 0.75` is the
-  bottom, `y ≤ 0.25` the top, and anything between anchors nothing. `x` is
-  ignored for every role. SwiftUI's two-axis alignment arithmetic, which draws
-  an item past the view's bounds, is not copied.
+  bottom, `y ≤ 0.25` the top, and anything between anchors nothing, and `x`
+  is ignored. The alignment role places narrow content by `x` on a view that
+  scrolls across, as SwiftUI's does (since 2026-10-19), except content that
+  fills whatever width it is offered, which is drawn at the viewport's width
+  where SwiftUI places its ideal width. SwiftUI's two-axis alignment
+  arithmetic, which draws an item past the view's bounds, is not copied: each
+  axis is placed by its own coordinate.
 - **Why:** an offset is whole rows, so there is no centre to hold between two
   of them, and the anchor modes are defined over rows.
 - **Decided:** [UnitPoint.swift](../../Sources/TUIkitFoundation/Views/UnitPoint.swift#L224-L235),

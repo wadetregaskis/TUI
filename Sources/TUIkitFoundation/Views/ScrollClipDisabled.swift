@@ -116,7 +116,7 @@ extension _ScrollViewCore {
             handler.overscrollState.excursion
             - alignmentShift(handler: handler, viewportHeight: height, context: context)
         var layer = OverlayLayer(
-            offsetX: horizontal ? -handler.horizontal.scrollOffset : 0,
+            offsetX: horizontal ? handler.horizontalAlignmentShift - handler.horizontal.scrollOffset : 0,
             offsetY: sliceOriginY - handler.scrollOffset - slide,
             content: content,
             zIndex: OverlayLayer.displacedDrawingZIndex,
