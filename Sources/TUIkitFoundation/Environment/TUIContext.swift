@@ -339,8 +339,9 @@ package final class TUIContext: @unchecked Sendable {
     package let terminalBell: TerminalBell
 
     /// The keys to press once the frame being drawn is on the screen — a menu
-    /// bar's item's key (``KeysAfterFrame``).
-    package let keysAfterFrame = KeysAfterFrame()
+    /// bar's item's key (``KeysAfterFrame``). Pressing one asks this
+    /// context's render state for the frame.
+    package let keysAfterFrame: KeysAfterFrame
 
     /// ``clipboardWriter`` as the environment hands it to controls, built once
     /// per writer rather than once per frame.
@@ -483,6 +484,7 @@ package final class TUIContext: @unchecked Sendable {
         self.appState = appState
         self.exitAction = DismissAction(box: DismissAction.Box { [appState] in appState.requestExit() })
         self.terminalBell = TerminalBell(requestFrame: { [appState] in appState.setNeedsRender() })
+        self.keysAfterFrame = KeysAfterFrame(requestFrame: { [appState] in appState.setNeedsRender() })
         self._clipboardWriter = ClipboardWriter(
             system: clipboard, requestFrame: { [appState] in appState.setNeedsRender() })
         self.urlOpener = urlOpener
@@ -542,6 +544,7 @@ package final class TUIContext: @unchecked Sendable {
         self.appState = appState
         self.exitAction = DismissAction(box: DismissAction.Box { [appState] in appState.requestExit() })
         self.terminalBell = TerminalBell(requestFrame: { [appState] in appState.setNeedsRender() })
+        self.keysAfterFrame = KeysAfterFrame(requestFrame: { [appState] in appState.setNeedsRender() })
         // A snapshot's or a test's: its copies and URLs stay in memory (see
         // init(clipboard:urlOpener:appState:)).
         self._clipboardWriter = ClipboardWriter(

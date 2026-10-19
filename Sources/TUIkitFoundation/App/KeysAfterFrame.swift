@@ -44,7 +44,7 @@ package final class KeysAfterFrame: @unchecked Sendable {
     /// draw still goes.
     private let requestFrame: @Sendable () -> Void
 
-    package init(requestFrame: @escaping @Sendable () -> Void = { AppState.shared.setNeedsRender() }) {
+    package init(requestFrame: @escaping @Sendable () -> Void) {
         self.requestFrame = requestFrame
     }
 
