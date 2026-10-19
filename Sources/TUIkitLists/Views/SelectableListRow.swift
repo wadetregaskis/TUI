@@ -45,6 +45,19 @@ public enum ListRowType<SelectionValue: Hashable & Sendable>: Sendable, Equatabl
     case unselectable
 }
 
+extension ListRowType {
+    /// Whether a list's stripe count counts this row: every row but a
+    /// section's header and footer, on across the sections, as a macOS list
+    /// counts them (decisions B-D6L-4) — a row the selection cannot name
+    /// too, which is drawn as a content row is.
+    var countsAsStripedRow: Bool {
+        switch self {
+        case .header, .footer: false
+        case .content, .unselectable: true
+        }
+    }
+}
+
 // MARK: - Selectable List Row
 
 /// A List row with type information for selection and focus handling.

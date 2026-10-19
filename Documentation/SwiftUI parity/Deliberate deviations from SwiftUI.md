@@ -1693,18 +1693,17 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 ### V3. List and table chrome differs from macOS by default
 
 - **SwiftUI (measured, macOS 15.8):** `.automatic` lists and tables have no
-  border; a list draws a separator under every row (not `.sidebar`); stripes
-  count rows across sections; a `.standard` badge sits in a capsule; a section's
-  actions show while the pointer is over it.
-- **TUIkit:** `.automatic` is bordered; no separators unless asked; stripes
-  restart at each section; a badge is plain text; section actions are always
-  shown, after the header's title.
+  border; a list draws a separator under every row (not `.sidebar`); a
+  `.standard` badge sits in a capsule; a section's actions show while the
+  pointer is over it.
+- **TUIkit:** `.automatic` is bordered; no separators unless asked; a badge is
+  plain text; section actions are always shown, after the header's title.
 - **Why:** a separator costs a line per row; actions shown only on hover are
   out of the keyboard's reach.
 - **Decided:** decisions A29 and A46 (**Owner**, 2026-10-07: tables stripe by
   default, both keep their border; removed when they shipped),
   [A-D6L-1](<Decisions/List and table stripes, surfaces, pinned headers and separators (D6L).md#a-d6l-1-the-surface-look-try-it-then-decide-what-if-anything-becomes-the-default>),
-  [A-D6L-2](<Decisions/List and table stripes, surfaces, pinned headers and separators (D6L).md#a-d6l-2-should-a-list-draw-separators-by-default>), [B-D6L-4](<Decisions/List and table stripes, surfaces, pinned headers and separators (D6L).md#b-d6l-4-stripes-restart-at-each-section-macos-counts-on-across-them>), [B72](<Decisions/SwiftUI API completion decisions.md#b72-badge-prominence-two-inks-read-from-the-lists-environment>),
+  [A-D6L-2](<Decisions/List and table stripes, surfaces, pinned headers and separators (D6L).md#a-d6l-2-should-a-list-draw-separators-by-default>), [B72](<Decisions/SwiftUI API completion decisions.md#b72-badge-prominence-two-inks-read-from-the-lists-environment>),
   [B78](<Decisions/SwiftUI API completion decisions.md#b78-section-actions-always-shown-after-the-headers-title>). **Under review** (borders and separators),
   **Lane** (the rest).
 

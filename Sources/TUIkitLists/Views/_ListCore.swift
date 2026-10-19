@@ -231,9 +231,11 @@ private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSepar
         }
     }
 
-    /// Where the row at `index` stands among its section's content rows — the
+    /// Where the row at `index` stands among the list's content rows — the
     /// index `ListStyle.alternatingRowColors` stripes by — counted exactly as the
-    /// composers count: `.content` rows only, restarting after a `.header`.
+    /// composers count: every row but a section's header and footer, on across
+    /// the sections, as a macOS list counts them (decisions B-D6L-4, measured
+    /// with `Tools/SwiftUIProbes/List pinned headers and row stripes/phase.swift`).
     ///
     /// The composers walk only the visible window, so on their own they know a
     /// row's place in the WINDOW and nothing else. Their count used to start at
@@ -242,26 +244,24 @@ private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSepar
     /// row beside it, and each scroll step moved them all again. This is the
     /// seed that makes the count the row's own.
     ///
-    /// O(1) where the length is: an all-content source (the windowed `ForEach`
-    /// path, however long) has no header to find, and every row before this one
-    /// counts, so the index IS the answer. Any other source walks back over the
-    /// rows above `index`, asking each its type until it meets a header — up to
-    /// `index` questions a call. Where the types are known each is an array
-    /// read, and `resolvePopulatedHandler` reads every one of them each frame
-    /// anyway. Where they are still to be asked, each is that row's answer
-    /// (``typeAt``), a build per tagged looped row: a striped list of
-    /// flattened rows, scrolled down, asks every row above the first one drawn
-    /// on each frame, where its handler asks only the rows it draws. Asked
-    /// only of a list that stripes its rows (see the composers' callers).
-    func sectionContentIndex(at index: Int) -> Int {
-        guard knownAllContent != true else { return index }
-        var contentRows = 0
-        for earlier in stride(from: index - 1, through: 0, by: -1) {
-            let type = typeAt(earlier)
-            if case .header = type { break }
-            if case .content = type { contentRows += 1 }
+    /// No row is asked its type: the rows above `index` that are not counted
+    /// are the headers and footers among them, and ``sectionChrome`` holds
+    /// every one, so this is `index` less a binary search of it — O(1) for an
+    /// all-content source (the windowed `ForEach` path, however long), which
+    /// has none. It used to walk back over the rows above `index`, asking each
+    /// its type until it met a header, which for a list whose rows' types were
+    /// still to be asked was a build per tagged looped row above the window,
+    /// every frame.
+    func contentRowIndex(at index: Int) -> Int {
+        guard knownAllContent != true, !sectionChrome.isEmpty else { return index }
+        // The number of headers and footers above `index`.
+        var low = 0
+        var high = sectionChrome.count
+        while low < high {
+            let middle = (low + high) / 2
+            if sectionChrome[middle].index < index { low = middle + 1 } else { high = middle }
         }
-        return contentRows
+        return index - low
     }
 
     /// The section header pinned over the top of the rows when the row at
@@ -1226,11 +1226,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         /// Every line's width, where the composer made them all one: the bar
         /// path fits each row to the content column and adds the bar's cells.
         var lineWidth: Int?
-        // Where the first drawn row stands among its section's content rows —
-        // which only a striped list reads, and which a source whose rows'
-        // types are still to be asked can only learn by asking the rows above.
-        let firstSectionContentIndex =
-            stripesRows(style: style, environment: context.environment) ? source.sectionContentIndex(at: origin.offset) : 0
+        // Where the first drawn row stands among the list's content rows —
+        // which only a striped list reads (`RowSource.contentRowIndex(at:)`).
+        let firstContentRowIndex =
+            stripesRows(style: style, environment: context.environment) ? source.contentRowIndex(at: origin.offset) : 0
         if wantsScrollbar {
             let bar = listScrollbarCells(
                 source: source,
@@ -1246,7 +1245,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 visibleRows: visibleRows,
                 handler: handler,
                 origin: origin,
-                firstSectionContentIndex: firstSectionContentIndex,
+                firstContentRowIndex: firstContentRowIndex,
                 listHasFocus: listHasFocus,
                 contentRowWidth: contentRowWidth,
                 bar: bar,
@@ -1266,7 +1265,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             (lines, visibleRowYRanges, animatedRuns, listRowClaims, contentClaims) = composeRowLines(
                 handler: handler,
                 origin: origin,
-                firstSectionContentIndex: firstSectionContentIndex,
+                firstContentRowIndex: firstContentRowIndex,
                 visibleRows: visibleRows,
                 listHasFocus: listHasFocus,
                 rowWidth: rowWidth,
@@ -1967,7 +1966,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     private func composeRowLines(
         handler: ItemListHandler<SelectionValue>,
         origin: WindowOrigin,
-        firstSectionContentIndex: Int,
+        firstContentRowIndex: Int,
         visibleRows: [(Int, SelectableListRow<SelectionValue>)],
         listHasFocus: Bool,
         rowWidth: Int,
@@ -2055,13 +2054,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // `alternatingRowColors`' stripes onto the neighbouring rows. The seed is
         // taken at the DRAWN origin (`origin.offset`), not `scrollOffset`, for the
         // reason every other consumer of the origin does. See
-        // `RowSource.sectionContentIndex(at:)`.
-        var sectionContentIndex = firstSectionContentIndex
+        // `RowSource.contentRowIndex(at:)`.
+        var contentRowIndex = firstContentRowIndex
         var pin = PinnedHeaderCover(origin: origin.offset, first: visibleRows.first)
         for (rowIndex, row) in visibleRows {
-            // The pinned header is not a section starting: the stripes count on
-            // from the seed.
-            if case .header = row.type, !pin.isPinned(rowIndex) { sectionContentIndex = 0 }
+            // The stripes count on across the sections, as a macOS list's do
+            // (decisions B-D6L-4): a header starts no new count.
             let isFocused = handler.isCursorRow(rowIndex) && listHasFocus
             let isSelected = handler.isSelected(at: rowIndex)
             let rendered = renderRow(
@@ -2070,13 +2068,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 state: RowDrawState(
                     isFocused: isFocused, isSelected: isSelected,
                     isReturningHome: handler.returningRows.contains(rowIndex)),
-                rowWidth: rowWidth, sectionContentIndex: sectionContentIndex,
+                rowWidth: rowWidth, contentRowIndex: contentRowIndex,
                 style: style, context: context, palette: palette)
             let scrollClip = rowIndex == origin.offset ? origin.topClip : 0
             guard let covered = pin.cover(rowIndex, lines: rendered.lines.count - scrollClip) else {
                 // Wholly under the pinned header: nothing of it is drawn, and it
                 // has no range to be clicked through.
-                if case .content = row.type { sectionContentIndex += 1 }
+                if row.type.countsAsStripedRow { contentRowIndex += 1 }
                 continue
             }
             if let claims = rendered.contentClaims {
@@ -2118,7 +2116,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             ranges.append((
                 rowIndex: rowIndex, yStart: yStart, height: styledLines.count,
                 linesCutAbove: covered, type: row.type))
-            if case .content = row.type { sectionContentIndex += 1 }
+            if row.type.countsAsStripedRow { contentRowIndex += 1 }
         }
 
         // A drag never changes how much is on screen, so a reorder frame's
@@ -2354,7 +2352,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         visibleRows: [(index: Int, row: SelectableListRow<SelectionValue>)],
         handler: ItemListHandler<SelectionValue>,
         origin: WindowOrigin,
-        firstSectionContentIndex: Int,
+        firstContentRowIndex: Int,
         listHasFocus: Bool,
         contentRowWidth: Int,
         bar: ClaimingColumn,
@@ -2384,11 +2382,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         var contentClaims: [Int: [OpacityRegion]] = [:]
         // Seeded, not 0, or the stripes follow the window instead of the rows —
         // see `composeRowLines`.
-        var sectionContentIndex = firstSectionContentIndex
+        var contentRowIndex = firstContentRowIndex
         // A pinned header and the lines it covers — see `composeRowLines`.
         var pin = PinnedHeaderCover(origin: origin.offset, first: visibleRows.first)
         for (rowIndex, row) in visibleRows {
-            if case .header = row.type, !pin.isPinned(rowIndex) { sectionContentIndex = 0 }
             let isFocused = handler.isCursorRow(rowIndex) && listHasFocus
             let isSelected = handler.isSelected(at: rowIndex)
             let rendered = renderRow(
@@ -2398,14 +2395,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     isFocused: isFocused, isSelected: isSelected,
                     isReturningHome: handler.returningRows.contains(rowIndex)),
                 rowWidth: contentRowWidth,
-                sectionContentIndex: sectionContentIndex,
+                contentRowIndex: contentRowIndex,
                 style: style,
                 context: context,
                 palette: palette
             )
             let scrollClip = rowIndex == origin.offset ? origin.topClip : 0
             guard let covered = pin.cover(rowIndex, lines: rendered.lines.count - scrollClip) else {
-                if case .content = row.type { sectionContentIndex += 1 }
+                if row.type.countsAsStripedRow { contentRowIndex += 1 }
                 continue
             }
             if let claims = rendered.contentClaims {
@@ -2462,7 +2459,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             ranges.append((
                 rowIndex: rowIndex, yStart: yStart, height: styledLines.count,
                 linesCutAbove: covered, type: row.type))
-            if case .content = row.type { sectionContentIndex += 1 }
+            if row.type.countsAsStripedRow { contentRowIndex += 1 }
         }
         // Slot-aware overrun clip for a reorder hold (see composeRowLines).
         if handler.reorder != nil {
@@ -4127,7 +4124,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         at rowIndex: Int,
         state: RowDrawState,
         rowWidth: Int,
-        sectionContentIndex: Int,
+        contentRowIndex: Int,
         style: any ListStyle,
         context: RenderContext,
         palette: any Palette
@@ -4140,7 +4137,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 rowType: row.type,
                 isFocused: state.isFocused,
                 isSelected: state.isSelected,
-                sectionContentIndex: sectionContentIndex,
+                contentRowIndex: contentRowIndex,
                 style: style,
                 context: context,
                 palette: palette)
@@ -4741,7 +4738,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         rowType: ListRowType<SelectionValue>,
         isFocused: Bool,
         isSelected: Bool,
-        sectionContentIndex: Int,
+        contentRowIndex: Int,
         style: any ListStyle,
         context: RenderContext,
         palette: any Palette
@@ -4783,7 +4780,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 // ambient highlight is more noise than signal.
                 if context.environment.unfocusedSelectionVisibility == .hidden {
                     return alternatingBackgroundIfAny(
-                        sectionContentIndex: sectionContentIndex,
+                        contentRowIndex: contentRowIndex,
                         style: style,
                         context: context,
                         palette: palette)
@@ -4794,7 +4791,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 return .tint(palette.selectedRowFill())
             } else {
                 return alternatingBackgroundIfAny(
-                    sectionContentIndex: sectionContentIndex,
+                    contentRowIndex: contentRowIndex,
                     style: style,
                     context: context,
                     palette: palette)
@@ -4815,13 +4812,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// list's phase, as a table's (the `stripe` of ``Table``'s `RowPaint`, in
     /// Table.swift, says where it was measured).
     private func alternatingBackgroundIfAny(
-        sectionContentIndex: Int,
+        contentRowIndex: Int,
         style: any ListStyle,
         context: RenderContext,
         palette: any Palette
     ) -> RowBackground {
         guard stripesRows(style: style, environment: context.environment),
-            !sectionContentIndex.isMultiple(of: 2)
+            !contentRowIndex.isMultiple(of: 2)
         else { return .none }
         return .alternatingStripe(palette: palette, over: context.environment.enclosingSurface)
     }

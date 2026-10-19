@@ -193,7 +193,7 @@ fuller version:** the rule drawn outside the row's fill and click band, as a
 line between rows that belongs to neither — its own claims and its own
 `AnimatedCellRun` exclusion for the cursor row's breath, about half a day.
 
-### B-D6L-4. Stripes restart at each section; macOS counts on across them
+### B-D6L-4. Stripes count on across a list's sections, as macOS's do
 
 *`alternatingRowBackgrounds` on a sectioned `List` (decisions A29/A46)*
 
@@ -204,14 +204,16 @@ TUIkit now draws, for tables and lists alike — and in a sectioned list they
 count the content rows across the sections, headers not counted: three rows
 under A then three under B tint A's second and B's first and third.
 
-**Shipped:** TUIkit's count restarts at each section's first row, as it always
-has (`ListStyle.alternatingRowColors`), so B's first row is plain. Unmeasured
-for a sectioned `Table` (decisions A31), which counts its own way.
+**Shipped at first:** TUIkit's count restarted at each section's first row
+(`ListStyle.alternatingRowColors`), so B's first row was plain.
 
-**The fuller version:** one count across the list. The composers seed the
-count from the rows above the window (`RowSource.sectionContentIndex(at:)`),
-which today walks back only to the section's header; across sections it walks
-to the list's top, asking every row above the window its type — O(rows above)
-a frame on a long list whose types are still to be asked. A prefix count of
-the content rows, kept per source beside its section chrome, makes it a binary
-search again: about two hours.
+**Shipped since 2026-10-18 (lane LISTS):** one count across the list, as
+measured. The composers no longer restart it at a header, and seed it from the
+rows above the window (`RowSource.contentRowIndex(at:)`) as the row's index
+less the headers and footers above it — a binary search of the section chrome
+the extraction already keeps, so no row is asked its type (the walk back to the
+section's header it replaces asked every row above the window). Every row but
+a header or a footer counts, a row the selection cannot name (`.unselectable`)
+too: it is drawn as a content row is, and it used to share the stripe of the
+row after it. Unmeasured for a sectioned `Table` (decisions A31), which counts
+its own way and is unchanged.

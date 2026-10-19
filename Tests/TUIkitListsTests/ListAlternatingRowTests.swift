@@ -1,9 +1,9 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  ListAlternatingRowTests.swift
 //
-//  `ListStyle.alternatingRowColors` tints every other row within a section —
-//  the odd-indexed ones, macOS's phase. Both of `_ListCore`'s composers counted that index from the first
-//  row they DREW, which is the row's own index only while the list sits at the
+//  `ListStyle.alternatingRowColors` tints every other content row, counted
+//  across the list's sections — the odd-indexed ones, macOS's phase. Both of
+//  `_ListCore`'s composers counted that index from the first row they DREW, which is the row's own index only while the list sits at the
 //  top: scrolled to an odd row, every stripe moved onto the row beside it, and
 //  each wheel tick moved them all again. The only render test rendered three
 //  rows that could not scroll, and checked that SOMETHING was tinted, never
@@ -59,6 +59,24 @@ struct ListAlternatingRowTests {
         List(selection: .constant(String?.none)) {
             Section("Letters") {
                 ForEach(Self.labels, id: \.self) { Text($0) }
+            }
+        }
+        .listStyle(ZebraListStyle(alternatingRowColors: zebra))
+    }
+
+    /// Two sections, the first of an ODD number of rows, so a count that
+    /// restarted at the second section's header would move every stripe in it
+    /// onto the row beside it: macOS counts the content rows across the
+    /// sections, headers not counted (decisions B-D6L-4, measured with
+    /// `Tools/SwiftUIProbes/List pinned headers and row stripes/phase.swift`).
+    /// Its rows' labels are their content ordinals across the list.
+    private func twoSectionList(zebra: Bool) -> some View {
+        List(selection: .constant(String?.none)) {
+            Section("Odd") {
+                ForEach(Self.labels.prefix(7), id: \.self) { Text($0) }
+            }
+            Section("Even") {
+                ForEach(Self.labels.dropFirst(7), id: \.self) { Text($0) }
             }
         }
         .listStyle(ZebraListStyle(alternatingRowColors: zebra))
@@ -136,5 +154,16 @@ struct ListAlternatingRowTests {
             flat: wheeledFrames(sectionedList(zebra: false), style: style))
         #expect(result.oddTop, "the wheel never put an odd row at the top, so nothing was checked")
         #expect(result.offenders.isEmpty, "a stripe left its row as the list scrolled: \(result.offenders)")
+    }
+
+    @Test(
+        "The stripes count on across a list's sections, as macOS's do, scrolled or not",
+        arguments: ScrollIndicatorStyle.allCases)
+    func stripesCountAcrossSections(style: ScrollIndicatorStyle) {
+        let result = stripeOffenders(
+            zebra: wheeledFrames(twoSectionList(zebra: true), style: style),
+            flat: wheeledFrames(twoSectionList(zebra: false), style: style))
+        #expect(result.oddTop, "the wheel never put an odd row at the top, so nothing was checked")
+        #expect(result.offenders.isEmpty, "a stripe left the content row it counts: \(result.offenders)")
     }
 }
