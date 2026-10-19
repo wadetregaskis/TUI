@@ -199,7 +199,26 @@ func compositeLayer<Layer: View>(
     case .baseOnly: return baseBuffer
     case .placed(let buffer, let at): (overlayBuffer, offset) = (buffer, at)
     }
+    return compositeDrawnLayer(overlayBuffer, at: offset, over: baseBuffer, context: context, modifierType: modifierType)
+}
 
+/// `overlayBuffer`, already drawn and placed at `offset` in `baseBuffer`'s
+/// frame, composited over the base, cut back to the base's box: the half of
+/// ``compositeLayer(_:over:alignment:context:modifierType:)`` that follows the
+/// placement, for a layer that is not a view.
+///
+/// - Parameters:
+///   - overlayBuffer: The layer, inside the base's frame at `offset`.
+///   - offset: Where the layer lands in the base's frame.
+///   - baseBuffer: The base, already rendered at `context`'s identity.
+///   - context: The modifier's context.
+///   - modifierType: The modifier's own type — see ``layerContext(_:modifierType:)``.
+/// - Returns: The composite, the base's size.
+@MainActor
+func compositeDrawnLayer(
+    _ overlayBuffer: FrameBuffer, at offset: (x: Int, y: Int), over baseBuffer: FrameBuffer,
+    context: RenderContext, modifierType: Any.Type
+) -> FrameBuffer {
     // Composite the overlay onto the base, asking for a render at each step of a
     // run of the base whose field the overlay shows and whose frames turn it: the
     // composite punches the run there.
