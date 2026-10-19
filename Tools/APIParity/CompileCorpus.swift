@@ -4582,3 +4582,49 @@ private struct CorpusFileExporters: View {
         .fileExporterFilenameLabel(String("Export As:"))
     }
 }
+
+/// A `FileDocument` as Apple's documentation writes one, and the four
+/// exporters that write one.
+private struct CorpusTextDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.plainText] }
+    var text = ""
+
+    init(text: String) { self.text = text }
+
+    init(configuration: ReadConfiguration) throws {
+        guard let data = configuration.file.regularFileContents else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        text = String(decoding: data, as: UTF8.self)
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        _ = (configuration.contentType, configuration.existingFile)
+        return FileWrapper(regularFileWithContents: Data(text.utf8))
+    }
+}
+
+@MainActor
+private struct CorpusFileDocumentExporters: View {
+    @State private var exporting = false
+    var document: CorpusTextDocument
+    var documents: [CorpusTextDocument]
+
+    var body: some View {
+        VStack {
+            Button("Export") { exporting = true }
+                .fileExporter(isPresented: $exporting, document: document, contentType: .plainText) { _ in }
+            Button("Export as") { exporting = true }
+                .fileExporter(
+                    isPresented: $exporting, document: Optional(document), contentType: .plainText,
+                    defaultFilename: "Draft"
+                ) { result in _ = result }
+            Button("Export typed") { exporting = true }
+                .fileExporter(isPresented: $exporting, document: document) { _ in } onCancellation: {}
+            Button("Export all") { exporting = true }
+                .fileExporter(isPresented: $exporting, documents: documents, contentType: .plainText) { _ in }
+            Button("Export all typed") { exporting = true }
+                .fileExporter(isPresented: $exporting, documents: documents, contentTypes: [.plainText]) { _ in }
+        }
+    }
+}

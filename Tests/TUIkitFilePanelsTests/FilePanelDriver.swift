@@ -48,6 +48,35 @@ final class FilePanelCaller {
     }
 }
 
+/// What an exporter's caller heard.
+@MainActor
+final class FileExporterCaller {
+    var isPresented = true
+    var heard: [String] = []
+    var saved: [URL] = []
+    var failure: (any Error)?
+
+    var binding: Binding<Bool> {
+        Binding(get: { self.isPresented }, set: { self.isPresented = $0 })
+    }
+
+    func completed(_ result: Result<URL, any Error>) {
+        completedAll(result.map { [$0] })
+    }
+
+    func completedAll(_ result: Result<[URL], any Error>) {
+        heard.append("completed (presented: \(isPresented))")
+        switch result {
+        case .success(let urls): saved = urls
+        case .failure(let error): failure = error
+        }
+    }
+
+    func cancelled() {
+        heard.append("cancelled (presented: \(isPresented))")
+    }
+}
+
 /// A view with a file panel presented over it, drawn and pressed through the
 /// whole input chain (``InputChainHarness``), rebuilt for every frame.
 @MainActor

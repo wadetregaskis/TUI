@@ -457,6 +457,14 @@ CoreTransferable's — and `fileExporterFilenameLabel(_:)` labels the field.
 }
 ```
 
+On Apple platforms a `FileDocument` exports the same way, written through its
+`fileWrapper(configuration:)`:
+
+```swift
+.fileExporter(isPresented: $exporting, document: TextFile(text: draft), contentType: .plainText,
+              defaultFilename: "Draft") { result in … }
+```
+
 The `fileDialog` modifiers customize the panel, written outside the modifier
 that presents it, as with SwiftUI:
 

@@ -264,15 +264,14 @@
     {
       "match": [
         "DocumentGroup*",
-        "*FileDocument*",
+        "FileDocumentConfiguration*",
+        "ReferenceFileDocumentConfiguration*",
         "DocumentConfiguration*",
         "EnvironmentValues.documentConfiguration",
         "EnvironmentValues.newDocument",
         "EnvironmentValues.openDocument",
         "NewDocumentAction*",
         "OpenDocumentAction*",
-        "View.fileExporter(isPresented:document:*",
-        "View.fileExporter(isPresented:documents:*",
         "View.exportableToServices*",
         "View.importableFromServices*",
         "View.exportsItemProviders*",
@@ -282,7 +281,7 @@
         "DocumentBaseBox*",
         "DefaultDocumentGroupLaunchActions*"
       ],
-      "why": "The document architecture, the Services menu, and the file panels lane O10 has not reached yet. DocumentGroup and its configurations read and write through FileWrapper, which Linux's Foundation lacks, and ReferenceFileDocument is an ObservableObject, a family TUIkit does not have (compatibility guide §2.3). The Services menu (exportsItemProviders, importsItemProviders, exportableToServices, importableFromServices) is macOS's system-wide menu of other apps' services, which a terminal app has no way into. `fileImporter`, `fileMover`, `fileExporter` for `Transferable` items, `fileExporterFilenameLabel` and the `fileDialog` customizations ship: TUIkit draws the open panel in a sheet (TUIkitFilePanels; decisions File panels (O10))."
+      "why": "The document architecture and the Services menu. DocumentGroup and its configurations (FileDocumentConfiguration, DocumentConfiguration, the new and open document actions) open, edit and save documents in windows of their own, one per document; a terminal app has one surface, the terminal (the same reason as the scene family above), and a document scene is a scene. The Services menu (exportsItemProviders, importsItemProviders, exportableToServices, importableFromServices) is macOS's system-wide menu of other apps' services, which a terminal app has no way into, and navigationDocument names a window's represented file. The file panels themselves ship: TUIkit draws them (TUIkitFilePanels; decisions File panels (O10)), and FileDocument with them, on Apple platforms."
     },
     {
       "match": [
@@ -823,6 +822,9 @@
     },
     "DropSession.ID.matches(_:)": {
       "why": "It compares a drop session with AppKit's NSDraggingInfo, an Apple-only protocol a TUIkit drag never conforms to: a terminal app's drags happen inside it, without AppKit (and on Linux without it at all). DropSession and its ID, phase and local session ship as values."
+    },
+    "ReferenceFileDocument": {
+      "why": "Declined (decisions File panels (O10), C-O10-1): a ReferenceFileDocument is an ObservableObject, a family TUIkit does not have (compatibility guide §2.3, Observable only), and its snapshot(contentType:) exists for DocumentGroup's undo and autosave, which TUIkit does not have either. fileExporter writes a FileDocument; a reference document exports through a FileDocument value made from its snapshot."
     }
   },
   "differentShape": {

@@ -225,3 +225,39 @@ these two forms are absent and fail to compile (decisions A18, option 1:
 platform API where the feature is intrinsically the platform's). **The fuller
 version** for Linux is a TUIkit protocol a value conforms to with its data and
 type — about a day — which the owner did not ask for.
+
+### B-O10-12. `FileDocument` ships on Apple platforms, to be written; nothing in TUIkit reads one
+
+*`FileDocument` (+ `ReadConfiguration`, `WriteConfiguration`),
+`FileDocumentReadConfiguration`, `FileDocumentWriteConfiguration`, and
+`View.fileExporter(isPresented:document:…)` and `(isPresented:documents:…)` in
+their `contentType:` and `contentTypes:` forms*
+
+SwiftUI's `FileDocument` is how `DocumentGroup` reads and writes documents, and
+how `fileExporter(document:)` writes one. TUIkit has the exporter and not the
+document group, so its `FileDocument` is written and never read: the panel
+calls `fileWrapper(configuration:)` — off the main actor, as SwiftUI calls it
+on a background thread — with `existingFile: nil`, since an export writes a new
+file, and writes the wrapper atomically (`FileDocumentWrite`); `init(configuration:)`
+is a requirement for the app's own use. The configurations have no public
+initializer, as SwiftUI's have none. A document is a `FileWrapper`, which is
+Objective-C Foundation's, so all of it is present only where Objective-C is
+(`#if canImport(ObjectiveC)`): the Apple platforms. On Linux it is absent and
+fails to compile (A18, option 1). Without `contentTypes`, the document's
+`writableContentTypes` (by default its readable ones) are the panel's; the
+name offered is `defaultFilename`, else Untitled. `documents:` saves into a
+folder as `items:` does, as Untitled, Untitled 2, ….
+
+## C. Declined
+
+### C-O10-1. `ReferenceFileDocument` and the exporters that take one
+
+A `ReferenceFileDocument` is an `ObservableObject`, a family TUIkit does not
+have (compatibility guide §2.3), and its `snapshot(contentType:)` exists for
+`DocumentGroup`'s undo and autosave, which TUIkit does not have either. The
+`fileExporter` overloads constrained to it share their labels with the
+`FileDocument` ones, so a call with a reference document fails to compile with
+a type error. An app exports one through a `FileDocument` value made from its
+snapshot. Parity map: `ReferenceFileDocument`. `DocumentGroup` and its
+configurations stay declined in the document family: they open a window per
+document, and a terminal app has one surface.
