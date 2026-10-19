@@ -82,3 +82,43 @@ opens and no command's key fires (deviation W8). The modal's own keys work.
 reading the modal's focused values: a command that names no focused value (a
 New, a Quit) would act from behind the sheet. About half a day, and a choice
 about whether that surprise is wanted in a one-window terminal app.
+
+### B-O13-4. A click while a menu is open closes it; the pointer does not move between menus
+
+*`_MenuBarCore+Opening.swift`*
+
+On macOS, once a menu is open, moving the pointer onto another title opens that
+menu, and a click on another title opens it. The bar's open menu is a pop-up
+`Menu`'s presentation, whose dismiss backdrop covers the window and takes the
+next press, so a click anywhere — another title included — closes the menu, and
+a second click opens the other one. The keyboard moves between menus (Left,
+Right, Alt and a letter).
+
+**Shipped:** that. A click on a title opens its menu on the press; a click while
+any menu is open closes it.
+
+**The fuller version** is a backdrop with a hole: the bar's row stays the bar's
+while a menu is open, a press on another title switches to it, and the pointer
+resting on another title switches as on macOS (motion is reported already, for
+hover). About half a day, in the shared dismiss backdrop (`DropdownMenu`), which
+a `Picker` and the context menus also use, so it wants their tests run too.
+
+### B-O13-5. Alt opens the menu whose title starts with the letter, and no letter is underlined
+
+*`_MenuBarCore.TitleRow.mnemonics`*
+
+The owner's answer gives Alt and a letter; which letter is a choice. Windows
+underlines a mnemonic in each title, chosen per menu; macOS has none.
+
+**Shipped:** a title's first letter, when it is an ASCII letter, lowercased;
+where two titles share one, the first menu has it (the other is one Right away).
+No letter is drawn underlined: Apple Terminal, iTerm2 and Ghostty send Alt and
+a letter only when set to (none is by default), and an underline promising a
+key that does nothing on most Macs would mislead. The chords are framework
+defaults, so an app's own ⌥ shortcut on a letter wins, and a focused text field
+keeps the Alt chords it edits with.
+
+**The fuller version** gives each menu a distinct letter (the first unclaimed one
+of its title, as Windows assigns them) and underlines it where the terminal is
+known to send Option as Meta, which the host cannot be asked. About two hours;
+the underline waits on knowing the host's Option setting.

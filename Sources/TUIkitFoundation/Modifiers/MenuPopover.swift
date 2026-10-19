@@ -253,6 +253,8 @@ package func presentMenuPopover<Items: View>(
         .withAvailableWidth(context.environment.terminalWidth)
         .withAvailableHeight(context.environment.overlayContentHeight)
     menuContext.environment.activeFocusSectionID = sectionID
+    // A menu opened from inside this one is no menu bar's.
+    menuContext.environment.menuBarStep = nil
     menuContext.leaveScrollCanvas()
     menuContext.environment.leaveUnstatedTextAlignment()
     menuContext.environment.dismissMenu = DismissMenuAction(action: dismiss)
@@ -302,6 +304,10 @@ package func presentMenuPopover<Items: View>(
 /// combo box and `RadioButtonGroup` use, so a menu and a drop-down move
 /// identically for the same keystroke.
 ///
+/// Left and Right do nothing in a menu of its own. In a menu bar's menu they
+/// step to the menu beside it (``EnvironmentValues/menuBarStep``), as a menu
+/// bar's arrows do on every desktop.
+///
 /// Only what the menu acts on is swallowed — exactly what the focus ring
 /// swallowed for it before. A key equivalent typed with the menu open must still
 /// reach the shortcut registry (`InputHandler` layer 3.5, below this one), which
@@ -315,6 +321,7 @@ private func attachMenuKeys(
     let multiplier = context.environment.shiftStepMultiplier
     // A page is the menu's visible rows; the cap is what the column was given.
     let pageSize = max(1, context.environment.overlayContentHeight - 2)
+    let barStep = context.environment.menuBarStep
 
     dispatcher.addHandler(sectionID: sectionID) { event in
         switch event.key {
@@ -326,11 +333,42 @@ private func attachMenuKeys(
         case .left, .right:
             // On the focus ring these act as Up/Down (`dispatchKeyEvent` treats
             // the axes alike), which in a vertical menu is simply wrong. The
-            // Picker drop-down has always eaten them.
+            // Picker drop-down has always eaten them. A menu bar's menu steps
+            // to its neighbour.
+            barStep?.step(event.key == .left ? -1 : 1)
             return true
         default:
             return controller.highlight.handle(
                 event, multiplier: multiplier, pageSize: pageSize)
         }
+    }
+}
+
+// MARK: - A Menu Bar's Menu
+
+/// What Left and Right do in an open menu that is one of a menu bar's: step to
+/// the menu beside it, `-1` the one before and `1` the one after.
+package struct MenuBarStep {
+    /// Steps by the offset given.
+    package let step: (Int) -> Void
+
+    package init(step: @escaping (Int) -> Void) {
+        self.step = step
+    }
+}
+
+private struct MenuBarStepKey: EnvironmentKey {
+    // Computed: the step is a closure, not `Sendable`, so it cannot be a stored
+    // global, and no menu is a menu bar's by default anyway.
+    static var defaultValue: MenuBarStep? { nil }
+}
+
+extension EnvironmentValues {
+    /// Where an open menu's Left and Right go: the menu bar presenting it
+    /// (TUIkitCommands) sets it; `nil` for any other menu, whose arrows across
+    /// do nothing.
+    package var menuBarStep: MenuBarStep? {
+        get { self[MenuBarStepKey.self] }
+        set { self[MenuBarStepKey.self] = newValue }
     }
 }

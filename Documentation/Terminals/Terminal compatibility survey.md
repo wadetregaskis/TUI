@@ -5212,6 +5212,36 @@ This is why `.contextMenu`'s Shift+F10 route appeared dead: the binding was
 correct, but `parseExtendedKey` stopped at 24, so `ESC[32~` decoded to nothing
 and never became an event at all.
 
+### The menu bar's keys — F10 and Alt-letter, documented, NOT yet measured
+
+Added 2026-10-18 with the menu bar (lane O13; the owner's A28 answer of
+2026-10-04 and the O13-KEYS default: F10, Alt and a letter, and a click). Nothing
+here has been captured from a key press yet: pressing a key needs a person at the
+keyboard, which the lane did not have. What follows is what each encoding and the
+hosts' documentation say, and how TUIkit reads it.
+
+| Key | What a host sends | TUIkit reads it as | Under the kitty keyboard protocol |
+|---|---|---|---|
+| **F10** | `ESC[21~`, the VT220 code, in the xterm family and Apple Terminal alike (Apple Terminal re-codes only the *shifted* function keys, above) | F10: the menu bar's first menu opens (`_MenuBarCore.isMenuBarKey`) | `CSI 21~`, unchanged |
+| **⌥ and a letter** | `ESC` and the letter where Option is sent as Meta (Apple Terminal's "Use Option as Meta key", iTerm2's Esc+, Ghostty's `macos-option-as-alt`; none the default — expected, not measured); otherwise the character Option composes (⌥F is `ƒ`), which no binding names | Alt and the letter: the menu whose title starts with it opens, below any app shortcut on the chord (a framework default) | `CSI <letter>;3u` where the host reports Option as Alt |
+| A click on a title | SGR mouse reporting, as every click | opens that menu | the same |
+
+**F10 on a Mac keyboard.** macOS gives the top row to the media keys: F10 is
+Mute unless fn is held, or System Settings → Keyboard uses "F1, F2, etc. keys as
+standard function keys". So the key is fn-F10 on a default Mac, and F10 on a
+keyboard set the other way or a full-size one. No macOS default shortcut is on
+F10 (unverified). Shift-F10 stays the context menu's (above).
+
+**What reaches the bar on every host:** a click, and F10 (or fn-F10). Alt and a
+letter work only where Option is sent as Meta, which is why the bar has F10 and
+the click as well, and why every command's own shortcut works with the bar
+closed.
+
+*To measure — `Tools/TerminalProbes/key_probe.py`*, which asks for F10 and ⌥F
+after the grabber's keys: run it in Apple Terminal, iTerm2 and Ghostty from each
+default profile, and record whether F10 or fn-F10 was pressed, the
+standard-function-keys setting, and each host's Option setting.
+
 ### Modified F1–F4 are CSI letters (xterm) — decoded since 2026-10-05
 
 F1–F4 alone arrive as SS3 (`ESC O P` … `ESC O S`), but with a modifier xterm,

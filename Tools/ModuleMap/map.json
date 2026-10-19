@@ -134,6 +134,8 @@
   "TUIkitCommands/Commands/CommandsCollector.swift": "TUIkitCommands",
   "TUIkitCommands/Exports.swift": "TUIkitCommands",
   "TUIkitCommands/MenuBar/CommandMenuItems.swift": "TUIkitCommands",
+  "TUIkitCommands/MenuBar/MenuBarState.swift": "TUIkitCommands",
+  "TUIkitCommands/MenuBar/_MenuBarCore+Opening.swift": "TUIkitCommands",
   "TUIkitCommands/MenuBar/_MenuBarCore.swift": "TUIkitCommands",
   "TUIkitCommands/Scene+Commands.swift": "TUIkitCommands",
   "TUIkitCurveEditors/Exports.swift": "TUIkitCurveEditors",

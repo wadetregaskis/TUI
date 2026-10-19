@@ -14,7 +14,11 @@ Shortcuts → Mission Control. Record whether they are.
 The keys asked are a detented sheet's grabber's (↑ ↓, ↖ ↘ Home and End) and the
 ones its design rejected or deferred (⇞ ⇟, ⌃↑ ⌃↓, ⇧↑, ⌥↑) — see
 Documentation/Historical/Live sheets design study, A19 (2026-10-04).md §4 and
-Documentation/Terminals/Terminal compatibility survey.md, "Keys a sheet's grabber uses".
+Documentation/Terminals/Terminal compatibility survey.md, "Keys a sheet's grabber uses" —
+and the menu bar's (F10, and ⌥F for Alt with a title's first letter) — see the
+survey's "The menu bar's keys". On a Mac keyboard F10 is the mute key unless fn is
+held or System Settings → Keyboard says to use F1, F2, etc. as standard function
+keys: record which was pressed, F10 or fn-F10, and that setting.
 
 Run INSIDE the terminal under test, from its DEFAULT profile, once on each
 screen: TUIkit draws on the alternate screen (`PROBE_ALT=1`), and a host's
@@ -43,11 +47,13 @@ KEYS = [
     ("ctrl_down", "⌃↓ Control-Down"),
     ("shift_up", "⇧↑ Shift-Up"),
     ("option_up", "⌥↑ Option-Up"),
+    ("f10", "F10 (fn-F10 on a Mac keyboard)"),
+    ("option_f", "⌥F Option-F"),
 ]
 
 # The legacy spellings each could arrive as, in the xterm family's grammar.
 FINALS = {"A": "up", "B": "down", "C": "right", "D": "left", "H": "home", "F": "end"}
-TILDES = {1: "home", 7: "home", 4: "end", 8: "end", 5: "page_up", 6: "page_down"}
+TILDES = {1: "home", 7: "home", 4: "end", 8: "end", 5: "page_up", 6: "page_down", 21: "f10"}
 MODIFIERS = {2: "shift", 3: "option", 4: "shift+option", 5: "control", 6: "shift+control",
              7: "option+control", 8: "shift+option+control"}
 
@@ -61,6 +67,8 @@ def render(raw):
 def decode(raw):
     """A legacy key sequence's name, or None."""
     text = raw.decode("latin-1")
+    if len(text) == 2 and text[0] == "\x1b" and text[1].isalpha():
+        return "option+" + text[1]
     prefix = ""
     if text.startswith("\x1b\x1b"):
         prefix, text = "option+", text[1:]
@@ -117,6 +125,7 @@ def main():
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
 
     result["mission_control_shortcuts"] = "fill in by hand: on or off in System Settings"
+    result["f_keys_standard"] = "fill in by hand: F10 or fn-F10 pressed, and the standard-function-keys setting"
     with open(out_path, "w") as handle:
         json.dump(result, handle, indent=1, ensure_ascii=False)
     env = result["stamp"]["env"]

@@ -263,6 +263,26 @@ everything of yours on the same keys comes first:
 
 A `.disabled()` split view ignores them.
 
+## The Menu Bar's Keys
+
+A scene that declares commands (`.commands { … }`, TUIkitCommands) has a menu
+bar on the window's top row, and each command's `.keyboardShortcut` works
+whether its menu is open or not. A shortcut your page registers on the same
+keys comes first, as a window's key equivalent comes before the menu bar's.
+
+| Key | With every menu closed | With a menu open |
+|-----|------------------------|------------------|
+| F10 (fn-F10 on a Mac keyboard) | opens the first menu | closes it |
+| ⌥ and a title's first letter | opens that menu | opens that menu instead |
+| ← → | — | the menu before or after, round the ends |
+| ↑ ↓, Return, Escape | — | as in any pop-up menu: move, choose, close |
+
+A click on a title opens its menu too, and the titles are not in the Tab ring.
+⌥ and a letter arrive only where the terminal sends Option as Meta, so they are
+framework defaults: your own ⌥ shortcut on the letter wins, and a focused text
+field keeps the ⌥ chords it edits with. While a modal holds the input, the bar
+is inert and no command's key fires.
+
 ## Your Shortcuts and the Editing Chords
 
 A focused control is offered a key before your shortcuts are (Layer 0 and

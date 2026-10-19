@@ -697,8 +697,14 @@ several modifiers add up, the innermost first, and `commandsRemoved()` and
 `commandsReplaced(content:)` take away what is inside them, keeping what is
 outside. A command's keyboard shortcut works whether its menu is open or not,
 and a command reads the focused view's `@FocusedValue` as of the frame its key
-is pressed after: the bar is drawn after the page. Two differences, each a
-choice:
+is pressed after: the bar is drawn after the page. A click on a title opens its
+menu, F10 opens the first (fn-F10 on a Mac keyboard), and Alt with a title's
+first letter opens that menu where the terminal sends Option as Meta
+([Terminal compatibility survey.md](<../Terminals/Terminal compatibility survey.md>),
+"The menu bar's keys"); with one open, Left and Right step to the menus beside
+it, F10 and Escape close it, and the page has its focus back. An open menu is a
+pop-up `Menu`'s, its rows and keys the same, hung from its title over the whole
+window; the titles are not in the Tab ring. Two differences, each a choice:
 
 - **The page's own shortcut on a command's key is asked first**, as AppKit
   sends a key equivalent to the key window before the main menu (documented;
