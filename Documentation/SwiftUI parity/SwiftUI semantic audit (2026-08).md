@@ -354,6 +354,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* Call LocalizationService.shared.setLanguage(.french), then render `List(rows) { … }.searchable(text: $q)`: every string on screen is French except the search field's placeholder, which reads "Search". Tests/TUIkitSearchTests/SearchableTests.swift:33 asserts joined.contains("Search"), which pins the rendered English word rather than a decision that the prompt should be unlocalized.
 - *Recommendation:* Fix: `prompt ?? Text(LocalizationKey.Placeholder.search.rawValue)` (or .Label.search). Update SearchableTests.swift:33 to resolve the key or pin the language.
 - *Status (2026-10-14 sweep):* **FIXED** — the default prompt is `LocalizationKey.Label.search` (SearchableModifier); no test pins a non-English prompt.
+- *Status (2026-10-18):* pinned — `SearchablePromptLanguageTests` reads the prompt in German, French and Japanese through a service of its own in the environment, which the modifier now reads, as `LocalizedString` does.
 
 ### Buttons, links, menus and shortcuts
 

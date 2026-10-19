@@ -4,11 +4,13 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 import TUIkitSearch
+@testable import TUIkitStrings
 @testable import TUIkitTestSupport
 
 @MainActor
@@ -386,5 +388,37 @@ struct SearchableTests {
         // Nothing to clear and nothing to unfocus: the call must simply do
         // nothing rather than, say, reach for the focus manager.
         captured.dismiss?()
+    }
+}
+
+/// The default prompt is TUIkit's own word, in the user's language — the
+/// semantic audit's item 10, fixed in code on 2026-10-14 and pinned here in a
+/// language other than English. Each case reads a service of its own, set to
+/// that language, through the environment, so the process's language is
+/// never touched.
+@MainActor
+@Suite("searchable's default prompt is localized")
+struct SearchablePromptLanguageTests {
+    private final class QueryBox { var query = "" }
+
+    private func prompt(in language: LocalizationService.Language) -> String {
+        let service = LocalizationService(
+            configDirectoryPath: NSTemporaryDirectory() + "tuikit-search-prompt-\(UUID().uuidString)")
+        service.pinLanguageForTesting(language)
+        let box = QueryBox()
+        let context = makeRenderContext(width: 40, height: 8) { environment, _ in
+            environment.localizationService = service
+        }
+        let view = Text("CONTENT").searchable(text: Binding(get: { box.query }, set: { box.query = $0 }))
+        return renderToBuffer(view, context: context).lines.map(\.stripped).joined(separator: "\n")
+    }
+
+    @Test("German reads Suche, French Recherche, Japanese 検索")
+    func nonEnglishPrompts() {
+        let german = prompt(in: .german)
+        #expect(german.contains("Suche"), "\(german)")
+        #expect(!german.contains("Search"), "\(german)")
+        #expect(prompt(in: .french).contains("Recherche"))
+        #expect(prompt(in: .japanese).contains("検索"))
     }
 }

@@ -64,6 +64,12 @@ struct SearchableModifier<Content: View>: View {
     /// selection to, if anything.
     @Environment(\.searchSelection) private var selection
 
+    /// Where the default prompt's word comes from: the environment's service,
+    /// which a running app republishes as the shared one each frame, so a
+    /// subtree (or a test) can show it in another language without switching
+    /// the whole process, as `LocalizedString` reads its service.
+    @Environment(\.localizationService) private var localizationService
+
     /// The magnifier that faces the field from `iconPlacement`'s side: 🔎 is
     /// RIGHT-pointing so it looks rightward into a trailing field, 🔍 is
     /// LEFT-pointing so it looks leftward into a leading one. (The Unicode
@@ -210,8 +216,7 @@ struct SearchableModifier<Content: View>: View {
         // The fallback prompt is the framework's word, not the caller's, so it
         // comes from the table. `Text(verbatim:)` because the lookup has
         // already happened — see `ContentUnavailableView.search`.
-        let defaultPrompt = Text(
-            verbatim: LocalizationService.shared.string(for: LocalizationKey.Label.search))
+        let defaultPrompt = Text(verbatim: localizationService.string(for: LocalizationKey.Label.search))
         let tokenSink = tokens?.sink
         var offered = text.wrappedValue.isEmpty ? tokens?.suggestions ?? [] : []
         if !offered.isEmpty, !suggestions.entries.isEmpty {
@@ -257,5 +262,6 @@ extension SearchableModifier: ResolvesOwnEnvironment {
         _suggestions.resolveEnvironment(environment)
         _scopeBar.resolveEnvironment(environment)
         _selection.resolveEnvironment(environment)
+        _localizationService.resolveEnvironment(environment)
     }
 }
