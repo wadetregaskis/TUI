@@ -172,7 +172,10 @@ struct TerminalQuirksTests {
         #expect(quirks.widthTraits.textClusters == .perCodePoint)
         #expect(TerminalQuirks().widthTraits.textClusters == .clustered)
         // Built at run time: the compiler's own check of a `Character` literal
-        // segments without GB9c, which is the rule that makes these ONE cluster.
+        // segments without GB9c, which is the rule that makes these ONE cluster
+        // (compiler bug, 6.2.4 to 6.4.0, reported as "Swift 6.4: a `Character`
+        // literal rejects a Devanagari conjunct that `String` counts as one
+        // `Character`", 2026-10-19).
         let straText = "\u{938}\u{94D}\u{924}\u{94D}\u{930}"  // स्त्र
         let striText = "\u{938}\u{94D}\u{924}\u{94D}\u{930}\u{940}"  // स्त्री
         let stra = Character(straText)
