@@ -31,6 +31,11 @@ private enum PickerSegmentsStateIndex {
 /// a prominent button's label is — in the accent, bold — unless a palette's
 /// selection effect says otherwise.
 ///
+/// The ``ControlSize`` is the bordered button's density table, on one row: no
+/// space round the options at `.small` (`▐S│M│L▌`) and no caps either at
+/// `.mini` (`S│M│L`, the face alone), two spaces at `.extraLarge`
+/// (`▐  S  │  M  │  L  ▌`).
+///
 /// **One focus stop.** The keys are the horizontal radio group's — the two
 /// share ``RadioButtonGroupHandler`` — with macOS's choices for a segmented
 /// control, measured on 15.8 (a SwiftUI `.segmented` picker, keyed through its
@@ -126,11 +131,15 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
         // At rest the caps are the face's own colour, so the face reads as one
         // rounded control — exactly a button's at rest.
         let capInk = ButtonCapCycle(isFocused: false, background: face, palette: palette, context: context).colorNow
+        // The density table a bordered button's face follows, on one row.
+        let size = context.environment.controlSize
+        let caps = size.drawsEndCaps
+        let padding = size.padding(regular: 1)
 
         var row = ClaimingRow()
         var runs: [AnimatedCellRun] = []
         var regions: [(x: Int, width: Int)] = []
-        row.append(String(TerminalSymbols.openCap), cells: 1, ink: capInk)
+        if caps { row.append(String(TerminalSymbols.openCap), cells: 1, ink: capInk) }
         for (index, option) in options.enumerated() {
             if index > 0 {
                 row.append(Self.divider, cells: 1, ink: palette.foregroundTertiary, field: face)
@@ -146,13 +155,14 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
             }
             let start = row.cells
             drawSegment(
-                label, as: segment, index: index, face: face, into: &row, runs: &runs, context: context)
+                label, as: segment, index: index, face: face, padding: padding, into: &row, runs: &runs,
+                context: context)
             // The caps belong to the segments beside them, so the whole face
             // but its rules is somewhere to click.
             let left = index == 0 ? 0 : start
-            regions.append((x: left, width: row.cells - left + (index == options.count - 1 ? 1 : 0)))
+            regions.append((x: left, width: row.cells - left + (caps && index == options.count - 1 ? 1 : 0)))
         }
-        row.append(String(TerminalSymbols.closeCap), cells: 1, ink: capInk)
+        if caps { row.append(String(TerminalSymbols.closeCap), cells: 1, ink: capInk) }
 
         var buffer = FrameBuffer(lines: [row.text])
         buffer.opacityRegions = row.claims
@@ -210,10 +220,10 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
         let isDisabled: Bool
     }
 
-    /// Appends one segment — its label, a space either side — to `row`, and the
-    /// run its cursor breathes in, if it is the cursor.
+    /// Appends one segment — its label, `padding` spaces either side — to
+    /// `row`, and the run its cursor breathes in, if it is the cursor.
     private func drawSegment(
-        _ label: AnyView, as segment: Segment, index: Int, face: Color, into row: inout ClaimingRow,
+        _ label: AnyView, as segment: Segment, index: Int, face: Color, padding: Int, into row: inout ClaimingRow,
         runs: inout [AnimatedCellRun], context: RenderContext
     ) {
         let palette = context.environment.palette
@@ -236,11 +246,12 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
                 on: .color(ink))
         }
         let rendered = TUIkitView.renderToBuffer(label.bold(isMarked), context: labelContext)
-        let text = " " + (rendered.lines.first ?? "") + " "
+        let pad = String.spaces(padding)
+        let text = pad + (rendered.lines.first ?? "") + pad
         let width = text.strippedLength
         let column = row.cells
         for claim in rendered.opacityRegions where claim.offsetY == 0 {
-            row.claims.appendCoalescing(claim.shifted(byX: column + 1, y: 0))
+            row.claims.appendCoalescing(claim.shifted(byX: column + padding, y: 0))
         }
 
         guard let cursor else {

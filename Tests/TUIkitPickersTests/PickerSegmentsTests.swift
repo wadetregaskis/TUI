@@ -172,6 +172,43 @@ struct PickerSegmentsTests {
         #expect(choice.value == 1, "a rule chose a segment")
     }
 
+    @Test("The control size is a button's density: no space at small, no caps at mini, more room at extra large")
+    func controlSizeDensity() {
+        func drawn(_ size: ControlSize) -> String? {
+            InputChainHarness(width: 40, height: 3).frame(picker(Choice()).controlSize(size)).lines.first?.stripped
+        }
+        #expect(drawn(.mini) == "Size S│M│L")
+        #expect(drawn(.small) == "Size ▐S│M│L▌")
+        #expect(drawn(.regular) == "Size ▐ S │ M │ L ▌")
+        #expect(drawn(.large) == "Size ▐ S │ M │ L ▌")
+        #expect(drawn(.extraLarge) == "Size ▐  S  │  M  │  L  ▌")
+    }
+
+    @Test("At mini, with no caps, a click still chooses the segment under it and a rule chooses nothing")
+    func clickingAtMini() {
+        let choice = Choice(2)
+        let harness = InputChainHarness(width: 40, height: 3)
+        let view = picker(choice).controlSize(.mini)
+        func click(_ x: Int) {
+            harness.mouse(MouseEvent(button: .left, phase: .pressed, x: x, y: 0))
+            harness.mouse(MouseEvent(button: .left, phase: .released, x: x, y: 0))
+            harness.frame(view)
+        }
+        let line = harness.frame(view).lines.first ?? ""
+        guard let small = column(of: "S", in: String(line.stripped.dropFirst(5))).map({ $0 + 5 }),
+            let large = column(of: "L", in: line), let rule = column(of: "│", in: line)
+        else {
+            Issue.record("the strip did not draw: \(line.stripped)")
+            return
+        }
+        click(large)
+        #expect(choice.value == 3)
+        click(small)
+        #expect(choice.value == 1)
+        click(rule)
+        #expect(choice.value == 1, "a rule chose a segment")
+    }
+
     @Test("A disabled picker is no focus stop and takes no click")
     func disabled() {
         let presses = Presses()

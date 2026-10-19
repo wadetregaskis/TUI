@@ -75,7 +75,9 @@ enum _PickerEntry<SelectionValue: Hashable> {
 /// - ``InlinePickerStyle`` and ``RadioGroupPickerStyle`` present the options
 ///   inline as a radio-button group.
 /// - ``SegmentedPickerStyle`` and ``PalettePickerStyle`` draw the options as
-///   the segments of one control, `▐ S │ M │ L ▌`.
+///   the segments of one control, `▐ S │ M │ L ▌`, which follows the
+///   ``ControlSize`` as a button's face does on one row: `▐S│M│L▌` at
+///   `.small`, `S│M│L` at `.mini`.
 ///
 /// ## Keyboard
 ///

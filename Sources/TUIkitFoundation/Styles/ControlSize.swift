@@ -17,7 +17,15 @@
 /// a box of lines, or its shape drawn in quadrants on a solid face (see
 /// ``ButtonBorderShape`` for the families) — and breathes whole while it holds
 /// the focus. The other controls follow where they have chrome to trim or room
-/// to give.
+/// to give, on their one row (``padding(regular:)``, ``drawsEndCaps``):
+///
+/// | size          | segmented picker        |
+/// |---------------|-------------------------|
+/// | `.mini`       | `S│M│L`                 |
+/// | `.small`      | `▐S│M│L▌`               |
+/// | `.regular`    | `▐ S │ M │ L ▌`         |
+/// | `.large`      | `▐ S │ M │ L ▌`         |
+/// | `.extraLarge` | `▐  S  │  M  │  L  ▌`   |
 ///
 /// ```swift
 /// HStack {
