@@ -132,6 +132,7 @@
   "TUIkitCommands/Commands/Commands.swift": "TUIkitCommands",
   "TUIkitCommands/Commands/CommandsBuilder.swift": "TUIkitCommands",
   "TUIkitCommands/Commands/CommandsCollector.swift": "TUIkitCommands",
+  "TUIkitCommands/Commands/StandardCommands.swift": "TUIkitCommands",
   "TUIkitCommands/Exports.swift": "TUIkitCommands",
   "TUIkitCommands/MenuBar/CommandMenuItems.swift": "TUIkitCommands",
   "TUIkitCommands/MenuBar/MenuBar.swift": "TUIkitCommands",

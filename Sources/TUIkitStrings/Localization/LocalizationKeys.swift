@@ -114,6 +114,10 @@ public enum LocalizationKey {
         case showInspector = "label.showInspector"
         /// A toolbar's inspector button, while the inspector shows: its help.
         case hideInspector = "label.hideInspector"
+        /// The menu bar's View ▸ Show Toolbar, while the top bar is hidden.
+        case showToolbar = "label.showToolbar"
+        /// The menu bar's View ▸ Hide Toolbar.
+        case hideToolbar = "label.hideToolbar"
         /// A toolbar's content-column button, while a three-column split
         /// view's content column is hidden: its help.
         case showContentColumn = "label.showContentColumn"
@@ -185,6 +189,8 @@ public enum LocalizationKey {
         case quitApp = "menu.quitApp"
         /// The About alert's version line: `%@` is the app's bundle version.
         case aboutVersion = "menu.aboutVersion"
+        /// The menu bar's Edit ▸ Find… (`TextEditingCommands`).
+        case find = "menu.find"
         case new = "menu.new"
         case open = "menu.open"
         case save = "menu.save"

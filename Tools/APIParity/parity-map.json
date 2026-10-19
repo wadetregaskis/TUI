@@ -297,15 +297,9 @@
     },
     {
       "match": [
-        "View.onCommand*",
-        "ImportFromDevicesCommands*",
-        "InspectorCommands*",
-        "SidebarCommands*",
-        "TextEditingCommands*",
-        "TextFormattingCommands*",
-        "ToolbarCommands*"
+        "View.onCommand*"
       ],
-      "why": "What of the command system lane O13 (refusal review O13, ruled 2026-10-12: a full menu bar) has not built yet: the standard command sets. The vocabulary (Commands, CommandsBuilder, CommandMenu, CommandGroup, CommandGroupPlacement, EmptyCommands) and the scene modifiers (commands, commandsRemoved, commandsReplaced) are TUIkitCommands'. `onCommand`'s Objective-C selectors and responder chain stay declined."
+      "why": "`onCommand(_:perform:)` answers a command sent up the responder chain by an Objective-C `Selector` (a menu item's action, a `NSResponder` message). TUIkit has no responder chain and no Objective-C runtime on Linux; its menu bar's commands (TUIkitCommands) are views with actions, and what reaches the focused view is SwiftUI's own focus-path commands (`onMoveCommand`, `onExitCommand`, `onDeleteCommand`, `onCopyCommand`, `onCutCommand`, `onPasteCommand`). Declined since refusal review O13 (CONFIRM)."
     },
     {
       "match": [
@@ -708,6 +702,9 @@
     "ImagePaint": {
       "why": "A ShapeStyle that fills a shape with a tiled or scaled image, resolved per pixel against the shape's coverage. There are no shapes to fill (O0 of the refusal review), and a raster draws through `Image`, which is TUIkit's raster-to-cell renderer."
     },
+    "ImportFromDevicesCommands": {
+      "why": "Its items import photos and scans from nearby devices (Continuity Camera), which macOS offers to a window it can present a camera picker over. A terminal app has no such service to call, and nothing on the screen for the picker; the menu bar (TUIkitCommands) carries every other standard command set."
+    },
     "LocalizedStringKey.StringInterpolation.appendInterpolation(accessibilityName:)": {
       "why": "A colour's spoken name comes from Apple's accessibility colour naming, which is private and has no counterpart in the open-source Foundation, and a screen reader reads a terminal only through what is on screen, so a name would have to be drawn. Declined (owner, 2026-10-05; decisions A33, removed when this entry landed): code that uses it does not compile, and the app says what it means in words. Interpolating the colour's description instead would read `Color(…)` aloud, the quiet wrong answer."
     },
@@ -788,6 +785,9 @@
     },
     "TextAttribute": {
       "why": "Marker protocol for values attached via Text.customAttribute and read back inside a TextRenderer's run walk. It exists only to feed the custom-rendering pipeline, deferred with TextRenderer (owner, 2026-10-12; refusal review O16)."
+    },
+    "TextFormattingCommands": {
+      "why": "Its Font and Text submenus format the selection of a rich-text editor. TUIkit's text controls hold plain text until the rich-text TextEditor (decisions A42) lands, so the commands would do nothing (rule 2). Owed with A42: the menu bar (TUIkitCommands) takes it as it takes TextEditingCommands, with the chords open question A42-Q8 decides."
     },
     "TextInputFormattingControlPlacement": {
       "why": "Names the OS surfaces (the keyboard's accessory bar, an inspector, a menu) where the system's rich-text formatting controls appear, for `textInputFormattingControlVisibility`. A terminal app has no OS-drawn chrome on its fields: every cell on screen is written by the process itself."

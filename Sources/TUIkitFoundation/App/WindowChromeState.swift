@@ -598,10 +598,24 @@ package final class WindowChromeState: @unchecked Sendable {
         declaredVisibility[edge] = visibility
     }
 
-    /// Whether this walk hid the bar at `edge`.
+    /// Whether this walk hid the bar at `edge` — or, for the top bar, the
+    /// person did, from the menu bar (``topBarHiddenByCommand``).
     package func isHidden(_ edge: Edge) -> Bool {
-        declaredVisibility[edge] == .hidden
+        declaredVisibility[edge] == .hidden || (edge == .top && _topBarHiddenByCommand)
     }
+
+    /// Whether the menu bar's View ▸ Hide Toolbar (`ToolbarCommands`,
+    /// TUIkitCommands) hid the top bar: the person's choice, which holds until
+    /// Show Toolbar, whatever the page declares — as a window's toolbar hidden
+    /// from its View menu stays hidden on macOS.
+    package var topBarHiddenByCommand: Bool {
+        get { _topBarHiddenByCommand }
+        set { _topBarHiddenByCommand = newValue }
+    }
+
+    /// ``topBarHiddenByCommand``'s storage: private, under the `package`
+    /// accessor (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _topBarHiddenByCommand = false
 
     /// Records a toolbar item the walk declared — once per identity.
     package func declare(_ entry: ToolbarEntry) {

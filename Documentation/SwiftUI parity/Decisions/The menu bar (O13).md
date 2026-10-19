@@ -170,3 +170,61 @@ lands: a "Settings…" item, on SwiftUI's ⌘, (through `commandKey`), that call
 the environment's `openSettings` when the scene has a `Settings` scene. About
 an hour, with its test. The Window menu's groups (`windowList`,
 `singleWindowList`, `windowArrangement`) wait on O9 (b) likewise.
+
+### B-O13-8. The standard command sets, as a terminal app has them
+
+*`SidebarCommands`, `InspectorCommands`, `ToolbarCommands`, `TextEditingCommands`*
+
+What each adds on macOS was measured (the probe's `std` case): Show Sidebar
+(⌃⌘S) and Show Inspector (⌃⌘I, disabled with no inspector) in the View menu's
+sidebar group, Show Toolbar (⌥⌘T) and Customize Toolbar… in its toolbar group,
+and in Edit the Find, Spelling and Grammar, Substitutions, Transformations and
+Speech submenus.
+
+**Shipped:**
+- `SidebarCommands`: Show Sidebar / Hide Sidebar, titled by the window's first
+  split view's sidebar, pressing the split view's own ⌃⌘S after the menu
+  closes (so the split that holds the focus is toggled first, as the chord
+  does); disabled with no split view, where macOS leaves it enabled and doing
+  nothing.
+- `InspectorCommands`: Show Inspector / Hide Inspector on ⌃⌘I, for the window's
+  first inspector; disabled with none, as on macOS. Under `.commandKey(.control)`
+  ⌃⌘I is ⌃I, which a legacy encoding sends as Tab, so the key works only under
+  the kitty keyboard protocol and the menu is the way there.
+- `ToolbarCommands`: Hide Toolbar / Show Toolbar on ⌥⌘T, the person's choice
+  over the top bar (`WindowChromeState.topBarHiddenByCommand`), whatever the
+  page's `.toolbarVisibility` says, until Show Toolbar; disabled while the page
+  places nothing in the top bar. No Customize Toolbar…: `toolbar(id:)` is a gap.
+- `TextEditingCommands`: Find…, pressing a `TextEditor`'s own find key, ⌃G
+  (⌃F is its caret's forward a character).
+
+**The fuller version:** submenus, which TUIkit's menus do not have (a `Menu`
+inside a menu draws as a control on its row), so Find's own submenu (Find
+Next, Find Previous, Use Selection, Jump to Selection) and Transformations
+(upper, lower, capitalised, which a text control could do) — about a day with
+submenus, which every menu would then have. Spelling and Speech have no
+counterpart.
+
+## C. Declined
+
+### C-O13-1. `onCommand(_:perform:)`
+
+A command sent up the responder chain by an Objective-C `Selector`. TUIkit has
+no responder chain and no Objective-C runtime on Linux; what reaches the focused
+view is SwiftUI's own focus-path commands (`onMoveCommand`, `onExitCommand`,
+`onDeleteCommand`, `onCopyCommand`, …). Declined since refusal review O13
+(CONFIRM). `parity-map.json`: the `View.onCommand*` family.
+
+### C-O13-2. `ImportFromDevicesCommands`
+
+Importing photos and scans from nearby devices (Continuity Camera): a service
+macOS offers a window it can present a camera picker over, which a terminal app
+has neither. `parity-map.json`: `notImplemented`.
+
+### C-O13-3. `TextFormattingCommands`, until the rich-text editor
+
+Its Font and Text submenus format a rich-text selection. TUIkit's text controls
+hold plain text until A42's rich-text `TextEditor` lands, so the commands would
+do nothing (rule 2): they fail to compile instead. With A42 they are the bar's
+like `TextEditingCommands`, with the chords open question A42-Q8 decides.
+`parity-map.json`: `notImplemented`, with that reason.

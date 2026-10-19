@@ -698,7 +698,13 @@ quits when `q` would); the Edit menu holds Undo and Redo (the app's
 `UndoManager`, showing the scene's undo keys) and Cut, Copy and Paste (⌘X, ⌘C
 and ⌘V, through `commandKey`, to the focused view). Each item whose key acts on
 the focused view presses that key once the menu has closed and handed the
-focus back. Within a group the newest `before:` comes
+focus back. SwiftUI's opt-in sets fill the View and Edit menus:
+`SidebarCommands` (Show/Hide Sidebar, the split view's ⌃⌘S), `InspectorCommands`
+(Show/Hide Inspector, ⌃⌘I), `ToolbarCommands` (Hide/Show Toolbar, ⌥⌘T, the
+person's choice over the page's top bar; no Customize Toolbar…) and
+`TextEditingCommands` (Find…, a `TextEditor`'s ⌃G); `TextFormattingCommands`
+waits for the rich-text editor (A42) and `ImportFromDevicesCommands` is
+declined, both failing to compile. Within a group the newest `before:` comes
 first, the `after:`s follow, and the last `replacing:` stands; commands on
 several modifiers add up, the innermost first, and `commandsRemoved()` and
 `commandsReplaced(content:)` take away what is inside them, keeping what is

@@ -132,7 +132,7 @@ public struct CommandGroupPlacement: Hashable, Sendable {
 
     /// Placement for commands that manipulate and transform text selections.
     ///
-    /// Empty by default.
+    /// Empty by default; ``TextEditingCommands`` adds Find….
     public static let textEditing = Self(.textEditing)
 
     /// Placement for commands that manipulate and transform the styles
@@ -143,13 +143,14 @@ public struct CommandGroupPlacement: Hashable, Sendable {
 
     /// Placement for commands that manipulate the toolbar.
     ///
-    /// Empty by default.
+    /// Empty by default; ``ToolbarCommands`` adds Hide Toolbar.
     public static let toolbar = Self(.toolbar)
 
     /// Placement for commands that control the app's sidebar and full-screen
     /// modes.
     ///
-    /// Empty by default.
+    /// Empty by default; ``SidebarCommands`` adds Show Sidebar and
+    /// ``InspectorCommands`` Show Inspector.
     public static let sidebar = Self(.sidebar)
 
     /// Placement for commands that control the size of the window.

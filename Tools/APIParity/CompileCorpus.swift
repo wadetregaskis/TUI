@@ -3773,6 +3773,10 @@ private struct CorpusCommandsScene: Scene {
             .commands {
                 CorpusNoteCommands()
                 CommandMenu("Tools") { Button("Run") {} }
+                SidebarCommands()
+                InspectorCommands()
+                ToolbarCommands()
+                TextEditingCommands()
             }
             .commandsRemoved()
             .commandsReplaced {
