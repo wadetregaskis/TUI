@@ -42,9 +42,12 @@ import TUIkitView
 /// A tab whose sidebar visibility is `.hidden` is left out of the sidebar —
 /// not out of a tab strip, which a customization does not change (both as
 /// measured on macOS 15.8). A section's tab order, and the order of the
-/// sections, are applied to the sidebar when the value holds one; nothing in
-/// TUIkit sets either yet — macOS reorders sections by dragging, which a
-/// terminal sidebar has no gesture for — so only a decoded value has one.
+/// sections, are applied to the sidebar when the value holds one. A person
+/// reorders the identified sections in the sidebar, as macOS lets them be
+/// dragged: from the keyboard with a section's header focused — Ctrl-R, the
+/// arrows, then Return, as a list's row is moved — or by dragging a header
+/// onto another; the new order is written through the binding. Nothing in
+/// TUIkit sets a section's tab order, so only a decoded value has one.
 ///
 /// It is `Codable`, so it can be persisted as is. The encoding is TUIkit's own,
 /// not SwiftUI's, which is private.
@@ -107,6 +110,12 @@ public struct TabViewCustomization: Equatable, Sendable, Codable {
     /// in.
     public mutating func resetSectionOrder() {
         sectionOrder = nil
+    }
+
+    /// Orders the identified sections as `ids` lists them — what a person
+    /// moving a section in the sidebar writes.
+    mutating func orderSections(_ ids: [String]) {
+        sectionOrder = ids
     }
 
     /// Resets every tab's visibility back to its default.
@@ -192,16 +201,31 @@ public struct TabViewCustomization: Equatable, Sendable, Codable {
 
 // MARK: - Binding a tab view to one
 
+/// The customization a tab view is bound to: its value as it last drew, and
+/// the binding a person's reordering of the sidebar's sections writes through.
+///
+/// Compared by the value alone, so it compares where a binding would not and
+/// the render memos below the tab view stay on; it changes exactly when what
+/// the sidebar draws from it does. The binding a memo below replays is the
+/// last frame's, which writes where this frame's does: to the app's storage.
+struct _BoundTabViewCustomization: Equatable {
+    let value: TabViewCustomization
+    let binding: Binding<TabViewCustomization>
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.value == rhs.value }
+}
+
 private struct TabViewCustomizationKey: EnvironmentKey {
-    static let defaultValue: TabViewCustomization? = nil
+    // Computed, not stored: a binding is not `Sendable`, so a stored default
+    // would be a global the compiler cannot prove safe, and `nil` costs
+    // nothing to make.
+    static var defaultValue: _BoundTabViewCustomization? { nil }
 }
 
 extension EnvironmentValues {
-    /// The customization a tab view below applies to its sidebar — the value
-    /// ``View/tabViewCustomization(_:)`` was bound to as it last drew. The
-    /// value, not the binding: nothing in a tab view writes it, and a value
-    /// compares, where a binding would turn the render memos off below it.
-    var tabViewCustomization: TabViewCustomization? {
+    /// The customization a tab view below applies to its sidebar, bound with
+    /// ``View/tabViewCustomization(_:)`` (``_BoundTabViewCustomization``).
+    var tabViewCustomization: _BoundTabViewCustomization? {
         get { self[TabViewCustomizationKey.self] }
         set { self[TabViewCustomizationKey.self] = newValue }
     }
@@ -213,12 +237,15 @@ extension View {
     ///
     /// Only the ``TabViewStyle/sidebarAdaptable`` style supports
     /// customization: its sidebar leaves out a tab the customization hides
-    /// and lists the tabs in any order it states. See
+    /// and lists the tabs in any order it states, and a person moving an
+    /// identified section there writes its new order through the binding. See
     /// ``TabViewCustomization``.
     ///
     /// - Parameter customization: The customization, or `nil` for none.
     public func tabViewCustomization(_ customization: Binding<TabViewCustomization>?) -> some View {
-        environment(\.tabViewCustomization, customization?.wrappedValue)
+        environment(
+            \.tabViewCustomization,
+            customization.map { _BoundTabViewCustomization(value: $0.wrappedValue, binding: $0) })
     }
 }
 

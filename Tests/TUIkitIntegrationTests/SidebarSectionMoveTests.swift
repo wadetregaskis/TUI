@@ -1,0 +1,184 @@
+//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  SidebarSectionMoveTests.swift
+//
+//  A person reorders a customizable sidebar's sections (decisions B79): from
+//  the keyboard on a section's header, as a list's row is moved, or by
+//  dragging a header onto another; the new order is written through the
+//  `TabViewCustomization` binding.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import Testing
+
+import TUIkit
+@testable import TUIkitAppTestSupport
+@testable import TUIkitCore
+@testable import TUIkitFoundation
+@testable import TUIkitTestSupport
+
+/// Where the app keeps its customization, outside the views.
+@MainActor
+private final class Store {
+    var customization = TabViewCustomization()
+    var binding: Binding<TabViewCustomization> {
+        Binding(get: { self.customization }, set: { self.customization = $0 })
+    }
+
+    /// The section order written, read off the encoding (the order is the
+    /// value's own, with no public reader).
+    var sectionOrder: [String]? {
+        guard let data = try? JSONEncoder().encode(customization),
+            let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+        return object["sectionOrder"] as? [String]
+    }
+}
+
+@MainActor
+@Suite("Moving a customizable sidebar's sections")
+struct SidebarSectionMoveTests {
+    private func sidebar(_ store: Store, bound: Bool = true) -> some View {
+        let tabs = TabView(selection: .constant(0)) {
+            Tab("Inbox", value: 0) { Text("INBOX BODY") }
+            TabSection("Folders") {
+                Tab("Work", value: 1) { Text("WORK BODY") }
+            }
+            .customizationID("folders")
+            TabSection("Tags") {
+                Tab("Red", value: 2) { Text("RED BODY") }
+            }
+            .customizationID("tags")
+        }
+        .tabViewStyle(.sidebarAdaptable)
+        return Group {
+            if bound { tabs.tabViewCustomization(store.binding) } else { tabs }
+        }
+    }
+
+    /// Where `text` starts on screen, in cells.
+    private func cell(of text: String, in buffer: FrameBuffer) -> (x: Int, y: Int)? {
+        for (y, line) in buffer.lines.map(\.stripped).enumerated() {
+            if let range = line.range(of: text) {
+                return (String(line[..<range.lowerBound]).strippedLength, y)
+            }
+        }
+        return nil
+    }
+
+    /// Whether `first` is drawn above `second`.
+    private func isAbove(_ first: String, _ second: String, in buffer: FrameBuffer) -> Bool {
+        guard let top = cell(of: first, in: buffer), let bottom = cell(of: second, in: buffer) else { return false }
+        return top.y < bottom.y
+    }
+
+    /// Puts the focus on the first section's header — the Folders fold.
+    private func focusFolders(_ harness: InputChainHarness) -> Bool {
+        guard let fold = harness.focusManager.registeredFocusIDsInActiveSection().first(where: { !$0.hasPrefix("list") })
+        else { return false }
+        harness.focusManager.focus(id: fold)
+        return true
+    }
+
+    private static let pickUp = KeyEvent(key: .character("r"), ctrl: true)
+
+    @Test("Ctrl-R, Down and Return move a section, written through the binding when put down")
+    func keyboardMove() {
+        let store = Store()
+        let harness = InputChainHarness(width: 50, height: 14)
+        #expect(isAbove("Folders", "Tags", in: harness.frame(sidebar(store))))
+        guard focusFolders(harness) else {
+            Issue.record("no section header to focus")
+            return
+        }
+        harness.frame(sidebar(store))
+        harness.press(Self.pickUp)
+        harness.press(KeyEvent(key: .down))
+        let held = harness.frame(sidebar(store))
+        #expect(isAbove("Tags", "Folders", in: held), "the section in hand shows where it would go: \(held.lines.map(\.stripped))")
+        #expect(store.sectionOrder == nil, "nothing is written until it is put down")
+        harness.press(KeyEvent(key: .enter))
+        let placed = harness.frame(sidebar(store))
+        #expect(store.sectionOrder == ["tags", "folders"], "\(String(describing: store.sectionOrder))")
+        #expect(isAbove("Tags", "Folders", in: placed), "\(placed.lines.map(\.stripped))")
+        // The focus went with the section: Return folds Folders now.
+        harness.press(KeyEvent(key: .enter))
+        let folded = harness.frame(sidebar(store))
+        #expect(
+            !folded.lines.map(\.stripped).joined().contains("Work") && folded.lines.map(\.stripped).joined().contains("Red"),
+            "\(folded.lines.map(\.stripped))")
+    }
+
+    @Test("Escape puts a section in hand back, and writes nothing")
+    func escapeCancels() {
+        let store = Store()
+        let harness = InputChainHarness(width: 50, height: 14)
+        harness.frame(sidebar(store))
+        guard focusFolders(harness) else {
+            Issue.record("no section header to focus")
+            return
+        }
+        harness.frame(sidebar(store))
+        harness.press(Self.pickUp)
+        harness.press(KeyEvent(key: .down))
+        harness.frame(sidebar(store))
+        harness.press(KeyEvent(key: .escape))
+        let back = harness.frame(sidebar(store))
+        #expect(isAbove("Folders", "Tags", in: back), "\(back.lines.map(\.stripped))")
+        #expect(store.sectionOrder == nil)
+    }
+
+    @Test("Without a customization bound, Ctrl-R on a section header moves nothing")
+    func unboundDoesNothing() {
+        let store = Store()
+        let harness = InputChainHarness(width: 50, height: 14)
+        harness.frame(sidebar(store, bound: false))
+        guard focusFolders(harness) else {
+            Issue.record("no section header to focus")
+            return
+        }
+        harness.frame(sidebar(store, bound: false))
+        harness.press(Self.pickUp)
+        harness.press(KeyEvent(key: .down))
+        let after = harness.frame(sidebar(store, bound: false))
+        #expect(isAbove("Folders", "Tags", in: after), "\(after.lines.map(\.stripped))")
+    }
+
+    @Test("Dragging a section's header onto another's moves it there")
+    func dragMove() {
+        let store = Store()
+        let harness = InputChainHarness(width: 50, height: 14)
+        let drawn = harness.frame(sidebar(store))
+        guard let folders = cell(of: "Folders", in: drawn), let tags = cell(of: "Tags", in: drawn) else {
+            Issue.record("no headers in \(drawn.lines.map(\.stripped))")
+            return
+        }
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: folders.x + 1, y: folders.y))
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: folders.x + 2, y: folders.y))
+        let moving = harness.frame(sidebar(store))
+        #expect(cell(of: "Tags", in: moving)?.y == tags.y, "the headers keep their places as the drag begins")
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: tags.x + 1, y: tags.y))
+        harness.frame(sidebar(store))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: tags.x + 1, y: tags.y))
+        let dropped = harness.frame(sidebar(store))
+        #expect(store.sectionOrder == ["tags", "folders"], "\(String(describing: store.sectionOrder))")
+        #expect(isAbove("Tags", "Folders", in: dropped), "\(dropped.lines.map(\.stripped))")
+    }
+
+    @Test("A click on a movable section's header still folds it")
+    func clickStillFolds() {
+        let store = Store()
+        let harness = InputChainHarness(width: 50, height: 14)
+        let drawn = harness.frame(sidebar(store))
+        guard let folders = cell(of: "Folders", in: drawn) else {
+            Issue.record("no header in \(drawn.lines.map(\.stripped))")
+            return
+        }
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: folders.x + 1, y: folders.y))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: folders.x + 1, y: folders.y))
+        let folded = harness.frame(sidebar(store)).lines.map(\.stripped).joined(separator: "\n")
+        #expect(!folded.contains("Work") && folded.contains("Red"), "\(folded)")
+        #expect(store.sectionOrder == nil)
+    }
+}

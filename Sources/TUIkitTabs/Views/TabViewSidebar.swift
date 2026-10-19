@@ -85,11 +85,20 @@ private struct _TabSidebarList: View {
     /// own follows.
     @Environment(\.springLoadingBehavior) private var springLoading
 
+    /// The customization the tab view is bound to, which a person moving the
+    /// identified sections writes their order through.
+    @Environment(\.tabViewCustomization) private var customization
+
     /// The tabs, in runs of consecutive tabs of one section — or of none —
     /// each the list's section, with that section's header and actions: each
     /// section's, and each stretch between sections. A run's rows are its
     /// tabs' places in ``tabs``, each with what its row draws
     /// (``_TabRowLook``).
+    ///
+    /// A section's run is known by its section's ordinal, wherever the
+    /// customization puts it, so its fold and focus follow it; a stretch
+    /// between sections by a negative number. A section a customization
+    /// identifies is movable where one is bound.
     private var runs: [_SidebarSection] {
         var runs: [_SidebarSection] = []
         // The section the last run's tabs were declared in, `nil` for none.
@@ -102,11 +111,23 @@ private struct _TabSidebarList: View {
             } else {
                 runs.append(
                     _SidebarSection(
-                        id: runs.count, header: section?.header, actions: section?.actions, rows: [row]))
+                        id: section?.ordinal ?? -1 - runs.count, header: section?.header, actions: section?.actions,
+                        rows: [row], isMovable: section?.customizationID != nil))
             }
             runSection = section?.ordinal
         }
         return runs
+    }
+
+    /// Writes a new order of the identified sections, by their ordinals,
+    /// through the bound customization; `nil` where none is bound.
+    private var moveSections: (([Int]) -> Void)? {
+        guard let binding = customization?.binding else { return nil }
+        var identifiers: [Int: String] = [:]
+        for tab in tabs {
+            if let section = tab.section, let id = section.customizationID { identifiers[section.ordinal] = id }
+        }
+        return { order in binding.wrappedValue.orderSections(order.compactMap { identifiers[$0] }) }
     }
 
     /// What `tab`'s row draws, as ``row(_:)`` draws it.
@@ -144,7 +165,9 @@ private struct _TabSidebarList: View {
     /// sidebar's header and footer (`_SidebarSectionList`, which says why it
     /// is built there).
     private var list: some View {
-        _SidebarSectionList(sections: runs, header: header, footer: footer, selection: rowSelection) { index in
+        _SidebarSectionList(
+            sections: runs, header: header, footer: footer, selection: rowSelection, moveSections: moveSections
+        ) { index in
             row(index)
         }
         // A tab's title is chrome, not text to select. Under an enabled scope
@@ -428,5 +451,6 @@ extension _TabSidebarLayout: ResolvesOwnEnvironment {
 extension _TabSidebarList: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _springLoading.resolveEnvironment(environment)
+        _customization.resolveEnvironment(environment)
     }
 }

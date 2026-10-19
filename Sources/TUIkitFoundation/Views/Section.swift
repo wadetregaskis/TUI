@@ -298,6 +298,10 @@ package struct _SectionHeader<Header: View>: View {
     let header: Header
     let isExpanded: Binding<Bool>?
 
+    /// What the list draws around the header, where it draws anything
+    /// (``SectionHeaderDecoration``).
+    @Environment(\.sectionHeaderDecoration) private var decoration
+
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUIkitTables makes these, for a table's sections, and
     /// TUIkitForms, for a form's collapsible sections.
@@ -307,6 +311,16 @@ package struct _SectionHeader<Header: View>: View {
     }
 
     package var body: some View {
+        if let decoration {
+            decoration.decorator.decorate(AnyView(drawn), section: decoration.section)
+        } else {
+            drawn
+        }
+    }
+
+    /// The header, behind a fold for a collapsible section.
+    @ViewBuilder
+    private var drawn: some View {
         if let isExpanded {
             DisclosureGroup(isExpanded: isExpanded) {
                 EmptyView()
@@ -316,6 +330,12 @@ package struct _SectionHeader<Header: View>: View {
         } else {
             header
         }
+    }
+}
+
+extension _SectionHeader: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _decoration.resolveEnvironment(environment)
     }
 }
 

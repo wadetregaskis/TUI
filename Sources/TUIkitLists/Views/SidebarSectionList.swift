@@ -13,7 +13,8 @@ import TUIkitView
 /// One section of a ``_SidebarSectionList``: consecutive rows under a header,
 /// with the section's actions.
 package struct _SidebarSection: Identifiable {
-    /// The section's place among the sections.
+    /// The section's id: the same for the section wherever it is placed, so
+    /// its fold and its focus follow it when it moves.
     package let id: Int
 
     /// The section's header, or `nil` for none.
@@ -27,13 +28,19 @@ package struct _SidebarSection: Identifiable {
     /// names, by their places, with what each draws.
     package var rows: [_SidebarRow]
 
+    /// Whether a person may move the section among the other movable ones
+    /// (``_SidebarSectionMover``): a section with a header, in a sidebar whose
+    /// section order can be written.
+    package let isMovable: Bool
+
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUIkitTabs makes these.
-    package init(id: Int, header: AnyView?, actions: AnyView?, rows: [_SidebarRow]) {
+    package init(id: Int, header: AnyView?, actions: AnyView?, rows: [_SidebarRow], isMovable: Bool = false) {
         self.id = id
         self.header = header
         self.actions = actions
         self.rows = rows
+        self.isMovable = isMovable
     }
 }
 
@@ -86,7 +93,12 @@ struct _SidebarPlace: Hashable {
 /// A section with a header folds, as a macOS sidebar's does: its header is a
 /// disclosure the keyboard and a click toggle, and a folded section's rows
 /// leave the list until it is opened again. What is folded is the sidebar's
-/// own state, kept by the section's place.
+/// own state, kept by the section's id.
+///
+/// Where the list is handed a way to write their order (`moveSections`), a
+/// person moves its movable sections — from the keyboard on a section's
+/// header, or by dragging the header onto another — as macOS lets a sidebar's
+/// sections be dragged (``_SidebarSectionMover``, decisions B79).
 ///
 /// Built here rather than by the tab view: ``View/sectionActions(content:)``'s
 /// `some View` names `_SectionActionsView`, internal to this module, so in
@@ -110,17 +122,31 @@ package struct _SidebarSectionList<Row: View>: View {
     /// Draws the row at a place.
     let row: (Int) -> Row
 
-    /// The places of the sections the user has folded.
+    /// Writes a new order of the movable sections, by id, or `nil` where their
+    /// order cannot be written.
+    let moveSections: (([Int]) -> Void)?
+
+    /// The ids of the sections the user has folded.
     @State private var folded: Set<Int> = []
+
+    /// The section a person has in hand, and the order it shows.
+    @State private var held: _HeldSidebarSection?
+
+    /// What moves the sections, one object for the list's life.
+    @State private var mover = _SidebarSectionMover()
+
+    @Environment(\.rowShortcuts) private var rowShortcuts
+    @Environment(\.commandKey) private var commandKey
 
     package init(
         sections: [_SidebarSection], header: AnyView? = nil, footer: AnyView? = nil, selection: Binding<Int?>,
-        row: @escaping (Int) -> Row
+        moveSections: (([Int]) -> Void)? = nil, row: @escaping (Int) -> Row
     ) {
         self.sections = sections
         self.header = header
         self.footer = footer
         self.selection = selection
+        self.moveSections = moveSections
         self.row = row
     }
 
@@ -128,9 +154,11 @@ package struct _SidebarSectionList<Row: View>: View {
         let selection = self.selection
         let placeSelection = Binding<_SidebarPlace?>(
             get: { selection.wrappedValue.map(_SidebarPlace.init) }, set: { selection.wrappedValue = $0?.place })
+        let movable = moveSections == nil ? [] : sections.filter { $0.isMovable && $0.header != nil }.map(\.id)
+        prepareMover(movable: movable)
         return List(selection: placeSelection) {
             if let header { header }
-            ForEach(sections) { section in
+            ForEach(arranged(sections, movable: movable)) { section in
                 Section(
                     header: section.header ?? AnyView(EmptyView()),
                     content: ForEach(section.rows, id: \.id) { row in self.row(row.place) },
@@ -139,12 +167,38 @@ package struct _SidebarSectionList<Row: View>: View {
                     isExpanded: section.header == nil ? nil : expansion(of: section.id)
                 )
                 .sectionActions { section.actions }
+                .environment(
+                    \.sectionHeaderDecoration,
+                    movable.contains(section.id) ? SectionHeaderDecoration(decorator: mover, section: section.id) : nil)
             }
             if let footer { footer }
         }
         // A sidebar list: no border, and a `Label` row's icon in the list
         // item tint, as a macOS sidebar draws it.
         .listStyle(.sidebar)
+    }
+
+    /// Hands the mover what it moves this frame: the movable sections, the
+    /// section in hand, how a new order is written, and the keys.
+    private func prepareMover(movable: [Int]) {
+        mover.movable = movable
+        mover.held = $held
+        mover.commit = moveSections ?? { _ in }
+        mover.shortcuts = rowShortcuts.lookup(commandKey: commandKey)
+    }
+
+    /// `sections` as a move in hand shows them: the movable ones in its order,
+    /// each taking a place a movable one had, as a customization's section
+    /// order arranges them; as they are with nothing in hand.
+    private func arranged(_ sections: [_SidebarSection], movable: [Int]) -> [_SidebarSection] {
+        guard let order = held?.order, Set(order) == Set(movable) else { return sections }
+        let slots = sections.indices.filter { movable.contains(sections[$0].id) }
+        let byID = Dictionary(slots.map { (sections[$0].id, sections[$0]) }) { first, _ in first }
+        var shown = sections
+        for (slot, id) in zip(slots, order) {
+            if let section = byID[id] { shown[slot] = section }
+        }
+        return shown
     }
 
     /// Whether the section at `place` is open, as its fold reads and writes it.

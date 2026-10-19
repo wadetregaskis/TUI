@@ -100,7 +100,7 @@ public struct TabView<SelectionValue: Hashable, Content: View>: View {
     /// customization arranges them.
     private var sidebarTabs: [_RawTab] {
         let shown = tabs.filter { !$0.isHidden }
-        return customization?.arrangedSidebar(shown) ?? shown
+        return customization?.value.arrangedSidebar(shown) ?? shown
     }
 
     /// The tabs a strip shows: every one not hidden, and not placed only in a

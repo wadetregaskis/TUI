@@ -2929,7 +2929,17 @@ Where it differs:
   the focused section up and down needs a notion of a focused section the
   sidebar list does not have — about a day, with a decision on whether the
   list's cursor row or its section header is the thing moved. So a stated
-  order comes only from the app or a decoded value.
+  order comes only from the app or a decoded value. **Built (2026-10-19, lane
+  LISTS2), option 1:** the thing moved is the section, through its header's
+  fold (a focus stop since 2026-10-14): with it focused, the list's row-move
+  chords move the section among the identified sections — Ctrl-R picks it up,
+  the arrows, Home and End move it, Return puts it down and Escape puts it
+  back; Ctrl/Option with an arrow moves it at once — and the pointer drags a
+  header onto another's, the section taking that one's place. A press
+  released without moving still folds it. The new order is written through
+  the binding once the move is put down. The environment carries the bound
+  value with its binding, compared by the value alone, so the memos below the
+  tab view stay on. A/B owed: the tabs scenarios.
 - **`.defaultVisibility(_:for:)` and `.customizationBehavior(_:for:)` do
   nothing**, as on macOS: the placement the first acts on (`.sidebar`) and the
   behaviors the second restricts (`.reorderable`, `.disabled`) are not
