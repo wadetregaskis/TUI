@@ -23,10 +23,10 @@ extension MouseEventDispatcher {
     /// and so asks for no frame as the pointer crosses it. It is read only by
     /// ``pointerShapeUnderPointer()``.
     ///
-    /// The styles among `contentRegions` are noted as inside this one
-    /// (``pointerShapeEnclosures``): a nested style's region and an
-    /// overlapping one's both come after it front to back, and only this
-    /// tells them apart.
+    /// The regions among `contentRegions` the shape is read from are noted as
+    /// inside this one (``pointerShapeEnclosures``): a nested style's region
+    /// and an overlapping one's both come after it front to back, and only
+    /// this tells them apart.
     ///
     /// Recorded for a value memo, as a handler's registration is, so a served
     /// subtree files it again under the id baked into its stored buffer.
@@ -52,15 +52,67 @@ extension MouseEventDispatcher {
     /// one write, shared by the live registration and a memo's replay of it.
     private func fileStyle(_ shape: PointerShape, as id: HitTestRegion.HandlerID, enclosing enclosed: [HitTestRegion.HandlerID]) {
         pointerStyleRegions[id] = shape
+        noteEnclosure(by: id, of: enclosed)
+    }
+
+    /// Lets the pointer's shape be read through the region of the control
+    /// `id` names to the content it covers, whose regions are
+    /// `contentRegions`, wherever that content holds a style or a control's
+    /// own shape.
+    ///
+    /// For the wrappers that take events for their content without hiding
+    /// it — `.draggable` (`_DragHandle`), `.focusable()`'s click-to-focus,
+    /// `.onMouseEvent`: each files a region over the whole of its content,
+    /// after it, so front to back it comes first, and
+    /// as the control under the pointer it covered every style inside it.
+    /// `Image(…).pointerStyle(.grabIdle).draggable(item)` showed nothing. A
+    /// control that draws its content as its own — a `Button`'s label — does
+    /// not call this, and covers what it draws (decisions O12, B-O12-2).
+    ///
+    /// The caller passes its content's regions before it appends its own.
+    /// Recorded for a value memo beside the registration it follows.
+    @MainActor
+    package func fileSeeThroughPointerShapes(
+        for id: HitTestRegion.HandlerID, over contentRegions: [HitTestRegion], in context: RenderContext
+    ) {
+        guard !context.isMeasuring else { return }
+        let enclosed = pointerShapeRegions(among: contentRegions)
+        guard !enclosed.isEmpty else { return }
+        fileSeeThroughWrapper(id, enclosing: enclosed)
+        context.environment.volatileReadTracker?.recordReplayableEffect()
+        guard let journal = context.recordingEffectJournal else { return }
+        let token = context.environment.keyChannelToken
+        journal.append(
+            EffectJournal.Entry(kind: Self.seeThroughWrapperKind, channelToken: token) { replay in
+                replay.environment.mouseEventDispatcher?.fileSeeThroughWrapper(id, enclosing: enclosed)
+            })
+    }
+
+    /// Files `id` as a see-through wrapper enclosing `enclosed`, live or
+    /// replayed.
+    private func fileSeeThroughWrapper(_ id: HitTestRegion.HandlerID, enclosing enclosed: [HitTestRegion.HandlerID]) {
+        pointerShapeWrappers.insert(id)
+        noteEnclosure(by: id, of: enclosed)
+    }
+
+    /// Notes that each of `enclosed` is inside the view of the style or the
+    /// see-through wrapper `id` names.
+    private func noteEnclosure(by id: HitTestRegion.HandlerID, of enclosed: [HitTestRegion.HandlerID]) {
         for inner in enclosed { pointerShapeEnclosures[inner, default: []].append(id) }
     }
 
     /// The ids among `regions` that the pointer's shape is read from: the
-    /// styles'. Nothing at all while none is filed, which is every frame of a
-    /// page with no style on it.
+    /// styles', the shaped controls' and the see-through wrappers'. Nothing
+    /// at all while no style or shape is filed, which is every frame of a
+    /// page with none on it.
     private func pointerShapeRegions(among regions: [HitTestRegion]) -> [HitTestRegion.HandlerID] {
-        guard !pointerStyleRegions.isEmpty else { return [] }
-        return regions.compactMap { pointerStyleRegions[$0.handlerID] != nil ? $0.handlerID : nil }
+        guard !pointerStyleRegions.isEmpty || !controlPointerShapes.isEmpty else { return [] }
+        return regions.compactMap { region in
+            let id = region.handlerID
+            let read = pointerStyleRegions[id] != nil || controlPointerShapes[id] != nil
+                || pointerShapeWrappers.contains(id)
+            return read ? id : nil
+        }
     }
 
     /// Files `shape` as the one the control whose handler `id` names shows
@@ -91,6 +143,9 @@ extension MouseEventDispatcher {
 
     /// The journal kind of a control's own pointer shape.
     static let controlPointerShapeKind = EffectJournal.Kind("controlPointerShape")
+
+    /// The journal kind of a wrapper the pointer's shape is read through.
+    static let seeThroughWrapperKind = EffectJournal.Kind("pointerShapeSeeThrough")
 
     /// The shape the pointer should have where it rests, or `nil` for the
     /// terminal's own: resolved again only once the pointer has moved or the
@@ -129,25 +184,37 @@ extension MouseEventDispatcher {
     /// overlay, a `ZStack`'s back layer or a `.background` passed for the
     /// innermost, and won. So the walk goes on past a style only into what
     /// that style's view holds (``pointerShapeEnclosures``), and the first
-    /// region outside it is behind it: the end of the walk.
+    /// region outside it is behind it: the end of the walk. A see-through
+    /// wrapper (``fileSeeThroughPointerShapes(for:over:in:)``) is gone into
+    /// the same way: a control, but one that covers only what is behind it,
+    /// not what it wraps.
     ///
     /// A style the app set beats the control's own shape, even one set
     /// further out: the app asked for it, and the control's is TUIkit's
     /// guess (decisions O12, B-O12-2).
     func resolvePointerShape(at x: Int, y: Int) -> PointerShape? {
         var styled: PointerShape?
-        // The innermost style the walk has gone into: what follows it front
-        // to back is inside its view, or behind it.
+        // The innermost see-through wrapper's own shape, should nothing
+        // inside it have one.
+        var wrapped: PointerShape?
+        // The innermost style or see-through wrapper the walk has gone into:
+        // what follows it front to back is inside its view, or behind it.
         var scope: HitTestRegion.HandlerID?
         for region in regions.reversed() where !region.isGeometryMarker && region.contains(x: x, y: y) {
             let id = region.handlerID
             let style = pointerStyleRegions[id]
-            if style == nil, hoverObserverIDs.contains(id) || isWheelHandler(id) { continue }
+            let seesThrough = style == nil && pointerShapeWrappers.contains(id)
+            if style == nil, !seesThrough, hoverObserverIDs.contains(id) || isWheelHandler(id) { continue }
             if let scope, pointerShapeEnclosures[id]?.contains(scope) != true { break }
-            guard let style else { return styled ?? controlPointerShapes[id] }
-            styled = style
+            if let style {
+                styled = style
+            } else if seesThrough {
+                wrapped = controlPointerShapes[id] ?? wrapped
+            } else {
+                return styled ?? controlPointerShapes[id] ?? wrapped
+            }
             scope = id
         }
-        return styled
+        return styled ?? wrapped
     }
 }

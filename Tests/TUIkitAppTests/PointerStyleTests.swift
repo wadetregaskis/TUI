@@ -46,6 +46,15 @@ private struct NestedStyledCard: View, @MainActor Equatable {
     }
 }
 
+/// A memoizable drag source with a style inside it, equal by its title alone.
+private struct StyledDragSource: View, @MainActor Equatable {
+    let title: String
+
+    var body: some View {
+        Text(title).pointerStyle(.grabIdle).draggable(title)
+    }
+}
+
 private typealias Harness = PointerShapeHarness
 
 @MainActor
@@ -170,6 +179,66 @@ struct PointerStyleTests {
         #expect(harness.cache.stats.hits > hits, "no memo hit on the second frame")
         #expect(harness.shape(atX: 1, y: 1) == .link, "the served card's inner style lost its nesting")
         #expect(harness.shape(atX: 1, y: 2) == .crosshair)
+    }
+
+    @Test("A style inside .draggable, .focusable() or .onMouseEvent shows through the region each files over it")
+    func styleInsideAWrapperShows() {
+        let harness = Harness()
+        let buffer = harness.frame(VStack(alignment: .leading, spacing: 0) {
+            Text("drag").pointerStyle(.grabIdle).draggable("payload")
+            Text("focus").pointerStyle(.link).focusable()
+            Text("mouse").pointerStyle(.zoomIn).onMouseEvent { _ in false }
+        })
+        let covering = buffer.hitTestRegions.filter { harness.dispatcher.handler(for: $0.handlerID) != nil }
+        #expect(covering.count == 3, "each wrapper files a region over its content: \(buffer.hitTestRegions)")
+        #expect(harness.shape(atX: 1, y: 0) == .grab)
+        #expect(harness.shape(atX: 1, y: 1) == .link)
+        #expect(harness.shape(atX: 1, y: 2) == .zoomIn)
+    }
+
+    @Test("A wrapper a style shows through still covers what is behind it, and a control inside it what it covers")
+    func seeThroughWrapperStillCovers() {
+        let harness = Harness()
+        harness.frame(
+            ZStack(alignment: .topLeading) {
+                Text("background-wide").pointerStyle(.rectSelection)
+                HStack(spacing: 0) {
+                    Text("ab")
+                    Text("cd").pointerStyle(.link)
+                }
+                .onMouseEvent { _ in false }
+            })
+        #expect(harness.shape(atX: 0, y: 0) == nil, "the wrapper covers the background behind it")
+        #expect(harness.shape(atX: 2, y: 0) == .link, "the style inside it shows through it")
+        #expect(harness.shape(atX: 8, y: 0) == .crosshair)
+
+        let inside = Harness()
+        let buffer = inside.frame(
+            ZStack(alignment: .topLeading) {
+                Text("crosshair-crosshair").pointerStyle(.rectSelection)
+                Button("Go") {}
+            }
+            .draggable("payload"))
+        guard let go = inside.cell(of: "Go", in: buffer) else {
+            Issue.record("the Button was not drawn: \(buffer.lines.map(\.stripped))")
+            return
+        }
+        #expect(inside.shape(atX: go.x, y: go.y) == nil, "the Button covers the style behind it in the wrapper")
+        #expect(inside.shape(atX: 16, y: 0) == .crosshair)
+    }
+
+    @Test("A memoized drag source served on a later frame still shows the style inside it")
+    func servedMemoSeesThroughItsWrapper() {
+        let harness = Harness()
+        let page = VStack(alignment: .leading, spacing: 0) {
+            Text("ahead").focusable()
+            StyledDragSource(title: "card").equatable()
+        }
+        harness.frame(page)
+        let hits = harness.cache.stats.hits
+        harness.frame(page)
+        #expect(harness.cache.stats.hits > hits, "no memo hit on the second frame")
+        #expect(harness.shape(atX: 1, y: 1) == .grab, "the served drag source hid its style")
     }
 
     @Test("nil sets no style, and inside .disabled(true) a style sets none")

@@ -90,6 +90,12 @@ over the view". Shipped, read as the hover machine reads its observers:
   drawn over it — shows its style only where nothing covers it. A style set
   on a view INSIDE a `Button`'s label is covered by the button's own region,
   as an `.onHover` there is.
+- A wrapper that takes events for its content without drawing it —
+  `.draggable` (a `Table` row's drag handle too), `.focusable()`'s
+  click-to-focus, `.onMouseEvent` — is **seen through** to the styles inside
+  it, though its region covers its content: `.pointerStyle(.grabIdle)
+  .draggable(item)` shows the open hand. It still covers what is behind it,
+  and a control inside it what that control covers.
 - A style the app set **beats a control's own shape** (B-O12-6), even one set
   further out: the app asked for it, and the control's is TUIkit's guess.
 - `nil` sets none, and a view inside **`.disabled(true)`** shows none (as an

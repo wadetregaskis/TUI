@@ -292,6 +292,9 @@ package enum _DragHandle {
         if context.environment.textSelectionAllowed == true || dispatcher.hasEnabledSelectionScope {
             dispatcher.filePressRole(.dragSource, for: id, in: context)
         }
+        // A pointer style in the content shows through the handle, which
+        // takes the presses and hides nothing.
+        dispatcher.fileSeeThroughPointerShapes(for: id, over: buffer.hitTestRegions, in: context)
         buffer.hitTestRegions += buffer.frameHitRegions(handlerID: id)
     }
 }

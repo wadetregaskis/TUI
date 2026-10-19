@@ -99,8 +99,9 @@ extension View {
     /// background — the one in front; `nil` sets none, leaving the pointer to
     /// whatever is further out. A view covered by another — a sheet's
     /// backdrop, an open menu, a control drawn over it — shows its style only
-    /// where nothing covers it, and a view inside `.disabled(true)` shows
-    /// none.
+    /// where nothing covers it; one inside `.draggable`, `.focusable()` or
+    /// `.onMouseEvent`, which take its events without hiding it, shows
+    /// through them. A view inside `.disabled(true)` shows none.
     ///
     /// The terminal draws the pointer, and only some let an app choose its
     /// shape; elsewhere this changes nothing. Read

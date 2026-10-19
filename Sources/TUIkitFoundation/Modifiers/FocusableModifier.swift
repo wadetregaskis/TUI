@@ -156,6 +156,9 @@ extension FocusableModifier: Renderable {
                     return false
                 }
             }
+            // A pointer style in the content shows through: the region takes
+            // the click to focus, and hides nothing.
+            mouseDispatcher.fileSeeThroughPointerShapes(for: handlerID, over: buffer.hitTestRegions, in: context)
             buffer.hitTestRegions += buffer.frameHitRegions(handlerID: handlerID, focusID: focusID)
         }
 

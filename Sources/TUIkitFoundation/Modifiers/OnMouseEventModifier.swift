@@ -83,6 +83,9 @@ extension OnMouseEventModifier: Renderable {
         // stands aside for selectable text and lets it say.
         let handlerID = dispatcher.registerApplicationHandler(in: context, handler)
         spaceOrigin?.handlerID = handlerID
+        // A pointer style in the content shows through: the closure hears the
+        // events, and hides nothing.
+        dispatcher.fileSeeThroughPointerShapes(for: handlerID, over: buffer.hitTestRegions, in: context)
         buffer.hitTestRegions += buffer.frameHitRegions(handlerID: handlerID)
         return buffer
     }

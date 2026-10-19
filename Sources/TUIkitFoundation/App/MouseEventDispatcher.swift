@@ -176,11 +176,18 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// ``fileControlPointerShape(_:for:in:)``.
     var controlPointerShapes: [HitTestRegion.HandlerID: PointerShape] = [:]
 
-    /// For each region the pointer's shape is read from, the styles whose
-    /// views it is inside, this frame, cleared with the handler table: what
-    /// tells a style nested in another from one that merely overlaps it, which
-    /// the order of the regions cannot (``resolvePointerShape(at:y:)``).
+    /// For each region the pointer's shape is read from, the styles and the
+    /// see-through wrappers whose views it is inside, this frame, cleared with
+    /// the handler table: what tells a region nested in another from one that
+    /// merely overlaps it, which the order of the regions cannot
+    /// (``resolvePointerShape(at:y:)``).
     var pointerShapeEnclosures: [HitTestRegion.HandlerID: [HitTestRegion.HandlerID]] = [:]
+
+    /// The controls this frame whose regions cover their content without
+    /// hiding its pointer shapes — `.draggable`, `.focusable()`,
+    /// `.onMouseEvent` — where the content holds one, cleared with the handler
+    /// table. See ``fileSeeThroughPointerShapes(for:over:in:)``.
+    var pointerShapeWrappers: Set<HitTestRegion.HandlerID> = []
 
     /// The shape under the pointer as last resolved, and whether the pointer
     /// or the regions have moved since (``pointerShapeUnderPointer()``).
@@ -423,6 +430,7 @@ extension MouseEventDispatcher {
         pointerStyleRegions.removeAll(keepingCapacity: true)
         controlPointerShapes.removeAll(keepingCapacity: true)
         pointerShapeEnclosures.removeAll(keepingCapacity: true)
+        pointerShapeWrappers.removeAll(keepingCapacity: true)
         passiveIDs.removeAll(keepingCapacity: true)
         applicationHandlerIDs.removeAll(keepingCapacity: true)
         wheelHandlerIDs.removeAll(keepingCapacity: true)
