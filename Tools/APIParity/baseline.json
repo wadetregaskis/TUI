@@ -58,8 +58,6 @@
   "Scene.dialogSeverity(_:)",
   "Scene.dialogSuppressionToggle(_:isSuppressed:)",
   "Scene.dialogSuppressionToggle(isSuppressed:)",
-  "SceneBuilder.buildLimitedAvailability(_:)",
-  "SceneBuilder.buildOptional(_:)",
   "ScrollDismissesKeyboardMode",
   "ScrollDismissesKeyboardMode.automatic",
   "ScrollDismissesKeyboardMode.immediately",

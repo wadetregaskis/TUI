@@ -15,10 +15,11 @@ import TUIkitView
 /// Everything the modifiers written on a scene state for the frame: the values
 /// the run loop reads before it renders anything, because they decide either
 /// the frame's root environment (`.environment`, `.palette`, `.appearance`) or
-/// the window's chrome (`.mouseSupport`, `.windowToolbarStyle`, `.commands`).
+/// the window's chrome (`.mouseSupport`, `.windowToolbarStyle`). The commands
+/// are the app's rather than a window's, and the catalogue gathers them apart.
 ///
-/// Gathered by one walk down the scene's modifier chain,
-/// ``Scene/sceneConfiguration``, from the outermost modifier in. Each modifier
+/// Gathered for each window scene by the walk that catalogues the app's scenes
+/// (``SceneCatalog``), from the outermost modifier in. Each modifier
 /// writes over what the ones outside it wrote, so the modifier closest to the
 /// content wins, field by field — the rule a view's environment follows, and
 /// the one every scene modifier documents.
@@ -53,10 +54,6 @@ struct SceneConfiguration {
     /// Whether the top bar's title slot shows the window's title, if a
     /// `.windowToolbarStyle` said.
     var showsTitle: Bool?
-
-    /// What the scene's commands modifiers state: the menu bar, if any
-    /// declared commands (TUIkitCommands).
-    var commands = SceneCommands()
 
     /// Runs the scene's environment writes over `environment`, in order.
     func applyEnvironmentWrites(to environment: inout EnvironmentValues) {
@@ -96,22 +93,4 @@ protocol ConfiguringScene: Scene {
 
     /// The scene this one wraps, or `nil` at the end of the chain.
     var configuredContent: (any Scene)? { get }
-}
-
-extension Scene {
-    /// What this scene's modifiers configure for the frame.
-    ///
-    /// Walks the chain from the outside in, through each wrapper's content, and
-    /// each step through ``primitiveScene`` — a custom scene in the middle of
-    /// the chain is the scene its `body` is made of, so a modifier on either
-    /// side of it is found.
-    var sceneConfiguration: SceneConfiguration {
-        var configuration = SceneConfiguration()
-        var next: (any Scene)? = primitiveScene
-        while let scene = next as? any ConfiguringScene {
-            scene.configure(&configuration)
-            next = scene.configuredContent?.primitiveScene
-        }
-        return configuration
-    }
 }

@@ -4016,3 +4016,21 @@ private struct CorpusGlassButtons: View {
         }
     }
 }
+
+// MARK: - Several scenes (lane O9)
+
+/// A body of several scenes, one behind an availability check, and a group of
+/// scenes, as SwiftUI's `SceneBuilder` documentation writes them.
+private struct CorpusSeveralScenesApp: App {
+    var body: some Scene {
+        WindowGroup { Text("Main") }
+        if #available(macOS 14, *) {
+            WindowGroup { Text("Later") }
+        }
+        Group {
+            WindowGroup { Text("Grouped") }
+            WindowGroup { Text("Also grouped") }
+        }
+        .environment(\.lineSpacing, 1)
+    }
+}

@@ -21,39 +21,54 @@ package protocol SceneCommandsDeclaration {
     var closesModifiedScene: Bool { get }
 }
 
-/// What a scene's commands modifiers state, gathered with the rest of its
-/// configuration (``SceneConfiguration``).
+/// What the scenes' commands modifiers state, gathered by the walk that
+/// catalogues the app's scenes (``SceneCatalog``): the app's, every scene's in
+/// declaration order, as SwiftUI's main menu has them.
 package struct SceneCommands {
-    /// The modifiers whose commands count, innermost first: the order SwiftUI
-    /// adds their menus in (measured on macOS 15.8: the session notes'
-    /// `O13/probe/menus.swift`).
+    /// The modifiers whose commands count: each scene's innermost first (the
+    /// order SwiftUI adds their menus in, measured on macOS 15.8: the session
+    /// notes' `O13/probe/menus.swift`), the scenes in declaration order.
     package private(set) var declarations: [any SceneCommandsDeclaration] = []
 
-    /// Whether the scene's own commands count: not once a modifier outside
-    /// them took them away.
-    package private(set) var includesSceneCommands = true
+    /// Whether the scenes' own commands count: a window scene's, which no
+    /// modifier outside it took away.
+    package private(set) var includesSceneCommands = false
 
     /// What draws the window's menu bar from what is gathered here, which the
     /// commands modifiers hand over with their declarations; `nil` until one
     /// does.
     private var makeMenuBar: (@MainActor (Self) -> AnyView?)?
 
-    /// Whether a modifier outside the one gathered next took away what is
-    /// inside it.
-    private var isClosed = false
+    /// No commands.
+    init() {}
 
-    /// Gathers `declaration`, from a modifier inside every one gathered so far
-    /// (the walk goes from the outside in).
-    mutating func gather(
-        _ declaration: any SceneCommandsDeclaration, makeMenuBar: @escaping @MainActor (Self) -> AnyView?
+    /// A window scene's commands before any modifier: its own.
+    static var ofWindow: Self {
+        var commands = Self()
+        commands.includesSceneCommands = true
+        return commands
+    }
+
+    /// Adds the commands of a scene declared after those gathered so far.
+    mutating func append(_ other: Self) {
+        declarations += other.declarations
+        includesSceneCommands = includesSceneCommands || other.includesSceneCommands
+        makeMenuBar = makeMenuBar ?? other.makeMenuBar
+    }
+
+    /// Applies `declaration`, a modifier written around the scenes these are
+    /// the commands of: what it declares comes after what they declared, and
+    /// one that takes their commands away (``SceneCommandsDeclaration/closesModifiedScene``)
+    /// first leaves none of theirs, nor their own.
+    mutating func modify(
+        by declaration: any SceneCommandsDeclaration, makeMenuBar: @escaping @MainActor (Self) -> AnyView?
     ) {
-        guard !isClosed else { return }
-        declarations.insert(declaration, at: 0)
-        self.makeMenuBar = makeMenuBar
         if declaration.closesModifiedScene {
-            isClosed = true
+            declarations = []
             includesSceneCommands = false
         }
+        declarations.append(declaration)
+        self.makeMenuBar = makeMenuBar
     }
 
     /// The view the window's menu bar is drawn with, or `nil` for none.
@@ -93,12 +108,26 @@ package struct _SceneCommandsModifier<Content: Scene>: Scene {
     package var body: Never { fatalError("_SceneCommandsModifier renders via SceneRenderable") }
 }
 
+/// States nothing of a window's own: its commands are the app's, which the
+/// catalogue gathers apart (``SceneCommandsModifying``). It is a link in the
+/// chain all the same, so the modifiers on either side of it are found.
 extension _SceneCommandsModifier: ConfiguringScene {
-    func configure(_ configuration: inout SceneConfiguration) {
-        configuration.commands.gather(declaration, makeMenuBar: makeMenuBar)
-    }
+    func configure(_ configuration: inout SceneConfiguration) {}
 
     var configuredContent: (any Scene)? { content }
+}
+
+extension _SceneCommandsModifier: SceneCommandsModifying {}
+
+/// A scene modifier that declares commands, which the catalogue applies to
+/// the commands of the scenes it modifies (``SceneCommands/modify(by:makeMenuBar:)``).
+@MainActor
+protocol SceneCommandsModifying: ConfiguringScene {
+    /// What the modifier states.
+    var declaration: any SceneCommandsDeclaration { get }
+
+    /// What draws the menu bar from the app's gathered commands.
+    var makeMenuBar: @MainActor (SceneCommands) -> AnyView? { get }
 }
 
 extension _SceneCommandsModifier: SceneRenderable {

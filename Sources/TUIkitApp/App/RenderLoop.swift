@@ -168,6 +168,13 @@ internal final class RenderLoop<A: App> {
     /// can't drift apart.
     private var rootIdentity: ViewIdentity { ViewIdentity(rootType: A.self) }
 
+    /// The identity the app's scene is drawn at: the one every walk of it
+    /// pushes below ``rootIdentity`` (`withChildIdentity(type:)`), and so the
+    /// one the scene catalogue reckons its scenes' identities from.
+    private func sceneIdentity(of scene: A.Body) -> ViewIdentity {
+        rootIdentity.child(type: type(of: scene))
+    }
+
     /// The diff writer that tracks previous frames and writes only changed lines.
     let diffWriter = FrameDiffWriter()
 
@@ -449,10 +456,15 @@ extension RenderLoop {
         cursorTimer?.beginFrameReadTracking()
 
         let scene = evaluateAppBody(environment: environment)
-        // What the scene's modifiers state, gathered in one walk of its chain:
-        // its root environment, mouse support, chrome style and undo keys
+        // The app's scenes, gathered in one walk of its body: each window
+        // scene with what its modifiers state, and the commands of them all.
+        let catalog = SceneCatalog(scene, identity: sceneIdentity(of: scene))
+        // What the drawn window's modifiers state — its root environment,
+        // mouse support, chrome style and undo keys — and the app's commands
         // (`RenderLoop+Scene.swift`).
-        applySceneConfiguration(scene.sceneConfiguration, to: &environment)
+        applySceneConfiguration(
+            catalog.windows.first?.configuration ?? SceneConfiguration(), commands: catalog.commands,
+            to: &environment)
         // Before the height is read, which is the whole trick: a tooltip's
         // triggers all land between frames (a mouse event, a key press, the
         // scheduled wake for the hover delay), so the candidate is already known
@@ -467,6 +479,7 @@ extension RenderLoop {
         // walk (two on the first frame). See `renderContent`.
         let buffer = renderContent(
             scene: scene,
+            target: catalog.launchTarget,
             environment: environment,
             terminalWidth: terminalWidth,
             terminalHeight: terminalHeight)
@@ -612,10 +625,14 @@ extension RenderLoop {
     /// content declares, and seeds the reservations from it.
     private func renderContent(
         scene: A.Body,
+        target: SceneRenderTarget?,
         environment: EnvironmentValues,
         terminalWidth: Int,
         terminalHeight: Int
     ) -> FrameBuffer {
+        // Which of the app's scenes the frame draws.
+        var environment = environment
+        environment.sceneRenderTarget = target
         // The render tree is rooted at `rootIdentity` — the SAME identity
         // `evaluateAppBody` hydrates `@State` under (see that property's note).
         var context = RenderContext(

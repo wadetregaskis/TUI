@@ -18,10 +18,13 @@ import TUIkitFoundation
 /// ``baseMouseSupport`` is not private.
 extension RenderLoop {
 
-    /// Adopts this frame's scene configuration: its root overrides into
+    /// Adopts this frame's scene configuration — the configuration of the
+    /// window the frame draws, and the app's commands: its root overrides into
     /// `environment` first, then what the run loop reads from it — before
     /// anything asks either bar's height.
-    func applySceneConfiguration(_ configuration: SceneConfiguration, to environment: inout EnvironmentValues) {
+    func applySceneConfiguration(
+        _ configuration: SceneConfiguration, commands: SceneCommands, to environment: inout EnvironmentValues
+    ) {
         configuration.applyRootOverrides(to: &environment)
         // The app's undo and redo keys, which the scene may have set
         // (`.undoShortcuts`), resolved through its `\.commandKey`, for the keys
@@ -40,7 +43,7 @@ extension RenderLoop {
         // any events queued from the previous frame are filtered
         // against the right config.
         tuiContext.mouseEventDispatcher.setActiveSupport(baseMouseSupport)
-        applyChromeStyle(from: configuration)
+        applyChromeStyle(from: configuration, commands: commands)
         // The screen selection's copy key and the scene's copy-on-release.
         tuiContext.screenSelection.adopt(
             commandKey: environment.commandKey, copiesOnRelease: environment.textSelectionCopiesOnRelease)
@@ -55,11 +58,11 @@ extension RenderLoop {
     /// Must run BEFORE anything asks either bar's rows: the style decides how
     /// many they take, and the page's height is whatever is left — and before
     /// the tooltip is wrapped, to the bottom bar's content width.
-    private func applyChromeStyle(from configuration: SceneConfiguration) {
+    private func applyChromeStyle(from configuration: SceneConfiguration, commands: SceneCommands) {
         windowChrome.style = configuration.toolbarStyle ?? .bordered
         windowChrome.showsTitle = configuration.showsTitle ?? true
-        // The menu bar, if the scene declares commands: its row is the
-        // scene's statement, so it is known before the walk, as the style is.
-        windowChrome.menuBar = configuration.commands.menuBar()
+        // The menu bar, if a scene declares commands: its row is the scenes'
+        // statement, so it is known before the walk, as the style is.
+        windowChrome.menuBar = commands.menuBar()
     }
 }

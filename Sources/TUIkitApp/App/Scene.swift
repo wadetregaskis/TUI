@@ -195,8 +195,9 @@ public struct WindowGroup<Content: View>: Scene {
 /// ```
 ///
 /// The `@SceneBuilder` attribute transforms this closure into a scene that
-/// TUIkit can render. Currently, `SceneBuilder` supports a single scene
-/// in the body, which is typically a ``WindowGroup``.
+/// TUIkit can render. A body may declare several scenes, one after another, a
+/// scene inside `if #available`, and a `Group` of scenes, as in SwiftUI; the
+/// first window scene is the one the app opens at launch.
 @MainActor
 @resultBuilder
 public struct SceneBuilder {

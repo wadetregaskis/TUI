@@ -18,6 +18,10 @@ import TUIkitFoundation
 /// vertically within the space the chrome leaves it.
 extension WindowGroup: SceneRenderable {
     func renderScene(context: RenderContext) -> FrameBuffer {
-        TUIkitView.renderToBuffer(_WindowChromeHost(content: content), context: context)
+        // The walk of the scene tree ends here: the content is views, which
+        // have no scene to be told about.
+        var context = context
+        context.environment.sceneRenderTarget = nil
+        return TUIkitView.renderToBuffer(_WindowChromeHost(content: content), context: context)
     }
 }
