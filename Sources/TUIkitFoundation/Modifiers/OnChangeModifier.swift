@@ -66,23 +66,34 @@ extension OnChangeModifier: Renderable {
         // Claim unique index for this onChange at this identity
         let index = storage.nextOnChangeIndex(for: context.identity)
         let key = StateStorage.StateKey(identity: context.identity, propertyIndex: index)
+        storage.compareTrackedValue(value, at: key, initial: initial, action: action)
 
-        // Compare with previous value
-        if let oldValue: V = storage.trackedValue(for: key) {
+        // Keep tracked values alive through GC
+        storage.markActive(context.identity)
+
+        return TUIkitView.renderToBuffer(content, context: context)
+    }
+}
+
+// MARK: - The Comparison
+
+extension StateStorage {
+    /// Compares `value` with the one tracked under `key` — the last render
+    /// pass's — and runs `action` with the two where they differ, or with
+    /// `value` twice where none is tracked yet and `initial` says so; then
+    /// tracks `value` for the next pass. What `onChange(of:initial:_:)` does
+    /// each pass, for a view and for a scene.
+    package func compareTrackedValue<V: Equatable>(
+        _ value: V, at key: StateKey, initial: Bool, action: (V, V) -> Void
+    ) {
+        if let oldValue: V = trackedValue(for: key) {
             if oldValue != value {
                 action(oldValue, value)
             }
         } else if initial {
             action(value, value)
         }
-
-        // Store current value for next render pass
-        storage.setTrackedValue(value, for: key)
-
-        // Keep tracked values alive through GC
-        storage.markActive(context.identity)
-
-        return TUIkitView.renderToBuffer(content, context: context)
+        setTrackedValue(value, for: key)
     }
 }
 
