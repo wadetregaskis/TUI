@@ -29,6 +29,10 @@ struct _ToolbarBarRow: View {
     /// The window's subtitle, shown under the title.
     let subtitle: String
 
+    /// Whether the title keeps its place beside principal items
+    /// (`.toolbarRole(.editor)`) rather than giving it to them.
+    var keepsTitleBesidePrincipal = false
+
     /// Whether this is a row of presented content's, where a modal interface's
     /// actions lie as in a sheet's button row: the destructive ones leading,
     /// the cancellation then the confirmation ones last.
@@ -42,7 +46,7 @@ struct _ToolbarBarRow: View {
             + inButtonRowOrder(entries.filter { region(of: $0) == .trailing })
         HStack(spacing: 1) {
             _ToolbarItemRun(entries: leading)
-            if principal.isEmpty, !title.isEmpty {
+            if principal.isEmpty || keepsTitleBesidePrincipal, !title.isEmpty {
                 _ToolbarTitle(title: title, subtitle: subtitle)
             }
             Spacer(minLength: 0)

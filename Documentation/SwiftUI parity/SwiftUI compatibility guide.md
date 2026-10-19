@@ -684,9 +684,13 @@ palette's surface for it (`appHeaderBackground`, `statusBarBackground`), and
 page's own background; both this frame, since a fill costs no rows, and the
 statement closest to the content wins. (The deprecated
 `toolbarBackground(_: Visibility, for:)` is not there; its replacement is.)
+`.toolbarRole(.editor)` keeps the title at the top bar's leading end beside
+the `.principal` items, as macOS and iPadOS draw an editor's toolbar;
+`.automatic` is TUIkit's default, iOS's reading, where a principal item takes
+the title's place.
 
 **Not yet:** `.keyboard` and `.accessoryBar(id:)` placements, the other bar
-modifiers (`toolbarRole`, `toolbarItemHidden`, `toolbarTitleMenu`, …), a
+modifiers (`toolbarItemHidden`, `toolbarTitleMenu`, …), a
 `NavigationStack`'s bar hosting a pushed screen's items, and the customisation
 family (`toolbar(id:)`).
 

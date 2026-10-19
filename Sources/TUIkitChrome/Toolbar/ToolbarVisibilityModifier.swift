@@ -115,6 +115,8 @@ enum _ToolbarBarStatement {
     case background(AnyShapeStyle)
     /// `.toolbarBackgroundVisibility(_:for:)`: whether the bar is filled.
     case backgroundVisibility(Visibility)
+    /// `.toolbarRole(_:)`: where the top bar puts the title.
+    case role(ToolbarRole)
 
     /// Records the statement for the bar at `edge`.
     func declare(into chrome: WindowChromeState, for edge: WindowChromeState.Edge) {
@@ -122,6 +124,7 @@ enum _ToolbarBarStatement {
         case .visibility(let visibility): chrome.declare(visibility, for: edge)
         case .background(let style): chrome.declareBackground(style, for: edge)
         case .backgroundVisibility(let visibility): chrome.declareBackgroundVisibility(visibility, for: edge)
+        case .role(let role): chrome.declareTitleBesidePrincipal(role.keepsTitleBesidePrincipal)
         }
     }
 }

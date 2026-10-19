@@ -199,6 +199,10 @@ package final class WindowChromeState: @unchecked Sendable {
     /// (`.toolbarBackground(_:for:)`); absent is the palette's.
     private var declaredBackground: [Edge: AnyShapeStyle] = [:]
 
+    /// Whether the last `.toolbarRole(_:)` this walk drew keeps the title
+    /// beside the top bar's principal items (`.editor`); `nil` with none.
+    private var declaredTitleBesidePrincipal: Bool?
+
     /// Whether each bar was last declared to show its fill this walk
     /// (`.toolbarBackgroundVisibility(_:for:)`); absent is
     /// ``Visibility/automatic``.
@@ -606,6 +610,7 @@ package final class WindowChromeState: @unchecked Sendable {
         declaredVisibility.removeAll(keepingCapacity: true)
         declaredBackground.removeAll(keepingCapacity: true)
         declaredBackgroundVisibility.removeAll(keepingCapacity: true)
+        declaredTitleBesidePrincipal = nil
         _appLineHandlerIDs.removeAll(keepingCapacity: true)
         _tooltipRows = 0..<0
         _presentationsOverPage = []
@@ -675,6 +680,17 @@ package final class WindowChromeState: @unchecked Sendable {
         if declaredBackgroundVisibility[edge] == .hidden { return .hidden }
         return declaredBackground[edge].map(Fill.style) ?? .palette
     }
+
+    /// Records the role a `.toolbarRole(_:)` the walk drew gives the top bar:
+    /// whether its title keeps its place beside principal items. The last
+    /// declaration wins, as for a bar's visibility.
+    package func declareTitleBesidePrincipal(_ keeps: Bool) {
+        declaredTitleBesidePrincipal = keeps
+    }
+
+    /// Whether the top bar shows its title beside its principal items this
+    /// walk (`.toolbarRole(.editor)`), rather than giving them its place.
+    package var titleBesidePrincipal: Bool { declaredTitleBesidePrincipal ?? false }
 
     /// Whether the menu bar's View ▸ Hide Toolbar (`ToolbarCommands`,
     /// TUIkitCommands) hid the top bar: the person's choice, which holds until

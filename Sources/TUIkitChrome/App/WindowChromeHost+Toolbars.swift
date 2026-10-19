@@ -32,7 +32,8 @@ extension _WindowChromeHost {
             measureChild(_ToolbarEntryView(entry: $0), proposal: proposal, context: measureContext).height
         }.max() ?? 0
         let (title, subtitle) = titleSlot(edge, chrome: chrome)
-        let titleRows = title.isEmpty || entries.contains { $0.placement.region == .principal } ? 0 : subtitle.isEmpty ? 1 : 2
+        let titleGiven = !chrome.titleBesidePrincipal && entries.contains { $0.placement.region == .principal }
+        let titleRows = title.isEmpty || titleGiven ? 0 : subtitle.isEmpty ? 1 : 2
         return max(0, tallest, titleRows)
     }
 
@@ -88,7 +89,10 @@ extension _WindowChromeHost {
             let (title, subtitle) = titleSlot(edge, chrome: chrome)
             row.appendVertically(
                 TUIkitView.renderToBuffer(
-                    _ToolbarBarRow(entries: entries, title: title, subtitle: subtitle), context: barContext
+                    _ToolbarBarRow(
+                        entries: entries, title: title, subtitle: subtitle,
+                        keepsTitleBesidePrincipal: chrome.titleBesidePrincipal),
+                    context: barContext
                 )
                 .fittedAsChrome(toRows: itemRows, width: style.barContentWidth(width), background: "")
                 .fittedAsChrome(toRows: contentRows, width: style.barContentWidth(width), background: ""))

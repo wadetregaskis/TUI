@@ -61,7 +61,8 @@ public struct ToolbarItemPlacement: Sendable, Equatable {
     public static let automatic = Self(role: .automatic)
 
     /// The system places the item in the principal item section: the centre of
-    /// the top bar, in place of the title.
+    /// the top bar, in place of the title — or beside it, under
+    /// `.toolbarRole(.editor)`.
     public static let principal = Self(role: .principal)
 
     /// The item represents a navigation action: the top bar's leading end.

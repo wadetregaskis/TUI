@@ -2670,6 +2670,8 @@ private struct ToolbarShapes: View {
                     for: .windowToolbar, .bottomBar)
                 .toolbarBackgroundVisibility(.hidden, for: .bottomBar)
                 .toolbarBackgroundVisibility(.visible)
+                .toolbarRole(.editor)
+                .toolbarRole(.automatic)
         }
     }
 }
