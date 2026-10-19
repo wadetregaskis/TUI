@@ -2713,17 +2713,17 @@ on the frame the raise moves, since the value reaches the row through its
 environment and no memo below the row would notice it.
 
 Raised: every row the list builds lazily — the rows of a `ForEach` and an
-`OutlineGroup`, which is every data-driven list. **Not raised:** a hand-written
-row beside them (`List { Text("All"); ForEach(items) { … } }`), which the
-list's child walk hands over already drawn, before anyone knows where the
-cursor will be.
+`OutlineGroup`, which is every data-driven list — and, since 2026-10-19 (lane
+LISTS2), a hand-written row beside them (`List { Text("All"); ForEach(items)
+{ … } }`), in a section or alone, which the list's and the section's child
+walks used to hand over already drawn, before anyone knew where the cursor
+would be. They are drawn when the list reads them now, as a looped row is.
 
 **The fuller version:**
 
 - **Hand-written rows.** Draw them lazily too — keep the child's render
   closure in the row's content box, as a looped row's is — and the raise
-  reaches them unchanged. Half a day, most of it the child walk's badge and
-  tag reads, which today come off the drawn row.
+  reaches them unchanged. **Shipped (2026-10-19, lane LISTS2).**
 - **`.background(.selection)`.** SwiftUI says its selection style raises the
   content above it too. **Shipped (2026-10-19, lane LISTS2):** a
   `background(_:)` or `background(_:in:fillStyle:)` whose style is

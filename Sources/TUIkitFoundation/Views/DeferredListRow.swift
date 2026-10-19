@@ -28,6 +28,7 @@ package func deferredListRow(
 ) -> LazyListRowContent {
     let box = LazyListRowContent(
         identity: child.identity(under: context),
+        carriesBadge: rowCarriesBadge(child.wrappedView),
         measure: {
             let size = child.measure(
                 proposal: ProposedSize(width: context.availableWidth, height: nil), context: context)
@@ -55,4 +56,37 @@ package func deferredListRow(
             drawnIn: child.render(width: context.availableWidth, height: context.availableHeight, context: probe))
     }
     return box
+}
+
+/// The one row `content` makes when it is the whole content of a list, or of a
+/// list's section, and is neither a loop nor several views — `List {
+/// Text("Notifications").badge(5) }`, `Section("Sync") { Toggle(…) }` — drawn
+/// when the list reads it; `nil` when it draws nothing at all, an `EmptyView`,
+/// which is no row.
+///
+/// Drawn at `context`'s own identity, the list's or the section's, where it
+/// always was. Measured to tell nothing from a row — a content whose height
+/// can grow is a row, as it was drawn at the list's height — and, under a ramp
+/// spanning the list, to place it: one row is the whole of what the ramp spans,
+/// so its own height is the extent.
+@MainActor
+package func loneListRow<V: View>(of content: V, context: RenderContext) -> LazyListRowContent? {
+    let measured = measureChild(
+        content, proposal: ProposedSize(width: context.availableWidth, height: nil), context: context)
+    guard measured.height > 0 || measured.isHeightFlexible else { return nil }
+    var rowContext = context
+    if context.gradientFrame != nil {
+        rowContext = context.placingChild(
+            gradient: context.gradientContentFrame(width: context.availableWidth, height: max(1, measured.height)),
+            x: 0, y: 0)
+    }
+    let badge = extractListRowBadge(from: content)
+    return LazyListRowContent(
+        identity: context.identity, carriesBadge: badge != nil,
+        measure: { (measured, context.availableWidth) },
+        render: { _, prominence in
+            var drawn = rowContext
+            if prominence != .standard { drawn.environment.backgroundProminence = prominence }
+            return (TUIkitView.renderToBuffer(content, context: drawn), badge)
+        })
 }

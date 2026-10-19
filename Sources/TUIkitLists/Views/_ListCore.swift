@@ -33,8 +33,9 @@ private let listRowGutter = 2
 /// on long lists was allocating a content box for every row every frame even
 /// though ~viewport are shown.
 ///
-/// The eager paths (Sections, heterogeneous content) wrap their already-built
-/// rows via ``eager(_:editOwners:)``; ``row(at:)`` simply hands those back. A
+/// The eager paths (Sections, heterogeneous content) wrap their rows' boxes,
+/// every one built up front and each drawn when it is read, via
+/// ``eager(_:editOwners:)``; ``row(at:)`` simply hands those back. A
 /// looped row among them keeps its type ASKED FOR rather than resolved (see
 /// ``EagerListRow``): what it is depends on its loop's rule, which can cost a
 /// build of the row, and a frame that never asks — the hug measure, which
@@ -405,7 +406,8 @@ private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSepar
 
 // MARK: - An eager row whose type may be asked later
 
-/// A row of an eager source: its content, already rendered, and its type —
+/// A row of an eager source: its content, drawn when the list reads it (a
+/// section's header and footer arrive drawn), and its type —
 /// known, or a flattened child's selection value still to be asked of the
 /// ``FlattenedRowIDs`` of the container it came from (``AskedRowID``).
 ///
@@ -1064,9 +1066,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// the row's render rather than by a modifier, so no memo below the row
     /// would notice it come or go. This is what notices instead: the frame the
     /// raised row changes — another row, or none — clears both rows' cached
-    /// renders. A row whose content was handed over already rendered (static
-    /// rows beside a loop, a section's hand-written rows) has no identity to
-    /// clear and no render to repeat, and is not raised.
+    /// renders. Every row the list draws is drawn when it reads it — a
+    /// hand-written row beside a loop, or a section's, as a looped row is
+    /// (since lane LISTS2) — so each is raised; only a section's header and
+    /// footer arrive drawn, and neither can be selected.
     private func raiseBackgroundProminence(
         source: RowSource<SelectionValue>, handler: ItemListHandler<SelectionValue>,
         listHasFocus: Bool, context: RenderContext
@@ -1427,8 +1430,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// Notes which rows this walk draws (`drawn`), for a live sheet docked
     /// over the page to ask whether its presenter was left out
     /// (`StateStorage.noteWindowedRows`) — its row found among the rows'
-    /// identities (``LazyListRowContent/rowIdentity``), which a row handed
-    /// over already drawn has none of: it is drawn whatever the window.
+    /// identities (``LazyListRowContent/rowIdentity``), which a section's
+    /// header or footer, handed over already drawn, has none of: it is drawn
+    /// whatever the window.
     private func noteDrawnRows(
         _ drawn: Range<Int>, of source: RowSource<SelectionValue>, stateStorage: StateStorage,
         context: RenderContext
@@ -3800,27 +3804,15 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             return .eager(extracted.rows, editOwners: extracted.editOwners)
         }
 
-        // Fallback: render as a single content row, carrying its badge
-        // (`List { Text("Notifications").badge(5) }`).
-        let badge = extractListRowBadge(from: content)
-        // One row IS the whole list, so a ramp spanning the list spans this row
-        // and nothing else — its own measured height is the extent.
-        var rowRenderContext = context
-        if context.gradientFrame != nil {
-            let measured = measureChild(
-                content, proposal: ProposedSize(width: context.availableWidth, height: nil),
-                context: context)
-            rowRenderContext = context.placingChild(
-                gradient: context.gradientContentFrame(
-                    width: context.availableWidth, height: max(1, measured.height)),
-                x: 0, y: 0)
+        // Fallback: a single content row, carrying its badge
+        // (`List { Text("Notifications").badge(5) }`), drawn when the list
+        // reads it (`loneListRow(of:context:)`). An `EmptyView` is not a row.
+        // This used to fall out of the id cast failing, which meant it
+        // depended on the SELECTION type: a list of `EmptyView` was empty with
+        // a `String?` selection and a blank row with an `Int?` one.
+        guard let lone = loneListRow(of: content, context: context) else {
+            return .eager([SelectableListRow<SelectionValue>]())
         }
-        let buffer = TUIkitView.renderToBuffer(content, context: rowRenderContext)
-        // An `EmptyView` is not a row. This used to fall out of the id cast
-        // failing, which meant it depended on the SELECTION type: a list of
-        // `EmptyView` was empty with a `String?` selection and a blank row
-        // with an `Int?` one.
-        guard !buffer.lines.isEmpty else { return .eager([SelectableListRow<SelectionValue>]()) }
         // A static row's own `.tag(_:)` names it; failing that its index, which
         // cannot be expressed when the selection is a String, a UUID or a Set
         // of either. It is still a row either way: it draws, it just cannot be
@@ -3831,7 +3823,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             SelectableListRow(
                 type: staticListRowID(of: content, ordinal: 0, as: SelectionValue.self)
                     .map { .content(id: $0) } ?? .unselectable,
-                content: LazyListRowContent(buffer: buffer, rowBadge: badge))
+                content: lone)
         ])
     }
 
@@ -3853,11 +3845,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         var result: [EagerListRow<SelectionValue>] = []
         var editOwners: [ListRowEditOwner] = []
         var rowKeys: [String?] = []
-        // These rows render HERE rather than through a deferred box, so this is
-        // where a ramp spanning the list has to place them. There are only ever
-        // a handful and none is deferred, so unlike the windowed path this can
-        // measure them all and place every row exactly — no pitch, no estimate.
-        // Measured only when a ramp is in force.
+        // A ramp spanning the list places these rows here, where the walk has
+        // every child in hand: unlike the windowed path it can measure them all
+        // and place every row exactly — no pitch, no estimate — before any is
+        // drawn. Measured only when a ramp is in force.
         // A `Section` among them whole, as one child: it is spliced below as
         // rows of this list — header, items and footer — where the walk would
         // otherwise hand over its parts as anonymous rows
@@ -3914,20 +3905,19 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 continue
             }
 
-            // Through the row-level extractor, not `extractBadgeValue` directly:
-            // a `ForEach` row arrives wrapped in `_MemoizedRow`, which is
-            // `Renderable` and so opaque to the plain cast — the same opacity
-            // `sectionRow(of:)` above goes through `_ValueMemoWrapping` for.
-            let badge = extractRowBadge(from: child.wrappedView)
-            // Stamped, as a looped row's thunk stamps its own, so what the row
-            // reports — a separator, a refusal — names THIS row.
-            let restrictions = context.environment.listRowEditRestrictions
-            restrictions?.currentRowIndex = result.count
-            let buffer = child.render(
-                width: context.availableWidth, height: context.availableHeight,
-                context: childContext)
-            restrictions?.currentRowIndex = nil
-            reportSeparatorGuides(of: child, size: (buffer.width, buffer.height), row: result.count, context: childContext)
+            // Drawn when the list reads it, as a looped row of a lone `ForEach`
+            // is: a row out of the window is not drawn at all, so it does not
+            // appear, present or take a place in the focus ring, and the row
+            // under the cursor is drawn after the list knows it is there, so
+            // its raised background reaches it (decisions B73, B-LISTS-2).
+            // Placed exactly by `childContext` where a ramp spans the list:
+            // these rows were all measured above. Its badge, through the
+            // row-level reader, which sees past `ForEach`'s value memo — the
+            // opacity `sectionRow(of:)` above goes through `_ValueMemoWrapping`
+            // for — and its refusals and separator guides, stamped as THIS
+            // row's, all as it draws.
+            let rowContent = deferredListRow(
+                of: child, listRow: result.count, context: childContext, placedByRamp: false)
             // A looped row — a `ForEach`'s, spliced in among other rows — by
             // its own loop's rule, the row's tag or its element's id (see
             // `FlattenedRowIDs`). Any other row as in `extractRows`: its own
@@ -3939,8 +3929,6 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // exist for. ASKED when the list wants the row's type, not here:
             // a looped row's answer can cost a build of the row, and the hug
             // measure walks every row for its width alone.
-            let rowContent = LazyListRowContent(buffer: buffer, rowBadge: badge)
-            rowContent.typeSelectProbe = typeSelectProbe(statedBy: child.wrappedView, drawn: buffer)
             result.append(
                 EagerListRow(
                     asked: rowIDs.askedID(ofChildAt: childIndices[childIndex], ordinal: result.count),

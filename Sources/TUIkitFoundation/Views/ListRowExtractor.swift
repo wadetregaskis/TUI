@@ -63,13 +63,6 @@ package struct ListRow<ID: Hashable> {
         self.content = content
     }
 
-    /// Creates a row from an already-rendered buffer (fallback / chrome paths).
-    init(id: ID?, buffer: FrameBuffer, badge: ListRowBadge?) {
-        self.knownID = id
-        self.askedID = nil
-        self.content = LazyListRowContent(buffer: buffer, rowBadge: badge)
-    }
-
     /// This row with `transform` applied to its buffer as it renders — a
     /// modifier on its section, which reaches each of the section's rows (see
     /// `ModifiedView`'s `SectionRowExtractor` conformance). Its id, badge and
@@ -85,12 +78,12 @@ package struct ListRow<ID: Hashable> {
         self.content = content
     }
 
-    /// Creates a flattened child's row from its already-rendered buffer, its
-    /// id still to be asked.
-    init(askedID: AskedRowID<ID>, buffer: FrameBuffer, badge: ListRowBadge?) {
+    /// Creates a flattened child's row, drawn on demand, its id still to be
+    /// asked.
+    init(askedID: AskedRowID<ID>, content: LazyListRowContent) {
         self.knownID = nil
         self.askedID = askedID
-        self.content = LazyListRowContent(buffer: buffer, rowBadge: badge)
+        self.content = content
     }
 }
 

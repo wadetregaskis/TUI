@@ -81,6 +81,7 @@ scenarios and on sectioned lists (`session`, `inbox`: the render is a second
 draw of every section row, every frame).
 
 **The second and third** are decisions B73's option 1 (draw hand-written rows
-lazily, as looped rows are drawn), which lane LISTS2 is building in the same
-two functions; when it lands, the test's `mixedSection` and `spliced` shapes
-join its arguments.
+lazily, as looped rows are drawn), which lane LISTS2 built in the same two
+functions (2026-10-19): the test's `spliced` shape joined its arguments, and
+`mixedSection` waits for the first site, whose render draws every row of the
+section still.

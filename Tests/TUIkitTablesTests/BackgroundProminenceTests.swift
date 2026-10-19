@@ -12,6 +12,7 @@ import Testing
 
 @testable import TUIkitApp
 @testable import TUIkitFoundation
+import TUIkitLists
 import TUIkitTables
 @testable import TUIkitTestSupport
 
@@ -201,5 +202,102 @@ struct TableBackgroundProminenceTests {
         model.selection = nil
         let lowered = renderFrame(lineLimit: lineLimit)
         #expect(state(of: "alpha", in: lowered) == "plain", "\(lowered)")
+    }
+}
+
+/// The shapes of a list whose rows the app wrote by hand, in whole or in part.
+enum HandWrittenShape: String, CaseIterable, Sendable {
+    /// A hand-written row beside a loop: `List { Row("all"); ForEach(…) }`.
+    case spliced
+    /// The same inside a section.
+    case sectionSpliced
+    /// One hand-written row, the list's whole content.
+    case lone
+    /// One hand-written row, a section's whole content.
+    case sectionLone
+}
+
+@MainActor
+@Suite("Background prominence on hand-written rows")
+struct HandWrittenRowBackgroundProminenceTests {
+    private let tuiContext = TUIContext()
+    private let focusManager = FocusManager()
+    private let model = SelectionModel()
+
+    @ViewBuilder
+    private func list(_ shape: HandWrittenShape) -> some View {
+        let model = self.model
+        let selection = Binding(get: { model.selection }, set: { model.selection = $0 })
+        switch shape {
+        case .spliced:
+            List(selection: selection) {
+                ProminenceProbe(name: "all").tag("all")
+                ForEach(["alpha", "beta"], id: \.self) { ProminenceProbe(name: $0) }
+            }
+        case .sectionSpliced:
+            List(selection: selection) {
+                Section("S") {
+                    ProminenceProbe(name: "all").tag("all")
+                    ForEach(["alpha", "beta"], id: \.self) { ProminenceProbe(name: $0) }
+                }
+            }
+        case .lone:
+            List(selection: selection) { ProminenceProbe(name: "all").tag("all") }
+        case .sectionLone:
+            List(selection: selection) { Section("S") { ProminenceProbe(name: "all").tag("all") } }
+        }
+    }
+
+    private func renderFrame(_ shape: HandWrittenShape) -> [String] {
+        var environment = EnvironmentValues()
+        environment.focusManager = focusManager
+        environment.applyRuntimeServices(from: tuiContext)
+        let context = RenderContext(
+            availableWidth: 30, availableHeight: 8, environment: environment, tuiContext: tuiContext)
+        tuiContext.keyEventDispatcher.clearHandlers()
+        tuiContext.stateStorage.beginRenderPass()
+        tuiContext.renderCache.beginRenderPass()
+        focusManager.beginRenderPass()
+        let lines = renderToBuffer(list(shape), context: context).lines.map(\.stripped)
+        focusManager.endRenderPass()
+        tuiContext.stateStorage.endRenderPass()
+        tuiContext.renderCache.removeInactive()
+        return lines
+    }
+
+    private func state(of name: String, in lines: [String]) -> String? {
+        for line in lines {
+            if let range = line.range(of: "\(name):") {
+                return String(line[range.upperBound...].prefix { $0.isLetter })
+            }
+        }
+        return nil
+    }
+
+    /// Two frames with the cursor on the first row it can land on, which in
+    /// a section is the row under the header.
+    private func settle(_ shape: HandWrittenShape) {
+        _ = renderFrame(shape)
+        _ = (focusManager.currentFocused as? ItemListHandler<String>)?.handleKeyEvent(KeyEvent(key: .home))
+        _ = renderFrame(shape)
+    }
+
+    @Test("A hand-written row under the cursor, selected, renders raised", arguments: HandWrittenShape.allCases)
+    func handWrittenRowIsRaised(_ shape: HandWrittenShape) {
+        model.selection = "all"
+        settle(shape)
+        let lines = renderFrame(shape)
+        #expect(state(of: "all", in: lines) == "raised", "\(shape): \(lines)")
+        #expect(state(of: "alpha", in: lines) != "raised", "\(shape): \(lines)")
+    }
+
+    @Test("A hand-written row that stops being raised renders plain again", arguments: HandWrittenShape.allCases)
+    func handWrittenRowLowers(_ shape: HandWrittenShape) {
+        model.selection = "all"
+        settle(shape)
+        #expect(state(of: "all", in: renderFrame(shape)) == "raised")
+        model.selection = nil
+        let lowered = renderFrame(shape)
+        #expect(state(of: "all", in: lowered) == "plain", "\(shape): \(lowered)")
     }
 }

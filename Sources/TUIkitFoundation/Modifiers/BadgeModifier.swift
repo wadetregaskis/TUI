@@ -204,6 +204,20 @@ package func extractRowBadge(from view: any View) -> ListRowBadge? {
     return extractListRowBadge(from: memo.memoizedContent)
 }
 
+/// Whether ``extractRowBadge(from:)`` could answer for `view`, asked without
+/// building anything: the row's own type, or behind `ForEach`'s value memo the
+/// row type the memo would build. `false` means the row has no badge.
+///
+/// What a row the list draws only when it must (`deferredListRow(of:listRow:context:placedByRamp:)`)
+/// says up front, so a hug measure asking every row's width asks no
+/// badge-less row for its badge, which would draw it.
+@MainActor
+package func rowCarriesBadge(_ view: any View) -> Bool {
+    if view is any BadgeCarrying { return true }
+    guard let memo = view as? any _ValueMemoWrapping else { return false }
+    return viewTypeCarriesBadge(memo.memoizedContentType)
+}
+
 // MARK: - Renderable
 
 extension BadgeModifier: Renderable {

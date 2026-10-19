@@ -118,26 +118,11 @@ extension SingleContentWrapper {
     fileprivate static var wrappedContentType: any View.Type { WrappedContent.self }
 }
 
-/// The type-select text `row` states, as a row's probe, for a row handed to
-/// the list already drawn as `drawn` — `nil` where it states none, so its
-/// drawn text is used. A looped row behind `ForEach`'s value memo is seen
-/// through it, and built only when the probe is asked: when the user types,
-/// not on every frame (see `TypeSelectStatement`).
-@MainActor
-package func typeSelectProbe(statedBy row: any View, drawn: FrameBuffer) -> (() -> String?)? {
-    switch TypeSelectStatement(of: row) {
-    case .none, .stated(nil):
-        return nil
-    case .stated(let text?):
-        return { text }
-    case .behindMemo(let memo):
-        return { statedText(of: memo) ?? LazyListRowContent.typeSelectText(drawnIn: drawn) }
-    }
-}
-
 /// The type-select text `row` states, as a row's probe, else what `ownText`
 /// finds — for a row a list draws only when it must, so its own text is a
-/// measure's.
+/// measure's. A looped row behind `ForEach`'s value memo is seen through it,
+/// and built only when the probe is asked: when the user types, not on every
+/// frame (see `TypeSelectStatement`).
 @MainActor
 package func typeSelectProbe(
     statedBy row: any View, otherwise ownText: @escaping () -> String?

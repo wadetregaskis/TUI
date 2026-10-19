@@ -379,30 +379,49 @@ struct ListRowSelectionValueCostTests {
     /// selection can name. Asked of the whole list at once, that is every
     /// looped row's loop rule again: a build per tagged row on the first key
     /// after each frame, for a cursor that moves one row.
+    ///
+    /// A DIFFERENCE against the same list answering by its elements' ids, as
+    /// every count here is: a key that reveals rows the window did not draw
+    /// reads their heights, which draws them — and a row the memo has not
+    /// seen is built to be drawn, tagged or not. That used to cost nothing
+    /// here only because the child walk drew every row of a mixed list on
+    /// every frame; since lane LISTS2 it draws the rows the window walks, as a
+    /// lone loop's are drawn (decisions B73).
     @Test("A key that moves a mixed list's cursor asks only the rows it may land on")
     func cursorKeysAskOnlyWhereTheyLand() {
-        let counter = Counter()
-        let projects = Self.projects(counter)
-        let frames = Frames(counter: counter)
-        var selection: Pick? = .all
-        let list = List(selection: Binding(get: { selection }, set: { selection = $0 })) {
+        let keys: [Key] = [.down, .down, .end, .home, .up, .pageDown, .pageUp, .down]
+        func keyBuilds<Selection: Hashable & Sendable>(
+            _ selection: Selection?, @ViewBuilder rows: ([Project]) -> some View
+        ) -> Int? {
+            let counter = Counter()
+            let projects = Self.projects(counter)
+            let frames = Frames(counter: counter)
+            var selection = selection
+            _ = frames.steadyFrame(List(selection: Binding(get: { selection }, set: { selection = $0 })) { rows(projects) })
+            guard let handler = frames.env.focusManager?.currentFocused as? ItemListHandler<Selection> else {
+                return nil
+            }
+            let before = counter.builds
+            for key in keys { _ = handler.handleKeyEvent(KeyEvent(key: key)) }
+            return counter.builds - before
+        }
+        let tagged = keyBuilds(Pick.all) { projects in
             Text("All projects").tag(Pick.all)
             ForEach(projects) { Self.taggedRow($0) }
         }
-        _ = frames.steadyFrame(list)
-        guard let handler = frames.env.focusManager?.currentFocused as? ItemListHandler<Pick> else {
+        let untagged = keyBuilds(-1) { projects in
+            Text("All projects").tag(-1)
+            ForEach(projects) { Self.untaggedRow($0) }
+        }
+        guard let tagged, let untagged else {
             Issue.record("the list took focus")
             return
         }
-        let keys: [Key] = [.down, .down, .end, .home, .up, .pageDown, .pageUp, .down]
-        let before = counter.builds
-        for key in keys { _ = handler.handleKeyEvent(KeyEvent(key: key)) }
-        let keyBuilds = counter.builds - before
         // The rows the frame drew were asked as they were drawn; a key asks at
         // most the one row it lands on beyond them.
         #expect(
-            keyBuilds <= keys.count,
-            "\(keys.count) keys built \(keyBuilds) rows of \(Self.rowCount) to decide where to land")
+            tagged - untagged <= keys.count,
+            "\(keys.count) keys built \(tagged - untagged) rows of \(Self.rowCount) to decide where to land")
     }
 
     /// A bottom-anchored list follows its tail on every frame, and the follow

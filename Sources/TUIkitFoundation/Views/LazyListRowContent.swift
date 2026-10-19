@@ -117,8 +117,9 @@ package final class LazyListRowContent {
     /// check may have rendered the row before then. Changing it after a render
     /// drops that render, so the next read of ``buffer`` renders again with the
     /// new value — which is why the render closure is kept after the first.
-    /// A row whose buffer was handed over already rendered (chrome and the
-    /// eager rows) has no render to repeat and keeps the buffer it was given.
+    /// A row whose buffer was handed over already rendered (a section's
+    /// header and footer) has no render to repeat and keeps the buffer it was
+    /// given.
     package var backgroundProminence: BackgroundProminence {
         get { _backgroundProminence }
         set { _backgroundProminence = newValue }
@@ -281,9 +282,8 @@ package final class LazyListRowContent {
         self.thunk = render
     }
 
-    /// Wraps an already-rendered buffer. Used for section headers/footers and
-    /// the single-row fallbacks — there are only ever a handful of those and
-    /// they are always shown, so deferring them would buy nothing.
+    /// Wraps an already-rendered buffer. Used for section headers and footers,
+    /// which their sections hand over drawn, and for a reorder's landing slot.
     ///
     /// `nonisolated` so the (nonisolated) `SelectableListRow` / `ListRow`
     /// buffer initializers can wrap an already-rendered buffer without hopping
@@ -410,8 +410,8 @@ package final class LazyListRowContent {
     }
 
     /// The width the row's buffer would have, without rendering it — or `nil`
-    /// when only the render can say (chrome and the eager fallbacks, which
-    /// have already rendered and answer through ``buffer`` for nothing).
+    /// when only the render can say (chrome, which has already rendered and
+    /// answers through ``buffer`` for nothing).
     ///
     /// Read as the render would have filled it: a row flexible in width
     /// renders filled to the width it was offered, and a row wider than that

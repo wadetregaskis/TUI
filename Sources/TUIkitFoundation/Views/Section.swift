@@ -729,39 +729,22 @@ extension Section: ListRowExtractor where Parent: View, Content: View, Footer: V
                 // for it when the list wants it, not here: a looped row's
                 // answer can cost a build of the row.
                 let rowID = rowIDs.askedID(ofChildAt: index, ordinal: rows.count)
-                // See `extractRowBadge(from:)`: a `ForEach` row inside
-                // this Section arrives wrapped in `_MemoizedRow`, which the
-                // plain cast cannot see through, and its badge was dropped
-                // while the static row beside it kept its own.
-                let badge = extractRowBadge(from: child.wrappedView)
-                // Stamped, as a looped row's thunk stamps its own, so what the
-                // row reports — a separator, a refusal — names THIS list row.
-                let restrictions = context.environment.listRowEditRestrictions
-                let listRow = (restrictions?.rowIndexBase ?? 0) + rows.count
-                restrictions?.currentRowIndex = listRow
-                let buffer = child.render(
-                    width: context.availableWidth, height: context.availableHeight,
-                    context: context)
-                restrictions?.currentRowIndex = nil
-                reportSeparatorGuides(of: child, size: (buffer.width, buffer.height), row: listRow, context: context)
-                let row = ListRow(askedID: rowID, buffer: buffer, badge: badge)
-                row.content.typeSelectProbe = typeSelectProbe(statedBy: child.wrappedView, drawn: buffer)
-                rows.append(row)
+                // Drawn when the list reads it, as a looped row of a lone
+                // `ForEach` is (decisions B73, B-LISTS-2): out of the window,
+                // not at all, and under the cursor after the list knows it is
+                // there. Its badge through `extractRowBadge(from:)`, which sees
+                // past `ForEach`'s value memo; what it reports — a separator,
+                // a refusal — stamped as THIS list row's.
+                let listRow = (context.environment.listRowEditRestrictions?.rowIndexBase ?? 0) + rows.count
+                rows.append(ListRow(askedID: rowID, content: deferredListRow(of: child, listRow: listRow, context: context)))
                 rowKeys.append(child.identityChildKey)
             }
             return (rows, rowKeys)
         }
 
-        // Fallback: render content as a single row, carrying its badge.
-        let badge = extractListRowBadge(from: content)
-        let buffer = TUIkitView.renderToBuffer(content, context: context)
-        guard !buffer.lines.isEmpty else { return ([], nil) }
-        return (
-            [
-                ListRow(
-                    id: staticListRowID(of: content, ordinal: 0, as: RowID.self), buffer: buffer,
-                    badge: badge)
-            ], nil
-        )
+        // Fallback: the content as a single row, carrying its badge, drawn
+        // when the list reads it.
+        guard let lone = loneListRow(of: content, context: context) else { return ([], nil) }
+        return ([ListRow(id: staticListRowID(of: content, ordinal: 0, as: RowID.self), content: lone)], nil)
     }
 }
