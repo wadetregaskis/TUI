@@ -148,6 +148,8 @@ extension ExampleStrings {
             "page.colors.glass.container": "glass that touches, alone and then in a GlassEffectContainer, which draws it as one shape",
             "page.colors.glass.button": "Glass",
             "page.colors.glass.prominent": "Prominent",
+            "page.colors.shadow.inner.label": "Pressed",
+            "page.colors.shadow.inner": "a style's inner shadow: .background(.white.shadow(.inner(radius: 1, x: 1, y: 1))) darkens the fill's top and leading edges, under the label",
 
             // page.containers
             "page.containers.aCardView": "A Card view",
@@ -489,6 +491,8 @@ extension ExampleStrings {
             "page.colors.glass.container": "Glas, das sich berührt, allein und dann in einem GlassEffectContainer, der es als eine Form zeichnet",
             "page.colors.glass.button": "Glas",
             "page.colors.glass.prominent": "Hervorgehoben",
+            "page.colors.shadow.inner.label": "Gedrückt",
+            "page.colors.shadow.inner": "der Innenschatten eines Stils: .background(.white.shadow(.inner(radius: 1, x: 1, y: 1))) dunkelt die obere und die vordere Kante der Füllung ab, unter der Beschriftung",
 
             // page.containers
             "page.containers.aCardView": "Eine Card-Ansicht",
@@ -830,6 +834,8 @@ extension ExampleStrings {
             "page.colors.glass.container": "du verre qui se touche, seul puis dans un GlassEffectContainer, qui le dessine comme une seule forme",
             "page.colors.glass.button": "Verre",
             "page.colors.glass.prominent": "Mis en avant",
+            "page.colors.shadow.inner.label": "Enfoncé",
+            "page.colors.shadow.inner": "l’ombre intérieure d’un style : .background(.white.shadow(.inner(radius: 1, x: 1, y: 1))) assombrit les bords supérieur et de début du remplissage, sous le libellé",
 
             // page.containers
             "page.containers.aCardView": "Une vue Card",
@@ -1171,6 +1177,8 @@ extension ExampleStrings {
             "page.colors.glass.container": "vetro che si tocca, da solo e poi in un GlassEffectContainer, che lo disegna come un’unica forma",
             "page.colors.glass.button": "Vetro",
             "page.colors.glass.prominent": "In evidenza",
+            "page.colors.shadow.inner.label": "Premuto",
+            "page.colors.shadow.inner": "l’ombra interna di uno stile: .background(.white.shadow(.inner(radius: 1, x: 1, y: 1))) scurisce il bordo superiore e quello iniziale del riempimento, sotto l’etichetta",
 
             // page.containers
             "page.containers.aCardView": "Una vista Card",
@@ -1512,6 +1520,8 @@ extension ExampleStrings {
             "page.colors.glass.container": "vidrio que se toca, solo y luego en un GlassEffectContainer, que lo dibuja como una sola forma",
             "page.colors.glass.button": "Vidrio",
             "page.colors.glass.prominent": "Destacado",
+            "page.colors.shadow.inner.label": "Pulsado",
+            "page.colors.shadow.inner": "la sombra interior de un estilo: .background(.white.shadow(.inner(radius: 1, x: 1, y: 1))) oscurece los bordes superior e inicial del relleno, bajo la etiqueta",
 
             // page.containers
             "page.containers.aCardView": "Una vista Card",
@@ -1853,6 +1863,8 @@ extension ExampleStrings {
             "page.colors.glass.container": "相互接触的玻璃：先是单独的，然后放在 GlassEffectContainer 中，它会把它们绘制成一个形状",
             "page.colors.glass.button": "玻璃",
             "page.colors.glass.prominent": "醒目",
+            "page.colors.shadow.inner.label": "按下",
+            "page.colors.shadow.inner": "样式的内阴影：.background(.white.shadow(.inner(radius: 1, x: 1, y: 1))) 使填充的上边缘和起始边缘变暗，位于标签之下",
 
             // page.containers
             "page.containers.aCardView": "一个 Card 视图",
@@ -2194,6 +2206,8 @@ extension ExampleStrings {
             "page.colors.glass.container": "接し合うガラス：単独の場合と、1つの形として描く GlassEffectContainer に入れた場合",
             "page.colors.glass.button": "ガラス",
             "page.colors.glass.prominent": "強調",
+            "page.colors.shadow.inner.label": "押下",
+            "page.colors.shadow.inner": "スタイルの内側の影：.background(.white.shadow(.inner(radius: 1, x: 1, y: 1))) は塗りの上端と先頭側の端を暗くし、ラベルの下に描かれます",
 
             // page.containers
             "page.containers.aCardView": "Card ビュー",

@@ -6,8 +6,10 @@
 
 import TUIkit
 
-/// Drop shadows: a radius ramp of cards casting onto a light panel, a label
-/// casting its letters, and a coloured shadow as a glow on the page.
+/// Shadows: a radius ramp of cards casting onto a light panel, a label
+/// casting its letters, a well pressed into the panel by a style's inner
+/// shadow (`ShapeStyle.shadow(_:)`), and a coloured shadow as a glow on the
+/// page.
 ///
 /// The panel is there because a black shadow needs something to darken: on
 /// the near-black pages the palettes draw, one at a third is barely a change.
@@ -31,6 +33,15 @@ struct ShadowsDemo: View {
                         .bold()
                         .foregroundStyle(Color.rgb(250, 250, 250))
                         .shadow(color: .black.opacity(0.6), radius: 0, x: 1)
+                    HStack(alignment: .top, spacing: 3) {
+                        // A style's inner shadow: over the fill, under the label.
+                        Text("page.colors.shadow.inner.label")
+                            .foregroundStyle(Color.rgb(30, 30, 30))
+                            .padding(EdgeInsets(top: 1, leading: 2, bottom: 1, trailing: 2))
+                            .background(Color.rgb(250, 250, 250).shadow(.inner(radius: 1, x: 1, y: 1)))
+                        Text("page.colors.shadow.inner")
+                            .foregroundStyle(Color.rgb(30, 30, 30))
+                    }
                 }
                 .padding(EdgeInsets(top: 2, leading: 2, bottom: 2, trailing: 6))
                 .background(Self.panel)
