@@ -278,3 +278,11 @@ extension _TaggedView: ChildViewProvider where Content: ChildViewProvider {}
 
 /// Each of a row's cells tagged, as each member is.
 extension _TaggedView: GridRowProviding where Content: GridRowProviding {}
+
+/// A tag written on a form row tags the row the form lays out, which keeps its
+/// place: SwiftUI's form keeps a tagged row in it (measured).
+extension _TaggedView: FormRowRewrapping {
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        _TaggedView<V>(tagValue: tagValue, includeOptional: includeOptional, content: row)
+    }
+}

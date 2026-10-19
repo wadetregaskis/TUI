@@ -1,0 +1,78 @@
+Form(.columns): A plain LabeledContent, then B
+LabeledContent                 A label  112..120  value  128..560  | B label    0..120  row    0..560  control  138..560 
+Picker menu                    A label  108..116  value  124..560  | B label    0..120  row    0..560  control  128..560 
+Picker segmented               A label  108..116  value  124..560  | B label    0..120  row    0..560  control  130..344 
+Picker radioGroup              A label  108..116  value  124..560  | B label    0..120  row    0..172  control  128..142 
+Picker inline                  A label  108..116  value  124..560  | B label    0..120  row    0..172  control  128..142 
+Picker menu labelsHidden       A label    0..9    value   17..560  | B label    0..0    row   21..560  control   21..559 
+Slider                         A label  108..116  value  124..560  | B label    0..120  row    0..560  control  334..354 
+Stepper                        A label  108..116  value  124..560  | B label    0..120  row    0..142  control  128..142 
+DatePicker                     A label  108..116  value  124..560  | B label    0..120  row    0..222  control  130..222 
+ColorPicker                    A label  108..116  value  124..560  | B label    0..120  row    0..172  control  128..172 
+Toggle                         A label    0..9    value   17..560  | B label   40..160  row   21..160  control  nothing
+Toggle switch                  A label  108..116  value  124..560  | B label    0..120  row    0..166  control  128..166 
+TextField                      A label  108..116  value  124..560  | B label    0..120  row    0..560  control  130..560 
+Gauge                          A label    0..9    value   17..560  | B label  230..351  row   21..560  control  nothing
+ProgressView                   A label    0..9    value   17..560  | B label   21..142  row   21..560  control  144..294 
+LC .padding(.leading, 40)      A label  152..160  value  168..560  | B label   40..160  row   40..560  control  178..560 
+LC .padding()                  A label  128..136  value  144..560  | B label   16..136  row   16..544  control  154..544 
+LC .padding(.trailing, 40)     A label  112..120  value  128..560  | B label    0..120  row    0..520  control  138..520 
+Toggle .padding(.leading, 40)  A label    0..9    value   17..560  | B label   80..200  row   61..200  control  nothing
+Toggle .padding(.leading, 200) A label    0..9    value   17..560  | B label  240..360  row  221..360  control  nothing
+Picker .padding(.leading, 40)  A label  148..156  value  164..560  | B label   40..160  row   40..560  control  168..560 
+Button .padding(.leading, 40)  A label    0..9    value   17..560  | B label   69..190  row   61..198  control  196..560 
+LC .background(.yellow)        A label  112..120  value  128..560  | B label    0..120  row    0..560  control  138..560 
+Slider .help                   A label  108..116  value  124..560  | B label    0..120  row    0..560  control  334..354 
+LC .tag(1)                     A label  112..120  value  128..560  | B label    0..120  row    0..560  control  138..560 
+LC .id(1)                      A label  112..120  value  128..560  | B label    0..120  row    0..560  control  138..560 
+LC .onAppear                   A label  112..120  value  128..560  | B label    0..120  row    0..560  control  138..560 
+LC .onChange                   A label  112..120  value  128..560  | B label    0..120  row    0..560  control  138..560 
+LC .task                       A label  112..120  value  128..560  | B label    0..120  row    0..560  control  138..560 
+LC .onTapGesture               A label  112..120  value  128..560  | B label    0..120  row    0..560  control  138..560 
+LC .overlay                    A label  112..120  value  128..560  | B label    0..120  row    0..560  control  138..560 
+LC .border                     A label  112..120  value  128..560  | B label    0..120  row    0..560  control  138..560 
+LC .contextMenu                A label  112..120  value  128..560  | B label    0..120  row    0..560  control  138..560 
+LC .labelsHidden               A label    0..9    value   17..560  | B label    0..0    row   13..560  control   22..559 
+Toggle .onChange               A label    0..9    value   17..560  | B label   40..160  row   21..160  control  nothing
+Picker .onChange               A label  108..116  value  124..560  | B label    0..120  row    0..560  control  128..560 
+Button .keyboardShortcut       A label    0..9    value   17..560  | B label   29..150  row   21..158  control  156..560 
+Button bare                    A label    0..9    value   17..560  | B label   29..150  row   21..158  control  156..560 
+Form(.grouped): A plain LabeledContent, then B
+LabeledContent                 A label   30..39   value  255..530  | B label   30..150  row   30..530  control  524..540 
+Picker menu                    A label   30..39   value  255..530  | B label   30..150  row   30..530  control  484..540 
+Picker segmented               A label   30..39   value  255..530  | B label   30..150  row   30..530  control  256..540 
+Picker radioGroup              A label   30..39   value  255..530  | B label   30..150  row   30..530  control  426..540 
+Picker inline                  A label   30..39   value  255..530  | B label   30..150  row   30..530  control  426..540 
+Picker menu labelsHidden       A label   30..39   value  255..530  | B label    0..0    row   30..87   control   20..540 
+Slider                         A label   30..39   value  255..530  | B label   30..150  row   30..530  control  256..540 
+Stepper                        A label   30..39   value  255..530  | B label   30..150  row   30..530  control  516..540 
+DatePicker                     A label   30..39   value  255..530  | B label   30..150  row   30..530  control  434..540 
+ColorPicker                    A label   30..39   value  255..530  | B label   30..150  row   30..530  control  484..540 
+Toggle                         A label   30..39   value  255..530  | B label   30..150  row   30..530  control  504..540 
+Toggle switch                  A label   30..39   value  255..530  | B label   30..150  row   30..530  control  504..540 
+TextField                      A label   30..39   value  255..530  | B label   30..150  row   30..530  control  496..540 
+Gauge                          A label   30..39   value  255..530  | B label  220..340  row   30..530  control  343..530 
+ProgressView                   A label   30..39   value  255..530  | B label   30..150  row   30..530  control  154..540 
+LC .padding(.leading, 40)      A label   30..39   value  255..530  | B label   70..190  row   70..530  control  524..540 
+LC .padding()                  A label   30..39   value  255..530  | B label   46..166  row   46..514  control  506..540 
+LC .padding(.trailing, 40)     A label   30..39   value  255..530  | B label   30..150  row   30..490  control  484..540 
+Toggle .padding(.leading, 40)  A label   30..39   value  255..530  | B label   70..190  row   70..530  control  504..540 
+Toggle .padding(.leading, 200) A label   30..39   value  255..530  | B label  230..350  row  230..530  control  504..540 
+Picker .padding(.leading, 40)  A label   30..39   value  255..530  | B label   70..190  row   70..530  control  484..540 
+Button .padding(.leading, 40)  A label   30..39   value  255..530  | B label   78..198  row   70..206  control  204..560 
+LC .background(.yellow)        A label   30..39   value  255..530  | B label   30..150  row   30..530  control  524..560 
+Slider .help                   A label   30..39   value  255..530  | B label   30..150  row   30..530  control  256..540 
+LC .tag(1)                     A label   30..39   value  255..530  | B label   30..150  row   30..530  control  524..540 
+LC .id(1)                      A label   30..39   value  255..530  | B label   30..150  row   30..530  control  524..540 
+LC .onAppear                   A label   30..39   value  255..530  | B label   30..150  row   30..530  control  524..540 
+LC .onChange                   A label   30..39   value  255..530  | B label   30..150  row   30..530  control  524..540 
+LC .task                       A label   30..39   value  255..530  | B label   30..150  row   30..530  control  524..540 
+LC .onTapGesture               A label   30..39   value  255..530  | B label   30..150  row   30..530  control  524..540 
+LC .overlay                    A label   30..39   value  255..530  | B label   30..150  row   30..530  control  524..540 
+LC .border                     A label   30..39   value  255..530  | B label   30..150  row   30..530  control  524..540 
+LC .contextMenu                A label   30..39   value  255..530  | B label   30..150  row   30..530  control  524..540 
+LC .labelsHidden               A label   30..39   value  255..530  | B label    0..0    row   30..530  control   20..540 
+Toggle .onChange               A label   30..39   value  255..530  | B label   30..150  row   30..530  control  504..540 
+Picker .onChange               A label   30..39   value  255..530  | B label   30..150  row   30..530  control  484..540 
+Button .keyboardShortcut       A label   30..39   value  255..530  | B label   38..158  row   30..166  control  164..560 
+Button bare                    A label   30..39   value  255..530  | B label   38..158  row   30..166  control  164..560 

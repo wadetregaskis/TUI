@@ -80,3 +80,13 @@ extension View {
         BackgroundLayerModifier(base: self, background: content(), alignment: alignment)
     }
 }
+
+/// A background written on a form row goes behind the row the form lays out,
+/// which keeps its place, as SwiftUI's does (measured).
+extension BackgroundLayerModifier: FormRowRewrapping {
+    var formRowContent: Base { base }
+
+    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        BackgroundLayerModifier<V, Background>(base: row, background: background, alignment: alignment)
+    }
+}

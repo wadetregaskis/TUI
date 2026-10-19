@@ -521,3 +521,25 @@ messages cite that path), and what cites it.
   width as they place it (its content's, 5). Ran 2026-10-19, macOS 15.8.1, with Xcode's `swiftc`; cited by
   `EnvironmentValues.offeredNoWidth` (`ContainerAxisEnvironment.swift`) and
   `Tests/TUIkitFoundationTests/FrameIdealOfferedNothingTests.swift`.
+
+### Form rows
+
+- **Asks:** where a `Form`, columns and grouped, puts a row beside a plain `LabeledContent` with a shorter label.
+  `modified.swift` (`modified.out`) writes a modifier on a `LabeledContent` row — `.foregroundStyle`, `.disabled`,
+  `.font`, `.padding`, `.frame`, `.background`, `.opacity`, `.offset`, `.help`, `.tag`, `.id`, an `HStack` around it
+  — and reads where its label and value go: the label stays in the label column for every one, the modifier applying
+  to the row. `rows.swift` (`rows.out`) asks the same of the bare labelled controls — `Picker` in each macOS style,
+  `Slider`, `Stepper`, `DatePicker`, `ColorPicker`, `Toggle` as a checkbox and as a switch, `TextField`, `Gauge`,
+  `ProgressView` — and of more modifiers: padding on a `LabeledContent`, a `Toggle`, a `Picker` and a `Button`, a
+  background, help, a tag, an id, `.onAppear`, `.onChange`, `.task`, `.onTapGesture`, `.overlay`, `.border`,
+  `.contextMenu`, `.labelsHidden()` and `.keyboardShortcut`. The control's extent is read off the pixels. A picker
+  of any style, a slider, a stepper, a date picker, a colour picker, a switch and a text field are field rows: the
+  label in the label column, the control in the value column, and in a grouped form the label leading and the
+  control trailing (a slider and a segmented picker from 45% of the row). A checkbox is in the value column, its
+  label after it. A leading padding on a field row widens the label column by as much; on a checkbox or a button it
+  moves the control on from where it would be. A hidden label takes no part in the column.
+- **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4; `modified.swift` 2026-10-14, `rows.swift` 2026-10-19.
+- **Was:** `PROBES-1014/labeledcontent/` (`p3-modified-rows.swift`) and `FORMS/probes/` (`p4-form-rows.swift`).
+- **Cited by:** `Sources/TUIkitForms/Views/FormContentExtraction.swift`,
+  `Sources/TUIkitFoundation/Views/FormRowRewrapping.swift`, `Tests/TUIkitIntegrationTests/FormModifiedRowTests.swift`;
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (Containers, `Form`).

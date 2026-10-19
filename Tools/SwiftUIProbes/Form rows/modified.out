@@ -1,0 +1,28 @@
+Form(.columns): A plain, then B
+bare                      A label  112..120  value  128..520  | B label    0..120  value  128..520 
+.foregroundStyle(.red)    A label  112..120  value  128..520  | B label    0..120  value  128..520 
+.disabled(true)           A label  112..120  value  128..520  | B label    0..120  value  128..520 
+.font(.title)             A label  179..188  value  196..520  | B label    0..188  value  196..520 
+.padding(.leading, 40)    A label  152..160  value  168..520  | B label   40..160  value  168..520 
+.frame(width: 300)        A label  112..120  value  128..520  | B label    0..120  value  128..300 
+.background(.yellow)      A label  112..120  value  128..520  | B label    0..120  value  128..520 
+.opacity(0.5)             A label  112..120  value  128..520  | B label    0..120  value  128..520 
+.offset(x: 30)            A label  112..120  value  128..520  | B label   30..150  value  158..550 
+.help("h")                A label  112..120  value  128..520  | B label    0..120  value  128..520 
+.tag(1)                   A label  112..120  value  128..520  | B label    0..120  value  128..520 
+.id(1)                    A label  112..120  value  128..520  | B label    0..120  value  128..520 
+HStack { lc }             A label  112..120  value  128..520  | B label    0..120  value  128..520 
+Form(.grouped): A plain, then B
+bare                      A label   30..39   value  237..490  | B label   30..150  value  237..490 
+.foregroundStyle(.red)    A label   30..39   value  237..490  | B label   30..150  value  237..490 
+.disabled(true)           A label   30..39   value  237..490  | B label   30..150  value  237..490 
+.font(.title)             A label   30..39   value  237..490  | B label   30..218  value  238..490 
+.padding(.leading, 40)    A label   30..39   value  237..490  | B label   70..190  value  259..490 
+.frame(width: 300)        A label   30..39   value  237..490  | B label   30..150  value  170..330 
+.background(.yellow)      A label   30..39   value  237..490  | B label   30..150  value  237..490 
+.opacity(0.5)             A label   30..39   value  237..490  | B label   30..150  value  237..490 
+.offset(x: 30)            A label   30..39   value  237..490  | B label   60..180  value  267..520 
+.help("h")                A label   30..39   value  237..490  | B label   30..150  value  237..490 
+.tag(1)                   A label   30..39   value  237..490  | B label   30..150  value  237..490 
+.id(1)                    A label   30..39   value  237..490  | B label   30..150  value  237..490 
+HStack { lc }             A label   30..39   value  237..490  | B label   30..150  value  237..490 

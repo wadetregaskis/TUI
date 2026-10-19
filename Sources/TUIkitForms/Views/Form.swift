@@ -89,6 +89,11 @@ struct _FormRow {
     /// labelled row, red, as SwiftUI's form keeps it (see
     /// `formElements(from:in:)`); `nil` for a row written bare.
     var rewrap: (@MainActor (AnyView) -> AnyView)?
+    /// The cells the modifiers written on the row put before it — a leading
+    /// padding — which a field row's label needs ahead of it in the label
+    /// column: SwiftUI's form widens the column by them, the label staying in
+    /// it (measured). Zero for a row written bare.
+    var leadingInset = 0
 
     init(_ kind: _FormRowKind, alignment: HorizontalAlignment? = nil) {
         self.kind = kind
@@ -203,10 +208,10 @@ private func controlIndent(pillar: Int) -> Int { pillar == 0 ? 0 : pillar + 1 }
 /// checkbox/radio control is indented to the control column; a button and a plain
 /// row render at their natural width.
 @MainActor @ViewBuilder
-private func baseRowView(_ kind: _FormRowKind, pillar: Int) -> some View {
-    switch kind {
+private func baseRowView(_ row: _FormRow, pillar: Int) -> some View {
+    switch row.kind {
     case .field(let label, let content):
-        _FormFieldRow(label: label, content: content, pillar: pillar)
+        _FormFieldRow(label: label, content: content, pillar: pillar, leadingInset: row.leadingInset)
     case .control(let view, let parts):
         _FormControlRowView(view: view, parts: parts, indent: controlIndent(pillar: pillar))
     case .button(let view):
@@ -240,9 +245,9 @@ private struct _FormControlRowView: View {
 @MainActor @ViewBuilder
 private func rewrappedRowView(_ row: _FormRow, pillar: Int) -> some View {
     if let rewrap = row.rewrap {
-        rewrap(AnyView(baseRowView(row.kind, pillar: pillar)))
+        rewrap(AnyView(baseRowView(row, pillar: pillar)))
     } else {
-        baseRowView(row.kind, pillar: pillar)
+        baseRowView(row, pillar: pillar)
     }
 }
 
@@ -526,7 +531,9 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
     }
 
     /// The shared pillar: the widest field label across every row (sections
-    /// included), so all field labels right-align to one column.
+    /// included), so all field labels right-align to one column — each behind
+    /// the leading padding written on its row, which widens the column as it
+    /// does SwiftUI's (``_FormRow/leadingInset``).
     private func pillarWidth(of elements: [_FormElement], context: RenderContext) -> Int {
         // `.labelsHidden()` on a form takes the label COLUMN away, not just
         // the words in it: a pillar sized to labels nobody draws would indent
@@ -535,9 +542,8 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
         return formRows(of: elements)
             .compactMap { row -> Int? in
                 guard case .field(let label, _) = row.kind else { return nil }
-                return measureChild(
-                    label, proposal: ProposedSize(width: nil, height: nil), context: context
-                ).width
+                return row.leadingInset
+                    + measureChild(label, proposal: ProposedSize(width: nil, height: nil), context: context).width
             }
             .max() ?? 0
     }
@@ -566,6 +572,10 @@ private struct _FormFieldRow: View {
     let label: AnyView
     let content: AnyView
     let pillar: Int
+    /// The cells the modifiers written on the row put before it, which the
+    /// label column already counts: the label's share of the pillar is what is
+    /// left (``_FormRow/leadingInset``).
+    let leadingInset: Int
     @Environment(\.labeledContentStyleChain) private var styles
     @Environment(\.labeledContentPlacement) private var placement
 
@@ -584,8 +594,12 @@ private struct _FormFieldRow: View {
             // indented by one for a label that is not there.
             content
         } else {
-            HStack(spacing: 1) {
-                label.frame(width: pillar, alignment: .trailing)
+            // The gap is the label's trailing padding, not the stack's
+            // spacing: a label framed to no width at all — a row whose leading
+            // padding fills the column — would take the stack's spacing with
+            // it, and its content would start a cell short of the others'.
+            HStack(spacing: 0) {
+                label.frame(width: max(0, pillar - leadingInset), alignment: .trailing).padding(.trailing, 1)
                 content
             }
         }

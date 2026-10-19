@@ -67,7 +67,7 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
     if view is FormButtonRow {
         return [.row(_FormRow(.button(AnyView(view))))]
     }
-    if let wrapper = view as? any ContentRewrapping, let row = rewrappedRow(wrapper, in: walk) {
+    if let row = rewrappedRow(view, in: walk) {
         return [.row(row)]
     }
     // A view of the app's own whose body is several views, a loop, an `if` or
@@ -92,26 +92,56 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
 }
 
 /// The one row a modifier written on a form row wraps — a labelled row, a
-/// checkbox or a button, under any number of modifiers that can be put back
-/// around something else (``ContentRewrapping``) — with the modifiers to put
-/// back around it as the form lays it out; `nil` for anything else, which
-/// stays a plain row drawn whole.
+/// checkbox or a button, under any number of modifiers the form can put back
+/// around something else (``ContentRewrapping``, ``FormRowRewrapping``) — with
+/// the modifiers to put back around it as the form lays it out; `nil` for
+/// anything else, which stays a plain row drawn whole.
 ///
 /// SwiftUI's form keeps such a row in its place whatever is written on it
 /// (measured, `.foregroundStyle`, `.disabled`, `.font`, `.frame`, `.opacity`,
 /// `.offset`, `.tag`, `.padding`, `.background`, `.help`, `.id`, in both
 /// styles: the label stays in the label column and the modifier applies to the
-/// row). Here the modifiers that can be put back are the ones TUIkit already
-/// moves onto the members of a group; `.padding`, `.background`, `.help`,
-/// `.tag` and `.id` cannot, and leave the row plain. Only a row the form classifies by its
-/// type is looked through: a view of the app's own is read through its body,
-/// which would be evaluated outside the modifiers' environment.
+/// row; a leading padding widens the label column rather than moving the label
+/// out of it). Only a row the form classifies by its type is looked through: a
+/// view of the app's own is read through its body, which would be evaluated
+/// outside the modifiers' environment.
 @MainActor
-private func rewrappedRow<W: ContentRewrapping>(_ wrapper: W, in walk: RenderContext) -> _FormRow? {
-    let inner = wrapper.wrappedContent
+private func rewrappedRow<V: View>(_ view: V, in walk: RenderContext) -> _FormRow? {
+    if let wrapper = view as? any FormRowRewrapping {
+        return row(inside: wrapper, in: walk)
+    }
+    if let wrapper = view as? any ContentRewrapping {
+        return row(inside: wrapper, in: walk)
+    }
+    return nil
+}
+
+/// ``rewrappedRow(_:in:)`` for a modifier the form puts back as it is
+/// (``FormRowRewrapping``).
+@MainActor
+private func row<W: FormRowRewrapping>(inside wrapper: W, in walk: RenderContext) -> _FormRow? {
+    row(
+        of: wrapper.formRowContent, in: walk, leadingInset: wrapper.formRowLeadingInset,
+        putBack: { wrapper.rewrappingFormRow($0) })
+}
+
+/// ``rewrappedRow(_:in:)`` for a modifier that is moved onto each member of a
+/// group (``ContentRewrapping``): it is put back the same way.
+@MainActor
+private func row<W: ContentRewrapping>(inside wrapper: W, in walk: RenderContext) -> _FormRow? {
+    row(of: wrapper.wrappedContent, in: walk, leadingInset: 0, putBack: { wrapper.rewrapping($0) })
+}
+
+/// The row `inner` is — itself under modifiers, or a labelled row, a checkbox
+/// or a button — with `putBack` around it, outside the modifiers already
+/// there; `nil` when `inner` is no such row.
+@MainActor
+private func row<Inner: View>(
+    of inner: Inner, in walk: RenderContext, leadingInset: Int,
+    putBack: @escaping @MainActor (AnyView) -> any View
+) -> _FormRow? {
     var row: _FormRow
-    if let innerWrapper = inner as? any ContentRewrapping {
-        guard let innerRow = rewrappedRow(innerWrapper, in: walk) else { return nil }
+    if let innerRow = rewrappedRow(inner, in: walk) {
         row = innerRow
     } else if inner is any FormLabeledRow || inner is FormControlRow || inner is FormButtonRow {
         guard case .row(let innerRow) = formElements(from: inner, in: walk).first else { return nil }
@@ -120,7 +150,8 @@ private func rewrappedRow<W: ContentRewrapping>(_ wrapper: W, in walk: RenderCon
         return nil
     }
     let innermost = row.rewrap
-    row.rewrap = { view in AnyView(wrapper.rewrapping(innermost?(view) ?? view)) }
+    row.rewrap = { view in AnyView(putBack(innermost?(view) ?? view)) }
+    row.leadingInset += leadingInset
     return row
 }
 

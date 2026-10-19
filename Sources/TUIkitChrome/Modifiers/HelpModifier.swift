@@ -292,3 +292,11 @@ extension HelpModifier: ContentRewrapping {
 /// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
 /// for a ``ContentRewrapping`` wrapper.
 extension HelpModifier: ChildViewProvider where Content: ChildViewProvider {}
+
+/// Help written on a form row is the help of the row the form lays out, which
+/// keeps its place: SwiftUI's form keeps a row with help in it (measured).
+extension HelpModifier: FormRowRewrapping {
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        HelpModifier<V>(content: row, text: text)
+    }
+}
