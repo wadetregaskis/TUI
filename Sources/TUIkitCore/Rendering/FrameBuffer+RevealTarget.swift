@@ -44,4 +44,21 @@ extension FrameBuffer {
         guard top <= bottom, let smallest else { return nil }
         return wholeControl ? (top, bottom - top) : (smallest.offsetY, smallest.height)
     }
+
+    /// The columns a reveal should bring into a view that scrolls across, for
+    /// the control identified by `focusID`: ``revealTarget(focusID:wholeControl:)``'s
+    /// twin, the same region — the union for a control just arrived at, else
+    /// the smallest, the active part of it — read across.
+    public func revealColumns(focusID: String, wholeControl: Bool) -> (left: Int, width: Int)? {
+        var left = Int.max
+        var right = Int.min
+        var smallest: HitTestRegion?
+        for region in hitTestRegions where region.focusID == focusID {
+            left = Swift.min(left, region.offsetX)
+            right = Swift.max(right, region.offsetX + region.width)
+            if smallest == nil || region.height < smallest!.height { smallest = region }
+        }
+        guard left <= right, let smallest else { return nil }
+        return wholeControl ? (left, right - left) : (smallest.offsetX, smallest.width)
+    }
 }

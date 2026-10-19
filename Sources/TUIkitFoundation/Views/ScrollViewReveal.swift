@@ -5,7 +5,7 @@
 //  control consumes a key), snap the viewport so the focused control is
 //  actually visible — accounting for the indicator rows that replace the
 //  viewport's edge lines, and for Stage-6 sliced content whose regions are
-//  band-local.
+//  band-local — on both axes of a view that scrolls both ways.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -183,6 +183,7 @@ extension _ScrollViewCore {
             let visibleTop = viewportTop + (topIndicatorShows ? 1 : 0) + margin + chromeTop
             let visibleBottom = viewportBottom - (bottomIndicatorShows ? 1 : 0) - margin - chromeBottom
 
+            revealAcross(focusedID, in: fullBuffer, wholeControl: focusJustChanged, handler: handler)
             let offsetBeforeSnap = handler.scrollOffset
             if regionTop < visibleTop || (regionBottom > visibleBottom && region.height >= viewportHeight) {
                 // Scroll-up: align the region's top with viewportTop, leaving
@@ -260,6 +261,36 @@ extension _ScrollViewCore {
         lastFocusedBox.value.value = currentFocusedID
         lastInteractionBox.value.value = currentInteractionGen
         return false
+    }
+
+    /// Brings the columns of the control `focusedID` names into a view that scrolls across,
+    /// by as little as shows them — or to their leading edge where they are
+    /// wider than the view, as a control taller than the view shows its top.
+    /// The vertical reveal's twin, minus what the vertical one has to allow
+    /// for: no "N more" line and no pinned chrome sits at a side, and the
+    /// band holds every column of its rows, so nothing is drawn again. Tab
+    /// along a row of buttons in a `ScrollView(.horizontal)`, or across a
+    /// grid of them in a two-axis one, focused the ones past the edge without
+    /// showing them.
+    private func revealAcross(
+        _ focusedID: String, in fullBuffer: FrameBuffer, wholeControl: Bool, handler: ScrollViewHandler
+    ) {
+        guard axes.contains(.horizontal),
+            let columns = fullBuffer.revealColumns(focusID: focusedID, wholeControl: wholeControl)
+        else { return }
+        let axis = handler.horizontal
+        let width = axis.viewportHeight
+        guard width > 0 else { return }
+        let left = axis.scrollOffset
+        let target: Int
+        if columns.left < left || (columns.width > width && columns.left != left) {
+            target = columns.left
+        } else if columns.left + columns.width > left + width, columns.width <= width {
+            target = columns.left + columns.width - width
+        } else {
+            return
+        }
+        axis.scrollToOffset(target)
     }
 
     /// A coverage render refines the content-height estimate, which can move
