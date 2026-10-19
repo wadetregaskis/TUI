@@ -332,7 +332,8 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
         // parent (e.g. HStack) allocates the field accurately. A `.plain` field
         // draws no caps; the count comes from the style through the one helper
         // both passes use.
-        let capWidth = FieldChrome.width(for: context.environment.textFieldStyle)
+        let capWidth = FieldChrome.width(
+            for: context.environment.textFieldStyle, drawsCaps: context.environment.controlSize.drawsEndCaps)
         let proposedTotal = proposal.width ?? (defaultContentWidth + capWidth)
         return ViewSize(
             width: max(minContentWidth + capWidth, proposedTotal),
@@ -350,10 +351,7 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
 
         // SecureField expands to fill available width, less whatever chrome the
         // style draws (two cap cells, or none for `.plain`).
-        let chrome = FieldChrome(
-            style: context.environment.textFieldStyle, palette: palette,
-            isHovered: false, on: context.environment.surfaceBackground,
-            appearance: context.environment.appearance)
+        let chrome = FieldChrome(isHovered: false, in: context.environment)
         let contentWidth = max(minContentWidth, context.availableWidth - chrome.width)
 
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -446,10 +444,7 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
         // visual language as TextField. A focused field shows the bump too —
         // focus is drawn by the caret, not by the caps, so the two never ask
         // for the same cell. A `.plain` field has no caps at all.
-        let hoveredChrome = FieldChrome(
-            style: context.environment.textFieldStyle, palette: palette,
-            isHovered: isHovered, on: context.environment.surfaceBackground,
-            appearance: context.environment.appearance)
+        let hoveredChrome = FieldChrome(isHovered: isHovered, in: context.environment)
         var buffer = FrameBuffer(
             text: hoveredChrome.open + fieldContent.line + hoveredChrome.close)
 

@@ -685,9 +685,11 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         // The rendered field is `openCap + content + closeCap`, so the total
         // width is the content width plus the two caps. Report that total so a
         // parent (e.g. HStack) allocates the field accurately. A `.plain` field
-        // draws no caps, so they cost nothing — the number comes from the style
-        // in both passes, through the one helper, so they cannot disagree.
-        let capWidth = FieldChrome.width(for: context.environment.textFieldStyle)
+        // draws no caps, nor does any field at `.mini`, so they cost nothing —
+        // the number comes from the style and the control size in both passes,
+        // through the one helper, so they cannot disagree.
+        let capWidth = FieldChrome.width(
+            for: context.environment.textFieldStyle, drawsCaps: context.environment.controlSize.drawsEndCaps)
         let proposedTotal = proposal.width ?? (defaultContentWidth + capWidth)
         return ViewSize(
             width: max(minContentWidth + capWidth, proposedTotal),
@@ -719,10 +721,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
 
         // TextField expands to fill available width, less whatever chrome the
         // style draws (two cap cells, or none for `.plain`).
-        let chrome = FieldChrome(
-            style: context.environment.textFieldStyle, palette: palette,
-            isHovered: false, on: context.environment.surfaceBackground,
-            appearance: context.environment.appearance)
+        let chrome = FieldChrome(isHovered: false, in: context.environment)
         let contentWidth = max(minContentWidth, context.availableWidth - chrome.width)
 
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -812,10 +811,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         // caret, from the text renderer rather than the caps). A `.plain` field
         // has neither cap; `hoveredChrome` is the same chrome the width above
         // came from, re-derived with the hover tint.
-        let hoveredChrome = FieldChrome(
-            style: context.environment.textFieldStyle, palette: palette,
-            isHovered: isHovered, on: context.environment.surfaceBackground,
-            appearance: context.environment.appearance)
+        let hoveredChrome = FieldChrome(isHovered: isHovered, in: context.environment)
 
         // The ▾/▴ combo-box affordance sits inside the field surface, against
         // the trailing cap.

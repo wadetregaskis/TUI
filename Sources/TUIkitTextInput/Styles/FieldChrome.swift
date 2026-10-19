@@ -16,7 +16,8 @@ import TUIkitFoundation
 /// are two cells" is exactly how a measure and a render come to disagree.
 @MainActor
 struct FieldChrome {
-    /// The cells the caps occupy in total — 2 with a surface, 0 without.
+    /// The cells the caps occupy in total — 2 with a surface, 0 without, or at
+    /// `.mini`, where a field draws no caps.
     let width: Int
 
     /// The leading cap, or `""` for a plain field.
@@ -75,9 +76,12 @@ struct FieldChrome {
     ///     own surface is derived from it, so a field inside a tab does not
     ///     come out the same colour as the tab.
     ///   - appearance: The appearance in force, whose family the caps follow.
+    ///   - drawsCaps: Whether the control size in force draws a control's end
+    ///     caps (``ControlSize/drawsEndCaps``): not at `.mini`, where a field is
+    ///     its surface alone, as a mini button is its label alone.
     init(
         style: any TextFieldStyle, palette: any Palette, isHovered: Bool,
-        on background: Color? = nil, appearance: Appearance
+        on background: Color? = nil, appearance: Appearance, drawsCaps: Bool
     ) {
         guard style.drawsFieldSurface else {
             self.width = 0
@@ -91,8 +95,17 @@ struct FieldChrome {
         let surface =
             (background.map { palette.fieldBackground(on: $0) } ?? palette.fieldBackground)
             .resolve(with: palette)
-        self.width = 2
         self.surface = surface
+        guard drawsCaps else {
+            // The surface alone: the content renderer paints it, and claims it.
+            self.width = 0
+            self.open = ""
+            self.close = ""
+            self.capColor = nil
+            self.capField = nil
+            return
+        }
+        self.width = 2
         if let lines = appearance.controlLines {
             let border = palette.border.resolve(with: palette)
             let ink = isHovered ? Color.lerp(border, palette.accent.resolve(with: palette), phase: 0.35) : border
@@ -115,6 +128,16 @@ struct FieldChrome {
             self.capColor = capColor
             self.capField = nil
         }
+    }
+
+    /// The chrome a field draws in `environment`: its style, palette, the
+    /// surface it is drawn on, the appearance and the control size in force —
+    /// what every field's measure and render read, in one place.
+    init(isHovered: Bool, in environment: EnvironmentValues) {
+        self.init(
+            style: environment.textFieldStyle, palette: environment.palette, isHovered: isHovered,
+            on: environment.surfaceBackground, appearance: environment.appearance,
+            drawsCaps: environment.controlSize.drawsEndCaps)
     }
 
     /// The pair of caps last spelled, with everything their bytes are a function of.
@@ -189,7 +212,7 @@ struct FieldChrome {
 
     /// The chrome width for a style, without building the glyphs — what
     /// `sizeThatFits` needs, where there is no palette and nothing to draw.
-    static func width(for style: any TextFieldStyle) -> Int {
-        style.drawsFieldSurface ? 2 : 0
+    static func width(for style: any TextFieldStyle, drawsCaps: Bool) -> Int {
+        style.drawsFieldSurface && drawsCaps ? 2 : 0
     }
 }

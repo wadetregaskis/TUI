@@ -59,7 +59,8 @@ extension _TextFieldCore {
     /// with no proposal (a stack's render pass does) never draws it at: the
     /// field fills the width it is given, and its rows are that width's.
     func verticalSize(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        let capWidth = FieldChrome.width(for: context.environment.textFieldStyle)
+        let capWidth = FieldChrome.width(
+            for: context.environment.textFieldStyle, drawsCaps: context.environment.controlSize.drawsEndCaps)
         let width = max(minContentWidth + capWidth, proposal.width ?? (defaultContentWidth + capWidth))
         let drawnWidth = proposal.width ?? context.availableWidth
         let isDisabled = self.isDisabled || !context.environment.isEnabled
@@ -95,10 +96,7 @@ extension _TextFieldCore {
         let isDisabled = self.isDisabled || !context.environment.isEnabled
         let stateStorage = context.stateStorage!
         let palette = context.environment.palette
-        let chrome = FieldChrome(
-            style: context.environment.textFieldStyle, palette: palette,
-            isHovered: false, on: context.environment.surfaceBackground,
-            appearance: context.environment.appearance)
+        let chrome = FieldChrome(isHovered: false, in: context.environment)
         let contentWidth = max(minContentWidth, context.availableWidth - chrome.width)
 
         let persistedFocusID = FocusRegistration.persistFocusID(
@@ -157,10 +155,7 @@ extension _TextFieldCore {
         }
 
         var buffer = assembleVertical(
-            rows, chrome: FieldChrome(
-                style: context.environment.textFieldStyle, palette: palette,
-                isHovered: !isDisabled && hoverBox.value, on: context.environment.surfaceBackground,
-                appearance: context.environment.appearance),
+            rows, chrome: FieldChrome(isHovered: !isDisabled && hoverBox.value, in: context.environment),
             suggestionsOpen: suggestionMenu?.isOpen, palette: palette, textWidth: layout.width,
             isMeasuring: context.isMeasuring)
 

@@ -15,7 +15,9 @@
 ///   even when it is empty. The caps follow the appearance's family, as a
 ///   button's do: the appearance's line, `│text│`, under `.rounded` (the
 ///   default) and every appearance of lines, and half-blocks rounding the
-///   surface off, `▐text▌`, under `.block` and the others.
+///   surface off, `▐text▌`, under `.block` and the others. At the `.mini`
+///   ``ControlSize`` the field is its surface alone, as a mini button is its
+///   label alone.
 /// - ``PlainTextFieldStyle`` (`.plain`): no surface and no caps. The text sits
 ///   on whatever is behind it, which is what an editable value inline in a
 ///   sentence or a row wants.

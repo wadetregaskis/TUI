@@ -40,7 +40,8 @@ struct FieldChromeCapsTests {
         // the resting cap colour: at sixteen colours the cap then spells as slot 15
         // (97), where xterm's table puts a dark surface somewhere else entirely.
         let resting = try #require(
-            FieldChrome(style: style, palette: palette, isHovered: false, appearance: .block).capColor?.opaqueSpelling.rgbComponents)
+            FieldChrome(style: style, palette: palette, isHovered: false, appearance: .block, drawsCaps: true)
+                .capColor?.opaqueSpelling.rgbComponents)
         let white = TerminalColors.RGB(red: 255, green: 255, blue: 255)
         let cap = TerminalColors.RGB(red: resting.red, green: resting.green, blue: resting.blue)
         let skewed = TerminalColors(
@@ -54,7 +55,8 @@ struct FieldChromeCapsTests {
                 for hovered in [false, true, false] {
                     TerminalColors.withCurrent(terminal) {
                         ColorDepth.withCurrent(depth) {
-                            let chrome = FieldChrome(style: style, palette: palette, isHovered: hovered, appearance: .block)
+                            let chrome = FieldChrome(
+                                style: style, palette: palette, isHovered: hovered, appearance: .block, drawsCaps: true)
                             let expected = Self.spelled(chrome)
                             #expect(chrome.open == expected?.open, "open @\(depth), hovered \(hovered)")
                             #expect(chrome.close == expected?.close, "close @\(depth), hovered \(hovered)")
@@ -74,7 +76,8 @@ struct FieldChromeCapsTests {
         for (appearance, glyph) in [(Appearance.rounded, "│"), (.heavy, "┃"), (.line, "│")] {
             for hovered in [false, true] {
                 let chrome = FieldChrome(
-                    style: DefaultTextFieldStyle(), palette: palette, isHovered: hovered, appearance: appearance)
+                    style: DefaultTextFieldStyle(), palette: palette, isHovered: hovered, appearance: appearance,
+                    drawsCaps: true)
                 let ink = try #require(chrome.capColor).opaqueSpelling
                 let field = try #require(chrome.capField).opaqueSpelling
                 #expect(field == chrome.surface?.opaqueSpelling, "on the field's own surface")
@@ -83,14 +86,41 @@ struct FieldChromeCapsTests {
                 #expect(chrome.width == 2, "a cell each, as half-blocks are")
             }
         }
-        let resting = FieldChrome(style: DefaultTextFieldStyle(), palette: palette, isHovered: false, appearance: .rounded)
+        let resting = FieldChrome(
+            style: DefaultTextFieldStyle(), palette: palette, isHovered: false, appearance: .rounded, drawsCaps: true)
         #expect(resting.capColor == palette.border.resolve(with: palette), "the border's colour at rest")
+    }
+
+    @Test("At the mini control size a field draws no caps: its surface alone")
+    func miniFieldHasNoCaps() {
+        let palette = SystemPalette(.green)
+        for appearance in [Appearance.rounded, .block] {
+            let chrome = FieldChrome(
+                style: DefaultTextFieldStyle(), palette: palette, isHovered: false, appearance: appearance,
+                drawsCaps: false)
+            #expect(chrome.open.isEmpty && chrome.close.isEmpty && chrome.width == 0, "\(appearance)")
+            #expect(chrome.surface != nil, "\(appearance): the field keeps its surface")
+            #expect(chrome.claims(lineWidth: 10).isEmpty)
+        }
+        // Drawn: the text starts at the field's first cell, and the field
+        // measures two cells narrower, the caps' cells.
+        let context = makeRenderContext(width: 20, height: 2)
+        let field = TextField("", text: .constant("abc")).controlSize(.mini)
+        let drawn = renderToBuffer(field, context: context)
+        #expect(drawn.lines.first?.stripped.hasPrefix("abc") == true, "\(drawn.lines.map(\.stripped))")
+        #expect(!(drawn.lines.first?.stripped.contains("│") ?? true))
+        let regular = renderToBuffer(TextField("", text: .constant("abc")), context: context)
+        #expect(regular.lines.first?.stripped.hasPrefix("│abc") == true, "\(regular.lines.map(\.stripped))")
+        let measured = measureChild(field, proposal: .unspecified, context: context).width
+        let measuredRegular = measureChild(TextField("", text: .constant("abc")), proposal: .unspecified, context: context)
+        #expect(measured + 2 == measuredRegular.width, "\(measured) beside \(measuredRegular.width)")
     }
 
     @Test("A plain field has no caps")
     func plainFieldHasNoCaps() {
         let chrome = FieldChrome(
-            style: PlainTextFieldStyle(), palette: SystemPalette(.green), isHovered: false, appearance: .rounded)
+            style: PlainTextFieldStyle(), palette: SystemPalette(.green), isHovered: false, appearance: .rounded,
+            drawsCaps: true)
         #expect(chrome.open.isEmpty)
         #expect(chrome.close.isEmpty)
         #expect(chrome.width == 0)

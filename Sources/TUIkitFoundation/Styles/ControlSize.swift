@@ -19,13 +19,18 @@
 /// the focus. The other controls follow where they have chrome to trim or room
 /// to give, on their one row (``padding(regular:)``, ``drawsEndCaps``):
 ///
-/// | size          | segmented picker        | stepper   | slider          |
-/// |---------------|-------------------------|-----------|-----------------|
-/// | `.mini`       | `S│M│L`                 | `◀5▶`     | `◀━━●──▶ 50%`   |
-/// | `.small`      | `▐S│M│L▌`               | `◀5▶`     | `◀━━●──▶ 50%`   |
-/// | `.regular`    | `▐ S │ M │ L ▌`         | `◀ 5 ▶`   | `◀ ━━●── ▶ 50%` |
-/// | `.large`      | `▐ S │ M │ L ▌`         | `◀ 5 ▶`   | `◀ ━━●── ▶ 50%` |
-/// | `.extraLarge` | `▐  S  │  M  │  L  ▌`   | `◀  5  ▶` | `◀  ━●─  ▶ 50%` |
+/// | size          | segmented picker        | stepper   | slider          | text field |
+/// |---------------|-------------------------|-----------|-----------------|------------|
+/// | `.mini`       | `S│M│L`                 | `◀5▶`     | `◀━━●──▶ 50%`   | `text`     |
+/// | `.small`      | `▐S│M│L▌`               | `◀5▶`     | `◀━━●──▶ 50%`   | `│text│`   |
+/// | `.regular`    | `▐ S │ M │ L ▌`         | `◀ 5 ▶`   | `◀ ━━●── ▶ 50%` | `│text│`   |
+/// | `.large`      | `▐ S │ M │ L ▌`         | `◀ 5 ▶`   | `◀ ━━●── ▶ 50%` | `│text│`   |
+/// | `.extraLarge` | `▐  S  │  M  │  L  ▌`   | `◀  5  ▶` | `◀  ━●─  ▶ 50%` | `│text│`   |
+///
+/// A text field has no padding inside its caps at `.regular` to trim, and is
+/// given none at `.extraLarge`: a blank inside each cap costs a field two
+/// cells, which squeezed the colour picker's numeric fields when the caps
+/// followed the appearance.
 ///
 /// ```swift
 /// HStack {
