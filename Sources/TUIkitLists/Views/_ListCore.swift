@@ -3435,6 +3435,22 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         return hit.rowIndex
     }
 
+    /// The line of row `rowIndex` that a press at `lineY` (a line of the
+    /// list's content) holds the row by: the press's offset into the row's
+    /// band, kept to the row's content lines. A row's separator is its last
+    /// line, and the floating copy carries no rule, so a press on the rule
+    /// holds the row by its last line of content. Measured past it, a block of
+    /// several rows — whose preview is tall enough for the point to stay in
+    /// it — hung a line high (census D-13).
+    private static func grabLine(
+        of rowIndex: Int, pressedAt lineY: Int, in handler: ItemListHandler<SelectionValue>,
+        rows: [(index: Int, row: SelectableListRow<SelectionValue>)]
+    ) -> Int {
+        let band = handler.visibleRowBands.first { $0.rowIndex == rowIndex }
+        let contentLines = rows.first { $0.index == rowIndex }?.row.content.bufferWithoutSeparator.height
+        return min(max(0, lineY - (band?.yStart ?? 0)), max(1, contentLines ?? .max) - 1)
+    }
+
     /// Builds the closure that the container-wide hit-test
     /// region invokes. Routes wheel to the handler's scroll
     /// position (never the selection), left-release to row hit-
@@ -3519,19 +3535,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                         // navigators scroll a list that was not focused before
                         // the drag began.
                         focusManager?.focus(id: captureFocusID)
-                        let band = captureHandler.visibleRowBands.first { $0.rowIndex == hit.rowIndex }
                         grab.x = max(0, event.x - rowContentLeft)
-                        // Kept to the row's content: its separator is its last
-                        // line, and the floating copy carries no rule, so a
-                        // press on the rule holds the row by its last line of
-                        // content. Measured past it, a block of several rows —
-                        // whose preview is tall enough for the point to stay
-                        // in it — hung a line high (census D-13).
-                        let contentLines = capturedRows.first { $0.index == hit.rowIndex }.map {
-                            max(1, $0.row.content.bufferWithoutSeparator.height)
-                        }
-                        grab.y = min(
-                            max(0, event.y - topInset - (band?.yStart ?? 0)), (contentLines ?? .max) - 1)
+                        grab.y = Self.grabLine(
+                            of: hit.rowIndex, pressedAt: event.y - topInset, in: captureHandler, rows: capturedRows)
                     }
                     return true
 
