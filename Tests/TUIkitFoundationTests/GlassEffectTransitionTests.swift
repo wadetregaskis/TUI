@@ -1,10 +1,11 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  GlassEffectTransitionTests.swift
 //
-//  `glassEffectTransition(_:)` and `glassEffectID(_:in:)` in a container:
-//  glass arriving under an animation fades in, unless its transition is the
-//  identity, and glass with an id that moves to another view does not arrive
-//  again.
+//  `glassEffectTransition(_:)` in a container: glass arriving under an
+//  animation fades in, unless its transition is the identity. Glass with an id
+//  that moves to another view is in TUIkitIntegrationTests'
+//  GlassEffectIDTests: it moves by flipping a branch, whose views fade by
+//  default, and only `.transition(.identity)` (TUIkitEffects) holds them still.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -116,36 +117,5 @@ struct GlassEffectTransitionTests {
         _ = frame(Text("Flag").padding().glassEffect(.identity), tui: tui, atMillis: 0)
         let arriving = Text("Flag").padding().glassEffect()
         #expect(frame(arriving, tui: tui, atMillis: 0, animation: .linear(duration: 1)) == rimmed)
-    }
-
-    @Test("Glass with an id that moves to another view does not arrive again; without one, it does")
-    func identifiedGlassKeepsItsArrival() {
-        let namespace = Namespace().wrappedValue
-        func pair(glassOnFirst: Bool, id: String?) -> some View {
-            GlassEffectContainer {
-                HStack(spacing: 2) {
-                    if glassOnFirst {
-                        Text("A").padding().glassEffect().glassEffectID(id, in: namespace)
-                        Text("B").padding()
-                    } else {
-                        Text("A").padding()
-                        Text("B").padding().glassEffect().glassEffectID(id, in: namespace)
-                    }
-                }
-            }
-        }
-        let rimmedB = ["   ", " A ", "   "].indices.map { row in
-            ["   ", " A ", "   "][row] + "  " + ["╭─╮", "│B│", "╰─╯"][row]
-        }
-        let identified = TUIContext()
-        _ = frame(pair(glassOnFirst: true, id: "x"), tui: identified, atMillis: 0, width: 8)
-        #expect(
-            frame(pair(glassOnFirst: false, id: "x"), tui: identified, atMillis: 0, animation: .linear(duration: 1), width: 8)
-                == rimmedB)
-        let anonymous = TUIContext()
-        _ = frame(pair(glassOnFirst: true, id: nil), tui: anonymous, atMillis: 0, width: 8)
-        #expect(
-            frame(pair(glassOnFirst: false, id: nil), tui: anonymous, atMillis: 0, animation: .linear(duration: 1), width: 8)
-                != rimmedB, "a new glass, arriving")
     }
 }
