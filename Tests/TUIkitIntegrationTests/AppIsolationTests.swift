@@ -31,6 +31,23 @@ private struct SlidePage: View {
     }
 }
 
+/// A `@State` drawn inside a memo, which hands its binding out so a test can
+/// write it between frames, as an event handler would.
+private struct AlternatingView: View {
+    @State private var value = 0
+    let sink: BindingSink
+
+    var body: some View {
+        sink.binding = $value
+        return Text(verbatim: "value \(value)").equatable()
+    }
+}
+
+/// Where a body leaves its binding.
+private final class BindingSink: @unchecked Sendable {
+    var binding: Binding<Int>?
+}
+
 private struct SlideApp: App {
     init() {}
 
@@ -84,5 +101,53 @@ struct AppIsolationTests {
         #expect(markColumn(other) == start, "the app that was not pressed moved")
         for _ in 0..<45 { frame([other, pressed]) }
         #expect(markColumn(pressed) == start + 20, "the slide did not end where it was going")
+    }
+
+    /// One frame of `view` through `tui`, as the run loop draws one; returns
+    /// the text drawn and how many subtrees the cache's pass boundary cleared
+    /// — the writes made since the frame before.
+    private func frame(_ view: AlternatingView, through tui: TUIContext) -> (text: String, cleared: Int) {
+        var environment = EnvironmentValues()
+        environment.focusManager = FocusManager()
+        environment.applyRuntimeServices(from: tui)
+        let context = RenderContext(availableWidth: 30, availableHeight: 3, environment: environment, tuiContext: tui)
+        let before = tui.renderCache.stats.subtreeClears
+        tui.renderCache.beginRenderPass()
+        let cleared = tui.renderCache.stats.subtreeClears - before
+        tui.stateStorage.beginRenderPass()
+        tui.lifecycle.beginRenderPass()
+        let buffer = tui.stateStorage.inRenderPass { renderToBuffer(view, context: context) }
+        tui.stateStorage.endRenderPass()
+        tui.lifecycle.endRenderPass()
+        return (buffer.lines.map(\.stripped).joined(separator: "\n"), cleared)
+    }
+
+    /// Ported from upstream's `twoRuntimesRenderAlternatelyWithoutSharingStateOrServices`
+    /// (phranck/TUIkit f93dc8d6), for what is per app here: the state, the
+    /// render cache and the render state a write asks for its frame. (Its
+    /// localization, storage and notification checks wait on those services
+    /// being per app: decisions A-APPSTATE-1 and A-APPSTATE-2.)
+    @Test("Two contexts drawn alternately share no state, frame requests or cached drawing")
+    func twoContextsDrawnAlternately() throws {
+        let first = TUIContext()
+        let second = TUIContext()
+        let firstSink = BindingSink()
+        let secondSink = BindingSink()
+        #expect(frame(AlternatingView(sink: firstSink), through: first).text.contains("value 0"))
+        #expect(frame(AlternatingView(sink: secondSink), through: second).text.contains("value 0"))
+
+        first.appState.didRender()
+        second.appState.didRender()
+        let binding = try #require(firstSink.binding, "the first context's view never drew")
+        binding.wrappedValue = 9
+        #expect(first.appState.needsRender, "the write did not ask its own app for a frame")
+        #expect(!second.appState.needsRender, "the write asked another app for a frame")
+
+        let secondAgain = frame(AlternatingView(sink: secondSink), through: second)
+        let firstAgain = frame(AlternatingView(sink: firstSink), through: first)
+        #expect(secondAgain.text.contains("value 0"), "\(secondAgain.text)")
+        #expect(secondAgain.cleared == 0, "the other context's cache dropped what it kept")
+        #expect(firstAgain.text.contains("value 9"), "\(firstAgain.text)")
+        #expect(firstAgain.cleared > 0, "the written context's cache kept the drawing from before the write")
     }
 }
