@@ -197,6 +197,17 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
     /// riding along with an under-advance.
     public var erasesUnderGlyphs: Bool
 
+    /// The terminal advances each code point of a cluster of TEXT by its own
+    /// width rather than the cluster as one, so a Devanagari conjunct (स्त्र)
+    /// moves the cursor 3 cells where the cluster rule claims 2, and स्त्री 4.
+    /// Apple Terminal, iTerm2 and Warp, measured on both screens — and the
+    /// `wcwidth` terminals TUIkit cannot identify very likely too. Not a
+    /// defect the walk repairs but a claim: the switch moves
+    /// ``widthTraits``' ``TerminalWidthTraits/textClusters`` to
+    /// ``TerminalWidthTraits/TextClusters/perCodePoint``, and the layout
+    /// allocates what the terminal advances.
+    public var advancesTextPerCodePoint: Bool
+
     /// A terminal with no known defects — the correct starting point, and the
     /// correct answer for most terminals.
     public init(
@@ -213,7 +224,8 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
         storesWideComposites: Bool = false,
         skinTones: SkinTones = .keep,
         mergesTonesOnTextBases: Bool = false,
-        erasesUnderGlyphs: Bool = false
+        erasesUnderGlyphs: Bool = false,
+        advancesTextPerCodePoint: Bool = false
     ) {
         self.vs16Pictographs = vs16Pictographs
         self.barePictographs = barePictographs
@@ -229,15 +241,17 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
         self.skinTones = skinTones
         self.mergesTonesOnTextBases = mergesTonesOnTextBases
         self.erasesUnderGlyphs = erasesUnderGlyphs
+        self.advancesTextPerCodePoint = advancesTextPerCodePoint
     }
 
     /// The ``TerminalWidthTraits`` these switches imply — the claims that must
     /// be in force for the mirror walk's emissions to conserve.
     ///
-    /// Two switches change what a cluster CLAIMS, not just how it is emitted:
-    /// software ZWJ decomposition makes the sequence claim the sum of its
-    /// segments, and skin-tone separation makes an emoji-presentation base's
-    /// cluster claim the separated width. Whoever renders with a custom quirk
+    /// Three switches change what a cluster CLAIMS, not just how it is
+    /// emitted: software ZWJ decomposition makes the sequence claim the sum of
+    /// its segments, skin-tone separation makes an emoji-presentation base's
+    /// cluster claim the separated width, and a per-code-point advance makes a
+    /// cluster of text claim its scalars' sum. Whoever renders with a custom quirk
     /// set applies these traits alongside it, exactly as startup applies the
     /// identified host's.
     public var widthTraits: TerminalWidthTraits {
@@ -255,7 +269,8 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
         // a measured host's claim pins that host's traits directly.
         return TerminalWidthTraits(
             zwjSequences: zwjSequences ? .decomposedDroppingJoiners : .composed,
-            skinTone: skinTone)
+            skinTone: skinTone,
+            textClusters: advancesTextPerCodePoint ? .perCodePoint : .clustered)
     }
 
     /// Whether any workaround at all is selected.
@@ -285,6 +300,7 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
         if skinTones != .keep { parts.append("skinTones: .\(skinTones.rawValue)") }
         if mergesTonesOnTextBases { parts.append("mergesTonesOnTextBases: true") }
         if erasesUnderGlyphs { parts.append("erasesUnderGlyphs: true") }
+        if advancesTextPerCodePoint { parts.append("advancesTextPerCodePoint: true") }
         return parts.isEmpty
             ? "TerminalQuirks()  # nothing needed — this terminal renders correctly"
             : "TerminalQuirks(\(parts.joined(separator: ", ")))"

@@ -162,6 +162,34 @@ struct TerminalQuirksTests {
         }
     }
 
+    /// The per-code-point switch moves a CLAIM, not an advance: a conjunct the
+    /// terminal advances a cell per consonant is allocated those cells, so the
+    /// advance is the claim and the walk has nothing to emit — and no emoji
+    /// cluster's claim moves with it.
+    @Test("Per-code-point text claims a conjunct's scalars, and touches nothing else")
+    func perCodePointTextMovesTheClaim() {
+        let quirks = TerminalQuirks(advancesTextPerCodePoint: true)
+        #expect(quirks.widthTraits.textClusters == .perCodePoint)
+        #expect(TerminalQuirks().widthTraits.textClusters == .clustered)
+        // Built at run time: the compiler's own check of a `Character` literal
+        // segments without GB9c, which is the rule that makes these ONE cluster.
+        let straText = "\u{938}\u{94D}\u{924}\u{94D}\u{930}"  // स्त्र
+        let striText = "\u{938}\u{94D}\u{924}\u{94D}\u{930}\u{940}"  // स्त्री
+        let stra = Character(straText)
+        let stri = Character(striText)
+        TerminalWidthTraits.withTraits(quirks.widthTraits) {
+            #expect(stra.terminalWidth == 3)
+            #expect(stri.terminalWidth == 4)
+            #expect(quirks.cursorAdvance(of: stra) == 3, "the advance is the claim")
+            let row = "\(stra)]"
+            #expect(row.withCursorCompensation(for: quirks) == row, "nothing to compensate")
+            for cluster in [Self.vs16, Self.flag, Self.keycap, "👍🏽", "👩\u{200D}🚀"] as [Character] {
+                let composed = TerminalWidthTraits.withTraits(.composing) { cluster.terminalWidth }
+                #expect(cluster.terminalWidth == composed, "\(cluster) moved with the switch")
+            }
+        }
+    }
+
     @Test("A row with no quirky glyphs is returned untouched")
     func asciiIsUntouched() {
         let row = "│ Plain ASCII row │"
@@ -215,19 +243,19 @@ struct QuirkPermutationTests {
             loneRegionalIndicators: true, keycaps: .alwaysTwoColumns,
             planeSixteenPUA: true,
             zwjSequences: true, tagFlags: true, storesWideComposites: true,
-            skinTones: .separate, erasesUnderGlyphs: true)),
+            skinTones: .separate, erasesUnderGlyphs: true, advancesTextPerCodePoint: true)),
         ("iterm2", TerminalQuirks(
             vs16Pictographs: true, barePictographs: true,
             keycaps: .underAdvances, planeSixteenPUA: true,
             skinTones: .keepDetachedOnBMPBases, mergesTonesOnTextBases: true,
-            erasesUnderGlyphs: true)),
+            erasesUnderGlyphs: true, advancesTextPerCodePoint: true)),
         ("ghostty", TerminalQuirks(
             barePictographs: true, vs15ChromeGlyphs: true, planeSixteenPUA: true,
             mergesTonesOnTextBases: true, erasesUnderGlyphs: true)),
         ("warp", TerminalQuirks(
             barePictographs: true, loneRegionalIndicators: true, planeSixteenPUA: true,
             preUnicode16WidthTable: true, zwjSequences: true,
-            skinTones: .keepDetached, erasesUnderGlyphs: true)),
+            skinTones: .keepDetached, erasesUnderGlyphs: true, advancesTextPerCodePoint: true)),
         ("tmux", TerminalQuirks(
             loneRegionalIndicators: true, planeSixteenPUA: true,
             skinTones: .stripTmuxDetached)),
@@ -242,7 +270,7 @@ struct QuirkPermutationTests {
             planeSixteenPUA: true, preUnicode16WidthTable: true,
             zwjSequences: true, tagFlags: true,
             storesWideComposites: true, skinTones: .separate,
-            erasesUnderGlyphs: true)),
+            erasesUnderGlyphs: true, advancesTextPerCodePoint: true)),
     ]
 
     @Test("Every emission conserves its quirk model's internal column",

@@ -90,6 +90,13 @@ struct CustomClientView: View {
             Text("Turn this on if content after a flag or keycap — including later runs on the same row — lands one cell left of where it belongs.")
                 .foregroundStyle(.palette.foregroundSecondary)
             toggle("Trim wide-stored composites  🇺🇸 1\u{FE0F}\u{20E3}", \.storesWideComposites)
+            Text("Everything after a conjunct sits a cell or two right").bold()
+            Text(
+                "Turn this on if what follows a Devanagari conjunct on its row lands right of where "
+                    + "it belongs — the terminal advances each code point of the cluster, not the cluster as one."
+            )
+            .foregroundStyle(.palette.foregroundSecondary)
+            toggle("Text clusters per code point  स्त्र ष्ट्र स्त्री", \.advancesTextPerCodePoint)
             Text("Background under a compensated glyph").bold()
             Text("Turn this on if compensated glyphs sit on the terminal's own background instead of the app's — a coloured row that reads as a comb.")
                 .foregroundStyle(.palette.foregroundSecondary)

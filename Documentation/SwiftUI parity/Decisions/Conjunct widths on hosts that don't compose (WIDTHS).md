@@ -25,7 +25,7 @@ that number right on more hosts, so it adds no deliberate deviation.
 ### B-WIDTHS-1. A cluster of text claims what its host advances — decided by the advance alone
 
 *`TerminalWidthTraits.textClusters` (`.clustered`, `.perCodePoint`),
-`TerminalClient.widthTraits(of:)`*
+`TerminalClient.widthTraits(of:)`, `TerminalQuirks.advancesTextPerCodePoint`*
 
 What shipped: a per-host trait beside the ZWJ, skin-tone and chrome-overhang
 ones, read by `Character.terminalWidth` where a multi-scalar cluster carries
@@ -46,7 +46,10 @@ never takes the sum (a test flips the trait on every host and checks every
 other corpus row is unchanged). The claim is what the layout allocates and
 what the writer counts, and the per-host advance models report the claim for
 these clusters, so they agree with it under each host's traits and nothing is
-compensated.
+compensated. The quirk explorer (`TerminalClientQuirks`) has a switch for it,
+and lists the conjunct rows among the contentious ones — a host can now
+disagree by its claim as well as its advance — so an unmeasured terminal can
+be tried both ways.
 
 **The advance decides the layout; the paint is unverified.** DSR says where
 the next character goes and when the row wraps. Where the host draws the

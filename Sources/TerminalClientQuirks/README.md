@@ -68,6 +68,7 @@ if a row breaks, it does not. The switches are:
 | ZWJ sequences | 👨‍👩‍👧‍👦 — the internal column decomposes while the glyph composes; the walk decomposes in software (joiners dropped) |
 | Tag flags | 🏴󠁧󠁢󠁳󠁣󠁴󠁿 — advances 2 + one per tag scalar; pulled back with `CUB` |
 | Stores wide composites | flags/keycaps whose row STORE keeps a surplus column; repaired with `CUB(1)` `DCH(1)` `CUF(1)` |
+| Text clusters per code point | स्त्र ष्ट्र स्त्री — the terminal advances each code point of a Devanagari conjunct (3, 3 and 4 cells) where the cluster rule claims 2; the switch makes the claim the scalars' sum, as Apple Terminal, iTerm2 and Warp get |
 | Skin tones | 🤙🏽 *over*-advances — seven treatments to try: keep; CLAIM the detached swatch, for every base (Warp) or only a BMP one (iTerm2); strip all; strip only what tmux detaches; pull back (`CUB` — tone lost on repaint); or SEPARATE as base+ZWNJ+modifier, which is how Apple Terminal keeps the tone |
 | Background erase | compensated glyphs sit on the terminal's default background |
 

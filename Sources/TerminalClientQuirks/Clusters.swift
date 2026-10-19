@@ -60,9 +60,20 @@ struct Cluster: Identifiable {
     /// Whether some measured terminal gets this cluster's class wrong — the
     /// rows worth showing beside a switch, and worth listing in a report. A
     /// cluster every host agrees on is not evidence of anything.
+    ///
+    /// A host can disagree two ways: by advancing the cluster other than the
+    /// claim in force (its model), or by CLAIMING it otherwise (its traits).
+    /// A Devanagari conjunct is only the second kind — every host's model
+    /// reports its own claim for it, and the claims differ: 2 where graphemes
+    /// are clustered, 3 or 4 where code points advance one by one.
     var isContentious: Bool {
-        TerminalClient.Program.allCases.contains { program in
-            TerminalClient.cursorAdvance(of: character, on: program) != character.terminalWidth
+        let claim = character.terminalWidth
+        return TerminalClient.Program.allCases.contains { program in
+            let hostsClaim = TerminalWidthTraits.withTraits(TerminalClient.widthTraits(of: program)) {
+                character.terminalWidth
+            }
+            return hostsClaim != claim
+                || TerminalClient.cursorAdvance(of: character, on: program) != claim
         }
     }
 }
