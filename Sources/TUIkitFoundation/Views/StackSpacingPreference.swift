@@ -266,13 +266,15 @@ extension StackGaps {
         // The common row that states anything: one whose only children that
         // can are spacers. Each asks for no space, so a gap beside one is
         // none and every other is `uniform` — said by a mask, with no
-        // conformance cast of any child and nothing allocated.
+        // conformance cast of any child and nothing allocated. A child that
+        // may state one only on edges this row does not read — a column of
+        // a view and a spacer — is not one that can (`mayStateSpacing(_:along:)`).
         var spacers: UInt64 = 0
         var othersMayState = false
         for (index, child) in children.enumerated() {
             if child.isSpacer, index < UInt64.bitWidth {
                 spacers |= 1 << UInt64(index)
-            } else if child.isSpacer || type(of: child.wrappedView)._statesSpacingPreference {
+            } else if child.isSpacer || mayStateSpacing(child, along: axis) {
                 othersMayState = true
             }
         }
@@ -282,6 +284,7 @@ extension StackGaps {
         }
         var anyStated = false
         let preferences = children.map { child -> ViewSpacing? in
+            guard child.isSpacer || mayStateSpacing(child, along: axis) else { return nil }
             let stated = statedSpacing(of: child, context: context)
             if stated != nil { anyStated = true }
             return stated

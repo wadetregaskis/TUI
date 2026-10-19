@@ -236,3 +236,11 @@ requirement yet names its edges), and a lazy row still asks every child, not
 only those its window reaches. **A/B owed:** a row whose children's types hold
 a layout now asks each child each walk, through its body where it is a view of
 the app's own: `deep`, `kitchensink`, `table`, `customlayout`.
+
+Since the review of that lane, a row asks a child only where the child's type
+may state a preference on the edges a row reads, its leading and trailing ones
+(`mayStateSpacing(_:along:)`, kept per type and axis): a column's are its
+views' but a spacer's, so a view whose body is `VStack { …; Spacer() }` beside
+a text — the commonest sidebar — is not asked. The witness alone said "may"
+for any type holding a `Spacer`, and the row evaluated such a view's body once
+more on every walk, and resolved its column, to find nothing.

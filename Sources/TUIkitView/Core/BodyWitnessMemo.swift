@@ -84,6 +84,15 @@ package struct BodyWitnessMemo {
     /// The memo for ``View/_statesSpacingPreference``.
     package static let spacingPreference = permanentMemo()
 
+    /// The memo for whether a view type may state a spacing preference on
+    /// its leading and trailing edges (TUIkitFoundation's
+    /// `mayStateSpacing(_:along:)`).
+    package static let spacingAlongHorizontal = permanentMemo()
+
+    /// The memo for whether a view type may state a spacing preference on
+    /// its top and bottom edges.
+    package static let spacingAlongVertical = permanentMemo()
+
     /// The memo for ``View/_handsOverChildren``.
     package static let handsOverChildren = permanentMemo()
 
