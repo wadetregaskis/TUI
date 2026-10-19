@@ -368,6 +368,35 @@ struct StackSpacingPerPairTests {
         _ = lines(GapsReader(read: read) { SideBar(); Text("x") })
         #expect(!read.uniform.isEmpty && read.uniform.allSatisfy { $0 }, "the row asked the column \(read.uniform)")
     }
+
+    /// A frame and a padding can only put the default back on the edges they
+    /// move, `.position` states the default all round, and a `ZStack` its
+    /// layers' merged: none states anything its content cannot. Answered
+    /// "may" as views that state one themselves, a row asked a framed
+    /// `SideBar` its preference on every pass — its body evaluated, its
+    /// column resolved — to find the default (`framedcolumns`).
+    @Test("A row does not ask a frame, a padding, a position or a ZStack round content that states nothing on its edges")
+    func rowSkipsWrappersOfContentThatStatesNothingAcross() {
+        #expect(!reach(SideBar().frame(width: 8), along: .horizontal))
+        #expect(reach(SideBar().frame(width: 8), along: .vertical), "its column's spacer still forms its bottom edge")
+        #expect(!reach(SideBar().padding(1), along: .horizontal))
+        #expect(!reach(ZStack { SideBar(); Text("z") }, along: .horizontal))
+        #expect(!reach(Row { Text("a") }.position(x: 0, y: 0), along: .horizontal))
+        #expect(reach(Row { Text("a") }.frame(width: 3), along: .horizontal), "a layout in a frame may state one")
+        #expect(reach(Row { Text("a") }.padding(.top, 1), along: .horizontal), "and in a padding")
+        #expect(reach(ZStack { Row { Text("a") } }, along: .horizontal), "and in a ZStack")
+        #expect(lines(HStack { SideBar().frame(width: 6); Text("x") }).first == "side   x")
+        let read = Read()
+        _ = lines(GapsReader(read: read) { SideBar().frame(width: 6); SideBar().padding(.leading, 1); Text("x") })
+        #expect(!read.uniform.isEmpty && read.uniform.allSatisfy { $0 }, "the row asked the wrappers \(read.uniform)")
+    }
+}
+
+/// Whether a view like `view` may state a spacing preference on its edges
+/// along `axis`, from its type (`mayStateSpacing(_:along:)`).
+@MainActor
+private func reach<V: View>(_ view: V, along axis: Axis) -> Bool {
+    mayStateSpacing(V.self, along: axis)
 }
 
 /// A view of the app's own whose body is a column of a text and a spacer.

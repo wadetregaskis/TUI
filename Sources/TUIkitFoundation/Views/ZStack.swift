@@ -392,6 +392,14 @@ extension _ZStackCore: SpacingPreferenceProviding {
     }
 }
 
+/// On any edge, any layer's but a spacer's (`mayStateSpacing(_:along:)`): a
+/// `ZStack` merges its layers' preferences, and a spacer's states nothing.
+extension _ZStackCore: SpacingReaching {
+    static func mayStateSpacing(along axis: Axis) -> Bool {
+        memberMayStateSpacing(Content.self, along: axis, countingSpacers: false)
+    }
+}
+
 // MARK: - Equatable
 
 extension ZStack: @preconcurrency Equatable where Content: Equatable {

@@ -73,7 +73,7 @@ private func wrappedMayStateSpacing<W: SingleContentWrapper>(_: W.Type, along ax
 /// `countingSpacers` — along the stack's own axis, not across it — and a view
 /// that is several by any of its members.
 @MainActor
-private func memberMayStateSpacing<V: View>(_ type: V.Type, along axis: Axis, countingSpacers: Bool) -> Bool {
+func memberMayStateSpacing<V: View>(_ type: V.Type, along axis: Axis, countingSpacers: Bool) -> Bool {
     guard V._statesSpacingPreference else { return false }
     if type == Spacer.self { return countingSpacers }
     if let several = type as? any SpacingMembers.Type {
@@ -110,6 +110,34 @@ extension _HStackCore: SpacingReaching {
     static func mayStateSpacing(along axis: Axis) -> Bool {
         memberMayStateSpacing(Content.self, along: axis, countingSpacers: axis == .horizontal)
     }
+}
+
+// MARK: - The wrappers that move edges
+
+// A frame and a padding state their content's preference with the default
+// put back on the edges they move (`StackSpacingPreference.swift`), so either
+// can take a preference away and never add one: it may state one along an
+// axis only where its content may. Answered "may" for every frame, as a view
+// that states one itself, a row asked each framed child on every pass — the
+// body of a view of the app's own inside the frame evaluated, its stacks
+// resolved — to find the default: `framedcolumns`'s row of two framed
+// columns, each a text, a list and a spacer, spent 4.5% of its frame there.
+
+extension FlexibleFrameView: SpacingReaching {
+    static func mayStateSpacing(along axis: Axis) -> Bool {
+        TUIkitFoundation.mayStateSpacing(Content.self, along: axis)
+    }
+}
+
+extension ModifiedView: SpacingReaching where Modifier == PaddingModifier {
+    static func mayStateSpacing(along axis: Axis) -> Bool {
+        TUIkitFoundation.mayStateSpacing(Content.self, along: axis)
+    }
+}
+
+/// `.position` states the default all round, whatever its content.
+extension PositionView: SpacingReaching {
+    static func mayStateSpacing(along axis: Axis) -> Bool { false }
 }
 
 // MARK: - The views that are several
