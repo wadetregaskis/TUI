@@ -574,7 +574,10 @@ on nine rows outside the chrome classes**: `hangul_jamo_lv` 3 → 2,
 `keycap_star` 1 → 2, `skin_lifter_bare` 2 → 3, `skin_thumbs` and `zwj_skin`
 2 → 4 (committed record → this run). Whether that is the new version or a
 profile setting (its Unicode version) was not followed up; the run's record
-is kept with the lane's notes, not committed. No record was rewritten, so
+is kept with the lane's notes, not committed. iTerm2 3.7.6, measured on both
+screens on 2026-10-19 with a default profile that sets no Unicode version,
+agrees with 3.7.4 on the jamo and the keycaps and moved again on the tones —
+all to 2 (see "iTerm2 3.7.6 re-measured"); its records are committed. No record was rewritten, so
 `ChromeGlyphAdvanceTests` listed the two badge rows as awaiting measurement on
 every host until a re-run was committed. Ghostty's was, on 2026-10-19 (both
 rows 1, on both screens), so they wait on the other three. **The ink is
@@ -1485,6 +1488,28 @@ non-default setup.
   flank, the same negative reading Apple Terminal gives and the reason the
   overhang claim is per host rather than the union of Ghostty's and Warp's.
 
+#### iTerm2 3.7.6 re-measured — advance, 2026-10-19, and it moved
+
+`advance_probe.py` on both screens of 3.7.6, default profile (no Unicode
+version set in it), on 2026-10-19 (`data/iterm2-3.7.6-alternate.json`,
+`iterm2-3.7.6-advance.json`). Against the 3.6.11 records the models above
+were built from, **six skin-tone rows moved on the alternate screen**, all to
+2: ✊🏻 4 → 2, ☝🏽 3 → 2, ✌️🏼 and ☝️🏽 and 🏋️🏽 3 → 2, and 🏋🏽 1 → 2. A BMP base
+no longer advances base + swatch. On the primary screen the same rows moved,
+and so did the keycaps (1 → 2) and the conjoining jamo (3 and 4 → 2, see
+"Complex scripts"). Every other row the 3.6.11 records hold came back the same,
+the VS-16 and keycap under-advances on the alternate screen included.
+
+**Not acted on, and owed.** The traits still claim the detached widths
+(`.detachedOnBMPBases`: ✊🏻 4, ☝🏽 3) and the model reports them, so on 3.7.6
+a row carrying a BMP-base skin tone ends two cells (one for ☝🏽) short of where
+the layout put its last cell, if the DSR is the whole story; and 🏋🏽 takes a
+`CUF` it no longer needs. Whether 3.7.6 now MERGES these into two cells or
+draws something else in them is the paint, which is unmeasured: the tone card
+and `landing_probe.py` are the instruments, and the version — 3.6.11 and
+3.7.4 detached, 3.7.6 does not — would make this the first host whose model
+has to follow its version.
+
 ### Input behaviour
 
 - **Mouse (byte-captured):** SGR click `0` press/`m` release; wheel
@@ -1838,6 +1863,24 @@ named foreground it judges illegible; that banded every 16-colour image until
   14t/18t, agreeing within ~2% (ioctl **1.956**, CSI 2.000) — essentially
   the 2.0 default, so images need no correction here.
 
+#### Warp v0.2026.09.30 re-measured — advance, 2026-10-19
+
+`advance_probe.py` on both screens on 2026-10-19
+(`data/warpterminal-v0.2026.09.30.08.29.stable_01-alternate.json` and
+`-advance.json`). The primary screen reproduced v0.2026.09.02's record row for
+row. **The alternate screen moved on ten rows** against v0.2026.08.26's: the
+keycaps 1️⃣ #️⃣ *️⃣ 0️⃣ 3 → 2, 〰️ 〽️ 3 → 2, and the raw ZWJ sequences lost
+their joiner column — 👩‍🚀 5 → 4, ❤️‍🔥 5 → 4, 👩🏽‍🚀 7 → 6. (The tenth is the
+PUA row's rename.) By DSR, then, the keycaps and 〰️ 〽️ no longer
+over-advance on the alternate screen (the battery carries neither ㊗️ ㊙️ nor
+a tag-sequence flag), and the raw ZWJ advance is the dropped form's segment
+sum. Neither changes what TUIkit emits: the keycaps and 〰️
+were left alone at the claim of 2, which they now advance, and the walk drops
+the joiners anyway. What is stale is the record behind
+`TerminalLedgerConformanceTests.knownAdvanceDivergences` — the 08.26 landing
+record — and `warpCursorAdvance`'s raw kept-joiner sum; a landing re-run on
+this build would say whether the seven divergences are gone.
+
 ### Input behaviour
 
 Mouse SGR (1006) reporting works; **not yet byte-captured** (clicks, wheel,
@@ -2065,6 +2108,8 @@ divergence (`String.tmuxCursorAdvance` + `withTmuxCursorCompensation()` +
 | `U+4E2D` CJK · `U+1F44D` emoji · ZWJ families · `U+1F1FA U+1F1F8` flag | 2 | 2 | ✓ |
 | `U+1F44D U+1F3FD` (skin tone on a base tmux **merges** — the measured 70, `Character.tmuxMergedToneBases`) | 2 | 2 | ✓ — NOT stripped when every attached client renders kept tones |
 | `U+0065 U+0301` NFD · `U+E0B0` powerline · `U+2588` block | 1 | 1 | ✓ |
+| स्त्र ष्ट्र स्त्री (Devanagari conjuncts; tmux 3.7c, both screens, 2026-10-19) | **3 / 3 / 3** | 2 / 2 / 2 | **not handled** — tmux advances per code point, but its table gives a spacing vowel sign no cell; see "Complex scripts" |
+| कि को कौ किं ரா កា (a consonant + a spacing vowel sign, `Mc`; tmux 3.7c, 2026-10-19) | **1** | 2 | **not handled**, as above |
 
 **The defect this closed:** the main menu's "Supports SF Symbols" FeatureBox
 renders **three** Plane-16 PUA glyphs. TUIkit reserves 2 cells each (6); tmux
@@ -4317,11 +4362,13 @@ came back the same, and the two screens agreed on every row of the battery.
 | 🖥 🛡 🕹 🕷 🎞 🏙 (bare SMP pictograph) | 2 | **1** | **1** | **1** | **1** |
 | ⤷ *(compensated since 2026-07-14 — all four CUF)* | | ✓ | ✓ | ✓ | ✓ |
 | 🁠 🂡 (domino / card — in-block non-emoji) | 2 | **1** | **1** | **1** | **1** |
-| स्त्र ष्ट्र स्त्री (Devanagari conjuncts of three consonants or more, one cluster under GB9c) | 2 | not measured here; primary screen 2026-09-04: **3 / 3 / 4** | not measured here; primary screen 2026-09-04: **3 / 3 / 4** | 2 / 2 / 2 (2026-10-19) | not measured here; primary screen 2026-09-04 (v0.2026.09.02): **3 / 3 / 4** |
+| स्त्र ष्ट्र स्त्री (Devanagari conjuncts of three consonants or more, one cluster under GB9c) | 2 | **3 / 3 / 4** (2026-10-19) | **3 / 3 / 4** (3.7.6, 2026-10-19) | 2 / 2 / 2 (2026-10-19) | **3 / 3 / 4** (v0.2026.09.30, 2026-10-19) |
 
 The conjunct row and the rest of the 38 complex-script rows are in "Complex
-scripts", below; no host has had them measured on the alternate screen except
-Ghostty.
+scripts", below, measured on both screens of every host on 2026-10-19. The
+same runs re-read this table's rows on iTerm2 3.7.6 and Warp v0.2026.09.30,
+newer than its columns, and some moved: see "iTerm2 3.7.6 re-measured" and
+"Warp v0.2026.09.30 re-measured".
 
 tmux is a fifth advance model and is measured separately (its grid is
 client-independent, so it needs no per-client column) — see
@@ -7396,14 +7443,21 @@ default-ignorable. Zero is still the right number for three hosts out of four
 and for the standard, and TUIkit emits none of these controls itself — this can
 only arrive in content the user pastes.
 
-## Complex scripts — 38 corpus rows: the advance measured on four hosts, the paint on none
+## Complex scripts — 38 corpus rows: the advance measured on five hosts, the paint on none
 
 Added to the corpus 2026-09-04. **Their ADVANCE is measured** — the DSR
 column, which governs wrapping (see "What the hosts advance", below):
 
-- on Ghostty 1.3.1 with mode 2027 set, on both screens, on 2026-10-19
-  (`Tools/TerminalProbes/data/ghostty-1.3.1-advance.json` and
-  `ghostty-1.3.1-alternate.json`);
+- on both screens of every host, on 2026-10-19: Ghostty 1.3.1 with mode 2027
+  set (`Tools/TerminalProbes/data/ghostty-1.3.1-advance.json` and
+  `ghostty-1.3.1-alternate.json`), Apple Terminal 455.1
+  (`apple-terminal-455.1-alternate.json`; its primary screen matched
+  `Apple-Terminal-advance.json` row for row), iTerm2 3.7.6
+  (`iterm2-3.7.6-advance.json`, `iterm2-3.7.6-alternate.json`), Warp
+  v0.2026.09.30 (`warpterminal-v0.2026.09.30.08.29.stable_01-advance.json` and
+  `-alternate.json`) and tmux 3.7c's own grid (`tmux-3.7c-advance.json`,
+  `tmux-3.7c-alternate.json`). On each of the four native hosts the two
+  screens agreed on all 38 rows; tmux's did too;
 - on the primary screen of Apple Terminal 455.1, iTerm2 3.6.11, Ghostty 1.3.1
   and Warp v0.2026.09.02, on 2026-09-04. The `advance_probe.py` run that
   measured the chrome glyphs that afternoon carried these rows too, and its
@@ -7416,8 +7470,7 @@ column, which governs wrapping (see "What the hosts advance", below):
 `landing_probe.py`, and every row is still listed in
 `TerminalLedgerConformanceTests.awaitingLandingMeasurement`, which is what stops
 "no landing record has it" from reading as "the models pass". Also unmeasured:
-the alternate screen of Apple Terminal, iTerm2 and Warp, those hosts' current
-versions, and Ghostty with mode 2027 reset.
+Ghostty with mode 2027 reset, and kitty, xterm and VTE.
 
 ### Why they exist
 
@@ -7480,37 +7533,49 @@ file whose per-scalar answers are otherwise derived from measurements.
 
 ### What the hosts advance
 
-DSR, from the records named above. The Ghostty column is both screens, with
-mode 2027 set; the other three are the primary screen only, on 2026-09-04.
-**Bold** is an advance that differs from the claim, which is the cluster
-rule's number on every host.
+DSR, from the records named above: every column is both screens, measured on
+2026-10-19, and each host's two screens agreed on every row. Ghostty's was
+taken with mode 2027 set; tmux's is its own grid, which is client-independent.
+**Bold** is an advance that differs from the cluster rule's number, which is
+the claim on every host.
 
-| Row | Cluster rule (the claim) | Per-scalar rule | Ghostty 1.3.1, 2026-10-19 | Apple Terminal 455.1 | iTerm2 3.6.11 | Warp v0.2026.09.02 |
-|---|---|---|---|---|---|---|
-| स्त्र `conjunct_deva_stra` | 2 | 3 | 2 | **3** | **3** | **3** |
-| ष्ट्र `conjunct_deva_shtra` | 2 | 3 | 2 | **3** | **3** | **3** |
-| स्त्री `conjunct_deva_stri` | 2 | 4 | 2 | **4** | **4** | **4** |
-| `hangul_jamo_lvt` | 2 | 4 | 2 | 2 | **4** | 2 |
-| `hangul_jamo_lv` | 2 | 3 | 2 | 2 | **3** | 2 |
-| ന്‍ `chillu_malayalam_zwj` | 1 | 1 | 1 | **2** | 1 | 1 |
-| a‍ `latin_zwj`, a‌ `latin_zwnj` | 1 | 1 | 1 | **2** | 1 | 1 |
-| LRM `bidi_lrm`, RLM `bidi_rlm` | 0 | 0 | 0 | **1** | 0 | 0 |
-| ரா `matra_tamil_aa` | 2 | 2 | 2 | 2 | 2 | **1** |
-| the other 27 rows | — | — | the claim | the claim | the claim | the claim |
+| Row | Cluster rule (the claim) | Per-scalar rule | Ghostty 1.3.1 | Apple Terminal 455.1 | iTerm2 3.7.6 | Warp v0.2026.09.30 | tmux 3.7c |
+|---|---|---|---|---|---|---|---|
+| स्त्र `conjunct_deva_stra` | 2 | 3 | 2 | **3** | **3** | **3** | **3** |
+| ष्ट्र `conjunct_deva_shtra` | 2 | 3 | 2 | **3** | **3** | **3** | **3** |
+| स्त्री `conjunct_deva_stri` | 2 | 4 | 2 | **4** | **4** | **4** | **3** |
+| `hangul_jamo_lvt` | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
+| `hangul_jamo_lv` | 2 | 3 | 2 | 2 | 2 | 2 | 2 |
+| कि को कौ किं `matra_deva_*`, កា `matra_khmer_aa` | 2 | 2 | 2 | 2 | 2 | 2 | **1** |
+| ரா `matra_tamil_aa` | 2 | 2 | 2 | 2 | 2 | **1** | **1** |
+| ന്‍ `chillu_malayalam_zwj` | 1 | 1 | 1 | **2** | 1 | 1 | 1 |
+| a‍ `latin_zwj`, a‌ `latin_zwnj` | 1 | 1 | 1 | **2** | 1 | 1 | 1 |
+| LRM `bidi_lrm`, RLM `bidi_rlm` | 0 | 0 | 0 | **1** | 0 | 0 | 0 |
+| the other 22 rows | — | — | the claim | the claim | the claim | the claim | the claim |
 
 - **Ghostty with mode 2027 set advances the claim on all 38 rows, on both
   screens**, and gave the same numbers on the primary screen on 2026-09-04. On
   the one host measured that clusters graphemes, the cluster rule is right
   about all five rows where the two rules disagree — the three conjuncts
   included.
-- **The three hosts that advance per code point give the conjuncts the
-  per-scalar number**, so the claim is a cell short for स्त्र and ष्ट्र and
-  two for स्त्री on each of them — on the primary screen. Nothing in TUIkit
-  models that yet: no host trait covers these clusters.
-- **The jamo split the other three**: Apple Terminal and Warp advance the
-  claim, iTerm2 3.6.11 the per-scalar numbers. iTerm2 3.7.4 advanced both
-  rows 2 on 2026-10-13, in a run whose record was not committed (see "The
-  drop-operation badge"), so its column may be its version's.
+- **Apple Terminal, iTerm2 and Warp advance per code point**: each consonant
+  and each spacing vowel sign a cell, a virama none — the per-scalar number for
+  every conjunct, on both screens. So the claim is a cell short for स्त्र and
+  ष्ट्र and two for स्त्री on each of them. Their primary screens gave the same
+  on 2026-09-04 (Apple Terminal 455.1, iTerm2 3.6.11, Warp v0.2026.09.02), and
+  iTerm2 3.7.4 the same again on 2026-10-13.
+- **Every current host advances the jamo 2**, the cluster rule's number: a
+  host that advances per code point gives the conjoining vowel and trailing
+  jamo no cell, which is `wcwidth`'s answer for U+1160…U+11FF. iTerm2 3.6.11
+  was the exception, at the per-scalar 3 and 4 on its primary screen on
+  2026-09-04; 3.7.4 (primary, 2026-10-13) and 3.7.6 (both screens) advance 2,
+  so that column was its version's.
+- **tmux advances per code point by a table of its own**, which gives every
+  spacing vowel sign (`Mc`) no cell: the six matra rows are 1, and स्त्री is 3,
+  its ी adding nothing. Measured on tmux 3.7c built from Homebrew on macOS;
+  a tmux built against another width table may differ.
+- Warp gives the Tamil vowel sign ா U+0BBE no cell (ரா is 1) while giving the
+  Devanagari ी U+0940 one.
 - Apple Terminal advances a ZWJ, a ZWNJ, an LRM and an RLM a cell each, where
   the claim counts none. Two other format characters, the bidi overrides, were
   seen drawn there as a box (see "Right-to-left text").
@@ -7519,12 +7584,10 @@ rule's number on every host.
 host that advances per code point and 1 for one that clusters graphemes (DEC
 mode 2027), each differing from 2 in its own direction. The first half held;
 the second did not: Ghostty with mode 2027 set advances 2, the cluster rule's
-number. So the right answer is the host's, as it is for emoji, and a
-change would be a per-host trait, made from the advance AND the paint. The
-paint is unmeasured everywhere, and the advance is unmeasured on the
-alternate screen of the three per-code-point hosts, on Ghostty with mode 2027
-reset, and on kitty, xterm, VTE and tmux. This project has twice drawn a wrong
-conclusion from one of a row's four facts, and this would be the third.
+number. So the right answer is the host's, as it is for emoji, and a change
+would be a per-host trait. The advance it would rest on is now measured on both
+screens of all five hosts; the paint is unmeasured everywhere, as is the
+advance on Ghostty with mode 2027 reset and on kitty, xterm and VTE.
 
 ### What the 38 rows cover
 

@@ -150,9 +150,18 @@ re-run on the same screens with mode 2027 set, as before: every row the old
 records held came back the same (`pua_bmp_sf` under its corrected name,
 `pua16_second`), and the battery had grown by fifteen rows on the primary
 screen and eighty-two on the alternate. Nothing was lost — every number the old
-files held is in the new ones, and the old files are in the history. A re-run
-that differed, iTerm2 3.7.4's of 2026-10-13, was kept out of this directory
-instead until its cause is known (the survey's "The drop-operation badge").
+files held is in the new ones, and the old files are in the history. Apple
+Terminal 455.1's alternate-screen record was replaced the same way the same
+day (all 74 old rows reproduced, 82 added). A re-run that differed, iTerm2
+3.7.4's of 2026-10-13, was kept out of this directory instead until its cause
+is known (the survey's "The drop-operation badge").
+
+**A newer version's run sits beside the older one's**, whatever it found:
+iTerm2 3.7.6, Warp v0.2026.09.30 and tmux 3.7c were measured on both screens on
+2026-10-19 and their records added, the iTerm2 and Warp ones beside the
+3.6.11 and v0.2026.08.26 records the models were built from. Where a newer
+version moved, the survey says so under that host; a model follows the newer
+record only once somebody has changed it to.
 
 ## Why the conditions are in the file
 
