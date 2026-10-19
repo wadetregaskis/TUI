@@ -76,6 +76,22 @@ its `@State` and gets its focus back when the keys are released, but:
 Each wants the alternate to stand in for the modified view without the view
 leaving the tree, which is the fuller version's registration-only walk again.
 
+**The three fixed (lane INPUT, 2026-10-18), the shortcut still not.** While
+an alternate shows, the modified view is walked into a picture nobody sees,
+out of the focus ring and every key channel and asking for no frame
+(`ModifierKeyAlternateModifier.walkHidden`, as a backdrop renders): its state
+and its lifecycle go on, so no `onDisappear` runs and no `.task` restarts
+(3), and the subtree retention it replaces is gone. The focus is given back
+as the keys are released, between frames (`ModifierKeyMonitor.record`), the
+recovery's neighbour first letting go of it, so no frame draws two controls
+focused (1); and where the recovery put the focus is taken as the frame that
+first drew the alternate ends (`ModifierKeyMonitor.endFrame()`), so a Tab read
+in the same burst as the keys' release is the user's move, and stands (2).
+`ModifierKeyAlternateTests` pins all three through the input chain and, for
+the lifecycle, the run loop; each failed before. The alternate's shortcut,
+derived or explicit, is still reached only by drawing the alternate:
+decisions-INPUT B-INPUT-2.
+
 ### B-D1K-3. Ctrl-H, I, J, M and [ fall back to their legacy keys when nothing binds them
 
 *`KeyboardShortcut.isDeliverableInTerminal`, `KeyboardReporting.disambiguatesKeys`*

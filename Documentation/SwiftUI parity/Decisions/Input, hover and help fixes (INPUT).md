@@ -53,3 +53,30 @@ the hold go for every covered row, the case lane BUGS13 fixed.
    rows out still file the helps of the rows next to its window: the hold then
    asks whether its view is still in the tree. Also what B-HELP-2's `?`
    reveal needs. About half a day, and a set insert per help view per frame.
+
+### B-INPUT-2. A modifier-key alternate's shortcut is live only while the alternate is drawn
+
+*`View.modifierKeyAlternate(_:_:)`, `View.keyboardShortcut(_:modifiers:)` on
+the alternate*
+
+The three known defects of decisions-D1K B-D1K-2 are fixed: the modified view
+is walked unseen while its alternate shows, and the focus goes back as the
+keys are released. The shortcut half of that entry's fuller version is not.
+SwiftUI makes an alternate in a menu an alternate menu item, live whether or
+not the menu is open, with the modified view's shortcut plus the alternate's
+modifiers (⌥⌘S for Save All under Save's ⌘S), or with a shortcut written on
+the alternate itself. Here the alternate's control, and any shortcut on it,
+exists only while its keys are held and it is drawn.
+
+**Shipped:** as before: write the shortcut on the alternate where it should
+be reachable, and it is live while the alternate is drawn.
+
+**The fuller version:** walk each alternate unseen while the modified view is
+drawn, as the modified view is now while its alternate is, with the real
+shortcut registry and every other channel thrown away; plant the derived
+shortcut (the modified view's claimed shortcut read through its
+`KeyboardShortcutModifier`, with the alternate's modifiers added) where the
+alternate names none, in a menu only, as SwiftUI does; and keep that walk's
+lifecycle from running, since an alternate's `onAppear` must wait until it is
+drawn — a render mode no walk has yet. About half a day, and a hidden render
+of every alternate on every frame that has one.

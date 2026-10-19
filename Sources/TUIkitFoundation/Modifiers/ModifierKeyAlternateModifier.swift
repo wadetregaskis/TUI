@@ -24,10 +24,11 @@ extension View {
     /// on different keys; when more than one matches the held keys, the one
     /// on the most keys prevails, wherever it sits in the chain.
     ///
-    /// The modified view keeps its `@State` while the alternate is drawn, and
-    /// if the focus was in it when the alternate took its place, the focus
-    /// goes back to it when the keys are released — unless it has been moved
-    /// somewhere else in the meantime.
+    /// The modified view keeps its `@State` and its lifecycle while the
+    /// alternate is drawn — its `onDisappear` does not run, nor its `.task`
+    /// restart — and if the focus was in it when the alternate took its
+    /// place, the focus goes back to it as the keys are released — unless it
+    /// has been moved somewhere else in the meantime.
     ///
     /// ## Where it works
     ///
@@ -76,13 +77,12 @@ protocol ModifierKeyAlternating {
 /// Draws the modified view at its own identity and the alternate one level
 /// below, so the two never share a state slot.
 ///
-/// While an alternate is drawn the modified view is not, so nothing in it
-/// renders and marks its state active. Left at that, a tap of the modifier
-/// key would cost the modified view its `@State` — a counter reset to zero
-/// for one frame of "Go to…". So while any alternate in the chain shows, this
-/// declares the subtree retained, as a collapsed `DisclosureGroup` does for
-/// its content, and the modified view comes back with its state. The focus
-/// comes back too: see ``ModifierKeyMonitor`` and its held focus.
+/// While an alternate is drawn the modified view is not, and left at that a
+/// tap of the modifier key would cost it its `@State` — a counter reset to
+/// zero for one frame of "Go to…" — and its lifecycle: `onDisappear` run and
+/// `.task` restarted. So it is walked unseen beside its alternate
+/// (``walkHidden(context:)``), and comes back as it was. The focus comes back
+/// too: see ``ModifierKeyMonitor`` and its held focus.
 struct ModifierKeyAlternateModifier<Content: View, Alternate: View>: View, ModifierKeyAlternating {
     let content: Content
     let modifiers: EventModifiers
@@ -135,7 +135,24 @@ extension ModifierKeyAlternateModifier: Renderable {
         guard showsAlternate(held: monitor.current) else {
             return TUIkitView.renderToBuffer(content, context: context)
         }
+        if !context.isMeasuring { walkHidden(context: context) }
         return TUIkitView.renderToBuffer(alternate, context: alternateContext(context))
+    }
+
+    /// Walks the modified view while its alternate stands in for it, into a
+    /// picture nobody sees: its state stays active, and its lifecycle goes on
+    /// — an `onDisappear` does not run, nor a `.task` restart, at every tap
+    /// of the key (decisions-D1K B-D1K-2). Out of the focus ring and every key
+    /// channel, as a backdrop is (`isolatedForBackground()`), and asking for no
+    /// frame (`withThrowawayFrameDemand`): the alternate is what is drawn,
+    /// and takes the keys.
+    ///
+    /// The first in a chain to show its alternate walks the modified view; an
+    /// inner one renders only while no outer one shows its own.
+    private func walkHidden(context: RenderContext) {
+        context.isolatedForBackground().withThrowawayFrameDemand { hidden in
+            _ = TUIkitView.renderToBuffer(content, context: hidden)
+        }
     }
 
     /// Keeps the modified view's state, and its focus, through the frames an
@@ -151,12 +168,10 @@ extension ModifierKeyAlternateModifier: Renderable {
             monitor.modifiedViewShown(at: context.identity, focusManager: focusManager)
             return
         }
-        // The modified view renders at this identity, so its own `@State` is
-        // here, which a retained subtree's root does not cover: only what is
-        // strictly below it.
-        context.stateStorage?.markActive(context.identity)
-        context.stateStorage?.retainSubtree(context.identity)
-        monitor.alternateShown(at: context.identity, focusManager: focusManager)
+        let chain = self
+        monitor.alternateShown(at: context.identity, focusManager: focusManager) {
+            chain.mostSpecificMatch(held: $0) != nil
+        }
     }
 }
 

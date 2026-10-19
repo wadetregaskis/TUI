@@ -6,7 +6,7 @@
 
 import Testing
 
-import TUIkitApp
+@testable import TUIkitApp
 @testable import TUIkitAppTestSupport
 @testable import TUIkitCore
 @testable import TUIkitFoundation
@@ -160,6 +160,70 @@ struct ModifierKeyAlternateTests {
         #expect(harness.focusManager.currentFocusedID == "third")
     }
 
+    /// decisions-D1K B-D1K-2, known defect 1: the focus came back by a
+    /// `focus(id:)` asked during the render, before the control registered,
+    /// and the neighbour the recovery had moved it to drew focused first, so
+    /// two controls showed the focus for a frame. It goes back as the keys are
+    /// released now, before the next frame draws anything: the neighbour has
+    /// let go of it by then.
+    @Test("The focus leaves the recovery's neighbour as the keys are released, before the next frame")
+    func focusLeavesTheNeighbourAtRelease() {
+        let harness = InputChainHarness(keyboard: .requested)
+        harness.frame(focusPage())
+        harness.frame(focusPage())
+        hold(harness, ModifierKeyState(option: true))
+        harness.frame(focusPage())
+        #expect(harness.focusManager.currentFocusedID == "other", "precondition: the recovery's neighbour")
+        hold(harness, ModifierKeyState())
+        #expect(!harness.focusManager.isFocused(id: "other"), "the neighbour would draw focused in the next frame")
+        harness.frame(focusPage())
+        #expect(harness.focusManager.currentFocusedID == "forward")
+    }
+
+    /// decisions-D1K B-D1K-2, known defect 2: an alternate shown for a single
+    /// frame gave the focus back unconditionally, so Option, Tab and Option's
+    /// release read in one burst of input undid the Tab.
+    @Test("Tab and the keys' release in one burst after one frame of the alternate keep the Tab")
+    func tabInTheSameBurstStays() {
+        let harness = InputChainHarness(keyboard: .requested)
+        harness.frame(focusPage())
+        harness.frame(focusPage())
+        hold(harness, ModifierKeyState(option: true))
+        harness.frame(focusPage())
+        #expect(harness.focusManager.currentFocusedID == "other", "precondition")
+        harness.press(KeyEvent(key: .tab))
+        hold(harness, ModifierKeyState())
+        harness.frame(focusPage())
+        #expect(harness.focusManager.currentFocusedID == "third")
+    }
+
+    /// decisions-D1K B-D1K-2, known defect 3: the modified view left the tree
+    /// while its alternate showed, so its `onDisappear` ran and its `.task`
+    /// restarted at every tap of the key. Through the run loop, whose
+    /// lifecycle sweep is what runs them.
+    @Test("The modified view's lifecycle goes on through its alternate")
+    func lifecycleGoesOn() {
+        AlternateLifecycleApp.log.entries = []
+        let app = HeadlessApp(AlternateLifecycleApp(), width: 30, height: 6)
+        app.services.keyboardReporting = KeyboardReporting(flags: .requested)
+        var now: Int64 = 0
+        func frame() {
+            now += 16_666_667
+            app.frame(atNanos: now)
+        }
+        frame()
+        frame()
+        for _ in 0..<3 {
+            app.services.modifierKeys.record(ModifierKeyState(option: true))
+            frame()
+            #expect(app.screen.contains { $0.contains("Go to") }, "precondition: the alternate")
+            app.services.modifierKeys.record(ModifierKeyState())
+            frame()
+        }
+        frame()
+        #expect(AlternateLifecycleApp.log.entries == ["appear"], "the view left: \(AlternateLifecycleApp.log.entries)")
+    }
+
     /// A row a value memo can keep, whose alternate is wider than itself.
     private struct Row: View, Equatable {
         let name: String
@@ -183,5 +247,24 @@ struct ModifierKeyAlternateTests {
         let harness = InputChainHarness()
         hold(harness, ModifierKeyState(option: true))
         #expect(text(harness.frame(Text("Forward").modifierKeyAlternate(.option) { Text("Go to…") })) == "Forward")
+    }
+}
+
+/// What a view's lifecycle hears, in order.
+final class AlternateLifecycleLog: @unchecked Sendable {
+    var entries: [String] = []
+}
+
+/// A view with a lifecycle of its own, and an alternate on Option.
+struct AlternateLifecycleApp: App {
+    static let log = AlternateLifecycleLog()
+
+    var body: some Scene {
+        WindowGroup {
+            Text("Forward")
+                .onAppear { Self.log.entries.append("appear") }
+                .onDisappear { Self.log.entries.append("disappear") }
+                .modifierKeyAlternate(.option) { Text("Go to…") }
+        }
     }
 }

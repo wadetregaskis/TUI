@@ -163,6 +163,7 @@ final class InputChainHarness {
         buffer = tui.screenSelection.takeFrame(
             buffer, width: context.availableWidth, palette: frameContext.environment.palette)
         focusManager.endRenderPass()
+        tui.modifierKeys.endFrame()
         geometry.endFrame(frame: buffer, retainedBy: tui.stateStorage)
         tui.stateStorage.endRenderPass()
         tui.renderCache.removeInactive()

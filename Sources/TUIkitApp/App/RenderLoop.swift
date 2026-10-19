@@ -472,6 +472,8 @@ extension RenderLoop {
             terminalHeight: terminalHeight)
 
         focusManager.endRenderPass()
+        // Where the focus recovery left a focus a modifier-key alternate took.
+        tuiContext.modifierKeys.endFrame()
 
         // Publish the frame's hit-test regions so the dispatcher can route
         // mouse events arriving between this frame and the next. They are in

@@ -59,9 +59,18 @@ package final class ModifierKeyMonitor: @unchecked Sendable {
         /// The control in the modified view that held the focus, or `nil` when
         /// the focus was elsewhere.
         let focusID: String?
-        /// Where the focus recovery sent it once the control left the ring:
-        /// the first focus seen that is not ``focusID``, `nil` until then.
+        /// The focus manager the modified view drew under.
+        let focusManager: FocusManager?
+        /// Whether an alternate in the chain is drawn for these held keys:
+        /// once one is not, the focus goes back (``record(_:)``).
+        let showsAlternate: (EventModifiers) -> Bool
+        /// Where the focus was once the frame that first drew the alternate
+        /// had ended — where the focus system's recovery sent it, the control
+        /// having left the ring — and `nil` if nowhere. Known once
+        /// ``landed``.
         var landedID: String?
+        /// Whether ``landedID`` has been taken (``endFrame()``).
+        var landed = false
         /// The last walk an alternate in this chain was drawn.
         var touched: Int
     }
@@ -89,40 +98,62 @@ package final class ModifierKeyMonitor: @unchecked Sendable {
     /// focus: that control is not drawn now, so the focus system recovers the
     /// focus to a neighbour at the end of the pass — the alternate's own
     /// control, where it has one in the same place, or the next control on the
-    /// page. On a later walk, remembers where it landed — the first focus seen
-    /// that is not the control's, which nothing but that recovery moves it to
-    /// within the frame, however many times the frame walks the tree — so the
-    /// return can tell the recovery's move from one the user made.
-    func alternateShown(at identity: ViewIdentity, focusManager: FocusManager?) {
+    /// page. Where that left it is taken as the frame ends (``endFrame()``),
+    /// so the return can tell the recovery's move from one the user made, a
+    /// Tab read with the keys' release in one burst of input included.
+    ///
+    /// - Parameter showsAlternate: Whether an alternate in the chain is drawn
+    ///   for the keys given (`ModifierKeyAlternateModifier.mostSpecificMatch`).
+    func alternateShown(
+        at identity: ViewIdentity, focusManager: FocusManager?, showsAlternate: @escaping (EventModifiers) -> Bool
+    ) {
         if var held = heldFocus[identity] {
-            if held.landedID == nil, let current = focusManager?.currentFocusedID, current != held.focusID {
-                held.landedID = current
-            }
             held.touched = walk
             heldFocus[identity] = held
             return
         }
         heldFocus[identity] = HeldFocus(
             focusID: focusManager.flatMap { Self.focusedID(in: identity, of: $0) },
-            landedID: nil, touched: walk)
+            focusManager: focusManager, showsAlternate: showsAlternate, touched: walk)
+    }
+
+    /// Ends a frame, once its focus pass has (`FocusManager.endRenderPass`):
+    /// a held focus whose alternate this frame drew for the first time takes
+    /// where the focus is now — where the recovery put it.
+    package func endFrame() {
+        guard !heldFocus.isEmpty else { return }
+        for (identity, held) in heldFocus where !held.landed {
+            var landing = held
+            landing.landedID = held.focusManager?.currentFocusedID
+            landing.landed = true
+            heldFocus[identity] = landing
+        }
     }
 
     /// Notes that the view at `identity` is drawn this walk, and if an
-    /// alternate replaced it while it held the focus, gives the focus back.
-    ///
-    /// Back only if nothing moved it on purpose meanwhile: the focus is where
-    /// the recovery put it (or the alternate showed for a single frame, too
-    /// short to tell), or on a control of the alternate, or nowhere. The
-    /// control is not registered yet — it renders after this — so the focus is
-    /// asked for by id, which the focus system holds until it registers in
-    /// this same pass.
+    /// alternate replaced it while it held the focus and the keys' release
+    /// did not already give it back (``record(_:)``), gives it back now.
     func modifiedViewShown(at identity: ViewIdentity, focusManager: FocusManager?) {
-        guard !heldFocus.isEmpty, let held = heldFocus.removeValue(forKey: identity),
-            let focusID = held.focusID, let focusManager
-        else { return }
+        guard !heldFocus.isEmpty, let held = heldFocus.removeValue(forKey: identity) else { return }
+        giveBack(held, at: identity)
+    }
+
+    /// Gives the focus back to the control an alternate took it from, if
+    /// nothing moved it on purpose meanwhile: the focus is where the recovery
+    /// put it, or on a control of the alternate, or nowhere.
+    ///
+    /// The control is not in the ring — it is not drawn — so the focus is
+    /// asked for by id, which the focus system holds until it registers. The
+    /// focus the recovery gave a neighbour goes first: given back as the
+    /// keys are released, between frames, the neighbour would otherwise draw
+    /// focused in the next frame before the control registered and took it,
+    /// two controls showing the focus for a frame (decisions-D1K B-D1K-2).
+    private func giveBack(_ held: HeldFocus, at identity: ViewIdentity) {
+        guard let focusID = held.focusID, let focusManager = held.focusManager else { return }
         let current = focusManager.currentFocusedID
         let inAlternate = focusManager.focusedIdentity.map { identity.isAncestor(of: $0) } ?? false
-        guard current == nil || held.landedID == nil || current == held.landedID || inAlternate else { return }
+        guard current == nil || !held.landed || current == held.landedID || inAlternate else { return }
+        if current != focusID { focusManager.relinquishFocus() }
         focusManager.focus(id: focusID)
     }
 
@@ -165,6 +196,12 @@ package final class ModifierKeyMonitor: @unchecked Sendable {
             let before = old.intersection(observer.mask)
             let after = new.intersection(observer.mask)
             if before != after { observer.action(before, after) }
+        }
+        // The focus an alternate took goes back as its keys are released,
+        // before the next frame draws anything.
+        for (identity, held) in heldFocus where !held.showsAlternate(new) {
+            heldFocus[identity] = nil
+            giveBack(held, at: identity)
         }
         return isDrawnFrom
     }
