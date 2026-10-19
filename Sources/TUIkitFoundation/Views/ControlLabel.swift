@@ -101,3 +101,31 @@ package struct _CollapsingLabel<Label: View>: View, Renderable, Layoutable {
         return buffer.replacingLines(buffer.lines.map { $0 + " " })
     }
 }
+
+/// A control's label drawn apart from the control — in a ``Form``'s label
+/// column (``FormFieldControl``) — dimmed with a disabled control as
+/// ``_CollapsingLabel`` dims it, and with no separating space: the column
+/// supplies the gap.
+package struct _DetachedControlLabel<Label: View>: View, Renderable, Layoutable {
+    let label: Label
+
+    /// The control's own `.disabled()` flag, which bypasses the environment.
+    let controlDisabled: Bool
+
+    package init(label: Label, controlDisabled: Bool) {
+        self.label = label
+        self.controlDisabled = controlDisabled
+    }
+
+    package var body: Never { fatalError("_DetachedControlLabel renders via Renderable") }
+
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measureChild(label, proposal: proposal, context: context)
+    }
+
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        TUIkitView.renderToBuffer(
+            _ControlLabel.dimmingWhenDisabled(label, context: context, controlDisabled: controlDisabled),
+            context: context)
+    }
+}

@@ -30,3 +30,20 @@ extension Toggle: FormControlRow {
         (AnyView(label), AnyView(labelsHidden()))
     }
 }
+
+/// A labelled control a ``Form`` lays out as a field row: its label in the
+/// label column, right-aligned to the others, and the control, its own label
+/// hidden, in the value column after it — or, in a grouped form, the label at
+/// the row's leading edge and the control at its trailing one. SwiftUI's form
+/// lays out a `Picker` of every style, a `Slider`, a `Stepper`, a `DatePicker`
+/// and a `ColorPicker` so (measured on macOS 15.8,
+/// `Tools/SwiftUIProbes/Form rows`), and those five conform.
+@MainActor
+package protocol FormFieldControl {
+    /// The control's label, as the label column draws it, and the control
+    /// without it — or `nil` where the control is no field row in
+    /// `environment`, the environment the form reads the row in: a date
+    /// picker drawn by a style of the app's own, which places its label
+    /// itself.
+    func formFieldParts(in environment: EnvironmentValues) -> (label: AnyView, control: AnyView)?
+}

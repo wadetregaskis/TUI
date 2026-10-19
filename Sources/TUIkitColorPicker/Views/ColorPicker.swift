@@ -60,6 +60,12 @@ public struct ColorPicker: View {
     private let supportsOpacity: Bool
     private let step: Double
 
+    /// Whether the picker draws its label: `false` in a ``Form``, which draws
+    /// it in its label column (``formFieldParts(in:)``). Not `.labelsHidden()`,
+    /// which would reach the editor panel the picker presents, and hide the
+    /// labels of the controls on it.
+    private var drawsLabel = true
+
     /// True while the full ``ColorPickerPanel`` is up for this picker.
     @State private var isEditing = false
 
@@ -150,7 +156,7 @@ public struct ColorPicker: View {
             // `.labelsHidden()` drops the whole label COLUMN, width and gap
             // included — the point of `colorPickerLabelWidth` is a shared
             // pillar, and a pillar of hidden captions is just an indent.
-            if !labelsHidden {
+            if !labelsHidden, drawsLabel {
                 Group {
                     if let labelView {
                         labelView
@@ -386,6 +392,22 @@ extension View {
     ///   `.automatic` for the full row.
     public func colorPickerChannels(_ visibility: Visibility) -> some View {
         environment(\.colorPickerChannels, visibility)
+    }
+}
+
+// MARK: - A Field Row of a Form
+
+/// A colour picker is a field row of a ``Form``: its label in the label
+/// column, the swatch and the channels in the value column, as SwiftUI's form
+/// lays it out (measured, `Tools/SwiftUIProbes/Form rows`). The label is drawn
+/// as the column draws the others', not in the secondary style the picker's
+/// own label column takes.
+extension ColorPicker: FormFieldControl {
+    package func formFieldParts(in environment: EnvironmentValues) -> (label: AnyView, control: AnyView)? {
+        var control = self
+        control.drawsLabel = false
+        let label = _DetachedControlLabel(label: labelView ?? AnyView(Text(title)), controlDisabled: false)
+        return (AnyView(label), AnyView(control))
     }
 }
 

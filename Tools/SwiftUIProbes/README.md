@@ -543,5 +543,10 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIkitForms/Views/FormContentExtraction.swift`,
   `Sources/TUIkitFoundation/Views/FormRowRewrapping.swift` and the modifiers' conformances to it (in
   `LifecycleModifier.swift`, `OnChangeModifier.swift`, `GestureModifier.swift`, `KeyboardShortcutModifier.swift`,
-  `ContextMenuModifier.swift`, `OverlayModifier.swift` and beside them), `Tests/TUIkitIntegrationTests/FormModifiedRowTests.swift`;
-  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (Containers, `Form`).
+  `ContextMenuModifier.swift`, `OverlayModifier.swift` and beside them), `Sources/TUIkitFoundation/Views/FormControlRow.swift`
+  and the labelled controls' conformances (`Sources/TUIkitPickers/Views/Picker+Form.swift`,
+  `Sources/TUIkitNumericControls/Views/NumericControls+Form.swift`, `Sources/TUIkitColorPicker/Views/ColorPicker.swift`),
+  `Tests/TUIkitIntegrationTests/FormModifiedRowTests.swift`, `Tests/TUIkitIntegrationTests/FormLabelledControlTests.swift`;
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (Containers, `Form`);
+  `Documentation/SwiftUI parity/SwiftUI semantic audit (2026-08).md` (item 8, and the verifiers' finding on labelled
+  controls).

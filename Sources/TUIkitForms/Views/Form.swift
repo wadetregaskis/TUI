@@ -24,8 +24,11 @@ import TUIkitFoundation
 ///
 /// Row kinds follow macOS conventions:
 ///
-/// - **Field rows** — `LabeledContent("Name") { TextField(…) }` (also `Picker`,
-///   `Slider`, `Stepper`, value rows): a right-aligned field label, then the control.
+/// - **Field rows** — `LabeledContent("Name") { TextField(…) }`, value rows, and
+///   a `Picker` of any style, a `Slider`, a `Stepper`, a `DatePicker` or a
+///   `ColorPicker` written bare: a right-aligned field label — the control's
+///   own, for those five — then the control. In a grouped form the label leads
+///   the row and the control trails it.
 /// - **Checkboxes / radios** — a `Toggle("Wi-Fi", isOn:)` or `RadioButtonGroup`
 ///   used directly (with its own label) sits in the control column, box first,
 ///   and the **whole control (box, gap, and label) is clickable** — so don't wrap

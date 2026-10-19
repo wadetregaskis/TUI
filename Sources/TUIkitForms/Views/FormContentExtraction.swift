@@ -33,8 +33,9 @@ enum _FormContentWalk {}
 
 /// Extracts the form elements of `view`: its own contribution if it is a
 /// ``FormContentExtractor``; otherwise a control row (checkbox/radio), a button
-/// row, the elements of the body of a view of the app's own whose body is
-/// several views or a section, or a plain full-width row depending on its kind.
+/// row, a field row (a labelled control, ``FormFieldControl``), the elements of
+/// the body of a view of the app's own whose body is several views or a
+/// section, or a plain full-width row depending on its kind.
 ///
 /// `walk` is the form's context with an identity for the place the walk has
 /// reached: a step for each tuple slot, loop element, `if`/`else` arm and
@@ -66,6 +67,9 @@ func formElements<V: View>(from view: V, in walk: RenderContext) -> [_FormElemen
     }
     if view is FormButtonRow {
         return [.row(_FormRow(.button(AnyView(view))))]
+    }
+    if let control = view as? FormFieldControl, let parts = control.formFieldParts(in: walk.environment) {
+        return [.row(_FormRow(.field(label: parts.label, content: parts.control)))]
     }
     if let row = rewrappedRow(view, in: walk) {
         return [.row(row)]
@@ -152,7 +156,9 @@ private func row<Inner: View>(
     var row: _FormRow
     if let innerRow = rewrappedRow(inner, in: walk) {
         row = innerRow
-    } else if inner is any FormLabeledRow || inner is FormControlRow || inner is FormButtonRow {
+    } else if inner is any FormLabeledRow || inner is FormControlRow || inner is FormButtonRow
+        || inner is FormFieldControl
+    {
         guard case .row(let innerRow) = formElements(from: inner, in: walk).first else { return nil }
         row = innerRow
         // `.labelsHidden()` written on the row hides its label and takes it
