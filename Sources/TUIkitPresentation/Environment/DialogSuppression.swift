@@ -97,10 +97,21 @@ extension View {
 /// and a `Binding` cannot be compared. One object for the modifier's life
 /// compares by identity.
 @MainActor
-final class DialogSuppression: Equatable {
+package final class DialogSuppression: Equatable {
     /// The toggle's label, or `nil` for the default.
     var label: Text?
     var isSuppressed: Binding<Bool>?
+
+    /// A toggle with nothing to show yet: a view modifier's, filled in as its
+    /// body is evaluated.
+    init() {}
+
+    /// A toggle labelled `label`, or by default, bound to `isSuppressed`: a
+    /// scene modifier's (TUIkitScenes), made with what it states.
+    package init(label: Text?, isSuppressed: Binding<Bool>) {
+        self.label = label
+        self.isSuppressed = isSuppressed
+    }
 
     /// The toggle drawn in a dialog.
     var toggle: some View {
@@ -112,7 +123,7 @@ final class DialogSuppression: Equatable {
             .toggleStyle(.checkbox)
     }
 
-    nonisolated static func == (lhs: DialogSuppression, rhs: DialogSuppression) -> Bool { lhs === rhs }
+    nonisolated package static func == (lhs: DialogSuppression, rhs: DialogSuppression) -> Bool { lhs === rhs }
 }
 
 extension EnvironmentValues {
@@ -121,7 +132,7 @@ extension EnvironmentValues {
     ///
     /// Kept in the substrate's `.dialogSuppression` slot
     /// (``FeatureObjectSlot``), which detaching an environment clears.
-    var dialogSuppression: DialogSuppression? {
+    package var dialogSuppression: DialogSuppression? {
         get { self[featureObject: .dialogSuppression] as? DialogSuppression }
         set { self[featureObject: .dialogSuppression] = newValue }
     }

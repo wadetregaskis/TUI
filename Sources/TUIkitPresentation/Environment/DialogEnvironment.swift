@@ -69,14 +69,14 @@ private struct DialogPresentsErrorKey: EnvironmentKey {
 extension EnvironmentValues {
     /// The severity of the dialogs presented in this environment — set by
     /// ``View/dialogSeverity(_:)``.
-    var dialogSeverity: DialogSeverity {
+    package var dialogSeverity: DialogSeverity {
         get { self[DialogSeverityKey.self] }
         set { self[DialogSeverityKey.self] = newValue }
     }
 
     /// The icon the dialogs presented in this environment show — set by
     /// ``View/dialogIcon(_:)``.
-    var dialogIcon: Image? {
+    package var dialogIcon: Image? {
         get { self[DialogIconKey.self] }
         set { self[DialogIconKey.self] = newValue }
     }

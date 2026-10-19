@@ -4141,3 +4141,29 @@ private struct CorpusAdvancedSettingsButton: View {
         SettingsLink { Label("Preferences", systemImage: "gearshape") }
     }
 }
+
+/// An alert that is a scene, with the scene dialog modifiers, as
+/// `AlertScene`'s and `Scene.dialogSeverity(_:)`'s documentation write them.
+private struct CorpusAlertSceneApp: App {
+    @State private var isShowingDialog = false
+    @State private var suppressAlert = false
+
+    var body: some Scene {
+        Window("Items", id: "items") {
+            Button("Delete items") { isShowingDialog = true }
+        }
+        AlertScene("Are you sure you want to erase these items?", isPresented: $isShowingDialog) {
+            Button("Erase", role: .destructive) {}
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This cannot be undone.")
+        }
+        .dialogSeverity(.critical)
+        .dialogIcon(nil)
+        .dialogSuppressionToggle("Don't ask again", isSuppressed: $suppressAlert)
+        .dialogSuppressionToggle(isSuppressed: $suppressAlert)
+        AlertScene(Text("Login Required"), isPresented: $isShowingDialog, presenting: "name") { name in
+            Button(name) {}
+        }
+    }
+}

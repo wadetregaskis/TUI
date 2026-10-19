@@ -264,7 +264,6 @@
     },
     {
       "match": [
-        "AlertScene*",
         "View.windowDismissBehavior(_:)",
         "WindowInteractionBehavior*",
         "WindowVisibilityToggle*"

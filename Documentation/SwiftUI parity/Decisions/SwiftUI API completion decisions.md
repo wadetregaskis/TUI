@@ -487,6 +487,16 @@ an `AlertScene`, cannot be measured offscreen. Alerts are modal panels.
 **Decided with O9 (2026-10-12): option 1 under (b), lane owed** with O9's
 `SceneBuilder`.
 
+**Shipped (2026-10-18, lane O9).** The four dialog modifiers on `Scene`, as
+scene environment writes: on an `AlertScene` they are its alert's, and on a
+window scene they reach the alerts its views present, as the view modifiers
+written on their root would. `buildOptional` and `buildLimitedAvailability`
+came with the variadic `buildBlock`, and `Settings`, `SettingsLink`,
+`DefaultSettingsLinkLabel`, `OpenSettingsAction` and `\.openSettings` with
+O9's settings scene, a sheet over the window in front
+([B-O9-6](<Several scenes on one surface (O9).md#b-o9-6-settings-is-a-sheet-over-the-window-in-front>),
+[B-O9-7](<Several scenes on one surface (O9).md#b-o9-7-an-alert-scene-is-presented-over-the-window-in-front-its-dialog-modifiers-its-own>)).
+
 ### A27. Pixel effects: transforms, masks and `drawingGroup` (Wave 16)
 
 *`View.scaleEffect(_:anchor:)`, `View.scaleEffect(x:y:anchor:)`,

@@ -181,3 +181,30 @@ content, not around it). An app with no `Settings` scene presents nothing.
 **The fuller version** opens settings as a window over the whole terminal, as
 the other scenes are — a choice the ruling made against, since a settings pane
 is usually small; a line to change, if the owner prefers it.
+
+### B-O9-7. An alert scene is presented over the window in front, its dialog modifiers its own
+
+*`AlertScene`, `Scene.dialogSeverity(_:)`, `Scene.dialogIcon(_:)`, `Scene.dialogSuppressionToggle` (decisions A26)*
+
+SwiftUI's documentation: an alert scene is "not attached to any particular
+window", presents "in the center of the current display", and must be answered
+before anything else in the app is used.
+
+**Shipped:** while its binding is true the alert is presented over the window in
+front, whichever that is, as an alert written on a view in it would be —
+centred over the dimmed window, holding the keyboard; every action dismisses it,
+Escape chooses its cancel button, and with no actions it has an OK button. Its
+`presenting:` forms present nothing while the data is `nil`. The dialog
+modifiers are scene environment writes (A26's option 1): written on an alert
+scene they reach its alert and not the window's own alerts, since the alert's
+presenter is drawn beside the window's content in the scene's own environment
+(`_SceneOverlayHost`); written on a window scene they reach the alerts its views
+present. A scene keeps nothing from frame to frame, so the suppression toggle's
+object is made afresh each frame, where the view modifier keeps one in its
+state: the checkbox's binding is the one the modifier states now either way.
+
+**The fuller version** is a measurement, once a session can open windows: that
+SwiftUI's scene modifiers reach a window's own alerts, which A26 inferred from
+the documentation's wording; and whether an alert scene presented while a sheet
+is up comes over the sheet (here it comes over the window's content, under the
+sheet's own presentations' order). Five minutes there with the probe.
