@@ -111,6 +111,59 @@ public struct ToolbarItemGroup<Content: View>: ToolbarContent {
     public var body: Never { fatalError("ToolbarItemGroup hands itself to the bar") }
 }
 
+extension ToolbarItemGroup {
+    /// Creates a toolbar item group with the specified placement, content, and
+    /// a label describing that content.
+    ///
+    /// The group's views sit side by side while the bar has room for them;
+    /// when it does not, the group collapses to its label, a pull-down that
+    /// opens the views as a menu — as SwiftUI's labelled group, which wraps its
+    /// content in a `ControlGroup`, collapses into a menu "based on available
+    /// space".
+    ///
+    /// ```swift
+    /// ToolbarItemGroup(placement: .primaryAction) {
+    ///     Button("Bold") { … }
+    ///     Button("Italic") { … }
+    /// } label: {
+    ///     Label("Format", systemImage: "textformat")
+    /// }
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - placement: Which section of the toolbar the item should be placed in.
+    ///   - content: The content of the item.
+    ///   - label: The label describing the content of the item.
+    public init<C: View, L: View>(
+        placement: ToolbarItemPlacement = .automatic, @ViewBuilder content: () -> C, @ViewBuilder label: () -> L
+    ) where Content == LabeledToolbarItemGroupContent<C, L> {
+        self.placement = placement
+        self.content = LabeledToolbarItemGroupContent(content: content(), label: label())
+    }
+}
+
+/// A view that represents the view of a toolbar item group with a specified
+/// label — mirrors SwiftUI's `LabeledToolbarItemGroupContent`.
+///
+/// You don't create this type directly: ``ToolbarItemGroup`` makes one from
+/// ``ToolbarItemGroup/init(placement:content:label:)``. It draws the group's
+/// views side by side where they fit across the room the bar gives it, and
+/// otherwise its label, as a pull-down of the views.
+public struct LabeledToolbarItemGroupContent<Content: View, Label: View>: View {
+    /// The group's views.
+    let content: Content
+
+    /// What the group collapses to.
+    let label: Label
+
+    public var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 1) { content }
+            _ToolbarPullDown(label: label, items: content)
+        }
+    }
+}
+
 extension ToolbarItemGroup: _ToolbarContentPrimitive {
     func appendToolbarItems(to items: inout _ToolbarItemCollector) {
         items.append(placement: placement, view: AnyView(HStack(spacing: 1) { content }))

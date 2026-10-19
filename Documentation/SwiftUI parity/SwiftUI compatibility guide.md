@@ -586,7 +586,9 @@ NoteList()
 ```
 
 `.toolbar { … }` — both forms, `ToolbarItem` (with and without `id:`),
-`ToolbarItemGroup`, `ToolbarSpacer` with `SpacerSizing`, `DefaultToolbarItem`,
+`ToolbarItemGroup` (with and without a `label:`, the labelled one collapsing to
+its label — a pull-down of its views — when the bar has no room for them, as
+SwiftUI's collapses into a menu), `ToolbarSpacer` with `SpacerSizing`, `DefaultToolbarItem`,
 `ToolbarContent` and its builder, `ToolbarContent.hidden(_:)` — joins the
 **window's** bars, as on
 macOS: items declared anywhere in the page go to the bar their placement names.

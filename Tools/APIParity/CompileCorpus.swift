@@ -2689,6 +2689,12 @@ private struct ToolbarShapes: View {
                         Button("Print") {}
                     }
                     ToolbarTitleMenu()
+                    ToolbarItemGroup(placement: .primaryAction) {
+                        Button("Bold") {}
+                        Button("Italic") {}
+                    } label: {
+                        Label("Format", systemImage: "textformat")
+                    }
                     ToolbarItem { Image(systemName: "person.crop.circle") }
                         .sharedBackgroundVisibility(.hidden)
                 }
