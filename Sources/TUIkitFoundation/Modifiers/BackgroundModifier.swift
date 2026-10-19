@@ -32,7 +32,6 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         buffer: FrameBuffer, context: RenderContext, owner: Any.Type
     ) -> FrameBuffer {
         guard !buffer.isEmpty else { return buffer }
-        let width = buffer.width
         // Through the animator, so a change inside `withAnimation` moves rather
         // than jumping — a colour and every stop of a ramp alike. Returns the
         // paint untouched when nothing is moving.
@@ -44,6 +43,22 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         // then abandoned.
         let paint = PaintAnimation.resolving(
             style.paint(in: context.environment), owner: owner, context: context)
+        return filling(buffer, with: paint, context: context, owner: owner)
+    }
+
+    /// `buffer` with `paint` filled behind its content: every cell's field
+    /// where the content leaves it, and a claim of the paint's alpha.
+    ///
+    /// - Parameters:
+    ///   - buffer: The content, not empty.
+    ///   - paint: The paint, resolved and animated.
+    ///   - context: The modifier's context.
+    ///   - owner: The enclosing view's type, for the picture's token.
+    /// - Returns: The filled buffer.
+    private func filling(
+        _ buffer: FrameBuffer, with paint: Paint, context: RenderContext, owner: Any.Type
+    ) -> FrameBuffer {
+        let width = buffer.width
 
         // A ramp is resolved over the view being filled — its own box, or the
         // rectangle a `.gradientExtent(.subtree)` named. `nil` from the sampler
