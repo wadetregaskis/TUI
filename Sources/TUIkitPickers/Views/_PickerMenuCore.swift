@@ -179,6 +179,11 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // the two cannot disagree about the width.
         let renderedLabels = renderedOptionLabels(context: context)
         let menuEntries = dropdownEntries(labels: renderedLabels)
+        // What a typed prefix finds an option by, in option order.
+        handler.optionTexts = entries.indices.compactMap { index in
+            guard case .option = entries[index] else { return nil }
+            return TypeSelectBuffer.title(ofDrawn: renderedLabels[index] ?? "")
+        }
         // The collapsed control is drawn to the width of the menu it opens.
         let innerWidth = DropdownMenu.innerWidth(for: menuEntries, context: context)
 

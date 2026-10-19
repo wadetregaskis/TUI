@@ -60,6 +60,17 @@ package struct TypeSelectBuffer {
         return true
     }
 
+    /// The text a menu row or a drop-down option is found by, from its drawn
+    /// line: what is written there from its first letter or digit — so not
+    /// the space before it, nor a mark or an icon drawn ahead of the title
+    /// (a toggle row's `[■]`, a picker option's ✓, an SF Symbol's glyph), as
+    /// a desktop menu's type select matches an item's title.
+    package static func title(ofDrawn line: String) -> String {
+        let plain = line.stripped
+        guard let start = plain.firstIndex(where: { $0.isLetter || $0.isNumber }) else { return "" }
+        return String(plain[start...])
+    }
+
     /// The row `prefix` names among `count` rows: the first, starting at
     /// `current` for a prefix of more than one character (still typing the
     /// same name) and after it for a first character (the next match),

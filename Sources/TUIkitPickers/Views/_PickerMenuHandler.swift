@@ -17,7 +17,8 @@ import TUIkitFoundation
 /// the highlighted option survive re-rendering. While closed, Enter, Space,
 /// or Down opens the drop-down; while open, the arrow keys move the
 /// highlight, Enter or Space commits it, and Escape closes without changing
-/// the selection.
+/// the selection. A typed character, while open, moves the highlight to the
+/// option it starts.
 final class _PickerMenuHandler: PersistedFocusable {
     var focusID: String
 
@@ -51,6 +52,13 @@ final class _PickerMenuHandler: PersistedFocusable {
     /// Synced from `environment.shiftStepMultiplier` during render (default 5);
     /// a plain arrow moves one. See ``View/shiftStepMultiplier(_:)``.
     var shiftStepMultiplier: Int = 5
+
+    /// Each option's text as drawn, by option ordinal, synced by the render:
+    /// what a typed prefix finds an option by (``TypeSelectBuffer/title(ofDrawn:)``).
+    var optionTexts: [String] = []
+
+    /// What has been typed to find an option, while the drop-down is open.
+    private var typeSelected = TypeSelectBuffer()
 
     /// The drop-down's vertical scroll, when the option list is taller than the
     /// menu can show. `extent` = option count, `viewportHeight` = visible rows,
@@ -119,8 +127,24 @@ final class _PickerMenuHandler: PersistedFocusable {
             isOpen = false
             return false
         default:
+            // A typed character moves the highlight to the option it starts
+            // (type select), as an open macOS pop-up button's menu does; the
+            // first of a prefix gives way to an app's shortcut on it first
+            // (`InputHandler.typeSelectGivesWay`).
+            if typeSelected.take(event),
+                let match = TypeSelectBuffer.match(
+                    typeSelected.prefix, count: itemValues.count, current: highlight.ordinal,
+                    text: { optionTexts.indices.contains($0) ? optionTexts[$0] : nil })
+            {
+                highlight.move(to: match)
+            }
             // While open the picker is modal: swallow everything else.
             return true
         }
     }
+}
+
+extension _PickerMenuHandler: TypeSelectingFocusHandler {
+    /// Only while open: a closed picker takes no characters.
+    var isTypeSelecting: Bool { isOpen && typeSelected.isTypeSelecting }
 }

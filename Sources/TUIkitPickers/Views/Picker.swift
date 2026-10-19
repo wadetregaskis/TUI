@@ -84,8 +84,9 @@ enum _PickerEntry<SelectionValue: Hashable> {
 /// The picker is focusable with Tab. For a menu picker, Enter or Space opens
 /// the drop-down (the arrow keys move focus between controls, matching
 /// SwiftUI, rather than opening it); once open, the arrow keys move the
-/// highlight, Enter or Space commits the highlighted option, and Escape closes
-/// without changing the selection. For an inline picker, the arrow keys move
+/// highlight, typing an option's first characters moves it to that option
+/// (type select, as in a `List`), Enter or Space commits the highlighted
+/// option, and Escape closes without changing the selection. For an inline picker, the arrow keys move
 /// between options and Enter or Space selects. A segmented or palette picker is
 /// one stop too: Left and Right move a cursor among the segments, wrapping at
 /// the ends, and Enter or Space chooses the segment under it.
