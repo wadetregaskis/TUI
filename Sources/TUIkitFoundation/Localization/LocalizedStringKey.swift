@@ -538,11 +538,7 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         /// contributes nothing rather than its description.
         public mutating func appendInterpolation(_ image: Image) {
             appendPlaceholder("%@")
-            if case .symbol(let name) = image.content {
-                arguments.append(SFSymbol.glyph(named: name) ?? "")
-            } else {
-                arguments.append("")
-            }
+            arguments.append(image.textGlyph)
         }
 
         /// Interpolates a number through a printf-style format specifier —

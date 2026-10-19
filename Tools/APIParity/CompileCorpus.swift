@@ -3819,3 +3819,14 @@ private struct CorpusAnyHashableBinding: View {
         return Text("\(erased.wrappedValue.description)")
     }
 }
+
+/// An image wrapped as text, interpolated into a key.
+@MainActor
+private struct CorpusTextOfImage: View {
+    var body: some View {
+        VStack {
+            Text(Image(systemName: "star.fill"))
+            Text("\(Text(Image(systemName: "star.fill"))) Favourites")
+        }
+    }
+}

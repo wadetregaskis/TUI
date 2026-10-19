@@ -135,6 +135,16 @@ struct LocalizedStringKeyTests {
         #expect(SFSymbol.glyph(named: "star") != nil, "sanity: the symbol table has a star")
     }
 
+    @Test("Text(_:) of an image is its glyph, as interpolating the image gives, and nothing for an unknown symbol")
+    func textOfAnImage() throws {
+        // SwiftUI's `Text(_ image: Image)`, the audit's verifier finding.
+        let star = try #require(SFSymbol.glyph(named: "star.fill"))
+        #expect(Text(Image(systemName: "star.fill")).content == star)
+        #expect(Text(Image(systemName: "no.such.symbol")).content.isEmpty)
+        let key: LocalizedStringKey = "\(Text(Image(systemName: "star.fill"))) Favourites"
+        #expect(key.resolved(with: isolatedService()) == star + " Favourites")
+    }
+
     @Test("Interpolating a Text contributes its own content, not its debug description")
     func interpolatingATextContributesItsContent() {
         // SwiftUI lets a `Text` interpolate another `Text` (and an `Image`)
