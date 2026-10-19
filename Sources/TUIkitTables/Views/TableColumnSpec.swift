@@ -103,6 +103,10 @@ struct _TableColumnSpec<Value> {
         }
     }
 
+    /// Whether a user may resize this column at all, at any width
+    /// (``resizeBounds(upTo:)``).
+    var isResizable: Bool { resizeBounds(upTo: .max) != nil }
+
     /// How a cell value is shortened when it is wider than the column.
     var truncationMode: TruncationMode
 

@@ -4022,10 +4022,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     /// What the column keys reach (``TableColumnEditing``) — `nil` for a table
-    /// with no header, or no column a user may do anything to. Without a
-    /// customization binding the keys pick a column and resize it, and move
-    /// nothing and open no menu, as the pointer resizes there and does
-    /// nothing else (decisions B-D4T-7).
+    /// with no header; one that lists no column for a table with no column a
+    /// user may do anything to. Without a customization binding the keys pick
+    /// a column and resize it, and move nothing and open no menu, as the
+    /// pointer resizes there and does nothing else (decisions B-D4T-7).
+    ///
+    /// Made on every pass of every table with a header, and asked only when a
+    /// column key arrives, so it works nothing out ahead: its closures hold
+    /// this pass's columns, and find the column a key names when it is
+    /// pressed. Worked out as it was made — the keys listed, the columns
+    /// filed by key — it was 3.1% of a frame of the `table` scenario, which
+    /// has no binding and no key pressed (lane LISTSPERF).
     private func columnEditing(
         _ handler: ItemListHandler<Value.ID>, context: RenderContext
     ) -> TableColumnEditing? {
@@ -4033,54 +4040,46 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         guard let binding = columnCustomization, columns.contains(where: { $0.customizationID != nil }) else {
             return resizingColumnEditing(handler)
         }
-        let declared = declaredColumns.compactMap(\.customizationID)
-        let specs = Dictionary(
-            declaredColumns.compactMap { column in column.customizationID.map { ($0, column) } },
-            uniquingKeysWith: { first, _ in first })
         // Each key asks the customization as it stands, not this frame's
         // columns: a key earlier in the same batch may have moved, resized or
         // hidden one (see ``liveHeaderColumns(_:)``). Two `>` in one batch
         // cancelled out, and `++` grew a column by one.
-        let shownIDs = { [declaredColumns] in
-            binding.wrappedValue.shownColumns(declaredColumns).compactMap(\.customizationID)
-        }
-        // What the keys pick: the identified columns, and those without an
-        // identifier that may be resized, which only resizing reaches — kept
-        // by the table, as the pointer keeps them (decisions B-D4T-7).
-        let unidentified = Dictionary(
-            declaredColumns.filter { $0.customizationID == nil && $0.resizeBounds(upTo: Int.max) != nil }
-                .map { ($0.columnKey, $0) },
-            uniquingKeysWith: { first, _ in first })
-        let shownKeys = { [declaredColumns] in
-            binding.wrappedValue.shownColumns(declaredColumns).map(\.columnKey)
-                .filter { specs[$0] != nil || unidentified[$0] != nil }
-        }
+        let declaredColumns = declaredColumns
         let box = columnMenuBox(context)
         let onOpen = context.environment.menuOpenAction
         return TableColumnEditing(
-            currentColumns: shownKeys,
+            // What the keys pick: the identified columns, and those without
+            // an identifier that may be resized, which only resizing reaches
+            // — kept by the table, as the pointer keeps them (decisions
+            // B-D4T-7).
+            currentColumns: {
+                binding.wrappedValue.shownColumns(declaredColumns)
+                    .filter { $0.customizationID != nil || $0.isResizable }.map(\.columnKey)
+            },
             move: { id, delta in
-                let ids = shownIDs()
+                let ids = binding.wrappedValue.shownColumns(declaredColumns).compactMap(\.customizationID)
                 guard let position = ids.firstIndex(of: id), ids.indices.contains(position + delta),
-                    specs[id]?.allows(.reorder) == true, specs[ids[position + delta]]?.allows(.reorder) == true
+                    declaredColumns.first(where: { $0.customizationID == id })?.allows(.reorder) == true,
+                    declaredColumns.first(where: { $0.customizationID == ids[position + delta] })?
+                        .allows(.reorder) == true
                 else { return }
-                binding.wrappedValue.move(id, toPlaceOf: ids[position + delta], declared: declared)
+                binding.wrappedValue.move(
+                    id, toPlaceOf: ids[position + delta], declared: declaredColumns.compactMap(\.customizationID))
             },
             resize: { [weak handler] id, delta in
-                // A width the user set is the width drawn; any other, the last
-                // frame's.
                 guard let handler else { return }
-                if let spec = unidentified[id] {
-                    guard let current = handler.transientColumnWidths[id]
-                            ?? handler.headerColumns.first(where: { $0.declaration == spec.declarationIndex })?.x.count,
-                        let bounds = spec.resizeBounds(upTo: max(1, handler.headerColumnsWidest))
-                    else { return }
-                    handler.transientColumnWidths[id] = min(bounds.upperBound, max(bounds.lowerBound, current + delta))
+                if let kept = declaredColumns.first(where: {
+                    $0.customizationID == nil && $0.isResizable && $0.columnKey == id
+                }) {
+                    Self.resizeKeptWidth(of: kept, by: delta, in: handler)
                     return
                 }
+                // A width the user set is the width drawn; any other, the last
+                // frame's.
                 guard let current = binding.wrappedValue[width: id]
                         ?? handler.headerColumns.first(where: { $0.id == id })?.x.count,
-                    let bounds = specs[id]?.resizeBounds(upTo: max(1, handler.headerColumnsWidest))
+                    let bounds = declaredColumns.first(where: { $0.customizationID == id })?
+                        .resizeBounds(upTo: max(1, handler.headerColumnsWidest))
                 else { return }
                 binding.wrappedValue[width: id] = min(bounds.upperBound, max(bounds.lowerBound, current + delta))
             },
@@ -4093,26 +4092,35 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
     /// The column keys of a table with no customization binding: every shown
     /// column a user may resize, by its key, resized into the table's own
-    /// state; nothing moves, and no menu opens. `nil` when no column may be
-    /// resized.
-    private func resizingColumnEditing(_ handler: ItemListHandler<Value.ID>) -> TableColumnEditing? {
-        let resizable = columns.filter { $0.resizeBounds(upTo: Int.max) != nil }
-        guard !resizable.isEmpty else { return nil }
-        let keys = resizable.map(\.columnKey)
-        let specs = Dictionary(resizable.map { ($0.columnKey, $0) }, uniquingKeysWith: { first, _ in first })
+    /// state; nothing moves, and no menu opens. Lists no column when none may
+    /// be resized.
+    private func resizingColumnEditing(_ handler: ItemListHandler<Value.ID>) -> TableColumnEditing {
+        let columns = columns
         return TableColumnEditing(
-            currentColumns: { keys },
+            currentColumns: { columns.filter(\.isResizable).map(\.columnKey) },
             move: { _, _ in },
             resize: { [weak handler] key, delta in
-                guard let handler, let spec = specs[key],
-                    let current = handler.transientColumnWidths[key]
-                        ?? handler.headerColumns.first(where: { $0.declaration == spec.declarationIndex })?.x.count,
-                    let bounds = spec.resizeBounds(upTo: max(1, handler.headerColumnsWidest))
+                guard let handler, let column = columns.first(where: { $0.isResizable && $0.columnKey == key })
                 else { return }
-                handler.transientColumnWidths[key] = min(bounds.upperBound, max(bounds.lowerBound, current + delta))
+                Self.resizeKeptWidth(of: column, by: delta, in: handler)
             },
             openMenu: { _ in },
             menuIsOpen: { false })
+    }
+
+    /// Resizes `column`, whose width the table keeps rather than a
+    /// customization (``ItemListHandler/transientColumnWidths``), by `delta`
+    /// cells within its bounds: from the width a user gave it, else the one
+    /// the last frame drew.
+    private static func resizeKeptWidth(
+        of column: _TableColumnSpec<Value>, by delta: Int, in handler: ItemListHandler<Value.ID>
+    ) {
+        let key = column.columnKey
+        guard let current = handler.transientColumnWidths[key]
+                ?? handler.headerColumns.first(where: { $0.declaration == column.declarationIndex })?.x.count,
+            let bounds = column.resizeBounds(upTo: max(1, handler.headerColumnsWidest))
+        else { return }
+        handler.transientColumnWidths[key] = min(bounds.upperBound, max(bounds.lowerBound, current + delta))
     }
 
     /// Draws the open column menu over the table — anchored at the press, or

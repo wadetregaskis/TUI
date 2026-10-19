@@ -16,7 +16,11 @@ import TUIkitFoundation
 /// A table's column customization as the keyboard reaches it: built each frame
 /// by a table with a header, from the columns it is showing — every one it may
 /// resize, and with a ``TableColumnCustomization`` bound, every one it may
-/// move, hide or open the menu on (decisions B-D4T-7).
+/// move, hide or open the menu on (decisions B-D4T-7). One that lists no
+/// column is no customization at all: the keys go on to the rows.
+///
+/// Every member is asked when a key arrives, not when the table builds it, so
+/// a table works out nothing for it on a frame no key reaches it.
 package struct TableColumnEditing {
     /// The shown columns a user may customize, by identifier, in the order
     /// they are shown — as they stand now, asked of the customization: a key
