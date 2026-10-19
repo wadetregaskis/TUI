@@ -158,6 +158,37 @@ open class UndoManager {
 
     /// Whether the next redo action is discardable.
     open var redoActionIsDiscardable: Bool { stack.redoActionIsDiscardable }
+
+    // MARK: User info
+
+    /// A key in an undo action's user info.
+    public struct UserInfoKey: Hashable, RawRepresentable, Sendable {
+        public let rawValue: String
+
+        public init(_ rawValue: String) {
+            self.rawValue = rawValue
+        }
+
+        public init(rawValue: String) {
+            self.rawValue = rawValue
+        }
+    }
+
+    /// Sets a value in the user info of the undo action being built. Does
+    /// nothing with no undo group open, where `NSUndoManager` raises.
+    open func setActionUserInfoValue(_ info: Any?, forKey key: UserInfoKey) {
+        stack.setActionUserInfoValue(info, forKey: key.rawValue)
+    }
+
+    /// A value from the user info of the action ``undo()`` would undo.
+    open func undoActionUserInfoValue(forKey key: UserInfoKey) -> Any? {
+        stack.undoActionUserInfoValue(forKey: key.rawValue)
+    }
+
+    /// A value from the user info of the action ``redo()`` would redo.
+    open func redoActionUserInfoValue(forKey key: UserInfoKey) -> Any? {
+        stack.redoActionUserInfoValue(forKey: key.rawValue)
+    }
 }
 
 #endif

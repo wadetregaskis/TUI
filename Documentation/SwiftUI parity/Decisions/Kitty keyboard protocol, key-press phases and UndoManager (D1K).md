@@ -137,7 +137,9 @@ find 'UndoManager' in scope", and `libFoundation.a` holds no undo symbols. So
 class UndoManager` with Foundation's Swift surface — grouping (by event, by
 default), registration with a target and a handler, undo, redo, nested undo,
 enabling and disabling, levels of undo, removing actions (all, or a target's),
-action names, menu titles in the app's language, discardability — backed by
+action names, menu titles in the app's language, discardability, and since
+2026-10-18 an action's user info (macOS 15's API, which a text control's
+typing run asks of the newest step, B-D1K-6) — backed by
 `UndoStack`, which is tested on macOS against what `NSUndoManager` was
 measured to do. Where `NSUndoManager` raises (an unbalanced end, undo inside an
 explicit group, a top-level registration with grouping by event off), it does

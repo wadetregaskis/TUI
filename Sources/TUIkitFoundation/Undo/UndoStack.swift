@@ -51,6 +51,9 @@ final class UndoStack {
         var actions: [Action] = []
         var name = ""
         var isDiscardable = false
+        /// The step's user info (``setActionUserInfoValue(_:forKey:)``), by
+        /// key.
+        var userInfo: [String: Any] = [:]
     }
 
     private var undoGroups: [Group] = []
@@ -134,6 +137,7 @@ final class UndoStack {
             open[parent].actions += group.actions
             if open[parent].name.isEmpty { open[parent].name = group.name }
             open[parent].isDiscardable = open[parent].isDiscardable || group.isDiscardable
+            open[parent].userInfo.merge(group.userInfo) { parent, _ in parent }
             return
         }
         guard !group.actions.isEmpty else { return }
@@ -201,7 +205,7 @@ final class UndoStack {
         if runFloor > 0 {
             // A run is only entered with nothing open, so its group is the
             // first.
-            open = [Group(name: open[0].name, isDiscardable: open[0].isDiscardable)]
+            open = [Group(name: open[0].name, isDiscardable: open[0].isDiscardable, userInfo: open[0].userInfo)]
             runFloor = 1
         } else {
             open.removeAll()
@@ -282,7 +286,7 @@ final class UndoStack {
     /// later registration gathered in it.
     private func run(_ group: Group, as running: Mode) {
         mode = running
-        open.append(Group(name: group.name, isDiscardable: group.isDiscardable))
+        open.append(Group(name: group.name, isDiscardable: group.isDiscardable, userInfo: group.userInfo))
         runFloor = open.count
         for action in group.actions.reversed() { action.perform() }
         runFloor = 0
@@ -333,4 +337,27 @@ final class UndoStack {
 
     /// Whether the step ``redo()`` would redo is discardable.
     var redoActionIsDiscardable: Bool { redoGroups.last?.isDiscardable ?? false }
+
+    // MARK: User info
+
+    /// Sets a value in the user info of the step being built, `nil` taking
+    /// the key out; it goes with the step to the redo stack and back, as its
+    /// name does. With no step being built it does nothing, where
+    /// `NSUndoManager` raises ("must begin a group before setting undo action
+    /// user info"; measured on macOS 15.8, as is everything here).
+    func setActionUserInfoValue(_ info: Any?, forKey key: String) {
+        guard !open.isEmpty else { return }
+        open[0].userInfo[key] = info
+    }
+
+    /// A value from the user info of the step ``undo()`` would undo — the one
+    /// being built, once it has an action, as with its name.
+    func undoActionUserInfoValue(forKey key: String) -> Any? {
+        (open.first { !$0.actions.isEmpty } ?? undoGroups.last)?.userInfo[key]
+    }
+
+    /// A value from the user info of the step ``redo()`` would redo.
+    func redoActionUserInfoValue(forKey key: String) -> Any? {
+        redoGroups.last?.userInfo[key]
+    }
 }

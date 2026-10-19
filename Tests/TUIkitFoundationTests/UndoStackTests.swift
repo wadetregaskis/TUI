@@ -179,6 +179,33 @@ struct UndoStackTests {
         #expect(stack.undoActionName.isEmpty)
     }
 
+    /// Measured on macOS 15.8 (`NSUndoManager`): the user info names the step
+    /// being built as soon as it has an action, a newer step without it
+    /// answers `nil`, and it goes with its step to the redo stack and back.
+    @Test("A step keeps its user info through undo and redo, and the newest step is the one asked")
+    func actionUserInfo() {
+        let (stack, endEvent) = makeStack()
+        let model = Model()
+        let mark = Model()
+        func info() -> AnyObject? { stack.undoActionUserInfoValue(forKey: "mark") as AnyObject? }
+        stack.setActionUserInfoValue(mark, forKey: "mark")
+        set(model, to: 1, on: stack)
+        #expect(info() == nil, "set with no step being built, where NSUndoManager raises, it does nothing")
+        stack.setActionUserInfoValue(mark, forKey: "mark")
+        #expect(info() === mark, "the step being built")
+        endEvent()
+        #expect(info() === mark)
+        set(model, to: 2, on: stack)
+        #expect(info() == nil, "a newer step without it")
+        endEvent()
+        stack.undo()
+        #expect(info() === mark, "the older step is the newest again")
+        stack.undo()
+        #expect(stack.redoActionUserInfoValue(forKey: "mark") as AnyObject? === mark)
+        stack.redo()
+        #expect(info() === mark)
+    }
+
     @Test("Unbalanced grouping does nothing rather than trap")
     func unbalanced() {
         let (stack, _) = makeStack()
