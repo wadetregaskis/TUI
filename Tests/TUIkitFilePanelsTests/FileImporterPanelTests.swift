@@ -189,6 +189,36 @@ struct FileImporterPanelTests {
         #expect(caller.chosenPaths == [fixture.url("Alpha").path])
     }
 
+    @Test("Typing a name's first letters finds it, by the name alone")
+    func typeSelect() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver { panel(fixture, caller: caller) }
+        await driver.waitFor("notes.md")
+        // "g" lands on gamma.pdf, past the folders; Return chooses it.
+        driver.press(.character("g"))
+        driver.press(.enter)
+        #expect(caller.chosenPaths == [fixture.url("gamma.pdf").path])
+    }
+
+    @Test("The hidden-files switch lists the hidden items, and takes them away again")
+    func hiddenSwitch() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver { panel(fixture, caller: caller) }
+        await driver.waitFor("notes.md")
+        // Tab to the switch, Space to turn it on.
+        driver.press(.tab)
+        driver.press(.space)
+        let shown = await driver.waitFor(".hidden")
+        #expect(shown.contains(".hidden"))
+        driver.press(.space)
+        await settle { !driver.screen().contains(".hidden") }
+        #expect(!driver.screen().contains(".hidden"))
+    }
+
     @Test("~ goes to the home folder")
     func tildeGoesHome() async throws {
         let fixture = try FilePanelFixture()
