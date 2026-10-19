@@ -230,7 +230,7 @@ extension _ColorEffectView {
     /// `buffer` with this effect applied to its lines — and to every overlay this
     /// subtree actually DREW.
     ///
-    /// The overlay half is `_OpacityView.fadingOverlays`'s rule, for its reasons.
+    /// The overlay half is `OpacityFading.fadingOverlays`'s rule, for its reasons.
     /// An **anchored** layer (an `.offset`/`.position` child, a transition's
     /// moving slot) is this subtree's own drawing, displaced: walking `lines`
     /// alone drew `VStack { a; b.offset(x: 1) }.grayscale(1)` with `a` grey and
@@ -268,7 +268,7 @@ extension _ColorEffectView {
         // (`FrameBuffer.restyleRuns`).
         if rewrites { result.restyleRuns(recoloured) }
         if let layerFade {
-            // Through `_OpacityView.fading` rather than a bare append, and the order
+            // Through `OpacityFading.fading` rather than a bare append, and the order
             // is the point. The resolution takes the LAYER from the FIRST region
             // covering a cell and multiplies only ink and field across the rest, so
             // whatever the content claimed — an inner `.opacity(_:)`, another
@@ -278,7 +278,7 @@ extension _ColorEffectView {
             // .colorMultiply(.clear)` drew the text instead of hiding it. Scaling the
             // inner regions before stamping this rectangle last is what `.opacity(_:)`
             // does, and §25 says the two must nest alike.
-            result.opacityRegions = _OpacityView<Content>.fading(
+            result.opacityRegions = OpacityFading.fading(
                 result.opacityRegions, by: layerFade, cycle: nil,
                 wholeOf: result, appendingRectangle: !result.isEmpty)
         }

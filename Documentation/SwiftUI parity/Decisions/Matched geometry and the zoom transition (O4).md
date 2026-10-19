@@ -96,6 +96,11 @@ the transition code lane FB16 is changing, so it waits for that lane. Whether
 a carried view should fade at all in a terminal is worth a look then: a solid
 view moving reads better on a cell grid than one fading in as it moves.
 
+**Done 2026-10-19 (lane TRANSITIONS2).** Both fades reach a view's layers
+drawn past its slot (`OpacityFading`, moved down to `TUIkitView`): a carried
+view fades as it moves, and an `.offset` child with its `if`, as SwiftUI's do
+(`mg3.out` A1, A2; `Tools/SwiftUIProbes/Transitions/tr3.out` T14, T15).
+
 ### B-O4-3. With two sources, the last one drawn is the group's, and the others keep their own frames
 
 *`View.matchedGeometryEffect(id:in:properties:anchor:isSource:)`*

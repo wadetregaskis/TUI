@@ -6346,7 +6346,7 @@ the page's own character showed through the sheet in its place.
 
 The compositor now spends a centred layer's fades against its surface, painted first, as a
 `.background` does. Only a centred layer: a fade outside the presenter never reaches one
-(`_OpacityView.fadingOverlays` leaves screen-level layers alone), so every region it carries
+(`_OpacityView.fadingOverlays`, now `OpacityFading.fadingOverlays`, leaves screen-level layers alone), so every region it carries
 is its own content's. An anchored layer can carry the presenter's fade, which has to take the
 surface with it, in the same list as its content's, and the compositor cannot tell the two
 apart; so a label faded inside an anchored layer that paints no surface of its own (a menu,

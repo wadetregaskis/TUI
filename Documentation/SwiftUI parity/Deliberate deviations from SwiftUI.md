@@ -1371,10 +1371,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   there a terminal's blank cells paint, so a view carried toward the views
   before it would be lost under every container after it;
   the removed view's picture stays where it last drew it while its removal
-  plays; and a transition that fades the inserted view fades it where it is
-  laid out, not the cells it draws at another view's frame. A source that its
-  parent moves is not animated by the effect, so a view under both an
-  animated layout and a matched geometry effect moves once.
+  plays; a transition that fades the inserted view fades the cells it draws
+  at another view's frame too, as it moves (2026-10-19, decisions B-O4-2). A
+  source that its parent moves is not animated by the effect, so a view under
+  both an animated layout and a matched geometry effect moves once.
 - **Why:** a cell cannot be scaled (refusal review O4, ruled 2026-10-12: a
   re-layout per frame, with translation where the sizes are equal); a
   removed view's content is the picture it last drew (A3).

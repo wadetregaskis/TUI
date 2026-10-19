@@ -442,21 +442,25 @@ messages cite that path), and what cites it.
   transition's `.animation(nil)` under `withAnimation`; a transition's own animation with no `withAnimation`;
   and a custom transition that collapses its height. `tr2.swift`: how a transition's own animations compose —
   an outer `.animation` over halves with their own, two `.animation` calls, `nil` before and after an
-  animation, and parts of a `combined` transition with different ones. Each is a program alone (`@main`, built
-  with `-parse-as-library`); `tr2` copies `tr1`'s harness.
+  animation, and parts of a `combined` transition with different ones. `tr3.swift`: whether a fade reaches
+  what a view draws displaced by `.offset`, with no transition and with `.opacity`. Each is a program alone
+  (`@main`, built with `-parse-as-library`); `tr2` and `tr3` copy `tr1`'s harness.
   Found: with no transition the leaving view fades out where it was, drawn beneath its siblings, while the new
   one fades in and the views below glide — a branch flip, a `switch` case and a `ForEach` row alike, and a
   whole body's two branches overlap at its origin; each half of an `asymmetric` transition keeps its own
   animation, and a half with none takes the change's; the animation nearest the view wins, `nil` included,
   which plays the transition at once under any `withAnimation`; a transition's own animation plays with no
   `withAnimation`; each part of a `combined` transition runs under its own; a collapsing transition's
-  neighbours move continuously as its frame shrinks.
+  neighbours move continuously as its frame shrinks; a view drawn displaced fades with the view it belongs to.
 - **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-19. Samples move by a point or two, and an
   opacity by a hundredth, with the frame's timing.
 - **Was:** `TRANSITIONS2/probe/`.
 - **Cited by:** `Sources/TUIkitEffects/Animation/AnyTransition.swift`,
-  `Sources/TUIkitEffects/Animation/TransitionModifier.swift`, `Sources/TUIkitView/Animation/ChildFade.swift`,
+  `Sources/TUIkitEffects/Animation/TransitionModifier.swift`, `Sources/TUIkitEffects/Animation/TransitionEffects.swift`,
+  `Sources/TUIkitView/Animation/DefaultTransition.swift`, `Sources/TUIkitView/Animation/ChildFade.swift`,
   `Sources/TUIkitView/Animation/BranchTransition.swift`; `Tests/TUIkitEffectsTests/TransitionTests.swift`,
-  `Tests/TUIkitEffectsTests/TransitionAnimationTests.swift`, `Tests/TUIkitEffectsTests/BranchAndRowFadeTests.swift`; `Documentation/SwiftUI parity/Deliberate deviations
+  `Tests/TUIkitEffectsTests/TransitionAnimationTests.swift`, `Tests/TUIkitEffectsTests/BranchAndRowFadeTests.swift`,
+  `Tests/TUIkitEffectsTests/DefaultTransitionTests.swift`; `Documentation/SwiftUI parity/Deliberate deviations
   from SwiftUI.md` (A3, A6), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Animation row);
-  `Documentation/SwiftUI parity/Decisions/Transition follow-ups (TRANSITIONS2).md`.
+  `Documentation/SwiftUI parity/Decisions/Transition follow-ups (TRANSITIONS2).md`,
+  `Documentation/SwiftUI parity/Decisions/Matched geometry and the zoom transition (O4).md` (B-O4-2).

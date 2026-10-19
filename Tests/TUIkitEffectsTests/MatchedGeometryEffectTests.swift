@@ -41,14 +41,22 @@ private final class Frames {
     /// The root's corrections so far.
     var corrections: GeometryCorrections { harness.geometryCorrections }
 
+    /// One frame of `view` at `millis` on the frame clock, under `animation`,
+    /// as drawn: its layers not yet composited.
+    func buffer<V: View>(_ view: @autoclosure () -> V, atMillis millis: Int = 0, animation: Animation? = nil)
+        -> FrameBuffer
+    {
+        harness.now = Int64(millis) * 1_000_000
+        harness.transaction = Transaction(animation: animation)
+        return harness.frame(view())
+    }
+
     /// One frame of `view` at `millis` on the frame clock, under `animation`.
     @discardableResult
     func draw<V: View>(_ view: @autoclosure () -> V, atMillis millis: Int = 0, animation: Animation? = nil)
         -> [String]
     {
-        harness.now = Int64(millis) * 1_000_000
-        harness.transaction = Transaction(animation: animation)
-        let buffer = harness.frame(view())
+        let buffer = buffer(view(), atMillis: millis, animation: animation)
         return buffer.compositingOverlays(
             maxWidth: harness.context.availableWidth, maxHeight: harness.context.availableHeight,
             palette: harness.context.environment.palette
@@ -140,22 +148,35 @@ private struct Hero: View {
 /// column at (0, 1), or `b` 3×1 in the right at (20, 2) — two views of one id.
 private struct Columns: View {
     let right: Bool
+    /// A transition of the chips' own, in place of the default fade.
+    var transition: AnyTransition?
     @Namespace private var space
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
                 Text("L")
-                if !right { GlyphFill("a").frame(width: 3, height: 1).matchedGeometryEffect(id: "chip", in: space) }
+                if !right { chip("a") }
             }
             .frame(width: 20, alignment: .topLeading)
             VStack(alignment: .leading, spacing: 0) {
                 Text("R")
                 Text("x")
-                if right { GlyphFill("b").frame(width: 3, height: 1).matchedGeometryEffect(id: "chip", in: space) }
+                if right { chip("b") }
             }
         }
     }
+
+    @ViewBuilder
+    private func chip(_ glyph: Character) -> some View {
+        let drawn = GlyphFill(glyph).frame(width: 3, height: 1).matchedGeometryEffect(id: "chip", in: space)
+        if let transition { drawn.transition(transition) } else { drawn }
+    }
+}
+
+/// The strengths of the fades `buffer` carries, its layers' included.
+private func layerFades(_ buffer: FrameBuffer) -> [Double] {
+    buffer.opacityRegions.map(\.opacity) + buffer.overlays.flatMap { layerFades($0.content) }
 }
 
 // MARK: - Tests
@@ -395,8 +416,11 @@ struct MatchedGeometryEffectTests {
     func hero() {
         let frames = Frames()
         frames.draw(Hero(expanded: false))
+        // It fades in as it is carried, from nothing where the one leaving
+        // still is (`mg3.out` A1).
         let start = frames.draw(Hero(expanded: true), atMillis: 0, animation: .linear(duration: 1))
-        #expect(rect(of: "B", in: start) == CellRect(x: 0, y: 0, width: 4, height: 1))
+        #expect(rect(of: "B", in: start) == nil)
+        #expect(rect(of: "s", in: start) == CellRect(x: 0, y: 0, width: 4, height: 1))
         // Halfway: 0 → 20, 4 → 28, 0 → 6, 1 → 9.
         #expect(rect(of: "B", in: frames.draw(Hero(expanded: true), atMillis: 500))
             == CellRect(x: 10, y: 3, width: 6, height: 2))
@@ -408,12 +432,28 @@ struct MatchedGeometryEffectTests {
             == CellRect(x: 10, y: 3, width: 6, height: 2))
     }
 
+    /// SwiftUI fades the view it carries in as it moves, and the one leaving
+    /// out (`mg3.out` A1, A2): the fade reaches the drawing the view makes
+    /// past its slot, which is all of a carried view's (decisions B-O4-2).
+    @Test("A view carried into place fades in as it moves")
+    func carriedViewFades() {
+        let frames = Frames()
+        frames.draw(Hero(expanded: false))
+        frames.draw(Hero(expanded: true), atMillis: 0, animation: .linear(duration: 1))
+        let half = frames.buffer(Hero(expanded: true), atMillis: 500)
+        let layers = half.overlays.flatMap { layerFades($0.content) }
+        #expect(layers.contains { abs($0 - 0.5) < 0.02 }, "the carried drawing fades in: \(layers)")
+        let end = frames.buffer(Hero(expanded: true), atMillis: 1100)
+        #expect(end.overlays.flatMap { layerFades($0.content) }.isEmpty, "arrived, and at rest")
+    }
+
     @Test("A chip moving between two columns is carried across, and the columns lay out as they will end")
     func chipBetweenColumns() {
         let frames = Frames()
         frames.draw(Columns(right: false))
         let start = frames.draw(Columns(right: true), atMillis: 0, animation: .linear(duration: 1))
-        #expect(rect(of: "b", in: start) == CellRect(x: 0, y: 1, width: 3, height: 1))
+        #expect(rect(of: "b", in: start) == nil, "it fades in as it is carried")
+        #expect(rect(of: "a", in: start) == CellRect(x: 0, y: 1, width: 3, height: 1))
         // Halfway: x 0 → 20, y 1 → 2 (half a row from the far end, rounded
         // away from it).
         #expect(rect(of: "b", in: frames.draw(Columns(right: true), atMillis: 500))
@@ -423,16 +463,19 @@ struct MatchedGeometryEffectTests {
         #expect(end[1].hasPrefix("                    x"), "the right column's rows are where they end")
     }
 
+    /// With no transition the chip fades as it is carried, and a tenth of the
+    /// way it has a tenth of its strength; written `.identity`, it is drawn
+    /// whole all the way, and what is drawn over or under shows.
     @Test("A view carried toward the views before it is drawn over the views after it while it moves")
     func carriedOverLaterViews() {
         let frames = Frames()
-        frames.draw(Columns(right: true))
-        frames.draw(Columns(right: false), atMillis: 0, animation: .linear(duration: 1))
+        frames.draw(Columns(right: true, transition: .identity))
+        frames.draw(Columns(right: false, transition: .identity), atMillis: 0, animation: .linear(duration: 1))
         // A tenth of the way back from (20, 2): over the right column, which
         // comes after the left one and still draws the chip leaving it.
-        let early = frames.draw(Columns(right: false), atMillis: 100)
+        let early = frames.draw(Columns(right: false, transition: .identity), atMillis: 100)
         #expect(rect(of: "a", in: early) == CellRect(x: 18, y: 2, width: 3, height: 1))
-        #expect(rect(of: "a", in: frames.draw(Columns(right: false), atMillis: 1000))
+        #expect(rect(of: "a", in: frames.draw(Columns(right: false, transition: .identity), atMillis: 1000))
             == CellRect(x: 0, y: 1, width: 3, height: 1))
     }
 

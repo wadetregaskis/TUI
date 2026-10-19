@@ -131,7 +131,7 @@ extension FrameBuffer {
                 // And a surface is the backdrop of every fade INSIDE it (§96.2): a
                 // label faded in a sheet fades into the sheet, whose surface stays
                 // put. Only a centred layer — a sheet, an alert, a cover — because a
-                // fade outside the presenter never reaches one (`fadingOverlays`),
+                // fade outside the presenter never reaches one (`OpacityFading.fadingOverlays`),
                 // so every region it carries is its own content's. An anchored layer
                 // may carry the presenter's fade, which must take the surface with
                 // it, in the same list as its content's, and cannot be told apart

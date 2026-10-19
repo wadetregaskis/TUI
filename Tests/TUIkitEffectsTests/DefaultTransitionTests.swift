@@ -76,6 +76,31 @@ private enum Made {
     }
 }
 
+/// An `if` whose view draws displaced, past its slot, beside a row that
+/// stays: with no transition, and with `.opacity` written outside the offset.
+private struct Displaced: View {
+    let showing: Bool
+    var transition: AnyTransition?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("----")
+            if showing {
+                if let transition {
+                    Text("XX").offset(x: 3).transition(transition)
+                } else {
+                    Text("XX").offset(x: 3)
+                }
+            }
+        }
+    }
+}
+
+/// The strengths of the fades a frame carries, its layers' included.
+private func allFades(_ buffer: FrameBuffer) -> [Double] {
+    fades(buffer) + buffer.overlays.flatMap { allFades($0.content) }
+}
+
 /// A view whose `@State` says when its box was made.
 private struct Stamped: View {
     @State private var made = Made.next()
@@ -206,6 +231,24 @@ struct DefaultTransitionTests {
         let again = screen.draw(DirectStamped(showing: true), atMillis: 20, animated: false).lines.map(\.stripped)
         #expect(!first.isEmpty)
         #expect(first != again, "the state it had before it went: \(again)")
+    }
+
+    /// What a view draws past its slot is its own drawing, displaced, and
+    /// fades with it, as SwiftUI's does (measured,
+    /// `Tools/SwiftUIProbes/Transitions/tr3.out` T14, T15): the default fade
+    /// and `.opacity` reach the layer an `.offset` draws, as `.opacity(_:)`
+    /// does. They faded the empty slot and left the layer whole.
+    @Test("A view drawn past its slot fades with its if, by default or by .opacity", arguments: [false, true])
+    func displacedDrawingFades(explicit: Bool) {
+        let screen = Screen()
+        let transition: AnyTransition? = explicit ? .opacity : nil
+        _ = screen.draw(Displaced(showing: false, transition: transition), atMillis: 0, animated: false)
+        _ = screen.draw(Displaced(showing: true, transition: transition), atMillis: 10, animated: true)
+        let half = screen.draw(Displaced(showing: true, transition: transition), atMillis: 510, animated: false)
+        let layers = half.overlays.flatMap { allFades($0.content) }
+        #expect(layers.contains { abs($0 - 0.5) < 0.02 }, "the displaced drawing fades in: \(layers)")
+        let arrived = screen.draw(Displaced(showing: true, transition: transition), atMillis: 1100, animated: false)
+        #expect(arrived.overlays.flatMap { allFades($0.content) }.allSatisfy { $0 == 1 })
     }
 
     @Test("A transition of the view's own plays instead of the fade")

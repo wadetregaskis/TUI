@@ -171,6 +171,13 @@ extension AnyTransition.Effect {
         }
         var faded = buffer.replacingLines(buffer.lines.map(fading))
         faded.restyleRuns(fading)
+        // What it draws past its slot — an `.offset` child, a matched view
+        // carried from another's frame, the cells a move has carried past the
+        // slot's edge — is its own drawing, displaced, and fades with it, as
+        // SwiftUI's does (measured, `Tools/SwiftUIProbes/Transitions/tr3.out`
+        // T15): marked as `.opacity(_:)` marks it, since where a layer lands is
+        // where what is behind it is known.
+        if !buffer.overlays.isEmpty { faded.overlays = OpacityFading.fadingOverlays(buffer.overlays, by: factor) }
         return faded
     }
 

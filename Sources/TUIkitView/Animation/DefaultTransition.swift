@@ -137,21 +137,20 @@ package enum DefaultTransition {
             nowNanos: context.environment.frameNowNanos, isMeasuring: context.isMeasuring)
     }
 
-    /// `buffer` at `factor` of its strength, as `.opacity` draws it.
+    /// `buffer` at `factor` of its strength, as `.opacity` draws it: its
+    /// lines, and the layers it draws past them — an `.offset` child, a matched
+    /// view carried from another's frame — which are its own drawing,
+    /// displaced, and fade with it as SwiftUI's do (measured,
+    /// `Tools/SwiftUIProbes/Transitions/tr3.out` T14,
+    /// `Tools/SwiftUIProbes/Matched geometry/mg3.out` A1, A2). A layer over the
+    /// whole screen it only hosts — a sheet — is left alone
+    /// (``OpacityFading/fadingOverlays(_:by:cycle:)``).
     package static func faded(_ buffer: FrameBuffer, by factor: Double) -> FrameBuffer {
         guard factor < 1 else { return buffer }
         var faded = buffer
-        faded.opacityRegions = buffer.opacityRegions.map { region in
-            var scaled = region
-            scaled.opacity *= factor
-            scaled.cycle = region.cycle?.scaled(by: factor)
-            return scaled
-        }
-        if !buffer.isEmpty {
-            faded.opacityRegions.append(
-                OpacityRegion(
-                    offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.lines.count, opacity: factor))
-        }
+        faded.opacityRegions = OpacityFading.fading(
+            buffer.opacityRegions, by: factor, cycle: nil, wholeOf: buffer, appendingRectangle: !buffer.isEmpty)
+        if !buffer.overlays.isEmpty { faded.overlays = OpacityFading.fadingOverlays(buffer.overlays, by: factor) }
         return faded
     }
 }

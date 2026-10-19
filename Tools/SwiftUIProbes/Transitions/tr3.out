@@ -1,0 +1,36 @@
+T14 offset child in an if, inserted, no .transition
+  before: GREEN@(0,0 10x10)
+  t=0.0: GREEN@(0,0 10x10)
+  t=0.5: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.12
+  t=1.0: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.25
+  t=1.5: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.37
+  t=2.0: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.50
+  t=2.5: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.62
+  t=3.0: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.75
+  t=3.5: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.87
+  t=4.0: GREEN@(0,0 10x10)  RED@(100,60 40x20) a1.00
+  t=4.5: GREEN@(0,0 10x10)  RED@(100,60 40x20)
+T14b the same removed
+  before: GREEN@(0,0 10x10)  RED@(100,60 40x20)
+  t=0.0: GREEN@(0,0 10x10)  RED@(100,60 40x20)
+  t=0.5: RED@(100,60 40x20) a0.88  GREEN@(0,0 10x10)
+  t=1.0: RED@(100,60 40x20) a0.75  GREEN@(0,0 10x10)
+  t=1.5: RED@(100,60 40x20) a0.63  GREEN@(0,0 10x10)
+  t=2.0: RED@(100,60 40x20) a0.50  GREEN@(0,0 10x10)
+  t=2.5: RED@(100,60 40x20) a0.38  GREEN@(0,0 10x10)
+  t=3.0: RED@(100,60 40x20) a0.25  GREEN@(0,0 10x10)
+  t=3.5: RED@(100,60 40x20) a0.13  GREEN@(0,0 10x10)
+  t=4.0: RED@(100,60 40x20) a0.00  GREEN@(0,0 10x10)
+  t=4.5: GREEN@(0,0 10x10)
+T15 offset child with .transition(.opacity), inserted
+  before: GREEN@(0,0 10x10)
+  t=0.0: GREEN@(0,0 10x10)
+  t=0.5: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.12
+  t=1.0: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.25
+  t=1.5: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.37
+  t=2.0: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.50
+  t=2.5: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.62
+  t=3.0: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.75
+  t=3.5: GREEN@(0,0 10x10)  RED@(100,60 40x20) a0.87
+  t=4.0: GREEN@(0,0 10x10)  RED@(100,60 40x20) a1.00
+  t=4.5: GREEN@(0,0 10x10)  RED@(100,60 40x20)
