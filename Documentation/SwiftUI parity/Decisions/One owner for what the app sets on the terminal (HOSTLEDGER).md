@@ -12,7 +12,7 @@ pointer's shape, on an instance the terminal owned. The integration of
 owner. 2026-10-19.*
 
 - **A. Needs your decision.** None.
-- **B. Shipped the safe option.** Two.
+- **B. Shipped the safe option.** Three.
 - **C. Declined without asking.** None.
 
 Nothing the terminal is sent while the app runs changed: every byte, in the
@@ -106,3 +106,41 @@ what is left.
 **The fuller version.** A queue on the terminal's ledger. The environment
 action would need a way to the terminal through the context (a closure, as
 `synthesizeKeyEvent` is). About an hour, for no change in what is sent.
+
+### B-HOSTLEDGER-3. Every value is a `TerminalHostSetting`, generic over what it holds
+
+*`TerminalHostSetting<Value>`, `TerminalHostState.windowTitle`,
+`.progressBar`, `.pointerShape`*
+
+O12 built `TerminalHostSetting` for the pointer (what was last sent, the
+mid-run unset, the reset, and whether it is owed), on bytes. The title and the
+bar each kept the same logic in fields of their own.
+
+**Shipped:** all three are settings. A setting holds the value last sent (the
+sanitised title, the progress report, the host's name for the shape), not its
+bytes, so the ledger can still say what the terminal shows
+(`writtenTitle`, `writtenProgress`); the caller spells a value as it asks for
+it (`update(to:spelling:)`). Two things genuinely differ between the values,
+and each is said where its setting is made:
+
+- **A lead** before a value set where the terminal shows its own: the
+  title's save on the terminal's title stack, which its restore pops. Empty
+  for the others.
+- **Whether an unset settles the debt** (`unsetSettles`). The title's restore
+  pops the save, so nothing is owed after it, and a second would pop a title
+  that is not the app's to give; the bar taken down owes nothing either. The
+  pointer's unset is the host's name for its own pointer, which Ghostty reads
+  as its arrow rather than the shell's I-beam, so O12 keeps the reset owed
+  from the first shape until it goes out (B-O12-4). It has to be said, not
+  worked out: on every host but Ghostty the pointer's unset is the same bytes
+  as its reset, so "an unset that is the reset settles" would have dropped a
+  reset O12 sends.
+
+Two things stay beside the settings, on the ledger, because they are about
+when to ask rather than what was sent: the title's cache of what was last
+asked (one comparison a frame, before sanitising), and the bar's keep-alive
+clock (only the bar is sent again unchanged).
+
+**The fuller version.** The keep-alive as a setting's own (a period, and the
+instant last sent), so any value could be kept alive. About an hour, for one
+value that has it. Not done.

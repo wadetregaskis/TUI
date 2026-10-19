@@ -511,7 +511,8 @@ final class Terminal: HostStateKeeping {
         pointerShapeHost = pointerHost
         hostState.pointerShape = pointerHost.map { host in
             TerminalHostSetting(
-                unset: PointerShapeHost.sequence(naming: host.unsetName), reset: PointerShapeHost.reset)
+                unset: PointerShapeHost.sequence(naming: host.unsetName), reset: PointerShapeHost.reset,
+                unsetSettles: false)
         }
     }
 

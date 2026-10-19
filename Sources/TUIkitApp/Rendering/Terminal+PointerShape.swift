@@ -22,8 +22,9 @@ extension Terminal {
     /// out, so no signal can find a shape set and nothing owed for it.
     func showPointerShape(_ shape: PointerShape?) {
         guard isRawMode, let host = pointerShapeHost, hostState.pointerShape != nil else { return }
-        let wanted = shape.flatMap(host.name(for:)).map(PointerShapeHost.sequence(naming:))
-        guard let bytes = hostState.pointerShape?.update(to: wanted) else { return }
+        let wanted = shape.flatMap(host.name(for:))
+        guard let bytes = hostState.pointerShape?.update(to: wanted, spelling: PointerShapeHost.sequence(naming:))
+        else { return }
         writeImmediate(bytes)
     }
 }

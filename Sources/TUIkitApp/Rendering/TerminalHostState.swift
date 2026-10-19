@@ -47,9 +47,28 @@ import TUIkitFoundation
 /// with the frame, at once, or with the hand-back. (Decisions HOSTLEDGER,
 /// B-HOSTLEDGER-1.)
 struct TerminalHostState: Equatable {
-    /// The pointer's shape (OSC 22), where the terminal takes one by name;
-    /// `nil` where it is left alone.
-    var pointerShape: TerminalHostSetting?
+    /// The window title (OSC 2): the sanitised title last sent, or `nil`
+    /// while the terminal shows its own. Its first set is led by a save of
+    /// the terminal's own title on its title stack (XTWINOPS 22), and the
+    /// restore (XTWINOPS 23) both unsets it mid-run and resets it as the app
+    /// leaves; once sent, the restore has popped the save, so nothing is owed
+    /// (a second would pop a title that is not the app's to give).
+    private(set) var windowTitle = TerminalHostSetting<String>(
+        lead: Self.saveTitle, unset: Self.restoreTitle, reset: Self.restoreTitle, unsetSettles: true)
+
+    /// The progress bar (OSC 9 ; 4): the report last sent, or `nil` while
+    /// the terminal shows none of the app's. Taken down the same way mid-run
+    /// and as the app leaves, and owed nothing once down.
+    private(set) var progressBar = TerminalHostSetting<ProgressReport>(
+        unset: Self.removeProgressReport, reset: Self.removeProgressReport, unsetSettles: true)
+
+    /// The pointer's shape (OSC 22): the host's name for the shape last
+    /// sent, where the terminal takes one by name; `nil` where it is left
+    /// alone. Unset mid-run by the host's own name for its pointer, and reset
+    /// as the app leaves by the empty name (`PointerShapeHost.reset`), owed
+    /// from the first shape sent until that reset goes out (decisions O12,
+    /// B-O12-4).
+    var pointerShape: TerminalHostSetting<String>?
 
     /// Whether a progress bar is sent again before the terminal can drop it
     /// (``keepAlive(atNanos:)``): `false` for tmux, which keeps a pane's bar
@@ -68,23 +87,21 @@ struct TerminalHostState: Equatable {
     }
 
     /// The title the terminal was last given, or `nil` while it shows its own.
-    private(set) var writtenTitle: String?
-
-    /// Whether the terminal's own title is saved on its title stack, owed a
-    /// restore.
-    private(set) var savedHostTitle = false
+    var writtenTitle: String? { windowTitle.value }
 
     /// The title last asked for, as asked — unsanitised — or `.none` since
     /// the last restore: a frame asking for the same is answered with one
-    /// comparison, every frame asking.
+    /// comparison, every frame asking. When to ask, not what was sent, so not
+    /// the setting's.
     private var askedTitle: String??
 
     /// The progress report the terminal was last given, or `nil` while it
     /// shows none of the app's.
-    private(set) var writtenProgress: ProgressReport?
+    var writtenProgress: ProgressReport? { progressBar.value }
 
     /// When ``writtenProgress`` was last sent, on the monotonic clock: what
-    /// the keep-alive counts from.
+    /// the keep-alive counts from. A clock only the bar has, so not the
+    /// setting's.
     private var progressSentAtNanos: Int64 = 0
 
     /// The bytes that make the terminal show `title`, or give it its own back
@@ -93,17 +110,9 @@ struct TerminalHostState: Equatable {
     /// nothing is no title.
     mutating func show(title asked: String?) -> String {
         guard askedTitle != .some(asked) else { return "" }
-        defer { askedTitle = .some(asked) }
+        askedTitle = .some(asked)
         let title = asked.map(Self.sanitizedText(_:)).flatMap { $0.isEmpty ? nil : $0 }
-        guard title != writtenTitle else { return "" }
-        guard let title else { return restoreHostTitle() }
-        var bytes = ""
-        if !savedHostTitle {
-            bytes += Self.saveTitle
-            savedHostTitle = true
-        }
-        writtenTitle = title
-        return bytes + Self.setTitle(title)
+        return windowTitle.update(to: title, spelling: Self.setTitle(_:)) ?? ""
     }
 
     /// The bytes that make the terminal show `progress` — or no bar, for
@@ -111,11 +120,9 @@ struct TerminalHostState: Equatable {
     /// already, to the whole percent it is told.
     mutating func show(progress: TerminalProgress?, atNanos now: Int64) -> String {
         let report = progress.map(ProgressReport.init)
-        guard report != writtenProgress else { return "" }
-        guard let report else { return removeProgress() }
-        writtenProgress = report
-        progressSentAtNanos = now
-        return report.sequence
+        guard let bytes = progressBar.update(to: report, spelling: \.sequence) else { return "" }
+        if report != nil { progressSentAtNanos = now }
+        return bytes
     }
 
     /// The bytes that send the progress bar again, where it has gone
@@ -140,25 +147,8 @@ struct TerminalHostState: Equatable {
     /// title, restored where one was saved, and no progress bar — and forgets
     /// what the app set, so the next frame sets it again: for suspend and exit.
     mutating func restore() -> String {
-        restoreHostTitle() + removeProgress()
-    }
-
-    /// The bytes that give the terminal its own title back — a restore, where
-    /// one was saved — and forgets the app's, so the next ``show(title:)``
-    /// saves and sets again: for a frame with no title, and the hand-back.
-    private mutating func restoreHostTitle() -> String {
-        writtenTitle = nil
         askedTitle = .none
-        guard savedHostTitle else { return "" }
-        savedHostTitle = false
-        return Self.restoreTitle
-    }
-
-    /// The bytes that take the app's progress bar down, where one is up.
-    private mutating func removeProgress() -> String {
-        guard writtenProgress != nil else { return "" }
-        writtenProgress = nil
-        return Self.removeProgressReport
+        return windowTitle.takeReset() + progressBar.takeReset()
     }
 
     /// What the terminal is owed should the process die now
@@ -166,7 +156,7 @@ struct TerminalHostState: Equatable {
     /// the bar taken down, where one is up — both harmless on a terminal that
     /// took neither.
     var debt: String {
-        (savedHostTitle ? Self.restoreTitle : "") + (writtenProgress == nil ? "" : Self.removeProgressReport)
+        windowTitle.owedReset + progressBar.owedReset
     }
 
     /// Which values owe the terminal a reset: what ``debt`` and ``resets``
@@ -175,8 +165,8 @@ struct TerminalHostState: Equatable {
     /// pays again only when it moved (`Terminal.hostState`).
     var owed: Owed {
         var owed: Owed = []
-        if savedHostTitle { owed.insert(.windowTitle) }
-        if writtenProgress != nil { owed.insert(.progress) }
+        if windowTitle.isOwed { owed.insert(.windowTitle) }
+        if progressBar.isOwed { owed.insert(.progress) }
         if pointerShape?.isOwed == true { owed.insert(.pointerShape) }
         return owed
     }
@@ -281,18 +271,32 @@ protocol HostStateKeeping: TerminalProtocol {
 
 // MARK: - One value outside the grid
 
-/// One thing the app sets on the terminal outside its grid of cells: what it
-/// wants now, what it last sent, how to put the terminal's own back mid-run,
-/// and what is owed as the app leaves.
+/// One thing the app sets on the terminal outside its grid of cells — the
+/// window title, the progress bar, the pointer's shape — kept by the ledger
+/// (``TerminalHostState``): the value last sent, how to put the terminal's
+/// own back mid-run, and what is owed as the app leaves.
 ///
-/// The Ghostty study's "one mechanism for state outside the grid" (§1.2): a
-/// pointer shape, a window title and a progress bar each need the value the
-/// frame wants, the value last sent, a write when they differ, and a reset on
-/// suspend, exit and fatal signal, sent again on resume — so each is one of
-/// these, held by ``TerminalHostState``, rather than a copy of that logic of
-/// its own. Bytes in, bytes out: what a value means, and how a host spells
-/// it, is the caller's.
-struct TerminalHostSetting: Equatable {
+/// The Ghostty study's "one mechanism for state outside the grid" (§1.2):
+/// each value needs the value the frame wants, the value last sent, a write
+/// when they differ, and a reset on suspend, exit and fatal signal, sent again
+/// on resume — so each is one of these, rather than a copy of that logic of
+/// its own. What a value means, and how a host spells it, is the caller's,
+/// given with each change (``update(to:spelling:)``); the setting holds the
+/// value, so a ledger can say what the terminal shows (``value``).
+///
+/// Two things differ between the values, and are said as each is made: what
+/// goes before a value set where the terminal shows its own (``lead``: the
+/// title's save), and whether putting the terminal's own back mid-run settles
+/// what is owed (``unsetSettles``: the title's and the bar's do; the
+/// pointer's does not). When a value is asked for (the title's cache of what
+/// was asked) and when the same is sent again (the bar's keep-alive) are the
+/// ledger's, beside it. Decisions HOSTLEDGER, B-HOSTLEDGER-3.
+struct TerminalHostSetting<Value: Equatable>: Equatable {
+    /// The bytes written ahead of a value set where the terminal shows its
+    /// own: the title's save on the terminal's title stack, which its
+    /// restore pops. Empty for the bar and the pointer.
+    let lead: String
+
     /// The bytes that put back the terminal's own value while the app runs.
     let unset: String
 
@@ -301,12 +305,21 @@ struct TerminalHostSetting: Equatable {
     /// (``isOwed``).
     let reset: String
 
-    /// What the terminal was last sent: `.some(nil)` its own value, `nil`
-    /// unknown, which the next ``update(to:)`` settles by sending.
-    private var sent: String?? = .some(nil)
+    /// Whether ``unset`` gives the terminal back what it had before the app
+    /// set anything, so nothing is owed after it: the title's restore, which
+    /// pops the save (sent again, it would pop a title that is not the app's
+    /// to give), and the bar taken down. Not the pointer's, which is the
+    /// host's name for its own pointer, and which Ghostty reads as its arrow
+    /// rather than the shell's I-beam: the reset stays owed from the first
+    /// shape until it goes out (decisions O12, B-O12-4), on every host alike.
+    let unsetSettles: Bool
 
-    /// Whether anything has been sent since the last ``reset`` went out, so
-    /// that one is owed.
+    /// What the terminal was last sent: `.some(nil)` its own value, `nil`
+    /// unknown, which the next ``update(to:spelling:)`` settles by sending.
+    private var sent: Value?? = .some(nil)
+
+    /// Whether ``reset`` is owed: since anything was sent, until the reset
+    /// goes out, or an unset that settles (``unsetSettles``) does.
     ///
     /// Not from the start: the Ghostty study's rule is that a reset joins
     /// the debt a signal pays only once it is measured harmless where nothing
@@ -315,23 +328,51 @@ struct TerminalHostSetting: Equatable {
     /// one that set it owes the reset, which beats leaving its value behind.
     private(set) var isOwed = false
 
-    init(unset: String, reset: String) {
+    init(lead: String = "", unset: String, reset: String, unsetSettles: Bool) {
+        self.lead = lead
         self.unset = unset
         self.reset = reset
+        self.unsetSettles = unsetSettles
     }
 
-    /// The bytes that set `wanted` (`nil`: the terminal's own), or `nil` when
-    /// the terminal already shows it. The write is the caller's.
-    mutating func update(to wanted: String?) -> String? {
+    /// The value the terminal shows of the app's: the one last sent, or `nil`
+    /// while it shows its own, or while what it shows is unknown.
+    var value: Value? {
+        if case .some(.some(let value)) = sent { value } else { nil }
+    }
+
+    /// The bytes that set `wanted` — spelled by `spelling`, after ``lead``
+    /// where the terminal shows its own — or put back the terminal's own for
+    /// `nil` (``unset``); `nil` when the terminal already shows it. The write
+    /// is the caller's.
+    mutating func update(to wanted: Value?, spelling: (Value) -> String) -> String? {
         if case .some(let last) = sent, last == wanted { return nil }
+        let showsOwn = sent == .some(nil)
         sent = .some(wanted)
+        guard let wanted else {
+            isOwed = !unsetSettles
+            return unset
+        }
         isOwed = true
-        return wanted ?? unset
+        return (showsOwn ? lead : "") + spelling(wanted)
     }
 
     /// Forgets what was sent: the terminal may have changed it itself.
     mutating func forgetSent() {
         if case .some(.some) = sent { sent = nil }
+    }
+
+    /// ``reset`` where it is owed, or nothing: what the debt a signal pays
+    /// holds for this value.
+    var owedReset: String {
+        isOwed ? reset : ""
+    }
+
+    /// ``owedReset``, taken: the bytes the caller writes as the app leaves,
+    /// after which the terminal shows its own (``noteReset()``).
+    mutating func takeReset() -> String {
+        defer { noteReset() }
+        return owedReset
     }
 
     /// Takes note that ``reset`` went out: the terminal shows its own again,
@@ -343,20 +384,19 @@ struct TerminalHostSetting: Equatable {
     }
 }
 
-// MARK: - The values set by name
+// MARK: - The values raw mode puts back
 
-/// The ledger's values kept as ``TerminalHostSetting``s — the pointer's shape
-/// — whose resets raw mode's teardown writes, ahead of the mouse modes
-/// (`Terminal.inputModesOwed`), rather than the hand-back (``restore()``):
-/// on Ghostty the mouse modes going off is itself a reset of the pointer's
-/// shape, and nothing may follow it that sets one.
+/// The ledger's values whose resets raw mode's teardown writes, ahead of the
+/// mouse modes (`Terminal.inputModesOwed`), rather than the hand-back
+/// (``restore()``) — the pointer's shape: on Ghostty the mouse modes going
+/// off is itself a reset of the pointer's shape, and nothing may follow it
+/// that sets one.
 extension TerminalHostState {
-    /// What every value owes as the app leaves, in one string: written before
+    /// What those values owe as the app leaves, in one string: written before
     /// the input modes go off (`Terminal.inputModesOwed`). Empty until a
     /// value has been sent (``TerminalHostSetting/isOwed``).
     var resets: String {
-        guard let pointerShape, pointerShape.isOwed else { return "" }
-        return pointerShape.reset
+        pointerShape?.owedReset ?? ""
     }
 
     /// Takes note that ``resets`` went out.
