@@ -1,0 +1,13 @@
+F1 .frame: RED@(100,0 40x20)  BLUE@(100,0 40x20)  GREEN@(0,60 30x5)  [laid out: blue=40x20]
+F2 .position: RED@(100,0 40x20)  BLUE@(115,5 10x10)  GREEN@(0,60 30x5)  [laid out: blue=10x10]
+F3 .size: RED@(100,0 40x20)  BLUE@(0,50 40x20)  GREEN@(0,60 30x5)  [laid out: blue=40x20]
+F4 .size follower topLeading: RED@(100,0 40x20)  BLUE@(0,50 40x20)  GREEN@(0,60 30x5)  [laid out: blue=40x20]
+F5 .size follower bottomTrailing: RED@(100,0 40x20)  BLUE@(0,50 40x20)  GREEN@(0,60 30x5)  [laid out: blue=40x20]
+F6 .frame follower topLeading: RED@(100,0 40x20)  BLUE@(120,10 40x20)  GREEN@(0,60 30x5)  [laid out: blue=40x20]
+F7 .frame source topLeading: RED@(100,0 40x20)  BLUE@(80,-10 40x20)  GREEN@(0,60 30x5)  [laid out: blue=40x20]
+F8 .frame both topLeading: RED@(100,0 40x20)  BLUE@(100,0 40x20)  GREEN@(0,60 30x5)  [laid out: blue=40x20]
+F9 .position source topLeading: RED@(100,0 40x20)  BLUE@(95,-5 10x10)  GREEN@(0,60 30x5)  [laid out: blue=10x10]
+F10 .position both bottomTrailing: RED@(100,0 40x20)  BLUE@(130,10 10x10)  GREEN@(0,60 30x5)  [laid out: blue=10x10]
+F11 fixed content, both topLeading: RED@(100,0 40x20)  BLUE@(100,0 10x10)  GREEN@(0,60 30x5)
+F12 follower bigger than source (fixed 60x40 content): RED@(100,0 40x20)  BLUE@(80,-20 60x40)  GREEN@(0,90 30x5)
+F13 source has properties .position: RED@(100,0 40x20)  BLUE@(100,0 40x20)  GREEN@(0,60 30x5)  [laid out: blue=40x20]

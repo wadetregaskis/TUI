@@ -59,8 +59,11 @@ import TUIkitView
 /// that does not cover the offset the frame settled on — puts the walk back
 /// too (``rewind(context:)``), or a row drawn twice would come out under a
 /// second marker id, and its scroll visibility observer would be told it
-/// appeared and that its first id vanished, every such frame.
-struct RenderWalkCheckpoint {
+/// appeared and that its first id vanished, every such frame. So does a
+/// matched geometry effect that draws its content once at its own size, for
+/// the footprint its parent laid out, and again at the size of the frame it is
+/// matched to (`_MatchedGeometryEffectView`).
+package struct RenderWalkCheckpoint {
     private let identity: ViewIdentity
     private let handlerSlots: Int?
     private let markerSlots: Int?
@@ -79,7 +82,7 @@ struct RenderWalkCheckpoint {
 
     /// Notes where the walk stands, before the subtree at `context.identity`
     /// renders.
-    init(context: RenderContext) {
+    package init(context: RenderContext) {
         identity = context.identity
         let dispatcher = context.environment.mouseEventDispatcher
         handlerSlots = dispatcher?.handlerIDs.slotCount(at: identity)
@@ -94,7 +97,7 @@ struct RenderWalkCheckpoint {
 
     /// Puts the registrations back to where they stood, for the subtree to be
     /// drawn again with something in it corrected.
-    func rollBack(context: RenderContext) {
+    package func rollBack(context: RenderContext) {
         rewind(context: context)
         // What the first drawing stored below here was drawn from the answers
         // the correction exists to replace, and a reader notes its answers once
@@ -106,7 +109,7 @@ struct RenderWalkCheckpoint {
     /// drawn again from the same inputs — so the second drawing takes the
     /// first one's ids and indices, and what the first stored in the render
     /// cache may serve it.
-    func rewind(context: RenderContext) {
+    package func rewind(context: RenderContext) {
         if let dispatcher = context.environment.mouseEventDispatcher {
             dispatcher.handlerIDs.rewind(at: identity, to: handlerSlots)
             dispatcher.geometryMarkerIDs.rewind(at: identity, to: markerSlots)

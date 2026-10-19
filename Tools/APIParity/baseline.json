@@ -135,7 +135,6 @@
   "View.ignoresSafeArea(_:edges:)",
   "View.layoutDirectionBehavior(_:)",
   "View.mask(alignment:_:)",
-  "View.matchedGeometryEffect(id:in:properties:anchor:isSource:)",
   "View.matchedTransitionSource(id:in:)",
   "View.matchedTransitionSource(id:in:configuration:)",
   "View.multilineTextAlignment(strategy:)",

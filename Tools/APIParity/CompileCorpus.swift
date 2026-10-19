@@ -3276,6 +3276,41 @@ private struct GlobalVisualEffect: View {
     }
 }
 
+/// Matched geometry as SwiftUI code writes it: a bar following the selected
+/// tab (`isSource: false`, anchored under it), and a view carried between two
+/// places by an animated change of which one is shown.
+@MainActor
+private struct MatchedGeometryTabs: View {
+    @Namespace private var animation
+    @State private var selected = 0
+    @State private var isExpanded = false
+
+    var body: some View {
+        VStack {
+            HStack {
+                ForEach(0..<3, id: \.self) { index in
+                    Text("Tab \(index)")
+                        .matchedGeometryEffect(id: index, in: animation, anchor: .bottom)
+                        .onTapGesture {
+                            withAnimation(.spring()) { selected = index }
+                        }
+                }
+            }
+            Color.blue
+                .frame(height: 1)
+                .matchedGeometryEffect(id: selected, in: animation, anchor: .top, isSource: false)
+            if isExpanded {
+                Text("Detail")
+                    .matchedGeometryEffect(id: "card", in: animation, properties: [.position, .size])
+            } else {
+                Text("Card")
+                    .matchedGeometryEffect(id: "card", in: animation, properties: .frame, anchor: .center, isSource: true)
+            }
+            Button("Toggle") { withAnimation { isExpanded.toggle() } }
+        }
+    }
+}
+
 // MARK: - A property wrapper that keeps what update() derives
 
 /// The commonest non-trivial `DynamicProperty`: it reads the environment and

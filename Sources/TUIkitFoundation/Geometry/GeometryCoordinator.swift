@@ -158,6 +158,12 @@ package final class GeometryCoordinator: @unchecked Sendable {
     /// was drawn — what an anchor read outside its layer resolves against.
     var globalAnchorSites: [HitTestRegion.HandlerID: (origin: CellPoint, size: CellSize)] = [:]
 
+    // MARK: - Matched Geometry (MatchedGeometryRegistry.swift)
+
+    /// The groups `matchedGeometryEffect` joins views into, which the scene
+    /// root checks once it has found them (``resolveRemaining(in:size:)``).
+    package let matchedGeometry = MatchedGeometryRegistry()
+
     /// Clears the walk's registrations — see ``MouseEventDispatcher/beginRenderPass()``.
     func beginWalk() {
         if !observers.isEmpty {
@@ -175,6 +181,7 @@ package final class GeometryCoordinator: @unchecked Sendable {
         if !anchorSiteSizes.isEmpty { anchorSiteSizes.removeAll(keepingCapacity: true) }
         anchorScope = nil
         ownerScope = nil
+        matchedGeometry.beginWalk()
     }
 
     /// Counts a correction an owner of `kind` made.
@@ -203,6 +210,7 @@ package final class GeometryCoordinator: @unchecked Sendable {
         endAnchorFrame(frame: frame)
         endSpacesFrame(isRetained: isRetained)
         endVisibilityFrame(frame: frame, isRetained: isRetained)
+        matchedGeometry.endFrame()
     }
 
     /// ``endFrame(frame:isRetained:)``, asking `storage` which identities are

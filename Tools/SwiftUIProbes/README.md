@@ -370,3 +370,28 @@ messages cite that path), and what cites it.
   `Tests/TUIkitFoundationTests/FlexibleFrameSwiftUIRuleTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§2.1),
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (U1).
+
+### Matched geometry
+
+- **Asks:** where SwiftUI DRAWS the views a `matchedGeometryEffect` links, read from the layer tree's
+  presentation frames (each view a coloured layer) rather than from a `GeometryReader`, which reports where a
+  view is laid out. `mg1.swift`: a follower (`isSource: false`) of a larger source under each property set and
+  anchor, with a line below it to show the size it takes in its parent's layout; a follower before its source,
+  two sources, a follower in an `HStack`. `mg2.swift`: the same with a follower content that takes the size it
+  is offered, and with each pair of follower and source anchors. `mg2b.swift`: a content of fixed size, for
+  the formula SwiftUI places it by. `mg3.swift`: under a 4 s linear animation, sampled every 0.5 s — a view
+  inserted as another of its id is removed (`if`/`else`, and two `if`s, the inserted view's laid-out size
+  logged at each change), a follower whose id changes, a source its layout moves, and two plain insertions.
+  Each is a program alone (`@main`, built with `-parse-as-library`); `mg2`–`mg3` copy `mg1`'s harness.
+  Found: a follower keeps its own place in the layout and is drawn with its anchor on the point the source's
+  anchor names, at the source's size; matching the size alone it stays at its own corner; a fixed content is
+  offset from the matched frame by twice its anchor's share of the difference; an inserted view is carried
+  from the removed one's frame and laid out at every size between, and a follower whose id changes is scaled
+  there instead.
+- **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-18. `mg1`, `mg2` and `mg2b` print the same on a
+  rerun (`diff` their `.out`); `mg3`'s samples move by a point or two with the frame's timing.
+- **Was:** `O4/probe/`.
+- **Cited by:** `Sources/TUIkitEffects/Geometry/MatchedGeometryEffect.swift`;
+  `Tests/TUIkitEffectsTests/MatchedGeometryEffectTests.swift`; `Documentation/SwiftUI parity/Deliberate
+  deviations from SwiftUI.md` (A8), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the
+  Animation row); `Documentation/SwiftUI parity/Decisions/Matched geometry and the zoom transition (O4).md`.

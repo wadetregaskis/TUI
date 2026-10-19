@@ -1,0 +1,75 @@
+A1 hero if/else
+  before: RED@(10,10 40x20)
+  t=0.0: RED@(10,10 40x20)
+  t=0.5: RED@(40,32 40x20) a0.88  BLUE@(-20,-9 100x60) a0.12
+  t=1.0: RED@(70,54 40x20) a0.76  BLUE@(10,14 100x60) a0.24
+  t=1.5: RED@(103,77 40x20) a0.63  BLUE@(43,37 100x60) a0.37
+  t=2.0: RED@(134,99 40x20) a0.51  BLUE@(74,59 100x60) a0.49
+  t=2.5: RED@(165,122 40x20) a0.38  BLUE@(105,82 100x60) a0.62
+  t=3.0: RED@(196,144 40x20) a0.26  BLUE@(136,104 100x60) a0.74
+  t=3.5: RED@(228,167 40x20) a0.13  BLUE@(168,127 100x60) a0.87
+  t=4.0: RED@(259,189 40x20) a0.01  BLUE@(199,149 100x60) a0.99
+  t=4.5: BLUE@(200,150 100x60)
+  sizes laid out: blue=100x60
+A2 hero two ifs
+  before: GREEN@(0,5 10x10)  RED@(10,0 40x20)
+  t=0.0: GREEN@(0,5 10x10)  RED@(10,0 40x20)
+  t=0.5: RED@(40,18 40x20) a0.88  GREEN@(0,4 10x10)  BLUE@(33,13 47x25) a0.12
+  t=1.0: RED@(72,37 40x20) a0.75  GREEN@(0,4 10x10)  BLUE@(57,27 55x30) a0.25
+  t=1.5: RED@(102,55 40x20) a0.63  GREEN@(0,3 10x10)  BLUE@(80,41 62x35) a0.37
+  t=2.0: RED@(134,75 40x20) a0.50  GREEN@(0,3 10x10)  BLUE@(104,55 70x40) a0.50
+  t=2.5: RED@(165,93 40x20) a0.38  GREEN@(0,2 10x10)  BLUE@(128,68 77x45) a0.62
+  t=3.0: RED@(197,112 40x20) a0.25  GREEN@(0,1 10x10)  BLUE@(152,82 85x50) a0.75
+  t=3.5: RED@(228,131 40x20) a0.13  GREEN@(0,1 10x10)  BLUE@(176,96 92x55) a0.87
+  t=4.0: RED@(259,150 40x20) a0.00  GREEN@(0,0 10x10)  BLUE@(199,110 100x60) a1.00
+  t=4.5: GREEN@(0,0 10x10)  BLUE@(200,110 100x60)
+  sizes laid out: blue=40x20 blue=41x20 blue=41x21 blue=42x21 blue=43x22 blue=44x22 blue=44x23 blue=45x23 blue=46x24 blue=47x24 blue=47x25 blue=48x25 blue=49x26 blue=50x26 blue=50x27 blue=51x27 blue=52x28 blue=53x28 blue=53x29 blue=54x29 blue=55x30 blue=56x30 blue=56x31 blue=57x31 blue=58x32 blue=59x32 blue=59x33 blue=60x33 blue=61x34 blue=62x34 blue=62x35 blue=63x35 blue=64x36 blue=65x36 blue=65x37 blue=66x37 blue=67x38 blue=68x38 blue=68x39 blue=69x39 blue=70x40 blue=71x40 blue=71x41 blue=72x41 blue=73x42 blue=74x42 blue=74x43 blue=75x43 blue=76x44 blue=77x44 blue=77x45 blue=78x45 blue=79x46 blue=80x46 blue=80x47 blue=81x47 blue=82x48 blue=83x48 blue=83x49 blue=84x49 blue=85x50 blue=86x50 blue=86x51 blue=87x51 blue=88x52 blue=89x52 blue=89x53 blue=90x53 blue=91x54 blue=92x54 blue=92x55 blue=93x55 blue=94x56 blue=95x56 blue=95x57 blue=96x57 blue=97x58 blue=98x58 blue=98x59 blue=99x59 blue=100x60
+A3 follower id change 0 -> 2
+  before: RED@(20,20 40x20)  ORANGE@(90,20 60x30)  PURPLE@(180,20 20x40)  BLUE@(20,20 40x20)
+  t=0.0: RED@(20,20 40x20)  ORANGE@(90,20 60x30)  PURPLE@(180,20 20x40)  BLUE@(20,20 40x20)
+  t=0.5: RED@(20,20 40x20)  ORANGE@(90,20 60x30)  PURPLE@(180,20 20x40)  BLUE@(39,20 38x22)
+  t=1.0: RED@(20,20 40x20)  ORANGE@(90,20 60x30)  PURPLE@(180,20 20x40)  BLUE@(59,20 35x25)
+  t=1.5: RED@(20,20 40x20)  ORANGE@(90,20 60x30)  PURPLE@(180,20 20x40)  BLUE@(79,20 33x27)
+  t=2.0: RED@(20,20 40x20)  ORANGE@(90,20 60x30)  PURPLE@(180,20 20x40)  BLUE@(99,20 30x30)
+  t=2.5: RED@(20,20 40x20)  ORANGE@(90,20 60x30)  PURPLE@(180,20 20x40)  BLUE@(119,20 28x32)
+  t=3.0: RED@(20,20 40x20)  ORANGE@(90,20 60x30)  PURPLE@(180,20 20x40)  BLUE@(139,20 25x35)
+  t=3.5: RED@(20,20 40x20)  ORANGE@(90,20 60x30)  PURPLE@(180,20 20x40)  BLUE@(159,20 23x37)
+  t=4.0: RED@(20,20 40x20)  ORANGE@(90,20 60x30)  PURPLE@(180,20 20x40)  BLUE@(179,20 20x40)
+  t=4.5: RED@(20,20 40x20)  ORANGE@(90,20 60x30)  PURPLE@(180,20 20x40)  BLUE@(180,20 20x40)
+  sizes laid out: blue=20x40
+A4 source moves
+  before: RED@(0,0 40x20)  BLUE@(0,0 40x20)
+  t=0.0: RED@(0,0 40x20)  BLUE@(0,0 40x20)
+  t=0.5: RED@(24,0 40x20)  BLUE@(24,0 40x20)
+  t=1.0: RED@(48,0 40x20)  BLUE@(48,0 40x20)
+  t=1.5: RED@(73,0 40x20)  BLUE@(73,0 40x20)
+  t=2.0: RED@(98,0 40x20)  BLUE@(98,0 40x20)
+  t=2.5: RED@(123,0 40x20)  BLUE@(123,0 40x20)
+  t=3.0: RED@(149,0 40x20)  BLUE@(149,0 40x20)
+  t=3.5: RED@(174,0 40x20)  BLUE@(174,0 40x20)
+  t=4.0: RED@(199,0 40x20)  BLUE@(199,0 40x20)
+  t=4.5: RED@(200,0 40x20)  BLUE@(200,0 40x20)
+A5 plain insertion
+  before: GREEN@(0,0 10x10)
+  t=0.0: GREEN@(0,0 10x10)
+  t=0.5: GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.12
+  t=1.0: GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.25
+  t=1.5: GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.37
+  t=2.0: GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.50
+  t=2.5: GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.62
+  t=3.0: GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.75
+  t=3.5: GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a0.87
+  t=4.0: GREEN@(0,0 10x10)  BLUE@(0,10 100x60) a1.00
+  t=4.5: GREEN@(0,0 10x10)  BLUE@(0,10 100x60)
+A6 follower appears beside a standing source
+  before: RED@(200,0 40x20)
+  t=0.0: RED@(200,0 40x20)
+  t=0.5: RED@(200,0 40x20)  BLUE@(200,0 40x20) a0.12
+  t=1.0: RED@(200,0 40x20)  BLUE@(200,0 40x20) a0.25
+  t=1.5: RED@(200,0 40x20)  BLUE@(200,0 40x20) a0.37
+  t=2.0: RED@(200,0 40x20)  BLUE@(200,0 40x20) a0.50
+  t=2.5: RED@(200,0 40x20)  BLUE@(200,0 40x20) a0.62
+  t=3.0: RED@(200,0 40x20)  BLUE@(200,0 40x20) a0.75
+  t=3.5: RED@(200,0 40x20)  BLUE@(200,0 40x20) a0.87
+  t=4.0: RED@(200,0 40x20)  BLUE@(200,0 40x20) a1.00
+  t=4.5: RED@(200,0 40x20)  BLUE@(200,0 40x20)

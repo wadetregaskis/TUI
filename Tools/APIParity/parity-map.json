@@ -708,9 +708,6 @@
     "LocalizedStringKey.StringInterpolation.appendInterpolation(accessibilityName:)": {
       "why": "A colour's spoken name comes from Apple's accessibility colour naming, which is private and has no counterpart in the open-source Foundation, and a screen reader reads a terminal only through what is on screen, so a name would have to be drawn. Declined (owner, 2026-10-05; decisions A33, removed when this entry landed): code that uses it does not compile, and the app says what it means in words. Interpolating the colour's description instead would read `Color(…)` aloud, the quiet wrong answer."
     },
-    "MatchedGeometryProperties": {
-      "why": "An option set (.position/.size/.frame) selecting which parts of a frame `matchedGeometryEffect` interpolates. With no interpolation to configure — see the matchedGeometryEffect entry, and Documentation/SwiftUI parity/SwiftUI compatibility guide.md:452 — the type has nothing to select between."
-    },
     "MatchedTransitionSourceConfiguration": {
       "why": "Configures a zoom transition's source: its corner shape and background. It waits with `matchedTransitionSource` on O4 of the refusal review (decisions A23)."
     },

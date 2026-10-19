@@ -154,24 +154,28 @@ extension GeometryCoordinator {
     /// nothing declared around it — SwiftUI's answer, measured on macOS 15
     /// (an unknown name, `.scrollView` with no scroll view, and
     /// `.scrollView(axis:)` with none along that axis all give the global
-    /// frame, and `bounds(of:)` gives `nil`).
+    /// frame, and `bounds(of:)` gives `nil`). Then checks what the members of
+    /// the matched geometry groups drew from against where they all turned
+    /// out to be (``MatchedGeometryRegistry``).
     ///
     /// - Parameters:
     ///   - frame: The screen as drawn, its top-left at `(0, 0)`.
     ///   - size: The screen's size.
-    /// - Returns: Whether a reader must be drawn again.
+    /// - Returns: Whether a reader or a matched member must be drawn again.
     package func resolveRemaining(in frame: FrameBuffer, size: CellSize) -> Bool {
-        guard unansweredTotal > 0 else { return false }
         var misled = false
-        frame.forEachGeometryMarker { id, x, y in
-            guard let ask = asks[id] else { return }
-            for space in ask.wanted where space != .local && ask.found[space] == nil {
-                let observation = GeometryObservation(
-                    origin: CellPoint(x: x, y: y), spaceSize: space == .global ? size : nil)
-                answer(ask, in: space, with: observation)
-                if ask.wasMisled(about: space, by: observation) { misled = true }
+        if unansweredTotal > 0 {
+            frame.forEachGeometryMarker { id, x, y in
+                guard let ask = asks[id] else { return }
+                for space in ask.wanted where space != .local && ask.found[space] == nil {
+                    let observation = GeometryObservation(
+                        origin: CellPoint(x: x, y: y), spaceSize: space == .global ? size : nil)
+                    answer(ask, in: space, with: observation)
+                    if ask.wasMisled(about: space, by: observation) { misled = true }
+                }
             }
         }
+        if matchedGeometry.resolveWalk(origin: { asks[$0]?.found[.global]?.origin }) { misled = true }
         return misled
     }
 }

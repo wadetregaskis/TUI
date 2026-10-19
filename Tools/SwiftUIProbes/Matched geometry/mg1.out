@@ -1,0 +1,13 @@
+S0 no source in group: RED@(100,0 40x20)  BLUE@(0,50 10x10)  GREEN@(0,60 30x5)  [laid out: blue=10x10]
+S1 .frame, fixed content: RED@(100,0 40x20)  BLUE@(130,10 10x10)  GREEN@(0,60 30x5)  [laid out: blue=10x10]
+S1f .frame, flexible content inside a 10x10 frame: RED@(100,0 40x20)  BLUE@(100,0 40x20)  GREEN@(0,60 30x5)  [laid out: blue=40x20]
+S2 .position: RED@(100,0 40x20)  BLUE@(115,5 10x10)  GREEN@(0,60 30x5)  [laid out: blue=10x10]
+S3 .size: RED@(100,0 40x20)  BLUE@(0,50 10x10)  GREEN@(0,60 30x5)  [laid out: blue=10x10]
+S4 .position anchor topLeading: RED@(100,0 40x20)  BLUE@(120,10 10x10)  GREEN@(0,60 30x5)  [laid out: blue=10x10]
+S5 .frame anchor topLeading: RED@(100,0 40x20)  BLUE@(120,10 10x10)  GREEN@(0,60 30x5)  [laid out: blue=10x10]
+S6 .size anchor topLeading: RED@(100,0 40x20)  BLUE@(0,50 10x10)  GREEN@(0,60 30x5)  [laid out: blue=10x10]
+S7 .position anchor bottomTrailing: RED@(100,0 40x20)  BLUE@(110,0 10x10)  GREEN@(0,60 30x5)  [laid out: blue=10x10]
+S8 [] (empty): RED@(100,0 40x20)  BLUE@(0,50 10x10)  GREEN@(0,60 30x5)  [laid out: blue=10x10]
+S9 follower first in a VStack: BLUE@(90,25 10x10)  GREEN@(0,10 30x5)  RED@(60,15 40x20)
+S10 two sources, one follower: RED@(120,30 40x20)  ORANGE@(100,20 60x30)  BLUE@(150,40 10x10)  GREEN@(0,60 30x5)
+S11 follower in an HStack (layout width): RED@(60,0 40x20)  BLUE@(90,10 10x10)  GREEN@(10,23 30x5)

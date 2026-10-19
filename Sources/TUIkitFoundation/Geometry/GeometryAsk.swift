@@ -230,6 +230,23 @@ package final class GeometryAsk: @unchecked Sendable {
             spaceSize: kept.observation.spaceSize, scrollAxis: kept.observation.scrollAxis)
     }
 
+    /// Where the view expects to be found in `space` — what it would be told
+    /// (the prediction and its residual, else what an owner found last
+    /// frame) — without telling it: nothing is noted as told, so no owner
+    /// holds the view to it and nothing it draws is taken to depend on it.
+    /// The prediction is kept, as a told one is, so the owner can carry the
+    /// residual to the next frame's.
+    ///
+    /// For a view that says where it is to the views drawn after it: a matched
+    /// geometry source, whose followers draw from it and are checked
+    /// themselves (``MatchedGeometryRegistry``).
+    package func expectedOrigin(in space: CoordinateSpace) -> CellPoint? {
+        if let found = found[space] { return found.origin }
+        guard isRecording else { return coordinator?.keptObservation(for: id, in: space)?.origin }
+        if let known = told[space] { return known.observation?.origin }
+        return (predictedAnswer(in: space) ?? coordinator?.keptObservation(for: id, in: space))?.origin
+    }
+
     /// Moves the predictions for the spaces no owner has found the view in
     /// yet by `delta` — the view was drawn somewhere its owner then moved
     /// (``GeometryCoordinator/movePredictions(in:by:)``). What it was TOLD is
@@ -246,8 +263,9 @@ package final class GeometryAsk: @unchecked Sendable {
     }
 
     /// Adds a space to find the view in without telling it anything — one it
-    /// asked after an earlier render, or a pointer's.
-    func want(_ space: CoordinateSpace) {
+    /// asked after an earlier render, a pointer's, or the global space a
+    /// matched geometry effect is found in whether or not it asks.
+    package func want(_ space: CoordinateSpace) {
         guard !wanted.contains(space) else { return }
         wanted.append(space)
     }

@@ -962,6 +962,11 @@ and A2's geometry have shipped. Lane owed: `matchedGeometryEffect` about
 three to four days, then the zoom transition with `matchedTransitionSource`,
 whose source configuration needs W1. A23 and A36 follow it.
 
+**Matched geometry shipped 2026-10-18**
+(`Sources/TUIkitEffects/Geometry/MatchedGeometryEffect.swift`, the groups in
+`Sources/TUIkitFoundation/Geometry/MatchedGeometryRegistry.swift`; Deliberate
+deviations A8, decisions O4).
+
 ### O5. Materials and Glass: `MaterialActiveAppearance`, plus differentShape `Material`, W13's `*Material`, `\.backgroundMaterial`, P14's `Glass*`
 
 - **(a) Keep the substitution:** `dimmed()`/`overlayBackground`.

@@ -1263,6 +1263,27 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   animation had begun.
 - **Decided:** [B-APPSTATE-2](<Decisions/Per-app render state (APPSTATE).md#b-appstate-2-an-observed-change-reported-with-no-transaction-takes-the-next-scopes>). **Lane.**
 
+### A8. A matched view is laid out again at each frame's size, and a removed one stays where it was
+
+- **SwiftUI (measured, macOS 15.8, 2026-10-18,
+  [`Tools/SwiftUIProbes/Matched geometry/mg3.out`](<../../Tools/SwiftUIProbes/Matched geometry/mg3.out>)):** a view inserted as another of its id is removed is
+  laid out at each frame's interpolated size; a follower whose `id` changes
+  is laid out once at its new size and its drawing scaled between the two
+  frames; the removed view moves toward the inserted one's frame as it fades.
+- **TUIkit:** every carried view is laid out again at each frame's size,
+  edges rounded to whole cells, and only moved while its size is its own;
+  the removed view's picture stays where it last drew it while its removal
+  plays; and a transition that fades the inserted view fades it where it is
+  laid out, not the cells it draws at another view's frame. A source that its
+  parent moves is not animated by the effect, so a view under both an
+  animated layout and a matched geometry effect moves once.
+- **Why:** a cell cannot be scaled (refusal review O4, ruled 2026-10-12: a
+  re-layout per frame, with translation where the sizes are equal); a
+  removed view's content is the picture it last drew (A3).
+- **Decided:** [O4](<Refusals re-examined, wave 17 (2026-10-03).md#o4-matched-geometry-matchedgeometryproperties--w12-matchedgeometryeffect-zoom-matchedtransitionsourceconfiguration-emptymatchedtransitionsourceconfiguration--w09-matchedtransitionsource-navigationtransitionzoom>),
+  [B-O4-1, B-O4-2](<Decisions/Matched geometry and the zoom transition (O4).md>).
+  **Owner** (the re-layout), **Lane** (the rest).
+
 ---
 
 ## Scrolling
