@@ -33,6 +33,24 @@ struct ModifiedSectionRowsTests {
         #expect(drawn.contains { $0.contains("Unread") && $0.contains("3") }, "\(drawn)")
     }
 
+    /// `.sectionActions` written after the environment write wraps the
+    /// modified section, so the list reaches the actions only if it sees the
+    /// section through the write as well (decisions B78 recorded this shape
+    /// drawing without its actions, before the write was seen through).
+    @Test("Actions written after the environment write are drawn on its header's line", arguments: [false, true])
+    func sectionActions(transformed: Bool) {
+        let section = Section("Inbox") { Text("Unread") }
+        let drawn = transformed
+            ? lines(
+                List {
+                    section.transformEnvironment(\.headerProminence) { $0 = .increased }
+                        .sectionActions { Text("Act") }
+                })
+            : lines(List { section.headerProminence(.increased).sectionActions { Text("Act") } })
+        #expect(drawn.contains { $0.contains("Inbox") && $0.contains("Act") }, "\(drawn)")
+        #expect(drawn.contains { $0.contains("Unread") && !$0.contains("Inbox") }, "the row is its own: \(drawn)")
+    }
+
     @Test("Its rows keep their tags, so the selection is drawn on the row it names")
     func tags() throws {
         let buffer = renderToBuffer(

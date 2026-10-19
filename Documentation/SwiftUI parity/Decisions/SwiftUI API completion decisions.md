@@ -2849,11 +2849,6 @@ Where it differs:
   fills its width, and after the title in one that hugs, is half a day: the
   header row would carry the actions apart from its buffer and the list
   would place them as it places a badge.
-- **An environment modifier between the section and `.sectionActions`**
-  (`Section { … }.headerProminence(.increased).sectionActions { … }`) hides
-  the section from the list, which draws it without its actions — checked in
-  a test run. That is the list's own limit: it does not see a `Section`
-  through an environment modifier, with or without actions.
 
 ### B79. Tab view customization is the app's to change; no gesture changes it
 
