@@ -80,6 +80,13 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     /// every key; see `LocalizedStringKey+Live.swift`.
     let liveArguments: [Int: LiveTextBox]
 
+    /// The interpolated `Text`s that bring styling of their own, by their
+    /// index in ``arguments``, whose entry there is their plain words. A `Text`
+    /// made from the key splices their runs in where their placeholders stand
+    /// (``Text/markdownRuns(in:key:)``); everything else that takes the key —
+    /// a button's title — reads the words. Empty for almost every key.
+    let styledArguments: [Int: StyledArgument]
+
     /// Creates a key from a string.
     ///
     /// - Parameter value: The key to look up.
@@ -88,13 +95,18 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
         self.swiftUIKey = nil
         self.arguments = []
         self.liveArguments = [:]
+        self.styledArguments = [:]
     }
 
-    init(key: String, swiftUIKey: String? = nil, arguments: [String], liveArguments: [Int: LiveTextBox] = [:]) {
+    init(
+        key: String, swiftUIKey: String? = nil, arguments: [String], liveArguments: [Int: LiveTextBox] = [:],
+        styledArguments: [Int: StyledArgument] = [:]
+    ) {
         self.key = key
         self.swiftUIKey = swiftUIKey
         self.arguments = arguments
         self.liveArguments = liveArguments
+        self.styledArguments = styledArguments
     }
 
     /// The localized text: the key resolved against `service`, with any
@@ -395,7 +407,8 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         self.init(
             key: stringInterpolation.key, swiftUIKey: stringInterpolation.swiftUIKey,
             arguments: stringInterpolation.arguments,
-            liveArguments: stringInterpolation.liveArguments)
+            liveArguments: stringInterpolation.liveArguments,
+            styledArguments: stringInterpolation.styledArguments)
     }
 
     /// Builds the key and its arguments as the literal is written.
@@ -410,6 +423,7 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         var swiftUIKey: String?
         var arguments: [String] = []
         var liveArguments: [Int: LiveTextBox] = [:]
+        var styledArguments: [Int: StyledArgument] = [:]
 
         public init(literalCapacity: Int, interpolationCount: Int) {
             key.reserveCapacity(literalCapacity + interpolationCount * 2)
@@ -495,35 +509,41 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
             }
         }
 
-        /// Interpolates a `Text`, contributing its own text — mirroring
-        /// SwiftUI, which lets a `Text` interpolate another `Text`.
+        /// Interpolates a `Text`, keeping its styling — mirrors SwiftUI, where
+        /// this is how separately styled texts are joined:
+        ///
+        /// ```swift
+        /// Text("Name: \(Text(person.name).bold()) \(Text("(edited)").italic())")
+        /// ```
+        ///
+        /// A `Text` made from the key draws the interpolated one's runs where
+        /// its placeholder stands, as SwiftUI does (measured 2026-10-18 on
+        /// macOS 15: each such `Text` renders exactly as the deprecated
+        /// `+` of its pieces). Its own attributes win, and what it leaves
+        /// unset comes from around it: inside `**…**` an italic fragment is
+        /// bold too, and a `.bold(false)` one stays plain; a modifier on the
+        /// whole `Text` is the base beneath everything, so the fragment's own
+        /// colour survives a `.foregroundStyle` on the whole.
+        ///
+        /// Anything else that takes the key — a button's title, a section
+        /// header — reads the fragment's words, as it reads every argument.
         ///
         /// Without this overload the catch-all above took `Text` too, and
         /// `String(describing:)`'d the whole struct — `Text(content: "Alice",
         /// style: …)` — into the sentence rather than reading its text. This
-        /// overload is concrete where that one is generic, so it wins for a
-        /// `Text` argument the same way any concrete overload beats a generic
-        /// one it also matches.
-        ///
-        /// Every argument here is stored as a plain `String`, substituted into
-        /// the key's `%@` placeholders — see `arguments` above and
-        /// ``LocalizedStringKey/localized``, which resolves eagerly to a
-        /// `String` a control can keep storing. So only the *text* carries
-        /// over: `content` is always the fully concatenated plain string, even
-        /// for a `Text` built from `+` (see `Text.Run`), but any per-run
-        /// styling is not representable here and is dropped, same as
-        /// interpolating a formatted value already discards its format style
-        /// once converted to text.
+        /// overload is concrete where that one is generic, so it wins.
         ///
         /// A live `Text` — `Text(date, style: .relative)` — stays live: the
         /// key's text reads it again at each frame it is drawn in.
         public mutating func appendInterpolation(_ text: Text) {
+            let index = arguments.count
             if let runs = text.runs, text.isLive {
                 appendLive(TextRunsSource(runs: runs))
-                return
+            } else {
+                appendPlaceholder("%@")
+                arguments.append(text.content)
             }
-            appendPlaceholder("%@")
-            arguments.append(text.content)
+            if let styled = StyledArgument(text) { styledArguments[index] = styled }
         }
 
         /// Interpolates an `Image`, as SwiftUI's `Text` draws one inline: a

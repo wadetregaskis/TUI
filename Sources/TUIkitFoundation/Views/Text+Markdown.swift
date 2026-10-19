@@ -69,7 +69,7 @@ extension LocalizedStringKey {
         let template = LocalizationService.shared.string(
             for: key, swiftUIKey: swiftUIKey, tableName: nil, bundle: nil)
         // As `Text(_:)` reads a key: past the byte scan, the parse's words.
-        guard InlineMarkdown.mightContainMarkup(template) else {
+        guard InlineMarkdown.mightContainMarkup(template) || !styledArguments.isEmpty else {
             return (arguments.isEmpty ? template : Self.substituting(arguments, into: template), nil)
         }
         let parsed = Text.markdownRuns(in: template, key: self)
@@ -228,6 +228,9 @@ struct MarkdownTemplate {
 
     /// The text and runs `key`'s values make of this template.
     func filled(by key: LocalizedStringKey) -> (content: String, runs: [Text.Run]?) {
+        // An interpolated `Text` with styling of its own is runs to splice,
+        // which neither the finished text nor the plan has room for.
+        if !key.styledArguments.isEmpty { return filledSplicing(by: key) }
         if let finished { return finished }
         if let plan, key.liveArguments.isEmpty {
             // No value is live, so the spans merge as they did at parse time:

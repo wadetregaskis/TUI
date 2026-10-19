@@ -167,8 +167,9 @@ public struct Text: View, Equatable {
         let template = LocalizationService.shared.string(
             for: key.key, swiftUIKey: key.swiftUIKey, tableName: tableName, bundle: bundle)
         // A byte scan first: most keys hold nothing Markdown could act on, and
-        // those take the plain path exactly as before.
-        if InlineMarkdown.mightContainMarkup(template) {
+        // those take the plain path exactly as before. An interpolated `Text`
+        // with styling of its own is spliced in on the Markdown path too.
+        if InlineMarkdown.mightContainMarkup(template) || !key.styledArguments.isEmpty {
             let parsed = Self.markdownRuns(in: template, key: key)
             self.init(verbatim: parsed.content)
             runs = parsed.runs
