@@ -127,6 +127,12 @@ final class InputChainHarness {
         tui.mouseEventDispatcher.beginRenderPass()
         tui.dragAndDropSession.beginFrame()
         tui.keyEventDispatcher.clearHandlers()
+        // The lifecycle's pass, as `RenderLoop.beginRenderPass()` opens it:
+        // without it every view drawn once stayed visible for the harness's
+        // life, so a view that left and came back — a sheet dismissed and
+        // presented again — was never seen to go, its `onDisappear` never
+        // ran, and its `onAppear` and `.task` never ran again.
+        tui.lifecycle.beginRenderPass()
         tui.stateStorage.beginRenderPass()
         tui.renderCache.beginRenderPass()
         tui.keyboardShortcuts.beginRenderPass()
@@ -179,6 +185,9 @@ final class InputChainHarness {
         focusManager.endRenderPass()
         tui.modifierKeys.endFrame()
         geometry.endFrame(frame: buffer, retainedBy: tui.stateStorage)
+        // As `RenderLoop.endRenderPass()` closes it: the views not drawn in
+        // this frame have gone, and their `onDisappear` runs.
+        tui.lifecycle.endRenderPass()
         tui.stateStorage.endRenderPass()
         tui.renderCache.removeInactive()
         return buffer

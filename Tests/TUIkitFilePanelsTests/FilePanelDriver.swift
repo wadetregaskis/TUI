@@ -108,15 +108,10 @@ final class FilePanelDriver<Page: View> {
         ).lines.map(\.stripped).joined(separator: "\n")
     }
 
-    /// One frame, bracketed by the lifecycle's passes as the run loop brackets
-    /// it, which the harness does not: without them a view that leaves and
-    /// comes back — a panel dismissed and presented again — is never seen to
-    /// have gone, so its `.task` never starts again.
+    /// One frame of the page, built afresh.
     @discardableResult
     private func frame() -> FrameBuffer {
-        harness.tui.lifecycle.beginRenderPass()
-        defer { harness.tui.lifecycle.endRenderPass() }
-        return harness.frame(build())
+        harness.frame(build())
     }
 
     /// Draws frames until the screen shows `text` — a folder is read on
