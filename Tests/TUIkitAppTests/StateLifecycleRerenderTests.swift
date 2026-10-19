@@ -30,7 +30,7 @@ import Testing
 /// in-place `append` is a get-modify-writeback through `State.wrappedValue`'s
 /// `nonmutating set`, which assigns `StateBox.value` and so fires its `didSet` —
 /// exactly as a scalar reassignment does — clearing the affected render-cache
-/// subtree and calling `AppState.shared.setNeedsRender()`. The next frame
+/// subtree and asking the context's `AppState` for a frame. The next frame
 /// re-evaluates `body`, reads the grown array from the same box, and renders it.
 /// There is no value-equality gate on the write path, so a collection mutation
 /// can never be coalesced away the way an unchanged scalar might be.
@@ -45,8 +45,7 @@ struct StateLifecycleRerenderTests {
 
     /// A render context whose state/lifecycle persist across frames, like the
     /// real run loop (same `TUIContext` reused each frame).
-    private func makeContext(width: Int = 40, height: Int = 12) -> RenderContext {
-        let tuiContext = TUIContext()
+    private func makeContext(width: Int = 40, height: Int = 12, tuiContext: TUIContext = TUIContext()) -> RenderContext {
         var environment = EnvironmentValues()
         environment.focusManager = FocusManager()
         environment.applyRuntimeServices(from: tuiContext)
@@ -170,19 +169,15 @@ struct StateLifecycleRerenderTests {
             }
         }
 
-        // Scalar: mutating @State in onAppear marks the shared AppState dirty.
-        let intCtx = makeContext()
-        AppState.shared.didRender()
-        _ = renderFrame(IntView(), context: intCtx)
-        let scalarFlagged = AppState.shared.needsRender
-        AppState.shared.didRender()
+        // Scalar: mutating @State in onAppear marks the context's AppState dirty.
+        let intTUI = TUIContext()
+        _ = renderFrame(IntView(), context: makeContext(tuiContext: intTUI))
+        let scalarFlagged = intTUI.appState.needsRender
 
         // Array: the in-place append must mark it dirty the very same way.
-        let arrayCtx = makeContext()
-        AppState.shared.didRender()
-        _ = renderFrame(ArrayView(), context: arrayCtx)
-        let arrayFlagged = AppState.shared.needsRender
-        AppState.shared.didRender()
+        let arrayTUI = TUIContext()
+        _ = renderFrame(ArrayView(), context: makeContext(tuiContext: arrayTUI))
+        let arrayFlagged = arrayTUI.appState.needsRender
 
         #expect(scalarFlagged, "scalar @State increment should set needsRender")
         #expect(arrayFlagged, "array @State append should set needsRender, exactly like the scalar")

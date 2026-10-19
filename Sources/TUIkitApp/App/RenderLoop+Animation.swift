@@ -67,11 +67,11 @@ extension RenderLoop {
         // Consumed, not merely read, so it applies to exactly one pass: the one
         // that first shows the change. A frame that renders for some other
         // reason must not restart animations that already began.
-        environment.transaction = AppState.shared.consumePendingTransaction() ?? Transaction()
+        environment.transaction = tuiContext.appState.consumePendingTransaction() ?? Transaction()
         // The completions waiting on the change go with it: this pass starts
         // its animations, and so decides when they fire.
         tuiContext.stateStorage.animationCompletions.beginPass(
-            placing: AppState.shared.consumePendingCompletions())
+            placing: tuiContext.appState.consumePendingCompletions())
     }
 
     /// Keeps the frames coming while anything is still moving.

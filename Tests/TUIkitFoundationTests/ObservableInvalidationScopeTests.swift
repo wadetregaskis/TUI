@@ -191,8 +191,8 @@ struct ObservableInvalidationScopeTests {
         let tui = TUIContext()
         let view = _MemoizedRow(element: 1, content: Reader(model: model))
         _ = Self.frame(view, tui: tui)
-        AppState.shared.didRender()
+        tui.appState.didRender()
         model.count = 1
-        #expect(AppState.shared.needsRender)
+        #expect(tui.appState.needsRender)
     }
 }

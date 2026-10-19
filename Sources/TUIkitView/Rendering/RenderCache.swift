@@ -1550,9 +1550,9 @@ extension RenderCache: RenderInvalidationSink {
     /// `drainPendingInvalidations()` at frame start. That indirection is what
     /// makes a `@State` written from a background `Task` race-free: the cache is
     /// otherwise single-threaded, so it must never be mutated from the writer's
-    /// thread. The re-render request goes through the retained `AppState`
-    /// singleton (already thread-safe). A box holds the link, not the cache,
-    /// and reports to it directly — see `RenderCache.Link`.
+    /// thread. The re-render request goes to the `AppState` of the app the
+    /// cache draws (already thread-safe), which the link holds. A box holds the
+    /// link, not the cache, and reports to it directly — see `RenderCache.Link`.
     ///
     /// - Parameter identity: the subtree whose cached buffers are now stale, or
     ///   `nil` to drop the whole cache.

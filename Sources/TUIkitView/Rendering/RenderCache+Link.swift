@@ -36,10 +36,12 @@ extension RenderCache {
     ///
     /// - **From any thread**, ``invalidateRender(for:)``: the queue of
     ///   invalidations a `@State` write or an `@Observable` change makes, which
-    ///   the cache drains on the main actor at ``RenderCache/beginRenderPass()``.
-    ///   It lives here, not on the cache, so a write on another thread never
-    ///   touches the cache at all. Once the cache has gone the queue is closed:
-    ///   a report does nothing, and asks for no frame.
+    ///   the cache drains on the main actor at ``RenderCache/beginRenderPass()``,
+    ///   and the frame each one asks for, of the ``AppState`` of the app the
+    ///   cache draws (``requestFrames(from:)``). It lives here, not on the
+    ///   cache, so a write on another thread never touches the cache at all.
+    ///   Once the cache has gone the queue is closed: a report does nothing,
+    ///   and asks for no frame.
     /// - **On the main actor**, ``cache``: for a holder that has to act on the
     ///   cache's tables at once (a focus move, a control's drawing report). It
     ///   names the cache `unowned`, which keeps no strong count and, unlike a
@@ -53,7 +55,8 @@ extension RenderCache {
     ///   on another thread traps, rather than reading freed memory.
     package final class Link: RenderInvalidationSink, @unchecked Sendable {
         /// What the link's lock guards: the queue, whether the cache is still
-        /// there to drain it, and the diagnostic a write reports to.
+        /// there to drain it, the app a write asks for a frame, and the
+        /// diagnostic a write reports to.
         private struct Queue: Sendable {
             /// `false` once the cache has gone: nothing is queued, no frame is
             /// asked for.
@@ -64,6 +67,12 @@ extension RenderCache {
             /// Subtrees whose cached buffers must be dropped (unless
             /// `clearAll`).
             var identities: Set<ViewIdentity> = []
+            /// The render state of the app the cache draws, which every report
+            /// asks for a frame — and whose pending transaction a report made
+            /// inside `withAnimation` sets — or `nil` for a cache no app
+            /// draws, whose reports ask nobody. Strong: an `AppState` holds
+            /// nothing that holds the link.
+            var appState: AppState?
             /// The cache's ``RenderCache/bodyMutationDiagnostic``, mirrored
             /// here so a write on another thread reads it without reading the
             /// cache.
@@ -98,8 +107,23 @@ extension RenderCache {
                 queue.attached = false
                 queue.clearAll = false
                 queue.identities.removeAll()
+                queue.appState = nil
                 queue.diagnostic = nil
             }
+        }
+
+        /// Makes every report from now on ask `appState` for a frame: the
+        /// render state of the app whose cache this is, which its run loop
+        /// polls and whose pending transaction its next frame draws under.
+        /// Called by the `TUIContext` that owns the cache, as it is assembled.
+        ///
+        /// Per app, not the process's: a frame requested of the process's one
+        /// render state was drawn by whichever app drew next, and that app took
+        /// the transaction a change was made under — two apps in one process
+        /// (two tests running at once) animated each other's changes, or
+        /// snapped their own.
+        package func requestFrames(from appState: AppState?) {
+            queue.withLock { $0.appState = appState }
         }
 
         /// Mirrors the cache's diagnostic, which a write reports to.
@@ -115,15 +139,16 @@ extension RenderCache {
         /// - Parameter identity: The subtree whose cached buffers are now stale,
         ///   or `nil` to drop the whole cache.
         package func invalidateRender(for identity: ViewIdentity?) {
-            let (queued, diagnostic) = queue.withLock { queue -> (Bool, BodyMutationDiagnostic?) in
-                guard queue.attached else { return (false, nil) }
+            typealias Report = (queued: Bool, appState: AppState?, diagnostic: BodyMutationDiagnostic?)
+            let (queued, appState, diagnostic) = queue.withLock { queue -> Report in
+                guard queue.attached else { return (false, nil, nil) }
                 if let identity {
                     if !queue.clearAll { queue.identities.insert(identity) }
                 } else {
                     queue.clearAll = true
                     queue.identities.removeAll(keepingCapacity: true)
                 }
-                return (true, queue.diagnostic)
+                return (true, queue.appState, queue.diagnostic)
             }
             guard queued else { return }
             // Opt-in, and free when off: one optional test. See
@@ -132,7 +157,8 @@ extension RenderCache {
             // so it is the only place that needs to ask. Outside the lock: it
             // may print.
             diagnostic?.note(identity)
-            AppState.shared.setNeedsRender()
+            // Outside the lock too: the app state calls its observers.
+            appState?.setNeedsRender()
         }
 
         /// Takes what has been queued since the last drain, leaving the queue

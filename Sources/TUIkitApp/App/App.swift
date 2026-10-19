@@ -126,13 +126,13 @@ internal final class AppRunner<A: App> {
     /// - Parameters:
     ///   - app: The app whose scene this runner drives.
     ///   - appState: The render-request queue the loop polls, and the one every
-    ///     seam here signals. An app MUST leave this at the shared singleton:
-    ///     `@State`/`StateBox`, `@Observable`, `Spinner`, `AppStorage`, etc. all
-    ///     signal re-renders through `AppState.shared`, and the loop polls
-    ///     *this* instance's `needsRender`, so it has to be the same object —
-    ///     otherwise state changes never reach the loop. (This was masked while
-    ///     the pulse/cursor timers force-rendered ~30×/sec; demand-driven
-    ///     rendering exposed it as a frozen screen.)
+    ///     seam here signals — and the runner's context's (`TUIContext.appState`),
+    ///     which a `@State` write and an `@Observable` change reach through the
+    ///     render cache's link. An app MUST leave this at the shared singleton:
+    ///     `AppStorage`, a notification, a language change and the top-level
+    ///     `dismiss()` still signal re-renders through `AppState.shared`, and the
+    ///     loop polls *this* instance's `needsRender`, so it has to be the same
+    ///     object — otherwise those changes never reach the loop.
     ///
     ///     It is a parameter only so a TEST can watch the instance this runner
     ///     signals rather than the one the whole process shares. swift-testing
@@ -156,7 +156,8 @@ internal final class AppRunner<A: App> {
         // the rule sends them there at all), and whose links reach its URL
         // opener (where opening URLs is on): the app's, which runs the
         // platform's helpers. Every other context keeps both in memory.
-        self.tuiContext = TUIContext(clipboard: SystemClipboard.Backend(), urlOpener: SystemURLOpener())
+        self.tuiContext = TUIContext(
+            clipboard: SystemClipboard.Backend(), urlOpener: SystemURLOpener(), appState: appState)
     }
 }
 

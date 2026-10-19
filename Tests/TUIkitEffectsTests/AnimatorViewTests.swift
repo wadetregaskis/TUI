@@ -22,9 +22,10 @@ import TUIkitEffects
 
 /// What a page's animator is driven by and what it reported. Observable, so a
 /// trigger's change reaches the scene's body, as an app's model would. One per
-/// app type, and the tests are synchronous: every headless app shares the one
-/// `AppState`, so tests that awaited between frames took each other's pending
-/// animation completions.
+/// app type, so every app of a type reports into it. (The tests are
+/// synchronous from when every headless app shared one `AppState`, and tests
+/// that awaited between frames took each other's pending animation
+/// completions; each app has its own now — `AppIsolationTests`.)
 @Observable
 @MainActor
 final class AnimatorTestModel {

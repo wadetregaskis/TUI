@@ -22,8 +22,10 @@
 @MainActor
 final class RenderLoopHarness {
     let terminal = MockTerminal()
-    /// The same instance the status bar was built around, so a test can post
-    /// the signals the run loop consumes (`setNeedsAnimationTick`, and so on).
+    /// The context's render state — the instance the status bar was built
+    /// around and the loop's frame requests reach — so a test can post the
+    /// signals the run loop consumes (`setNeedsAnimationTick`, and so on) and
+    /// read the ones it raises.
     let appState: AppState
     let statusBar: StatusBarState
     let focusManager = FocusManager()
@@ -51,9 +53,8 @@ final class RenderLoopHarness {
     ///   runner's own, so what the seam changes is what the loop draws.
     init(tuiContext: TUIContext = TUIContext()) {
         self.tuiContext = tuiContext
-        let appState = AppState()
-        self.appState = appState
-        self.statusBar = StatusBarState(appState: appState)
+        self.appState = tuiContext.appState
+        self.statusBar = StatusBarState(appState: tuiContext.appState)
         self.paletteManager = ThemeManager(items: PaletteRegistry.all, renderTrigger: {})
         self.appearanceManager = ThemeManager(items: AppearanceRegistry.all, renderTrigger: {})
     }

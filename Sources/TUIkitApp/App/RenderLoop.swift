@@ -208,13 +208,13 @@ internal final class RenderLoop<A: App> {
                 TerminalHost.clientCapabilities(tmuxClients: $0)
             }
         },
-        onChange: { [diffWriter] in
+        onChange: { [diffWriter, appState = tuiContext.appState] in
             // Every glyph on screen could differ (■ vs ⬛ change cell widths):
             // full-repaint invalidation, plus a wake so the redraw happens NOW
             // even if the loop is idle-blocked awaiting input — the point is a
             // proactive refresh, not one deferred to the next keypress.
             diffWriter.invalidate()
-            AppState.shared.setNeedsRender()
+            appState.setNeedsRender()
         })
 
     /// What the terminal says about its colours after the startup exchange has
@@ -240,9 +240,9 @@ internal final class RenderLoop<A: App> {
     /// than it already was.
     lazy var terminalColors = TerminalColorRefresher(
         publish: publishTerminalColors,
-        onChange: { [diffWriter] in
+        onChange: { [diffWriter, appState = tuiContext.appState] in
             diffWriter.invalidate()
-            AppState.shared.setNeedsRender()
+            appState.setNeedsRender()
         })
 
     /// What the terminal is asked about its colours once the app is drawing (see
@@ -414,7 +414,7 @@ extension RenderLoop {
     ) -> RenderActivity {
         // If an @Published property changed, clear the entire render cache
         // so EquatableView-cached subtrees re-render with new model data.
-        if AppState.shared.consumeNeedsCacheClear() {
+        if tuiContext.appState.consumeNeedsCacheClear() {
             tuiContext.renderCache.clearAll()
         }
 

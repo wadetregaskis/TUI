@@ -234,18 +234,15 @@ private struct LateReplyProbeApp: App {
 /// changes the record repaints the whole screen rather than waiting for a
 /// keypress.
 ///
-/// Serialized because it reads `AppState.shared`, which `AppRunner` binds
-/// itself to — the same reason `RunLoopFoldTests` is. What the loop publishes
-/// goes to the harness, not to the process-wide colours: those are what the
-/// next test grounds its palette on.
+/// The frame the loop asks for is asked of the harness's own render state.
+/// What the loop publishes goes to the harness, not to the process-wide
+/// colours: those are what the next test grounds its palette on.
 @MainActor
-@Suite("The run loop applies what the parser siphoned", .serialized)
+@Suite("The run loop applies what the parser siphoned")
 struct TerminalColorReplyWiringTests {
 
     @Test("A reply handed to the loop is published, and the next frame is a full repaint")
     func loopPublishesAndRepaints() {
-        AppState.shared.didRender()
-
         let harness = RenderLoopHarness()
         let loop = harness.loop(LateReplyProbeApp())
         loop.render()
@@ -257,9 +254,10 @@ struct TerminalColorReplyWiringTests {
             "the fixture: an unchanged frame writes less than the first: \(unchangedFrame) of \(firstFrame)")
 
         let reply = TerminalColorLateReplyTests.reply("11", TerminalColorLateReplyTests.ghosttyBackground)
+        harness.appState.didRender()
         loop.noteVolunteeredColorReplies(Array(reply.utf8), sawStatusFence: false)
         #expect(harness.publishedColors.map(\.background) == [TerminalColorLateReplyTests.ghosttyBackground])
-        #expect(AppState.shared.needsRender, "the loop was not asked for a frame")
+        #expect(harness.appState.needsRender, "the loop was not asked for a frame")
 
         let beforeRepaint = harness.terminal.writtenOutput.joined().count
         loop.render()

@@ -81,10 +81,14 @@ package final class HeadlessApp<A: App> {
         let terminal = InMemoryTerminal(width: width, height: height)
         let quits = QuitCount()
         self.quits = quits
-        let appState = AppState()
-        let statusBar = StatusBarState(appState: appState)
-        let focusManager = FocusManager()
+        // The context's render state, which its cache's link asks for frames
+        // and its loop draws the pending transaction of: the app's own, as
+        // `AppRunner`'s is, so two instances in one process — the warm and the
+        // cold app a session compares, two tests at once — never take each
+        // other's.
         let tuiContext = TUIContext()
+        let statusBar = StatusBarState(appState: tuiContext.appState)
+        let focusManager = FocusManager()
         let paletteManager = ThemeManager(items: PaletteRegistry.all, renderTrigger: {})
         let appearanceManager = ThemeManager(items: AppearanceRegistry.all, renderTrigger: {})
         self.terminal = terminal

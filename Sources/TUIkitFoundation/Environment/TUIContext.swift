@@ -316,7 +316,7 @@ package final class TUIContext: @unchecked Sendable {
     /// ``ClipboardWriter``.
     ///
     /// This machine's clipboard behind it is the one the context was made
-    /// with (``init(clipboard:urlOpener:)``): the app's run loop passes the system's,
+    /// with (``init(clipboard:urlOpener:appState:)``): the app's run loop passes the system's,
     /// and every other context keeps its copies in memory.
     ///
     /// Settable, unlike its neighbours, so a test can hand a context a writer
@@ -350,7 +350,7 @@ package final class TUIContext: @unchecked Sendable {
     private lazy var _clipboardAccess = ClipboardAccess(writer: _clipboardWriter)
 
     /// This machine's URL opener, for an ``OpenURLAction`` that defers to the
-    /// system: the one the context was made with (``init(clipboard:urlOpener:)``).
+    /// system: the one the context was made with (``init(clipboard:urlOpener:appState:)``).
     /// The app's run loop passes the system's; every other context's keeps
     /// what it is handed in memory and launches nothing.
     package let urlOpener: any URLOpenerBackend
@@ -401,6 +401,17 @@ package final class TUIContext: @unchecked Sendable {
     /// The undo steps of text controls that have gone away, which every frame
     /// takes out of ``undoManager`` as it begins (`RenderLoop.beginRenderPass()`).
     package let departedUndoSteps = DepartedUndoSteps()
+
+    /// The app's render state: whether a frame is owed, the transaction the
+    /// change behind it was made under, the clocks that ticked, and an exit
+    /// asked for. The app's run loop polls it, and the frame requests the
+    /// app's views make reach it — a `@State` write and an `@Observable`
+    /// change through the render cache's link, which is pointed at it here.
+    ///
+    /// One per context, so one per app: two apps in one process — two tests
+    /// running at once — never draw each other's change under the other's
+    /// transaction.
+    package let appState: AppState
 
     /// Persistent `@State` value storage indexed by `ViewIdentity`.
     package let stateStorage: StateStorage
@@ -454,10 +465,14 @@ package final class TUIContext: @unchecked Sendable {
     ///   - urlOpener: This machine's URL opener (``urlOpener``). The app's run
     ///     loop passes the system's (`SystemURLOpener`); every other context
     ///     keeps what it is handed in memory, and never launches a browser.
+    ///   - appState: The app's render state (``appState``): a fresh one unless
+    ///     the caller holds one the context's frame requests must reach.
     package init(
         clipboard: any ClipboardBackend = InMemoryClipboard(),
-        urlOpener: any URLOpenerBackend = InMemoryURLOpener()
+        urlOpener: any URLOpenerBackend = InMemoryURLOpener(),
+        appState: AppState = AppState()
     ) {
+        self.appState = appState
         self._clipboardWriter = ClipboardWriter(system: clipboard)
         self.urlOpener = urlOpener
         self.lifecycle = LifecycleManager()
@@ -479,6 +494,10 @@ package final class TUIContext: @unchecked Sendable {
         // shared singleton there is no implicit common target — the owner must
         // wire the two together.
         self.stateStorage.renderCache = self.renderCache
+        // And the cache's link at this app's render state, so the frame a
+        // write asks for — under the transaction the write was made in — is
+        // asked of this app and of no other.
+        self.renderCache.link.requestFrames(from: appState)
         // And the cache at the dispatcher's interned handler ids: a stored
         // buffer carries them in its regions, so the two prune together.
         self.renderCache.internedIDTable = self.mouseEventDispatcher
@@ -498,16 +517,20 @@ package final class TUIContext: @unchecked Sendable {
     ///   - preferences: The preference storage to use.
     ///   - stateStorage: The state storage to use.
     ///   - renderCache: The render cache to use (defaults to a fresh, isolated cache).
+    ///   - appState: The render state the context's frame requests reach
+    ///     (defaults to a fresh one).
     package init(
         lifecycle: LifecycleManager,
         keyEventDispatcher: KeyEventDispatcher,
         mouseEventDispatcher: MouseEventDispatcher = MouseEventDispatcher(),
         preferences: PreferenceStorage,
         stateStorage: StateStorage = StateStorage(),
-        renderCache: RenderCache = RenderCache(valueHashPlans: .tuikit())
+        renderCache: RenderCache = RenderCache(valueHashPlans: .tuikit()),
+        appState: AppState = AppState()
     ) {
+        self.appState = appState
         // A snapshot's or a test's: its copies and URLs stay in memory (see
-        // init(clipboard:urlOpener:)).
+        // init(clipboard:urlOpener:appState:)).
         self._clipboardWriter = ClipboardWriter(system: InMemoryClipboard())
         self.urlOpener = InMemoryURLOpener()
         self.lifecycle = lifecycle
@@ -522,8 +545,10 @@ package final class TUIContext: @unchecked Sendable {
         self.preferences = preferences
         self.stateStorage = stateStorage
         self.renderCache = renderCache
-        // See init(): wire state-change invalidation to this context's cache.
+        // See init(): wire state-change invalidation to this context's cache,
+        // and the cache's frame requests to this context's render state.
         self.stateStorage.renderCache = self.renderCache
+        self.renderCache.link.requestFrames(from: appState)
         // See init(): and the interned handler ids, which prune with it.
         self.renderCache.internedIDTable = self.mouseEventDispatcher
         // See init(): and the drag session, whose carried view draws as gone.

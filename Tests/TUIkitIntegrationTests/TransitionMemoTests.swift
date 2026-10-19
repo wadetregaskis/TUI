@@ -129,16 +129,17 @@ struct TransitionMemoTests {
         let cold = HeadlessApp(RowsApp(shape: shape, transition: transition), width: 30, height: 14)
         cold.clearsRenderCacheEachFrame = true
         var tick: Int64 = 0
-        // Each app presses and draws before the other presses. The change's
-        // transaction waits in the process's one pending slot until a frame
-        // consumes it, so pressing both first would animate only the app that
-        // happened to draw first, and the other would snap.
+        // Both apps press before either draws: each change's transaction waits
+        // in its own app's render state until that app's frame takes it
+        // (`AppIsolationTests`).
         func frame(pressing: Bool = false) {
             let now = AnimationClock.nanoseconds(atTick: tick)
-            for app in [warm, cold] {
-                if pressing { #expect(app.send(KeyEvent(key: .enter)), "precondition: the button took the key") }
-                app.frame(atNanos: now)
+            if pressing {
+                for app in [warm, cold] {
+                    #expect(app.send(KeyEvent(key: .enter)), "precondition: the button took the key")
+                }
             }
+            for app in [warm, cold] { app.frame(atNanos: now) }
             tick += 1
         }
         func showsDetail(_ app: HeadlessApp<RowsApp>) -> Bool {
