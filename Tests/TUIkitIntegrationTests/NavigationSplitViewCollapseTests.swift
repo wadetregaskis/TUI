@@ -293,4 +293,61 @@ struct NavigationSplitViewCollapseTests {
         driver.press(.space)
         #expect(model.column == .sidebar)
     }
+
+    // MARK: - Links (decisions A21, lane TOOLBARS)
+
+    /// A sidebar of links, whose destination the sidebar declares, as an
+    /// iPhone app's collapsed split pushes from.
+    private struct LinkedSidebar: View {
+        let model: SplitModel
+        var body: some View {
+            NavigationSplitView(preferredCompactColumn: Binding(get: { model.column }, set: { model.column = $0 })) {
+                VStack {
+                    NavigationLink("Mars", value: "Mars")
+                    NavigationLink("Venus", value: "Venus")
+                }
+                .navigationTitle("Planets")
+                .navigationDestination(for: String.self) { planet in
+                    VStack {
+                        Text("orbiting \(planet)")
+                        NavigationLink("Moons of \(planet)", value: planet.count)
+                    }
+                    .navigationTitle(planet)
+                    .navigationDestination(for: Int.self) { count in Text("moon count \(count)") }
+                }
+            } detail: {
+                Text("detail placeholder")
+            }
+            .environment(\.horizontalSizeClass, model.horizontal)
+        }
+    }
+
+    @Test("A link in the column on top pushes its destination onto the collapsed stack, and Escape comes back")
+    func linkPushes() {
+        let model = SplitModel()
+        let driver = Driver(LinkedSidebar(model: model))
+        #expect(driver.shows("Mars") && !driver.shows("orbiting"), "\(driver.app.screen)")
+        driver.press(.enter)
+        #expect(driver.shows("orbiting Mars"), "\(driver.app.screen)")
+        #expect(driver.shows("Planets › Mars"), "the bar's trail goes back to the sidebar: \(driver.app.screen)")
+        #expect(model.column == .sidebar, "a link moves no column")
+        #expect(!driver.shows("detail placeholder"), "\(driver.app.screen)")
+        driver.press(.escape)
+        #expect(driver.shows("Mars") && driver.shows("Venus") && !driver.shows("orbiting"), "\(driver.app.screen)")
+    }
+
+    @Test("A link in a linked screen pushes again, and each Escape goes back one")
+    func linksStack() {
+        let model = SplitModel()
+        let driver = Driver(LinkedSidebar(model: model))
+        driver.press(.down)
+        driver.press(.enter)
+        #expect(driver.shows("orbiting Venus"), "\(driver.app.screen)")
+        driver.press(.enter)
+        #expect(driver.shows("moon count 5"), "\(driver.app.screen)")
+        driver.press(.escape)
+        #expect(driver.shows("orbiting Venus"), "\(driver.app.screen)")
+        driver.press(.escape)
+        #expect(driver.shows("Mars") && driver.shows("Venus"), "\(driver.app.screen)")
+    }
 }

@@ -54,3 +54,25 @@ cut to it.
 principal items centred in place of the title (or beside it under
 `.toolbarRole(.editor)`), the trail shortened to the screens before. About two
 hours; it changes nothing an app can do, only where the item sits.
+
+### B-TOOLBARS-3. A link in a split view's column pushes only while the split is collapsed
+
+*`NavigationLink` in a `NavigationSplitView` column; decisions A21*
+
+A21 (option 3 with B3) has a split view follow a compact class an app sets,
+collapsing into a stack as on iPhone. A link in the column on top now pushes
+its destination onto that stack, over the column — resolved by the
+`navigationDestination`s the columns declare — with the trail, Escape and
+`\.dismiss` going back through it as through the columns.
+
+**Shipped:** the collapsed form. Links pushed over a column go when another
+column comes to the top. In a regular class a split view's links push only
+within a `NavigationStack`, as before — a link in a sidebar with no stack
+round it is disabled — and links pushed while collapsed are kept, not shown,
+until the split collapses again.
+
+**The fuller version** is SwiftUI's regular form: a link in the sidebar (or
+the content column) shows its destination in the next column, in place of
+the column's own content, and a split that turns regular with links pushed
+shows the last one there. About half a day: the split's columns read the
+collapsed stack's links when they draw the next column.

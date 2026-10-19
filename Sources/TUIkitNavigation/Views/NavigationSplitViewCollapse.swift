@@ -125,9 +125,20 @@ final class SplitViewCollapseState {
     /// A split with a binding never reads it.
     var column = NavigationSplitViewColumn.sidebar
 
-    /// The path the columns above the sidebar make: what the navigation bar
-    /// goes back along, and whose titles its trail names.
+    /// The path the columns above the sidebar make, and the screens
+    /// `NavigationLink`s pushed above the column on top: what the navigation
+    /// bar goes back along, whose titles its trail names, and what a link in
+    /// a column pushes onto.
     let coordinator = NavigationCoordinator()
+
+    /// The values `NavigationLink`s in the column on top pushed onto the
+    /// collapsed stack, above it, as on iPhone — empty with none.
+    var links: [AnyHashable] = []
+
+    /// How far up the stack the column on top was when the links were
+    /// pushed: they are the screens above THAT column, and go when another
+    /// column comes to the top.
+    var linksDepth = 0
 
     /// The column on top's way to the next column, which its lists run when a
     /// row is chosen. One box for the split's life, so the environment value
@@ -160,6 +171,21 @@ struct CompactColumnPosition {
         return columns.firstIndex(of: column) ?? 0
     }
 
+    /// Makes `path` — the columns above the sidebar, then the links — the
+    /// collapsed stack: a path no longer than the columns now above the
+    /// sidebar puts that column on top and drops the links; a longer one keeps
+    /// the column and makes the rest the links.
+    func show(path: [AnyHashable], state: SplitViewCollapseState) {
+        let columnDepth = depth
+        if path.count <= columnDepth {
+            state.links = []
+            show(depth: path.count)
+        } else {
+            state.links = Array(path.dropFirst(columnDepth))
+            state.linksDepth = columnDepth
+        }
+    }
+
     /// Puts the column at `depth` on top, through the binding when there is
     /// one.
     func show(depth: Int) {
@@ -173,6 +199,10 @@ struct CompactColumnPosition {
 }
 
 // MARK: - Rendering
+
+/// Identity tag for a screen a link pushed onto a collapsed split, so every
+/// such screen shares one slot, as a navigation stack's screens do.
+private enum LinkedScreen {}
 
 extension _NavigationSplitViewCore {
     /// Whether the split is collapsed: its horizontal size class is compact.
@@ -204,16 +234,26 @@ extension _NavigationSplitViewCore {
         let focusManager = context.environment.focusManager
         declareFocusRegistrations(context: context, focusManager: focusManager)
 
+        // The screens links pushed above the column on top, if any: then the
+        // last of them is on top, and the column is behind it.
+        let state = position.state
+        if state.linksDepth != depth { state.links = [] }
+        let link = state.links.last
+        let stackDepth = depth + state.links.count
+
         let width = max(0, context.availableWidth)
-        let columnHeight = max(0, context.availableHeight - (depth > 0 ? NavigationBar.height : 0))
-        let coordinator = position.state.coordinator
+        let columnHeight = max(0, context.availableHeight - (stackDepth > 0 ? NavigationBar.height : 0))
+        let coordinator = state.coordinator
         if !context.isMeasuring {
-            // The path is the columns above the sidebar, read and written at
-            // the moment the bar goes back along it.
-            coordinator.read = { position.columns.dropFirst().prefix(position.depth).map { AnyHashable($0) } }
-            coordinator.write = { path in position.show(depth: path.count) }
+            // The path is the columns above the sidebar and then the links,
+            // read and written at the moment the bar goes back along it or a
+            // link pushes onto it.
+            coordinator.read = {
+                position.columns.dropFirst().prefix(position.depth).map { AnyHashable($0) } + state.links
+            }
+            coordinator.write = { path in position.show(path: path, state: state) }
             renderColumnsBehind(
-                position.columns.prefix(depth), coordinator: coordinator,
+                position.columns.prefix(link == nil ? depth : depth + 1), coordinator: coordinator,
                 context: context.withAvailableSize(width: width, height: columnHeight))
         }
 
@@ -225,13 +265,20 @@ extension _NavigationSplitViewCore {
             context.isMeasuring
             ? nil
             : coordinator.enterSection(
-                depth: depth, context: context,
-                sectionID: { focusSectionID(for: position.columns[$0], context: context) })
+                depth: stackDepth, context: context,
+                sectionID: { level in
+                    level <= depth
+                        ? focusSectionID(for: position.columns[level], context: context)
+                        : "nav-split-link-\(level)-\(context.identity.path)"
+                })
         var columnContext = context.withAvailableSize(width: width, height: columnHeight)
         if let section {
             columnContext = columnFocusContext(columnContext, sectionID: section, focusManager: focusManager)
         }
-        wireCompactActions(position: position, depth: depth, columnContext: &columnContext)
+        wireCompactActions(position: position, depth: depth, hasLink: link != nil, columnContext: &columnContext)
+        // A link in the column pushes onto this stack, and a destination
+        // declared in it registers here.
+        columnContext.environment.navigationCoordinator = coordinator
 
         // Where the bar's Escape handler goes: behind everything the column
         // registers (see `NavigationBar.render`).
@@ -239,13 +286,20 @@ extension _NavigationSplitViewCore {
         // The column's own preferences, for the bar to read the title it set.
         // Collecting observes this pass's preferences, and is declared to any
         // value-memoizing ancestor, as a navigation stack's collection is.
-        let collectsTitle = depth > 0 && !context.isMeasuring
+        let collectsTitle = stackDepth > 0 && !context.isMeasuring
         let preferences = columnContext.environment.preferenceStorage
         if collectsTitle {
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             preferences?.push()
         }
-        let column = renderColumn(top, context: columnContext, toggleState: toggleState)
+        let column =
+            if let link {
+                coordinator.destination(for: link).map {
+                    TUIkitView.renderToBuffer($0, context: columnContext.withChildIdentity(type: LinkedScreen.self))
+                } ?? FrameBuffer()
+            } else {
+                renderColumn(top, context: columnContext, toggleState: toggleState)
+            }
         let published = collectsTitle ? preferences?.pop() : nil
         if !context.isMeasuring {
             // The keyboard stays in the split when the section that held it
@@ -255,7 +309,7 @@ extension _NavigationSplitViewCore {
         }
 
         let content = NavigationBar.padded(column, toWidth: width, height: columnHeight)
-        guard depth > 0 else { return content }
+        guard stackDepth > 0 else { return content }
         var barContext = context
         if let section { barContext.environment.activeFocusSectionID = section }
         var buffer = NavigationBar(coordinator: coordinator).render(
@@ -276,6 +330,11 @@ extension _NavigationSplitViewCore {
         context: RenderContext
     ) {
         guard !behind.isEmpty else { return }
+        // Their links and destinations are this stack's, as the column on
+        // top's are: a destination a column behind declared still says what
+        // a link it pushed shows.
+        var context = context
+        context.environment.navigationCoordinator = coordinator
         // Not a demand for a frame but a refusal to be cached, as a navigation
         // stack's root render is: served from a memo, the columns behind would
         // not render, and `endRenderPass` would prune the `@State` this exists
@@ -294,14 +353,16 @@ extension _NavigationSplitViewCore {
     /// a column, and its lists show the next column when a row is chosen
     /// (``EnvironmentValues/compactColumnAdvance``).
     private func wireCompactActions(
-        position: CompactColumnPosition, depth: Int, columnContext: inout RenderContext
+        position: CompactColumnPosition, depth: Int, hasLink: Bool, columnContext: inout RenderContext
     ) {
         let state = position.state
-        if depth > 0 {
+        if depth > 0 || hasLink {
             state.dismiss.action = { state.coordinator.pop() }
             columnContext.environment.dismiss = DismissAction(box: state.dismiss)
         }
-        guard depth < position.columns.count - 1 else {
+        // A linked screen's lists are not a column's: choosing a row there
+        // shows no next column.
+        guard !hasLink, depth < position.columns.count - 1 else {
             // The last column has no next one, and an enclosing collapsed
             // split's is not this split's.
             if columnContext.environment.compactColumnAdvance != nil {
