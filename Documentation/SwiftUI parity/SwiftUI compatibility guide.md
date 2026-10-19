@@ -722,7 +722,10 @@ form leaves the title as it is (decisions TOOLBARS, B-TOOLBARS-1).
 `.contentToolbar(for: .tabViewSidebar) { … }` puts a row of views at the foot
 of a `.sidebarAdaptable` tab view's sidebar, under its tabs and footer, above
 its bottom bar (iPadOS's placement, which macOS marks unavailable; TUIkit reads
-it on every platform). `ToolbarContent.sharedBackgroundVisibility(_:)` is
+it on every platform); given toolbar items, it draws those placed in the top
+bar in a row there and those placed in the bottom bar in a row under it, an
+`.automatic` one in the row rather than an overflow menu (decisions TOOLBARS,
+B-TOOLBARS-5). `ToolbarContent.sharedBackgroundVisibility(_:)` is
 honoured as it stands: a terminal bar sets no glass under a group of items,
 so every item already sits on the one background they share, the bar's fill.
 `Group { … }` groups toolbar content, customizable content too, as it groups

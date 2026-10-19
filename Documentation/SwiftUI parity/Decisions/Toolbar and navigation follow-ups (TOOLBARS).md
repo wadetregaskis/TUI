@@ -113,6 +113,32 @@ so Shift+F10 always reaches its menu — about two hours; moving an item across
 placements, which changes where the app placed it — about half a day, and
 arguably not the person's to change; spacers in the panel — about two hours.
 
+### B-TOOLBARS-5. A tab view sidebar's toolbar items are rows at its foot
+
+*`View.contentToolbar(for:content:)`, its `ToolbarContent` form*
+
+SwiftUI's second `contentToolbar(for:content:)` takes toolbar content, and its
+documentation puts a `.bottomBar` item at the bottom of the tab view sidebar
+and an `.automatic` one in the sidebar's overflow menu (iPadOS; macOS marks
+the placement unavailable). The parity baseline keys by name, so closing the
+view-builder form hid this one; the review of the lane found it.
+
+**Shipped:** the items drawn in the sidebar, under its tabs and footer: those
+placed in the top bar in a row, and those placed in the bottom bar in a row
+under it, each in declaration order, one column apart, in the sidebar's
+environment as the view-builder form's views are. An `.automatic` item is in
+the row rather than an overflow menu: a terminal sidebar hugs its widest row,
+so it has room to show it. A title menu and a default item name the window's
+bars and are not drawn; neither is an item hidden with `hidden(_:)`. The
+placement, the view-builder form and the sidebar's slot moved to
+TUIkitFoundation so this form, in TUIkitChrome, can reach the sidebar in
+TUIkitTabs without a module edge.
+
+**The fuller version:** the `.automatic` and other top-bar placements in a
+`»` overflow pull-down at the row's trailing end, as iPadOS's sidebar has,
+built on the customizable toolbar's overflow menu — about two hours; worth it
+only if an app puts more there than a sidebar is wide.
+
 ## C. Declined
 
 ### C-TOOLBARS-1. `toolbarColorScheme(_:for:)` follows `preferredColorScheme(_:)`

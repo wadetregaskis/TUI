@@ -2711,6 +2711,14 @@ private struct ToolbarShapes: View {
             .contentToolbar(for: .tabViewSidebar) {
                 Button("New Mailbox", systemImage: "plus") {}
             }
+            TabView {
+                Tab("Home", systemImage: "house") { Text("home") }
+            }
+            .tabViewStyle(.sidebarAdaptable)
+            .contentToolbar(for: .tabViewSidebar) {
+                ToolbarItem(placement: .automatic) { Button("Disconnect") {} }
+                ToolbarItem(placement: .bottomBar) { Text("Account") }
+            }
             LabelStyleReader()
         }
     }
