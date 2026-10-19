@@ -32,8 +32,10 @@ import TUIkitFoundation
 /// | `windowList` | each open window, the one in front checked | brings it to the front | — |
 /// | `singleWindowList` | each `Window` scene | opens it, or brings its window to the front | its `.keyboardShortcut`, if it states one |
 ///
-/// The Window menu's three groups are filled only for an app that declares
-/// more than one window scene: one with a single window has nothing to list.
+/// The Window menu's three groups are filled only for an app that can have
+/// more than one window open — more than one window scene, or a window group
+/// `openWindow` or a key opens more windows of: one with a single window has
+/// nothing to list.
 /// The scenes' keys — Settings…'s ⌘, and any a scene's `.keyboardShortcut`
 /// states — are bound by the scene presenter, menu bar or none, through
 /// `commandKey`.

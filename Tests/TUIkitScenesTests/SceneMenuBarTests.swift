@@ -6,7 +6,7 @@
 //  ⌘, or its `.keyboardShortcut` — which works with the menus closed or no
 //  menu bar at all; and the Window menu — Close Window, the open windows with
 //  the one in front checked, the `Window` scenes — for an app that can open
-//  more than one window.
+//  more than one window, whether of several scenes or of one window group.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -84,6 +84,23 @@ private struct ToggleMenuApp: App {
         WindowGroup("Notes") { Text("main window") }
             .commands { CommandMenu("Panels") { WindowVisibilityToggle(windowID: "inspector") } }
         Window("Inspector", id: "inspector") { Text("inspector window") }
+    }
+}
+
+/// One window group, which its own button opens more windows of.
+private struct DocumentsMenuApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup(id: "doc") { DocumentPage() }
+            .commands { CommandMenu("Note") {} }
+    }
+}
+
+private struct DocumentPage: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("another") { openWindow(id: "doc") }
     }
 }
 
@@ -197,6 +214,21 @@ struct SceneMenuBarTests {
     mutating func noWindowMenu() {
         let app = launched(PlainMenuApp())
         #expect(!rows(app)[0].contains("Window"), "\(rows(app)[0])")
+    }
+
+    @Test("An app of one window group that opens more of its windows has a Window menu, listing them")
+    mutating func windowMenuForOneGroup() {
+        let app = launched(DocumentsMenuApp())
+        #expect(rows(app)[0].contains("Window"), "\(rows(app)[0])")
+        app.send(KeyEvent(key: .enter))
+        frame(app)
+        frame(app)
+        #expect(app.scenes.windows.count == 2, "precondition: a second window open")
+        open("Window", in: app)
+        // Close Window, then the windows, back to front.
+        choose(item: 1, in: app)
+        #expect(app.scenes.windows.count == 2, "brought to the front, not closed")
+        #expect(app.scenes.windows.last?.serial == 0, "the first window is in front again")
     }
 
     @Test("The Window menu lists the Window scenes, and opens one")

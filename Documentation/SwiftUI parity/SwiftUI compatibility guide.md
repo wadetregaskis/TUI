@@ -703,7 +703,9 @@ With a `Settings` scene the app's menu holds Settings…, presenting it, and
 shows its key: ⌘, through `commandKey`, or the one the scene's
 `.keyboardShortcut` states, bound whether or not the app shows a menu bar; and
 an app
-that declares more than one window scene has a Window menu: Close Window (the
+that can have more than one window open — more than one window scene, or a
+window group that `openWindow` or its key opens more windows of — has a Window
+menu: Close Window (the
 window in front, when another is open behind it), the open windows with the
 one in front checked (choosing one brings it to the front), and the `Window`
 scenes (choosing one opens it, and showing its `.keyboardShortcut`). All the scenes' commands count, in declaration

@@ -1864,10 +1864,12 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   *Title* Window per group, and File holds Close (⌘W) and Close All (⌥⌘W); the
   Window menu holds Minimize, Zoom, the `Window` scenes and Bring All to Front
   (measured on macOS 15.8, `O9/probe/scenes.swift`).
-- **TUIkit:** for an app with more than one window scene, the Window menu holds
-  Close Window, the open windows (the one in front checked) and the `Window`
-  scenes; File gains nothing (`SceneMenuBarTests`). An app of one window scene
-  has no Window menu.
+- **TUIkit:** for an app that can have more than one window open — more than
+  one window scene, or a window group that `openWindow` or its key opens more
+  windows of — the Window menu holds Close Window, the open windows (the one in
+  front checked) and the `Window` scenes; File gains nothing
+  (`SceneMenuBarTests`). An app whose one window is all it can have has no
+  Window menu.
 - **Why:** a terminal has no minimising, zooming or bringing to front of other
   apps' windows, and ⌘W and ⌥⌘W reach a terminal app only as `commandKey`
   chords a text field may use; Close sits beside the list of windows it acts

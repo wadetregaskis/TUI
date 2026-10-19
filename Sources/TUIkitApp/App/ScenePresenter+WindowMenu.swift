@@ -37,9 +37,22 @@ extension ScenePresenter {
         package let shortcut: KeyboardShortcut?
     }
 
-    /// Whether the app declares more than one window scene: whether it has
-    /// windows to list, and the Window menu anything to show.
-    package var opensSeveralWindows: Bool { entries.count > 1 }
+    /// Whether the app can have more than one window open: whether it has
+    /// windows to list, and the Window menu anything to show. It can where it
+    /// declares more than one window scene, or a window group that something
+    /// opens another window of — `openWindow` by the group's identifier or by
+    /// a value it presents, or the key its `.keyboardShortcut` states. A lone
+    /// group with none of those has its one window for the life of the app.
+    package var opensSeveralWindows: Bool {
+        entries.count > 1 || entries.contains { opensFurtherWindows(of: $0) }
+    }
+
+    /// Whether something can open another window of the scene `entry`, one
+    /// already open: a group that `openWindow` names, or whose key opens one.
+    private func opensFurtherWindows(of entry: SceneCatalog.WindowEntry) -> Bool {
+        guard !entry.window.opensOneWindow else { return false }
+        return entry.window.sceneID != nil || entry.window.presentedValueType != nil || shortcut(of: entry) != nil
+    }
 
     /// The open windows, back to front.
     package var listedWindows: [ListedWindow] {

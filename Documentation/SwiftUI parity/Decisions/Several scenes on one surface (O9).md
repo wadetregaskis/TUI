@@ -260,10 +260,14 @@ title, and Bring All to Front, with AppKit's list of the open windows after.
   `Settings` scene, presenting it, and showing its key: SwiftUI's ⌘, (through
   `commandKey`), or the one the scene's `.keyboardShortcut` states, bound by
   the presenter whether or not the app shows a menu bar (B-O9-12).
-- **A Window menu**, for an app that declares more than one window scene (an
-  app of one window has nothing to list, and its bar keeps the menus it had):
+- **A Window menu**, for an app that can have more than one window open: one
+  that declares more than one window scene, or a window group that something
+  opens more windows of — `openWindow` by its identifier or a value it
+  presents, or its `.keyboardShortcut`. An app whose one window is all it can
+  have has nothing to list, and its bar keeps the menus it had. It holds
   Close Window (`windowArrangement`), closing the window in front — disabled
-  for the last, which the app menu's Quit closes — and showing Escape, its key;
+  for the last, which the app menu's Quit closes, and where the person may not
+  close it (B-O9-11) — and showing Escape, its key;
   the open windows (`windowList`), back to front, titled by their scene, the
   one in front checked, choosing one bringing it to the front; and the
   `Window` scenes (`singleWindowList`), choosing one opening it.
