@@ -742,9 +742,10 @@ customisation family, built as its option 1): the person customizes the items
 made with an identifier — `ToolbarItem(id:)` — from the top bar's context menu
 (a right-click on it, or Shift+F10 while one of its items has the focus) or the
 menu bar's View ▸ Customize Toolbar… (`ToolbarCommands`). A panel hangs from the
-bar listing every such item, those out of the bar included, each with a
-checkbox that puts it in the bar or takes it out and ▲ ▼ that move it among the
-others — Tab, Space and Return, or the mouse — then the label styles where the
+bar listing every such item in the order the bars draw them, those out of the
+bar included, each with a checkbox that puts it in the bar or takes it out and
+▲ ▼ that move it among the others of its place — Tab, Space and Return, or the
+mouse — then the label styles where the
 scene bound its `windowToolbarLabelStyle(_:)` (the context menu offers them
 too, and the choice is written back through the binding), Reset and Done.
 `customizationBehavior(.reorderable)` items cannot be taken out and
@@ -755,8 +756,8 @@ removed in an overflow menu, the `»` at the bar's trailing end;
 the person chose, listed in the panel as SwiftUI lists it. What the person
 chose is kept per identifier in the app's default storage, under
 `"TUIkit Toolbar Configuration <id>"`, as macOS keeps a toolbar's
-configuration; items move among the others of their own placement (decisions
-TOOLBARS, B-TOOLBARS-4).
+configuration; an item moves among the others of its own place, its region of
+its bar's row, where the bar draws it (decisions TOOLBARS, B-TOOLBARS-4).
 
 **Commands are the window's menu bar** (TUIkitCommands; refusal review O13,
 ruled 2026-10-12). A scene that declares commands — `.commands { … }` with
