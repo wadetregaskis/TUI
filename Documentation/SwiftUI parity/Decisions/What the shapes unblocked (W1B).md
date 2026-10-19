@@ -106,7 +106,11 @@ whole frame where no shape covers it. So no buffer carries anything for a view
 with no content shape, a memo serves the shape with the buffer, and the pointer
 dispatch needed no change: a region cut into pieces is several regions with
 one handler, and each records what was cut above and before it, so a handler
-is still handed points from the frame's origin.
+is still handed points from the frame's origin. Registering nothing itself, the
+shape goes round each member of a `Group` or a `ForEach`, as
+`.allowsHitTesting(_:)` does, and a container reaches past it to the members,
+their tags, z-indices, priorities and guides — as it did when
+`.contentShape(Rectangle())` returned the view itself.
 
 Where the measurement did not reach:
 

@@ -22,6 +22,24 @@ private final class ShapeLog: @unchecked Sendable {
     var entries: [String] = []
 }
 
+/// What a layout read off its subviews: each one's `Int` tag.
+@MainActor
+private final class SubviewReadings {
+    var tags: [Int?] = []
+}
+
+/// Records its subviews' tags, and draws nothing.
+private struct ReadsSubviews: Layout {
+    let readings: SubviewReadings
+
+    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+        readings.tags = subviews.map { $0.containerValues.tag(for: Int.self) }
+        return ViewSize(width: 1, height: 1)
+    }
+
+    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {}
+}
+
 @MainActor
 @Suite("Content shapes", .serialized)
 struct ContentShapeTests {
@@ -128,6 +146,44 @@ struct ContentShapeTests {
         let lines = preview.lines.map(\.stripped)
         #expect(Array(lines[0])[0] == " ", "the corner is cut away")
         #expect(Array(lines[2])[4] == "#", "the middle is kept")
+    }
+
+    @Test("A container reaches past a content shape to the members, tags, z-indices, priorities and guides inside it")
+    func containersSeeThrough() {
+        let context = makeRenderContext(width: 12, height: 4)
+        func lines(_ view: some View) -> [String] { renderToBuffer(view, context: context).lines.map(\.stripped) }
+        // A loop's members stay the row's: drawn whole, a loop stacks them.
+        let row = lines(HStack(spacing: 1) { ForEach(0..<3) { Text("\($0)") } })
+        #expect(lines(HStack(spacing: 1) { ForEach(0..<3) { Text("\($0)") }.contentShape(Rectangle()) }) == row)
+        #expect(lines(HStack(spacing: 1) { ForEach(0..<3) { Text("\($0)") }.contentShape(Circle()) }) == row)
+        // A z-index still orders the stack.
+        let ordered = lines(ZStack { Text("A").zIndex(1).contentShape(Rectangle()); Text("B") })
+        #expect(ordered.first?.hasPrefix("A") == true, "\(ordered)")
+        // A guide still places the column's row.
+        let guided = lines(
+            VStack(alignment: .leading, spacing: 0) {
+                Text("x").alignmentGuide(.leading) { _ in -2 }.contentShape(Rectangle())
+                Text("abc")
+            })
+        #expect(guided.first?.hasPrefix("  x") == true, "\(guided)")
+        // A priority still decides who keeps the row's width.
+        let squeezed = lines(
+            HStack(spacing: 0) {
+                Text("aaaaaaaa")
+                Text("bbbbbbbb").layoutPriority(1).contentShape(Rectangle())
+            })
+        #expect(squeezed.first?.contains("bbbbbbbb") == true, "\(squeezed)")
+        // A tag is still the subview's.
+        let readings = SubviewReadings()
+        _ = renderToBuffer(
+            ReadsSubviews(readings: readings) {
+                Text("a").tag(5).contentShape(Circle())
+                Text("b")
+            }, context: context)
+        #expect(readings.tags == [5, nil])
+        // And a removal transition inside it plays from its own picture.
+        let departing = departingPictureType(heldAs: _ContentShapeView<Text, Circle>.self)
+        #expect(ObjectIdentifier(departing) == ObjectIdentifier(Text.self))
     }
 
     @Test("A content shape draws nothing and moves nothing")

@@ -41,6 +41,10 @@ extension View {
     /// `.padding()` between the two gives the gesture a frame the shape does
     /// not cover, and the gesture its whole frame.
     ///
+    /// On a `Group` or a `ForEach` the shape goes round each member, laid in
+    /// the member's own frame, and the container around them still sees the
+    /// members, and their tags, z-indices, priorities and guides.
+    ///
     /// - Parameters:
     ///   - shape: The hit testing shape for the view.
     ///   - eoFill: Whether the shape is read with the even-odd rule.
@@ -125,3 +129,49 @@ extension _ContentShapeView: Layoutable {
         measureChild(content, proposal: proposal, context: context)
     }
 }
+
+// MARK: - Seeing Through the Wrapper
+
+/// A content shape registers nothing: it cuts the regions its content drew,
+/// and says which cells it keeps, in its content's own buffer. So it goes
+/// round each member of multi-view content, as `.allowsHitTesting(_:)` does —
+/// each member cut to the shape laid in its own frame, as SwiftUI applies a
+/// modifier on a `Group` to each member — and a container reaches past it to
+/// the members, their tags, z-indices and priorities, as it did when
+/// `.contentShape(Rectangle())` returned the view itself. Without this a
+/// `ForEach` with a content shape in an `HStack` drew as a column, and a
+/// picker's options lost their tags.
+extension _ContentShapeView: ContentRewrapping {
+    var wrappedContent: Content { content }
+
+    func rewrapping<V: View>(_ view: V) -> any View {
+        _ContentShapeView<V, S>(content: view, kinds: kinds, shape: shape, eoFill: eoFill)
+    }
+}
+
+/// Body deliberately empty: ``ChildViewProvider`` has the whole implementation
+/// for a ``SingleContentWrapper``.
+extension _ContentShapeView: ChildViewProvider where Content: ChildViewProvider {}
+
+/// Body deliberately empty: ``GridRowProviding`` has the whole implementation
+/// for a ``SingleContentWrapper``.
+extension _ContentShapeView: GridRowProviding where Content: GridRowProviding {}
+
+/// Answers for the guides its content sets: it lays its content out in its own
+/// frame and context and moves nothing, so a guide inside is its own, unmoved.
+extension _ContentShapeView {
+    /// Its content's answer.
+    static var _providesAlignmentGuide: Bool { Content._providesAlignmentGuide }
+}
+
+extension _ContentShapeView: AlignmentGuideQuerying {
+    func explicitGuide(_ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext) -> Double? {
+        TUIkitFoundation.explicitGuide(of: content, query, in: dimensions, context: context)
+    }
+}
+
+// MARK: - Removal Transitions
+
+/// Draws its content unchanged, at its own identity, so a removal transition
+/// written inside it plays — see `DrawsContentUnchanged`.
+extension _ContentShapeView: DrawsContentUnchanged {}
