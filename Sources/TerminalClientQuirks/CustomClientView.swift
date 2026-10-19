@@ -197,16 +197,9 @@ struct CustomClientView: View {
             Text("Does it line up?").bold()
             Text("│" + String(repeating: "─", count: Clusters.field) + "│  (target)")
                 .foregroundStyle(.palette.foregroundTertiary)
-            ForEach(Clusters.all.filter(isContentious)) { cluster in
+            ForEach(Clusters.all.filter(\.isContentious)) { cluster in
                 Text(cluster.card)
             }
-        }
-    }
-
-    private func isContentious(_ cluster: Cluster) -> Bool {
-        TerminalClient.Program.allCases.contains { program in
-            TerminalClient.cursorAdvance(of: cluster.character, on: program)
-                != cluster.character.terminalWidth
         }
     }
 

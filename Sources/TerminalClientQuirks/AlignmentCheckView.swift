@@ -57,7 +57,7 @@ struct AlignmentCheckView: View {
             Text("Reporting a misalignment").bold()
             Text("Include the terminal and version, and the row's codepoints:")
                 .foregroundStyle(.palette.foregroundSecondary)
-            ForEach(Clusters.all.filter(isContentious)) { cluster in
+            ForEach(Clusters.all.filter(\.isContentious)) { cluster in
                 HStack(spacing: 1) {
                     Text("   \(cluster.text)")
                     Text(cluster.codepoints).foregroundStyle(.palette.foregroundSecondary)
@@ -66,15 +66,6 @@ struct AlignmentCheckView: View {
             }
             Text("Tools/TerminalProbes/advance_probe.py measures all of these numerically.")
                 .foregroundStyle(.palette.foregroundTertiary)
-        }
-    }
-
-    /// The classes some measured terminal gets wrong — the ones worth listing
-    /// for a report. A cluster every host agrees on is not evidence of anything.
-    private func isContentious(_ cluster: Cluster) -> Bool {
-        TerminalClient.Program.allCases.contains { program in
-            TerminalClient.cursorAdvance(of: cluster.character, on: program)
-                != cluster.character.terminalWidth
         }
     }
 }

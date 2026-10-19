@@ -56,6 +56,15 @@ struct Cluster: Identifiable {
     /// The single `Character` — every entry is one grapheme cluster, which is
     /// the unit both the width tables and the advance models are defined over.
     var character: Character { text.first ?? " " }
+
+    /// Whether some measured terminal gets this cluster's class wrong — the
+    /// rows worth showing beside a switch, and worth listing in a report. A
+    /// cluster every host agrees on is not evidence of anything.
+    var isContentious: Bool {
+        TerminalClient.Program.allCases.contains { program in
+            TerminalClient.cursorAdvance(of: character, on: program) != character.terminalWidth
+        }
+    }
 }
 
 enum Clusters {
