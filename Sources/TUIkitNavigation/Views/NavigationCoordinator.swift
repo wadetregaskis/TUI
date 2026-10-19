@@ -84,6 +84,10 @@ final class NavigationCoordinator {
     /// right answer anyway, since it names the screen you would return to.
     private var titlesByDepth: [String] = []
 
+    /// What the stack keeps to zoom a screen in and out
+    /// (``ZoomNavigationTransition``, `NavigationZoom.swift`).
+    var zoom = NavigationZoomState()
+
     init() {}
 }
 

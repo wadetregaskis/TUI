@@ -1284,6 +1284,24 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   [B-O4-1, B-O4-2](<Decisions/Matched geometry and the zoom transition (O4).md>).
   **Owner** (the re-layout), **Lane** (the rest).
 
+### A9. A zoom navigation transition is a reveal
+
+- **SwiftUI (Apple's documentation; iOS-only, so not measured here):**
+  `.zoom(sourceID:in:)` scales the pushed view up from its source's frame,
+  clipped to the source's `clipShape`, and down into it when it is popped.
+- **TUIkit:** the pushed screen is laid out at its full size and uncovered
+  through a rectangle growing from the source's frame to the stack's, over
+  the screen it replaces; a popped screen is covered back down into the
+  source over the screen it returns to. A push with no animation of its own
+  zooms under `Animation.default`; none zooms where the transaction disables
+  animations, motion is reduced, or no source is on screen.
+  (`ZoomNavigationTransitionTests`.)
+- **Why:** a cell cannot be scaled (refusal review O4, ruled 2026-10-12: the
+  zoom is the `.scale` reveal generalised).
+- **Decided:** [O4](<Refusals re-examined, wave 17 (2026-10-03).md#o4-matched-geometry-matchedgeometryproperties--w12-matchedgeometryeffect-zoom-matchedtransitionsourceconfiguration-emptymatchedtransitionsourceconfiguration--w09-matchedtransitionsource-navigationtransitionzoom>),
+  [B-O4-5](<Decisions/Matched geometry and the zoom transition (O4).md>). **Owner** (the reveal),
+  **Lane** (the default animation).
+
 ---
 
 ## Scrolling

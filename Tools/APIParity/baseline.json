@@ -135,8 +135,6 @@
   "View.ignoresSafeArea(_:edges:)",
   "View.layoutDirectionBehavior(_:)",
   "View.mask(alignment:_:)",
-  "View.matchedTransitionSource(id:in:)",
-  "View.matchedTransitionSource(id:in:configuration:)",
   "View.multilineTextAlignment(strategy:)",
   "View.onDragSessionUpdated(_:)",
   "View.onDropSessionUpdated(_:)",

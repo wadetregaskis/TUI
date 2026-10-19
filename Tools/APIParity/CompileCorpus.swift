@@ -3311,6 +3311,30 @@ private struct MatchedGeometryTabs: View {
     }
 }
 
+/// The zoom navigation transition as iOS code writes it: each row the source
+/// of the screen its link pushes, configured with a background.
+@MainActor
+private struct ZoomFromRows: View {
+    @Namespace private var namespace
+    private let colors = ["Red", "Green", "Blue"]
+
+    var body: some View {
+        NavigationStack {
+            List(colors, id: \.self) { color in
+                NavigationLink {
+                    Text(color)
+                        .navigationTransition(.zoom(sourceID: color, in: namespace))
+                } label: {
+                    Text(color)
+                }
+                .matchedTransitionSource(id: color, in: namespace) { source in
+                    source.background(.blue)
+                }
+            }
+        }
+    }
+}
+
 // MARK: - A property wrapper that keeps what update() derives
 
 /// The commonest non-trivial `DynamicProperty`: it reads the environment and

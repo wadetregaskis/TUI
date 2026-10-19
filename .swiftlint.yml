@@ -261,6 +261,9 @@ identifier_name:
     # A `Gesture`'s recognizer, SwiftUI's witness name: a gesture made of
     # others inherits it from its body, and the built-ins provide their own.
     - _makeGesture
+    # A `MatchedTransitionSourceConfiguration` written into the resolved one,
+    # SwiftUI's witness name.
+    - _update
     # Idiomatic single-letter math / graphics / loop names: keeping
     # them short matches the surrounding domain (coordinates,
     # colour channels, dimensions, indices) better than renaming.

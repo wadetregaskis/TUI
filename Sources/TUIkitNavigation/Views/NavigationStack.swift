@@ -65,6 +65,11 @@ import TUIkitView
 ///   what keeps the root's `@State` (a scroll position, a selection) alive to
 ///   come back to, and what keeps its `.navigationDestination(for:)`
 ///   registrations current.
+/// - A screen comes and goes at once, unless it zooms
+///   (`.navigationTransition(.zoom(sourceID:in:))` on the screen, with
+///   ``View/matchedTransitionSource(id:in:)`` on the view it zooms from): it is
+///   then revealed from its source's frame, and folded back into it when it is
+///   popped (``ZoomNavigationTransition``).
 public struct NavigationStack<Root: View>: View {
 
     /// Where the path is kept. Every case is normalised to the same pair of
@@ -226,6 +231,11 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         }
 
         let elements = read()
+        // Where the stack is, asked only on a frame it may zoom — before
+        // anything renders, for the ordinal its marker's id is.
+        let ask =
+            !context.isMeasuring && coordinator.zoom.needsOrigin(depth: elements.count)
+            ? context.makeGeometryAsk(role: .reader) : nil
         var base = context
         base.environment.navigationCoordinator = coordinator
         // The screen's `containerRelativeFrame` container: the stack, less the
@@ -255,8 +265,9 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         }
 
         guard let top = elements.last else {
-            return TUIkitView.renderToBuffer(
+            let buffer = TUIkitView.renderToBuffer(
                 root, context: base.withChildIdentity(type: type(of: root)))
+            return zoomed(buffer, depth: 0, declared: nil, ask: ask, context: context)
         }
 
         // The root still renders — off-screen, and isolated from focus and key
@@ -294,7 +305,27 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             coordinator.recordTitle(preferences?.pop()[NavigationTitleKey.self] ?? "", atDepth: 0)
         }
 
-        return renderScreen(top: top, context: base)
+        let screen = renderScreen(top: top, context: base)
+        return zoomed(screen.buffer, depth: elements.count, declared: screen.zoom, ask: ask, context: context)
+    }
+
+    /// `buffer` as the zoom running or starting draws it
+    /// (``NavigationCoordinator/zoomed(_:depth:declared:origin:context:)``),
+    /// with the stack's marker when it asked where it is.
+    private func zoomed(
+        _ buffer: FrameBuffer, depth: Int, declared: MatchedGeometryKey?, ask: GeometryAsk?, context: RenderContext
+    ) -> FrameBuffer {
+        guard !context.isMeasuring else { return buffer }
+        var drawn = coordinator.zoomed(
+            buffer, depth: depth, declared: declared, origin: { ask?.observation(in: .global)?.origin },
+            context: context)
+        if let ask {
+            ask.finishRecording(size: buffer.cellSize)
+            if context.geometryCoordinator?.register(ask) == true {
+                drawn.hitTestRegions.append(.geometryMarker(ask.id))
+            }
+        }
+        return drawn
     }
 
     /// A focus section per stack, per depth. Structural identity, never the
@@ -304,8 +335,9 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         "navigation-\(base)-\(depth)"
     }
 
-    /// Renders the pushed screen with its navigation bar above it.
-    private func renderScreen(top: AnyHashable, context: RenderContext) -> FrameBuffer {
+    /// Renders the pushed screen with its navigation bar above it, and says
+    /// which zoom it declared (``View/navigationTransition(_:)``).
+    private func renderScreen(top: AnyHashable, context: RenderContext) -> (buffer: FrameBuffer, zoom: MatchedGeometryKey?) {
         let width = max(0, context.availableWidth)
         let contentHeight = max(0, context.availableHeight - NavigationBar.height)
 
@@ -351,7 +383,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             title: title, subtitle: subtitle, hidesBack: hidesBack, hidesTitle: hidesTitle, width: width,
             escapeHandlerSlot: escapeHandlerSlot, context: context)
         buffer.appendVertically(content)
-        return buffer
+        return (buffer, published?[NavigationZoomKey.self].flatMap { $0 })
     }
 }
 

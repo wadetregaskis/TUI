@@ -4,7 +4,8 @@
 [O4](<../Refusals re-examined, wave 17 (2026-10-03).md#o4-matched-geometry-matchedgeometryproperties--w12-matchedgeometryeffect-zoom-matchedtransitionsourceconfiguration-emptymatchedtransitionsourceconfiguration--w09-matchedtransitionsource-navigationtransitionzoom>)
 (2026-10-12: a full re-layout at the interpolated frame each animation frame
 as the baseline, whole-cell translation where the sizes are equal), and with
-it decisions A36 (`matchedGeometryEffect`, `MatchedGeometryProperties`).
+it decisions A36 (`matchedGeometryEffect`, `MatchedGeometryProperties`)
+and A23 (`matchedTransitionSource` and the zoom navigation transition).
 Where the work met a judgement call the ruling did not settle, the safe
 option shipped and is written up here, in the three parts the other lanes
 use: A needs a decision, B shipped the safe option (with the fuller version
@@ -126,6 +127,61 @@ which is one drawing a frame, but a measure reports a flexible view's
 minimum where the drawing fills its offer, so the footprint would have to
 re-derive what each container gives a flexible child. An A/B on a page of
 followers decides whether it is worth it; none is owed until one is slow.
+
+### B-O4-5. The zoom transition is a reveal, and a push zooms under the default animation
+
+*`NavigationTransition.zoom(sourceID:in:)`, `ZoomNavigationTransition`,
+`View.matchedTransitionSource(id:in:)`, `View.matchedTransitionSource(id:in:configuration:)`*
+
+SwiftUI's zoom is iOS-only, so it could not be measured on this Mac; Apple
+documents it as the pushed view zooming from the source. The ruling makes it
+a reveal: the pushed screen, laid out at its full size, is uncovered through
+a rectangle that grows from the source's frame to the stack's, edge by edge
+(`MatchedEdgeOffsets`, as matched geometry interpolates), over the picture of
+the screen it replaces; popped, the rectangle shrinks back into the source
+over the screen it returns to, which is live. The source is a member of the
+matched geometry registry (its id wrapped, so a transition source and a
+`matchedGeometryEffect` of the same id stay two groups), so its frame is the
+scene root's finding; a pop folds into where the source was when it was
+pushed if nothing has found it since — its screen is drawn off-screen while
+covered.
+
+Three calls the ruling left open:
+
+- **Which animation.** TUIkit's stack changes at once, and a `NavigationLink`
+  pushes outside any `withAnimation`; SwiftUI animates a push regardless. The
+  zoom takes the change's animation where it has one and `Animation.default`
+  where it does not, and does not play where the transaction disables
+  animations, the frame cannot animate (a headless render), or motion is
+  reduced.
+- **No source.** With no `matchedTransitionSource` of the id on screen the
+  stack changes at once, as `.automatic` does; what SwiftUI does then is not
+  documented.
+- **The pictures.** The screen being covered is drawn from its last picture,
+  so it holds still while the new one grows over it; what is uncovered is
+  live, so its controls take clicks inside the rectangle from the first frame.
+
+**Fuller version:** none that a cell allows for the scale itself. The
+rectangle could be drawn with the source's corners once shapes land (below).
+
+### B-O4-6. A transition source's configuration has its background; clip shapes and shadows wait
+
+*`MatchedTransitionSourceConfiguration.clipShape(_:)`,
+`MatchedTransitionSourceConfiguration.shadow(color:radius:x:y:)`*
+
+`background(_:)` ships: the colour fills the revealed rectangle behind the
+screen's own cells, the cells the screen paints with no background of their
+own taking it. `clipShape(_:)` takes a `RoundedRectangle`, which arrives with
+shapes (lane W1, after O0), and `shadow(color:radius:x:y:)` a shadow, which is
+O6's; each fails to compile until then (parity-map entries), as the parity
+rules ask. SwiftUI already refuses every other clip shape and every other
+background style (`unavailable` in its interface), so those are not offered
+either.
+
+**Fuller version:** once W1 lands, draw the rectangle's corners with the
+rounded corner glyphs and clip the uncovered screen to them — half a day; once
+O6 lands, draw the source's shadow round the rectangle — a couple of hours on
+top of O6's own drawing.
 
 ## Interaction with lane FB16 (stack children gliding)
 

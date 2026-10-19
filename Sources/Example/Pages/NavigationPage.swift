@@ -53,6 +53,11 @@ struct NavigationPage: View {
     /// bought nothing this does not, and cost the list a redundant focus stop.)
     @State private var note = ""
 
+    /// Where a planet's screen zooms from: its row on the root screen
+    /// (`matchedTransitionSource` there, `navigationTransition(.zoom)` on the
+    /// screen), and folds back into when you go back.
+    @Namespace private var zoom
+
     private let planets = [
         Planet(name: "Mercury", moons: 0),
         Planet(name: "Venus", moons: 0),
@@ -138,6 +143,7 @@ struct NavigationPage: View {
                                 .foregroundStyle(.palette.foregroundSecondary)
                         }
                     }
+                    .matchedTransitionSource(id: planet.name, in: zoom)
                 }
             }
             .buttonStyle(.borderless)
@@ -173,6 +179,7 @@ struct NavigationPage: View {
             rootButton
         }
         .navigationTitle(planet.name)
+        .navigationTransition(.zoom(sourceID: planet.name, in: zoom))
     }
 
     private func moonScreen(_ moon: Moon) -> some View {

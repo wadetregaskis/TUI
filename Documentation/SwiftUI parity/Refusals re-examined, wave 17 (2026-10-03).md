@@ -966,6 +966,11 @@ whose source configuration needs W1. A23 and A36 follow it.
 (`Sources/TUIkitEffects/Geometry/MatchedGeometryEffect.swift`, the groups in
 `Sources/TUIkitFoundation/Geometry/MatchedGeometryRegistry.swift`; Deliberate
 deviations A8, decisions O4).
+**The zoom transition shipped 2026-10-18** (`ZoomNavigationTransition`,
+`matchedTransitionSource` and the source configuration's `background(_:)`,
+`Sources/TUIkitNavigation/Views/NavigationZoom.swift`; Deliberate deviations
+A9). The configuration's `clipShape(_:)` and `shadow(color:radius:x:y:)` wait on
+W1 and O6 (decisions O4, B-O4-6).
 
 ### O5. Materials and Glass: `MaterialActiveAppearance`, plus differentShape `Material`, W13's `*Material`, `\.backgroundMaterial`, P14's `Glass*`
 
