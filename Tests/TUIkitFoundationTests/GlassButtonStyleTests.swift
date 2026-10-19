@@ -77,6 +77,18 @@ struct GlassButtonStyleTests {
         #expect(drawn.lines[0].contains(bold), "\(drawn.lines[0].debugDescription)")
     }
 
+    @Test("Focused, a prominent glass button's label keeps its colour on the tint; the accent would vanish into it")
+    func prominentLabelDoesNotBreatheIntoTheTint() {
+        func labelInk(focused: Bool) -> SGRState.Colour? {
+            let context = context()
+            if !focused { context.environment.focusManager?.register(FocusSentinel()) }
+            return paintedCells(screen(Button("OK") {}.buttonStyle(.glassProminent), context: context).lines[0])[2].ink
+        }
+        let focused = labelInk(focused: true)
+        #expect(focused == labelInk(focused: false))
+        #expect(focused != ink(.palette.accent))
+    }
+
     @Test("A glass button is still a button: one focus stop, and the keyboard triggers it")
     func stillAButton() throws {
         var count = 0

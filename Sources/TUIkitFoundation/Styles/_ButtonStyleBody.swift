@@ -319,9 +319,13 @@ struct _ButtonStyleBody: View, Renderable {
             ?? Self.outlineInk(
                 palette: context.environment.palette, surface: context.environment.enclosingSurface,
                 hovered: configuration.isHovered, disabled: !configuration.isEnabled)
+        // On tinted glass the label stays its own colour, floored against the
+        // tint, and the lines alone breathe: the accent it would breathe to is
+        // the tint itself on the prominent glass button.
+        let onTint = appearance.glassRim?.tintColor != nil
         return OutlineBreath(
             focused: configuration.isFocused && configuration.isEnabled, hovered: configuration.isHovered,
-            lines: lines, label: label, labelBreathes: !authored, context: context)
+            lines: lines, label: label, labelBreathes: !authored && !onTint, context: context)
     }
 
     /// The breath of this button's solid face drawn whole, and its label's ink:

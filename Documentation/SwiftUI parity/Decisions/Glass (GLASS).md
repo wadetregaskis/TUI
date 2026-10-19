@@ -219,7 +219,8 @@ sizes, its focus breath and hover — on `glassEffect(_:in: .buttonBorder)`:
 - **`.glassProminent`:** glass tinted the accent, its label bold in the
   palette's foreground — floored against the tinted surface, which tinted
   glass hands its content — as `.borderedProminent` is the prominent member
-  of the bordered family.
+  of the bordered family. Focused, its lines breathe and its label keeps its
+  colour: the accent a label breathes to is the tint it sits on.
 - **Solid faces** (`.block`): the bordered button's own face, which covers
   the glass.
 
