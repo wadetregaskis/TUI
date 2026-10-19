@@ -152,8 +152,15 @@ extension Scene {
 /// }
 /// ```
 public struct WindowGroup<Content: View>: Scene {
-    /// The content of the window.
+    /// The content of the window: what the builder made as the scene was
+    /// declared, which the window opened at launch draws.
     public let content: Content
+
+    /// What builds the content of each other window of the group, as it draws
+    /// (``WindowGroup/renderScene(context:)``); `nil` where `content` serves
+    /// every window — a `Window`'s one, or a group that presents data, whose
+    /// content builds each window's views from its binding as it draws.
+    let makeContent: (() -> Content)?
 
     /// The identifier ``EnvironmentValues/openWindow`` opens the group's
     /// windows by, if it has one.
@@ -165,19 +172,29 @@ public struct WindowGroup<Content: View>: Scene {
     /// Creates a WindowGroup with the specified content — SwiftUI's
     /// `init(makeContent:)`, which replaces its deprecated `init(content:)`.
     ///
-    /// SwiftUI calls the builder for each window it opens. Here it is called
-    /// once, as the scene is declared, and every window of the group draws
-    /// what it built, each at an identity of its own, so each has its own
-    /// state.
+    /// SwiftUI calls the builder for each window it opens, and so it is here:
+    /// once as the scene is declared, for the window opened at launch, and
+    /// once each frame for each other window of the group, as it draws. So no
+    /// two windows draw one view value, each at an identity of its own, and
+    /// what a closure in one captured — its `@SceneStorage`, its
+    /// `@Environment` — is that window's.
     ///
     /// - Parameter makeContent: A ViewBuilder that defines the content.
     public init(@ViewBuilder makeContent: @escaping () -> Content) {
-        self.init(title: nil, id: nil, content: makeContent())
+        self.init(title: nil, id: nil, makeContent: makeContent)
     }
 
-    /// A group of windows of `content`, titled `title`, opened by `id`.
-    init(title: Text?, id: String?, content: Content) {
+    /// A group of windows whose content `makeContent` builds, titled `title`,
+    /// opened by `id`.
+    init(title: Text?, id: String?, makeContent: @escaping () -> Content) {
+        self.init(title: title, id: id, content: makeContent(), makeContent: makeContent)
+    }
+
+    /// A group of windows of `content`, titled `title`, opened by `id`,
+    /// building each other window's with `makeContent` where it is given.
+    init(title: Text?, id: String?, content: Content, makeContent: (() -> Content)? = nil) {
         self.content = content
+        self.makeContent = makeContent
         self.sceneID = id
         self.title = title
     }

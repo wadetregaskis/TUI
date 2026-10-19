@@ -41,6 +41,34 @@ private struct StorageApp: App {
     }
 }
 
+/// The closure each window's content made the last time it drew, by the
+/// namespace it was drawn in: what a task or a timer started there would run
+/// after the frame.
+@MainActor
+private enum LateWrites {
+    static var byWindow: [String: () -> Void] = [:]
+}
+
+/// A window's content that leaves a closure writing its scene-stored tab.
+private struct LatePage: View {
+    @SceneStorage("tab", store: StorageProbe.shared.store) private var tab = "first"
+    @Environment(\.sceneStorageNamespace) private var namespace
+
+    var body: some View {
+        let tab = $tab
+        LateWrites.byWindow[namespace] = { tab.wrappedValue = "late" }
+        return Text("tab=\(self.tab)")
+    }
+}
+
+private struct LateWriteApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { Text("main window") }
+        WindowGroup(id: "viewer") { LatePage() }
+    }
+}
+
 // MARK: - Tests
 
 @MainActor
@@ -48,7 +76,7 @@ private struct StorageApp: App {
 struct SceneStoragePerWindowTests {
     private var now: Int64 = 0
 
-    private mutating func frame(_ app: HeadlessApp<StorageApp>) {
+    private mutating func frame<A: App>(_ app: HeadlessApp<A>) {
         now += 20_000_000
         app.frame(atNanos: now)
         now += 20_000_000
@@ -99,6 +127,22 @@ struct SceneStoragePerWindowTests {
         app.send(KeyEvent(key: .escape))
         frame(app)
         #expect(screen(app).contains("tab=first"), "the launch window's own: \(screen(app))")
+    }
+
+    @Test("A closure a window held behind another captured writes that window's scene storage, run after the frame")
+    mutating func heldWindowClosureWritesItsOwn() {
+        StorageProbe.shared.store = MockStorageBackend()
+        LateWrites.byWindow = [:]
+        let app = HeadlessApp(LateWriteApp(), width: 40, height: 6)
+        frame(app)
+        app.scenes.open(WindowTarget(id: "viewer"))
+        frame(app)
+        app.scenes.open(WindowTarget(id: "viewer"))
+        frame(app)
+        #expect(Set(LateWrites.byWindow.keys) == ["viewer.", "viewer#2."], "precondition: both viewers drew")
+        LateWrites.byWindow["viewer."]?()
+        #expect(stored("scene.viewer.tab") == "late")
+        #expect(stored("scene.viewer#2.tab") == nil, "the window in front's is its own")
     }
 
     @Test("A group's windows past the first are told apart by their ordinal")

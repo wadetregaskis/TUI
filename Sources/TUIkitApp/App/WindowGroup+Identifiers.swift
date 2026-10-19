@@ -21,7 +21,7 @@ extension WindowGroup {
     ///   - makeContent: A closure that creates the content for each instance
     ///     of the group.
     public init(id: String, @ViewBuilder makeContent: @escaping () -> Content) {
-        self.init(title: nil, id: id, content: makeContent())
+        self.init(title: nil, id: id, makeContent: makeContent)
     }
 
     /// Creates a window group with a text view title and an identifier —
@@ -33,7 +33,7 @@ extension WindowGroup {
     ///   - makeContent: A closure that creates the content for each instance
     ///     of the group.
     public init(_ title: Text, id: String, @ViewBuilder makeContent: @escaping () -> Content) {
-        self.init(title: title, id: id, content: makeContent())
+        self.init(title: title, id: id, makeContent: makeContent)
     }
 
     /// Creates a window group with a localized title string and an identifier
@@ -45,7 +45,7 @@ extension WindowGroup {
     ///   - makeContent: A closure that creates the content for each instance
     ///     of the group.
     public init(_ titleKey: LocalizedStringKey, id: String, @ViewBuilder makeContent: @escaping () -> Content) {
-        self.init(title: Text(titleKey), id: id, content: makeContent())
+        self.init(title: Text(titleKey), id: id, makeContent: makeContent)
     }
 
     /// Creates a window group with a title string and an identifier — mirrors
@@ -61,7 +61,7 @@ extension WindowGroup {
     ///     of the group.
     @_disfavoredOverload
     public init<S: StringProtocol>(_ title: S, id: String, @ViewBuilder makeContent: @escaping () -> Content) {
-        self.init(title: Text(title), id: id, content: makeContent())
+        self.init(title: Text(title), id: id, makeContent: makeContent)
     }
 
     /// Creates a window group with a text view title — mirrors SwiftUI's
@@ -72,7 +72,7 @@ extension WindowGroup {
     ///   - makeContent: A closure that creates the content for each instance
     ///     of the group.
     public init(_ title: Text, @ViewBuilder makeContent: @escaping () -> Content) {
-        self.init(title: title, id: nil, content: makeContent())
+        self.init(title: title, id: nil, makeContent: makeContent)
     }
 
     /// Creates a window group with a localized title string — mirrors
@@ -83,7 +83,7 @@ extension WindowGroup {
     ///   - makeContent: A closure that creates the content for each instance
     ///     of the group.
     public init(_ titleKey: LocalizedStringKey, @ViewBuilder makeContent: @escaping () -> Content) {
-        self.init(title: Text(titleKey), id: nil, content: makeContent())
+        self.init(title: Text(titleKey), id: nil, makeContent: makeContent)
     }
 
     /// Creates a window group with a title string — mirrors SwiftUI's
@@ -95,7 +95,7 @@ extension WindowGroup {
     ///     of the group.
     @_disfavoredOverload
     public init<S: StringProtocol>(_ title: S, @ViewBuilder makeContent: @escaping () -> Content) {
-        self.init(title: Text(title), id: nil, content: makeContent())
+        self.init(title: Text(title), id: nil, makeContent: makeContent)
     }
 }
 

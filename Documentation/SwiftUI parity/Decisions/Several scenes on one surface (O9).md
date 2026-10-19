@@ -57,7 +57,13 @@ The ruling's policy, with the details it left open:
 - **`openWindow`** opens the window over the whole terminal, in front of the
   others; a `Window` that is open is brought to the front instead, and a
   `WindowGroup` opens a new window each time, each at an identity of its own,
-  so each has its own state.
+  so each has its own state, and each with a view of its own: the group's
+  builder makes the launch window's as the scene is declared and every other
+  window's as it draws, as SwiftUI calls it for each window. Two windows
+  drawing one view value shared what its properties resolved — the namespace
+  of its `@SceneStorage`, its `@Environment` — so a closure the window behind
+  captured, run after the frame, wrote where the window in front keeps its
+  values.
 - **The windows behind** are drawn off-screen every frame, isolated from the
   focus, the keys, the status bar and the clock, their buffers dropped — as a
   navigation stack's covered root is. So their state, their lifecycle (no

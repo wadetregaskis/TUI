@@ -56,7 +56,10 @@ extension ScenePresenter {
         context.environment.dismissWindow = DismissWindowAction(handler: actions, window: window.serial)
         context.environment.presentedWindow = window.presented
         context.environment.sceneStorageNamespace = window.storageNamespace
-        if !window.isLaunchWindow { context.environment.activeFocusSectionID = window.focusSection }
+        if !window.isLaunchWindow {
+            context.environment.activeFocusSectionID = window.focusSection
+            context.environment.windowBuildsItsContent = true
+        }
         return context
     }
 

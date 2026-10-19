@@ -22,6 +22,12 @@ extension WindowGroup: SceneRenderable {
         // have no scene to be told about.
         var context = context
         context.environment.sceneRenderTarget = nil
+        // A window but the one opened at launch builds its own: two windows
+        // drawing one value would share every box in it — the namespace its
+        // `@SceneStorage` resolved, the values its `@Environment` did — and
+        // a closure the window behind captured would write where the window
+        // drawn after it keeps its values.
+        let content = context.environment.windowBuildsItsContent ? (makeContent?() ?? content) : content
         // The overlay scenes the window in front presents, drawn beside its
         // content (`_SceneOverlayHost`).
         if let overlays = context.environment.sceneOverlays?.overlays, !overlays.isEmpty {
@@ -30,5 +36,19 @@ extension WindowGroup: SceneRenderable {
                 _WindowChromeHost(content: _SceneOverlayHost(content: content, overlays: overlays)), context: context)
         }
         return TUIkitView.renderToBuffer(_WindowChromeHost(content: content), context: context)
+    }
+}
+
+private struct WindowBuildsItsContentKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether the window being drawn builds its content afresh rather than
+    /// drawing the one its scene was declared with: every window the scene
+    /// presenter draws but the one opened at launch (``WindowGroup/makeContent``).
+    var windowBuildsItsContent: Bool {
+        get { self[WindowBuildsItsContentKey.self] }
+        set { self[WindowBuildsItsContentKey.self] = newValue }
     }
 }
