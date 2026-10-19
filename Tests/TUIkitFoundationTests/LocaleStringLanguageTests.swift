@@ -22,8 +22,14 @@ struct LocaleStringLanguageTests {
     init() {
         // Keys of this suite's own, so no other suite reads them.
         LocalizationService.shared.registerWithoutRendering(translations: [
-            "en": ["test.localeLanguage.greeting": "Hello", "test.localeLanguage.onlyEnglish": "English only"],
-            "de": ["test.localeLanguage.greeting": "Hallo", "test.localeLanguage.bold": "**Fett** gedruckt"],
+            "en": [
+                "test.localeLanguage.greeting": "Hello", "test.localeLanguage.onlyEnglish": "English only",
+                "test.localeLanguage.named %@": "Hello, %@",
+            ],
+            "de": [
+                "test.localeLanguage.greeting": "Hallo", "test.localeLanguage.bold": "**Fett** gedruckt",
+                "test.localeLanguage.named %@": "Hallo, %@",
+            ],
             "fr": ["test.localeLanguage.greeting": "Bonjour"],
         ])
     }
@@ -97,6 +103,30 @@ struct LocaleStringLanguageTests {
         #expect(Text(verbatim: "plain").localization == nil)
         let one = Text("test.localeLanguage.greeting")
         let other = Text("test.localeLanguage.greeting")
+        #expect(one == other)
+    }
+
+    @Test("A text whose values spell words of their own buffer holds a source of its own, and reads its key again")
+    func longWordsHoldTheirOwnSource() throws {
+        // "Hello, " and the name: past the 15 bytes a string keeps in itself, so
+        // each text's words are a buffer of their own and no lookup would make
+        // two of them equal.
+        let name = "Bartholomew Montgomery"
+        let first = try #require(Text("test.localeLanguage.named \(name)").localization)
+        let second = try #require(Text("test.localeLanguage.named \(name)").localization)
+        #expect(first !== second)
+        #expect(first == second)
+        let german = Text("test.localeLanguage.named \(name)").environment(\.locale, Locale(identifier: "de"))
+        #expect(drawn(german, width: 40).contains("Hallo, \(name)"), "\(drawn(german, width: 40))")
+    }
+
+    @Test("A text whose values spell words that fit in the string itself holds the kept source")
+    func shortWordsHoldTheKeptSource() throws {
+        let first = try #require(Text("test.localeLanguage.named \("Al")").localization)
+        let second = try #require(Text("test.localeLanguage.named \("Al")").localization)
+        #expect(first === second)
+        let one = Text("test.localeLanguage.named \("Al")")
+        let other = Text("test.localeLanguage.named \("Al")")
         #expect(one == other)
     }
 

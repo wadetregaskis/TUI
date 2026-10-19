@@ -15,9 +15,10 @@ import Foundation
 /// What a `Text` made from a key needs to read it again in another language:
 /// the key, the table it was read from, and the language it was read in.
 ///
-/// One object per key, table and language (``interned(_:tableName:bundle:language:)``),
-/// so two `Text`s made from one key — a body run for the measure and again for
-/// the render — hold the same one, and the per-pass memos, which hash a view's
+/// One object per key, table and language where the text holding it can be
+/// equal to another (``source(_:tableName:bundle:language:words:)``), so two
+/// `Text`s made from one key — a body run for the measure and again for the
+/// render — hold the same one, and the per-pass memos, which hash a view's
 /// bytes, see equal values as equal. Compared by value too, for the memos that
 /// compare with `==`. Immutable, so sharing it across threads is safe.
 package final class LocalizedTextSource: Equatable, @unchecked Sendable {
@@ -40,12 +41,22 @@ package final class LocalizedTextSource: Equatable, @unchecked Sendable {
                 && lhs.bundle == rhs.bundle)
     }
 
-    /// What one is filed under.
+    /// What one is filed under: compared whole, and hashed by the parts that
+    /// tell two keys apart in practice — the lookup key, the values, the
+    /// language. A key's synthesized hash read every field, its two
+    /// dictionaries included, for every keyed `Text` made: a hash and a copy
+    /// that were most of a lookup's cost on `churn`.
     private struct Filed: Hashable {
         let key: LocalizedStringKey
         let tableName: String?
         let bundle: ObjectIdentifier?
         let language: String
+
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(key.key)
+            hasher.combine(key.arguments)
+            hasher.combine(language)
+        }
     }
 
     /// The most kept: a backstop against keys made from data, as
@@ -54,6 +65,31 @@ package final class LocalizedTextSource: Equatable, @unchecked Sendable {
     static let limit = 4_096
 
     @MainActor private static var kept: [Filed: LocalizedTextSource] = [:]
+
+    /// The most UTF-8 bytes a `String` keeps in its own bytes, with no buffer
+    /// of its own: 15 on a 64-bit platform, 10 on a 32-bit one.
+    private static let inlineCapacity = MemoryLayout<Int>.size == 8 ? 15 : 10
+
+    /// The one a `Text` reading `words` holds for `key`, read in `language`
+    /// from `tableName` of `bundle`.
+    ///
+    /// The kept one (``interned(_:tableName:bundle:language:)``) where the text
+    /// can be equal to another made from the key: where the key has no values,
+    /// so its words are the table's one string, or where the words fit in the
+    /// string's own bytes. Values spelled into longer words make a string of
+    /// its own every time, so the text's bytes never equal another's whatever
+    /// its source, and a lookup would buy no memo hit. Such a text gets a source
+    /// of its own instead. On `scrollfollow`, whose rows are such texts, the
+    /// lookup was most of a +6.9% (2026-10-18).
+    @MainActor
+    static func source(
+        _ key: LocalizedStringKey, tableName: String?, bundle: Bundle?, language: String, words: String
+    ) -> LocalizedTextSource {
+        if !key.arguments.isEmpty, words.utf8.count > inlineCapacity {
+            return LocalizedTextSource(key: key, tableName: tableName, bundle: bundle, language: language)
+        }
+        return interned(key, tableName: tableName, bundle: bundle, language: language)
+    }
 
     /// The one for `key` read in `language` from `tableName` of `bundle`.
     @MainActor
@@ -80,8 +116,8 @@ extension Text {
             key.key, swiftUIKey: key.swiftUIKey, tableName: tableName, bundle: bundle, in: language)
         let template = reading.text
         defer {
-            localization = LocalizedTextSource.interned(
-                key, tableName: tableName, bundle: bundle, language: reading.language)
+            localization = LocalizedTextSource.source(
+                key, tableName: tableName, bundle: bundle, language: reading.language, words: content)
         }
         // A byte scan first: most keys hold nothing Markdown could act on, and
         // those take the plain path exactly as before. An interpolated `Text`
