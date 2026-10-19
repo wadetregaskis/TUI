@@ -97,6 +97,11 @@ package final class ScenePresenter {
         /// (``EnvironmentValues/sceneStorageNamespace``).
         let storageNamespace: String
 
+        /// Whether the person may close it — Escape, Window ▸ Close Window —
+        /// as its content's `windowDismissBehavior(_:)` said when it was last
+        /// drawn in front.
+        var closesInteractively = true
+
         init(
             serial: Int, sceneKey: ViewIdentity, isLaunchWindow: Bool, presented: PresentedWindowSlot?,
             storageNamespace: String

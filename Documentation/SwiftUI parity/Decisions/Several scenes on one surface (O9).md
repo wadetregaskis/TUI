@@ -271,3 +271,25 @@ beside the list it acts on (deviation W13).
 **The fuller version** adds File ▸ New with an item per window group (a new
 window of it) and Close / Close All on ⌘W and ⌥⌘W through `commandKey` — keys
 a text field may want (⌃W deletes a word), so the owner's call; about two hours.
+
+### B-O9-10. A window's content can take the person's ways to close it away
+
+*`View.windowDismissBehavior(_:)`, `WindowInteractionBehavior`*
+
+SwiftUI's `.windowDismissBehavior(.disabled)` disables a window's close button
+and ⌘W, and Apple's documentation shows it on a welcome window its own button
+closes; with no window openable on this machine, that is taken from the
+documentation, unmeasured. Of `WindowInteractionBehavior`'s other uses —
+minimising, resizing, full screen, dragging a window by its background — a
+surface has none (the window-server family in `parity-map.json`).
+
+**Shipped:** `.disabled` takes away a window's two ways to be closed by the
+person: Escape (B-O9-2), whose claim is not made and which the status bar does
+not name, and the Window menu's Close Window, disabled. `dismissWindow` still
+closes it: that is the app, not the person. `.enabled` and `.automatic` are
+the default, closable. The declaration is a view's, made each walk into the
+window's bars as `.toolbar` makes its items, the one closest to the content
+winning; the walk that seeds a new window's bars makes it too, so a window
+that cannot be closed never offers Escape, even on the frame it opens.
+
+**The fuller version** is none: there is no other way to close a window here.

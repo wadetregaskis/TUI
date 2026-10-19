@@ -264,8 +264,6 @@
     },
     {
       "match": [
-        "View.windowDismissBehavior(_:)",
-        "WindowInteractionBehavior*",
         "WindowVisibilityToggle*"
       ],
       "why": "Being built by lane O9 (refusal review O9, ruled (b): several scenes on one surface); each pattern goes as its symbols land."

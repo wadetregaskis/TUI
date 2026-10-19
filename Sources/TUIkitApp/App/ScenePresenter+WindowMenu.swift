@@ -57,8 +57,9 @@ extension ScenePresenter {
     }
 
     /// Whether the window in front can be closed from the menu: not the last
-    /// one, whose closing would quit the app (the app menu's Quit does that).
-    package var canCloseFrontWindow: Bool { windows.count > 1 }
+    /// one, whose closing would quit the app (the app menu's Quit does that),
+    /// nor one whose content disabled its dismissal.
+    package var canCloseFrontWindow: Bool { windows.count > 1 && front?.closesInteractively == true }
 
     /// Brings the window `serial` to the front: what choosing it in the
     /// Window menu does.

@@ -4118,6 +4118,22 @@ private struct CorpusDestructiveDismissButton: View {
     }
 }
 
+/// A window only its own button closes, as `windowDismissBehavior(_:)`'s
+/// documentation writes it.
+private struct CorpusWelcomeApp: App {
+    var body: some Scene {
+        Window("Welcome", id: "welcome") {
+            CorpusDestructiveDismissButton()
+                .windowDismissBehavior(.disabled)
+        }
+        Window("Tips", id: "tips") {
+            Text("Tips")
+                .windowDismissBehavior(.enabled)
+                .windowDismissBehavior(.automatic)
+        }
+    }
+}
+
 /// The settings scene and the ways to it, as `OpenSettingsAction`'s and
 /// `Settings`' documentation write them.
 private struct CorpusSettingsApp: App {

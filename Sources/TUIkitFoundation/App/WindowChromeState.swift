@@ -577,6 +577,7 @@ package final class WindowChromeState: @unchecked Sendable {
     /// Forgets the toolbar items the last walk declared. Called by the run loop
     /// before every walk of the scene: what a walk declares is that walk's.
     package func beginWalk() {
+        dismissBehavior = .automatic
         toolbarEntries.removeAll(keepingCapacity: true)
         declaredIdentities.removeAll(keepingCapacity: true)
         declaredVisibility.removeAll(keepingCapacity: true)
@@ -589,6 +590,17 @@ package final class WindowChromeState: @unchecked Sendable {
         _titleRemoved = false
         _searchField = nil
         panelToggleOffers.removeAll(keepingCapacity: true)
+    }
+
+    /// The window's dismiss behavior as the walk declared it
+    /// (`windowDismissBehavior(_:)`): ``WindowInteractionBehavior/automatic``
+    /// until a view in it says otherwise.
+    package private(set) var dismissBehavior = WindowInteractionBehavior.automatic
+
+    /// Records the dismiss behavior a view in the window declared; the last
+    /// declaration wins, the one closest to the content.
+    package func declareDismissBehavior(_ behavior: WindowInteractionBehavior) {
+        dismissBehavior = behavior
     }
 
     /// Records a bar visibility the walk declared. The last declaration of a

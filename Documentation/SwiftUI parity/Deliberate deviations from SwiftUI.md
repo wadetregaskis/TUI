@@ -1826,7 +1826,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   front when nothing in it takes the key, as a pushed navigation screen's
   Escape goes back; the status bar calls it "close window"
   (`WindowPresentationTests.escapeClosesAndStateSurvives`). The window opened
-  at launch, alone, keeps Escape for its content, as before.
+  at launch, alone, keeps Escape for its content, as before, and so does a
+  window whose content says `.windowDismissBehavior(.disabled)`, as macOS
+  takes such a window's close button and ⌘W away (B-O9-10).
 - **Why:** a terminal has no close button and no ⌘ key, and a window's content
   need not offer a way out; without one, a window opened over the main one
   would hold the reader.

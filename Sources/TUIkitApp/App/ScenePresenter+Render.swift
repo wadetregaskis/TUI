@@ -97,13 +97,21 @@ extension ScenePresenter {
         // Named before the window draws, for its status bar, which draws
         // before the claim below can be made; anything in the window that
         // claims Escape names it instead.
-        if !context.isMeasuring, windows.count > 1 {
+        if !context.isMeasuring, windows.count > 1, window.closesInteractively {
             context.environment.statusBar?.escapeFallbackLabel = Self.closeWindowLabel
         }
         let buffer = scene.renderSceneTree(context: context)
+        // A window's first frame's seeding walk declares its dismiss behavior
+        // as it declares its toolbar, so a window that cannot be closed never
+        // offers Escape, even on the frame it opens.
+        if !context.isMeasuring || context.environment.seedsWindowChrome {
+            window.closesInteractively = window.chrome.dismissBehavior != .disabled
+        }
         guard !context.isMeasuring else { return buffer }
         window.showsModalPresentation = context.environment.focusManager?.activeSectionIsModal == true
-        if windows.count > 1 { claimEscape(closing: window, at: escapeHandlerSlot, context: context) }
+        if windows.count > 1, window.closesInteractively {
+            claimEscape(closing: window, at: escapeHandlerSlot, context: context)
+        }
         return buffer
     }
 
