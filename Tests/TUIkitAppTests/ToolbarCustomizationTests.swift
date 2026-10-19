@@ -185,6 +185,15 @@ struct ToolbarCustomizationTests {
         driver.openPanel()
         driver.click("▼", after: "SHARE")
         driver.frames(2)
+        // The panel follows: each row is still its own item's.
+        let panel = driver.rows
+        let share = panel.firstIndex { $0.contains("SHARE") && $0.contains("▼") }
+        let print = panel.firstIndex { $0.contains("PRINT") && $0.contains("▼") }
+        if let share, let print {
+            #expect(print < share, "\(panel)")
+        } else {
+            Issue.record("\(panel)")
+        }
         driver.click("Done")
         let bar = driver.rows.first ?? ""
         if let share = bar.range(of: "SHARE"), let print = bar.range(of: "PRINT") {
@@ -216,6 +225,14 @@ struct ToolbarCustomizationTests {
         // trailing one, which would change nothing in the bar.
         driver.click("▼", after: "LEAD")
         driver.frames(2)
+        let moved = driver.rows
+        let movedLead = moved.firstIndex { $0.contains("LEAD") && $0.contains("▼") }
+        let movedSecond = moved.firstIndex { $0.contains("SECOND") && $0.contains("▼") }
+        if let movedLead, let movedSecond {
+            #expect(movedSecond < movedLead, "the panel follows the bar: \(moved)")
+        } else {
+            Issue.record("\(moved)")
+        }
         driver.click("Done")
         let bar = driver.rows.first ?? ""
         if let first = bar.range(of: "LEAD"), let next = bar.range(of: "SECOND") {

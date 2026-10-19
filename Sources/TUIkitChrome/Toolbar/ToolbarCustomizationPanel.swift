@@ -100,8 +100,12 @@ struct _ToolbarCustomizationPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(toolbar.items.indices, id: \.self) { index in
-                row(toolbar.items[index])
+            // Over the items themselves, keyed by identifier: over their
+            // indices, each row read its item from the captured list, and the
+            // row memo, keyed by the index, served a place's last row after a
+            // move — ▼ on SHARE listed PRINT twice.
+            ForEach(toolbar.items, id: \.id) { item in
+                row(item)
             }
             if let choose = choosesLabelStyle {
                 Divider()
