@@ -25,10 +25,11 @@ extension ScenePresenter {
     ///   - scene: The app's scene.
     ///   - context: The frame's context, at the scene's identity.
     ///   - environment: The environment a held window draws with, for its
-    ///     scene's configuration.
+    ///     scene's configuration: kept by the run loop on every frame that
+    ///     holds a window (``holdsWindows``), and so never `nil` here.
     func render(
         _ scene: some Scene, context: RenderContext,
-        environment: (SceneConfiguration) -> EnvironmentValues
+        environment: (SceneConfiguration) -> EnvironmentValues?
     ) -> FrameBuffer {
         guard let front else { return FrameBuffer() }
         if !context.isMeasuring {
@@ -62,11 +63,15 @@ extension ScenePresenter {
     /// Draws `window`, held behind the one in front, into nothing.
     private func renderHeld(
         _ window: OpenWindow, scene: some Scene, context: RenderContext,
-        environment: (SceneConfiguration) -> EnvironmentValues
+        environment: (SceneConfiguration) -> EnvironmentValues?
     ) {
         guard let entry = entry(of: window) else { return }
         var held = context
-        held.environment = environment(entry.configuration)
+        // The frame's own, with the front window's statements, only were the
+        // windows to change between the loop's keeping its base and this
+        // walk, which no code runs in: drawn all the same, so it keeps its
+        // state.
+        held.environment = environment(entry.configuration) ?? context.environment
         let backdrop = self.context(for: window, entry: entry, from: held).isolatedForBackground()
         _ = backdrop.withThrowawayFrameDemand { hidden in scene.renderSceneTree(context: hidden) }
         // Its presenters held the backdrop's focus manager as a presentation

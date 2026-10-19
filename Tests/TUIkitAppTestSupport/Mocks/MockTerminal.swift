@@ -51,6 +51,10 @@ final class MockTerminal: TerminalProtocol {
     var reportedCellAspect: Double?
     var reportedCellPixels: TerminalCellPixels?
 
+    /// How many times the cell geometry has been asked for, each of its two
+    /// halves counting once: on a real terminal each is an `ioctl`.
+    private(set) var cellGeometryReads = 0
+
     /// All strings written via ``write(_:)``.
     private(set) var writtenOutput: [String] = []
 
@@ -182,8 +186,15 @@ extension MockTerminal {
 }
 
 extension MockTerminal: CellGeometryReporting {
-    func cellPixelAspect() -> Double? { reportedCellAspect }
-    func cellPixelSize() -> TerminalCellPixels? { reportedCellPixels }
+    func cellPixelAspect() -> Double? {
+        cellGeometryReads += 1
+        return reportedCellAspect
+    }
+
+    func cellPixelSize() -> TerminalCellPixels? {
+        cellGeometryReads += 1
+        return reportedCellPixels
+    }
 }
 
 #endif

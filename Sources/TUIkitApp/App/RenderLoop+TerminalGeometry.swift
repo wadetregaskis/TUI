@@ -14,7 +14,10 @@ import TUIkitFoundation
 /// `fileprivate`.
 extension RenderLoop {
     /// Publishes the terminal's size and its cell's geometry, as the terminal
-    /// reports them this frame, at the root of the environment.
+    /// reports them this frame, at the root of the environment — `environment`,
+    /// and on a frame that holds a window behind the one in front, the
+    /// environment that window starts from (``windowBaseEnvironment``), from
+    /// the one reading.
     ///
     /// The size (`width` × `height` cells) is the true screen, so an overlay —
     /// a `Picker`'s drop-down — can size to the visible area. Unlike a
@@ -39,14 +42,35 @@ extension RenderLoop {
     /// had been taken, and a memoized row that read one went on drawing for the
     /// terminal before the change.
     func publishTerminalGeometry(into environment: inout EnvironmentValues, width: Int, height: Int) {
-        environment.terminalWidth = width
-        environment.terminalHeight = height
+        // Asked of the terminal once — each is an `ioctl` — for both.
         let geometry = terminal as? any CellGeometryReporting
-        if let cellAspect = geometry?.cellPixelAspect() {
-            environment.imageCellAspect = cellAspect
+        let reading = TerminalGeometryReading(
+            width: width, height: height, cellAspect: geometry?.cellPixelAspect(),
+            cellPixels: geometry?.cellPixelSize())
+        environment.publish(reading)
+        windowBaseEnvironment?.publish(reading)
+    }
+}
+
+/// One frame's reading of the terminal's size and cell geometry.
+private struct TerminalGeometryReading {
+    let width: Int
+    let height: Int
+    let cellAspect: Double?
+    let cellPixels: TerminalCellPixels?
+}
+
+@MainActor
+extension EnvironmentValues {
+    /// Publishes `reading` at the root of the environment.
+    fileprivate mutating func publish(_ reading: TerminalGeometryReading) {
+        terminalWidth = reading.width
+        terminalHeight = reading.height
+        if let cellAspect = reading.cellAspect {
+            imageCellAspect = cellAspect
         }
-        if let cellPixels = geometry?.cellPixelSize() {
-            environment.publishCell(pixels: cellPixels, calibration: TerminalClient.cellPointsCalibration)
+        if let cellPixels = reading.cellPixels {
+            publishCell(pixels: cellPixels, calibration: TerminalClient.cellPointsCalibration)
         }
     }
 }

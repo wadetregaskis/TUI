@@ -208,6 +208,10 @@ package final class ScenePresenter {
     /// Where the policy places each open window, back to front.
     var placements: [Placement] { policy.placements(of: windows) }
 
+    /// Whether the policy holds a window behind another — one drawn
+    /// off-screen, from an environment of its own (``render(_:context:environment:)``).
+    var holdsWindows: Bool { placements.contains(.covered) }
+
     /// The window drawn over the whole surface, if one is.
     var front: OpenWindow? {
         let placements = placements

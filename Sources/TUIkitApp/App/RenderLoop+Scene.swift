@@ -23,10 +23,12 @@ extension RenderLoop {
     /// catalogue — the launch window opens on the first frame — and the window
     /// in front's statements and the app's commands are applied to
     /// `environment`, which is kept first, as it is, for the windows held
-    /// behind it to start from.
+    /// behind it to start from, on a frame that holds one.
     func adoptScenes(_ catalog: SceneCatalog, environment: inout EnvironmentValues) {
         scenes.sync(with: catalog)
-        windowBaseEnvironment = environment
+        // Not kept on a frame of one window: the copy would share the
+        // environment's storage, which its next write would then duplicate.
+        windowBaseEnvironment = scenes.holdsWindows ? environment : nil
         // The window in front's bars, which need not be last frame's.
         environment.windowChrome = windowChrome
         let front = scenes.front.flatMap { scenes.entry(of: $0) }
@@ -37,9 +39,9 @@ extension RenderLoop {
     /// The environment a window held behind the one in front draws with,
     /// off-screen: this frame's before any scene's statements, with its own
     /// scene's — not the front window's, which a scene of its own may not
-    /// share.
-    func heldWindowEnvironment(_ configuration: SceneConfiguration) -> EnvironmentValues {
-        var environment = windowBaseEnvironment
+    /// share. `nil` on a frame that holds no window, which never asks.
+    func heldWindowEnvironment(_ configuration: SceneConfiguration) -> EnvironmentValues? {
+        guard var environment = windowBaseEnvironment else { return nil }
         configuration.applyRootOverrides(to: &environment)
         return environment
     }

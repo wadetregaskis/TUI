@@ -149,7 +149,10 @@ internal final class RenderLoop<A: App> {
     /// The environment a window held behind the one in front starts from this
     /// frame: the loop's, without the front window's scene statements, to
     /// which the held window's own are applied (`RenderLoop+Scene.swift`).
-    var windowBaseEnvironment = EnvironmentValues()
+    /// Kept only on a frame that holds a window, the only frames that read
+    /// it, so a frame of one window neither copies its environment for it
+    /// nor publishes the terminal's geometry twice; `nil` on any other.
+    var windowBaseEnvironment: EnvironmentValues?
 
     /// What the app has set on the terminal emulator beyond the screen — the
     /// window title — written with the frames (`RenderLoop+HostState.swift`).
@@ -474,7 +477,6 @@ extension RenderLoop {
         let tooltipMovedThePage = resolveStatusBarTooltip(
             terminalWidth: terminalWidth, nowNanos: frameNowNanos, scheduler: animationScheduler)
         publishTerminalGeometry(into: &environment, width: terminalWidth, height: terminalHeight)
-        publishTerminalGeometry(into: &windowBaseEnvironment, width: terminalWidth, height: terminalHeight)
         invalidateCacheIfEnvironmentChanged(environment: environment)
 
         // Render the scene: its chrome host lays the top bar, the content
