@@ -132,7 +132,7 @@ let package = Package(
         // AppKit — see Sources/TUIkitAppKit/Exports.swift.
         .library(name: "TUIkitAppKit", targets: ["TUIkitAppKit"]),
 
-        // ── SwiftUI's `@Animatable` macros, opt-in (decisions A52) ──────────────────────────────────────
+        // ── SwiftUI's `@Animatable` and `@Entry` macros, opt-in (decisions A52) ─────────────────────────
         // A product of their own, so that only an app that depends on it builds
         // the compiler plugin and swift-syntax: SwiftPM builds by target, and a
         // client of `TUIkit` alone compiles none of swift-syntax. It does still
@@ -580,7 +580,7 @@ let package = Package(
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
-        // The `@Animatable` macros: the declarations, and the compiler plugin
+        // The `@Animatable` and `@Entry` macros: the declarations, and the compiler plugin
         // that expands them. Nothing else in the package depends on either.
         .target(name: "TUIkitMacros", dependencies: ["TUIkitMacrosPlugin", "TUIkitCore"]),
         .macro(

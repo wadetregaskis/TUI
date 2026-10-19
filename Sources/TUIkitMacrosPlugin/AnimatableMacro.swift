@@ -16,7 +16,9 @@ import SwiftSyntaxMacros
 
 @main
 struct TUIkitMacrosPlugin: CompilerPlugin {
-    let providingMacros: [any Macro.Type] = [AnimatableMacro.self, AnimatableIgnoredMacro.self]
+    let providingMacros: [any Macro.Type] = [
+        AnimatableMacro.self, AnimatableIgnoredMacro.self, EntryMacro.self, EntryDefaultValueMacro.self,
+    ]
 }
 
 // MARK: - @Animatable

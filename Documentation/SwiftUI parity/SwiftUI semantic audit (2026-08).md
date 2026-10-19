@@ -1404,6 +1404,7 @@ verifier corrected the analyst, both are shown.
 - *Divergence:* `extension EnvironmentValues { @Entry var myCustomValue: String = "Default value" }` → `error: unknown attribute 'Entry'` (verified). Nothing about a cell grid bars this — it is pure source generation, and EnvironmentValues' storage already supports exactly what the macro expands to. SwiftUI compatibility guide.md does not mention @Entry in §1, §2 or §4b, so the gap is invisible to a reader of that document.
 - *Recommendation:* Either add a small macro target (an AccessorMacro plus a PeerMacro, ~40 lines) or record the refusal in §4b — the honest reason would be the swift-syntax build cost a macro target imposes on every downstream consumer, which is a legitimate trade worth stating rather than leaving silent.
 - *Status (2026-10-14 sweep):* **DOCUMENTED** — the guide §1 Container values row: no `@Entry` yet in `TUIkitMacros`.
+- *Status (2026-10-18):* **FIXED** — `@Entry` in the opt-in `TUIkitMacros` product, for `EnvironmentValues`, `Transaction`, `ContainerValues` and `FocusedValues`, expanding as SwiftUI's does (`Sources/TUIkitMacros/Entry.swift`, `EntryMacroTests`).
 
 **127. `View.transformPreference(_:_:) / View.backgroundPreferenceValue(_:_:) / View.overlayPreferenceValue(_:_:)`**
 

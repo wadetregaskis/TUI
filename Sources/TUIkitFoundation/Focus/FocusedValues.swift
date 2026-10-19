@@ -34,9 +34,9 @@ import TUIkitView
 /// }
 /// ```
 ///
-/// - Note: SwiftUI also offers the `@Entry` macro to write the key and the
-///   property in one line. TUIkit's opt-in `TUIkitMacros` product does not
-///   have `@Entry` yet (it holds `@Animatable` and `@AnimatableIgnored`), so
+/// - Note: `@Entry var selectedNote: Binding<Note>?` inside the extension
+///   writes the key and the property in one line, as in SwiftUI. The macro is
+///   in the opt-in `TUIkitMacros` product (`import TUIkitMacros`); without it
 ///   the two are written out as above, which is what the macro expands to.
 public protocol FocusedValueKey {
     /// The type of the value the key names.

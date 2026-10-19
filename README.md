@@ -382,7 +382,7 @@ For complete documentation, see the [Localization Guide](https://github.com/wade
 ### Package dependencies
 
 - [swift-docc-plugin](https://github.com/swiftlang/swift-docc-plugin) — documentation
-- [swift-syntax](https://github.com/swiftlang/swift-syntax) — the `@Animatable` macros' compiler plugin, built only for an app that depends on the `TUIkitMacros` product (every client resolves and fetches it)
+- [swift-syntax](https://github.com/swiftlang/swift-syntax) — the `@Animatable` and `@Entry` macros' compiler plugin, built only for an app that depends on the `TUIkitMacros` product (every client resolves and fetches it)
 - [ordo-one/benchmark](https://github.com/ordo-one/package-benchmark) — performance benchmarks, opt-in via the `TUIKIT_BENCHMARKS` flag: `TUIKIT_BENCHMARKS=1 swift package benchmark` (kept out of the default build/test graph)
 
 ## Project structure
