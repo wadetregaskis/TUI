@@ -135,11 +135,17 @@ struct ChildFade {
     // MARK: - Leaving
 
     /// What `entry`, which has gone, leaves as while this frame's change
-    /// plays, drawn at `placement` — or `nil` where it simply goes: nothing
-    /// animates the change, it drew nothing, it was a removal's slot already
-    /// played, or a transition of its own says it goes at once.
+    /// plays, drawn at `placement` — or `nil` where it simply goes: it drew
+    /// nothing, it was a removal's slot already played, a transition of its
+    /// own says it goes at once, or — for one with none, or none that names
+    /// an animation — nothing animates the change.
+    ///
+    /// A transition that names an animation of its own plays under it with
+    /// no animated change at all, as SwiftUI's does (measured,
+    /// `Tools/SwiftUIProbes/Transitions/tr1.out` T6), and as an `if`'s view
+    /// does where its `nil` plays the removal.
     func leaver(from entry: ChildPlacementEntry, picture: FrameBuffer?, at placement: ChildPlacement) -> LeavingChild? {
-        guard let animation, !entry.isDeparting, !entry.drawsNothing else { return nil }
+        guard !entry.isDeparting, !entry.drawsNothing else { return nil }
         let identity = entry.step.identity(under: context.identity)
         let departures = storage.departures
         if departures.hasEntry(at: identity) {
@@ -157,7 +163,7 @@ struct ChildFade {
             // A transition with something drawn round it: its picture would
             // lose that, so the whole picture fades instead.
         }
-        guard let picture, !picture.isEmpty else { return nil }
+        guard let animation, let picture, !picture.isEmpty else { return nil }
         let key = key(entry.step)
         // From where it is if it was still on its way in.
         storage.animations.settle(key, at: 1.0, nowNanos: nowNanos)

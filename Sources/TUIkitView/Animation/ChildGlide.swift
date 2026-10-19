@@ -115,8 +115,11 @@ extension RenderContext {
         // paid on every frame for nothing (4–6% of its frame, profiled
         // 2026-10-18). Under reduce motion an animated change still fades
         // what comes and goes, so only a frame with no animation at all is
-        // this one.
-        if !unchanged, still, departing.isEmpty, !Self.frameAnimates(in: self) {
+        // this one — and one where no child that went has a transition naming
+        // an animation of its own, which plays with none (`ChildFade`).
+        if !unchanged, still, departing.isEmpty, !Self.frameAnimates(in: self),
+            !storage.departures.hasUnstartedRemovalOfItsOwn(below: identity)
+        {
             record.entries = Self.entries(children, buffers, targets)
             record.pictures = buffers
             record.departed = [:]

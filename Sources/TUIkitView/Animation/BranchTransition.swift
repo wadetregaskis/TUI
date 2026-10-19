@@ -144,9 +144,11 @@ private struct BranchAnimator {
     }
 
     /// How the branch labelled `isTrueBranch`, which drew `picture` last and
-    /// has just been left, leaves — or `nil` where it simply goes.
+    /// has just been left, leaves — or `nil` where it simply goes. A
+    /// transition of its own that names an animation plays under it whether
+    /// or not the change is animated, as ``ChildFade/leaver(from:picture:at:)``
+    /// says.
     func leaver(_ picture: FrameBuffer?, isTrueBranch: Bool) -> LeavingBranch? {
-        guard let animation else { return nil }
         let departures = storage.departures
         let identity = identity(ofBranch: isTrueBranch)
         if departures.hasEntry(at: identity, leftBy: pictureType(isTrueBranch)) {
@@ -158,7 +160,7 @@ private struct BranchAnimator {
             else { return nil }
             return .playing(isTrueBranch: isTrueBranch)
         }
-        guard let picture, !picture.isEmpty else { return nil }
+        guard let animation, let picture, !picture.isEmpty else { return nil }
         let key = key(isTrueBranch)
         // From where it is if it was still on its way in.
         storage.animations.settle(key, at: 1.0, nowNanos: nowNanos)

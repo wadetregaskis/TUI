@@ -75,6 +75,78 @@ private struct SlidingRows: View {
     }
 }
 
+/// A transition that runs under a second of its own, whatever the change.
+private let timedMove = AnyTransition.move(edge: .trailing).animation(.linear(duration: 1))
+
+/// A loop's rows below a row that stays, each with a transition that names
+/// its own animation.
+private struct TimedRows: View {
+    let ids: [Int]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("----")
+            ForEach(ids, id: \.self) { id in Text(String(repeating: "\(id)", count: 4)).transition(timedMove) }
+        }
+    }
+}
+
+/// Where a branch with a transition naming its own animation stands.
+enum TimedBranchShape: Sendable {
+    /// An `if`/`else` the stack takes apart.
+    case stacked
+    /// An `if`/`else` that is a view's whole body, drawn whole.
+    case whole
+    /// The first branch alone, as an `if` whose `nil` plays the removal.
+    case ifAlone
+}
+
+/// An `if`/`else` below a row that stays, whose first branch has a
+/// transition that names its own animation.
+private struct TimedFlip: View {
+    let first: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("----")
+            if first { Text("XXXX").transition(timedMove) } else { Text("YY") }
+        }
+    }
+}
+
+/// ``TimedFlip`` with its `if`/`else` as a view's whole body, drawn whole.
+private struct TimedWholeFlip: View {
+    let first: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("----")
+            TimedWholeBody(first: first)
+        }
+    }
+}
+
+/// ``TimedWholeFlip``'s view.
+private struct TimedWholeBody: View {
+    let first: Bool
+
+    var body: some View {
+        if first { Text("XXXX").transition(timedMove) } else { Text("YY") }
+    }
+}
+
+/// ``TimedFlip``'s first branch alone, as an `if`.
+private struct TimedIf: View {
+    let first: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("----")
+            if first { Text("XXXX").transition(timedMove) }
+        }
+    }
+}
+
 /// An `if` holding two views, which has no one slot to keep.
 private struct Several: View {
     let showing: Bool
@@ -274,6 +346,47 @@ struct BranchAndRowFadeTests {
         #expect(frames.draw(SlidingRows(ids: [1]), atMillis: 1000, changed: true) == ["----", "1111", "2222"])
         #expect(frames.draw(SlidingRows(ids: [1]), atMillis: 1500) == ["----", "1111", "  22"], "sliding out")
         #expect(frames.draw(SlidingRows(ids: [1]), atMillis: 2100) == ["----", "1111"])
+    }
+
+    /// SwiftUI runs a transition's own animation with no `withAnimation`
+    /// (`Tools/SwiftUIProbes/Transitions/tr1.out` T6), and so does an `if`
+    /// whose `nil` plays the removal. A row, a branch taken apart by its stack
+    /// and one drawn whole went at once: the stack skipped what came and went
+    /// on a change nothing animated, and the removal asked for the change's
+    /// animation, not the transition's.
+    @Test("A row with a transition of its own animation plays its removal with no animated change")
+    func timedRowLeavesUnanimated() {
+        let frames = Frames()
+        // A transition's own animation plays its arrival too: arrived.
+        _ = frames.draw(TimedRows(ids: [1, 2]), atMillis: 0)
+        #expect(frames.draw(TimedRows(ids: [1, 2]), atMillis: 1100) == ["----", "1111", "2222"])
+        #expect(frames.draw(TimedRows(ids: [1]), atMillis: 2000) == ["----", "1111", "2222"])
+        #expect(frames.draw(TimedRows(ids: [1]), atMillis: 2500) == ["----", "1111", "  22"], "sliding out")
+        #expect(frames.draw(TimedRows(ids: [1]), atMillis: 3100) == ["----", "1111"])
+    }
+
+    @Test(
+        "A branch with a transition of its own animation plays its removal with no animated change",
+        arguments: [TimedBranchShape.stacked, .whole, .ifAlone])
+    func timedBranchLeavesUnanimated(shape: TimedBranchShape) {
+        switch shape {
+        case .stacked: Self.leavesUnanimated(remaining: ["----", "YY"]) { TimedFlip(first: $0) }
+        case .whole: Self.leavesUnanimated(remaining: ["----", "YY"]) { TimedWholeFlip(first: $0) }
+        case .ifAlone: Self.leavesUnanimated(remaining: ["----"]) { TimedIf(first: $0) }
+        }
+    }
+
+    /// Whether the view `scene` makes slides its first branch out over the
+    /// second of its own animation when it is left with no animated change,
+    /// and leaves `remaining` drawn.
+    private static func leavesUnanimated<V: View>(remaining: [String], _ scene: (Bool) -> V) {
+        let frames = Frames()
+        _ = frames.draw(scene(true), atMillis: 0)
+        #expect(frames.draw(scene(true), atMillis: 1100) == ["----", "XXXX"], "arrived")
+        _ = frames.draw(scene(false), atMillis: 2000)
+        let half = frames.draw(scene(false), atMillis: 2500)
+        #expect(half.count > 1 && half[1].hasSuffix("XX") && !half[1].hasPrefix("XX"), "sliding out: \(half)")
+        #expect(frames.draw(scene(false), atMillis: 3100) == remaining)
     }
 
     /// An `if` holding several views keeps no one slot for its `nil` to

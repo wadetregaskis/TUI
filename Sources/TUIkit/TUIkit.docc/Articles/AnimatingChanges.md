@@ -194,10 +194,13 @@ if showDetail {
 ``AnyTransition/identity`` compose with ``AnyTransition/combined(with:)`` and
 ``AnyTransition/asymmetric(insertion:removal:)``. Each is also a ``Transition``
 type of its own — ``OpacityTransition``, ``MoveTransition`` and the rest — and
-`.transition(_:)` takes either spelling. A transition runs *only* when the change
-that caused it was animated, so leaving one on a view that also appears for
-other reasons — a page opening, a list rebuilding — stays instant. Each half of
-an `asymmetric` transition runs under its own animation where it names one,
+`.transition(_:)` takes either spelling. A transition runs when the change that
+caused it was animated, or when it names an animation of its own with
+``AnyTransition/animation(_:)`` — that one plays with no `withAnimation` at all,
+as SwiftUI's does. Otherwise it stays instant, so leaving one on a view that
+also appears for other reasons — a page opening, a list rebuilding — is safe.
+Each half of an `asymmetric` transition runs under its own animation where it
+names one,
 ``AnyTransition/animation(_:)`` with `nil` makes a transition come and go at
 once inside any `withAnimation`, and the animation written nearest the view
 wins.

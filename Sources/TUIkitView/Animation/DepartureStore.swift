@@ -175,6 +175,24 @@ extension DepartureStore {
         return entry.wasLeft(by: ObjectIdentifier(type))
     }
 
+    /// Whether a view below `container` has gone this pass with a transition
+    /// that names an animation of its own — one whose removal plays even when
+    /// nothing animates the change (`ChildFade`), so the container cannot
+    /// pass the change by as one that moves nothing.
+    ///
+    /// Asked only on a change no animation runs under, by a container whose
+    /// children changed; a scan of the store, which holds a record only for a
+    /// view with a transition of its own, and none in most apps.
+    package func hasUnstartedRemovalOfItsOwn(below container: ViewIdentity) -> Bool {
+        guard !entries.isEmpty else { return false }
+        return entries.contains { identity, entry in
+            guard !entry.presentThisPass, entry.leftAtNanos == nil,
+                case .some(.some) = entry.departure.explicitAnimation
+            else { return false }
+            return container.isAncestor(of: identity)
+        }
+    }
+
     /// Starts the removal of a view that has already gone, from the picture it
     /// left: the default transition's departure, which its `if` reports
     /// itself rather than by the view's absence (`OptionalPresence`).

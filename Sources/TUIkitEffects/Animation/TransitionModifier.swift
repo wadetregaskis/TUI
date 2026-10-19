@@ -18,11 +18,15 @@ extension View {
     /// }
     /// ```
     ///
-    /// A transition runs only when the change that caused it was animated —
+    /// A transition runs when the change that caused it was animated —
     /// inside ``withAnimation(_:_:)``, or under a ``View/animation(_:value:)``
-    /// watching the condition. An unanimated appearance is still instant, which
-    /// is what makes it safe to leave a transition on a view that appears for
-    /// other reasons (a page being opened, a list being rebuilt).
+    /// watching the condition — or when it names an animation of its own
+    /// (``AnyTransition/animation(_:)``), which plays with no animated change
+    /// at all, as SwiftUI's does (`Tools/SwiftUIProbes/Transitions/tr1.out`
+    /// T6): an `if`'s view, a branch, a case or a row alike. Otherwise an
+    /// unanimated appearance is instant, which is what makes it safe to leave
+    /// a transition on a view that appears for other reasons (a page being
+    /// opened, a list being rebuilt).
     ///
     /// ## The views around it
     ///
