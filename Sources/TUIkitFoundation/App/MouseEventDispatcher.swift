@@ -168,13 +168,19 @@ package final class MouseEventDispatcher: @unchecked Sendable {
 
     /// The regions `.pointerStyle(_:)` filed this frame, by id, with the shape
     /// each asks for: no handler, never offered an event, cleared with the
-    /// handler table. See ``registerPointerStyle(_:in:)``.
+    /// handler table. See ``registerPointerStyle(_:over:in:)``.
     var pointerStyleRegions: [HitTestRegion.HandlerID: PointerShape] = [:]
 
     /// The shapes controls filed for their own regions this frame — the
     /// I-beam over a text field — cleared with the handler table. See
     /// ``fileControlPointerShape(_:for:in:)``.
     var controlPointerShapes: [HitTestRegion.HandlerID: PointerShape] = [:]
+
+    /// For each region the pointer's shape is read from, the styles whose
+    /// views it is inside, this frame, cleared with the handler table: what
+    /// tells a style nested in another from one that merely overlaps it, which
+    /// the order of the regions cannot (``resolvePointerShape(at:y:)``).
+    var pointerShapeEnclosures: [HitTestRegion.HandlerID: [HitTestRegion.HandlerID]] = [:]
 
     /// The shape under the pointer as last resolved, and whether the pointer
     /// or the regions have moved since (``pointerShapeUnderPointer()``).
@@ -416,6 +422,7 @@ extension MouseEventDispatcher {
         hoverObserverIDs.removeAll(keepingCapacity: true)
         pointerStyleRegions.removeAll(keepingCapacity: true)
         controlPointerShapes.removeAll(keepingCapacity: true)
+        pointerShapeEnclosures.removeAll(keepingCapacity: true)
         passiveIDs.removeAll(keepingCapacity: true)
         applicationHandlerIDs.removeAll(keepingCapacity: true)
         wheelHandlerIDs.removeAll(keepingCapacity: true)
@@ -1206,7 +1213,7 @@ extension MouseEventDispatcher {
     /// unless `includingWheelOnly`, which only a wheel event's dispatch asks
     /// for: hover, clicks and drop targeting never see it.
     ///
-    /// A pointer style's region (``registerPointerStyle(_:in:)``) is never
+    /// A pointer style's region (``registerPointerStyle(_:over:in:)``) is never
     /// one: it hears nothing, and is read only for the pointer's shape.
     func matchingRegions(at x: Int, y: Int, includingWheelOnly: Bool = false) -> [HitTestRegion] {
         // A geometry marker has no area, so `contains` already refuses it; the

@@ -51,9 +51,10 @@ extension PointerStyleModifier: Renderable {
         }
         // The shape follows the pointer as it moves, which only motion
         // reporting tells: asked for while the style is on screen, and only
-        // then.
+        // then. The region goes in front of the content's, whose styles are
+        // noted as nested in it.
         dispatcher.requestFeature(.motion, in: context)
-        let id = dispatcher.registerPointerStyle(style.shape, in: context)
+        let id = dispatcher.registerPointerStyle(style.shape, over: buffer.hitTestRegions, in: context)
         buffer.hitTestRegions.append(
             HitTestRegion(offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height, handlerID: id))
         return buffer
@@ -94,10 +95,12 @@ extension View {
     /// ```
     ///
     /// Of styles set on nested views, the innermost one under the pointer
-    /// wins; `nil` sets none, leaving the pointer to whatever is further out.
-    /// A view covered by another — a sheet's backdrop, an open menu, a control
-    /// drawn over it — shows its style only where nothing covers it, and a
-    /// view inside `.disabled(true)` shows none.
+    /// wins, and of views that overlap — an overlay, a `ZStack`'s layers, a
+    /// background — the one in front; `nil` sets none, leaving the pointer to
+    /// whatever is further out. A view covered by another — a sheet's
+    /// backdrop, an open menu, a control drawn over it — shows its style only
+    /// where nothing covers it, and a view inside `.disabled(true)` shows
+    /// none.
     ///
     /// The terminal draws the pointer, and only some let an app choose its
     /// shape; elsewhere this changes nothing. Read

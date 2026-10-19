@@ -5735,7 +5735,7 @@ awaits the owner's reading.**
 **What TUIkit does.** `View.pointerStyle(_:)` files a region the size of its
 view with the style's shape. After every batch of input, and after every
 frame, the run loop resolves the shape under the pointer — the innermost
-style in front of the control there, or that control's own — and writes
+style on the view in front there, or the control's own — and writes
 `ESC ] 22 ; name ESC \` when it differs from what it last sent
 (`Terminal.showPointerShape`, `TerminalHostState`), in the host's own names
 (`PointerShapeHost`). Motion reporting (mode 1003) is asked for only while a

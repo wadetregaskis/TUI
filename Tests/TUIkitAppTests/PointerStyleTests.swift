@@ -33,6 +33,19 @@ private struct StyledCard: View, @MainActor Equatable {
     }
 }
 
+/// A memoizable card whose style holds another, equal by its title alone.
+private struct NestedStyledCard: View, @MainActor Equatable {
+    let title: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(title).pointerStyle(.link)
+            Text("outer")
+        }
+        .pointerStyle(.rectSelection)
+    }
+}
+
 private typealias Harness = PointerShapeHarness
 
 @MainActor
@@ -109,6 +122,54 @@ struct PointerStyleTests {
             .pointerStyle(.rectSelection))
         #expect(harness.shape(atX: 1, y: 0) == .link)
         #expect(harness.shape(atX: 1, y: 1) == .crosshair)
+    }
+
+    @Test("Of styles on views that overlap, the one in front wins, though its region comes first")
+    func overlappingStylesFrontWins() {
+        let overlay = Harness()
+        overlay.frame(
+            Text("base-base-base").pointerStyle(.link)
+                .overlay(alignment: .leading) { Text("zoom").pointerStyle(.zoomIn) })
+        #expect(overlay.shape(atX: 1, y: 0) == .zoomIn, "the overlay is in front of its base")
+        #expect(overlay.shape(atX: 10, y: 0) == .link)
+
+        let backToFront = Harness()
+        backToFront.frame(
+            ZStack(alignment: .topLeading) {
+                Text("big-big-big").pointerStyle(.rectSelection)
+                Text("small").pointerStyle(.link)
+            })
+        #expect(backToFront.shape(atX: 1, y: 0) == .link, "a ZStack's later layer is in front")
+        #expect(backToFront.shape(atX: 8, y: 0) == .crosshair)
+
+        let frontCovers = Harness()
+        frontCovers.frame(
+            ZStack(alignment: .topLeading) {
+                Text("small").pointerStyle(.link)
+                Text("big-big-big").pointerStyle(.rectSelection)
+            })
+        #expect(frontCovers.shape(atX: 1, y: 0) == .crosshair, "the layer in front covers the smaller one behind")
+
+        let background = Harness()
+        background.frame(
+            Text("content").pointerStyle(.link)
+                .background { Color.blue.pointerStyle(.rectSelection) })
+        #expect(background.shape(atX: 1, y: 0) == .link, "a background is behind its content")
+    }
+
+    @Test("A memoized view served on a later frame still nests the styles it holds")
+    func servedMemoNestsItsStyles() {
+        let harness = Harness()
+        let page = VStack(alignment: .leading, spacing: 0) {
+            Text("ahead").focusable()
+            NestedStyledCard(title: "card").equatable()
+        }
+        harness.frame(page)
+        let hits = harness.cache.stats.hits
+        harness.frame(page)
+        #expect(harness.cache.stats.hits > hits, "no memo hit on the second frame")
+        #expect(harness.shape(atX: 1, y: 1) == .link, "the served card's inner style lost its nesting")
+        #expect(harness.shape(atX: 1, y: 2) == .crosshair)
     }
 
     @Test("nil sets no style, and inside .disabled(true) a style sets none")

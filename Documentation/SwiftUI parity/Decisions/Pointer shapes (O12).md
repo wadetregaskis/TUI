@@ -80,6 +80,12 @@ over the view". Shipped, read as the hover machine reads its observers:
 
 - Of nested styles, the **innermost** under the pointer wins; one set on a
   container reaches every view in it that sets none.
+- Of views that **overlap** — an overlay over its base, a `ZStack`'s layers,
+  content over its background — the style of the one in front wins. The
+  order of the regions cannot tell the two cases apart (a wrapper's region
+  and a view in front of it both come after what they cover), so each style
+  notes the styles inside its own view as it files its region, and the walk
+  front to back goes past a style only into those.
 - A view **covered** by another — a sheet's backdrop, an open menu, a control
   drawn over it — shows its style only where nothing covers it. A style set
   on a view INSIDE a `Button`'s label is covered by the button's own region,
