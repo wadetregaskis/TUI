@@ -57,12 +57,57 @@ package func statedTypeSelectEquivalent(of row: any View) -> String?? {
     return .some(carrier.typeSelectEquivalent)
 }
 
+/// ``statedTypeSelectEquivalent(of:)`` for a row a child walk holds, seeing
+/// past `ForEach`'s value memo — `extractRowBadge(from:)`'s shape, for the
+/// same wrapper.
+///
+/// A looped row of an `Equatable` element reaches a walk that splices it among
+/// hand-written rows (or a `Section`'s walk) wrapped in `_MemoizedRow`, which
+/// is `Renderable` and so opaque to the wrapper walk: the equivalent it stated
+/// was simply not there, and the row answered to its drawn text instead.
+///
+/// The memo's TYPE is asked before its content — walked through the same
+/// single-content wrappers the instance walk looks through, so
+/// `.typeSelectEquivalent(_:).padding()` is found as the hand-written row's
+/// is — and only a row type that states an equivalent is built:
+/// ``_ValueMemoWrapping/memoizedContent`` BUILDS the row, and the memo exists
+/// so that most rows are not.
+@MainActor
+package func statedRowTypeSelectEquivalent(of row: any View) -> String?? {
+    if let stated = statedTypeSelectEquivalent(of: row) { return stated }
+    guard let memo = row as? any _ValueMemoWrapping,
+        viewTypeStatesTypeSelectEquivalent(memo.memoizedContentType)
+    else { return nil }
+    return statedTypeSelectEquivalent(of: memo.memoizedContent)
+}
+
+/// Whether a view of `type` states a type-select equivalent, at its outside or
+/// inside any number of single-content wrappers — the static twin of the
+/// instance walk in ``statedTypeSelectEquivalent(of:)``, answered from the
+/// type alone.
+@MainActor
+func viewTypeStatesTypeSelectEquivalent(_ type: any View.Type) -> Bool {
+    var current = type
+    while true {
+        if current is any _TypeSelectEquivalentCarrying.Type { return true }
+        guard let wrapper = current as? any SingleContentWrapper.Type else { return false }
+        current = wrapper.wrappedContentType
+    }
+}
+
+extension SingleContentWrapper {
+    /// The wrapped content's type, as an existential metatype the static walk
+    /// above can step through.
+    fileprivate static var wrappedContentType: any View.Type { WrappedContent.self }
+}
+
 /// The type-select text `row` states, as a row's probe, for a row handed to
 /// the list already drawn — `nil` where it states none, so its drawn text is
-/// used.
+/// used. A looped row behind `ForEach`'s value memo is seen through it (see
+/// ``statedRowTypeSelectEquivalent(of:)``).
 @MainActor
 package func typeSelectProbe(statedBy row: any View) -> (() -> String?)? {
-    guard let stated = statedTypeSelectEquivalent(of: row), let stated else { return nil }
+    guard let stated = statedRowTypeSelectEquivalent(of: row), let stated else { return nil }
     return { stated }
 }
 

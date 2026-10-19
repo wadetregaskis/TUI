@@ -2820,10 +2820,6 @@ Where it differs:
   macOS takes it. The alternative — resolve the prefix when the key arrives
   and pass on a key no row answers to — needs every row's text at key time,
   measured outside a render; a day.
-- **A looped row spliced among hand-written rows** (a `ForEach` beside a
-  static row) is matched by its drawn text; an equivalent it states is not
-  seen, behind the memo the list wraps such rows in. Half an hour with the
-  badge's own unwrapping (`extractRowBadgeValue`).
 
 ### B78. Section actions: always shown, after the header's title
 

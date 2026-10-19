@@ -94,6 +94,54 @@ struct TypeSelectTests {
         #expect(handler?.focusedIndex == 1, "Delta stated no text, so 'bd' and 'd' find nothing")
     }
 
+    /// A `ForEach` beside a hand-written row is spliced into the list's child
+    /// walk, which hands each looped row over inside `ForEach`'s value memo:
+    /// the equivalent sat behind that wrapper and the row answered to its
+    /// drawn "•" instead.
+    @Test("A looped row spliced among hand-written rows answers to the text it states")
+    func splicedLoopedRowStatedEquivalent() {
+        let view = List(selection: .constant(String?.none)) {
+            Text("Top").tag("Top")
+            ForEach(Self.names, id: \.self) { name in
+                Text("•").typeSelectEquivalent(name)
+            }
+        }
+        let (handler, type) = harness(view)
+        _ = type(KeyEvent(key: .character("c")))
+        #expect(handler?.focusedIndex == 3, "Charlie, row 3 after Top, by its stated text")
+    }
+
+    @Test("A looped row's equivalent is found through a wrapper written after it")
+    func splicedLoopedRowEquivalentThroughAWrapper() {
+        let view = List(selection: .constant(String?.none)) {
+            Text("Top").tag("Top")
+            ForEach(Self.names, id: \.self) { name in
+                Text("•").typeSelectEquivalent(name).padding(.leading, 0)
+            }
+        }
+        let (handler, type) = harness(view)
+        _ = type(KeyEvent(key: .character("d")))
+        #expect(handler?.focusedIndex == 5, "Delta, through the padding")
+    }
+
+    /// A section of a hand-written row and a loop is taken apart by the
+    /// section's own child walk, which hands the looped rows over inside the
+    /// memo as the list's does.
+    @Test("A looped row beside a hand-written one in a Section answers to the text it states")
+    func sectionLoopedRowStatedEquivalent() {
+        let view = List(selection: .constant(String?.none)) {
+            Section("People") {
+                Text("Top").tag("Top")
+                ForEach(Self.names, id: \.self) { name in
+                    Text("•").typeSelectEquivalent(name)
+                }
+            }
+        }
+        let (handler, type) = harness(view)
+        _ = type(KeyEvent(key: .character("b")))
+        #expect(handler?.focusedIndex == 3, "Bravo, after the header, Top and Alpha")
+    }
+
     @Test("A table answers to its first column")
     func table() {
         let people = Self.names.map(Person.init)
