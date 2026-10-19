@@ -82,6 +82,24 @@ struct GlassEffectTransitionTests {
         #expect(frame(row(true), tui: tui, atMillis: 1_100) == ["(A  B)"])
     }
 
+    @Test("Glass leaving a joined shape under an animation takes its part with it; the glass that stays closes at once")
+    func leavingAJoinedShape() {
+        let screen = RemovalScreen(animation: .linear(duration: 1), width: 8) { withB in
+            GlassEffectContainer {
+                HStack(spacing: 0) {
+                    Text("A").padding(.horizontal).glassEffect()
+                    if withB { Text("B").padding(.horizontal).glassEffect() }
+                }
+            }
+        }
+        // Every frame is under the animation, so the pair arrives first.
+        _ = screen.draw(true, atMillis: 0)
+        #expect(screen.draw(true, atMillis: 1_100) == ["(A  B)"])
+        #expect(screen.draw(false, atMillis: 1_200) == ["(A) B)"], "B's part leaves with B, as it was drawn")
+        #expect(screen.draw(false, atMillis: 1_700) == ["(A) B)"])
+        #expect(screen.draw(false, atMillis: 2_300) == ["(A)"])
+    }
+
     @Test("Glass whose transition is the identity appears at once; so does glass with no animation")
     func identityAndUnanimated() {
         let tui = TUIContext()

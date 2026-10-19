@@ -248,6 +248,17 @@ extension ShapeCells {
         }
     }
 
+    /// These cells with those inside `rect` taken away, cut to these cells'
+    /// bounds: what a joined glass's members draw themselves.
+    mutating func clearing(_ rect: CellRect) {
+        let (top, bottom) = (max(0, rect.y), min(height, rect.y + rect.height))
+        let (left, right) = (max(0, rect.x), min(width, rect.x + rect.width))
+        guard top < bottom, left < right else { return }
+        for row in top..<bottom {
+            for column in left..<right { self[column, row] = .empty }
+        }
+    }
+
     /// `top` laid over these cells with its top-left at `origin`, cut to these
     /// cells' bounds: each cell `top` draws takes the place of the one under
     /// it, keeping that one's field under a glyph that states none — a rim's

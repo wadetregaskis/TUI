@@ -58,6 +58,17 @@ struct GlassEffectContainerTests {
         #expect(drawn[1] == ["(A  B)"])
     }
 
+    @Test("Each member's part of a joined shape meets the next: one rim round both, rows and all")
+    func partsMeet() {
+        let view = GlassEffectContainer {
+            HStack(spacing: 0) {
+                Text("A").padding().glassEffect()
+                Text("B").padding().glassEffect()
+            }
+        }
+        #expect(frames(view, width: 6, height: 3).last == ["╭────╮", "│A  B│", "╰────╯"])
+    }
+
     @Test("The pass a group forms is drawn as every pass after it: one glass, not the members' own under it")
     func formingPassIsTheGroup() {
         var environment = EnvironmentValues()

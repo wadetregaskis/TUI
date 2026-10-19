@@ -86,6 +86,11 @@ private enum GlassHoverRecord {}
 /// shows nothing, the content's cell is claimed at a field of 0 so the glyph
 /// shows through (``FrameBuffer/claimsShowingGlyphs(of:)``), which is what puts
 /// the rim in a padded view's padding.
+///
+/// In a ``GlassEffectContainer`` that found it joined, the cells are its part
+/// of the joined shape (``GlassPiece``) rather than its own glass, drawn here
+/// all the same: so whatever lies between this view and the container acts
+/// on them as on glass alone.
 struct _GlassEffect<Content: View, S: Shape>: View {
     let content: Content
     let shape: S
@@ -101,24 +106,48 @@ extension _GlassEffect: Renderable {
         let hovered = hover?.value ?? false
         var base = TUIkitView.renderToBuffer(content, context: contentContext(context))
         guard base.width > 0, base.height > 0 else { return base }
-        // In a container, a glass the container drew last pass as one of a
-        // joined group leaves its glass to the container again.
         let gathering = context.isMeasuring ? nil : context.environment.glassEffectGathering
-        let drawsItself = gathering?.drawnByContainer.contains(context.identity) != true
         let presence = arrival(in: gathering, context: context)
-        var buffer = base
-        if drawsItself {
-            let layer = GlassCells.drawing(
-                glass, in: shape, columns: base.width, rows: base.height, hovered: hovered, presence: presence,
+        // In a container, a glass the container found joined draws its part
+        // of the joined shape where its own glass would be.
+        let joined = gathering?.piece(for: context.identity)
+        let drawnShape: any Shape =
+            gathering == nil ? shape : resolvedShape(shape, in: context, columns: base.width, rows: base.height)
+        let layer: ShapeCells
+        if let joined {
+            layer = Self.part(
+                joined.piece, of: glass, in: joined.shape ?? drawnShape, columns: base.width, rows: base.height,
+                presence: presence, context: context)
+        } else {
+            layer = GlassCells.drawing(
+                glass, in: drawnShape, columns: base.width, rows: base.height, hovered: hovered, presence: presence,
                 context: context, owner: Self.self)
-            base.opacityRegions += base.claimsShowingGlyphs(of: layer)
-            buffer = compositeDrawnLayer(layer.buffer(), at: (0, 0), under: base, context: context, modifierType: Self.self)
         }
+        base.opacityRegions += base.claimsShowingGlyphs(of: layer)
+        var buffer = compositeDrawnLayer(layer.buffer(), at: (0, 0), under: base, context: context, modifierType: Self.self)
         if let gathering {
-            tell(gathering, about: &buffer, drewItself: drawsItself, hovered: hovered, presence: presence, context: context)
+            tell(
+                gathering, about: &buffer, shape: drawnShape, piece: joined?.piece, hovered: hovered,
+                presence: presence, context: context)
         }
         if let hover { observeHover(into: hover, buffer: &buffer, context: context) }
         return buffer
+    }
+
+    /// The cells of `piece` — the part of a joined shape `glass` in `shape`
+    /// that falls in a `columns` × `rows` frame — for a view that frame's size
+    /// to be composited over.
+    @MainActor
+    private static func part(
+        _ piece: GlassPiece, of glass: Glass, in shape: any Shape, columns: Int, rows: Int, presence: Double,
+        context: RenderContext
+    ) -> ShapeCells {
+        let whole = GlassCells.drawing(
+            glass, in: shape, columns: piece.frame.width, rows: piece.frame.height, hovered: piece.isHovered,
+            presence: presence, context: context, owner: Self.self)
+        var part = ShapeCells(width: columns, height: rows)
+        part.laying(whole, at: (piece.frame.x, piece.frame.y))
+        return part
     }
 
     /// How far this glass has arrived, 0 to 1: in a container, glass arriving
@@ -129,24 +158,23 @@ extension _GlassEffect: Renderable {
         return context.environment.glassArrival(at: context.identity, storage: storage)
     }
 
-    /// Tells the ``GlassEffectContainer`` this glass is in what it is, and
+    /// Tells the ``GlassEffectContainer`` this glass is in what it is — in
+    /// `shape`, drawing `piece` of a joined shape or its own glass — and
     /// stamps the marker it finds it by.
     ///
     /// A render side effect a cached buffer cannot repeat — the container
     /// learns of its glass only from glass that draws — so the memos keep none
     /// of a subtree that does it.
     private func tell(
-        _ gathering: GlassEffectGathering, about buffer: inout FrameBuffer, drewItself: Bool, hovered: Bool,
-        presence: Double, context: RenderContext
+        _ gathering: GlassEffectGathering, about buffer: inout FrameBuffer, shape: any Shape, piece: GlassPiece?,
+        hovered: Bool, presence: Double, context: RenderContext
     ) {
         context.environment.volatileReadTracker?.recordRenderSideEffect()
         let marker = gathering.gather(
             GatheredGlass(
-                identity: context.identity, glass: glass,
-                shape: resolvedShape(shape, in: context, columns: buffer.width, rows: buffer.height),
+                identity: context.identity, glass: glass, shape: shape,
                 size: CellSize(width: buffer.width, height: buffer.height),
-                union: context.environment.glassEffectUnion, isHovered: hovered, presence: presence,
-                drewItself: drewItself))
+                union: context.environment.glassEffectUnion, isHovered: hovered, presence: presence, piece: piece))
         buffer.hitTestRegions.append(.geometryMarker(marker))
     }
 

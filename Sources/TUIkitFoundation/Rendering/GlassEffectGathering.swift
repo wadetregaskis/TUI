@@ -28,42 +28,63 @@ struct GatheredGlass {
     let isHovered: Bool
     /// How far it has arrived: below 1 while it fades in.
     let presence: Double
-    /// Whether it drew its own glass this pass, rather than leaving it to the
-    /// container.
-    let drewItself: Bool
+    /// The part of a joined shape it drew, or `nil` where it drew its own
+    /// glass whole.
+    let piece: GlassPiece?
 }
 
-/// The container's side of the glass inside it, for one pass.
+/// The part of a joined shape one glass in it draws: the joined shape's
+/// cells that fall in the glass's own frame.
+///
+/// Each member draws its part where its own glass would be, behind its own
+/// content, so whatever lies between it and the container — a background, a
+/// colour effect, an environment of its own — acts on that part as on any
+/// glass. The container draws only what lies between the members.
+struct GlassPiece: Equatable {
+    /// The joined shape's frame, from the glass's own top-left.
+    let frame: CellRect
+    /// The member whose shape the joined one takes: the first of them to draw.
+    let leader: ViewIdentity
+    /// Whether the pointer is over any member, where it is interactive.
+    let isHovered: Bool
+}
+
+/// The container's side of the glass inside it, for one drawing of its
+/// content.
 ///
 /// A glass in a container draws itself as any glass does, and tells the
 /// container it is there: it stamps a geometry marker (`HitTestRegion.geometryMarker(_:)`)
 /// at its top-left and registers what it is. Once the content has drawn, the
 /// container finds each marker in what it drew — where that glass ended up —
 /// and joins the glass that touch, overlap, come closer than the container's
-/// spacing, or share a union. A glass the container found joined draws no
-/// glass of its own (``drawnByContainer``): the container draws the group as
-/// one shape behind the content.
+/// spacing, or share a union. A glass the container found joined draws its
+/// part of the joined shape (``pieces``) rather than its own glass.
 @MainActor
 final class GlassEffectGathering {
     /// How close two glasses come before they are drawn as one: fewer than
     /// this many cells apart (and touching, whatever it is).
     let spacing: Int
 
-    /// The glasses the container found joined — last pass, or in its first
-    /// drawing of this one: each draws no glass of its own.
-    let drawnByContainer: Set<ViewIdentity>
+    /// The part of a joined shape each glass the container found joined —
+    /// last pass, or in its first drawing of this one — draws, by its
+    /// identity.
+    let pieces: [ViewIdentity: GlassPiece]
 
     /// What each glass inside said, in the order they drew.
     private(set) var effects: [GatheredGlass] = []
+
+    /// The shape each glass that has told the container drew in, by identity:
+    /// what a joined shape's other members draw their parts in.
+    private var shapes: [ViewIdentity: any Shape] = [:]
 
     /// The high bits of this container's markers: the geometry bit, a bit of
     /// glass's own, and the container's identity hashed, so a marker a nested
     /// container left in a displaced layer is never taken for one of these.
     private let markerBase: UInt64
 
-    init(spacing: Int, drawnByContainer: Set<ViewIdentity>, container: ViewIdentity) {
+    init(spacing: Int, pieces: [ViewIdentity: GlassPiece], container: ViewIdentity) {
         self.spacing = spacing
-        self.drawnByContainer = drawnByContainer
+        self.pieces = pieces
         markerBase =
             HitTestRegion.HandlerID.geometryMarkerBit | Self.glassMarkerBit
             | (UInt64(truncatingIfNeeded: container.hashValue) & 0xFFFF_FFFF) << 20
@@ -80,7 +101,20 @@ final class GlassEffectGathering {
     /// Registers `glass` and returns the marker to stamp at its top-left.
     func gather(_ glass: GatheredGlass) -> HitTestRegion.HandlerID {
         effects.append(glass)
+        if !pieces.isEmpty { shapes[glass.identity] = glass.shape }
         return HitTestRegion.HandlerID(markerBase | UInt64(effects.count - 1))
+    }
+
+    /// The part of a joined shape the glass at `identity` draws, and the shape
+    /// it draws it in — `nil` for the glass's own, it being the shape's first
+    /// member — or `nil` where it draws its own glass whole: it is in no
+    /// joined shape, or the shape's first member has not drawn yet this time,
+    /// where the container finds it drawn otherwise and draws it again.
+    func piece(for identity: ViewIdentity) -> (piece: GlassPiece, shape: (any Shape)?)? {
+        guard let piece = pieces[identity] else { return nil }
+        guard piece.leader != identity else { return (piece, nil) }
+        guard let shape = shapes[piece.leader] else { return nil }
+        return (piece, shape)
     }
 
     /// Whether `id` is one of this container's markers.
@@ -88,11 +122,14 @@ final class GlassEffectGathering {
         id.raw & ~UInt64(0xF_FFFF) == markerBase
     }
 
-    /// The glass `id` marks.
-    func effect(marked id: HitTestRegion.HandlerID) -> GatheredGlass? {
+    /// The glass `id` marks, placed with its top-left at (`x`, `y`).
+    func placed(marked id: HitTestRegion.HandlerID, x: Int, y: Int) -> PlacedGlass? {
         guard owns(id) else { return nil }
         let index = Int(id.raw & 0xF_FFFF)
-        return effects.indices.contains(index) ? effects[index] : nil
+        guard effects.indices.contains(index) else { return nil }
+        let glass = effects[index]
+        return PlacedGlass(
+            glass: glass, frame: CellRect(x: x, y: y, width: glass.size.width, height: glass.size.height), order: index)
     }
 }
 
@@ -102,6 +139,9 @@ final class GlassEffectGathering {
 struct PlacedGlass {
     let glass: GatheredGlass
     let frame: CellRect
+    /// Where it came among the glass that told the container: the first to
+    /// draw is 0.
+    let order: Int
 }
 
 /// Glasses drawn as one shape: its members, and the frame that bounds them.
@@ -122,16 +162,28 @@ struct GlassGroup {
         return CellRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
     }
 
-    /// What the container draws of this group: the group, as one shape, when
-    /// every member left its glass to the container; each member that left
-    /// its glass, alone, when some drew their own — which a drawing the
-    /// container makes knowing who is joined never leaves, and a group drawn
-    /// over its members' own glass would show twice — and nothing when every
-    /// member drew its own, as a glass alone does.
-    var drawnByContainer: [Self] {
-        let leftToContainer = members.filter { !$0.glass.drewItself }
-        guard leftToContainer.count < members.count else { return [self] }
-        return leftToContainer.map { Self(members: [$0]) }
+    /// The member whose shape and glass the group takes: the first of them to
+    /// draw, so that each other member, drawing its part, finds that shape
+    /// already told.
+    var leader: PlacedGlass? { members.min { $0.order < $1.order } }
+
+    /// The part of the group each member draws, by its identity — none for a
+    /// glass alone, which draws its own.
+    var pieces: [(identity: ViewIdentity, piece: GlassPiece)] {
+        guard members.count > 1, let leader else { return [] }
+        let frame = self.frame
+        let hovered = members.contains { $0.glass.isHovered }
+        return members.map { member in
+            let relative = CellRect(
+                x: frame.x - member.frame.x, y: frame.y - member.frame.y, width: frame.width, height: frame.height)
+            return (member.glass.identity, GlassPiece(frame: relative, leader: leader.glass.identity, isHovered: hovered))
+        }
+    }
+
+    /// Whether every member drew the part of the group `pieces` says it draws
+    /// — so what lies between them is the container's to draw.
+    func drewItsPieces(_ pieces: [ViewIdentity: GlassPiece]) -> Bool {
+        members.allSatisfy { $0.glass.piece != nil && $0.glass.piece == pieces[$0.glass.identity] }
     }
 
     /// Groups `placed`, each glass with every other it joins, transitively.

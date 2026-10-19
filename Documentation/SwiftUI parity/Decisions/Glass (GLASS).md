@@ -143,15 +143,23 @@ is one shape round all of its members. A cell is joined or not, so here:
   (B-GLASS-6). `spacing` is cells, an `Int?`,
   as every interface measurement is (compatibility guide §2.1).
 - **What is drawn:** the smallest rectangle round the members, in the first
-  member's shape and glass, behind the container's content; its rim lifts
-  where the pointer is over any member.
+  member's shape and glass; its rim lifts where the pointer is over any
+  member. Each member draws its own part of it, where its own glass would be
+  and behind its own content, so whatever lies between a member and the
+  container — a background, a colour effect, an environment of its own —
+  acts on its part as on glass alone; the container draws what lies between
+  the members, behind its content. (The container first drew the whole shape
+  behind its content, past all of that: an opaque background inside the
+  container covered the joined glass from the second pass on — found in
+  review.)
 - **How:** each glass draws itself and tells the container where it is (a
   geometry marker it finds in what the content drew, `GlassEffectGathering`).
-  The container keeps who was in a joined group, and those leave their glass
-  to it. Where a drawing of the content finds them joined otherwise — the pass
-  a group forms, a glass joins one or leaves — the container puts the walk
-  back (`RenderWalkCheckpoint`) and draws its content again, knowing who is
-  joined, as a coordinate space draws its readers again. Glass changes no
+  The container keeps the part each glass it found joined draws, and those
+  draw it. Where a drawing of the content draws them otherwise than it finds
+  them — the pass a group forms, a glass joins one, leaves, moves or changes
+  size — the container puts the walk back (`RenderWalkCheckpoint`) and draws
+  its content again, knowing each part, as a coordinate space draws its
+  readers again. Glass changes no
   layout, so the second drawing finds what the first did: every pass shows
   the glass joined as it stands. The second walk is paid only on a pass that
   changes who is joined, and is the coordinate spaces' second walk, with its
@@ -173,6 +181,16 @@ is one shape round all of its members. A cell is joined or not, so here:
    frame drawn as it was before — a group forming drawn apart, and a group a
    glass joined drawn apart for that frame, its members each alone (found in
    review). Free; a flicker on every join.
+3. **The container draws the whole joined shape** behind its content, the
+   members drawing no glass: what the lane first shipped. It skipped
+   everything between a member and the container, so an opaque background
+   inside the container covered the joined glass. Told what each member's
+   content covers, it could draw over a background and under the content —
+   an hour — but a member's colour effect or environment would still be
+   skipped. Its one advantage: a member leaving under an animation took no
+   part of the shape with it, its glass gone at once. Members drawing their
+   parts cost a rasterizing of the joined shape per member, not one for the
+   group.
 
 **The fuller version:** the union of the members' own shapes rather than a
 rectangle round them — each member's coverage, joined by a bridge across the
@@ -203,8 +221,9 @@ its new.
   drawn at the arriving glass's it would fade out the glass already there, at
   the most present's it popped the new glass in a frame after it came (found
   in review).
-- **Leaving:** with its view, whose own removal transition plays the glass out
-  with it; a joined group loses a member at once.
+- **Leaving:** with its view, whose own removal transition plays out what it
+  last drew: alone, its glass; joined, its part of the joined shape, open
+  where it joined. The glass that stays closes at once.
 - **An id:** the arrival is kept by the id in its namespace rather than by
   the view, so a glass that moves to another view under an animation does
   not arrive again; without one it materializes in its new place.

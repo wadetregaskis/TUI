@@ -41,7 +41,10 @@ import TUIkitView
 /// arrived (``GlassEffectTransition``).
 ///
 /// The joined shape is the smallest rectangle round its members, in the first
-/// member's shape and glass, drawn behind the container's content. A glass
+/// member's shape and glass. Each member draws its own part of it, where its
+/// own glass would be, so what is applied to a member — a background, a
+/// colour effect — acts on its part as on its glass alone; what lies between
+/// the members is drawn behind the container's content. A glass
 /// inside a ``ScrollView`` in the container is drawn by itself, since what the
 /// container draws is not clipped to the scroll view (decisions B-GLASS-5).
 public struct GlassEffectContainer<Content: View>: View {
@@ -72,35 +75,39 @@ public struct GlassEffectContainer<Content: View>: View {
 /// kept at a child identity of its own (``GlassContainerRecord``), so marking
 /// it live keeps no other view's `@State` (decisions A40's finding).
 private enum GlassContainerStateIndex {
-    /// Who the container found joined (``GlassJoins``).
+    /// Who the container found joined, and how (``GlassJoins``).
     static let joins = 0
 }
 
 /// The identity a glass container keeps its record at: a child of its own.
 private enum GlassContainerRecord {}
 
-/// Who a glass container found joined, the glass of whom it draws: kept from
-/// one pass to the next, and from one drawing of its content to the next
-/// within a pass.
+/// The part of a joined shape each glass a container found joined draws:
+/// kept from one pass to the next, and from one drawing of its content to the
+/// next within a pass.
 private final class GlassJoins {
-    var joined: Set<ViewIdentity> = []
+    var pieces: [ViewIdentity: GlassPiece] = [:]
 }
 
 /// ``GlassEffectContainer``'s drawing: its content, told it is in a container,
-/// and the joined glass behind it.
+/// and what lies between the glass it joins.
 ///
 /// The content draws as it would anywhere, each glass in it drawing itself —
 /// but telling the container it is there (``GlassEffectGathering``). The
-/// container then finds where each glass ended up, joins them
-/// (``GlassGroup/grouping(_:spacing:)``), and draws each joined group as one
-/// glass behind the content. A glass leaves its glass to the container when it
-/// was joined last pass: the container keeps who was. Where the content draws
-/// its glass joined otherwise than it finds it — the pass a group forms, a
-/// glass joins one or leaves — the container puts the walk back and draws the
-/// content again, now knowing who is joined (``RenderWalkCheckpoint``, as a
-/// coordinate space draws its readers again). Glass changes no layout, so the
-/// second drawing finds what the first did, and every pass shows the glass
-/// joined as it stands.
+/// container then finds where each glass ended up and joins them
+/// (``GlassGroup/grouping(_:spacing:)``). A glass it found joined draws its
+/// part of the joined shape (``GlassPiece``) where its own glass would be, so
+/// whatever lies between it and the container acts on that part as on any
+/// glass; the container draws only the cells of the shape that no glass
+/// covers — what lies between them — behind its content.
+///
+/// A glass draws the part the container found last pass. Where the content
+/// draws its glass otherwise than the container finds it — the pass a group
+/// forms, a glass joins one, leaves, moves or changes size — the container
+/// puts the walk back and draws the content again, now knowing each part
+/// (``RenderWalkCheckpoint``, as a coordinate space draws its readers again).
+/// Glass changes no layout, so the second drawing finds what the first did,
+/// and every pass shows the glass joined as it stands.
 struct _GlassEffectContainerCore<Content: View>: View {
     let spacing: Int
     let content: Content
@@ -116,55 +123,61 @@ extension _GlassEffectContainerCore: Renderable {
         // Noted before the content draws, so a walk that drew the glass joined
         // otherwise than it stands can be put back and drawn again.
         let checkpoint = RenderWalkCheckpoint(context: context)
-        var walk = drawContent(leavingToContainer: record.joined, context: context)
-        if walk.joined != record.joined {
-            record.joined = walk.joined
+        var walk = drawContent(drawing: record.pieces, context: context)
+        if !walk.drewAsFound {
+            record.pieces = walk.found
             checkpoint.rollBack(context: context)
-            walk = drawContent(leavingToContainer: walk.joined, context: context)
+            walk = drawContent(drawing: walk.found, context: context)
             // Kept whatever the second drawing found: glass changes no layout,
             // so it finds what the first did, and if not, the next pass draws
             // from this.
-            record.joined = walk.joined
+            record.pieces = walk.found
         }
         var base = walk.base
-        let drawn = walk.groups.flatMap(\.drawnByContainer)
-        guard !drawn.isEmpty, base.width > 0, base.height > 0 else { return base }
-        let layer = Self.layer(drawn, columns: base.width, rows: base.height, context: context)
+        let joined = walk.groups.filter { $0.members.count > 1 && $0.drewItsPieces(walk.found) }
+        guard !joined.isEmpty, base.width > 0, base.height > 0 else { return base }
+        let layer = Self.between(joined, placed: walk.placed, columns: base.width, rows: base.height, context: context)
         base.opacityRegions += base.claimsShowingGlyphs(of: layer)
         return compositeDrawnLayer(layer.buffer(), at: (0, 0), under: base, context: context, modifierType: Self.self)
     }
 
-    /// One drawing of the content: what it drew, the glass in it grouped, and
-    /// who of it is joined.
+    /// One drawing of the content: what it drew, where its glass ended up and
+    /// how it joins, and the part of a joined shape each glass is to draw.
     private struct ContentWalk {
         var base: FrameBuffer
+        var placed: [PlacedGlass]
         var groups: [GlassGroup]
-        var joined: Set<ViewIdentity>
+        var found: [ViewIdentity: GlassPiece]
+
+        /// Whether every glass drew what the container found it to draw: its
+        /// part of the shape it joins, or its own glass where it joins none.
+        var drewAsFound: Bool { placed.allSatisfy { $0.glass.piece == found[$0.glass.identity] } }
     }
 
-    /// The content drawn with the glass of `joined` left to the container, and
-    /// where its glass ended up.
-    private func drawContent(leavingToContainer joined: Set<ViewIdentity>, context: RenderContext) -> ContentWalk {
-        let gathering = GlassEffectGathering(spacing: spacing, drawnByContainer: joined, container: context.identity)
+    /// The content drawn with each glass in `pieces` drawing its part of a
+    /// joined shape, and where its glass ended up.
+    private func drawContent(drawing pieces: [ViewIdentity: GlassPiece], context: RenderContext) -> ContentWalk {
+        let gathering = GlassEffectGathering(spacing: spacing, pieces: pieces, container: context.identity)
         var contentContext = context
         contentContext.environment.glassEffectGathering = gathering
         var base = TUIkitView.renderToBuffer(content, context: contentContext)
         // Where each glass ended up; the markers go, being the container's own.
         var placed: [PlacedGlass] = []
         base.forEachGeometryMarker { id, x, y in
-            guard let glass = gathering.effect(marked: id) else { return }
-            placed.append(
-                PlacedGlass(glass: glass, frame: CellRect(x: x, y: y, width: glass.size.width, height: glass.size.height)))
+            if let glass = gathering.placed(marked: id, x: x, y: y) { placed.append(glass) }
         }
         base.hitTestRegions.removeAll { gathering.owns($0.handlerID) }
         let groups = GlassGroup.grouping(placed, spacing: spacing)
-        let found = Set(groups.filter { $0.members.count > 1 }.flatMap { $0.members.map(\.glass.identity) })
-        return ContentWalk(base: base, groups: groups, joined: found)
+        var found: [ViewIdentity: GlassPiece] = [:]
+        for group in groups {
+            for (identity, piece) in group.pieces { found[identity] = piece }
+        }
+        return ContentWalk(base: base, placed: placed, groups: groups, found: found)
     }
 
-    /// Who the container found joined, kept at its own child identity and
-    /// marked live — `nil` with no state storage, where the content draws as
-    /// it would outside a container.
+    /// The part of a joined shape each glass the container found joined draws,
+    /// kept at its own child identity and marked live — `nil` with no state
+    /// storage, where the content draws as it would outside a container.
     ///
     /// A ``GlassJoins`` the box holds rather than the value itself: who is
     /// joined is the container's own bookkeeping, settled within the pass it
@@ -179,20 +192,30 @@ extension _GlassEffectContainerCore: Renderable {
         ).value
     }
 
-    /// `groups` drawn into one layer `columns` × `rows`, each its first
-    /// member's glass in its first member's shape, filling the frame round its
-    /// members, its rim lifted where the pointer is over any of them — all of
-    /// it there: only glass that has arrived joins.
+    /// What lies between the members of `groups`, drawn into one layer
+    /// `columns` × `rows`: each group's joined shape — its first member's
+    /// glass in its first member's shape, filling the frame round its
+    /// members, its rim lifted where the pointer is over any of them — less
+    /// every cell a glass in `placed` covers, which that glass draws itself.
+    /// All of it there: only glass that has arrived joins.
     @MainActor
-    private static func layer(_ groups: [GlassGroup], columns: Int, rows: Int, context: RenderContext) -> ShapeCells {
+    private static func between(
+        _ groups: [GlassGroup], placed: [PlacedGlass], columns: Int, rows: Int, context: RenderContext
+    ) -> ShapeCells {
         var layer = ShapeCells(width: columns, height: rows)
         for group in groups {
-            guard let first = group.members.first?.glass else { continue }
+            guard let leader = group.leader?.glass else { continue }
             let frame = group.frame
             guard frame.width > 0, frame.height > 0 else { continue }
-            let cells = GlassCells.drawing(
-                first.glass, in: first.shape, columns: frame.width, rows: frame.height,
+            var cells = GlassCells.drawing(
+                leader.glass, in: leader.shape, columns: frame.width, rows: frame.height,
                 hovered: group.members.contains { $0.glass.isHovered }, context: context, owner: nil)
+            for glass in placed {
+                cells.clearing(
+                    CellRect(
+                        x: glass.frame.x - frame.x, y: glass.frame.y - frame.y, width: glass.frame.width,
+                        height: glass.frame.height))
+            }
             layer.laying(cells, at: (frame.x, frame.y))
         }
         return layer
