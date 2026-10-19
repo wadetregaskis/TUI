@@ -40,9 +40,14 @@
 /// }
 /// ```
 @MainActor
-final class MockTerminal: TerminalProtocol {
+final class MockTerminal: HostStateKeeping {
     /// The simulated terminal size.
     var size: (width: Int, height: Int) = (80, 24)
+
+    /// What the frames have set on this terminal beyond its cells — the
+    /// window title, the progress bar — kept as a real terminal keeps it
+    /// (``HostStateKeeping``), with no signal to owe it to.
+    var hostState = TerminalHostState()
 
     /// The cell geometry this terminal reports, as a real one reads it from
     /// `TIOCGWINSZ` every frame. `nil`, the default, reports none — as a

@@ -87,7 +87,7 @@ final class RenderLoopHarness {
     /// A loop over another terminal: a real `Terminal` writing to a script
     /// (`ScriptedTerminalOutput`), for a test of the bytes a frame is sent as.
     func loop<A: App>(
-        _ app: A, on terminal: any TerminalProtocol, isTmux: Bool = false, reducesMotion: Bool = false,
+        _ app: A, on terminal: any HostStateKeeping, isTmux: Bool = false, reducesMotion: Bool = false,
         keyNotation: KeyNotation = .symbols, clientCapabilities: ClientCapabilities? = nil
     ) -> RenderLoop<A> {
         RenderLoop(

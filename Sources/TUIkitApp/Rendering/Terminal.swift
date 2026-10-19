@@ -40,7 +40,7 @@ import TUIkitFoundation
 /// `Terminal` is `@MainActor` isolated. All terminal operations must occur
 /// on the main thread, which is enforced by the Swift concurrency system.
 @MainActor
-final class Terminal: TerminalProtocol {
+final class Terminal: HostStateKeeping {
     /// Whether raw mode is active.
     /// Readable across the module so the mode-negotiation extension in
     /// `TerminalModeQuery.swift` can refuse to query a terminal that is not in
@@ -81,8 +81,29 @@ final class Terminal: TerminalProtocol {
     let pointerShapeHost: PointerShapeHost?
 
     /// What the app has set on the terminal outside its grid, and owes back
-    /// (``TerminalHostState``).
-    var hostState = TerminalHostState()
+    /// (``TerminalHostState``): the window title and the progress bar, which
+    /// the render loop's frames set through it, and the pointer's shape
+    /// (``showPointerShape(_:)``). The one ledger the app keeps.
+    ///
+    /// The debt a signal pays (``signalDebt``) is spelled from it, and armed
+    /// again whenever what it owes changes (``TerminalHostState/owed``): at
+    /// once outside a frame, so the pointer's first shape is owed before it
+    /// is written; and inside one, once the frame has gone out
+    /// (``endFrame()``), so a title is owed from the frame that sets it.
+    var hostState = TerminalHostState() {
+        didSet {
+            guard hostState.owed != oldValue.owed else { return }
+            if isBuffering {
+                hostStateOwedInFrame = true
+            } else {
+                armSignalRestore()
+            }
+        }
+    }
+
+    /// Whether what ``hostState`` owes changed while a frame was being
+    /// buffered, so ``endFrame()`` arms the debt again once it is out.
+    private var hostStateOwedInFrame = false
 
     /// All input bytes that have been drained from stdin but not yet
     /// dispatched as events. Bytes are appended at the back by
@@ -413,16 +434,6 @@ final class Terminal: TerminalProtocol {
 
     /// The image store's generation ``quitFarewell`` was last spelled from.
     private var owedImageGeneration = 0
-
-    /// What the app owes the terminal emulator beyond the screen — its own
-    /// window title, saved on its title stack, and the app's progress bar
-    /// taken down (`TerminalHostState.debt`) — kept current after every frame
-    /// and paid by a signal (``signalDebt``).
-    private(set) var hostStateDebt = "" {
-        didSet {
-            if hostStateDebt != oldValue { armSignalRestore() }
-        }
-    }
 
     /// Whether frame buffering is active.
     ///
@@ -975,15 +986,17 @@ extension Terminal {
 
     /// What the terminal is owed, should the process die of a signal now:
     /// everything it has been changed by — the output modes, the kitty flags
-    /// if pushed, the input modes, a pinned grapheme-clustering mode, the
-    /// hidden cursor. ``armSignalRestore()`` hands it to
+    /// if pushed, the input modes, a pinned grapheme-clustering mode, what the
+    /// app set beyond the screen (`TerminalHostState.debt`: its own window
+    /// title, saved on its title stack, and the app's progress bar taken
+    /// down), the hidden cursor. ``armSignalRestore()`` hands it to
     /// ``FatalSignalTerminalRestore`` with the shell's termios.
     var signalDebt: String {
         var owed = outputModesOff
         if keyboardFlagsPushed { owed += KeyboardProtocolQuery.pop }
         owed += inputModesOwed
         if pinnedGraphemeClustering { owed += Self.graphemeClusteringOff }
-        owed += hostStateDebt
+        owed += hostState.debt
         owed += ANSIRenderer.showCursor
         return owed
     }
@@ -1009,13 +1022,6 @@ extension Terminal {
         quitFarewell = images.farewell(fitting: Self.quitFarewellCapacity)
     }
 
-    /// Owes the terminal `debt` for what the app set on it beyond the screen
-    /// (`TerminalHostState.debt`): after each frame, and after a hand-back
-    /// paid it.
-    func oweHostState(_ debt: String) {
-        hostStateDebt = debt
-    }
-
     /// The most bytes ``quitFarewell`` may be: what the signal handler's
     /// buffer holds beyond the rest of ``quitDebt``.
     nonisolated static let quitFarewellCapacity = 4096
@@ -1024,7 +1030,7 @@ extension Terminal {
     /// the shell's termios, should the process die of a signal now; see
     /// ``FatalSignalTerminalRestore``. Called whenever the debt changes while
     /// raw mode is on: raw mode itself, a push or pop of the kitty flags, a
-    /// pin, the alternate screen entered or left.
+    /// pin, the alternate screen entered or left, what ``hostState`` owes.
     ///
     /// A scripted terminal is a test's, and the process's signal handlers are
     /// not its to install.
@@ -1146,10 +1152,18 @@ extension Terminal {
     /// Ends a buffered frame and flushes all collected output: held, if it
     /// began a synchronized update and went on to write more than one row,
     /// and without its begin marker if it began one and did not (see
-    /// ``beginSynchronizedUpdate()``).
+    /// ``beginSynchronizedUpdate()``). Then, where the frame changed what
+    /// ``hostState`` owes — a title saved or restored, a bar put up or taken
+    /// down — the debt a signal pays is armed again, now that it is out.
     func endFrame() {
         guard isBuffering else { return }
         isBuffering = false
+        defer {
+            if hostStateOwedInFrame {
+                hostStateOwedInFrame = false
+                armSignalRestore()
+            }
+        }
         guard let start = synchronizedUpdateStart else {
             lastFrameData = frameBuffer          // snapshot before flush
             flushBuffer()

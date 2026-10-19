@@ -296,9 +296,11 @@ private final class EventClock {
 // MARK: - In-Memory Terminal
 
 /// A ``TerminalProtocol`` that writes nowhere and counts what it was asked to
-/// write: the terminal a ``HeadlessApp`` draws on.
+/// write: the terminal a ``HeadlessApp`` draws on. It keeps the ledger of
+/// what the frames set on it beyond its cells (``HostStateKeeping``), as a
+/// real one does, with no signal to owe it to.
 @MainActor
-final class InMemoryTerminal: TerminalProtocol {
+final class InMemoryTerminal: HostStateKeeping {
     var size: (width: Int, height: Int)
     private(set) var bytesWritten = 0
     /// How many lone `BEL`s were written: the terminal's bell, which a frame
@@ -310,6 +312,8 @@ final class InMemoryTerminal: TerminalProtocol {
     /// The writes that set or restored the window title, or reported progress
     /// (``TerminalHostState``).
     private(set) var hostWrites: [String] = []
+    /// What the frames have set on this terminal beyond its cells.
+    var hostState = TerminalHostState()
 
     init(width: Int, height: Int) {
         size = (width, height)

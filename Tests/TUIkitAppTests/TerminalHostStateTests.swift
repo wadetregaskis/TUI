@@ -91,10 +91,10 @@ struct TerminalHostStateTests {
         let (terminal, _) = ScriptedTerminalOutput.terminal()
         terminal.enableRawMode()
         #expect(!terminal.signalDebt.contains(Self.restore))
-        terminal.oweHostState(Self.restore)
+        _ = terminal.hostState.show(title: "Notes")
         #expect(terminal.signalDebt.contains(Self.restore))
         #expect(terminal.quitDebt.contains(Self.restore))
-        terminal.oweHostState("")
+        _ = terminal.hostState.restore()
         #expect(!terminal.signalDebt.contains(Self.restore))
     }
 

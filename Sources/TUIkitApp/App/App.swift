@@ -710,7 +710,7 @@ extension AppRunner {
     func exitFarewell(renderer: RenderLoop<A>) -> String {
         let attention = renderer.attentionWrites()
         return tuiContext.terminalImageStore.takePending() + tuiContext.clipboardWriter.takePendingSequences()
-            + attention.notifications + attention.bell + handBackHostState(renderer)
+            + attention.notifications + attention.bell + renderer.handBackHostState()
     }
 }
 
@@ -877,10 +877,10 @@ extension AppRunner {
         tuiContext.mouseEventDispatcher.setActiveSupport(effective, isFrameFinal: true)
         // After the mouse mode, which on Ghostty resets the pointer's shape.
         showPointerShape()
-        // What a SIGQUIT owes for the images this frame put in or took out,
-        // and a signal for the title it saved.
+        // What a SIGQUIT owes for the images this frame put in or took out.
+        // (What a signal owes for the title it saved, the terminal's ledger
+        // owed as the frame went out: `Terminal.hostState`.)
         terminal.oweFarewell(for: tuiContext.terminalImageStore)
-        terminal.oweHostState(renderer.hostState.debt)
         return FramePacer.Frame(
             renderedAtNanos: MonotonicClock.nowNanoseconds,
             animationDeadlineNanos: deadline)
@@ -931,7 +931,7 @@ extension AppRunner {
         // shell's window title back with it; the first frame after the resume
         // sets the app's again.
         terminal.handBack(
-            farewell: handBackHostState(renderer), restoringStyling: renderer.restoreTerminalStyling)
+            farewell: renderer.handBackHostState(), restoringStyling: renderer.restoreTerminalStyling)
         // The shell's screen is back, so held soft-trap reports can be read there.
         SoftTrap.terminalRestored()
         // Our own resume delivers a SIGCONT too; the repaint is already
@@ -1095,15 +1095,6 @@ extension AppRunner {
         // The pointer may have moved onto another style: shown now, with no
         // frame needed for it.
         showPointerShape()
-    }
-
-    /// What the app set on the terminal emulator, given back — the window
-    /// title restored where it was saved, the progress bar taken down — and
-    /// owed no more.
-    fileprivate func handBackHostState(_ renderer: RenderLoop<A>) -> String {
-        let restore = renderer.handBackHostState()
-        terminal.oweHostState(renderer.hostState.debt)
-        return restore
     }
 
     fileprivate func cleanup(renderer: RenderLoop<A>) {

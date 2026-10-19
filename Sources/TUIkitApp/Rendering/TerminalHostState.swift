@@ -15,8 +15,8 @@ import TUIkitFoundation
 
 /// What the app has set on the terminal emulator beyond the screen, and how to
 /// give it back: the window's title (refusal review P15; Ghostty adoption
-/// study, C2, "build once, on the ledger") and the progress bar (C3; pointer
-/// shapes are to join them).
+/// study, C2, "build once, on the ledger"), the progress bar (C3) and the
+/// pointer's shape (C4, ``pointerShape``).
 ///
 /// The title is the window in front's: its scene's title, or a root
 /// `.navigationTitle` no top bar shows (`RenderLoop+HostState.swift`). It is
@@ -35,26 +35,31 @@ import TUIkitFoundation
 /// that may (``keepsProgressAlive``; not tmux). Suspending and quitting take
 /// it down (`OSC 9 ; 4 ; 0`), and a resume's first frame puts it up again.
 ///
-/// A value: the run loop owns one (``RenderLoop``), and nothing here writes —
-/// each change returns the bytes it takes, for the caller to send with the
-/// frame or the hand-back.
-///
-/// Two lanes built this ledger at once, and both halves are here: the window
-/// title (lane O9), kept by the run loop's instance, and the pointer's shape
-/// (lane O12, ``pointerShape``), kept by the ``Terminal``'s, which changes the
-/// mouse modes that reset it on Ghostty. One owner for every value is queued
-/// (HOSTLEDGER); until then each instance uses its own half.
+/// A value, and one instance of it: the terminal's (``HostStateKeeping``,
+/// `Terminal.hostState`), because the terminal is what the bytes go to, what
+/// composes the debt a signal pays, and what changes the mouse modes that
+/// reset the pointer's shape on Ghostty. What each frame wants is the render
+/// loop's to say — the title of the window in front, the progress the views
+/// drawn state — and it says so to this ledger, through the terminal it draws
+/// on (`RenderLoop+HostState.swift`); the pointer's shape is the app runner's,
+/// from the views under the pointer (`Terminal.showPointerShape(_:)`). Nothing
+/// here writes: each change returns the bytes it takes, for the caller to send
+/// with the frame, at once, or with the hand-back. (Decisions HOSTLEDGER,
+/// B-HOSTLEDGER-1.)
 struct TerminalHostState: Equatable {
     /// The pointer's shape (OSC 22), where the terminal takes one by name;
-    /// `nil` where it is left alone. The ``Terminal``'s instance keeps it.
+    /// `nil` where it is left alone.
     var pointerShape: TerminalHostSetting?
 
     /// Whether a progress bar is sent again before the terminal can drop it
     /// (``keepAlive(atNanos:)``): `false` for tmux, which keeps a pane's bar
     /// with no time limit and passes a report the same as the bar on to no
     /// client (both measured, 3.7c, `progress_probe.py`), so the repeat would
-    /// reach no terminal and only wake the run loop for it.
-    let keepsProgressAlive: Bool
+    /// reach no terminal and only wake the run loop for it. The render loop's
+    /// to decide, as whether the bar is sent at all is
+    /// (`RenderLoop.sendsProgressReports`): it sets it on the terminal's
+    /// ledger as it is made.
+    var keepsProgressAlive: Bool
 
     /// A ledger with nothing set on the terminal yet, for a terminal that may
     /// drop a bar no program updates (`keepsProgressAlive`), or not.
@@ -164,6 +169,32 @@ struct TerminalHostState: Equatable {
         (savedHostTitle ? Self.restoreTitle : "") + (writtenProgress == nil ? "" : Self.removeProgressReport)
     }
 
+    /// Which values owe the terminal a reset: what ``debt`` and ``resets``
+    /// are spelled from, so a change to either is a change here. The terminal
+    /// compares it at every change to its ledger, and arms the debt a signal
+    /// pays again only when it moved (`Terminal.hostState`).
+    var owed: Owed {
+        var owed: Owed = []
+        if savedHostTitle { owed.insert(.windowTitle) }
+        if writtenProgress != nil { owed.insert(.progress) }
+        if pointerShape?.isOwed == true { owed.insert(.pointerShape) }
+        return owed
+    }
+
+    /// The values that may owe the terminal a reset.
+    struct Owed: OptionSet {
+        let rawValue: UInt8
+
+        /// The terminal's own title, saved on its title stack.
+        static let windowTitle = Self(rawValue: 1 << 0)
+
+        /// The app's progress bar, up.
+        static let progress = Self(rawValue: 1 << 1)
+
+        /// The pointer's shape, sent since the last reset.
+        static let pointerShape = Self(rawValue: 1 << 2)
+    }
+
     // MARK: The Sequences
 
     /// `CSI 22 ; 2 t`: push the window title onto the title stack (XTWINOPS).
@@ -229,6 +260,23 @@ struct TerminalHostState: Equatable {
     private static func isControl(_ scalar: Unicode.Scalar) -> Bool {
         scalar.value < 0x20 || (0x7F...0x9F).contains(scalar.value)
     }
+}
+
+// MARK: - Who keeps it
+
+/// A terminal that keeps the ledger of what the app has set on it beyond its
+/// screen: every terminal the render loop draws on, since every frame may set
+/// the window title and the progress bar there.
+///
+/// A requirement of the render loop's terminal, where ``SynchronizedUpdating``
+/// and ``CellGeometryReporting`` are capabilities it looks for: the ledger is
+/// not something a terminal may lack, only something a test's terminal keeps
+/// without a signal to owe it to. Not on the public ``TerminalProtocol``,
+/// which the ledger, internal to this module, cannot reach.
+@MainActor
+protocol HostStateKeeping: TerminalProtocol {
+    /// What the app has set on this terminal outside its grid, and owes it.
+    var hostState: TerminalHostState { get set }
 }
 
 // MARK: - One value outside the grid
@@ -298,11 +346,10 @@ struct TerminalHostSetting: Equatable {
 // MARK: - The values set by name
 
 /// The ledger's values kept as ``TerminalHostSetting``s — the pointer's shape
-/// — which the ``Terminal``'s instance holds: the terminal writes each
-/// change, owes each reset and pays it as the app leaves, because it is what
-/// the bytes go to, what composes the debt a signal pays
-/// (`Terminal.signalDebt`), and what changes the mouse modes, which on
-/// Ghostty change the pointer's shape themselves.
+/// — whose resets raw mode's teardown writes, ahead of the mouse modes
+/// (`Terminal.inputModesOwed`), rather than the hand-back (``restore()``):
+/// on Ghostty the mouse modes going off is itself a reset of the pointer's
+/// shape, and nothing may follow it that sets one.
 extension TerminalHostState {
     /// What every value owes as the app leaves, in one string: written before
     /// the input modes go off (`Terminal.inputModesOwed`). Empty until a

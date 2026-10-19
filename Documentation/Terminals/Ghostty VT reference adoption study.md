@@ -277,7 +277,8 @@ pointer shape each need the same four things:
 `Terminal.applyMouseSupport` (Terminal.swift:497-521) is that pattern for one
 value. Build it once, as a `TerminalHostState` owned by the render loop (an
 instance, not a static), with one entry per value. Do not build four copies.
-The fatal-signal debt gains each entry's reset bytes.
+The fatal-signal debt gains each entry's reset bytes. (Built 2026-10-19; the
+terminal owns it, not the render loop: see C2's "One owner".)
 
 **Run-time capability, per the A18 rule.** Each API compiles everywhere and
 has a documented run-time check:
@@ -369,6 +370,13 @@ that rule. Ghostty's page (and its config reference) adds:
   restore, and `Terminal.signalDebt` carries it for a fatal signal. V8–V10
   add their state to it. `title_probe.py` ran on Apple Terminal, iTerm2,
   Warp and tmux; Ghostty is owed. Decisions O9, B-O9-13.
+- **One owner (2026-10-19, lane HOSTLEDGER):** O12 built the pointer's half
+  on an instance of its own, kept by the terminal. The ledger now has one
+  instance, the terminal's (`Terminal.hostState`), holding the title, the
+  progress bar and the pointer's shape; the render loop tells it what each
+  frame wants and writes the frame's share with the frame, and the signal's
+  debt is read from it rather than handed over. Decisions HOSTLEDGER,
+  B-HOSTLEDGER-1.
 
 #### C3. Progress (OSC 9;4) — adopt if the owner wants the API (Q3)
 

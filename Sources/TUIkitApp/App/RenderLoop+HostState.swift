@@ -2,9 +2,9 @@
 //  RenderLoop+HostState.swift
 //
 //  The terminal's window title, from the window in front, and its progress
-//  bar, from the views drawn: what each frame writes of them, and what handing
-//  the terminal back gives back. And the person's attention, as the app asked
-//  for it: a notification, or the bell.
+//  bar, from the views drawn: what each frame asks of the terminal's ledger,
+//  and writes of them, and what handing the terminal back gives back. And the
+//  person's attention, as the app asked for it: a notification, or the bell.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -35,20 +35,28 @@ extension RenderLoop {
         tuiContext.preferences.current[TerminalProgressKey.self]
     }
 
+    /// The ledger of what the app has set on the terminal this loop draws on
+    /// beyond its screen (``HostStateKeeping``): the terminal's, which the
+    /// frames tell what they want, read here.
+    var hostState: TerminalHostState { terminal.hostState }
+
     /// What this frame, drawn at `now` on the monotonic clock, writes to the
     /// terminal beyond its cells: the window title, where it changed since the
     /// last frame wrote it; and, to a terminal that takes one
     /// (``sendsProgressReports``), the progress bar, where it changed, or
-    /// where it is due to be sent again.
+    /// where it is due to be sent again. Each is asked of the terminal's
+    /// ledger, which keeps what was sent and what that owes.
     ///
     /// Under tmux the bar is sent whether or not a client attached draws it:
     /// tmux keeps it for the pane and hands it to a client that can when one
     /// attaches (measured), so the app does not have to be told.
     func hostStateWrites(atNanos now: Int64) -> String {
-        let title = hostState.show(title: terminalWindowTitle)
+        let wantedTitle = terminalWindowTitle
+        let title = terminal.hostState.show(title: wantedTitle)
         guard sendsProgressReports else { return title }
-        return title + hostState.show(progress: terminalProgress, atNanos: now)
-            + hostState.keepAlive(atNanos: now)
+        let wantedProgress = terminalProgress
+        return title + terminal.hostState.show(progress: wantedProgress, atNanos: now)
+            + terminal.hostState.keepAlive(atNanos: now)
     }
 
     /// Publishes, to `\.terminalFeatures`, whether the person sees the
@@ -70,7 +78,7 @@ extension RenderLoop {
     /// clock (``TerminalHostState/keepAlive(atNanos:)``), straight to the
     /// terminal: the run loop's write between frames, which draws nothing.
     func keepHostStateAlive(atNanos now: Int64) {
-        let resend = hostState.keepAlive(atNanos: now)
+        let resend = terminal.hostState.keepAlive(atNanos: now)
         if !resend.isEmpty { terminal.write(resend) }
     }
 
@@ -97,9 +105,10 @@ extension RenderLoop {
 
     /// What handing the terminal back to the shell — a suspend, or the exit —
     /// writes: the terminal's own title, restored where the app saved it, and
-    /// the app's progress bar taken down. The next frame drawn, after a
-    /// resume, sets both again.
+    /// the app's progress bar taken down; owed no more from now
+    /// (`Terminal.hostState`). The next frame drawn, after a resume, sets both
+    /// again.
     func handBackHostState() -> String {
-        hostState.restore()
+        terminal.hostState.restore()
     }
 }

@@ -126,7 +126,11 @@ internal final class RenderLoop<A: App> {
     /// only way to exercise this class was to run the app, and the bugs that
     /// live here — the per-pass registries the scene walk writes into — are
     /// invisible to every unit test on either side of it.
-    let terminal: any TerminalProtocol
+    ///
+    /// One that keeps the ledger of what the app sets on it beyond its screen
+    /// (``HostStateKeeping``): the frames set its window title and progress
+    /// bar there (`RenderLoop+HostState.swift`).
+    let terminal: any HostStateKeeping
 
     /// ``terminal``, where it can hold its display while a frame is drawn;
     /// `nil` where it cannot (a test's terminal, a headless one). Looked up
@@ -153,12 +157,6 @@ internal final class RenderLoop<A: App> {
     /// it, so a frame of one window neither copies its environment for it
     /// nor publishes the terminal's geometry twice; `nil` on any other.
     var windowBaseEnvironment: EnvironmentValues?
-
-    /// What the app has set on the terminal emulator beyond the screen — the
-    /// window title, the progress bar — written with the frames
-    /// (`RenderLoop+HostState.swift`). Under tmux the bar is not sent again
-    /// to keep it up: tmux keeps it, and passes no repeat on.
-    var hostState: TerminalHostState
 
     /// The focus manager (cleared each frame).
     let focusManager: FocusManager
@@ -346,7 +344,7 @@ internal final class RenderLoop<A: App> {
 
     init(
         app: A,
-        terminal: any TerminalProtocol,
+        terminal: any HostStateKeeping,
         statusBar: StatusBarState,
         focusManager: FocusManager,
         paletteManager: ThemeManager,
@@ -360,7 +358,9 @@ internal final class RenderLoop<A: App> {
         keyNotation: KeyNotation = .symbols
     ) {
         self.isTmux = isTmux
-        self.hostState = TerminalHostState(keepsProgressAlive: !isTmux)
+        // Under tmux the bar is not sent again to keep it up: tmux keeps it,
+        // and passes no repeat on.
+        terminal.hostState.keepsProgressAlive = !isTmux
         self.publishTerminalColors = publishTerminalColors
         self.probeClientCapabilities = probeClientCapabilities
         self.reducesMotion = reducesMotion
