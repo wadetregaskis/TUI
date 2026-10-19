@@ -106,8 +106,6 @@
   "View.task(name:executorPreference:priority:file:line:action:)",
   "View.task(name:priority:file:line:_:)",
   "View.textRenderer(_:)",
-  "View.toolbarColorScheme(_:for:)",
-  "View.toolbarTitleDisplayMode(_:)",
   "View.transformEffect(_:)",
   "View.writingDirection(strategy:)",
   "VisualEffect.rotation3DEffect(_:axis:anchor:anchorZ:perspective:)",

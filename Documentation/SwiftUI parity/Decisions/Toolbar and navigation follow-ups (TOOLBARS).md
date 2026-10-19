@@ -109,3 +109,24 @@ Where it differs from macOS:
 so Shift+F10 always reaches its menu — about two hours; moving an item across
 placements, which changes where the app placed it — about half a day, and
 arguably not the person's to change; spacers in the panel — about two hours.
+
+## C. Declined
+
+### C-TOOLBARS-1. `toolbarColorScheme(_:for:)` follows `preferredColorScheme(_:)`
+
+*`View.toolbarColorScheme(_:for:)`*
+
+The A28 study sends it to A17, which keeps `preferredColorScheme(_:)` out for
+now (owner, 2026-10-04): a terminal's look is a palette, and TUIkit's palettes
+do not come in light and dark pairs. A bar's fill is stated with
+`.toolbarBackground(_:for:)`. Recorded in `parity-map.json`; it returns with
+`preferredColorScheme` if light palettes are wanted for their own sake.
+
+### C-TOOLBARS-2. `toolbarTitleDisplayMode(_:)` stays refused with its type
+
+*`View.toolbarTitleDisplayMode(_:)`*
+
+The refusal review's O8 (owner, 2026-10-12: omit the APIs that are inert on
+macOS too, so they fail to compile) refused `ToolbarTitleDisplayMode`; the
+modifier it feeds was still counted as an open gap. Recorded beside the type in
+`parity-map.json`.
