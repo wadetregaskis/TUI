@@ -25,8 +25,8 @@ struct FilePanelColumnsTests {
     private let names = ["Alpha/", "linked/", "beta.txt", "gamma.pdf", "notes.md"]
 
     /// An open panel over `fixture`'s root, in a terminal `width` × `height`,
-    /// once the folder is read: gamma.pdf's size, a column kept at every
-    /// width tested, is drawn.
+    /// once the folder is read and notes.md, its last row, drawn whole —
+    /// which, where the name had no room, it never was.
     private func screen(_ fixture: FilePanelFixture, width: Int, height: Int) async -> String {
         let caller = FilePanelCaller()
         let driver = FilePanelDriver(width: width, height: height) {
@@ -40,7 +40,7 @@ struct FilePanelColumnsTests {
                 },
                 onChoose: { caller.chose($0) }, onCancel: { caller.cancelled() })
         }
-        return await driver.waitFor("1 kB", timeout: .seconds(10))
+        return await driver.waitFor("notes.md", timeout: .seconds(10))
     }
 
     @Test("The columns beside the name give way from the right, each where the name would have under 20 cells")
