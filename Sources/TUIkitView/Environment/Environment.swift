@@ -409,12 +409,3 @@ extension TransformEnvironmentModifier: ChildViewProvider where Content: ChildVi
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension EnvironmentModifier: DrawsContentUnchanged {}
 extension TransformEnvironmentModifier: DrawsContentUnchanged {}
-
-/// Each measures its content under the value it writes — see
-/// ``ContentContextStating``.
-extension EnvironmentModifier: ContentContextStating {
-    package func contentLayoutContext(_ context: RenderContext) -> RenderContext { contentContext(context) }
-}
-extension TransformEnvironmentModifier: ContentContextStating {
-    package func contentLayoutContext(_ context: RenderContext) -> RenderContext { transformed(context) }
-}

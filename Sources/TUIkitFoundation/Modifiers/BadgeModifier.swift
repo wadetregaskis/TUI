@@ -263,11 +263,3 @@ extension BadgeModifier: GridRowProviding where Content: GridRowProviding {}
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension BadgeModifier: DrawsContentUnchanged {}
-
-/// Measures its content under the badge it writes — see
-/// `ContentContextStating`.
-extension BadgeModifier: ContentContextStating {
-    package func contentLayoutContext(_ context: RenderContext) -> RenderContext {
-        badgeContext(context)
-    }
-}

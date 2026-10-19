@@ -230,11 +230,23 @@ public protocol SingleContentWrapper {
     /// evaluates the body of a view of the app's own among them, and a guide
     /// query, which lays the content out to ask it.
     ///
+    /// Not the context above it, even for a wrapper that draws its content
+    /// unchanged and is its content's size: an environment write —
+    /// `.lineLimit(1)`, `.controlSize(.large)`, `.textCase(.uppercase)`, a
+    /// theme — lays the same content out at another size. A guide query that
+    /// stepped through such a write in the context above it measured the
+    /// content without the write, and placed the guide where nothing is
+    /// drawn: `VStack { a text that wraps; Text("B").alignmentGuide(.top) { _
+    /// in 0 } }.lineLimit(1)` reported its guide under a first row three lines
+    /// tall, where the drawn row is one.
+    ///
     /// `nil` by default — not said — and then the content's members are
     /// resolved in the wrapper's own context, and a guide query stops at the
-    /// wrapper. Worked out as the measure works it out, so it notes what a
-    /// measure notes (an environment value applied, once a pass) and does
-    /// nothing more.
+    /// wrapper: a wrong position is worse than a documented stop. Worked out
+    /// as the measure works it out — through the helper the measure uses, so
+    /// the two cannot drift — so it notes what a measure notes (an
+    /// environment value applied, once a pass) and does nothing more. A
+    /// wrapper that starts writing to its content's context must say so here.
     func wrappedContentContext(_ context: RenderContext) -> RenderContext?
 }
 
@@ -343,13 +355,11 @@ package func throughWrappers<T>(_ view: any View, as type: T.Type = T.self) -> T
 ///   position.
 ///
 ///   The witness only says a guide may be inside. The guide query
-///   (`explicitGuide(of:_:in:context:)` in TUIkitFoundation) steps through a
-///   ``DrawsContentUnchanged`` wrapper only where it states the context it
-///   lays its content out in (``ContentContextStating``), and asks in that
-///   context: an environment write draws the same content at another size,
-///   and a stack measured without it reported its guide where nothing is
-///   drawn. Where such a wrapper states nothing the query answers `nil`, as
-///   for a wrapper whose witness is `false`.
+///   (`explicitGuide(of:_:in:context:)` in TUIkitFoundation) steps through
+///   such a wrapper only where it states the context it lays its content out
+///   in (``SingleContentWrapper/wrappedContentContext(_:)``), and asks in that
+///   context. Where it states nothing the query answers `nil`, as for a
+///   wrapper whose witness is `false`.
 extension View where Self: SingleContentWrapper {
     /// The content's answer where this wrapper keeps its content's geometry
     /// (``keepsContentGeometry(_:)``): a guide set inside it is then the

@@ -171,7 +171,3 @@ extension _ValueScopedTransactionView: GridRowProviding where Content: GridRowPr
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _ValueScopedTransactionView: DrawsContentUnchanged {}
-/// Measures its content under the transaction it scopes — see `ContentContextStating`.
-extension _ValueScopedTransactionView: ContentContextStating {
-    package func contentLayoutContext(_ context: RenderContext) -> RenderContext { transformedContext(context) ?? context }
-}

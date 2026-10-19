@@ -140,7 +140,8 @@ extension _TextSelectionScope: ContentRewrapping {
 
     /// Its content's context: the selectability it publishes (``SingleContentWrapper/wrappedContentContext(_:)``).
     func wrappedContentContext(_ context: RenderContext) -> RenderContext? {
-        context.withEnvironment(context.environment.setting(\.textSelectionAllowed, to: allowsSelection))
+        EnvironmentModifier(content: content, keyPath: \.textSelectionAllowed, value: allowsSelection)
+            .contentContext(context)
     }
 
     func rewrapping<V: View>(_ view: V) -> any View {
@@ -181,16 +182,6 @@ extension _TextSelectionScope: SectionRowExtractor where Content: SectionRowExtr
 /// geometry, nothing drawn — so a removal transition written inside it plays;
 /// see `DrawsContentUnchanged`.
 extension _TextSelectionScope: DrawsContentUnchanged {}
-
-/// Measures its content under the selection allowance it writes, through the
-/// environment modifier its measure wraps the content in — see
-/// `ContentContextStating`.
-extension _TextSelectionScope: ContentContextStating {
-    package func contentLayoutContext(_ context: RenderContext) -> RenderContext {
-        EnvironmentModifier(content: content, keyPath: \.textSelectionAllowed, value: allowsSelection)
-            .contentContext(context)
-    }
-}
 
 // MARK: - Environment
 

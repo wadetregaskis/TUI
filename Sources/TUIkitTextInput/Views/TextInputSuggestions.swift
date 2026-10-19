@@ -476,14 +476,6 @@ extension _TextSuggestionsReader: GridRowProviding where Content: GridRowProvidi
 /// transition written inside it plays — see `DrawsContentUnchanged`.
 extension _TextSuggestionsReader: DrawsContentUnchanged {}
 
-/// Measures its content under the suggestions it resolves, as its measure
-/// does — see `ContentContextStating`.
-extension _TextSuggestionsReader: ContentContextStating {
-    package func contentLayoutContext(_ context: RenderContext) -> RenderContext {
-        publishing(in: context).contentContext(context)
-    }
-}
-
 // MARK: - The Field's Menu
 
 /// The render-pass half of a text field's suggestions menu: builds the

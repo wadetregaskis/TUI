@@ -219,7 +219,3 @@ extension TintModifier: GridRowProviding where Content: GridRowProviding {}
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension TintModifier: DrawsContentUnchanged {}
-/// Measures its content under the tint it writes — see `ContentContextStating`.
-extension TintModifier: ContentContextStating {
-    package func contentLayoutContext(_ context: RenderContext) -> RenderContext { modifiedContext(context) }
-}

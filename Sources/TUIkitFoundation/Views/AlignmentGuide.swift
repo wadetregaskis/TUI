@@ -347,9 +347,6 @@ package func explicitGuide<V: View>(
     // A wrapper that lays its content out where it is itself: its content's
     // guide, unmoved, laid out in the context the wrapper gives it — or none
     // where the wrapper has not said what that is.
-    if let wrapper = view as? any ContentContextStating {
-        return explicitGuide(throughUnchanged: wrapper, query, in: dimensions, context: context)
-    }
     if let wrapper = view as? any SingleContentWrapper, keepsItsContentGeometry(wrapper) {
         return explicitGuide(ofContentOf: wrapper, query, in: dimensions, context: context)
     }
@@ -363,17 +360,6 @@ package func explicitGuide<V: View>(
     return explicitGuide(
         of: preparedBody(of: view, plan: plan, context: context, isMeasuring: true), query, in: dimensions,
         context: childContext)
-}
-
-/// ``explicitGuide(of:_:in:context:)`` of `wrapper`'s content, in the context
-/// the wrapper lays it out in, the existential opened to reach it.
-@MainActor
-private func explicitGuide<Wrapper: ContentContextStating>(
-    throughUnchanged wrapper: Wrapper, _ query: AlignmentGuideQuery, in dimensions: ViewDimensions,
-    context: RenderContext
-) -> Double? {
-    explicitGuide(
-        of: wrapper.wrappedContent, query, in: dimensions, context: wrapper.contentLayoutContext(context))
 }
 
 /// Whether `wrapper` lays its content out where it is itself

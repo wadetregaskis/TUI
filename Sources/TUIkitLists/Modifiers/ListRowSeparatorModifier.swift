@@ -63,6 +63,9 @@ extension ListRowSeparatorModifier: Layoutable {
 /// multi-view content.
 extension ListRowSeparatorModifier: SingleContentWrapper {
     public var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    public func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
 }
 
 // MARK: - Seeing Through the Wrapper (alignment guides)
@@ -89,6 +92,3 @@ extension ListRowSeparatorModifier: AlignmentGuideQuerying {
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension ListRowSeparatorModifier: DrawsContentUnchanged {}
-/// Measures its content in the context it is given, so an alignment guide
-/// inside it is asked through it — see `HandsContentItsContext`.
-extension ListRowSeparatorModifier: HandsContentItsContext {}

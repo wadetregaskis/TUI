@@ -399,7 +399,14 @@ extension FocusBindingRegistrar {
 
 extension _FocusedModifier: Layoutable {
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(content, proposal: proposal, context: contentLayoutContext(context))
+        measureChild(content, proposal: proposal, context: modifiedContext(context))
+    }
+
+    /// The context the content is measured in: `context` with the focus
+    /// identity this modifier assigns.
+    fileprivate func modifiedContext(_ context: RenderContext) -> RenderContext {
+        context.withEnvironment(
+            context.environment.setting(\.assignedFocusID, to: AssignedFocusID(id: forcedID(context))))
     }
 }
 
@@ -516,9 +523,7 @@ extension _FocusedModifier: SingleContentWrapper {
     var wrappedContent: Content { content }
 
     /// Its content's context: the focus identity it assigns (``SingleContentWrapper/wrappedContentContext(_:)``).
-    func wrappedContentContext(_ context: RenderContext) -> RenderContext? {
-        context.withEnvironment(context.environment.setting(\.assignedFocusID, to: AssignedFocusID(id: forcedID(context))))
-    }
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { modifiedContext(context) }
 }
 
 /// Names its content so a container asking for a z-index or an alignment guide
@@ -538,17 +543,5 @@ extension _DefaultFocusModifier: SingleContentWrapper {
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension _FocusedModifier: DrawsContentUnchanged {}
 extension _DefaultFocusModifier: DrawsContentUnchanged {}
-/// Measures its content in the context it is given, so an alignment guide
-/// inside it is asked through it — see `HandsContentItsContext`.
-extension _DefaultFocusModifier: HandsContentItsContext {}
-
-/// Measures its content under the focus identity it assigns — see
-/// `ContentContextStating`.
-extension _FocusedModifier: ContentContextStating {
-    func contentLayoutContext(_ context: RenderContext) -> RenderContext {
-        context.withEnvironment(
-            context.environment.setting(\.assignedFocusID, to: AssignedFocusID(id: forcedID(context))))
-    }
-}
 
 extension FocusState: FrameworkDynamicProperty {}

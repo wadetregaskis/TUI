@@ -11,7 +11,7 @@ import Testing
 
 /// A guide travels out through a wrapper that draws its content unchanged —
 /// `.onTapGesture`, an environment write — and is asked there in the context
-/// the wrapper lays its content out in (`ContentContextStating`). A stack's
+/// the wrapper lays its content out in (`wrappedContentContext(_:)`). A stack's
 /// guide is worked out by measuring the stack's children, so a query that
 /// stepped through an environment write in the context above it measured them
 /// without the write, and the guide sat where nothing is drawn.

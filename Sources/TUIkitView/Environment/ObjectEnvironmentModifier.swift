@@ -103,11 +103,3 @@ extension ObjectEnvironmentModifier: ChildViewProvider where Content: ChildViewP
 /// Draws its content unchanged, at its own identity, so a removal transition
 /// written inside it plays — see `DrawsContentUnchanged`.
 extension ObjectEnvironmentModifier: DrawsContentUnchanged {}
-
-/// Measures its content under the object it injects — see
-/// ``ContentContextStating``.
-extension ObjectEnvironmentModifier: ContentContextStating {
-    package func contentLayoutContext(_ context: RenderContext) -> RenderContext {
-        objectContext(context)
-    }
-}
