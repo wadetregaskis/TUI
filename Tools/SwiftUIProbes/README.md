@@ -685,6 +685,23 @@ messages cite that path), and what cites it.
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (W15, W16),
   `Documentation/SwiftUI parity/Decisions/Menu parity (MENUS).md`.
 
+### Blend modes
+
+- **Asks:** what `View.blendMode(_:)` does to each pixel for every mode: over an opaque backdrop, beside the source
+  where it does not reach, with the source at half opacity, and over nothing; which space the formulas work in
+  (encoded sRGB or linear light); and what the Porter-Duff modes leave where the source is and where it is not
+  (`blendmodes.swift`, `blendmodes.out`). Renders with `ImageRenderer` at scale 1 and reads the pixels back in
+  sRGB.
+- **Answers:** one line per mode in `blendmodes.out`; what TUIkit takes from them (the formulas work on the
+  encoded sRGB values, macOS's soft light, where alpha comes in) is worked through in the EFFECTS decisions. Over
+  nothing every mode but the Porter-Duff ones draws the source unchanged; source atop and destination out draw
+  nothing there, and destination over leaves the backdrop wherever there is one.
+- **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-19.
+- **Cited by:** `Sources/TUIkitCore/Rendering/BlendMode.swift`,
+  `Sources/TUIkitFoundation/Styling/Color+BlendMode.swift`; `Tests/TUIkitFoundationTests/BlendModeTests.swift`;
+  `Documentation/Colour and styling/Opacity as composition.md`,
+  `Documentation/SwiftUI parity/Decisions/Blend modes and image details (EFFECTS).md`.
+
 ### Search field clear button
 
 - **Asks:** what a macOS search field shows at its trailing end while it is empty and while it holds text, and
