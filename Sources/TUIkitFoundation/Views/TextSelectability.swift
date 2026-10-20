@@ -78,8 +78,10 @@ extension View {
     /// ``TextField`` or ``TextEditor`` does with its own text.
     ///
     /// Where SwiftUI selects within one `Text` at a time, this selects what is
-    /// drawn, so inside an `.enabled` container that is not a list a drag may
-    /// cross from one `Text` into the next.
+    /// drawn, so inside an `.enabled` container that is one view — a stack, a
+    /// padded box — a drag may cross from one `Text` into the next. Written on
+    /// a `ForEach` or a `Group`, the modifier reaches each member as its own
+    /// scope, and a drag keeps to the member it began on, as SwiftUI's does.
     ///
     /// - Parameter selectability: ``TextSelectability/enabled`` or
     ///   ``TextSelectability/disabled``.

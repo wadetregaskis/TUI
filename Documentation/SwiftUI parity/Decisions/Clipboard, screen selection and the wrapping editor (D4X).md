@@ -465,8 +465,9 @@ listed — all fixed — these remain:
 - **`textSelection` on multi-member content** (review 2 of b61f80177): on a
   `ForEach` or a `Group` each member files its own scope, so a drag keeps to
   the member it began on (SwiftUI's per-`Text` behaviour); the modifier's
-  doc still says a drag inside an enabled container "may cross from one Text
-  into the next", true only of a container that is one view. Not fixed here.
+  doc said a drag inside an enabled container "may cross from one Text into
+  the next", true only of a container that is one view. The doc says so since
+  2026-10-19 (lane DOCS).
 - **The wrap cache** (review 2 of f543a9c2d): a frame that asks more than
   eight widths evicts its own first width.
 - **Drag sources** (B-D4X-7): a `.draggable` view outside a list whose text
