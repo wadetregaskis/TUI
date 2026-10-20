@@ -510,6 +510,12 @@
         "*.layoutDirectionBehavior"
       ],
       "why": "A shape's LayoutDirectionBehavior — whether it mirrors in a right-to-left layout — waits with the type and `View.layoutDirectionBehavior(_:)` on decisions A3, deferred with right-to-left support (B1): `.mirrors(in: .leftToRight)` really mirrors in SwiftUI (measured), so the property cannot be a constant that compiles and means nothing. Every TUIkit layout is left to right, which is what a shape's `.fixed` would say."
+    },
+    {
+      "match": [
+        "ScrollDismissesKeyboardMode*"
+      ],
+      "why": "When scrolling dismisses an on-screen keyboard, which a terminal does not have, and macOS does not either: every mode is inert there. The owner's ruling O8 (2026-10-12): an API that does nothing on macOS either is refused, failing to compile, as `submitLabel` is (\"we don't implement SwiftUI API we can't actually do anything sensible with\"; refusals re-examined, wave 17, O8)."
     }
   ],
   "renamed": {
@@ -825,6 +831,39 @@
     },
     "ReferenceFileDocument": {
       "why": "Declined (decisions File panels (O10), C-O10-1): a ReferenceFileDocument is an ObservableObject, a family TUIkit does not have (compatibility guide §2.3, Observable only), and its snapshot(contentType:) exists for DocumentGroup's undo and autosave, which TUIkit does not have either. fileExporter writes a FileDocument; a reference document exports through a FileDocument value made from its snapshot."
+    },
+    "EnvironmentValues.scrollDismissesKeyboardMode": {
+      "why": "The environment half of `scrollDismissesKeyboard(_:)`, refused with it (ScrollDismissesKeyboardMode's family; ruling O8)."
+    },
+    "View.scrollDismissesKeyboard(_:)": {
+      "why": "Dismisses an on-screen keyboard as content scrolls; there is none here, and none on macOS, where every mode is inert. The owner's ruling O8 (2026-10-12): an API that does nothing on macOS either is refused, failing to compile, as `submitLabel` is (\"we don't implement SwiftUI API we can't actually do anything sensible with\"; refusals re-examined, wave 17, O8)."
+    },
+    "View.sectionIndexLabel(_:)": {
+      "why": "Names a section in a list's section index, the A-to-Z strip down an iOS list's edge; macOS has no section index (`listSectionIndexVisibility(_:)` is not in its SDK), so the label is inert there. The owner's ruling O8 (2026-10-12): an API that does nothing on macOS either is refused, failing to compile, as `submitLabel` is (\"we don't implement SwiftUI API we can't actually do anything sensible with\"; refusals re-examined, wave 17, O8)."
+    },
+    "View.sensoryFeedback(_:trigger:)": {
+      "why": "Plays haptic feedback, which needs hardware a terminal does not have (SensoryFeedback's family). The owner's ruling O8 (2026-10-12): an API that does nothing on macOS either is refused, failing to compile, as `submitLabel` is (\"we don't implement SwiftUI API we can't actually do anything sensible with\"; refusals re-examined, wave 17, O8)."
+    },
+    "View.sensoryFeedback(_:trigger:condition:)": {
+      "why": "As `sensoryFeedback(_:trigger:)`: haptics, refused under O8 with SensoryFeedback."
+    },
+    "View.sensoryFeedback(trigger:_:)": {
+      "why": "As `sensoryFeedback(_:trigger:)`: haptics, refused under O8 with SensoryFeedback."
+    },
+    "View.ignoresSafeArea(_:edges:)": {
+      "why": "There is no safe area here to ignore: `safeAreaInset` puts its bar beside the view rather than growing a safe area under it, and the real safe area (SA-B) is not built (decisions B6, decided 2026-10-12; deviation L10). Refused so code that relies on reaching under a bar fails to compile rather than silently stopping at it."
+    },
+    "View.background(_:ignoresSafeAreaEdges:)": {
+      "why": "Its `ignoresSafeAreaEdges:` extends the background into the safe area, which is not built (decisions B6, SA-B declined 2026-10-12; deviation L10). The overloads without it ship."
+    },
+    "View.background(ignoresSafeAreaEdges:)": {
+      "why": "As `background(_:ignoresSafeAreaEdges:)`: no safe area to extend into (decisions B6; deviation L10). The overloads without it ship."
+    },
+    "View.overlay(_:ignoresSafeAreaEdges:)": {
+      "why": "As `background(_:ignoresSafeAreaEdges:)`: no safe area to extend into (decisions B6; deviation L10). The overloads without it ship."
+    },
+    "Text.LineStyle.init(nsUnderlineStyle:)": {
+      "why": "Converts from AppKit's NSUnderlineStyle. TUIkit links no AppKit, as it must build on Linux, as for `ControlSize.init(_:)`; a line style is made from its own pattern and colour (lane W11b kept it out)."
     }
   },
   "differentShape": {

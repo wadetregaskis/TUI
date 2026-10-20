@@ -56,11 +56,12 @@ Shipped on 2026-10-14: A25; O7 with A12; O1; O17; O2 with A37.
 Shipped on 2026-10-18: O0's shapes (lane W1); O3's merging and additive
 retargets with A38; O5's materials with A41, and its glass; O6's shadows;
 O13's menu bar; O4 with A23 and A36.
+Shipped on 2026-10-19: O8's refusals, with A11 and A51.
 
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
 
-**Waiting on another answer.** A11 and A51 (O8), A39 (A27).
+**Waiting on another answer.** A39 (A27).
 
 ---
 
@@ -79,7 +80,7 @@ The early Wave 17 review re-examined every existing refusal in
 Those 23 are written up, each with options and a recommendation, as O0–O17 in
 [`Refusals re-examined, wave 17 (2026-10-03).md`](<../Refusals re-examined, wave 17 (2026-10-03).md#owner-decision>).
 They are not repeated here. **Ruled on 2026-10-12, all eighteen** (O8 and O11 in the owner's second message:
-O8 refuses the APIs that are inert on macOS too, so A11 and A51 stay refused; O11 is deferred, not refused for good); each
+O8 refuses the APIs that are inert on macOS too, which settled A11 and A51; O11 is deferred, not refused for good); each
 ruling is in the review under its item. In brief, with the ruling:
 
 - **O0** The unit of a shape's path. This gates the whole Shapes cluster:
@@ -112,7 +113,9 @@ ruling is in the review under its item. In brief, with the ruling:
   and `ShadowStyle` shipped 2026-10-18; `ShapeStyle.shadow` waits on W1 ([Shadows (O6)](<Shadows (O6).md>)).
 - **O7** `ScrollEdgeEffectStyle`. **Only `.hard`**; no `.soft`. Shipped 2026-10-14.
 - **O8** APIs that are inert on macOS too: `submitLabel`, `SensoryFeedback`
-  and others. This reopens `submitLabel`. **Restated; awaiting the owner.**
+  and others. **Refused**: they fail to compile, as `submitLabel` already
+  did, and `scrollDismissesKeyboard` (A11) and `sectionIndexLabel` (A51) with
+  them. Recorded in the parity map 2026-10-19.
 - **O9** Multi-scene apps. **(b)**, leaving room for real windowing.
 - **O10** File panels. **(b)**, TUIkit-drawn open and save dialogs.
 - **O11** The `formatter:` APIs. **Restated; awaiting the owner.**
@@ -176,18 +179,6 @@ here. Shipping them before right-to-left would be a quiet lie for exactly
 the text they exist for, so they wait with this entry.
 
 *Wave 10's entries (A6–A12, B23–B31, C6; C7 shipped 2026-10-18 in lane PARITYMISC): SwiftUI behaviour quoted as *measured* was measured on macOS 15 with an offscreen `NSHostingView`; the probes are in the session notes, `w10/probe`.*
-
-### A11. `scrollDismissesKeyboard(_:)` joins O8
-
-*`View.scrollDismissesKeyboard(_:)`, `ScrollDismissesKeyboardMode` (+ `.automatic`,
-`.immediately`, `.interactively`, `.never`),
-`EnvironmentValues.scrollDismissesKeyboardMode`*
-
-It is about the software keyboard, which macOS does not have either, so on
-macOS every mode is inert — exactly the refusal review's O8 question. Under O8's
-recommended (b) it ships as a recorded, documented-inert value, as macOS's is;
-under (a) it is declined with `submitLabel`. Nothing to decide here apart from
-O8.
 
 ### A12. The scroll edge effects join O7
 
@@ -832,16 +823,6 @@ machine runs 15.8.
 **Recommendation:** 2, then 1.
 
 **Decided 2026-10-04: defer** until a macOS 26 or 27 pass can measure it.
-
-### A51. `sectionIndexLabel(_:)` joins O8
-
-*`View.sectionIndexLabel(_:)` (both)*
-
-A macOS 26 modifier naming a section in a list's section index — the
-A-to-Z strip down an iOS list's edge. macOS has no section index:
-`listSectionIndexVisibility(_:)` is not in the macOS SDK, so on macOS the
-label is inert. Exactly O8's question (APIs inert on macOS too); it ships or
-is declined with O8's answer. Shipping it inert is ten minutes.
 
 *Lane 17d's entries (A53, B82–B83, C12), spring-loading and the drag-session family (refusal review P11, P18): measured on macOS 15.8 (SDK 26.2) by driving SwiftUI's spring-loading entry points; the session family is macOS 26's and is from its doc comments. Probes in the session notes, `w17d/probe`.*
 
