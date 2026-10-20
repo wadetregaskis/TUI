@@ -73,9 +73,9 @@ Every product in the table but `TUIkitMacros` brings `TUIkitFoundation` too, and
 and `TUIkitMacros`, which are imported beside the others, re-exports the modules it is built on, so one import covers
 them: `import TUIkitTables` gives you `List` as well. `TUIkitFoundation`, `TUIkitCore`, `TUIkitStyling`,
 `TUIkitView` and `TUIkitImage` are products too, for a library that needs nothing more. `TUIkitFoundation`
-re-exports `TUIkitCore`, `TUIkitStyling` and `TUIkitView`, but those four lower modules re-export nothing: a file
-that imports `TUIkitView` or `TUIkitImage` also imports the module of each lower type it names, `TUIkitStyling` for
-`Color` and `TUIkitCore` for `FrameBuffer`. The product brings those modules, so they need no product of their own.
+re-exports `TUIkitCore`, `TUIkitStyling` and `TUIkitView`; `TUIkitView` re-exports `TUIkitCore` and
+`TUIkitStyling`, whose `FrameBuffer` and `Color` its API names, and `TUIkitImage` re-exports `TUIkitStyling`, so
+one import covers either. `TUIkitCore` and `TUIkitStyling` re-export nothing.
 
 ### The products decide what is built; the imports only what you can see
 

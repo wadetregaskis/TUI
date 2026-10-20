@@ -38,8 +38,9 @@ let package = Package(
         // TUIkit, which should depend on these and never on `TUIkit`: anything in an app's graph that depends
         // on `TUIkit` gives that app the whole framework, whatever the app itself lists. Each module from
         // TUIkitFoundation up re-exports the modules it is built on (its Sources/<module>/Exports.swift), so a
-        // client imports the modules whose names it uses and gets their foundations with them; the four
-        // low-level ones, TUIkitAppKit and TUIkitMacros re-export nothing. Mixing these with `TUIkit` in one
+        // client imports the modules whose names it uses and gets their foundations with them, as TUIkitView
+        // and TUIkitImage do the lower modules their API names; TUIkitCore, TUIkitStyling, TUIkitAppKit and
+        // TUIkitMacros re-export nothing. Mixing these with `TUIkit` in one
         // app is safe: each module is linked into it once. What is not: a `.dynamic` library product of the
         // client's own built from TUIkit while an app also links a TUIkit product statically (two copies of
         // the shared modules with SwiftPM's native build system; Swift Build turns them into dynamic

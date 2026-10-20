@@ -15,9 +15,9 @@ error: value of type 'Text' has no member 'tableStyle'
 
 Look the name up below: add the **Product** to your target's `dependencies:` and `import` the module of the same
 name. A product brings the modules its module is built on with it, and from `TUIkitFoundation` up its module
-re-exports them, so one import covers them: `TUIkitTables` gives you `List` too. `TUIkitCore`, `TUIkitStyling`,
-`TUIkitView` and `TUIkitImage` re-export nothing: beside `TUIkitView` or `TUIkitImage`, import the module of each
-lower name you use, which their products bring. `TUIkitAppKit` and `TUIkitMacros` re-export nothing either, and are
+re-exports them, so one import covers them: `TUIkitTables` gives you `List` too, and `TUIkitView` gives you
+`FrameBuffer` and `Color`, as `TUIkitImage` gives you `Color`. `TUIkitCore` and `TUIkitStyling` re-export nothing.
+`TUIkitAppKit` and `TUIkitMacros` re-export nothing either, and are
 imported beside the others: `TUIkitFoundation` (or any module above it) for `Color` beside `TUIkitAppKit`, and
 `TUIkitCore` beside `TUIkitMacros` for the code `@Animatable` expands to (<doc:ChoosingProducts>).
 
