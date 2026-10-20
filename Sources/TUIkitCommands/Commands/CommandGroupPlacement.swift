@@ -135,7 +135,7 @@ public struct CommandGroupPlacement: Hashable, Sendable {
 
     /// Placement for commands that manipulate and transform text selections.
     ///
-    /// Empty by default; ``TextEditingCommands`` adds Find….
+    /// Empty by default; ``TextEditingCommands`` adds Find… and Find Next.
     public static let textEditing = Self(.textEditing)
 
     /// Placement for commands that manipulate and transform the styles

@@ -83,7 +83,9 @@ private struct ChordPage: View {
         case .searchField:
             Text("CONTENT").searchable(text: binding)
         case .textEditor:
-            TextEditor(text: binding).frame(height: 3)
+            // Without a find bar: an editor that has one gives Ctrl-F to it
+            // (decisions B81), and the chord is the reference's here.
+            TextEditor(text: binding).frame(height: 3).findDisabled()
         }
     }
 }

@@ -75,6 +75,15 @@ final class TextEditorHandler: PersistedFocusable {
     /// The affinity reported with each selection written to the app.
     var selectionAffinity: TextSelectionAffinity = .automatic
 
+    /// Whether Ctrl-F goes on to the editor's find bar rather than moving
+    /// forward a character (decisions B81): set by the editor where it has a
+    /// bar to open. Right arrow moves forward a character still.
+    var yieldsControlFToFind = false
+
+    /// The find bar's matches, by line: each line's character columns that a
+    /// match covers (``noteFindMatches(_:in:)``), which the rows tint.
+    var matchedColumnsByLine: [Int: [Range<Int>]] = [:]
+
     /// The selection last exchanged with the app, as character offsets, so
     /// each side writes only a change.
     var exchangedSelection: Range<Int>?
@@ -349,6 +358,9 @@ final class TextEditorHandler: PersistedFocusable {
     /// Every key but the Command-key stand-ins
     /// (``standInCommand(for:)``).
     private func handleEditingKey(_ event: KeyEvent) -> Bool {
+        // Ctrl-F opens the find bar where there is one: passed on before the
+        // selection is touched, as an unbound chord is.
+        if isFindChord(event, on: ["f", "F"]) { return false }
         // What the content type turns away goes no further, and leaves the
         // selection be: it is consumed, with a ring of the bell.
         guard let event = admitted(event) else { return true }
@@ -481,6 +493,7 @@ final class TextEditorHandler: PersistedFocusable {
     /// same one.
     func editingCommand(for event: KeyEvent) -> TextEditingCommand? {
         guard case .character(let character) = event.key else { return nil }
+        if isFindChord(event, on: ["f", "F"]) { return nil }
         if event.ctrl { return TextEditingCommand(control: character, alt: event.alt) }
         if event.alt { return TextEditingCommand(option: character, shift: event.shift) }
         return nil

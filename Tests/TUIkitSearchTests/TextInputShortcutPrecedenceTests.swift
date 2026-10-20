@@ -113,7 +113,10 @@ private struct PrecedencePage: View {
             .searchable(text: binding)
         case .textEditor:
             VStack {
-                TextEditor(text: binding).frame(height: 3)
+                // Without a find bar, whose own keys Ctrl-F and Ctrl-G are
+                // (decisions B81): its Emacs chords are what these test. The
+                // bar's keys give way too (`appFindTakesTheFindBarsKeys`).
+                TextEditor(text: binding).frame(height: 3).findDisabled()
                 buttons
             }
         }
@@ -157,7 +160,8 @@ private final class Harness {
             onQuit: { [quits] in quits.count += 1 }, onSuspend: {})
     }
 
-    func frame(_ view: some View) {
+    @discardableResult
+    func frame(_ view: some View) -> FrameBuffer {
         tui.mouseEventDispatcher.beginRenderPass()
         tui.keyEventDispatcher.clearHandlers()
         tui.stateStorage.beginRenderPass()
@@ -166,9 +170,10 @@ private final class Harness {
         tui.preferences.beginRenderPass()
         statusBar.beginRenderPass()
         focusManager.beginRenderPass()
-        _ = renderToBuffer(view, context: context)
+        let buffer = renderToBuffer(view, context: context)
         focusManager.endRenderPass()
         tui.stateStorage.endRenderPass()
+        return buffer
     }
 }
 
@@ -459,7 +464,7 @@ struct TextInputShortcutPrecedenceTests {
         let harness = Harness()
         let binding = Binding(get: { text.value }, set: { text.value = $0 })
         let page = VStack {
-            TextEditor(text: binding).frame(height: 3)
+            TextEditor(text: binding).frame(height: 3).findDisabled()
             Button("Find") { [log] in log.fired.append("f") }
                 .keyboardShortcut("f")
                 .disabled(true)
@@ -472,6 +477,32 @@ struct TextInputShortcutPrecedenceTests {
         }
         #expect(log.fired.isEmpty)
         #expect(text.value == "aXb\ncd")
+    }
+
+    /// An editor with a find bar takes Ctrl-F and Ctrl-G for it, ⌘F's and ⌘G's
+    /// Control chords; an app's own Find and Find Next on them win, as a
+    /// menu's key equivalents do on macOS.
+    @Test("An app's Find and Find Next take Ctrl-F and Ctrl-G from an editor's find bar")
+    func appFindTakesTheFindBarsKeys() {
+        let text = BoundText("ab\ncd")
+        let log = FireLog()
+        let harness = Harness()
+        let binding = Binding(get: { text.value }, set: { text.value = $0 })
+        let page = VStack {
+            TextEditor(text: binding).frame(height: 3)
+            Button("Find") { [log] in log.fired.append("f") }.keyboardShortcut("f")
+            Button("Find Next") { [log] in log.fired.append("g") }.keyboardShortcut("g")
+        }
+        harness.frame(page)
+        harness.frame(page)
+        var drawn: [String] = []
+        for key in [ctrl("f"), ctrl("g"), typed("X")] {
+            harness.handler.handle(key)
+            drawn = harness.frame(page).lines.map(\.stripped)
+        }
+        #expect(log.fired == ["f", "g"])
+        #expect(!drawn.contains { $0.contains("Done") }, "the find bar opened: \(drawn)")
+        #expect(text.value == "Xab\ncd")
     }
 
     // MARK: - The chords that keep the key

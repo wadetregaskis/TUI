@@ -926,18 +926,25 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 ### T7. Text entry keys
 
 - **SwiftUI:** a vertical `TextField` takes a newline from Option-Return
-  (measured) and Ctrl-Return (U+2028); `TextEditor`'s find bar opens with ⌘F
-  and highlights every match; a field can hold several selection ranges.
+  (measured) and Ctrl-Return (U+2028); `TextEditor`'s find bar opens with ⌘F;
+  a field can hold several selection ranges.
 - **TUIkit:** a newline comes from Option-Return where the terminal sends
   Option as Meta, and from Ctrl-O everywhere; Ctrl-Return and Shift-Return
   submit. A vertical field wraps one cell short of its edge, keeping that cell
-  for the caret. The find bar opens with Ctrl-G and marks only the current
-  match. A field selects one range: an app's multiple selection selects its
-  first.
-- **Why:** what the terminal delivers. ⌘F is the terminal's, and Ctrl-F is the
-  editor's "forward a character".
+  for the caret. The find bar opens with Ctrl-F, as ⌘F does, and Ctrl-G finds
+  the next match, bar up or not; Shift-Ctrl-G the previous only where the
+  terminal tells Shift apart (the kitty protocol). Every match is tinted, the
+  current one selected over it, and macOS's options (Ignore Case; Contains,
+  Starts With, Full Word) are a row under its search field, a toggle and a
+  button that steps through the three, rather than a menu. A field selects
+  one range: an app's multiple selection selects its first.
+- **Why:** what the terminal delivers. ⌘ is the terminal's, so ⌘F and ⌘G are
+  Control chords, and the editor gives up Emacs Ctrl-F (Right arrow does the
+  same) where it has a find bar; a field keeps it. A legacy terminal sends
+  Shift-Ctrl-G as Ctrl-G. A menu of options would make the text editor's
+  module depend on the menus' and the pickers'.
 - **Decided:** [B62](<Decisions/SwiftUI API completion decisions.md#b62-a-vertical-textfield-is-a-text-field-that-wraps-not-an-editor-with-a-fields-chrome>), [B63](<Decisions/SwiftUI API completion decisions.md#b63-a-newline-from-the-keyboard-option-return-where-the-terminal-sends-it-ctrl-o-everywhere>), [B65](<Decisions/SwiftUI API completion decisions.md#b65-a-text-fields-selection-is-one-range>),
-  [B81](<Decisions/SwiftUI API completion decisions.md#b81-the-find-bar-ctrl-g-opens-it-the-current-match-is-the-selection-and-other-matches-are-not-highlighted>). **Medium**, with **Lane** choices of key.
+  [B81](<Decisions/SwiftUI API completion decisions.md#b81-the-find-bar-ctrl-f-opens-it-ctrl-g-finds-the-next-match-and-its-options-are-a-row>). **Medium**, with **Lane** choices of key.
 
 ### T8. `textContentType` filters what can be typed
 

@@ -29,6 +29,7 @@ extension _TextEditorCore {
         output.reserveCapacity(height)
         let top = handler.topRow(in: rows)
         let caretRow = handler.caretRow(in: rows)
+        let showsSelection = Self.showsSelection(caret: caret, handler: handler)
         var (line, rowInLine) = rows.location(ofRow: top)
         for screenRow in 0..<height {
             let rendered: RenderedRow
@@ -43,7 +44,7 @@ extension _TextEditorCore {
                 }
                 // A block's columns are this row's cells already.
                 let selection: Range<Int>? =
-                    caret == nil
+                    !showsSelection
                     ? nil
                     : handler.blockCells(onRow: top + screenRow)
                         ?? handler.selectedColumns(inLine: line, lineLength: lines[line].count).flatMap { selected in
@@ -53,11 +54,18 @@ extension _TextEditorCore {
                             return layout.cells(inRow: rowInLine, before: lower)
                                 ..< layout.cells(inRow: rowInLine, before: upper)
                         }
+                // The find bar's matches on this row, as its cells.
+                let matches = (handler.matchedColumnsByLine[line] ?? []).compactMap { matched -> Range<Int>? in
+                    let lower = max(matched.lowerBound, span.start)
+                    let upper = min(matched.upperBound, end)
+                    guard lower < upper else { return nil }
+                    return layout.cells(inRow: rowInLine, before: lower) ..< layout.cells(inRow: rowInLine, before: upper)
+                }
                 rendered = styledRow(
                     Array(lines[line][span.start..<end]), tabWidth: tabWidth, scrollColumn: 0, width: rows.width,
                     caret: top + screenRow == caretRow && handler.selectionRange == nil && handler.block == nil
                         ? caret : nil,
-                    selection: selection, styling: styling)
+                    selection: selection, matches: matches, styling: styling)
                 // On to the next row: the rest of this line's, then the next line's.
                 if rowInLine + 1 < layout.rows.count {
                     rowInLine += 1
@@ -76,11 +84,20 @@ extension _TextEditorCore {
 
     /// Every visible row: its line, the claims its colours owe — already in the
     /// buffer's rows — and the caret's run, if it landed on one. `caret` is non-nil
-    /// exactly when the editor is focused: the caret and the selection show only then.
+    /// exactly when the editor is focused: the caret shows only then, and the
+    /// selection too unless the find bar is up (``showsSelection(caret:handler:)``).
     ///
     /// Its own function for the reason `appendScrollbar` is: `renderToBuffer` sits at
     /// the body-length limit, and this block reads the handler's window and writes
     /// nothing back.
+    /// Whether the rows draw the selection: while the editor is focused, and
+    /// while the find bar has matches up, whose current one is the selection —
+    /// the bar has the focus then, and macOS's editor keeps its selection drawn
+    /// under its find bar the same way.
+    static func showsSelection(caret: RowCaret?, handler: TextEditorHandler) -> Bool {
+        caret != nil || !handler.matchedColumnsByLine.isEmpty
+    }
+
     func renderRows(
         _ displayLines: [[Character]], handler: TextEditorHandler, width: Int, height: Int,
         tabWidth: TabWidth, caret: RowCaret?, styling: RowStyling
@@ -89,6 +106,7 @@ extension _TextEditorCore {
         var claims: [OpacityRegion] = []
         var caretRun: AnimatedCellRun?
         lines.reserveCapacity(height)
+        let showsSelection = Self.showsSelection(caret: caret, handler: handler)
         for row in 0..<height {
             let lineIndex = handler.scrollLine + row
             let rendered: RenderedRow
@@ -100,13 +118,17 @@ extension _TextEditorCore {
                 // selected tab highlights its whole span, as in any editor).
                 // A block's columns are this line's display columns already.
                 let selection: Range<Int>? =
-                    caret == nil
+                    !showsSelection
                     ? nil
                     : handler.blockCells(onRow: lineIndex)
                         ?? handler.selectedColumns(inLine: lineIndex, lineLength: lineChars.count).map {
                             TabLayout.displayColumn(ofCharIndex: $0.lowerBound, in: lineChars, tabWidth: tabWidth)
                                 ..< TabLayout.displayColumn(ofCharIndex: $0.upperBound, in: lineChars, tabWidth: tabWidth)
                         }
+                let matches = (handler.matchedColumnsByLine[lineIndex] ?? []).map {
+                    TabLayout.displayColumn(ofCharIndex: $0.lowerBound, in: lineChars, tabWidth: tabWidth)
+                        ..< TabLayout.displayColumn(ofCharIndex: $0.upperBound, in: lineChars, tabWidth: tabWidth)
+                }
                 rendered = styledRow(
                     lineChars, tabWidth: tabWidth, scrollColumn: handler.scrollColumn, width: width,
                     // No caret while text is selected, as on a Mac: the
@@ -114,7 +136,7 @@ extension _TextEditorCore {
                     // `buildTextWithCursor`).
                     caret: lineIndex == handler.cursorLine && handler.selectionRange == nil && handler.block == nil
                         ? caret : nil,
-                    selection: selection, styling: styling)
+                    selection: selection, matches: matches, styling: styling)
             } else {
                 rendered = emptyRow(width: width, background: styling.background)
             }
@@ -201,6 +223,11 @@ extension _TextEditorCore {
         let background: Color?
         let text: Color
         let selection: FieldSelectionStyle
+        /// The field a find match is tinted with: the selection's, a third of the
+        /// way over the well — a match that is not the current one, marked
+        /// fainter than the selection, as macOS's find bar marks them. `nil`
+        /// where the selection is a reversal, which has no colour to fade.
+        let match: Color?
 
         @MainActor
         init(palette: any Palette, isDisabled: Bool, background: Color?) {
@@ -216,12 +243,16 @@ extension _TextEditorCore {
             selection = TextFieldContentRenderer.selectionColors(
                 palette: palette, background: background, ink: ink
             ).resolved(with: palette)
+            match =
+                selection.isReversed
+                ? nil
+                : selection.background.opacity(0.35, over: (background ?? palette.background).resolve(with: palette))
         }
     }
 
     func styledRow(
         _ chars: [Character], tabWidth: TabWidth, scrollColumn: Int, width: Int,
-        caret: RowCaret?, selection: Range<Int>?, styling: RowStyling
+        caret: RowCaret?, selection: Range<Int>?, matches: [Range<Int>] = [], styling: RowStyling
     ) -> RenderedRow {
         let background = styling.background
         let textForeground = styling.text
@@ -337,7 +368,9 @@ extension _TextEditorCore {
                 continue
             }
             let foreground = isSelected ? selectionStyle.foreground : textForeground
-            let cellBackground = isSelected ? selectionStyle.background : background
+            // A find match the selection is not on is tinted (decisions B81).
+            let isMatched = !isSelected && styling.match != nil && matches.contains { $0.contains(cellX) }
+            let cellBackground = isSelected ? selectionStyle.background : isMatched ? styling.match : background
             let reversed = isSelected && selectionStyle.isReversed
             if character == "\t" {
                 // A tab is its stop run of spaces — emitted cell by cell so

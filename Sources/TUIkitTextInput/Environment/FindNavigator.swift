@@ -81,8 +81,8 @@ extension View {
     ///
     /// A ``TextEditor`` in this view draws a find bar above its text while
     /// `isPresented` is `true`, and sets it back to `false` when the person
-    /// closes the bar. Without this modifier, an editor's own Ctrl-G presents
-    /// it.
+    /// closes the bar. Without this modifier, an editor's own Ctrl-F presents
+    /// it, as ⌘F does on macOS.
     ///
     /// - Parameter isPresented: Whether the find interface is shown.
     /// - Returns: A view whose text editors present the interface with it.

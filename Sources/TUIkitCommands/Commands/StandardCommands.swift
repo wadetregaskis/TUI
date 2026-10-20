@@ -116,8 +116,9 @@ public struct ToolbarCommands: Commands {
 ///
 /// These commands are optional and can be explicitly requested by passing a
 /// value of this type to the `Scene.commands(content:)` modifier. They add Edit ▸
-/// Find…, which presses a `TextEditor`'s own find key, ⌃G (⌃F moves its caret
-/// forward), once the menu has closed: the focused editor shows its find bar.
+/// Find… and Find Next, which press a `TextEditor`'s own keys once the menu has
+/// closed — ⌃F, ⌘F's Control chord, which shows the focused editor's find bar,
+/// and ⌃G, which goes on to its next match — so each does what its key does.
 /// macOS's other text-editing submenus (spelling, substitutions,
 /// transformations, speech) have no counterpart in a terminal's text controls.
 public struct TextEditingCommands: Commands {
@@ -128,11 +129,16 @@ public struct TextEditingCommands: Commands {
 
     public var body: some Commands {
         CommandGroup(after: .textEditing) {
-            let find = KeyboardShortcut("g", modifiers: .control)
+            let find = KeyboardShortcut("f", modifiers: .control)
             Button(LocalizationService.shared.string(for: LocalizationKey.Menu.find)) {
                 find.keyEvent(commandKey: .control).map { keys?.press($0) }
             }
             .keyboardShortcutHint(find)
+            let findNext = KeyboardShortcut("g", modifiers: .control)
+            Button(LocalizationService.shared.string(for: LocalizationKey.Menu.findNext)) {
+                findNext.keyEvent(commandKey: .control).map { keys?.press($0) }
+            }
+            .keyboardShortcutHint(findNext)
         }
     }
 }

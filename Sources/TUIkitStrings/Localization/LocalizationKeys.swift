@@ -103,6 +103,11 @@ public enum LocalizationKey {
         case suppressDialog = "label.suppressDialog"
         case find = "label.find"
         case replaceWith = "label.replaceWith"
+        /// The find bar's options: whether case matters, and where a match stands.
+        case ignoreCase = "label.ignoreCase"
+        case findContains = "label.findContains"
+        case findStartsWith = "label.findStartsWith"
+        case findFullWord = "label.findFullWord"
         /// A table's column menu: the item that hides the column it was opened
         /// on, its title as `%@`.
         case hideColumn = "label.hideColumn"
@@ -260,6 +265,8 @@ public enum LocalizationKey {
         case hideWindow = "menu.hideWindow"
         /// The menu bar's Edit ▸ Find… (`TextEditingCommands`).
         case find = "menu.find"
+        /// The menu bar's Edit ▸ Find Next (`TextEditingCommands`).
+        case findNext = "menu.findNext"
         case new = "menu.new"
         case open = "menu.open"
         case save = "menu.save"

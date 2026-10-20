@@ -2,9 +2,9 @@
 //  StandardCommandSetsTests.swift
 //
 //  SwiftUI's opt-in command sets: SidebarCommands, InspectorCommands and
-//  ToolbarCommands in the View menu, TextEditingCommands' Find… in Edit — each
-//  doing what its key does, titled for the panel's state, disabled where
-//  there is nothing to act on.
+//  ToolbarCommands in the View menu, TextEditingCommands' Find… and Find Next
+//  in Edit — each doing what its key does, titled for the panel's state,
+//  disabled where there is nothing to act on.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -225,10 +225,13 @@ struct StandardCommandSetsTests {
         #expect(rows(app).contains { $0.contains("□") && $0.contains("EXTRA") }, "the panel: \(rows(app))")
     }
 
-    @Test("TextEditingCommands: Edit ▸ Find… shows the focused editor's find bar")
+    @Test("TextEditingCommands: Edit ▸ Find… (⌃F) shows the focused editor's find bar; Find Next is ⌃G")
     mutating func find() {
         let app = launched(FindApp())
         #expect(!rows(app).contains { $0.contains("Done") }, "sanity: no find bar")
+        let shown = menuRows(of: app)
+        #expect(shown.contains { $0.contains("Find…") && $0.contains("⌃F") }, "\(shown)")
+        #expect(shown.contains { $0.contains("Find Next") && $0.contains("⌃G") }, "\(shown)")
         chooseFirst(in: app)
         #expect(rows(app).contains { $0.contains("Done") }, "\(rows(app))")
     }

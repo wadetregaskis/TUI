@@ -18,7 +18,8 @@ import TUIkit
 /// - **File:** the page navigation — back to the main menu, and the previous
 ///   and next demo page — in place of macOS's New and Open, which an app with
 ///   no documents has no use for.
-/// - **Edit:** Find… (``TextEditingCommands``), for the text editor's find bar.
+/// - **Edit:** Find… and Find Next (``TextEditingCommands``), for the text
+///   editor's find bar.
 /// - **View:** the palette and border cycling F2 and F3 do, and the standard
 ///   toolbar and sidebar commands.
 ///

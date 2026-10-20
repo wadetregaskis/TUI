@@ -2988,7 +2988,7 @@ Where it differs:
   flies home — in a flat table too, where a hand-written row sits outside
   the loops.
 
-### B81. The find bar: Ctrl-G opens it, the current match is the selection, and other matches are not highlighted
+### B81. The find bar: Ctrl-F opens it, Ctrl-G finds the next match, and its options are a row
 
 *`View.findNavigator(isPresented:)`, `View.findDisabled(_:)`, `View.replaceDisabled(_:)`,
 `FindContext`, `\.findContext`*
@@ -3014,6 +3014,22 @@ closes.
 - **No Find Next from the editor.** With the bar closed, Cmd-G and Shift-Cmd-G
   move between matches on macOS. A terminal binding for them is the same
   question as the key above.
+
+**Built 2026-10-19** (lane TEXTEDIT; all three, settled by the owner's rulings
+on keys — Emacs chords are a bonus, Ctrl-F find is common, and N6's Ctrl-V
+precedent): Ctrl-F, ⌘F's Control chord, presents the bar, the editor giving
+up Emacs "forward a character" where it has one (Right arrow does the same; a
+field keeps it); Ctrl-G finds the next match with the bar up or closed, and
+Shift-Ctrl-G the previous where the kitty protocol tells Shift apart; every
+match is tinted, the selection's colour a third of the way over the well, the
+current one selected over it; and macOS's options, which it keeps in a menu
+under the magnifier, are a row under the search field: an Ignore Case toggle
+and a button that steps through Contains, Starts With and Full Word
+(`FindNavigatorTests`). A menu and a picker would have made the text editor's
+module depend on TUIkitMenus and TUIkitPickers, which the module split keeps
+it free of. An app's own shortcut on ⌘F or ⌘G takes the key from the bar, as
+the editor's other chords give way to one; `TextEditingCommands`' Edit ▸
+Find… and Find Next press the two keys.
 
 ### B82. Spring loading: a paused drag activates a control, undrawn
 

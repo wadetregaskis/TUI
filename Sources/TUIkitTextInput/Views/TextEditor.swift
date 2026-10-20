@@ -167,13 +167,18 @@ public struct TextEditor: View {
 
     @Environment(\.textEditorStyle) private var style
     @Environment(\.findNavigator) private var find
+    /// The app's shortcuts, and the focus they are scoped by: an app's own Find
+    /// takes the find bar's keys (``appShortcutTakes(_:)``).
+    @Environment(\.keyboardShortcutRegistry) private var shortcuts
+    @Environment(\.focusManager) private var focusManager
 
     /// Whether the find bar is up when no ``View/findNavigator(isPresented:)``
-    /// says: the editor's own Ctrl-G presents it.
+    /// says: the editor's own Ctrl-F presents it.
     @State private var isFindShownLocally = false
     @State private var findQuery = ""
     @State private var findReplacement = ""
     @State private var findMatch = 0
+    @State private var findOptions = FindOptions()
     /// The match the find bar last selected, as character offsets, for an
     /// editor with no selection binding of the app's to steer.
     @State private var findSelection: Range<Int>?
@@ -185,23 +190,40 @@ public struct TextEditor: View {
         // is in force; a custom style draws its body in the editor's place.
         if style is AutomaticTextEditorStyle || style is PlainTextEditorStyle {
             let presented = isFindPresented
+            // The bar's selection while it is up, and after it closes on a query,
+            // so Ctrl-G can go on selecting matches.
+            let finding = presented || !findQuery.isEmpty
             VStack(alignment: .leading, spacing: 0) {
                 if presented {
                     _FindBar(
                         text: text, query: $findQuery, replacement: $findReplacement, current: $findMatch,
-                        supportsReplace: !find.isReplaceDisabled && !isDisabled,
+                        options: $findOptions, supportsReplace: !find.isReplaceDisabled && !isDisabled,
                         select: { selectMatch($0) }, close: { setFindPresented(false) })
                 }
                 _TextEditorCore(
                     text: text, focusID: focusID, isDisabled: isDisabled,
-                    selection: presented ? findChannel : selection, menuTarget: menuTarget
+                    selection: finding ? findChannel : selection, menuTarget: menuTarget,
+                    opensFindOnControlF: !find.isFindDisabled,
+                    // Every match tinted while the bar is up, the current one
+                    // selected over it, as macOS's find bar marks them.
+                    findMatches: presented
+                        ? FindMatches.ranges(of: findQuery, in: text.wrappedValue, options: findOptions) : []
                 ).textEditingMenu(menuTarget)
             }
-            .onKeyPress(keys: ["g", "G"]) { press in
-                // Ctrl-G presents the find bar: Ctrl-F is the editor's own
-                // "forward a character", as on macOS.
-                guard press.modifiers.contains(.control), !find.isFindDisabled else { return .ignored }
-                setFindPresented(true)
+            .onKeyPress(keys: ["f", "F", "g", "G"]) { press in
+                // ⌘F and ⌘G, as Control chords (decisions B81): Ctrl-F presents
+                // the find bar; Ctrl-G finds the next match, bar up or not, and
+                // Shift-Ctrl-G the previous one where the terminal tells Shift
+                // apart (the kitty protocol; elsewhere it is Ctrl-G). With no
+                // query yet, Ctrl-G presents the bar.
+                guard press.modifiers.contains(.control), !press.modifiers.contains(.option), !find.isFindDisabled,
+                    !appShortcutTakes(press)
+                else { return .ignored }
+                if press.key == "f" || press.key == "F" || findQuery.isEmpty {
+                    setFindPresented(true)
+                } else {
+                    stepFind(by: press.modifiers.contains(.shift) || press.key == "G" ? -1 : 1)
+                }
                 return .handled
             }
             .paintingScrollContentBackground()
@@ -214,7 +236,7 @@ public struct TextEditor: View {
 // MARK: - Find
 
 extension TextEditor {
-    /// Whether the find bar is up: as the app's binding says, or as Ctrl-G and
+    /// Whether the find bar is up: as the app's binding says, or as Ctrl-F and
     /// Done left it.
     private var isFindPresented: Bool {
         guard !find.isFindDisabled else { return false }
@@ -241,6 +263,32 @@ extension TextEditor {
 
     private func selectMatch(_ offsets: Range<Int>) {
         findChannel.write(offsets, text.wrappedValue, .automatic)
+    }
+
+    /// Whether an app shortcut is on `press`'s chord, and takes it from the
+    /// find bar: Ctrl-F and Ctrl-G are ⌘F's and ⌘G's Control chords, and an
+    /// app's own Find wins over the editor's, as a menu's key equivalent does
+    /// on macOS and as the editor's other chords give way
+    /// (``TextEditorHandler/givesWayToKeyboardShortcut(_:)``). Asked here
+    /// because `onKeyPress` hears the key before the input chain asks the
+    /// focused editor whether it gives way; asked the input chain's way, of
+    /// the pane and section that have the focus.
+    private func appShortcutTakes(_ press: KeyPress) -> Bool {
+        guard let shortcuts else { return false }
+        let event = KeyEvent(
+            key: .character(press.key.character), ctrl: true, shift: press.modifiers.contains(.shift))
+        return shortcuts.hasAppShortcut(
+            for: event, activePane: focusManager?.activePaneID,
+            reachesPage: !(focusManager?.activeSectionIsModal ?? false))
+    }
+
+    /// Selects the next (`delta` 1) or previous (-1) match of the query, wrapping:
+    /// Ctrl-G's, with the bar up or not.
+    private func stepFind(by delta: Int) {
+        let matches = FindMatches.ranges(of: findQuery, in: text.wrappedValue, options: findOptions)
+        guard !matches.isEmpty else { return }
+        findMatch = FindMatches.index(from: findMatch, by: delta, among: matches.count)
+        selectMatch(matches[findMatch])
     }
 }
 
@@ -279,6 +327,12 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     var selection: _TextSelectionChannel?
     /// Where the editor's context menu finds the handler.
     let menuTarget: TextEditingMenuTarget
+    /// Whether the editor has a find bar for Ctrl-F to open
+    /// (``TextEditorHandler/yieldsControlFToFind``).
+    var opensFindOnControlF = false
+    /// The find bar's matches, as character offsets in order, which the rows
+    /// tint: none while the bar is down.
+    var findMatches: [Range<Int>] = []
 
     private typealias StateIndex = TextEditorStateIndex
 
@@ -360,6 +414,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         let isFocused = FocusRegistration.isFocused(context: context, focusID: persistedFocusID)
 
         let displayLines = handler.readLines()
+        handler.noteFind(opensOnControlF: opensFindOnControlF, matches: findMatches, in: displayLines)
         let window = window(
             handler, lines: displayLines, width: width, height: height, tabWidth: tabWidth,
             wraps: context.environment.textEditorWrapsLines, follows: !context.isMeasuring,
@@ -765,6 +820,8 @@ extension TextEditor: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _style.resolveEnvironment(environment)
         _find.resolveEnvironment(environment)
+        _shortcuts.resolveEnvironment(environment)
+        _focusManager.resolveEnvironment(environment)
     }
 }
 

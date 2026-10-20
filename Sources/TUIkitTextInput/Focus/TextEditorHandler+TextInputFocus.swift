@@ -9,8 +9,15 @@ import TUIkitFoundation
 extension TextEditorHandler: TextInputFocusHandler {
     /// The editor's Home and End go to the ends of the document, so Ctrl-A and
     /// Ctrl-E are its only keys for the ends of a line, and they keep the key.
+    ///
+    /// The find bar's keys, Ctrl-F and Ctrl-G (``yieldsControlFToFind``), give
+    /// way as the Emacs Ctrl-F they took over did: they are ⌘F's and ⌘G's
+    /// Control chords, and an app's own Find on them wins over the editor's,
+    /// as a menu's key equivalent does on macOS. Edit ▸ Find… and Find Next
+    /// (`TextEditingCommands`) are no app shortcut: they press these keys.
     func givesWayToKeyboardShortcut(_ event: KeyEvent) -> Bool {
-        editingCommand(for: event)?.givesWayToKeyboardShortcuts(homeAndEndReachLineEnds: false)
+        if isFindChord(event, on: ["f", "F", "g", "G"]) { return true }
+        return editingCommand(for: event)?.givesWayToKeyboardShortcuts(homeAndEndReachLineEnds: false)
             ?? false
     }
 }

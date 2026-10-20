@@ -205,8 +205,9 @@ Speech submenus.
   over the top bar (`WindowChromeState.topBarHiddenByCommand`), whatever the
   page's `.toolbarVisibility` says, until Show Toolbar; disabled while the page
   places nothing in the top bar. No Customize Toolbar…: `toolbar(id:)` is a gap.
-- `TextEditingCommands`: Find…, pressing a `TextEditor`'s own find key, ⌃G
-  (⌃F is its caret's forward a character).
+- `TextEditingCommands`: Find… and Find Next, pressing a `TextEditor`'s own
+  keys, ⌃F (⌘F's Control chord, which the editor yields to its find bar) and
+  ⌃G (B81, 2026-10-19; Find… pressed ⌃G until then).
 
 **The fuller version:** submenus, which TUIkit's menus do not have (a `Menu`
 inside a menu draws as a control on its row), so Find's own submenu (Find
