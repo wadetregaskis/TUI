@@ -322,6 +322,36 @@ struct TextEditorWrapTests {
         // Three lines, three rows.
         #expect(drawn.count == 12 && drawn[3].trimmingTrailingSpaces().isEmpty)
     }
+
+    @Test("The wheel scrolls the text and leaves the caret, until a key brings the view back to it")
+    func wheelScrolls() throws {
+        let (harness, page, handler) = try editor(height: 4)
+        func top() throws -> Int {
+            harness.frame(page)
+            return handler.topRow(in: try #require(handler.wrappedRows()))
+        }
+        let last = try #require(handler.wrappedRows()).rowCount - 4
+        #expect(try top() == 0)
+        harness.mouse(MouseEvent(button: .scrollDown, phase: .scrolled, x: 2, y: 1))
+        #expect(try top() == min(3, last))
+        harness.mouse(MouseEvent(button: .scrollDown, phase: .scrolled, x: 2, y: 1))
+        harness.mouse(MouseEvent(button: .scrollDown, phase: .scrolled, x: 2, y: 1))
+        // No further than the last screenful; the caret has not moved.
+        #expect(try top() == last)
+        #expect(caret(handler) == [0, 0])
+        harness.mouse(MouseEvent(button: .scrollUp, phase: .scrolled, x: 2, y: 1))
+        #expect(try top() == last - 3)
+        // A key brings the view back to the caret.
+        press(harness, page, KeyEvent(key: .right))
+        #expect(try top() == 0)
+
+        // Scrolling sideways, by lines.
+        let (lines, linesPage, lineHandler) = try editor(height: 2, wraps: false)
+        lines.mouse(MouseEvent(button: .scrollDown, phase: .scrolled, x: 2, y: 1))
+        lines.frame(linesPage)
+        #expect(lineHandler.scrollLine == 1)
+        #expect(caret(lineHandler) == [0, 0])
+    }
 }
 
 private extension String {

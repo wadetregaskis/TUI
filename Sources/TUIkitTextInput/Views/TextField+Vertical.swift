@@ -75,10 +75,13 @@ extension _TextFieldCore {
 
     /// The first row to draw: the one shown last frame, moved just enough to
     /// show the caret's row. An unfocused field, and a placeholder, show their
-    /// first rows.
+    /// first rows; one the wheel scrolled, the rows it left it at.
     private static func firstRow(
         handler: TextFieldHandler, layout: SoftWrapLayout, rowCount: Int, follows: Bool
     ) -> Int {
+        if handler.isWheelScrolled {
+            return min(max(0, handler.scrollRow), max(0, layout.rows.count - rowCount))
+        }
         guard follows else { return 0 }
         let caretRow = layout.row(of: handler.cursorPosition, affinity: handler.caretAffinity)
         var first = handler.scrollRow
@@ -162,7 +165,7 @@ extension _TextFieldCore {
         if !isDisabled {
             attachVerticalMouse(
                 to: &buffer, context: context, handler: handler, persistedFocusID: persistedFocusID,
-                hoverBox: hoverBox, drawn: (leading: chrome.leadingCells, firstRow: firstRow, rowCount: rowCount),
+                hoverBox: hoverBox, drawn: (leading: chrome.leadingCells, rowCount: rowCount),
                 disclosure: suggestionMenu == nil ? nil : (chrome.leadingCells + layout.width)..<buffer.width)
         }
         if let suggestionMenu, suggestionMenu.isOpen {
@@ -206,23 +209,24 @@ extension _TextFieldCore {
     }
 
     /// The field's pointer region: a press or a drag puts the caret at the row
-    /// and column it landed on, through the rows this frame drew; a press on
-    /// the first row's `▾` toggles the suggestions.
+    /// and column it landed on, through the rows on show; a press on the first
+    /// row's `▾` toggles the suggestions; the wheel scrolls the rows.
     ///
     /// - Parameter drawn: Where this frame drew the text: the cells before it,
-    ///   and the window of rows it showed.
+    ///   and how many rows it showed.
     private func attachVerticalMouse(
         to buffer: inout FrameBuffer, context: RenderContext, handler: TextFieldHandler,
         persistedFocusID: String, hoverBox: StateBox<Bool>,
-        drawn: (leading: Int, firstRow: Int, rowCount: Int), disclosure: Range<Int>?
+        drawn: (leading: Int, rowCount: Int), disclosure: Range<Int>?
     ) {
-        let (leading, firstRow, rowCount) = drawn
+        let (leading, rowCount) = drawn
         // The live text, laid out as the field's keys lay it out: the event may
         // arrive frames after this render. A selection's end may be a wrapped
-        // row's first character, where an upstream caret is not drawn.
+        // row's first character, where an upstream caret is not drawn. The
+        // first row is the live one too, which the wheel may have moved since.
         func offset(at event: MouseEvent, asSelectionEnd: Bool) -> (offset: Int, row: Int) {
             guard let layout = handler.softWrapLayout() else { return (handler.cursorPosition, 0) }
-            let row = min(firstRow + max(0, min(event.y, rowCount - 1)), layout.rows.count - 1)
+            let row = min(handler.scrollRow + max(0, min(event.y, rowCount - 1)), layout.rows.count - 1)
             let column = max(0, min(event.x - leading, layout.width - 1))
             let offset =
                 asSelectionEnd
@@ -235,6 +239,7 @@ extension _TextFieldCore {
             hoverBox: hoverBox,
             isDisclosure: { event in event.y == 0 && (disclosure?.contains(event.x) ?? false) },
             caretOffset: { event in offset(at: event, asSelectionEnd: false).offset },
-            selectionEnd: { event in offset(at: event, asSelectionEnd: true) })
+            selectionEnd: { event in offset(at: event, asSelectionEnd: true) },
+            wheel: { delta in handler.scrollByWheel(delta, rowCount: rowCount) })
     }
 }

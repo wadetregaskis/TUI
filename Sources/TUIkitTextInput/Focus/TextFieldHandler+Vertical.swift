@@ -58,6 +58,23 @@ extension TextFieldHandler {
         return SoftWrapLayout(Array(text.wrappedValue), width: wrapWidth, cellWidth: Self.verticalCellWidth)
     }
 
+    /// Scrolls a vertical field showing `rowCount` rows by `delta` of them,
+    /// down for a positive one; the caret stays where it is, and the field
+    /// stops following it (``isWheelScrolled``), as a Mac text view does
+    /// under the wheel (decisions B62).
+    ///
+    /// - Returns: Whether the rows moved. A tick that cannot — the field at
+    ///   its end already, or showing all its text — goes on to a scroll view
+    ///   around it.
+    func scrollByWheel(_ delta: Int, rowCount: Int) -> Bool {
+        guard let layout = softWrapLayout() else { return false }
+        let moved = max(0, min(scrollRow + delta, layout.rows.count - rowCount))
+        guard moved != scrollRow else { return false }
+        scrollRow = moved
+        isWheelScrolled = true
+        return true
+    }
+
     /// Whether the caret is on the field's last row — always, on one line.
     var isCaretOnLastRow: Bool {
         guard let layout = softWrapLayout() else { return true }

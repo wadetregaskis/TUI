@@ -596,7 +596,9 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             let caretColumn = TabLayout.displayColumn(
                 ofCharIndex: handler.cursorColumn, in: lines[min(handler.cursorLine, lines.count - 1)],
                 tabWidth: tabWidth)
-            if follows {
+            if follows, handler.isWheelScrolled {
+                handler.clampWheelScroll(rowCount: lines.count, height: height, in: nil)
+            } else if follows {
                 followCursor(
                     handler, cursorDisplayColumn: caretColumn, lineCount: lines.count, width: contentWidth,
                     height: height)
@@ -615,7 +617,11 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         // nobody sees.
         if follows {
             handler.wrapWidth = contentWidth
-            handler.followCaretRow(in: rows, height: height)
+            if handler.isWheelScrolled {
+                handler.clampWheelScroll(rowCount: rows.rowCount, height: height, in: rows)
+            } else {
+                handler.followCaretRow(in: rows, height: height)
+            }
         }
         return Window(
             contentWidth: contentWidth, hasVerticalOverflow: overflows, extent: rows.rowCount,
@@ -678,8 +684,10 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         guard !isDisabled, !context.isMeasuring,
             let mouseDispatcher = context.environment.mouseEventDispatcher
         else { return }
-        // Drag reporting is needed for click-and-drag selection.
+        // Drag reporting is needed for click-and-drag selection, and the
+        // wheel's for scrolling.
         mouseDispatcher.requestFeature(.drag, in: context)
+        mouseDispatcher.requestFeature(.scrolling, in: context)
         let focusManager = context.environment.focusManager
 
         // Map a buffer-local (x, y) to a text position through the scroll
@@ -736,6 +744,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             // Ctrl-click is a secondary click, the editor's context menu's.
             case .pressed where event.button == .left && !event.ctrl:
                 focusManager?.focus(id: focusID)
+                handler.isWheelScrolled = false
                 handler.multiClickRun = nil
                 // Every press starts afresh: a block goes with the rest.
                 handler.block = nil
@@ -801,6 +810,12 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                     handler.clearSelection()
                 }
                 return true
+            // The wheel scrolls the text and leaves the caret, as an
+            // NSTextView's does; a tick it cannot take goes on outward.
+            case .scrolled where event.button == .scrollUp:
+                return handler.scrollByWheel(-ViewConstants.mouseWheelScrollLines, height: height)
+            case .scrolled where event.button == .scrollDown:
+                return handler.scrollByWheel(ViewConstants.mouseWheelScrollLines, height: height)
             default:
                 return false
             }

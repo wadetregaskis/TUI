@@ -136,6 +136,10 @@ final class TextEditorHandler: PersistedFocusable {
     var scrollRowInLine = 0
     /// Left visible column — advanced to follow the cursor horizontally.
     var scrollColumn = 0
+    /// Whether the wheel has scrolled the text since the caret last moved:
+    /// the view then stays where the wheel left it rather than following the
+    /// caret, until a key or a click (``scrollByWheel(_:height:)``).
+    var isWheelScrolled = false
     /// The visible row count, set by the core each render so Page Up / Page Down
     /// (and Ctrl-V) can move the cursor by a screenful.
     var viewportHeight = 1
@@ -271,6 +275,10 @@ final class TextEditorHandler: PersistedFocusable {
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
         defer { publishSelection() }
         defer { forgetMovedRowStartHead() }
+        // A key brings a wheel-scrolled view back to the caret, as an
+        // NSTextView's does — a modifier on its own included, which no
+        // terminal reports.
+        isWheelScrolled = false
         normalizeStaleState()
         // Before anything writes: a history of text the app has since
         // replaced is forgotten, so undo never brings that text back.

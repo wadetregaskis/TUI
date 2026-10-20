@@ -205,6 +205,10 @@ final class TextFieldHandler: PersistedFocusable {
     /// The first row a vertical field shows, advanced by its render pass to
     /// keep the caret in view.
     var scrollRow = 0
+    /// Whether the wheel has scrolled a vertical field since the caret last
+    /// moved: it then shows the rows the wheel left it at rather than the
+    /// caret's, until a key or a click (``scrollByWheel(_:rowCount:)``).
+    var isWheelScrolled = false
 
     /// Callback triggered when the user presses Enter.
     var onSubmit: (() -> Void)?
@@ -522,6 +526,9 @@ extension TextFieldHandler {
         defer { publishSelection() }
         defer { forgetMovedRowStartHead() }
         normalizeStaleState()
+        // A key brings a wheel-scrolled field back to the caret, as the
+        // editor's does.
+        isWheelScrolled = false
         if let handled = handleSuggestionKeyEvent(event) {
             return handled
         }

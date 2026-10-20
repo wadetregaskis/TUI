@@ -2416,8 +2416,11 @@ so it has nothing for them to page, and leaves them to the view around it.
   editor draws one. A field on one line shows no indicator for its sideways
   scroll either. Half a day, mostly finding a column for it: the margin cell is
   the caret's.
-- **The wheel.** A pointer over a scrolled field could scroll it, which the
-  editor does not do either. Half a day for both.
+- ~~**The wheel.**~~ Built 2026-10-19 (lane TEXTEDIT, B62-FULLER): the wheel
+  scrolls a capped field's rows, and a `TextEditor`'s text, three rows a tick,
+  and leaves the caret where it is, as a Mac text view does. A key or a click
+  brings the view back to the caret, and a tick at either end goes on to a
+  scroll view around it.
 - ~~An Example page section~~ with a vertical field: shipped 2026-10-18 (lane
   PARITYMISC), on the Text Input page.
 

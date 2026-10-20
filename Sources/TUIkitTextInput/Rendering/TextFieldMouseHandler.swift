@@ -95,6 +95,9 @@ enum TextFieldMouseHandler {
     ///     drawn, and which a head there is read on
     ///     (``TextFieldHandler/placeSelectionHead(at:onRow:)``). `nil` for a
     ///     field on one line, whose two are the same.
+    ///   - wheel: Scrolls the field by a number of rows, down for a positive
+    ///     one, answering whether it moved; `nil` for a field on one line,
+    ///     which leaves the wheel to the views around it.
     @MainActor
     static func register(
         buffer: inout FrameBuffer,
@@ -104,7 +107,8 @@ enum TextFieldMouseHandler {
         hoverBox: StateBox<Bool>,
         isDisclosure: @escaping (MouseEvent) -> Bool,
         caretOffset: @escaping (MouseEvent) -> Int,
-        selectionEnd: ((MouseEvent) -> (offset: Int, row: Int))? = nil
+        selectionEnd: ((MouseEvent) -> (offset: Int, row: Int))? = nil,
+        wheel: ((Int) -> Bool)? = nil
     ) {
         guard !context.isMeasuring,
             let mouseDispatcher = context.environment.mouseEventDispatcher
@@ -114,6 +118,7 @@ enum TextFieldMouseHandler {
         // click-and-drag selection.
         mouseDispatcher.requestFeature(.motion, in: context)
         mouseDispatcher.requestFeature(.drag, in: context)
+        if wheel != nil { mouseDispatcher.requestFeature(.scrolling, in: context) }
 
         let focusManager = context.environment.focusManager
         let captureFocusID = persistedFocusID
@@ -137,6 +142,7 @@ enum TextFieldMouseHandler {
             // Ctrl-click is a secondary click, the field's context menu's.
             case .pressed where event.button == .left && !event.ctrl:
                 focusManager?.focus(id: captureFocusID)
+                handler.isWheelScrolled = false
                 // Every press starts afresh: a drag after one that sets no
                 // anchor of its own — on the `▾`, a Shift-click — anchors at
                 // the caret, never at an earlier press's cell.
@@ -207,6 +213,11 @@ enum TextFieldMouseHandler {
                     handler.clearSelection()
                 }
                 return true
+            // A vertical field's wheel scrolls its rows and leaves the caret.
+            case .scrolled where event.button == .scrollUp:
+                return wheel?(-ViewConstants.mouseWheelScrollLines) ?? false
+            case .scrolled where event.button == .scrollDown:
+                return wheel?(ViewConstants.mouseWheelScrollLines) ?? false
             default:
                 return false
             }

@@ -248,6 +248,32 @@ struct VerticalTextFieldTests {
         #expect(unfocused.dropFirst().map { $0.trimmingTrailingSpaces } == ["1", "2"])
     }
 
+    @Test("The wheel scrolls a capped field's rows and leaves the caret, until a key or a click")
+    func wheel() {
+        let harness = InputChainHarness(width: 12)
+        let model = Model("1\n2\n3\n4\n5\n6\n7")
+        let view = { field(model).lineLimit(2) }
+        func shown() -> [String] { rows(harness.frame(view())).map { $0.trimmingTrailingSpaces } }
+        // The caret starts at the end; Home takes it, and the rows, to the top.
+        harness.play([KeyEvent(key: .home)], view)
+        #expect(shown() == ["1", "2"])
+        harness.mouse(MouseEvent(button: .scrollDown, phase: .scrolled, x: 1, y: 0))
+        #expect(shown() == ["4", "5"])
+        harness.mouse(MouseEvent(button: .scrollDown, phase: .scrolled, x: 1, y: 0))
+        #expect(shown() == ["6", "7"], "no further than the last rows")
+        // A click lands on the rows the wheel left on show.
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 1, y: 0))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 1, y: 0))
+        harness.play([key("X")], view)
+        #expect(model.text == "1\n2\n3\n4\n5\n6X\n7")
+        harness.mouse(MouseEvent(button: .scrollUp, phase: .scrolled, x: 1, y: 0))
+        #expect(shown() == ["3", "4"])
+        // A key brings the field back to the caret's row, moving it as
+        // little as it must.
+        harness.play([KeyEvent(key: .left)], view)
+        #expect(shown() == ["5", "6X"])
+    }
+
     @Test("Where a row wrapped, the caret is drawn on the later row, or on the earlier one upstream")
     func caretAffinity() {
         let model = Model("hello world")
