@@ -186,8 +186,10 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     /// `Tools/SwiftUIProbes/Menu items and alert buttons/pickers.out`): a
     /// submenu titled by its label, the selected option checked — or, as an
     /// `.inline` picker, its label as the title of a section of its options in
-    /// the menu itself. A radio-group picker draws inline too; macOS has no
-    /// menu form for one, and draws its label and options as disabled items.
+    /// the menu itself. A radio-group picker draws inline too, its selected
+    /// option checked. macOS has no menu form for one: it draws the label and
+    /// an empty row as disabled items, then the options enabled and none
+    /// checked (the same probe), which shows no selection (deviation W16).
     @ViewBuilder private func pickerBody(
         entries: [_PickerEntry<SelectionValue>], style: any PickerStyle, horizontal: Bool, inPopUpMenu: Bool
     ) -> some View {

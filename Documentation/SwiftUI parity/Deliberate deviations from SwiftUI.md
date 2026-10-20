@@ -2110,8 +2110,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 - **SwiftUI:** a `Menu` or a `Picker` in a menu is a submenu (measured on macOS
   15.8, `Tools/SwiftUIProbes/Menu items and alert buttons/pickers.out`); a
-  radio-group picker there is drawn as disabled items with no check (measured,
-  same file). Escape, with a submenu open, is believed to close the whole menu,
+  radio-group picker there is its label and an empty row as disabled items,
+  then its options as enabled items with none checked (measured, same file). Escape, with a submenu open, is believed to close the whole menu,
   and the pointer may cross other rows on its way into a submenu without closing
   it (macOS's tracking; neither measured).
 - **TUIkit:** Escape closes the submenu the keys are in and goes back to its
@@ -2122,7 +2122,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** Escape backing out one level is what the lane's brief asked for, and
   what Windows and GTK menus do: the keyboard's way out of a submenu that is
   not its way out of the menu. The pointer's grace needs the direction of its
-  last moves, priced in the decision. macOS's radio-group form cannot be used.
+  last moves, priced in the decision. macOS's radio-group form cannot be used:
+  it shows no selection, so TUIkit checks the selected option, as a picker's
+  other menu forms do.
 - **Decided:** [B-MENUS-2](<Decisions/Menu parity (MENUS).md#b-menus-2-a-menu-and-a-picker-in-a-pop-up-menu-are-submenus-opened-by-right-and-closed-by-left-or-escape>).
   **Lane**.
 ---
