@@ -257,8 +257,11 @@ v0.2026.09.02 agree with each other and with the claim, with no Ambiguous-width
 divergence anywhere. (The *ink* is a separate question with a different answer —
 eight of the rows paint two cells while advancing one, and not the same eight on
 every host. See "The ink half" below.) Records:
-`Tools/TerminalProbes/data/{ghostty-1.3.1,iTerm2,Apple-Terminal,Warp}-advance.json`,
-asserted by `ChromeGlyphAdvanceTests`.
+`Tools/TerminalProbes/data/{ghostty-1.3.1,iTerm2,Apple-Terminal,Warp}-advance.json`.
+Since 2026-10-19 `ChromeGlyphAdvanceTests` reads each host's alternate-screen
+record of that day's runs instead, the screen TUIkit draws on
+(`{ghostty-1.3.1,iterm2-3.7.6,apple-terminal-455.1,warpterminal-v0.2026.09.30.08.29.stable_01}-alternate.json`):
+every chrome row, these and the ones added since, one cell on all four.
 
 What remains open for these rows is `landing` — where the glyph is painted
 relative to its neighbours — which needs pixels rather than DSR. They stay in
@@ -508,11 +511,11 @@ here in prose and in no file under `Tools/TerminalProbes/data/`. The five
 glyphs are corpus rows now (`key_return_hook`, `key_home`, `key_end`,
 `key_page_up`, `key_page_down`, class `chrome_key`), in `advance_probe.py`'s
 battery and on `overhang_card.py`, so a re-run of the committed probes records
-their advance and draws them for the ink reading. Ghostty's re-run was
-committed on 2026-10-19 (`ghostty-1.3.1-advance.json`), so
-`ChromeGlyphAdvanceTests` asserts their advance there. On the other hosts it
-lists them as awaiting measurement, and `TerminalLedgerConformanceTests`, which
-reads landing records, does on every host.
+their advance and draws them for the ink reading. The re-runs committed on
+2026-10-19 read all five at one cell in every host's alternate-screen record,
+and `ChromeGlyphAdvanceTests` asserts it from those.
+`TerminalLedgerConformanceTests`, which reads landing records, still lists
+them as awaiting measurement on every host.
 
 A glyph that overhangs on a host joins that host's table in
 `TerminalWidthTraits.ChromeOverhang`, whose rows must be corpus rows — which
@@ -579,8 +582,8 @@ screens on 2026-10-19 with a default profile that sets no Unicode version,
 agrees with 3.7.4 on the jamo and the keycaps and moved again on the tones —
 all to 2 (see "iTerm2 3.7.6 re-measured"); its records are committed. No record was rewritten, so
 `ChromeGlyphAdvanceTests` listed the two badge rows as awaiting measurement on
-every host until a re-run was committed. Ghostty's was, on 2026-10-19 (both
-rows 1, on both screens), so they wait on the other three. **The ink is
+every host until a re-run was committed. The 2026-10-19 runs were, on all four
+hosts, with both rows at 1, and the suite reads them. **The ink is
 unmeasured**: what a DSR cannot see — a glyph overhanging its cell, or a font
 with no glyph for it drawing a box — needs `overhang_card.py` (which draws the
 two rows now) read by a person. Until it is, the claim is one cell and no
@@ -720,9 +723,10 @@ Ambiguous rows join the
 borders' class (two cells where a host draws ambiguous characters wide, which
 TUIkit answers with autowrap off); the quadrants are Neutral. Ink is
 **UNMEASURED** on every host (`overhang_card.py` draws the rows; a person reads
-it). As on 2026-10-13 the records were not rewritten, so the rows wait in
-`ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` — except on Ghostty, whose
-record was, on 2026-10-19 — and in the ledger's `awaitingLandingMeasurement`.
+it). As on 2026-10-13 the records were not rewritten, so the rows waited in
+`ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` until the 2026-10-19 runs,
+whose alternate-screen records read all eight at one cell on every host. They
+still wait in the ledger's `awaitingLandingMeasurement`.
 
 **Since the evening of 2026-10-15 a button's face follows the `Appearance`**,
 the owner's choice from a live prototype and two cards of candidate families

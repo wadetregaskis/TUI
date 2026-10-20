@@ -32,12 +32,12 @@ import Testing
 /// numbers, so re-running the probe on a new version of a host updates the test
 /// rather than dating it.
 ///
-/// Five keyboard symbols joined the chrome rows on 2026-10-05, when the keys
-/// took macOS's symbols — `↩ ↖ ↘ ⇞ ⇟`, which the framework had never drawn.
-/// Only Ghostty's record has them, since its re-run of 2026-10-19: on the
-/// other hosts they are listed in ``awaitingAdvanceMeasurement`` until the
-/// probe is re-run there, so that "not measured" cannot read as "measured
-/// and fine".
+/// It reads each host's ALTERNATE-screen record, the screen every TUIkit app
+/// draws on: the 2026-10-19 runs, the first to read every chrome row on all
+/// four hosts (the keyboard symbols of 2026-10-05, the drop badges of
+/// 2026-10-13 and the button faces' glyphs of 2026-10-15 had waited in
+/// ``awaitingAdvanceMeasurement`` until then). Apple Terminal's primary-screen
+/// record is older than all three.
 @Suite("Chrome glyph advance")
 struct ChromeGlyphAdvanceTests {
 
@@ -54,10 +54,10 @@ struct ChromeGlyphAdvanceTests {
     /// Ghostty and seven other glyphs on Warp, so "what does the framework
     /// claim for this row" cannot be asked without saying whose terminal.
     private static let hosts: [(name: String, file: String, program: TerminalClient.Program)] = [
-        ("Ghostty", "ghostty-1.3.1-advance.json", .ghostty),
-        ("iTerm2", "iTerm2-advance.json", .iTerm2),
-        ("Apple Terminal", "Apple-Terminal-advance.json", .appleTerminal),
-        ("Warp", "Warp-advance.json", .warp),
+        ("Ghostty", "ghostty-1.3.1-alternate.json", .ghostty),
+        ("iTerm2", "iterm2-3.7.6-alternate.json", .iTerm2),
+        ("Apple Terminal", "apple-terminal-455.1-alternate.json", .appleTerminal),
+        ("Warp", "warpterminal-v0.2026.09.30.08.29.stable_01-alternate.json", .warp),
     ]
 
     private typealias HostRecord = (
@@ -90,44 +90,10 @@ struct ChromeGlyphAdvanceTests {
     /// whose advance no probe has taken is named here, and a row named here
     /// that the record now has fails until it is removed — the rule
     /// `TerminalLedgerConformanceTests.awaitingLandingMeasurement` follows.
-    ///
-    /// Per host because a re-run is: the first probe to read the five
-    /// 2026-10-05 symbols will be one host's, and the others still await it.
-    /// (The coordinator's hand-rolled DSR of 2026-10-05 read all five at one
-    /// cell on Apple Terminal 455.1, iTerm2 3.7.3, Warp v0.2026.09.30 and tmux
-    /// 3.7c; it is in `Documentation/Terminals/Terminal compatibility survey.md`, "Key symbols",
-    /// and not a record, so nothing here asserts it.)
-    ///
-    /// The two drop-operation badges joined on 2026-10-13 (`↗ ⊘`, decisions
-    /// B10). `advance_probe.py` read both at one cell on all four hosts and
-    /// tmux that day, but the records were not rewritten (the survey's "The
-    /// drop-operation badge" says why), so they wait here too.
-    ///
-    /// The glyphs a bordered button's face ends in at each control size and
-    /// border shape joined on 2026-10-15 (`ButtonFaceEdges`), and wait the
-    /// same way: the survey's "A button's face at each control size" has what
-    /// the probe read.
-    ///
-    /// Ghostty waits for none of them. Its record was rewritten on 2026-10-19
-    /// by a re-run whose battery had all fifteen, and which reproduced every
-    /// row the old record held (Tools/TerminalProbes/data/README.md says why
-    /// that re-run replaced the record).
-    private static let buttonFaceGlyphs: Set<String> = [
-        "chrome_eighth_right", "chrome_eighth_left", "chrome_lower_half", "chrome_upper_half",
-        "chrome_quadrant_lower_right", "chrome_quadrant_lower_left",
-        "chrome_quadrant_upper_right", "chrome_quadrant_upper_left",
+    /// Per host because a re-run is, and empty since the 2026-10-19 runs.
+    private static let awaitingAdvanceMeasurement: [TerminalClient.Program: Set<String>] = [
+        .ghostty: [], .iTerm2: [], .appleTerminal: [], .warp: [],
     ]
-
-    private static let awaitingAdvanceMeasurement: [TerminalClient.Program: Set<String>] = {
-        let newKeySymbols: Set<String> = [
-            "key_return_hook", "key_home", "key_end", "key_page_up", "key_page_down",
-        ]
-        let awaiting = newKeySymbols.union(["chrome_drop_link", "chrome_drop_forbidden"]).union(buttonFaceGlyphs)
-        return [
-            .ghostty: [], .iTerm2: awaiting,
-            .appleTerminal: awaiting, .warp: awaiting,
-        ]
-    }()
 
     @Test("Every chrome glyph is a corpus row of one of the two chrome classes")
     func theSuiteHasSomethingToMeasure() {
