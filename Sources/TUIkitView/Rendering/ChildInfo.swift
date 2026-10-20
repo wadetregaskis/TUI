@@ -1088,6 +1088,29 @@ public func resolveChildViews<V: View>(from content: V, context: RenderContext) 
     return resolveChildViews(from: content, as: provider, context: context)
 }
 
+/// Records which arm of the `if`/`else` at `context.identity` a container
+/// taking it apart is drawing — `label`, its ``ChildViewProvider/identityBranchLabel``
+/// — and, where that flipped since it was last drawn, drops the arm it left,
+/// the arm's own identity included: what `ConditionalView.renderToBuffer`
+/// does, which a stack or a list taking the conditional apart never calls.
+///
+/// The prune at the pass's end took the arm left wherever nothing retains it;
+/// under a container that keeps its subtree's — a lazy stack, a `List`, a
+/// `Table` — its views came back with their `@State`, where SwiftUI's start
+/// afresh (lane MODALS's probe). Not on a measure, and not inside
+/// `keepsStateWhileHidden()`, as for a conditional drawn whole. One access to
+/// the conditional's record a render, as that path pays.
+@MainActor
+package func noteConditionalArm(_ label: String, in context: RenderContext) {
+    guard !context.isMeasuring, let storage = context.stateStorage else { return }
+    // The labels `identityBranchLabel` and `ConditionalView.renderToBuffer` use.
+    let isTrueBranch = label == "true"
+    guard storage.recordConditionalBranch(context.identity, isTrueBranch: isTrueBranch),
+        !context.environment.keepsHiddenState
+    else { return }
+    storage.invalidateDescendants(of: context.identity.branch(isTrueBranch ? "false" : "true"), includingItself: true)
+}
+
 /// ``resolveChildViews(from:context:)`` for content the caller has already
 /// cast: `provider` is `content`, as a ``ChildViewProvider``.
 ///
@@ -1125,6 +1148,7 @@ package func resolveChildViews<V: View>(
     // Ahead of the memo and never through it: its key knows nothing of
     // branches, and no conditional opts into memoising.
     if let branch = provider.identityBranchLabel {
+        noteConditionalArm(branch, in: context)
         let branchContext = context.withBranchIdentity(branch)
         let branchIdentity = branchContext.identity
         return provider.childViews(context: branchContext).map {

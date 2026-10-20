@@ -362,7 +362,11 @@ extension Optional: ChildViewProvider where Wrapped: View {
                 }
                 let child = ChildView(wrapped, childIndex: 0)
                 let pictureType = departingPictureType(heldAs: Wrapped.self)
-                guard DefaultTransition.applies(toPictureType: pictureType) else { return [child] }
+                guard DefaultTransition.applies(toPictureType: pictureType) else {
+                    // Drawn by the stack, below this identity.
+                    DefaultTransition.held(scope: context.identity, drawnAt: nil, context: context)
+                    return [child]
+                }
                 return [child.transitioningByDefault()]
             }
             let children = resolveChildViews(from: wrapped, as: provider, context: context)
@@ -372,6 +376,8 @@ extension Optional: ChildViewProvider where Wrapped: View {
             let pictureType = departingPictureType(heldAs: Wrapped.self)
             if DefaultTransition.applies(toPictureType: pictureType) {
                 DefaultTransition.absent(scope: context.identity, pictureType: pictureType, context: context)
+            } else {
+                DefaultTransition.emptied(scope: context.identity, context: context)
             }
             // The fast path, and all an app that animates nothing pays.
             guard let storage = context.stateStorage, !storage.departures.isEmpty else { return [] }
@@ -431,8 +437,16 @@ extension ConditionalView: Renderable {
         // `keepsStateWhileHidden()` the branch left keeps its state: the flip
         // is still recorded, and the state is left for the retained subtree
         // to keep.
+        //
+        // The branch's identity itself too: the view the branch held draws
+        // at it, and a composite's `@State` is kept at its own identity. The
+        // prune at the pass's end took that state wherever nothing retains
+        // it, but under a container that keeps its subtree's — a lazy stack,
+        // a `List`, a `Table` — the view came back with it, where SwiftUI's
+        // starts afresh (lane MODALS's probe).
         if flipped, !context.environment.keepsHiddenState {
-            stateStorage.invalidateDescendants(of: context.identity.branch(Self.branchLabel(!isTrueBranch)))
+            stateStorage.invalidateDescendants(
+                of: context.identity.branch(Self.branchLabel(!isTrueBranch)), includingItself: true)
         }
         return drawn
     }

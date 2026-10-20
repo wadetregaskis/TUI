@@ -256,6 +256,7 @@ extension TupleView: ChildViewProvider {
         // and the whole-view path agree on where a branch's children live.
         let branch = provider.identityBranchLabel
         if let branch {
+            noteConditionalArm(branch, in: providerContext)
             providerContext = providerContext.withBranchIdentity(branch)
         }
         for entry in provider.childViews(context: providerContext) {

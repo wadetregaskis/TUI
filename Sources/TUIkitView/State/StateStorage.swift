@@ -785,6 +785,32 @@ extension StateStorage {
         animations.removeDescendants(of: ancestor, includingItself: includingItself)
     }
 
+    /// Drops the state of the view an `if` without an `else` held at
+    /// `scope`, now that it holds none (``DefaultTransition``'s records).
+    ///
+    /// Everything below `scope`, and — where the view drew at `scope` itself
+    /// (`heldAt`), as an `if` drawing its view directly hands it its own
+    /// identity — the view's own declaration-order properties there (scope
+    /// `0`, indices `0...`). Not the negative indices there: those are the
+    /// infrastructure of wrappers that draw their content at their own
+    /// identity, which may be around the `if` rather than inside it.
+    package func dropOptionalContent(at scope: ViewIdentity, heldAt: ViewIdentity?) {
+        let ownProperties = heldAt == scope
+        let isStale = { (key: StateKey) in
+            scope.isAncestor(of: key.identity)
+                || (ownProperties && key.identity == scope && key.scope == 0 && key.propertyIndex >= 0)
+        }
+        let staleKeys = values.keys.filter(isStale)
+        for key in staleKeys {
+            dropValue(forKey: key)
+        }
+        let staleTrackedKeys = trackedValues.keys.filter(isStale)
+        for key in staleTrackedKeys {
+            trackedValues.removeValue(forKey: key)
+        }
+        animations.removeDescendants(of: scope, includingItself: false)
+    }
+
     /// Removes all stored state. Used during app cleanup.
     public func reset() {
         for value in values.values {

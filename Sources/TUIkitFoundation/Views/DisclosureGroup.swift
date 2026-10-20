@@ -155,6 +155,13 @@ public struct DisclosureGroup<Label: View, Content: View>: View {
 /// subtree is collected on the next pass. Nothing is kept alive by a section
 /// that is no longer there.
 ///
+/// The `if` that hides the content as the group collapses is told so too, as
+/// `keepsStateWhileHidden()` tells the conditionals inside it
+/// (``EnvironmentValues/keepsHiddenState``): it drops what it held the moment it
+/// empties, which would undo the retention on the very frame the group closes.
+/// Only while collapsed: inside an open group's content, an `if` drops the view
+/// it removes, as SwiftUI's does.
+///
 /// - Note: This is a deliberate divergence from SwiftUI, where a collapsed
 ///   group's content leaves the hierarchy and takes its `@State` with it. The
 ///   retention is not total: it covers `@State`, `onChange` baselines and
@@ -174,13 +181,22 @@ private struct _DisclosedStateRetainer<Content: View>: View, Renderable, Layouta
         if isCollapsed, !context.isMeasuring {
             context.stateStorage?.retainSubtree(context.identity)
         }
-        return TUIkitView.renderToBuffer(content, context: context)
+        return TUIkitView.renderToBuffer(content, context: contentContext(context))
     }
 
     /// Transparent: the wrapper adds no chrome and no identity step, so it
     /// measures exactly as what it wraps.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(content, proposal: proposal, context: context)
+        measureChild(content, proposal: proposal, context: contentContext(context))
+    }
+
+    /// `context`, telling the conditional that hides the content to keep what
+    /// it hides while the group is collapsed.
+    private func contentContext(_ context: RenderContext) -> RenderContext {
+        guard isCollapsed else { return context }
+        var inner = context
+        inner.environment.keepsHiddenState = true
+        return inner
     }
 }
 

@@ -59,13 +59,17 @@ extension Optional: Renderable where Wrapped: View {
         switch self {
         case .some(let view):
             let buffer = TUIkitView.renderToBuffer(view, context: context)
-            guard DefaultTransition.applies(toPictureType: departingPictureType(heldAs: Wrapped.self))
-            else { return buffer }
+            guard DefaultTransition.applies(toPictureType: departingPictureType(heldAs: Wrapped.self)) else {
+                DefaultTransition.held(scope: context.identity, drawnAt: context.identity, context: context)
+                return buffer
+            }
             return DefaultTransition.present(buffer, scope: context.identity, context: context)
         case .none:
             let pictureType = departingPictureType(heldAs: Wrapped.self)
             if DefaultTransition.applies(toPictureType: pictureType) {
                 DefaultTransition.absent(scope: context.identity, pictureType: pictureType, context: context)
+            } else {
+                DefaultTransition.emptied(scope: context.identity, context: context)
             }
             // An `if` without an `else` is the commonest way a view is removed,
             // and this slot is the only thing left of it: the view is gone from

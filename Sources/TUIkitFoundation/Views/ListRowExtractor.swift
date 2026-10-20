@@ -292,15 +292,8 @@ extension ConditionalView: ListRowsPassThrough {
     /// came back expanded after a flip away and back, where a conditional
     /// drawn any other way starts it afresh, as SwiftUI does.
     package func noteLookedThrough(in context: RenderContext) {
-        guard !context.isMeasuring, let stateStorage = context.stateStorage else { return }
-        let isTrueBranch: Bool
-        switch self {
-        case .trueContent: isTrueBranch = true
-        case .falseContent: isTrueBranch = false
-        }
-        if stateStorage.recordConditionalBranch(context.identity, isTrueBranch: isTrueBranch) {
-            stateStorage.invalidateDescendants(of: context.identity.branch(isTrueBranch ? "false" : "true"))
-        }
+        guard let label = identityBranchLabel else { return }
+        noteConditionalArm(label, in: context)
     }
 
     package static var listRowsContentTypes: [any View.Type] { [TrueContent.self, FalseContent.self] }

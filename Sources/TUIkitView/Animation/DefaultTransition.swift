@@ -56,6 +56,10 @@ struct OptionalPresence {
     /// Whether the `if` had rendered before: `false` on a record made just
     /// now, which is a first sight and never an arrival.
     var seen = false
+    /// Whether the `if` held a view when it last rendered — through its
+    /// default transition or not — so that the render that finds it empty
+    /// drops that view's state (``StateStorage/dropOptionalContent(at:heldAt:)``).
+    var holds = false
 }
 
 /// An `if`'s present view as a stack draws it: unchanged, with its picture
@@ -132,13 +136,50 @@ package enum DefaultTransition {
     }
 
     /// Tells the `if` at `scope` it is empty: what it held starts leaving, if
-    /// it was drawn and this change animates.
+    /// it was drawn and this change animates; and, on the render that finds
+    /// it empty, the view it held loses its state.
     @MainActor
     static func absent(scope: ViewIdentity, pictureType: Any.Type, context: RenderContext) {
         guard let storage = context.stateStorage else { return }
-        storage.absentOptional(
+        let emptied = storage.absentOptional(
             at: scope, pictureType: pictureType, frameAnimation: frameAnimation(context),
             nowNanos: context.environment.frameNowNanos, isMeasuring: context.isMeasuring)
+        dropState(of: emptied, at: scope, storage: storage, context: context)
+    }
+
+    /// Notes that the `if` at `scope` holds a view with a transition of its
+    /// own, which takes no default — drawn at `identity` when the `if` draws
+    /// it itself, below `scope` otherwise — so that the render that finds it
+    /// empty drops the view's state, as ``absent(scope:pictureType:context:)``
+    /// does for the default's. Nothing on a measure.
+    @MainActor
+    static func held(scope: ViewIdentity, drawnAt identity: ViewIdentity?, context: RenderContext) {
+        guard !context.isMeasuring, let storage = context.stateStorage else { return }
+        storage.holdOptional(at: scope, drawnAt: identity)
+    }
+
+    /// Tells the `if` at `scope`, whose view has a transition of its own, that
+    /// it is empty: on the render that finds it so, that view loses its state.
+    @MainActor
+    static func emptied(scope: ViewIdentity, context: RenderContext) {
+        guard !context.isMeasuring, let storage = context.stateStorage else { return }
+        dropState(of: storage.emptyOptional(at: scope), at: scope, storage: storage, context: context)
+    }
+
+    /// Drops the state of the view the `if` at `scope` held, where it has
+    /// just been emptied, as a removed view's state goes in SwiftUI. The prune
+    /// at the pass's end did it wherever nothing retains it; under a container
+    /// that keeps its subtree's — a lazy stack, a `List`, a `Table` — the
+    /// view came back with it (lane MODALS's probe). Not inside
+    /// `keepsStateWhileHidden()`, which asks for the state to be kept, as a
+    /// conditional's flip there keeps it.
+    @MainActor
+    private static func dropState(
+        of emptied: (Bool, heldAt: ViewIdentity?), at scope: ViewIdentity, storage: StateStorage,
+        context: RenderContext
+    ) {
+        guard emptied.0, !context.environment.keepsHiddenState else { return }
+        storage.dropOptionalContent(at: scope, heldAt: emptied.heldAt)
     }
 
     /// `buffer` at `factor` of its strength, as `.opacity` draws it: its
@@ -205,6 +246,7 @@ extension StateStorage {
         record.identity = identity
         record.pass = pass
         record.seen = true
+        record.holds = true
         guard let arrival = record.arrival else { return 1 }
         let elapsed = Double(nowNanos - record.arrivalStartNanos) / 1_000_000_000
         guard !arrival.isFinished(at: elapsed) else {
@@ -223,16 +265,53 @@ extension StateStorage {
     /// else, so it looks the record up rather than making one. A render makes
     /// or changes the record in place, with one access, as
     /// ``presentOptional(at:identity:picture:animation:nowNanos:)`` does.
+    ///
+    /// Returns whether this render emptied it — it held a view when it last
+    /// rendered — and where that view drew; never on a measure.
     func absentOptional(
         at scope: ViewIdentity, pictureType: Any.Type, frameAnimation: Animation?, nowNanos: Int64,
         isMeasuring: Bool
-    ) {
-        if isMeasuring, optionalPresence[scope]?.picture == nil { return }
+    ) -> (Bool, heldAt: ViewIdentity?) {
+        if isMeasuring, optionalPresence[scope]?.picture == nil { return (false, nil) }
         let pass = isMeasuring ? nil : currentPass
-        Self.absent(
+        return Self.absent(
             &optionalPresence[scope, default: OptionalPresence()], pictureType: pictureType,
             frameAnimation: frameAnimation, nowNanos: nowNanos, pass: pass, departures: departures,
             wasOnScreen: { self.wasOnScreenLastPass(writtenOn: $0, at: scope) })
+    }
+
+    /// Records that the `if` at `scope` holds a view with a transition of its
+    /// own (``DefaultTransition/held(scope:drawnAt:context:)``): one access to
+    /// the table, stamped with the pass as ``presentOptional(at:identity:picture:animation:nowNanos:)``
+    /// stamps its record.
+    func holdOptional(at scope: ViewIdentity, drawnAt identity: ViewIdentity?) {
+        let pass = currentPass
+        Self.hold(&optionalPresence[scope, default: OptionalPresence()], drawnAt: identity, pass: pass)
+    }
+
+    private static func hold(_ record: inout OptionalPresence, drawnAt identity: ViewIdentity?, pass: UInt32) {
+        record.holds = true
+        record.identity = identity
+        record.pass = pass
+        record.seen = true
+    }
+
+    /// Records that the `if` at `scope`, whose view has a transition of its
+    /// own, is empty, and returns whether this render emptied it and where its
+    /// view drew. An `if` that never held one has no record, and is looked up
+    /// and left.
+    func emptyOptional(at scope: ViewIdentity) -> (Bool, heldAt: ViewIdentity?) {
+        guard optionalPresence[scope]?.holds == true else { return (false, nil) }
+        let pass = currentPass
+        return Self.empty(&optionalPresence[scope, default: OptionalPresence()], pass: pass)
+    }
+
+    private static func empty(_ record: inout OptionalPresence, pass: UInt32) -> (Bool, heldAt: ViewIdentity?) {
+        let heldAt = record.identity
+        record.holds = false
+        record.identity = nil
+        record.pass = pass
+        return (true, heldAt)
     }
 
     /// ``absentOptional(at:pictureType:frameAnimation:nowNanos:isMeasuring:)``
@@ -242,13 +321,18 @@ extension StateStorage {
     private static func absent(
         _ record: inout OptionalPresence, pictureType: Any.Type, frameAnimation: Animation?, nowNanos: Int64,
         pass: UInt32?, departures: DepartureStore, wasOnScreen: (UInt32) -> Bool
-    ) {
+    ) -> (Bool, heldAt: ViewIdentity?) {
         let lastWritten = record.pass
+        // Emptied by this render: it held a view when it last rendered. A
+        // measure empties nothing.
+        let emptied = pass != nil && record.holds
+        let heldAt = emptied ? record.identity : nil
         if let pass {
             record.pass = pass
             record.seen = true
+            record.holds = false
         }
-        guard let picture = record.picture else { return }
+        guard let picture = record.picture else { return (emptied, heldAt) }
         // A view with a transition of its own left its picture here too, and
         // plays its removal itself — where that picture is all the `if` drew.
         // Where something was drawn round the transition (`X.transition(t)
@@ -271,5 +355,6 @@ extension StateStorage {
         record.picture = nil
         record.identity = nil
         record.arrival = nil
+        return (emptied, heldAt)
     }
 }
