@@ -49,11 +49,14 @@ struct ScrollPositionPerChildTests {
 
     /// `rows` in a lazy or an eager column, in a scroll view bound by id.
     private func column<Rows: View, ID: Hashable>(
-        lazy: Bool, id: Binding<ID?>, @ViewBuilder _ rows: () -> Rows
+        lazy: Bool, id: Binding<ID?>, anchor: UnitPoint? = nil, @ViewBuilder _ rows: () -> Rows
     ) -> AnyView {
         lazy
-            ? AnyView(ScrollView { LazyVStack(alignment: .leading, spacing: 0) { rows() } }.scrollPosition(id: id))
-            : AnyView(ScrollView { VStack(alignment: .leading, spacing: 0) { rows() } }.scrollPosition(id: id))
+            ? AnyView(
+                ScrollView { LazyVStack(alignment: .leading, spacing: 0) { rows() } }
+                    .scrollPosition(id: id, anchor: anchor))
+            : AnyView(
+                ScrollView { VStack(alignment: .leading, spacing: 0) { rows() } }.scrollPosition(id: id, anchor: anchor))
     }
 
     @Test("A loop's row under a heading is reported by its element", arguments: [false, true])
@@ -119,5 +122,28 @@ struct ScrollPositionPerChildTests {
         let screen = frame(view, tui, focus)
         #expect(screen.first?.hasPrefix("fifty") == true, "precondition: \(screen)")
         #expect(visible == 50, "\(screen)")
+    }
+
+    /// The frame a request lands on reports the row it shows. An eager stack
+    /// sampled its row at the offset the view was leaving, which the seek's
+    /// offset replaces only after the stack has drawn: a request for row 20
+    /// wrote back row 0, and a frame later row 20.
+    @Test("The frame a request lands on writes back nothing new", arguments: [false, true])
+    func requestFrameReportsItsRow(lazy: Bool) {
+        let (tui, focus) = (TUIContext(), FocusManager())
+        var visible: Int?
+        var writes: [Int?] = []
+        let binding = Binding<Int?>(get: { visible }, set: { visible = $0; writes.append($0) })
+        let view = column(lazy: lazy, id: binding, anchor: .top) { ForEach(0..<40, id: \.self) { Text("row \($0)") } }
+        frame(view, tui, focus)
+        #expect(writes == [0])
+        visible = 20
+        writes = []
+        for index in 0..<2 {
+            let screen = frame(view, tui, focus)
+            #expect(screen.first?.hasPrefix("row 20") == true, "frame \(index): \(screen)")
+        }
+        #expect(writes.isEmpty, "\(writes)")
+        #expect(visible == 20)
     }
 }

@@ -55,7 +55,14 @@ extension _VStackCore {
             rows.append((ordinal, cursor))
         }
         guard let last = rows.last else { return }
-        let line = window.sampleY(at: unit, contentBelow: window.hasContentBelow(stackBottom: last.bottom))
+        // Sampled where the frame shows the stack: at the offset a seek this
+        // render resolved (`resolveEagerSeek`), which the scroll view adopts
+        // without drawing the stack again. Sampled at the window's own, the
+        // seek's frame wrote back the row the view was leaving, and the next
+        // frame the row it showed: two writes for one request.
+        var shown = window
+        if let resolved = reply.seekResolvedOffset { shown.offset = resolved }
+        let line = shown.sampleY(at: unit, contentBelow: shown.hasContentBelow(stackBottom: last.bottom))
         // The first row whose bottom lies past the sampled line (a line in an
         // inter-row gap belongs to the row below it), clamped to the last row.
         let ordinal = rows.first { line < $0.bottom }?.ordinal ?? last.ordinal
