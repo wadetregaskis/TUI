@@ -165,7 +165,7 @@ extension FrameBuffer {
                 // the ordinary render path), so the other two ride along unchanged.
                 return Self.CellAlpha(
                     layer: values[step % values.count], ink: region.inkOpacity,
-                    field: region.fieldOpacity)
+                    field: region.fieldOpacity, mode: region.blendMode)
             }
             // The group's columns of the row as rebuilt, with the styling in force
             // where they begin carried in front: what the line shows there.

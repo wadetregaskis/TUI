@@ -182,7 +182,6 @@
         "View.layerEffect*",
         "View.distortionEffect*",
         "View.blur*",
-        "View.blendMode*",
         "View.luminanceToAlpha*",
         "View.backgroundExtensionEffect*",
         "View.allowedDynamicRange*",
@@ -192,10 +191,9 @@
         "VisualEffect.blur*",
         "VisualEffect.colorEffect*",
         "VisualEffect.distortionEffect*",
-        "VisualEffect.layerEffect*",
-        "VisualEffect.blendMode*"
+        "VisualEffect.layerEffect*"
       ],
-      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, blur, blend modes, luminance to alpha, the background extension effect (a mirrored, blurred copy) and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Colour and styling/Opacity as composition.md) rather than by blending pixels. Glass ships as a material's surface with a highlighted rim, no refraction (refusal review O5, Deliberate deviations C11)."
+      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, blur, luminance to alpha, the background extension effect (a mirrored, blurred copy) and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Colour and styling/Opacity as composition.md) rather than by blending pixels. Glass ships as a material's surface with a highlighted rim, no refraction (refusal review O5, Deliberate deviations C11)."
     },
     {
       "match": [
@@ -479,10 +477,9 @@
         "VisualEffect.blur*",
         "VisualEffect.colorEffect*",
         "VisualEffect.distortionEffect*",
-        "VisualEffect.layerEffect*",
-        "VisualEffect.blendMode*"
+        "VisualEffect.layerEffect*"
       ],
-      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects, blend modes and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. The colour effects (brightness, contrast, saturation, grayscale, hue rotation) rewrite cell colours and ship, as View modifiers and as visual effects; `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Colour and styling/Opacity as composition.md) rather than by blending pixels. Glass ships as a material's surface with a highlighted rim, no refraction (refusal review O5, Deliberate deviations C11)."
+      "why": "Per-pixel shading: Metal shader functions, colour/layer/distortion effects and dynamic range. Every one of them addresses a sample. A terminal cell has one foreground colour, one background colour and a glyph, with no subpixel to shade. The colour effects (brightness, contrast, saturation, grayscale, hue rotation) rewrite cell colours and ship, as View modifiers and as visual effects; `View.opacity` is the one filter that survives, and it survives by resolving at composite time against whatever is behind it (see Documentation/Colour and styling/Opacity as composition.md) rather than by blending pixels. Glass ships as a material's surface with a highlighted rim, no refraction (refusal review O5, Deliberate deviations C11)."
     },
     {
       "match": [
@@ -595,9 +592,6 @@
     "AssistiveAccess": {
       "why": "A Scene that supplies an alternate interface for iOS's Assistive Access mode. A terminal app has no iOS lifecycle and no system mode to supply one for."
     },
-    "BlendMode": {
-      "why": "Declined by a Wave 16 lane, a decline the Wave 17 review rebutted (refusals re-examined, W5): `.opacity` already renders its subtree as a layer and blends each cell against the one beneath, and a blend mode is that pipeline with a different colour function, separable modes per channel in encoded sRGB. Whether to build it waits on the owner (Open owner decisions, W5); until then it is absent, not refused."
-    },
     "CGPoint.AnimatableData": {
       "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkitFoundation/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
     },
@@ -620,7 +614,7 @@
       "why": "It exists only as the payload of `GraphicsContext.Filter.colorMatrix`, applied per pixel, and with no `GraphicsContext` there is nothing to apply it. A channel transform of a cell's foreground and background is the colour-effect modifiers' ground (`ColorEffectModifiers.swift`)."
     },
     "ColorRenderingMode": {
-      "why": "It selects the colour space a Canvas or an ImageRenderer composites in, linear or non-linear sRGB. TUIkit has neither, and its one blend, `opacity`, is done in encoded sRGB, so the mode would have nothing to select. If `drawingGroup(opaque:colorMode:)` ships (decisions A27), the type comes with it."
+      "why": "It selects the colour space a Canvas or an ImageRenderer composites in, linear or non-linear sRGB. TUIkit has neither, and its blends, `opacity` and the blend modes, are done in encoded sRGB, as macOS draws them, so the mode would have nothing to select. If `drawingGroup(opaque:colorMode:)` ships (decisions A27), the type comes with it."
     },
     "ContentShapeKinds.accessibility": {
       "why": "The accessibility frame and path of a view's accessibility element, for VoiceOver's focus ring and ordering. A screen reader reads a terminal from the text on screen; TUIkit publishes no accessibility elements with frames for a shape to replace. Omitted so the kind fails to compile rather than shape nothing (refusal review P3); ContentShapeKinds ships `.interaction` and `.dragPreview`."

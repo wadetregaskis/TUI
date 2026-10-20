@@ -74,6 +74,8 @@ struct VisualEffectTests {
              Frames().draw(tinted.visualEffect { content, _ in content.grayscale(1) })),
             (Frames().draw(tinted.hueRotation(.degrees(90))),
              Frames().draw(tinted.visualEffect { content, _ in content.hueRotation(.degrees(90)) })),
+            (Frames().draw(tinted.blendMode(.multiply)),
+             Frames().draw(tinted.visualEffect { content, _ in content.blendMode(.multiply) })),
         ]
         for (modifier, effect) in pairs {
             #expect(effect.lines == modifier.lines)

@@ -7525,3 +7525,31 @@ follow-up is to repeat the runs with the lines, or to ask for their steps wherev
 count, a run turning only its glyphs under the label (no render asked for, as before), two
 chained `.overlay`s and two chained row backgrounds (31 renders each, the two runs' steps), and
 the fading layers, the floating labels and the repeated background above as known issues.
+
+## 110. Blend modes ride the same composite (2026-10-19)
+
+`View.blendMode(_:)` and `VisualEffect.blendMode(_:)` mark what a view drew exactly as a fade does:
+one region over its buffer, at opacity 1, carrying a `BlendMode`, after the claims inside it. A
+region with a mode is a claim at any opacity (`isTranslucent` counts it). The fold takes a cell's
+mode from the first covering claim that names one, so a fade inside a blend keeps its alpha and
+takes the mode, and a blend inside a blend keeps its own: no group lies between them to blend
+into. A painter's field claim does not carry one yet (§105; `ShapeStyle.blendMode(_:)` is the
+follow-up).
+
+What changes is `blendLayer`'s two LAYER blends — the ink against what is behind the glyph, the
+field against the field — which take `Color.blending(_:at:over:)` instead of `opacity(_:over:)`:
+`(1 − α)·b + α·B(b, s)` on the encoded sRGB values, which is where macOS blends, measured with the
+W3C formulas and two exceptions (`Tools/SwiftUIProbes/Blend modes`): soft light is
+`(1 − 2s)·b² + 2s·b`, and color dodge and plus lighter are mixed with the alpha before they are
+clamped (half a dodge that would reach 1.29 lands at 1). A translucent colour under a mode is the
+source at its own alpha, not a colour composited within the layer first: `Color.red.opacity(0.5)
+.blendMode(.multiply)` is half a multiply, as macOS draws it. `.normal` takes the old arithmetic
+untouched.
+
+Over nothing — no cell behind, or one that paints neither a glyph nor a field — an arithmetic mode
+is the source as it is, as SwiftUI draws one over a clear backdrop. The operators decide the cell
+instead of mixing: `sourceAtop` paints only what is behind, a glyph behind keeping its place in the
+source's colour (so `Text(…).overlay(gradient.blendMode(.sourceAtop))` draws gradient letters);
+`destinationOver` draws what is behind over the source; `destinationOut` fades what is behind
+toward the page by the source's alpha where the source paints, its glyph going at ½. The glyph
+contest is §6a's: where both sides draw one, the view's at ½ or more, in the blended colour.

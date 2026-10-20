@@ -82,10 +82,15 @@ extension FrameBuffer {
         /// and composited before it (`OpacityRegion.fieldUnderContent`, §105).
         var painterFields: [PainterField] = []
 
-        init(layer: Double, ink: Double = 1, field: Double = 1) {
+        /// How the layer's colours combine with what is behind (``View/blendMode(_:)``):
+        /// the first covering claim's that names one.
+        var mode: BlendMode = .normal
+
+        init(layer: Double, ink: Double = 1, field: Double = 1, mode: BlendMode = .normal) {
             self.layer = layer
             self.ink = ink
             self.field = field
+            self.mode = mode
         }
 
         /// The layer-only spelling, for a caller that has one number.
@@ -485,7 +490,7 @@ extension FrameBuffer {
     /// fades evenly. The same reading is what lets a label thin out over an
     /// empty page: the page's blank cells show their field, and that is the
     /// colour the label fades into.
-    private static func displayedInk(of cell: RowCell?, defaultForeground: Color) -> Color? {
+    static func displayedInk(of cell: RowCell?, defaultForeground: Color) -> Color? {
         guard let cell else { return nil }
         guard cell.character != " " || cell.style.paintsInkOnBlankCell else {
             return cell.background
@@ -542,12 +547,26 @@ extension FrameBuffer {
 
     /// One layer's answer over what is behind it: the whole of the blend for a cell
     /// no painter's translucent field is under.
-    private static func blendLayer(
+    static func blendLayer(
         source: RowCell, destination: RowCell?, alpha: CellAlpha?,
         surface: Color, defaultForeground: Color
     ) -> RowCell {
         // Uncovered: the source stands as it is.
         guard let alpha else { return source }
+        // A blend mode (``View/blendMode(_:)``) other than an arithmetic one over
+        // something decides first which side shows.
+        let mode: BlendMode
+        if alpha.mode == .normal {
+            mode = .normal
+        } else {
+            switch Self.blendingByMode(
+                source: source, destination: destination, alpha: alpha, surface: surface,
+                defaultForeground: defaultForeground)
+            {
+            case .decided(let cell): return cell
+            case .colours(let colourMode): mode = colourMode
+            }
+        }
         // Fully opaque: the layer wins the cell outright — and that is a
         // different statement from "the source stands as it is", which is what
         // this used to say and which put the range's only discontinuity at its
@@ -573,7 +592,7 @@ extension FrameBuffer {
         // translucent ink at full layer strength, and the old single test took
         // "the layer wins the cell outright" and returned the source verbatim —
         // eating the colour's alpha whole.
-        if alpha.layer >= 1, alpha.ink >= 1, alpha.field >= 1 {
+        if alpha.layer >= 1, alpha.ink >= 1, alpha.field >= 1, mode == .normal {
             guard source.background == nil else { return source }
             // Painting nothing at all — no background and no ink — leaves the
             // destination exactly as it was, which is what keeps a fully opaque
@@ -671,9 +690,18 @@ extension FrameBuffer {
         } else {
             inkWithinLayer = sourceInk.map { $0.opacity(alpha.ink, over: ownField) }
         }
-        let foreground =
-            inkWithinLayer.map { $0.opacity(alpha.layer, over: destinationInk) }
-            ?? destination?.foreground
+        let foreground: Color?
+        if mode == .normal {
+            foreground =
+                inkWithinLayer.map { $0.opacity(alpha.layer, over: destinationInk) }
+                ?? destination?.foreground
+        } else {
+            foreground = Self.inkBlended(
+                by: mode, source: source, sourceInk: sourceInk, alpha: alpha,
+                over: destinationInk, sourcePaintsInk: sourcePaintsInk,
+                destinationPaintsInk: destinationPaintsInk)
+                ?? destination?.foreground
+        }
         // The field takes the second blend too, and lands on exactly the number
         // one multiplied blend gave: a field is the bottom of its own layer, so
         // both of its backdrops are `destinationField`, and sequential blends
@@ -681,9 +709,15 @@ extension FrameBuffer {
         // (`c.opacity(a, over: d).opacity(b, over: d) == c.opacity(a * b, over: d)`).
         // Written as two steps regardless, because the first step is the value the
         // ink needs above and computing it twice is how the two drift apart.
+        // Under a blend mode a translucent field is the source at its own alpha, not
+        // a colour composited within the layer first: `(1 − α)·b + α·B(b, s)`, which
+        // is what macOS draws for `Color.red.opacity(0.5).blendMode(.multiply)`.
         let background =
-            fieldWithinLayer.map { $0.opacity(alpha.layer, over: destinationField) }
-            ?? destination?.background
+            mode == .normal
+            ? fieldWithinLayer.map { $0.opacity(alpha.layer, over: destinationField) }
+                ?? destination?.background
+            : source.background.map { $0.blending(mode, at: alpha.layer * alpha.field, over: destinationField) }
+                ?? destination?.background
 
         // Only the glyph needs a DECISION, because a cell can hold one and
         // the contest is between GLYPHS: the cell shows whichever side paints
@@ -1052,13 +1086,13 @@ extension Color {
 // MARK: - A region's three channels
 
 extension OpacityRegion {
-    /// This region's three channels, as one cell's worth of alpha.
+    /// This region's three channels and its blend mode, as one cell's worth of alpha.
     ///
     /// On `OpacityRegion` rather than in the resolver so every caller that
     /// substitutes an alpha for a region — the row rebuild, the run replay, the
     /// cycle phases — reads the same three fields. `OpacityRegion` lives a module
     /// below `FrameBuffer.CellAlpha`, hence the extension here rather than there.
     var cellAlpha: FrameBuffer.CellAlpha {
-        FrameBuffer.CellAlpha(layer: opacity, ink: inkOpacity, field: fieldOpacity)
+        FrameBuffer.CellAlpha(layer: opacity, ink: inkOpacity, field: fieldOpacity, mode: blendMode)
     }
 }

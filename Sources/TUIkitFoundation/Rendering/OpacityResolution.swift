@@ -595,6 +595,9 @@ extension FrameBuffer {
                 }
                 accumulated.ink *= cell.ink
                 accumulated.field *= cell.field
+                // The innermost claim that names a mode: a mode inside a mode is
+                // drawn with its own (there is no group between them to blend into).
+                if accumulated.mode == .normal { accumulated.mode = cell.mode }
                 result[index] = accumulated
             }
         }

@@ -107,10 +107,20 @@ public struct OpacityRegion: Equatable, Sendable {
     /// over it (`Opacity as composition.md` §105).
     public var fieldUnderContent: FieldUnderContent?
 
+    /// How these cells' colours combine with what is behind them
+    /// (``View/blendMode(_:)``): ``BlendMode/normal`` for every claim but a
+    /// blend mode's.
+    ///
+    /// On the region for the reason the alpha is: what is behind is known only
+    /// where the buffer lands. A mode at full opacity is still a claim — a
+    /// multiply at 1 is all of the effect — so ``isTranslucent`` counts it.
+    public var blendMode: BlendMode
+
     public init(
         offsetX: Int, offsetY: Int, width: Int, height: Int, opacity: Double,
         inkOpacity: Double = 1, fieldOpacity: Double = 1,
-        cycle: OpacityCycle? = nil, fieldUnderContent: FieldUnderContent? = nil
+        cycle: OpacityCycle? = nil, fieldUnderContent: FieldUnderContent? = nil,
+        blendMode: BlendMode = .normal
     ) {
         self.offsetX = offsetX
         self.offsetY = offsetY
@@ -123,18 +133,20 @@ public struct OpacityRegion: Equatable, Sendable {
         self.fieldOpacity = min(max(fieldOpacity, 0), 1)
         self.cycle = cycle
         self.fieldUnderContent = fieldUnderContent
+        self.blendMode = blendMode
     }
 
     /// Whether this region says anything at all — the test that decides whether
     /// it is worth resolving.
     ///
-    /// All three channels, because any one of them under 1 is a claim. A region
+    /// All three channels, because any one of them under 1 is a claim, and a
+    /// blend mode, which is a claim at any opacity. A region
     /// at `opacity: 1, inkOpacity: 0.5` is translucent INK at full layer
     /// strength, and dropping it would make a faded colour work inside a `ZStack`
     /// and render opaque on a plain page — the worst shape of bug, because the
     /// plain page is the common case.
     public var isTranslucent: Bool {
-        opacity < 1 || inkOpacity < 1 || fieldOpacity < 1
+        opacity < 1 || inkOpacity < 1 || fieldOpacity < 1 || blendMode != .normal
     }
 
     /// This region moved by `(x, y)` — what a combining operation applies when

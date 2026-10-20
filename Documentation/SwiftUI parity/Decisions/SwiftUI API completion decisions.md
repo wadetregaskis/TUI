@@ -505,8 +505,9 @@ already, `View.clipShape(_:style:)` and `View.contentShape(_:eoFill:)`/`(_:_:eoF
 
 Wave 16 shipped what a cell grid keeps honestly: `clipped(antialiased:)` (the
 cut `ScrollView` and `List` already made) and `compositingGroup()` (a guarantee
-the compositor keeps). `View.shadow(color:radius:x:y:)` followed with O6 (2026-10-18). Blur, blend modes, luminance to alpha and the background
-extension effect joined the map's per-pixel shading family. The rest is yours.
+the compositor keeps). `View.shadow(color:radius:x:y:)` followed with O6 (2026-10-18). Blur, luminance to alpha and the background
+extension effect joined the map's per-pixel shading family; blend modes did too, until W5
+shipped them per cell (2026-10-19). The rest is yours.
 
 **Transforms.** A glyph cannot be scaled or turned, and an affine transform
 of a cell grid is not a cell grid.

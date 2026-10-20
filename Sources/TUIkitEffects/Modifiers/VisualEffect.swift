@@ -243,6 +243,17 @@ extension VisualEffect {
         _OpacityEffect(base: self, opacity: opacity)
     }
 
+    /// Sets the blend mode for compositing the view with overlapping views.
+    ///
+    /// As ``View/blendMode(_:)``: the view's colours are combined with what is
+    /// behind them where it lands.
+    ///
+    /// - Parameter mode: The blend mode to apply.
+    /// - Returns: An effect that applies a blend mode.
+    public func blendMode(_ mode: BlendMode) -> some VisualEffect {
+        _BlendModeEffect(base: self, mode: mode)
+    }
+
     /// Brightens the view by the specified amount.
     ///
     /// - Parameter amount: A value between 0 (no effect) and 1 (full white
@@ -336,6 +347,28 @@ struct _OpacityEffect<Base: VisualEffect>: VisualEffect {
     func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
         drawEffect(
             BufferView(buffer: base._applied(to: buffer, context: context)).opacity(opacity),
+            owner: Self.self, context: context)
+    }
+}
+
+/// A blend mode after `base`.
+struct _BlendModeEffect<Base: VisualEffect>: VisualEffect {
+    var base: Base
+    var mode: BlendMode
+
+    /// A mode does not interpolate: only `base` animates.
+    var animatableData: Base.AnimatableData {
+        get { base.animatableData }
+        set { base.animatableData = newValue }
+    }
+
+    func _holdingMotion(at target: Self) -> Self {
+        Self(base: base._holdingMotion(at: target.base), mode: mode)
+    }
+
+    func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+        drawEffect(
+            BufferView(buffer: base._applied(to: buffer, context: context)).blendMode(mode),
             owner: Self.self, context: context)
     }
 }
