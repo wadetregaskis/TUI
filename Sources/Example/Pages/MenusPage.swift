@@ -22,6 +22,8 @@ import TUIkit
 struct MenusPage: View {
     @State private var contextAction: String = "—"
     @State private var pullDownChoice: String = "—"
+    /// The pull-down's Sort By picker, a submenu of the menu.
+    @State private var sortKey = "page.menus.pullDown.sort.name"
     @State private var editor: String = ""
     @State private var showsHidden = false
     @State private var showsSizes = true
@@ -45,6 +47,16 @@ struct MenusPage: View {
             L("page.menus.pullDown.export"),
         ]
     }
+
+    /// The Copy As submenu's items.
+    private var copyAsItems: [String] {
+        [L("page.menus.pullDown.copyAs.plain"), L("page.menus.pullDown.copyAs.markdown")]
+    }
+
+    /// The Sort By picker's options, by their keys.
+    private let sortKeys = [
+        "page.menus.pullDown.sort.name", "page.menus.pullDown.sort.date", "page.menus.pullDown.sort.size",
+    ]
 
     var body: some View {
         ScrollView {
@@ -141,11 +153,29 @@ struct MenusPage: View {
                         ForEach(pullDownItems, id: \.self) { item in
                             Button(item) { pullDownChoice = item }
                         }
+                        Divider()
+                        // A Menu in a menu is a submenu of it, as in SwiftUI:
+                        // a row with ▸ that opens its own items beside it.
+                        Menu("page.menus.pullDown.copyAs") {
+                            ForEach(copyAsItems, id: \.self) { item in
+                                Button(item) {
+                                    pullDownChoice = "\(L("page.menus.pullDown.copyAs")) ▸ \(item)"
+                                }
+                            }
+                        }
+                        // And a Picker is one too: its options, the selected
+                        // one checked.
+                        Picker("page.menus.pullDown.sortBy", selection: $sortKey) {
+                            ForEach(sortKeys, id: \.self) { key in
+                                Text(verbatim: L(key)).tag(key)
+                            }
+                        }
                     }
                     // As above: the read-out clears as the menu opens, so
                     // choosing `Rename` twice shows two distinct choices.
                     .onMenuOpen { pullDownChoice = "—" }
                     ValueDisplayRow("page.menus.chose", pullDownChoice)
+                    ValueDisplayRow("page.menus.pullDown.sortedBy", L(sortKey))
                 }
             }
 
