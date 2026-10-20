@@ -103,6 +103,8 @@ enum Scenarios {
         KeyRowsScenario.descriptor,
         SheetRowsScenario.descriptor,
         ControlRowsMatrix.descriptor,
+        GridsMatrix.descriptor,
+        PickerRowsMatrix.descriptor,
         StatefulRowsScenario.descriptor,
         KitchenSinkScenario.descriptor,
     ]

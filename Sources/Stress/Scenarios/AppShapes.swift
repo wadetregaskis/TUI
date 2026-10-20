@@ -261,6 +261,9 @@ enum AppShapeMatrix {
         variant("sidebar-untagged", "the same source list answering by the projects' ids — no row built to read a tag") {
             AnyView(ProjectSidebarApp(count: $0.sized(300), seed: $0.seed, tagged: false))
         },
+        variant("sidebar-tabs", "a sidebar-adaptable TabView: two tabs, then a section of 60 looped folder tabs with badges") {
+            AnyView(FolderTabsApp(count: $0.sized(60), seed: $0.seed))
+        },
         variant("grouped-feed", "40 sections, each a heading over its own lazy stack of ~300 one- and two-line entries; the page moves every tick") {
             AnyView(GroupedFeedApp(sections: $0.sized(40), entries: 300, seed: $0.seed, mixedHeights: true))
         },

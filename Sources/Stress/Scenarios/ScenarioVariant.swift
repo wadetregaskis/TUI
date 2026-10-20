@@ -48,6 +48,8 @@ enum ScenarioVariants {
         ControlRowsMatrix.scenarioID: ControlRowsMatrix.variants,
         ModifierChainsScenario.scenarioID: ModifierChainsScenario.variants,
         StatefulRowsScenario.scenarioID: StatefulRowsScenario.variants,
+        GridsMatrix.scenarioID: GridsMatrix.variants,
+        PickerRowsMatrix.scenarioID: PickerRowsMatrix.variants,
     ]
 
     /// The variants of `scenario`, or an empty array for an ordinary scenario.

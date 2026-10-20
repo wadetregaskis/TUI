@@ -98,8 +98,9 @@ with the identity step its body adds. The list stays specialised in the tab
 view's module, at one generic call per section. Price: about 40 lines that
 duplicate what `_SectionActionsView` answers, and every protocol a list asks a
 section must be forwarded and kept so, or a sidebar section silently draws as a
-row. No Stress scenario has a sidebar tab view, so neither is measured; the
-coordinator's A/B cannot see the difference.
+row. No Stress scenario had a sidebar tab view, so neither is measured; the
+coordinator's A/B cannot see the difference. (Since 2026-10-19
+`app-shapes/sidebar-tabs` has one, and `grids` the grids below.)
 
 ### B-SPC3-2. Of plan tier 2's step-C3 callees, only `selectionDisabled(_:)` is annotated
 

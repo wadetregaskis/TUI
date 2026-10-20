@@ -198,6 +198,11 @@ would exist only on the carved side of the coordinator's A/B.
 **The other version:** a `ScenarioVariant` of `controls`, `pickers`: rows of
 a graphical `DatePicker`, a `RadioButtonGroup` and a segmented `Picker`, and
 a second, `grouped-form`, a `Form` in `.formStyle(.grouped)` with an `if`
-section (about 40 lines with their summaries). **Price:** as B-SPB6-2's, two
+section (about 40 lines with their summaries).
+
+**Built 2026-10-19 (lane TOOLING)** as the scenario `pickers`: `rows` (the
+default, so the sweep runs it) and `grouped-form`. `SecureField`, search
+tokens, a timer `ProgressView` and the find bar are still drawn by no
+scenario. **Price:** as B-SPB6-2's, two
 scenarios the sweep runs on every A/B, landed on main before the next carve's
 A/B; worth it before step C8 peels Pickers.

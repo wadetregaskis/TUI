@@ -126,7 +126,13 @@ both trees.
 **The other version:** a `ScenarioVariant` of `dashboard`, `grid`: the same
 metric panels in a `LazyVGrid(columns: [GridItem(.adaptive(minimum: 24))])`,
 and a second, `grid-fixed`, in a `Grid` of `GridRow`s (about 30 lines with
-their summaries). **Price:** a scenario the sweep then runs on every A/B (a
+their summaries).
+
+**Built 2026-10-19 (lane TOOLING), as a scenario of its own rather than a
+`dashboard` variant:** the sweep runs each scenario's default variant only, so
+`grids` takes `lazy` (the panels in an adaptive `LazyVGrid`, the default, and
+what decisions B71 owes a lazy grid's cost to) and `fixed` (a `Grid` of
+`GridRow`s). The sidebar tab view is `app-shapes/sidebar-tabs`. **Price:** a scenario the sweep then runs on every A/B (a
 second or two), landed on main before the next carve's A/B so that both sides
 have it. Worth it before step C4 peels Grid, the first step whose own A/B
 would otherwise have nothing to measure.
