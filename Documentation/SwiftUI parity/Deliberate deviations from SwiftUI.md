@@ -972,6 +972,22 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [DatePicker.swift](../../Sources/TUIkitPickers/Views/DatePicker.swift#L43-L55),
   [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>). **Recorded.**
 
+### T10. `Text`'s own `foregroundStyle` changes at once under an animation
+
+- **SwiftUI:** a colour set inside `withAnimation` fades, whether it is set
+  with `Text`'s own `foregroundStyle(_:) -> Text` or with the `View` modifier
+  (not measured for `Text`'s; documented as animatable).
+- **TUIkit:** the `View` modifier's colour fades, as `.background` and
+  `.border` do; `Text`'s own overload keeps the colour in the view value, so
+  nothing asks the animator and it changes at once
+  (`ColorAnimationTests`). Wrap the text — `VStack { Text(…) }.foregroundStyle(…)`
+  — to fade it.
+- **Why:** fading it would put an animation-store lookup in every `Text`, the
+  most-drawn view, every frame, for every app.
+- **Decided:** WL-Q1 (settled by the owner's rulings, 2026-10-19): study it with
+  A40's cheaper per-`Text` animation state, and adopt it only under the ~1%
+  bar A40 set. **Medium**, until that study.
+
 ---
 
 ## Colour and drawing
