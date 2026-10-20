@@ -34,10 +34,9 @@ struct ImageDemoLayout<Content: View>: View {
         HStack(alignment: .top, spacing: 1) {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // A box rather than a `Divider`, which draws a HORIZONTAL rule
-            // whichever stack it is in (SwiftUI's takes its orientation from
-            // the layout; TUIkit's does not yet). The border is doing the
-            // separating either way, and a box reads as a pane.
+            // A box rather than a `Divider` (which would draw a vertical rule
+            // here, across the row): the border does the separating, and a box
+            // reads as a pane.
             ImageRenderingControls(settings: $settings)
                 .border(.palette.border)
                 .frame(width: Self.paneWidth)
