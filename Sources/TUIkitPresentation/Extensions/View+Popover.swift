@@ -131,7 +131,7 @@ struct _AdaptivePopover<Base: View, Popover: View>: View {
             content: ModalPresentationModifier(
                 content: ModalPresentationModifier(
                     content: base, isPresented: isPresented(as: .sheet, when: form), modal: { popover },
-                    style: .sheet, itemKey: itemKey),
+                    style: .sheet, postsDockWhileDismissed: false, itemKey: itemKey),
                 isPresented: isPresented(as: .fullScreenCover, when: form), modal: { popover }, style: .fullScreen,
                 itemKey: itemKey),
             isPresented: isPresented(as: .popover, when: form), popover: popover,

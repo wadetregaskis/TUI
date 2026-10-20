@@ -68,6 +68,19 @@ public struct ModalPresentationModifier<Content: View, Modal: View>: View {
     /// Resolved against the content once it is built, while it is presented.
     var sizeClasses: PresentationSizeClasses?
 
+    /// Whether the sheet posts a dock while it is dismissed
+    /// (``postUnbuiltDock(sectionID:context:)``), for a sheet presented
+    /// between two frames to dock on its first.
+    ///
+    /// Not where it never could. An `item:` sheet's content is made from the
+    /// item read while its presenter was drawn, which is none while it is
+    /// dismissed (decisions B-MODALS-2). A popover's sheet form is presented
+    /// by a binding that holds the form read while the popover was drawn,
+    /// which is a popover's while it is closed. Posted, each cost a closure,
+    /// a ledger entry and two asks of the root every frame, for an answer
+    /// that is always none.
+    var postsDockWhileDismissed = true
+
     /// The identity key of the item this presentation is ABOUT, or `nil` for
     /// the `isPresented:` forms, which are about nothing in particular.
     ///
@@ -141,7 +154,7 @@ extension ModalPresentationModifier: Renderable {
             // page out by before the walk. Unbuilt: its content is built only
             // if it has been presented by the time the root asks
             // (`postUnbuiltDock`).
-            if style == .sheet { postUnbuiltDock(sectionID: sectionID, context: context) }
+            if style == .sheet, postsDockWhileDismissed { postUnbuiltDock(sectionID: sectionID, context: context) }
             // Tear down the modal focus section if it's still active (the modal
             // was just dismissed). This reverts focus to the page's section AND
             // restores its remembered focus, so the page doesn't jump to its

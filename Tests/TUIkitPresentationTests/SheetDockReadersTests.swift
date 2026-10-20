@@ -57,7 +57,7 @@ private struct WitnessRow: View, Renderable {
 }
 
 @MainActor
-@Suite("A sheet posts its dock only where a root reads it")
+@Suite("Where a sheet posts its dock")
 struct SheetDockReadersTests {
     private static let viewportHeight = 6
 
@@ -126,5 +126,28 @@ struct SheetDockReadersTests {
         frame(view, tuiContext: tuiContext, focusManager: focusManager)
         #expect(focusManager.postedDocks.count == 1, "a root asked, and the sheet posted nothing")
         focusManager.forgetPresentationDocks()
+    }
+
+    /// A dismissed sheet posts so that one presented between two frames
+    /// docks on its first. Two never can: an `item:` sheet's content is made
+    /// from the item read while it was dismissed, which is none, and a closed
+    /// popover's sheet form is presented by a binding that holds the form
+    /// read while it was closed. Each posted every frame all the same.
+    @Test("A dismissed item: sheet and a closed popover post no dock, which could never dock")
+    func postsOnlyWhatCouldDock() {
+        struct Note: Identifiable { let id: Int }
+        let item = Binding<Note?>.constant(nil)
+        let views: [(String, AnyView)] = [
+            ("item: sheet", AnyView(Text("page").sheet(item: item) { _ in Text("sheet") })),
+            ("popover", AnyView(Text("page").popover(isPresented: .constant(false)) { Text("popover") })),
+        ]
+        for (name, view) in views {
+            let tuiContext = TUIContext()
+            let focusManager = FocusManager()
+            _ = focusManager.presentationDock(in: 20, storage: tuiContext.stateStorage)
+            frame(view, tuiContext: tuiContext, focusManager: focusManager)
+            #expect(focusManager.postedDocks.isEmpty, "the \(name) posted a dock")
+            focusManager.forgetPresentationDocks()
+        }
     }
 }

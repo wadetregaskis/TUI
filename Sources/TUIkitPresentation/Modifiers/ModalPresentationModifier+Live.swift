@@ -164,9 +164,9 @@ extension ModalPresentationModifier {
     /// root asks, before the walk, and only then — presented by then — builds
     /// the content, to learn whether it lets the page through and at what
     /// detent. A sheet's content is never built while it is dismissed
-    /// (``modal``). An `item:` sheet's content is made from the item its
-    /// presenter was drawn with, which is none while it is dismissed, so its
-    /// first frame is learnt late, and settles on the next.
+    /// (``modal``). Not posted where it could never dock
+    /// (``postsDockWhileDismissed``): an `item:` sheet's first frame is learnt
+    /// late, and settles on the next.
     ///
     /// One closure and one entry in the ledger, and nothing else until the
     /// root asks, which a dismissed sheet answers with one read of its

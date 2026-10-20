@@ -328,6 +328,8 @@ extension View {
     ///   - itemKey: The presented item's identity key, or `nil` when the
     ///     presentation is about nothing in particular. See
     ///     ``ModalPresentationModifier/itemKey``.
+    ///   - isAboutAnItem: Whether this is an `item:` form, whose dismissed
+    ///     sheet can never dock (``ModalPresentationModifier/postsDockWhileDismissed``).
     ///   - onDismiss: Run on the presented → dismissed transition.
     ///   - modal: Builds the content to present — only while it is presented
     ///     (``ModalPresentationModifier/modal``).
@@ -335,10 +337,13 @@ extension View {
         isPresented: Binding<Bool>,
         style: ModalPresentationModifier<Self, Modal>.Style,
         itemKey: String?,
+        isAboutAnItem: Bool = false,
         onDismiss: (() -> Void)?,
         modal: @escaping () -> Modal
     ) -> some View {
-        _AdaptiveModal(base: self, isPresented: isPresented, modal: modal, style: style, itemKey: itemKey)
+        _AdaptiveModal(
+            base: self, isPresented: isPresented, modal: modal, style: style, itemKey: itemKey,
+            postsDockWhileDismissed: !isAboutAnItem)
             // On the app's binding, not the presenter's: a sheet that becomes a
             // cover as the size class changes is not dismissed.
             .onChange(of: isPresented.wrappedValue) { wasPresented, isPresentedNow in
@@ -419,6 +424,7 @@ extension View {
             isPresented: isPresented,
             style: .sheet,
             itemKey: shown.map { identityKey($0.id) },
+            isAboutAnItem: true,
             onDismiss: onDismiss,
             modal: { shown.map(content) })
     }
@@ -440,6 +446,7 @@ struct _AdaptiveModal<Base: View, Modal: View>: View {
     let modal: () -> Modal
     let style: ModalPresentationModifier<Base, Modal>.Style
     let itemKey: String?
+    let postsDockWhileDismissed: Bool
 
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -451,6 +458,7 @@ struct _AdaptiveModal<Base: View, Modal: View>: View {
             modal: modal,
             style: style,
             sizeClasses: PresentationSizeClasses(horizontal: horizontalSizeClass, vertical: verticalSizeClass),
+            postsDockWhileDismissed: postsDockWhileDismissed,
             itemKey: itemKey)
     }
 }
@@ -470,7 +478,8 @@ extension _AdaptiveModal: FormRowRewrapping {
             case .fullScreen: .fullScreen
             }
         return _AdaptiveModal<V, Modal>(
-            base: row, isPresented: isPresented, modal: modal, style: style, itemKey: itemKey)
+            base: row, isPresented: isPresented, modal: modal, style: style, itemKey: itemKey,
+            postsDockWhileDismissed: postsDockWhileDismissed)
     }
 }
 
@@ -535,6 +544,7 @@ extension View {
             isPresented: isPresented,
             style: .fullScreen,
             itemKey: shown.map { identityKey($0.id) },
+            isAboutAnItem: true,
             onDismiss: onDismiss,
             modal: { shown.map(content) })
     }
