@@ -14,6 +14,31 @@ package protocol TypeSelectingFocusHandler: AnyObject {
     var isTypeSelecting: Bool { get }
 }
 
+/// The type select of something that holds the keyboard WITHOUT holding the
+/// focus — an open pop-up menu, whose rows report to its highlight rather than
+/// to the focus ring — published for the frame on the key dispatcher
+/// (``KeyEventDispatcher/setTypeSelectTarget(_:sectionID:)``), where the input
+/// handler asks it as it asks a focused ``TypeSelectingFocusHandler``: a prefix
+/// under way takes every character, and a first one gives way to a bare-key
+/// binding that claims it.
+///
+/// Two closures, as a key handler is one: made where the menu draws, and
+/// called by the input handler, between frames, on the same thread.
+package struct TypeSelectTarget {
+    /// Whether characters typed now continue a prefix.
+    package let isTypeSelecting: () -> Bool
+
+    /// Takes a key for type select, if it is a character it takes, moving the
+    /// highlight to the row the prefix names; answers whether it was taken —
+    /// whether or not a row matched.
+    package let typeSelect: (KeyEvent) -> Bool
+
+    package init(isTypeSelecting: @escaping () -> Bool, typeSelect: @escaping (KeyEvent) -> Bool) {
+        self.isTypeSelecting = isTypeSelecting
+        self.typeSelect = typeSelect
+    }
+}
+
 // MARK: - The typed prefix
 
 /// What a control that finds its rows by typed characters has been typed:
@@ -41,6 +66,12 @@ package struct TypeSelectBuffer {
     package var isTypeSelecting: Bool {
         guard !prefix.isEmpty, let lastKey else { return false }
         return ContinuousClock.now - lastKey <= Self.timeout
+    }
+
+    /// Forgets what was typed: the next character starts a new prefix.
+    package mutating func reset() {
+        prefix = ""
+        lastKey = nil
     }
 
     /// Takes `event` into the prefix — starting a new one after a pause — if

@@ -115,7 +115,11 @@ func renderMenuPopup(
     var rows: [DropdownMenu.Row] = []
     var rowByOrdinal: [Int: Int] = [:]
     var firstRowByOrdinal: [Int: Int] = [:]
+    var titleByOrdinal: [Int: String] = [:]
     for (line, content) in column.lines.enumerated() {
+        if let ordinal = ordinalByLine[line], titleByOrdinal[ordinal] == nil {
+            titleByOrdinal[ordinal] = TypeSelectBuffer.title(ofDrawn: content)
+        }
         if let ordinal = ordinalByLine[line] {
             rowByOrdinal[ordinal] = rows.count
             if firstRowByOrdinal[ordinal] == nil { firstRowByOrdinal[ordinal] = rows.count }
@@ -157,6 +161,7 @@ func renderMenuPopup(
     // Where each row was drawn, as the window just scrolled put it: where a
     // submenu opened from it hangs.
     controller.noteDrawnRows(firstRowByOrdinal, scrolledBy: controller.scroll.scrollOffset)
+    controller.noteTitles(titleByOrdinal)
     return popup
 }
 
@@ -259,6 +264,13 @@ package func presentMenuPopover<Items: View>(
     // siblings are elsewhere in the tree and render into the live dispatcher
     // every frame, keeping their handlers.
     context.environment.keyEventDispatcher!.grabInput(sectionID: sectionID)
+    // A typed character finds a row by its title (type select), in whichever
+    // of the menus open the keys are in: asked by the input handler as a
+    // focused list is asked, after the handler below declines it.
+    context.environment.keyEventDispatcher!.setTypeSelectTarget(
+        TypeSelectTarget(
+            isTypeSelecting: { controller.isTypeSelecting }, typeSelect: { controller.typeSelect($0) }),
+        sectionID: sectionID)
     // Escape closes the MENU, not the page. Claiming the label is what makes
     // that true as well as discoverable: `InputHandler` routes ESC to the focus
     // system before the status bar when an override is posted, and without it

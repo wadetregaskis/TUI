@@ -158,6 +158,10 @@ While something is in hand, the arrow and paging keys scroll whatever the pointe
 
 The `KeyEventDispatcher` iterates handlers registered via `onKeyEvent()` modifiers: in reverse order (newest first). If a handler returns `true`, dispatch stops.
 
+### Layer 2.5: An Open Menu's Type Select
+
+An open pop-up menu holds the keyboard without holding the focus, so its type select is asked here, after its own keys (Layer 2) declined a typed character: the character moves the highlight to the row whose title it starts, in whichever menu or submenu the keys are in. It follows a focused list's rule (Layer 3): a prefix under way takes every character, and a prefix's first character gives way to a bare-key binding that claims it — a row's key equivalent, the quit key, the help key.
+
 ### Layer 3: Focus System (conditional)
 
 Skipped when text input has focus (Layer 0 already ran). Otherwise, `focusManager.dispatchKeyEvent()` first delegates to the focused element's `handleKeyEvent()`, then offers what it declined to SwiftUI's move, exit and delete commands on the views containing it (innermost first — Layer 0 does the same for a text input), then handles ⇥/⇧⇥ for focus cycling, then arrow keys as section navigation fallback.

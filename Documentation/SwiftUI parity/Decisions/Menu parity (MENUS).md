@@ -106,3 +106,33 @@ as deviation W16.
 - **The menu bar's Find submenu** (B-O13-8's fuller version), now that there
   are submenus: Find's own items as a submenu of Edit. Lane O13's to weigh;
   it needs the first item above for their keys.
+
+### B-MENUS-3. Type select in an open drop-down and an open menu follows the list's rule, quit key included
+
+*`TypeSelectBuffer`, `_PickerMenuHandler`, `MenuPopupController.typeSelect(_:)`, `InputHandler` layer 2.5*
+
+A `List` and a `Table` find a row by its first characters; a `Picker`'s open
+drop-down swallowed every character, and an open menu let them fall through.
+On macOS an open menu, and an open pop-up button's menu, take them as type
+select (AppKit's documented menu behaviour; not measured here, the probe's
+window not taking the keyboard on this machine).
+
+**Shipped:** both take them by the list's rule, through one `TypeSelectBuffer`:
+the characters, the second's pause, the match from the highlight, a row found
+by its title from its first letter or digit (so a toggle row's mark, a picker
+option's check or an icon does not hide it). The first character of a prefix
+gives way to a bare-key binding that claims it, as in a list (B77): a menu
+row's own key equivalent, an app's bare shortcut, the quit key, the help key.
+An open menu, which holds the keyboard without the focus, is asked at a layer
+of its own (2.5) after its keys decline the character; the drop-down, a
+focused control, at layer 3 as the list is.
+
+One consequence to know: with a `Picker`'s drop-down open, the quit key as the
+first character of a prefix now quits, where the drop-down swallowed it — the
+list's rule, which the owner settled for bare keys in B77. A menu already let
+it through.
+
+**The fuller version:** a closed `Picker` that type-selects as a focused macOS
+pop-up button does (choosing the option without opening the menu) — unmeasured,
+about two hours with a probe, and a change to what a character does on a
+focused picker, so not done silently.

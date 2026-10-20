@@ -333,8 +333,14 @@ extension InputHandler {
             return true
         }
 
-        // Layer 2: View-registered key handlers (onKeyEvent, Menu arrow keys)
-        if keyEventDispatcher.dispatch(event) {
+        // Layer 2: View-registered key handlers (onKeyEvent, Menu arrow keys).
+        //
+        // Layer 2.5: an open menu's type select. The menu holds the keyboard
+        // without holding the focus, so it is asked here, where a focused
+        // list's type select is asked at layer 3: after the menu's own keys,
+        // and by the same rule — a prefix under way takes every character, and
+        // its first gives way to a bare-key binding that claims it.
+        if keyEventDispatcher.dispatch(event) || openMenuTypeSelect(event) {
             return true
         }
 
@@ -485,9 +491,23 @@ extension InputHandler {
     /// macOS, whose shortcuts take Command, never has to weigh against type
     /// select (decisions B77).
     private func typeSelectGivesWay(_ event: KeyEvent) -> Bool {
-        guard let selecting = focusManager.currentFocused as? any TypeSelectingFocusHandler,
-            !selecting.isTypeSelecting, !event.ctrl, !event.alt,
-            case .character(let character) = event.key
+        guard let selecting = focusManager.currentFocused as? any TypeSelectingFocusHandler else { return false }
+        return typeSelectGivesWay(event, continuingAPrefix: selecting.isTypeSelecting)
+    }
+
+    /// Layer 2.5: offers `event` to the type select of the open menu holding
+    /// the keyboard, if one is, unless it gives way (``typeSelectGivesWay(_:continuingAPrefix:)``).
+    private func openMenuTypeSelect(_ event: KeyEvent) -> Bool {
+        guard let menu = keyEventDispatcher.typeSelectTarget,
+            !typeSelectGivesWay(event, continuingAPrefix: menu.isTypeSelecting())
+        else { return false }
+        return menu.typeSelect(event)
+    }
+
+    /// Whether a type select — a focused list's, or an open menu's — lets
+    /// `event` go past it: see ``typeSelectGivesWay(_:)``.
+    private func typeSelectGivesWay(_ event: KeyEvent, continuingAPrefix: Bool) -> Bool {
+        guard !continuingAPrefix, !event.ctrl, !event.alt, case .character(let character) = event.key
         else { return false }
         if keyboardShortcuts.hasAppShortcut(
             for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal)

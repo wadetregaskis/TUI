@@ -273,6 +273,25 @@ package final class MenuPopupController {
         drawnLines[ordinal]
     }
 
+    // MARK: - Type select
+
+    /// Each row's title as last drawn, by ordinal: what a typed prefix finds
+    /// it by (``TypeSelectBuffer/title(ofDrawn:)``).
+    private var titles: [Int: String] = [:]
+
+    /// What has been typed to find a row, in whichever menu open from this
+    /// one the keys are in.
+    private var typeSelected = TypeSelectBuffer()
+
+    /// The menu the prefix was typed in: one typed in another — the keys gone
+    /// into a submenu, or back out of one — is forgotten.
+    private weak var typedIn: MenuPopupController?
+
+    /// Records the rows' titles, as drawn.
+    func noteTitles(_ titles: [Int: String]) {
+        self.titles = titles
+    }
+
     // MARK: - Submenus
 
     /// The submenu open from this menu — on which row, and its own controller
@@ -342,5 +361,35 @@ package final class MenuPopupController {
             chain.append(open.controller)
         }
         return chain
+    }
+}
+
+extension MenuPopupController {
+    /// Whether characters typed now continue a prefix (``typeSelect(_:)``).
+    var isTypeSelecting: Bool { typeSelected.isTypeSelecting }
+
+    /// Takes a typed character for type select, in the menu the keys are in
+    /// (``keyboardChain``): moves its highlight to the row whose title the
+    /// prefix starts — the next one after the highlight for a first character,
+    /// the one it is on still for a longer prefix — closing a submenu open
+    /// from the row it leaves, as an arrow does.
+    ///
+    /// - Returns: Whether the key was taken — whether or not a row matched.
+    func typeSelect(_ event: KeyEvent) -> Bool {
+        let chain = keyboardChain
+        let menu = chain[chain.count - 1]
+        if typedIn !== menu { typeSelected.reset() }
+        guard typeSelected.take(event) else { return false }
+        typedIn = menu
+        let selectable = menu.highlight.selectable
+        let current = menu.highlightedOrdinal.flatMap(selectable.firstIndex(of:))
+        guard
+            let match = TypeSelectBuffer.match(
+                typeSelected.prefix, count: selectable.count, current: current,
+                text: { menu.titles[selectable[$0]] })
+        else { return true }
+        menu.highlight.move(to: selectable[match])
+        if let open = menu.openSubmenu, open.ordinal != menu.highlightedOrdinal { menu.closeSubmenu() }
+        return true
     }
 }

@@ -70,6 +70,10 @@ import TUIkitFoundation
 /// A `Picker`'s submenu is its options, the selected one checked; written
 /// `.pickerStyle(.inline)` it puts them in the menu itself, under its label.
 ///
+/// Typing a row's first characters in an open menu highlights it (type
+/// select), as in a `List`: the first character of a prefix gives way to a
+/// row's own key equivalent on it.
+///
 /// A menu with a `primaryAction:` splits its control: the label performs the
 /// action, and the menu opens from the caret beside it or by the Down arrow —
 /// see ``init(content:label:primaryAction:)``.

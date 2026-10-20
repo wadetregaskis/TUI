@@ -68,6 +68,10 @@ package final class KeyEventDispatcher: @unchecked Sendable {
     /// them (``clearHandlers()``).
     let modifierKeys = ModifierKeyMonitor()
 
+    /// The type select of the open menu holding the keyboard, and its section
+    /// (``setTypeSelectTarget(_:sectionID:)``). Cleared with the handlers.
+    fileprivate var typeSelect: (target: TypeSelectTarget, sectionID: String)?
+
     /// Creates a new key event dispatcher.
     package init() {}
 }
@@ -143,11 +147,26 @@ extension KeyEventDispatcher {
         grabbingSectionID = id
     }
 
+    /// Publishes, for this frame, the type select of a surface that holds the
+    /// keyboard in `sectionID` without holding the focus — an open pop-up
+    /// menu (``TypeSelectTarget``). Cleared with the handlers.
+    package func setTypeSelectTarget(_ target: TypeSelectTarget, sectionID: String) {
+        typeSelect = (target, sectionID)
+    }
+
+    /// The type select a typed character is offered, if the section that
+    /// published it holds the keyboard.
+    package var typeSelectTarget: TypeSelectTarget? {
+        guard let typeSelect, typeSelect.sectionID == grabbingSectionID else { return nil }
+        return typeSelect.target
+    }
+
     /// Clears all handlers, and any input grab.
     package func clearHandlers() {
         handlers.removeAll()
         focusPathHandlers.removeAll()
         grabbingSectionID = nil
+        typeSelect = nil
         modifierKeys.beginSceneRender()
     }
 
