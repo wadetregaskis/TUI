@@ -300,12 +300,22 @@ struct PropertyWalk {
         }
         if let bound = leaf.identity {
             let path = isOwn ? identity.path : NestedScope.identityPath(of: identity, in: scope)
-            bound.bindRenderIdentity(at: address, path: path, propertyIndex: index)
+            if let placed = leaf.placedIdentity {
+                let pass = storage?.currentPass ?? 0
+                if placed.bindRenderIdentity(at: address, path: path, propertyIndex: index, pass: pass) {
+                    changes += 1
+                }
+            } else {
+                bound.bindRenderIdentity(at: address, path: path, propertyIndex: index)
+            }
         }
         if let placed = leaf.placeEnvironment {
             if placed.resolveEnvironment(at: address, environment, place: identity, storage: storage) {
                 changes += 1
             }
+        } else if let reader = leaf.placedReader {
+            let pass = storage?.currentPass ?? 0
+            if reader.resolveEnvironment(at: address, environment, place: identity, pass: pass) { changes += 1 }
         } else if let resolvable = leaf.environment {
             resolvable.resolveEnvironment(at: address, environment)
         }

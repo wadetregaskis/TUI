@@ -1,0 +1,8 @@
+# macOS 15.8.1, Xcode's swiftc, 2026-10-19
+#### one value drawn twice
+  first (fresh): namespace ID(id: 166)
+  first: handed value's namespace ID(id: 168)
+  ?: namespace ID(id: 169)
+  second (fresh): namespace ID(id: 171)
+  second: handed value's namespace ID(id: 173)
+  ?: namespace ID(id: 174)

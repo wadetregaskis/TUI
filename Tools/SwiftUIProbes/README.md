@@ -85,7 +85,9 @@ messages cite that path), and what cites it.
   `./classmod stored`, `applied`, `fresh`) asks what SwiftUI does with a class that is both a `DynamicProperty` and
   a `ViewModifier`: held in a view's field and never applied, its `update()` runs once per body of the view; applied,
   whether held in a field or made in the body, SwiftUI traps ("view modifiers must be value types").
-- **Ran:** macOS 15.8.1, SwiftUI 6.5.4, 2026-10-10; the second round 2026-10-11; `classmod.swift` 2026-10-19.
+  `twoplaces.swift` (`twoplaces.out`) draws one view value with a `@Namespace` at two places: each place has a
+  namespace of its own.
+- **Ran:** macOS 15.8.1, SwiftUI 6.5.4, 2026-10-10; the second round 2026-10-11; `classmod.swift` and `twoplaces.swift` 2026-10-19.
 - **Was:** `DYNP/optional/`; the second round `DYNV/probe/`.
 - **Cited by:** `Sources/TUIkitView/State/DynamicProperty.swift`,
   `Sources/TUIkitView/State/NestedPropertyBinding.swift`, `Sources/TUIkitView/State/PropertyPlans.swift`,

@@ -21,6 +21,30 @@ import TUIkitView
 /// the manager the render found.
 final class FocusedValueReader {
     weak var focusManager: FocusManager?
+    /// Where it was last resolved (``PlaceResolvedReader``).
+    var stamp = PlaceStamp<ViewIdentity>()
+
+    /// Resolves the reader at `address` for `place` in `pass`, or, where it
+    /// was resolved at another place in this pass, a reader of its own, which
+    /// `install` puts in the copy: what `@FocusedValue` and `@FocusedBinding`
+    /// share (``PlaceResolvedReader``).
+    ///
+    /// - Returns: Whether the copy was given a reader of its own.
+    static func resolve(
+        _ reader: FocusedValueReader, _ environment: EnvironmentValues, place: ViewIdentity, pass: UInt32,
+        install: (FocusedValueReader) -> Void
+    ) -> Bool {
+        if reader.stamp.isSecondPlace(place, in: pass) {
+            let own = FocusedValueReader()
+            own.stamp.stamp(place, in: pass)
+            own.resolve(environment)
+            install(own)
+            return true
+        }
+        reader.stamp.stamp(place, in: pass)
+        reader.resolve(environment)
+        return false
+    }
 
     /// The values published for wherever the focus is now, or an empty table
     /// outside any render's environment.
@@ -92,7 +116,7 @@ final class FocusedValueReader {
 /// focused value (`.disabled(note == nil)`) stays enabled in its open menu.
 @propertyWrapper
 public struct FocusedValue<Value>: DynamicProperty {
-    private let reader = FocusedValueReader()
+    private var reader = FocusedValueReader()
     private let read: (FocusedValues) -> Value?
 
     /// A new property wrapper for the given key path.
@@ -123,6 +147,18 @@ extension FocusedValue: EnvironmentResolvable {
     }
 }
 
+/// Resolved for each place a view value is drawn at, as `@Environment` is.
+extension FocusedValue: PlaceResolvedReader {
+    package static func resolveEnvironment(
+        at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity, pass: UInt32
+    ) -> Bool {
+        let value = address.assumingMemoryBound(to: Self.self)
+        return FocusedValueReader.resolve(value.pointee.reader, environment, place: place, pass: pass) {
+            value.pointee.reader = $0
+        }
+    }
+}
+
 // MARK: - @FocusedBinding
 
 /// A property wrapper for observing and automatically unwrapping state
@@ -146,7 +182,7 @@ extension FocusedValue: EnvironmentResolvable {
 /// follows the same rule as ``FocusedValue``.
 @propertyWrapper
 public struct FocusedBinding<Value>: DynamicProperty {
-    private let reader = FocusedValueReader()
+    private var reader = FocusedValueReader()
     private let keyPath: KeyPath<FocusedValues, Binding<Value>?>
 
     /// A new property wrapper for the given key path.
@@ -183,6 +219,18 @@ public struct FocusedBinding<Value>: DynamicProperty {
 extension FocusedBinding: EnvironmentResolvable {
     public func resolveEnvironment(_ environment: EnvironmentValues) {
         reader.resolve(environment)
+    }
+}
+
+/// Resolved for each place a view value is drawn at, as `@Environment` is.
+extension FocusedBinding: PlaceResolvedReader {
+    package static func resolveEnvironment(
+        at address: UnsafeMutableRawPointer, _ environment: EnvironmentValues, place: ViewIdentity, pass: UInt32
+    ) -> Bool {
+        let binding = address.assumingMemoryBound(to: Self.self)
+        return FocusedValueReader.resolve(binding.pointee.reader, environment, place: place, pass: pass) {
+            binding.pointee.reader = $0
+        }
     }
 }
 

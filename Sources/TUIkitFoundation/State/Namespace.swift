@@ -43,10 +43,18 @@ import TUIkitView
 public struct Namespace: DynamicProperty, RenderIdentityBindable, Sendable {
     /// Where the bound id lives: a reference, so the binding made at render
     /// reaches the copy of the property `body` reads.
-    private let box = Box()
+    private let box: Box
 
     /// Creates a namespace.
-    public init() {}
+    public init() {
+        box = Box()
+    }
+
+    /// A namespace whose id lives in `box`: a copy given a box of its own at a
+    /// second place (``PlaceBoundIdentity``).
+    private init(box: Box) {
+        self.box = box
+    }
 
     /// The namespace's identifier.
     public var wrappedValue: ID {
@@ -87,6 +95,31 @@ public struct Namespace: DynamicProperty, RenderIdentityBindable, Sendable {
     /// rationale as `AssignedFocusID`.
     private final class Box: @unchecked Sendable {
         var id: ID?
+        /// Where it was last bound (``PlaceBoundIdentity``).
+        var stamp = PlaceStamp<String>()
+    }
+}
+
+/// Bound for each place a view value is drawn at: a copy at a second place in
+/// one pass — `HStack { tally; tally }` — takes a box of its own, as SwiftUI
+/// gives each place its own namespace (measured, `twoplaces.out`).
+extension Namespace: PlaceBoundIdentity {
+    package static func bindRenderIdentity(
+        at address: UnsafeMutableRawPointer, path: String, propertyIndex: Int, pass: UInt32
+    ) -> Bool {
+        let namespace = address.assumingMemoryBound(to: Self.self)
+        let id = ID(bound: "namespace::\(path)::\(propertyIndex)")
+        let box = namespace.pointee.box
+        if box.stamp.isSecondPlace(path, in: pass) {
+            let own = Box()
+            own.id = id
+            own.stamp.stamp(path, in: pass)
+            namespace.pointee = Namespace(box: own)
+            return true
+        }
+        if box.id != id { box.id = id }
+        box.stamp.stamp(path, in: pass)
+        return false
     }
 }
 

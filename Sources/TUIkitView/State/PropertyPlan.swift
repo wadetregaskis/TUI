@@ -129,6 +129,12 @@ struct Leaf {
     /// For an `@Environment`, how it is handed one for the place its view is
     /// drawn at, in place of ``environment``.
     let placeEnvironment: (any PlaceResolvedEnvironment.Type)?
+    /// For `@Namespace` and `@FocusState`, how each is bound for the place its
+    /// view is drawn at, in place of ``identity``.
+    let placedIdentity: (any PlaceBoundIdentity.Type)?
+    /// For `@FocusedValue` and `@FocusedBinding`, how each is resolved for the
+    /// place its view is drawn at, in place of ``environment``.
+    let placedReader: (any PlaceResolvedReader.Type)?
 
     /// The leaf for `type`, or `nil` if it is none of the three.
     static func of(_ type: Any.Type) -> Self? {
@@ -136,7 +142,9 @@ struct Leaf {
             state: type as? any StateBindable.Type,
             identity: type as? any RenderIdentityBindable.Type,
             environment: type as? any EnvironmentResolvable.Type,
-            placeEnvironment: type as? any PlaceResolvedEnvironment.Type)
+            placeEnvironment: type as? any PlaceResolvedEnvironment.Type,
+            placedIdentity: type as? any PlaceBoundIdentity.Type,
+            placedReader: type as? any PlaceResolvedReader.Type)
         return leaf.state == nil && leaf.identity == nil && leaf.environment == nil ? nil : leaf
     }
 

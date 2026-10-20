@@ -439,7 +439,7 @@ every modifier, to serve one SwiftUI does not serve: left for the owner. A
 modifier class is the exception: its stored and applied copies are one
 object, a property class, updated as one wherever it is held (above).
 
-### B-DYNVFIX-5. One value drawn at two places keeps a `@State` and an `@Environment` for each place; TUIkit's other wrappers still share one
+### B-DYNVFIX-5. One value drawn at two places keeps each of its properties for each place
 
 *`@State`, `@Environment`, `@FocusState`, `@Namespace`, `@FocusedValue`,
 `@FocusedBinding`*
@@ -466,10 +466,23 @@ backing of its own on every body from then on. An `@Environment` resolved
 for a place that a pass finding the value elsewhere does not draw is
 unplaced at that pass's end, and resolved where it lies from then on.
 
-**Left, the same class:** TUIkit's `@FocusState`, `@Namespace`,
-`@FocusedValue` and `@FocusedBinding` keep a store that every copy shares, and
-are bound or resolved through it. One value drawn at two places still ends
-with the second place's id or focus manager.
+**Since 2026-10-19 the other four too** (decided (b), the owner's rulings
+applied): TUIkit's `@FocusState`, `@Namespace`, `@FocusedValue` and
+`@FocusedBinding` kept a store every copy shared, and were bound or resolved
+through it, so one value drawn at two places ended with the second place's
+id or focus manager. SwiftUI gives each place its own namespace (measured,
+`Tools/SwiftUIProbes/Dynamic property discovery/twoplaces.out`; focus can
+not be measured offscreen, no window there becoming key). Each is now bound
+per place: `@Namespace` and `@FocusState` through `PlaceBoundIdentity`,
+`@FocusedValue` and `@FocusedBinding` through `PlaceResolvedReader`, both
+decided once per type in the walk's plan. The rule is `@State`'s and
+`@Environment`'s, kept by a stamp of where and in which pass the shared
+reference was last bound (`PlaceStamp`): bound at another place in this pass,
+the copy is at a second place and takes a reference of its own; bound
+elsewhere in an earlier pass — a value kept across frames and moved — it is
+rebound where it lies, so a moved value takes no new reference on every body.
+A second place takes one on each walk of a pass, its measure's and its
+draw's, keyed by its place, so what it reads and moves is the same.
 
 **Inside a class property** (lane DYNVCLAIM): the ids of an object's
 `@FocusState` and `@Namespace` are made from a path of the object's own, not a
@@ -480,17 +493,6 @@ value of the view holding it takes the ids of the chain of such objects at its
 place, so its ids stay the same from frame to frame; an object made before the
 pass that first walks it never does, and one found so later takes its own
 (decisions-DYNVCLAIM B-DYNVCLAIM-1).
-
-**The fuller version** gives each the same treatment: a binding at the
-property's address, and a store of its own for a copy at a second place. Its
-price: each wrapper's binding moves from an instance method its public
-protocol (`RenderIdentityBindable`, `EnvironmentResolvable`) declares to one
-at an address, in TUIkitFoundation, where they live, and the case is rare:
-the same focus field or namespace drawn twice at once. Telling a second place
-in one pass from a value kept and moved between frames, as `@State` does with
-its dropped boxes and `@Environment` with its displaced ones, needs the same
-bookkeeping again for each store (fix round 2, 2026-10-12, asked to fix it if
-cheap): not a small change, so left for the owner.
 
 ### B-DYNVFIX-6. Each `@State` notes the render pass it was made in
 

@@ -116,6 +116,9 @@ public final class FocusStateStore<Value: Hashable> {
     /// The value meaning "nothing focused".
     let emptyValue: Value
 
+    /// Where it was last bound (``PlaceBoundIdentity``).
+    var stamp = PlaceStamp<String>()
+
     /// The focus manager, wired by the `.focused` / `.defaultFocus` modifiers as
     /// they render, so event closures (which run with no environment) can still
     /// reach it.
@@ -185,6 +188,12 @@ public final class FocusStateStore<Value: Hashable> {
 public struct FocusState<Value: Hashable>: RenderIdentityBindable {
     /// The shared backing.
     let store: FocusStateStore<Value>
+
+    /// A focus state backed by `store`: a copy given a store of its own at a
+    /// second place (``PlaceBoundIdentity``).
+    private init(store: FocusStateStore<Value>) {
+        self.store = store
+    }
 
     /// The focused value — which bound control holds focus (or the empty
     /// value). Setting it moves focus.
@@ -553,6 +562,31 @@ extension _FocusedModifier: DrawsContentUnchanged {}
 extension _DefaultFocusModifier: DrawsContentUnchanged {}
 
 extension FocusState: FrameworkDynamicProperty {}
+
+/// Bound for each place a view value is drawn at, as `@Namespace` is: a copy
+/// at a second place in one pass takes a store of its own, keyed by that
+/// place, so a closure made in the first place's body moves the first
+/// place's focus. Resolved after it (``EnvironmentResolvable``), into the
+/// store the copy now holds.
+extension FocusState: PlaceBoundIdentity {
+    package static func bindRenderIdentity(
+        at address: UnsafeMutableRawPointer, path: String, propertyIndex: Int, pass: UInt32
+    ) -> Bool {
+        let state = address.assumingMemoryBound(to: Self.self)
+        let storeID = "focusstate::\(path)::\(propertyIndex)"
+        let store = state.pointee.store
+        if store.stamp.isSecondPlace(path, in: pass) {
+            let own = FocusStateStore<Value>(emptyValue: store.emptyValue)
+            own.storeID = storeID
+            own.stamp.stamp(path, in: pass)
+            state.pointee = FocusState(store: own)
+            return true
+        }
+        store.storeID = storeID
+        store.stamp.stamp(path, in: pass)
+        return false
+    }
+}
 
 // MARK: - Default Focus in a Form
 
