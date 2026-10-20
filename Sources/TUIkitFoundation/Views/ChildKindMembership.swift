@@ -16,7 +16,7 @@ import TUIkitView
 
 /// A kind of child a container treats specially, asked about a view's type
 /// before any of its children is resolved (``mayHandOver(_:_:)``).
-package enum ChildKind: Equatable {
+package enum ChildKind: Hashable {
     /// A `Section`: a lazy grid draws them section by section, a lazy stack
     /// keeps them whole, a menu styles them.
     case section
@@ -64,10 +64,32 @@ protocol ChildKindsKnowing {
 /// A view type met again on the way down — a tree view whose body loops over
 /// rows of its own type — answers `false` the second time: what it can hand
 /// over is already being asked of it.
+///
+/// Answered once per type and kind, and kept: it is a fact about the type. A
+/// menu asks it of each of its rows on every render it is not served
+/// (`menuSectionDrawing(of:in:)`), and the walk is a set and a run of
+/// conformance casts each time.
 @MainActor
 func mayHandOver<V: View>(_ kind: ChildKind, _ type: V.Type) -> Bool {
+    let key = HandOverAnswers.Key(kind: kind, type: ObjectIdentifier(type))
+    if let known = HandOverAnswers.known[key] { return known }
     var visited: Set<ObjectIdentifier> = []
-    return mayHandOver(kind, type, visited: &visited)
+    let answer = mayHandOver(kind, type, visited: &visited)
+    HandOverAnswers.known[key] = answer
+    return answer
+}
+
+/// ``mayHandOver(_:_:)``'s answers, per type and kind: types are few and
+/// permanent, so the table grows only to the app's view types, as the
+/// property plans' tables do (`PropertyPlans`).
+@MainActor
+private enum HandOverAnswers {
+    struct Key: Hashable {
+        let kind: ChildKind
+        let type: ObjectIdentifier
+    }
+
+    static var known: [Key: Bool] = [:]
 }
 
 /// ``mayHandOver(_:_:)``, carrying the types already asked.

@@ -59,18 +59,23 @@ struct _MenuSectionedItems<Items: View>: View, Renderable, Layoutable, ChildView
             return resolveChildViews(from: items, context: context)
         }
         let children = resolveChildViews(from: items, context: mayHoldSections ? context.keepingSectionsWhole() : context)
-        var entries: [Entry] = []
-        var setsOffSections = false
-        for child in children {
+        // Nothing among them to set off — the common case, under a menu style's
+        // `configuration.content`, which the type gate cannot see into — leaves
+        // the children as they are, before any entry is made: making one walks
+        // the child's wrappers for a `Divider`. Built for every row of every
+        // inline menu and thrown away, that was 3% of a cold `menus` frame.
+        guard let first = children.firstIndex(where: { sectionParts(of: $0) != nil || menuSectionDrawing(of: $0, in: context) })
+        else { return children }
+        var entries: [Entry] = children[..<first].map {
+            throughWrappers($0.wrappedView, as: Divider.self) != nil ? .divider($0) : .row($0)
+        }
+        for child in children[first...] {
             guard let parts = sectionParts(of: child) else {
-                if appendSetOff(child, to: &entries, in: context) {
-                    setsOffSections = true
-                } else {
+                if !appendSetOff(child, to: &entries, in: context) {
                     entries.append(throughWrappers(child.wrappedView, as: Divider.self) != nil ? .divider(child) : .row(child))
                 }
                 continue
             }
-            setsOffSections = true
             let scope = pinnedScope(of: child, in: context)
             let scoped = parts.scopedParts(in: scope)
             entries.append(.sectionEdge(separator(MenuSectionSeparatorIndex.before, in: scope)))
@@ -86,7 +91,7 @@ struct _MenuSectionedItems<Items: View>: View, Renderable, Layoutable, ChildView
             }
             entries.append(.sectionEdge(separator(MenuSectionSeparatorIndex.after, in: scope)))
         }
-        return setsOffSections ? Self.collapsed(entries) : children
+        return Self.collapsed(entries)
     }
 
     /// Appends `child`, an item that is no `Section`, between the separators
@@ -187,11 +192,18 @@ package protocol MenuSectionDrawing {
 /// drawn in, so the view answers in the environment it will see. A wrapper
 /// that does not say stops the look.
 ///
-/// The view's type is looked for first, through the wrappers, with no context
-/// made: only an item that holds one pays for the walk that applies them.
+/// The view's type is asked first, and that answer is kept per type
+/// (``mayHandOver(_:_:)``): a menu whose content the type gate cannot see
+/// into — a menu style's `configuration.content` — resolves its rows and asks
+/// this of every one of them on every render it is not served, and a walk of
+/// the wrappers with a cast at each was 4.2% of a cold `menus` frame. Only an
+/// item whose type may hold one is looked for through the wrappers, and only
+/// one that does pays for the walk that applies them.
 @MainActor
 private func menuSectionDrawing(of child: ChildView, in context: RenderContext) -> Bool {
-    guard throughWrappers(child.wrappedView, as: (any MenuSectionDrawing).self) != nil else { return false }
+    guard typeMayDrawAsMenuSection(child.wrappedView),
+        throughWrappers(child.wrappedView, as: (any MenuSectionDrawing).self) != nil
+    else { return false }
     var view: any View = child.wrappedView
     var scope = child.renderContext(under: context)
     while true {
@@ -202,6 +214,13 @@ private func menuSectionDrawing(of child: ChildView, in context: RenderContext) 
         view = wrapper.wrappedContent
         scope = inner
     }
+}
+
+/// Whether a view of `view`'s type may be one a menu sets off as a section:
+/// the type gate's answer, the existential opened.
+@MainActor
+private func typeMayDrawAsMenuSection<V: View>(_ view: V) -> Bool {
+    mayHandOver(.menuSection, V.self)
 }
 
 private struct MenuPlacesSectionSeparatorsKey: EnvironmentKey {
