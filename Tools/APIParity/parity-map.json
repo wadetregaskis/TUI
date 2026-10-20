@@ -33,7 +33,7 @@
         "*PreviewProvider*",
         "PreviewModifier*"
       ],
-      "why": "Xcode canvas metadata. It has no runtime meaning in any app, on any platform."
+      "why": "Xcode canvas metadata, with no runtime meaning in any app on any platform; and the canvas reads SwiftUI's own preview protocols, not a TUIkit type of the same name (see `PreviewProvider`)."
     },
     {
       "match": [
@@ -152,7 +152,7 @@
         "Text.init(_:formatter:)",
         "*.appendInterpolation(_:formatter:)"
       ],
-      "why": "The `formatter:` spelling is the pre-`FormatStyle` class API. It parses through an untyped out-parameter — `Formatter.getObjectValue(_:for:errorDescription:)` yields `AnyObject` — so binding it to a `Binding<Int>` is a downcast the compiler cannot check, and SwiftUI's `Text`/interpolation overloads narrow it further to `NSObject` and `ReferenceConvertible`, which are Objective-C bridging protocols rather than Swift ones. The same capability IS implemented in its typed form, where `Strategy.ParseOutput == FormatInput` makes the round-trip a static guarantee: `TextField(_:value:format:)` and its two siblings (Sources/TUIkitTextInput/Views/TextFieldValue.swift), `Text(_:format:)` (Sources/TUIkitFoundation/Views/Text.swift:111) and `\\(value, format:)` in a LocalizedStringKey interpolation. Adding the class spelling beside them would be the same feature with the type safety taken out."
+      "why": "Deferred, not refused for good: the owner's ruling O11 (2026-10-12). SwiftUI has not deprecated the `Formatter` forms, but parsing through one is costly to make portable: `Formatter.getObjectValue(_:for:errorDescription:)`, the parse direction, is internal in Linux Foundation, so a generic parse through an arbitrary Formatter is impossible there and would need a dispatch over Foundation's concrete formatters (refusals re-examined, wave 17, O11). \"We can always add them later if we change our mind.\" The typed forms ship: `TextField(_:value:format:)` and its two siblings (Sources/TUIkitTextInput/Views/TextFieldValue.swift), `Text(_:format:)` (Sources/TUIkitFoundation/Views/Text.swift) and `\\(value, format:)` in a LocalizedStringKey interpolation."
     },
     {
       "match": [
@@ -465,7 +465,7 @@
       "match": [
         "SensoryFeedback*"
       ],
-      "why": "Haptics need hardware a terminal does not have. The rest of this family once declined with it now ships: Spring and every spring animation, spring loading (SpringLoadingBehavior, a paused drag activating a control), and MeshGradient (drawn per cell, or as a picture where the terminal takes one). The Wave 17 review (P11) puts SensoryFeedback to the owner as O8."
+      "why": "Haptics need hardware a terminal does not have, and macOS plays most kinds on none either (Apple's documentation: \"Only plays feedback on iOS and watchOS\"; `.alignment` and `.levelChange` play on a Force Touch trackpad). The owner's ruling O8 (2026-10-12): an API that does nothing on macOS either is refused, failing to compile, as `submitLabel` is (\"we don't implement SwiftUI API we can't actually do anything sensible with\"; refusals re-examined, wave 17, O8). The rest of this family once declined with it now ships: Spring and every spring animation, spring loading (SpringLoadingBehavior, a paused drag activating a control), and MeshGradient (drawn per cell, or as a picture where the terminal takes one)."
     },
     {
       "match": [
@@ -596,7 +596,7 @@
       "why": "A Scene that supplies an alternate interface for iOS's Assistive Access mode. A terminal app has no iOS lifecycle and no system mode to supply one for."
     },
     "BlendMode": {
-      "why": "There is no blend function for it to name. A composite copies each cell over what it covers; the one blend TUIkit performs, `opacity`, resolves at the composite against whatever is behind (Documentation/Colour and styling/Opacity as composition.md). The modes multiply, screen and so on per pixel sample, which a cell does not have: see the per-pixel shading family."
+      "why": "Declined by a Wave 16 lane, a decline the Wave 17 review rebutted (refusals re-examined, W5): `.opacity` already renders its subtree as a layer and blends each cell against the one beneath, and a blend mode is that pipeline with a different colour function, separable modes per channel in encoded sRGB. Whether to build it waits on the owner (Open owner decisions, W5); until then it is absent, not refused."
     },
     "CGPoint.AnimatableData": {
       "why": "SwiftUI conforms CGPoint/CGSize/CGRect to its Animatable; TUIkit cannot conform them to its own. On Apple platforms SwiftUICore's extension of these CoreGraphics types is visible to any module that imports Foundation (a cross-import overlay), and its `AnimatableData` typealias is found before any witness TUIkit could supply, so the conformance fails to compile there (verified 2026-10-03). TUIkit's geometry is whole cells: `CellSize` and `CellRect` are Animatable (Sources/TUIkitFoundation/Rendering/AnimatableGeometry.swift). `CGFloat` IS conformed: Sources/TUIkitCore/Animation/VectorArithmetic.swift."
@@ -632,7 +632,7 @@
       "why": "Converts from AppKit's NSControl.ControlSize. TUIkit links no AppKit, as it must build on Linux; the five sizes are TUIkit's own enum's cases."
     },
     "EdgeInsets.init(_:)": {
-      "why": "Converts from AppKit/UIKit's NSDirectionalEdgeInsets, whose values are points. TUIkit insets count cells, so the conversion would have to invent a point-to-cell scale; and TUIkit links no AppKit, as it must build on Linux."
+      "why": "Converts from AppKit's NSDirectionalEdgeInsets (UIKit's on iOS). TUIkit links no AppKit, as it must build on Linux, as for `ControlSize.init(_:)` and the AppKit bridges' family."
     },
     "EdgeInsets.inset(by:edges:)": {
       "why": "Grows insets by a RectangleCornerInsets, the per-corner radii of a rounded rectangle (declined under its own entry). Cell geometry has no corner radii to add."
@@ -725,7 +725,7 @@
       "why": "Enumerates iOS/macOS/tvOS/watchOS canvases; TUIkit targets a tty on macOS/Linux (Windows in progress) and has no canvas on any of them."
     },
     "PreviewProvider": {
-      "why": "Xcode's canvas instantiates a PreviewProvider and hosts the resulting view in a real view hierarchy. A TUIkit view resolves to a text `FrameBuffer`, with no NSView or UIView to host, so the canvas has nothing to show; the headless equivalent is the public `renderOnce(content:)`."
+      "why": "Xcode's canvas is built for SwiftUI's own protocol: its preview pipeline names it module-qualified, `SwiftUI.PreviewProvider` (strings in Xcode 26.3's PreviewsPipeline, 2026-10-19), and hosts what `previews` returns as SwiftUI content. A TUIkit protocol of that name is a different protocol, so a TUIkit preview would compile and not show (rule 2); whether Xcode would list it and fail, or skip it, is untested. A canvas could show a TUIkit view another way, as a TUI-only feature: `#Preview` takes an NSView, which could draw a `FrameBuffer`. The headless equivalent today is the public `renderOnce(content:)`."
     },
     "ProjectionTransform": {
       "why": "A 3×3 matrix over continuous coordinates, produced by GeometryEffect and consumed by `projectionEffect`. TUIkit's geometry is whole cells with no matrix: its only spatial operation is a whole-cell offset. The transforms wait on decisions A27."
@@ -758,7 +758,7 @@
       "why": "How a variable-value symbol shows its fraction, by colour or by drawing, both defined over the symbol's layers. TUIkit draws a symbol as one glyph with no layers; the terminal's way of showing a fraction is a glyph ramp, which `ProgressView`, `Gauge` and `Slider` draw."
     },
     "TabBarMinimizeBehavior": {
-      "why": "Exists only to feed `tabBarMinimizeBehavior(_:)`; the minimized state is a translucent floating pill at a fraction of the bar's height, which a grid of opaque whole-row cells cannot represent."
+      "why": "Not inert on macOS, so O8 does not cover it: there its one value, `.automatic`, minimises the tab bar when the window is short of room (Apple's documentation; refusals re-examined, wave 17, X4). Honouring it means collapsing a tab view to the compact strip, and what should trigger that is the owner's question TABBARMIN (Open owner decisions); until then it is absent, not refused."
     },
     "Text.Layout": {
       "why": "Lines, runs and run slices with typographic bounds, handed to a `TextRenderer`. TUIkit's laid-out text is a `FrameBuffer` of styled strings with whole-cell widths: no glyphs, no baselines and no fractional positions. It waits with `TextRenderer` on O16 of the refusal review."
@@ -782,7 +782,7 @@
       "why": "Protocol whose draw(layout:in:) receives the text's laid-out lines, runs and slices and a GraphicsContext. Glyphs are not the blocker: a Text.Layout maps onto TUIkit's wrapped lines, style runs and grapheme clusters at known cells. The blocker is the GraphicsContext subset it would need (drawing a run with its style, opacity and a whole-cell translation), and typographic bounds, which have no honest value here. Deferred by the owner on 2026-10-12 (refusal review O16)."
     },
     "ToolbarTitleDisplayMode": {
-      "why": "Exists only to feed `toolbarTitleDisplayMode(_:)`; a cell grid has a single glyph size (TUIkit has no Font type), so `.large`/`.inline`/`.inlineLarge` collapse to one representation."
+      "why": "Exists only to feed `toolbarTitleDisplayMode(_:)`, which macOS ignores: Apple documents `.automatic` and `.inline` as having no effect there, and `.large` is unavailable on macOS (refusals re-examined, wave 17, X4). The owner's ruling O8 (2026-10-12): an API that does nothing on macOS either is refused, failing to compile, as `submitLabel` is (\"we don't implement SwiftUI API we can't actually do anything sensible with\"; refusals re-examined, wave 17, O8). A terminal's one-row title has no large or inline form either (decisions TOOLBARS, C-TOOLBARS-2)."
     },
     "View.allowsTightening(_:)": {
       "why": "It asks the type setter to reduce inter-character spacing so a line fits without truncating. A TUIkit app emits characters and the emulator advances a whole cell per column — 1 for most, 2 for East Asian wide and most emoji, 0 for combining marks. There is no sub-cell spacing to reduce. Fitting text into less space is spelled truncationMode(_:), lineLimit(_:) or ViewThatFits here."
