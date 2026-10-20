@@ -247,6 +247,8 @@ package enum TerminalWidthCorpus {
         Entry(id: "chrome_braille_bottom_left_1", category: "chrome_glyph", text: "\u{28C7}"),  // ⣇ the bottom-leading corner, one dot
         Entry(id: "chrome_braille_bottom_right_1", category: "chrome_glyph", text: "\u{28F8}"),  // ⣸ the bottom-trailing corner, one dot
         Entry(id: "chrome_braille_full", category: "chrome_glyph", text: "\u{28FF}"),  // ⣿ walls and corners from two dots; every edge at four
+        // A search field's clear button (Shortcut.cross), added 2026-10-19.
+        Entry(id: "chrome_cross", category: "chrome_glyph", text: "\u{2717}"),  // ✗ the search field's ✕ — EAW Neutral
     ]
 
     /// Entries of one category.

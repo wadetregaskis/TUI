@@ -8,6 +8,7 @@ import Foundation
 import Testing
 
 @testable import TUIkitApp
+@testable import TUIkitAppTestSupport
 @testable import TUIkitFoundation
 import TUIkitSearch
 @testable import TUIkitStrings
@@ -109,6 +110,35 @@ struct SearchableTests {
         box.query = "apple"
         let out = render(Text("body").searchable(text: binding(box))).joined(separator: "\n")
         #expect(out.contains("apple"), "the current query renders in the field")
+    }
+
+    @Test("A ✗ shows while the field holds text, a click on it empties the field, and it is no Tab stop")
+    func clearButton() throws {
+        let box = QueryBox()
+        let harness = InputChainHarness(width: 40, height: 8)
+        let page = { Text("CONTENT").searchable(text: self.binding(box)) }
+        func screen() -> [String] { harness.frame(page()).lines.map(\.stripped) }
+        harness.frame(page())
+        #expect(!screen().contains { $0.contains("✗") }, "an empty field has no ✗")
+        for character in "abc" { harness.press(KeyEvent(character: character)) }
+        let typed = screen()
+        let row = try #require(typed.firstIndex { $0.contains("✗") }, "\(typed)")
+        let line = typed[row]
+        // After the query, as macOS draws it at the field's trailing end.
+        let query = try #require(line.range(of: "abc"))
+        let cross = try #require(line.firstIndex(of: "✗"))
+        #expect(query.upperBound <= cross)
+        // Not a Tab stop: with the field the only control, Tab keeps it there.
+        let field = harness.focusManager.currentFocusedID
+        harness.press(KeyEvent(key: .tab))
+        harness.frame(page())
+        #expect(harness.focusManager.currentFocusedID == field)
+        // A click empties the field. Every character before the ✗ is one cell.
+        let x = line.distance(from: line.startIndex, to: cross)
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: x, y: row))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: x, y: row))
+        #expect(box.query.isEmpty)
+        #expect(!screen().contains { $0.contains("✗") })
     }
 
     @Test("A custom prompt is displayed")

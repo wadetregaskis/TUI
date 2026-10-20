@@ -1,0 +1,5 @@
+cancel button cell present: true
+cancel button rect (empty): {{234, 1}, {22, 22}}
+text after the cancel button's action: ""
+text after Escape (cancelOperation): ""
+read by eye, macOS 15.8: empty.png shows the magnifier and the prompt, nothing at the trailing end; text.png shows a filled grey ⓧ at the trailing end.

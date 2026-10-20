@@ -1542,6 +1542,14 @@
    "scalars": [
     "U+28FF"
    ]
+  },
+  {
+   "id": "chrome_cross",
+   "class": "chrome_glyph",
+   "text": "✗",
+   "scalars": [
+    "U+2717"
+   ]
   }
  ]
 }

@@ -276,6 +276,8 @@ BATTERY.update({
     "chrome_braille_bottom_left_1": "\u28C7",  # ⣇ — EAW Neutral
     "chrome_braille_bottom_right_1": "\u28F8",  # ⣸ — EAW Neutral
     "chrome_braille_full": "\u28FF",  # ⣿ — EAW Neutral
+    # Added 2026-10-19: the search field's clear button (Shortcut.cross).
+    "chrome_cross": "\u2717",  # ✗ — EAW Neutral
 })
 
 def cursor_col(fd):

@@ -684,3 +684,16 @@ messages cite that path), and what cites it.
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§1, Controls; Presentation),
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (W15, W16),
   `Documentation/SwiftUI parity/Decisions/Menu parity (MENUS).md`.
+
+### Search field clear button
+
+- **Asks:** what a macOS search field shows at its trailing end while it is empty and while it holds text, and
+  what its cancel button's action and Escape (`cancelOperation`) do to the text (`searchclear.swift`,
+  `searchclear.out`). SwiftUI's `.searchable` on macOS is an `NSSearchField` in the toolbar, so the field is made
+  directly, rendered with `cacheDisplay(in:to:)` to two PNGs, and the PNGs read by eye.
+- **Answers:** empty, the field shows the magnifier and the prompt and nothing at its trailing end; with text, a
+  filled grey ⓧ there. Its action and Escape both empty the field.
+- **Ran:** macOS 15.8.1, Xcode's `swiftc`, 2026-10-19.
+- **Cited by:** `Sources/TUIkitSearch/Modifiers/SearchableModifier.swift`,
+  `Tests/TUIkitSearchTests/SearchableTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`
+  (the clear button row), `Documentation/Terminals/Terminal compatibility survey.md` ("The search field's ✕").

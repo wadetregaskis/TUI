@@ -89,7 +89,8 @@ struct SearchableModifier<Content: View>: View {
         return presentationSync(searchStack)
     }
 
-    /// The field, with the icon at its side and any tokens before it.
+    /// The field, with the icon at its side, any tokens before it, and the
+    /// clear button after it while it holds text.
     ///
     /// Backspace in an empty field removes the last token — asked of the row
     /// rather than the field, through `onKeyPress`, which hears the key before
@@ -109,6 +110,11 @@ struct SearchableModifier<Content: View>: View {
             // consumes `.text`.
             queryField
                 .environment(\.submitTriggerRole, .search)
+            // A slot of its own after the field's, so the field stays the same
+            // view as the button comes and goes.
+            if !text.wrappedValue.isEmpty {
+                clearButton
+            }
             if supportsEmojiChrome, iconPlacement == .trailing {
                 icon
             }
@@ -121,6 +127,26 @@ struct SearchableModifier<Content: View>: View {
         } else {
             row
         }
+    }
+
+    /// macOS's cancel button: a ✕ at the field's trailing end while it holds
+    /// text, which empties it (measured on macOS 15.8.1, `Tools/SwiftUIProbes/
+    /// Search field clear button`). Not a Tab stop, as macOS's is not in the
+    /// key view loop: its keyboard route is Ctrl-U, which empties any field.
+    /// Drawn as `Shortcut.cross` (✗, U+2717), the framework's cancel symbol, in
+    /// the secondary ink: a Dingbat of neutral East Asian width, so one cell
+    /// everywhere, where macOS's ⓧ (U+24E7) is ambiguous-width and two cells in
+    /// a CJK terminal (Terminal compatibility survey, "The search field's ✕").
+    private var clearButton: some View {
+        let text = text
+        return Button {
+            text.wrappedValue = ""
+        } label: {
+            Text(verbatim: Shortcut.cross)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .focusable(false)
     }
 
     /// The row under the field — the scopes — when it shows now, or `nil`.

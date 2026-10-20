@@ -238,6 +238,8 @@ struct TerminalLedgerConformanceTests {
         "chrome_braille_bottom_1", "chrome_braille_bottom_2", "chrome_braille_bottom_3", "chrome_braille_left_1",
         "chrome_braille_right_1", "chrome_braille_top_left_1", "chrome_braille_top_right_1",
         "chrome_braille_bottom_left_1", "chrome_braille_bottom_right_1", "chrome_braille_full",
+        // The search field's clear button, added 2026-10-19.
+        "chrome_cross",
     ]
 
     /// The completeness half the suite lacked: it flagged a measurement with

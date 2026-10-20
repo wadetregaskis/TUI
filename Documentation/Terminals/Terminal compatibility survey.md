@@ -862,6 +862,19 @@ by its owning application, Warp by that or its XTVERSION name), into
 `EnvironmentValues.cornerTrianglesFillTheCell`; an unmeasured host gets the
 triangles.
 
+### The search field's ✕ — chosen 2026-10-19, advance not yet measured
+
+macOS's search field shows a filled ⓧ at its trailing end while it holds text,
+and empties it on a click (`Tools/SwiftUIProbes/Search field clear button`).
+TUIkit's `.searchable` field draws `✗` (U+2717, `Shortcut.cross`) there
+instead. ⓧ (U+24E7) is East Asian **Ambiguous**, two cells in a terminal set
+to CJK widths, and a filled circle with a cross needs a colour font's glyph.
+`✗` is a Dingbat of **Neutral** width, one cell by the rule. It is corpus row
+`chrome_cross` from 2026-10-19, so `advance_probe.py` and the overhang card
+draw it. No committed record has it yet, so it waits in
+`ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` on every host and in the
+ledger's `awaitingLandingMeasurement`.
+
 ### Underline shapes and colours (W11b) — read by the owner 2026-10-18
 
 `line_style_card.py` (session notes, `plan/e19/`) prints "Sample text" under
