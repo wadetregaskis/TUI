@@ -77,6 +77,31 @@ barely changes. 6.2.4 and 6.3.3 show the same shape (8,000 to 16,000: 2.2× and 
   ([A-TC1-1](<../../../SwiftUI parity/Decisions/Compile time and binary size/Type-check time (TC1).md#a-tc1-1-exit-tests-bodies-could-move-into-helper-functions>),
   [Future options](<../../../Future options.md#exit-tests-bodies-as-functions>)).
 
+## The modules carved after it (2026-10-19)
+
+The owner asked for a per-module pass once the split had a first solid draft. This record's profile predates
+thirteen modules: Chrome, Effects, Menus, Bitmaps, Lists, TextInput, Tables, Tabs, Grid, Forms, Search, Pickers and
+NumericControls. They were profiled on swift.org 6.4.0, in a debug build of the library (a fresh scratch path) with
+`-warn-long-expression-type-checking=5` and `-warn-long-function-bodies=5`. That reported 152 expressions and 436
+function bodies of 5 ms or more in those modules, on a busy machine. Each candidate was then re-measured by touching
+its file and rebuilding its module three times, keeping the minimum. The two kinds this record describes account for
+the rest:
+
+- **First use.** `_SidebarSectionList.body`'s `List(selection:) { … }`, the worst expression (48 ms of a 66 ms
+  body), stayed at 48–49 ms with the section moved to a method of its own, and again with the whole content moved to
+  a builder method. A trivial `List(selection:) { EmptyView() }` placed before it took the 48 ms, and the real call
+  dropped under 5 ms: the cost belongs to the first use of `List`'s initializers in that frontend, not to the site.
+  The next worst (`List+BindingTree.swift:33`, `Table+Children.swift:53`, `Table+Customization.swift:32`,
+  `List+RequiredSelection.swift:36`, 25–34 ms) have the same shape: one `self.init` into an overloaded set.
+- **Bodies of many cheap expressions.** `TrackRaster.picture` (26 ms, min of 3) has no expression over 6 ms. The
+  two `==` bodies on the list (`ProgressView`, 14 ms; the image placeholder's, 11 ms) are guard lists already, the
+  form this record's fixes used; what they pay is the first use of `==`.
+
+One site was a real one: `PanelToggleButton.name` trimmed a label as
+`String(line.drop { … }.reversed().drop { … }.reversed())`, 11 ms. Found by index, its body went from 16 to 11 ms;
+the 5 ms left is the first use of `String.init`. Nothing else qualified, which is this record's finding for the
+first nine modules too.
+
 ## Side findings
 
 - Swift 6.3.3 could not build TUIkit in release (`Theme.swift:198`, a false data-race error): its `-O` pipeline

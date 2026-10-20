@@ -58,8 +58,12 @@ struct _PanelToggleButton: View, Renderable, Layoutable {
         var labelContext = context
         labelContext.isMeasuring = true
         let line = TUIkitView.renderToBuffer(label, context: labelContext).lines.first?.stripped ?? ""
-        let name = String(line.drop { $0 == " " }.reversed().drop { $0 == " " }.reversed())
-        return name.isEmpty ? nil : name
+        // Trimmed of spaces by index rather than as `drop`/`reversed` twice
+        // over, a chain Swift 6.4.0 took 11 ms to type-check.
+        guard let first = line.firstIndex(where: { $0 != " " }),
+            let last = line.lastIndex(where: { $0 != " " })
+        else { return nil }
+        return String(line[first...last])
     }
 
     private func button(_ toggle: PanelToggle, name: String?, context: RenderContext) -> some View {
