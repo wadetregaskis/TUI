@@ -78,11 +78,13 @@ extension TerminalHost {
     /// | Query | Apple Terminal | Ghostty | Warp | iTerm2 |
     /// |---|---|---|---|---|
     /// | XTVERSION | *silent* | answers | answers | answers |
-    /// | DA1 | `ESC[?1;2c` | `ESC[?62;22c` | `ESC[?62c` | `ESC[?62;…c` |
+    /// | DA1 | `ESC[?1;2c` | `ESC[?62;22;52c` | `ESC[?62c` | `ESC[?62;…c` |
     /// | DA2 | `ESC[>1;95;0c` | `ESC[>1;10;0c` | — | `ESC[>…;…;0c` |
     ///
-    /// (Ghostty's and Warp's replies were read out of their shipped binaries;
-    /// the XTVERSION column is the measured table in
+    /// (Ghostty's and Warp's DA replies were first read out of their shipped
+    /// binaries, where Ghostty's DA1 is `ESC[?62;22c`; asked on 2026-10-19,
+    /// Ghostty 1.3.1 answered `ESC[?62;22;52c` and Warp `ESC[?62c`. The
+    /// XTVERSION column is the measured table in
     /// `Documentation/Terminals/Terminal compatibility survey.md`.)
     ///
     /// All three clauses carry weight, and each excludes something the others

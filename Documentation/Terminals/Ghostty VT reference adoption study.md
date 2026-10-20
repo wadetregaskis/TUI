@@ -311,9 +311,12 @@ that rule. Ghostty's page (and its config reference) adds:
    terminal's own, through the bracketed paste already on.
 5. **No documented size ceiling.** The lane's `clipboard_probe.py` ceiling
    test covers Ghostty.
-6. **DA1 can only add support.** iTerm2's DA1 carries `52` (compat :3090).
-   Ghostty's `ESC[?62;22c` does not, although Ghostty writes by default
-   (`clipboard-write = allow`). The per-`Program` table is therefore the main
+6. **DA1 can only add support.** iTerm2's DA1 carries `52` (compat :3090),
+   with its clipboard setting off as well as on (measured 2026-10-19, 3.7.6),
+   so DA1 cannot say whether a write will arrive. Ghostty's `ESC[?62;22c`, read
+   out of its binary, did not carry it, although Ghostty writes by default
+   (`clipboard-write = allow`); asked on 2026-10-19, Ghostty 1.3.1 answered
+   `ESC[?62;22;52c`, which does. The per-`Program` table is therefore the main
    rung of the ladder, not DA1.
 7. **Locality.** The text-editing study's §4.4 ("both, when both apply",
    using only the `SSH_*` variables) predates the owner's rule. Under the rule,

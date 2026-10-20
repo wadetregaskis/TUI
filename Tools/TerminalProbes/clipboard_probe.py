@@ -56,10 +56,11 @@ empty.
 
 2. **Identity.** XTVERSION, DA1 and DA2, DSR-fenced. Whether `52` is among
    DA1's parameters is recorded on its own: TUIkit lets DA1 *add* a terminal to
-   its table, never take one off (Ghostty writes by default and its DA1 has no
-   52). Run iTerm2 twice, with "Applications in terminal may access clipboard"
-   (Settings > General > Selection) on and off: if DA1's 52 follows the
-   setting, the setting is detectable, which nothing else here can tell.
+   its table, never take one off (a terminal that writes by default need not
+   list 52). Run iTerm2 twice, with "Applications in terminal may access
+   clipboard" (Settings > General > Selection) on and off: if DA1's 52 followed
+   the setting, the setting would be detectable. It does not (iTerm2 3.7.6
+   lists 52 either way, 2026-10-19), and Ghostty 1.3.1 lists it too.
 
 3. **Write.** A fresh nonce as `ESC ] 52 ; c ; <base64> ESC \`, the exact
    spelling TUIkit sends, then the read-back. Also the BEL terminator, and the

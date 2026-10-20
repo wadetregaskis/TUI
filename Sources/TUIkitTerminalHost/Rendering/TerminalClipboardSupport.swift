@@ -53,12 +53,12 @@ extension TerminalClient {
     ///
     /// | Host | Writes | Evidence |
     /// |---|---|---|
-    /// | Ghostty | yes | `clipboard-write = allow` is its default (its OSC 52 page and config reference) |
-    /// | iTerm2 | only with a setting | "Applications in terminal may access clipboard", off by default |
+    /// | Ghostty | yes | `clipboard-write = allow` is its default (its OSC 52 page and config reference); measured 2026-10-19, 1.3.1 |
+    /// | iTerm2 | only with a setting | "Applications in terminal may access clipboard", off by default; measured both ways 2026-10-19, 3.7.6 |
     /// | tmux | only with `set-clipboard on` | `external`, the default, ignores an application's write; `on` keeps it as a buffer and passes it on (measured, 3.7c) |
     /// | GNU screen | no | it passes an application's OSC 52 on only inside its own DCS passthrough, which TUIkit does not send; recognised by `STY`, whatever terminal is named (unmeasured) |
-    /// | Apple Terminal | no | no OSC 52 anywhere in the app |
-    /// | Warp | not known | unmeasured |
+    /// | Apple Terminal | no | no OSC 52 anywhere in the app; measured 2026-10-19, 455.1 |
+    /// | Warp | no | measured 2026-10-19, v0.2026.09.30: no write arrives, and its DA1 (`ESC[?62c`) lists no `52` |
     /// | unidentified | no | unless its Device Attributes list `52` (see ``clipboardWrites``) |
     ///
     /// Three terminals TUIkit has no ``Program`` for are recognised by their
@@ -66,10 +66,9 @@ extension TerminalClient {
     /// (`TERM=xterm-kitty`, `KITTY_WINDOW_ID`), WezTerm (`TERM_PROGRAM=WezTerm`,
     /// `TERM=wezterm`) and foot (`TERM=foot`, `foot-extra`).
     ///
-    /// None of the rows above is measured yet on the hosts themselves except
-    /// tmux's: `clipboard_probe.py` is how they will be, and
-    /// `Documentation/Terminals/Terminal compatibility survey.md`, "OSC 52 clipboard writes",
-    /// keeps the record.
+    /// The four hosts' rows and tmux's are measured, with `clipboard_probe.py`;
+    /// GNU screen's is not. `Documentation/Terminals/Terminal compatibility
+    /// survey.md`, "OSC 52 clipboard writes", keeps the record.
     public static func honoursClipboardWrites(_ program: Program) -> Bool {
         support(of: program) == .honoured
     }
@@ -168,8 +167,10 @@ extension TerminalClient {
     /// 4. The table, and the three terminals recognised by their variables.
     /// 5. A Primary Device Attributes reply carrying `52` raises an
     ///    unsupported answer to unconfirmed. It can only ADD a terminal: a
-    ///    terminal that writes by default need not say so (Ghostty's
-    ///    `ESC[?62;22c` does not), so the table, not DA1, is the main rung.
+    ///    terminal that writes by default need not say so, and DA1 does not
+    ///    follow iTerm2's setting (3.7.6 lists `52` with it off), so the
+    ///    table, not DA1, is the main rung. (Ghostty 1.3.1 does list it:
+    ///    `ESC[?62;22;52c`, measured 2026-10-19.)
     ///    Asked only where the environment named no terminal, so it is the
     ///    rung that reaches an unknown terminal over ssh.
     static func clipboardWrites(
