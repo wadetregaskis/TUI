@@ -100,8 +100,9 @@ public enum ImageLoadError: Error, LocalizedError, CustomStringConvertible {
 /// Formats via the stb_image fallback: PNG, JPEG, GIF, BMP, TGA, HDR, PSD, PNM.
 /// The ImageIO path additionally decodes every raster format the host OS
 /// reads (HEIC, TIFF, WebP, …), and of a file holding several images (an
-/// icon's sizes, a multi-resolution TIFF) the largest; vector formats (PDF,
-/// EPS) are not raster images and are not decoded.
+/// icon's sizes, a multi-resolution TIFF) the largest. On Apple platforms a
+/// PDF is rasterised too, its first page at one pixel a point
+/// (``decodePDF(_:maxPixelCount:)``); EPS is not read.
 public struct PlatformImageLoader: ImageLoader {
 
     public init() {}
@@ -126,6 +127,7 @@ public struct PlatformImageLoader: ImageLoader {
             throw ImageLoadError.fileNotFound(path)
         }
         #if canImport(ImageIO)
+            if let pdf = Self.pdfDocument(atPath: path) { return try decodePDF(pdf, maxPixelCount: maxPixelCount) }
             return try decodeWithImageIO(
                 CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
                 describing: "image at \(path)", maxPixelCount: maxPixelCount)
@@ -143,6 +145,7 @@ public struct PlatformImageLoader: ImageLoader {
     /// - Throws: `ImageLoadError` if the data cannot be decoded or exceeds the limit.
     public func loadImage(from data: Data, maxPixelCount: Int?) throws -> RGBAImage {
         #if canImport(ImageIO)
+            if let pdf = Self.pdfDocument(data: data) { return try decodePDF(pdf, maxPixelCount: maxPixelCount) }
             return try decodeWithImageIO(
                 CGImageSourceCreateWithData(data as CFData, nil), describing: "image data",
                 maxPixelCount: maxPixelCount)
@@ -268,6 +271,58 @@ extension PlatformImageLoader {
 
 #if canImport(ImageIO)
     extension PlatformImageLoader {
+
+        /// A PDF's header, which a file of one begins with.
+        private static let pdfHeader = Array("%PDF-".utf8)
+
+        /// The PDF at `path`, or `nil` where the file is not one: its first bytes
+        /// read, so another image's file costs one short read.
+        static func pdfDocument(atPath path: String) -> CGPDFDocument? {
+            guard let handle = FileHandle(forReadingAtPath: path) else { return nil }
+            defer { try? handle.close() }
+            guard let head = try? handle.read(upToCount: pdfHeader.count), Array(head) == pdfHeader else {
+                return nil
+            }
+            return CGPDFDocument(URL(fileURLWithPath: path) as CFURL)
+        }
+
+        /// The PDF `data` holds, or `nil` where it is not one.
+        static func pdfDocument(data: Data) -> CGPDFDocument? {
+            guard data.starts(with: pdfHeader), let provider = CGDataProvider(data: data as CFData) else {
+                return nil
+            }
+            return CGPDFDocument(provider)
+        }
+
+        /// A PDF's first page, rasterised at one pixel a point, turned as the page
+        /// says, on a clear ground: what `NSImage` drew of one before this loader
+        /// stopped importing AppKit (decisions B50, B-D3M-4), now through Core
+        /// Graphics alone. At a pixel a point the image's natural size is its
+        /// page's, in points, as SwiftUI's is.
+        func decodePDF(_ document: CGPDFDocument, maxPixelCount: Int?) throws -> RGBAImage {
+            guard let page = document.page(at: 1) else {
+                throw ImageLoadError.decodingFailed("PDF has no pages")
+            }
+            let box = page.getBoxRect(.cropBox)
+            let quarterTurns = (page.rotationAngle / 90 % 4 + 4) % 4
+            let turned = quarterTurns % 2 == 1
+            let width = Int((turned ? box.height : box.width).rounded(.up))
+            let height = Int((turned ? box.width : box.height).rounded(.up))
+            guard width > 0, height > 0 else { throw ImageLoadError.decodingFailed("PDF page is empty") }
+            if let limit = maxPixelCount, width * height > limit {
+                throw ImageLoadError.imageTooLarge(pixelCount: width * height, limit: limit)
+            }
+            guard let context = CGContext(
+                data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+            else { throw ImageLoadError.decodingFailed("PDF: no bitmap context") }
+            let target = CGRect(x: 0, y: 0, width: width, height: height)
+            context.concatenate(page.getDrawingTransform(.cropBox, rect: target, rotate: 0, preserveAspectRatio: true))
+            context.drawPDFPage(page)
+            guard let image = context.makeImage() else { throw ImageLoadError.decodingFailed("PDF: nothing drawn") }
+            return try decode(image, maxPixelCount: maxPixelCount)
+        }
 
         /// Decodes the largest image of an ImageIO source (see
         /// ``largestImage(in:)``) into straight-alpha, row-major RGBA (row 0 =

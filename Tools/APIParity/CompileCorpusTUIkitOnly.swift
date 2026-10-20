@@ -17,6 +17,10 @@
 import Foundation
 import TUIkit
 
+#if canImport(CoreGraphics)
+    import CoreGraphics
+#endif
+
 @available(macOS 15, *)
 @MainActor
 private struct FormatStylesWithoutSwiftUICore: View {
@@ -47,3 +51,22 @@ private struct AssetCatalogShapesWithoutAppKit: View {
         .background(Color("Background", bundle: .main))
     }
 }
+
+/// Core Graphics' bridges, with TUIkit alone (decisions B-D3M-4): a `CGColor`
+/// and a `CGImage` into SwiftUI's colour and image, and a colour back out.
+#if canImport(CoreGraphics)
+    @MainActor
+    private struct CoreGraphicsBridgesWithoutAppKit: View {
+        let picture: CGImage
+
+        var body: some View {
+            VStack {
+                Image(picture, scale: 2, label: Text("picture"))
+                Image(decorative: picture, scale: 1, orientation: .up)
+            }
+            .foregroundStyle(Color(cgColor: CGColor(srgbRed: 1, green: 0, blue: 0, alpha: 1)))
+        }
+
+        var cgColor: CGColor { Color.red.resolve(in: EnvironmentValues()).cgColor }
+    }
+#endif

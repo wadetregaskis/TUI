@@ -125,6 +125,15 @@ imports only TUIkit sees nothing of SwiftUICore
   not import SwiftUICore: one module for "Apple's graphics types" reads better
   than a split by which framework happens to import which. Moving them back to
   TUIkit is a few lines if you would rather they need no extra import.
+
+**Built 2026-10-19** (option 4, settled by the parity rule: B50 covered AppKit,
+not Core Graphics): a PDF is read again on Apple platforms, its first page
+rasterised through `CGPDFDocument` at one pixel a point (`PlatformImageLoader`,
+`PDFDecodingTests`), and an asset catalogue's image set may hold one; the
+`CGColor` and `CGImage` bridges are TUIkit's own, behind
+`canImport(CoreGraphics)` (`Color+CoreGraphics.swift` in TUIkitStyling,
+`Image+CoreGraphics.swift` in TUIkitBitmaps). EPS stays unread, and Linux reads
+no PDF.
 - **The doubled statics stay.** Re-measured with a three-module probe: with
   TUIkit free of AppKit, a single declaration on `FormatStyle` serves an app
   that imports TUIkit alone — `Date.now.formatted(.offset(to: d))` included —

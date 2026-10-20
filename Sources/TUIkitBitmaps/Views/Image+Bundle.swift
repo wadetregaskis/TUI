@@ -19,7 +19,8 @@ extension Image {
     /// `swift build`, which builds a terminal app, copies the `.xcassets`
     /// folder into the target's resource bundle as it is. So TUIkit reads
     /// `Name.imageset` in that folder, on every platform: the largest of its
-    /// pictures it can decode (`png`, `jpg`, `jpeg`, `gif`, `bmp` or `tiff`),
+    /// pictures it can decode (`png`, `jpg`, `jpeg`, `gif`, `bmp` or `tiff`, and
+    /// on Apple platforms a vector asset's `pdf`, its first page at its size),
     /// drawn at the scale it was made for, so a `@2x` picture has the natural
     /// size of its `1x` sibling, as in SwiftUI. Where the file imports
     /// `TUIkitAppKit`, a catalogue Xcode compiled (`Assets.car`) is read too,
@@ -78,8 +79,14 @@ extension Image {
         self = Self.bundleResource(named: name, in: bundle) ?? Image(.file(name))
     }
 
-    /// The extensions a named image is looked for with, in order.
-    nonisolated static let resourceExtensions = ["png", "jpg", "jpeg", "gif", "bmp", "tiff"]
+    /// The extensions a named image is looked for with, in order: on Apple
+    /// platforms a PDF too, which the loader rasterises through Core Graphics —
+    /// an Xcode vector asset's image set holds one alone.
+    #if canImport(CoreGraphics)
+        nonisolated static let resourceExtensions = ["png", "jpg", "jpeg", "gif", "bmp", "tiff", "pdf"]
+    #else
+        nonisolated static let resourceExtensions = ["png", "jpg", "jpeg", "gif", "bmp", "tiff"]
+    #endif
 
     /// The image `name` in `bundle` (the main bundle for `nil`): from an
     /// uncompiled asset catalogue, else a plain resource file — or `nil`
