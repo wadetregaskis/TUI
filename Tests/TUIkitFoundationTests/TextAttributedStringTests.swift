@@ -252,6 +252,37 @@ struct TextAttributedStringTests {
         #expect(Text(date, format: .dateTime.year().attributed).runs == nil)
     }
 
+    /// A discrete style whose output says how it looks: the seconds since the
+    /// reference date, in red unless `isPlain`, changing every second.
+    @available(macOS 15, *)
+    private struct HighlightedSeconds: DiscreteFormatStyle {
+        var isPlain = false
+        func format(_ value: Date) -> AttributedString {
+            var string = AttributedString("\(Int(value.timeIntervalSinceReferenceDate))")
+            if !isPlain { string.foregroundColor = .rgb(200, 20, 20) }
+            return string
+        }
+        func discreteInput(before input: Date) -> Date? { input.addingTimeInterval(-1) }
+        func discreteInput(after input: Date) -> Date? { input.addingTimeInterval(1) }
+    }
+
+    @Test("A live Text(_:format:) draws its attributed output's attributes at every read")
+    func liveFormattedOutput() throws {
+        guard #available(macOS 15, *) else { return }
+        let text = Text(.currentDate, format: HighlightedSeconds()).bold()
+        for seconds in [5.0, 6] {
+            let read = try #require(text.readingLive(at: Date(timeIntervalSinceReferenceDate: seconds), in: .current))
+            #expect(read.text.content == "\(Int(seconds))")
+            #expect(read.text.runs?.count == 1)
+            #expect(read.text.runs?.first?.style.foregroundColor == red)
+        }
+        // A plain output reads as a plain text, as before.
+        let plain = try #require(
+            Text(.currentDate, format: HighlightedSeconds(isPlain: true))
+                .readingLive(at: Date(timeIntervalSinceReferenceDate: 0), in: .current))
+        #expect(plain.text.runs == nil)
+    }
+
     // MARK: - Foundation's inline intents
 
     #if canImport(Darwin)

@@ -24,6 +24,12 @@ protocol LiveTextSource: Sendable {
     /// The words at `date`.
     func text(at date: Date, in environment: LiveTextEnvironment) -> String
 
+    /// The words at `date` in the runs they are styled in, for a source whose
+    /// words come with their own look — a format style that colours its
+    /// attributed output (decisions B88); `nil`, the default, where they are
+    /// plain, and ``text(at:in:)`` is read instead.
+    func runs(at date: Date, in environment: LiveTextEnvironment) -> [Text.Run]?
+
     /// The first instant after `date` at which ``text(at:in:)`` reads
     /// differently, or `nil` when it never will again — a finished timer, a
     /// fixed date's time of day.
@@ -40,6 +46,8 @@ protocol LiveTextSource: Sendable {
 }
 
 extension LiveTextSource {
+    func runs(at date: Date, in environment: LiveTextEnvironment) -> [Text.Run]? { nil }
+
     func sizeVariants(at date: Date, in environment: LiveTextEnvironment) -> [String] {
         [text(at: date, in: environment)]
     }
@@ -136,12 +144,25 @@ extension Text {
     func readingLive(at date: Date, in environment: LiveTextEnvironment) -> (text: Text, next: Date?)? {
         guard let runs, runs.contains(where: { $0.live != nil }) else { return nil }
         var next: Date?
-        let read = runs.map { run -> Run in
-            guard let live = run.live else { return run }
+        var read: [Run] = []
+        read.reserveCapacity(runs.count)
+        for run in runs {
+            guard let live = run.live else {
+                read.append(run)
+                continue
+            }
             if let change = live.source.nextChange(after: date, in: environment) {
                 next = min(next ?? change, change)
             }
-            return Run(text: live.source.text(at: date, in: environment), style: run.style, link: run.link)
+            if let styled = live.source.runs(at: date, in: environment) {
+                // The source's own look over the live run's, as an attributed
+                // text's runs sit over the text's style.
+                read += styled.map {
+                    Run(text: $0.text, style: $0.style.merged(over: run.style), link: $0.link ?? run.link)
+                }
+            } else {
+                read.append(Run(text: live.source.text(at: date, in: environment), style: run.style, link: run.link))
+            }
         }
         var text = Text(verbatim: read.map(\.text).joined())
         text.style = style

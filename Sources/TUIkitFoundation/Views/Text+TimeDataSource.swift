@@ -26,9 +26,10 @@ extension Text {
     /// environment's `\.locale`, and asks the run loop for a frame at the
     /// instant the style's `discreteInput(after:)` names — so a reference that
     /// reads "in 5 minutes" is drawn again in a minute, not every frame. The
-    /// output's characters are drawn; its attributes are not yet, though the
-    /// one-off `Text(_:format:)` draws them — a live text reads only words at
-    /// each frame (decisions B88).
+    /// output is drawn as the one-off `Text(_:format:)` draws it: any of
+    /// SwiftUI's attributes a style sets show, at every frame, and Foundation's
+    /// own field attributes are ignored as SwiftUI ignores them (decisions
+    /// B88).
     ///
     /// SwiftUI's reduced-luminance redaction has nothing to act on in a
     /// terminal, which has no always-on display.
@@ -38,7 +39,9 @@ extension Text {
     ///   - format: The discrete format style to format it with.
     public init<V, F>(_ source: TimeDataSource<V>, format: F)
     where V == F.FormatInput, F: DiscreteFormatStyle, F.FormatOutput == AttributedString {
-        self.init(live: FormattedTimeSource(source: source, format: format) { String($0.characters) })
+        self.init(
+            live: FormattedTimeSource(
+                source: source, format: format, output: { String($0.characters) }, styledOutput: Self.styledRuns(of:)))
     }
 
     /// Creates a text view that displays the current system time as defined by
@@ -113,15 +116,26 @@ where Format.FormatInput == Value {
     let source: TimeDataSource<Value>
     let format: Format
     let output: @Sendable (Format.FormatOutput) -> String
+    /// The output's styled runs, for a style whose output is attributed; `nil`
+    /// for a plain one, or for an output with no look of its own.
+    let styledOutput: (@Sendable (Format.FormatOutput) -> [Text.Run]?)?
 
-    init(source: TimeDataSource<Value>, format: Format, output: @escaping @Sendable (Format.FormatOutput) -> String) {
+    init(
+        source: TimeDataSource<Value>, format: Format, output: @escaping @Sendable (Format.FormatOutput) -> String,
+        styledOutput: (@Sendable (Format.FormatOutput) -> [Text.Run]?)? = nil
+    ) {
         self.source = source
         self.format = format
         self.output = output
+        self.styledOutput = styledOutput
     }
 
     func text(at date: Date, in environment: LiveTextEnvironment) -> String {
         output(format.locale(environment.locale).format(source.read(date)))
+    }
+
+    func runs(at date: Date, in environment: LiveTextEnvironment) -> [Text.Run]? {
+        styledOutput.flatMap { $0(format.locale(environment.locale).format(source.read(date))) }
     }
 
     /// The instant the style's next input falls at — a second from now if a

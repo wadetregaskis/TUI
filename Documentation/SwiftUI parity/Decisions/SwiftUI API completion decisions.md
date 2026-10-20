@@ -3345,22 +3345,28 @@ its `Text`, and its placeholder draws the words plain, as SwiftUI's does
 styles not yet
 ([B-PARITYMISC-3](<Small parity items (PARITYMISC).md#b-paritymisc-3-a-column-header-and-a-tab-title-draw-their-keys-markdown-words-not-its-styles>)).
 
-### B88. A live text with an attributed format draws the characters only
+### B88. An attributed format interpolated into a key draws the characters only
 
 *`Text(_:format:)` over a `TimeDataSource` with an `AttributedString` output;
 `LocalizedStringKey.StringInterpolation.appendInterpolation(_:format:)` with
 one*
 
 The one-off `Text(_:format:)` now draws an attributed output's attributes.
-The live form reads only words at each frame (a `LiveTextSource` returns a
-`String`), and an interpolation's arguments are strings. Neither draws the
-attributes.
+An interpolation's arguments are strings, so
+`appendInterpolation(_:format:)` draws only the characters.
+
+**Built 2026-10-19** (lane TEXTEDIT): the live form over a `TimeDataSource`
+draws them too. A live source may return styled runs as well as words, and
+the attributed format's source returns the runs `Text(_:)` keeps of its
+output at each frame, over the live run's own style. A plain output, and every
+other live source, reads words as before.
 
 Foundation's own attributed styles set only field attributes, which say what a
 run is (a year, a day) rather than how it looks, and SwiftUI ignores them too.
 So the only difference is for a custom style that colours its output.
 
-**The fuller version:** a live source that returns runs. About half a day.
+**The fuller version:** an interpolation that keeps an attributed argument's
+runs, which needs the key's substitution to splice runs. Not priced.
 
 ### B89. A control takes the press once the gestures ahead of it give up; it cannot wait
 

@@ -58,16 +58,20 @@ extension Text {
     @_disfavoredOverload
     public init(_ attributedContent: AttributedString) {
         self.init(verbatim: String(attributedContent.characters))
-        let runs = Self.runs(of: attributedContent)
-        // A string with nothing to say about its one run is a plain text, and
-        // takes a plain text's path: no runs at all.
-        if runs.count > 1 || runs.first.map({ $0.style != TextStyle() || $0.link != nil }) == true {
-            self.runs = runs
-        }
+        runs = Self.styledRuns(of: attributedContent)
+    }
+
+    /// The runs a text drawing `string` keeps: ``runs(of:)``, or `nil` for a
+    /// string with nothing to say about its one run, which is a plain text and
+    /// takes a plain text's path. Shared with a live text whose format's output
+    /// is attributed (`FormattedTimeSource`), which reads it off the main actor.
+    nonisolated static func styledRuns(of string: AttributedString) -> [Run]? {
+        let runs = runs(of: string)
+        return runs.count > 1 || runs.first.map({ $0.style != TextStyle() || $0.link != nil }) == true ? runs : nil
     }
 
     /// The runs of `string`, neighbours drawn alike merged into one.
-    static func runs(of string: AttributedString) -> [Run] {
+    nonisolated static func runs(of string: AttributedString) -> [Run] {
         var result: [Run] = []
         for run in string.runs {
             let text = String(string[run.range].characters)
@@ -84,7 +88,7 @@ extension Text {
 
     /// What `run` states, as a run's own style: only what it states, so the
     /// text's modifiers and the environment fill in the rest.
-    private static func style(of run: AttributedString.Runs.Run) -> TextStyle {
+    nonisolated private static func style(of run: AttributedString.Runs.Run) -> TextStyle {
         var style = TextStyle()
         if let color = run.foregroundColor {
             style.foregroundColor = color
