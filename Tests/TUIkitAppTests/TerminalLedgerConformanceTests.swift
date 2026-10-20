@@ -231,6 +231,13 @@ struct TerminalLedgerConformanceTests {
         "chrome_eighth_right", "chrome_eighth_left", "chrome_lower_half", "chrome_upper_half",
         "chrome_quadrant_lower_right", "chrome_quadrant_lower_left",
         "chrome_quadrant_upper_right", "chrome_quadrant_upper_left",
+        // The three-quadrant glyphs of a solid face and a Braille border's glyphs,
+        // added 2026-10-19: advance read by a DSR probe of their own, nothing else.
+        "chrome_quadrant_not_upper_right", "chrome_quadrant_not_lower_right", "chrome_quadrant_not_lower_left",
+        "chrome_quadrant_not_upper_left", "chrome_braille_top_1", "chrome_braille_top_2", "chrome_braille_top_3",
+        "chrome_braille_bottom_1", "chrome_braille_bottom_2", "chrome_braille_bottom_3", "chrome_braille_left_1",
+        "chrome_braille_right_1", "chrome_braille_top_left_1", "chrome_braille_top_right_1",
+        "chrome_braille_bottom_left_1", "chrome_braille_bottom_right_1", "chrome_braille_full",
     ]
 
     /// The completeness half the suite lacked: it flagged a measurement with

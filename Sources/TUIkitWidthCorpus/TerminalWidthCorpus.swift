@@ -219,14 +219,34 @@ package enum TerminalWidthCorpus {
         Entry(id: "chrome_drop_link", category: "chrome_glyph", text: "\u{2197}"),  // ↗ DropOperation.alias — EAW Ambiguous
         Entry(id: "chrome_drop_forbidden", category: "chrome_glyph", text: "\u{2298}"),  // ⊘ DropOperation.forbidden
         // A bordered button's face at each control size and border shape (ButtonFaceEdges), added 2026-10-15.
-        Entry(id: "chrome_eighth_right", category: "chrome_glyph", text: "\u{2595}"),  // ▕ a rounded-rectangle button's leading edge — EAW Ambiguous
-        Entry(id: "chrome_eighth_left", category: "chrome_glyph", text: "\u{258F}"),  // ▏ a rounded-rectangle button's trailing edge — EAW Ambiguous
-        Entry(id: "chrome_lower_half", category: "chrome_glyph", text: "\u{2584}"),  // ▄ a three-row button's top edge — EAW Ambiguous
-        Entry(id: "chrome_upper_half", category: "chrome_glyph", text: "\u{2580}"),  // ▀ a three-row button's bottom edge — EAW Ambiguous
+        Entry(id: "chrome_eighth_right", category: "chrome_glyph", text: "\u{2595}"),  // ▕ no chrome since 10-15; a brackets(_:_:) pair (FB14) — EAW Ambiguous
+        Entry(id: "chrome_eighth_left", category: "chrome_glyph", text: "\u{258F}"),  // ▏ its trailing half — EAW Ambiguous
+        Entry(id: "chrome_lower_half", category: "chrome_glyph", text: "\u{2584}"),  // ▄ a shape's half-row edge (ShapeHalfBlocks) — EAW Ambiguous
+        Entry(id: "chrome_upper_half", category: "chrome_glyph", text: "\u{2580}"),  // ▀ the same, from above — EAW Ambiguous
         Entry(id: "chrome_quadrant_lower_right", category: "chrome_glyph", text: "\u{2597}"),  // ▗ a three-row button's top-leading corner
         Entry(id: "chrome_quadrant_lower_left", category: "chrome_glyph", text: "\u{2596}"),  // ▖ a three-row button's top-trailing corner
         Entry(id: "chrome_quadrant_upper_right", category: "chrome_glyph", text: "\u{259D}"),  // ▝ a three-row button's bottom-leading corner
         Entry(id: "chrome_quadrant_upper_left", category: "chrome_glyph", text: "\u{2598}"),  // ▘ a three-row button's bottom-trailing corner
+        // The three-quadrant glyphs a solid face's corners curve with (ButtonBorderShape, `▗▟`), added 2026-10-19.
+        Entry(id: "chrome_quadrant_not_upper_right", category: "chrome_glyph", text: "\u{2599}"),  // ▙ a solid face's curve, top-trailing
+        Entry(id: "chrome_quadrant_not_lower_right", category: "chrome_glyph", text: "\u{259B}"),  // ▛ a solid face's curve, bottom-trailing
+        Entry(id: "chrome_quadrant_not_lower_left", category: "chrome_glyph", text: "\u{259C}"),  // ▜ a solid face's curve, bottom-leading
+        Entry(id: "chrome_quadrant_not_upper_left", category: "chrome_glyph", text: "\u{259F}"),  // ▟ a solid face's curve, top-leading
+        // A Braille border's glyphs at each thickness (BorderStyle.braille(thickness:)), added 2026-10-19. A Braille
+        // button face rasterises its shape and can draw any pattern of the block; these stand for the class.
+        Entry(id: "chrome_braille_top_1", category: "chrome_glyph", text: "\u{2809}"),  // ⠉ the top edge, one dot
+        Entry(id: "chrome_braille_top_2", category: "chrome_glyph", text: "\u{281B}"),  // ⠛ the top edge, two dots
+        Entry(id: "chrome_braille_top_3", category: "chrome_glyph", text: "\u{283F}"),  // ⠿ the top edge, three dots
+        Entry(id: "chrome_braille_bottom_1", category: "chrome_glyph", text: "\u{28C0}"),  // ⣀ the bottom edge, one dot
+        Entry(id: "chrome_braille_bottom_2", category: "chrome_glyph", text: "\u{28E4}"),  // ⣤ the bottom edge, two dots
+        Entry(id: "chrome_braille_bottom_3", category: "chrome_glyph", text: "\u{28F6}"),  // ⣶ the bottom edge, three dots
+        Entry(id: "chrome_braille_left_1", category: "chrome_glyph", text: "\u{2847}"),  // ⡇ the leading wall, one dot
+        Entry(id: "chrome_braille_right_1", category: "chrome_glyph", text: "\u{28B8}"),  // ⢸ the trailing wall, one dot
+        Entry(id: "chrome_braille_top_left_1", category: "chrome_glyph", text: "\u{284F}"),  // ⡏ the top-leading corner, one dot
+        Entry(id: "chrome_braille_top_right_1", category: "chrome_glyph", text: "\u{28B9}"),  // ⢹ the top-trailing corner, one dot
+        Entry(id: "chrome_braille_bottom_left_1", category: "chrome_glyph", text: "\u{28C7}"),  // ⣇ the bottom-leading corner, one dot
+        Entry(id: "chrome_braille_bottom_right_1", category: "chrome_glyph", text: "\u{28F8}"),  // ⣸ the bottom-trailing corner, one dot
+        Entry(id: "chrome_braille_full", category: "chrome_glyph", text: "\u{28FF}"),  // ⣿ walls and corners from two dots; every edge at four
     ]
 
     /// Entries of one category.

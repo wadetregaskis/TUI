@@ -764,10 +764,24 @@ resolution. **Advance measured** with a DSR probe
 (`dots_probe.py`, kept with the cards in the session notes) for the 36 Braille
 glyphs the faces and borders draw and the four three-quadrant glyphs `▙ ▛ ▜ ▟`
 of the solid faces: **one cell each** on Apple Terminal 455.1, iTerm2 3.7.5 and
-Warp v0.2026.09.30.08.29; Ghostty **not yet measured** (its run did not start).
+Warp v0.2026.09.30.08.29, and on Ghostty 1.3.1 the next evening (2026-10-16;
+its first run had not started). That probe's results are kept with the cards,
+not under `Tools/TerminalProbes/data/`.
 Braille Patterns are East Asian Neutral, so one cell is the rule; how each host
 draws a dot's size and spacing — font glyphs or drawn shapes — is not yet
 judged, and Apple Terminal's block-element shortfall may apply to them too.
+
+Since 2026-10-19 the four three-quadrant glyphs and the thirteen glyphs a
+Braille border draws at its four thicknesses are corpus rows
+(`chrome_quadrant_not_*`, `chrome_braille_*`), so `advance_probe.py` and the
+cards draw them. A Braille *face* rasterises its shape and can draw any
+pattern of the block; the border's thirteen stand for the class. No
+committed record has them yet, so they wait in
+`ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` on every host and in the
+ledger's `awaitingLandingMeasurement`. The `▕ ▏` rows stay, restated: no
+chrome draws them now, but they are one of the bracket pairs a lines face
+reads well with (`ButtonBorderShape.brackets(_:_:)`, FB14), and `▄ ▀` are
+still drawn, as a shape's half-row edges.
 
 **Advance measured** for the lines faces' glyphs, with a DSR probe run in each
 host from a `.command` file, macOS 15.8.1: **one cell each** for `( ) [ ] < >`,

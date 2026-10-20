@@ -249,14 +249,33 @@ BATTERY.update({
     # Added 2026-10-15: a bordered button's face at each control size and
     # border shape (ButtonFaceEdges) — the rounded rectangle's eighth-block
     # edges, and the half blocks and quadrants of a three-row face's ring.
-    "chrome_eighth_right": "\u2595",  # ▕ — EAW Ambiguous
-    "chrome_eighth_left": "\u258F",  # ▏ — EAW Ambiguous
+    "chrome_eighth_right": "\u2595",  # ▕ — EAW Ambiguous; no chrome since 2026-10-15, a bracket pair (FB14)
+    "chrome_eighth_left": "\u258F",  # ▏ — EAW Ambiguous; its trailing half
     "chrome_lower_half": "\u2584",  # ▄ — EAW Ambiguous
     "chrome_upper_half": "\u2580",  # ▀ — EAW Ambiguous
     "chrome_quadrant_lower_right": "\u2597",  # ▗ — EAW Neutral
     "chrome_quadrant_lower_left": "\u2596",  # ▖ — EAW Neutral
     "chrome_quadrant_upper_right": "\u259D",  # ▝ — EAW Neutral
     "chrome_quadrant_upper_left": "\u2598",  # ▘ — EAW Neutral
+    # Added 2026-10-19: the three-quadrant glyphs a solid face curves with,
+    # and a Braille border's glyphs at each thickness (BorderStyle.braille).
+    "chrome_quadrant_not_upper_right": "\u2599",  # ▙ — EAW Neutral
+    "chrome_quadrant_not_lower_right": "\u259B",  # ▛ — EAW Neutral
+    "chrome_quadrant_not_lower_left": "\u259C",  # ▜ — EAW Neutral
+    "chrome_quadrant_not_upper_left": "\u259F",  # ▟ — EAW Neutral
+    "chrome_braille_top_1": "\u2809",  # ⠉ — EAW Neutral
+    "chrome_braille_top_2": "\u281B",  # ⠛ — EAW Neutral
+    "chrome_braille_top_3": "\u283F",  # ⠿ — EAW Neutral
+    "chrome_braille_bottom_1": "\u28C0",  # ⣀ — EAW Neutral
+    "chrome_braille_bottom_2": "\u28E4",  # ⣤ — EAW Neutral
+    "chrome_braille_bottom_3": "\u28F6",  # ⣶ — EAW Neutral
+    "chrome_braille_left_1": "\u2847",  # ⡇ — EAW Neutral
+    "chrome_braille_right_1": "\u28B8",  # ⢸ — EAW Neutral
+    "chrome_braille_top_left_1": "\u284F",  # ⡏ — EAW Neutral
+    "chrome_braille_top_right_1": "\u28B9",  # ⢹ — EAW Neutral
+    "chrome_braille_bottom_left_1": "\u28C7",  # ⣇ — EAW Neutral
+    "chrome_braille_bottom_right_1": "\u28F8",  # ⣸ — EAW Neutral
+    "chrome_braille_full": "\u28FF",  # ⣿ — EAW Neutral
 })
 
 def cursor_col(fd):

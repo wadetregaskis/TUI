@@ -1406,6 +1406,142 @@
    "scalars": [
     "U+2598"
    ]
+  },
+  {
+   "id": "chrome_quadrant_not_upper_right",
+   "class": "chrome_glyph",
+   "text": "▙",
+   "scalars": [
+    "U+2599"
+   ]
+  },
+  {
+   "id": "chrome_quadrant_not_lower_right",
+   "class": "chrome_glyph",
+   "text": "▛",
+   "scalars": [
+    "U+259B"
+   ]
+  },
+  {
+   "id": "chrome_quadrant_not_lower_left",
+   "class": "chrome_glyph",
+   "text": "▜",
+   "scalars": [
+    "U+259C"
+   ]
+  },
+  {
+   "id": "chrome_quadrant_not_upper_left",
+   "class": "chrome_glyph",
+   "text": "▟",
+   "scalars": [
+    "U+259F"
+   ]
+  },
+  {
+   "id": "chrome_braille_top_1",
+   "class": "chrome_glyph",
+   "text": "⠉",
+   "scalars": [
+    "U+2809"
+   ]
+  },
+  {
+   "id": "chrome_braille_top_2",
+   "class": "chrome_glyph",
+   "text": "⠛",
+   "scalars": [
+    "U+281B"
+   ]
+  },
+  {
+   "id": "chrome_braille_top_3",
+   "class": "chrome_glyph",
+   "text": "⠿",
+   "scalars": [
+    "U+283F"
+   ]
+  },
+  {
+   "id": "chrome_braille_bottom_1",
+   "class": "chrome_glyph",
+   "text": "⣀",
+   "scalars": [
+    "U+28C0"
+   ]
+  },
+  {
+   "id": "chrome_braille_bottom_2",
+   "class": "chrome_glyph",
+   "text": "⣤",
+   "scalars": [
+    "U+28E4"
+   ]
+  },
+  {
+   "id": "chrome_braille_bottom_3",
+   "class": "chrome_glyph",
+   "text": "⣶",
+   "scalars": [
+    "U+28F6"
+   ]
+  },
+  {
+   "id": "chrome_braille_left_1",
+   "class": "chrome_glyph",
+   "text": "⡇",
+   "scalars": [
+    "U+2847"
+   ]
+  },
+  {
+   "id": "chrome_braille_right_1",
+   "class": "chrome_glyph",
+   "text": "⢸",
+   "scalars": [
+    "U+28B8"
+   ]
+  },
+  {
+   "id": "chrome_braille_top_left_1",
+   "class": "chrome_glyph",
+   "text": "⡏",
+   "scalars": [
+    "U+284F"
+   ]
+  },
+  {
+   "id": "chrome_braille_top_right_1",
+   "class": "chrome_glyph",
+   "text": "⢹",
+   "scalars": [
+    "U+28B9"
+   ]
+  },
+  {
+   "id": "chrome_braille_bottom_left_1",
+   "class": "chrome_glyph",
+   "text": "⣇",
+   "scalars": [
+    "U+28C7"
+   ]
+  },
+  {
+   "id": "chrome_braille_bottom_right_1",
+   "class": "chrome_glyph",
+   "text": "⣸",
+   "scalars": [
+    "U+28F8"
+   ]
+  },
+  {
+   "id": "chrome_braille_full",
+   "class": "chrome_glyph",
+   "text": "⣿",
+   "scalars": [
+    "U+28FF"
+   ]
   }
  ]
 }

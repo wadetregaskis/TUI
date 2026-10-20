@@ -90,14 +90,26 @@ struct ChromeGlyphAdvanceTests {
     /// whose advance no probe has taken is named here, and a row named here
     /// that the record now has fails until it is removed — the rule
     /// `TerminalLedgerConformanceTests.awaitingLandingMeasurement` follows.
-    /// Per host because a re-run is, and empty since the 2026-10-19 runs.
-    private static let awaitingAdvanceMeasurement: [TerminalClient.Program: Set<String>] = [
-        .ghostty: [], .iTerm2: [], .appleTerminal: [], .warp: [],
-    ]
+    /// Per host because a re-run is.
+    ///
+    /// The four three-quadrant glyphs of a solid face and a Braille border's
+    /// glyphs joined on 2026-10-19. A DSR probe of their own read them at one
+    /// cell on all four hosts (the survey's "Braille borders and faces"), but
+    /// no `advance_probe.py` record has them, so they wait on every host.
+    private static let awaitingAdvanceMeasurement: [TerminalClient.Program: Set<String>] = {
+        let solidAndBraille = Set(
+            WidthCorpus.clusters.map(\.id).filter {
+                $0.hasPrefix("chrome_quadrant_not_") || $0.hasPrefix("chrome_braille_")
+            })
+        return [
+            .ghostty: solidAndBraille, .iTerm2: solidAndBraille,
+            .appleTerminal: solidAndBraille, .warp: solidAndBraille,
+        ]
+    }()
 
     @Test("Every chrome glyph is a corpus row of one of the two chrome classes")
     func theSuiteHasSomethingToMeasure() {
-        #expect(Self.chromeRows.count == 44, "\(Self.chromeRows.count) chrome rows")
+        #expect(Self.chromeRows.count == 61, "\(Self.chromeRows.count) chrome rows")
     }
 
     /// The probes measure the corpus and nothing else (`advance_probe.py`'s
