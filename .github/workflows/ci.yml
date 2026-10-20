@@ -347,6 +347,8 @@ jobs:
             development: false
             smoke: quick
             experimental: false
+            # The deprecations report: see that step.
+            deprecated_report: true
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -643,6 +645,14 @@ jobs:
         if: matrix.dedup_check
         timeout-minutes: 20
         run: Tools/DedupCheck/ci-check.sh
+
+      # SwiftUI's macOS deprecations that TUIkit still implements, against the
+      # newest SDK CI has (Tools/APIParity/README.md). A report for a person to
+      # read when an SDK moves: it fails nothing, and the step may not either.
+      - name: SwiftUI deprecations TUIkit still has (report)
+        if: matrix.deprecated_report
+        continue-on-error: true
+        run: python3 Tools/APIParity/api_parity.py --deprecated
 
       # TUIkit builds with no compiler warnings, every target included
       # (CONTRIBUTING.md, "What CI covers"). This lane checks: its Build step

@@ -219,3 +219,18 @@ inserts the same space. Three things would, in increasing order of cost:
 Layer 1 has begun, and the reason to grow it stands: it is deterministic, it
 needs no SwiftUI runtime, and it fails loudly on exactly the drift the symbol
 diff is blind to. Layer 2 remains the next real build.
+
+## SwiftUI's deprecations that TUIkit still has
+
+`api_parity.py --deprecated` lists the declarations SwiftUI deprecates on
+macOS that TUIkit still implements, exactly or by a call that compiles
+against a TUIkit overload with more defaulted parameters. The comparison
+above drops deprecated symbols from both sides, so these are otherwise
+invisible: the 2026-10-12 audit (decisions [21]) found nine that way. Each
+line says how SwiftUI deprecates it — a version, `unconditionally`, or `soft`
+(`deprecated: 100000.0`, which warns nobody yet) — and whether a live SwiftUI
+overload shares its key, where only the two declarations, printed beside each
+other, say which overload TUIkit has (TUIkit's `onDrop(of: [UTType], …)` is
+the live form; SwiftUI's `[String]` form is the deprecated one). It is a
+report and fails nothing. CI prints it on the macOS 27 lane, against the
+newest SDK; on Xcode 26.3's SDK (2026-10-19) it lists 23.

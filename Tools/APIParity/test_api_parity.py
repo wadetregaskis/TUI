@@ -114,5 +114,29 @@ class SynthesizedConformanceTests(unittest.TestCase):
         self.assertNotIn("Angle.encode(to:)", loaded)
 
 
+class DeprecationTests(unittest.TestCase):
+
+    def test_how_a_symbol_is_deprecated(self):
+        how = api_parity.deprecation
+        self.assertEqual(how({"availability": [{"domain": "macOS", "deprecated": {"major": 26}}]}), "macOS 26.0")
+        self.assertEqual(how({"availability": [{"domain": "macOS", "deprecated": {"major": 100000}}]}), "soft")
+        self.assertEqual(how({"availability": [{"domain": "*", "isUnconditionallyDeprecated": True}]}),
+                         "unconditionally")
+        # Another platform's deprecation is not macOS's, and unavailable is absent, not deprecated.
+        self.assertIsNone(how({"availability": [{"domain": "iOS", "deprecated": {"major": 17}}]}))
+        self.assertIsNone(how({"availability": [{"domain": "macOS", "isUnconditionallyUnavailable": True}]}))
+
+    def test_a_hit_is_exact_or_source_compatible(self):
+        deprecated = {"View.frame()": [{"kind": "func", "how": "unconditionally", "decl": "func frame()"}],
+                      "View.gone(_:)": [{"kind": "func", "how": "soft", "decl": "func gone(_:)"}],
+                      "View.animation(_:)": [{"kind": "func", "how": "macOS 12.0", "decl": "func animation(_:)"}]}
+        tuikit = symbols("View.frame(width:height:)", "View.animation(_:)")
+        defaults = {"View.frame(width:height:)": [[True, True]], "View.animation(_:)": [[False]]}
+        hits = api_parity.deprecated_hits(deprecated, symbols("View.animation(_:)"), tuikit, defaults)
+        self.assertEqual([(h["key"], h["tuikit"], h["shared"]) for h in hits],
+                         [("View.animation(_:)", "View.animation(_:)", True),
+                          ("View.frame()", "View.frame(width:height:)", False)])
+
+
 if __name__ == "__main__":
     unittest.main()

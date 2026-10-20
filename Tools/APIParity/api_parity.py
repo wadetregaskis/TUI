@@ -5,6 +5,7 @@
     Tools/APIParity/api_parity.py --check    # same, but exit 1 on new gaps (CI)
     Tools/APIParity/api_parity.py --accept   # record today's gaps as the baseline
     Tools/APIParity/api_parity.py --stale    # only audit the curated map
+    Tools/APIParity/api_parity.py --deprecated  # SwiftUI's deprecations TUIkit still has
 
 Everything the comparison rests on is derived, never asserted:
 
@@ -20,6 +21,15 @@ Everything the comparison rests on is derived, never asserted:
     reports anything either side still has as absent from BOTH. Availability
     is judged on macOS alone: `Slider` is unavailable on tvOS and that says
     nothing about whether a terminal can draw one.
+
+`--deprecated` asks the question that rule hides: which declarations SwiftUI
+has deprecated on macOS does TUIkit still implement? Dropped from both sides,
+they read as neither a gap nor a match, and on 2026-10-12 nine of them had gone
+unnoticed that way. It lists each with how SwiftUI deprecates it — a version,
+unconditionally, or "soft" (`deprecated: 100000.0`, no warning yet) — and
+whether a LIVE SwiftUI overload shares its key, in which case only the two
+declarations, printed side by side, say which one TUIkit has. A report: it
+fails nothing. Run it against each new SDK.
 
 What is left is a real difference, and every real difference is either
 explained by `parity-map.json` or reported. The map is the curated half — a
@@ -325,6 +335,111 @@ def unavailable(symbol, platform="macOS"):
         if "obsoleted" in entry:
             return True
     return False
+
+
+def deprecation(symbol, platform="macOS"):
+    """How SwiftUI deprecates `symbol` on `platform`, or None if it does not.
+
+    "soft" for `deprecated: 100000.0`, Apple's spelling of "will be
+    deprecated", which warns nobody yet; "unconditionally" for
+    `@available(*, deprecated)`; otherwise the version. An unavailable symbol is
+    not deprecated, it is absent: None.
+    """
+    how = None
+    for entry in symbol.get("availability") or []:
+        if entry.get("domain") not in (None, "*", platform):
+            continue
+        if entry.get("isUnconditionallyUnavailable"):
+            return None
+        if "obsoleted" in entry:
+            version = entry["obsoleted"]
+            how = f"obsoleted in {platform} {version.get('major')}.{version.get('minor', 0)}"
+        elif entry.get("isUnconditionallyDeprecated"):
+            how = how or "unconditionally"
+        elif "deprecated" in entry:
+            version = entry["deprecated"]
+            how = how or ("soft" if version.get("major", 0) >= 100000
+                          else f"{platform} {version.get('major')}.{version.get('minor', 0)}")
+    return how
+
+
+def load_deprecated(directory, modules):
+    """SwiftUI's deprecated declarations: what `load_symbols` drops for being
+    deprecated, keyed the same way, each with its kind, how it is deprecated
+    (`deprecation`) and its declaration."""
+    wanted = set(modules)
+    found = {}
+    for entry in sorted(os.listdir(directory)):
+        if not entry.endswith(".symbols.json") or entry.split(".symbols.json")[0].split("@")[0] not in wanted:
+            continue
+        with open(os.path.join(directory, entry)) as handle:
+            graph = json.load(handle)
+        for symbol in graph.get("symbols", []):
+            kind = KINDS.get(symbol.get("kind", {}).get("identifier"))
+            parts = symbol.get("pathComponents") or []
+            if (not kind or "::SYNTHESIZED::" in symbol.get("identifier", {}).get("precise", "")
+                    or not parts or any(part.startswith("_") for part in parts)):
+                continue
+            how = deprecation(symbol)
+            if how:
+                declaration = " ".join("".join(f.get("spelling", "") for f in symbol.get("declarationFragments", [])).split())
+                found.setdefault(".".join(parts), []).append({"kind": kind, "how": how, "decl": declaration})
+    return found
+
+
+def declarations(directory, modules, keys):
+    """Each of `keys`' declarations in these modules, with where it is: what a
+    report prints beside SwiftUI's."""
+    wanted, keys = set(modules), set(keys)
+    found = {}
+    for entry in sorted(os.listdir(directory)):
+        if not entry.endswith(".symbols.json") or entry.split(".symbols.json")[0].split("@")[0] not in wanted:
+            continue
+        with open(os.path.join(directory, entry)) as handle:
+            graph = json.load(handle)
+        for symbol in graph.get("symbols", []):
+            key = ".".join(symbol.get("pathComponents") or [])
+            if key not in keys or "::SYNTHESIZED::" in symbol.get("identifier", {}).get("precise", ""):
+                continue
+            location = symbol.get("location") or {}
+            path = location.get("uri", "").replace("file://", "")
+            line = (location.get("position") or {}).get("line")
+            where = (f"{os.path.relpath(path, REPO)}:{line + 1}"
+                     if path.startswith(REPO) and line is not None else path)
+            declaration = " ".join("".join(f.get("spelling", "") for f in symbol.get("declarationFragments", [])).split())
+            found.setdefault(key, []).append((declaration, where))
+    return found
+
+
+def deprecated_hits(deprecated, live, tuikit, tuikit_defaults):
+    """The deprecated SwiftUI keys TUIkit spells: exactly, or by a call that
+    compiles against a TUIkit overload with more, defaulted, parameters (the
+    `source_compatible` rule). Each with the TUIkit key it reached, and whether
+    a live SwiftUI overload shares the deprecated key."""
+    compatible = source_compatible({key: entries[0]["kind"] for key, entries in deprecated.items()},
+                                   tuikit, tuikit_defaults)
+    hits = []
+    for key in sorted(deprecated):
+        reached = key if key in tuikit else compatible.get(key)
+        if reached:
+            hits.append({"key": key, "tuikit": reached, "shared": key in live,
+                         "swiftui": deprecated[key]})
+    return hits
+
+
+def deprecated_report(hits, tuikit_declarations):
+    print(f"SwiftUI declarations deprecated on macOS that TUIkit still has: {len(hits)}")
+    print("A key collapses overloads: where a live SwiftUI overload shares one, compare the")
+    print("declarations to see which TUIkit implements.")
+    for hit in hits:
+        ways = sorted({entry["how"] for entry in hit["swiftui"]})
+        shared = "  (a live SwiftUI overload shares the key)" if hit["shared"] else ""
+        reached = "" if hit["tuikit"] == hit["key"] else f" — reached through {hit['tuikit']}"
+        print(f"\n  [{', '.join(ways)}] {hit['key']}{reached}{shared}")
+        for entry in hit["swiftui"]:
+            print(f"      SwiftUI  {entry['decl']}   ({entry['how']})")
+        for declaration, where in tuikit_declarations.get(hit["tuikit"], []):
+            print(f"      TUIkit   {declaration}   {where}")
 
 
 def load_map():
@@ -634,6 +749,8 @@ def main():
                         help="record the current gaps as the baseline")
     parser.add_argument("--stale", action="store_true",
                         help="only audit the curated map")
+    parser.add_argument("--deprecated", action="store_true",
+                        help="list SwiftUI's macOS deprecations that TUIkit still implements (a report)")
     parser.add_argument("--json", metavar="PATH", help="also write the full result as JSON")
     parser.add_argument("--work-dir", help="keep the symbol graphs here (they are large)")
     parser.add_argument("--target", default="arm64-apple-macosx26.0")
@@ -660,6 +777,14 @@ def main():
         swiftui = load_symbols(swiftui_dir, SWIFTUI_MODULES)
         tuikit, tuikit_defaults = load_symbols(
             tuikit_dir, TUIKIT_MODULES, collect_defaults=True, follow_aliases=True)
+        if args.deprecated:
+            hits = deprecated_hits(load_deprecated(swiftui_dir, SWIFTUI_MODULES), swiftui, tuikit,
+                                   tuikit_defaults)
+            deprecated_report(hits, declarations(tuikit_dir, TUIKIT_MODULES, {hit["tuikit"] for hit in hits}))
+            if args.json:
+                with open(args.json, "w") as handle:
+                    json.dump({"toolchain": toolchain_version(), "deprecated": hits}, handle, indent=1)
+            return 0
         compatible = source_compatible(swiftui, tuikit, tuikit_defaults)
         parity_map = load_map()
 
