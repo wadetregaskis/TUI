@@ -1,0 +1,64 @@
+MENU Top
+    ----
+    "Sort" (sectionHeader)
+    "T1" (on)
+    "T2"
+    ----
+    "Close"
+MENU Bottom
+    "Open"
+    ----
+    "Sort" (sectionHeader)
+    "B1" (on)
+    "B2"
+    ----
+MENU Only
+    ----
+    "Sort" (sectionHeader)
+    "O1" (on)
+    "O2"
+    ----
+MENU Divider
+    "Open"
+    ----
+    ----
+    "Sort" (sectionHeader)
+    "D1" (on)
+    "D2"
+    ----
+    ----
+    "Close"
+MENU Section
+    ----
+    "Head" (sectionHeader)
+    "S0"
+    ----
+    ----
+    "Sort" (sectionHeader)
+    "S1" (on)
+    "S2"
+    ----
+    ----
+    "S3"
+    ----
+MENU Two
+    ----
+    "A" (sectionHeader)
+    "A1" (on)
+    ----
+    ----
+    "B" (sectionHeader)
+    "B1" (on)
+    ----
+MENU Radio
+    "R" (disabled)
+    "" (disabled)
+    "R1"
+    "After"
+MENU Unlabelled
+    "Open"
+    ----
+    "" (sectionHeader)
+    "U1" (on)
+    ----
+    "Close"

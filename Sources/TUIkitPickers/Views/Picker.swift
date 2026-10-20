@@ -195,10 +195,10 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
             let rows = _PickerMenuRows(
                 entries: hasNoSources ? [] : entries, selection: selection, isMixed: isMixed,
                 isDisabled: isDisabled || hasNoSources)
-            if style.resolvesToMenu || style.resolvesToSegments {
-                _MenuSubmenuRow(label: label, items: rows)
-            } else {
+            if Self.isMenuSection(style) {
                 _PickerInlineMenuSection(label: label, rows: rows)
+            } else {
+                _MenuSubmenuRow(label: label, items: rows)
             }
         } else if hasNoSources {
             HStack(alignment: .top, spacing: 0) {
@@ -232,6 +232,14 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         }
     }
 
+    /// Whether a picker of `style` in a pop-up menu is its options inline, as
+    /// a section of the menu — an `.inline` or a radio-group one — rather
+    /// than a submenu. The one rule the drawing and the menu's separators
+    /// (``drawsAsMenuSection(in:)``) both go by.
+    static func isMenuSection(_ style: any PickerStyle) -> Bool {
+        !(style.resolvesToMenu || style.resolvesToSegments)
+    }
+
     /// Builds the radio-button group used for the inline / radio-group
     /// styles, reusing ``RadioButtonGroup`` rather than duplicating its
     /// focus and keyboard machinery. Dividers only make sense in a drop-down
@@ -248,6 +256,18 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
         var identified = focusID.map { group.focusID($0) } ?? group
         identified.isMixed = isMixed
         return identified.disabled(isDisabled)
+    }
+}
+
+// MARK: - In a Menu
+
+/// An `.inline` (or radio-group) picker in a pop-up menu is a section of the
+/// menu, which places its separators as it places a `Section`'s
+/// (``MenuSectionDrawing``): asked in the context the picker is drawn in, so
+/// the style and the menu it reads are the ones its body will.
+extension Picker: MenuSectionDrawing {
+    package func drawsAsMenuSection(in context: RenderContext) -> Bool {
+        context.environment.isInPopUpMenu && Self.isMenuSection(context.environment.pickerStyle)
     }
 }
 

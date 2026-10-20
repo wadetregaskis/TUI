@@ -658,18 +658,25 @@ messages cite that path), and what cites it.
   `pickers.out`); and which modifiers written on an alert's buttons the `NSAlert` it presents keeps — `.disabled`,
   a key equivalent, `.defaultAction`, `.cancelAction`, `.help`, `.tint`, `.foregroundStyle`, a role — read back
   from the alert panel's `NSButton`s (`-D CASE_alert`, `alert.out`; `-D CASE_dialog` for a
-  `confirmationDialog`, `dialog.out`). The usage is at the top of `menus.swift`.
+  `confirmationDialog`, `dialog.out`). The usage is at the top of `menus.swift`. And where an `.inline` picker's
+  separators fall in a menu — first, last, beside a `Divider`, a `Section` or another inline picker — read back the
+  same way (`inline.swift`, `inline.out`); and which separators AppKit DRAWS, from the height of the menu window of
+  plain `NSMenu`s popped up with leading, trailing and doubled separators (`shown.swift`, `shown.out`).
 - **Answers:** a `Picker` of the menu, segmented or palette style is a submenu titled by its label, its options
   items with the selected one checked; an `.inline` one is its label as a section header over its options,
   between separators; a nested `Menu` is a submenu whatever its style, and a disabled one is a submenu of
   disabled items. An alert keeps `.disabled` and the key equivalent (`.defaultAction` is Return, `.cancelAction`
-  Escape) and shows none of `.help`, `.tint` and `.foregroundStyle`.
+  Escape) and shows none of `.help`, `.tint` and `.foregroundStyle`. SwiftUI builds an `.inline` picker as it
+  builds a `Section` — a separator either side of a section-header item, wherever it stands, so a menu's items
+  can begin, end or double up on separators — and AppKit draws none of those: no separator at the top or bottom
+  and never two in a row (`- A B` and `A - - B` draw as tall as `A B` and `A - B`).
 - **Ran:** macOS 15.8, 2026-10-19, with Xcode's `swiftc`; the window the alert is presented on is made by the
   probe, since a `WindowGroup` opened none in that session.
 - **Was:** `MENUS/probe/`.
 - **Cited by:** `Sources/TUIkitPresentation/Views/AlertActions.swift`,
   `Sources/TUIkitFoundation/Rendering/MenuSubmenus.swift`, `Sources/TUIkitMenus/Views/_MenuPopupCore.swift`,
-  `Sources/TUIkitPickers/Views/Picker.swift`, `Sources/TUIkitPickers/Views/PickerMenuRows.swift`;
+  `Sources/TUIkitPickers/Views/Picker.swift`, `Sources/TUIkitPickers/Views/PickerMenuRows.swift`,
+  `Sources/TUIkitFoundation/Rendering/MenuSections.swift`;
   `Tests/TUIkitPresentationTests/AlertButtonModifierTests.swift`, `Tests/TUIkitMenusTests/MenuSubmenuTests.swift`,
   `Tests/TUIkitIntegrationTests/PickerInMenuTests.swift`, `Tests/TUIkitIntegrationTests/MenuBarSubmenuTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§1, Controls; Presentation),

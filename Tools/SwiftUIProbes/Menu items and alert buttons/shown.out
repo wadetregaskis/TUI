@@ -1,0 +1,7 @@
+A B            size (37.0, 54.0) shown ["layer 101 h 54 w 37"]
+- A B          size (37.0, 54.0) shown ["layer 101 h 54 w 37"]
+A B -          size (37.0, 54.0) shown ["layer 101 h 54 w 37"]
+A - B          size (37.0, 65.0) shown ["layer 101 h 65 w 37"]
+A - - B        size (37.0, 65.0) shown ["layer 101 h 65 w 37"]
+- #H A -       size (37.0, 54.0) shown ["layer 101 h 54 w 37"]
+#H A           size (37.0, 54.0) shown ["layer 101 h 54 w 37"]

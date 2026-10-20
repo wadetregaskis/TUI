@@ -54,16 +54,78 @@ private struct PickerMenuApp: App {
     }
 }
 
+/// Where an `.inline` picker stands among a menu's items, for its separators.
+private enum InlinePlace {
+    case first, last, besideDividers, twoInARow, besideSections, inASection, insideAnAppView
+}
+
+/// An `.inline` picker in a menu, placed as `place` says.
+private struct InlineEdgesApp: App {
+    var place = InlinePlace.first
+
+    var body: some Scene {
+        WindowGroup {
+            Menu("View") { items }
+        }
+    }
+
+    @ViewBuilder private var items: some View {
+        switch place {
+        case .first:
+            sortPicker("Sort")
+            Button("Close") {}
+        case .last:
+            Button("Open") {}
+            sortPicker("Sort")
+        case .besideDividers:
+            Button("Open") {}
+            Divider()
+            sortPicker("Sort")
+            Divider()
+            Button("Close") {}
+        case .twoInARow:
+            sortPicker("Sort")
+            sortPicker("Group")
+        case .besideSections:
+            Section("Head") { Button("Open") {} }
+            sortPicker("Sort")
+            Section { Button("Close") {} }
+        case .inASection:
+            Section("View") { sortPicker("Sort") }
+            Button("Close") {}
+        case .insideAnAppView:
+            Button("Open") {}
+            InlineSortPicker()
+            Button("Close") {}
+        }
+    }
+}
+
+/// An inline picker inside a view of the app's own, whose body the menu does
+/// not look into.
+private struct InlineSortPicker: View {
+    var body: some View { sortPicker("Sort") }
+}
+
+@MainActor
+private func sortPicker(_ title: String) -> some View {
+    Picker(title, selection: .constant("Name")) {
+        Text("Name").tag("Name")
+        Text("Date").tag("Date")
+    }
+    .pickerStyle(.inline)
+}
+
 @MainActor
 @Suite("A Picker in a menu")
 struct PickerInMenuTests {
     @MainActor
-    private final class Driver {
-        let app: HeadlessApp<PickerMenuApp>
+    private final class Driver<Scene: App> {
+        let app: HeadlessApp<Scene>
         private var now: Int64 = 0
 
-        init(_ scene: PickerMenuApp) {
-            app = HeadlessApp(scene, width: 60, height: 20)
+        init(_ scene: Scene) {
+            app = HeadlessApp(scene, width: 60, height: 24)
             frame()
             frame()
         }
@@ -81,6 +143,26 @@ struct PickerInMenuTests {
         var text: String { app.screen.map(\.stripped).joined(separator: "\n") }
         func shows(_ label: String) -> Bool { app.screen.contains { $0.stripped.contains(label) } }
         func line(of label: String) -> String? { app.screen.map(\.stripped).first { $0.contains(label) } }
+
+        /// The open menu's lines inside its border, trimmed, a separator as
+        /// `-`.
+        var menuLines: [String] {
+            app.screen.map(\.stripped).compactMap { line in
+                guard let first = line.firstIndex(of: "│"), let last = line.lastIndex(of: "│"), first < last else {
+                    return nil
+                }
+                let inside = line[line.index(after: first)..<last].drop { $0 == " " }
+                let trimmed = String(inside.reversed().drop { $0 == " " }.reversed())
+                return !trimmed.isEmpty && trimmed.allSatisfy { $0 == "─" } ? "-" : trimmed
+            }
+        }
+    }
+
+    /// The menu's lines with the inline picker placed as `place` says.
+    private func lines(_ place: InlinePlace) -> [String] {
+        let driver = Driver(InlineEdgesApp(place: place))
+        driver.key(.enter)
+        return driver.menuLines
     }
 
     @Test("It is a submenu of its options, the selected one checked, and choosing one selects it")
@@ -129,5 +211,45 @@ struct PickerInMenuTests {
         driver.key(.down)
         driver.key(.enter)
         #expect(sorting.key == "Date", "the arrows reached the options: \(sorting.key)")
+    }
+
+    // An inline picker is set off as a `Section` is — the separators SwiftUI
+    // builds round it are AppKit's to collapse, which draws none at the
+    // menu's top or bottom and never two in a row (measured on macOS 15.8,
+    // `Tools/SwiftUIProbes/Menu items and alert buttons/shown.out`).
+
+    @Test("First in the menu, an inline picker has no separator above it")
+    func inlineFirst() {
+        #expect(lines(.first) == ["Sort", "✓ Name", "Date", "-", "Close"])
+    }
+
+    @Test("Last in the menu, an inline picker has no separator below it")
+    func inlineLast() {
+        #expect(lines(.last) == ["Open", "-", "Sort", "✓ Name", "Date"])
+    }
+
+    @Test("Beside a Divider the app wrote, an inline picker's separator is that one")
+    func inlineBesideDividers() {
+        #expect(lines(.besideDividers) == ["Open", "-", "Sort", "✓ Name", "Date", "-", "Close"])
+    }
+
+    @Test("Two inline pickers in a row have one separator between them")
+    func inlineTwoInARow() {
+        #expect(lines(.twoInARow) == ["Sort", "✓ Name", "Date", "-", "Group", "✓ Name", "Date"])
+    }
+
+    @Test("Between sections, an inline picker shares their separators")
+    func inlineBesideSections() {
+        #expect(lines(.besideSections) == ["Head", "Open", "-", "Sort", "✓ Name", "Date", "-", "Close"])
+    }
+
+    @Test("In a section, an inline picker is set off from the section's header and shares its last separator")
+    func inlineInASection() {
+        #expect(lines(.inASection) == ["View", "-", "Sort", "✓ Name", "Date", "-", "Close"])
+    }
+
+    @Test("Inside a view of the app's own, which the menu does not look into, it draws its own separators")
+    func inlineInsideAnAppView() {
+        #expect(lines(.insideAnAppView) == ["Open", "-", "Sort", "✓ Name", "Date", "-", "Close"])
     }
 }

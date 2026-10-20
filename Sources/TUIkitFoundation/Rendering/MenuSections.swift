@@ -29,7 +29,9 @@ import TUIkitView
 /// role (bold and dimmed, a `List` section header's look), its content's and
 /// footer's views, and a separator. A separator at either end, or beside
 /// another (one the app wrote too), is dropped. Every other item is handed
-/// over as it was, at the identity it had.
+/// over as it was, at the identity it had — one a menu sets off as a section
+/// though it is none (``MenuSectionDrawing``, an `.inline` `Picker`) between
+/// separators of the section's kind, which it is told not to draw itself.
 struct _MenuSectionedItems<Items: View>: View, Renderable, Layoutable, ChildViewProvider {
     let items: Items
 
@@ -49,17 +51,26 @@ struct _MenuSectionedItems<Items: View>: View, Renderable, Layoutable, ChildView
     }
 
     func childViews(context: RenderContext) -> [ChildView] {
-        // The type says whether a section can be among the items at all, so
-        // a menu of buttons resolves them exactly as it always did.
-        guard mayHandOver(.section, in: items) else { return resolveChildViews(from: items, context: context) }
-        let children = resolveChildViews(from: items, context: context.keepingSectionsWhole())
-        guard children.contains(where: { sectionParts(of: $0) != nil }) else { return children }
+        // The type says whether a section — or a view a menu sets off as one —
+        // can be among the items at all, so a menu of buttons resolves them
+        // exactly as it always did.
+        let mayHoldSections = mayHandOver(.section, in: items)
+        guard mayHoldSections || mayHandOver(.menuSection, in: items) else {
+            return resolveChildViews(from: items, context: context)
+        }
+        let children = resolveChildViews(from: items, context: mayHoldSections ? context.keepingSectionsWhole() : context)
         var entries: [Entry] = []
+        var setsOffSections = false
         for child in children {
             guard let parts = sectionParts(of: child) else {
-                entries.append(throughWrappers(child.wrappedView, as: Divider.self) != nil ? .divider(child) : .row(child))
+                if appendSetOff(child, to: &entries, in: context) {
+                    setsOffSections = true
+                } else {
+                    entries.append(throughWrappers(child.wrappedView, as: Divider.self) != nil ? .divider(child) : .row(child))
+                }
                 continue
             }
+            setsOffSections = true
             let scope = pinnedScope(of: child, in: context)
             let scoped = parts.scopedParts(in: scope)
             entries.append(.sectionEdge(separator(MenuSectionSeparatorIndex.before, in: scope)))
@@ -68,13 +79,34 @@ struct _MenuSectionedItems<Items: View>: View, Renderable, Layoutable, ChildView
                     .row(ChildView(_MenuSectionHeader(header: parts.header)).pinningIdentity(to: scoped[0].scope.identity)))
             }
             for part in scoped.dropFirst() {
-                entries += resolveChildViews(from: part.view, context: part.scope).map {
-                    .row($0.pinningIdentity(to: part.scope.identity))
+                for row in resolveChildViews(from: part.view, context: part.scope) {
+                    let pinned = row.pinningIdentity(to: part.scope.identity)
+                    if !appendSetOff(pinned, to: &entries, in: context) { entries.append(.row(pinned)) }
                 }
             }
             entries.append(.sectionEdge(separator(MenuSectionSeparatorIndex.after, in: scope)))
         }
-        return Self.collapsed(entries)
+        return setsOffSections ? Self.collapsed(entries) : children
+    }
+
+    /// Appends `child`, an item that is no `Section`, between the separators
+    /// of a section, if the menu sets it off as one
+    /// (``menuSectionDrawing(of:in:)``) — wrapped to draw none of its own.
+    /// Answers whether it did; the caller appends any other item itself.
+    private func appendSetOff(_ child: ChildView, to entries: inout [Entry], in context: RenderContext) -> Bool {
+        guard menuSectionDrawing(of: child, in: context) else { return false }
+        let scope = pinnedScope(of: child, in: context)
+        entries.append(.sectionEdge(separator(MenuSectionSeparatorIndex.before, in: scope)))
+        entries.append(.row(child.rewrapped(by: Self.separatorsPlaced)))
+        entries.append(.sectionEdge(separator(MenuSectionSeparatorIndex.after, in: scope)))
+        return true
+    }
+
+    /// What a view the menu sets off as a section is wrapped in, so that it
+    /// draws no separators of its own
+    /// (``EnvironmentValues/menuPlacesSectionSeparators``).
+    private static var separatorsPlaced: EnvironmentModifier<EmptyView, Bool> {
+        EnvironmentModifier(content: EmptyView(), keyPath: \.menuPlacesSectionSeparators, value: true)
     }
 
     /// A separator a section adds, at an identity of its own under the
@@ -118,9 +150,72 @@ struct _MenuSectionedItems<Items: View>: View, Renderable, Layoutable, ChildView
 
 /// Child indices for the separators a menu section adds, under the section's
 /// own scope: after its parts' (0, 1 and 2, ``SectionParts/scopedParts(in:)``).
+/// Under a view set off as a section (``MenuSectionDrawing``) too, whose body
+/// goes one step in under a type of its own.
 private enum MenuSectionSeparatorIndex {
     static let before = 3
     static let after = 4
+}
+
+// MARK: - Views Set Off as Sections
+
+/// A view a menu sets off by separators as it does a `Section`, though it is
+/// none — an `.inline` `Picker` (TUIkitPickers), which SwiftUI builds in a menu
+/// exactly as it builds a section: a separator, its label as a section header,
+/// its options, a separator (measured on macOS 15.8, `Tools/SwiftUIProbes/Menu
+/// items and alert buttons/inline.out`). So its separators follow the
+/// section's rule: none at the menu's top or bottom, never two in a row
+/// (`shown.out`: AppKit draws a menu so, whatever separators it holds).
+///
+/// The menu places them (``_MenuSectionedItems``) and tells the view, through
+/// ``EnvironmentValues/menuPlacesSectionSeparators``, to draw none of its own.
+/// The menu finds the view among its items, under the wrappers round it that
+/// say the context they lay it out in (`.pickerStyle(.inline)` written on it,
+/// `.disabled`); where it cannot see it — inside a view of the app's own, or
+/// under a wrapper that does not say — the view is told nothing, and draws its
+/// separators itself, wherever it stands.
+@MainActor
+package protocol MenuSectionDrawing {
+    /// Whether, laid out in `context` — its own, every wrapper round it
+    /// applied — this view draws as a section of the pop-up menu it is in.
+    func drawsAsMenuSection(in context: RenderContext) -> Bool
+}
+
+/// Whether `child` is a view the menu sets off as a section
+/// (``MenuSectionDrawing``): found under the wrappers round it that say the
+/// context they lay it out in, each one's applied to the context the child is
+/// drawn in, so the view answers in the environment it will see. A wrapper
+/// that does not say stops the look.
+///
+/// The view's type is looked for first, through the wrappers, with no context
+/// made: only an item that holds one pays for the walk that applies them.
+@MainActor
+private func menuSectionDrawing(of child: ChildView, in context: RenderContext) -> Bool {
+    guard throughWrappers(child.wrappedView, as: (any MenuSectionDrawing).self) != nil else { return false }
+    var view: any View = child.wrappedView
+    var scope = child.renderContext(under: context)
+    while true {
+        if let drawing = view as? any MenuSectionDrawing { return drawing.drawsAsMenuSection(in: scope) }
+        guard let wrapper = view as? any SingleContentWrapper, let inner = wrapper.wrappedContentContext(scope) else {
+            return false
+        }
+        view = wrapper.wrappedContent
+        scope = inner
+    }
+}
+
+private struct MenuPlacesSectionSeparatorsKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether the menu draws this view's separators, having set it off as a
+    /// section (``MenuSectionDrawing``): set round such a view alone, by the
+    /// menu that places them, so a view it could not find draws its own.
+    package var menuPlacesSectionSeparators: Bool {
+        get { self[MenuPlacesSectionSeparatorsKey.self] }
+        set { self[MenuPlacesSectionSeparatorsKey.self] = newValue }
+    }
 }
 
 /// A menu section's header: drawn under the section-header chrome role, as a

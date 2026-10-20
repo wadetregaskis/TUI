@@ -82,6 +82,13 @@ submenu with nothing highlighted; over another row it closes it; a click on the
 row opens it and chooses nothing, and a press-and-hold released on it leaves
 the menu up. A radio-group picker draws inline, where macOS draws its label and
 options as disabled items with no check (measured): a menu form nobody can use.
+An inline picker's separators are placed as a `Section`'s are: SwiftUI builds
+both alike, a separator either side of a section-header item, and AppKit draws
+a menu with no separator at its top or bottom and never two in a row, whatever
+its items (measured, `inline.out` and `shown.out`). The menu finds the picker
+among its items, under the wrappers round it (`MenuSectionDrawing`); inside a
+view of the app's own it does not look, and the picker draws its separators
+itself, wherever it stands.
 
 An item's key equivalent in a submenu works while the menu it is in is up,
 whether or not the submenu is open, and — in a menu bar's menu — with every
@@ -103,6 +110,10 @@ as deviation W16.
   takes the highlight.
 - **The status bar's hint.** With a submenu's row highlighted, the bar could
   say "→ open"; it says what it says for any row. An hour and seven strings.
+- **An inline picker inside a view of the app's own.** The menu could look into
+  an item whose body is one view, evaluating that body as an alignment-guide
+  query does, to place such a picker's separators too. About two hours, and
+  one more body evaluation per such item each time the menu lays out.
 - **The menu bar's Find submenu** (B-O13-8's fuller version), now that there
   are submenus: Find's own items as a submenu of Edit. Lane O13's to weigh;
   it needs the first item above for their keys.

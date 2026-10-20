@@ -61,16 +61,23 @@ struct _PickerMenuRows<SelectionValue: Hashable>: View {
 /// A picker drawn inline in a menu: its label as the title of a section that
 /// holds its options, between separators — what a macOS menu draws an
 /// `.inline` picker as (measured, `pickers.out`).
+///
+/// The separators are the menu's to place where it found the picker among its
+/// items (``EnvironmentValues/menuPlacesSectionSeparators``): by a section's
+/// rule, none at the menu's top or bottom and never two in a row
+/// (``MenuSectionDrawing``). Where it could not, the picker draws its own.
 struct _PickerInlineMenuSection<Label: View, SelectionValue: Hashable>: View {
     let label: Label
     let rows: _PickerMenuRows<SelectionValue>
 
+    @Environment(\.menuPlacesSectionSeparators) private var separatorsPlaced
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Divider()
+            if !separatorsPlaced { Divider() }
             _MenuSectionHeader(header: label)
             rows
-            Divider()
+            if !separatorsPlaced { Divider() }
         }
     }
 }

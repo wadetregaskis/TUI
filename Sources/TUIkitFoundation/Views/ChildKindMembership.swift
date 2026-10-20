@@ -20,6 +20,10 @@ package enum ChildKind: Equatable {
     /// A `Section`: a lazy grid draws them section by section, a lazy stack
     /// keeps them whole, a menu styles them.
     case section
+    /// A view a menu sets off by separators as it does a `Section`, though it
+    /// is none (``MenuSectionDrawing``) — an `.inline` `Picker` — or one under
+    /// wrappers round it: what a menu looks for beside its sections.
+    case menuSection
     /// A row a loop or an outline makes, keyed by its element: a container
     /// that places its looped rows to give them their selection values
     /// (`FlattenedRowIDs`) must know which of its views can make one.
@@ -72,6 +76,14 @@ func mayHandOver<V: View>(_ kind: ChildKind, _ type: V.Type, visited: inout Set<
     switch kind {
     case .section: if type is any SectionPartsProviding.Type { return true }
     case .keyedRow: if type is any KeyedLoop.Type { return true }
+    case .menuSection:
+        if type is any MenuSectionDrawing.Type { return true }
+        // Through a wrapper round one view, which the menu looks through to
+        // find it (`.pickerStyle(.inline)` written on the picker): it is one
+        // child, not a provider, so the walk below would stop at it.
+        if !(type is any ChildViewProvider.Type), let wrapper = type as? any SingleContentWrapper.Type {
+            return singleWrappedMayHandOver(kind, wrapper, visited: &visited)
+        }
     }
     guard type is any ChildViewProvider.Type else {
         guard V._handsOverChildren, isCompositeHandingOverChildren(type),
@@ -110,6 +122,15 @@ private func erasedMayHandOver<E: View>(_ kind: ChildKind, _: E) -> Bool {
 /// opened.
 @MainActor
 private func wrappedMayHandOver<W: ContentRewrapping>(
+    _ kind: ChildKind, _: W.Type, visited: inout Set<ObjectIdentifier>
+) -> Bool {
+    mayHandOver(kind, W.WrappedContent.self, visited: &visited)
+}
+
+/// ``mayHandOver(_:_:visited:)`` of the content of a wrapper round one view,
+/// the existential opened.
+@MainActor
+private func singleWrappedMayHandOver<W: SingleContentWrapper>(
     _ kind: ChildKind, _: W.Type, visited: inout Set<ObjectIdentifier>
 ) -> Bool {
     mayHandOver(kind, W.WrappedContent.self, visited: &visited)
@@ -170,13 +191,15 @@ extension Section: ChildKindsKnowing where Parent: View, Content: View, Footer: 
 /// rows itself: the walk answers that before asking.) A row that is a provider
 /// the loop hands over as ONE child however it is walked — counted one
 /// (`staticRowMemberCount`): an `AnyView`, which a loop never takes apart, a
-/// `Group` of one view — hands over no section: no view of it is a child of
-/// the container's, and it is no section type (one counts none). So a lazy
-/// stack of erased rows keeps no section scope, as before an `AnyView` was a
-/// provider.
+/// `Group` of one view — hands over no section, nor a view a menu sets off as
+/// one: no view of it is a child of the container's, and it is no section type
+/// (one counts none), nor a wrapper the menu looks through. So a lazy stack of
+/// erased rows keeps no section scope, as before an `AnyView` was a provider.
 extension ForEach: ChildKindsKnowing where Content: View {
     static func mayHandOver(_ kind: ChildKind, visited: inout Set<ObjectIdentifier>) -> Bool {
-        if kind == .section, Content.self is any ChildViewProvider.Type, staticRowMemberCount(Content.self) == 1 {
+        if kind == .section || kind == .menuSection, Content.self is any ChildViewProvider.Type,
+            staticRowMemberCount(Content.self) == 1
+        {
             return false
         }
         return TUIkitFoundation.mayHandOver(kind, Content.self, visited: &visited)
