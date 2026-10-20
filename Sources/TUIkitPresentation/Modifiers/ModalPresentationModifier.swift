@@ -48,7 +48,7 @@ public struct ModalPresentationModifier<Content: View, Modal: View>: View {
 
     /// Builds the content to present: called only while it is presented,
     /// each time it is drawn — and by the root, before a frame's walk, for a
-    /// sheet presented since the last (`postDock`) — never while it is
+    /// sheet presented since the last (`postUnbuiltDock`) — never while it is
     /// dismissed, as SwiftUI calls a sheet's content closure.
     ///
     /// Built on every frame, presented or not, it cost every page that holds
@@ -125,20 +125,23 @@ extension ModalPresentationModifier: Renderable {
         // tokens are stable across presentation.
         let contentContext = context.withChildIdentity(type: Content.self, index: 0)
 
+        // Read once for the frame: an `item:` form's binding reads the item.
+        let isShown = isPresented.wrappedValue
+
         // Presented for another item than it was, it is a new sheet — before
         // anything reads what the presenter keeps for it.
-        if !context.isMeasuring, isPresented.wrappedValue, let itemKey {
+        if !context.isMeasuring, isShown, let itemKey {
             startOver(forItem: itemKey, context: context)
         }
 
         // If not presented, just return base content.
-        guard isPresented.wrappedValue else {
+        guard isShown else {
             // A sheet whose content may let the page through posts the rows
             // it docks every frame, presented or not, for the root to lay the
-            // page out by before the walk (`postDock`). Unbuilt: its content
-            // is built only if it has been presented by the time the root
-            // asks.
-            if style == .sheet { postDock(presented: nil, sectionID: sectionID, context: context) }
+            // page out by before the walk. Unbuilt: its content is built only
+            // if it has been presented by the time the root asks
+            // (`postUnbuiltDock`).
+            if style == .sheet { postUnbuiltDock(sectionID: sectionID, context: context) }
             // Tear down the modal focus section if it's still active (the modal
             // was just dismissed). This reverts focus to the page's section AND
             // restores its remembered focus, so the page doesn't jump to its

@@ -89,11 +89,14 @@ used to learn whether it could be live by reading its content's trait, which
 meant building its content on every frame.
 
 **Shipped:** every dismissed sheet posts a resolver every frame: one closure
-and one dictionary entry keyed by its section's name. The resolver builds the
-content only if the sheet has been presented by the time the root asks. It
-replaces building the content and reading two traits every frame. The
-sheet's posts are forgotten when the run loop ends (B-MODALS-3).
-**A/B owed:** `Stress --scenario sheetrows`, da6ac224e against 05e0d085f.
+and one dictionary entry keyed by its section's name. The root asks it twice
+a frame, before the walk and after it, and each time it reads the sheet's
+binding once. Only if the sheet has been presented by then does it build the
+content, and the presenter's records of a presentation with it. It replaces
+building the content and reading two traits every frame. The sheet's posts
+are forgotten when the run loop ends (B-MODALS-3).
+**A/B owed:** `Stress --scenario sheetrows`, da6ac224e against 05e0d085f,
+and the head of the lane against both.
 
 **Fuller version, if the A/B says the post costs more than the build saved:**
 key the posts by the presenter's identity, not by its section's name, which
@@ -102,6 +105,12 @@ post only from presenters that have been presented live before, and let a
 first live presentation dock a frame late. That is the `item:` forms'
 behaviour today (B-MODALS-2), and it regresses the pinned test. About two
 hours either way.
+
+Cheaper, and worth doing whatever the A/B says: an `item:` sheet's dismissed
+post, and the sheet form's of every closed popover, can never dock. The
+first's content is made from no item (B-MODALS-2), and the second's binding
+holds the form read while the popover was closed. A flag from those
+presenters would skip the post. About an hour with tests.
 
 ### B-MODALS-2. An `item:` live sheet presented between frames still docks a frame late
 

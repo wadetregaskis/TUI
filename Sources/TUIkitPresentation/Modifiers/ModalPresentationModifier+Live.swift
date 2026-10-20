@@ -122,21 +122,11 @@ final class PresentationEntry {
 // MARK: - Presenting live
 
 extension ModalPresentationModifier {
-    /// Posts, for the root, the rows this sheet docks — every frame,
-    /// presented or not (`FocusManager.notePresentationDock(id:resolver:)`).
-    ///
-    /// Presented, for content that lets the page through (`presented`: the
-    /// content built for this frame, and what it says of the page).
-    ///
-    /// Posted while dismissed too (`presented` is `nil`), so that a sheet the
-    /// app presents between two frames is laid out docked on the first frame
-    /// it is drawn: the resolver reads the binding when the root asks, before
-    /// the walk, and only then — presented by then — builds the content, to
-    /// learn whether it lets the page through and at what detent. A sheet's
-    /// content is never built while it is dismissed (``modal``). An `item:`
-    /// sheet's content is made from the item its presenter was drawn with,
-    /// which is none while it is dismissed, so its first frame is learnt late,
-    /// and settles on the next.
+    /// Posts, for the root, the rows this presented sheet docks
+    /// (`FocusManager.notePresentationDock(id:resolver:)`), where its content
+    /// lets the page through (`presented`: the content built for this frame,
+    /// and what it says of the page). A dismissed sheet posts too
+    /// (``postUnbuiltDock(sectionID:context:)``).
     ///
     /// A presented sheet whose presenter its own dock pushed out of the
     /// page's lazy window, drawn again now the page is whole, is kept off the
@@ -152,37 +142,80 @@ extension ModalPresentationModifier {
     /// (`FocusManager.takesPresentationDocks`) — never a backdrop's, a
     /// focus-reach probe's or a snapshot's, which nothing asks.
     func postDock(
-        presented: (modal: Modal, interaction: PresentationBackgroundInteraction)?, sectionID: String,
+        presented: (modal: Modal, interaction: PresentationBackgroundInteraction), sectionID: String,
         context: RenderContext
     ) {
-        guard !context.isMeasuring, let focusManager = context.environment.focusManager,
-            focusManager.takesPresentationDocks
-        else { return }
-        if let presented, !presented.interaction.isEnabled { return }
+        guard presented.interaction.isEnabled, let focusManager = Self.dockLedger(context) else { return }
+        let isPresented = self.isPresented
+        let environment = context.environment
+        let state = detentState(context: context)
+        let entry = presentationEntry(context: context)
+        if focusManager.presenterWentUndrawnUnderItsDock(sectionID) { entry.isKeptOffTheDock = true }
+        focusManager.notePresentationDock(id: sectionID, presenter: context.identity) { contentHeight in
+            guard isPresented.wrappedValue else { return nil }
+            return Self.dockedRows(presented, extent: contentHeight, environment: environment, state: state, entry: entry)
+        }
+    }
+
+    /// Posts, for the root, the rows this dismissed sheet would dock were it
+    /// presented by the time the root asks — every frame it is dismissed — so
+    /// that a sheet the app presents between two frames is laid out docked on
+    /// the first frame it is drawn: the resolver reads the binding when the
+    /// root asks, before the walk, and only then — presented by then — builds
+    /// the content, to learn whether it lets the page through and at what
+    /// detent. A sheet's content is never built while it is dismissed
+    /// (``modal``). An `item:` sheet's content is made from the item its
+    /// presenter was drawn with, which is none while it is dismissed, so its
+    /// first frame is learnt late, and settles on the next.
+    ///
+    /// One closure and one entry in the ledger, and nothing else until the
+    /// root asks, which a dismissed sheet answers with one read of its
+    /// binding. What the presenter keeps for a presentation — the detent the
+    /// reader moved it to, the hold off the dock, the rows it drew short of
+    /// its detent — is emptied on every frame the sheet is closed, straight
+    /// after this post (`startOver(context:)`), so a sheet presented before
+    /// the root asks rests where a new one does: the resolver makes a fresh
+    /// detent record then, and keeps no entry. Looked up here, they cost every
+    /// dismissed sheet two lookups in the state storage and two reads of its
+    /// binding per frame, and one never presented a new detent record, for
+    /// nothing.
+    func postUnbuiltDock(sectionID: String, context: RenderContext) {
+        guard let focusManager = Self.dockLedger(context) else { return }
         let isPresented = self.isPresented
         let build = self.modal
         let (style, sizeClasses) = (self.style, self.sizeClasses)
         let environment = context.environment
-        let state =
-            isPresented.wrappedValue
-            ? detentState(context: context) : existingDetentState(context: context) ?? SheetDetentState()
-        let entry =
-            isPresented.wrappedValue ? presentationEntry(context: context) : existingPresentationEntry(context: context)
-        if let entry, isPresented.wrappedValue, focusManager.presenterWentUndrawnUnderItsDock(sectionID) {
-            entry.isKeptOffTheDock = true
-        }
         focusManager.notePresentationDock(id: sectionID, presenter: context.identity) { contentHeight in
-            guard isPresented.wrappedValue,
-                let live = presented ?? Self.live(build(), style: style, sizeClasses: sizeClasses)
+            guard isPresented.wrappedValue, let live = Self.live(build(), style: style, sizeClasses: sizeClasses)
             else { return nil }
-            let detents = PresentedDetents(
-                of: live.modal, extent: contentHeight, environment: environment, state: state)
-            let rows = LiveSheet.dock(
-                detents: detents, interaction: live.interaction, extent: contentHeight, environment: environment,
-                entry: entry)
-            // Content with no box docks the rows it draws, not its detent's.
-            return rows.map { min($0, entry?.rowsShortOfDetent ?? $0) }
+            return Self.dockedRows(
+                live, extent: contentHeight, environment: environment, state: SheetDetentState(), entry: nil)
         }
+    }
+
+    /// The focus manager a sheet drawn in `context` posts its dock to, or
+    /// `nil` where it posts none: while measuring, and where no root reads
+    /// the manager's docks (`FocusManager.takesPresentationDocks`).
+    @MainActor
+    private static func dockLedger(_ context: RenderContext) -> FocusManager? {
+        guard !context.isMeasuring, let focusManager = context.environment.focusManager,
+            focusManager.takesPresentationDocks
+        else { return nil }
+        return focusManager
+    }
+
+    /// The rows `live` docks in a content area `extent` rows tall, by the
+    /// presenter's records of it (`state`, `entry`; ``LiveSheet/dock(detents:interaction:extent:environment:entry:)``).
+    @MainActor
+    private static func dockedRows(
+        _ live: (modal: Modal, interaction: PresentationBackgroundInteraction), extent: Int,
+        environment: EnvironmentValues, state: SheetDetentState, entry: PresentationEntry?
+    ) -> Int? {
+        let detents = PresentedDetents(of: live.modal, extent: extent, environment: environment, state: state)
+        let rows = LiveSheet.dock(
+            detents: detents, interaction: live.interaction, extent: extent, environment: environment, entry: entry)
+        // Content with no box docks the rows it draws, not its detent's.
+        return rows.map { min($0, entry?.rowsShortOfDetent ?? $0) }
     }
 
     /// `modal`, built for a sheet presented since its presenter last drew,
