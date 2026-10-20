@@ -1029,15 +1029,16 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **TUIkit:** the natural size applies where the terminal's cell size in points
   is known (Apple Terminal, Warp, iTerm2, Ghostty on its own Mac); elsewhere
   an image fits what it is offered. A larger image is cut from its top-leading
-  corner. Tiles and caps are at the scale the whole image fits at, caps in
-  pixels. An image made from a `CGImage` or `NSImage` is read once and keeps
+  corner. Tiles and caps follow the same rule: at the natural size, with caps
+  in points, where the cell's size is known (since 2026-10-19, B-D3M-3);
+  elsewhere at the scale the whole image fits at. An image made from a `CGImage` or `NSImage` is read once and keeps
   its first pixels. `Image(systemName:)` draws nothing unless a font supplies
   the symbol's glyph (on a Mac, a terminal using SF Mono with the SF Symbols
   font installed).
 - **Why:** a cell grid has no points unless the terminal says how big a cell
   is; noticing an in-place edit would mean hashing pixels every frame.
 - **Decided:** [§2.4](<SwiftUI compatibility guide.md#24-image-is-textascii-sf-symbols-render-as-glyphs-in-narrow-circumstances>), [B-D3M-2](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-2-an-images-natural-size-is-known-on-four-hosts-and-ghosttys-only-locally>),
-  [B-D3M-3](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-3-tiles-and-caps-keep-the-fitted-scale-and-caps-are-in-pixels>). **Medium**, with **Lane** choices.
+  [B-D3M-3](<Decisions/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-3-tiles-and-caps-follow-the-natural-size-and-caps-are-in-points>). **Medium**, with **Lane** choices.
 
 ### C5. A material is a translucent surface, not a blur
 

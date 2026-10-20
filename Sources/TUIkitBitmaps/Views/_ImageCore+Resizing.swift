@@ -27,16 +27,42 @@ extension _ImageCore {
     /// cell's size is known. Rounded to whole cells, at least one each way,
     /// and at most `maximumNaturalCells`.
     func naturalBox(of rawImage: RGBAImage, in environment: EnvironmentValues) -> (width: Int, height: Int)? {
-        guard resizing == nil, environment.imageFitTarget == .naturalSize,
-            let cell = environment.imageCellPoints, rawImage.width > 0, rawImage.height > 0
-        else { return nil }
-        let size = decoded?.pointSize(of: rawImage) ?? (width: Double(rawImage.width), height: Double(rawImage.height))
+        guard resizing == nil, environment.imageFitTarget == .naturalSize else { return nil }
+        return naturalCells(of: rawImage, in: environment)
+    }
+
+    /// The image's size in cells at its natural size, before any zoom, where a
+    /// cell's size in points is known: ``naturalBox(of:in:)``'s arithmetic,
+    /// whether or not the image is resizable — what a sliced image's caps and
+    /// tiles are cut at.
+    func naturalCells(of rawImage: RGBAImage, in environment: EnvironmentValues) -> (width: Int, height: Int)? {
+        guard let cell = environment.imageCellPoints, rawImage.width > 0, rawImage.height > 0 else { return nil }
+        let size = pointSize(of: rawImage)
         func cells(_ points: Double, _ cell: Double) -> Int {
             let count = (points / cell).rounded()
             guard count.isFinite else { return 1 }
             return Int(Swift.min(Swift.max(1, count), Double(Self.maximumNaturalCells)))
         }
         return (cells(size.width, cell.width), cells(size.height, cell.height))
+    }
+
+    /// The image's size in points.
+    private func pointSize(of rawImage: RGBAImage) -> (width: Double, height: Double) {
+        decoded?.pointSize(of: rawImage) ?? (width: Double(rawImage.width), height: Double(rawImage.height))
+    }
+
+    /// `resizing` with the box its slices are cut at, where the image is drawn in
+    /// slices and a cell's size in points is known (``_ImageResizing/sliceBox``).
+    func slicing(_ resizing: _ImageResizing?, of rawImage: RGBAImage, in environment: EnvironmentValues)
+        -> _ImageResizing?
+    {
+        guard var resizing, resizing.slices, let cells = naturalCells(of: rawImage, in: environment) else {
+            return resizing
+        }
+        let points = pointSize(of: rawImage)
+        let perPoint = points.width > 0 ? Double(rawImage.width) / points.width : 1
+        resizing.sliceBox = .init(width: cells.width, height: cells.height, pixelsPerPoint: perPoint)
+        return resizing
     }
 
     /// What a loaded image draws, into which box, and how it fills it.
@@ -57,7 +83,7 @@ extension _ImageCore {
         _ image: RGBAImage, in space: (width: Int, height: Int), zoom: Double, environment: EnvironmentValues
     ) -> (image: RGBAImage, width: Int, height: Int, resizing: _ImageResizing?) {
         guard let natural = naturalBox(of: image, in: environment) else {
-            return (image, space.width, space.height, effectiveResizing(in: environment))
+            return (image, space.width, space.height, slicing(effectiveResizing(in: environment), of: image, in: environment))
         }
         let full = (width: Self.zoomed(natural.width, zoom), height: Self.zoomed(natural.height, zoom))
         let width = Swift.min(full.width, space.width)

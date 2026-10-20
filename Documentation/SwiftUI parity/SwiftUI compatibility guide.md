@@ -384,12 +384,12 @@ a content mode around it (`scaledToFit()`, `scaledToFill()`,
 `aspectRatio(_:contentMode:)`) keeps it, which is the usual
 `.resizable().scaledToFit()` and draws as an `Image` always has. Where SwiftUI's
 resizable image takes its natural pixel size on an axis it is offered nothing,
-TUIkit's takes the extent its aspect gives it. Cap insets are in the image's
-pixels; the caps keep the scale the whole image fits its frame at, and the edges
-and centre stretch, or with `.tile` repeat at that scale, between them — where
-SwiftUI's caps are in points and its tiles repeat at the natural size (lane
-D3M's decisions, B-D3M-3). An image in slices draws as cells, never as a
-terminal picture. An image that is NOT resizable takes its natural size, below.
+TUIkit's takes the extent its aspect gives it. Cap insets are in points, as
+SwiftUI's are; the caps keep the image's natural size, and the edges and centre
+stretch, or with `.tile` repeat at that size, between them, as SwiftUI's do —
+where the terminal's cell size in points is known, as for the natural size
+below; elsewhere at the scale the whole image fits its frame at (B-D3M-3, built
+2026-10-19). An image in slices draws as cells, never as a terminal picture. An image that is NOT resizable takes its natural size, below.
 
 **`Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)`
 and `Image(nsImage:)` ship where AppKit exists, in the `TUIkitAppKit` module**

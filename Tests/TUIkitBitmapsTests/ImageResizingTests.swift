@@ -113,6 +113,36 @@ struct ImageResizingTests {
         #expect(stretched == (0..<24).map { $0 / 2 })
     }
 
+    @Test("Where its natural size is known, a tile repeats at it, not at the size it fits the frame at")
+    func tilesAtTheNaturalSize() {
+        func tiled(_ box: _ImageResizing.SliceBox?) -> RGBAImage {
+            var resizing = _ImageResizing(capInsets: EdgeInsets(), mode: .tile)
+            resizing.sliceBox = box
+            return framed().sliced(resizing, columns: 24, rows: 3, cellAspect: 2)
+        }
+        // Fitted to 24 × 3, the square is 6 × 3 cells: two tiles across.
+        let fitted = tiled(nil)
+        #expect(fitted.width == 48, "two samples a column")
+        // Its natural size 3 × 3 cells: four samples a column, a tile every
+        // twelve, eight across.
+        let natural = tiled(.init(width: 3, height: 3, pixelsPerPoint: 1))
+        #expect(natural.width == 96)
+        let row = Array(natural.pixels[(6 * 96)..<(7 * 96)])
+        #expect(Array(row[0..<12]) == Array(row[12..<24]) && Array(row[0..<12]) == Array(row[84..<96]))
+        #expect(row[0..<12].contains(Self.blue), "one tile holds the image's middle")
+    }
+
+    @Test("Cap insets are points: a @2x image's are twice as many pixels")
+    func capInsetsArePoints() {
+        func capped(_ points: Int, perPoint: Double) -> RGBAImage {
+            var resizing = _ImageResizing(capInsets: EdgeInsets(all: points), mode: .stretch)
+            resizing.sliceBox = .init(width: 6, height: 3, pixelsPerPoint: perPoint)
+            return framed().sliced(resizing, columns: 24, rows: 3, cellAspect: 2)
+        }
+        #expect(capped(2, perPoint: 2).pixels == capped(4, perPoint: 1).pixels)
+        #expect(capped(2, perPoint: 2).pixels != capped(2, perPoint: 1).pixels)
+    }
+
     @Test("Caps wider than the frame share it in proportion")
     func capsShareASmallFrame() {
         let map = RGBAImage.sliceMap(source: 12, leading: 6, trailing: 6, cells: 2, fittedCells: 6, tiles: false)

@@ -14,8 +14,9 @@ extension Image {
         /// A mode to repeat the image at its original size, as many times as
         /// necessary to fill the available space.
         ///
-        /// The original size is the size the whole image fits its frame at:
-        /// a raster image has no size in cells of its own.
+        /// The original size is the image's size in points over a cell's, where
+        /// the terminal's cell size is known, as an image that is not resizable
+        /// is drawn; elsewhere it is the size the whole image fits its frame at.
         case tile
 
         /// A mode to enlarge or reduce the size of an image so that it fills
@@ -45,14 +46,18 @@ extension Image {
     /// content is — the image takes the extent its aspect gives it, where
     /// SwiftUI's takes its pixel size.
     ///
-    /// Cap insets are in the image's pixels, as SwiftUI's are in its points.
-    /// The caps keep the scale the whole image fits its frame at, and the
-    /// edges and centre between them stretch, or tile, to fill the rest. An
-    /// image drawn in slices — with caps, or tiled — is drawn as cells even on
-    /// a terminal that shows pictures, its pixels being made for its frame.
+    /// Cap insets are in the image's points, as SwiftUI's are: a @2x image's
+    /// insets are half its pixels. The caps keep the image's natural size —
+    /// its size in points over a cell's, where the terminal's cell size is
+    /// known, as an image that is not resizable is drawn; elsewhere the size
+    /// the whole image fits its frame at — and the edges and centre between
+    /// them stretch, or tile at that size, to fill the rest. So a tile follows
+    /// the terminal's font, as a natural-size image does. An image drawn in
+    /// slices — with caps, or tiled — is drawn as cells even on a terminal
+    /// that shows pictures, its pixels being made for its frame.
     ///
     /// - Parameters:
-    ///   - capInsets: The edges of the image, in pixels, that keep their
+    ///   - capInsets: The edges of the image, in points, that keep their
     ///     scale. None by default.
     ///   - resizingMode: Whether the parts between the caps stretch or tile.
     ///     Stretch by default.
@@ -75,6 +80,13 @@ extension Image {
 package struct _ImageResizing: Equatable, Sendable {
     @usableFromInline package var capInsets: EdgeInsets
     @usableFromInline package var mode: Image.ResizingMode
+    /// Where the image is drawn, the box its slices are cut at: its natural
+    /// size in cells and its pixels per point, or `nil` where a cell's size in
+    /// points is not known and the slices are cut at the box the whole image
+    /// fits. Set by the drawing, not by ``Image/resizable(capInsets:resizingMode:)``,
+    /// and part of the value so a conversion cached for one box is not served
+    /// for another.
+    @usableFromInline package var sliceBox: SliceBox?
 
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal, and ``filling`` makes one inline.
@@ -82,6 +94,23 @@ package struct _ImageResizing: Equatable, Sendable {
     package init(capInsets: EdgeInsets, mode: Image.ResizingMode) {
         self.capInsets = capInsets
         self.mode = mode
+        self.sliceBox = nil
+    }
+
+    /// An image's natural size in cells, and its pixels per point: what a sliced
+    /// image's caps keep and its tiles repeat at.
+    @usableFromInline
+    package struct SliceBox: Equatable, Sendable {
+        @usableFromInline package var width: Int
+        @usableFromInline package var height: Int
+        @usableFromInline package var pixelsPerPoint: Double
+
+        @inlinable
+        package init(width: Int, height: Int, pixelsPerPoint: Double) {
+            self.width = width
+            self.height = height
+            self.pixelsPerPoint = pixelsPerPoint
+        }
     }
 
     /// Whether the image is drawn in slices rather than resampled whole: it

@@ -72,20 +72,28 @@ terminal TUIkit cannot ask.
 **The fuller version:** measure the other common hosts (an hour each with the
 probes), and for Ghostty ask the display scale another way if one appears.
 
-### B-D3M-3. Tiles and caps keep the fitted scale, and caps are in pixels
+### B-D3M-3. Tiles and caps follow the natural size, and caps are in points
 
 *`Image.resizable(capInsets:resizingMode:)`, `Image.ResizingMode.tile` (B42)*
 
-**Shipped:** unchanged by the natural size: a tiled image repeats at the scale
-the whole image fits its frame at, and cap insets are in the image's pixels.
+**Shipped at first:** unchanged by the natural size: a tiled image repeated at
+the scale the whole image fits its frame at, and cap insets were in the image's
+pixels.
 
 **SwiftUI's reading** tiles at the image's natural size and takes cap insets in
 points. Now that a natural size exists on most hosts, both could follow: the
 slices would be cut at the natural cell box where it is known (and the fitted
 one elsewhere), the insets multiplied by the image's scale, and the image's
 per-view conversion cache keyed on the natural box too. About two hours with
-tests. Left for now because no app in the tree tiles an image, and a tile size
+tests. Left at first because no app in the tree tiles an image, and a tile size
 that changes with the terminal's font is a behaviour change worth seeing first.
+
+**Built 2026-10-19** (settled by the parity rule and the B42 ruling, which
+accepts sizes that follow the font): where a cell's size in points is known, a
+sliced image is cut at its natural cell box and its insets scaled by its pixels
+per point (`_ImageResizing.sliceBox`, set where the image is drawn, so the
+conversion cache, which compares the resizing, is keyed on it); elsewhere as
+before (`ImageResizingTests`).
 
 ### B-D3M-4. The doubled format-style statics stay, and three calls inside B50
 

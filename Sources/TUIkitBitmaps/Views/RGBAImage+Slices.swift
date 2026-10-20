@@ -26,21 +26,27 @@ extension RGBAImage {
     }
 
     /// The image in nine slices, made to fill `columns` × `rows` cells: its
-    /// caps at the scale the whole image fits those cells at, and the edges
-    /// and centre between them stretched or tiled.
+    /// caps at its natural size (``_ImageResizing/sliceBox``), or at the scale
+    /// the whole image fits those cells at where that is unknown, and the edges
+    /// and centre between them stretched or tiled at that size. Cap insets are
+    /// in points, so they are scaled to pixels by the image's pixels per point.
     ///
     /// Picked rather than resampled — each sample is one source pixel — at
     /// two to four samples a cell, which the converter then averages.
     func sliced(_ resizing: _ImageResizing, columns: Int, rows: Int, cellAspect: Double) -> RGBAImage {
-        let fitted = ASCIIConverter.targetSize(
-            imageWidth: width, imageHeight: height, maxWidth: columns, maxHeight: rows,
-            contentMode: .fit, cellAspect: cellAspect)
+        let fitted =
+            resizing.sliceBox.map { (width: $0.width, height: $0.height) }
+            ?? ASCIIConverter.targetSize(
+                imageWidth: width, imageHeight: height, maxWidth: columns, maxHeight: rows,
+                contentMode: .fit, cellAspect: cellAspect)
         let tiles = resizing.mode == .tile
+        let perPoint = resizing.sliceBox?.pixelsPerPoint ?? 1
+        func inPixels(_ points: Int) -> Int { Int((Double(points) * perPoint).rounded()) }
         let xs = Self.sliceMap(
-            source: width, leading: resizing.capInsets.leading, trailing: resizing.capInsets.trailing,
+            source: width, leading: inPixels(resizing.capInsets.leading), trailing: inPixels(resizing.capInsets.trailing),
             cells: columns, fittedCells: fitted.width, tiles: tiles)
         let ys = Self.sliceMap(
-            source: height, leading: resizing.capInsets.top, trailing: resizing.capInsets.bottom,
+            source: height, leading: inPixels(resizing.capInsets.top), trailing: inPixels(resizing.capInsets.bottom),
             cells: rows, fittedCells: fitted.height, tiles: tiles)
         guard !xs.isEmpty, !ys.isEmpty else { return self }
         var out: [RGBA] = []
@@ -59,8 +65,8 @@ extension RGBAImage {
     ///   - leading: The leading cap, in pixels.
     ///   - trailing: The trailing cap, in pixels.
     ///   - cells: The cells to fill.
-    ///   - fittedCells: The cells the whole image fits on this axis — the
-    ///     scale the caps keep.
+    ///   - fittedCells: The cells the whole image takes on this axis at the
+    ///     size its caps keep and its tiles repeat at.
     ///   - tiles: Whether the middle repeats rather than stretches.
     static func sliceMap(
         source: Int, leading: Int, trailing: Int, cells: Int, fittedCells: Int, tiles: Bool
