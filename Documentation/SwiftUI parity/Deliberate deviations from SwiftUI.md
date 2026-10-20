@@ -887,7 +887,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **TUIkit:** both are underlined (`.linkUnderline(false)` removes it). A link
   in a `Text` carries an OSC 8 hyperlink for the terminal to open, and takes
   no focus and no click; on a terminal without OSC 8 (Apple Terminal) its
-  destination cannot be reached from the text.
+  destination cannot be reached from the text unless the app writes it out
+  with `.linkDisplay(.urlInParentheses)` or `.urlOnly`, which a text's links
+  honour as a `Link` does.
 - **Why:** a terminal has no pointer affordance for a link, so the underline
   is what marks one.
 - **Decided:** [Link.swift](../../Sources/TUIkitFoundation/Views/Link.swift#L41-L44)

@@ -6,7 +6,7 @@
 
 // MARK: - How a link shows where it goes
 
-/// How a ``Link`` reveals its destination.
+/// How a ``Link``, or a link inside a ``Text``, reveals its destination.
 ///
 /// A link in a terminal has a problem a link in a browser does not: **the
 /// application cannot reliably open it.** `OpenURLAction` runs the system
@@ -20,6 +20,12 @@
 /// This is the knob for that, because there is no single right answer:
 /// showing every URL inline is noise on a page of prose, and hiding every URL
 /// is a problem on a terminal that cannot linkify one.
+///
+/// A link inside a ``Text`` — an attributed string's `link`, a Markdown
+/// `[label](url)` — honours the two URL modes too: its destination is written
+/// after its label or in its place, in the link's own style, and the text's
+/// measure counts it. ``popover`` leaves such a link as it is, since a text's
+/// link is no control and has no popover to show (decisions B85).
 ///
 /// TUI-specific. SwiftUI's `Link` has no equivalent, because a browser is
 /// always exactly one process away.
@@ -73,8 +79,8 @@ private struct LinkDisplayKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    /// How a ``Link`` reveals its destination — see
-    /// ``View/linkDisplay(_:)``.
+    /// How a ``Link``, or a link inside a ``Text``, reveals its destination —
+    /// see ``View/linkDisplay(_:)``.
     public var linkDisplay: LinkDisplay {
         get { self[LinkDisplayKey.self] }
         set { self[LinkDisplayKey.self] = newValue }
@@ -82,7 +88,8 @@ extension EnvironmentValues {
 }
 
 extension View {
-    /// Sets how every ``Link`` in this view's subtree reveals its destination.
+    /// Sets how every ``Link`` in this view's subtree, and every link inside a
+    /// ``Text`` there, reveals its destination.
     ///
     /// ```swift
     /// ContentView()

@@ -2,7 +2,8 @@
 //  TextLinkTests.swift
 //
 //  A link inside a `Text` — an attributed string's `link` run: drawn as a link,
-//  and carried to the terminal as an OSC 8 hyperlink balanced on every line.
+//  carried to the terminal as an OSC 8 hyperlink balanced on every line, and
+//  written out where `.linkDisplay` asks.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -200,6 +201,35 @@ struct TextLinkTests {
                 #expect(Array(written.utf8) == Array(perFragment.utf8), "\(line) \(String(describing: openings))")
             }
         }
+    }
+
+    // MARK: - Where it goes, written out
+
+    @Test("linkDisplay writes a link's destination after its label, or in its place, as a Link does")
+    func linkDisplayWritesTheDestination() {
+        #expect(lines(Text(sentence))[0].stripped == "See docs now", "the default, .popover, writes nothing")
+        let after = lines(Text(sentence).linkDisplay(.urlInParentheses))
+        #expect(after[0].stripped == "See docs (https://example.com/docs) now")
+        // The destination is the link's, drawn as its label is.
+        #expect(isUnderlined("(https://example.com/docs)", in: after))
+        #expect(!isUnderlined("now", in: after))
+        let only = lines(Text(sentence).linkDisplay(.urlOnly))
+        #expect(only[0].stripped == "See https://example.com/docs now")
+        #expect(sgrState(of: "https://example.com/docs", in: only)?.parameters.contains(accentCodes()) == true)
+    }
+
+    @Test("The measure counts the written destination, and a text without links is untouched")
+    func linkDisplayIsMeasured() {
+        var context = makeRenderContext(width: 40, height: 6)
+        let proposal = ProposedSize(width: 40, height: nil)
+        #expect(Text(sentence).sizeThatFits(proposal: proposal, context: context).width == 12)
+        context.environment.linkDisplay = .urlInParentheses
+        #expect(Text(sentence).sizeThatFits(proposal: proposal, context: context).width == 39)
+        // Too wide for 20 cells: it wraps, and the measure says so.
+        #expect(Text(sentence).sizeThatFits(proposal: ProposedSize(width: 20, height: nil), context: context).height > 1)
+        context.environment.linkDisplay = .urlOnly
+        #expect(Text(sentence).sizeThatFits(proposal: proposal, context: context).width == 32)
+        #expect(Text("See docs now").sizeThatFits(proposal: proposal, context: context).width == 12)
     }
 
     // MARK: - It survives what a run goes through

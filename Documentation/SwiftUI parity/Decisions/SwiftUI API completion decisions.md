@@ -3223,9 +3223,11 @@ cannot be reached from the text.
    About two days. The work is a leaf `Text` that registers focus and animates
    one run. The keyboard part is not optional: a click-only link would break
    the no-mouse-only rule.
-2. **Honour `.linkDisplay(.urlInParentheses)` and `.urlOnly` for text links.**
-   The URL would be written after or instead of the label, so Terminal.app
-   users can read it. Half a day. The measure has to see the added text.
+2. ~~**Honour `.linkDisplay(.urlInParentheses)` and `.urlOnly` for text
+   links.**~~ Built 2026-10-19 (lane TEXTEDIT, B85-LINKDISPLAY): under either
+   mode a text's link writes its URL after its label or in its place, in the
+   link's style and inside its hyperlink, so Terminal.app users can read it;
+   the measure counts it. `.popover`, the default, leaves the link as it was.
 
 **Recommendation:** 2 now if Terminal.app matters; 1 when an app needs inline
 links it can activate.

@@ -977,7 +977,8 @@ extension Text: Renderable, Layoutable {
         let textCase = cascadedAttributes(context: context, font: font).effectiveTextCase
         let wrapped = TextWrapping.wrapMeasured(
             Self.displayString(
-                content, textCase: textCase, redaction: context.environment.effectiveRedactionReasons),
+                shownWords(in: context.environment).content, textCase: textCase,
+                redaction: context.environment.effectiveRedactionReasons),
             width: maxWidth)
 
         // Reuse the per-line widths the wrap already computed instead of
@@ -1028,7 +1029,9 @@ extension Text: Renderable, Layoutable {
         let font = resolvedFont(stating: style.font, context: context)
         let textCase = cascadedAttributes(context: context, font: font).effectiveTextCase
         let wrapped = TextWrapping.wrapMeasured(
-            Self.displayString(content, textCase: textCase, redaction: context.environment.effectiveRedactionReasons),
+            Self.displayString(
+                shownWords(in: context.environment).content, textCase: textCase,
+                redaction: context.environment.effectiveRedactionReasons),
             width: width)
         guard (wrapped.widths.max() ?? 0) <= width else { return false }
         if let limit = resolvedLineLimitPolicy(context: context).rowCount, wrapped.lines.count > limit {
@@ -1113,8 +1116,11 @@ extension Text: Renderable, Layoutable {
         // Read once for the content and every run of a concatenation, which
         // each used to read it again — see `displayString`.
         let redaction = context.environment.effectiveRedactionReasons
+        // The words as shown: a link's destination written out where
+        // `.linkDisplay` asks for it, as the measure counted it.
+        let shown = shownWords(in: context.environment)
         let wrapped = TextWrapping.fitMeasured(
-            Self.displayString(content, textCase: effectiveCase, redaction: redaction),
+            Self.displayString(shown.content, textCase: effectiveCase, redaction: redaction),
             width: maxWidth, maxLines: maxHeight, mode: mode, atWordBoundary: atWordBoundary)
 
         let knownWidth = wrapped.widths.max() ?? 0
@@ -1156,7 +1162,7 @@ extension Text: Renderable, Layoutable {
         // only once the line spacing has been interleaved, below — the two arms
         // that produce claims both work in line indices, and spacing shifts rows.
         var perLineClaims: [[OpacityRegion]] = []
-        if let runs {
+        if let runs = shown.runs {
             let runTexts = runs.map {
                 Self.displayString($0.text, textCase: effectiveCase, redaction: redaction)
             }

@@ -2,8 +2,9 @@
 //  Text+Links.swift
 //
 //  A run of a `Text` that links somewhere — an attributed string's `link`, or a
-//  Markdown link in a key: drawn as a link, and carrying the destination to the
-//  terminal as an OSC 8 hyperlink.
+//  Markdown link in a key: drawn as a link, carrying the destination to the
+//  terminal as an OSC 8 hyperlink, and writing it out where `.linkDisplay`
+//  asks.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -36,6 +37,32 @@ extension Text.Run {
 }
 
 extension Text {
+    /// The words this text shows and the runs they are drawn in: its own, or,
+    /// under ``LinkDisplay/urlInParentheses`` and ``LinkDisplay/urlOnly``, with
+    /// each link's destination written after its label or in its place, as
+    /// ``Link`` writes its own (decisions B85).
+    ///
+    /// The destination joins the link's run, so it is drawn, underlined and
+    /// hyperlinked as the label is; and since the measure and the render both
+    /// read it from here, the measure counts it. The link stays as it is in
+    /// every other way: a text's link is no control in any mode (B85), so
+    /// there is no activation for the URL modes to take away as they do from
+    /// ``Link``. A text that has no runs, or no link, or shows links as
+    /// ``LinkDisplay/popover`` (the default), pays a nil check and an
+    /// environment read only where it has runs.
+    func shownWords(in environment: EnvironmentValues) -> (content: String, runs: [Run]?) {
+        guard let runs, runs.contains(where: { $0.link != nil }) else { return (content, runs) }
+        let display = environment.linkDisplay
+        guard display != .popover else { return (content, runs) }
+        let shown = runs.map { run -> Run in
+            guard let link = run.link else { return run }
+            let destination = link.absoluteString
+            let text = display == .urlOnly ? destination : "\(run.text) (\(destination))"
+            return Run(text: text, style: run.style, link: link)
+        }
+        return (shown.map(\.text).joined(), shown)
+    }
+
     /// For each run, the OSC 8 sequence that opens its link, or `nil` when it
     /// has none; or `nil` for them ALL when no run links or none may be
     /// emitted here — which is nearly every concatenation, and so pays for no
