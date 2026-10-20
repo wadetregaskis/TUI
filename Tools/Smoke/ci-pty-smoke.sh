@@ -179,6 +179,25 @@ if [ "$DEPTH" = "full" ]; then
     "$VENV/bin/python" "$HERE/language_switch_smoke.py" --binary "$REPO/$BUILD_DIR/Example"
 fi
 
+# A timeline rather than a screen: the caret's blink, timed from the bytes the
+# app writes. The irregular blink the owner reported held 709, 43 and 369 ms in
+# turn while every unit test of the timer passed (CursorBlinkRegularityTests
+# checks the runs the loop replays, not the loop); only the live loop's
+# timeline showed it. The Text Input page with Blink set (F2) moves nothing
+# else, so each write is the caret turning on or off. It judges regularity, not
+# length, so a slow runner does not fail it. About 7 s, `full` only.
+#
+# ADVISORY until it has run clean on every lane for a while, as the Windows
+# steps were: an irregular or absent blink is a warning annotation, not a
+# failure. To make it gate, drop the `if` and let the probe's status stand.
+if [ "$DEPTH" = "full" ]; then
+    echo "── caret blink: regular holds in the live loop (advisory) ──"
+    if ! "$VENV/bin/python" "$HERE/raw_probe.py" "$REPO/$BUILD_DIR/Example" \
+        --args "--page textInput" --keys f2 --blink --watch 4; then
+        echo "::warning title=Caret blink (advisory)::raw_probe.py --blink found the caret's holds irregular, or saw no blink; its timeline is in the log above"
+    fi
+fi
+
 # Last, because it is far and away the most expensive thing here — 7 min 15 s of
 # the 11 min 23 s `full` now measures, against about four for everything above,
 # and everything above gives its signal in seconds.
