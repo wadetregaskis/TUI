@@ -62,7 +62,7 @@ and its setup and expectations are in another function. **What was measured
 since** (session notes `EXITTC/research.md` §8.1, on 6.4.0): the exit tests'
 in-place type-check totals about 2 s of a ~700 s whole-module type check of the
 test target (≈0.2%), so the −7 to −10 s above overstated it at least 3.5
-times. There are now 43 exit tests in 23 files across six test targets. The
+times. That was over 43 exit tests; on 2026-10-19 there are 60, in 28 files across nine test targets. The
 recommendation stays **(c), leave them**; if the saving is ever wanted, a
 smaller rewrite keeps the body in the test as a local `inChild()` function
 passed as `performing:` ([Future options](<../../../Future options.md#exit-tests-bodies-as-functions>)).

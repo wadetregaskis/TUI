@@ -207,7 +207,7 @@ passed as `performing: inChild`; it ran correctly on Swift 6.2.4, 6.3.3 and
 
 **What it buys (measured,** session notes `EXITTC/research.md` §8.1): about
 2 s of a ~700 s whole-module type check of the test target (≈0.2%), across
-what are now 43 exit tests in 23 files. Lane TC1's first figure, −7 to −10 s,
+the 43 exit tests there were then (60 in 28 files on 2026-10-19). Lane TC1's first figure, −7 to −10 s,
 overstated it at least 3.5 times.
 
 **Why not now.** The body is what the child process checks; moved out, the

@@ -1021,7 +1021,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   pictures with probes).
 - **TUIkit:** each cell takes the colour at its centre, so a smooth ramp is a
   staircase on a glyph terminal (a terminal that takes pictures draws a
-  gradient behind blank cells as a picture). `RadialGradient`'s radii are
+  gradient behind blank cells as a picture). A gradient filling a shape that
+  is rasterized (C8) is sampled per half cell instead, a step half a row
+  tall, as the shape's edge is. `RadialGradient`'s radii are
   cells measured across, with the height derived through the cell's aspect so
   a circle looks like one; `AngularGradient`'s angles are corrected the same
   way. A mesh's patches are evaluated exactly where SwiftUI tessellates
@@ -1128,7 +1130,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   covers, as alpha, composited over what is behind (`FillStyle(antialiased:
   false)` draws a half at least half covered, whole). It is cells on every
   terminal, including those that take pictures; with no colour, it is the
-  half-block glyphs alone. A dash pattern that would be walked more than
+  half-block glyphs alone. A gradient or a mesh filling it is sampled at the
+  same half cells (`ShapePainter`), so its ramp steps half a row at a time
+  (C2). A dash pattern that would be walked more than
   65,536 lengths along a stroke — a dashed line to the edge of the plane —
   draws the line unbroken, where CoreGraphics walks every dash (0.13 s over
   10⁷ units, unfinished over 10⁹; measured); one shorter than a pixel draws
