@@ -262,6 +262,20 @@ struct ScrollContentWindow: Sendable, Hashable {
         window.reply = reply
         return window
     }
+
+    /// This window as content drawn `leading` columns further right sees it —
+    /// a padding's or the content margins' content. Across, the window says
+    /// only where a purely horizontal view samples the column it reports
+    /// (``columnReport``), and that is so much further left in the content's
+    /// coordinates; the columns the content answers go back the other way
+    /// (``ScrollContentReply/shiftColumns(by:)``).
+    func across(leading: Int) -> Self {
+        guard leading != 0, var report = columnReport else { return self }
+        report.offset -= leading
+        var window = self
+        window.columnReport = report
+        return window
+    }
 }
 
 /// What a windowed stack does about the row at the top of the viewport — see
@@ -403,6 +417,19 @@ final class ScrollContentReply: @unchecked Sendable, Hashable {
     /// 190, and row 191 was never shown. The ScrollView measures again and
     /// draws once more (`renderedContent`).
     var measureWentStale = false
+
+    /// Moves the columns the content answered `leading` columns right, into
+    /// the coordinates of a view that draws them past a leading inset (a
+    /// padding, the content margins): the extents a behaviour and the
+    /// visibility observers read, and the column a seek found. Left where the
+    /// stack placed them, `.leading` showed the end of the column before the
+    /// one sought and `.trailing` cut the sought one short.
+    func shiftColumns(by leading: Int) {
+        guard leading != 0 else { return }
+        targetLayoutColumns = targetLayoutColumns?.shifted(by: leading)
+        targetVisibleColumns = targetVisibleColumns?.shifted(by: leading)
+        seekResolvedColumn = seekResolvedColumn.map { .init(origin: $0.origin + leading, length: $0.length) }
+    }
 
     static func == (lhs: ScrollContentReply, rhs: ScrollContentReply) -> Bool { lhs === rhs }
     func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(self)) }

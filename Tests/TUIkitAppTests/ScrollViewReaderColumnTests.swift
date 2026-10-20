@@ -3,8 +3,9 @@
 //
 //  `scrollTo` on a purely horizontal `ScrollView`, which seeks a column of
 //  the horizontal stack that is its content (DEVS #4; the semantic audit's
-//  item 45). Apart from `ScrollViewReaderTests`, which seeks rows, for the
-//  file-length guideline.
+//  item 45) — through padding and content margins too, where the column
+//  read back to `.scrollPosition` is placed as the sought one is. Apart from
+//  `ScrollViewReaderTests`, which seeks rows, for the file-length guideline.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -144,6 +145,95 @@ struct ScrollViewReaderColumnTests {
         box.proxy?.scrollTo(30, anchor: .trailing)
         let trailing = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
         #expect(row(trailing)?.hasSuffix("c30") == true, ".trailing puts c30 last: \(trailing)")
+    }
+
+    /// Forty columns of three cells and one between, lazy or eager.
+    @ViewBuilder
+    private func columns(lazy: Bool) -> some View {
+        let columns = ForEach(0..<40, id: \.self) { i in Text("c" + (i < 10 ? "0" : "") + "\(i)") }
+        if lazy {
+            LazyHStack(spacing: 1) { columns }
+        } else {
+            HStack(spacing: 1) { columns }
+        }
+    }
+
+    /// What stands before a purely horizontal scroll view's first column:
+    /// two cells of padding (alone, or with a line above and below, which
+    /// relays the scroll window too) or of content margin.
+    enum LeadingInset: CaseIterable, Sendable, CustomStringConvertible {
+        case padding, paddingAllRound, contentMargins
+
+        var description: String {
+            switch self {
+            case .padding: ".padding(.horizontal, 2)"
+            case .paddingAllRound: ".padding(EdgeInsets(top: 1, leading: 2, bottom: 1, trailing: 2))"
+            case .contentMargins: ".contentMargins(.horizontal, 2)"
+            }
+        }
+    }
+
+    /// The forty columns two cells past `inset`, in a purely horizontal
+    /// scroll view 30 cells wide: column `i` at `4i + 2` in its content.
+    @ViewBuilder
+    private func carousel(lazy: Bool, inset: LeadingInset) -> some View {
+        switch inset {
+        case .padding:
+            ScrollView(.horizontal) { columns(lazy: lazy).padding(.horizontal, 2) }.frame(width: 30, height: 4)
+        case .paddingAllRound:
+            ScrollView(.horizontal) { columns(lazy: lazy).padding(EdgeInsets(top: 1, leading: 2, bottom: 1, trailing: 2)) }
+                .frame(width: 30, height: 4)
+        case .contentMargins:
+            ScrollView(.horizontal) { columns(lazy: lazy) }.contentMargins(.horizontal, 2).frame(width: 30, height: 4)
+        }
+    }
+
+    /// The line the columns are drawn on.
+    private func columnLine(_ screen: [String]) -> String? { screen.first { $0.contains("c") } }
+
+    /// A column the stack places at `x` is at `x` plus the inset before the
+    /// stack in the scroll view's content, which is where the view has to
+    /// scroll to show it. Placed at the stack's `x`, `.leading` showed the
+    /// end of the column before it, and `.trailing` cut the sought one short.
+    @Test("scrollTo places a column past a leading inset", arguments: [false, true], LeadingInset.allCases)
+    func columnSeekPastALeadingInset(lazy: Bool, inset: LeadingInset) {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        let box = ProxyBox()
+        let view = ScrollViewReader { proxy in
+            let _ = box.proxy = proxy
+            carousel(lazy: lazy, inset: inset)
+        }
+        let row = columnLine
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+
+        box.proxy?.scrollTo(20, anchor: .leading)
+        let leading = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(row(leading)?.hasPrefix("c20") == true, ".leading puts c20 first: \(leading)")
+
+        box.proxy?.scrollTo(30, anchor: .trailing)
+        let trailing = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(row(trailing)?.hasSuffix("c30") == true, ".trailing puts c30 last: \(trailing)")
+    }
+
+    /// The column a purely horizontal view reports to `.scrollPosition` is
+    /// the one at its leading edge, sampled in the stack's coordinates: the
+    /// view's offset less the inset. At offset 80 the edge shows the last
+    /// cell of column 19 (`4 × 19 + 2` to `+ 4`); sampled at the stack's 80,
+    /// column 20 was reported.
+    @Test("The column read back past a leading inset is the one at the edge", arguments: [false, true], LeadingInset.allCases)
+    func columnReadBackPastALeadingInset(lazy: Bool, inset: LeadingInset) {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        var position = ScrollPosition(idType: Int.self)
+        let binding = Binding(get: { position }, set: { position = $0 })
+        let view = carousel(lazy: lazy, inset: inset).scrollPosition(binding)
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        position.scrollTo(x: 80)
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        let screen = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(columnLine(screen)?.hasPrefix("9 c20") == true, "precondition: \(screen)")
+        #expect(position.viewID(type: Int.self) == 19, "\(screen)")
     }
 }
 

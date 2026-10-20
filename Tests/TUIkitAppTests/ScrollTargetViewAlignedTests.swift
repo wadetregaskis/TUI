@@ -121,6 +121,33 @@ struct ScrollTargetViewAlignedTests {
         #expect(first.dropFirst(margin).hasPrefix("item2"), "\(first)")
     }
 
+    /// Padding is content, not a margin: a column of a padded carousel is
+    /// past the padding in the scroll view's content, and lands at the
+    /// view's edge. Placed where the stack put it, each landed a cell early.
+    @Test("View-aligned across a padded carousel: a tick lands the next column at the edge", arguments: [true, false])
+    func viewAlignedPaddedColumns(lazy: Bool) {
+        let frames = Frames(width: 20, height: 3)
+        let items = ForEach(0..<20, id: \.self) { Text("item\($0)").frame(width: 7, alignment: .leading) }
+        let stack: AnyView =
+            lazy
+            ? AnyView(LazyHStack(spacing: 2) { items }.scrollTargetLayout())
+            : AnyView(HStack(spacing: 2) { items }.scrollTargetLayout())
+        let view = ScrollView(.horizontal) { stack.padding(.horizontal, 1) }
+            .scrollTargetBehavior(.viewAligned)
+        frames.render(view)
+        var offsets: [Int] = []
+        for _ in 0..<2 {
+            frames.wheel(.scrollRight)
+            frames.render(view)
+            offsets.append(frames.scrollView?.horizontal.scrollOffset ?? -1)
+        }
+        // Columns every 9 cells, one past the padding: the first tick lands
+        // the first column at the edge, which at 0 stood a cell in from it.
+        #expect(offsets == [1, 10], "\(offsets)")
+        let first = frames.last.lines.map(\.stripped).first ?? ""
+        #expect(first.hasPrefix("item1"), "\(first)")
+    }
+
     @Test("View-aligned limited to one view: a tick over one-line rows moves one row")
     func viewAlignedByOne() {
         let frames = Frames()

@@ -178,6 +178,17 @@ extension RenderContext {
         guard origin != 0, origin != Self.belowScrollContentOrigin else { return false }
         return identity.isDirectDescent(fromDepth: Int(origin) - 1)
     }
+
+    /// This context with its scroll window as content drawn `leading`
+    /// columns further right sees it (``ScrollContentWindow/across(leading:)``):
+    /// written only where a column is sampled for the read-back, the one
+    /// thing the window says across.
+    func withScrollWindowAcross(leading: Int) -> RenderContext {
+        guard leading != 0, let window = environment.scrollContentWindow, window.columnReport != nil else { return self }
+        var context = self
+        context.environment.scrollContentWindow = window.across(leading: leading)
+        return context
+    }
 }
 
 extension _HStackCore {

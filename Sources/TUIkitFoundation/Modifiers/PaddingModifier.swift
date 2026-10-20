@@ -222,6 +222,7 @@ public struct PaddingModifier: BufferModifier {
             if !placement.drawsAbove { vertical.before = 0 }
             if !placement.drawsBelow { vertical.after = 0 }
         }
+        shiftAnsweredColumns(by: horizontal.before, context: context)
 
         var result: [String] = []
         result.reserveCapacity(vertical.before + buffer.lines.count + vertical.after)
@@ -289,18 +290,43 @@ extension PaddingModifier {
     /// The relay waits on the content's reply for ``modify(buffer:context:)``
     /// on the scroll view's own reply (``ScrollContentReply/pendingRelay``),
     /// the one thing the two passes share. Asked of the insets and the
-    /// context first — vertical padding, on a render, at the scroll content's
-    /// origin — so every other padding reads nothing from the environment for
-    /// it.
+    /// context first — vertical or leading padding, on a render, at the
+    /// scroll content's origin — so every other padding reads nothing from
+    /// the environment for it.
+    ///
+    /// A leading inset moves the content across instead: the column a
+    /// purely horizontal view samples for its read-back is sought so much
+    /// further left in the content (``RenderContext/withScrollWindowAcross(leading:)``),
+    /// and the columns it answers are moved back right
+    /// (``shiftAnsweredColumns(by:context:)``).
     fileprivate func relayingScrollWindow(from context: RenderContext, to adjusted: RenderContext) -> RenderContext {
-        guard insets.top > 0 || insets.bottom > 0, !context.isMeasuring, context.mayConsumeScrollWindow else {
-            return adjusted
-        }
-        let drawn = Self.drawnInsets(insets.top, insets.bottom, in: context.availableHeight, contentIsEmpty: false)
-        guard let relay = ScrollWindowRelay(context: context, linesAbove: drawn.before, linesBelow: { drawn.after })
+        guard insets.top > 0 || insets.bottom > 0 || insets.leading > 0, !context.isMeasuring,
+            context.mayConsumeScrollWindow
         else { return adjusted }
-        context.environment.scrollContentWindow?.reply?.pendingRelay = relay
-        return relay.contentContext(adjusted)
+        var relayed = adjusted
+        if insets.top > 0 || insets.bottom > 0 {
+            let drawn = Self.drawnInsets(insets.top, insets.bottom, in: context.availableHeight, contentIsEmpty: false)
+            if let relay = ScrollWindowRelay(context: context, linesAbove: drawn.before, linesBelow: { drawn.after }) {
+                context.environment.scrollContentWindow?.reply?.pendingRelay = relay
+                relayed = relay.contentContext(adjusted)
+            }
+        }
+        guard insets.leading > 0, let window = relayed.environment.scrollContentWindow, window.columnReport != nil,
+            window.isAtOrigin(context.identity)
+        else { return relayed }
+        let leading = Self.drawnInsets(insets.leading, insets.trailing, in: context.availableWidth, contentIsEmpty: false)
+        return relayed.withScrollWindowAcross(leading: leading.before)
+    }
+
+    /// The columns the content answered into the scroll view's reply, moved
+    /// right past the `leading` cells this padding draws before it, where the
+    /// content is the scroll content or a single-child step of it: a column a
+    /// carousel under `.padding()` sought was placed a cell short.
+    fileprivate func shiftAnsweredColumns(by leading: Int, context: RenderContext) {
+        guard leading > 0, !context.isMeasuring, context.mayConsumeScrollWindow,
+            let window = context.environment.scrollContentWindow, window.isAtOrigin(context.identity)
+        else { return }
+        window.reply?.shiftColumns(by: leading)
     }
 
     /// The relay ``relayingScrollWindow(from:to:)`` set up, answered once the
