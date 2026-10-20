@@ -92,8 +92,10 @@ package struct TimeSpanField: Equatable, Sendable {
 
 // MARK: - Calendar spellings
 
-/// The rules SwiftUI's unit spellings follow, measured on macOS 15 (see
-/// `SwiftUI-API-completion-decisions-W11a.md`):
+/// The rules SwiftUI's unit spellings follow, measured on macOS 15 (wave 11a's
+/// decisions, which 3c8fcbff0 folded into the main decisions document as
+/// B48–B51; the measurements are in
+/// `git show 3c8fcbff0^:Documentation/SwiftUI-API-completion-decisions-W11a.md`):
 ///
 /// - The span is counted in whole units of `units`, **truncated**, by the
 ///   calendar: "1 hr, 2 min" until the third minute is complete.

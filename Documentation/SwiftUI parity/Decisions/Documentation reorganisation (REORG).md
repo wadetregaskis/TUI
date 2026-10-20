@@ -83,7 +83,8 @@ so there is nothing to point it at. The text-editing design study's sentence tha
 decisions file as one "which no longer exists" is about that absence and stays.
 
 **Fuller version:** point `TimeSpan.swift` at the commit that folded wave 11a in (3c8fcbff0) or at
-wherever the owner keeps finished items. **Price:** a comment pointing at history.
+wherever the owner keeps finished items. **Price:** a comment pointing at history. **Done 2026-10-19**
+(lane DOCS): the comment names 3c8fcbff0 and the `git show` that reads the file as it was.
 
 ### B-REORG-6. Inside `Decisions/`, two topic folders, and step order for the module split
 
