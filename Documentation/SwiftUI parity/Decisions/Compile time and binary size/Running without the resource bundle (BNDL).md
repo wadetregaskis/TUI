@@ -103,6 +103,13 @@ readable only through the accessor that stops the program.
 default there too). A layout this does not cover shows as English and
 `tuiKitVersion == "unknown"`, which `VersionResourceTests` fails on; CI's 6.4
 Linux lane is the check.
+Still unmeasured on 2026-10-19: this machine has no container runtime, and
+nothing has been pushed since 2026-10-01, so that lane has not run it. What
+was checked that day: `Tools/verify-versioned-consumer.sh` passes (a package
+depending on TUIkit 1.0.0 by version reads `tuiKitVersion` 0.6.0 and German's
+`button.cancel`), and `ModuleResourcesTests` now fails if any library module
+reads `Bundle.module` again outside `ModuleResources`' WebAssembly arm — the
+revert that would bring the stop back.
 
 ### B-BNDL-4. On WebAssembly, a page that serves no bundle still stops the program
 

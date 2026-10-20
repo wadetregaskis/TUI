@@ -83,4 +83,34 @@ struct ModuleResourcesTests {
         #expect(ModuleResources.bundleNames.contains(found.lastPathComponent))
         #expect(ModuleResources.current.url(named: "en", extension: "json", subdirectory: "translations") != nil)
     }
+
+    /// The guard against a revert: `Bundle.module` stops the program wherever
+    /// SwiftPM's compiled-in path is gone — a relocated install, a program
+    /// started through a symbolic link, every user's machine under Swift Build —
+    /// so no library module may read it again. The one use left is
+    /// `ModuleResources`' WebAssembly arm, where it is all there is. An app
+    /// (Example) reading its own bundle is the app's choice, not a library's.
+    @Test("No library module reads Bundle.module except ModuleResources on WebAssembly")
+    func noLibraryReadsBundleModule() throws {
+        let sources = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()  // TUIkitFoundationTests/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // repository root
+            .appendingPathComponent("Sources")
+        let enumerator = try #require(FileManager.default.enumerator(at: sources, includingPropertiesForKeys: nil))
+        var readers: [String] = []
+        for case let url as URL in enumerator where url.pathExtension == "swift" {
+            // The first component under Sources/: the module's directory.
+            let module = url.path.dropFirst(sources.path.count + 1).split(separator: "/").first.map(String.init) ?? ""
+            guard module.hasPrefix("TUIkit") else { continue }
+            let text = try String(contentsOf: url, encoding: .utf8)
+            for line in text.split(separator: "\n") where line.contains("Bundle.module")
+                && !line.trimmingCharacters(in: .whitespaces).hasPrefix("//") {
+                readers.append("\(module)/\(url.lastPathComponent): \(line.trimmingCharacters(in: .whitespaces))")
+            }
+        }
+        #expect(
+            readers == ["TUIkitStrings/ModuleResources.swift: Self(bundleURL: Bundle.module.bundleURL)"],
+            "\(readers)")
+    }
 }
