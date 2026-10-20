@@ -1,0 +1,17 @@
+-- requests
+no inner             id = 20: (0, 220) id Optional(20) writes [Optional(20)]
+scrollView, disjoint id = 150: (0, 0) (0, 960) id Optional(150) writes [Optional(150)]
+scrollView, shared   id = 20: (0, 220) (0, 0) id Optional(20) writes [Optional(20), Optional(20), Optional(20)]
+scrollView, inner's  id = 60: (0, 0) (0, 1160) id Optional(60) writes [Optional(60), Optional(60)]
+list, disjoint       id = 150: (0, 0) (0, 1174) id Optional(150) writes [Optional(150), Optional(150)]
+list, shared         id = 20: (0, 220) (0, 0) id Optional(20) writes [Optional(20), Optional(20), Optional(20), Optional(20), Optional(20), Optional(20)]
+list, inner's        id = 60: (0, 0) (0, 1414) id Optional(60) writes [Optional(60), Optional(60), Optional(60), Optional(60)]
+-- live scrolls (inner ids 0..<100, shared with the outer's 0..<30)
+no inner   outer scrolled (1): (0, 100) id Optional(5) writes [Optional(5)]
+no inner   outer scrolled (2): (0, 200) id Optional(10) writes [Optional(10)]
+scrollView outer scrolled (1): (0, 100) (0, 0) id Optional(5) writes [Optional(5)]
+scrollView outer scrolled (2): (0, 200) (0, 0) id Optional(10) writes [Optional(10)]
+scrollView inner scrolled:      (0, 200) (0, 100) id Optional(10) writes []
+list       outer scrolled (1): (0, 100) (0, 0) id Optional(5) writes [Optional(5)]
+list       outer scrolled (2): (0, 200) (0, 0) id Optional(10) writes [Optional(10)]
+list       inner scrolled:      (0, 200) (0, 100) id Optional(10) writes []

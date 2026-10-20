@@ -89,6 +89,15 @@ extension _ScrollViewCore {
         if !isChrome, !contentContext.environment.scrollObservers.isEmpty {
             contentContext.environment.scrollObservers = ScrollObservers()
         }
+        // And the `.scrollPosition` binding: a `List`, a `Table` or a scroll
+        // view in the content neither follows this view's write-backs nor
+        // writes its own rows into it (measured on SwiftUI, macOS 15.8:
+        // `Tools/SwiftUIProbes/Nested scroll position`). Read by both, each
+        // took the other's write-back for a request, and the two drove each
+        // other's positions.
+        if !isChrome, contentContext.environment.scrollPositionBinding != nil {
+            contentContext.environment.scrollPositionBinding = nil
+        }
         // And a scroll target layout mark: one stated around this scroll view's
         // own content is not one on a scroll view nested in it.
         if contentContext.environment.isScrollTargetLayout {

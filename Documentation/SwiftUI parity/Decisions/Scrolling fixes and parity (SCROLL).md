@@ -163,6 +163,32 @@ appears on the next frame; and a bounded replan loop for a replan that
 reveals another. None of these was seen to cut a row on the base; each is
 about a day.
 
+### B-SCROLL-6. A bound scroll position is the first scrollable's; one nested in its content takes none of it
+
+*A `List`, a `Table` or a `ScrollView` in the content of a `ScrollView` that
+`.scrollPosition` is bound to (lane SCROLL's review, 2026-10-19)*
+
+**Measured** (`Tools/SwiftUIProbes/Nested scroll position/nested.swift`): in
+SwiftUI a nested `ScrollView` or `List` does not follow the outer view's
+write-backs, and its own scroll writes nothing into the binding. An id the app
+writes is sought by the outer view where its content holds it; one that only
+the nested scrollable holds is sought there.
+
+**Shipped:** a scroll view takes the binding out of its content's
+environment, as it takes its scroll observers and content margins. Until then
+a nested scrollable read it too, and since a `List` and a `Table` came to read
+it (SA-44) every one did. Each took the other's write-back for a request: a
+request for row 48 sent a list in the content to its own row 48, which its
+last rows kept below its top; the list wrote back the row at its top, and the
+outer view sought that one. A framework scroller passes the binding on, as it
+passes on the other settings.
+
+**The fuller version:** an id the app writes that only a nested scrollable
+holds is not sought here. To seek it, the outer view would hand a request it
+could not find, and nothing else, to the scrollables in its content on the
+next frame, and they would neither report nor take its write-backs. About
+half a day, with tests for the shared and the nested-only ids.
+
 ## C. Declined
 
 ### C-SCROLL-1. `scrollTo` a row of a vertical stack inside `ScrollView(.horizontal)`

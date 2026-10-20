@@ -374,6 +374,22 @@ messages cite that path), and what cites it.
 - **Cited by:** `Documentation/SwiftUI parity/Decisions/Scrolling fixes and parity (SCROLL).md` (C-SCROLL-1);
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
+### Nested scroll position
+
+- **Asks:** what a `.scrollPosition(id:)` bound to an outer `ScrollView` does to a `ScrollView` or a `List` nested
+  in its content (`nested.swift`, `nested.out`): thirty 20-point rows, then the nested scrollable 60 points tall,
+  its ids apart from the outer's, shared with them, or past them. An id the app writes is sought by the outer view
+  where its content holds it, and the nested one stays put; an id only the nested one holds is sought there, by the
+  least move, and the outer view does not move to show it. A user's scroll of the outer view writes its row back,
+  and the nested one does not follow; a scroll of the nested one writes nothing. A user's scroll is posted as
+  AppKit reports one, the live-scroll notifications around a move of the clip view: a bare move writes nothing
+  back, even on the outer view. Top-level code, built alone.
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
+- **Cited by:** `Sources/TUIkitFoundation/Views/ScrollView+Content.swift`;
+  `Tests/TUIkitTablesTests/ListScrollPositionTests.swift`;
+  `Documentation/SwiftUI parity/Decisions/Scrolling fixes and parity (SCROLL).md` (B-SCROLL-6);
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
+
 ### Ragged text in a larger frame
 
 - **Asks:** where SwiftUI draws the lines of a multi-line `Text` whose lines differ in width ("aaaa" over "bb")

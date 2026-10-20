@@ -116,4 +116,43 @@ struct ListScrollPositionTests {
         #expect(scrolled.first == "item 122", "precondition: \(scrolled)")
         #expect(visible == 122)
     }
+
+    /// A scrollable nested in the content of a scroll view the position is
+    /// bound to.
+    enum Nested: CaseIterable, Sendable { case list, scrollView }
+
+    /// The binding is the first scrollable's, as SwiftUI's is (macOS 15.8,
+    /// measured: a `List` or a `ScrollView` in the content neither follows
+    /// the outer view's write-backs nor writes its own rows). Read by the
+    /// nested one as well, each took the other's write-back for a request:
+    /// a seek to row 48 of the outer view sent the list to its own row 48,
+    /// which its last rows keep below its top; the list wrote back the row
+    /// at its top, and the outer view sought that one.
+    @Test("A scrollable in a bound ScrollView's content leaves the binding to the ScrollView", arguments: Nested.allCases)
+    func nestedScrollableLeavesTheBinding(nested: Nested) {
+        let (tui, focus) = (TUIContext(), FocusManager())
+        var visible: Int?
+        var writes = 0
+        let binding = Binding<Int?>(get: { visible }, set: { visible = $0; writes += 1 })
+        let items = ForEach(0..<50, id: \.self) { Text("item \($0)") }
+        let view = ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<100, id: \.self) { Text("row \($0)") }
+                switch nested {
+                case .list: List { items }.frame(height: 6)
+                case .scrollView: ScrollView { LazyVStack(alignment: .leading, spacing: 0) { items } }.frame(height: 6)
+                }
+            }
+        }
+        .scrollPosition(id: binding, anchor: .top)
+        frame(view, tui, focus)
+        #expect(visible == 0)
+        visible = 48
+        for index in 0..<3 {
+            let screen = rows(frame(view, tui, focus))
+            #expect(screen.first == "row 48", "frame \(index): \(screen)")
+            #expect(visible == 48, "frame \(index)")
+        }
+        #expect(writes == 1, "only the first frame's report: \(writes) writes")
+    }
 }
