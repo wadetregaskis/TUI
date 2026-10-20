@@ -129,8 +129,8 @@ extension PropertyWalk {
             let found = propertyClassPlan(objectType, in: plan)
         else { return }
         let object = address.assumingMemoryBound(to: AnyObject.self).pointee
-        // A modifier class in a field is stored, never the one applied.
-        applyObject(found.plan, object, position: position, scope: scope, updates: found.isModifier ? .none : updates)
+        // A modifier class too: a property class wherever it is held (B-DYNVFIX-4).
+        applyObject(found, object, position: position, scope: scope, updates: updates)
     }
 
     /// The object in the field at `address`, declared as a plain class or a
@@ -145,7 +145,7 @@ extension PropertyWalk {
         scope: UInt64, updates: UpdateMode
     ) {
         let loaded: AnyObject
-        let found: (plan: ObjectPlan, isModifier: Bool)
+        let found: ObjectPlan
         if reference.readsClassInPlace {
             guard case .type(let objectType) = DynamicTypes.unownedObject(at: UnsafeRawPointer(address)),
                 let classPlan = propertyClassPlan(objectType, in: plan),
@@ -158,22 +158,21 @@ extension PropertyWalk {
             else { return }
             (loaded, found) = (held, classPlan)
         }
-        // A modifier class in a field is stored, never the one applied.
-        applyObject(found.plan, loaded, position: position, scope: scope, updates: found.isModifier ? .none : updates)
+        // A modifier class too: a property class wherever it is held (B-DYNVFIX-4).
+        applyObject(found, loaded, position: position, scope: scope, updates: updates)
     }
 
     /// The plan of `type`, the class of an object found in a field `plan`
     /// plans, if it is a property or modifier class — never the declared
     /// class, nor one noted as holding nothing, which a class found not to be
-    /// one then is — and whether it is a modifier.
-    func propertyClassPlan(_ type: Any.Type, in plan: DynamicClassPlan) -> (plan: ObjectPlan, isModifier: Bool)? {
+    /// one then is.
+    func propertyClassPlan(_ type: Any.Type, in plan: DynamicClassPlan) -> ObjectPlan? {
         if ObjectIdentifier(type) == ObjectIdentifier(plan.type) || plan.empty.contains(type) { return nil }
-        let exact = PropertyPlans.exact(type)
-        guard case .object(let objectPlan) = exact.action else {
+        guard case .object(let objectPlan) = PropertyPlans.exact(type).action else {
             plan.empty.insert(type)
             return nil
         }
-        return (objectPlan, exact.isModifier)
+        return objectPlan
     }
 
     /// A class instance in a field whose declared type `plan` names: what it

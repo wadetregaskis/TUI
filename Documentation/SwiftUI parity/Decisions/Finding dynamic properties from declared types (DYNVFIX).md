@@ -397,24 +397,34 @@ joins, so they did the same. SwiftUI updates only the copy applied, once
 **Shipped:** a modifier is *applied* only as the `modifier` of the
 `ModifiedContent` being drawn, and only there is anything in it updated. One
 stored anywhere else — a view's field, a property, the modifier a wrapper
-holds, an existential, a modifier class held `weak` or `unowned` or behind a
-field declared as a plain class — keeps what TUIkit gave it beyond SwiftUI: its
+holds, an existential — keeps what TUIkit gave it beyond SwiftUI: its
 `@State` is bound and its `@Environment` resolved, so the holding view's body
-can read them. But nothing in it is updated.
+can read them. But nothing in it is updated. A modifier class is the
+exception since 2026-10-19: a property class wherever it is held (below).
 
 **Lost:** `update()` on the properties of a modifier stored in a field and
 never applied. SwiftUI gives such a field nothing. Updating it there, and not
 again where it is applied, would need to know, before `body` runs, whether the
 copy `body` applies came from that field, which nothing says.
 
-**Unmeasured against SwiftUI:** a class that is both a `DynamicProperty` and
-a `ViewModifier`, held in a field declared as that class — strongly since
-DYNV bug 5's fix, and held `weak` or `unowned` since fix round 2 — is a
-stored modifier here, and its `update()` does not run. SwiftUI finds dynamic
-properties by a field's declared type, and runs `update()` on a property
-class held `unowned` (measured, DYNP case 4), so it very likely runs this
-one's; no type that is both was measured (review of 7d935f641, 2026-10-12).
-Left as it is, a deviation within the stored-modifier rule, until measured.
+**A class that is both a `DynamicProperty` and a `ViewModifier`** (measured
+2026-10-19, `Tools/SwiftUIProbes/Dynamic property discovery/classmod.out`;
+decided (b), the owner's rulings applied): held in a view's field and never
+applied, SwiftUI runs its `update()` once per body of the view; applied at
+all, whether held in a field or made in the body, SwiftUI traps ("view
+modifiers must be value types"). So it is a property class wherever it is
+held here (`SlotPlan.storedCopySkipsUpdates`): updated before the body of
+each view holding it, as a property class held by several views is
+(`Class properties held by several views/cls.out`) — in a view's field, held
+`unowned`, behind a field declared as a plain class, or in an existential;
+never held `weak`, where SwiftUI updates nothing. TUIkit applies a modifier
+class, which SwiftUI does not; one held in a view's field and applied by its
+body is then held by two views — the view and the `ModifiedContent` — and
+updated before each body, as such a property class is. The set of objects
+updated once per pass, which this entry once priced, is not built: a pass is
+not always open (a view rendered alone runs none), and the rule of a
+property class held twice already says what happens. It ran never where only
+stored, until 2026-10-19 (review of 7d935f641, 2026-10-12).
 
 **The fuller version, and why there is none at a small price** (fix round 2,
 2026-10-12, asked to keep it if cheap): updating the stored copy before
@@ -426,11 +436,8 @@ that changes nothing leaves the two equal either way. Running `update()` after
 `body`, on the stored copy only when no applied copy matched, comes too late
 for `body` to read it. Each is a change to when properties are updated, for
 every modifier, to serve one SwiftUI does not serve: left for the owner. A
-modifier class is the exception to the first argument: its stored and
-applied copies are one object, so a set of the objects updated in a pass
-would update it once, whichever copy the walk reached first — a lookup per
-modifier class per body, the price the review of 2866cb305 named; not built,
-as it is the owner's call above.
+modifier class is the exception: its stored and applied copies are one
+object, a property class, updated as one wherever it is held (above).
 
 ### B-DYNVFIX-5. One value drawn at two places keeps a `@State` and an `@Environment` for each place; TUIkit's other wrappers still share one
 

@@ -11,6 +11,9 @@
 //  DYNV/notes.md). SwiftUI updates the applied copy once (measured on macOS
 //  15.8.1, SwiftUI 6.5.4: `Tools/SwiftUIProbes/Dynamic property discovery/op.out`, case vii-c2,
 //  and `Tools/SwiftUIProbes/Dynamic property discovery/dv2-main.out`, `txn` and `concat`).
+//  A modifier class is a property class wherever it is held, updated before
+//  the body of each view holding it, as SwiftUI updates one held in a view's
+//  field (`classmod.out`; decisions DYNVFIX, B-DYNVFIX-4).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -119,8 +122,18 @@ private final class CountingDecoration: Decoration, ViewModifier, DynamicPropert
     }
 }
 
-/// Holds the modifier in a field declared as the plain class, and never
-/// applies it.
+/// A subclass of it that is an app property and not a modifier, counting
+/// its updates: what a modifier class held in the same place is compared with.
+private final class CountingProperty: Decoration, DynamicProperty {
+    nonisolated(unsafe) var updates = 0
+
+    nonisolated func update() {
+        updates += 1
+    }
+}
+
+/// Holds an object in a field declared as the plain class, and never applies
+/// it.
 private struct PlainFieldDecoration: View {
     let decoration: Decoration
 
@@ -129,9 +142,19 @@ private struct PlainFieldDecoration: View {
     }
 }
 
-/// Holds the modifier `unowned`, and never applies it.
-private struct UnownedDecoration: View {
-    unowned let decoration: CountingDecoration
+/// Holds an object in a field declared as its own class, and never applies
+/// it.
+private struct StrongDecoration<Held: Decoration>: View {
+    let decoration: Held
+
+    var body: some View {
+        Text(verbatim: "x")
+    }
+}
+
+/// Holds an object `unowned`, and never applies it.
+private struct UnownedDecoration<Held: Decoration>: View {
+    unowned let decoration: Held
 
     var body: some View {
         Text(verbatim: "x")
@@ -194,19 +217,36 @@ struct DynamicPropertyModifierTests {
         #expect(lines(view(), context: context) == ["red 4"])
     }
 
-    /// A modifier class reached through a field declared as a plain class,
-    /// or held `unowned`, is stored, never applied, as one held strongly in a
-    /// field of its own type is: its `update()` ran on every body (review of
-    /// 55bb84039, 2026-10-12).
-    @Test("A modifier class behind a plain class field, or held unowned, is never updated where it is only stored")
-    func storedModifierClassIsNotUpdated() {
+    /// A class that is both a modifier and a property, held in a view's field
+    /// and never applied, is a property class there: its `update()` runs
+    /// before the view's body, as often as a property class's held the same
+    /// way. SwiftUI runs it once per body, held in a field declared as its
+    /// class (`Tools/SwiftUIProbes/Dynamic property discovery/classmod.out`;
+    /// it traps if such a class is applied). It ran never here, being taken
+    /// for a stored modifier (decisions DYNVFIX, B-DYNVFIX-4).
+    @Test("A modifier class held in a view's field is updated before its body, as a property class held there is")
+    func storedModifierClassIsUpdatedAsAPropertyClass() {
         let context = makeRenderContext(width: 20, height: 1)
-        let decoration = CountingDecoration()
-        _ = lines(PlainFieldDecoration(decoration: decoration), context: context)
-        _ = lines(PlainFieldDecoration(decoration: decoration), context: context)
-        #expect(decoration.updates == 0, "behind a plain class field")
-        _ = lines(UnownedDecoration(decoration: decoration), context: context)
-        _ = lines(UnownedDecoration(decoration: decoration), context: context)
-        #expect(decoration.updates == 0, "held unowned")
+        var modifier = CountingDecoration()
+        var property = CountingProperty()
+        for _ in 0..<2 {
+            _ = lines(StrongDecoration(decoration: modifier), context: context)
+            _ = lines(StrongDecoration(decoration: property), context: context)
+        }
+        #expect(modifier.updates > 0 && modifier.updates == property.updates, "in a field of its own class")
+
+        (modifier, property) = (CountingDecoration(), CountingProperty())
+        for _ in 0..<2 {
+            _ = lines(PlainFieldDecoration(decoration: modifier), context: context)
+            _ = lines(PlainFieldDecoration(decoration: property), context: context)
+        }
+        #expect(modifier.updates > 0 && modifier.updates == property.updates, "behind a plain class field")
+
+        (modifier, property) = (CountingDecoration(), CountingProperty())
+        for _ in 0..<2 {
+            _ = lines(UnownedDecoration(decoration: modifier), context: context)
+            _ = lines(UnownedDecoration(decoration: property), context: context)
+        }
+        #expect(modifier.updates > 0 && modifier.updates == property.updates, "held unowned")
     }
 }

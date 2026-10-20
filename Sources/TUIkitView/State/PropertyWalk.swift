@@ -210,8 +210,9 @@ struct PropertyWalk {
             // A modifier stored here, not applied, has nothing in it updated:
             // it is updated where it is applied, once (DYNV bug 5: a modifier
             // stored in a view and applied, or wrapped by `.transaction(_:)`,
-            // ran its properties' `update()` twice).
-            let stepUpdates = step.slot.isModifier && !step.appliesModifier ? UpdateMode.none : updates
+            // ran its properties' `update()` twice). But for a modifier class,
+            // a property class wherever it is held (B-DYNVFIX-4).
+            let stepUpdates = step.slot.storedCopySkipsUpdates && !step.appliesModifier ? UpdateMode.none : updates
             if let reference = step.reference {
                 let referenceUpdates = reference.isOptional ? .none : stepUpdates
                 guard let objectPlan = reference.object else {
@@ -353,10 +354,11 @@ struct PropertyWalk {
             plan.empty.insert(dynamicType)
             return
         }
-        // A modifier in an existential is stored, never the one applied.
+        // A modifier in an existential is stored, never the one applied: but
+        // for a modifier class, a property class wherever it is held.
         applyOpened(
             field, as: dynamicType, slot: slot, position: position, scope: scope, isOwn: isOwn,
-            updates: slot.isModifier ? .none : updates)
+            updates: slot.storedCopySkipsUpdates ? .none : updates)
     }
 
     /// ``applyExistential(_:at:as:position:scope:isOwn:updates:)``, with what

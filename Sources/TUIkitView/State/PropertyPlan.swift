@@ -58,8 +58,25 @@ package final class SlotPlan {
     /// one). A modifier's properties are updated only where it is APPLIED —
     /// as the `modifier` of the ``ModifiedContent`` being drawn — and once
     /// there; one stored anywhere else has its properties bound and resolved,
-    /// but nothing in it updated (``FieldsPlan/Step/appliesModifier``).
+    /// but nothing in it updated (``FieldsPlan/Step/appliesModifier``). A
+    /// modifier class is the exception (``storedCopySkipsUpdates``).
     let isModifier: Bool
+
+    /// Whether a stored copy of the planned value — one not applied — has
+    /// nothing in it updated: a modifier struct or enum, or an optional of
+    /// one. Not a modifier CLASS: it is a property class wherever it is held,
+    /// and updated before the body of every view holding it, as SwiftUI runs
+    /// `update()` on a class that is both, held in a view's field (measured,
+    /// `Tools/SwiftUIProbes/Dynamic property discovery/classmod.out`; decisions
+    /// DYNVFIX, B-DYNVFIX-4).
+    var storedCopySkipsUpdates: Bool {
+        guard isModifier else { return false }
+        switch action {
+        case .object, .dynamicClass: return false
+        case .optional(let optional): return optional.wrapped.storedCopySkipsUpdates
+        default: return true
+        }
+    }
 
     /// For a view whose every field the walk acts on only if its value says
     /// so — an existential, a plain class however it is held, or an

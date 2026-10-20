@@ -1,0 +1,10 @@
+# macOS 15.8.1, Xcode's swiftc; each case run on its own (applied and fresh trap)
+== stored
+  stored view body tick=0: updates=1 limit=nil
+  after first frame: object updates=1
+  stored view body tick=1: updates=2 limit=nil
+  after the view's state changed: object updates=2
+== applied
+SwiftUICore/CustomViewModifier.swift:287: Fatal error: view modifiers must be value types: ClassMod
+== fresh
+SwiftUICore/CustomViewModifier.swift:287: Fatal error: view modifiers must be value types: ClassMod
