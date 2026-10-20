@@ -38,6 +38,14 @@ Until 6.4.0 shipped (2026-09-14) its row was `release/6.4.x` snapshots and
 nightlies, advisory; the release images replaced them, and they block. The
 next release branch's nightlies take that place when it is cut.
 
+**Compiler warnings.** The build has none, in every target, and the 6.2 macOS
+lane (`macos-15`) fails if it gains one: it builds every target from a clean
+checkout, then `TUIkitBenchmarks` (`TUIKIT_BENCHMARKS=1`, which no other step
+builds), and `Tools/check-compiler-warnings.py` reads both logs. A warning in a
+dependency's own code is printed and not counted. Locally, a count means
+nothing after an incremental build, which compiles only what changed: build
+into a fresh `--scratch-path`, or after `swift package clean`.
+
 Every released lane takes the newest patch of its line — an Xcode major, a
 `swift:6.x` image tag, swift.org's newest 6.4.x — so a patch toolchain arrives
 without a workflow edit. It can also break the build without a TUIkit change;
@@ -347,7 +355,7 @@ swift-testing reports.
 3. The `CI` gate check must be green — it covers macOS, Linux and, on
    released toolchains, Windows; only the nightly-toolchain lanes are
    advisory (see "What CI covers" above)
-4. No new SwiftLint warnings
+4. No new SwiftLint warnings, and no compiler warnings (see "What CI covers")
 5. Follow the architecture and API rules below
 
 ## Architecture

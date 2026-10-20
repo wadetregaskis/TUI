@@ -290,6 +290,8 @@ jobs:
             # pair 6.4.0 does not (see that step). The Span check reads it too.
             release_build: true
             dedup_check: true
+            # The compiler-warnings check: see that step.
+            warnings_check: true
           - name: "macOS 26 · Xcode 26"
             runner: macos-26
             xcode: "26"
@@ -433,8 +435,11 @@ jobs:
       - name: Toolchain version
         run: $SWIFT --version
 
+      # Logged for the compiler-warnings step near the end of the job.
       - name: Build
-        run: $SWIFT build --build-tests
+        run: |
+          set -o pipefail
+          $SWIFT build --build-tests 2>&1 | tee "$RUNNER_TEMP/build.log"
 
       # The planned split into modules (Tools/ModuleMap): what WOULD cross a
       # module boundary upward, or fall into the split's silent traps (a
@@ -638,6 +643,28 @@ jobs:
         if: matrix.dedup_check
         timeout-minutes: 20
         run: Tools/DedupCheck/ci-check.sh
+
+      # TUIkit builds with no compiler warnings, every target included
+      # (CONTRIBUTING.md, "What CI covers"). This lane checks: its Build step
+      # compiled everything from a clean checkout (no cache), so nothing hides
+      # behind an incremental build; `TUIkitBenchmarks`, which only
+      # TUIKIT_BENCHMARKS adds to the graph and no other step builds, is built
+      # here. Swift 6.2, the oldest Swift TUIkit supports, on macOS: the lane
+      # whose diagnostics every contributor's Xcode 26 shows. A warning in a
+      # dependency's own code (the benchmark plugin's deprecations) is printed
+      # and not counted. Before the type-check budget, which rebuilds with a
+      # different command line.
+      - name: Build the benchmarks
+        if: matrix.warnings_check
+        env:
+          TUIKIT_BENCHMARKS: "1"
+        run: |
+          set -o pipefail
+          $SWIFT build --target TUIkitBenchmarks 2>&1 | tee "$RUNNER_TEMP/benchmarks-build.log"
+
+      - name: No compiler warnings
+        if: matrix.warnings_check
+        run: python3 Tools/check-compiler-warnings.py --github "$RUNNER_TEMP/build.log" "$RUNNER_TEMP/benchmarks-build.log"
 
       # A guard against type-check regressions that cannot flake: the library
       # and every module it builds on, rebuilt with every
