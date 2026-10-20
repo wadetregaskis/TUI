@@ -107,7 +107,7 @@ as deviation W16.
   are submenus: Find's own items as a submenu of Edit. Lane O13's to weigh;
   it needs the first item above for their keys.
 
-### B-MENUS-3. Type select in an open drop-down and an open menu follows the list's rule, quit key included
+### B-MENUS-3. Type select in an open drop-down and an open menu follows the list's rule, but a drop-down's first character fires no app shortcut behind it
 
 *`TypeSelectBuffer`, `_PickerMenuHandler`, `MenuPopupController.typeSelect(_:)`, `InputHandler` layer 2.5*
 
@@ -121,16 +121,30 @@ window not taking the keyboard on this machine).
 the characters, the second's pause, the match from the highlight, a row found
 by its title from its first letter or digit (so a toggle row's mark, a picker
 option's check or an icon does not hide it). The first character of a prefix
-gives way to a bare-key binding that claims it, as in a list (B77): a menu
-row's own key equivalent, an app's bare shortcut, the quit key, the help key.
-An open menu, which holds the keyboard without the focus, is asked at a layer
-of its own (2.5) after its keys decline the character; the drop-down, a
-focused control, at layer 3 as the list is.
+gives way to a bare-key binding that claims it, as in a list (B77): in a menu,
+a row's own key equivalent, an app's bare shortcut, the quit key, the help key;
+in a drop-down, the quit key and the help key alone. The open drop-down holds
+the keyboard (it grabs it, so no page handler or status item fires behind it),
+so every app shortcut is behind it — a page's `Delete` on a bare `d` would
+fire from under a drop-down whose `Date` the `d` was typed to find — and its
+options carry no key equivalents of their own
+(`TypeSelectingFocusHandler.givesWayToAppShortcuts`). An open menu, which holds
+the keyboard without the focus, is asked at a layer of its own (2.5) after its
+keys decline the character; the drop-down, a focused control, at layer 3 as the
+list is.
 
 One consequence to know: with a `Picker`'s drop-down open, the quit key as the
 first character of a prefix now quits, where the drop-down swallowed it — the
 list's rule, which the owner settled for bare keys in B77. A menu already let
 it through.
+
+**Left as it was:** an open menu's first character still reaches an app
+shortcut on the page behind the menu, as every character did before the menu
+had type select: the shortcut registry does not tell a row's key equivalent,
+which must have the key, from the page's. Telling them apart is a scope for
+what an open menu registers, as a pane has one (`KeyboardShortcutRegistry`'s
+panes) — about half a day, and it changes what a page's shortcut does while
+any menu is open, so not done in passing.
 
 **The fuller version:** a closed `Picker` that type-selects as a focused macOS
 pop-up button does (choosing the option without opening the menu) — unmeasured,

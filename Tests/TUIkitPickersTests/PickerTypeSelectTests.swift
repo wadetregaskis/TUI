@@ -4,8 +4,9 @@
 //  Type select in an open `Picker` drop-down: a typed character moves the
 //  highlight to the option it starts, as in a `List` or a `Table` — the same
 //  characters, the same second's pause, the same match from the highlight
-//  (`TypeSelectBuffer`) — and the first of a prefix gives way to an app's
-//  shortcut on it, as the list's does.
+//  (`TypeSelectBuffer`). Unlike a list's, the first of a prefix does not give
+//  way to an app's shortcut on it: the open drop-down holds the keyboard, and
+//  the shortcut is behind it.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -36,11 +37,12 @@ private struct FruitApp: App {
                     Text("Banana").tag("Banana")
                     Text("Blueberry").tag("Blueberry")
                     Text("Cherry").tag("Cherry")
+                    Text("Date").tag("Date")
                 }
-                // An app shortcut on a bare key, which the first character of
-                // a prefix gives way to.
-                Button("Shortcut") { fruit.shortcuts.append("x") }
-                    .keyboardShortcut("x", modifiers: [])
+                // A page's shortcut on a bare key an option starts with: behind
+                // the open drop-down, which keeps the key.
+                Button("Delete") { fruit.shortcuts.append("d") }
+                    .keyboardShortcut("d", modifiers: [])
             }
         }
     }
@@ -95,20 +97,25 @@ struct PickerTypeSelectTests {
         #expect(fruit.choice == "Cherry", "\(fruit.choice)")
     }
 
-    @Test("The first character of a prefix gives way to an app's shortcut on it")
-    func givesWayToAShortcut() {
+    @Test("A first character finds an option, and fires no page shortcut behind the open drop-down")
+    func keepsAShortcutsKey() {
         let fruit = Fruit()
         let driver = Driver(FruitApp(fruit: fruit))
         driver.key(.enter)
-        driver.type("x")
-        #expect(fruit.shortcuts == ["x"], "the shortcut fired: \(fruit.shortcuts)")
+        driver.type("d")
+        #expect(fruit.shortcuts.isEmpty, "the page's shortcut fired behind the drop-down: \(fruit.shortcuts)")
+        driver.key(.enter)
+        #expect(fruit.choice == "Date", "\(fruit.choice)")
     }
 
-    @Test("A closed drop-down takes no characters")
+    @Test("A closed drop-down takes no characters, and a page shortcut has its key")
     func closedTakesNothing() {
         let fruit = Fruit()
         let driver = Driver(FruitApp(fruit: fruit))
         driver.type("c")
+        #expect(fruit.choice == "Apple", "\(fruit.choice)")
+        driver.type("d")
+        #expect(fruit.shortcuts == ["d"], "\(fruit.shortcuts)")
         #expect(fruit.choice == "Apple", "\(fruit.choice)")
     }
 }

@@ -12,6 +12,20 @@ package protocol TypeSelectingFocusHandler: AnyObject {
     /// Whether characters typed now continue a prefix — one was typed less
     /// than the type-select timeout ago.
     var isTypeSelecting: Bool { get }
+
+    /// Whether the first character of a prefix gives way to an app's
+    /// shortcut on it (`InputHandler.typeSelectGivesWay`): `true`, a list's
+    /// rule (decisions B77), unless the control holds the keyboard while it
+    /// type-selects — an open `Picker` drop-down, in front of everything else
+    /// on the screen, where every app shortcut is behind it and must not fire
+    /// from under it. Such a control still gives way to TUIkit's quit key and
+    /// help key, which stay live over every transient surface.
+    var givesWayToAppShortcuts: Bool { get }
+}
+
+extension TypeSelectingFocusHandler {
+    /// A list's rule: an app's bare shortcut takes a prefix's first character.
+    package var givesWayToAppShortcuts: Bool { true }
 }
 
 /// The type select of something that holds the keyboard WITHOUT holding the

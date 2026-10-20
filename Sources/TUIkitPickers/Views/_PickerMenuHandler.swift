@@ -129,8 +129,9 @@ final class _PickerMenuHandler: PersistedFocusable {
         default:
             // A typed character moves the highlight to the option it starts
             // (type select), as an open macOS pop-up button's menu does; the
-            // first of a prefix gives way to an app's shortcut on it first
-            // (`InputHandler.typeSelectGivesWay`).
+            // first of a prefix gives way only to the quit key and the help
+            // key, never to an app's shortcut, which is behind the open
+            // drop-down (`givesWayToAppShortcuts`).
             if typeSelected.take(event),
                 let match = TypeSelectBuffer.match(
                     typeSelected.prefix, count: itemValues.count, current: highlight.ordinal,
@@ -147,4 +148,13 @@ final class _PickerMenuHandler: PersistedFocusable {
 extension _PickerMenuHandler: TypeSelectingFocusHandler {
     /// Only while open: a closed picker takes no characters.
     var isTypeSelecting: Bool { isOpen && typeSelected.isTypeSelecting }
+
+    /// Never: the open drop-down holds the keyboard
+    /// (`_PickerMenuCore.publishOpenEscapeLabel` grabs it), so every app
+    /// shortcut — the page's, a sheet's — is behind it, and a first character
+    /// that one claims finds an option instead of firing it from under the
+    /// user's browsing; its options carry no key equivalents of their own. A
+    /// closed picker takes no character at all, so a shortcut still has it
+    /// then.
+    var givesWayToAppShortcuts: Bool { false }
 }
