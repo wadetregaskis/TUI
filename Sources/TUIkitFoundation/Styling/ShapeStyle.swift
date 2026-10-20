@@ -216,7 +216,7 @@ struct _FixedExtentShapeStyle<Base: ShapeStyle>: ShapeStyle {
     func paint(in environment: EnvironmentValues) -> Paint {
         base.paint(in: environment).mappingUnshadowed { drawn in
             switch drawn {
-            case .color, .shadowed:
+            case .color, .shadowed, .blended:
                 return drawn
             case .image(var source):
                 source.tileOrigin = origin

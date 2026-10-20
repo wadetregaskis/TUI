@@ -119,8 +119,10 @@ extension FrameBuffer {
     /// another — as SwiftUI casts them, measured on macOS 15.8.
     ///
     /// Each shadow is at the strength of what casts it
-    /// (``Paint/castingStrength(in:)``). A paint with no shadow, and a
-    /// measure, return this buffer as it is: one enum test.
+    /// (``Paint/castingStrength(in:)``). A blend mode (``ShapeStyle/blendMode(_:)``)
+    /// is marked here too, on the cells drawn (``markingBlendMode(_:glyphsOnly:)``),
+    /// since everything that draws with a paint ends here. A paint with neither,
+    /// and a measure, return this buffer as it is: one enum test.
     ///
     /// - Parameters:
     ///   - paint: The paint this buffer was drawn with, shadows and all.
@@ -130,13 +132,55 @@ extension FrameBuffer {
     ///   - glyphsOnly: Whether only the cells this buffer draws a glyph in cast,
     ///     for a drawing that fills cells of its own beside the glyphs the
     ///     paint inked (a table's rows).
-    /// - Returns: This buffer with the shadows composited; this buffer when
-    ///   there are none.
+    /// - Returns: This buffer with the shadows composited and the mode marked;
+    ///   this buffer when there are none.
     @MainActor
     package func castingShadows(
         of paint: Paint, context: RenderContext, owner: Any.Type, glyphsOnly: Bool = false
     ) -> FrameBuffer {
-        guard paint.hasShadows, !context.isMeasuring, width > 0, !lines.isEmpty else { return self }
+        guard paint.castsAnything, !context.isMeasuring, width > 0, !lines.isEmpty else { return self }
+        // A blend mode first, on the cells drawn, before a drop shadow adds any:
+        // the shadow is not drawn with the style's mode.
+        let marked = paint.blendMode.map { markingBlendMode($0, glyphsOnly: glyphsOnly) } ?? self
+        guard paint.hasShadows else { return marked }
+        return marked.castingShadowsOnly(of: paint, context: context, owner: owner, glyphsOnly: glyphsOnly)
+    }
+
+    /// This buffer's cells marked to be combined with what is behind them by
+    /// `mode` where it lands (``ShapeStyle/blendMode(_:)``): every cell, as a
+    /// cell that paints nothing is left as it is — or, `glyphsOnly`, the cells
+    /// it draws a glyph in, for a drawing whose own fills the style did not
+    /// paint (a table's rows).
+    func markingBlendMode(_ mode: BlendMode, glyphsOnly: Bool) -> FrameBuffer {
+        var result = self
+        guard glyphsOnly else {
+            result.opacityRegions.append(
+                OpacityRegion(offsetX: 0, offsetY: 0, width: width, height: lines.count, opacity: 1, blendMode: mode))
+            return result
+        }
+        for (row, line) in lines.enumerated() {
+            var start: Int?
+            let glyphs = line.columnsDrawingAGlyph(width: width)
+            for column in 0...width {
+                let drawn = column < width && glyphs[column]
+                if drawn, start == nil { start = column }
+                if !drawn, let from = start {
+                    result.opacityRegions.append(
+                        OpacityRegion(
+                            offsetX: from, offsetY: row, width: column - from, height: 1, opacity: 1,
+                            blendMode: mode))
+                    start = nil
+                }
+            }
+        }
+        return result
+    }
+
+    /// ``castingShadows(of:context:owner:glyphsOnly:)``'s shadows alone.
+    @MainActor
+    private func castingShadowsOnly(
+        of paint: Paint, context: RenderContext, owner: Any.Type, glyphsOnly: Bool
+    ) -> FrameBuffer {
         let palette = context.environment.palette
         let strength = paint.castingStrength(in: palette)
         let shadows = paint.shadows.map { shadow in

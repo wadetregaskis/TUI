@@ -7533,8 +7533,16 @@ one region over its buffer, at opacity 1, carrying a `BlendMode`, after the clai
 region with a mode is a claim at any opacity (`isTranslucent` counts it). The fold takes a cell's
 mode from the first covering claim that names one, so a fade inside a blend keeps its alpha and
 takes the mode, and a blend inside a blend keeps its own: no group lies between them to blend
-into. A painter's field claim does not carry one yet (§105; `ShapeStyle.blendMode(_:)` is the
-follow-up).
+into.
+
+`ShapeStyle.blendMode(_:)` is a paint, `Paint.blended`, carried as a shadow is: what draws with it
+draws the paint without the mode and marks the cells it drew, through
+`FrameBuffer.castingShadows(of:context:owner:)` — a table's rows the cells they draw a glyph in, as
+they cast. A `.background` fill carries the mode on its painter's field claim (§105), the one claim it
+makes: a translucent fill's claims take the mode, and an opaque fill, which claims nothing, makes one
+at opacity 1, after the fades inside it are spent against it. So `.background(.yellow
+.blendMode(.multiply))` multiplies the field under the letters as around them, and leaves their ink. A
+blended gradient background is drawn in cells, never as a picture, which has no mode.
 
 What changes is `blendLayer`'s two LAYER blends — the ink against what is behind the glyph, the
 field against the field — which take `Color.blending(_:at:over:)` instead of `opacity(_:over:)`:

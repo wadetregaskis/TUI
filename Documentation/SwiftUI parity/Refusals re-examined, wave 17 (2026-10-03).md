@@ -329,7 +329,7 @@ Keys: `BlendMode`, plus W16's `View.blendMode` and W13's `ShapeStyle.blendMode`.
 
 **Built 2026-10-19** (lane EFFECTS): `BlendMode`, `View.blendMode(_:)` and
 `VisualEffect.blendMode(_:)`, against macOS's measured arithmetic (`Opacity as
-composition.md` §110). `ShapeStyle.blendMode(_:)` follows.
+composition.md` §110), and `ShapeStyle.blendMode(_:)`, the same day.
 
 - **Why the reason fails:** "There is no blend function to name" describes
   `FrameBuffer.composited(with:at:)`. But `.opacity` already renders its subtree

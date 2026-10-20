@@ -7,6 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitCore
 import TUIkitStyling
 
 // MARK: - Paint
@@ -69,6 +70,18 @@ public enum Paint: Equatable, Sendable {
     /// environment that holds a paint would otherwise carry the room for one.
     indirect case shadowed(Self, ShadowStyle)
 
+    /// A paint drawn with a blend mode: ``ShapeStyle/blendMode(_:)``'s.
+    ///
+    /// Carried as a shadow is: what is drawn is the first paint, and whatever
+    /// draws with it marks the cells it painted with the mode, through
+    /// `FrameBuffer.castingShadows(of:context:owner:)` — a `.background` as its
+    /// field's claim — so they are combined with what is behind where they land
+    /// (``View/blendMode(_:)``). A colour derived from the paint reads through it
+    /// (``representative``, ``solid``).
+    ///
+    /// Indirect for a mesh's reason.
+    indirect case blended(Self, BlendMode)
+
     /// An ``ImagePaint``: a region of an image, repeated, sampled cell by cell.
     ///
     /// Indirect for a mesh's reason: an image and its region are several
@@ -90,6 +103,7 @@ extension Paint {
         case .gradient(let paint): paint.gradient.representative
         case .mesh(let mesh): mesh.representative
         case .shadowed(let base, _): base.representative
+        case .blended(let base, _): base.representative
         case .image(let source): source.representative
         }
     }
@@ -103,6 +117,7 @@ extension Paint {
         switch self {
         case .color(let colour): colour
         case .shadowed(let base, _): base.solid
+        case .blended(let base, _): base.solid
         case .gradient, .mesh, .image: nil
         }
     }
@@ -120,6 +135,7 @@ extension Paint {
         case .gradient(let paint): paint.gradient.isOpaqueThroughout
         case .mesh(let mesh): mesh.isOpaqueThroughout
         case .shadowed(let base, _): base.isOpaqueThroughout
+        case .blended(let base, _): base.isOpaqueThroughout
         case .image(let source): source.opacity >= 1 && source.pixels?.isOpaque == true
         }
     }
@@ -150,6 +166,9 @@ extension Paint {
             // would fade it twice — and SwiftUI draws `.red.shadow(s).opacity(½)`
             // and `.red.opacity(½).shadow(s)` alike, both shadows at half.
             return .shadowed(base.faded(opacity), shadow)
+        case .blended(let base, let mode):
+            // A translucent source under a mode is half a blend, as macOS draws one.
+            return .blended(base.faded(opacity), mode)
         case .image(var source):
             source.opacity *= min(1, max(0, opacity.isNaN ? 0 : opacity))
             return .image(source)

@@ -1464,7 +1464,7 @@ extension Text: Renderable, Layoutable {
             return nil
         }
         style.foregroundColor = paint.representative
-        if paint.hasShadows { shadowing = paint }
+        if paint.castsAnything { shadowing = paint }
         return paint.solid == nil ? paint.unshadowed : nil
     }
 

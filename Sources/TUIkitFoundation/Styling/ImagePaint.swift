@@ -229,6 +229,9 @@ extension Paint {
         case .shadowed(let base, let shadow):
             guard base.hasImage else { return self }
             return .shadowed(base.materializingImages(in: context, owner: owner), shadow)
+        case .blended(let base, let mode):
+            guard base.hasImage else { return self }
+            return .blended(base.materializingImages(in: context, owner: owner), mode)
         case .color, .gradient, .mesh:
             return self
         }
@@ -239,6 +242,7 @@ extension Paint {
         switch self {
         case .image: true
         case .shadowed(let base, _): base.hasImage
+        case .blended(let base, _): base.hasImage
         case .color, .gradient, .mesh: false
         }
     }

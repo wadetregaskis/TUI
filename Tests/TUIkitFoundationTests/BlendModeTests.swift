@@ -159,6 +159,48 @@ struct BlendModeTests {
         #expect(!state.rendered.contains(Self.source.backgroundCodes().joined(separator: ";")), "it painted a field: \(line.debugDescription)")
     }
 
+    // MARK: - ShapeStyle.blendMode
+
+    @Test("A blended background multiplies its field, under the letters too, and leaves their ink")
+    func blendedBackground() {
+        let line = drawn(
+            ZStack {
+                Self.backdrop
+                Text("ab").foregroundStyle(.white).background(Self.source.blendMode(.multiply))
+            })
+        let product = expectedField(Self.source.blending(.multiply, at: 1, over: Self.backdrop))
+        // " ab ", centred in the four columns: the letters at 1 and 2.
+        #expect(line.stripped == " ab ", "\(line.debugDescription)")
+        #expect(field(line, at: 1) == product, "under a letter: \(line.debugDescription)")
+        #expect(field(line, at: 2) == product, "under a letter: \(line.debugDescription)")
+        #expect(field(line, at: 0) == expectedField(Self.backdrop), "beside the view: \(line.debugDescription)")
+        let white = Color.white.foregroundCodes().joined(separator: ";")
+        #expect(line.ansiSGRStateAt(visibleColumn: 1).rendered.contains(white), "the ink was blended: \(line.debugDescription)")
+    }
+
+    @Test("A blended shape fill multiplies the cells it fills")
+    func blendedShapeFill() {
+        let line = drawn(
+            ZStack {
+                Self.backdrop
+                Rectangle().fill(Self.source.blendMode(.multiply))
+            })
+        let product = expectedField(Self.source.blending(.multiply, at: 1, over: Self.backdrop))
+        #expect(field(line, at: 1) == product, "\(line.debugDescription)")
+    }
+
+    @Test("A blended foreground style multiplies the letters' ink into the field behind them")
+    func blendedForeground() {
+        let line = drawn(
+            ZStack {
+                Self.backdrop
+                Text("abcd").foregroundStyle(Self.source.blendMode(.multiply))
+            })
+        let product = Self.source.blending(.multiply, at: 1, over: Self.backdrop)
+        let ink = product.foregroundCodes().joined(separator: ";")
+        #expect(line.ansiSGRStateAt(visibleColumn: 1).rendered.contains(ink), "\(line.debugDescription)")
+    }
+
     @Test("A fade inside a blend keeps its alpha and takes the mode")
     func fadeInsideABlend() {
         let line = drawn(

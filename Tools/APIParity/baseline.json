@@ -39,7 +39,6 @@
   "LayoutDirectionBehavior.mirrors",
   "LayoutDirectionBehavior.mirrors(in:)",
   "Optional.Scope",
-  "ShapeStyle.blendMode(_:)",
   "TabContent.swipeActions(edge:allowsFullSwipe:content:)",
   "TabSearchActivation",
   "TabSearchActivation.automatic",

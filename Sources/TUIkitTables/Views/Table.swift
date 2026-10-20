@@ -5044,7 +5044,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// view drawn among the rows renders under, the rows casting the shadows
     /// from every glyph they hold at once (`_TableContentView`).
     private static func castingNoShadows(_ context: inout RenderContext) {
-        if let paint = context.environment.foregroundStyle, paint.hasShadows {
+        if let paint = context.environment.foregroundStyle, paint.castsAnything {
             context.environment.foregroundStyle = paint.unshadowed
         }
     }

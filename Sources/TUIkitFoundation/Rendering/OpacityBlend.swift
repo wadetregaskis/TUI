@@ -107,6 +107,8 @@ extension FrameBuffer {
         var layer: Double
         /// The field's own alpha.
         var field: Double
+        /// How the field combines with what is behind it (``ShapeStyle/blendMode(_:)``).
+        var mode: BlendMode = .normal
     }
 
     /// The blended replacement for `columns` of `source`, as a self-contained
@@ -535,7 +537,7 @@ extension FrameBuffer {
                 foreground: nil, background: colour)
             below = blendLayer(
                 source: pane, destination: below,
-                alpha: CellAlpha(layer: painter.layer, field: painter.field),
+                alpha: CellAlpha(layer: painter.layer, field: painter.field, mode: painter.mode),
                 surface: surface, defaultForeground: defaultForeground)
         }
         var own = alpha

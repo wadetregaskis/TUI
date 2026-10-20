@@ -7,29 +7,59 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitCore
 import TUIkitStyling
 
 extension Paint {
-    /// What this paint draws: the paint without its shadows.
+    /// What this paint draws: the paint without its shadows and its blend mode.
     ///
     /// Everything that draws with a paint draws this, and casts ``shadows``
-    /// from the cells it drew; a renderer below it never sees a shadow.
+    /// from the cells it drew, and marks them with ``blendMode``; a renderer
+    /// below it never sees either.
     public var unshadowed: Paint {
-        guard case .shadowed(let base, _) = self else { return self }
-        return base.unshadowed
+        switch self {
+        case .shadowed(let base, _), .blended(let base, _): base.unshadowed
+        default: self
+        }
     }
 
     /// The shadows this paint is drawn with, the one applied first first —
     /// empty for almost every paint, which costs nothing to ask.
     public var shadows: [ShadowStyle] {
-        guard case .shadowed(let base, let shadow) = self else { return [] }
-        return base.shadows + [shadow]
+        switch self {
+        case .shadowed(let base, let shadow): base.shadows + [shadow]
+        case .blended(let base, _): base.shadows
+        default: []
+        }
     }
 
     /// Whether this paint is drawn with a shadow.
     public var hasShadows: Bool {
-        if case .shadowed = self { return true }
-        return false
+        switch self {
+        case .shadowed: true
+        case .blended(let base, _): base.hasShadows
+        default: false
+        }
+    }
+
+    /// The blend mode this paint is drawn with (``ShapeStyle/blendMode(_:)``), the
+    /// outermost where it names several, or `nil`.
+    public var blendMode: BlendMode? {
+        switch self {
+        case .blended(_, let mode): mode
+        case .shadowed(let base, _): base.blendMode
+        default: nil
+        }
+    }
+
+    /// Whether whatever draws with this paint has more to do than draw it: a
+    /// shadow to cast or a blend mode to mark. One comparison for nearly every
+    /// paint.
+    public var castsAnything: Bool {
+        switch self {
+        case .shadowed, .blended: true
+        default: false
+        }
     }
 
     /// `drawn` with this paint's shadows: what a control keeps when it draws an
@@ -39,16 +69,22 @@ extension Paint {
     /// - Parameter drawn: The paint to draw instead of this one's own.
     /// - Returns: `drawn`, shadowed as this paint is.
     public func keepingShadows(on drawn: Paint) -> Paint {
-        guard case .shadowed(let base, let shadow) = self else { return drawn }
-        return .shadowed(base.keepingShadows(on: drawn), shadow)
+        switch self {
+        case .shadowed(let base, let shadow): .shadowed(base.keepingShadows(on: drawn), shadow)
+        case .blended(let base, let mode): .blended(base.keepingShadows(on: drawn), mode)
+        default: drawn
+        }
     }
 
     /// This paint with what it draws replaced by `transform`'s answer for it,
     /// its shadows kept — how a style that changes a paint's drawing (a fixed
     /// extent, an animation) passes the shadows through.
     func mappingUnshadowed(_ transform: (Paint) -> Paint) -> Paint {
-        guard case .shadowed(let base, let shadow) = self else { return transform(self) }
-        return .shadowed(base.mappingUnshadowed(transform), shadow)
+        switch self {
+        case .shadowed(let base, let shadow): .shadowed(base.mappingUnshadowed(transform), shadow)
+        case .blended(let base, let mode): .blended(base.mappingUnshadowed(transform), mode)
+        default: transform(self)
+        }
     }
 
     /// How strongly what this paint draws casts a shadow: its alpha, so a

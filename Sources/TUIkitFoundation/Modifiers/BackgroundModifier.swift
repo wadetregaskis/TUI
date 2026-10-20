@@ -103,7 +103,8 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         let extent =
             context.gradientFrame ?? GradientFrame(width: width, height: buffer.lines.count)
 
-        if picturing,
+        // A blended ramp is cells: a picture has no mode to be combined with.
+        if picturing, paint.blendMode == nil,
             let pictured = Self.pictured(buffer, paint: paint, extent: extent, context: context, owner: owner)
         {
             return pictured
@@ -135,8 +136,13 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
             // content leaves it the field, beneath the content's own field where it
             // states one (§105). Folded with the content's fades as one claim, a label
             // faded inside the fill scaled the fill under it, and the fill's alpha
-            // scaled a field the content stated itself.
-            filledBuffer.opacityRegions += buffer.claimingPainterField(claim.map { [$0] } ?? [], spelled: resolved.opaqueSpelling.backgroundEscape())
+            // scaled a field the content stated itself. A blended style's mode rides the
+            // same claim (``ShapeStyle/blendMode(_:)``) — an opaque fill's too, which
+            // otherwise claims nothing.
+            let said = buffer.claimingPainterField(
+                Self.withMode(claim, paint.blendMode, width: width, height: buffer.lines.count),
+                spelled: resolved.opaqueSpelling.backgroundEscape())
+            if claim != nil { filledBuffer.opacityRegions += said }
             // The content's runs are drawn on this fill wherever a frame leaves a
             // cell bare, and a replay has no line to read that off: the same fill
             // on their grounds (`AnimatedCellRun.ground`).
@@ -148,8 +154,12 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
             // way on a page with an RGB, and on the terminal's own page — a colour
             // with no RGB, the heavier side winning — all the way.
             guard claim == nil else { return filledBuffer }
-            return filledBuffer.resolvingOpacity(
+            var spent = filledBuffer.resolvingOpacity(
                 onOpaqueFill: { nil }, surface: resolved, palette: context.environment.palette)
+            // An opaque fill's mode is claimed after the fades inside it are spent
+            // against it, so it is the fill, not the fades, that is blended.
+            spent.opacityRegions += said
+            return spent
         }
 
         let palette = context.environment.palette
@@ -282,9 +292,11 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         // already in these lines and a background says nothing about it.
         //
         // Said of the ramp alone, cell by cell, as the flat arm's are (§105).
-        ramped.opacityRegions += Self.saidOfTheRamp(
+        let said = Self.saidOfTheRamp(
             for: alphaShape, rowAlphas: rowFieldAlphas, over: buffer, sampler: sampler, width: width,
-            palette: palette, escape: escape(forEntry:))
+            palette: palette, escape: escape(forEntry:), mode: paint.blendMode)
+        let opaque = if case .opaque = alphaShape { true } else { false }
+        if !opaque { ramped.opacityRegions += said }
         // And each run's ground, painted as its row was over the run's columns —
         // the ramp's cells differ across a row, so each piece gets its own entry,
         // exactly as the row's did (`AnimatedCellRun.ground`).
@@ -303,11 +315,25 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         // An opaque ramp is the backdrop of every fade inside it, as a flat fill
         // is (§96), and a different one under each cell: the fade is spent over
         // the ramp alone, painted as the content was.
-        guard case .opaque = alphaShape else { return ramped }
+        guard opaque else { return ramped }
         let blank = String.spaces(width)
-        return ramped.resolvingOpacity(
+        var spent = ramped.resolvingOpacity(
             onOpaqueFill: { FrameBuffer(lines: buffer.lines.indices.map { paintedRow(blank, row: $0) }) },
             surface: palette.background, palette: palette)
+        // As the flat arm's: an opaque ramp's mode, after the fades inside it are spent.
+        spent.opacityRegions += said
+        return spent
+    }
+
+    /// `claim` with `mode` on it — an opaque claim over `width` × `height` where
+    /// there is no claim but a mode to carry — as the one claim a fill makes.
+    private static func withMode(_ claim: OpacityRegion?, _ mode: BlendMode?, width: Int, height: Int)
+        -> [OpacityRegion]
+    {
+        guard let mode else { return claim.map { [$0] } ?? [] }
+        var moded = claim ?? OpacityRegion(offsetX: 0, offsetY: 0, width: width, height: height, opacity: 1)
+        moded.blendMode = mode
+        return [moded]
     }
 
     /// A ramp or a mesh behind NOTHING — blank cells, which is what a gradient used as
@@ -363,10 +389,16 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     /// as the row painted it (`escape`, by entry).
     private static func saidOfTheRamp(
         for alphaShape: RampSampler.AlphaShape, rowAlphas: [UInt8], over content: FrameBuffer,
-        sampler: RampSampler, width: Int, palette: any Palette, escape: (Int) -> String
+        sampler: RampSampler, width: Int, palette: any Palette, escape: (Int) -> String, mode: BlendMode?
     ) -> [OpacityRegion] {
-        let claims = fieldClaims(
+        var claims = fieldClaims(
             for: alphaShape, width: width, rows: content.lines.count, rowAlphas: rowAlphas, sampler: sampler)
+        if let mode {
+            claims = claims.isEmpty
+                ? [OpacityRegion(offsetX: 0, offsetY: 0, width: width, height: content.lines.count, opacity: 1)]
+                : claims
+            for index in claims.indices { claims[index].blendMode = mode }
+        }
         var entries: [Int: [(columns: Range<Int>, entry: Int)]] = [:]
         return content.claimingPainterField(claims) { row, column in
             guard sampler.variesAcrossRow else {
