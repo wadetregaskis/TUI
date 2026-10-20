@@ -1484,6 +1484,15 @@ the palette's secondary tier, which is SwiftUI's behaviour.
 cheap one, a live look at the faint tiers in 16 and 256 colours, owed; the
 per-palette tiers are skipped for now.
 
+**Looked at 2026-10-19** (lane EFFECTS; `FaintLevelsAuditTests`, the ink read
+back out of the emitted SGR over each shipped palette's page): at 16 colours,
+on every palette, `.secondary` is `.primary`'s colour and `.tertiary` to
+`.quinary` are the page's own — invisible. At 256 most levels stay apart, but
+`.quinary` is the page on five palettes and `.quaternary` too on three, and
+some neighbours share a colour. The rendered contrast floor does not reach
+content text. Nothing changed: a vanishing level is your call,
+[A-EFFECTS-1](<Blend modes and image details (EFFECTS).md#a-effects-1-the-faint-content-levels-vanish-at-16-colours-and-the-faintest-at-256>).
+
 ### B25. `safeAreaPadding` is padding, or a scroll view's content margin
 
 *`View.safeAreaPadding(_:)` (both), `View.safeAreaPadding(_:_:)`*
