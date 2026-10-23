@@ -630,6 +630,11 @@ def child_env(tc, slot):
     """
     env = dict(os.environ)
     env.update(tc.env)
+    if env.get("TERM") == "dumb":
+        # A parent environment with TERM=dumb (e.g. IDE or subshell runner)
+        # would latch ColorDepth to .noColor, disabling ANSI escapes in tests
+        # that assert on rendered colours.
+        del env["TERM"]
     for key, sub in (("TUIKIT_CONFIG_DIR", "config"), ("TMPDIR", "tmp")):
         d = os.path.join(WORK, "slot%d" % slot, sub)
         os.makedirs(d, exist_ok=True)
