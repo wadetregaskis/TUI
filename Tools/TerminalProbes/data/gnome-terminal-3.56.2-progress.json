@@ -1,0 +1,130 @@
+{
+  "probe": "progress_probe",
+  "measured": "2026-10-23T12:10:16-07:00",
+  "screen": "primary",
+  "os": "Linux 6.12.107+deb13-arm64",
+  "machine": "aarch64",
+  "env": {
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor",
+    "VTE_VERSION": "8001"
+  },
+  "mode_2027_grapheme_clustering": "not recognised",
+  "method": "DSR cursor report — confirm any disagreement with visual_card.py",
+  "leaks": {
+    "primary": {
+      "value_50": {
+        "what": "a value, 50%",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;1;50<ESC>\\"
+      },
+      "value_0": {
+        "what": "a value, 0%",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;1;0<ESC>\\"
+      },
+      "value_100": {
+        "what": "a value, 100%",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;1;100<ESC>\\"
+      },
+      "error_30": {
+        "what": "an error at 30%",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;2;30<ESC>\\"
+      },
+      "error_bare": {
+        "what": "an error, no value",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;2<ESC>\\"
+      },
+      "indeterminate": {
+        "what": "indeterminate",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;3<ESC>\\"
+      },
+      "paused_70": {
+        "what": "paused at 70%",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;4;70<ESC>\\"
+      },
+      "paused_bare": {
+        "what": "paused, no value",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;4<ESC>\\"
+      },
+      "none": {
+        "what": "no bar",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;0<ESC>\\"
+      }
+    },
+    "alternate": {
+      "value_50": {
+        "what": "a value, 50%",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;1;50<ESC>\\"
+      },
+      "value_0": {
+        "what": "a value, 0%",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;1;0<ESC>\\"
+      },
+      "value_100": {
+        "what": "a value, 100%",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;1;100<ESC>\\"
+      },
+      "error_30": {
+        "what": "an error at 30%",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;2;30<ESC>\\"
+      },
+      "error_bare": {
+        "what": "an error, no value",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;2<ESC>\\"
+      },
+      "indeterminate": {
+        "what": "indeterminate",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;3<ESC>\\"
+      },
+      "paused_70": {
+        "what": "paused at 70%",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;4;70<ESC>\\"
+      },
+      "paused_bare": {
+        "what": "paused, no value",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;4<ESC>\\"
+      },
+      "none": {
+        "what": "no bar",
+        "measured_column": 3,
+        "swallowed": true,
+        "bytes": "<ESC>]9;4;0<ESC>\\"
+      }
+    }
+  },
+  "timeout": null,
+  "notified": false
+}

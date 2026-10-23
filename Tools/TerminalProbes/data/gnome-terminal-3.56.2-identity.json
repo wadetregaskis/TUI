@@ -1,0 +1,64 @@
+{
+  "stamp": {
+    "probe": "identity_probe",
+    "measured": "2026-10-23T12:08:49-07:00",
+    "screen": "primary",
+    "os": "Linux 6.12.107+deb13-arm64",
+    "machine": "aarch64",
+    "env": {
+      "TERM": "xterm-256color",
+      "COLORTERM": "truecolor",
+      "VTE_VERSION": "8001"
+    },
+    "mode_2027_grapheme_clustering": "not recognised",
+    "method": "DSR cursor report — confirm any disagreement with visual_card.py"
+  },
+  "environment": {
+    "TERM": "xterm-256color",
+    "COLORTERM": "truecolor"
+  },
+  "answers": {
+    "DA1": {
+      "query": "<ESC>[c",
+      "reply": "<ESC>[?61;1;21;22;28c",
+      "raw": "\u001b[?61;1;21;22;28c",
+      "what": "Primary Device Attributes — ESC[?…c"
+    },
+    "DA2": {
+      "query": "<ESC>[>c",
+      "reply": "<ESC>[>61;8001;1c",
+      "raw": "\u001b[>61;8001;1c",
+      "what": "Secondary Device Attributes — ESC[>…c"
+    },
+    "DA3": {
+      "query": "<ESC>[=c",
+      "reply": "<ESC>P!|7E565445<ESC>\\",
+      "raw": "\u001bP!|7E565445\u001b\\",
+      "what": "Tertiary Device Attributes — DCS!|…ST"
+    },
+    "XTVERSION": {
+      "query": "<ESC>[>0q",
+      "reply": "<ESC>P>|VTE(8001)<ESC>\\",
+      "raw": "\u001bP>|VTE(8001)\u001b\\",
+      "what": "Terminal name and version — DCS>|…ST"
+    },
+    "XTGETTCAP_TN": {
+      "query": "<ESC>P+q544e<ESC>\\",
+      "reply": "<silent>",
+      "raw": "",
+      "what": "terminfo 'TN' (terminal name) — DCS…ST"
+    },
+    "DSR5": {
+      "query": "<ESC>[5n",
+      "reply": "<ESC>[0n",
+      "raw": "\u001b[0n",
+      "what": "Device status — ESC[0n; TUIkit's exchange fence"
+    },
+    "XTVERSION+DSR5": {
+      "query": "<ESC>[>0q<ESC>[5n",
+      "reply": "<ESC>P>|VTE(8001)<ESC>\\<ESC>[0n",
+      "raw": "\u001bP>|VTE(8001)\u001b\\\u001b[0n",
+      "what": "XTVERSION's reply (if any), THEN ESC[0n"
+    }
+  }
+}

@@ -61,9 +61,9 @@ conditions. Fifteen kinds of file live here:
   (`OSC 2`, the push and the pop of the title stack, a pop with nothing
   pushed, the report request) on both screens, and the title the host
   reports (`CSI 21 t`, or tmux's `#{pane_title}`) after a set, a push and a
-  set, and a pop. The machine's name is recorded as `<hostname>`. Four so
-  far, 2026-10-19: Apple Terminal 455.1, iTerm2 3.7.6 and Warp (none
-  answers the report) and tmux 3.7c.
+  set, and a pop. The machine's name is recorded as `<hostname>`. Five so
+  far: Apple Terminal 455.1, iTerm2 3.7.6 and Warp (none answers the report),
+  tmux 3.7c, and GNOME Terminal 3.56.2.
 - **`<terminal>-<version>-clipboard.json`** — OSC 52 records
   (`clipboard_probe.py`): whether the write printed anything (the cursor
   before and after), the host's DA1 and whether it lists `52`, whether each
@@ -75,16 +75,16 @@ conditions. Fifteen kinds of file live here:
   that option, `…-clipboard-on.json` and `…-clipboard-external.json`, and
   iTerm2's two by its "Applications in terminal may access clipboard"
   setting, `…-clipboard-off.json` and `…-clipboard-on.json`.
-  Seven so far, 2026-10-19: Apple Terminal 455.1, iTerm2 3.7.6 twice, Warp,
-  Ghostty 1.3.1 and tmux 3.7c twice.
+  Eight so far: Apple Terminal 455.1, iTerm2 3.7.6 twice, Warp,
+  Ghostty 1.3.1, tmux 3.7c twice, and GNOME Terminal 3.56.2.
 - **`<terminal>-<version>-identity.json`** — IDENTITY records
   (`identity_probe.py`): the reply to each query a host could be identified
   by — DA1, DA2, DA3, XTVERSION, XTGETTCAP `TN` — and to the status report
   `CSI 5 n` TUIkit fences its exchanges with, and in `XTVERSION+DSR5` the
   replies to an XTVERSION with the status report behind it, in the order
-  they arrived. Four
-  so far, 2026-10-19: Apple Terminal 455.1, iTerm2 3.7.6, Warp and Ghostty
-  1.3.1.
+  they arrived. Five
+  so far: Apple Terminal 455.1, iTerm2 3.7.6, Warp, Ghostty
+  1.3.1, and GNOME Terminal 3.56.2.
 - **`<terminal>-<version>-m3m7.json`** — MODE 2031 and SGR 7 records
   (`osc_colour_probe.py` with `PROBE_SUITE=m3m7`): each step's request, the
   cursor before and after it, and every reply, DECRQM's and DECRQSS's
@@ -104,8 +104,8 @@ conditions. Fifteen kinds of file live here:
   sends (`OSC 9 ; 4` with each state, with and without a value, and the
   removal) on both screens, and, inside tmux, the pane's bar as tmux keeps it
   (`#{pane_pb_state}`, `#{pane_pb_progress}`) after each; with `--timeout`,
-  the bar before and after a wait with nothing sent. One so far, 2026-10-19:
-  tmux 3.7c.
+  the bar before and after a wait with nothing sent. Two so far:
+  tmux 3.7c and GNOME Terminal 3.56.2.
 - **`tmux-<version>-progress-forwarding.json`** — what tmux passes on to the
   terminal it is drawn in (`progress_probe.py --tmux-forwarding`): the probe
   plays that terminal, as a client with the `progressbar` feature and as one

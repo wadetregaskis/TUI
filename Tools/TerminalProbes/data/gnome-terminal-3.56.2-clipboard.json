@@ -1,0 +1,25 @@
+{
+ "stamp": {
+  "probe": "clipboard_probe",
+  "measured": "2026-10-23T12:09:59-07:00",
+  "screen": "primary",
+  "os": "Linux 6.12.107+deb13-arm64",
+  "machine": "aarch64",
+  "env": {
+   "TERM": "xterm-256color",
+   "COLORTERM": "truecolor",
+   "VTE_VERSION": "8001"
+  },
+  "mode_2027_grapheme_clustering": "not recognised",
+  "method": "DSR cursor report — confirm any disagreement with visual_card.py"
+ },
+ "remote": {},
+ "read_back": null,
+ "identity": {
+  "xtversion": "VTE(8001)",
+  "da1": "\u001b[?61;1;21;22;28c",
+  "da1_has_52": false,
+  "da2": "\u001b[>61;8001;1c"
+ },
+ "note": "no helper can read this machine's clipboard: run with --manual, or on the machine the terminal runs on; --clobber takes the leak check alone, its write not put back"
+}
