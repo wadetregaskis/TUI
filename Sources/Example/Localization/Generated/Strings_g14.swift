@@ -51,6 +51,7 @@ extension ExampleStrings {
             "page.buttons.links.noteTmux": "tmux stores the link but forwards it only to clients it credits with the hyperlinks feature. If nothing shows: set -ga terminal-features '*:hyperlinks'",
             "page.buttons.links.noteAppleTerminal": "Apple Terminal has no hyperlink support at all: it swallows the escape and keeps nothing, so TUIkit does not send one.",
             "page.buttons.links.noteWarp": "Warp handles links only outside the alternate screen — the only buffer a TUIkit app ever draws into — so the escape would be stored nowhere and is not sent. ⇧-click selects text.",
+            "page.buttons.links.noteGnomeTerminal": "GNOME Terminal (VTE) honours OSC 8 hyperlinks. Hold Ctrl and click to follow the link, or right-click to open or copy the destination.",
             "page.buttons.links.noteUnidentified": "This terminal was not identified, so links are off: an unmeasured host gets the answer that cannot hurt. Set TUIKIT_HYPERLINKS=1 if yours does support them.",
         ],
 

@@ -77,6 +77,8 @@ struct ClientPickerView: View {
             "ECH+CUF for VS-15 chrome and SF Symbols; keeps skin tones"
         case .warp:
             "ECH+CUF for lone RI, SF Symbols, bare pictographs; tones detach; ZWJ decomposed"
+        case .gnomeTerminal:
+            "ECH+CUF for VS-16, bare pictographs, keycaps, SF Symbols, pre-Unicode 16; tones detach; ZWJ decomposed"
         case .tmux:
             "compositor: its own grid, its own model; strips BMP-base skin tones"
         case .unidentified:
@@ -107,6 +109,7 @@ struct ClientPickerView: View {
         case .iTerm2: "iTerm2"
         case .ghostty: "Ghostty"
         case .warp: "Warp"
+        case .gnomeTerminal: "GNOME Terminal"
         case .tmux: "tmux"
         case .unidentified: "unidentified"
         }

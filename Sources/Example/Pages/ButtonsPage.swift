@@ -556,6 +556,7 @@ struct ButtonsPage: View {
         case .iTerm2: "iTerm2"
         case .ghostty: "Ghostty"
         case .warp: "Warp"
+        case .gnomeTerminal: "GNOME Terminal"
         case .tmux: "tmux"
         // The only one of the six that is a description rather than a name.
         case .unidentified: L("page.buttons.links.unidentified")
@@ -572,6 +573,7 @@ struct ButtonsPage: View {
         case .tmux: "page.buttons.links.noteTmux"
         case .appleTerminal: "page.buttons.links.noteAppleTerminal"
         case .warp: "page.buttons.links.noteWarp"
+        case .gnomeTerminal: "page.buttons.links.noteGnomeTerminal"
         case .unidentified: "page.buttons.links.noteUnidentified"
         }
     }

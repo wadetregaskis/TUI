@@ -86,7 +86,7 @@ struct QuirkTableView: View {
             switch client.program {
             case .ghostty: return "kept — Ghostty merges them correctly"
             case .appleTerminal: return "separated — base, ZWNJ, modifier (withTerminalAppCursorCompensation)"
-            case .iTerm2, .warp: return "kept, detached — advance measured per host"
+            case .iTerm2, .warp, .gnomeTerminal: return "kept, detached — advance measured per host"
             case .tmux: return "modifier stripped (withSkinToneFallback)"
             case .unidentified: return "none — terminal not identified"
             }
@@ -120,6 +120,7 @@ struct QuirkTableView: View {
         case .iTerm2: "iTerm2"
         case .ghostty: "Ghostty"
         case .warp: "Warp"
+        case .gnomeTerminal: "GNOME Terminal"
         case .tmux: "tmux"
         case .unidentified: "an unidentified terminal"
         }

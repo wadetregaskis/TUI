@@ -153,7 +153,7 @@ struct IdentificationView: View {
             Text("Name the terminal yourself and restart:")
                 .foregroundStyle(.palette.foregroundSecondary)
             Text("    export TUIKIT_TERM_PROGRAM=Apple_Terminal")
-            Text("Accepted: Apple_Terminal, iTerm.app, ghostty, WarpTerminal, tmux.")
+            Text("Accepted: Apple_Terminal, iTerm.app, ghostty, WarpTerminal, gnome-terminal, tmux.")
                 .foregroundStyle(.palette.foregroundTertiary)
             Text("If your terminal is not one of those, the Alignment tab shows what to report.")
                 .foregroundStyle(.palette.foregroundTertiary)
@@ -188,6 +188,7 @@ struct IdentificationView: View {
         case .iTerm2: "iTerm2"
         case .ghostty: "Ghostty"
         case .warp: "Warp"
+        case .gnomeTerminal: "GNOME Terminal"
         case .tmux: "tmux"
         case .unidentified: "unidentified"
         }
