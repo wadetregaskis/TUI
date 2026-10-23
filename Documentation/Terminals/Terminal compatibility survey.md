@@ -637,9 +637,10 @@ without it the main menu draws no symbol (see tmux's "The defect this closed").
 | Signal | Names | Crosses ssh | Notes |
 |---|---|---|---|
 | `TERM_PROGRAM` | all four hosts + tmux | ✗ | authoritative when present |
+| `VTE_VERSION` / `GNOME_TERMINAL_*` | GNOME Terminal (VTE) | ✗ | authoritative for VTE |
 | `LC_TERMINAL` | iTerm2 only | ✓ | set by iTerm2's shell integration; `LC_*` is forwarded |
 | `TERM` | **Ghostty only** | ✓ | the termtype travels in ssh's `pty-req` (RFC 4254 §6.2) |
-| XTVERSION (`ESC[>0q`) | iTerm2, Ghostty, Warp | ✓ | **Apple Terminal answers nothing** |
+| XTVERSION (`ESC[>0q`) | iTerm2, Ghostty, Warp, GNOME Terminal | ✓ | GNOME Terminal answers `VTE(8001)`; **Apple Terminal answers nothing** |
 | Process-ancestry walk | local apps | ✗ | over ssh the parent is `sshd` |
 | `TUIKIT_TERM_PROGRAM` | anything | ✓ | explicit override, same vocabulary as `TERM_PROGRAM` |
 
@@ -965,14 +966,14 @@ each one on this machine, primary screen, macOS 15.8.1. The records are
 the table this one replaced: Ghostty's DA1 lists `52`, Warp answers DA2, and
 iTerm2's DA1 begins `64`, not `62`.
 
-| Query | Apple Terminal 455.1 | Ghostty 1.3.1 | Warp v0.2026.09.30.08.29 | iTerm2 3.7.6 |
-|---|---|---|---|---|
-| XTVERSION `ESC[>0q` | *silent* | `ghostty 1.3.1` | `Warp(v0.2026.09.30.08.29.stable_01)` | `iTerm2 3.7.6` |
-| DA1 `ESC[c` | `ESC[?1;2c` | `ESC[?62;22;52c` | `ESC[?62c` | `ESC[?64;1;2;4;6;17;18;21;22;52c` |
-| DA2 `ESC[>c` | `ESC[>1;95;0c` | `ESC[>1;10;0c` | `ESC[>0;95;0c` | `ESC[>64;2500;0c` |
-| DA3 `ESC[=c` | `ESC[?1;2c` (!) | *silent* | *silent* | a DCS report, `6954726D` (`iTrm` in hex) |
-| XTGETTCAP `TN` | *silent* | `xterm-ghostty` (hex-encoded) | *silent* | `xterm-256color` (hex-encoded) |
-| `CSI 5 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` |
+| Query | Apple Terminal 455.1 | Ghostty 1.3.1 | Warp v0.2026.09.30.08.29 | iTerm2 3.7.6 | GNOME Terminal 3.56.2 (VTE 0.80.1) |
+|---|---|---|---|---|---|
+| XTVERSION `ESC[>0q` | *silent* | `ghostty 1.3.1` | `Warp(v0.2026.09.30.08.29.stable_01)` | `iTerm2 3.7.6` | `VTE(8001)` |
+| DA1 `ESC[c` | `ESC[?1;2c` | `ESC[?62;22;52c` | `ESC[?62c` | `ESC[?64;1;2;4;6;17;18;21;22;52c` | `ESC[?61;1;21;22;28c` |
+| DA2 `ESC[>c` | `ESC[>1;95;0c` | `ESC[>1;10;0c` | `ESC[>0;95;0c` | `ESC[>64;2500;0c` | `ESC[>61;8001;1c` |
+| DA3 `ESC[=c` | `ESC[?1;2c` (!) | *silent* | *silent* | a DCS report, `6954726D` (`iTrm` in hex) | a DCS report, `7E565445` (`~VTE` in hex) |
+| XTGETTCAP `TN` | *silent* | `xterm-ghostty` (hex-encoded) | *silent* | `xterm-256color` (hex-encoded) | *silent* |
+| `CSI 5 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` |
 
 Apple Terminal answers DA3 with a **DA1 reply** — it ignores the `=` and
 treats `ESC[=c` as `ESC[c`. Noted as a curiosity; nothing depends on it.
@@ -2477,6 +2478,69 @@ never touch a real session or the user's preferences.
 
 ---
 
+## GNOME Terminal / VTE (measured 2026-10-23)
+
+**Tested:** GNOME Terminal 3.56.2 using VTE 0.80.1 (`VTE_VERSION=8001`), Debian GNU/Linux 13 (trixie),
+Linux 6.12.107+deb13-arm64, GNOME Shell 48 on Wayland, 2026-10-23. DSR-probed with `advance_probe.py`,
+`identity_probe.py`, `hyperlink_probe.py`, `clipboard_probe.py`, `graphics_probe.py`, `title_probe.py`,
+`sync_probe.py`, and `progress_probe.py`. Records committed in `Tools/TerminalProbes/data/`.
+
+### Environment & Identification
+
+| Variable | Value | Notes |
+|---|---|---|
+| `VTE_VERSION` | `8001` | set by VTE; encodes `major * 100 + minor` (`8001` = 0.80.1) |
+| `GNOME_TERMINAL_SCREEN` | `/org/gnome/Terminal/screen/...` | D-Bus path for the terminal tab/screen |
+| `GNOME_TERMINAL_SERVICE` | `:1....` | D-Bus service bus name |
+| `TERM` | `xterm-256color` | standard xterm termtype |
+| `COLORTERM` | `truecolor` | 24-bit direct colour supported |
+| `TUIKIT_TERM_PROGRAM` | `gnome-terminal` | explicit override |
+
+Over ssh or across detached contexts where environment variables are absent, GNOME Terminal answers Device Attributes:
+- **DA1 (`ESC[c`):** `ESC[?61;1;21;22;28c` (starts with `?61;`, identifying VT220 / VTE).
+- **DA2 (`ESC[>c`):** `ESC[>61;8001;1c` (starts with `>61;`, followed by the VTE version `8001`, and ends with `;1c`).
+- **DA3 (`ESC[=c`):** DCS report `ESC P !| 7E565445 ESC \` (`7E565445` is hex for `~VTE`).
+- **XTVERSION (`ESC[>0q`):** `ESC P >| VTE(8001) ESC \`.
+
+`TerminalIdentity` uses DA1 prefix `ESC[?61;` and DA2 prefix `ESC[>61;` with suffix `;1c` to reliably identify GNOME Terminal / VTE remotely.
+
+### Output behaviour & Advance quirks
+
+VTE's text layout engine is built on Pango and HarfBuzz, but cursor advance for terminal cells adheres strictly to its internal character width tables:
+
+- **VS-16 pictographs (🛡️ ✏️ ❤️):** advances **1 cell** (under-advances against TUIkit's claim of 2).
+- **Bare SMP pictographs (🚀 🦀 🦄):** advances **1 cell** (under-advances against claim of 2).
+- **VS-15 chrome glyphs (⬛︎ ⬜︎):** advances **2 cells** (matches claim of 2). Unlike Apple Terminal, VTE does not require extra cursor compensation for VS-15 chrome; toggles render cleanly.
+- **Lone regional indicators (U+1F1E6…):** advances **1 cell** (under-advances against claim of 2).
+- **Keycaps (1️⃣):** advances **1 cell** (under-advances against claim of 2).
+- **Plane 16 PUA (SF Symbols):** advances **1 cell** (under-advances against claim of 2).
+- **Unicode 16.0 additions (🫩 🪚):** advances **1 cell** (under-advances against claim of 2).
+- **Fitzpatrick skin tones (🤙🏽 👍🏼 ✊🏻):** Base and modifier swatch are **detached** for all bases (both emoji-presentation and text-presentation bases). Bases advance 1 or 2, and the swatch advances 2 on its own (`base.advance + 2 * swatches.count`).
+- **ZWJ sequences (👨‍👩‍👧‍👦 ❤️‍🔥 👩🏽‍🚀):** Decomposed into individual component segments; the joiner (U+200D) advances 0 cells.
+- **Complex scripts:** Measured identical to claim on all 38 rows across both screen buffers (zero divergences from the per-code-point sum).
+
+### Cursor compensation walk
+
+Compensated via `String.withGnomeTerminalCursorCompensation()` which uses `withCursorForwardCompensation(advance: \.gnomeTerminalCursorAdvance)`:
+- Emits `ECH(claim) + cluster + CUF(claim - advance)` for under-advancing glyphs.
+- Leaves correctly advancing glyphs (including VS-15 chrome) untouched.
+- Erases the right-edge cell cleanly so that subsequent characters land on their true columns without shearing or leaving unpainted voids.
+
+### Capabilities
+
+| Feature | Supported | Notes |
+|---|---|---|
+| **OSC 8 Hyperlinks** | **yes** | Native VTE support; Ctrl+Click opens links. Plain, `id=`, and BEL/ST terminations are swallowed cleanly without leakage. |
+| **OSC 52 Clipboard** | **no** | Disabled by default in VTE. DA1 does not advertise `52`. All OSC 52 sequences are swallowed cleanly. |
+| **OSC 5522 MIME Clipboard** | **no** | Unsupported. |
+| **Synchronized Output (mode 2026)** | **no** | DECRQM `?2026` returns `0` (permanently reset). Sequences are swallowed cleanly without leaking. |
+| **Window Title (OSC 2, XTWINOPS 22/23)** | **swallowed** | Swallowed cleanly on both screens; does not report via `CSI 21 t`. |
+| **Progress & Attention (OSC 9;4, OSC 9)** | **swallowed** | Swallowed cleanly on both screens; progress bar is not drawn; attention falls back to terminal bell. |
+| **Graphics Protocols** | **no** | Kitty graphics, Sixel, and iTerm2 inline protocols are not supported in standard VTE; probe confirms all payloads are swallowed cleanly without cursor shift or text leakage. |
+| **Emoji Chrome (`supportsEmojiChrome`)** | **yes** | Safe with `withGnomeTerminalCursorCompensation()`. |
+
+---
+
 ## A cell's size in points — what the hosts report, and in which unit
 
 An `Image` that is not resizable takes its natural size, as SwiftUI's does
@@ -3487,6 +3551,7 @@ in OSC 8, ask where the cursor is, and compare against the same label bare.
 | iTerm2 | 3.6.11 | swallowed | swallowed | swallowed | swallowed | swallowed |
 | Ghostty | 1.3.1 | swallowed | swallowed | swallowed | swallowed | swallowed |
 | Warp | v0.2026.08.26.17.59.stable_01 | swallowed | swallowed | swallowed | swallowed | swallowed |
+| GNOME Terminal | 3.56.2 (VTE 8001) | swallowed | swallowed | swallowed | swallowed | swallowed |
 
 Both screen buffers, every host, every spelling: the cursor lands exactly
 where the bare label leaves it. The `unknown OSC command` column is the
@@ -3637,6 +3702,7 @@ derived it. What the table below rests on instead:
 |---|---|---|
 | iTerm2 | **yes** | its own setting, `Drawing: Underline OSC 8 hyperlinks` (`underlineHyperlinks`); and tmux gives it the `hyperlinks` feature |
 | Ghostty | **yes** | per-page hyperlink storage in its cell model (`cell_hyperlink`, "Maps cell positions to hyperlink IDs"); `link-previews` has an explicit `osc8` mode; and ⌘-shift-hover shows the destination (observed) |
+| GNOME Terminal | **yes** | native VTE hyperlink support, honoured with Ctrl+click |
 | tmux | **yes** | stores links in its grid, and `capture-pane -H` reads them back — the one machine-checkable oracle here |
 | Apple Terminal | **no** | the app names no hyperlink handling at all; the sequence is swallowed and nothing is kept |
 | Warp | **no** — deliberately, see below | the only hyperlink handling its binary names is bounded by `HighlightedLink is not within the alt screen` |
@@ -3784,6 +3850,7 @@ pop.
 | Apple Terminal 455.1 | yes | no answer | unmeasured | unmeasured |
 | iTerm2 3.7.6 | yes | no answer (default settings) | unmeasured | unmeasured |
 | Warp v0.2026.09.30 | yes | no answer | unmeasured | unmeasured |
+| GNOME Terminal 3.56.2 | yes | no answer | unmeasured | unmeasured |
 | tmux 3.7c | yes | no answer; its `#{pane_title}` read instead | yes: the pane's title | **yes**: a pop restores the title before the push, and the last pop the pane's own |
 | Ghostty 1.3.1 | not run (a new script path needs Ghostty's consent, with no one there to give it) | only with `title-report = true`, per its reference | — | — |
 
@@ -3853,6 +3920,7 @@ one that attaches later.
 | kitty 0.49.1 | yes, from 0.47.0 (`progress_bar`, default `top`) | its changelog and configuration reference. Not a host TUIkit models, so not sent; before 0.38 kitty posted every `OSC 9` as a notification, a report's digits included | unknown |
 | Apple Terminal 455.1 | no | nothing in the app | — |
 | Warp v0.2026.09.30 | no | nothing in its binary names the sequence | — |
+| GNOME Terminal 3.56.2 | no | nothing in VTE draws OSC 9;4; sequences swallowed cleanly | — |
 
 ### Measured: tmux 3.7c, 2026-10-19 — `Tools/TerminalProbes/progress_probe.py`
 
@@ -3917,6 +3985,7 @@ request to the bell. Nothing reports whether the person saw either.
 | kitty 0.49.1 | yes (its desktop-notifications documentation, "the legacy OSC 9 protocol developed by iTerm2"); from 0.38 it drops one that starts `4;` | not a host TUIkit models: the bell | — |
 | Apple Terminal 455.1 | no | nothing in the app | its profile's |
 | Warp v0.2026.09.30 | no | nothing in its binary names the sequence | — |
+| GNOME Terminal 3.56.2 | no | passes no OSC 9 notification | terminal bell |
 
 Measured on tmux 3.7c with `progress_probe.py --tmux-forwarding` (record
 `data/tmux-3.7c-progress-forwarding.json`): a pane's `OSC 9` reached neither
@@ -3999,6 +4068,7 @@ DECRC does. `TerminalOutputTests` pins the notice's bytes.
 | iTerm2 | 3.6.11 | **yes** (`4` in `ESC[?64;1;2;4;6;17;18;21;22;52c`) | **`OK`** | **`OK`** — and draws, given the third mark (below) |
 | Ghostty | 1.3.1 | no | **`OK`** | **`OK`** |
 | Warp | v0.2026.08.26.17.59.stable_01 | no | **`OK`** | **refused, by name** |
+| GNOME Terminal | 3.56.2 (VTE 8001) | no | silent | silent |
 | tmux | 3.7c | **yes** (`ESC[?1;2;4c`) | silent | silent |
 
 **iTerm2 needs the spec-optional third combining mark** (iTerm2 3.6.11,
@@ -6270,6 +6340,7 @@ rendered frame included.
 | iTerm2 | hypothesis: yes; 3.7.3 recognises the mode, answering DECRQM `?2026` with `reset` (measured, below) | unknown |
 | kitty, Warp | hypothesis: yes | unknown |
 | Apple Terminal 455.1 | hypothesis: no, ignored | — |
+| GNOME Terminal 3.56.2 | no (DECRQM `?2026` reports permanently reset `0`, measured 2026-10-23) | — |
 | tmux 3.7c | unknown, and unknown whether a pane's hold reaches the client | unknown |
 
 Ghostty's facts are read from its source on 2026-10-04, not measured. A
@@ -6499,6 +6570,7 @@ goes: the ladder reads the terminal actually detected, unlike OSC 8's.
 | tmux 3.7c | `external` (the default) ignores an application's write; `on` keeps it as a paste buffer and passes it on to clients whose features include `clipboard` | measured, below; the manual | 3 with `on`, else none |
 | Apple Terminal 455.1 | no | no OSC 52 anywhere in the app; measured 2026-10-19 (below) | none |
 | Warp v0.2026.09.30.08.29 | no | measured 2026-10-19 (below) | none |
+| GNOME Terminal 3.56.2 | no | DA1 omits `52`; measured 2026-10-23 | none |
 | unidentified | — | — | none, unless its DA1 lists `52` (rung 3) |
 
 DA1 can only ADD a host: a terminal that writes by default need not say so.
@@ -6865,6 +6937,7 @@ here.)
 | iTerm2 | plain | `withITerm2CursorCompensation()` (the strip is inert under the published `.detachedOnBMPBases` claims — no-traits fallback only) |
 | Ghostty | plain | `withGhosttyCursorCompensation()` |
 | Warp | plain | `withWarpCursorCompensation()` (strip inert under `.detached` claims, as iTerm2) |
+| GNOME Terminal | plain | `withGnomeTerminalCursorCompensation()` |
 | anything else | plain | **untouched** (compensation would corrupt a correct terminal) |
 - `FrameDiffWriter` — applies the rewriters on its build path; Apple-only
   right-edge repaint.
@@ -7529,7 +7602,7 @@ column, which governs wrapping (see "What the hosts advance", below):
 `landing_probe.py`, and every row is still listed in
 `TerminalLedgerConformanceTests.awaitingLandingMeasurement`, which is what stops
 "no landing record has it" from reading as "the models pass". Also unmeasured:
-Ghostty with mode 2027 reset, and kitty, xterm and VTE.
+Ghostty with mode 2027 reset, and kitty and xterm (VTE measured 2026-10-23, zero divergences).
 
 ### Why they exist
 
@@ -7602,19 +7675,19 @@ taken with mode 2027 set; tmux's is its own grid, which is client-independent.
 per-code-point sum on Apple Terminal, iTerm2 and Warp (below) — so the
 conjuncts' 3 and 4 there are the claim now, and only tmux's are bold.
 
-| Row | Cluster rule | Per-scalar rule | Ghostty 1.3.1 | Apple Terminal 455.1 | iTerm2 3.7.6 | Warp v0.2026.09.30 | tmux 3.7c |
-|---|---|---|---|---|---|---|---|
-| स्त्र `conjunct_deva_stra` | 2 | 3 | 2 | 3 | 3 | 3 | **3** |
-| ष्ट्र `conjunct_deva_shtra` | 2 | 3 | 2 | 3 | 3 | 3 | **3** |
-| स्त्री `conjunct_deva_stri` | 2 | 4 | 2 | 4 | 4 | 4 | **3** |
-| `hangul_jamo_lvt` | 2 | 4 | 2 | 2 | 2 | 2 | 2 |
-| `hangul_jamo_lv` | 2 | 3 | 2 | 2 | 2 | 2 | 2 |
-| कि को कौ किं `matra_deva_*`, កា `matra_khmer_aa` | 2 | 2 | 2 | 2 | 2 | 2 | **1** |
-| ரா `matra_tamil_aa` | 2 | 2 | 2 | 2 | 2 | **1** | **1** |
-| ന്‍ `chillu_malayalam_zwj` | 1 | 1 | 1 | **2** | 1 | 1 | 1 |
-| a‍ `latin_zwj`, a‌ `latin_zwnj` | 1 | 1 | 1 | **2** | 1 | 1 | 1 |
-| LRM `bidi_lrm`, RLM `bidi_rlm` | 0 | 0 | 0 | **1** | 0 | 0 | 0 |
-| the other 22 rows | — | — | the claim | the claim | the claim | the claim | the claim |
+| Row | Cluster rule | Per-scalar rule | Ghostty 1.3.1 | Apple Terminal 455.1 | iTerm2 3.7.6 | Warp v0.2026.09.30 | tmux 3.7c | GNOME Terminal 3.56.2 |
+|---|---|---|---|---|---|---|---|---|
+| स्त्र `conjunct_deva_stra` | 2 | 3 | 2 | 3 | 3 | 3 | **3** | 3 |
+| ष्ट्र `conjunct_deva_shtra` | 2 | 3 | 2 | 3 | 3 | 3 | **3** | 3 |
+| स्त्री `conjunct_deva_stri` | 2 | 4 | 2 | 4 | 4 | 4 | **3** | 4 |
+| `hangul_jamo_lvt` | 2 | 4 | 2 | 2 | 2 | 2 | 2 | 2 |
+| `hangul_jamo_lv` | 2 | 3 | 2 | 2 | 2 | 2 | 2 | 2 |
+| कि को कौ किं `matra_deva_*`, កា `matra_khmer_aa` | 2 | 2 | 2 | 2 | 2 | 2 | **1** | 2 |
+| ரா `matra_tamil_aa` | 2 | 2 | 2 | 2 | 2 | **1** | **1** | 2 |
+| ന്‍ `chillu_malayalam_zwj` | 1 | 1 | 1 | **2** | 1 | 1 | 1 | 1 |
+| a‍ `latin_zwj`, a‌ `latin_zwnj` | 1 | 1 | 1 | **2** | 1 | 1 | 1 | 1 |
+| LRM `bidi_lrm`, RLM `bidi_rlm` | 0 | 0 | 0 | **1** | 0 | 0 | 0 | 0 |
+| the other 22 rows | — | — | the claim | the claim | the claim | the claim | the claim | the claim |
 
 - **Ghostty with mode 2027 set advances the claim on all 38 rows, on both
   screens**, and gave the same numbers on the primary screen on 2026-09-04. On
