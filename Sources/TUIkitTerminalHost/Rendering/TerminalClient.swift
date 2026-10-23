@@ -50,6 +50,8 @@ public struct TerminalClient: Sendable, Equatable {
         case ghostty
         /// Warp.
         case warp
+        /// GNOME Terminal (VTE).
+        case gnomeTerminal
         /// A tmux pane. tmux is a compositor, not a passthrough — it parses our
         /// output into its own grid with its own width tables — so it, and not
         /// the terminal attached to it, is the host whose model applies.
@@ -66,6 +68,7 @@ public struct TerminalClient: Sendable, Equatable {
             case .iTerm2: "iTerm.app"
             case .ghostty: "ghostty"
             case .warp: "WarpTerminal"
+            case .gnomeTerminal: "gnome-terminal"
             case .tmux: "tmux"
             case .unidentified: nil
             }
@@ -152,7 +155,11 @@ public struct TerminalClient: Sendable, Equatable {
                 .iTerm2
             } else if TerminalHost.isGhostty {
                 .ghostty
-            } else if TerminalHost.isWarp { .warp } else { .unidentified }
+            } else if TerminalHost.isWarp {
+                .warp
+            } else if TerminalHost.isGnomeTerminal {
+                .gnomeTerminal
+            } else { .unidentified }
 
         // Order matters, and differs from the resolver's: the Device Attributes
         // answer is SEEDED into `TUIKIT_TERM_PROGRAM`, so asking the
@@ -370,6 +377,16 @@ public struct TerminalClient: Sendable, Equatable {
                 skinTone: .detached,
                 chromeOverhang: .keyboardSymbols,
                 textClusters: .perCodePoint)
+        case .gnomeTerminal:
+            // Measured on GNOME Terminal 3.56.2 (VTE 0.80.1), 2026-10-23:
+            // - ZWJ sequences decompose into their segments (joiners take 0 columns).
+            // - Skin tones detach into base + swatch for all bases (claimed detached).
+            // - Chrome ink is contained inside the single cell it advances.
+            // - Text clusters advance per code point (स्त्र 3, स्त्री 4).
+            TerminalWidthTraits(
+                zwjSequences: .decomposedDroppingJoiners,
+                skinTone: .detached,
+                textClusters: .perCodePoint)
         case .tmux:
             // NOT widened, deliberately. Measured 2026-08-26, tmux 3.7b does
             // not split by base plane the way iTerm2 does: 👍🏽 🙏🏽 👋🏽 merge
@@ -441,6 +458,7 @@ public struct TerminalClient: Sendable, Equatable {
         case .iTerm2: cluster.iTerm2CursorAdvance
         case .ghostty: cluster.ghosttyCursorAdvance
         case .warp: cluster.warpCursorAdvance
+        case .gnomeTerminal: cluster.gnomeTerminalCursorAdvance
         case .tmux: cluster.tmuxCursorAdvance
         case .unidentified: cluster.unidentifiedHostCursorAdvance
         }
@@ -509,6 +527,8 @@ public struct TerminalClient: Sendable, Equatable {
             // Warp draws skin tones as base + swatch exactly like iTerm2, then
             // needs a CUF for its lone-regional-indicator under-advance.
             return strippingSkinTonesIfUnclaimed(text).withWarpCursorCompensation()
+        case .gnomeTerminal:
+            return strippingSkinTonesIfUnclaimed(text).withGnomeTerminalCursorCompensation()
         case .unidentified:
             // Not "no compensation" any more, but "no HOST compensation". An
             // unidentified terminal is still assumed to have no defects of its

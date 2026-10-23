@@ -108,12 +108,21 @@ extension TerminalHost {
     /// identifying fields are the terminal type (`1`) and the ROM cartridge
     /// (`0`).
     package static func nameFromDeviceAttributes(_ identity: TerminalIdentity) -> String? {
-        guard !identity.answeredVersion,
+        if !identity.answeredVersion,
             identity.primaryAttributes == "\u{1B}[?1;2c",
             let secondary = identity.secondaryAttributes,
             secondary.hasPrefix("\u{1B}[>1;"), secondary.hasSuffix(";0c")
-        else { return nil }
-        return "Apple_Terminal"
+        {
+            return "Apple_Terminal"
+        }
+        if identity.answeredVersion,
+            identity.primaryAttributes?.hasPrefix("\u{1B}[?61;") == true,
+            let secondary = identity.secondaryAttributes,
+            secondary.hasPrefix("\u{1B}[>61;"), secondary.hasSuffix(";1c")
+        {
+            return "gnome-terminal"
+        }
+        return nil
     }
 }
 

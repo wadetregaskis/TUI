@@ -81,7 +81,7 @@ extension TerminalClient {
         // Whether tmux passes the write on is its `set-clipboard` option, which
         // the ladder asks tmux for; this is the answer for "on".
         case .iTerm2, .tmux: .unconfirmed
-        case .appleTerminal, .warp, .unidentified: .unsupported
+        case .appleTerminal, .warp, .gnomeTerminal, .unidentified: .unsupported
         }
     }
 

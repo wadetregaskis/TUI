@@ -131,7 +131,7 @@ extension TerminalClient {
     /// wherever the user has told tmux it can.
     public static func honoursHyperlinks(_ program: Program) -> Bool {
         switch program {
-        case .iTerm2, .ghostty, .tmux: true
+        case .iTerm2, .ghostty, .tmux, .gnomeTerminal: true
         case .appleTerminal, .warp, .unidentified: false
         }
     }

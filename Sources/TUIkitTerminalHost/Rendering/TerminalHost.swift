@@ -48,6 +48,11 @@ package enum TerminalHost {
     package static let isWarp: Bool =
         detectWarp(environment: ProcessInfo.processInfo.environment)
 
+    /// Whether the host terminal is GNOME Terminal (or a VTE-based terminal),
+    /// detected once from the process environment.
+    package static let isGnomeTerminal: Bool =
+        detectGnomeTerminal(environment: ProcessInfo.processInfo.environment)
+
     /// Whether TUIkit is running inside tmux, detected once from the process
     /// environment.
     ///
@@ -74,7 +79,7 @@ package enum TerminalHost {
     /// fixes it up: Ghostty PAINTS ⬛︎ two cells but advances the cursor by
     /// one, so uncompensated the label collides with the glyph (`■On`). Warp
     /// advances these correctly with no help.
-    package static var supportsEmojiChrome: Bool { isAppleTerminal || isITerm2 || isGhostty || isWarp }
+    package static var supportsEmojiChrome: Bool { isAppleTerminal || isITerm2 || isGhostty || isWarp || isGnomeTerminal }
 
     /// Whether this terminal draws a Block Elements glyph (U+2580–259F) the
     /// full height of its line. Apple Terminal draws them from the font,
@@ -145,6 +150,12 @@ package enum TerminalHost {
             let name = forwardedTerminalNames[forwarded]
         {
             return name
+        }
+        if environment["GNOME_TERMINAL_SCREEN"] != nil
+            || environment["GNOME_TERMINAL_SERVICE"] != nil
+            || environment["VTE_VERSION"] != nil
+        {
+            return "gnome-terminal"
         }
         // An unrecognised LC_TERMINAL falls through rather than answering nil:
         // it names a terminal with no model here, so there is nothing for it to
@@ -244,6 +255,13 @@ package enum TerminalHost {
     /// present, but `TERM_PROGRAM` is the stable, documented signal.)
     static func detectWarp(environment: [String: String]) -> Bool {
         hostProgram(environment: environment) == "WarpTerminal"
+    }
+
+    /// `true` for GNOME Terminal (`gnome-terminal`) and other VTE-based terminals,
+    /// by whichever signal ``hostProgram(environment:)`` found it.
+    package static func detectGnomeTerminal(environment: [String: String]) -> Bool {
+        guard let program = hostProgram(environment: environment) else { return false }
+        return program == "gnome-terminal" || program == "GNOME_Terminal" || program == "vte"
     }
 
     /// `true` when running inside tmux, on any platform.

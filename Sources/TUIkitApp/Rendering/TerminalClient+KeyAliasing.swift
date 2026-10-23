@@ -58,7 +58,7 @@ extension TerminalClient {
     static func quitByteAliases(_ program: Program) -> QuitByteAliases {
         switch program {
         case .appleTerminal: .controlShiftBackslash
-        case .iTerm2, .warp: .all
+        case .iTerm2, .warp, .gnomeTerminal: .all
         case .ghostty: .controlFour
         case .tmux, .unidentified: .all
         }

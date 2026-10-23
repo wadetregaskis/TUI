@@ -37,7 +37,7 @@ extension TerminalClient {
     public static func honoursNotifications(_ program: Program) -> Bool {
         switch program {
         case .ghostty, .iTerm2: true
-        case .tmux, .appleTerminal, .warp, .unidentified: false
+        case .tmux, .appleTerminal, .warp, .gnomeTerminal, .unidentified: false
         }
     }
 

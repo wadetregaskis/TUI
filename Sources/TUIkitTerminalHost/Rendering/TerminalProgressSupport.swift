@@ -43,7 +43,7 @@ extension TerminalClient {
     public static func honoursProgressReports(_ program: Program) -> Bool {
         switch program {
         case .ghostty, .iTerm2, .tmux: true
-        case .appleTerminal, .warp, .unidentified: false
+        case .appleTerminal, .warp, .gnomeTerminal, .unidentified: false
         }
     }
 
