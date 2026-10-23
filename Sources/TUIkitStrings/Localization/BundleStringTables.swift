@@ -248,10 +248,29 @@ final class BundleStringTables {
     private func localization(of table: Table, for code: String) -> Bundle? {
         if let known = table.localizations[code] { return known }
         var found: Bundle?
-        let matches = Bundle.preferredLocalizations(from: table.bundle.localizations, forPreferences: [code])
-        if let name = matches.first, Locale(identifier: name).language.languageCode?.identifier == code,
-            let path = table.bundle.path(forResource: name, ofType: "lproj")
-        {
+        let name: String? = {
+            #if canImport(Darwin)
+            let matches = Bundle.preferredLocalizations(from: table.bundle.localizations, forPreferences: [code])
+            if let name = matches.first, Locale(identifier: name).language.languageCode?.identifier == code {
+                return name
+            }
+            return nil
+            #else
+            if table.bundle.localizations.contains(code) {
+                return code
+            }
+            let targetLanguage = Locale(identifier: code).language.languageCode?.identifier ?? code
+            if let exactLang = table.bundle.localizations.first(where: {
+                Locale(identifier: $0).language.languageCode?.identifier == targetLanguage && $0 == targetLanguage
+            }) {
+                return exactLang
+            }
+            return table.bundle.localizations.first {
+                Locale(identifier: $0).language.languageCode?.identifier == targetLanguage
+            }
+            #endif
+        }()
+        if let name, let path = table.bundle.path(forResource: name, ofType: "lproj") {
             found = Bundle(path: path)
         }
         table.localizations[code] = .some(found)
