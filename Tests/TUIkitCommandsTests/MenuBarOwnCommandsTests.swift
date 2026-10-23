@@ -33,10 +33,26 @@ private struct ListeningPage: View {
                 OwnCommandsProbe.shared.log.append("q")
                 return .ignored
             }
-            .onCopyCommand {
-                OwnCommandsProbe.shared.log.append("copy")
+            .copyProbe { OwnCommandsProbe.shared.log.append("copy") }
+    }
+}
+
+extension View {
+    /// Hears the Copy command: `onCopyCommand` where it exists, and on Linux,
+    /// which has no `NSItemProvider` payloads and so no `onCopyCommand`, the
+    /// clipboard-command modifier it is built on, which hears the same key.
+    fileprivate func copyProbe(_ heard: @escaping () -> Void) -> some View {
+        #if canImport(UniformTypeIdentifiers)
+            onCopyCommand {
+                heard()
                 return []
             }
+        #else
+            clipboardCommand("c") { _, _ in
+                heard()
+                return true
+            }
+        #endif
     }
 }
 
