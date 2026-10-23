@@ -85,6 +85,8 @@ class FakeTerminal:
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             try:
+                for sig in (signal.SIGHUP, signal.SIGTERM, signal.SIGUSR1, signal.SIGUSR2, signal.SIGINT):
+                    signal.signal(sig, signal.SIG_DFL)
                 for key in STRIPPED:
                     os.environ.pop(key, None)
                 os.environ["TERM"] = "xterm-256color"
