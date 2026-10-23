@@ -152,7 +152,7 @@ struct LargePasteTests {
         #expect(text.utf8.count == content.count, "the paste arrived cut")
         // `memcmp` rather than `elementsEqual`, which walks 16 MiB a byte at a
         // time through generic code in a debug build.
-        let same = text.utf8.withContiguousStorageIfAvailable { memcmp($0.baseAddress, content, content.count) == 0 }
+        let same = text.utf8.withContiguousStorageIfAvailable { memcmp($0.baseAddress!, content, content.count) == 0 }
         #expect(same == true, "the paste arrived changed")
         #expect(events.last == Self.typedX)
         #expect(terminal.input.capacity == Terminal.baselineCapacity, "the paste's room was not given back")
