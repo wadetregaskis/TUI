@@ -15,12 +15,12 @@ import Foundation
 import Testing
 
 @testable import TUIkitBitmaps
+@testable import TUIkitBitmapsTestSupport
 @testable import TUIkitFoundation
 @testable import TUIkitTestSupport
 
 #if canImport(AppKit)
     @testable import TUIkitAppKit
-    @testable import TUIkitBitmapsTestSupport
 #endif
 
 /// A directory made for one test, removed with it.
