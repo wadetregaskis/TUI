@@ -35,9 +35,9 @@ private struct LabelPage: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     if LabelProbe.shared.innerTitleOnly {
-                        Label("SAVE", systemImage: "star").labelStyle(.titleOnly)
+                        Label(title: { Text("SAVE") }, icon: { Text("★") }).labelStyle(.titleOnly)
                     } else {
-                        Label("SAVE", systemImage: "star")
+                        Label(title: { Text("SAVE") }, icon: { Text("★") })
                     }
                 }
             }
