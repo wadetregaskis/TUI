@@ -668,6 +668,60 @@ extension Character {
         return terminalWidth
     }
 
+    /// The number of columns **GNOME Terminal** (VTE) advances the text cursor
+    /// by when this character is printed (DSR-measured in GNOME Terminal 3.56.2 /
+    /// VTE 0.80.1, 2026-10-23).
+    ///
+    /// GNOME Terminal's VTE engine advances:
+    /// - **Overhanging chrome glyphs**: 1
+    /// - **ZWJ sequences**: decomposed into segment sums (joiners advance 0)
+    /// - **Plane-16 PUA (SF Symbols)**: 1, against a 2-cell claim
+    /// - **Unicode 16.0 additions**: 1, against a 2-cell claim
+    /// - **Keycaps** (base + U+20E3): 1, against a 2-cell claim
+    /// - **Lone regional indicators**: 1, against a 2-cell claim
+    /// - **VS-16 pictographs**: 1, against a 2-cell claim
+    /// - **Bare SMP pictographs**: 1, against a 2-cell claim
+    /// - **Skin-tone clusters**: detached for all bases (bare base advance + 2 per swatch)
+    /// - Everything else: matches ``terminalWidth``
+    public var gnomeTerminalCursorAdvance: Int {
+        if isOverhangingChromeGlyph { return 1 }
+        if let summed = Self.summedZWJAdvance(self, segmentAdvance: { $0.gnomeTerminalCursorAdvance }) {
+            return summed
+        }
+        if unicodeScalars.count == 1, let only = unicodeScalars.first,
+            Self.isPlaneSixteenGlyph(only.value)
+        {
+            return 1
+        }
+        if isUnicode16EmojiOlderTablesMiss {
+            return 1
+        }
+        if unicodeScalars.contains(where: { $0.value == 0x20E3 }) {
+            return 1
+        }
+        if isLoneRegionalIndicator || isVS16UnderAdvancer || leadsWithVS16Segment
+            || isBarePictographUnderAdvancer
+        {
+            return 1
+        }
+        if unicodeScalars.contains(where: { (0x1F3FB...0x1F3FF).contains($0.value) }),
+            let first = unicodeScalars.first, first.properties.isEmojiModifierBase,
+            !unicodeScalars.contains(where: { $0.value == 0x200D || $0.value == 0x200C })
+        {
+            var base = String.UnicodeScalarView()
+            var modifiers = 0
+            for scalar in unicodeScalars {
+                if (0x1F3FB...0x1F3FF).contains(scalar.value) {
+                    modifiers += 1
+                } else {
+                    base.append(scalar)
+                }
+            }
+            return Character(String(base)).gnomeTerminalCursorAdvance + 2 * modifiers
+        }
+        return terminalWidth
+    }
+
     /// One of Unicode 16.0's new emoji (2024) — 🪉 harp, 🪏 shovel, 🪾 leafless
     /// tree, 🫆 fingerprint, 🫜 root vegetable, 🫟 splatter, 🫩 face with bags
     /// under eyes — which a width table cut before that release scores as

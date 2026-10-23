@@ -614,6 +614,17 @@ extension String {
         withCursorForwardCompensation(erasingUnderGlyph: true) { $0.warpCursorAdvance }
     }
 
+    /// Returns a copy of this string with GNOME Terminal's (VTE) cursor-advance
+    /// quirks worked around by `ECH` + glyph + `CUF` forward compensation:
+    /// VS-16 pictographs, bare SMP pictographs, lone regional indicators,
+    /// keycaps, SF Symbols, and pre-Unicode 16 emoji all advance 1 against
+    /// a 2-cell claim. Skin tones pass through whole under `.detached` claims;
+    /// ZWJ joiners are dropped under `.decomposedDroppingJoiners`.
+    /// ANSI escape sequences are preserved.
+    public func withGnomeTerminalCursorCompensation() -> String {
+        withCursorForwardCompensation(erasingUnderGlyph: true) { $0.gnomeTerminalCursorAdvance }
+    }
+
     /// Returns a copy of this string with tmux's cursor-advance divergences
     /// worked around by the same CUF injection the other hosts use: Plane-16
     /// PUA (SF Symbols), bare SMP pictographs — including the `Emoji=No`
