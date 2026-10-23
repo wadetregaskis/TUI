@@ -34,6 +34,7 @@ set -euo pipefail
 
 DEPTH="${1:-quick}"
 BUILD_DIR="${2:-.build/debug}"
+case "$BUILD_DIR" in /*) ;; *) BUILD_DIR="$REPO/$BUILD_DIR" ;; esac
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
 VENV="${TMPDIR:-/tmp}/tuikit-smoke-venv"
@@ -49,11 +50,16 @@ case "$DEPTH" in
     *)     echo "usage: $0 [quick|full] [build-dir]" >&2; exit 2 ;;
 esac
 
-# pyte is the screen reconstructor; a venv keeps this working on distros that
-# mark the system Python externally-managed (PEP 668), which Ubuntu 24.04 does.
-if [ ! -x "$VENV/bin/python" ]; then
+# pyte is the screen reconstructor; use system python if available, else a venv
+# (which keeps this working on distros that mark system Python externally-managed).
+if python3 -c "import pyte" &>/dev/null; then
+    PY="python3"
+elif [ -x "$VENV/bin/python" ]; then
+    PY="$VENV/bin/python"
+else
     python3 -m venv "$VENV"
     "$VENV/bin/pip" install --quiet --disable-pip-version-check pyte
+    PY="$VENV/bin/python"
 fi
 
 # Never the developer's — or the runner's — real preferences.
@@ -66,14 +72,14 @@ export TUIKIT_CONFIG_DIR="${TUIKIT_CONFIG_DIR:-${TMPDIR:-/tmp}/tuikit-smoke-conf
 page_count() {
     local binary="$1"
     case "$binary" in
-        Example) "$REPO/$BUILD_DIR/Example" --pages ;;
-        Stress)  "$REPO/$BUILD_DIR/Stress" --help | tail -1 | tr ',' '\n' | grep -c . ;;
+        Example) "$BUILD_DIR/Example" --pages ;;
+        Stress)  "$BUILD_DIR/Stress" --help | tail -1 | tr ',' '\n' | grep -c . ;;
     esac
 }
 
 walk() {
     local binary="$1" count="$2"
-    if [ ! -x "$REPO/$BUILD_DIR/$binary" ]; then
+    if [ ! -x "$BUILD_DIR/$binary" ]; then
         echo "error: $BUILD_DIR/$binary not built" >&2
         return 1
     fi
@@ -86,7 +92,7 @@ walk() {
         esac
     fi
     echo "── PTY walk ($DEPTH): $binary, $count items ──"
-    "$VENV/bin/python" "$HERE/tui_walk.py" "$REPO/$BUILD_DIR/$binary" "$count" --settle 0.5
+    "$PY" "$HERE/tui_walk.py" "$BUILD_DIR/$binary" "$count" --settle 0.5
 }
 
 cd "$REPO"
@@ -100,7 +106,7 @@ walk Stress  "$STRESS_ITEMS"
 # beside a copy of the bundle, directly or through a symbolic link, in German.
 # Headless, no pyte: three runs, a few seconds.
 echo "── without its resource bundle: runs, in English ──"
-"$VENV/bin/python" "$HERE/bundleless_smoke.py" "$REPO/$BUILD_DIR"
+"$PY" "$HERE/bundleless_smoke.py" "$BUILD_DIR"
 
 # The arrows as a terminal left in application cursor-key mode sends them
 # (`ESC O B`): a killed vim or less leaves DECCKM on, and the parser read only
@@ -108,7 +114,7 @@ echo "── without its resource bundle: runs, in English ──"
 # stops at its first item and calls it the end of the menu, which
 # `--min-items` turns into a failure. Three items, about five seconds.
 echo "── application-mode arrows (SS3) move the menu ──"
-"$VENV/bin/python" "$HERE/tui_walk.py" "$REPO/$BUILD_DIR/Example" 3 \
+"$PY" "$HERE/tui_walk.py" "$BUILD_DIR/Example" 3 \
     --application-keys --min-items 3 --settle 0.5 --per-item ""
 
 # Two checks on the terminal handshake, both cheap (a couple of seconds each)
@@ -117,10 +123,10 @@ echo "── application-mode arrows (SS3) move the menu ──"
 # FrameDiffWriter freezes the advance model at construction. A unit test cannot
 # see that; only a live run can. They ran nowhere until now.
 echo "── identity: detection reaches the compensation ──"
-"$VENV/bin/python" "$HERE/identity_smoke.py" "$REPO/$BUILD_DIR/Example"
+"$PY" "$HERE/identity_smoke.py" "$BUILD_DIR/Example"
 
 echo "── mode 2027: pinned when needed, and only then ──"
-"$VENV/bin/python" "$HERE/mode_pin_smoke.py" "$REPO/$BUILD_DIR/Example"
+"$PY" "$HERE/mode_pin_smoke.py" "$BUILD_DIR/Example"
 
 # The kitty keyboard protocol: pushed only where the terminal answers its
 # query, and popped on every way out — a quit, a suspend, SIGTERM, and an
@@ -129,7 +135,7 @@ echo "── mode 2027: pinned when needed, and only then ──"
 # Return included, so a pop missed on any of those leaves a shell that cannot
 # be typed at. Nine short runs, about forty-five seconds.
 echo "── kitty keyboard protocol: pushed where spoken, popped on every exit ──"
-"$VENV/bin/python" "$HERE/keyboard_protocol_smoke.py" "$REPO/$BUILD_DIR/Example"
+"$PY" "$HERE/keyboard_protocol_smoke.py" "$BUILD_DIR/Example"
 
 # The user's quit key, ⌃\: raw mode leaves it the one live signal character,
 # so the driver turns it into SIGQUIT even when the app hangs, while ⌃C, ⌃Z, ⌃Y
@@ -142,7 +148,7 @@ echo "── kitty keyboard protocol: pushed where spoken, popped on every exit 
 # whose `keys` mode shows each key and `hang` mode hangs. Five short runs,
 # about fifteen seconds.
 echo "── ⌃\\ and SIGQUIT: a quit, not a crash, even when hung ──"
-"$VENV/bin/python" "$HERE/quit_key_smoke.py" "$REPO/$BUILD_DIR/IdleProbe"
+"$PY" "$HERE/quit_key_smoke.py" "$BUILD_DIR/IdleProbe"
 
 # The same class, for the colour exchange: the terminal's colours are asked
 # once, with the request its host needs, and published before RenderLoop draws
@@ -152,7 +158,7 @@ echo "── ⌃\\ and SIGQUIT: a quit, not a crash, even when hung ──"
 # terminal reported its page or not. Eight short runs, about half a minute
 # (27.5 s measured).
 echo "── colours: asked before the first frame ──"
-"$VENV/bin/python" "$HERE/colour_query_smoke.py" "$REPO/$BUILD_DIR/Example"
+"$PY" "$HERE/colour_query_smoke.py" "$BUILD_DIR/Example"
 
 # A different class of check, and the only one that needs TWO processes: does a
 # setting written in one launch come back in the next? The framework's storage
@@ -165,7 +171,7 @@ echo "── colours: asked before the first frame ──"
 # directory the walks have already written to.
 if [ "$DEPTH" = "full" ]; then
     echo "── persistence: settings survive a relaunch ──"
-    "$VENV/bin/python" "$HERE/persistence_probe.py" --binary "$REPO/$BUILD_DIR/Example"
+    "$PY" "$HERE/persistence_probe.py" --binary "$BUILD_DIR/Example"
 fi
 
 # The same two-process shape for the language: `setLanguage(_:)` is the
@@ -176,7 +182,7 @@ fi
 # own config directory for the persistence probe's reason.
 if [ "$DEPTH" = "full" ]; then
     echo "── language: a switch redraws at once and is kept ──"
-    "$VENV/bin/python" "$HERE/language_switch_smoke.py" --binary "$REPO/$BUILD_DIR/Example"
+    "$PY" "$HERE/language_switch_smoke.py" --binary "$BUILD_DIR/Example"
 fi
 
 # A timeline rather than a screen: the caret's blink, timed from the bytes the
@@ -192,7 +198,7 @@ fi
 # failure. To make it gate, drop the `if` and let the probe's status stand.
 if [ "$DEPTH" = "full" ]; then
     echo "── caret blink: regular holds in the live loop (advisory) ──"
-    if ! "$VENV/bin/python" "$HERE/raw_probe.py" "$REPO/$BUILD_DIR/Example" \
+    if ! "$PY" "$HERE/raw_probe.py" "$BUILD_DIR/Example" \
         --args "--page textInput" --keys f2 --blink --watch 4; then
         echo "::warning title=Caret blink (advisory)::raw_probe.py --blink found the caret's holds irregular, or saw no blink; its timeline is in the log above"
     fi
@@ -223,7 +229,7 @@ fi
 # though unlike the walk this one needs no `pyte` and would run under any
 # `python3`.
 if [ "$DEPTH" = "full" ]; then
-    "$VENV/bin/python" "$HERE/faded_palette_sweep.py" "$BUILD_DIR"
+    "$PY" "$HERE/faded_palette_sweep.py" "$BUILD_DIR"
 fi
 
 echo "PTY smoke ($DEPTH): both apps survived."
