@@ -131,18 +131,28 @@ struct LocalizedStringKeyTests {
         let service = isolatedService()
         let key: LocalizedStringKey = "\(Image(systemName: "star")) Favourites"
         #expect(key.key == "%@ Favourites")
-        #expect(key.resolved(with: service) == (SFSymbol.glyph(named: "star") ?? "?") + " Favourites")
-        #expect(SFSymbol.glyph(named: "star") != nil, "sanity: the symbol table has a star")
+        #if canImport(AppKit)
+            #expect(key.resolved(with: service) == (SFSymbol.glyph(named: "star") ?? "") + " Favourites")
+            #expect(SFSymbol.glyph(named: "star") != nil, "sanity: the symbol table has a star")
+        #else
+            #expect(key.resolved(with: service) == " Favourites")
+            #expect(SFSymbol.glyph(named: "star") == nil)
+        #endif
     }
 
     @Test("Text(_:) of an image is its glyph, as interpolating the image gives, and nothing for an unknown symbol")
     func textOfAnImage() throws {
         // SwiftUI's `Text(_ image: Image)`, the audit's verifier finding.
-        let star = try #require(SFSymbol.glyph(named: "star.fill"))
-        #expect(Text(Image(systemName: "star.fill")).content == star)
-        #expect(Text(Image(systemName: "no.such.symbol")).content.isEmpty)
-        let key: LocalizedStringKey = "\(Text(Image(systemName: "star.fill"))) Favourites"
-        #expect(key.resolved(with: isolatedService()) == star + " Favourites")
+        #if canImport(AppKit)
+            let star = try #require(SFSymbol.glyph(named: "star.fill"))
+            #expect(Text(Image(systemName: "star.fill")).content == star)
+            #expect(Text(Image(systemName: "no.such.symbol")).content.isEmpty)
+            let key: LocalizedStringKey = "\(Text(Image(systemName: "star.fill"))) Favourites"
+            #expect(key.resolved(with: isolatedService()) == star + " Favourites")
+        #else
+            #expect(Text(Image(systemName: "star.fill")).content.isEmpty)
+            #expect(Text(Image(systemName: "no.such.symbol")).content.isEmpty)
+        #endif
     }
 
     @Test("Interpolating a Text contributes its own content, not its debug description")
