@@ -142,8 +142,9 @@ enum DirectoryListing {
         if isChoosable, let predicate = rule.urlEnabled {
             isChoosable = (try? predicate.evaluate(url)) ?? false
         }
+        let isHidden = (values?.isHidden ?? false) || url.lastPathComponent.hasPrefix(".")
         return FileEntry(
-            url: url, name: url.lastPathComponent, isFolder: isFolder, isHidden: values?.isHidden ?? false,
+            url: url, name: url.lastPathComponent, isFolder: isFolder, isHidden: isHidden,
             isSymbolicLink: isSymbolicLink,
             contentType: type, size: size, modified: values?.contentModificationDate,
             sizeText: size.map(formats.size) ?? "--", modifiedText: values?.contentModificationDate.map(formats.date) ?? "",
