@@ -39,7 +39,7 @@ struct TerminalClientSimulationTests {
     private static var unidentified: FrameDiffWriter {
         FrameDiffWriter(
             isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false,
-            isTmux: false)
+            isGnomeTerminal: false, isTmux: false)
     }
 
     @Test("A simulated program applies its workarounds to a writer that detected nothing")
@@ -64,7 +64,7 @@ struct TerminalClientSimulationTests {
             await MainActor.run {
                 let writer = FrameDiffWriter(
                     isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false,
-                    isTmux: false)
+                    isGnomeTerminal: false, isTmux: false)
                 // Build once so the reuse cache is populated, then change the
                 // model. A row whose BYTES did not change would otherwise be
                 // served from cache still carrying the previous model's

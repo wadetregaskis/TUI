@@ -327,7 +327,8 @@ struct GhosttyWarpCompatibilityTests {
         // The safety property the whole gating exists for: kitty, WezTerm,
         // Alacritty, Linux consoles… get no rewriting at all.
         let writer = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false)
+            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false,
+            isGnomeTerminal: false, isTmux: false)
         let line = buildLine(writer, raw: "\u{2B1B}\u{FE0E}\u{1F44D}\u{1F3FD}")
         #expect(!line.contains("\u{1B}[1C"), "no CUF for an unknown host")
         #expect(line.hasSkinToneModifier, "no strip for an unknown host")

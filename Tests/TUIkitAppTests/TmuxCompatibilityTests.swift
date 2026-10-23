@@ -284,15 +284,16 @@ struct TmuxCompatibilityTests {
     @Test(
         "Under tmux, a leaked native-host flag changes NOTHING in the output",
         arguments: [
-            // (isAppleTerminal, isITerm2, isGhostty, isWarp)
-            (true, false, false, false),  // tmux < 3.2 from Apple Terminal: $TMUX set, TERM_PROGRAM=Apple_Terminal
-            (false, true, false, false),  // a re-exported iTerm.app
-            (false, false, true, false),  // ditto Ghostty
-            (false, false, false, true),  // ditto Warp
-        ] as [(Bool, Bool, Bool, Bool)])
+            // (isAppleTerminal, isITerm2, isGhostty, isWarp, isGnomeTerminal)
+            (true, false, false, false, false),  // tmux < 3.2 from Apple Terminal: $TMUX set, TERM_PROGRAM=Apple_Terminal
+            (false, true, false, false, false),  // a re-exported iTerm.app
+            (false, false, true, false, false),  // ditto Ghostty
+            (false, false, false, true, false),  // ditto Warp
+            (false, false, false, false, true),  // GNOME Terminal (VTE_VERSION)
+        ] as [(Bool, Bool, Bool, Bool, Bool)])
     @MainActor
     func leakedNativeFlagIsInertUnderTmux(
-        apple: Bool, iterm: Bool, ghostty: Bool, warp: Bool
+        apple: Bool, iterm: Bool, ghostty: Bool, warp: Bool, gnome: Bool
     ) {
         // The bug: only the compensation dispatch checked isTmux. The right-edge
         // clip (FrameDiffWriter :297) and repaintRightEdge (:516) branched on the
@@ -303,9 +304,11 @@ struct TmuxCompatibilityTests {
         // The invariant: under tmux, tmux owns the grid, so which native terminal
         // the flag names must make no difference to a single emitted byte.
         let pureTmux = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: true)
+            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false,
+            isGnomeTerminal: false, isTmux: true)
         let leaked = FrameDiffWriter(
-            isAppleTerminal: apple, isITerm2: iterm, isGhostty: ghostty, isWarp: warp, isTmux: true)
+            isAppleTerminal: apple, isITerm2: iterm, isGhostty: ghostty, isWarp: warp,
+            isGnomeTerminal: gnome, isTmux: true)
 
         // A line that fills to the right edge and ends in a cursor-advance quirk —
         // exactly what the Terminal.app clip and repaintRightEdge special-case, so

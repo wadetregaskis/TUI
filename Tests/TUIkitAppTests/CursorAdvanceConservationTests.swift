@@ -205,6 +205,7 @@ struct CursorAdvanceConservationTests {
                 isITerm2: program == .iTerm2,
                 isGhostty: program == .ghostty,
                 isWarp: program == .warp,
+                isGnomeTerminal: program == .gnomeTerminal,
                 isTmux: false)
             // The shape of a Toggle's row: the animated glyph at column 1, its
             // label after it. The label is what moves when the arithmetic slips.

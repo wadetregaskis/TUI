@@ -408,6 +408,18 @@ struct CursorAdvanceModelTests {
         #expect(!line.unicodeScalars.contains { (0x1F3FB...0x1F3FF).contains($0.value) })
         #expect(line.contains("\u{1B}[2X\u{100038}\u{1B}[1C"), "PUA compensated: |\(line)|")
     }
+
+    @Test("The writer's GNOME Terminal path applies compensation for under-advancers")
+    func writerGnomeTerminalPathComposes() {
+        let line = FrameDiffWriter(
+            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false,
+            isGnomeTerminal: true, isTmux: false
+        ).buildOutputLines(
+            buffer: FrameBuffer(text: "❤️ \u{1FAC6} x"),
+            terminalWidth: 30, terminalHeight: 1, bgCode: "", reset: ""
+        )[0]
+        #expect(line.contains("\u{1B}[1C"), "under-advancers compensated with CUF: |\(line)|")
+    }
 }
 
 @Suite("FrameDiffWriter iTerm2 skin-tone fallback")

@@ -202,6 +202,7 @@ struct TerminalHostIdentificationTests {
                 isITerm2: TerminalHost.detectITerm2(environment: environment),
                 isGhostty: TerminalHost.detectGhostty(environment: environment),
                 isWarp: TerminalHost.detectWarp(environment: environment),
+                isGnomeTerminal: TerminalHost.detectGnomeTerminal(environment: environment),
                 isTmux: TerminalHost.detectTmux(environment: environment))
             return writer.buildOutputLines(
                 buffer: FrameBuffer(text: "🖥️X"), terminalWidth: 8, terminalHeight: 1,
@@ -217,5 +218,10 @@ struct TerminalHostIdentificationTests {
         #expect(row(environment: named).contains(cursorForward))
         // And it is the same row a local Terminal.app would have produced.
         #expect(row(environment: named) == row(environment: ["TERM_PROGRAM": "Apple_Terminal"]))
+
+        // GNOME Terminal detected via VTE_VERSION reaches the wire.
+        var gnome = Self.sshSession
+        gnome["VTE_VERSION"] = "7600"
+        #expect(row(environment: gnome).contains(cursorForward))
     }
 }

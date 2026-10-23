@@ -92,6 +92,13 @@ final class FrameDiffWriter {
     /// (ECH+CUF). Same detection/injection story as `isAppleTerminal`.
     private let isWarp: Bool
 
+    /// Whether the host terminal is GNOME Terminal (VTE), which under-advances
+    /// VS-16 pictographs, keycaps, lone regional indicators, SF Symbols, and
+    /// pre-Unicode 16 emoji (ECH+CUF), separates skin-tone modifiers as detached
+    /// swatches, and drops ZWJ joiners. Same detection/injection story as
+    /// `isAppleTerminal`.
+    private let isGnomeTerminal: Bool
+
     /// Whether we are running inside tmux, which is a COMPOSITOR rather than a
     /// renderer: it parses our bytes into its own grid using its own width table
     /// and re-renders that grid to whichever client is attached. So tmux's model
@@ -246,6 +253,7 @@ final class FrameDiffWriter {
         isITerm2: Bool = TerminalHost.isITerm2,
         isGhostty: Bool = TerminalHost.isGhostty,
         isWarp: Bool = TerminalHost.isWarp,
+        isGnomeTerminal: Bool = TerminalHost.isGnomeTerminal,
         isTmux: Bool = TerminalHost.isTmux
     ) {
         // tmux wins over any native host, and here that is enforced ONCE, at the
@@ -269,6 +277,7 @@ final class FrameDiffWriter {
         self.isITerm2 = isITerm2 && !isTmux
         self.isGhostty = isGhostty && !isTmux
         self.isWarp = isWarp && !isTmux
+        self.isGnomeTerminal = isGnomeTerminal && !isTmux
     }
 }
 
@@ -624,6 +633,8 @@ extension FrameDiffWriter {
             .ghostty
         } else if isWarp {
             .warp
+        } else if isGnomeTerminal {
+            .gnomeTerminal
         } else {
             .unidentified
         }

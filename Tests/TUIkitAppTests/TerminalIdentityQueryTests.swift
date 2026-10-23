@@ -216,7 +216,7 @@ struct TerminalIdentityQueryTests {
         let environment = ["TUIKIT_TERM_PROGRAM": discovered ?? ""]
         let writer = FrameDiffWriter(
             isAppleTerminal: TerminalHost.detectAppleTerminal(environment: environment),
-            isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+            isITerm2: false, isGhostty: false, isWarp: false, isGnomeTerminal: false, isTmux: false)
         let line = writer.buildOutputLines(
             buffer: FrameBuffer(text: "🖥️X"), terminalWidth: 8, terminalHeight: 1,
             bgCode: "", reset: "")[0]

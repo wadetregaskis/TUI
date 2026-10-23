@@ -25,7 +25,8 @@
 @MainActor
 func writtenRows(_ buffer: FrameBuffer, palette: any Palette, width: Int) -> [[PaintedCell]] {
     let writer = FrameDiffWriter(
-        isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false,
+        isGnomeTerminal: false, isTmux: false)
     return writer.buildOutputLines(
         buffer: buffer, terminalWidth: width, terminalHeight: buffer.lines.count,
         bgCode: RenderBackgroundCodes(palette: palette).content, reset: ANSIRenderer.reset
