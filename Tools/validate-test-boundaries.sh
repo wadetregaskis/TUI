@@ -101,7 +101,7 @@ done
 # above the guard, and the file's last line is its `#endif`.
 guard='#if TUIKIT_TEST_SUPPORT && canImport(Testing)'
 while IFS= read -r file; do
-    first=$(grep -vE '^[[:space:]]*(//.*)?$' "$file" | head -1)
+    first=$(grep -m 1 -vE '^[[:space:]]*(//.*)?$' "$file" || true)
     last=$(grep -vE '^[[:space:]]*$' "$file" | tail -1)
     if [ "$first" != "$guard" ] || [ "$last" != "#endif" ]; then
         echo "✘ $file is not wrapped in '$guard' ... '#endif'."
