@@ -70,6 +70,12 @@ struct ComplexScriptHostAdvanceTests {
                 "warpterminal-v0.2026.09.30.08.29.stable_01-advance.json",
                 "warpterminal-v0.2026.09.30.08.29.stable_01-alternate.json",
             ]),
+        Host(
+            program: .gnomeTerminal,
+            files: [
+                "gnome-terminal-3.56.2-advance.json",
+                "gnome-terminal-3.56.2-alternate.json",
+            ]),
         Host(program: .tmux, files: ["tmux-3.7c-advance.json", "tmux-3.7c-alternate.json"]),
     ]
 

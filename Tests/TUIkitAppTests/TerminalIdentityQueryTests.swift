@@ -58,6 +58,29 @@ struct TerminalIdentityQueryTests {
         #expect(Self.name("\u{1B}[?1;2c\u{1B}[>1;1000;0c" + Self.fence) == "Apple_Terminal")
     }
 
+    // MARK: - GNOME Terminal / VTE
+
+    /// Measured 2026-10-23 with `Tools/TerminalProbes/identity_probe.py`,
+    /// GNOME Terminal 3.56.2 / VTE 0.80.1 on Linux aarch64.
+    private static let gnomeTerminal =
+        "\u{1B}P>|VTE(8001)\u{1B}\\\u{1B}[?61;1;21;22;28c\u{1B}[>61;8001;1c" + fence
+
+    @Test("GNOME Terminal's measured replies name it")
+    func namesGnomeTerminal() {
+        let identity = Self.parse(Self.gnomeTerminal)
+        #expect(identity.primaryAttributes == "\u{1B}[?61;1;21;22;28c")
+        #expect(identity.secondaryAttributes == "\u{1B}[>61;8001;1c")
+        #expect(identity.answeredVersion)
+        #expect(identity.sawFence)
+        #expect(TerminalHost.nameFromDeviceAttributes(identity) == "gnome-terminal")
+    }
+
+    @Test("VTE version bumps preserve GNOME Terminal identification")
+    func vteVersionFieldIsNotPinned() {
+        #expect(Self.name("\u{1B}P>|VTE(8002)\u{1B}\\\u{1B}[?61;1;21;22;28c\u{1B}[>61;8002;1c" + Self.fence) == "gnome-terminal")
+        #expect(Self.name("\u{1B}P>|VTE(9000)\u{1B}\\\u{1B}[?61;1;21;22;28c\u{1B}[>61;9000;1c" + Self.fence) == "gnome-terminal")
+    }
+
     // MARK: - The hosts it must not name
 
     @Test(

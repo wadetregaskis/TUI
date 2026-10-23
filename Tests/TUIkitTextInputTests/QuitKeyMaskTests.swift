@@ -477,13 +477,13 @@ struct QuitKeyMaskTests {
     /// chord (typed as ⌃⇧\) apart.
     @Test("A ⌘4 binding masks the quit key only on a host that sends ⌃\\'s byte for ⌃4; a ⌃| one only where ⌃⇧\\ does")
     func masksPerChordAndHost() {
-        let hosts: [TerminalClient.Program] = [.appleTerminal, .iTerm2, .warp, .ghostty, .tmux]
+        let hosts: [TerminalClient.Program] = [.appleTerminal, .iTerm2, .warp, .ghostty, .tmux, .gnomeTerminal]
         let pages: [(String, AnyView, Set<TerminalClient.Program>)] = [
-            ("⌘4", AnyView(Button("Four") {}.keyboardShortcut("4")), [.iTerm2, .warp, .ghostty, .tmux]),
+            ("⌘4", AnyView(Button("Four") {}.keyboardShortcut("4")), [.iTerm2, .warp, .ghostty, .tmux, .gnomeTerminal]),
             ("⌃|", AnyView(Button("Bar") {}.keyboardShortcut("|", modifiers: .control)),
-             [.appleTerminal, .iTerm2, .warp, .tmux]),
+             [.appleTerminal, .iTerm2, .warp, .tmux, .gnomeTerminal]),
             ("onKeyPress(\"|\")", AnyView(Button("Bar") {}.onKeyPress("|") { .handled }),
-             [.appleTerminal, .iTerm2, .warp, .tmux]),
+             [.appleTerminal, .iTerm2, .warp, .tmux, .gnomeTerminal]),
         ]
         for (name, page, masking) in pages {
             let harness = MaskHarness()

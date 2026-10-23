@@ -58,6 +58,7 @@ struct ChromeGlyphAdvanceTests {
         ("iTerm2", "iterm2-3.7.6-alternate.json", .iTerm2),
         ("Apple Terminal", "apple-terminal-455.1-alternate.json", .appleTerminal),
         ("Warp", "warpterminal-v0.2026.09.30.08.29.stable_01-alternate.json", .warp),
+        ("GNOME Terminal", "gnome-terminal-3.56.2-alternate.json", .gnomeTerminal),
     ]
 
     private typealias HostRecord = (
@@ -104,6 +105,7 @@ struct ChromeGlyphAdvanceTests {
         return [
             .ghostty: solidAndBraille, .iTerm2: solidAndBraille,
             .appleTerminal: solidAndBraille, .warp: solidAndBraille,
+            .gnomeTerminal: [],
         ]
     }()
 

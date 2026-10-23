@@ -33,6 +33,7 @@ struct TerminalHyperlinkSupportTests {
         arguments: [
             (TerminalClient.Program.iTerm2, true),
             (.ghostty, true),
+            (.gnomeTerminal, true),
             (.tmux, true),
             (.appleTerminal, false),
             (.warp, false),
