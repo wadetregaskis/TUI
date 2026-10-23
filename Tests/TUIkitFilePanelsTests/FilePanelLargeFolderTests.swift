@@ -35,7 +35,7 @@ struct FilePanelLargeFolderTests {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         for index in 0..<Self.pairs {
             for ext in ["txt", "bin"] {
-                FileManager.default.createFile(
+                _ = FileManager.default.createFile(
                     atPath: folder.appendingPathComponent("file\(index).\(ext)").path, contents: nil)
             }
         }
