@@ -196,8 +196,10 @@ struct TextSelectionRowDragTests {
         case draggableList
         /// The same rows with no `.textSelection`: the control.
         case draggableListUnselectable
-        /// A List whose rows' selectable Text vends an item provider.
-        case itemProviderList
+        #if canImport(UniformTypeIdentifiers)
+            /// A List whose rows' selectable Text vends an item provider.
+            case itemProviderList
+        #endif
         /// A Table whose rows are `TableRow.draggable`, its cell's Text selectable.
         case draggableTable
         /// A List of a ForEach with `.onMove`, its rows' Text selectable.
@@ -248,13 +250,15 @@ struct TextSelectionRowDragTests {
                         Text(item.name).draggable(item.name)
                     }
                     .frame(height: 9))
-            case .itemProviderList:
-                AnyView(
-                    List(TextSelectionRowDragTests.items) { item in
-                        Text(item.name).textSelection(.enabled)
-                            .itemProvider { NSItemProvider(object: item.name as NSString) }
-                    }
-                    .frame(height: 9))
+            #if canImport(UniformTypeIdentifiers)
+                case .itemProviderList:
+                    AnyView(
+                        List(TextSelectionRowDragTests.items) { item in
+                            Text(item.name).textSelection(.enabled)
+                                .itemProvider { NSItemProvider(object: item.name as NSString) }
+                        }
+                        .frame(height: 9))
+            #endif
             case .draggableTable:
                 AnyView(
                     Table(of: Item.self) {
@@ -426,12 +430,14 @@ struct TextSelectionRowDragTests {
         #expect(!outcome.dragged)
     }
 
-    @Test("A drag from an item-provider List row's selectable text selects it and drags no row")
-    func itemProviderListRowText() throws {
-        let outcome = try drag(.itemProviderList, onText: true)
-        #expect(outcome.selected?.hasPrefix("name 1") == true)
-        #expect(!outcome.dragged)
-    }
+    #if canImport(UniformTypeIdentifiers)
+        @Test("A drag from an item-provider List row's selectable text selects it and drags no row")
+        func itemProviderListRowText() throws {
+            let outcome = try drag(.itemProviderList, onText: true)
+            #expect(outcome.selected?.hasPrefix("name 1") == true)
+            #expect(!outcome.dragged)
+        }
+    #endif
 
     @Test("A drag from a draggable Table row's selectable cell text selects it and drags no row")
     func draggableTableRowText() throws {
