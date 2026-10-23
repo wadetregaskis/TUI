@@ -14,12 +14,12 @@ import Foundation
 import Testing
 
 import TUIkitApp
+@testable import TUIkitAppTestSupport
 @testable import TUIkitFoundation
 import TUIkitTables
 @testable import TUIkitTestSupport
 
 #if canImport(UniformTypeIdentifiers)
-    @testable import TUIkitAppTestSupport
     import UniformTypeIdentifiers
 #endif
 
