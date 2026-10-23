@@ -83,8 +83,9 @@ struct HyperlinkCheckView: View {
                 "Hover each. On a host that honours OSC 8 the first shows "
                     + "https://swift.org and the second does not. Whether a modified click "
                     + "OPENS it is a separate question: this app holds mouse reporting, and "
-                    + "iTerm2 is measured to forward ⌘-click here rather than act on it, so "
-                    + "shift-click is the gesture to try. Report what works."
+                    + "iTerm2 is measured to forward ⌘-click here rather than act on it (try "
+                    + "shift-click); GNOME Terminal requires control-click to open OSC 8 URLs. "
+                    + "Report what works."
             )
             .foregroundStyle(.palette.foregroundTertiary)
         }

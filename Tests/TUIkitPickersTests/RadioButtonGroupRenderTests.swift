@@ -239,4 +239,26 @@ struct RadioButtonGroupRenderTests {
         #expect(result[0] == "\(selected) Built")
         #expect(result[1] == "\(unselected) Label")
     }
+
+    @Test("Pre-built items array renders and selects properly")
+    func prebuiltItemsArray() {
+        let items = [
+            RadioButtonItem(Optional<String>.none) { Text("None") },
+            RadioButtonItem(Optional("a")) { Text("Option A") },
+            RadioButtonItem(Optional("b")) { Text("Option B") },
+        ]
+        let group = RadioButtonGroup(
+            selection: .constant(Optional<String>.none),
+            items: items
+        )
+        let context = makeContext()
+        context.environment.focusManager!.register(FocusHog("hog"))
+        _ = renderToBuffer(group, context: context)
+        let result = lines(renderToBuffer(group, context: context))
+
+        #expect(result.count == 3)
+        #expect(result[0] == "\(selected) None")
+        #expect(result[1] == "\(unselected) Option A")
+        #expect(result[2] == "\(unselected) Option B")
+    }
 }

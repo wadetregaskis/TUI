@@ -374,10 +374,12 @@ public struct RadioButtonGroup<Value: Hashable>: View {
 
     /// Creates a radio button group from a pre-built array of items.
     ///
-    /// Framework-internal: used by ``Picker`` to build a group from options
-    /// it has already extracted, bypassing the result builder (which only
-    /// accepts statically-listed items).
-    init(
+    /// - Parameters:
+    ///   - selection: A binding to the selected value.
+    ///   - orientation: The layout direction (default: .vertical).
+    ///   - isDisabled: Whether the group is disabled (default: false).
+    ///   - items: The radio button items to display.
+    public init(
         selection: Binding<Value>,
         orientation: RadioButtonOrientation = .vertical,
         isDisabled: Bool = false,

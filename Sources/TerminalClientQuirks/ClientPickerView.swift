@@ -22,15 +22,19 @@ struct ClientPickerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             explanation
-            VStack(alignment: .leading, spacing: 0) {
-                choice(nil, title: "Detected — \(describe(detected))")
-                ForEach(
-                    TerminalClient.Program.allCases.filter { $0 != .unidentified }, id: \.self
-                ) { program in
-                    choice(program, title: describe(program))
-                }
-                choice(.unidentified, title: "None — compensate nothing")
-            }
+            RadioButtonGroup(
+                selection: Binding(
+                    get: { selection },
+                    set: {
+                        selection = $0
+                        // The binding above is this view's own state; this is what makes it
+                        // take effect. Assigning both keeps the control in step with the
+                        // renderer even if the view is rebuilt.
+                        TerminalClient.simulated = $0
+                    }
+                ),
+                items: radioItems
+            )
             warning
         }
     }
@@ -43,25 +47,28 @@ struct ClientPickerView: View {
         }
     }
 
-    private func choice(_ program: TerminalClient.Program?, title: String) -> some View {
-        let isSelected = selection == program
-        return Button {
-            selection = program
-            // The binding above is this view's own state; this is what makes it
-            // take effect. Assigning both keeps the control in step with the
-            // renderer even if the view is rebuilt.
-            TerminalClient.simulated = program
-        } label: {
-            HStack(spacing: 1) {
-                Text(isSelected ? "●" : "○")
-                    .foregroundStyle(isSelected ? .palette.accent : .palette.foregroundTertiary)
-                Text(title)
-                if let program, program != .unidentified {
-                    Text(summary(of: program)).foregroundStyle(.palette.foregroundTertiary)
-                }
+    private var radioItems: [RadioButtonItem<TerminalClient.Program?>] {
+        var items: [RadioButtonItem<TerminalClient.Program?>] = [
+            RadioButtonItem(nil) {
+                Text("Detected — \(describe(detected))")
             }
+        ]
+        for program in TerminalClient.Program.allCases where program != .unidentified {
+            items.append(
+                RadioButtonItem(program) {
+                    HStack(spacing: 1) {
+                        Text(describe(program))
+                        Text(summary(of: program)).foregroundStyle(.palette.foregroundTertiary)
+                    }
+                }
+            )
         }
-        .buttonStyle(.borderless)
+        items.append(
+            RadioButtonItem(.unidentified) {
+                Text("None — compensate nothing")
+            }
+        )
+        return items
     }
 
     /// One line on what this terminal needs — the reason to pick it, and a
