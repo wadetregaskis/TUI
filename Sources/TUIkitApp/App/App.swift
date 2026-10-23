@@ -946,7 +946,7 @@ extension AppRunner {
         // path is unreachable there (nothing ever sets the suspend flag), but
         // unreachable code still has to compile.
         #if !canImport(WASILibc)
-        kill(getpid(), SIGSTOP)
+        raise(SIGSTOP)
         // ── stopped; `fg` resumes here ──
         //
         // So does `bg`, and a BACKGROUND process must not touch the terminal:
@@ -961,7 +961,7 @@ extension AppRunner {
         // answer that cannot change.
         while tcgetpgrp(STDIN_FILENO) >= 0, tcgetpgrp(STDIN_FILENO) != getpgrp() {
             signals.expectSelfResume()
-            kill(getpid(), SIGSTOP)
+            raise(SIGSTOP)
         }
         #endif
         terminal.enterAlternateScreen()
