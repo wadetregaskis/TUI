@@ -243,6 +243,7 @@
         "View.windowFullScreenBehavior(_:)",
         "View.windowMinimizeBehavior(_:)",
         "View.windowResizeBehavior(_:)",
+        "View.windowResizeAnchor(_:)",
         "View.windowToolbarFullScreenVisibility(_:)",
         "MenuBarExtra*",
         "*.presentedWindow*",
