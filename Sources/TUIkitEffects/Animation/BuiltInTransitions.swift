@@ -272,6 +272,88 @@ extension Transition where Self == PushTransition {
     }
 }
 
+// MARK: - Blur replace
+
+/// A transition that animates the insertion or removal of a view by
+/// combining blurring and scaling effects.
+///
+/// SwiftUI scales the view between 0.9 and its full size from its centre,
+/// fades it, and blurs it (measured, `Tools/SwiftUIProbes/Transitions/tr4.out`).
+/// A cell has no sub-cell detail to soften, so here **the blur is drawn as a
+/// fade**: at a cell's resolution a blurred view reads as one that has faded,
+/// and the opacity compositor already dissolves its colours toward what is
+/// behind it (decisions A34). The scale is ``ScaleTransition``'s reveal from
+/// the centre, a whole cell at a time, from 0.9 of the view.
+///
+/// ``Configuration-swift.struct/upUp`` scales the view up as it leaves, which
+/// a reveal cannot draw — it would be the view larger than its slot — so its
+/// removal is the fade alone.
+public struct BlurReplaceTransition: Transition {
+    /// Configuration properties for a transition that animates the insertion
+    /// or removal of a view by combining blurring and scaling effects.
+    public struct Configuration: Equatable, Sendable {
+        /// Whether the view scales up, rather than down, as it leaves.
+        let scalesUpOnRemoval: Bool
+
+        /// A configuration that requests a transition that scales the view
+        /// down while removing it and up while inserting it.
+        public static let downUp = Self(scalesUpOnRemoval: false)
+
+        /// A configuration that requests a transition that scales the view up
+        /// while both removing and inserting it.
+        public static let upUp = Self(scalesUpOnRemoval: true)
+    }
+
+    /// The transition configuration.
+    public var configuration: Configuration
+
+    /// Creates a new transition.
+    ///
+    /// - Parameter configuration: the transition configuration.
+    public init(configuration: Configuration) {
+        self.configuration = configuration
+    }
+
+    public func body(content: Content, phase: TransitionPhase) -> some View {
+        content.modifier(
+            _TransitionEffectModifier(
+                insertion: Self.insertion, removal: removal, phase: phase))
+    }
+
+    public var _erased: AnyTransition {
+        AnyTransition(insertion: Self.insertion, removal: removal)
+    }
+
+    /// How much of the view SwiftUI's scale starts from, and ends at on a
+    /// `.downUp` removal (measured: 180×90 of a 200×100 view, `tr4.out`).
+    static let startingScale = 0.9
+
+    /// In from 0.9 of the view at its centre, fading in.
+    private static let insertion = AnyTransition.Effect.combined(
+        .scale(factor: startingScale, anchor: .center), .opacity)
+
+    /// Out to 0.9 of the view, fading; or, scaling up, the fade alone.
+    private var removal: AnyTransition.Effect {
+        configuration.scalesUpOnRemoval ? .opacity : Self.insertion
+    }
+}
+
+extension Transition where Self == BlurReplaceTransition {
+    /// Returns a transition that animates the insertion or removal of a view
+    /// by combining blurring and scaling effects. The blur is drawn as a fade;
+    /// see ``BlurReplaceTransition``.
+    public static func blurReplace(_ config: BlurReplaceTransition.Configuration = .downUp) -> Self {
+        Self(configuration: config)
+    }
+
+    /// A transition that animates the insertion or removal of a view by
+    /// combining blurring and scaling effects. The blur is drawn as a fade;
+    /// see ``BlurReplaceTransition``.
+    public static var blurReplace: BlurReplaceTransition {
+        blurReplace(.downUp)
+    }
+}
+
 // MARK: - Asymmetric
 
 /// A composite `Transition` that uses a different transition for insertion

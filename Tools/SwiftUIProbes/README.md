@@ -535,16 +535,19 @@ messages cite that path), and what cites it.
   and a custom transition that collapses its height. `tr2.swift`: how a transition's own animations compose —
   an outer `.animation` over halves with their own, two `.animation` calls, `nil` before and after an
   animation, and parts of a `combined` transition with different ones. `tr3.swift`: whether a fade reaches
-  what a view draws displaced by `.offset`, with no transition and with `.opacity`. Each is a program alone
-  (`@main`, built with `-parse-as-library`); `tr2` and `tr3` copy `tr1`'s harness.
+  what a view draws displaced by `.offset`, with no transition and with `.opacity`. `tr4.swift`: what
+  `.blurReplace` draws besides the blur — how far it scales, about which point, and whether it fades — in
+  `.downUp` and `.upUp`, sampled every 0.25 s under a 2 s animation. Each is a program alone
+  (`@main`, built with `-parse-as-library`); `tr2`, `tr3` and `tr4` copy `tr1`'s harness.
   Found: with no transition the leaving view fades out where it was, drawn beneath its siblings, while the new
   one fades in and the views below glide — a branch flip, a `switch` case and a `ForEach` row alike, and a
   whole body's two branches overlap at its origin; each half of an `asymmetric` transition keeps its own
   animation, and a half with none takes the change's; the animation nearest the view wins, `nil` included,
   which plays the transition at once under any `withAnimation`; a transition's own animation plays with no
   `withAnimation`; each part of a `combined` transition runs under its own; a collapsing transition's
-  neighbours move continuously as its frame shrinks; a view drawn displaced fades with the view it belongs to.
-- **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-19. Samples move by a point or two, and an
+  neighbours move continuously as its frame shrinks; a view drawn displaced fades with the view it belongs to;
+  `.blurReplace` scales about the centre between 0.9 and 1 (`.upUp` leaves to 1.1) and fades between 0 and 1.
+- **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-19 (`tr4`: 2026-10-24). Samples move by a point or two, and an
   opacity by a hundredth, with the frame's timing.
 - **Was:** `TRANSITIONS2/probe/`.
 - **Cited by:** `Sources/TUIkitEffects/Animation/AnyTransition.swift`,
@@ -555,7 +558,9 @@ messages cite that path), and what cites it.
   `Tests/TUIkitEffectsTests/DefaultTransitionTests.swift`; `Documentation/SwiftUI parity/Deliberate deviations
   from SwiftUI.md` (A3, A6), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Animation row);
   `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Transition follow-ups (TRANSITIONS2).md`,
-  `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Matched geometry and the zoom transition (O4).md` (B-O4-2).
+  `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Matched geometry and the zoom transition (O4).md` (B-O4-2),
+  `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Visual effects rulings (VISUALS).md` (A34);
+  `Sources/TUIkitEffects/Animation/BuiltInTransitions.swift`, `Tests/TUIkitEffectsTests/BlurReplaceTransitionTests.swift`.
 
 ### Badge prominence
 

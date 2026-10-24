@@ -1300,13 +1300,16 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 ### A3. Transitions move in whole cells, and a custom one is drawn by scrubbing
 
 - **SwiftUI:** a transition interpolates its modifiers; `.scale` shrinks the
-  view; a removed view's content stays live; a transition may change the
+  view; `.blurReplace` blurs it as it scales between 0.9 and its size (measured,
+  [`Tools/SwiftUIProbes/Transitions/tr4.out`](<../../Tools/SwiftUIProbes/Transitions/tr4.out>)); a removed view's content stays live; a transition may change the
   view's size and re-lay its siblings (Apple's documentation, B52); each part
   of a `combined` transition runs under its own animation (measured,
   [`Tools/SwiftUIProbes/Transitions/tr2.out`](<../../Tools/SwiftUIProbes/Transitions/tr2.out>) T12).
 - **TUIkit:** `.move`, `.offset` and `.slide` move in whole cells; `.scale`
   uncovers the view from its anchor a cell at a time, and a scale above 1 draws
-  the view whole. A custom `Transition`'s body is drawn by rendering it at its
+  the view whole. `.blurReplace` is that reveal from 0.9 of the view plus a
+  fade, the blur drawn as the fade; `.upUp`, which grows as it leaves, leaves
+  by the fade alone. A custom `Transition`'s body is drawn by rendering it at its
   end phase and at `.identity` and interpolating the values between; while a
   view leaves, its content is the picture it last drew, and the view keeps its
   `.identity` size throughout. The views around it glide as SwiftUI's do
@@ -1317,6 +1320,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   animation of its own would split.
 - **Decided:** [§2.9](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>), [B52](<Decisions/SwiftUI API completion decisions.md#b52-a-custom-transitions-body-is-drawn-at-each-frames-point-between-its-phases>), [B54](<Decisions/SwiftUI API completion decisions.md#b54-a-scale-transition-uncovers-from-its-anchor-and-a-scale-above-1-draws-the-view-whole>),
   [B-TRANSITIONS2-4](<Decisions/Shapes, effects and animation/Transition follow-ups (TRANSITIONS2).md#b-transitions2-4-a-combined-transition-plays-under-one-animation-for-each-half>);
+  [A34](<Decisions/Shapes, effects and animation/Visual effects rulings (VISUALS).md#a34-blurreplacetransition-is-its-scale-and-a-fade>);
   the size a custom body changes waits on [A-TRANSITIONS2-1](<Decisions/Shapes, effects and animation/Transition follow-ups (TRANSITIONS2).md#a-transitions2-1-b52-a-custom-transition-that-changes-its-views-size--lay-the-body-out-at-each-frames-size>).
   **Medium.**
 

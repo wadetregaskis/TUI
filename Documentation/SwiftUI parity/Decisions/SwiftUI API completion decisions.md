@@ -42,8 +42,10 @@ B1–B37), my answers to its questions of 2026-10-05 (which you answered
 landed is removed, and no entry is renumbered. **Lane owed** marks an entry
 that is decided and waits only on its implementation.
 
-**Still yours to answer.** A27 (pixel effects), A34 (the blur transition)
-and A48 (swipe actions): each entry ends in a recommendation.
+**Still yours to answer.** A27 (pixel effects) and A48 (swipe actions): each
+entry ends in a recommendation. A34 (the blur transition) was answered on
+2026-10-23 with its option 2 and has shipped (lane VISUALS, decisions
+`Shapes, effects and animation/Visual effects rulings (VISUALS).md`).
 
 **Decided, waiting on a measurement.** A16's colour provider waits on an A/B on
 the quiet machine. A40's default dissolve was measured on 2026-10-15 and, as
@@ -523,36 +525,6 @@ an SDR terminal, clamped at the end. Not yet decided.
 *Wave 11a's entries (A32–A33, B48–B51): every string was measured on SwiftUI, macOS 15, by rendering with `ImageRenderer` and reading the picture back with Vision; the probes are in `Tools/SwiftUIProbes/Live text formats read back (wave 11a)/`. A pass on macOS 26 is owed.*
 
 *Wave 12's entries (A34–A40, B52–B61; its `Transaction.dismissBehavior` joined A22): SwiftUI's behaviour is from its doc comments unless an entry says it was measured; measurements are from probes built against the macOS 26.2 SDK and run on macOS 15, kept in [`Tools/SwiftUIProbes/Animation curves, springs and keyframes`](<../../../Tools/SwiftUIProbes/Animation curves, springs and keyframes>).*
-
-### A34. `BlurReplaceTransition`: a fade in place of the blur, or wait for W16?
-
-*`BlurReplaceTransition` (and `Configuration`, `.downUp`, `.upUp`,
-`init(configuration:)`, `configuration`, `body(content:phase:)`),
-`Transition.blurReplace`, `Transition.blurReplace(_:)`*
-
-SwiftUI documents it as "combining blurring and scaling effects": `.downUp`
-scales the view down while removing it and up while inserting it, `.upUp`
-scales up both ways. The scale half is TUIkit's `.scale` reveal. The blur half
-is the per-pixel filter the map declines (`VisualEffect.blur*`, confirmed by
-the Wave 17 review, P14), and Wave 16 owns blur as a whole.
-
-**Options.**
-
-1. **Leave it out until Wave 16 decides blur.** Free. Code using it fails to
-   compile, which is the rule for anything not honoured.
-2. **Ship it as a scale and a fade.** A blurred-out view reads, at a cell's
-   resolution, as one that has faded: there is no sub-cell detail to soften,
-   and the opacity compositor already dissolves a cell's colours toward what
-   is behind it. `.downUp` becomes the reveal from the centre plus the fade;
-   `.upUp` the same on insertion and a fade alone on removal (a reveal cannot
-   grow past the slot). An hour with tests, and the doc comment says
-   the blur is drawn as a fade.
-3. **Option 2, plus a cell "blur"**: soften the glyphs on the way out (shade
-   blocks `▓▒░`, or the dim attribute) as well as the colours. A day, and a
-   drawing that has no precedent in TUIkit.
-
-**Recommendation:** 2, if Wave 16 does not give blur a cell reading of its
-own; 1 until then. Nothing ships.
 
 ### A39. The geometric visual effects wait on Wave 16 (A27)
 

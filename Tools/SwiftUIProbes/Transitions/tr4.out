@@ -1,0 +1,52 @@
+blurReplace(.downUp), inserted
+  before: GREEN@(0,0 10x10)
+  t=0.00: GREEN@(0,0 10x10)
+  t=0.25: GREEN@(0,0 10x10)  RED@(9,14 182x91) a0.11
+  t=0.50: GREEN@(0,0 10x10)  RED@(8,14 185x92) a0.23
+  t=0.75: GREEN@(0,0 10x10)  RED@(6,13 187x94) a0.36
+  t=1.00: GREEN@(0,0 10x10)  RED@(5,13 190x95) a0.48
+  t=1.25: GREEN@(0,0 10x10)  RED@(4,12 192x96) a0.61
+  t=1.50: GREEN@(0,0 10x10)  RED@(3,11 195x97) a0.73
+  t=1.75: GREEN@(0,0 10x10)  RED@(1,11 197x99) a0.86
+  t=2.00: GREEN@(0,0 10x10)  RED@(0,10 200x100) a0.98
+  t=2.25: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=2.50: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+blurReplace(.downUp), removed
+  before: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=0.00: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=0.25: RED@(1,11 198x99) a0.88  GREEN@(0,0 10x10)
+  t=0.50: RED@(2,11 195x98) a0.76  GREEN@(0,0 10x10)
+  t=0.75: RED@(4,12 193x96) a0.63  GREEN@(0,0 10x10)
+  t=1.00: RED@(5,12 190x95) a0.51  GREEN@(0,0 10x10)
+  t=1.25: RED@(6,13 188x94) a0.38  GREEN@(0,0 10x10)
+  t=1.50: RED@(7,14 185x93) a0.26  GREEN@(0,0 10x10)
+  t=1.75: RED@(9,14 183x91) a0.13  GREEN@(0,0 10x10)
+  t=2.00: RED@(10,15 180x90) a0.01  GREEN@(0,0 10x10)
+  t=2.25: GREEN@(0,0 10x10)
+  t=2.50: GREEN@(0,0 10x10)
+blurReplace(.upUp), inserted
+  before: GREEN@(0,0 10x10)
+  t=0.00: GREEN@(0,0 10x10)
+  t=0.25: GREEN@(0,0 10x10)  RED@(9,14 182x91) a0.12
+  t=0.50: GREEN@(0,0 10x10)  RED@(8,14 185x92) a0.24
+  t=0.75: GREEN@(0,0 10x10)  RED@(6,13 187x94) a0.36
+  t=1.00: GREEN@(0,0 10x10)  RED@(5,13 190x95) a0.49
+  t=1.25: GREEN@(0,0 10x10)  RED@(4,12 192x96) a0.61
+  t=1.50: GREEN@(0,0 10x10)  RED@(3,11 195x97) a0.74
+  t=1.75: GREEN@(0,0 10x10)  RED@(1,11 197x99) a0.86
+  t=2.00: GREEN@(0,0 10x10)  RED@(0,10 200x100) a0.99
+  t=2.25: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=2.50: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+blurReplace(.upUp), removed
+  before: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=0.00: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=0.25: RED@(-1,9 202x101) a0.89  GREEN@(0,0 10x10)
+  t=0.50: RED@(-2,9 205x102) a0.77  GREEN@(0,0 10x10)
+  t=0.75: RED@(-4,8 207x104) a0.64  GREEN@(0,0 10x10)
+  t=1.00: RED@(-5,8 210x105) a0.52  GREEN@(0,0 10x10)
+  t=1.25: RED@(-6,7 212x106) a0.39  GREEN@(0,0 10x10)
+  t=1.50: RED@(-7,6 215x107) a0.27  GREEN@(0,0 10x10)
+  t=1.75: RED@(-9,6 217x109) a0.14  GREEN@(0,0 10x10)
+  t=2.00: RED@(-10,5 220x110) a0.02  GREEN@(0,0 10x10)
+  t=2.25: GREEN@(0,0 10x10)
+  t=2.50: GREEN@(0,0 10x10)
