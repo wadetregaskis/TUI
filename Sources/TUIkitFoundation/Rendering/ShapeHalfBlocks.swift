@@ -102,14 +102,24 @@ enum ShapeHalfBlocks {
                 case (let upper?, nil):
                     cells[column, row] = ShapeCells.Cell(ink: upper, field: nil, glyph: "▀")
                 case (let upper?, let lower?):
-                    cells[column, row] =
-                        upper == lower
-                        ? ShapeCells.Cell(ink: nil, field: upper, glyph: " ")
-                        : ShapeCells.Cell(ink: lower, field: upper, glyph: "▄")
+                    cells[column, row] = cell(upper: upper, lower: lower)
                 }
             }
         }
         return cells
+    }
+
+    /// A cell both of whose halves are there: a space on the field where the
+    /// two agree, `▄` in the bottom's colour over the top's where they do not
+    /// (the table's last row above).
+    ///
+    /// The one spelling of a two-sample cell, so whatever draws one — a shape
+    /// rasterized here, a box-drawn fill, a gradient behind blank cells — draws
+    /// it alike.
+    static func cell(upper: Color, lower: Color) -> ShapeCells.Cell {
+        upper == lower
+            ? ShapeCells.Cell(ink: nil, field: upper, glyph: " ")
+            : ShapeCells.Cell(ink: lower, field: upper, glyph: "▄")
     }
 
     /// How much of each half-block pixel `path`, drawn as `drawing`, covers.

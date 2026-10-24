@@ -233,9 +233,7 @@ struct ShapePainter {
         self.palette = palette
         let depth = ColorDepth.current
         cells = RampSampler(paint: paint, extent: extent, depth: depth, cellAspect: aspect)
-        let doubled = GradientFrame(
-            originX: extent.originX, originY: extent.originY * 2, width: extent.width, height: extent.height * 2)
-        pixels = RampSampler(paint: paint, extent: doubled, depth: depth, cellAspect: aspect / 2)
+        pixels = RampSampler(halfRowsOf: paint, extent: extent, depth: depth, cellAspect: aspect)
         flat = cells == nil ? paint.representative.resolve(with: palette) : nil
     }
 
@@ -254,6 +252,18 @@ struct ShapePainter {
         // The entry first: a mesh's ramp grows as entries are named.
         let entry = sampler.entry(column: x, rowTerm: sampler.rowTerm(y))
         return sampler.ramp[entry].resolve(with: palette)
+    }
+}
+
+extension RampSampler {
+    /// `paint` sampled at half-cell resolution over `extent`: twice the rows,
+    /// each half as tall, so a radial ramp's circle stays round. Row `y` of
+    /// this sampler is the top half of cell row `y / 2` when `y` is even, its
+    /// bottom half when odd.
+    init?(halfRowsOf paint: Paint, extent: GradientFrame, depth: ColorDepth, cellAspect: Double) {
+        let doubled = GradientFrame(
+            originX: extent.originX, originY: extent.originY * 2, width: extent.width, height: extent.height * 2)
+        self.init(paint: paint, extent: doubled, depth: depth, cellAspect: cellAspect / 2)
     }
 }
 
