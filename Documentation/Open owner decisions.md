@@ -92,7 +92,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [B95](#b95) | (2); also asked about ▌ and quadrant or diagonal glyphs. | Done (lane VISUALS, 2026-10-24): where Block Elements fill the line, a ramp's blank cells are `▄` two samples, through the shapes' half-block rule (decisions B95, deviations C2); ▌, quadrants and diagonals not built, answered below. |
 | [O5-FROSTED](#o5-frosted) | (b), watching performance; (c) if it is significant. | Done as **(c)** (lane VISUALS, 2026-10-24): (b)'s averaging cost +66.4% on translucent `--variant material` (A/B, release, 15 reps), so a material drops the glyphs behind it and tints the fields as before, no averaging (Opacity as composition §111, deviations C5, decisions VISUALS). |
 | [O1-LOOSEN](#o1-loosen) | (a). | No change. |
-| [P5](#p5) | (c). | Queued. |
+| [P5](#p5) | (c). | Done (lane VISUALS, 2026-10-24): the three values read as reduce motion is (`TUIKIT_REDUCE_TRANSPARENCY`, `TUIKIT_DIFFERENTIATE_WITHOUT_COLOR`, `TUIKIT_INCREASE_CONTRAST`; macOS's settings and GNOME's high contrast where local); reduce transparency draws materials opaque (deviations E5). The non-colour focus cues are still to design. |
 | [WL-Q3](#wl-q3) | (b); measure the current impact first. | Queued (measurement first). |
 | [NAMED-COLOURS-DARK](#named-colours-dark) | (a). | Built 2026-10-24 on lane `lane-colours` (D6M B-D6M-3); an A/B is owed before it lands. |
 | [B-D6M-1](#b-d6m-1) | Always render correctly in subtrees with a changed colour scheme; try it and measure. | Measured: needs your choice, see the follow-up below. |

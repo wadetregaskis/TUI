@@ -28,7 +28,9 @@ import TUIkitStyling
 /// A material that does not appear active is opaque: SwiftUI's materials go
 /// flat in an inactive window, and here that is the surface at full strength.
 /// Whether one appears active is ``MaterialActiveAppearance``'s to say — by
-/// default whether the scene does (``EnvironmentValues/appearsActive``).
+/// default whether the scene does (``EnvironmentValues/appearsActive``). So
+/// is every material where the user asked for reduced transparency
+/// (``EnvironmentValues/accessibilityReduceTransparency``).
 ///
 /// ```swift
 /// ZStack {
@@ -102,13 +104,17 @@ extension Material: ShapeStyle {
 
     /// `surface` as this material paints it in `environment`: at the
     /// material's opacity while it appears active, and at full strength while
-    /// it does not.
+    /// it does not, or where the user asked for reduced transparency
+    /// (``EnvironmentValues/accessibilityReduceTransparency``).
     ///
     /// - Parameters:
     ///   - surface: The colour the material is made of.
     ///   - environment: Where it is painted, for its active appearance.
     /// - Returns: The colour to paint.
     func surface(_ surface: Color, in environment: EnvironmentValues) -> Color {
+        // Reduce transparency draws every material opaque, as an inactive one
+        // is (owner ruling P5).
+        guard !environment.accessibilityReduceTransparency else { return surface }
         let appearance = activeAppearance == .automatic ? environment.materialActiveAppearance : activeAppearance
         return appearance.appearsActive(in: environment) ? surface.opacity(opacity) : surface
     }

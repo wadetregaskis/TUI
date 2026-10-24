@@ -129,3 +129,21 @@ private struct AppearanceReader: View, Renderable {
         return FrameBuffer(text: "x")
     }
 }
+
+@MainActor
+@Suite("Materials under reduced transparency")
+struct MaterialReduceTransparencyTests {
+    @Test("Reduce transparency draws a material opaque, unfrosted, as an inactive one is")
+    func reduceTransparencyIsOpaque() {
+        var environment = EnvironmentValues()
+        environment.palette = SystemPalette.green
+        environment.appearsActive = true
+        #expect(Material.thin.paint(in: environment).frosts)
+        environment._accessibilityReduceTransparency = true
+        #expect(environment.accessibilityReduceTransparency)
+        let paint = Material.thin.paint(in: environment)
+        #expect(paint.solid == Color.palette.background)
+        #expect(!paint.frosts)
+        #expect(Glass.regular.surface(in: environment) == Color.palette.background, "glass is a material's surface")
+    }
+}

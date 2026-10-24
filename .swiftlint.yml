@@ -266,6 +266,11 @@ identifier_name:
     # A `MatchedTransitionSourceConfiguration` written into the resolved one,
     # SwiftUI's witness name.
     - _update
+    # SwiftUI's writable spellings of read-only accessibility environment
+    # values, for `.environment(_:_:)` (owner ruling P5).
+    - _accessibilityReduceTransparency
+    - _accessibilityDifferentiateWithoutColor
+    - _colorSchemeContrast
     # Idiomatic single-letter math / graphics / loop names: keeping
     # them short matches the surrounding domain (coordinates,
     # colour channels, dimensions, indices) better than renaming.

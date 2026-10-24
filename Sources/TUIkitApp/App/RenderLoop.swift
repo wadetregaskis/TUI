@@ -317,9 +317,12 @@ internal final class RenderLoop<A: App> {
     private let probeClientCapabilities: @Sendable () -> ClientCapabilities?
 
     /// What the user asked for with the `TUIKIT_*` accessibility variables
-    /// (`TUIKIT_REDUCE_MOTION=1`), as the app runner read them from the
-    /// process: written at the root of every frame
-    /// (``EnvironmentValues/accessibilityReduceMotion``).
+    /// (`TUIKIT_REDUCE_MOTION=1` and its three siblings), as the app runner
+    /// read them from the process: written at the root of every frame
+    /// (``EnvironmentValues/accessibilityReduceMotion``,
+    /// ``EnvironmentValues/accessibilityReduceTransparency``,
+    /// ``EnvironmentValues/accessibilityDifferentiateWithoutColor``,
+    /// ``EnvironmentValues/colorSchemeContrast``).
     ///
     /// Empty unless the runner says otherwise. A headless app, the test
     /// harness and every other loop leave it out, so what they draw does not
@@ -809,6 +812,10 @@ extension RenderLoop {
         // over them with the scene's other writes.
         let accessibility = requestedAccessibility.union(hostAccessibility)
         environment.accessibilityReduceMotion = accessibility.contains(.reduceMotion)
+        // And the three P5 reads beside it, which no scene adds to.
+        environment.accessibilityReduceTransparency = accessibility.contains(.reduceTransparency)
+        environment.accessibilityDifferentiateWithoutColor = accessibility.contains(.differentiateWithoutColor)
+        environment.colorSchemeContrast = accessibility.contains(.increaseContrast) ? .increased : .standard
         // The user's `TUIKIT_KEY_SYMBOLS` likewise; a scene's `.keyNotation(_:)`
         // can only add to it.
         environment.keyNotation = keyNotation

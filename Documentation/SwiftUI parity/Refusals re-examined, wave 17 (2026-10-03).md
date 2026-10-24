@@ -577,6 +577,11 @@ The reason ("no transition system") is stale (X2).
     the motion and colour-only cues they exist to modulate: breathing focus,
     spinners, transitions, focus-by-colour.
   - Where the value comes from is §O1.
+  - **Ruled 2026-10-23 (P5 (c)), shipped 2026-10-24:** reduce transparency,
+    differentiate without colour and increase contrast are read as reduce
+    motion is — a `TUIKIT_*` variable each, and the host's setting where the
+    session is provably local — and reduce transparency draws materials and
+    glass opaque (Deliberate deviations E5).
 
 ### P6. Family `["*Gesture", "*GestureMask*", "GestureState*", "View.gesture*", "View.highPriorityGesture*", "View.simultaneousGesture*"]` — L
 

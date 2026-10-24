@@ -612,6 +612,29 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [A-D3M-1](<Decisions/Presentation and windows/Dialogs, image sizes, format styles and reduce motion (D3M).md#a-d3m-1-what-else-reduce-motion-should-hold-still--decided-2026-10-05>), [C-FU2-1](<Decisions/Follow-ups on reduce motion, localisation and scrolling (FU2).md#c-fu2-1-reduce-motion-does-not-hold-still-an-apps-own-animations>).
   **Owner** (2026-10-05).
 
+### E5. The display preferences come from the user's variables, and from the host only where it is local
+
+- **SwiftUI:** `\.accessibilityReduceTransparency`,
+  `\.accessibilityDifferentiateWithoutColor` and `\.colorSchemeContrast`
+  report the system's settings, and the system's controls change with them
+  (Apple's documentation; not measured).
+- **TUIkit:** each is set by the user's `TUIKIT_REDUCE_TRANSPARENCY=1`,
+  `TUIKIT_DIFFERENTIATE_WITHOUT_COLOR=1` or `TUIKIT_INCREASE_CONTRAST=1`, or
+  by the host's setting only where TUIkit is sure the user is at this machine,
+  as reduce motion is (E2): macOS's Reduce transparency, Differentiate without
+  colour and Increase contrast, and GNOME's high contrast (GNOME has no
+  setting for the other two). Reduce transparency draws every material and
+  glass opaque. TUIkit's own drawing does not change for increased contrast
+  (its palettes keep their contrast floors either way) or for differentiate
+  without colour (its own non-colour cues are to be designed apart, under the
+  focus colour rules); both are reported for the app's views to read. The
+  values are read-only, and SwiftUI's underscored setters write them.
+- **Why:** the machine an app runs on need not be the one its user sits at,
+  so a host setting counts only with positive evidence (refusal review O1).
+- **Decided:** owner ruling P5 (c), 2026-10-23
+  ([VISUALS](<Decisions/Shapes, effects and animation/Visual effects rulings (VISUALS).md#p5-reduce-transparency-differentiate-without-colour-and-increase-contrast-are-read-as-reduce-motion-is>)).
+  **Owner.**
+
 ### E4. A key a locale's language lacks reads English, not the key
 
 - **SwiftUI:** a `Text` under `.environment(\.locale, _)` reads its key in

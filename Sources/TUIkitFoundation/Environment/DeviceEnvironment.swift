@@ -129,6 +129,10 @@ struct VerticalSizeClassKey: EnvironmentKey {
     @usableFromInline static let defaultValue: UserInterfaceSizeClass? = .regular
 }
 
+private struct ColorSchemeContrastKey: EnvironmentKey {
+    static let defaultValue = ColorSchemeContrast.standard
+}
+
 private struct LuminanceReducedKey: EnvironmentKey {
     static let defaultValue = false
 }
@@ -140,11 +144,29 @@ private struct LegibilityWeightKey: EnvironmentKey {
 // MARK: - The values
 
 extension EnvironmentValues {
-    /// The contrast of the colour scheme: always ``ColorSchemeContrast/standard``.
+    /// The contrast of the colour scheme: ``ColorSchemeContrast/increased``
+    /// where the user asked for more, ``ColorSchemeContrast/standard`` — macOS's
+    /// answer under the default setting — otherwise.
     ///
-    /// A terminal reports no contrast setting, and macOS's answer under the
-    /// default setting is the same. Read-only, as in SwiftUI.
-    public var colorSchemeContrast: ColorSchemeContrast { .standard }
+    /// A terminal reports no contrast setting, so the ask is the user's
+    /// `TUIKIT_INCREASE_CONTRAST=1` in the environment the app runs in, or the
+    /// host's Increase contrast (GNOME's high contrast) where TUIkit is sure the
+    /// user is at this machine, as for
+    /// ``EnvironmentValues/accessibilityReduceMotion`` (owner ruling P5 (c)).
+    /// TUIkit's own drawing does not change with it: its palettes hold their
+    /// contrast floors either way. Read-only, as in SwiftUI;
+    /// ``_colorSchemeContrast`` writes it, as SwiftUI's does.
+    public package(set) var colorSchemeContrast: ColorSchemeContrast {
+        get { self[ColorSchemeContrastKey.self] }
+        set { self[ColorSchemeContrastKey.self] = newValue }
+    }
+
+    /// ``colorSchemeContrast``, writable — SwiftUI's `_colorSchemeContrast`,
+    /// for `.environment(_:_:)` in a preview or a test.
+    public var _colorSchemeContrast: ColorSchemeContrast {
+        get { colorSchemeContrast }
+        set { colorSchemeContrast = newValue }
+    }
 
     /// The display scale, `1` unless something sets it.
     ///

@@ -158,3 +158,37 @@ dropped with the glyph. A material that does not appear active is opaque
 and is not marked. A material over nothing but the page is its tint,
 unchanged. **A/B scenarios** for the (c) build if wanted: the same four,
 `translucent --variant material` the one that draws a material.
+
+## P5. Reduce transparency, differentiate without colour and increase contrast are read as reduce motion is
+
+*`EnvironmentValues.accessibilityReduceTransparency`,
+`.accessibilityDifferentiateWithoutColor`, `.colorSchemeContrast` and their
+underscored setters; ruling: (c), option (b) plus the host read.*
+
+**Shipped.** The reduce-motion plumbing carries a set
+(`AccessibilityPreferences`, a prepared refactor): the user's variables
+(`TUIKIT_REDUCE_TRANSPARENCY=1`, `TUIKIT_DIFFERENTIATE_WITHOUT_COLOR=1`,
+`TUIKIT_INCREASE_CONTRAST=1`, beside `TUIKIT_REDUCE_MOTION=1`) and the
+host's settings, read by `HostAccessibilityRefresher` at launch and when the
+terminal regains the focus, counted only where `SessionLocality.isLocal()`
+holds. On macOS the host is `com.apple.universalaccess`'s `reduceMotion`,
+`reduceTransparency`, `differentiateWithoutColor` and `increaseContrast`
+(the four names are in macOS 15.8's shared cache; the three new ones were
+not toggled and read here). On GNOME, `org.gnome.desktop.a11y.interface
+high-contrast` is increased contrast; GNOME has no setting for the other
+two. The root writes all four. TUIkit honours reduce transparency: every
+material, and glass, is opaque, as an inactive one is, and so unfrosted.
+
+**Judgement calls.** The three are read-only, as SwiftUI's are, with
+SwiftUI's own underscored setters (`_accessibilityReduceTransparency`,
+`_accessibilityDifferentiateWithoutColor`, `_colorSchemeContrast`) to write
+them: that is how `.environment` reaches them in SwiftUI. No `Scene`
+modifier was added for them (the ruling's option (b) names variables and
+`.environment`). TUIkit's drawing does not change for increased contrast
+(the palettes keep their floors either way) or differentiate without colour
+(its own cues wait on a design, as the entry recommends): both are reported
+for the app's views. `\.accessibilityVoiceOverEnabled` stays refused.
+
+**Cost:** three more environment writes at the root a frame, and, on
+macOS, three more preference reads per host reading (launch, focus in); on
+GNOME one more `gsettings` run per reading.
