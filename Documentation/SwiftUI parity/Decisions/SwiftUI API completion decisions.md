@@ -53,7 +53,7 @@ agreed, not shipped: it cost far more than 1% (see A40).
 A22 and A26 (O9) and A24 (O0, O15); A42, B19 (after its A/B). B22's look at
 the faint tiers was taken on 2026-10-19 (lane EFFECTS): the faintest vanish at
 16 and 256 colours, and what to do is A-EFFECTS-1, in
-[Blend modes and image details (EFFECTS)](<Blend modes and image details (EFFECTS).md>).
+[Blend modes and image details (EFFECTS)](<Shapes, effects and animation/Blend modes and image details (EFFECTS).md>).
 B3's lane shipped on 2026-10-13 with most of A21; A21 lists what is left.
 Shipped on 2026-10-14 (their entries removed): A25; O7 with A12; O1; O17; O2 with A37.
 Shipped on 2026-10-18: O0's shapes (lane W1); O3's merging and additive
@@ -91,7 +91,7 @@ ruling is in the review under its item. In brief, with the ruling:
   `corners(in:)`, `InsetShape`), `clipShape`, `contentShape`, `background(_:in:)`.
   **Keep (B)**, square units: the display scale cancels out of the cell's
   ratio, which (C)'s absolute size cannot say. Shipped 2026-10-18
-  ([Shapes (W1)](<Shapes (W1).md>)).
+  ([Shapes (W1)](<Shapes, effects and animation/Shapes (W1).md>)).
 - **O1** Reduce-motion and the other accessibility preferences. **(b), but
   only `TUIKIT_REDUCE_MOTION`** (B53, shipped) unless TUIkit can be confident
   the terminal is on the same machine; then the host's setting too, by the
@@ -106,14 +106,14 @@ ruling is in the review under its item. In brief, with the ruling:
   interrupts.
 - **O4** Matched geometry and zoom transitions. **(b), with (a) where
   possible.** Shipped 2026-10-18 with A23 and A36
-  ([Matched geometry and the zoom transition (O4)](<Matched geometry and the zoom transition (O4).md>));
+  ([Matched geometry and the zoom transition (O4)](<Shapes, effects and animation/Matched geometry and the zoom transition (O4).md>));
   the zoom source's clip shape and shadow follow in lane W1B (B-O4-6).
 - **O5** Materials and Glass (A41, now removed, listed the material symbols waiting on it).
   **(b) for both**; a cell-resolution blur is an optional add-on. Materials
-  and glass shipped 2026-10-18 ([Glass (GLASS)](<Glass (GLASS).md>)); the
+  and glass shipped 2026-10-18 ([Glass (GLASS)](<Shapes, effects and animation/Glass (GLASS).md>)); the
   frosted add-on waits on the owner.
 - **O6** `ShadowStyle`. **(b)**, radius and offsets in cells. `View.shadow(color:radius:x:y:)`
-  and `ShadowStyle` shipped 2026-10-18; `ShapeStyle.shadow` waits on W1 ([Shadows (O6)](<Shadows (O6).md>)).
+  and `ShadowStyle` shipped 2026-10-18; `ShapeStyle.shadow` waits on W1 ([Shadows (O6)](<Shapes, effects and animation/Shadows (O6).md>)).
 - **O7** `ScrollEdgeEffectStyle`. **Only `.hard`**; no `.soft`. Shipped 2026-10-14.
 - **O8** APIs that are inert on macOS too: `submitLabel`, `SensoryFeedback`
   and others. **Refused**: they fail to compile, as `submitLabel` already
@@ -127,7 +127,7 @@ ruling is in the review under its item. In brief, with the ruling:
   facts about which terminals take OSC 22 were corrected).
 - **O13** `Commands`, as a menu bar. **A full menu bar**; the app header
   optional, either, both or neither. Shipped 2026-10-18
-  ([The menu bar (O13)](<The menu bar (O13).md>)).
+  ([The menu bar (O13)](<Menus, toolbars and chrome/The menu bar (O13).md>)).
 - **O14** `ControlSize`. **(b)**, with extra render styles per size. The
   type, the environment value, both modifiers and the button's table shipped
   2026-10-15 (`ButtonFaceEdges.swift`); the other controls' rows 2026-10-19,
@@ -395,7 +395,7 @@ leaves open a window showing a modal presentation — a sheet, a cover, an alert
 or a confirmation dialog, which hold its keyboard; a popover or an open menu does
 not count — whether it is the window in front or one held behind it; under
 `.destructive` it closes it with them
-([B-O9-4](<Several scenes on one surface (O9).md#b-o9-4-an-interactive-dismissal-leaves-a-window-with-a-modal-presentation-open>)).
+([B-O9-4](<Presentation and windows/Several scenes on one surface (O9).md#b-o9-4-an-interactive-dismissal-leaves-a-window-with-a-modal-presentation-open>)).
 
 ### A24. `presentationCornerRadius(_:)` waits on O0/O15
 
@@ -446,8 +446,8 @@ written on their root would. `buildOptional` and `buildLimitedAvailability`
 came with the variadic `buildBlock`, and `Settings`, `SettingsLink`,
 `DefaultSettingsLinkLabel`, `OpenSettingsAction` and `\.openSettings` with
 O9's settings scene, a sheet over the window in front
-([B-O9-6](<Several scenes on one surface (O9).md#b-o9-6-settings-is-a-sheet-over-the-window-in-front>),
-[B-O9-7](<Several scenes on one surface (O9).md#b-o9-7-an-alert-scene-is-presented-over-the-window-in-front-its-dialog-modifiers-its-own>)).
+([B-O9-6](<Presentation and windows/Several scenes on one surface (O9).md#b-o9-6-settings-is-a-sheet-over-the-window-in-front>),
+[B-O9-7](<Presentation and windows/Several scenes on one surface (O9).md#b-o9-7-an-alert-scene-is-presented-over-the-window-in-front-its-dialog-modifiers-its-own>)).
 
 ### A27. Pixel effects: transforms, masks and `drawingGroup` (Wave 16)
 
@@ -986,7 +986,7 @@ The owner ruled this a bug to fix, carefully for performance (2026-10-05).
 Lane DYNP made `update()` write back what it changes, as SwiftUI's does, at
 no measured per-frame cost. What the write-back covers, and where TUIkit
 still differs from SwiftUI, is in
-[`DynamicProperty update write-back (DYNP).md`](<DynamicProperty update write-back (DYNP).md>),
+[`DynamicProperty update write-back (DYNP).md`](<State and dynamic properties/DynamicProperty update write-back (DYNP).md>),
 B-DYNP-1 onwards.
 
 ### B6. `safeAreaInset` puts the bar beside the view; there is no safe area
@@ -1384,7 +1384,7 @@ on every palette, `.secondary` is `.primary`'s colour and `.tertiary` to
 `.quinary` is the page on five palettes and `.quaternary` too on three, and
 some neighbours share a colour. The rendered contrast floor does not reach
 content text. Nothing changed: a vanishing level is your call,
-[A-EFFECTS-1](<Blend modes and image details (EFFECTS).md#a-effects-1-the-faint-content-levels-vanish-at-16-colours-and-the-faintest-at-256>).
+[A-EFFECTS-1](<Shapes, effects and animation/Blend modes and image details (EFFECTS).md#a-effects-1-the-faint-content-levels-vanish-at-16-colours-and-the-faintest-at-256>).
 
 ### B25. `safeAreaPadding` is padding, or a scroll view's content margin
 
@@ -1516,7 +1516,7 @@ drawn still, without the breath's runs. `trigger:` keeps its last value in a
 scrollable keeps when it first drew, for `onAppear:`. A scrollable that is not
 flashing asks for no frame; where it draws an indicator, the flash costs one
 environment read a frame. The peak and the shape are the lane's call:
-[B-SCROLLB-1](<Scroll indicator flash and bounce (SCROLLB).md#b-scrollb-1-a-flash-peaks-one-hover-step-past-a-focused-bars-breath>).
+[B-SCROLLB-1](<Scrolling/Scroll indicator flash and bounce (SCROLLB).md#b-scrollb-1-a-flash-peaks-one-hover-step-past-a-focused-bars-breath>).
 
 ### B30. The `Transaction` scroll members: what "no adjustment" suspends
 
@@ -1601,7 +1601,7 @@ for a seek, or for a change made under "no adjustment".
 `.scrollWindowHold(.offset)` (TUI-specific: no SwiftUI spelling expresses it,
 measured) keeps the offset in lines, the old default. Design in `Scroll
 anchoring.md` §5; the lane's own entries in [Scroll anchoring default
-(SCROLLANCHOR).md](<Scroll anchoring default (SCROLLANCHOR).md>), among them
+(SCROLLANCHOR).md](<Scrolling/Scroll anchoring default (SCROLLANCHOR).md>), among them
 A-SCROLLANCHOR-1: `List` and `Table` hold as the stacks do, though macOS's
 `List` keeps its offset (measured); you kept that on 2026-10-13, for one rule
 across scrollables. Cost: neutral in the A/B (no scenario past +0.8%,
@@ -1653,7 +1653,7 @@ Nothing is paid by an app that does not write `.always`.
 
 **Shipped 2026-10-13 (SCROLLB):** under `.always` an end the app gave no
 allowance gets a sprung one — two lines, one in a view under eight lines tall
-([B-SCROLLB-2](<Scroll indicator flash and bounce (SCROLLB).md#b-scrollb-2-the-bounce-is-two-lines-one-in-a-view-under-eight-lines-tall-per-end>)).
+([B-SCROLLB-2](<Scrolling/Scroll indicator flash and bounce (SCROLLB).md#b-scrollb-2-the-bounce-is-two-lines-one-in-a-view-under-eight-lines-tall-per-end>)).
 A push into it is held while the user's steps keep coming, and once they have
 been quiet for 250 ms (B27's `ScrollPhase.quietNanos`, no phase observer
 needed) it springs back a line a 50 ms frame, in `ScrollView`, `List` and
@@ -1988,7 +1988,7 @@ closes its gap as SwiftUI's does in every container that glides (measured,
 `Tools/SwiftUIProbes/Transitions/tr1.out` T7); the container is already laid
 out again on every frame a transition is on screen. What is left, and its
 price, is decisions
-[A-TRANSITIONS2-1](<Transition follow-ups (TRANSITIONS2).md#a-transitions2-1-b52-a-custom-transition-that-changes-its-views-size--lay-the-body-out-at-each-frames-size>).
+[A-TRANSITIONS2-1](<Shapes, effects and animation/Transition follow-ups (TRANSITIONS2).md#a-transitions2-1-b52-a-custom-transition-that-changes-its-views-size--lay-the-body-out-at-each-frames-size>).
 
 ### B54. A scale transition uncovers from its anchor, and a scale above 1 draws the view whole
 

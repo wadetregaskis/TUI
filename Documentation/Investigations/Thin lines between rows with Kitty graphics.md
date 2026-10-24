@@ -65,6 +65,6 @@ placed again without re-sending, and the line held steady at 60 Hz, with and wit
 
 ## Links
 
-Decisions [D6L](<../SwiftUI parity/Decisions/List and table stripes, surfaces, pinned headers and separators (D6L).md>)
+Decisions [D6L](<../SwiftUI parity/Decisions/Lists and tables/List and table stripes, surfaces, pinned headers and separators (D6L).md>)
 (A-D6L-2, the separator default); the compatibility guide's list-separator entry in
 [SwiftUI compatibility guide](<../SwiftUI parity/SwiftUI compatibility guide.md>).

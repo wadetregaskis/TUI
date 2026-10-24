@@ -42,7 +42,7 @@ Last reviewed: 2026-10-12. **No question is left, and no entry.** The last,
 question on 2026-10-12 (views that cannot take the focus have help too, by
 hover and by an app-wide help feature), and lane HELP built that the same day:
 [Tooltips and help in a terminal](<../Controls and presentation/Tooltips and help in a terminal.md>)
-and [decisions HELP](<../SwiftUI parity/Decisions/Help on views that cannot take the focus (HELP).md>).
+and [decisions HELP](<../SwiftUI parity/Decisions/Presentation and windows/Help on views that cannot take the focus (HELP).md>).
 The two opacity entries went by being built. With nothing left in it, this file
 moved to `Historical/` on 2026-10-15.
 

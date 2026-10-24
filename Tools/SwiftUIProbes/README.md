@@ -66,7 +66,7 @@ messages cite that path), and what cites it.
   (`enumfields.swift`: none, for one with three cases, two with payloads).
 - **Ran:** macOS 15, 2026-10-10.
 - **Was:** `DYNP/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/DynamicProperty update write-back (DYNP).md`;
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/State and dynamic properties/DynamicProperty update write-back (DYNP).md`;
   `Tests/TUIkitFoundationTests/DynamicPropertyTests.swift`, `Tests/TUIkitFoundationTests/ObservableInvalidationScopeTests.swift`. The
   probes of the next three folders reuse its harness.
 
@@ -93,8 +93,8 @@ messages cite that path), and what cites it.
   `Sources/TUIkitView/State/NestedPropertyBinding.swift`, `Sources/TUIkitView/State/PropertyPlans.swift`,
   `Sources/TUIkitView/State/State.swift`; `Tests/TUIkitFoundationTests/DynamicPropertyStateKeyTests.swift` and the other
   `DynamicProperty*Tests.swift` files, `Tests/TUIkitFoundationTests/StateSharedValueTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/State keys inside a DynamicProperty (SKEY).md`,
-  `Documentation/SwiftUI parity/Decisions/Finding dynamic properties from declared types (DYNVFIX).md`,
+  `Documentation/SwiftUI parity/Decisions/State and dynamic properties/State keys inside a DynamicProperty (SKEY).md`,
+  `Documentation/SwiftUI parity/Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md`,
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
 
 ### Class properties held by several views
@@ -112,7 +112,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, 2026-10-12; `cls.swift` against the macOS 15.5 SDK.
 - **Was:** `DYNVCLAIM/swiftui-first/` (`cls.swift`) and `DYNVCLAIM/object-owned/swiftui/` (`memo.swift`).
 - **Cited by:** `Sources/TUIkitView/State/PropertyWalk.swift`, `Sources/TUIkitView/State/PropertyWalk+Objects.swift`;
-  `Documentation/SwiftUI parity/Decisions/Finding dynamic properties from declared types (DYNVFIX).md`.
+  `Documentation/SwiftUI parity/Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md`.
 
 ### State keys in dynamic properties
 
@@ -124,7 +124,7 @@ messages cite that path), and what cites it.
 - **Was:** `SKEY/probe/`.
 - **Cited by:** `Sources/TUIkitView/State/NestedPropertyBinding.swift`, `Sources/TUIkitView/State/StateStorage.swift`;
   `Tests/TUIkitFoundationTests/DynamicPropertyStateKeyTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/State keys inside a DynamicProperty (SKEY).md`.
+  `Documentation/SwiftUI parity/Decisions/State and dynamic properties/State keys inside a DynamicProperty (SKEY).md`.
 
 ### Alignment guides
 
@@ -157,7 +157,7 @@ messages cite that path), and what cites it.
   `Tests/TUIkitFoundationTests/EmptyContentLayoutTests.swift`;
   `Sources/TUIkitView/Core/PrimitiveViews.swift`, `Sources/TUIkitFoundation/Modifiers/OverlayModifier.swift`,
   `Sources/TUIkitView/Rendering/StaticViewListCount.swift`;
-  `Documentation/SwiftUI parity/Decisions/Alignment guides outside their view (GUIDE).md`.
+  `Documentation/SwiftUI parity/Decisions/Layout and geometry/Alignment guides outside their view (GUIDE).md`.
 
 ### List pinned headers and row stripes
 
@@ -167,7 +167,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, 2026-10-06 and 2026-10-07. Neither output was kept; the results are in the D6L decisions.
 - **Was:** `D6L/probe/` (`phase.swift` and `common.swift` in `D6L/probe/phase/`).
 - **Cited by:** `Sources/TUIkitLists/Views/_ListCore.swift`, `Sources/TUIkitTables/Views/Table.swift`;
-  `Documentation/SwiftUI parity/Decisions/List and table stripes, surfaces, pinned headers and separators (D6L).md`.
+  `Documentation/SwiftUI parity/Decisions/Lists and tables/List and table stripes, surfaces, pinned headers and separators (D6L).md`.
 
 ### Sections and subview counting
 
@@ -197,7 +197,7 @@ messages cite that path), and what cites it.
   `Tests/TUIkitIntegrationTests/SectionPartsTests.swift`, `Tests/TUIkitListsTests/CompositeMembersTests.swift`,
   `Tests/TUIkitListsTests/ListMultiViewRowEditingTests.swift`,
   `Tests/TUIkitFormsTests/FormWrappedSectionTests.swift`, `Tests/TUIkitMenusTests/MenuSectionTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/Sections and subview counting in stacks and loops (D1S).md`.
+  `Documentation/SwiftUI parity/Decisions/Layout and geometry/Sections and subview counting in stacks and loops (D1S).md`.
 
 ### Pinned section headers and footers
 
@@ -230,7 +230,7 @@ messages cite that path), and what cites it.
 - **Was:** `DYNVFIX/probe/`; `stamp.swift` `DYNVCLAIM/swiftui-first/`.
 - **Cited by:** `Sources/TUIkitView/Rendering/FieldDescriptors.swift`, `Sources/TUIkitView/State/EnumPayloads.swift`,
   `Sources/TUIkitView/State/DynamicTypes.swift`, `Sources/TUIkitView/State/State.swift` (`stamp.out`);
-  `Documentation/SwiftUI parity/Decisions/Finding dynamic properties from declared types (DYNVFIX).md`.
+  `Documentation/SwiftUI parity/Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md`.
 
 ### Localization keys
 
@@ -300,7 +300,7 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIkitView/State/State.swift` (`AppState.transactionScopeEnded(_:)`);
   `Tests/TUIkitIntegrationTests/ObservedChangeTransactionTests.swift`;
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (A7);
-  `Documentation/SwiftUI parity/Decisions/Per-app render state (APPSTATE).md` (B-APPSTATE-2).
+  `Documentation/SwiftUI parity/Decisions/State and dynamic properties/Per-app render state (APPSTATE).md` (B-APPSTATE-2).
 
 ### Scroll anchoring
 
@@ -325,7 +325,7 @@ messages cite that path), and what cites it.
   `Sources/TUIkitFoundation/Views/StackTopRowHold.swift`, `Sources/TUIkitLists/Focus/ItemListHandler+Anchor.swift`,
   `Tests/TUIkitTablesTests/ScrollWindowHoldTests.swift`; `Documentation/Layout and scrolling/Scroll
   anchoring.md` §5; `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R13, R14);
-  `Documentation/SwiftUI parity/Decisions/Scroll anchoring default (SCROLLANCHOR).md`.
+  `Documentation/SwiftUI parity/Decisions/Scrolling/Scroll anchoring default (SCROLLANCHOR).md`.
 
 ### Scroll transitions
 
@@ -338,7 +338,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
 - **Was:** `SCROLL/probe/`.
 - **Cited by:** `Sources/TUIkitEffects/Geometry/ScrollTransitionConfiguration.swift`;
-  `Documentation/SwiftUI parity/Decisions/Coordinate spaces, geometry and scroll visibility (D5G).md` (B-D5G-8);
+  `Documentation/SwiftUI parity/Decisions/Layout and geometry/Coordinate spaces, geometry and scroll visibility (D5G).md` (B-D5G-8);
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
 ### Scroll target behaviours
@@ -359,8 +359,8 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIkitFoundation/Focus/ScrollViewHandler+Targeting.swift`,
   `Sources/TUIkitFoundation/Views/ScrollTargetBehaviors.swift`; `Tests/TUIkitAppTests/ScrollTargetViewAlignedTests.swift`,
   `Tests/TUIkitIntegrationTests/ScrollTargetBehaviorTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/Scroll anchors, target behaviours and clipping (D2S).md` (B-D2S-7),
-  `Documentation/SwiftUI parity/Decisions/Scrolling fixes and parity (SCROLL).md` (B-SCROLL-1),
+  `Documentation/SwiftUI parity/Decisions/Scrolling/Scroll anchors, target behaviours and clipping (D2S).md` (B-D2S-7),
+  `Documentation/SwiftUI parity/Decisions/Scrolling/Scrolling fixes and parity (SCROLL).md` (B-SCROLL-1),
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R15).
 
 ### Scroll to a row
@@ -373,7 +373,7 @@ messages cite that path), and what cites it.
   moves nothing where the row already shows. Top-level code, built alone.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
 - **Was:** `SCROLL/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/Scrolling fixes and parity (SCROLL).md` (C-SCROLL-1);
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/Scrolling/Scrolling fixes and parity (SCROLL).md` (C-SCROLL-1);
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
 ### Nested scroll position
@@ -389,7 +389,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
 - **Cited by:** `Sources/TUIkitFoundation/Views/ScrollView+Content.swift`;
   `Tests/TUIkitTablesTests/ListScrollPositionTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/Scrolling fixes and parity (SCROLL).md` (B-SCROLL-6);
+  `Documentation/SwiftUI parity/Decisions/Scrolling/Scrolling fixes and parity (SCROLL).md` (B-SCROLL-6);
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
 ### Ragged text in a larger frame
@@ -485,7 +485,7 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIkitEffects/Geometry/MatchedGeometryEffect.swift`;
   `Tests/TUIkitEffectsTests/MatchedGeometryEffectTests.swift`; `Documentation/SwiftUI parity/Deliberate
   deviations from SwiftUI.md` (A8), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the
-  Animation row); `Documentation/SwiftUI parity/Decisions/Matched geometry and the zoom transition (O4).md`.
+  Animation row); `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Matched geometry and the zoom transition (O4).md`.
 
 ### Shadowed shape styles
 
@@ -521,7 +521,7 @@ messages cite that path), and what cites it.
 - **Was:** `W1B/probe/`.
 - **Cited by:** `Sources/TUIkitFoundation/Styling/ImagePaint.swift`, `Sources/TUIkitFoundation/Styling/ShapeStyle.swift`
   (`in(_:)`), `Tests/TUIkitBitmapsTests/ImagePaintTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/What the shapes unblocked (W1B).md` (B-W1B-4).
+  `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/What the shapes unblocked (W1B).md` (B-W1B-4).
 
 ### Transitions
 
@@ -553,8 +553,8 @@ messages cite that path), and what cites it.
   `Tests/TUIkitEffectsTests/TransitionAnimationTests.swift`, `Tests/TUIkitEffectsTests/BranchAndRowFadeTests.swift`,
   `Tests/TUIkitEffectsTests/DefaultTransitionTests.swift`; `Documentation/SwiftUI parity/Deliberate deviations
   from SwiftUI.md` (A3, A6), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Animation row);
-  `Documentation/SwiftUI parity/Decisions/Transition follow-ups (TRANSITIONS2).md`,
-  `Documentation/SwiftUI parity/Decisions/Matched geometry and the zoom transition (O4).md` (B-O4-2).
+  `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Transition follow-ups (TRANSITIONS2).md`,
+  `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Matched geometry and the zoom transition (O4).md` (B-O4-2).
 
 ### Badge prominence
 
@@ -568,7 +568,7 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIkitFoundation/Modifiers/BadgeModifier.swift`,
   `Tests/TUIkitListsTests/BadgeProminenceTests.swift`;
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (B72),
-  `Documentation/SwiftUI parity/Decisions/List, table and section fixes (LISTS).md` (B-LISTS-1).
+  `Documentation/SwiftUI parity/Decisions/Lists and tables/List, table and section fixes (LISTS).md` (B-LISTS-1).
 
 ### Hierarchical table insertions
 
@@ -683,7 +683,7 @@ messages cite that path), and what cites it.
   `Tests/TUIkitIntegrationTests/PickerInMenuTests.swift`, `Tests/TUIkitIntegrationTests/MenuBarSubmenuTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§1, Controls; Presentation),
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (W15, W16),
-  `Documentation/SwiftUI parity/Decisions/Menu parity (MENUS).md`.
+  `Documentation/SwiftUI parity/Decisions/Menus, toolbars and chrome/Menu parity (MENUS).md`.
 
 ### Blend modes
 
@@ -700,7 +700,7 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIkitCore/Rendering/BlendMode.swift`,
   `Sources/TUIkitFoundation/Styling/Color+BlendMode.swift`; `Tests/TUIkitFoundationTests/BlendModeTests.swift`;
   `Documentation/Colour and styling/Opacity as composition.md`,
-  `Documentation/SwiftUI parity/Decisions/Blend modes and image details (EFFECTS).md`.
+  `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Blend modes and image details (EFFECTS).md`.
 
 ### Search field clear button
 

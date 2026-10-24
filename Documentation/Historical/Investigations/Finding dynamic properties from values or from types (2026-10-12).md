@@ -80,12 +80,12 @@ fca696a35; the ten bugs are failing tests on 0064b34bb.
 
 - Deviations [S1, S2 and S3](<../../SwiftUI parity/Deliberate deviations from SwiftUI.md#state-and-data-flow>):
   optional and existential fields, and the value walk.
-- Decisions [DYNP](<../../SwiftUI parity/Decisions/DynamicProperty update write-back (DYNP).md>) (A-DYNP-1, the
+- Decisions [DYNP](<../../SwiftUI parity/Decisions/State and dynamic properties/DynamicProperty update write-back (DYNP).md>) (A-DYNP-1, the
   optional field; B-DYNP-1, enum write-back; B-DYNP-2, the per-type caches) and
-  [SKEY](<../../SwiftUI parity/Decisions/State keys inside a DynamicProperty (SKEY).md>) (state keys inside a
+  [SKEY](<../../SwiftUI parity/Decisions/State and dynamic properties/State keys inside a DynamicProperty (SKEY).md>) (state keys inside a
   property).
-- Decisions [DYNVFIX](<../../SwiftUI parity/Decisions/Finding dynamic properties from declared types (DYNVFIX).md>)
+- Decisions [DYNVFIX](<../../SwiftUI parity/Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md>)
   (the walk planned from declared types) and
-  [DYNVCLAIM](<../../SwiftUI parity/Decisions/Class properties held by several views (DYNVCLAIM).md>) (class
+  [DYNVCLAIM](<../../SwiftUI parity/Decisions/State and dynamic properties/Class properties held by several views (DYNVCLAIM).md>) (class
   properties held by several views), with the condensed design,
   [Class properties held by several views](<../Class properties held by several views, design (2026-10-12).md>).

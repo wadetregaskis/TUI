@@ -101,3 +101,12 @@ the old scheme's path, which the move retires.
 
 **Fuller version:** topic folders for the flat lanes too (input, lists and tables, presentation).
 **Price:** a lane in two topics lives in one; the owner's call if the flat list grows.
+
+**Built 2026-10-23** (the owner's (a), lane DOCS): 57 lane files moved into nine topic folders —
+Scrolling; Layout and geometry; State and dynamic properties; Input, clipboard and text editing;
+Terminals; Lists and tables; Shapes, effects and animation; Presentation and windows; Menus,
+toolbars and chrome — and SIZEDOCS into Compile time and binary size. A lane in two topics lives in
+the one its title leads with (D4X with input; D5G with layout; O12's pointer shapes with terminals).
+Seven stay flat, each a topic of its own or a mix (BITEMS1, D6M, FORMS, FU2, PARITYMISC, REORG,
+and the main document). Every link was rewritten by resolving it against its file's old place, and
+every path in code comments and tools followed (`validate-markdown-links.py` clean).

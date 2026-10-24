@@ -275,7 +275,7 @@ extension EnvironmentValues {
     /// A terminal app shows its windows one at a time, on the one surface it
     /// has, but it does open them, which is what this reports: SwiftUI's own
     /// example reads it to decide whether to offer an "Open New Window" button.
-    /// See `Documentation/SwiftUI parity/Decisions/Several scenes on one surface (O9).md`,
+    /// See `Documentation/SwiftUI parity/Decisions/Presentation and windows/Several scenes on one surface (O9).md`,
     /// A-O9-1, the owner's to overrule.
     public var supportsMultipleWindows: Bool { true }
 }
