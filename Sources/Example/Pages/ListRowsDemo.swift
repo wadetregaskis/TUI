@@ -40,6 +40,9 @@ struct ListRowsDemo: View {
                         }
                         .listEmptyPlaceholder("page.list.rows.nothingToDo")
                         .frame(width: 30, height: 5)
+                        Text("page.list.rows.tasksHint")
+                            .foregroundStyle(.palette.foregroundSecondary)
+                            .frame(width: 30, alignment: .leading)
                     }
                 }
             }
