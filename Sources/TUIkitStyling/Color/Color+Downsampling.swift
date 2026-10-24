@@ -25,7 +25,8 @@ extension Color {
     ///   quantises the other slot's RGB.
     /// - `.semantic` must be resolved before calling this method.
     /// - `.system` (`Color.red` and the other named colours that follow the scheme)
-    ///   is quantised at its light value: resolve it first for the scheme in force.
+    ///   and `.lightDark` (an asset catalogue's colours) are quantised at their
+    ///   light value: resolve them first for the scheme in force.
     public func downsampledToPalette256() -> Color {
         switch value {
         case .ansi, .terminalDefault, .palette256, .terminalForeground, .terminalBackground:
@@ -38,6 +39,8 @@ extension Color {
         case .system(let name):
             // Unresolved, so its light value: resolve it first for the scheme.
             return name.color(in: .light).carryingAlpha(of: self).downsampledToPalette256()
+        case .lightDark(let index):
+            return index.color(in: .light).carryingAlpha(of: self).downsampledToPalette256()
         }
     }
 
@@ -54,7 +57,7 @@ extension Color {
     /// - `.terminalForeground` and `.terminalBackground` are returned unchanged,
     ///   as in ``downsampledToPalette256()``.
     /// - `.semantic` must be resolved before calling this method.
-    /// - `.system` is quantised at its light value, as in
+    /// - `.system` and `.lightDark` are quantised at their light value, as in
     ///   ``downsampledToPalette256()``.
     public func downsampledToANSI16() -> Color {
         switch value {
@@ -70,6 +73,8 @@ extension Color {
         case .system(let name):
             // Unresolved, so its light value: resolve it first for the scheme.
             return name.color(in: .light).carryingAlpha(of: self).downsampledToANSI16()
+        case .lightDark(let index):
+            return index.color(in: .light).carryingAlpha(of: self).downsampledToANSI16()
         }
     }
 }

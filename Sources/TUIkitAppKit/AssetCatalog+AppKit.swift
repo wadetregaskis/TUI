@@ -27,9 +27,11 @@
         /// As TUIkit's own `init(_:bundle:)`, which reads the uncompiled
         /// catalogue `swift build` copies into a resource bundle, and then, for
         /// a name that has none, the compiled catalogue (`Assets.car`) an
-        /// Xcode build makes, through `NSColor(named:bundle:)`. Its light or
-        /// dark colour is chosen as TUIkit's is: by the colour scheme a view
-        /// reads where nothing has set a palette, when the colour is made.
+        /// Xcode build makes, through `NSColor(named:bundle:)`. Its light and
+        /// dark colours are kept as TUIkit's are, and the one drawn is the one
+        /// for the colour scheme where it is drawn (see `Color(nsColor:)`);
+        /// where they cannot be kept, the one for the colour scheme a view
+        /// reads where nothing has set a palette, chosen when it is made.
         ///
         /// - Parameters:
         ///   - name: The name of the color resource to look for.
@@ -129,9 +131,10 @@
         /// a colour is read once, not every frame. One count per colour kept.
         nonisolated(unsafe) private static var colorLookups: [Key: Int] = [:]
 
-        /// The colour `name` in `bundle`'s compiled catalogue, under the
-        /// appearance a catalogue's variants are chosen by, or `nil` where it
-        /// has none.
+        /// The colour `name` in `bundle`'s compiled catalogue, or `nil` where
+        /// it has none: both its variants, chosen where it is drawn, or where
+        /// they cannot be kept, the one for the appearance a catalogue's
+        /// variants are chosen by (which is why the key has the scheme in it).
         static func color(named name: String, in bundle: Bundle) -> Color? {
             let key = Key(bundlePath: bundle.bundlePath, name: name, isDark: Color.catalogColorScheme == .dark)
             if let known = lock.withLock({ colors[key] }) { return known }

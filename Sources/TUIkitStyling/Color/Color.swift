@@ -198,6 +198,16 @@ public struct Color: Sendable, Hashable {
         ///
         /// A one-byte payload, under `.rgb`'s three, so `Color` stays five bytes.
         case system(SystemColor)
+        /// A colour with a light and a dark RGB value of its own — an asset
+        /// catalogue's colour set, a dynamic `NSColor` — by its place in the
+        /// process-wide table of such pairs (``Color/LightDarkIndex``). Like
+        /// `.system`, its value for the palette's scheme where it is resolved,
+        /// and its light value wherever it is measured unresolved. Made by
+        /// `Color.lightDark(light:dark:)` only.
+        ///
+        /// A two-byte payload at alignment one, under `.rgb`'s three, so `Color`
+        /// stays five bytes with no padding.
+        case lightDark(LightDarkIndex)
     }
 
     /// A colour that is fully transparent — SwiftUI's `Color.clear`.
@@ -442,6 +452,7 @@ public struct Color: Sendable, Hashable {
     /// - `.system` — the named colour's LIGHT value, as SwiftUI's
     ///   `resolve(in: EnvironmentValues())` answers it in a view body; resolved
     ///   with a palette it is the value for that palette's scheme
+    /// - `.lightDark` — an asset catalogue colour's LIGHT value, as `.system`
     ///
     /// Nothing the terminal decides is guessed: a slot it has not reported is not
     /// xterm's value, ``ANSIColor/xtermRGB``, which the user's profile need not
@@ -471,6 +482,8 @@ public struct Color: Sendable, Hashable {
             return nil
         case .system(let name):
             return name.lightComponents
+        case .lightDark(let index):
+            return index.lightComponents
         }
     }
 
@@ -494,7 +507,7 @@ public struct Color: Sendable, Hashable {
         switch value {
         case .ansi, .terminalDefault, .terminalForeground, .terminalBackground: return true
         case .palette256(let index): return index < 16
-        case .rgb, .semantic, .system: return false
+        case .rgb, .semantic, .system, .lightDark: return false
         }
     }
 }
@@ -509,7 +522,9 @@ extension Color {
     /// ``Palette/colorScheme``, so it is drawn light or dark by the scheme in force
     /// where it is resolved — a `.colorScheme` pin included, since a pin is stated
     /// on the palette. Its alpha is carried: the result is the same colour spelled
-    /// for one scheme.
+    /// for one scheme. A colour with light and dark values of its own (an asset
+    /// catalogue's colour set, ``ColorValue/lightDark(_:)``) is chosen the same
+    /// way.
     ///
     /// Other non-semantic colors are returned unchanged. Semantic colors are mapped to
     /// the corresponding palette property — *transitively*, because a palette
@@ -535,8 +550,9 @@ extension Color {
     ///
     /// For `Palette.colorScheme`'s own default, which resolves the page to measure
     /// it: a page in a named colour would otherwise ask the scheme it is being
-    /// asked for, forever. Asked only once a named colour is met, so resolving any
-    /// other colour never computes a scheme.
+    /// asked for, forever. Asked only once a named colour (or a light-and-dark
+    /// one, ``ColorValue/lightDark(_:)``, which `scheme` chooses too) is met, so
+    /// resolving any other colour never computes a scheme.
     package func resolve(with palette: any Palette, systemColorsIn scheme: ColorScheme?) -> Color {
         var resolved = self
         // 16 > the number of palette roles, so any acyclic reference chain
@@ -550,6 +566,8 @@ extension Color {
             case .semantic(let role): token = role
             case .system(let name):
                 return name.color(in: scheme ?? palette.colorScheme).carryingAlpha(of: resolved)
+            case .lightDark(let index):
+                return index.color(in: scheme ?? palette.colorScheme).carryingAlpha(of: resolved)
             case .ansi, .terminalDefault, .palette256, .rgb, .terminalForeground, .terminalBackground:
                 return resolved
             }
@@ -564,6 +582,7 @@ extension Color {
         case .semantic: return Self.rgb(128, 128, 128).carryingAlpha(of: resolved)
         // The sixteenth hop's answer, which the loop has not looked at.
         case .system(let name): return name.color(in: scheme ?? palette.colorScheme).carryingAlpha(of: resolved)
+        case .lightDark(let index): return index.color(in: scheme ?? palette.colorScheme).carryingAlpha(of: resolved)
         case .ansi, .terminalDefault, .palette256, .rgb, .terminalForeground, .terminalBackground: return resolved
         }
     }

@@ -1055,15 +1055,23 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 ### C1. A colour is a five-byte value
 
 - **SwiftUI:** a named colour from an asset catalogue keeps its light and dark
-  variants and chooses where it is drawn; extended-range components survive
-  (Apple's documentation; not measured).
-- **TUIkit:** a colour set's variant is chosen when the `Color` is made, by the
-  default palette's colour scheme; a colour's components are clamped to 8-bit
-  sRGB when it is made (a `Color.Resolved` keeps the extended range).
+  variants and chooses where it is drawn, whatever the variants are;
+  extended-range components survive (Apple's documentation; not measured).
+- **TUIkit:** a colour set's variants (and a dynamic `NSColor`'s, read under
+  aqua and darkAqua) are kept as a two-byte place in a process-wide table of
+  (light, dark) pairs and chosen where the colour is drawn, as in SwiftUI. The
+  exceptions are chosen when the `Color` is made, by the default palette's
+  colour scheme: two variants that differ in opacity (a `Color` has one alpha),
+  a variant that is not plain RGB (a system-colour reference, a palette role, a
+  pattern), and any new pair once the process has made 65,536 different ones. A
+  colour's components are clamped to 8-bit sRGB when it is made (a
+  `Color.Resolved` keeps the extended range).
 - **Why:** `Color` is five bytes with no padding, carried by every `Text` and
-  every cell run; there is no room for a second colour or a reference.
-- **Decided:** [B-D6M-1](<Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md#b-d6m-1-a-named-colours-light-and-dark-variants-are-chosen-when-it-is-made>), [§1](<SwiftUI compatibility guide.md#1-match>) (the Color values
-  row). **Lane.**
+  every cell run; there is room for a two-byte place in a table and one alpha,
+  not for two colours.
+- **Decided:** the owner's ruling B-D6M-1, option 3 (2026-10-24), built as
+  [B-D6M-4](<Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md#b-d6m-4-an-asset-catalogue-colour-chooses-its-variant-where-it-is-drawn>);
+  [§1](<SwiftUI compatibility guide.md#1-match>) (the Color values row). **Owner.**
 
 ### C2. A gradient is one or two samples a cell, corrected for the cell's shape
 

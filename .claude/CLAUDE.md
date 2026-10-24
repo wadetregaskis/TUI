@@ -33,6 +33,13 @@
     nothing observable differs. The ASCII palette's search-index store is the
     example (`ASCIIPalette+SearchIndex.swift`). Key such a memo by everything
     its function reads.
+  - The owner also granted (2026-10-24, ruling B-D6M-1) a value-keyed,
+    append-only interner whose places a value carries:
+    `LightDarkColorTable.shared`, the (light, dark) pairs a five-byte `Color`
+    names by a two-byte place. It is keyed by the value alone (never a bundle,
+    a name or an app), a place never changes once given, and it is bounded, so
+    every test and app in the process can share it without one seeing
+    another. A new interner of this kind still needs the owner's grant.
 - **Before implementing ANYTHING NEW: Search the codebase** for similar patterns, reusable code, existing solutions
 - Consolidate and reuse before adding new functions or types
 - "Reinventing the wheel" is a code smell: investigate why it exists first

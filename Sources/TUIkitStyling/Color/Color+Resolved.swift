@@ -210,6 +210,10 @@ extension Color: CustomStringConvertible {
         case .semantic(let token): name = token.rawValue
         // As SwiftUI describes its named colours: `red`, not the value.
         case .system(let named): name = "\(named)"
+        // Both values, as a light-and-dark colour has no name to give: SwiftUI's
+        // `NamedColor(name:bundle:)` names the colour set, which is not kept.
+        case .lightDark(let index):
+            name = "\(index.color(in: .light).opaqueSpelling) light, \(index.color(in: .dark).opaqueSpelling) dark"
         case .ansi(let slot): name = "ansi(\(slot))"
         case .palette256(let index): name = "palette256(\(index))"
         case .terminalDefault: name = "default"

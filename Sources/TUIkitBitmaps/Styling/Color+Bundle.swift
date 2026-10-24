@@ -29,16 +29,19 @@ extension Color {
     /// A colour that is not found is `Color.clear`, as SwiftUI's is (measured:
     /// it resolves to `#00000000`).
     ///
-    /// > Important: **A set's light and dark colours are chosen when the
-    /// > colour is made, not where it is drawn.** SwiftUI keeps both and draws
-    /// > the one for the `\.colorScheme` where the colour is used. A TUIkit
-    /// > `Color` is five bytes, with no room for two colours or a reference to
-    /// > the set, so the choice is made at once, by the colour scheme a view
-    /// > reads where nothing has set a palette — the default palette's, which
-    /// > is what `NSColor(_:)` resolves a palette role against too. A subtree
-    /// > under a `.palette(_:)` of the other scheme, or under a
-    /// > `.environment(\.colorScheme, …)` pin, still gets that colour. See
-    /// > `Documentation/SwiftUI parity/Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md` (B-D6M-1).
+    /// A set's light and dark colours are both kept, and the one drawn is the
+    /// one for the colour scheme where the colour is drawn — the palette's, or
+    /// a `.environment(\.colorScheme, …)` pin's — as in SwiftUI. Measured in a
+    /// view body (``Color/rgbComponents``, a blend), it reads its light colour,
+    /// as SwiftUI's `resolve(in: EnvironmentValues())` does.
+    ///
+    /// > Note: A set whose two colours differ in opacity, or whose colours are
+    /// > not plain RGB (a reference to a system colour or a palette role), has
+    /// > its colour chosen when it is made instead, by the colour scheme a view
+    /// > reads where nothing has set a palette: a `Color` has room for one
+    /// > opacity, and a system colour already follows the scheme by itself. So
+    /// > does every set once a process has made 65,536 different pairs. See
+    /// > `Documentation/SwiftUI parity/Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md` (B-D6M-1, B-D6M-4).
     ///
     /// - Parameters:
     ///   - name: The name of the color resource to look for.
@@ -58,14 +61,17 @@ extension Color {
     }
 
     /// The colour `name` in the uncompiled catalogues of `bundle` (the main
-    /// bundle for `nil`), in ``catalogColorScheme``, or `nil` where none has
-    /// it. `TUIkitAppKit` asks this before it asks AppKit.
+    /// bundle for `nil`), choosing its variant where it is drawn, or in
+    /// ``catalogColorScheme`` where it cannot; `nil` where no catalogue has it.
+    /// `TUIkitAppKit` asks this before it asks AppKit.
     package static func catalogColor(named name: String, in bundle: Bundle?) -> Color? {
-        AssetCatalog.colorSet(named: name, in: bundle ?? .main)?.color(for: catalogColorScheme)
+        guard let set = AssetCatalog.colorSet(named: name, in: bundle ?? .main) else { return nil }
+        return set.drawn ?? set.color(for: catalogColorScheme)
     }
 
-    /// The colour scheme a named colour's or image's light and dark variants
-    /// are chosen by: the one a view reads where nothing has set a palette.
+    /// The colour scheme a named image's light and dark variants are chosen
+    /// by, and a named colour's where they cannot be kept until it is drawn:
+    /// the one a view reads where nothing has set a palette.
     package static var catalogColorScheme: ColorScheme {
         EnvironmentValues().colorScheme
     }

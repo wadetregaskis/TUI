@@ -1157,7 +1157,7 @@ extension Palette {
         switch background.value {
         case .terminalBackground, .terminalDefault:
             return foreground.ensuringContrast(atLeast: 4.5, against: surface)
-        case .rgb, .ansi, .palette256, .terminalForeground, .semantic, .system:
+        case .rgb, .ansi, .palette256, .terminalForeground, .semantic, .system, .lightDark:
             break
         }
         // Measured as ink, so a foreground of `Color.default` is the foreground the

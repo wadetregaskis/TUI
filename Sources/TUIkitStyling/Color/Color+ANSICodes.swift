@@ -181,6 +181,10 @@ extension Color {
         // its colours with the palette never gets here.
         case .system(let name):
             return name.color(in: .light).uncheckedForegroundParameters(depth: depth)
+        // A light-and-dark colour (an asset catalogue's) unresolved: its light
+        // value, for the same reason.
+        case .lightDark(let index):
+            return index.color(in: .light).uncheckedForegroundParameters(depth: depth)
         }
     }
 
@@ -257,6 +261,8 @@ extension Color {
         // The twin of the foreground's arm: the light value, unresolved.
         case .system(let name):
             return name.color(in: .light).uncheckedBackgroundParameters(depth: depth)
+        case .lightDark(let index):
+            return index.color(in: .light).uncheckedBackgroundParameters(depth: depth)
         }
     }
 

@@ -1065,6 +1065,8 @@ extension Color {
         // Unresolved, its light value, as `foregroundCodes` spells it.
         case .system(let name):
             return name.color(in: .light).sgrForeground(depth: depth)
+        case .lightDark(let index):
+            return index.color(in: .light).sgrForeground(depth: depth)
         }
     }
 
@@ -1097,6 +1099,8 @@ extension Color {
         // Unresolved, its light value, as `foregroundCodes` spells it.
         case .system(let name):
             return name.color(in: .light).sgrBackground(depth: depth)
+        case .lightDark(let index):
+            return index.color(in: .light).sgrBackground(depth: depth)
         }
     }
 }

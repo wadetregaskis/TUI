@@ -36,6 +36,16 @@ enum AssetCatalog {
     struct ColorSet: Equatable {
         let any: Color
         let dark: Color?
+        /// The set as one colour that chooses its variant where it is drawn
+        /// (`Color.lightDark(light:dark:)`), or `nil` where its two cannot be
+        /// kept so and one is chosen when the colour is made.
+        let drawn: Color?
+
+        init(any: Color, dark: Color?) {
+            self.any = any
+            self.dark = dark
+            drawn = Color.lightDark(light: any, dark: dark ?? any)
+        }
 
         /// The colour for `scheme`.
         func color(for scheme: ColorScheme) -> Color {

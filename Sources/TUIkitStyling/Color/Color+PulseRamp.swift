@@ -303,9 +303,10 @@ extension Color {
         switch value {
         case .rgb(let red, let green, let blue):
             return red == green && green == blue
-        case .terminalForeground, .terminalBackground, .system:
+        case .terminalForeground, .terminalBackground, .system, .lightDark:
             // `.system`: its light value, as everything measuring an unresolved
             // named colour reads it — and none of them is a grey, `.gray` included.
+            // `.lightDark`: its light value too, which may be a grey.
             // The RGB the terminal reported. One it has not reported cannot be
             // measured, so it is not known to be a grey.
             guard let (red, green, blue) = rgbComponents else { return false }

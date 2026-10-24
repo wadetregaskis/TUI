@@ -75,7 +75,8 @@ extension Color {
         case .palette256(let index) where index < 8:
             // 0-7 are the standard slots by index; `| 8` is the twin's index.
             return Color(value: .palette256(index | 8))
-        case .ansi, .palette256, .terminalDefault, .terminalForeground, .terminalBackground, .rgb, .semantic, .system:
+        case .ansi, .palette256, .terminalDefault, .terminalForeground, .terminalBackground, .rgb, .semantic, .system,
+            .lightDark:
             return nil
         }
     }

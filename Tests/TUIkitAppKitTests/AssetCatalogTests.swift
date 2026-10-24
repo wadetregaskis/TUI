@@ -20,6 +20,7 @@ import Testing
 @testable import TUIkitTestSupport
 
 #if canImport(AppKit)
+    import AppKit
     @testable import TUIkitAppKit
 #endif
 
@@ -59,7 +60,18 @@ private final class TemporaryBundle {
 }
 
 private func components(_ color: Color) -> [Float] {
-    let resolved = color.resolve(in: EnvironmentValues())
+    components(color, in: EnvironmentValues())
+}
+
+/// `color` drawn in an environment pinned to `scheme`.
+private func components(_ color: Color, in scheme: ColorScheme) -> [Float] {
+    var environment = EnvironmentValues()
+    environment.colorScheme = scheme
+    return components(color, in: environment)
+}
+
+private func components(_ color: Color, in environment: EnvironmentValues) -> [Float] {
+    let resolved = color.resolve(in: environment)
     return [resolved.red, resolved.green, resolved.blue, resolved.opacity].map { ($0 * 255).rounded() }
 }
 
@@ -74,14 +86,42 @@ struct AssetCatalogTests {
         #expect(components(set.color(for: .dark)) == [16, 128, 255, 255])
     }
 
-    @Test("Color(_:bundle:) is the set's colour for the default colour scheme, and clear for a name it lacks")
+    @Test("Color(_:bundle:) keeps both of a set's colours and draws the one for the scheme where it is drawn")
     @MainActor
     func theInitialiser() throws {
         let (made, bundle) = try TemporaryBundle.uncompiled()
         defer { withExtendedLifetime(made) {} }
-        let set = try #require(AssetCatalog.colorSet(named: "Brand", in: bundle))
-        #expect(Color("Brand", bundle: bundle) == set.color(for: EnvironmentValues().colorScheme))
+        let brand = Color("Brand", bundle: bundle)
+        guard case .lightDark = brand.value else {
+            Issue.record("not chosen where it is drawn: \(brand)")
+            return
+        }
+        #expect(components(brand, in: .light) == [204, 102, 51, 255])
+        #expect(components(brand, in: .dark) == [16, 128, 255, 255])
+        #expect(brand.rgbComponents! == (204, 102, 51), "a body measures the light colour")
+        #expect(Color("Brand", bundle: bundle) == brand, "the same set is the same colour every frame")
         #expect(Color("NoSuchColour", bundle: bundle) == .clear, "SwiftUI's missing colour is #00000000")
+    }
+
+    /// A `Color` keeps one alpha, so two variants of different alphas cannot
+    /// wait to be chosen where they are drawn (decisions B-D6M-4).
+    @Test("A set whose colours differ in opacity is chosen when made, by the default colour scheme")
+    @MainActor
+    func twoAlphasChooseWhenMade() throws {
+        let made = try TemporaryBundle()
+        try made.write(
+            """
+            {"colors": [
+              {"idiom": "universal", "color": {"color-space": "srgb",
+                "components": {"red": "1.000", "green": "0.000", "blue": "0.000", "alpha": "1.000"}}},
+              {"idiom": "universal", "appearances": [{"appearance": "luminosity", "value": "dark"}],
+                "color": {"color-space": "srgb",
+                "components": {"red": "0.000", "green": "0.000", "blue": "1.000", "alpha": "0.500"}}}]}
+            """, to: "Assets.xcassets/Faded.colorset/Contents.json")
+        let bundle = try #require(Bundle(path: made.path))
+        let set = try #require(AssetCatalog.colorSet(named: "Faded", in: bundle))
+        #expect(set.drawn == nil)
+        #expect(Color("Faded", bundle: bundle) == set.color(for: EnvironmentValues().colorScheme))
     }
 
     @Test("Components are read as Xcode writes them: floating point, 8-bit, hexadecimal, a grey, a system colour")
@@ -191,7 +231,7 @@ struct AssetCatalogTests {
         /// resources — a name there and in no uncompiled catalogue is found by
         /// `TUIkitAppKit`'s initialisers, which every file of this test target
         /// sees (it links `TUIkitAppKit`).
-        @Test("On macOS a compiled catalogue is read through AppKit, its dark colour chosen as TUIkit chooses")
+        @Test("On macOS a compiled catalogue is read through AppKit, both its colours kept as TUIkit keeps them")
         @MainActor
         func aCompiledCatalogue() throws {
             let made = try TemporaryBundle()
@@ -211,8 +251,10 @@ struct AssetCatalogTests {
             let bundle = try #require(Bundle(path: made.path))
             #expect(AssetCatalog.colorSet(named: "Brand", in: bundle) == nil, "precondition: nothing uncompiled")
 
-            let expected: [Float] = EnvironmentValues().colorScheme == .dark ? [16, 128, 255, 255] : [204, 102, 51, 255]
-            #expect(components(Color("Brand", bundle: bundle)) == expected)
+            let brand = Color("Brand", bundle: bundle)
+            #expect(components(brand, in: .light) == [204, 102, 51, 255])
+            #expect(components(brand, in: .dark) == [16, 128, 255, 255], "not chosen where it is drawn")
+            #expect(brand == Color("Brand", bundle: try TemporaryBundle.uncompiled().1), "a pair is one colour")
             #expect(Color("NoSuchColour", bundle: bundle) == .clear)
             // A body names its colour every frame: AppKit is asked once.
             for _ in 0..<3 {
@@ -227,6 +269,20 @@ struct AssetCatalogTests {
             #expect(decoded.pointSizing == .scale(2), "not the largest picture, at its scale")
             #expect(decoded.pixels.width == 8 && decoded.pixels.height == 4)
             #expect(Image("Logo", bundle: bundle).content == image.content, "a new picture every frame")
+        }
+
+        @Test("A dynamic NSColor keeps both its appearances' colours and draws the one for the scheme")
+        func aDynamicNSColor() {
+            let dynamic = NSColor(name: nil) { appearance in
+                appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+                    ? NSColor(srgbRed: 0.1, green: 0.2, blue: 0.3, alpha: 1)
+                    : NSColor(srgbRed: 0.9, green: 0.8, blue: 0.7, alpha: 1)
+            }
+            let colour = Color(nsColor: dynamic)
+            #expect(components(colour, in: .light) == [230, 204, 179, 255])
+            #expect(components(colour, in: .dark) == [26, 51, 77, 255])
+            // One that is the same under both is a plain colour.
+            #expect(Color(nsColor: NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1)) == .rgb(255, 0, 0))
         }
     #endif
 }
