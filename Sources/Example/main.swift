@@ -69,6 +69,12 @@ struct ExampleApp: App {
         // menu (with Settings…), Edit and Window are TUIkit's; File and View add
         // the Example's own. F10 opens it, as does a click on a title.
         .commands { ExampleCommands() }
+        // What the app menu's About says: a SwiftPM executable has no
+        // Info.plist to say it, so the scene does (a TUIkit modifier).
+        .aboutPanel(
+            applicationName: "TUIkit Example", applicationVersion: tuiKitVersion,
+            copyright: "Copyright © 2026 Frank Gregor & Wade Tregaskis · MIT License",
+            credits: L("about.credits"))
     }
 }
 

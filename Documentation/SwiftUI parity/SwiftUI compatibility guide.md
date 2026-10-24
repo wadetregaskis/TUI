@@ -788,8 +788,8 @@ notes `O13/probe/menus.swift`): the standard menus that have something in
 them (the app's, File, Edit, Format, View, Window, Help — a `CommandGroup`
 goes into its placement's), with the app's own menus between View and
 Window in order of declaration. The scene's own commands are TUIkit's: the
-app's menu, titled with the process's name, holds About (an alert with the
-name, and the version where the app is bundled) and Quit (the quit key's quit,
+app's menu, titled with the app's name, holds About (an alert with the name,
+the version, the credits and the copyright, each where there is one) and Quit (the quit key's quit,
 so it quits when `q` would, whatever has the focus); the Edit menu holds Undo
 and Redo (the app's `UndoManager`, showing the scene's undo keys) and Cut, Copy
 and Paste (⌘X, ⌘C and ⌘V, through `commandKey`, to the focused view).
@@ -848,6 +848,16 @@ window; the titles are not in the Tab ring. Two differences, each a choice:
 
 In a terminal too short for every bar, the bottom bar keeps its rows, the
 menu bar its one, and the top bar gives way.
+
+TUIkit-only: `Scene.aboutPanel(applicationName:applicationVersion:version:copyright:credits:)`
+says what About shows, its parameters named for AppKit's About panel option
+keys. A terminal app is mostly an executable with no Info.plist (a SwiftPM
+product, any program on Linux), so About had only the process's name; each
+value left `nil` comes from the bundle's Info.plist where there is one
+(`CFBundleDisplayName` then `CFBundleName`, `CFBundleShortVersionString`,
+`CFBundleVersion`, `NSHumanReadableCopyright`), and the name failing both from
+the process. The name titles the app's menu and its About and Quit items too
+(decisions MENUBAR, B-MENUBAR-2).
 
 `.toolbar(removing: .sidebarToggle)` takes away `NavigationSplitView`'s own
 toggle handles (the ◀ on the leftmost divider and the ▶ edge column), and any

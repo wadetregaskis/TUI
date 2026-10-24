@@ -134,7 +134,7 @@ struct MenuBarOwnCommandsTests {
     func standardMenus() {
         let app = launched(OwnApp())
         let bar = rows(app)[0]
-        #expect(bar.hasPrefix(" \(_MenuBarCore.appName)  Edit  Note"), "\(bar)")
+        #expect(bar.hasPrefix(" \(EnvironmentValues().resolvedAboutPanel.name)  Edit  Note"), "\(bar)")
     }
 
     @Test("Quit quits as the quit key does, and sends the focused view no key")
@@ -195,14 +195,14 @@ struct MenuBarOwnCommandsTests {
         let app = launched(OwnApp())
         choose(0, item: 0, in: app)
         frame(app)
-        #expect(rows(app).dropFirst().contains { $0.contains(_MenuBarCore.appName) }, "\(rows(app))")
+        #expect(rows(app).dropFirst().contains { $0.contains(EnvironmentValues().resolvedAboutPanel.name) }, "\(rows(app))")
         #expect(rows(app).contains { $0.contains("OK") }, "\(rows(app))")
     }
 
     @Test("The app's menu takes no Alt letter: Alt-E is Edit's, whatever the app is called")
     mutating func appMenuHasNoLetter() {
         let app = launched(OwnApp())
-        app.send(KeyEvent(key: .character(Character(_MenuBarCore.appName.prefix(1).lowercased())), alt: true))
+        app.send(KeyEvent(key: .character(Character(EnvironmentValues().resolvedAboutPanel.name.prefix(1).lowercased())), alt: true))
         frame(app)
         #expect(!rows(app).dropFirst().contains { $0.contains("About") }, "\(rows(app))")
         app.send(KeyEvent(key: .escape))

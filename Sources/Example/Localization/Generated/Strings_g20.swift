@@ -6,8 +6,9 @@
 //
 //  Translation fragment for the menu bar's own commands (`ExampleCommands`):
 //  the File menu's page navigation and the View menu's theme and border
-//  cycling, and the Menus page's section on the menu bar. The standard menus' own items (About, Quit, Undo, Find…, Show
-//  Sidebar …) are TUIkit's strings. English is the source of truth; every
+//  cycling, the Menus page's section on the menu bar, and the credits the
+//  About alert shows. The standard menus' own items (About, Quit, Undo, Find…,
+//  Show Sidebar …) are TUIkit's strings. English is the source of truth; every
 //  other language carries the same key set.
 
 // A sentence a translator reads whole is one string on one line.
@@ -23,6 +24,7 @@ extension ExampleStrings {
             "commands.nextPage": "Next Page",
             "commands.nextPalette": "Next Palette",
             "commands.nextBorder": "Next Border Style",
+            "about.credits": "A tour of TUIkit: SwiftUI's views and controls, in a terminal.",
         ],
         "de": [
             "page.menus.menuBarSection": "Menüleiste · .commands",
@@ -32,6 +34,7 @@ extension ExampleStrings {
             "commands.nextPage": "Nächste Seite",
             "commands.nextPalette": "Nächste Palette",
             "commands.nextBorder": "Nächster Rahmenstil",
+            "about.credits": "Eine Tour durch TUIkit: die Views und Bedienelemente von SwiftUI, im Terminal.",
         ],
         "fr": [
             "page.menus.menuBarSection": "Barre des menus · .commands",
@@ -41,6 +44,7 @@ extension ExampleStrings {
             "commands.nextPage": "Page suivante",
             "commands.nextPalette": "Palette suivante",
             "commands.nextBorder": "Style de bordure suivant",
+            "about.credits": "Une visite de TUIkit : les vues et contrôles de SwiftUI, dans un terminal.",
         ],
         "it": [
             "page.menus.menuBarSection": "Barra dei menu · .commands",
@@ -50,6 +54,7 @@ extension ExampleStrings {
             "commands.nextPage": "Pagina successiva",
             "commands.nextPalette": "Tavolozza successiva",
             "commands.nextBorder": "Stile del bordo successivo",
+            "about.credits": "Un giro di TUIkit: le viste e i controlli di SwiftUI, in un terminale.",
         ],
         "es": [
             "page.menus.menuBarSection": "Barra de menús · .commands",
@@ -59,6 +64,7 @@ extension ExampleStrings {
             "commands.nextPage": "Página siguiente",
             "commands.nextPalette": "Paleta siguiente",
             "commands.nextBorder": "Estilo de borde siguiente",
+            "about.credits": "Un recorrido por TUIkit: las vistas y los controles de SwiftUI, en un terminal.",
         ],
         "zh": [
             "page.menus.menuBarSection": "菜单栏 · .commands",
@@ -68,6 +74,7 @@ extension ExampleStrings {
             "commands.nextPage": "下一页",
             "commands.nextPalette": "下一个调色板",
             "commands.nextBorder": "下一个边框样式",
+            "about.credits": "TUIkit 导览：SwiftUI 的视图和控件，在终端里。",
         ],
         "ja": [
             "page.menus.menuBarSection": "メニューバー · .commands",
@@ -77,6 +84,7 @@ extension ExampleStrings {
             "commands.nextPage": "次のページ",
             "commands.nextPalette": "次のパレット",
             "commands.nextBorder": "次の枠線スタイル",
+            "about.credits": "TUIkit ツアー：SwiftUI のビューとコントロールをターミナルで。",
         ],
     ]
 }

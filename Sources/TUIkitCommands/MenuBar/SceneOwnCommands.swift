@@ -23,7 +23,7 @@ import TUIkitFoundation
 ///
 /// | Group | Item | What choosing it does | Key shown |
 /// |---|---|---|---|
-/// | `appInfo` | About *app* | an alert naming the app, and its version where it is bundled | — |
+/// | `appInfo` | About *app* | an alert naming the app, with its version, credits and copyright where the scene states them (`Scene.aboutPanel`) or its Info.plist has them | — |
 /// | `appSettings` | Settings… | presents the `Settings` scene (`openSettings`), where the app declares one | the scene's key: ⌘, unless its `.keyboardShortcut` says otherwise |
 /// | `appTermination` | Quit *app* | quits as the quit key does, after the menu closes | `StatusBarState.quitShortcut` |
 /// | `undoRedo` | Undo, Redo | the app's `UndoManager`; disabled with nothing to undo or redo | the scene's undo and redo keys |
@@ -60,15 +60,17 @@ struct SceneOwnCommands {
         let service = LocalizationService.shared
         switch group {
         case .appInfo:
-            return Self.items("about") { Button(_MenuBar.aboutTitle, action: showAbout) }
+            return Self.items("about") { Button(environment.resolvedAboutPanel.aboutTitle, action: showAbout) }
         case .appSettings:
             return settingsItems(environment)
         case .windowArrangement, .windowList, .singleWindowList:
-            return environment.scenePresenter.flatMap { windowItems(group, presenter: $0) }
+            return environment.scenePresenter.flatMap {
+                windowItems(group, presenter: $0, appName: environment.resolvedAboutPanel.name)
+            }
         case .appTermination:
             let quit = environment.statusBar?.quitShortcut ?? .q
             let title = LocalizedStringKey.substituting(
-                [_MenuBarCore.appName], into: service.string(for: LocalizationKey.Menu.quitApp))
+                [environment.resolvedAboutPanel.name], into: service.string(for: LocalizationKey.Menu.quitApp))
             return Self.items("quit") {
                 Button(title) { keys?.quit() }
                     .keyboardShortcutHint(quit.keyboardShortcut)
@@ -103,7 +105,9 @@ struct SceneOwnCommands {
 
     /// The Window menu's groups: Close Window, the open windows and the
     /// `Window` scenes — for an app that can open more than one window.
-    private func windowItems(_ group: CommandGroupPlacement.Group, presenter: ScenePresenter) -> CommandItems? {
+    private func windowItems(
+        _ group: CommandGroupPlacement.Group, presenter: ScenePresenter, appName: String
+    ) -> CommandItems? {
         guard presenter.opensSeveralWindows else { return nil }
         switch group {
         case .windowArrangement:
@@ -118,7 +122,7 @@ struct SceneOwnCommands {
             return Self.items("window-list") {
                 ForEach(windows, id: \.serial) { window in
                     Toggle(
-                        window.title ?? _MenuBarCore.appName,
+                        window.title ?? appName,
                         isOn: Binding(
                             get: { window.isFront },
                             set: { if $0 { presenter.showWindow(window.serial) } }))

@@ -153,7 +153,7 @@ struct SceneMenuBarTests {
     @Test("An app with a Settings scene has Settings… in its app menu, showing ⌘, as the command key, and it presents them")
     mutating func settingsItem() {
         let app = launched(SettingsMenuApp())
-        open(_MenuBarCore.appName, in: app)
+        open(EnvironmentValues().resolvedAboutPanel.name, in: app)
         #expect(screen(app).contains("Settings…") && screen(app).contains("⌃,"), "\(screen(app))")
         choose(item: 1, in: app)  // About, Settings…
         #expect(screen(app).contains("settings content"), "\(screen(app))")
@@ -175,7 +175,7 @@ struct SceneMenuBarTests {
         app.send(KeyEvent(key: .character(","), ctrl: true))
         frame(app)
         #expect(!app.scenes.isPresentingSettings, "⌘, is not its key now")
-        open(_MenuBarCore.appName, in: app)
+        open(EnvironmentValues().resolvedAboutPanel.name, in: app)
         #expect(screen(app).contains("⌃P") && !screen(app).contains("⌃,"), "\(screen(app))")
         app.send(KeyEvent(key: .escape))
         frame(app)
@@ -206,7 +206,7 @@ struct SceneMenuBarTests {
     @Test("An app with no Settings scene has no Settings… item")
     mutating func noSettingsItem() {
         let app = launched(PlainMenuApp())
-        open(_MenuBarCore.appName, in: app)
+        open(EnvironmentValues().resolvedAboutPanel.name, in: app)
         #expect(screen(app).contains("About") && !screen(app).contains("Settings…"), "\(screen(app))")
     }
 

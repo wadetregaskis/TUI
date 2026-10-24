@@ -198,8 +198,9 @@ extension _MenuBarCore {
     /// where the terminal reports it (``showsMnemonics(_:)``), each title's
     /// letter is underlined.
     func titleRow(_ menus: [ResolvedCommandMenu], open: Int?, context: RenderContext) -> TitleRow {
+        let appName = context.environment.resolvedAboutPanel.name
         var drawn = menus.enumerated().map { index, menu in
-            self.line(chunk(title(of: menu), open: index == open, context), context)
+            self.line(chunk(title(of: menu, appName: appName), open: index == open, context), context)
         }
         let plain: [String?] = zip(menus, drawn).map { menu, line in
             // The app's menu has no letter (``MenuBarMnemonics``).
@@ -271,20 +272,18 @@ extension _MenuBarCore {
         return TUIkitView.renderToBuffer(view, context: lineContext).lines.first ?? ""
     }
 
-    /// `menu`'s title.
-    private func title(of menu: ResolvedCommandMenu) -> Text {
+    /// `menu`'s title, the app's menu titled `appName`.
+    private func title(of menu: ResolvedCommandMenu, appName: String) -> Text {
         switch menu.title {
-        case .standard(.app): Text(Self.appName).bold()
-        case .standard(let standard): Text(Self.name(of: standard))
+        case .standard(.app): Text(appName).bold()
+        case .standard(let standard): Text(Self.name(of: standard, appName: appName))
         case .declared(let name): name
         }
     }
 
-    /// The app's name, as its menu is titled: the process's.
-    static var appName: String { ProcessInfo.processInfo.processName }
-
-    /// A standard menu's name, in the app's language.
-    static func name(of menu: StandardMenu) -> String {
+    /// A standard menu's name, in the app's language, the app's titled
+    /// `appName` (``ResolvedAboutPanel/name``).
+    static func name(of menu: StandardMenu, appName: String) -> String {
         let service = LocalizationService.shared
         switch menu {
         case .app: return appName
