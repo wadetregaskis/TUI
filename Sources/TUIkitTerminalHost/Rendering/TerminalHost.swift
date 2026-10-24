@@ -79,7 +79,18 @@ package enum TerminalHost {
     /// fixes it up: Ghostty PAINTS ⬛︎ two cells but advances the cursor by
     /// one, so uncompensated the label collides with the glyph (`■On`). Warp
     /// advances these correctly with no help.
-    package static var supportsEmojiChrome: Bool { isAppleTerminal || isITerm2 || isGhostty || isWarp || isGnomeTerminal }
+    package static func supportsEmojiChrome(for program: TerminalClient.Program) -> Bool {
+        switch program {
+        case .appleTerminal, .iTerm2, .ghostty, .warp, .gnomeTerminal:
+            true
+        case .tmux, .unidentified:
+            false
+        }
+    }
+
+    package static var supportsEmojiChrome: Bool {
+        supportsEmojiChrome(for: program)
+    }
 
     /// Whether this terminal draws a Block Elements glyph (U+2580–259F) the
     /// full height of its line. Apple Terminal draws them from the font,
@@ -87,7 +98,18 @@ package enum TerminalHost {
     /// and quadrants came apart into bands there and held together in
     /// Ghostty), where Ghostty, iTerm2, kitty and WezTerm draw them as
     /// shapes of their own. See *Terminal compatibility survey*.
-    package static var blockElementsFillTheLine: Bool { !isAppleTerminal }
+    package static func blockElementsFillTheLine(for program: TerminalClient.Program) -> Bool {
+        switch program {
+        case .appleTerminal:
+            false
+        case .iTerm2, .ghostty, .warp, .gnomeTerminal, .tmux, .unidentified:
+            true
+        }
+    }
+
+    package static var blockElementsFillTheLine: Bool {
+        blockElementsFillTheLine(for: program)
+    }
 
     /// Whether this terminal draws the corner triangles `◢ ◣ ◤ ◥`
     /// (U+25E2–25E5) edge to edge in their cells, so that two side by side
@@ -97,7 +119,18 @@ package enum TerminalHost {
     /// Ghostty and iTerm2 draw them as shapes). A terminal not measured is
     /// taken to draw them well, the owner's default (FB6). See *Terminal
     /// compatibility survey*, "A double-width scrollbar's arrows".
-    package static var cornerTrianglesFillTheCell: Bool { !isAppleTerminal && !isWarp }
+    package static func cornerTrianglesFillTheCell(for program: TerminalClient.Program) -> Bool {
+        switch program {
+        case .appleTerminal, .warp:
+            false
+        case .iTerm2, .ghostty, .gnomeTerminal, .tmux, .unidentified:
+            true
+        }
+    }
+
+    package static var cornerTrianglesFillTheCell: Bool {
+        cornerTrianglesFillTheCell(for: program)
+    }
 
     /// The `TERM_PROGRAM`-style name of the host terminal, from whichever
     /// signal in the environment carries it.

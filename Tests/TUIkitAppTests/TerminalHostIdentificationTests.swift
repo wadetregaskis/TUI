@@ -230,4 +230,28 @@ struct TerminalHostIdentificationTests {
         #expect(TerminalHost.lineStyles(for: .gnomeTerminal) == .plain)
         #expect(TerminalHost.lineStyles(for: .unidentified) == .plain)
     }
+
+    @Test("Rendering trait queries map each terminal program exhaustively")
+    func programRenderingTraits() {
+        for program in TerminalClient.Program.allCases {
+            switch program {
+            case .appleTerminal:
+                #expect(TerminalHost.supportsEmojiChrome(for: program))
+                #expect(!TerminalHost.blockElementsFillTheLine(for: program))
+                #expect(!TerminalHost.cornerTrianglesFillTheCell(for: program))
+            case .warp:
+                #expect(TerminalHost.supportsEmojiChrome(for: program))
+                #expect(TerminalHost.blockElementsFillTheLine(for: program))
+                #expect(!TerminalHost.cornerTrianglesFillTheCell(for: program))
+            case .iTerm2, .ghostty, .gnomeTerminal:
+                #expect(TerminalHost.supportsEmojiChrome(for: program))
+                #expect(TerminalHost.blockElementsFillTheLine(for: program))
+                #expect(TerminalHost.cornerTrianglesFillTheCell(for: program))
+            case .tmux, .unidentified:
+                #expect(!TerminalHost.supportsEmojiChrome(for: program))
+                #expect(TerminalHost.blockElementsFillTheLine(for: program))
+                #expect(TerminalHost.cornerTrianglesFillTheCell(for: program))
+            }
+        }
+    }
 }
