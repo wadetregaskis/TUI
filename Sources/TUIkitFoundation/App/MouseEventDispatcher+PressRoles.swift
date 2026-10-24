@@ -175,11 +175,12 @@ extension MouseEventDispatcher {
         // where: the innermost enabled scope or interior is what a selection
         // keeps to.
         var tier: Bool?
-        var scope: HitTestRegion?
+        var scopeIndex: Int?
         if !selectionScopes.isEmpty || matching.contains(where: { $0.handlerID == .selectionInterior }) {
             tier = innermostTier(matching)
-            scope = matching.first { selectionScope(of: $0.handlerID)?.confinesSelection == true }
+            scopeIndex = matching.firstIndex { selectionScope(of: $0.handlerID)?.confinesSelection == true }
         }
+        let scope = scopeIndex.map { matching[$0] }
         if tier == false {
             for region in matching where offer(event, to: region) != .declined { return true }
             return false
@@ -215,13 +216,36 @@ extension MouseEventDispatcher {
             guard let scope else { return pane }
             return pane.intersection(Self.rect(of: scope)) ?? pane
         }
+        // What a drag kept to a bordered container's interior widens to, a
+        // scope at a time, as it leaves each (``HeldPress``, A-TEXT2-1): the
+        // scope the container itself sits in — the next interior out, an
+        // enabled `textSelection` (where the widening stops: that scope was
+        // the app's), or else the pane. Each kept to the pane; one no wider
+        // than the last is passed over.
+        func widenings(within pane: ScreenSelection.Rect) -> [ScreenSelection.Rect] {
+            guard let scopeIndex, selectionScope(of: matching[scopeIndex].handlerID) == .interior else { return [] }
+            var rungs: [ScreenSelection.Rect] = []
+            var last = within(pane)
+            for region in matching[(scopeIndex + 1)...] {
+                guard let kind = selectionScope(of: region.handlerID), kind.confinesSelection else { continue }
+                let rect = pane.intersection(Self.rect(of: region)) ?? pane
+                if rect != last {
+                    rungs.append(rect)
+                    last = rect
+                }
+                if kind == .enabled { return rungs }
+            }
+            if pane != last { rungs.append(pane) }
+            return rungs
+        }
         for (index, region) in matching.enumerated() {
             if let role = pressRoles[region.handlerID], let handler = handler(for: region.handlerID) {
                 switch role {
                 case .background:
                     // The selection keeps to the pane the press is in.
+                    let pane = Self.rect(of: region)
                     hold(event, for: (handler, region.localOriginX, region.localOriginY),
-                        pane: within(Self.rect(of: region)))
+                        pane: within(pane), widenings: widenings(within: pane))
                     return true
                 case .rows(let rowArea):
                     // A press on a row's text, under an enabled scope: the
@@ -249,7 +273,7 @@ extension MouseEventDispatcher {
             if offer(event, to: region) != .declined { return true }
         }
         guard let selection = screenSelection, selection.contentArea.contains(point) else { return false }
-        hold(event, for: nil, pane: within(selection.contentArea))
+        hold(event, for: nil, pane: within(selection.contentArea), widenings: widenings(within: selection.contentArea))
         return true
     }
 
@@ -301,11 +325,15 @@ extension MouseEventDispatcher {
 
     /// Captures the left button for a held press whose click, if it is one,
     /// belongs to `claimer`, and whose drag selects within `pane` — or
-    /// selects nothing, where `selects` is `false`.
+    /// selects nothing, where `selects` is `false`. A drag that leaves `pane`
+    /// far enough widens through `widenings` (``HeldPress``).
     private func hold(
-        _ press: MouseEvent, for claimer: HeldPress.Claimer?, pane: ScreenSelection.Rect, selects: Bool = true
+        _ press: MouseEvent, for claimer: HeldPress.Claimer?, pane: ScreenSelection.Rect,
+        widenings: [ScreenSelection.Rect] = [], selects: Bool = true
     ) {
-        let held = HeldPress(press: press, claimer: claimer, pane: pane, selection: selects ? screenSelection : nil)
+        let held = HeldPress(
+            press: press, claimer: claimer, pane: pane, widenings: widenings,
+            selection: selects ? screenSelection : nil)
         pressedHandlers[.left] = PressCapture(
             handler: { [held] event in held.receive(event) }, regionOffsetX: 0, regionOffsetY: 0)
     }
@@ -325,6 +353,10 @@ extension MouseEventDispatcher {
 /// - A **drag** — the pointer reaching another cell — selects what it crosses
 ///   (``ScreenSelection``), within the pane the press is in; with Option (meta)
 ///   held, a rectangle. The claimer hears nothing of it.
+/// - A drag kept to a bordered container's interior that **leaves it** by
+///   more than ``wideningRows`` rows or ``wideningColumns`` columns widens to
+///   the scope the container sits in, and stays widened until the release
+///   (A-TEXT2-1, an experiment for the owner to try).
 /// - A **double-click** selects the word under it at once, a **triple-click**
 ///   the row, and a drag after either extends by words or rows. The claimer
 ///   still hears the click, which for a pane's background is harmless — it
@@ -356,10 +388,24 @@ final class HeldPress {
     /// Whether the gesture is making a selection.
     private var isSelecting = false
 
-    init(press: MouseEvent, claimer: Claimer?, pane: ScreenSelection.Rect, selection: ScreenSelection?) {
+    /// The rectangle the selection keeps to now: ``pane``, until a drag
+    /// leaves it far enough to widen.
+    var clip: ScreenSelection.Rect
+
+    /// The rectangles the selection widens to in turn, each the scope the
+    /// last sits in (the next interior out, an enabled `textSelection`, the
+    /// pane): empty unless ``pane`` is a bordered container's interior.
+    var widenings: ArraySlice<ScreenSelection.Rect>
+
+    init(
+        press: MouseEvent, claimer: Claimer?, pane: ScreenSelection.Rect,
+        widenings: [ScreenSelection.Rect] = [], selection: ScreenSelection?
+    ) {
         self.press = press
         self.claimer = claimer
         self.pane = pane
+        self.clip = pane
+        self.widenings = widenings[...]
         self.selection = selection
         if press.clickCount >= 2 {
             beginSelection(unit: press.clickCount == 2 ? .word : press.clickCount == 3 ? .line : .row)
@@ -371,7 +417,11 @@ final class HeldPress {
         switch event.phase {
         case .dragged:
             if !isSelecting, event.x != press.x || event.y != press.y { beginSelection(unit: .character) }
-            if isSelecting { selection?.extend(to: ScreenSelection.Point(x: event.x, y: event.y), shift: event.shift) }
+            if isSelecting {
+                let pointer = ScreenSelection.Point(x: event.x, y: event.y)
+                widen(toward: pointer)
+                selection?.extend(to: pointer, shift: event.shift)
+            }
         case .released:
             if isSelecting { selection?.finish() }
             // With no selection to make, a release outside the pane is a

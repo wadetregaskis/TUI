@@ -958,7 +958,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   unless `.enabled`. A selection may cross from one `Text` into the next, and
   under a scope around a `Table` a row's crosses its columns; a cell's own
   `.textSelection(.enabled)` keeps to the cell, as macOS's does (2026-10-24). One begun inside a bordered container
-  keeps to its interior, unless the app says `.textSelectionScope(.pane)`. What is selected is the page, not the
+  keeps to its interior, unless the app says `.textSelectionScope(.pane)` or the drag goes more than 3 rows or 6 columns outside it, which widens it to the scope the container sits in (A-TEXT2-1, an experiment). What is selected is the page, not the
   menus and popovers over it.
 - **Why:** an app that reports the mouse takes the terminal's own selection
   away, and that selection reached any text.

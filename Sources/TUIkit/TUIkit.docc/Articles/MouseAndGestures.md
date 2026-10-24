@@ -269,9 +269,13 @@ TUIkit selects by itself, as a terminal would:
   the content area. The app header and the status bar are never selected.
 - **A drag that starts inside a bordered container keeps to its interior**:
   `.border()`, a `Box`, `Card`, `Panel` or `GroupBox`, a dialog, an alert.
-  Its border, the title in it and the page around are left out, however far
-  the pointer goes, and in a box inside a box the inner one is the one. A
-  drag that starts on the border, or outside the container, crosses it.
+  Its border, the title in it and the page around are left out, and in a
+  box inside a box the inner one is the one. A drag that starts on the
+  border, or outside the container, crosses it. A drag that goes on past the
+  container, more than 3 rows above or below its interior or more than 6
+  columns beside it, widens to what the container sits in (the box around
+  it, or the pane) and stays widened until the release; overshooting the
+  bottom border by a row or two on the way to a card's last line does not.
   ``View/textSelectionScope(_:)`` with `.pane`, on the root view or on one
   container, lets a drag run on to the pane instead; with `.container`,
   inside, it puts the rule back.

@@ -18,9 +18,15 @@ public enum TextSelectionScope: Sendable, Hashable {
     /// A drag that starts inside a bordered container — `.border()`, `Box`,
     /// `Card`, `Panel`, `GroupBox`, a dialog, an alert — selects within the
     /// container's interior: its border, its title and the page around it
-    /// are left out, however far the pointer goes. The innermost container
-    /// under the press is the one, so a box inside a box keeps to the inner
-    /// one. The default.
+    /// are left out. The innermost container under the press is the one, so a
+    /// box inside a box keeps to the inner one. The default.
+    ///
+    /// A drag that goes on past the container — more than 3 rows above or
+    /// below its interior, or more than 6 columns beside it — widens to what
+    /// the container sits in (the box around it, an enabled
+    /// ``View/textSelection(_:)``, or the pane), and stays widened until the
+    /// release. Overshooting the border by a row or two on the way to the
+    /// container's last line keeps to the container.
     ///
     /// A drag that starts on a container's border, or outside it, is not the
     /// container's, and selects across it as ``pane`` does.

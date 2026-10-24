@@ -45,6 +45,55 @@ Options for a gesture from inside:
 `.textSelectionScope(.pane)` covers an app that wants the old reach
 everywhere. I did not build 2 because of the overshoot.
 
+**Ruling (owner, 2026-10-24): 2, as an experiment.** "I think (2) has
+potential — let's try that first, and see how it feels." Built on lane
+SELWIDEN for the owner to try; the border handle and
+`.textSelectionScope(.pane)` work as before.
+
+- **What widens.** A drag kept to a bordered container's interior that goes
+  more than **3 rows** above or below it, or more than **6 columns** beside
+  it, widens to the scope the container sits in, and the selection re-clips
+  to it at once. The distance is counted in cells outside the interior, the
+  border's own row or column being 1, separately per axis; either one past
+  its limit widens. One constant pair, `HeldPress.wideningRows` and
+  `wideningColumns`, in `TUIkitFoundation/App/HeldPress+Widening.swift`,
+  which holds the whole rule.
+- **Why 3 and 6.** The border and two rows beyond it stay inside, because a
+  drag to "the end of a card" overshoots the bottom border by a row or two as
+  a matter of course, and a stream dragged past the clip already runs to the
+  end of the last row, so that overshoot loses nothing. The third row beyond
+  the border is a drag that meant to leave, and still few enough rows to be
+  there below a card near the screen's foot. Sideways it is twice that,
+  because a cell is about half as wide as it is tall, so 6 columns are about
+  the same distance on the screen as 3 rows, and a drag to a line's end
+  overshoots sideways as freely as one to a card's end does downward.
+- **One way.** Once widened, the selection stays widened until the release:
+  a pointer that comes back inside the card does not narrow it again, so it
+  cannot flicker between the two mid-gesture. Leaving is all that counts. The
+  drag need not also be moving away, since the overshoot that should not
+  widen is itself outward, and only its distance tells the two apart.
+- **One scope at a time.** The next scope out is the next bordered
+  container's interior around this one, an enabled `textSelection` around it
+  (the widening stops there, since that scope is the app's own), or else the
+  pane (a scroll view, a split view's column, the content area), which is
+  always the limit. A card inside a card widens to the outer card's interior
+  first. Leaving that by the same distance widens to the pane. The steps are
+  measured from the rectangle in force, so one long jump can take two steps
+  in one event, as it would in two shorter ones. A scope no wider than the
+  last (an interior that fills its scroll view) is skipped.
+- **Unchanged.** A drag begun on the border or outside the container, a
+  drag kept to a list's or table's row, a cell's own `.textSelection(.enabled)`,
+  and a Control-press, which selects nothing. TUIkit has no keyboard
+  extension of the screen selection (no Shift-arrows), so there is nothing
+  for the rule to apply to there.
+- **Cost.** The check runs on each drag event of a gesture begun inside an
+  interior. The rungs are built once at the press, from the hit regions it
+  already walks. Nothing is added per frame or per region.
+
+What to feel for: whether 3 rows is enough slack for a quick drag to a
+card's end, and whether the jump to the page, when it comes, reads as
+deliberate or as a surprise.
+
 ## B. Shipped the safe option
 
 ### B-TEXT2-1. Ctrl-U is readline's `unix-line-discard` in every text control
@@ -89,7 +138,8 @@ not turn on a list's row text as `.enabled` does. A drag begun on the border
 or outside the box crosses it. The Example's Contact card is fixed by this
 default: dragging from "Contact" down past the card selects the card's four
 interior rows and nothing else (measured in the live Example under a PTY,
-before and after).
+before and after). Since A-TEXT2-1's experiment, a drag that goes more than
+3 rows or 6 columns outside the interior widens to the scope around the box.
 
 The opt-out is a TUIkit-only modifier, `.textSelectionScope(_:)` with
 `TextSelectionScope.container` (the default) and `.pane`: on the root view it

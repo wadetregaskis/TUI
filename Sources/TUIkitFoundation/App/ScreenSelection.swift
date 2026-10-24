@@ -19,7 +19,8 @@ import TUIkitCore
 /// it started in (a scroll view, a split view's column, else the content
 /// area), and to the interior of the innermost bordered container it started
 /// in (``TextSelectionScope/container``, unless the app said
-/// ``TextSelectionScope/pane``). A double-click selects a word; a triple-click the line it is on, in
+/// ``TextSelectionScope/pane``), until the drag goes well past it
+/// (``HeldPress``). A double-click selects a word; a triple-click the line it is on, in
 /// its context — the run of text between the box's walls or wide gaps either
 /// side, as macOS selects a line of the text view clicked rather than of the
 /// window; a quadruple-click the whole row. A drag with
@@ -279,6 +280,17 @@ extension ScreenSelection {
         }
         current = selection
         refreshText()
+    }
+
+    /// Widens the clip of the selection being made to `clip`, the screen's:
+    /// a drag that left a bordered container's interior far enough
+    /// (``HeldPress``). The anchor stays; the next ``extend(to:shift:)``
+    /// clamps the head to the new clip.
+    func widen(to clip: Rect) {
+        guard var selection = current, selection.isMaking, var clip = clip.intersection(contentArea) else { return }
+        clip.y -= frameTop
+        selection.clip = clip
+        current = selection
     }
 
     /// Ends the drag making the selection, and copies it if the scene asks.
