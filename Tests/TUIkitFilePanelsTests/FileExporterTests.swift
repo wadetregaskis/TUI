@@ -198,8 +198,8 @@ struct SaveNameTests {
             let caller = FileExporterCaller()
             let driver = FilePanelDriver { exporter(fixture, caller: caller) }
             await driver.waitFor("notes.md")
-            // To the table, then Alpha/, linked/, beta.txt.
-            driver.press(.tab)
+            // Past the path control to the table, then Alpha/, linked/, beta.txt.
+            driver.press(.tab, times: 2)
             driver.press(.down, times: 2)
             driver.press(.enter)
             #expect(caller.heard.isEmpty, "a file is a name, not a save")

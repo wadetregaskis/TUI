@@ -30,3 +30,35 @@ ones the panel had: ← and Backspace in the folder's rows. macOS's ⌘↑ canno
 offered: a key press never carries Command (`KeyPress.modifiers`), which
 decision B-D1K-1 is to change. **The fuller version** binds ⌘↑ once Command
 reaches `onKeyPress`, where the terminal reports it: a line, after B-D1K-1.
+
+### B-FP2-2. The path is a segmented picker whose selection is the folder shown
+
+*Owner item #30: "a real segmented path control (distinct, hoverable segments)"*
+
+macOS draws a folder's path as a path control (`NSPathControl`): a segment per
+folder, each a target of its own, a click on one going there. A TUIkit panel's
+path is a segmented `Picker` of the folders from the root, `/`, or from the
+home folder, written `~` as a shell prompt writes it, to the folder shown —
+whose selection is the folder shown, so a choice is a move
+(`FilePanelPathBar`). So each segment is lifted under the pointer, the folder
+shown is drawn as the chosen segment, a click goes there, and the keys are a
+segmented control's, measured on macOS 15.8 for that control: one Tab stop, ←
+and → move a cursor among the segments, wrapping, and Space or Return goes to
+the one under it. macOS's path control is no Tab stop unless Full Keyboard
+Access is on; this one is, since a keyboard would otherwise climb a level at a
+time or type the path. The focus starts in the folder's rows to open, and
+in the name field to save (`defaultFocus`), not on the path, the first control
+in reading order; to save, Tab reaches the path before the folder.
+
+Narrow, the path keeps what it can, in this order (`FilePanelPathSegment.fitting`):
+every segment; the first, a `…` and as many of the last as fit, the `…`
+going to the deepest folder it stands for, as a macOS path control collapses
+its middle; the `…` and the folder shown; and that with the folder's name
+shortened in the middle. A path of two keeps the first rather than a `…` that
+stands for it alone.
+
+**The fuller version**, in parts: a folder icon in each segment, once the panel
+draws icons (B-FP2-4's glyphs, at a cell each): an hour. A pop-up of a
+segment's own folders on a long press, as macOS's pop-up style offers: half a
+day, and a menu per segment.
+

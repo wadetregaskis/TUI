@@ -22,7 +22,8 @@ import TUIkitTables
 ///
 /// Composed of TUIkit's own controls, as ``ColorPickerPanel`` stands in for
 /// the system's colour panel: a dialog's box titled for what is being chosen,
-/// the folder's path, its items in a ``Table`` (Name, Size, Date Modified,
+/// the folder's path as a segmented path control (``FilePanelPathBar``), its
+/// items in a ``Table`` (Name, Size, Date Modified,
 /// Kind; sortable by any, folders always first; the last three giving way in
 /// a narrow panel, ``FilePanelColumns``), and below them the hidden-files
 /// switch and the Cancel and confirmation buttons.
@@ -39,7 +40,9 @@ import TUIkitTables
 ///   completes and Return goes to, as at a shell prompt;
 /// - Escape cancels (or closes that field).
 /// Every one of them is also a click: a double-click opens or chooses, the
-/// ↰ button before the path goes up, and the buttons are buttons.
+/// ↰ button before the path goes up, a segment of the path goes to its
+/// folder, and the buttons are buttons. The focus starts in the folder's
+/// rows, or to save in the name field.
 ///
 /// To save, a name field sits above the folder and takes the focus first;
 /// Return in it saves. A file of a type the panel saves as is not dimmed, and
@@ -137,6 +140,10 @@ struct FilePanel: View {
             }
             rows
         }
+        // The focus starts in the name field to save and in the folder to
+        // open, as a macOS panel's does: not on the path control, the first
+        // control in reading order.
+        .defaultFocus($focus, request.saveContentTypes != nil ? .name : .rows)
     }
 
     /// The alert a save asks before replacing a file, on `content`: inside

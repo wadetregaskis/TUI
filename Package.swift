@@ -555,13 +555,14 @@ let package = Package(
         // save dialogs drawn by TUIkit, adapted to the terminal). `fileImporter`, `fileExporter`, `fileMover` and
         // the `fileDialog` customizations present a panel TUIkit draws in a sheet, listing a folder in a `Table`
         // with a path bar and, to save, a name field; so it is built on TUIkitPresentation (the sheet and the
-        // replace alert), TUIkitTables (the folder's rows, which bring TUIkitLists) and TUIkitTextInput (the name
-        // and path fields). A module of its own so that an app with no file panel compiles and links none of it.
-        // Nothing in TUIkitFoundation may use it (Tools/ModuleMap's upward check), so the umbrella re-exports it.
-        // It re-exports the four (Sources/TUIkitFilePanels/Exports.swift).
+        // replace alert), TUIkitTables (the folder's rows, which bring TUIkitLists), TUIkitTextInput (the name
+        // and path fields) and TUIkitPickers (the path control, a segmented picker; lane FP2). A module of its own
+        // so that an app with no file panel compiles and links none of it. Nothing in TUIkitFoundation may use
+        // it (Tools/ModuleMap's upward check), so the umbrella re-exports it. It re-exports the five
+        // (Sources/TUIkitFilePanels/Exports.swift).
         .target(
             name: "TUIkitFilePanels",
-            dependencies: ["TUIkitFoundation", "TUIkitPresentation", "TUIkitTables", "TUIkitTextInput"],
+            dependencies: ["TUIkitFoundation", "TUIkitPickers", "TUIkitPresentation", "TUIkitTables", "TUIkitTextInput"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 

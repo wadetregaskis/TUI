@@ -11,7 +11,8 @@
 // `fileDialog` customizations) with the views a panel is made of: the sheet
 // and alert it is presented in (TUIkitPresentation), the table it lists a
 // folder in (TUIkitTables, which brings `List` with it), the fields it names
-// a file and types a path in (TUIkitTextInput), and TUIkitFoundation. Beside
+// a file and types a path in (TUIkitTextInput), the segmented picker its path
+// control is (TUIkitPickers), and TUIkitFoundation. Beside
 // what it gives an importer, it keeps their names, and through their own
 // re-exports the chrome's and the lower and side modules', in scope in every
 // file of this module; each file imports TUIkitFoundation itself as well, and
@@ -26,6 +27,7 @@
 //
 // The umbrella, Sources/TUIkit, re-exports this module beside TUIkitFoundation.
 @_exported import TUIkitFoundation
+@_exported import TUIkitPickers
 @_exported import TUIkitPresentation
 @_exported import TUIkitTables
 @_exported import TUIkitTextInput

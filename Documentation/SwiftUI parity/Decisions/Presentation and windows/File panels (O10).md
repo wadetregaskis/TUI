@@ -58,8 +58,9 @@ sheet of the `.page` size (96 columns, or the terminal's width, by the content
 area's height), titled Open, holding
 
 - the folder's path, the home folder written `~`, with a `..` to click to the
-  folder above (a ↰ button since 2026-10-24,
-  [B-FP2-1](<File panels the Mac's way (FP2).md#b-fp2-1-the-enclosing-folder-button-is--no-tab-stop-and-its-keys-are--and-backspace>));
+  folder above (since 2026-10-24 a ↰ button and a segmented path control,
+  [B-FP2-1](<File panels the Mac's way (FP2).md#b-fp2-1-the-enclosing-folder-button-is--no-tab-stop-and-its-keys-are--and-backspace>)
+  and [B-FP2-2](<File panels the Mac's way (FP2).md#b-fp2-2-the-path-is-a-segmented-picker-whose-selection-is-the-folder-shown>));
 - the folder's items in a `Table` — Name, Size, Date Modified and Kind, sorted
   by any of them from its header or the table's sort keys — a folder's name in
   bold and ending in `/`, as `ls -F` marks one, rather than an icon some
@@ -242,7 +243,8 @@ SwiftUI presents the system's save panel. TUIkit's is the open panel titled
 Save with a name field above the folder, as a macOS save panel has one: Save
 As:, or the `fileExporterFilenameLabel(_:)`, offering `defaultFilename`, else
 the item's suggested file name, else Untitled. The field takes the focus, and
-Return in it saves; Tab reaches the folder. A file of a type the panel saves
+Return in it saves; Tab reaches the folder (past the path control, since
+B-FP2-2). A file of a type the panel saves
 as is not dimmed, and Return on it puts its name in the field and the focus
 back there, as a click on such a file does on macOS — it does not save. The
 name typed is the file's, trimmed, and given the first type's extension when it
