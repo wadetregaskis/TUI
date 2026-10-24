@@ -43,6 +43,38 @@ package enum DividerRule {
     }
 }
 
+/// What a key does to a divider: the one reading of the keyboard that every
+/// resizable divider shares, so a `NavigationSplitView` column divider and an
+/// `HSplitView` / `VSplitView` divider answer the same keys.
+package enum DividerKeyMove: Equatable {
+    /// Moves the divider this many cells — negative toward the start (left or
+    /// up), positive toward the end.
+    case by(Int)
+    /// Moves the divider as far toward the start as its bounds allow.
+    case toStart
+    /// Moves the divider as far toward the end as its bounds allow.
+    case toEnd
+
+    /// A distance no divider can travel: moving by it (or its negative) goes as
+    /// far as the divider's bounds allow, and a quarter of `Int.max` keeps the
+    /// sum with any size from overflowing.
+    package static let farthest = Int.max / 4
+
+    /// What `event` does to a divider that moves along `axis`, or `nil` for a
+    /// key a divider has no use for: the two arrows along the axis (one cell,
+    /// five with Shift), Home for the start and End for the end.
+    package static func of(_ event: KeyEvent, along axis: Axis) -> Self? {
+        let step = event.shift ? 5 : 1
+        switch (axis, event.key) {
+        case (.horizontal, .left), (.vertical, .up): return .by(-step)
+        case (.horizontal, .right), (.vertical, .down): return .by(step)
+        case (_, .home): return .toStart
+        case (_, .end): return .toEnd
+        default: return nil
+        }
+    }
+}
+
 /// A press on a divider and the drag that follows it.
 ///
 /// The press takes the base the gesture moves from — the panes' sizes, the

@@ -280,25 +280,18 @@ final class _SplitDividerHandler: Focusable {
         // A split that cannot resize declines the rest, so Left and Right move
         // to the columns either side (`FocusManager.registerSectionGroup`).
         guard let widths else { return false }
-        let step = event.shift ? 5 : 1
-        let current = resizeBaseWidth
-        switch event.key {
-        case .left:
-            widths.set(current - step, for: column)
-            return true
-        case .right:
-            widths.set(current + step, for: column)
-            return true
-        case .home:
+        switch DividerKeyMove.of(event, along: .horizontal) {
+        case .by(let delta):
+            widths.set(resizeBaseWidth + delta, for: column)
+        case .toStart:
             // Narrowest — the render clamp pins it to minimumColumnWidth.
             widths.set(minimumColumnWidth, for: column)
-            return true
-        case .end:
+        case .toEnd:
             // Widest — a large value the render clamp pins to the layout max.
-            widths.set(Int.max / 4, for: column)
-            return true
-        default:
+            widths.set(DividerKeyMove.farthest, for: column)
+        case nil:
             return false
         }
+        return true
     }
 }
