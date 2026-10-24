@@ -582,7 +582,13 @@ private struct _ButtonCore: View, Renderable, Layoutable {
             propertyIndex: StateIndex.isHovered
         )
         let hoverBox: StateBox<Bool> = stateStorage.storage(for: hoverKey, default: false)
-        let isHovered = !isDisabled && hoverBox.value
+        // A paused drag resting on the button draws it hovered while the
+        // spring-loading pause runs, and pressed as well as it fires (owner
+        // ruling B82) — as the pointer over it draws it, and a press on it:
+        // the built-in styles draw a press as they draw the hover, a style of
+        // the app's own as it draws `isPressed`.
+        let springLoad = context.environment.dragAndDropSession?.springLoadPhase(of: context.identity)
+        let isHovered = !isDisabled && (hoverBox.value || springLoad != nil)
 
         // Press state persists across renders the same way hover does: the
         // mouse handler below flips this box on `.pressed` / `.released` for
@@ -595,7 +601,7 @@ private struct _ButtonCore: View, Renderable, Layoutable {
             propertyIndex: StateIndex.isPressed
         )
         let pressBox: StateBox<Bool> = stateStorage.storage(for: pressKey, default: false)
-        let isPressed = !isDisabled && pressBox.value
+        let isPressed = !isDisabled && (pressBox.value || springLoad == .firing)
 
         // A `.keyboardShortcut(.defaultAction / .cancelAction)` wrapper plants a
         // claimable assignment in the environment; the wrapped button claims it

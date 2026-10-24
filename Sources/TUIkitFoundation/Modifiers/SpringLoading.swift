@@ -90,7 +90,9 @@ extension View {
     /// closes it) and a segmented ``Picker``'s segments, all only under
     /// `.enabled`; and, as SwiftUI documents, a ``TabView``'s tabs, which
     /// spring-load unless told `.disabled`. A ``Menu``, a menu or radio-group
-    /// ``Picker`` and a checkbox ``Toggle`` never do. The pause is
+    /// ``Picker`` and a checkbox ``Toggle`` never do. While the pause runs
+    /// the control draws as hovered, and as it fires as pressed, as macOS
+    /// highlights it. The pause is
     /// macOS's default spring-loading delay, half a second; moving to another
     /// cell starts it again, and a view activates once each time the pointer
     /// arrives on it — a disclosure group opened by a pause does not shut on

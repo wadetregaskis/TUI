@@ -398,7 +398,13 @@ package final class DragAndDropSession: @unchecked Sendable {
     var springLoadTargets: [SpringLoadTarget] = []
 
     /// The spring-loaded control the drag in flight is resting on, if any.
-    var springLoadHover: SpringLoadHover?
+    ///
+    /// Each change of the control it names, or of the phase it is drawn in
+    /// (``springLoadPhase(of:)``), drops the cached pictures of the controls
+    /// concerned, so both are drawn afresh in the frame that follows.
+    var springLoadHover: SpringLoadHover? {
+        didSet { redrawSpringLoadPhases(from: oldValue) }
+    }
 
     /// A reorder was cancelled and its release has not arrived yet, so that
     /// release must be swallowed rather than treated as a click. Lives on the

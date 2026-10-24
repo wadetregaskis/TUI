@@ -27,6 +27,7 @@ private final class Count: @unchecked Sendable {
 @Suite("Spring loading: a paused drag activates the control under it")
 struct SpringLoadingTests {
     private static let delay = Int64(DragAndDropSession.SpringLoading.delayNanos)
+    private static let firing = Int64(DragAndDropSession.SpringLoading.firingNanos)
 
     /// A draggable chip on row 0 and a button on row 3.
     private func page(_ count: Count, button behavior: SpringLoadingBehavior, outer: SpringLoadingBehavior = .automatic)
@@ -71,11 +72,43 @@ struct SpringLoadingTests {
         #expect(drive(harness, at: 0, build) == Self.delay, "the pause asks for a frame when it will have lasted")
         #expect(drive(harness, at: Self.delay - 1, build) == Self.delay)
         #expect(count.value == 0, "not before the delay")
-        #expect(drive(harness, at: Self.delay, build) == nil)
+        #expect(
+            drive(harness, at: Self.delay, build) == Self.delay + Self.firing,
+            "it asks for the frame that ends its pressed look")
         #expect(count.value == 1, "pressed once the pause lasted the delay")
         #expect(harness.tui.dragAndDropSession.active != nil, "the drag is still in the hand")
         drive(harness, at: 4 * Self.delay, build)
         #expect(count.value == 1, "once per arrival: resting on longer does not press it again")
+    }
+
+    @Test("While the pause runs the button draws hovered, as it fires pressed, and then as it was")
+    func pendingAndFiringAreDrawn() {
+        let count = Count()
+        let harness = InputChainHarness(width: 30, height: 8)
+        let build = {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("CHIP").draggable("apple")
+                Text("").frame(height: 2)
+                Button("GO") { count.value += 1 }
+                    .buttonStyle(StateNamingStyle())
+                    .springLoadingBehavior(.enabled)
+            }
+        }
+        let rest = harness.frame(build()).lines[3]
+        #expect(rest.stripped == "REST", "\(rest.stripped)")
+        carry(harness, build)
+        let session = harness.tui.dragAndDropSession
+        _ = session.driveSpringLoading(nowNanos: 0)
+        let pending = harness.frame(build()).lines[3]
+        #expect(pending.stripped == "HOVER", "highlighted while it waits (owner ruling B82): \(pending.stripped)")
+        _ = session.driveSpringLoading(nowNanos: UInt64(Self.delay))
+        let firing = harness.frame(build()).lines[3]
+        #expect(count.value == 1)
+        #expect(firing.stripped == "PRESSED", "pressed as it fires: \(firing.stripped)")
+        _ = session.driveSpringLoading(nowNanos: UInt64(Self.delay + Self.firing - 1))
+        #expect(harness.frame(build()).lines[3] == firing, "for the flash's length")
+        _ = session.driveSpringLoading(nowNanos: UInt64(Self.delay + Self.firing))
+        #expect(harness.frame(build()).lines[3] == rest, "then as it was: spent until the drag leaves it")
     }
 
     @Test("Under .automatic a button is not spring-loaded, as on macOS")
@@ -252,8 +285,21 @@ struct SpringLoadingTests {
             let column = row.firstIndex(of: "C").map { row.distance(from: row.startIndex, to: $0) } ?? 0
             carry(harness, to: column, build)
             drive(harness, at: 0, build)
+            if enabled {
+                // The pause names the segment it rests on, which is what is
+                // drawn as waiting (owner ruling B82), not the whole picker.
+                let resting = harness.tui.dragAndDropSession.springLoadHover?.identity.path ?? ""
+                #expect(resting.contains("SpringLoadedSegment") && resting.hasSuffix(".2"), "\(resting)")
+            }
             drive(harness, at: Self.delay, build)
             #expect(choice.value == (enabled ? 2 : 0), "under .enabled: \(enabled), on \(row)")
         }
+    }
+}
+
+/// A button style that writes out the state it is drawn in.
+private struct StateNamingStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Text(configuration.isPressed ? "PRESSED" : configuration.isHovered ? "HOVER" : "REST")
     }
 }

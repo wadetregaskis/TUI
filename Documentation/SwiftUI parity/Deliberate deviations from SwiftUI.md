@@ -824,20 +824,20 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 - **SwiftUI:** payloads are `Transferable` and can leave the app; a drop
   operation decides the pointer's badge and what the source is told;
-  spring-loaded controls highlight while a drag waits over them (Apple's
-  documentation, B10 and B82).
+  spring-loaded controls highlight while a drag waits over them, and after
+  the user's spring-loading delay (Apple's documentation, B10 and B82).
 - **TUIkit:** a payload needs no `Transferable` and never leaves the app. A
   drop's action gets a `DropInfo` carrying the cell and the modifiers held at
   release. `.copy`, `.move`, `.delete` and `.alias` all accept a drop; only
   `.cancel` and `.forbidden` refuse it. A one-cell badge on the preview, not
   the pointer, names the proposed operation: `+`, `↗` or `⊘`, and none for a
   move, a delete or a cancel. A drop session's `localSession` is
-  never `nil`. A spring-loaded control activates after a fixed half second
-  with nothing drawn.
+  never `nil`. A spring-loaded control activates after a fixed half second,
+  drawn hovered while it waits and pressed as it fires, as macOS draws it.
 - **Why:** there is no system pasteboard to drag through, CoreTransferable is
   Apple-only, and a terminal's mouse reports carry the modifiers through the
   whole drag.
-- **Decided:** [B10](<Decisions/SwiftUI API completion decisions.md#b10-item-provider-drag-and-drop-stays-in-the-app-and-only-cancel-and-forbidden-change-a-drop>), [B82](<Decisions/SwiftUI API completion decisions.md#b82-spring-loading-a-paused-drag-activates-a-control-undrawn>), [B83](<Decisions/SwiftUI API completion decisions.md#b83-the-drag-and-drop-session-values-ship-nothing-hands-them-out-yet>),
+- **Decided:** [B10](<Decisions/SwiftUI API completion decisions.md#b10-item-provider-drag-and-drop-stays-in-the-app-and-only-cancel-and-forbidden-change-a-drop>), [B82](<Decisions/SwiftUI API completion decisions.md#b82-spring-loading-a-paused-drag-activates-a-control-drawn-waiting-and-firing>), [B83](<Decisions/SwiftUI API completion decisions.md#b83-the-drag-and-drop-session-values-ship-nothing-hands-them-out-yet>),
   [DragAndDropSession.swift](../../Sources/TUIkitFoundation/Input/DragAndDropSession.swift#L16-L23).
   **Medium.**
 

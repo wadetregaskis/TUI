@@ -377,8 +377,28 @@ extension _TabViewCore {
         let selection = self.selection
         session.registerSpringLoadTarget(
             DragAndDropSession.SpringLoadTarget(
-                handlerID: handlerID, identity: context.identity,
+                handlerID: handlerID, identity: Self.springLoadingIdentity(ofTab: index, in: context),
                 activate: { if let v = value.base as? SelectionValue { selection.wrappedValue = v } }),
             in: context)
     }
+
+    /// The tab whose chip is drawn lifted: the one under the pointer, or else
+    /// the one a paused drag rests on, while the spring-loading pause runs and
+    /// as it fires (owner ruling B82).
+    @MainActor
+    func liftedTab(context: RenderContext) -> Int? {
+        if let hovered = hoveredTabBox(context: context).value { return hovered }
+        guard let session = context.environment.dragAndDropSession, session.active != nil else { return nil }
+        return tabs.indices.first { session.springLoadPhase(of: Self.springLoadingIdentity(ofTab: $0, in: context)) != nil }
+    }
+
+    /// The identity tab `index`'s chip spring-loads as: one of its own, below
+    /// the tab view's, so the pause names the chip it rests on and a drag out
+    /// of the tab view's content still reaches another tab.
+    private static func springLoadingIdentity(ofTab index: Int, in context: RenderContext) -> ViewIdentity {
+        context.identity.child(erasedType: SpringLoadedTabChip.self, index: index)
+    }
 }
+
+/// The identity step a tab chip spring-loads at.
+private enum SpringLoadedTabChip {}

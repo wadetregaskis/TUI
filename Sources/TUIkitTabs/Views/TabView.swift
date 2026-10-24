@@ -780,7 +780,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         let strip = folderStripRows(
             rows: rows, selectedIndex: selectedIndex, chip: chip,
             style: FolderStripStyle(
-                inactiveFg: inactiveFg, hoveredIndex: hoveredTabBox(context: context).value,
+                inactiveFg: inactiveFg, hoveredIndex: liftedTab(context: context),
                 palette: palette, inactiveBg: inactiveBg,
                 border: border, surface: surface, interior: interior, boxWidth: boxWidth,
                 alignment: alignment, legibility: context.environment.legibilityWeight))
@@ -1073,7 +1073,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
 
         let strip = compactStripLines(
             rows: rows, selectedIndex: selectedIndex,
-            hoveredIndex: hoveredTabBox(context: context).value,
+            hoveredIndex: liftedTab(context: context),
             chip: chip, palette: palette,
             width: panelWidth, alignment: alignment, context: context)
         let (stripLines, regions) = (strip.lines, strip.regions)

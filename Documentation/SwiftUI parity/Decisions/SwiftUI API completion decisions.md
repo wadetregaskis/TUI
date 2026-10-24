@@ -3019,7 +3019,7 @@ it free of. An app's own shortcut on ⌘F or ⌘G takes the key from the bar, as
 the editor's other chords give way to one; `TextEditingCommands`' Edit ▸
 Find… and Find Next press the two keys.
 
-### B82. Spring loading: a paused drag activates a control, undrawn
+### B82. Spring loading: a paused drag activates a control, drawn waiting and firing
 
 *`SpringLoadingBehavior` (`.automatic`, `.enabled`, `.disabled`),
 `View.springLoadingBehavior(_:)`, `TabContent.springLoadingBehavior(_:)`,
@@ -3054,14 +3054,25 @@ toggle, and the tab view. A tab's own behavior beats the tab view's.
 
 Where it differs:
 
-- **Nothing is drawn.** macOS highlights a spring-loadable control under a
-  drag and emphasises it as it activates (`NSSpringLoadingHighlight`).
-  TUIkit's control does not know a drag is over it; a pause activates it with
-  no warning. The fuller version: the session publishes the target under the
-  pointer and how far through the pause it is, and the control draws itself
-  hovered while it waits and pressed for the frame it activates, its memo
-  told through the session's render invalidation as a drag source is. Half a
-  day, a drawing change with the Stress self-check.
+- **Drawn as hovered while it waits, pressed as it fires** (owner ruling
+  B82, 2026-10-23: "Draw the pending state"; built 2026-10-24, lane MISC).
+  macOS highlights a spring-loadable control under a drag and emphasises it
+  as it activates (`NSSpringLoadingHighlight`). The session names the
+  control the pause rests on and its phase
+  (`DragAndDropSession.springLoadPhase(of:)`: `.pending` from the moment the
+  pointer arrives, `.firing` from the frame it activates for a tenth of a
+  second, six frames, so the emphasis is seen — one frame is gone before it
+  is), and drops the control's cached pictures as the phase changes, through
+  the `HandlerDrawing` its registration carries. A button draws hovered
+  through both and pressed as it fires: the built-in styles draw a press as
+  they draw the hover, as they do under the mouse; a style of the app's own
+  sees `isHovered` and `isPressed`. A `.button` toggle draws hovered (it has
+  no pressed look; its flip is the emphasis); a segmented picker's segment
+  and a tab strip's chip draw as the pointer over them does, each naming its
+  own spring-load identity below the control's. A `.sidebarAdaptable`
+  sidebar's row has no hover look, so it draws as it was. Asked only while a
+  drag is in the hand. Tests: `SpringLoadingTests`
+  (`pendingAndFiringAreDrawn`), `SpringLoadingRunLoopTests`.
 - **A move to another cell restarts the pause**, and a control activates once
   per arrival: the pointer has to leave and come back for a second
   activation, so a disclosure group opened by a pause is not shut by the

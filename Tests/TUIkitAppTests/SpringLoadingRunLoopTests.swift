@@ -79,6 +79,11 @@ struct SpringLoadingRunLoopTests {
 
         app.frame(atNanos: end)
         #expect(presses.value == 1, "the frame at the end of the pause pressed the button")
-        #expect(app.nextWake(after: end) == nil, "and nothing more is waited for")
+        // It draws as pressed for a moment as it fires (owner ruling B82), and
+        // the frame that ends that is the last one waited for.
+        let flashEnd = end + Int64(DragAndDropSession.SpringLoading.firingNanos)
+        #expect(app.nextWake(after: end) == flashEnd, "the frame that draws it unpressed")
+        app.frame(atNanos: flashEnd)
+        #expect(app.nextWake(after: flashEnd) == nil, "and nothing more is waited for")
     }
 }

@@ -764,7 +764,11 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             let hoverKey = StateStorage.StateKey(
                 identity: context.identity, propertyIndex: StateIndex.isHovered)
             hoverBox = stateStorage.storage(for: hoverKey, default: false)
-            isHovered = !isDisabled && hoverBox.value
+            // A paused drag resting on a `.button` toggle draws it hovered
+            // while the spring-loading pause runs and as it fires (owner ruling
+            // B82); a toggle has no pressed look, and its flip is the emphasis.
+            let springLoads = context.environment.dragAndDropSession?.springLoadPhase(of: context.identity) != nil
+            isHovered = !isDisabled && (hoverBox.value || springLoads)
         }
         return Interaction(
             isProxy: isProxy, focusID: persistedFocusID, isFocused: isFocused,

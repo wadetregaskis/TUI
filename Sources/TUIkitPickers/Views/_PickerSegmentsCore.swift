@@ -142,6 +142,15 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
         // The density table a bordered button's face follows, on one row.
         let padding = context.environment.controlSize.padding(regular: 1)
 
+        // The segment a paused drag rests on draws hovered while the
+        // spring-loading pause runs and as it fires (owner ruling B82); asked
+        // only while a drag is in the hand.
+        let session = context.environment.dragAndDropSession
+        let springLoading =
+            session?.active == nil
+            ? nil
+            : options.indices.first { session?.springLoadPhase(of: Self.segmentIdentity($0, in: context)) != nil }
+
         var row = ClaimingRow()
         var runs: [AnimatedCellRun] = []
         var regions: [(x: Int, width: Int)] = []
@@ -154,7 +163,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
             let segment = Segment(
                 isSelected: isSelected, marksSelection: marksSelection,
                 isCursor: isFocused && index == handler.focusedIndex,
-                isHovered: !isDisabled && index == hoverBox.value, isDisabled: isDisabled)
+                isHovered: !isDisabled && (index == hoverBox.value || index == springLoading), isDisabled: isDisabled)
             var label = option.label
             if isPalette, isSelected, let variant = effect.selectedVariant {
                 label = AnyView(label.symbolVariant(variant))
@@ -367,9 +376,20 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
             if springLoads, let session = context.environment.dragAndDropSession {
                 session.registerSpringLoadTarget(
                     DragAndDropSession.SpringLoadTarget(
-                        handlerID: id, identity: context.identity, activate: { selection.wrappedValue = tag }),
+                        handlerID: id, identity: Self.segmentIdentity(index, in: context),
+                        activate: { selection.wrappedValue = tag }),
                     in: context)
             }
         }
     }
+
+    /// The identity segment `index` spring-loads as: one of its own, below the
+    /// picker's, so the pause names the segment it rests on (owner ruling B82)
+    /// and a drag out of the picker still never activates it.
+    private static func segmentIdentity(_ index: Int, in context: RenderContext) -> ViewIdentity {
+        context.identity.child(erasedType: SpringLoadedSegment.self, index: index)
+    }
 }
+
+/// The identity step a segmented picker's segment spring-loads at.
+private enum SpringLoadedSegment {}
