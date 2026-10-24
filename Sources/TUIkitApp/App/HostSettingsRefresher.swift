@@ -17,11 +17,20 @@ import TUIkitTerminalHost
 struct HostSettings: Equatable, Sendable {
     /// The host's accessibility settings: Reduce Motion and its three siblings.
     var accessibility: AccessibilityPreferences = []
+
+    /// The host's spring-loading delay, where it states one (owner ruling B82).
+    var springLoadingDelay: Duration?
+
+    /// Whether this reading asks for anything a host left at its defaults
+    /// does not: what decides whether the session's locality is worth asking.
+    var asksForAnything: Bool {
+        !accessibility.isEmpty || (springLoadingDelay.map { $0 != EnvironmentValues().springLoadingDelay } ?? false)
+    }
 }
 
 /// Keeps the host's settings current for the app runner, which hands them to
 /// its render loop to add to the user's at the root
-/// (``RenderLoop/hostAccessibility``).
+/// (``RenderLoop/hostAccessibility``, ``RenderLoop/hostSpringLoadingDelay``).
 ///
 /// Asked at launch, and again each time the terminal regains the focus: the
 /// user may have been in System Settings meanwhile. Each reading is blocking
@@ -85,9 +94,10 @@ internal final class HostSettingsRefresher {
     /// a tmux subprocess inside tmux, is not run. A wrong "local" can only add
     /// a preference.
     nonisolated static func readHost() -> HostSettings {
-        guard let host = TerminalClient.hostAccessibility(), !host.isEmpty, SessionLocality.isLocal() else {
-            return HostSettings()
-        }
-        return HostSettings(accessibility: host)
+        let host = HostSettings(
+            accessibility: TerminalClient.hostAccessibility() ?? [],
+            springLoadingDelay: TerminalClient.hostSpringLoadingDelay())
+        guard host.asksForAnything, SessionLocality.isLocal() else { return HostSettings() }
+        return host
     }
 }

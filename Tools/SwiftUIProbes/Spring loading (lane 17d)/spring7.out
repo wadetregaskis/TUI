@@ -1,0 +1,9 @@
+=== behavior automatic
+[colorpicker automatic] no spring-loadable point
+  NSColorWell PlatformColorWell responds springLoadingEntered: false, conforms NSSpringLoadingDestination: false
+=== behavior enabled
+[colorpicker enabled] no spring-loadable point
+  NSColorWell PlatformColorWell responds springLoadingEntered: false, conforms NSSpringLoadingDestination: false
+=== behavior disabled
+[colorpicker disabled] no spring-loadable point
+  NSColorWell PlatformColorWell responds springLoadingEntered: false, conforms NSSpringLoadingDestination: false

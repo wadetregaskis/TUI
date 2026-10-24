@@ -111,6 +111,18 @@ struct SpringLoadingTests {
         #expect(harness.frame(build()).lines[3] == rest, "then as it was: spent until the drag leaves it")
     }
 
+    @Test("A button under .springLoadingDelay(_:) waits that long instead")
+    func delayModifier() {
+        let count = Count()
+        let harness = InputChainHarness(width: 30, height: 8)
+        let short = Int64(Duration.milliseconds(200).clampedNanoseconds)
+        let build = { page(count, button: .enabled).springLoadingDelay(.milliseconds(200)) }
+        carry(harness, build)
+        #expect(drive(harness, at: 0, build) == short, "the pause asks for a frame at the shorter delay (owner ruling B82)")
+        drive(harness, at: short, build)
+        #expect(count.value == 1)
+    }
+
     @Test("Under .automatic a button is not spring-loaded, as on macOS")
     func automaticButtonIsNot() {
         let count = Count()

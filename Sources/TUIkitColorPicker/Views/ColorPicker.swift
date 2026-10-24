@@ -181,6 +181,11 @@ public struct ColorPicker: View {
     /// so the two editors are two views of one value, not two values.
     private var swatch: some View {
         Button("") { isEditing = true }
+            // A drag paused over the well does not open the editor, under any
+            // behavior: SwiftUI's colour well does not spring-load (measured,
+            // macOS 15.8, `Tools/SwiftUIProbes/Spring loading (lane 17d)/
+            // spring7.swift`; owner ruling B82), though a button does.
+            .springLoadingBehavior(.disabled)
             // Opaque when there is no alpha channel on offer: a control that
             // withholds the editor should not show the value either, or the one
             // state you cannot reach is the one you can see. The BINDING keeps its

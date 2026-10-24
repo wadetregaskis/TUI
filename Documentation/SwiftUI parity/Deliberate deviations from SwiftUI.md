@@ -832,8 +832,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `.cancel` and `.forbidden` refuse it. A one-cell badge on the preview, not
   the pointer, names the proposed operation: `+`, `↗` or `⊘`, and none for a
   move, a delete or a cancel. A drop session's `localSession` is
-  never `nil`. A spring-loaded control activates after a fixed half second,
-  drawn hovered while it waits and pressed as it fires, as macOS draws it.
+  never `nil`. A spring-loaded control activates after the user's
+  spring-loading delay where the session is local, and half a second
+  elsewhere (or `TUIKIT_SPRING_LOADING_DELAY`, or an app's
+  `.springLoadingDelay(_:)`), drawn hovered while it waits and pressed as it
+  fires, as macOS draws it.
 - **Why:** there is no system pasteboard to drag through, CoreTransferable is
   Apple-only, and a terminal's mouse reports carry the modifiers through the
   whole drag.

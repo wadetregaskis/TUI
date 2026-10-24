@@ -78,11 +78,12 @@ final class RenderLoopHarness {
     /// — in place of asking the process's own host.
     func loop<A: App>(
         _ app: A, isTmux: Bool = false, accessibility: AccessibilityPreferences = [],
-        keyNotation: KeyNotation = .symbols, clientCapabilities: ClientCapabilities? = nil
+        keyNotation: KeyNotation = .symbols, clientCapabilities: ClientCapabilities? = nil,
+        springLoadingDelay: Duration? = nil
     ) -> RenderLoop<A> {
         loop(
             app, on: terminal, isTmux: isTmux, accessibility: accessibility, keyNotation: keyNotation,
-            clientCapabilities: clientCapabilities)
+            clientCapabilities: clientCapabilities, springLoadingDelay: springLoadingDelay)
     }
 
     /// A loop over another terminal: a real `Terminal` writing to a script
@@ -90,7 +91,7 @@ final class RenderLoopHarness {
     func loop<A: App>(
         _ app: A, on terminal: any HostStateKeeping, isTmux: Bool = false,
         accessibility: AccessibilityPreferences = [], keyNotation: KeyNotation = .symbols,
-        clientCapabilities: ClientCapabilities? = nil
+        clientCapabilities: ClientCapabilities? = nil, springLoadingDelay: Duration? = nil
     ) -> RenderLoop<A> {
         RenderLoop(
             app: app,
@@ -104,7 +105,8 @@ final class RenderLoopHarness {
             publishTerminalColors: { [colourRecord] in colourRecord.published.append($0) },
             probeClientCapabilities: Self.probe(answering: clientCapabilities),
             requestedAccessibility: accessibility,
-            keyNotation: keyNotation)
+            keyNotation: keyNotation,
+            springLoadingDelayRequested: springLoadingDelay)
     }
 
     /// A probe that answers `capabilities`, or the process's own host's where

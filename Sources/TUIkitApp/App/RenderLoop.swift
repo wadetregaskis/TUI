@@ -346,6 +346,20 @@ internal final class RenderLoop<A: App> {
     /// environment its process was started in.
     private let keyNotation: KeyNotation
 
+    /// The spring-loading delay the user asked for with
+    /// `TUIKIT_SPRING_LOADING_DELAY`, as the app runner read it from the
+    /// process, or `nil`: written at the root of every frame as
+    /// ``EnvironmentValues/springLoadingDelay``, over the host's own (owner
+    /// ruling B82). `nil` unless the runner says otherwise, for the reason
+    /// ``requestedAccessibility`` gives.
+    private let springLoadingDelayRequested: Duration?
+
+    /// The host's own spring-loading delay, where the app runner is sure the
+    /// user is at this machine (``HostSettingsRefresher``), or `nil`: written
+    /// at the root of every frame unless the user asked for another. `nil` in
+    /// every loop but the app runner's, which takes macOS's default instead.
+    var hostSpringLoadingDelay: Duration?
+
     init(
         app: A,
         terminal: any HostStateKeeping,
@@ -359,7 +373,8 @@ internal final class RenderLoop<A: App> {
             TerminalColorRefresher.publishProcessWide,
         probeClientCapabilities: @escaping @Sendable () -> ClientCapabilities? = ClientCapabilityRefresher.probeHost,
         requestedAccessibility: AccessibilityPreferences = [],
-        keyNotation: KeyNotation = .symbols
+        keyNotation: KeyNotation = .symbols,
+        springLoadingDelayRequested: Duration? = nil
     ) {
         self.isTmux = isTmux
         // Under tmux the bar is not sent again to keep it up: tmux keeps it,
@@ -369,6 +384,7 @@ internal final class RenderLoop<A: App> {
         self.probeClientCapabilities = probeClientCapabilities
         self.requestedAccessibility = requestedAccessibility
         self.keyNotation = keyNotation
+        self.springLoadingDelayRequested = springLoadingDelayRequested
         self.app = app
         self.terminal = terminal
         self.synchronizedUpdates = terminal as? any SynchronizedUpdating
@@ -819,6 +835,12 @@ extension RenderLoop {
         // The user's `TUIKIT_KEY_SYMBOLS` likewise; a scene's `.keyNotation(_:)`
         // can only add to it.
         environment.keyNotation = keyNotation
+        // The user's spring-loading delay: their `TUIKIT_SPRING_LOADING_DELAY`,
+        // else the host's where they are provably at it, else macOS's default
+        // (the key's own). A view's `.springLoadingDelay(_:)` overrides it.
+        if let delay = springLoadingDelayRequested ?? hostSpringLoadingDelay {
+            environment.springLoadingDelay = delay
+        }
 
         // Terminal-adaptive defaults belong to the app run loop, where a real
         // terminal exists — the bare EnvironmentValues defaults stay

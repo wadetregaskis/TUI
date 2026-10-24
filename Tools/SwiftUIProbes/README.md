@@ -817,11 +817,14 @@ messages cite that path), and what cites it.
 - **Asks:** what SwiftUI does when a drag hovers over a spring-loading target: where spring loading is offered, with
   which options, and what activating does (`spring.swift`, `spring6.swift`, and the same question driven with a
   fake `NSDraggingInfo` in `spring2.swift`, `spring5.swift`); and the same for a `TabView`, with the window on
-  screen (`spring3.swift`, `spring4.swift`). Each has its `.out`.
-- **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-04. The drag-session family is macOS 26's and is from its doc
-  comments.
+  screen (`spring3.swift`, `spring4.swift`). Each has its `.out`. And whether a `ColorPicker`'s colour well
+  spring-loads under each behavior, the same fake drag scanned over it (`spring7.swift`, `spring7.out`): it does
+  not, under any, and its `NSColorWell` is no `NSSpringLoadingDestination` (owner ruling B82).
+- **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-04; `spring7.swift` macOS 15.8.1, 2026-10-24. The drag-session
+  family is macOS 26's and is from its doc comments.
 - **Was:** `w17d/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (lane 17d's entries).
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (lane 17d's entries,
+  B82); `Sources/TUIkitColorPicker/Views/ColorPicker.swift`.
 
 ### Gestures (lane 17g)
 

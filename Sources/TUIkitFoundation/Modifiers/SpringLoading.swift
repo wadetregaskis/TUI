@@ -70,7 +70,7 @@ extension View {
     ///
     /// Spring loading refers to a view being activated during a drag and drop
     /// interaction: while a drag is in flight, holding the pointer still over a
-    /// spring-loaded view for half a second activates it, as a click would,
+    /// spring-loaded view for the spring-loading delay activates it, as a click would,
     /// and the drag carries on. This is commonly used with views that have a
     /// navigation or presentation effect, allowing the destination to be
     /// revealed without letting go of the drag:
@@ -92,8 +92,9 @@ extension View {
     /// spring-load unless told `.disabled`. A ``Menu``, a menu or radio-group
     /// ``Picker`` and a checkbox ``Toggle`` never do. While the pause runs
     /// the control draws as hovered, and as it fires as pressed, as macOS
-    /// highlights it. The pause is
-    /// macOS's default spring-loading delay, half a second; moving to another
+    /// highlights it. The pause is the user's spring-loading delay where
+    /// TUIkit can read it and half a second otherwise
+    /// (``View/springLoadingDelay(_:)``); moving to another
     /// cell starts it again, and a view activates once each time the pointer
     /// arrives on it — a disclosure group opened by a pause does not shut on
     /// the next one.

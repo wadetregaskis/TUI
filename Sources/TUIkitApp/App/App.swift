@@ -331,7 +331,8 @@ extension AppRunner {
             // The one loop that reads the process's environment for it: an
             // app in a real terminal, run by the user who set it.
             requestedAccessibility: TerminalClient.accessibilityRequested,
-            keyNotation: TerminalClient.keyNotationRequested
+            keyNotation: TerminalClient.keyNotationRequested,
+            springLoadingDelayRequested: TerminalClient.springLoadingDelayRequested
         )
         // And the one that sends the terminal a progress bar, where the
         // terminal it identified takes one.
@@ -346,6 +347,7 @@ extension AppRunner {
     private func startHostSettings(renderer: RenderLoop<A>) {
         let hostSettings = HostSettingsRefresher { [weak self, weak renderer] settings in
             renderer?.hostAccessibility = settings.accessibility
+            renderer?.hostSpringLoadingDelay = settings.springLoadingDelay
             self?.appState.setNeedsRender()
         }
         self.hostSettings = hostSettings

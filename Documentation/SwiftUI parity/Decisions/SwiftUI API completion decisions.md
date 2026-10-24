@@ -3077,16 +3077,34 @@ Where it differs:
   per arrival: the pointer has to leave and come back for a second
   activation, so a disclosure group opened by a pause is not shut by the
   next. AppKit's own repeat rule could not be measured.
-- **The delay is fixed at half a second**, the system's default. macOS reads
-  the user's setting; a terminal app cannot, and an environment value to
-  change it would be TUIkit's own API, with nothing asking for it yet.
+- **The delay is the user's where TUIkit can read it** (owner ruling B82:
+  "system delay when local, with an override"; built 2026-10-24, lane MISC).
+  macOS reads the user's spring-loading speed, `com.apple.springing.delay` in
+  the global domain (a float in seconds: `defaults read-type -g` says so, and
+  it reads 0.5 at the default, on macOS 15.8.1). The app runner reads it with
+  the host's accessibility settings (`HostSettingsRefresher`, at launch and
+  on focus-in, off the main actor) and counts it only where
+  `SessionLocality.isLocal()` says the user is at this machine; elsewhere —
+  over ssh, on Linux — it is macOS's default, half a second. The user's
+  `TUIKIT_SPRING_LOADING_DELAY` (seconds) overrides the host's. The render
+  loop writes the result at the root as `\.springLoadingDelay`, and the
+  TUI-specific `.springLoadingDelay(_:)` overrides it for a subtree, as an
+  environment value does — the app's choice over the user's there, which is
+  the override the ruling asks for. Each target takes the delay it was drawn
+  under. Not read: macOS's spring-loading on/off switch
+  (`com.apple.springing.enabled`), which the ruling did not ask for. Tests:
+  `SpringLoadingDelayTests`, `SpringLoadingTests.delayModifier`.
 - **No Force Click**, macOS's other trigger: a terminal has no pressure.
 - **A row reorder does not spring-load**: its rows land only in their own
   list, so revealing somewhere else is no use to it.
 - **A control built from a button spring-loads through it** under
-  `.enabled`: a `ColorPicker`'s well opens its editor, an `OutlineGroup`'s
-  triangle opens its branch. macOS's colour well is no `NSButton`, and was
-  not measured; if it should not, the well's button can opt out in an hour.
+  `.enabled`: an `OutlineGroup`'s triangle opens its branch. Not a
+  `ColorPicker`'s well, since 2026-10-24 (owner ruling B82: "SwiftUI's
+  per-control defaults"): SwiftUI's colour well does not spring-load under
+  any behavior, its `NSColorWell` no `NSSpringLoadingDestination` (measured,
+  macOS 15.8.1, `Tools/SwiftUIProbes/Spring loading (lane 17d)/spring7.swift`),
+  so the well's button is `.springLoadingBehavior(.disabled)`. Test:
+  `ColorWellSpringLoadingTests`.
 - **The keyboard needs no pause.** Mid-drag, Tab moves the focus and Return
   or Space activates the focused control, with the drag still in hand — the
   route the no-mouse-only rule asks for, and pinned by a test.

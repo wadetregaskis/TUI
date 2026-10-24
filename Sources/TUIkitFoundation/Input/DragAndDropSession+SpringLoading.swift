@@ -27,6 +27,12 @@ extension DragAndDropSession {
         /// What a pause does: what a click on the control would do.
         package let activate: () -> Void
 
+        /// How long a pause on the control lasts: the
+        /// ``EnvironmentValues/springLoadingDelay`` it was drawn under,
+        /// stamped by ``registerSpringLoadTarget(_:in:)``, and macOS's default
+        /// for a bare registration.
+        var delayNanos = SpringLoading.delayNanos
+
         /// The control's pictures, dropped when the pause starts drawing it as
         /// waiting or firing and when it stops (``springLoadPhase(of:)``).
         /// Stamped by ``registerSpringLoadTarget(_:in:)``, which knows the
@@ -110,12 +116,14 @@ extension DragAndDropSession {
         if old?.identity != new?.identity { new?.drawing?.changed() }
     }
 
-    /// The spring-loading delay.
+    /// The spring-loading timings.
     enum SpringLoading {
-        /// How long the pointer must rest on a control: half a second, 30
-        /// ticks of the frame clock — macOS's default, the
+        /// How long the pointer must rest on a control by default: half a
+        /// second, 30 ticks of the frame clock — macOS's default, the
         /// `com.apple.springing.delay` that System Settings' spring-loading
-        /// speed slider writes (read as 0.5 on the measuring machine).
+        /// speed slider writes (read as 0.5 on the measuring machine). A
+        /// control drawn under another ``EnvironmentValues/springLoadingDelay``
+        /// waits that instead (owner ruling B82).
         static let delayNanos = UInt64(AnimationClock.nanoseconds(atTick: 30))
 
         /// How long a control is drawn as pressed once a pause has activated
@@ -138,6 +146,7 @@ extension DragAndDropSession {
     package func registerSpringLoadTarget(_ target: SpringLoadTarget, in context: RenderContext) {
         var target = target
         target.drawing = HandlerDrawing(context)
+        target.delayNanos = context.environment.springLoadingDelay.clampedNanoseconds
         registerSpringLoadTarget(target)
         guard let journal = DragAndDropRegistrar.declareReplayable(in: context) else { return }
         journal.append(
@@ -200,7 +209,7 @@ extension DragAndDropSession {
         else { return nil }
         let since = hover.sinceNanos ?? nowNanos
         hover.sinceNanos = since
-        let deadline = since &+ SpringLoading.delayNanos
+        let deadline = since &+ target.delayNanos
         guard nowNanos >= deadline else {
             springLoadHover = hover
             return deadline
