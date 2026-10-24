@@ -58,7 +58,20 @@ Three clearly partitioned segments: `R`, `R E`, and `RW`. The linker warning is 
 
 ## Usage
 
-When building or running locally on Linux aarch64, pass the linker flags directly:
+### Option 1: User-level `ld` wrapper (recommended for developer machines)
+
+Place an executable wrapper in `~/.local/bin/ld` (which precedes `/usr/bin` in `$PATH`):
+
+```sh
+#!/bin/sh
+exec /usr/bin/ld.bfd -z separate-code --no-warn-rwx-segments "$@"
+```
+
+Ensure it is executable (`chmod +x ~/.local/bin/ld`). This transparently partitions code and data segments across all `swift run`, `swift build`, `swift test`, and package manifest evaluations without needing extra command-line flags.
+
+### Option 2: Command-line linker flags
+
+When building without the wrapper, pass the linker flags directly:
 
 ```sh
 swift run -Xlinker -z -Xlinker separate-code Example
