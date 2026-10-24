@@ -242,6 +242,10 @@ public enum LocalizationKey {
         case typeSupported = "filePanel.type.supported"
         /// The type pop-up's choice of every file, whatever its type.
         case typeAllFiles = "filePanel.type.allFiles"
+        /// The view switcher's list view.
+        case viewList = "filePanel.view.list"
+        /// The view switcher's column view.
+        case viewColumns = "filePanel.view.columns"
     }
 
     /// Menu items and sections

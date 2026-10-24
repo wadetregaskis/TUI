@@ -105,7 +105,7 @@ enum FilePanelColumns {
     /// serves a row from its memo draws none of the row's views, which ended
     /// the view's task part-way through the read.
     @ViewBuilder
-    private static func nameCell(_ entry: FileEntry, browser: FileBrowser) -> some View {
+    static func nameCell(_ entry: FileEntry, browser: FileBrowser) -> some View {
         if entry.isPlaceholder {
             Text(LocalizationService.shared.string(for: LocalizationKey.FilePanel.loading))
                 .foregroundStyle(.palette.foregroundTertiary)

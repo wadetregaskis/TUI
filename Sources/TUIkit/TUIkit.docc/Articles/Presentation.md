@@ -456,6 +456,12 @@ double-click opens or chooses, and the ↰ button before the path goes up. <kbd>
 turns the path into a field to type a path in, as at a shell prompt:
 <kbd>Tab</kbd> completes it and <kbd>Return</kbd> goes there.
 
+A switcher at the end of the path's row chooses between that list and a
+column view, as Finder's view buttons do: a column for each folder on the way
+to the one shown, side by side, <kbd>Return</kbd> opening a folder as a new
+column and <kbd>←</kbd> or <kbd>Backspace</kbd> going back to the one before.
+The panel opens in the view the last was left in, kept in the app's storage.
+
 The callbacks come in SwiftUI's order: `isPresented` becomes `false`, then
 `onCompletion` hears the choice; a cancellation clears the binding and calls
 `onCancellation`, never `onCompletion`. The panel opens on the folder the app

@@ -61,6 +61,11 @@ struct FilePanelRequest {
     /// (``typeChoices``).
     var contentTypePicker: Visibility = .automatic
 
+    /// The key the panel's view mode is kept under in the app's storage:
+    /// app-wide, or a `fileDialogCustomizationID(_:)`'s own
+    /// (``FilePanelViewMode/storageKey(for:)``).
+    var viewModeKey = FilePanelViewMode.storageKey(for: nil)
+
     /// The folder `~` stands for: the user's home folder, which `~` goes to
     /// and the path bar abbreviates. A test names a folder of its own.
     var homeDirectory = FileManager.default.homeDirectoryForCurrentUser

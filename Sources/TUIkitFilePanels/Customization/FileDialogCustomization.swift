@@ -202,8 +202,9 @@ extension View {
     /// On macOS, configures the `fileExporter`, `fileImporter`, or `fileMover`
     /// to persist and restore the file dialog configuration.
     ///
-    /// A TUIkit panel with an identifier keeps the folder it was left in, and
-    /// whether it listed hidden files, in the app's storage (the store
+    /// A TUIkit panel with an identifier keeps the folder it was left in,
+    /// whether it listed hidden files, and its view (list or columns), in the
+    /// app's storage (the store
     /// `defaultAppStorage(_:)` names, else `StorageDefaults.backend`) under
     /// that identifier, and opens with them the next time — in this launch or
     /// a later one — in place of `fileDialogDefaultDirectory(_:)`'s folder.

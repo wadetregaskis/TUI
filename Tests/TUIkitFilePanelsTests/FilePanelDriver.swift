@@ -118,10 +118,15 @@ final class FilePanelDriver<Page: View> {
         return screen
     }
 
+    /// The app storage the page is drawn with, unless it names its own: a
+    /// test's own, so a panel's view mode switched in one test is not the
+    /// next one's (the panels keep it, `FilePanelViewMode`).
+    let storage = MockStorageBackend()
+
     /// One frame of the page, built afresh.
     @discardableResult
     private func frame() -> FrameBuffer {
-        harness.frame(build())
+        harness.frame(build().defaultAppStorage(storage))
     }
 
     /// Draws frames until the screen shows `text` — a folder is read on

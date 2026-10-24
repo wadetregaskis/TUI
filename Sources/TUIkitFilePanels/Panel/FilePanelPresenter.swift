@@ -87,6 +87,7 @@ struct FilePanelPresenter<Content: View>: View {
             made.startDirectory = kept.directory
             made.showsHiddenFiles = kept.showsHiddenFiles
         }
+        made.viewModeKey = FilePanelViewMode.storageKey(for: customization.customizationID)
         session.current = made
         return made
     }

@@ -26,8 +26,8 @@ terminal, and a new chrome glyph, so it is width-corpus row
 
 It is not a Tab stop, as a macOS panel's toolbar buttons are not in its key
 view loop, and a click on it leaves the focus where it was. Its key is
-Backspace in the folder's rows (and ← too, until the list view became an
-outline whose ← is its own, B-FP2-5). macOS's ⌘↑ cannot be
+Backspace in the folder's rows, and ← in the column view (and in the list
+view too, until it became an outline whose ← is its own, B-FP2-5). macOS's ⌘↑ cannot be
 offered: a key press never carries Command (`KeyPress.modifiers`), which
 decision B-D1K-1 is to change. **The fuller version** binds ⌘↑ once Command
 reaches `onKeyPress`, where the terminal reports it: a line, after B-D1K-1.
@@ -148,4 +148,47 @@ cost — kept from pass to pass while the rows and the expansion are the same,
 or flattened lazily, a window at a time — and drops the limit: about a day, in
 a module other lanes work in; an A/B (the stress harness's table scenarios
 over an outline) is owed with it.
+
+### B-FP2-6. A column view beside the list, chosen with a segmented switcher, and kept
+
+*Owner item #31: "a column view (Miller columns), with a segmented switcher as
+macOS's; the current list becomes one of them. Remember the chosen mode per
+app"*
+
+Finder and a macOS panel have four views: icons, list, columns and gallery. A
+TUIkit panel has the two a terminal draws well: the list (B-FP2-5) and the
+columns (`FilePanelColumnView`). The switcher is a segmented `Picker` at the
+end of the path's row, List and Columns in words, where Finder's toolbar has
+icons: one Tab stop, between the path control and the folder, ← and → among
+its segments, Space or Return to choose.
+
+The column view is a column for each folder from the path control's first —
+`/`, or the home folder — to the folder shown, as many of the last as fit at
+24 cells each (a name of about twenty), the last taking the rest, a rule
+between each two; each column is a `List` of its folder's items, read as it
+shows, with no header, as Finder's has none. In each column but the last the
+folder on the way is the one selected; the last column's selection is the
+panel's. The keys:
+
+- ↑ and ↓ move in a column, typing finds a name, Space selects;
+- Return on a folder opens it as a new column, and the keys follow into it,
+  as they do when a click on a folder in an earlier column goes there (a file
+  clicked there is selected in its folder);
+- ← or Backspace closes the last column and goes back to the one before, its
+  cursor still on the folder it opened — a column keeps its identity, and so
+  its cursor, while it shows;
+- → is not bound: Finder's → opens the folder under the cursor, and a list's
+  cursor is not something the panel can read (B-O10-4, whose fuller version,
+  a `package` seam in `ItemListHandler`, would bind it).
+
+The view is kept in the app's storage (`@AppStorage`, the store
+`defaultAppStorage(_:)` names, else `StorageDefaults.backend`) under
+`TUIkitFilePanels.viewMode` for every panel of the app, and under
+`TUIkitFilePanels.<id>.viewMode` for one with a `fileDialogCustomizationID(_:)`,
+as macOS keeps a panel's "view style" under it; so a panel opens in the view
+the last was left in, in this launch or a later one. **The fuller version**,
+in parts: icons on the switcher's segments where SF Symbols draw (an hour);
+an icon view, a grid of names under their icons, once icons draw at more than
+a cell (B-FP2-7; a day); a preview column for a file, as Finder's last column
+shows one (a text file's head: half a day; an image's needs TUIkitBitmaps).
 

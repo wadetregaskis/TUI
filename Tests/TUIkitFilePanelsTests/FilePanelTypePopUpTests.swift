@@ -104,7 +104,7 @@ struct FilePanelTypePopUpTests {
         let caller = FilePanelCaller()
         let driver = FilePanelDriver { panel(fixture, caller: caller) }
         let shown = await driver.waitFor("notes.md")
-        #expect(shown.contains("Show: ( All Supported Files ▾ )"), "\(shown)")
+        #expect(capless(shown).contains("Show: All Supported Files ▾"), "\(shown)")
         // Rows: Alpha/, linked/, beta.txt — dimmed, so Return chooses nothing.
         driver.press(.down, times: 2)
         driver.press(.enter)
@@ -114,8 +114,8 @@ struct FilePanelTypePopUpTests {
         driver.press(.enter)
         driver.press(.end)
         driver.press(.enter)
-        // The pop-up is as wide as its widest choice.
-        await driver.waitFor("Show: ( All Files ")
+        // The pop-up is as wide as its widest choice, so its value is padded.
+        await settle { capless(driver.screen()).contains("Show: All Files   ") }
         // Back to the folder, whose cursor is still on beta.txt: it is chosen.
         driver.press([KeyEvent(key: .tab, shift: true)])
         await settle { driver.press(.enter); return !caller.heard.isEmpty }
@@ -142,15 +142,16 @@ extension FilePanelTypePopUpTests {
                 onChoose: { saved = $0 }, onCancel: {})
         }
         let shown = await driver.waitFor("notes.md")
-        #expect(shown.contains("Format: ( Text "), "\(shown)")
-        // From the name field past the path and the folder to the pop-up;
-        // open it, and choose Markdown, the one after the current.
-        driver.press(.tab, times: 3)
+        #expect(capless(shown).contains("Format: Text "), "\(shown)")
+        // From the name field past the path, the view switcher and the
+        // folder to the pop-up; open it, and choose Markdown, the one after
+        // the current.
+        driver.press(.tab, times: 4)
         driver.press(.enter)
         driver.press(.down)
         driver.press(.enter)
         let renamed = await driver.waitFor("draft.md")
-        #expect(renamed.contains("Format: ( Markdown Text"), "\(renamed)")
+        #expect(capless(renamed).contains("Format: Markdown Text"), "\(renamed)")
         // Save is the default button.
         driver.press([KeyEvent(key: .tab, shift: true)])
         driver.press(.tab, times: 4)
@@ -168,4 +169,12 @@ extension FilePanelRequest {
         request.homeDirectory = fixture.root
         return request
     }
+}
+
+/// `screen` without a pop-up's caps — the control style's half blocks or a
+/// lines face's brackets — and the blank inside each, so an expectation reads
+/// the label and its value whatever face the control is drawn in.
+private func capless(_ screen: String) -> String {
+    screen.replacingOccurrences(of: #"[▐(] "#, with: "", options: .regularExpression)
+        .replacingOccurrences(of: #" [▌)]"#, with: "", options: .regularExpression)
 }

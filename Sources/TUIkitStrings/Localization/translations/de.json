@@ -122,6 +122,8 @@
   "filePanel.type.format": "Format:",
   "filePanel.type.supported": "Alle unterstützten Dateien",
   "filePanel.type.allFiles": "Alle Dateien",
+  "filePanel.view.list": "Liste",
+  "filePanel.view.columns": "Spalten",
 
   "menu.file": "Datei",
   "menu.edit": "Bearbeiten",

@@ -22,11 +22,13 @@ import TUIkitTables
 ///
 /// Composed of TUIkit's own controls, as ``ColorPickerPanel`` stands in for
 /// the system's colour panel: a dialog's box titled for what is being chosen,
-/// the folder's path as a segmented path control (``FilePanelPathBar``), its
-/// items in a ``Table`` (Name, Size, Date Modified,
-/// Kind; sortable by any, folders always first; the last three giving way in
-/// a narrow panel, ``FilePanelColumns``), and below them the hidden-files
-/// switch and the Cancel and confirmation buttons.
+/// the folder's path as a segmented path control (``FilePanelPathBar``) and
+/// a switcher between two views of the folder (``FilePanelViewMode``) — its
+/// items in a ``Table`` (Name, Size, Date Modified, Kind; sortable by any,
+/// folders always first; the last three giving way in a narrow panel,
+/// ``FilePanelColumns``), or a column for each folder on the way to it
+/// (``FilePanelColumnView``) — and below them the hidden-files switch and
+/// the Cancel and confirmation buttons.
 ///
 /// The keys are a terminal file browser's:
 /// - ↑ and ↓ move through the folder, and typing a name's first letters
@@ -37,7 +39,8 @@ import TUIkitTables
 ///   where several may be chosen;
 /// - → opens a folder in place, in the outline the table is, and ← closes
 ///   it, or goes from an item to its folder's row (the outline's keys);
-/// - Backspace goes to the enclosing folder, and `~` to the home folder;
+/// - Backspace goes to the enclosing folder (← too, in the column view),
+///   and `~` to the home folder;
 /// - `/` turns the path bar into a field to type a path in, which Tab
 ///   completes and Return goes to, as at a shell prompt;
 /// - Escape cancels (or closes that field).
@@ -79,13 +82,13 @@ struct FilePanel: View {
 
     /// Which of the panel's fields holds the focus, where the panel moves it:
     /// to the name field when Return puts a file's name there, to the go-to
-    /// field when `/` opens it, and back to the folder when it closes.
-    @FocusState private var focus: Field?
+    /// field when `/` opens it, back to the folder when it closes, and in the
+    /// column view to the column of the folder shown as it changes.
+    @FocusState private var focus: FilePanelField?
 
-    /// The panel's fields, for ``focus``.
-    private enum Field: Hashable {
-        case name, path, rows
-    }
+    /// How the folder is shown, kept in the app's storage
+    /// (``FilePanelViewMode``).
+    @AppStorage private var viewMode: FilePanelViewMode
 
     /// The control size in force, which decides how much room the panel's
     /// parts have between them (``spacing(controlSize:verticalSizeClass:)``).
@@ -102,6 +105,7 @@ struct FilePanel: View {
                 directory: request.startDirectory, rule: request.rule, showsHiddenFiles: request.showsHiddenFiles))
         _name = State(initialValue: request.defaultFilename ?? "")
         _typeChoice = State(initialValue: request.initialTypeChoice)
+        _viewMode = AppStorage(wrappedValue: .list, request.viewModeKey)
     }
 
     var body: some View {
@@ -151,7 +155,7 @@ struct FilePanel: View {
                         return .handled
                     }
             } else {
-                FilePanelPathBar(browser: browser, home: request.homeDirectory)
+                FilePanelPathBar(browser: browser, home: request.homeDirectory, viewMode: $viewMode)
             }
             rows
             if let choices = request.typeChoices {
@@ -163,7 +167,21 @@ struct FilePanel: View {
         // The focus starts in the name field to save and in the folder to
         // open, as a macOS panel's does: not on the path control, the first
         // control in reading order.
-        .defaultFocus($focus, request.saveContentTypes != nil ? .name : .rows)
+        .defaultFocus($focus, request.saveContentTypes != nil ? .name : folderField)
+        // The column view's keys go back to the column of a folder above,
+        // which shows already, when the folder shown closes (←, Backspace,
+        // the ↰ button); a column that opens takes them itself
+        // (`FilePanelColumnView`).
+        .onChange(of: browser.directory) { old, new in
+            guard viewMode == .columns, case .column = focus, old.path.hasPrefix(new.path) else { return }
+            focus = .column(new.path)
+        }
+    }
+
+    /// The field the folder's view holds the focus in: the list view's table,
+    /// or the column view's column of the folder shown.
+    private var folderField: FilePanelField {
+        viewMode == .list ? .rows : .column(browser.directory.path)
     }
 
     /// The blank rows between the panel's parts — the message, the name
@@ -210,45 +228,69 @@ struct FilePanel: View {
 
     // MARK: - The folder's items
 
-    /// The folder's items (``FilePanelListView``), and the keys and the
-    /// primary action the panel gives them.
+    /// The folder's items in the view chosen (``FilePanelListView``,
+    /// ``FilePanelColumnView``), and the keys and the primary action the
+    /// panel gives them.
     @ViewBuilder private var rows: some View {
-        FilePanelListView(
-            browser: browser, allowsMultipleSelection: request.allowsMultipleSelection, selection: selectable,
-            singleSelection: selectableSingle)
-        // A folder is a new table: its cursor starts on the first row and its
-        // scroll at the top, rather than at the place the last folder's were.
-        .id(browser.directory)
-        .contextMenu(forSelectionType: URL.self) { _ in
-        } primaryAction: { urls in
-            activate(urls)
-        }
-        // Backspace, not ←: the outline's ← closes a branch or goes to the
-        // row a branch is under, as an outline view's does.
-        .onKeyPress(keys: [.delete], phases: [.down, .repeat]) { press in
-            guard press.modifiers.isEmpty else { return .ignored }
-            browser.goUp()
-            return .handled
-        }
-        .onKeyPress("~") {
-            browser.open(request.homeDirectory)
-            return .handled
-        }
-        .onKeyPress("/") {
-            openGoToField()
-            return .handled
-        }
-        .focused($focus, equals: .rows)
-        // Added to the sheet's own Escape item, which presses the Cancel
-        // button (`StatusBarState.keepPresentationItem`).
-        .statusBarItems {
-            StatusBarItem(
-                shortcut: Shortcut.backspace,
-                label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusEnclosingFolder))
-            StatusBarItem(
-                shortcut: "~", label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusHome))
-            StatusBarItem(
-                shortcut: "/", label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusGoTo))
+        folderView
+            .contextMenu(forSelectionType: URL.self) { _ in
+            } primaryAction: { urls in
+                activate(urls)
+            }
+            // Backspace, and in the column view ←: the list view's outline
+            // has ← for itself, to close a branch or go to the row a branch
+            // is under, as an outline view's does.
+            .onKeyPress(keys: enclosingFolderKeys, phases: [.down, .repeat]) { press in
+                guard press.modifiers.isEmpty else { return .ignored }
+                browser.goUp()
+                return .handled
+            }
+            .onKeyPress("~") {
+                browser.open(request.homeDirectory)
+                return .handled
+            }
+            .onKeyPress("/") {
+                openGoToField()
+                return .handled
+            }
+            // Added to the sheet's own Escape item, which presses the Cancel
+            // button (`StatusBarState.keepPresentationItem`).
+            .statusBarItems {
+                StatusBarItem(
+                    shortcut: viewMode == .list ? Shortcut.backspace : Shortcut.arrowLeft,
+                    label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusEnclosingFolder))
+                StatusBarItem(
+                    shortcut: "~",
+                    label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusHome))
+                StatusBarItem(
+                    shortcut: "/",
+                    label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusGoTo))
+            }
+    }
+
+    /// The keys to the enclosing folder in the view shown.
+    private var enclosingFolderKeys: Set<KeyEquivalent> {
+        viewMode == .list ? [.delete] : [.delete, .leftArrow]
+    }
+
+    /// The list or the column view of the folder.
+    @ViewBuilder private var folderView: some View {
+        switch viewMode {
+        case .list:
+            FilePanelListView(
+                browser: browser, allowsMultipleSelection: request.allowsMultipleSelection, selection: selectable,
+                singleSelection: selectableSingle)
+            // A folder is a new table: its cursor starts on the first row and
+            // its scroll at the top, rather than where the last folder's were.
+            .id(browser.directory)
+            .focused($focus, equals: .rows)
+        case .columns:
+            // The columns keep their place from folder to folder: each is a
+            // folder's, and keeps its cursor while it shows.
+            FilePanelColumnView(
+                browser: browser, home: request.homeDirectory,
+                allowsMultipleSelection: request.allowsMultipleSelection, selection: selectable,
+                singleSelection: selectableSingle, focus: $focus)
         }
     }
 
@@ -442,7 +484,7 @@ struct FilePanel: View {
     /// Closes the go-to field and gives the folder the focus again.
     private func closeGoToField() {
         typedPath = nil
-        focus = .rows
+        focus = folderField
     }
 
     /// Return in the go-to field: a folder opens; a file opens the folder it

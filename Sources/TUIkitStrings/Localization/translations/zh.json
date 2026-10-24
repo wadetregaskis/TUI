@@ -122,6 +122,8 @@
   "filePanel.type.format": "格式：",
   "filePanel.type.supported": "所有支持的文件",
   "filePanel.type.allFiles": "所有文件",
+  "filePanel.view.list": "列表",
+  "filePanel.view.columns": "分栏",
 
   "menu.file": "文件",
   "menu.edit": "编辑",

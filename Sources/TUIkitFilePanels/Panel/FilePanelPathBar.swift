@@ -35,6 +35,10 @@ struct FilePanelPathBar: View {
     /// The folder the path abbreviates as `~`.
     let home: URL
 
+    /// How the panel shows the folder, which the view switcher at the bar's
+    /// end chooses.
+    let viewMode: Binding<FilePanelViewMode>
+
     /// The size the path control is drawn at, which decides what its
     /// segments' chrome costs.
     @Environment(\.controlSize) private var controlSize
@@ -54,6 +58,7 @@ struct FilePanelPathBar: View {
                 pathControl(width: proxy.size.width)
             }
             .frame(height: 1)
+            FilePanelViewModePicker(mode: viewMode)
         }
     }
 

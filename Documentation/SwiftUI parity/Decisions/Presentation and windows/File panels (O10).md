@@ -207,7 +207,11 @@ app clearing the binding), under `TUIkitFilePanels.<id>.directory` and
 `….showsHiddenFiles` in the app's storage (the store `defaultAppStorage(_:)`
 names, else `StorageDefaults.backend`). It opens there next time, in place of
 the default directory, as Apple documents; a kept folder that no longer exists
-is passed over. **The fuller version** keeps the sort order and recent folders
+is passed over. Since 2026-10-24 a panel has views, and the identifier keeps
+its view too, under `TUIkitFilePanels.<id>.viewMode`, as it keeps its
+"view style" on macOS
+([B-FP2-6](<File panels the Mac's way (FP2).md#b-fp2-6-a-column-view-beside-the-list-chosen-with-a-segmented-switcher-and-kept>)).
+**The fuller version** keeps the sort order and recent folders
 too (once there is a sidebar to show them in): an hour each.
 
 ### B-O10-9. A mover chooses a folder, moves in order, and fails on a name already there

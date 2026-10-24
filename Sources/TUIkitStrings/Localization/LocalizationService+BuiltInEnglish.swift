@@ -152,6 +152,8 @@ extension LocalizationService {
       "filePanel.type.format": "Format:",
       "filePanel.type.supported": "All Supported Files",
       "filePanel.type.allFiles": "All Files",
+      "filePanel.view.list": "List",
+      "filePanel.view.columns": "Columns",
 
       "menu.file": "File",
       "menu.edit": "Edit",

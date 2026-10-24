@@ -40,7 +40,7 @@ extension ExampleStrings {
             "page.files.keys": "In a panel",
             "page.files.help.return": "[↩] opens a folder, or chooses a file",
             "page.files.help.space": "[Space] selects, adding to the selection where several may be chosen",
-            "page.files.help.up": "[←]/[⌫] the enclosing folder, [~] the home folder",
+            "page.files.help.up": "[⌫] the enclosing folder ([←] in the column view), [→]/[←] open and close a folder in place, [~] the home folder",
             "page.files.help.escape": "[⇥] the buttons, [Esc] cancels",
         ],
         "de": [
@@ -70,7 +70,7 @@ extension ExampleStrings {
             "page.files.keys": "In einem Dialog",
             "page.files.help.return": "[↩] öffnet einen Ordner oder wählt eine Datei",
             "page.files.help.space": "[Leertaste] wählt aus, wo mehrere möglich sind auch zusätzlich",
-            "page.files.help.up": "[←]/[⌫] übergeordneter Ordner, [~] Benutzerordner",
+            "page.files.help.up": "[⌫] übergeordneter Ordner ([←] in der Spaltenansicht), [→]/[←] Ordner aufklappen und zuklappen, [~] Benutzerordner",
             "page.files.help.escape": "[⇥] die Tasten, [Esc] bricht ab",
         ],
         "fr": [
@@ -100,7 +100,7 @@ extension ExampleStrings {
             "page.files.keys": "Dans un panneau",
             "page.files.help.return": "[↩] ouvre un dossier ou choisit un fichier",
             "page.files.help.space": "[Espace] sélectionne, en ajoutant à la sélection quand plusieurs sont permis",
-            "page.files.help.up": "[←]/[⌫] dossier parent, [~] dossier de départ",
+            "page.files.help.up": "[⌫] dossier parent ([←] en présentation par colonnes), [→]/[←] déplier et replier un dossier, [~] dossier de départ",
             "page.files.help.escape": "[⇥] les boutons, [Échap] annule",
         ],
         "it": [
@@ -130,7 +130,7 @@ extension ExampleStrings {
             "page.files.keys": "In un pannello",
             "page.files.help.return": "[↩] apre una cartella o sceglie un file",
             "page.files.help.space": "[Barra spaziatrice] seleziona, aggiungendo alla selezione dove ne sono ammessi più",
-            "page.files.help.up": "[←]/[⌫] cartella superiore, [~] cartella Inizio",
+            "page.files.help.up": "[⌫] cartella superiore ([←] nella vista a colonne), [→]/[←] espandi e comprimi una cartella, [~] cartella Inizio",
             "page.files.help.escape": "[⇥] i pulsanti, [Esc] annulla",
         ],
         "es": [
@@ -160,7 +160,7 @@ extension ExampleStrings {
             "page.files.keys": "En un panel",
             "page.files.help.return": "[↩] abre una carpeta o elige un archivo",
             "page.files.help.space": "[Espacio] selecciona, añadiendo a la selección donde se permiten varios",
-            "page.files.help.up": "[←]/[⌫] carpeta contenedora, [~] carpeta de inicio",
+            "page.files.help.up": "[⌫] carpeta contenedora ([←] en la vista de columnas), [→]/[←] desplegar y contraer una carpeta, [~] carpeta de inicio",
             "page.files.help.escape": "[⇥] los botones, [Esc] cancela",
         ],
         "zh": [
@@ -190,7 +190,7 @@ extension ExampleStrings {
             "page.files.keys": "在面板中",
             "page.files.help.return": "[↩] 打开文件夹，或选取文件",
             "page.files.help.space": "[空格键] 选择；可多选时加入所选内容",
-            "page.files.help.up": "[←]/[⌫] 上层文件夹，[~] 个人文件夹",
+            "page.files.help.up": "[⌫] 上层文件夹（分栏视图中为 [←]），[→]/[←] 展开和折叠文件夹，[~] 个人文件夹",
             "page.files.help.escape": "[⇥] 切到按钮，[Esc] 取消",
         ],
         "ja": [
@@ -220,7 +220,7 @@ extension ExampleStrings {
             "page.files.keys": "パネルでは",
             "page.files.help.return": "[↩] フォルダを開く、またはファイルを選択",
             "page.files.help.space": "[スペース] 選択（複数選べる場合は追加）",
-            "page.files.help.up": "[←]/[⌫] 親フォルダ、[~] ホームフォルダ",
+            "page.files.help.up": "[⌫] 親フォルダ（カラム表示では [←]）、[→]/[←] フォルダを展開・折りたたむ、[~] ホームフォルダ",
             "page.files.help.escape": "[⇥] ボタンへ、[Esc] キャンセル",
         ],
     ]
