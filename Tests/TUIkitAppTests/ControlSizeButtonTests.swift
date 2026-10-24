@@ -120,7 +120,42 @@ struct ControlSizeButtonTests {
         }
         for button in buttons(.regular, .circle, .block, label: "★") { #expect(drawn(button) == ["▐★▌"]) }
         for button in buttons(.extraLarge, .circle, .block, label: "★") {
-            #expect(drawn(button) == ["▗▟   ▙▖", "   ★   ", "▝▜   ▛▘"])
+            #expect(drawn(button) == [" ◢   ◣ ", "▐  ★  ▌", " ◥   ◤ "])
+        }
+    }
+
+    @Test(
+        "A three-row filled circle is a disc, not a plus, in the cells each terminal draws",
+        arguments: [
+            // Ghostty, iTerm2: the corner triangles cut the diagonal cells.
+            (true, true, [" ◢   ◣ ", "▐  +  ▌", " ◥   ◤ "]),
+            // Warp: Block Elements to the line, triangles short of the cell.
+            (true, false, [" ▄   ▄ ", "▐  +  ▌", " ▀   ▀ "]),
+            // Apple Terminal: whole cells of the face, as every three-row face.
+            (false, false, ["       ", "▐  +  ▌", "       "]),
+        ] as [(Bool, Bool, [String])])
+    func circleIsADisc(blocksFill: Bool, trianglesFill: Bool, expected: [String]) {
+        // Owner, 2026-10-24: "'Circle' buttons under the 'Blocks' are giant
+        // plusses for the large and extra large size classes." They were
+        // `▗▟███▙▖ / ███+███ / ▝▜███▛▘`, and in whole cells `··███·· / ███+███ / ··███··`.
+        var context = context()
+        context.environment.blockElementsFillTheLine = blocksFill
+        context.environment.cornerTrianglesFillTheCell = trianglesFill
+        for size in [ControlSize.large, .extraLarge] {
+            for button in buttons(size, .circle, .rounded, .block, label: "+") {
+                let lines = ColorDepth.withCurrent(.truecolor) { renderToBuffer(button, context: context).lines }
+                #expect(lines.map(\.stripped) == expected, "\(size)")
+                // Which cells the face paints: the rows above and below leave
+                // out the first and last cells and keep every cell between.
+                let painted = lines.map { line in
+                    String(paintedCells(line).map { $0.background.isEmpty ? "." : "#" })
+                }
+                let rim = blocksFill ? "..###.." : ".#####."
+                #expect(painted.first == rim && painted.last == rim, "\(painted)")
+                #expect(painted[1] == ".#####.", "the label's row between its half blocks: \(painted)")
+                let measured = measureChild(button, proposal: .unspecified, context: context)
+                #expect(measured.width == 7 && measured.height == 3, "\(size): \(measured)")
+            }
         }
     }
 

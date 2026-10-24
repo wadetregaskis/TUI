@@ -37,18 +37,18 @@ struct ButtonFaceEdges: Equatable, Sendable {
     /// instead (``ButtonBorderShape/underline``): in the lines' ink, under the
     /// label's own cells and not its padding.
     var underlinesLabel = false
-    /// Whether a solid face's caps are cells of the face itself rather than
-    /// glyphs in its colour: a one-row rectangle's square ends, and the label's
-    /// row of every three-row solid face, whose shape is full there. Such a
-    /// face is drawn whole in one colour and breathes whole.
+    /// Whether a solid face is drawn whole in one colour and breathes whole,
+    /// its caps of the face: cells of it where they are spaces — a one-row
+    /// rectangle's square ends, the label's row of a three-row capsule or
+    /// rectangle, whose shape is full there — and glyphs in its colour where
+    /// not, a three-row circle's `▐ … ▌`.
     var capsAreFace = false
 
     /// The rows above and below a three-row face.
     enum Ring: Equatable, Sendable {
-        /// A solid face: `shape` drawn in quadrants, three rows tall — or, in
-        /// `wholeCells`, in whole cells of the face, for a terminal that draws
-        /// Block Elements short of the line (``EnvironmentValues/blockElementsFillTheLine``).
-        case solid(TallShape, wholeCells: Bool)
+        /// A solid face: `shape` drawn three rows tall, as finely as the
+        /// terminal draws (``SolidRaster``).
+        case solid(TallShape, raster: SolidRaster)
         /// A box of lines round an outline face: the glyphs of its row above
         /// and its row below.
         case box(top: BoxRow, bottom: BoxRow)
@@ -64,7 +64,9 @@ struct ButtonFaceEdges: Equatable, Sendable {
         case capsule
         /// Corners rounded by a quadrant (`radius` 1.5 cells) or not at all (0).
         case rectangle(radius: Double)
-        /// A disc, as wide as the face is tall.
+        /// A disc: on its label's row the one-row circle's `▐ … ▌`, a cell
+        /// narrower than the face, and the rows above and below a cell
+        /// narrower each side again, their end cells cut on the diagonal.
         case circle
     }
 
@@ -103,9 +105,12 @@ struct ButtonFaceEdges: Equatable, Sendable {
     /// No caps and no field, and a line under the label in the lines' ink.
     static let underlined = Self(caps: nil, ring: nil, isOutline: true, underlinesLabel: true)
 
-    /// A solid face three rows tall, in `shape`.
-    static func solid(_ shape: TallShape, wholeCells: Bool) -> Self {
-        Self(caps: (" ", " "), ring: .solid(shape, wholeCells: wholeCells), capsAreFace: true)
+    /// A solid face three rows tall, in `shape`: a circle's label row between
+    /// half blocks, as on one row, every other shape's full.
+    static func solid(_ shape: TallShape, raster: SolidRaster) -> Self {
+        let caps: (Character, Character) =
+            shape == .circle ? (TerminalSymbols.openCap, TerminalSymbols.closeCap) : (" ", " ")
+        return Self(caps: caps, ring: .solid(shape, raster: raster), capsAreFace: true)
     }
 
     /// An outline face between `caps`, one row tall, or three in a box of
@@ -247,14 +252,16 @@ extension _ButtonAppearance {
     /// double lines under `.heavy` and `.doubleLine`. A circle has no padding
     /// on one row, and enough on three to be about as wide as it is tall.
     /// Where the terminal draws Block Elements short of the line (Apple
-    /// Terminal), a solid three-row face is drawn in whole cells.
+    /// Terminal), a solid three-row face is drawn in whole cells; a circle's
+    /// diagonal cells are the corner triangles where the terminal draws them
+    /// to the cell's edges (``SolidRaster``).
     ///
     /// A `segment` of a face drawn round several controls
     /// (``EnvironmentValues/isControlSegment``, a ``ControlGroup``'s) has no
     /// caps and one row at any size, as a segmented picker's segment: the
     /// face's ends are drawn round the group.
     func sized(
-        _ size: ControlSize, shape: ButtonBorderShape, family: ButtonFaceFamily, blockElementsFillTheLine: Bool,
+        _ size: ControlSize, shape: ButtonBorderShape, family: ButtonFaceFamily, raster: SolidRaster,
         segment: Bool = false
     ) -> Self {
         guard !isPlain else { return self }
@@ -266,7 +273,7 @@ extension _ButtonAppearance {
         case .blank:
             sized.edges = .bareOutline
         case .solid:
-            sized.edges = caps ? Self.solidEdges(shape, tall: tall, wholeCells: !blockElementsFillTheLine) : .none
+            sized.edges = caps ? Self.solidEdges(shape, tall: tall, raster: raster) : .none
             if shape.kind == .circle { sized.horizontalPadding = tall ? 2 : 0 }
         case .lines(let style):
             // An underline is drawn without caps at every size, and costs no cell
@@ -304,16 +311,16 @@ extension _ButtonAppearance {
     }
 
     /// A solid face in `shape`.
-    private static func solidEdges(_ shape: ButtonBorderShape, tall: Bool, wholeCells: Bool) -> ButtonFaceEdges {
+    private static func solidEdges(_ shape: ButtonBorderShape, tall: Bool, raster: SolidRaster) -> ButtonFaceEdges {
         switch shape.kind {
         case .automatic, .capsule:
-            return tall ? .solid(.capsule, wholeCells: wholeCells) : .capsule
+            return tall ? .solid(.capsule, raster: raster) : .capsule
         case .circle:
-            return tall ? .solid(.circle, wholeCells: wholeCells) : .capsule
+            return tall ? .solid(.circle, raster: raster) : .capsule
         case .roundedRectangle, .brackets, .underline:
-            return tall ? .solid(.rectangle(radius: 1.5), wholeCells: wholeCells) : .solidRectangle
+            return tall ? .solid(.rectangle(radius: 1.5), raster: raster) : .solidRectangle
         case .square:
-            return tall ? .solid(.rectangle(radius: 0), wholeCells: wholeCells) : .solidRectangle
+            return tall ? .solid(.rectangle(radius: 0), raster: raster) : .solidRectangle
         }
     }
 
@@ -359,6 +366,35 @@ extension EnvironmentValues {
     }
 }
 
+/// How finely a three-row solid face is drawn: what the terminal draws to
+/// the edges of its cells.
+enum SolidRaster: Equatable, Sendable {
+    /// Whole cells of the face, no Block Elements glyph: a terminal that
+    /// draws them short of the line (``EnvironmentValues/blockElementsFillTheLine``,
+    /// Apple Terminal).
+    case wholeCells
+    /// Quadrants, a cell's four quarters: Block Elements drawn the full
+    /// line, the corner triangles not to the cell's edges (Warp).
+    case quadrants
+    /// Quadrants, and the corner triangles `◢ ◣ ◤ ◥` where a curve crosses a
+    /// cell on its diagonal — a circle's (``EnvironmentValues/cornerTrianglesFillTheCell``,
+    /// Ghostty and iTerm2).
+    case cornerTriangles
+
+    /// The raster for a terminal that draws Block Elements the full line or
+    /// not, and the corner triangles to the cell's edges or not.
+    init(blockElementsFillTheLine: Bool, cornerTrianglesFillTheCell: Bool) {
+        self = !blockElementsFillTheLine ? .wholeCells : cornerTrianglesFillTheCell ? .cornerTriangles : .quadrants
+    }
+
+    /// The raster the terminal `environment` describes draws.
+    init(_ environment: EnvironmentValues) {
+        self.init(
+            blockElementsFillTheLine: environment.blockElementsFillTheLine,
+            cornerTrianglesFillTheCell: environment.cornerTrianglesFillTheCell)
+    }
+}
+
 // MARK: - Drawing the edges
 
 extension _ButtonStyleBody {
@@ -380,8 +416,11 @@ extension _ButtonStyleBody {
     /// A solid three-row face `width` cells wide in `shape`, a row of cells
     /// at a time: the shape sampled at each quadrant — a quadrant is half a
     /// cell across and a whole cell's width down, a row being two cells'
-    /// widths tall — or, in `wholeCells`, at each cell's middle.
-    static func solidRows(_ shape: ButtonFaceEdges.TallShape, width: Int, wholeCells: Bool) -> [[FaceCell]] {
+    /// widths tall — or, in whole cells, at each cell's four quarters. A
+    /// circle is drawn as ``circleRows(width:raster:)`` says.
+    static func solidRows(_ shape: ButtonFaceEdges.TallShape, width: Int, raster: SolidRaster) -> [[FaceCell]] {
+        if shape == .circle { return circleRows(width: width, raster: raster) }
+        let wholeCells = raster == .wholeCells
         let (w, h) = (Double(width), 6.0)
         func inside(_ x: Double, _ y: Double) -> Bool { contains(shape, width: w, height: h, x: x, y: y) }
         return (0..<3).map { row in
@@ -402,6 +441,47 @@ extension _ButtonStyleBody {
                 return bits == 15 ? .face : bits == 0 ? .empty : .glyph(TerminalSymbols.quadrants[bits])
             }
         }
+    }
+
+    /// A three-row solid circle `width` cells wide, a row of cells at a time.
+    ///
+    /// Three rows sampled as any other shape left a disc a plus: the ellipse's
+    /// rows above and below its label were stairs of quadrants (`▗▟███▙▖`),
+    /// and in whole cells only the middle three cells (`··███··`) — the
+    /// owner's "giant plusses", 2026-10-24. So the circle is drawn as a
+    /// pixel artist draws one, from the cells the terminal has:
+    ///
+    /// - the label's row is the one-row circle's, `▐ … ▌`, its ends half a
+    ///   cell in (the face's caps, ``ButtonFaceEdges/solid(_:raster:)``) —
+    ///   seven cells across a one-glyph label make a disc six cells' widths
+    ///   wide, as wide as its three rows are tall;
+    /// - the rows above and below leave out the face's first and last cells,
+    ///   and cut the next ones on the diagonal: `◢ … ◣` above and `◥ … ◤`
+    ///   below where the terminal draws the corner triangles to the cell's
+    ///   edges, the half nearer the label (`▄ … ▄`, `▀ … ▀`) where it draws
+    ///   only Block Elements, and the whole cell where it draws neither well.
+    ///
+    /// On a seven-cell face, the rows above, at and below the label:
+    /// ` ◢███◣ ` / `▐█████▌` / ` ◥███◤ `.
+    static func circleRows(width: Int, raster: SolidRaster) -> [[FaceCell]] {
+        func row(_ diagonal: (open: FaceCell, close: FaceCell)) -> [FaceCell] {
+            (0..<width).map { column in
+                if column == 0 || column == width - 1 { return .empty }
+                // A face too narrow for both diagonals keeps the cell whole.
+                let opens = column == 1, closes = column == width - 2
+                if opens && closes { return .face }
+                return opens ? diagonal.open : closes ? diagonal.close : .face
+            }
+        }
+        let (top, bottom): ((FaceCell, FaceCell), (FaceCell, FaceCell))
+        switch raster {
+        case .cornerTriangles: (top, bottom) = ((.glyph("◢"), .glyph("◣")), (.glyph("◥"), .glyph("◤")))
+        case .quadrants: (top, bottom) = ((.glyph("▄"), .glyph("▄")), (.glyph("▀"), .glyph("▀")))
+        case .wholeCells: (top, bottom) = ((.face, .face), (.face, .face))
+        }
+        let label = [FaceCell.glyph(TerminalSymbols.openCap)]
+            + Array(repeating: .face, count: max(0, width - 2)) + [.glyph(TerminalSymbols.closeCap)]
+        return [row(top), label, row(bottom)]
     }
 
     /// Whether the point (`x`, `y`) is inside `shape` drawn `width` by
@@ -480,12 +560,12 @@ extension _ButtonStyleBody {
     }
 
     /// A solid three-row face round `middle`, its label's row drawn in
-    /// `face` between ``solidRows(_:width:wholeCells:)``'s middle row's ends:
+    /// `face` between ``solidRows(_:width:raster:)``'s middle row's ends:
     /// that shape's rows above and below it.
     static func solidFace(
-        around middle: FrameBuffer, shape: ButtonFaceEdges.TallShape, wholeCells: Bool, face: Color
+        around middle: FrameBuffer, shape: ButtonFaceEdges.TallShape, raster: SolidRaster, face: Color
     ) -> FrameBuffer {
-        let rows = solidRows(shape, width: middle.width, wholeCells: wholeCells)
+        let rows = solidRows(shape, width: middle.width, raster: raster)
         var buffer = FrameBuffer(lines: [drawn(rows[0], face: face)])
         buffer.appendVertically(middle)
         buffer.appendVertically(FrameBuffer(lines: [drawn(rows[2], face: face)]))

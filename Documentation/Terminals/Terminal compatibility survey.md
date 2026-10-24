@@ -784,6 +784,20 @@ fills the whole cell there, which is what the survey's `█` note below
 `overhang_card.py` page of the rows would show how far short). (A first card of
 the families drew nothing in colour on Apple Terminal: it was spelt in 24-bit
 SGR, which Terminal.app ignores; TUIkit spells 256 colours there.)
+**A three-row circle** (owner, 2026-10-24: "'Circle' buttons under the
+'Blocks' are giant plusses for the large and extra large size classes") is not
+sampled as the other shapes are: three rows of an ellipse in quadrants were a
+stair (`▗▟███▙▖` / `███+███` / `▝▜███▛▘`), and in whole cells a plus
+(`··███··`). Its label's row is the one-row circle's, `▐ + ▌`, and the rows
+above and below leave out the first and last cells and cut the next on the
+diagonal — the corner triangles `◢ ◣` / `◥ ◤` where
+`cornerTrianglesFillTheCell` says they reach the cell's edges (Ghostty, iTerm2:
+*A double-width scrollbar's arrows* below), the half block nearer the label
+(`▄`, `▀`) where only Block Elements do (Warp), and whole cells on Apple
+Terminal, where the label row's `▐ ▌` are the one-row caps that already read as
+a face there: nothing above or below them has to meet them. Not yet seen by
+eye in each host beyond the probes' measures; the triangles' advance is the
+scrollbar's, one cell.
 The same flag keeps a gradient at one sample a cell there (decisions B95,
 2026-10-24): where Block Elements fill the line, a ramp that changes down a
 column draws each blank cell it fills as `▄` in its bottom half's colour over

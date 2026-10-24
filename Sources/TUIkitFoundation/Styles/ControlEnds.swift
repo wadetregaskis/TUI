@@ -14,7 +14,7 @@ import TUIkitCore
 /// picker's, a compact tab strip's chips', a control group's.
 ///
 /// Read from the bordered button's cap table (`ButtonFaceEdges`, through
-/// `_ButtonAppearance.sized(_:shape:family:blockElementsFillTheLine:)`) at the
+/// `_ButtonAppearance.sized(_:shape:family:raster:segment:)`) at the
 /// ``ControlStyle``, ``Appearance``, ``ButtonBorderShape`` and ``ControlSize``
 /// in force — on one row, whatever the size — so that these controls end
 /// exactly as a button beside them does, and a family is one look (owner,
@@ -73,7 +73,7 @@ package struct ControlEnds: Equatable, Sendable {
         let size: ControlSize = (size ?? environment.controlSize).drawsEndCaps ? .regular : .mini
         let edges = _ButtonAppearance.default.sized(
             size, shape: environment.buttonBorderShape, family: ButtonFaceFamily(environment),
-            blockElementsFillTheLine: environment.blockElementsFillTheLine
+            raster: SolidRaster(environment)
         ).edges
         hasField = !edges.isOutline
         guard let caps = edges.caps else {

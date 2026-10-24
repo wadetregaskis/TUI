@@ -41,7 +41,7 @@ struct _ButtonStyleBody: View, Renderable {
             appearance: appearance.sized(
                 environment.controlSize, shape: environment.buttonBorderShape,
                 family: ButtonFaceFamily(environment),
-                blockElementsFillTheLine: environment.blockElementsFillTheLine,
+                raster: SolidRaster(environment),
                 segment: environment.isControlSegment),
             isSized: true)
     }
@@ -241,20 +241,28 @@ struct _ButtonStyleBody: View, Renderable {
         let (breath, ink) = wholeBreath(face: face, label: label, authored: authored, context: context)
         let labelWidth = paddedLabel.strippedLength
         let ring = appearance.edges.ring
+        let caps = appearance.edges.caps ?? (" ", " ")
         return Self.breathingFace(breath, context: context) { colour in
-            let end = ANSIRenderer.colorize(" ", background: colour)
             var middle = FrameBuffer(lines: [
-                end
+                Self.wholeFaceCap(caps.open, colour)
                     + ANSIRenderer.colorize(
                         paddedLabel, foreground: ink.opaqueSpelling, background: colour.opaqueSpelling, bold: bold)
-                    + end
+                    + Self.wholeFaceCap(caps.close, colour)
             ])
             if let claim = OpacityRegion.claim(offsetX: 1, width: labelWidth, height: 1, ink: ink, field: colour) {
                 middle.opacityRegions.append(claim)
             }
-            guard case .solid(let shape, let wholeCells)? = ring else { return middle }
-            return Self.solidFace(around: middle, shape: shape, wholeCells: wholeCells, face: colour)
+            guard case .solid(let shape, let raster)? = ring else { return middle }
+            return Self.solidFace(around: middle, shape: shape, raster: raster, face: colour)
         }
+    }
+
+    /// A cap of a face drawn whole in `colour`: a cell of the face where the
+    /// cap is a space, and the glyph in the face's colour where it is not (a
+    /// three-row circle's half blocks), so that it breathes with the face.
+    private static func wholeFaceCap(_ glyph: Character, _ colour: Color) -> String {
+        glyph == " "
+            ? ANSIRenderer.colorize(" ", background: colour) : ANSIRenderer.colorize(String(glyph), foreground: colour)
     }
 
     /// An outline face round a string label — its caps and any box in lines,
@@ -669,8 +677,8 @@ struct _ButtonStyleBody: View, Renderable {
             let middle = TUIkitView.renderToBuffer(
                 wholeRow(labelView, label: label, face: colour, fills: context.environment.buttonSizing.fills),
                 context: context)
-            guard case .solid(let shape, let wholeCells)? = ring else { return middle }
-            return Self.solidFace(around: middle, shape: shape, wholeCells: wholeCells, face: colour)
+            guard case .solid(let shape, let raster)? = ring else { return middle }
+            return Self.solidFace(around: middle, shape: shape, raster: raster, face: colour)
         }
     }
 
@@ -718,13 +726,25 @@ struct _ButtonStyleBody: View, Renderable {
     /// A whole solid face's label row for a `@ViewBuilder` label: the label,
     /// padded, on the face, between two cells of the face.
     private func wholeRow(_ labelView: AnyView, label: Color, face: Color, fills: Bool) -> some View {
-        HStack(spacing: 0) {
-            Text(" ").background(face)
+        let caps = appearance.edges.caps ?? (" ", " ")
+        return HStack(spacing: 0) {
+            wholeRowCap(caps.open, face: face)
             centred(labelView, fills: fills)
                 .foregroundStyle(label)
                 .padding(.horizontal, appearance.horizontalPadding)
                 .background(face)
+            wholeRowCap(caps.close, face: face)
+        }
+    }
+
+    /// A whole face's cap for a `@ViewBuilder` label, as
+    /// ``wholeFaceCap(_:_:)`` draws one for a string.
+    @ViewBuilder
+    private func wholeRowCap(_ glyph: Character, face: Color) -> some View {
+        if glyph == " " {
             Text(" ").background(face)
+        } else {
+            Text(String(glyph)).foregroundStyle(face)
         }
     }
 
