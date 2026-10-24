@@ -158,22 +158,11 @@ extension TerminalClient {
     static func detectCellPoints(using terminal: Terminal) {
         let environment = ProcessInfo.processInfo.environment
         cellPointsCalibration = calibration(
-            host: CellPointsHost(
-                isTmux: TerminalHost.isTmux, isAppleTerminal: TerminalHost.isAppleTerminal,
-                isWarp: TerminalHost.isWarp, isITerm2: TerminalHost.isITerm2, isGhostty: TerminalHost.isGhostty),
+            program: TerminalHost.program,
             reportedCell: terminal.cellPixelSize(),
             grid: terminal.getSize(),
-            textArea: { TerminalHost.isITerm2 && !TerminalHost.isTmux ? terminal.queryTextAreaSize() : nil },
+            textArea: { TerminalHost.program == .iTerm2 ? terminal.queryTextAreaSize() : nil },
             localDisplayScale: { SessionLocality.isLikelyLocal(environment: environment) ? mainDisplayScale() : nil })
-    }
-
-    /// Which measured host this is, for ``calibration(host:reportedCell:grid:textArea:localDisplayScale:)``.
-    struct CellPointsHost: Equatable {
-        var isTmux = false
-        var isAppleTerminal = false
-        var isWarp = false
-        var isITerm2 = false
-        var isGhostty = false
     }
 
     /// The calibration for a host, posed on its inputs so a test can ask it.
@@ -191,20 +180,23 @@ extension TerminalClient {
     ///   measured.
     ///
     /// - Parameters:
-    ///   - host: Which host this is.
+    ///   - program: Which host program this is.
     ///   - reportedCell: The cell's size as `TIOCGWINSZ` reports it.
     ///   - grid: The grid, in cells, at the same moment.
     ///   - textArea: Asks the text area's size in points (iTerm2's `CSI 14 t`).
     ///   - localDisplayScale: The main display's scale, where the app runs on
     ///     the terminal's own machine.
     static func calibration(
-        host: CellPointsHost, reportedCell: TerminalCellPixels?, grid: (width: Int, height: Int),
+        program: Program, reportedCell: TerminalCellPixels?, grid: (width: Int, height: Int),
         textArea: () -> (width: Int, height: Int)?, localDisplayScale: () -> Double?
     ) -> CellPointsCalibration? {
-        guard !host.isTmux else { return nil }
-        if host.isAppleTerminal || host.isWarp { return .points }
-        guard let reportedCell else { return nil }
-        if host.isITerm2 {
+        switch program {
+        case .tmux, .gnomeTerminal, .unidentified:
+            return nil
+        case .appleTerminal, .warp:
+            return .points
+        case .iTerm2:
+            guard let reportedCell else { return nil }
             guard let area = textArea(), grid.width > 0, grid.height > 0 else { return nil }
             let pointsWide = Double(area.width) / Double(grid.width)
             let pointsHigh = Double(area.height) / Double(grid.height)
@@ -212,11 +204,11 @@ extension TerminalClient {
             return CellPointsCalibration(
                 pixelsPerPointWide: Double(reportedCell.width) / pointsWide,
                 pixelsPerPointHigh: Double(reportedCell.height) / pointsHigh)
-        }
-        if host.isGhostty, let scale = localDisplayScale(), scale > 0 {
+        case .ghostty:
+            guard reportedCell != nil else { return nil }
+            guard let scale = localDisplayScale(), scale > 0 else { return nil }
             return CellPointsCalibration(pixelsPerPointWide: scale, pixelsPerPointHigh: scale)
         }
-        return nil
     }
 
     /// The main display's scale — device pixels per point — or `nil` where

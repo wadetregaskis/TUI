@@ -208,42 +208,41 @@ struct ImageNaturalSizeTests {
         #expect(published(nil) == nil)
     }
 
-    private typealias Host = TerminalClient.CellPointsHost
-
     private func calibration(
-        _ host: Host, reported: TerminalCellPixels? = TerminalCellPixels(width: 14, height: 34),
+        _ program: TerminalClient.Program, reported: TerminalCellPixels? = TerminalCellPixels(width: 14, height: 34),
         area: (width: Int, height: Int)? = nil, scale: Double? = nil
     ) -> CellPointsCalibration? {
         TerminalClient.calibration(
-            host: host, reportedCell: reported, grid: (80, 25), textArea: { area }, localDisplayScale: { scale })
+            program: program, reportedCell: reported, grid: (80, 25), textArea: { area }, localDisplayScale: { scale })
     }
 
     @Test("Apple Terminal and Warp report points")
     func pointHosts() {
-        #expect(calibration(Host(isAppleTerminal: true)) == .points)
-        #expect(calibration(Host(isWarp: true)) == .points)
+        #expect(calibration(.appleTerminal) == .points)
+        #expect(calibration(.warp) == .points)
     }
 
     @Test("iTerm2's cell is its text area over the grid, in points")
     func iTerm2() throws {
         // Measured: 80 × 25 cells, 1120 × 850 reported pixels, `CSI 14 t` 570 × 458.
-        let found = try #require(calibration(Host(isITerm2: true), area: (570, 458)))
+        let found = try #require(calibration(.iTerm2, area: (570, 458)))
         let points = found.points(for: TerminalCellPixels(width: 14, height: 34))
         #expect(abs(points.width - 7.125) < 0.001 && abs(points.height - 18.32) < 0.001)
-        #expect(calibration(Host(isITerm2: true), area: nil) == nil, "no answer, no points")
+        #expect(calibration(.iTerm2, area: nil) == nil, "no answer, no points")
     }
 
     @Test("Ghostty's pixels are the display's, so it needs the display's scale")
     func ghostty() throws {
-        let found = try #require(calibration(Host(isGhostty: true), reported: TerminalCellPixels(width: 16, height: 34), scale: 2))
+        let found = try #require(calibration(.ghostty, reported: TerminalCellPixels(width: 16, height: 34), scale: 2))
         #expect(found.points(for: TerminalCellPixels(width: 16, height: 34)) == TerminalCellPoints(width: 8, height: 17))
-        #expect(calibration(Host(isGhostty: true), scale: nil) == nil, "away from the terminal's Mac, unknown")
+        #expect(calibration(.ghostty, scale: nil) == nil, "away from the terminal's Mac, unknown")
     }
 
     @Test("tmux and unmeasured hosts have no points")
     func unknownHosts() {
-        #expect(calibration(Host(isTmux: true, isAppleTerminal: true)) == nil)
-        #expect(calibration(Host()) == nil)
+        #expect(calibration(.tmux) == nil)
+        #expect(calibration(.unidentified) == nil)
+        #expect(calibration(.gnomeTerminal) == nil)
     }
 
     @Test("A session is local when the terminal named itself and no ssh session is in the way")
