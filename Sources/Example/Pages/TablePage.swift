@@ -164,6 +164,8 @@ private struct Track: Identifiable, Sendable {
 /// - Keyboard navigation
 /// - Scroll indicators
 struct TablePage: View {
+    /// What the reorderable table's moves register their undo with.
+    @Environment(\.undoManager) private var undoManager
     @State private var singleSelection: String?
     @State private var multiSelection: Set<String> = []
     @State private var ratioSelection: String?
@@ -447,7 +449,11 @@ struct TablePage: View {
                             .width(6)
                             .alignment(.trailing)
                     }
-                    .onMove { playlist.move(fromOffsets: $0, toOffset: $1) }
+                    .onMove { source, destination in
+                        let before = playlist
+                        playlist.move(fromOffsets: source, toOffset: destination)
+                        undoManager?.registerRestoring($playlist, to: before, actionName: L("undo.action.move"))
+                    }
                     .frame(height: 8)
                     .rowReorderFeedback(
                         ReorderFeedbackChoice(rawValue: reorderFeedback)?.feedback ?? .live)

@@ -62,6 +62,9 @@ private struct FileItem: Identifiable {
 /// - Unfocused selection visibility (`.automatic` vs `.hidden`)
 /// - Scroll indicators
 struct ListPage: View {
+    /// What the editable list's moves and deletions register their undo with:
+    /// SwiftUI leaves a list's undo to the app, and so does TUIkit.
+    @Environment(\.undoManager) private var undoManager
     @State private var singleSelection: String?
     @State private var multiSelection: Set<String> = []
     @State private var transientSelection: String?
@@ -166,8 +169,20 @@ struct ListPage: View {
                     // they reorder together — grab any one of them.
                     List(selection: $editableSelection) {
                         ForEach(editableItems, id: \.self) { Text($0) }
-                            .onMove { editableItems.move(fromOffsets: $0, toOffset: $1) }
-                            .onDelete { editableItems.remove(atOffsets: $0) }
+                            // Each registers its own undo — Ctrl-Z, Edit ▸ Undo
+                            // Move — with TUIkit's `registerRestoring`.
+                            .onMove { source, destination in
+                                let before = editableItems
+                                editableItems.move(fromOffsets: source, toOffset: destination)
+                                undoManager?.registerRestoring(
+                                    $editableItems, to: before, actionName: L("undo.action.move"))
+                            }
+                            .onDelete { offsets in
+                                let before = editableItems
+                                editableItems.remove(atOffsets: offsets)
+                                undoManager?.registerRestoring(
+                                    $editableItems, to: before, actionName: L("undo.action.delete"))
+                            }
                     }
                     .frame(height: 8)
                     // Drag a row and watch the difference: .live reorders under

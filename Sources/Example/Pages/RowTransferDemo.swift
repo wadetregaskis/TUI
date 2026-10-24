@@ -47,6 +47,8 @@ struct RowTransferDemoSection: View {
         let id: String
     }
 
+    /// What a move registers its undo with, so Ctrl-Z puts a row back.
+    @Environment(\.undoManager) private var undoManager
     @State private var queue = ["Aurora", "Bloom", "Cinder"].map(Track.init)
     @State private var backlog = ["Drift", "Ember", "Fathom", "Glass"].map(Track.init)
     @State private var status = "—"
@@ -103,7 +105,9 @@ struct RowTransferDemoSection: View {
                     .draggable(TrackDrag(side: side, id: track.id))
                 }
                 .dropDestination(for: TrackDrag.self) { drops, index in
+                    let before = (queue, backlog)
                     for drop in drops { perform(drop, to: side, at: index) }
+                    registerUndo(restoring: before)
                 }
                 // `.onMove` alongside `.draggable`, for the KEYBOARD. The two
                 // cannot share a mouse gesture — `.draggable`'s region is inside
@@ -118,6 +122,8 @@ struct RowTransferDemoSection: View {
                 // row still needs the mouse to change LISTS, because a list has
                 // no way to name the other one.
                 .onMove { source, destination in
+                    let before = (queue, backlog)
+                    defer { registerUndo(restoring: before) }
                     var items = tracks(side)
                     items.move(fromOffsets: source, toOffset: destination)
                     setTracks(side, items)
@@ -138,6 +144,19 @@ struct RowTransferDemoSection: View {
 
     private func selection(_ side: Side) -> Binding<String?> {
         side == .queue ? $queueSelection : $backlogSelection
+    }
+
+    /// Registers the undo of a move: both lists back as they were `before`,
+    /// one step whether the row moved within a list or across, and none for a
+    /// drop that put a row back where it was. The two lists are restored
+    /// together through one binding to both.
+    private func registerUndo(restoring before: ([Track], [Track])) {
+        guard before != (queue, backlog) else { return }
+        let (queue, backlog) = ($queue, $backlog)
+        let lists = Binding<([Track], [Track])>(
+            get: { (queue.wrappedValue, backlog.wrappedValue) },
+            set: { (queue.wrappedValue, backlog.wrappedValue) = $0 })
+        undoManager?.registerRestoring(lists, to: before, actionName: L("undo.action.move"))
     }
 
     private func setTracks(_ side: Side, _ tracks: [Track]) {

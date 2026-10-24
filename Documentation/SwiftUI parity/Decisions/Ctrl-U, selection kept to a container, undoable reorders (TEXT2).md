@@ -109,3 +109,34 @@ sessions (menus are bordered containers).
 **The fuller version:** a scope on any surface that reads as a container
 without a border (a `.background` panel, a `GroupBox` styled borderless).
 *Price:* a rule for what counts, per view; not attempted.
+
+### B-TEXT2-3. The Example's reorders, deletions and drops are undoable, through a TUIkit-only helper
+
+*#16. The Lists page's editable list (`onMove`, `onDelete`), the Table page's
+reorderable table, the rows that travel between two lists (`onMove`, a drop),
+the Mouse page's shelf and basket (three drops) and its filing tag, and the
+Focus page's command board (`onDeleteCommand`, `onExitCommand`)*
+
+SwiftUI registers no undo for `onMove`, `onDelete` or a drop: the app owns
+the data. Neither does TUIkit, and neither did the Example, so none of these
+could be taken back. Each now registers its inverse with
+`@Environment(\.undoManager)`, named "Move", "Delete", "Copy", "Discard" or
+"Reset" (seven languages), which Edit ▸ Undo and Redo show. Checked live
+under a PTY: two Ctrl-Down moves in the editable list, then two Ctrl-Z, put
+the rows back one move at a time, the status bar offering "undo" and then
+"redo".
+
+The helper, `UndoManager.registerRestoring(_:to:actionName:)` in
+`TUIkitFoundation/Undo/`, is TUIkit's own name, documented as such:
+Foundation's `registerUndo(withTarget:handler:)` wants a class to call back,
+which a `@State` array is not, so the step holds the binding and the old value
+in a main-actor class, and its undo registers the redo, keeping the name. Two
+values that change together (a row moved between lists) restore through one
+binding to both. A drop that changed nothing registers nothing.
+
+**The fuller version:** a diff-based step that undoes only what the change
+did (a moved row moved back), so an undo does not also revert other edits
+made to the same value since. *Price:* a day — a step per collection
+operation (move, remove, insert) with its inverse, for `RangeReplaceableCollection`
+and `MutableCollection`; the snapshot is exact for state a person edits a step
+at a time, which is every case in the Example.

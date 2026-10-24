@@ -55,6 +55,12 @@ extension EnvironmentValues {
     /// }
     /// ```
     ///
+    /// For a value a view owns — a `@State` array a list's `onMove` reorders —
+    /// TUIkit's `UndoManager.registerRestoring(_:to:actionName:)` registers
+    /// the undo and its redo from a binding, with no class to call back.
+    /// A list's moves and deletions, and a drop, register nothing by
+    /// themselves, as in SwiftUI: the app knows the data.
+    ///
     /// ``TextField`` and ``TextEditor`` register their own edits with it, so
     /// undo means something in an app that registers nothing itself; a
     /// control's leave it when the control leaves the screen. A

@@ -13,6 +13,9 @@ import TUIkit
 struct CommandsDemo: View {
     @State private var cursor = (column: 0, row: 0)
     @State private var cleared: Set<Int> = []
+    /// What clearing a cell, and putting the board back, register their undo
+    /// with.
+    @Environment(\.undoManager) private var undoManager
     @FocusState private var isFocused: Bool
 
     private static let size = 4
@@ -40,10 +43,19 @@ struct CommandsDemo: View {
                     @unknown default: break
                     }
                 }
-                .onDeleteCommand { cleared.insert(cursor.row * Self.size + cursor.column) }
-                .onExitCommand { cleared.removeAll() }
+                .onDeleteCommand { change(L("undo.action.delete")) { $0.insert(cursor.row * Self.size + cursor.column) } }
+                .onExitCommand { change(L("undo.action.reset")) { $0.removeAll() } }
             }
         }
+    }
+
+    /// Changes the cleared cells, and registers the change's undo under
+    /// `actionName` — none where it changed nothing.
+    private func change(_ actionName: String, _ edit: (inout Set<Int>) -> Void) {
+        let before = cleared
+        edit(&cleared)
+        guard cleared != before else { return }
+        undoManager?.registerRestoring($cleared, to: before, actionName: actionName)
     }
 
     /// One row of the board: a filled or cleared cell each, the cursor's

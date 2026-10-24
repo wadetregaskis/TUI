@@ -20,6 +20,8 @@ struct DragScrollDemoSection: View {
     }
 
     @State private var filed: String?
+    /// What filing the tag registers its undo with.
+    @Environment(\.undoManager) private var undoManager
 
     private var folders: [Folder] {
         (1...24).map { Folder(id: $0, name: "\(L("page.mouse.dragScrollFolder")) \($0)") }
@@ -52,7 +54,12 @@ struct DragScrollDemoSection: View {
                             // to the right of "Folder 7" belonged to no drop
                             // destination and a release there did nothing.
                             .dropDestination(for: FilingTag.self) { _, _ in
+                                let before = filed
                                 filed = folder.name
+                                if before != filed {
+                                    undoManager?.registerRestoring(
+                                        $filed, to: before, actionName: L("undo.action.move"))
+                                }
                                 return true
                             }
                         }

@@ -21,6 +21,8 @@ import TUIkit
 /// exotic interactions where you wire mouse events into your own
 /// views.
 struct MousePage: View {
+    /// What a fruit's drop registers its undo with, so Ctrl-Z puts it back.
+    @Environment(\.undoManager) private var undoManager
     @State private var tapCount: Int = 0
     @State private var lastTapAt: String = "—"
     @State private var scrollDeltaY: Int = 0
@@ -129,6 +131,8 @@ struct MousePage: View {
             // Anywhere that isn't the shelf (move) or the basket (no-op, it
             // never left) discards the fruit — puffing from the CENTRE of the
             // drag image, where the fruit visually is, not from the cursor.
+            let before = (fruits, basket)
+            defer { registerUndo(restoring: before, actionName: L("undo.action.discard")) }
             for item in items {
                 removeFromBasket(item)
                 spawnPoof(
@@ -441,6 +445,8 @@ struct MousePage: View {
         .padding(EdgeInsets(horizontal: 1, vertical: 0))
         .border(shelfTargeted ? .palette.accent : .palette.border)
         .dropDestination(for: BasketFruit.self) { items, _ in
+            let before = (fruits, basket)
+            defer { registerUndo(restoring: before, actionName: L("undo.action.move")) }
             for item in items {
                 removeFromBasket(item)
                 if !fruits.contains(item.name) {
@@ -474,6 +480,10 @@ struct MousePage: View {
         .frame(width: 24)
         .border(basketTargeted ? .palette.accent : .palette.border)
         .dropDestination(for: String.self) { items, info in
+            let before = (fruits, basket)
+            defer {
+                registerUndo(restoring: before, actionName: L(info.ctrl ? "undo.action.copy" : "undo.action.move"))
+            }
             for item in items {
                 basket.append(item)
                 if !info.ctrl {
@@ -565,6 +575,17 @@ struct MousePage: View {
             }
             return line
         }
+    }
+
+    /// Registers the undo of a drop: the shelf and the basket back as they
+    /// were `before`, together, as one step — none where nothing changed.
+    private func registerUndo(restoring before: ([String], [String]), actionName: String) {
+        guard before != (fruits, basket) else { return }
+        let (fruits, basket) = ($fruits, $basket)
+        let both = Binding<([String], [String])>(
+            get: { (fruits.wrappedValue, basket.wrappedValue) },
+            set: { (fruits.wrappedValue, basket.wrappedValue) = $0 })
+        undoManager?.registerRestoring(both, to: before, actionName: actionName)
     }
 
     private func removeFromBasket(_ item: BasketFruit) {
