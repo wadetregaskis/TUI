@@ -111,6 +111,29 @@ that are not animatable — `Stress --bench --scenario deep` on the quiet
 machine, and `kitchensink` and `table` as controls. Close the item if `deep` is
 within a few percent, as the ruling says.
 
+**Q3, the A/B (2026-10-24).** The owner's, release, warm, 15 reps:
+
+    deep        −28.5% [−29.1, −28.1] faster without animatable padding/frame  (≈ +40% for it)
+    kitchensink  +0.0% indistinguishable
+    table        −1.3% [−2.0, −1.0] faster
+
+Not within a few percent, so the item stays open. The cost did not grow
+fivefold since August: the August numbers above were taken on a bench that
+called `renderToBuffer` in a loop with no per-pass lifecycle, so the measure
+memo was never emptied and served each frame's measures from the frames
+before. Counted on the August commit (da01c6842) with temporary counters: 84
+memo hits and 1 miss a frame, and 80 store probes a frame, all on the render
+walk; no measure walk reached a padding. Since 87f260029 (2026-09-05) the
+bench runs the app's lifecycle (it moved `deep` from 2,186 to 10,547 µs a
+frame), and now: 9,366 measure lookups a frame at 9.2% hits, and 1,800 probes,
+1,720 of them measuring. Each probe that finds its record compares the key's
+identity node by node to the root, because a record keeps the nodes of the
+frame that first saw it and each frame builds new ones: seven nodes per
+nesting level, 187 on average; identity comparisons visit about 363,000 nodes
+a frame, nearly all in these lookups, a retain and a release each. In the profile of main's release build that is
+`animatedValue` 25.8% inclusive, `Dictionary.index(forKey:)` 22.5%,
+`IdentityNode.structurallyEqual` 21.3%. Details in the VISUALS decisions file.
+
 
 ## 2026-08-19 — parity, continued
 

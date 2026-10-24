@@ -210,3 +210,31 @@ conformances and answer the walks' witnesses as non-animatable types. Its
 padding and frame animation tests fail there, as they must. **A/B:** main
 against that branch, `deep`, with `kitchensink` and `table` as controls.
 Close the item if `deep` is within a few percent.
+
+**The A/B** (the owner's, main b8acc3898 against 533b7b0ab, release,
+warm, 15 reps): `deep` −28.5% [−29.1, −28.1] without the animatable path,
+so about +40% for having it; `kitchensink` +0.0%, indistinguishable;
+`table` −1.3% [−2.0, −1.0]. Not within a few percent: the item stays open.
+
+**Why it is not the August +7.5%.** It did not grow; August did not see it.
+The August A/B ran on a Stress bench that called `renderToBuffer` in a loop
+and nothing else, so the per-pass measure memo was never emptied and every
+frame's measures were served from the frames before (counted on that
+commit, da01c6842, with temporary counters: 84 memo hits and 1 miss a
+frame, and 80 store probes a frame, all on the render walk). The bench has
+run the app's per-pass lifecycle since 87f260029 (2026-09-05), which moved
+`deep` from 2,186 to 10,547 µs a frame because the app never had that warm
+memo. Measured the same way now: 9,366 measure-memo lookups a frame (9.2%
+hits), and 1,800 store probes, 1,720 of them on measure walks.
+
+**Where the cost is** (Time Profiler, main's release build, 8 s of
+`deep`): `animatedValue` 25.8% inclusive, of which the store's
+`Dictionary.index(forKey:)` 22.5% and `IdentityNode.structurallyEqual`
+21.3%; `swift_retain` / `swift_release` 11.1% / 13.0% self. A probe that
+finds its record compares the key's identity node by node up to the root:
+a record keeps the identity nodes of the frame that first saw it, every
+frame builds new ones, so nothing is shared to stop the walk early. Each
+nesting level of `deep` adds seven nodes, the probes' identities average
+187 nodes, and identity comparisons visit about 363,000 nodes a frame,
+nearly all in these lookups, each visit a retain and a release. The lookup was always this; the bench
+now counts the measure walk that pays it 1,720 times a frame.
