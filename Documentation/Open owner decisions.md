@@ -57,7 +57,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [FB3-BLANK](#fb3-blank) | (a). | No change. |
 | [FB3-OTHERCAPS](#fb3-othercaps) | (2). | Queued; the Lines switch goes on a probe card first. |
 | [STEPPER-WIDTH](#stepper-width) | (1). | Done: `.stepperValueWidth(_:)`, fitting the bounds by default (lane STEPPER). |
-| [TAB-IMAGE-NAME](#tab-image-name) | (a). | Partly done (lane DOCS2): C11, the parity map, the guide and Tab's doc comment are corrected; the String forms in TUIkitBitmaps still need code (queued). |
+| [TAB-IMAGE-NAME](#tab-image-name) | (a). | Partly done (lane DOCS2): C11, the parity map, the guide and Tab's doc comment are corrected; the code is built but costs every image app +10.9% where ruled: needs your choice, see the follow-up below. |
 | [TABBARMIN](#tabbarmin) | (b). | Done (lane TABS, 2026-10-24): `tabBarMinimizeBehavior(_:)` ships, and `.automatic` minimizes `.bordered` and `.grouped` tab views to the strip in a compact size class (decisions B96); the map's decline is gone with the gap. |
 | [DRAWERS](#drawers) | (1). | Done (lane DOCS2): the draft is retired to Historical. |
 | [B-D5C-1](#b-d5c-1) | Asked why SwiftUI has no if/else in SceneBuilder. | Answered below — your call. |
@@ -400,6 +400,23 @@ You asked that colours always render correctly in subtrees with a changed colour
 - **4. Choose by the scheme in force where the view's body runs**, through a task-local the palette and scheme modifiers set, as `ColorDepth` works. *Price:* Half a day, no size change. Not always correct: a colour made above a pin and drawn below it gets the outer scheme.
 
 Recommendation: 4 now, which fixes the common case (a pinned subtree whose views make their own colours) at no cost to every `Text`; 2 only if a real app is caught by the remaining case. Need: your choice.
+
+#### TAB-IMAGE-NAME
+
+Built (branch `lane-tabs-image`, f166bc31a): `Tab(_:image:…)`'s four String forms find the named image as `Image(_:bundle:)` does, the picture showing in the sidebar row and the strip's chips keeping the title. But where you ruled it should live, in TUIkitBitmaps beside `Label`'s, it makes TUIkitBitmaps depend on TUIkitTabs and TUIkitLists, so every app that shows an image pays for tabs. Measured, release, stripped, Swift 6.2.4:
+
+| App | Before | After |
+|---|---|---|
+| TUIkitApp + TUIkitBitmaps, no tab view | 8,163,440 B | 9,054,784 B (+10.9%) |
+| TUIkitBitmaps alone | 6,771,792 B | 7,680,736 B (+13.4%) |
+
+The other direction, TUIkitTabs depending on TUIkitBitmaps, would put the image decoders under TUIkitColorPicker, which the module map forbids.
+
+- **1. Land it in TUIkitBitmaps.** *Price:* +10.9% for every app that shows an image without tabs.
+- **2. A small module of its own, built on TUIkitBitmaps and TUIkitTabs**, which the umbrella re-exports (say `TUIkitTabImages`). *Price:* Half a day; no cost to any app that doesn't use both; one more library product (30 in all) that an app depending on modules à la carte must list to get the image forms.
+- **3. Leave the four forms as gaps.** *Price:* None. SwiftUI code that writes `Tab("Inbox", image: "tray")` does not compile against TUIkit.
+
+Recommendation: 2. Need: your choice.
 
 ## Summary
 
