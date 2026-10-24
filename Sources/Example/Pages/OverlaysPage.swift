@@ -184,9 +184,6 @@ struct OverlaysPage: View {
 
     var body: some View {
         backgroundContent
-            .modal(isPresented: $showOverlay) {
-                overlayContent(for: presentedDemo)
-            }
             .confirmationDialog(
                 "page.overlays.confirm.title",
                 isPresented: $showConfirm,
@@ -201,9 +198,15 @@ struct OverlaysPage: View {
                 },
                 message: { Text("page.overlays.confirm.message") })
             // A destructive question: drawn as critical, and one the user may
-            // tell the app to stop asking.
+            // tell the app to stop asking. Written around this dialog's
+            // presenter only, inside `.modal`: an environment modifier reaches
+            // every dialog presented beneath it, and above `.modal` it made
+            // every alert demo critical and gave each a "Do not ask again".
             .dialogSeverity(.critical)
             .dialogSuppressionToggle("page.overlays.confirm.dontAsk", isSuppressed: $confirmSuppressed)
+            .modal(isPresented: $showOverlay) {
+                overlayContent(for: presentedDemo)
+            }
             // Note: notifications are hosted once at the app root (see
             // `ExampleApp` in main.swift) so a toast posted here survives
             // navigating back to the menu, rather than vanishing with the page.
@@ -624,29 +627,25 @@ struct OverlaysPage: View {
                 titleColor: .palette.accent
             ) { EmptyView() }
         case .alertWarning:
-            AlertPanel(
+            // A preset: its colour, and its sign before the title.
+            AlertPanel.warning(
                 title: "page.overlays.alert.warningTitle",
-                message: "page.overlays.alert.warningMessage",
-                titleColor: .palette.warning
-            ) { EmptyView() }
+                message: "page.overlays.alert.warningMessage")
         case .alertError:
-            AlertPanel(
+            // A preset: its colour, and its sign before the title.
+            AlertPanel.error(
                 title: "page.overlays.alert.errorTitle",
-                message: "page.overlays.alert.errorMessage",
-                titleColor: .palette.error
-            ) { EmptyView() }
+                message: "page.overlays.alert.errorMessage")
         case .alertInfo:
-            AlertPanel(
+            // A preset: its colour, and its sign before the title.
+            AlertPanel.info(
                 title: "page.overlays.alert.infoTitle",
-                message: "page.overlays.alert.infoMessage",
-                titleColor: .palette.info
-            ) { EmptyView() }
+                message: "page.overlays.alert.infoMessage")
         case .alertSuccess:
-            AlertPanel(
+            // A preset: its colour, and its sign before the title.
+            AlertPanel.success(
                 title: "page.overlays.alert.successTitle",
-                message: "page.overlays.alert.successMessage",
-                titleColor: .palette.success
-            ) { EmptyView() }
+                message: "page.overlays.alert.successMessage")
         default:
             EmptyView()
         }
