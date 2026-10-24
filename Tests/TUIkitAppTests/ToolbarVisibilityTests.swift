@@ -96,7 +96,7 @@ struct ToolbarVisibilityTests {
         let loop = harness.loop(VisibilityApp())
         let rows = screen(harness, loop)
         #expect(!rows.contains { $0.contains("TOP-ITEM") }, "\(rows)")
-        #expect(rows.contains { $0.contains("x act") }, "the bottom bar stays: \(rows)")
+        #expect(rows.contains { $0.contains("X act") }, "the bottom bar stays: \(rows)")
         #expect(loop.windowChrome.rows(.top) == 0)
     }
 

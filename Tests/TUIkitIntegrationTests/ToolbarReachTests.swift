@@ -239,13 +239,13 @@ struct ToolbarReachTests {
     func coveredRootHidesNoBar() {
         ReachProbe.shared.reset()
         let shown = settled(CoveredRootApp())
-        #expect(!shown.screen.contains { $0.stripped.contains("q quit") }, "sanity: the root hides the hints")
+        #expect(!shown.screen.contains { $0.stripped.contains("Q quit") }, "sanity: the root hides the hints")
 
         ReachProbe.shared.pushed = true
         defer { ReachProbe.shared.pushed = false }
         let covered = settled(CoveredRootApp())
         let rows = covered.screen.map(\.stripped)
-        #expect(rows.contains { $0.contains("q quit") }, "the pushed screen has its bottom bar: \(rows)")
+        #expect(rows.contains { $0.contains("Q quit") }, "the pushed screen has its bottom bar: \(rows)")
     }
 
     @Test("A navigation stack's covered root keeps its toolbar items' @State while a screen is pushed over it")
