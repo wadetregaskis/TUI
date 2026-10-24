@@ -750,9 +750,6 @@
     "SymbolVariableValueMode": {
       "why": "How a variable-value symbol shows its fraction, by colour or by drawing, both defined over the symbol's layers. TUIkit draws a symbol as one glyph with no layers; the terminal's way of showing a fraction is a glyph ramp, which `ProgressView`, `Gauge` and `Slider` draw."
     },
-    "TabBarMinimizeBehavior": {
-      "why": "Not inert on macOS, so O8 does not cover it: there its one value, `.automatic`, minimises the tab bar when the window is short of room (Apple's documentation; refusals re-examined, wave 17, X4). Honouring it means collapsing a tab view to the compact strip, and what should trigger that is the owner's question TABBARMIN (Open owner decisions); until then it is absent, not refused."
-    },
     "Text.Layout": {
       "why": "Lines, runs and run slices with typographic bounds, handed to a `TextRenderer`. TUIkit's laid-out text is a `FrameBuffer` of styled strings with whole-cell widths: no glyphs, no baselines and no fractional positions. It waits with `TextRenderer` on O16 of the refusal review."
     },

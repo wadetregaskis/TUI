@@ -26,10 +26,15 @@ import TUIkitFoundation
 /// |-------|-------------|
 /// | ``automatic`` | The default: ``compact``. |
 /// | ``tabBarOnly`` | A tab bar: ``compact``, as macOS draws it like the default. |
-/// | ``grouped`` | A bar grouping the tabs over a box around the content: ``bordered``. |
+/// | ``grouped`` | A bar grouping the tabs over a box around the content: ``bordered``; in a compact size class, ``compact``'s strip. |
 /// | ``sidebarAdaptable`` | A sidebar listing the tabs, its sections under their headers, beside the content; in a compact size class, ``compact``'s strip. |
 /// | ``compact`` | **TUI-specific.** One border-free row of chips; the active one is filled. |
-/// | ``bordered`` | **TUI-specific.** Box-drawn folder tabs joined to a box around the content. |
+/// | ``bordered`` | **TUI-specific.** Box-drawn folder tabs joined to a box around the content; in a compact size class, ``compact``'s strip. |
+///
+/// The folder tabs of ``bordered`` and ``grouped`` minimize to the strip in a
+/// horizontally compact size class under ``View/tabBarMinimizeBehavior(_:)``'s
+/// `.automatic`, the default: TUIkit's size classes are `.regular` unless the
+/// app writes one, so by default they never do.
 ///
 /// Measured on macOS 15.8: `.automatic` and `.tabBarOnly` both put a segmented
 /// tab bar in the window's toolbar, and `.grouped` is an `NSTabView` — the
@@ -175,13 +180,19 @@ extension TabViewStyle {
 }
 
 extension EnvironmentValues {
-    /// How the tab views here draw their strip: their style's look, but for a
-    /// `.sidebarAdaptable` tab view in a horizontally compact size class,
-    /// which draws the default strip, as it shows a tab bar on iPhone
-    /// (decisions B3).
+    /// How the tab views here draw their strip: their style's look, but in a
+    /// horizontally compact size class the default strip for a
+    /// `.sidebarAdaptable` tab view, as it shows a tab bar on iPhone
+    /// (decisions B3), and for a `.bordered` or `.grouped` one whose bar
+    /// minimizes, as under `.automatic` (``View/tabBarMinimizeBehavior(_:)``,
+    /// decisions B96).
     var tabStripLook: _TabStripLook {
         let look = tabViewStyle.stripLook
-        return look == .sidebar && horizontalSizeClass == .compact ? .compact : look
+        guard horizontalSizeClass == .compact else { return look }
+        switch look {
+        case .compact, .sidebar: return .compact
+        case .bordered: return tabBarMinimizeBehavior.minimizesWhenCompact ? .compact : .bordered
+        }
     }
 }
 

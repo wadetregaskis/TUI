@@ -29,7 +29,7 @@ Every gap `api_parity.py` still reports names one of these entries, and
 nothing else is waiting. The batch closed the rest: 2,022 gaps when it started
 and 404 when it ended (the count rose from 392 at the end, when 14
 drag-session modifiers a wrong refusal had hidden became gaps under A53); 232
-on 2026-10-12, and 90 on 2026-10-19 (94 on 2026-10-23, when C11's four `Tab` forms left the map for the baseline) (`Tools/APIParity/baseline.json`), plus
+on 2026-10-12, and 90 on 2026-10-19 (94 on 2026-10-23, when C11's four `Tab` forms left the map for the baseline) (93 on 2026-10-24, when B96 closed `tabBarMinimizeBehavior(_:)`) (`Tools/APIParity/baseline.json`), plus
 three overloads only CI's SDK lists. Besides the gaps, the refusal review's
 implementable P items have shipped, and so has Wave 11b, underline and
 strikethrough patterns and colours, which you read on real terminals on
@@ -3520,6 +3520,33 @@ way. About half a day with the self-check, and a look in Apple Terminal and
 Warp, which take no pictures and are where it would show. It changes how every
 gradient view looks on those terminals, and copying such a region yields `▀`
 rather than spaces, which is why it is not done here.
+
+### B96. `tabBarMinimizeBehavior(.automatic)` minimizes the folder tabs in a compact size class
+
+*`View.tabBarMinimizeBehavior(_:)`, `TabBarMinimizeBehavior` (`.automatic`)*
+
+macOS has one behavior, `.automatic`, which Apple documents as minimizing the
+tab bar when the window is short of room (`.never`, `.onScrollDown` and
+`.onScrollUp` are iOS's alone). So the API is not inert on macOS, and O8 does
+not refuse it.
+
+**Shipped 2026-10-24** (owner, TABBARMIN, option b): under `.automatic`, the
+default, a `.bordered` or `.grouped` tab view in a horizontally compact size
+class draws the compact strip instead of its folder tabs over a box, as a
+`.sidebarAdaptable` one draws the strip instead of its sidebar (B3). The
+default strip, `.automatic`, `.tabBarOnly` and `.compact`, is already the
+minimal bar. TUIkit's size classes are `.regular` unless the app writes one,
+so no default changes. The modifier writes the behavior into the environment,
+where the tab view reads it; with one value it changes nothing yet, and a
+second (a TUI-specific `.never`, or iOS's when they reach macOS) would be read
+there.
+
+**The alternatives priced at the ruling:** minimizing below a size threshold
+by default, as macOS does when a window is short of room (half a day to a day,
+and a default that changes, with a threshold to judge); or refusing it with a
+true reason (15 minutes). A vertically compact class does not minimize the
+bar, though the folder tabs cost two rows: `.sidebarAdaptable`'s collapse
+follows the horizontal class, and the ruling extends that one.
 
 ## C. Declined without asking
 

@@ -1604,6 +1604,7 @@ private struct TabShapes: View {
                 }
             }
             .tabViewStyle(.grouped)
+            .tabBarMinimizeBehavior(.automatic)
         }
     }
 }

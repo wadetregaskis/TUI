@@ -58,7 +58,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [FB3-OTHERCAPS](#fb3-othercaps) | (2). | Queued; the Lines switch goes on a probe card first. |
 | [STEPPER-WIDTH](#stepper-width) | (1). | Done: `.stepperValueWidth(_:)`, fitting the bounds by default (lane STEPPER). |
 | [TAB-IMAGE-NAME](#tab-image-name) | (a). | Partly done (lane DOCS2): C11, the parity map, the guide and Tab's doc comment are corrected; the String forms in TUIkitBitmaps still need code (queued). |
-| [TABBARMIN](#tabbarmin) | (b). | Queued. |
+| [TABBARMIN](#tabbarmin) | (b). | Done (lane TABS, 2026-10-24): `tabBarMinimizeBehavior(_:)` ships, and `.automatic` minimizes `.bordered` and `.grouped` tab views to the strip in a compact size class (decisions B96); the map's decline is gone with the gap. |
 | [DRAWERS](#drawers) | (1). | Done (lane DOCS2): the draft is retired to Historical. |
 | [B-D5C-1](#b-d5c-1) | Asked why SwiftUI has no if/else in SceneBuilder. | Answered below — your call. |
 | [DEPR-ALERT-NAME](#depr-alert-name) | (b). | Done: `AlertPanel` (lane landing 2026-10-23). |

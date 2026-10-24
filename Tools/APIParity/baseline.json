@@ -83,7 +83,6 @@
   "View.scaleEffect(_:anchor:)",
   "View.scaleEffect(x:y:anchor:)",
   "View.swipeActions(edge:allowsFullSwipe:content:)",
-  "View.tabBarMinimizeBehavior(_:)",
   "View.tabViewSearchActivation(_:)",
   "View.task(id:name:priority:file:line:_:)",
   "View.task(name:executorPreference:priority:file:line:action:)",
