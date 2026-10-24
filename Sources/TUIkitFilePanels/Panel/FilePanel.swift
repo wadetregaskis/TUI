@@ -82,6 +82,13 @@ struct FilePanel: View {
         case name, path, rows
     }
 
+    /// The control size in force, which decides how much room the panel's
+    /// parts have between them (``spacing(controlSize:verticalSizeClass:)``).
+    @Environment(\.controlSize) private var controlSize
+
+    /// Whether the terminal is short of rows, where the panel stays dense.
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
     init(request: FilePanelRequest, finish: @escaping (FilePanelOutcome) -> Void) {
         self.request = request
         self.finish = finish
@@ -108,9 +115,11 @@ struct FilePanel: View {
     }
 
     /// What the box holds: the message, a save panel's name field, the path
-    /// and the folder's items.
+    /// and the folder's items, with the room between them the control size
+    /// gives (``spacing(controlSize:verticalSizeClass:)``).
     private var panelContent: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        let spacing = Self.spacing(controlSize: controlSize, verticalSizeClass: verticalSizeClass)
+        return VStack(alignment: .leading, spacing: spacing) {
             if let message = request.message {
                 Text(message).foregroundStyle(.palette.foregroundSecondary)
             }
@@ -144,6 +153,21 @@ struct FilePanel: View {
         // open, as a macOS panel's does: not on the path control, the first
         // control in reading order.
         .defaultFocus($focus, request.saveContentTypes != nil ? .name : .rows)
+    }
+
+    /// The blank rows between the panel's parts — the message, the name
+    /// field, the path and the folder: none at the small control sizes, as
+    /// dense as a terminal panel can be; one at `.regular` and `.large`, to
+    /// set the parts apart as a macOS panel's margins do; two at
+    /// `.extraLarge`. None, whatever the size, where the vertical size class
+    /// is compact: a short terminal keeps its rows for the folder.
+    static func spacing(controlSize: ControlSize, verticalSizeClass: UserInterfaceSizeClass?) -> Int {
+        if verticalSizeClass == .compact { return 0 }
+        switch controlSize {
+        case .mini, .small: return 0
+        case .regular, .large: return 1
+        case .extraLarge: return 2
+        }
     }
 
     /// The alert a save asks before replacing a file, on `content`: inside

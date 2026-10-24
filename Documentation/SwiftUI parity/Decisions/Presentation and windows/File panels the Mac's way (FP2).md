@@ -62,3 +62,21 @@ draws icons (B-FP2-4's glyphs, at a cell each): an hour. A pop-up of a
 segment's own folders on a long press, as macOS's pop-up style offers: half a
 day, and a menu per segment.
 
+### B-FP2-3. The room between the panel's parts follows the control size
+
+*Owner item #34: "size classes; in regular/large, space between list, path
+control, name field"*
+
+The size classes the item names are read as TUIkit's control sizes, which
+`ControlSize`'s own documentation calls "the size classes, like regular or
+small" and which say how much chrome a control draws: at `.regular` and
+`.large` a blank row parts the panel's message, name field, path and folder,
+as a macOS panel's margins set them apart; at `.extraLarge` two; at `.small`
+and `.mini` none, as dense as the panel was (`FilePanel.spacing`). A compact
+vertical size class — an app's word that the terminal is short — keeps it
+dense at every size, the folder's rows being what a short panel needs most.
+So a panel at the default size has a blank row more between each part than it
+had. **The fuller version** reads the terminal's height as well, and spends
+blank rows only where the folder keeps, say, ten rows: an hour, and a second
+rule beside the size's for the same thing.
+

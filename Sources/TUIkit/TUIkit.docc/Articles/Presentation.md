@@ -419,7 +419,9 @@ under the folder's path, with the hidden-files switch and the buttons below.
 The path is a path control, as on a Mac: a segment per folder from `/`, or
 from the home folder, written `~`, each a target of its own — a click goes
 there, and with the focus on it <kbd>←</kbd> and <kbd>→</kbd> move among the
-segments and <kbd>Space</kbd> goes to the one under the cursor.
+segments and <kbd>Space</kbd> goes to the one under the cursor. At the
+`.regular` and larger control sizes a blank row sets the parts apart; under
+`.controlSize(.small)` the panel is as dense as it can be.
 Items of a type the caller does not take are dimmed: the cursor lands on them,
 but they can be neither selected nor chosen.
 
