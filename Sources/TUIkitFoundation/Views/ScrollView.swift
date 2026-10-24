@@ -591,21 +591,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             viewportHeight: contentViewportHeight,
             allowances: pageOverscrollAllowances(context.environment, overflowing: overflowing), context: context)
 
-        // A freshly WRITTEN edge anchor jumps to that edge (see the helper);
-        // must precede the glue check, whose `seekingTail` read is one-shot.
-        adoptWrittenAnchor(handler: handler, context: context)
-
-        // A one-shot End/scrollToBottom intent converges exactly like a
-        // glued frame (see ScrollViewHandler.seekingTail).
-        // A bound position's edge/offset target moves the scroll view BEFORE
-        // the content renders, so the frame carrying the request already shows
-        // the destination — `.bottom` by raising the tail-seek flag the End key
-        // uses, so the glue below pins it exactly against the real height.
-        // A position request aims at a line of the content as it now is, so
-        // the top-row hold below must not move the frame it placed.
-        let requested = !context.isMeasuring && applyPositionOffset(handler: handler, context: context)
-        let seekingTail = handler.seekingTail
-        if !context.isMeasuring { handler.seekingTail = false }
+        // What places the frame before the content is drawn, in order: a
+        // written anchor, a bound position's edge or offset (see the helper),
+        // and the tail seek they and End leave.
+        let (requested, seekingTail) = placeBeforeDrawing(handler: handler, context: context)
         let wasGluedToBottom =
             isGluedToBottom(handler: handler, context: context) || seekingTail
         // The opening frame is glued by definition (see `isGluedToBottom`) but
@@ -690,9 +679,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // unreachable. The render pass runs last and clamps with the true
         // viewport, so legitimate clamping (content grew/shrank) still happens.
         // Mirrors _ListCore / Table.
-        if !context.isMeasuring {
-            handler.clampScrollOffset()
-        }
+        if !context.isMeasuring { handler.clampScrollOffset() }
 
         // "Follow the focused control": snap the viewport to the focused
         // control when focus moved or it just consumed a key. A render-pass-

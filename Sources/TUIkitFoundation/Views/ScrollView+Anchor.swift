@@ -155,6 +155,33 @@ extension _ScrollViewCore {
             && (!handler.hasOpened || handler.scrollOffset >= handler.tailAsLastDrawn)
     }
 
+    /// Everything that places the frame before the content is drawn, in the
+    /// order it must run, and what the rest of the frame needs to know of it:
+    /// whether a bound position's edge or offset placed it (`requested`) —
+    /// the top-row hold must then leave it where it is, since a position
+    /// request aims at a line of the content as it now is — and whether a tail
+    /// seek is pending (`seekingTail`), spent here.
+    ///
+    /// 1. A freshly WRITTEN edge anchor jumps to that edge
+    ///    (``adoptWrittenAnchor(handler:context:)``). Before the glue check,
+    ///    whose `seekingTail` read is one-shot.
+    /// 2. A bound position's edge or offset target moves the view BEFORE the
+    ///    content renders, so the frame carrying the request already shows
+    ///    the destination — `.bottom` by raising the tail-seek flag the End
+    ///    key uses, so the glue pins it exactly against the real height
+    ///    (``applyPositionOffset(handler:context:)``).
+    /// 3. A one-shot End / `scrollToBottom` intent converges exactly like a
+    ///    glued frame (see `ScrollViewHandler.seekingTail`).
+    func placeBeforeDrawing(
+        handler: ScrollViewHandler, context: RenderContext
+    ) -> (requested: Bool, seekingTail: Bool) {
+        adoptWrittenAnchor(handler: handler, context: context)
+        let requested = !context.isMeasuring && applyPositionOffset(handler: handler, context: context)
+        let seekingTail = handler.seekingTail
+        if !context.isMeasuring { handler.seekingTail = false }
+        return (requested, seekingTail)
+    }
+
     /// Adopts a bound anchor the app just *wrote*: `.top` jumps to the top,
     /// `.bottom` to the tail. §3.2 promises that writing an edge into the
     /// binding is `anchor(to:)`, and only the CHANGE can mean that — holding
