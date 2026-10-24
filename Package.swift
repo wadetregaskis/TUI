@@ -127,9 +127,10 @@ let package = Package(
         // The four modules beneath TUIkitFoundation: products of their own since before the split, and the
         // four that build on Windows today. TUIkitFoundation is built on TUIkitCore, TUIkitStyling and
         // TUIkitView and re-exports them; TUIkitImage is the bitmap path's (TUIkitBitmaps, TUIkitCurveEditors
-        // and TUIkitAppKit use it). None of the four re-exports another, so a client of TUIkitView or
-        // TUIkitImage imports TUIkitCore or TUIkitStyling itself where it names their types; the product
-        // brings them, so it needs no product of theirs.
+        // and TUIkitAppKit use it). TUIkitView re-exports TUIkitCore and TUIkitStyling, and TUIkitImage
+        // TUIkitStyling, the modules their API names (decisions B-C9B-3), so a client of either product
+        // writes one import and needs no product of the lower ones; TUIkitCore and TUIkitStyling re-export
+        // nothing.
         .library(name: "TUIkitCore", targets: ["TUIkitCore"]),
         .library(name: "TUIkitStyling", targets: ["TUIkitStyling"]),
 
