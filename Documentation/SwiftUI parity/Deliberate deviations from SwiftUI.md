@@ -883,22 +883,26 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** Foundation's Markdown parser is Darwin-only.
 - **Decided:** [B86](<Decisions/SwiftUI API completion decisions.md#b86-tuikits-markdown-parse-is-its-own-with-two-known-differences>). **Medium.**
 
-### T4. Links are underlined, and a link inside a `Text` is not a control
+### T4. Links are underlined, and a link inside a `Text` is a Tab stop
 
 - **SwiftUI:** a `Link` and a link in a `Text` are accent-coloured, not
   underlined; a link in a `Text` is clickable and opens through the
   environment's `OpenURLAction` (the colours measured on macOS 15.8, B85; the
-  click from Apple's documentation).
+  click from Apple's documentation), and macOS gives it no place in the Tab
+  order by default (not measured).
 - **TUIkit:** both are underlined (`.linkUnderline(false)` removes it). A link
-  in a `Text` carries an OSC 8 hyperlink for the terminal to open, and takes
-  no focus and no click; on a terminal without OSC 8 (Apple Terminal) its
-  destination cannot be reached from the text unless the app writes it out
-  with `.linkDisplay(.urlInParentheses)` or `.urlOnly`, which a text's links
-  honour as a `Link` does.
+  in a `Text` carries an OSC 8 hyperlink for the terminal to open, and is a
+  control as a `Link` is: a Tab stop that breathes while focused, opened by
+  Return or a click (or copied, under `.linkActivation(.copy)`) with its
+  destination shown in a popover, and `Link`'s menu on Shift+F10 or a
+  right-click. Under `.linkDisplay(.urlInParentheses)` or `.urlOnly` it writes
+  its URL out instead and is no control, as a `Link` is not.
 - **Why:** a terminal has no pointer affordance for a link, so the underline
-  is what marks one.
+  is what marks one; and a link only the pointer could open would break the
+  no-mouse-only rule, so the keyboard reaches it the way it reaches every
+  other control (the owner's ruling B85-KEYBOARD, 2026-10-23).
 - **Decided:** [Link.swift](../../Sources/TUIkitFoundation/Views/Link.swift#L41-L44)
-  (**Recorded**), [B85](<Decisions/SwiftUI API completion decisions.md#b85-a-link-in-a-text-is-drawn-and-hyperlinked-but-is-not-a-control>) (**Lane**).
+  (**Recorded**), [B85](<Decisions/SwiftUI API completion decisions.md#b85-a-link-in-a-text-is-drawn-and-hyperlinked-and-is-a-control>) (**Lane**).
 
 ### T5. A live text taken as a string is read once
 

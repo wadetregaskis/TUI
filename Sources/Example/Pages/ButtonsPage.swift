@@ -506,6 +506,9 @@ struct ButtonsPage: View {
                 }
                 Text("page.buttons.links.inlineNote")
                     .foregroundStyle(.palette.foregroundSecondary)
+                // A link inside a `Text`, from the Markdown in its key: a Tab
+                // stop with `Link`'s activation, popover and menu (B85).
+                Text("page.buttons.links.textLink")
 
                 // …and the same shape with the escape suppressed. Deliberately
                 // NOT spelled as an address: terminals scan displayed text for

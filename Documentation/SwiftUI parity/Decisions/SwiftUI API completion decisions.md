@@ -3156,7 +3156,7 @@ bridges (`Color(nsColor:)`, `NSColor(_:)`, the `CGColor` pair, `Image`'s
 `internal import` of AppKit was not enough — it still loads SwiftUICore into
 clients of a SwiftPM module — so TUIkit imports none.
 
-### B85. A link in a `Text` is drawn and hyperlinked, but is not a control
+### B85. A link in a `Text` is drawn and hyperlinked, and is a control
 
 *`AttributeScopes.FoundationAttributes.link` as `Text` draws it; Markdown
 `[label](url)` and autolinks*
@@ -3204,6 +3204,43 @@ cannot be reached from the text.
 
 **Recommendation:** 2 now if Terminal.app matters; 1 when an app needs inline
 links it can activate.
+
+**1 ruled (owner, 2026-10-23, B85-KEYBOARD: "Full control"), and built (lane
+KEYS, 2026-10-24).** Where a `Link` is a control — `.linkDisplay(.popover)`,
+the default — so is each link in a `Text`:
+
+- **A Tab stop**, `text-link-<identity path>#<run>`, in reading order with the
+  page's other stops. A link the text wraps is one stop.
+- **Breathes** while it holds the focus, as a `Link`'s words do
+  (`BreathingLabel`): the text drawn once per colour of the breath, its rows
+  that the link reaches replayed, the rest still.
+- **Return, Space or a click** (press and release over it) does what
+  activating a `Link` does: opens the destination through `OpenURLAction`, or
+  copies it under `.linkActivation(.copy)`, and raises the destination's
+  popover, anchored at the link's first row. A held Return opens once
+  (`LinkActivationGate`).
+- **Shift+F10, the Menu key or a right-click** opens `Link`'s menu on it:
+  Show Link, Copy Link, Copy Label, Copy as Markdown. A right-click on the
+  text's other words opens nothing: the menu's pointer trigger lies over the
+  links alone (`ContextMenuModifier.KeyboardRoute.contentStopRegions`), and a
+  right-click gives the link the focus first, so the menu is that link's.
+
+Not a stop, as `Link` is not a control there: under `.linkDisplay(.urlOnly)`
+and `.urlInParentheses`; in a disabled subtree, or one whose focus is
+suppressed; in a list's or table's row, where the list is the stop; outside a
+running app. Known, and left: a link inside another control's label — a
+`Button` titled with a Markdown link — is a stop of its own beside the
+control's, because telling a label apart would cost every control an
+environment write per frame.
+
+The text draws through a private composite (`_TextLinks`, at a child
+identity) only when it has a link, so a text with none pays a nil check. One
+with links pays, per frame, the composite, its menu and popover modifiers and
+a focus registration, a pointer region and a menu key per link — all
+replayed from a memo where it is served — and, while a link holds the focus,
+a drawing of the text per colour of the breath.
+`TextLinkStopsTests` pins all of it through the app; the Example's Buttons
+page has one (`page.buttons.links.textLink`).
 
 ### B86. TUIkit's Markdown parse is its own, with two known differences
 

@@ -44,10 +44,10 @@ extension Text {
     ///
     /// The destination joins the link's run, so it is drawn, underlined and
     /// hyperlinked as the label is; and since the measure and the render both
-    /// read it from here, the measure counts it. The link stays as it is in
-    /// every other way: a text's link is no control in any mode (B85), so
-    /// there is no activation for the URL modes to take away as they do from
-    /// ``Link``. A text that has no runs, or no link, or shows links as
+    /// read it from here, the measure counts it. And as they do from ``Link``,
+    /// the URL modes take the link's control away: a text's link is a focus
+    /// stop only under ``LinkDisplay/popover`` (`TextLinkStops`, B85). A text
+    /// that has no runs, or no link, or shows links as
     /// ``LinkDisplay/popover`` (the default), pays a nil check and an
     /// environment read only where it has runs.
     func shownWords(in environment: EnvironmentValues) -> (content: String, runs: [Run]?) {

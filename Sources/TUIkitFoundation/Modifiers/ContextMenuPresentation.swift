@@ -195,13 +195,56 @@ package enum ContextMenuPresentation {
         to buffer: inout FrameBuffer, stateBox: StateBox<ContextMenuState>, focusID: String?,
         context: RenderContext
     ) {
+        guard let handlerID = registerTrigger(stateBox: stateBox, offsetX: 0, offsetY: 0, context: context) else {
+            return
+        }
+        buffer.hitTestRegions.insert(
+            contentsOf: buffer.frameHitRegions(
+                handlerID: handlerID, focusID: focusID, width: max(1, buffer.width), height: max(1, buffer.height)),
+            at: 0)
+    }
+
+    /// ``attachTrigger(to:stateBox:focusID:context:)``, over only the content's
+    /// regions that carry a focus stop: a secondary click opens the menu on
+    /// one of them and passes through everywhere else. For a text whose links
+    /// are its stops (`ContextMenuModifier.KeyboardRoute.contentStopRegions`):
+    /// a right-click on its other words is not a click on a link.
+    ///
+    /// One trigger per region, each knowing where its region is, so the menu
+    /// opens where the click was in the content, as the whole-frame trigger
+    /// does: a handler hears the click in its own region's coordinates.
+    @MainActor
+    package static func attachTriggerOverStops(
+        to buffer: inout FrameBuffer, stateBox: StateBox<ContextMenuState>, context: RenderContext
+    ) {
+        var triggers: [HitTestRegion] = []
+        for region in buffer.hitTestRegions where region.focusID != nil {
+            guard
+                let handlerID = registerTrigger(
+                    stateBox: stateBox, offsetX: region.offsetX, offsetY: region.offsetY, context: context)
+            else { return }
+            triggers.append(
+                HitTestRegion(
+                    offsetX: region.offsetX, offsetY: region.offsetY, width: region.width, height: region.height,
+                    handlerID: handlerID))
+        }
+        buffer.hitTestRegions.insert(contentsOf: triggers, at: 0)
+    }
+
+    /// Registers the handler a secondary click opens the menu in `stateBox`
+    /// through, for a region at (`offsetX`, `offsetY`) in the content; `nil`
+    /// where there is no dispatcher.
+    @MainActor
+    private static func registerTrigger(
+        stateBox: StateBox<ContextMenuState>, offsetX: Int, offsetY: Int, context: RenderContext
+    ) -> HitTestRegion.HandlerID? {
         let state = stateBox.value
-        guard let dispatcher = context.environment.mouseEventDispatcher else { return }
+        guard let dispatcher = context.environment.mouseEventDispatcher else { return nil }
         let onOpen = context.environment.menuOpenAction
         // Weak: the dispatcher holds this handler (see `Button`'s). Passive:
         // it takes no plain left press, so a drag handle in front of it still
         // stands aside for selectable text (`PressRole.dragSource`).
-        let handlerID = dispatcher.registerPassive(in: context) { [weak dispatcher] event in
+        return dispatcher.registerPassive(in: context) { [weak dispatcher] event in
             // Secondary click = right button, or Ctrl + left (the fallback where a
             // terminal claims right-click for itself, e.g. iTerm2 by default).
             let isSecondary =
@@ -209,8 +252,8 @@ package enum ContextMenuPresentation {
             guard isSecondary else { return false }
             switch event.phase {
             case .pressed:
-                state.anchorX = event.x
-                state.anchorY = event.y
+                state.anchorX = event.x + offsetX
+                state.anchorY = event.y + offsetY
                 state.isOpen = true
                 state.openedByKeyboard = false
                 // Opened by the pointer: nothing is chosen yet.
@@ -231,9 +274,5 @@ package enum ContextMenuPresentation {
                 return false
             }
         }
-        buffer.hitTestRegions.insert(
-            contentsOf: buffer.frameHitRegions(
-                handlerID: handlerID, focusID: focusID, width: max(1, buffer.width), height: max(1, buffer.height)),
-            at: 0)
     }
 }

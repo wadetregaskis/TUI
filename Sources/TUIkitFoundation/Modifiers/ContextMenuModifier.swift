@@ -40,6 +40,11 @@ package struct ContextMenuModifier<Content: View, MenuItems: View>: View {
         /// list row it is in, whose Shift+F10 opens the row's own menu. A
         /// disabled control offers no menu, to the pointer either.
         case contentStops
+        /// ``contentStops``, and the pointer opens the menu only over the
+        /// content's regions that carry a focus stop, not over its whole
+        /// frame: for a text whose links are its stops, where a right-click
+        /// on its other words is not a right-click on a link (decisions B85).
+        case contentStopRegions
     }
 
     /// The memberwise initializer, spelled out because the synthesized one is
@@ -68,6 +73,7 @@ extension ContextMenuModifier: FormRowRewrapping {
             switch keyboardRoute {
             case .ownStop: .ownStop
             case .contentStops: .contentStops
+            case .contentStopRegions: .contentStopRegions
             }
         return ContextMenuModifier<V, MenuItems>(content: row, menuItems: menuItems, keyboardRoute: route)
     }
@@ -144,10 +150,14 @@ extension ContextMenuModifier: Renderable {
             // served the unfocused frame after Tab arrived.
             FocusRegistration.publishIsFocused(isFocused, context: context, into: &contentContext)
             var buffer = TUIkitView.renderToBuffer(content, context: contentContext)
-            if !context.isMeasuring, keyboardRoute == .contentStops {
+            if !context.isMeasuring, keyboardRoute != .ownStop {
                 attachContentStopsTrigger(stateBox: stateBox, regions: buffer.hitTestRegions, context: context)
             }
-            if !context.isMeasuring, keyboardRoute == .ownStop || context.environment.isEnabled {
+            if !context.isMeasuring, keyboardRoute == .contentStopRegions {
+                if context.environment.isEnabled {
+                    ContextMenuPresentation.attachTriggerOverStops(to: &buffer, stateBox: stateBox, context: context)
+                }
+            } else if !context.isMeasuring, keyboardRoute == .ownStop || context.environment.isEnabled {
                 ContextMenuPresentation.attachTrigger(
                     to: &buffer, stateBox: stateBox, focusID: focusID, context: context)
             }

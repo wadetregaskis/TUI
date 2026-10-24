@@ -31,9 +31,14 @@ extension Text {
     /// (which follows ``View/tint(_:)``, as SwiftUI's links do) unless the run
     /// states a colour of its own, underlined as a ``Link`` is (see
     /// ``View/linkUnderline(_:)``), and as a real OSC 8 hyperlink wherever the
-    /// terminal honours one (``View/terminalHyperlinks(_:)``) — which is how the
-    /// destination is reached: the terminal shows and opens it on its own
-    /// gesture. Every other attribute is ignored, as SwiftUI ignores them.
+    /// terminal honours one (``View/terminalHyperlinks(_:)``). And it is a
+    /// control, as a ``Link`` is: a Tab stop that breathes while it holds the
+    /// focus, opened by Return, Space or a click through the environment's
+    /// ``OpenURLAction`` (or copied, under ``View/linkActivation(_:)``) with its
+    /// destination shown in a popover, and ``Link``'s menu on Shift+F10 or a
+    /// right-click — unless ``View/linkDisplay(_:)`` writes the destination out,
+    /// the text is disabled, or it is in a list's row, where it is none.
+    /// Every other attribute is ignored, as SwiftUI ignores them.
     ///
     /// The string's attributes take precedence over the text's modifiers, which
     /// is SwiftUI's rule: in

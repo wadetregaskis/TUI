@@ -82,7 +82,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [B-PASTE-1-EDITOR](#b-paste-1-editor) | Asked why not UTF-8 storage, and its downsides. | Answered below — your call. |
 | [B-D4X-7-17](#b-d4x-7-17) | Tentatively concur; configurability by a modifier may be wise. | Option 1 queued, with a modifier considered. |
 | [D4X-LOCALITY](#d4x-locality) | Screen and tmux paths seem fine; asked about asking keepers for clients. | Passthroughs queued; client queries answered below. |
-| [B85-KEYBOARD](#b85-keyboard) | Full control. | Queued. |
+| [B85-KEYBOARD](#b85-keyboard) | Full control. | Done (lane KEYS, 2026-10-24): each link in a `Text` is a Tab stop that breathes, opens on Return or a click with the destination popover, and has `Link`'s menu on Shift+F10 or a right-click (decisions B85). |
 | [B86](#b86) | Asked about Foundation's Markdown parser and version variation. | Answered below — your call. |
 | [B51-LIVE](#b51-live) | Live everywhere it makes sense; measure; case by case. | Queued. |
 | [DEPR-CATCHALL](#depr-catchall) | (b). | Queued. |

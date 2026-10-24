@@ -1043,24 +1043,22 @@ extension Text: Renderable, Layoutable {
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        var shadowing: Paint?
-        let buffer = drawn(context: context, shadowing: &shadowing)
-        guard let shadowing else { return buffer }
-        // A shadowed foreground style's shadows, cast from the letters drawn
-        // in it (``ShapeStyle/shadow(_:)``).
-        return buffer.castingShadows(of: shadowing, context: context, owner: Text.self)
+        rendered(context: context, linkSpans: nil, routesLinks: true)
     }
 
     /// The text drawn, and in `shadowing` the paint whose shadows it casts:
-    /// the foreground style's, where the letters are drawn in it.
-    private func drawn(context: RenderContext, shadowing: inout Paint?) -> FrameBuffer {
+    /// the foreground style's, where the letters are drawn in it. `linkSpans`
+    /// and `routesLinks` are `rendered(context:linkSpans:routesLinks:)`'s.
+    func drawn(
+        context: RenderContext, shadowing: inout Paint?, linkSpans: TextLinkSpans?, routesLinks: Bool
+    ) -> FrameBuffer {
         if localization != nil, let read = relocalized(in: context) {
-            return read.renderToBuffer(context: context)
+            return read.rendered(context: context, linkSpans: linkSpans, routesLinks: routesLinks)
         }
         // A live text draws the words it reads at this frame — see
         // `sizeThatFits` for why a plain one pays only a nil check.
         if runs != nil, let read = readingLive(declaringIn: context, measuring: false) {
-            return read.renderToBuffer(context: context)
+            return read.rendered(context: context, linkSpans: linkSpans, routesLinks: routesLinks)
         }
         // Resolve cascading attributes (container-level .bold()/.style(...) etc.)
         // and any chrome-role default (e.g. a Section header's bold+dim) beneath
@@ -1166,6 +1164,7 @@ extension Text: Renderable, Layoutable {
             let runTexts = runs.map {
                 Self.displayString($0.text, textCase: effectiveCase, redaction: redaction)
             }
+            linkSpans?.note(plainLines, runTexts: runTexts, runs: runs)
             let concatenated = concatenatedLines(
                 plainLines, runs: runs, runTexts: runTexts, blockWidth: lineWidths.max() ?? 0,
                 effectiveStyle: effectiveStyle, font: font, ramp: ramp, context: context)
