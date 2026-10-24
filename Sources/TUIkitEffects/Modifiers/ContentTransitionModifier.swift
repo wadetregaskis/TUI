@@ -1,8 +1,9 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  ContentTransitionModifier.swift
 //
-//  `contentTransition(_:)`: a change WITHIN a view, animated — the old drawing
-//  dissolving into the new one.
+//  `contentTransition(_:)`: a change WITHIN a view, animated — each text's or
+//  image's old drawing dissolving into its new one (`ContentDissolve`,
+//  TUIkitFoundation).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -23,8 +24,8 @@ import TUIkitView
 ///
 /// ## In cells
 ///
-/// Every transition but ``identity`` dissolves the old drawing into the new
-/// one, cell by cell, through the opacity compositor: a cell's colours blend,
+/// Every transition but ``identity`` dissolves a `Text`'s or an `Image`'s old
+/// drawing into its new one, cell by cell, through the opacity compositor: a cell's colours blend,
 /// and its glyph changes half way. That IS `interpolate` here — a cell whose
 /// character is the same in both keeps it and moves only its colours, which is
 /// what SwiftUI's interpolation does for "matching glyph pairs", and anything
@@ -116,9 +117,19 @@ extension EnvironmentValues {
     /// Unset, it is a value equal to none of the named transitions — as in
     /// SwiftUI, measured — and a change is drawn at once, as TUIkit has always
     /// drawn one.
+    ///
+    /// Each `Text` and `Image` reads it as it draws, as SwiftUI's leaf views
+    /// do: under a transition that dissolves, it keeps its last drawing and
+    /// dissolves a change made under an animation (see
+    /// ``View/contentTransition(_:)``).
     public var contentTransition: ContentTransition {
         get { self[ContentTransitionKey.self] }
-        set { self[ContentTransitionKey.self] = newValue }
+        set {
+            self[ContentTransitionKey.self] = newValue
+            // What the leaves read, which cannot see this type: written here,
+            // by the one setter, so the two always agree.
+            contentDissolves = newValue.dissolves
+        }
     }
 
     /// A Boolean value that controls whether views that render content
@@ -151,120 +162,17 @@ extension View {
     /// > Tip: The `contentTransition(_:)` modifier only has an effect within
     /// the context of an ``Animation``.
     ///
-    /// The dissolve is drawn over everything the modifier wraps: an inner
-    /// `contentTransition(.identity)` does not exempt part of it. The view keeps
+    /// Each `Text` and `Image` inside reads the transition and dissolves its
+    /// own change, as SwiftUI's leaf views do, so an inner
+    /// `contentTransition(.identity)` exempts its part. A view that is not a
+    /// text or an image — a shape, a colour, a control's chrome — changes as
+    /// it would without the modifier: an animatable one animates. A leaf keeps
     /// the size of its new content, so a drawing that shrinks loses its edges
     /// at once.
     ///
     /// - Parameter transition: The transition to apply when animating the
     ///   content change.
     public func contentTransition(_ transition: ContentTransition) -> some View {
-        _ContentTransitionView(content: self, transition: transition)
-    }
-}
-
-/// Dissolves its content's old drawing into its new one when the content
-/// changes under an animation. See ``View/contentTransition(_:)``.
-struct _ContentTransitionView<Content: View>: View {
-    let content: Content
-    let transition: ContentTransition
-
-    var body: Never {
-        fatalError("_ContentTransitionView renders via Renderable")
-    }
-
-    /// What the view drew, and the dissolve under way.
-    struct Fade {
-        /// The content's drawing on the last frame.
-        var shown: FrameBuffer?
-        /// The drawing being dissolved away, and how.
-        var outgoing: FrameBuffer?
-        var animation: Animation?
-        var startNanos: Int64 = 0
-    }
-
-    /// Where the fades of every content transition at one identity are kept,
-    /// by type — two nested at one place are different generic types. In the
-    /// reserved range of `StateStorage.StateKey`, as the content renders at
-    /// this view's own identity.
-    private static var stateIndex: Int { -110 }
-
-    private func withTransition(_ context: RenderContext) -> RenderContext {
-        var inner = context
-        inner.environment.contentTransition = transition
-        return inner
-    }
-}
-
-extension _ContentTransitionView: Renderable, Layoutable {
-    func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let buffer = TUIkitView.renderToBuffer(content, context: withTransition(context))
-        guard transition.dissolves, !context.isMeasuring, let storage = context.stateStorage else {
-            return buffer
-        }
-        storage.markActive(context.identity)
-        let key = StateStorage.StateKey(identity: context.identity, propertyIndex: Self.stateIndex)
-        var fades: [ObjectIdentifier: Any] = storage.trackedValue(for: key) ?? [:]
-        var fade = fades[ObjectIdentifier(Self.self)] as? Fade ?? Fade()
-        let frame = context.environment.animationFrame
-        let now = frame.nowNanos
-        defer {
-            fade.shown = buffer
-            // A finished dissolve lets its picture go.
-            if let animation = fade.animation,
-                animation.isFinished(at: Double(now - fade.startNanos) / 1_000_000_000)
-            {
-                (fade.outgoing, fade.animation) = (nil, nil)
-            }
-            fades[ObjectIdentifier(Self.self)] = fade
-            storage.setTrackedValue(fades, for: key)
-        }
-
-        // A change dissolves from the last drawing — not from the picture on
-        // screen, which during a dissolve is the old glyphs blended toward
-        // the new and hands its glyphs over only half way. Started from that
-        // picture, a burst of changes faster than half the animation (a held
-        // key's auto-repeat on a counter) restarted from the old glyphs every
-        // time, and the number stood still until the burst ended. From the
-        // last drawing it follows the burst, one change behind.
-        if let shown = fade.shown, shown.lines != buffer.lines || shown.width != buffer.width,
-            frame.canAnimate, let animation = context.environment.transaction.effectiveAnimation
-        {
-            fade.outgoing = shown
-            fade.animation = animation
-            fade.startNanos = now
-            storage.animationCompletions.noteStarted(animation, at: now, key: nil)
-        }
-        return drawn(fade, over: buffer, at: now, context: context)
-    }
-
-    /// `buffer` with `fade`'s outgoing drawing dissolving away beneath it, or
-    /// `buffer` alone when nothing is dissolving.
-    private func drawn(_ fade: Fade, over buffer: FrameBuffer, at now: Int64, context: RenderContext) -> FrameBuffer {
-        guard let outgoing = fade.outgoing, let animation = fade.animation else { return buffer }
-        let elapsed = Double(now - fade.startNanos) / 1_000_000_000
-        guard !animation.isFinished(at: elapsed) else { return buffer }
-        // Frames until it is done, on the lattice every view animation shares.
-        context.requestAnimation(
-            token: "content-transition-\(context.identity.path)",
-            frameTicks: AnimationRequest.viewAnimations.frameTicks)
-        let presence = min(1, max(0, animation.fraction(at: elapsed)))
-        // The new drawing over the old at `presence`: the compositor blends
-        // each cell's colours and hands over its glyph half way, so the old
-        // shows through at 1 − presence.
-        var quiet = context.withChildIdentity(erasedType: Self.self, index: 0)
-        quiet.environment.transaction.disablesAnimations = true
-        let dissolved = TUIkitView.renderToBuffer(
-            ZStack(alignment: .topLeading) {
-                BufferView(buffer: outgoing)
-                BufferView(buffer: buffer).opacity(presence)
-            },
-            context: quiet)
-        return dissolved.clamped(toWidth: buffer.width, height: buffer.height)
-    }
-
-    /// Measures as its content: a dissolve changes no layout.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(content, proposal: proposal, context: withTransition(context))
+        environment(\.contentTransition, transition)
     }
 }

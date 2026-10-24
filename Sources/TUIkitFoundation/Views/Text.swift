@@ -1043,7 +1043,13 @@ extension Text: Renderable, Layoutable {
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        rendered(context: context, linkSpans: nil, routesLinks: true)
+        // A change under an animation dissolves where a content transition
+        // that dissolves is in force (`ContentDissolve`, decisions B61). A
+        // text that draws another in its place (a relocalized or a live text)
+        // asks that one for `rendered(context:linkSpans:routesLinks:)`, its
+        // drawing before any dissolve, so the dissolve is kept once, at this
+        // text's identity.
+        ContentDissolve.drawn(rendered(context: context, linkSpans: nil, routesLinks: true), context: context)
     }
 
     /// The text drawn, and in `shadowing` the paint whose shadows it casts:

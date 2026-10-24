@@ -101,6 +101,9 @@ struct _ImageRasterHost: View, Renderable, Layoutable {
         if !context.isMeasuring, !buffer.isEmpty {
             buffer.hitTestRegions += HitTestRegion.pictureCorners(width: buffer.width, height: buffer.height)
         }
-        return buffer
+        // A change under an animation dissolves where a content transition
+        // that dissolves is in force (decisions B61). A symbol is a `Text`,
+        // and dissolves there.
+        return ContentDissolve.drawn(buffer, context: context)
     }
 }

@@ -1324,18 +1324,22 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   the size a custom body changes waits on [A-TRANSITIONS2-1](<Decisions/Shapes, effects and animation/Transition follow-ups (TRANSITIONS2).md#a-transitions2-1-b52-a-custom-transition-that-changes-its-views-size--lay-the-body-out-at-each-frames-size>).
   **Medium.**
 
-### A4. A content transition dissolves everything the modifier wraps
+### A4. A content transition is a dissolve in each text and image
 
 - **SwiftUI:** each leaf reads `\.contentTransition` and animates its own
-  content; `.numericText` rolls digits "in certain environments" (Apple's
-  documentation, B61).
-- **TUIkit:** the modifier dissolves its whole subtree's drawing (identical
-  cells dissolve into themselves); an inner `.contentTransition(.identity)`
-  does not exempt its part; `.numericText` and `.opacity` dissolve too; the
-  symbol-effect transitions are fades of the whole view.
-- **Why:** the dissolve works on the drawing the modifier wraps, through the
-  opacity compositor, so it needs nothing from the leaves.
-- **Decided:** [B61](<Decisions/SwiftUI API completion decisions.md#b61-a-content-transition-dissolves-everything-the-modifier-wraps>), [§1](<SwiftUI compatibility guide.md#1-match>) (the Symbol effects row).
+  content; `.interpolate` morphs matching glyphs, and `.numericText` rolls
+  digits "in certain environments" (Apple's documentation, B61).
+- **TUIkit:** each `Text` and raster `Image` reads it too (since 2026-10-24,
+  owner ruling B61), so an inner `.contentTransition(.identity)` exempts its
+  part; but what a leaf draws is a dissolve of its old cells into its new
+  ones, whatever the transition: `.interpolate` keeps a cell whose character
+  is the same and moves its colours, and `.numericText` and `.opacity`
+  dissolve. A leaf takes its new size at once. The symbol-effect transitions
+  are fades of the symbol.
+- **Why:** a cell holds one glyph, so there is no glyph shape to morph or
+  roll; the opacity compositor blends a cell's colours and hands its glyph
+  over half way.
+- **Decided:** [B61](<Decisions/SwiftUI API completion decisions.md#b61-a-content-transition-dissolves-each-text-and-image>), [§1](<SwiftUI compatibility guide.md#1-match>) (the Symbol effects row).
   **Lane.**
 
 ### A5. A text that changes under an animation snaps

@@ -96,6 +96,50 @@ struct ContentTransitionTests {
         #expect(unanimated.text(label("BBBB").contentTransition(.opacity), atMillis: 0) == "BBBB")
     }
 
+    @Test("Each text dissolves its own change, so an inner .identity exempts its part")
+    func innerIdentityIsExempt() {
+        // SwiftUI's leaves read the transition each for itself (decisions B61).
+        func pair(_ first: String, _ second: String) -> some View {
+            HStack(spacing: 1) {
+                label(first)
+                label(second).contentTransition(.identity)
+            }
+            .contentTransition(.opacity)
+        }
+        let frames = Frames(.linear(duration: 1))
+        _ = frames.draw(pair("AA", "CC"), atMillis: 0)
+        #expect(frames.text(pair("BB", "DD"), atMillis: 0) == "AA DD")
+        #expect(frames.text(pair("BB", "DD"), atMillis: 750) == "BB DD")
+    }
+
+    @Test("A transition set through .environment dissolves as the modifier's does")
+    func environmentSpellingDissolves() {
+        let frames = Frames(.linear(duration: 1))
+        _ = frames.draw(label("AAAA").environment(\.contentTransition, .opacity), atMillis: 0)
+        #expect(frames.text(label("BBBB").environment(\.contentTransition, .opacity), atMillis: 0) == "AAAA")
+        var unset = EnvironmentValues()
+        #expect(!unset.contentDissolves, "a text keeps nothing where no transition is written")
+        unset.contentTransition = .interpolate
+        #expect(unset.contentDissolves)
+        unset.contentTransition = .identity
+        #expect(!unset.contentDissolves)
+    }
+
+    @Test("What is not a text or an image changes as it would without the modifier")
+    func nonLeafIsUntouched() {
+        // A colour animates its own change; the modifier adds no dissolve.
+        func swatch(_ color: Color) -> some View { color.frame(width: 2, height: 1) }
+        let written = Frames(.linear(duration: 1))
+        let bare = Frames(.linear(duration: 1))
+        _ = written.draw(swatch(.red).contentTransition(.opacity), atMillis: 0)
+        _ = bare.draw(swatch(.red), atMillis: 0)
+        for millis in [0, 500, 1100] {
+            #expect(
+                written.draw(swatch(.blue).contentTransition(.opacity), atMillis: millis).lines
+                    == bare.draw(swatch(.blue), atMillis: millis).lines)
+        }
+    }
+
     @Test("The modifier sets the environment value its content reads")
     func environment() {
         #expect(Frames(nil).text(ReadsTransition().contentTransition(.opacity), atMillis: 0) == "opacity")

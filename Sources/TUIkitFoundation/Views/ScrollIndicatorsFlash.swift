@@ -212,7 +212,7 @@ extension View {
 /// Its content renders at its own identity, so what it keeps between frames
 /// sits in the reserved negative range of `StateStorage.StateKey`; two of them
 /// at one identity (one modifier on another) are different generic types and
-/// keep theirs apart by type, as `_ContentTransitionView` does.
+/// keep theirs apart by type, in one dictionary keyed by the type.
 struct _ScrollIndicatorsFlashCore<Content: View, Value: Equatable>: View {
     let content: Content
     let value: Value

@@ -2239,7 +2239,7 @@ together from the initial value and the last to write a property wins.
 - **A zero-length linear or cubic keyframe arrives at once**, where SwiftUI
   divides by its zero length and answers NaN.
 
-### B61. A content transition dissolves everything the modifier wraps
+### B61. A content transition dissolves each text and image
 
 *`ContentTransition` (`.identity`, `.opacity`, `.interpolate`,
 `.numericText(countsDown:)`, `.numericText(value:)`), `View.contentTransition(_:)`,
@@ -2256,23 +2256,40 @@ whose character is the same keeps it and moves only its colours. That is
 rest use its documented opacity fallback); `.opacity` and both
 `.numericText` forms draw the same dissolve (SwiftUI's rolling digits are
 promised only "in certain environments"); `.identity` draws the change at
-once. A change in mid-dissolve dissolves from what is on screen. The dissolve
-counts as an animation for completions.
+once. A change in mid-dissolve dissolves from the last drawing, so a burst
+of changes is followed one change behind. The dissolve counts as an
+animation for completions.
 
-**Where it differs.** SwiftUI's leaf views read the environment value and
-each animates its own content. Here the modifier dissolves its whole
-subtree's drawing — identical cells dissolve into themselves, so only what
-changed is seen to move, but an inner `.contentTransition(.identity)` does
-not exempt its part, and the view takes its new size at once (a shrinking
+**Per leaf, as SwiftUI's** (owner ruling of 2026-10-23, option 2; lane
+VISUALS, 2026-10-24). Each `Text` and each raster `Image` reads the value as
+it draws and dissolves its own change; a symbol image is a `Text` and
+dissolves there. So an inner `.contentTransition(.identity)` exempts its
+part, and `.environment(\.contentTransition, …)` works as the modifier does.
+The modifier only sets the environment value. What is not a text or an
+image (a shape, a colour, a control's chrome) changes as it would without
+the modifier, an animatable one animating, as in SwiftUI. Until then the
+modifier dissolved its whole subtree's drawing, and an inner `.identity`
+exempted nothing (deviations A4 as it was).
+
+The price is A40's, confined: a leaf keeps its last drawing only where a
+transition that dissolves is in force, in a record at an identity of its
+own (`ContentDissolve`, TUIkitFoundation); everywhere else each `Text` and
+raster `Image` pays one environment read a draw (a `Bool`,
+`contentDissolves`, written by `\.contentTransition`'s setter, since the
+leaves cannot see `ContentTransition`'s module). The ruling lands it if the
+A/B on text-heavy scenarios is within a few percent; see the lane file
+`Shapes, effects and animation/Visual effects rulings (VISUALS).md`.
+
+**Where it still differs.** The leaf dissolves where SwiftUI interpolates
+glyph shapes or rolls digits, and takes its new size at once (a shrinking
 drawing loses its edges immediately). `contentTransitionAddsDrawingGroup` is
 a rendering hint with no visible contract (a drawing group changes how
 SwiftUI composites, not what it shows) and is kept for whoever reads it. The
 symbol-effect content transitions shipped with A35 on 2026-10-05 (on macOS:
-a fade of the whole view).
+a fade of the symbol).
 
-**The fuller version** is A40's second option: the dissolve inside `Text`
-and `Image`, reading the environment, which also gives the leaf-level
-semantics above.
+**A40's default dissolve** (every text, with nothing written) stays off: it
+is this record kept for every text everywhere, measured at up to +500%.
 
 ### B62. A vertical `TextField` is a text field that wraps, not an editor with a field's chrome
 
