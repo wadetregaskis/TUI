@@ -95,7 +95,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [P5](#p5) | (c). | Queued. |
 | [WL-Q3](#wl-q3) | (b); measure the current impact first. | Queued (measurement first). |
 | [NAMED-COLOURS-DARK](#named-colours-dark) | (a). | Built 2026-10-24 on lane `lane-colours` (D6M B-D6M-3); an A/B is owed before it lands. |
-| [B-D6M-1](#b-d6m-1) | Always render correctly in subtrees with a changed colour scheme; try it and measure. | Queued: build and measure. |
+| [B-D6M-1](#b-d6m-1) | Always render correctly in subtrees with a changed colour scheme; try it and measure. | Measured: needs your choice, see the follow-up below. |
 
 ### Follow-up answers
 
@@ -381,6 +381,25 @@ A cell shows two colours split by one glyph's partition: ▀ splits top from bot
 - Gradient areas cost about twice the SGR bytes.
 
 Recommendation: option 2 through the shapes' half-block emitter, so gradient Rectangles and Circles agree. Add the ▀/▌ choice if it is cheap there. Leave quadrants and diagonals as a follow-up, since sharing TUIkitImage's matcher is a design question. Need: your yes to that scope.
+
+#### B-D6M-1
+
+You asked that colours always render correctly in subtrees with a changed colour scheme, and to try it and measure. Named colours now do (NAMED-COLOURS-DARK, shipped): `Color` stays 5 bytes, because a name is one byte and its light and dark values are a constant table. An asset-catalogue colour cannot follow, because it needs two arbitrary RGB values (6 bytes) and `Color` has room for 3. I built the bigger `Color` to measure it (branch `lane-colours-schemed-wip`, not wired up):
+
+| Type | Before | After |
+|---|---|---|
+| `Color` | 5 | 8 |
+| `TextStyle` | 40 | 52 |
+| `Text` | 72 | 84 |
+| `FlexibleFrameView<Text>` | 168 | 180 |
+| `TextTap` | 101 | 117 (gains padding; its value hash drops from dense to runs) |
+
+- **1. Keep choosing the variant when the colour is made.** *Price:* Free. Wrong in a pinned subtree of the other scheme; exact for a set with one colour, the common case.
+- **2. Grow `Color` to 8 bytes.** The only option that is always correct. *Price:* About a day more (re-lay out `Text` and `TextStyle` so nothing gains padding; wire the asset catalogue, `TUIkitAppKit`'s compiled catalogue and dynamic `NSColor`), then an A/B on the text-heavy scenarios. Every `Text` grows about 20%.
+- **3. An index into a process-wide table of catalogue colours.** Fits in 5 bytes. *Price:* About a day, plus an exception to "No Singletons": an index that gives a colour its meaning is not a cache.
+- **4. Choose by the scheme in force where the view's body runs**, through a task-local the palette and scheme modifiers set, as `ColorDepth` works. *Price:* Half a day, no size change. Not always correct: a colour made above a pin and drawn below it gets the outer scheme.
+
+Recommendation: 4 now, which fixes the common case (a pinned subtree whose views make their own colours) at no cost to every `Text`; 2 only if a real app is caught by the remaining case. Need: your choice.
 
 ## Summary
 
