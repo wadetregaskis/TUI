@@ -99,9 +99,7 @@ package struct _MenuSubmenuRow<Label: View, Items: View>: View, Renderable, Layo
             let dismiss = context.environment.dismissMenu
             row.environment.menuSubmenu = MenuSubmenu(
                 draw: { controller in
-                    renderMenuLevel(
-                        items, context: itemsContext, controller: controller, dismiss: { dismiss?() },
-                        isSubmenu: true)
+                    renderMenuLevel(items, context: itemsContext, controller: controller, dismiss: { dismiss?() })
                 },
                 registerShortcuts: { registerMenuItemShortcuts(items, context: itemsContext) })
         }
@@ -136,7 +134,7 @@ private enum MenuSubmenuChildIndex {
 
 // MARK: - Drawing a menu with its open submenu
 
-/// Draws `items` as an open pop-up menu (``renderMenuPopup(_:context:controller:dismiss:isSubmenu:)``)
+/// Draws `items` as an open pop-up menu (``renderMenuPopup(_:context:controller:dismiss:)``)
 /// and, where `controller` has a submenu open, that submenu beside the row
 /// that opened it — a layer of the menu's buffer, so it goes wherever the menu
 /// is put, its first row level with that row. A submenu that would run off the
@@ -147,9 +145,9 @@ private enum MenuSubmenuChildIndex {
 @MainActor
 func renderMenuLevel(
     _ items: some View, context: RenderContext, controller: MenuPopupController,
-    dismiss: @escaping () -> Void, isSubmenu: Bool
+    dismiss: @escaping () -> Void
 ) -> FrameBuffer {
-    var buffer = renderMenuPopup(items, context: context, controller: controller, dismiss: dismiss, isSubmenu: isSubmenu)
+    var buffer = renderMenuPopup(items, context: context, controller: controller, dismiss: dismiss)
     guard !context.isMeasuring else { return buffer }
     // The closed submenus' items' key equivalents work while this menu is up,
     // as the open one's do: rendered for their registrations alone.

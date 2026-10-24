@@ -32,13 +32,14 @@ import TUIkitCore
 /// a heading — become unselectable rows: placed as drawn, never highlighted,
 /// never clickable.
 ///
-/// A SUBMENU's column (`isSubmenu`) files no dismiss backdrop of its own: the
-/// menu it opened from has one over the whole screen already, and a second,
-/// filed after the first menu's rows, would take the pointer from them.
+/// The column files no dismiss backdrop: a menu's is its presenter's
+/// (`presentMenuPopover`), over the whole screen, and a submenu has none of its
+/// own — a second, filed after the first menu's rows, would take the pointer
+/// from them.
 @MainActor
 func renderMenuPopup(
     _ items: some View, context: RenderContext, controller: MenuPopupController,
-    dismiss: @escaping () -> Void, isSubmenu: Bool = false
+    dismiss: @escaping () -> Void
 ) -> FrameBuffer {
     let rowsOnly = VStack(alignment: .leading, spacing: 0) { _MenuSectionedItems(items: items) }
         .buttonStyle(_MenuItemButtonStyle())
@@ -144,7 +145,7 @@ func renderMenuPopup(
         scroll: controller.scroll,
         followHighlight: controller.highlight.consumeFollowPending(),
         autoRepeatToken: "menu-popup-scrollbar-\(context.identity.path)")
-    configuration.attachesBackdrop = !isSubmenu
+    configuration.attachesBackdrop = false
     let popup = DropdownMenu.popup(
         configuration,
         context: context,
@@ -298,7 +299,7 @@ package func presentMenuPopover<Items: View>(
     menuContext.environment.focusIndicator = nil
 
     var menuBuffer = renderMenuLevel(
-        items, context: menuContext, controller: controller, dismiss: dismiss, isSubmenu: false)
+        items, context: menuContext, controller: controller, dismiss: dismiss)
     guard !menuBuffer.isEmpty else { return }
 
     // The same screen-covering dismiss backdrop the drop-down menus use.
