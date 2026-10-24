@@ -69,7 +69,7 @@ struct DragReduceMotionTests {
     @Test("The render loop hands the scene's setting to the session")
     func theLoopWritesTheSetting() {
         let harness = RenderLoopHarness()
-        harness.loop(ReducingApp(), reducesMotion: false).render()
+        harness.loop(ReducingApp(), accessibility: []).render()
         #expect(harness.tuiContext.dragAndDropSession.reducesMotion, "the scene's .reduceMotion() reached it")
     }
 }

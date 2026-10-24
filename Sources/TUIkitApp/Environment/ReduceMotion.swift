@@ -4,7 +4,7 @@
 //  Where `\.accessibilityReduceMotion` (declared in TUIkitView) comes from in a
 //  terminal — the user's `TUIKIT_REDUCE_MOTION`, the operating system's own
 //  setting where TUIkit is sure the user is at this machine
-//  (`HostReduceMotionRefresher`), or the app's own `.reduceMotion()` on its
+//  (`HostAccessibilityRefresher`), or the app's own `.reduceMotion()` on its
 //  scene. The operating system's setting counts only there: the machine the app
 //  runs on need not be the one the user sits at.
 //

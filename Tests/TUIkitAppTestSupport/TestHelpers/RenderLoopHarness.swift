@@ -68,27 +68,29 @@ final class RenderLoopHarness {
     /// What the loop publishes about the terminal's colours goes to
     /// ``publishedColors``.
     ///
-    /// `reducesMotion` is what the app runner reads from `TUIKIT_REDUCE_MOTION`,
-    /// and `keyNotation` what it reads from `TUIKIT_KEY_SYMBOLS`; a test states
-    /// them, and by default the loop draws as if both were unset.
+    /// `accessibility` is what the app runner reads from the `TUIKIT_*`
+    /// accessibility variables (`TUIKIT_REDUCE_MOTION`), and `keyNotation` what
+    /// it reads from `TUIKIT_KEY_SYMBOLS`; a test states them, and by default
+    /// the loop draws as if all were unset.
     ///
     /// `clientCapabilities`, where given, is what the terminals in front of the
     /// user can render — the answer tmux would give about the clients attached
     /// — in place of asking the process's own host.
     func loop<A: App>(
-        _ app: A, isTmux: Bool = false, reducesMotion: Bool = false, keyNotation: KeyNotation = .symbols,
-        clientCapabilities: ClientCapabilities? = nil
+        _ app: A, isTmux: Bool = false, accessibility: AccessibilityPreferences = [],
+        keyNotation: KeyNotation = .symbols, clientCapabilities: ClientCapabilities? = nil
     ) -> RenderLoop<A> {
         loop(
-            app, on: terminal, isTmux: isTmux, reducesMotion: reducesMotion, keyNotation: keyNotation,
+            app, on: terminal, isTmux: isTmux, accessibility: accessibility, keyNotation: keyNotation,
             clientCapabilities: clientCapabilities)
     }
 
     /// A loop over another terminal: a real `Terminal` writing to a script
     /// (`ScriptedTerminalOutput`), for a test of the bytes a frame is sent as.
     func loop<A: App>(
-        _ app: A, on terminal: any HostStateKeeping, isTmux: Bool = false, reducesMotion: Bool = false,
-        keyNotation: KeyNotation = .symbols, clientCapabilities: ClientCapabilities? = nil
+        _ app: A, on terminal: any HostStateKeeping, isTmux: Bool = false,
+        accessibility: AccessibilityPreferences = [], keyNotation: KeyNotation = .symbols,
+        clientCapabilities: ClientCapabilities? = nil
     ) -> RenderLoop<A> {
         RenderLoop(
             app: app,
@@ -101,7 +103,7 @@ final class RenderLoopHarness {
             isTmux: isTmux,
             publishTerminalColors: { [colourRecord] in colourRecord.published.append($0) },
             probeClientCapabilities: Self.probe(answering: clientCapabilities),
-            reducesMotion: reducesMotion,
+            requestedAccessibility: accessibility,
             keyNotation: keyNotation)
     }
 

@@ -294,7 +294,7 @@ internal final class RenderLoop<A: App> {
     /// iTerm2, or tmux, which keeps the bar for its pane and passes it on.
     ///
     /// `false` in every loop but the app runner's, for the reason
-    /// ``reducesMotion`` gives: what a test sends must not depend on the
+    /// ``requestedAccessibility`` gives: what a test sends must not depend on the
     /// terminal its process was started in. Whether the person SEES the bar is
     /// `\.terminalFeatures.showsProgress`, published each frame from this and
     /// the tmux clients (`publishTerminalFeatures(_:)`).
@@ -316,29 +316,30 @@ internal final class RenderLoop<A: App> {
     /// attached to tmux are without a tmux to ask.
     private let probeClientCapabilities: @Sendable () -> ClientCapabilities?
 
-    /// Whether the user asked for less motion with `TUIKIT_REDUCE_MOTION=1`,
-    /// as the app runner read it from the process: written at the root of
-    /// every frame as ``EnvironmentValues/accessibilityReduceMotion``.
+    /// What the user asked for with the `TUIKIT_*` accessibility variables
+    /// (`TUIKIT_REDUCE_MOTION=1`), as the app runner read them from the
+    /// process: written at the root of every frame
+    /// (``EnvironmentValues/accessibilityReduceMotion``).
     ///
-    /// `false` unless the runner says otherwise. A headless app, the test
+    /// Empty unless the runner says otherwise. A headless app, the test
     /// harness and every other loop leave it out, so what they draw does not
     /// depend on the environment their process was started in — a user's
     /// exported setting would otherwise turn every transition in a test run
     /// into a fade.
-    private let reducesMotion: Bool
+    private let requestedAccessibility: AccessibilityPreferences
 
-    /// The host's own Reduce Motion, where the app runner is sure the user is
-    /// at this machine (``HostReduceMotionRefresher``): OR'd with
-    /// ``reducesMotion`` at the root of every frame. `false` in every loop but
-    /// the app runner's, for the same reason.
-    var hostReducesMotion = false
+    /// The host's own accessibility settings, where the app runner is sure the
+    /// user is at this machine (``HostAccessibilityRefresher``): added to
+    /// ``requestedAccessibility`` at the root of every frame. Empty in every
+    /// loop but the app runner's, for the same reason.
+    var hostAccessibility: AccessibilityPreferences = []
 
     /// How the user asked for keys to be written with `TUIKIT_KEY_SYMBOLS`, as
     /// the app runner read it from the process: written at the root of every
     /// frame as ``EnvironmentValues/keyNotation``.
     ///
     /// ``KeyNotation/symbols`` unless the runner says otherwise, for the reason
-    /// ``reducesMotion`` gives: what a test draws must not depend on the
+    /// ``requestedAccessibility`` gives: what a test draws must not depend on the
     /// environment its process was started in.
     private let keyNotation: KeyNotation
 
@@ -354,7 +355,7 @@ internal final class RenderLoop<A: App> {
         publishTerminalColors: @escaping (TerminalColors) -> Void =
             TerminalColorRefresher.publishProcessWide,
         probeClientCapabilities: @escaping @Sendable () -> ClientCapabilities? = ClientCapabilityRefresher.probeHost,
-        reducesMotion: Bool = false,
+        requestedAccessibility: AccessibilityPreferences = [],
         keyNotation: KeyNotation = .symbols
     ) {
         self.isTmux = isTmux
@@ -363,7 +364,7 @@ internal final class RenderLoop<A: App> {
         terminal.hostState.keepsProgressAlive = !isTmux
         self.publishTerminalColors = publishTerminalColors
         self.probeClientCapabilities = probeClientCapabilities
-        self.reducesMotion = reducesMotion
+        self.requestedAccessibility = requestedAccessibility
         self.keyNotation = keyNotation
         self.app = app
         self.terminal = terminal
@@ -803,10 +804,11 @@ extension RenderLoop {
         environment.notificationService = NotificationService.current
         // The user's `TUIKIT_REDUCE_MOTION`, and the host's own Reduce Motion
         // where the user is provably at this machine, at the root, where the
-        // app runner passed them (see `reducesMotion`, `hostReducesMotion`); a
-        // scene's own `.reduceMotion(_:)` is applied over them with the scene's
-        // other writes.
-        environment.accessibilityReduceMotion = reducesMotion || hostReducesMotion
+        // app runner passed them (see `requestedAccessibility`,
+        // `hostAccessibility`); a scene's own `.reduceMotion(_:)` is applied
+        // over them with the scene's other writes.
+        let accessibility = requestedAccessibility.union(hostAccessibility)
+        environment.accessibilityReduceMotion = accessibility.contains(.reduceMotion)
         // The user's `TUIKIT_KEY_SYMBOLS` likewise; a scene's `.keyNotation(_:)`
         // can only add to it.
         environment.keyNotation = keyNotation

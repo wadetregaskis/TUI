@@ -147,13 +147,14 @@ struct ReduceMotionTests {
 
     @Test("The user's TUIKIT_REDUCE_MOTION=1, as the app runner reads it, reaches the root, and the scene cannot turn it off")
     func userSettingReachesTheRoot() {
-        let asked = TerminalClient.reduceMotionRequested(environment: ["TUIKIT_REDUCE_MOTION": "1"])
+        let asked = TerminalClient.accessibilityRequested(environment: ["TUIKIT_REDUCE_MOTION": "1"])
+        #expect(asked == [.reduceMotion])
         let probe = ReduceMotionProbe()
-        RenderLoopHarness().loop(ReduceMotionProbeApp(probe: probe), reducesMotion: asked).render()
+        RenderLoopHarness().loop(ReduceMotionProbeApp(probe: probe), accessibility: asked).render()
         #expect(probe.seen == true)
 
         let declining = ReduceMotionProbe()
-        RenderLoopHarness().loop(ReduceMotionProbeApp(probe: declining, appReduces: false), reducesMotion: asked)
+        RenderLoopHarness().loop(ReduceMotionProbeApp(probe: declining, appReduces: false), accessibility: asked)
             .render()
         #expect(declining.seen == true, "the user's ask stands over the scene's false")
     }
@@ -218,28 +219,28 @@ private final class HostStandIn: @unchecked Sendable {
     var readings = 0
     var changes: [Bool] = []
 
-    func read() -> Bool {
+    func read() -> AccessibilityPreferences {
         readings += 1
-        return reduces
+        return reduces ? [.reduceMotion] : []
     }
 }
 
 @MainActor
 @Suite("Reduce motion: the host's setting")
 struct HostReduceMotionTests {
-    private func refresher(_ host: HostStandIn, onChange: @escaping @MainActor (Bool) -> Void = { _ in })
-        -> HostReduceMotionRefresher
-    {
-        HostReduceMotionRefresher(
+    private func refresher(
+        _ host: HostStandIn, onChange: @escaping @MainActor (AccessibilityPreferences) -> Void = { _ in }
+    ) -> HostAccessibilityRefresher {
+        HostAccessibilityRefresher(
             read: { host.read() },
-            onChange: { reduces in
-                host.changes.append(reduces)
-                onChange(reduces)
+            onChange: { preferences in
+                host.changes.append(preferences.contains(.reduceMotion))
+                onChange(preferences)
             })
     }
 
     /// Waits for the refresher's reading, which hops through a detached task.
-    private func settle(_ refresher: HostReduceMotionRefresher) async throws {
+    private func settle(_ refresher: HostAccessibilityRefresher) async throws {
         for _ in 0..<200 {
             try await Task.sleep(nanoseconds: 5_000_000)
             if refresher.isIdleForTesting { return }
@@ -262,7 +263,7 @@ struct HostReduceMotionTests {
         host.reduces = true
         refresher.refresh()
         try await settle(refresher)
-        #expect(refresher.reducesMotion && host.changes == [true])
+        #expect(refresher.preferences == [.reduceMotion] && host.changes == [true])
 
         refresher.refresh()
         try await settle(refresher)
@@ -271,7 +272,7 @@ struct HostReduceMotionTests {
         host.reduces = false
         refresher.refresh()
         try await settle(refresher)
-        #expect(!refresher.reducesMotion && host.changes == [true, false])
+        #expect(refresher.preferences.isEmpty && host.changes == [true, false])
         #expect(host.readings == 3)
     }
 
@@ -279,10 +280,10 @@ struct HostReduceMotionTests {
     func reachesTheRoot() {
         let probe = ReduceMotionProbe()
         let loop = RenderLoopHarness().loop(ReduceMotionProbeApp(probe: probe))
-        loop.hostReducesMotion = true
+        loop.hostAccessibility = [.reduceMotion]
         loop.render()
         #expect(probe.seen == true)
-        loop.hostReducesMotion = false
+        loop.hostAccessibility = []
         loop.render()
         #expect(probe.seen == false)
     }
@@ -294,8 +295,8 @@ struct HostReduceMotionTests {
         let loop = RenderLoopHarness().loop(ReduceMotionProbeApp())
         let host = HostStandIn()
         host.reduces = true
-        let refresher = refresher(host) { loop.hostReducesMotion = $0 }
-        runner.hostMotion = refresher
+        let refresher = refresher(host) { loop.hostAccessibility = $0 }
+        runner.hostAccessibility = refresher
         let timer = CursorTimer(renderNotifier: appState)
 
         runner.terminalFocusChanged(isFocused: false, cursorTimer: timer, renderer: loop)
@@ -304,6 +305,6 @@ struct HostReduceMotionTests {
         runner.terminalFocusChanged(isFocused: true, cursorTimer: timer, renderer: loop)
         try await settle(refresher)
         #expect(host.readings == 1)
-        #expect(loop.hostReducesMotion, "and the loop was handed what it read")
+        #expect(loop.hostAccessibility == [.reduceMotion], "and the loop was handed what it read")
     }
 }

@@ -117,10 +117,10 @@ internal final class AppRunner<A: App> {
     /// measured, all of them.
     private var hostQuitByteAliases: TerminalClient.QuitByteAliases = .all
 
-    /// The host's Reduce Motion, read at launch and whenever the terminal
-    /// regains the focus (refusal review O1). Internal so a test can stand in
-    /// for the host; `nil` until ``run()`` makes it.
-    var hostMotion: HostReduceMotionRefresher?
+    /// The host's accessibility settings, read at launch and whenever the
+    /// terminal regains the focus (refusal review O1). Internal so a test can
+    /// stand in for the host; `nil` until ``run()`` makes it.
+    var hostAccessibility: HostAccessibilityRefresher?
     private let signals = SignalManager()
 
     /// - Parameters:
@@ -330,7 +330,7 @@ extension AppRunner {
             tuiContext: tuiContext,
             // The one loop that reads the process's environment for it: an
             // app in a real terminal, run by the user who set it.
-            reducesMotion: TerminalClient.reduceMotionRequested,
+            requestedAccessibility: TerminalClient.accessibilityRequested,
             keyNotation: TerminalClient.keyNotationRequested
         )
         // And the one that sends the terminal a progress bar, where the
@@ -339,17 +339,17 @@ extension AppRunner {
         return loop
     }
 
-    /// Starts reading the host's own Reduce Motion, where the user is provably
-    /// at this machine: off the main actor now, and again whenever the terminal
-    /// regains the focus (`terminalFocusChanged`). What it reads goes to
-    /// `renderer`'s root, and a change draws a frame.
-    private func startHostMotion(renderer: RenderLoop<A>) {
-        let hostMotion = HostReduceMotionRefresher { [weak self, weak renderer] reduces in
-            renderer?.hostReducesMotion = reduces
+    /// Starts reading the host's own accessibility settings, where the user is
+    /// provably at this machine: off the main actor now, and again whenever the
+    /// terminal regains the focus (`terminalFocusChanged`). What it reads goes
+    /// to `renderer`'s root, and a change draws a frame.
+    private func startHostAccessibility(renderer: RenderLoop<A>) {
+        let hostAccessibility = HostAccessibilityRefresher { [weak self, weak renderer] preferences in
+            renderer?.hostAccessibility = preferences
             self?.appState.setNeedsRender()
         }
-        self.hostMotion = hostMotion
-        hostMotion.refresh()
+        self.hostAccessibility = hostAccessibility
+        hostAccessibility.refresh()
     }
 
     /// Has the focus system ask for the frames its changes need.
@@ -490,7 +490,7 @@ extension AppRunner {
             showsProgress: false, postsNotifications: TerminalClient.notificationsSupported)
 
         let renderer = makeRenderLoop()
-        startHostMotion(renderer: renderer)
+        startHostAccessibility(renderer: renderer)
 
         // Under tmux, have it PUSH a SIGWINCH at us whenever a client attaches,
         // detaches, or changes session — the only events that can change which
@@ -1011,8 +1011,8 @@ extension AppRunner {
         if isFocused {
             cursorTimer.restartFocusPhase()
             renderer.terminalFocusRegained()
-            // The user may have changed the host's Reduce Motion while away.
-            hostMotion?.refresh()
+            // The user may have changed the host's settings while away.
+            hostAccessibility?.refresh()
         }
         appState.setNeedsRender()
     }

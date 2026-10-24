@@ -1,11 +1,30 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  TerminalClient+ReduceMotion.swift
+//  TerminalClient+Accessibility.swift
+//
+//  The accessibility preferences TUIkit reads from where the app runs: the
+//  user's `TUIKIT_*` variables, and the host's own settings.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Foundation
 import TUIkitCore
+
+// MARK: - The preferences
+
+/// The accessibility preferences TUIkit reads from the user and the host, as a
+/// set: what the app runner hands its render loop, which writes each into the
+/// root of every frame's environment.
+package struct AccessibilityPreferences: OptionSet, Sendable, Hashable {
+    package let rawValue: UInt8
+
+    package init(rawValue: UInt8) {
+        self.rawValue = rawValue
+    }
+
+    /// Less motion: ``EnvironmentValues/accessibilityReduceMotion``.
+    package static let reduceMotion = Self(rawValue: 1 << 0)
+}
 
 // MARK: - The user's setting
 
@@ -26,11 +45,29 @@ extension TerminalClient {
     static func reduceMotionRequested(environment: [String: String]) -> Bool {
         environment["TUIKIT_REDUCE_MOTION"] == "1"
     }
+
+    /// Every preference the user asked for in the environment the app was
+    /// started in, as ``reduceMotionRequested`` reads its one. Read once, at
+    /// first use; only the app runner reads it.
+    package static let accessibilityRequested: AccessibilityPreferences =
+        accessibilityRequested(environment: ProcessInfo.processInfo.environment)
+
+    /// The rule behind ``accessibilityRequested``, posed on its input.
+    static func accessibilityRequested(environment: [String: String]) -> AccessibilityPreferences {
+        reduceMotionRequested(environment: environment) ? [.reduceMotion] : []
+    }
 }
 
 // MARK: - The host's setting
 
 extension TerminalClient {
+    /// The host's own accessibility settings — ``hostReducesMotion()`` — or
+    /// `nil` where there are none to read. Blocking, as each reading is; asked
+    /// off the main actor.
+    package static func hostAccessibility() -> AccessibilityPreferences? {
+        hostReducesMotion().map { $0 ? [.reduceMotion] : [] }
+    }
+
     /// Whether the machine this app runs on has its own Reduce Motion on —
     /// macOS's (System Settings ▸ Accessibility ▸ Display ▸ Reduce motion), or
     /// GNOME's animations switched off (`org.gnome.desktop.interface

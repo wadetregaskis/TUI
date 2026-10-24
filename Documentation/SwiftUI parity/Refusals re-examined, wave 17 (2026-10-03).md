@@ -890,7 +890,7 @@ stays refused: every non-local session would answer a wrong `false`.
 
 **Shipped 2026-10-14.** The locality rules have one home, `SessionLocality`
 (the clipboard's test, and the cell-points calibration's environment-only
-one beside it). `HostReduceMotionRefresher` reads macOS's
+one beside it). `HostAccessibilityRefresher` (until 2026-10-24 `HostReduceMotionRefresher`) reads macOS's
 `com.apple.universalaccess` `reduceMotion`, or GNOME's `enable-animations`
 through `gsettings`, off the main actor at launch and on every focus-in, and
 counts it only where `SessionLocality.isLocal()` holds. The render loop ORs it
