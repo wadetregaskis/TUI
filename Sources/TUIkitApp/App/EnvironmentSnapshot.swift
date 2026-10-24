@@ -32,6 +32,12 @@ internal struct EnvironmentSnapshot: Equatable {
     /// The active appearance identifier.
     let appearanceID: String
 
+    /// How controls draw their faces at the root: the control style manager
+    /// (View ▸ Control Style ▸) changes it between frames with no view value
+    /// changing, and a memoized subtree's buttons went on drawing the faces
+    /// from before the change.
+    let controlStyle: ControlStyle
+
     /// What the `.automatic` toggle character set resolves to this frame. Under tmux this
     /// CHANGES mid-run when a different client attaches; without it in the
     /// snapshot, `EquatableView`/`ForEach`-memoized subtrees kept serving
@@ -106,6 +112,7 @@ internal struct EnvironmentSnapshot: Equatable {
     init(from environment: EnvironmentValues) {
         self.palette = ComparablePalette(environment.palette)
         self.appearanceID = environment.appearance.id
+        self.controlStyle = environment.controlStyle
         self.resolvedAutomaticToggleCharacterSet = environment.resolvedAutomaticToggleCharacterSet
         self.localeIdentifier = environment.locale.identifier
         self.scenePhase = environment.scenePhase

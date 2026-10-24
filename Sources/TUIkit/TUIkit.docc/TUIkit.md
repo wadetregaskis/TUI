@@ -94,6 +94,7 @@ struct MyApp: App {
 - ``InspectorCommands``
 - ``ToolbarCommands``
 - ``TextEditingCommands``
+- ``DisplayCommands``
 
 ### Views
 

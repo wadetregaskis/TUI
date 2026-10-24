@@ -165,6 +165,20 @@ public enum LocalizationKey {
         case blank = "appearance.blank"
     }
 
+    /// Control style names (``ControlStyle/name``), as the menu bar's View ▸
+    /// Control Style ▸ shows them. Internal to the package, as the file
+    /// panel's words are: the names are read through `ControlStyle.name`.
+    package enum ControlStyle: String, CaseIterable {
+        case automatic = "controlStyle.automatic"
+        case block = "controlStyle.block"
+        case lines = "controlStyle.lines"
+        case braille = "controlStyle.braille"
+        case braille2 = "controlStyle.braille2"
+        case braille3 = "controlStyle.braille3"
+        case braille4 = "controlStyle.braille4"
+        case blank = "controlStyle.blank"
+    }
+
     /// Error messages
     public enum Error: String {
         case invalidInput = "error.invalid_input"
@@ -285,6 +299,15 @@ public enum LocalizationKey {
         case showAllTooltips = "menu.showAllTooltips"
         /// The same item while every tooltip shows.
         case hideAllTooltips = "menu.hideAllTooltips"
+        /// The menu bar's View ▸ Palette ▸ (`DisplayCommands`).
+        case palette = "menu.palette"
+        /// The menu bar's View ▸ Border Style ▸ (`DisplayCommands`).
+        case borderStyle = "menu.borderStyle"
+        /// The menu bar's View ▸ Control Style ▸ (`DisplayCommands`).
+        case controlStyle = "menu.controlStyle"
+        /// The help of one of `DisplayCommands`' submenus while the scene sets
+        /// what it would choose, so a choice would show nothing.
+        case displaySetByApp = "menu.displaySetByApp"
         case new = "menu.new"
         case open = "menu.open"
         case save = "menu.save"

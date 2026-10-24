@@ -301,6 +301,7 @@ extension EnvironmentValues {
         detached.focusManager = nil
         detached.paletteManager = nil
         detached.appearanceManager = nil
+        detached.controlStyleManager = nil
         detached.cursorTimer = nil
         detached.animationScheduler = nil
         detached.volatileReadTracker = nil

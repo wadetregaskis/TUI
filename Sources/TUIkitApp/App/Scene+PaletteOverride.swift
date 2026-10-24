@@ -31,32 +31,42 @@ extension EnvironmentModifier: AnyEnvironmentModifierNode {
 /// been written on the scene, so the out-of-tree surfaces (status bar, app
 /// header) are themed with the content. It is the statement closest to the
 /// content, so it wins over a scene-level one.
+///
+/// The root view's other environment modifiers of a display option the app's
+/// managers hold — `.appearance(_:)`, `.controlStyle(_:)` — are noted too
+/// (``SceneConfiguration/displayOptionsWritten``): they are not applied to
+/// the chrome, but the content, most of the window, no longer shows the
+/// manager's choice.
 @MainActor
 extension WindowGroup: ConfiguringScene {
     func configure(_ configuration: inout SceneConfiguration) {
-        if let palette = rootViewPalette { configuration.palette = palette }
+        let root = rootViewStatements
+        if let palette = root.palette { configuration.palette = palette }
+        configuration.displayOptionsWritten.formUnion(root.displayOptions)
     }
 
     var configuredContent: (any Scene)? { nil }
 
     /// The palette the outermost `.palette(...)` of the root view's modifier
-    /// chain states, if any.
-    private var rootViewPalette: (any Palette)? {
+    /// chain states, if any, and the display options its environment
+    /// modifiers write.
+    private var rootViewStatements: (palette: (any Palette)?, displayOptions: SceneDisplayOptions) {
         var current: Any = content
+        var palette: (any Palette)?
+        var displayOptions: SceneDisplayOptions = []
 
         while let modifier = current as? any AnyEnvironmentModifierNode {
+            displayOptions.formUnion(SceneDisplayOptions(writing: modifier.anyEnvironmentKeyPath))
             // A key path equal to `\.palette` reads the palette, folded or not:
-            // Tools/DedupCheck/manifest.json, `WindowGroup.(rootViewPalette`.
+            // Tools/DedupCheck/manifest.json, `WindowGroup.(rootViewStatements`.
             // swiftlint:disable:next key_path_identity
-            if modifier.anyEnvironmentKeyPath == \EnvironmentValues.palette,
-                let palette = modifier.anyEnvironmentValue as? any Palette
-            {
-                return palette
+            if palette == nil, modifier.anyEnvironmentKeyPath == \EnvironmentValues.palette {
+                palette = modifier.anyEnvironmentValue as? any Palette
             }
             current = modifier.anyEnvironmentContent
         }
 
-        return nil
+        return (palette, displayOptions)
     }
 }
 

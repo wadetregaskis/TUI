@@ -143,6 +143,10 @@
   "menu.showTooltips": "Tooltips anzeigen",
   "menu.showAllTooltips": "Alle Tooltips anzeigen",
   "menu.hideAllTooltips": "Alle Tooltips ausblenden",
+  "menu.palette": "Palette",
+  "menu.borderStyle": "Rahmenstil",
+  "menu.controlStyle": "Steuerelementstil",
+  "menu.displaySetByApp": "Die App legt dies selbst fest, eine Auswahl hier wäre nicht zu sehen.",
   "menu.new": "Neu",
   "menu.open": "Öffnen",
   "menu.save": "Speichern",
@@ -220,6 +224,15 @@
   "appearance.braille2": "Braille (dick)",
   "appearance.block": "Block",
   "appearance.blank": "Leer",
+
+  "controlStyle.automatic": "Automatisch",
+  "controlStyle.block": "Block",
+  "controlStyle.lines": "Linien",
+  "controlStyle.braille": "Braille",
+  "controlStyle.braille2": "Braille, 2 Punkte",
+  "controlStyle.braille3": "Braille, 3 Punkte",
+  "controlStyle.braille4": "Braille, 4 Punkte",
+  "controlStyle.blank": "Leer",
 
   "key.space": "Leertaste",
 

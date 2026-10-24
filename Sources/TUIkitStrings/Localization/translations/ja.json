@@ -143,6 +143,10 @@
   "menu.showTooltips": "ヘルプタグを表示",
   "menu.showAllTooltips": "すべてのヘルプタグを表示",
   "menu.hideAllTooltips": "すべてのヘルプタグを非表示",
+  "menu.palette": "パレット",
+  "menu.borderStyle": "枠線スタイル",
+  "menu.controlStyle": "コントロールスタイル",
+  "menu.displaySetByApp": "この項目はアプリ自身が設定しているため、ここで選んでも表示は変わりません。",
   "menu.new": "新規",
   "menu.open": "開く",
   "menu.save": "保存",
@@ -220,6 +224,15 @@
   "appearance.braille2": "太い点字",
   "appearance.block": "ブロック",
   "appearance.blank": "余白",
+
+  "controlStyle.automatic": "自動",
+  "controlStyle.block": "ブロック",
+  "controlStyle.lines": "線",
+  "controlStyle.braille": "点字",
+  "controlStyle.braille2": "点字（2 ドット）",
+  "controlStyle.braille3": "点字（3 ドット）",
+  "controlStyle.braille4": "点字（4 ドット）",
+  "controlStyle.blank": "余白",
 
   "key.space": "Space",
 

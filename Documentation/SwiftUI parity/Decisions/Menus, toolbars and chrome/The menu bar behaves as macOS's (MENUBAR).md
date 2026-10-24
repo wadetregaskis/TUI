@@ -6,15 +6,16 @@ in its format, for the owner's items of 2026-10-23 on the menu bar (#1, #2,
 #3–#8, #25–#27), following [`The menu bar (O13).md`](<The menu bar (O13).md>).
 2026-10-24.*
 
-- **A. Needs your decision.** One: whether TUIkit offers a standard command
-  set for display options (A-MENUBAR-1).
+- **A. Needs your decision.** None now. A-MENUBAR-1, whether TUIkit offers a
+  standard command set for display options, was ruled on 2026-10-24
+  (option 3), and is recorded below with what shipped.
 - **B. Shipped the safe option.** See below, each with its fuller version and
   price.
 - **C. Declined without asking.** None.
 
 ## A. Needs your decision
 
-### A-MENUBAR-1. A standard command set for display options
+### A-MENUBAR-1. A standard command set for display options (ruled: option 3)
 
 *Owner item #6: "maybe a default TUIkit View menu with display options (theme
 submenu, toggles…)".*
@@ -42,6 +43,62 @@ offers `ToolbarCommands` and `SidebarCommands`, is a public API question:
 **Recommendation: 2.** It is what `t` and `a` already do, offered where a Mac
 reader looks for it, and an app that holds its own palette, as the Example
 does, writes its own, as the Example now shows.
+
+**Ruled (owner, 2026-10-24): 3.** "I think (3), then. Ideally it'd be fully
+automatic, but failing that we should at least have a binding or somesuch to
+allow for the menu to be hooked up correctly. We definitely don't want menu
+items that basically don't work."
+
+**Shipped (lane MENUCMDS):** `DisplayCommands`, in TUIkitCommands beside
+SwiftUI's sets and named apart from them, adds View ▸ Palette ▸, Border Style ▸
+and Control Style ▸ in a section of their own at the top of the View menu.
+Each is a `Picker`, so a submenu of the built-in choices — `PaletteRegistry.all`,
+`AppearanceRegistry.all` (by their localized names) and the control styles,
+Braille one to four dots thick among them — with the one in force checked.
+TUIkitCommands now depends on TUIkitPickers for it.
+
+```swift
+public init(
+    palette: Binding<any Palette>? = nil,
+    appearance: Binding<Appearance>? = nil,
+    controlStyle: Binding<ControlStyle>? = nil
+)
+```
+
+- **Automatic.** With no arguments each submenu chooses through the app's own
+  manager: the palette and appearance managers the `t` and `a` keys cycle, and
+  a control style manager, new (`\.controlStyleManager`, a third
+  `ThemeManager`, over `ControlStyle`, now `Cyclable` with a localized `name`).
+  TUIkit had no root control style an app did not set itself, so the run loop
+  keeps one, as it keeps the other two, and writes its choice at the root of
+  each frame where it is not the default; a scene's `.environment(\.controlStyle, …)`
+  or a view's `.controlStyle(_:)` wins over it, as a scene's `.palette(_:)`
+  wins over the palette manager. The root control style is in the frame's
+  environment snapshot, so a change redraws memoized views.
+- **Never a dead item.** A manager's choice shows nothing where the scene sets
+  the value itself, so the run loop publishes, from the window in front's
+  scene configuration, which of the three its modifiers state
+  (`SceneDisplayOptions`, at the root as `\.displayOptionsSetByScene`): a
+  `.palette(_:)` or `.theme(_:)`, an `.appearance(_:)` with an appearance (`nil`
+  leaves the manager in charge, as it always has), a scene's
+  `.environment(_:_:)` of `\.palette`, `\.appearance` or `\.controlStyle`
+  (the modifier now records the key path it writes), or an environment
+  modifier of one of those on the window group's root view (found by the walk
+  that already found a root view's `.palette`). A `.transformEnvironment` is
+  not counted: it changes the manager's value rather than replacing it. Such a
+  submenu, with no binding, is disabled — a submenu of disabled items, which
+  still opens, as macOS draws a disabled picker — showing the scene's value
+  checked where it is a built-in one, with help: "The app sets this itself, so
+  a choice here would not show." A modifier deeper in the content, round one
+  page, is not seen: the manager's choice still shows everywhere else.
+- **Binding form.** An app that owns its look passes its state; the submenu
+  then writes the binding and is never disabled. The types are the ones the
+  scene modifiers take: `.palette(_:)` takes `any Palette`, so the palette is a
+  `Binding<any Palette>`, written with the built-in palette chosen (an app
+  holding an editable palette, as the Example does, converts in its binding's
+  setter); the appearance an `Appearance`; the control style a `ControlStyle`.
+- **Strings.** The three titles, the help and the control styles' names are
+  TUIkit's, in its seven languages.
 
 ## B. Shipped the safe option
 

@@ -55,6 +55,13 @@ struct SceneConfiguration {
     /// `.windowToolbarStyle` said.
     var showsTitle: Bool?
 
+    /// The display options the scene's environment writes state — an
+    /// `.environment(_:_:)` of the palette, appearance or control style, on the
+    /// scene or as an environment modifier of the window group's root view.
+    /// With ``palette`` and ``appearance``, what ``applyRootOverrides(to:)``
+    /// publishes as ``EnvironmentValues/displayOptionsSetByScene``.
+    var displayOptionsWritten: SceneDisplayOptions = []
+
     /// The key the scene opens on, if a `.keyboardShortcut` said: `.some(nil)`
     /// where it took the scene's default key away.
     var keyboardShortcut: KeyboardShortcut??
@@ -78,6 +85,13 @@ struct SceneConfiguration {
         // manager-derived appearance from `buildEnvironment()` intact, so
         // F2/F3/the appearance picker keep working.
         if let appearance { environment.appearance = appearance }
+        // What the scene states for itself of what the app's managers hold, for
+        // `DisplayCommands`, which then offers no choice that would show
+        // nothing. Written only where there is something to say.
+        var displayOptions = displayOptionsWritten
+        if palette != nil { displayOptions.insert(.palette) }
+        if appearance != nil { displayOptions.insert(.appearance) }
+        if !displayOptions.isEmpty { environment.displayOptionsSetByScene = displayOptions }
     }
 }
 

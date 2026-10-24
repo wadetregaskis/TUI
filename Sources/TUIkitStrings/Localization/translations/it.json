@@ -143,6 +143,10 @@
   "menu.showTooltips": "Mostra suggerimenti",
   "menu.showAllTooltips": "Mostra tutti i suggerimenti",
   "menu.hideAllTooltips": "Nascondi tutti i suggerimenti",
+  "menu.palette": "Tavolozza",
+  "menu.borderStyle": "Stile del bordo",
+  "menu.controlStyle": "Stile dei controlli",
+  "menu.displaySetByApp": "L’app lo imposta da sé, quindi una scelta qui non si vedrebbe.",
   "menu.new": "Nuovo",
   "menu.open": "Apri",
   "menu.save": "Salva",
@@ -220,6 +224,15 @@
   "appearance.braille2": "Braille spesso",
   "appearance.block": "Blocco",
   "appearance.blank": "Vuoto",
+
+  "controlStyle.automatic": "Automatico",
+  "controlStyle.block": "Blocco",
+  "controlStyle.lines": "Linee",
+  "controlStyle.braille": "Braille",
+  "controlStyle.braille2": "Braille, 2 punti",
+  "controlStyle.braille3": "Braille, 3 punti",
+  "controlStyle.braille4": "Braille, 4 punti",
+  "controlStyle.blank": "Vuoto",
 
   "key.space": "Barra spaziatrice",
 

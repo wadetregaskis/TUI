@@ -173,6 +173,10 @@ extension LocalizationService {
       "menu.showTooltips": "Show Tooltips",
       "menu.showAllTooltips": "Show All Tooltips",
       "menu.hideAllTooltips": "Hide All Tooltips",
+      "menu.palette": "Palette",
+      "menu.borderStyle": "Border Style",
+      "menu.controlStyle": "Control Style",
+      "menu.displaySetByApp": "The app sets this itself, so a choice here would not show.",
       "menu.new": "New",
       "menu.open": "Open",
       "menu.save": "Save",
@@ -250,6 +254,15 @@ extension LocalizationService {
       "appearance.braille2": "Thick Braille",
       "appearance.block": "Block",
       "appearance.blank": "Blank",
+
+      "controlStyle.automatic": "Automatic",
+      "controlStyle.block": "Block",
+      "controlStyle.lines": "Lines",
+      "controlStyle.braille": "Braille",
+      "controlStyle.braille2": "Braille, 2 Dots",
+      "controlStyle.braille3": "Braille, 3 Dots",
+      "controlStyle.braille4": "Braille, 4 Dots",
+      "controlStyle.blank": "Blank",
 
       "key.space": "Space",
 

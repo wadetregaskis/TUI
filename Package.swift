@@ -269,14 +269,15 @@ let package = Package(
         // `CommandMenu`, `CommandGroup`, `CommandGroupPlacement` and `EmptyCommands`. On TUIkitApp because
         // `Scene.commands(content:)` is a modifier of TUIkitApp's `Scene`, and no lower module may see a scene;
         // the menu bar's drop-downs are TUIkitFoundation's menu engine, the one a pop-up `Menu` uses, so it needs
-        // nothing of TUIkitMenus; on TUIkitPresentation for the app menu's About alert. The run loop and the
+        // nothing of TUIkitMenus; on TUIkitPresentation for the app menu's About alert; on TUIkitPickers for
+        // `DisplayCommands`, whose submenus are `Picker`s (A-MENUBAR-1). The run loop and the
         // chrome host reach the bar through hooks of their own that name nothing of this module (an opaque scene
         // declaration, the window chrome's menu-bar view), so an app that declares no commands links none of it. Nothing in TUIkitFoundation may use it
         // (Tools/ModuleMap's upward check), so the umbrella re-exports it. It re-exports TUIkitApp,
         // TUIkitFoundation and TUIkitPresentation (Sources/TUIkitCommands/Exports.swift).
         .target(
             name: "TUIkitCommands",
-            dependencies: ["TUIkitApp", "TUIkitFoundation", "TUIkitPresentation"],
+            dependencies: ["TUIkitApp", "TUIkitFoundation", "TUIkitPickers", "TUIkitPresentation"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 

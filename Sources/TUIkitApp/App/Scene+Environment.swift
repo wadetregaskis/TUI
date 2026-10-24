@@ -27,7 +27,7 @@ extension Scene {
     ///   - value: The new value to set for the item specified by `keyPath`.
     /// - Returns: A scene that has the given value set in its environment.
     public func environment<V>(_ keyPath: WritableKeyPath<EnvironmentValues, V>, _ value: V) -> some Scene {
-        _EnvironmentScene(content: self) { $0[keyPath: keyPath] = value }
+        _EnvironmentScene(content: self, keyPath: keyPath) { $0[keyPath: keyPath] = value }
     }
 
     /// Places an observable object in the scene's environment — mirrors
@@ -99,6 +99,10 @@ extension Scene {
 /// `WindowGroup { … }.environment(model)` put there.
 internal struct _EnvironmentScene<Content: Scene>: Scene {
     let content: Content
+    /// The value `write` replaces, where it replaces one value
+    /// (`.environment(_:_:)`); `nil` for any other write. A `var` with a
+    /// default, so the memberwise initializer leaves it out for those.
+    var keyPath: AnyKeyPath?
     let write: (inout EnvironmentValues) -> Void
 
     /// A primitive scene: it renders through `SceneRenderable`.
@@ -110,6 +114,7 @@ extension _EnvironmentScene: ConfiguringScene {
     /// the content lands last and wins, as in a view's environment.
     func configure(_ configuration: inout SceneConfiguration) {
         configuration.environmentWrites.append(write)
+        if let keyPath { configuration.displayOptionsWritten.formUnion(SceneDisplayOptions(writing: keyPath)) }
     }
 
     var configuredContent: (any Scene)? { content }

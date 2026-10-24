@@ -864,6 +864,19 @@ value left `nil` comes from the bundle's Info.plist where there is one
 the process. The name titles the app's menu and its About and Quit items too
 (decisions MENUBAR, B-MENUBAR-2).
 
+TUIkit-only: `DisplayCommands`, a standard set beside SwiftUI's, adds View ▸
+Palette ▸, Border Style ▸ and Control Style ▸, each a `Picker`, so a submenu
+of the built-in choices with the one in force checked. With no arguments it
+chooses through the app's palette and appearance managers, which the `t` and
+`a` keys cycle, and its control style manager (`\.controlStyleManager`). Where
+the scene sets one of the three itself (a `.palette(_:)` or `.theme(_:)`, an
+`.appearance(_:)` with an appearance, an `.environment(_:_:)` of the value, or
+an environment modifier of it on the window group's root view), a manager's
+choice would show nothing, so that submenu is disabled, with help saying why;
+`DisplayCommands(palette:appearance:controlStyle:)` takes bindings to the
+app's own state, which the submenus then write (decisions MENUBAR,
+A-MENUBAR-1).
+
 `.toolbar(removing: .sidebarToggle)` takes away `NavigationSplitView`'s own
 toggle handles (the ◀ on the leftmost divider and the ▶ edge column), and any
 sidebar button a bar draws for it. As on macOS, the window's top bar shows a
@@ -1727,6 +1740,7 @@ SwiftUI API (the CLAUDE.md rule).
 | `.focusHandoff(_:_:)` | where a control's focus goes when it is disabled, hidden or removed while focused, named by `@FocusState` value and followed along a chain. SwiftUI says nothing about where focus goes then; TUIkit's default is the control's neighbour in the ring, which is wrong for mirrored pairs like ◀ ▶ |
 | `.palette` / `.appearance` (View **and** Scene), `SystemPalette`, `ColorDepth`, `BorderStyle` | ANSI theming + capability tiers |
 | `.controlStyle(_:)`, `ControlStyle`, `\.controlStyle` | how controls draw their faces — bordered buttons, pop-up pickers, combo boxes, text fields' caps, segmented pickers', tab chips' and control groups' caps, a switch's track (filled, the coloured track; in lines a knob between the `buttonBorderShape`'s caps, four cells in every shape — `(○ )`/`( ●)` a capsule, `⦗● ⦘`/`⦗ ●⦘` a rounded rectangle, `│● │`/`│ ●│` a square one; Braille the shape's dotted ends; blank the knob alone; the `.ascii` character set's `[o ]` in every family) — apart from how boxes are bordered: `.automatic` (filled, unless the appearance is `.braille` or `.blank`, which controls follow; the default), `.block`, `.lines` (the border's own lines), `.braille(thickness:)`, `.blank`. A glass button keeps its glass's rim family under `.automatic` |
+| `DisplayCommands`, `\.controlStyleManager` | View ▸ Palette ▸, Border Style ▸ and Control Style ▸ in the menu bar, choosing through the app's palette, appearance and control style managers, or writing the app's own state through bindings (`DisplayCommands(palette:appearance:controlStyle:)`); a submenu whose value the scene sets itself, with no binding, is disabled rather than offering a choice that would show nothing (§2.6) |
 | `.mouseSupport` (Scene) | opt into terminal mouse tracking modes |
 | `.notificationHost`, `.modal` | toast surface + terminal modal |
 | `.transitionSpace(_:)` (`TransitionSpace.released`/`.held`) | what an eager stack does with the room a view took while its removal transition plays: gives it back at once, the views after it gliding into it as SwiftUI's do (the default), or keeps it until the removal has played and then gives it back at once, for an app that wants the views around to stand still while a view leaves. The room held is that of a view an `if` takes out; a branch, a case and a row that go are no longer the stack's children and close up either way (decisions B-TRANSITIONS2-3). SwiftUI has no choice here (decisions B-FB16-12) |

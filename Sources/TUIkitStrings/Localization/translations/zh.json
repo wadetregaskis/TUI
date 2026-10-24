@@ -143,6 +143,10 @@
   "menu.showTooltips": "显示提示",
   "menu.showAllTooltips": "显示所有提示",
   "menu.hideAllTooltips": "隐藏所有提示",
+  "menu.palette": "调色板",
+  "menu.borderStyle": "边框样式",
+  "menu.controlStyle": "控件样式",
+  "menu.displaySetByApp": "此项由应用自行设定，在这里选择不会有变化。",
   "menu.new": "新建",
   "menu.open": "打开",
   "menu.save": "保存",
@@ -220,6 +224,15 @@
   "appearance.braille2": "粗盲文",
   "appearance.block": "实块",
   "appearance.blank": "留白",
+
+  "controlStyle.automatic": "自动",
+  "controlStyle.block": "实块",
+  "controlStyle.lines": "线条",
+  "controlStyle.braille": "盲文",
+  "controlStyle.braille2": "盲文（2 点）",
+  "controlStyle.braille3": "盲文（3 点）",
+  "controlStyle.braille4": "盲文（4 点）",
+  "controlStyle.blank": "留白",
 
   "key.space": "空格键",
 

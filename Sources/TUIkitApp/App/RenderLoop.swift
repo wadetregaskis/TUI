@@ -167,6 +167,12 @@ internal final class RenderLoop<A: App> {
     /// The appearance manager (current border style for environment).
     let appearanceManager: ThemeManager
 
+    /// The control style manager (the control style at the root, which View ▸
+    /// Control Style ▸ chooses). The loop's own, made with it: unlike the
+    /// palette and appearance managers no key cycles it, so the input chain
+    /// never needs it.
+    let controlStyleManager: ThemeManager
+
     /// The central dependency container (lifecycle, key dispatch, preferences).
     let tuiContext: TUIContext
 
@@ -392,6 +398,9 @@ internal final class RenderLoop<A: App> {
         self.focusManager = focusManager
         self.paletteManager = paletteManager
         self.appearanceManager = appearanceManager
+        self.controlStyleManager = ThemeManager(
+            items: ControlStyle.standardStyles,
+            renderTrigger: { [appState = tuiContext.appState] in appState.setNeedsRender() })
         self.tuiContext = tuiContext
         // The windows ask this loop's app for a frame and for the quit, as
         // every other part of one app asks its own (`TUIContext.appState`).
@@ -819,6 +828,12 @@ extension RenderLoop {
         environment.appearanceManager = appearanceManager
         if let appearance = appearanceManager.currentAppearance {
             environment.appearance = appearance
+        }
+        environment.controlStyleManager = controlStyleManager
+        // Only a choice: the default is the environment's own, so a frame no
+        // one chose a style for is the frame it always was.
+        if let style = controlStyleManager.currentControlStyle, style != .automatic {
+            environment.controlStyle = style
         }
         environment.notificationService = NotificationService.current
         // The user's `TUIKIT_REDUCE_MOTION`, and the host's own Reduce Motion
