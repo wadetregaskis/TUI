@@ -25,7 +25,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 |---|---|---|
 | [A-TS-1](#a-ts-1) | Keep the small test targets separate for now. | Done (lane DOCS2): the investigation is written up in the TS decisions file; the split stays. |
 | [B-BNDL-1](#b-bndl-1) | (a) seems okay; asked why over the others. | Kept as shipped; the reasons are below. |
-| [B-D6M-2](#b-d6m-2) | Check (c); take (c) if it works, else (a). | Trait experiment queued; (a) stands meanwhile. |
+| [B-D6M-2](#b-d6m-2) | Check (c); take (c) if it works, else (a). | Measured (lane MISC, 2026-10-24): (c) works for clients, but costs the repository's own builds more than priced; options below — your call. (a) stands meanwhile. |
 | [B-DYNVFIX-3](#b-dynvfix-3) | Asked for a (d) covering timers and detached tasks, and (b) against (c). | Answered below — your call. |
 | [B-REVIEW](#b-review) | (a); remind you where they are and make sure they are up to date. | Partly done (lane DOCS2): the stale entries the follow-up names are corrected (six headings, B-DYNVFIX-3's price, the TimeSpan citation, the A/B lines with a recorded result); the other A/B-owed lines are not all checked. |
 | [B-SIZEDOCS-1](#b-sizedocs-1) | (a). | Done (lane DOCS2): the probes are in Tools/SwiftUIProbes/ and their citations repointed. |
@@ -381,6 +381,20 @@ A cell shows two colours split by one glyph's partition: ▀ splits top from bot
 - Gradient areas cost about twice the SGR bytes.
 
 Recommendation: option 2 through the shapes' half-block emitter, so gradient Rectangles and Circles agree. Add the ▀/▌ choice if it is cheap there. Leave quadrants and diagonals as a follow-up, since sharing TUIkitImage's matcher is a design question. Need: your yes to that scope.
+
+#### B-D6M-2
+
+Option (c) was measured on 2026-10-24 (lane MISC; decisions D6M, B-D6M-2). It works for clients. With swift-syntax behind a non-default `Macros` trait, a client that does not enable the trait never resolves or fetches swift-syntax. Its `Package.resolved` holds `tuikit` alone, where today's holds `swift-syntax` too. A client that enables the trait resolves it. This held with Xcode's Swift 6.2.4 and swift.org's 6.3.3 and 6.4.0.
+
+It costs TUIkit's own repository more than the decision priced:
+- **Two build configurations.** The trait is off for the repository's own default build too. SwiftPM has no trait that is on for the root package alone. So `swift build` compiles the macros' plugin, declarations and tests empty, behind `#if Macros`. The macros are built and tested only by a build given `--enable-all-traits`. CI's macOS and Linux build steps and the 6.2 lane's swift-syntax pin would take the flag. The local gates (`slot.py swift build --build-tests`, `parallel_test.py`) would skip the macros unless given it. A trait is a compile condition of every target, so switching between the two rebuilds every module.
+- **`Package.resolved` flips.** A plain resolve of the repository drops the swift-syntax pin from the committed file (measured), and a `--enable-all-traits` resolve adds it back. The file would be committed without the pin. A macro build then dirties it locally.
+- **Macro users write a trait:** `.package(url: …, from: …, traits: [.defaults, "Macros"])`. One who forgets gets "unknown attribute 'Entry'", not a pointed message. A `#error` cannot say it, because the repository's own default build would stop at it.
+
+- **(c) Take it as above.** *Price:* about half a day: Package.swift, `#if Macros` in 6 files, CI steps, the product smoke fixture, README, the DocC product guide and CHANGELOG. After that, a second build configuration for the life of the package.
+- **(a) Keep as is.** *Price:* nothing. Every client clones swift-syntax and only macro users compile it.
+
+Recommendation: (c) if what TUIkit-only clients save is worth the second configuration to you; otherwise (a). The saving is a swift-syntax clone and its resolution on a client's first resolve, a cost already cached for anyone with another macro package. Need: your choice.
 
 #### B-D6M-1
 

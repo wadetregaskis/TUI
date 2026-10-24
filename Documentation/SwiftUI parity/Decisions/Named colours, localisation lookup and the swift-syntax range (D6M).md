@@ -84,6 +84,31 @@ that a TUIkit-only client never resolves it. That is a release-process cost
 (versioning two packages together) for the owner to weigh; nothing in the
 code would change.
 
+**A package trait instead (option (c), measured 2026-10-24, lane MISC).** The
+owner asked for (c) to be checked and taken if it works. The experiment, on a
+shallow clone of the tree tagged as a version and resolved by `file://` URL
+as a client resolves a release, changed two things. It added a non-default
+trait, `Macros`. It made the plugin's two swift-syntax products conditional
+on it, `condition: .when(traits: ["Macros"])`. The results:
+
+- A client of the `TUIkit` product with no traits listed resolves
+  `["tuikit"]`: no swift-syntax in its `Package.resolved`, none in
+  `.build/checkouts`.
+- A client of `TUIkitMacros` with `traits: [.defaults, "Macros"]` resolves
+  `["swift-syntax", "tuikit"]`. So does every client of the unchanged tree.
+- Both held with Xcode's Swift 6.2.4 and swift.org's 6.3.3 and 6.4.0.
+- The root package resolves the same way. A plain `swift package resolve`
+  rewrote the committed `Package.resolved` without the swift-syntax pin.
+  `--enable-all-traits` resolved it again, and
+  `swift package --enable-all-traits resolve swift-syntax --version 602.0.0`
+  took the 6.2 prebuilt.
+
+So (c) works for clients. Its cost to the repository is a second build
+configuration and a `Package.resolved` that differs between them. Its cost to
+macro users is a trait to write, and an unpointed error when they forget it.
+These were not in its price, so they went back to the owner (Open owner
+decisions, follow-up B-D6M-2). The shipped range stands meanwhile.
+
 
 ### B-D6M-3. SwiftUI's named colours take their dark values where they are drawn
 
