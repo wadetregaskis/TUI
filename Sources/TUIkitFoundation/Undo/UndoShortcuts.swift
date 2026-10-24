@@ -160,8 +160,18 @@ public struct UndoShortcuts: Hashable, Sendable {
     func hintShortcut(
         for command: UndoCommand, on reporting: KeyboardReporting, commandKey: CommandKeyBinding
     ) -> KeyboardShortcut? {
+        hintShortcuts(for: command, on: reporting, commandKey: commandKey).first
+    }
+
+    /// The keys of `command` a terminal that reports keys as `reporting` says
+    /// can deliver, in the order a hint is chosen from them
+    /// (`rankedHintShortcuts(for:among:commandKey:)`):
+    /// ``hintShortcut(for:on:commandKey:)`` is the first.
+    func hintShortcuts(
+        for command: UndoCommand, on reporting: KeyboardReporting, commandKey: CommandKeyBinding
+    ) -> [KeyboardShortcut] {
         let deliverable = shortcuts(for: command, commandKey: commandKey).filter { $0.isDeliverable(on: reporting) }
-        return hintShortcut(for: command, among: deliverable, commandKey: commandKey)
+        return rankedHintShortcuts(for: command, among: deliverable, commandKey: commandKey)
     }
 
     /// The chord → command map a key is dispatched through. Two overrides on
@@ -285,21 +295,11 @@ package final class AppUndoKeys: @unchecked Sendable {
     /// where none of its keys can be sent — written as the bar writes a key,
     /// a bare letter in the case it types (`KeySymbols.statusBarName(of:)`).
     ///
-    /// Worked out for both commands at once and kept (``keptHints``) until
-    /// the table, the ⌘ binding or what the terminal reports changes.
+    /// Worked out for both commands at once and kept (``ranked``) until the
+    /// table, the ⌘ binding or what the terminal reports changes.
     func hint(for command: UndoCommand) -> String? {
-        let key = HintKey(shortcuts: shortcuts, commandKey: commandKey, reporting: reporting)
-        if let kept = keptHints, kept.key == key { return kept[command].name(writtenWith: writeName) }
-        // Both at once: the bar asks for both, so the second is then kept.
-        let resolve = { (command: UndoCommand) in
-            KeptHint(
-                key.shortcuts.hintShortcut(for: command, on: key.reporting, commandKey: key.commandKey),
-                writtenWith: self.writeName)
-        }
-        let kept = KeptHints(key: key, undo: resolve(.undo), redo: resolve(.redo))
-        keptHints = kept
-        hintResolutions += 1
-        return kept[command].name(writtenWith: writeName)
+        guard let shortcut = rankedShortcuts(for: command).first else { return nil }
+        return name(of: shortcut)
     }
 
     /// The key the menu bar's Undo or Redo shows for `command` on this
@@ -309,23 +309,43 @@ package final class AppUndoKeys: @unchecked Sendable {
     /// Kept as the names are, until the table, the ⌘ binding or what the
     /// terminal reports changes: the menu's items are drawn every frame.
     package func shortcut(for command: UndoCommand) -> KeyboardShortcut? {
-        let key = HintKey(shortcuts: shortcuts, commandKey: commandKey, reporting: reporting)
-        if let kept = keptShortcuts, kept.key == key { return command == .undo ? kept.undo : kept.redo }
-        let resolve = { key.shortcuts.hintShortcut(for: $0, on: key.reporting, commandKey: key.commandKey) }
-        let kept = (key: key, undo: resolve(.undo), redo: resolve(.redo))
-        keptShortcuts = kept
-        return command == .undo ? kept.undo : kept.redo
+        rankedShortcuts(for: command).first
     }
 
-    /// What ``shortcut(for:)`` answered for each command, and the inputs it
-    /// was worked out from.
-    private var keptShortcuts: (key: HintKey, undo: KeyboardShortcut?, redo: KeyboardShortcut?)?
+    /// `command`'s deliverable keys in the order a hint is chosen from them,
+    /// worked out for both commands at once and kept until an input changes.
+    private func rankedShortcuts(for command: UndoCommand) -> [KeyboardShortcut] {
+        let key = HintKey(shortcuts: shortcuts, commandKey: commandKey, reporting: reporting)
+        if let ranked, ranked.key == key { return ranked[command] }
+        let resolve = { key.shortcuts.hintShortcuts(for: $0, on: key.reporting, commandKey: key.commandKey) }
+        let fresh = Ranked(key: key, undo: resolve(.undo), redo: resolve(.redo))
+        ranked = fresh
+        hintResolutions += 1
+        // Both names at once, as the bar asks for both — but the space bar's,
+        // which is written on each read (``name(of:)``).
+        writtenNames.removeAll(keepingCapacity: true)
+        for first in [fresh.undo.first, fresh.redo.first].compactMap(\.self)
+        where !KeySymbols.nameIsLocalized(first) {
+            writtenNames[first] = writeName(first)
+        }
+        return fresh[command]
+    }
 
-    // MARK: The kept hints
+    /// `shortcut`'s name in the bar, written once and kept — but the space
+    /// bar's, a word in the app's language (`KeySymbols.nameIsLocalized(_:)`),
+    /// which is written on each read: the language can change with nothing
+    /// here hearing of it.
+    private func name(of shortcut: KeyboardShortcut) -> String? {
+        if KeySymbols.nameIsLocalized(shortcut) { return writeName(shortcut) }
+        if let kept = writtenNames[shortcut] { return kept }
+        let written = writeName(shortcut)
+        writtenNames[shortcut] = written
+        return written
+    }
 
-    /// What ``hint(for:)`` answered for each command, and the inputs it was
-    /// worked out from — kept until one of them changes, as ``lookup`` is
-    /// kept until the table does.
+    /// Each command's deliverable keys in hint order, and the inputs they
+    /// were worked out from — kept until one of them changes, as ``lookup``
+    /// is kept until the table does.
     ///
     /// The status bar asks for both hints whenever it lists its items, which
     /// is on every render, and an answer is not cheap: listing a command's
@@ -336,60 +356,32 @@ package final class AppUndoKeys: @unchecked Sendable {
     /// goes on naming the key it named before that input changed. Today they
     /// are the table, the ⌘ binding and what the terminal reports — and the
     /// app's language, which only the space bar's name reads, and which is
-    /// kept out of the key by never keeping that word: a hint on the space
-    /// bar keeps its shortcut and is written afresh on each read
-    /// (``KeptHint/onTheSpaceBar(_:)``).
-    private var keptHints: KeptHints?
+    /// kept out of the key by never keeping that word (``name(of:)``).
+    private var ranked: Ranked?
+
+    /// The names written for the shortcuts in ``ranked``, by shortcut.
+    private var writtenNames: [KeyboardShortcut: String?] = [:]
 
     /// How many times ``hint(for:)`` has worked the hints out, rather than
     /// read the kept ones — for the tests that pin the keeping.
     private(set) var hintResolutions = 0
 
     /// The inputs a kept answer was worked out from: everything
-    /// ``hint(for:)`` reads but the app's language (see ``keptHints``).
+    /// ``hint(for:)`` reads but the app's language (see ``ranked``).
     private struct HintKey: Equatable {
         let shortcuts: UndoShortcuts
         let commandKey: CommandKeyBinding
         let reporting: KeyboardReporting
     }
 
-    /// One command's kept hint.
-    private enum KeptHint {
-        /// The name, written once; `nil` where none of the command's keys can
-        /// be sent.
-        case written(String?)
-        /// A shortcut whose name is in the app's language
-        /// (`KeySymbols.nameIsLocalized(_:)`, the space bar's), written on
-        /// each read: the language can change with nothing here hearing of it.
-        case onTheSpaceBar(KeyboardShortcut)
-
-        /// `shortcut`'s hint, its name written by `write` now unless it has
-        /// the app's language in it.
-        init(_ shortcut: KeyboardShortcut?, writtenWith write: (KeyboardShortcut) -> String?) {
-            if let shortcut, KeySymbols.nameIsLocalized(shortcut) {
-                self = .onTheSpaceBar(shortcut)
-            } else {
-                self = .written(shortcut.flatMap(write))
-            }
-        }
-
-        /// The name the bar shows: the kept one, or the space bar's written
-        /// by `write` in the language of the moment.
-        func name(writtenWith write: (KeyboardShortcut) -> String?) -> String? {
-            switch self {
-            case .written(let name): name
-            case .onTheSpaceBar(let shortcut): write(shortcut)
-            }
-        }
-    }
-
-    /// Both commands' hints, with the inputs they were worked out from.
-    private struct KeptHints {
+    /// Both commands' deliverable keys in hint order, with the inputs they
+    /// were worked out from.
+    private struct Ranked {
         let key: HintKey
-        let undo: KeptHint
-        let redo: KeptHint
+        let undo: [KeyboardShortcut]
+        let redo: [KeyboardShortcut]
 
-        subscript(command: UndoCommand) -> KeptHint {
+        subscript(command: UndoCommand) -> [KeyboardShortcut] {
             switch command {
             case .undo: undo
             case .redo: redo

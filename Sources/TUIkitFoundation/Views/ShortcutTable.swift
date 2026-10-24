@@ -135,9 +135,24 @@ extension ShortcutTable {
     func hintShortcut(
         for action: Action, among candidates: [KeyboardShortcut], commandKey: CommandKeyBinding
     ) -> KeyboardShortcut? {
+        rankedHintShortcuts(for: action, among: candidates, commandKey: commandKey).first
+    }
+
+    /// `candidates` in the order a hint is chosen from them: the framework's
+    /// preferred names (``ShortcutTableAction/preferredHints``) in their
+    /// order, then its other own bindings, then the rest, each in
+    /// `candidates`' order. ``hintShortcut(for:among:commandKey:)`` is the
+    /// first; a caller that must pass over some (a key the focused control
+    /// keeps for itself) takes the first it can use.
+    func rankedHintShortcuts(
+        for action: Action, among candidates: [KeyboardShortcut], commandKey: CommandKeyBinding
+    ) -> [KeyboardShortcut] {
         let preferred = action.preferredHints.compactMap { $0.resolved(commandKey: commandKey) }
-        if let named = preferred.first(where: candidates.contains) { return named }
+            .filter(candidates.contains)
         let stock = action.defaultShortcuts.compactMap { $0.resolved(commandKey: commandKey) }
-        return candidates.first { stock.contains($0) } ?? candidates.first
+        let named = preferred.reduce(into: [KeyboardShortcut]()) { if !$0.contains($1) { $0.append($1) } }
+        let own = candidates.filter { stock.contains($0) && !named.contains($0) }
+        let rest = candidates.filter { !named.contains($0) && !own.contains($0) }
+        return named + own + rest
     }
 }
