@@ -435,6 +435,7 @@ Sources/
 │   TUIkitEffects, TUIkitMenus, TUIkitBitmaps, TUIkitTextInput, TUIkitForms,
 │   TUIkitSearch, TUIkitPickers and TUIkitNumericControls are built on
 │   TUIkitFoundation (TUIkitTables and TUIkitTabs on TUIkitLists as well,
+│   TUIkitTabs on TUIkitPresentation too,
 │   TUIkitSearch on TUIkitTextInput and TUIkitPickers, TUIkitCurveEditors
 │   on TUIkitColorPicker), and the umbrella re-exports all twenty.
 │   Inside each: App/, Views/, Modifiers/, Focus/, ...

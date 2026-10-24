@@ -118,7 +118,8 @@ let package = Package(
         // TUIkitTables: `Table`, its columns, rows and builders, the table styles and row drag and drop.
         // Re-exports TUIkitLists.
         .library(name: "TUIkitTables", targets: ["TUIkitTables"]),
-        // TUIkitTabs: `TabView`, `Tab`, `TabSection` and the tab styles. Re-exports TUIkitLists.
+        // TUIkitTabs: `TabView`, `Tab`, `TabSection` and the tab styles. Re-exports TUIkitLists and
+        // TUIkitPresentation, whose adapting presenter a tab's popover is shown with.
         .library(name: "TUIkitTabs", targets: ["TUIkitTabs"]),
         // TUIkitTextInput: `TextField`, `SecureField` and `TextEditor`.
         .library(name: "TUIkitTextInput", targets: ["TUIkitTextInput"]),
@@ -361,8 +362,8 @@ let package = Package(
         // notifications with Chrome's `notificationHost(width:)`, and a modal docks its presenter's focus through
         // Chrome's presentation dock. It does not depend on TUIkitNavigation, nor TUIkitNavigation on it (no file
         // of either names a declaration of the other). Nothing in TUIkitFoundation may use it (Tools/ModuleMap's
-        // upward check), so the umbrella re-exports it, and so does TUIkitColorPicker. It re-exports
-        // TUIkitFoundation and TUIkitChrome (Sources/TUIkitPresentation/Exports.swift).
+        // upward check), so the umbrella re-exports it, and so do TUIkitColorPicker and TUIkitTabs (A21). It
+        // re-exports TUIkitFoundation and TUIkitChrome (Sources/TUIkitPresentation/Exports.swift).
         .target(
             name: "TUIkitPresentation",
             dependencies: ["TUIkitChrome", "TUIkitFoundation"],
@@ -401,12 +402,15 @@ let package = Package(
         // TUIkitFoundation and TUIkitLists, the map's edge: a `.sidebarAdaptable` tab view lists its tabs in a
         // `List`, a tab body is painted on the lists' lifted surface, and a tab's drop destination is a row's drop
         // slot. TUIkitLists does not depend on it, nor does anything in TUIkitFoundation (Tools/ModuleMap's upward
-        // check), so the umbrella re-exports it, and so does TUIkitColorPicker, whose panel is a `TabView`. It
-        // re-exports TUIkitFoundation and TUIkitLists (Sources/TUIkitTabs/Exports.swift), so an app that imports it
-        // has `List` too (plan §4).
+        // check), so the umbrella re-exports it, and so does TUIkitColorPicker, whose panel is a `TabView`. Since
+        // 2026-10-23 also on TUIkitPresentation (decisions A21, the owner's A21-TABPOPOVER option 1): a tab's
+        // popover is shown with its adapting presenter, so it becomes a sheet in a compact size class as
+        // `View.popover`'s does. TUIkitPresentation does not depend on it. It re-exports TUIkitFoundation,
+        // TUIkitLists and TUIkitPresentation (Sources/TUIkitTabs/Exports.swift), so an app that imports it has
+        // `List` too (plan §4).
         .target(
             name: "TUIkitTabs",
-            dependencies: ["TUIkitFoundation", "TUIkitLists"],
+            dependencies: ["TUIkitFoundation", "TUIkitLists", "TUIkitPresentation"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 

@@ -325,6 +325,30 @@ struct TabContentInteractionsTests {
         #expect(!log.showsPopover, "Escape did not close the popover")
     }
 
+    /// A tab's popover adapts to a compact size class as `View.popover`'s
+    /// does (decisions A21; the owner's A21-TABPOPOVER, option 1): a sheet,
+    /// centred over a dimmed page, which Escape closes. The sidebar look is a
+    /// strip in a compact class.
+    @Test("In a compact size class a tab's popover is a sheet", arguments: TabInteractionsLook.allCases)
+    func popoverIsASheetWhenCompact(look: TabInteractionsLook) {
+        let log = Log()
+        let harness = InputChainHarness(width: 50, height: 14)
+        let view = { self.tabs(log, look).environment(\.horizontalSizeClass, .compact) }
+        harness.frame(view())
+        log.showsPopover = true
+        let shown = harness.frame(view())
+        guard let layer = shown.overlays.first(where: { $0.content.lines.contains { $0.stripped.contains("Hello") } })
+        else {
+            Issue.record("nothing presented: \(overlayText(shown))")
+            return
+        }
+        #expect(layer.level != .popover, "still a popover")
+        #expect(layer.dimsBackground && layer.centered, "not a sheet")
+        harness.press(KeyEvent(key: .escape))
+        harness.frame(view())
+        #expect(!log.showsPopover, "Escape did not close the sheet")
+    }
+
     @Test("A draggable tab carries its payload; a click released unmoved selects it", arguments: TabInteractionsLook.allCases)
     func draggingATab(look: TabInteractionsLook) {
         let log = Log()

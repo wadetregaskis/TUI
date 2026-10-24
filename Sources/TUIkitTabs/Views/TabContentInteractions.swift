@@ -11,6 +11,7 @@
 import TUIkitCore
 import TUIkitFoundation
 import TUIkitLists
+import TUIkitPresentation
 import TUIkitView
 
 // MARK: - What a tab carries
@@ -196,7 +197,8 @@ private enum TabInteractionsStateIndex {
 /// (``ContextMenuPresentation``) but registers no focus stop of its own: the
 /// tab is reached by the strip's or the sidebar's, whose Shift+F10 opens it
 /// through ``_TabMenuOpeners``. Its popovers are `View.popover`'s, around the
-/// content. A drag handle and a drop zone cover the whole content.
+/// content, adapting to a compact size class as a view's do. A drag handle
+/// and a drop zone cover the whole content.
 struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
     let content: Content
     let traits: _TabInteractionTraits
@@ -215,11 +217,16 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
     var body: Never { fatalError("_TabInteractionsHost renders via Renderable") }
 
     /// The content with the tab's popovers around it, innermost first.
+    ///
+    /// Each is `View.popover`'s presenter, so it adapts to a compact size
+    /// class as a view's popover does: a sheet, a cover, or a popover still,
+    /// as its content's `presentationCompactAdaptation` says (decisions A21).
     private var presented: AnyView {
         traits.popovers.reduce(AnyView(content)) { view, popover in
-            AnyView(
-                PopoverPresentationModifier(
-                    content: view, isPresented: popover.isPresented, popover: popover.content ?? AnyView(EmptyView()),
+            let shown = popover.content ?? AnyView(EmptyView())
+            return AnyView(
+                _AdaptivePopover(
+                    base: view, isPresented: popover.isPresented, popover: { shown },
                     attachmentAnchor: popover.attachmentAnchor, arrowEdge: popover.arrowEdge ?? .bottom,
                     itemKey: popover.itemKey))
         }

@@ -342,6 +342,21 @@ the sheet and the cover are; adapting it means that dependency, or an
 environment hook the app installs. Left for a ruling: a tab's popover in a
 compact class is an edge case, and the dependency is not free.
 
+**Ruled 2026-10-23** (owner, A21-TABPOPOVER, option 1): TUIkitTabs depends on
+TUIkitPresentation, measuring first what that adds to an app that imports
+only TUIkitTabs. **Shipped 2026-10-24** (lane TABS): a tab's popover is shown
+with `View.popover`'s adapting presenter (`_AdaptivePopover`, `package` for
+it), so in a compact class it is a sheet, a cover or a popover still, as a
+view's is; TUIkitTabs re-exports TUIkitPresentation, and TUIkitPresentation
+does not depend on it. **Its price,** measured 2026-10-24 (Xcode's Swift
+6.2.4, release, default traits, `strip`): an app on `TUIkitApp` and
+`TUIkitTabs`, a tab with a popover, 8,731,120 → 8,997,600 B (+266,480 B,
++3.1%); the same app with a sheet of its own, which links TUIkitPresentation
+already, 8,997,664 B before and after; an executable on `TUIkitTabs` alone,
+with no `App` (Tools/ProductSmoke's `UsesTUIkitTabs`), 7,373,168 → 8,106,192
+B (+733,024 B, +9.9%), TUIkitChrome coming with TUIkitPresentation there,
+where `TUIkitApp` brings it to an app. The umbrella's apps pay nothing.
+
 **Shipped 2026-10-13: the sheet's adaptation.** SwiftUI documents it: "In
 vertically compact environments, such as iPhone in landscape orientation, a
 sheet presentation automatically adapts to appear as a full-screen cover."

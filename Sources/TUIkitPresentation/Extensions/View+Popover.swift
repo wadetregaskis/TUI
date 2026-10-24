@@ -111,7 +111,10 @@ extension View {
 /// The content is built only while the popover is presented — once, here,
 /// for the form and for whichever presenter shows it — and is `nil` while it
 /// is not: never built, as SwiftUI never calls a closed popover's closure.
-struct _AdaptivePopover<Base: View, Popover: View>: View {
+///
+/// `package` for TUIkitTabs, whose tabs present their popovers with it
+/// (`TabContent.popover`), so a tab's popover adapts as a view's does.
+package struct _AdaptivePopover<Base: View, Popover: View>: View {
     let base: Base
     let isPresented: Binding<Bool>
     let popover: () -> Popover
@@ -119,10 +122,22 @@ struct _AdaptivePopover<Base: View, Popover: View>: View {
     let arrowEdge: Edge
     let itemKey: String?
 
+    package init(
+        base: Base, isPresented: Binding<Bool>, popover: @escaping () -> Popover,
+        attachmentAnchor: PopoverAttachmentAnchor, arrowEdge: Edge, itemKey: String?
+    ) {
+        self.base = base
+        self.isPresented = isPresented
+        self.popover = popover
+        self.attachmentAnchor = attachmentAnchor
+        self.arrowEdge = arrowEdge
+        self.itemKey = itemKey
+    }
+
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
-    var body: some View {
+    package var body: some View {
         let popover = isPresented.wrappedValue ? self.popover() : nil
         let form =
             popover.map { popoverForm(of: $0, horizontal: horizontalSizeClass, vertical: verticalSizeClass) }
@@ -153,9 +168,9 @@ struct _AdaptivePopover<Base: View, Popover: View>: View {
 /// A popover written on a form row goes around the row the form lays out,
 /// which keeps its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
 extension _AdaptivePopover: FormRowRewrapping {
-    var formRowContent: Base { base }
+    package var formRowContent: Base { base }
 
-    func rewrappingFormRow<V: View>(_ row: V) -> any View {
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
         _AdaptivePopover<V, Popover>(
             base: row, isPresented: isPresented, popover: popover, attachmentAnchor: attachmentAnchor,
             arrowEdge: arrowEdge, itemKey: itemKey)

@@ -47,7 +47,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [RC5](#rc5) | Concur with the recommendation. | (a) with (c)'s test sweep, queued. |
 | [TABLE-CLOSURE-COLUMN](#table-closure-column) | (b); asked about a "pure" closure overload. | (b) queued; the overload is answered below. |
 | [SA-82-TABVIEW-PLAIN](#sa-82-tabview-plain) | (b). | Done (lane DOCS2): declined in C16; the slated row is closed. |
-| [A21-TABPOPOVER](#a21-tabpopover) | (1). | Queued. |
+| [A21-TABPOPOVER](#a21-tabpopover) | (1). | Done (lane TABS, 2026-10-24): a tab's popover adapts as `View.popover`'s does; TUIkitTabs depends on TUIkitPresentation (+3.1% for an app on TUIkitApp and TUIkitTabs with no sheet of its own; decisions A21). |
 | [B72-CAPSULE](#b72-capsule) | Mock up options B and C. | Mock-ups: [https://claude.ai/artifact/CAnzvGdKq3BqRMZNHYBSdY](https://claude.ai/artifact/CAnzvGdKq3BqRMZNHYBSdY) — your call. |
 | [B75](#b75) | Asked what SwiftUI does. | Answered below — your call. |
 | [B76-SELECT](#b76-select) | (b) for now. | No change. |

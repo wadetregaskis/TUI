@@ -49,7 +49,7 @@ notifications and `.help`. Then add the product of each module whose names you u
 |---|---|---|
 | `TUIkitLists` | `List`, `OutlineGroup`, `EditMode`, the list styles | |
 | `TUIkitTables` | `Table`, its columns and rows, the table styles | `TUIkitLists` |
-| `TUIkitTabs` | `TabView`, `Tab`, `TabSection`, the tab styles | `TUIkitLists` |
+| `TUIkitTabs` | `TabView`, `Tab`, `TabSection`, the tab styles | `TUIkitLists`, `TUIkitPresentation` |
 | `TUIkitGrid` | `Grid`, `GridRow`, `LazyVGrid`, `LazyHGrid` | |
 | `TUIkitNavigation` | `NavigationStack`, `NavigationPath`, `NavigationLink`, the zoom transition and `.matchedTransitionSource`, the split views, the inspector | |
 | `TUIkitPresentation` | `alert`, `confirmationDialog`, `Dialog`, `sheet`, `fullScreenCover`, `modal` | `TUIkitChrome` |

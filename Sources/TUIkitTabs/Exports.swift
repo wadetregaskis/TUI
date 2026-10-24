@@ -11,7 +11,12 @@
 // modifiers, the tab strip, sidebar and customization, and the tab styles):
 // TUIkitFoundation, and TUIkitLists (a
 // `.sidebarAdaptable` tab view lists its tabs in a `List`, and a tab body is
-// painted on the lists' lifted surface), so `List` comes with it too. Beside
+// painted on the lists' lifted surface), so `List` comes with it too; and,
+// since 2026-10-23 (decisions A21, owner's A21-TABPOPOVER option 1),
+// TUIkitPresentation, whose adapting presenter a tab's popover is shown with,
+// so that it becomes a sheet in a compact size class as a view's popover
+// does, and `.presentationCompactAdaptation` on its content comes with it
+// too (TUIkitPresentation re-exports TUIkitChrome in turn). Beside
 // what it gives an importer, it keeps their names, and through
 // TUIkitFoundation's own re-exports the lower and side modules', in scope in
 // every file of this module, as they were while TUIkitFoundation (until step
@@ -22,3 +27,4 @@
 // TUIkitColorPicker, whose panel is a `TabView`.
 @_exported import TUIkitFoundation
 @_exported import TUIkitLists
+@_exported import TUIkitPresentation

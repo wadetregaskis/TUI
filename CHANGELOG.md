@@ -79,7 +79,7 @@ Feature modules:
 - `TUIkitScenes`: the `Settings` scene (shown as a sheet) and `AlertScene`.
 - `TUIkitSearch`: `.searchable`, search tokens and scopes, `searchSuggestions`, `dismissSearch`.
 - `TUIkitTables`: `Table`, columns, rows, styles, row drag and drop. Re-exports `TUIkitLists`.
-- `TUIkitTabs`: `TabView`, `Tab`, `TabSection`, tab styles. Re-exports `TUIkitLists`.
+- `TUIkitTabs`: `TabView`, `Tab`, `TabSection`, tab styles. Re-exports `TUIkitLists`, and `TUIkitPresentation`, whose sheet a tab's popover becomes in a compact size class.
 - `TUIkitTextInput`: `TextField`, `SecureField`, `TextEditor`.
 
 Opt-in (not in the umbrella):
