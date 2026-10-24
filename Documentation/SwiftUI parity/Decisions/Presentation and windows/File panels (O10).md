@@ -82,7 +82,7 @@ The keys are a terminal file browser's: the arrows move the table's cursor and
 typing finds a name (its type-select); Return on a folder opens it and on a
 file chooses it, or the whole selection when the cursor is in it; Space selects;
 ← or Backspace goes up (Backspace alone since the outline,
-[B-FP2-5](<File panels the Mac's way (FP2).md#b-fp2-5-the-list-view-is-an-outline-its-branches-read-as-they-open-up-to-5000-rows>)), `~` home; `/` turns the path bar into a field to type a
+[B-FP2-5](<File panels the Mac's way (FP2).md#b-fp2-5-the-list-view-is-an-outline-its-branches-read-as-they-open>)), `~` home; `/` turns the path bar into a field to type a
 path in, as a shell takes one — `~/…`, absolute, or relative to the folder
 shown — which Tab completes (`PathCompletion`: the one match, a folder's with
 its `/`, or as much as several share) and Return goes to (a file's folder, and

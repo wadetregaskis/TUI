@@ -343,6 +343,19 @@ extension Table {
         self.isDisabled = false
     }
 
+    /// The same, for a tree whose roots are a collection: `Table(_:children:)`.
+    init(
+        outlineRoots: _TableOutlineRoots<Value>, columns: [_TableColumnSpec<Value>],
+        single: Binding<Value.ID?>?, multi: Binding<Set<Value.ID>>?,
+        sortModel: _TableSortModel<Value>?,
+        customization: Binding<TableColumnCustomization<Value>>? = nil
+    ) {
+        self.init(
+            rows: [], columns: columns, single: single, multi: multi, sortModel: sortModel,
+            customization: customization)
+        rowTree = _TableRowBranch(nodes: [], roots: outlineRoots)
+    }
+
     /// The same, from a row builder's rows: flat ones become the table's data,
     /// a tree its ``rowTree``.
     init(
@@ -588,6 +601,9 @@ private enum StateIndex {
     /// The column menu, opened from the header or Return on a picked column,
     /// and the column it was opened on.
     static let columnMenu = 4
+    /// A `Table(_:children:)`'s outline, kept while its roots and open
+    /// branches are the same (``_TableOutlineCache``).
+    static let outlineCache = 5
 }
 
 /// Internal core view that handles table rendering inside a ContainerView.
@@ -709,7 +725,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     for: StateStorage.StateKey(
                         identity: context.identity, propertyIndex: StateIndex.outlineExpansion),
                     default: []) ?? StateBox([])
-            let outline = _TableOutline(tree: rowTree, expansion: expansion)
+            let outline: _TableOutline<Value>
+            if let roots = rowTree.roots {
+                // Kept from pass to pass: a pass that opens nothing and is
+                // handed the same roots makes no outline (decisions B-FP2-5).
+                let cache = context.stateStorage?.storage(
+                    for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.outlineCache),
+                    default: _TableOutlineCache<Value>())
+                outline = (cache?.value ?? _TableOutlineCache()).outline(of: roots, expansion: expansion)
+            } else {
+                outline = _TableOutline(tree: rowTree, expansion: expansion)
+            }
             data = outline.values
             rowTraits = outline.traits
             self.outline = outline

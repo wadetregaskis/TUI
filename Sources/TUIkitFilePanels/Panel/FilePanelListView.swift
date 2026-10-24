@@ -13,8 +13,7 @@ import TUIkitTables
 
 /// The folder's items in a ``Table`` — Name, Size, Date Modified and Kind, as
 /// many as its width has room for (``FilePanelColumns/shown(inWidth:)``) —
-/// drawn as an outline whose folders open in place, up to
-/// ``outlineRowLimit`` rows.
+/// drawn as an outline whose folders open in place.
 ///
 /// The selection bindings are the panel's, which refuse a dimmed item; the
 /// keys and the primary action the panel puts round it.
@@ -39,15 +38,13 @@ struct FilePanelListView: View {
         }
     }
 
-    /// The table, with one selection binding or the other, `width` cells wide.
-    ///
-    /// An outline, whose folders open in place, up to ``outlineRowLimit``
-    /// rows; past it, the rows alone.
+    /// The table, with one selection binding or the other, `width` cells wide:
+    /// an outline, whose folders open in place, however many rows the folder
+    /// has — a table's outline costs what the rows it draws cost
+    /// (decisions B-FP2-5).
     @ViewBuilder private func table(width: Int) -> some View {
         Group {
-            if browser.rows.count > Self.outlineRowLimit {
-                flatTable(width: width)
-            } else if allowsMultipleSelection {
+            if allowsMultipleSelection {
                 Table(browser.rows, children: \.children, selection: selection, sortOrder: sortOrder) {
                     FilePanelColumns.fitting(width, browser: browser)
                 }
@@ -62,30 +59,6 @@ struct FilePanelListView: View {
         // Inset, not bordered: the panel's box is the table's border.
         .tableStyle(.inset)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    /// The most rows the list view draws as an outline. A table's outline is
-    /// worked out afresh for every row on every pass, which a flat table is
-    /// not: a frame of a folder of 20,000 files took 87 ms as an outline and
-    /// 6.5 ms flat in a debug build. A folder of more is drawn flat, its
-    /// folders opened by Return alone, until the outline's cost stops growing
-    /// with the rows (decisions B-FP2-5).
-    static let outlineRowLimit = 5_000
-
-    /// The table with no outline, for a folder of more than
-    /// ``outlineRowLimit`` rows.
-    @ViewBuilder private func flatTable(width: Int) -> some View {
-        if allowsMultipleSelection {
-            Table(browser.rows, selection: selection, sortOrder: sortOrder) {
-                FilePanelColumns.fitting(width, browser: browser)
-            }
-            .tableEmptyPlaceholder(emptyText)
-        } else {
-            Table(browser.rows, selection: singleSelection, sortOrder: sortOrder) {
-                FilePanelColumns.fitting(width, browser: browser)
-            }
-            .tableEmptyPlaceholder(emptyText)
-        }
     }
 
     /// The table's order, which the browser keeps.

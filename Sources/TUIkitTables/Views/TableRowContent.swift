@@ -182,6 +182,10 @@ public struct _TableRowList<Value: Identifiable> {
 struct _TableRowBranch<Value: Identifiable> {
     var nodes: [_TableRowNode<Value>]
     var insertions: [_TableRowInsertion] = []
+    /// A tree's roots as the collection they came from, in place of
+    /// ``nodes`` — `Table(_:children:)`'s, whose outline is kept from pass to
+    /// pass (``_TableOutlineCache``).
+    var roots: _TableOutlineRoots<Value>?
 }
 
 /// One row of a table, and — when it is a branch of a hierarchical table — how

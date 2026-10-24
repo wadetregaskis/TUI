@@ -160,7 +160,7 @@ type, a mover's, and one that chooses a folder to save into have nothing to
 filter, and show none. **The fuller version** remembers the choice under a
 `fileDialogCustomizationID(_:)`, as the folder is kept: an hour.
 
-### B-FP2-5. The list view is an outline, its branches read as they open, up to 5,000 rows
+### B-FP2-5. The list view is an outline, its branches read as they open
 
 *Owner item #31: "a list (outline view: disclosure triangles, Name / Date
 Modified / Size / Kind columns, sorting)"*
@@ -181,16 +181,32 @@ So the outline has ←, which went to the enclosing folder: that is Backspace's
 alone in the list view now (and the ↰ button's), as ⌘↑ is on a Mac, where ←
 in an outline is the outline's. The status bar says ⌫.
 
-A table works out its outline afresh for every row on every pass, where a flat
+A table worked out its outline afresh for every row on every pass, where a flat
 table touches only the rows it draws: a frame of a folder of 20,000 files took
 87 ms as an outline and 6.5 ms flat (debug build; 1,000 files 8.9 ms, 5,000
-18 ms). So a folder of more than 5,000 rows is drawn flat
-(`FilePanelListView.outlineRowLimit`), its folders opened by Return alone. **The
-fuller version** makes `_TableOutline` (TUIkitTables) cost what the rows drawn
-cost — kept from pass to pass while the rows and the expansion are the same,
-or flattened lazily, a window at a time — and drops the limit: about a day, in
-a module other lanes work in; an A/B (the stress harness's table scenarios
-over an outline) is owed with it.
+18 ms). So a folder of more than 5,000 rows was drawn flat, its folders opened
+by Return alone, until the outline cost what the rows drawn cost. **Since
+2026-10-24 (lane MISC) it does, and the limit is gone:** a
+`Table(_:children:)` keeps its roots as the collection they came from
+(`_TableOutlineRoots`) rather than a node per root made with the table, and
+keeps its outline at its identity (`_TableOutlineCache`) while the roots are
+the same array buffer and the open branches the same. A pass that changes
+neither, a cursor move or a scroll, makes no outline. One that does visits only
+the branches among the roots, and shares the roots' array where none is open.
+Measured in a debug build, 100×40, three key-path columns, a tenth of the
+rows folders, a frame after a ↓:
+
+| Rows | Flat | Outline before | Outline after | Outline, new roots every frame |
+|---|---|---|---|---|
+| 1,000 | 1.56 ms | 3.48 ms | 1.66 ms | 1.99 ms |
+| 5,000 | 1.49 ms | 11.00 ms | 1.64 ms | 3.48 ms |
+| 20,000 | 1.57 ms | 41.81 ms | 1.66 ms | 8.67 ms |
+
+Roots are compared by their buffer only where they cannot change under it:
+the children a stored property of a value type, itself a value. Any other tree,
+and the rows of `OutlineGroup` or `DisclosureTableRow` written in a `rows:`
+builder, are flattened every pass as before. The A/B owed is the stress
+harness's table scenarios.
 
 ### B-FP2-6. A column view beside the list, chosen with a segmented switcher, and kept
 

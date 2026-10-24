@@ -154,7 +154,10 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// its triangle — or, for a leaf, a blank of the triangle's width, so the
     /// labels of a level line up whatever they are.
     func prefix(for id: Value.ID) -> String {
-        guard let placement = placements[id] else { return "" }
+        // A row with no placement is a leaf among the roots, which an outline
+        // of a collection's roots does not note one by one
+        // (``flattening(roots:branches:expansion:)``).
+        let placement = placements[id] ?? Placement(depth: 0, disclosure: .leaf)
         let indent = String.spaces(placement.depth * Self.indentStep)
         let blank = String.spaces(DisclosureMetrics.glyphSpacing)
         switch placement.disclosure {

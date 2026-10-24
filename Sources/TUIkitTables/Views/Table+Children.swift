@@ -51,7 +51,7 @@ extension Table {
         @TableColumnBuilder<Value, Never> columns: () -> Columns
     ) where Data.Element == Value, Columns.TableRowValue == Value {
         self.init(
-            rowList: tableRows(of: TableOutlineGroupContent(data, children: children)),
+            outlineRoots: _TableOutlineRoots(data, children: children),
             columns: tableColumns(of: columns()), single: nil, multi: nil, sortModel: nil,
             customization: columnCustomization)
     }
@@ -72,7 +72,7 @@ extension Table {
         @TableColumnBuilder<Value, Never> columns: () -> Columns
     ) where Data.Element == Value, Columns.TableRowValue == Value {
         self.init(
-            rowList: tableRows(of: TableOutlineGroupContent(data, children: children)),
+            outlineRoots: _TableOutlineRoots(data, children: children),
             columns: tableColumns(of: columns()), single: selection, multi: nil, sortModel: nil,
             customization: columnCustomization)
     }
@@ -93,7 +93,7 @@ extension Table {
         @TableColumnBuilder<Value, Never> columns: () -> Columns
     ) where Data.Element == Value, Columns.TableRowValue == Value {
         self.init(
-            rowList: tableRows(of: TableOutlineGroupContent(data, children: children)),
+            outlineRoots: _TableOutlineRoots(data, children: children),
             columns: tableColumns(of: columns()), single: nil, multi: selection, sortModel: nil,
             customization: columnCustomization)
     }
@@ -117,7 +117,7 @@ extension Table {
         @TableColumnBuilder<Value, Sort> columns: () -> Columns
     ) where Data.Element == Value, Sort.Compared == Value, Columns.TableRowValue == Value {
         self.init(
-            rowList: tableRows(of: TableOutlineGroupContent(data, children: children)),
+            outlineRoots: _TableOutlineRoots(data, children: children),
             columns: tableColumns(of: columns()), single: nil, multi: nil,
             sortModel: _TableSortModel(sortOrder), customization: columnCustomization)
     }
@@ -140,7 +140,7 @@ extension Table {
         @TableColumnBuilder<Value, Sort> columns: () -> Columns
     ) where Data.Element == Value, Sort.Compared == Value, Columns.TableRowValue == Value {
         self.init(
-            rowList: tableRows(of: TableOutlineGroupContent(data, children: children)),
+            outlineRoots: _TableOutlineRoots(data, children: children),
             columns: tableColumns(of: columns()), single: selection, multi: nil,
             sortModel: _TableSortModel(sortOrder), customization: columnCustomization)
     }
@@ -163,7 +163,7 @@ extension Table {
         @TableColumnBuilder<Value, Sort> columns: () -> Columns
     ) where Data.Element == Value, Sort.Compared == Value, Columns.TableRowValue == Value {
         self.init(
-            rowList: tableRows(of: TableOutlineGroupContent(data, children: children)),
+            outlineRoots: _TableOutlineRoots(data, children: children),
             columns: tableColumns(of: columns()), single: nil, multi: selection,
             sortModel: _TableSortModel(sortOrder), customization: columnCustomization)
     }
