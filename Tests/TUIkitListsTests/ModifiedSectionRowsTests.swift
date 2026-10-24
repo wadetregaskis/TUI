@@ -40,6 +40,15 @@ struct ModifiedSectionRowsTests {
             .lines.map(\.stripped)
     }
 
+    /// The second frame of `view`, by when the list holds the focus that the
+    /// first gave it — and its section's actions show (owner ruling
+    /// B78-VISIBILITY).
+    private func focusedLines(_ view: some View) -> [String] {
+        let context = makeRenderContext(width: 30, height: 6)
+        _ = renderToBuffer(view.frame(width: 30, height: 6), context: context)
+        return renderToBuffer(view.frame(width: 30, height: 6), context: context).lines.map(\.stripped)
+    }
+
     @Test("Its rows keep their badges", arguments: [false, true])
     func badges(transformed: Bool) {
         let section = Section("Inbox") { Text("Unread").badge(3) }
@@ -57,12 +66,12 @@ struct ModifiedSectionRowsTests {
     func sectionActions(transformed: Bool) {
         let section = Section("Inbox") { Text("Unread") }
         let drawn = transformed
-            ? lines(
+            ? focusedLines(
                 List {
                     section.transformEnvironment(\.headerProminence) { $0 = .increased }
                         .sectionActions { Text("Act") }
                 })
-            : lines(List { section.headerProminence(.increased).sectionActions { Text("Act") } })
+            : focusedLines(List { section.headerProminence(.increased).sectionActions { Text("Act") } })
         #expect(drawn.contains { $0.contains("Inbox") && $0.contains("Act") }, "\(drawn)")
         #expect(drawn.contains { $0.contains("Unread") && !$0.contains("Inbox") }, "the row is its own: \(drawn)")
     }

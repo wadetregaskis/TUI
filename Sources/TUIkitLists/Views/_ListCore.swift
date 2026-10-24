@@ -1620,6 +1620,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // reports `.selectionDisabled()` is routed around once it has drawn —
         // not only refused as a commit target.
         handler.selectionDisabledRows = editRestrictions.selectionDisabled
+        // The sections whose actions the pointer shows (owner ruling
+        // B78-VISIBILITY), as the next pointer move finds them.
+        handler.sectionActionSpans = editRestrictions.sectionActionSpans
+        if handler.sectionActionSpans.isEmpty { handler.hoveredSectionRow = nil }
         // Where the list has no selection menu, its Shift+F10 opens the cursor
         // row's own `.contextMenu` (`RowEditRestrictions.rowMenus`): a context
         // menu in a list row is no focus stop of its own. Read when the key
@@ -1642,7 +1646,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         rowContext: RenderContext, editRestrictions: RowEditRestrictions, stateStorage: StateStorage,
         context: RenderContext
     ) -> RowSource<SelectionValue> {
-        registerOwnFocusStop(stateStorage: stateStorage, context: context)
+        if let (handler, focusID) = registerOwnFocusStop(stateStorage: stateStorage, context: context) {
+            editRestrictions.sectionsInUse = (
+                cursorRow: FocusRegistration.isFocused(context: context, focusID: focusID)
+                    ? handler.focusedIndex : nil,
+                hoveredSectionRow: handler.hoveredSectionRow)
+        }
         let source = extractRows(from: content, context: rowContext)
         (source.minimumRowHeight, source.minimumHeaderHeight) =
             (context.environment.defaultMinListRowHeight, context.environment.defaultMinListHeaderHeight)
@@ -1661,8 +1670,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// registration `ItemListHandler.engageFocus` makes later in the frame fills
     /// the place, and does the rest — and holds the section's first focus for
     /// it, so a header's control drawn in between does not take it.
-    private func registerOwnFocusStop(stateStorage: StateStorage, context: RenderContext) {
-        guard !context.isMeasuring else { return }
+    ///
+    /// - Returns: The handler and the list's focus id, or `nil` when measuring.
+    private func registerOwnFocusStop(
+        stateStorage: StateStorage, context: RenderContext
+    ) -> (ItemListHandler<SelectionValue>, focusID: String)? {
+        guard !context.isMeasuring else { return nil }
         let persistedFocusID = FocusRegistration.persistFocusID(
             context: context,
             explicitFocusID: focusID,
@@ -1678,6 +1691,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         ).value
         handler.canBeFocused = canBeFocused
         FocusRegistration.reservePlace(context: context, handler: handler, focusID: persistedFocusID)
+        return (handler, persistedFocusID)
     }
 
     /// Whether this frame's rows are laid out for a vertical scrollbar —
@@ -2923,6 +2937,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     }),
                 for: mouseHandlerID, in: context)
         }
+        observeSectionHover(over: &buffer, handler: state.handler, dispatcher: mouseDispatcher, topInset: topInset, context: context)
         // The rows are a landing place for drags from elsewhere. It borrows the
         // container's region: same rectangle, and the drop target only needs
         // the geometry — clicks still go to the container's own closure.
@@ -2975,6 +2990,35 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         }
 
         return true
+    }
+
+    /// A hover observer over the list, where a section has actions: they are
+    /// drawn while the pointer is over their section (owner ruling
+    /// B78-VISIBILITY), as macOS shows them. A move asks for a frame only when
+    /// it crosses into another section. An observer, not an ordinary region,
+    /// so the clicks and the wheel still reach the list and the rows beneath
+    /// it (`MouseEventDispatcher.registerHoverObserver(in:_:)`). A list with
+    /// no section actions registers nothing, and asks for no motion.
+    private func observeSectionHover(
+        over buffer: inout FrameBuffer, handler: ItemListHandler<SelectionValue>,
+        dispatcher: MouseEventDispatcher, topInset: Int, context: RenderContext
+    ) {
+        guard !handler.sectionActionSpans.isEmpty else { return }
+        dispatcher.requestFeature(.motion, in: context)
+        let drawing = HandlerDrawing(context)
+        let observerID = dispatcher.registerHoverObserver(in: context) { [handler] event in
+            let line: Int?
+            switch event.phase {
+            case .entered, .moved: line = event.y - topInset
+            case .exited: line = nil
+            default: return false
+            }
+            guard handler.hoverSections(atContentY: line) else { return false }
+            drawing.changed()
+            return true
+        }
+        buffer.hitTestRegions.append(
+            HitTestRegion(offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height, handlerID: observerID))
     }
 
     /// One walk over the drawn rows, carrying up everything a row's own buffer
@@ -4150,12 +4194,16 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         var editOwners: [ListRowEditOwner] = []
         let info = section.extractSectionInfo(context: context)
 
-        // Header (non-selectable)
-        if let headerBuffer = info.headerBuffer {
-            let header = SelectableListRow<SelectionValue>(type: .header, buffer: headerBuffer)
+        // Header (non-selectable). Drawn with its actions on it, where it has
+        // them, once the section's extent is known and with it whether the
+        // section is in use (``sectionHeader(_:actions:span:context:)``).
+        func headerRow(_ buffer: FrameBuffer) -> EagerListRow<SelectionValue> {
+            let header = SelectableListRow<SelectionValue>(type: .header, buffer: buffer)
             header.content.sectionSeparator = (.top, info.separator.top, info.separator.topTint)
-            rows.append(EagerListRow(header))
+            return EagerListRow(header)
         }
+        if let headerBuffer = info.headerBuffer { rows.append(headerRow(headerBuffer)) }
+        let headerRows = rows.count
 
         // Content rows (selectable), with the actions of the `ForEach` that
         // produced them — one walk, so the loop the actions belong to is the
@@ -4166,11 +4214,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // child (or the windowed path, which never sets it) counts from zero
         // again.
         let restrictions = context.environment.listRowEditRestrictions
-        restrictions?.rowIndexBase = firstRowIndex + rows.count
+        restrictions?.rowIndexBase = firstRowIndex + headerRows
         let items: SectionContentRows<SelectionValue> = section.extractSectionContentRows(
             context: context)
         restrictions?.rowIndexBase = 0
-        let firstItemRow = firstRowIndex + rows.count
+        let firstItemRow = firstRowIndex + headerRows
         for row in items.rows {
             // Thread the lazy box through — don't force `.buffer` / `.badge` —
             // and the id too, where the section's walk left it to be asked.
@@ -4196,7 +4244,37 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             rows.append(EagerListRow(SelectableListRow(type: .footer, buffer: footerBuffer)))
         }
 
+        if let actions = info.headerActions, headerRows == 1,
+            let drawn = Self.sectionHeader(
+                actions: actions, span: firstRowIndex..<(firstRowIndex + rows.count), context: context)
+        {
+            rows[0] = headerRow(drawn)
+        }
+
         return ExtractedRows(rows: rows, editOwners: editOwners)
+    }
+
+    /// A section's header line, with its actions drawn on it while the section
+    /// is in use (owner ruling B78-VISIBILITY): the focused list's cursor is on
+    /// one of its rows (`span`, header to footer), the pointer is over it, or
+    /// the focus is on one of the actions themselves — which is how Tab from
+    /// the list reaches them and keeps them while it is there. A keyboard user
+    /// reaches a section's actions by moving into the section; the mouse finds
+    /// them where macOS shows them, under the pointer. Not in use, the header
+    /// keeps their cells blank (``SectionInfo/headerActions``), and this is
+    /// `nil`.
+    private static func sectionHeader(
+        actions: SectionHeaderActions, span: Range<Int>, context: RenderContext
+    ) -> FrameBuffer? {
+        guard !context.isMeasuring, let restrictions = context.environment.listRowEditRestrictions
+        else { return nil }
+        restrictions.reportSectionActions(rows: span)
+        let inUse = restrictions.sectionsInUse
+        let holdsCursor = inUse.cursorRow.map(span.contains) ?? false
+        let holdsFocus =
+            context.environment.focusManager?.focusedIdentity.map(actions.identity.isAncestor(of:)) ?? false
+        guard holdsCursor || holdsFocus || inUse.hoveredSectionRow == span.lowerBound else { return nil }
+        return actions.draw()
     }
 
     // MARK: - Visible Row Calculation

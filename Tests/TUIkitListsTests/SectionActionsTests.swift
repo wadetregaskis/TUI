@@ -2,13 +2,17 @@
 //  SectionActionsTests.swift
 //
 //  `.sectionActions(content:)`: a list section's actions on its header's
-//  line, always shown and reached by the keyboard; outside a list, nothing.
+//  line, shown while the section is in use — the focused list's cursor, the
+//  focus or the pointer in it (owner ruling B78-VISIBILITY) — and reached by
+//  the keyboard; outside a list, nothing.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Testing
 
+@testable import TUIkitApp
+@testable import TUIkitCore
 @testable import TUIkitFoundation
 import TUIkitLists
 @testable import TUIkitTestSupport
@@ -22,6 +26,55 @@ struct SectionActionsTests {
 
     private func lines(_ view: some View, context: RenderContext? = nil) -> [String] {
         renderToBuffer(view, context: context ?? makeRenderContext(width: 40, height: 10)).lines.map(\.stripped)
+    }
+
+    /// The second frame of `view`, by when a list holds the focus the first
+    /// frame gave it, its cursor in its first section.
+    private func focusedLines(_ view: some View) -> [String] {
+        let context = makeRenderContext(width: 40, height: 10)
+        _ = lines(view, context: context)
+        return lines(view, context: context)
+    }
+
+    /// A context with the services a pointer needs, and its `TUIContext`.
+    private func harness() -> (TUIContext, RenderContext) {
+        let tui = TUIContext()
+        var environment = EnvironmentValues()
+        environment.focusManager = FocusManager()
+        environment.applyRuntimeServices(from: tui)
+        return (tui, RenderContext(availableWidth: 40, availableHeight: 12, environment: environment, tuiContext: tui))
+    }
+
+    /// One frame, as the run loop draws it.
+    private func frame(_ view: some View, tui: TUIContext, context: RenderContext) -> [String] {
+        tui.mouseEventDispatcher.beginRenderPass()
+        tui.keyEventDispatcher.clearHandlers()
+        tui.stateStorage.beginRenderPass()
+        tui.renderCache.beginRenderPass()
+        context.environment.focusManager?.beginRenderPass()
+        let buffer = renderToBuffer(view, context: context)
+        tui.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
+        tui.stateStorage.endRenderPass()
+        context.environment.focusManager?.endRenderPass()
+        return buffer.lines.map(\.stripped)
+    }
+
+    /// Two sections with actions, under a button that takes the first focus.
+    private func twoSections(focusFirst: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if focusFirst { Button("Elsewhere") {} }
+            List {
+                Section("Fruit") {
+                    Text("Apple")
+                    Text("Pear")
+                }
+                .sectionActions { Button("AddFruit") {} }
+                Section("Veg") {
+                    Text("Leek")
+                }
+                .sectionActions { Button("AddVeg") {} }
+            }
+        }
     }
 
     private func list(_ counter: Counter) -> some View {
@@ -38,7 +91,7 @@ struct SectionActionsTests {
 
     @Test("In a list the actions are drawn on the header's line, and the rows stay rows")
     func drawnOnTheHeaderLine() {
-        let drawn = lines(list(Counter()))
+        let drawn = focusedLines(list(Counter()))
         guard let header = drawn.firstIndex(where: { $0.contains("Fruit") }) else {
             Issue.record("\(drawn)")
             return
@@ -73,7 +126,7 @@ struct SectionActionsTests {
             }
         }
         .controlStyle(.lines)
-        let filled = lines(rows)
+        let filled = focusedLines(rows)
         guard let header = filled.first(where: { $0.contains("Fruit") }),
             let apple = filled.first(where: { $0.contains("Apple") })
         else {
@@ -82,7 +135,7 @@ struct SectionActionsTests {
         }
         #expect(trailingGap(header) == trailingGap(apple), "the action ends where the badge does: \(filled)")
         #expect(trailingGap(header) <= 2, "flush right: \(filled)")
-        let hugged = lines(HStack(spacing: 0) {
+        let hugged = focusedLines(HStack(spacing: 0) {
             rows.fixedSize(horizontal: true, vertical: false)
             Spacer()
         })
@@ -103,6 +156,7 @@ struct SectionActionsTests {
         let context = makeRenderContext(width: 40, height: 10)
         let view = list(counter)
         _ = lines(view, context: context)
+        _ = lines(view, context: context)
         guard let manager = context.environment.focusManager else {
             Issue.record("no focus manager")
             return
@@ -120,7 +174,7 @@ struct SectionActionsTests {
 
     @Test("A section without a header shows its actions alone on the header's line")
     func headerlessSection() {
-        let drawn = lines(
+        let drawn = focusedLines(
             List {
                 Section {
                     Text("Apple")
@@ -154,6 +208,87 @@ struct SectionActionsTests {
             })
         #expect(drawn.contains { $0.contains("a act") }, "\(drawn)")
         #expect(drawn.contains { $0.contains("b") && !$0.contains("act") }, "\(drawn)")
+    }
+
+    @Test("Not in use, the actions' cells stay blank: no focus stop, and the rows do not move")
+    func hiddenWhileTheFocusIsElsewhere() {
+        let context = makeRenderContext(width: 40, height: 12)
+        let view = twoSections(focusFirst: true)
+        _ = lines(view, context: context)
+        let drawn = lines(view, context: context)
+        #expect(!drawn.joined().contains("Add"), "\(drawn)")
+        guard let header = drawn.firstIndex(where: { $0.contains("Fruit") }) else {
+            Issue.record("\(drawn)")
+            return
+        }
+        #expect(drawn.firstIndex { $0.contains("Apple") } == header + 1, "\(drawn)")
+        let ring = context.environment.focusManager?.registeredFocusIDsInActiveSection() ?? []
+        #expect(ring.filter { $0.hasPrefix("button") }.count == 1, "only Elsewhere: \(ring)")
+        // A headerless section keeps its actions' line, blank.
+        let headerless = List {
+            Section { Text("Apple") }.sectionActions { Button("Add") {} }
+        }
+        let other = VStack { Button("Elsewhere") {}; headerless }
+        let otherContext = makeRenderContext(width: 40, height: 10)
+        _ = lines(other, context: otherContext)
+        let blank = lines(other, context: otherContext)
+        let shown = focusedLines(headerless)
+        #expect(
+            blank.firstIndex { $0.contains("Apple") }.map { $0 - 1 } == shown.firstIndex { $0.contains("Apple") },
+            "the line stays: \(blank) \(shown)")
+    }
+
+    @Test("Only the section the cursor is in shows its actions; moving the cursor moves them")
+    func followTheCursor() {
+        let context = makeRenderContext(width: 40, height: 12)
+        let view = twoSections(focusFirst: false)
+        _ = lines(view, context: context)
+        var drawn = lines(view, context: context)
+        #expect(drawn.contains { $0.contains("Fruit") && $0.contains("AddFruit") }, "\(drawn)")
+        #expect(!drawn.joined().contains("AddVeg"), "\(drawn)")
+        for _ in 0..<3 { _ = context.environment.focusManager?.dispatchKeyEvent(KeyEvent(key: .down)) }
+        drawn = lines(view, context: context)
+        #expect(drawn.contains { $0.contains("Veg") && $0.contains("AddVeg") }, "\(drawn)")
+        #expect(!drawn.joined().contains("AddFruit"), "\(drawn)")
+    }
+
+    @Test("Tab from the list reaches the section's action, which stays while it holds the focus")
+    func tabReachesTheActions() {
+        let context = makeRenderContext(width: 40, height: 12)
+        let view = twoSections(focusFirst: false)
+        _ = lines(view, context: context)
+        _ = lines(view, context: context)
+        guard let manager = context.environment.focusManager else {
+            Issue.record("no focus manager")
+            return
+        }
+        _ = manager.dispatchKeyEvent(KeyEvent(key: .tab))
+        let drawn = lines(view, context: context)
+        #expect(manager.currentFocusedID?.hasPrefix("button") == true, "\(manager.currentFocusedID ?? "nil")")
+        #expect(drawn.contains { $0.contains("Fruit") && $0.contains("AddFruit") }, "\(drawn)")
+        #expect(!drawn.joined().contains("AddVeg"), "\(drawn)")
+    }
+
+    @Test("The pointer over a section shows its actions, and leaving takes them away")
+    func pointerShowsThem() throws {
+        let (tui, context) = harness()
+        tui.mouseEventDispatcher.setActiveSupport(.full)
+        let view = twoSections(focusFirst: true)
+        _ = frame(view, tui: tui, context: context)
+        var drawn = frame(view, tui: tui, context: context)
+        #expect(!drawn.joined().contains("Add"), "\(drawn)")
+        let leek = try #require(drawn.firstIndex { $0.contains("Leek") })
+        let move = { (y: Int) in
+            tui.mouseEventDispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 5, y: y))
+        }
+        #expect(move(leek), "crossing into a section asks for a frame")
+        drawn = frame(view, tui: tui, context: context)
+        #expect(drawn.contains { $0.contains("Veg") && $0.contains("AddVeg") }, "\(drawn)")
+        #expect(!drawn.joined().contains("AddFruit"), "\(drawn)")
+        #expect(!move(leek), "a move within it does not")
+        _ = move(drawn.count + 4)
+        drawn = frame(view, tui: tui, context: context)
+        #expect(!drawn.joined().contains("Add"), "\(drawn)")
     }
 
     @Test("Outside a list the section draws as it would without them")

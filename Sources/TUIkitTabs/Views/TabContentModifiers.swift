@@ -150,8 +150,9 @@ extension TabContent {
     ///
     /// A `.sidebarAdaptable` tab view draws them in its sidebar after the
     /// section's header, as a list draws a section's actions
-    /// (``View/sectionActions(content:)``): always shown, where macOS shows
-    /// them under the pointer, and reached by Tab and a click. A tab strip
+    /// (``View/sectionActions(content:)``): shown while the sidebar's cursor,
+    /// the focus or the pointer is in the section, where macOS shows them
+    /// under the pointer alone, and reached by Tab and a click. A tab strip
     /// lists a section's tabs among the others and shows no actions.
     ///
     /// Applying this modifier to a single ``Tab`` has no effect.

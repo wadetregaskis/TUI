@@ -1267,6 +1267,14 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// ``hoveredBarCell``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _hoveredBarCell: Int?
+
+    /// The first row of the section with actions that the pointer is over, or
+    /// `nil`: that section's actions are drawn (owner ruling B78-VISIBILITY).
+    var hoveredSectionRow: Int?
+
+    /// The rows of each section with actions in the last frame drawn, header
+    /// to footer — what ``hoverSections(atContentY:)`` finds the pointer in.
+    var sectionActionSpans: [Range<Int>] = []
     /// Bound `.anchorPosition` override, captured each render so a USER scroll
     /// can release it to `.window` at event time. See
     /// `ScrollableOffsetState.releaseAnchorOnUserScroll()`.

@@ -1884,16 +1884,18 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `.standard` badge sits in a capsule in the control family (since
   2026-10-24: a field a cell wider each side under filled faces, line caps
   under `.controlStyle(.lines)`), as macOS's does, and is no longer a
-  deviation; section actions are always shown — at the header's trailing
-  edge in a list that fills its width, after the title in one that hugs its
-  rows.
+  deviation; a section's actions show while the focused list's cursor or
+  the focus is in the section as well as under the pointer (owner ruling
+  B78-VISIBILITY, 2026-10-24; always shown before) — at the header's
+  trailing edge in a list that fills its width, after the title in one that
+  hugs its rows.
 - **Why:** a separator costs a line per row; actions shown only on hover are
-  out of the keyboard's reach.
+  out of the keyboard's reach, so the cursor and the focus show them too.
 - **Decided:** decisions A29 and A46 (**Owner**, 2026-10-07: tables stripe by
   default, both keep their border; removed when they shipped),
   [A-D6L-1](<Decisions/Lists and tables/List and table stripes, surfaces, pinned headers and separators (D6L).md#a-d6l-1-the-surface-look-try-it-then-decide-what-if-anything-becomes-the-default>),
   [A-D6L-2](<Decisions/Lists and tables/List and table stripes, surfaces, pinned headers and separators (D6L).md#a-d6l-2-should-a-list-draw-separators-by-default>), [B72](<Decisions/SwiftUI API completion decisions.md#b72-badge-prominence-two-inks-read-from-the-lists-environment>),
-  [B78](<Decisions/SwiftUI API completion decisions.md#b78-section-actions-always-shown-after-the-headers-title>). **Under review** (borders and separators),
+  [B78](<Decisions/SwiftUI API completion decisions.md#b78-section-actions-shown-while-the-section-is-in-use-after-the-headers-title>). **Under review** (borders and separators),
   **Lane** (the rest).
 
 ### V4. A table row is one line unless asked

@@ -474,16 +474,51 @@ package struct SectionInfo {
     /// its last row its `.bottom` edge (decisions A47).
     package var separator = ListSeparatorPreference()
 
+    /// The controls `.sectionActions(content:)` puts on the header's line,
+    /// which the list draws only while the section is in use — the cursor of
+    /// the focused list, the focus or the pointer in it (owner ruling
+    /// B78-VISIBILITY). `nil` for a section without them, or with actions that
+    /// draw nothing. While they are not drawn, ``headerBuffer`` keeps their
+    /// place blank, so the rows below and a hugging list's width do not move
+    /// as they come and go.
+    package var headerActions: SectionHeaderActions?
+
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUIkitLists makes these, for its lists.
     package init(
         headerBuffer: FrameBuffer?,
         footerBuffer: FrameBuffer?,
-        separator: ListSeparatorPreference = ListSeparatorPreference()
+        separator: ListSeparatorPreference = ListSeparatorPreference(),
+        headerActions: SectionHeaderActions? = nil
     ) {
         self.headerBuffer = headerBuffer
         self.footerBuffer = footerBuffer
         self.separator = separator
+        self.headerActions = headerActions
+    }
+}
+
+/// A section's header line with its actions drawn on it, made only when the
+/// list shows them (``SectionInfo/headerActions``).
+package struct SectionHeaderActions {
+    /// Where the actions render: the focus is in them when the focused control
+    /// rendered below it.
+    package let identity: ViewIdentity
+
+    /// Draws the header's line with the actions on it — registering them as
+    /// focus stops, which is why it is not called for a section not in use.
+    package let draw: @MainActor () -> FrameBuffer
+
+    package init(identity: ViewIdentity, draw: @escaping @MainActor () -> FrameBuffer) {
+        self.identity = identity
+        self.draw = draw
+    }
+
+    /// The same actions, their header line passed through `transform` once
+    /// drawn — a buffer modifier on the section, as it modifies the header.
+    package func mapping(_ transform: @escaping @MainActor (FrameBuffer) -> FrameBuffer) -> Self {
+        let draw = draw
+        return Self(identity: identity) { transform(draw()) }
     }
 }
 
@@ -563,7 +598,8 @@ extension ModifiedView: SectionRowExtractor where Content: SectionRowExtractor {
         return SectionInfo(
             headerBuffer: info.headerBuffer.map { modified($0, context: context) },
             footerBuffer: info.footerBuffer.map { modified($0, context: context) },
-            separator: info.separator)
+            separator: info.separator,
+            headerActions: info.headerActions.map { $0.mapping { modified($0, context: context) } })
     }
 
     package func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {

@@ -51,7 +51,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [B72-CAPSULE](#b72-capsule) | Mock up options B and C; then (c). | Done (lane CAPS, 2026-10-24): a `.standard` badge sits on a field of the control face's tint a cell wider each side under filled faces, between the cap set's caps under Lines (`ListBadgeCapsule`, over `ControlEnds`); `.decreased` stays plain (decisions B72). Mock-ups: [https://claude.ai/artifact/CAnzvGdKq3BqRMZNHYBSdY](https://claude.ai/artifact/CAnzvGdKq3BqRMZNHYBSdY). |
 | [B75](#b75) | Asked what SwiftUI does. | Answered below — your call. |
 | [B76-SELECT](#b76-select) | (b) for now. | No change. |
-| [B78-VISIBILITY](#b78-visibility) | (b). | Queued. |
+| [B78-VISIBILITY](#b78-visibility) | (b). | Done (lane MISC, 2026-10-24): a section's actions show while the focused list's cursor, the focus or the pointer is in the section, their cells kept blank otherwise (decisions B78). |
 | [COLORPICKER-MODEBAR](#colorpicker-modebar) | (1). | No change. |
 | [CONTROLGROUP-LOOK](#controlgroup-look) | (a). | Done (lane CAPS, 2026-10-24): one segmented face, the segmented picker's caps (`ControlEnds`) at the ends and a rule between buttons, which draw as capless segments on one row at every size (`\.isControlSegment`, left behind by a presented surface). |
 | [FB3-BLANK](#fb3-blank) | (a). | No change. |

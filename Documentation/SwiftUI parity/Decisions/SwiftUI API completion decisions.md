@@ -2828,7 +2828,7 @@ time the bar's items are gathered, made only when an item names such a key.
 The Stress `themes` session presses `t` from outside the list and the table
 now. Tests: `TypeSelectKeepsBareKeysTests`, `MenuTypeSelectTests`.
 
-### B78. Section actions: always shown, after the header's title
+### B78. Section actions: shown while the section is in use, after the header's title
 
 *`View.sectionActions(content:)`, `TabContent.sectionActions(content:)`*
 
@@ -2836,9 +2836,23 @@ macOS shows a list section's actions at the trailing end of its header while
 the pointer is over the section.
 
 **Shipped:** in a `List`, the actions are drawn one cell after the header's
-title, all the time, and are ordinary controls there — Tab moves onto each, a
-click presses one. A section with no header shows them alone on the header's
-line. A custom container reads them as `SectionConfiguration.actions`.
+title, and are ordinary controls there — Tab moves onto each, a click presses
+one. A section with no header shows them alone on the header's line.
+
+**Owner ruling (2026-10-23, B78-VISIBILITY): (b), shown while the section is
+in use.** Built 2026-10-24 (lane MISC). A section's actions are drawn, and
+register as focus stops, only while the focused list's cursor is on one of
+the section's rows, the focus is on one of the actions, or the pointer is over
+the section (header to footer). A keyboard user reaches them by moving into
+the section and pressing Tab — the list's own place in the ring comes ahead of
+them, and an action holding the focus keeps its section's shown; the mouse
+finds them where macOS shows them, under the pointer. Not in use, the header
+keeps their cells blank, measured rather than drawn, so a headerless section's
+line, the rows below and a hugging list's width do not move as they come and
+go. A list registers a hover observer only when a section has actions, and a
+pointer move asks for a frame only when it crosses into another section
+(`ItemListHandler.hoverSections(atContentY:)`). Tests:
+`SectionActionsTests`. A custom container reads them as `SectionConfiguration.actions`.
 Outside a list (a `Section` in a stack) the view draws as it would without
 them, as SwiftUI's does. On a `TabSection`, a `.sidebarAdaptable` tab view's
 sidebar draws them the same way; a tab strip, which lists a section's tabs
@@ -2847,9 +2861,10 @@ SwiftUI documents.
 
 Where it differs:
 
-- **Always shown.** An action shown only under the pointer is one the
-  keyboard cannot reach; showing them while the focus is inside the section
-  as well as on hover is a line, if the owner prefers the quieter header.
+- **Shown while the focus is in the section as well as under the pointer.**
+  An action shown only under the pointer is one the keyboard cannot reach,
+  so the cursor and the focus show them too (B78-VISIBILITY, above); they
+  were always shown until 2026-10-24.
 - **After the title, not flush right.** The list builds a header row before
   it knows the width a hugging list (a sidebar) settles on, so a flush-right
   action there would lose its trailing cells. Flushing right in a list that

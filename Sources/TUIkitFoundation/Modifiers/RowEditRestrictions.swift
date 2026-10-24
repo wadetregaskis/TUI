@@ -107,6 +107,27 @@ package final class RowEditRestrictions {
         _rowMenus[row] = open
     }
 
+    /// What decides, as the list extracts its sections, whether a section's
+    /// actions are drawn (owner ruling B78-VISIBILITY): the list row of the
+    /// cursor while the list holds the focus, and the first row of the section
+    /// under the pointer. Set by `_ListCore` before it extracts its rows; on
+    /// this collector for ``rowIndexBase``'s reason — the extraction is
+    /// several calls deep and reads the list only through its rows' context.
+    package var sectionsInUse: (cursorRow: Int?, hoveredSectionRow: Int?) {
+        get { _sectionsInUse }
+        set { _sectionsInUse = newValue }
+    }
+
+    /// The rows of each section with actions this frame, header to footer —
+    /// what the pointer is found in. Gathered as the sections are extracted.
+    package var sectionActionSpans: [Range<Int>] { _sectionActionSpans }
+
+    /// Reports that the section spanning list rows `rows` carries actions.
+    package func reportSectionActions(rows: Range<Int>) { _sectionActionSpans.append(rows) }
+
+    private var _sectionsInUse: (cursorRow: Int?, hoveredSectionRow: Int?) = (nil, nil)
+    private var _sectionActionSpans: [Range<Int>] = []
+
     /// No arguments, spelled out because the implicit initializer is internal
     /// and TUIkitLists makes these, for its lists.
     package init() {}

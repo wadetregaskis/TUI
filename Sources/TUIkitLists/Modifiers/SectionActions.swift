@@ -15,10 +15,12 @@ extension View {
     ///
     /// On macOS the actions appear at the trailing end of the section's
     /// header when the pointer hovers over the section. A terminal list shows
-    /// them all the time instead, where the keyboard reaches them as it
-    /// reaches any control — Tab moves onto each — and a click presses them:
-    /// an action shown only under the pointer would be one the keyboard could
-    /// not use. They are at the header's trailing edge, as macOS puts them, in
+    /// them then, and also while the section has the keyboard — the focused
+    /// list's cursor on one of its rows, or the focus on one of the actions —
+    /// where Tab from the list moves onto each and a click presses them: an
+    /// action shown only under the pointer would be one the keyboard could not
+    /// use. Otherwise their cells are left blank, so nothing moves as they
+    /// come and go. They are at the header's trailing edge, as macOS puts them, in
     /// a list that fills the width it is offered; in one that hugs its rows —
     /// a tab view's sidebar — they go one cell after the header's title, as
     /// the header is drawn before the list knows the width it hugs to.
@@ -74,25 +76,47 @@ extension _SectionActionsView: SectionRowExtractor where Content: SectionRowExtr
         content.extractSectionContentRows(context: context.withChildIdentity(type: Content.self))
     }
 
-    /// The section's header and footer, with the actions drawn on the
-    /// header's line: flush against the row's trailing edge in a list that
-    /// fills its width — the width the row is drawn at, where the list puts a
-    /// row's badge — and one cell after the title in a list that hugs its
-    /// rows (``EnvironmentValues/listRowsHug``), whose width is settled from
-    /// the rows only after they are drawn. A section without a header shows
-    /// them alone on the header's line. Actions that draw nothing leave the
-    /// header as it was.
+    /// The section's header and footer, with the actions for the header's
+    /// line: flush against the row's trailing edge in a list that fills its
+    /// width — the width the row is drawn at, where the list puts a row's
+    /// badge — and one cell after the title in a list that hugs its rows
+    /// (``EnvironmentValues/listRowsHug``), whose width is settled from the
+    /// rows only after they are drawn. A section without a header shows them
+    /// alone on the header's line. Actions that draw nothing leave the header
+    /// as it was.
+    ///
+    /// The list draws them only while the section is in use (owner ruling
+    /// B78-VISIBILITY), through ``SectionInfo/headerActions``; until then the
+    /// header holds their cells blank, as MEASURED rather than drawn — a
+    /// drawing registers them as focus stops — so the rows under a headerless
+    /// section and a hugging list's width stay put as they come and go.
     func extractSectionInfo(context: RenderContext) -> SectionInfo {
         let info = content.extractSectionInfo(context: context.withChildIdentity(type: Content.self))
-        let drawnActions = TUIkitView.renderToBuffer(
-            actions, context: context.withChildIdentity(erasedType: Actions.self, key: "sectionActions"))
-        guard !drawnActions.isBlank else { return info }
-        var header = info.headerBuffer ?? FrameBuffer()
-        let spacing =
-            context.environment.listRowsHug
-            ? 1 : max(1, context.availableWidth - header.width - drawnActions.width)
-        header.appendHorizontally(drawnActions, spacing: spacing)
+        let actionsContext = context.withChildIdentity(erasedType: Actions.self, key: "sectionActions")
+        let size = measureChild(
+            actions, proposal: ProposedSize(width: context.availableWidth, height: context.availableHeight),
+            context: actionsContext)
+        guard size.width > 0, size.height > 0 else { return info }
+        let header = info.headerBuffer ?? FrameBuffer()
+        let hugs = context.environment.listRowsHug
+        let width = context.availableWidth
+        func spacing(before actionsWidth: Int) -> Int {
+            hugs ? 1 : max(1, width - header.width - actionsWidth)
+        }
+        var reserved = header
+        reserved.appendHorizontally(
+            FrameBuffer(lines: Array(repeating: String.spaces(size.width), count: size.height)),
+            spacing: spacing(before: size.width))
+        let actions = actions
+        let headerActions = SectionHeaderActions(identity: actionsContext.identity) {
+            let drawn = TUIkitView.renderToBuffer(actions, context: actionsContext)
+            guard !drawn.isBlank else { return reserved }
+            var shown = header
+            shown.appendHorizontally(drawn, spacing: spacing(before: drawn.width))
+            return shown
+        }
         return SectionInfo(
-            headerBuffer: header, footerBuffer: info.footerBuffer, separator: info.separator)
+            headerBuffer: reserved, footerBuffer: info.footerBuffer, separator: info.separator,
+            headerActions: headerActions)
     }
 }

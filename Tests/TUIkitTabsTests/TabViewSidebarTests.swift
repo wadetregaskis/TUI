@@ -283,9 +283,14 @@ struct TabViewSidebarTests {
             }
             .sectionActions { Text("NEW FOLDER") }
         }
-        let sidebar = renderToBuffer(
-            tabs.tabViewStyle(.sidebarAdaptable), context: makeRenderContext(width: 70, height: 12)
-        ).lines.map(\.stripped)
+        // The second frame, by when the sidebar holds the focus the first gave
+        // it, with its cursor on the section's tab: a section's actions show
+        // while it is in use (owner ruling B78-VISIBILITY).
+        let sidebarContext = makeRenderContext(width: 70, height: 12)
+        _ = renderToBuffer(tabs.tabViewStyle(.sidebarAdaptable), context: sidebarContext)
+        _ = sidebarContext.environment.focusManager?.dispatchKeyEvent(KeyEvent(key: .down))
+        let sidebar = renderToBuffer(tabs.tabViewStyle(.sidebarAdaptable), context: sidebarContext)
+            .lines.map(\.stripped)
         #expect(sidebar.contains { $0.contains("Folders") && $0.contains("NEW FOLDER") }, "\(sidebar)")
         #expect(!sidebar.joined().contains("LONE"), "\(sidebar)")
         let strip = renderToBuffer(tabs, context: makeRenderContext(width: 70, height: 12))
