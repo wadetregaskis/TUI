@@ -44,7 +44,8 @@ struct StatusBarThemeTests {
             StatusBar(items: [StatusBarItem(shortcut: "q", label: "Quit")], style: .compact)
         ).lines[0]
         let text = line.stripped
-        let shortcut = try #require(text.firstIndex(of: "q"), "\(line.debugDescription)")
+        // Drawn as a menu draws the key (B-KS-1).
+        let shortcut = try #require(text.firstIndex(of: "Q"), "\(line.debugDescription)")
         // The bar is ASCII, so a character's offset is its cell.
         let column = text.distance(from: text.startIndex, to: shortcut)
         let cells = truecolorInks(line)

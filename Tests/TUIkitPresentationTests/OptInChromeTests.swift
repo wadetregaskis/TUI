@@ -148,7 +148,7 @@ struct OptInChromeTests {
         let loop = harness.loop(HintsApp())
         _ = loop.render()
         let rows = loop.diffWriter.shownLines.map(\.stripped)
-        #expect(rows[rows.count - 2].contains("q quit"), "\(rows)")
+        #expect(rows[rows.count - 2].contains("Q quit"), "\(rows)")
         #expect(rows[rows.count - 4].contains("LAST"), "the page ends above the bar: \(rows)")
     }
 
@@ -181,7 +181,7 @@ struct OptInChromeTests {
         #expect(rows.count == 4, "\(rows)")
         #expect(rows[0].hasPrefix("╭"), "the top bar's first row is all of it there is room for: \(rows)")
         #expect(rows[1].hasPrefix("╭"), "the bottom bar's top border: \(rows)")
-        #expect(rows[2].contains("q quit"), "the line of key hints is on the screen: \(rows)")
+        #expect(rows[2].contains("Q quit"), "the line of key hints is on the screen: \(rows)")
         #expect(rows[3].hasPrefix("╰"), "and the bar is closed: \(rows)")
     }
 
@@ -194,7 +194,7 @@ struct OptInChromeTests {
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
         let rows = app.screen.map(\.stripped)
-        #expect(rows.contains { $0.contains("q quit") }, "sanity: the bottom bar is whole: \(rows)")
+        #expect(rows.contains { $0.contains("Q quit") }, "sanity: the bottom bar is whole: \(rows)")
         #expect(!rows.contains { $0.contains("DEL") }, "sanity: the top bar's item row is cut off: \(rows)")
         app.send(KeyEvent(key: .character("d")))
         #expect(CutBarProbe.shared.deletes == 0, "the button nobody can see is not on its key")

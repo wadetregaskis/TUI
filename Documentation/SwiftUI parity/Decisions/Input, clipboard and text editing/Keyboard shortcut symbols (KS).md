@@ -57,6 +57,24 @@ draws an item's key from the key rather than from the string — which is the
 A28 chrome lane's restructuring of the status bar into views, and is better
 done there than beside it. It changes every app's status bar.
 
+**Ruled (owner, 2026-10-23), and built (lane KEYS, 2026-10-24):** "menu
+spelling by default, with an option for the case-sensitive one." The bar
+draws a one-letter item key through `StatusBarKeySpelling.spelling(_:)`:
+`.menu`, the default, draws a lower-case letter as its key cap (`Q quit`) and
+an upper-case one as `⇧` and the letter (`⇧N`); `.asTyped` draws the string as
+typed, as before. The string is untouched — it still binds the key, names the
+item and is what the bar's de-duplication compares — so only the drawing
+changed, and no restructuring of the bar into views was needed after all:
+the bar spells the string as it writes it, after the spelling and before the
+`KeyNotation` (`Shift-N` when spelled out). Anything but one letter with a
+case (`1-9`, `c|C`, `?`, `⌃Z`, `ß`) is drawn as written. The undo and redo
+hints, which are written as the bar's own items are (`KeySymbols.statusBarName(of:)`),
+follow the same drawing, so a hint on a bare u reads `U` under `.menu` and
+`u` under `.asTyped`. The option is an environment value with a view
+modifier, `.statusBarKeySpelling(_:)`, by the modifier-first rule. Every
+app's bar changes; the chrome snapshots were re-recorded (`S save`, `Q quit`).
+Tests: `KeyNotationTests.statusBar`, `StatusBarKeySpellingTests`.
+
 ### B-KS-2. Spelled out, the keys have their English terminal names
 
 *`KeyNotation.spelledOut`, `TUIKIT_KEY_SYMBOLS=0`*

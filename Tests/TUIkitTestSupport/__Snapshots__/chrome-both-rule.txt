@@ -10,4 +10,4 @@ Probe                                 v1
 
 
 ────────────────────────────────────────
-          s save         q quit
+          S save         Q quit

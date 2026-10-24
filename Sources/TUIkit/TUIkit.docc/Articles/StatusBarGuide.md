@@ -56,7 +56,7 @@ way:
 
 | Constant | Display | Description |
 |----------|---------|-------------|
-| `Shortcut.quit` | `q` | Default quit display |
+| `Shortcut.quit` | `q` (drawn `Q`, see One-letter keys) | Default quit display |
 | `Shortcut.enter` | `↩` | Return |
 | `Shortcut.escape` | `⎋` | Escape |
 | `Shortcut.tab` | `⇥` | Tab |
@@ -66,6 +66,17 @@ way:
 | `Shortcut.ctrl("q")` | `⌃Q` | Control and Q, named as a menu names the chord |
 
 `Shortcut` defines how the item is displayed. If you do not pass `key:`, `StatusBarItem` derives a trigger key from the shortcut string where possible.
+
+### One-letter keys
+
+An item's `shortcut` string is the key it binds in the bar's own vocabulary, where the case is the Shift: `"n"` is n and `"N"` is Shift-N. The bar draws a one-letter key the way a macOS menu draws it, as every other key TUIkit names is drawn — `N new` for `"n"`, `⇧N new` for `"N"`, and `Q quit` — so the bar reads the same as `⌃Z undo` beside it. The string still binds the key and names the item. An app that prefers the TUI convention, in which lower case means no Shift, sets ``StatusBarKeySpelling/asTyped`` with ``View/statusBarKeySpelling(_:)``:
+
+```swift
+StatusBar()
+    .statusBarKeySpelling(.asTyped)   // n new, N new, q quit
+```
+
+A key of anything but one letter — `1-9`, `c|C`, `↑↓`, `?` — is drawn as written either way.
 
 ## Context Stack
 
@@ -100,7 +111,7 @@ TUIkit registers built-in system items automatically:
 | `⎋` | *(what claimed it)* | None — informational |
 | `↩` | *(what claimed it)* | None — informational |
 
-These appear on the right side of the status bar. `q quit` is shown by default, `a appearance` and `t theme` are not, and the two common keys are — all four are controlled by ``View/statusBarSystemItems(theme:appearance:returnKey:escapeKey:)``.
+These appear on the right side of the status bar, drawn `Q quit`, `A appearance` and `T theme` (see One-letter keys). `q quit` is shown by default, `a appearance` and `t theme` are not, and the two common keys are — all four are controlled by ``View/statusBarSystemItems(theme:appearance:returnKey:escapeKey:)``.
 
 ### The two common keys
 

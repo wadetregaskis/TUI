@@ -10,4 +10,4 @@
 
 
 
-          s save         q quit
+          S save         Q quit

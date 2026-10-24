@@ -74,7 +74,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [B-BITEMS1-1](#b-bitems1-1) | Follow macOS conventions; asked for more than a blanket default. | Proposal below — your call. |
 | [B82](#b82) | Draw the pending state; system delay when local, with an override; SwiftUI's per-control defaults. | Plan below; queued. |
 | [FB9-REDO](#fb9-redo) | (a), with the shortcut hint following focus. | Done (lane KEYS, 2026-10-24): ⌃Y redoes app-wide, text controls keep it as yank, and the status bar's and menu bar's redo hint names another key while one has the focus (decisions D1K, B-D1K-7). |
-| [B-KS-1](#b-ks-1) | Menu spelling by default, with an option for the case-sensitive one. | Queued. |
+| [B-KS-1](#b-ks-1) | Menu spelling by default, with an option for the case-sensitive one. | Done (lane KEYS, 2026-10-24): the bar draws `Q quit` and `⇧N`; `.statusBarKeySpelling(.asTyped)` keeps `q quit` (decisions KS). |
 | [O13-KEYS](#o13-keys) | Asked for other macOS routes, per-menu jump keys and earlier CLI systems; propose. | Proposal below — your call. |
 | [SCROLLX-UPSTREAM](#scrollx-upstream) | Nothing now; support it if a recognised client adds it. | No action. |
 | [B-HELP-2](#b-help-2) | No shared key; modifiers on "?" for show-all; a default menu item toggling all help. | Rule adopted; key proposal below. |

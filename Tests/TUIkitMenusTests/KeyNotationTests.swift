@@ -132,19 +132,28 @@ struct KeyNotationTests {
                 StatusBarItem(shortcut: Shortcut.escape, label: "back"),
                 StatusBarItem(shortcut: Shortcut.ctrl("z"), label: "undo"),
                 StatusBarItem(shortcut: "q", label: "quit"),
+                StatusBarItem(shortcut: "N", label: "new"),
+                StatusBarItem(shortcut: "1-9", label: "page"),
             ],
             style: .compact)
-        func drawn(_ notation: KeyNotation) -> String {
+        func drawn(_ notation: KeyNotation, _ spelling: StatusBarKeySpelling = .menu) -> String {
             var context = RenderContext(availableWidth: 80, availableHeight: 4, tuiContext: TUIContext())
                 .isolatingRenderCache()
             context.environment.keyNotation = notation
+            context.environment.statusBarKeySpelling = spelling
             return renderToBuffer(bar, context: context).lines.map(\.stripped).joined()
         }
         let symbols = drawn(.symbols)
         #expect(symbols.contains("⎋ back") && symbols.contains("⌃Z undo"), "\(symbols)")
+        // A one-letter key as a menu draws it (B-KS-1): Q, and ⇧N for "N".
+        #expect(symbols.contains("Q quit") && symbols.contains("⇧N new") && symbols.contains("1-9 page"), "\(symbols)")
         let names = drawn(.spelledOut)
-        #expect(names.contains("Esc back") && names.contains("Ctrl-Z undo") && names.contains("q quit"), "\(names)")
+        #expect(names.contains("Esc back") && names.contains("Ctrl-Z undo") && names.contains("Q quit"), "\(names)")
+        #expect(names.contains("Shift-N new"), "\(names)")
         #expect(!names.contains("⎋") && !names.contains("⌃"), "\(names)")
+        // As typed, where the case is the Shift.
+        let typed = drawn(.symbols, .asTyped)
+        #expect(typed.contains("q quit") && typed.contains("N new") && typed.contains("⌃Z undo"), "\(typed)")
     }
 
     @Test("The user's TUIKIT_KEY_SYMBOLS=0, as the app runner reads it, reaches the status bar")
