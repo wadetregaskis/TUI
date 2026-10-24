@@ -810,7 +810,9 @@ focus back. SwiftUI's opt-in sets fill the View and Edit menus:
 `SidebarCommands` (Show/Hide Sidebar, the split view's ⌃⌘S), `InspectorCommands`
 (Show/Hide Inspector, ⌃⌘I), `ToolbarCommands` (Hide/Show Toolbar, ⌥⌘T, the
 person's choice over the page's top bar; no Customize Toolbar…) and
-`TextEditingCommands` (Find… and Find Next, a `TextEditor`'s ⌃F and ⌃G); `TextFormattingCommands`
+`TextEditingCommands` (Find… and Find Next, a `TextEditor`'s ⌃F and ⌃G,
+disabled unless an editor that can find has the focus, as AppKit validates
+them against the responder chain); `TextFormattingCommands`
 waits for the rich-text editor (A42) and `ImportFromDevicesCommands` is
 declined, both failing to compile. Within a group the newest `before:` comes
 first, the `after:`s follow, and the last `replacing:` stands; commands on

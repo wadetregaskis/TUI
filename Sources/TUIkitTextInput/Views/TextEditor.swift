@@ -227,6 +227,9 @@ public struct TextEditor: View {
                 }
                 return .handled
             }
+            // The Edit menu's Find… and Find Next are enabled while an editor
+            // with a find bar has the focus, and only then (`TextFinding`).
+            .focusedValue(\.textFinding, find.isFindDisabled ? nil : TextFinding())
             .paintingScrollContentBackground()
         } else {
             style.makeAnyBody(configuration: TextEditorStyleConfiguration())

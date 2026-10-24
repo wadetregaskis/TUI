@@ -119,6 +119,45 @@ private struct FindApp: App {
     }
 }
 
+/// What the item after Find… and Find Next did.
+private final class FindProbe: @unchecked Sendable {
+    static let shared = FindProbe()
+    var chosen = 0
+}
+
+/// A button, then an editor that can find, with an item of the app's after
+/// Find… and Find Next: where they are disabled, the menu opens with that
+/// item highlighted.
+private struct FindElsewhereApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            VStack {
+                Button("PAGE") {}
+                TextEditor(text: .constant("one two one"))
+            }
+        }
+        .commandsRemoved()
+        .commands {
+            TextEditingCommands()
+            CommandGroup(after: .textEditing) { Button("Probe") { FindProbe.shared.chosen += 1 } }
+        }
+    }
+}
+
+/// The same, with an editor whose find bar is disabled.
+private struct FindDisabledApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { TextEditor(text: .constant("one two one")).findDisabled() }
+            .commandsRemoved()
+            .commands {
+                TextEditingCommands()
+                CommandGroup(after: .textEditing) { Button("Probe") { FindProbe.shared.chosen += 1 } }
+            }
+    }
+}
+
 // MARK: - Tests
 
 @MainActor
@@ -234,5 +273,27 @@ struct StandardCommandSetsTests {
         #expect(shown.contains { $0.contains("Find Next") && $0.contains("⌃G") }, "\(shown)")
         chooseFirst(in: app)
         #expect(rows(app).contains { $0.contains("Done") }, "\(rows(app))")
+    }
+
+    @Test("TextEditingCommands: Find… and Find Next are disabled until an editor that can find has the focus")
+    mutating func findDisabledElsewhere() {
+        FindProbe.shared.chosen = 0
+        let app = launched(FindElsewhereApp())
+        chooseFirst(in: app)
+        #expect(FindProbe.shared.chosen == 1, "the highlight started past Find… and Find Next")
+        #expect(!rows(app).contains { $0.contains("Done") }, "\(rows(app))")
+        app.send(KeyEvent(key: .tab))
+        frame(app)
+        chooseFirst(in: app)
+        #expect(FindProbe.shared.chosen == 1)
+        #expect(rows(app).contains { $0.contains("Done") }, "the editor has the focus: \(rows(app))")
+    }
+
+    @Test("TextEditingCommands: Find… and Find Next are disabled for an editor whose find bar is")
+    mutating func findDisabledEditor() {
+        FindProbe.shared.chosen = 0
+        let app = launched(FindDisabledApp())
+        chooseFirst(in: app)
+        #expect(FindProbe.shared.chosen == 1, "the highlight started past Find… and Find Next")
     }
 }

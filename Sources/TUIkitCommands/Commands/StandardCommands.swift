@@ -119,10 +119,16 @@ public struct ToolbarCommands: Commands {
 /// Find… and Find Next, which press a `TextEditor`'s own keys once the menu has
 /// closed — ⌃F, ⌘F's Control chord, which shows the focused editor's find bar,
 /// and ⌃G, which goes on to its next match — so each does what its key does.
+/// Both are disabled unless the focus is in an editor that can find (one not
+/// `findDisabled()`), as AppKit's are unless something in the responder chain
+/// can: anywhere else their keys would do nothing.
 /// macOS's other text-editing submenus (spelling, substitutions,
 /// transformations, speech) have no counterpart in a terminal's text controls.
 public struct TextEditingCommands: Commands {
     @Environment(\.keysAfterFrame) private var keys
+    /// That the focused view can find (`TextFinding`), published by a
+    /// `TextEditor` with a find bar.
+    @FocusedValue(\.textFinding) private var finding
 
     /// Creates the text editing commands.
     public init() {}
@@ -134,11 +140,13 @@ public struct TextEditingCommands: Commands {
                 find.keyEvent(commandKey: .control).map { keys?.press($0) }
             }
             .keyboardShortcutHint(find)
+            .disabled(finding == nil)
             let findNext = KeyboardShortcut("g", modifiers: .control)
             Button(LocalizationService.shared.string(for: LocalizationKey.Menu.findNext)) {
                 findNext.keyEvent(commandKey: .control).map { keys?.press($0) }
             }
             .keyboardShortcutHint(findNext)
+            .disabled(finding == nil)
         }
     }
 }
