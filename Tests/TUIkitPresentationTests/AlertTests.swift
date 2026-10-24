@@ -24,7 +24,7 @@ struct AlertSizingTests {
 
     @Test("An alert wide enough for its message renders it on a single line")
     func wideAlertDoesNotWrapMessage() {
-        let alert = Alert(title: "Standard Alert", message: sampleMessage).frame(width: 60)
+        let alert = AlertPanel(title: "Standard Alert", message: sampleMessage).frame(width: 60)
         let buffer = renderToBuffer(alert, context: context())
 
         let intactLine = buffer.lines.contains { $0.stripped.contains(sampleMessage) }
@@ -36,7 +36,7 @@ struct AlertSizingTests {
 
     @Test("A too-narrow alert is forced to wrap its message")
     func narrowAlertWrapsMessage() {
-        let alert = Alert(title: "Standard Alert", message: sampleMessage).frame(width: 40)
+        let alert = AlertPanel(title: "Standard Alert", message: sampleMessage).frame(width: 40)
         let buffer = renderToBuffer(alert, context: context())
 
         let intactLine = buffer.lines.contains { $0.stripped.contains(sampleMessage) }

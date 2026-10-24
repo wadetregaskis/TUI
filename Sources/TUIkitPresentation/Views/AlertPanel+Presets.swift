@@ -1,8 +1,8 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  Alert+Presets.swift
+//  AlertPanel+Presets.swift
 //
 //  The four styled alerts — warning, error, info, success — split out of
-//  Alert.swift, which is the view itself.
+//  AlertPanel.swift, which is the view itself.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -23,7 +23,7 @@ import TUIkitFoundation
 // The third overload is `@_disfavoredOverload` as well, and there the attribute
 // is load-bearing rather than tidying: it has FEWER defaulted arguments than
 // the key overload (none, against that one's title), and Swift's "fewer
-// defaults wins" tie-break would otherwise hand `Alert.warning(message:
+// defaults wins" tie-break would otherwise hand `AlertPanel.warning(message:
 // "alert.diskFull")` to it — leaving the message unlooked-up and the title
 // resolved through the service instead of the key table. Mutation-tested on
 // 6.3.3: remove the attribute and that call does go to the generic form.
@@ -59,7 +59,7 @@ extension LocalizedStringKey {
     }
 }
 
-extension Alert {
+extension AlertPanel {
     /// Creates a warning-style alert with palette warning colors.
     ///
     /// String **literals** bind here, so they are lookup keys — see
@@ -77,7 +77,7 @@ extension Alert {
             LocalizationKey.Label.warning.rawValue),
         message messageKey: LocalizedStringKey,
         @ViewBuilder actions: () -> Actions
-    ) -> Alert {
+    ) -> AlertPanel {
         warning(
             title: titleKey.localizedTitle(defaultingTo: .warning), message: messageKey.localized, actions: actions)
     }
@@ -97,7 +97,7 @@ extension Alert {
         title: S1,
         message: S2,
         @ViewBuilder actions: () -> Actions
-    ) -> Alert {
+    ) -> AlertPanel {
         Self(
             title: title,
             message: message,
@@ -120,7 +120,7 @@ extension Alert {
     public static func warning<S: StringProtocol>(
         message: S,
         @ViewBuilder actions: () -> Actions
-    ) -> Alert {
+    ) -> AlertPanel {
         warning(
             title: LocalizationService.shared.string(for: LocalizationKey.Label.warning),
             message: message,
@@ -143,7 +143,7 @@ extension Alert {
             LocalizationKey.Label.error.rawValue),
         message messageKey: LocalizedStringKey,
         @ViewBuilder actions: () -> Actions
-    ) -> Alert {
+    ) -> AlertPanel {
         error(title: titleKey.localizedTitle(defaultingTo: .error), message: messageKey.localized, actions: actions)
     }
 
@@ -162,7 +162,7 @@ extension Alert {
         title: S1,
         message: S2,
         @ViewBuilder actions: () -> Actions
-    ) -> Alert {
+    ) -> AlertPanel {
         Self(
             title: title,
             message: message,
@@ -182,7 +182,7 @@ extension Alert {
     public static func error<S: StringProtocol>(
         message: S,
         @ViewBuilder actions: () -> Actions
-    ) -> Alert {
+    ) -> AlertPanel {
         error(
             title: LocalizationService.shared.string(for: LocalizationKey.Label.error),
             message: message,
@@ -205,7 +205,7 @@ extension Alert {
             LocalizationKey.Label.info.rawValue),
         message messageKey: LocalizedStringKey,
         @ViewBuilder actions: () -> Actions
-    ) -> Alert {
+    ) -> AlertPanel {
         info(title: titleKey.localizedTitle(defaultingTo: .info), message: messageKey.localized, actions: actions)
     }
 
@@ -224,7 +224,7 @@ extension Alert {
         title: S1,
         message: S2,
         @ViewBuilder actions: () -> Actions
-    ) -> Alert {
+    ) -> AlertPanel {
         Self(
             title: title,
             message: message,
@@ -244,7 +244,7 @@ extension Alert {
     public static func info<S: StringProtocol>(
         message: S,
         @ViewBuilder actions: () -> Actions
-    ) -> Alert {
+    ) -> AlertPanel {
         info(
             title: LocalizationService.shared.string(for: LocalizationKey.Label.info),
             message: message,
@@ -267,7 +267,7 @@ extension Alert {
             LocalizationKey.Label.success.rawValue),
         message messageKey: LocalizedStringKey,
         @ViewBuilder actions: () -> Actions
-    ) -> Alert {
+    ) -> AlertPanel {
         success(title: titleKey.localizedTitle(defaultingTo: .success), message: messageKey.localized, actions: actions)
     }
 
@@ -286,7 +286,7 @@ extension Alert {
         title: S1,
         message: S2,
         @ViewBuilder actions: () -> Actions
-    ) -> Alert {
+    ) -> AlertPanel {
         Self(
             title: title,
             message: message,
@@ -306,7 +306,7 @@ extension Alert {
     public static func success<S: StringProtocol>(
         message: S,
         @ViewBuilder actions: () -> Actions
-    ) -> Alert {
+    ) -> AlertPanel {
         success(
             title: LocalizationService.shared.string(for: LocalizationKey.Label.success),
             message: message,
@@ -319,13 +319,13 @@ extension Alert {
 
 // The same three-overload shape as above, for the same reasons.
 
-extension Alert where Actions == EmptyView {
+extension AlertPanel where Actions == EmptyView {
     /// Creates a warning-style alert without actions. Literals are keys.
     public static func warning(
         title titleKey: LocalizedStringKey = LocalizedStringKey(
             LocalizationKey.Label.warning.rawValue),
         message messageKey: LocalizedStringKey
-    ) -> Alert<EmptyView> {
+    ) -> AlertPanel<EmptyView> {
         warning(title: titleKey.localizedTitle(defaultingTo: .warning), message: messageKey.localized)
     }
 
@@ -333,14 +333,14 @@ extension Alert where Actions == EmptyView {
     @_disfavoredOverload
     public static func warning<S1: StringProtocol, S2: StringProtocol>(
         title: S1, message: S2
-    ) -> Alert<EmptyView> {
-        Alert<EmptyView>(title: title, message: message, titleColor: .palette.warning)
+    ) -> AlertPanel<EmptyView> {
+        AlertPanel<EmptyView>(title: title, message: message, titleColor: .palette.warning)
     }
 
     /// Creates a warning-style alert without actions, titled with the localized
     /// `label.warning` and its message shown as written.
     @_disfavoredOverload
-    public static func warning<S: StringProtocol>(message: S) -> Alert<EmptyView> {
+    public static func warning<S: StringProtocol>(message: S) -> AlertPanel<EmptyView> {
         warning(
             title: LocalizationService.shared.string(for: LocalizationKey.Label.warning),
             message: message)
@@ -351,7 +351,7 @@ extension Alert where Actions == EmptyView {
         title titleKey: LocalizedStringKey = LocalizedStringKey(
             LocalizationKey.Label.error.rawValue),
         message messageKey: LocalizedStringKey
-    ) -> Alert<EmptyView> {
+    ) -> AlertPanel<EmptyView> {
         error(title: titleKey.localizedTitle(defaultingTo: .error), message: messageKey.localized)
     }
 
@@ -359,14 +359,14 @@ extension Alert where Actions == EmptyView {
     @_disfavoredOverload
     public static func error<S1: StringProtocol, S2: StringProtocol>(
         title: S1, message: S2
-    ) -> Alert<EmptyView> {
-        Alert<EmptyView>(title: title, message: message, titleColor: .palette.error)
+    ) -> AlertPanel<EmptyView> {
+        AlertPanel<EmptyView>(title: title, message: message, titleColor: .palette.error)
     }
 
     /// Creates an error-style alert without actions, titled with the localized
     /// `label.error` and its message shown as written.
     @_disfavoredOverload
-    public static func error<S: StringProtocol>(message: S) -> Alert<EmptyView> {
+    public static func error<S: StringProtocol>(message: S) -> AlertPanel<EmptyView> {
         error(
             title: LocalizationService.shared.string(for: LocalizationKey.Label.error),
             message: message)
@@ -377,7 +377,7 @@ extension Alert where Actions == EmptyView {
         title titleKey: LocalizedStringKey = LocalizedStringKey(
             LocalizationKey.Label.info.rawValue),
         message messageKey: LocalizedStringKey
-    ) -> Alert<EmptyView> {
+    ) -> AlertPanel<EmptyView> {
         info(title: titleKey.localizedTitle(defaultingTo: .info), message: messageKey.localized)
     }
 
@@ -385,14 +385,14 @@ extension Alert where Actions == EmptyView {
     @_disfavoredOverload
     public static func info<S1: StringProtocol, S2: StringProtocol>(
         title: S1, message: S2
-    ) -> Alert<EmptyView> {
-        Alert<EmptyView>(title: title, message: message, titleColor: .palette.info)
+    ) -> AlertPanel<EmptyView> {
+        AlertPanel<EmptyView>(title: title, message: message, titleColor: .palette.info)
     }
 
     /// Creates an info-style alert without actions, titled with the localized
     /// `label.info` and its message shown as written.
     @_disfavoredOverload
-    public static func info<S: StringProtocol>(message: S) -> Alert<EmptyView> {
+    public static func info<S: StringProtocol>(message: S) -> AlertPanel<EmptyView> {
         info(
             title: LocalizationService.shared.string(for: LocalizationKey.Label.info),
             message: message)
@@ -403,7 +403,7 @@ extension Alert where Actions == EmptyView {
         title titleKey: LocalizedStringKey = LocalizedStringKey(
             LocalizationKey.Label.success.rawValue),
         message messageKey: LocalizedStringKey
-    ) -> Alert<EmptyView> {
+    ) -> AlertPanel<EmptyView> {
         success(title: titleKey.localizedTitle(defaultingTo: .success), message: messageKey.localized)
     }
 
@@ -411,14 +411,14 @@ extension Alert where Actions == EmptyView {
     @_disfavoredOverload
     public static func success<S1: StringProtocol, S2: StringProtocol>(
         title: S1, message: S2
-    ) -> Alert<EmptyView> {
-        Alert<EmptyView>(title: title, message: message, titleColor: .palette.success)
+    ) -> AlertPanel<EmptyView> {
+        AlertPanel<EmptyView>(title: title, message: message, titleColor: .palette.success)
     }
 
     /// Creates a success-style alert without actions, titled with the localized
     /// `label.success` and its message shown as written.
     @_disfavoredOverload
-    public static func success<S: StringProtocol>(message: S) -> Alert<EmptyView> {
+    public static func success<S: StringProtocol>(message: S) -> AlertPanel<EmptyView> {
         success(
             title: LocalizationService.shared.string(for: LocalizationKey.Label.success),
             message: message)

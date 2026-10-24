@@ -1,5 +1,5 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  Alert.swift
+//  AlertPanel.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
@@ -8,7 +8,14 @@ import TUIkitFoundation
 
 /// A modal alert view that displays a title, message, and optional action buttons.
 ///
-/// `Alert` draws the panel. **Presenting it is a separate job**, and the way to
+/// TUI-specific. SwiftUI's own `Alert` is the old value type that
+/// `alert(isPresented:content:)` took, soft-deprecated, and TUIkit has none of
+/// its API; this view was called `Alert` until 2026-10-23 and was renamed so
+/// that its name does not read as that retired type (decisions DEPR-ALERT-NAME).
+/// SwiftUI code presents alerts with `alert(_:isPresented:actions:message:)`
+/// and its siblings, which build one of these.
+///
+/// `AlertPanel` draws the panel. **Presenting it is a separate job**, and the way to
 /// do it is ``View/alert(_:isPresented:actions:message:borderStyle:borderColor:titleColor:)-(LocalizedStringKey,_,_,_,_,_,_)`` or
 /// ``View/modal(isPresented:onDismiss:content:)``.
 ///
@@ -22,16 +29,16 @@ import TUIkitFoundation
 ///
 /// ```swift
 /// // Simple alert
-/// Alert(title: "Warning", message: "Are you sure?")
+/// AlertPanel(title: "Warning", message: "Are you sure?")
 ///
-/// // Alert with action buttons
-/// Alert(title: "Confirm", message: "Delete this item?") {
+/// // An alert panel with action buttons
+/// AlertPanel(title: "Confirm", message: "Delete this item?") {
 ///     Button("Yes") { }
 ///     Button("No") { }
 /// }
 ///
 /// // Present it. `.alert` builds the panel for you from a title and actions;
-/// // `.modal` takes an Alert (or a Dialog) you built yourself.
+/// // `.modal` takes an AlertPanel (or a Dialog) you built yourself.
 /// mainContent
 ///     .alert("Notice", isPresented: $showing) {
 ///         Button("OK") { showing = false }
@@ -41,13 +48,13 @@ import TUIkitFoundation
 ///
 /// mainContent
 ///     .modal(isPresented: $showing) {
-///         Alert(title: "Notice", message: "Operation complete!") {
+///         AlertPanel(title: "Notice", message: "Operation complete!") {
 ///             Button("OK") { showing = false }
 ///         }
 ///     }
 /// ```
 ///
-/// > Important: Do **not** present an `Alert` with bare `.dimmed().overlay()`.
+/// > Important: Do **not** present an `AlertPanel` with bare `.dimmed().overlay()`.
 /// > This documentation taught that pattern, and it does not work: `.dimmed()`
 /// > dims and deadens the background in place, and `.overlay` composites the
 /// > panel into the page in flow. The panel never captures the keyboard,
@@ -58,10 +65,10 @@ import TUIkitFoundation
 /// > dismiss, and centre the panel on the whole screen no matter where in the
 /// > tree the modifier is attached. ``Dialog`` carries the same warning.
 ///
-/// Composing an `Alert` inline — in a `ZStack`, or through `.overlay` — is
+/// Composing an `AlertPanel` inline — in a `ZStack`, or through `.overlay` — is
 /// still legitimate when what you want is an alert-SHAPED panel that is part
 /// of the page. It is only "modal" that it cannot give you.
-public struct Alert<Actions: View>: View {
+public struct AlertPanel<Actions: View>: View {
     /// The alert title.
     let title: String
 
@@ -162,7 +169,7 @@ public struct Alert<Actions: View>: View {
     }
 
     public var body: some View {
-        _AlertCore(
+        _AlertPanelCore(
             title: title,
             message: message,
             config: config,
@@ -172,13 +179,13 @@ public struct Alert<Actions: View>: View {
     }
 }
 
-// MARK: - Alert Core Rendering
+// MARK: - AlertPanel Core Rendering
 
-/// Internal view that handles Alert rendering.
+/// Internal view that handles AlertPanel rendering.
 ///
-/// This separation ensures `Alert.body` returns a real `View`, allowing
+/// This separation ensures `AlertPanel.body` returns a real `View`, allowing
 /// environment modifiers like `.foregroundStyle()` to propagate correctly.
-struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
+struct _AlertPanelCore<Actions: View>: View, Renderable, Layoutable {
     let title: String
     let message: String
     let config: ContainerConfig
@@ -186,7 +193,7 @@ struct _AlertCore<Actions: View>: View, Renderable, Layoutable {
     var verticalButtons: Bool = false
 
     var body: Never {
-        fatalError("_AlertCore renders via Renderable")
+        fatalError("_AlertPanelCore renders via Renderable")
     }
 
     /// Maximum width for alerts (characters).
@@ -484,12 +491,12 @@ struct AlertButtonColumn: View, Renderable {
 
 // MARK: - Convenience Initializer (no actions)
 
-extension Alert where Actions == EmptyView {
+extension AlertPanel where Actions == EmptyView {
     /// Creates an actionless alert with localized text.
     ///
     /// String **literals** bind here, so they are lookup keys — see
     /// ``LocalizedStringKey``, and the note on
-    /// ``Alert/init(title:message:borderStyle:borderColor:titleColor:showFooterSeparator:verticalButtons:actions:)-(LocalizedStringKey,_,_,_,_,_,_,_)``
+    /// ``AlertPanel/init(title:message:borderStyle:borderColor:titleColor:showFooterSeparator:verticalButtons:actions:)-(LocalizedStringKey,_,_,_,_,_,_,_)``
     /// about mixing a literal with a computed `String`.
     ///
     /// - Parameters:

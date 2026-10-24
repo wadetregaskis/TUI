@@ -119,7 +119,7 @@ extension AlertPresentationModifier: Renderable {
         }
 
         // Build the alert view
-        let alert = Alert(
+        let alert = AlertPanel(
             title: title,
             message: messageString,
             borderStyle: borderStyle,
@@ -269,7 +269,7 @@ extension AlertPresentationModifier: Renderable {
         // bottom rows — the action buttons and bottom border — under the status
         // bar. Building against `overlayContentHeight` keeps the footer visible.
         var alertContext = context
-            .withChildIdentity(erasedType: Alert<Actions>.self, index: 1)
+            .withChildIdentity(erasedType: AlertPanel<Actions>.self, index: 1)
             .withAvailableWidth(context.environment.terminalWidth)
             .withAvailableHeight(context.environment.overlayContentHeight)
         alertContext.environment.activeFocusSectionID = sectionID

@@ -505,17 +505,17 @@ struct LocalizedTitleTests {
     @Test("Alert title and message")
     func alert() {
         expectLocalized(
-            Alert(title: "test.title.control", message: "m"),
-            Alert(title: Self.computedKey, message: "m"), "Alert title")
+            AlertPanel(title: "test.title.control", message: "m"),
+            AlertPanel(title: Self.computedKey, message: "m"), "Alert title")
         // The message is prose the reader has to understand, so it is a key too
         // — unlike a `LabeledContent` value, which is the thing being labelled.
         #expect(
-            rendered(Alert(title: "t", message: "test.title.control"))
+            rendered(AlertPanel(title: "t", message: "test.title.control"))
                 .contains(Self.translation), "Alert message")
         expectLocalized(
-            Alert(title: "test.title.control", message: "m") { Button("ok") {} },
-            Alert(title: Self.computedKey, message: "m") { Button("ok") {} },
-            "Alert(actions:)")
+            AlertPanel(title: "test.title.control", message: "m") { Button("ok") {} },
+            AlertPanel(title: Self.computedKey, message: "m") { Button("ok") {} },
+            "AlertPanel(actions:)")
     }
 
     @Test("Alert presets")
@@ -524,16 +524,16 @@ struct LocalizedTitleTests {
         // English. They now come from the framework's own table, so they follow
         // the selected language like everything else.
         #expect(
-            Alert<EmptyView>.warning(message: "m").title
+            AlertPanel<EmptyView>.warning(message: "m").title
                 == LocalizationService.shared.string(for: LocalizationKey.Label.warning))
         #expect(
-            Alert<EmptyView>.error(message: "m").title
+            AlertPanel<EmptyView>.error(message: "m").title
                 == LocalizationService.shared.string(for: LocalizationKey.Label.error))
         #expect(
-            Alert<EmptyView>.info(message: "m").title
+            AlertPanel<EmptyView>.info(message: "m").title
                 == LocalizationService.shared.string(for: LocalizationKey.Label.info))
         #expect(
-            Alert<EmptyView>.success(message: "m").title
+            AlertPanel<EmptyView>.success(message: "m").title
                 == LocalizationService.shared.string(for: LocalizationKey.Label.success))
 
         // …and that default is worth having: an isolated service in another
@@ -548,16 +548,16 @@ struct LocalizedTitleTests {
 
         // A literal message is a key; a computed `String` is not, and still
         // reaches the overload that keeps the localized default title.
-        #expect(Alert<EmptyView>.warning(message: "test.title.control").message == Self.translation)
-        #expect(Alert<EmptyView>.warning(message: Self.computedKey).message == Self.key)
+        #expect(AlertPanel<EmptyView>.warning(message: "test.title.control").message == Self.translation)
+        #expect(AlertPanel<EmptyView>.warning(message: Self.computedKey).message == Self.key)
         #expect(
-            Alert<EmptyView>.warning(message: Self.computedKey).title
+            AlertPanel<EmptyView>.warning(message: Self.computedKey).title
                 == LocalizationService.shared.string(for: LocalizationKey.Label.warning))
         // An explicit literal title wins over the default and is looked up.
-        #expect(Alert<EmptyView>.error(title: "test.title.control", message: "m").title == Self.translation)
+        #expect(AlertPanel<EmptyView>.error(title: "test.title.control", message: "m").title == Self.translation)
         // The with-actions forms resolve identically.
         #expect(
-            Alert.info(message: "test.title.control") { Button("ok") {} }.message
+            AlertPanel.info(message: "test.title.control") { Button("ok") {} }.message
                 == Self.translation)
 
         // Every assertion above reaches the KEY overload, whose title default
@@ -568,24 +568,24 @@ struct LocalizedTitleTests {
         // wrong case. Seven of the eight had never run.
         let message = Self.computedKey  // computed, so it binds to <S: StringProtocol>
         let service = LocalizationService.shared
-        #expect(Alert<EmptyView>.warning(message: message).title == service.string(for: LocalizationKey.Label.warning))
-        #expect(Alert<EmptyView>.error(message: message).title == service.string(for: LocalizationKey.Label.error))
-        #expect(Alert<EmptyView>.info(message: message).title == service.string(for: LocalizationKey.Label.info))
-        #expect(Alert<EmptyView>.success(message: message).title == service.string(for: LocalizationKey.Label.success))
-        #expect(Alert.warning(message: message) { Button("ok") {} }.title == service.string(for: LocalizationKey.Label.warning))
-        #expect(Alert.error(message: message) { Button("ok") {} }.title == service.string(for: LocalizationKey.Label.error))
-        #expect(Alert.info(message: message) { Button("ok") {} }.title == service.string(for: LocalizationKey.Label.info))
-        #expect(Alert.success(message: message) { Button("ok") {} }.title == service.string(for: LocalizationKey.Label.success))
+        #expect(AlertPanel<EmptyView>.warning(message: message).title == service.string(for: LocalizationKey.Label.warning))
+        #expect(AlertPanel<EmptyView>.error(message: message).title == service.string(for: LocalizationKey.Label.error))
+        #expect(AlertPanel<EmptyView>.info(message: message).title == service.string(for: LocalizationKey.Label.info))
+        #expect(AlertPanel<EmptyView>.success(message: message).title == service.string(for: LocalizationKey.Label.success))
+        #expect(AlertPanel.warning(message: message) { Button("ok") {} }.title == service.string(for: LocalizationKey.Label.warning))
+        #expect(AlertPanel.error(message: message) { Button("ok") {} }.title == service.string(for: LocalizationKey.Label.error))
+        #expect(AlertPanel.info(message: message) { Button("ok") {} }.title == service.string(for: LocalizationKey.Label.info))
+        #expect(AlertPanel.success(message: message) { Button("ok") {} }.title == service.string(for: LocalizationKey.Label.success))
 
         // And each forwards to its own styled twin, so a transposed forward
         // (the other paste these bodies invite) shows the wrong title colour.
-        #expect(Alert<EmptyView>.warning(message: message).config.titleColor == .palette.warning)
-        #expect(Alert<EmptyView>.error(message: message).config.titleColor == .palette.error)
-        #expect(Alert<EmptyView>.info(message: message).config.titleColor == .palette.info)
-        #expect(Alert<EmptyView>.success(message: message).config.titleColor == .palette.success)
+        #expect(AlertPanel<EmptyView>.warning(message: message).config.titleColor == .palette.warning)
+        #expect(AlertPanel<EmptyView>.error(message: message).config.titleColor == .palette.error)
+        #expect(AlertPanel<EmptyView>.info(message: message).config.titleColor == .palette.info)
+        #expect(AlertPanel<EmptyView>.success(message: message).config.titleColor == .palette.success)
 
         // The message reaches all of them as written, never as a key.
-        #expect(Alert<EmptyView>.success(message: message).message == Self.key)
+        #expect(AlertPanel<EmptyView>.success(message: message).message == Self.key)
     }
 
     @Test("Card")

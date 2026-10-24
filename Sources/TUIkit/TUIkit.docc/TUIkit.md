@@ -156,7 +156,7 @@ struct MyApp: App {
 - ``Panel``
 - ``DisclosureGroup``
 - ``OutlineGroup``
-- ``Alert``
+- ``AlertPanel``
 - ``Dialog``
 - ``PresentationDetent``
 - ``ScenePhase``

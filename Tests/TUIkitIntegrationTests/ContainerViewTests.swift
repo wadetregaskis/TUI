@@ -16,7 +16,7 @@ struct AlertTests {
 
     @Test("Alert renders with border")
     func alertRendering() {
-        let alert = Alert(title: "Warning", message: "Something happened")
+        let alert = AlertPanel(title: "Warning", message: "Something happened")
         let context = RenderContext(availableWidth: 80, availableHeight: 24, tuiContext: TUIContext()).isolatingRenderCache()
         let buffer = renderToBuffer(alert, context: context)
         #expect(buffer.height > 2)

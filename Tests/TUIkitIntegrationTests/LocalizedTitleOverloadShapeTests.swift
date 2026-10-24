@@ -222,17 +222,17 @@ extension LocalizedTitleTests {
     @Test("Alert presets with an explicit title and actions")
     func alertPresetTitledOverloads() {
         #expect(
-            Alert.warning(title: "test.title.control", message: "m") { Button("ok") {} }.title
+            AlertPanel.warning(title: "test.title.control", message: "m") { Button("ok") {} }.title
                 == Self.translation)
         #expect(
-            Alert.error(title: "test.title.control", message: "m") { Button("ok") {} }.title
+            AlertPanel.error(title: "test.title.control", message: "m") { Button("ok") {} }.title
                 == Self.translation)
         #expect(
-            Alert.success(title: "test.title.control", message: "m") { Button("ok") {} }.title
+            AlertPanel.success(title: "test.title.control", message: "m") { Button("ok") {} }.title
                 == Self.translation)
         // …and a computed title is still shown as written rather than looked up.
         #expect(
-            Alert.warning(title: Self.computedKey, message: "m") { Button("ok") {} }.title
+            AlertPanel.warning(title: Self.computedKey, message: "m") { Button("ok") {} }.title
                 == Self.key)
     }
 }

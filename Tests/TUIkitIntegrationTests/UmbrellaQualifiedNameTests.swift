@@ -34,7 +34,7 @@
 //  TUIkitNavigation, that compiles two directories of the planned split,
 //  Sources/TUIkitNavigation and Sources/TUIkitPresentation, until step C1 peels
 //  the second into a module of its own. The fifth test spells a type from each
-//  directory through the umbrella, beside an app's own `Alert` (the case an app
+//  directory through the umbrella, beside an app's own `AlertPanel` (the case an app
 //  meets: an alert model of its own), so this file stops compiling if `import
 //  TUIkit` misses the types of either directory. Two holes it leaves to others.
 //  The umbrella's own `@_exported import TUIkitNavigation`: until C1,
@@ -229,17 +229,17 @@ private enum Client {
         (ColorPicker(name: "mine"), TUIkit.ColorPicker("b4", selection: selection))
     }
 
-    /// An app's own `Alert`, beside TUIkitPresentation's alert view (which
+    /// An app's own `AlertPanel`, beside TUIkitPresentation's alert view (which
     /// TUIkitNavigation compiled from step B5 until step C1).
-    struct Alert {
+    struct AlertPanel {
         let name: String
     }
 
     /// Both alerts: the app's by its plain name, TUIkit's by the umbrella's,
     /// with a TUIkitFoundation button as its action.
     @MainActor
-    static func bothAlerts(title: String) -> (Alert, TUIkit.Alert<TUIkit.Button>) {
-        (Alert(name: "mine"), TUIkit.Alert(title: title, message: "b5 message") {
+    static func bothAlerts(title: String) -> (AlertPanel, TUIkit.AlertPanel<TUIkit.Button>) {
+        (AlertPanel(name: "mine"), TUIkit.AlertPanel(title: title, message: "b5 message") {
             TUIkit.Button(action: {}, label: { TUIkit.Text(verbatim: "b5 ok") })
         })
     }
@@ -459,13 +459,13 @@ struct UmbrellaQualifiedNameTests {
         #expect(TUIkit.NavigationPath([1, 2]).b5Marker == 7)
         // From Sources/TUIkitPresentation, which compiled into the same module
         // from step B5 until step C1 peeled it into a module of its own: an
-        // alert beside an app's own `Alert`, drawn.
+        // alert beside an app's own `AlertPanel`, drawn.
         let (mine, alert) = Client.bothAlerts(title: "b5 alert")
         #expect(mine.name == "mine")
         let drawn = TUIkit.renderToBuffer(alert, context: makeRenderContext(width: 40, height: 8)).lines
             .map(\.stripped).joined(separator: "\n")
         #expect(drawn.contains("b5 alert") && drawn.contains("b5 ok"), "\(drawn)")
-        #expect(String(reflecting: type(of: alert)) == "TUIkitPresentation.Alert<TUIkitFoundation.Button>")
+        #expect(String(reflecting: type(of: alert)) == "TUIkitPresentation.AlertPanel<TUIkitFoundation.Button>")
     }
 
     @Test("A qualified name reaches TUIkitLists and the three modules peeled out of it, through the umbrella")

@@ -3325,7 +3325,7 @@ label with `Text(titleKey)`.
   measure that instead.
 - **Price:** about a day with the tests. The `LocalizedTitleTests` round trips
   would each gain a Markdown case.
-- **What stays as is:** TUIkit's own chrome (status-bar labels, `Alert`,
+- **What stays as is:** TUIkit's own chrome (status-bar labels, `AlertPanel`,
   `Card`, `Dialog` titles) has no SwiftUI meaning to match.
 
 **Recommendation:** do it for the SwiftUI controls listed above.

@@ -28,7 +28,7 @@ Built-in views include:
 
 - **Content**: ``Text``, ``Image``, ``Label``, ``Spinner``, ``Divider``, ``EmptyView``, ``LocalizedString``, ``ProgressView``, ``Gauge``
 - **Interactive controls**: ``Button``, ``ButtonRow``, ``TextField``, ``SecureField``, ``TextEditor``, ``Toggle``, ``Slider``, ``Stepper``, ``RadioButtonGroup``, ``Menu``, ``Picker``, ``DatePicker``, ``ColorPicker``, ``Link`` (plus combo-box behaviour via `.textInputSuggestions` on ``TextField``)
-- **Containers**: ``Card``, ``Panel``, ``Alert``, ``Dialog``, ``NavigationSplitView``, ``TabView``, ``ContentUnavailableView``, ``StatusBar``, ``Form``, ``LabeledContent``
+- **Containers**: ``Card``, ``Panel``, ``AlertPanel``, ``Dialog``, ``NavigationSplitView``, ``TabView``, ``ContentUnavailableView``, ``StatusBar``, ``Form``, ``LabeledContent``
 - **Data collections**: ``List``, ``Table``, ``Section``
 - **Layout & scrolling**: ``VStack``, ``HStack``, ``ZStack``, ``LazyVStack``, ``LazyHStack``, ``Group``, ``ViewThatFits``, ``Spacer``, ``ForEach``, ``ScrollView``
 

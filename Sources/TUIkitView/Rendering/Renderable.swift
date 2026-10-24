@@ -31,12 +31,12 @@ import TUIkitCore
 /// - **Modifier infrastructure**: `ModifiedView`, `DimmedModifier`, etc.
 /// - **Private `_*Core` views**: `_VStackCore`, `_HStackCore`, `_ZStackCore`,
 ///   `_ButtonCore`, `_StatusBarCore`, `_PanelCore`, `_ContainerViewCore`,
-///   `_AlertCore`, `_DialogCore`, `_CardCore`, and friends — the procedural
+///   `_AlertPanelCore`, `_DialogCore`, `_CardCore`, and friends — the procedural
 ///   rendering behind the public controls
 ///
 /// The public controls are deliberately **not** on that list, and this list
 /// once said otherwise: `VStack`, `HStack`, `ZStack`, `Button`, `ButtonRow`,
-/// `Menu`, `StatusBar`, `Panel`, `ContainerView`, `Alert`, `Dialog` and `Card`
+/// `Menu`, `StatusBar`, `Panel`, `ContainerView`, `AlertPanel`, `Dialog` and `Card`
 /// each moved behind a private core during the February 2026 migration
 /// (`d9010bab`, `e2474a54` and friends). Every one of them is now a `View`
 /// with a real `body: some View`, which is what makes modifiers and

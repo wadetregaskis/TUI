@@ -692,7 +692,7 @@ struct PlacementOverflowTests {
         }
         var screen = Screen(width: 40, height: 8)
         var lines = screen.render(
-            Alert(title: "T", message: "m") {
+            AlertPanel(title: "T", message: "m") {
                 pushed
                 Button("bbbbbbbb") {}
             })
@@ -705,7 +705,7 @@ struct PlacementOverflowTests {
         }
         screen = Screen(width: 40, height: 10)
         lines = screen.render(
-            Alert(title: "T", message: "m", verticalButtons: true) {
+            AlertPanel(title: "T", message: "m", verticalButtons: true) {
                 badged
                 Button("bbbbbbbbbbbb") {}
             })

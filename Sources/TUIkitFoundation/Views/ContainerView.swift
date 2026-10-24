@@ -8,7 +8,7 @@
 
 /// Shared visual configuration for container-type views.
 ///
-/// Groups the common appearance properties used by ``Alert``, ``Dialog``,
+/// Groups the common appearance properties used by ``AlertPanel``, ``Dialog``,
 /// ``Panel``, and ``Card``. Each view stores a `ContainerConfig` instead
 /// of repeating the same five properties.
 ///
@@ -179,7 +179,7 @@ package struct ContainerStyle: Sendable, Equatable {
 
 /// Renders a `ContainerView` from a `ContainerConfig` and content/footer views.
 ///
-/// Eliminates the duplicated `if/else` footer pattern found in Alert, Dialog,
+/// Eliminates the duplicated `if/else` footer pattern found in AlertPanel, Dialog,
 /// Panel, and Card.
 ///
 /// - Parameters:
@@ -206,7 +206,7 @@ package func renderContainer<Content: View, Footer: View>(
 /// The measure-side twin of ``renderContainer``: it builds the *identical*
 /// `ContainerView` and measures it (reaching the `Layoutable`
 /// `_ContainerViewCore.sizeThatFits`) instead of rendering it. Container cores
-/// (`_PanelCore`, `_CardCore`, `_AlertCore`, `_DialogCore`) delegate their
+/// (`_PanelCore`, `_CardCore`, `_AlertPanelCore`, `_DialogCore`) delegate their
 /// `sizeThatFits` here so a labeled container measures analytically instead of
 /// falling through `measureChild`'s render-to-measure fallback — the same win
 /// `.border()` got when `_ContainerViewCore` became `Layoutable`. Because both
@@ -274,7 +274,7 @@ package func makeContainer<Content: View, Footer: View>(
 /// A unified container with optional header, body, and footer sections.
 ///
 /// `ContainerView` provides a consistent structure for all container-type views
-/// like Panel, Card, Alert, and Dialog. It handles the rendering logic for
+/// like Panel, Card, AlertPanel, and Dialog. It handles the rendering logic for
 /// borders, separators, and section backgrounds.
 ///
 /// ## Behavior by Appearance

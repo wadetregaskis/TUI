@@ -62,7 +62,7 @@ struct ChromeAndDimmedFocusTests {
     func dimmedIsNotFocusable() {
         // `.dimmed()` was purely visual: it flattened the content's LOOK and
         // left every control in it in the focus ring, which is what made
-        // `.dimmed().overlay { Alert(…) }` read as modal and behave as a live
+        // `.dimmed().overlay { AlertPanel(…) }` read as modal and behave as a live
         // page.
         #expect(reachable(VStack { Button("in") {} }.dimmed()).isEmpty)
         // The control: undimmed, the same button IS reachable.

@@ -111,7 +111,7 @@ public struct Button: View {
     ///
     /// `Button` is deliberately **not** generic over its label (unlike SwiftUI's
     /// `Button<Label>`): terminal idioms collect buttons into homogeneous arrays
-    /// (``ButtonRow``, ``Alert``'s `[Button]`), which a generic label type would
+    /// (``ButtonRow``, ``AlertPanel``'s `[Button]`), which a generic label type would
     /// break. Erasing the label keeps `Button` a single concrete type while still
     /// matching SwiftUI's `Button(action:label:)` call syntax.
     let labelView: AnyView?

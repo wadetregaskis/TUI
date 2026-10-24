@@ -15,7 +15,7 @@ import TUIkitFoundation
 
 /// Views that can contribute rows/sections to a ``Form``.
 ///
-/// Mirrors the ``ButtonProvider`` pattern ``Alert`` uses: the form walks its
+/// Mirrors the ``ButtonProvider`` pattern ``AlertPanel`` uses: the form walks its
 /// content tree through this protocol to recover the label/control structure it
 /// needs for pillar alignment (a generic `Form<Content>` can't otherwise see
 /// inside its opaque content).

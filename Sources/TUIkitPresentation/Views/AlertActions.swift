@@ -95,7 +95,7 @@ private enum AlertActionsID {}
 /// member that is no button is left out, as SwiftUI leaves out what an alert
 /// cannot show.
 ///
-/// Shared by ``_AlertCore``, which lays them out, and
+/// Shared by ``_AlertPanelCore``, which lays them out, and
 /// ``AlertPresentationModifier``, which needs the one that answers Escape.
 @MainActor
 func alertActions(from view: some View, in context: RenderContext) -> [AlertAction] {

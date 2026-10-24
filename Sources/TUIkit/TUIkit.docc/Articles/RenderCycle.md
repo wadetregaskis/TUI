@@ -183,7 +183,7 @@ Public controls are **not** directly `Renderable`: per the project's view-archit
 Views that are **not** `Renderable` declare their content through `body`. The rendering system recursively renders the body until it hits a `Renderable` leaf.
 
 This path is used by:
-- **Public controls**: ``VStack``, ``Button``, ``Card``, ``List``, ``Panel``, ``Alert``, ``Dialog``, ... — each wraps its private `Renderable` `_*Core`
+- **Public controls**: ``VStack``, ``Button``, ``Card``, ``List``, ``Panel``, ``AlertPanel``, ``Dialog``, ... — each wraps its private `Renderable` `_*Core`
 - **Composite views**: ``Card`` returns `content.padding().border(...)`, which wraps in a `ContainerView` (whose `_ContainerViewCore` is `Renderable`)
 - **User-defined views**: Your custom views compose other views in `body`
 

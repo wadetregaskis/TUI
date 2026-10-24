@@ -83,13 +83,13 @@ and status bar are display text like any other:
 
 ```swift
 Dialog(title: "dialog.settings") { … }
-Alert(title: "alert.unsaved.title", message: "alert.unsaved.body")
+AlertPanel(title: "alert.unsaved.title", message: "alert.unsaved.body")
 Card(title: "card.summary") { … }
 StatusBarItem(shortcut: "q", label: "status.quit") { quit() }
 notifications.post("notice.saved")
 ```
 
-An ``Alert``'s **message** is a key too, unlike a value: it is prose the reader
+An ``AlertPanel``'s **message** is a key too, unlike a value: it is prose the reader
 has to understand. Both of its slots must be literals or neither is looked up,
 since a computed `String` in either one selects the plain-`String` overload.
 

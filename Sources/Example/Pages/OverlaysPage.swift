@@ -87,13 +87,13 @@ private enum OverlayDemo: Int, CaseIterable {
                 "}",
             ]
         case .alertWarning:
-            Self.modalCall("Alert.warning(message: \"...\") { actions }")
+            Self.modalCall("AlertPanel.warning(message: \"...\") { actions }")
         case .alertError:
-            Self.modalCall("Alert.error(message: \"...\") { actions }")
+            Self.modalCall("AlertPanel.error(message: \"...\") { actions }")
         case .alertInfo:
-            Self.modalCall("Alert.info(message: \"...\") { actions }")
+            Self.modalCall("AlertPanel.info(message: \"...\") { actions }")
         case .alertSuccess:
-            Self.modalCall("Alert.success(message: \"...\") { actions }")
+            Self.modalCall("AlertPanel.success(message: \"...\") { actions }")
         case .dialog:
             Self.modalCall("Dialog(title: \"...\") { content }")
         case .dialogWithFooter:
@@ -617,32 +617,32 @@ struct OverlaysPage: View {
     private func alertContent(for demo: OverlayDemo) -> some View {
         switch demo {
         case .alertStandard:
-            Alert(
+            AlertPanel(
                 title: "page.overlays.alert.standardTitle",
                 message: "page.overlays.alert.standardMessage",
                 borderColor: .palette.border,
                 titleColor: .palette.accent
             ) { EmptyView() }
         case .alertWarning:
-            Alert(
+            AlertPanel(
                 title: "page.overlays.alert.warningTitle",
                 message: "page.overlays.alert.warningMessage",
                 titleColor: .palette.warning
             ) { EmptyView() }
         case .alertError:
-            Alert(
+            AlertPanel(
                 title: "page.overlays.alert.errorTitle",
                 message: "page.overlays.alert.errorMessage",
                 titleColor: .palette.error
             ) { EmptyView() }
         case .alertInfo:
-            Alert(
+            AlertPanel(
                 title: "page.overlays.alert.infoTitle",
                 message: "page.overlays.alert.infoMessage",
                 titleColor: .palette.info
             ) { EmptyView() }
         case .alertSuccess:
-            Alert(
+            AlertPanel(
                 title: "page.overlays.alert.successTitle",
                 message: "page.overlays.alert.successMessage",
                 titleColor: .palette.success

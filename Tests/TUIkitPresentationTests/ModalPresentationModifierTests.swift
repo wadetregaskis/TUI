@@ -121,7 +121,7 @@ struct ModalPresentationModifierTests {
         let isPresented = Binding.constant(true)
         let view = Text("Base")
             .modal(isPresented: isPresented) {
-                Alert(title: "Warning", message: "Sure?") {
+                AlertPanel(title: "Warning", message: "Sure?") {
                     Button("Yes") {}
                 }
             }

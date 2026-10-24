@@ -8,7 +8,7 @@ import TUIkitFoundation
 
 /// A modal dialog view with a title, customizable content, and optional footer.
 ///
-/// `Dialog` is more flexible than `Alert` — it accepts any content,
+/// `Dialog` is more flexible than `AlertPanel` — it accepts any content,
 /// making it suitable for forms, selections, or complex interactions.
 ///
 /// ## Structure
