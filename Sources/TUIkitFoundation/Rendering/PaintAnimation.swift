@@ -73,6 +73,9 @@ enum PaintAnimation {
         case .blended(let base, let mode):
             // A mode does not move between two: what is drawn does.
             return .blended(resolving(base, owner: owner, context: context), mode)
+        case .frosted(let base):
+            // A frost does not move between two: what is drawn does.
+            return .frosted(resolving(base, owner: owner, context: context))
         case .image:
             // A picture does not move between two: a new one shows at once.
             return target

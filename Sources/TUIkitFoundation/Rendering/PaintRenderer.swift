@@ -577,8 +577,9 @@ package struct RampSampler {
             // What is drawn: the shadows are cast by whatever draws, from what
             // it drew (`FrameBuffer.castingShadows(of:context:owner:)`).
             self.init(paint: base, extent: extent, depth: depth, cellAspect: cellAspect)
-        case .blended(let base, _):
-            // What is drawn: the mode is marked by whatever draws, on what it drew.
+        case .blended(let base, _), .frosted(let base):
+            // What is drawn: the mode, or the frost, is marked by whatever draws,
+            // on what it drew.
             self.init(paint: base, extent: extent, depth: depth, cellAspect: cellAspect)
         case .image(let source):
             // Without its pixels — loading, or a symbol — an image paints its

@@ -124,7 +124,9 @@ extension _GlassEffect: Renderable {
                 context: context, owner: Self.self)
         }
         base.opacityRegions += base.claimsShowingGlyphs(of: layer)
-        var buffer = compositeDrawnLayer(layer.buffer(), at: (0, 0), under: base, context: context, modifierType: Self.self)
+        // Glass is a material's surface, and frosts what is behind it as one does.
+        var buffer = compositeDrawnLayer(
+            layer.buffer().markingFrost(), at: (0, 0), under: base, context: context, modifierType: Self.self)
         if let gathering {
             tell(
                 gathering, about: &buffer, shape: drawnShape, piece: joined?.piece, hovered: hovered,

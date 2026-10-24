@@ -563,7 +563,10 @@ extension FrameBuffer {
         // gives it a layer, which is what `layerless` remembers.
         var layerless: [Bool]?
         for region in regions where region.spans(row: row) {
-            guard let cell = substituting(region) else { continue }
+            guard var cell = substituting(region) else { continue }
+            // Read from the claim, not the substitute: a cycling region's phase
+            // is an alpha the claim's frost stays under (§111).
+            cell.frosts = region.frosts
             let from = max(columns.lowerBound, region.offsetX)
             let upTo = min(columns.upperBound, region.offsetX + region.width)
             guard from < upTo else { continue }
@@ -580,6 +583,7 @@ extension FrameBuffer {
                     // In the list's order, which is the painters' from the innermost
                     // out — the topmost first.
                     result[index]?.painterFields.append(painted)
+                    if cell.frosts { result[index]?.frosts = true }
                 }
                 continue
             }
@@ -598,6 +602,8 @@ extension FrameBuffer {
                 // The innermost claim that names a mode: a mode inside a mode is
                 // drawn with its own (there is no group between them to blend into).
                 if accumulated.mode == .normal { accumulated.mode = cell.mode }
+                // A material anywhere in the stack frosts what is behind all of it.
+                accumulated.frosts = accumulated.frosts || cell.frosts
                 result[index] = accumulated
             }
         }

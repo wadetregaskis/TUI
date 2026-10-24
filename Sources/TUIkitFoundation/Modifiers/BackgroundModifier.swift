@@ -140,7 +140,7 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
             // same claim (``ShapeStyle/blendMode(_:)``) — an opaque fill's too, which
             // otherwise claims nothing.
             let said = buffer.claimingPainterField(
-                Self.withMode(claim, paint.blendMode, width: width, height: buffer.lines.count),
+                Self.withMode(claim, paint, width: width, height: buffer.lines.count),
                 spelled: resolved.opaqueSpelling.backgroundEscape())
             if claim != nil { filledBuffer.opacityRegions += said }
             // The content's runs are drawn on this fill wherever a frame leaves a
@@ -329,12 +329,15 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         return spent
     }
 
-    /// `claim` with `mode` on it — an opaque claim over `width` × `height` where
-    /// there is no claim but a mode to carry — as the one claim a fill makes.
-    private static func withMode(_ claim: OpacityRegion?, _ mode: BlendMode?, width: Int, height: Int)
+    /// `claim` with `paint`'s mode on it — an opaque claim over `width` ×
+    /// `height` where there is no claim but a mode to carry — and its frost (a
+    /// material's, ``Paint/frosts``), as the one claim a fill makes.
+    private static func withMode(_ claim: OpacityRegion?, _ paint: Paint, width: Int, height: Int)
         -> [OpacityRegion]
     {
-        guard let mode else { return claim.map { [$0] } ?? [] }
+        var claim = claim
+        claim?.frosts = paint.frosts
+        guard let mode = paint.blendMode else { return claim.map { [$0] } ?? [] }
         var moded = claim ?? OpacityRegion(offsetX: 0, offsetY: 0, width: width, height: height, opacity: 1)
         moded.blendMode = mode
         return [moded]

@@ -116,11 +116,17 @@ public struct OpacityRegion: Equatable, Sendable {
     /// multiply at 1 is all of the effect — so ``isTranslucent`` counts it.
     public var blendMode: BlendMode
 
+    /// Whether what is behind these cells is frosted as they are laid over
+    /// it — its glyphs dropped, its fields kept — as a material's are
+    /// (`Paint.frosted`, owner ruling O5-FROSTED). `false` for every claim but
+    /// a material's translucent field.
+    public var frosts: Bool
+
     public init(
         offsetX: Int, offsetY: Int, width: Int, height: Int, opacity: Double,
         inkOpacity: Double = 1, fieldOpacity: Double = 1,
         cycle: OpacityCycle? = nil, fieldUnderContent: FieldUnderContent? = nil,
-        blendMode: BlendMode = .normal
+        blendMode: BlendMode = .normal, frosts: Bool = false
     ) {
         self.offsetX = offsetX
         self.offsetY = offsetY
@@ -134,6 +140,7 @@ public struct OpacityRegion: Equatable, Sendable {
         self.cycle = cycle
         self.fieldUnderContent = fieldUnderContent
         self.blendMode = blendMode
+        self.frosts = frosts
     }
 
     /// Whether this region says anything at all — the test that decides whether

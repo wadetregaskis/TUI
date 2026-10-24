@@ -13,11 +13,13 @@ import TUIkitStyling
 /// A background material type — mirrors SwiftUI's `Material`.
 ///
 /// SwiftUI's materials blur what is behind them and tint it. A cell grid has
-/// nothing to blur below a cell, so a material here is the other half alone: a
-/// palette surface at a fraction of its opacity, composited cell by cell over
-/// what it covers. What shows through is tinted toward the surface, and the
-/// glyphs behind stay where they are — the translucency of a material, without
-/// its frosting.
+/// no sub-cell detail to blur, so a material here frosts and tints: what is
+/// behind it loses its glyphs, and a palette surface at a fraction of its
+/// opacity is composited over the fields left, cell by cell. That is its frost
+/// (owner ruling O5-FROSTED, ``Paint/frosted(_:)``): text behind a material
+/// shows as its colours, tinted, rather than as letters between the words on
+/// it. The colours are not averaged with their neighbours: that cost +66% where
+/// a material is drawn (`Opacity as composition.md` §111).
 ///
 /// The five thicknesses are five opacities, ``ultraThin`` the most see-through
 /// and ``ultraThick`` the least. ``bar`` is the surface of the palette's bars
@@ -89,8 +91,13 @@ extension Material: ShapeStyle {
     ///
     /// The colour stays semantic, so the material follows a palette change as
     /// every palette colour does.
+    ///
+    /// While it is translucent it is FROSTED (``Paint/frosted(_:)``): what is
+    /// behind it loses its glyphs, and the surface is laid over the fields
+    /// left — a cell's reading of a material's blur (owner ruling O5-FROSTED).
     public func paint(in environment: EnvironmentValues) -> Paint {
-        .color(surface(isBar ? Color.palette.statusBarBackground : Color.palette.background, in: environment))
+        let colour = surface(isBar ? Color.palette.statusBarBackground : Color.palette.background, in: environment)
+        return colour.isOpaque ? .color(colour) : .frosted(.color(colour))
     }
 
     /// `surface` as this material paints it in `environment`: at the

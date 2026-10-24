@@ -1021,8 +1021,11 @@ Deliberate deviations C5). **Glass shipped 2026-10-18** (lane GLASS: `Glass`,
 `glassEffect(_:in:)`, `GlassEffectContainer`, the union, id and transition
 modifiers, and the glass button styles; Deliberate deviations C11, decisions
 [GLASS](<Decisions/Shapes, effects and animation/Glass (GLASS).md>)): the material's surface with option (c)'s
-highlighted rim, drawn in the appearance's lines. The frosted add-on is still
-owed (open decision O5-FROSTED), and would frost glass too.
+highlighted rim, drawn in the appearance's lines. **The frost shipped
+2026-10-24** (owner ruling O5-FROSTED, 2026-10-23, shipped as (c) after (b)'s
+neighbourhood average cost +66% where a material is drawn): what a material
+or glass covers loses its glyphs, its fields tinted as before
+(`Opacity as composition.md` §111, Deliberate deviations C5).
 
 ### O6. `ShadowStyle` (+ W16 `shadow`, W13 `ShapeStyle.shadow`) — M
 

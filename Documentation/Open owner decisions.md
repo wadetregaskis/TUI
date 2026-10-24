@@ -90,7 +90,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [A34](#a34) | (2); asked how good (3) could be and its cost. | Done (lane VISUALS, 2026-10-24): `.blurReplace` is the reveal from 0.9 at the centre plus a fade, SwiftUI's scale measured (`tr4.out`); `.upUp` leaves by the fade. Option 3 answered below. |
 | [B61](#b61) | (2). | Built 2026-10-24 on lane `lane-visuals`: each `Text` and raster `Image` reads the transition and dissolves its own change (decisions B61, VISUALS); an A/B is owed before it lands (textwall, fanout, menus, anyview, modifiers, dashboard, scrollfollow). |
 | [B95](#b95) | (2); also asked about ▌ and quadrant or diagonal glyphs. | Done (lane VISUALS, 2026-10-24): where Block Elements fill the line, a ramp's blank cells are `▄` two samples, through the shapes' half-block rule (decisions B95, deviations C2); ▌, quadrants and diagonals not built, answered below. |
-| [O5-FROSTED](#o5-frosted) | (b), watching performance; (c) if it is significant. | Queued. |
+| [O5-FROSTED](#o5-frosted) | (b), watching performance; (c) if it is significant. | Done as **(c)** (lane VISUALS, 2026-10-24): (b)'s averaging cost +66.4% on translucent `--variant material` (A/B, release, 15 reps), so a material drops the glyphs behind it and tints the fields as before, no averaging (Opacity as composition §111, deviations C5, decisions VISUALS). |
 | [O1-LOOSEN](#o1-loosen) | (a). | No change. |
 | [P5](#p5) | (c). | Queued. |
 | [WL-Q3](#wl-q3) | (b); measure the current impact first. | Queued (measurement first). |
@@ -365,7 +365,7 @@ Option 3 could be honest: a real low-pass filter at cell resolution. But it woul
 
 Its best form (inferred): the radius grows to about one cell at the peak. Each cell takes the average of its neighbourhood's displayed colours, glyph ink weighted by coverage. Glyphs lose contrast and then drop out under the existing ½ rule. Optionally, ▀ half-blocks double the vertical resolution where blocks fill the line. Edges get partial alpha. The pipeline already has most pieces: transitions work from the kept buffer, the compositor resolves colours in linear light, and the O5-FROSTED design describes neighbour sampling. Limits: `OpacityRegion` has one alpha per rectangle, so per-cell edge alpha is new plumbing and most of the day. 256- and 16-colour terminals would fall back to option 2. Cost (inferred): CPU is small, under 100 µs a frame for 40×10, paid only while the transition runs. Bytes are the real cost, because a blur breaks SGR runs. That is about 330 KB per transition for 40×10 and about 24 MB/s for a full screen, which matters over ssh.
 
-Recommendation: ship option 2 now. Revisit option 3 alongside O5-FROSTED (b), which you have chosen and which shares its neighbour sampling, coverage table and per-cell alpha. Need: nothing.
+Recommendation: ship option 2 now. Revisit option 3 later. (O5-FROSTED shipped as (c) on 2026-10-24, without the neighbour sampling and coverage table option 3 would have shared: built for (b), they cost +66% where a material is drawn. Option 3 would build them itself, paid only while the transition runs.) Need: nothing.
 
 #### B95
 

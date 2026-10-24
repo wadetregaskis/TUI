@@ -141,7 +141,7 @@ extension Array where Element == OpacityRegion {
     public mutating func appendCoalescing(_ claim: OpacityRegion?) {
         guard let claim else { return }
         if var last, last.inkOpacity == claim.inkOpacity, last.fieldOpacity == claim.fieldOpacity,
-            last.opacity == claim.opacity, last.cycle == nil, claim.cycle == nil
+            last.opacity == claim.opacity, last.cycle == nil, claim.cycle == nil, last.frosts == claim.frosts
         {
             if last.offsetY == claim.offsetY, last.height == claim.height,
                 last.offsetX + last.width == claim.offsetX

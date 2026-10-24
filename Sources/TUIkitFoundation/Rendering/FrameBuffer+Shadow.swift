@@ -141,7 +141,10 @@ extension FrameBuffer {
         guard paint.castsAnything, !context.isMeasuring, width > 0, !lines.isEmpty else { return self }
         // A blend mode first, on the cells drawn, before a drop shadow adds any:
         // the shadow is not drawn with the style's mode.
-        let marked = paint.blendMode.map { markingBlendMode($0, glyphsOnly: glyphsOnly) } ?? self
+        let moded = paint.blendMode.map { markingBlendMode($0, glyphsOnly: glyphsOnly) } ?? self
+        // A material's translucent field frosts what is behind it, marked before
+        // any shadow adds claims of its own.
+        let marked = paint.frosts ? moded.markingFrost() : moded
         guard paint.hasShadows else { return marked }
         return marked.castingShadowsOnly(of: paint, context: context, owner: owner, glyphsOnly: glyphsOnly)
     }

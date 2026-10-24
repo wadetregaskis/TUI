@@ -23,9 +23,9 @@ import TUIkitStyling
 /// ```
 ///
 /// SwiftUI's glass refracts and blurs what is behind it. A cell has nothing
-/// below it to blur, so glass here is what a ``Material`` is — a palette
-/// surface at a fraction of its opacity, composited cell by cell over what it
-/// covers, the glyphs behind kept — with the edge that makes glass read as
+/// below it to refract, so glass here is what a ``Material`` is — what it
+/// covers frosted (its glyphs dropped) and a palette surface at a fraction
+/// of its opacity composited over that, cell by cell — with the edge that makes glass read as
 /// glass: a **rim**, the shape's outline drawn in a highlight, in the lines of
 /// the ``Appearance`` in force (Deliberate deviations C11). ``regular`` is the
 /// regular material's surface and ``clear`` the ultra-thin one's; a ``tint(_:)``

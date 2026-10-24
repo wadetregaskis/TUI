@@ -3,8 +3,9 @@
 *Lane VISUALS, 2026-10-24, building the owner's rulings of 2026-10-23 on six
 visual questions in `Documentation/Open owner decisions.md`: A34 (option 2),
 B61 (2, landing if the A/B is within a few percent), B95 (2), O5-FROSTED (b),
-P5 (c) and WL-Q3 (b, measuring first). Each section says what shipped, what
-was measured, and any judgement call the ruling did not settle.*
+or (c) if (b) costs significantly (shipped as (c)), P5 (c) and WL-Q3 (b,
+measuring first). Each section says what shipped, what was measured, and any
+judgement call the ruling did not settle.*
 
 ## A34. `BlurReplaceTransition` is its scale and a fade
 
@@ -119,3 +120,41 @@ linear ramp, which was one fill per row, is now one run of `▄` per row. A
 ramp that does not qualify pays one `Bool` and a flag test per fill. For an
 A/B if wanted: `gradients` (its geometry and mesh bands are gradient views)
 and `app-shapes`.
+
+## O5-FROSTED. A material frosts what is behind it
+
+*`Material` (every thickness, `.bar`), `Glass`, `glassEffect(_:in:)`;
+ruling: (b), watching performance, (c) if the cost is significant.*
+
+**Shipped:** option (c). Under a material's translucent field, what is
+behind loses its glyphs; its fields are tinted by the material as before,
+each cell its own colour, nothing averaged. Glass is a material's surface,
+and frosts too. The mechanics are `Opacity as composition.md` §111: a
+`Paint.frosted` paint, a `frosts` flag on the painter's claim, carried to
+the cell's alpha, and the cell behind blanked in the blend.
+
+**Why (c), not (b).** (b) was built first: the glyphs dropped and each
+cell the average of the effective colours of its 5 × 3 neighbourhood, a
+glyph's ink counted at a constant share of its cell. The owner's A/B of it
+(the frost commit against the one before, release Stress, warm, 15 reps):
+
+| Scenario | Cost of (b) |
+|---|---|
+| `translucent` | +0.8%, indistinguishable |
+| `translucent --variant material` | **+66.4%** [+62.5, +68.6] |
+| `alpharamp`, `kitchensink` | indistinguishable |
+
+Nothing is paid where no material is drawn, but +66% where one is is
+significant, so by the ruling's own terms (c) ships. The averaging needed
+a second parse of every row a material's neighbourhood touched, fifteen
+colours summed per covered cell and the destination's rows re-spliced
+before the blend; (c) needs none of that. The glyph is dropped inside the
+blend that already reads both cells: one flag test per covered cell, no
+extra parse and no neighbour sampled.
+
+**Judgement calls.** A cell behind keeps the field it shows exactly as it
+spells it (a reversed cell's, the terminal's own), its ink and attributes
+dropped with the glyph. A material that does not appear active is opaque
+and is not marked. A material over nothing but the page is its tint,
+unchanged. **A/B scenarios** for the (c) build if wanted: the same four,
+`translucent --variant material` the one that draws a material.

@@ -7561,3 +7561,39 @@ source's colour (so `Text(…).overlay(gradient.blendMode(.sourceAtop))` draws g
 `destinationOver` draws what is behind over the source; `destinationOut` fades what is behind
 toward the page by the source's alpha where the source paints, its glyph going at ½. The glyph
 contest is §6a's: where both sides draw one, the view's at ½ or more, in the blended colour.
+
+## 111. A material frosts what is behind it (2026-10-24)
+
+Owner ruling O5-FROSTED, 2026-10-23: (b), watching performance, (c) if its cost is significant;
+shipped as (c). A material drops the glyphs beneath it, and its tint is laid over the fields there
+as before. Until then a material was §105's translucent field and nothing more: what was behind it
+showed through tinted, letters included, which is what a material exists to hide.
+
+**Carried as a blend mode is (§110).** A material's paint is `Paint.frosted(.color(surface))`
+while it appears active (an inactive one is opaque and covers what is behind anyway). Whatever
+draws with it marks the translucent field it painted: `.background`'s one painter claim
+(`BackgroundModifier.withMode`), a shape's cells through `FrameBuffer.castingShadows(of:context:
+owner:)` (`markingFrost`: the claims with a field between 0 and 1, so a cell the shape does not
+reach, claimed at a field of 0, frosts nothing), and glass's surface. The claim carries
+`OpacityRegion.frosts`; `appendCoalescing` does not merge a frosted claim with one that is not.
+
+**Made in the blend, cell by cell.** `foldedAlphas` carries the flag to the cell's alpha
+(`CellAlpha.frosts`, set where any covering claim frosts, a painter's or the content's, and read
+from the claim rather than a cycling phase's substitute). `blendedSpan`, which already reads the
+cell behind, replaces it under such an alpha with its field alone (`FrameBuffer.frosted(_:)`): a
+blank, its ink and attributes dropped, its background slot exactly as it was spelled (a reversed
+cell's shown field, the terminal's own where stated, none where it names none). Then the blend runs
+as §105 says: the painter's field over that blank, the material's content over that. Over nothing,
+there is no cell behind to frost, and the material is its tint. A run's frames are blended through
+the same span and frost the same way.
+
+**Why not (b).** (b), built first, frosted the destination before the blend: each cell under a
+frosted rectangle became a blank on the average of the effective colours of its 5 × 3
+neighbourhood (a glyph's ink counted at a constant coverage share), which meant a second parse of
+every row the neighbourhoods touched, fifteen colours summed per covered cell and the rows
+re-spliced. The owner's A/B of it (release Stress, warm, 15 reps) measured `translucent` +0.8%
+(indistinguishable), `alpharamp` and `kitchensink` indistinguishable, and
+`translucent --variant material` **+66.4%** [+62.5, +68.6]: significant where a material is drawn,
+so (c). What (c) costs is one flag test per covered cell, inside a walk that already happens.
+`Stress --scenario translucent --variant material` draws a row of changing text under a thin
+material on every row.

@@ -11,14 +11,15 @@ import TUIkitCore
 import TUIkitStyling
 
 extension Paint {
-    /// What this paint draws: the paint without its shadows and its blend mode.
+    /// What this paint draws: the paint without its shadows, its blend mode
+    /// and its frost.
     ///
     /// Everything that draws with a paint draws this, and casts ``shadows``
-    /// from the cells it drew, and marks them with ``blendMode``; a renderer
-    /// below it never sees either.
+    /// from the cells it drew, and marks them with ``blendMode`` and
+    /// ``frosts``; a renderer below it never sees any of them.
     public var unshadowed: Paint {
         switch self {
-        case .shadowed(let base, _), .blended(let base, _): base.unshadowed
+        case .shadowed(let base, _), .blended(let base, _), .frosted(let base): base.unshadowed
         default: self
         }
     }
@@ -28,7 +29,7 @@ extension Paint {
     public var shadows: [ShadowStyle] {
         switch self {
         case .shadowed(let base, let shadow): base.shadows + [shadow]
-        case .blended(let base, _): base.shadows
+        case .blended(let base, _), .frosted(let base): base.shadows
         default: []
         }
     }
@@ -37,7 +38,7 @@ extension Paint {
     public var hasShadows: Bool {
         switch self {
         case .shadowed: true
-        case .blended(let base, _): base.hasShadows
+        case .blended(let base, _), .frosted(let base): base.hasShadows
         default: false
         }
     }
@@ -47,8 +48,18 @@ extension Paint {
     public var blendMode: BlendMode? {
         switch self {
         case .blended(_, let mode): mode
-        case .shadowed(let base, _): base.blendMode
+        case .shadowed(let base, _), .frosted(let base): base.blendMode
         default: nil
+        }
+    }
+
+    /// Whether what is behind the cells this paint draws is frosted first: a
+    /// material's (``frosted(_:)``).
+    public var frosts: Bool {
+        switch self {
+        case .frosted: true
+        case .shadowed(let base, _), .blended(let base, _): base.frosts
+        default: false
         }
     }
 
@@ -57,7 +68,7 @@ extension Paint {
     /// paint.
     public var castsAnything: Bool {
         switch self {
-        case .shadowed, .blended: true
+        case .shadowed, .blended, .frosted: true
         default: false
         }
     }
@@ -72,6 +83,7 @@ extension Paint {
         switch self {
         case .shadowed(let base, let shadow): .shadowed(base.keepingShadows(on: drawn), shadow)
         case .blended(let base, let mode): .blended(base.keepingShadows(on: drawn), mode)
+        case .frosted(let base): .frosted(base.keepingShadows(on: drawn))
         default: drawn
         }
     }
@@ -83,6 +95,7 @@ extension Paint {
         switch self {
         case .shadowed(let base, let shadow): .shadowed(base.mappingUnshadowed(transform), shadow)
         case .blended(let base, let mode): .blended(base.mappingUnshadowed(transform), mode)
+        case .frosted(let base): .frosted(base.mappingUnshadowed(transform))
         default: transform(self)
         }
     }

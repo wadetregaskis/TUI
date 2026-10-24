@@ -86,6 +86,11 @@ extension FrameBuffer {
         /// the first covering claim's that names one.
         var mode: BlendMode = .normal
 
+        /// Whether a material's translucent field covers the cell, which drops
+        /// the glyph behind it (``OpacityRegion/frosts``, §111): any covering
+        /// claim's.
+        var frosts = false
+
         init(layer: Double, ink: Double = 1, field: Double = 1, mode: BlendMode = .normal) {
             self.layer = layer
             self.ink = ink
@@ -212,9 +217,14 @@ extension FrameBuffer {
             // Bounds-checked rather than trusted: a negative shift is legal —
             // `composited` accepts one — and would index before the start.
             let behindColumn = column + destinationShift
-            let behind =
+            var behind =
                 behindCells.indices.contains(behindColumn) ? behindCells[behindColumn] : nil
             var coverage = alpha(column)
+            // Under a material's field what is behind shows as its field alone,
+            // its glyph dropped (§111): one flag test a covered cell.
+            if coverage?.frosts == true, let shown = behind {
+                behind = Self.frosted(shown)
+            }
             // A compositor reads a layer's stated 49 as naming no field, and fills it
             // with the field under its column (`String.paintedOver(background:)`): the
             // cell unfaded shows the base's field wherever the base has one. Faded, it
@@ -864,7 +874,7 @@ extension FrameBuffer {
     /// foreground. The defaults are parameters because the unstated side of a
     /// reversed cell shows the terminal's OTHER default: ink from the default
     /// background (`surface`), field from the default foreground.
-    private static func cells(
+    static func cells(
         in line: String, through width: Int,
         defaultForeground: Color, surface: Color
     ) -> [RowCell?] {
