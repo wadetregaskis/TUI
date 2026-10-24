@@ -25,7 +25,9 @@ import TUIkitFoundation
 ///
 /// A child that sizes to its content starts at its natural width and children
 /// that fill share the rest. Each divider is a focus stop: Left and Right move
-/// it a cell, five with Shift; a mouse drags it. A pane is never narrower than
+/// it a cell, five with Shift, and Home and End take it as far to the start or
+/// the end as the panes' bounds allow, as a `NavigationSplitView`'s divider's do;
+/// a mouse drags it. A pane is never narrower than
 /// one cell, and the sizes the user chose are kept until the children change.
 ///
 /// A pane's frame bounds it, as in SwiftUI: a pane written
@@ -185,11 +187,11 @@ final class _SplitPaneDividerHandler: PersistedFocusable {
             hide()
             return true
         }
-        let step = event.shift ? 5 : 1
-        switch (axis, event.key) {
-        case (.horizontal, .left), (.vertical, .up): move(by: -step)
-        case (.horizontal, .right), (.vertical, .down): move(by: step)
-        default: return false
+        switch DividerKeyMove.of(event, along: axis) {
+        case .by(let delta): move(by: delta)
+        case .toStart: move(by: -DividerKeyMove.farthest)
+        case .toEnd: move(by: DividerKeyMove.farthest)
+        case nil: return false
         }
         return true
     }

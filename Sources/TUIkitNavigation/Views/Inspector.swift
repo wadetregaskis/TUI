@@ -28,8 +28,8 @@ extension View {
     /// The inspector is a trailing column, as on macOS in a regular size class:
     /// the view and the inspector side by side, with a divider between them
     /// that the reader can move — it is a focus stop (Left and Right move it a
-    /// cell, five with Shift) and the pointer drags it, as an ``HSplitView``'s
-    /// is. The column starts at the width ``View/inspectorColumnWidth(_:)``
+    /// cell, five with Shift; Home and End take it to its limits) and the
+    /// pointer drags it, as an ``HSplitView``'s is. The column starts at the width ``View/inspectorColumnWidth(_:)``
     /// names, or 30 columns, and the divider stops at the minimum and maximum
     /// ``View/inspectorColumnWidth(min:ideal:max:)`` names. The view keeps its
     /// state while the inspector comes and goes.

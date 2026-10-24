@@ -53,6 +53,45 @@ struct SplitViewTests {
         #expect(dividerColumn(harness.frame(split())) == 7)
     }
 
+    @Test("Home and End take the focused divider as far as the panes allow, and no further")
+    func homeAndEnd() {
+        let harness = InputChainHarness(width: 20, height: 3)
+        harness.play([KeyEvent(key: .end)]) { split() }
+        #expect(dividerColumn(harness.frame(split())) == 18, "the right pane keeps one cell")
+        harness.play([KeyEvent(key: .home)]) { split() }
+        #expect(dividerColumn(harness.frame(split())) == 1, "the left pane keeps one cell")
+        harness.play([KeyEvent(key: .end), KeyEvent(key: .end)]) { split() }
+        #expect(dividerColumn(harness.frame(split())) == 18, "End again stays")
+    }
+
+    @Test("Home and End stop at the bounds a pane's frame states")
+    func homeAndEndAreBounded() {
+        let harness = InputChainHarness(width: 20, height: 3)
+        harness.play([KeyEvent(key: .end)]) { boundedSplit() }
+        #expect(dividerColumn(harness.frame(boundedSplit())) == 10, "the maximum")
+        harness.play([KeyEvent(key: .home)]) { boundedSplit() }
+        #expect(dividerColumn(harness.frame(boundedSplit())) == 4, "the minimum")
+    }
+
+    @Test("A vertical divider takes Home to the top and End to the bottom")
+    func homeAndEndVertical() {
+        let harness = InputChainHarness(width: 6, height: 5)
+        let view = { VSplitView { Text("a"); Text("b") } }
+        func rule() -> Int? { harness.frame(view()).lines.map(\.stripped).firstIndex { $0.hasPrefix("─") } }
+        harness.play([KeyEvent(key: .end)]) { view() }
+        #expect(rule() == 3)
+        harness.play([KeyEvent(key: .home)]) { view() }
+        #expect(rule() == 1)
+    }
+
+    @Test("Keys a divider has no use for are declined, so focus movement gets them")
+    func otherKeysDeclined() {
+        #expect(DividerKeyMove.of(KeyEvent(key: .up), along: .horizontal) == nil)
+        #expect(DividerKeyMove.of(KeyEvent(key: .left), along: .vertical) == nil)
+        #expect(DividerKeyMove.of(KeyEvent(key: .pageDown), along: .vertical) == nil)
+        #expect(DividerKeyMove.of(KeyEvent(key: .tab), along: .horizontal) == nil)
+    }
+
     @Test("Dragging the divider moves it by the distance dragged, keeping each pane a cell")
     func drag() {
         let harness = InputChainHarness(width: 20, height: 3)
