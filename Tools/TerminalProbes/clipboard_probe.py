@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""OSC 52 clipboard-write probe: does this terminal put an application's OSC 52
+r"""OSC 52 clipboard-write probe: does this terminal put an application's OSC 52
 on the clipboard, how large a copy does it take, what does an empty or
 malformed payload do to the clipboard, and does it say so in its Device
 Attributes?
