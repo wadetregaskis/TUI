@@ -178,7 +178,7 @@ extension Terminal {
     /// Does nothing unless the terminal says the mode is supported and off, so
     /// silence, "not recognised" and "permanently reset" all leave it alone.
     func pinGraphemeClusteringIfNeeded() {
-        guard TerminalHost.isGhostty, !TerminalHost.isTmux else { return }
+        guard TerminalHost.program == .ghostty else { return }
         guard let state = queryMode(TerminalModeQuery.graphemeClustering),
             state.needsSetting
         else { return }
