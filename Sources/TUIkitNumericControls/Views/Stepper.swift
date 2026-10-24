@@ -72,6 +72,12 @@ public struct Stepper<Label: View>: View {
     /// this could format.
     var display: () -> String
 
+    /// How many cells the read-out of the wider of the bounds' two ends takes,
+    /// formatted as the value is: what the read-out reserves by default, so
+    /// that ▶ stays put as the value gains a digit (``View/stepperValueWidth(_:)``).
+    /// 0 for a stepper with no bounds, or one showing ``stepperValueText(_:)``.
+    var boundsWidth: () -> Int
+
     /// Builds the (value-type-erased) focus handler from a focusID and whether
     /// it may take focus. Captures the value binding, bounds, and step in `V`.
     let makeHandler: (String, Bool) -> any StepperDriving
@@ -101,6 +107,7 @@ public struct Stepper<Label: View>: View {
     fileprivate init(
         label: Label?,
         display: @escaping () -> String,
+        boundsWidth: @escaping () -> Int = { 0 },
         makeHandler: @escaping (String, Bool) -> any StepperDriving,
         syncValue: @escaping (any StepperDriving) -> Void,
         onIncrement: (() -> Void)?,
@@ -109,6 +116,7 @@ public struct Stepper<Label: View>: View {
     ) {
         self.label = label
         self.display = display
+        self.boundsWidth = boundsWidth
         self.makeHandler = makeHandler
         self.syncValue = syncValue
         self.onIncrement = onIncrement
@@ -128,6 +136,7 @@ public struct Stepper<Label: View>: View {
             _CollapsingLabel(label: label, controlDisabled: isDisabled)
             _StepperCore(
                 display: display,
+                boundsWidth: boundsWidth,
                 makeHandler: makeHandler,
                 syncValue: syncValue,
                 onIncrement: onIncrement,
@@ -153,11 +162,16 @@ private func eraseStepperValue<V: Strideable>(
     format: ((V) -> String)? = nil
 ) -> (
     display: () -> String,
+    boundsWidth: () -> Int,
     makeHandler: (String, Bool) -> any StepperDriving,
     syncValue: (any StepperDriving) -> Void
 ) {
-    let display: () -> String = {
-        format.map { $0(value.wrappedValue) } ?? "\(value.wrappedValue)"
+    let text: (V) -> String = { value in format.map { $0(value) } ?? "\(value)" }
+    let display: () -> String = { text(value.wrappedValue) }
+    // A closure, not a number: it runs where the read-out is drawn, so a
+    // stepper that is built but never drawn formats nothing.
+    let boundsWidth: () -> Int = {
+        bounds.map { max(text($0.lowerBound).strippedLength, text($0.upperBound).strippedLength) } ?? 0
     }
     let makeHandler: (String, Bool) -> any StepperDriving = { focusID, canBeFocused in
         StepperHandler(focusID: focusID, value: value, bounds: bounds, step: step, canBeFocused: canBeFocused)
@@ -172,7 +186,7 @@ private func eraseStepperValue<V: Strideable>(
         handler.bounds = bounds
         handler.step = step
     }
-    return (display, makeHandler, syncValue)
+    return (display, boundsWidth, makeHandler, syncValue)
 }
 
 // MARK: - Stepper Initializers (Value Binding)
@@ -201,7 +215,7 @@ extension Stepper where Label == Text {
         let erased = eraseStepperValue(value: value, bounds: nil, step: step)
         self.init(
             label: Text(titleKey),
-            display: erased.display, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
+            display: erased.display, boundsWidth: erased.boundsWidth, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
             onIncrement: nil, onDecrement: nil, onEditingChanged: onEditingChanged)
     }
 
@@ -222,7 +236,7 @@ extension Stepper where Label == Text {
         let erased = eraseStepperValue(value: value, bounds: nil, step: step)
         self.init(
             label: Text(String(title)),
-            display: erased.display, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
+            display: erased.display, boundsWidth: erased.boundsWidth, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
             onIncrement: nil, onDecrement: nil, onEditingChanged: onEditingChanged)
     }
 
@@ -244,7 +258,7 @@ extension Stepper where Label == Text {
         let erased = eraseStepperValue(value: value, bounds: bounds, step: step)
         self.init(
             label: Text(titleKey),
-            display: erased.display, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
+            display: erased.display, boundsWidth: erased.boundsWidth, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
             onIncrement: nil, onDecrement: nil, onEditingChanged: onEditingChanged)
     }
 
@@ -267,7 +281,7 @@ extension Stepper where Label == Text {
         let erased = eraseStepperValue(value: value, bounds: bounds, step: step)
         self.init(
             label: Text(String(title)),
-            display: erased.display, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
+            display: erased.display, boundsWidth: erased.boundsWidth, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
             onIncrement: nil, onDecrement: nil, onEditingChanged: onEditingChanged)
     }
 }
@@ -332,7 +346,7 @@ extension Stepper {
         let erased = eraseStepperValue(value: value, bounds: nil, step: step)
         self.init(
             label: label(),
-            display: erased.display, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
+            display: erased.display, boundsWidth: erased.boundsWidth, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
             onIncrement: nil, onDecrement: nil, onEditingChanged: onEditingChanged)
     }
 
@@ -354,7 +368,7 @@ extension Stepper {
         let erased = eraseStepperValue(value: value, bounds: bounds, step: step)
         self.init(
             label: label(),
-            display: erased.display, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
+            display: erased.display, boundsWidth: erased.boundsWidth, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
             onIncrement: nil, onDecrement: nil, onEditingChanged: onEditingChanged)
     }
 
@@ -437,6 +451,8 @@ extension Stepper {
     public func stepperValueText(_ text: String) -> Stepper {
         var copy = self
         copy.display = { text }
+        // The bounds' formatted ends say nothing about how wide `text` is.
+        copy.boundsWidth = { 0 }
         return copy
     }
 }
@@ -460,6 +476,7 @@ private enum StepperStateIndex {
 /// sibling in ``Stepper``'s body, so the core has none of its own.
 private struct _StepperCore: View, Renderable, Layoutable {
     let display: () -> String
+    let boundsWidth: () -> Int
     let makeHandler: (String, Bool) -> any StepperDriving
     let syncValue: (any StepperDriving) -> Void
     let onIncrement: (() -> Void)?
@@ -545,8 +562,10 @@ private struct _StepperCore: View, Renderable, Layoutable {
                 for: [.all, .text, .control(.stepper)]),
             legibilityWeight: context.environment.legibilityWeight,
             isDisabled: isDisabled,
-            // The bordered button's density table, round the value.
-            padding: context.environment.controlSize.padding(regular: 1)
+            readOut: (
+                // The bordered button's density table, round the value.
+                padding: context.environment.controlSize.padding(regular: 1),
+                width: context.environment.stepperValueWidth ?? boundsWidth())
         )
 
         var buffer = FrameBuffer(text: content)
@@ -819,7 +838,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
         valueStyle: StyleAttributes,
         legibilityWeight: LegibilityWeight?,
         isDisabled: Bool,
-        padding: Int
+        readOut: (padding: Int, width: Int)
     ) -> (content: String, valueClaim: OpacityRegion?) {
         // Arrow and value colors:
         //   - Focused: pulsing accent
@@ -860,8 +879,13 @@ private struct _StepperCore: View, Renderable, Layoutable {
         // stepper has nothing to show unless `.stepperValueText(_:)` gives it
         // something, and two dead cells there are a click target that does
         // nothing and a gap that looks like a missing value.
-        let shown = display()
+        var shown = display()
         guard !shown.isEmpty else { return ("\(leftArrow)\(rightArrow)", nil) }
+        // Narrower than the width reserved, the read-out stands at its trailing
+        // edge, so ▶ stays put as the value gains a digit and the digits keep
+        // their places: `◀  9 ▶`, `◀ 10 ▶`.
+        shown = String.spaces(max(0, readOut.width - shown.strippedLength)) + shown
+        let padding = readOut.padding
         let effectiveValueColor =
             isDisabled ? valueColor : (valueStyle.foreground?.resolve(with: palette) ?? valueColor)
         let pad = String.spaces(padding)
@@ -1001,7 +1025,7 @@ extension Stepper {
             value: value, bounds: bounds, step: step, format: { format.format($0) })
         self.init(
             label: label(),
-            display: erased.display, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
+            display: erased.display, boundsWidth: erased.boundsWidth, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
             onIncrement: nil, onDecrement: nil, onEditingChanged: onEditingChanged)
     }
 
@@ -1022,7 +1046,7 @@ extension Stepper {
             value: value, bounds: nil, step: step, format: { format.format($0) })
         self.init(
             label: label(),
-            display: erased.display, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
+            display: erased.display, boundsWidth: erased.boundsWidth, makeHandler: erased.makeHandler, syncValue: erased.syncValue,
             onIncrement: nil, onDecrement: nil, onEditingChanged: onEditingChanged)
     }
 }

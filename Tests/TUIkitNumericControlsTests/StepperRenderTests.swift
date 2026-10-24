@@ -6,6 +6,7 @@
 //
 //  Render tests for Stepper now that its label renders inline (SwiftUI parity).
 
+import Foundation
 import Testing
 
 @testable import TUIkitApp
@@ -191,5 +192,62 @@ struct StepperLiveRangeTests {
         render()
         _ = fm.currentFocused?.handleKeyEvent(KeyEvent(key: .right))
         #expect(box.value == 11, "the current render's step applies, got \(box.value)")
+    }
+}
+
+/// The read-out's reserved width (owner ruling STEPPER-WIDTH, 2026-10-23).
+@MainActor
+@Suite("Stepper read-out width")
+struct StepperValueWidthTests {
+    private func line(_ v: some View, w: Int = 20) -> String {
+        renderToBuffer(v, context: makeRenderContext(width: w, height: 2))
+            .lines.first.map { $0.stripped } ?? ""
+    }
+
+    @Test("With bounds, the read-out reserves the wider end, so ▶ holds still as a digit is gained")
+    func boundsReserveTheWiderEnd() {
+        let nine = line(Stepper("", value: .constant(9), in: 0...100))
+        let ten = line(Stepper("", value: .constant(10), in: 0...100))
+        #expect(nine.trimmingTrailingSpaces() == "◀   9 ▶", "got: \(nine)")
+        #expect(ten.trimmingTrailingSpaces() == "◀  10 ▶", "got: \(ten)")
+        #expect(nine.firstIndex(of: "▶") == ten.firstIndex(of: "▶"))
+    }
+
+    @Test("With bounds and a format, the ends are measured as formatted")
+    func formattedBoundsAreMeasuredFormatted() {
+        let format = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(1))
+        let out = line(Stepper("", value: .constant(0.5), in: 0...10, step: 0.5, format: format))
+        #expect(out.trimmingTrailingSpaces() == "◀  0.5 ▶", "got: \(out)")
+    }
+
+    @Test("With no bounds nothing is reserved, unless the modifier asks")
+    func noBoundsReservesNothing() {
+        let bare = line(Stepper("", value: .constant(9)))
+        #expect(bare.trimmingTrailingSpaces() == "◀ 9 ▶", "got: \(bare)")
+        let reserved = line(Stepper("", value: .constant(9)).stepperValueWidth(3))
+        #expect(reserved.trimmingTrailingSpaces() == "◀   9 ▶", "got: \(reserved)")
+    }
+
+    @Test("The modifier overrides the bounds, 0 reserving nothing, and a wider value still shows whole")
+    func modifierOverridesBounds() {
+        let none = line(Stepper("", value: .constant(9), in: 0...100).stepperValueWidth(0))
+        #expect(none.trimmingTrailingSpaces() == "◀ 9 ▶", "got: \(none)")
+        let narrow = line(Stepper("", value: .constant(100), in: 0...100).stepperValueWidth(1))
+        #expect(narrow.trimmingTrailingSpaces() == "◀ 100 ▶", "got: \(narrow)")
+    }
+
+    @Test("A callbacks stepper's own text reserves nothing")
+    func valueTextReservesNothing() {
+        let out = line(Stepper("", onIncrement: {}, onDecrement: {}).stepperValueText("Red"))
+        #expect(out.trimmingTrailingSpaces() == "◀ Red ▶", "got: \(out)")
+    }
+}
+
+private extension String {
+    /// The line without the blanks a render pads it to the width with.
+    func trimmingTrailingSpaces() -> String {
+        var copy = self
+        while copy.last == " " { copy.removeLast() }
+        return copy
     }
 }

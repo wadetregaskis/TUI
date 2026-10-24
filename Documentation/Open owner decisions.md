@@ -56,7 +56,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [CONTROLGROUP-LOOK](#controlgroup-look) | (a). | Queued. |
 | [FB3-BLANK](#fb3-blank) | (a). | No change. |
 | [FB3-OTHERCAPS](#fb3-othercaps) | (2). | Queued; the Lines switch goes on a probe card first. |
-| [STEPPER-WIDTH](#stepper-width) | (1). | Queued. |
+| [STEPPER-WIDTH](#stepper-width) | (1). | Done: `.stepperValueWidth(_:)`, fitting the bounds by default (lane STEPPER). |
 | [TAB-IMAGE-NAME](#tab-image-name) | (a). | Queued, with the C11 and parity-map correction. |
 | [TABBARMIN](#tabbarmin) | (b). | Queued. |
 | [DRAWERS](#drawers) | (1). | Queued (docs only). |
