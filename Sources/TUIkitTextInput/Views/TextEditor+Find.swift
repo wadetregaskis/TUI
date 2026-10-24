@@ -123,7 +123,7 @@ struct _FindBar: View {
                 TextField(string(LocalizationKey.Label.find.rawValue), text: $query)
                     .erasedFocused($isQueryFocused)
                     .onSubmit { step(by: 1, in: matches) }
-                Text(matches.isEmpty ? "0/0" : "\(min(current, matches.count - 1) + 1)/\(matches.count)")
+                Text(verbatim: Self.counter(current: current, of: matches.count))
                 Button("‹") { step(by: -1, in: matches) }
                 Button("›") { step(by: 1, in: matches) }
                 Button(string(LocalizationKey.Button.done.rawValue)) { close() }
@@ -148,6 +148,17 @@ struct _FindBar: View {
             current = 0
             if let first = FindMatches.ranges(of: query, in: text.wrappedValue, options: newOptions).first { select(first) }
         }
+    }
+
+    /// Which match is current, of how many: `3/7`, or `0/0` with none. A
+    /// position, not words, so it is drawn as it is and never looked up.
+    ///
+    /// A function of its own, not an expression in ``body``: written there as
+    /// a key, its ternary of a literal and an interpolation took the body past
+    /// the type-check guard's 2,000 solver scopes once `LocalizedStringKey`
+    /// had SwiftUI's typed interpolations, and as a `String` it still did.
+    private static func counter(current: Int, of count: Int) -> String {
+        count == 0 ? "0/0" : "\(min(current, count - 1) + 1)/\(count)"
     }
 
     /// The options macOS's find bar has in the menu under its magnifier:

@@ -1,0 +1,24 @@
+range 1h 11:13 PM-12:13 AM
+range 3d May 8 - May 11
+range 400d May 8 - Jun 12
+interval 1h 11:13 PM-12:13 AM
+interval 3d May 8 - May 11
+interp range 1h a 11:13 PM-12:13 AM b
+interp interval 3d a May 8 - May 11 b
+int a 1,234,567 b
+int8 a -5 b
+uint a 1,234,567 b
+double a 3.500000 b
+float a 3.250000 b
+double big а 1,234,567.250000 b
+int de a 1.234.567 b
+double de a 3,500000 b
+substring a yz b
+attributed a attr b
+IntervalFormatStyle en_US 1h 5/8/2026, 11:13 PM – 5/9/2026, 12:13 AM
+IntervalFormatStyle en_US 3d 5/8/2026, 11:13 PM – 5/11/2026, 11:13 PM
+DateIntervalFormatter default en_US 1h 5/8/26, 11:13 PM – 5/9/26, 12:13 AM
+DIF short/short 1h 5/8/26, 11:13 PM – 5/9/26, 12:13 AM
+DIF short/short 3d 5/8/26, 11:13 PM – 5/11/26, 11:13 PM
+DIF medium/short 1h May 8, 2026 at 11:13 PM – May 9, 2026 at 12:13 AM
+tz America/Los_Angeles

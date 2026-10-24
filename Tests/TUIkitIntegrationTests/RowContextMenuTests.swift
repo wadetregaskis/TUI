@@ -121,7 +121,7 @@ private struct RowsPage: View {
     }
 
     private func menu(_ ids: Set<Int>) -> some View {
-        Button("sel \(ids.sorted())") { rows.ran.append("sel \(ids.sorted())") }
+        Button("sel \(ids.sorted().description)") { rows.ran.append("sel \(ids.sorted())") }
     }
 
     private var selectionMenuTable: some View {

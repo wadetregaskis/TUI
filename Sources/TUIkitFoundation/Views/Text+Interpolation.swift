@@ -27,6 +27,13 @@ struct StyledArgument: Hashable, Sendable {
         self.runs = runs
     }
 
+    /// Runs that already say something about their looks: an attributed
+    /// string's (`Text.styledRuns(of:)`), interpolated with no `Text` around
+    /// them, whose own style is the plain one they would be rebased on.
+    init(runs: [Text.Run]) {
+        self.runs = runs
+    }
+
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.runs == rhs.runs }
 
     /// Nothing: the words are hashed in the key's `arguments`, and two keys

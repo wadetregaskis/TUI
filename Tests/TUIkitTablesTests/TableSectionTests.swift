@@ -121,7 +121,7 @@ private struct ProducePage: View {
             }
         }
         .contextMenu(forSelectionType: Int.self) { ids in
-            Button("menu \(ids.sorted())") {}
+            Button("menu \(ids.sorted().description)") {}
         }
         .frame(height: 14)
     }

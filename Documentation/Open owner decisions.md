@@ -85,7 +85,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [B85-KEYBOARD](#b85-keyboard) | Full control. | Done (lane KEYS, 2026-10-24): each link in a `Text` is a Tab stop that breathes, opens on Return or a click with the destination popover, and has `Link`'s menu on Shift+F10 or a right-click (decisions B85). |
 | [B86](#b86) | Asked about Foundation's Markdown parser and version variation. | Answered below — your call. |
 | [B51-LIVE](#b51-live) | Live everywhere it makes sense; measure; case by case. | Queued. |
-| [DEPR-CATCHALL](#depr-catchall) | (b). | Queued. |
+| [DEPR-CATCHALL](#depr-catchall) | (b). | Done (lane TEXTFMT, 2026-10-24): SwiftUI's typed interpolations ship and the catch-all warns with SwiftUI's message; the build has no warnings; solver scopes +0.13% overall, +3.1% in the Example (decisions TEXTFMT). New question: a bare `\(n)` draws `1234567` where SwiftUI draws `1,234,567` and `\(3.5)` `3.5` where it draws `3.500000` (B-TEXTFMT-1); matching costs about 4 µs an integer and 16 µs a `Double` per build. |
 | [A27](#a27) | Remind you of the details. | Reminder below — your call. |
 | [A34](#a34) | (2); asked how good (3) could be and its cost. | Done (lane VISUALS, 2026-10-24): `.blurReplace` is the reveal from 0.9 at the centre plus a fade, SwiftUI's scale measured (`tr4.out`); `.upUp` leaves by the fade. Option 3 answered below. |
 | [B61](#b61) | (2). | Built 2026-10-24 on lane `lane-visuals`: each `Text` and raster `Image` reads the transition and dissolves its own change (decisions B61, VISUALS); an A/B is owed before it lands (textwall, fanout, menus, anyview, modifiers, dashboard, scrollfollow). |

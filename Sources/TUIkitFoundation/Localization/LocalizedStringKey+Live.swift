@@ -58,6 +58,41 @@ extension LocalizedStringKey.StringInterpolation {
                 countsDown: countsDown, showsHours: showsHours))
     }
 
+    /// Appends a time data source's value through a discrete format style,
+    /// kept up to date — mirrors SwiftUI's `appendInterpolation(_:format:)`
+    /// over a `TimeDataSource`.
+    ///
+    /// ```swift
+    /// Text("Started \(.currentDate, format: .offset(to: start))")
+    /// ```
+    ///
+    /// Live in the `Text` the key makes, as `Text(_:format:)` over the source
+    /// is, and read once, when built, by anything else that takes the key. An
+    /// attributed output contributes its characters, as every interpolated
+    /// format does (decisions B88).
+    ///
+    /// - Parameters:
+    ///   - source: The source of the value to format, such as `.currentDate`.
+    ///   - format: The discrete format style to format it with.
+    @available(macOS 15, *)
+    public mutating func appendInterpolation<V, F>(_ source: TimeDataSource<V>, format: F)
+    where V == F.FormatInput, F: DiscreteFormatStyle, F.FormatOutput == AttributedString {
+        appendLive(FormattedTimeSource(source: source, format: format) { String($0.characters) })
+    }
+
+    /// The same, for a style that formats into a `String` — disfavoured, as
+    /// SwiftUI's is, so that a style with both outputs is the attributed one.
+    ///
+    /// - Parameters:
+    ///   - source: The source of the value to format, such as `.currentDate`.
+    ///   - format: The discrete format style to format it with.
+    @available(macOS 15, *)
+    @_disfavoredOverload
+    public mutating func appendInterpolation<V, F>(_ source: TimeDataSource<V>, format: F)
+    where V == F.FormatInput, F: DiscreteFormatStyle, F.FormatOutput == String {
+        appendLive(FormattedTimeSource(source: source, format: format) { $0 })
+    }
+
     /// Appends an argument that reads the clock: a `%@` in the key, its reading
     /// now as the argument everything but a `Text` uses, and the source beside
     /// it for the `Text`.

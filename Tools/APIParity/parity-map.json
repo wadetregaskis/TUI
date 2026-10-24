@@ -148,10 +148,9 @@
       "match": [
         "TextField.init(_:value:formatter:*",
         "TextField.init(value:formatter:prompt:label:)",
-        "Text.init(_:formatter:)",
-        "*.appendInterpolation(_:formatter:)"
+        "Text.init(_:formatter:)"
       ],
-      "why": "Deferred, not refused for good: the owner's ruling O11 (2026-10-12). SwiftUI has not deprecated the `Formatter` forms, but parsing through one is costly to make portable: `Formatter.getObjectValue(_:for:errorDescription:)`, the parse direction, is internal in Linux Foundation, so a generic parse through an arbitrary Formatter is impossible there and would need a dispatch over Foundation's concrete formatters (refusals re-examined, wave 17, O11). \"We can always add them later if we change our mind.\" The typed forms ship: `TextField(_:value:format:)` and its two siblings (Sources/TUIkitTextInput/Views/TextFieldValue.swift), `Text(_:format:)` (Sources/TUIkitFoundation/Views/Text.swift) and `\\(value, format:)` in a LocalizedStringKey interpolation."
+      "why": "Deferred, not refused for good: the owner's ruling O11 (2026-10-12). SwiftUI has not deprecated the `Formatter` forms, but parsing through one is costly to make portable: `Formatter.getObjectValue(_:for:errorDescription:)`, the parse direction, is internal in Linux Foundation, so a generic parse through an arbitrary Formatter is impossible there and would need a dispatch over Foundation's concrete formatters (refusals re-examined, wave 17, O11). \"We can always add them later if we change our mind.\" The typed forms ship: `TextField(_:value:format:)` and its two siblings (Sources/TUIkitTextInput/Views/TextFieldValue.swift), `Text(_:format:)` (Sources/TUIkitFoundation/Views/Text.swift) and `\\(value, format:)` in a LocalizedStringKey interpolation. The interpolation `\\(value, formatter:)` ships (lane TEXTFMT, 2026-10-24, under the owner's ruling DEPR-CATCHALL): it only formats, through `Formatter.string(for:)`, which every platform's Foundation has."
     },
     {
       "match": [

@@ -469,44 +469,35 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
             swiftUIKey? += conversion
         }
 
-        /// The conversion SwiftUI's key holds for a value of `type` interpolated
-        /// on its own: an integer's or a floating-point number's printf
-        /// conversion, `%@` for anything else (measured on macOS 15.8,
-        /// `Tools/SwiftUIProbes/Localization keys/keys.out`).
-        static func swiftUIConversion(for type: Any.Type) -> String {
-            if type == Int.self || type == Int64.self { return "%lld" }
-            if type == Double.self || type == CGFloat.self { return "%lf" }
-            if type == Int32.self || type == Int16.self || type == Int8.self { return "%d" }
-            if type == UInt.self || type == UInt64.self { return "%llu" }
-            if type == UInt32.self || type == UInt16.self || type == UInt8.self { return "%u" }
-            if type == Float.self { return "%f" }
-            return "%@"
-        }
-
-        /// Interpolates any value, as `String(describing:)` would render it.
-        public mutating func appendInterpolation(_ value: some Any) {
-            // The two commonest arguments, answered as `String(describing:)`
-            // answers them — a String is itself, an Int its decimal digits —
-            // without its conformance probes: a dynamic cast each for
-            // `TextOutputStreamable`, `CustomStringConvertible` and the rest,
-            // about a microsecond per interpolated value built, every frame.
-            // The `type(of:)` test is what keeps this exact: a value
-            // interpolated as `Any` (or any existential) reports the
-            // existential's metatype, not `String`, so it — like an
-            // `Optional<String>`, whose description is `Optional("…")` — keeps
-            // the general path. The cast alone would NOT do: `as? String`
-            // unwraps that Optional. Behind the test it is the same-type cast,
-            // which cannot fail.
-            if type(of: value) == String.self, let string = value as? String {
-                appendPlaceholder("%@")
-                arguments.append(string)
-            } else if type(of: value) == Int.self, let number = value as? Int {
-                appendPlaceholder("%lld")
-                arguments.append(String(number))
-            } else {
-                appendPlaceholder(Self.swiftUIConversion(for: type(of: value)))
-                arguments.append(String(describing: value))
-            }
+        /// Interpolates any other value, as `String(describing:)` renders it —
+        /// mirrors SwiftUI's catch-all, deprecated as SwiftUI's is, with its
+        /// message.
+        ///
+        /// SwiftUI added this overload to the macOS 26 SDK already deprecated:
+        /// it compiles, so that `Text("\(value)")` keeps building, and warns
+        /// that what it draws is the value's debug description, which no
+        /// translation can reach. A type SwiftUI interpolates has an overload
+        /// of its own (`LocalizedStringKey+Interpolation.swift`), which wins
+        /// because this one is disfavoured; anything else lands here — an
+        /// `Optional`, an enum, a value typed `Any` whatever it holds — with
+        /// `%@` in both keys, as in SwiftUI. To say what is meant, interpolate
+        /// a `String` (`\(String(describing: value))`, `\(value.name)`), a
+        /// format style, or a `Text`.
+        ///
+        /// (Owner ruling DEPR-CATCHALL (b), 2026-10-23: typed overloads, then
+        /// the catch-all deprecated as SwiftUI's is.)
+        @available(
+            *, deprecated,
+            message: """
+                Localized string interpolation produces an unlocalized, debug description for this type of value. \
+                Use a type supported by LocalizedStringKey.StringInterpolation or initialize a \
+                LocalizedStringResource instead with an interpolated value that conforms to \
+                CustomLocalizedStringResourceConvertible.
+                """
+        )
+        @_disfavoredOverload
+        public mutating func appendInterpolation<T>(_ object: T) {
+            appendInterpolation(String(describing: object))
         }
     }
 }

@@ -348,11 +348,11 @@ struct LocalizedStringKeyTests {
         #expect(answered > 400, "only \(answered) templates took the fast path")
     }
 
-    @Test("A String or Int argument is what String(describing:) makes of it, whatever its static type")
+    @Test("A String, an Int and anything else is what String(describing:) makes of it, whatever its static type")
     func describingFastPathAgrees() {
-        // The catch-all interpolation answers a String and an Int without
-        // `String(describing:)`'s conformance probes. It must agree with it —
-        // including for the look-alikes the shortcut must NOT take: an
+        // A String and an Int take their own overloads, the Int without
+        // `String(describing:)`'s conformance probes, and must agree with it;
+        // so must the look-alikes that reach the deprecated catch-all: an
         // Optional (described as `Optional(…)`) and a value boxed in `Any`.
         let name = "Ada"
         let empty = ""
@@ -362,18 +362,22 @@ struct LocalizedStringKeyTests {
         let boxed: Any = "Ada"
         let boxedNumber: Any = 7
         // Built call by call rather than as a literal, so the Optional reaches
-        // the catch-all as `String?` itself (a literal's `\(optional)` draws
-        // the debug-description warning, and `as Any` would box it).
+        // the catch-all as `String?` itself (`as Any` would box it), and the
+        // catch-all is reached through `appendThroughCatchAll`, which draws
+        // no deprecation warning.
         var interpolation = LocalizedStringKey.StringInterpolation(literalCapacity: 0, interpolationCount: 7)
         interpolation.appendInterpolation(name)
         interpolation.appendInterpolation(empty)
         interpolation.appendInterpolation(count)
         interpolation.appendInterpolation(negative)
-        interpolation.appendInterpolation(optional)
-        interpolation.appendInterpolation(boxed)
-        interpolation.appendInterpolation(boxedNumber)
+        appendThroughCatchAll(optional, to: &interpolation)
+        appendThroughCatchAll(boxed, to: &interpolation)
+        appendThroughCatchAll(boxedNumber, to: &interpolation)
         let key = LocalizedStringKey(stringInterpolation: interpolation)
         #expect(key.key == "%@%@%@%@%@%@%@")
+        // SwiftUI's key: `%lld` for each Int, and `%@` for a number in `Any`,
+        // which SwiftUI's catch-all takes as it takes anything.
+        #expect(key.swiftUIKey == "%@%@%lld%lld%@%@%@")
         #expect(
             key.arguments == [
                 String(describing: name), String(describing: empty), String(describing: count),
@@ -385,6 +389,41 @@ struct LocalizedStringKeyTests {
         #expect(key.arguments[4] == "Optional(\"Ada\")")
     }
 
+    @Test("SwiftUI's typed overloads take what they name: a substring, a number, a Foundation value")
+    func typedOverloads() {
+        let word = "xyz".dropFirst()
+        let url = URL(string: "https://example.com/a")!
+        let percent = NumberFormatter()
+        percent.numberStyle = .percent
+        percent.locale = Locale(identifier: "en_US")
+        let key: LocalizedStringKey =
+            "\(word) \(2.5) \(Float(0.25)) \(UInt8(7)) \(url) \(NSNumber(value: 0.5), formatter: percent)"
+        #expect(key.arguments == ["yz", "2.5", "0.25", "7", "https://example.com/a", "50%"])
+        #expect(key.swiftUIKey == "%@ %lf %f %u %@ %@")
+    }
+
+    @Test("An interpolated AttributedString keeps its looks for the Text, its characters for everything else")
+    func attributedStringInterpolation() {
+        var underlined = AttributedString("Ada")
+        underlined.underlineStyle = Text.LineStyle(pattern: .dash)
+        let key: LocalizedStringKey = "Hello, \(underlined) and \(AttributedString("Bo"))"
+        #expect(key.arguments == ["Ada", "Bo"])
+        #expect(key.styledArguments[0]?.runs.first?.style.underline != nil)
+        // A plain one says nothing about its looks, so it is words only.
+        #expect(key.styledArguments[1] == nil)
+        #expect(key.swiftUIKey == nil)
+    }
+
+    @Test("A time data source through a format style is a live argument")
+    func timeDataSourceInterpolation() {
+        guard #available(macOS 15, *) else { return }
+        let start = Date(timeIntervalSinceNow: -125)
+        let key: LocalizedStringKey = "Started \(.currentDate, format: .offset(to: start))"
+        #expect(key.key == "Started %@")
+        #expect(key.liveArguments[0] != nil)
+        #expect(!key.arguments[0].isEmpty)
+    }
+
     @Test("A specifier formats the value, as SwiftUI's interpolation does")
     func specifierInterpolation() {
         let price = 3.14159
@@ -394,4 +433,21 @@ struct LocalizedStringKeyTests {
         #expect(key.key == "Total %@ in %@ parts")
         #expect(key.resolved(with: isolatedService()) == "Total 3.14 in ff parts")
     }
+}
+
+// MARK: - The deprecated catch-all, reached without its warning
+
+/// Declares the catch-all's signature as a requirement, so a test can call it
+/// through the conformance: a call through a protocol requirement draws no
+/// deprecation warning, where a direct call to the deprecated witness does.
+private protocol CatchAllInterpolating {
+    mutating func appendInterpolation<T>(_ object: T)
+}
+
+extension LocalizedStringKey.StringInterpolation: CatchAllInterpolating {}
+
+/// Interpolates `value` through the catch-all, whatever typed overload its
+/// static type would otherwise pick.
+private func appendThroughCatchAll(_ value: some Any, to interpolation: inout some CatchAllInterpolating) {
+    interpolation.appendInterpolation(value)
 }

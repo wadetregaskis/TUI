@@ -31,7 +31,7 @@ private struct MainPage: View {
 
     var body: some View {
         VStack {
-            Text("main count=\(count) multiple=\(supportsMultipleWindows)")
+            Text("main count=\(count) multiple=\(String(supportsMultipleWindows))")
             Button("bump") { count += 1 }
             Button("inspect") { openWindow(id: "inspector") }
             Button("view") { openWindow(id: "viewer") }

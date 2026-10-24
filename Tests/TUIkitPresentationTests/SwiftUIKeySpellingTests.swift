@@ -52,6 +52,11 @@ struct SwiftUIKeySpellingTests {
         // SwiftUI's key holds `%@` for each of these, as TUIkit's does: no
         // second spelling.
         Case(name: "String", key: "v \("x")", swiftUI: nil),
+        Case(name: "Substring", key: "v \("xy".dropFirst())", swiftUI: nil),
+        Case(name: "AttributedString", key: "v \(AttributedString("a"))", swiftUI: nil),
+        Case(name: "NSNumber", key: "v \(NSNumber(value: 3))", swiftUI: nil),
+        Case(name: "NSNumber formatter", key: "v \(NSNumber(value: 3), formatter: NumberFormatter())", swiftUI: nil),
+        Case(name: "URL (ReferenceConvertible)", key: "v \(URL(string: "https://example.com")!)", swiftUI: nil),
         Case(name: "a format style", key: "v \(2.5, format: .number)", swiftUI: nil),
         Case(name: "no value", key: "plain", swiftUI: nil, tuikit: "plain"),
     ]

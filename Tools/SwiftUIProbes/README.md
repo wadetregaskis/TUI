@@ -988,3 +988,18 @@ messages cite that path), and what cites it.
   `Tests/TUIkitStylingTests/NamedColorTests.swift`;
   `Documentation/SwiftUI parity/Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md`
   (B-D6M-3).
+
+### Interpolated values drawn (TEXTFMT)
+
+- **Asks:** what SwiftUI draws for a value interpolated into a `Text`'s key with no specifier — an `Int`, an
+  `Int8`, a `UInt`, a `Double`, a `Float`, in `en_US` and `de_DE` — and for a `Substring`, an `AttributedString`,
+  and a `ClosedRange<Date>` and a `DateInterval`, interpolated and as `Text(_:)`; with Foundation's own interval
+  formats beside the range's (`drawn.swift`, `drawn.out`). Each `Text` is rendered through `ImageRenderer` and read
+  back by Vision, as "Live text formats read back (wave 11a)" does.
+- **Answers:** a number is formatted through its printf conversion in the locale (`1,234,567`, `3.500000`;
+  `1.234.567`, `3,500000`); a range of an hour reads `11:13 PM-12:13 AM` and one of days `May 8 - May 11`, with no
+  year even 400 days apart, which is none of Foundation's interval formats.
+- **Ran:** macOS 15.8.1, Xcode's `swiftc`, the macOS 26.2 SDK, 2026-10-24, in the `America/Los_Angeles` zone.
+- **Cited by:** `Sources/TUIkitFoundation/Localization/LocalizedStringKey+Interpolation.swift`;
+  `Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md`
+  (B-TEXTFMT-1, C-TEXTFMT-1).

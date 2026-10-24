@@ -55,7 +55,7 @@ struct StorageWriteScopeTests {
         let key: String
         var body: some View {
             let flag = AppStorage(wrappedValue: false, key, store: store)
-            return Text("flag \(flag.wrappedValue)")
+            return Text("flag \(String(flag.wrappedValue))")
         }
     }
 

@@ -181,6 +181,8 @@ All of these are pre-1.0 changes with no old spelling kept.
 
 #### Behaviour changes you may notice
 
+- `Text("… \(value)")` (and every other key) of a value SwiftUI has no interpolation for — a `Bool`, an `Optional`, an enum, an array, a value typed `Any` — warns, as SwiftUI 26 does: "Localized string interpolation produces an unlocalized, debug description for this type of value." It still writes the description. Interpolate a `String` (`\(String(flag))`, `\(value.name)`) to say what you mean. SwiftUI's typed interpolations are all there: a `Substring`, an `AttributedString` (its looks kept), a `Date`, `URL` or other `ReferenceConvertible` value or an `NSObject` with an optional `formatter:`, and a `TimeDataSource` with `format:` are new. `\(value, specifier:)` takes a number only, as SwiftUI's does, where it took any `CVarArg`.
+
 - A `Table` stripes every other row by default.
 - A sheet's, full-screen cover's or popover's content is built only while it is presented, and a dismissed one loses its `@State`, as in SwiftUI.
 - `onChange(of:)` on an optional that starts set no longer fires on its first render.
@@ -217,7 +219,7 @@ The project removes SwiftUI API that SwiftUI itself has deprecated, and does not
 Deprecated SwiftUI spellings TUIkit still has, on purpose:
 
 - The soft-deprecated `dropDestination(for:action:isTargeted:)`, until the drag-session work.
-- The silent catch-all `Text("... \(anything)")` string interpolation, which SwiftUI deprecates on the macOS 26 SDK.
+- The catch-all `Text("... \(anything)")` string interpolation, deprecated as SwiftUI deprecates it on the macOS 26 SDK: it compiles and warns.
 - The `.roundedBorder` and `.squareBorder` text field styles, which SwiftUI deprecates in macOS 27. TUIkit's parity baseline is the macOS 26 SDK.
 
 `Tools/APIParity/api_parity.py --deprecated` lists the SwiftUI declarations deprecated on macOS that TUIkit still implements (23 against the macOS 26.2 SDK). Most are cases where TUIkit has the live overload and SwiftUI's deprecated one shares its name.

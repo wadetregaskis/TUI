@@ -1,9 +1,11 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  LocalizedStringKey+Interpolation.swift
 //
-//  The typed interpolations of a `LocalizedStringKey`: an interpolated `Text`
-//  or `Image`, a number through a printf specifier, a value through a format
-//  style. The clock-reading ones are in `LocalizedStringKey+Live.swift`.
+//  The typed interpolations of a `LocalizedStringKey`, SwiftUI's set: a string,
+//  a number, an interpolated `Text` or `Image`, a number through a printf
+//  specifier, a value through a format style or a `Formatter`, an attributed
+//  string. The clock-reading ones are in `LocalizedStringKey+Live.swift`; the
+//  deprecated catch-all for anything else is in `LocalizedStringKey.swift`.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -11,6 +13,56 @@
 import Foundation
 
 extension LocalizedStringKey.StringInterpolation {
+    /// Interpolates a string — mirrors SwiftUI's `appendInterpolation(_:)` for
+    /// a `String`: `Text("Hello, \(name)!")`.
+    ///
+    /// The key holds `%@` where the string goes, in TUIkit's spelling and
+    /// SwiftUI's alike, and the string is substituted as it is: it is not
+    /// itself looked up.
+    public mutating func appendInterpolation(_ string: String) {
+        appendPlaceholder("%@")
+        arguments.append(string)
+    }
+
+    /// Interpolates a substring, as a `String` — mirrors SwiftUI's
+    /// `appendInterpolation(_:)` for a `Substring`.
+    public mutating func appendInterpolation(_ substring: Substring) {
+        appendInterpolation(String(substring))
+    }
+
+    /// Interpolates a number — mirrors SwiftUI's `appendInterpolation(_:)`
+    /// for an integer or a floating-point number:
+    /// `Text("Moved \(count) rows")`.
+    ///
+    /// The key holds `%@` where the number goes, and its ``LocalizedStringKey/swiftUIKey``
+    /// the number's own printf conversion (`%lld` for an `Int`, `%lf` for a
+    /// `Double`), as SwiftUI's key does, so a String Catalog extracted from
+    /// SwiftUI code is read; both are looked up.
+    ///
+    /// **Drawn as the number's description, which is not what SwiftUI draws.**
+    /// SwiftUI formats the number through that conversion in the locale, so
+    /// `\(1234567)` reads `1,234,567` and `\(3.5)` reads `3.500000` (measured,
+    /// macOS 15.8, `en_US`, `Tools/SwiftUIProbes/Interpolated values drawn
+    /// (TEXTFMT)/`); TUIkit writes `1234567` and `3.5`, as it did
+    /// before this overload existed, when the catch-all took numbers. The
+    /// conversion costs about 4 µs an integer and 16 µs a `Double` (measured,
+    /// `String(format:locale:)` on this Mac) where the description costs
+    /// nanoseconds, every time a body builds the key. Which to draw is an
+    /// owner question (DEPR-CATCHALL's follow-up); `\(value, specifier:)`
+    /// formats as SwiftUI does today.
+    public mutating func appendInterpolation<T: _FormatSpecifiable>(_ value: T) {
+        appendPlaceholder(value._specifier)
+        // An `Int`, the commonest argument, as `String(describing:)` answers
+        // it, without its conformance probes: a dynamic cast each for
+        // `TextOutputStreamable`, `CustomStringConvertible` and the rest,
+        // about a microsecond per interpolated value built, every frame.
+        if let number = value as? Int {
+            arguments.append(String(number))
+        } else {
+            arguments.append(String(describing: value))
+        }
+    }
+
     /// Interpolates a `Text`, keeping its styling — mirrors SwiftUI, where
     /// this is how separately styled texts are joined:
     ///
@@ -75,9 +127,9 @@ extension LocalizedStringKey.StringInterpolation {
     /// - Parameters:
     ///   - value: The value to format.
     ///   - specifier: The format specifier, such as `%.2f` or `%x`.
-    public mutating func appendInterpolation<T: CVarArg>(_ value: T, specifier: String) {
+    public mutating func appendInterpolation<T: _FormatSpecifiable>(_ value: T, specifier: String) {
         appendPlaceholder(specifier)
-        arguments.append(String(format: specifier, locale: .current, value))
+        arguments.append(String(format: specifier, locale: .current, value._arg))
     }
 
     /// Interpolates a value through a format style — the same eager
@@ -109,5 +161,68 @@ extension LocalizedStringKey.StringInterpolation {
     ) where F.FormatInput: Equatable, F.FormatOutput == AttributedString {
         appendPlaceholder("%@")
         arguments.append(String(format.format(input).characters))
+    }
+
+    /// Interpolates an attributed string, keeping its attributes — mirrors
+    /// SwiftUI's `appendInterpolation(_:)` for an `AttributedString`.
+    ///
+    /// Taken as ``Text/init(_:)-(AttributedString)`` takes it and interpolated
+    /// as that `Text` is: a `Text` made from the key draws its runs where its
+    /// placeholder stands, and anything else that takes the key reads its
+    /// characters.
+    public mutating func appendInterpolation(_ attributedString: AttributedString) {
+        // What `appendInterpolation(Text(attributedString))` does, without the
+        // `Text`, whose initializer is the main actor's.
+        if let runs = Text.styledRuns(of: attributedString) {
+            styledArguments[arguments.count] = StyledArgument(runs: runs)
+        }
+        appendPlaceholder("%@")
+        arguments.append(String(attributedString.characters))
+    }
+
+    /// Interpolates part of an attributed string, as an `AttributedString` —
+    /// mirrors SwiftUI's `appendInterpolation(_:)` for an
+    /// `AttributedSubstring`.
+    public mutating func appendInterpolation(_ attributedSubstring: AttributedSubstring) {
+        appendInterpolation(AttributedString(attributedSubstring))
+    }
+
+    /// Interpolates a Foundation value through a `Formatter` — mirrors
+    /// SwiftUI's `appendInterpolation(_:formatter:)` for a
+    /// `ReferenceConvertible` value: a `Date`, a `URL`, a `UUID`.
+    ///
+    /// Formatted at once, as every argument here is: the formatter's string
+    /// for the value, or the value's description where the formatter gives
+    /// none or there is no formatter. Only the formatting direction is used,
+    /// which Foundation has on every platform; the parsing the `Formatter`
+    /// forms of `TextField` would need is why those stay deferred (O11).
+    ///
+    /// - Parameters:
+    ///   - subject: The value to format.
+    ///   - formatter: The formatter to format it with, or `nil` for its
+    ///     description.
+    public mutating func appendInterpolation<Subject: ReferenceConvertible>(
+        _ subject: Subject, formatter: Formatter? = nil
+    ) {
+        // Through a local `Any`, not `string(for: subject)`: handing a generic
+        // `ReferenceConvertible` straight to the Objective-C `id` parameter
+        // crashes SILGen on Darwin (Swift 6.2.4 to 6.4.0; reported as "SILGen
+        // asserts (`isConcrete()`) passing a generic `ReferenceConvertible`
+        // value to an Objective-C `id` parameter"), and `subject as Any` is
+        // folded into the same conversion.
+        let value: Any = subject
+        appendInterpolation(formatter?.string(for: value) ?? String(describing: subject))
+    }
+
+    /// Interpolates a Foundation object through a `Formatter` — mirrors
+    /// SwiftUI's `appendInterpolation(_:formatter:)` for an `NSObject`: an
+    /// `NSNumber`, an `NSDate`. As the `ReferenceConvertible` form formats.
+    ///
+    /// - Parameters:
+    ///   - subject: The object to format.
+    ///   - formatter: The formatter to format it with, or `nil` for its
+    ///     description.
+    public mutating func appendInterpolation<Subject: NSObject>(_ subject: Subject, formatter: Formatter? = nil) {
+        appendInterpolation(formatter?.string(for: subject) ?? String(describing: subject))
     }
 }
