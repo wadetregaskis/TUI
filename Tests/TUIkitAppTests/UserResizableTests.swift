@@ -215,7 +215,7 @@ struct UserResizableTests {
             .disabled(true)
         let buffer = renderToBuffer(view, context: context)
         #expect(buffer.lines.last?.stripped.last != "╝", "a disabled view drew a resize mark")
-        #expect(buffer.hitTestRegions.isEmpty, "a disabled view registered a drag target")
+        #expect(dragTargets(buffer, context).isEmpty, "a disabled view registered a drag target")
     }
 
     /// The size the user asked for lives in `StateStorage` at the wrapper's OWN
@@ -292,10 +292,11 @@ struct UserResizableTests {
         // One region for the bottom edge, one for the right — a hit region is a
         // rectangle, and an L-shape is two of them — plus the corner cell they
         // overlap on, which resizes both and so cannot share either's handler.
-        #expect(buffer.hitTestRegions.count == 3)
-        let bottom = buffer.hitTestRegions.first { $0.height == 1 && $0.width > 1 }
-        let right = buffer.hitTestRegions.first { $0.width == 1 && $0.height > 1 }
-        let corner = buffer.hitTestRegions.last
+        let targets = dragTargets(buffer, context)
+        #expect(targets.count == 3)
+        let bottom = targets.first { $0.height == 1 && $0.width > 1 }
+        let right = targets.first { $0.width == 1 && $0.height > 1 }
+        let corner = targets.last
         #expect(bottom?.width == buffer.width)
         #expect(bottom?.offsetY == buffer.height - 1)
         #expect(right?.height == buffer.height)
@@ -398,8 +399,9 @@ struct UserResizableTests {
         let view = Text("hello").frame(width: 12, height: 4).border()
             .userResizable(width: 4...20)
         let buffer = renderToBuffer(view, context: context)
-        #expect(buffer.hitTestRegions.count == 1)
-        #expect(buffer.hitTestRegions.first?.width == 1, "expected the right edge only")
+        let targets = dragTargets(buffer, context)
+        #expect(targets.count == 1)
+        #expect(targets.first?.width == 1, "expected the right edge only")
     }
 
     // MARK: - Where the handle sits in the Tab order
@@ -501,7 +503,17 @@ struct UserResizableTests {
                 }
             }
         }
+        // Less the bordered content's interior, as `dragTargets` leaves it out.
+        buffer.hitTestRegions.removeAll { tui.mouseEventDispatcher.selectionScopes[$0.handlerID] != nil }
         return buffer
+    }
+
+    /// The regions a resizable filed in `buffer`: every region but the
+    /// interior its bordered content files for text selection
+    /// (`BorderedSelectionScopeTests`), which is no drag target.
+    private func dragTargets(_ buffer: FrameBuffer, _ context: RenderContext) -> [HitTestRegion] {
+        let scopes = context.environment.mouseEventDispatcher?.selectionScopes ?? [:]
+        return buffer.hitTestRegions.filter { scopes[$0.handlerID] == nil }
     }
 
     private func resizableBox() -> some View {
@@ -605,7 +617,7 @@ struct UserResizableTests {
         let view = Text("hello").frame(maxWidth: .infinity, maxHeight: .infinity).border()
             .userResizable(width: 30...30, height: 8...8)
         let buffer = renderToBuffer(view, context: context)
-        #expect(buffer.hitTestRegions.isEmpty, "a view with nothing to move took a drag target")
+        #expect(dragTargets(buffer, context).isEmpty, "a view with nothing to move took a drag target")
         // The bounds still bound: this is how `width: 30...30` says "this wide".
         #expect(buffer.width == 30, "the pinned width was not honoured: \(buffer.width)")
         #expect(buffer.height == 8, "the pinned height was not honoured: \(buffer.height)")

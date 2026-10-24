@@ -951,7 +951,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             titleColor: nil,
             padding: style.rowPadding,
             showFooterSeparator: showFooterSeparator,
-            hasBorder: style.showsBorder
+            hasBorder: style.showsBorder, keepsSelectionInside: false  // the box is the list's
         )
         // A BORDERED container draws the title inside its top border row
         // (the container's chrome is its borders and the footer separator, and

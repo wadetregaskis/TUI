@@ -71,15 +71,21 @@ struct SheetDetentTests {
 
     @Test("A detented sheet rests on the bottom edge, centred across it, and is not dragged by its border")
     func detentedSheetDocks() {
+        let context = context()
         let buffer = renderToBuffer(
             Text("page").sheet(isPresented: .constant(true)) {
                 Panel("t") { Text("x") }.presentationDetents([.height(6), .large])
             },
-            context: context())
+            context: context)
         let layer = buffer.overlays[0]
         #expect(layer.isDockedAtBottom)
+        // The panel's interior, filed for text selection inside its border
+        // (`BorderedSelectionScopeTests`), is no drag region.
+        let scopes = context.environment.mouseEventDispatcher?.selectionScopes ?? [:]
         #expect(
-            layer.content.hitTestRegions.allSatisfy { $0.focusID?.hasPrefix("sheet-grabber") == true },
+            layer.content.hitTestRegions.allSatisfy {
+                scopes[$0.handlerID] != nil || $0.focusID?.hasPrefix("sheet-grabber") == true
+            },
             "no drag regions on its border, only its grabber: \(layer.content.hitTestRegions)")
         let placed = layer.placed(maxWidth: 40, maxHeight: 20)
         #expect(placed.y == 14, "flush on the bottom edge: \(placed.y)")

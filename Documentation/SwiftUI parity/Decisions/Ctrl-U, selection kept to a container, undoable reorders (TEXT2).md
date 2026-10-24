@@ -76,9 +76,9 @@ slot, which is what TUIkit follows today).
 
 ### B-TEXT2-2. A bordered container keeps a drag selection begun inside it to its interior
 
-*#10. `.border()`, `Box`, `Card`, `Panel`, `GroupBox`, `Dialog`, `Alert`, a
-bordered `List` or `Table`, a menu's box — every bordered
-`ContainerView`*
+*#10. `.border()`, `Box`, `Card`, `Panel`, `GroupBox`, `Dialog`, `Alert` —
+every bordered `ContainerView` around content; not a `List`'s, a `Table`'s
+or a menu's own box*
 
 Each bordered box files its interior (inside the border lines, title row and
 bottom line excluded) as a selection scope, as `textSelection(_:)` files its
@@ -104,7 +104,13 @@ replay as a `textSelection` scope is. The Stress selfcheck passes (122 cases,
 23 sessions). An A/B is owed on the scenarios with the most boxes:
 `anyview` (a bordered row per element), `deep` (nested borders),
 `modifiers`, `customlayout`, and the `chat`, `glides` and `session/menus`
-sessions (menus are bordered containers).
+sessions.
+
+A list's, a table's and a menu's own box files none
+(`ContainerConfig.keepsSelectionInside`): their presses are the control's,
+and a list's or table's rows keep a selection to themselves already, so an
+interior there would cost a region a frame for nothing — and it came in front
+of a table's own region at its header gaps, which a test pins.
 
 **The fuller version:** a scope on any surface that reads as a container
 without a border (a `.background` panel, a `GroupBox` styled borderless).

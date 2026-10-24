@@ -120,16 +120,21 @@ extension View {
     /// their nested type spelt out, and handed over as ``_BorderRings``, whose
     /// type says they are one view — so a bordered view counts as one child
     /// from its type, as the view it borders does.
+    ///
+    /// `keepsSelectionInside` is off for a control's own box — a menu's —
+    /// whose presses are the control's (``ContainerConfig/keepsSelectionInside``).
     @ViewBuilder
-    func bordered(style: BorderStyle?, colour: AnimatedColor?, width: Int) -> some View {
+    func bordered(
+        style: BorderStyle?, colour: AnimatedColor?, width: Int, keepsSelectionInside: Bool = true
+    ) -> some View {
         if width <= 0 {
             self
         } else {
             _BorderRings<Self>(
                 rings: (1..<max(1, width)).reduce(
-                    AnyView(ring(style: style, colour: colour))
+                    AnyView(ring(style: style, colour: colour, keepsSelectionInside: keepsSelectionInside))
                 ) { inner, _ in
-                    AnyView(inner.ring(style: style, colour: colour))
+                    AnyView(inner.ring(style: style, colour: colour, keepsSelectionInside: keepsSelectionInside))
                 })
         }
     }
@@ -140,13 +145,14 @@ extension View {
     /// edges (``View/_paintsToItsEdges``), whose blank cells were strips of the page
     /// between the border and the surface. That one is SwiftUI's own border,
     /// which is drawn on the view's edge with no inset at all.
-    private func ring(style: BorderStyle?, colour: AnimatedColor?) -> some View {
+    private func ring(style: BorderStyle?, colour: AnimatedColor?, keepsSelectionInside: Bool) -> some View {
         ContainerView(
             style: ContainerStyle(
                 showHeaderSeparator: false,
                 showFooterSeparator: false,
                 borderStyle: style,
-                borderColor: colour
+                borderColor: colour,
+                keepsSelectionInside: keepsSelectionInside
             ),
             padding: Self._paintsToItsEdges ? EdgeInsets() : EdgeInsets(horizontal: 1, vertical: 0)
         ) {

@@ -869,7 +869,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func containerStyle(_ environment: EnvironmentValues) -> ContainerStyle {
         ContainerStyle(
             showHeaderSeparator: true, showFooterSeparator: false,
-            hasBorder: borderWidth(environment) > 0)
+            hasBorder: borderWidth(environment) > 0,
+            // The rows keep a selection to themselves; the box is the table's.
+            keepsSelectionInside: false)
     }
 
     /// The style's own body, when the table style in force is not one of the

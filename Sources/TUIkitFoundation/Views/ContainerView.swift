@@ -60,6 +60,14 @@ package struct ContainerConfig: Sendable, Equatable {
     /// whose body is the part that can afford to scroll.
     var scrollsOverflowingBody: Bool
 
+    /// Whether a drag selection begun inside the box keeps to its interior
+    /// (``TextSelectionScope/container``). On for a box around content; off
+    /// for one that is a control's own chrome — a `List`'s, a `Table`'s, a
+    /// menu's — whose presses are the control's and whose rows keep a
+    /// selection to themselves already, so an interior would be a region a
+    /// frame for nothing.
+    var keepsSelectionInside: Bool
+
     /// Creates a container configuration.
     ///
     /// - Parameters:
@@ -72,6 +80,8 @@ package struct ContainerConfig: Sendable, Equatable {
     ///   - hasBorder: Whether to draw a border at all (default: true).
     ///   - scrollsOverflowingBody: Whether a too-tall body scrolls rather than
     ///     being clipped, with the title and footer pinned (default: false).
+    ///   - keepsSelectionInside: Whether a drag selection begun inside keeps
+    ///     to the interior (default: true).
     package init(
         borderStyle: BorderStyle? = nil,
         borderColor: Color? = nil,
@@ -80,7 +90,8 @@ package struct ContainerConfig: Sendable, Equatable {
         showFooterSeparator: Bool = true,
         footerAlignment: HorizontalAlignment = .leading,
         hasBorder: Bool = true,
-        scrollsOverflowingBody: Bool = false
+        scrollsOverflowingBody: Bool = false,
+        keepsSelectionInside: Bool = true
     ) {
         self.borderStyle = borderStyle
         self.borderColor = borderColor
@@ -90,6 +101,7 @@ package struct ContainerConfig: Sendable, Equatable {
         self.footerAlignment = footerAlignment
         self.hasBorder = hasBorder
         self.scrollsOverflowingBody = scrollsOverflowingBody
+        self.keepsSelectionInside = keepsSelectionInside
     }
 
     /// Default configuration.
@@ -130,6 +142,10 @@ package struct ContainerStyle: Sendable, Equatable {
     /// See ``ContainerConfig/scrollsOverflowingBody``.
     var scrollsOverflowingBody: Bool
 
+    /// Whether a drag selection begun inside keeps to the interior. See
+    /// ``ContainerConfig/keepsSelectionInside``.
+    var keepsSelectionInside: Bool
+
     /// Creates a container style with the specified options.
     ///
     /// - Parameters:
@@ -140,6 +156,8 @@ package struct ContainerStyle: Sendable, Equatable {
     ///   - footerAlignment: How to align the footer (default: leading).
     ///   - hasBorder: Whether to draw a border at all (default: true).
     ///   - scrollsOverflowingBody: Whether a too-tall body scrolls (default: false).
+    ///   - keepsSelectionInside: Whether a selection begun inside keeps to the
+    ///     interior (default: true).
     package init(
         showHeaderSeparator: Bool = true,
         showFooterSeparator: Bool = true,
@@ -147,7 +165,8 @@ package struct ContainerStyle: Sendable, Equatable {
         borderColor: AnimatedColor? = nil,
         footerAlignment: HorizontalAlignment = .leading,
         hasBorder: Bool = true,
-        scrollsOverflowingBody: Bool = false
+        scrollsOverflowingBody: Bool = false,
+        keepsSelectionInside: Bool = true
     ) {
         self.showHeaderSeparator = showHeaderSeparator
         self.showFooterSeparator = showFooterSeparator
@@ -156,6 +175,7 @@ package struct ContainerStyle: Sendable, Equatable {
         self.footerAlignment = footerAlignment
         self.hasBorder = hasBorder
         self.scrollsOverflowingBody = scrollsOverflowingBody
+        self.keepsSelectionInside = keepsSelectionInside
     }
 
     /// Creates a `ContainerStyle` from a ``ContainerConfig``.
@@ -169,6 +189,7 @@ package struct ContainerStyle: Sendable, Equatable {
         self.footerAlignment = config.footerAlignment
         self.hasBorder = config.hasBorder
         self.scrollsOverflowingBody = config.scrollsOverflowingBody
+        self.keepsSelectionInside = config.keepsSelectionInside
     }
 
     /// Default container style.
@@ -252,7 +273,8 @@ package func makeContainer<Content: View, Footer: View>(
         borderColor: config.borderColor.map(AnimatedColor.init),
         footerAlignment: config.footerAlignment,
         hasBorder: config.hasBorder,
-        scrollsOverflowingBody: config.scrollsOverflowingBody
+        scrollsOverflowingBody: config.scrollsOverflowingBody,
+        keepsSelectionInside: config.keepsSelectionInside
     )
 
     return ContainerView(

@@ -413,7 +413,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
             )
         // Final guard: never exceed the space the container was given.
         var container = assembled.clamped(toWidth: context.availableWidth, height: context.availableHeight)
-        if hasBorder { fileInterior(of: &container, context: context) }
+        if hasBorder, style.keepsSelectionInside { fileInterior(of: &container, context: context) }
         return container
     }
 
