@@ -940,11 +940,19 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   current one selected over it, and macOS's options (Ignore Case; Contains,
   Starts With, Full Word) are a row under its search field, a toggle and a
   button that steps through the three, rather than a menu. A field selects
-  one range: an app's multiple selection selects its first.
+  one range: an app's multiple selection selects its first. Ctrl-U kills
+  from the caret to the start of its line in every text control, as
+  readline's `unix-line-discard` does at a shell prompt — the whole text
+  before the caret in a field on one line, the caret's logical line in a
+  vertical field and a `TextEditor`, never its line break — as one undoable
+  edit that Ctrl-Y yanks back (a `SecureField` keeps no kill). macOS binds
+  no Ctrl-U (Cocoa's `StandardKeyBinding.dict`); ⌘⌫ deletes to the start of
+  the line there.
 - **Why:** what the terminal delivers. ⌘ is the terminal's, so ⌘F and ⌘G are
   Control chords, and the editor gives up Emacs Ctrl-F (Right arrow does the
   same) where it has a find bar; a field keeps it. A legacy terminal sends
-  Shift-Ctrl-G as Ctrl-G. A menu of options would make the text editor's
+  Shift-Ctrl-G as Ctrl-G. Ctrl-U is what a terminal user's fingers expect
+  of any line they type into, and ⌘⌫ is the terminal's, as every ⌘ chord is. A menu of options would make the text editor's
   module depend on the menus' and the pickers'.
 - **Decided:** [B62](<Decisions/SwiftUI API completion decisions.md#b62-a-vertical-textfield-is-a-text-field-that-wraps-not-an-editor-with-a-fields-chrome>), [B63](<Decisions/SwiftUI API completion decisions.md#b63-a-newline-from-the-keyboard-option-return-where-the-terminal-sends-it-ctrl-o-everywhere>), [B65](<Decisions/SwiftUI API completion decisions.md#b65-a-text-fields-selection-is-one-range>),
   [B81](<Decisions/SwiftUI API completion decisions.md#b81-the-find-bar-ctrl-f-opens-it-ctrl-g-finds-the-next-match-and-its-options-are-a-row>). **Medium**, with **Lane** choices of key.

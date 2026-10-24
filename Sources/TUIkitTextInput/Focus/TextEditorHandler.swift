@@ -144,9 +144,11 @@ final class TextEditorHandler: PersistedFocusable {
     /// (and Ctrl-V) can move the cursor by a screenful.
     var viewportHeight = 1
 
-    /// The last text removed by a kill command (Ctrl-K), replayed by yank
-    /// (Ctrl-Y) — a single-slot kill ring, matching the macOS text system.
-    private(set) var killRing = ""
+    /// The last text removed by a kill command (Ctrl-K, or Ctrl-U, whose
+    /// kill lives with the other stand-ins in `TextEditorHandler+Clipboard`),
+    /// replayed by yank (Ctrl-Y) — a single-slot kill ring, matching the
+    /// macOS text system.
+    var killRing = ""
 
     /// Where the editor last drew its insertion point, in its own region's
     /// cells: set by each render pass (see

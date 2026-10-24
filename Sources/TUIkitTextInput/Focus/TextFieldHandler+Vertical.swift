@@ -226,6 +226,13 @@ extension TextFieldHandler {
         cursorPosition = lineEnd()
     }
 
+    /// Where Ctrl-U stops: the start of the caret's line in a vertical field,
+    /// and the start of the text in a field on one line, whose whole text is
+    /// its line even where the app bound one with a line break in it.
+    func lineKillStart() -> Int {
+        isVertical ? lineStart() : 0
+    }
+
     /// Where Ctrl-K stops: the end of the caret's line, or, with the caret
     /// already there, just past the newline that ends it.
     func lineKillEnd() -> Int {

@@ -389,7 +389,7 @@ one row makes a block and an ordinary selection the same, so in a
 `TextField` an Option-drag selects as a drag does.
 
 A right-click (or Ctrl-click) on a `TextField`, `SecureField` or `TextEditor`
-opens its editing menu — Cut, Copy, Paste, Select All, and Yank while a ⌃K has
+opens its editing menu — Cut, Copy, Paste, Select All, and Yank while a ⌃K or ⌃U has
 left text for it — and Shift+F10 opens it on the focused one. Cut and Copy
 act on the selection, and are offered disabled without one, and always in a
 `SecureField`, which never copies its contents. A disabled control offers no

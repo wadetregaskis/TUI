@@ -168,14 +168,16 @@ struct TextEditorUndoClipboardTests {
     }
 
     /// Ctrl-V pastes, as ⌘V does and as it does in a field — the clipboard's
-    /// line breaks kept — and Ctrl-U, a field's erase, is not the editor's.
-    @Test("Ctrl-V pastes, and Ctrl-U is not the editor's")
-    func pasteIsBoundAndEraseIsNot() {
+    /// line breaks kept — and Ctrl-U kills the pasted second line back to its
+    /// start, as it does in a field (`LineDiscardTests`); it once erased a
+    /// field and was not the editor's at all.
+    @Test("Ctrl-V pastes, and Ctrl-U kills to the start of the caret's line")
+    func pasteAndLineDiscardAreBound() {
         let (editor, box, board) = makeEditor("ab\ncd")
         board.contents = "P1\nP2"
         #expect(editor.handleKeyEvent(ctrl("v")))
         #expect(box.text == "P1\nP2ab\ncd", "Ctrl-V did not paste at the caret")
-        #expect(!editor.handleKeyEvent(ctrl("u")))
-        #expect(box.text == "P1\nP2ab\ncd")
+        #expect(editor.handleKeyEvent(ctrl("u")))
+        #expect(box.text == "P1\nab\ncd")
     }
 }

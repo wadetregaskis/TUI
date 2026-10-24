@@ -10,30 +10,28 @@ import TUIkitFoundation
 // MARK: - Command-Key Stand-Ins
 
 extension TextEditorHandler {
-    /// The Command-key stand-in `event` is, among the ones the editor binds:
-    /// copy, cut, paste, undo and redo. Read before anything else, and in
-    /// particular before a selection is dropped, because copy, cut and paste
-    /// act on it.
+    /// The Command-key stand-in `event` is: copy, cut, paste, undo, redo and
+    /// Ctrl-U's kill to the start of the line. Read before anything else, and
+    /// in particular before a selection is dropped, because copy, cut and
+    /// paste act on it.
     ///
     /// Ctrl-V pastes here as it does in a field, the stand-in for ⌘V. It was
     /// the Emacs page down, the one Emacs chord an editor kept over a field's
     /// meaning, so the editor was the one text control in which Ctrl-V did
     /// not paste; Page Down still pages, and no other chord was a convention
-    /// to move page down to. Ctrl-U, which erases a whole field, is not bound:
-    /// one chord erasing a whole document is a different thing.
+    /// to move page down to. Ctrl-U kills to the start of the caret's line,
+    /// as it does at a shell prompt: it once erased a whole field and was not
+    /// bound here, since one chord erasing a whole document is a different
+    /// thing, but the line is the terminal's meaning in both.
     func standInCommand(for event: KeyEvent) -> StandInEditingCommand? {
-        guard event.ctrl, case .character(let character) = event.key,
-            let command = StandInEditingCommand(control: character, shift: event.shift)
-        else { return nil }
-        switch command {
-        case .copy, .cut, .paste, .undo, .redo: return command
-        case .erase: return nil
-        }
+        guard event.ctrl, case .character(let character) = event.key else { return nil }
+        return StandInEditingCommand(control: character, shift: event.shift)
     }
 
-    /// Carries out copy or cut, and returns whether the editor took the key.
+    /// Carries out copy, cut, paste or Ctrl-U's kill, and returns whether the
+    /// editor took the key.
     ///
-    /// Both act on the selection, and with nothing selected they decline, as a
+    /// Copy and cut act on the selection, and with nothing selected they decline, as a
     /// field's do, so the chord goes on to the app: to its ⌘C or ⌘X, which
     /// arrive as these chords, or to `QuitShortcut.ctrlC`. Undo never gets
     /// here: it is not an edit to record, so the key handling takes it first,
@@ -63,9 +61,29 @@ extension TextEditorHandler {
             if let block { deleteBlock(block) }
             insert(kept)
             return true
-        case .undo, .redo, .erase:
+        case .killToStartOfLine:
+            // At the caret, as Ctrl-K kills: the selection goes first.
+            killToStartOfLine()
+            return true
+        case .undo, .redo:
             return false
         }
+    }
+
+    /// Ctrl-U: kills from the start of the line to the cursor into the kill
+    /// ring, as Ctrl-K kills the rest of it. The line is the logical one, its
+    /// wrapped rows and all; at its start there is nothing to kill, and Ctrl-U
+    /// never takes the line break before it, as readline's never reaches past
+    /// the line it is on.
+    func killToStartOfLine() {
+        clearSelection()
+        guard cursorColumn > 0 else { return }
+        var lines = readLines()
+        killRing = String(lines[cursorLine][..<cursorColumn])
+        lines[cursorLine].removeSubrange(..<cursorColumn)
+        cursorColumn = 0
+        writeLines(lines)
+        syncDesiredColumn()
     }
 
     /// Ctrl-Z, the stand-in for ⌘Z: undoes the app's newest step where there

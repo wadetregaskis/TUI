@@ -388,9 +388,11 @@ struct KeepingCase: Sendable, CustomTestStringConvertible {
         Self(
             name: "Ctrl-Z undoes", shortcut: .command("z"),
             keys: [typed("X"), ctrl("z")], text: ("abcd", "abcd")),
+        // From one character short of the end, so the "d" after the caret
+        // shows that it kills to the start and not the whole text.
         Self(
-            name: "Ctrl-U erases", shortcut: .command("u"),
-            keys: [ctrl("u")], text: ("", "")),
+            name: "Ctrl-U kills to the start", shortcut: .command("u"),
+            keys: [KeyEvent(key: .left), ctrl("u")], text: ("d", "d")),
     ]
 
     /// Every field, paired with every case.

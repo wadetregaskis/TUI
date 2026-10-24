@@ -132,7 +132,9 @@ struct SearchableModifier<Content: View>: View {
     /// macOS's cancel button: a ✕ at the field's trailing end while it holds
     /// text, which empties it (measured on macOS 15.8.1, `Tools/SwiftUIProbes/
     /// Search field clear button`). Not a Tab stop, as macOS's is not in the
-    /// key view loop: its keyboard route is Ctrl-U, which empties any field.
+    /// key view loop: its keyboard route is Ctrl-U, which kills everything
+    /// before the caret, so with the caret at the end, where typing leaves
+    /// it, empties the field.
     /// Drawn as `Shortcut.cross` (✗, U+2717), the framework's cancel symbol, in
     /// the secondary ink: a Dingbat of neutral East Asian width, so one cell
     /// everywhere, where macOS's ⓧ (U+24E7) is ambiguous-width and two cells in

@@ -30,6 +30,7 @@ import TUIkitFoundation
 /// | Ctrl-P / Ctrl-N | Previous / next row |
 /// | Ctrl-D | Delete forward |
 /// | Ctrl-K | Kill to end of line (yank with Ctrl-Y) |
+/// | Ctrl-U | Kill to start of line, as readline's `unix-line-discard` (yank with Ctrl-Y) |
 /// | Ctrl-Y | Yank the last kill |
 /// | Ctrl-T | Transpose the two characters around the cursor |
 /// | Ctrl-O | Open a new line after the cursor |
@@ -44,7 +45,7 @@ import TUIkitFoundation
 ///
 /// ``TextField`` and ``SecureField`` read the Emacs chords from the same
 /// table, and they differ where a field is one line with a keyboard selection.
-/// There, Ctrl-U erases the field, and Ctrl-O, Ctrl-P and Ctrl-N do nothing. Ctrl-D
+/// There, Ctrl-U kills everything before the caret, and Ctrl-O, Ctrl-P and Ctrl-N do nothing. Ctrl-D
 /// deletes a field's selection and Ctrl-Y replaces it, where the editor drops
 /// its selection before any Emacs chord and acts at the cursor. A field
 /// reads Option first, so Option-Ctrl-B and F move by a word in a field and by

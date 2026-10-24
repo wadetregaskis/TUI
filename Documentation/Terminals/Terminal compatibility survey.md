@@ -5481,6 +5481,7 @@ shortcuts an app is most likely to carry land on them:
 | ⌘V Paste | ⌃V | `0x16` | a field: paste | the field |
 | ⌘C, ⌘X | ⌃C, ⌃X | `0x03`, `0x18` | copy, cut the selection | the text control while text is selected, else the app's shortcut |
 | ⌘Z | ⌃Z | `0x1A` | undo | the text control |
+| ⌘U | ⌃U | `0x15` | kill to the start of the line, readline's `unix-line-discard` (2026-10-24; it erased a whole field before) | the text control |
 
 A focused text control is offered a key before the app's shortcuts (layer 0
 before layer 3.5), so a focused editor used to swallow the app's Find and move

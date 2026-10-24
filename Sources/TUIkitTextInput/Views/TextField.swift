@@ -91,7 +91,7 @@ import TUIkitFoundation
 /// and pressing it in a focused field runs Find and leaves the field alone.
 /// The keys and arrows do what those chords do, and a kill, yank or transpose
 /// can be done by selecting and typing. The field keeps Option+Ctrl+A, which
-/// has no other key, and its clipboard, undo and erase chords; Ctrl+C and
+/// has no other key, its clipboard and undo chords, and Ctrl+U; Ctrl+C and
 /// Ctrl+X only while text is selected, so with nothing selected an app's ⌘C
 /// and ⌘X fire, and `QuitShortcut.ctrlC` quits. See <doc:KeyboardShortcuts>.
 ///

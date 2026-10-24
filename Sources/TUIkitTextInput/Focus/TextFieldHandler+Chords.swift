@@ -17,8 +17,9 @@ import TUIkitFoundation
 /// another, so it is written down once, here, and the field's key handling is
 /// only a switch over the result.
 enum TextFieldChord: Equatable {
-    /// Ctrl-C, X, V, Z, Shift-Z and U: copy, cut, paste, undo, redo and erase, the chords that
-    /// stand in for the Command-key ones. Ctrl-V is read here before the shared
+    /// Ctrl-C, X, V, Z, Shift-Z and U: copy, cut, paste, undo, redo and the
+    /// kill to the start of the line, the chords that stand in for the
+    /// Command-key ones. Ctrl-V is read here before the shared
     /// table, where it is the editor's page down, which a single line has no
     /// use for.
     case standIn(StandInEditingCommand)
@@ -80,7 +81,7 @@ extension TextFieldHandler {
     /// decline, so the chord goes on to the app: to its ⌘C or ⌘X, which
     /// arrive as these chords, or to `QuitShortcut.ctrlC`. With a selection
     /// they take the key, a ``SecureField``'s too, although it refuses to copy
-    /// or cut its contents. Paste, undo and erase always take it. Undo with
+    /// or cut its contents. Paste, undo and Ctrl-U always take it. Undo with
     /// nothing to undo must not decline: an unclaimed Ctrl-Z reaches layer 4,
     /// which suspends the app.
     private func perform(_ command: StandInEditingCommand) -> Bool {
@@ -94,7 +95,7 @@ extension TextFieldHandler {
         case .paste: paste()
         case .undo: undo()
         case .redo: redo()
-        case .erase: eraseAll()
+        case .killToStartOfLine: killToStart(at: lineKillStart())
         }
         return true
     }
@@ -205,14 +206,24 @@ extension TextFieldHandler {
         cursorPosition = caret
     }
 
-    /// Ctrl-U: erases the field, all of it, as one undoable edit, and leaves
-    /// the caret at the start with nothing selected.
-    private func eraseAll() {
-        let length = text.wrappedValue.count
-        if length > 0 {
-            deleteRange(0..<length)
-        }
+    /// Ctrl-U: kills from `start` to the caret into ``killRing``, as one
+    /// undoable edit, as Ctrl-K kills the other way. At `start` there is
+    /// nothing to kill, and the ring keeps what it had. A ``SecureField``
+    /// deletes the same text and keeps none of it, as it does for Ctrl-K.
+    ///
+    /// - Parameter start: Where the kill stops: the start of the text in a
+    ///   field on one line, the start of the caret's line in a vertical one
+    ///   (``lineStart()``), so it never takes the line break before it.
+    func killToStart(at start: Int) {
         clearSelection()
-        cursorPosition = 0
+        guard start < cursorPosition else { return }
+        resetSuggestionNavigation()
+        if !isSecure {
+            let current = text.wrappedValue
+            let from = current.index(current.startIndex, offsetBy: start)
+            let to = current.index(from, offsetBy: cursorPosition - start)
+            killRing = String(current[from..<to])
+        }
+        deleteRange(start..<cursorPosition)
     }
 }

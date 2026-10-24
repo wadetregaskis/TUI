@@ -319,7 +319,7 @@ not bind would, and Layer 3.5 fires your button.
 | ⌃C, ⌃X | Copy and cut the selection | The control's while text is selected; with nothing selected, yours. While a mouse selection is on the screen, ⌃C copies that instead, until the control takes a key |
 | ⌃Z | Undo | The control's |
 | ⌃V | Paste, in a field or a `TextEditor` | The control's |
-| ⌃U | A field's erase | The field's |
+| ⌃U | Kill to the start of the line, readline's `unix-line-discard`: in a field everything before the caret, in a vertical field or a `TextEditor` the caret's line; ⌃Y yanks it back (a `SecureField` keeps no kill to yank) | The control's |
 
 A chord gives way when what it does can be done some other way in that
 control, and keeps the key when it is the only way. Select-all has no other key
@@ -327,8 +327,9 @@ at all, since ⌘A cannot reach a terminal app. A field's Home and End go to the
 ends of its line, so its ⌃A and ⌃E give way. The editor's Home and End
 go to the ends of the whole document, which leaves ⌃A and ⌃E its only
 keys for the ends of a line, so there they stay. The clipboard and undo chords
-stand in for ⌘C, ⌘X, ⌘V and ⌘Z and do what those would, and a field's ⌃U
-erases it; those stay too, except that copy and cut have nothing to act on
+stand in for ⌘C, ⌘X, ⌘V and ⌘Z and do what those would, and ⌃U is the
+terminal's own kill to the start of the line, which every shell prompt
+answers; those stay too, except that copy and cut have nothing to act on
 without a selection. Then ⌃C and ⌃X are not the control's at all: they
 go on down the chain whether or not you have a shortcut on them, so your ⌘C
 fires, and so does ``QuitShortcut/ctrlC``. ⌃Z never passes on: it is the

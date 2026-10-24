@@ -133,12 +133,16 @@ extension TextEditingCommand {
     ///   In the editor Home and End go to the ends of the document, which
     ///   leaves Ctrl-A and Ctrl-E the only keys for the ends of a line.
     ///
-    /// The chords that stand in for the Command-key ones, for the clipboard,
-    /// undo and erase (``StandInEditingCommand``), are not in this table and
-    /// keep the key: they are what the app's ⌘ shortcut would ask the focused
-    /// text for anyway. Copy and cut keep it only while there is a selection
-    /// to act on; with none the control declines them, and the chord goes on
-    /// to the app as one the control does not bind would.
+    /// The chords that stand in for the Command-key ones, for the clipboard
+    /// and undo (``StandInEditingCommand``), are not in this table and keep
+    /// the key: they are what the app's ⌘ shortcut would ask the focused text
+    /// for anyway. Copy and cut keep it only while there is a selection to act
+    /// on; with none the control declines them, and the chord goes on to the
+    /// app as one the control does not bind would. Ctrl-U, in the same table,
+    /// keeps the key as well: it is the terminal's own kill to the start of
+    /// the line, which every shell prompt answers, not an Emacs bonus — so an
+    /// app's ⌘U, which arrives as Ctrl-U, does not reach past a focused text
+    /// control.
     ///
     /// - Parameter homeAndEndReachLineEnds: Whether the control's Home and End
     ///   keys go to the ends of the line the caret is on.
@@ -202,8 +206,16 @@ enum StandInEditingCommand: Equatable {
     /// Ctrl-Shift-Z: redo, where the terminal tells it from Ctrl-Z (the kitty
     /// keyboard protocol); in a legacy encoding it arrives as Ctrl-Z.
     case redo
-    /// Ctrl-U: erase the whole text, not only the text before the caret.
-    case erase
+    /// Ctrl-U: kills from the caret to the start of its line, as readline's
+    /// `unix-line-discard` does in a shell at a terminal — and as ⌘⌫, the
+    /// macOS text system's `deleteToBeginningOfLine:`, deletes. Cocoa binds
+    /// no Ctrl-U, so the terminal's convention is the one to follow. One
+    /// undoable edit, kept for Ctrl-Y as Ctrl-K's kill is; a ``SecureField``
+    /// deletes the same text and keeps none of it. In a field on one line the
+    /// line is the whole text before the caret; in a vertical field and in
+    /// ``TextEditor``, the caret's logical line, so Ctrl-U at the start of a
+    /// line kills nothing and never crosses a line break.
+    case killToStartOfLine
 
     /// The command a Control chord names, or `nil` when it names none here.
     /// Option held as well changes nothing; Shift changes Z from undo to redo.
@@ -213,7 +225,7 @@ enum StandInEditingCommand: Equatable {
         case "x", "X": self = .cut
         case "v", "V": self = .paste
         case "z", "Z": self = shift ? .redo : .undo
-        case "u", "U": self = .erase
+        case "u", "U": self = .killToStartOfLine
         default: return nil
         }
     }

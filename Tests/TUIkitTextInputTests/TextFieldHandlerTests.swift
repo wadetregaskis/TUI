@@ -262,10 +262,10 @@ struct TextFieldHandlerTests {
         #expect(handler.cursorPosition == 2)  // Clamped to "Hi".count
     }
 
-    // MARK: - Ctrl-U: erase contents
+    // MARK: - Ctrl-U: kill to the start (LineDiscardTests has the rest)
 
-    @Test("Ctrl-U erases the text field contents and resets the cursor")
-    func ctrlUErasesContents() {
+    @Test("Ctrl-U kills the text before the caret, and leaves the rest and the caret at the start")
+    func ctrlUKillsToStart() {
         var text = "the quick brown fox"
         let binding = Binding(get: { text }, set: { text = $0 })
         let handler = TextFieldHandler(focusID: "test", text: binding, cursorPosition: 10)
@@ -273,7 +273,7 @@ struct TextFieldHandlerTests {
         let consumed = handler.handleKeyEvent(
             KeyEvent(key: .character("u"), ctrl: true))
         #expect(consumed)
-        #expect(text.isEmpty)
+        #expect(text == "brown fox")
         #expect(handler.cursorPosition == 0)
     }
 
