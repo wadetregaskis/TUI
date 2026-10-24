@@ -741,6 +741,9 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     ) -> FrameBuffer {
         let surface = surfaceColor(context)
         let border = palette.border
+        // The appearance's border, as every box's is (owner, 2026-10-24:
+        // "TabView borders should reflect the active border style").
+        let glyphs = TabBoxGlyphs(context.environment.appearance.borderStyle)
         let insets = resolvedContentInsets(style: .bordered, context: context)
         let alignment = context.environment.tabViewHeaderAlignment
         let chip = ActiveChipCycle(
@@ -782,7 +785,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             style: FolderStripStyle(
                 inactiveFg: inactiveFg, hoveredIndex: liftedTab(context: context),
                 palette: palette, inactiveBg: inactiveBg,
-                border: border, surface: surface, interior: interior, boxWidth: boxWidth,
+                border: border, glyphs: glyphs, surface: surface, interior: interior, boxWidth: boxWidth,
                 alignment: alignment, legibility: context.environment.legibilityWeight))
         /// Every line of the box, the strip's first. Each carries its own claims,
         /// placed on the row it lands on when the box is flattened below.
@@ -791,9 +794,9 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         /// whatever lies between them bringing its own claims.
         func boxLine(_ inside: ClaimingRow) -> ClaimingRow {
             var line = ClaimingRow()
-            line.append("│", cells: 1, ink: border)
+            line.append(String(glyphs.wall), cells: 1, ink: border, field: glyphs.field(border))
             line.append(contentsOf: inside)
-            line.append("│", cells: 1, ink: border)
+            line.append(String(glyphs.rightWall), cells: 1, ink: border, field: glyphs.field(border))
             return line
         }
 
@@ -827,8 +830,10 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             box.append(boxLine(panelRow("", used: 0, leftPad: 0, width: interior, surface: surface)))
         }
         var bottom = ClaimingRow()
-        let rule = "╰" + String(repeating: "─", count: interior) + "╯"
-        bottom.append(rule, cells: rule.count, ink: border)
+        let rule =
+            String(glyphs.bottomLeft) + String(repeating: glyphs.bottomHorizontal, count: interior)
+            + String(glyphs.bottomRight)
+        bottom.append(rule, cells: interior + 2, ink: border, field: glyphs.field(border))
         box.append(bottom)
 
         var buffer = FrameBuffer(lines: box.map(\.text))

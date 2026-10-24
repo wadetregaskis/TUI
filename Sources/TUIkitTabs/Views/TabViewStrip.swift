@@ -136,6 +136,8 @@ extension _TabViewCore {
         let palette: any Palette
         let inactiveBg: Color
         let border: Color
+        /// The glyphs the tabs and the box are drawn in: the appearance's border.
+        let glyphs: TabBoxGlyphs
         let surface: Color
         let interior: Int
         let boxWidth: Int
@@ -197,7 +199,9 @@ extension _TabViewCore {
             wallCols.append(col)
 
             // Tab tops: the whole strip span is border-coloured, so emit it as one
-            // run — `╭`/`╮` for active corners & strip ends, `┬` for shared walls.
+            // run — `╭`/`╮` for active corners & strip ends, `┬` for shared walls,
+            // in the appearance's own border (``TabBoxGlyphs``).
+            let glyphs = style.glyphs
             var top = ""
             for k in wallCols.indices {
                 // A wall touching the active tab takes a rounded corner so the
@@ -207,14 +211,14 @@ extension _TabViewCore {
                 // neighbour), which is what makes the active tab stand out.
                 let activeRight = k > 0 && row[k - 1] == selectedIndex
                 let activeLeft = k < bodySpans.count && row[k] == selectedIndex
-                top += Self.topWallGlyph(
+                top.append(Self.topWallGlyph(
                     isStripStart: k == 0, isStripEnd: k == wallCols.count - 1,
-                    activeRight: activeRight, activeLeft: activeLeft)
-                if k < bodySpans.count { top += String(repeating: "─", count: bodySpans[k].len) }
+                    activeRight: activeRight, activeLeft: activeLeft, glyphs: glyphs))
+                if k < bodySpans.count { top += String(repeating: glyphs.horizontal, count: bodySpans[k].len) }
             }
             var tops = ClaimingRow()
             tops.skip(cells: off)
-            tops.append(top, cells: top.count, ink: style.border)
+            tops.append(top, cells: top.count, ink: style.border, field: glyphs.field(style.border))
             tops.skip(cells: style.boxWidth - off - top.count)
             lines.append(tops)
 
@@ -227,7 +231,7 @@ extension _TabViewCore {
                 let hovered = i == style.hoveredIndex && !(active && chip.isBreathing) && !tabs[i].isDisabled
                 let resting =
                     active ? chip.labelNow : restingInk(i, inactive: style.inactiveFg, palette: style.palette)
-                labels.append("│", cells: 1, ink: style.border)
+                labels.append(String(glyphs.wall), cells: 1, ink: style.border, field: glyphs.field(style.border))
                 // One column reached two ways: this row's, which places the claim,
                 // and `bodySpans`', which places the run and the click region.
                 // Asserted, because a run one cell off repaints a wall forever.
@@ -256,7 +260,7 @@ extension _TabViewCore {
                     animatedCells.append(run)
                 }
             }
-            labels.append("│", cells: 1, ink: style.border)
+            labels.append(String(glyphs.rightWall), cells: 1, ink: style.border, field: glyphs.field(style.border))
             labels.skip(cells: style.boxWidth - off - folderRowWidth(row))
             lines.append(labels)
 
@@ -265,7 +269,7 @@ extension _TabViewCore {
             if isBottom {
                 lines.append(activeRowBottomBorder(
                     wallCols: wallCols, bodySpans: bodySpans, selectedIndex: selectedIndex,
-                    boxWidth: style.boxWidth, border: style.border, surface: style.surface))
+                    boxWidth: style.boxWidth, border: style.border, surface: style.surface, glyphs: glyphs))
             }
         }
         return (lines, regions, animatedCells)
@@ -314,64 +318,72 @@ extension _TabViewCore {
         (palette.foregroundSecondary, palette.background.resolve(with: palette))
     }
 
-    /// The glyph for a tab-strip top wall: rounded corners at the strip ends and
-    /// around the active tab (`╭`/`╮`), a `┬` for an ordinary shared wall. The
-    /// precedence (strip-end before active-tab) makes a wall that is both read as
-    /// the strip end.
+    /// The glyph for a tab-strip top wall: the border's corners at the strip
+    /// ends and around the active tab (`╭`/`╮` under the rounded border), its
+    /// `┬` for an ordinary shared wall. The precedence (strip-end before
+    /// active-tab) makes a wall that is both read as the strip end.
     static func topWallGlyph(
-        isStripStart: Bool, isStripEnd: Bool, activeRight: Bool, activeLeft: Bool
-    ) -> String {
+        isStripStart: Bool, isStripEnd: Bool, activeRight: Bool, activeLeft: Bool, glyphs: TabBoxGlyphs
+    ) -> Character {
         if isStripStart {
-            return "╭"
+            glyphs.topLeft
         } else if isStripEnd {
-            return "╮"
+            glyphs.topRight
         } else if activeRight {
-            return "╮"
+            glyphs.meeting(glyphs.wall, glyphs.topRight)
         } else if activeLeft {
-            return "╭"
+            glyphs.meeting(glyphs.wall, glyphs.topLeft)
         } else {
-            return "┬"
+            glyphs.teeDown
         }
     }
 
     /// The content box's top border drawn beneath the active (bottom) tab row: it
     /// curves up to wrap the active tab (`╯` … `╰`, with a surface-coloured gap
-    /// across the tab body) and meets the inactive walls with `┴`.
+    /// across the tab body) and meets the inactive walls with `┴` — in the
+    /// border's own glyphs (``TabBoxGlyphs``).
     func activeRowBottomBorder(
         wallCols: [Int], bodySpans: [(start: Int, len: Int, index: Int)],
-        selectedIndex: Int, boxWidth: Int, border: Color, surface: Color
+        selectedIndex: Int, boxWidth: Int, border: Color, surface: Color, glyphs: TabBoxGlyphs
     ) -> ClaimingRow {
+        let field = glyphs.field(border)
         var line = ClaimingRow()
         let activeWall = wallCols.firstIndex { wc in
             bodySpans.contains { $0.index == selectedIndex && $0.start == wc + 1 }
         } ?? 0
         let aLeft = wallCols[activeWall]
         guard let aBody = bodySpans.first(where: { $0.index == selectedIndex }) else {
-            let rule = "╰" + String(repeating: "─", count: max(0, boxWidth - 2)) + "╯"
-            line.append(rule, cells: rule.count, ink: border)
+            let rule =
+                String(glyphs.bottomLeft) + String(repeating: glyphs.horizontal, count: max(0, boxWidth - 2))
+                + String(glyphs.bottomRight)
+            line.append(rule, cells: rule.count, ink: border, field: field)
             return line
         }
         let aRight = aBody.start + aBody.len
         let inactiveWalls = Set(wallCols).subtracting([aLeft, aRight])
-        func borderGlyph(_ c: Int) -> String {
-            if c == 0 { return "╭" }
-            if c == boxWidth - 1 { return "╮" }
-            if c == aLeft { return "╯" }
-            if c == aRight { return "╰" }
-            return inactiveWalls.contains(c) ? "┴" : "─"
+        // The wall coming down into this line at column `c`: the strip's last is
+        // its right wall, as the label row drew it.
+        let lastWall = wallCols.last
+        func wall(_ c: Int) -> Character { c == lastWall ? glyphs.rightWall : glyphs.wall }
+        func borderGlyph(_ c: Int) -> Character {
+            if c == 0 { return glyphs.topLeft }
+            if c == boxWidth - 1 { return glyphs.topRight }
+            if c == aLeft { return glyphs.meeting(wall(c), glyphs.bottomRight) }
+            if c == aRight { return glyphs.meeting(wall(c), glyphs.bottomLeft) }
+            return inactiveWalls.contains(c) ? glyphs.meeting(wall(c), glyphs.teeUp) : glyphs.horizontal
         }
         var left = ""
-        for c in 0..<aBody.start { left += borderGlyph(c) }
+        for c in 0..<aBody.start { left.append(borderGlyph(c)) }
         var right = ""
-        for c in aRight..<boxWidth { right += borderGlyph(c) }
-        line.append(left, cells: aBody.start, ink: border)
+        for c in aRight..<boxWidth { right.append(borderGlyph(c)) }
+        line.append(left, cells: aBody.start, ink: border, field: field)
         // The mouth: the active tab's body opening into the panel, in the panel's
         // surface with nothing drawn in it — so it owes a field and no ink. Nothing at
         // all for a body of no width.
         if aBody.len > 0 {
             line.append(String.spaces(aBody.len), cells: aBody.len, ink: nil, field: surface)
         }
-        line.append(right, cells: boxWidth - aRight, ink: border)
+        line.append(right, cells: boxWidth - aRight, ink: border, field: field)
         return line
     }
 
