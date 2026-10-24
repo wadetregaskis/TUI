@@ -6,6 +6,7 @@ costs no build. 262k occurrences in 794 files read in about 3 s (2026-10-07, M-s
 """
 import ctypes
 import glob
+import json
 import os
 import shutil
 import subprocess
@@ -46,6 +47,18 @@ def find_libindexstore():
     PATH resolves to."""
     env = os.environ.get('MODULEMAP_LIBINDEXSTORE')
     if env: return env
+    try:
+        res = subprocess.run(['swift', '-print-target-info'], capture_output=True, text=True)
+        if res.returncode == 0:
+            info = json.loads(res.stdout)
+            rpath = info.get('paths', {}).get('runtimeResourcePath', '')
+            if rpath:
+                lib = os.path.dirname(rpath)
+                for name in ('libIndexStore.dylib', 'libIndexStore.so'):
+                    p = os.path.join(lib, name)
+                    if os.path.exists(p): return p
+    except (OSError, ValueError):
+        pass
     cands = []
     try:
         found = subprocess.run(['xcrun', '--find', 'swift'], capture_output=True, text=True, check=True)
