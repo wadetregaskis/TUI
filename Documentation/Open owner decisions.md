@@ -401,6 +401,7 @@ Recommendation: option 2 through the shapes' half-block emitter, so gradient Rec
 | [SDK15-CI](#sdk15-ci) | Should CI build TUIkit with a swift.org 6.2 toolchain against the macOS 15.5 SDK, which is what a swiftly user on macOS 15 with the default Command Line Tools gets? | (a) if you want swiftly users on macOS 15 supported (your 10-07 point that users may not use Xcode); otherwise (c). I lean (a). | In effect (b): it builds today and may silently stop. |
 | [SINGLETON-CACHES](#singleton-caches) | Do the two process-wide caches, URLImageCache.shared and the ASCII palette search-index store, count as singletons under CLAUDE.md's 'No Singletons' rule? | (c). The palette store is a memo whose contents nothing can observe. The image cache holds downloaded data the app sees, grows without limit, and can't be swapped for tests. | Both stay as they are, and the rule's text and the code disagree. |
 | [WINDOWS-PORT](#windows-port) | Should the Windows port of the console layer (TUIkitApp's Windows code) be scheduled now, or should Windows stay 'easy to port later', with only the small CI bookkeeping done? | (b). | Windows stays a goal, and even (b)'s bookkeeping can't happen until a push. |
+| [TERMCAPS-API](#termcaps-api) | Item #9: should TUIkit tell an app what the terminal it runs in can draw (patterned underlines, overlines, blink, graphics…), read-only, so that a page can say "your terminal doesn't draw this"? Three questions on naming, granularity and scope. | Build it as the proposal says, about a day: `terminalCapabilities` and `Feature`, colour depth left as `ColorDepth`, patterned underlines as one group, only what TUIkit measures. | Nothing is exposed; the Example keeps saying what each terminal does in its own text. |
 | [A-D6L-1](#a-d6l-1) | Should the `.surface` look (no border; rows on a lifted background) stay an opt-in style, become what `.automatic` draws for tables (and perhaps lists), or replace what `.inset` draws? | Option 4. You have already been using `.surface` in the Example, and the table border is the heaviest chrome. Decide lists together with A-D6L-2. It is a question of look, so it is yours. | Tables and lists stay bordered by default, and `.surface` stays an opt-in style whose doc comments still call it a prototype that may be renamed or removed. |
 | [A-D6L-2](#a-d6l-2) | Should lists draw a separator line under every row by default, as SwiftUI's do on macOS, given that here each separator takes up a whole terminal line? | Keep option 1 for now. Revisit as option 4 when the hairline prototype is scheduled, since it removes the cost that makes option 2 bad. If you make the surface look a default (A-D6L-1), decide option 3 at the same time. | Separators stay off unless an app, section or row asks for them. The Example's "Separators between rows" toggle remains the way to see them. |
 | [B-D2S-6](#b-d2s-6) | Under a scroll target behaviour such as `.paging`, should a `.text`-indicator scroll view keep its '▲ N more' / '▼ N more' lines drawn at every stop (shipped), or let them come and go and make every page two lines shorter? | Option 1, unless the '▲ 0 more' line at the top bothers you on the Example's Scroll View page. | The pair stays drawn at every stop under a scroll target behaviour. |
@@ -425,6 +426,7 @@ Recommendation: option 2 through the shapes' half-block emitter, so gradient Rec
 | [DRAWERS](#drawers) | Build a TUI-only drawer (and perhaps a slideover) from the draft, or retire the draft to Historical, now that .inspector, split views and docked live sheets cover the cases it was written for? | Option 1. The cases the draft wanted are covered by APIs that carry SwiftUI's names, and a TUI-only drawer would duplicate .inspector. | The draft stays in Documentation as an open item and keeps appearing in the census. |
 | [B-D5C-1](#b-d5c-1) | Keep TUIkit's extra windowToolbarStyle(_: any WindowToolbarStyle) overload, replace it with if/else support in SceneBuilder, or have the Example choose its toolbar style only at launch? | Option 1. | The overload stays. |
 | [DEPR-ALERT-NAME](#depr-alert-name) | Rename TUIkit's `Alert` view, whose name matches SwiftUI's soft-deprecated `Alert` struct? | Option b. CLAUDE.md keeps TUI-only APIs apart from SwiftUI's, and the current name reads as SwiftUI's retired type. | The name stays. |
+| [A-MENUBAR-1](#a-menubar-1) | Should TUIkit offer a standard set of display-option commands, `DisplayCommands()`, adding View ▸ Palette ▸ and View ▸ Border Style ▸ to any app's menu bar, as the Example now writes for itself? | Option 2, acting on the app's palette and appearance managers as the `t` and `a` keys do. | Apps write their own, as the Example does. |
 | [B-D1K-1](#b-d1k-1) | Where the kitty keyboard protocol lets a ⌘ chord through, should TUIkit deliver it as ⌘ (.command) instead of dropping it, and if so should KeyboardShortcut("s") fire on the real ⌘S, on its Ctrl-S stand-in, or on both? | Deliver ⌘ and fire on both. It's the only precedence that never makes a shortcut unreachable, and it gives onKeyPress SwiftUI's [.command]. Not urgent: nothing breaks while it waits. | ⌘ chords stay dropped under the kitty protocol, and ⌘ shortcuts are reached only through the stand-in key. |
 | [B63-CTRLJ](#b63-ctrlj) | Should the input parser read LF (0x0A) as Ctrl-J instead of Return, so a vertical TextField can bind Ctrl-J to insert a newline on every terminal? | Parse LF as Ctrl-J. The existing fallback limits the risk to vertical fields, and the result is a newline key that works on every terminal, Apple Terminal included. | LF stays Return. In a vertical field a newline is Ctrl-O everywhere, or Option-Return where Option is sent as Meta. |
 | [B63-KITTY](#b63-kitty) | Under the kitty keyboard protocol, should Ctrl-Return in a vertical TextField insert U+2028 LINE SEPARATOR, as SwiftUI does, instead of submitting? | Insert U+2028, as SwiftUI does, once the text-path work is priced. If that comes to more than about a day, ship '\n' for now. | Ctrl-Return submits a vertical field on every terminal, as it does today. |
@@ -449,6 +451,7 @@ Recommendation: option 2 through the shapes' half-block emitter, so gradient Rec
 | [B86](#b86) | Should TUIkit's Markdown parse close its two known differences from Foundation's: all 2,125 HTML named entities, and link reference definitions? | Leave both until a translation needs them, as the decision doc says. If you want the parse identical, do reference definitions first, since they cost no bytes. | Both differences stay, recorded in T3. |
 | [B51-LIVE](#b51-live) | Should the APIs that take a Text only for its string keep a live Text (a timer, a relative date) updating, as SwiftUI does? These are navigationTitle(Text), help(Text), dismissalConfirmationDialog's title, and the titles still kept as strings. | Leave it until an app asks; none has. Meanwhile, check that B87's controls really are live now. | Live titles in these places stay at their value from when they were built, until the view around them is rebuilt. |
 | [DEPR-CATCHALL](#depr-catchall) | For `Text("… \(anything)")`, should TUIkit keep its silent catch-all interpolation? Or add typed overloads and then mark the catch-all deprecated, as SwiftUI does on the 26 SDK? Or add typed overloads and then remove it? | (b). It matches SwiftUI on the current SDK, warning included, and the typed overloads are needed either way. | The catch-all stays live and silent: an exception to [21] that nobody has approved. |
+| [A-TEXT2-1](#a-text2-1) | A drag begun inside a bordered container now stays inside it (#10). Should a mouse gesture from inside widen it to the pane, beyond starting the drag on the border? | Option 1: the border is the handle, and `.textSelectionScope(.pane)` restores the old reach for a whole app. | Only a drag begun on the border or outside the box reaches the page. |
 | [A27](#a27) | For Wave 16's leftovers, do you take the recommended set (decline the six transforms, ship mask(alignment:_:) at cell coverage, ship drawingGroup as compositingGroup)? And should linear-light blending be added so that drawingGroup(colorMode: .linear) is honoured rather than ignored? | Option 2. Declining the transforms keeps rule 2 (nothing is silently ignored), mask and drawingGroup have honest cell readings, and linear blending is cheap and makes drawingGroup's colorMode honoured instead of documented as ignored. | All eight stay as gaps that fail to compile, A39 keeps waiting, and blending stays in encoded sRGB only. |
 | [A34](#a34) | Should BlurReplaceTransition ship as a scale plus a fade (the blur drawn as a fade), stay out, or also get a cell 'blur' made of shade blocks? | Option 2. At cell resolution a blurred view reads as a faded one, so the gap closes for about an hour of work. | It stays out, and .blurReplace in ported code fails to compile. |
 | [B61](#b61) | Should the content-transition dissolve move into Text and Image, with each reading \.contentTransition as SwiftUI's leaf views do, built as the first piece of A40's cheaper-design study? | Option 2, landed if the A/B on text-heavy scenarios (textwall, fanout, menus) is within a few percent. It adds SwiftUI's leaf semantics, and A40's study needs it as a base. | The subtree dissolve stays. |
@@ -712,6 +715,22 @@ CLAUDE.md says Windows is a port in progress, with the goal of keeping it easy; 
 **If you don't answer:** Windows stays a goal, and even (b)'s bookkeeping can't happen until a push.
 
 <sub>Sources: .claude/CLAUDE.md (Cross-platform); CONTRIBUTING.md:125-215; Documentation/Reviews/Upstream review/notes/PR 46, module tests.md:58-70</sub>
+
+### TERMCAPS-API
+
+**Terminal capabilities for apps (your item #9).** The draft is [Terminal capabilities for apps, a proposal (2026-10-23)](<Terminals/Terminal capabilities for apps, a proposal (2026-10-23).md>): a read-only, TUI-specific `\.terminalCapabilities` value answering, per `Feature`, what TUIkit already knows of the terminal (its host tables and the measured survey), so that a page can say "your terminal doesn't draw curly underlines" instead of showing nothing. Three questions:
+
+- **Naming.** `terminalCapabilities` and `Feature`, or something shorter; and whether colour depth belongs here (a user can force it at run time) or stays `ColorDepth`.
+- **Granularity.** One `patternedUnderline` (curly, dotted and dashed together), or one case per shape. Every terminal measured so far treats them as a group.
+- **Scope.** Only what TUIkit measures, or also keys an app might want (the kitty protocol's modifier-only reports, which item #25's mnemonic underlines would use).
+
+*Price:* About a day, including the Example's notes in seven languages. Additive.
+
+**Recommended:** Build it as the proposal says, with the names as drafted, colour depth left as `ColorDepth`, one patterned-underline group, and only what TUIkit measures.
+
+**If you don't answer:** Nothing is exposed.
+
+<sub>Sources: Documentation/Terminals/Terminal capabilities for apps, a proposal (2026-10-23).md, "Open questions for the owner"</sub>
 
 ## Layout, scrolling and lists
 
@@ -1105,6 +1124,20 @@ TUIkit's `struct Alert<Actions: View>` (Sources/TUIkitPresentation/Views/Alert.s
 **If you don't answer:** The name stays.
 
 <sub>Sources: /Users/robot/Documents/TUIkit-session-notes/DEPR/notes.md ('Name only'); /Users/robot/Documents/TUIkit/Sources/TUIkitPresentation/Views/Alert.swift:7-64; /Users/robot/Documents/TUIkit/Sources/Example/Pages/OverlaysPage.swift:620-645; /Users/robot/.claude/projects/-Users-robot-Documents-TUIkit/memory/no-backwards-compat-shims.md</sub>
+
+### A-MENUBAR-1
+
+**A standard command set for display options.** Your item #6 asked for "maybe a default TUIkit View menu with display options". The Example's View menu now has Palette ▸, Border Style ▸ and Text Styling ▸, written in the Example. Should TUIkit offer the same to every app, as SwiftUI offers `ToolbarCommands` and `SidebarCommands`?
+
+- **1. Nothing in TUIkit** (today). An app writes its own, about twenty lines of `Picker`s over `PaletteRegistry.all` and `AppearanceRegistry.all`. *Price:* None.
+- **2. `DisplayCommands()`**, a TUIkit-only standard set adding View ▸ Palette ▸ and View ▸ Border Style ▸, acting on the app's palette and appearance managers as the `t` and `a` keys do. An app that holds its palette itself and applies it with `.palette(_:)` at the scene, as the Example does, overrides the manager, so the set's Palette would do nothing visible there; it is documented as acting on the managers. *Price:* Half a day with tests.
+- **3. 2, plus a binding form**, `DisplayCommands(palette: $palette)`, for an app that holds its palette. *Price:* A day.
+
+**Recommended:** Option 2.
+
+**If you don't answer:** Apps write their own, as the Example does.
+
+<sub>Sources: Documentation/SwiftUI parity/Decisions/Menus, toolbars and chrome/The menu bar behaves as macOS's (MENUBAR).md, A-MENUBAR-1</sub>
 
 ## Input, keys and gestures
 
@@ -1503,6 +1536,20 @@ Your 10-12 ruling [21] says not to implement deprecated SwiftUI API. TUIkit's ap
 **If you don't answer:** The catch-all stays live and silent: an exception to [21] that nobody has approved.
 
 <sub>Sources: Sources/TUIkitFoundation/Localization/LocalizedStringKey.swift:486-510; Documentation/SwiftUI parity/Decisions/Small parity items (PARITYMISC).md:128-151 (B-PARITYMISC-4); /Users/robot/Documents/TUIkit-session-notes/DEPR/notes.md:13, :163-167, :258; /Users/robot/Documents/TUIkit-session-notes/plan/QUEUE.md:21, :554; memory/owner-decisions-2026-10-12.md:42-43 ([21]); memory/zero-compiler-warnings.md</sub>
+
+### A-TEXT2-1
+
+**A gesture that widens a container's selection to the pane.** Since #10, a drag selection begun inside a bordered container stays inside it. You asked for suggestions for getting past that from the mouse. Option (a rectangle), Shift (a rectangle's moving corner, and many terminals' own bypass) and Control (the secondary click) are taken. What already works: start the drag on the container's border, or in the blank cells beside it, and it crosses the container as it always did.
+
+- **1. Nothing beyond the border** (shipped). *Price:* None. A drag from the middle of a card's text cannot reach the page.
+- **2. A drag that leaves the container by more than N cells widens to the pane.** *Price:* Small to build, but ambiguous: a drag to "the end of the card" overshoots the bottom border by a row or three as a matter of course, so a fast drag crosses any N by accident and the selection jumps out to the page mid-gesture.
+- **3. A double-press-and-drag on the border selects the whole box and extends from there.** *Price:* Small; a new rule to learn.
+
+**Recommended:** Option 1. `.textSelectionScope(.pane)` restores the old reach for an app that wants it everywhere.
+
+**If you don't answer:** Only a drag begun on the border or outside the box reaches the page.
+
+<sub>Sources: Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Ctrl-U, selection kept to a container, undoable reorders (TEXT2).md, A-TEXT2-1</sub>
 
 ## Visuals, animation and colour
 
