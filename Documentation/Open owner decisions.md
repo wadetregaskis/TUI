@@ -46,7 +46,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [B-D5G-4](#b-d5g-4) | (2), placed towards the end of the queue. | Queued near the end of the queue. |
 | [RC5](#rc5) | Concur with the recommendation. | (a) with (c)'s test sweep, queued. |
 | [TABLE-CLOSURE-COLUMN](#table-closure-column) | (b); asked about a "pure" closure overload. | (b) queued; the overload is answered below. |
-| [SA-82-TABVIEW-PLAIN](#sa-82-tabview-plain) | (b). | Queued (docs only). |
+| [SA-82-TABVIEW-PLAIN](#sa-82-tabview-plain) | (b). | Done (lane DOCS2): declined in C16; the slated row is closed. |
 | [A21-TABPOPOVER](#a21-tabpopover) | (1). | Queued. |
 | [B72-CAPSULE](#b72-capsule) | Mock up options B and C. | Mock-ups: [https://claude.ai/artifact/CAnzvGdKq3BqRMZNHYBSdY](https://claude.ai/artifact/CAnzvGdKq3BqRMZNHYBSdY) — your call. |
 | [B75](#b75) | Asked what SwiftUI does. | Answered below — your call. |

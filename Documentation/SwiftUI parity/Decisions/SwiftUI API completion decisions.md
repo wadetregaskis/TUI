@@ -3679,3 +3679,32 @@ wheel and three modifier bits. `WindowDragGesture` is declined with the Window
 family (a TUIkit app has no window to drag), and `View.gesture(_:)` with the
 AppKit-bridge family. The family's old reason — "no velocity, no simultaneous
 touches, nothing to arbitrate" — is gone with what it refused.
+
+### C16. `TabView` with plain-view content (SA-82)
+
+*`TabView.init(content:)` and `TabView.init(selection:content:)` taking
+plain views as pages, written `TabView { Text("A"); Text("B") }`, with or
+without `.tag(_:)`*
+
+The owner declined these on 2026-10-23 (SA-82-TABVIEW-PLAIN, option b).
+`TabView(content:)` with `SelectionValue == Int` is not deprecated in SwiftUI,
+and it takes plain views. On macOS, though, a page needs a label to appear in
+the tab strip, and the only way to give a plain view one is `.tabItem`, which
+is deprecated (in favour of `Tab`) and which TUIkit does not implement. TUIkit
+would have had to invent the strip: numbered tabs, blank tabs as macOS shows,
+or a page indicator. SwiftUI code that compiled would then show unlabelled
+tabs.
+
+`TabView` takes `TabContent` only (`Tab`, `TabSection`, `ForEach` and
+conditionals of them), so plain-view content stays a compile error. That is
+rule 2's correct failure, and it replaced the silent blank screen the semantic
+audit found (item 82). The earlier 10-14 answer ("deprecated forms only") was
+wrong about the SDK: the plain form is not deprecated. The decision rests on
+the missing label source instead.
+
+`parity-map.json` has no entry for it. It records absent symbols, and
+`TabView.init(content:)` is present: the `Tab` form has the same name and
+labels, so the tool's audit would call an entry for it stale. The compatibility
+guide's `TabView` row carries the decline, and the Deliberate deviations page
+no longer lists it, since a declined API belongs to rule 2 and not to that
+page. Revisit if `.tabItem` is ever implemented.
