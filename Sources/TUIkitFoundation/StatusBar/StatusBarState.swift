@@ -548,8 +548,12 @@ public final class StatusBarState: @unchecked Sendable {
         return sortedUserItems + filteredSystemItems
     }
 
-    /// Whether the status bar has any items to display.
-    public var hasItems: Bool { !currentItems.isEmpty }
+    /// Whether the status bar has any items to display — counting those it
+    /// leaves out while type select holds the focus
+    /// (``typeSelectHoldsTypedKeys``), so the bar keeps its row as the focus
+    /// moves into a list and out again, rather than the page jumping by a row
+    /// each time.
+    public var hasItems: Bool { !resolvedUserItems.isEmpty || !allSystemItems.isEmpty }
 
     /// Whether there are any user items (ignoring system items).
     public var hasUserItems: Bool { !currentUserItems.isEmpty }

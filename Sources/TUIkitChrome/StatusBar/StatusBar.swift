@@ -241,7 +241,7 @@ private struct _AppStatusBarCore: View, Renderable {
         // — and writes the hover back to it.
         var lineContext = context
         lineContext.environment.statusBar = state
-        let line = TUIkitView.renderToBuffer(
+        var line = TUIkitView.renderToBuffer(
             _StatusBarCore(
                 userItems: note ? [] : state.currentUserItems,
                 systemItems: note ? [] : state.currentSystemItems,
@@ -252,6 +252,14 @@ private struct _AppStatusBarCore: View, Renderable {
                 tooltipLines: note ? state.tooltipLines : []
             ),
             context: lineContext)
+        // A line whose every item is one a focused list's type select keeps
+        // from it draws none of them (`StatusBarState.typeSelectHoldsTypedKeys`)
+        // but keeps its row, blank: a bar that came and went with the focus
+        // would move the page a row each time, and the row is where the
+        // Escape a list claims a frame later is shown.
+        if line.lines.isEmpty, !note, state.hasItems {
+            line = FrameBuffer(lines: [String.spaces(max(0, context.availableWidth))])
+        }
         // The regions an inert bar keeps: a click on a hint is the key.
         if !context.isMeasuring { context.environment.windowChrome?.noteAppLine(line) }
         return line
