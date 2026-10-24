@@ -718,7 +718,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **TUIkit:** a text control coalesces a typing run into one undo step, as
   the macOS text system does (measured on macOS 15.8, B-D1K-6; until
   2026-10-18 each input event's edits were one step). The keys are data: undo on
-  Ctrl-Z, Ctrl-minus and Ctrl-/; redo on Ctrl-Shift-Z, Ctrl-_ and Option-_,
+  Ctrl-Z, Ctrl-minus and Ctrl-/; redo on Ctrl-Y (a text control's yank while
+  one has the focus), Ctrl-Shift-Z, Ctrl-_ and Option-_,
   replaced app-wide with `.undoShortcuts(_:)`. A `SecureField` registers
   nothing. Where Foundation has no `UndoManager` (Linux), TUIkit's own does
   nothing, or makes a step of its own, where `NSUndoManager` raises, and posts

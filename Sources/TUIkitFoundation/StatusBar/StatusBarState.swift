@@ -458,19 +458,23 @@ public final class StatusBarState: @unchecked Sendable {
     private func undoItems(_ undoManager: UndoManager) -> [StatusBarItem] {
         let reference = MainActorUndoManager(undoManager)
         let (canUndo, canRedo) = MainActor.assumeIsolated { (reference.manager.canUndo, reference.manager.canRedo) }
+        guard canUndo || canRedo else { return [] }
         let localization = LocalizationService.shared
+        // The hint follows the focus: a text field's own ⌃Y yanks, so redo
+        // is named by another of its keys while one has it (FB9-REDO).
+        let focus = focusManager?.currentFocused as? any TextInputFocusHandler
         var items: [StatusBarItem] = []
         if canUndo {
             items.append(
                 StatusBarItem(
-                    id: Self.undoItemID, naming: undoKeys.hint(for: .undo) ?? "",
+                    id: Self.undoItemID, naming: undoKeys.hint(for: .undo, sparing: focus) ?? "",
                     label: localization.string(for: LocalizationKey.StatusBar.undo), order: .undo
                 ) { _ = UndoCommand.undo.perform(on: undoManager) })
         }
         if canRedo {
             items.append(
                 StatusBarItem(
-                    id: Self.redoItemID, naming: undoKeys.hint(for: .redo) ?? "",
+                    id: Self.redoItemID, naming: undoKeys.hint(for: .redo, sparing: focus) ?? "",
                     label: localization.string(for: LocalizationKey.StatusBar.redo), order: .redo
                 ) { _ = UndoCommand.redo.perform(on: undoManager) })
         }

@@ -21,4 +21,11 @@ extension TextFieldHandler: TextInputFocusHandler {
     func editsWith(_ event: KeyEvent) -> Bool {
         TextFieldChord(event) != nil
     }
+
+    /// Its readline chords: ⌃Y, which yanks, is the one of them the undo keys
+    /// bind (redo). The chords standing in for ⌘Z and ⇧⌘Z undo and redo, so
+    /// they are not kept from them.
+    func keepsFromUndoKeys(_ event: KeyEvent) -> Bool {
+        editingCommand(for: event) != nil
+    }
 }

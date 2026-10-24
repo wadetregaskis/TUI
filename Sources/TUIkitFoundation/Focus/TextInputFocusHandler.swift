@@ -43,9 +43,21 @@ package protocol TextInputFocusHandler: AnyObject {
     /// say — so that is where the composition appears: on the caret, as in any
     /// text control, instead of wherever the frame's last write ended.
     var insertionPoint: CellPoint? { get }
+
+    /// Whether the control takes `event` for an editing command of its own
+    /// that is not the app's undo or redo — a text field's ⌃Y, which yanks —
+    /// so the app's undo keys never hear it while the control has the focus.
+    /// The status bar and the menu bar then name another of the command's keys
+    /// (`AppUndoKeys.hint(for:sparing:)`; the owner's ruling FB9-REDO,
+    /// 2026-10-23). Not the chords that stand in for ⌘Z and ⇧⌘Z, which undo
+    /// and redo as the app's keys do.
+    func keepsFromUndoKeys(_ event: KeyEvent) -> Bool
 }
 
 extension TextInputFocusHandler {
     /// None: the control's input has no insertion point to show.
     package var insertionPoint: CellPoint? { nil }
+
+    /// None: the control edits with no chord the undo keys bind.
+    package func keepsFromUndoKeys(_ event: KeyEvent) -> Bool { false }
 }

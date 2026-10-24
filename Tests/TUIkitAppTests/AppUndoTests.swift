@@ -63,14 +63,14 @@ struct AppUndoTests {
         #expect(keys.command(for: Self.controlMinus) == .undo)
         #expect(keys.command(for: control("-")) == .undo)
         #expect(keys.command(for: control("/")) == .undo)
-        // Redo: Ctrl-Shift-Z and Ctrl-_ where the terminal reports them,
-        // Option-_ where Option is Meta.
+        // Redo: Ctrl-Y on every terminal (FB9-REDO), Ctrl-Shift-Z and Ctrl-_
+        // where the terminal reports them, Option-_ where Option is Meta.
+        #expect(keys.command(for: KeyEvent.parse([0x19])!) == .redo)
+        #expect(keys.command(for: control("y")) == .redo)
         #expect(keys.command(for: Self.controlShiftZ) == .redo)
         #expect(keys.command(for: control("_")) == .redo)
         #expect(keys.command(for: KeyEvent.parse([0x1B, 0x5F])!) == .redo)
-        // Neither: Ctrl-Y is the yank; a release is not a press; a minus is a
-        // minus.
-        #expect(keys.command(for: control("y")) == nil)
+        // Neither: a release is not a press; a minus is a minus.
         #expect(keys.command(for: KeyEvent(key: .character("-"), ctrl: true, phase: .release)) == nil)
         #expect(keys.command(for: KeyEvent(character: "-")) == nil)
     }
@@ -222,7 +222,7 @@ struct AppUndoTests {
         #expect(!labels(statusBar).contains("⌃Z"))
         set(model, to: 1, on: manager)
         #expect(labels(statusBar).contains("⌃Z"))
-        #expect(!labels(statusBar).contains("⌥_"))
+        #expect(!labels(statusBar).contains("⌃Y"))
 
         let undo = try #require(statusBar.currentSystemItems.first { $0.shortcut == "⌃Z" })
         undo.execute()
@@ -231,7 +231,7 @@ struct AppUndoTests {
         let withoutUndo: [String] = shown.filter { $0 != "⌃Z" }
         #expect(shown == withoutUndo)
 
-        let redo = try #require(statusBar.currentSystemItems.first { $0.shortcut == "⌥_" })
+        let redo = try #require(statusBar.currentSystemItems.first { $0.shortcut == "⌃Y" })
         redo.execute()
         #expect(model.value == 1)
     }
@@ -247,8 +247,9 @@ struct AppUndoTests {
         manager.undo()
         // A legacy terminal: Ctrl-Z for undo, the name undo is known by
         // (`UndoCommand.preferredHints`); for redo, Ctrl-_ and Ctrl-Shift-Z
-        // cannot be sent apart from Ctrl-minus and Ctrl-Z, so Option-_.
-        #expect(labels(statusBar).contains("⌃Z") && labels(statusBar).contains("⌥_"))
+        // cannot be sent apart from Ctrl-minus and Ctrl-Z, so Ctrl-Y, which
+        // every terminal sends (FB9-REDO).
+        #expect(labels(statusBar).contains("⌃Z") && labels(statusBar).contains("⌃Y"))
         // The kitty protocol: Ctrl-Shift-Z arrives as itself, and is redo's name.
         statusBar.undoKeys.reporting = KeyboardReporting(flags: .requested)
         #expect(labels(statusBar).contains("⌃Z") && labels(statusBar).contains("⌃⇧Z"))

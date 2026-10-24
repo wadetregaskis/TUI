@@ -6028,16 +6028,19 @@ of `rowShortcuts`). The defaults, and what each terminal makes of them:
 | **Undo:** Ctrl-Z | `0x1A` | Ctrl-Z: **undo** (since 2026-10-04; before, the shell's suspend) | `CSI 122;5u`: undo |
 | **Undo:** Ctrl-minus | `0x1F` (`^_`), by the xterm convention most terminals follow | Ctrl-minus — `KeyEvent.parse`, since 2026-10-04 (it used to drop the byte) | `CSI 45;5u` |
 | **Undo:** Ctrl-/ | `0x1F` too, on most terminals | Ctrl-minus: **undo** | `CSI 47;5u`: undo |
+| **Redo:** Ctrl-Y | `0x19` on every terminal in raw mode, which clears BSD's delayed-suspend character (`Terminal+LineDiscipline.swift`) | Ctrl-Y: **redo** — but in a focused text field or editor, its **yank** (since 2026-10-24, FB9-REDO) | `CSI 121;5u`: the same |
 | **Redo:** Ctrl-Shift-minus (Ctrl-_) | `0x1F` — the same byte | Ctrl-minus: **undo**, not redo | `CSI 45:95;6u`: redo (with flag 4; Ctrl-Shift-minus, so undo, without it) |
 | **Redo:** Ctrl-Shift-Z | `0x1A`, Ctrl-Z | Ctrl-Z: **undo**, not redo | `CSI 122:90;6u`: redo (with or without flag 4: a letter's capital is known) |
 | **Redo:** Option-_ (Option-Shift-minus) | `ESC _` where Option is sent as Meta; otherwise the composed `—` | Option-_, once the parser's dead-sequence wait (about 200 ms) is up — `ESC _` is also an APC reply's introducer; see below | `CSI 45:95;4u` where the host reports Option as Alt; the text `—` where it composes |
 
-So on a legacy terminal undo is always on the keyboard and redo is on it only
-where Option is sent as Meta (Apple Terminal's "Use Option as Meta key", iTerm2's
-Esc+, Ghostty's `macos-option-as-alt`; none of them is the default on every
-host — expected, not measured); everywhere else redo is the status bar's.
-Where the kitty keyboard protocol is on (see that section), Ctrl-Shift-Z and
-Ctrl-_ redo as on a Mac.
+So on a legacy terminal undo is always on the keyboard, and so is redo, as
+Ctrl-Y, outside a text control (the owner's ruling FB9-REDO, 2026-10-23); in a
+text field or editor, which keeps Ctrl-Y for its yank, redo is on the keyboard
+only where Option is sent as Meta (Apple Terminal's "Use Option as Meta key",
+iTerm2's Esc+, Ghostty's `macos-option-as-alt`; none of them is the default on
+every host — expected, not measured), and otherwise is the status bar's and the
+menu bar's. Where the kitty keyboard protocol is on (see that section),
+Ctrl-Shift-Z and Ctrl-_ redo as on a Mac.
 
 **A bound key is its command's, step or no step.** With nothing to undo,
 Ctrl-Z does nothing: it never suspends the app some of the time and undoes
@@ -6077,7 +6080,10 @@ legacy encoding a Control chord only on a letter (bar Ctrl-H, I, J, M) or
 minus, and never with Shift; under the protocol any Control chord, one on a
 shifted character only with flag 4; an Option chord always, since whether
 Option is Meta cannot be asked. With the defaults that is `^-` for undo
-everywhere, and `^_` for redo under the protocol, `M-_` elsewhere. A command
+everywhere, and for redo `⌃⇧Z` under the protocol and `⌃Y` elsewhere — but
+`⌥_` while a text control has the focus, whose Ctrl-Y is its yank: the hint
+follows the focus (`AppUndoKeys.hint(for:sparing:)`, FB9-REDO), and so does the
+menu bar's Edit ▸ Redo. A command
 with no key the terminal can deliver is shown with none, its click still
 working. **The bar names the key; it does not bind it** — the undo keys above
 are matched only at the bottom of the input chain. Until the 2026-10-05 review
@@ -6086,10 +6092,15 @@ key at layer 1, ahead of every view: an app's Option-← undo (`M-←`) made a
 plain ← undo, and a vim-style bare `u` undid ahead of a list's type select
 while there was a step and reached it while there was not.
 
-**Why not Ctrl-Y for redo:** it is the text controls' yank (the Emacs and Cocoa
-binding), and on BSD-derived ttys "delayed suspend" — raw mode clears that, but
-it is an odd key to claim. An app that wants it adds it:
-`.undoShortcuts([.redo: .default.and(.init("y", modifiers: .control))])`.
+**Ctrl-Y is redo, but in a text control** (the owner's ruling FB9-REDO,
+2026-10-23, option (a); until then it was not bound): it is the one redo key
+every terminal sends, `0x19` — on BSD-derived ttys the "delayed suspend"
+character, which raw mode clears — and redo on Windows and in many Linux
+editors. It is also the text controls' yank (the Emacs and Cocoa binding),
+and a focused field or editor takes it first, as it takes every key it edits
+with, so there it yanks, with or without a kill to yank. An app that wants it
+gone lists the others:
+`.undoShortcuts([.redo: .only(.init("z", modifiers: [.control, .shift]), .init("_", modifiers: .control), .init("_", modifiers: .option))])`.
 
 **`ESC _` is two things.** A meta-sending terminal's Option-_ and the introducer
 of an APC reply (`ESC _ G … ESC \`, a graphics acknowledgement) are the same two

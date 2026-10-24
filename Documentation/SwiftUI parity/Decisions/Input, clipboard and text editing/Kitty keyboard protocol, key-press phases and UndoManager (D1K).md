@@ -356,6 +356,21 @@ terminal's reporting, both of which change only between frames.
 **The alternative** is to show them always (greyed when empty): steadier, but
 two more permanent entries in every app's bar. Free either way.
 
+**⌃Y redoes (owner's ruling FB9-REDO, 2026-10-23, option (a) "with the
+shortcut hint following focus"; built by lane KEYS, 2026-10-24).** Ctrl-Y
+joins redo's defaults: `0x19` on every terminal in raw mode, so a redo key
+reaches the app on Apple Terminal at its defaults, where none did. A focused
+`TextField`, `SecureField` or `TextEditor` takes it first, as it takes every
+key it edits with, and yanks — with or without a kill to yank — so the
+emacs pair ⌃K/⌃Y is kept. The hint follows the focus: the status bar's
+"redo" and the menu bar's Edit ▸ Redo name ⌃Y (after ⌃⇧Z, where the kitty
+protocol sends that) and, while a text control has the focus, the next key
+it does not keep (`TextInputFocusHandler.keepsFromUndoKeys(_:)`,
+`AppUndoKeys.hint(for:sparing:)`): ⌥_ on a legacy terminal. Each command's
+deliverable keys are kept in hint order until the table, the ⌘ binding or
+the reporting changes, and the focus is asked only about those few kept
+keys: a focus lookup per frame while there is a step.
+
 ### B-D1K-8. All five kitty flags are pushed, and a killed app leaves a shell that cannot read Return
 
 *`EnvironmentValues.keyboardReporting`*

@@ -25,14 +25,20 @@ public enum UndoCommand: Hashable, CaseIterable, Sendable {
     ///   Ctrl-minus is the byte 0x1F, which most terminals also send for Ctrl-/
     ///   and Ctrl-_, and Ctrl-Shift-Z is Ctrl-Z's 0x1A, so all of those undo
     ///   there; under the kitty keyboard protocol each arrives as itself.
-    /// - **Redo:** Ctrl-Shift-Z and Ctrl-_ (Ctrl-Shift-minus), which only the
-    ///   kitty keyboard protocol tells from Ctrl-Z and Ctrl-minus; and
-    ///   Option-_, which a terminal sending Option as Meta sends as `ESC _`.
+    /// - **Redo:** Ctrl-Y, which every terminal sends (0x19) and which is redo
+    ///   on Windows and in many Linux editors; Ctrl-Shift-Z and Ctrl-_
+    ///   (Ctrl-Shift-minus), which only the kitty keyboard protocol tells from
+    ///   Ctrl-Z and Ctrl-minus; and Option-_, which a terminal sending Option
+    ///   as Meta sends as `ESC _`.
     ///
     /// Ctrl-Z is the shell's suspend key too. Bound to undo, it undoes, and
     /// with nothing to undo it does nothing; an app that wants it to suspend
     /// unbinds it (``Scene/undoShortcuts(_:)``). Ctrl-Y is the text controls'
-    /// yank, and not bound.
+    /// yank too: a focused text field or editor takes it first, as it takes
+    /// every key it edits with, so there it yanks, and redo is one of the
+    /// others (the owner's ruling FB9-REDO, 2026-10-23). The status bar names
+    /// one of those while a text control has the focus
+    /// (`AppUndoKeys.hint(for:sparing:)`).
     public var defaultShortcuts: Set<KeyboardShortcut> {
         switch self {
         case .undo:
@@ -42,6 +48,7 @@ public enum UndoCommand: Hashable, CaseIterable, Sendable {
             ]
         case .redo:
             return [
+                KeyboardShortcut("y", modifiers: .control),
                 KeyboardShortcut("z", modifiers: [.control, .shift]), KeyboardShortcut("_", modifiers: .control),
                 KeyboardShortcut("_", modifiers: .option),
             ]
@@ -73,12 +80,14 @@ extension UndoCommand: ShortcutTableAction {
     /// Ctrl-Z for undo and Ctrl-Shift-Z for redo, where a terminal can deliver
     /// them: the chords nearest the Edit menu's ⌘Z and ⇧⌘Z, which no terminal
     /// sends an app. Sorted, the hint named Ctrl-minus — the same command, and
-    /// a correct hint, but not the name anyone knows undo by.
+    /// a correct hint, but not the name anyone knows undo by. Then Ctrl-Y for
+    /// redo, the key every terminal sends, where Ctrl-Shift-Z arrives as
+    /// Ctrl-Z.
     @usableFromInline
     package var preferredHints: [KeyboardShortcut] {
         switch self {
         case .undo: [KeyboardShortcut("z", modifiers: .control)]
-        case .redo: [KeyboardShortcut("z", modifiers: [.control, .shift])]
+        case .redo: [KeyboardShortcut("z", modifiers: [.control, .shift]), KeyboardShortcut("y", modifiers: .control)]
         }
     }
 }
@@ -295,21 +304,42 @@ package final class AppUndoKeys: @unchecked Sendable {
     /// where none of its keys can be sent — written as the bar writes a key,
     /// a bare letter in the case it types (`KeySymbols.statusBarName(of:)`).
     ///
+    /// Not a key the focused control `focus` takes for itself, which never
+    /// reaches the undo keys while it has the focus: in a text field ⌃Y
+    /// yanks, so redo is named by its next key there (the owner's ruling
+    /// FB9-REDO, 2026-10-23: the hint follows the focus). `nil` where every
+    /// key is the control's.
+    ///
     /// Worked out for both commands at once and kept (``ranked``) until the
-    /// table, the ⌘ binding or what the terminal reports changes.
-    func hint(for command: UndoCommand) -> String? {
-        guard let shortcut = rankedShortcuts(for: command).first else { return nil }
-        return name(of: shortcut)
+    /// table, the ⌘ binding or what the terminal reports changes; the focus
+    /// is asked about the few keys kept, each time.
+    func hint(for command: UndoCommand, sparing focus: (any TextInputFocusHandler)? = nil) -> String? {
+        firstKey(for: command, sparing: focus).flatMap(name(of:))
     }
 
     /// The key the menu bar's Undo or Redo shows for `command` on this
     /// terminal (TUIkitCommands): the one the status bar names, as a
-    /// shortcut, or `nil` where none of its keys can be sent.
+    /// shortcut, or `nil` where none of its keys can be sent — the focus
+    /// spared as ``hint(for:sparing:)`` spares it.
     ///
     /// Kept as the names are, until the table, the ⌘ binding or what the
     /// terminal reports changes: the menu's items are drawn every frame.
-    package func shortcut(for command: UndoCommand) -> KeyboardShortcut? {
-        rankedShortcuts(for: command).first
+    package func shortcut(
+        for command: UndoCommand, sparing focus: (any TextInputFocusHandler)? = nil
+    ) -> KeyboardShortcut? {
+        firstKey(for: command, sparing: focus)
+    }
+
+    /// The first of `command`'s keys in hint order that `focus` does not take
+    /// for itself.
+    private func firstKey(for command: UndoCommand, sparing focus: (any TextInputFocusHandler)?) -> KeyboardShortcut? {
+        let ranked = rankedShortcuts(for: command)
+        guard let focus else { return ranked.first }
+        return ranked.first { shortcut in
+            // Already resolved, so the binding is never read.
+            guard let event = shortcut.keyEvent(commandKey: .control) else { return true }
+            return !focus.keepsFromUndoKeys(event)
+        }
     }
 
     /// `command`'s deliverable keys in the order a hint is chosen from them,

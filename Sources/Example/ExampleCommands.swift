@@ -34,7 +34,7 @@ import TUIkit
 /// Control chords a terminal cannot send: ⌃[ is Escape's byte, and ⌃] one
 /// TUIkit does not read. Of the Control letters a terminal sends as
 /// themselves, the Example and TUIkit already bind A (a list's select all),
-/// C, V, X and Z (the clipboard and undo), D, K, R and S (a list's or table's
+/// C, V, X, Z and Y (the clipboard, undo and redo), D, K, R and S (a list's or table's
 /// row keys, and the sidebar), F and G (a text editor's find), and N, O and S
 /// (the Menus page's ⌘ shortcuts); E keeps a text editor's end of line. So
 /// Previous Page is ⌃B, back, and Next Page ⌃T, turn — letters only a text

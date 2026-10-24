@@ -30,14 +30,14 @@ struct UndoHintKeepingTests {
     func sameInputsKeep() {
         let keys = AppUndoKeys()
         #expect(keys.hint(for: .undo) == "⌃Z")
-        #expect(keys.hint(for: .redo) == "⌥_")
+        #expect(keys.hint(for: .redo) == "⌃Y")
         #expect(keys.hint(for: .undo) == "⌃Z")
         #expect(keys.hintResolutions == 1, "both hints from one resolution")
         // The run loop publishes the scene's table every frame, and the
         // reporting is written as it is: equal values are no change.
         keys.publish(.default, commandKey: .control)
         keys.reporting = .legacy
-        #expect(keys.hint(for: .redo) == "⌥_")
+        #expect(keys.hint(for: .redo) == "⌃Y")
         #expect(keys.hintResolutions == 1)
     }
 
@@ -64,17 +64,35 @@ struct UndoHintKeepingTests {
         #expect(keys.hint(for: .undo) == nil, "⌘ stands for nothing, so no key reaches undo")
     }
 
+    /// A text control that keeps ⌃Y for its yank, as a field does.
+    private final class YankingField: TextInputFocusHandler {
+        func givesWayToKeyboardShortcut(_ event: KeyEvent) -> Bool { false }
+        func editsWith(_ event: KeyEvent) -> Bool { keepsFromUndoKeys(event) }
+        func keepsFromUndoKeys(_ event: KeyEvent) -> Bool { event.ctrl && event.key == .character("y") }
+    }
+
+    @Test("A hint passes over a key the focused control keeps, from the kept table")
+    func hintSparesTheFocus() {
+        let keys = AppUndoKeys()
+        let field = YankingField()
+        #expect(keys.hint(for: .redo) == "⌃Y")
+        #expect(keys.hint(for: .redo, sparing: field) == "⌥_")
+        #expect(keys.shortcut(for: .redo, sparing: field) == KeyboardShortcut("_", modifiers: .option))
+        #expect(keys.hint(for: .undo, sparing: field) == "⌃Z")
+        #expect(keys.hintResolutions == 1, "the focus is asked of the kept keys")
+    }
+
     @Test("A change to what the terminal reports changes the hint")
     func reportingChangesTheHint() {
         let keys = AppUndoKeys()
         // A legacy terminal sends Ctrl-Shift-Z as Ctrl-Z and Ctrl-_ as
-        // Ctrl-minus, so redo names Option-_; the kitty protocol sends
+        // Ctrl-minus, so redo names Ctrl-Y; the kitty protocol sends
         // Ctrl-Shift-Z as itself.
-        #expect(keys.hint(for: .redo) == "⌥_")
+        #expect(keys.hint(for: .redo) == "⌃Y")
         keys.reporting = KeyboardReporting(flags: .requested)
         #expect(keys.hint(for: .redo) == "⌃⇧Z")
         keys.reporting = .legacy
-        #expect(keys.hint(for: .redo) == "⌥_")
+        #expect(keys.hint(for: .redo) == "⌃Y")
     }
 
     /// The space bar's name is a word in the app's language (`KeySymbols.spaceBar`),
@@ -91,7 +109,7 @@ struct UndoHintKeepingTests {
         let space = LocalizationService.shared.string(for: "key.space")
         #expect(keys.hint(for: .undo) == "⌥" + space)
         #expect(keys.hint(for: .undo) == "⌥" + space)
-        #expect(keys.hint(for: .redo) == "⌥_")
+        #expect(keys.hint(for: .redo) == "⌃Y")
         #expect(keys.hintResolutions == 1)
     }
 
@@ -117,14 +135,14 @@ struct UndoHintKeepingTests {
         keys.publish(
             UndoShortcuts([.undo: .only(KeyboardShortcut(.space, modifiers: .option))]), commandKey: .control)
         #expect(keys.hint(for: .undo) == "⌥Space")
-        #expect(keys.hint(for: .redo) == "⌥_")
+        #expect(keys.hint(for: .redo) == "⌃Y")
         service.pinLanguageForTesting(.german)
         #expect(keys.hint(for: .undo) == "⌥Leertaste", "the word is the language of the moment")
-        #expect(keys.hint(for: .redo) == "⌥_")
+        #expect(keys.hint(for: .redo) == "⌃Y")
         #expect(keys.hintResolutions == 1, "the table is worked out once")
         // Redo's name was written once, when the hints were worked out; the
         // space bar's on each read of it.
-        #expect(written == ["⌥_", "⌥Space", "⌥Leertaste"])
+        #expect(written == ["⌃Y", "⌥Space", "⌥Leertaste"])
     }
 
     private final class Model {
@@ -168,10 +186,10 @@ struct UndoHintKeepingTests {
         }
         for _ in 0..<3 {
             let line = frame()
-            #expect(line.contains("⌃Z") && line.contains("⌥_"), "both hints on the bar: '\(line)'")
+            #expect(line.contains("⌃Z") && line.contains("⌃Y"), "both hints on the bar: '\(line)'")
         }
         let hints = statusBar.currentSystemItems.filter { $0.order == .undo || $0.order == .redo }.map(\.shortcut)
-        #expect(hints == ["⌃Z", "⌥_"])
+        #expect(hints == ["⌃Z", "⌃Y"])
         #expect(statusBar.undoKeys.hintResolutions == 1)
     }
 }

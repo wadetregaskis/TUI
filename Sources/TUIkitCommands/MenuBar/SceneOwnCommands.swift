@@ -150,16 +150,19 @@ struct SceneOwnCommands {
     private func undoItems(_ environment: EnvironmentValues) -> CommandItems? {
         guard let undoManager = environment.undoManager else { return nil }
         let keys = environment.statusBar?.undoKeys
+        // The key named follows the focus, as the status bar's does: a text
+        // field's own ⌃Y yanks (FB9-REDO).
+        let focus = environment.focusManager?.currentFocused as? any TextInputFocusHandler
         let service = LocalizationService.shared
         func title(_ verb: String, _ action: String) -> String { action.isEmpty ? verb : "\(verb) \(action)" }
         let undo = title(service.string(for: LocalizationKey.Menu.undo), undoManager.undoActionName)
         let redo = title(service.string(for: LocalizationKey.Menu.redo), undoManager.redoActionName)
         return Self.items("undo") {
             Button(undo) { _ = UndoCommand.undo.perform(on: undoManager) }
-                .keyboardShortcutHint(keys?.shortcut(for: .undo))
+                .keyboardShortcutHint(keys?.shortcut(for: .undo, sparing: focus))
                 .disabled(!undoManager.canUndo)
             Button(redo) { _ = UndoCommand.redo.perform(on: undoManager) }
-                .keyboardShortcutHint(keys?.shortcut(for: .redo))
+                .keyboardShortcutHint(keys?.shortcut(for: .redo, sparing: focus))
                 .disabled(!undoManager.canRedo)
         }
     }
