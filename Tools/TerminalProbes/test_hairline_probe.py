@@ -283,6 +283,11 @@ class NamingTests(unittest.TestCase):
         for path in records:
             with open(path) as handle:
                 env = json.load(handle)["env"]
+            # GNOME Terminal and other hosts without TERM_PROGRAM or LC_TERMINAL
+            # in their environment are named manually when recorded rather than
+            # by host_slug(env).
+            if not any(key in env for key in ("TERM_PROGRAM", "LC_TERMINAL")):
+                continue
             name = os.path.basename(path)
             self.assertEqual(probe.host_slug(env) + name[name.rfind("-"):], name)
 
