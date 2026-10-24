@@ -257,6 +257,78 @@ struct MenuBarOpeningTests {
         #expect(OpeningProbe.shared.log.isEmpty)
     }
 
+    @Test("With a menu open, the pointer moved onto another title opens that menu instead, highlighting nothing")
+    func hoverFollowsWhileOpen() throws {
+        let (app, clock) = launched(TwoMenusApp())
+        let alpha = try title("Alpha", app)
+        let beta = try title("Beta", app)
+        app.send(MouseEvent(button: .left, phase: .pressed, x: alpha, y: 0))
+        app.send(MouseEvent(button: .left, phase: .released, x: alpha, y: 0))
+        clock.frame(app)
+        app.send(MouseEvent(button: .none, phase: .moved, x: alpha + 1, y: 0))
+        clock.frame(app)
+        #expect(shows("A1", app), "the open menu's own title changes nothing: \(rows(app))")
+        app.send(MouseEvent(button: .none, phase: .moved, x: beta, y: 0))
+        clock.frame(app)
+        #expect(shows("B1", app) && !shows("A1", app), "\(rows(app))")
+        app.send(MouseEvent(button: .none, phase: .moved, x: 30, y: 9))
+        clock.frame(app)
+        #expect(shows("B1", app), "off the bar, the menu stays: \(rows(app))")
+        app.send(KeyEvent(key: .enter))
+        #expect(OpeningProbe.shared.log.isEmpty, "the pointer opened it, so nothing is highlighted")
+    }
+
+    @Test("With every menu closed, the pointer passing over a title opens nothing")
+    func hoverOpensNothingWhenClosed() throws {
+        let (app, clock) = launched(TwoMenusApp())
+        app.send(MouseEvent(button: .none, phase: .moved, x: try title("Beta", app), y: 0))
+        clock.frame(app)
+        #expect(!shows("B1", app), "\(rows(app))")
+    }
+
+    @Test("A held press dragged from one title onto another opens its menu, and let go on an item runs it")
+    func heldDragSwitchesMenus() throws {
+        let (app, clock) = launched(TwoMenusApp())
+        let alpha = try title("Alpha", app)
+        app.send(MouseEvent(button: .left, phase: .pressed, x: alpha, y: 0))
+        clock.frame(app)
+        app.send(MouseEvent(button: .left, phase: .dragged, x: try title("Beta", app), y: 0))
+        clock.frame(app)
+        #expect(shows("B1", app) && !shows("A1", app), "\(rows(app))")
+        let item = try cell(of: "B1", app)
+        app.send(MouseEvent(button: .left, phase: .dragged, x: item.x, y: item.y))
+        clock.frame(app)
+        app.send(MouseEvent(button: .left, phase: .released, x: item.x, y: item.y))
+        clock.frame(app)
+        #expect(OpeningProbe.shared.log == ["b1"])
+    }
+
+    @Test("A held press let go on a title leaves that title's menu open")
+    func heldReleaseOnATitleLeavesItOpen() throws {
+        let (app, clock) = launched(TwoMenusApp())
+        let beta = try title("Beta", app)
+        app.send(MouseEvent(button: .left, phase: .pressed, x: try title("Alpha", app), y: 0))
+        clock.frame(app)
+        app.send(MouseEvent(button: .left, phase: .dragged, x: beta, y: 0))
+        clock.frame(app)
+        app.send(MouseEvent(button: .left, phase: .released, x: beta, y: 0))
+        clock.frame(app)
+        #expect(shows("B1", app), "\(rows(app))")
+        #expect(OpeningProbe.shared.log.isEmpty)
+    }
+
+    @Test("With a menu open, a click on another title opens that title's menu")
+    func clickOnAnotherTitleSwitches() throws {
+        let (app, clock) = launched(TwoMenusApp())
+        let beta = try title("Beta", app)
+        app.send(KeyEvent(key: .f10))
+        clock.frame(app)
+        app.send(MouseEvent(button: .left, phase: .pressed, x: beta, y: 0))
+        app.send(MouseEvent(button: .left, phase: .released, x: beta, y: 0))
+        clock.frame(app)
+        #expect(shows("B1", app) && !shows("A1", app), "\(rows(app))")
+    }
+
     @Test("The bar is not in the Tab ring")
     func notInTheTabRing() {
         let (app, clock) = launched(TwoMenusApp())

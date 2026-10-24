@@ -224,6 +224,9 @@ package struct MenuAnchor {
 ///     it is — see ``MenuAnchor``.
 ///   - dismiss: Closes the menu — run by Escape, by an outside click, and by
 ///     any item that fires.
+///   - passThrough: Hears the pointer first wherever the dismiss backdrop
+///     would — a menu bar's titles, which go on following the pointer under
+///     their open menu (``MenuBackdropPassThrough``).
 ///   - context: The presenter's render context.
 @MainActor
 package func presentMenuPopover<Items: View>(
@@ -234,6 +237,7 @@ package func presentMenuPopover<Items: View>(
     itemsIndex: Int,
     anchor: MenuAnchor,
     dismiss: @escaping () -> Void,
+    passThrough: MenuBackdropPassThrough? = nil,
     context: RenderContext
 ) {
     // A mouse dispatcher is what makes a presentation possible at all — the
@@ -303,7 +307,8 @@ package func presentMenuPopover<Items: View>(
     guard !menuBuffer.isEmpty else { return }
 
     // The same screen-covering dismiss backdrop the drop-down menus use.
-    DropdownMenu.attachDismissBackdrop(to: &menuBuffer, context: context, onDismiss: dismiss)
+    DropdownMenu.attachDismissBackdrop(
+        to: &menuBuffer, context: context, passThrough: passThrough, onDismiss: dismiss)
 
     // `.popover` level, declaring the control above it. That number does two
     // jobs, and getting it wrong broke both: an enclosing `ScrollView` culls an
@@ -404,6 +409,26 @@ private func attachMenuKeys(
 }
 
 // MARK: - A Menu Bar's Menu
+
+/// What an open menu's dismiss backdrop offers first, before it closes the menu
+/// or spends the event: the pointer's events anywhere outside the menu, in
+/// screen coordinates (`event.x`, `event.y` are the screen's cell).
+///
+/// A menu bar's, whose titles lie under the backdrop of the menu one of them
+/// opened and must still follow the pointer, as a Mac's do: moved onto another
+/// title, the pointer opens its menu instead; pressed on one, it opens that
+/// menu, or closes the open one on its own title. `handle` answers whether it
+/// took the event — for a move, whether it changed anything, so a move that
+/// changed nothing asks for no frame.
+package struct MenuBackdropPassThrough {
+    /// Takes `event`, in screen coordinates, or answers `false` and leaves it
+    /// to the backdrop.
+    package let handle: (MouseEvent) -> Bool
+
+    package init(handle: @escaping (MouseEvent) -> Bool) {
+        self.handle = handle
+    }
+}
 
 /// What Left and Right do in an open menu that is one of a menu bar's: step to
 /// the menu beside it, `-1` the one before and `1` the one after.

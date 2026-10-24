@@ -826,7 +826,11 @@ F10 is asked first), and Alt with a title's first letter opens that menu where
 the terminal sends Option as Meta
 ([Terminal compatibility survey.md](<../Terminals/Terminal compatibility survey.md>),
 "The menu bar's keys"); with one open, Left and Right step to the menus beside
-it, F10 and Escape close it, and the page has its focus back. An open menu is a
+it, F10 and Escape close it, and the page has its focus back. With one open the
+titles follow the pointer, as a Mac's do: moved or dragged onto another title,
+it opens that title's menu instead, and a click on another title opens its
+menu, on the open menu's own title closes it; with every menu closed, the
+pointer passing over the titles opens nothing. An open menu is a
 pop-up `Menu`'s, its rows and keys the same, hung from its title over the whole
 window; the titles are not in the Tab ring. Two differences, each a choice:
 

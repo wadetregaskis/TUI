@@ -320,15 +320,29 @@ package enum DropdownMenu {
     /// `spendsClicksInside` files a second region, over the surface's own
     /// cells, that spends what nothing on it took — see
     /// `attachSurfaceCatcher(to:dispatcher:context:)`.
+    ///
+    /// `passThrough`, where given, hears every event the backdrop does first,
+    /// in SCREEN coordinates (not the backdrop's own, which start wherever the
+    /// compositor put the menu), and keeps the event if it answers `true`: a
+    /// menu bar's menu is how the bar's titles, under the backdrop, still
+    /// follow the pointer (``MenuBackdropPassThrough``).
     @MainActor
     static func attachDismissBackdrop(
         to buffer: inout FrameBuffer, context: RenderContext, spendsClicksInside: Bool = false,
-        onDismiss: @escaping () -> Void
+        passThrough: MenuBackdropPassThrough? = nil, onDismiss: @escaping () -> Void
     ) {
         guard let dispatcher = context.environment.mouseEventDispatcher else { return }
         if spendsClicksInside { attachSurfaceCatcher(to: &buffer, dispatcher: dispatcher, context: context) }
+        // The backdrop's own id, for its place on the screen: filled once it
+        // is registered, which is after the handler is made.
+        let ownID = HandlerIDBox()
         // Weak: the dispatcher holds this handler (see `Button`'s).
         let dismissID = dispatcher.register(in: context) { [weak dispatcher] event in
+            if let passThrough, let dispatcher, let id = ownID.id, let origin = dispatcher.regionOffset(for: id),
+                passThrough.handle(dispatcher.localize(event, byOffsetX: -origin.x, offsetY: -origin.y))
+            {
+                return true
+            }
             switch event.phase {
             case .pressed where event.button == .right:
                 // macOS: a right-click outside an open menu closes it AND is
@@ -368,10 +382,16 @@ package enum DropdownMenu {
                 return false
             }
         }
+        ownID.id = dismissID
         buffer.hitTestRegions.insert(
             HitTestRegion(
                 offsetX: -4096, offsetY: -4096, width: 8192, height: 8192, handlerID: dismissID),
             at: 0)
+    }
+
+    /// The backdrop's handler id, which its own handler reads once it has one.
+    private final class HandlerIDBox {
+        var id: HitTestRegion.HandlerID?
     }
 
     /// Inserts a region over the surface's own cells that takes every press,

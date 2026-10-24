@@ -24,7 +24,8 @@ import TUIkitFoundation
 /// title's first letter where the terminal sends Option as Meta (the menu with
 /// that letter; the first such menu). With a menu open, Left and Right step to
 /// the menu beside it, F10 and Escape close it, and Alt and a letter open that
-/// menu instead. The open menu is a pop-up `Menu`'s: the same rows, keys and
+/// menu instead; and the pointer moved or dragged onto another title opens
+/// its menu, as on a Mac (``titleTracking(_:state:context:)``). The open menu is a pop-up `Menu`'s: the same rows, keys and
 /// highlight, hanging from its title over the whole window. A keyboard-opened
 /// menu highlights its first item, a pointer-opened one nothing. The titles are
 /// not in the Tab ring: the bar is reached by its keys and the pointer.
@@ -80,12 +81,13 @@ struct _MenuBarCore: View, Renderable {
         let titles = titleRow(menus, open: state.openMenu, context: context)
         var buffer = FrameBuffer(lines: [titles.line])
         guard !isInert else { return buffer }
-        attachTitleRegions(to: &buffer, titles, state: state, context: context)
+        let titleIDs = attachTitleRegions(to: &buffer, titles, state: state, context: context)
         let sectionID = "menubar-\(context.identity.path)"
         if let open = state.openMenu {
             present(
-                menus[open], at: open, column: titles.columns[open], over: &buffer, state: state,
-                titles: titles, sectionID: sectionID, context: context)
+                menus[open], at: open, over: &buffer, state: state,
+                titles: titles, tracking: titleTracking(titleIDs, state: state, context: context),
+                sectionID: sectionID, context: context)
         } else {
             // A menu just closed hands the focus back to the page.
             context.environment.focusManager?.deactivateSection(id: sectionID)
@@ -125,8 +127,9 @@ struct _MenuBarCore: View, Renderable {
     /// The open menu, presented as a pop-up `Menu`'s is, hanging from its
     /// title: its first row's text under the title's.
     private func present(
-        _ menu: ResolvedCommandMenu, at index: Int, column: Int, over buffer: inout FrameBuffer,
-        state: MenuBarState, titles: TitleRow, sectionID: String, context: RenderContext
+        _ menu: ResolvedCommandMenu, at index: Int, over buffer: inout FrameBuffer,
+        state: MenuBarState, titles: TitleRow, tracking: MenuBackdropPassThrough?, sectionID: String,
+        context: RenderContext
     ) {
         var presenter = context
         let count = titles.columns.count
@@ -136,8 +139,8 @@ struct _MenuBarCore: View, Renderable {
         presentMenuPopover(
             items: _CommandMenuItems(groups: menu.groups), over: &buffer, controller: state.controller,
             sectionID: sectionID, itemsIndex: index,
-            anchor: MenuAnchor(x: max(0, column - 1), y: 1, controlHeight: 1),
-            dismiss: { [weak state] in state?.close() }, context: presenter)
+            anchor: MenuAnchor(x: max(0, titles.columns[index] - 1), y: 1, controlHeight: 1),
+            dismiss: { [weak state] in state?.close() }, passThrough: tracking, context: presenter)
         attachOpenMenuKeys(titles, state: state, sectionID: sectionID, context: context)
     }
 

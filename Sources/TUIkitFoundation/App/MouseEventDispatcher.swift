@@ -1236,7 +1236,7 @@ extension MouseEventDispatcher {
     /// The handler ids of every region containing the given (absolute)
     /// point, innermost-first. Drop targeting matches these against the
     /// frame's registered drop targets.
-    func handlerIDs(at x: Int, y: Int) -> [HitTestRegion.HandlerID] {
+    package func handlerIDs(at x: Int, y: Int) -> [HitTestRegion.HandlerID] {
         matchingRegions(at: x, y: y).map(\.handlerID)
     }
 

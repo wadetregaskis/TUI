@@ -20,12 +20,16 @@ extension _MenuBarCore {
     /// not move ends a click, and leaves the menu up to be chosen from
     /// (``MouseEventDispatcher/pressOpenedPopup(_:)``). A pointer-opened menu
     /// highlights nothing. While a menu is open its dismiss backdrop covers
-    /// the window and takes the press first, so a click on any title then
-    /// closes the menu.
+    /// the window and takes the press first.
+    ///
+    /// - Returns: Each title's handler, in bar order, for the open menu's
+    ///   backdrop to find the titles by (``titleTracking(_:state:context:)``).
+    @discardableResult
     func attachTitleRegions(
         to buffer: inout FrameBuffer, _ titles: TitleRow, state: MenuBarState, context: RenderContext
-    ) {
-        guard let dispatcher = context.environment.mouseEventDispatcher else { return }
+    ) -> [HitTestRegion.HandlerID] {
+        guard let dispatcher = context.environment.mouseEventDispatcher else { return [] }
+        var ids: [HitTestRegion.HandlerID] = []
         for (index, column) in titles.columns.enumerated() {
             let titleContext = context.withChildIdentity(type: TitleRow.self, index: index + 1)
             let id = dispatcher.register(in: titleContext) { [weak state, weak dispatcher] event in
@@ -42,6 +46,55 @@ extension _MenuBarCore {
             }
             buffer.hitTestRegions.append(
                 HitTestRegion(offsetX: column, offsetY: 0, width: titles.widths[index], height: 1, handlerID: id))
+            ids.append(id)
+        }
+        return ids
+    }
+
+    /// With a menu open, the titles under its dismiss backdrop go on following
+    /// the pointer, as a Mac's menu bar does: moved onto another title — or
+    /// dragged there, holding the press that opened the menu — the pointer
+    /// opens that title's menu instead, with nothing highlighted; pressed on
+    /// another title, it opens that one (and the press goes on as a press on a
+    /// closed title does, ``attachTitleRegions(to:_:state:context:)``), and
+    /// on the open menu's own title it closes it; a held press let go on a
+    /// title leaves its menu up. Anywhere else the backdrop has the event.
+    /// With every menu closed there is no backdrop, and the pointer passing
+    /// over the titles opens nothing.
+    ///
+    /// The titles are found by their handlers, `ids`, at the pointer's cell:
+    /// the backdrop hears screen coordinates, and the dispatcher knows where
+    /// the bar was composited.
+    func titleTracking(
+        _ ids: [HitTestRegion.HandlerID], state: MenuBarState, context: RenderContext
+    ) -> MenuBackdropPassThrough? {
+        guard !ids.isEmpty, let dispatcher = context.environment.mouseEventDispatcher else { return nil }
+        return MenuBackdropPassThrough { [weak state, weak dispatcher] event in
+            guard let state, let dispatcher, let open = state.openMenu else { return false }
+            let under = dispatcher.handlerIDs(at: event.x, y: event.y)
+            guard let index = ids.firstIndex(where: under.contains) else { return false }
+            switch event.phase {
+            case .moved, .entered:
+                guard index != open else { return false }
+                state.open(index, withSelection: false)
+                return true
+            case .dragged where event.button == .left:
+                if index != open { state.open(index, withSelection: false) }
+                return true
+            case .pressed where event.button == .left:
+                if index == open {
+                    state.close()
+                } else {
+                    state.open(index, withSelection: false)
+                    dispatcher.handOffGesture()
+                    dispatcher.pressOpenedPopup(state.openedPopup)
+                }
+                return true
+            case .released where event.button == .left:
+                return true
+            default:
+                return false
+            }
         }
     }
 
