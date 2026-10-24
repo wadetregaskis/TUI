@@ -1,7 +1,7 @@
 # The menu bar behaves as macOS's, and says what it offers: decisions for review
 
 *The MENUBAR lane's companion to
-[`SwiftUI API completion decisions.md`](<SwiftUI API completion decisions.md>),
+[`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>),
 in its format, for the owner's items of 2026-10-23 on the menu bar (#1, #2,
 #3–#8, #25–#27), following [`The menu bar (O13).md`](<The menu bar (O13).md>).
 2026-10-24.*
