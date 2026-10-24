@@ -12,6 +12,10 @@ import Foundation
 import Observation
 import TUIkitFoundation
 
+#if canImport(UniformTypeIdentifiers)
+    import UniformTypeIdentifiers
+#endif
+
 /// The state of one file panel's browsing.
 ///
 /// A panel keeps one as `@State` for as long as it is presented. Its folder
@@ -39,7 +43,7 @@ final class FileBrowser {
     var sortOrder: [KeyPathComparator<FileEntry>]
 
     /// What the panel lets the user choose, and how it words its rows.
-    let rule: FileChoiceRule
+    private(set) var rule: FileChoiceRule
 
     /// What the panel shows of the folder.
     private(set) var state: State = .loading
@@ -115,6 +119,15 @@ final class FileBrowser {
     /// Reads the folder again, as it is now.
     func reload() {
         generation += 1
+    }
+
+    /// Lets the user choose files of `types` — `nil` for the caller's own,
+    /// empty for every file — and reads the folder again, which is where an
+    /// item's choosability is worked out (the type pop-up's choice).
+    func filterFiles(by types: [UTType]?) {
+        guard rule.fileTypes != types else { return }
+        rule.fileTypes = types
+        reload()
     }
 
     /// Whether the folder shown is the file system's root, which has no folder

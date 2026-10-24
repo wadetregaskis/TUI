@@ -234,6 +234,14 @@ public enum LocalizationKey {
         case goTo = "filePanel.goTo"
         /// The status bar's word for the key that opens the go-to field.
         case statusGoTo = "filePanel.status.goTo"
+        /// An open panel's type pop-up's label.
+        case typeShow = "filePanel.type.show"
+        /// A save panel's type pop-up's label.
+        case typeFormat = "filePanel.type.format"
+        /// The type pop-up's choice of every type the caller allows.
+        case typeSupported = "filePanel.type.supported"
+        /// The type pop-up's choice of every file, whatever its type.
+        case typeAllFiles = "filePanel.type.allFiles"
     }
 
     /// Menu items and sections

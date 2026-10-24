@@ -28,6 +28,11 @@ struct FileChoiceRule: Sendable {
     /// to be opened, rather than as one file (`.enumeratePackages`).
     var enumeratesPackages = false
 
+    /// The files the panel takes now, where its type pop-up has narrowed or
+    /// widened the caller's types: `nil` for ``allowedContentTypes``, empty
+    /// for every file (``FileTypeChoice``). Folders are not filtered by it.
+    var fileTypes: [UTType]?
+
     /// A test the caller puts each item's URL to; one it fails cannot be
     /// chosen (`fileDialogURLEnabled(_:)`).
     var urlEnabled: Predicate<URL>?
@@ -46,7 +51,8 @@ struct FileChoiceRule: Sendable {
     func allows(_ type: UTType, isFolder: Bool) -> Bool {
         if isFolder { return choosesFolders }
         guard choosesFiles else { return false }
-        return allowedContentTypes.isEmpty || allowedContentTypes.contains { type.conforms(to: $0) }
+        let types = fileTypes ?? allowedContentTypes
+        return types.isEmpty || types.contains { type.conforms(to: $0) }
     }
 }
 

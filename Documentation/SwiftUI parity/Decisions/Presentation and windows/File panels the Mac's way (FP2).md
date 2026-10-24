@@ -80,3 +80,39 @@ had. **The fuller version** reads the terminal's height as well, and spends
 blank rows only where the folder keeps, say, ten rows: an hour, and a second
 rule beside the size's for the same thing.
 
+### B-FP2-4. A file-type pop-up shows where a panel has several types, or the app asks
+
+*Owner item #33: "an optional file-type filter pop-up, with All Files"*
+
+SwiftUI has no API for it. AppKit's prior art is two: an app adds an "Enable:"
+pop-up to an `NSOpenPanel` as its accessory view (TextEdit, Office), which
+narrows the files the panel takes to one kind or widens them to all; and
+`NSSavePanel.showsContentTypes` (macOS 15) shows a "Format:" pop-up of its
+allowed types, whose choice is the type saved and the name's extension. A
+TUIkit panel draws the two as a menu `Picker` under the folder
+(`FilePanelTypePopUp`):
+
+- **To open,** "Show:": All Supported Files — the caller's types together, as
+  asked for, and where it starts — then each type, by the system's
+  description ("PDF document"), then a rule and All Files. A type narrows the
+  files that can be chosen to it, All Files takes every file whatever its
+  type; the rest are dimmed, as a type the panel does not take always was
+  (`FileChoiceRule.fileTypes`). The folder is read again for it. Folders are
+  not filtered: a panel that chooses folders still does.
+- **To save,** "Format:": each type the panel saves as, and no All Files. The
+  choice is the name's: the pop-up shows the type the name's extension names,
+  and choosing one gives the name that type's extension (`SaveName.renamed`:
+  `draft.txt` saved as Markdown is `draft.md`), as macOS's rewrites the name.
+  So the type a name names is now the one written even where it conforms to
+  another of the types too: `notes.md` among plain text and Markdown is
+  written as Markdown, where it was written as plain text, the first it
+  conformed to.
+
+It shows where the panel has more than one type, as the item asks.
+`fileDialogContentTypePicker(_:)`, a TUI-specific modifier written beside
+SwiftUI's `fileDialog` ones, says otherwise: `.visible` shows it for one type
+too (that type, and All Files), `.hidden` never. A panel that takes every
+type, a mover's, and one that chooses a folder to save into have nothing to
+filter, and show none. **The fuller version** remembers the choice under a
+`fileDialogCustomizationID(_:)`, as the folder is kept: an hour.
+

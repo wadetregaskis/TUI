@@ -118,6 +118,10 @@
   "filePanel.replaceMessage": "文件夹“%@”中已存在同名文件。替换它将覆盖其当前内容。",
   "filePanel.goTo": "前往：",
   "filePanel.status.goTo": "前往",
+  "filePanel.type.show": "显示：",
+  "filePanel.type.format": "格式：",
+  "filePanel.type.supported": "所有支持的文件",
+  "filePanel.type.allFiles": "所有文件",
 
   "menu.file": "文件",
   "menu.edit": "编辑",

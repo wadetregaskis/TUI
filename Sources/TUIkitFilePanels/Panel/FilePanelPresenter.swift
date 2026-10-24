@@ -102,6 +102,7 @@ struct FilePanelPresenter<Content: View>: View {
         request.rule.enumeratesPackages = customization.browserOptions.contains(.enumeratePackages)
         request.rule.urlEnabled = customization.urlEnabled?.predicate
         request.resolvesSymbolicLinks = !customization.importsUnresolvedAliases
+        request.contentTypePicker = customization.contentTypePicker
     }
 
     private func finish(_ outcome: FilePanelOutcome) {

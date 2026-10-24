@@ -118,6 +118,10 @@
   "filePanel.replaceMessage": "A file with the same name already exists in the folder “%@”. Replacing it will overwrite its current contents.",
   "filePanel.goTo": "Go to:",
   "filePanel.status.goTo": "go to",
+  "filePanel.type.show": "Show:",
+  "filePanel.type.format": "Format:",
+  "filePanel.type.supported": "All Supported Files",
+  "filePanel.type.allFiles": "All Files",
 
   "menu.file": "File",
   "menu.edit": "Edit",

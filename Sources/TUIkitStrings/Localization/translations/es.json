@@ -118,6 +118,10 @@
   "filePanel.replaceMessage": "Ya existe un archivo con el mismo nombre en la carpeta “%@”. Si lo reemplazas, se sobrescribirá su contenido actual.",
   "filePanel.goTo": "Ir a:",
   "filePanel.status.goTo": "ir a",
+  "filePanel.type.show": "Mostrar:",
+  "filePanel.type.format": "Formato:",
+  "filePanel.type.supported": "Todos los archivos compatibles",
+  "filePanel.type.allFiles": "Todos los archivos",
 
   "menu.file": "Archivo",
   "menu.edit": "Editar",

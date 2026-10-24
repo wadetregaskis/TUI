@@ -118,6 +118,10 @@
   "filePanel.replaceMessage": "同じ名前のファイルがフォルダ“%@”内にすでにあります。置き換えると、現在の内容が上書きされます。",
   "filePanel.goTo": "移動:",
   "filePanel.status.goTo": "移動",
+  "filePanel.type.show": "表示:",
+  "filePanel.type.format": "フォーマット:",
+  "filePanel.type.supported": "サポートされているすべてのファイル",
+  "filePanel.type.allFiles": "すべてのファイル",
 
   "menu.file": "ファイル",
   "menu.edit": "編集",

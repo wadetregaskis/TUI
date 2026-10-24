@@ -422,6 +422,18 @@ there, and with the focus on it <kbd>←</kbd> and <kbd>→</kbd> move among the
 segments and <kbd>Space</kbd> goes to the one under the cursor. At the
 `.regular` and larger control sizes a blank row sets the parts apart; under
 `.controlSize(.small)` the panel is as dense as it can be.
+
+Where a panel has more than one type, a pop-up under the folder lists them:
+to open, "Show:" narrows the files that can be chosen to one of them, or
+widens them to All Files; to save, "Format:" chooses the type to save as and
+gives the name its extension. `fileDialogContentTypePicker(.visible)` shows it
+for a single type too, and `.hidden` never:
+
+```swift
+Button("Open…") { importing = true }
+    .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in … }
+    .fileDialogContentTypePicker(.visible)
+```
 Items of a type the caller does not take are dimmed: the cursor lands on them,
 but they can be neither selected nor chosen.
 

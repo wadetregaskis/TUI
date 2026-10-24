@@ -72,6 +72,9 @@ struct FilePanel: View {
     /// The path typed in the go-to field, while it is open (`/` opens it).
     @State private var typedPath: String?
 
+    /// What an open panel's type pop-up has chosen (``FileTypeChoice``).
+    @State private var typeChoice: FileTypeChoice
+
     /// Which of the panel's fields holds the focus, where the panel moves it:
     /// to the name field when Return puts a file's name there, to the go-to
     /// field when `/` opens it, and back to the folder when it closes.
@@ -96,6 +99,7 @@ struct FilePanel: View {
             initialValue: FileBrowser(
                 directory: request.startDirectory, rule: request.rule, showsHiddenFiles: request.showsHiddenFiles))
         _name = State(initialValue: request.defaultFilename ?? "")
+        _typeChoice = State(initialValue: request.initialTypeChoice)
     }
 
     var body: some View {
@@ -148,6 +152,11 @@ struct FilePanel: View {
                 FilePanelPathBar(browser: browser, home: request.homeDirectory)
             }
             rows
+            if let choices = request.typeChoices {
+                FilePanelTypePopUp(
+                    choices: choices, selection: request.saveContentTypes != nil ? formatChoice : filterChoice,
+                    saves: request.saveContentTypes != nil)
+            }
         }
         // The focus starts in the name field to save and in the folder to
         // open, as a macOS panel's does: not on the path control, the first
@@ -290,6 +299,30 @@ struct FilePanel: View {
     /// The table's order, which the browser keeps.
     private var sortOrder: Binding<[KeyPathComparator<FileEntry>]> {
         Binding(get: { browser.sortOrder }, set: { browser.sortOrder = $0 })
+    }
+
+    /// An open panel's type pop-up's choice, which narrows or widens the
+    /// files the browser lets the user choose.
+    private var filterChoice: Binding<FileTypeChoice> {
+        Binding(
+            get: { typeChoice },
+            set: { choice in
+                typeChoice = choice
+                browser.filterFiles(by: choice.fileTypes)
+            })
+    }
+
+    /// A save panel's Format pop-up's choice: the type the name's extension
+    /// names, and a choice gives the name the chosen type's extension
+    /// (``SaveName/renamed(_:as:among:)``) — one truth, the name, as macOS's
+    /// pop-up rewrites the name.
+    private var formatChoice: Binding<FileTypeChoice> {
+        let types = request.saveContentTypes ?? []
+        return Binding(
+            get: { SaveName.type(for: name, among: types).map(FileTypeChoice.type) ?? .supported },
+            set: { choice in
+                if case .type(let type) = choice { name = SaveName.renamed(name, as: type, among: types) }
+            })
     }
 
     /// What the table says when it has no rows: why.

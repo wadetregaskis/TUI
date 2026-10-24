@@ -56,6 +56,11 @@ struct FilePanelRequest {
     /// (`fileDialogImportsUnresolvedAliases(_:)` says otherwise).
     var resolvesSymbolicLinks = true
 
+    /// Whether the panel shows its file-type pop-up: where it has more than
+    /// one type, unless `fileDialogContentTypePicker(_:)` says otherwise
+    /// (``typeChoices``).
+    var contentTypePicker: Visibility = .automatic
+
     /// The folder `~` stands for: the user's home folder, which `~` goes to
     /// and the path bar abbreviates. A test names a folder of its own.
     var homeDirectory = FileManager.default.homeDirectoryForCurrentUser

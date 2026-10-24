@@ -118,6 +118,10 @@
   "filePanel.replaceMessage": "Im Ordner „%@“ ist bereits eine Datei mit diesem Namen vorhanden. Durch Ersetzen wird ihr aktueller Inhalt überschrieben.",
   "filePanel.goTo": "Gehe zu:",
   "filePanel.status.goTo": "gehe zu",
+  "filePanel.type.show": "Anzeigen:",
+  "filePanel.type.format": "Format:",
+  "filePanel.type.supported": "Alle unterstützten Dateien",
+  "filePanel.type.allFiles": "Alle Dateien",
 
   "menu.file": "Datei",
   "menu.edit": "Bearbeiten",

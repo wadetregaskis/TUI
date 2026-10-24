@@ -49,6 +49,10 @@ struct FileDialogCustomization: Equatable, Sendable {
     /// The name a panel's state is kept under, across presentations and launches.
     var customizationID: String?
 
+    /// Whether a panel shows its file-type pop-up
+    /// (`fileDialogContentTypePicker(_:)`).
+    var contentTypePicker: Visibility = .automatic
+
     /// A `fileDialogURLEnabled(_:)` predicate, by the identity of the box the
     /// modifier keeps it in: a `Predicate` cannot be compared, and an
     /// environment value that cannot be compared turns the memos beneath it
@@ -208,6 +212,31 @@ extension View {
     /// - Parameter id: An identifier of the configuration.
     public func fileDialogCustomizationID(_ id: String) -> some View {
         transformEnvironment(\.fileDialogCustomization) { $0.customizationID = id }
+    }
+
+    /// Shows or hides the file-type pop-up of the `fileImporter` or
+    /// `fileExporter` panels beneath this view. A TUI-specific modifier:
+    /// SwiftUI has no way to ask for the pop-up, which on macOS an app adds to
+    /// an `NSOpenPanel` as an accessory view or turns on with `NSSavePanel`'s
+    /// `showsContentTypes`.
+    ///
+    /// An open panel's pop-up, "Show:", narrows the files it lets the user
+    /// choose to one of `allowedContentTypes`, or widens them to every file
+    /// with All Files; the others are dimmed, as a type the panel does not
+    /// take always is. A save panel's, "Format:", chooses which of
+    /// `contentTypes` to save as, and gives the name that type's extension.
+    ///
+    /// ```swift
+    /// .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { … }
+    /// .fileDialogContentTypePicker(.visible)
+    /// ```
+    ///
+    /// - Parameter visibility: `.automatic`, the default, shows it where a
+    ///   panel has more than one type; `.visible` where it has any (so one
+    ///   type and All Files); `.hidden` never. A panel that takes every type,
+    ///   or chooses a folder, has none to show.
+    public func fileDialogContentTypePicker(_ visibility: Visibility) -> some View {
+        transformEnvironment(\.fileDialogCustomization) { $0.contentTypePicker = visibility }
     }
 
     /// On macOS, configures the `fileImporter` or `fileMover` to conditionally
