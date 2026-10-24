@@ -927,17 +927,23 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [Link.swift](../../Sources/TUIkitFoundation/Views/Link.swift#L41-L44)
   (**Recorded**), [B85](<Decisions/SwiftUI API completion decisions.md#b85-a-link-in-a-text-is-drawn-and-hyperlinked-and-is-a-control>) (**Lane**).
 
-### T5. A live text taken as a string is read once
+### T5. A live text in help and in a tab's title is read once
 
-- **SwiftUI:** a `Text(_:style:)` or live interpolation stays live wherever it
-  is used, titles included (inferred: its titles are `Text` throughout; not
-  measured).
-- **TUIkit:** where an API takes a `Text` only for its string
-  (`navigationTitle(Text)`, `help(Text)`), and where a control resolves its
-  title key to a string, a live text is read once, when built.
-- **Why:** those APIs keep only a string. Keeping the `Text` means
-  re-measuring the bar a changing title sits in (B51's fuller version).
-- **Decided:** [B51](<Decisions/SwiftUI API completion decisions.md#b51-a-live-text-read-for-its-string-is-read-once-when-it-is-built>). **Lane.**
+- **SwiftUI:** a live `Text` or key stays live in a button's title, a text or
+  secure field's placeholder and a table column's header, and is read once in
+  a window's navigation title and an alert's title and message (measured,
+  macOS 15.8, `Tools/SwiftUIProbes/Live titles (TEXTFMT)/`). Help, which
+  shows only while the pointer rests, and a tab's title are not measured.
+- **TUIkit:** live where SwiftUI's is measured live, and read once where it
+  is measured read once, as SwiftUI does (owner ruling B51-LIVE, 2026-10-24).
+  Help (`help(Text)` and a key) and a tab's title are read once, when built;
+  so is TUIkit's own chrome (`Card`, `Panel`, `Dialog`, `AlertPanel`, the
+  status bar), which has no SwiftUI meaning to match.
+- **Why:** help is a string the tooltip and the focused control's hint draw in
+  the chrome's style, and a tab's title is laid out as a chip from its string;
+  keeping either live means carrying the clock into those, for behaviour
+  SwiftUI's is not known to have.
+- **Decided:** [B51](<Decisions/SwiftUI API completion decisions.md#b51-a-live-text-read-for-its-string-is-read-once-when-it-is-built>), [B51-LIVE in TEXTFMT](<Decisions/Input, clipboard and text editing/Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md#b51-live-live-titles-where-swiftuis-are-live>). **Lane.**
 
 ### T6. Text selection selects what is drawn
 

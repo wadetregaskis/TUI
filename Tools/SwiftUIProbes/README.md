@@ -1003,3 +1003,18 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIkitFoundation/Localization/LocalizedStringKey+Interpolation.swift`;
   `Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md`
   (B-TEXTFMT-1, C-TEXTFMT-1).
+
+### Live titles (TEXTFMT)
+
+- **Asks:** which consumers of a title keep a live value live: a timer interpolated into a button's title, a text
+  field's and a secure field's title (drawn as the placeholder), a table column's header and a window's navigation
+  title (`titles.swift`, `titles.out`), and into an alert's title and message (`alert.swift`, `alert.out`). Each is
+  a `WindowGroup` app that reads the window's title, the fields' `placeholderString`, the table's column titles,
+  the alert panel's fields, and what is drawn (by Vision), at three times.
+- **Answers:** live in the button, both placeholders and the header; read once (`0:00` throughout) in the window's
+  title and the alert's title and message.
+- **Ran:** macOS 15.8.1, Xcode's `swiftc`, the macOS 26.2 SDK, 2026-10-24.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md`
+  (B51-LIVE), `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (T5),
+  `Sources/TUIkitFoundation/Views/Text+Markdown.swift`, `Sources/TUIkitTextInput/Views/TextField.swift`,
+  `Sources/TUIkitTables/Views/TableColumn.swift`; `Tests/TUIkitIntegrationTests/LiveTitleTests.swift`.

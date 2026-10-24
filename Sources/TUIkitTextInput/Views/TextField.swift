@@ -645,7 +645,11 @@ enum TextFieldStateIndex {
 struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     let label: Label
     let text: Binding<String>
-    let prompt: Text?
+    /// The placeholder: the prompt, or the title where there is none
+    /// (``fieldPrompt(_:title:)``). A `var` so that a live one — a title key
+    /// with `\(date, style: .relative)` in it — is read at the frame's date
+    /// before anything draws it (``withLivePromptRead(in:measuring:)``).
+    var prompt: Text?
     let focusID: String?
     let isDisabled: Bool
     let onSubmitAction: (() -> Void)?
@@ -681,7 +685,12 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     /// TextField is width-flexible: it has a minimum width but expands
     /// to fill available horizontal space in HStack.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        if axis == .vertical { return verticalSize(proposal: proposal, context: context) }
+        if axis == .vertical {
+            if let read = withLivePromptRead(in: context, measuring: true) {
+                return read.verticalSize(proposal: proposal, context: context)
+            }
+            return verticalSize(proposal: proposal, context: context)
+        }
         // The rendered field is `openCap + content + closeCap`, so the total
         // width is the content width plus the two caps. Report that total so a
         // parent (e.g. HStack) allocates the field accurately. A `.plain` field
@@ -712,7 +721,19 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         return LocalizationService.shared.string(for: LocalizationKey.StatusBar.submit)
     }
 
+    /// This field with its live placeholder read at the frame's date, having
+    /// asked the run loop for a frame at its next change; `nil` when the
+    /// placeholder is not live, which is one check of its runs. SwiftUI's
+    /// placeholder stays live (measured on macOS 15.8, lane TEXTFMT).
+    func withLivePromptRead(in context: RenderContext, measuring: Bool) -> Self? {
+        guard let read = prompt?.readingLive(declaringIn: context, measuring: measuring) else { return nil }
+        var copy = self
+        copy.prompt = read
+        return copy
+    }
+
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if let read = withLivePromptRead(in: context, measuring: false) { return read.renderToBuffer(context: context) }
         if axis == .vertical { return renderVertical(context: context) }
         let isDisabled = self.isDisabled || !context.environment.isEnabled
         let stateStorage = context.stateStorage!

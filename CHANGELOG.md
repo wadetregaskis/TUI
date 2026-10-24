@@ -181,6 +181,8 @@ All of these are pre-1.0 changes with no old spelling kept.
 
 #### Behaviour changes you may notice
 
+- A title key that reads the clock — `Button("Ends \(deadline, style: .relative)") {}` — stays live in a button's and a colour picker's title, a text, secure or value field's placeholder (and a `prompt:` `Text`), and a table column's header, as SwiftUI's does: each draws the frame's reading and wakes at the next change. A navigation title, an alert's title and message, help and a tab's title still read it once. `SecureField` and `TextField(_:value:format:)` parse their title key's Markdown, as `TextField` does.
+
 - `Text("… \(value)")` (and every other key) of a value SwiftUI has no interpolation for — a `Bool`, an `Optional`, an enum, an array, a value typed `Any` — warns, as SwiftUI 26 does: "Localized string interpolation produces an unlocalized, debug description for this type of value." It still writes the description. Interpolate a `String` (`\(String(flag))`, `\(value.name)`) to say what you mean. SwiftUI's typed interpolations are all there: a `Substring`, an `AttributedString` (its looks kept), a `Date`, `URL` or other `ReferenceConvertible` value or an `NSObject` with an optional `formatter:`, and a `TimeDataSource` with `format:` are new. `\(value, specifier:)` takes a number only, as SwiftUI's does, where it took any `CVarArg`.
 
 - A `Table` stripes every other row by default.

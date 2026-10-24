@@ -75,6 +75,12 @@ public struct TableColumn<RowValue: Identifiable, Sort: SortComparator, Content:
     /// The column header title.
     let title: String
 
+    /// The header's words where its key or `Text` reads the clock — a
+    /// `\(date, style: .relative)` in it — and `nil` otherwise: the table reads
+    /// them at each frame it draws, as SwiftUI's header stays live (measured
+    /// on macOS 15.8, lane TEXTFMT). ``title`` is their reading when built.
+    var liveTitle: LiveWords?
+
     /// How this column is sized.
     var width: _TableColumnWidth = .flexible
 
@@ -176,7 +182,7 @@ extension TableColumn {
             title: title, alignment: .leading, width: width,
             truncationMode: truncationMode, lineLimit: lineLimit, lineLimitIsStated: lineLimitIsStated,
             cell: cell, namesAProperty: namesAProperty,
-            sortComparator: sortComparator)
+            sortComparator: sortComparator, liveTitle: liveTitle)
     }
 }
 
@@ -236,6 +242,7 @@ extension TableColumn where Sort == Never, Label == Text {
         self.init(
             title: titleKey.titleWords, cell: .content(content), namesAProperty: false,
             sortComparator: nil)
+        liveTitle = titleKey.liveWords
     }
 
     /// Creates an unsortable column with a title, displayed as written.
@@ -261,6 +268,7 @@ extension TableColumn where Sort == Never, Label == Text {
         self.init(
             title: text.content, cell: .content(content), namesAProperty: false,
             sortComparator: nil)
+        liveTitle = text.liveWords
     }
 
     /// Creates an unsortable column that displays a string property.
@@ -273,6 +281,7 @@ extension TableColumn where Sort == Never, Label == Text {
     ///   - value: The path to the property associated with the column.
     public init(_ titleKey: LocalizedStringKey, value: KeyPath<RowValue, String>) where Content == Text {
         self.init(titleKey.titleWords, value: value)
+        liveTitle = titleKey.liveWords
     }
 
     /// Creates an unsortable column that displays a string property, with a
@@ -296,6 +305,7 @@ extension TableColumn where Sort == Never, Label == Text {
     ///   - value: The path to the property associated with the column.
     public init(_ text: Text, value: KeyPath<RowValue, String>) where Content == Text {
         self.init(text.content, value: value)
+        liveTitle = text.liveWords
     }
 }
 
@@ -314,6 +324,7 @@ extension TableColumn where RowValue == Sort.Compared, Label == Text {
         @ViewBuilder content: @escaping (RowValue) -> Content
     ) {
         self.init(titleKey.titleWords, sortUsing: comparator, content: content)
+        liveTitle = titleKey.liveWords
     }
 
     /// Creates a sortable column that sorts with `comparator`, with a title
@@ -345,6 +356,7 @@ extension TableColumn where RowValue == Sort.Compared, Label == Text {
         @ViewBuilder content: @escaping (RowValue) -> Content
     ) {
         self.init(text.content, sortUsing: comparator, content: content)
+        liveTitle = text.liveWords
     }
 }
 
@@ -396,6 +408,7 @@ extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
         comparator: String.StandardComparator = .tableColumnDefault
     ) where Content == Text {
         self.init(titleKey.titleWords, value: value, comparator: comparator)
+        liveTitle = titleKey.liveWords
     }
 
     /// Creates a sortable column that displays a string property, with a
@@ -427,6 +440,7 @@ extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
         comparator: String.StandardComparator = .tableColumnDefault
     ) where Content == Text {
         self.init(text.content, value: value, comparator: comparator)
+        liveTitle = text.liveWords
     }
 
     /// Creates a sortable column that sorts by one property with a given
@@ -442,6 +456,7 @@ extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
         @ViewBuilder content: @escaping (RowValue) -> Content
     ) where V == C.Compared {
         self.init(titleKey.titleWords, value: value, comparator: comparator, content: content)
+        liveTitle = titleKey.liveWords
     }
 
     /// Creates a sortable column that sorts by one property with a given
@@ -475,6 +490,7 @@ extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
         @ViewBuilder content: @escaping (RowValue) -> Content
     ) where V == C.Compared {
         self.init(text.content, value: value, comparator: comparator, content: content)
+        liveTitle = text.liveWords
     }
 
     /// Creates a sortable column that sorts by a `Comparable` property, and
@@ -497,6 +513,7 @@ extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
         @ViewBuilder content: @escaping (RowValue) -> Content
     ) {
         self.init(titleKey.titleWords, value: value, content: content)
+        liveTitle = titleKey.liveWords
     }
 
     /// Creates a sortable column that sorts by a `Comparable` property, with a
@@ -528,6 +545,7 @@ extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
         @ViewBuilder content: @escaping (RowValue) -> Content
     ) {
         self.init(text.content, value: value, content: content)
+        liveTitle = text.liveWords
     }
 }
 

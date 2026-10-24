@@ -131,6 +131,12 @@ struct _TableColumnSpec<Value> {
     /// comparator type — can read it.
     let sortComparator: Any?
 
+    /// The header's words where they read the clock (``TableColumn/liveTitle``),
+    /// or `nil`. The table reads them into ``title`` at each frame it draws or
+    /// measures (`withLiveHeadersRead(in:measuring:)`), and a column that has
+    /// them keeps no `.fit` width from one frame to the next.
+    var liveTitle: LiveWords?
+
     /// Whether this column's cells arrive already laid out — a view's lines
     /// rather than a string for the table to wrap.
     ///

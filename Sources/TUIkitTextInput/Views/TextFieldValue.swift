@@ -153,7 +153,9 @@ extension TextField where Label == Text {
         format: F,
         prompt: Text? = nil
     ) where F.FormatOutput == String {
-        self.init(titleKey.localized, value: value, format: format, prompt: prompt)
+        // The key's `Text` is the title, as `TextField(_:text:)`'s is: its
+        // Markdown parsed, and live where the key has a live value.
+        self.init(value: value, format: format, prompt: prompt) { Text(titleKey) }
     }
 
     /// Creates a text field that edits a value through a format style, with a

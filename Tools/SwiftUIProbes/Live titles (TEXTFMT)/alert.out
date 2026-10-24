@@ -1,0 +1,3 @@
+t=1.0 _NSAlertPanel ["Alert 0:00", "Message 0:00", "OK"]
+t=3.0 _NSAlertPanel ["Alert 0:00", "Message 0:00", "OK"]
+t=5.0 _NSAlertPanel ["Alert 0:00", "Message 0:00", "OK"]

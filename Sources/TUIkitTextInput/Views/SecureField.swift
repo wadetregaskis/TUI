@@ -141,7 +141,7 @@ extension SecureField where Label == Text {
     ///   - titleKey: The key for the field's title, describing its purpose.
     ///   - text: The text to display and edit.
     public init(_ titleKey: LocalizedStringKey, text: Binding<String>) {
-        self.init(titleKey.localized, text: text)
+        self.init(title: Text(titleKey), text: text, prompt: nil)
     }
 
     /// Creates a secure field with a localized label and a prompt.
@@ -151,7 +151,19 @@ extension SecureField where Label == Text {
     ///   - text: The text to display and edit.
     ///   - prompt: A `Text` providing guidance on what to type into the field.
     public init(_ titleKey: LocalizedStringKey, text: Binding<String>, prompt: Text?) {
-        self.init(titleKey.localized, text: text, prompt: prompt)
+        self.init(title: Text(titleKey), text: text, prompt: prompt)
+    }
+
+    /// The field the key initializers make: the key's `Text` is its title, and
+    /// its placeholder where no prompt is given, as `TextField`'s is — its
+    /// Markdown parsed, and live where the key has a live value.
+    private init(title: Text, text: Binding<String>, prompt: Text?) {
+        self.label = title
+        self.text = text
+        self.prompt = prompt
+        self.focusID = nil
+        self.isDisabled = false
+        self.onSubmitAction = nil
     }
 
     /// Creates a secure field with a text label generated from a title string.
@@ -301,7 +313,8 @@ private enum SecureFieldStateIndex {
 /// Internal view that handles the actual rendering of SecureField.
 private struct _SecureFieldCore: View, Renderable, Layoutable {
     let text: Binding<String>
-    let prompt: Text?
+    /// The placeholder, a `var` for the reason `_TextFieldCore`'s is.
+    var prompt: Text?
     let focusID: String?
     let isDisabled: Bool
     let onSubmitAction: (() -> Void)?
@@ -344,6 +357,12 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // A live placeholder read at the frame's date, as `_TextFieldCore` reads one.
+        if let read = prompt?.readingLive(declaringIn: context, measuring: false) {
+            var copy = self
+            copy.prompt = read
+            return copy.renderToBuffer(context: context)
+        }
         let isDisabled = self.isDisabled || !context.environment.isEnabled
         let stateStorage = context.stateStorage!
         let palette = context.environment.palette

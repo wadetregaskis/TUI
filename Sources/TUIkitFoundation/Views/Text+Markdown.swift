@@ -65,7 +65,17 @@ extension LocalizedStringKey {
     /// `Button("**Save**") {}` draws the bold), so such a control draws a
     /// styled key as this `Text`, and keeps the plain words as the title for
     /// whatever reads it as text.
+    ///
+    /// A key with a live argument (`\(date, style: .relative)`, a timer) is
+    /// drawn as its `Text` too, which reads the clock at each frame it is
+    /// drawn, as SwiftUI's button title does (measured on macOS 15.8, lane
+    /// TEXTFMT); its words as they read now stay the title. Only such keys pay
+    /// for the `Text`.
     @MainActor package var resolvedTitle: (plain: String, styled: Text?) {
+        if !liveArguments.isEmpty {
+            let text = Text(self)
+            return (text.content, text)
+        }
         let template = LocalizationService.shared.string(
             for: key, swiftUIKey: swiftUIKey, tableName: nil, bundle: nil)
         // As `Text(_:)` reads a key: past the byte scan, the parse's words.

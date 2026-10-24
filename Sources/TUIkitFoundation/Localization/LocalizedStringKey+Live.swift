@@ -20,9 +20,11 @@ extension LocalizedStringKey.StringInterpolation {
     ///
     /// The `Text` the key makes keeps the date live, as `Text(_:style:)`
     /// does: it reads it again at each frame it is drawn, and asks for a frame
-    /// at each change. Anything else that takes the key — a button's title, a
-    /// section header — reads it once, when it is built, as it reads every
-    /// other key.
+    /// at each change. So do the controls that draw a title key as its `Text`
+    /// — a button's and a colour picker's title, a field's placeholder, a
+    /// toggle's label — and a table column's header (B51-LIVE). What takes the
+    /// key only for its string — a navigation title, an alert's title, as
+    /// SwiftUI's do (measured) — reads it once, when it is built.
     ///
     /// - Parameters:
     ///   - date: The date to append.

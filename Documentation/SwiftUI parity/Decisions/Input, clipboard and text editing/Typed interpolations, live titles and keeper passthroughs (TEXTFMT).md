@@ -119,3 +119,59 @@ lands:
 - **`LocalizedStringResource`.** TUIkit takes a `LocalizedStringResource`
   nowhere yet: no `Text` or control initializer does.
 - **`accessibilityName:`.** Declined on 2026-10-05 (A33; the parity map).
+
+## B51-LIVE: live titles where SwiftUI's are live
+
+**The ruling:** "Live everywhere it makes sense; measure; case by case."
+
+**Measured first** (macOS 15.8, a `WindowGroup` app with a timer interpolated
+into each title, read at three times through AppKit and Vision;
+`Tools/SwiftUIProbes/Live titles (TEXTFMT)/`):
+
+| Consumer | SwiftUI | TUIkit before | TUIkit now |
+|---|---|---|---|
+| `Button`'s title key | live | read once | live |
+| `ColorPicker`'s title key | not measured (its label is a `Text`, as a button's is) | read once | live |
+| `TextField`'s title key, drawn as its placeholder | live | drawn at the wall clock's time, no wake | live |
+| `SecureField`'s title key | live | read once (a string) | live |
+| a value field's (`TextField(_:value:format:)`) title key | not measured (as `TextField`'s) | read once (a string) | live |
+| a field's `prompt:` `Text` | not measured (as the title) | drawn at the wall clock's time, no wake | live |
+| `TableColumn`'s header, key or `Text` | live | read once | live |
+| `Toggle`, `Label`, `Section`, `Picker`… (B87's `Text(titleKey)`) | live (a `Text`) | live, unverified | live, now tested |
+| `navigationTitle(Text)` and a key | read once (the window's title stayed `0:00`) | read once | read once |
+| an alert's title and message | read once (the panel's fields stayed `0:00`) | read once | read once |
+| `confirmationDialog`, `dismissalConfirmationDialog`'s title | not measured (presented as the alert is) | read once | read once |
+| `help(_:)` | not measured (a tooltip shows only while the pointer rests) | read once | read once |
+| a `Tab`'s title | not measured (the probe could not read the tab bar) | read once | read once |
+
+**How.** A title key with a live value resolves to its `Text`
+(`LocalizedStringKey.resolvedTitle`), which `Button` and `ColorPicker` already
+draw for a styled key. The text and secure field cores read a live placeholder
+at the frame's date before drawing or measuring it, and declare its next change
+as a live `Text` does; `SecureField` and the value field take the key's `Text`
+as their title, as `TextField` does (so their Markdown is parsed now too, as
+SwiftUI's is). A column keeps its header's words as `LiveWords` (one reference),
+and the table reads them into the title when it prepares a pass, each under a
+wake of its own, and keeps no `.fit` width for such a column, because the
+rows' signature cannot see a header change.
+
+**What it costs where nothing is live:** a check of a key's live arguments when
+a button or colour picker is built; a check of the placeholder's runs per field
+render; a look at each column's optional per table pass; a word more in every
+`TableColumn` and column spec. No title that is not live is drawn any
+differently. **A/B owed:** `table`, `table-api`, `tables-scroll`,
+`framedcolumns`, `controls`, `kitchensink`.
+
+### B-TEXTFMT-3. Help and a tab's title are read once, where SwiftUI's is not measured
+
+*`help(_:)`, `Tab`'s title*
+
+Both stay as they were. Help is a string the tooltip and the focused
+control's hint draw in the chrome's style; a tab's title is laid out from its
+string as a chip in the strip. SwiftUI's behaviour is unknown for both: its
+tooltip shows only while the pointer rests, and the probe found no tab bar to
+read.
+
+**The fuller version:** carry the `Text` (or `LiveWords`) into the tooltip and
+the strip, read it per frame and declare its change; about two hours each, and
+worth it only once SwiftUI's own is measured live.

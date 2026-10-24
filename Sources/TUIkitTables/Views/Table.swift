@@ -741,15 +741,30 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// step at a time, a copy a step, each copy went round the entry point
     /// again and asked every question again: the kept widths' state lookup
     /// twice a pass, and the table copied twice where its rows were sized.
-    private func prepared(_ context: RenderContext) -> Self? {
+    private func prepared(_ context: RenderContext, measuring: Bool = false) -> Self? {
         guard !isPrepared else { return nil }
         var table = self
         table.isPrepared = true
+        table.readLiveHeaders(context, measuring: measuring)
         table.sizeRows(context.environment)
         table.applyKeptWidths(context)
         if table.needsResolution { table.resolveRows(context) }
         table.cascadesCellText = Self.cellTextAttributes(context.environment) != StyleAttributes()
         return table
+    }
+
+    /// Reads each live header (``_TableColumnSpec/liveTitle``) at the frame's
+    /// date into its title, and declares its next change under a token of its
+    /// own, so two headers that tick at different instants each get their
+    /// wake. A table with no live header pays one look at each column's
+    /// optional.
+    private mutating func readLiveHeaders(_ context: RenderContext, measuring: Bool) {
+        for index in columns.indices {
+            guard let live = columns[index].liveTitle else { continue }
+            columns[index].title = live.read(
+                declaringIn: context, token: "table-header-\(context.identity.path)-\(index)",
+                measuring: measuring)
+        }
     }
 
     /// Gives the columns the widths a user gave them where no customization
@@ -917,7 +932,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 configuration: TableStyleConfiguration(table: AnyView(self)), proposal: proposal,
                 context: context)
         }
-        if let prepared = prepared(context) {
+        if let prepared = prepared(context, measuring: true) {
             return prepared.sizeThatFits(proposal: proposal, context: context)
         }
         var measureContext = context
@@ -5203,7 +5218,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             hasExplicitWidth: false, hasExplicitHeight: false,
             measureGeneration: context.measureGeneration)
         let memo: (cache: RenderCache, signature: AnyEquatableBox)? =
-            if let cache = context.renderCache, let signature = Self.rowsSignature(of: data) {
+            // A live header's width moves with the clock, which the rows'
+            // signature does not see, so its column keeps no fit width.
+            if let cache = context.renderCache, column.liveTitle == nil, let signature = Self.rowsSignature(of: data) {
                 (cache, signature)
             } else {
                 nil

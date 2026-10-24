@@ -1888,6 +1888,17 @@ could be deferred to the first consumer that asks, saving it for every live
 text drawn only as a view — worth measuring on a list of a few hundred
 `Text(date, style: .relative)` rows before deciding.
 
+**2026-10-24 (lane TEXTFMT, owner ruling B51-LIVE: "live everywhere it makes
+sense; measure; case by case").** Measured on macOS 15.8: SwiftUI keeps a live
+value live in a button's title, a field's placeholder and a table column's
+header, and reads it once in a window's navigation title and an alert's title
+and message. TUIkit now matches all five: a button's and a colour picker's
+title key, a text, secure or value field's title and prompt, and a column's
+header (key or `Text`) are live; `navigationTitle` and the alert family keep
+reading once. Help and a tab's title, unmeasured, still read once. Details and
+costs:
+[B51-LIVE in TEXTFMT](<Input, clipboard and text editing/Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md#b51-live-live-titles-where-swiftuis-are-live>).
+
 ### B52. A custom transition's body is drawn at each frame's point between its phases
 
 *`Transition` (`body(content:phase:)`, `Content`, `properties`,
