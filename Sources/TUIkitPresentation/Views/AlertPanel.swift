@@ -391,8 +391,7 @@ struct AlertButtonRow: View, Renderable {
                     resultLines[lineIndex] += String.spaces(buffer.width)
                 }
             }
-            resultRegions.append(
-                contentsOf: buffer.shiftedHitTestRegions(byX: xCursor, y: 0))
+            resultRegions.appendShifted(buffer.hitTestRegions, byX: xCursor, y: 0)
             // …and its animated runs, so the focused button's caps keep
             // breathing once the dialog composes the row. See
             // `FrameBuffer.replacingLines`, which states the rule and names
@@ -482,8 +481,7 @@ struct AlertButtonColumn: View, Renderable {
             // its position in the column. See `FrameBuffer.replacingLines` on
             // why the runs are not optional: dropping one freezes the caps
             // rather than merely failing to animate them.
-            regions.append(
-                contentsOf: buffer.shiftedHitTestRegions(byX: leftPadding, y: startY))
+            regions.appendShifted(buffer.hitTestRegions, byX: leftPadding, y: startY)
             runs.append(contentsOf: buffer.shiftedAnimatedCells(byX: leftPadding, y: startY))
             layers.coverOverflow(under: buffer, at: (x: leftPadding, y: startY))
             layers.appendOverlays(of: buffer, shiftedByX: leftPadding, y: startY)

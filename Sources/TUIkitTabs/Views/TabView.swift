@@ -852,8 +852,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // left border + centring pad and down past the tab-strip rows. From the
         // budget-clipped content, so nothing hit-tests against rows not drawn.
         let contentShiftX = 1 + contentPad
-        buffer.hitTestRegions.append(
-            contentsOf: visibleContent.shiftedHitTestRegions(byX: contentShiftX, y: contentStartY))
+        buffer.appendHitTestRegions(of: visibleContent, shiftedByX: contentShiftX, y: contentStartY)
         buffer.overlays.append(
             contentsOf: visibleContent.shiftedOverlays(byX: contentShiftX, y: contentStartY))
         // The strip, the walls and the bottom rule are drawn over what the tab

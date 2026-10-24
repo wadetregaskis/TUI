@@ -393,10 +393,7 @@ extension FrameBuffer {
             // preserved — those are anchored to its (zero-height)
             // position, not to any inter-child spacing.
             appendOverlays(of: other, shiftedByX: 0, y: priorHeight)
-            if !other.hitTestRegions.isEmpty {
-                hitTestRegions.append(
-                    contentsOf: other.shiftedHitTestRegions(byX: 0, y: priorHeight))
-            }
+            appendHitTestRegions(of: other, shiftedByX: 0, y: priorHeight)
             if !other.animatedCells.isEmpty {
                 animatedCells.append(
                     contentsOf: other.shiftedAnimatedCells(byX: 0, y: priorHeight))
@@ -524,10 +521,7 @@ extension FrameBuffer {
         // copies both sides every child, so accumulating N children's overlays
         // or hit regions was quadratic in their total count.
         appendOverlays(of: other, shiftedByX: 0, y: verticalShift)
-        if !other.hitTestRegions.isEmpty {
-            hitTestRegions.append(
-                contentsOf: other.shiftedHitTestRegions(byX: 0, y: verticalShift))
-        }
+        appendHitTestRegions(of: other, shiftedByX: 0, y: verticalShift)
         if !other.animatedCells.isEmpty {
             animatedCells.append(
                 contentsOf: other.shiftedAnimatedCells(byX: 0, y: verticalShift))
@@ -578,10 +572,7 @@ extension FrameBuffer {
             // preserved — those are anchored to its (zero-width)
             // position, not to any inter-child spacing.
             appendOverlays(of: other, shiftedByX: priorWidth, y: 0)
-            if !other.hitTestRegions.isEmpty {
-                hitTestRegions.append(
-                    contentsOf: other.shiftedHitTestRegions(byX: priorWidth, y: 0))
-            }
+            appendHitTestRegions(of: other, shiftedByX: priorWidth, y: 0)
             if !other.animatedCells.isEmpty {
                 animatedCells.append(
                     contentsOf: other.shiftedAnimatedCells(byX: priorWidth, y: 0))
@@ -700,10 +691,7 @@ extension FrameBuffer {
         // both sides on every child — quadratic in the accumulated count for a
         // stack of many interactive children. Mirrors `appendVertically`.
         appendOverlays(of: other, shiftedByX: myWidth + spacingApplied, y: 0)
-        if !other.hitTestRegions.isEmpty {
-            hitTestRegions.append(
-                contentsOf: other.shiftedHitTestRegions(byX: myWidth + spacingApplied, y: 0))
-        }
+        appendHitTestRegions(of: other, shiftedByX: myWidth + spacingApplied, y: 0)
         if !other.animatedCells.isEmpty {
             animatedCells.append(
                 contentsOf: other.shiftedAnimatedCells(byX: myWidth + spacingApplied, y: 0))
@@ -814,8 +802,7 @@ extension FrameBuffer {
             }
             var result = self
             result.appendOverlays(of: overlay, shiftedByX: position.x, y: position.y)
-            result.hitTestRegions.append(
-                contentsOf: overlay.shiftedHitTestRegions(byX: position.x, y: position.y))
+            result.appendHitTestRegions(of: overlay, shiftedByX: position.x, y: position.y)
             // …and the runs, which the guard above already tests for and this
             // did not lift. The in-place twin `composite(with:at:)` does lift
             // them, so the two disagreed about a zero-size overlay carrying an
@@ -874,9 +861,8 @@ extension FrameBuffer {
         composited.overlays = overflowCovered(under: overlay, at: position)
         composited.overlaysAreFreeOfOverflow = overlaysAreFreeOfOverflow
         composited.appendOverlays(of: overlay, shiftedByX: position.x, y: position.y)
-        composited.hitTestRegions =
-            hitTestRegions
-            + overlay.shiftedHitTestRegions(byX: position.x, y: position.y)
+        composited.hitTestRegions = hitTestRegions
+        composited.appendHitTestRegions(of: overlay, shiftedByX: position.x, y: position.y)
         // The base's runs are dropped where the overlay covers them, for the
         // same reason its regions are punched below: a run replays its cells
         // over whatever is on screen, and a spinner under a freshly-opened
@@ -935,8 +921,7 @@ extension FrameBuffer {
                 || !overlay.animatedCells.isEmpty || !overlay.opacityRegions.isEmpty
             else { return }
             appendOverlays(of: overlay, shiftedByX: position.x, y: position.y)
-            hitTestRegions.append(
-                contentsOf: overlay.shiftedHitTestRegions(byX: position.x, y: position.y))
+            appendHitTestRegions(of: overlay, shiftedByX: position.x, y: position.y)
             animatedCells.append(
                 contentsOf: overlay.shiftedAnimatedCells(byX: position.x, y: position.y))
             opacityRegions.append(
@@ -995,8 +980,7 @@ extension FrameBuffer {
         lineWidths = nil
         coverOverflow(under: overlay, at: position)
         appendOverlays(of: overlay, shiftedByX: position.x, y: position.y)
-        hitTestRegions.append(
-            contentsOf: overlay.shiftedHitTestRegions(byX: position.x, y: position.y))
+        appendHitTestRegions(of: overlay, shiftedByX: position.x, y: position.y)
         // Punched, then lifted — same reasoning as the copying twin above: the
         // overlay replaced base cells that pending regions were claiming and
         // runs were repainting.

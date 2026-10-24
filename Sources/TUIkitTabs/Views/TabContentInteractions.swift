@@ -427,7 +427,7 @@ extension _TabViewCore {
                 })
             let hostContext = context.withChildIdentity(erasedType: _RawTab.self, key: "\(tab.value)")
             let hosted = TUIkitView.renderToBuffer(host, context: hostContext)
-            buffer.hitTestRegions += hosted.shiftedHitTestRegions(byX: region.x, y: region.y)
+            buffer.appendHitTestRegions(of: hosted, shiftedByX: region.x, y: region.y)
             buffer.overlays += hosted.shiftedOverlays(byX: region.x, y: region.y)
             let lift = dispatcher.register(in: hostContext) { event in
                 Self.hover(event, overTab: index, hoverBox: hoverBox) ?? false

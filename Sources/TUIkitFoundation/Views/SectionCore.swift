@@ -161,7 +161,7 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
             runs += buffer.shiftedAnimatedCells(byX: 0, y: dy)
             layers.coverOverflow(under: buffer, at: (x: 0, y: dy))
             layers.appendOverlays(of: buffer, shiftedByX: 0, y: dy)
-            regions += buffer.shiftedHitTestRegions(byX: 0, y: dy)
+            regions.appendShifted(buffer.hitTestRegions, byX: 0, y: dy)
             faded += buffer.shiftedOpacityRegions(byX: 0, y: dy)
             lines.append(contentsOf: buffer.lines)
         }
@@ -171,7 +171,7 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
         // to scroll.
         func carry(_ buffer: FrameBuffer, at dy: Int) {
             layers.appendOverlays(of: buffer, shiftedByX: 0, y: dy)
-            regions += buffer.shiftedHitTestRegions(byX: 0, y: dy)
+            regions.appendShifted(buffer.hitTestRegions, byX: 0, y: dy)
         }
 
         // The header and footer as written: outside a `List`, a section gives

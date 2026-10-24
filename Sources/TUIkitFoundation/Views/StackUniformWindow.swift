@@ -860,8 +860,7 @@ extension _VStackCore {
     ) {
         let rendered = child.render(width: width, height: viewportHeight, context: context)
         var aligned = rendered.horizontallyAligned(toWidth: width, alignment: alignment)
-        result.hitTestRegions.append(
-            contentsOf: aligned.shiftedHitTestRegions(byX: 0, y: bandLocalY))
+        result.appendHitTestRegions(of: aligned, shiftedByX: 0, y: bandLocalY)
         if bandLocalY < 0 { aligned.coverOverflow(under: result, at: (x: 0, y: -bandLocalY)) }
         result.appendOverlays(of: aligned, shiftedByX: 0, y: bandLocalY)
     }
