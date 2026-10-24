@@ -34,7 +34,7 @@ struct ClipboardBackendTests {
     func writerUsesItsBackend() {
         let clipboard = InMemoryClipboard()
         let writer = ClipboardWriter(
-            terminalSupport: { .unsupported }, isLocal: { true }, system: clipboard,
+            terminal: { TerminalClient.ClipboardDelivery(.unsupported) }, isLocal: { true }, system: clipboard,
             nowNanos: { 0 }, requestFrame: {})
         #expect(writer.write("copied", announcingSuccess: false) == .copied)
         #expect(clipboard.read() == "copied")
@@ -47,7 +47,7 @@ struct ClipboardBackendTests {
     func osc52StaysFirst() {
         let clipboard = InMemoryClipboard()
         let writer = ClipboardWriter(
-            terminalSupport: { .honoured }, isLocal: { true }, system: clipboard,
+            terminal: { TerminalClient.ClipboardDelivery(.honoured) }, isLocal: { true }, system: clipboard,
             nowNanos: { 0 }, requestFrame: {})
         #expect(writer.write("hi", announcingSuccess: false) == .copied)
         #expect(clipboard.read() == nil)

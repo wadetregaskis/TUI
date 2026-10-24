@@ -210,3 +210,53 @@ app has asked for a table-wide scope that keeps to cells.
 (TUIkit's existing modifier for what a selection keeps to), read by the table,
 which files its columns' x-ranges with its rows so that a press under a
 table-wide scope keeps to the column under it.
+
+## D4X-LOCALITY: copies through screen's and tmux's passthroughs
+
+**The ruling:** the screen and tmux passthroughs "seem fine"; asked about
+asking keepers for their clients, which the follow-up answered: client
+queries only for a keeper someone uses and asks for. So the passthroughs are
+built and the client queries are not.
+
+**Measured first** (`Tools/TerminalProbes/keeper_passthrough_probe.py`, new:
+each keeper run on a pty the script plays as the terminal, so what the keeper
+passes on is read without a GUI terminal; the survey's "OSC 52 through screen
+and tmux"). GNU screen 4.00.03 drops a bare OSC 52 and passes one on inside a
+DCS string, at most 256 bytes a string (260 is dropped whole), and a 64 KiB
+write cut into such strings arrives whole. tmux 3.7c passes a wrapped write on
+under `allow-passthrough on`, 64 KiB whole, and drops it under `off`, its
+default; with `set-clipboard on` and `allow-passthrough on` a bare write
+arrives once.
+
+**Shipped.** The ladder (`TerminalClient.clipboardDelivery`) now says how to
+wrap a write as well as how far to trust it (`ClipboardPassthrough`):
+
+- **Inside screen** (`STY`, not in a tmux pane): "Sent", the write
+  BEL-terminated and cut into 256-byte DCS strings. It was "Not copied". The
+  terminal's name screen inherited says nothing of where it is drawn now, so
+  never "Copied".
+- **In a tmux pane:** `set-clipboard on` first, the bare write as before, so a
+  copy is never sent twice; otherwise, where the pane's `allow-passthrough` is
+  `on` or `all` (`show-options -pvA`, asked per copy, only then), "Sent", the
+  write in tmux's passthrough. Where every client that sees the write runs in
+  a screen window it is still "Not copied", as under `on`: tmux hands screen
+  the bare write, which screen drops.
+- **`TUIKIT_OSC52=1` inside screen** wraps the write too; it used to send it
+  bare, which screen drops.
+- **Through either passthrough a copy is its text alone.** Its other types
+  (OSC 5522) are a write of their own that the probe did not measure crossing
+  a keeper.
+
+Nothing per frame: one more bounded tmux subprocess per copy, where
+`set-clipboard` is not `on`.
+
+### C-TEXTFMT-3. Declined for now: asking keepers for their clients
+
+*screen's and zellij's session sockets, an outer tmux's `list-clients`*
+
+The follow-up's answer, and the ruling's: only for a keeper someone uses and
+asks for. It is the one way to know the user is at the desk under a keeper,
+which would let `pbcopy` and the desk's clipboard serve such a session, but
+each keeper has its own interface (dtach and abduco have none), the answer is
+a snapshot a reattach makes stale, and it does nothing over ssh. About half a
+day per keeper.

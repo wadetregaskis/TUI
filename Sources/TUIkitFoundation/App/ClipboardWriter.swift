@@ -177,9 +177,50 @@ enum ClipboardSequence {
     ///   arrives in the input stream; paste stays the terminal's own,
     ///   bracketed.
     static func write(_ text: String) -> String? {
-        guard !text.isEmpty else { return nil }
-        return "\u{1B}]52;c;" + Data(text.utf8).base64EncodedString() + "\u{1B}\\"
+        write(text, through: .none)
     }
+
+    /// The write for `text` wrapped to reach the terminal past a session
+    /// keeper (``TerminalClient/ClipboardPassthrough``), or `nil` for empty
+    /// text.
+    ///
+    /// - **tmux:** `ESC P tmux;`, the write with each of its ESCs doubled,
+    ///   `ESC \`. tmux undoubles them and passes the write on as above.
+    /// - **GNU screen:** the write, BEL-terminated — an `ESC \` inside would
+    ///   end screen's string — cut into DCS strings `ESC P … ESC \` of at most
+    ///   ``screenStringBytes`` each, which screen passes on back to back,
+    ///   making one write again. The write is ASCII, so a cut never splits a
+    ///   character.
+    static func write(_ text: String, through passthrough: TerminalClient.ClipboardPassthrough) -> String? {
+        guard !text.isEmpty else { return nil }
+        let data = Data(text.utf8).base64EncodedString()
+        switch passthrough {
+        case .none:
+            return "\u{1B}]52;c;" + data + "\u{1B}\\"
+        case .tmux:
+            return "\u{1B}Ptmux;\u{1B}\u{1B}]52;c;" + data + "\u{1B}\u{1B}\\\u{1B}\\"
+        case .screen:
+            let sequence = Array(("\u{1B}]52;c;" + data + "\u{07}").utf8)
+            let room = screenStringBytes - 4
+            var out: [UInt8] = []
+            out.reserveCapacity(sequence.count + (sequence.count / room + 1) * 4)
+            var start = 0
+            while start < sequence.count {
+                let end = min(start + room, sequence.count)
+                out += [0x1B, UInt8(ascii: "P")]
+                out += sequence[start..<end]
+                out += [0x1B, UInt8(ascii: "\\")]
+                start = end
+            }
+            return String(bytes: out, encoding: .utf8)
+        }
+    }
+
+    /// The most bytes one of GNU screen's DCS strings may hold, its `ESC P`
+    /// and `ESC \` included: screen 4.00.03 passes a string of 256 bytes on
+    /// and drops one of 260 whole (measured, `keeper_passthrough_probe.py`).
+    /// Later releases are reported to allow 512 and then 768; 256 serves all.
+    static let screenStringBytes = 256
 
     /// The OSC 5522 write of `text` as `text/plain` and every one of
     /// `representations` after it, or `nil` for empty text: kitty's clipboard
@@ -239,10 +280,11 @@ package final class ClipboardWriter: @unchecked Sendable {
     /// How long the status bar keeps the line about a copy.
     static let noteDuration: UInt64 = 3_000_000_000
 
-    /// How far the terminal takes an OSC 52 write. Asked once per copy, as
+    /// How far the terminal takes an OSC 52 write, and how the write is
+    /// wrapped to cross a session keeper on its way. Asked once per copy, as
     /// the next is, because the answer can change while the app runs: tmux's
-    /// `set-clipboard`, set from another pane.
-    private let terminalSupport: @MainActor () -> TerminalClient.ClipboardWriteSupport
+    /// `set-clipboard` or `allow-passthrough`, set from another pane.
+    private let terminal: @MainActor () -> TerminalClient.ClipboardDelivery
 
     /// Whether this machine's clipboard is the user's (``SessionLocality``).
     /// A tmux session can be attached from another machine at any moment.
@@ -288,8 +330,8 @@ package final class ClipboardWriter: @unchecked Sendable {
     /// drawn in for a frame — its context passes its render state's — and
     /// asks nothing by default, for a writer no app draws.
     init(
-        terminalSupport: @escaping @MainActor () -> TerminalClient.ClipboardWriteSupport = {
-            TerminalClient.clipboardWrites
+        terminal: @escaping @MainActor () -> TerminalClient.ClipboardDelivery = {
+            TerminalClient.clipboardDelivery
         },
         isLocal: @escaping @MainActor () -> Bool = { SessionLocality.isLocal() },
         mimeSupport: @escaping @MainActor () -> Bool = { TerminalClient.mimeClipboard },
@@ -297,7 +339,7 @@ package final class ClipboardWriter: @unchecked Sendable {
         nowNanos: @escaping @Sendable () -> UInt64 = { MonotonicClock.nowNanoseconds },
         requestFrame: @escaping @Sendable () -> Void = {}
     ) {
-        self.terminalSupport = terminalSupport
+        self.terminal = terminal
         self.isLocal = isLocal
         self.mimeSupport = mimeSupport
         self.system = system
@@ -328,10 +370,12 @@ package final class ClipboardWriter: @unchecked Sendable {
             result = .nothingToCopy
         } else if text.isEmpty {
             // Only types that are not text — a picture: they cross only where
-            // the terminal takes types, and over its own write.
+            // the terminal takes types, and over its own write, which no
+            // keeper's passthrough carries.
+            let delivery = terminal()
             let route = ClipboardRoute.choose(
-                terminal: terminalSupport(), hasSystemHelper: hasSystemHelper, isLocal: isLocal)
-            if case .terminal(let confirmed) = route, mimeSupport(),
+                terminal: delivery.support, hasSystemHelper: hasSystemHelper, isLocal: isLocal)
+            if case .terminal(let confirmed) = route, delivery.passthrough == .none, mimeSupport(),
                 let sequence = ClipboardSequence.write(text, representations: representations)
             {
                 pending.append(sequence)
@@ -340,15 +384,19 @@ package final class ClipboardWriter: @unchecked Sendable {
                 result = .unavailable
             }
         } else {
+            let delivery = terminal()
             let route = ClipboardRoute.choose(
-                terminal: terminalSupport(), hasSystemHelper: hasSystemHelper, isLocal: isLocal)
+                terminal: delivery.support, hasSystemHelper: hasSystemHelper, isLocal: isLocal)
             switch route {
             case .terminal(let confirmed):
-                // Non-nil: the text is not empty.
+                // Non-nil: the text is not empty. Through a keeper's
+                // passthrough the text alone: its other types are a write of
+                // their own (OSC 5522) that the passthroughs are not measured
+                // to carry.
                 let sequence =
-                    mimeSupport()
+                    delivery.passthrough == .none && mimeSupport()
                     ? ClipboardSequence.write(text, representations: representations)
-                    : ClipboardSequence.write(text)
+                    : ClipboardSequence.write(text, through: delivery.passthrough)
                 if let sequence { pending.append(sequence) }
                 result = confirmed ? .copied : .sentToTerminal
             case .system:

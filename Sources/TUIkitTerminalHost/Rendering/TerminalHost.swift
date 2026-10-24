@@ -765,6 +765,21 @@ package enum TerminalHost {
         return output.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// The value in force in `pane` (`TMUX_PANE`, as `%3`) of one of tmux's
+    /// pane options — `show-options -pvA`, which answers what the pane
+    /// inherits from its window and the global setting where it sets none
+    /// (measured, tmux 3.7c: `allow-passthrough` reads `off` by default, and
+    /// `on` after `set -gw allow-passthrough on`). `nil` when not under tmux or
+    /// tmux cannot be asked. Without a pane, tmux answers for its current one.
+    ///
+    /// A bounded subprocess, asked when a copy needs it, as ``tmuxOption(_:)``.
+    static func tmuxPaneOption(_ name: String, pane: String?) -> String? {
+        guard isTmux else { return nil }
+        let target = pane.map { $0.isEmpty ? [] : ["-t", $0] } ?? []
+        guard let output = runTmux(["show-options", "-pvA"] + target + [name]) else { return nil }
+        return output.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Runs one tmux command with a bounded wait, returning its stdout, or `nil`
     /// on any failure (tmux missing, non-zero exit, or the deadline passing):
     /// ``runBounded(_:)`` with tmux's arguments.

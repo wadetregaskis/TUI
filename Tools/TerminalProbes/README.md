@@ -26,6 +26,13 @@ when unset), the visual/aspect probes print to the terminal.
   measurements that follow.
 - `data/` — the committed measurement records, one per (terminal, version,
   screen). Written by a probe, never by hand. See `data/README.md`.
+- `keeper_passthrough_probe.py` — what GNU screen and tmux pass on of an
+  application's OSC 52, each keeper run on a pty this script plays as the
+  terminal, so no GUI terminal is needed: a bare write, screen's DCS
+  passthrough (chunked, and whole at sizes up to 4 KiB to find its limit),
+  and tmux's under `set-clipboard` and `allow-passthrough`. Measured screen
+  4.00.03 and tmux 3.7c on 2026-10-24 (the survey's "OSC 52 through screen
+  and tmux").
 - `bidi_card.py` — static `|<sample>|X` alignment card for RIGHT-TO-LEFT
   text, printed twice: plain, and with each RTL run wrapped in
   U+202D … U+202C. Rows whose `X` moves are painted at a width TUIkit did

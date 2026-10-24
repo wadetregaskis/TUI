@@ -173,15 +173,24 @@ struct ClipboardScreenAndTmuxTests {
             environment: Self.screenAndTmux, program: .tmux, deviceAttributes: nil, tmuxSetClipboard: "on",
             expected: .unsupported, ownChain: ["zsh", "SCREEN", "launchd"],
             tmuxClients: [client([("tmux", 5), ("zsh", 5), ("login", 5), ("iTerm2", nil), ("launchd", nil)])]),
+        // tmux's passthrough reaches the client's terminal as the bare write,
+        // which screen drops there just the same: no wrapped write is sent.
+        Row(
+            name: "tmux passthrough, attached from inside screen",
+            environment: Self.screenAndTmux, program: .tmux, deviceAttributes: nil, tmuxSetClipboard: "external",
+            expected: .unsupported, ownChain: ["zsh", "tmux", "launchd"],
+            tmuxClients: [client([("tmux", 5), ("zsh", 5), ("screen", nil), ("launchd", nil)])],
+            tmuxAllowPassthrough: "on"),
+        Row(
+            name: "tmux passthrough, attached from the terminal",
+            environment: Self.screenAndTmux, program: .tmux, deviceAttributes: nil, tmuxSetClipboard: "external",
+            expected: .unconfirmed, ownChain: ["zsh", "tmux", "launchd"],
+            tmuxClients: [client([("tmux", 5), ("zsh", 5), ("login", 5), ("iTerm2", nil), ("launchd", nil)])],
+            tmuxAllowPassthrough: "on", passthrough: .tmux),
     ]
 
     @Test("The ladder", arguments: rows)
     func ladder(_ row: Row) {
-        #expect(
-            TerminalClient.clipboardWrites(
-                environment: row.environment, program: row.program,
-                primaryDeviceAttributes: row.deviceAttributes, tmuxSetClipboard: row.tmuxSetClipboard,
-                ownChain: row.ownChain, tmuxClients: row.tmuxClients)
-                == row.expected)
+        #expect(row.answer == row.delivery)
     }
 }

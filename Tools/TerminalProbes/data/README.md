@@ -3,7 +3,7 @@
 Written by a probe and never by hand. These are the evidence behind the
 tables in `Documentation/Terminals/Terminal compatibility survey.md`. The doc explains what
 the numbers *mean*; these say who measured what, when, and under which
-conditions. Fifteen kinds of file live here:
+conditions. Sixteen kinds of file live here:
 
 - **`width-corpus.json`** — the shared cluster corpus: every cluster the
   probes measure and the Swift tests ask about, one id per row, duplicated
@@ -77,6 +77,12 @@ conditions. Fifteen kinds of file live here:
   setting, `…-clipboard-off.json` and `…-clipboard-on.json`.
   Eight so far: Apple Terminal 455.1, iTerm2 3.7.6 twice, Warp,
   Ghostty 1.3.1, tmux 3.7c twice, and GNOME Terminal 3.56.2.
+- **`keepers-<keeper>-<version>-…-passthrough.json`** — KEEPER PASSTHROUGH
+  records (`keeper_passthrough_probe.py`): for each keeper and case — a bare
+  OSC 52, the keeper's passthrough at several sizes and options — the bytes
+  the window wrote and how many writes reached the scripted terminal whole.
+  A record of what the keeper passes on, with no emulator involved. One so
+  far: GNU screen 4.00.03 and tmux 3.7c, 2026-10-24.
 - **`<terminal>-<version>-identity.json`** — IDENTITY records
   (`identity_probe.py`): the reply to each query a host could be identified
   by — DA1, DA2, DA3, XTVERSION, XTGETTCAP `TN` — and to the status report

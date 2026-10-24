@@ -6573,7 +6573,9 @@ takes ONE route per copy, in this order:
    `pbcopy` on macOS; on Linux `wl-copy` with `WAYLAND_DISPLAY`, then `xclip`
    or `xsel` with `DISPLAY`, and none without a display.
 3. **OSC 52, where the terminal MAY write it**: iTerm2 (a setting decides),
-   tmux with `set-clipboard on`, and a terminal whose DA1 lists `52`.
+   tmux with `set-clipboard on`, a terminal whose DA1 lists `52`, and since
+   2026-10-24 GNU screen and tmux's `allow-passthrough` through their
+   passthroughs (below).
 4. **Nothing**, said so.
 
 Rung 2's clipboard is injected (`ClipboardBackend`), and only the app's run
@@ -6585,14 +6587,16 @@ has no clipboard (`ClipboardAccess.unavailable`), so nothing but a running app
 ever writes the user's pasteboard. The rule and its order are the same
 whichever stands behind it.
 
-**Inside GNU screen (`STY`), no OSC 52 at all**, whatever terminal the
-environment names: screen passes an application's OSC 52 on only inside its
-own DCS passthrough (`ESC P … ESC \`), which TUIkit does not send, so rungs 1
-and 3 would report a write screen drops ("Copied" in Ghostty, "Sent" in
-iTerm2), and the name itself is inherited from wherever screen was started.
-Under screen every copy is "Not copied", at the desk too (screen is a keeper,
-so rung 2 does not apply). Unmeasured on a host; the passthrough is the
-fuller version (decisions D4X, B-D4X-13).
+**Inside GNU screen (`STY`), OSC 52 through screen's DCS passthrough**,
+whatever terminal the environment names, since 2026-10-24 (owner ruling
+D4X-LOCALITY): screen drops an application's bare OSC 52 and passes one on
+inside its DCS passthrough (`ESC P … ESC \`), so TUIkit sends the write
+BEL-terminated and cut into DCS strings of at most 256 bytes. The terminal's
+name is inherited from wherever screen was started, so it says nothing of the
+terminal screen is drawn in now: every such copy is "Sent", never "Copied"
+(rung 3), at the desk too (screen is a keeper, so rung 2 does not apply).
+Measured on screen 4.00.03 driven by a scripted terminal (below); screen 5
+unmeasured. Before, every copy under screen was "Not copied".
 
 **In a tmux pane, tmux's clients say whether screen is in the way**, not
 `STY` and not the pane's own chain of parents. tmux's server daemonizes
@@ -6693,8 +6697,17 @@ xterm's (`Documentation/Terminals/Ghostty VT reference adoption study.md`, C1):
 and written at the start of the next frame, with the image transmissions and
 outside the synchronized-output hold, and the writer asks for that frame. A
 copy still queued when the app quits is written on the way out. tmux gets the
-plain sequence, not DCS passthrough (`allow-passthrough` is off by default
-from 3.3).
+plain sequence under `set-clipboard on`, which it passes on itself; otherwise,
+where the pane's `allow-passthrough` (`show-options -pvA`, inherited from the
+window and the global setting) is `on` or `all`, the write wrapped in tmux's
+passthrough (`ESC P tmux;`, every ESC doubled, `ESC \`), which tmux passes
+on to the terminals showing the pane whatever `set-clipboard` says ("Sent").
+`set-clipboard on` is asked first, so a copy is never sent twice; the probe
+saw exactly one write arrive with both on. `allow-passthrough` is off by
+default from 3.3, so a default tmux still gets nothing. Where screen holds
+the client's terminal, the wrapped write reaches screen bare and is dropped
+there, and the copy is "Not copied", as under `on`. Through either
+passthrough a copy is its text alone: its other types (OSC 5522) are not sent.
 
 `TUIKIT_OSC52=1` makes every copy an OSC 52 to a terminal taken to honour it,
 for a host TUIkit does not know; `0` never sends one. An app can do the same
@@ -6711,7 +6724,8 @@ goes: the ladder reads the terminal actually detected, unlike OSC 8's.
 | WezTerm | yes, by default | its documentation | 1 (`TERM_PROGRAM=WezTerm`, `TERM=wezterm`) |
 | foot | yes, by default | its documentation | 1 (`TERM=foot`, `foot-extra`) |
 | iTerm2 3.6, 3.7.6 | only with Settings > General > Selection > "Applications in terminal may access clipboard", off by default | its documentation; measured 2026-10-19 both ways: off, no write arrived; on, every spelling did, up to 512 KiB; its DA1 lists `52` either way (below) | 3 |
-| tmux 3.7c | `external` (the default) ignores an application's write; `on` keeps it as a paste buffer and passes it on to clients whose features include `clipboard` | measured, below; the manual | 3 with `on`, else none |
+| tmux 3.7c | `external` (the default) ignores an application's write; `on` keeps it as a paste buffer and passes it on to clients whose features include `clipboard`; under `allow-passthrough` a wrapped write is passed on whatever `set-clipboard` says | measured, below; the manual | 3 with `on`, or with `allow-passthrough` wrapped; else none |
+| GNU screen 4.00.03 | drops a bare write; passes one on inside its DCS passthrough, at most 256 bytes a string | measured 2026-10-24 (below) | 3, wrapped |
 | Apple Terminal 455.1 | no | no OSC 52 anywhere in the app; measured 2026-10-19 (below) | none |
 | Warp v0.2026.09.30.08.29 | no | measured 2026-10-19 (below) | none |
 | GNOME Terminal 3.56.2 | no | DA1 omits `52`; measured 2026-10-23 | none |
@@ -6796,6 +6810,41 @@ OSC 52.
 
 The tmux rows' first two columns are tmux's own: under tmux the probe's cursor
 and DA1 are the pane's, not the client's.
+
+### OSC 52 through screen and tmux — measured 2026-10-24, `Tools/TerminalProbes/keeper_passthrough_probe.py`
+
+What a session keeper passes on to its terminal, which is a different
+question from what a terminal then does with it (the tables above). The probe
+runs each keeper on a pty whose master side it plays (`TERM=xterm-256color`),
+a program in the keeper's window writes one form of the write with a fresh
+nonce, and the probe counts the writes that reach the terminal whole. No GUI
+terminal is involved. Record:
+`Tools/TerminalProbes/data/keepers-screen-4.00.03-tmux-3.7c-passthrough.json`
+(macOS 15.8.1, `/usr/bin/screen` and Homebrew's tmux).
+
+| Keeper | Case | Bytes sent | Reaches the terminal |
+|---|---|---|---|
+| screen 4.00.03 | bare OSC 52 | 73 | **no** |
+| screen 4.00.03 | one DCS around the BEL-terminated write | 76 | yes |
+| screen 4.00.03 | a 3 KiB write in DCS strings of at most 256 bytes | 3,132 | yes, whole |
+| screen 4.00.03 | a 64 KiB write the same way | 66,588 | yes, whole |
+| screen 4.00.03 | one DCS of 252 or 256 bytes | 252, 256 | yes |
+| screen 4.00.03 | one DCS of 260 to 4,096 bytes | 260 … 4,096 | **no**: dropped whole, nothing passed on |
+| tmux 3.7c | bare, `set-clipboard external` | 73 | no |
+| tmux 3.7c | bare, `set-clipboard on` | 73 | yes |
+| tmux 3.7c | wrapped (`ESC P tmux;`), `allow-passthrough off` | 84 | no |
+| tmux 3.7c | wrapped, `allow-passthrough on`, `set-clipboard external` | 84 | yes |
+| tmux 3.7c | a 64 KiB write wrapped, the same options | 65,556 | yes, whole |
+| tmux 3.7c | bare, with `set-clipboard on` and `allow-passthrough on` | 73 | yes, once |
+
+screen's limit is a DCS string's whole length, its `ESC P` and `ESC \`
+included: 256 passes, 260 does not. Chromium hterm's `osc52.sh` gives the
+history as 256 bytes until screen 4.2.0 (2008-2014), 512 then, and 768 from
+4.2.1; 256 serves every release, so TUIkit cuts at 256. Still unmeasured:
+screen 5, what a real terminal does with what screen and tmux pass on (the
+tables above say what each host does with a write), tmux's own limit past
+64 KiB, and a nested keeper — tmux inside screen gets the passthrough's
+write bare at screen, which drops it, so TUIkit sends nothing there.
 
 ## OSC 5522 clipboard: any MIME type — measured 2026-10-17 on three hosts
 

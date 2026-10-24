@@ -28,12 +28,52 @@ extension TerminalClient {
         /// The terminal may write it: a setting decides, as iTerm2's
         /// "Applications in terminal may access clipboard" does; or the
         /// terminal says it can in its Device Attributes; or tmux, told to
-        /// with `set-clipboard on`, passes it on to whatever terminal it is
-        /// drawn in.
+        /// with `set-clipboard on`, or GNU screen or tmux, through their
+        /// passthroughs (``ClipboardPassthrough``), pass it on to whatever
+        /// terminal they are drawn in.
         case unconfirmed
 
         /// The terminal is not known to write it.
         case unsupported
+    }
+
+    /// How an OSC 52 write is wrapped to reach the terminal past a session
+    /// keeper that would otherwise drop it (owner ruling D4X-LOCALITY,
+    /// 2026-10-23). Measured with `Tools/TerminalProbes/keeper_passthrough_probe.py`
+    /// against GNU screen 4.00.03 and tmux 3.7c, each driven on a scripted
+    /// terminal (the survey's "OSC 52 through screen and tmux").
+    package enum ClipboardPassthrough: Sendable, Equatable {
+        /// As it is: no keeper stands in the way, or tmux passes the bare
+        /// write on itself (`set-clipboard on`).
+        case none
+
+        /// GNU screen's DCS passthrough: the write, BEL-terminated, cut into
+        /// `ESC P … ESC \` strings of at most 256 bytes each. screen passes
+        /// each string's contents on as they are, drops a bare write, and
+        /// drops a DCS of more than 256 bytes whole (measured: 256 passes, 260
+        /// does not; a 64 KiB write in 256-byte strings arrives whole).
+        case screen
+
+        /// tmux's passthrough, `ESC P tmux; … ESC \` with every ESC inside
+        /// doubled, which tmux passes on only under `allow-passthrough` (`on`
+        /// or `all`; `off` by default since 3.3). Measured: dropped under
+        /// `off`, passed on under `on`, 64 KiB arriving whole.
+        case tmux
+    }
+
+    /// What the ladder says about a copy sent by OSC 52: how far the terminal
+    /// can be trusted with it, and how to wrap it to get there.
+    package struct ClipboardDelivery: Sendable, Equatable {
+        /// How far the terminal can be trusted with the write.
+        package var support: ClipboardWriteSupport
+
+        /// How the write is wrapped on its way.
+        package var passthrough: ClipboardPassthrough
+
+        package init(_ support: ClipboardWriteSupport, passthrough: ClipboardPassthrough = .none) {
+            self.support = support
+            self.passthrough = passthrough
+        }
     }
 
     /// Whether `program` is known to put an OSC 52 write on the clipboard by
@@ -55,8 +95,8 @@ extension TerminalClient {
     /// |---|---|---|
     /// | Ghostty | yes | `clipboard-write = allow` is its default (its OSC 52 page and config reference); measured 2026-10-19, 1.3.1 |
     /// | iTerm2 | only with a setting | "Applications in terminal may access clipboard", off by default; measured both ways 2026-10-19, 3.7.6 |
-    /// | tmux | only with `set-clipboard on` | `external`, the default, ignores an application's write; `on` keeps it as a buffer and passes it on (measured, 3.7c) |
-    /// | GNU screen | no | it passes an application's OSC 52 on only inside its own DCS passthrough, which TUIkit does not send; recognised by `STY`, whatever terminal is named (unmeasured) |
+    /// | tmux | only with `set-clipboard on`, or through its passthrough | `external`, the default, ignores an application's write; `on` keeps it as a buffer and passes it on; under `allow-passthrough` TUIkit wraps the write and tmux passes it on (measured, 3.7c) |
+    /// | GNU screen | through its passthrough | it drops a bare OSC 52 and passes one on inside its DCS passthrough, which TUIkit sends; recognised by `STY`, whatever terminal is named (measured, 4.00.03) |
     /// | Apple Terminal | no | no OSC 52 anywhere in the app; measured 2026-10-19, 455.1 |
     /// | Warp | no | measured 2026-10-19, v0.2026.09.30: no write arrives, and its DA1 (`ESC[?62c`) lists no `52` |
     /// | unidentified | no | unless its Device Attributes list `52` (see ``clipboardWrites``) |
@@ -67,7 +107,8 @@ extension TerminalClient {
     /// `TERM=wezterm`) and foot (`TERM=foot`, `foot-extra`).
     ///
     /// The four hosts' rows and tmux's are measured, with `clipboard_probe.py`;
-    /// GNU screen's is not. `Documentation/Terminals/Terminal compatibility
+    /// the keepers' passthroughs with `keeper_passthrough_probe.py`, which
+    /// measures what screen and tmux pass on, not what a terminal then does. `Documentation/Terminals/Terminal compatibility
     /// survey.md`, "OSC 52 clipboard writes", keeps the record.
     public static func honoursClipboardWrites(_ program: Program) -> Bool {
         support(of: program) == .honoured
@@ -99,10 +140,11 @@ extension TerminalClient {
     ///
     /// In order: ``clipboardWriteSupport``; then `TUIKIT_OSC52`; then, in a
     /// tmux pane, tmux's `set-clipboard` (`on` is
-    /// ``ClipboardWriteSupport/unconfirmed``, anything else unsupported),
-    /// and unsupported where GNU screen is known to stand between tmux and
-    /// the terminal; then, inside GNU screen (`STY`), unsupported, as screen
-    /// drops an application's OSC 52; then the table at
+    /// ``ClipboardWriteSupport/unconfirmed``), or else its `allow-passthrough`
+    /// (`on` or `all` is unconfirmed too, the write wrapped for tmux), anything
+    /// else unsupported, and unsupported where GNU screen is known to stand
+    /// between tmux and the terminal; then, inside GNU screen (`STY`),
+    /// unconfirmed, the write wrapped for screen, which drops it bare; then the table at
     /// ``honoursClipboardWrites(_:)``, with kitty, WezTerm and foot recognised
     /// by their variables. Last, a terminal the environment did not name is
     /// asked its Device Attributes at startup, and a reply listing `52` raises
@@ -110,7 +152,8 @@ extension TerminalClient {
     /// terminal that writes by default need not say so.
     ///
     /// Asks tmux for its `set-clipboard` option when running in a tmux pane,
-    /// and where it is `on`, for its clients, then walks their parents (and
+    /// and where it is not `on`, for the pane's `allow-passthrough`; where
+    /// either lets a write through, for its clients, then walks their parents (and
     /// this process's, where screen is named too): bounded subprocesses and
     /// kernel reads, made when a copy is made, not per frame.
     ///
@@ -122,25 +165,56 @@ extension TerminalClient {
     /// sent every copy by OSC 52 to a terminal that drops it, and called it
     /// copied.
     @MainActor public static var clipboardWrites: ClipboardWriteSupport {
+        clipboardDelivery.support
+    }
+
+    /// ``clipboardWrites``, with how the write is wrapped to get there
+    /// (``ClipboardPassthrough``): what a copy asks, once per copy.
+    ///
+    /// Under tmux, `allow-passthrough` is asked only where `set-clipboard` is
+    /// not `on`: tmux then passes the bare write on itself, and a wrapped one
+    /// as well would be a second copy.
+    @MainActor package static var clipboardDelivery: ClipboardDelivery {
         let environment = ProcessInfo.processInfo.environment
-        if let override = clipboardWriteSupport { return override ? .honoured : .unsupported }
         let program = current.program
+        if let override = clipboardWriteSupport {
+            return override
+                ? ClipboardDelivery(.honoured, passthrough: screenPassthrough(environment: environment, program: program))
+                : ClipboardDelivery(.unsupported)
+        }
         let setClipboard = program == .tmux ? TerminalHost.tmuxOption("set-clipboard") : nil
+        let allowPassthrough =
+            program == .tmux && setClipboard != "on"
+            ? TerminalHost.tmuxPaneOption("allow-passthrough", pane: environment["TMUX_PANE"]) : nil
         // Whom tmux would pass a write on to matters only where it would.
-        let passesOn = setClipboard == "on"
+        let passesOn = setClipboard == "on" || allowsPassthrough(allowPassthrough)
         let screenNamed = environment["STY"]?.isEmpty == false
-        return clipboardWrites(
+        return clipboardDelivery(
             environment: environment, program: program,
             primaryDeviceAttributes: TerminalHost.startupIdentity?.primaryAttributes,
-            tmuxSetClipboard: setClipboard,
+            tmuxSetClipboard: setClipboard, tmuxAllowPassthrough: allowPassthrough,
             ownChain: passesOn && screenNamed ? ProcessAncestry.ownCommandNames() : nil,
             tmuxClients: passesOn ? SessionLocality.tmuxClients() : nil)
+    }
+
+    /// Whether tmux's `allow-passthrough` lets a wrapped write through:
+    /// `on` (while the pane is visible) or `all`.
+    static func allowsPassthrough(_ value: String?) -> Bool {
+        value == "on" || value == "all"
+    }
+
+    /// GNU screen's passthrough where screen is the keeper nearest the app
+    /// (`STY` set, and not inside a tmux pane, whose own rung decides), and
+    /// none elsewhere.
+    static func screenPassthrough(environment: [String: String], program: Program) -> ClipboardPassthrough {
+        program != .tmux && environment["STY"]?.isEmpty == false ? .screen : .none
     }
 
     /// The ladder behind ``clipboardWrites``, posed on its inputs so it can be
     /// asked without a terminal.
     ///
-    /// 1. `TUIKIT_OSC52`: `1` honoured, `0` unsupported.
+    /// 1. `TUIKIT_OSC52`: `1` honoured — wrapped for GNU screen inside one,
+    ///    which drops it bare — `0` unsupported.
     /// 2. tmux: `set-clipboard on` is ``ClipboardWriteSupport/unconfirmed`` —
     ///    tmux keeps the write as a buffer and passes it on only to a client
     ///    that can take it — and anything else, the default `external`
@@ -151,19 +225,24 @@ extension TerminalClient {
     ///    a screen run in this tmux pane, or a tmux every one of whose clients
     ///    showing this pane runs in a screen window. Where that cannot be told — a
     ///    chain unread, tmux not answering — the answer stays unconfirmed,
-    ///    which the status bar reports as sent, not as copied. tmux's own variables are checked
+    ///    which the status bar reports as sent, not as copied. Otherwise, under
+    ///    `allow-passthrough` (`tmuxAllowPassthrough` `on` or `all`), the write
+    ///    is wrapped in tmux's passthrough (``ClipboardPassthrough/tmux``),
+    ///    which tmux passes on to the terminals showing the pane whatever
+    ///    `set-clipboard` says: unconfirmed, and unsupported where screen
+    ///    stands before the terminal, as under `on`. `set-clipboard on` comes
+    ///    first, so a copy is never sent twice. tmux's own variables are checked
     ///    before the ones below, which inside a pane may be stale leftovers of
     ///    whichever terminal, or screen, started the server.
     /// 3. GNU screen (`STY` set, the session is somewhere inside one):
-    ///    unsupported. screen does not pass an application's OSC 52 on unless
-    ///    it is wrapped in screen's own DCS passthrough, which TUIkit does not
-    ///    send, so the terminal's name — inherited from wherever screen was
-    ///    started, and stale once it is attached from elsewhere — says
-    ///    nothing. Under screen a copy is "Not copied" (at the desk too: a
-    ///    keeper is never local, ``SessionLocality``), where the terminal's
-    ///    rung said "Sent" (iTerm2) or "Copied" (Ghostty) of a write screen
-    ///    dropped. (screen 4's sequence handling, as review 2 of the D4X lane
-    ///    read it; unmeasured on a host, and screen 5 unmeasured.)
+    ///    unconfirmed, wrapped in screen's DCS passthrough
+    ///    (``ClipboardPassthrough/screen``), which screen passes on to the
+    ///    terminal it is drawn in — whose name, inherited from wherever screen
+    ///    was started and stale once it is attached from elsewhere, says
+    ///    nothing, so the copy is "Sent", never "Copied" (and never this
+    ///    machine's clipboard: a keeper is never local, ``SessionLocality``).
+    ///    A bare write screen drops (measured, 4.00.03; screen 5
+    ///    unmeasured).
     /// 4. The table, and the three terminals recognised by their variables.
     /// 5. A Primary Device Attributes reply carrying `52` raises an
     ///    unsupported answer to unconfirmed. It can only ADD a terminal: a
@@ -175,20 +254,44 @@ extension TerminalClient {
     ///    rung that reaches an unknown terminal over ssh.
     static func clipboardWrites(
         environment: [String: String], program: Program, primaryDeviceAttributes: String?,
-        tmuxSetClipboard: String?, ownChain: [String]? = nil, tmuxClients: [SessionLocality.AttachedClient]? = nil
+        tmuxSetClipboard: String?, tmuxAllowPassthrough: String? = nil, ownChain: [String]? = nil,
+        tmuxClients: [SessionLocality.AttachedClient]? = nil
     ) -> ClipboardWriteSupport {
+        clipboardDelivery(
+            environment: environment, program: program, primaryDeviceAttributes: primaryDeviceAttributes,
+            tmuxSetClipboard: tmuxSetClipboard, tmuxAllowPassthrough: tmuxAllowPassthrough, ownChain: ownChain,
+            tmuxClients: tmuxClients
+        ).support
+    }
+
+    /// The ladder with the wrapping it decides on (``clipboardDelivery``),
+    /// posed on its inputs: ``clipboardWrites(environment:program:primaryDeviceAttributes:tmuxSetClipboard:tmuxAllowPassthrough:ownChain:tmuxClients:)``
+    /// reads its `support`.
+    static func clipboardDelivery(
+        environment: [String: String], program: Program, primaryDeviceAttributes: String?,
+        tmuxSetClipboard: String?, tmuxAllowPassthrough: String? = nil, ownChain: [String]? = nil,
+        tmuxClients: [SessionLocality.AttachedClient]? = nil
+    ) -> ClipboardDelivery {
+        let screen = screenPassthrough(environment: environment, program: program)
         switch environment["TUIKIT_OSC52"] {
-        case "1": return .honoured
-        case "0": return .unsupported
+        case "1": return ClipboardDelivery(.honoured, passthrough: screen)
+        case "0": return ClipboardDelivery(.unsupported)
         default: break
         }
         if program == .tmux {
-            guard tmuxSetClipboard == "on" else { return .unsupported }
+            let passthrough: ClipboardPassthrough
+            if tmuxSetClipboard == "on" {
+                passthrough = .none
+            } else if allowsPassthrough(tmuxAllowPassthrough) {
+                passthrough = .tmux
+            } else {
+                return ClipboardDelivery(.unsupported)
+            }
             let screenStands = screenStandsBeforeTheTerminal(
                 environment: environment, ownChain: ownChain, tmuxClients: tmuxClients)
-            return screenStands ? .unsupported : .unconfirmed
+            return screenStands ? ClipboardDelivery(.unsupported) : ClipboardDelivery(.unconfirmed, passthrough: passthrough)
         }
-        if environment["STY"]?.isEmpty == false { return .unsupported }
+        if screen == .screen { return ClipboardDelivery(.unconfirmed, passthrough: .screen) }
         var support = support(of: program)
         if program == .unidentified, namesClipboardWritingTerminal(environment) {
             support = .honoured
@@ -198,7 +301,7 @@ extension TerminalClient {
         {
             support = .unconfirmed
         }
-        return support
+        return ClipboardDelivery(support)
     }
 
     /// Whether GNU screen is known to stand between this tmux pane and the

@@ -1,0 +1,153 @@
+{
+  "date": "2026-10-24",
+  "uname": "Darwin Sequoia-2c.local 24.6.0 Darwin Kernel Version 24.6.0: Sun Aug 23 20:37:33 PDT 2026; root:xnu-11417.140.69.712.69~1/RELEASE_ARM64_VMAPPLE arm64",
+  "keepers": [
+    {
+      "keeper": "screen",
+      "version": "Screen version 4.00.03 (FAU) 23-Oct-06",
+      "cases": [
+        {
+          "case": "bare",
+          "bytes": 73,
+          "passed_on_whole": 0,
+          "osc52_starts": 0
+        },
+        {
+          "case": "dcs-short",
+          "bytes": 76,
+          "passed_on_whole": 1,
+          "osc52_starts": 1
+        },
+        {
+          "case": "dcs-chunked",
+          "bytes": 3132,
+          "passed_on_whole": 1,
+          "osc52_starts": 1
+        },
+        {
+          "case": "dcs-chunked-big",
+          "bytes": 66588,
+          "passed_on_whole": 1,
+          "osc52_starts": 1
+        },
+        {
+          "case": "dcs-whole-252",
+          "bytes": 252,
+          "passed_on_whole": 1,
+          "osc52_starts": 1
+        },
+        {
+          "case": "dcs-whole-256",
+          "bytes": 256,
+          "passed_on_whole": 1,
+          "osc52_starts": 1
+        },
+        {
+          "case": "dcs-whole-260",
+          "bytes": 260,
+          "passed_on_whole": 0,
+          "osc52_starts": 0
+        },
+        {
+          "case": "dcs-whole-300",
+          "bytes": 300,
+          "passed_on_whole": 0,
+          "osc52_starts": 0
+        },
+        {
+          "case": "dcs-whole-384",
+          "bytes": 384,
+          "passed_on_whole": 0,
+          "osc52_starts": 0
+        },
+        {
+          "case": "dcs-whole-512",
+          "bytes": 512,
+          "passed_on_whole": 0,
+          "osc52_starts": 0
+        },
+        {
+          "case": "dcs-whole-768",
+          "bytes": 768,
+          "passed_on_whole": 0,
+          "osc52_starts": 0
+        },
+        {
+          "case": "dcs-whole-1024",
+          "bytes": 1024,
+          "passed_on_whole": 0,
+          "osc52_starts": 0
+        },
+        {
+          "case": "dcs-whole-4096",
+          "bytes": 4096,
+          "passed_on_whole": 0,
+          "osc52_starts": 0
+        }
+      ]
+    },
+    {
+      "keeper": "tmux",
+      "version": "tmux 3.7c",
+      "cases": [
+        {
+          "case": "bare-external",
+          "options": {
+            "set-clipboard": "external"
+          },
+          "bytes": 73,
+          "passed_on_whole": 0,
+          "osc52_starts": 0
+        },
+        {
+          "case": "bare-on",
+          "options": {
+            "set-clipboard": "on"
+          },
+          "bytes": 73,
+          "passed_on_whole": 1,
+          "osc52_starts": 1
+        },
+        {
+          "case": "wrapped-off",
+          "options": {
+            "set-clipboard": "external"
+          },
+          "bytes": 84,
+          "passed_on_whole": 0,
+          "osc52_starts": 0
+        },
+        {
+          "case": "wrapped-on",
+          "options": {
+            "set-clipboard": "external",
+            "allow-passthrough": "on"
+          },
+          "bytes": 84,
+          "passed_on_whole": 1,
+          "osc52_starts": 1
+        },
+        {
+          "case": "wrapped-on-big",
+          "options": {
+            "set-clipboard": "external",
+            "allow-passthrough": "on"
+          },
+          "bytes": 65556,
+          "passed_on_whole": 1,
+          "osc52_starts": 1
+        },
+        {
+          "case": "both-on",
+          "options": {
+            "set-clipboard": "on",
+            "allow-passthrough": "on"
+          },
+          "bytes": 73,
+          "passed_on_whole": 1,
+          "osc52_starts": 1
+        }
+      ]
+    }
+  ]
+}

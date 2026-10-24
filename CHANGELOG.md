@@ -181,6 +181,8 @@ All of these are pre-1.0 changes with no old spelling kept.
 
 #### Behaviour changes you may notice
 
+- Inside GNU screen a copy is sent to the terminal through screen's passthrough and reported "Sent", where it was "Not copied". In a tmux pane whose `allow-passthrough` is on, a copy goes through tmux's passthrough when `set-clipboard` is not `on`, and is reported "Sent". Measured on screen 4.00.03 and tmux 3.7c with `Tools/TerminalProbes/keeper_passthrough_probe.py`.
+
 - `.textSelection(.enabled)` on one `Table` cell's `Text` makes that cell's text selectable and nothing else: a click on another column's text selects the row again, and a drag there selects nothing. Around the whole table, a drag still selects across a row's columns.
 
 - A title key that reads the clock — `Button("Ends \(deadline, style: .relative)") {}` — stays live in a button's and a colour picker's title, a text, secure or value field's placeholder (and a `prompt:` `Text`), and a table column's header, as SwiftUI's does: each draws the frame's reading and wakes at the next change. A navigation title, an alert's title and message, help and a tab's title still read it once. `SecureField` and `TextField(_:value:format:)` parse their title key's Markdown, as `TextField` does.

@@ -299,7 +299,10 @@ throughout. `TUIKIT_OSC52=1` still forces OSC 52, screen or not.
 **The fuller version:** (a) screen's DCS passthrough — the OSC 52 wrapped as
 `ESC P ESC ] 52 ; c ; … BEL ESC \`, chunked under screen's string limit —
 would carry copies through screen to the terminal: half a day and a probe
-row, unmeasured. (b) Ask each keeper for its clients where it can be asked —
+row, unmeasured. **Shipped 2026-10-24** (lane TEXTFMT, owner ruling
+D4X-LOCALITY), with tmux's passthrough under `allow-passthrough`, both
+measured with `Tools/TerminalProbes/keeper_passthrough_probe.py`: decisions
+[TEXTFMT](<Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md#d4x-locality-copies-through-screens-and-tmuxs-passthroughs>). (b) Ask each keeper for its clients where it can be asked —
 zellij's and screen's session sockets, an outer tmux's `list-clients` (its
 socket from the outer server's environment) — and walk each client's chain
 as tmux's are: half a day per keeper, and only where the keeper answers at
@@ -444,8 +447,9 @@ listed — all fixed — these remain:
 
 - **Clipboard locality** (B-D4X-13): a session keeper TUIkit does not know
   passes as a plain parent; a nested tmux at the desk is "not local" (its
-  outer server is not asked for its clients); under GNU screen nothing is
-  copied (no DCS passthrough), and screen 5 is unmeasured; nothing on a host
+  outer server is not asked for its clients); under GNU screen a copy goes
+  through its DCS passthrough since 2026-10-24 (measured on 4.00.03), and
+  screen 5 is unmeasured; nothing on a host
   is measured yet (`clipboard_probe.py` is owed its runs). A tmux server
   started inside screen keeps screen's stale `STY`, which still makes its
   sessions "not local" at the desk even when attached straight from the

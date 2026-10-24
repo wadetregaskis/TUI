@@ -40,12 +40,13 @@ struct StatedClipboard: ClipboardBackend {
 extension ClipboardWriter {
     /// A writer whose terminal, locality and helper are the test's.
     static func stated(
-        terminal: TerminalClient.ClipboardWriteSupport, isLocal: Bool, hasHelper: Bool = true,
-        helperWorks: Bool = true, log: SystemClipboardLog = SystemClipboardLog(),
+        terminal: TerminalClient.ClipboardWriteSupport, passthrough: TerminalClient.ClipboardPassthrough = .none,
+        isLocal: Bool, hasHelper: Bool = true, helperWorks: Bool = true, log: SystemClipboardLog = SystemClipboardLog(),
         mime: Bool = false, now: @escaping @Sendable () -> UInt64 = { 0 }
     ) -> ClipboardWriter {
         ClipboardWriter(
-            terminalSupport: { terminal }, isLocal: { isLocal }, mimeSupport: { mime },
+            terminal: { TerminalClient.ClipboardDelivery(terminal, passthrough: passthrough) }, isLocal: { isLocal },
+            mimeSupport: { mime },
             system: StatedClipboard(isAvailable: hasHelper, helperWorks: helperWorks, log: log),
             nowNanos: now, requestFrame: {})
     }
@@ -107,7 +108,24 @@ struct ClipboardTerminalSupportTests {
         var ownChain: [String]?
         /// tmux's clients, where the ladder asks for them.
         var tmuxClients: [SessionLocality.AttachedClient]?
+        /// tmux's `allow-passthrough` for the pane, where the ladder asks.
+        var tmuxAllowPassthrough: String?
+        /// How the write is wrapped on its way.
+        var passthrough: TerminalClient.ClipboardPassthrough = .none
         var testDescription: String { name }
+
+        /// What the ladder should answer.
+        var delivery: TerminalClient.ClipboardDelivery {
+            TerminalClient.ClipboardDelivery(expected, passthrough: passthrough)
+        }
+
+        /// What the ladder answers.
+        var answer: TerminalClient.ClipboardDelivery {
+            TerminalClient.clipboardDelivery(
+                environment: environment, program: program, primaryDeviceAttributes: deviceAttributes,
+                tmuxSetClipboard: tmuxSetClipboard, tmuxAllowPassthrough: tmuxAllowPassthrough,
+                ownChain: ownChain, tmuxClients: tmuxClients)
+        }
 
         static let rows: [Self] = [
             Self(
@@ -158,22 +176,44 @@ struct ClipboardTerminalSupportTests {
                 name: "tmux ignores a kitty variable left over from the server's start",
                 environment: ["KITTY_WINDOW_ID": "1"], program: .tmux, deviceAttributes: nil,
                 tmuxSetClipboard: "external", expected: .unsupported),
-            // GNU screen drops an application's OSC 52; the terminal its
-            // environment names (inherited, and stale once reattached) wrote
-            // "Sent" (iTerm2) or "Copied" (Ghostty) of a write screen dropped.
+            // tmux's passthrough, where set-clipboard leaves the write alone
+            // (owner ruling D4X-LOCALITY; measured, 3.7c).
+            Self(
+                name: "tmux, set-clipboard external, allow-passthrough on", environment: [:], program: .tmux,
+                deviceAttributes: nil, tmuxSetClipboard: "external", expected: .unconfirmed,
+                tmuxAllowPassthrough: "on", passthrough: .tmux),
+            Self(
+                name: "tmux, allow-passthrough all", environment: [:], program: .tmux, deviceAttributes: nil,
+                tmuxSetClipboard: "external", expected: .unconfirmed, tmuxAllowPassthrough: "all", passthrough: .tmux),
+            Self(
+                name: "tmux, allow-passthrough off (its default)", environment: [:], program: .tmux,
+                deviceAttributes: nil, tmuxSetClipboard: "external", expected: .unsupported,
+                tmuxAllowPassthrough: "off"),
+            // set-clipboard on first: tmux passes the bare write on itself, and
+            // a wrapped one too would be a second copy.
+            Self(
+                name: "tmux, set-clipboard on and allow-passthrough on", environment: [:], program: .tmux,
+                deviceAttributes: nil, tmuxSetClipboard: "on", expected: .unconfirmed, tmuxAllowPassthrough: "on"),
+            // GNU screen drops an application's OSC 52 and passes one on in
+            // its DCS passthrough (measured, 4.00.03). The terminal its
+            // environment names (inherited, and stale once reattached) says
+            // nothing: "Sent", where it once said "Copied" of a write screen
+            // dropped.
             Self(
                 name: "Inside GNU screen, in iTerm2", environment: ["STY": "4242.pts-0.desk", "TERM_PROGRAM": "iTerm.app"],
-                program: .iTerm2, deviceAttributes: nil, tmuxSetClipboard: nil, expected: .unsupported),
+                program: .iTerm2, deviceAttributes: nil, tmuxSetClipboard: nil, expected: .unconfirmed,
+                passthrough: .screen),
             Self(
                 name: "Inside GNU screen, in Ghostty", environment: ["STY": "4242.pts-0.desk"], program: .ghostty,
-                deviceAttributes: nil, tmuxSetClipboard: nil, expected: .unsupported),
+                deviceAttributes: nil, tmuxSetClipboard: nil, expected: .unconfirmed, passthrough: .screen),
             Self(
                 name: "Inside GNU screen, in kitty by TERM", environment: ["STY": "4242.pts-0.desk", "TERM": "xterm-kitty"],
                 program: .unidentified, deviceAttributes: "\u{1B}[?64;52c", tmuxSetClipboard: nil,
-                expected: .unsupported),
+                expected: .unconfirmed, passthrough: .screen),
             Self(
-                name: "TUIKIT_OSC52=1 outranks screen", environment: ["TUIKIT_OSC52": "1", "STY": "4242.pts-0.desk"],
-                program: .appleTerminal, deviceAttributes: nil, tmuxSetClipboard: nil, expected: .honoured),
+                name: "TUIKIT_OSC52=1 outranks screen, and is wrapped for it",
+                environment: ["TUIKIT_OSC52": "1", "STY": "4242.pts-0.desk"], program: .appleTerminal,
+                deviceAttributes: nil, tmuxSetClipboard: nil, expected: .honoured, passthrough: .screen),
             Self(
                 name: "TUIKIT_OSC52=1 turns it on", environment: ["TUIKIT_OSC52": "1"],
                 program: .appleTerminal, deviceAttributes: nil, tmuxSetClipboard: nil, expected: .honoured),
@@ -185,11 +225,12 @@ struct ClipboardTerminalSupportTests {
 
     @Test("The ladder", arguments: Row.rows)
     func ladder(_ row: Row) {
+        #expect(row.answer == row.delivery)
         #expect(
             TerminalClient.clipboardWrites(
                 environment: row.environment, program: row.program,
                 primaryDeviceAttributes: row.deviceAttributes, tmuxSetClipboard: row.tmuxSetClipboard,
-                ownChain: row.ownChain, tmuxClients: row.tmuxClients)
+                tmuxAllowPassthrough: row.tmuxAllowPassthrough, ownChain: row.ownChain, tmuxClients: row.tmuxClients)
                 == row.expected)
     }
 
@@ -415,7 +456,7 @@ struct ClipboardWriterTests {
     func requestsAFrame() {
         let frames = SystemClipboardLog()
         let writer = ClipboardWriter(
-            terminalSupport: { .honoured }, isLocal: { false },
+            terminal: { TerminalClient.ClipboardDelivery(.honoured) }, isLocal: { false },
             system: StatedClipboard(isAvailable: false, helperWorks: false, log: SystemClipboardLog()),
             nowNanos: { 0 }, requestFrame: { frames.writes.append("frame") })
         writer.write("x", announcingSuccess: false)
@@ -426,6 +467,7 @@ struct ClipboardWriterTests {
 // MARK: - This machine's helpers
 
 @Suite("Clipboard: this machine's helpers")
+
 struct SystemClipboardHelperTests {
     #if os(macOS)
         @Test("macOS copies with pbcopy and pastes with pbpaste")
