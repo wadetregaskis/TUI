@@ -108,6 +108,37 @@ struct ActiveChipCycle {
         return cycle.colorNow(dim: ends.dim, bright: ends.bright)
     }
 
+    /// The two ends the active chip's line caps breathe between, from
+    /// `resting`, their ink at rest, to the label's bright end: they pulse
+    /// with the label, as a lines button's caps pulse with its label
+    /// (``OutlineBreath``; owner, 2026-10-24: "when there are visible
+    /// brackets or similar they should pulse too, along with the tab label").
+    private func capBreath(resting: Color) -> (dim: Color, bright: Color) {
+        Color.breathEnds(dim: resting, bright: labelBright)
+    }
+
+    /// The active chip's line caps' colour right now, where they rest in
+    /// `resting`: breathing with the label while the strip holds the focus.
+    @MainActor
+    func capsNow(resting: Color) -> Color {
+        guard cycle.isFocused else { return resting }
+        let ends = capBreath(resting: resting)
+        return cycle.colorNow(dim: ends.dim, bright: ends.bright)
+    }
+
+    /// The chip's run where its caps breathe too: `draw` is handed the
+    /// label's colour and the caps' at each step of the cycle — nil when
+    /// neither moves.
+    @MainActor
+    func run(offsetX: Int, offsetY: Int, capsResting: Color, draw: (Color, Color) -> String) -> AnimatedCellRun? {
+        let label = breath
+        let caps = capBreath(resting: capsResting)
+        guard cycle.isAnimating(dim: label.dim, bright: label.bright) || cycle.isAnimating(dim: caps.dim, bright: caps.bright)
+        else { return nil }
+        let frames = zip(cycle.colors(dim: label.dim, bright: label.bright), cycle.colors(dim: caps.dim, bright: caps.bright))
+        return cycle.run(drawn: frames.map(draw), offsetX: offsetX, offsetY: offsetY)
+    }
+
     /// The chip's run, drawn by `draw` at each label colour of the cycle — nil
     /// when the chip is not breathing.
     @MainActor

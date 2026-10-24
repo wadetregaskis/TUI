@@ -58,23 +58,26 @@ extension _TabViewCore {
         // show there, as on the page its half blocks vanish into it: its two cells
         // are its fill. Under `.blank`, and at sizes with no caps, the chip keeps
         // its two cells, of its fill, so a strip is as wide in every family.
+        //
+        // The active chip's line caps breathe the focus with its label, as a
+        // lines button's do (`capsInk`, the colour they are drawn in now).
         func drawChip(
-            _ index: Int, background: Color, foreground: Color, active: Bool
+            _ index: Int, background: Color, foreground: Color, active: Bool, capsInk: Color
         ) -> ClaimingRow {
             var row = ClaimingRow()
-            cap(ends.open, active: active, background: background, into: &row)
+            cap(ends.open, active: active, background: background, ink: capsInk, into: &row)
             row.append(contentsOf: tabLabelBody(
                 index, background: background, foreground: foreground, active: active, palette: palette,
                 legibility: legibility))
-            cap(ends.close, active: active, background: background, into: &row)
+            cap(ends.close, active: active, background: background, ink: capsInk, into: &row)
             return row
         }
-        func cap(_ glyph: Character, active: Bool, background: Color, into row: inout ClaimingRow) {
+        func cap(_ glyph: Character, active: Bool, background: Color, ink: Color, into row: inout ClaimingRow) {
             switch ends.kind {
             case .filled, .face:
-                ends.appendCap(glyph, to: &row, face: background, lines: lineInk)
+                ends.appendCap(glyph, to: &row, face: background, lines: ink)
             case .lines where active:
-                ends.appendCap(glyph, to: &row, face: background, lines: lineInk, field: background)
+                ends.appendCap(glyph, to: &row, face: background, lines: ink, field: background)
             case .lines, .none:
                 row.append(" ", cells: 1, ink: nil, field: background)
             }
@@ -96,16 +99,23 @@ extension _TabViewCore {
                 let drawn = drawChip(
                     i, background: active ? chip.surface : inactiveBg,
                     foreground: hovered ? palette.hoveredForeground(resting) : resting,
-                    active: active)
+                    active: active, capsInk: active ? chip.capsNow(resting: lineInk) : lineInk)
                 line += drawn.text
                 claims += drawn.claims.map { $0.shifted(byX: x, y: y) }
                 let chipWidth = tabWidth(i, style: .compact)  // body + the two caps
                 regions.append((x: x, y: y, width: chipWidth, height: 1, index: i))
-                if active,
-                    let run = chip.run(offsetX: x, offsetY: y, draw: {
-                        drawChip(i, background: chip.surface, foreground: $0, active: true).text
-                    })
-                {
+                // Only lines caps breathe: a filled chip's caps are its fill,
+                // which holds still while the label breathes.
+                let run =
+                    !active ? nil
+                    : ends.kind == .lines
+                        ? chip.run(offsetX: x, offsetY: y, capsResting: lineInk) { label, caps in
+                            drawChip(i, background: chip.surface, foreground: label, active: true, capsInk: caps).text
+                        }
+                        : chip.run(offsetX: x, offsetY: y, draw: {
+                            drawChip(i, background: chip.surface, foreground: $0, active: true, capsInk: lineInk).text
+                        })
+                if let run {
                     animatedCells.append(run)
                 }
                 x += chipWidth

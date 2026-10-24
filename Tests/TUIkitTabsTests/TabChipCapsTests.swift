@@ -11,9 +11,27 @@
 import Testing
 
 @testable import TUIkitApp
+@testable import TUIkitAppTestSupport
 @testable import TUIkitFoundation
 import TUIkitTabs
 @testable import TUIkitTestSupport
+
+/// A compact strip in lines, its first tab selected: the strip registers first,
+/// so it takes the focus and its active chip breathes.
+private struct LinesChipsApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            TabView(selection: .constant(0)) {
+                Tab("One", value: 0) { Text("ONE BODY") }
+                Tab("Two", value: 1) { Text("TWO BODY") }
+            }
+            .tabViewStyle(.compact)
+            .tabViewHeaderAlignment(.leading)
+            .controlStyle(.lines)
+        }
+    }
+}
 
 @MainActor
 @Suite("A compact tab strip's chips take the control family's caps")
@@ -50,5 +68,27 @@ struct TabChipCapsTests {
     func sameWidth() {
         let widths = [ControlStyle.block, .lines, .braille, .blank].map { strip($0).count }
         #expect(Set(widths).count == 1, "\(widths)")
+    }
+
+    @Test("Lines: a focused chip's caps breathe the focus with its label, as a lines button's do")
+    func linesCapsBreathe() throws {
+        // Owner, 2026-10-24: "when there are visible brackets or similar they
+        // should pulse too, along with the tab label."
+        let harness = RenderLoopHarness()
+        let loop = harness.loop(LinesChipsApp())
+        _ = loop.render()
+        _ = loop.render()
+        let frame = try #require(loop.replayable, "the render kept no frame to replay")
+        let run = try #require(
+            frame.runs.first { $0.frame(atIndex: 0).stripped.contains("One") },
+            "the focused chip left no run: \(frame.runs)")
+        let frames = run.frames.map(paintedCells)
+        #expect(frames.allSatisfy { $0.first?.glyph == "(" && $0.last?.glyph == ")" }, "the run is not the chip")
+        let opens = Set(frames.map { String(describing: $0.first?.ink) })
+        let closes = Set(frames.map { String(describing: $0.last?.ink) })
+        let labels = Set(frames.map { String(describing: $0.first { $0.glyph == "O" }?.ink) })
+        #expect(opens.count > 1 && closes.count > 1, "the caps hold still while the label breathes")
+        // From their own resting inks to one bright end, which they reach together.
+        #expect(!opens.isDisjoint(with: labels), "the caps and the label never meet: \(opens) \(labels)")
     }
 }
