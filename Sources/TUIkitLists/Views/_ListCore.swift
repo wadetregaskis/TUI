@@ -2176,7 +2176,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 rowWidth: rowWidth, contentRowIndex: contentRowIndex,
                 style: style, context: context, palette: palette)
             let scrollClip = rowIndex == origin.offset ? origin.topClip : 0
-            guard let covered = pin.cover(rowIndex, lines: rendered.lines.count - scrollClip) else {
+            let endsInRule = row.content.separatorLine != nil
+            guard let covered = pin.cover(rowIndex, lines: rendered.lines.count - scrollClip, endsInRule: endsInRule) else {
                 // Wholly under the pinned header: nothing of it is drawn, and it
                 // has no range to be clicked through.
                 if row.type.countsAsStripedRow { contentRowIndex += 1 }
@@ -2203,7 +2204,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             }
             let (styledLines, pulseFrames, childRuns, rowRegions) = clipRow(
                 rendered, topClip: scrollClip + covered, budget: budget)
-            pin.drew(rowIndex, lines: styledLines.count)
+            pin.drew(rowIndex, lines: styledLines.count, endsInRule: endsInRule)
             let yStart = rowLines.count
             rowLines.append(contentsOf: styledLines)
             if let pulseFrames, let timing = rendered.pulseTiming {
@@ -2506,7 +2507,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 palette: palette
             )
             let scrollClip = rowIndex == origin.offset ? origin.topClip : 0
-            guard let covered = pin.cover(rowIndex, lines: rendered.lines.count - scrollClip) else {
+            let endsInRule = row.content.separatorLine != nil
+            guard let covered = pin.cover(rowIndex, lines: rendered.lines.count - scrollClip, endsInRule: endsInRule) else {
                 if row.type.countsAsStripedRow { contentRowIndex += 1 }
                 continue
             }
@@ -2527,7 +2529,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             }
             let (styledLines, pulseFrames, childRuns, rowRegions) = clipRow(
                 rendered, topClip: scrollClip + covered, budget: budget)
-            pin.drew(rowIndex, lines: styledLines.count)
+            pin.drew(rowIndex, lines: styledLines.count, endsInRule: endsInRule)
             let yStart = lines.count
             // An intrinsically over-wide row must not push the bar cell past
             // the interior (where the container clamp would cut the bar off);
@@ -5084,11 +5086,17 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
 /// range's `linesCutAbove`, which every payload consumer already adds to the
 /// scroll's own clip, so its controls stay on their lines and the lines under
 /// the header are the header's to click.
+///
+/// A header that ends in a rule is not followed by another: a row the cover
+/// (or the scroll) leaves only the rule of is covered whole, its rule too, or
+/// the list would draw the header's rule and then a row's, the line under it.
 struct PinnedHeaderCover {
     /// The pinned header's row index, when the first entry drawn is one.
     let pinned: Int?
     /// Lines of the rows still under the header.
     private var remaining = 0
+    /// Whether the header's last line is a rule (a separator).
+    private var headerEndsInRule = false
 
     /// The cover for a frame whose window opens at `origin` and whose first
     /// entry is `first`: a header with an index above the window's is the
@@ -5108,10 +5116,17 @@ struct PinnedHeaderCover {
     /// How many of the `lines` a row has left after the scroll's own clip the
     /// header covers — 0 for the header itself and every row below its lines —
     /// or `nil` where it covers them all and the row draws nothing.
-    mutating func cover(_ index: Int, lines: Int) -> Int? {
+    ///
+    /// - Parameter endsInRule: Whether the row's last line is its separator.
+    ///   Cut down to that line alone, under a header that ends in a rule, a
+    ///   row is covered whole.
+    mutating func cover(_ index: Int, lines: Int, endsInRule: Bool = false) -> Int? {
         guard !isPinned(index), remaining > 0 else { return 0 }
-        guard remaining < lines else {
-            remaining -= max(0, lines)
+        // The lines that must be covered for the row to be: all of them, or all
+        // but its rule under a header that ends in one.
+        let mustCover = headerEndsInRule && endsInRule ? lines - 1 : lines
+        guard remaining < mustCover else {
+            remaining = max(0, remaining - max(0, lines))
             return nil
         }
         defer { remaining = 0 }
@@ -5120,8 +5135,10 @@ struct PinnedHeaderCover {
 
     /// Notes the lines the entry at `index` drew: as many as the pinned header
     /// drew are taken from the rows after it.
-    mutating func drew(_ index: Int, lines: Int) {
-        if isPinned(index) { remaining = lines }
+    mutating func drew(_ index: Int, lines: Int, endsInRule: Bool = false) {
+        guard isPinned(index) else { return }
+        remaining = lines
+        headerEndsInRule = endsInRule
     }
 }
 
