@@ -134,7 +134,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [§2.1](<SwiftUI compatibility guide.md#21-interface-measurements-are-int-not-cgfloat>) (its note on stacks),
   [§1](<SwiftUI compatibility guide.md#1-match>) (the Grid and Lazy grids rows), [B25](<Decisions/SwiftUI API completion decisions.md#b25-safeareapadding-is-padding-or-a-scroll-views-content-margin>).
   **Recorded.** A row resolves `nil` per pair of views: none beside a custom
-  `Layout` that asks for none on that edge ([B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-the-default-preference-not-each-pairs>)),
+  `Layout` that asks for none on that edge ([B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-resolved-per-pair-of-neighbours>)),
   except one inside an `AnyView`, which keeps the column here ([B-BITEMS1-3](<Decisions/Default focus, drop badges and stack spacing (BITEMS1).md#b-bitems1-3-a-rows-spacing-nil-per-pair-reaches-layouts-and-the-wrappers-that-move-no-edge>)).
 
 ### U4. Gesture distances are cells along either axis
@@ -589,7 +589,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   ignored is what rule 2 forbids.
 - **Decided:** [B1](<Decisions/SwiftUI API completion decisions.md#b1-layoutdirection-is-read-only-always-left-to-right>), [B74](<Decisions/SwiftUI API completion decisions.md#b74-sidebarrowsize-is-read-only-always-medium>). **Lane** (2026-10-12: the
   owner still wants right-to-left, out of scope for now). `\.legibilityWeight`
-  was a third, and is settable and honoured since 2026-10-13 ([B2](<Decisions/SwiftUI API completion decisions.md#b2-legibilityweight-is-read-only-always-nil>)).
+  was a third, and is settable and honoured since 2026-10-13 ([B2](<Decisions/SwiftUI API completion decisions.md#b2-legibilityweight-is-settable-and-every-text-drawing-site-steps-its-weight>)).
 
 ### E2. Reduce motion holds TUIkit's own spatial animations still
 
@@ -1524,7 +1524,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   pushed by a scroll view's arrow or page key at the end as by the wheel (a
   focused `List`'s or `Table`'s keys move its cursor instead).
 - **Why:** a terminal reports no gesture phases and no momentum.
-- **Decided:** [B27](<Decisions/SwiftUI API completion decisions.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance>).
+- **Decided:** [B27](<Decisions/SwiftUI API completion decisions.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance-and-always-springs-back>).
   **Medium**. The owner decided on 2026-10-12 that the velocity is (0, 0) at
   both changes, as SwiftUI reports it, and to add a bounce under `.always`;
   both shipped 2026-10-13.
@@ -1610,7 +1610,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   says `.scrollContent`, and one that wants it moved says `.scrollIndicators`.
 - **Decided:** decisions B24, folded here and removed on 2026-10-12 (the owner
   asked what was recommended; keeping this rule was, with the measurement
-  above); [B28](<Decisions/SwiftUI API completion decisions.md#b28-scrollindicatorsflash-returns-the-view-the-indicators-are-already-showing>). **Medium**. The owner asked for a flash to be
+  above); [B28](<Decisions/SwiftUI API completion decisions.md#b28-scrollindicatorsflash-flashes-the-indicators-for-half-a-second>). **Medium**. The owner asked for a flash to be
   built (2026-10-12): a highlight, shipped 2026-10-13.
 
 ### R6. Rows are reported without `scrollTargetLayout()`

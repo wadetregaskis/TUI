@@ -187,7 +187,7 @@ a custom layout around `G` and a `Grid` report none
 edge guides is gone with it: `VStack(alignment: .center) { G (leading 5); S
 (leading 1) }` reports nothing, so the row beside it stays at 0, as
 SwiftUI's does. The lazy stacks and scroll views still report nothing.
-Deviation L4 is closed. The A/B is B19's (owed): what changed here only
+Deviation L4 is closed. The A/B is B19's (ran 2026-10-19, see B19 in the main decisions file): what changed here only
 removes work, an edge guide's query on a container of several views
 answering before it resolves the children.
 

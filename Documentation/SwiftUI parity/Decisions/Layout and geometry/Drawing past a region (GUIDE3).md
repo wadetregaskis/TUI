@@ -240,6 +240,9 @@ overflow is (B-GUIDE3-3; an offset view in a `Table` cell or a surface was
 not cut before). Its geometry markers ride in the footprint, moved by the
 offset, so a reader inside is still answered where the view is drawn. Only
 the cells it paints are drawn, so a label's leading blank no longer covers
-what lies under it. **A/B owed** where views are offset or positioned on
+what lies under it. **A/B** where views are offset or positioned on
 every frame: Stress's `geometry` scenario (a header offset by the tick, a
-marker by its anchor), and the Example's ZStack layering and animator demos.
+marker by its anchor) ran at the landing, 2026-10-12: +1.4% warm and +1.1% cold (indistinguishable). The rest of that sweep
+was within 1%, bar `customlayout` +1.1% warm and +1.7% cold and `menus` +0.8%
+cold; the stripped binary grew 33 KB. The Example's ZStack layering and animator
+demos were not measured.

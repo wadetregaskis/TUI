@@ -95,7 +95,9 @@ differs, adopted writer by writer: about half a day, plus an A/B.
   about 0.1–0.2% more than main's constant. B-LAYOUTPERF-3's writes are what
   this lane took from it.
 
-**A/B owed** (the coordinator's, on a quiet machine), the base (3a331fd3b)
-against this lane's head, and main against the head: `customlayout`,
-`framedcolumns`, `geometry`, `megalist`, `kitchensink`, `deep`, `table`,
-`stateful`, `churn`, `anyview`, `fanout`.
+**A/B** (the coordinator's, owed on a quiet machine): main against the head ran
+on 2026-10-19 with LAYOUT's, a busy machine (load 26), indicative; see B19 in
+[the main decisions file](<../SwiftUI API completion decisions.md#b19-a-guide-travels-out-of-a-view-type-of-the-apps-own>).
+The base (3a331fd3b) against the head was not run on its own. Scenarios:
+`customlayout`, `framedcolumns`, `geometry`, `megalist`, `kitchensink`, `deep`,
+`table`, `stateful`, `churn`, `anyview`, `fanout`.

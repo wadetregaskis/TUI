@@ -27,7 +27,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [B-BNDL-1](#b-bndl-1) | (a) seems okay; asked why over the others. | Kept as shipped; the reasons are below. |
 | [B-D6M-2](#b-d6m-2) | Check (c); take (c) if it works, else (a). | Trait experiment queued; (a) stands meanwhile. |
 | [B-DYNVFIX-3](#b-dynvfix-3) | Asked for a (d) covering timers and detached tasks, and (b) against (c). | Answered below — your call. |
-| [B-REVIEW](#b-review) | (a); remind you where they are and make sure they are up to date. | Locations below; corrections to stale entries queued. |
+| [B-REVIEW](#b-review) | (a); remind you where they are and make sure they are up to date. | Partly done (lane DOCS2): the stale entries the follow-up names are corrected (six headings, B-DYNVFIX-3's price, the TimeSpan citation, the A/B lines with a recorded result); the other A/B-owed lines are not all checked. |
 | [B-SIZEDOCS-1](#b-sizedocs-1) | (a). | Done (lane DOCS2): the probes are in Tools/SwiftUIProbes/ and their citations repointed. |
 | [BINARY-DISTRIBUTION](#binary-distribution) | Distil the compiler bugs into Desktop reports; remind you of purpose, replace or augment, and toolchain support. | Two Desktop reports exist (`swift-6.4-library-evolution-crash-synthesized-modify.md`, `swift-6.4-cmo-everything-opaque-result-client-crash.md`); reminder below. |
 | [DOCS-HOSTING](#docs-hosting) | Interested; explore a site like upstream's tuikit.dev; domain to be decided. | Plan below. |

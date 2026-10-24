@@ -94,7 +94,9 @@ package struct TimeSpanField: Equatable, Sendable {
 
 /// The rules SwiftUI's unit spellings follow, measured on macOS 15 (wave 11a's
 /// decisions, which 3c8fcbff0 folded into the main decisions document as
-/// B48–B51; the measurements are in
+/// B48–B51; the probes and what they printed are in
+/// `Tools/SwiftUIProbes/Live text formats read back (wave 11a)/`, and the
+/// wave's own write-up, deleted by that commit, is
 /// `git show 3c8fcbff0^:Documentation/SwiftUI-API-completion-decisions-W11a.md`):
 ///
 /// - The span is counted in whole units of `units`, **truncated**, by the

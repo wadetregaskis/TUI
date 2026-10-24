@@ -870,7 +870,7 @@ belongs in `Terminal compatibility survey.md`, measured, before any design.
 out of scope for now: pinned until there is a solid plan, after everything
 else. A3 and B8's mirroring wait on it.
 
-### B2. `\.legibilityWeight` is read-only (always `nil`)
+### B2. `\.legibilityWeight` is settable, and every text-drawing site steps its weight
 
 SwiftUI's is settable. Under `.bold`, every piece of system text is drawn
 one weight heavier. That was measured on a SwiftUI build: light→regular,
@@ -890,7 +890,7 @@ Alternatively, apply it once at the subtree's buffer, the way
 complete, but it would also embolden non-text glyphs (borders, bars). That
 is a reason to prefer the per-site rule.
 
-**Owner, 2026-10-12 (second message):** yes, make it writable. Lane owed (the helper, the A/B).
+**Owner, 2026-10-12 (second message):** yes, make it writable. Lane owed (the helper, the A/B); both done, below.
 
 **Shipped 2026-10-13, the per-site rule.** `\.legibilityWeight` is settable,
 `nil` by default. One helper, `LegibilityWeight?.applied(bold:faint:)`, steps a
@@ -911,9 +911,11 @@ rule was chosen over a rewrite of a subtree's buffer. A faint that means
 something other than a weight (disabled, `.dimmed()`, `.invalidated`) is not
 stepped. Tests: `LegibilityWeightTests`, `LegibilityWeightControlTests`,
 `LegibilityWeightChromeTests`. Cost where no weight is set: one environment
-read per `Text` and per control that draws its own text; the A/B is owed.
+read per `Text` and per control that draws its own text. The A/B ran at the landing (2026-10-13, the base before it against the commit, with the machine not
+quiet, so indicative): neutral, the largest change controls +0.7% cold and several
+scenarios 0.3 to 0.9% faster; the stripped binary grew 16,544 B.
 
-**Asked 2026-10-12: confirm that it should become writable.** You asked
+**Asked 2026-10-12 (answered above, and shipped): confirm that it should become writable.** You asked
 whether this was already decided. Not in so many words: on 2026-10-04 you
 said it did not seem hard to support, asked whether the built-in views should
 switch to drawing through `Text`, and wanted an experiment and a benchmark
@@ -1178,7 +1180,7 @@ lane's own are in [B-BITEMS1-1](<Default focus, drop badges and stack spacing (B
 list's drops propose nothing, and no destination highlight shifts colour
 (TUIkit draws none for these views; the app's `isTargeted` does).
 
-### B19. A guide does not travel out of a view type of the app's own
+### B19. A guide travels out of a view type of the app's own
 
 *`View.alignmentGuide(_:computeValue:)`, `Layout.explicitAlignment(of:in:proposal:subviews:cache:)`*
 
@@ -1208,12 +1210,13 @@ and exactly the kind of thing that has measured as a percent on `fanout` and
 `deep` before. Half a day, plus an A/B on `deep`, `kitchensink`, `megalist`
 and `table` on a quiet machine before it ships.
 
-**A/B owed for what did ship.** The witness now forwards through `TupleView`,
+**For the first version, which shipped before the fuller one (the A/B below
+prices the fuller one against the batch before it).** The witness then forwarded through `TupleView`,
 `Group`, `ForEach`, `ConditionalView`, `Optional`, the three eager stacks and
 padding, so constructing a `ChildView` for a container child ORs its
 framework subtree's witnesses instead of reading one constant. A tree with no
 guide still pays one stored `Bool` per child at layout time, as before; the
-added cost is in the construction, and it was not measured (no benchmarks on
+added cost is in the construction, and it was not measured separately (no benchmarks on
 a shared machine). `deep` and `kitchensink`, the structure-heavy scenarios,
 are the ones to A/B. One more: an app's own `Layout` cannot be known not to
 override `explicitAlignment`, so inside a stack it is laid out once more per
@@ -1226,7 +1229,7 @@ fuller one at least. (You asked for my recommendation on 2026-10-04; on
 2026-10-05 I recommended the fuller version, gated on an A/B, because a guide
 inside an app's own row view, decimal alignment say, is how SwiftUI code is
 commonly written; if `deep` or `kitchensink` cost more than about 1%, it comes
-back to you before landing.) **Lane owed**, about a day (estimate, more than
+back to you before landing.) **Lane owed** (shipped 2026-10-18, below), about a day (estimate, more than
 the half day above): the witness defaults to `Body._providesAlignmentGuide`
 with `false` for `Never`, and stops where a body holds its own type, since
 `Optional` and the conditional view forward and a recursive body would
@@ -1262,15 +1265,18 @@ other, asked in the order that would keep a wrong `false`).
 Two costs fall only on apps with a guide inside a view type of their own: a
 `ForEach` whose row type holds one forfeits its row memo (`ForEach.makeChild`,
 as for a row that sets a guide itself), and a stack around such a view asks
-it for its guide, evaluating its body in a measure. **A/B owed** (three arms,
-on a quiet machine): off (the containers' witnesses `false`, the guide
-modifier's `true`; patch in the lane's notes), the base before this commit
-(framework containers forward), and this commit. Scenarios: `deep`,
-`kitchensink`, `table`, `customlayout`, `fanout`, `anyview`; if `deep` or
-`kitchensink` costs more than about 1%, it goes back to the owner before
-landing.
+it for its guide, evaluating its body in a measure.
 
-### B20. A stack's `spacing: nil` is the default preference, not each pair's
+**A/B, 2026-10-19** (the batch before this commit against it, 15 reps, a busy
+box with a load of 26, so indicative; the checksums were identical). `deep`
+−3.9% warm and −4.7% cold, `kitchensink` −1.5% warm and +0.7% cold, so the rule
+above (about 1% on either) was met and it landed. Slower elsewhere, within
+tolerance: `stateful` +3.6% warm, `customlayout` +2.6% warm and +2.0% cold,
+`alpharamp` +1.3%, `fanout` +0.8%, cold `menus` +1.2%, `churn` +1.0%. The plan
+had three arms (the containers' witnesses off, the batch, this commit); only
+the last two ran.
+
+### B20. A stack's `spacing: nil` is resolved per pair of neighbours
 
 *`HStack.init(alignment:spacing:content:)`, `VStack`, `LazyHStack`, `LazyVStack`,
 `HStackLayout`, `VStackLayout`, `ViewSpacing`, `Layout.spacing(subviews:cache:)`*
@@ -1305,9 +1311,9 @@ so no A/B is owed for it.
 **Decided 2026-10-12: attempt the fuller version, mindful of performance.**
 (You asked for an example on 2026-10-04; on 2026-10-05 I gave
 `HStack { MyLayoutA(); MyLayoutB() }`, both asking for no space on the facing
-edges, and advised against it. Your ruling overrides that.) **Lane owed:** 2–3
-commits and an A/B on `deep`, `kitchensink` and `table` (`megalist` with
-B19's caveat). The shape that keeps the common path as it is (estimate): a
+edges, and advised against it. Your ruling overrides that.) **Lane owed** (shipped
+2026-10-13, below): 2–3 commits and an A/B on `deep`, `kitchensink` and `table`
+(`megalist` with B19's caveat). The shape that keeps the common path as it is (estimate): a
 static witness, "states a spacing preference", true only for `Layout`-backed
 views and their forwarding wrappers; a per-stack flag set while children are
 built; and per-gap distances only where two neighbours both state one.
@@ -1332,6 +1338,9 @@ needed nothing: every vertical distance is 0 either way. Where it differs from
 SwiftUI (an `AnyView`, an app's own view whose body is one layout, a nested
 row) and the cost are in
 [B-BITEMS1-3](<Default focus, drop badges and stack spacing (BITEMS1).md#b-bitems1-3-a-rows-spacing-nil-per-pair-reaches-layouts-and-the-wrappers-that-move-no-edge>).
+The A/B at the landing (2026-10-13, against the batch before it, the machine not quiet, so
+indicative) was neutral: the largest change `table-tail` +1.4% cold, several
+scenarios 0.5 to 1.0% faster; the stripped binary grew 33,776 B.
 
 ### B22. The content levels, and the two- and three-style `foregroundStyle`
 
@@ -1473,7 +1482,7 @@ parks SGR-Pixels (mode 1016).
 **Shipped 2026-10-13 (SCROLLB):** the velocity is `(0, 0)` at every report —
 the first frame's and both changes — and never `nil`.
 
-### B28. `scrollIndicatorsFlash` returns the view: the indicators are already showing
+### B28. `scrollIndicatorsFlash` flashes the indicators for half a second
 
 *`View.scrollIndicatorsFlash(onAppear:)`, `View.scrollIndicatorsFlash(trigger:)`*
 
@@ -1495,7 +1504,7 @@ per-view "last value" and a wake. I would only do it if a port asks.
 TUIkit supports automatic visibility; the 2026-10-05 answer was that TUIkit's
 `.automatic` shows the bar whenever the content overflows, with no fading, so
 the bar is already visible whenever a flash could matter, and the alternative
-is a half-second pulse.) **Lane owed:** 2–3 commits, half a day to a day
+is a half-second pulse.) **Lane owed** (shipped 2026-10-13, below): 2–3 commits, half a day to a day
 (estimate), more than the two hours above: bars are drawn in at least five
 views (`ScrollView`, `List`, `Table`, `TextEditor` and the field chrome);
 `trigger:` needs a last-value store per view (a small `_*Core` with negative
@@ -1607,7 +1616,7 @@ A-SCROLLANCHOR-1: `List` and `Table` hold as the stacks do, though macOS's
 across scrollables. Cost: neutral in the A/B (no scenario past +0.8%,
 2026-10-13).
 
-### B31. Bounce behaviour gates the overscroll allowance
+### B31. Bounce behaviour gates the overscroll allowance, and `.always` springs back
 
 *`ScrollBounceBehavior` (`.automatic`, `.always`, `.basedOnSize`; its
 `differentShape` map entry goes), `View.scrollBounceBehavior(_:axes:)`,
@@ -1646,8 +1655,8 @@ one wake request per step while it is; a spring-back of one to two frames,
 re-sliding a buffer already drawn; one flag per handler. **Scope:** `.always`
 gets a sprung allowance of one or two lines; `.automatic` keeps today's feel;
 an explicit `.scrollOverscroll` allowance keeps staying where it was pushed,
-since that is TUIkit's deliberate-push signal. **Lane owed:** 2–3 commits,
-half a day to a day, which includes detecting the end of a scroll without a
+since that is TUIkit's deliberate-push signal. **Lane owed** (shipped 2026-10-13,
+below): 2–3 commits, half a day to a day, which includes detecting the end of a scroll without a
 phase observer (shared with B27) and the spring-back in `List` and `Table`.
 Nothing is paid by an app that does not write `.always`.
 
@@ -1775,7 +1784,7 @@ somewhere is left alone (`FocusScopeTests`, `initialFocus` and
 makes the choice: each pass clears the mark (`FocusScopeRegistry.beginPass`), so a
 scope that appears on a later frame, while the focus is still the automatic
 pick, does not take it (`doesNotSteal`). So "who has focus" above is true for
-one pass only. **Lane owed, one commit:** keep the mark across frames until a
+one pass only. **Lane owed, one commit** (shipped 2026-10-13, below): keep the mark across frames until a
 real focus event (a user's move, a click, an app's write or `.defaultFocus`),
 and end it on any input delivered to the automatically focused control, so
 focus never moves from under someone typing; a new test for a scope that

@@ -107,7 +107,9 @@ has one layout whatever its class (measured on macOS arm64,
 `Tools/SwiftUIProbes/Swift runtime layouts/typedref.swift`), so no copy of the
 view is made to load it, as a
 load through the runtime's reflection made two (review of 6c8fe3d2b,
-2026-10-12). Unmeasured: the A/B is owed.
+2026-10-12). The lane's A/B (2026-10-12, indicative) was flat apart from the
+`stateful` scenario's gain, but no scenario has a weak plain-class field, so
+this cost is not in it.
 
 ### B-DYNVFIX-2. An `indirect` enum case's payload, and every payload on WebAssembly and Windows, is updated on a copy
 
@@ -265,7 +267,14 @@ each view value (session notes `DYNV2/notes.md` §4.11), and an
   per-place boxes a view value's `@Environment` gets (B-DYNVFIX-5) are not
   made there.
 
-**Price.** Unmeasured over a frame; the A/Bs are owed (lane DYNVCLAIM §11.4).
+**Price.** Measured on 2026-10-13, against the batch before the lane (15 reps,
+indicative): nothing slower than +0.5% in the full sweep, and the stripped
+binary grew 33 KB. The `stateful` variants without objects were
+indistinguishable. With objects, `shared-objects` was 1.5% faster warm and 3.2%
+slower cold, and `identity-churn` (a synthetic worst case: an object made anew
+for every identity each frame) 1.0% slower warm and 8.9% slower cold (CI 7.5 to
+9.3). The lane landed on that, correctness before speed; why cold is so much
+slower than warm there was queued for a profile on 2026-10-13.
 
 - Every app: each `@State` notes its pass (B-DYNVFIX-6); and before and after
   every composite body's content, drawn or measured, a load of the restore
@@ -526,9 +535,10 @@ plus a task-local binding per frame and a lock per pass for the serial. No
 memory: the `UInt32` shares the word the binding byte pads out, so
 `StateBacking<Int>`, `<String>` and `<Bool>` keep their instance sizes (40, 48
 and 40 bytes) and their `malloc_size` (48, 48 and 48), measured before and
-after. Unmeasured over a frame: an A/B on apps holding no class property
-(`megalist`, `controls` or `kitchensink`, `menus`, `stateful`'s variants
-without objects) is owed. If it shows the stamp above noise, the choice is the
+after. Over a frame, the A/B on apps holding no class property (2026-10-13,
+the full sweep and `stateful`'s variants without objects) showed nothing
+slower than +0.5%: the stamp is not measurable, so the choice below was not
+needed. Had it shown the stamp above noise, the choice would have been the
 owner's, among the options the design priced (§10): keep the stamp; read a
 plain process-wide counter instead (about 2 to 3 ns cheaper in the same probe,
 and a data race when a `@State` is made off the main actor during a pass);

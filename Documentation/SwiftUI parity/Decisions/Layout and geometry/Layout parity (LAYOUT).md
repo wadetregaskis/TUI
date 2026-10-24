@@ -106,10 +106,11 @@ is still asked for its guide (only on a stack that aligns on one, and only
 rows whose type may hold one). About half a day, plus the A/B below, since it
 puts a query on the memo's hit path for such rows.
 
-**A/B owed (B19's three arms):** off (the patch in the lane's notes,
-`LAYOUT/b19-off-arm.patch`), the base before B19, and B19; scenarios `deep`,
-`kitchensink`, `table`, `customlayout`, `fanout`, `anyview`. Over about 1% on
-`deep` or `kitchensink` it goes back to the owner.
+**A/B (B19's three arms; ran 2026-10-19 as two, the base before B19 and B19):**
+the off arm (the patch in the lane's notes, `LAYOUT/b19-off-arm.patch`) was not
+run. `deep` and `kitchensink` were within the rule (over about 1% on either it
+goes back to the owner); the numbers are under B19 in
+[the main decisions file](<../SwiftUI API completion decisions.md#b19-a-guide-travels-out-of-a-view-type-of-the-apps-own>).
 
 ### B-LAYOUT-2. An `AnyView` passes no guide out of itself
 

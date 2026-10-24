@@ -99,8 +99,9 @@ nothing while dismissed, because they could never dock from it: an `item:`
 sheet, whose content is made from no item (B-MODALS-2), and a closed
 popover's sheet form, whose binding holds the form read while the popover
 was closed (`ModalPresentationModifier.postsDockWhileDismissed`).
-**A/B owed:** `Stress --scenario sheetrows`, da6ac224e against 05e0d085f,
-and the head of the lane against both.
+**A/B** (`Stress --scenario sheetrows`, da6ac224e against 05e0d085f, and the
+head of the lane against both; ran 2026-10-16): the lazy content −4.5% (CI −5.6
+to −4.0), the lane's head against the commit before the lazy content −4.8%.
 
 **Fuller version, if the A/B says the post costs more than the build saved:**
 key the posts by the presenter's identity, not by its section's name, which
