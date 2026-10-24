@@ -52,7 +52,7 @@ final class BundleStringTables {
         /// ``Answers``.
         var answers: [String: Answers] = [:]
         /// What each key resolved to as Foundation chooses for the bundle.
-        var fallbackAnswers = Answers()
+        var fallbackAnswers = Answers(limit: BundleStringTables.answerLimit)
 
         init(bundle: Bundle, name: String) {
             self.bundle = bundle
@@ -109,54 +109,10 @@ final class BundleStringTables {
     static let answerLimit = 4_096
 
     /// The answers one table keeps for one language (or its fallback): at
-    /// most two generations of ``BundleStringTables/answerLimit`` each.
-    ///
-    /// NOT one map emptied when it fills. That was the flat cap a memo of
-    /// TUIkit's has already lost to once (the text-wrap memo): a working set
-    /// just over the limit — 4,097 keys a frame — filled the map, emptied it
-    /// at the 4,097th key and refilled it, so every frame read every key from
-    /// Foundation again and nothing was ever served. Here only a key read
-    /// from Foundation is written, into the current generation; a full one
-    /// becomes the previous one and the one before it is forgotten. A set of
-    /// keys asked for again and again is therefore kept whole up to twice the
-    /// limit — the whole bound — and read again only past it.
-    ///
-    /// An answer found in the previous generation is NOT copied back into
-    /// the current one. That copy is what keeps an answer asked for once a
-    /// generation alive for ever, but every copy fills the current generation
-    /// towards its turnover, and the turnover forgets the previous answers
-    /// not yet copied: a set of 4,098 keys asked for in turn then read one key
-    /// from Foundation again each round, 6,144 keys 2,047 to 4,094, and 8,191
-    /// keys 8,187 — the flat cap's failure again, moved from just over the
-    /// limit to just under twice it. Without the copy, the price is a key
-    /// asked for often while a stream of others is read: it is forgotten
-    /// with its generation, so it is read again once a turnover at most — at
-    /// most once for every ``BundleStringTables/answerLimit`` other keys read.
-    struct Answers {
-        private var current: [String: String?] = [:]
-        private var previous: [String: String?] = [:]
-
-        /// The answer kept for `key` — `.some(nil)` for a key the table was
-        /// found to lack — or `nil` where none is kept.
-        func answer(for key: String) -> String?? {
-            current[key] ?? previous[key]
-        }
-
-        /// Keeps `answer` for `key`, starting a new generation first if the
-        /// current one is full.
-        mutating func remember(_ answer: String?, for key: String) {
-            if current.count >= BundleStringTables.answerLimit {
-                // The old previous generation's storage becomes the new
-                // current one, emptied, so a turnover allocates nothing.
-                swap(&current, &previous)
-                current.removeAll(keepingCapacity: true)
-            }
-            current[key] = .some(answer)
-        }
-
-        /// How many answers are kept, in both generations.
-        var count: Int { current.count + previous.count }
-    }
+    /// most two generations of ``BundleStringTables/answerLimit`` each, an
+    /// answer of `nil` for a key the table was found to lack. See
+    /// ``GenerationalMemo`` for why two generations.
+    typealias Answers = GenerationalMemo<String, String?>
 
     init(defaultBundle: Bundle = .main) {
         self.defaultBundle = defaultBundle
@@ -176,7 +132,7 @@ final class BundleStringTables {
             let value = source.localizedString(forKey: key, value: Self.missing, table: table.name)
             if value != Self.missing { answer = value }
         }
-        table.answers[language, default: Answers()].remember(answer, for: key)
+        table.answers[language, default: Answers(limit: Self.answerLimit)].remember(answer, for: key)
         return answer
     }
 
