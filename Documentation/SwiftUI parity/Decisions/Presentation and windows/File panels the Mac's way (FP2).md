@@ -142,7 +142,7 @@ A table works out its outline afresh for every row on every pass, where a flat
 table touches only the rows it draws: a frame of a folder of 20,000 files took
 87 ms as an outline and 6.5 ms flat (debug build; 1,000 files 8.9 ms, 5,000
 18 ms). So a folder of more than 5,000 rows is drawn flat
-(`FilePanel.outlineRowLimit`), its folders opened by Return alone. **The
+(`FilePanelListView.outlineRowLimit`), its folders opened by Return alone. **The
 fuller version** makes `_TableOutline` (TUIkitTables) cost what the rows drawn
 cost — kept from pass to pass while the rows and the expansion are the same,
 or flattened lazily, a window at a time — and drops the limit: about a day, in

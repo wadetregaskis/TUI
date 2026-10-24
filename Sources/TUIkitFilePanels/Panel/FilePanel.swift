@@ -210,15 +210,12 @@ struct FilePanel: View {
 
     // MARK: - The folder's items
 
-    /// The table of the folder's items, with the columns its width has room
-    /// for (``FilePanelColumns/shown(inWidth:)``).
+    /// The folder's items (``FilePanelListView``), and the keys and the
+    /// primary action the panel gives them.
     @ViewBuilder private var rows: some View {
-        // A reader is greedy: the table has the rest of the sheet's height,
-        // however few the rows, and the panel is the same size from one
-        // folder to the next.
-        GeometryReader { proxy in
-            table(width: proxy.size.width)
-        }
+        FilePanelListView(
+            browser: browser, allowsMultipleSelection: request.allowsMultipleSelection, selection: selectable,
+            singleSelection: selectableSingle)
         // A folder is a new table: its cursor starts on the first row and its
         // scroll at the top, rather than at the place the last folder's were.
         .id(browser.directory)
@@ -255,55 +252,6 @@ struct FilePanel: View {
         }
     }
 
-    /// The table, with one selection binding or the other, `width` cells wide.
-    ///
-    /// An outline, whose folders open in place, up to ``outlineRowLimit``
-    /// rows; past it, the rows alone.
-    @ViewBuilder private func table(width: Int) -> some View {
-        Group {
-            if browser.rows.count > Self.outlineRowLimit {
-                flatTable(width: width)
-            } else if request.allowsMultipleSelection {
-                Table(browser.rows, children: \.children, selection: selectable, sortOrder: sortOrder) {
-                    FilePanelColumns.fitting(width, browser: browser)
-                }
-                .tableEmptyPlaceholder(emptyText)
-            } else {
-                Table(browser.rows, children: \.children, selection: selectableSingle, sortOrder: sortOrder) {
-                    FilePanelColumns.fitting(width, browser: browser)
-                }
-                .tableEmptyPlaceholder(emptyText)
-            }
-        }
-        // Inset, not bordered: the panel's box is the table's border.
-        .tableStyle(.inset)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    /// The most rows the list view draws as an outline. A table's outline is
-    /// worked out afresh for every row on every pass, which a flat table is
-    /// not: a frame of a folder of 20,000 files took 87 ms as an outline and
-    /// 6.5 ms flat in a debug build. A folder of more is drawn flat, its
-    /// folders opened by Return alone, until the outline's cost stops growing
-    /// with the rows (decisions B-FP2-5).
-    static let outlineRowLimit = 5_000
-
-    /// The table with no outline, for a folder of more than
-    /// ``outlineRowLimit`` rows.
-    @ViewBuilder private func flatTable(width: Int) -> some View {
-        if request.allowsMultipleSelection {
-            Table(browser.rows, selection: selectable, sortOrder: sortOrder) {
-                FilePanelColumns.fitting(width, browser: browser)
-            }
-            .tableEmptyPlaceholder(emptyText)
-        } else {
-            Table(browser.rows, selection: selectableSingle, sortOrder: sortOrder) {
-                FilePanelColumns.fitting(width, browser: browser)
-            }
-            .tableEmptyPlaceholder(emptyText)
-        }
-    }
-
     /// The selection, through a binding that refuses an item that can be
     /// neither chosen nor opened (``FileEntry/isDimmed``): the cursor still
     /// lands on one, as on a macOS panel, but Space does not select it.
@@ -329,11 +277,6 @@ struct FilePanel: View {
             set: { url in singleSelection = url.flatMap { browser.entry(for: $0)?.isDimmed == true ? nil : $0 } })
     }
 
-    /// The table's order, which the browser keeps.
-    private var sortOrder: Binding<[KeyPathComparator<FileEntry>]> {
-        Binding(get: { browser.sortOrder }, set: { browser.sortOrder = $0 })
-    }
-
     /// An open panel's type pop-up's choice, which narrows or widens the
     /// files the browser lets the user choose.
     private var filterChoice: Binding<FileTypeChoice> {
@@ -356,20 +299,6 @@ struct FilePanel: View {
             set: { choice in
                 if case .type(let type) = choice { name = SaveName.renamed(name, as: type, among: types) }
             })
-    }
-
-    /// What the table says when it has no rows: why.
-    private var emptyText: String {
-        switch browser.state {
-        case .loading:
-            LocalizationService.shared.string(for: LocalizationKey.FilePanel.loading)
-        case .loaded:
-            LocalizationService.shared.string(for: LocalizationKey.FilePanel.emptyFolder)
-        case .failed(let failure):
-            String(
-                format: LocalizationService.shared.string(for: LocalizationKey.FilePanel.unreadableFolder),
-                failure.folderName) + " " + failure.reason
-        }
     }
 
     // MARK: - The buttons
