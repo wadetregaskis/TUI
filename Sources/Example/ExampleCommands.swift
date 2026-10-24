@@ -18,12 +18,14 @@ import TUIkit
 ///
 /// - **Edit:** Find… and Find Next (``TextEditingCommands``), enabled while a
 ///   text editor has the focus.
-/// - **View:** the app's palette, border style and control style, each a
-///   `Picker` and so a submenu of its choices with the current one checked;
-///   Text Styling, a
-///   submenu of two `Toggle`s, each a checked item; then the standard toolbar
-///   and sidebar commands. Border Style is disabled while the Theme page's
-///   custom border is in force, which a built-in one would not show through.
+/// - **View:** TUIkit's ``DisplayCommands`` — Palette, Border Style and
+///   Control Style, each a submenu of its choices with the current one
+///   checked — bound to the app's own palette and control style, which the
+///   scene applies; Border Style acts on the appearance manager, and TUIkit
+///   disables it while the Theme page's custom border is in force (the
+///   scene's `.appearance(_:)`), which a built-in one would not show through.
+///   Then Text Styling, the Example's own: a submenu of two `Toggle`s, each a
+///   checked item; then the standard toolbar and sidebar commands.
 /// - **Go**, as Finder's: the main menu (disabled on it), and the previous and
 ///   next demo page.
 ///
@@ -41,41 +43,27 @@ import TUIkit
 /// control's Emacs chords use, which give way to an app's shortcut. Main Menu
 /// is Escape, the key the pages already go back to it with.
 struct ExampleCommands: Commands {
-    /// The app's palette, which View ▸ Palette picks a preset into.
+    /// The app's palette, which View ▸ Palette loads a preset into.
     @Binding var palette: CustomizablePalette
 
-    /// The app's styling, which View ▸ Text Styling, Border Style and Control
-    /// Style read.
+    /// The app's styling, which View ▸ Text Styling and Control Style set.
     @Binding var styling: ExampleStyling
 
     @FocusedBinding(\.examplePage) private var page
-    @Environment(\.appearanceManager) private var appearanceManager
 
     var body: some Commands {
         TextEditingCommands()
+        // Declared before the display commands, so it is drawn after them: the
+        // newest `before:` addition goes first, as SwiftUI places them.
         CommandGroup(before: .toolbar) {
-            Picker(L("commands.palette"), selection: paletteSelection) {
-                ForEach(0..<PaletteRegistry.all.count, id: \.self) { index in
-                    Text(verbatim: PaletteRegistry.all[index].name).tag(PaletteRegistry.all[index].id)
+            Section {
+                Menu(L("commands.textStyling")) {
+                    Toggle(L("settings.uppercaseHeaders"), isOn: $styling.uppercaseSectionHeaders)
+                    Toggle(L("settings.boldButtons"), isOn: $styling.boldButtons)
                 }
             }
-            Picker(L("commands.borderStyle"), selection: borderSelection) {
-                ForEach(0..<AppearanceRegistry.all.count, id: \.self) { index in
-                    Text(verbatim: AppearanceRegistry.all[index].name).tag(AppearanceRegistry.all[index].id)
-                }
-            }
-            .disabled(styling.customBorder != nil)
-            Picker(L("commands.controlStyle"), selection: $styling.controlStyle) {
-                ForEach(0..<ExampleStyling.controlStyles.count, id: \.self) { index in
-                    Text(L(ExampleStyling.controlStyles[index].key)).tag(ExampleStyling.controlStyles[index].style)
-                }
-            }
-            Menu(L("commands.textStyling")) {
-                Toggle(L("settings.uppercaseHeaders"), isOn: $styling.uppercaseSectionHeaders)
-                Toggle(L("settings.boldButtons"), isOn: $styling.boldButtons)
-            }
-            Divider()
         }
+        DisplayCommands(palette: presetPalette, controlStyle: $styling.controlStyle)
         ToolbarCommands()
         SidebarCommands()
         CommandMenu(L("commands.go")) {
@@ -92,28 +80,14 @@ struct ExampleCommands: Commands {
         }
     }
 
-    /// The preset the palette is, by its id; choosing one loads it, as the
-    /// Theme page's preset picker does.
-    private var paletteSelection: Binding<String> {
+    /// The app's palette as View ▸ Palette chooses it: a preset chosen is
+    /// loaded into the editable palette, as the Theme page's preset picker
+    /// loads one.
+    private var presetPalette: Binding<any Palette> {
         let palette = $palette
         return Binding(
-            get: { palette.wrappedValue.id },
-            set: { id in
-                guard let preset = PaletteRegistry.all.first(where: { $0.id == id }) else { return }
-                palette.wrappedValue = CustomizablePalette(from: preset)
-            })
-    }
-
-    /// The built-in border style in force, by its id, as the Theme page's
-    /// appearance picker binds it.
-    private var borderSelection: Binding<String> {
-        let manager = appearanceManager
-        return Binding(
-            get: { manager?.current.id ?? "" },
-            set: { id in
-                guard let appearance = AppearanceRegistry.all.first(where: { $0.id == id }) else { return }
-                manager?.setCurrent(appearance)
-            })
+            get: { palette.wrappedValue },
+            set: { palette.wrappedValue = CustomizablePalette(from: $0) })
     }
 
     /// Moves `offset` pages through the demo list, round the ends.

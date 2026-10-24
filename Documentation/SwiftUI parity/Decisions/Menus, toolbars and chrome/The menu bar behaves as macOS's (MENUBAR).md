@@ -100,6 +100,11 @@ public init(
 - **Strings.** The three titles, the help and the control styles' names are
   TUIkit's, in its seven languages.
 
+The Example's View menu is now `DisplayCommands(palette:controlStyle:)`, bound
+to its editable palette and its control style, with Border Style through the
+appearance manager: TUIkit disables it while the Theme page's custom border is
+in force, as the Example's own code did. Text Styling stays the Example's own.
+
 ## B. Shipped the safe option
 
 ### B-MENUBAR-1. Find… and Find Next are validated; Cut, Copy and Paste are not
@@ -187,7 +192,8 @@ page's ⌘ shortcuts), and E is a text editor's end of line. B and T are only a
 text control's Emacs chords, which give way to an app's shortcut. View gains
 Palette ▸, Border Style ▸ (disabled while the Theme page's custom border is in
 force) and Text Styling ▸, the submenu, checked-item, picker-as-submenu and
-disabled-item examples the owner asked for. The top bar is a
+disabled-item examples the owner asked for (since A-MENUBAR-1 the first three
+are TUIkit's `DisplayCommands`, bound to the Example's state). The top bar is a
 `toolbar(id:)`, so Customize Toolbar… is enabled and offers the F2 and F3
 actions as buttons, which start out of the bar.
 

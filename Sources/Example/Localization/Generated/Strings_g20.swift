@@ -5,12 +5,13 @@
 //  License: MIT
 //
 //  Translation fragment for the menu bar's own commands (`ExampleCommands`):
-//  the Go menu's page navigation, the View menu's palette, border style and
-//  text styling, the customizable top bar's palette and border buttons, the
-//  Menus page's section on the menu bar, and the credits the About alert
-//  shows. The standard menus' own items (About, Quit, Undo, Find…, Show
-//  Sidebar …) are TUIkit's strings. English is the source of truth; every
-//  other language carries the same key set.
+//  the Go menu's page navigation, the View menu's text styling, the control
+//  styles' names the Theme and Buttons pages show, the customizable top bar's
+//  palette and border buttons, the Menus page's section on the menu bar, and
+//  the credits the About alert shows. The standard menus' own items (About,
+//  Quit, Undo, Find…, Show Sidebar, the View menu's Palette, Border Style and
+//  Control Style …) are TUIkit's strings. English is the source of truth;
+//  every other language carries the same key set.
 
 // A sentence a translator reads whole is one string on one line.
 // swiftlint:disable line_length
@@ -26,9 +27,6 @@ extension ExampleStrings {
             "commands.nextPalette": "Next Palette",
             "commands.nextBorder": "Next Border Style",
             "commands.go": "Go",
-            "commands.palette": "Palette",
-            "commands.borderStyle": "Border Style",
-            "commands.controlStyle": "Control Style",
             "controlStyle.automatic": "Automatic",
             "controlStyle.block": "Block",
             "controlStyle.lines": "Lines",
@@ -47,9 +45,6 @@ extension ExampleStrings {
             "commands.nextPalette": "Nächste Palette",
             "commands.nextBorder": "Nächster Rahmenstil",
             "commands.go": "Gehe zu",
-            "commands.palette": "Palette",
-            "commands.borderStyle": "Rahmenstil",
-            "commands.controlStyle": "Steuerelementstil",
             "controlStyle.automatic": "Automatisch",
             "controlStyle.block": "Block",
             "controlStyle.lines": "Linien",
@@ -68,9 +63,6 @@ extension ExampleStrings {
             "commands.nextPalette": "Palette suivante",
             "commands.nextBorder": "Style de bordure suivant",
             "commands.go": "Aller",
-            "commands.palette": "Palette",
-            "commands.borderStyle": "Style de bordure",
-            "commands.controlStyle": "Style des contrôles",
             "controlStyle.automatic": "Automatique",
             "controlStyle.block": "Bloc",
             "controlStyle.lines": "Lignes",
@@ -89,9 +81,6 @@ extension ExampleStrings {
             "commands.nextPalette": "Tavolozza successiva",
             "commands.nextBorder": "Stile del bordo successivo",
             "commands.go": "Vai",
-            "commands.palette": "Tavolozza",
-            "commands.borderStyle": "Stile del bordo",
-            "commands.controlStyle": "Stile dei controlli",
             "controlStyle.automatic": "Automatico",
             "controlStyle.block": "Blocco",
             "controlStyle.lines": "Linee",
@@ -110,9 +99,6 @@ extension ExampleStrings {
             "commands.nextPalette": "Paleta siguiente",
             "commands.nextBorder": "Estilo de borde siguiente",
             "commands.go": "Ir",
-            "commands.palette": "Paleta",
-            "commands.borderStyle": "Estilo de borde",
-            "commands.controlStyle": "Estilo de controles",
             "controlStyle.automatic": "Automático",
             "controlStyle.block": "Bloque",
             "controlStyle.lines": "Líneas",
@@ -131,9 +117,6 @@ extension ExampleStrings {
             "commands.nextPalette": "下一个调色板",
             "commands.nextBorder": "下一个边框样式",
             "commands.go": "前往",
-            "commands.palette": "调色板",
-            "commands.borderStyle": "边框样式",
-            "commands.controlStyle": "控件样式",
             "controlStyle.automatic": "自动",
             "controlStyle.block": "块",
             "controlStyle.lines": "线条",
@@ -152,9 +135,6 @@ extension ExampleStrings {
             "commands.nextPalette": "次のパレット",
             "commands.nextBorder": "次の枠線スタイル",
             "commands.go": "移動",
-            "commands.palette": "パレット",
-            "commands.borderStyle": "枠線スタイル",
-            "commands.controlStyle": "コントロールスタイル",
             "controlStyle.automatic": "自動",
             "controlStyle.block": "ブロック",
             "controlStyle.lines": "線",

@@ -75,15 +75,64 @@ struct ExampleMenuBarTests {
         #expect(rows(app).joined(separator: "\n") == before, "back on the main menu")
     }
 
-    @Test("View holds the palette and border style pickers and the text styling toggles, each a submenu")
+    @Test("View holds TUIkit's display commands and the text styling toggles, each a submenu")
     mutating func viewSubmenus() throws {
         let app = launched()
         try open("View", in: app)
         let menu = rows(app)
-        let titles = ["commands.palette", "commands.borderStyle", "commands.textStyling"].map(text)
+        let titles = ["Palette", "Border Style", "Control Style", text("commands.textStyling")]
         for title in titles + ["Customize Toolbar"] {
             #expect(menu.contains { $0.contains(title) }, "\(title): \(menu)")
         }
+        app.send(KeyEvent(key: .escape))
+        frame(app)
+    }
+
+    /// Opens View with a click, goes to the submenu `row` rows down (a menu
+    /// opened by a click has no row highlighted: Down highlights the first),
+    /// opens it, and returns its rows; then chooses its `item`th option (from
+    /// 0), or closes it where `item` is nil.
+    private mutating func submenu(row: Int, choosing item: Int?, in app: HeadlessApp<ExampleApp>) throws -> [String] {
+        try open("View", in: app)
+        for _ in 0...row {
+            app.send(KeyEvent(key: .down))
+            frame(app)
+        }
+        app.send(KeyEvent(key: .right))
+        frame(app)
+        let shown = rows(app)
+        guard let item else {
+            app.send(KeyEvent(key: .escape))
+            frame(app)
+            app.send(KeyEvent(key: .escape))
+            frame(app)
+            return shown
+        }
+        for _ in 0..<item {
+            app.send(KeyEvent(key: .down))
+            frame(app)
+        }
+        app.send(KeyEvent(key: .enter))
+        frame(app)
+        frame(app)
+        return shown
+    }
+
+    @Test("View ▸ Palette and Control Style choose into the app's own state; Border Style through the manager")
+    mutating func viewSubmenusChoose() throws {
+        let app = launched()
+        let amber = PaletteRegistry.all[1].name
+        let palettes = try submenu(row: 0, choosing: nil, in: app)
+        #expect(!palettes.contains { $0.contains("✓") && $0.contains(amber) }, "sanity: \(palettes)")
+        _ = try submenu(row: 0, choosing: 1, in: app)
+        let chosen = try submenu(row: 0, choosing: nil, in: app)
+        #expect(chosen.contains { $0.contains("✓") && $0.contains(amber) }, "the app's palette: \(chosen)")
+        _ = try submenu(row: 2, choosing: 2, in: app)
+        let styles = try submenu(row: 2, choosing: nil, in: app)
+        #expect(styles.contains { $0.contains("✓") && $0.contains("Lines") }, "the app's control style: \(styles)")
+        _ = try submenu(row: 1, choosing: 3, in: app)
+        let borders = try submenu(row: 1, choosing: nil, in: app)
+        #expect(borders.contains { $0.contains("✓") && $0.contains("Heavy") }, "the manager's border: \(borders)")
     }
 
     @Test("Every control-style picker offers Thick Braille, two dots thick, as the appearances do")
