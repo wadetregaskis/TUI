@@ -141,28 +141,32 @@ struct ShapesPage: View {
     /// A shape behind a label, over a view and as its clip.
     private var modifiers: some View {
         DemoSection("page.shapes.section.modifiers") {
-            HStack(alignment: .top, spacing: 2) {
-                caption(".background(_:in:)") {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("page.shapes.sample.tag")
-                            .padding(.horizontal, 1)
-                            .background(.purple, in: Capsule())
-                        Text("page.shapes.sample.card")
-                            .padding(1)
-                            .background(.teal, in: RoundedRectangle(cornerRadius: 2))
+            VStack(alignment: .leading, spacing: 1) {
+                Text("page.shapes.modifiersExplain")
+                    .foregroundStyle(.palette.foregroundSecondary)
+                HStack(alignment: .top, spacing: 2) {
+                    caption(".background(_:in:)") {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("page.shapes.sample.tag")
+                                .padding(.horizontal, 1)
+                                .background(.purple, in: Capsule())
+                            Text("page.shapes.sample.card")
+                                .padding(1)
+                                .background(.teal, in: RoundedRectangle(cornerRadius: 2))
+                        }
                     }
-                }
-                caption(".overlay(_:in:)") {
-                    Text("page.shapes.sample.overlay")
-                        .frame(width: 16, height: 6)
-                        .background(Color.blue)
-                        .overlay(.orange.opacity(0.6), in: Ellipse())
-                }
-                caption(".clipShape(Circle())") {
-                    Text("page.shapes.sample.clipped")
-                        .frame(width: 16, height: 8)
-                        .background(Color.green)
-                        .clipShape(Circle())
+                    caption(".overlay(_:in:)") {
+                        Text("page.shapes.sample.overlay")
+                            .frame(width: 16, height: 6)
+                            .background(Color.blue)
+                            .overlay(.orange.opacity(0.6), in: Ellipse())
+                    }
+                    caption(".clipShape(Circle())") {
+                        Text("page.shapes.sample.clipped")
+                            .frame(width: 16, height: 8)
+                            .background(Color.green)
+                            .clipShape(Circle())
+                    }
                 }
             }
         }

@@ -19,14 +19,6 @@ struct GesturesDemo: View {
     @State private var isPressing = false
     @State private var spot = "—"
     @State private var composed = "—"
-    @State private var priority = Counts()
-    @State private var simultaneous = Counts()
-
-    /// How many taps a child and its parent have each heard.
-    struct Counts {
-        var child = 0
-        var parent = 0
-    }
 
     var body: some View {
         DemoSection("page.mouse.gestures") {
@@ -51,29 +43,9 @@ struct GesturesDemo: View {
                             TapGesture(count: 2).onEnded { composed = L("page.mouse.gestures.wasDouble") }
                                 .exclusively(before: TapGesture().onEnded { composed = L("page.mouse.gestures.wasSingle") }))
                 }
-                // Click the counts — the child — in each: the parent's tap
-                // takes it in the first; both hear it in the second.
-                HStack(alignment: .top, spacing: 2) {
-                    nested("page.mouse.gestures.highPriority", priority) { priority.child += 1 }
-                        .highPriorityGesture(TapGesture().onEnded { priority.parent += 1 })
-                    nested("page.mouse.gestures.simultaneous", simultaneous) { simultaneous.child += 1 }
-                        .simultaneousGesture(TapGesture().onEnded { simultaneous.parent += 1 })
-                }
+                NestedGestureBoxes()
             }
         }
-    }
-
-    /// A parent tile whose counts line is a child with a tap of its own.
-    private func nested(_ key: String, _ counts: Counts, childTapped: @escaping () -> Void) -> some View {
-        VStack(spacing: 0) {
-            Text(L(key)).bold()
-            Text("\(L("page.mouse.gestures.child")) \(counts.child) · \(L("page.mouse.gestures.parent")) \(counts.parent)")
-                .foregroundStyle(.palette.accent)
-                .onTapGesture(perform: childTapped)
-        }
-        .frame(width: 34, alignment: .center)
-        .padding(.vertical, 1)
-        .border(.palette.border)
     }
 
     /// A target to click: its name, and what it has heard.
@@ -83,6 +55,54 @@ struct GesturesDemo: View {
             Text(value).foregroundStyle(.palette.accent)
         }
         .frame(width: 16, alignment: .center)
+        .padding(.vertical, 1)
+        .border(.palette.border)
+    }
+}
+
+/// A parent's tap against its child's, in two boxes: each is a parent with a
+/// tap of its own, and its counts line is a child with a tap of its own.
+///
+/// Click the counts line. By default the child's tap wins and the parent never
+/// hears it; `.highPriorityGesture(TapGesture())` on the first box's parent
+/// gives the click to the PARENT alone (only "parent" rises), and
+/// `.simultaneousGesture(TapGesture())` on the second's lets BOTH hear it.
+/// Click anywhere else in a box — its title, its border — and only the parent
+/// is there to hear it, in both.
+struct NestedGestureBoxes: View {
+    @State private var priority = Counts()
+    @State private var simultaneous = Counts()
+
+    /// The words the counts line is made of, and the boxes' titles.
+    var childLabel = L("page.mouse.gestures.child")
+    var parentLabel = L("page.mouse.gestures.parent")
+    var priorityTitle = L("page.mouse.gestures.highPriority")
+    var simultaneousTitle = L("page.mouse.gestures.simultaneous")
+
+    /// How many taps a child and its parent have each heard.
+    struct Counts {
+        var child = 0
+        var parent = 0
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 2) {
+            box(priorityTitle, priority) { priority.child += 1 }
+                .highPriorityGesture(TapGesture().onEnded { priority.parent += 1 })
+            box(simultaneousTitle, simultaneous) { simultaneous.child += 1 }
+                .simultaneousGesture(TapGesture().onEnded { simultaneous.parent += 1 })
+        }
+    }
+
+    /// A parent box whose counts line is a child with a tap of its own.
+    private func box(_ title: String, _ counts: Counts, childTapped: @escaping () -> Void) -> some View {
+        VStack(spacing: 0) {
+            Text(verbatim: title).bold()
+            Text(verbatim: "\(childLabel) \(counts.child) · \(parentLabel) \(counts.parent)")
+                .foregroundStyle(.palette.accent)
+                .onTapGesture(perform: childTapped)
+        }
+        .frame(width: 34, alignment: .center)
         .padding(.vertical, 1)
         .border(.palette.border)
     }
