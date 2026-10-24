@@ -73,14 +73,37 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
 
     /// Flattens `tree`: every root, and beneath each open branch its rows, in
     /// reading order. A closed branch's rows are never built.
-    init(tree: _TableRowBranch<Value>, expansion: StateBox<Set<AnyHashable>>) {
+    convenience init(tree: _TableRowBranch<Value>, expansion: StateBox<Set<AnyHashable>>) {
+        self.init(Self.flattening(tree, expansion: expansion), expansion: expansion)
+    }
+
+    /// The outline `flat` describes, opening and closing branches in
+    /// `expansion`.
+    init(_ flat: Flattening, expansion: StateBox<Set<AnyHashable>>) {
         self.expansion = expansion
+        self.values = flat.values
+        self.traits = flat.anyTraits ? flat.traits : nil
+        self.placements = flat.placements
+        self.parents = flat.parents
+        self.branches = flat.branches
+        self.insertionAction = flat.insertionAction
+    }
+
+    /// What flattening a tree finds: the rows that show, in order, and where
+    /// each sits.
+    struct Flattening {
         var values: [Value] = []
         var traits: [_TableRowTraits] = []
         var anyTraits = false
         var placements: [Value.ID: Placement] = [:]
         var parents: [Value.ID: Value.ID] = [:]
         var branches: [Value.ID: _TableRowNode<Value>] = [:]
+        var insertionAction: _TableDropInsertion?
+    }
+
+    /// Flattens `tree`: every root, and beneath each open branch its rows.
+    static func flattening(_ tree: _TableRowBranch<Value>, expansion: StateBox<Set<AnyHashable>>) -> Flattening {
+        var flat = Flattening()
         // Where each list of siblings drew its rows — the roots, and each open
         // branch's — for the loops among them.
         var insertions = _TableOutlineInsertions(roots: tree.insertions)
@@ -92,36 +115,32 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
             tree.nodes.reversed().map { ($0, 0, nil, roots) }
         while let (node, depth, parent, siblings) = stack.popLast() {
             let id = node.value.id
-            insertions.drew(row: values.count, depth: depth, in: siblings)
-            values.append(node.value)
-            traits.append(node.traits)
-            anyTraits = anyTraits || !node.traits.isEmpty
-            if let parent { parents[id] = parent }
+            insertions.drew(row: flat.values.count, depth: depth, in: siblings)
+            flat.values.append(node.value)
+            flat.traits.append(node.traits)
+            flat.anyTraits = flat.anyTraits || !node.traits.isEmpty
+            if let parent { flat.parents[id] = parent }
             guard let children = node.children else {
-                placements[id] = Placement(depth: depth, disclosure: .leaf)
+                flat.placements[id] = Placement(depth: depth, disclosure: .leaf)
                 continue
             }
-            branches[id] = node
+            flat.branches[id] = node
             let isOpen = Self.isOpen(node, in: expansion)
-            placements[id] = Placement(depth: depth, disclosure: isOpen ? .open : .closed)
+            flat.placements[id] = Placement(depth: depth, disclosure: isOpen ? .open : .closed)
             guard isOpen else { continue }
             let branch = children()
-            let list = insertions.opened(after: values.count - 1, depth: depth + 1, loops: branch.insertions)
+            let list = insertions.opened(after: flat.values.count - 1, depth: depth + 1, loops: branch.insertions)
             for child in branch.nodes.reversed() {
                 stack.append((child, depth + 1, id, list))
             }
         }
-        self.values = values
-        self.traits = anyTraits ? traits : nil
-        self.placements = placements
-        self.parents = parents
-        self.branches = branches
-        self.insertionAction = insertions.action(rowCount: values.count)
+        flat.insertionAction = insertions.action(rowCount: flat.values.count)
+        return flat
     }
 
     /// Whether a branch is open: as its own binding says, or as the table
     /// remembers. A branch starts closed, as SwiftUI's do.
-    private static func isOpen(_ node: _TableRowNode<Value>, in expansion: StateBox<Set<AnyHashable>>) -> Bool {
+    static func isOpen(_ node: _TableRowNode<Value>, in expansion: StateBox<Set<AnyHashable>>) -> Bool {
         node.isExpanded?.wrappedValue ?? expansion.value.contains(AnyHashable(node.value.id))
     }
 
