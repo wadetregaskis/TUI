@@ -42,7 +42,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [A-D6L-2](#a-d6l-2) | (4). | Queued: the Kitty hairline prototype comes first. |
 | [B-D2S-6](#b-d2s-6) | Asked whether "0 more" should ever show. | Answered below — your call. |
 | [S3-NO-EXTENT-SPACING](#s3-no-extent-spacing) | Leaning (2); asked why SwiftUI does this. | Answered below — your call. |
-| [B27-ANIMATING](#b27-animating) | (3). | Queued (a short design note first). |
+| [B27-ANIMATING](#b27-animating) | (3). | Design note written: [Animated scrolling, a design (B27)](<SwiftUI parity/Decisions/Scrolling/Animated scrolling, a design (B27).md>), about 6 days in 8 commits (2.75 for the SwiftUI-parity part). Queued. |
 | [B-D5G-4](#b-d5g-4) | (2), placed towards the end of the queue. | Queued near the end of the queue. |
 | [RC5](#rc5) | Concur with the recommendation. | (a) with (c)'s test sweep, queued. |
 | [TABLE-CLOSURE-COLUMN](#table-closure-column) | (b); asked about a "pure" closure overload. | (b) queued; the overload is answered below. |

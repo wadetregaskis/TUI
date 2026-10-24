@@ -98,13 +98,17 @@ restores the old reach everywhere, on one box it frees that box, and
 brief suggested; `.pane` rather than `.page`, since a selection already keeps
 to its pane (a scroll view, a split view's column), never to the page.
 
-**Cost:** one hover-observer region and one dictionary entry per bordered box
-per frame (none under `.pane`, none while measuring), journalled for memo
-replay as a `textSelection` scope is. The Stress selfcheck passes (122 cases,
-23 sessions). An A/B is owed on the scenarios with the most boxes:
-`anyview` (a bordered row per element), `deep` (nested borders),
-`modifiers`, `customlayout`, and the `chat`, `glides` and `session/menus`
-sessions.
+**Cost, measured 2026-10-24.** As first shipped, each bordered box registered
+a hover observer and journalled its scope, which a memoized row replayed every
+frame: release A/B against the commit before the lane, warm, `modifiers`
++28.7%, `dashboard` +7.4%, `anyview` +3.8%. Since b8acc3898 the interior is a
+region under the reserved `HitTestRegion.HandlerID.selectionInterior`, which
+registers and journals nothing (`modifiers` −16.8% against that first form).
+What remains is the region itself: a box that carried no regions now makes
+every ancestor carry one, measured by switching the interior off — `modifiers`
++6.4% and `dashboard` +3.7% warm for having it, `modifiers` +1.3% cold. Under
+the owner's ~10% line and accepted as the cost of the behaviour; making the
+interior opt-in would remove it, and is the owner's call.
 
 A list's, a table's and a menu's own box files none
 (`ContainerConfig.keepsSelectionInside`): their presses are the control's,
