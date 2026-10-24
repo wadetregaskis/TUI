@@ -34,9 +34,9 @@ set -euo pipefail
 
 DEPTH="${1:-quick}"
 BUILD_DIR="${2:-.build/debug}"
-case "$BUILD_DIR" in /*) ;; *) BUILD_DIR="$REPO/$BUILD_DIR" ;; esac
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
+case "$BUILD_DIR" in /*) ;; *) BUILD_DIR="$REPO/$BUILD_DIR" ;; esac
 VENV="${TMPDIR:-/tmp}/tuikit-smoke-venv"
 
 # `full` asks each app how many pages it has rather than carrying a literal.
