@@ -82,8 +82,9 @@ private struct BlankAtTheCut: View, Renderable {
 
     var frames = Self.plainFrames
     var frameTicks = AnimationClock.standardFrameTicks
-    /// How many cells of the line come before the run.
-    var lead = 15
+    /// How many cells of the line come before the run: 13 puts it at the cut of a
+    /// 24-wide list's row whose badge `3` sits in its capsule, three cells.
+    var lead = 13
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let run = AnimatedCellRun(
@@ -100,9 +101,9 @@ private struct BlankAtTheCutApp: App {
     var frames = BlankAtTheCut.plainFrames
     /// Each row's step, in ticks.
     var frameTicks = [AnimationClock.standardFrameTicks, AnimationClock.standardFrameTicks]
-    var lead = 15
+    var lead = 13
     init() {}
-    init(frames: [String], frameTicks: [Int], lead: Int = 15) {
+    init(frames: [String], frameTicks: [Int], lead: Int = 13) {
         self.frames = frames
         self.frameTicks = frameTicks
         self.lead = lead
@@ -257,7 +258,7 @@ struct ListBadgedLineRunAlphaTests {
     @Test("A run starting at the ellipsis recolours it frame by frame")
     func aRunStartingAtTheEllipsis() throws {
         let found = ReplayOracle.compare(
-            { BlankAtTheCutApp(frames: BlankAtTheCut.recolouredFrames, frameTicks: [3, 3], lead: 17) },
+            { BlankAtTheCutApp(frames: BlankAtTheCut.recolouredFrames, frameTicks: [3, 3], lead: 15) },
             ticks: 24, size: (30, 8))
         try #require(found.compared >= 24, "only \(found.compared) rows were compared")
         for mismatch in found.mismatches { Issue.record(Comment(rawValue: mismatch)) }
@@ -278,7 +279,7 @@ struct ListBadgedLineRunAlphaTests {
     /// A real `.shade` spinner, whose first frame is a blank, in a badged row, at every
     /// width that puts it at the cut — the ellipsis in its cell, then just after it —
     /// or a cell short of it: every tick shows what a render at that instant draws.
-    @Test("A shade spinner at a badged row's cut replays as it renders", arguments: 10...13)
+    @Test("A shade spinner at a badged row's cut replays as it renders", arguments: 12...15)
     func aShadeSpinnerAtTheCut(width: Int) throws {
         let found = ReplayOracle.compare({ ShadeAtTheCutApp(width: width) }, ticks: 24, size: (30, 8))
         for mismatch in found.mismatches { Issue.record(Comment(rawValue: "width \(width): \(mismatch)")) }

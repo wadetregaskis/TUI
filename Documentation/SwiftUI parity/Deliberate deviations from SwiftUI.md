@@ -1816,8 +1816,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   border; a list draws a separator under every row (not `.sidebar`); a
   `.standard` badge sits in a capsule; a section's actions show while the
   pointer is over it.
-- **TUIkit:** `.automatic` is bordered; no separators unless asked; a badge is
-  plain text; section actions are always shown — at the header's trailing
+- **TUIkit:** `.automatic` is bordered; no separators unless asked; a
+  `.standard` badge sits in a capsule in the control family (since
+  2026-10-24: a field a cell wider each side under filled faces, line caps
+  under `.controlStyle(.lines)`), as macOS's does, and is no longer a
+  deviation; section actions are always shown — at the header's trailing
   edge in a list that fills its width, after the title in one that hugs its
   rows.
 - **Why:** a separator costs a line per row; actions shown only on hover are

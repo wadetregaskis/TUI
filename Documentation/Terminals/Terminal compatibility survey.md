@@ -757,8 +757,10 @@ force — `▐ … ▌` round a filled face as before, `( … )`, `│ … │` 
 lines' ink under `.controlStyle(.lines)`, the shape's Braille ends under
 `.braille`. A `ControlGroup` is drawn the same way, as one segmented face
 (CONTROLGROUP-LOOK (a)): those caps at its two ends, `│` between its buttons,
-which draw no caps of their own. No glyph is new to chrome: each is a button
-face's or a segmented picker's already. The
+which draw no caps of their own; and a list row's `.standard` badge sits in a
+capsule of the family (B72-CAPSULE (c)): a field a cell wider each side when
+filled, those caps on no field in lines. No glyph is new to chrome: each is a
+button face's or a segmented picker's already. The
 switch's knob is not a cap and keeps `▐▌`; its look under Lines waits on a
 probe card for the owner.
 

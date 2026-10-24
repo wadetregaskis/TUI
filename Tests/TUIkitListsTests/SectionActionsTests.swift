@@ -61,6 +61,9 @@ struct SectionActionsTests {
     /// B78).
     @Test("In a list that fills its width the actions end where a row's badge ends; in one that hugs, after the title")
     func flushRightWhereTheListFills() {
+        // In lines, where the badge's capsule and the action's face both end in
+        // a glyph: a filled capsule ends in a cell of its field, which the gap
+        // below cannot tell from the row's.
         let rows = List {
             Section("Fruit") {
                 Text("Apple").badge(5)
@@ -69,6 +72,7 @@ struct SectionActionsTests {
                 Button("Add") {}
             }
         }
+        .controlStyle(.lines)
         let filled = lines(rows)
         guard let header = filled.first(where: { $0.contains("Fruit") }),
             let apple = filled.first(where: { $0.contains("Apple") })

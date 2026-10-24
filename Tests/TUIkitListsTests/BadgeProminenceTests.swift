@@ -24,6 +24,9 @@ struct BadgeProminenceTests {
         var environment = EnvironmentValues()
         environment.focusManager = FocusManager()
         environment.palette = palette
+        // No capsule round a badge (`ListBadgeCapsule`): these are about its
+        // INK, which `BadgeCapsuleTests` pins in the capsule too.
+        environment.controlStyle = .blank
         return RenderContext(
             availableWidth: 30, availableHeight: 6, environment: environment, tuiContext: TUIContext()
         ).isolatingRenderCache()

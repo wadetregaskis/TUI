@@ -2605,14 +2605,19 @@ wins over the list's. Written inside the badge (`.badgeProminence(.decreased)
 (lane LISTS). A badge with another kind of modifier after it is a gap of its
 own (B-LISTS-1).
 
-**The fuller version:**
-
-- **A capsule for `.standard`.** Draw the badge on a tinted field one cell
-  wider on each side (` 12 `), the terminal's capsule, and keep today's plain
-  text for `.decreased`. This changes every badged list's look, and every
-  golden or render test that reads a badged row needs re-baselining. Half a
-  day, most of it the tests and choosing the field colour per palette (it has
-  to read on the cursor row's breath too).
+**And the capsule (owner, B72-CAPSULE (c), 2026-10-23; shipped
+2026-10-24):** a `.standard` or `.increased` badge sits in a capsule in the
+control family (`ListBadgeCapsule`): under filled faces, the default, a field
+a cell wider each side, ` 12 `, in the control face's resting tint (a
+button's at rest, `restingControlFace`, spent over the list's surface; blank
+where the accent's tint cannot be measured), its text the badge's ink floored
+against it; under `.controlStyle(.lines)` the cap set's caps on no field,
+`(12)`, `│12│` in a rounded rectangle, from the table a button reads
+(`ControlEnds`); none under `.blank`. A `.decreased` badge stays plain text,
+as macOS draws it. The capsule's cells are the badge's in the list's hug, its
+badged line's fit and its claims alike. The field is the same on every row:
+on the cursor's and a selection's fill it reads as a darker capsule on the
+lighter row.
 
 ### B73. Background prominence: raised on the rows a list builds itself
 

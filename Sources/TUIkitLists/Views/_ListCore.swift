@@ -706,7 +706,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     var rowContext = checkContext
                     rowContext.environment.fixedSizeWidth = false
                     Self.tellRows(hugging: true, in: &rowContext.environment)
-                    return ViewSize.fixed(walkForWidestRow(extractRows(from: content, context: rowContext)), 0)
+                    return ViewSize.fixed(
+                        walkForWidestRow(extractRows(from: content, context: rowContext), environment: rowContext.environment),
+                        0)
                 }.width
             }
         }
@@ -724,7 +726,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // however the rows are drawn meanwhile (see `ObservationLeases`).
         let leaseMark = context.renderCache?.leases.beginComputation()
         let widest = observingKeptResult(of: Self.self, kind: .keptMeasure, context: context) {
-            walkForWidestRow(source)
+            walkForWidestRow(source, environment: context.environment)
         }
         let lease = context.renderCache?.leases.endComputation(leaseMark)
         // Kept until the clock next moves a row's timeline, when that is all
@@ -742,8 +744,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
 
     /// The widest of `source`'s rows, badge included, from every row — the
     /// walk ``widestRowWidth(source:context:)`` keeps the answer of.
-    private func walkForWidestRow(_ source: RowSource<SelectionValue>) -> Int {
-        (0..<source.count).map { index in
+    ///
+    /// A badge's capsule is the same in every row it is drawn in, but for a
+    /// `.decreased` badge's, which has none (``ListBadgeCapsule``): asked once.
+    private func walkForWidestRow(_ source: RowSource<SelectionValue>, environment: EnvironmentValues) -> Int {
+        let capsuleCells = ListBadgeCapsule.cells(prominence: .standard, environment: environment)
+        return (0..<source.count).map { index in
             // The content alone: a width needs no selection value, and the
             // row's type is asked below only of a row showing a badge.
             let content = source.content(at: index)
@@ -763,6 +769,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     case .content = source.type(at: index)
                 {
                     badge.displayText.strippedLength + 1
+                        + ((content.badgeProminence ?? environment.badgeProminence) == .decreased ? 0 : capsuleCells)
                 } else {
                     0
                 }
@@ -4297,24 +4304,17 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             ? " " : ANSIRenderer.colorize(indicator.glyph, foreground: indicator.color.opaqueSpelling)
 
         // Check for badge on the row (only for content rows, on first line only)
-        let badge = row.badge
-        let shouldRenderBadge = badge != nil && !badge!.isHidden && row.isSelectable
-        // The badge's ink, by the prominence written around the row's own
-        // `.badge(_:)`, else the one in the list's environment — the
-        // environment the badge is written in, as measured (decisions B72):
-        // the claim and the bytes below both draw in it.
-        let badgeProminence = (shouldRenderBadge ? row.badgeProminence : nil) ?? context.environment.badgeProminence
-        let badgeInk = badgeProminence.badgeInk(in: palette)
+        let (badge, badgeInk) = drawnBadge(of: row, context: context, palette: palette)
         // Where its glyphs land, worked out once: the claim below and the bytes in
         // `renderLineWithBadge` have to name the same cells, and a badge is the one
         // text a list row draws ITSELF rather than taking from its content buffer.
         let badgeColumns =
-            shouldRenderBadge && !badgeInk.isOpaque
-            ? badgePlacement(
-                line: row.buffer.lines.first ?? "", badge: badge!, rowWidth: rowWidth,
-                gutterCells: 1
-            ).columns
-            : 0..<0
+            if let badge, !badgeInk.isOpaque {
+                badgePlacement(line: row.buffer.lines.first ?? "", badge: badge, rowWidth: rowWidth, gutterCells: 1)
+                    .columns
+            } else {
+                0..<0
+            }
 
         /// The mark, the badge and the fill this row owes, per line (``rowClaims(over:lines:rowWidth:indicator:badgeColumns:badgeInk:)``).
         /// Over every line but a separator's, which is drawn on the list's
@@ -4344,9 +4344,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     return renderPlainLine(
                         line: rule, lineLength: rule.strippedLength, rowWidth: rowWidth, backgroundColor: nil, gutter: " ")
                 }
-                if shouldRenderBadge && lineIndex == 0 {
+                if let badge, lineIndex == 0 {
                     return renderLineWithBadge(
-                        line: line, badge: badge!, rowWidth: rowWidth, backgroundColor: backgroundColor,
+                        line: line, badge: badge, rowWidth: rowWidth, backgroundColor: backgroundColor,
                         ink: badgeInk, gutter: gutter, bold: context.environment.legibilityWeight.drawsPlainBold)
                 } else {
                     // Its width from the content's buffer, which mostly knows it:
@@ -4376,8 +4376,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         /// badged row carries a run.
         let carried = Self.carriedChildRuns(
             of: content.drawn, rowWidth: rowWidth,
-            badgedLine: shouldRenderBadge
-                ? { badgedLineFit(content.drawn.lines.first ?? "", badge: badge!, rowWidth: rowWidth) } : nil)
+            badgedLine: badge.map { badge in
+                { badgedLineFit(content.drawn.lines.first ?? "", badge: badge, rowWidth: rowWidth) }
+            })
         let childRuns = carried.runs
         // A run cut short of an ellipsis its frames move asks for a render at each of
         // its steps, which draws the ellipsis where that frame puts it. Under a token of
@@ -4390,7 +4391,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 forNextStepOf: carried.stepping.map { ($0.clock, $0.frameTicks) })
         }
         let droppedRunClaims = cutToBadgedContent(
-            carried.droppedClaims, of: row, badged: shouldRenderBadge, rowWidth: rowWidth)
+            carried.droppedClaims, of: row, badge: badge, rowWidth: rowWidth)
 
         // A row whose picture is still walking back to it keeps its space and
         // draws nothing in it — see ``ItemListHandler/returningRows``. Blanked
@@ -4416,7 +4417,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     pulseFrames: nil, childRuns: Self.grounding(childRuns, on: background),
                     claims: Self.cuttingTranslucentFill(claims(over: fill), fill: fill, rowWidth: rowWidth) { lines(over: nil) },
                     contentClaims: content.claims(leaving: droppedRunClaims)),
-                of: background, row: row, badged: shouldRenderBadge, rowWidth: rowWidth, palette: palette)
+                of: background, row: row, badge: badge, rowWidth: rowWidth, palette: palette)
         }
         // A breathing row repaints its WHOLE line every tick, so a narrower run
         // on the same line would be overwritten by it — two animations claiming
@@ -4443,7 +4444,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // without colour, by weight) with the content's fades spent against it.
         let perStep = paints.map { paint in
             spentOnReversedFrame(
-                paint.lines { lines(over: $0) }, of: paint, row: row, badged: shouldRenderBadge, rowWidth: rowWidth,
+                paint.lines { lines(over: $0) }, of: paint, row: row, badge: badge, rowWidth: rowWidth,
                 palette: palette)
         }
         let step = background.stepNow % max(1, perStep.count)
@@ -4664,9 +4665,26 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         }
     }
 
+    /// The badge `row` draws on its first line, in its capsule (``ListBadgeCapsule``),
+    /// and the ink its text is drawn in — `nil` for a row with none to show (only a
+    /// content row draws one). Both by the prominence written around the row's own
+    /// `.badge(_:)`, else the one in the list's environment — the environment the
+    /// badge is written in, as measured (decisions B72): the claim and the bytes both
+    /// draw in it.
+    private func drawnBadge(
+        of row: SelectableListRow<SelectionValue>, context: RenderContext, palette: any Palette
+    ) -> (badge: DrawnBadge?, ink: Color) {
+        guard let value = row.badge, !value.isHidden, row.isSelectable else {
+            return (nil, context.environment.badgeProminence.badgeInk(in: palette))
+        }
+        let prominence = row.badgeProminence ?? context.environment.badgeProminence
+        let capsule = ListBadgeCapsule(prominence: prominence, environment: context.environment)
+        return (DrawnBadge(value: value, capsule: capsule), capsule.textInk(prominence.badgeInk(in: palette)))
+    }
+
     /// How a badged first line, `line`, is fitted beside `badge`, for its runs: by the
     /// derivation the line is drawn through (`badgePlacement`).
-    private func badgedLineFit(_ line: String, badge: BadgeValue, rowWidth: Int) -> BadgedLineFit {
+    private func badgedLineFit(_ line: String, badge: DrawnBadge, rowWidth: Int) -> BadgedLineFit {
         let placement = badgePlacement(line: line, badge: badge, rowWidth: rowWidth, gutterCells: 1)
         return BadgedLineFit(line: line, fitted: placement.fitted, budget: placement.budget)
     }
@@ -4684,7 +4702,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// hole in the cursor row (`Opacity as composition.md` §86.1).
     private func spentOnReversal(
         _ rendered: RenderedRow, of background: RowBackground, row: SelectableListRow<SelectionValue>,
-        badged: Bool, rowWidth: Int, palette: any Palette
+        badge: DrawnBadge?, rowWidth: Int, palette: any Palette
     ) -> RenderedRow {
         // The content's claims as the attach would carry them: its own, then what its
         // dropped runs left. Asked first, so a reversed row with nothing fading in it —
@@ -4695,7 +4713,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         else { return rendered }
         // Past the gutter every row line opens with.
         var painted = FrameBuffer(lines: rendered.lines)
-        painted.opacityRegions = cutToBadgedContent(claims, of: row, badged: badged, rowWidth: rowWidth)
+        painted.opacityRegions = cutToBadgedContent(claims, of: row, badge: badge, rowWidth: rowWidth)
             .map { $0.shifted(byX: 1, y: 0) }
         painted.animatedCells = rendered.childRuns.map { $0.cellRun }
         let spent = painted.resolvingOpacity(onReversal: ink.opaqueSpelling, palette: palette)
@@ -4705,7 +4723,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     }
 
     /// `drawn`, a frame of a breathing row, with the content's fades spent against it
-    /// where it is reversed, as ``spentOnReversal(_:of:row:badged:rowWidth:palette:)``
+    /// where it is reversed, as ``spentOnReversal(_:of:row:badge:rowWidth:palette:)``
     /// spends a still reversal's; a filled frame as it is, the content having spent
     /// its fades over the fill itself.
     ///
@@ -4713,14 +4731,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// the fill of the frame drawn now and kept none, and a reversed frame drops the
     /// colours they were spent into anyway — the claims are all it needs.
     private func spentOnReversedFrame(
-        _ drawn: [String], of paint: RowBackground.Paint, row: SelectableListRow<SelectionValue>, badged: Bool,
+        _ drawn: [String], of paint: RowBackground.Paint, row: SelectableListRow<SelectionValue>, badge: DrawnBadge?,
         rowWidth: Int, palette: any Palette
     ) -> [String] {
         guard case .reversed(let ink, _, _) = paint else { return drawn }
         let claims = row.buffer.opacityRegions
         guard FrameBuffer.fadesOnWhatIsBehind(claims, runAlphas: []) else { return drawn }
         var painted = FrameBuffer(lines: drawn)
-        painted.opacityRegions = cutToBadgedContent(claims, of: row, badged: badged, rowWidth: rowWidth)
+        painted.opacityRegions = cutToBadgedContent(claims, of: row, badge: badge, rowWidth: rowWidth)
             .map { $0.shifted(byX: 1, y: 0) }
         return painted.resolvingOpacity(onReversal: ink.opaqueSpelling, palette: palette).lines
     }
@@ -4984,10 +5002,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// columns a second time beside the claim is the shape that keeps going wrong
     /// here: `max(1, …)` on the fill means a row too narrow for both does NOT put
     /// the badge where `rowWidth − badgeWidth − 1` says it is.
+    ///
+    /// `columns` are the badge's TEXT, inside its capsule (``ListBadgeCapsule``):
+    /// the capsule's own cells are opaque and owe nothing.
     private func badgePlacement(
-        line: String, badge: BadgeValue, rowWidth: Int, gutterCells: Int
+        line: String, badge: DrawnBadge, rowWidth: Int, gutterCells: Int
     ) -> (fitted: String, fillPadding: Int, columns: Range<Int>, budget: Int) {
-        let badgeWidth = badge.displayText.strippedLength
+        let badgeWidth = badge.width
         // When the row is too narrow for both, the CONTENT truncates and the
         // badge survives (as in SwiftUI, where the label truncates first) —
         // overflowing instead put the badge in the cells the container
@@ -4998,8 +5019,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             ? line.truncatedToWidth(max(1, contentBudget)) : line
         let usedWidth = gutterCells + fitted.strippedLength + badgeWidth + 1
         let fillPadding = max(1, rowWidth - usedWidth)
-        let start = gutterCells + fitted.strippedLength + fillPadding
-        return (fitted, fillPadding, start..<(start + badgeWidth), contentBudget)
+        let start = gutterCells + fitted.strippedLength + fillPadding + badge.capsule.cells / 2
+        return (fitted, fillPadding, start..<(start + badge.value.displayText.strippedLength), contentBudget)
     }
 
     /// `claims` — what a row's dropped child runs left behind, in the row buffer's
@@ -5014,10 +5035,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// the cut body's still-open SGR draws in the run's own colour. Answered before any
     /// work for the two overwhelming cases, no badge and nothing dropped.
     private func cutToBadgedContent(
-        _ claims: [OpacityRegion], of row: SelectableListRow<SelectionValue>, badged: Bool,
+        _ claims: [OpacityRegion], of row: SelectableListRow<SelectionValue>, badge: DrawnBadge?,
         rowWidth: Int
     ) -> [OpacityRegion] {
-        guard badged, !claims.isEmpty, let badge = row.badge else { return claims }
+        guard let badge, !claims.isEmpty else { return claims }
         let kept = badgePlacement(
             line: row.buffer.lines.first ?? "", badge: badge, rowWidth: rowWidth, gutterCells: 1
         ).fitted.strippedLength
@@ -5027,11 +5048,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         }
     }
 
-    /// Renders a line with a right-aligned badge, in `ink` (``BadgeProminence``).
+    /// Renders a line with a right-aligned badge, in `ink` (``BadgeProminence``),
+    /// in its capsule (``ListBadgeCapsule``).
     /// Layout: [1 pad][content][fill padding][badge][1 pad]
     private func renderLineWithBadge(
         line: String,
-        badge: BadgeValue,
+        badge: DrawnBadge,
         rowWidth: Int,
         backgroundColor: Color?,
         ink: Color,
@@ -5045,8 +5067,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // `placement` names, so both come from the one arithmetic.
         // `bold` under a bold legibility weight: the badge is text, a tier
         // heavier as the row's own is.
-        let styledBadge = ANSIRenderer.colorize(
-            badge.displayText, foreground: ink.opaqueSpelling, bold: bold)
+        let styledBadge = badge.capsule.drawn(badge.value.displayText, ink: ink, bold: bold)
         let paddedLine =
             gutter + placement.fitted
             + String.spaces(placement.fillPadding) + styledBadge + " "

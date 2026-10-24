@@ -582,17 +582,18 @@ struct ListRenderTests {
 
     @Test("A hugging list draws a badged row narrower than the widest with its whole title")
     func huggedBadgedRowKeepsItsTitle() {
-        // "Inbox 3" is as wide as "Archive" with its badge, so the hug fits
-        // both; the badged line used to be fitted to the hug's width WITHOUT
-        // the row gutters, and lost "box" to an ellipsis it had room for.
+        // "Inbox  3 " — the badge in its capsule, a cell of field each side
+        // (B72-CAPSULE) — is as wide as "Downloads", so the hug fits both; the
+        // badged line used to be fitted to the hug's width WITHOUT the row
+        // gutters, and lost "box" to an ellipsis it had room for.
         let lines = strippedLines(
             List {
                 Text("Inbox").badge("3")
-                Text("Archive")
+                Text("Downloads")
             }
             .fixedSize(horizontal: true, vertical: false),
             context: listContext(width: 40, height: 6))
-        #expect(lines.contains { $0.contains("Inbox 3") }, "\(lines)")
+        #expect(lines.contains { $0.contains("Inbox  3 ") }, "\(lines)")
         #expect(!lines.contains { $0.contains("…") }, "\(lines)")
     }
 
