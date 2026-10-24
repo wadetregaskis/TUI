@@ -219,9 +219,9 @@ private final class HostStandIn: @unchecked Sendable {
     var readings = 0
     var changes: [Bool] = []
 
-    func read() -> AccessibilityPreferences {
+    func read() -> HostSettings {
         readings += 1
-        return reduces ? [.reduceMotion] : []
+        return HostSettings(accessibility: reduces ? [.reduceMotion] : [])
     }
 }
 
@@ -229,18 +229,18 @@ private final class HostStandIn: @unchecked Sendable {
 @Suite("Reduce motion: the host's setting")
 struct HostReduceMotionTests {
     private func refresher(
-        _ host: HostStandIn, onChange: @escaping @MainActor (AccessibilityPreferences) -> Void = { _ in }
-    ) -> HostAccessibilityRefresher {
-        HostAccessibilityRefresher(
+        _ host: HostStandIn, onChange: @escaping @MainActor (HostSettings) -> Void = { _ in }
+    ) -> HostSettingsRefresher {
+        HostSettingsRefresher(
             read: { host.read() },
-            onChange: { preferences in
-                host.changes.append(preferences.contains(.reduceMotion))
-                onChange(preferences)
+            onChange: { settings in
+                host.changes.append(settings.accessibility.contains(.reduceMotion))
+                onChange(settings)
             })
     }
 
     /// Waits for the refresher's reading, which hops through a detached task.
-    private func settle(_ refresher: HostAccessibilityRefresher) async throws {
+    private func settle(_ refresher: HostSettingsRefresher) async throws {
         for _ in 0..<200 {
             try await Task.sleep(nanoseconds: 5_000_000)
             if refresher.isIdleForTesting { return }
@@ -263,7 +263,7 @@ struct HostReduceMotionTests {
         host.reduces = true
         refresher.refresh()
         try await settle(refresher)
-        #expect(refresher.preferences == [.reduceMotion] && host.changes == [true])
+        #expect(refresher.settings.accessibility == [.reduceMotion] && host.changes == [true])
 
         refresher.refresh()
         try await settle(refresher)
@@ -272,7 +272,7 @@ struct HostReduceMotionTests {
         host.reduces = false
         refresher.refresh()
         try await settle(refresher)
-        #expect(refresher.preferences.isEmpty && host.changes == [true, false])
+        #expect(refresher.settings.accessibility.isEmpty && host.changes == [true, false])
         #expect(host.readings == 3)
     }
 
@@ -295,8 +295,8 @@ struct HostReduceMotionTests {
         let loop = RenderLoopHarness().loop(ReduceMotionProbeApp())
         let host = HostStandIn()
         host.reduces = true
-        let refresher = refresher(host) { loop.hostAccessibility = $0 }
-        runner.hostAccessibility = refresher
+        let refresher = refresher(host) { loop.hostAccessibility = $0.accessibility }
+        runner.hostSettings = refresher
         let timer = CursorTimer(renderNotifier: appState)
 
         runner.terminalFocusChanged(isFocused: false, cursorTimer: timer, renderer: loop)

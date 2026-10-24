@@ -6593,7 +6593,7 @@ takes ONE route per copy, in this order:
    asked for its clients as tmux can. A keeper not on that list passes as a
    plain parent. A chain that cannot be read to the root is not evidence.
    (The same test decides whether the host's own Reduce Motion counts: see
-   `HostAccessibilityRefresher`, refusal review O1.)
+   `HostSettingsRefresher`, refusal review O1.)
    At the desk this costs: a copy under a keeper goes by OSC 52 only where
    the outer terminal is named and takes it, and a paste chord pastes the
    app's own last copy, not the desk's clipboard (below). The helper is

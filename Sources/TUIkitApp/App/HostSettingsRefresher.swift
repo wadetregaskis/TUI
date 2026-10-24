@@ -1,9 +1,10 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
-//  HostAccessibilityRefresher.swift
+//  HostSettingsRefresher.swift
 //
-//  The host's own accessibility settings — Reduce Motion — counted where TUIkit
-//  is sure the user is at this machine (refusal review O1): asked off the main
-//  actor at launch and again whenever the terminal regains the focus.
+//  The host's own settings — its accessibility settings, Reduce Motion among
+//  them — counted where TUIkit is sure the user is at this machine (refusal
+//  review O1): asked off the main actor at launch and again whenever the
+//  terminal regains the focus.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -11,8 +12,15 @@
 import TUIkitFoundation
 import TUIkitTerminalHost
 
-/// Keeps the host's accessibility settings current for the app runner, which
-/// hands them to its render loop to add to the user's at the root
+/// What TUIkit reads from the machine the app runs on, where the user is
+/// provably at it (``HostSettingsRefresher``).
+struct HostSettings: Equatable, Sendable {
+    /// The host's accessibility settings: Reduce Motion and its three siblings.
+    var accessibility: AccessibilityPreferences = []
+}
+
+/// Keeps the host's settings current for the app runner, which hands them to
+/// its render loop to add to the user's at the root
 /// (``RenderLoop/hostAccessibility``).
 ///
 /// Asked at launch, and again each time the terminal regains the focus: the
@@ -23,21 +31,21 @@ import TUIkitTerminalHost
 /// A reading lands a frame or two after launch, which a launch that animates
 /// nothing never shows.
 @MainActor
-internal final class HostAccessibilityRefresher {
+internal final class HostSettingsRefresher {
     /// The last reading: nothing until the first lands.
-    private(set) var preferences: AccessibilityPreferences = []
+    private(set) var settings = HostSettings()
 
     /// Produces a reading. Blocking (bounded); always run off the main actor.
-    private let read: @Sendable () -> AccessibilityPreferences
+    private let read: @Sendable () -> HostSettings
 
     /// Runs, on the main actor, when a reading differs from the last.
-    private let onChange: @MainActor (AccessibilityPreferences) -> Void
+    private let onChange: @MainActor (HostSettings) -> Void
 
     private var coalescer = ProbeCoalescer()
 
     init(
-        read: @escaping @Sendable () -> AccessibilityPreferences = HostAccessibilityRefresher.readHost,
-        onChange: @escaping @MainActor (AccessibilityPreferences) -> Void
+        read: @escaping @Sendable () -> HostSettings = HostSettingsRefresher.readHost,
+        onChange: @escaping @MainActor (HostSettings) -> Void
     ) {
         self.read = read
         self.onChange = onChange
@@ -46,7 +54,7 @@ internal final class HostAccessibilityRefresher {
     /// Whether no reading is in flight or queued, for a test to wait on.
     var isIdleForTesting: Bool { coalescer.isIdle }
 
-    /// Reads the host's setting again, off the main actor.
+    /// Reads the host's settings again, off the main actor.
     func refresh() {
         guard coalescer.requestProbe() else { return }
         startReading()
@@ -55,14 +63,14 @@ internal final class HostAccessibilityRefresher {
     private func startReading() {
         let read = self.read
         Task.detached(priority: .utility) { [weak self] in
-            let preferences = read()
-            await self?.apply(preferences)
+            let settings = read()
+            await self?.apply(settings)
         }
     }
 
-    private func apply(_ read: AccessibilityPreferences) {
-        if read != preferences {
-            preferences = read
+    private func apply(_ read: HostSettings) {
+        if read != settings {
+            settings = read
             onChange(read)
         }
         if coalescer.probeCompleted() {
@@ -76,8 +84,10 @@ internal final class HostAccessibilityRefresher {
     /// first, so where it asks for nothing — most machines — the locality test,
     /// a tmux subprocess inside tmux, is not run. A wrong "local" can only add
     /// a preference.
-    nonisolated static func readHost() -> AccessibilityPreferences {
-        guard let host = TerminalClient.hostAccessibility(), !host.isEmpty, SessionLocality.isLocal() else { return [] }
-        return host
+    nonisolated static func readHost() -> HostSettings {
+        guard let host = TerminalClient.hostAccessibility(), !host.isEmpty, SessionLocality.isLocal() else {
+            return HostSettings()
+        }
+        return HostSettings(accessibility: host)
     }
 }

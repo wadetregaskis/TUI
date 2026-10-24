@@ -169,7 +169,7 @@ underscored setters; ruling: (c), option (b) plus the host read.*
 (`AccessibilityPreferences`, a prepared refactor): the user's variables
 (`TUIKIT_REDUCE_TRANSPARENCY=1`, `TUIKIT_DIFFERENTIATE_WITHOUT_COLOR=1`,
 `TUIKIT_INCREASE_CONTRAST=1`, beside `TUIKIT_REDUCE_MOTION=1`) and the
-host's settings, read by `HostAccessibilityRefresher` at launch and when the
+host's settings, read by `HostSettingsRefresher` at launch and when the
 terminal regains the focus, counted only where `SessionLocality.isLocal()`
 holds. On macOS the host is `com.apple.universalaccess`'s `reduceMotion`,
 `reduceTransparency`, `differentiateWithoutColor` and `increaseContrast`

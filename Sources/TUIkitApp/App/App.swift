@@ -117,10 +117,10 @@ internal final class AppRunner<A: App> {
     /// measured, all of them.
     private var hostQuitByteAliases: TerminalClient.QuitByteAliases = .all
 
-    /// The host's accessibility settings, read at launch and whenever the
-    /// terminal regains the focus (refusal review O1). Internal so a test can
+    /// The host's own settings — its accessibility settings — read at launch
+    /// and whenever the terminal regains the focus (refusal review O1). Internal so a test can
     /// stand in for the host; `nil` until ``run()`` makes it.
-    var hostAccessibility: HostAccessibilityRefresher?
+    var hostSettings: HostSettingsRefresher?
     private let signals = SignalManager()
 
     /// - Parameters:
@@ -339,17 +339,17 @@ extension AppRunner {
         return loop
     }
 
-    /// Starts reading the host's own accessibility settings, where the user is
+    /// Starts reading the host's own settings, where the user is
     /// provably at this machine: off the main actor now, and again whenever the
     /// terminal regains the focus (`terminalFocusChanged`). What it reads goes
     /// to `renderer`'s root, and a change draws a frame.
-    private func startHostAccessibility(renderer: RenderLoop<A>) {
-        let hostAccessibility = HostAccessibilityRefresher { [weak self, weak renderer] preferences in
-            renderer?.hostAccessibility = preferences
+    private func startHostSettings(renderer: RenderLoop<A>) {
+        let hostSettings = HostSettingsRefresher { [weak self, weak renderer] settings in
+            renderer?.hostAccessibility = settings.accessibility
             self?.appState.setNeedsRender()
         }
-        self.hostAccessibility = hostAccessibility
-        hostAccessibility.refresh()
+        self.hostSettings = hostSettings
+        hostSettings.refresh()
     }
 
     /// Has the focus system ask for the frames its changes need.
@@ -490,7 +490,7 @@ extension AppRunner {
             showsProgress: false, postsNotifications: TerminalClient.notificationsSupported)
 
         let renderer = makeRenderLoop()
-        startHostAccessibility(renderer: renderer)
+        startHostSettings(renderer: renderer)
 
         // Under tmux, have it PUSH a SIGWINCH at us whenever a client attaches,
         // detaches, or changes session — the only events that can change which
@@ -1012,7 +1012,7 @@ extension AppRunner {
             cursorTimer.restartFocusPhase()
             renderer.terminalFocusRegained()
             // The user may have changed the host's settings while away.
-            hostAccessibility?.refresh()
+            hostSettings?.refresh()
         }
         appState.setNeedsRender()
     }

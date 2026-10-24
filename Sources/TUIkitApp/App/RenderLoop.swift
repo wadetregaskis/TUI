@@ -332,7 +332,7 @@ internal final class RenderLoop<A: App> {
     private let requestedAccessibility: AccessibilityPreferences
 
     /// The host's own accessibility settings, where the app runner is sure the
-    /// user is at this machine (``HostAccessibilityRefresher``): added to
+    /// user is at this machine (``HostSettingsRefresher``): added to
     /// ``requestedAccessibility`` at the root of every frame. Empty in every
     /// loop but the app runner's, for the same reason.
     var hostAccessibility: AccessibilityPreferences = []
