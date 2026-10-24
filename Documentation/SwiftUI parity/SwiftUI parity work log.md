@@ -86,6 +86,31 @@ change or is open permanently once an app animates anything once.
 stress case is a fair price for `.padding`/`.frame` animating at all, given the
 realistic shapes measure clean — but it is a judgement call and it is yours.
 
+**Q3, measured again (2026-10-24, owner ruling WL-Q3 (b): measure first,
+then A/B).** Counted, not timed, with temporary counters in
+`animatedValue(of:owner:context:isMeasuring:)` over five warm frames of the
+`deep` tree through `RenderLoopHarness` (counters removed after). Every
+probe a frame makes is a padding's — `deep` writes no `.frame`; its
+`.padding(1)` and its `.border()`'s inner padding are the two owners:
+
+| depth | probes a frame | measure walk | render walk | answered by the settled fast path |
+|---|---|---|---|---|
+| 10 | 160 | 140 | 20 | 160 |
+| 20 | 506 | 466 | 40 | 506 |
+| 40 (the scenario) | 1,786 | 1,706 | 80 | 1,786 |
+
+So the render walk asks twice per level, and the measure walks ask the rest,
+growing as about depth^1.8 (O(depth²), as the entry says). Every probe ends at
+`AnimationStore.isSettled`: one key built (the identity and the owner), one
+dictionary lookup, and two `Any`-to-`EdgeInsets.AnimatableData` casts of the
+record's target and origin; no environment read, nothing allocated, no
+volatile read. What that costs in time is the A/B's to say: main against the
+branch `wlq3-animatable-layout-off` (533b7b0ab, from main b8acc3898), where
+`.padding` and `.frame` keep their conformances but answer the walks as types
+that are not animatable — `Stress --bench --scenario deep` on the quiet
+machine, and `kitchensink` and `table` as controls. Close the item if `deep` is
+within a few percent, as the ruling says.
+
 
 ## 2026-08-19 — parity, continued
 

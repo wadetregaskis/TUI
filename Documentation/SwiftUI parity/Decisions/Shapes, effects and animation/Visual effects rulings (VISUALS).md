@@ -192,3 +192,21 @@ for the app's views. `\.accessibilityVoiceOverEnabled` stays refused.
 **Cost:** three more environment writes at the root a frame, and, on
 macOS, three more preference reads per host reading (launch, focus in); on
 GNOME one more `gsettings` run per reading.
+
+## WL-Q3. Animatable `.padding` and `.frame` on `deep`: measured, and the A/B built
+
+*`.padding`, `.frame` (their `Animatable` conformances); ruling: (b), measure
+the current impact first.*
+
+**Measured** (counted, not timed; the numbers are in the work log's Q3):
+`deep` at its depth of 40 makes 1,786 animation-store probes a frame, 1,706
+of them on measure walks, all from paddings (`deep` has no `.frame`), and
+every one answered by `isSettled`'s fast path: a key, a lookup, two casts,
+nothing allocated, no environment read. They grow as about depth^1.8.
+
+**Built:** the A/B's other side, on the branch `wlq3-animatable-layout-off`
+(533b7b0ab, from main b8acc3898), never to land: padding and frame keep their
+conformances and answer the walks' witnesses as non-animatable types. Its
+padding and frame animation tests fail there, as they must. **A/B:** main
+against that branch, `deep`, with `kitchensink` and `table` as controls.
+Close the item if `deep` is within a few percent.
