@@ -2510,13 +2510,13 @@ among its views is drawn as it always was. Three consequences:
 
 - A sectioned grid fills the width it is offered — the header has to be
   placed across it — where a grid of only `.fixed` columns used to hug them.
-- `spacing` falls between rows and between sections, but not between a
-  header and its section's first row, nor before the footer, where SwiftUI
-  puts it as well (measured). It is the deviation a `LazyVStack`'s sections
-  have already, since a section draws as one unit (B16, shipped 2026-10-05;
-  the compatibility doc says where it is now taken apart).
-- The header keeps the dimmed, bold styling a section's header has in every
-  container that is not a `List`, where SwiftUI's is plain.
+- `spacing` falls between rows, between sections, between a header and its
+  section's first row and before the footer, as SwiftUI puts it (measured).
+  It was left out around the header and footer when a section drew as one
+  unit; B16 and da4409000 take sections apart, and a render on 2026-10-23
+  shows the blank row on both sides.
+- The header is drawn plain, in the text's own ink, as SwiftUI's is; the
+  dimmed bold styling it once kept is gone (B16).
 
 `spacing:` is `Int? = nil` now, SwiftUI's spelling, where it was `Int = 0`;
 `nil` is still no blank rows.
@@ -2526,7 +2526,8 @@ grid's own layout, with the spacing exactly SwiftUI's, and pins them from
 there. That needs the layout to emit the pinned copy, knowing the section's
 extent only as it places its views — a hook into `_LayoutCore` that no other
 layout needs. Half a day; worth it only if the header spacing matters to
-someone.
+someone. **Moot since da4409000 and B16:** the spacing is SwiftUI's already;
+only the pinning-from-the-layout half would remain, and nothing asks for it.
 
 ### B71. The cost of pinning, and the measurement owed
 
