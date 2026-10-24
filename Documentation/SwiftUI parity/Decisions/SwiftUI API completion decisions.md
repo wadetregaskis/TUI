@@ -29,7 +29,7 @@ Every gap `api_parity.py` still reports names one of these entries, and
 nothing else is waiting. The batch closed the rest: 2,022 gaps when it started
 and 404 when it ended (the count rose from 392 at the end, when 14
 drag-session modifiers a wrong refusal had hidden became gaps under A53); 232
-on 2026-10-12, and 90 on 2026-10-19 (`Tools/APIParity/baseline.json`), plus
+on 2026-10-12, and 90 on 2026-10-19 (94 on 2026-10-23, when C11's four `Tab` forms left the map for the baseline) (`Tools/APIParity/baseline.json`), plus
 three overloads only CI's SDK lists. Besides the gaps, the refusal review's
 implementable P items have shipped, and so has Wave 11b, underline and
 strikethrough patterns and colours, which you read on real terminals on
@@ -3615,16 +3615,30 @@ type for this to be the content of. Every `OutlineGroup` initializer, for
 views and for table rows, is SwiftUI's; only spelling the type out by hand
 differs.
 
-### C11. `Tab`'s `image:` initialisers join the asset-catalogue family
+### C11. `Tab`'s `image:` initialisers: declined on a wrong reason, to be shipped
 
 *`Tab.init(_:image:content:)`, `Tab.init(_:image:role:content:)`,
 `Tab.init(_:image:value:content:)`, `Tab.init(_:image:value:role:content:)`*
 
-The `image:` spelling names an `ImageResource` from an asset catalogue, which
-a terminal app's build does not have — the reason `Button`, `Label`, `Picker`,
-`Menu` and the rest already give in `parity-map.json`. The `systemImage:`
-forms are implemented. `Tab.init(_:image:*` is added to that family's
-patterns.
+This entry declined them on the ground that the `image:` spelling names an
+`ImageResource` from an asset catalogue, which a terminal app's build does not
+have — the reason `Button`, `Toggle`, `Picker`, `Menu` and `ControlGroup` give
+in `parity-map.json` — and added `Tab.init(_:image:*` to that family. The
+ground was wrong. The installed SDK declares every `Tab` `image:` parameter as
+a `String` (`SwiftUI.swiftinterface`, the `extension SwiftUI.Tab : TabContent`
+and `where Value == Never` initialisers); `Label(_:image:)` with a name
+already ships and draws a 2×1-cell picture (refusal review P12,
+`ImageNameInitializers.swift`). The `systemImage:` forms are implemented.
+
+**Corrected 2026-10-23** (owner, TAB-IMAGE-NAME, option a): the `String` forms
+are to ship as `Label`'s do — an extension in TUIkitBitmaps (TUIkitTabs does
+not depend on it) that finds the name as `Image(_:bundle:)` does. The picture
+shows in the sidebar list; the strip's chips show only the title, as they do
+for a symbol the terminal cannot draw (B75 would draw the picture there too).
+That code is not written: until it lands, the four initialisers are gaps in
+`baseline.json`, and `Tab.init(_:image:*` is no longer in the map's
+`ImageResource` family. The compatibility guide and `Tab`'s own doc comment
+no longer give the asset-catalogue reason.
 
 ### C12. The drag sessions' AppKit comparisons
 

@@ -33,7 +33,8 @@ import TUIkitStyling
 /// SF Symbol `systemImage` names where the terminal can draw that symbol (see
 /// ``Label/init(_:systemImage:)-(LocalizedStringKey,_)``), and the text of a
 /// label view of your own (`Tab(content:label:)`). The `image:` forms, which
-/// name an image in an asset catalogue, are not offered, as `Label`'s are not.
+/// name an image by a `String`, are not offered yet. `Label` has them, and
+/// `Tab`'s are to follow `Label`'s (decisions C11).
 ///
 /// TUI-specific: `Tab(_:value:content:)`, a title with no symbol, which SwiftUI
 /// spells with a `systemImage:` a terminal mostly cannot draw.
