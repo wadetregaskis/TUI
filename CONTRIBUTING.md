@@ -235,10 +235,11 @@ support in 0.64.0.
 # against it — no `InlineArray` or task names there, each behind
 # `#if !canImport(Darwin) || canImport(FoundationModels)` (FoundationModels
 # arriving with the macOS 26 SDK), and no main-actor `UndoManager`, which
-# `MainActorUndoManager` and `TextUndoStep` bridge — but the Example and
-# Stress apps do not: their `@Observable` classes fail to expand there
-# ("declaration name 'shouldNotifyObservers' is not covered by macro
-# 'Observable'", 2026-10-16), as any app's may.
+# `MainActorUndoManager` and `TextUndoStep` bridge — and so do the Example
+# and Stress apps, `@Observable` classes and all (an `env -i` build into a
+# fresh scratch path with swiftly's 6.2.4 and the Command Line Tools' 15.5
+# SDK, 2026-10-23; on 2026-10-16 their `@Observable` classes failed to
+# expand there, which no longer reproduces).
 swift build
 
 # Build with Xcode's own toolchain too, if `swift` on your PATH is a swift.org
