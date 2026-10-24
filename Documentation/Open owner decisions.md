@@ -78,7 +78,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [O13-KEYS](#o13-keys) | Asked for other macOS routes, per-menu jump keys and earlier CLI systems; propose. | Proposal below — your call. |
 | [SCROLLX-UPSTREAM](#scrollx-upstream) | Nothing now; support it if a recognised client adds it. | No action. |
 | [B-HELP-2](#b-help-2) | No shared key; modifiers on "?" for show-all; a default menu item toggling all help. | Rule adopted; key proposal below. |
-| [A42-Q8](#a42-q8) | The recommendation. | Queued: menu now, chords through TextFormattingCommands. |
+| [A42-Q8](#a42-q8) | The recommendation. | Recorded (lane KEYS, 2026-10-24) in decisions A42, the design study's Q8 and C-O13-3: menu now, chords through TextFormattingCommands. Built with A42, which has not started. |
 | [B-PASTE-1-EDITOR](#b-paste-1-editor) | Asked why not UTF-8 storage, and its downsides. | Answered below — your call. |
 | [B-D4X-7-17](#b-d4x-7-17) | Tentatively concur; configurability by a modifier may be wise. | Option 1 queued, with a modifier considered. |
 | [D4X-LOCALITY](#d4x-locality) | Screen and tmux paths seem fine; asked about asking keepers for clients. | Passthroughs queued; client queries answered below. |

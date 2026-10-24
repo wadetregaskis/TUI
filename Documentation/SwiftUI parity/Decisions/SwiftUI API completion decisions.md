@@ -635,6 +635,23 @@ attributed editor two, the selection type one), with the
 formatting-definition constraints; the design is §7 of
 [`Text selection and editing design study, A13, A42 and A43 (2026-10-04).md`](<../Design studies/Text selection and editing design study, A13, A42 and A43 (2026-10-04).md>).
 
+**Formatting keys ruled (owner, 2026-10-23, A42-Q8: "the recommendation"):
+menu now, chords through `TextFormattingCommands`.** A rich-text editor has
+no formatting chords of its own: Bold, Italic, Underline and Strikethrough
+are in its context menu (Shift-F10, a right-click, the Menu key), beside Cut
+and Copy, so the Emacs chords Ctrl-B (back a character) and Ctrl-U (erase to
+the start of the line) stay the editor's. An app that declares SwiftUI's
+`TextFormattingCommands` in the menu bar gets their key equivalents as an
+app's shortcuts: ⌘B and ⌘U, Ctrl-B and Ctrl-U under the default
+`.commandKey(.control)`, which take the key from the Emacs chords (the
+owner's 2026-09-23 rule, `TextEditingCommand.givesWayToKeyboardShortcuts`).
+⌘I's Ctrl-I is Tab's byte in a legacy encoding, so Italic is the menu's
+there; it fires where the kitty keyboard protocol sends Ctrl-I as itself
+(B-D1K-3), and on a real ⌘I where the app asks for one
+(`.keyboardShortcutsMatchCommand()`, B-D1K-1). Recorded by lane KEYS
+(2026-10-24); built with A42, which has not started, and with
+`TextFormattingCommands` (C-O13-3).
+
 *Wave 6b's entries (A43, B62–B65): SwiftUI's behaviour was measured on macOS 15.8 (SDK 26.2) by driving a SwiftUI `TextField` in an `NSWindow` with key events; the probes are in `Tools/SwiftUIProbes/Vertical TextField keys, caret and size (wave 6b)/`.*
 
 *Wave 10b's entries (B66–B71; A44 shipped, and A45 on 2026-10-07: a `List` pins its section headers under every style but `.sidebar`), pinned section headers and footers.* What SwiftUI does was measured on macOS 15.8, with offscreen `NSHostingView`s

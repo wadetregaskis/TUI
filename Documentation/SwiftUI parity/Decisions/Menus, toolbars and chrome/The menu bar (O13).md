@@ -237,5 +237,8 @@ has neither. `parity-map.json`: `notImplemented`.
 Its Font and Text submenus format a rich-text selection. TUIkit's text controls
 hold plain text until A42's rich-text `TextEditor` lands, so the commands would
 do nothing (rule 2): they fail to compile instead. With A42 they are the bar's
-like `TextEditingCommands`, with the chords open question A42-Q8 decides.
+like `TextEditingCommands`, and they carry the formatting chords: the owner
+ruled on 2026-10-23 (A42-Q8) that a rich-text editor has none of its own, and
+that an app gets ⌘B and ⌘U (Ctrl-B and Ctrl-U under `.commandKey(.control)`)
+by declaring these commands (decisions A42).
 `parity-map.json`: `notImplemented`, with that reason.

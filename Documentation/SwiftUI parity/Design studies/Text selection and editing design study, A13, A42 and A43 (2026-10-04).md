@@ -843,7 +843,8 @@ reuse rule.
    (Shift-F10) only, or chords as well? Under `.control`, ⌘I cannot arrive
    (Ctrl-I is Tab), and ⌘B and ⌘U meet Ctrl-B (back a character) and
    Ctrl-U. *Recommend: menu only; chords arrive with A28's
-   `TextFormattingCommands`.*
+   `TextFormattingCommands`.* **Ruled 2026-10-23: the recommendation** —
+   menu now, chords through `TextFormattingCommands` (decisions A42).
 9. **(all)** Landing order: the clipboard writer, A13 (D1 + D0), A43, then
    A42? *Recommend: yes. The clipboard step also fixes a live bug (§1.2).*
 
