@@ -761,8 +761,9 @@ which draw no caps of their own; and a list row's `.standard` badge sits in a
 capsule of the family (B72-CAPSULE (c)): a field a cell wider each side when
 filled, those caps on no field in lines. No glyph is new to chrome: each is a
 button face's or a segmented picker's already. The
-switch's knob is not a cap and keeps `▐▌`; its look under Lines waits on a
-probe card for the owner.
+switch's knob is not a cap and keeps `▐▌` where controls are filled; its look
+under Lines, chosen from a probe card on 2026-10-24, is below ("A switch under
+Lines").
 
 **Apple Terminal draws Block Elements short of the line** (seen by the owner in
 Terminal.app 455.1 on macOS 15.8.1, 2026-10-15, against Ghostty 1.3 in the same
@@ -930,6 +931,32 @@ presentation and East Asian Wide, so the corpus's `default_emoji` class
 (two cells, no selector), and no new chrome rows. Elsewhere they are SF
 Symbols (Plane-16 private use, two cells, Apple Terminal's under-advance
 compensated as every symbol's is) where the font is installed, or none.
+
+### A switch under Lines: ○ ● ⦗ ⦘ — chosen 2026-10-24, advance not yet measured
+
+The owner's FB3-OTHERCAPS pick (2026-10-24): under `.controlStyle(.lines)` a
+switch is a knob between the caps of the button border shape in force
+(`ControlEnds.SwitchTrack`) — `(○ )` / `( ●)` for a capsule, `⦗● ⦘` /
+`⦗ ●⦘` for a rounded rectangle, `│● │` / `│ ●│` for radius zero. `●`
+(U+25CF) is the radio button's already (`chrome_radio_on`); three glyphs are
+new to chrome, corpus rows from 2026-10-24 so `advance_probe.py` and the
+overhang card draw them:
+
+| Row | Glyph | Codepoint | EAW | Block |
+|---|---|---|---|---|
+| `chrome_switch_knob_off` | `○` WHITE CIRCLE | U+25CB | **Ambiguous** | Geometric Shapes, beside `● ◯ ◌` |
+| `chrome_switch_cap_open` | `⦗` LEFT BLACK TORTOISE SHELL BRACKET | U+2997 | Neutral | Miscellaneous Mathematical Symbols-B |
+| `chrome_switch_cap_close` | `⦘` RIGHT BLACK TORTOISE SHELL BRACKET | U+2998 | Neutral | Miscellaneous Mathematical Symbols-B |
+
+`○` is Ambiguous, as `● ◯ ◌` are: two cells in a terminal set to CJK widths,
+and one cell on all four hosts for its neighbours. **Risk to measure:** `⦗ ⦘`
+are in the same block (U+2980–29FF) as `⦅ ⦆` (U+2985, U+2986), which
+**overhang into the label in Warp** (the bracket-pair table above), and
+whatever font a host falls back to for that block decides it; `⦇ ⦈` and `⦉ ⦊`
+from it were clean everywhere. Read the overhang card in Warp first. No
+committed record has the three yet, so they wait beside `chrome_cross` in
+`ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` on every host (GNOME
+Terminal's included) and in the ledger's `awaitingLandingMeasurement`.
 
 ### Underline shapes and colours (W11b) — read by the owner 2026-10-18
 

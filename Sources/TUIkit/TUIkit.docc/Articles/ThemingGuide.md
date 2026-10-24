@@ -134,8 +134,10 @@ when the colour is its content, not its chrome.
 - **A switch that is off** (``SwitchToggleStyle``): its track is
   `foregroundTertiary`, moved only as far as it takes to stand off both the page,
   which the knob is drawn in, and the accent, which the track turns when the
-  switch is on. A disabled switch fades that track halfway toward the page. A
-  scroll track is `foregroundQuaternary`, separated the same way.
+  switch is on. A disabled switch fades that track halfway toward the page.
+  Under `.controlStyle(.lines)` a switch has no track: its knob is
+  `foregroundTertiary` when off and `accent` when on, between caps in the
+  lines' ink. A scroll track is `foregroundQuaternary`, separated the same way.
 - **A label on a surface the control did not choose**: the active tab's label in
   a ``TabView``, the check mark on the swatch under the cursor in
   ``ColorPickerPanel``'s grids, and the index numbers on its 256-colour grid. These use

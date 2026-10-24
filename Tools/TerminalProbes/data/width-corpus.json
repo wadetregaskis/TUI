@@ -1558,6 +1558,30 @@
    "scalars": [
     "U+21B0"
    ]
+  },
+  {
+   "id": "chrome_switch_knob_off",
+   "class": "chrome_glyph",
+   "text": "○",
+   "scalars": [
+    "U+25CB"
+   ]
+  },
+  {
+   "id": "chrome_switch_cap_open",
+   "class": "chrome_glyph",
+   "text": "⦗",
+   "scalars": [
+    "U+2997"
+   ]
+  },
+  {
+   "id": "chrome_switch_cap_close",
+   "class": "chrome_glyph",
+   "text": "⦘",
+   "scalars": [
+    "U+2998"
+   ]
   }
  ]
 }

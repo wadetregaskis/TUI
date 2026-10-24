@@ -350,6 +350,11 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
     /// toward the page, so it is always quieter than off and the two never look
     /// alike. The knob is the background colour so it contrasts the track on light
     /// and dark terminals alike.
+    ///
+    /// That is the switch where controls are filled — the default. Where they are
+    /// drawn in lines, Braille dots or not at all (``ControlStyle``), it is a knob
+    /// between the family's caps instead (``linesSwitchIndicator(_:isOnValue:isDisabled:isFocused:isHovered:context:)``),
+    /// and under the `.ascii` character set the bracketed `[o ]` in every family.
     private func styledSwitchIndicator(
         isOnValue: Bool, isDisabled: Bool, isFocused: Bool, isHovered: Bool,
         context: RenderContext
@@ -370,7 +375,8 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             // focus / disabled, the knob carries state (accent when on,
             // foreground when off). No background colours at all, keeping the
             // style honest for terminals/fonts where the block glyphs are the
-            // reason `.ascii` was chosen.
+            // reason `.ascii` was chosen — so it holds under every control
+            // style, a lines face's glyphs among the ones it avoids.
             let knob = SwitchIndicatorGlyphs.asciiKnob
             return knobBetweenCaps(
                 (style.openBracket, style.closeBracket), knob: knob, isOnValue: isOnValue,
@@ -378,6 +384,12 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
                     isDisabled: isDisabled, isFocused: isFocused, isHovered: isHovered, context: context),
                 knobInk: indicatorMarkColor(
                     isOnValue: isOnValue, isDisabled: isDisabled, isHovered: isHovered, context: context))
+        }
+
+        if let track = ControlEnds.SwitchTrack(in: context.environment) {
+            return linesSwitchIndicator(
+                track, isOnValue: isOnValue, isDisabled: isDisabled, isFocused: isFocused,
+                isHovered: isHovered, context: context)
         }
 
         let knob = SwitchIndicatorGlyphs.knob(for: style)
@@ -442,11 +454,47 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             track.claims { colour in Self.claims(visiting: { runs(colour, $0) }) })
     }
 
+    /// A switch where controls are not filled (``ControlEnds/SwitchTrack``):
+    /// `(○ )` / `( ●)` and the other shapes' caps. The caps are the lines'
+    /// ink — a lines button's, lifted under the pointer and faded while
+    /// disabled — and breathe the accent while focused, as a lines button's
+    /// do; the knob is the accent when on and the tertiary ink when off,
+    /// lifted under the pointer, faded while disabled. With no caps
+    /// (``ControlStyle/blank``) the knob breathes the focus itself.
+    private func linesSwitchIndicator(
+        _ track: ControlEnds.SwitchTrack, isOnValue: Bool, isDisabled: Bool, isFocused: Bool,
+        isHovered: Bool, context: RenderContext
+    ) -> (text: String, animation: AnimatedCellRun?, claims: [OpacityRegion]) {
+        let palette = context.environment.palette
+        var knobInk: Color
+        if isDisabled {
+            knobInk = palette.foregroundTertiary.opacity(ViewConstants.disabledForeground, over: palette.background)
+        } else {
+            knobInk = isOnValue ? palette.accent : palette.foregroundTertiary
+            if isHovered { knobInk = palette.hoveredForeground(knobInk) }
+        }
+        let hasCaps = track.ends.kind != .none
+        let resting =
+            hasCaps
+            ? ControlEnds.lineInk(
+                palette: palette, surface: context.environment.enclosingSurface, hovered: isHovered,
+                disabled: isDisabled)
+            : knobInk
+        let pulse = palette.accentPulse()
+        let cycle = IndicatorCycle(
+            isFocused: isFocused && !isDisabled, dim: pulse.dim, bright: pulse.bright, resting: resting,
+            context: context)
+        let knob = String(isOnValue ? ControlEnds.SwitchTrack.onKnob : track.offKnob)
+        return knobBetweenCaps(
+            hasCaps ? (String(track.ends.open), String(track.ends.close)) : nil, knob: knob,
+            isOnValue: isOnValue, capsCycle: cycle, knobInk: hasCaps ? knobInk : nil)
+    }
+
     /// A knob and a blank cell — the knob on the left when off, on the right
     /// when on — between two caps, which carry the focus in `capsCycle`'s
-    /// colour while the knob carries the state in `knobInk`: the ASCII switch.
-    /// With no caps, or no `knobInk`, the knob is drawn in the cycle's colour,
-    /// and so breathes the focus itself.
+    /// colour while the knob carries the state in `knobInk`: the ASCII switch
+    /// and a lines switch. With no caps, or no `knobInk`, the knob is drawn in
+    /// the cycle's colour, and so breathes the focus itself.
     private func knobBetweenCaps(
         _ caps: (open: String, close: String)?, knob: String, isOnValue: Bool, capsCycle: IndicatorCycle,
         knobInk: Color?

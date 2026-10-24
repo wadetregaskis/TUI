@@ -242,6 +242,8 @@ struct TerminalLedgerConformanceTests {
         "chrome_cross",
         // A file panel's enclosing-folder button, added 2026-10-24.
         "chrome_enclosing_folder",
+        // A switch's track under Lines, added 2026-10-24.
+        "chrome_switch_knob_off", "chrome_switch_cap_open", "chrome_switch_cap_close",
     ]
 
     /// The completeness half the suite lacked: it flagged a measurement with

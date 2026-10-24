@@ -211,6 +211,14 @@ public struct CheckboxToggleStyle: ToggleStyle, Equatable {
 /// takes to stand off both the page, which the knob is drawn in, and the accent. A
 /// disabled switch fades that track halfway toward the page.
 ///
+/// That is the switch where controls are filled, the default. Under
+/// `.controlStyle(.lines)` it is a knob between the caps of the
+/// ``ButtonBorderShape`` in force, four cells in every shape: `(○ )` / `( ●)` in
+/// a capsule, `⦗● ⦘` / `⦗ ●⦘` in a rounded rectangle, `│● │` / `│ ●│` with
+/// square corners. The caps breathe the accent while it holds the focus, and the
+/// knob is the accent when on. Under Braille it takes the shape's dotted ends,
+/// and under `.blank` it is the knob alone.
+///
 /// `Equatable` on the same terms as ``DefaultToggleStyle``, and this is the one
 /// whose type changes what gets drawn: `_ToggleCore` picks the track over the
 /// checkbox on `is SwitchToggleStyle` alone. A frame that swaps a checkbox style

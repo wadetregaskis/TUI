@@ -25,6 +25,10 @@ struct TogglePage: View {
     // one shows every style in the same on/off state for a side-by-side compare.
     @State private var styleDemoOn: Bool = true
 
+    // Shared by the "Switch shapes" rows: each row draws this value and its
+    // opposite, so every shape shows on and off at once.
+    @State private var switchShapesOn: Bool = true
+
     /// What an unstyled `Toggle` on this page actually draws — the app-wide set
     /// from the Theme page, with `.automatic` already resolved against this
     /// terminal this frame. Read, not re-derived, so the "(default)" tag below
@@ -93,6 +97,25 @@ struct TogglePage: View {
                 }
             }
 
+            DemoSection("page.toggle.section.switchShapes") {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("page.toggle.switchShapesNote")
+                        .foregroundStyle(.palette.foregroundSecondary)
+                    Grid(alignment: .leading, horizontalSpacing: 2, verticalSpacing: 0) {
+                        ForEach(Self.switchShapes, id: \.key) { shape in
+                            GridRow {
+                                Text(L(shape.key)).foregroundStyle(.palette.foregroundSecondary)
+                                shapedSwitch(shape.shape, isOn: $switchShapesOn)
+                                shapedSwitch(
+                                    shape.shape,
+                                    isOn: Binding(get: { !switchShapesOn }, set: { switchShapesOn = !$0 }))
+                            }
+                        }
+                    }
+                    .controlStyle(.lines)
+                }
+            }
+
             DemoSection("page.toggle.section.keyboard") {
                 VStack(alignment: .leading) {
                     Text("page.toggle.help.tab").dim()
@@ -104,6 +127,25 @@ struct TogglePage: View {
         }
         .scrollableDemoPage()
         .navigationTitle("menu.item.toggles")
+    }
+
+    /// The border shapes a switch's caps follow under the Lines control style,
+    /// named by the Buttons page's keys for them.
+    private static let switchShapes: [(key: String, shape: ButtonBorderShape)] = [
+        ("page.buttons.looks.shape.capsule", .capsule),
+        ("page.buttons.looks.shape.rounded", .roundedRectangle),
+        ("page.buttons.looks.shape.square", .roundedRectangle(radius: 0)),
+        ("page.buttons.looks.shape.circle", .circle),
+        ("page.buttons.looks.shape.brackets", .brackets("❨", "❩")),
+        ("page.buttons.looks.shape.underline", .underline),
+    ]
+
+    /// A switch in `shape`, its label hidden: the row's heading names it.
+    private func shapedSwitch(_ shape: ButtonBorderShape, isOn: Binding<Bool>) -> some View {
+        Toggle("page.toggle.on", isOn: isOn)
+            .toggleStyle(.switch)
+            .labelsHidden()
+            .buttonBorderShape(shape)
     }
 
     /// One column of the checkbox-glyph comparison: the style's name (tagged

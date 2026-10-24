@@ -2,8 +2,8 @@
 //  ControlEnds.swift
 //
 //  The ends of a one-row control that is not a button — a segmented picker,
-//  a tab chip, a control group — read from the button's cap table, so that
-//  every control of a family ends as a button of it does.
+//  a tab chip, a control group, a switch's track — read from the button's cap
+//  table, so that every control of a family ends as a button of it does.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -26,6 +26,9 @@ import TUIkitCore
 /// | lines | `( S │ M )` on no field, in the lines' ink | `│ S │ M │` | the labels alone |
 /// | Braille | the shape's dotted ends, on no field | the same | the labels alone |
 /// | blank | no caps, no field | the same | the same |
+///
+/// A switch's track takes its caps from here too, with a knob between them
+/// (``SwitchTrack``).
 package struct ControlEnds: Equatable, Sendable {
     /// How the two caps are drawn.
     package enum Kind: Equatable, Sendable {
@@ -89,6 +92,11 @@ package struct ControlEnds: Equatable, Sendable {
         _ButtonStyleBody.outlineInk(palette: palette, surface: surface, hovered: hovered, disabled: disabled)
     }
 
+    /// Ends drawn in the lines' ink between `open` and `close`, on no field.
+    private init(lines open: Character, _ close: Character) {
+        (kind, self.open, self.close, hasField) = (.lines, open, close, false)
+    }
+
     /// Appends `glyph`, one of the two caps, to `row`, as ``kind`` draws it.
     ///
     /// - Parameters:
@@ -104,6 +112,75 @@ package struct ControlEnds: Equatable, Sendable {
         case .face: row.append(" ", cells: 1, ink: nil, field: face)
         case .lines: row.append(String(glyph), cells: 1, ink: lines, field: field)
         case .none: break
+        }
+    }
+}
+
+// MARK: - A switch's track
+
+extension ControlEnds {
+    /// A switch's track where controls are not filled: a knob in two cells
+    /// between the caps of the family in force (owner, FB3-OTHERCAPS, 2026-10-24).
+    ///
+    /// | family | shape | off | on |
+    /// |---|---|---|---|
+    /// | lines | capsule (and `.automatic`), circle | `(○ )` | `( ●)` |
+    /// | lines | rounded rectangle | `⦗● ⦘` | `⦗ ●⦘` |
+    /// | lines | radius zero, underline | `│● │` | `│ ●│` |
+    /// | lines | ``ButtonBorderShape/brackets(_:_:)`` | `<● >` | `< ●>` |
+    /// | Braille | the shape's dotted ends, the knob as under lines | `⢎○ ⡱` | `⢎ ●⡱` |
+    /// | blank | none | `○ ` | ` ●` |
+    ///
+    /// Four cells in every shape, so that a switch is one width whatever shape
+    /// it is drawn in — two under ``ControlStyle/blank``, which has no caps.
+    /// The caps are a button's where the switch's differ from it only in
+    /// taste: a rounded rectangle's are `⦗ ⦘` where a button's are `│ │`, and
+    /// a square's `│ │` where a button's are `[ ]` (the owner's pick from the
+    /// probe card). An underline has no caps on a button, and a switch's track
+    /// needs ends to be read as one: it takes the square's, the sides of the
+    /// box an underline face is drawn in on three rows. Every size draws the
+    /// same track (decisions B-FORMS-6).
+    struct SwitchTrack: Equatable, Sendable {
+        /// The caps either side of the knob's two cells, drawn as
+        /// ``ControlEnds/Kind/lines`` — or no caps, under ``ControlStyle/blank``.
+        let ends: ControlEnds
+        /// The knob while the switch is off: hollow, `○`, on a capsule's track
+        /// and where there are no caps — the hollow knob says "off" where the
+        /// capsule's round ends would otherwise draw the eye to its position
+        /// alone — and solid, `●`, as it is when on, between straight caps.
+        let offKnob: Character
+
+        /// The knob while the switch is on.
+        static let onKnob: Character = "\u{25CF}"  // ●
+
+        /// The cells the track takes.
+        var width: Int { ends.width + 2 }
+
+        /// The track a switch draws in `environment`, or `nil` where controls
+        /// are filled (``ControlStyle/block``, and the default ``ControlStyle/automatic``
+        /// under a bordered appearance), whose switch is the coloured track.
+        init?(in environment: EnvironmentValues) {
+            let shape = environment.buttonBorderShape.kind
+            switch ButtonFaceFamily(environment) {
+            case .solid:
+                return nil
+            case .lines(let style):
+                switch shape {
+                case .roundedRectangle: ends = ControlEnds(lines: "\u{2997}", "\u{2998}")  // ⦗ ⦘
+                case .square, .underline: ends = ControlEnds(lines: style.vertical, style.rightVertical)
+                // A capsule's, a circle's `( )`; brackets that are a cell each.
+                case .automatic, .capsule, .circle, .brackets: ends = ControlEnds(in: environment, size: .regular)
+                }
+            case .braille, .blank:
+                // As a segmented picker ends: the shape's dotted ends, or none.
+                ends = ControlEnds(in: environment, size: .regular)
+            }
+            let roundEnds: Bool
+            switch shape {
+            case .automatic, .capsule, .circle: roundEnds = true
+            case .roundedRectangle, .square, .brackets, .underline: roundEnds = false
+            }
+            offKnob = roundEnds || ends.kind == .none ? "\u{25CB}" : Self.onKnob  // ○
         }
     }
 }

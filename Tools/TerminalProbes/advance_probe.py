@@ -280,6 +280,10 @@ BATTERY.update({
     "chrome_cross": "\u2717",  # ✗ — EAW Neutral
     # Added 2026-10-24: a file panel's enclosing-folder button.
     "chrome_enclosing_folder": "\u21B0",  # ↰ — EAW Neutral
+    # Added 2026-10-24: a switch's track under Lines (ControlEnds.SwitchTrack).
+    "chrome_switch_knob_off": "\u25CB",  # ○ — EAW Ambiguous
+    "chrome_switch_cap_open": "\u2997",  # ⦗ — EAW Neutral
+    "chrome_switch_cap_close": "\u2998",  # ⦘ — EAW Neutral
 })
 
 def cursor_col(fd):

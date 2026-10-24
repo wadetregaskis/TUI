@@ -25,8 +25,8 @@ this lane leaves it there: nothing shipped here changes a family, and the
 density below draws a picker's caps only where the size does, so either answer
 slots in without undoing it. (Ruled 2026-10-23, option 2: since 2026-10-24 a
 segmented picker's and a tab chip's caps are a button's in the family in force,
-`ControlEnds`, at the sizes this table gives; the switch's Lines look waits on
-a probe card.)
+`ControlEnds`, at the sizes this table gives. The switch's Lines look went on
+a probe card, and the owner's pick of 2026-10-24 is built: B-FORMS-7.)
 
 ### A-FORMS-1. A button written bare in a columns form: at the trailing edge, or in the value column?
 
@@ -138,4 +138,53 @@ is a glyph and a gap and a switch a three-cell track, with nothing to trim; a
 `.button` toggle follows the button's table.
 
 **Fuller version:** a longer switch track at `.large` and `.extraLarge`.
-*Price:* an hour, after FB3-OTHERCAPS settles the knob.
+*Price:* an hour, now that FB3-OTHERCAPS has settled the knob (B-FORMS-7).
+
+### B-FORMS-7. A switch under Lines: a knob between the shape's caps, four cells in every shape
+
+The owner, 2026-10-24, from the FB3-OTHERCAPS probe card: "the current style
+looks good for the 'Blocks' style. For capsule, I like B best. D looks good for
+_rectangle_, but for rounded-rectangle how about something like "⦗●⦘"?"
+
+**Shipped:** where controls are not filled, a switch is a knob in two cells
+between the caps of the family and the `ButtonBorderShape` in force, read from
+the shared cap table (`ControlEnds.SwitchTrack`):
+
+| Family, shape | Off | On |
+|---|---|---|
+| filled (the default) | `▐▌ ` on the coloured track, as before | ` ▐▌` |
+| lines, capsule (and `.automatic`, a capsule for a button) | `(○ )` (B) | `( ●)` |
+| lines, rounded rectangle | `⦗● ⦘` | `⦗ ●⦘` |
+| lines, radius zero | `│● │` (D) | `│ ●│` |
+| lines, `.brackets(open, close)` | `❨● ❩`, the pair as caps, the knob D's | `❨ ●❩` |
+| lines, `.circle` | `(○ )`, the capsule's, as a circle button's one-row caps are | `( ●)` |
+| lines, `.underline` | `│● │`, the square's | `│ ●│` |
+| Braille | the shape's dotted ends, as a segmented picker's: `⢎○ ⡱`, `⣏● ⣹` | `⢎ ●⡱`, `⣏ ●⣹` |
+| blank | no caps, as no control has them there: `○ ` | ` ●` |
+
+The caps are in the lines' ink (a lines button's, lifted under the pointer)
+and breathe the accent while the switch holds the focus; the knob is the
+accent when on, the tertiary ink when off, lifted under the pointer; all of it
+faded while disabled. With no caps the knob breathes the focus itself. The
+`.ascii` character set keeps its `[o ]` in every family, the glyphs above being
+the ones it exists to avoid.
+
+Three readings of the ruling, the first confirmed by the owner (2026-10-24: "4-wide is correct"; the "⦗●⦘" showed the three characters, not the render) and the rest accepted ("Shapes I didn't cover: Sure."):
+
+- **⦗● ⦘, not ⦗●⦘.** The owner wrote the rounded rectangle's look as "⦗●⦘",
+  the caps tight round the knob. Built with the four-cell track the other
+  candidates have, so that a switch is one width in every shape and its knob
+  slides a cell as in every other; `⦗●⦘` would be three cells with nowhere for
+  the knob to go.
+- **Underline takes the square's `│ │`.** A button underlined has no caps on
+  one row, and a switch's track needs ends to read as a track; the sides are
+  what an underline face's box is drawn in on three rows. The rounded
+  rectangle's `⦗ ⦘` was the other candidate.
+- **The capsule's knob is hollow when off; the straight-capped shapes' is
+  solid.** As the card's B and D. Under blank, with no caps, the knob is hollow
+  when off too, since its position alone says too little.
+
+The switch draws the same track at every size (B-FORMS-6).
+
+**Fuller version:** a longer track at `.large` and `.extraLarge`, as
+B-FORMS-6 says. *Price:* an hour.

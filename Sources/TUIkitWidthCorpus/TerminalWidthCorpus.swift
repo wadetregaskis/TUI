@@ -251,6 +251,10 @@ package enum TerminalWidthCorpus {
         Entry(id: "chrome_cross", category: "chrome_glyph", text: "\u{2717}"),  // ✗ the search field's ✕ — EAW Neutral
         // A file panel's enclosing-folder button (FilePanelPathBar), added 2026-10-24.
         Entry(id: "chrome_enclosing_folder", category: "chrome_glyph", text: "\u{21B0}"),  // ↰ — EAW Neutral
+        // A switch's track under Lines (ControlEnds.SwitchTrack), added 2026-10-24.
+        Entry(id: "chrome_switch_knob_off", category: "chrome_glyph", text: "\u{25CB}"),  // ○ a capsule's off knob — EAW Ambiguous
+        Entry(id: "chrome_switch_cap_open", category: "chrome_glyph", text: "\u{2997}"),  // ⦗ a rounded rectangle's cap — EAW Neutral
+        Entry(id: "chrome_switch_cap_close", category: "chrome_glyph", text: "\u{2998}"),  // ⦘ — EAW Neutral
     ]
 
     /// Entries of one category.
