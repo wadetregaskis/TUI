@@ -59,7 +59,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [STEPPER-WIDTH](#stepper-width) | (1). | Done: `.stepperValueWidth(_:)`, fitting the bounds by default (lane STEPPER). |
 | [TAB-IMAGE-NAME](#tab-image-name) | (a). | Queued, with the C11 and parity-map correction. |
 | [TABBARMIN](#tabbarmin) | (b). | Queued. |
-| [DRAWERS](#drawers) | (1). | Queued (docs only). |
+| [DRAWERS](#drawers) | (1). | Done (lane DOCS2): the draft is retired to Historical. |
 | [B-D5C-1](#b-d5c-1) | Asked why SwiftUI has no if/else in SceneBuilder. | Answered below — your call. |
 | [DEPR-ALERT-NAME](#depr-alert-name) | (b). | Done: `AlertPanel` (lane landing 2026-10-23). |
 | [B-D1K-1](#b-d1k-1) | Deliver ⌘ to onKeyPress; default shortcuts stay on non-command modifiers; command shortcuts when a developer opts in. | Plan below; queued. |

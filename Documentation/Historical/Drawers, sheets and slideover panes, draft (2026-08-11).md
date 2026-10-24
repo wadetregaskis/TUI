@@ -1,11 +1,26 @@
 # Drawers, sheets and slideover panes
 
-**Status: draft for decision.** Nothing here is implemented but §4c, the sheet
-grabber (shipped 2026-10-06, A19), though the grabber question §3 raises was
-answered elsewhere in the framework, as §3 now records.
-It exists because `.presentationDetents` shipped with a hole in it, and closing
-that hole properly means deciding what a "sheet that can be resized" *is* in a
-terminal — which is a design question, not an implementation detail.
+> **Historical (moved 2026-10-23).** A design draft, written on 2026-08-11 and
+> never built beyond its §4c. **Retired by the owner on 2026-10-23**
+> (DRAWERS, option 1): no drawer and no slideover will be built, because the
+> shipped APIs cover the cases it was written for. It no longer describes the
+> code.
+>
+> | The draft's case | Covered by |
+> |---|---|
+> | A trailing pane the reader can resize and hide (§4a, `.drawer(edge: .trailing)`) | `.inspector(isPresented:content:)`, a resizable trailing column with a focusable divider and a hide button (`Inspector.swift`) |
+> | A leading pane | `NavigationSplitView`'s sidebar (its divider resizes it from the keys and the pointer) |
+> | A top or bottom pane | `VSplitView`; a bottom pane that is a sheet is a detented live sheet, docked like a `VSplitView` (A19, [Live sheets design study](<Live sheets design study, A19 (2026-10-04).md>)) |
+> | Resizing a sheet between detents (§4c, §3, §5, Q3, Q5, Q6) | **Shipped** (A19, 2026-10-06): the grabber on the sheet's top edge, a focus stop moved by the keys and the pointer, snapping as it moves |
+> | The slideover's header row (§4b) | Not needed: window chrome is opt-in (A28), so the one visible difference between a page-anchored and a screen-anchored pane is mostly gone |
+> | The size as an app-visible binding (Q4) | Not built; `presentationDetents(_:selection:)` binds a sheet's detent |
+>
+> Questions 1, 2 and 4 of §8 are closed by the retirement. The text below is
+> as it stood.
+
+The draft exists because `.presentationDetents` shipped with a hole in it, and
+closing that hole properly means deciding what a "sheet that can be resized"
+*is* in a terminal — which is a design question, not an implementation detail.
 
 ---
 
