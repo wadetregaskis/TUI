@@ -240,6 +240,8 @@ struct TerminalLedgerConformanceTests {
         "chrome_braille_bottom_left_1", "chrome_braille_bottom_right_1", "chrome_braille_full",
         // The search field's clear button, added 2026-10-19.
         "chrome_cross",
+        // A file panel's enclosing-folder button, added 2026-10-24.
+        "chrome_enclosing_folder",
     ]
 
     /// The completeness half the suite lacked: it flagged a measurement with

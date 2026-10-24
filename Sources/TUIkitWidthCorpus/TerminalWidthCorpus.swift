@@ -249,6 +249,8 @@ package enum TerminalWidthCorpus {
         Entry(id: "chrome_braille_full", category: "chrome_glyph", text: "\u{28FF}"),  // ⣿ walls and corners from two dots; every edge at four
         // A search field's clear button (Shortcut.cross), added 2026-10-19.
         Entry(id: "chrome_cross", category: "chrome_glyph", text: "\u{2717}"),  // ✗ the search field's ✕ — EAW Neutral
+        // A file panel's enclosing-folder button (FilePanelPathBar), added 2026-10-24.
+        Entry(id: "chrome_enclosing_folder", category: "chrome_glyph", text: "\u{21B0}"),  // ↰ — EAW Neutral
     ]
 
     /// Entries of one category.

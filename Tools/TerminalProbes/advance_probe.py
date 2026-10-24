@@ -278,6 +278,8 @@ BATTERY.update({
     "chrome_braille_full": "\u28FF",  # ⣿ — EAW Neutral
     # Added 2026-10-19: the search field's clear button (Shortcut.cross).
     "chrome_cross": "\u2717",  # ✗ — EAW Neutral
+    # Added 2026-10-24: a file panel's enclosing-folder button.
+    "chrome_enclosing_folder": "\u21B0",  # ↰ — EAW Neutral
 })
 
 def cursor_col(fd):

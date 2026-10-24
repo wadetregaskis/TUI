@@ -887,6 +887,20 @@ draw it. No committed record has it yet, so it waits in
 `ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` on every host and in the
 ledger's `awaitingLandingMeasurement`.
 
+### A file panel's ↰ — chosen 2026-10-24, advance not yet measured
+
+A macOS panel's toolbar goes to the enclosing folder with a button (and ⌘↑).
+TUIkit's file panel draws that button as `↰` (U+21B0, UPWARDS ARROW WITH TIP
+LEFTWARDS) before the path, where it had a `..` (`FilePanelPathBar`). `↰` is
+an arrow of **Neutral** East Asian width, one cell by the rule, where the
+plain arrows `↑ ← ↖` are **Ambiguous** and two cells in a terminal set to CJK
+widths; it has no emoji presentation. It is corpus row
+`chrome_enclosing_folder` from 2026-10-24, so `advance_probe.py` and the
+overhang card draw it. No committed record has it yet, so it waits beside
+`chrome_cross` in `ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` on
+every host (GNOME Terminal's included) and in the ledger's
+`awaitingLandingMeasurement`.
+
 ### Underline shapes and colours (W11b) — read by the owner 2026-10-18
 
 `line_style_card.py` (session notes, `plan/e19/`) prints "Sample text" under

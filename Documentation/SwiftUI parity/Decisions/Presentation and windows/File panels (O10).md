@@ -58,7 +58,8 @@ sheet of the `.page` size (96 columns, or the terminal's width, by the content
 area's height), titled Open, holding
 
 - the folder's path, the home folder written `~`, with a `..` to click to the
-  folder above;
+  folder above (a ↰ button since 2026-10-24,
+  [B-FP2-1](<File panels the Mac's way (FP2).md#b-fp2-1-the-enclosing-folder-button-is--no-tab-stop-and-its-keys-are--and-backspace>));
 - the folder's items in a `Table` — Name, Size, Date Modified and Kind, sorted
   by any of them from its header or the table's sort keys — a folder's name in
   bold and ending in `/`, as `ls -F` marks one, rather than an icon some

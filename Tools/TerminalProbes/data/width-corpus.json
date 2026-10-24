@@ -1550,6 +1550,14 @@
    "scalars": [
     "U+2717"
    ]
+  },
+  {
+   "id": "chrome_enclosing_folder",
+   "class": "chrome_glyph",
+   "text": "↰",
+   "scalars": [
+    "U+21B0"
+   ]
   }
  ]
 }

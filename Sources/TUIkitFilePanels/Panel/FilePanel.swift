@@ -39,7 +39,7 @@ import TUIkitTables
 ///   completes and Return goes to, as at a shell prompt;
 /// - Escape cancels (or closes that field).
 /// Every one of them is also a click: a double-click opens or chooses, the
-/// `..` button goes up, and the buttons are buttons.
+/// ↰ button before the path goes up, and the buttons are buttons.
 ///
 /// To save, a name field sits above the folder and takes the focus first;
 /// Return in it saves. A file of a type the panel saves as is not dimmed, and

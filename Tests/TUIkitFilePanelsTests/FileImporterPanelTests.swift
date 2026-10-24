@@ -95,6 +95,26 @@ struct FileImporterPanelTests {
         #expect(caller.chosenPaths == [fixture.url("Alpha/inner.txt").path])
     }
 
+    @Test("A click on the enclosing-folder button goes up, and leaves the focus where it was")
+    func enclosingFolderButton() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver { panel(fixture, caller: caller) }
+        await driver.waitFor("notes.md")
+        driver.press(.enter)
+        let inside = await driver.waitFor("inner.txt")
+        #expect(inside.contains("\(FilePanelPathBar.enclosingFolderSymbol) ~/Alpha"), "\(inside)")
+        #expect(driver.click(FilePanelPathBar.enclosingFolderSymbol))
+        let back = await driver.waitFor("beta.txt")
+        #expect(!back.contains("inner.txt"))
+        #expect(caller.heard.isEmpty)
+        // The focus stayed in the folder, which the button never takes:
+        // Return opens Alpha.
+        driver.press(.enter)
+        await driver.waitFor("inner.txt")
+    }
+
     @Test("Escape cancels: the binding is cleared and only the cancellation is heard")
     func escapeCancels() async throws {
         let fixture = try FilePanelFixture()

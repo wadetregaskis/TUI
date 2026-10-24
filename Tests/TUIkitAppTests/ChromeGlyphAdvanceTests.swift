@@ -97,24 +97,27 @@ struct ChromeGlyphAdvanceTests {
     /// glyphs joined on 2026-10-19. A DSR probe of their own read them at one
     /// cell on all four hosts (the survey's "Braille borders and faces"), but
     /// no `advance_probe.py` record has them, so they wait on every host. So
-    /// does the search field's clear button, `✗`, which joined the same day.
+    /// does the search field's clear button, `✗`, which joined the same day,
+    /// and a file panel's enclosing-folder button, `↰`, which joined on
+    /// 2026-10-24.
     private static let awaitingAdvanceMeasurement: [TerminalClient.Program: Set<String>] = {
         let solidAndBraille = Set(
             WidthCorpus.clusters.map(\.id).filter {
-                $0.hasPrefix("chrome_quadrant_not_") || $0.hasPrefix("chrome_braille_") || $0 == "chrome_cross"
+                $0.hasPrefix("chrome_quadrant_not_") || $0.hasPrefix("chrome_braille_")
+                    || $0 == "chrome_cross" || $0 == "chrome_enclosing_folder"
             })
         return [
             .ghostty: solidAndBraille, .iTerm2: solidAndBraille,
             .appleTerminal: solidAndBraille, .warp: solidAndBraille,
-            // Its record (3.56.2) has every row but the clear button, which
-            // joined on a branch that probe run did not see.
-            .gnomeTerminal: ["chrome_cross"],
+            // Its record (3.56.2) has every row but the clear button and the
+            // enclosing-folder button, which joined after that probe run.
+            .gnomeTerminal: ["chrome_cross", "chrome_enclosing_folder"],
         ]
     }()
 
     @Test("Every chrome glyph is a corpus row of one of the two chrome classes")
     func theSuiteHasSomethingToMeasure() {
-        #expect(Self.chromeRows.count == 62, "\(Self.chromeRows.count) chrome rows")
+        #expect(Self.chromeRows.count == 63, "\(Self.chromeRows.count) chrome rows")
     }
 
     /// The probes measure the corpus and nothing else (`advance_probe.py`'s
