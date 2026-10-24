@@ -406,7 +406,10 @@ After editing, run `assign`. It prints the module table and how many declaration
 `explain` output for anything surprising, then `assign --write`, and commit `rules.json` and `map.json` together.
 
 **When code changes.** New files and new declarations are placed by the rules (a new file by its directory) until
-the next `assign --write`; `check` says how many there are. An edited declaration in a split file keeps its entry: when its label changes (a
+the next `assign --write`; `check` says how many there are. A file `map.json` does not list at all is judged in the
+module its directory compiles into, extensions included (an `extension TerminalClient` in a new file under
+`Sources/TUIkitFoundation` is TUIkitFoundation's, not TUIkitTerminalHost's, as the build has it), and `check` prints
+`N files not in map.json: run assign --write` as a warning, which does not fail the gate. An edited declaration in a split file keeps its entry: when its label changes (a
 member added above its first one, or that member renamed) and exactly one entry of the same name (`View(ext)`)
 no longer matches anything, that entry is taken to be its. With two such edits to one name in one file, both are
 placed by the rules. Refresh the map whenever a change adds files or moves code between them.

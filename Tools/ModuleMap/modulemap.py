@@ -53,8 +53,12 @@ def to_map(M, R, asg):
 def resolve(M, R, files):
     """The assignment map.json gives, and the declarations it does not name.
 
-    Where map.json is silent the rules decide: a declaration rule, else for an extension in a default-module file
-    the module of the type it extends, else the file's module (a split file's most common one). One exception: in a
+    Where map.json is silent the rules decide: a declaration rule, else the file's module (a split file's most common
+    one; for a file map.json does not list, the module its directory compiles into: `Rules.seed`, as `assign` places
+    it). In a file no rule pins, an extension of a type another module declares goes with the type. A file whose
+    directory is a module IS pinned, so its extensions stay in the target the file compiles into (an unmapped
+    `extension TerminalClient` under Sources/TUIkitFoundation is TUIkitFoundation's until `assign --write` says
+    otherwise, and is reported by `unmapped_files`). One exception: in a
     split file, a declaration it does not name beside exactly one entry no declaration claims, both of the same
     name (`View(ext)`), is that entry's declaration edited (a member added above its first one, or renamed), not a
     new one, and keeps the entry's module. Returns (assignment, unmapped declarations, how many kept an entry)."""
@@ -86,11 +90,19 @@ def resolve(M, R, files):
     for n in unmapped:
         if asg[n] is not None: continue
         e = files.get(M.file[n])
-        m = collections.Counter(e.values()).most_common(1)[0][0] if isinstance(e, dict) else R.seed(M.file[n])[0]
+        seed, pinned = R.seed(M.file[n])
+        m = collections.Counter(e.values()).most_common(1)[0][0] if isinstance(e, dict) else seed
         t = M.extended_node(n)
-        if t is not None and m == R.default and asg.get(t): m = asg[t]
+        if t is not None and not pinned and m == R.default and asg.get(t): m = asg[t]
         asg[n] = m
     return asg, unmapped, kept
+
+
+def unmapped_files(M, files):
+    """The sources map.json does not list at all (added since `assign --write`), sorted. `resolve` places their
+    declarations by the directory the file compiles in, which is what the build does but may not be what the
+    refreshed map will say."""
+    return sorted(f for f in M.files if f not in files)
 
 
 def load_map(path):
@@ -248,9 +260,11 @@ def run(a):
         return 0
     if a.fresh or not os.path.exists(a.map):
         asg, _ = assigner.assign(M, R)
-        unmapped, kept = [], 0
+        unmapped, kept, absent = [], 0, []
     else:
-        asg, unmapped, kept = resolve(M, R, load_map(a.map))
+        mapped = load_map(a.map)
+        asg, unmapped, kept = resolve(M, R, mapped)
+        absent = unmapped_files(M, mapped)
     if a.command == 'explain':
         rx = re.compile(a.pattern or '.')
         for n in M.nodes:
@@ -270,10 +284,16 @@ def run(a):
                 e = M.edges.get(s, {}).get(n)
                 if e and asg[s] != asg[n]: print(f'    used by {asg[s]:18s} {M.label(s)} ({e[0]}, {e[1][0]}:{e[1][1]})')
         return 0
+    if absent:
+        print(f'modulemap: WARNING: {len(absent)} files not in map.json: run `modulemap.py assign --write`; until '
+              f'then each is judged in the module its directory compiles into '
+              f'({", ".join(absent[:5])}{" ..." if len(absent) > 5 else ""})')
     if unmapped:
-        files = sorted({M.file[n] for n in unmapped})
-        print(f'modulemap: {len(unmapped)} declarations in {len(files)} files are not in map.json; placed by the '
-              f'rules{f", {kept} kept an edited entry" if kept else ""} (refresh with `assign --write`)')
+        files = sorted({M.file[n] for n in unmapped} - set(absent))
+        if files:
+            print(f'modulemap: {len([n for n in unmapped if M.file[n] in files])} declarations in {len(files)} files '
+                  f'are not in map.json; placed by the rules'
+                  f'{f", {kept} kept an edited entry" if kept else ""} (refresh with `assign --write`)')
     findings = checks.run_all(M, R, asg, ROOT)
     new = report(findings, R, a.github, a.verbose, 'warning' if a.exit_zero else 'error')
     print(f'modulemap: {len(new)} new finding{"s" if len(new) != 1 else ""} '

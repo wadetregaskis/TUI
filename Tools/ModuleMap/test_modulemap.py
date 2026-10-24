@@ -206,6 +206,42 @@ class LabelTests(unittest.TestCase):
         self.assertEqual((asg['s:e:new1'], asg['s:e:new2'], kept), ('Lists', 'Lists', 0))
 
 
+class UnmappedFileTests(unittest.TestCase):
+    """A file map.json does not list (added since `assign --write`) is judged where its directory compiles it. The
+    old fallback sent an extension to the module of the type it extends, which invented or hid findings until the
+    map was regenerated (an `extension TerminalClient` in Sources/TUIkitFoundation was TUIkitTerminalHost's)."""
+
+    @staticmethod
+    def extension_model():
+        srcs = {'Lists/T.swift': 'struct T {}\n', 'Base/E.swift': 'extension T {\n    func f() {}\n}\n'}
+        occ = {'Lists/T.swift': [('s:T', DEF, 1, '')],
+               'Base/E.swift': [('s:e:E', DEF, 1, ''), ('s:T', REF | IX.REL_EXTENDED_BY, 1, 's:e:E')]}
+        return model(srcs, occ, {'s:T': ('T', IX.K_STRUCT), 's:e:E': ('T', IX.K_EXTENSION)})
+
+    def by_directory(self):
+        data = dict(rules().data)
+        del data['files']
+        return Rules(data)
+
+    def test_an_unmapped_extension_belongs_to_its_directorys_module(self):
+        M = self.extension_model()
+        asg, unmapped, _ = modulemap.resolve(M, self.by_directory(), {'Lists/T.swift': 'Lists'})
+        self.assertEqual((asg['s:T'], asg['s:e:E']), ('Lists', 'Base'))
+        self.assertEqual(unmapped, ['s:e:E'])
+        self.assertEqual(modulemap.unmapped_files(M, {'Lists/T.swift': 'Lists'}), ['Base/E.swift'])
+
+    def test_a_mapped_file_is_not_reported(self):
+        M = self.extension_model()
+        files = {'Lists/T.swift': 'Lists', 'Base/E.swift': 'Base'}
+        self.assertEqual(modulemap.unmapped_files(M, files), [])
+        self.assertEqual(modulemap.resolve(M, self.by_directory(), files)[0]['s:e:E'], 'Base')
+
+    def test_an_unpinned_file_still_follows_the_type_it_extends(self):
+        # The research mode's seed (a `files` list) lets an unpinned default-module extension follow its type.
+        asg, _, _ = modulemap.resolve(self.extension_model(), rules(), {'Lists/T.swift': 'Lists'})
+        self.assertEqual(asg['s:e:E'], 'Lists')
+
+
 class PublicTests(unittest.TestCase):
     """Whether a declaration is or holds public API decides whether the assigner may lift it, and what public-above
     reports. `open` is also an identifier."""
