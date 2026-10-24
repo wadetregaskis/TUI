@@ -5037,12 +5037,17 @@ Read this before designing any binding that depends on a modifier.
 
 No terminal forwards the Command key on a **key** event in its legacy
 encodings. `⌘S` cannot arrive. Under the kitty keyboard protocol a ⌘ chord the
-terminal does not keep for itself can arrive, as the Super bit; TUIkit drops it
-rather than deliver the bare key, so this rule still holds for chords (see
-"The kitty keyboard protocol"), and reports ⌘ held alone as a modifier key.
-This is why `CommandKeyBinding` exists: SwiftUI source says `⌘S`, and an app
-states once at its root which terminal modifier stands in for it
-(`.commandKey(.control)`), rather than every shared shortcut being rewritten.
+terminal does not keep for itself can arrive, as the Super bit (kitty and
+Ghostty on macOS, by their documentation; not measured), and reports ⌘ held
+alone as a modifier key. This is why `CommandKeyBinding` exists: SwiftUI source
+says `⌘S`, and an app states once at its root which terminal modifier stands in
+for it (`.commandKey(.control)`), rather than every shared shortcut being
+rewritten. Which ⌘ chords a terminal keeps varies from terminal to terminal
+(⌘C, ⌘V and ⌘Q nearly always), so a shortcut stays on its stand-in by default
+and fires on a real ⌘ only where the app asks (`.keyboardShortcutsMatchCommand()`,
+the owner's ruling B-D1K-1, 2026-10-23). Since that ruling a ⌘ chord that does
+arrive is delivered, with `.command`, to `onKeyPress` and to those shortcuts
+alone (see "The kitty keyboard protocol").
 
 Note the asymmetry with **mouse** reports, where the meta bit is real but means
 different things: iTerm2 forwards ⌘ as meta, Apple Terminal forwards ⌥ (see the
@@ -5911,12 +5916,16 @@ the keypad.
 - **Bit 8 means Super (⌘), not Meta.** In xterm's legacy modifier parameter the
   same bit is Meta, which terminals send for Option, and TUIkit's legacy parser
   reads it as Option ("Option arrives in two different spellings"). Under the
-  protocol a chord on Super, Hyper or Meta that types no text is **dropped**,
-  reporting only the modifier state: the legacy encodings never deliver a ⌘
-  chord, and delivered as the bare key ⌘K would type a `k`. ⌘ held on its own is
-  still reported, as a modifier key. *If a host sends Option-as-Meta in bit 8
-  under the protocol, its ⌥ chords are dropped too — check this when
-  measuring.*
+  protocol a chord on Super that types no text is **delivered as ⌘**
+  (`KeyEvent.command`; the owner's ruling B-D1K-1, 2026-10-23 — until then it
+  was dropped), and the input chain offers it only to `onKeyPress` handlers and
+  to the shortcuts an app has asked to match a real ⌘
+  (`InputHandler.dispatchCommandChord`): delivered to anything that matches a
+  bare key, ⌘K would type a `k`. A chord on Hyper or Meta that types no text is
+  still **dropped**, reporting only the modifier state: SwiftUI has no modifier
+  for either. ⌘ held on its own is reported as a modifier key. *If a host sends
+  Option-as-Meta in bit 8 under the protocol, its ⌥ chords arrive as ⌘ chords —
+  check this when measuring.*
 - A modifier key's own report sets its modifier from the keys of its kind
   known to be down, this one included or not by its event, whatever the
   terminal reported for the bit: with both Shift keys held, letting one go

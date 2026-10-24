@@ -27,9 +27,10 @@ import TUIkitCore
 ///   on wherever it can, all three phases are reported as SwiftUI reports
 ///   them. ``EnvironmentValues/keyboardReporting`` says which is the case.
 /// - **``modifiers`` holds what the terminal reports**: Control, Option and
-///   Shift; and Caps Lock and the numeric pad where it speaks the kitty
-///   keyboard protocol. Never Command (see ``EventModifiers``), and not the
-///   numeric-pad flag macOS sets on an arrow key either. On a key that types
+///   Shift; and Command, Caps Lock and the numeric pad where it speaks the
+///   kitty keyboard protocol — Command only on a chord the terminal does not
+///   keep for itself (see ``EventModifiers``). Not the numeric-pad flag macOS
+///   sets on an arrow key. On a key that types
 ///   a character, Shift is that character's case — `"A"` has it, `"!"` and
 ///   `"+"` do not — because that is all a legacy encoding can say, and under
 ///   the kitty keyboard protocol TUIkit says the same, so a handler sees one
@@ -57,8 +58,8 @@ public struct KeyPress: Sendable, CustomDebugStringConvertible {
     public let characters: String
 
     /// The modifier keys held with the key: Control, Option and Shift, and
-    /// Caps Lock and the numeric pad where the terminal speaks the kitty
-    /// keyboard protocol (``EnvironmentValues/keyboardReporting``).
+    /// Command, Caps Lock and the numeric pad where the terminal speaks the
+    /// kitty keyboard protocol (``EnvironmentValues/keyboardReporting``).
     public let modifiers: EventModifiers
 
     /// `KeyPress(.down, "a")`, SwiftUI's spelling.

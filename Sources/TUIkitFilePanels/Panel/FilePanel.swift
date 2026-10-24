@@ -245,11 +245,15 @@ struct FilePanel: View {
                 browser.goUp()
                 return .handled
             }
-            .onKeyPress("~") {
+            // Typed, not chords: a ⌘ chord the kitty keyboard protocol lets
+            // through reaches `onKeyPress` too, and ⌘/ is not "/".
+            .onKeyPress(keys: ["~"]) { press in
+                guard !press.modifiers.contains(.command) else { return .ignored }
                 browser.open(request.homeDirectory)
                 return .handled
             }
-            .onKeyPress("/") {
+            .onKeyPress(keys: ["/"]) { press in
+                guard !press.modifiers.contains(.command) else { return .ignored }
                 openGoToField()
                 return .handled
             }

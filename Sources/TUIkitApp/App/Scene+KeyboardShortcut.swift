@@ -96,7 +96,9 @@ extension ScenePresenter {
     /// register theirs, so the window's content keeps any it registered on
     /// the same key: each opens its scene, whether or not the app shows a
     /// menu bar, whose items only show them.
-    func registerSceneShortcuts(in registry: KeyboardShortcutRegistry, commandKey: CommandKeyBinding) {
+    func registerSceneShortcuts(
+        in registry: KeyboardShortcutRegistry, commandKey: CommandKeyBinding, matchesCommand: Bool = false
+    ) {
         var keys: [(shortcut: KeyboardShortcut, action: () -> Void)] = []
         for entry in entries {
             guard let shortcut = shortcut(of: entry) else { continue }
@@ -110,7 +112,8 @@ extension ScenePresenter {
         registry.registeringCommands {
             for key in keys {
                 guard let resolved = key.shortcut.resolved(commandKey: commandKey) else { continue }
-                registry.registerCommand(resolved, action: key.action)
+                registry.registerCommand(
+                    resolved, commandChord: key.shortcut.commandChord(matching: matchesCommand), action: key.action)
             }
         }
     }

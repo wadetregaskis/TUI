@@ -1041,7 +1041,7 @@ extension AppRunner {
                 // Markdown snippet in a TextEditor) silently wrote a frame
                 // file into the user's working directory. Force a full
                 // repaint first so the snapshot captures every line.
-                if keyEvent.key == .character("`"), keyEvent.phase == .press, frameDumpEnabled {
+                if keyEvent.key == .character("`"), !keyEvent.command, keyEvent.phase == .press, frameDumpEnabled {
                     renderer.invalidateDiffCache()
                     renderOutsidePacer(renderer: renderer, cursorTimer: cursorTimer)
                     terminal.dumpLastFrame()

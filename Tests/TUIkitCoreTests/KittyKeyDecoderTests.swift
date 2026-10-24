@@ -108,10 +108,31 @@ struct KittyKeyDecoderTests {
         #expect(decode("1089::99;5u") == key(KeyEvent(key: .character("c"), ctrl: true)))
     }
 
-    @Test("A chord on ⌘ is dropped, reporting only the modifier state")
-    func commandChordDropped() {
-        #expect(decode("107;9u") == [.modifierKeys(ModifierKeyState(command: true))])
-        #expect(decode("1;9A") == [.modifierKeys(ModifierKeyState(command: true))])
+    @Test("A chord on ⌘ is delivered with Command (B-D1K-1)")
+    func commandChordDelivered() {
+        #expect(decode("107;9u") == key(KeyEvent(key: .character("k"), command: true)))
+        #expect(decode("1;9A") == key(KeyEvent(key: .up, command: true)))
+        #expect(decode("3;9~") == key(KeyEvent(key: .delete, command: true)))
+        // ⌘⇧K is K, its Shift the letter's case, as for a Control chord.
+        #expect(decode("107:75;10u") == key(KeyEvent(key: .character("K"), shift: true, command: true)))
+        // ⌘С on a Russian layout is ⌘C, as macOS matches a key equivalent.
+        #expect(decode("1089::99;9u") == key(KeyEvent(key: .character("c"), command: true)))
+    }
+
+    @Test("A chord on Hyper or Meta is still dropped, reporting only the modifier state")
+    func hyperAndMetaChordsDropped() {
+        #expect(decode("107;17u") == [.modifierKeys(ModifierKeyState())])
+        #expect(decode("107;33u") == [.modifierKeys(ModifierKeyState())])
+        #expect(decode("107;25u") == [.modifierKeys(ModifierKeyState(command: true))], "⌘ with Hyper")
+    }
+
+    @Test("A ⌘ chord's release is its press, Command and all")
+    func commandChordRelease() {
+        var memory = KittyKeyMemory()
+        _ = KittyKeyDecoder.decode(Array("\u{1B}[107;9u".utf8), memory: &memory)
+        #expect(
+            KittyKeyDecoder.decode(Array("\u{1B}[107;9:3u".utf8), memory: &memory)
+                == key(KeyEvent(key: .character("k"), command: true, phase: .release)))
     }
 
     // MARK: Phases

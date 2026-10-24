@@ -76,6 +76,7 @@ public struct KeyEvent {
     public let ctrl: Bool     // Ctrl modifier
     public let alt: Bool      // Alt / Option modifier
     public let shift: Bool    // Shift modifier
+    public let command: Bool  // ⌘, under the kitty keyboard protocol only
 }
 ```
 
@@ -84,6 +85,7 @@ The terminal encodes modifiers differently from GUI frameworks:
 - **⌃-letter**: Detected from ASCII control codes (0x01–0x1A). For example, `⌃C` produces byte `0x03`.
 - **⌥-key**: Detected from ESC prefix sequences (`ESC` followed by the key byte).
 - **Shift**: Only auto-detected for uppercase letters. The terminal does not send distinct shift codes for most keys.
+- **⌘**: Never sent in the legacy encodings. Under the kitty keyboard protocol a ⌘ chord the terminal does not keep for itself arrives as the protocol's Super modifier, and reaches only `onKeyPress` handlers and the shortcuts that ask for a real ⌘ (``View/keyboardShortcutsMatchCommand(_:)``), never anything that matches a bare key: ⌘K types nothing into a field.
 
 ## SwiftUI's onKeyPress
 
@@ -122,7 +124,8 @@ key's repeats as more presses and never sends a release, so every press is
 `.down` (a `.down` or `.repeat` handler hears them all) and an `.up` handler
 never runs. ``EnvironmentValues/keyboardReporting`` says which, for an app that
 wants to offer a fallback. Its ``KeyPress/modifiers`` are the three a terminal
-reports — Control, Option and Shift.
+reports — Control, Option and Shift — and ⌘ (``EventModifiers/command``) on a
+chord the kitty keyboard protocol lets through.
 
 An open drop-down takes every key before the focus path does, as an open menu
 does on macOS, and so does a drag in flight (Layer 0.5).

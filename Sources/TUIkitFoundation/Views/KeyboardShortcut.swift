@@ -80,13 +80,15 @@ public struct KeyEquivalent: Hashable, Sendable, ExpressibleByExtendedGraphemeCl
 
 /// The modifier keys a shortcut requires.
 ///
-/// TUI-specific reality: a terminal reports Control, Option/Alt and Shift, and
-/// does **not** report Command — see `Documentation/Terminals/Terminal compatibility survey.md`.
-/// Caps Lock and the numeric pad are reported only where the terminal speaks
-/// the kitty keyboard protocol (``EnvironmentValues/keyboardReporting``).
-/// A shortcut declared with ``command`` therefore can never fire here. That is
-/// left deliberately literal rather than quietly rewritten to a bare key: an
-/// app that says ⌘Q should not fire on a lone "q".
+/// TUI-specific reality: a terminal reports Control, Option/Alt and Shift.
+/// Command is reported only where the terminal speaks the kitty keyboard
+/// protocol, and only on a chord the terminal does not keep for itself — see
+/// `Documentation/Terminals/Terminal compatibility survey.md`. Caps Lock and
+/// the numeric pad are reported only under that protocol too
+/// (``EnvironmentValues/keyboardReporting``). So a shortcut declared with
+/// ``command`` fires on the key that stands in for ⌘ here
+/// (``View/commandKey(_:)``, Control by default), and on a real ⌘ only where
+/// the app asks for that (``View/keyboardShortcutsMatchCommand(_:)``).
 ///
 /// The raw values are SwiftUI's, so a set stored as its `rawValue` reads back
 /// the same under either framework.
@@ -108,10 +110,13 @@ public struct EventModifiers: OptionSet, Hashable, Sendable {
     public static let shift = Self(rawValue: 1 << 1)
     public static let control = Self(rawValue: 1 << 2)
     public static let option = Self(rawValue: 1 << 3)
-    /// Never reported with a key — see the type documentation. Where the
-    /// terminal speaks the kitty keyboard protocol, ⌘ held on its own is
-    /// reported as a modifier key, so
-    /// ``View/onModifierKeysChanged(mask:initial:_:)`` can see it.
+    /// The Command key (⌘).
+    ///
+    /// Reported only where the terminal speaks the kitty keyboard protocol:
+    /// in a ``KeyPress``'s modifiers on a ⌘ chord the terminal lets through,
+    /// and, held on its own, to ``View/onModifierKeysChanged(mask:initial:_:)``.
+    /// A legacy encoding never sends a ⌘ chord. See the type documentation for
+    /// what a shortcut declared with it fires on.
     public static let command = Self(rawValue: 1 << 4)
     /// Any key on the numeric keypad.
     ///
@@ -126,13 +131,14 @@ public struct EventModifiers: OptionSet, Hashable, Sendable {
     public static let all: Self = [.capsLock, .shift, .control, .option, .command, .numericPad]
 
     /// The modifiers a terminal actually reports on `event`: Control, Option
-    /// and Shift, and Caps Lock and the numeric pad where it speaks the kitty
-    /// keyboard protocol.
+    /// and Shift, and Command, Caps Lock and the numeric pad where it speaks
+    /// the kitty keyboard protocol.
     init(_ event: KeyEvent) {
         var result: Self = []
         if event.ctrl { result.insert(.control) }
         if event.alt { result.insert(.option) }
         if event.shift { result.insert(.shift) }
+        if event.command { result.insert(.command) }
         if event.capsLock { result.insert(.capsLock) }
         if event.numericPad { result.insert(.numericPad) }
         self = result
@@ -352,8 +358,10 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// and `|` and `4`, which some terminals send as ⌃\\'s 0x1C.
     private static let controlCollisions: Set<Character> = ["h", "i", "j", "m", "[", "|", "4"]
 
-    /// The modifiers a shortcut that needs one can never fire on: ⌘, which no
-    /// terminal reports with a key, and the two states shortcuts ignore.
+    /// The modifiers a shortcut that needs one cannot fire on everywhere: ⌘,
+    /// which only the kitty keyboard protocol reports with a key, and only
+    /// where the terminal lets the chord through, and the two states
+    /// shortcuts ignore.
     private static let unreportedModifiers: EventModifiers = [.command, .capsLock, .numericPad]
 
     /// The trigger `event` would fire, or `nil` for a key no shortcut can name.
@@ -484,6 +492,73 @@ extension View {
     /// - Returns: A view whose `.command` shortcuts bind to `binding`.
     public func commandKey(_ binding: CommandKeyBinding) -> some View {
         environment(\.commandKey, binding)
+    }
+}
+
+// MARK: - A real Command key
+
+/// `@usableFromInline`, with its default, for the `@inlinable` accessor, as
+/// ``CommandKeyBindingKey`` is.
+@usableFromInline
+struct KeyboardShortcutsMatchCommandKey: EnvironmentKey {
+    @usableFromInline static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether a shortcut written with ⌘ also fires on a real ⌘, where the
+    /// terminal reports one — see ``View/keyboardShortcutsMatchCommand(_:)``.
+    /// `false` by default.
+    @inlinable
+    public var keyboardShortcutsMatchCommand: Bool {
+        get { self[KeyboardShortcutsMatchCommandKey.self] }
+        set { self[KeyboardShortcutsMatchCommandKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Lets the shortcuts in this subtree that are written with ⌘ fire on a
+    /// real ⌘ too, where the terminal reports one, as well as on the key that
+    /// stands in for it (``commandKey(_:)``).
+    ///
+    /// A terminal reports ⌘ only under the kitty keyboard protocol, and only
+    /// on a chord it does not keep for itself — kitty and Ghostty pass some ⌘
+    /// chords on to the app; most terminals keep ⌘C, ⌘V and ⌘Q, and many
+    /// keep more. So by default a shortcut keeps to its stand-in, Control
+    /// unless the app chose another, and fires the same way on every terminal
+    /// (the owner's ruling B-D1K-1, 2026-10-23). With this on, `⌘S` fires on
+    /// Control-S everywhere and on ⌘S where the terminal passes it; the
+    /// stand-in is never switched off, so no shortcut becomes unreachable
+    /// where a terminal keeps its ⌘ chord. Under ``CommandKeyBinding/unavailable``
+    /// nothing fires, a real ⌘ included.
+    ///
+    /// Only the shortcuts of a `Button`, a `Toggle` and a scene
+    /// (`.keyboardShortcut(_:)`). TUIkit's own bindings — undo and redo, the
+    /// row keys, the copy, cut and paste commands, a split view's sidebar
+    /// chords — keep to their stand-ins either way. `onKeyPress` sees a ⌘
+    /// chord's `.command` either way too.
+    ///
+    /// ```swift
+    /// WindowGroup { RootView() }
+    ///     .keyboardShortcutsMatchCommand()   // ⌘S is ⌘S where the terminal sends it
+    /// ```
+    ///
+    /// TUI-specific: SwiftUI has no equivalent, because on its platforms ⌘ is
+    /// always reported.
+    ///
+    /// - Parameter matches: Whether a shortcut written with ⌘ fires on a real ⌘.
+    /// - Returns: A view whose ⌘ shortcuts fire on a real ⌘ as well.
+    public func keyboardShortcutsMatchCommand(_ matches: Bool = true) -> some View {
+        environment(\.keyboardShortcutsMatchCommand, matches)
+    }
+}
+
+extension KeyboardShortcut {
+    /// This shortcut as written, to register on its real-⌘ trigger beside the
+    /// stand-in it resolves to: where it holds ⌘ and the environment asks for
+    /// a real ⌘ to match (`matchesCommand`,
+    /// ``EnvironmentValues/keyboardShortcutsMatchCommand``); `nil` otherwise.
+    package func commandChord(matching matchesCommand: Bool) -> Self? {
+        matchesCommand && modifiers.contains(.command) ? self : nil
     }
 }
 

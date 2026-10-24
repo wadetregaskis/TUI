@@ -63,7 +63,8 @@ package struct KittyKeyMemory: Sendable {
     mutating func release(_ code: Int) -> [KeyEvent]? {
         pressed.removeValue(forKey: code)?.map { press in
             KeyEvent(
-                key: press.key, ctrl: press.ctrl, alt: press.alt, shift: press.shift, phase: .release,
+                key: press.key, ctrl: press.ctrl, alt: press.alt, shift: press.shift, command: press.command,
+                phase: .release,
                 capsLock: press.capsLock, numericPad: press.numericPad)
         }
     }

@@ -58,6 +58,10 @@ import TUIkitFoundation
 ///   through (`2a106663`, 2026-07-09) — or when layer 0 skipped a focused text
 ///   control because the chord is an editing command that gives way to an app
 ///   shortcut on it (``KeyboardShortcutRegistry/hasAppShortcut(for:)``).
+///
+/// A ⌘ chord, which only the kitty keyboard protocol delivers, takes none of
+/// this: it reaches the focus path's `onKeyPress` handlers and the app's
+/// shortcuts, and nothing that matches a bare key (`dispatchCommandChord(_:)`).
 internal struct InputHandler {
     /// The status bar state for item-level event handling.
     let statusBar: StatusBarState
@@ -196,6 +200,7 @@ extension InputHandler {
         // which it also reports, is a press to every layer, as the legacy
         // encodings' identical copies always were.
         guard event.phase != .release else { return handleRelease(event) }
+        if event.command { return dispatchCommandChord(event) }
         // Layer -1, while a selection of the screen is drawn: the app's ⌘C
         // (Ctrl-C by default) copies it, and Escape clears it. Ahead of
         // everything, the focused text input included: the selection is the
@@ -239,6 +244,33 @@ extension InputHandler {
             return true
         }
         return false
+    }
+
+    /// The chain for a ⌘ chord, which only a terminal speaking the kitty
+    /// keyboard protocol delivers: the focus path's `onKeyPress` handlers,
+    /// which see `.command` in its modifiers as in SwiftUI, then the app's
+    /// shortcuts — which hold a real-⌘ trigger only where the app asked for
+    /// one (`View.keyboardShortcutsMatchCommand(_:)`), so by default none
+    /// does. Nothing else: every other layer matches a key by its character
+    /// and the modifiers it knows, and would take ⌘K for a bare `k` — a text
+    /// field would type it, type select would search for it, the status bar,
+    /// `t` and `a` and an `onKeyEvent` handler would fire. Keeping the chord
+    /// from them is the one place that refusal is made, rather than in each
+    /// of them (decisions D1K, B-D1K-1).
+    ///
+    /// Not while an open drop-down holds the keyboard, as the focus path is
+    /// not (``focusPathHearsKeys``): an app's shortcut must not fire from
+    /// under it.
+    private func dispatchCommandChord(_ event: KeyEvent) -> Bool {
+        guard focusPathHearsKeys else { return false }
+        if let focused = focusManager.focusedIdentity,
+            keyEventDispatcher.dispatchFocusPath(event, focusedIdentity: focused, stage: .keyPress)
+        {
+            focusManager.noteInputToFocusedControl()
+            return true
+        }
+        return keyboardShortcuts.trigger(
+            for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal)
     }
 
     /// The five-layer chain for a key going down or repeating — everything

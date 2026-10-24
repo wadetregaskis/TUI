@@ -10,7 +10,7 @@ priced, C for a refusal recorded in `parity-map.json`.*
 
 ## B. Shipped the safe option
 
-### B-D1K-1. Under the kitty keyboard protocol a ⌘ chord is dropped, not delivered
+### B-D1K-1. Under the kitty keyboard protocol a ⌘ chord is delivered to onKeyPress, and to shortcuts on request
 
 *`EventModifiers.command`, `KeyPress.modifiers`; the protocol's Super, Hyper
 and Meta bits*
@@ -35,6 +35,48 @@ fields, type select, the status bar, the theme and appearance keys, the
 Example's page keys — and the stand-in rule would need a precedence: does
 `KeyboardShortcut("s")` fire on ⌘S, on Ctrl-S, or both? About a day, most of
 it the audit of bare-key consumers, and a question for you on the precedence.
+
+**Ruled (owner, 2026-10-23), and built (lane KEYS, 2026-10-24):** "Deliver ⌘
+to onKeyPress; default shortcuts stay on non-command modifiers; command
+shortcuts when a developer opts in."
+
+- **Delivered.** A Super chord that types no text is a `KeyEvent` with the
+  new `command` set (`KittyKeyDecoder`), so `KeyPress.modifiers` holds
+  `.command`, as SwiftUI's does. Hyper and Meta chords are still dropped:
+  SwiftUI has no modifier for either. A ⌘ chord on a non-Latin layout is its
+  base-layout key (⌘С is ⌘C), as macOS matches a key equivalent.
+- **Refused centrally, not consumer by consumer.** The plan listed the
+  consumers that match a bare character — text fields, type select, the
+  status bar, `t` and `a`, the Example's page keys — each to learn to refuse
+  ⌘. Instead the input chain gives a ⌘ chord a short chain of its own
+  (`InputHandler.dispatchCommandChord(_:)`): the focus path's `onKeyPress`
+  handlers, then the app's shortcuts, and nothing else. No layer that never
+  heard of ⌘ can take one for a bare key, now or when a new layer is added;
+  the price is that an `onKeyEvent` handler never hears a ⌘ chord, which it
+  never could. TUIkit's own `onKeyPress` handlers that mean a typed character
+  refuse ⌘ themselves: the file panel's `~` and `/`, and the text editor's
+  find keys (⌃F, ⌃G).
+- **Default shortcuts unchanged.** A shortcut written with ⌘ registers on its
+  stand-in (`.commandKey(_:)`, Control by default) and nowhere else, so it
+  fires the same on every terminal. TUIkit's own bindings — undo and redo and
+  the row keys (written with Control), the copy, cut and paste commands and a
+  split view's sidebar chords (written with ⌘) — keep to their stand-ins, the
+  opt-in or not.
+- **The opt-in:** `.keyboardShortcutsMatchCommand(_:)`, an environment value
+  (`\.keyboardShortcutsMatchCommand`) by the modifier-first rule, read where a
+  `Button`'s, a `Toggle`'s or a scene's shortcut registers. On, a shortcut
+  written with ⌘ registers on its real-⌘ trigger as well as on its stand-in
+  (`KeyboardShortcut.commandChord(matching:)`): both fire, the precedence this
+  entry recommended, so a chord the terminal keeps stays reachable. Under
+  `.commandKey(.unavailable)` nothing fires, a real ⌘ included. A shortcut
+  written with Control never fires on ⌘.
+- **Cost.** Off (the default), nothing per frame: the second registration is
+  made only where the app asked. On, one more dictionary insert per ⌘
+  shortcut per frame, replayed from a memo as the first is. Per key, a ⌘
+  chord is offered to two layers instead of the whole chain.
+- **Not measured:** which ⌘ chords kitty and Ghostty pass to an app comes
+  from their documentation (`Terminal compatibility survey.md`, "Command is
+  never reported"). Tests: `CommandChordTests`, `KittyKeyDecoderTests`.
 
 ### B-D1K-2. A modifier-key alternate in a menu does not inherit the modified view's shortcut
 

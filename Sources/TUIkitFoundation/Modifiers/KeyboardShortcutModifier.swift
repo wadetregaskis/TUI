@@ -120,7 +120,7 @@ enum KeyboardShortcutRegistrar {
     /// before every walk, so a control whose subtree was served from a value
     /// memo has to register again or its key equivalent is dead while it is
     /// still on screen. Declared to any value-memoizing ancestor either way
-    /// (``declare(_:repeats:action:carrier:context:)``).
+    /// (``declare(_:commandChord:repeats:action:carrier:context:)``).
     ///
     /// - Parameters:
     ///   - action: What the shortcut does: the control's primary action.
@@ -138,10 +138,15 @@ enum KeyboardShortcutRegistrar {
             let shortcut = assignment.claim(by: context.identity, isMeasuring: context.isMeasuring)
         else { return nil }
         let resolved = shortcut.resolved(commandKey: context.environment.commandKey)
+        // The shortcut as written too, where the app asked for a real ⌘ to
+        // fire it (`.keyboardShortcutsMatchCommand()`); `nil` by default.
+        let commandChord = shortcut.commandChord(matching: context.environment.keyboardShortcutsMatchCommand)
         if let resolved, assignment.registers, !context.isMeasuring,
-            register(resolved, repeats: repeats, action: action, context: context)
+            register(resolved, commandChord: commandChord, repeats: repeats, action: action, context: context)
         {
-            declare(resolved, repeats: repeats, action: action, carrier: assignment, context: context)
+            declare(
+                resolved, commandChord: commandChord, repeats: repeats, action: action, carrier: assignment,
+                context: context)
         }
         return resolved
     }
@@ -157,17 +162,18 @@ enum KeyboardShortcutRegistrar {
     ///
     /// - Parameter repeats: Whether a held key's repeats run the action again
     ///   (``ButtonRepeatBehavior/enabled``); see
-    ///   ``KeyboardShortcutRegistry/register(_:repeats:action:)``.
+    ///   ``KeyboardShortcutRegistry/register(_:commandChord:repeats:action:)``,
+    ///   which takes `commandChord` too.
     /// - Returns: `false` outside a running app, where there is no registry and
     ///   nothing was registered — so the caller declares nothing either.
     @MainActor
     @discardableResult
     static func register(
-        _ shortcut: KeyboardShortcut, repeats: Bool = true, action: @escaping () -> Void,
-        context: RenderContext
+        _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, repeats: Bool = true,
+        action: @escaping () -> Void, context: RenderContext
     ) -> Bool {
         guard let registry = context.environment.keyboardShortcutRegistry else { return false }
-        registry.register(shortcut, repeats: repeats, action: action)
+        registry.register(shortcut, commandChord: commandChord, repeats: repeats, action: action)
         return true
     }
 
@@ -198,8 +204,8 @@ enum KeyboardShortcutRegistrar {
     /// declines for both, rather than only for the inner one it sits above.
     @MainActor
     static func declare(
-        _ shortcut: KeyboardShortcut, repeats: Bool = true, action: @escaping () -> Void,
-        carrier: KeyboardShortcutAssignment, context: RenderContext
+        _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, repeats: Bool = true,
+        action: @escaping () -> Void, carrier: KeyboardShortcutAssignment, context: RenderContext
     ) {
         let tracker = context.environment.volatileReadTracker
         guard carrier.isPlanted(insideMemoAtDepth: context.effectRecordingDepth) else {
@@ -216,7 +222,7 @@ enum KeyboardShortcutRegistrar {
             EffectJournal.Entry(
                 kind: kind, channelToken: context.environment.keyChannelToken
             ) { replay in
-                register(shortcut, repeats: repeats, action: action, context: replay)
+                register(shortcut, commandChord: commandChord, repeats: repeats, action: action, context: replay)
             })
     }
 }

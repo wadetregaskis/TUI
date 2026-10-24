@@ -64,12 +64,13 @@ struct KittyKeyboardInputTests {
         #expect(events(terminal("\u{1B}[104;5ux", enhanced: false)) == [.key(KeyEvent(character: "x"))])
     }
 
-    @Test("Off, bit 8 of a legacy modifier is still Option; on, it is ⌘ and the key is dropped")
+    @Test("Off, bit 8 of a legacy modifier is still Option; on, it is ⌘")
     func bitEightMeansDifferentThings() {
         #expect(
             events(terminal("\u{1B}[1;9C", enhanced: false)) == [.key(KeyEvent(key: .right, alt: true))])
         #expect(
-            events(terminal("\u{1B}[1;9C")) == [.modifierKeys(ModifierKeyState(command: true))])
+            events(terminal("\u{1B}[1;9C"))
+                == [.modifierKeys(ModifierKeyState(command: true)), .key(KeyEvent(key: .right, command: true))])
     }
 
     @Test("A report that typed several characters delivers them all, in order, before what follows")

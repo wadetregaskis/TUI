@@ -34,7 +34,8 @@ package enum KittyKeyDecoder {
     ///
     /// An empty array means a report this framework has no key for — Print
     /// Screen, a media key, F21 and up — or one it deliberately drops: a
-    /// chord on ⌘ that types nothing (see ``decode(_:)``'s discussion).
+    /// chord on Hyper or Meta that types nothing (see ``decode(_:)``'s
+    /// discussion).
     ///
     /// Usually one event. More than one only when a key typed more than one
     /// character — an input method committing a word through one key, a
@@ -62,12 +63,14 @@ package enum KittyKeyDecoder {
     ///
     /// Super (⌘ on the macOS hosts), Hyper and Meta never arrive in a legacy
     /// encoding: the terminal keeps ⌘ chords for itself or sends nothing. Under
-    /// the protocol, a ⌘ chord the terminal does not claim reaches the app.
-    /// Delivered as the bare key, ⌘K would type a `k` into a text field and
-    /// fire every bare-`k` binding, so a chord on any of the three that types
-    /// no text is dropped, as the legacy encodings drop it. It still reports
-    /// the modifier state, so ``ModifierKeyState/command`` stays true while ⌘
-    /// is held.
+    /// the protocol, a ⌘ chord the terminal does not claim reaches the app,
+    /// and is delivered with ``KeyEvent/command`` set, as SwiftUI's
+    /// `onKeyPress` sees `[.command]` (the owner's ruling B-D1K-1,
+    /// 2026-10-23). The input chain offers such a chord only to the handlers
+    /// that can tell it from the bare key, so ⌘K never types a `k`. A chord on
+    /// Hyper or Meta that types no text is still dropped, as the legacy
+    /// encodings drop it — SwiftUI has no modifier to deliver them as — and
+    /// reports only the modifier state.
     ///
     /// ## A release is the key its press was
     ///
@@ -176,7 +179,7 @@ package enum KittyKeyDecoder {
         }
         guard let last = memory.reportedState, reported != last else { return decoded }
         memory.reportedState = reported
-        // A dropped ⌘ chord already is this report.
+        // A dropped Hyper or Meta chord already is this report.
         if decoded == [.modifierKeys(reported)] { return decoded }
         return [.modifierKeys(reported)] + decoded
     }
@@ -259,10 +262,11 @@ package enum KittyKeyDecoder {
             command: bits & superBit != 0, capsLock: bits & capsLockBit != 0)
     }
 
-    /// Whether the bits hold a modifier the legacy encodings never deliver a
-    /// key with: Super, Hyper or Meta.
+    /// Whether the bits hold a modifier no key is delivered with: Hyper or
+    /// Meta, which SwiftUI has no modifier for. Super is ⌘, delivered as
+    /// ``KeyEvent/command``.
     private static func holdsUndeliverableModifier(_ bits: Int) -> Bool {
-        bits & (superBit | hyperBit | metaBit) != 0
+        bits & (hyperBit | metaBit) != 0
     }
 
     // MARK: Keys
@@ -273,7 +277,7 @@ package enum KittyKeyDecoder {
     ) -> KeyEvent {
         KeyEvent(
             key: key, ctrl: bits & ctrlBit != 0, alt: bits & altBit != 0, shift: bits & shiftBit != 0,
-            phase: phase, capsLock: bits & capsLockBit != 0, numericPad: numericPad)
+            command: bits & superBit != 0, phase: phase, capsLock: bits & capsLockBit != 0, numericPad: numericPad)
     }
 
     /// A key reported in the legacy `~` or letter form.
@@ -358,7 +362,7 @@ package enum KittyKeyDecoder {
     ///
     /// The shifted key when Shift is held, so Ctrl-Shift-Z is `Z`; the
     /// base-layout key for a chord on a non-Latin layout, so Ctrl-С is Ctrl-C
-    /// as its bytes are.
+    /// as its bytes are, and ⌘С is ⌘C, as macOS matches a key equivalent.
     private static func chordKey(code: Int, shifted: Int?, base: Int?, bits: Int) -> (code: Int, bits: Int) {
         if bits & shiftBit != 0, let shifted {
             // The shifted character says what Shift did, so Shift is its
@@ -371,7 +375,7 @@ package enum KittyKeyDecoder {
             // Anything else keeps the bit, the only way left to say it.
             return (upper, bits)
         }
-        if bits & (ctrlBit | altBit) != 0, code > 0x7F, let base {
+        if bits & (ctrlBit | altBit | superBit) != 0, code > 0x7F, let base {
             return (base, bits)
         }
         return (code, bits)

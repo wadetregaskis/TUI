@@ -129,7 +129,9 @@ extension ScenePresenter {
         window.showsModalPresentation = Self.showsModalPresentation(context.environment.focusManager)
         // After the window: its content's own shortcut on a scene's key keeps it.
         if let registry = context.environment.keyboardShortcutRegistry {
-            registerSceneShortcuts(in: registry, commandKey: context.environment.commandKey)
+            registerSceneShortcuts(
+                in: registry, commandKey: context.environment.commandKey,
+                matchesCommand: context.environment.keyboardShortcutsMatchCommand)
         }
         if windows.count > 1, window.closesInteractively {
             claimEscape(closing: window, at: escapeHandlerSlot, context: context)

@@ -641,12 +641,17 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   default `.command` is remapped when the shortcut registers, to whatever the
   TUI-only `.commandKey(_:)` names: Control by default, or Option, a bare key,
   or nothing. Under the kitty keyboard protocol a ⌘ chord the terminal passes
-  on is dropped rather than delivered (it still updates the modifier state).
-- **Why:** delivered as the bare key, ⌘K would type a `k` into a field and
-  fire every bare-`k` binding.
+  on is delivered with `.command`, as SwiftUI's, but only to `onKeyPress` and
+  to shortcuts: a shortcut fires on a real ⌘ only where the app asks
+  (`.keyboardShortcutsMatchCommand()`), and on its stand-in always.
+- **Why:** a terminal keeps some ⌘ chords for itself (⌘C, ⌘V and ⌘Q nearly
+  always, more on some), so a shortcut on a real ⌘ would work on one terminal
+  and not the next; the stand-in works on all of them. And delivered to what
+  matches a bare key, ⌘K would type a `k` into a field and fire every bare-`k`
+  binding.
 - **Decided:** [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tuikit-should-add-it>) (the `.keyboardShortcut` row),
   [Terminal compatibility survey.md](<../Terminals/Terminal compatibility survey.md#command-is-never-reported>),
-  [B-D1K-1](<Decisions/Input, clipboard and text editing/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-1-under-the-kitty-keyboard-protocol-a--chord-is-dropped-not-delivered>). **Medium.**
+  [B-D1K-1](<Decisions/Input, clipboard and text editing/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-1-under-the-kitty-keyboard-protocol-a--chord-is-delivered-to-onkeypress-and-to-shortcuts-on-request>). **Medium.**
 
 ### I2. Shift on a typed character is the character's case
 

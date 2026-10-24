@@ -105,15 +105,31 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     ///   runs it. A repeat that does not run it is still taken, so it reaches
     ///   nothing else: holding a button's shortcut never falls through to
     ///   whatever the key means further down.
-    func register(_ shortcut: KeyboardShortcut, repeats: Bool = true, action: @escaping () -> Void) {
+    /// - Parameter commandChord: The shortcut as written, with its ⌘, where it
+    ///   also fires on a real ⌘ (``KeyboardShortcut/commandChord(matching:)``):
+    ///   the same action is registered on that trigger too. `nil` — the
+    ///   default, and every shortcut's unless the app asked — registers
+    ///   nothing more.
+    func register(
+        _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, repeats: Bool = true,
+        action: @escaping () -> Void
+    ) {
         registrationCount += 1
         let entry = Entry(repeats: repeats, action: action, serial: registrationCount)
+        insert(entry, on: shortcut.trigger)
+        if let commandChord { insert(entry, on: commandChord.trigger) }
+    }
+
+    /// Puts `entry` on `trigger`, in the pane rendering now or on the page —
+    /// unless the menu bar's commands are registering and something already
+    /// holds the trigger (``registeringCommands(_:)``).
+    private func insert(_ entry: Entry, on trigger: KeyboardShortcut.Trigger) {
         if let currentPane {
-            if registersCommands, paneActions[currentPane]?[shortcut.trigger] != nil { return }
-            paneActions[currentPane, default: [:]][shortcut.trigger] = entry
+            if registersCommands, paneActions[currentPane]?[trigger] != nil { return }
+            paneActions[currentPane, default: [:]][trigger] = entry
         } else {
-            if registersCommands, actions[shortcut.trigger] != nil { return }
-            actions[shortcut.trigger] = entry
+            if registersCommands, actions[trigger] != nil { return }
+            actions[trigger] = entry
         }
     }
 
@@ -121,9 +137,11 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// has resolved: for a framework command outside a view — a scene's
     /// `.keyboardShortcut` (TUIkitApp) — inside ``registeringCommands(_:)``,
     /// so the window's own shortcut on the key keeps it. A held key does not
-    /// repeat it.
-    package func registerCommand(_ shortcut: KeyboardShortcut, action: @escaping () -> Void) {
-        register(shortcut, repeats: false, action: action)
+    /// repeat it. `commandChord` is ``register(_:commandChord:repeats:action:)``'s.
+    package func registerCommand(
+        _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, action: @escaping () -> Void
+    ) {
+        register(shortcut, commandChord: commandChord, repeats: false, action: action)
     }
 
     /// Whether what registers now is the menu bar's commands — see

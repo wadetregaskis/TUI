@@ -31,6 +31,18 @@ public struct KeyEvent: Equatable, Sendable {
     /// Whether the Shift modifier was held.
     public let shift: Bool
 
+    /// Whether Command (⌘) was held.
+    ///
+    /// Only from a terminal speaking the kitty keyboard protocol, which reports
+    /// ⌘ as its Super modifier on a chord the terminal does not keep for
+    /// itself. A legacy encoding never sends a ⌘ chord, so there it is always
+    /// `false`. Such a chord reaches only `onKeyPress` handlers and the
+    /// shortcuts that ask for a real ⌘
+    /// (`View.keyboardShortcutsMatchCommand(_:)`): everything that matches a
+    /// bare key — a text field's typing, type select, the status bar — never
+    /// hears it, so ⌘K does not type a `k`.
+    public let command: Bool
+
     /// Whether the key went down, repeated while held, or came up.
     ///
     /// Always ``Phase/press`` from a terminal in its legacy encoding, where a
@@ -60,17 +72,17 @@ public struct KeyEvent: Equatable, Sendable {
 
     /// Creates a key event.
     public init(
-        key: Key, ctrl: Bool = false, alt: Bool = false, shift: Bool = false,
+        key: Key, ctrl: Bool = false, alt: Bool = false, shift: Bool = false, command: Bool = false,
         phase: Phase = .press, capsLock: Bool = false, numericPad: Bool = false
     ) {
         self.init(
-            key: key, ctrl: ctrl, alt: alt, shift: shift, phase: phase, capsLock: capsLock,
+            key: key, ctrl: ctrl, alt: alt, shift: shift, command: command, phase: phase, capsLock: capsLock,
             numericPad: numericPad, pasteAttachments: [])
     }
 
     /// Creates a key event, a paste with more than text among them.
     package init(
-        key: Key, ctrl: Bool = false, alt: Bool = false, shift: Bool = false,
+        key: Key, ctrl: Bool = false, alt: Bool = false, shift: Bool = false, command: Bool = false,
         phase: Phase = .press, capsLock: Bool = false, numericPad: Bool = false,
         pasteAttachments: [PasteAttachment]
     ) {
@@ -78,6 +90,7 @@ public struct KeyEvent: Equatable, Sendable {
         self.ctrl = ctrl
         self.alt = alt
         self.shift = shift
+        self.command = command
         self.phase = phase
         self.capsLock = capsLock
         self.numericPad = numericPad
@@ -90,6 +103,7 @@ public struct KeyEvent: Equatable, Sendable {
         self.ctrl = false
         self.alt = false
         self.shift = character.isUppercase
+        self.command = false
         self.phase = .press
         self.capsLock = false
         self.numericPad = false

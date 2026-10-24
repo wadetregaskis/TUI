@@ -217,7 +217,8 @@ public struct TextEditor: View {
                 // Shift-Ctrl-G the previous one where the terminal tells Shift
                 // apart (the kitty protocol; elsewhere it is Ctrl-G). With no
                 // query yet, Ctrl-G presents the bar.
-                guard press.modifiers.contains(.control), !press.modifiers.contains(.option), !find.isFindDisabled,
+                guard press.modifiers.contains(.control), press.modifiers.isDisjoint(with: [.option, .command]),
+                    !find.isFindDisabled,
                     !appShortcutTakes(press)
                 else { return .ignored }
                 if press.key == "f" || press.key == "F" || findQuery.isEmpty {
