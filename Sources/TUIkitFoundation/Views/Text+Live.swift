@@ -213,27 +213,48 @@ extension Text {
     ///
     /// A text with no next change — a finished timer, a time of day — declares
     /// nothing, and memoises like any other.
-    func readingLive(declaringIn context: RenderContext, measuring: Bool) -> Text? {
+    package func readingLive(declaringIn context: RenderContext, measuring: Bool) -> Text? {
         // Asked before the environment is copied out: building the calendar
         // with the environment's zone on it allocates, and a concatenation
         // with nothing live must not pay for that on every frame.
         guard isLive else { return nil }
-        let date = context.renderCache?.frameDate ?? Date()
+        let date = context.liveFrameDate
         guard let (text, next) = readingLive(at: date, in: LiveTextEnvironment(context.environment)) else {
             return nil
         }
-        guard let next else { return text }
-        if measuring || context.isMeasuring {
-            context.environment.volatileReadTracker?.recordClockedRead(movingAt: next)
+        if let next {
+            context.declareLiveChange(
+                at: next, readAt: date, token: "text-\(context.identity.path)", measuring: measuring)
         }
-        guard !measuring else { return text }
+        return text
+    }
+}
+
+extension RenderContext {
+    /// The date a live text reads at: the frame's (`RenderCache.frameDate`),
+    /// or the clock's where nothing set one.
+    package var liveFrameDate: Date {
+        renderCache?.frameDate ?? Date()
+    }
+
+    /// Declares that words read at `date` change again at `next`, as a live
+    /// text declares it (``Text/readingLive(declaringIn:measuring:)``): a
+    /// measure records a read of the clock that moves then, and a render asks
+    /// the run loop for one wake, under `token`, just past it. The token is
+    /// built only for a render: a measure, which asks for no wake, must not pay
+    /// for the string.
+    @MainActor package func declareLiveChange(
+        at next: Date, readAt date: Date, token: @autoclosure () -> String, measuring: Bool
+    ) {
+        if measuring || isMeasuring {
+            environment.volatileReadTracker?.recordClockedRead(movingAt: next)
+        }
+        guard !measuring else { return }
         // A millisecond past the change: the wake is timed on the monotonic
         // clock and the words are read from the wall clock, and a wake that
         // lands a hair early reads the old words and has to ask again. (A
         // render under `isMeasuring` asks for nothing; `requestWake` sees to
         // that.)
-        context.requestWake(
-            token: "text-\(context.identity.path)", afterSeconds: next.timeIntervalSince(date) + 0.001)
-        return text
+        requestWake(token: token(), afterSeconds: next.timeIntervalSince(date) + 0.001)
     }
 }
