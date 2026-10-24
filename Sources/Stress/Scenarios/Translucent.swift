@@ -27,12 +27,65 @@ import TUIkit
 enum TranslucentScenario {
     @MainActor
     static let descriptor = Scenario(
+        // A literal: StressLocalizationParityTests reads the id from the source.
         id: "translucent",
         title: "Translucent",
         blurb: "A large faded panel over a destination that redraws every frame.",
         stresses: "cell decomposition of both sides · per-cell region lookup · SGR re-emission",
-        make: { config in AnyView(TranslucentView(config: config)) }
+        make: { config in
+            ScenarioVariants.resolve(config, in: scenarioID)?.make(config)
+                ?? AnyView(TranslucentView(config: config))
+        }
     )
+
+    /// The registry's key: the descriptor's own id, so the two cannot drift.
+    @MainActor
+    static var scenarioID: String { descriptor.id }
+
+    /// The faded labels (the default), and the same rows with each label on a
+    /// material over text that redraws every frame: a material frosts what is
+    /// behind it (owner ruling O5-FROSTED (b)), so this prices the frost — the
+    /// neighbourhood average and the dropped glyphs — where nothing else does.
+    @MainActor
+    static let variants: [ScenarioVariant] = [
+        ScenarioVariant(
+            id: "faded", summary: "faded labels over shaded rows that redraw every frame", axis: "layer",
+            make: { config in AnyView(TranslucentView(config: config)) }),
+        ScenarioVariant(
+            id: "material", summary: "each label on a thin material over a row of text that redraws every frame",
+            axis: "layer", make: { config in AnyView(MaterialRowsView(config: config)) }),
+    ]
+}
+
+/// Rows of text that change every frame, each with a label on a thin material
+/// laid over its middle.
+private struct MaterialRowsView: View {
+    let config: StressConfig
+
+    @Environment(StressClock.self) private var clock
+
+    var body: some View {
+        let rows = config.sized(120)
+        let tick = clock.tick
+        return VStack(alignment: .leading, spacing: 0) {
+            Text(Lf("stress.scenario.translucent.heading", rows)).bold()
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<rows, id: \.self) { index in
+                        ZStack(alignment: .leading) {
+                            Text(Synth.slug(mix(config.seed, index &+ tick)) + " " + Synth.slug(mix(config.seed, index)))
+                                .foregroundStyle(.rgb(200, 220, 255))
+                            Text(Synth.slug(mix(config.seed, index &+ 7)))
+                                .padding(.horizontal, 2)
+                                .background(.thinMaterial)
+                                .padding(.leading, 6)
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 private struct TranslucentView: View {
