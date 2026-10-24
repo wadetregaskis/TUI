@@ -680,7 +680,7 @@
       "why": "The type of Image's transferRepresentation; see that entry."
     },
     "Image.Scale": {
-      "why": "The .small/.medium/.large enum for imageScale; the terminal owns the font size and a symbol is one codepoint at that size (Sources/TUIkitStrings/SFSymbols/SFSymbol.swift:62). Documentation/SwiftUI parity/SwiftUI compatibility guide.md:452 records the same constraint for Font generally."
+      "why": "The .small/.medium/.large enum for imageScale; the terminal owns the font size and a symbol is one codepoint at that size (Sources/TUIkitStrings/SFSymbols/SFSymbol.swift:62). The compatibility guide's \"Two rules that decide every case\" records the same constraint for Font generally (`Font.system(size:)` is absent: a point size is a measurement the terminal owns)."
     },
     "Image.transferRepresentation": {
       "why": "Image's Transferable conformance. CoreTransferable is Apple-only, and the terminal's clipboard holds text: TUIkit's copyable/draggable payloads need no Transferable conformance, so there is no representation for an image to declare."
@@ -927,7 +927,7 @@
     },
     "StateObject": {
       "how": "@State var m = M() with @Observable",
-      "why": "Documentation/SwiftUI parity/SwiftUI compatibility guide.md:179 states the mapping explicitly; `State` is a shared type (Sources/TUIkitView/State/State.swift) and binds at render time by the view's own identity."
+      "why": "The compatibility guide's §2.3 (Reactive model is `@Observable` only) states the mapping explicitly; `State` is a shared type (Sources/TUIkitView/State/State.swift) and binds at render time by the view's own identity."
     },
     "Text.Body": {
       "how": "typealias Body = Never (inferred)",

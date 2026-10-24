@@ -378,8 +378,10 @@ extension Table {
     ///
     /// Worth reaching for whenever the rows are a display and nothing should
     /// be chosen from them. `.disabled(true)` is not the same thing: that also
-    /// greys the rows and takes the table out of the focus ring, so it can no
-    /// longer be scrolled from the keyboard.
+    /// takes the table out of the focus ring and stops the pointer, so it can
+    /// no longer be scrolled at all. It does not grey the rows: a disabled
+    /// subtree's text draws as it does enabled (whether a disabled `NSTableView`
+    /// greys its text is not measured).
     ///
     /// - Parameters:
     ///   - data: The identifiable data for computing the table rows.

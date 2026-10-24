@@ -103,8 +103,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 ### U2. Geometry values are cell types
 
-- **SwiftUI:** `CGPoint`, `CGSize`, `CGRect`, `CGVector` and `UnitPoint`, in
-  points (the SDK's declarations).
+- **SwiftUI:** `CGPoint`, `CGSize`, `CGRect` and `CGVector`, in points (the
+  SDK's declarations). `UnitPoint`, fractions of a box rather than points, is
+  SwiftUI's own in TUIkit too.
 - **TUIkit:** `CellPoint`, `CellSize` and `CellRect` of `Int` cells, and
   `CellVector` (a rate, `Double` cells per second). Pointer locations,
   `GeometryProxy.size` and `frame(in:)`, `Layout.placeSubviews(in:)`, anchors
@@ -117,7 +118,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   frame was drawn ([§1](<SwiftUI compatibility guide.md#1-match>), the Env / prefs row).
 - **Why:** U1's reason. Flooring a midpoint before subtracting a half-size
   moves a centred view by a cell in 210 of 861 (extent, size) cases.
-- **Decided:** [§2.2](<SwiftUI compatibility guide.md#22-geometry-is-integer-never-cgpointcgsizecgrectunitpoint>), [B-D5G-5](<Decisions/Coordinate spaces, geometry and scroll visibility (D5G).md#b-d5g-5-cellrect-gains-minx-miny-origin-and-size--and-still-no-midxmidy>). **Recorded.**
+- **Decided:** [§2.2](<SwiftUI compatibility guide.md#22-geometry-is-integer-never-cgpointcgsizecgrect>), [B-D5G-5](<Decisions/Coordinate spaces, geometry and scroll visibility (D5G).md#b-d5g-5-cellrect-gains-minx-miny-origin-and-size--and-still-no-midxmidy>). **Recorded.**
 
 ### U3. Default spacing and padding are one cell or none
 

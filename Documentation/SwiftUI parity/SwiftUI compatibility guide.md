@@ -234,7 +234,7 @@ is or holds such a layout, a nested `HStack` whose first or last child does, a
 `Tools/SwiftUIProbes/Stack spacing per pair/nested.out`); a lazy stack states
 none, as SwiftUI's does. Pass an explicit `spacing:` for SwiftUI-like air.
 
-### 2.2 Geometry is integer, never `CGPoint`/`CGSize`/`CGRect`/`UnitPoint`
+### 2.2 Geometry is integer, never `CGPoint`/`CGSize`/`CGRect`
 
 ```swift
 // SwiftUI                              // TUIkit
@@ -249,8 +249,9 @@ DragGesture().onChanged { $0.location } // CGPoint  →  the same source; the lo
 §2.1, applied to composite values. A tap or drag resolves to a `(column, row)`
 cell, full stop. Surfacing a `CGPoint` of `Double`s would be a fiction. TUIkit
 deliberately exposes integer coordinates (`x`/`y` ints, `DragGesture.Value` with
-integer fields). The same goes for `UnitPoint` anchors — there is no sub-cell
-anchor to express.
+integer fields). `UnitPoint` is the exception that is not one: it is
+SwiftUI's own, `Double` fractions of a box, and a fraction is not a sub-cell
+position — it resolves to a cell where it is applied.
 
 The same rule shapes the layout read-back API: `GeometryProxy.size` is a
 `CellSize` of `Int` cells and `frame(in:)` returns a `CellRect`, not `CGSize`
