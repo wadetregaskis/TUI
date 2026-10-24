@@ -228,7 +228,7 @@ struct ForegroundStylePropagationTests {
         let content = buffer.lines.joined()
 
         // Check that red's foreground code is present, in this build's colour depth
-        let red = "\u{1B}[" + Color.red.foregroundCodes().joined(separator: ";") + "m"
+        let red = "\u{1B}[" + asDrawn(Color.red).foregroundCodes().joined(separator: ";") + "m"
         #expect(content.contains(red), "\(content.debugDescription)")
     }
 
@@ -251,7 +251,7 @@ struct ForegroundStylePropagationTests {
         let buffer = renderToBuffer(view, context: context)
         let content = buffer.lines.joined()
 
-        let green = "\u{1B}[" + Color.green.foregroundCodes().joined(separator: ";") + "m"
+        let green = "\u{1B}[" + asDrawn(Color.green).foregroundCodes().joined(separator: ";") + "m"
         #expect(content.contains(green), "\(content.debugDescription)")
     }
 
@@ -273,8 +273,8 @@ struct ForegroundStylePropagationTests {
         let content = buffer.lines.joined()
 
         // Should have blue, not red
-        let blue = "\u{1B}[" + Color.blue.foregroundCodes().joined(separator: ";") + "m"
-        let red = "\u{1B}[" + Color.red.foregroundCodes().joined(separator: ";") + "m"
+        let blue = "\u{1B}[" + asDrawn(Color.blue).foregroundCodes().joined(separator: ";") + "m"
+        let red = "\u{1B}[" + asDrawn(Color.red).foregroundCodes().joined(separator: ";") + "m"
         #expect(content.contains(blue), "\(content.debugDescription)")
         #expect(!content.contains(red), "\(content.debugDescription)")
     }

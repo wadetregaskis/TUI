@@ -1052,6 +1052,9 @@ extension Color {
             fatalError(
                 "Semantic color must be resolved before rendering. Call Color.resolve(with:) first."
             )
+        // Unresolved, its light value, as `foregroundCodes` spells it.
+        case .system(let name):
+            return name.color(in: .light).sgrForeground(depth: depth)
         }
     }
 
@@ -1081,6 +1084,9 @@ extension Color {
             fatalError(
                 "Semantic color must be resolved before rendering. Call Color.resolve(with:) first."
             )
+        // Unresolved, its light value, as `foregroundCodes` spells it.
+        case .system(let name):
+            return name.color(in: .light).sgrBackground(depth: depth)
         }
     }
 }

@@ -83,7 +83,7 @@ struct ListRowBackgroundAlphaTests {
     func bytesAreOpaque() {
         let drawn = buffer(Text("hi").listRowBackground(faded(.red, 128)), width: 12)
         #expect(
-            drawn.lines[0].contains(Color.red.backgroundCodes().joined(separator: ";")),
+            drawn.lines[0].contains(asDrawn(Color.red).backgroundCodes().joined(separator: ";")),
             "\(drawn.lines[0].debugDescription)")
     }
 

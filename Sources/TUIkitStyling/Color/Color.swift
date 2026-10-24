@@ -11,12 +11,13 @@
 ///
 /// # Named Colors
 ///
-/// SwiftUI's names are the colours they read as, at Apple's light values:
+/// SwiftUI's names are the colours they read as, at Apple's values for the
+/// colour scheme where they are drawn:
 ///
 /// ```swift
-/// Text("Red").foregroundStyle(.red)      // #FF3B30
-/// Text("Green").foregroundStyle(.green)  // #28CD41
-/// Text("Blue").foregroundStyle(.blue)    // #007AFF
+/// Text("Red").foregroundStyle(.red)      // #FF3B30 light, #FF453A dark
+/// Text("Green").foregroundStyle(.green)  // #28CD41 light, #32D74B dark
+/// Text("Blue").foregroundStyle(.blue)    // #007AFF light, #0A84FF dark
 /// ```
 ///
 /// # Terminal Colors
@@ -190,6 +191,13 @@ public struct Color: Sendable, Hashable {
         /// quantised, or 39 until it has reported one. It measures as that RGB, or
         /// as nothing. The twin of `terminalForeground`.
         case terminalBackground
+        /// One of SwiftUI's named colours that follows the colour scheme, such as
+        /// `Color.red`: its value for the palette's scheme where it is resolved, and
+        /// its light value wherever it is measured unresolved. See
+        /// ``Color/SystemColor``.
+        ///
+        /// A one-byte payload, under `.rgb`'s three, so `Color` stays five bytes.
+        case system(SystemColor)
     }
 
     /// A colour that is fully transparent — SwiftUI's `Color.clear`.
@@ -252,17 +260,19 @@ public struct Color: Sendable, Hashable {
 
     // SwiftUI's fifteen named colours, and `magenta`.
     //
-    // The VALUES are Apple's system palette in the light (aqua) appearance,
-    // measured rather than guessed: `Color.resolve(in:)` on macOS 15.7, which
-    // agrees with `NSColor.systemOrange` and friends converted to sRGB. SwiftUI
-    // resolves the hues per appearance; these are fixed at the light values for
-    // now, so a colour can be measured, mixed and faded inside a view body.
-    // `white` and `black` are the same in both appearances.
+    // Thirteen follow the colour scheme, as SwiftUI's do: each is a
+    // ``SystemColor``, Apple's light value on a light page and its dark value on a
+    // dark one, chosen where the colour is resolved for drawing (see
+    // ``resolve(with:)``). Measured in a view body — `rgbComponents`, a blend, a
+    // contrast floor — each reads its light value, as SwiftUI's
+    // `resolve(in: EnvironmentValues())` does. `white` and `black` are the same in
+    // both appearances, so they are plain RGB. The values are measured, not
+    // guessed: `Tools/SwiftUIProbes/Named colours by scheme/`.
     //
     // They are colours, not the terminal's slots: `.red` is `38;2;255;59;48` at
-    // truecolor, and on a 16-colour terminal the nearest slot by xterm's table
-    // (SGR 91). A colour the user's terminal profile should decide is
-    // `Color.ansi(_:)`.
+    // truecolor on a light page, and on a 16-colour terminal the nearest slot by
+    // xterm's table (SGR 91). A colour the user's terminal profile should decide
+    // is `Color.ansi(_:)`.
     //
     // - Important: These are deliberately NOT the CSS colours of the same name.
     //   `Color.orange` is Apple's `#FF9500`; CSS "orange" is `#FFA500`, and the
@@ -271,56 +281,57 @@ public struct Color: Sendable, Hashable {
     //   browses the web vocabulary, this matches the SwiftUI source you are
     //   porting. Do not reconcile them.
     //
-    // `magenta` is TUIkit's own: SwiftUI has none. It is full-strength #FF00FF,
-    // because Apple's system palette has no magenta to borrow.
+    // `magenta` is TUIkit's own: SwiftUI has none. It is full-strength #FF00FF in
+    // both schemes, because Apple's system palette has no magenta to borrow.
 
-    /// Black, `#000000`.
+    /// Black, `#000000`, in both colour schemes.
     public static let black = Self.hex(0x00_00_00)
 
-    /// White, `#FFFFFF`.
+    /// White, `#FFFFFF`, in both colour schemes.
     public static let white = Self.hex(0xFF_FF_FF)
 
-    /// Red (Apple's system red, `#FF3B30`).
-    public static let red = Self.hex(0xFF_3B_30)
+    /// Red: Apple's system red, `#FF3B30` light and `#FF453A` dark.
+    public static let red = Self(value: .system(.red))
 
-    /// Yellow (Apple's system yellow, `#FFCC00`).
-    public static let yellow = Self.hex(0xFF_CC_00)
+    /// Yellow: Apple's system yellow, `#FFCC00` light and `#FFD60A` dark.
+    public static let yellow = Self(value: .system(.yellow))
 
-    /// Green (Apple's system green, `#28CD41`).
-    public static let green = Self.hex(0x28_CD_41)
+    /// Green: Apple's system green, `#28CD41` light and `#32D74B` dark.
+    public static let green = Self(value: .system(.green))
 
-    /// Cyan (Apple's system cyan, `#55BEF0`).
-    public static let cyan = Self.hex(0x55_BE_F0)
+    /// Cyan: Apple's system cyan, `#55BEF0` light and `#5AC8F5` dark.
+    public static let cyan = Self(value: .system(.cyan))
 
-    /// Blue (Apple's system blue, `#007AFF`).
-    public static let blue = Self.hex(0x00_7A_FF)
+    /// Blue: Apple's system blue, `#007AFF` light and `#0A84FF` dark.
+    public static let blue = Self(value: .system(.blue))
 
-    /// Magenta, `#FF00FF`. TUIkit's own: SwiftUI has no magenta.
+    /// Magenta, `#FF00FF`, in both colour schemes. TUIkit's own: SwiftUI has no
+    /// magenta.
     public static let magenta = Self.hex(0xFF_00_FF)
 
-    /// Grey (Apple's system grey, `#8E8E93`).
-    public static let gray = Self.hex(0x8E_8E_93)
+    /// Grey: Apple's system grey, `#8E8E93` light and `#98989D` dark.
+    public static let gray = Self(value: .system(.gray))
 
-    /// Orange (Apple's system orange, `#FF9500`).
-    public static let orange = Self.hex(0xFF_95_00)
+    /// Orange: Apple's system orange, `#FF9500` light and `#FF9F0A` dark.
+    public static let orange = Self(value: .system(.orange))
 
-    /// Pink (Apple's system pink, `#FF2D55`).
-    public static let pink = Self.hex(0xFF_2D_55)
+    /// Pink: Apple's system pink, `#FF2D55` light and `#FF375F` dark.
+    public static let pink = Self(value: .system(.pink))
 
-    /// Purple (Apple's system purple, `#AF52DE`).
-    public static let purple = Self.hex(0xAF_52_DE)
+    /// Purple: Apple's system purple, `#AF52DE` light and `#BF5AF2` dark.
+    public static let purple = Self(value: .system(.purple))
 
-    /// Brown (Apple's system brown, `#A2845E`).
-    public static let brown = Self.hex(0xA2_84_5E)
+    /// Brown: Apple's system brown, `#A2845E` light and `#AC8E68` dark.
+    public static let brown = Self(value: .system(.brown))
 
-    /// Mint (Apple's system mint, `#00C7BE`).
-    public static let mint = Self.hex(0x00_C7_BE)
+    /// Mint: Apple's system mint, `#00C7BE` light and `#63E6E2` dark.
+    public static let mint = Self(value: .system(.mint))
 
-    /// Teal (Apple's system teal, `#59ADC4`).
-    public static let teal = Self.hex(0x59_AD_C4)
+    /// Teal: Apple's system teal, `#59ADC4` light and `#6AC4DC` dark.
+    public static let teal = Self(value: .system(.teal))
 
-    /// Indigo (Apple's system indigo, `#5856D6`).
-    public static let indigo = Self.hex(0x58_56_D6)
+    /// Indigo: Apple's system indigo, `#5856D6` light and `#5E5CE6` dark.
+    public static let indigo = Self(value: .system(.indigo))
 
     // MARK: - Semantic Colors
 
@@ -428,6 +439,9 @@ public struct Color: Sendable, Hashable {
     /// - `.terminalForeground` / `.terminalBackground` — the RGB the terminal
     ///   reported for its default foreground or background, or nil until it has
     /// - `.semantic` — returns nil (must be resolved first via ``resolve(with:)``)
+    /// - `.system` — the named colour's LIGHT value, as SwiftUI's
+    ///   `resolve(in: EnvironmentValues())` answers it in a view body; resolved
+    ///   with a palette it is the value for that palette's scheme
     ///
     /// Nothing the terminal decides is guessed: a slot it has not reported is not
     /// xterm's value, ``ANSIColor/xtermRGB``, which the user's profile need not
@@ -455,6 +469,8 @@ public struct Color: Sendable, Hashable {
             return Self.palette256ToRGB(index)
         case .semantic:
             return nil
+        case .system(let name):
+            return name.lightComponents
         }
     }
 
@@ -478,7 +494,7 @@ public struct Color: Sendable, Hashable {
         switch value {
         case .ansi, .terminalDefault, .terminalForeground, .terminalBackground: return true
         case .palette256(let index): return index < 16
-        case .rgb, .semantic: return false
+        case .rgb, .semantic, .system: return false
         }
     }
 }
@@ -488,7 +504,14 @@ public struct Color: Sendable, Hashable {
 extension Color {
     /// Resolves this color against a palette.
     ///
-    /// Non-semantic colors are returned unchanged. Semantic colors are mapped to
+    /// A named colour that follows the scheme (``SystemColor``: `Color.red`,
+    /// `.blue` and the others) becomes its value for `palette`'s
+    /// ``Palette/colorScheme``, so it is drawn light or dark by the scheme in force
+    /// where it is resolved — a `.colorScheme` pin included, since a pin is stated
+    /// on the palette. Its alpha is carried: the result is the same colour spelled
+    /// for one scheme.
+    ///
+    /// Other non-semantic colors are returned unchanged. Semantic colors are mapped to
     /// the corresponding palette property — *transitively*, because a palette
     /// slot may itself hold a semantic reference (a palette editor can set
     /// `accent` to `.semantic(.success)`, so resolving `.accent` yields another
@@ -504,6 +527,17 @@ extension Color {
     /// - Parameter palette: The palette to resolve against.
     /// - Returns: A concrete (non-semantic) color.
     public func resolve(with palette: any Palette) -> Color {
+        resolve(with: palette, systemColorsIn: nil)
+    }
+
+    /// ``resolve(with:)``, with the scheme a named colour takes stated rather than
+    /// read from `palette` — or read from it, lazily, where `scheme` is nil.
+    ///
+    /// For `Palette.colorScheme`'s own default, which resolves the page to measure
+    /// it: a page in a named colour would otherwise ask the scheme it is being
+    /// asked for, forever. Asked only once a named colour is met, so resolving any
+    /// other colour never computes a scheme.
+    package func resolve(with palette: any Palette, systemColorsIn scheme: ColorScheme?) -> Color {
         var resolved = self
         // 16 > the number of palette roles, so any acyclic reference chain
         // resolves fully within the cap; only a cycle reaches it.
@@ -511,7 +545,14 @@ extension Color {
             // `resolved` carries the accumulated alpha of every hop so far — it
             // starts as `self`, so the reference's own alpha is in it from the
             // outset and the exits need no further arithmetic.
-            guard case .semantic(let token) = resolved.value else { return resolved }
+            let token: SemanticColor
+            switch resolved.value {
+            case .semantic(let role): token = role
+            case .system(let name):
+                return name.color(in: scheme ?? palette.colorScheme).carryingAlpha(of: resolved)
+            case .ansi, .terminalDefault, .palette256, .rgb, .terminalForeground, .terminalBackground:
+                return resolved
+            }
             // The hop's alpha COMPOSES with what it points at rather than replacing
             // it — see ``composingAlpha(of:)``. A slot's translucency is the theme's
             // statement and the reference's is the call site's, and the paint is
@@ -519,10 +560,12 @@ extension Color {
             // theme had said, so a faded palette role rendered solid.
             resolved = token.resolve(with: palette).composingAlpha(of: resolved)
         }
-        if case .semantic = resolved.value {
-            return Self.rgb(128, 128, 128).carryingAlpha(of: resolved)
+        switch resolved.value {
+        case .semantic: return Self.rgb(128, 128, 128).carryingAlpha(of: resolved)
+        // The sixteenth hop's answer, which the loop has not looked at.
+        case .system(let name): return name.color(in: scheme ?? palette.colorScheme).carryingAlpha(of: resolved)
+        case .ansi, .terminalDefault, .palette256, .rgb, .terminalForeground, .terminalBackground: return resolved
         }
-        return resolved
     }
 
     /// One of the terminal's sixteen colour slots, by name: `Color.ansi(.red)`,

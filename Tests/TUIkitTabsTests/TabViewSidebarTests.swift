@@ -270,7 +270,7 @@ struct TabViewSidebarTests {
         let row =
             renderToBuffer(tabs, context: makeRenderContext(width: 40, height: 6)).lines
             .first { $0.stripped.contains("Work") } ?? ""
-        #expect(row.contains(ANSIRenderer.colorize("*", foreground: Color.red.opaqueSpelling)), "\(row.debugDescription)")
+        #expect(row.contains(ANSIRenderer.colorize("*", foreground: asDrawn(.red).opaqueSpelling)), "\(row.debugDescription)")
     }
 
     @Test("A section's actions are drawn after its header in the sidebar; on a lone tab, and in a strip, nowhere")

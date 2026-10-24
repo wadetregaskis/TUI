@@ -96,7 +96,7 @@ struct ListSeparatorTests {
                 .listRowSeparator(.visible))
         #expect(!plain.isEmpty && !tinted.isEmpty)
         #expect(plain != tinted, "the tint changed nothing: \(tinted.debugDescription)")
-        let red = ANSIRenderer.colorize("x", foreground: Color.red.opaqueSpelling).components(separatedBy: "x")[0]
+        let red = ANSIRenderer.colorize("x", foreground: asDrawn(.red).opaqueSpelling).components(separatedBy: "x")[0]
         #expect(tinted.contains(red + "─"), "\(tinted.debugDescription) has no \(red.debugDescription)")
     }
 

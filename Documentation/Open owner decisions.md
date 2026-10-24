@@ -94,7 +94,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [O1-LOOSEN](#o1-loosen) | (a). | No change. |
 | [P5](#p5) | (c). | Queued. |
 | [WL-Q3](#wl-q3) | (b); measure the current impact first. | Queued (measurement first). |
-| [NAMED-COLOURS-DARK](#named-colours-dark) | (a). | Queued. |
+| [NAMED-COLOURS-DARK](#named-colours-dark) | (a). | Built 2026-10-24 on lane `lane-colours` (D6M B-D6M-3); an A/B is owed before it lands. |
 | [B-D6M-1](#b-d6m-1) | Always render correctly in subtrees with a changed colour scheme; try it and measure. | Queued: build and measure. |
 
 ### Follow-up answers

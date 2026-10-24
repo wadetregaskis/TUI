@@ -118,7 +118,7 @@ struct TextRenderTests {
     func explicitForegroundColor() {
         let buffer = renderToBuffer(Text("Red").foregroundStyle(.red), context: context())
         #expect(buffer.lines[0].stripped == "Red", "Visible content must be unchanged by colour")
-        let red = "\u{1B}[" + Color.red.foregroundCodes().joined(separator: ";") + "m"
+        let red = "\u{1B}[" + asDrawn(Color.red).foregroundCodes().joined(separator: ";") + "m"
         #expect(buffer.lines[0].contains(red), "Red foreground code must be present: \(buffer.lines[0].debugDescription)")
     }
 
@@ -139,7 +139,7 @@ struct TextRenderTests {
         let view = VStack { Text("Inherited") }.foregroundStyle(.blue)
         let buffer = renderToBuffer(view, context: context())
         #expect(buffer.lines[0].stripped == "Inherited")
-        let blue = "\u{1B}[" + Color.blue.foregroundCodes().joined(separator: ";") + "m"
+        let blue = "\u{1B}[" + asDrawn(Color.blue).foregroundCodes().joined(separator: ";") + "m"
         #expect(buffer.lines[0].contains(blue), "Inherited blue foreground must be emitted: \(buffer.lines[0].debugDescription)")
     }
 

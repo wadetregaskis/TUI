@@ -319,7 +319,7 @@ struct NavigationCrumbAppearanceTests {
             let buffer = renderToBuffer(crumb(" Library").tint(tint), context: context)
             let frames = buffer.animatedCells.first?.frames ?? []
             #expect(frames.count > 1)
-            #expect(frames.contains { $0.contains(code(tint.spendingAlpha(over: ground), palette)) })
+            #expect(frames.contains { $0.contains(code(asDrawn(tint, in: palette).spendingAlpha(over: ground), palette)) })
             #expect(frames.contains { $0.contains(code(palette.foregroundSecondary, palette)) })
             #expect(buffer.opacityRegions.isEmpty, "\(buffer.opacityRegions)")
         }

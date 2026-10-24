@@ -375,15 +375,15 @@ struct TranslucentColourViewTests {
                 Color.red
                 veil.colour
             })
-        let expected = codes(Color.blue.opacity(veil.exact, over: .red))
+        let expected = codes(asDrawn(.blue).opacity(veil.exact, over: asDrawn(.red)))
         #expect(
             lines[0].contains(expected),
             "40% blue over red (\(expected)): \(lines[0].debugDescription)")
         // And emphatically not the two wrong answers.
         #expect(
-            !lines[0].contains(codes(Color.blue.opacity(veil.exact, over: .black))),
+            !lines[0].contains(codes(asDrawn(.blue).opacity(veil.exact, over: .black))),
             "not toward black")
-        #expect(!lines[0].contains(codes(.blue)), "not at full strength")
+        #expect(!lines[0].contains(codes(asDrawn(.blue))), "not at full strength")
     }
 
     /// The same veil over a DIFFERENT sibling gives a different answer, which is
@@ -397,8 +397,8 @@ struct TranslucentColourViewTests {
         #expect(
             overRed != overGreen,
             "the veil is not a fixed colour: \(overRed.debugDescription)")
-        #expect(overRed.contains(codes(Color.blue.opacity(veil.exact, over: .red))))
-        #expect(overGreen.contains(codes(Color.blue.opacity(veil.exact, over: .green))))
+        #expect(overRed.contains(codes(asDrawn(.blue).opacity(veil.exact, over: asDrawn(.red)))))
+        #expect(overGreen.contains(codes(asDrawn(.blue).opacity(veil.exact, over: asDrawn(.green)))))
     }
 
     /// A veil over TEXT tints the field under the letters and leaves the letters
@@ -443,7 +443,7 @@ struct TranslucentColourViewTests {
         ).isolatingRenderCache()
         let buffer = renderToBuffer(Color.blue, context: context)
         #expect(buffer.opacityRegions.isEmpty)
-        #expect(buffer.lines[0].contains(codes(.blue)))
+        #expect(buffer.lines[0].contains(codes(asDrawn(.blue))))
     }
 }
 
@@ -491,7 +491,7 @@ struct TranslucentPaintTests {
             }, height: 1)
         #expect(lines[0].stripped.contains("hi"), "the letters survive: \(lines[0].stripped)")
         #expect(
-            lines[0].contains(bgCodes(Color.blue.opacity(veil.exact, over: .red))),
+            lines[0].contains(bgCodes(asDrawn(.blue).opacity(veil.exact, over: asDrawn(.red)))),
             "the field is half blue over red: \(lines[0].debugDescription)")
     }
 
@@ -530,10 +530,10 @@ struct TranslucentPaintTests {
             lines[0].stripped.contains("hello"),
             "the faint glyph still draws: \(lines[0].stripped)")
         #expect(
-            lines[0].contains(fgCodes(Color.green.opacity(ink.exact, over: surface))),
+            lines[0].contains(fgCodes(asDrawn(.green).opacity(ink.exact, over: surface))),
             "…in 20% green over the surface: \(lines[0].debugDescription)")
         #expect(
-            !lines[0].contains(fgCodes(Color.green.opacity(ink.exact, over: .red))),
+            !lines[0].contains(fgCodes(asDrawn(.green).opacity(ink.exact, over: asDrawn(.red)))),
             "and not toward the glyph it displaced")
     }
 
@@ -566,17 +566,17 @@ struct TranslucentPaintTests {
             surface: surface, palette: context.environment.palette
         ).lines
 
-        let fadedField = Color.red.opacity(102.0 / 255, over: surface)
+        let fadedField = asDrawn(.red).opacity(102.0 / 255, over: surface)
         #expect(
             lines[0].contains(bgCodes(fadedField)),
             "the background is 40% red over the surface: \(lines[0].debugDescription)")
         #expect(
-            !lines[0].contains(bgCodes(Color.red.opacity(1, over: surface))),
+            !lines[0].contains(bgCodes(asDrawn(.red).opacity(1, over: surface))),
             "and not full-strength red")
         // …and the ink is 40% green over the FIELD THAT RESULTED, which is the
         // faded red — the two claims compose rather than one winning.
         #expect(
-            lines[0].contains(fgCodes(Color.green.opacity(102.0 / 255, over: fadedField))),
+            lines[0].contains(fgCodes(asDrawn(.green).opacity(102.0 / 255, over: fadedField))),
             "the ink blends over the faded field: \(lines[0].debugDescription)")
     }
 

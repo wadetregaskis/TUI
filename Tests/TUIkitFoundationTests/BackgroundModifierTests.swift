@@ -33,7 +33,7 @@ struct BackgroundModifierTests {
         #expect(result.height == 1)
         // Red's background, in the spelling this build's colour depth gives it
         let line = result.lines[0]
-        let red = "\u{1B}[" + Color.red.backgroundCodes().joined(separator: ";") + "m"
+        let red = "\u{1B}[" + asDrawn(.red).backgroundCodes().joined(separator: ";") + "m"
         #expect(line.contains(red), "\(line.debugDescription)")
         #expect(line.contains("Hello"))
         // Should end with reset
@@ -83,7 +83,7 @@ struct BackgroundModifierTests {
         let result = BackgroundModifier(style: Color.red).modify(
             buffer: FrameBuffer(lines: [inner]), context: testContext())
         let line = result.lines[0]
-        let bg = ANSIRenderer.backgroundCode(for: .red)
+        let bg = ANSIRenderer.backgroundCode(for: asDrawn(.red))
         let resets = line.components(separatedBy: ANSIRenderer.reset).count - 1
         let backgrounds = line.components(separatedBy: bg).count - 1
         #expect(resets >= 2, "the inner content + the trailing reset give ≥2 resets")

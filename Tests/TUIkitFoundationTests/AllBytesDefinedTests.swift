@@ -100,7 +100,7 @@ struct AllBytesDefinedTests {
             { $0.pointee = .ansi(.brightRed) }, { $0.pointee = .terminalDefault },
             { $0.pointee = .palette256(200) }, { $0.pointee = .rgb(red: 1, green: 2, blue: 3) },
             { $0.pointee = .semantic(.accent) }, { $0.pointee = .terminalForeground },
-            { $0.pointee = .terminalBackground },
+            { $0.pointee = .terminalBackground }, { $0.pointee = .system(.indigo) },
         ]),
         Conformer(LineLimit.self, [
             { $0.pointee = .unlimited }, { $0.pointee = .lines(3) }, { $0.pointee = .lines(2, reservesSpace: true) },

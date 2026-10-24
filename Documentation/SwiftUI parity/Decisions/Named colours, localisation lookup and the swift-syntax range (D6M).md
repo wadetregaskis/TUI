@@ -85,6 +85,50 @@ that a TUIkit-only client never resolves it. That is a release-process cost
 code would change.
 
 
+### B-D6M-3. SwiftUI's named colours take their dark values where they are drawn
+
+*`Color.red`, `.orange`, `.yellow`, `.green`, `.mint`, `.teal`, `.cyan`,
+`.blue`, `.indigo`, `.purple`, `.pink`, `.brown`, `.gray`
+(owner's ruling NAMED-COLOURS-DARK, option a, 2026-10-23)*
+
+**Shipped:** each is a `ColorValue.system(SystemColor)`, a one-byte payload
+under `.rgb`'s three, so a `Color` is still five bytes with no padding. Its
+light and dark values are a constant table (`SystemColor.swift`, a switch per
+scheme), not a registry. `Color.resolve(with:)` turns it into the RGB for the
+palette's `colorScheme`, beside `.semantic`, and that is the one place it is
+resolved: every path that draws a colour already resolves it there, so the
+scheme is the one in force where the colour is drawn, a
+`.environment(\.colorScheme, …)` pin included (a pin is stated on the
+palette). Unresolved, it measures and spells as its light value
+(`rgbComponents`, every blend, the emitters' own arm for it), which is what
+SwiftUI's `resolve(in: EnvironmentValues())` answers; such arithmetic returns a
+plain colour, which no longer follows the scheme. `resolve(in:)` answers each
+environment's value. `.white`, `.black` and TUIkit's `.magenta` stay plain RGB,
+the same in both schemes.
+
+**Measured:** the dark values are SwiftUI's, `Color.resolve(in:)` under a dark
+`EnvironmentValues` on macOS 15.8.1, and agree with `NSColor.systemRed` and
+friends under darkAqua
+(`Tools/SwiftUIProbes/Named colours by scheme/namedcolours.swift` and its
+`.out`). A bare environment answers the light values there, as the 09-15
+decision said.
+
+**What changed for an app:** on a dark palette, which most are, `.red` draws
+`#FF453A` where it drew `#FF3B30`. A name no longer equals the RGB it was, and
+describes itself by name (`"red"`), as SwiftUI's does. A palette whose page is a
+named colour is measured at the name's light value to decide its scheme;
+resolving the page by the scheme would ask the scheme. A style given to
+`.foregroundStyle(_:)` or `.background(_:)` is resolved where the modifier is
+applied, as a palette role is, so a pin below the modifier does not reach it;
+`Text`'s own `foregroundStyle(_:)` resolves at the text.
+
+**The cost:** resolving a named colour reads `palette.colorScheme`, which a
+palette that does not state one computes from its page (two contrast ratios).
+Only named colours pay it, once per resolve; every other colour pays a tag test
+it already paid for `.semantic`. An A/B on pages that draw many named colours is
+owed before this lands.
+
+
 ## Decided
 
 ### A14's lookup order — decided 2026-10-05

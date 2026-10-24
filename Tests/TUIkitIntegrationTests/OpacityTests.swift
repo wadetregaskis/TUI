@@ -23,9 +23,11 @@ import TUIkit
 struct OpacityTests {
 
     /// The foreground colour the renderer would emit for `color`, as a set of
-    /// SGR parameters — the form the buffer actually carries.
+    /// SGR parameters — the form the buffer actually carries. Resolved as these
+    /// renders draw it, under the palette none of them sets, so a named colour is
+    /// that palette's scheme's.
     private func codes(_ color: Color) -> String {
-        color.foregroundCodes().joined(separator: ";")
+        asDrawn(color).foregroundCodes().joined(separator: ";")
     }
 
     @Test("Full opacity changes nothing at all")
@@ -87,7 +89,7 @@ struct OpacityTests {
         // a switch.
         #expect(!faded.lines[0].contains(codes(.red)))
         #expect(!faded.lines[0].contains(codes(background)))
-        #expect(faded.lines[0].contains(codes(Color.red.opacity(0.5, over: background))))
+        #expect(faded.lines[0].contains(codes(asDrawn(.red).opacity(0.5, over: background))))
     }
 
     @Test("Hue survives the fade")
@@ -154,7 +156,7 @@ struct OpacityTests {
         let surface = context.environment.palette.background
         let faded = renderToScreen(
             Text("hi").background(Color.blue).opacity(0.5), context: context)
-        let expected = Color.blue.opacity(0.5, over: surface).backgroundCodes()
+        let expected = asDrawn(.blue).opacity(0.5, over: surface).backgroundCodes()
             .joined(separator: ";")
         #expect(faded.lines[0].contains(expected))
     }

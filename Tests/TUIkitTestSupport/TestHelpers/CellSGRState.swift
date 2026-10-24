@@ -37,10 +37,11 @@ func sgrState(of word: String, in lines: [String]) -> SGRState? {
     return nil
 }
 
-/// The background `color` paints, as a cell's SGR state spells it.
+/// The background `color` paints under the palette of a render that sets none,
+/// as a cell's SGR state spells it — see ``asDrawn(_:in:)``.
 func renderedBackground(of color: Color) -> String {
     var state = SGRState()
-    state.apply(ANSIRenderer.backgroundCode(for: color.opaqueSpelling))
+    state.apply(ANSIRenderer.backgroundCode(for: asDrawn(color).opaqueSpelling))
     return state.renderedBackground
 }
 

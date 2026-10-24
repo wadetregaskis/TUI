@@ -31,8 +31,10 @@ struct SemanticShapeStyleTests {
         return renderToBuffer(view, context: context)
     }
 
+    /// `colour`'s ink as these renders draw it, under the palette none of them
+    /// sets: a named colour is that palette's scheme's.
     private func ink(_ colour: Color) -> String {
-        colour.foregroundCodes().joined(separator: ";")
+        asDrawn(colour).foregroundCodes().joined(separator: ";")
     }
 
     // MARK: - Levels
@@ -67,9 +69,12 @@ struct SemanticShapeStyleTests {
         #expect(HierarchicalShapeStyle.tertiary.paint(in: environment) == Paint.color(.green))
     }
 
+    /// Painted, so resolved: red as this palette's scheme draws it, at half.
     @Test("A style's own levels fade it: .red.secondary is red at half strength")
     func levelsOfAStyle() {
-        #expect(Color.red.secondary.paint(in: environment()) == Paint.color(Color.red.opacity(0.5)))
+        let environment = environment()
+        let red = asDrawn(.red, in: environment.palette)
+        #expect(Color.red.secondary.paint(in: environment) == Paint.color(red.opacity(0.5)))
     }
 
     @Test("foregroundStyle(_:_:) names the secondary level below it")

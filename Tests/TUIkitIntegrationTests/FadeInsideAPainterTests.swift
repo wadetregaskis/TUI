@@ -91,7 +91,9 @@ struct FadeInsideAPainterTests {
     @Test("A label faded inside a background stays on the background", arguments: [false, true])
     func aLabelFadedInsideABackground(terminalPage: Bool) throws {
         let palette: (any Palette)? = terminalPage ? terminalPagePalette : nil
-        let blue = try #require(Color.blue.rgbComponents)
+        // Blue as drawn under the palette in force: Apple's blue follows the scheme.
+        let drawnBlue = asDrawn(.blue, in: palette ?? EnvironmentValues().palette)
+        let blue = try #require(drawnBlue.rgbComponents)
         let unfaded = try #require(writtenRows(of: Text("x").background(Color.blue), palette: palette).first)
         let row = try #require(
             writtenRows(of: Text("x").opacity(0.3).background(Color.blue), palette: palette).first)
@@ -103,7 +105,7 @@ struct FadeInsideAPainterTests {
             return
         }
         let ink = try #require(
-            Color.rgb(UInt8(red), UInt8(green), UInt8(blue)).opacity(0.3, over: .blue).rgbComponents)
+            Color.rgb(UInt8(red), UInt8(green), UInt8(blue)).opacity(0.3, over: drawnBlue).rgbComponents)
         #expect(row[0].ink == .rgb(Int(ink.red), Int(ink.green), Int(ink.blue)))
     }
 

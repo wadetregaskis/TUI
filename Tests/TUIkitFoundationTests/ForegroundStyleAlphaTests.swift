@@ -46,7 +46,7 @@ struct ForegroundStyleAlphaTests {
         // keeps a faded rule from punching a hole in whatever it is drawn over.
         #expect(claim.fieldOpacity == 1)
         #expect(
-            drawn.lines[0].contains(Color.red.foregroundCodes().joined(separator: ";")),
+            drawn.lines[0].contains(asDrawn(Color.red).foregroundCodes().joined(separator: ";")),
             "the bytes are the colour at full strength: \(drawn.lines[0].debugDescription)")
     }
 
@@ -145,11 +145,11 @@ struct ForegroundStyleAlphaTests {
             // whose bytes are plain red, alpha living nowhere in them — appears in no
             // frame at all. Not every frame has a head: the bounce's turnaround holds
             // the highlight off the track for a few, leaving only trail cells.
-            let spent = code(tint.spendingAlpha(over: palette.background), palette)
+            let spent = code(asDrawn(tint, in: palette).spendingAlpha(over: palette.background), palette)
             #expect(
                 run.frames.contains { $0.contains(spent) }, "the head states the spent colour")
             #expect(
-                !run.frames.contains { $0.contains(code(Color.red, palette)) },
+                !run.frames.contains { $0.contains(code(asDrawn(.red, in: palette), palette)) },
                 "and no frame states the unspent one")
         }
     }
@@ -162,7 +162,7 @@ struct ForegroundStyleAlphaTests {
         let drawn = buffer(Divider().foregroundStyle(faded(.red, 128)), width: 7, height: 1)
         let resolved = drawn.resolvingOpacity(
             surface: .blue, palette: context.environment.palette)
-        let halfway = Color.red.opacity(128.0 / 255, over: .blue)
+        let halfway = asDrawn(.red).opacity(128.0 / 255, over: asDrawn(.blue))
             .foregroundCodes().joined(separator: ";")
         #expect(
             resolved.lines[0].contains(halfway),

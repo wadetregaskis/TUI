@@ -311,6 +311,11 @@ struct ANSIRowBuilder {
             // with its grey; written as the default so a row is never left
             // with a half-emitted escape.
             appendNumber(background ? 49 : 39)
+        case .system:
+            // Unreachable after `resolved(with:)`; if one is not resolved, its light
+            // value, which is what its entry was matched as (`estimatedRGB`).
+            let rgb = color.rgbComponents ?? (red: 0, green: 0, blue: 0)
+            appendTriple(introducer: background ? 48 : 38, red: rgb.red, green: rgb.green, blue: rgb.blue)
         }
         bytes.append(0x6D)
     }

@@ -24,6 +24,8 @@ extension Color {
     ///   terminal reported for it, and this does not know the slot; the emitter
     ///   quantises the other slot's RGB.
     /// - `.semantic` must be resolved before calling this method.
+    /// - `.system` (`Color.red` and the other named colours that follow the scheme)
+    ///   is quantised at its light value: resolve it first for the scheme in force.
     public func downsampledToPalette256() -> Color {
         switch value {
         case .ansi, .terminalDefault, .palette256, .terminalForeground, .terminalBackground:
@@ -33,6 +35,9 @@ extension Color {
             return Self.palette256(index).carryingAlpha(of: self)
         case .semantic:
             return self
+        case .system(let name):
+            // Unresolved, so its light value: resolve it first for the scheme.
+            return name.color(in: .light).carryingAlpha(of: self).downsampledToPalette256()
         }
     }
 
@@ -49,6 +54,8 @@ extension Color {
     /// - `.terminalForeground` and `.terminalBackground` are returned unchanged,
     ///   as in ``downsampledToPalette256()``.
     /// - `.semantic` must be resolved before calling this method.
+    /// - `.system` is quantised at its light value, as in
+    ///   ``downsampledToPalette256()``.
     public func downsampledToANSI16() -> Color {
         switch value {
         case .ansi, .terminalDefault, .terminalForeground, .terminalBackground:
@@ -60,6 +67,9 @@ extension Color {
                 .carryingAlpha(of: self)
         case .semantic:
             return self
+        case .system(let name):
+            // Unresolved, so its light value: resolve it first for the scheme.
+            return name.color(in: .light).carryingAlpha(of: self).downsampledToANSI16()
         }
     }
 }

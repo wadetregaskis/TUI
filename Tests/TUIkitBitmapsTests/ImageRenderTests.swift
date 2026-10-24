@@ -134,7 +134,7 @@ struct ImageRenderTests {
         let buffer = renderToBuffer(
             Image(.file("/nope.png")).imagePlaceholder("Loading photo").foregroundStyle(Color.red),
             context: createTestContext(width: 24, height: 6))
-        let red = Color.red.foregroundCodes().joined(separator: ";")
+        let red = asDrawn(Color.red).foregroundCodes().joined(separator: ";")
         let spinnerRow = try #require(buffer.lines.first { $0.contains("⠋") })
         #expect(spinnerRow.contains(red), "the glyph is red: \(spinnerRow.debugDescription)")
         let captionRow = try #require(buffer.lines.first { $0.stripped.contains("Loading photo") })

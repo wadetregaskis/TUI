@@ -208,6 +208,8 @@ extension Color: CustomStringConvertible {
             return Self.Resolved(red: Float(red) / 255, green: Float(green) / 255, blue: Float(blue) / 255,
                 opacity: Float(alpha) / 255).description
         case .semantic(let token): name = token.rawValue
+        // As SwiftUI describes its named colours: `red`, not the value.
+        case .system(let named): name = "\(named)"
         case .ansi(let slot): name = "ansi(\(slot))"
         case .palette256(let index): name = "palette256(\(index))"
         case .terminalDefault: name = "default"

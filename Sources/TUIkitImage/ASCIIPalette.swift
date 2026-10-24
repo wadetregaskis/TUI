@@ -481,6 +481,11 @@ public struct ASCIIPalette: Sendable, Equatable {
             // the entry's mid-grey stand-in is what is drawn.
             let grey = entries[index].rgba
             return "\(background ? 48 : 38);2;\(grey.r);\(grey.g);\(grey.b)"
+        case .system:
+            // Cannot happen after `resolved(with:)`; if it somehow does, the light
+            // value the entry was matched as.
+            let light = entries[index].rgba
+            return "\(background ? 48 : 38);2;\(light.r);\(light.g);\(light.b)"
         }
     }
 
@@ -504,7 +509,7 @@ public struct ASCIIPalette: Sendable, Equatable {
     var foregroundSurvivesBold: Bool {
         colors.allSatisfy { color in
             switch color.value {
-            case .rgb, .semantic: return true
+            case .rgb, .semantic, .system: return true
             case .terminalBackground: return color.rgbComponents != nil
             case .palette256(let index): return index >= 16
             case .ansi, .terminalDefault, .terminalForeground: return false

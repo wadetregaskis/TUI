@@ -969,3 +969,17 @@ messages cite that path), and what cites it.
   `Sources/TUIkitCommands/MenuBar/SceneOwnCommands.swift`, `Sources/TUIkitCommands/Scene+Commands.swift`,
   `Sources/TUIkitFoundation/Views/KeyboardShortcutRegistry.swift`;
   `Tests/TUIkitCommandsTests/CommandsCollectionTests.swift`.
+
+### Named colours by scheme
+
+- **Asks:** what SwiftUI's fifteen named colours resolve to under a light and a dark colour scheme, and in a bare
+  `EnvironmentValues` (what a view body sees), with `Color.resolve(in:)`; and what AppKit's `NSColor.systemRed`
+  and friends are under the aqua and darkAqua appearances, converted to sRGB, as a cross-check
+  (`namedcolours.swift`, `namedcolours.out`). No view: top-level code, built alone.
+- **Answers:** a bare environment answers the light values. Thirteen names have a dark value of their own, which
+  is AppKit's darkAqua value; `.white` and `.black` are the same in both.
+- **Ran:** macOS 15.8.1, Xcode's `swiftc`, the macOS 26.2 SDK, 2026-10-24.
+- **Cited by:** `Sources/TUIkitStyling/Color/SystemColor.swift`, `Sources/TUIkitStyling/Color/Color.swift`,
+  `Tests/TUIkitStylingTests/NamedColorTests.swift`;
+  `Documentation/SwiftUI parity/Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md`
+  (B-D6M-3).

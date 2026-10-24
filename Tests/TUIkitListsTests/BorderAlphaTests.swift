@@ -190,7 +190,7 @@ struct BorderAlphaTests {
         // The BYTES are the colour at full strength: an SGR emitter has no
         // backdrop, so a translucent one there is a debug trap rather than a
         // blend. The alpha is in the region instead.
-        let opaque = Color.red.foregroundCodes().joined(separator: ";")
+        let opaque = asDrawn(.red).foregroundCodes().joined(separator: ";")
         #expect(
             buffer.lines[0].contains(opaque),
             "the top band states the opaque spelling: \(buffer.lines[0].debugDescription)")
@@ -220,7 +220,7 @@ struct BorderAlphaTests {
         // fade guessed at, and got right only over an empty page.
         let resolved = buffer.resolvingOpacity(
             surface: .blue, palette: context.environment.palette)
-        let halfway = Color.red.opacity(128.0 / 255, over: .blue)
+        let halfway = asDrawn(.red).opacity(128.0 / 255, over: asDrawn(.blue))
             .foregroundCodes().joined(separator: ";")
         let band = resolved.lines[0]
         #expect(
@@ -298,12 +298,12 @@ struct BorderAlphaTests {
 
         let resolved = drawn.resolvingOpacity(surface: .blue, palette: EnvironmentValues().palette)
         let top = try #require(resolved.animatedCells.first { $0.offsetY == 0 }, "the top rule")
-        let blended = Color.green.opacity(128.0 / 255, over: .blue).foregroundCodes().joined(separator: ";")
+        let blended = asDrawn(.green).opacity(128.0 / 255, over: asDrawn(.blue)).foregroundCodes().joined(separator: ";")
         #expect(
             top.frames[1].contains(blended),
             "the faded frame is blended: \(top.frames[1].debugDescription)")
         // And the opaque frame is untouched — the point of stating them separately.
-        let plainRed = Color.red.foregroundCodes().joined(separator: ";")
+        let plainRed = asDrawn(.red).foregroundCodes().joined(separator: ";")
         #expect(
             top.frames[0].contains(plainRed),
             "the opaque frame keeps its colour: \(top.frames[0].debugDescription)")
@@ -339,7 +339,7 @@ struct BorderAlphaTests {
         let resolved = drawn.resolvingOpacity(surface: .black, palette: EnvironmentValues().palette)
 
         let top = try #require(resolved.animatedCells.first { $0.offsetY == 0 }, "the top rule")
-        let plainGreen = Color.green.foregroundCodes().joined(separator: ";")
+        let plainGreen = asDrawn(.green).foregroundCodes().joined(separator: ";")
         #expect(
             !top.frames[1].contains(plainGreen),
             "the translucent frame is blended, not drawn at full strength: \(top.frames[1].debugDescription)")
@@ -355,7 +355,7 @@ struct BorderAlphaTests {
         let resolved = drawn.resolvingOpacity(surface: .blue, palette: EnvironmentValues().palette)
         let top = try #require(resolved.animatedCells.first { $0.offsetY == 0 }, "the top band's run")
         for (index, colour) in [Color.red, .green].enumerated() {
-            let blended = colour.opacity(128.0 / 255, over: .blue).foregroundCodes().joined(separator: ";")
+            let blended = asDrawn(colour).opacity(128.0 / 255, over: asDrawn(.blue)).foregroundCodes().joined(separator: ";")
             #expect(
                 top.frames[index].contains(blended),
                 "frame \(index): \(top.frames[index].debugDescription)")

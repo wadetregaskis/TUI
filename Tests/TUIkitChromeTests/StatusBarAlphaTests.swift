@@ -82,7 +82,7 @@ struct StatusBarAlphaTests {
     func bytesAreOpaque() {
         let drawn = bar(highlight: faded(.cyan, 128))
         #expect(
-            drawn.lines[0].contains(Color.cyan.foregroundCodes().joined(separator: ";")),
+            drawn.lines[0].contains(asDrawn(Color.cyan).foregroundCodes().joined(separator: ";")),
             "\(drawn.lines[0].debugDescription)")
     }
 

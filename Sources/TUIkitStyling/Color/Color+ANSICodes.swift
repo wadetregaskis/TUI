@@ -175,6 +175,12 @@ extension Color {
             fatalError(
                 "Semantic color must be resolved before rendering. Call Color.resolve(with:) first."
             )
+        // A named colour that follows the scheme, unresolved: its light value, which
+        // is what a colour with no palette means (`resolve(in: EnvironmentValues())`).
+        // Not a trap, as `.semantic` is: there IS an answer, and a view resolving
+        // its colours with the palette never gets here.
+        case .system(let name):
+            return name.color(in: .light).uncheckedForegroundParameters(depth: depth)
         }
     }
 
@@ -248,6 +254,9 @@ extension Color {
             fatalError(
                 "Semantic color must be resolved before rendering. Call Color.resolve(with:) first."
             )
+        // The twin of the foreground's arm: the light value, unresolved.
+        case .system(let name):
+            return name.color(in: .light).uncheckedBackgroundParameters(depth: depth)
         }
     }
 

@@ -33,7 +33,7 @@ extension Color {
             // A slot's raw value is its index, so every index here is a slot.
             guard let slot = ANSIColor(rawValue: index) else { return rgbComponents }
             return Self.estimatedRGB(of: slot)
-        case .rgb, .palette256, .terminalDefault, .terminalForeground, .terminalBackground, .semantic:
+        case .rgb, .palette256, .terminalDefault, .terminalForeground, .terminalBackground, .semantic, .system:
             return rgbComponents
         }
     }

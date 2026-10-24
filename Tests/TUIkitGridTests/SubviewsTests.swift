@@ -181,8 +181,8 @@ struct SubviewsTests {
 
     @Test("A modifier on the proxy applies, and the view's own wins over it")
     func proxyModifiers() {
-        let red = "\u{1B}[" + Color.red.foregroundCodes().joined(separator: ";") + "m"
-        let blue = "\u{1B}[" + Color.blue.foregroundCodes().joined(separator: ";") + "m"
+        let red = "\u{1B}[" + asDrawn(Color.red).foregroundCodes().joined(separator: ";") + "m"
+        let blue = "\u{1B}[" + asDrawn(Color.blue).foregroundCodes().joined(separator: ";") + "m"
         let buffer = renderToBuffer(
             Group(subviews: Group { Text("plain"); Text("own").foregroundStyle(.blue) }) { subviews in
                 ForEach(subviews) { subview in

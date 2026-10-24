@@ -54,7 +54,7 @@ struct ImagePlaceholderSpinnerTests {
     @Test("A colour given to the placeholder spinner is the colour it is drawn in")
     func colour() throws {
         let buffer = render(image.imagePlaceholderSpinner(color: .red))
-        let red = Color.red.foregroundCodes().joined(separator: ";")
+        let red = asDrawn(Color.red).foregroundCodes().joined(separator: ";")
         let row = try #require(buffer.lines.first { $0.contains("⠋") })
         #expect(row.contains(red), "the glyph is red: \(row.debugDescription)")
     }

@@ -75,7 +75,9 @@ struct ListStyleVariantTests {
     @Test("A list item tint replaces the accent in a sidebar; monochrome is the secondary foreground")
     func listItemTint() {
         let red = row(lines(.sidebar, tint: .fixed(.red)))
-        #expect(red.contains(ANSIRenderer.colorize("*", foreground: Color.red.opaqueSpelling)), "\(red.debugDescription)")
+        #expect(
+            red.contains(ANSIRenderer.colorize("*", foreground: asDrawn(.red, in: palette).opaqueSpelling)),
+            "\(red.debugDescription)")
         let gray = row(lines(.sidebar, tint: .monochrome))
         #expect(
             gray.contains(ANSIRenderer.colorize("*", foreground: palette.foregroundSecondary.opaqueSpelling)),

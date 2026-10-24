@@ -221,7 +221,7 @@ struct SpinnerRenderingTests {
 
         #expect(buffer.lines.count == 1)
         // Red's foreground, in the spelling this build's colour depth gives it
-        let red = "\u{1B}[" + Color.red.foregroundCodes().joined(separator: ";") + "m"
+        let red = "\u{1B}[" + asDrawn(Color.red).foregroundCodes().joined(separator: ";") + "m"
         #expect(buffer.lines[0].contains(red), "\(buffer.lines[0].debugDescription)")
     }
 

@@ -62,20 +62,23 @@ TUIkit's ``Color`` type supports multiple color modes:
 
 ### Named Colors
 
-SwiftUI's named colours are the colours they read as: fixed RGB, at the values
-Apple's system palette has in the light appearance.
+SwiftUI's named colours are the colours they read as: the values Apple's system
+palette has, in the light or the dark appearance by the colour scheme in force
+where the colour is drawn, as in SwiftUI.
 
 ```swift
-Color.red    // #FF3B30, SGR 38;2;255;59;48
-Color.white  // #FFFFFF
-Color.gray   // #8E8E93
+Color.red    // #FF3B30 (SGR 38;2;255;59;48) light, #FF453A dark
+Color.white  // #FFFFFF in both
+Color.gray   // #8E8E93 light, #98989D dark
 ```
 
 The fifteen are `black`, `white`, `red`, `orange`, `yellow`, `green`, `mint`,
-`teal`, `cyan`, `blue`, `indigo`, `purple`, `pink`, `brown` and `gray`. SwiftUI
-adapts the hues to a dark appearance; these stay at their light values, so a
-named colour can be measured, mixed and faded anywhere. `Color.magenta` is
-TUIkit's own, #FF00FF: SwiftUI has no magenta.
+`teal`, `cyan`, `blue`, `indigo`, `purple`, `pink`, `brown` and `gray`. The scheme
+is the palette's, or a `.environment(\.colorScheme, …)` pin's. Measured or mixed
+in a view body (``Color/rgbComponents``, ``Color/opacity(_:over:)``,
+``Color/mix(with:by:in:)``), a name reads its light value, as SwiftUI's
+`resolve(in: EnvironmentValues())` does. `white` and `black` are the same in both
+schemes. `Color.magenta` is TUIkit's own, #FF00FF: SwiftUI has no magenta.
 
 A named colour looks the same on every terminal that shows 24-bit colour. On a
 terminal with only sixteen colours it becomes the nearest slot: nearest to the

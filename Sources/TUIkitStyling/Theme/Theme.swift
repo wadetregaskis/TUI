@@ -261,7 +261,13 @@ extension Palette {
         // terminal's own page (see `GroundedPalette`), so `Color.clear` — a page
         // that IS the terminal's — measures as whatever the terminal reported for
         // it rather than as the black `.clear`'s components happen to hold.
-        let page = background.resolve(with: self).spendingAlpha(over: .terminalBackground)
+        //
+        // A page in a named colour that follows the scheme (`Color.blue`) is
+        // measured at its LIGHT value, which is what deciding the scheme from it
+        // can only mean: resolving it by this palette's scheme would ask this
+        // property, which is asking it.
+        let page = background.resolve(with: self, systemColorsIn: .light)
+            .spendingAlpha(over: .terminalBackground)
         if let scheme = ColorScheme(background: page) { return scheme }
         // Only where there is nothing to measure: the hint can be a `CSI ?997`
         // report or a guess from `COLORFGBG`, and a page the app paints is neither.
@@ -1151,7 +1157,7 @@ extension Palette {
         switch background.value {
         case .terminalBackground, .terminalDefault:
             return foreground.ensuringContrast(atLeast: 4.5, against: surface)
-        case .rgb, .ansi, .palette256, .terminalForeground, .semantic:
+        case .rgb, .ansi, .palette256, .terminalForeground, .semantic, .system:
             break
         }
         // Measured as ink, so a foreground of `Color.default` is the foreground the
