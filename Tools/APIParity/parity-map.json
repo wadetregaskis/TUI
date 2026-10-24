@@ -240,7 +240,6 @@
         "Scene.windowLevel(_:)",
         "Scene.windowManagerRole(_:)",
         "Scene.windowBackgroundDragBehavior(_:)",
-        "Scene.windowToolbarLabelStyle(*",
         "View.windowFullScreenBehavior(_:)",
         "View.windowMinimizeBehavior(_:)",
         "View.windowResizeBehavior(_:)",
