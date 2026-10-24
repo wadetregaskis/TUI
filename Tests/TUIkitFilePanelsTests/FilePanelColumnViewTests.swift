@@ -59,7 +59,9 @@ struct FilePanelColumnViewTests {
         defer { fixture.remove() }
         let caller = FilePanelCaller()
         let driver = FilePanelDriver { panel(fixture, caller: caller, store: columnsStore(), start: fixture.url("Alpha")) }
-        let shown = await driver.waitFor("notes.md")
+        // Each column is read on its own.
+        await driver.waitFor("notes.md")
+        let shown = await driver.waitFor("inner.txt")
         // ~'s items, then Alpha's, side by side on one row.
         let row = try #require(shown.split(separator: "\n").first { $0.contains("inner.txt") })
         #expect(row.contains("Alpha/"), "\(shown)")
@@ -97,10 +99,34 @@ struct FilePanelColumnViewTests {
         let caller = FilePanelCaller()
         let driver = FilePanelDriver { panel(fixture, caller: caller, store: columnsStore(), start: fixture.url("Alpha")) }
         await driver.waitFor("inner.txt")
+        // The column before is read on its own, after the folder shown.
+        await driver.waitFor("linked/")
         // linked/ leads to Alpha too: its column lists inner.txt, under the link.
         #expect(driver.click("linked/"))
         await driver.waitFor("~ │ linked")
         #expect(caller.heard.isEmpty)
+    }
+
+    @Test("A column shows the folder on the way, however far down its folder it is")
+    func columnRevealsTheFolderOnTheWay() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        // Sixty folders before the folder on the way, by name, more rows than
+        // a column shows.
+        for index in 0..<60 {
+            try FileManager.default.createDirectory(at: fixture.url("a\(index)"), withIntermediateDirectories: true)
+        }
+        let deep = fixture.url("zz")
+        try FileManager.default.createDirectory(at: deep, withIntermediateDirectories: true)
+        _ = FileManager.default.createFile(atPath: deep.appendingPathComponent("leaf.txt").path, contents: nil)
+        let caller = FilePanelCaller()
+        // The panel shows ~ and zz; ~'s column has scrolled to zz/.
+        let driver = FilePanelDriver(height: 20) {
+            panel(fixture, caller: caller, store: columnsStore(), start: deep)
+        }
+        await driver.waitFor("leaf.txt")
+        let shown = await driver.waitFor("zz/")
+        #expect(shown.contains("zz/"), "\(shown)")
     }
 
     @Test("The switcher changes the view, and the app's storage keeps it")

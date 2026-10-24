@@ -210,7 +210,9 @@ The column view is a column for each folder from the path control's first —
 24 cells each (a name of about twenty), the last taking the rest, a rule
 between each two; each column is a `List` of its folder's items, read as it
 shows, with no header, as Finder's has none. In each column but the last the
-folder on the way is the one selected; the last column's selection is the
+folder on the way is the one selected, and the column scrolls to it as its
+items arrive, as Finder's do, so a folder of thousands does not open at its
+top with the folder out of sight; the last column's selection is the
 panel's. The keys:
 
 - ↑ and ↓ move in a column, typing finds a name, Space selects;

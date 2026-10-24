@@ -120,6 +120,9 @@ struct FilePanelColumnView: View {
             }
         }
         .listStyle(.plain)
+        .modifier(RevealingFolderOnTheWay(target: next.flatMap { next in
+            items(of: path).first { $0.url.standardizedFileURL.path == next }?.url
+        }))
         .focused(focus, equals: .column(path))
         .onAppear {
             if let previous, focus.wrappedValue == .column(previous) { focus.wrappedValue = .column(path) }
@@ -189,5 +192,26 @@ struct FilePanelColumnView: View {
                     }
                 }
             })
+    }
+}
+
+/// Scrolls a column to the row of the folder on the way, as Finder's column
+/// view shows each folder's selected row — as the column's items arrive, and
+/// whenever the folder on the way changes: in a folder of thousands, the
+/// column would otherwise show its top, the folder opened from it out of
+/// sight. Between those, the user scrolls it.
+private struct RevealingFolderOnTheWay: ViewModifier {
+    /// The folder on the way's row, once the column lists it.
+    let target: URL?
+
+    /// The row the column shows, as its scroll position.
+    @State private var shown: URL?
+
+    func body(content: Content) -> some View {
+        content
+            .scrollPosition(id: $shown, anchor: .center)
+            .onChange(of: target, initial: true) { _, target in
+                if let target { shown = target }
+            }
     }
 }
