@@ -163,7 +163,8 @@ no fly-back when a drop is cancelled or refused, no settling morph — and
 the row is back in place at once. Transitions with motion already played
 as fades. Not affected: the
 focus breath, the caret's blink, spinners, progress indicators, opacity and
-colour animations, symbol effects. Scrolling is never animated in TUIkit, so
-it already moved at once. An app's own `Animatable` view, a keyframe
+colour animations, symbol effects. A `ScrollView`'s `scrollTo` or
+`ScrollPosition` request made inside an animation, which glides since
+B27-ANIMATING (2026-10-24), jumps. An app's own `Animatable` view, a keyframe
 animator's tracks and a custom `Layout`'s data are the app's to hold still,
 as in SwiftUI.

@@ -470,6 +470,19 @@ extension Animation {
     private func repeating(_ mode: Repeat) -> Animation {
         with(delayInterval: 0, repeatMode: mode)
     }
+
+    /// This animation's first pass alone, its wait leading again: what a
+    /// motion that goes one way only plays of an animation that repeats. A
+    /// scroll that glides to its target (decisions B27) is one — played back
+    /// and forth, it would leave the content somewhere other than where it was
+    /// sent, and played forever it would never arrive. An animation of one
+    /// pass is itself.
+    package var firstPass: Animation {
+        if case .count(1, 0, false) = repeatMode { return self }
+        return with(
+            delayInterval: delayInterval + repeatMode.passDelay,
+            repeatMode: .count(1, passDelay: 0, autoreverses: false))
+    }
 }
 
 // MARK: - Evaluation

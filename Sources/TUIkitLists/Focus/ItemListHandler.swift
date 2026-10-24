@@ -1109,6 +1109,15 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _overscrollState = ScrollOverscrollState()
 
+    /// The glide in flight (``ScrollableOffsetState``). Never set yet: a list
+    /// resolves `scrollTo` and its position requests on its own path, which
+    /// jumps.
+    package var glide: ScrollGlide? { get { _glide } set { _glide = newValue } }
+
+    /// ``glide``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _glide: ScrollGlide?
+
     /// Drag auto-scroll drive flag (``ScrollableOffsetState``).
     package var isAutoScrolling: Bool { get { _isAutoScrolling } set { _isAutoScrolling = newValue } }
 

@@ -187,6 +187,18 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// from the environment each render.
     public var overscrollState = ScrollOverscrollState()
 
+    /// The programmatic scroll gliding this view's rows (``ScrollableOffsetState``),
+    /// started by a `scrollTo` or a ``ScrollPosition`` request made inside an
+    /// animation and stepped by each render — see ``ScrollGlide``.
+    public var glide: ScrollGlide? {
+        get { _glide }
+        set { _glide = newValue }
+    }
+
+    /// ``glide``'s storage: private, under the public accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _glide: ScrollGlide?
+
     /// Drag auto-scroll drive flag (``ScrollableOffsetState``).
     public var isAutoScrolling = false
 
@@ -282,6 +294,12 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// ``pendingScrollTo``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _pendingScrollTo: ScrollToRequest?
+
+    /// Whether ``pendingScrollTo`` is a glide's landing (``ScrollGlide/Landing/seek(_:)``)
+    /// rather than a request: sought again to correct where the glide ended,
+    /// and so jumped to whatever the frame's transaction says. One-shot, spent
+    /// by the frame that consumes the request.
+    var pendingScrollToIsLanding = false
 
     /// The total natural height of the scroll view's content,
     /// computed during the layout pass.

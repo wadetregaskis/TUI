@@ -165,17 +165,22 @@ extension _ScrollViewCore {
     /// 1. A freshly WRITTEN edge anchor jumps to that edge
     ///    (``adoptWrittenAnchor(handler:context:)``). Before the glue check,
     ///    whose `seekingTail` read is one-shot.
-    /// 2. A bound position's edge or offset target moves the view BEFORE the
+    /// 2. A programmatic scroll gliding to its target moves to this frame's
+    ///    line before anything below reads the offset, and lands when it is
+    ///    done (``settleGlide(handler:viewport:context:)``). A view at rest
+    ///    pays the test.
+    /// 3. A bound position's edge or offset target moves the view BEFORE the
     ///    content renders, so the frame carrying the request already shows
     ///    the destination — `.bottom` by raising the tail-seek flag the End
     ///    key uses, so the glue pins it exactly against the real height
     ///    (``applyPositionOffset(handler:context:)``).
-    /// 3. A one-shot End / `scrollToBottom` intent converges exactly like a
+    /// 4. A one-shot End / `scrollToBottom` intent converges exactly like a
     ///    glued frame (see `ScrollViewHandler.seekingTail`).
     func placeBeforeDrawing(
-        handler: ScrollViewHandler, context: RenderContext
+        handler: ScrollViewHandler, viewport: CellSize, context: RenderContext
     ) -> (requested: Bool, seekingTail: Bool) {
         adoptWrittenAnchor(handler: handler, context: context)
+        if handler.glide != nil { settleGlide(handler: handler, viewport: viewport, context: context) }
         let requested = !context.isMeasuring && applyPositionOffset(handler: handler, context: context)
         let seekingTail = handler.seekingTail
         if !context.isMeasuring { handler.seekingTail = false }

@@ -1605,14 +1605,19 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 ## Scrolling
 
-### R1. Scrolling moves in whole lines and is never animated
+### R1. Scrolling moves in whole lines, and only a `ScrollView`'s programmatic scrolls animate
 
 - **SwiftUI:** scrolls in points, with momentum; an animated `scrollTo`
   animates; phases include `.tracking`, `.decelerating` and `.animating`, with
   a velocity; a bounce springs back (the `scrollTo` phases measured, B27; the
   rest Apple's documentation).
-- **TUIkit:** an offset is whole rows and columns; an animated `scrollTo`
-  jumps. A user scroll is `.interacting` until 250 ms pass with no step; the
+- **TUIkit:** an offset is whole rows and columns. A `ScrollView`'s `scrollTo`
+  or `ScrollPosition` row request made inside `withAnimation` glides there a
+  whole line at a time along the animation's curve (its first pass only, for
+  a repeating one), drawn only on the 1/60 s ticks where its line changes
+  (since 2026-10-24, B27-ANIMATING); under reduce motion it jumps. A
+  `List`'s or a `Table`'s, a column request, and a position's edge or offset
+  still jump. A user scroll is `.interacting` until 250 ms pass with no step; the
   other three phases never occur; the velocity is (0, 0) at every report,
   as SwiftUI's is where it was measured. An overscroll
   allowance the app asked for stays where it was pushed (bounce behaviour
@@ -1620,8 +1625,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   end with none, sprung back a line a frame once the scroll goes idle, and
   pushed by a scroll view's arrow or page key at the end as by the wheel (a
   focused `List`'s or `Table`'s keys move its cursor instead).
-- **Why:** a terminal reports no gesture phases and no momentum.
-- **Decided:** [B27](<Decisions/SwiftUI API completion decisions.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance-and-always-springs-back>).
+- **Why:** a terminal reports no gesture phases and no momentum, and draws
+  no line between two of its rows. The lists' requests join the glide later
+  ([the design note](<Decisions/Scrolling/Animated scrolling, a design (B27).md>), pieces 4–8).
+- **Decided:** [B27](<Decisions/SwiftUI API completion decisions.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B27-ANIMATING](<../Open owner decisions.md#b27-animating>), [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance-and-always-springs-back>).
   **Medium**. The owner decided on 2026-10-12 that the velocity is (0, 0) at
   both changes, as SwiftUI reports it, and to add a bounce under `.always`;
   both shipped 2026-10-13.

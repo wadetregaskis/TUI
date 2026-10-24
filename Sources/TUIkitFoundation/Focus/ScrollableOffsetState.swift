@@ -122,6 +122,13 @@ public protocol ScrollableOffsetState: AnyObject {
     /// does not opt in behaves exactly as before.
     var overscrollState: ScrollOverscrollState { get set }
 
+    /// The programmatic scroll this viewport is gliding through, or `nil` —
+    /// always, unless a request was made inside an animation. A distance
+    /// beside the offset, never a second offset: see ``ScrollGlide``. Stepped
+    /// once a frame by the render (`advanceGlide(viewport:context:)`), as the
+    /// overscroll spring-back is.
+    var glide: ScrollGlide? { get set }
+
     /// Whether drag auto-scroll is currently driving this viewport — set and
     /// cleared by `DragAndDropSession.driveAutoScroll(nowNanos:)`.
     ///
@@ -292,6 +299,9 @@ public final class ScrollAxis: ScrollableOffsetState {
     public var wheelEdgeHold = WheelEdgeHold()
     /// Overscroll excursion + allowance (``ScrollableOffsetState``).
     public var overscrollState = ScrollOverscrollState()
+    /// The glide in flight (``ScrollableOffsetState``). A horizontal axis does
+    /// not glide yet: a column request jumps.
+    public var glide: ScrollGlide?
     /// Drag auto-scroll drive flag (``ScrollableOffsetState``).
     public var isAutoScrolling = false
     /// Whether the user may scroll this axis (``ScrollableOffsetState``).

@@ -36,8 +36,9 @@ extension EnvironmentValues {
     /// motion: colour and opacity
     /// animations, the focus breath, the caret's blink, spinners, progress
     /// indicators and symbol effects each say something, and keep moving.
-    /// Scrolling is never animated in a terminal, so it moves at once either
-    /// way. An ``Animatable`` view of the app's own, a keyframe animator's
+    /// So does a scroll view's offset: a `scrollTo` or a `ScrollPosition`
+    /// request made inside an animation jumps to its target rather than
+    /// gliding there. An ``Animatable`` view of the app's own, a keyframe animator's
     /// tracks and a custom layout's data animate as they did; read this value
     /// to hold them still too, as in SwiftUI.
     ///

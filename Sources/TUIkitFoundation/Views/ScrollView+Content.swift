@@ -504,7 +504,10 @@ extension _ScrollViewCore {
                 return redrawn
             }
         }
-        if let id = reply?.anchorID, let handler, !context.isMeasuring {
+        // Not while gliding: a bound position is told the row it lands on,
+        // not every row it passes, or each glide frame would draw the app's
+        // body again.
+        if let id = reply?.anchorID, let handler, !context.isMeasuring, handler.glide == nil {
             reportVisibleID(id, handler: handler, context: context)
         }
         if let handler, !context.isMeasuring, handler.scrollTargeting != nil {

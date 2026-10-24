@@ -592,9 +592,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             allowances: pageOverscrollAllowances(context.environment, overflowing: overflowing), context: context)
 
         // What places the frame before the content is drawn, in order: a
-        // written anchor, a bound position's edge or offset (see the helper),
-        // and the tail seek they and End leave.
-        let (requested, seekingTail) = placeBeforeDrawing(handler: handler, context: context)
+        // written anchor, a glide in flight, a bound position's edge or offset
+        // (see the helper), and the tail seek they and End leave.
+        let contentViewport = CellSize(width: contentWidth, height: contentViewportHeight)
+        let (requested, seekingTail) = placeBeforeDrawing(handler: handler, viewport: contentViewport, context: context)
         let wasGluedToBottom =
             isGluedToBottom(handler: handler, context: context) || seekingTail
         // The opening frame is glued by definition (see `isGluedToBottom`) but
@@ -642,7 +643,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         var drawing = ScrollContentDrawing(
             buffer: firstDrawing.buffer, slice: firstDrawing.slice, drawnLines: firstDrawing.drawnLines,
             placement: firstDrawing.placement)
-        if !context.isMeasuring { handler.pendingScrollTo = nil }
+        let seekIsLanding = spendSeekRequest(handler: handler, context: context)
         // A sliced reply (Stage 6): the buffer holds only the rendered band;
         // the content height comes from the metadata (estimated suffixes and
         // all — the §3 scrollbar trade), and every content-space consumer
@@ -650,14 +651,18 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // in the indicators as an approximate count.
         recordContentHeight(
             of: drawing, handler: handler, contentWidth: contentWidth, placed: seekOffset != nil || requested || wasGluedToBottom, context: context)
-        if let seekOffset {
-            // The content rendered AT the request's offset; adopt it, dropping
-            // any overscroll excursion with it — the slide drawn later would
-            // otherwise move the row the seek aimed at. (The bottom re-glue
-            // below must not fight it — scrolling away IS the release,
-            // expressed programmatically.)
-            handler.jumpProgrammatically(to: seekOffset)
-        } else if wasGluedToBottom {
+        // The content rendered AT the request's offset; adopt it, dropping
+        // any overscroll excursion with it — the slide drawn later would
+        // otherwise move the row the seek aimed at. (The bottom re-glue
+        // below must not fight it — scrolling away IS the release,
+        // expressed programmatically.) Made inside an animation, a request
+        // glides there instead, from where the view stands; a hold jumps.
+        let glideBegan = seekOffset.map {
+            adoptSeek(
+                $0, request: firstDrawing.seek?.isHold == true ? nil : pendingSeek, isLanding: seekIsLanding,
+                handler: handler, viewport: contentViewport, context: context)
+        } ?? false
+        if seekOffset == nil, wasGluedToBottom {
             // Re-glue against the REAL rendered height: the content rendered
             // at the offset the frame began with — for a followed view, the
             // tail as last drawn — and this frame's tail is further down by
@@ -699,9 +704,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             // the same frame is revealed: suppressed, it stayed off screen.
             suppressed: seekOffset != nil && firstDrawing.seek?.isHold != true,
             context: context)
+        // A glide that began this frame draws its start, which the content
+        // was not drawn at: it was drawn at the request, to find it.
         coverSnappedViewport(
             handler: handler, drawing: &drawing, contentWidth: contentWidth, viewportHeight: contentViewportHeight,
-            horizontal: wantsHorizontal, checkpoint: checkpoint, context: context)
+            horizontal: wantsHorizontal, checkpoint: checkpoint, force: glideBegan, context: context)
         if wasGluedToBottom, seekOffset == nil {
             reglueToRefinedTail(
                 handler: handler, drawing: &drawing, contentWidth: contentWidth, viewportHeight: contentViewportHeight,
