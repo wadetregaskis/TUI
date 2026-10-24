@@ -35,8 +35,8 @@ struct GroupingContainersRow: View {
             }
             DemoSection("page.containers.section.controlGroup") {
                 VStack(alignment: .leading, spacing: 1) {
-                    // Three buttons drawn side by side and touching, one control
-                    // to the eye — each still its own Tab stop.
+                    // Three buttons drawn as one segmented face, caps at the
+                    // ends and a rule between — each still its own Tab stop.
                     ControlGroup {
                         Button("−") { zoom = max(Self.zoomStep, zoom - Self.zoomStep) }
                         Button("100%") { zoom = 100 }

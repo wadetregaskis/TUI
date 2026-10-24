@@ -248,14 +248,20 @@ extension _ButtonAppearance {
     /// on one row, and enough on three to be about as wide as it is tall.
     /// Where the terminal draws Block Elements short of the line (Apple
     /// Terminal), a solid three-row face is drawn in whole cells.
+    ///
+    /// A `segment` of a face drawn round several controls
+    /// (``EnvironmentValues/isControlSegment``, a ``ControlGroup``'s) has no
+    /// caps and one row at any size, as a segmented picker's segment: the
+    /// face's ends are drawn round the group.
     func sized(
-        _ size: ControlSize, shape: ButtonBorderShape, family: ButtonFaceFamily, blockElementsFillTheLine: Bool
+        _ size: ControlSize, shape: ButtonBorderShape, family: ButtonFaceFamily, blockElementsFillTheLine: Bool,
+        segment: Bool = false
     ) -> Self {
         guard !isPlain else { return self }
         var sized = self
-        let tall = size >= .large
+        let tall = size >= .large && !segment
         sized.horizontalPadding = size.padding(regular: horizontalPadding)
-        let caps = size.drawsEndCaps
+        let caps = size.drawsEndCaps && !segment
         switch family {
         case .blank:
             sized.edges = .bareOutline

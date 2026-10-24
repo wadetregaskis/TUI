@@ -34,9 +34,11 @@ extension RenderContext {
     /// presenter is drawn in asks of the views drawn there: its scroll canvas
     /// (``leaveScrollCanvas()``), the text alignment it states for nothing
     /// in particular (``EnvironmentValues/leaveUnstatedTextAlignment()``),
-    /// and the size and corners of a sheet it is drawn in
-    /// (``consumeSheetSize()``). The surface is attached inside the content
-    /// that presents it, but drawn over the screen.
+    /// the size and corners of a sheet it is drawn in
+    /// (``consumeSheetSize()``), and the segmented face of a control group it
+    /// is a control of (``EnvironmentValues/isControlSegment``), whose
+    /// surface's buttons are faces of their own. The surface is attached
+    /// inside the content that presents it, but drawn over the screen.
     ///
     /// The sheet's size is its own box's. An alert written at the root of a
     /// sheet's content — outside the box the content draws, where a sheet's
@@ -50,5 +52,6 @@ extension RenderContext {
         leaveScrollCanvas()
         environment.leaveUnstatedTextAlignment()
         consumeSheetSize()
+        if environment.isControlSegment { environment.isControlSegment = false }
     }
 }

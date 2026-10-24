@@ -57,6 +57,9 @@ package struct ControlEnds: Equatable, Sendable {
     /// The cells the two caps take together.
     package var width: Int { kind == .none ? 0 : 2 }
 
+    /// The rule between two segments of one face.
+    package static let rule = "\u{2502}"
+
     /// The ends a one-row control takes in `environment`.
     ///
     /// - Parameter size: The size to read the table at, where the control
@@ -102,5 +105,96 @@ package struct ControlEnds: Equatable, Sendable {
         case .lines: row.append(String(glyph), cells: 1, ink: lines, field: field)
         case .none: break
         }
+    }
+}
+
+// MARK: - A segmented face of several controls
+
+private struct IsControlSegmentKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether the controls here are segments of one face drawn round them —
+    /// a ``ControlGroup``'s buttons, between the caps and rules the group
+    /// draws (``ControlFaceCap``, ``ControlFaceRule``). A bordered button or
+    /// a pop-up picker drawn here leaves out its own caps, and its rows above
+    /// and below at the large sizes, as a segment of a segmented picker has
+    /// none: the face's ends are the group's.
+    ///
+    /// Cleared for what a control here presents — a sheet's, an alert's or a
+    /// popover's controls are faces of their own.
+    package var isControlSegment: Bool {
+        get { self[IsControlSegmentKey.self] }
+        set { self[IsControlSegmentKey.self] = newValue }
+    }
+}
+
+/// One end cap of a face drawn round several controls (a ``ControlGroup``'s),
+/// as ``ControlEnds`` draws a segmented picker's: in the family in force, at
+/// rest, one row tall. Nothing at all where the family draws no caps.
+package struct ControlFaceCap: View, Renderable, Layoutable {
+    /// Whether this is the cap before the controls rather than after them.
+    let isOpening: Bool
+
+    package init(opening: Bool) {
+        isOpening = opening
+    }
+
+    package var body: Never {
+        fatalError("ControlFaceCap renders via Renderable")
+    }
+
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        ViewSize.fixed(ControlEnds(in: context.environment).width / 2, 1)
+    }
+
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        let ends = ControlEnds(in: context.environment)
+        guard ends.kind != .none else { return FrameBuffer() }
+        let palette = context.environment.palette
+        let face = ends.hasField ? palette.restingControlFace : context.environment.enclosingSurface
+        // At rest, as a segmented picker's caps are: the face's own colour, or
+        // the lines' ink.
+        let capInk = ButtonCapCycle(isFocused: false, background: face, palette: palette, context: context).colorNow
+        let lineInk = ControlEnds.lineInk(
+            palette: palette, surface: face, hovered: false, disabled: !context.environment.isEnabled)
+        var row = ClaimingRow()
+        ends.appendCap(isOpening ? ends.open : ends.close, to: &row, face: capInk, lines: lineInk)
+        var buffer = FrameBuffer(lines: [row.text])
+        buffer.opacityRegions = row.claims
+        return buffer
+    }
+}
+
+/// The rule between two controls of a face drawn round several (a
+/// ``ControlGroup``'s): `│`, as between a segmented picker's segments — in the
+/// tertiary ink on a filled face's field, in the lines' ink on no field.
+package struct ControlFaceRule: View, Renderable, Layoutable {
+    package init() {}
+
+    package var body: Never {
+        fatalError("ControlFaceRule renders via Renderable")
+    }
+
+    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        ViewSize.fixed(1, 1)
+    }
+
+    package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        let ends = ControlEnds(in: context.environment)
+        let palette = context.environment.palette
+        var row = ClaimingRow()
+        if ends.hasField {
+            row.append(ControlEnds.rule, cells: 1, ink: palette.foregroundTertiary, field: palette.restingControlFace)
+        } else {
+            let lineInk = ControlEnds.lineInk(
+                palette: palette, surface: context.environment.enclosingSurface, hovered: false,
+                disabled: !context.environment.isEnabled)
+            row.append(ControlEnds.rule, cells: 1, ink: lineInk)
+        }
+        var buffer = FrameBuffer(lines: [row.text])
+        buffer.opacityRegions = row.claims
+        return buffer
     }
 }

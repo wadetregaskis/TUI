@@ -41,7 +41,8 @@ struct _ButtonStyleBody: View, Renderable {
             appearance: appearance.sized(
                 environment.controlSize, shape: environment.buttonBorderShape,
                 family: ButtonFaceFamily(environment),
-                blockElementsFillTheLine: environment.blockElementsFillTheLine),
+                blockElementsFillTheLine: environment.blockElementsFillTheLine,
+                segment: environment.isControlSegment),
             isSized: true)
     }
 

@@ -23,9 +23,10 @@ import TUIkitFoundation
 /// }
 /// ```
 ///
-/// The default style draws the controls side by side and touching, as a
-/// segmented control does; `.menu` and `.compactMenu` put them behind a menu
-/// that the group's label opens.
+/// The default style draws the controls as one segmented face, caps at the
+/// two ends and a rule between each pair, as a segmented `Picker` is drawn;
+/// `.menu` and `.compactMenu` put them behind a menu that the group's label
+/// opens.
 public struct ControlGroup<Content: View>: View {
     let content: Content
 
@@ -196,18 +197,36 @@ extension ControlGroupStyle {
     }
 }
 
-/// The controls side by side, touching — a segmented control's shape.
+/// The controls as one segmented face, as macOS draws a control group and a
+/// segmented `Picker` is drawn: caps only at the two ends, a rule between
+/// each pair, `▐ − │ 100% │ + ▌` — or `( − │ 100% │ + )` under
+/// `.controlStyle(.lines)` — the caps and rules a segmented picker's in the
+/// family in force (``ControlEnds``, owner, CONTROLGROUP-LOOK (a),
+/// 2026-10-23). Each control is drawn as a segment
+/// (``EnvironmentValues/isControlSegment``): a button's face without its
+/// caps, on one row at any size, showing the focus in its label as a capless
+/// face does.
 private struct _ControlStrip: View {
     let content: _StyledContent
 
     var body: some View {
         HStack(spacing: 0) {
-            content
+            ControlFaceCap(opening: true)
+            Group(subviews: content) { subviews in
+                ForEach(subviews) { subview in
+                    if subview.id != subviews.first?.id {
+                        ControlFaceRule()
+                    }
+                    subview
+                }
+            }
+            .environment(\.isControlSegment, true)
+            ControlFaceCap(opening: false)
         }
     }
 }
 
-/// The default control group style: the controls side by side, touching, as a
+/// The default control group style: the controls as one segmented face, as a
 /// segmented control.
 public struct AutomaticControlGroupStyle: ControlGroupStyle, Equatable {
     public func makeBody(configuration: Configuration) -> some View {
@@ -242,7 +261,7 @@ public struct CompactMenuControlGroupStyle: ControlGroupStyle, Equatable {
 }
 
 /// The navigation control group style, for back/forward and similar pairs: the
-/// controls side by side, touching.
+/// controls as one segmented face.
 public struct NavigationControlGroupStyle: ControlGroupStyle, Equatable {
     /// Creates a navigation control group style.
     public init() {}

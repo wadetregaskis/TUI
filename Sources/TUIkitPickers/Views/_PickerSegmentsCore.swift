@@ -84,9 +84,6 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
 
     private typealias StateIndex = PickerSegmentsStateIndex
 
-    /// The rule between two segments.
-    private static var divider: String { "\u{2502}" }
-
     var body: Never {
         fatalError("_PickerSegmentsCore renders via Renderable")
     }
@@ -151,7 +148,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
         ends.appendCap(ends.open, to: &row, face: capInk, lines: lineInk)
         for (index, option) in options.enumerated() {
             if index > 0 {
-                row.append(Self.divider, cells: 1, ink: ruleInk, field: field)
+                row.append(ControlEnds.rule, cells: 1, ink: ruleInk, field: field)
             }
             let isSelected = !isMixed && option.tag == selection.wrappedValue
             let segment = Segment(

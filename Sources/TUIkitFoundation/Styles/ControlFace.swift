@@ -26,7 +26,8 @@ package enum ControlFace {
         _ButtonAppearance.default.sized(
             environment.controlSize, shape: environment.buttonBorderShape,
             family: ButtonFaceFamily(environment),
-            blockElementsFillTheLine: environment.blockElementsFillTheLine)
+            blockElementsFillTheLine: environment.blockElementsFillTheLine,
+            segment: environment.isControlSegment)
     }
 
     /// The cells a face adds across its title, and the rows it is tall, in

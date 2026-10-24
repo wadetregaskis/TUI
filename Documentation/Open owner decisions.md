@@ -53,7 +53,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [B76-SELECT](#b76-select) | (b) for now. | No change. |
 | [B78-VISIBILITY](#b78-visibility) | (b). | Queued. |
 | [COLORPICKER-MODEBAR](#colorpicker-modebar) | (1). | No change. |
-| [CONTROLGROUP-LOOK](#controlgroup-look) | (a). | Queued. |
+| [CONTROLGROUP-LOOK](#controlgroup-look) | (a). | Done (lane CAPS, 2026-10-24): one segmented face, the segmented picker's caps (`ControlEnds`) at the ends and a rule between buttons, which draw as capless segments on one row at every size (`\.isControlSegment`, left behind by a presented surface). |
 | [FB3-BLANK](#fb3-blank) | (a). | No change. |
 | [FB3-OTHERCAPS](#fb3-othercaps) | (2). | Partly done (lane CAPS, 2026-10-24): segmented and palette pickers and compact tab chips (the colour picker's too) take a button's caps in the control family and shape (`ControlEnds`); unchanged by default. The Lines switch is drawn on a probe card for you (four candidates); it is built when you pick one. |
 | [STEPPER-WIDTH](#stepper-width) | (1). | Done: `.stepperValueWidth(_:)`, fitting the bounds by default (lane STEPPER). |
