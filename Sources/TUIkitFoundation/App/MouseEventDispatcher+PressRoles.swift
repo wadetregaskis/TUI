@@ -119,9 +119,10 @@ extension MouseEventDispatcher {
     /// The journal kind of a press role's filing.
     static let pressRoleKind = EffectJournal.Kind("pressRole")
 
-    /// Registers the region a selection scope files — a
-    /// ``View/textSelection(_:)`` over its content, a bordered container over
-    /// its interior — and returns its id.
+    /// Registers the region a ``View/textSelection(_:)`` files over its
+    /// content and returns its id. (A bordered container's interior registers
+    /// nothing: its region carries ``HitTestRegion/HandlerID/selectionInterior``,
+    /// which ``selectionScope(of:)`` reads as the scope.)
     ///
     /// A hover observer whose handler declines everything — geometry for the
     /// selection, taking nothing from the controls inside — with the scope's
@@ -176,9 +177,9 @@ extension MouseEventDispatcher {
         // keeps to.
         var tier: Bool?
         var scope: HitTestRegion?
-        if !selectionScopes.isEmpty {
-            tier = Self.innermostTier(matching, in: selectionScopes)
-            scope = matching.first { selectionScopes[$0.handlerID]?.confinesSelection == true }
+        if !selectionScopes.isEmpty || matching.contains(where: { $0.handlerID == .selectionInterior }) {
+            tier = innermostTier(matching)
+            scope = matching.first { selectionScope(of: $0.handlerID)?.confinesSelection == true }
         }
         if tier == false {
             for region in matching where offer(event, to: region) != .declined { return true }
@@ -287,11 +288,9 @@ extension MouseEventDispatcher {
     /// text select there, or `nil` where none is under the press. A bordered
     /// container's interior is passed over: it says where a selection keeps
     /// to, not whether there is one.
-    private static func innermostTier(
-        _ matching: [HitTestRegion], in scopes: [HitTestRegion.HandlerID: SelectionScope]
-    ) -> Bool? {
+    private func innermostTier(_ matching: [HitTestRegion]) -> Bool? {
         for region in matching {
-            switch scopes[region.handlerID] {
+            switch selectionScope(of: region.handlerID) {
             case .enabled: return true
             case .disabled: return false
             case .interior, nil: continue

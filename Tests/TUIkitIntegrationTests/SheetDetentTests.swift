@@ -81,10 +81,9 @@ struct SheetDetentTests {
         #expect(layer.isDockedAtBottom)
         // The panel's interior, filed for text selection inside its border
         // (`BorderedSelectionScopeTests`), is no drag region.
-        let scopes = context.environment.mouseEventDispatcher?.selectionScopes ?? [:]
         #expect(
             layer.content.hitTestRegions.allSatisfy {
-                scopes[$0.handlerID] != nil || $0.focusID?.hasPrefix("sheet-grabber") == true
+                $0.handlerID == .selectionInterior || $0.focusID?.hasPrefix("sheet-grabber") == true
             },
             "no drag regions on its border, only its grabber: \(layer.content.hitTestRegions)")
         let placed = layer.placed(maxWidth: 40, maxHeight: 20)

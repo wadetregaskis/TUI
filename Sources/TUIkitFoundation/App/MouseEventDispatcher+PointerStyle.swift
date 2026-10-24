@@ -217,7 +217,8 @@ extension MouseEventDispatcher {
             let id = region.handlerID
             let style = pointerStyleRegions[id]
             let seesThrough = style == nil && pointerShapeWrappers.contains(id)
-            if style == nil, !seesThrough, hoverObserverIDs.contains(id) || isWheelHandler(id) { continue }
+            if style == nil, !seesThrough,
+                hoverObserverIDs.contains(id) || isWheelHandler(id) || id == .selectionInterior { continue }
             if let scope, pointerShapeEnclosures[id]?.contains(scope) != true { break }
             if let style {
                 styled = style

@@ -423,16 +423,21 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
     /// around. Behind every region of the box's own, so a scope inside the
     /// box is met first, as the innermost one wins.
     ///
-    /// One hover-observer region a bordered box a frame, and nothing where
-    /// the app said ``TextSelectionScope/pane`` or while measuring.
+    /// One region a bordered box, under the reserved
+    /// ``HitTestRegion/HandlerID/selectionInterior`` id: no handler, no
+    /// dictionary entry and no journal entry, so a box served from the memo
+    /// replays nothing for it. Until 2026-10-24 each box registered a hover
+    /// observer and filed the scope by journal, which a memoized row replayed
+    /// every frame: Stress `modifiers` +28.7% warm. Nothing where the app said
+    /// ``TextSelectionScope/pane`` or while measuring.
     private func fileInterior(of buffer: inout FrameBuffer, context: RenderContext) {
         guard !context.isMeasuring, buffer.width > 2, buffer.height > 2,
             context.environment.textSelectionScope == .container,
-            let dispatcher = context.environment.mouseEventDispatcher
+            context.environment.mouseEventDispatcher != nil
         else { return }
-        let id = dispatcher.registerSelectionScope(.interior, in: context)
         let interior = HitTestRegion(
-            offsetX: 1, offsetY: 1, width: buffer.width - 2, height: buffer.height - 2, handlerID: id)
+            offsetX: 1, offsetY: 1, width: buffer.width - 2, height: buffer.height - 2,
+            handlerID: .selectionInterior)
         buffer.hitTestRegions.insert(interior, at: 0)
     }
 

@@ -24,12 +24,12 @@ struct ListSelectionInteriorTests {
     func listFilesNoInterior() {
         let harness = InputChainHarness(width: 30, height: 10)
         let bare = List { Text("alpha"); Text("beta") }.listStyle(.bordered).frame(height: 5)
-        harness.frame(bare)
-        let scopes = harness.tui.mouseEventDispatcher.selectionScopes
-        #expect(!scopes.values.contains(.interior), "the list's box filed an interior: \(scopes)")
+        func interiors(_ buffer: FrameBuffer) -> Int {
+            buffer.hitTestRegions.filter { $0.handlerID == .selectionInterior }.count
+        }
+        #expect(interiors(harness.frame(bare)) == 0, "the list's box filed an interior")
 
         // The control: a box around the list is content's box, and files one.
-        harness.frame(bare.border())
-        #expect(harness.tui.mouseEventDispatcher.selectionScopes.values.filter { $0 == .interior }.count == 1)
+        #expect(interiors(harness.frame(bare.border())) == 1)
     }
 }

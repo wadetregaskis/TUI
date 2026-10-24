@@ -371,6 +371,12 @@ package final class MouseEventDispatcher: @unchecked Sendable {
 
     /// Files a scope's answer for the region whose handler `id` names: the
     /// registration's, and its replay's from a memo's journal.
+    /// The scope the region whose handler `id` names files, if any: a
+    /// bordered container's interior by its reserved id, the rest as filed.
+    func selectionScope(of id: HitTestRegion.HandlerID) -> SelectionScope? {
+        id == .selectionInterior ? .interior : selectionScopes[id]
+    }
+
     func fileSelectionScope(_ scope: SelectionScope, for id: HitTestRegion.HandlerID) {
         selectionScopes[id] = scope
         if scope == .enabled { _enabledSelectionScopeCount += 1 }

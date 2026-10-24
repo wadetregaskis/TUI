@@ -504,16 +504,15 @@ struct UserResizableTests {
             }
         }
         // Less the bordered content's interior, as `dragTargets` leaves it out.
-        buffer.hitTestRegions.removeAll { tui.mouseEventDispatcher.selectionScopes[$0.handlerID] != nil }
+        buffer.hitTestRegions.removeAll { $0.handlerID == .selectionInterior }
         return buffer
     }
 
     /// The regions a resizable filed in `buffer`: every region but the
     /// interior its bordered content files for text selection
     /// (`BorderedSelectionScopeTests`), which is no drag target.
-    private func dragTargets(_ buffer: FrameBuffer, _ context: RenderContext) -> [HitTestRegion] {
-        let scopes = context.environment.mouseEventDispatcher?.selectionScopes ?? [:]
-        return buffer.hitTestRegions.filter { scopes[$0.handlerID] == nil }
+    private func dragTargets(_ buffer: FrameBuffer, _: RenderContext) -> [HitTestRegion] {
+        buffer.hitTestRegions.filter { $0.handlerID != .selectionInterior }
     }
 
     private func resizableBox() -> some View {

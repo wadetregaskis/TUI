@@ -334,10 +334,13 @@ extension MouseEventDispatcher {
     /// (semantic audit item 31).
     private func resolveHover(at x: Int, y: Int) -> (target: HitTestRegion?, observers: [HitTestRegion]) {
         let matching = matchingRegions(at: x, y: y)
-        // The common frame has no observer, and is the control's lane alone.
-        guard !hoverObserverIDs.isEmpty else { return (matching.first, []) }
+        // The common frame has no observer, and is the control's lane alone —
+        // but for a bordered box's interior, which the pointer sees through.
+        guard !hoverObserverIDs.isEmpty else {
+            return (matching.first { $0.handlerID != .selectionInterior }, [])
+        }
         var observers: [HitTestRegion] = []
-        for region in matching {
+        for region in matching where region.handlerID != .selectionInterior {
             guard hoverObserverIDs.contains(region.handlerID) else { return (region, observers) }
             observers.append(region)
         }

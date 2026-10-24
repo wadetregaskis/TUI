@@ -135,12 +135,16 @@ struct BorderedSelectionScopeTests {
         #expect(!harness.tui.screenSelection.hasSelection)
     }
 
-    @Test("A card files its interior, and none under .textSelectionScope(.pane)")
+    @Test("A card files its interior, and none under .textSelectionScope(.pane), registering nothing either way")
     func filesOneInterior() {
-        let harness = harness(Page())
-        #expect(harness.tui.mouseEventDispatcher.selectionScopes.values.filter { $0 == .interior }.count == 1)
-        let pane = self.harness(Page(scope: .pane))
-        #expect(pane.tui.mouseEventDispatcher.selectionScopes.isEmpty)
+        func interiors(_ buffer: FrameBuffer) -> Int {
+            buffer.hitTestRegions.filter { $0.handlerID == .selectionInterior }.count
+        }
+        let harness = InputChainHarness(width: 40, height: 10)
+        #expect(interiors(harness.frame(Page())) == 1)
+        // The region is the scope: nothing is registered for a memo to replay.
+        #expect(harness.tui.mouseEventDispatcher.selectionScopes.isEmpty)
         #expect(!harness.tui.mouseEventDispatcher.hasEnabledSelectionScope, "an interior counted as an enabled scope")
+        #expect(interiors(InputChainHarness(width: 40, height: 10).frame(Page(scope: .pane))) == 0)
     }
 }

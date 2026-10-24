@@ -236,6 +236,16 @@ extension HitTestRegion {
         /// ``HitTestRegion/geometryMarker(_:)``.
         @inlinable
         public var isGeometryMarker: Bool { raw & Self.geometryMarkerBit != 0 }
+
+        /// The id of a bordered container's interior, filed as a selection
+        /// scope by the region alone: the mouse dispatcher reads this id as
+        /// the scope, so the box registers no handler and journals nothing
+        /// for a memo to replay — a memoized box's interior costs nothing a
+        /// frame beyond the region it carries. One below the geometry bit,
+        /// which the handler mint, counting up from zero, never reaches
+        /// either. It names no handler: a press offered to it is declined,
+        /// and hover and the pointer's shape see through it.
+        public static let selectionInterior = Self(geometryMarkerBit - 1)
     }
 }
 
