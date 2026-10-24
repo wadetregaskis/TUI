@@ -151,10 +151,16 @@ struct StyleAsViewTests {
     /// The two gradients-as-views that had no test at all. An elliptical
     /// gradient's radii are FRACTIONS of the box, so its ramp reaches the last
     /// stop at the middle of each edge whatever the proportions.
+    ///
+    /// One sample a cell, as on a terminal whose Block Elements fall short of
+    /// the line: where they fill it, each cell is its two halves, and the
+    /// centre cell's field is its top half's colour, not the centre's
+    /// (`GradientHalfBlockTests`, decisions B95).
     @Test("An elliptical gradient view fills the box with its own ellipse")
     func ellipticalFills() {
-        let lines = render(
-            EllipticalGradient(colors: [red, blue]), width: 9, height: 3)
+        var oneSample = context(width: 9, height: 3)
+        oneSample.environment.blockElementsFillTheLine = false
+        let lines = renderToBuffer(EllipticalGradient(colors: [red, blue]), context: oneSample).lines
         #expect(lines.count == 3)
         let middle = backgrounds(lines[1])
         #expect(middle.count == 9)
