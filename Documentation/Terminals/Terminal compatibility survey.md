@@ -6489,7 +6489,12 @@ on a host). screen's server runs on no terminal and its windows' processes
 on the window's pty (measured, screen 4.00.03 on macOS 15, 2026-10-07: `ps`
 shows `SCREEN` on `??` and its window's `login` on `ttys005`). A screen
 further up does not count: a GUI terminal started from a shell inside
-screen draws a client in itself, and its pty is the terminal's. Where at
+screen draws a client in itself, and its pty is the terminal's. The rule
+looks one hop: any relay with a pty of its own between the client and screen
+(a second multiplexer, an `ssh` inside the screen window, `script`) is taken
+for the terminal, and the answer goes back to "Sent" where nothing arrives.
+Following the chain past such relays is not built (the FU3T follow-ups'
+review, recorded 2026-10-23). Where at
 least one client is outside screen, tmux's answer stands ("Sent"). Only the
 clients that see the write count: tmux passes a
 pane's write on to the clients whose session holds the pane's window
@@ -6504,10 +6509,13 @@ three clients attached through ptys: a two-window, three-pane session
 `%0%1%2` too. A client on another session neither receives the write nor
 makes up for one that receives it inside screen. A screen run inside a tmux
 pane is told by the app's own chain (screen above it before tmux), and
-nothing is sent. Where it cannot be told — tmux not listing its clients or
-their panes (a tmux too old for the loops; unmeasured), a client's chain
-unreadable, a client attached to no terminal, no client showing the pane — the write goes as the maybe it is,
-reported "Sent", never "Copied". (The follow-ups' reviews: `STY` alone said
+nothing is sent. Where it cannot be told — tmux not listing its clients, a
+client's chain unreadable, a client attached to no terminal, no client showing
+the pane — the write goes as the maybe it is, reported "Sent", never "Copied".
+A tmux that lists its clients but not their panes (one too old for the loops;
+unmeasured) keeps every client as one the write may reach
+(`writeRecipients`), and each is judged by its chain as above, so screen
+holding all of them still says "Not copied". (The follow-ups' reviews: `STY` alone said
 "Not copied" of a tmux attached straight from the terminal; the pane's chain
 alone then said "Sent" of a tmux still attached from inside screen, where
 nothing arrives; counting every client of the server said "Sent" of the
