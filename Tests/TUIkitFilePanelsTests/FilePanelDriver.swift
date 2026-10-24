@@ -14,6 +14,7 @@ import Testing
 @testable import TUIkitAppTestSupport
 @testable import TUIkitChrome
 @testable import TUIkitCore
+@testable import TUIkitFilePanels
 @testable import TUIkitFoundation
 @testable import TUIkitTestSupport
 
@@ -123,10 +124,12 @@ final class FilePanelDriver<Page: View> {
     /// next one's (the panels keep it, `FilePanelViewMode`).
     let storage = MockStorageBackend()
 
-    /// One frame of the page, built afresh.
+    /// One frame of the page, built afresh, with no icons unless the page
+    /// asks for them: the SF Symbols are drawn where the machine has their
+    /// font, which a test cannot depend on (`filePanelIcons`).
     @discardableResult
     private func frame() -> FrameBuffer {
-        harness.frame(build().defaultAppStorage(storage))
+        harness.frame(build().defaultAppStorage(storage).environment(\.filePanelIcons, FilePanelIcon.none))
     }
 
     /// Draws frames until the screen shows `text` — a folder is read on

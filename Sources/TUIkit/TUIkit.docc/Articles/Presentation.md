@@ -412,7 +412,9 @@ for content that should always be presented while its host is on screen.
 SwiftUI's `fileImporter` presents the system's open panel; a terminal has none,
 so TUIkit draws one (the `TUIkitFilePanels` module), in a sheet as large as a
 page. It lists a folder's items in a table — Name, Size, Date Modified and
-Kind, sortable by any of them, folders first and marked with a trailing `/`;
+Kind, sortable by any of them, folders first, each name after an icon of its
+kind where the terminal draws emoji or SF Symbols (a folder marked with a
+trailing `/` where it draws neither);
 in a narrow terminal Kind gives way, then Date Modified, then Size, so that a
 name keeps its room —
 under the folder's path, with the hidden-files switch and the buttons below.

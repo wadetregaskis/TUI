@@ -10,6 +10,49 @@ other lanes use: A needs a decision, B shipped the safe option (with the fuller
 version and its price), C declined with a parity-map reason. macOS's side is
 its Finder and open and save panels (15.8) unless an entry says otherwise.*
 
+## A. Needs a decision
+
+### A-FP2-1. The system's own icons, drawn with Kitty graphics, need a dependency the module does not have
+
+*Owner item #32: "real ones via Kitty graphics where supported"*
+
+Where the terminal takes Kitty graphics (Ghostty, iTerm2, kitty: TUIkit's
+`Image` draws real pixels there through Unicode placeholders), a panel could
+draw each item's own icon, the Finder's, scaled to its two cells. Two things
+stand in the way, and each is a choice about modules:
+
+- **Getting the icon.** `NSWorkspace.icon(forFile:)` is AppKit's, and no
+  module TUIkit is built from imports AppKit (decisions B50: from the macOS 15
+  SDK it brings SwiftUICore into every app that imports the module).
+  QuickLookThumbnailing's `QLThumbnailGenerator`, asked for an `.icon`
+  representation, gives the same icon as a `CGImage` and does not: it loads
+  only CoreTransferable (which the module loads already), Network,
+  ExtensionFoundation and Distributed (measured with `-Rmodule-loading` on
+  the Xcode 26 SDK).
+- **Drawing it.** An `Image` of a `CGImage` is TUIkitBitmaps', which the file
+  panels do not depend on.
+
+**Options.**
+1. **TUIkitFilePanels depends on TUIkitBitmaps on Apple platforms** (a
+   conditional target dependency) and links QuickLookThumbnailing, asks it for
+   each kind's icon once (an application's for each application), keeps them,
+   and draws them where `KittyGraphics.isSupported` and `terminalGraphics`
+   allow, the glyphs (B-FP2-7) elsewhere. About a day with its tests. An app
+   that imports the umbrella links TUIkitBitmaps already; one that takes the
+   file panels à la carte would link it, TUIkitImage and CSTBImage too, and
+   load QuickLookThumbnailing at launch.
+2. **A TUI-specific modifier for an app to hand the panel its icons**,
+   `fileDialogIcon { url, type in Image? }`, beside SwiftUI's `fileDialog`
+   ones, which TUIkitAppKit (that may import AppKit) fills from `NSWorkspace`
+   in one call, `.fileDialogSystemIcons()`. No new dependency for the file
+   panels; real icons only where an app asks. About a day, and TUIkitAppKit
+   would depend on TUIkitFilePanels.
+3. **Leave the glyphs** (shipped): emoji, SF Symbols or the slash.
+
+**Recommendation:** 1, as the item asks for the real icons by default where
+the terminal draws them, and the cost falls on an app that takes the panels
+without the umbrella. 2 is the right shape if that cost is not wanted.
+
 ## B. Shipped the safe option
 
 ### B-FP2-1. The enclosing-folder button is ↰, and no Tab stop
@@ -59,7 +102,7 @@ shortened in the middle. A path of two keeps the first rather than a `…` that
 stands for it alone.
 
 **The fuller version**, in parts: a folder icon in each segment, once the panel
-draws icons (B-FP2-4's glyphs, at a cell each): an hour. A pop-up of a
+draws icons (B-FP2-7's glyphs): an hour. A pop-up of a
 segment's own folders on a long press, as macOS's pop-up style offers: half a
 day, and a menu per segment.
 
@@ -191,4 +234,43 @@ in parts: icons on the switcher's segments where SF Symbols draw (an hour);
 an icon view, a grid of names under their icons, once icons draw at more than
 a cell (B-FP2-7; a day); a preview column for a file, as Finder's last column
 shows one (a text file's head: half a day; an image's needs TUIkitBitmaps).
+
+### B-FP2-7. Icons: emoji where the terminal draws them, else SF Symbols, else the slash
+
+*Owner item #32: "file/folder icons — SF Symbols/emoji elsewhere, some
+diversity by type"*
+
+A row's name is drawn after an icon of its kind (`FileKind`): a folder, an
+application, an alias (a symbolic link, whatever it leads to, as Finder badges
+one), a PDF, an image, audio, video, an archive, code, text, or any other
+document — eleven, each told apart from the rest, by the type's conformances
+with the narrower first (source code is text too). Which glyphs depends on the
+terminal (`FilePanelIcon`):
+
+- **Emoji** where the terminal draws emoji chrome legibly
+  (`supportsEmojiChrome`, the allowlist the search field's magnifier and the
+  emoji toggles use): 📁 🚀 🔗 📕 🌄 🎵 🎬 📦 📜 📝 📄. Each is a single
+  scalar of default emoji presentation and East Asian Wide, two cells with no
+  variation selector, the width corpus's `default_emoji` class.
+- **SF Symbols** where they draw (the SF Symbols font installed, on Apple
+  platforms): `folder`, `app`, `arrowshape.turn.up.right`, `richtext.page`,
+  `photo`, `music.note`, `film`, `archivebox`,
+  `chevron.left.forwardslash.chevron.right`, `text.document`, `document`.
+- **None** elsewhere: a folder's name ends in `/`, as it did, `ls -F`'s mark
+  and the icon-less terminal file managers' (Midnight Commander's). The item
+  asked for "a plain text glyph" here; a glyph per kind in a terminal's own
+  repertoire would be a new chrome glyph each, of the box-drawing and
+  geometric blocks, read as icons by nobody, so the slash stays, which is
+  what a terminal user reads as a folder.
+
+With an icon, a folder's name has no slash, as Finder's has none. Typing still
+finds a row by its name, past the icon. An emoji keeps its own colours, so a
+dimmed row's icon is not dimmed. Both views draw the icons.
+
+Each listing works out an item's kind as it reads the folder, off the main
+actor, once per type: 20,000 files of ten types took 1.32 s to list with the
+kinds worked out per file, 106 ms of it the kinds, and 1.29 s with each
+type's kind kept (debug build). A test pins the icons
+(`EnvironmentValues.filePanelIcons`), as the SF Symbols' font is the
+machine's. **The fuller version** is A-FP2-1.
 

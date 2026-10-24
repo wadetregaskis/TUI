@@ -64,7 +64,9 @@ area's height), titled Open, holding
 - the folder's items in a `Table` — Name, Size, Date Modified and Kind, sorted
   by any of them from its header or the table's sort keys — a folder's name in
   bold and ending in `/`, as `ls -F` marks one, rather than an icon some
-  terminals draw at another width; in a narrow panel Kind gives way, then Date
+  terminals draw at another width (since 2026-10-24 an icon where the terminal
+  is known to draw one,
+  [B-FP2-7](<File panels the Mac's way (FP2).md#b-fp2-7-icons-emoji-where-the-terminal-draws-them-else-sf-symbols-else-the-slash>)); in a narrow panel Kind gives way, then Date
   Modified, then Size, each where the name would have fewer than 20 cells
   (`FilePanelColumns.shown(inWidth:)`; with every column kept at its width, a
   name had four cells at 64 columns, beside eighteen of Kind); an item of a type the caller does not allow

@@ -75,6 +75,10 @@ struct FileEntry: Identifiable, Sendable {
     /// are read (``placeholder(in:)``).
     var isPlaceholder = false
 
+    /// What kind of item it is, for its icon: worked out as the folder is
+    /// listed (``FileKind/of(_:isFolder:isSymbolicLink:)``).
+    var fileKind = FileKind.document
+
     /// The folder a placeholder stands for the items of: its URL without the
     /// fragment.
     var placeholderFolder: URL { URL(fileURLWithPath: url.path, isDirectory: true) }

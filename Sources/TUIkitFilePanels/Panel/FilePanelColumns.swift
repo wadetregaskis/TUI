@@ -95,8 +95,9 @@ enum FilePanelColumns {
         }
     }
 
-    /// An item's name: a folder's bold and ending in a slash. Typing finds it
-    /// by the name alone, without the slash.
+    /// An item's name, after its icon where the terminal draws one
+    /// (``FilePanelIcon``): a folder's bold, and ending in a slash where it
+    /// has no icon to say it is a folder. Typing finds it by the name alone.
     ///
     /// A branch's placeholder says "Loading…" while its folder is read, and
     /// its appearing is what asks for the read: the row shows only once the
@@ -104,8 +105,19 @@ enum FilePanelColumns {
     /// is opened. In a task of its own, not the view's `.task`: a table that
     /// serves a row from its memo draws none of the row's views, which ended
     /// the view's task part-way through the read.
-    @ViewBuilder
+    ///
+    /// Typing finds a row by its name, stated outside the cell's two forms,
+    /// where the table's probe looks for it (`statedTypeSelectEquivalent`): it
+    /// does not see into a conditional, and found the drawn text instead,
+    /// which begins with the icon. A placeholder is out of type select.
     static func nameCell(_ entry: FileEntry, browser: FileBrowser) -> some View {
+        nameCellContent(entry, browser: browser)
+            .typeSelectEquivalent(entry.isPlaceholder ? "" : entry.name)
+    }
+
+    /// ``nameCell(_:browser:)``'s two forms.
+    @ViewBuilder
+    private static func nameCellContent(_ entry: FileEntry, browser: FileBrowser) -> some View {
         if entry.isPlaceholder {
             Text(LocalizationService.shared.string(for: LocalizationKey.FilePanel.loading))
                 .foregroundStyle(.palette.foregroundTertiary)
@@ -113,14 +125,13 @@ enum FilePanelColumns {
                     Task { await browser.loadFolder(entry.placeholderFolder) }
                 }
         } else {
-            cell(entry.displayName, entry, bold: entry.isFolder)
-                .typeSelectEquivalent(entry.name)
+            FilePanelNameCell(entry: entry)
         }
     }
 
     /// A cell's text, in the faint tier where the row is dimmed
     /// (``FileEntry/isDimmed``), as a disabled row of a table draws.
-    private static func cell(_ text: String, _ entry: FileEntry, bold: Bool = false) -> Text {
+    static func cell(_ text: String, _ entry: FileEntry, bold: Bool = false) -> Text {
         let drawn = Text(text).bold(bold)
         return entry.isDimmed ? drawn.foregroundStyle(.palette.foregroundTertiary) : drawn
     }

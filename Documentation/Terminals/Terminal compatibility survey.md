@@ -901,6 +901,14 @@ overhang card draw it. No committed record has it yet, so it waits beside
 every host (GNOME Terminal's included) and in the ledger's
 `awaitingLandingMeasurement`.
 
+A file panel's row icons (2026-10-24) are emoji only where
+`TerminalHost.supportsEmojiChrome` allows, as the search field's magnifier is:
+📁 🚀 🔗 📕 🌄 🎵 🎬 📦 📜 📝 📄, each a single scalar of default emoji
+presentation and East Asian Wide, so the corpus's `default_emoji` class
+(two cells, no selector), and no new chrome rows. Elsewhere they are SF
+Symbols (Plane-16 private use, two cells, Apple Terminal's under-advance
+compensated as every symbol's is) where the font is installed, or none.
+
 ### Underline shapes and colours (W11b) — read by the owner 2026-10-18
 
 `line_style_card.py` (session notes, `plan/e19/`) prints "Sample text" under
