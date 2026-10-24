@@ -438,7 +438,14 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         let interior = HitTestRegion(
             offsetX: 1, offsetY: 1, width: buffer.width - 2, height: buffer.height - 2,
             handlerID: .selectionInterior)
-        buffer.hitTestRegions.insert(interior, at: 0)
+        // A box whose content carries no region — most of them — gets a
+        // one-element array outright; `insert(_:at:)` into an empty one goes
+        // the long way round, through `replaceSubrange`.
+        if buffer.hitTestRegions.isEmpty {
+            buffer.hitTestRegions = [interior]
+        } else {
+            buffer.hitTestRegions.insert(interior, at: 0)
+        }
     }
 
     /// The body wrapped in a `ScrollView` so an over-tall one scrolls instead of
@@ -734,30 +741,12 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // the middle of a list is unaffected — and let `revealTarget` add it
         // back on the whole-control path.
         let hasFooter = !(footerBuffer?.isEmpty ?? true)
-        /// Marks the rule against the regions it is flush with — only those, so
-        /// a row in the middle of a list is unaffected.
-        func outset(_ regions: [HitTestRegion], top: Int, bottom: Int?) -> [HitTestRegion] {
-            regions.map { region in
-                var region = region
-                if region.offsetY == top { region.revealOutsetTop += 1 }
-                if let bottom, region.offsetY + region.height == bottom {
-                    region.revealOutsetBottom += 1
-                }
-                return region
-            }
-        }
-        var carriedRegions = outset(
-            bodyBuffer.shiftedHitTestRegions(byX: 1, y: 1), top: 1,
-            // With a footer below it, the body's last row is not against the
-            // bottom rule — the footer's is.
-            bottom: hasFooter ? nil : 1 + bodyBuffer.lines.count)
+        let footerRow = 1 + bodyBuffer.lines.count + (style.showFooterSeparator ? 1 : 0)
         if let footerBuf = footerBuffer, !footerBuf.isEmpty {
-            let footerRow = 1 + bodyBuffer.lines.count + (style.showFooterSeparator ? 1 : 0)
             carriedOverlays += footerBuf.shiftedOverlays(byX: 1, y: footerRow)
-            carriedRegions += outset(
-                footerBuf.shiftedHitTestRegions(byX: 1, y: footerRow), top: -1,
-                bottom: footerRow + footerBuf.lines.count)
         }
+        let carriedRegions = Self.borderedRegions(
+            body: bodyBuffer, footer: hasFooter ? footerBuffer : nil, footerRow: footerRow)
         result.overlays = carriedOverlays
         // The rules are drawn over what the body and the footer draw past
         // their regions, as SwiftUI's border is (decisions-GUIDE3 B-GUIDE3-5).
@@ -773,6 +762,38 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
             borderStyle: borderStyle, borderColor: borderColor,
             focusIndicator: focusIndicator, lineCount: lines.count, palette: palette)
         return result
+    }
+
+    /// The body's and the footer's regions as a bordered box carries them:
+    /// moved one column in, the body's one row down and the footer's to
+    /// `footerRow`, and each marked against the rule it is flush with — only
+    /// those, so a row in the middle of a list is unaffected
+    /// (``HitTestRegion/revealOutsetTop``). With a footer below it, the body's
+    /// last row is not against the bottom rule; the footer's is.
+    ///
+    /// Shifted and marked in one pass, into one array sized up front for the
+    /// body's regions, the footer's, and the selection interior
+    /// `fileInterior(of:context:)` puts in front of them. It was a shifted copy,
+    /// a marked copy of that, and a regrowth for the interior: three arrays a
+    /// box where one does.
+    static func borderedRegions(body: FrameBuffer, footer: FrameBuffer?, footerRow: Int) -> [HitTestRegion] {
+        let footerRegions = footer?.hitTestRegions ?? []
+        guard !body.hitTestRegions.isEmpty || !footerRegions.isEmpty else { return [] }
+        var carried: [HitTestRegion] = []
+        carried.reserveCapacity(body.hitTestRegions.count + footerRegions.count + 1)
+        func carry(_ regions: [HitTestRegion], dy: Int, top: Int, bottom: Int?) {
+            for region in regions {
+                var region = region.shifted(byX: 1, y: dy)
+                if region.offsetY == top { region.revealOutsetTop += 1 }
+                if let bottom, region.offsetY + region.height == bottom {
+                    region.revealOutsetBottom += 1
+                }
+                carried.append(region)
+            }
+        }
+        carry(body.hitTestRegions, dy: 1, top: 1, bottom: footer == nil ? 1 + body.lines.count : nil)
+        if let footer { carry(footerRegions, dy: footerRow, top: -1, bottom: footerRow + footer.lines.count) }
+        return carried
     }
 
     /// Every translucent cell of a bordered container: the ones its content
