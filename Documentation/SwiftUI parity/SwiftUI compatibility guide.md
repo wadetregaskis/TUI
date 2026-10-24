@@ -810,7 +810,8 @@ the focused view presses that key once the menu has closed and handed the
 focus back. SwiftUI's opt-in sets fill the View and Edit menus:
 `SidebarCommands` (Show/Hide Sidebar, the split view's ⌃⌘S), `InspectorCommands`
 (Show/Hide Inspector, ⌃⌘I), `ToolbarCommands` (Hide/Show Toolbar, ⌥⌘T, the
-person's choice over the page's top bar; no Customize Toolbar…) and
+person's choice over the page's top bar; and Customize Toolbar…, the panel of
+the page's `toolbar(id:content:)`, disabled where it has none) and
 `TextEditingCommands` (Find… and Find Next, a `TextEditor`'s ⌃F and ⌃G,
 disabled unless an editor that can find has the focus, as AppKit validates
 them against the responder chain); `TextFormattingCommands`

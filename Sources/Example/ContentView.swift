@@ -216,21 +216,33 @@ struct ContentView: View {
             // The window's bars, declared once for every page — so they never
             // move as the pages change. The top bar's title slot shows the
             // page's own `.navigationTitle` (and `.navigationSubtitle`), with
-            // the version beside it; the bottom bar is the line of key hints.
+            // the version beside it. It is customizable (`toolbar(id:)`), so
+            // View ▸ Customize Toolbar…, or a right-click on the bar, lets the
+            // reader add what F2 and F3 do as buttons, which start out of it.
+            .toolbar(id: "example.main") {
+                ToolbarItem(id: "palette", placement: .primaryAction) {
+                    Button(L("commands.nextPalette")) { nextPalette() }
+                }
+                .defaultCustomization(.hidden)
+                ToolbarItem(id: "border", placement: .primaryAction) {
+                    Button(L("commands.nextBorder")) { nextBorder() }
+                }
+                .defaultCustomization(.hidden)
+                ToolbarItem(id: "version", placement: .primaryAction) { DemoVersionInfo() }
+            }
+            // The bottom bar, the line of key hints: not customizable.
             .toolbar {
-                ToolbarItem(placement: .primaryAction) { DemoVersionInfo() }
                 ToolbarItem(placement: .bottomBar) { StatusBar() }
             }
-            // What the menu bar's commands act on (`ExampleCommands`): the
-            // page, and what F2 and F3 do — published for the scene, so the
-            // commands see them wherever the focus is.
+            // What the menu bar's Go menu acts on (`ExampleCommands`): the
+            // page, published for the scene, so the commands see it wherever
+            // the focus is.
             .focusedSceneValue(\.examplePage, pageSetter)
-            .focusedSceneValue(
-                \.exampleThemeActions, ExampleThemeActions(nextPalette: nextPalette, nextBorder: nextBorder))
     }
 
-    /// Loads the next built-in preset into the app palette: F2, and the View
-    /// menu's Next Palette.
+    /// Loads the next built-in preset into the app palette: F2, and the top
+    /// bar's Next Palette button (View ▸ Customize Toolbar… adds it; View ▸
+    /// Palette picks a preset by name).
     ///
     /// From the palette on SCREEN, not from this view's own cursor: the Theme
     /// page's picker changes the palette without touching `presetIndex`, after
@@ -243,9 +255,9 @@ struct ContentView: View {
         palette = CustomizablePalette(from: PaletteRegistry.all[presetIndex])
     }
 
-    /// Cycles the border appearance globally: F3, and the View menu's Next
-    /// Border Style. `@Environment` resolves correctly inside the handlers
-    /// that call it.
+    /// Cycles the border appearance globally: F3, and the top bar's Next
+    /// Border Style button (View ▸ Border Style picks one by name).
+    /// `@Environment` resolves correctly inside the handlers that call it.
     private func nextBorder() {
         appearanceManager?.cycleNext()
     }

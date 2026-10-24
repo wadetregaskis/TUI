@@ -66,9 +66,9 @@ struct ExampleApp: App {
         // style for every bar, chosen on the Theme page.
         .windowToolbarStyle(styling.toolbarStyle.style)
         // The menu bar, on the top row: declaring commands shows it. The app's
-        // menu (with Settings…), Edit and Window are TUIkit's; File and View add
-        // the Example's own. F10 opens it, as does a click on a title.
-        .commands { ExampleCommands() }
+        // menu (with Settings…), Edit, Window and Help are TUIkit's; View and
+        // Go add the Example's own. F10 opens it, as does a click on a title.
+        .commands { ExampleCommands(palette: $palette, styling: $styling) }
         // What the app menu's About says: a SwiftPM executable has no
         // Info.plist to say it, so the scene does (a TUIkit modifier).
         .aboutPanel(

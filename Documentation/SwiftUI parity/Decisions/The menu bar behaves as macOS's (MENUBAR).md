@@ -6,10 +6,42 @@ in its format, for the owner's items of 2026-10-23 on the menu bar (#1, #2,
 #3–#8, #25–#27), following [`The menu bar (O13).md`](<The menu bar (O13).md>).
 2026-10-24.*
 
-- **A. Needs your decision.** None.
+- **A. Needs your decision.** One: whether TUIkit offers a standard command
+  set for display options (A-MENUBAR-1).
 - **B. Shipped the safe option.** See below, each with its fuller version and
   price.
 - **C. Declined without asking.** None.
+
+## A. Needs your decision
+
+### A-MENUBAR-1. A standard command set for display options
+
+*Owner item #6: "maybe a default TUIkit View menu with display options (theme
+submenu, toggles…)".*
+
+The Example's View menu now has them, written in the Example: Palette ▸ (a
+`Picker` over the built-in presets, as a submenu, the current one checked),
+Border Style ▸ (a `Picker` over the built-in appearances) and Text Styling ▸
+(two `Toggle`s). Whether TUIkit should offer the same to every app, as SwiftUI
+offers `ToolbarCommands` and `SidebarCommands`, is a public API question:
+
+1. **Nothing in TUIkit** (today). An app writes its own, as the Example does —
+   twenty lines with `Picker`s over `PaletteRegistry.all` and
+   `AppearanceRegistry.all`. Free.
+2. **`DisplayCommands()`, a TUIkit-only standard set** adding View ▸ Palette ▸
+   and View ▸ Border Style ▸, acting on the app's palette and appearance
+   managers (`\.paletteManager`, `\.appearanceManager`) as the `t` and `a` keys
+   do. The catch: an app that holds its palette itself and applies it with
+   `.palette(_:)` or `.theme(_:)` at the scene — the Example does, to edit it
+   on the Theme page — overrides the manager, so the set's Palette would do
+   nothing visible there; it would have to be documented as acting on the
+   managers only, or take a binding. Half a day with tests.
+3. **2, plus a binding form**, `DisplayCommands(palette: $palette)`, for an
+   app that holds its palette. A day.
+
+**Recommendation: 2.** It is what `t` and `a` already do, offered where a Mac
+reader looks for it, and an app that holds its own palette, as the Example
+does, writes its own, as the Example now shows.
 
 ## B. Shipped the safe option
 
@@ -81,3 +113,33 @@ like the toolbar's configuration), and a "help browse" mode for the keyboard —
 step from panel to panel of the `.always` view, the focus following — which
 B-HELP-2 left open. Half a day for persistence; the browse mode a lane-day with
 its focus design.
+
+### B-MENUBAR-4. The Example's menus: Go, the View submenus, and a customizable top bar
+
+*`ExampleCommands`, `ContentView`*
+
+**Shipped:** the page navigation moved out of File into a Go menu, as Finder's,
+and File went with it (nothing else belongs there; TUIkit draws a standard menu
+only when something is in it). Main Menu shows Escape, the key the pages
+already go back with, and is disabled on the main menu; Previous Page is ⌃B
+and Next Page ⌃T. Finder's ⌘[ and ⌘] cannot be had: ⌃[ is Escape's byte and ⌃]
+a byte TUIkit does not read; and of the Control letters a terminal sends as
+themselves, A, C, D, F, G, K, N, O, R, S, V, X and Z are bound already (a list's
+or table's row keys, the clipboard and undo, a text editor's find, the Menus
+page's ⌘ shortcuts), and E is a text editor's end of line. B and T are only a
+text control's Emacs chords, which give way to an app's shortcut. View gains
+Palette ▸, Border Style ▸ (disabled while the Theme page's custom border is in
+force) and Text Styling ▸, the submenu, checked-item, picker-as-submenu and
+disabled-item examples the owner asked for. The top bar is a
+`toolbar(id:)`, so Customize Toolbar… is enabled and offers the F2 and F3
+actions as buttons, which start out of the bar.
+
+**Not done: "Customise" (en-GB).** TUIkit's strings have one English table, in
+US spelling, as Apple's base English is; an en-GB table of the few words that
+differ (Customise, Colour, …) would need the localization service to fall back
+from a regional table to its language's, which it does not. Half a day; worth
+it with a second regional language to justify the mechanism.
+
+**The fuller version:** decode ⌃] (`0x1D`) so Next Page can be Finder's ⌘], with
+⌃B for Back. An hour with a survey row, but ⌃[ stays Escape, so the pair would
+not match.
