@@ -273,8 +273,7 @@ struct GhosttyWarpCompatibilityTests {
     func ghosttyDoesNotStripSkinTones() {
         // Ghostty renders 👍🏽 as one merged 2-cell glyph. Stripping (as the
         // iTerm2/Warp paths must) would throw that away for nothing.
-        let writer = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: true, isWarp: false)
+        let writer = FrameDiffWriter(program: .ghostty)
         let line = buildLine(writer, raw: "\u{1F44D}\u{1F3FD}")
         #expect(line.hasSkinToneModifier, "modifier must survive: \(line.debugDescription)")
     }
@@ -288,8 +287,7 @@ struct GhosttyWarpCompatibilityTests {
         // only the no-traits fallback below, so the real configuration's
         // pipeline had no pin at all.
         TerminalWidthTraits.withTraits(TerminalClient.widthTraits(of: .warp)) {
-            let writer = FrameDiffWriter(
-                isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: true)
+            let writer = FrameDiffWriter(program: .warp)
             let line = buildLine(writer, raw: "\u{1F44D}\u{1F3FD}")
             #expect(line.hasSkinToneModifier, "modifier must survive: \(line.debugDescription)")
         }
@@ -302,8 +300,7 @@ struct GhosttyWarpCompatibilityTests {
         // 2-cell claim is in force, Warp would paint base + swatch at 4 —
         // confirmed visually as a sheared feature-box border in the demo app
         // — so the strip restores the claim at the cost of the tone.
-        let writer = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: true)
+        let writer = FrameDiffWriter(program: .warp)
         let line = buildLine(writer, raw: "\u{1F44D}\u{1F3FD}")
         #expect(!line.hasSkinToneModifier, "modifier must be stripped: \(line.debugDescription)")
         #expect(line.contains("\u{1F44D}"), "base must survive")
@@ -313,8 +310,7 @@ struct GhosttyWarpCompatibilityTests {
     @MainActor
     func warpWriterDropsJoinersUnderPublishedTraits() {
         TerminalWidthTraits.withTraits(TerminalClient.widthTraits(of: .warp)) {
-            let writer = FrameDiffWriter(
-                isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: true)
+            let writer = FrameDiffWriter(program: .warp)
             let line = buildLine(writer, raw: "\u{1F469}\u{200D}\u{1F680}")
             #expect(!line.unicodeScalars.contains { $0.value == 0x200D }, "joiner dropped")
             #expect(line.contains("\u{1F469}") && line.contains("\u{1F680}"), "segments kept")
@@ -326,9 +322,7 @@ struct GhosttyWarpCompatibilityTests {
     func unknownHostUnchanged() {
         // The safety property the whole gating exists for: kitty, WezTerm,
         // Alacritty, Linux consoles… get no rewriting at all.
-        let writer = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false,
-            isGnomeTerminal: false, isTmux: false)
+        let writer = FrameDiffWriter(program: .unidentified)
         let line = buildLine(writer, raw: "\u{2B1B}\u{FE0E}\u{1F44D}\u{1F3FD}")
         #expect(!line.contains("\u{1B}[1C"), "no CUF for an unknown host")
         #expect(line.hasSkinToneModifier, "no strip for an unknown host")

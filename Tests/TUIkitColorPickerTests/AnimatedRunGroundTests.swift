@@ -98,8 +98,7 @@ struct AnimatedRunGroundTests {
     private func built(_ view: some View) -> (rows: [String], runs: [AnimatedCellRun]) {
         let context = makeRenderContext(width: Self.width, height: 12)
         let buffer = ColorDepth.withCurrent(.truecolor) { renderToScreen(view, context: context) }
-        let writer = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let writer = FrameDiffWriter(program: .unidentified)
         let rows = writer.buildOutputLines(
             buffer: buffer, terminalWidth: Self.width, terminalHeight: buffer.lines.count,
             bgCode: Self.page, reset: ANSIRenderer.reset)
@@ -172,8 +171,7 @@ struct AnimatedRunGroundTests {
         let buffer = ColorDepth.withCurrent(.truecolor) {
             renderToScreen(painter.view(probe), context: context)
         }
-        let writer = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let writer = FrameDiffWriter(program: .unidentified)
         let rows = writer.buildOutputLines(
             buffer: buffer, terminalWidth: Self.width, terminalHeight: buffer.lines.count,
             bgCode: Self.page, reset: ANSIRenderer.reset)
@@ -329,8 +327,7 @@ struct AnimatedRunGroundTests {
             }
         }
         try #require(!buffer.animatedCells.isEmpty, "the dim dropped the probe's run")
-        let writer = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let writer = FrameDiffWriter(program: .unidentified)
         let rows = writer.buildOutputLines(
             buffer: buffer, terminalWidth: Self.width, terminalHeight: buffer.lines.count,
             bgCode: Self.page, reset: ANSIRenderer.reset)

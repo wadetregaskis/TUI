@@ -396,8 +396,7 @@ struct FadedTerminalFieldTests {
             }
             let buffer = ColorDepth.withCurrent(.truecolor) { renderToScreen(view, context: context) }
             let run = try #require(buffer.animatedCells.first, "the spinner left no run")
-            let writer = FrameDiffWriter(
-                isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+            let writer = FrameDiffWriter(program: .unidentified)
             for index in run.frames.indices {
                 let replayed = FrameBuffer.patchingAnimatedCells(in: buffer.lines[0], replaying: run, atIndex: index)
                 let written = ColorDepth.withCurrent(.truecolor) {

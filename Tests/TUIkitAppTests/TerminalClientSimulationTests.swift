@@ -37,9 +37,7 @@ struct TerminalClientSimulationTests {
     /// A writer that has detected nothing — the state an unknown terminal
     /// leaves things in, and the one a simulation has to be able to override.
     private static var unidentified: FrameDiffWriter {
-        FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false,
-            isGnomeTerminal: false, isTmux: false)
+        FrameDiffWriter(program: .unidentified)
     }
 
     @Test("A simulated program applies its workarounds to a writer that detected nothing")
@@ -62,9 +60,7 @@ struct TerminalClientSimulationTests {
     func changingTheModelInvalidates() async {
         await #expect(processExitsWith: .success) {
             await MainActor.run {
-                let writer = FrameDiffWriter(
-                    isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false,
-                    isGnomeTerminal: false, isTmux: false)
+                let writer = FrameDiffWriter(program: .unidentified)
                 // Build once so the reuse cache is populated, then change the
                 // model. A row whose BYTES did not change would otherwise be
                 // served from cache still carrying the previous model's
@@ -137,8 +133,7 @@ struct TerminalClientSimulationTests {
     func detectionStillWins() {
         #expect(TerminalClient.simulated == nil)
         #expect(TerminalClient.simulatedQuirks == nil)
-        let apple = FrameDiffWriter(
-            isAppleTerminal: true, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let apple = FrameDiffWriter(program: .appleTerminal)
         #expect(Self.row("🖥️X", on: apple).contains("\u{1B}[1C"))
     }
 }

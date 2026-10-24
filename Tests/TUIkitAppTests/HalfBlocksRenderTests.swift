@@ -124,15 +124,15 @@ struct HalfBlocksRenderTests {
             let reset = "\u{1B}[0m"
             // Exercise both output paths — the Terminal.app cursor-compensation
             // path and the plain path — since both rewrite the line.
-            for isAppleTerminal in [false, true] {
-                let writer = FrameDiffWriter(isAppleTerminal: isAppleTerminal)
+            for program in [TerminalClient.Program.unidentified, .appleTerminal] {
+                let writer = FrameDiffWriter(program: program)
                 let output = writer.buildOutputLines(
                     buffer: buffer, terminalWidth: 20, terminalHeight: raw.count,
                     bgCode: backgroundCode, reset: reset)
                 for row in 0..<raw.count {
                     #expect(
                         backgroundsAtBlocks(in: output[row]) == backgroundsAtBlocks(in: raw[row]),
-                        "apple=\(isAppleTerminal) row \(row): a cell background was altered by line building")
+                        "program=\(program) row \(row): a cell background was altered by line building")
                 }
             }
         }

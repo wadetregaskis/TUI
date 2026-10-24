@@ -283,6 +283,27 @@ package enum TerminalHost {
         return hostProgram(environment: environment) == "tmux"
     }
 
+    /// Detects the host terminal program from the environment.
+    ///
+    /// Checks tmux first: tmux owns the grid, so which native terminal's
+    /// variables leaked into the pane must make no difference.
+    package static func detectProgram(
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> TerminalClient.Program {
+        if detectTmux(environment: environment) {
+            return .tmux
+        }
+        guard let name = hostProgram(environment: environment) else {
+            return .unidentified
+        }
+        return TerminalClient.Program(termProgramName: name)
+    }
+
+    /// The detected host terminal program for this process.
+    package static var program: TerminalClient.Program {
+        detectProgram(environment: ProcessInfo.processInfo.environment)
+    }
+
     // MARK: - tmux client identification
 
     /// One terminal attached to a tmux session — what tmux will tell us about

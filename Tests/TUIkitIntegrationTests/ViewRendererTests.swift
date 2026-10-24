@@ -66,8 +66,7 @@ struct ViewRendererTests {
         mock.size = (30, 4)
         // The host is detected once from the process environment, so which
         // model is under test has to be said rather than arranged.
-        let appleTerminal = FrameDiffWriter(
-            isAppleTerminal: true, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let appleTerminal = FrameDiffWriter(program: .appleTerminal)
 
         ViewRenderer(terminal: mock, writer: appleTerminal).render(Text("⚙️ settings"))
 
@@ -84,8 +83,7 @@ struct ViewRendererTests {
     func unmodelledHostsAreUntouched() {
         let mock = MockTerminal()
         mock.size = (30, 4)
-        let plain = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let plain = FrameDiffWriter(program: .unidentified)
 
         ViewRenderer(terminal: mock, writer: plain).render(Text("⚙️ settings"))
 

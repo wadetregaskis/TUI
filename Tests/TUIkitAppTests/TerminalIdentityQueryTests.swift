@@ -214,9 +214,7 @@ struct TerminalIdentityQueryTests {
         // The seed goes into the environment, so spell out what the detectors
         // then see rather than mutating this process's own.
         let environment = ["TUIKIT_TERM_PROGRAM": discovered ?? ""]
-        let writer = FrameDiffWriter(
-            isAppleTerminal: TerminalHost.detectAppleTerminal(environment: environment),
-            isITerm2: false, isGhostty: false, isWarp: false, isGnomeTerminal: false, isTmux: false)
+        let writer = FrameDiffWriter(program: TerminalHost.detectProgram(environment: environment))
         let line = writer.buildOutputLines(
             buffer: FrameBuffer(text: "🖥️X"), terminalWidth: 8, terminalHeight: 1,
             bgCode: "", reset: "")[0]

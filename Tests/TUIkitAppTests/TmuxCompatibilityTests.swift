@@ -284,31 +284,19 @@ struct TmuxCompatibilityTests {
     @Test(
         "Under tmux, a leaked native-host flag changes NOTHING in the output",
         arguments: [
-            // (isAppleTerminal, isITerm2, isGhostty, isWarp, isGnomeTerminal)
-            (true, false, false, false, false),  // tmux < 3.2 from Apple Terminal: $TMUX set, TERM_PROGRAM=Apple_Terminal
-            (false, true, false, false, false),  // a re-exported iTerm.app
-            (false, false, true, false, false),  // ditto Ghostty
-            (false, false, false, true, false),  // ditto Warp
-            (false, false, false, false, true),  // GNOME Terminal (VTE_VERSION)
-        ] as [(Bool, Bool, Bool, Bool, Bool)])
+            ["TMUX": "/tmp/tmux-1000/default", "TERM_PROGRAM": "Apple_Terminal"],
+            ["TMUX": "/tmp/tmux-1000/default", "TERM_PROGRAM": "iTerm.app"],
+            ["TMUX": "/tmp/tmux-1000/default", "TERM_PROGRAM": "ghostty"],
+            ["TMUX": "/tmp/tmux-1000/default", "TERM_PROGRAM": "WarpTerminal"],
+            ["TMUX": "/tmp/tmux-1000/default", "VTE_VERSION": "7600"],
+        ]
+    )
     @MainActor
-    func leakedNativeFlagIsInertUnderTmux(
-        apple: Bool, iterm: Bool, ghostty: Bool, warp: Bool, gnome: Bool
-    ) {
-        // The bug: only the compensation dispatch checked isTmux. The right-edge
-        // clip (FrameDiffWriter :297) and repaintRightEdge (:516) branched on the
-        // bare native flag, so a pane where BOTH isTmux and a native flag are true
-        // — a live case on tmux < 3.2, which never overwrote TERM_PROGRAM — applied
-        // the outer terminal's advance model to tmux's grid.
-        //
+    func leakedNativeFlagIsInertUnderTmux(env: [String: String]) {
         // The invariant: under tmux, tmux owns the grid, so which native terminal
-        // the flag names must make no difference to a single emitted byte.
-        let pureTmux = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false,
-            isGnomeTerminal: false, isTmux: true)
-        let leaked = FrameDiffWriter(
-            isAppleTerminal: apple, isITerm2: iterm, isGhostty: ghostty, isWarp: warp,
-            isGnomeTerminal: gnome, isTmux: true)
+        // the environment names must make no difference to a single emitted byte.
+        let pureTmux = FrameDiffWriter(program: .tmux)
+        let leaked = FrameDiffWriter(program: TerminalHost.detectProgram(environment: env))
 
         // A line that fills to the right edge and ends in a cursor-advance quirk —
         // exactly what the Terminal.app clip and repaintRightEdge special-case, so
@@ -332,8 +320,7 @@ struct TmuxCompatibilityTests {
         // renders SMP-base tones (Ghostty alone, measured), .all otherwise —
         // stripping at SOURCE is the one fix that survives tmux's verbatim
         // re-emission (no CUF can reach the client).
-        let writer = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: true)
+        let writer = FrameDiffWriter(program: .tmux)
         let thumbs = "\u{1F44D}\u{1F3FD} ok"  // SMP base + tone
 
         writer.tmuxSkinToneScope = .all

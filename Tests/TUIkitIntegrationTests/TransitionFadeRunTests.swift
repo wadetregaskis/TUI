@@ -180,8 +180,7 @@ struct TransitionFadeRunTests {
             ).buffer
         }
         let page = ColorDepth.withCurrent(.truecolor) { ANSIRenderer.backgroundCode(for: palette.background) }
-        let writer = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let writer = FrameDiffWriter(program: .unidentified)
         let rows = writer.buildOutputLines(
             buffer: buffer, terminalWidth: 20, terminalHeight: buffer.lines.count, bgCode: page,
             reset: ANSIRenderer.reset)

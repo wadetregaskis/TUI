@@ -55,9 +55,7 @@ struct ReplayCursorCompensationTests {
 
         return (
             buffer,
-            FrameDiffWriter(
-                isAppleTerminal: true, isITerm2: false, isGhostty: false, isWarp: false,
-                isTmux: false)
+            FrameDiffWriter(program: .appleTerminal)
         )
     }
 
@@ -94,8 +92,7 @@ struct ReplayCursorCompensationTests {
         // The call the replay makes, on a writer told it is talking to
         // Terminal.app — which a test cannot arrange through `TerminalHost`,
         // whose answer is detected once from the process environment.
-        let writer = FrameDiffWriter(
-            isAppleTerminal: true, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let writer = FrameDiffWriter(program: .appleTerminal)
         for index in run.frames.indices {
             let patched = writer.patchingAnimatedRun(
                 run, showing: run.frame(atIndex: index), in: built, fields: run.fields(onPage: ""))
@@ -121,8 +118,7 @@ struct ReplayCursorCompensationTests {
     @Test("Compensating a frame does not change how many cells it claims")
     func compensationIsWidthNeutral() throws {
         let (run, _) = try breathingRow(width: 40)
-        let writer = FrameDiffWriter(
-            isAppleTerminal: true, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let writer = FrameDiffWriter(program: .appleTerminal)
         for index in run.frames.indices {
             let raw = run.frame(atIndex: index)
             #expect(
@@ -137,8 +133,7 @@ struct ReplayCursorCompensationTests {
     @Test("A host with no advance model is left alone")
     func unmodelledHostsAreUntouched() throws {
         let (run, _) = try breathingRow(width: 40)
-        let plain = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let plain = FrameDiffWriter(program: .unidentified)
         let raw = run.frame(atIndex: 0)
         #expect(plain.compensatingCursorAdvance(raw) == raw)
     }
@@ -149,8 +144,7 @@ struct ReplayCursorCompensationTests {
     /// the strip it would have taken as part of a whole row.
     @Test("A compensated fragment keeps the user's scalars and conserves the internal column")
     func fragmentsKeepScalarsAndConserve() {
-        let writer = FrameDiffWriter(
-            isAppleTerminal: true, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let writer = FrameDiffWriter(program: .appleTerminal)
         let cluster = "\u{270A}\u{1F3FB}"  // ✊🏻 — 2 cells; internal advance 4
         // The tone the user asked for is kept in every position. It used to be
         // stripped whenever the row continued past the cluster, which kept
@@ -194,9 +188,7 @@ struct ReplayBackgroundTests {
     /// keeps the row's background.
     @Test("A run's frame keeps the page's background through a collapsed reset")
     func theFrameKeepsThePage() {
-        let writer = FrameDiffWriter(
-            isAppleTerminal: true, isITerm2: false, isGhostty: false, isWarp: false,
-            isTmux: false)
+        let writer = FrameDiffWriter(program: .appleTerminal)
         let row = Self.page + "\u{1B}[2K" + "aaaaa" + ANSIRenderer.reset
         let frame = "\u{1B}[0;38;5;34m" + "bb" + ANSIRenderer.reset
         let run = Self.run(frame, at: 1..<3)
@@ -219,9 +211,7 @@ struct ReplayBackgroundTests {
     /// must not inherit the terminal's background either.
     @Test("The row continues in its background after the run")
     func theRowContinuesInTheBackground() {
-        let writer = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false,
-            isTmux: false)
+        let writer = FrameDiffWriter(program: .unidentified)
         let row = Self.page + "\u{1B}[2K" + "aaaaa" + ANSIRenderer.reset
         let frame = "\u{1B}[38;5;34m" + "bb" + ANSIRenderer.reset
         let run = Self.run(frame, at: 1..<3)
@@ -245,9 +235,7 @@ struct ReplayBackgroundTests {
     /// the writer on a page of another colour.
     @Test("A run in a container keeps the container's background after its own resets")
     func aRunKeepsItsContainersBackground() {
-        let writer = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false,
-            isTmux: false)
+        let writer = FrameDiffWriter(program: .unidentified)
         let panel = "\u{1B}[48;5;22m"
         let chip = "\u{1B}[48;5;28m"
         let row = writer.buildOutputLines(

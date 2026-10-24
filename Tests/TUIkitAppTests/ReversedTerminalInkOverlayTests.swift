@@ -81,8 +81,7 @@ struct ReversedTerminalInkOverlayTests {
             environment.palette = palette
         }
         let buffer = ColorDepth.withCurrent(.truecolor) { renderToScreen(view, context: context) }
-        let writer = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+        let writer = FrameDiffWriter(program: .unidentified)
         let rows = ColorDepth.withCurrent(.truecolor) {
             writer.buildOutputLines(
                 buffer: buffer, terminalWidth: 12, terminalHeight: buffer.lines.count,

@@ -197,13 +197,7 @@ struct TerminalHostIdentificationTests {
     @MainActor
     func environmentReachesTheWire() {
         func row(environment: [String: String]) -> String {
-            let writer = FrameDiffWriter(
-                isAppleTerminal: TerminalHost.detectAppleTerminal(environment: environment),
-                isITerm2: TerminalHost.detectITerm2(environment: environment),
-                isGhostty: TerminalHost.detectGhostty(environment: environment),
-                isWarp: TerminalHost.detectWarp(environment: environment),
-                isGnomeTerminal: TerminalHost.detectGnomeTerminal(environment: environment),
-                isTmux: TerminalHost.detectTmux(environment: environment))
+            let writer = FrameDiffWriter(program: TerminalHost.detectProgram(environment: environment))
             return writer.buildOutputLines(
                 buffer: FrameBuffer(text: "🖥️X"), terminalWidth: 8, terminalHeight: 1,
                 bgCode: "", reset: "")[0]

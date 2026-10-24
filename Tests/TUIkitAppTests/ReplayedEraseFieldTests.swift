@@ -35,10 +35,17 @@ struct ReplayedEraseFieldTests {
     enum Host: String, CaseIterable, Sendable {
         case appleTerminal, iTerm2, ghostty, warp
 
+        var program: TerminalClient.Program {
+            switch self {
+            case .appleTerminal: .appleTerminal
+            case .iTerm2: .iTerm2
+            case .ghostty: .ghostty
+            case .warp: .warp
+            }
+        }
+
         @MainActor var writer: FrameDiffWriter {
-            FrameDiffWriter(
-                isAppleTerminal: self == .appleTerminal, isITerm2: self == .iTerm2,
-                isGhostty: self == .ghostty, isWarp: self == .warp, isTmux: false)
+            FrameDiffWriter(program: program)
         }
 
         /// Two cells claimed, fewer advanced — measured per host; see

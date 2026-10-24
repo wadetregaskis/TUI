@@ -256,8 +256,8 @@ struct FrameDiffWriterTerminalGatingTests {
     /// independent of the host's Unicode property tables.
     private let underAdvancer = "\u{1F1E6}"  // 🇦
 
-    private func firstLine(isAppleTerminal: Bool) -> String {
-        FrameDiffWriter(isAppleTerminal: isAppleTerminal).buildOutputLines(
+    private func firstLine(program: TerminalClient.Program) -> String {
+        FrameDiffWriter(program: program).buildOutputLines(
             buffer: FrameBuffer(text: underAdvancer + "x"),
             terminalWidth: 20, terminalHeight: 1, bgCode: "", reset: ""
         )[0]
@@ -265,12 +265,12 @@ struct FrameDiffWriterTerminalGatingTests {
 
     @Test("Apple_Terminal still gets cursor compensation (a CUF after the emoji)")
     func appleTerminalCompensates() {
-        #expect(firstLine(isAppleTerminal: true).contains("\u{1B}[1C"))
+        #expect(firstLine(program: .appleTerminal).contains("\u{1B}[1C"))
     }
 
     @Test("Other terminals get NO compensation — it would corrupt them")
     func otherTerminalsUntouched() {
-        let line = firstLine(isAppleTerminal: false)
+        let line = firstLine(program: .unidentified)
         #expect(!line.contains("\u{1B}[1C"))    // no spurious CUF injected
         #expect(line.contains(underAdvancer))    // the emoji passes through verbatim
     }
@@ -401,7 +401,7 @@ struct CursorAdvanceModelTests {
 
     @Test("The writer's iTerm2 path applies strip THEN compensation")
     func writerITerm2PathComposes() {
-        let line = FrameDiffWriter(isAppleTerminal: false, isITerm2: true).buildOutputLines(
+        let line = FrameDiffWriter(program: .iTerm2).buildOutputLines(
             buffer: FrameBuffer(text: "\u{1F44D}\u{1F3FD} \u{100038} x"),
             terminalWidth: 30, terminalHeight: 1, bgCode: "", reset: ""
         )[0]
@@ -411,10 +411,7 @@ struct CursorAdvanceModelTests {
 
     @Test("The writer's GNOME Terminal path applies compensation for under-advancers")
     func writerGnomeTerminalPathComposes() {
-        let line = FrameDiffWriter(
-            isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false,
-            isGnomeTerminal: true, isTmux: false
-        ).buildOutputLines(
+        let line = FrameDiffWriter(program: .gnomeTerminal).buildOutputLines(
             buffer: FrameBuffer(text: "❤️ \u{1FAC6} x"),
             terminalWidth: 30, terminalHeight: 1, bgCode: "", reset: ""
         )[0]
@@ -425,8 +422,8 @@ struct CursorAdvanceModelTests {
 @Suite("FrameDiffWriter iTerm2 skin-tone fallback")
 @MainActor
 struct FrameDiffWriterITerm2GatingTests {
-    private func firstLine(text: String, isITerm2: Bool) -> String {
-        FrameDiffWriter(isAppleTerminal: false, isITerm2: isITerm2).buildOutputLines(
+    private func firstLine(text: String, program: TerminalClient.Program) -> String {
+        FrameDiffWriter(program: program).buildOutputLines(
             buffer: FrameBuffer(text: text),
             terminalWidth: 30, terminalHeight: 1, bgCode: "", reset: ""
         )[0]
@@ -445,7 +442,7 @@ struct FrameDiffWriterITerm2GatingTests {
         // accounting claims 2 — shifting the rest of the row right, so the
         // strip restores the claim. The shipped pipeline publishes
         // `.detachedOnBMPBases` at startup and keeps the modifier (next test).
-        let line = firstLine(text: "a\u{1F44D}\u{1F3FD}b", isITerm2: true)  // a👍🏽b
+        let line = firstLine(text: "a\u{1F44D}\u{1F3FD}b", program: .iTerm2)  // a👍🏽b
         #expect(!containsSkinTone(line), "modifier stripped: |\(line)|")
         #expect(line.contains("\u{1F44D}"), "the base emoji survives: |\(line)|")
         #expect(line.contains("b"), "trailing content survives: |\(line)|")
@@ -461,7 +458,7 @@ struct FrameDiffWriterITerm2GatingTests {
         // configuration's writer pipeline unpinned.
         TerminalWidthTraits.withTraits(TerminalClient.widthTraits(of: .iTerm2)) {
             for cluster in ["\u{1F44D}\u{1F3FD}", "\u{270A}\u{1F3FB}"] {
-                let line = firstLine(text: "a\(cluster)b", isITerm2: true)
+                let line = firstLine(text: "a\(cluster)b", program: .iTerm2)
                 #expect(containsSkinTone(line), "modifier survives: |\(line)|")
             }
         }
@@ -471,7 +468,7 @@ struct FrameDiffWriterITerm2GatingTests {
     func textPresentationBaseGainsVS16() {
         // ☝ renders 1 cell bare; the original cluster claimed 2 — the
         // fallback appends U+FE0F so the emoji rendering (2 cells) is kept.
-        let line = firstLine(text: "\u{261D}\u{1F3FD}x", isITerm2: true)  // ☝🏽x
+        let line = firstLine(text: "\u{261D}\u{1F3FD}x", program: .iTerm2)  // ☝🏽x
         #expect(!containsSkinTone(line))
         #expect(line.contains("\u{261D}\u{FE0F}"), "VS-16 restores the 2-cell claim: |\(line)|")
     }
@@ -480,13 +477,13 @@ struct FrameDiffWriterITerm2GatingTests {
     func standaloneModifierUntouched() {
         // The emoji-corpus list deliberately shows bare U+1F3FB…U+1F3FF rows
         // as 2-cell swatches — correctly claimed, so never stripped.
-        let line = firstLine(text: "[\u{1F3FD}]", isITerm2: true)
+        let line = firstLine(text: "[\u{1F3FD}]", program: .iTerm2)
         #expect(containsSkinTone(line), "standalone swatch kept: |\(line)|")
     }
 
     @Test("Non-iTerm2 terminals pass skin-tone clusters through verbatim")
     func otherTerminalsUntouched() {
-        let line = firstLine(text: "a\u{1F44D}\u{1F3FD}b", isITerm2: false)
+        let line = firstLine(text: "a\u{1F44D}\u{1F3FD}b", program: .unidentified)
         #expect(containsSkinTone(line), "no stripping off the allowlisted host: |\(line)|")
     }
 
@@ -553,8 +550,8 @@ struct FrameDiffWriterIncrementalReuseTests {
 
     @Test("Reusing build is byte-identical to the pure build, frame over frame")
     func reuseMatchesPureBuild() {
-        let writer = FrameDiffWriter(isAppleTerminal: false)
-        let oracle = FrameDiffWriter(isAppleTerminal: false)   // stateless reference
+        let writer = FrameDiffWriter(program: .unidentified)
+        let oracle = FrameDiffWriter(program: .unidentified)   // stateless reference
         let terminal = MockTerminal()
         let width = 20, height = 6
 
@@ -580,7 +577,7 @@ struct FrameDiffWriterIncrementalReuseTests {
 
     @Test("Unchanged rows are reused, not rebuilt")
     func unchangedRowsAreReused() {
-        let writer = FrameDiffWriter(isAppleTerminal: false)
+        let writer = FrameDiffWriter(program: .unidentified)
         let terminal = MockTerminal()
         let width = 20, height = 6
 
@@ -610,7 +607,7 @@ struct FrameDiffWriterIncrementalReuseTests {
         // that same store, so the next render handed the patched line back as
         // "what the builder would produce" — which then equalled the baseline,
         // so the row was never written again and the pulse colour stayed put.
-        let writer = FrameDiffWriter(isAppleTerminal: false)
+        let writer = FrameDiffWriter(program: .unidentified)
         let terminal = MockTerminal()
         let width = 20, height = 4
         let rows = ["alpha", "beta"]
@@ -648,7 +645,7 @@ struct FrameDiffWriterIncrementalReuseTests {
 
     @Test("A parameter change invalidates all reuse")
     func parameterChangeRebuildsEveryRow() {
-        let writer = FrameDiffWriter(isAppleTerminal: false)
+        let writer = FrameDiffWriter(program: .unidentified)
         let terminal = MockTerminal()
         let rows = ["a", "b", "c"]
         let height = 4
@@ -661,7 +658,7 @@ struct FrameDiffWriterIncrementalReuseTests {
         )
         #expect(writer.rowsBuiltInLastBuild == height)
         // And it still matches the pure build at the new width.
-        let want = FrameDiffWriter(isAppleTerminal: false).buildOutputLines(
+        let want = FrameDiffWriter(program: .unidentified).buildOutputLines(
             buffer: makeBuffer(rows), terminalWidth: 30, terminalHeight: height,
             bgCode: bg, reset: reset
         )
@@ -670,7 +667,7 @@ struct FrameDiffWriterIncrementalReuseTests {
 
     @Test("invalidate() forces a full rebuild on the next frame")
     func invalidateForcesRebuild() {
-        let writer = FrameDiffWriter(isAppleTerminal: false)
+        let writer = FrameDiffWriter(program: .unidentified)
         let terminal = MockTerminal()
         let width = 20, height = 5
 

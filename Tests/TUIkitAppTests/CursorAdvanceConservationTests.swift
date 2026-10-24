@@ -200,13 +200,7 @@ struct CursorAdvanceConservationTests {
         ])
     func replayPatchConservesTheAdvance(program: TerminalClient.Program, glyph: String) {
         TerminalWidthTraits.withTraits(TerminalClient.widthTraits(of: program)) {
-            let writer = FrameDiffWriter(
-                isAppleTerminal: program == .appleTerminal,
-                isITerm2: program == .iTerm2,
-                isGhostty: program == .ghostty,
-                isWarp: program == .warp,
-                isGnomeTerminal: program == .gnomeTerminal,
-                isTmux: false)
+            let writer = FrameDiffWriter(program: program)
             // The shape of a Toggle's row: the animated glyph at column 1, its
             // label after it. The label is what moves when the arithmetic slips.
             let raw = " " + glyph + " Enable Notifications"

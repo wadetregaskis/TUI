@@ -73,6 +73,19 @@ public struct TerminalClient: Sendable, Equatable {
             case .unidentified: nil
             }
         }
+
+        /// Resolves a program from a `TERM_PROGRAM`-style name.
+        public init(termProgramName: String?) {
+            switch termProgramName {
+            case "Apple_Terminal": self = .appleTerminal
+            case "iTerm.app", "iTerm2": self = .iTerm2
+            case "ghostty": self = .ghostty
+            case "WarpTerminal": self = .warp
+            case "gnome-terminal", "GNOME_Terminal", "vte": self = .gnomeTerminal
+            case "tmux": self = .tmux
+            default: self = .unidentified
+            }
+        }
     }
 
     /// What named the terminal — the diagnostic half of this type, because the
@@ -148,18 +161,7 @@ public struct TerminalClient: Sendable, Equatable {
     public static var current: Self {
         let environment = ProcessInfo.processInfo.environment
         let identity = TerminalHost.startupIdentity
-        let program: Program =
-            if TerminalHost.isTmux { .tmux } else if TerminalHost.isAppleTerminal {
-                .appleTerminal
-            } else if TerminalHost.isITerm2 {
-                .iTerm2
-            } else if TerminalHost.isGhostty {
-                .ghostty
-            } else if TerminalHost.isWarp {
-                .warp
-            } else if TerminalHost.isGnomeTerminal {
-                .gnomeTerminal
-            } else { .unidentified }
+        let program: Program = TerminalHost.detectProgram(environment: environment)
 
         // Order matters, and differs from the resolver's: the Device Attributes
         // answer is SEEDED into `TUIKIT_TERM_PROGRAM`, so asking the

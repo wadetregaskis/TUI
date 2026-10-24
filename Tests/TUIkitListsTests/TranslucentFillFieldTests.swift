@@ -277,8 +277,7 @@ struct TranslucentFillFieldTests {
             let page = ColorDepth.withCurrent(.truecolor) {
                 ANSIRenderer.backgroundCode(for: context.environment.palette.background)
             }
-            let writer = FrameDiffWriter(
-                isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+            let writer = FrameDiffWriter(program: .unidentified)
             let rows = writer.buildOutputLines(
                 buffer: buffer, terminalWidth: width, terminalHeight: buffer.lines.count,
                 bgCode: page, reset: ANSIRenderer.reset)
@@ -371,8 +370,7 @@ struct TranslucentFillFieldTests {
             let page = ColorDepth.withCurrent(.truecolor) {
                 ANSIRenderer.backgroundCode(for: context.environment.palette.background)
             }
-            let writer = FrameDiffWriter(
-                isAppleTerminal: false, isITerm2: false, isGhostty: false, isWarp: false, isTmux: false)
+            let writer = FrameDiffWriter(program: .unidentified)
             let rows = writer.buildOutputLines(
                 buffer: buffer, terminalWidth: width, terminalHeight: buffer.lines.count,
                 bgCode: page, reset: ANSIRenderer.reset)

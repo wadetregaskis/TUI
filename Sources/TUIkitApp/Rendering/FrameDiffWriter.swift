@@ -38,77 +38,15 @@ import TUIkitFoundation
 /// ```
 @MainActor
 final class FrameDiffWriter {
-    /// Whether the host terminal is macOS Terminal.app — the host with the
+    /// Which terminal's model this writer was built for, before any simulation.
+    private let detectedProgram: TerminalClient.Program
+
+    /// Whether this writer was built for macOS Terminal.app — the host with the
     /// deepest emoji divergences (three per-row facts: internal column,
     /// paint, row store) and so its own walk: tone separation, software ZWJ
     /// decomposition, store surgery, the right-edge phantom repaint (see
     /// ``buildOutputLines`` and ``repaintRightEdge``).
-    ///
-    /// Each measured host gets ITS model and no other's — an earlier note
-    /// here claimed every other terminal advances correctly, which was true
-    /// only of the classes then measured; iTerm2, Ghostty, Warp and tmux
-    /// each have their own (smaller) walks now. The gating still matters in
-    /// the same way it always did: applying one host's workarounds to
-    /// another CORRUPTS output (a spurious `CUF` shifts everything after an
-    /// emoji one cell right), and an UNIDENTIFIED terminal — kitty,
-    /// Alacritty, WezTerm, VS Code, the Linux consoles — gets no rewriting
-    /// at all, because an unmeasured terminal is assumed correct. Detected
-    /// once from `TERM_PROGRAM`; injectable so tests exercise every path
-    /// deterministically regardless of which terminal runs them.
-    private let isAppleTerminal: Bool
-
-    /// Whether the host terminal is iTerm2, which (in its default width
-    /// configuration) renders a BMP-based Fitzpatrick cluster as the base
-    /// emoji PLUS a separate 2-cell colour swatch. The published width
-    /// traits (`.detachedOnBMPBases`) claim the cells that rendering
-    /// actually occupies, so the modifiers pass through and the swatch is
-    /// iTerm2's own; the strip (`String.withSkinToneFallback()`) fires only
-    /// when no traits were published and the old 2-cell claim is in force.
-    /// Same detection/injection story as `isAppleTerminal`.
-    private let isITerm2: Bool
-
-    /// Whether the host terminal is Ghostty, which advances every composed
-    /// emoji class exactly as claimed (alone among the measured terminals)
-    /// save one — a Fitzpatrick tone on a TEXT-presentation base merges to ONE
-    /// cell against a 2-cell claim, and with a redundant VS-16 riding along
-    /// detaches to FOUR (BMP measured 2026-08-26, SMP by the 2026-08-28 DSR
-    /// sweep) — and under-advances bare pictographs, the chrome whose ink
-    /// overhangs its cell, the VS-15 chrome glyphs ⬛︎ / ⬜︎ and Plane-16 PUA
-    /// SF Symbols. Its build path erases-then-CUFs every one of them, and
-    /// strips a redundant tone VS-16 first because that selector is what
-    /// defeats the merge —
-    /// `String.withGhosttyCursorCompensation()`; no skin-tone strip, which
-    /// would needlessly discard the correct merged rendering. Same
-    /// detection/injection story as `isAppleTerminal`.
-    private let isGhostty: Bool
-
-    /// Whether the host terminal is Warp, which never composes a ZWJ
-    /// sequence (the walk drops the joiners under its published
-    /// `.decomposedDroppingJoiners` traits), draws Fitzpatrick tones as
-    /// base + swatch (the `.detached` claims cover them, so the modifiers
-    /// pass through; the `String.withSkinToneFallback(scope:)` strip fires
-    /// only when no traits were published), and under-advances a lone
-    /// regional indicator, its SF Symbols and the seven Unicode 16.0 emoji
-    /// (ECH+CUF). Same detection/injection story as `isAppleTerminal`.
-    private let isWarp: Bool
-
-    /// Whether the host terminal is GNOME Terminal (VTE), which under-advances
-    /// VS-16 pictographs, keycaps, lone regional indicators, SF Symbols, and
-    /// pre-Unicode 16 emoji (ECH+CUF), separates skin-tone modifiers as detached
-    /// swatches, and drops ZWJ joiners. Same detection/injection story as
-    /// `isAppleTerminal`.
-    private let isGnomeTerminal: Bool
-
-    /// Whether we are running inside tmux, which is a COMPOSITOR rather than a
-    /// renderer: it parses our bytes into its own grid using its own width table
-    /// and re-renders that grid to whichever client is attached. So tmux's model
-    /// is the one our output has to satisfy, and it wins over any native host
-    /// flag — checked first in the dispatch below. Its divergences (SF Symbols,
-    /// bare pictographs and lone regional indicators all advance 1 against a
-    /// 2-cell claim; BMP-base skin tones over-advance) take the same
-    /// strip-then-CUF treatment as iTerm2's. DSR-measured with all four
-    /// terminals attached AND with none — identical every time.
-    private let isTmux: Bool
+    private var isAppleTerminal: Bool { detectedProgram == .appleTerminal }
 
     /// Which skin-tone bases the tmux path strips: `.keepingTmuxMerged` when every
     /// attached client renders SMP-base tones (Ghostty alone, measured),
@@ -248,36 +186,8 @@ final class FrameDiffWriter {
     /// previous frame. Exposed for tests and profiling.
     private(set) var rowsBuiltInLastBuild = 0
 
-    init(
-        isAppleTerminal: Bool = TerminalHost.isAppleTerminal,
-        isITerm2: Bool = TerminalHost.isITerm2,
-        isGhostty: Bool = TerminalHost.isGhostty,
-        isWarp: Bool = TerminalHost.isWarp,
-        isGnomeTerminal: Bool = TerminalHost.isGnomeTerminal,
-        isTmux: Bool = TerminalHost.isTmux
-    ) {
-        // tmux wins over any native host, and here that is enforced ONCE, at the
-        // source, rather than re-checked at each use. Under tmux OUR bytes land
-        // in tmux's grid — its width table is what we must satisfy — so the outer
-        // terminal's advance model must not drive cursor math even if its
-        // variable survived into the pane. That is a live case, not a
-        // hypothetical: a tmux older than 3.2 never overwrote `TERM_PROGRAM`, so
-        // a pane started from Terminal.app carries `$TMUX` (→ isTmux) AND
-        // `TERM_PROGRAM=Apple_Terminal` (→ isAppleTerminal) at once.
-        //
-        // Zeroing the native flags when isTmux means every reader of them — the
-        // dispatch below, but ALSO the right-edge clip and `repaintRightEdge`,
-        // which check `isAppleTerminal` directly and would otherwise apply
-        // Terminal.app's model to tmux's grid — is tmux-correct without its own
-        // guard. Nothing is lost: which client is attached matters only for the
-        // emoji chrome, and that is resolved separately (RenderLoop asks tmux
-        // itself), never from these flags.
-        self.isTmux = isTmux
-        self.isAppleTerminal = isAppleTerminal && !isTmux
-        self.isITerm2 = isITerm2 && !isTmux
-        self.isGhostty = isGhostty && !isTmux
-        self.isWarp = isWarp && !isTmux
-        self.isGnomeTerminal = isGnomeTerminal && !isTmux
+    init(program: TerminalClient.Program = TerminalClient.current.program) {
+        self.detectedProgram = program
     }
 }
 
@@ -619,25 +529,6 @@ extension FrameDiffWriter {
         guard appliedModel != current else { return }
         appliedModel = current
         invalidate()
-    }
-
-    /// The program this writer was BUILT for, before any simulation.
-    private var detectedProgram: TerminalClient.Program {
-        if isTmux {
-            .tmux
-        } else if isAppleTerminal {
-            .appleTerminal
-        } else if isITerm2 {
-            .iTerm2
-        } else if isGhostty {
-            .ghostty
-        } else if isWarp {
-            .warp
-        } else if isGnomeTerminal {
-            .gnomeTerminal
-        } else {
-            .unidentified
-        }
     }
 
     /// One row this writer has already built, with `run` showing `frame`.
