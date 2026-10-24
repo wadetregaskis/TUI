@@ -85,6 +85,12 @@ public struct AlertPanel<Actions: View>: View {
     /// confirmation-dialog column) rather than the default horizontal row.
     let verticalButtons: Bool
 
+    /// The sign the title starts with, where a preset gives one: ⚠️ for
+    /// ``warning(title:message:actions:)``, 🛑 for an error, ℹ️ for info and ✅
+    /// for success. A plain alert has none. A critical dialog's caution sign
+    /// takes its place (``_AlertPanelCore``'s `resolvedTitle`).
+    var titleMark: String?
+
     /// Creates an alert with localized text and custom action views.
     ///
     /// String **literals** bind here, so they are lookup keys — see
@@ -174,7 +180,8 @@ public struct AlertPanel<Actions: View>: View {
             message: message,
             config: config,
             actions: actions,
-            verticalButtons: verticalButtons
+            verticalButtons: verticalButtons,
+            titleMark: titleMark
         )
     }
 }
@@ -191,6 +198,7 @@ struct _AlertPanelCore<Actions: View>: View, Renderable, Layoutable {
     let config: ContainerConfig
     let actions: Actions
     var verticalButtons: Bool = false
+    var titleMark: String?
 
     var body: Never {
         fatalError("_AlertPanelCore renders via Renderable")
@@ -272,14 +280,16 @@ struct _AlertPanelCore<Actions: View>: View, Renderable, Layoutable {
     /// `Terminal compatibility survey.md` — claimed two cells, and compensated where a
     /// host advances it one (Terminal.app, iTerm2) by the writer, as every
     /// VS-16 pictograph in an app's own text is.
-    static var criticalMark: String { "\u{26A0}\u{FE0F}" }
+    static var criticalMark: String { AlertPanelMark.warning }
 
     /// The title as the environment's dialog severity leaves it: a critical
     /// dialog's starts with ``criticalMark``, where macOS draws its large
-    /// caution symbol.
+    /// caution symbol; otherwise a preset's starts with its own sign
+    /// (``AlertPanel/titleMark``).
     private func resolvedTitle(_ context: RenderContext) -> String {
-        guard context.environment.dialogIsCritical else { return title }
-        return title.isEmpty ? Self.criticalMark : Self.criticalMark + " " + title
+        let mark = context.environment.dialogIsCritical ? Self.criticalMark : titleMark
+        guard let mark else { return title }
+        return title.isEmpty ? mark : mark + " " + title
     }
 
     /// The configuration as the environment's dialog severity leaves it: a

@@ -39,6 +39,18 @@ import TUIkitFoundation
 // ``LocalizedStringKey`` to be built out of and the forwarding call can only
 // land on the generic overload.
 
+/// The sign each preset's title starts with. Emoji, as the critical dialog's
+/// ⚠️ is: icons drawn in their own colours rather than the palette's, each a
+/// two-cell pictograph (🛑 and ✅ by default presentation, ⚠️ and ℹ️ with
+/// U+FE0F) — the class the advance table measures and the writer compensates
+/// where a host advances one a cell short.
+enum AlertPanelMark {
+    static let warning = "\u{26A0}\u{FE0F}"
+    static let error = "\u{1F6D1}"
+    static let info = "\u{2139}\u{FE0F}"
+    static let success = "\u{2705}"
+}
+
 extension LocalizedStringKey {
     /// A preset's title key, resolved: TUIkit's own word when it is the
     /// preset's default key — so an app's `Localizable` table does not change
@@ -98,12 +110,14 @@ extension AlertPanel {
         message: S2,
         @ViewBuilder actions: () -> Actions
     ) -> AlertPanel {
-        Self(
+        var alert = Self(
             title: title,
             message: message,
             titleColor: .palette.warning,
             actions: actions
         )
+        alert.titleMark = AlertPanelMark.warning
+        return alert
     }
 
     /// Creates a warning-style alert titled with the localized `label.warning`,
@@ -163,12 +177,14 @@ extension AlertPanel {
         message: S2,
         @ViewBuilder actions: () -> Actions
     ) -> AlertPanel {
-        Self(
+        var alert = Self(
             title: title,
             message: message,
             titleColor: .palette.error,
             actions: actions
         )
+        alert.titleMark = AlertPanelMark.error
+        return alert
     }
 
     /// Creates an error-style alert titled with the localized `label.error`,
@@ -225,12 +241,14 @@ extension AlertPanel {
         message: S2,
         @ViewBuilder actions: () -> Actions
     ) -> AlertPanel {
-        Self(
+        var alert = Self(
             title: title,
             message: message,
             titleColor: .palette.info,
             actions: actions
         )
+        alert.titleMark = AlertPanelMark.info
+        return alert
     }
 
     /// Creates an info-style alert titled with the localized `label.info`, its
@@ -287,12 +305,14 @@ extension AlertPanel {
         message: S2,
         @ViewBuilder actions: () -> Actions
     ) -> AlertPanel {
-        Self(
+        var alert = Self(
             title: title,
             message: message,
             titleColor: .palette.success,
             actions: actions
         )
+        alert.titleMark = AlertPanelMark.success
+        return alert
     }
 
     /// Creates a success-style alert titled with the localized `label.success`,
@@ -334,7 +354,11 @@ extension AlertPanel where Actions == EmptyView {
     public static func warning<S1: StringProtocol, S2: StringProtocol>(
         title: S1, message: S2
     ) -> AlertPanel<EmptyView> {
-        AlertPanel<EmptyView>(title: title, message: message, titleColor: .palette.warning)
+        {
+            var alert = AlertPanel<EmptyView>(title: title, message: message, titleColor: .palette.warning)
+            alert.titleMark = AlertPanelMark.warning
+            return alert
+        }()
     }
 
     /// Creates a warning-style alert without actions, titled with the localized
@@ -360,7 +384,11 @@ extension AlertPanel where Actions == EmptyView {
     public static func error<S1: StringProtocol, S2: StringProtocol>(
         title: S1, message: S2
     ) -> AlertPanel<EmptyView> {
-        AlertPanel<EmptyView>(title: title, message: message, titleColor: .palette.error)
+        {
+            var alert = AlertPanel<EmptyView>(title: title, message: message, titleColor: .palette.error)
+            alert.titleMark = AlertPanelMark.error
+            return alert
+        }()
     }
 
     /// Creates an error-style alert without actions, titled with the localized
@@ -386,7 +414,11 @@ extension AlertPanel where Actions == EmptyView {
     public static func info<S1: StringProtocol, S2: StringProtocol>(
         title: S1, message: S2
     ) -> AlertPanel<EmptyView> {
-        AlertPanel<EmptyView>(title: title, message: message, titleColor: .palette.info)
+        {
+            var alert = AlertPanel<EmptyView>(title: title, message: message, titleColor: .palette.info)
+            alert.titleMark = AlertPanelMark.info
+            return alert
+        }()
     }
 
     /// Creates an info-style alert without actions, titled with the localized
@@ -412,7 +444,11 @@ extension AlertPanel where Actions == EmptyView {
     public static func success<S1: StringProtocol, S2: StringProtocol>(
         title: S1, message: S2
     ) -> AlertPanel<EmptyView> {
-        AlertPanel<EmptyView>(title: title, message: message, titleColor: .palette.success)
+        {
+            var alert = AlertPanel<EmptyView>(title: title, message: message, titleColor: .palette.success)
+            alert.titleMark = AlertPanelMark.success
+            return alert
+        }()
     }
 
     /// Creates a success-style alert without actions, titled with the localized

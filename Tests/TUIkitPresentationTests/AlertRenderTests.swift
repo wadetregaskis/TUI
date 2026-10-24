@@ -180,6 +180,22 @@ struct AlertRenderTests {
         #expect(success.first?.contains("Success") == true)
     }
 
+    @Test("Each preset's title starts with its sign; a plain alert's with none, a critical one's with ⚠️")
+    func presetMarks() {
+        func title(_ view: some View) -> String {
+            lines(renderToBuffer(view, context: makeContext())).first ?? ""
+        }
+        #expect(title(AlertPanel.warning(message: "w")).contains("\u{26A0}\u{FE0F} Warning"))
+        #expect(title(AlertPanel.error(message: "e")).contains("\u{1F6D1} Error"))
+        #expect(title(AlertPanel.info(message: "i")).contains("\u{2139}\u{FE0F} Info"))
+        #expect(title(AlertPanel.success(message: "s")).contains("\u{2705} Success"))
+        let plain = title(AlertPanel(title: "Note", message: "m") { EmptyView() })
+        #expect(plain.contains("Note") && !plain.contains("\u{FE0F}"))
+        // A critical dialog's caution sign takes a preset's place, not beside it.
+        let critical = title(AlertPanel.success(message: "s").dialogSeverity(.critical))
+        #expect(critical.contains("\u{26A0}\u{FE0F} Success") && !critical.contains("\u{2705}"))
+    }
+
     @Test("A preset alert with actions keeps both the preset title and the buttons")
     func presetWithActions() {
         // The preset's `Actions` IS the closure's type, so the receiver needs no
