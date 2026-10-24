@@ -390,14 +390,18 @@ struct ControlSizeButtonTests {
         }
     }
 
-    @Test("The underline is under the label, not its padding, in the lines' colour where the terminal colours one")
-    func underlineSpansTheLabel() {
+    @Test(
+        "The underline is under the label, not its padding, in the lines' colour where the terminal colours one",
+        // `.mini` too: the line takes no cell of its own, and mini is about
+        // saving cells, not the look (owner, 2026-10-24).
+        arguments: [ControlSize.mini, .small, .regular])
+    func underlineSpansTheLabel(size: ControlSize) {
         func bytes(_ view: some View, support: LineStyleSupport) -> String {
             var context = context()
             context.environment.lineStyleSupport = support
             return ColorDepth.withCurrent(.truecolor) { renderToBuffer(view, context: context).lines.joined() }
         }
-        for button in lines(.regular, .underline, label: "Save") {
+        for button in lines(size, .underline, label: "Save") {
             let coloured = bytes(button, support: .underlines)
             // One underlined run, and it is the label's cells exactly: the
             // padding either side is drawn bare.

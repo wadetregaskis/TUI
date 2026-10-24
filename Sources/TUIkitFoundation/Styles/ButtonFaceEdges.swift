@@ -235,7 +235,7 @@ extension _ButtonAppearance {
     /// | rounded rectangle | `│ OK │`; the box `╭────╮` / `│ OK │` / `╰────╯` | square-ended face; quadrant-cornered on three |
     /// | radius zero | `[ OK ]`; a square-cornered box | a square face |
     /// | ``ButtonBorderShape/brackets(_:_:)`` | between its glyphs; the rectangle's box | as the rounded rectangle |
-    /// | ``ButtonBorderShape/underline`` | `OK` over a line, the label's width; the rectangle's box | as the rounded rectangle |
+    /// | ``ButtonBorderShape/underline`` | `OK` over a line, the label's width, at `.mini` too; the rectangle's box | as the rounded rectangle |
     /// | circle | `(★)`; the capsule's box, as wide as tall | `▐★▌`; a disc in quadrants |
     ///
     /// A braille face (`.braille`) is a dotted outline of the shape, drawn at
@@ -269,7 +269,12 @@ extension _ButtonAppearance {
             sized.edges = caps ? Self.solidEdges(shape, tall: tall, wholeCells: !blockElementsFillTheLine) : .none
             if shape.kind == .circle { sized.horizontalPadding = tall ? 2 : 0 }
         case .lines(let style):
-            sized.edges = caps ? Self.lineEdges(shape, tall: tall, style: style) : .bareOutline
+            // An underline is drawn without caps at every size, and costs no cell
+            // of its own, so `.mini` keeps it (owner, 2026-10-24); a segment's
+            // label is the group's, and stays bare.
+            let underlined = shape.kind == .underline && !segment
+            sized.edges =
+                caps ? Self.lineEdges(shape, tall: tall, style: style) : underlined ? .underlined : .bareOutline
             if shape.kind == .circle { sized.horizontalPadding = tall ? 1 : 0 }
         case .braille(let thickness):
             sized.edges = caps ? Self.dotEdges(shape, tall: tall, thickness: thickness) : .bareOutline

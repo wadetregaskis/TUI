@@ -122,8 +122,10 @@ public struct ButtonBorderShape: Equatable, Sendable {
     ///
     /// The line spans the label alone, not its padding, and is drawn in the
     /// lines' colour where the terminal colours an underline (SGR 58), in the
-    /// label's where it does not. It breathes the focus with the label. On
-    /// three rows it is the rounded rectangle's box. Drawn in lines under the
+    /// label's where it does not. It breathes the focus with the label. It
+    /// takes no cell of its own, so a ``ControlSize/mini`` face, which has no
+    /// caps, keeps it. On three rows it is the rounded rectangle's box. Drawn
+    /// in lines under the
     /// default control style, whose other shapes are filled; a face in
     /// `.controlStyle(.block)` or Braille draws it as a rounded rectangle,
     /// having no lines to underline with.
