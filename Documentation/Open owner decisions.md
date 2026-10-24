@@ -65,7 +65,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [B-D1K-1](#b-d1k-1) | Deliver ⌘ to onKeyPress; default shortcuts stay on non-command modifiers; command shortcuts when a developer opts in. | Done (lane KEYS, 2026-10-24): a ⌘ chord reaches `onKeyPress` with `.command` and nothing that matches a bare key; shortcuts stay on their stand-in, and fire on a real ⌘ too under `.keyboardShortcutsMatchCommand()` (decisions D1K). |
 | [B63-CTRLJ](#b63-ctrlj) | Asked for context, examples and how it works elsewhere. | Answered below — your call. |
 | [B63-KITTY](#b63-kitty) | TextEdit's Ctrl-Return opens the context menu; asked where it is a line separator, and about Ctrl-Return for context menus. | Answered below — your call. |
-| [B77-KEYTIME](#b77-keytime) | Where type select exists, bare keys never pass to shortcuts. | Plan below; queued. |
+| [B77-KEYTIME](#b77-keytime) | Where type select exists, bare keys never pass to shortcuts. | Done (lane KEYS, 2026-10-24): lists, tables, open drop-downs and open menus take every bare character; the status bar leaves out what cannot fire there (decisions B77). |
 | [B77-SELECT](#b77-select) | Keep cursor-only. | No change. |
 | [B89](#b89) | Asked for the real-world benefit. | Answered below — your call. |
 | [B90](#b90) | Keep cells for now. | No change. |

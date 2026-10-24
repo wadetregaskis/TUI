@@ -149,6 +149,15 @@ first character of a prefix now quits, where the drop-down swallowed it — the
 list's rule, which the owner settled for bare keys in B77. A menu already let
 it through.
 
+**Superseded by the owner's ruling B77-KEYTIME (2026-10-23; built 2026-10-24,
+lane KEYS):** "Where type select exists, bare keys never pass to shortcuts."
+A list, a table, an open drop-down and an open menu take every character type
+select takes, the first of a prefix included: no row's key equivalent, app
+shortcut, status-bar item, quit key or help key hears one. The give-way and
+`givesWayToAppShortcuts` are gone (`TypeSelectingFocusHandler.takesTypedCharacters`
+says only whether a control takes characters now). What follows records the
+rule before it.
+
 **Left as it was:** an open menu's first character still reaches an app
 shortcut on the page behind the menu, as every character did before the menu
 had type select: the shortcut registry does not tell a row's key equivalent,

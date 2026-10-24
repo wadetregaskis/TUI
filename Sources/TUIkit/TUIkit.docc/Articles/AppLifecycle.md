@@ -152,7 +152,7 @@ While something is in hand, the arrow and paging keys scroll whatever the pointe
 
 ### Layer 1: Status Bar Items
 
-``StatusBarState`` checks if any status bar item matches the key. Items can match single characters, special keys (Escape, Enter), or arrow keys. If a match is found, the item's action runs and dispatch stops.
+``StatusBarState`` checks if any status bar item matches the key. Items can match single characters, special keys (Escape, Enter), or arrow keys. If a match is found, the item's action runs and dispatch stops. While a list, a table or an open `Picker` drop-down holds the focus, its type select takes every bare character, so an item on one is left out of the bar and matches nothing.
 
 ### Layer 2: View-Registered Handlers
 
@@ -160,7 +160,7 @@ The `KeyEventDispatcher` iterates handlers registered via `onKeyEvent()` modifie
 
 ### Layer 2.5: An Open Menu's Type Select
 
-An open pop-up menu holds the keyboard without holding the focus, so its type select is asked here, after its own keys (Layer 2) declined a typed character: the character moves the highlight to the row whose title it starts, in whichever menu or submenu the keys are in. It follows a focused list's rule (Layer 3): a prefix under way takes every character, and a prefix's first character gives way to a bare-key binding that claims it — a row's key equivalent, the quit key, the help key.
+An open pop-up menu holds the keyboard without holding the focus, so its type select is asked here, after its own keys (Layer 2) declined a typed character: the character moves the highlight to the row whose title it starts, in whichever menu or submenu the keys are in. It follows a focused list's rule (Layer 3): it takes every character type select takes, whether or not a row answers to it, so no bare-key binding below hears one — not a row's key equivalent, the quit key or the help key.
 
 ### Layer 3: Focus System (conditional)
 

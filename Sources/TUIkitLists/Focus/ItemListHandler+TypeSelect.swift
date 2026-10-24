@@ -11,7 +11,8 @@ import TUIkitCore
 import TUIkitFoundation
 
 extension ItemListHandler: TypeSelectingFocusHandler {
-    package var isTypeSelecting: Bool { typeSelected.isTypeSelecting }
+    /// Always, while it holds the focus, as a focused macOS table does.
+    package var takesTypedCharacters: Bool { true }
 }
 
 extension ItemListHandler {
@@ -19,13 +20,12 @@ extension ItemListHandler {
     /// starts a new one after a pause) and leaves the prefix for the next
     /// render, which knows the rows' text, to find a row for.
     ///
-    /// Every printable character but Space, with neither Control nor Option
+    /// Every printable character but Space, with no Control, Option or ⌘
     /// held, is taken while the control has the focus — as a focused macOS
-    /// table takes them, whether or not a row matches — except the first of a
-    /// prefix where an app shortcut or one of TUIkit's own bare keys (`q`, `t`,
-    /// `a`, the help key) claims it: the input handler gives those their key
-    /// first (`InputHandler.typeSelectGivesWay`). The row shortcuts are never
-    /// bare keys, so none of them is lost to it.
+    /// table takes them, whether or not a row matches. No bare-key binding
+    /// hears one meanwhile, TUIkit's own `q`, `t`, `a` and help key included
+    /// (``TypeSelectingFocusHandler``). The row shortcuts are never bare keys,
+    /// so none of them is lost to it.
     ///
     /// - Returns: Whether the key was taken.
     func typeSelect(_ event: KeyEvent) -> Bool {

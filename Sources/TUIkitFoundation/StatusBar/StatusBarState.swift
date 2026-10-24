@@ -389,8 +389,16 @@ public final class StatusBarState: @unchecked Sendable {
         }
     }
 
-    /// The current system items based on configuration flags.
+    /// The current system items based on configuration flags — but the bare
+    /// keys a focused type select takes (``typeSelectHoldsTypedKeys``).
     public var currentSystemItems: [StatusBarItem] {
+        let items = allSystemItems
+        guard items.contains(where: Self.namesTypedKey) else { return items }
+        return typeSelectHoldsTypedKeys ? items.filter { !Self.namesTypedKey($0) } : items
+    }
+
+    /// The system items the configuration flags call for.
+    private var allSystemItems: [StatusBarItem] {
         guard showSystemItems else { return [] }
 
         var items: [StatusBarItem] = []
@@ -476,13 +484,56 @@ public final class StatusBarState: @unchecked Sendable {
     /// See ``undoItemID``.
     static let redoItemID = "statusbar.redo"
 
-    /// The current user items resolved from focus sections, context stack, or global items.
+    /// The current user items resolved from focus sections, context stack, or
+    /// global items — but those whose bare key a focused type select takes
+    /// (``typeSelectHoldsTypedKeys``).
     public var currentUserItems: [any StatusBarItemProtocol] {
+        let items = resolvedUserItems
+        guard items.contains(where: Self.bindsTypedKey) else { return items }
+        return typeSelectHoldsTypedKeys ? items.filter { !Self.bindsTypedKey($0) } : items
+    }
+
+    /// The user items of the focus section, the context stack or the global
+    /// set, whatever the focus is on.
+    private var resolvedUserItems: [any StatusBarItemProtocol] {
         if !sectionItems.isEmpty, let activeSectionID = activeFocusSectionID {
             return resolvedSectionItems(for: activeSectionID)
         }
         if let topContext = userContextStack.last { return topContext.items }
         return globalItems
+    }
+
+    /// Whether the focused control takes every character type select takes —
+    /// a list, a table, an open `Picker` drop-down — so that no bare-key
+    /// binding hears one (the owner's ruling B77-KEYTIME, 2026-10-23).
+    ///
+    /// While it does, the bar leaves out what it would advertise for those
+    /// keys and cannot fire: the user items with an action on one, which
+    /// match at layer 1, ahead of the focused control, and so are left out
+    /// of the items keys are matched against too; and TUIkit's own quit,
+    /// appearance and theme items, whose keys are layer 4's, behind it. An
+    /// item with no action stays: it may name a key an `onKeyEvent` handler
+    /// takes, which comes before the focused control and still hears it.
+    package var typeSelectHoldsTypedKeys: Bool {
+        (focusManager?.currentFocused as? any TypeSelectingFocusHandler)?.takesTypedCharacters == true
+    }
+
+    /// Whether type select takes `key`, a bare character.
+    package static func typeSelectTakes(_ key: Key?) -> Bool {
+        guard case .character(let character)? = key else { return false }
+        return TypeSelectBuffer.takes(KeyEvent(key: .character(character)))
+    }
+
+    /// Whether `item` is a user item that binds a key type select takes: one
+    /// with an action, as only such an item fires at layer 1.
+    private static func bindsTypedKey(_ item: any StatusBarItemProtocol) -> Bool {
+        guard let item = item as? StatusBarItem, item.hasAction, item.matchesKeys else { return false }
+        return typeSelectTakes(item.triggerKey)
+    }
+
+    /// Whether a system item names a key type select takes: `q`, `a`, `t`.
+    private static func namesTypedKey(_ item: StatusBarItem) -> Bool {
+        typeSelectTakes(item.triggerKey)
     }
 
     /// All currently active items for rendering and event handling.

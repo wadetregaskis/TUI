@@ -177,11 +177,12 @@ final class ThemesSession: StressSession {
     }
 
     /// `t`, which cycles the app's palette — from anywhere but the title
-    /// field, where it would be typed. From there, Tab out first.
+    /// field, where it would be typed, and the list and the table, whose type
+    /// select takes it (decisions B77-KEYTIME). From those, Tab out first.
     private func cycleTheme() -> SessionStep {
         // Only where the status line says where the focus is: a short terminal
         // cuts it off, and a `t` into the title would be typed.
-        guard focusShown.map({ $0 != "title" }) == true else {
+        guard let focus = focusShown, !["title", "list", "table"].contains(focus) else {
             return SessionStep(action: "tab", keys: [KeyEvent(key: .tab)])
         }
         let before = palettesInUse

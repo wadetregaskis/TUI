@@ -365,9 +365,6 @@ package final class MenuPopupController {
 }
 
 extension MenuPopupController {
-    /// Whether characters typed now continue a prefix (``typeSelect(_:)``).
-    var isTypeSelecting: Bool { typeSelected.isTypeSelecting }
-
     /// Takes a typed character for type select, in the menu the keys are in
     /// (``keyboardChain``): moves its highlight to the row whose title the
     /// prefix starts — the next one after the highlight for a first character,

@@ -273,8 +273,7 @@ package func presentMenuPopover<Items: View>(
     // of the menus open the keys are in: asked by the input handler as a
     // focused list is asked, after the handler below declines it.
     context.environment.keyEventDispatcher!.setTypeSelectTarget(
-        TypeSelectTarget(
-            isTypeSelecting: { controller.isTypeSelecting }, typeSelect: { controller.typeSelect($0) }),
+        TypeSelectTarget(typeSelect: { controller.typeSelect($0) }),
         sectionID: sectionID)
     // Escape closes the MENU, not the page. Claiming the label is what makes
     // that true as well as discoverable: `InputHandler` routes ESC to the focus

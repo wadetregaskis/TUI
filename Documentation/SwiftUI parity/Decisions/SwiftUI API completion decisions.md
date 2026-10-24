@@ -2790,6 +2790,27 @@ Where it differs:
   and pass on a key no row answers to — needs every row's text at key time,
   measured outside a render; a day.
 
+**Ruled (owner, 2026-10-23, B77-KEYTIME), and built (lane KEYS, 2026-10-24):**
+"Where type select exists, bare keys never pass to shortcuts." The give-way
+is gone: a focused list or table, an open `Picker` drop-down and an open
+pop-up menu take every character type select takes (`TypeSelectBuffer.takes`:
+printable, not Space, no Control, Option or ⌘), the first of a prefix
+included, whether or not a row answers to it — as macOS does, and without
+needing every row's text when the key arrives. So while one has the focus no
+bare-key binding hears such a character: TUIkit's `q`, `t`, `a` and help key,
+an app's bare `.keyboardShortcut`, a menu row's bare key equivalent, and a
+status-bar item with an action on one. The user leaves the list, or uses a
+modified key, an F-key or the menu bar. The status bar stops advertising what
+cannot fire: while type select holds the focus it leaves out the user items
+with an action on such a key (which also stops them matching at layer 1,
+ahead of the focused control) and its own `q`, `a` and `t`
+(`StatusBarState.typeSelectHoldsTypedKeys`). An item with no action stays, as
+it may name a key an `onKeyEvent` handler takes; those come before the
+focused control by design and still hear it. The cost is a focus lookup per
+time the bar's items are gathered, made only when an item names such a key.
+The Stress `themes` session presses `t` from outside the list and the table
+now. Tests: `TypeSelectKeepsBareKeysTests`, `MenuTypeSelectTests`.
+
 ### B78. Section actions: always shown, after the header's title
 
 *`View.sectionActions(content:)`, `TabContent.sectionActions(content:)`*

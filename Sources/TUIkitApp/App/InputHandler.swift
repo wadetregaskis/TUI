@@ -370,8 +370,8 @@ extension InputHandler {
         // Layer 2.5: an open menu's type select. The menu holds the keyboard
         // without holding the focus, so it is asked here, where a focused
         // list's type select is asked at layer 3: after the menu's own keys,
-        // and by the same rule — a prefix under way takes every character, and
-        // its first gives way to a bare-key binding that claims it.
+        // and by the same rule — it takes every character type select takes,
+        // and no bare-key binding below hears one (B77-KEYTIME).
         if keyEventDispatcher.dispatch(event) || openMenuTypeSelect(event) {
             return true
         }
@@ -380,7 +380,7 @@ extension InputHandler {
         // Skipped when text-input has focus since it was already dispatched
         // above — and when the modal-claimed ESC pre-route already offered
         // this very event and was declined.
-        if !focusManager.hasTextInputFocus, !focusDeclinedEscape, !typeSelectGivesWay(event) {
+        if !focusManager.hasTextInputFocus, !focusDeclinedEscape {
             if focusManager.dispatchKeyEvent(event, commands: focusedViewCommands) {
                 return true
             }
@@ -511,60 +511,15 @@ extension InputHandler {
         return focusManager.activeSectionIsModal || escapeClaimGrabs
     }
 
-    /// Whether a focused list or table lets a typed character go past its type
-    /// select to an app shortcut or one of TUIkit's own bare keys that claims
-    /// it: the quit key, the help key, `t` (theme) and `a` (appearance) where
-    /// they are live.
-    ///
-    /// Only the FIRST character of a prefix gives way. Once a prefix is under
-    /// way every character continues it, or typing a name with a `t` in it
-    /// would cycle the theme halfway through. A first character that a row
-    /// would have answered to is the price: a TUIkit app binds bare keys, which
-    /// macOS, whose shortcuts take Command, never has to weigh against type
-    /// select (decisions B77).
-    ///
-    /// Not to an app shortcut where the focused control holds the keyboard
-    /// while it type-selects — an open `Picker` drop-down
-    /// (``TypeSelectingFocusHandler/givesWayToAppShortcuts``): every app
-    /// shortcut is behind it, and would fire from under it.
-    private func typeSelectGivesWay(_ event: KeyEvent) -> Bool {
-        guard let selecting = focusManager.currentFocused as? any TypeSelectingFocusHandler else { return false }
-        return typeSelectGivesWay(
-            event, continuingAPrefix: selecting.isTypeSelecting, toAppShortcuts: selecting.givesWayToAppShortcuts)
-    }
-
     /// Layer 2.5: offers `event` to the type select of the open menu holding
-    /// the keyboard, if one is, unless it gives way (``typeSelectGivesWay(_:continuingAPrefix:toAppShortcuts:)``).
-    ///
-    /// An app shortcut takes a first character here too: a row's own key
-    /// equivalent is one, and the registry does not tell a row's from the
-    /// page's behind the menu.
+    /// the keyboard, if one is. It takes every character type select takes,
+    /// whether or not a row answers to it, so no bare-key binding below hears
+    /// one while a menu is open — a row's own bare key equivalent included,
+    /// the row being found by its title (the owner's ruling B77-KEYTIME,
+    /// 2026-10-23).
     private func openMenuTypeSelect(_ event: KeyEvent) -> Bool {
-        guard let menu = keyEventDispatcher.typeSelectTarget,
-            !typeSelectGivesWay(event, continuingAPrefix: menu.isTypeSelecting(), toAppShortcuts: true)
-        else { return false }
+        guard let menu = keyEventDispatcher.typeSelectTarget else { return false }
         return menu.typeSelect(event)
-    }
-
-    /// Whether a type select — a focused list's, or an open menu's — lets
-    /// `event` go past it: see ``typeSelectGivesWay(_:)``. `toAppShortcuts`
-    /// says whether an app's shortcut on the key is one it gives way to.
-    private func typeSelectGivesWay(_ event: KeyEvent, continuingAPrefix: Bool, toAppShortcuts: Bool) -> Bool {
-        guard !continuingAPrefix, !event.ctrl, !event.alt, case .character(let character) = event.key
-        else { return false }
-        if statusBar.quitShortcut.matches(event) { return true }
-        if toAppShortcuts,
-            keyboardShortcuts.hasAppShortcut(
-                for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal)
-        {
-            return true
-        }
-        if let tooltipState, let helpKey = tooltipState.helpKey, event.key == helpKey { return true }
-        switch character {
-        case "t", "T": return statusBar.showThemeItem && !globalChromeGrabbed
-        case "a", "A": return statusBar.showAppearanceItem && !globalChromeGrabbed
-        default: return false
-        }
     }
 
     /// Offers `event` to the focused view's commands — SwiftUI's move, exit and

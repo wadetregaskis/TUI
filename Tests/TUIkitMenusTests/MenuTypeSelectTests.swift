@@ -5,8 +5,8 @@
 //  to the row whose title it starts, in whichever menu open the keys are in —
 //  by the rule a `List` and a `Picker`'s drop-down use (`TypeSelectBuffer`),
 //  a row found by its title from its first letter (a toggle row's mark is not
-//  its title), and the first character of a prefix giving way to a key
-//  equivalent that claims it.
+//  its title), and every character type select takes kept from the bare key
+//  equivalents, a row's own included (the owner's ruling B77-KEYTIME).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -106,11 +106,14 @@ struct MenuTypeSelectTests {
         #expect(chosen.showsHidden, "Return flipped the toggle the prefix found")
     }
 
-    @Test("A first character gives way to a row's key equivalent on it")
-    func givesWayToAKeyEquivalent() {
+    @Test("A character is type select's even where a row's bare key equivalent is on it")
+    func keepsAKeyEquivalentsKey() {
         let chosen = Chosen()
         let driver = Driver(TypeSelectMenuApp(chosen: chosen))
         driver.type("x")
-        #expect(chosen.log == ["Export"], "the row's key equivalent fired: \(chosen.log)")
+        #expect(chosen.log.isEmpty, "no key equivalent fired: \(chosen.log)")
+        // No title starts with x: the highlight stays on the first row.
+        driver.key(.enter)
+        #expect(chosen.log == ["Open"], "\(chosen.log)")
     }
 }
