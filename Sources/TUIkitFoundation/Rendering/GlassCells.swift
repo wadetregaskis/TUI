@@ -74,9 +74,15 @@ enum GlassCells {
         // a glass part-way arrived draws its rim's lines from half-way, in its
         // ink part-way from the surface they land on.
         let ink = glass.rimInk(hovered: hovered, in: environment)
-        let rim = rimCells(
-            of: drawn, frame: frame, family: ButtonFaceFamily(environment.appearance), fill: fill,
+        let family = ButtonFaceFamily(environment.appearance)
+        var rim = rimCells(
+            of: drawn, frame: frame, family: family, fill: fill,
             ink: presence < 1 ? ink.opacity(presence, over: environment.enclosingSurface) : ink)
+        // A box of lines is the frame's whole outline, corners the shape cuts
+        // off included, so its glyphs stand on the surface everywhere.
+        var isBox = false
+        if case .lines = family { isBox = drawn is any BoxDrawnShape }
+        rim.standing(on: fill, surface: surface, fillingGaps: isBox)
         let monochrome = ColorDepth.current == .noColor
         var cells = monochrome ? ShapeCells(width: columns, height: rows) : fill
         cells.laying(rim)
@@ -240,6 +246,31 @@ enum GlassCells {
 }
 
 extension ShapeCells {
+    /// These cells, a rim, with the surface `fill` is under each glyph that
+    /// states no field of its own: laid over `fill`, a rim's line would
+    /// otherwise lose the surface wherever `fill` only part-covers its cell,
+    /// where the surface is the ink of a quadrant glyph and not a field, or
+    /// covers none of it — the four corner cells of a rounded glass, a `╭` on
+    /// the page with no surface behind it.
+    ///
+    /// - Parameters:
+    ///   - fill: The surface the rim rims.
+    ///   - surface: The surface's colour, for a cell `fill` does not reach.
+    ///   - fillingGaps: Whether a glyph over a cell `fill` does not reach
+    ///     stands on `surface` too, as the lines of a box do; otherwise it is
+    ///     left on the page, as an outline traced round a shape is.
+    mutating func standing(on fill: ShapeCells, surface: Color, fillingGaps: Bool) {
+        guard fill.width == width, fill.height == height else { return }
+        for index in cells.indices where cells[index].field == nil && cells[index].glyph != " " {
+            let under = fill.cells[index]
+            if let field = under.field ?? (under.glyph == " " ? nil : under.ink) {
+                cells[index].field = field
+            } else if fillingGaps {
+                cells[index].field = surface
+            }
+        }
+    }
+
     /// These cells with their glyphs taken away: a glyph's cell keeps only its
     /// field, and one with none draws nothing.
     mutating func droppingGlyphs() {
