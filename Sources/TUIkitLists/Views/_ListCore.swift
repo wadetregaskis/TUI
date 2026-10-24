@@ -972,7 +972,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         var content: _ListContentView
         let renderState: PopulatedRenderState?
         if source.isEmpty {
-            content = _ListContentView(lines: buildEmptyStateLines(context: context))
+            content = emptyStateContent(context: context)
             // Empty is not inert. The list still occupies its frame, so it is
             // still somewhere a drag can be dropped — and everything that makes
             // that true (the container's hit region, the drop destination, the
@@ -1156,11 +1156,16 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// with no rows. The placeholder is padded out to the
     /// available width so an empty list keeps its full size
     /// instead of collapsing to the title's width.
-    private func buildEmptyStateLines(context: RenderContext) -> [String] {
+    ///
+    /// It stands where a row's text would, past the gutter the rows keep for
+    /// their selection mark, in the secondary ink: it says why the list is
+    /// empty and is not a row, where flush against the border in the rows'
+    /// ink it read as an accident (owner #18, 2026-10-23).
+    private func emptyStateContent(context: RenderContext) -> _ListContentView {
         let placeholderWidth = emptyPlaceholder.strippedLength
         // +2 for the "─ … ─" border decorations around the title.
         let titleWidth = title.map { $0.strippedLength + 2 } ?? 0
-        let intrinsicWidth = max(placeholderWidth, titleWidth)
+        let intrinsicWidth = max(listRowGutter + placeholderWidth, titleWidth)
         let targetWidth: Int
         if context.hasExplicitWidth {
             // Subtract the two border columns only when the style draws a border,
@@ -1170,8 +1175,15 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         } else {
             targetWidth = intrinsicWidth
         }
-        let extra = max(0, targetWidth - placeholderWidth)
-        return [emptyPlaceholder + String.spaces(extra)]
+        // Opaque bytes and a claim for the ink's alpha, through the one type
+        // that pairs them: a faded palette's secondary ink carries one.
+        // The gutter is a cell each side of a row's text (`rowContentLeft`'s
+        // `+ 1`, and the pad after a badge).
+        var row = ClaimingRow()
+        row.skip(cells: listRowGutter / 2)
+        row.append(emptyPlaceholder, cells: placeholderWidth, ink: context.environment.palette.foregroundSecondary)
+        row.skip(cells: targetWidth - row.cells)
+        return _ListContentView(lines: [row.text], claims: row.claims)
     }
 
     // MARK: - Populated content

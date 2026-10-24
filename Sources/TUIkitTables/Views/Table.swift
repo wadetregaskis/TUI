@@ -1011,7 +1011,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
         let contentSize: (width: Int, height: Int)
         if data.isEmpty {
-            contentSize = (emptyPlaceholder.strippedLength, 1)
+            contentSize = (gutter + emptyPlaceholder.strippedLength, 1)
         } else if wantsScrollbar {
             // The scrollbar path fills the whole content area: every line is
             // the row content padded to `contentInnerWidth` plus the bar cell.
@@ -1300,7 +1300,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var contentPayload = _TableRowPayload()
         let renderState: PopulatedRenderState?
         if data.isEmpty {
-            (contentLines, contentPayload) = emptyContent(columnWidths: columnWidths, rowArea: rowArea, innerWidth: innerWidth, context: context)
+            (contentLines, contentPayload, contentClaims) = emptyContent(
+                columnWidths: columnWidths, rowArea: rowArea, innerWidth: innerWidth, context: context)
             // Empty is a state, not an absence: the table still occupies its
             // frame, so it is still the thing under the pointer, still
             // clickable, still focusable, and still somewhere a drag can be
@@ -2092,9 +2093,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// collapsible section's triangle) is not a Tab stop nobody can see.
     private func emptyContent(
         columnWidths: [Int], rowArea: Int, innerWidth: Int, context: RenderContext
-    ) -> (lines: [String], payload: _TableRowPayload) {
+    ) -> (lines: [String], payload: _TableRowPayload, claims: [OpacityRegion]) {
         guard let indices = sections?.headersAfterLastRow, !indices.isEmpty else {
-            return ([emptyPlaceholder], _TableRowPayload())
+            // The placeholder stands where a row's first cell would, past the
+            // selection gutter, in the secondary ink, as a list's does (owner
+            // #18, 2026-10-23); its claim carries a faded palette's alpha.
+            var row = ClaimingRow()
+            row.skip(cells: selectionGutter(context.environment))
+            row.append(
+                emptyPlaceholder, cells: emptyPlaceholder.strippedLength,
+                ink: context.environment.palette.foregroundSecondary)
+            return ([row.text], _TableRowPayload(), row.claims)
         }
         let contentWidth = tableContentWidth(
             columnWidths, within: innerWidth, gutter: selectionGutter(context.environment))
@@ -2111,7 +2120,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let lines = drawn.lines.prefix(max(1, rowArea)).map { line in
             line + String.spaces(max(0, contentWidth - line.strippedLength))
         }
-        return (lines, drawn.payload.clipped(toRows: 0..<lines.count))
+        return (lines, drawn.payload.clipped(toRows: 0..<lines.count), [])
     }
 
     /// The height of row `index` with the section headers drawn with it — its

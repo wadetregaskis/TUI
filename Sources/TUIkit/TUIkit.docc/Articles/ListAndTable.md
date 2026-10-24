@@ -612,7 +612,7 @@ List("Items", selection: $selected) {
 | Modifier | Description |
 |----------|-------------|
 | `.focusID(_:)` | Sets a stable, explicit focus identifier |
-| `.listEmptyPlaceholder(_:)` | Text shown when the list has no items (default: "No items") |
+| `.listEmptyPlaceholder(_:)` | Text shown when the list has no items (default: "No items"), in the secondary ink where a row's text would start |
 | `.listFooterSeparator(_:)` | Controls the separator line before the footer |
 | `.disabled(_:)` | Prevents keyboard interaction |
 
