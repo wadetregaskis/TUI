@@ -15,8 +15,9 @@ import TUIkit
 
 /// The file panels: SwiftUI's `fileImporter`, `fileExporter` and `fileMover`,
 /// presented as the open and save panels TUIkit draws, with what each handed
-/// back. Every panel here browses the real file system, from the folder the
-/// Example was started in.
+/// back: beside each button, its panel's result (the paths chosen, where it
+/// saved, or "Cancelled"), cleared to "—" as the panel opens. Every panel here
+/// browses the real file system, from the folder the Example was started in.
 struct FilePanelsPage: View {
     @State private var opening = false
     @State private var openingSeveral = false
@@ -24,8 +25,14 @@ struct FilePanelsPage: View {
     @State private var saving = false
     @State private var moving = false
 
-    /// What the last panel handed back, or why it did not.
-    @State private var outcome = ""
+    /// The panels this page presents, each with a result of its own.
+    private enum Dialog: Hashable {
+        case open, several, folder, save, move
+    }
+
+    /// What each panel last handed back, or why it did not; a panel not in it
+    /// has handed back nothing since it opened.
+    @State private var results: [Dialog: String] = [:]
 
     /// The note the save panel saves.
     @State private var note = L("page.files.noteText")
@@ -39,7 +46,6 @@ struct FilePanelsPage: View {
             open
             save
             move
-            ValueDisplayRow("page.files.outcome", outcome.isEmpty ? L("page.files.nothingYet") : outcome)
             KeyboardHelpSection(
                 "page.files.keys",
                 shortcuts: [
@@ -59,27 +65,33 @@ struct FilePanelsPage: View {
 
     private var open: some View {
         DemoSection("page.files.openSection") {
-            HStack(spacing: 2) {
-                Button("page.files.open") { opening = true }
-                    .fileImporter(isPresented: $opening, allowedContentTypes: []) { result in
-                        report(result.map { [$0] })
-                    }
-                    .fileDialogMessage("page.files.openMessage")
-                Button("page.files.openSeveral") { openingSeveral = true }
-                    .fileImporter(
-                        isPresented: $openingSeveral, allowedContentTypes: [.plainText, .sourceCode, .json],
-                        allowsMultipleSelection: true
-                    ) { result in
-                        report(result)
-                    } onCancellation: {
-                        outcome = L("page.files.cancelled")
-                    }
-                    .fileDialogConfirmationLabel("page.files.openSeveralLabel")
-                Button("page.files.chooseFolder") { choosingFolder = true }
-                    .fileImporter(isPresented: $choosingFolder, allowedContentTypes: [.folder]) { result in
-                        report(result.map { [$0] })
-                    }
-                    .fileDialogBrowserOptions(.includeHiddenFiles)
+            VStack(alignment: .leading, spacing: 0) {
+                row(.open) {
+                    Button("page.files.open") { present(.open, $opening) }
+                        .fileImporter(
+                            isPresented: $opening, allowedContentTypes: [], allowsMultipleSelection: false,
+                            onCompletion: { report($0, of: .open) }, onCancellation: { cancelled(.open) }
+                        )
+                        .fileDialogMessage("page.files.openMessage")
+                }
+                row(.several) {
+                    Button("page.files.openSeveral") { present(.several, $openingSeveral) }
+                        .fileImporter(
+                            isPresented: $openingSeveral, allowedContentTypes: [.plainText, .sourceCode, .json],
+                            allowsMultipleSelection: true,
+                            onCompletion: { report($0, of: .several) }, onCancellation: { cancelled(.several) }
+                        )
+                        .fileDialogConfirmationLabel("page.files.openSeveralLabel")
+                }
+                row(.folder) {
+                    Button("page.files.chooseFolder") { present(.folder, $choosingFolder) }
+                        .fileImporter(
+                            isPresented: $choosingFolder, allowedContentTypes: [.folder],
+                            allowsMultipleSelection: false,
+                            onCompletion: { report($0, of: .folder) }, onCancellation: { cancelled(.folder) }
+                        )
+                        .fileDialogBrowserOptions(.includeHiddenFiles)
+                }
             }
         }
     }
@@ -88,18 +100,20 @@ struct FilePanelsPage: View {
 
     @ViewBuilder private var save: some View {
         DemoSection("page.files.saveSection") {
-            HStack(spacing: 2) {
+            VStack(alignment: .leading, spacing: 0) {
                 TextField("page.files.noteLabel", text: $note)
                     .frame(width: 30)
                 #if canImport(CoreTransferable)
-                    Button("page.files.save") { saving = true }
-                        .fileExporter(
-                            isPresented: $saving, item: note, contentTypes: [.plainText],
-                            defaultFilename: L("page.files.noteName")
-                        ) { result in
-                            report(result.map { [$0] })
-                        }
-                        .fileExporterFilenameLabel("page.files.saveAsLabel")
+                    row(.save) {
+                        Button("page.files.save") { present(.save, $saving) }
+                            .fileExporter(
+                                isPresented: $saving, item: note, contentTypes: [.plainText],
+                                defaultFilename: L("page.files.noteName"),
+                                onCompletion: { report($0.map { [$0] }, of: .save) },
+                                onCancellation: { cancelled(.save) }
+                            )
+                            .fileExporterFilenameLabel("page.files.saveAsLabel")
+                    }
                 #else
                     Text("page.files.saveUnavailable").foregroundStyle(.palette.foregroundSecondary)
                 #endif
@@ -111,18 +125,24 @@ struct FilePanelsPage: View {
 
     private var move: some View {
         DemoSection("page.files.moveSection") {
-            HStack(spacing: 2) {
-                Button("page.files.makeFile") { makeFileToMove() }
-                Button("page.files.move") { moving = true }
-                    .disabled(fileToMove == nil)
-                    .fileMover(isPresented: $moving, file: fileToMove) { result in
-                        if case .success(let url) = result { fileToMove = url }
-                        report(result.map { [$0] })
-                    }
-                Text(fileToMove.map { $0.path } ?? L("page.files.noFile"))
-                    .foregroundStyle(.palette.foregroundSecondary)
-                    .lineLimit(1)
-                    .truncationMode(.head)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 2) {
+                    Button("page.files.makeFile") { makeFileToMove() }
+                    Text(fileToMove.map { $0.path } ?? L("page.files.noFile"))
+                        .foregroundStyle(.palette.foregroundSecondary)
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                }
+                row(.move) {
+                    Button("page.files.move") { present(.move, $moving) }
+                        .disabled(fileToMove == nil)
+                        .fileMover(
+                            isPresented: $moving, file: fileToMove,
+                            onCompletion: { result in
+                                if case .success(let url) = result { fileToMove = url }
+                                report(result.map { [$0] }, of: .move)
+                            }, onCancellation: { cancelled(.move) })
+                }
             }
         }
     }
@@ -135,18 +155,37 @@ struct FilePanelsPage: View {
             try Data(note.utf8).write(to: url)
             fileToMove = url
         } catch {
-            outcome = "\(L("page.files.failed")): \(error.localizedDescription)"
+            results[.move] = "\(L("page.files.failed")): \(error.localizedDescription)"
         }
     }
 
     // MARK: - What came back
 
-    private func report(_ result: Result<[URL], any Error>) {
+    /// A panel's button, and beside it what the panel last handed back.
+    private func row(_ dialog: Dialog, @ViewBuilder button: () -> some View) -> some View {
+        HStack(spacing: 2) {
+            button()
+            ValueDisplayRow("page.files.result", results[dialog] ?? "—")
+        }
+    }
+
+    /// Opens a panel, clearing its result first so that choosing the same
+    /// thing twice reads as two results.
+    private func present(_ dialog: Dialog, _ flag: Binding<Bool>) {
+        results[dialog] = "—"
+        flag.wrappedValue = true
+    }
+
+    private func cancelled(_ dialog: Dialog) {
+        results[dialog] = L("page.files.cancelled")
+    }
+
+    private func report(_ result: Result<[URL], any Error>, of dialog: Dialog) {
         switch result {
         case .success(let urls):
-            outcome = urls.map(\.path).joined(separator: ", ")
+            results[dialog] = urls.map(\.path).joined(separator: ", ")
         case .failure(let error):
-            outcome = "\(L("page.files.failed")): \(error.localizedDescription)"
+            results[dialog] = "\(L("page.files.failed")): \(error.localizedDescription)"
         }
     }
 }
