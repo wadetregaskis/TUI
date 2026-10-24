@@ -5642,7 +5642,7 @@ hosts' documentation say, and how TUIkit reads it.
 | Key | What a host sends | TUIkit reads it as | Under the kitty keyboard protocol |
 |---|---|---|---|
 | **F10** | `ESC[21~`, the VT220 code, in the xterm family and Apple Terminal alike (Apple Terminal re-codes only the *shifted* function keys, above) | F10: the menu bar's first menu opens (`_MenuBarCore.isMenuBarKey`) | `CSI 21~`, unchanged |
-| **⌥ and a letter** | `ESC` and the letter where Option is sent as Meta (Apple Terminal's "Use Option as Meta key", iTerm2's Esc+, Ghostty's `macos-option-as-alt`; none the default — expected, not measured); otherwise the character Option composes (⌥F is `ƒ`), which no binding names | Alt and the letter: the menu whose title starts with it opens, below any app shortcut on the chord (a framework default) | `CSI <letter>;3u` where the host reports Option as Alt |
+| **⌥ and a letter** | `ESC` and the letter where Option is sent as Meta (Apple Terminal's "Use Option as Meta key", iTerm2's Esc+, Ghostty's `macos-option-as-alt`; none the default — expected, not measured); otherwise the character Option composes (⌥F is `ƒ`), which no binding names | Alt and the letter: the menu whose letter it is opens (one per title, no two the same: `MenuBarMnemonics`), below any app shortcut on the chord (a framework default) | `CSI <letter>;3u` where the host reports Option as Alt |
 | A click on a title | SGR mouse reporting, as every click | opens that menu | the same |
 
 **F10 on a Mac keyboard.** macOS gives the top row to the media keys: F10 is
@@ -5655,6 +5655,30 @@ F10 (unverified). Shift-F10 stays the context menu's (above).
 letter work only where Option is sent as Meta, which is why the bar has F10 and
 the click as well, and why every command's own shortcut works with the bar
 closed.
+
+**Showing the letters (2026-10-24, lane MENUBAR).** Each title's letter is
+underlined while Option is held — where the terminal tells TUIkit that Option
+is held, which only a modifier key reported on its own does: the kitty keyboard
+protocol's flag 8, "report all keys as escape codes" (below). So the letters
+show in the hosts documented to speak the protocol — iTerm2, Ghostty, Warp,
+kitty, WezTerm with its setting on — and never in Apple Terminal or under tmux,
+neither of which speaks it; there the bar looks as it always did. None of this
+is measured. Two things to check when it is: whether each host reports a lone
+Option at all with its Option setting at the default (composing), and whether
+it does so with Option sent as Alt. Where Option composes, the letters are
+underlined while ⌥ and a letter types `ƒ` rather than opening the menu — the
+letter shows a chord the host does not deliver.
+
+**Which letter.** In bar order each title takes its first ASCII letter not
+taken by a title before it, then the next letter of its own title; a title
+with none left (or no ASCII letter, as a Japanese title) has none, and F10 and
+the arrows reach it. A focused text field keeps the Option-letters it edits with
+(⌥B and ⌥F, a word back and forward) — it is asked for a key before the bar's
+letters, which are framework defaults — so while one has the focus the title
+whose letter it keeps takes its next free letter (File's F becomes I in
+English), and every other title keeps its own. An app's own shortcut on an
+Option-letter chord wins over the bar's letter, as any app shortcut wins over a
+framework default.
 
 *To measure — `Tools/TerminalProbes/key_probe.py`*, which asks for F10 and ⌥F
 after the grabber's keys: run it in Apple Terminal, iTerm2 and Ghostty from each

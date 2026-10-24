@@ -26,6 +26,12 @@ package protocol TextInputFocusHandler: AnyObject {
     /// the one fact about itself it depends on.
     func givesWayToKeyboardShortcut(_ event: KeyEvent) -> Bool
 
+    /// Whether the control takes `event` as one of its own editing chords,
+    /// framework defaults on the same chord notwithstanding: a focused text
+    /// field's Option-B and Option-F move by words, so the menu bar gives no
+    /// title those letters while it has the focus (`_MenuBarCore.mnemonics`).
+    func editsWith(_ event: KeyEvent) -> Bool
+
     /// The cell the insertion point is on, as the control last drew it: in the
     /// coordinates of the control's own hit-test region, the one that carries
     /// its focus id; `nil` where it is scrolled out of the control's view, or

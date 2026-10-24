@@ -20,4 +20,9 @@ extension TextEditorHandler: TextInputFocusHandler {
         return editingCommand(for: event)?.givesWayToKeyboardShortcuts(homeAndEndReachLineEnds: false)
             ?? false
     }
+
+    /// The editor's readline and Option word-motion chords.
+    func editsWith(_ event: KeyEvent) -> Bool {
+        editingCommand(for: event) != nil
+    }
 }

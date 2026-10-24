@@ -13,4 +13,7 @@ import TUIkitFoundation
 extension DatePickerHandler: TextInputFocusHandler {
     /// Never: the date picker binds no editing chord.
     func givesWayToKeyboardShortcut(_ event: KeyEvent) -> Bool { false }
+
+    /// Never: the date picker binds no editing chord.
+    func editsWith(_ event: KeyEvent) -> Bool { false }
 }

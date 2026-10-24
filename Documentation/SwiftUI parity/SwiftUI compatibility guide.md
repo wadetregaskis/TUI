@@ -824,8 +824,11 @@ is pressed after: the bar is drawn after the page. A press on a title opens its
 menu, and as on a Mac the press may go on down it: let go on an item and it
 runs, let go away from every row and the menu closes, and a click that does
 not move leaves it open to choose from. F10 opens the first (fn-F10 on a Mac keyboard; a page's own handler of
-F10 is asked first), and Alt with a title's first letter opens that menu where
-the terminal sends Option as Meta
+F10 is asked first), and Alt with a title's letter opens that menu where
+the terminal sends Option as Meta — each title's first letter not taken by one
+before it, so no two share one, none a focused text field keeps (⌥B, ⌥F), and
+underlined while Option is held where the terminal reports it (the kitty
+keyboard protocol)
 ([Terminal compatibility survey.md](<../Terminals/Terminal compatibility survey.md>),
 "The menu bar's keys"); with one open, Left and Right step to the menus beside
 it, F10 and Escape close it, and the page has its focus back. With one open the

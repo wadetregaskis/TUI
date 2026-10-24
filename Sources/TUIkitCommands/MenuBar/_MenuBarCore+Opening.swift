@@ -99,7 +99,8 @@ extension _MenuBarCore {
     }
 
     /// With every menu closed: F10 opens the first menu, and Alt with a
-    /// title's first letter opens that menu — each with its first item
+    /// title's letter (``MenuBarMnemonics``: its first not taken by a title
+    /// before it, no two the same) opens that menu — each with its first item
     /// highlighted, since the keyboard opened it. The app's menu has no letter
     /// (``TitleRow/mnemonics``): F10 is its key.
     ///
@@ -111,7 +112,8 @@ extension _MenuBarCore {
     /// command's (deviation W7). Alt and a letter are framework defaults
     /// (``KeyboardShortcutRegistry/registerDefault(_:holdsFocus:action:)``),
     /// so any shortcut of the app's on the same chord wins over the menu, and
-    /// a focused text field keeps the chords it edits with (Alt-B, Alt-F). A
+    /// a focused text field keeps the chords it edits with (Alt-B, Alt-F),
+    /// which no title is given while it has the focus. A
     /// terminal that does not send Option as Meta never sends them; F10 and a
     /// click work everywhere (Terminal compatibility survey.md, "The menu
     /// bar's keys").

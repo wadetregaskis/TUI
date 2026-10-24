@@ -191,6 +191,25 @@ package final class HeadlessApp<A: App> {
         }
     }
 
+    /// What the terminal reports about the keyboard: a legacy encoding unless
+    /// a script says the terminal took the kitty keyboard protocol's flags,
+    /// as a run's negotiation sets them before the first frame.
+    package var keyboardReporting: KeyboardReporting {
+        get { tuiContext.keyboardReporting }
+        set {
+            tuiContext.keyboardReporting = newValue
+            tuiContext.undoKeys.reporting = newValue
+        }
+    }
+
+    /// Reports the modifier keys held on their own, as a terminal speaking the
+    /// kitty keyboard protocol does (``ModifierKeyMonitor/record(_:)``).
+    /// - Returns: Whether the screen needs a frame to show the change.
+    @discardableResult
+    package func send(_ modifiers: ModifierKeyState) -> Bool {
+        tuiContext.modifierKeys.record(modifiers)
+    }
+
     /// Reports the terminal's window gaining or losing the focus, as a focus
     /// report (mode 1004) does: losing it lets go of the pointer, as the app's
     /// event funnel does (``MouseEventDispatcher/pointerLeft()``). The scene's

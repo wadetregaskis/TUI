@@ -20,15 +20,17 @@ import TUIkitFoundation
 ///
 /// **Opening a menu.** A press on a title — dragged down the menu and let go
 /// on an item, it runs the item, as a Mac's menu bar does — F10 (the first
-/// menu), or Alt and a
-/// title's first letter where the terminal sends Option as Meta (the menu with
-/// that letter; the first such menu). With a menu open, Left and Right step to
-/// the menu beside it, F10 and Escape close it, and Alt and a letter open that
-/// menu instead; and the pointer moved or dragged onto another title opens
-/// its menu, as on a Mac (``titleTracking(_:state:context:)``). The open menu is a pop-up `Menu`'s: the same rows, keys and
-/// highlight, hanging from its title over the whole window. A keyboard-opened
-/// menu highlights its first item, a pointer-opened one nothing. The titles are
-/// not in the Tab ring: the bar is reached by its keys and the pointer.
+/// menu), or Alt and a title's letter where the terminal sends Option as Meta
+/// (``MenuBarMnemonics``: one per title, no two the same, underlined while
+/// Option is held where the terminal reports it). With a menu open, Left and
+/// Right step to the menu beside it, F10 and Escape close it, and Alt and a
+/// letter open that menu instead; and the pointer moved or dragged onto
+/// another title opens its menu, as on a Mac
+/// (``titleTracking(_:state:context:)``). The open menu is a pop-up `Menu`'s:
+/// the same rows, keys and highlight, hanging from its title over the whole
+/// window. A keyboard-opened menu highlights its first item, a pointer-opened
+/// one nothing. The titles are not in the Tab ring: the bar is reached by its
+/// keys and the pointer.
 ///
 /// **Shortcuts with every menu closed.** A command's keyboard shortcut works
 /// whether its menu is open or not, as SwiftUI's do. A closed menu draws
@@ -185,45 +187,80 @@ extension _MenuBarCore {
         /// Each title's width, its cell on each side included.
         let widths: [Int]
 
-        /// Each title's mnemonic: its first letter, if that is an ASCII
-        /// letter, lowercased; none for the app's menu.
+        /// Each title's mnemonic, lowercased (``MenuBarMnemonics``); none for
+        /// the app's menu.
         let mnemonics: [Character?]
     }
 
     /// The row of titles: each menu's with a cell on each side, one after
     /// another from the left edge, the app's menu in bold, as a menu bar's
-    /// first title is, and the open menu's in reverse.
+    /// first title is, and the open menu's in reverse. While Option is held,
+    /// where the terminal reports it (``showsMnemonics(_:)``), each title's
+    /// letter is underlined.
     func titleRow(_ menus: [ResolvedCommandMenu], open: Int?, context: RenderContext) -> TitleRow {
+        var drawn = menus.enumerated().map { index, menu in
+            self.line(chunk(title(of: menu), open: index == open, context), context)
+        }
+        let plain: [String?] = zip(menus, drawn).map { menu, line in
+            // The app's menu has no letter (``MenuBarMnemonics``).
+            if case .standard(.app) = menu.title { return nil }
+            return line.stripped.trimmingCharacters(in: .whitespaces)
+        }
+        let kept = MenuBarMnemonics.kept(by: context.environment.focusManager?.currentFocused)
+        let mnemonics = MenuBarMnemonics.assign(plain, keeping: kept)
+        if showsMnemonics(context) {
+            for (index, letter) in mnemonics.enumerated() {
+                guard let letter, let title = plain[index], let parts = MenuBarMnemonics.split(title, at: letter)
+                else { continue }
+                let underlined = HStack(spacing: 0) {
+                    Text(verbatim: parts.before)
+                    Text(verbatim: parts.letter).underline()
+                    Text(verbatim: parts.after)
+                }
+                drawn[index] = self.line(chunk(underlined, open: index == open, context), context)
+            }
+        }
         var line = ""
         var columns: [Int] = []
         var widths: [Int] = []
-        var mnemonics: [Character?] = []
-        var column = 0
-        let palette = context.environment.palette
-        for (index, menu) in menus.enumerated() {
-            let name = title(of: menu)
-            let chunk = HStack(spacing: 0) {
-                Text(" ")
-                name
-                Text(" ")
-            }
-            let drawn =
-                index == open
-                ? self.line(chunk.foregroundStyle(palette.appHeaderBackground).background(palette.foreground), context)
-                : self.line(chunk, context)
-            let width = drawn.strippedLength
-            columns.append(column)
-            widths.append(width)
-            // The app's menu has no letter: its title is the app's name, whose
-            // first letter would take Edit's or File's from them, and F10 opens
-            // it, as the first menu.
-            let isAppMenu = if case .standard(.app) = menu.title { true } else { false }
-            mnemonics.append(
-                isAppMenu ? nil : drawn.stripped.trimmingCharacters(in: .whitespaces).first.flatMap(Self.mnemonic))
-            line += drawn
-            column += width
+        for title in drawn {
+            columns.append(line.strippedLength)
+            widths.append(title.strippedLength)
+            line += title
         }
         return TitleRow(line: line, columns: columns, widths: widths, mnemonics: mnemonics)
+    }
+
+    /// `name` with a cell on each side, in reverse if its menu is `open`.
+    @ViewBuilder
+    private func chunk(_ name: some View, open: Bool, _ context: RenderContext) -> some View {
+        let chunk = HStack(spacing: 0) {
+            Text(" ")
+            name
+            Text(" ")
+        }
+        let palette = context.environment.palette
+        if open {
+            chunk.foregroundStyle(palette.appHeaderBackground).background(palette.foreground)
+        } else {
+            chunk
+        }
+    }
+
+    /// Whether the titles' letters are shown: while Option is held, where the
+    /// terminal reports a modifier key held alone (the kitty keyboard
+    /// protocol: `modifierKeyMonitor` is published only there). Elsewhere
+    /// nothing says Option is down, and nothing is shown.
+    ///
+    /// Read each frame, so the bar asks for a frame when Option changes —
+    /// and only Option: Shift, held for every capital typed, asks for none.
+    private func showsMnemonics(_ context: RenderContext) -> Bool {
+        guard let monitor = context.environment.modifierKeyMonitor else { return false }
+        // Drawn from keys that change between frames with no state changing,
+        // as a modifier key alternate is: no memo may keep it.
+        context.environment.volatileReadTracker?.recordVolatileRead()
+        if !context.isMeasuring { monitor.noteDrawnFrom(.option) }
+        return monitor.current.contains(.option)
     }
 
     /// `view` drawn on one line at its natural width.
@@ -241,13 +278,6 @@ extension _MenuBarCore {
         case .standard(let standard): Text(Self.name(of: standard))
         case .declared(let name): name
         }
-    }
-
-    /// `character`, lowercased, if it is an ASCII letter: what Alt and it
-    /// opens.
-    private static func mnemonic(_ character: Character) -> Character? {
-        guard character.isASCII, character.isLetter else { return nil }
-        return Character(character.lowercased())
     }
 
     /// The app's name, as its menu is titled: the process's.

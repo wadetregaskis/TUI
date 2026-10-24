@@ -31,7 +31,7 @@ import TUIkitCore
 /// run loop, by the render pass and by input dispatch.
 package final class ModifierKeyMonitor: @unchecked Sendable {
     /// The modifier keys held, and Caps Lock if it is on.
-    private(set) var current: EventModifiers = []
+    package private(set) var current: EventModifiers = []
 
     /// One view's observer: what it masks the state to, and its action.
     private struct Observer {
@@ -42,9 +42,9 @@ package final class ModifierKeyMonitor: @unchecked Sendable {
     /// This walk's observers, in render order.
     private var observers: [Observer] = []
 
-    /// Whether the frame on screen drew something from ``current``, so a change
-    /// needs a frame to show.
-    private var isDrawnFrom = false
+    /// The modifiers the frame on screen drew something from, so a change of
+    /// any of them needs a frame to show.
+    private var drawnFrom: EventModifiers = []
 
     /// Where the focus was in a modified view that an alternate has replaced,
     /// keyed by the modified view's identity — see ``alternateShown(at:focusManager:)``.
@@ -82,7 +82,7 @@ package final class ModifierKeyMonitor: @unchecked Sendable {
     /// left the scene, and goes too.
     func beginSceneRender() {
         observers.removeAll()
-        isDrawnFrom = false
+        drawnFrom = []
         if !heldFocus.isEmpty {
             heldFocus = heldFocus.filter { $0.value.touched >= walk }
         }
@@ -182,10 +182,13 @@ package final class ModifierKeyMonitor: @unchecked Sendable {
         observers.append(Observer(mask: mask, action: action))
     }
 
-    /// Notes that this walk drew something from ``current``: a modifier key
-    /// alternate.
-    func noteDrawnFrom() {
-        isDrawnFrom = true
+    /// Notes that this walk drew something from ``current`` masked to
+    /// `mask` — every modifier for a modifier key alternate, Option alone
+    /// for the menu bar's underlined letters — so a change within it asks
+    /// for a frame, and one outside it (Shift, for every capital typed) does
+    /// not.
+    package func noteDrawnFrom(_ mask: EventModifiers = [.shift, .control, .option, .command, .capsLock]) {
+        drawnFrom.formUnion(mask)
     }
 
     /// The number of observers this walk registered, for tests.
@@ -194,8 +197,8 @@ package final class ModifierKeyMonitor: @unchecked Sendable {
     /// Takes a report from the terminal, tells each observer whose masked state
     /// it changes, and answers whether the screen needs a frame for it.
     ///
-    /// - Returns: `true` when the state changed and the frame on screen drew
-    ///   something from it. An observer's action asks for its own frame if it
+    /// - Returns: `true` when the state changed within what the frame on
+    ///   screen drew something from (``noteDrawnFrom(_:)``). An observer's action asks for its own frame if it
     ///   changes state, as a key handler's does.
     @discardableResult
     package func record(_ state: ModifierKeyState) -> Bool {
@@ -214,7 +217,7 @@ package final class ModifierKeyMonitor: @unchecked Sendable {
             heldFocus[identity] = nil
             giveBack(held, at: identity)
         }
-        return isDrawnFrom
+        return !old.symmetricDifference(new).isDisjoint(with: drawnFrom)
     }
 }
 

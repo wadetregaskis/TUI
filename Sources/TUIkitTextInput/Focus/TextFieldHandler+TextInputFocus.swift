@@ -15,4 +15,10 @@ extension TextFieldHandler: TextInputFocusHandler {
         editingCommand(for: event)?.givesWayToKeyboardShortcuts(homeAndEndReachLineEnds: !isVertical)
             ?? false
     }
+
+    /// The field's chords: its readline and Option word motions, and the
+    /// standard edits it stands in for.
+    func editsWith(_ event: KeyEvent) -> Bool {
+        TextFieldChord(event) != nil
+    }
 }
