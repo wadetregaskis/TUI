@@ -818,8 +818,10 @@ several modifiers add up, the innermost first, and `commandsRemoved()` and
 `commandsReplaced(content:)` take away what is inside them, keeping what is
 outside. A command's keyboard shortcut works whether its menu is open or not,
 and a command reads the focused view's `@FocusedValue` as of the frame its key
-is pressed after: the bar is drawn after the page. A click on a title opens its
-menu, F10 opens the first (fn-F10 on a Mac keyboard; a page's own handler of
+is pressed after: the bar is drawn after the page. A press on a title opens its
+menu, and as on a Mac the press may go on down it: let go on an item and it
+runs, let go away from every row and the menu closes, and a click that does
+not move leaves it open to choose from. F10 opens the first (fn-F10 on a Mac keyboard; a page's own handler of
 F10 is asked first), and Alt with a title's first letter opens that menu where
 the terminal sends Option as Meta
 ([Terminal compatibility survey.md](<../Terminals/Terminal compatibility survey.md>),

@@ -18,7 +18,9 @@ import TUIkitFoundation
 /// the bodies of commands of the app's own type, with their `@FocusedValue`s —
 /// after the page has published this frame's focused values.
 ///
-/// **Opening a menu.** A click on a title, F10 (the first menu), or Alt and a
+/// **Opening a menu.** A press on a title — dragged down the menu and let go
+/// on an item, it runs the item, as a Mac's menu bar does — F10 (the first
+/// menu), or Alt and a
 /// title's first letter where the terminal sends Option as Meta (the menu with
 /// that letter; the first such menu). With a menu open, Left and Right step to
 /// the menu beside it, F10 and Escape close it, and Alt and a letter open that

@@ -10,26 +10,33 @@
 import TUIkitFoundation
 
 extension _MenuBarCore {
-    /// A click on a title opens its menu, or closes it if it is the one open.
+    /// A press on a title opens its menu, or closes it if it is the one open.
     ///
-    /// On the press, as a pull-down menu opens: the release that follows is
-    /// this handler's (the press is claimed), so it chooses nothing. A
-    /// pointer-opened menu highlights nothing. While a menu is open its
-    /// dismiss backdrop covers the window and takes the press first, so a
-    /// click on any title then closes the menu.
+    /// On the press, as a pull-down menu opens, and the rest of the gesture is
+    /// the menu's, as a Mac's menu bar tracks: the press is handed off
+    /// (``MouseEventDispatcher/handOffGesture()``), so a drag down the menu
+    /// highlights the row under the pointer and a release on one runs it,
+    /// and a release away from every row closes the menu. A release that did
+    /// not move ends a click, and leaves the menu up to be chosen from
+    /// (``MouseEventDispatcher/pressOpenedPopup(_:)``). A pointer-opened menu
+    /// highlights nothing. While a menu is open its dismiss backdrop covers
+    /// the window and takes the press first, so a click on any title then
+    /// closes the menu.
     func attachTitleRegions(
         to buffer: inout FrameBuffer, _ titles: TitleRow, state: MenuBarState, context: RenderContext
     ) {
         guard let dispatcher = context.environment.mouseEventDispatcher else { return }
         for (index, column) in titles.columns.enumerated() {
             let titleContext = context.withChildIdentity(type: TitleRow.self, index: index + 1)
-            let id = dispatcher.register(in: titleContext) { [weak state] event in
-                guard event.button == .left, let state else { return false }
+            let id = dispatcher.register(in: titleContext) { [weak state, weak dispatcher] event in
+                guard event.button == .left, let state, let dispatcher else { return false }
                 guard event.phase == .pressed else { return event.phase == .released }
                 if state.openMenu == index {
                     state.close()
                 } else {
                     state.open(index, withSelection: false)
+                    dispatcher.handOffGesture()
+                    dispatcher.pressOpenedPopup(state.openedPopup)
                 }
                 return true
             }

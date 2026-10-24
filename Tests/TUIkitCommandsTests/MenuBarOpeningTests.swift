@@ -201,6 +201,62 @@ struct MenuBarOpeningTests {
         #expect(!shows("B1", app), "\(rows(app))")
     }
 
+    /// Where `text` first shows below the bar's row: its first cell.
+    private func cell<A: App>(of text: String, _ app: HeadlessApp<A>) throws -> (x: Int, y: Int) {
+        let screen = rows(app)
+        let y = try #require(screen.indices.dropFirst().first { screen[$0].contains(text) }, "\(screen)")
+        let x = try #require(screen[y].range(of: text)).lowerBound.utf16Offset(in: screen[y])
+        return (x, y)
+    }
+
+    /// The first cell of the title `name` on the bar's row.
+    private func title<A: App>(_ name: String, _ app: HeadlessApp<A>) throws -> Int {
+        let bar = rows(app)[0]
+        return try #require(bar.range(of: name)).lowerBound.utf16Offset(in: bar)
+    }
+
+    @Test("A press on a title, dragged down its menu and let go on an item, runs the item and closes the menu")
+    func pressDragReleaseChooses() throws {
+        let (app, clock) = launched(TwoMenusApp())
+        let alpha = try title("Alpha", app)
+        app.send(MouseEvent(button: .left, phase: .pressed, x: alpha, y: 0))
+        clock.frame(app)
+        let item = try cell(of: "A2", app)
+        app.send(MouseEvent(button: .left, phase: .dragged, x: item.x, y: item.y))
+        clock.frame(app)
+        app.send(MouseEvent(button: .left, phase: .released, x: item.x, y: item.y))
+        clock.frame(app)
+        #expect(OpeningProbe.shared.log == ["a2"])
+        #expect(!shows("A1", app), "choosing closed the menu: \(rows(app))")
+    }
+
+    @Test("A press on a title let go where it went down leaves the menu open, nothing chosen")
+    func pressReleaseInPlaceLeavesItOpen() throws {
+        let (app, clock) = launched(TwoMenusApp())
+        let alpha = try title("Alpha", app)
+        app.send(MouseEvent(button: .left, phase: .pressed, x: alpha, y: 0))
+        clock.frame(app)
+        app.send(MouseEvent(button: .left, phase: .released, x: alpha, y: 0))
+        clock.frame(app)
+        #expect(shows("A1", app), "\(rows(app))")
+        #expect(OpeningProbe.shared.log.isEmpty)
+    }
+
+    @Test("A press on a title dragged off every row and let go closes the menu, nothing chosen")
+    func pressDragAwayCloses() throws {
+        let (app, clock) = launched(TwoMenusApp())
+        let alpha = try title("Alpha", app)
+        app.send(MouseEvent(button: .left, phase: .pressed, x: alpha, y: 0))
+        clock.frame(app)
+        #expect(shows("A1", app), "sanity: the menu is open: \(rows(app))")
+        app.send(MouseEvent(button: .left, phase: .dragged, x: 30, y: 9))
+        clock.frame(app)
+        app.send(MouseEvent(button: .left, phase: .released, x: 30, y: 9))
+        clock.frame(app)
+        #expect(!shows("A1", app), "\(rows(app))")
+        #expect(OpeningProbe.shared.log.isEmpty)
+    }
+
     @Test("The bar is not in the Tab ring")
     func notInTheTabRing() {
         let (app, clock) = launched(TwoMenusApp())
