@@ -402,6 +402,17 @@ enabled scope and files the columns' geometry with its rows, so only those
 cells' text selects and a selection keeps to the cell. About half a day;
 it is B-D4X-7's fuller version with one more input.
 
+**Fixed 2026-10-24 (lane TEXTFMT, owner ruling B-D4X-7-17, option 1).** A
+cell's `.textSelection(.enabled)` makes that cell's text selectable, kept to
+the cell, and nothing else: a press on the row's other text is under no
+scope, so a drag there selects nothing and a click selects the row, as on
+macOS. No column geometry was needed — the scoped cell's own region, which
+the table already carried up, is what a selection keeps to — so the fix is
+the removal of the flag (`cellsSelectText`) that treated the row's unscoped
+text as enabled. An enabled scope around the table still keeps a selection
+to the row, crossing its columns (B-D4X-7). Decisions
+[TEXTFMT](<Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md#b-d4x-7-17-a-cells-modifier-keeps-to-its-cell>).
+
 ## Review 2: answers, and what remains
 
 ### e7ce4b0f7's suspend flush — not an issue, now pinned

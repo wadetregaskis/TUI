@@ -3954,12 +3954,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// scopes before the table drew them, tells. A table in an app with no
     /// enabled scope pays one read.
     ///
-    /// A cell's scope makes the whole row's text selectable, kept to the row,
-    /// as an enabled scope around the table does (B-D4X-7) — but for a press
-    /// on the scoped cell itself, which is under the scope's own region (the
-    /// table carries a view cell's regions up, ``_TableRowPayload``) and is
-    /// kept to the cell. The rest of the row is drawn as text, and the table
-    /// knows no rectangle of it to keep a selection to.
+    /// A cell's scope makes that cell's text selectable, kept to the cell: a
+    /// press on it is under the scope's own region (the table carries a view
+    /// cell's regions up, ``_TableRowPayload``), and the selection keeps to
+    /// that region. A press on the row's other text is under no scope, and is
+    /// the row's click (owner ruling B-D4X-7-17, 2026-10-23: the cell's
+    /// modifier reached the whole row, so a click on another column's text
+    /// selected nothing). An enabled scope around the table still makes the
+    /// whole row's text selectable, kept to the row and crossing its columns
+    /// (B-D4X-7).
     @MainActor
     private func fileSelectableRows(
         for id: HitTestRegion.HandlerID, state: PopulatedRenderState, dispatcher: MouseEventDispatcher,
@@ -3973,8 +3976,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     handler.contentRowLines(atContentY: localY - interiorTopY).map {
                         (contentColumns, ($0.lowerBound + interiorTopY)..<($0.upperBound + interiorTopY))
                     }
-                },
-                cellsSelectText: cellsSelectText),
+                }),
             for: id, in: context)
     }
 

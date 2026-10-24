@@ -2920,10 +2920,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                         handler.contentRowLines(atContentY: localY - topInset).map {
                             (contentColumns, ($0.lowerBound + topInset)..<($0.upperBound + topInset))
                         }
-                    },
-                    // A row's own scope keeps its region, and is found under
-                    // the press.
-                    cellsSelectText: false),
+                    }),
                 for: mouseHandlerID, in: context)
         }
         // The rows are a landing place for drags from elsewhere. It borrows the

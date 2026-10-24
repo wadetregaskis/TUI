@@ -175,3 +175,38 @@ read.
 **The fuller version:** carry the `Text` (or `LiveWords`) into the tooltip and
 the strip, read it per frame and declare its change; about two hours each, and
 worth it only once SwiftUI's own is measured live.
+
+## B-D4X-7-17: a cell's modifier keeps to its cell
+
+**The ruling:** "Tentatively concur; configurability by a modifier may be
+wise." Option 1: fix the leak, and keep a table-wide scope crossing columns.
+
+**Shipped.** A cell's `.textSelection(.enabled)` makes that cell's text
+selectable, kept to the cell; the row's other text is the row's, so a click on
+it selects the row and a drag on it selects nothing, as on macOS. An enabled
+scope around the table still selects a row's text across its columns. The
+option priced column geometry filed with the rows; it was not needed. The
+scoped cell's own region, which the table carries up, already kept a
+selection begun on it to the cell; the leak was a flag on the rows' press role
+(`cellsSelectText`) that treated the row's unscoped text as enabled. Removing
+it fixes the leak in `PressRole.rows`, and a `List` passed `false` for it
+anyway. Tests: `TextSelectionModifierTests` (`cellTextKeepsToTheCell`, now a
+click on the other column selecting the row; `wholeTableCrossesColumns`).
+Nothing per frame changes.
+
+### C-TEXTFMT-2. Declined: a modifier to choose cell or row for a table-wide scope
+
+*A `TextSelectionScope.cell`, or a table modifier, making `.textSelection(.enabled)`
+around a `Table` keep each selection to one cell, as macOS does*
+
+Not built, because where the modifier goes already chooses: on the cells'
+`Text` (`TableColumn("Name") { Text($0.name).textSelection(.enabled) }`) a
+selection keeps to the cell, as macOS's does, and around the table it crosses
+the row's columns, which is TUIkit's screen selection everywhere else (T6). A
+third spelling for the first would add API without adding a behaviour, and no
+app has asked for a table-wide scope that keeps to cells.
+
+**Price, if wanted:** about two hours. A `.cell` case on `TextSelectionScope`
+(TUIkit's existing modifier for what a selection keeps to), read by the table,
+which files its columns' x-ranges with its rows so that a press under a
+table-wide scope keeps to the column under it.

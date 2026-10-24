@@ -80,7 +80,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [B-HELP-2](#b-help-2) | No shared key; modifiers on "?" for show-all; a default menu item toggling all help. | Rule adopted; key proposal below. |
 | [A42-Q8](#a42-q8) | The recommendation. | Recorded (lane KEYS, 2026-10-24) in decisions A42, the design study's Q8 and C-O13-3: menu now, chords through TextFormattingCommands. Built with A42, which has not started. |
 | [B-PASTE-1-EDITOR](#b-paste-1-editor) | Asked why not UTF-8 storage, and its downsides. | Answered below — your call. |
-| [B-D4X-7-17](#b-d4x-7-17) | Tentatively concur; configurability by a modifier may be wise. | Option 1 queued, with a modifier considered. |
+| [B-D4X-7-17](#b-d4x-7-17) | Tentatively concur; configurability by a modifier may be wise. | Done (lane TEXTFMT, 2026-10-24): option 1. A cell's `.textSelection(.enabled)` keeps to the cell and the row's other text is the row's again; around the table a selection still crosses columns. No modifier: where `.textSelection` is placed already chooses cell or row, as macOS's cell-only behaviour is the cell placement (decisions TEXTFMT C-TEXTFMT-2, priced at two hours if wanted). |
 | [D4X-LOCALITY](#d4x-locality) | Screen and tmux paths seem fine; asked about asking keepers for clients. | Passthroughs queued; client queries answered below. |
 | [B85-KEYBOARD](#b85-keyboard) | Full control. | Done (lane KEYS, 2026-10-24): each link in a `Text` is a Tab stop that breathes, opens on Return or a click with the destination popover, and has `Link`'s menu on Shift+F10 or a right-click (decisions B85). |
 | [B86](#b86) | Asked about Foundation's Markdown parser and version variation. | Answered below — your call. |

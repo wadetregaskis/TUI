@@ -48,15 +48,14 @@ package enum PressRole {
     /// row drawn there: its columns and its lines, in the same coordinates —
     /// or `nil` where no row is (a section header, the border).
     ///
-    /// `cellsSelectText` says the rows' own content asked for it: a `Table`
-    /// whose cells filed an enabled scope while it drew them
-    /// (`Text(name).textSelection(.enabled)` in a column). A table keeps a
-    /// view cell's regions, so a press on that cell is under its scope and
-    /// kept to it; the rest of the row is drawn as text, under no scope to
-    /// say so, and with this a press there under no scope at all is treated
-    /// as under an enabled one. A `List`'s rows keep their regions, so a
-    /// row's own scope is found under the press, and it passes `false`.
-    case rows(rowArea: (_ localY: Int) -> (columns: Range<Int>, lines: Range<Int>)?, cellsSelectText: Bool)
+    /// Filed too where only the rows' own content enabled selection — a
+    /// `List` row's `Text(name).textSelection(.enabled)`, or a `Table` cell's,
+    /// whose regions the table carries up. A press on that text is under the
+    /// row's or cell's own scope, which keeps the selection to it; a press on
+    /// the row's other text is under no scope, and is the row's click, as on
+    /// macOS (owner ruling B-D4X-7-17, 2026-10-23: the cell's modifier no
+    /// longer reaches the rest of the row).
+    case rows(rowArea: (_ localY: Int) -> (columns: Range<Int>, lines: Range<Int>)?)
 
     /// A drag handle — a `.draggable` or `.itemProvider` view, a `Table`
     /// row's `TableRow.draggable`, a draggable tab, a gradient stop — filed
@@ -187,18 +186,13 @@ extension MouseEventDispatcher {
         }
         let point = ScreenSelection.Point(x: event.x, y: event.y)
         // Whether the drag handle `matching[handle]` stands aside for the text
-        // under the press: text under an enabled scope, or a row's text that
-        // the rows behind it keep for a selection (enabled around them, or by
-        // a table's cells with no scope under the press) — unless a control
+        // under the press: text under an enabled scope, which the rows behind
+        // it keep for a selection where they are filed — unless a control
         // behind the handle would take the press before anything holds it for
         // the selection: that text is the control's label. Asked only of a
         // press that reaches a drag handle.
         func yieldsToText(behind handle: Int) -> Bool {
-            let rowsKeepText = matching.contains { region in
-                guard case .rows(_, let cellsSelectText) = pressRoles[region.handlerID] else { return false }
-                return tier == true || (tier == nil && cellsSelectText)
-            }
-            guard tier == true || rowsKeepText, screenSelection?.isText(at: point) == true else { return false }
+            guard tier == true, screenSelection?.isText(at: point) == true else { return false }
             for region in matching[(handle + 1)...] {
                 switch pressRoles[region.handlerID] {
                 // What holds the press for the selection.
@@ -229,10 +223,11 @@ extension MouseEventDispatcher {
                     hold(event, for: (handler, region.localOriginX, region.localOriginY),
                         pane: within(Self.rect(of: region)))
                     return true
-                case .rows(let rowArea, let cellsSelectText):
+                case .rows(let rowArea):
                     // A press on a row's text, under an enabled scope: the
-                    // text's, kept to the row, and no click for the row.
-                    if tier == true || (tier == nil && cellsSelectText),
+                    // text's, kept to the row (and to a cell's own scope,
+                    // `within`), and no click for the row.
+                    if tier == true,
                         screenSelection?.isText(at: point) == true,
                         let area = rowArea(event.y - region.localOriginY)
                     {
