@@ -23,7 +23,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 
 | Id | Your answer | What happens now |
 |---|---|---|
-| [A-TS-1](#a-ts-1) | Keep the small test targets separate for now. | No change; the TS.md write-up is still owed (queued). |
+| [A-TS-1](#a-ts-1) | Keep the small test targets separate for now. | Done (lane DOCS2): the investigation is written up in the TS decisions file; the split stays. |
 | [B-BNDL-1](#b-bndl-1) | (a) seems okay; asked why over the others. | Kept as shipped; the reasons are below. |
 | [B-D6M-2](#b-d6m-2) | Check (c); take (c) if it works, else (a). | Trait experiment queued; (a) stands meanwhile. |
 | [B-DYNVFIX-3](#b-dynvfix-3) | Asked for a (d) covering timers and detached tasks, and (b) against (c). | Answered below — your call. |

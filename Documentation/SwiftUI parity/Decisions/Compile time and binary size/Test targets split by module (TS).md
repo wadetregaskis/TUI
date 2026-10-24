@@ -92,15 +92,70 @@ placed; a new file is placed by hand, by CONTRIBUTING.md's rule, and
 
 ### A-TS-1. A low-module edit is slower on 6.4
 
+*Answered by the owner on 2026-10-23: keep the small test targets separate for
+now.* Option 2 was not run, and nothing about the split has changed.
+
 Under 6.4's build system, which has no stale-build hole, an edit to TUIkitView
 takes 133–141 s after the split against 109–113 s before (+23%), and one to
 TUIkitFoundation 130–137 s against 119–121 s (+11%), while edits to feature
-modules take 41–62% less. The likely cause is the number of test
-products: swift-build links one per test target, 27 now against 10 before, and
-an edit to a low module relinks them all. Options:
+modules take 41–62% less. The first draft of this entry guessed at the cause:
+the number of test products, which swift-build links one per test target (27
+then, against 10 before; 28 since lane O13 added `TUIkitCommandsTests`). It had
+not measured it. Options:
 
 1. **Keep it as it is.** An edit to one of the 18 feature modules saves 35–60 s
    on 6.4; one to TUIkitFoundation or below costs 11–28 s more.
 2. **Merge the smallest targets** (Forms 6 files, CurveEditors 2, AppKit 4, Grid 8,
    Search 12) into the integration target: fewer products, and those modules'
    own edits rebuild the integration tests instead. Not measured.
+3. **Wait for an upstream fix** to the two causes below.
+
+**What the owner asked.** On 2026-10-15 the owner asked for the slowdown to be
+investigated: no merging of targets except as an experiment, the trade-off
+being the owner's call, and a bug report written if the cause was in the
+build system.
+
+**What the investigation found.** Two causes, neither of them the product count.
+The measurements are of a private edit to `BufferModifier.swift` in TUIkitView
+on swiftly's 6.4.0, `swift build --build-tests`, with the running compiler
+processes sampled every 0.25 s (session notes, `TESTSPLIT/slow64`).
+
+- **swift-build compiles the test targets one after another.** Of the 133 s
+  rebuild, the library modules took the first 30 s or so. The test targets then
+  compiled from 32 s to 127 s, and in none of the 344 samples were two test
+  targets' compilers running together, although one target's compile used up to
+  14 processes. So the time is the sum of the test targets that have to be
+  rebuilt, and an edit that reaches all of them pays for all. The earlier
+  four-target experiment (TT1) saw swift-build compile test targets one after
+  another too. The report lists what was tried: `-j`, `--disable-xctest`,
+  `--disable-index-store` and the explicit-module flags. The build's trace
+  reported target parallelisation as enabled.
+- **An edit to a private declaration rebuilds the same modules as a public
+  one.** Every module above the edited one is compiled again, private edit or
+  public, and so are the test targets above it:
+
+  | 6.4.0, after the split | private edit | public edit |
+  |---|---|---|
+  | TUIkitMenus | 33.6, 33.3 s | 34.7, 32.6 s |
+  | TUIkitLists | 53.2, 53.7 s | 54.3, 54.1 s |
+  | TUIkitFoundation | 136.5, 136.0 s | 134.9, 129.6 s |
+  | TUIkitView | 138.3, 141.1 s | 135.9, 133.4 s |
+
+  (each edit and its revert.) A private edit changes nothing a dependent can
+  see, yet it is rebuilt.
+
+Two reports for the owner to file with the Swift project were written to the
+Desktop on 2026-10-15, one for each cause, the first with the list of what was
+tried. Neither is kept in the repository.
+
+**Why it matters.** Since 2026-10-10, 425 of the 604 commits that touched
+`Sources` touched TUIkitFoundation or a module below it (`git log` at
+01d6da6a9), so the slower case is the common one. The faster one, an edit to a
+feature module, is the edit the split was made for.
+
+**What would change the answer.** An upstream fix for either cause: with
+parallel test-target compilation, an edit low in the stack would cost the
+longest target and not the sum of them, and the split would be a gain for every
+edit. Short of that, the merge of option 2 is the experiment to run, on a quiet
+machine, timing an edit to each of the five modules and to TUIkitFoundation
+against the products as they are; it lands only on the owner's word.
