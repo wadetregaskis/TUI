@@ -945,7 +945,8 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         row.reduce(0) { $0 + tabWidth($1, style: .bordered) } + (row.count + 1)
     }
 
-    /// A compact row's width: the chips (each `▐ title ▌`) abut with no separator.
+    /// A compact row's width: the chips (each `▐ title ▌`, or another family's
+    /// caps, always a cell each) abut with no separator.
     func compactRowWidth(_ row: [Int]) -> Int {
         row.reduce(0) { $0 + tabWidth($1, style: .compact) }
     }
@@ -953,7 +954,8 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     // MARK: Strip rendering
 
     /// Per-tab visible width (cells), excluding inter-tab separators. Compact
-    /// tabs carry two extra cells for the ◢ ◣ edge caps.
+    /// tabs carry two extra cells for their caps (``ControlEnds``), whatever
+    /// the family draws in them.
     ///
     /// The title is measured in CELLS, not Characters: a CJK or emoji title
     /// draws two cells per Character, and every width in the strip — row widths,
@@ -1073,7 +1075,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             rows: rows, selectedIndex: selectedIndex,
             hoveredIndex: hoveredTabBox(context: context).value,
             chip: chip, palette: palette,
-            width: panelWidth, alignment: alignment, legibility: context.environment.legibilityWeight)
+            width: panelWidth, alignment: alignment, context: context)
         let (stripLines, regions) = (strip.lines, strip.regions)
         let claims = strip.claims
 

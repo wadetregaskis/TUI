@@ -23,7 +23,10 @@ the tab chips and the switch's knob follow the appearance's family. That is
 already yours in `Documentation/Open owner decisions.md` (FB3-OTHERCAPS), and
 this lane leaves it there: nothing shipped here changes a family, and the
 density below draws a picker's caps only where the size does, so either answer
-slots in without undoing it.
+slots in without undoing it. (Ruled 2026-10-23, option 2: since 2026-10-24 a
+segmented picker's and a tab chip's caps are a button's in the family in force,
+`ControlEnds`, at the sizes this table gives; the switch's Lines look waits on
+a probe card.)
 
 ### A-FORMS-1. A button written bare in a columns form: at the trailing edge, or in the value column?
 

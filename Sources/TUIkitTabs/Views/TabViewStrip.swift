@@ -16,19 +16,29 @@ extension _TabViewCore {
     /// Lays out the wrapped, aligned compact chip rows. Returns the lines (each
     /// padded to `width`), the per-tab click regions in strip coordinates, and
     /// the active chip's animation run if it is breathing.
+    ///
+    /// The chips' caps are a button's in the family in force (``ControlEnds``),
+    /// read at `.regular`: a chip is two cells wider than its label under every
+    /// family and size, as ``tabWidth(_:style:)`` says.
     func compactStripLines(
         rows: [[Int]], selectedIndex: Int, hoveredIndex: Int?,
         chip: ActiveChipCycle, palette: any Palette,
-        width: Int, alignment: HorizontalAlignment, legibility: LegibilityWeight?
+        width: Int, alignment: HorizontalAlignment, context: RenderContext
     ) -> (
         lines: [String], regions: [(x: Int, y: Int, width: Int, height: Int, index: Int)],
         animatedCells: [AnimatedCellRun], claims: [OpacityRegion]
     ) {
         let (inactiveFg, inactiveBg) = stripLabelColors(palette: palette)
+        let legibility = context.environment.legibilityWeight
+        let ends = ControlEnds(in: context.environment, size: .regular)
         var lines: [String] = []
         var regions: [(x: Int, y: Int, width: Int, height: Int, index: Int)] = []
         var animatedCells: [AnimatedCellRun] = []
         var claims: [OpacityRegion] = []
+
+        // The active chip's lines, where its caps are lines: on its own fill,
+        // whose label is the one thing that breathes.
+        let lineInk = ControlEnds.lineInk(palette: palette, surface: chip.surface, hovered: false, disabled: false)
 
         // A coloured chip: the half-block caps (▐ … ▌) extend the chip's fill
         // half a cell each side with a clean edge. One function draws it, so
@@ -40,16 +50,34 @@ extension _TabViewCore {
         // painted in the chip's own colour) and the body is ink on field, so a chip
         // owes three claims and not one, and the row knows where each begins because
         // it is the thing that put them there.
+        //
+        // In another family the caps are a button's of it (``ControlEnds``): the
+        // face's own cells where a filled face is square, and lines on the active
+        // chip's fill where controls are drawn in lines — `( title )`, as a text
+        // field keeps its field between line caps. An inactive chip has no caps to
+        // show there, as on the page its half blocks vanish into it: its two cells
+        // are its fill. Under `.blank`, and at sizes with no caps, the chip keeps
+        // its two cells, of its fill, so a strip is as wide in every family.
         func drawChip(
             _ index: Int, background: Color, foreground: Color, active: Bool
         ) -> ClaimingRow {
             var row = ClaimingRow()
-            row.append("▐", cells: 1, ink: background)
+            cap(ends.open, active: active, background: background, into: &row)
             row.append(contentsOf: tabLabelBody(
                 index, background: background, foreground: foreground, active: active, palette: palette,
                 legibility: legibility))
-            row.append("▌", cells: 1, ink: background)
+            cap(ends.close, active: active, background: background, into: &row)
             return row
+        }
+        func cap(_ glyph: Character, active: Bool, background: Color, into row: inout ClaimingRow) {
+            switch ends.kind {
+            case .filled, .face:
+                ends.appendCap(glyph, to: &row, face: background, lines: lineInk)
+            case .lines where active:
+                ends.appendCap(glyph, to: &row, face: background, lines: lineInk, field: background)
+            case .lines, .none:
+                row.append(" ", cells: 1, ink: nil, field: background)
+            }
         }
 
         for (y, row) in rows.enumerated() {

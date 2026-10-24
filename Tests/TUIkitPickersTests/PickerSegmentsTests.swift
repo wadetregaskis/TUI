@@ -184,6 +184,40 @@ struct PickerSegmentsTests {
         #expect(drawn(.extraLarge) == "Size ▐  S  │  M  │  L  ▌")
     }
 
+    @Test("The caps are a button's in the control family and shape in force (FB3-OTHERCAPS)")
+    func capsFollowTheFamily() {
+        func drawn(_ style: ControlStyle, _ shape: ButtonBorderShape = .automatic, _ size: ControlSize = .regular)
+            -> String?
+        {
+            InputChainHarness(width: 40, height: 3).frame(
+                picker(Choice()).controlStyle(style).buttonBorderShape(shape).controlSize(size)
+            ).lines.first?.stripped
+        }
+        #expect(drawn(.block) == "Size ▐ S │ M │ L ▌", "a filled capsule, as before")
+        #expect(drawn(.block, .roundedRectangle) == "Size   S │ M │ L  ", "a filled rectangle's ends are its face")
+        #expect(drawn(.lines) == "Size ( S │ M │ L )")
+        #expect(drawn(.lines, .roundedRectangle) == "Size │ S │ M │ L │")
+        #expect(drawn(.lines, .roundedRectangle(radius: 0)) == "Size [ S │ M │ L ]")
+        #expect(drawn(.lines, .automatic, .mini) == "Size S│M│L", "no caps at mini")
+        #expect(drawn(.blank) == "Size  S │ M │ L ", "no caps under blank")
+        let braille = drawn(.braille) ?? ""
+        #expect(
+            braille.dropFirst(5).first.map { (0x2800...0x28FF).contains($0.unicodeScalars.first!.value) } == true,
+            "\(braille)")
+    }
+
+    @Test("Under lines the face has no field: the labels and the rules sit on the surface, the caps in its lines")
+    func linesHaveNoField() {
+        let lines = InputChainHarness(width: 40, height: 3).frame(
+            picker(Choice()).controlStyle(.lines).disabled(true)
+        ).lines.first ?? ""
+        let block = InputChainHarness(width: 40, height: 3).frame(
+            picker(Choice()).controlStyle(.block).disabled(true)
+        ).lines.first ?? ""
+        #expect(block.contains("[48;"), "the filled face paints its field")
+        #expect(!lines.contains("[48;"), "a face of lines paints none: \(lines.debugDescription)")
+    }
+
     @Test("At mini, with no caps, a click still chooses the segment under it and a rule chooses nothing")
     func clickingAtMini() {
         let choice = Choice(2)

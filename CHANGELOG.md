@@ -186,6 +186,7 @@ All of these are pre-1.0 changes with no old spelling kept.
 - `onChange(of:)` on an optional that starts set no longer fires on its first render.
 - `Animation.default` is SwiftUI's: the no-bounce spring at the default pace.
 - Controls' faces — bordered buttons, pop-up pickers, combo boxes, text fields' caps — follow a new `ControlStyle` (`.controlStyle(_:)`), apart from the border's `Appearance`: filled by default (`.automatic`), or `.lines` in the border's own lines, `.braille(thickness:)` or `.blank`. Under `.automatic` the `.braille` and `.blank` appearances still set the controls' look too. For a week from 15 October the face followed the appearance, lines by default; `.controlStyle(.lines)` brings that look back.
+- Segmented and palette pickers, and a compact `TabView`'s chips (the colour picker's mode tabs among them), end in the caps a button has in the control style and `buttonBorderShape` in force. By default nothing changes; under `.controlStyle(.lines)` a segmented picker is `( S │ M │ L )` with no field, and the selected tab's chip `( title )`.
 - On Apple Terminal, a large or extra-large rounded or capsule button keeps its shape: its face leaves out the corner cells the curve only nicks, where it was drawn as the same square block as a square button.
 - A branch an `if`/`else` flips to, a `switch` case or a `ForEach` row that a change puts in under an animation fades in. One taken out goes at once, unless it carries a transition of its own.
 - A paste of any size now arrives whole. The earlier 16 MiB limit is gone.

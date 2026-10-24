@@ -1,8 +1,9 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  _PickerSegmentsCore.swift
 //
-//  The segmented and palette pickers drawn: one control face, `▐ S │ M │ L ▌`,
-//  one focus stop, a cursor the arrows move among the segments.
+//  The segmented and palette pickers drawn: one control face, `▐ S │ M │ L ▌`
+//  (or `( S │ M │ L )` in lines), one focus stop, a cursor the arrows move
+//  among the segments.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -27,9 +28,12 @@ private enum PickerSegmentsStateIndex {
 /// The rendering core of a ``Picker`` in the segmented or palette style.
 ///
 /// One face, as macOS draws one control: the options between the two end caps,
-/// a rule between each pair, `▐ S │ M │ L ▌`. The selected option is drawn as
-/// a prominent button's label is — in the accent, bold — unless a palette's
-/// selection effect says otherwise.
+/// a rule between each pair, `▐ S │ M │ L ▌`. The caps are a button's in the
+/// family in force (``ControlEnds``): half blocks round a filled face, `( … )`
+/// or `│ … │` in the lines' ink on no field under ``ControlStyle/lines``, as
+/// the ``ButtonBorderShape`` picks. The selected option is drawn as a prominent
+/// button's label is — in the accent, bold — unless a palette's selection
+/// effect says otherwise.
 ///
 /// The ``ControlSize`` is the bordered button's density table, on one row: no
 /// space round the options at `.small` (`▐S│M│L▌`) and no caps either at
@@ -127,22 +131,27 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
 
         let effect = context.environment.paletteSelectionEffect
         let marksSelection = !isPalette || effect.drawsSelection
-        let face = palette.restingControlFace
+        // The ends a button beside it would have, in the family in force: a
+        // filled face's, or lines and dots on the surface with no field.
+        let ends = ControlEnds(in: context.environment)
+        let face = ends.hasField ? palette.restingControlFace : context.environment.enclosingSurface
+        let field: Color? = ends.hasField ? face : nil
         // At rest the caps are the face's own colour, so the face reads as one
-        // rounded control — exactly a button's at rest.
+        // rounded control — exactly a button's at rest; a face of lines rests
+        // in the lines' ink, the rules between its segments with it.
         let capInk = ButtonCapCycle(isFocused: false, background: face, palette: palette, context: context).colorNow
+        let lineInk = ControlEnds.lineInk(palette: palette, surface: face, hovered: false, disabled: isDisabled)
+        let ruleInk = ends.hasField ? palette.foregroundTertiary : lineInk
         // The density table a bordered button's face follows, on one row.
-        let size = context.environment.controlSize
-        let caps = size.drawsEndCaps
-        let padding = size.padding(regular: 1)
+        let padding = context.environment.controlSize.padding(regular: 1)
 
         var row = ClaimingRow()
         var runs: [AnimatedCellRun] = []
         var regions: [(x: Int, width: Int)] = []
-        if caps { row.append(String(TerminalSymbols.openCap), cells: 1, ink: capInk) }
+        ends.appendCap(ends.open, to: &row, face: capInk, lines: lineInk)
         for (index, option) in options.enumerated() {
             if index > 0 {
-                row.append(Self.divider, cells: 1, ink: palette.foregroundTertiary, field: face)
+                row.append(Self.divider, cells: 1, ink: ruleInk, field: field)
             }
             let isSelected = !isMixed && option.tag == selection.wrappedValue
             let segment = Segment(
@@ -155,14 +164,14 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
             }
             let start = row.cells
             drawSegment(
-                label, as: segment, index: index, face: face, padding: padding, into: &row, runs: &runs,
+                label, as: segment, index: index, field: field, padding: padding, into: &row, runs: &runs,
                 context: context)
             // The caps belong to the segments beside them, so the whole face
             // but its rules is somewhere to click.
             let left = index == 0 ? 0 : start
-            regions.append((x: left, width: row.cells - left + (caps && index == options.count - 1 ? 1 : 0)))
+            regions.append((x: left, width: row.cells - left + (index == options.count - 1 ? ends.width / 2 : 0)))
         }
-        if caps { row.append(String(TerminalSymbols.closeCap), cells: 1, ink: capInk) }
+        ends.appendCap(ends.close, to: &row, face: capInk, lines: lineInk)
 
         var buffer = FrameBuffer(lines: [row.text])
         buffer.opacityRegions = row.claims
@@ -222,11 +231,16 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
 
     /// Appends one segment — its label, `padding` spaces either side — to
     /// `row`, and the run its cursor breathes in, if it is the cursor.
+    ///
+    /// - Parameter field: The face's field, or `nil` for a face of lines,
+    ///   whose labels sit on the surface — what the label is drawn on either
+    ///   way, and its ink floored against.
     private func drawSegment(
-        _ label: AnyView, as segment: Segment, index: Int, face: Color, padding: Int, into row: inout ClaimingRow,
-        runs: inout [AnimatedCellRun], context: RenderContext
+        _ label: AnyView, as segment: Segment, index: Int, field: Color?, padding: Int,
+        into row: inout ClaimingRow, runs: inout [AnimatedCellRun], context: RenderContext
     ) {
         let palette = context.environment.palette
+        let face = field ?? context.environment.enclosingSurface
         let isMarked = segment.isSelected && segment.marksSelection
         // The cursor's field breathes as a list's cursor row does: a focused,
         // selected row's breath on the selection, the focus wash elsewhere.
@@ -255,7 +269,8 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
         }
 
         guard let cursor else {
-            row.appendFinished(text.withPersistentBackground(face) + ANSIRenderer.reset, cells: width)
+            row.appendFinished(
+                field.map { text.withPersistentBackground($0) + ANSIRenderer.reset } ?? text, cells: width)
             return
         }
         row.appendFinished(cursor.painting(text) + ANSIRenderer.reset, cells: width)

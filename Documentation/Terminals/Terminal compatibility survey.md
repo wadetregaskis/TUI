@@ -749,6 +749,16 @@ focus. The one-eighth edges `▕ ▏` above, and the half-block rings drawn earl
 that day, are drawn by no chrome now; the four three-quadrant glyphs `▙ ▛ ▜ ▟`
 (U+2599, U+259B, U+259C, U+259F) are new to chrome (advance below).
 
+**Since 2026-10-24 the one-row controls that are not buttons end as a button
+does** (owner, FB3-OTHERCAPS (2), 2026-10-23): a segmented or palette picker and
+a compact tab strip's chips take their caps from the button's cap table
+(`ControlEnds`), at the control style, appearance and button border shape in
+force — `▐ … ▌` round a filled face as before, `( … )`, `│ … │` or `[ … ]` in the
+lines' ink under `.controlStyle(.lines)`, the shape's Braille ends under
+`.braille`. No glyph is new to chrome: each is a button face's already. The
+switch's knob is not a cap and keeps `▐▌`; its look under Lines waits on a
+probe card for the owner.
+
 **Apple Terminal draws Block Elements short of the line** (seen by the owner in
 Terminal.app 455.1 on macOS 15.8.1, 2026-10-15, against Ghostty 1.3 in the same
 session): it takes them from the font rather than drawing them as shapes, so a
