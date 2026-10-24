@@ -371,33 +371,13 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             // foreground when off). No background colours at all, keeping the
             // style honest for terminals/fonts where the block glyphs are the
             // reason `.ascii` was chosen.
-            let brackets = bracketCycle(
-                isDisabled: isDisabled, isFocused: isFocused, isHovered: isHovered,
-                context: context)
-            let knobColour = indicatorMarkColor(
-                isOnValue: isOnValue, isDisabled: isDisabled, isHovered: isHovered,
-                context: context)
-            let knob = IndicatorRun(text: SwitchIndicatorGlyphs.asciiKnob, ink: knobColour)
-            // The blank half of the track is a space in the knob's own colour: no
-            // ink lands on it, so a claim over it changes nothing, and describing it
-            // as a run is what keeps the closing bracket's COLUMN right.
-            let gap = IndicatorRun(text: " ", ink: knobColour)
-            func runs(_ bracketColor: Color, _ visit: (IndicatorRun) -> Void) {
-                visit(IndicatorRun(text: style.openBracket, ink: bracketColor))
-                visit(isOnValue ? gap : knob)
-                visit(isOnValue ? knob : gap)
-                visit(IndicatorRun(text: style.closeBracket, ink: bracketColor))
-            }
-            func draw(_ bracketColor: Color) -> String {
-                var painted = ""
-                runs(bracketColor) { painted += Self.painted($0) }
-                return painted
-            }
-            let animation = brackets.run(draw: draw)
-            // Claimed while it pulses, as the checkbox is: only the brackets move.
-            return (
-                draw(brackets.now), animation,
-                brackets.claims { colour in Self.claims(visiting: { runs(colour, $0) }) })
+            let knob = SwitchIndicatorGlyphs.asciiKnob
+            return knobBetweenCaps(
+                (style.openBracket, style.closeBracket), knob: knob, isOnValue: isOnValue,
+                capsCycle: bracketCycle(
+                    isDisabled: isDisabled, isFocused: isFocused, isHovered: isHovered, context: context),
+                knobInk: indicatorMarkColor(
+                    isOnValue: isOnValue, isDisabled: isDisabled, isHovered: isHovered, context: context))
         }
 
         let knob = SwitchIndicatorGlyphs.knob(for: style)
@@ -460,6 +440,37 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
         return (
             draw(track.now), animation,
             track.claims { colour in Self.claims(visiting: { runs(colour, $0) }) })
+    }
+
+    /// A knob and a blank cell — the knob on the left when off, on the right
+    /// when on — between two caps, which carry the focus in `capsCycle`'s
+    /// colour while the knob carries the state in `knobInk`: the ASCII switch.
+    /// With no caps, or no `knobInk`, the knob is drawn in the cycle's colour,
+    /// and so breathes the focus itself.
+    private func knobBetweenCaps(
+        _ caps: (open: String, close: String)?, knob: String, isOnValue: Bool, capsCycle: IndicatorCycle,
+        knobInk: Color?
+    ) -> (text: String, animation: AnimatedCellRun?, claims: [OpacityRegion]) {
+        func runs(_ capColour: Color, _ visit: (IndicatorRun) -> Void) {
+            let ink = knobInk ?? capColour
+            // The blank half of the track is a space in the knob's own colour: no
+            // ink lands on it, so a claim over it changes nothing, and describing it
+            // as a run is what keeps the closing cap's COLUMN right.
+            let (first, second) = isOnValue ? (" ", knob) : (knob, " ")
+            if let caps { visit(IndicatorRun(text: caps.open, ink: capColour)) }
+            visit(IndicatorRun(text: first, ink: ink))
+            visit(IndicatorRun(text: second, ink: ink))
+            if let caps { visit(IndicatorRun(text: caps.close, ink: capColour)) }
+        }
+        func draw(_ capColour: Color) -> String {
+            var painted = ""
+            runs(capColour) { painted += Self.painted($0) }
+            return painted
+        }
+        // Claimed while it pulses, as the checkbox is: only the caps move.
+        return (
+            draw(capsCycle.now), capsCycle.run(draw: draw),
+            capsCycle.claims { colour in Self.claims(visiting: { runs(colour, $0) }) })
     }
 
     /// The buffer for one of the built-in toggle styles: the indicator, the
