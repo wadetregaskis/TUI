@@ -29,10 +29,11 @@ Every gap `api_parity.py` still reports names one of these entries, and
 nothing else is waiting. The batch closed the rest: 2,022 gaps when it started
 and 404 when it ended (the count rose from 392 at the end, when 14
 drag-session modifiers a wrong refusal had hidden became gaps under A53); 232
-on 2026-10-12, plus three overloads only CI's SDK lists. Besides the gaps, the refusal review's implementable P items have
-shipped, and the one lane not run is Wave 11b, underline and strikethrough
-patterns and colours, which needs real terminals measured (screen capture
-needs your approval).
+on 2026-10-12, and 90 on 2026-10-19 (`Tools/APIParity/baseline.json`), plus
+three overloads only CI's SDK lists. Besides the gaps, the refusal review's
+implementable P items have shipped, and so has Wave 11b, underline and
+strikethrough patterns and colours, which you read on real terminals on
+2026-10-18.
 
 **How your answers are recorded.** Your review of 2026-10-04 (A1–A54,
 B1–B37), my answers to its questions of 2026-10-05 (which you answered
@@ -49,10 +50,12 @@ the quiet machine. A40's default dissolve was measured on 2026-10-15 and, as
 agreed, not shipped: it cost far more than 1% (see A40).
 
 **Decided, lane owed.** A0's ruled O items but O1, O2, O7, O17 and O16 (deferred), and with them
-A22 and A26 (O9) and A24 (O0, O15); A42, B19 (after its A/B), B22 (a look at
-the faint tiers).
+A22 and A26 (O9) and A24 (O0, O15); A42, B19 (after its A/B). B22's look at
+the faint tiers was taken on 2026-10-19 (lane EFFECTS): the faintest vanish at
+16 and 256 colours, and what to do is A-EFFECTS-1, in
+[Blend modes and image details (EFFECTS)](<Blend modes and image details (EFFECTS).md>).
 B3's lane shipped on 2026-10-13 with most of A21; A21 lists what is left.
-Shipped on 2026-10-14: A25; O7 with A12; O1; O17; O2 with A37.
+Shipped on 2026-10-14 (their entries removed): A25; O7 with A12; O1; O17; O2 with A37.
 Shipped on 2026-10-18: O0's shapes (lane W1); O3's merging and additive
 retargets with A38; O5's materials with A41, and its glass; O6's shadows;
 O13's menu bar; O4 with A23 and A36.
@@ -105,7 +108,7 @@ ruling is in the review under its item. In brief, with the ruling:
   possible.** Shipped 2026-10-18 with A23 and A36
   ([Matched geometry and the zoom transition (O4)](<Matched geometry and the zoom transition (O4).md>));
   the zoom source's clip shape and shadow follow in lane W1B (B-O4-6).
-- **O5** Materials and Glass (A41 lists the material symbols waiting on it).
+- **O5** Materials and Glass (A41, now removed, listed the material symbols waiting on it).
   **(b) for both**; a cell-resolution blur is an optional add-on. Materials
   and glass shipped 2026-10-18 ([Glass (GLASS)](<Glass (GLASS).md>)); the
   frosted add-on waits on the owner.
@@ -118,7 +121,8 @@ ruling is in the review under its item. In brief, with the ruling:
   them. Recorded in the parity map 2026-10-19.
 - **O9** Multi-scene apps. **(b)**, leaving room for real windowing.
 - **O10** File panels. **(b)**, TUIkit-drawn open and save dialogs.
-- **O11** The `formatter:` APIs. **Restated; awaiting the owner.**
+- **O11** The `formatter:` APIs. **Deferred** (ruled 2026-10-12): not refused
+  for good, and not built now.
 - **O12** `PointerStyle`. **(b)**, inert where unsupported (the review's
   facts about which terminals take OSC 22 were corrected).
 - **O13** `Commands`, as a menu bar. **A full menu bar**; the app header
@@ -179,23 +183,6 @@ here. Shipping them before right-to-left would be a quiet lie for exactly
 the text they exist for, so they wait with this entry.
 
 *Wave 10's entries (A6–A12, B23–B31, C6; C7 shipped 2026-10-18 in lane PARITYMISC): SwiftUI behaviour quoted as *measured* was measured on macOS 15 with an offscreen `NSHostingView`; the probes are in the session notes, `w10/probe`.*
-
-### A12. The scroll edge effects join O7
-
-*`View.scrollEdgeEffectHidden(_:for:)`, `View.scrollEdgeEffectStyle(_:for:)`*
-
-They style content passing under a bar, and nothing passes under a bar here
-(B6). Refusal-review O7 already asks whether to ship them with the safe-area
-design; these two modifiers are that question's modifiers.
-
-**Decided with O7 (2026-10-12): lane owed.** `ScrollEdgeEffectStyle` ships
-with `.automatic` and `.hard` and no `.soft`, and both modifiers are honoured
-by the medium: nothing passes under a bar, since B6's safe area is not built.
-
-**Shipped (2026-10-14) with O7.** Both modifiers return the view, and the
-tests assert the guarantee they rest on: under a `safeAreaBar` or a
-navigation bar, scrolled content stops at the bar's edge, whatever the effect
-asked for.
 
 ### A16. Colours that resolve themselves, and HDR
 
@@ -295,10 +282,10 @@ half a day whichever option is chosen.
 Absence at compile time is ideal; a failure at run time is acceptable only for
 icing, or with a capability query beside it (as the kitty keyboard protocol
 has). The shipped bridges meet that: each is honoured where it compiles.
-**Still open:** whether that admits option 1's framework spellings, the
-`store: UserDefaults` forms and Core Data's `FetchRequest` on Apple platforms.
-The refusal review's O10 depends on it: on Linux, `fileExporter(item:)` and
-`FileDocument` would be absent (or a small protocol of TUIkit's own).
+Whether that admitted option 1's framework spellings was left open on
+2026-10-04, and answered on 2026-10-12 (above): it does. What remains is
+Core Data's `FetchRequest`, unbuilt; O10's file panels shipped with
+`FileDocument` on Apple platforms only.
 
 *Wave 9's entries (A20–A25, B34–B41, C9; A19 shipped 2026-10-06): SwiftUI's behaviour is from its own doc comments unless an entry says it was measured.*
 
@@ -410,20 +397,6 @@ not count — whether it is the window in front or one held behind it; under
 `.destructive` it closes it with them
 ([B-O9-4](<Several scenes on one surface (O9).md#b-o9-4-an-interactive-dismissal-leaves-a-window-with-a-modal-presentation-open>)).
 
-### A23. `matchedTransitionSource` waits on O4
-
-*`View.matchedTransitionSource(id:in:)`,
-`View.matchedTransitionSource(id:in:configuration:)`*
-
-The source half of the `.zoom` navigation transition, which O4 (matched
-geometry and zoom transitions) covers. `NavigationTransition` and `.automatic`
-shipped (the stack's own transition); `.zoom` and these two follow O4.
-
-**Decided with O4 (2026-10-12): lane owed,** after matched geometry; the
-source configuration needs O0's shapes (W1). **Shipped 2026-10-18** with O4,
-the configuration with its `background(_:)`; its `clipShape(_:)` and
-`shadow(color:radius:x:y:)` follow in lane W1B (B-O4-6).
-
 ### A24. `presentationCornerRadius(_:)` waits on O0/O15
 
 *`View.presentationCornerRadius(_:)`*
@@ -437,24 +410,6 @@ a radius means in cells is the question O0 (shapes) and O15
 
 **Decided with O0 and O15 (2026-10-12):** square units, and button border
 shapes supported, so a radius has a cell reading. Lane owed after those two.
-
-### A25. `searchSelection(_:)` waits on A13
-
-*`View.searchSelection(_:)`*
-
-It binds the search field's `TextSelection`. That type, and whether TUIkit
-draws its own selection at all, is A13 (text selection) in the main decisions
-doc. Once `TextField` takes a selection binding, this is a few lines on the
-searchable's field.
-
-**No longer waits.** A13 shipped on 2026-10-05, and `TextField` takes a
-`TextSelection?` binding, so this is ordinary work: owed.
-
-**Shipped (2026-10-14).** Written after the `searchable`, as `searchFocused`
-is, it binds that searchable's field and not one in its content: the field is
-a `TextField(_:text:selection:prompt:)`. It is available from macOS 15, with
-`TextSelection`, where SwiftUI's is macOS 26's: nothing in it needs more, and
-copying the later floor would be copying a limitation.
 
 ### A26. The scene-level dialog modifiers and optional scenes wait on O9
 
@@ -584,52 +539,6 @@ the Wave 17 review, P14), and Wave 16 owns blur as a whole.
 **Recommendation:** 2, if Wave 16 does not give blur a cell reading of its
 own; 1 until then. Nothing ships.
 
-### A36. `matchedGeometryEffect` waits on O4
-
-*`View.matchedGeometryEffect(id:in:properties:anchor:isSource:)`*
-
-`@Namespace` shipped in Wave 9, so the identifier half exists. The effect
-itself — carrying a view from the source's frame to its own — and its
-`MatchedGeometryProperties` are O4 of the refusal review, with options from
-position-only (whole cells, size snaps) to a full re-layout per frame.
-Nothing ships until O4 is answered.
-
-**Decided with O4 (2026-10-12): a full re-layout per frame, translating only
-when the sizes are equal.** **Shipped 2026-10-18** with O4 (Deliberate
-deviations A8).
-
-### A37. `phaseAnimator(_:trigger:content:animation:)` waits on O2
-
-*`View.phaseAnimator(_:trigger:content:animation:)`*
-
-The animator views are O2 of the refusal review. If O2 goes (b), this is the
-trigger form of that live phase animator, and its completion advance would use the
-animation completions this wave adds.
-
-**Decided with O2 (2026-10-12): (b), lane owed.**
-
-**Shipped (2026-10-14) with O2.** Measured on SwiftUI first
-(`Tools/SwiftUIProbes/Animation curves, springs and keyframes/p9.swift`): a
-trigger change runs through every phase and back to the first, not one step as
-SwiftUI's documentation says; the animation closure is handed the phase being
-entered.
-
-### A38. `Animation.shouldMerge` and `Animation.velocity` wait on O3
-
-*`Animation.shouldMerge(previous:value:time:context:)`,
-`Animation.velocity(value:time:context:)`*
-
-Both take an `AnimationContext`, which belongs to the `CustomAnimation`
-family that O3 of the refusal review reopens. They are the merge and velocity
-half of a custom animation's contract; with O3 (b) they would answer `false`
-and the closed-form velocity respectively.
-
-**Decided with O3 (2026-10-12): live, memoised integration**, so both become
-real rather than constant answers: `shouldMerge` is asked on a retarget to the
-same custom type, and the velocity is the integration's. **Shipped
-2026-10-18** with O3's retargets: an interrupted animation carries its motion
-on.
-
 ### A39. The geometric visual effects wait on Wave 16 (A27)
 
 *`VisualEffect.rotationEffect(_:anchor:)`,
@@ -685,22 +594,6 @@ in the tracked-value table, a live mark, and the pass's sweep over them — and
 any design that dissolves from the last drawing has to keep that drawing
 somewhere for every text, since nothing else keeps it. So a port that relies
 on the default cross-fade still snaps until it writes `.contentTransition(.opacity)`.
-
-### A41. Materials wait on O5
-
-*`ShapeStyle.ultraThinMaterial`, `.thinMaterial`, `.regularMaterial`,
-`.thickMaterial`, `.ultraThickMaterial`, `ShapeStyle.materialActiveAppearance(_:)`,
-`View.materialActiveAppearance(_:)`, `\.materialActiveAppearance`,
-`\.backgroundMaterial`, and `ShapeStyle.bar`, the material a bar draws with*
-
-A material is a blurred, translucent surface. O5 of the refusal review asks
-whether TUIkit's should be a translucent palette surface composited over what
-is behind, its thickness an alpha and with no blur (recommended), or stay the
-`dimmed()`/`overlayBackground` substitution. These symbols ship or are
-declined with that answer.
-
-**Decided with O5 (2026-10-12): the translucent surface.** **Shipped
-2026-10-18** (the Colors page's Materials section shows them).
 
 ### A42. Rich-text editing, now that P8 has shipped
 
@@ -2122,7 +2015,11 @@ its middle and widening the crop as it settles — a zoom-out rather than a
 grow. Nothing in TUIkit crops from the middle today; half a day, and I would
 wait for someone to ask.
 
-### B55. `tracksVelocity` is recorded, and no velocity is carried; `isContinuous` is set by TUIkit's own continuous controls
+### B55. `tracksVelocity` is recorded and read by nothing; `isContinuous` is set by TUIkit's own continuous controls
+
+**Since 2026-10-18** a retarget hands the velocity on (O3's merging, with A38): a merging
+spring starts the next at the speed the value was moving. What follows is the entry as written
+before that, when no velocity was carried; `tracksVelocity` is still recorded and read by nothing.
 
 *`Transaction.tracksVelocity`, `Transaction.isContinuous`*
 
@@ -2230,7 +2127,10 @@ A circular curve is a new case of the animation curve, so
 a Bézier or `.linear` builds the animation `timingCurve(_:_:_:_:duration:)` and
 `linear(duration:)` already build, and compares equal to it.
 
-### B58. `Spring` is SwiftUI's numbers, two quirks kept and one not; a spring animation keeps no velocity across a retarget
+### B58. `Spring` is SwiftUI's numbers, two quirks kept and one not
+
+**Since 2026-10-18** a spring keeps its velocity across a retarget: the fuller version below
+shipped with O3's merging (and A38). The rest of the entry stands.
 
 *`Spring` (its four initialisers, `duration`, `bounce`, `response`,
 `dampingRatio`, `mass`, `stiffness`, `damping`, `settlingDuration`, `value`,
@@ -2287,7 +2187,9 @@ store records where the picture is; it would also record how fast — but a
 curve retargeting into a spring, or a spring into a curve, has no velocity
 model, which is O3's question.
 
-### B60. Keyframe timelines follow SwiftUI's curves, measured; the animator views stay with O2
+### B60. Keyframe timelines follow SwiftUI's curves, measured
+
+The animator views this entry left with O2 shipped with it on 2026-10-14.
 
 *`KeyframeTimeline` (`init(initialValue:content:)`, `duration`, `value(time:)`,
 `value(progress:)`), `Keyframes`, `KeyframeTrack`, `KeyframeTrackContent`,
@@ -3304,7 +3206,7 @@ construction only puts its values in.
 
 **Recommendation:** leave both differences until a translation needs them.
 
-### B87. Markdown in the title keys of controls other than `Text` is not parsed yet
+### B87. Markdown in a control's title key: parsed, though a column header and a tab title draw only its words
 
 *`Button(_:action:)` and the other `LocalizedStringKey` initializers*
 
@@ -3635,16 +3537,6 @@ That call never linked before either.
   and `RectangleCornerInsets`.
 - The third converts AppKit's `NSDirectionalEdgeInsets`, whose values are
   points. The conversion would need an invented point-to-cell scale.
-
-### C3. `AttributeDynamicLookup`
-
-This is folded into the existing `AttributeScopes*` family rule, whose reason
-it shares.
-
-**That family is itself on the Wave 17 re-examination list.** SwiftUI's
-attribute scope carries a foreground colour, a background colour, an
-underline and a strikethrough, all of which a cell grid has. So
-`Text(AttributedString)` may well be implementable.
 
 ### C4. `KeyEquivalent.clear`
 
