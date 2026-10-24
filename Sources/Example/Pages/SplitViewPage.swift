@@ -123,6 +123,8 @@ private struct Message: Identifiable {
 /// - Sidebar: Folder list (Tab to focus)
 /// - Content: Message list for selected folder
 /// - Detail: Full message content
+///
+/// And, below it, `HSplitView` and `VSplitView` (``splitViewsSection``).
 struct SplitViewPage: View {
     @State private var selectedFolder: String? = "inbox"
     @State private var selectedMessage: String? = "1"
@@ -138,10 +140,22 @@ struct SplitViewPage: View {
         // split view below it, and centred it drifted right as the terminal grew —
         // 33 columns of empty left margin at 140 cols, which reads as a bug. The
         // split view itself fills the width either way.
-        VStack(alignment: .leading, spacing: 0) {
-            controls
-            styledSplitView
+        //
+        // A scrolling page: the three-column split view takes most of the
+        // viewport, as it did when it was the whole page, and the
+        // `HSplitView` / `VSplitView` demo is below it.
+        VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 0) {
+                controls
+                styledSplitView
+                    // A split view is greedy, and a scroll view offers it no
+                    // height to be greedy in: a share of the viewport, but not
+                    // less than the three columns need to be read.
+                    .containerRelativeFrame(.vertical) { length, _ in max(14, length - 4) }
+            }
+            splitViewsSection
         }
+        .scrollableDemoPage()
         .navigationTitle("menu.item.splitView")
     }
 

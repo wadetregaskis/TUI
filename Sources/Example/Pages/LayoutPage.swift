@@ -606,8 +606,6 @@ struct LayoutPage: View {
 
             subviewsSection
 
-            splitViewsSection
-
             LayoutRoomDemo()
 
             // `.userResizable` — the size becomes the user's, not the layout's.
