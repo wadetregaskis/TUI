@@ -74,7 +74,7 @@ struct PresentationVariantsTests {
         #expect(offset(.trailing).x > 0)
     }
 
-    @Test("attachmentAnchor .rect(.rect(_:)) centres the popover on that rectangle and flips around it")
+    @Test("attachmentAnchor .rect(.rect(_:)) centres the popover on that rectangle, starts a wider one where it starts, and flips around it")
     func popoverAttachesToARectangle() {
         func overlay(_ anchor: PopoverAttachmentAnchor, _ edge: Edge = .bottom) -> OverlayLayer? {
             renderToBuffer(
@@ -106,6 +106,20 @@ struct PresentationVariantsTests {
         #expect(bounds?.offsetX == 5)
         #expect(bounds?.offsetY == 2)
         #expect(bounds?.anchorHeight == 2)
+        // Wider than the rectangle, it starts where the rectangle starts, as a
+        // keyboard-opened menu and a tooltip do, rather than hanging centred off
+        // it: the alignment a `Link`'s destination already had, its rectangle
+        // being the link's bounds (owner, 2026-10-24).
+        let wide = renderToBuffer(
+            VStack(alignment: .leading, spacing: 0) {
+                Text("first line, wider")
+                Text("second")
+            }
+            .popover(isPresented: .constant(true), attachmentAnchor: .rect(source)) { Text("a wider detail") },
+            context: context()
+        ).overlays.first
+        #expect((wide?.content.width ?? 0) > 9)
+        #expect(wide?.offsetX == 2)
         #expect(PopoverAttachmentAnchor.rect(source) == .rect(source))
         #expect(PopoverAttachmentAnchor.rect(source) != .rect(.bounds))
     }

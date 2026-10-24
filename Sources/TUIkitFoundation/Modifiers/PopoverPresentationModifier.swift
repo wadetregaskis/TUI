@@ -15,7 +15,9 @@ public enum PopoverAttachmentAnchor: Sendable, Equatable {
     /// Attach to a rectangle of the presenting view: `.rect(.bounds)`, the
     /// default, is the view's own frame, and `.rect(.rect(_:))` a rectangle in
     /// its cells. The popover is centred along the rectangle's edge that
-    /// `arrowEdge` names, and flips around the rectangle when there is no room.
+    /// `arrowEdge` names — one wider than the rectangle starting where it
+    /// starts, as a menu does — and flips around the rectangle when there is
+    /// no room.
     case rect(Anchor<CellRect>.Source)
 
     /// Attach at a point within the presenting view's frame.
@@ -360,8 +362,14 @@ extension PopoverPresentationModifier: Renderable {
             area = source.value(origin: CellPoint(x: 0, y: 0), size: CellSize(width: base.width, height: base.height))
             // Centre on the rectangle, as a keyboard-opened menu centres on its
             // control — the popover reads as belonging to it rather than as
-            // something that landed in the corner.
-            point = (max(0, area.x + (area.width - panel.width) / 2), area.y)
+            // something that landed in the corner — and, wider than the
+            // rectangle, start where it starts, as that menu and a tooltip do
+            // (`MenuAnchor.centredWithin`, `TooltipPopover`). Clamped at the
+            // view's edge instead, a wide popover lined up with its control's
+            // leading edge where the rectangle was the view's bounds (a
+            // `Link`'s) and hung centred off a link inside a `Text`, whose
+            // rectangle lies within the view (owner, 2026-10-24).
+            point = (area.x + max(0, (area.width - panel.width) / 2), area.y)
         case .point(let unit):
             area = CellRect(x: 0, y: 0, width: base.width, height: base.height)
             point = (

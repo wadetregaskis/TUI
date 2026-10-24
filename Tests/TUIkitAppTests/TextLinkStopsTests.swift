@@ -130,6 +130,21 @@ struct TextLinkStopsTests {
         #expect(harness.log.opened == [Self.docs, Self.home])
     }
 
+    @Test("A link's destination popover lines up with the link, as a Link's does")
+    func popoverLinesUpWithTheLink() throws {
+        // Owner, 2026-10-24: the popover under a link inside a text sat centred
+        // on it, and under a `Link` left-aligned to it. Both start where the
+        // link starts now: the panel's left wall is in the link's first column.
+        let harness = Harness()
+        let link = try harness.cell("home")
+        try harness.click("home")
+        let url = try harness.cell(Self.home.absoluteString)
+        #expect(url.y > link.y)
+        let row = Array(harness.app.screen.map(\.stripped)[url.y])
+        #expect(row[link.x] == "│", "the URL at \(url.x), the link at \(link.x): \(String(row))")
+        #expect(row[link.x + 1..<url.x].allSatisfy { $0 == " " }, "\(String(row))")
+    }
+
     @Test("A click on a link's words opens it")
     func click() throws {
         let harness = Harness()
