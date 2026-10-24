@@ -74,14 +74,23 @@ extension TerminalHost {
     /// little short, a shape it does not know can come out as a background or
     /// a blink (Apple Terminal's), and the owner would rather have a plain
     /// line than that.
-    package static var lineStyles: LineStyleSupport {
-        if isTmux { return .underlines }
-        if isITerm2 { return .all }
-        if isGhostty { return .underlines }
-        if isWarp {
+    package static func lineStyles(for program: TerminalClient.Program) -> LineStyleSupport {
+        switch program {
+        case .tmux:
+            return .underlines
+        case .iTerm2:
+            return .all
+        case .ghostty:
+            return .underlines
+        case .warp:
             return LineStyleSupport(
                 doubleUnderline: true, patternedUnderlines: false, underlineColour: false, strikethroughColour: false)
+        case .appleTerminal, .gnomeTerminal, .unidentified:
+            return .plain
         }
-        return .plain
+    }
+
+    package static var lineStyles: LineStyleSupport {
+        lineStyles(for: program)
     }
 }

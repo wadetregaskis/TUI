@@ -218,4 +218,16 @@ struct TerminalHostIdentificationTests {
         gnome["VTE_VERSION"] = "7600"
         #expect(row(environment: gnome).contains(cursorForward))
     }
+
+    @Test("lineStyles(for:) maps each terminal program exhaustively")
+    func lineStylesPerProgram() {
+        #expect(TerminalHost.lineStyles(for: .tmux) == .underlines)
+        #expect(TerminalHost.lineStyles(for: .iTerm2) == .all)
+        #expect(TerminalHost.lineStyles(for: .ghostty) == .underlines)
+        #expect(TerminalHost.lineStyles(for: .warp) == LineStyleSupport(
+            doubleUnderline: true, patternedUnderlines: false, underlineColour: false, strikethroughColour: false))
+        #expect(TerminalHost.lineStyles(for: .appleTerminal) == .plain)
+        #expect(TerminalHost.lineStyles(for: .gnomeTerminal) == .plain)
+        #expect(TerminalHost.lineStyles(for: .unidentified) == .plain)
+    }
 }
