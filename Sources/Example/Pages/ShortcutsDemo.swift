@@ -36,6 +36,10 @@ struct ShortcutsDemo: View {
                         command("page.menus.shortcuts.save", "s")
                         command("page.menus.shortcuts.saveAs", "s", modifiers: [.command, .shift])
                     }
+                    // The read-out clears as the pop-up opens, so choosing
+                    // `Save` twice shows two distinct choices (as the page's
+                    // other pop-ups do).
+                    .onMenuOpen { lastCommand = "—" }
                     ValueDisplayRow("page.menus.chose", lastCommand)
                 }
             }
