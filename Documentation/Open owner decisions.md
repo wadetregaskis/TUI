@@ -36,7 +36,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [OOB-STYLING](#oob-styling) | Explore later along (a). | Kept open; reminder when the queue runs out. |
 | [PACKAGE-RESOLVED](#package-resolved) | You committed it; asked for other considerations. | Committed (965a4884b); pros and cons below — your call. |
 | [SDK15-CI](#sdk15-ci) | Asked about the newest SDK on 15.8 and an Xcode with the 6.2 standard library. | Answered below — your call. |
-| [SINGLETON-CACHES](#singleton-caches) | (c). | Queued. |
+| [SINGLETON-CACHES](#singleton-caches) | (c). | Partly done (lane DOCS2): the rule is clarified and the palette store documented; injecting URLImageCache and bounding it still needs code (queued). |
 | [WINDOWS-PORT](#windows-port) | (b); don't make future Windows work harder. | Bookkeeping queued for after the push. |
 | [A-D6L-1](#a-d6l-1) | Not deciding yet; keep open. | Kept open; reminder at the end of the queue. |
 | [A-D6L-2](#a-d6l-2) | (4). | Queued: the Kitty hairline prototype comes first. |

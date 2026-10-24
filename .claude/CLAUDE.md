@@ -24,6 +24,15 @@
 
 #### General Principles
 - No Singletons
+  - A cache that holds anything an app or a test can see, such as downloaded
+    images, is not exempt: it travels through the environment (or the render
+    context), so an app can give its views a different one.
+  - The one exemption is a private, bounded, process-wide memo of a pure
+    function: the same inputs always give the same output, and nothing outside
+    the memo can tell a hit from a miss. There is nothing to inject, because
+    nothing observable differs. The ASCII palette's search-index store is the
+    example (`ASCIIPalette+SearchIndex.swift`). Key such a memo by everything
+    its function reads.
 - **Before implementing ANYTHING NEW: Search the codebase** for similar patterns, reusable code, existing solutions
 - Consolidate and reuse before adding new functions or types
 - "Reinventing the wheel" is a code smell: investigate why it exists first

@@ -211,6 +211,14 @@ extension ASCIIPalette {
         }
     }
 
+    /// The process-wide store behind every palette's index.
+    ///
+    /// A static, and not a singleton in the sense of the project's "No
+    /// Singletons" rule (owner ruling 2026-10-23, SINGLETON-CACHES): it is a
+    /// private, bounded memo of a pure function of the entries' RGB, and
+    /// nothing outside it can tell a hit from a miss, so there is nothing for
+    /// an app or a test to inject. A cache that held anything observable would
+    /// not qualify.
     private enum SearchIndexCache {
         nonisolated(unsafe) static var shared = Store()
 

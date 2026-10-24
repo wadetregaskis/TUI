@@ -384,7 +384,11 @@ Public APIs **must** match SwiftUI signatures exactly unless terminal constraint
 
 ### General Principles
 
-- No singletons
+- No singletons. A cache holding anything an app or test can see (downloaded
+  images, say) travels through the environment. The one exemption is a
+  private, bounded memo of a pure function, such as the ASCII palette's
+  search-index store: nothing outside it can tell a hit from a miss, so there
+  is nothing to inject.
 - Built-in views draw with the palette's roles, never a literal colour, unless
   the colour is content (an image, a swatch, a user's gradient). SwiftLint's
   `framework_colour_literal` rule flags a new literal in `Sources/TUIkitView`
