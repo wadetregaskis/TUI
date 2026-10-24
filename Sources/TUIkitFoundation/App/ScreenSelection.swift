@@ -17,7 +17,9 @@ import TUIkitCore
 /// background, over plain text, over a scroll view's content — selects the
 /// cells it crosses, in reading order as a terminal does, clipped to the pane
 /// it started in (a scroll view, a split view's column, else the content
-/// area). A double-click selects a word; a triple-click the line it is on, in
+/// area), and to the interior of the innermost bordered container it started
+/// in (``TextSelectionScope/container``, unless the app said
+/// ``TextSelectionScope/pane``). A double-click selects a word; a triple-click the line it is on, in
 /// its context — the run of text between the box's walls or wide gaps either
 /// side, as macOS selects a line of the text view clicked rather than of the
 /// window; a quadruple-click the whole row. A drag with

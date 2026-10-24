@@ -267,6 +267,14 @@ TUIkit selects by itself, as a terminal would:
   press to the pointer in reading order, whole rows between, and keeps to the
   pane it started in: a scroll view's viewport, a split view's column, or else
   the content area. The app header and the status bar are never selected.
+- **A drag that starts inside a bordered container keeps to its interior**:
+  `.border()`, a `Box`, `Card`, `Panel` or `GroupBox`, a dialog, an alert.
+  Its border, the title in it and the page around are left out, however far
+  the pointer goes, and in a box inside a box the inner one is the one. A
+  drag that starts on the border, or outside the container, crosses it.
+  ``View/textSelectionScope(_:)`` with `.pane`, on the root view or on one
+  container, lets a drag run on to the pane instead; with `.container`,
+  inside, it puts the rule back.
 - **A double-click selects a word, a triple-click the line in its context,
   a quadruple-click the row**, and a drag after any of them extends by
   words, lines or rows. A double-click on a web address — from its scheme's

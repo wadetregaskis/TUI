@@ -119,22 +119,23 @@ extension MouseEventDispatcher {
     /// The journal kind of a press role's filing.
     static let pressRoleKind = EffectJournal.Kind("pressRole")
 
-    /// Registers the region a ``View/textSelection(_:)`` files over its
-    /// content, and returns its id.
+    /// Registers the region a selection scope files — a
+    /// ``View/textSelection(_:)`` over its content, a bordered container over
+    /// its interior — and returns its id.
     ///
     /// A hover observer whose handler declines everything — geometry for the
     /// selection, taking nothing from the controls inside — with the scope's
     /// answer filed beside it, both recorded for a memo's replay.
     @MainActor
-    func registerSelectionScope(_ allowsSelection: Bool, in context: RenderContext) -> HitTestRegion.HandlerID {
+    func registerSelectionScope(_ scope: SelectionScope, in context: RenderContext) -> HitTestRegion.HandlerID {
         let id = registerHoverObserver(in: context) { _ in false }
         guard !context.isMeasuring else { return id }
-        fileSelectionScope(allowsSelection, for: id)
+        fileSelectionScope(scope, for: id)
         guard let journal = context.recordingEffectJournal else { return id }
         let token = context.environment.keyChannelToken
         journal.append(
             EffectJournal.Entry(kind: Self.selectionScopeKind, channelToken: token) { replay in
-                replay.environment.mouseEventDispatcher?.fileSelectionScope(allowsSelection, for: id)
+                replay.environment.mouseEventDispatcher?.fileSelectionScope(scope, for: id)
             })
         return id
     }
@@ -169,9 +170,16 @@ extension MouseEventDispatcher {
         if event.ctrl { return dispatchSecondaryPress(event, matching: matching) }
         // The innermost `textSelection(_:)` under the press: `false` turns the
         // selection off here — every region hears its press at once, as before
-        // there was one — and `true` keeps it to that scope.
-        let scope = selectionScopes.isEmpty ? nil : matching.first { selectionScopes[$0.handlerID] != nil }
-        let tier = scope.flatMap { selectionScopes[$0.handlerID] }
+        // there was one — and `true` keeps it to that scope. A bordered
+        // container's interior says nothing about whether text selects, only
+        // where: the innermost enabled scope or interior is what a selection
+        // keeps to.
+        var tier: Bool?
+        var scope: HitTestRegion?
+        if !selectionScopes.isEmpty {
+            tier = Self.innermostTier(matching, in: selectionScopes)
+            scope = matching.first { selectionScopes[$0.handlerID]?.confinesSelection == true }
+        }
         if tier == false {
             for region in matching where offer(event, to: region) != .declined { return true }
             return false
@@ -273,6 +281,23 @@ extension MouseEventDispatcher {
         guard let pane, let handler = handler(for: pane.handlerID) else { return false }
         hold(event, for: (handler, pane.localOriginX, pane.localOriginY), pane: Self.rect(of: pane), selects: false)
         return true
+    }
+
+    /// Whether the innermost ``View/textSelection(_:)`` among `matching` lets
+    /// text select there, or `nil` where none is under the press. A bordered
+    /// container's interior is passed over: it says where a selection keeps
+    /// to, not whether there is one.
+    private static func innermostTier(
+        _ matching: [HitTestRegion], in scopes: [HitTestRegion.HandlerID: SelectionScope]
+    ) -> Bool? {
+        for region in matching {
+            switch scopes[region.handlerID] {
+            case .enabled: return true
+            case .disabled: return false
+            case .interior, nil: continue
+            }
+        }
+        return nil
     }
 
     /// The cells a region covers on screen.

@@ -299,7 +299,7 @@ struct MouseRegionMemoTests {
         let missesBefore = harness.cache.stats.misses
         harness.frame(Self.scopedPage())
         #expect(harness.cache.stats.misses == missesBefore, "the scoped card rendered again")
-        #expect(harness.dispatcher.selectionScopes.values.contains(false), "the served scope was not filed")
+        #expect(harness.dispatcher.selectionScopes.values.contains(.disabled), "the served scope was not filed")
         #expect(!harness.dispatcher.pressRoles.isEmpty, "the served scroll view's role was not filed")
     }
 

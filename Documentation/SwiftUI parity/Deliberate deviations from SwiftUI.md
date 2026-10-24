@@ -916,7 +916,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **TUIkit:** with no modifier, a drag on the page's background, plain text or
   a scroll view's content selects; list and table rows keep their own meaning
   unless `.enabled`. A selection may cross from one `Text` into the next, and
-  a `Table` row's crosses its columns. What is selected is the page, not the
+  a `Table` row's crosses its columns. One begun inside a bordered container
+  keeps to its interior, unless the app says `.textSelectionScope(.pane)`. What is selected is the page, not the
   menus and popovers over it.
 - **Why:** an app that reports the mouse takes the terminal's own selection
   away, and that selection reached any text.

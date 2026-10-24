@@ -348,10 +348,10 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// (and every memo replay) that registers them.
     var pressRoles: [HitTestRegion.HandlerID: PressRole] = [:]
 
-    /// The ``View/textSelection(_:)`` scopes on screen, by the handler id of the
-    /// region each filed: `true` enabled, `false` disabled. Cleared with the
-    /// handler table.
-    private(set) var selectionScopes: [HitTestRegion.HandlerID: Bool] = [:]
+    /// The selection scopes on screen — a ``View/textSelection(_:)``'s, and a
+    /// bordered container's interior — by the handler id of the region each
+    /// filed. Cleared with the handler table.
+    private(set) var selectionScopes: [HitTestRegion.HandlerID: SelectionScope] = [:]
 
     /// Whether an enabled ``View/textSelection(_:)`` scope has been filed this
     /// walk: what a `List` or a `Table` asks, after drawing its rows, to learn
@@ -371,9 +371,9 @@ package final class MouseEventDispatcher: @unchecked Sendable {
 
     /// Files a scope's answer for the region whose handler `id` names: the
     /// registration's, and its replay's from a memo's journal.
-    func fileSelectionScope(_ allowsSelection: Bool, for id: HitTestRegion.HandlerID) {
-        selectionScopes[id] = allowsSelection
-        if allowsSelection { _enabledSelectionScopeCount += 1 }
+    func fileSelectionScope(_ scope: SelectionScope, for id: HitTestRegion.HandlerID) {
+        selectionScopes[id] = scope
+        if scope == .enabled { _enabledSelectionScopeCount += 1 }
     }
 
     /// The gestures contending for the left button, an arena per press,

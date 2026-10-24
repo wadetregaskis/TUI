@@ -412,7 +412,28 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
                 context: context
             )
         // Final guard: never exceed the space the container was given.
-        return assembled.clamped(toWidth: context.availableWidth, height: context.availableHeight)
+        var container = assembled.clamped(toWidth: context.availableWidth, height: context.availableHeight)
+        if hasBorder { fileInterior(of: &container, context: context) }
+        return container
+    }
+
+    /// Files the box's interior, inside its border, as a selection scope
+    /// (``TextSelectionScope/container``): a drag that starts inside selects
+    /// only what is inside, not the border, the title in it, or the page
+    /// around. Behind every region of the box's own, so a scope inside the
+    /// box is met first, as the innermost one wins.
+    ///
+    /// One hover-observer region a bordered box a frame, and nothing where
+    /// the app said ``TextSelectionScope/pane`` or while measuring.
+    private func fileInterior(of buffer: inout FrameBuffer, context: RenderContext) {
+        guard !context.isMeasuring, buffer.width > 2, buffer.height > 2,
+            context.environment.textSelectionScope == .container,
+            let dispatcher = context.environment.mouseEventDispatcher
+        else { return }
+        let id = dispatcher.registerSelectionScope(.interior, in: context)
+        let interior = HitTestRegion(
+            offsetX: 1, offsetY: 1, width: buffer.width - 2, height: buffer.height - 2, handlerID: id)
+        buffer.hitTestRegions.insert(interior, at: 0)
     }
 
     /// The body wrapped in a `ScrollView` so an over-tall one scrolls instead of

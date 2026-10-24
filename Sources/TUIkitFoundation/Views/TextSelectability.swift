@@ -73,7 +73,10 @@ extension View {
     ///   terminal's own selection, with its modifier held, is the terminal's.
     ///
     /// The innermost modifier wins, so a view inside an `.enabled` container
-    /// can opt out. A ``Button``'s label never selects, as SwiftUI documents:
+    /// can opt out. A bordered container keeps a selection begun inside it to
+    /// its interior either way (``View/textSelectionScope(_:)``), and the
+    /// innermost of the two rectangles is the one a selection keeps to; a
+    /// container never turns selection on or off. A ``Button``'s label never selects, as SwiftUI documents:
     /// a press on a control is the control's. Neither value changes what a
     /// ``TextField`` or ``TextEditor`` does with its own text.
     ///
@@ -112,7 +115,7 @@ struct _TextSelectionScope<Content: View>: View, Renderable, Layoutable {
             content.environment(\.textSelectionAllowed, allowsSelection), context: context)
         guard !context.isMeasuring, let dispatcher = context.environment.mouseEventDispatcher
         else { return buffer }
-        let id = dispatcher.registerSelectionScope(allowsSelection, in: context)
+        let id = dispatcher.registerSelectionScope(allowsSelection ? .enabled : .disabled, in: context)
         buffer.hitTestRegions.insert(contentsOf: buffer.frameHitRegions(handlerID: id), at: 0)
         return buffer
     }
