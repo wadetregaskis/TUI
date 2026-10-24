@@ -50,11 +50,11 @@ that answers the startup exchange, and checks:
      nothing (8b).
 
   10. The stall watchdog, under the kitty protocol: a hung app with no key
-     pressed pops nothing; the report of ⌃\ left unread pops the flags
+     pressed pops nothing; the report of ⌃\\ left unread pops the flags
      within about two seconds, and the driver's byte then quits it as in 4.
      A slow frame (IdleProbe's stall key) pops them too, the loop pushes
      them back, and a report sent before the pop and a byte after it both
-     read. With a ⌃\ binding, which masks the quit key, nothing is popped.
+     read. With a ⌃\\ binding, which masks the quit key, nothing is popped.
 
 Usage:  python3 Tools/Smoke/quit_key_smoke.py [path-to-IdleProbe]
 Exits 0 when every case holds. Uses an isolated TUIKIT_CONFIG_DIR, and no
