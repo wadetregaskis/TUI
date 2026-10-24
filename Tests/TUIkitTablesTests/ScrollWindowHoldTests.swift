@@ -76,7 +76,7 @@ struct ScrollWindowHoldTests {
             return ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(items, id: \.id) { row in
-                        Text("row \(row.id)").frame(height: (path == .uniform ? 1 : row.id % 3 + 1) + row.extra)
+                        Text(verbatim: "row \(row.id)").frame(height: (path == .uniform ? 1 : row.id % 3 + 1) + row.extra)
                     }
                 }
             }

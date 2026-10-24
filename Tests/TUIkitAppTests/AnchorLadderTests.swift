@@ -39,7 +39,7 @@ struct AnchorLadderTests {
     ) -> [String] {
         let view = LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(items, id: \.self) { i in
-                Text("row \(i)").frame(height: i % 3 + 1)
+                Text(verbatim: "row \(i)").frame(height: i % 3 + 1)
             }
         }
         var environment = EnvironmentValues()

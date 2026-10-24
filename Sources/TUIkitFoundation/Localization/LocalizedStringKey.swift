@@ -71,8 +71,16 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     /// `nil` when every value is `%@` in SwiftUI's key too.
     package let swiftUIKey: String?
 
-    /// The interpolated values, already converted to text.
+    /// The interpolated values, already converted to text: a number with no
+    /// specifier as the app's locale writes it (``numberArguments``).
     package let arguments: [String]
+
+    /// The numbers interpolated with no specifier, by their index in
+    /// ``arguments``, whose entry there is the number as the app's locale
+    /// writes it (`LocalizationService.formatted(_:)`): kept so that a `Text`
+    /// in a subtree whose `\.locale` is another writes them as that one does
+    /// (``formattingNumbers(in:)``). Empty for a key with none.
+    let numberArguments: [Int: InterpolatedNumber]
 
     /// The arguments that read the clock, by their index in ``arguments`` —
     /// `\(date, style: .relative)` and the other live interpolations — whose
@@ -94,17 +102,19 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
         self.key = value
         self.swiftUIKey = nil
         self.arguments = []
+        self.numberArguments = [:]
         self.liveArguments = [:]
         self.styledArguments = [:]
     }
 
     init(
-        key: String, swiftUIKey: String? = nil, arguments: [String], liveArguments: [Int: LiveTextBox] = [:],
-        styledArguments: [Int: StyledArgument] = [:]
+        key: String, swiftUIKey: String? = nil, arguments: [String], numberArguments: [Int: InterpolatedNumber] = [:],
+        liveArguments: [Int: LiveTextBox] = [:], styledArguments: [Int: StyledArgument] = [:]
     ) {
         self.key = key
         self.swiftUIKey = swiftUIKey
         self.arguments = arguments
+        self.numberArguments = numberArguments
         self.liveArguments = liveArguments
         self.styledArguments = styledArguments
     }
@@ -117,7 +127,28 @@ public struct LocalizedStringKey: Equatable, Hashable, Sendable {
     package func resolved(with service: LocalizationService) -> String {
         let template = service.string(for: key, swiftUIKey: swiftUIKey, tableName: nil, bundle: nil)
         guard !arguments.isEmpty else { return template }
+        // Its numbers were written in the shared service's locale; another
+        // service writes them in its own.
+        guard numberArguments.isEmpty || service === LocalizationService.shared else {
+            return Self.substituting(formattingNumbers(in: service.currentLocale).arguments, into: template)
+        }
         return Self.substituting(arguments, into: template)
+    }
+
+    /// This key with its numbers (``numberArguments``) written as `locale`
+    /// writes them; itself where it has none.
+    ///
+    /// Not kept, unlike the app locale's (`LocalizationService.formatted(_:)`):
+    /// it is asked for only where a subtree's `\.locale` is not the app's.
+    func formattingNumbers(in locale: Locale) -> Self {
+        guard !numberArguments.isEmpty else { return self }
+        var arguments = arguments
+        for (index, number) in numberArguments where arguments.indices.contains(index) {
+            arguments[index] = number.formatted(in: locale)
+        }
+        return Self(
+            key: key, swiftUIKey: swiftUIKey, arguments: arguments, numberArguments: numberArguments,
+            liveArguments: liveArguments, styledArguments: styledArguments)
     }
 
     /// The localized text, resolved through the shared service.
@@ -406,7 +437,7 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
     public init(stringInterpolation: StringInterpolation) {
         self.init(
             key: stringInterpolation.key, swiftUIKey: stringInterpolation.swiftUIKey,
-            arguments: stringInterpolation.arguments,
+            arguments: stringInterpolation.arguments, numberArguments: stringInterpolation.numberArguments,
             liveArguments: stringInterpolation.liveArguments,
             styledArguments: stringInterpolation.styledArguments)
     }
@@ -422,6 +453,7 @@ extension LocalizedStringKey: ExpressibleByStringInterpolation {
         /// ``key`` so far with that conversion, and kept in step from there.
         var swiftUIKey: String?
         var arguments: [String] = []
+        var numberArguments: [Int: InterpolatedNumber] = [:]
         var liveArguments: [Int: LiveTextBox] = [:]
         var styledArguments: [Int: StyledArgument] = [:]
 

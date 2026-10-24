@@ -65,7 +65,7 @@ struct ScrollContentMarginsTests {
 
     private func rows(_ count: Int) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(0..<count, id: \.self) { Text("row \($0)") }
+            ForEach(0..<count, id: \.self) { Text(verbatim: "row \($0)") }
         }
     }
 
@@ -250,7 +250,7 @@ struct ScrollContentMarginsTests {
         let view = ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(0..<2_000, id: \.self) { index in
-                    Text("row \(index)").onAppear { appeared.insert(index) }
+                    Text(verbatim: "row \(index)").onAppear { appeared.insert(index) }
                 }
             }
         }

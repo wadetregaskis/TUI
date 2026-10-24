@@ -118,6 +118,22 @@ public final class LocalizationService: @unchecked Sendable {
     /// answer: the language, and the strings an app registers. Under `lock`.
     private var resolved = ResolvedStrings()
 
+    /// The numbers ``formatted(_:)`` has written in ``currentLocale``, so a
+    /// body that interpolates an unchanged number into a key — every frame —
+    /// looks it up rather than formatting it again. Emptied whenever
+    /// ``currentLocale`` moves. Under `lock`.
+    private var formattedNumbers = GenerationalMemo<InterpolatedNumber, String>(limit: formattedNumberLimit)
+
+    /// How many numbers one generation of ``formattedNumbers`` holds.
+    static let formattedNumberLimit = 1_024
+
+    /// How many numbers ``formatted(_:)`` has written afresh, rather than
+    /// found kept — for the tests that count them. Under `lock`.
+    private var numbersWritten = 0
+
+    /// ``numbersWritten``, read under the lock.
+    var numbersFormatted: Int { lock.withLock { numbersWritten } }
+
     /// The app's own string tables — see ``BundleStringTables``. Used under
     /// `lock`.
     private let bundleTables: BundleStringTables
@@ -212,6 +228,7 @@ public final class LocalizationService: @unchecked Sendable {
         _currentLocale = language.locale(in: region)
         lookupCodes = Self.lookupCodes(asked: [], language: language)
         resolved = ResolvedStrings()
+        formattedNumbers = GenerationalMemo(limit: Self.formattedNumberLimit)
         lock.unlock()
         // After the lock, deliberately — see `currentLanguage`.
         saveLanguagePreference(language)
@@ -274,6 +291,7 @@ public final class LocalizationService: @unchecked Sendable {
         _currentLocale = language.locale(in: region)
         lookupCodes = Self.lookupCodes(asked: [], language: language)
         resolved = ResolvedStrings()
+        formattedNumbers = GenerationalMemo(limit: Self.formattedNumberLimit)
         lock.unlock()
     }
 
@@ -395,6 +413,32 @@ public final class LocalizationService: @unchecked Sendable {
         for key: String, swiftUIKey: String? = nil, tableName: String?, bundle: Bundle?
     ) -> String {
         reading(key, swiftUIKey: swiftUIKey, tableName: tableName, bundle: bundle, in: nil).text
+    }
+
+    /// `number` as ``currentLocale`` writes it — a number interpolated into a
+    /// key with no specifier, `Text("\(count) rows")` — kept, so asking again
+    /// is a lookup.
+    ///
+    /// A key is built every time a body runs, so without the memo every frame
+    /// paid the formatting (``InterpolatedNumber/formatted(in:)``, about
+    /// 0.3 µs) for every number on screen whether it had changed or not.
+    /// Formatted outside the lock: the first number in a locale makes
+    /// Foundation's formatter for it, which is not quick.
+    package func formatted(_ number: InterpolatedNumber) -> String {
+        let locale: Locale
+        do {
+            lock.lock()
+            defer { lock.unlock() }
+            if let kept = formattedNumbers.answer(for: number) { return kept }
+            locale = _currentLocale
+        }
+        let written = number.formatted(in: locale)
+        lock.withLock {
+            numbersWritten += 1
+            // Not kept if the locale moved meanwhile: the memo is the new one's.
+            if _currentLocale == locale { formattedNumbers.remember(written, for: number) }
+        }
+        return written
     }
 
     /// The language the app's own keys are read in first — the first of the

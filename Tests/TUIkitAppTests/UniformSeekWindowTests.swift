@@ -38,7 +38,7 @@ struct UniformSeekWindowTests {
         let view = LazyVStack(alignment: .leading, spacing: spacing) {
             ForEach(0..<Self.rows, id: \.self) { i in
                 counter.calls += 1
-                return Text("row \(i)")
+                return Text(verbatim: "row \(i)")
             }
         }
         var environment = EnvironmentValues()

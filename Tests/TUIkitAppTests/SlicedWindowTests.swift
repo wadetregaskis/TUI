@@ -51,7 +51,7 @@ struct SlicedWindowTests {
     @Test("With a reply channel, the stack emits the band, not 100k lines")
     func bandNotCanvas() {
         let view = LazyVStack(alignment: .leading, spacing: 0) {
-            ForEach(0..<100_000, id: \.self) { i in Text("row \(i)") }
+            ForEach(0..<100_000, id: \.self) { i in Text(verbatim: "row \(i)") }
         }
         let reply = ScrollContentReply()
         var context = makeBareRenderContext(width: 20, height: 50)
@@ -74,7 +74,7 @@ struct SlicedWindowTests {
         let view = ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(0..<20_000, id: \.self) { i in
-                    Button("row \(i)") {}
+                    Button("row \(String(i))") {}
                 }
             }
         }
@@ -119,7 +119,7 @@ struct SlicedWindowTests {
         let view = ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(0..<5_000_000, id: \.self) { i in
-                    Button("row \(i)") {}
+                    Button("row \(String(i))") {}
                 }
             }
         }
@@ -180,7 +180,7 @@ struct SlicedWindowTests {
         // focus→window gap as blank lines costs O(distance) time and memory
         // per frame, forever, while the user stays scrolled away.
         let view = LazyVStack(alignment: .leading, spacing: 0) {
-            ForEach(0..<1_000_000, id: \.self) { i in Button("row \(i)") {} }
+            ForEach(0..<1_000_000, id: \.self) { i in Button("row \(String(i))") {} }
         }
         let tuiContext = TUIContext()
         let focusManager = FocusManager()
@@ -214,7 +214,7 @@ struct SlicedWindowTests {
     func farFocusedRowCompactBandAnchored() {
         let view = LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(0..<100_000, id: \.self) { i in
-                Button("row \(i)") {}.frame(height: i % 3 + 1)
+                Button("row \(String(i))") {}.frame(height: i % 3 + 1)
             }
         }
         let tuiContext = TUIContext()

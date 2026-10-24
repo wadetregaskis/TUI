@@ -42,7 +42,7 @@ struct AnchoredWindowTests {
         let view = LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(0..<Self.rows, id: \.self) { i in
                 counter.calls += 1
-                return Text("row \(i)").frame(height: i % 3 + 1)
+                return Text(verbatim: "row \(i)").frame(height: i % 3 + 1)
             }
         }
         var environment = EnvironmentValues()
@@ -200,7 +200,7 @@ struct AnchoredWindowTests {
     ) -> [String] {
         let view = LazyVStack(alignment: .leading, spacing: spacing) {
             ForEach(0..<rows, id: \.self) { i in
-                Text("row \(i)").frame(height: i % 3 + 1)
+                Text(verbatim: "row \(i)").frame(height: i % 3 + 1)
             }
         }
         var environment = EnvironmentValues()

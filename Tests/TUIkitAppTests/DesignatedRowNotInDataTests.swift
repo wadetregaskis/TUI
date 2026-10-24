@@ -38,7 +38,7 @@ struct DesignatedRowNotInDataTests {
         let list = ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(items, id: \.self) { i in
-                    Text("row \(i)").frame(height: path.height(i))
+                    Text(verbatim: "row \(i)").frame(height: path.height(i))
                 }
             }
         }

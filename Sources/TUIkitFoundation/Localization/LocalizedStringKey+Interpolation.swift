@@ -39,28 +39,20 @@ extension LocalizedStringKey.StringInterpolation {
     /// `Double`), as SwiftUI's key does, so a String Catalog extracted from
     /// SwiftUI code is read; both are looked up.
     ///
-    /// **Drawn as the number's description, which is not what SwiftUI draws.**
-    /// SwiftUI formats the number through that conversion in the locale, so
-    /// `\(1234567)` reads `1,234,567` and `\(3.5)` reads `3.500000` (measured,
-    /// macOS 15.8, `en_US`, `Tools/SwiftUIProbes/Interpolated values drawn
-    /// (TEXTFMT)/`); TUIkit writes `1234567` and `3.5`, as it did
-    /// before this overload existed, when the catch-all took numbers. The
-    /// conversion costs about 4 µs an integer and 16 µs a `Double` (measured,
-    /// `String(format:locale:)` on this Mac) where the description costs
-    /// nanoseconds, every time a body builds the key. Which to draw is an
-    /// owner question (DEPR-CATCHALL's follow-up); `\(value, specifier:)`
-    /// formats as SwiftUI does today.
+    /// Drawn in the locale, as SwiftUI draws it (owner ruling B-TEXTFMT-1,
+    /// 2026-10-24): grouped, with the locale's decimal separator —
+    /// `1,234,567` and `3.5` in `en`, `1.234.567` and `3,5` in `de` — in
+    /// `\.locale`: the app's locale, or the one a subtree sets for its
+    /// `Text`s. **Not padded**, where SwiftUI's is: SwiftUI writes a `Double`
+    /// through `%lf`, `3.500000`, which the owner ruled a bug not to mimic, so
+    /// a floating-point number has at most `%lf`'s six fraction digits and no
+    /// trailing zeros (`InterpolatedNumber`; Deliberate deviations T11).
+    /// `\(value, specifier:)` writes exactly the conversion given.
     public mutating func appendInterpolation<T: _FormatSpecifiable>(_ value: T) {
         appendPlaceholder(value._specifier)
-        // An `Int`, the commonest argument, as `String(describing:)` answers
-        // it, without its conformance probes: a dynamic cast each for
-        // `TextOutputStreamable`, `CustomStringConvertible` and the rest,
-        // about a microsecond per interpolated value built, every frame.
-        if let number = value as? Int {
-            arguments.append(String(number))
-        } else {
-            arguments.append(String(describing: value))
-        }
+        let number = InterpolatedNumber(value)
+        numberArguments[arguments.count] = number
+        arguments.append(LocalizationService.shared.formatted(number))
     }
 
     /// Interpolates a `Text`, keeping its styling — mirrors SwiftUI, where

@@ -58,7 +58,7 @@ struct MenuHeightCeilingTests {
     /// in the length they are handed.
     private func reachesItsLastRow(count: Int) {
         let controller = MenuPopupController()
-        let items = ForEach(0..<count, id: \.self) { index in Button("Item \(index)") {} }
+        let items = ForEach(0..<count, id: \.self) { index in Button("Item \(String(index))") {} }
         // Twice: the first render is what publishes the selectable ordinals the
         // highlight then moves within.
         _ = renderMenuPopup(items, context: context(), controller: controller, dismiss: {})
@@ -84,7 +84,7 @@ struct MenuHeightCeilingTests {
     /// answer must not depend on how much taller. It asks at `capHeight + 1`
     /// now; a menu of any length is the same one bit.
     private func scrollsAtLength(count: Int) {
-        let items = ForEach(0..<count, id: \.self) { index in Button("Item \(index)") {} }
+        let items = ForEach(0..<count, id: \.self) { index in Button("Item \(String(index))") {} }
         let size = measureMenuColumn(items, context: context(), capHeight: 40)
         let drawn = renderMenuColumn(items, context: context(), capHeight: 40)
         #expect(size.height == 40, "\(count) rows: measured \(size.height)")

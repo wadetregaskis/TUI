@@ -147,7 +147,15 @@ smaller, `%llu`/`%u` unsigned), a `Double` as `%lf`, a `Float` as `%f`, and a
 `specifier:` as written, so `"Moved %lld rows to %@"` — the key a String
 Catalog extracted from SwiftUI code holds — is found too. A translation may reorder
 the values with `%2$@`, since word order differs between languages, and values
-are converted eagerly — `\(value, format: .percent)` works. A key with **no**
+are converted eagerly — `\(value, format: .percent)` works.
+
+A number interpolated with no specifier is written in the locale, as SwiftUI
+writes it: `\(1234567)` is `1,234,567` in English, `1.234.567` in German. The
+locale is `\.locale` — the app's, or the one a subtree sets for the `Text`s
+below it. A floating-point number has at most six fraction digits and no
+trailing zeros, `3.5` where SwiftUI writes `3.500000`: a deliberate deviation.
+Interpolate a `String` for a number that must not be grouped, such as a year:
+`Text("© \(String(year))")`. A key with **no**
 interpolations is never scanned for placeholders, so `Text("100% done")` says
 100% done.
 

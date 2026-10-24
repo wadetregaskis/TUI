@@ -66,7 +66,7 @@ struct ScrollInteractionEdgeTests {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(0..<100_000, id: \.self) { i in
-                        Button("row \(i)") {}
+                        Button("row \(String(i))") {}
                     }
                 }
             }
@@ -103,7 +103,7 @@ struct ScrollInteractionEdgeTests {
             let focusManager = FocusManager()
             let view = ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(0..<20, id: \.self) { i in Text("row \(i)") }
+                    ForEach(0..<20, id: \.self) { i in Text(verbatim: "row \(i)") }
                 }
             }
             .frame(height: height)
@@ -134,13 +134,13 @@ struct ScrollInteractionEdgeTests {
             VStack(alignment: .leading, spacing: 0) {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(0..<300, id: \.self) { i in Text("a \(i)") }
+                        ForEach(0..<300, id: \.self) { i in Text(verbatim: "a \(i)") }
                     }
                 }
                 .frame(height: 6)
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(1_000..<1_300, id: \.self) { i in Text("b \(i)") }
+                        ForEach(1_000..<1_300, id: \.self) { i in Text(verbatim: "b \(i)") }
                     }
                 }
                 .frame(height: 6)

@@ -64,7 +64,7 @@ struct WindowedCompositionTests {
         let focusManager = FocusManager()
         let view = ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                ForEach(0..<50_000, id: \.self) { i in Text("row \(i)") }
+                ForEach(0..<50_000, id: \.self) { i in Text(verbatim: "row \(i)") }
             }
         }
         .scrollIndicators(.visible)
@@ -105,7 +105,7 @@ struct WindowedCompositionTests {
         let view = ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(0..<30_000, id: \.self) { i in
-                    Text("line \(i)").frame(height: i % 3 + 1)
+                    Text(verbatim: "line \(i)").frame(height: i % 3 + 1)
                 }
             }
         }
@@ -140,12 +140,12 @@ struct WindowedCompositionTests {
                     if i == 3 {
                         ScrollView {
                             LazyVStack(alignment: .leading, spacing: 0) {
-                                ForEach(0..<300, id: \.self) { j in Text("inner \(j)") }
+                                ForEach(0..<300, id: \.self) { j in Text(verbatim: "inner \(j)") }
                             }
                         }
                         .frame(height: 3)
                     } else {
-                        Text("outer \(i)")
+                        Text(verbatim: "outer \(i)")
                     }
                 }
             }
@@ -191,7 +191,7 @@ struct WindowedCompositionTests {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(0..<100_000, id: \.self) { i in
-                        Text("row \(i)").frame(height: i % 3 + 1)
+                        Text(verbatim: "row \(i)").frame(height: i % 3 + 1)
                     }
                 }
             }
@@ -238,7 +238,7 @@ struct WindowedCompositionTests {
             let _ = box.proxy = proxy
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(0..<200, id: \.self) { i in Text("row \(i)") }
+                    ForEach(0..<200, id: \.self) { i in Text(verbatim: "row \(i)") }
                 }
             }
             .frame(height: Self.viewport)

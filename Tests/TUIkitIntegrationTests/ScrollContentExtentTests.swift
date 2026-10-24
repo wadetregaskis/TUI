@@ -57,7 +57,7 @@ struct ScrollContentExtentTests {
         let rendered = lines(
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(0..<Self.tallRowCount, id: \.self) { Text("row \($0)") }
+                    ForEach(0..<Self.tallRowCount, id: \.self) { Text(verbatim: "row \($0)") }
                 }
             })
         // One viewport is on screen; everything else is below. Pre-fix this read
@@ -77,7 +77,7 @@ struct ScrollContentExtentTests {
         let rendered = lines(
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(0..<Self.tallRowCount, id: \.self) { Text("row \($0)") }
+                    ForEach(0..<Self.tallRowCount, id: \.self) { Text(verbatim: "row \($0)") }
                 }
             }
             .defaultScrollAnchor(.bottom))
@@ -95,7 +95,7 @@ struct ScrollContentExtentTests {
         // every control that measures this way capped.
         let rows = 6_000
         let rendered = lines(
-            ScrollView { Form { ForEach(0..<rows, id: \.self) { Text("r \($0)") } } })
+            ScrollView { Form { ForEach(0..<rows, id: \.self) { Text(verbatim: "r \($0)") } } })
         #expect(
             indicatorCount(in: rendered, containing: "more lines below") == rows - Self.viewport,
             "\(rendered.last ?? "")")
@@ -106,7 +106,7 @@ struct ScrollContentExtentTests {
     @Test("The ladder converges on the natural extent along either axis")
     func ladderConvergesOnBothAxes() {
         let tall = VStack(alignment: .leading, spacing: 0) {
-            ForEach(0..<Self.tallRowCount, id: \.self) { Text("row \($0)") }
+            ForEach(0..<Self.tallRowCount, id: \.self) { Text(verbatim: "row \($0)") }
         }
         let height = measureNaturalExtent(
             tall, along: .vertical,
@@ -158,7 +158,7 @@ struct ScrollContentExtentTests {
         // `infiniteFrameDoesNotInventScrollableEmptiness`), which ends the ladder
         // by the ordinary under-budget rule instead.
         let size = measureNaturalExtent(
-            List { ForEach(0..<3, id: \.self) { Text("row \($0)") } }, along: .vertical,
+            List { ForEach(0..<3, id: \.self) { Text(verbatim: "row \($0)") } }, along: .vertical,
             proposal: ProposedSize(width: 40, height: nil),
             context: context(), startingBudget: 4_096)
         #expect(size.height == 4_096, "stopped at the first rung: \(size.height)")
@@ -200,7 +200,7 @@ struct ScrollContentExtentTests {
         let rendered = lines(
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(0..<20, id: \.self) { Text("row \($0)") }
+                    ForEach(0..<20, id: \.self) { Text(verbatim: "row \($0)") }
                 }
             })
         #expect(rendered.first == "row 0")

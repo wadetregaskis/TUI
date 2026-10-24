@@ -75,7 +75,7 @@ public struct Text: View, Equatable {
     /// that one when it draws (``LocalizedTextSource``). `nil` for every other
     /// text. A word, so the layout gains no padding; one object per key and
     /// language wherever two texts can be equal, so equal texts hold the same
-    /// one (``LocalizedTextSource/source(_:tableName:bundle:language:words:)``).
+    /// one (``LocalizedTextSource/source(_:tableName:bundle:language:locale:words:)``).
     package var localization: LocalizedTextSource?
 
     /// The style of the text (color, formatting, etc.).

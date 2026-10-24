@@ -134,7 +134,7 @@ private struct SectionControlsApp: App {
 /// Row `index`: one line, or with `variable` one to three.
 @MainActor
 func sectionRow(_ index: Int, variable: Bool) -> Text {
-    guard variable else { return Text("row \(index)") }
+    guard variable else { return Text(verbatim: "row \(index)") }
     return Text(
         (["row \(index)"] + Array(repeating: "  of \(index)", count: index % 3))
             .joined(separator: "\n"))

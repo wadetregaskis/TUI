@@ -260,7 +260,10 @@ struct LocalizedStringKeyTests {
         let one: LocalizedStringKey = "Rows: \(1)"
         let two: LocalizedStringKey = "Rows: \(2)"
         #expect(one != two)
-        #expect(one == LocalizedStringKey(key: "Rows: %@", swiftUIKey: "Rows: %lld", arguments: ["1"]))
+        #expect(
+            one
+                == LocalizedStringKey(
+                    key: "Rows: %@", swiftUIKey: "Rows: %lld", arguments: ["1"], numberArguments: [0: .signed(1)]))
         // The same template and argument from a String is another lookup: only
         // the Int's finds a catalog keyed `Rows: %lld`, as SwiftUI keys it.
         let fromString: LocalizedStringKey = "Rows: \("1")"
@@ -348,12 +351,13 @@ struct LocalizedStringKeyTests {
         #expect(answered > 400, "only \(answered) templates took the fast path")
     }
 
-    @Test("A String, an Int and anything else is what String(describing:) makes of it, whatever its static type")
+    @Test("A String and anything else is what String(describing:) makes of it, and an Int the app locale's number")
     func describingFastPathAgrees() {
-        // A String and an Int take their own overloads, the Int without
-        // `String(describing:)`'s conformance probes, and must agree with it;
-        // so must the look-alikes that reach the deprecated catch-all: an
-        // Optional (described as `Optional(…)`) and a value boxed in `Any`.
+        // A String takes its own overload and must agree with
+        // `String(describing:)`; so must the look-alikes that reach the
+        // deprecated catch-all: an Optional (described as `Optional(…)`) and a
+        // value boxed in `Any`, a number among them. An Int is written in the
+        // app's locale (B-TEXTFMT-1).
         let name = "Ada"
         let empty = ""
         let count = 42
@@ -378,14 +382,15 @@ struct LocalizedStringKeyTests {
         // SwiftUI's key: `%lld` for each Int, and `%@` for a number in `Any`,
         // which SwiftUI's catch-all takes as it takes anything.
         #expect(key.swiftUIKey == "%@%@%lld%lld%@%@%@")
+        let locale = LocalizationService.shared.currentLocale
         #expect(
             key.arguments == [
-                String(describing: name), String(describing: empty), String(describing: count),
-                String(describing: negative), String(describing: optional),
+                String(describing: name), String(describing: empty), InterpolatedNumber(count).formatted(in: locale),
+                InterpolatedNumber(negative).formatted(in: locale), String(describing: optional),
                 String(describing: boxed), String(describing: boxedNumber),
             ])
         #expect(key.arguments[0] == "Ada")
-        #expect(key.arguments[3] == "-9223372036854775808")
+        #expect(key.arguments[3] == InterpolatedNumber.signed(.min).formatted(in: locale))
         #expect(key.arguments[4] == "Optional(\"Ada\")")
     }
 

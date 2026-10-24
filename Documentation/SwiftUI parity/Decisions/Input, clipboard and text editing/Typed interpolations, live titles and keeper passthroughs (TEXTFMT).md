@@ -59,9 +59,14 @@ did, and the counter is drawn verbatim, being a position rather than words.
 So an app's body that interpolates arithmetic into a key inside a ternary pays
 more than it did, as SwiftUI's does with the same overload set.
 
-### B-TEXTFMT-1. A number interpolated without a specifier is drawn as its description, not as SwiftUI formats it
+### B-TEXTFMT-1. A number interpolated without a specifier is drawn in the locale, without SwiftUI's padding
 
 *`appendInterpolation<T: _FormatSpecifiable>(_:)`*
+
+**Done (owner ruling 2026-10-24, lane NUMFMT).** The ruling: "I would like
+numbers to be localised by default, although I don't think we want to mimic
+things like turning "3.5" into "3.500000" because that's ugly and IMO a bug in
+SwiftUI."
 
 SwiftUI forwards a bare number to `appendInterpolation(_:specifier:)` with the
 number's own conversion, and formats it in the locale. Measured (macOS 15.8,
@@ -69,18 +74,59 @@ SwiftUI rendered through `ImageRenderer` and read back by Vision, `en_US`;
 `Tools/SwiftUIProbes/Interpolated values drawn (TEXTFMT)/`):
 `Text("a \(1234567) b")` draws `a 1,234,567 b`, `\(3.5)` draws `3.500000`,
 `\(Float(3.25))` `3.250000`, and under `de_DE` `1.234.567` and `3,500000`.
-TUIkit draws the number's description, `1234567` and `3.5`, as it did when
-the catch-all took numbers. Nothing changes for an app.
+Until this ruling TUIkit drew the number's description, `1234567` and `3.5`.
 
-Why not SwiftUI's: it is a visible change to every interpolated number, in
-the Example and in apps, and a cost. `String(format:locale:)` takes about
-4 µs for an integer and 16 µs for a `Double` on this Mac (measured, 200,000
-calls), against nanoseconds for the description, and a key is built every
-time a body runs.
+**What ships.** The key is unchanged: `%@` in TUIkit's spelling and the
+number's conversion (`%lld`, `%lf`, …) in SwiftUI's, so a translation keyed
+`"Count: %lld"` still matches. The number is kept with the key
+(`InterpolatedNumber`, `LocalizedStringKey.numberArguments`) and written as
+`.number` writes it in the locale in force:
 
-**The fuller version:** format as SwiftUI does, possibly memoised per value and
-locale. A visible change, priced as above per number per build. Put to the
-owner as DEPR-CATCHALL's follow-up.
+| | `en_US` | `de_DE` | `fr_FR` |
+|---|---|---|---|
+| `\(1234567)` | `1,234,567` | `1.234.567` | `1 234 567` (U+202F between) |
+| `\(3.5)` | `3.5` | `3,5` | `3,5` |
+| `\(0.1 + 0.2)` | `0.3` | `0,3` | `0,3` |
+| `\(Double.pi)` | `3.141593` | `3,141593` | `3,141593` |
+
+**The floating-point rule: `.number`'s default, which is at most six fraction
+digits with no trailing zeros.** Six is `%lf`'s precision, so what is drawn is
+exactly SwiftUI's number with the padding the owner ruled a bug taken off:
+`3.500000` is `3.5`, `3.141593` stays `3.141593`, and a tenth that binary
+cannot hold reads `0.3`. The other candidate, the shortest form that
+round-trips (Swift's own `description`), writes `0.1 + 0.2` as
+`0.30000000000000004`, seventeen digits SwiftUI never shows, and a `Float`'s
+`0.1`, widened, as `0.10000000149011612`. What `.number` writes differently
+from `%lf` besides the padding: `∞` and `NaN`, where `%lf` writes `inf` and
+`nan`.
+Deliberate deviations T11 records the padding.
+
+**Which locale.** `\.locale`: the key is built where no environment is known,
+so it writes its numbers in the app's locale (`LocalizationService.currentLocale`,
+which is what `\.locale` is at the root, every frame); a `Text` under a subtree
+whose `\.locale` is another — another language, or the same language in
+another region (`en_IN` groups `12,34,567`) — writes them again in that one
+when it draws, as it reads its words again in that language
+(`Text.relocalized(in:)`). A control's title read eagerly (`.localized`) is in
+the app's locale, as its words are in the app's language.
+
+**Cost.** A key is built every time a body runs, so a number was formatted
+every frame whether it had changed or not. Foundation's `IntegerFormatStyle`
+and `FloatingPointFormatStyle` take about 0.3 µs a number on this Mac
+(measured 2026-10-24, 200,000 calls; `String(format:locale:)` with the printf
+conversion, the price quoted above, takes 3.6 µs and 13 µs), and the shared
+service keeps what it has written in the app's locale
+(`LocalizationService.formatted(_:)`, a `GenerationalMemo` of 1,024 numbers a
+generation, emptied when the locale moves): an unchanged number costs a lock
+and a lookup. Counted, not timed: a hundred builds of one number write it
+once (`InterpolatedNumberTests`). A `Text` under a subtree with another locale
+writes its numbers again each time it draws, unkept; that subtree is rare, and
+its words are already read again there.
+
+**Not changed:** `\(value, specifier:)` still formats at once in the process's
+locale (`.current`), as before; it is not re-read under a subtree's
+`\.locale`. Following `\.locale` there means keeping the `CVarArg` with the
+key, which is not `Equatable`; left for a follow-up if wanted.
 
 ### B-TEXTFMT-2. The `formatter:` interpolations ship, although O11 deferred the `Formatter` forms
 

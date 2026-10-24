@@ -70,7 +70,7 @@ struct ScrollViewReaderTests {
             let _ = box.proxy = proxy
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(0..<rows, id: \.self) { i in Text("row \(i)") }
+                    ForEach(0..<rows, id: \.self) { i in Text(verbatim: "row \(i)") }
                 }
             }
             .frame(height: Self.viewport)
@@ -106,7 +106,7 @@ struct ScrollViewReaderTests {
         let view = ScrollViewReader { proxy in
             let _ = box.proxy = proxy
             List {
-                ForEach(0..<200, id: \.self) { i in Text("row \(i)") }
+                ForEach(0..<200, id: \.self) { i in Text(verbatim: "row \(i)") }
             }
             .frame(height: Self.viewport)
         }
@@ -153,7 +153,7 @@ struct ScrollViewReaderTests {
         let view = ScrollViewReader { proxy in
             let _ = box.proxy = proxy
             Table(rows) {
-                TableColumn("N") { (row: Numbered) in Text("item \(row.id)") }
+                TableColumn("N") { (row: Numbered) in Text(verbatim: "item \(row.id)") }
             }
             .frame(height: Self.viewport + 2)
         }
@@ -327,7 +327,7 @@ struct ScrollViewReaderTests {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(0..<100_000, id: \.self) { i in
-                        Text("row \(i)").frame(height: i % 3 + 1)
+                        Text(verbatim: "row \(i)").frame(height: i % 3 + 1)
                     }
                 }
             }
@@ -363,7 +363,7 @@ struct ScrollViewReaderTests {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(0..<600, id: \.self) { i in
-                        Text("row \(i)").frame(height: i < 100 ? 3 : 1)
+                        Text(verbatim: "row \(i)").frame(height: i < 100 ? 3 : 1)
                     }
                 }
             }
@@ -395,7 +395,7 @@ struct ScrollViewReaderTests {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(0..<50, id: \.self) { i in
-                        Text("row \(i)").frame(height: i % 2 + 1)
+                        Text(verbatim: "row \(i)").frame(height: i % 2 + 1)
                     }
                 }
             }
@@ -424,7 +424,7 @@ struct ScrollViewReaderTests {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(0..<100_000, id: \.self) { i in
-                        Button("row \(i)") { box.proxy?.scrollTo(99_999, anchor: .bottom) }
+                        Button("row \(String(i))") { box.proxy?.scrollTo(99_999, anchor: .bottom) }
                     }
                 }
             }
@@ -457,7 +457,7 @@ struct ScrollViewReaderTests {
                 let _ = box.proxy = proxy
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(0..<lines, id: \.self) { i in Text("line \(i)") }
+                        ForEach(0..<lines, id: \.self) { i in Text(verbatim: "line \(i)") }
                     }
                 }
                 .frame(height: Self.viewport)
@@ -541,9 +541,9 @@ struct ScrollViewReaderTests {
             let _ = box.proxy = proxy
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(0..<50, id: \.self) { i in Text("row \(i)") }
+                    ForEach(0..<50, id: \.self) { i in Text(verbatim: "row \(i)") }
                     Text("marker").id("MARK")
-                    ForEach(50..<100, id: \.self) { i in Text("row \(i)") }
+                    ForEach(50..<100, id: \.self) { i in Text(verbatim: "row \(i)") }
                 }
             }
             .frame(height: Self.viewport)
@@ -574,9 +574,9 @@ struct ScrollViewReaderTests {
             let _ = box.proxy = proxy
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(0..<50, id: \.self) { i in Text("row \(i)") }
+                    ForEach(0..<50, id: \.self) { i in Text(verbatim: "row \(i)") }
                     Text("marker").id("MARK")
-                    ForEach(50..<100, id: \.self) { i in Text("row \(i)") }
+                    ForEach(50..<100, id: \.self) { i in Text(verbatim: "row \(i)") }
                 }
             }
             .frame(height: Self.viewport)
@@ -606,9 +606,9 @@ struct ScrollViewReaderTests {
             let _ = box.proxy = proxy
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(0..<50, id: \.self) { i in Text("row \(i)") }
+                    ForEach(0..<50, id: \.self) { i in Text(verbatim: "row \(i)") }
                     Text("marker").id("MARK").padding(.horizontal, 1)
-                    ForEach(50..<100, id: \.self) { i in Text("row \(i)") }
+                    ForEach(50..<100, id: \.self) { i in Text(verbatim: "row \(i)") }
                 }
             }
             .frame(height: Self.viewport)
@@ -635,9 +635,9 @@ struct ScrollViewReaderTests {
             let _ = box.proxy = proxy
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(0..<50, id: \.self) { i in Text("row \(i)") }
+                    ForEach(0..<50, id: \.self) { i in Text(verbatim: "row \(i)") }
                     Text("marker").id("MARK")
-                    ForEach(50..<100, id: \.self) { i in Text("row \(i)") }
+                    ForEach(50..<100, id: \.self) { i in Text(verbatim: "row \(i)") }
                 }
             }
             .frame(height: Self.viewport)
@@ -675,7 +675,7 @@ struct ScrollViewReaderTests {
                 let _ = box.proxy = proxy
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(0..<rows, id: \.self) { i in Text("row \(i)").id("tag\(i)") }
+                        ForEach(0..<rows, id: \.self) { i in Text(verbatim: "row \(i)").id("tag\(i)") }
                     }
                 }
                 .frame(height: Self.viewport)
@@ -717,7 +717,7 @@ struct ScrollViewReaderTests {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(0..<rows, id: \.self) { i in
-                            Button("row \(i)") {}.frame(height: i % 3 + 1)
+                            Button("row \(String(i))") {}.frame(height: i % 3 + 1)
                         }
                     }
                 }
