@@ -86,6 +86,15 @@ struct ExampleMenuBarTests {
         }
     }
 
+    @Test("Every control-style picker offers Thick Braille, two dots thick, as the appearances do")
+    func controlStylesOfferThickBraille() {
+        // One list feeds View ▸ Control Style, the Theme page and the Buttons
+        // page's looks grid (owner, 2026-10-24: "'Thick Braille' is missing").
+        let thick = ExampleStyling.controlStyles.first { $0.style == .braille(thickness: 2) }
+        #expect(thick?.key == "controlStyle.thickBraille")
+        #expect(ExampleStrings.g20["en"]?["controlStyle.thickBraille"] == "Thick Braille")
+    }
+
     @Test("The top bar is customizable: Customize Toolbar… opens its panel")
     mutating func customizeToolbar() throws {
         let app = launched()

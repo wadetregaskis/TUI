@@ -102,7 +102,9 @@ struct ExampleStyling: Equatable {
     /// The control styles the Example offers, each with its name's key.
     static let controlStyles: [(key: String, style: ControlStyle)] = [
         ("controlStyle.automatic", .automatic), ("controlStyle.block", .block),
-        ("controlStyle.lines", .lines), ("controlStyle.braille", .braille), ("controlStyle.blank", .blank),
+        ("controlStyle.lines", .lines), ("controlStyle.braille", .braille),
+        // Two dots thick, as the appearance list's "Thick Braille" is.
+        ("controlStyle.thickBraille", .braille(thickness: 2)), ("controlStyle.blank", .blank),
     ]
 }
 
