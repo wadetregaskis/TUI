@@ -376,12 +376,18 @@ extension _ButtonStyleBody {
         return (0..<3).map { row in
             (0..<width).map { column in
                 let (x, y) = (Double(column), Double(row) * 2)
-                if wholeCells { return inside(x + 0.5, y + 1) ? .face : .empty }
                 var bits = 0
                 if inside(x + 0.25, y + 0.5) { bits |= 1 }
                 if inside(x + 0.75, y + 0.5) { bits |= 2 }
                 if inside(x + 0.25, y + 1.5) { bits |= 4 }
                 if inside(x + 0.75, y + 1.5) { bits |= 8 }
+                // In whole cells a cell is the face only where the shape covers
+                // all four of its quarters. A cell the curve only nicks is left
+                // out, so a rounded rectangle loses its corner cells and a capsule
+                // two at each end, where testing the cell's centre filled every
+                // corner and drew all three shapes as the same square block
+                // (owner #20, 2026-10-23).
+                if wholeCells { return bits == 15 ? .face : .empty }
                 return bits == 15 ? .face : bits == 0 ? .empty : .glyph(TerminalSymbols.quadrants[bits])
             }
         }

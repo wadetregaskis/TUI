@@ -757,7 +757,12 @@ of them over three rows came apart into bands. One-row caps (`▐ … ▌`) read
 face there, and are kept. So on Apple Terminal — natively, and through tmux for a
 client the process walk names as Terminal.app (`TerminalHost.blockElementsFillTheLine`,
 `ClientCapabilities.blockElementsFillTheLine`) — a solid three-row face is drawn
-in whole cells of the face, with no Block Elements glyph. A background colour
+in whole cells of the face, with no Block Elements glyph: a cell is the face
+only where the shape covers all four of its quarters, so a rounded rectangle
+loses its four corner cells and a capsule two cells at each end of its top and
+bottom rows. (Until 2026-10-24 a cell was the face where the shape covered its
+centre, which filled every corner and drew square, rounded and capsule faces as
+the same block — owner #20, 2026-10-23.) A background colour
 fills the whole cell there, which is what the survey's `█` note below
 (*Appearance.block*) leans on too. Not yet measured as pixels (an
 `overhang_card.py` page of the rows would show how far short). (A first card of

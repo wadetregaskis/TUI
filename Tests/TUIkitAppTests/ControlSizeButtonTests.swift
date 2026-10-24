@@ -266,6 +266,33 @@ struct ControlSizeButtonTests {
         #expect(!lines.joined().contains { ("\u{2580}"..."\u{259F}").contains($0) })
     }
 
+    @Test(
+        "In whole cells a face keeps only the cells its shape covers whole: the corners go, the capsule's ends more",
+        arguments: [ControlSize.large, .extraLarge])
+    func wholeCellsFollowTheShape(size: ControlSize) {
+        var context = context()
+        context.environment.blockElementsFillTheLine = false
+        /// Which cells of each row the face paints, `#` for a field and `.` for none.
+        func painted(_ shape: ButtonBorderShape) -> [String] {
+            let button = Button("OK") {}.controlSize(size).buttonBorderShape(shape).controlStyle(.block)
+            let lines = ColorDepth.withCurrent(.truecolor) { renderToBuffer(button, context: context).lines }
+            return lines.map { String(paintedCells($0).map { $0.background.isEmpty ? "." : "#" }) }
+        }
+        let square = painted(.roundedRectangle(radius: 0))
+        #expect(square.allSatisfy { !$0.contains(".") }, "\(square)")
+        let rounded = painted(.roundedRectangle)
+        for row in [rounded.first, rounded.last] {
+            #expect(row?.first == "." && row?.last == ".", "\(rounded)")
+            #expect(row?.dropFirst().dropLast().allSatisfy { $0 == "#" } == true, "\(rounded)")
+        }
+        let capsule = painted(.capsule)
+        for row in [capsule.first, capsule.last] {
+            #expect(row?.hasPrefix("..") == true && row?.hasSuffix("..") == true, "\(capsule)")
+            #expect(row?.dropFirst(2).dropLast(2).allSatisfy { $0 == "#" } == true, "\(capsule)")
+        }
+        #expect(rounded[1].allSatisfy { $0 == "#" } && capsule[1].allSatisfy { $0 == "#" })
+    }
+
     @Test("A focused mini face breathes its label", arguments: [false, true])
     func miniBreathes(viewLabel: Bool) {
         let context = makeRenderContext(width: 40, height: 6)
