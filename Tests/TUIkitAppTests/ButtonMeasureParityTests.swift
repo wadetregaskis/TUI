@@ -91,7 +91,8 @@ struct ButtonMeasureParityTests {
                     }))
             let drawn = renderToBuffer(filling, context: context(width: width))
             let row = drawn.lines.first?.stripped ?? ""
-            #expect(row.hasSuffix("right") || row.hasSuffix("right )"), "\(style) at \(width): |\(row)|")
+            // The default style's face closes on its cap after a cell of padding.
+            #expect(row.hasSuffix("right") || row.hasSuffix("right ▌"), "\(style) at \(width): |\(row)|")
             #expect(drawn.width == width, "\(style) at \(width): |\(row)|")
 
             let long = style.apply(

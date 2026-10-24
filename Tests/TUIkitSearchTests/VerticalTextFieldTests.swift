@@ -92,7 +92,9 @@ struct VerticalTextFieldTests {
         let model = Model("one\ntwo")
         let drawn = rows(harness.frame(TextField("T", text: model.binding, axis: .vertical)))
         #expect(drawn.count == 2)
-        #expect(drawn.allSatisfy { $0.hasPrefix("│") && $0.hasSuffix("│") }, "\(drawn)")
+        #expect(
+            drawn.allSatisfy { $0.hasPrefix(String(TerminalSymbols.openCap)) && $0.hasSuffix(String(TerminalSymbols.closeCap)) },
+            "\(drawn)")
     }
 
     @Test("While empty it grows to show its whole prompt")

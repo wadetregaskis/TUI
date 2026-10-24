@@ -33,20 +33,29 @@ struct ControlSizeButtonTests {
     }
 
     /// A string label and a `@ViewBuilder` one, which take different paths
-    /// through the style and must draw alike.
+    /// through the style and must draw alike, under `appearance` and
+    /// `control` — `.automatic`'s filled faces unless a test names another.
     private func buttons(
-        _ size: ControlSize, _ shape: ButtonBorderShape, _ appearance: Appearance = .rounded, label: String = "OK"
+        _ size: ControlSize, _ shape: ButtonBorderShape, _ appearance: Appearance = .rounded,
+        _ control: ControlStyle = .automatic, label: String = "OK"
     ) -> [AnyView] {
         [
-            AnyView(Button(label) {}.controlSize(size).buttonBorderShape(shape).appearance(appearance)),
+            AnyView(
+                Button(label) {}.controlSize(size).buttonBorderShape(shape).appearance(appearance)
+                    .controlStyle(control)),
             AnyView(
                 Button(action: {}, label: { Text(label) }).controlSize(size).buttonBorderShape(shape)
-                    .appearance(appearance)),
+                    .appearance(appearance).controlStyle(control)),
         ]
     }
 
+    /// Lines faces in the rounded border's glyphs.
+    private func lines(_ size: ControlSize, _ shape: ButtonBorderShape, label: String = "OK") -> [AnyView] {
+        buttons(size, shape, .rounded, .lines, label: label)
+    }
+
     @Test(
-        "A bordered button at each size, as a capsule in lines (the default)",
+        "A bordered button at each size, as a capsule in lines",
         arguments: [
             (ControlSize.mini, ["OK"]),
             (.small, ["(OK)"]),
@@ -55,11 +64,33 @@ struct ControlSizeButtonTests {
             (.extraLarge, ["╭──────╮", "(  OK  )", "╰──────╯"]),
         ])
     func capsule(size: ControlSize, expected: [String]) {
-        for button in buttons(size, .automatic) {
+        for button in lines(size, .automatic) {
             #expect(drawn(button) == expected)
         }
-        for button in buttons(size, .capsule) {
+        for button in lines(size, .capsule) {
             #expect(drawn(button) == expected)
+        }
+    }
+
+    @Test(
+        "By default a bordered button is filled, inside the rounded borders",
+        arguments: ControlSize.allCases, [ButtonBorderShape.automatic, .roundedRectangle, .circle])
+    func filledByDefault(size: ControlSize, shape: ButtonBorderShape) {
+        for (button, block) in zip(buttons(size, shape), buttons(size, shape, .rounded, .block)) {
+            #expect(drawn(button) == drawn(block))
+        }
+    }
+
+    @Test(
+        "By default the brackets and the underline are drawn in lines, all they are; filled faces, a rounded rectangle",
+        arguments: ControlSize.allCases, [ButtonBorderShape.brackets("<", ">"), .underline])
+    func linesOnlyShapesKeepTheirLines(size: ControlSize, shape: ButtonBorderShape) {
+        for (button, lines) in zip(buttons(size, shape), lines(size, shape)) {
+            #expect(drawn(button) == drawn(lines))
+        }
+        let block = buttons(size, shape, .rounded, .block)
+        for (button, rounded) in zip(block, buttons(size, .roundedRectangle, .rounded, .block)) {
+            #expect(drawn(button) == drawn(rounded))
         }
     }
 
@@ -73,18 +104,18 @@ struct ControlSizeButtonTests {
             (.extraLarge, ["╭──────╮", "│  OK  │", "╰──────╯"]),
         ])
     func roundedRectangle(size: ControlSize, expected: [String]) {
-        for button in buttons(size, .roundedRectangle) {
+        for button in lines(size, .roundedRectangle) {
             #expect(drawn(button) == expected)
         }
-        for button in buttons(size, .roundedRectangle(radius: 4)) {
+        for button in lines(size, .roundedRectangle(radius: 4)) {
             #expect(drawn(button) == expected)
         }
     }
 
     @Test("A circle has no padding on one row, and on three is about as wide as it is tall")
     func circle() {
-        for button in buttons(.regular, .circle, label: "★") { #expect(drawn(button) == ["(★)"]) }
-        for button in buttons(.extraLarge, .circle, label: "★") {
+        for button in lines(.regular, .circle, label: "★") { #expect(drawn(button) == ["(★)"]) }
+        for button in lines(.extraLarge, .circle, label: "★") {
             #expect(drawn(button) == ["╭───╮", "( ★ )", "╰───╯"])
         }
         for button in buttons(.regular, .circle, .block, label: "★") { #expect(drawn(button) == ["▐★▌"]) }
@@ -120,7 +151,7 @@ struct ControlSizeButtonTests {
             (.doubleLine, .roundedRectangle, ["╔════╗", "║ OK ║", "╚════╝"]),
         ])
     func linesTakeTheBorder(appearance: Appearance, shape: ButtonBorderShape, expected: [String]) {
-        for button in buttons(.large, shape, appearance) {
+        for button in buttons(.large, shape, appearance, .lines) {
             #expect(drawn(button) == expected)
         }
     }
@@ -189,9 +220,9 @@ struct ControlSizeButtonTests {
         #expect(ControlSize.clamping(.extraLarge, to: ..<ControlSize.regular) == .small)
         #expect(ControlSize.clamping(.large, to: ControlSize.regular ..< .regular) == .large, "an empty range holds nothing")
         #expect(
-            drawn(Button("OK") {}.controlSize(ControlSize.small ... .large).controlSize(.mini)) == ["(OK)"])
+            drawn(Button("OK") {}.controlSize(ControlSize.small ... .large).controlSize(.mini)) == ["▐OK▌"])
         #expect(
-            drawn(Button("OK") {}.controlSize(ControlSize.small ... .large)) == ["( OK )"])
+            drawn(Button("OK") {}.controlSize(ControlSize.small ... .large)) == ["▐ OK ▌"])
     }
 
     @Test(
@@ -249,8 +280,10 @@ struct ControlSizeButtonTests {
     @Test("A rounded rectangle has no field at any size, only lines", arguments: ControlSize.allCases, [false, true])
     func outlineHasNoField(size: ControlSize, viewLabel: Bool) {
         let button = viewLabel
-            ? AnyView(Button(action: {}, label: { Text("OK") }).controlSize(size).buttonBorderShape(.roundedRectangle))
-            : AnyView(Button("OK") {}.controlSize(size).buttonBorderShape(.roundedRectangle))
+            ? AnyView(
+                Button(action: {}, label: { Text("OK") }).controlSize(size).buttonBorderShape(.roundedRectangle)
+                    .controlStyle(.lines))
+            : AnyView(Button("OK") {}.controlSize(size).buttonBorderShape(.roundedRectangle).controlStyle(.lines))
         let lines = ColorDepth.withCurrent(.truecolor) { renderToBuffer(button, context: context()).lines }
         // No background is painted anywhere: no SGR 48 (nor 49's explicit reset is needed).
         #expect(!lines.joined().contains("[48;"), "\(lines)")
@@ -272,8 +305,10 @@ struct ControlSizeButtonTests {
     func outlineBreathes(size: ControlSize, viewLabel: Bool) {
         let context = makeRenderContext(width: 40, height: 6)
         let button = viewLabel
-            ? AnyView(Button(action: {}, label: { Text("OK") }).controlSize(size).buttonBorderShape(.roundedRectangle))
-            : AnyView(Button("OK") {}.controlSize(size).buttonBorderShape(.roundedRectangle))
+            ? AnyView(
+                Button(action: {}, label: { Text("OK") }).controlSize(size).buttonBorderShape(.roundedRectangle)
+                    .controlStyle(.lines))
+            : AnyView(Button("OK") {}.controlSize(size).buttonBorderShape(.roundedRectangle).controlStyle(.lines))
         let buffer = ColorDepth.withCurrent(.truecolor) { renderToBuffer(button, context: context) }
         let runs = buffer.animatedCells.map { ($0.offsetX, $0.offsetY, $0.width) }
         #expect(Set(buffer.animatedCells.map(\.offsetY)) == Set(0..<buffer.height), "\(runs)")
@@ -290,7 +325,7 @@ struct ControlSizeButtonTests {
             (.extraLarge, ["┌──────┐", "│  OK  │", "└──────┘"]),
         ])
     func square(size: ControlSize, expected: [String]) {
-        for button in buttons(size, .roundedRectangle(radius: 0)) {
+        for button in lines(size, .roundedRectangle(radius: 0)) {
             #expect(drawn(button) == expected)
         }
     }
@@ -303,15 +338,15 @@ struct ControlSizeButtonTests {
             (.large, ["╭────╮", "│ OK │", "╰────╯"]),
         ])
     func brackets(size: ControlSize, expected: [String]) {
-        for button in buttons(size, .brackets("<", ">")) {
+        for button in lines(size, .brackets("<", ">")) {
             #expect(drawn(button) == expected)
         }
     }
 
     @Test("Brackets wider than a cell draw as the rounded rectangle")
     func wideBrackets() {
-        #expect(drawn(Button("OK") {}.buttonBorderShape(.brackets("中", "中"))) == ["│ OK │"])
-        #expect(drawn(Button("OK") {}.buttonBorderShape(.brackets("⟨", "⟩"))) == ["⟨ OK ⟩"])
+        #expect(drawn(Button("OK") {}.buttonBorderShape(.brackets("中", "中")).controlStyle(.lines)) == ["│ OK │"])
+        #expect(drawn(Button("OK") {}.buttonBorderShape(.brackets("⟨", "⟩")).controlStyle(.lines)) == ["⟨ OK ⟩"])
     }
 
     @Test(
@@ -323,7 +358,7 @@ struct ControlSizeButtonTests {
             (.large, ["╭────╮", "│ OK │", "╰────╯"]),
         ])
     func underline(size: ControlSize, expected: [String]) {
-        for button in buttons(size, .underline) {
+        for button in lines(size, .underline) {
             #expect(drawn(button) == expected)
         }
     }
@@ -335,7 +370,7 @@ struct ControlSizeButtonTests {
             context.environment.lineStyleSupport = support
             return ColorDepth.withCurrent(.truecolor) { renderToBuffer(view, context: context).lines.joined() }
         }
-        for button in buttons(.regular, .underline, label: "Save") {
+        for button in lines(.regular, .underline, label: "Save") {
             let coloured = bytes(button, support: .underlines)
             // One underlined run, and it is the label's cells exactly: the
             // padding either side is drawn bare.

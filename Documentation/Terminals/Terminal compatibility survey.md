@@ -729,8 +729,15 @@ it). As on 2026-10-13 the records were not rewritten, so the rows waited in
 whose alternate-screen records read all eight at one cell on every host. They
 still wait in the ledger's `awaitingLandingMeasurement`.
 
-**Since the evening of 2026-10-15 a button's face follows the `Appearance`**,
-the owner's choice from a live prototype and two cards of candidate families
+**Since 2026-10-24 a control's face follows the `ControlStyle`, filled by
+default**, and no longer the border's `Appearance` (owner, 2026-10-23: "Make
+'Block' the default *control* style again … but keep 'Rounded' as the default
+border style"). `.controlStyle(.lines)` draws the lines faces described next
+under any appearance of lines; `.automatic`, the default, draws filled faces
+unless the appearance is `.braille` or `.blank`, looks of the whole interface
+whose controls follow it. Plain glass is still rimmed in the border's family.
+From 2026-10-15 to 2026-10-23 the face followed the `Appearance`, lines by
+default — the owner's choice from a live prototype and two cards of candidate families
 (`ButtonLab` on branch `proto/button-looks`; the cards are kept in the session
 notes): under `.rounded` (the default), `.line`, `.heavy` and `.doubleLine` it is
 drawn in lines with no field — `( OK )`, `│ OK │`, `[ OK ]` at radius zero, `(★)`

@@ -74,7 +74,10 @@ enum GlassCells {
         // a glass part-way arrived draws its rim's lines from half-way, in its
         // ink part-way from the surface they land on.
         let ink = glass.rimInk(hovered: hovered, in: environment)
-        let family = ButtonFaceFamily(environment.appearance)
+        // A glass button's rim is its face, in the control style; any other
+        // glass is a surface, rimmed in the border's family.
+        let family = environment.glassIsAControl
+            ? ButtonFaceFamily(environment) : ButtonFaceFamily(rimOf: environment.appearance)
         var rim = rimCells(
             of: drawn, frame: frame, family: family, fill: fill,
             ink: presence < 1 ? ink.opacity(presence, over: environment.enclosingSurface) : ink)

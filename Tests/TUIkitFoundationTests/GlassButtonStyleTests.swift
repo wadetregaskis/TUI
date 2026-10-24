@@ -33,16 +33,18 @@ struct GlassButtonStyleTests {
         colour.resolve(with: SystemPalette.green).rgbComponents.map { .rgb(Int($0.red), Int($0.green), Int($0.blue)) }
     }
 
-    @Test("A glass button is the bordered button, its caps in the glass's rim")
+    /// `view` drawn unfocused: a focused button's face breathes the accent,
+    /// glass or not.
+    private func unfocused(_ view: some View) -> FrameBuffer {
+        let context = context()
+        context.environment.focusManager?.register(FocusSentinel())
+        return screen(view, context: context)
+    }
+
+    @Test("In lines, a glass button is the bordered button, its caps in the glass's rim")
     func capsAreTheRim() {
-        // Unfocused: a focused button's lines breathe the accent, glass or not.
-        func unfocused(_ view: some View) -> FrameBuffer {
-            let context = context()
-            context.environment.focusManager?.register(FocusSentinel())
-            return screen(view, context: context)
-        }
-        let glass = unfocused(Button("OK") {}.buttonStyle(.glass))
-        let bordered = unfocused(Button("OK") {}.buttonStyle(.bordered))
+        let glass = unfocused(Button("OK") {}.buttonStyle(.glass).controlStyle(.lines))
+        let bordered = unfocused(Button("OK") {}.buttonStyle(.bordered).controlStyle(.lines))
         #expect(glass.lines.map(\.stripped) == bordered.lines.map(\.stripped))
         let environment = context().environment
         let cap = paintedCells(glass.lines[0])[0]
@@ -51,9 +53,30 @@ struct GlassButtonStyleTests {
         #expect(cap.ink != paintedCells(bordered.lines[0])[0].ink, "a highlight, not the border")
     }
 
-    @Test("A glass button's label sits on the glass: what is behind shows through, tinted")
+    @Test("Under the default control style a glass button keeps its glass's rim, where other buttons are filled")
+    func defaultKeepsTheRim() {
+        let glass = unfocused(Button("OK") {}.buttonStyle(.glass))
+        let lines = unfocused(Button("OK") {}.buttonStyle(.glass).controlStyle(.lines))
+        #expect(glass.lines == lines.lines)
+        let bordered = unfocused(Button("OK") {}.buttonStyle(.bordered))
+        #expect(paintedCells(bordered.lines[0])[0].glyph == TerminalSymbols.openCap, "the others are filled")
+    }
+
+    @Test("In filled faces, a glass button's face is the bordered button's own")
+    func solidFaceIsTheBorderedOne() {
+        let glass = unfocused(Button("OK") {}.buttonStyle(.glass).controlStyle(.block))
+        let bordered = unfocused(Button("OK") {}.buttonStyle(.bordered).controlStyle(.block))
+        #expect(glass.lines.map(\.stripped) == bordered.lines.map(\.stripped))
+        let cap = paintedCells(glass.lines[0])[0]
+        #expect(cap.glyph == TerminalSymbols.openCap)
+        #expect(cap.ink == paintedCells(bordered.lines[0])[0].ink)
+    }
+
+    @Test("In lines, a glass button's label sits on the glass: what is behind shows through, tinted")
     func labelOnGlass() {
-        func field(_ view: some View) -> String { paintedCells(screen(view).lines[0])[2].background }
+        func field(_ view: some View) -> String {
+            paintedCells(screen(view.controlStyle(.lines)).lines[0])[2].background
+        }
         let glass = field(Button("OK") {}.buttonStyle(.glass).background(Color.red))
         let material = field(
             Button("OK") {}.buttonStyle(.bordered).background(Color.palette.background.opacity(0.65)).background(Color.red))
@@ -70,7 +93,10 @@ struct GlassButtonStyleTests {
         let drawn = screen(Button("OK") {}.buttonStyle(.glassProminent))
         let field = paintedCells(drawn.lines[0])[2].background
         let tinted = paintedCells(
-            screen(Button("OK") {}.buttonStyle(.bordered).background(Color.palette.accent.opacity(0.65))).lines[0])[2]
+            screen(
+                Button("OK") {}.buttonStyle(.bordered).controlStyle(.lines)
+                    .background(Color.palette.accent.opacity(0.65))
+            ).lines[0])[2]
             .background
         #expect(field == tinted)
         let bold = /\u{1B}\[(?:[0-9]+;)*1(?:;[0-9]+)*m/

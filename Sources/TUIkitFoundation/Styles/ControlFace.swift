@@ -25,7 +25,7 @@ package enum ControlFace {
     private static func appearance(in environment: EnvironmentValues) -> _ButtonAppearance {
         _ButtonAppearance.default.sized(
             environment.controlSize, shape: environment.buttonBorderShape,
-            family: ButtonFaceFamily(environment.appearance),
+            family: ButtonFaceFamily(environment),
             blockElementsFillTheLine: environment.blockElementsFillTheLine)
     }
 

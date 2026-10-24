@@ -94,6 +94,16 @@ struct ExampleStyling: Equatable {
     /// applied with `Scene.windowToolbarStyle(_:)`: `.expanded` boxes them (the
     /// default), `.unified` rules them, `.unifiedCompact` draws neither.
     var toolbarStyle: ExampleToolbarStyle = .expanded
+    /// How controls draw their faces, edited on the Theme page and in View ▸
+    /// Control Style and applied at the scene, so the window's bars follow:
+    /// `.automatic`, filled, by default.
+    var controlStyle: ControlStyle = .automatic
+
+    /// The control styles the Example offers, each with its name's key.
+    static let controlStyles: [(key: String, style: ControlStyle)] = [
+        ("controlStyle.automatic", .automatic), ("controlStyle.block", .block),
+        ("controlStyle.lines", .lines), ("controlStyle.braille", .braille), ("controlStyle.blank", .blank),
+    ]
 }
 
 /// The window toolbar styles the Theme page offers.

@@ -65,6 +65,9 @@ struct ExampleApp: App {
         // the page is a property of the app's chrome, not of any page — one
         // style for every bar, chosen on the Theme page.
         .windowToolbarStyle(styling.toolbarStyle.style)
+        // How controls draw their faces, apart from the border: scene-level for
+        // the same reason, so the bars' buttons follow it too.
+        .environment(\.controlStyle, styling.controlStyle)
         // The menu bar, on the top row: declaring commands shows it. The app's
         // menu (with Settings…), Edit, Window and Help are TUIkit's; View and
         // Go add the Example's own. F10 opens it, as does a click on a title.

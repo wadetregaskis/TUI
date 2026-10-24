@@ -61,6 +61,11 @@ struct ButtonsPage: View {
     /// identity and with it every `@State` below.
     @Environment(\.appearance) private var appAppearance
 
+    /// The control style the looks section draws its buttons in — `nil` for
+    /// the app's own — and the app's, read for the reason above.
+    @State private var looksControlStyle: ControlStyle?
+    @Environment(\.controlStyle) private var appControlStyle
+
     /// Which focus affordance the two links below use. Off is the default a
     /// `Link` ships with — the words themselves breathe, and nothing is
     /// reserved beside them, which is what lets a link sit inside a sentence.
@@ -157,10 +162,11 @@ struct ButtonsPage: View {
     // MARK: - Looks
 
     /// One button at every control size (rows) and border shape (columns),
-    /// under the appearance picked: the three axes a bordered button's face is
-    /// drawn from. `.controlSize(_:)` and `.buttonBorderShape(_:)` are
-    /// SwiftUI's; the appearance is TUIkit's, and chooses the family —
-    /// lines, solid blocks, Braille dots, or the label alone.
+    /// under the control style and appearance picked: the axes a bordered
+    /// button's face is drawn from. `.controlSize(_:)` and
+    /// `.buttonBorderShape(_:)` are SwiftUI's; the control style is TUIkit's,
+    /// and chooses the family — filled, lines, Braille dots, or the label
+    /// alone — and the appearance the glyphs of the lines.
     @ViewBuilder
     private var looksSection: some View {
         DemoSection("page.buttons.section.looks") {
@@ -171,6 +177,13 @@ struct ButtonsPage: View {
                     Text("page.buttons.looks.appAppearance").tag("")
                     ForEach(AppearanceRegistry.all, id: \.id) { appearance in
                         Text(appearance.localizedName).tag(appearance.id)
+                    }
+                }
+                Picker("page.buttons.looks.controlStyle", selection: $looksControlStyle) {
+                    Text("page.buttons.looks.appAppearance").tag(ControlStyle?.none)
+                    ForEach(0..<ExampleStyling.controlStyles.count, id: \.self) { index in
+                        Text(L(ExampleStyling.controlStyles[index].key))
+                            .tag(Optional(ExampleStyling.controlStyles[index].style))
                     }
                 }
                 Picker("page.buttons.looks.bracketPair", selection: $looksBracketPair) {
@@ -203,6 +216,7 @@ struct ButtonsPage: View {
                     }
                 }
                 .appearance(AppearanceRegistry.appearance(withId: Appearance.ID(rawValue: looksAppearance)) ?? appAppearance)
+                .controlStyle(looksControlStyle ?? appControlStyle)
             }
         }
     }

@@ -19,10 +19,12 @@ import TUIkitTextInput
 
 // MARK: - Helpers
 
-/// The half-block caps that wrap the field content (U+2590 / U+258C).
-/// The caps of a field under the default appearance, `.rounded`: its line.
-private let openCap = "│"
-private let closeCap = "│"
+/// The caps of a field under the default control style: half-blocks in the
+/// surface's colour, `▐text▌` (`.controlStyle(.lines)` draws the border's
+/// line, `│text│`).
+private let openCap = String(TerminalSymbols.openCap)
+private let closeCap = String(TerminalSymbols.closeCap)
+
 /// The mask character SecureField substitutes for every input character (U+25CF).
 private let bullet = "●"
 

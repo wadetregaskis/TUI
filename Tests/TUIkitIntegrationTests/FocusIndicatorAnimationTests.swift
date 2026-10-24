@@ -48,11 +48,11 @@ struct FocusIndicatorAnimationTests {
         #expect(buffer.animatedCells.allSatisfy { $0.width == 1 })
     }
 
-    @Test("A focused button in lines, the default, hands over its whole face", arguments: [false, true])
+    @Test("A focused button in lines hands over its whole face", arguments: [false, true])
     func linesButtonFace(viewLabel: Bool) {
         // Its lines and label breathe together: one run, the row's whole width.
         let buffer = focusedRender(
-            viewLabel ? AnyView(Button {} label: { Text("Save") }) : AnyView(Button("Save") {}))
+            (viewLabel ? AnyView(Button {} label: { Text("Save") }) : AnyView(Button("Save") {})).controlStyle(.lines))
         expectAnimates(buffer, runs: 1, "lines button")
         #expect(buffer.animatedCells.allSatisfy { $0.offsetX == 0 && $0.width == buffer.lines[0].strippedLength })
     }
@@ -412,7 +412,7 @@ struct FocusIndicatorAnimationTests {
         #expect(buffer.animatedCells.allSatisfy { $0.offsetY == 0 && $0.width == 1 })
     }
 
-    @Test("A focused picker in lines, the default, hands over its whole face")
+    @Test("A focused picker in lines hands over its whole face")
     func pickerLinesFace() {
         // As a lines button does: its lines and its value breathe together, in
         // one run from the control's first cell to its last.
@@ -420,7 +420,8 @@ struct FocusIndicatorAnimationTests {
             Picker("Fruit", selection: .constant("a")) {
                 Text("Apple").tag("a")
                 Text("Banana").tag("b")
-            })
+            }
+            .controlStyle(.lines))
         expectAnimates(buffer, runs: 1, "picker face")
         let run = buffer.animatedCells[0]
         #expect(run.offsetX > 0, "the label precedes the control")
@@ -514,7 +515,8 @@ struct FocusIndicatorAnimationTests {
             }
         }
         let buffer = focusedRender(page)
-        expectAnimates(buffer, runs: 1, "button inside real chrome")
+        // The default filled face's two caps.
+        expectAnimates(buffer, runs: 2, "button inside real chrome")
         // Indented by the padding and border it is wrapped in, so this is not
         // accidentally passing on an un-shifted run.
         #expect(buffer.animatedCells.allSatisfy { $0.offsetX > 0 && $0.offsetY > 0 })
@@ -641,21 +643,21 @@ struct FocusIndicatorAnimationTests {
                 Button("Cancel") {}
                 Button("OK") {}
             })
-        expectAnimates(buffer, runs: 1, "focused button in a ButtonRow")
+        expectAnimates(buffer, runs: 2, "focused button in a ButtonRow")
     }
 
     @Test("A dialog's horizontal button row carries them too")
     func alertButtonRowLiftsRuns() {
         let buffer = focusedRender(
             AlertButtonRow(actions: [AlertAction(Button("Delete") {}), AlertAction(Button("Cancel") {})]))
-        expectAnimates(buffer, runs: 1, "focused button in an alert row")
+        expectAnimates(buffer, runs: 2, "focused button in an alert row")
     }
 
     @Test("A dialog's stacked button column carries them too")
     func alertButtonColumnLiftsRuns() {
         let buffer = focusedRender(
             AlertButtonColumn(actions: [AlertAction(Button("Delete") {}), AlertAction(Button("Cancel") {})]))
-        expectAnimates(buffer, runs: 1, "focused button in an alert column")
+        expectAnimates(buffer, runs: 2, "focused button in an alert column")
     }
 
     @Test("A TabView carries its content's runs as well as its own chip's")
@@ -677,9 +679,9 @@ struct FocusIndicatorAnimationTests {
             context.environment.focusManager?.focus(id: buttonID ?? "")
             let buffer = renderToBuffer(view, context: context)
 
-            // One run from the button, its face's row; the chip is no longer
-            // focused, so it contributes none.
-            expectAnimates(buffer, runs: 1, "\(style): button inside a tab")
+            // Two runs from the button, its filled face's caps; the chip is no
+            // longer focused, so it contributes none.
+            expectAnimates(buffer, runs: 2, "\(style): button inside a tab")
             #expect(
                 buffer.animatedCells.allSatisfy { $0.offsetY > 0 },
                 "\(style): a content run was left at the strip's row")
@@ -704,7 +706,7 @@ struct FocusIndicatorAnimationTests {
         context.environment.focusManager?.focus(id: ring[1])
         let buffer = renderToBuffer(row, context: context)
 
-        expectAnimates(buffer, runs: 1, "second button focused")
+        expectAnimates(buffer, runs: 2, "second button focused")
         let line = buffer.lines[0].stripped
         let okStart = line.range(of: "OK").map { line.distance(from: line.startIndex, to: $0.lowerBound) }
         #expect(okStart != nil, "line: \(line.debugDescription)")

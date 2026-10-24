@@ -72,9 +72,11 @@ Example.
 
 A shape's own stroke is light lines whatever the appearance (decisions B-W1-2):
 a shape is geometry the caller drew. Glass is the opposite case — the system's
-material, chrome the theme owns — so its rim follows the appearance as a
-bordered button's face does (`ButtonFaceFamily`), and glass and buttons are of a
-piece:
+material, chrome the theme owns — so its rim follows the appearance as a box's
+border does (`ButtonFaceFamily(rimOf:)`), and glass and boxes are of a piece.
+(Until 2026-10-24 a bordered button's face followed the appearance too; it now
+follows the `ControlStyle`, filled by default — owner #19, 2026-10-23 — and
+plain glass stays with the border.)
 
 | family | the rectangle family | any other shape |
 |---|---|---|
@@ -264,9 +266,14 @@ of views generally (refusal review O4) is its own lane.
 
 SwiftUI's glass buttons are "glass border artwork based on the button's
 context". Here the button's context is the family table a bordered button is
-drawn by (the appearance, `ButtonBorderShape`, `ControlSize`), so a glass
+drawn by (the family, `ButtonBorderShape`, `ControlSize`), so a glass
 button is the bordered button of that table — its caps, its box at the larger
-sizes, its focus breath and hover — on `glassEffect(_:in: .buttonBorder)`:
+sizes, its focus breath and hover — on `glassEffect(_:in: .buttonBorder)`.
+Its family is the control style where `.controlStyle(_:)` names one, and under
+`.automatic`, the default, the glass's own rim family, from the appearance:
+where every other control is filled by default (owner #19, 2026-10-23), a
+filled glass button would cover the glass it is made of, and `.glass` would
+draw the bordered button (decided 2026-10-24).
 
 - **Lines faces** (the default appearances): the lines are drawn in the
   glass's rim ink (`_ButtonAppearance.glassRim`), lifted again under the
@@ -277,8 +284,8 @@ sizes, its focus breath and hover — on `glassEffect(_:in: .buttonBorder)`:
   glass hands its content — as `.borderedProminent` is the prominent member
   of the bordered family. Focused, its lines breathe and its label keeps its
   colour: the accent a label breathes to is the tint it sits on.
-- **Solid faces** (`.block`): the bordered button's own face, which covers
-  the glass.
+- **Solid faces** (`.block`, or `.controlStyle(.block)`): the bordered
+  button's own face, which covers the glass.
 
 Each is a primitive style whose body is `Button(configuration)` with that
 appearance, on glass: it focuses, presses and is triggered as a button is,

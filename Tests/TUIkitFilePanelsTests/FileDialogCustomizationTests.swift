@@ -65,8 +65,8 @@ struct FileDialogCustomizationTests {
         let shown = await driver.waitFor("notes.md")
         #expect(shown.contains("Choose the notes to merge"))
         // The title stays the panel's own; the button is renamed.
-        #expect(shown.contains("( Merge )"))
-        #expect(!shown.contains("( Open )"))
+        #expect(shown.contains("▐ Merge ▌"))
+        #expect(!shown.contains("▐ Open ▌"))
     }
 
     @Test("A Text message and label read as their words")

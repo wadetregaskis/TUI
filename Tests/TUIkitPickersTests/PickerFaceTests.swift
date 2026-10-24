@@ -29,15 +29,17 @@ struct PickerFaceTests {
         .pickerStyle(.menu)
     }
 
-    @Test("It is drawn as a button is, in the appearance's family")
+    @Test("It is drawn as a button is, in the controls' family")
     func followsTheAppearance() {
         let context = makeRenderContext(width: 40, height: 8)
         let drawn = renderToBuffer(picker(), context: context)
         let lines = drawn.lines.map(\.stripped)
         // Padded to "Banana", the widest option, as its menu is.
-        #expect(lines[0].contains("( Apple  ▾ )"), "the lines family's capsule: \(lines)")
+        #expect(lines[0].contains("▐ Apple  ▾ ▌"), "the default, the solid family's caps: \(lines)")
         let solid = renderToBuffer(picker().appearance(.block), context: context).lines.map(\.stripped)
         #expect(solid[0].contains("▐ Apple  ▾ ▌"), "the solid family's caps: \(solid)")
+        let outline = renderToBuffer(picker().controlStyle(.lines), context: context).lines.map(\.stripped)
+        #expect(outline[0].contains("( Apple  ▾ )"), "the lines family's capsule: \(outline)")
         let measured = measureChild(picker(), proposal: .unspecified, context: context)
         #expect(measured.width == drawn.width, "measure and render agree")
     }

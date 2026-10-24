@@ -62,9 +62,8 @@ struct FieldChrome {
     /// hovered so the affordance reads as "clickable" without mimicking the
     /// focused look.
     ///
-    /// The caps follow the appearance's family, as a button's do. Under an
-    /// appearance of lines — `.rounded`, the default — they are its vertical
-    /// line, in the border's colour, on the field's surface — `│text│`, the
+    /// The caps follow the controls' family, as a button's do. Under
+    /// ``ControlStyle/lines`` they are the appearance's vertical line, in the border's colour, on the field's surface — `│text│`, the
     /// fill saying the field is editable and the lines matching every other
     /// control's, the line in the middle of its cell leaving half a cell
     /// between it and the text. Otherwise they are half-blocks in the
@@ -75,13 +74,17 @@ struct FieldChrome {
     ///     of a container that painted one (a `TabView`'s body). The field's
     ///     own surface is derived from it, so a field inside a tab does not
     ///     come out the same colour as the tab.
-    ///   - appearance: The appearance in force, whose family the caps follow.
+    ///   - appearance: The appearance in force, whose border's lines the caps
+    ///     are drawn in under ``ControlStyle/lines``.
+    ///   - controlStyle: The control style in force, which decides the caps'
+    ///     family.
     ///   - drawsCaps: Whether the control size in force draws a control's end
     ///     caps (``ControlSize/drawsEndCaps``): not at `.mini`, where a field is
     ///     its surface alone, as a mini button is its label alone.
     init(
         style: any TextFieldStyle, palette: any Palette, isHovered: Bool,
-        on background: Color? = nil, appearance: Appearance, drawsCaps: Bool
+        on background: Color? = nil, appearance: Appearance, controlStyle: ControlStyle = .automatic,
+        drawsCaps: Bool
     ) {
         guard style.drawsFieldSurface else {
             self.width = 0
@@ -106,7 +109,7 @@ struct FieldChrome {
             return
         }
         self.width = 2
-        if let lines = appearance.controlLines {
+        if let lines = appearance.controlLines(under: controlStyle) {
             let border = palette.border.resolve(with: palette)
             let ink = isHovered ? Color.lerp(border, palette.accent.resolve(with: palette), phase: 0.35) : border
             let caps = Self.caps(
@@ -137,7 +140,7 @@ struct FieldChrome {
         self.init(
             style: environment.textFieldStyle, palette: environment.palette, isHovered: isHovered,
             on: environment.surfaceBackground, appearance: environment.appearance,
-            drawsCaps: environment.controlSize.drawsEndCaps)
+            controlStyle: environment.controlStyle, drawsCaps: environment.controlSize.drawsEndCaps)
     }
 
     /// The pair of caps last spelled, with everything their bytes are a function of.

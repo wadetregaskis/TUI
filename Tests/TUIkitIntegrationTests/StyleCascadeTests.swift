@@ -414,12 +414,13 @@ struct ThemeBundleTests {
     @Test(".theme installs a control style for the subtree")
     func themeControlStyle() {
         let theme = Theme(palette: SystemPalette(.green), buttonStyle: .plain)
-        // Plain buttons have no caps; the default style's are its lines'
-        // parentheses. Applying the theme should make the button render plain.
+        // Plain buttons have no caps; the default style's are the filled
+        // face's half-blocks (or, in lines, parentheses). Applying the theme
+        // should make the button render plain.
         let themed = renderToBuffer(
             VStack { Button("X") {} }.theme(theme), context: makeRenderContext()
         ).lines.joined().stripped
-        #expect(!themed.contains("(") && !themed.contains(")"), "theme buttonStyle should make it plain")
+        #expect(!themed.contains { "▐▌()".contains($0) }, "theme buttonStyle should make it plain")
     }
 }
 

@@ -597,8 +597,8 @@ struct GradientEditorPanelRecentsTests {
         #expect(!solid.contains("█●█"), "no stop strip for a solid")
         // Matched on the button chrome: a bare ◀ also belongs to the colour
         // panel's slider arrows, which are in both.
-        #expect(ramp.contains("( + )") && ramp.contains("( ◀ )"), "the action row")
-        #expect(!solid.contains("( + )"), "no action row for a solid")
+        #expect(ramp.contains("▐ + ▌") && ramp.contains("▐ ◀ ▌"), "the action row")
+        #expect(!solid.contains("▐ + ▌"), "no action row for a solid")
 
         // The colour editor is in both — it is what a solid colour IS.
         #expect(solid.contains("#FF0000") && ramp.contains("#FF0000"))
@@ -671,7 +671,7 @@ private final class StopMoveFixture {
     /// spell it. Read only from a frame where the button is enabled.
     static func actionButtonID(_ glyph: String, in buffer: FrameBuffer) -> String? {
         for (row, line) in buffer.lines.map(\.stripped).enumerated() {
-            guard let range = line.range(of: "( \(glyph) )") else { continue }
+            guard let range = line.range(of: "▐ \(glyph) ▌") else { continue }
             let column = line.distance(from: line.startIndex, to: range.lowerBound) + 2
             return buffer.hitTestRegions.last {
                 $0.focusID != nil

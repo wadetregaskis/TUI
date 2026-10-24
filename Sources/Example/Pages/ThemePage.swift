@@ -215,6 +215,20 @@ struct ThemePage: View {
                     .pickerStyle(.radioGroup)
                 }
 
+                DemoSection("page.theme.controlStyle") {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("page.theme.controlStyleDescription")
+                            .foregroundStyle(.palette.foregroundSecondary)
+                        Picker("page.theme.controlStyleLabel", selection: $styling.controlStyle) {
+                            ForEach(0..<ExampleStyling.controlStyles.count, id: \.self) { index in
+                                Text(L(ExampleStyling.controlStyles[index].key))
+                                    .tag(ExampleStyling.controlStyles[index].style)
+                            }
+                        }
+                        .pickerStyle(.radioGroup)
+                    }
+                }
+
                 DemoSection("page.theme.chromeStyle") {
                     VStack(alignment: .leading, spacing: 1) {
                         Text("page.theme.chromeStyleDescription")

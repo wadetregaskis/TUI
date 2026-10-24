@@ -185,7 +185,7 @@ All of these are pre-1.0 changes with no old spelling kept.
 - A sheet's, full-screen cover's or popover's content is built only while it is presented, and a dismissed one loses its `@State`, as in SwiftUI.
 - `onChange(of:)` on an optional that starts set no longer fires on its first render.
 - `Animation.default` is SwiftUI's: the no-bounce spring at the default pace.
-- A bordered button's face follows the appearance: lines by default, solid under `.block`, its label alone under `.blank`. A rounded-rectangle button is drawn in lines with no field.
+- Controls' faces — bordered buttons, pop-up pickers, combo boxes, text fields' caps — follow a new `ControlStyle` (`.controlStyle(_:)`), apart from the border's `Appearance`: filled by default (`.automatic`), or `.lines` in the border's own lines, `.braille(thickness:)` or `.blank`. Under `.automatic` the `.braille` and `.blank` appearances still set the controls' look too. For a week from 15 October the face followed the appearance, lines by default; `.controlStyle(.lines)` brings that look back.
 - A branch an `if`/`else` flips to, a `switch` case or a `ForEach` row that a change puts in under an animation fades in. One taken out goes at once, unless it carries a transition of its own.
 - A paste of any size now arrives whole. The earlier 16 MiB limit is gone.
 

@@ -137,8 +137,61 @@ enum ButtonFaceFamily: Equatable, Sendable {
     /// `.braille` and `.braille(thickness:)`.
     case braille(thickness: Int)
 
-    /// The family `appearance` draws buttons in.
-    init(_ appearance: Appearance) {
+    /// The family controls are drawn in under `appearance` and `control`: the
+    /// control style where it names one, and under ``ControlStyle/automatic``
+    /// filled faces, unless the appearance's border is Braille dots or blank,
+    /// whose controls follow it.
+    init(_ appearance: Appearance, _ control: ControlStyle) {
+        let style = appearance.borderStyle
+        switch control {
+        case .block:
+            self = .solid
+        case .lines:
+            let drawsLines = style.brailleThickness == nil && style != .none && !style.paintsBackground
+            self = .lines(drawsLines ? style : .rounded)
+        case .braille(let thickness):
+            self = .braille(thickness: min(max(thickness, 1), 4))
+        case .blank:
+            self = .blank
+        case .automatic:
+            if let thickness = style.brailleThickness {
+                self = .braille(thickness: thickness)
+            } else if style == .none {
+                self = .blank
+            } else {
+                self = .solid
+            }
+        }
+    }
+
+    /// The family controls are drawn in where `environment` says.
+    ///
+    /// Under ``ControlStyle/automatic`` two looks that exist only apart from a
+    /// filled face keep theirs, where the default would otherwise fill them:
+    /// a glass button takes its glass's rim family, as plain glass does — a
+    /// filled face would cover the glass it is made of — and a
+    /// ``ButtonBorderShape/brackets(_:_:)`` or ``ButtonBorderShape/underline``
+    /// face is drawn in lines, which is all those shapes are. A control style
+    /// named outright is drawn as named.
+    init(_ environment: EnvironmentValues) {
+        let appearance = environment.appearance
+        let control = environment.controlStyle
+        if control != .automatic {
+            self = Self(appearance, control)
+        } else if environment.glassIsAControl {
+            self = Self(rimOf: appearance)
+        } else {
+            let family = Self(appearance, .automatic)
+            self = family == .solid && environment.buttonBorderShape.isDrawnInLinesOnly
+                ? Self(appearance, .lines) : family
+        }
+    }
+
+    /// The family a surface's rim takes from the border of `appearance`, as a
+    /// box does: lines under a border of lines, filled under `.block`, dots
+    /// under `.braille`, nothing under `.blank` — whatever the controls are
+    /// drawn in.
+    init(rimOf appearance: Appearance) {
         let style = appearance.borderStyle
         if let thickness = style.brailleThickness {
             self = .braille(thickness: thickness)
@@ -153,13 +206,12 @@ enum ButtonFaceFamily: Equatable, Sendable {
 }
 
 extension Appearance {
-    /// The border style whose lines this appearance draws controls' chrome
-    /// in — `.rounded`, the default, and every other appearance of lines — or
-    /// `nil` for one whose controls are solid, blank or Braille: what a text
-    /// field reads to draw line caps on its surface rather than half-blocks
-    /// (``ButtonFaceFamily/lines(_:)``).
-    package var controlLines: BorderStyle? {
-        if case .lines(let style) = ButtonFaceFamily(self) { style } else { nil }
+    /// The border style whose lines controls' chrome is drawn in under
+    /// `control` — ``ControlStyle/lines`` — or `nil` where controls are
+    /// solid, blank or Braille: what a text field reads to draw line caps on
+    /// its surface rather than half-blocks (``ButtonFaceFamily/lines(_:)``).
+    package func controlLines(under control: ControlStyle) -> BorderStyle? {
+        if case .lines(let style) = ButtonFaceFamily(self, control) { style } else { nil }
     }
 }
 

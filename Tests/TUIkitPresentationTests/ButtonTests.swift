@@ -70,12 +70,12 @@ struct ButtonTests {
         let button = Button("OK") {}
         let buffer = renderToBuffer(button, context: context)
 
-        // The default appearance draws a capsule in lines, one line: ( OK )
+        // The default control style draws a filled capsule, one line: ▐ OK ▌
         #expect(buffer.height == 1)
         let allContent = buffer.lines.joined()
         #expect(allContent.contains("OK"))
-        #expect(allContent.stripped.contains("("))
-        #expect(allContent.stripped.contains(")"))
+        #expect(allContent.stripped.contains("▐"))
+        #expect(allContent.stripped.contains("▌"))
     }
 
     @Test("Plain button has single line without brackets")
@@ -101,8 +101,8 @@ struct ButtonTests {
 
         // First button is auto-focused — caps should be styled (contain ANSI codes)
         let allContent = buffer.lines.joined()
-        #expect(allContent.stripped.contains("("), "Button should have opening cap")
-        #expect(allContent.stripped.contains(")"), "Button should have closing cap")
+        #expect(allContent.stripped.contains("▐"), "Button should have opening cap")
+        #expect(allContent.stripped.contains("▌"), "Button should have closing cap")
         #expect(allContent.contains("\u{1b}["), "Focused button should have ANSI styling")
     }
 
@@ -120,8 +120,8 @@ struct ButtonTests {
 
         // Second button is not focused — should still have caps with styling
         let allContent = buffer2.lines.joined()
-        #expect(allContent.stripped.contains("("), "Unfocused button should have opening cap")
-        #expect(allContent.stripped.contains(")"), "Unfocused button should have closing cap")
+        #expect(allContent.stripped.contains("▐"), "Unfocused button should have opening cap")
+        #expect(allContent.stripped.contains("▌"), "Unfocused button should have closing cap")
     }
 
     @Test("Destructive button uses palette error color, not hardcoded red")
@@ -177,8 +177,8 @@ struct ButtonTests {
 
         // The plain style draws no caps — proof the environment
         // value reached both nested buttons.
-        #expect(!visible.contains("("))
-        #expect(!visible.contains(")"))
+        #expect(!visible.contains("▐"))
+        #expect(!visible.contains("▌"))
         #expect(visible.contains("A"))
         #expect(visible.contains("B"))
     }

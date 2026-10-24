@@ -28,9 +28,9 @@ struct ButtonRowRenderTests {
             .lines.map { $0.stripped }
     }
 
-    // The default appearance's caps: a capsule drawn in lines, `( … )`.
-    private let openCap = "("
-    private let closeCap = ")"
+    // The default control style's caps: a filled capsule, `▐ … ▌`.
+    private let openCap = "▐"
+    private let closeCap = "▌"
 
     // MARK: - Empty
 
@@ -58,7 +58,7 @@ struct ButtonRowRenderTests {
         #expect(out.count == 1, "single line: \(out)")
         #expect(out[0] == "\(openCap) Cancel \(closeCap)  \(openCap) OK \(closeCap)",
             "got: '\(out[0])'")
-        // `( Cancel )`(10) + 2 spaces + `( OK )`(6) = 18.
+        // `▐ Cancel ▌`(10) + 2 spaces + `▐ OK ▌`(6) = 18.
         #expect(out[0].strippedLength == 18)
     }
 
@@ -76,7 +76,7 @@ struct ButtonRowRenderTests {
     func customSpacing() {
         let out = lines(ButtonRow(spacing: 5) { Button("A") {}; Button("B") {} })
         #expect(out.count == 1)
-        // `( A )`(5) + 5 spaces + `( B )`(5) = 15.
+        // `▐ A ▌`(5) + 5 spaces + `▐ B ▌`(5) = 15.
         #expect(out[0] == "\(openCap) A \(closeCap)     \(openCap) B \(closeCap)", "got: '\(out[0])'")
         #expect(out[0].strippedLength == 15)
     }
@@ -87,7 +87,7 @@ struct ButtonRowRenderTests {
     func rowWithEmptyLabelButton() {
         let out = lines(ButtonRow { Button("") {}; Button("OK") {} })
         #expect(out.count == 1, "single line: \(out)")
-        // Empty button stays `(  )` (caps + padding), 2-space gap, then `( OK )`.
+        // Empty button stays `▐  ▌` (caps + padding), 2-space gap, then `▐ OK ▌`.
         #expect(out[0] == "\(openCap)  \(closeCap)  \(openCap) OK \(closeCap)", "got: '\(out[0])'")
         #expect(out[0].hasPrefix(openCap))
         #expect(out[0].hasSuffix(closeCap))

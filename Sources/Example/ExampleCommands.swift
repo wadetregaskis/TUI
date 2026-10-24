@@ -18,8 +18,9 @@ import TUIkit
 ///
 /// - **Edit:** Find… and Find Next (``TextEditingCommands``), enabled while a
 ///   text editor has the focus.
-/// - **View:** the app's palette and border style, each a `Picker` and so a
-///   submenu of its choices with the current one checked; Text Styling, a
+/// - **View:** the app's palette, border style and control style, each a
+///   `Picker` and so a submenu of its choices with the current one checked;
+///   Text Styling, a
 ///   submenu of two `Toggle`s, each a checked item; then the standard toolbar
 ///   and sidebar commands. Border Style is disabled while the Theme page's
 ///   custom border is in force, which a built-in one would not show through.
@@ -43,7 +44,8 @@ struct ExampleCommands: Commands {
     /// The app's palette, which View ▸ Palette picks a preset into.
     @Binding var palette: CustomizablePalette
 
-    /// The app's styling, which View ▸ Text Styling and Border Style read.
+    /// The app's styling, which View ▸ Text Styling, Border Style and Control
+    /// Style read.
     @Binding var styling: ExampleStyling
 
     @FocusedBinding(\.examplePage) private var page
@@ -63,6 +65,11 @@ struct ExampleCommands: Commands {
                 }
             }
             .disabled(styling.customBorder != nil)
+            Picker(L("commands.controlStyle"), selection: $styling.controlStyle) {
+                ForEach(0..<ExampleStyling.controlStyles.count, id: \.self) { index in
+                    Text(L(ExampleStyling.controlStyles[index].key)).tag(ExampleStyling.controlStyles[index].style)
+                }
+            }
             Menu(L("commands.textStyling")) {
                 Toggle(L("settings.uppercaseHeaders"), isOn: $styling.uppercaseSectionHeaders)
                 Toggle(L("settings.boldButtons"), isOn: $styling.boldButtons)

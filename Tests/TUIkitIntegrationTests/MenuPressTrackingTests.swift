@@ -351,7 +351,7 @@ struct MenuPressTrackingTests {
         // On the control's title rather than its caret: the menu opens over
         // the control, and its rows' text — not their scroll bar — lands there.
         let titleX = try #require(
-            closed.lines[4].stripped.firstIndex(of: "(").map {
+            closed.lines[4].stripped.firstIndex(of: TerminalSymbols.openCap).map {
                 closed.lines[4].stripped.distance(from: closed.lines[4].stripped.startIndex, to: $0) + 3
             })
         // Pressed and HELD on the control: the menu opens on the press, and

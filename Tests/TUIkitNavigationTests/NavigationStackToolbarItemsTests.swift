@@ -84,7 +84,7 @@ struct NavigationStackToolbarItemsTests {
         // The trail (the room allows it), the leading item after it, and the
         // primary item at the trailing end.
         let bar = rows.first ?? ""
-        #expect(bar.contains("Planets › Earth") && bar.contains("LEAD") && bar.hasSuffix("SAVE )"), "\(rows)")
+        #expect(bar.contains("Planets › Earth") && bar.contains("LEAD") && bar.hasSuffix("SAVE ▌"), "\(rows)")
         if let trail = bar.range(of: "Earth"), let lead = bar.range(of: "LEAD"), let save = bar.range(of: "SAVE") {
             #expect(trail.lowerBound < lead.lowerBound && lead.lowerBound < save.lowerBound, "\(bar)")
         }

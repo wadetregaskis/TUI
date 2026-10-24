@@ -70,14 +70,14 @@ struct FieldChromeCapsTests {
         #expect(sixteenColourOpens.count == 2)
     }
 
-    @Test("Under an appearance of lines, the caps are its vertical line in the border's colour, on the surface")
+    @Test("In the lines control style, the caps are the appearance's vertical line in the border's colour, on the surface")
     func lineCaps() throws {
         let palette = SystemPalette(.green)
         for (appearance, glyph) in [(Appearance.rounded, "│"), (.heavy, "┃"), (.line, "│")] {
             for hovered in [false, true] {
                 let chrome = FieldChrome(
                     style: DefaultTextFieldStyle(), palette: palette, isHovered: hovered, appearance: appearance,
-                    drawsCaps: true)
+                    controlStyle: .lines, drawsCaps: true)
                 let ink = try #require(chrome.capColor).opaqueSpelling
                 let field = try #require(chrome.capField).opaqueSpelling
                 #expect(field == chrome.surface?.opaqueSpelling, "on the field's own surface")
@@ -87,7 +87,8 @@ struct FieldChromeCapsTests {
             }
         }
         let resting = FieldChrome(
-            style: DefaultTextFieldStyle(), palette: palette, isHovered: false, appearance: .rounded, drawsCaps: true)
+            style: DefaultTextFieldStyle(), palette: palette, isHovered: false, appearance: .rounded,
+            controlStyle: .lines, drawsCaps: true)
         #expect(resting.capColor == palette.border.resolve(with: palette), "the border's colour at rest")
     }
 
@@ -108,9 +109,9 @@ struct FieldChromeCapsTests {
         let field = TextField("", text: .constant("abc")).controlSize(.mini)
         let drawn = renderToBuffer(field, context: context)
         #expect(drawn.lines.first?.stripped.hasPrefix("abc") == true, "\(drawn.lines.map(\.stripped))")
-        #expect(!(drawn.lines.first?.stripped.contains("│") ?? true))
+        #expect(!(drawn.lines.first?.stripped.contains { "▐▌│".contains($0) } ?? true))
         let regular = renderToBuffer(TextField("", text: .constant("abc")), context: context)
-        #expect(regular.lines.first?.stripped.hasPrefix("│abc") == true, "\(regular.lines.map(\.stripped))")
+        #expect(regular.lines.first?.stripped.hasPrefix("▐abc") == true, "\(regular.lines.map(\.stripped))")
         let measured = measureChild(field, proposal: .unspecified, context: context).width
         let measuredRegular = measureChild(TextField("", text: .constant("abc")), proposal: .unspecified, context: context)
         #expect(measured + 2 == measuredRegular.width, "\(measured) beside \(measuredRegular.width)")

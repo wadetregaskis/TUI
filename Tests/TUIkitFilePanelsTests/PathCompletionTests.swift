@@ -79,10 +79,11 @@ struct GoToFieldTests {
     }
 
     /// The go-to field's text: the line that says "Go to:", from its field's
-    /// text to its last letter (the field's own edges dropped).
+    /// text to its last letter (the panel's edges and the field's caps
+    /// dropped, in whichever control style).
     private func goToLine(_ screen: String) -> String? {
         guard let line = screen.split(separator: "\n").first(where: { $0.contains("Go to:") }) else { return nil }
-        return line.replacingOccurrences(of: "│", with: " ").trimmingCharacters(in: .whitespaces)
+        return String(line.map { "│▐▌".contains($0) ? " " : $0 }).trimmingCharacters(in: .whitespaces)
     }
 
     @Test("/ opens the field on the folder shown; Tab completes and Return goes there")

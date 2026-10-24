@@ -39,19 +39,19 @@ struct FilePanelsPageTests {
     @Test("A cancelled panel says so, and opening it again clears that")
     func cancelledAndCleared() {
         let driver = driver()
-        driver.click("page.files.open )")
+        driver.click("page.files.open ▌")
         driver.press(.escape)
         #expect(results(driver).first == "page.files.cancelled", "\(driver.lines)")
         #expect(Array(results(driver).dropFirst()) == ["—", "—", "—", "—"], "the others are untouched")
 
-        driver.click("page.files.open )")
+        driver.click("page.files.open ▌")
         #expect(results(driver).first == "—", "opening clears it: \(driver.lines)")
     }
 
     @Test("Each panel's result is its own: cancelling the folder chooser leaves the file chooser's alone")
     func resultsAreIndependent() {
         let driver = driver()
-        driver.click("page.files.open )")
+        driver.click("page.files.open ▌")
         driver.press(.escape)
         driver.click("page.files.chooseFolder")
         driver.press(.escape)

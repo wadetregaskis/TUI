@@ -15,7 +15,11 @@
 /// border shape (``View/glassEffect(_:in:)``): where the face is lines, the
 /// lines are the glass's highlighted rim, and the label sits on the glass's
 /// surface; where it is solid (`.block`), the face is the bordered button's
-/// own. It focuses, hovers and presses as a bordered button does.
+/// own. Under the default control style (``ControlStyle/automatic``) its
+/// face is the family of the glass's rim, which follows the appearance's
+/// border — lines under `.rounded` — and not the filled face other controls
+/// default to, which would cover the glass. It focuses, hovers and presses
+/// as a bordered button does.
 ///
 /// ```swift
 /// Button("Button") {}
@@ -54,6 +58,7 @@ public struct GlassButtonStyle: PrimitiveButtonStyle, Equatable {
         Button(configuration)
             .environment(\.installedButtonAppearance, _AppearanceButtonStyle(appearance: .glass(glass)))
             .glassEffect(glass, in: .buttonBorder)
+            .environment(\.glassIsAControl, true)
     }
 }
 
@@ -81,6 +86,7 @@ public struct GlassProminentButtonStyle: PrimitiveButtonStyle, Equatable {
         Button(configuration)
             .environment(\.installedButtonAppearance, _AppearanceButtonStyle(appearance: .glassProminent(glass)))
             .glassEffect(glass, in: .buttonBorder)
+            .environment(\.glassIsAControl, true)
     }
 }
 
