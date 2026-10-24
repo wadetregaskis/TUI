@@ -17,6 +17,371 @@ Answer by id and option (for example, "A-D6L-1: 4"); a bare "yes" takes the reco
 
 - **Compiler bug reports:** yours to file, as you said on 10-18. Three are on the Desktop, one file per bug, written for 6.4.0 first: `swift-6.4-LoopUnroll-guaranteed-phi-dictionary-lookup.md`, `swift-6.4-PackMetadataMarkerInserter-merged-pack-values.md` and `swift-6.2-JumpThreadSimplifyCFG-Character-borrow-not-on-6.4.md`. The fourth, `swift-6.2.4-debug-type-roundtrip-boxed-CGFloat.md` (swift.org's 6.2.4 asserts on a boxed `CGFloat` in an optimised `-g` build; worked around in TUIkit), has left the Desktop, so I take it you have it.
 
+## Your answers of 2026-10-23
+
+This section records the answers you gave on 2026-10-23, what each one sets in motion, and the replies to the follow-up questions you asked.
+
+| Id | Your answer | What happens now |
+|---|---|---|
+| [A-TS-1](#a-ts-1) | Keep the small test targets separate for now. | No change; the TS.md write-up is still owed (queued). |
+| [B-BNDL-1](#b-bndl-1) | (a) seems okay; asked why over the others. | Kept as shipped; the reasons are below. |
+| [B-D6M-2](#b-d6m-2) | Check (c); take (c) if it works, else (a). | Trait experiment queued; (a) stands meanwhile. |
+| [B-DYNVFIX-3](#b-dynvfix-3) | Asked for a (d) covering timers and detached tasks, and (b) against (c). | Answered below — your call. |
+| [B-REVIEW](#b-review) | (a); remind you where they are and make sure they are up to date. | Locations below; corrections to stale entries queued. |
+| [B-SIZEDOCS-1](#b-sizedocs-1) | (a). | Queued. |
+| [BINARY-DISTRIBUTION](#binary-distribution) | Distil the compiler bugs into Desktop reports; remind you of purpose, replace or augment, and toolchain support. | Two Desktop reports exist (`swift-6.4-library-evolution-crash-synthesized-modify.md`, `swift-6.4-cmo-everything-opaque-result-client-crash.md`); reminder below. |
+| [DOCS-HOSTING](#docs-hosting) | Interested; explore a site like upstream's tuikit.dev; domain to be decided. | Plan below. |
+| [DORMANT-DESIGNS](#dormant-designs) | Not deciding now. | Kept open; return after the SwiftUI API compatibility work. |
+| [MACOS27-PARITY](#macos27-parity) | A to-do for when a macOS 27 machine is available. | Kept open until that machine is available. |
+| [OOB-STYLING](#oob-styling) | Explore later along (a). | Kept open; reminder when the queue runs out. |
+| [PACKAGE-RESOLVED](#package-resolved) | You committed it; asked for other considerations. | Committed (965a4884b); pros and cons below — your call. |
+| [SDK15-CI](#sdk15-ci) | Asked about the newest SDK on 15.8 and an Xcode with the 6.2 standard library. | Answered below — your call. |
+| [SINGLETON-CACHES](#singleton-caches) | (c). | Queued. |
+| [WINDOWS-PORT](#windows-port) | (b); don't make future Windows work harder. | Bookkeeping queued for after the push. |
+| [A-D6L-1](#a-d6l-1) | Not deciding yet; keep open. | Kept open; reminder at the end of the queue. |
+| [A-D6L-2](#a-d6l-2) | (4). | Queued: the Kitty hairline prototype comes first. |
+| [B-D2S-6](#b-d2s-6) | Asked whether "0 more" should ever show. | Answered below — your call. |
+| [S3-NO-EXTENT-SPACING](#s3-no-extent-spacing) | Leaning (2); asked why SwiftUI does this. | Answered below — your call. |
+| [B27-ANIMATING](#b27-animating) | (3). | Queued (a short design note first). |
+| [B-D5G-4](#b-d5g-4) | (2), placed towards the end of the queue. | Queued near the end of the queue. |
+| [RC5](#rc5) | Concur with the recommendation. | (a) with (c)'s test sweep, queued. |
+| [TABLE-CLOSURE-COLUMN](#table-closure-column) | (b); asked about a "pure" closure overload. | (b) queued; the overload is answered below. |
+| [SA-82-TABVIEW-PLAIN](#sa-82-tabview-plain) | (b). | Queued (docs only). |
+| [A21-TABPOPOVER](#a21-tabpopover) | (1). | Queued. |
+| [B72-CAPSULE](#b72-capsule) | Mock up options B and C. | Mock-ups: [https://claude.ai/artifact/CAnzvGdKq3BqRMZNHYBSdY](https://claude.ai/artifact/CAnzvGdKq3BqRMZNHYBSdY) — your call. |
+| [B75](#b75) | Asked what SwiftUI does. | Answered below — your call. |
+| [B76-SELECT](#b76-select) | (b) for now. | No change. |
+| [B78-VISIBILITY](#b78-visibility) | (b). | Queued. |
+| [COLORPICKER-MODEBAR](#colorpicker-modebar) | (1). | No change. |
+| [CONTROLGROUP-LOOK](#controlgroup-look) | (a). | Queued. |
+| [FB3-BLANK](#fb3-blank) | (a). | No change. |
+| [FB3-OTHERCAPS](#fb3-othercaps) | (2). | Queued; the Lines switch goes on a probe card first. |
+| [STEPPER-WIDTH](#stepper-width) | (1). | Queued. |
+| [TAB-IMAGE-NAME](#tab-image-name) | (a). | Queued, with the C11 and parity-map correction. |
+| [TABBARMIN](#tabbarmin) | (b). | Queued. |
+| [DRAWERS](#drawers) | (1). | Queued (docs only). |
+| [B-D5C-1](#b-d5c-1) | Asked why SwiftUI has no if/else in SceneBuilder. | Answered below — your call. |
+| [DEPR-ALERT-NAME](#depr-alert-name) | (b). | Done: `AlertPanel` (lane landing 2026-10-23). |
+| [B-D1K-1](#b-d1k-1) | Deliver ⌘ to onKeyPress; default shortcuts stay on non-command modifiers; command shortcuts when a developer opts in. | Plan below; queued. |
+| [B63-CTRLJ](#b63-ctrlj) | Asked for context, examples and how it works elsewhere. | Answered below — your call. |
+| [B63-KITTY](#b63-kitty) | TextEdit's Ctrl-Return opens the context menu; asked where it is a line separator, and about Ctrl-Return for context menus. | Answered below — your call. |
+| [B77-KEYTIME](#b77-keytime) | Where type select exists, bare keys never pass to shortcuts. | Plan below; queued. |
+| [B77-SELECT](#b77-select) | Keep cursor-only. | No change. |
+| [B89](#b89) | Asked for the real-world benefit. | Answered below — your call. |
+| [B90](#b90) | Keep cells for now. | No change. |
+| [A48](#a48) | Prefer revealed in-row buttons; asked about downsides, keys and the horizontal wheel. | Answered below — your call on the keys. |
+| [A53-KEYBOARD-DRAG](#a53-keyboard-drag) | Explore a keyboard drag mode that limits focus to drop destinations. | Design sketch below. |
+| [B-BITEMS1-1](#b-bitems1-1) | Follow macOS conventions; asked for more than a blanket default. | Proposal below — your call. |
+| [B82](#b82) | Draw the pending state; system delay when local, with an override; SwiftUI's per-control defaults. | Plan below; queued. |
+| [FB9-REDO](#fb9-redo) | (a), with the shortcut hint following focus. | Queued. |
+| [B-KS-1](#b-ks-1) | Menu spelling by default, with an option for the case-sensitive one. | Queued. |
+| [O13-KEYS](#o13-keys) | Asked for other macOS routes, per-menu jump keys and earlier CLI systems; propose. | Proposal below — your call. |
+| [SCROLLX-UPSTREAM](#scrollx-upstream) | Nothing now; support it if a recognised client adds it. | No action. |
+| [B-HELP-2](#b-help-2) | No shared key; modifiers on "?" for show-all; a default menu item toggling all help. | Rule adopted; key proposal below. |
+| [A42-Q8](#a42-q8) | The recommendation. | Queued: menu now, chords through TextFormattingCommands. |
+| [B-PASTE-1-EDITOR](#b-paste-1-editor) | Asked why not UTF-8 storage, and its downsides. | Answered below — your call. |
+| [B-D4X-7-17](#b-d4x-7-17) | Tentatively concur; configurability by a modifier may be wise. | Option 1 queued, with a modifier considered. |
+| [D4X-LOCALITY](#d4x-locality) | Screen and tmux paths seem fine; asked about asking keepers for clients. | Passthroughs queued; client queries answered below. |
+| [B85-KEYBOARD](#b85-keyboard) | Full control. | Queued. |
+| [B86](#b86) | Asked about Foundation's Markdown parser and version variation. | Answered below — your call. |
+| [B51-LIVE](#b51-live) | Live everywhere it makes sense; measure; case by case. | Queued. |
+| [DEPR-CATCHALL](#depr-catchall) | (b). | Queued. |
+| [A27](#a27) | Remind you of the details. | Reminder below — your call. |
+| [A34](#a34) | (2); asked how good (3) could be and its cost. | Option 2 queued; option 3 answered below. |
+| [B61](#b61) | (2). | Queued (lands if the A/B is within a few percent). |
+| [B95](#b95) | (2); also asked about ▌ and quadrant or diagonal glyphs. | Option 2 queued; the glyph questions answered below. |
+| [O5-FROSTED](#o5-frosted) | (b), watching performance; (c) if it is significant. | Queued. |
+| [O1-LOOSEN](#o1-loosen) | (a). | No change. |
+| [P5](#p5) | (c). | Queued. |
+| [WL-Q3](#wl-q3) | (b); measure the current impact first. | Queued (measurement first). |
+| [NAMED-COLOURS-DARK](#named-colours-dark) | (a). | Queued. |
+| [B-D6M-1](#b-d6m-1) | Always render correctly in subtrees with a changed colour scheme; try it and measure. | Queued: build and measure. |
+
+### Follow-up answers
+
+#### B-BNDL-1
+
+(a) costs least and cannot ship wrong; the others change more than they save.
+
+The entry's numbers are stale. Today en.json is 8,099 B and 207 keys, so (a) costs about 8.1 KB per app, 0.07% of a stripped Hello (11,502,960 B). Its working cost is one paste per key-adding commit: 20 such commits in 13 days. A forgotten paste cannot reach main, because `BuiltInEnglishTests.copyIsTheFile` fails and names the keys. (b) saves the same 8 KB, only in the bundle. It moves English for translators from JSON into Swift, and en.json is the reference that `LocalizationKeyConsistencyTests` compares the other six languages with. (c) is worth having later: it removes the paste, the test stays the gate, and the repo has precedents (`Tools/RowFillValues/generate.py --check` in CI, `Tools/GenerateSFSymbols/generate.sh`). (d) matters only to an app that prints `tuiKitVersion` without its bundle, and it adds a second place to update at each release.
+
+Recommendation: keep (a), and build (c) with a `--check` mode when the paste becomes a complaint. Nothing needed from you.
+
+#### B-DYNVFIX-3
+
+No (d) exists that is right for timers and detached tasks.
+
+A closure carries no record of which holder made it, and Swift cannot inspect its captures. A probe on 6.2.4 tested which ambient values survive. A `@TaskLocal` reaches synchronous calls and `Task { }`, even past an `await`. It does not reach `Task.detached`, GCD or `Timer`. So an all-cases rule would have to decide which holder an object reads at rest, and no such rule is right for both "timer started by the page" and "timer started by the sheet". Three narrower designs exist. (d1) is (b) plus capturing the holder when TUIkit registers a handler. It is large, and every new closure API must remember to wrap. (d2) special-cases `dismiss` only. (d3) does as SwiftUI does and drops the extension you kept on 10-12. (b) covers the reported case, because the sheet holds the focus, and it applies to timers too. Its trade-off: a page's timer firing while the sheet is focused reads the sheet's environment. (c) is large and still wrong for the cases you named. The DYNVCLAIM A/B (busy box, indicative) was flat within about ±1.2% overall. `identity-churn` cold was +8.9%.
+
+Recommendation: prototype (b), landing it only if its A/B is flat; decline (c). Need: your yes to (b).
+
+#### B-REVIEW
+
+They are all under `Documentation/SwiftUI parity/Decisions/`.
+
+The main file is `SwiftUI API completion decisions.md`. The entries you have not seen since 10-04 are B38, B54-B58, B60-B95 and C1-C15. The per-lane entries are `### B-<LANE>-<n>` and `### C-<LANE>-<n>` headings in 92 files, including the subfolders `Compile time and binary size/` and `Module split/`. `grep -rn '^### [BC]-' "Documentation/SwiftUI parity/Decisions"` lists them. The count is now 380 B and 28 C in 92 files, against the entry's 277, 19 and 73. Several entries are out of date. B2, B19, B20, B28, B31 and B35 are headed by their first, safe form, but the fuller version has since shipped. B-DYNVFIX-3's price paragraph still says the A/B is owed; it ran on 10-13. Other "A/B owed" lines may already be measured, just not on a quiet box. `TimeSpan.swift:96` cites a file that no longer exists. 24 Decisions files cite probes that exist only in the working notes; B-SIZEDOCS-1 fixes those. The markdown link check passes.
+
+Recommendation: correct these before you start reading (queued). Need: nothing until the corrections land.
+
+#### BINARY-DISTRIBUTION
+
+Both compiler bugs are on your Desktop. A binary would add to the source package, never replace it.
+
+The purpose is to save a consumer from compiling the modules: a clean Hello build on 6.4.0 release takes 63-75 s. It would not make apps smaller. The source package stays the master for Linux, Windows, WebAssembly, the package traits, `TUIkitMacros` and CI. The binary would be an xcframework for Apple platforms only, behind a `.binaryTarget`. A binary needs library evolution. That makes `.swiftmodule` 37% smaller and `__text` 3.7% larger, gives slower resilient access, and limits the `@inlinable` tuning. The 7 TUIkitFoundation errors follow the language rule on all three compilers; they are not a compiler bug. Toolchains, tested on a toy module: an interface printed by 6.2 or 6.3 imports on 6.2, 6.3 and 6.4. One printed by 6.4 fails on 6.2. So a release built with 6.2 serves 6.2 and newer. Still untested: whether `package`-access declarations print usably into the interface. The reports are `swift-6.4-library-evolution-crash-synthesized-modify.md` (7 lines; crashes 6.2.4 to 6.4.0) and `swift-6.4-cmo-everything-opaque-result-client-crash.md` (6.4.0 only).
+
+Recommendation: (a), source only, as the entry says. Need: your choice of (a), (b) or (c), and whether to file the two reports.
+
+#### DOCS-HOSTING
+
+Plan: one GitHub Pages site deployed from Actions, with a hand-written landing page and the unified DocC reference under `/docs/`.
+
+Upstream runs two repositories: an Astro landing site and a stock DocC docs site, each on its own Pages site. Its site repository has no licence, so we build our own and take ideas only. Here, `build-docs.sh` already builds the one unified archive. It needs a `--hosting-base-path` option, an index redirect and its own 404 page; upstream's 404 copy would hijack every 404 under a `/docs/` base. The landing page would be about 10 static files under `Website/`: the pitch, install snippet, per-module products, feature blocks, recordings and links. The recordings would be asciinema casts written by a small recorder on the existing PTY harness. The WebAssembly Example would be a lazy "Try it" page with the `coi-serviceworker` shim, because Pages cannot set COOP/COEP headers. The main risk is size. Past runs give 45,000-70,000 pages, probably two files each. Pages allows a 1 GB site and a 10-minute deploy, and Cloudflare's 20,000-file cap rules it out for the docs. One measuring run decides. The first milestone (docs live on github.io) takes about 1 day; the whole plan about 4-6 days.
+
+Recommendation: start with the measuring run, then that first milestone. Need: the domain, a site name and branding, and your go-ahead.
+
+#### PACKAGE-RESOLVED
+
+It only affects TUIkit's own builds and CI, never a consumer, because SwiftPM ignores a dependency's `Package.resolved` (general knowledge).
+
+It pins swift-docc-plugin 1.4.5, swift-docc-symbolkit 1.0.0 and swift-syntax 604.0.0. **Pros:** CI is reproducible. It holds swift-syntax's prebuilt binaries, which exist only for certain version and toolchain pairs. Bisects get each commit's own versions. **Cons:** CI tests versions no consumer gets. Consumers resolve the newest in `602.0.0..<700.0.0`, so a breaking swift-syntax 605 goes unnoticed until someone runs `swift package update`. One lockfile serves a 6.2-6.4 matrix. The file needs manual updates, and benchmark runs rewrite it. Dependabot and Renovate raise lower bounds, which is wrong for a library. Three things now contradict the committed file and need fixing either way: `BRIEF-1018.md` tells agents never to commit it, the ci.yml comment says "every other lane tests the newest", and `Tools/verify-versioned-consumer.sh:43` describes it wrongly.
+
+Recommendation: the research leans to untracking it again, since CI already tests the floor (602 on Linux 6.2) and the newest elsewhere. The alternative is to keep it and add a scheduled update job. Need: your choice.
+
+#### SDK15-CI
+
+The 15.5 SDK is the last macOS 15 SDK, but not the newest that runs on 15.8. And there is such an Xcode: Xcode 26.x.
+
+Verified here: Xcode 26.3 runs on macOS 15.8.1. Its compiler is 6.2.4, and its 26.2 SDK has Swift 6.2 interfaces, including `InlineArray` and `Observations`. The 15.5 SDK comes from the Command Line Tools 16.4. It is what a CLT-only swiftly user gets, and its interfaces are 6.1.2. No macOS 15.x SDK carries the 6.2 standard library. Today's test also contradicts the entry and CONTRIBUTING. With swift.org 6.2.4, 6.3.3 and 6.4.0 on the 15.5 SDK, `InlineArray`, `Observations`, `Task(name:)` and `@Observable` all compile. The standard library, Concurrency and Observation load from the toolchain; only platform modules come from the SDK. So the `InlineArray` and task-name guards look unnecessary for swift.org toolchains. That is not proven: TUIkit was not rebuilt without them. Platform differences, such as `UndoManager`'s main-actor isolation and `FoundationModels`, do need guards.
+
+Recommendation: (a). A lane catches exactly the platform-API regressions, and CONTRIBUTING's "6.1 standard library under a 6.2 compiler" sentence should be corrected whatever you decide. Need: (a) or (c).
+
+#### B-D2S-6
+
+No, there is no strong reason for "0 more" to show.
+
+Under a scroll target behaviour the two indicator lines are reserved at every stop, so pages land whole. At a count of zero the code draws "▲ 0 more" on purpose (`ScrollIndicator.swift:135-138`). The one real argument for drawing something is that a blank reserved line looks like blank content or padding. A dim arrow alone answers that; the number adds nothing. The focus argument fails: when content overflows, at least one line always has a count above zero and still breathes. The click argument fails too: no click is routed to an indicator line. `.visible` is the "always shown" case, like a scrollbar thumb at the top, so it should get the same treatment.
+
+Recommendation: at zero draw the bare arrow in the resting tertiary ink, or a blank line, under both a behaviour and `.visible`. Keep the counts from 1 up. It costs minutes plus re-recorded goldens, and lists and tables change too. Need: arrow or blank.
+
+#### S3-NO-EXTENT-SPACING
+
+SwiftUI charges spacing for each pair of members, whatever their size. It never asks about extent.
+
+Measured: in `VStack(spacing: 10)` an empty `VStack` between two Texts adds both gaps (42 → 52). `EmptyView` adds nothing, even through `.frame`, `.padding`, `.onAppear`, `Group` and `AnyView`, because it is not a member at all. With nil spacing, empty stacks and `Spacer` report a `ViewSpacing` of 0, so they add no gap (32). In an `HStack` an empty stack even removes the Texts' default gap. The likely reason (inferred): a stack subtracts its spacing before it sizes its children. A gap that depended on a child's resulting size would be circular, and it would make neighbours jump when a child animates up from zero height. TUIkit's nil spacing is a constant, not per-pair preferences. So "charge every member" alone would add a column to `HStack { Text; VStack {}; Text }` where SwiftUI adds none.
+
+Recommendation: option 2 in three parts. Members take gaps under an explicit spacing. `EmptyView` stays a non-member through modifiers. Empty stacks and spacers state a zero `ViewSpacing` under nil spacing. Need: your yes to all three parts.
+
+#### TABLE-CLOSURE-COLUMN
+
+No realistic case needs a "pure" overload beyond (b). `.equatable()` already covers the rest, and does it more safely.
+
+There are four kinds of case (b) does not cover. Composite or styled cells use a small `Equatable` cell view returned as `.equatable()`. TUIkit's `EquatableView` is memoised by the view's value, so formatting runs only when the value changes. Formatting that depends on captured state, such as a units toggle, locale or search term, is where a pure marker is wrong: it would keep drawing stale cells after the toggle flips. In (b) the `FormatStyle` value is part of what the memo compares. Several properties in one cell take a key path to a computed property. Interactive cells cannot be memoised by any marker. A pure overload would be TUI-only, unchecked and unsafe for captures. One thing is not measured: whether a table's `.view` cell reaches the `EquatableView` memo. That needs a quick bench on `app-shapes/file-browser`.
+
+Recommendation: build (b), document `.equatable()` cells, and run the bench. If the bench fails, teach Table to recognise `EquatableView` rather than adding a marker. Nothing needed from you.
+
+#### B72-CAPSULE
+
+Mock-ups of options a, b and c (Solid, and two Lines cap styles), in the default Green palette with a cursor row: [https://claude.ai/artifact/CAnzvGdKq3BqRMZNHYBSdY](https://claude.ai/artifact/CAnzvGdKq3BqRMZNHYBSdY). Under your item 19 (Block the default control appearance again), option c draws the tinted field by default and line caps under Lines.
+
+#### B75
+
+SwiftUI never draws the label view. It keeps the first Text's string and the first Image and hands those to AppKit.
+
+Measured on macOS 15.8.1 with six tabs in a default `TabView`. The macOS style is an `NSTabView`, and `NSTabViewItem.label` is a `String`. An `HStack` of a red Text, a circle and a second Text shows "Red": not red, no circle, no "Two". A circle alone gives an empty segment. Bold italic Text draws plain. A `Label`'s heart and a `Tab`'s system image are dropped from the macOS 15 top strip. Under `.sidebarAdaptable` the label is rebuilt as a title, subtitle and icon row, and the circle is still dropped. So the shipped (a), the label's text in the strip's ink, already matches. (b) would do something macOS does not. Two small differences remain. TUIkit takes the label's first rendered line, so that HStack gives roughly "Red ● Two" (inferred). And TUIkit draws the SF Symbol before the title, which macOS 15's top strip leaves out.
+
+Recommendation: keep (a). If you want exact parity, copy the first-Text rule. Need: whether you want that.
+
+#### B-D5C-1
+
+SwiftUI blocks a plain `if` in `SceneBuilder` on purpose. It did not just forget `buildEither`.
+
+In the macOS 26.2 SDK, the generic `buildOptional` is marked unavailable with the message "if statements in a SceneBuilder can only be used with #available clauses". Only `if #available` works, through `buildLimitedAvailability`, which already erases to an existential scene. Every other builder (Commands, ToolbarContent, TableColumn, TabContent) has full branching. Where SwiftUI wants a scene property to change at run time, it adds a value or `Binding` parameter instead. The closest case is `immersionStyle(selection: Binding<any ImmersionStyle>, in:)`. Why, inferred: scenes become long-lived platform objects (windows, menu items, state restoration, `UISceneSession`s). Removing one by a condition has no good answer for its open windows, and flipping a branch would destroy and recreate every window in it. `#available` never flips.
+
+Recommendation: keep option 1, the existential overload. If the shared name bothers you, a binding-shaped spelling such as `windowToolbarStyle(selection:)` is the SwiftUI idiom; behaviour is the same. Need: only whether you want that rename.
+
+#### B-D1K-1
+
+Plan, as you set it.
+
+Under the kitty protocol, a ⌘ chord that the terminal lets through arrives with the Super bit. TUIkit will deliver it as `.command` instead of dropping it, so `onKeyPress` sees `[.command]` as in SwiftUI. Every consumer that matches a bare character must then refuse a ⌘ chord, or ⌘K types a "k". Those consumers are text fields, type select, the status bar, the theme and appearance keys, and the Example's page keys. Default shortcuts stay where they are: a `KeyboardShortcut` with `.command` keeps firing on its stand-in (`.commandKey`, Ctrl by default). It does not start firing on a real ⌘ just because a terminal happens to pass one. That keeps shortcuts the same from terminal to terminal. A developer who wants real ⌘ shortcuts opts in, and those then fire on a real ⌘ where the protocol delivers it. Following the modifier-first rule, the opt-in would be a modifier or environment value; it is not designed yet. None of this is measured: whether kitty and Ghostty pass a given ⌘ chord comes from their docs.
+
+Recommendation: build it as above (queued). Need: nothing now; the opt-in's name comes with the lane.
+
+#### B63-CTRLJ
+
+Return sends CR (0x0D) and Ctrl-J sends LF (0x0A). TUIkit reads both as Return. The question is whether LF should become Ctrl-J, a newline key in vertical fields.
+
+The two bytes look the same at a shell prompt only because cooked mode turns CR into LF. TUIkit runs raw, so it can tell them apart. Ctrl-M is CR, so it can never be told apart from Return. Elsewhere: shells and Vim treat Ctrl-J as Return. In Emacs it is a newline without indent. The macOS text system does nothing with it. Claude Code uses Ctrl-J as the newline that "works in any terminal". Crossterm (under Ratatui) reads LF as Ctrl+J in raw mode, and the kitty protocol sends it as itself. Examples: in Terminal.app, Ctrl-J in a vertical field would insert a newline; everywhere else it still acts as Return through the existing fallback. The risk is automation that sends `"hello\n"` meaning Return: in a vertical field that would insert a newline instead of submitting. The repo's own PTY harnesses all send `\r`.
+
+Recommendation: option 2, plus one doc line saying automation should send CR for Return. Need: your yes.
+
+#### B63-KITTY
+
+You are right. On macOS 15+, Control-Return is a system shortcut, "Show contextual menu". U+2028 comes from the text system's key bindings, below that layer.
+
+AppKit's `StandardKeyBinding.dict` maps Ctrl-Return to `insertLineBreak:` (U+2028). A probe that hands synthetic events to an `NSTextView` or a SwiftUI field confirms it. Those events skip the system shortcut layer, so the probe cannot see the menu. Your observation and third-party pages establish the menu; they also say turning the shortcut off restores the line break. The probe could not post real key events. So the entry's premise holds only for the key bindings, not for what a user gets by default. As a context-menu key: legacy terminals send Ctrl-Return as plain CR. Only kitty-protocol hosts (flag 8, which TUIkit requests) send it as itself, and that is unmeasured on any host. macOS may also consume it before the terminal sees it. By default `.commandKey` is Ctrl, so an app's `⌘↩` shortcut already is Ctrl-Return in TUIkit.
+
+Recommendation: drop the U+2028 options. Add Ctrl-Return as a second context-menu key only under the kitty protocol, only when no app shortcut is on it, and only after measuring in iTerm2 and Ghostty. Keep Shift-F10. Need: yes or no.
+
+#### B77-KEYTIME
+
+Plan, as you set it: wherever type select exists, a bare key never reaches a shortcut, whether or not a row matches.
+
+Today, with a list or table focused, any unmodified character joins the type-select prefix. The exception is a first letter that is bound to something: TUIkit's own q (quit), t (theme), a (appearance) and the help key, or an app's bare `.keyboardShortcut`. Those give way (`typeSelectGivesWay`, `InputHandler.swift`). The change removes that exception, so type select takes every bare character. This matches macOS, makes every row reachable by typing, and does not need every row's text when a key arrives. The consequence: while a list or table has focus, bare-key shortcuts do not fire. The user leaves the list, or uses a modified key, F-key or the menu bar. Inferred: this includes "?" for help, so the help route inside lists needs a modified key or F1 (see B-HELP-2). The status bar should stop advertising bare keys that cannot fire there.
+
+Recommendation: build as stated (queued). Need: nothing.
+
+#### B89
+
+The real-world payoff is narrow but concrete. It shows up in SwiftUI code that puts gestures on controls.
+
+As recognisers, controls gain three things. First, a control that can also be dragged. On macOS, pressing a plain button and moving off it fails the button, and an attached drag takes over. That is how chip and swatch toolbars that are clicked and dragged work, and kanban cards that are a `Button` plus a `DragGesture`. Ported code like that gets an undraggable button here. Second, immediate pressed feedback when a gesture ranks ahead. A row with `.onTapGesture(count: 2)` waits about a third of a second before showing the selection, which reads as lag. A button under `.highPriorityGesture(LongPressGesture())` shows no pressed state until the long press fails. Third, clean cancellation when a sheet opens or a scroll starts under the press (inferred; not audited). It does nothing for the keyboard, nothing for bordered buttons (macOS ignores attached gestures there, measured), and nothing for apps that put no gestures on controls. It costs about a day and a half across fifteen-odd controls and touches every click path.
+
+Recommendation: build it when a port or the Example hits the first or second case. One cheap slice is the button's immediate pressed state (unpriced; inferred under a day). Need: keep it waiting, or take the slice.
+
+#### A48
+
+Revealed buttons (option 2) are viable. The real risks are three interaction failures, not hours of work.
+
+Downsides beyond the work:
+- A trackpad swipe arrives as a burst of wheel ticks. "A second wheel is the full swipe" would fire Delete from one gesture, so bursts must be told apart (an idle gap of roughly 150-300 ms, unmeasured).
+- Vertical scrolling leaks horizontal ticks, so the reveal needs axis locking.
+- Three text buttons take about 25 cells and need a narrow form.
+- The buttons are a second focus level inside the row. They must coexist with keyboard reorder, which also claims Return and Escape, and with type select.
+- Row memos must key on the revealed state.
+
+Keys: Ctrl-R is taken by reorder. Option-letters do not arrive on Apple Terminal by default. macOS takes ⌃←/→. ⌥←/→ expand and collapse outlines. Proposed: ⇧→ reveals the leading edge and ⇧← the trailing, flipped under right-to-left text. The same chord again is the full swipe. Ctrl-L and Ctrl-T are the fallbacks for terminals that drop Shift on arrows. Both pairs are rebindable `RowAction`s. Wheel: the reveal joins the existing edge-hold chaining. It consumes ticks only when there is something to reveal, so it cannot trap an outer horizontal scroll.
+
+Recommendation: option 2 with these keys, plus a PTY test that replays a recorded trackpad burst. Need: approval of the keys.
+
+#### A53-KEYBOARD-DRAG
+
+A carry mode that limits focus to drop destinations answers both objections from the 07-30 study. A stray Return can no longer drop on an unrelated list, because unrelated lists leave the ring.
+
+Sketch: `.draggable` becomes a focus stop. Ctrl-R picks up, the same chord as list reorder; so does Space, or "Pick Up" in the context menu. While carrying, Tab and the arrows cycle only destinations that accept the payload, plus the origin and spring-loadable "navigator" controls. Those navigators are an existing SwiftUI-named class, so there is no new API. Return drops, or activates a navigator. Escape or the chord again cancels. The carried chip is drawn at the focus with its badge. The focused destination gets `isTargeted`. Every ring member needs a new "can drop here" cue. A status line and an idle expiry complete it. Risks:
+- Ring membership is another per-frame side effect, so it must be journalled or cached subtrees fall out. The memo verifier cannot catch that.
+- Lazy lists register only their visible rows, so a List should be one destination with an internal cursor.
+- Keyboard drops need a synthesised `DropInfo`.
+- The cost looks like several days (estimate).
+
+Recommendation: ship the cheap prerequisite first (`.draggable` as a focus stop with Copy and Paste), then the carry. Need: your yes to that order.
+
+#### B-BITEMS1-1
+
+Follow macOS's three-party model rather than a blanket default.
+
+On macOS the source declares the operations it allows, modifier keys narrow them, the destination picks one, and the badge shows what the destination picked. Finder moves within a volume and copies across volumes. Option forces a copy, Command a move, and Option-Command makes an alias. Inferred, unmeasured: an image well shows no "+" because it answers Generic, not Copy. Terminals pass one usable pointer modifier: ⌥ on Apple Terminal, ⌘ on iTerm2. Proposal:
+1. Finish `dragConfiguration(_:)` so the source states its mask. A row reorder says `[.move]`; `.draggable` says `[.copy]`.
+2. The destination proposes move when the drop lands in the container the drag came from and copy otherwise. `ActiveDrag` must then remember its source container.
+3. One modifier flips between the proposal and its alternate. Its name comes from the host table. Alias is left to destinations that propose it.
+4. The badge shows the effective operation. A replace-style destination returns nil, which means no badge.
+5. The badge refreshes on any key event during a drag.
+6. On the keyboard, the operation is chosen at pick-up, or toggled during a carry.
+
+Recommendation: adopt this model, not a fixed `.copy` on `dropDestination`, and probe the image well in a real window. Need: your yes.
+
+#### B82
+
+Plan, as you set it.
+
+1. **Draw the pending state.** The control draws as hovered while the spring-load timer runs, and as pressed on the frame it fires, as macOS does. Today it fires with no warning.
+2. **Delay.** Use the system's spring-loading delay when the session is local, read the way reduce motion is read through `SessionLocality`. Use the fixed 0.5 s otherwise. Allow an override through an environment variable and a TUIkit-only modifier. Which macOS setting holds the delay, and its key, still has to be confirmed by a probe. Remote sessions keep 0.5 s.
+3. **Per-control defaults.** Keep SwiftUI's, as measured on macOS 15.8 and already shipped: buttons, links, `.button` toggles and segmented pickers spring-load only under `.enabled`, and a tab view does under `.automatic`. The ColorPicker's well follows whatever macOS's colour well does. That has not been measured, so a probe decides it. Until then it stays as built.
+
+The keyboard route mid-drag (Tab and Return) already exists and is unchanged.
+
+Recommendation: build 1 first, then 2, with the probe for the setting and the colour well (queued). Need: nothing.
+
+#### O13-KEYS
+
+The macOS menu-bar keys cannot reach a terminal app. Earlier text UIs all used one pattern: a short mode entered with one key, with letters local to that mode. Proposal: make F10 enter that mode.
+
+macOS offers Control-F2 (focus the menu bar), Control-F8 and Shift-Command-?. No Fn-M shortcut was found. The system handles these keys for the terminal emulator's own menu bar and never forwards them. One narrow exception (inference): a user who turns off Control-F2 in System Settings frees it, and TUIkit already decodes it. CUA/Windows (F10 or Alt, underlines shown only then), Turbo Vision, Midnight Commander (F9), Emacs (M-`), WordPerfect and Lotus (`/`, recalled) all work this way. Today TUIkit's F10 opens the first menu. Alt-letter needs Option sent as Meta, and File and Format both claim F. The proposal:
+- F10 highlights the first title, opens nothing, and underlines the mnemonics only now.
+- A letter opens its menu; arrows, Return and Escape work as before; any other key leaves the mode.
+- Items keep type select.
+- Each title gets a distinct mnemonic, taken from the first free letter of its words. One table serves bar mode and Alt-letter.
+- Nothing new competes with global shortcuts.
+
+Recommendation: build bar mode, and measure F10 and fn-F10. The cost is one extra keypress to open a menu. Need: your yes.
+
+#### B-HELP-2
+
+Your rule is adopted. "?" keeps one meaning: the focused control's help. A modified "?" shows all help. A default menu item, enabled only when some help exists, toggles all help on and off.
+
+Which modifier can arrive is the open part. All of what follows is general knowledge or inference, not measured here. On US layouts "?" is already Shift-/, so Shift-? is just "?". Ctrl-? usually reaches a legacy terminal as DEL (0x7F), the same byte as Backspace, and Ctrl-/ as 0x1F. Neither works as a portable key. Alt-? arrives only where Option is sent as Meta, which Apple Terminal does not do by default. Under the kitty protocol, which TUIkit requests, Ctrl-? and Alt-? should arrive as themselves. Two more points: a focused text field types "?" itself, and under B77-KEYTIME a focused list takes "?" for type select. So a key that works everywhere cannot be a "?" chord.
+
+Proposal: Alt-? and Ctrl-? toggle all help where they arrive as themselves. Shift-F1 is the portable key, given that TUIkit already undoes Apple Terminal's re-coding of shifted F-keys. The menu item is the route that works on every terminal, through F10. Measure Shift-F1 per host first. Need: approval of Shift-F1.
+
+#### B-PASTE-1-EDITOR
+
+Your instinct is right about memory. UTF-8 storage alone does not buy the speed the entry hopes for, it changes some behaviour, and most of the gain comes from undo, which is independent of storage.
+
+Measured on a 16 MiB document: a `Character` is 16 bytes. Splitting into `[[Character]]` takes 0.51 s and 305 MiB, and the join done on every edit takes 0.25 s. A line table over UTF-8 takes 0.009 s and 1.4 MiB. Downsides beyond the work:
+- The editor's coordinates are grapheme clusters. With a byte buffer, edits can merge or split clusters (flags re-pair, combining marks join), so the caret must re-snap after every edit.
+- `String.Index` is not a stable coordinate, so integer offsets are needed internally.
+- The binding is a `String`, so each key still costs at least a copy-on-write (1 ms measured).
+- CRLF is one `Character` in Swift. A byte scan for LF would split it.
+- The line table needs updating on every edit.
+- `[Character]` appears across the wrapping, tab and word code.
+
+Undo as edits works with today's storage and removes the 800 MiB of snapshots.
+
+Recommendation: measure, then do undo as edits inside R1. After that, if memory still matters, use one `String` plus a line table, building `[Character]` only for drawn lines. Need: your yes to that order.
+
+#### D4X-LOCALITY
+
+Nothing blocks the screen and tmux passthroughs; both are queued.
+
+OSC 52 goes down the terminal stream to the terminal the user is looking at, so passthrough is safe whatever the locality. Its only weakness is that the app cannot confirm the copy, so the status says "Sent", not "Copied". screen needs chunked DCS wrapping; the 256-byte limit comes from Chromium's script and is unmeasured. tmux needs `allow-passthrough`, which is off by default (added in 3.3). tmux 3.7c is installed here for a probe. One design point remains: the precedence order, so a copy is not sent twice. Asking keepers for their clients: **pros:** it is the only way to be certain the user is at the desk. It makes `pbcopy` work where the terminal ignores OSC 52, and it makes the desk's clipboard readable for paste, which passthrough cannot do. tmux already works this way. **Cons:** every keeper has a different interface (screen's `-Q`, zellij unclear, dtach and abduco have none). The answer is a snapshot, and a stale "local" puts text on the wrong machine. Tracing processes is heuristic. Each copy runs a subprocess. It does nothing over ssh.
+
+Recommendation: passthroughs now, with tmux `set-clipboard on` checked before passthrough. Client queries only for a keeper someone uses and asks for. Need: nothing.
+
+#### B86
+
+Not recommended. Foundation's parser exists only on Apple platforms, and this repo has never tested how it varies between OS versions.
+
+On Linux, neither swift-foundation `main` nor the 6.3.3 static SDK has a Markdown parser. So a Darwin-only path would give two parsers whose output differs by platform. TUIkit's 138-case table was measured on macOS 15.8, and the 550,000-string differential ran once on the same machine. CI's macOS 15, 26 and 27 lanes compare TUIkit against that frozen table, not against each OS's Foundation. Version-specific bugs did exist in older releases (an iOS 16 report), which shows it can vary, but no difference between 15.8 and 26 is known. Using it would also cost the atom scheme for interpolations, an `AttributedString` per parse on a hot path, and behaviour that follows the user's macOS.
+
+Recommendation: keep TUIkit's parser as the one implementation. Add a Darwin-only differential test that runs the corpus plus seeded random strings through the live `AttributedString(markdown:)` on each macOS CI lane, about half a day. Then a red lane tells you if Foundation's behaviour moves. Need: your yes.
+
+#### A27
+
+Reminder: these are Wave 16's pixel-effect leftovers, all eight of which fail to compile today.
+
+They are the six view transforms (`scaleEffect`, `rotationEffect`, `rotation3DEffect`, `projectionEffect`, `transformEffect`, and the spellings A39 waits on), plus `mask(alignment:_:)` and `drawingGroup`. A separate question is linear-light blending for `drawingGroup(colorMode: .linear)`. A glyph cannot be scaled or rotated, so a view transform can only be declined or faked; shapes, unlike views, can rotate since W1. The options:
+- **1.** Decline the transforms. Ship `mask` (content kept where the mask draws, at its alpha). Ship `drawingGroup` as `compositingGroup`, with `.linear` documented as ignored. About half a day.
+- **2.** Option 1, plus real linear blending inside such a subtree. It is cheap through lookup tables, and the sRGB decode already exists.
+- **3.** `scaleEffect` drawn as a reveal from its anchor. A 0.95 press effect would then silently do nothing.
+- **4.** Decline everything.
+
+Since the entry was written: `mask` should use `clipShape`'s half-cell coverage rule, so the two agree as they do in SwiftUI.
+
+Recommendation: option 2. Need: your pick.
+
+#### A34
+
+Option 3 could be honest: a real low-pass filter at cell resolution. But it would show only two or three coarse blur steps in a 0.35 s transition.
+
+Its best form (inferred): the radius grows to about one cell at the peak. Each cell takes the average of its neighbourhood's displayed colours, glyph ink weighted by coverage. Glyphs lose contrast and then drop out under the existing ½ rule. Optionally, ▀ half-blocks double the vertical resolution where blocks fill the line. Edges get partial alpha. The pipeline already has most pieces: transitions work from the kept buffer, the compositor resolves colours in linear light, and the O5-FROSTED design describes neighbour sampling. Limits: `OpacityRegion` has one alpha per rectangle, so per-cell edge alpha is new plumbing and most of the day. 256- and 16-colour terminals would fall back to option 2. Cost (inferred): CPU is small, under 100 µs a frame for 40×10, paid only while the transition runs. Bytes are the real cost, because a blur breaks SGR runs. That is about 330 KB per transition for 40×10 and about 24 MB/s for a full screen, which matters over ssh.
+
+Recommendation: ship option 2 now. Revisit option 3 alongside O5-FROSTED (b), which you have chosen and which shares its neighbour sampling, coverage table and per-cell alpha. Need: nothing.
+
+#### B95
+
+▌ is possible but worth much less than ▀. Quadrants and diagonals work for non-rectilinear gradients, with limits.
+
+A cell shows two colours split by one glyph's partition: ▀ splits top from bottom, ▌ left from right, ▙▛▜▟ cut off a corner, and ◢◣◤◥ split the diagonal. A cell is 1 wide and 2 tall, so the vertical direction is the coarse one. A horizontal gradient already gets one step per column. ▌ therefore helps only narrow horizontal spans. A per-cell choice between ▀ and ▌, by which way the colour changes more, is cheap and never worse. For radial, angular and mesh gradients, a best-of-candidates two-colour split follows curved isolines better; the `.blocks` image path already does this. Limits:
+- Exclude ▚▞, which read as noise.
+- Apple Terminal draws block elements short of the line.
+- Corner triangles fill the cell only in Ghostty and iTerm2 (measured), so they need the `cornerTrianglesFillTheCell` gate.
+- ◢◣◤◥, ▀ and ▌ are East Asian Ambiguous width.
+- A cell's diagonal runs at about 63°.
+- Text over a gradient keeps only one sample.
+- Gradient areas cost about twice the SGR bytes.
+
+Recommendation: option 2 through the shapes' half-block emitter, so gradient Rectangles and Circles agree. Add the ▀/▌ choice if it is cheap there. Leave quadrants and diagonals as a follow-up, since sharing TUIkitImage's matcher is a design question. Need: your yes to that scope.
+
 ## Summary
 
 | Id | Question | Recommended | If you don't answer |
