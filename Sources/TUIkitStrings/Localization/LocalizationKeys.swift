@@ -267,6 +267,12 @@ public enum LocalizationKey {
         case find = "menu.find"
         /// The menu bar's Edit ▸ Find Next (`TextEditingCommands`).
         case findNext = "menu.findNext"
+        /// The menu bar's Help ▸ Show Tooltips: whether tooltips show at all.
+        case showTooltips = "menu.showTooltips"
+        /// The menu bar's Help ▸ Show All Tooltips: every tooltip on the screen.
+        case showAllTooltips = "menu.showAllTooltips"
+        /// The same item while every tooltip shows.
+        case hideAllTooltips = "menu.hideAllTooltips"
         case new = "menu.new"
         case open = "menu.open"
         case save = "menu.save"

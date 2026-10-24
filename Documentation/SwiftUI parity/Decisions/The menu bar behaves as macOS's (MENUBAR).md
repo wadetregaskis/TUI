@@ -58,3 +58,26 @@ application icon drawn from the app's image (Kitty graphics where the terminal
 has them), and a Credits.rtf / Credits.html read from the bundle as macOS does.
 Half a day for `Text` credits; the icon waits on a decision about what an
 app's icon is in a terminal.
+
+### B-MENUBAR-3. A Help menu of TUIkit's own: Show Tooltips and Show All Tooltips (⌥?)
+
+*The scene's own `help` group; `TooltipState.showsTooltips`, `showsAllTooltips`*
+
+**Shipped:** every app with a menu bar has a Help menu, as on macOS, holding
+Show Tooltips — a check, on by default; off, the scene's root draws tooltips
+`.never` — and Show All Tooltips (Hide All Tooltips while they show), which
+draws them `.always`: every view's help at once, placed together. Its key is
+the help key with Option, `⌥?`, by the owner's rule of one key per purpose and
+a modifier on `?` (B-HELP-2's answer); Control-? is Backspace in every legacy
+encoding, so Option is the one modifier a terminal delivers, and a text field
+lets it through where it types `?`. Each item is disabled while no view on the
+screen has help (counted per walk, replayed for a memoized view), except to
+take back its own choice. The choices are published at the root, so a
+subtree's own `tooltips(_:)` wins inside it, and the root's trigger is in the
+render loop's environment snapshot, so a change redraws memoized views.
+
+**The fuller version:** keep the two choices across launches (the person's,
+like the toolbar's configuration), and a "help browse" mode for the keyboard —
+step from panel to panel of the `.always` view, the focus following — which
+B-HELP-2 left open. Half a day for persistence; the browse mode a lane-day with
+its focus design.

@@ -51,9 +51,11 @@ extension HelpModifier: Renderable {
         // is unavailable is most of what help text is for. The keyboard half
         // still cannot reach one, because a disabled control does not register
         // with the focus system and so has nothing to reveal.
-        guard !context.isMeasuring,
-            context.environment.tooltipTrigger != .never,
-            let tooltips = context.environment.tooltipState,
+        guard !context.isMeasuring, let tooltips = context.environment.tooltipState else { return buffer }
+        // Counted whatever the trigger, `.never` included: the Help menu's
+        // Show Tooltips must stay enabled to turn them back on.
+        tooltips.noteHelpDrawn(in: context)
+        guard context.environment.tooltipTrigger != .never,
             let dispatcher = context.environment.mouseEventDispatcher
         else {
             return buffer

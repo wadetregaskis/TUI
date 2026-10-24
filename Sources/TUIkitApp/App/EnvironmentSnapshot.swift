@@ -96,6 +96,12 @@ internal struct EnvironmentSnapshot: Equatable {
     /// drawing it, or not, as before the change.
     let terminalFeatures: TerminalFeatures
 
+    /// When tooltips appear, as the root publishes it: the Help menu's Show
+    /// Tooltips and Show All Tooltips change it between frames with no view
+    /// value changing, and a memoized subtree that drew its `help(_:)` views'
+    /// panels, or did not, went on doing so as before the change.
+    let tooltipTrigger: TooltipTrigger
+
     /// Creates a snapshot from fully-built environment values.
     init(from environment: EnvironmentValues) {
         self.palette = ComparablePalette(environment.palette)
@@ -110,5 +116,6 @@ internal struct EnvironmentSnapshot: Equatable {
         self.terminalWidth = environment.terminalWidth
         self.terminalHeight = environment.terminalHeight
         self.terminalFeatures = environment.terminalFeatures
+        self.tooltipTrigger = environment.tooltipTrigger
     }
 }

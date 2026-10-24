@@ -35,6 +35,10 @@ extension EnvironmentValues {
         urlOpener = context.urlOpener
         screenSelection = context.screenSelection
         tooltipState = context.tooltipState
+        // The Help menu's choice about tooltips, at the root, where a
+        // subtree's own `tooltips(_:)` still wins. Written only where the
+        // person chose something, so the default costs no write per frame.
+        if let trigger = context.tooltipState.menuTrigger { tooltipTrigger = trigger }
         terminalImageStore = context.terminalImageStore
         renderCache = context.renderCache
         preferenceStorage = context.preferences

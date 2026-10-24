@@ -586,6 +586,14 @@ extension InputHandler {
     /// binding for it, Ctrl+A over a single-select list) is not a request to
     /// restyle the app — swallowing it here mutated chrome as a surprise.
     private func handleGlobalShortcut(_ event: KeyEvent, inputGrabbed: Bool) -> Bool {
+        // The help key with Option shows every tooltip on the screen, or hides
+        // them (Help ▸ Show All Tooltips): one key for each purpose, and Option
+        // the one modifier a terminal delivers on `?` — Control-? is DEL, the
+        // Backspace byte, in every legacy encoding (Terminal compatibility
+        // survey.md, "The help key").
+        if event.alt, !event.ctrl, let tooltipState, let helpKey = tooltipState.helpKey, event.key == helpKey {
+            return tooltipState.toggleShowsAllTooltips()
+        }
         guard !event.ctrl, !event.alt else { return false }
         // The help key, before the chrome shortcuts and NOT suppressed by
         // `inputGrabbed`: a tooltip explains the control that has the focus, and

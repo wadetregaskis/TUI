@@ -28,6 +28,7 @@ import TUIkitFoundation
 /// | `appTermination` | Quit *app* | quits as the quit key does, after the menu closes | `StatusBarState.quitShortcut` |
 /// | `undoRedo` | Undo, Redo | the app's `UndoManager`; disabled with nothing to undo or redo | the scene's undo and redo keys |
 /// | `pasteboard` | Cut, Copy, Paste | ⌘X, ⌘C, ⌘V to the focused view, after the menu closes | the same, through `commandKey` |
+/// | `help` | Show Tooltips; Show All Tooltips | whether tooltips show at all; every tooltip on the screen at once (`TooltipState`); each disabled where no view on the screen has help | —; ⌥ and the help key (⌥?) |
 /// | `windowArrangement` | Close Window | closes the window in front; disabled where the person may not: the last, one whose content disabled its dismissal, one showing a sheet | Escape |
 /// | `windowList` | each open window, the one in front checked | brings it to the front | — |
 /// | `singleWindowList` | each `Window` scene | opens it, or brings its window to the front | its `.keyboardShortcut`, if it states one |
@@ -77,6 +78,8 @@ struct SceneOwnCommands {
             }
         case .undoRedo:
             return undoItems(environment)
+        case .help:
+            return helpItems(environment)
         case .pasteboard:
             return Self.items("pasteboard") {
                 pressing("x", title: service.string(for: LocalizationKey.Menu.cut), environment)
@@ -158,6 +161,34 @@ struct SceneOwnCommands {
             Button(redo) { _ = UndoCommand.redo.perform(on: undoManager) }
                 .keyboardShortcutHint(keys?.shortcut(for: .redo))
                 .disabled(!undoManager.canRedo)
+        }
+    }
+
+    /// Help ▸ Show Tooltips, a check: whether tooltips show at all; and Show
+    /// All Tooltips (Hide All Tooltips while they show), every tooltip on the
+    /// screen at once, showing the help key with Option, which does the same
+    /// (`TooltipState.menuTrigger`). Each disabled while no view on the screen
+    /// has help — Show All, too, while tooltips are off — except to take back
+    /// what it chose: tooltips off, or all of them showing. None outside a
+    /// running app, which has no tooltips.
+    private func helpItems(_ environment: EnvironmentValues) -> CommandItems? {
+        guard let tooltips = environment.tooltipState else { return nil }
+        let service = LocalizationService.shared
+        let hasHelp = tooltips.hasHelpOnScreen
+        let showsAll = tooltips.showsAllTooltips
+        let shows = Binding(get: { tooltips.showsTooltips }, set: { tooltips.showsTooltips = $0 })
+        var showAllKey: KeyboardShortcut?
+        if case .character(let character) = tooltips.helpKey {
+            showAllKey = KeyboardShortcut(KeyEquivalent(character), modifiers: .option)
+        }
+        return Self.items("help") {
+            Toggle(service.string(for: LocalizationKey.Menu.showTooltips), isOn: shows)
+                .disabled(!hasHelp && tooltips.showsTooltips)
+            Button(service.string(for: showsAll ? LocalizationKey.Menu.hideAllTooltips : .showAllTooltips)) {
+                tooltips.toggleShowsAllTooltips()
+            }
+            .keyboardShortcutHint(showAllKey)
+            .disabled(!showsAll && !(hasHelp && tooltips.showsTooltips))
         }
     }
 

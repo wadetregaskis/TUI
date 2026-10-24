@@ -5685,6 +5685,28 @@ after the grabber's keys: run it in Apple Terminal, iTerm2 and Ghostty from each
 default profile, and record whether F10 or fn-F10 was pressed, the
 standard-function-keys setting, and each host's Option setting.
 
+### The help key, `?` and `⌥?` — documented, NOT yet measured
+
+Added 2026-10-24 (lane MENUBAR; the owner's B-HELP-2 answer: no one key for
+two purposes, and a modifier on `?` for showing every tooltip). `?` reveals the
+focused control's tooltip (`TooltipState.helpKey`); `⌥?` shows every tooltip on
+the screen, or hides them again — the menu bar's Help ▸ Show All Tooltips.
+
+| Key | What a host sends | TUIkit reads it as | Under the kitty keyboard protocol |
+|---|---|---|---|
+| **?** | `?` | the help key, unless a focused text control types it | the text `?` |
+| **⌥?** | `ESC ?` where Option is sent as Meta (none the default, as for the menu bar's letters above); otherwise the character Option composes (`¿` on a US layout), which is typed or ignored | Alt and `?`: every tooltip shows, or hides. A focused text field does not type an Option chord, so it reaches the key inside a field too, where `?` alone is typed | `CSI 47:63;4u` (Shift and Alt on `/`, its shifted key `?`) where the host reports Option as Alt |
+| ⌃? | `DEL` (`0x7F`), the Backspace byte, in every legacy encoding | Backspace | unusable: the legacy encodings cannot tell it from Backspace, so it is not used |
+
+**Why Option and not another modifier:** Shift is already in `?` on most layouts,
+and Control-? is Backspace wherever the kitty protocol is not spoken. Option is
+the one that survives, where the host sends it as Meta; elsewhere the menu item
+is the way to it (F10, then ← to Help), as the menu bar is to everything. An F-key
+was declined for the help key itself (F-keys are often taken system-wide).
+
+*To measure:* `Tools/TerminalProbes/key_probe.py` with `⌥?` added, in Apple
+Terminal, iTerm2 and Ghostty with each Option setting.
+
 ### Modified F1–F4 are CSI letters (xterm) — decoded since 2026-10-05
 
 F1–F4 alone arrive as SS3 (`ESC O P` … `ESC O S`), but with a modifier xterm,

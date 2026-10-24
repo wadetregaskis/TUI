@@ -237,6 +237,23 @@ public final class TooltipState: @unchecked Sendable {
     /// visibly.
     public var helpKey: Key? = .character("?")
 
+    // MARK: The Help menu's choices
+
+    /// Whether tooltips show at all: the menu bar's Help ▸ Show Tooltips, on
+    /// by default. Off, the scene's root draws every subtree's tooltips
+    /// `.never` (``menuTrigger``).
+    package var showsTooltips = true
+
+    /// Whether every tooltip on the screen shows at once: Help ▸ Show All
+    /// Tooltips, and the help key with Option (⌥?). On, the scene's root
+    /// draws them `.always` (``menuTrigger``).
+    package var showsAllTooltips = false
+
+    /// How many `help(_:)` views this walk drew, whatever their trigger —
+    /// served from a memo too (``noteHelpDrawn(in:)``) — so the Help menu's
+    /// items are enabled only where the open views have any help.
+    package internal(set) var helpDrawnThisWalk = 0
+
     public init() {}
 
     // MARK: - Publishing
@@ -546,6 +563,7 @@ public final class TooltipState: @unchecked Sendable {
     /// ``endFrame()`` asks.
     package func beginWalk() {
         focusRepublished = false
+        helpDrawnThisWalk = 0
     }
 
     /// Closes the frame: a focus candidate its last walk did not publish again
