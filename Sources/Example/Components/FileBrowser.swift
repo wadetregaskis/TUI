@@ -13,14 +13,22 @@ import TUIkit
 /// One row in a file-browser demo — a real filesystem entry, or the synthetic
 /// ".." parent that navigates up a level.
 struct BrowserEntry: Identifiable, Sendable {
+    enum Kind: Sendable, Equatable {
+        case parent
+        case directory
+        case file
+    }
+
     /// The absolute path — unique and stable, so it doubles as the selection id.
     let id: String
     let name: String
-    let isDirectory: Bool
-    let isParent: Bool
+    let kind: Kind
     let url: URL
     let size: String
     let modified: String
+
+    var isDirectory: Bool { kind == .directory || kind == .parent }
+    var isParent: Bool { kind == .parent }
 
     /// The leading glyph: an "up and back" arrow for ".." (↰ — navigating to
     /// the parent is not a *back* operation, so no back-arrow emoji), a folder
@@ -28,16 +36,22 @@ struct BrowserEntry: Identifiable, Sendable {
     /// Linux too, matching the other demos. The arrow is padded to two cells
     /// to align with the double-width emoji on the other rows.
     var icon: String {
-        if isParent { return "↰ " }
-        return isDirectory ? "📁" : "📄"
+        switch kind {
+        case .parent: "↰ "
+        case .directory: "📁"
+        case .file: "📄"
+        }
     }
 
     /// A short type label for the Table's Type column.
     var typeLabel: String {
-        if isParent { return "Parent" }
-        if isDirectory { return "Directory" }
-        let ext = (name as NSString).pathExtension
-        return ext.isEmpty ? "File" : ext
+        switch kind {
+        case .parent: return "Parent"
+        case .directory: return "Directory"
+        case .file:
+            let ext = (name as NSString).pathExtension
+            return ext.isEmpty ? "File" : ext
+        }
     }
 }
 
@@ -60,7 +74,7 @@ enum FileBrowser {
         if parent.path != url.path {  // deletingLastPathComponent("/") == "/"
             rows.append(
                 BrowserEntry(
-                    id: url.path + "/..", name: "..", isDirectory: true, isParent: true,
+                    id: url.path + "/..", name: "..", kind: .parent,
                     url: parent, size: "", modified: ""))
         }
 
@@ -75,8 +89,7 @@ enum FileBrowser {
             return BrowserEntry(
                 id: child.path,
                 name: child.lastPathComponent,
-                isDirectory: isDir,
-                isParent: false,
+                kind: isDir ? .directory : .file,
                 url: child,
                 size: isDir ? "" : formatSize(values?.fileSize),
                 modified: formatDate(values?.contentModificationDate))
