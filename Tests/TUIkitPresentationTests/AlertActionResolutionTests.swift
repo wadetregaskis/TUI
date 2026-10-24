@@ -66,15 +66,35 @@ struct AlertActionResolutionTests {
 
     @Test("An action that is not a button is left out, and found buttons keep their order")
     func nonButtonsLeftOut() {
-        let mixed = render(
-            Text("base").alert("Warning", isPresented: .constant(true)) {
-                Button("First") {}
-                Text("not a button")
-                Button("Second") {}
-            })
+        let quiet = DroppedMemberReports()
+        let mixed = DroppedMember.$reporter.withValue(quiet.record) {
+            render(
+                Text("base").alert("Warning", isPresented: .constant(true)) {
+                    Button("First") {}
+                    Text("not a button")
+                    Button("Second") {}
+                })
+        }
         #expect(!mixed.contains("not a button"), "\(mixed)")
+        #expect(quiet.messages.isEmpty, "a Text is left out quietly, as SwiftUI leaves it out: \(quiet.messages)")
         let first = mixed.range(of: "First")
         let second = mixed.range(of: "Second")
         #expect(first != nil && second != nil && first!.lowerBound < second!.lowerBound, "\(mixed)")
+    }
+
+    @Test("A toggle among the actions, which SwiftUI's alert shows, is reported as left out")
+    func toggleReported() {
+        let reports = DroppedMemberReports()
+        let drawn = DroppedMember.$reporter.withValue(reports.record) {
+            render(
+                Text("base").alert("Warning", isPresented: .constant(true)) {
+                    Toggle("Remember", isOn: .constant(true))
+                    Button("OK") {}
+                })
+        }
+        #expect(drawn.contains("OK") && !drawn.contains("Remember"), "\(drawn)")
+        #expect(
+            !reports.messages.isEmpty && reports.messages.allSatisfy { $0.contains("leaves out a Toggle") },
+            "\(reports.messages)")
     }
 }

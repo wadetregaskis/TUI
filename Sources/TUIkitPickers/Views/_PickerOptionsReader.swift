@@ -78,6 +78,14 @@ struct _PickerOptionsReader<SelectionValue: Hashable, Content: View, Built: View
                     entries.append(.divider)
                 } else if let tag = member.containerValues.tag(for: SelectionValue.self) {
                     entries.append(.option(tag: tag, label: AnyView(member)))
+                } else {
+                    // SwiftUI shows every member as an item, tagged or not
+                    // (measured); a picker that can only select by tag leaves
+                    // it out, and says so (owner ruling RC5).
+                    DroppedMember.report(
+                        member.memberView, leftOutBy: "Picker",
+                        because:
+                            "it has no tag of the selection's type, \(SelectionValue.self). Tag it with .tag(_:), as a value of that type.")
                 }
             }
             if group.isSection { entries.append(.divider) }

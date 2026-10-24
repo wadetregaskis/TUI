@@ -93,7 +93,8 @@ private enum AlertActionsID {}
 /// macOS alert keeps, `.disabled` and `.keyboardShortcut` (``AlertAction``):
 /// it draws the button itself, so the others are looked through and left. A
 /// member that is no button is left out, as SwiftUI leaves out what an alert
-/// cannot show.
+/// cannot show — reported where SwiftUI's shows it, a text field or a toggle
+/// (``DroppedMember``, owner ruling RC5).
 ///
 /// Shared by ``_AlertPanelCore``, which lays them out, and
 /// ``AlertPresentationModifier``, which needs the one that answers Escape.
@@ -129,6 +130,15 @@ func alertActions(from view: some View, in context: RenderContext) -> [AlertActi
                     // A `ForEach` row of an equatable element, memoized.
                     current = row.memoizedContent
                 } else {
+                    // No button. Left out quietly where SwiftUI leaves it out
+                    // too; a control SwiftUI's alert shows is a gap, and said
+                    // so (owner ruling RC5).
+                    if current is any AlertActionControl {
+                        DroppedMember.report(
+                            current, leftOutBy: "alert(_:isPresented:actions:)",
+                            because:
+                                "a TUIkit alert or confirmation dialog shows only buttons. Ask for the value in a sheet instead.")
+                    }
                     break
                 }
             }

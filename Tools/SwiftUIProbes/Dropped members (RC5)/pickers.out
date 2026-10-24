@@ -1,0 +1,16 @@
+MENU Pickers
+    "Untagged" ▸
+        "T1" (on)
+        "Loose"
+        "T2"
+    "WrongType" ▸
+        "W1" (on)
+        "WString"
+        "WFruit"
+    "Optional" ▸
+        "O1" (on)
+        "ONone"
+    "NonText" ▸
+        "N1" (on)
+        "NToggle"
+        "NButton"

@@ -187,16 +187,20 @@ struct ForEachSubviewsTests {
     @Test("Inside a List, Picker, Form or suggestions, the loop does not trap")
     func containersThatReadRows() {
         let loop = ForEach(subviews: Group { Text("alpha"); Text("beta") }) { $0 }
-        for view in [
+        for (index, view) in [
             AnyView(List { loop }),
             AnyView(Picker("Pick", selection: .constant(0)) { loop }.pickerStyle(.radioGroup)),
             AnyView(Form { loop }),
             AnyView(TextField("Field", text: .constant("")).textInputSuggestions { loop }),
-        ] {
-            let lines = render(view, height: 12)
+        ].enumerated() {
+            // The picker's members are untagged, which SwiftUI shows as items
+            // and TUIkit's picker leaves out, saying so (owner ruling RC5).
+            let reports = DroppedMemberReports()
+            let lines = DroppedMember.$reporter.withValue(reports.record) { render(view, height: 12) }
             let alpha = lines.contains { $0.contains("alpha") }
             let beta = lines.contains { $0.contains("beta") }
             #expect(alpha == beta, "\(lines)")
+            #expect(reports.messages.isEmpty == (index != 1), "\(reports.messages)")
         }
     }
 }

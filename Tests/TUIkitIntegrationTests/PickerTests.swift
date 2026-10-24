@@ -59,12 +59,19 @@ struct TagModifierTests {
     /// what lets a `nil` tag mean "no choice" without a bare tag shadowing it.
     @Test("includeOptional: false withholds the promotion")
     func withheldPromotion() {
-        let screen = selected(
-            Picker("Speed", selection: .constant(Speed?.some(.fast))) {
-                Text("Slow").tag(Speed.slow, includeOptional: false)
-                Text("Fast").tag(Speed.fast, includeOptional: false)
-            })
+        // SwiftUI still shows such a row, as an item that selects nothing
+        // (measured for a tag of another type); TUIkit's picker leaves it out,
+        // and says so (owner ruling RC5).
+        let reports = DroppedMemberReports()
+        let screen = DroppedMember.$reporter.withValue(reports.record) {
+            selected(
+                Picker("Speed", selection: .constant(Speed?.some(.fast))) {
+                    Text("Slow").tag(Speed.slow, includeOptional: false)
+                    Text("Fast").tag(Speed.fast, includeOptional: false)
+                })
+        }
         #expect(!screen.contains("Fast"), "no option matches an Optional selection: \(screen)")
+        #expect(!reports.messages.isEmpty, "the rows left out are reported")
     }
 
     /// …and it is only the PROMOTION it withholds: an exactly-typed selection
@@ -84,11 +91,14 @@ struct TagModifierTests {
     /// the bare one shadows the intent.
     @Test("A nil tag and a value tag can coexist under an Optional selection")
     func nilTagCoexists() {
-        let screen = selected(
-            Picker("Speed", selection: .constant(Speed?.none)) {
-                Text("Unset").tag(Speed?.none)
-                Text("Fast").tag(Speed.fast, includeOptional: false)
-            })
+        let reports = DroppedMemberReports()
+        let screen = DroppedMember.$reporter.withValue(reports.record) {
+            selected(
+                Picker("Speed", selection: .constant(Speed?.none)) {
+                    Text("Unset").tag(Speed?.none)
+                    Text("Fast").tag(Speed.fast, includeOptional: false)
+                })
+        }
         #expect(screen.contains("Unset"), "\(screen)")
     }
 }

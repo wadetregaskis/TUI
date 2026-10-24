@@ -975,6 +975,22 @@ messages cite that path), and what cites it.
   `Sources/TUIkitFoundation/Views/KeyboardShortcutRegistry.swift`;
   `Tests/TUIkitCommandsTests/CommandsCollectionTests.swift`.
 
+### Dropped members (RC5)
+
+- **Asks:** what SwiftUI shows of content that is not what its container sorts its members by: a `Picker`'s
+  members with no tag, a tag of another type than the selection, a `nil` tag under an optional selection, a
+  `Toggle` and a `Button`, read back from a `CommandMenu`'s `NSMenu` items (`dropped.swift` built with
+  `-D CASE_pickers`, `pickers.out`); and an alert's actions that are not buttons — a `TextField`, a
+  `SecureField`, a `Text`, a `Toggle`, an `Image`, and a button and a text field each inside a view of the app's
+  own — read back from the alert panel's AppKit views (`-D CASE_alert`, `alert.out`).
+- **Answers:** every picker member is an item of the menu, enabled, tagged or not and whatever its tag's type.
+  An alert shows its text fields and secure fields (the one inside a view of the app's own too), and a toggle as
+  a button titled by its label; it leaves out a `Text` and an `Image`.
+- **Ran:** macOS 15.8.1, Xcode's `swiftc`, the macOS 26.2 SDK, 2026-10-24.
+- **Cited by:** `Sources/TUIkitFoundation/Views/DroppedMembers.swift`,
+  `Sources/TUIkitPickers/Views/_PickerOptionsReader.swift`, `Sources/TUIkitPresentation/Views/AlertActions.swift`;
+  `Documentation/SwiftUI parity/SwiftUI semantic audit (2026-08).md` (root cause 5).
+
 ### Named colours by scheme
 
 - **Asks:** what SwiftUI's fifteen named colours resolve to under a light and a dark colour scheme, and in a bare

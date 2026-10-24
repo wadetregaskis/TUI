@@ -44,7 +44,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [S3-NO-EXTENT-SPACING](#s3-no-extent-spacing) | Leaning (2); asked why SwiftUI does this. | Answered below — your call. |
 | [B27-ANIMATING](#b27-animating) | (3). | Design note written: [Animated scrolling, a design (B27)](<SwiftUI parity/Decisions/Scrolling/Animated scrolling, a design (B27).md>), about 6 days in 8 commits (2.75 for the SwiftUI-parity part). Queued. |
 | [B-D5G-4](#b-d5g-4) | (2), placed towards the end of the queue. | Queued near the end of the queue. |
-| [RC5](#rc5) | Concur with the recommendation. | (a) with (c)'s test sweep, queued. |
+| [RC5](#rc5) | Concur with the recommendation. | Done (lane MISC, 2026-10-24): `DroppedMember`, a SoftTrap for what a picker or an alert leaves out that SwiftUI shows (measured); the four reflecting seams swept and drop nothing (audit root cause 5). |
 | [TABLE-CLOSURE-COLUMN](#table-closure-column) | (b); asked about a "pure" closure overload. | (b) queued; the overload is answered below. |
 | [SA-82-TABVIEW-PLAIN](#sa-82-tabview-plain) | (b). | Done (lane DOCS2): declined in C16; the slated row is closed. |
 | [A21-TABPOPOVER](#a21-tabpopover) | (1). | Done (lane TABS, 2026-10-24): a tab's popover adapts as `View.popover`'s does; TUIkitTabs depends on TUIkitPresentation (+3.1% for an app on TUIkitApp and TUIkitTabs with no sheet of its own; decisions A21). |

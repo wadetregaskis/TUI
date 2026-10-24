@@ -230,6 +230,7 @@ a modified `GridRow` — and in every case the content silently disappears or is
 mis-classified rather than failing. **Recommendation:** these should share one
 fallback rule, and it should be loud in debug rather than empty.
 - *Status (2026-10-14 sweep):* **OPEN** — the cases are fixed one by one; no shared rule that is loud in debug.
+- *Status (2026-10-24, owner ruling RC5: the recommendation):* **FIXED.** Picker options, text-field suggestions and alert actions read their content through the shared member resolution (`subviewGroups(of:in:)`), and what they leave out goes through one rule, `DroppedMember` (`Sources/TUIkitFoundation/Views/DroppedMembers.swift`): a `SoftTrap` for a member SwiftUI shows there, and nothing for one SwiftUI leaves out too, each container's list measured (`Tools/SwiftUIProbes/Dropped members (RC5)/`). A picker member with no tag of the selection's type, and a text field, secure field or toggle among an alert's actions, now stop a debug build. Suggestions leave nothing out. The four seams still reflecting by type — `ListRowExtractor`, `SectionRowExtractor`, `GridRowProviding` and the form's rows — were swept with modified, erased and app-own content (`ReflectingContainerSweepTests`): each finds what it recognises behind all three and draws what it does not as a row of its own, so none drops anything.
 
 ## How to read the list
 

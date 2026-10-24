@@ -118,14 +118,42 @@ struct PickerOptionsResolutionTests {
         #expect(options.map(\.tag) == [.chocolate, nil, .vanilla])
     }
 
-    @Test("An untagged ForEach row is tagged with its element's id, and an untagged view is no option")
+    @Test("An untagged ForEach row is tagged with its element's id, and an untagged view is no option, reported")
     func implicitAndMissingTags() {
-        let result = drawn(selecting: .strawberry) {
-            Text("Pick one")
-            ForEach(Flavor.allCases) { Text($0.rawValue.capitalized) }
+        let reports = DroppedMemberReports()
+        let result = DroppedMember.$reporter.withValue(reports.record) {
+            drawn(selecting: .strawberry) {
+                Text("Pick one")
+                ForEach(Flavor.allCases) { Text($0.rawValue.capitalized) }
+            }
         }
         #expect(result.all.count == 3, "the untagged Text was taken for an option: \(result.all)")
         #expect(result.marked?.contains("Strawberry") == true)
+        // SwiftUI shows it, as an item of the menu (owner ruling RC5).
+        #expect(!reports.messages.isEmpty && reports.messages.allSatisfy { $0.hasPrefix("Picker leaves out a Text") })
+    }
+
+    @Test("A member tagged with another type than the selection's is reported as left out; a divider is not")
+    func wrongTypeReported() {
+        let reports = DroppedMemberReports()
+        let result = DroppedMember.$reporter.withValue(reports.record) {
+            drawn(selecting: .chocolate) {
+                Text("Chocolate").tag(Flavor.chocolate)
+                Divider()
+                Text("Two").tag(2)
+            }
+        }
+        #expect(result.all.count == 1, "\(result.all)")
+        #expect(reports.messages.count >= 1 && reports.messages.allSatisfy { $0.contains("Flavor") }, "\(reports.messages)")
+        let quiet = DroppedMemberReports()
+        _ = DroppedMember.$reporter.withValue(quiet.record) {
+            drawn(selecting: .chocolate) {
+                Text("Chocolate").tag(Flavor.chocolate)
+                Divider()
+                Text("Vanilla").tag(Flavor.vanilla)
+            }
+        }
+        #expect(quiet.messages.isEmpty, "\(quiet.messages)")
     }
 
     @Test("Only the branch an if takes contributes options")

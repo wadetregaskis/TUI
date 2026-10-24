@@ -1,0 +1,13 @@
+window _NSAlertPanel
+  NSImageView (128.0, 128.0)
+  label "Title"
+  label "Message"
+  editable AppKitTextField placeholder=FieldPlaceholder
+  editable AppKitSecureTextField placeholder=SecurePlaceholder
+  editable AppKitTextField placeholder=OwnFieldPlaceholder
+  NSButton "LooseToggle" type=_NSAlertButton
+  label "LooseToggle"
+  NSButton "OwnButton" type=_NSAlertButton
+  label "OwnButton"
+  NSButton "OK" type=_NSAlertButton
+  label "OK"
