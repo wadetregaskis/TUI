@@ -15,17 +15,21 @@ import TUIkitView
 /// name.
 ///
 /// A terminal scrolls by discrete steps — a wheel tick, a key, a drag on the
-/// scrollbar — and TUIkit never animates a scroll, so a scroll view here is
-/// either ``idle`` or ``interacting``: interacting from the user's first step
+/// scrollbar — so a user's scroll is ``interacting`` from its first step
 /// until the steps have stopped for a quarter of a second (and for as long as
-/// a scrollbar is held). The other phases are SwiftUI's for input a terminal
-/// does not send: ``tracking`` a finger that has not moved yet,
-/// ``decelerating`` after a fling, ``animating`` toward a target set with
-/// `withAnimation`. macOS never decelerates under a mouse wheel either; a
-/// switch over them is still exhaustive and still correct.
+/// a scrollbar is held), and ``idle`` otherwise. A `ScrollView`'s
+/// programmatic scroll made inside `withAnimation` — a `scrollTo`, a
+/// ``ScrollPosition`` write — glides to its target, and is ``animating`` from
+/// the frame it starts on to the one it lands on, as SwiftUI's is (measured,
+/// B27); a `List`'s or a `Table`'s jumps, and reports no phase. The other two
+/// phases are SwiftUI's for input a terminal does not send: ``tracking`` a
+/// finger that has not moved yet, ``decelerating`` after a fling. macOS never
+/// decelerates under a mouse wheel either; a switch over them is still
+/// exhaustive and still correct.
 ///
 /// As in SwiftUI (measured), a programmatic scroll without animation — a
-/// `scrollTo`, a ``ScrollPosition`` write — changes no phase.
+/// `scrollTo`, a ``ScrollPosition`` write — changes no phase, and nor does
+/// one under reduce motion, which jumps.
 @frozen
 public enum ScrollPhase: Hashable, Sendable {
     /// No scrolling is happening.
@@ -42,8 +46,9 @@ public enum ScrollPhase: Hashable, Sendable {
     /// a terminal, whose scrolling has no momentum.
     case decelerating
 
-    /// The view is animating to a target set by code. Not produced: TUIkit
-    /// does not animate scrolling.
+    /// The view is animating to a target set by code: a `ScrollView`'s
+    /// `scrollTo` or ``ScrollPosition`` request made inside `withAnimation`,
+    /// while it glides there.
     case animating
 
     /// Whether the view is scrolling: any phase but ``idle``.
@@ -78,8 +83,8 @@ public struct ScrollPhaseChangeContext: Sendable {
     /// How fast the view was scrolling when its phase changed, in cells per
     /// second. Optional, as SwiftUI's is.
     ///
-    /// Always `(0, 0)` here, and never `nil`: at the first report and at both
-    /// of the changes a terminal produces. That is what SwiftUI reports where
+    /// Always `(0, 0)` here, and never `nil`: at the first report and at
+    /// every change a terminal produces. That is what SwiftUI reports where
     /// it was measured — `(0, 0)` at its appear call and at both changes of an
     /// animated `scrollTo` (macOS 15.8; decisions B27). A terminal reports no
     /// speed, only discrete steps: the change to ``ScrollPhase/interacting``

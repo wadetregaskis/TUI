@@ -24,8 +24,12 @@ extension _ScrollViewCore {
     /// own seek to resolve, from the target the last step put the view at, so
     /// it moves only as far as rows that arrived between the viewport and the
     /// row, or heights estimated along the way, put it out.
+    ///
+    /// Landed, the view is idle again (``ScrollPhase/animating`` ends), as
+    /// SwiftUI's is when its animated `scrollTo` arrives (measured, B27).
     func settleGlide(handler: ScrollViewHandler, viewport: CellSize, context: RenderContext) {
         guard let landing = handler.advanceGlide(viewport: viewport, context: context) else { return }
+        if handler.phase == .animating { handler.phase = .idle }
         switch landing {
         case .seek(let request):
             handler.pendingScrollTo = request
@@ -54,7 +58,9 @@ extension _ScrollViewCore {
     /// is a glide's landing, sought again (`isLanding`), and when there is no
     /// request (`nil`: the offset the top-row hold moved to). Answers whether
     /// a glide began, in which case the offset has not moved and the frame
-    /// draws the glide's start.
+    /// draws the glide's start, and the view is ``ScrollPhase/animating``
+    /// from this frame to the landing's. A jump changes no phase, as an
+    /// unanimated `scrollTo` changes none in SwiftUI (measured, B27).
     ///
     /// The target is clamped to the content as this frame measured it: a
     /// row near the end is shown at the last screenful, as the clamp after a
@@ -69,6 +75,7 @@ extension _ScrollViewCore {
                 to: max(0, min(offset, handler.maxOffset)), animation: animation, landing: .seek(request),
                 viewport: viewport, context: context)
         {
+            handler.phase = .animating
             return true
         }
         handler.jumpProgrammatically(to: offset)

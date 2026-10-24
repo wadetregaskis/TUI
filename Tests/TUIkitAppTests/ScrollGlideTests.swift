@@ -176,6 +176,40 @@ struct ScrollGlideTests {
         #expect(frames.handler?.glide == nil)
     }
 
+    @Test("Its phases are idle, animating from the request's frame, and idle on the landing's, at (0, 0)")
+    func reportsAnimating() {
+        let frames = GlideFrames()
+        let box = GlideProxyBox()
+        let log = GlidePhaseLog()
+        let view = rows(box).onScrollPhaseChange { old, new, context in
+            log.changes.append("\(old)→\(new)")
+            log.velocities.append(context.velocity)
+        }
+        frames.render(view)
+        withAnimation(.linear(duration: 0.5)) { box.proxy?.scrollTo(20, anchor: .top) }
+        frames.render(view)
+        #expect(log.changes == ["idle→idle", "idle→animating"])
+        let glide = frames.follow(view)
+        #expect(log.changes == ["idle→idle", "idle→animating", "animating→idle"], "\(log.changes)")
+        #expect(log.velocities.allSatisfy { $0 == .zero }, "as SwiftUI's, measured (B27)")
+        #expect(topRow(glide.last?.lines ?? []) == 20, "idle once it has landed")
+    }
+
+    @Test("A jump — unanimated, under reduce motion, or with no scheduler — reports no phase", arguments: [0, 1, 2])
+    func jumpReportsNoPhase(kind: Int) {
+        let frames = GlideFrames()
+        frames.reduceMotion = kind == 1
+        frames.canAnimate = kind != 2
+        let box = GlideProxyBox()
+        let log = GlidePhaseLog()
+        let view = rows(box).onScrollPhaseChange { old, new in log.changes.append("\(old)→\(new)") }
+        frames.render(view)
+        withAnimation(kind == 0 ? nil : .linear(duration: 0.5)) { box.proxy?.scrollTo(20, anchor: .top) }
+        #expect(topRow(frames.render(view)) == 20)
+        frames.follow(view)
+        #expect(log.changes == ["idle→idle"], "only the first frame's report: \(log.changes)")
+    }
+
     @Test("withAnimation's completion fires once, when the animation ends")
     func completionFiresAtTheEnd() {
         let frames = GlideFrames()
@@ -255,7 +289,7 @@ struct ScrollGlideTests {
     func millionRowsGlide() {
         let frames = GlideFrames()
         let box = GlideProxyBox()
-        let built = BuiltRows()
+        let built = GlideBuiltRows()
         let view = ScrollViewReader { proxy in
             let _ = box.proxy = proxy
             ScrollView {
@@ -288,7 +322,13 @@ struct ScrollGlideTests {
 }
 
 @MainActor
-final class BuiltRows {
+final class GlidePhaseLog {
+    var changes: [String] = []
+    var velocities: [CellVector?] = []
+}
+
+@MainActor
+final class GlideBuiltRows {
     var count = 0
 }
 

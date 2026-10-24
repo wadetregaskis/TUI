@@ -1617,8 +1617,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   a repeating one), drawn only on the 1/60 s ticks where its line changes
   (since 2026-10-24, B27-ANIMATING); under reduce motion it jumps. A
   `List`'s or a `Table`'s, a column request, and a position's edge or offset
-  still jump. A user scroll is `.interacting` until 250 ms pass with no step; the
-  other three phases never occur; the velocity is (0, 0) at every report,
+  still jump. A user scroll is `.interacting` until 250 ms pass with no step; a
+  glide is `.animating` until it lands; `.tracking` and `.decelerating` never
+  occur; the velocity is (0, 0) at every report,
   as SwiftUI's is where it was measured. An overscroll
   allowance the app asked for stays where it was pushed (bounce behaviour
   decides only when it applies); `.always` adds a bounce of a line or two on an

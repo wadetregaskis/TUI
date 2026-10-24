@@ -148,10 +148,11 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// against the viewport once the frame's offset is final.
     var targetVisibility: ScrollTargetVisibilityReport?
 
-    /// What the user's scrolling is doing — see ``ScrollPhase``. Set to
+    /// What the view's scrolling is doing — see ``ScrollPhase``. Set to
     /// `.interacting` by ``noteUserScroll()``, and returned to `.idle` by a
     /// render once the scrolling has been quiet long enough, which a render
-    /// does only for a view an `onScrollPhaseChange` observes.
+    /// does only for a view an `onScrollPhaseChange` observes. `.animating`
+    /// from the frame a ``glide`` starts on to the one it lands on.
     var phase: ScrollPhase = .idle
 
     /// When the user last scrolled, on ``phaseNow``'s clock.
