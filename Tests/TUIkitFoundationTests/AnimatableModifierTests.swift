@@ -101,6 +101,26 @@ struct AnimatableModifierTests {
         }
     }
 
+    @Test("A settled padding's first animated change is measured where it is drawn, before the render sees it")
+    func firstAnimatedChangeMeasuresTheOldValue() {
+        // The measure walk skips the store while nothing moves and no
+        // animation is in force (WL-Q3); an animation in force on the frame a
+        // change lands must still ask it, and measure the picture, not the
+        // target — or the layout would jump to the end on the first frame.
+        let animated = Screen(.linear(duration: 1))
+        _ = animated.draw(Text("ab").padding(.leading, 0), atMillis: 0)
+        #expect(animated.context.environment.stateStorage!.animations.presentsEveryTarget)
+        #expect(animated.measure(Text("ab").padding(.leading, 8), atMillis: 0).width == 2)
+        #expect(indent(animated.draw(Text("ab").padding(.leading, 8), atMillis: 0)) == 0)
+        #expect(animated.measure(Text("ab").padding(.leading, 8), atMillis: 500).width == 6)
+
+        // With nothing in force the change jumps, on both walks.
+        let unanimated = Screen(nil)
+        _ = unanimated.draw(Text("ab").padding(.leading, 0), atMillis: 0)
+        #expect(unanimated.measure(Text("ab").padding(.leading, 8), atMillis: 0).width == 10)
+        #expect(indent(unanimated.draw(Text("ab").padding(.leading, 8), atMillis: 0)) == 8)
+    }
+
     @Test("A fixed frame resizes")
     func fixedFrameResizes() {
         // Drawn, not only measured: a measure walk never STARTS an animation

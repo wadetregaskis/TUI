@@ -134,6 +134,16 @@ a frame, nearly all in these lookups, a retain and a release each. In the profil
 `animatedValue` 25.8% inclusive, `Dictionary.index(forKey:)` 22.5%,
 `IdentityNode.structurallyEqual` 21.3%. Details in the VISUALS decisions file.
 
+**Q3, a fix (2026-10-24), A/B owed.** Not the per-frame "could anything
+animate?" gate this entry calls unsound: that one dropped the first animated
+change, because a record has to exist before the change. This gate is on the
+MEASURE walk only, which writes nothing: where no record is running or settled
+away from its target, no transition scrub is installed and no animation is in
+the transaction, every lookup would answer the target, so it is not made. The
+render walk still makes the record at first sight, and on the frame an
+animated change lands the transaction carries the animation, so the measure
+asks. Profiled on `deep`: `animatedValue` 25.5% → 1.8% inclusive.
+
 
 ## 2026-08-19 — parity, continued
 

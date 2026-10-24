@@ -238,3 +238,26 @@ nesting level of `deep` adds seven nodes, the probes' identities average
 187 nodes, and identity comparisons visit about 363,000 nodes a frame,
 nearly all in these lookups, each visit a retain and a release. The lookup was always this; the bench
 now counts the measure walk that pays it 1,720 times a frame.
+
+**A fix, for an A/B.** The measure walk skips the store where nothing in it
+moves and no animation is in force (`animatedValue`,
+`AnimationStore.presentsEveryTarget`). A measure writes nothing, so all it
+did there was look up a record to learn the answer is the target: with no
+record running or settled away from its target, no transition scrub
+installed, and no animation in the transaction, every branch of
+`value(for:…)` answers the target. The store keeps a count of its unsettled
+records to say so in a load and a compare; the gate reads the transaction
+(one environment read) in place of the lookup. The render walk still asks
+every time, so the record a first animated change starts from is still made
+at first sight, and on the frame such a change lands the transaction carries
+its animation, so the measure asks and measures the old value
+(`AnimatableModifierTests`). An arrival over is now retired as a value's
+animation is, at what it presented, so a view that arrived under an
+animation does not keep the gate shut while it stays. Profiled (`deep`,
+release, 8 s, against the commit before it): `animatedValue` 25.5% → 1.8%
+inclusive, `IdentityNode.structurallyEqual` 21.4% → 2.2%, the store's
+`index(forKey:)` 22.1% → 0.2%, `swift_release` / `swift_retain` self
+12.6% / 10.6% → 5.8% / 4.3%; the bench's checksums are unchanged on `deep`,
+`kitchensink`, `animating` and `table`. **A/B:** `deep`, with `modifiers`
+(many shallow paddings, where an environment read and a short lookup are
+close), `kitchensink`, `animating` and `table`.

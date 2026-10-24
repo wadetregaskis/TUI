@@ -102,6 +102,17 @@ public final class AnimationStore: @unchecked Sendable {
         /// each with the change it animates — `nil`, nearly always, when
         /// nothing overlaps. See ``Segment``.
         var earlier: [Segment]?
+
+        /// Whether this record settled somewhere other than its target: a
+        /// retired even-count autoreverse, which presents `from` (see
+        /// ``from``). Said by whoever builds the record, which alone knows the
+        /// two values' type.
+        var isDisplaced = false
+
+        /// Whether this record can present anything but its target: something
+        /// is running (finished or not, until it retires), or it settled away
+        /// from it. Counted in ``unsettledCount``.
+        var isUnsettled: Bool { animation != nil || isDisplaced }
     }
 
     /// An earlier change's animation, still running beside a later one —
@@ -118,6 +129,10 @@ public final class AnimationStore: @unchecked Sendable {
     }
 
     private var records: [Key: Record] = [:]
+
+    /// How many of ``records`` are ``Record/isUnsettled``: kept by every write
+    /// and removal, so ``presentsEveryTarget`` is a load and a compare.
+    private var unsettledCount = 0
 
     /// The pass each `View.animation(_:value:)` trigger was last seen on.
     private var triggerPasses: [Key: UInt64] = [:]
@@ -175,6 +190,18 @@ public final class AnimationStore: @unchecked Sendable {
 
     /// How many animating values are being tracked (tests, diagnostics).
     public var count: Int { records.count }
+
+    /// Whether every value the store is asked about draws exactly what the
+    /// tree says it is, unless a change made now animates: no record is
+    /// running or settled away from its target, and no transition scrub is
+    /// answering for the records.
+    ///
+    /// What lets the measure walk skip the store (WL-Q3,
+    /// ``animatedValue(of:owner:context:isMeasuring:)``): a measure writes
+    /// nothing, so where this holds and no animation is in force its every
+    /// lookup answers the target — and a lookup is not cheap on a deep tree,
+    /// where the key's identity is compared node by node to the root.
+    package var presentsEveryTarget: Bool { unsettledCount == 0 && scrub == nil }
 }
 
 // MARK: - Asking what to draw
@@ -235,7 +262,9 @@ extension AnimationStore {
                 Self.earlierFinished(record, at: nowNanos)
             {
                 store(
-                    Record(from: presented, target: recorded, animation: nil, startNanos: nowNanos),
+                    Record(
+                        from: presented, target: recorded, animation: nil, startNanos: nowNanos,
+                        isDisplaced: presented != recorded),
                     for: key, isMeasuring: isMeasuring)
             }
             return presented
@@ -283,8 +312,22 @@ extension AnimationStore {
         if let record = records[key], let from = record.from as? Double,
             let target = record.target as? Double
         {
-            if record.lastPass != pass, !isMeasuring { records[key]?.lastPass = pass }
-            return presented(record, from: from, target: target, nowNanos: nowNanos)
+            let phase = presented(record, from: from, target: target, nowNanos: nowNanos)
+            // An arrival over is retired as a value's is, at what it presented,
+            // so a view that arrived under an animation does not keep the store
+            // unsettled (``presentsEveryTarget``) for as long as it stays.
+            if let running = record.animation, running.isFinished(at: elapsed(record, nowNanos)),
+                Self.earlierFinished(record, at: nowNanos)
+            {
+                store(
+                    Record(
+                        from: phase, target: target, animation: nil, startNanos: nowNanos,
+                        isDisplaced: phase != target),
+                    for: key, isMeasuring: isMeasuring)
+            } else if record.lastPass != pass, !isMeasuring {
+                records[key]?.lastPass = pass
+            }
+            return phase
         }
         guard let animation else {
             store(
@@ -630,7 +673,21 @@ extension AnimationStore {
         guard !isMeasuring else { return }
         var stamped = record
         stamped.lastPass = pass
-        records[key] = stamped
+        let unsettles = stamped.isUnsettled ? 1 : 0
+        // Swapped in through the subscript, which keeps the key already filed
+        // and hands back the record it replaces, in one lookup. NOT
+        // `updateValue(_:forKey:)`, which files the NEW key over the old: an
+        // equal identity, but another object, and `removeDescendants(of:)`
+        // and the transitions' pinned identities then disagreed about it
+        // (seven custom-transition and reduce-motion tests failed).
+        var replaced: Record? = stamped
+        swap(&records[key], &replaced)
+        unsettledCount += unsettles - (replaced?.isUnsettled == true ? 1 : 0)
+    }
+
+    /// Removes the record at `key`, keeping ``unsettledCount``.
+    private func removeRecord(at key: Key) {
+        if records.removeValue(forKey: key)?.isUnsettled == true { unsettledCount -= 1 }
     }
 }
 
@@ -651,7 +708,7 @@ extension AnimationStore {
         // it measured as most of a +7.6% on `deep`.
         var stale: [Key] = []
         for (key, record) in records where record.lastPass != pass { stale.append(key) }
-        for key in stale { records.removeValue(forKey: key) }
+        for key in stale { removeRecord(at: key) }
 
         guard !triggers.isEmpty else { return }
         var staleTriggers: [Key] = []
@@ -670,7 +727,7 @@ extension AnimationStore {
             ancestor.isAncestor(of: identity) || (includingItself && identity == ancestor)
         }
         for key in records.keys where isStale(key.identity) {
-            records.removeValue(forKey: key)
+            removeRecord(at: key)
         }
         for key in triggers.keys where isStale(key.identity) {
             triggers.removeValue(forKey: key)
@@ -681,6 +738,7 @@ extension AnimationStore {
     /// Drops everything.
     public func removeAll() {
         records.removeAll()
+        unsettledCount = 0
         triggers.removeAll()
         triggerPasses.removeAll()
     }

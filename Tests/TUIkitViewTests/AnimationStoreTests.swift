@@ -101,4 +101,72 @@ struct AnimationStoreTests {
             nowNanos: second + second / 20, isMeasuring: false)
         #expect(abs(mid - 1.0) < 0.0001)
     }
+
+    @Test("The store presents every target until something runs, and again once it settles at its target")
+    func presentsEveryTargetFollowsWhatRuns() {
+        let store = AnimationStore()
+        let key = makeKey()
+        store.beginRenderPass()
+        #expect(store.presentsEveryTarget, "an empty store")
+
+        _ = store.value(for: key, target: 0.0, animation: nil, nowNanos: 0, isMeasuring: false)
+        #expect(store.presentsEveryTarget, "a first sight settles at its target")
+
+        // A measure starts nothing, so it unsettles nothing.
+        let animation = Animation.linear(duration: 0.1)
+        _ = store.value(for: key, target: 1.0, animation: animation, nowNanos: 0, isMeasuring: true)
+        #expect(store.presentsEveryTarget)
+
+        _ = store.value(for: key, target: 1.0, animation: animation, nowNanos: 0, isMeasuring: false)
+        #expect(!store.presentsEveryTarget, "running")
+        _ = store.value(for: key, target: 1.0, animation: animation, nowNanos: second, isMeasuring: false)
+        #expect(store.presentsEveryTarget, "retired at its target")
+
+        // An unanimated change jumps, and stays settled.
+        _ = store.value(for: key, target: 3.0, animation: nil, nowNanos: 2 * second, isMeasuring: false)
+        #expect(store.presentsEveryTarget)
+    }
+
+    @Test("An even autoreverse settled away from its target keeps the store from presenting every target")
+    func displacedSettleIsUnsettled() {
+        let store = AnimationStore()
+        let key = makeKey()
+        store.beginRenderPass()
+        _ = store.value(for: key, target: 0.0, animation: nil, nowNanos: 0, isMeasuring: false)
+        let bounce = Animation.linear(duration: 0.1).repeatCount(2, autoreverses: true)
+        _ = store.value(for: key, target: 1.0, animation: bounce, nowNanos: 0, isMeasuring: false)
+        _ = store.value(for: key, target: 1.0, animation: bounce, nowNanos: second, isMeasuring: false)
+        // Retired, presenting 0 where the tree says 1: a measure must still ask.
+        #expect(!store.presentsEveryTarget)
+        #expect(store.value(for: key, target: 1.0, animation: nil, nowNanos: 2 * second, isMeasuring: true) == 0.0)
+
+        // Dropped when the tree stops asking: nothing is left to present otherwise.
+        store.beginRenderPass()
+        store.endRenderPass()
+        #expect(!store.hasRecord(at: key))
+        #expect(store.presentsEveryTarget)
+    }
+
+    @Test("A scrub answers every lookup, so the store does not present every target while one draws")
+    func scrubIsNotSettled() {
+        let store = AnimationStore()
+        store.scrub = TransitionScrub()
+        #expect(!store.presentsEveryTarget)
+        store.scrub = nil
+        #expect(store.presentsEveryTarget)
+    }
+
+    @Test("An arrival retires once its animation is over, at what it presented")
+    func arrivalRetires() {
+        let store = AnimationStore()
+        let key = makeKey()
+        store.beginRenderPass()
+        let animation = Animation.linear(duration: 0.1)
+        #expect(store.arrivalPhase(for: key, animation: animation, nowNanos: 0, isMeasuring: false) == 0)
+        #expect(!store.presentsEveryTarget)
+        #expect(store.arrivalPhase(for: key, animation: animation, nowNanos: second / 20, isMeasuring: false) == 0.5)
+        #expect(store.arrivalPhase(for: key, animation: animation, nowNanos: second, isMeasuring: false) == 1)
+        #expect(store.presentsEveryTarget)
+        #expect(store.arrivalPhase(for: key, animation: animation, nowNanos: 2 * second, isMeasuring: false) == 1)
+    }
 }

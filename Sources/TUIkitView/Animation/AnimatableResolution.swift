@@ -116,6 +116,17 @@ package func animatedValue<A: Animatable>(
     of value: A, owner: Any.Type, context: RenderContext, isMeasuring: Bool
 ) -> A? {
     guard let storage = context.stateStorage else { return nil }
+    // The measure walk over a store where nothing is moving, asked where no
+    // animation is in force: every answer is the target, so the store is not
+    // asked (WL-Q3). A measure writes nothing, so nothing is skipped but the
+    // lookup — and the lookup is what costs, its key's identity compared node
+    // by node up to the root (records keep the nodes of the frame that first
+    // saw them, and every frame builds new ones): on `deep` 1,720 such probes
+    // a frame, about 187 nodes each. NOT the render walk, which must keep
+    // asking: its first sight is the record a later change animates from,
+    // and its re-declaration keeps the record alive. And not under an
+    // animation, where a change this frame measures at its old value.
+    if isMeasuring, storage.animations.presentsEveryTarget, !changesAnimate(in: context) { return nil }
     let key = AnimationStore.Key(identity: context.identity, owner: ObjectIdentifier(owner))
     let target = value.animatableData
     // The common case first, and before the environment is read: a value
@@ -133,6 +144,8 @@ package func animatedValue<A: Animatable>(
     // environment (112 reads a frame on a menu tree). Still AFTER the
     // `isSettled` return above, which is where it has to stay: hoisting it
     // would charge every settled view for an animation it is not running.
+    // (The measure-walk gate above reads the transaction before the store,
+    // but in place of a lookup it saves, and only where nothing is moving.)
     let frame = context.environment.animationFrame
     var animation = frame.canAnimate ? context.environment.transaction.effectiveAnimation : nil
     // Reduce motion holds still what moves in X and Y (owner decision
@@ -157,6 +170,19 @@ package func animatedValue<A: Animatable>(
     var copy = value
     copy.animatableData = drawn
     return copy
+}
+
+/// Whether a change made in `context` now would animate: the transaction in
+/// force carries an animation and animation is possible this frame — the
+/// expression ``animatedValue(of:owner:context:isMeasuring:)`` decides by,
+/// before reduce motion, which only takes an animation away.
+///
+/// The transaction first, the other way round from there: in a running app
+/// `canAnimate` is nearly always true and the transaction nearly always
+/// carries nothing, so this is one environment read where that order is two.
+@MainActor
+private func changesAnimate(in context: RenderContext) -> Bool {
+    context.environment.transaction.effectiveAnimation != nil && context.environment.animationFrame.canAnimate
 }
 
 /// `value` at the value the animation store says to draw it at
