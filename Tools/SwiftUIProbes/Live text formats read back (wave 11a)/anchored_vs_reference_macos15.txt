@@ -1,0 +1,38 @@
+anchored5 -400000.0 5 days ago
+anchored5 -200000.0 3 days ago
+anchored5 -90000.0 yesterday
+anchored5 -86400.0 yesterday
+anchored5 -3725.0 1 hour ago
+anchored5 -3599.0 1 hour ago
+anchored5 -125.0 2 minutes ago
+anchored5 -89.4 1 minute ago
+anchored5 -30.6 1 minute ago
+anchored5 -29.4 this minute
+anchored5 -0.6 this minute
+anchored5 0.0 this minute
+anchored5 0.4 this minute
+anchored5 29.4 this minute
+anchored5 29.6 in 1 minute
+anchored5 30.0 in 1 minute
+anchored5 89.4 in 1 minute
+anchored5 89.6 in 2 minutes
+anchored5 125.0 in 2 minutes
+anchored5 3569.4 in 59 minutes
+anchored5 3569.6 in 1 hour
+anchored5 3599.0 in 1 hour
+anchored5 3600.0 in 1 hour
+anchored5 5399.4 in 1 hour
+anchored5 5399.6 in 2 hours
+anchored5 84599.4 in 23 hours
+anchored5 84599.6 tomorrow
+anchored5 86399.0 tomorrow
+anchored5 86400.0 tomorrow
+anchored5 90000.0 tomorrow
+anchored5 150399.0 tomorrow
+anchored5 150401.0 in 2 days
+anchored5 172800.0 in 2 days
+anchored5 200000.0 in 2 days
+anchored5 400000.0 in 4 days
+anchored5 409599.0 in 4 days
+anchored5 409601.0 in 5 days
+anchored5 5000000.0 in 2 months

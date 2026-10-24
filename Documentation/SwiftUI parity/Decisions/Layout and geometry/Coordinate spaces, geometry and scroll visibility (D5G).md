@@ -13,8 +13,8 @@ work reached that those answers did not already settle, in the format of
   and its price.
 - **C-D5G-n — declined.** With the `parity-map.json` reason.
 
-Measurements are SwiftUI on macOS 15 (probes in the session notes,
-`D5G/probe`).
+Measurements are SwiftUI on macOS 15 (probes in
+`Tools/SwiftUIProbes/Coordinate spaces and scroll visibility (D5G)/`).
 
 ## B. Shipped the safe option
 
@@ -198,7 +198,7 @@ viewport's, `inset(by:)` moves one towards the middle). The position is the
 owner's answer 5: predicted, and corrected by the scroll view when wrong.
 
 Not measured: the threshold SwiftUI uses when none is set. A pixel probe of
-an offscreen `NSHostingView` (session notes, `D5G/probe/st2.swift`) did not
+an offscreen `NSHostingView` (`Tools/SwiftUIProbes/Coordinate spaces and scroll visibility (D5G)/st2.swift`) did not
 agree with itself — the band it found partly faded did not move with the
 scroll offset it was given — so the default is taken as `.visible`, the point
 the documentation of `threshold(_:)` calls "fully visible".

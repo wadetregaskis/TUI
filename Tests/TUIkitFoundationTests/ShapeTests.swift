@@ -2,7 +2,7 @@
 //  ShapeTests.swift
 //
 //  The built-in shapes' paths against SwiftUI's (measured: the W1 lane's
-//  `paths.swift` probe, session notes), and shapes drawn as views: which tier
+//  `Tools/SwiftUIProbes/Shape paths (W1)/paths.swift`), and shapes drawn as views: which tier
 //  draws them, what each cell is, and what they owe the compositor.
 //
 //  Created by Wade Tregaskis

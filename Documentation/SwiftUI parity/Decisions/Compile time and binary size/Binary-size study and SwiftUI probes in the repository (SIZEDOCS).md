@@ -48,10 +48,18 @@ names a probe by its path in the working notes (`MeshGradientTests.swift` says
 lane 17m's are there, without one). The main decisions file still
 cites both `w10b/probe/` and `w12/probe/` there: that file is yours to edit.
 
-**Fuller version:** the SwiftUI probes that only decisions files cite (waves
-6b, 8a, 8b, 10 and 11a, lanes 17, 17d, 17g and 17m, D5G and DECB), committed
-the same way, and their 22 citations repointed, half of them in the main
-decisions file. **Price:** 438,206 B of sources, outputs and notes in 189
-files (measured, 2026-10-12), or 5.48 MB with the pixel dumps and renders of
-lanes 17m and 8b, in every clone; not done, since the approval priced the
-cited set.
+**Fuller version, shipped 2026-10-23 (lane DOCS2, the owner's ruling
+B-SIZEDOCS-1 (a)):** the SwiftUI probes that only decisions files cite (waves
+6b, 8a, 8b, 10 and 11a, lanes 17, 17d, 17g and 17m, D5G and DECB), and since
+then W1's, FB16's, PARITYMISC's, INPUT's and O13's, committed the same way
+without the pixel dumps, renders, built programs and module caches, and their
+citations in Documentation, Sources and Tests repointed. It is 174 files and
+539,073 B (measured): sources, text outputs and the notes' scripts, in 16
+folders of `Tools/SwiftUIProbes/` with an entry each in its README. It is
+larger than the 438,206 B in 189 files the entry priced, because the sets that
+lanes added since (PARITYMISC, INPUT, O13, W1 with its review round, FB16's
+36 KB) came with it. Left in the working notes: wave 17t's probes, which
+nothing named in the ruling; and the notes the code and decisions cite that are
+not SwiftUI probes (DYNV/notes.md and DYNV2/notes.md, O9/probe, O10/probe).
+Lane 8b's probes write PNGs; the committed copies write them to
+`NSTemporaryDirectory()` and not to the notes folder.

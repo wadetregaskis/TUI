@@ -2,7 +2,7 @@
 
 Small programs that record what SwiftUI does, so that TUIkit can do the same. These are the ones that TUIkit's
 doc comments, tests and decisions files cite, by path, as the measurement behind a claim about SwiftUI's
-behaviour; each is kept with what it printed. Probes that nothing here cites stay in the maintainers' working
+behaviour; each is kept with what it printed. A few probes that only lane notes cite stay in the maintainers' working
 notes, and a document that cites one of those names its folder there.
 
 Each probe is a short Swift program compiled with `swiftc` against the macOS SDK and run on a Mac. Most host SwiftUI
@@ -17,12 +17,13 @@ One folder, Swift runtime layouts, records the Swift runtime's own layouts that 
 with no SwiftUI involved.
 
 They are evidence, not part of the package: SwiftPM, CI and SwiftLint do not see them, and no binary or other
-build product is kept here. `Tools/TerminalProbes/` is the same idea for terminals.
+build product is kept here. Nor are pixel dumps and renders (`.png`, `.tiff`, `.rgba`): the probes that made them
+make them again. `Tools/TerminalProbes/` is the same idea for terminals.
 
 ## Where they ran
 
 On the development Mac, an Apple-silicon VM running macOS 15.8 (15.8.1 where a note gives the point release;
-SwiftUI 6.5.4), against the macOS 26.2 SDK of Xcode 26.3, between 2026-10-03 and 2026-10-11; where the notes name
+SwiftUI 6.5.4), against the macOS 26.2 SDK of Xcode 26.3, between 2026-10-03 and 2026-10-19; where the notes name
 the compiler, it was Xcode's Swift 6.2.4. API that is new in macOS 26 could not be run there, so no probe
 measures it. Each folder below says what its citing documents state about the machine.
 
@@ -714,3 +715,257 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIkitSearch/Modifiers/SearchableModifier.swift`,
   `Tests/TUIkitSearchTests/SearchableTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`
   (the clear button row), `Documentation/Terminals/Terminal compatibility survey.md` ("The search field's ✕").
+
+### Vertical TextField keys, caret and size (wave 6b)
+
+- **Asks:** what a `TextField(axis: .vertical)` does with each newline-ish key (`keys.swift`); how the caret moves:
+  Up and Down across hard and soft lines and off either end, Ctrl-A, E, K, P and N, Home and End, in typed-in
+  multi-line text (`nav.swift`); on which of two wrapped rows the insertion point is drawn at the wrap, and what
+  the field editor's `selectionAffinity` says, after a click-like set, an arrow key, typing and End
+  (`affinity.swift`); and how the field is sized: its growth with wrapped text, under each `lineLimit` form, and
+  with a long prompt (`size.swift`). Each puts the field in an `NSWindow` and sends key events through its key path.
+- **Files:** `keys.swift`, `nav.swift`, `affinity.swift`, `size.swift`. No `.out` files: the results are in the
+  citing documents.
+- **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-03.
+- **Was:** `w06b/probe/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (wave 6b's entries);
+  `Documentation/SwiftUI parity/Design studies/Text selection and editing design study, A13, A42 and A43 (2026-10-04).md`.
+
+### Table questions, compile and runtime (wave 8a)
+
+- **Asks:** compile-only questions about SwiftUI's `Table` surface, checked with `swiftc -typecheck`: which
+  initialiser a key-path column picks, whether a key path's root is inferred inside a `Group` of columns, and the
+  corpus's row and customization shapes (`compile1.swift` to `compile4.swift`); and, run against the macOS SDK, what
+  a `Table` does at run time (`run1.swift`), where a column's alignment puts a short cell (`run2.swift`) and what
+  each `TableStyle` draws: the `NSTableView` style, grid lines, stripes, the scroll view's border (`run3.swift`).
+  `common.swift` hosts a view offscreen for the three `run` programs.
+- **Also:** `never_sort.swift` and `linuxcheck/` (whether `Never` is a `SortComparator`, and whether
+  `Locale.NumberingSystem` and `SortDescriptor` are there on Linux), `dbgtype/` (a fix attempt for a column and a
+  row protocol that both refine one base: each redeclares its associated type with a default, and a user type
+  relies on the default), and `tk_group.swift`, the TUIkit side of `compile2.swift`. These ask the compiler, not
+  SwiftUI.
+- **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-03.
+- **Was:** `w08a/probe/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (wave 8a's entries).
+
+### Tab badges, sections and customization (wave 8b)
+
+- **Asks:** what a SwiftUI `TabView` draws in each style, with a section, a badge and a search-role tab
+  (`tabs.swift`); what a tab's content reads for `\.tabBarPlacement` and `\.isTabBarShowingSections` under each style
+  (`tabenv.swift`); `defaultVisibility(_:for:)` for each placement under each style, and a `TabViewCustomization`
+  that hides a tab from the sidebar (`custom.swift`); `Section(isExpanded:)` in a `List` per list style, expanded
+  and collapsed (`sections.swift`); and how a `List` row's badge draws under each `BadgeProminence`, in a plain list
+  and in the sidebar style (`badge.swift`, `badge_sidebar.swift`).
+- **Files:** the six `.swift` files. They write PNGs of what they drew to `NSTemporaryDirectory()`; the PNGs are not
+  kept here.
+- **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-03 and 2026-10-04. macOS 26 API could not be probed.
+- **Was:** `w08b/probe/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (wave 8b's entries).
+
+### Scroll geometry, margins and the wheel (wave 10)
+
+- **Asks:** with `contentMargins` of every kind: where a `ScrollView`'s content insets land and how nested margins
+  compose (`marg.swift`), where the first row of a `List`, a `Form` and a `Table` sits (`list.swift`, `form.swift`),
+  what `containerRelativeFrame` fills (`crf.swift`), and where a `TextEditor`'s first ink is, against
+  `safeAreaPadding` (`te.swift`); what `onScrollGeometryChange`, `onScrollPhaseChange` and `ScrollPosition`
+  report across a `scrollTo` and an animated one (`geo.swift`); which rows `onScrollVisibilityChange` and
+  `onScrollTargetVisibilityChange` call visible (`vis.swift`); and what a wheel event does to the scroll phase
+  (`wheel.swift`). `ah.swift` is compiler-only: whether a `Hashable & Sendable` metatype survives a cast through
+  `AnyHashable`.
+- **Files:** the ten `.swift` files; `common.swift` is the offscreen host.
+- **Ran:** macOS 15, 2026-10-03.
+- **Was:** `w10/probe/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (wave 10's entries).
+
+### Live text formats read back (wave 11a)
+
+- **Asks:** what SwiftUI shows for its live and formatted texts. `ax.swift` and `ax2.swift` read a hosted `Text`
+  through the accessibility tree; `ocr.swift` and `ocr2.swift` render it and run OCR on the picture, because the
+  tree is empty without an assistive client; `pause.swift` is `Text(timerInterval:pauseTime:countsDown:)` with the
+  pause before, inside and after the interval; `variant.swift` and `variant2.swift` ask whether
+  `.textVariant(.sizeDependent)` changes a text short of room, and the ladder of readings each live text passes
+  through as the width falls. `fmt.swift` and `fmt2.swift` format fixed dates and durations in `en_US` through the
+  `SystemFormatStyle` family; `foundation_cmp.swift` does the same with Foundation's own formatters, the
+  candidates for reproducing them; `ranges.swift` asks which bound a discrete format moves for a `Range<Date>`
+  input, what a `Duration.TimeFormatStyle`'s discrete boundaries are, and whether `FoundationEssentials` imports.
+- **Files:** the `.swift` files and the results they printed, `*_results_macos15.txt` and
+  `foundation_cmp_macos15.txt`, each named for its program; `anchored_vs_reference_macos15.txt`, a table of
+  anchored relative-date readings, has no program of its own here.
+- **Ran:** macOS 15, 2026-10-03. A pass on macOS 26 is owed.
+- **Was:** `w11a/probe/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (wave 11a's entries).
+
+### Foundation shims and a text snapshot (wave 17)
+
+- **Asks:** `p.swift`, for the refusal review: whether a modifier changes a hosted view's size or its pixels,
+  compared with the same view without it (`submitLabel`, `font.leading`, `symbolRenderingMode`, `controlSize`,
+  `textScale`, `imageScale`, `scenePadding`, `fontDesign`, `contentShape`, `sensoryFeedback`, `allowsTightening`);
+  and `lx.swift` to `lx5.swift`, small Foundation programs (`AttributedString` with Markdown and links, `CGAffineTransform`,
+  `FileWrapper`, `NumberFormatter.getObjectValue`, `ReferenceConvertible`) built for the static Linux SDK to see
+  which of them compile there.
+- **Ran:** `p.swift` on macOS 15.8, 2026-10-03; `lx*.swift` with Swift 6.3.3's static Linux SDK.
+- **Was:** `w17/probe/`.
+- **Cited by:** `Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md`.
+
+### Spring loading (lane 17d)
+
+- **Asks:** what SwiftUI does when a drag hovers over a spring-loading target: where spring loading is offered, with
+  which options, and what activating does (`spring.swift`, `spring6.swift`, and the same question driven with a
+  fake `NSDraggingInfo` in `spring2.swift`, `spring5.swift`); and the same for a `TabView`, with the window on
+  screen (`spring3.swift`, `spring4.swift`). Each has its `.out`.
+- **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-04. The drag-session family is macOS 26's and is from its doc
+  comments.
+- **Was:** `w17d/probe/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (lane 17d's entries).
+
+### Gestures (lane 17g)
+
+- **Asks:** what SwiftUI's gestures do with synthesised `NSEvent`s sent into a window: the arbitration between a
+  parent's gesture and a child's (`arb.swift`, `arb2.swift`), the thresholds of a tap, a double tap, a long press
+  and a drag: the double-tap window, how long a tap may be held, how far it may travel, a release outside the view
+  (`taps2.swift`), a tap with modifiers, a long press with and without a tap beside it, its pressing callback and
+  maximum distance, and a gesture cancelled by a parent's high-priority drag (`taps3.swift`), and a drag's values
+  and their timing (`timing.swift`). `common.swift` is the window harness. `combo.out`, `drag.out`, `lp.out` and
+  `taps.out` are results whose programs are not kept.
+- **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-04.
+- **Was:** `w17g/probe/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (lane 17g's entries),
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
+
+### Mesh gradient fits (lane 17m)
+
+- **Asks:** what pixels SwiftUI's `MeshGradient` draws, and which model of its geometry and its smooth and
+  perceptual colour rules fits them. `mesh.swift`, `mesh2.swift` and `mesh3.swift` render one mesh per case through
+  `ImageRenderer` at scale 1 and write the RGBA bytes to a directory (`./mesh OUTDIR`); `anim.swift` asks whether a
+  mesh animates inside `withAnimation`. The Python files read those dumps and fit models to them: `model.py` the
+  geometry, `bezier_check.py` the explicit Bézier points, `fit.py` a bicubic patch fitted to the coordinates the
+  colours encode, `tanfit.py` the vertex tangents, `colour.py`, `colour2.py`, `colour3.py`, `row1d.py`, `cs1d.py`,
+  `hue1d.py`, `lms.py` and `lms_rows.py` the colour rule,
+  `errmap.py` a model's error per block, `pins.py` the pixels the tests pin, `px.py` a reader for a dump.
+- **Not kept:** the `.rgba` dumps (several MB). Run `mesh.swift`, `mesh2.swift` and `mesh3.swift` to make them
+  again; the scripts name the cases.
+- **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-04.
+- **Was:** `w17m/probe/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (lane 17m's entry),
+  `Tests/TUIkitFoundationTests/MeshGradientTests.swift`.
+
+### Coordinate spaces and scroll visibility (D5G)
+
+- **Asks:** where a view in a scroll view reports itself in each coordinate space, and what the scroll view's
+  offset does to it (`m3.swift`, `m3b.swift`: a reader's frame and bounds in `.scrollView`, a named space and `.global`, with a
+  `ScrollPosition(y: 40)` against the scroll view scrolled by AppKit);
+  which scroll view `.scrollView` picks when a horizontal one sits in a vertical one (`m4.swift`); the phases each
+  row's `scrollTransition` closure is called with (`st.swift`); and `onScrollVisibilityChange` at several thresholds, for views inside and
+  outside the scroll view (`vis.swift` to `vis6.swift`, each later one refining the case of the one before).
+  `st2.swift` tried to find the default threshold from a picture of the faded band, and did not agree with
+  itself, so the default is taken as `.visible`.
+- **Files:** the `.swift` files and their `.out` where one was kept (`m3`, `m3b`, `m4`, `st`, `st2`, `vis`, `vis2`,
+  `vis3`).
+- **Ran:** macOS 15, 2026-10-05.
+- **Was:** `D5G/probe/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/Layout and geometry/Coordinate spaces, geometry and scroll visibility (D5G).md`;
+  `Documentation/Historical/Geometry design study, A2 and A7 (2026-10-04).md`.
+
+### Scroll position, margins and disabled scrolling (DECB)
+
+- **Asks:** which anchor wins when a transaction's `scrollTargetAnchor` and a call's own disagree (`anchor/`);
+  what SwiftUI does under `Transaction.scrollContentOffsetAdjustmentBehavior = .disabled` (`disabled/`); where an
+  `NSScroller` goes under `contentMargins`, by placement, for overlay and legacy scrollers (`margins/`); and what
+  velocity is in a `ScrollPhaseChangeContext` at each change that can be made to happen offscreen (`phase/`). Each
+  folder holds its `.swift` and its `.out`.
+- **Also:** the lane's reading of how AppKit mirrors a key equivalent under a right-to-left layout (decisions B8):
+  `mirror.swift` (`mirror.out`) lists the characters AppKit's private mirroring candidates cover and what each
+  becomes, and `findsel.swift`, `findsel2.swift`, `imgs.swift` and `ksc.swift` (`ksc.out`) search the Objective-C
+  runtime for the selectors that do it. They call private AppKit and TextInput selectors, which is why they are
+  here and not in TUIkit.
+- **Ran:** macOS 15.8, 2026-10-12.
+- **Was:** `DECB/probe/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`,
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
+
+### Shape paths (W1)
+
+- **Asks:** SwiftUI's own descriptions of the paths its `Path` builders and shapes make (`paths.swift`: a
+  triangle, arcs drawn both ways, relative and tangent, a rectangle, an ellipse, rounded rectangles circular,
+  continuous, uneven and with too large a radius, the built-in shapes, trimmed paths, insets, offset, rotation and
+  scale, each with its bounding box), and how its rounded rectangle clamps a corner size larger than the rectangle
+  (`clamp.swift`). `iso/` (`iso.swift` to `iso4.swift`) and `onlytuikit/` are isolation experiments on a
+  stand-in `Shape` and `View` protocol pair, and on TUIkit alone; they say nothing about SwiftUI's behaviour.
+- **Also:** `review/` is the lane's review round: `desc.swift`, `addarc.swift` and `cap.swift` (SwiftUI's
+  descriptions of the arcs the review's fixes pin, of `addArc` past a turn and of a relative arc's segmentation
+  near the cap, where it stops adding quarter turns), `arcs.swift` (how CoreGraphics and SwiftUI build arcs of
+  non-finite or huge angles, and how CoreGraphics dashes an odd-length or a very fine pattern) and
+  `dashfine.swift` (where CoreGraphics stops drawing a pattern as dashes and draws the line whole, and what a very
+  long dashed line costs).
+- **Ran:** macOS 15.8, 2026-10-18.
+- **Was:** `W1/probe/` and `W1/probe2/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Shapes (W1).md`;
+  `Sources/TUIkitFoundation/Shapes/Path+Builders.swift`, `Sources/TUIkitFoundation/Rendering/ShapeStroker.swift`;
+  `Tests/TUIkitFoundationTests/PathTests.swift`, `Tests/TUIkitFoundationTests/ShapeTests.swift`.
+
+### Insertion and removal (FB16)
+
+- **Asks:** whether SwiftUI moves a view's siblings when the view is inserted or removed with a transition that
+  does not move it (opacity, scale, identity). `FB16Probe.swift` builds five columns (`opacity`, `scale`,
+  `move top`, `identity`, `push`), each inserting its middle row with one transition under an 8 s linear
+  animation, on a loop (shown 10 s, hidden 10 s); `samples.txt` is the Core
+  Animation presentation frames every 0.5 s, per column and per phase (`insert` and `remove` lines).
+- **Ran:** macOS 15.8, 2026-10-17.
+- **Was:** `plan/fb16/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Insertion and removal model (FB16).md`,
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`; `Sources/TUIkitEffects/Animation/TransitionModifier.swift`,
+  `Sources/TUIkitFoundation/Views/StackGlide.swift`, `Sources/TUIkitView/Animation/ChildGlide.swift`,
+  `Sources/TUIkitView/Animation/PlacementStore.swift`; `Tests/ExampleTests/AnimationPageShowHideTests.swift`,
+  `Tests/TUIkitEffectsTests/DefaultTransitionTests.swift`, `Tests/TUIkitEffectsTests/StackGlideTests.swift`,
+  `Tests/TUIkitEffectsTests/TransitionTests.swift`.
+
+### Small parity items (PARITYMISC)
+
+- **Asks:** whether SwiftUI parses Markdown in a `Tab` title, a `TableColumn` header and a `TextField` title
+  (`b87/`: `probe.swift` reads the AppKit views a hosted view makes; `tabs.swift` to `tabs4.swift` dump the view
+  tree of a `TabView` with a Markdown tab title; the renders they also made are not kept); how a `Text` key is looked up under `\.locale`, with `en`, `de`
+  and `fr` tables and without a table for `pt` or `ja` (`locale/probe.swift`; it needs a bundle, so build it as
+  `Probe.app/Contents/MacOS/probe` with `Info.plist` and `Resources/` beside it); what a `Binding<AnyHashable>`
+  made from a `Binding<Int>` does on a read, and on a write of an `Int`, an `Int8` and a `String`
+  (`binding_anyhashable.swift`);
+  whether `.scrollIndicators(_:axes:)` shows the AppKit scrollers (`shows_indicators.swift`); and the number of
+  `NSTextContentType` cases (`tct.swift`). `entry_probe.swift` (SwiftUI's `@Entry`) and `entry_diag.swift` (TUIkit's
+  macro's diagnostics) check the `@Entry` macro on both sides.
+- **Ran:** macOS 15, 2026-10-18.
+- **Was:** `PARITYMISC/probes/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/Small parity items (PARITYMISC).md`,
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
+
+### Undo and the pointer leaving (INPUT)
+
+- **Asks:** whether `NSTextView` coalesces a run of typing into one undo step, and what ends the run: a pause, a
+  caret move, a deletion (`undo.swift`); what ends it beyond those: the first responder moving to another text view
+  that shares the window's undo manager and back, an unrelated undo registered on that manager mid-run,
+  Option-Return and Ctrl-O (`undo2.swift`); and whether an undo group's user info names the newest step, so that a
+  text control can ask whether its run's step is still the newest (`undo3.swift`).
+- **Also:** `pointer_leave_probe.py` is not a SwiftUI probe: a PTY check of the Example app for the pointer
+  leaving a help view, written for BUGS13-POINTER-LEAVE.
+- **Ran:** macOS 15.8, 2026-10-18.
+- **Was:** `INPUT/probes/` (the three programs were `undo/main.swift`, `undo2/main.swift` and `undo3/main.swift`).
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md`;
+  `Sources/TUIkitFoundation/Focus/TextUndoBridge.swift`, `Sources/TUIkitTextInput/Focus/TextUndoHistory.swift`;
+  `Tests/TUIkitTextInputTests/TextUndoCoalescingTests.swift`.
+
+### The menu bar (O13)
+
+- **Asks:** what SwiftUI puts in the main menu for a few `.commands` shapes: the order of the menus, how a
+  `CommandGroup`'s three positions compose, what `commandsRemoved()` and `commandsReplaced` take away, what the
+  standard command sets add. It builds a SwiftUI app per case and reads the main menu back: `menus.swift`, with
+  `run.sh <case>` (cases `base`, `two`, `removed`, `removedInner`, `replaced`, `order`, `keys`). The probe could not
+  make its window key on the development Mac, and with no key window the main menu took the key, so how a command's
+  key equivalent is routed is unmeasured.
+- **Ran:** macOS 15.8, 2026-10-18.
+- **Was:** `O13/probe/`.
+- **Cited by:** `Documentation/SwiftUI parity/Decisions/Menus, toolbars and chrome/The menu bar (O13).md`,
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`,
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`; `Sources/TUIkitApp/App/SceneCommandsDeclaration.swift`,
+  `Sources/TUIkitCommands/Commands/CommandGroup.swift`, `Sources/TUIkitCommands/Commands/CommandGroupPlacement.swift`,
+  `Sources/TUIkitCommands/Commands/CommandMenu.swift`, `Sources/TUIkitCommands/Commands/CommandsCollector.swift`,
+  `Sources/TUIkitCommands/MenuBar/SceneOwnCommands.swift`, `Sources/TUIkitCommands/Scene+Commands.swift`,
+  `Sources/TUIkitFoundation/Views/KeyboardShortcutRegistry.swift`;
+  `Tests/TUIkitCommandsTests/CommandsCollectionTests.swift`.

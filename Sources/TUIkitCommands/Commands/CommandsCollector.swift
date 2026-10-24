@@ -39,7 +39,7 @@ struct DeclaredCommandMenu {
 }
 
 /// What the ``CommandGroup``s on one group said, in the order SwiftUI composes
-/// them (measured on macOS 15.8: the session notes' `O13/probe/menus.swift`).
+/// them (measured on macOS 15.8: `Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`).
 struct CommandGroupEdits {
     /// The `before:` additions, newest first: each goes in front of the group.
     var before: [CommandItems] = []
@@ -170,8 +170,8 @@ struct ResolvedCommandMenu {
 extension CommandsCollector {
     /// The menu bar's menus: the standard menus that have something in them,
     /// with the app's own menus between View and Window, in declaration order,
-    /// as SwiftUI orders them (measured on macOS 15.8: the session notes'
-    /// `O13/probe/menus.swift`).
+    /// as SwiftUI orders them (measured on macOS 15.8:
+    /// `Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`).
     ///
     /// A menu of the app's own is a menu even with nothing in it, as there; a
     /// standard menu with nothing in any of its groups is left out.

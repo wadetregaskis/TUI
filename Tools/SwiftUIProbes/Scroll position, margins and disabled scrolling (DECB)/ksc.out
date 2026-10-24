@@ -1,0 +1,26 @@
+- dealloc v16@0:8
+- copyWithZone: @24@0:8^{_NSZone=}16
+- description @16@0:8
+- hash Q16@0:8
+- isEqual: B24@0:8@16
+- isEmpty B16@0:8
+- keyEquivalent @16@0:8
+- _keyEquivalentIsUpperCase B16@0:8
+- initWithKeyEquivalent:modifierMask: @32@0:8@16Q24
+- isFunctionKey B16@0:8
+- localizedDisplayName @16@0:8
+- localizedExtendedDisplayName: @20@0:8B16
+- localizedKeyEquivalentDisplayName @16@0:8
+- localizedModifierMaskDisplayName @16@0:8
+- modifierMask Q16@0:8
+- preferencesEncoding @16@0:8
++ localizedShortcutWithKeyEquivalent:modifierMask:withAttributes: @40@0:8@16Q24@32
++ localizedKeyEquivalentForInput: @24@0:8@16
++ cacheWellKnownLocalizedShortcutKeys v16@0:8
++ emptyShortcut @16@0:8
++ shortcutWithKeyEquivalent:modifierMask: @32@0:8@16Q24
++ shortcutWithPreferencesEncoding: @24@0:8@16
+TIKeyEquivalentMirroringCandidatesMap false
+ti_isKeyEquivalentMirroringCandidate false
+_ti_isKeyEquivalentMirroringCandidate false
+keyInputToKeyEquivalentMap false

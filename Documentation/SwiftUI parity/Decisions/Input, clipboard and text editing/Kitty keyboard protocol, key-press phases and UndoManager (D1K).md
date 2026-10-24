@@ -217,7 +217,7 @@ their own.
 
 **Fuller version shipped (lane INPUT, 2026-10-18; settled by the owner's
 earlier rulings, open to veto).** Measured first, on macOS 15.8 with an
-offscreen `NSTextView` (probe in the INPUT lane's session notes): typed
+offscreen `NSTextView` (`Tools/SwiftUIProbes/Undo and the pointer leaving (INPUT)/`): typed
 characters — a space, a newline and a tab among them — and Backspace undo as
 one step while each is made at the caret the edit before it left, a pause of
 two seconds included, so the boundary is neither a timer nor the next

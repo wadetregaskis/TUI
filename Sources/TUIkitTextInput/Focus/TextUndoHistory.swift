@@ -26,7 +26,8 @@ import TUIkitFoundation
 ///
 /// One step per edit, except a run of typing, which is one step, as the
 /// macOS text system makes it (measured on macOS 15.8, `NSTextView`, the INPUT
-/// lane's probe; decisions-D1K B-D1K-6): characters typed — a space, a
+/// lane's probes, `Tools/SwiftUIProbes/Undo and the pointer leaving (INPUT)/`;
+/// decisions-D1K B-D1K-6): characters typed — a space, a
 /// newline and a tab among them, Option-Return's and Option-Tab's too — and
 /// Backspace, each at the caret the edit before it left, with no selection;
 /// Ctrl-O's newline joins the run, but the caret it leaves behind ends it. A caret moved elsewhere ends the run

@@ -1,0 +1,12 @@
+== (a) ScrollPosition(y: 40)
+A body: frame(in: .scrollView)= (0.0, 0.0, 100.0, 20.0)  bounds(of: .scrollView)= Optional((0.0, 0.0, 100.0, 100.0))  frame(in: .named("content"))= (0.0, 40.0, 100.0, 20.0)  frame(in: .named("sv"))= (0.0, 0.0, 100.0, 20.0)  frame(in: .scrollView(axis: .vertical))= (0.0, 0.0, 100.0, 20.0)  frame(in: .scrollView(axis: .horizontal))= (7.0, 9.0, 100.0, 20.0)  global= (7.0, 9.0, 100.0, 20.0)
+A onGeometryChange .scrollView = (0.0, 0.0, 100.0, 20.0)
+A body: frame(in: .scrollView)= (0.0, 40.0, 100.0, 20.0)  bounds(of: .scrollView)= Optional((0.0, -40.0, 100.0, 100.0))  frame(in: .named("content"))= (0.0, 40.0, 100.0, 20.0)  frame(in: .named("sv"))= (0.0, 40.0, 100.0, 20.0)  frame(in: .scrollView(axis: .vertical))= (0.0, 40.0, 100.0, 20.0)  frame(in: .scrollView(axis: .horizontal))= (7.0, 49.0, 100.0, 20.0)  global= (7.0, 49.0, 100.0, 20.0)
+A onGeometryChange .scrollView = (0.0, 40.0, 100.0, 20.0)
+A clip origin (0.0, 0.0)
+== (b) scrolled by NSScrollView to y=40
+B body: frame(in: .scrollView)= (0.0, 40.0, 100.0, 20.0)  bounds(of: .scrollView)= Optional((0.0, -40.0, 100.0, 100.0))  frame(in: .named("content"))= (0.0, 40.0, 100.0, 20.0)  frame(in: .named("sv"))= (0.0, 40.0, 100.0, 20.0)  frame(in: .scrollView(axis: .vertical))= (0.0, 40.0, 100.0, 20.0)  frame(in: .scrollView(axis: .horizontal))= (7.0, 49.0, 100.0, 20.0)  global= (7.0, 49.0, 100.0, 20.0)
+B onGeometryChange .scrollView = (0.0, 40.0, 100.0, 20.0)
+B body: frame(in: .scrollView)= (0.0, 0.0, 100.0, 20.0)  bounds(of: .scrollView)= Optional((0.0, 0.0, 100.0, 100.0))  frame(in: .named("content"))= (0.0, 40.0, 100.0, 20.0)  frame(in: .named("sv"))= (0.0, 0.0, 100.0, 20.0)  frame(in: .scrollView(axis: .vertical))= (0.0, 0.0, 100.0, 20.0)  frame(in: .scrollView(axis: .horizontal))= (7.0, 9.0, 100.0, 20.0)  global= (7.0, 9.0, 100.0, 20.0)
+B onGeometryChange .scrollView = (0.0, 0.0, 100.0, 20.0)
+B clip origin (0.0, 40.0)

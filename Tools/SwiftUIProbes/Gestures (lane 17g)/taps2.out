@@ -1,0 +1,157 @@
+  0.000 setup done
+
+=== count2: down-to-down gap 0.25
+  0.316 -- down 20.0,30.0
+  0.348 -- up 20.0,30.0
+  0.570 -- down 20.0,30.0 cc2
+  0.598 -- up 20.0,30.0 cc2
+  0.599 tap2
+
+=== count2: down-to-down gap 0.3
+  1.701 -- down 20.0,30.0
+  1.735 -- up 20.0,30.0
+  2.006 -- down 20.0,30.0 cc2
+  2.036 -- up 20.0,30.0 cc2
+  2.036 tap2
+
+=== count2: down-to-down gap 0.33
+  3.141 -- down 20.0,30.0
+  3.172 -- up 20.0,30.0
+  3.473 -- down 20.0,30.0 cc2
+  3.504 -- up 20.0,30.0 cc2
+  3.504 tap2
+
+=== count2: down-to-down gap 0.36
+  4.607 -- down 20.0,30.0
+  4.639 -- up 20.0,30.0
+  4.968 -- down 20.0,30.0 cc2
+  5.000 -- up 20.0,30.0 cc2
+
+=== count2: down-to-down gap 0.4
+  6.103 -- down 20.0,30.0
+  6.135 -- up 20.0,30.0
+  6.505 -- down 20.0,30.0 cc2
+  6.536 -- up 20.0,30.0 cc2
+
+=== count2: up-to-down gap 0.3 after a 0.2 hold
+  7.637 -- down 20.0,30.0
+  7.838 -- up 20.0,30.0
+  8.139 -- down 20.0,30.0 cc2
+  8.169 -- up 20.0,30.0 cc2
+  8.169 tap2
+
+=== count2: up-to-down gap 0.36 after a 0.2 hold
+  9.273 -- down 20.0,30.0
+  9.474 -- up 20.0,30.0
+  9.839 -- down 20.0,30.0 cc2
+  9.868 -- up 20.0,30.0 cc2
+
+=== count1: held 0.3
+ 10.968 -- down 20.0,30.0
+ 11.273 -- up 20.0,30.0
+ 11.273 tap1
+
+=== count1: held 0.5
+ 12.075 -- down 20.0,30.0
+ 12.577 -- up 20.0,30.0
+ 12.577 tap1
+
+=== count1: held 0.6
+ 13.378 -- down 20.0,30.0
+ 13.982 -- up 20.0,30.0
+ 13.982 tap1
+
+=== count1: held 0.75
+ 14.783 -- down 20.0,30.0
+ 15.536 -- up 20.0,30.0
+ 15.536 tap1
+
+=== count1: held 0.9
+ 16.337 -- down 20.0,30.0
+ 17.237 -- up 20.0,30.0
+
+=== count1: slide 30 inside
+ 18.041 -- down 20.0,30.0
+ 18.063 -- drag 35.0,30.0
+ 18.083 -- drag 50.0,30.0
+ 18.103 -- up 50.0,30.0
+ 18.103 tap1
+
+=== onTap: slide 30 inside
+ 18.903 -- down 20.0,30.0
+ 18.926 -- drag 35.0,30.0
+ 18.944 -- drag 50.0,30.0
+ 18.970 -- up 50.0,30.0
+ 18.970 onTap
+
+=== count1: slide 70 inside
+ 19.773 -- down 20.0,30.0
+ 19.795 -- drag 55.0,30.0
+ 19.815 -- drag 90.0,30.0
+ 19.835 -- up 90.0,30.0
+
+=== onTap: slide 70 inside
+ 20.639 -- down 20.0,30.0
+ 20.659 -- drag 55.0,30.0
+ 20.681 -- drag 90.0,30.0
+ 20.703 -- up 90.0,30.0
+
+=== count1: slide outside by 10
+ 21.505 -- down 20.0,30.0
+ 21.528 -- drag 65.0,30.0
+ 21.551 -- drag 110.0,30.0
+ 21.568 -- up 110.0,30.0
+
+=== onTap: slide outside by 10
+ 22.373 -- down 20.0,30.0
+ 22.397 -- drag 65.0,30.0
+ 22.417 -- drag 110.0,30.0
+ 22.436 -- up 110.0,30.0
+
+=== count1: slide outside by 70
+ 23.241 -- down 20.0,30.0
+ 23.267 -- drag 95.0,30.0
+ 23.284 -- drag 170.0,30.0
+ 23.302 -- up 170.0,30.0
+
+=== onTap: slide outside by 70
+ 24.107 -- down 20.0,30.0
+ 24.129 -- drag 95.0,30.0
+ 24.148 -- drag 170.0,30.0
+ 24.170 -- up 170.0,30.0
+
+=== count1: slide out and back in
+ 24.976 -- down 20.0,30.0
+ 24.998 -- drag 150.0,30.0
+ 25.022 -- drag 30.0,30.0
+ 25.041 -- up 30.0,30.0
+
+=== both: single click — when does tap1 fire after the release
+ 25.846 -- down 20.0,30.0
+ 25.879 -- up 20.0,30.0
+ 26.233 tap1
+
+=== both: single click held 0.2
+ 27.180 -- down 20.0,30.0
+ 27.381 -- up 20.0,30.0
+ 27.732 tap1
+
+=== count2: second click 10pt away
+ 28.683 -- down 20.0,30.0
+ 28.715 -- up 20.0,30.0
+ 28.835 -- down 30.0,30.0 cc2
+ 28.864 -- up 30.0,30.0 cc2
+ 28.865 tap2
+
+=== count2: second click 40pt away
+ 29.766 -- down 20.0,30.0
+ 29.797 -- up 20.0,30.0
+ 29.918 -- down 60.0,30.0 cc2
+ 29.947 -- up 60.0,30.0 cc2
+ 29.947 tap2
+
+=== count2: when does tap2 fire — second press held 0.3
+ 30.858 -- down 20.0,30.0
+ 30.945 -- up 20.0,30.0
+ 31.011 -- down 20.0,30.0 cc2
+ 31.311 -- up 20.0,30.0 cc2

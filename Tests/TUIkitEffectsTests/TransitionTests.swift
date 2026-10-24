@@ -134,7 +134,7 @@ struct TransitionTests {
         _ = screen.draw(false, .move(edge: .leading), atMillis: 0)
         // On the frame it appears it is entirely off to the leading side, and
         // the row below has not moved down out of its row yet: it glides, as
-        // SwiftUI's does (`plan/fb16/samples.txt`).
+        // SwiftUI's does (`Tools/SwiftUIProbes/Insertion and removal (FB16)/samples.txt`).
         #expect(screen.draw(true, .move(edge: .leading), atMillis: 0) == ["----", "    "])
         #expect(screen.draw(true, .move(edge: .leading), atMillis: 500)[0] == "XX  ")
         #expect(screen.draw(true, .move(edge: .leading), atMillis: 1000)[0] == "XXXX")

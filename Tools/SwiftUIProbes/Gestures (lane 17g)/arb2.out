@@ -1,0 +1,465 @@
+  0.000 setup done
+
+=== plain button plain: click
+  0.320 -- down 50.0,20.0
+
+=== plain button plain: hold 0.5s
+  1.289 -- up 50.0,20.0
+  1.289 button action
+  1.290 -- down 50.0,20.0
+  1.795 -- up 50.0,20.0
+  1.795 button action
+
+=== plain button plain: drag 30pt within
+  2.392 -- down 50.0,20.0
+  2.447 -- drag 60.0,20.0
+  2.495 -- drag 80.0,20.0
+  2.544 -- up 80.0,20.0
+
+=== plain button plain: drag out and release outside
+  3.144 -- down 50.0,20.0
+  3.201 -- drag 60.0,20.0
+  3.246 -- drag 150.0,100.0
+  3.296 -- up 150.0,100.0
+
+=== plain button gesture: click
+  4.202 -- down 50.0,20.0
+  4.236 -- up 50.0,20.0
+  4.236 button action
+
+=== plain button gesture: hold 0.5s
+  4.833 -- down 50.0,20.0
+  5.333 -- up 50.0,20.0
+  5.334 button action
+
+=== plain button gesture: drag 30pt within
+  5.937 -- down 50.0,20.0
+  5.989 -- drag 60.0,20.0
+  6.040 -- drag 80.0,20.0
+  6.089 -- up 80.0,20.0
+
+=== plain button gesture: drag out and release outside
+  6.690 -- down 50.0,20.0
+  6.744 -- drag 60.0,20.0
+  6.795 -- drag 150.0,100.0
+  6.843 -- up 150.0,100.0
+
+=== plain button high: click
+  7.750 -- down 50.0,20.0
+  7.784 -- up 50.0,20.0
+  7.785 tap gesture
+
+=== plain button high: hold 0.5s
+  8.382 -- down 50.0,20.0
+  8.886 -- up 50.0,20.0
+  8.887 tap gesture
+
+=== plain button high: drag 30pt within
+  9.483 -- down 50.0,20.0
+  9.539 -- drag 60.0,20.0
+  9.585 -- drag 80.0,20.0
+  9.634 -- up 80.0,20.0
+  9.635 tap gesture
+
+=== plain button high: drag out and release outside
+ 10.236 -- down 50.0,20.0
+ 10.288 -- drag 60.0,20.0
+ 10.341 -- drag 150.0,100.0
+ 10.388 -- up 150.0,100.0
+
+=== plain button simul: click
+ 11.293 -- down 50.0,20.0
+ 11.326 -- up 50.0,20.0
+ 11.326 tap gesture
+ 11.326 button action
+
+=== plain button simul: hold 0.5s
+ 11.928 -- down 50.0,20.0
+ 12.428 -- up 50.0,20.0
+ 12.428 tap gesture
+ 12.428 button action
+
+=== plain button simul: drag 30pt within
+ 13.030 -- down 50.0,20.0
+ 13.082 -- drag 60.0,20.0
+ 13.132 -- drag 80.0,20.0
+ 13.183 -- up 80.0,20.0
+ 13.183 tap gesture
+
+=== plain button simul: drag out and release outside
+ 13.782 -- down 50.0,20.0
+ 13.834 -- drag 60.0,20.0
+ 13.883 -- drag 150.0,100.0
+ 13.934 -- up 150.0,100.0
+
+=== plain button onTap: click
+ 14.839 -- down 50.0,20.0
+ 14.871 -- up 50.0,20.0
+ 14.871 button action
+
+=== plain button onTap: hold 0.5s
+ 15.469 -- down 50.0,20.0
+ 15.974 -- up 50.0,20.0
+ 15.974 button action
+
+=== plain button onTap: drag 30pt within
+ 16.598 -- down 50.0,20.0
+ 16.649 -- drag 60.0,20.0
+ 16.700 -- drag 80.0,20.0
+ 16.748 -- up 80.0,20.0
+
+=== plain button onTap: drag out and release outside
+ 17.990 -- down 50.0,20.0
+ 18.041 -- drag 60.0,20.0
+ 18.094 -- drag 150.0,100.0
+ 18.146 -- up 150.0,100.0
+
+=== plain button longpress: click
+ 19.050 -- down 50.0,20.0
+ 19.147 -- up 50.0,20.0
+ 19.148 button action
+
+=== plain button longpress: hold 0.5s
+ 19.730 -- down 50.0,20.0
+ 20.528 -- up 50.0,20.0
+ 20.528 button action
+
+=== plain button longpress: drag 30pt within
+ 21.214 -- down 50.0,20.0
+ 21.267 -- drag 60.0,20.0
+ 21.316 -- drag 80.0,20.0
+ 21.366 -- up 80.0,20.0
+
+=== plain button longpress: drag out and release outside
+ 21.965 -- down 50.0,20.0
+ 22.018 -- drag 60.0,20.0
+ 22.067 -- drag 150.0,100.0
+ 22.117 -- up 150.0,100.0
+
+=== plain button drag: click
+ 23.020 -- down 50.0,20.0
+ 23.052 -- up 50.0,20.0
+ 23.052 button action
+
+=== plain button drag: hold 0.5s
+ 23.651 -- down 50.0,20.0
+ 24.154 -- up 50.0,20.0
+ 24.154 button action
+
+=== plain button drag: drag 30pt within
+ 24.753 -- down 50.0,20.0
+ 24.807 -- drag 60.0,20.0
+ 24.858 -- drag 80.0,20.0
+ 24.905 -- up 80.0,20.0
+ 24.910 drag ended
+
+=== plain button drag: drag out and release outside
+ 25.505 -- down 50.0,20.0
+ 25.558 -- drag 60.0,20.0
+ 25.607 -- drag 150.0,100.0
+ 25.655 -- up 150.0,100.0
+ 25.655 drag ended
+
+=== plain button drag0: click
+ 26.562 -- down 50.0,20.0
+ 26.594 -- up 50.0,20.0
+ 26.594 button action
+
+=== plain button drag0: hold 0.5s
+ 27.197 -- down 50.0,20.0
+ 27.698 -- up 50.0,20.0
+ 27.698 button action
+
+=== plain button drag0: drag 30pt within
+ 28.375 -- down 50.0,20.0
+ 28.425 -- drag 60.0,20.0
+ 28.478 -- drag 80.0,20.0
+ 28.527 -- up 80.0,20.0
+ 28.527 drag0 ended
+
+=== plain button drag0: drag out and release outside
+ 29.225 -- down 50.0,20.0
+ 29.277 -- drag 60.0,20.0
+ 29.331 -- drag 150.0,100.0
+ 29.377 -- up 150.0,100.0
+ 29.377 drag0 ended
+
+=== plain button highdrag: click
+ 30.282 -- down 50.0,20.0
+ 30.314 -- up 50.0,20.0
+ 30.315 button action
+
+=== plain button highdrag: hold 0.5s
+ 30.914 -- down 50.0,20.0
+ 31.416 -- up 50.0,20.0
+ 31.416 button action
+
+=== plain button highdrag: drag 30pt within
+ 32.020 -- down 50.0,20.0
+ 32.070 -- drag 60.0,20.0
+ 32.070 hdrag changed
+ 32.124 -- drag 80.0,20.0
+ 32.124 hdrag changed
+ 32.171 -- up 80.0,20.0
+ 32.171 hdrag ended
+
+=== plain button highdrag: drag out and release outside
+ 32.771 -- down 50.0,20.0
+ 32.825 -- drag 60.0,20.0
+ 32.825 hdrag changed
+ 32.874 -- drag 150.0,100.0
+ 32.874 hdrag changed
+ 32.923 -- up 150.0,100.0
+ 32.923 hdrag ended
+
+=== plain button highdrag0: click
+ 33.827 -- down 50.0,20.0
+ 33.827 hdrag0 changed
+ 33.859 -- up 50.0,20.0
+ 33.859 hdrag0 ended
+
+=== plain button highdrag0: hold 0.5s
+ 34.462 -- down 50.0,20.0
+ 34.463 hdrag0 changed
+ 34.962 -- up 50.0,20.0
+ 34.963 hdrag0 ended
+
+=== plain button highdrag0: drag 30pt within
+ 35.564 -- down 50.0,20.0
+ 35.565 hdrag0 changed
+ 35.620 -- drag 60.0,20.0
+ 35.621 hdrag0 changed
+ 35.666 -- drag 80.0,20.0
+ 35.667 hdrag0 changed
+ 35.716 -- up 80.0,20.0
+ 35.716 hdrag0 ended
+
+=== plain button highdrag0: drag out and release outside
+ 36.324 -- down 50.0,20.0
+ 36.325 hdrag0 changed
+ 36.376 -- drag 60.0,20.0
+ 36.377 hdrag0 changed
+ 36.425 -- drag 150.0,100.0
+ 36.426 hdrag0 changed
+ 36.476 -- up 150.0,100.0
+ 36.476 hdrag0 ended
+
+=== borderless button plain: click
+ 37.384 -- down 50.0,20.0
+ 37.415 -- up 50.0,20.0
+ 37.426 button action
+
+=== borderless button plain: hold 0.5s
+ 38.018 -- down 50.0,20.0
+ 38.520 -- up 50.0,20.0
+ 38.520 button action
+
+=== borderless button plain: drag 30pt within
+ 39.119 -- down 50.0,20.0
+ 39.175 -- drag 60.0,20.0
+ 39.221 -- drag 80.0,20.0
+ 39.273 -- up 80.0,20.0
+
+=== borderless button plain: drag out and release outside
+ 39.870 -- down 50.0,20.0
+ 39.931 -- drag 60.0,20.0
+ 39.973 -- drag 150.0,100.0
+ 40.024 -- up 150.0,100.0
+
+=== borderless button gesture: click
+ 40.930 -- down 50.0,20.0
+ 40.969 -- up 50.0,20.0
+ 40.969 button action
+
+=== borderless button gesture: hold 0.5s
+ 41.566 -- down 50.0,20.0
+ 42.068 -- up 50.0,20.0
+ 42.069 button action
+
+=== borderless button gesture: drag 30pt within
+ 42.672 -- down 50.0,20.0
+ 42.727 -- drag 60.0,20.0
+ 42.774 -- drag 80.0,20.0
+ 42.822 -- up 80.0,20.0
+
+=== borderless button gesture: drag out and release outside
+ 43.424 -- down 50.0,20.0
+ 43.476 -- drag 60.0,20.0
+ 43.528 -- drag 150.0,100.0
+ 43.577 -- up 150.0,100.0
+
+=== borderless button high: click
+ 44.481 -- down 50.0,20.0
+ 44.516 -- up 50.0,20.0
+ 44.516 button action
+
+=== borderless button high: hold 0.5s
+ 45.116 -- down 50.0,20.0
+ 45.618 -- up 50.0,20.0
+ 45.618 button action
+
+=== borderless button high: drag 30pt within
+ 46.222 -- down 50.0,20.0
+ 46.278 -- drag 60.0,20.0
+ 46.334 -- drag 80.0,20.0
+ 46.374 -- up 80.0,20.0
+
+=== borderless button high: drag out and release outside
+ 46.976 -- down 50.0,20.0
+ 47.038 -- drag 60.0,20.0
+ 47.079 -- drag 150.0,100.0
+ 47.128 -- up 150.0,100.0
+
+=== borderless button simul: click
+ 48.029 -- down 50.0,20.0
+ 48.061 -- up 50.0,20.0
+ 48.062 button action
+
+=== borderless button simul: hold 0.5s
+ 48.660 -- down 50.0,20.0
+ 49.162 -- up 50.0,20.0
+ 49.163 button action
+
+=== borderless button simul: drag 30pt within
+ 49.763 -- down 50.0,20.0
+ 49.825 -- drag 60.0,20.0
+ 49.865 -- drag 80.0,20.0
+ 49.921 -- up 80.0,20.0
+
+=== borderless button simul: drag out and release outside
+ 50.514 -- down 50.0,20.0
+ 50.574 -- drag 60.0,20.0
+ 50.616 -- drag 150.0,100.0
+ 50.666 -- up 150.0,100.0
+
+=== borderless button onTap: click
+ 51.572 -- down 50.0,20.0
+ 51.605 -- up 50.0,20.0
+ 51.605 button action
+
+=== borderless button onTap: hold 0.5s
+ 52.204 -- down 50.0,20.0
+ 52.711 -- up 50.0,20.0
+ 52.711 button action
+
+=== borderless button onTap: drag 30pt within
+ 53.304 -- down 50.0,20.0
+ 53.356 -- drag 60.0,20.0
+ 53.406 -- drag 80.0,20.0
+ 53.456 -- up 80.0,20.0
+
+=== borderless button onTap: drag out and release outside
+ 54.057 -- down 50.0,20.0
+ 54.109 -- drag 60.0,20.0
+ 54.159 -- drag 150.0,100.0
+ 54.207 -- up 150.0,100.0
+
+=== borderless button longpress: click
+ 55.118 -- down 50.0,20.0
+ 55.153 -- up 50.0,20.0
+ 55.153 button action
+
+=== borderless button longpress: hold 0.5s
+ 55.752 -- down 50.0,20.0
+ 56.256 -- up 50.0,20.0
+ 56.256 button action
+
+=== borderless button longpress: drag 30pt within
+ 56.856 -- down 50.0,20.0
+ 56.911 -- drag 60.0,20.0
+ 56.963 -- drag 80.0,20.0
+ 57.009 -- up 80.0,20.0
+
+=== borderless button longpress: drag out and release outside
+ 57.613 -- down 50.0,20.0
+ 57.670 -- drag 60.0,20.0
+ 57.716 -- drag 150.0,100.0
+ 57.768 -- up 150.0,100.0
+
+=== borderless button drag: click
+ 58.668 -- down 50.0,20.0
+ 58.703 -- up 50.0,20.0
+ 58.704 button action
+
+=== borderless button drag: hold 0.5s
+ 59.299 -- down 50.0,20.0
+ 59.801 -- up 50.0,20.0
+ 59.801 button action
+
+=== borderless button drag: drag 30pt within
+ 60.400 -- down 50.0,20.0
+ 60.454 -- drag 60.0,20.0
+ 60.502 -- drag 80.0,20.0
+ 60.552 -- up 80.0,20.0
+
+=== borderless button drag: drag out and release outside
+ 61.151 -- down 50.0,20.0
+ 61.203 -- drag 60.0,20.0
+ 61.253 -- drag 150.0,100.0
+ 61.303 -- up 150.0,100.0
+
+=== borderless button drag0: click
+ 62.207 -- down 50.0,20.0
+ 62.240 -- up 50.0,20.0
+ 62.240 button action
+
+=== borderless button drag0: hold 0.5s
+ 62.838 -- down 50.0,20.0
+ 63.339 -- up 50.0,20.0
+ 63.339 button action
+
+=== borderless button drag0: drag 30pt within
+ 63.941 -- down 50.0,20.0
+ 63.998 -- drag 60.0,20.0
+ 64.043 -- drag 80.0,20.0
+ 64.093 -- up 80.0,20.0
+
+=== borderless button drag0: drag out and release outside
+ 64.692 -- down 50.0,20.0
+ 64.744 -- drag 60.0,20.0
+ 64.794 -- drag 150.0,100.0
+ 64.844 -- up 150.0,100.0
+
+=== borderless button highdrag: click
+ 65.746 -- down 50.0,20.0
+ 65.781 -- up 50.0,20.0
+ 65.781 button action
+
+=== borderless button highdrag: hold 0.5s
+ 66.378 -- down 50.0,20.0
+ 66.880 -- up 50.0,20.0
+ 66.880 button action
+
+=== borderless button highdrag: drag 30pt within
+ 67.479 -- down 50.0,20.0
+ 67.531 -- drag 60.0,20.0
+ 67.581 -- drag 80.0,20.0
+ 67.631 -- up 80.0,20.0
+
+=== borderless button highdrag: drag out and release outside
+ 68.231 -- down 50.0,20.0
+ 68.288 -- drag 60.0,20.0
+ 68.334 -- drag 150.0,100.0
+ 68.383 -- up 150.0,100.0
+
+=== borderless button highdrag0: click
+ 69.291 -- down 50.0,20.0
+ 69.323 -- up 50.0,20.0
+ 69.323 button action
+
+=== borderless button highdrag0: hold 0.5s
+ 69.922 -- down 50.0,20.0
+ 70.423 -- up 50.0,20.0
+ 70.423 button action
+
+=== borderless button highdrag0: drag 30pt within
+ 71.024 -- down 50.0,20.0
+ 71.076 -- drag 60.0,20.0
+ 71.126 -- drag 80.0,20.0
+ 71.176 -- up 80.0,20.0
+
+=== borderless button highdrag0: drag out and release outside
+ 71.775 -- down 50.0,20.0
+ 71.830 -- drag 60.0,20.0
+ 71.877 -- drag 150.0,100.0
+ 71.929 -- up 150.0,100.0

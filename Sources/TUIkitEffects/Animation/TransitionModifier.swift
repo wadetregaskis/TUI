@@ -35,7 +35,7 @@ extension View {
     /// room on the frame it appears; removed, it gives the room back on the
     /// frame it goes. Under the animation, every view the change moved glides
     /// from its old place to its new one — measured in SwiftUI
-    /// (`plan/fb16/samples.txt`), the row below an inserted one moved 187 →
+    /// (`Tools/SwiftUIProbes/Insertion and removal (FB16)/samples.txt`), the row below an inserted one moved 187 →
     /// 202 → 218 → 247 over an 8 s linear animation, whatever the transition,
     /// `.identity` included. So a fading view is drawn where it lands from the
     /// first frame, and the row below slides away from over it; a view fading

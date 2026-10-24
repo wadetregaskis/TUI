@@ -1,0 +1,3 @@
+import AppKit
+let all: [NSTextContentType] = [.username, .password, .oneTimeCode, .newPassword, .name, .namePrefix, .givenName, .middleName, .familyName, .nameSuffix, .nickname, .jobTitle, .organizationName, .location, .fullStreetAddress, .streetAddressLine1, .streetAddressLine2, .addressCity, .addressState, .addressCityAndState, .sublocality, .countryName, .postalCode, .telephoneNumber, .emailAddress, .URL, .creditCardNumber, .creditCardName, .creditCardGivenName, .creditCardMiddleName, .creditCardFamilyName, .creditCardSecurityCode, .creditCardExpiration, .creditCardExpirationMonth, .creditCardExpirationYear, .creditCardType, .shipmentTrackingNumber, .flightNumber, .dateTime, .birthdate, .birthdateDay, .birthdateMonth, .birthdateYear]
+print(all.count)

@@ -4,7 +4,8 @@
 //  An eager stack's children while a change of layout animates: each drawn
 //  where its glide has got to, and a view that has left drawn where it was
 //  while its removal plays — SwiftUI's insertion and removal model, measured
-//  (owner ruling FB16 (a′), 2026-10-18; `plan/fb16/samples.txt`).
+//  (owner ruling FB16 (a′), 2026-10-18;
+//  `Tools/SwiftUIProbes/Insertion and removal (FB16)/samples.txt`).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -52,7 +53,7 @@ extension RenderContext {
     /// Children overlap while they move, so they are drawn as a `ZStack` draws
     /// its layers: in ascending z-index, and in declaration order within one.
     /// A view leaving goes beneath the present views of its z-index, which is
-    /// where SwiftUI draws it (measured, `plan/fb16/samples.txt`: the removed
+    /// where SwiftUI draws it (measured, `Tools/SwiftUIProbes/Insertion and removal (FB16)/samples.txt`: the removed
     /// view's layer is first in its column, under both siblings, whatever its
     /// transition) — and why a `.zIndex` lifts it.
     ///

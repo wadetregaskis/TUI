@@ -15,8 +15,8 @@ import TUIkitFoundation
 ///
 /// Command menus are drawn as menus of the menu bar, inserted between the
 /// standard View and Window menus in order of declaration, as SwiftUI inserts
-/// them on macOS (measured on macOS 15.8: the session notes'
-/// `O13/probe/menus.swift`). A menu is drawn even when it holds nothing, and two
+/// them on macOS (measured on macOS 15.8:
+/// `Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`). A menu is drawn even when it holds nothing, and two
 /// with the same name are two menus, as there.
 ///
 /// The menu's items are what a ``Menu``'s are — `Button`s, `Toggle`s,

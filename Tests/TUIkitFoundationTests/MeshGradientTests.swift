@@ -4,8 +4,8 @@
 //  `MeshGradient`'s values, and its colours at points SwiftUI drew. Every
 //  expected colour here is a pixel SwiftUI rendered on macOS 15.8 for the same
 //  mesh over the same grid of samples (an `ImageRenderer` at scale 1, read
-//  back as sRGB bytes); the probes are in the session notes, not the
-//  repository. SwiftUI tessellates its patches and TUIkit evaluates them at
+//  back as sRGB bytes); the probes are in
+//  `Tools/SwiftUIProbes/Mesh gradient fits (lane 17m)/`. SwiftUI tessellates its patches and TUIkit evaluates them at
 //  each sample, so the two can differ by a level or two where a colour curves.
 //
 //  Created by Wade Tregaskis

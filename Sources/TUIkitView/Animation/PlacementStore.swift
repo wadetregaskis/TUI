@@ -13,7 +13,7 @@ import TUIkitCore
 ///
 /// SwiftUI animates every view's frame: inside `withAnimation`, a row inserted
 /// above another pushes it down by gliding it, and a row removed lets the ones
-/// below glide up into its space (measured, `plan/fb16/samples.txt`: a sibling
+/// below glide up into its space (measured, `Tools/SwiftUIProbes/Insertion and removal (FB16)/samples.txt`: a sibling
 /// below an inserted row moved 187 → 194 → 202 → 218 → 234 → 247 over an 8 s
 /// linear animation, for every transition, `.identity` included). A terminal
 /// rebuilds its whole frame from the tree, so on the frame of the change the

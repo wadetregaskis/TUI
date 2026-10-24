@@ -140,8 +140,8 @@ package final class KeyboardShortcutRegistry: @unchecked Sendable {
     /// the menu bar. AppKit documents the other order: a key equivalent goes
     /// to the key window's views first, and to the main menu only if none
     /// takes it (Cocoa Event Handling Guide, "The Path of Key Events").
-    /// UNMEASURED in SwiftUI itself: the lane's probe (session notes
-    /// O13/probe/menus.swift) could not make its window key on this machine,
+    /// UNMEASURED in SwiftUI itself: the lane's probe
+    /// (`Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`) could not make its window key on this machine,
     /// and with no key window the menu took the key.
     package func registeringCommands<Result>(_ body: () -> Result) -> Result {
         let outer = registersCommands

@@ -182,7 +182,7 @@ except on a right-to-left paragraph. There, `.writingDirectionBased` and
 here. Shipping them before right-to-left would be a quiet lie for exactly
 the text they exist for, so they wait with this entry.
 
-*Wave 10's entries (A6–A12, B23–B31, C6; C7 shipped 2026-10-18 in lane PARITYMISC): SwiftUI behaviour quoted as *measured* was measured on macOS 15 with an offscreen `NSHostingView`; the probes are in the session notes, `w10/probe`.*
+*Wave 10's entries (A6–A12, B23–B31, C6; C7 shipped 2026-10-18 in lane PARITYMISC): SwiftUI behaviour quoted as *measured* was measured on macOS 15 with an offscreen `NSHostingView`; the probes are in `Tools/SwiftUIProbes/Scroll geometry, margins and the wheel (wave 10)/`.*
 
 ### A16. Colours that resolve themselves, and HDR
 
@@ -503,9 +503,9 @@ encoded sRGB by design today, and linear blending is decode, blend and
 re-encode through lookup tables, which is cheap. Extended-linear is the same on
 an SDR terminal, clamped at the end. Not yet decided.
 
-*Wave 8a's remaining entries (C10; A30, A31 and B44–B47 shipped 2026-10-06, A29 on 2026-10-07): SwiftUI's behaviour was measured on macOS 15.8, built against the macOS 26.2 SDK, with an offscreen `NSHostingView`; the probes are in the session notes, `w08a/probe`.*
+*Wave 8a's remaining entries (C10; A30, A31 and B44–B47 shipped 2026-10-06, A29 on 2026-10-07): SwiftUI's behaviour was measured on macOS 15.8, built against the macOS 26.2 SDK, with an offscreen `NSHostingView`; the probes are in `Tools/SwiftUIProbes/Table questions, compile and runtime (wave 8a)/`.*
 
-*Wave 11a's entries (A32–A33, B48–B51): every string was measured on SwiftUI, macOS 15, by rendering with `ImageRenderer` and reading the picture back with Vision; the probes are in the session notes, `w11a/probe`. A pass on macOS 26 is owed.*
+*Wave 11a's entries (A32–A33, B48–B51): every string was measured on SwiftUI, macOS 15, by rendering with `ImageRenderer` and reading the picture back with Vision; the probes are in `Tools/SwiftUIProbes/Live text formats read back (wave 11a)/`. A pass on macOS 26 is owed.*
 
 *Wave 12's entries (A34–A40, B52–B61; its `Transaction.dismissBehavior` joined A22): SwiftUI's behaviour is from its doc comments unless an entry says it was measured; measurements are from probes built against the macOS 26.2 SDK and run on macOS 15, kept in [`Tools/SwiftUIProbes/Animation curves, springs and keyframes`](<../../../Tools/SwiftUIProbes/Animation curves, springs and keyframes>).*
 
@@ -620,7 +620,7 @@ attributed editor two, the selection type one), with the
 formatting-definition constraints; the design is §7 of
 [`Text selection and editing design study, A13, A42 and A43 (2026-10-04).md`](<../Design studies/Text selection and editing design study, A13, A42 and A43 (2026-10-04).md>).
 
-*Wave 6b's entries (A43, B62–B65): SwiftUI's behaviour was measured on macOS 15.8 (SDK 26.2) by driving a SwiftUI `TextField` in an `NSWindow` with key events; the probes are in the session notes, `w06b/probe`.*
+*Wave 6b's entries (A43, B62–B65): SwiftUI's behaviour was measured on macOS 15.8 (SDK 26.2) by driving a SwiftUI `TextField` in an `NSWindow` with key events; the probes are in `Tools/SwiftUIProbes/Vertical TextField keys, caret and size (wave 6b)/`.*
 
 *Wave 10b's entries (B66–B71; A44 shipped, and A45 on 2026-10-07: a `List` pins its section headers under every style but `.sidebar`), pinned section headers and footers.* What SwiftUI does was measured on macOS 15.8, with offscreen `NSHostingView`s
 in scroll views scrolled through their `NSScrollView`, reading the pixels down
@@ -651,7 +651,7 @@ a column (probes in [`Tools/SwiftUIProbes/Pinned section headers and footers`](<
   from the header's reported frame, which a floating table row may not update,
   so weaker evidence than the pixels above.
 
-*Wave 8b's entries (A46–A51, B72–B80, C11): SwiftUI's behaviour was measured on macOS 15.8 (SDK 26.2) with an offscreen `NSHostingView`; the probes are in the session notes, `w08b/probe`. macOS 26 APIs could not be probed.*
+*Wave 8b's entries (A46–A51, B72–B80, C11): SwiftUI's behaviour was measured on macOS 15.8 (SDK 26.2) with an offscreen `NSHostingView`; the probes are in `Tools/SwiftUIProbes/Tab badges, sections and customization (wave 8b)/`. macOS 26 APIs could not be probed.*
 
 ### A48. Swipe actions: which keys and which pointer gesture?
 
@@ -718,7 +718,7 @@ machine runs 15.8.
 
 **Decided 2026-10-04: defer** until a macOS 26 or 27 pass can measure it.
 
-*Lane 17d's entries (A53, B82–B83, C12), spring-loading and the drag-session family (refusal review P11, P18): measured on macOS 15.8 (SDK 26.2) by driving SwiftUI's spring-loading entry points; the session family is macOS 26's and is from its doc comments. Probes in the session notes, `w17d/probe`.*
+*Lane 17d's entries (A53, B82–B83, C12), spring-loading and the drag-session family (refusal review P11, P18): measured on macOS 15.8 (SDK 26.2) by driving SwiftUI's spring-loading entry points; the session family is macOS 26's and is from its doc comments. Probes in `Tools/SwiftUIProbes/Spring loading (lane 17d)/`.*
 
 ### A53. The drag-session behaviour: callbacks, configurations, containers, formations
 
@@ -810,7 +810,7 @@ first.
 **Decided 2026-10-04: pinned** until macOS 26 or 27 can be measured; the
 macOS 15.8 notes here stay.
 
-*Lane 17g's entries (A54, B89–B94, C15), SwiftUI's gestures (refusal review P6): measured on macOS 15.8 (SDK 26.2) by sending synthesised `NSEvent`s into a window; the probes are in the session notes, `w17g/probe`.*
+*Lane 17g's entries (A54, B89–B94, C15), SwiftUI's gestures (refusal review P6): measured on macOS 15.8 (SDK 26.2) by sending synthesised `NSEvent`s into a window; the probes are in `Tools/SwiftUIProbes/Gestures (lane 17g)/`.*
 
 What the probes established, and what now holds here too:
 
@@ -1452,7 +1452,7 @@ changes. From idle to interacting, one step in, there is no rate yet: `nil`.
 From interacting to idle, 250 ms after the last step, the view is still.
 SwiftUI documents the velocity as the speed "at the time of the scroll phase
 change", and measured (0, 0) at its appear call and at both changes of an
-animated `scrollTo` (macOS 15.8, session notes `DECB/probe/phase`); its value
+animated `scrollTo` (macOS 15.8, `Tools/SwiftUIProbes/Scroll position, margins and disabled scrolling (DECB)/phase/`); its value
 when a user's scroll starts decelerating could not be driven offscreen. Read
 literally, TUIkit's change to idle reports (0, 0), and the number never says
 anything. **Recommended:** report the speed the scrolling had when its steps
@@ -1552,8 +1552,8 @@ titled `Toggle`: 195 → 197, `ControlLayoutPaddingTests`); stored as two
 `Double`s and three `Bool`s it grew by twenty-four and left five undefined.
 
 **You asked (2026-10-12) what the gap is, and what I recommend.** Measured on
-macOS 15.8 (a 300×200 window, rows 20 high; session notes `DECB/probe/anchor`
-and `DECB/probe/disabled`):
+macOS 15.8 (a 300×200 window, rows 20 high; `Tools/SwiftUIProbes/Scroll position, margins and disabled scrolling (DECB)/anchor/`
+and `Tools/SwiftUIProbes/Scroll position, margins and disabled scrolling (DECB)/disabled/`):
 
 - **`ScrollViewProxy.scrollTo`:** the call's anchor wins over the
   transaction's, and with none the transaction's applies. That is TUIkit's
@@ -3420,7 +3420,7 @@ or `LongPressGesture` it is on macOS, attached with `gesture`, so:
 Every in-repo use was checked (the Mouse page, an outline triangle, the Stress
 log rows) and the full suite passes.
 
-*Lane 17m's entry (B95), `MeshGradient` (refusal review P11): measured on macOS 15.8 (SDK 26.2) against offscreen renders, with the fitting scripts in the session notes, `w17m/probe`.*
+*Lane 17m's entry (B95), `MeshGradient` (refusal review P11): measured on macOS 15.8 (SDK 26.2) against offscreen renders, with the fitting scripts in `Tools/SwiftUIProbes/Mesh gradient fits (lane 17m)/`.*
 
 ### B95. A mesh is one sample a cell on a glyph terminal, and a picture where the terminal takes one
 

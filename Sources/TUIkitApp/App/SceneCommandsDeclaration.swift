@@ -26,8 +26,8 @@ package protocol SceneCommandsDeclaration {
 /// declaration order, as SwiftUI's main menu has them.
 package struct SceneCommands {
     /// The modifiers whose commands count: each scene's innermost first (the
-    /// order SwiftUI adds their menus in, measured on macOS 15.8: the session
-    /// notes' `O13/probe/menus.swift`), the scenes in declaration order.
+    /// order SwiftUI adds their menus in, measured on macOS 15.8:
+    /// `Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`), the scenes in declaration order.
     package private(set) var declarations: [any SceneCommandsDeclaration] = []
 
     /// Whether the scenes' own commands count: a window scene's, which no

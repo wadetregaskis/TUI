@@ -1,0 +1,497 @@
+  0.000 setup done
+  0.000 doubleClickInterval 0.5
+
+=== lp>drag: click
+  0.345 -- down 50.0,50.0
+  0.346 seq changed first(true)
+  0.377 -- up 50.0,50.0
+
+=== lp>drag: double click
+  1.278 -- down 50.0,50.0
+  1.278 seq changed first(true)
+  1.311 -- up 50.0,50.0
+  1.434 -- down 50.0,50.0 cc2
+  1.434 seq changed first(true)
+  1.463 -- up 50.0,50.0 cc2
+
+=== lp>drag: hold 0.5 release
+  2.369 -- down 50.0,50.0
+  2.370 seq changed first(true)
+  2.672 seq changed second(true, nil)
+  2.871 -- up 50.0,50.0
+
+=== lp>drag: hold 0.5, drag 30, release
+  3.776 -- down 50.0,50.0
+  3.776 seq changed first(true)
+  4.078 seq changed second(true, nil)
+  4.279 -- drag 60.0,50.0
+  4.328 -- drag 80.0,50.0
+  4.328 seq changed second(true, (20.0,0.0))
+  4.382 -- up 80.0,50.0
+  4.382 seq ended second(true, (20.0,0.0))
+
+=== lp>drag: drag 30 at once, hold to 0.5, release
+  5.281 -- down 50.0,50.0
+  5.282 seq changed first(true)
+  5.332 -- drag 60.0,50.0
+  5.384 -- drag 80.0,50.0
+  5.783 -- up 80.0,50.0
+
+=== lp>drag: shift-drag 30
+  6.689 -- down 50.0,50.0 mods131072
+  6.690 seq changed first(true)
+  6.742 -- drag 60.0,50.0 mods131072
+  6.796 -- drag 80.0,50.0 mods131072
+  6.843 -- up 80.0,50.0 mods131072
+
+=== lp>drag: option-click
+  7.744 -- down 50.0,50.0 mods524288
+  7.745 seq changed first(true)
+  7.778 -- up 50.0,50.0 mods524288
+
+=== lp>drag: drag 30, shift released mid-drag
+  8.681 -- down 50.0,50.0 mods131072
+  8.682 seq changed first(true)
+  8.737 -- drag 60.0,50.0 mods131072
+  8.785 -- drag 80.0,50.0
+  8.804 -- drag 90.0,50.0
+  8.834 -- up 90.0,50.0
+
+=== lp>drag0: click
+  9.742 -- down 50.0,50.0
+  9.743 seq0 changed first(true)
+  9.775 -- up 50.0,50.0
+
+=== lp>drag0: double click
+ 10.679 -- down 50.0,50.0
+ 10.679 seq0 changed first(true)
+ 10.713 -- up 50.0,50.0
+ 10.831 -- down 50.0,50.0 cc2
+ 10.832 seq0 changed first(true)
+ 10.860 -- up 50.0,50.0 cc2
+
+=== lp>drag0: hold 0.5 release
+ 11.765 -- down 50.0,50.0
+ 11.765 seq0 changed first(true)
+ 12.068 seq0 changed second(true, nil)
+ 12.268 -- up 50.0,50.0
+ 12.268 seq0 ended second(true, (0.0,0.0))
+
+=== lp>drag0: hold 0.5, drag 30, release
+ 13.167 -- down 50.0,50.0
+ 13.167 seq0 changed first(true)
+ 13.470 seq0 changed second(true, nil)
+ 13.670 -- drag 60.0,50.0
+ 13.671 seq0 changed second(true, (0.0,0.0))
+ 13.719 -- drag 80.0,50.0
+ 13.719 seq0 changed second(true, (20.0,0.0))
+ 13.770 -- up 80.0,50.0
+ 13.770 seq0 ended second(true, (20.0,0.0))
+
+=== lp>drag0: drag 30 at once, hold to 0.5, release
+ 14.674 -- down 50.0,50.0
+ 14.675 seq0 changed first(true)
+ 14.727 -- drag 60.0,50.0
+ 14.781 -- drag 80.0,50.0
+ 15.178 -- up 80.0,50.0
+
+=== lp>drag0: shift-drag 30
+ 16.078 -- down 50.0,50.0 mods131072
+ 16.078 seq0 changed first(true)
+ 16.130 -- drag 60.0,50.0 mods131072
+ 16.179 -- drag 80.0,50.0 mods131072
+ 16.233 -- up 80.0,50.0 mods131072
+
+=== lp>drag0: option-click
+ 17.141 -- down 50.0,50.0 mods524288
+ 17.141 seq0 changed first(true)
+ 17.171 -- up 50.0,50.0 mods524288
+
+=== lp>drag0: drag 30, shift released mid-drag
+ 18.082 -- down 50.0,50.0 mods131072
+ 18.082 seq0 changed first(true)
+ 18.134 -- drag 60.0,50.0 mods131072
+ 18.185 -- drag 80.0,50.0
+ 18.205 -- drag 90.0,50.0
+ 18.234 -- up 90.0,50.0
+
+=== tap>tap: click
+ 19.135 -- down 50.0,50.0
+ 19.168 -- up 50.0,50.0
+ 19.168 tap>tap ended
+
+=== tap>tap: double click
+ 20.070 -- down 50.0,50.0
+ 20.103 -- up 50.0,50.0
+ 20.113 tap>tap ended
+ 20.224 -- down 50.0,50.0 cc2
+ 20.252 -- up 50.0,50.0 cc2
+ 20.253 tap>tap ended
+
+=== tap>tap: hold 0.5 release
+ 21.155 -- down 50.0,50.0
+ 21.657 -- up 50.0,50.0
+ 21.657 tap>tap ended
+
+=== tap>tap: hold 0.5, drag 30, release
+ 22.559 -- down 50.0,50.0
+ 23.060 -- drag 60.0,50.0
+ 23.115 -- drag 80.0,50.0
+ 23.164 -- up 80.0,50.0
+ 23.164 tap>tap ended
+
+=== tap>tap: drag 30 at once, hold to 0.5, release
+ 24.066 -- down 50.0,50.0
+ 24.119 -- drag 60.0,50.0
+ 24.169 -- drag 80.0,50.0
+ 24.571 -- up 80.0,50.0
+ 24.571 tap>tap ended
+
+=== tap>tap: shift-drag 30
+ 25.471 -- down 50.0,50.0 mods131072
+ 25.522 -- drag 60.0,50.0 mods131072
+ 25.572 -- drag 80.0,50.0 mods131072
+ 25.622 -- up 80.0,50.0 mods131072
+ 25.622 tap>tap ended
+
+=== tap>tap: option-click
+ 26.528 -- down 50.0,50.0 mods524288
+ 26.559 -- up 50.0,50.0 mods524288
+ 26.560 tap>tap ended
+
+=== tap>tap: drag 30, shift released mid-drag
+ 27.466 -- down 50.0,50.0 mods131072
+ 27.518 -- drag 60.0,50.0 mods131072
+ 27.572 -- drag 80.0,50.0
+ 27.591 -- drag 90.0,50.0
+ 27.618 -- up 90.0,50.0
+ 27.618 tap>tap ended
+
+=== drag+lp: click
+ 28.529 -- down 50.0,50.0
+ 28.530 sim changed drag=nil lp=Optional(true)
+ 28.560 -- up 50.0,50.0
+
+=== drag+lp: double click
+ 29.464 -- down 50.0,50.0
+ 29.464 sim changed drag=nil lp=Optional(true)
+ 29.494 -- up 50.0,50.0
+ 29.616 -- down 50.0,50.0 cc2
+ 29.617 sim changed drag=nil lp=Optional(true)
+ 29.646 -- up 50.0,50.0 cc2
+
+=== drag+lp: hold 0.5 release
+ 30.550 -- down 50.0,50.0
+ 30.551 sim changed drag=nil lp=Optional(true)
+ 31.052 -- up 50.0,50.0
+ 31.052 sim ended drag=nil lp=Optional(true)
+
+=== drag+lp: hold 0.5, drag 30, release
+ 31.954 -- down 50.0,50.0
+ 31.954 sim changed drag=nil lp=Optional(true)
+ 32.458 -- drag 60.0,50.0
+ 32.458 sim changed drag=(10.0,0.0) lp=Optional(true)
+ 32.507 -- drag 80.0,50.0
+ 32.507 sim changed drag=(30.0,0.0) lp=Optional(true)
+ 32.554 -- up 80.0,50.0
+ 32.555 sim ended drag=(30.0,0.0) lp=Optional(true)
+
+=== drag+lp: drag 30 at once, hold to 0.5, release
+ 33.465 -- down 50.0,50.0
+ 33.465 sim changed drag=nil lp=Optional(true)
+ 33.515 -- drag 60.0,50.0
+ 33.515 sim changed drag=(10.0,0.0) lp=Optional(true)
+ 33.567 -- drag 80.0,50.0
+ 33.567 sim changed drag=(30.0,0.0) lp=nil
+ 33.967 -- up 80.0,50.0
+ 33.967 sim ended drag=(30.0,0.0) lp=nil
+
+=== drag+lp: shift-drag 30
+ 34.875 -- down 50.0,50.0 mods131072
+ 34.875 sim changed drag=nil lp=Optional(true)
+ 34.930 -- drag 60.0,50.0 mods131072
+ 34.930 sim changed drag=(10.0,0.0) lp=Optional(true)
+ 34.979 -- drag 80.0,50.0 mods131072
+ 34.979 sim changed drag=(30.0,0.0) lp=nil
+ 35.030 -- up 80.0,50.0 mods131072
+ 35.030 sim ended drag=(30.0,0.0) lp=nil
+
+=== drag+lp: option-click
+ 35.929 -- down 50.0,50.0 mods524288
+ 35.930 sim changed drag=nil lp=Optional(true)
+ 35.962 -- up 50.0,50.0 mods524288
+
+=== drag+lp: drag 30, shift released mid-drag
+ 36.862 -- down 50.0,50.0 mods131072
+ 36.863 sim changed drag=nil lp=Optional(true)
+ 36.913 -- drag 60.0,50.0 mods131072
+ 36.914 sim changed drag=(10.0,0.0) lp=Optional(true)
+ 36.964 -- drag 80.0,50.0
+ 36.964 sim changed drag=(30.0,0.0) lp=nil
+ 36.985 -- drag 90.0,50.0
+ 36.985 sim changed drag=(40.0,0.0) lp=nil
+ 37.014 -- up 90.0,50.0
+ 37.015 sim ended drag=(40.0,0.0) lp=nil
+
+=== tap+tap2: click
+ 37.916 -- down 50.0,50.0
+ 37.950 -- up 50.0,50.0
+ 38.302 sim ended first=true second=false
+
+=== tap+tap2: double click
+ 38.858 -- down 50.0,50.0
+ 38.889 -- up 50.0,50.0
+ 39.010 -- down 50.0,50.0 cc2
+ 39.039 -- up 50.0,50.0 cc2
+ 39.039 sim ended first=true second=true
+
+=== tap+tap2: hold 0.5 release
+ 39.946 -- down 50.0,50.0
+ 40.446 -- up 50.0,50.0
+ 40.799 sim ended first=true second=false
+
+=== tap+tap2: hold 0.5, drag 30, release
+ 41.350 -- down 50.0,50.0
+ 41.851 -- drag 60.0,50.0
+ 41.900 -- drag 80.0,50.0
+ 41.952 -- up 80.0,50.0
+ 42.304 sim ended first=true second=false
+
+=== tap+tap2: drag 30 at once, hold to 0.5, release
+ 42.856 -- down 50.0,50.0
+ 42.909 -- drag 60.0,50.0
+ 42.958 -- drag 80.0,50.0
+ 43.358 -- up 80.0,50.0
+ 43.711 sim ended first=true second=false
+
+=== tap+tap2: shift-drag 30
+ 44.260 -- down 50.0,50.0 mods131072
+ 44.313 -- drag 60.0,50.0 mods131072
+ 44.366 -- drag 80.0,50.0 mods131072
+ 44.415 -- up 80.0,50.0 mods131072
+ 44.769 sim ended first=true second=false
+
+=== tap+tap2: option-click
+ 45.319 -- down 50.0,50.0 mods524288
+ 45.353 -- up 50.0,50.0 mods524288
+ 45.706 sim ended first=true second=false
+
+=== tap+tap2: drag 30, shift released mid-drag
+ 46.257 -- down 50.0,50.0 mods131072
+ 46.309 -- drag 60.0,50.0 mods131072
+ 46.359 -- drag 80.0,50.0
+ 46.380 -- drag 90.0,50.0
+ 46.409 -- up 90.0,50.0
+ 46.765 sim ended first=true second=false
+
+=== lp|drag: click
+ 47.311 -- down 50.0,50.0
+ 47.312 excl changed first(true)
+ 47.343 -- up 50.0,50.0
+
+=== lp|drag: double click
+ 48.247 -- down 50.0,50.0
+ 48.248 excl changed first(true)
+ 48.278 -- up 50.0,50.0
+ 48.399 -- down 50.0,50.0 cc2
+ 48.400 excl changed first(true)
+ 48.430 -- up 50.0,50.0 cc2
+
+=== lp|drag: hold 0.5 release
+ 49.333 -- down 50.0,50.0
+ 49.333 excl changed first(true)
+ 49.640 excl ended first(true)
+ 49.833 -- up 50.0,50.0
+
+=== lp|drag: hold 0.5, drag 30, release
+ 50.740 -- down 50.0,50.0
+ 50.741 excl changed first(true)
+ 51.042 excl ended first(true)
+ 51.243 -- drag 60.0,50.0
+ 51.294 -- drag 80.0,50.0
+ 51.341 -- up 80.0,50.0
+
+=== lp|drag: drag 30 at once, hold to 0.5, release
+ 52.247 -- down 50.0,50.0
+ 52.247 excl changed first(true)
+ 52.304 -- drag 60.0,50.0
+ 52.351 -- drag 80.0,50.0
+ 52.351 excl changed second((30.0,0.0))
+ 52.749 -- up 80.0,50.0
+ 52.749 excl ended second((30.0,0.0))
+
+=== lp|drag: shift-drag 30
+ 53.653 -- down 50.0,50.0 mods131072
+ 53.653 excl changed first(true)
+ 53.705 -- drag 60.0,50.0 mods131072
+ 53.760 -- drag 80.0,50.0 mods131072
+ 53.760 excl changed second((30.0,0.0))
+ 53.805 -- up 80.0,50.0 mods131072
+ 53.805 excl ended second((30.0,0.0))
+
+=== lp|drag: option-click
+ 54.706 -- down 50.0,50.0 mods524288
+ 54.707 excl changed first(true)
+ 54.738 -- up 50.0,50.0 mods524288
+
+=== lp|drag: drag 30, shift released mid-drag
+ 55.640 -- down 50.0,50.0 mods131072
+ 55.640 excl changed first(true)
+ 55.692 -- drag 60.0,50.0 mods131072
+ 55.740 -- drag 80.0,50.0
+ 55.740 excl changed second((30.0,0.0))
+ 55.762 -- drag 90.0,50.0
+ 55.762 excl changed second((40.0,0.0))
+ 55.792 -- up 90.0,50.0
+ 55.792 excl ended second((40.0,0.0))
+
+=== drag|lp: click
+ 56.694 -- down 50.0,50.0
+ 56.726 -- up 50.0,50.0
+
+=== drag|lp: double click
+ 57.627 -- down 50.0,50.0
+ 57.659 -- up 50.0,50.0
+ 57.779 -- down 50.0,50.0 cc2
+ 57.812 -- up 50.0,50.0 cc2
+
+=== drag|lp: hold 0.5 release
+ 58.729 -- down 50.0,50.0
+ 59.231 -- up 50.0,50.0
+ 59.231 excl2 ended second(true)
+
+=== drag|lp: hold 0.5, drag 30, release
+ 60.133 -- down 50.0,50.0
+ 60.635 -- drag 60.0,50.0
+ 60.636 excl2 changed first((10.0,0.0))
+ 60.685 -- drag 80.0,50.0
+ 60.686 excl2 changed first((30.0,0.0))
+ 60.736 -- up 80.0,50.0
+ 60.736 excl2 ended first((30.0,0.0))
+
+=== drag|lp: drag 30 at once, hold to 0.5, release
+ 61.636 -- down 50.0,50.0
+ 61.687 -- drag 60.0,50.0
+ 61.688 excl2 changed first((10.0,0.0))
+ 61.740 -- drag 80.0,50.0
+ 61.741 excl2 changed first((30.0,0.0))
+ 62.136 -- up 80.0,50.0
+ 62.136 excl2 ended first((30.0,0.0))
+
+=== drag|lp: shift-drag 30
+ 63.044 -- down 50.0,50.0 mods131072
+ 63.094 -- drag 60.0,50.0 mods131072
+ 63.094 excl2 changed first((10.0,0.0))
+ 63.147 -- drag 80.0,50.0 mods131072
+ 63.147 excl2 changed first((30.0,0.0))
+ 63.196 -- up 80.0,50.0 mods131072
+ 63.196 excl2 ended first((30.0,0.0))
+
+=== drag|lp: option-click
+ 64.100 -- down 50.0,50.0 mods524288
+ 64.133 -- up 50.0,50.0 mods524288
+
+=== drag|lp: drag 30, shift released mid-drag
+ 65.034 -- down 50.0,50.0 mods131072
+ 65.088 -- drag 60.0,50.0 mods131072
+ 65.088 excl2 changed first((10.0,0.0))
+ 65.138 -- drag 80.0,50.0
+ 65.138 excl2 changed first((30.0,0.0))
+ 65.158 -- drag 90.0,50.0
+ 65.158 excl2 changed first((40.0,0.0))
+ 65.189 -- up 90.0,50.0
+ 65.189 excl2 ended first((40.0,0.0))
+
+=== shiftdrag: click
+ 66.094 -- down 50.0,50.0
+ 66.126 -- up 50.0,50.0
+
+=== shiftdrag: double click
+ 67.030 -- down 50.0,50.0
+ 67.063 -- up 50.0,50.0
+ 67.182 -- down 50.0,50.0 cc2
+ 67.212 -- up 50.0,50.0 cc2
+
+=== shiftdrag: hold 0.5 release
+ 68.119 -- down 50.0,50.0
+ 68.622 -- up 50.0,50.0
+
+=== shiftdrag: hold 0.5, drag 30, release
+ 69.525 -- down 50.0,50.0
+ 70.029 -- drag 60.0,50.0
+ 70.077 -- drag 80.0,50.0
+ 70.126 -- up 80.0,50.0
+
+=== shiftdrag: drag 30 at once, hold to 0.5, release
+ 71.037 -- down 50.0,50.0
+ 71.088 -- drag 60.0,50.0
+ 71.139 -- drag 80.0,50.0
+ 71.537 -- up 80.0,50.0
+
+=== shiftdrag: shift-drag 30
+ 72.443 -- down 50.0,50.0 mods131072
+ 72.495 -- drag 60.0,50.0 mods131072
+ 72.495 shift drag changed (10.0,0.0)
+ 72.544 -- drag 80.0,50.0 mods131072
+ 72.545 shift drag changed (30.0,0.0)
+ 72.594 -- up 80.0,50.0 mods131072
+ 72.594 shift drag ended
+
+=== shiftdrag: option-click
+ 73.501 -- down 50.0,50.0 mods524288
+ 73.536 -- up 50.0,50.0 mods524288
+
+=== shiftdrag: drag 30, shift released mid-drag
+ 74.441 -- down 50.0,50.0 mods131072
+ 74.495 -- drag 60.0,50.0 mods131072
+ 74.496 shift drag changed (10.0,0.0)
+ 74.546 -- drag 80.0,50.0
+ 74.546 shift drag changed (30.0,0.0)
+ 74.564 -- drag 90.0,50.0
+ 74.564 shift drag changed (40.0,0.0)
+ 74.594 -- up 90.0,50.0
+ 74.595 shift drag ended
+
+=== opttap: click
+ 75.493 -- down 50.0,50.0
+ 75.525 -- up 50.0,50.0
+
+=== opttap: double click
+ 76.426 -- down 50.0,50.0
+ 76.463 -- up 50.0,50.0
+ 76.581 -- down 50.0,50.0 cc2
+ 76.608 -- up 50.0,50.0 cc2
+
+=== opttap: hold 0.5 release
+ 77.512 -- down 50.0,50.0
+ 78.015 -- up 50.0,50.0
+
+=== opttap: hold 0.5, drag 30, release
+ 78.919 -- down 50.0,50.0
+ 79.423 -- drag 60.0,50.0
+ 79.477 -- drag 80.0,50.0
+ 79.522 -- up 80.0,50.0
+
+=== opttap: drag 30 at once, hold to 0.5, release
+ 80.423 -- down 50.0,50.0
+ 80.475 -- drag 60.0,50.0
+ 80.525 -- drag 80.0,50.0
+ 80.925 -- up 80.0,50.0
+
+=== opttap: shift-drag 30
+ 81.825 -- down 50.0,50.0 mods131072
+ 81.877 -- drag 60.0,50.0 mods131072
+ 81.930 -- drag 80.0,50.0 mods131072
+ 81.978 -- up 80.0,50.0 mods131072
+
+=== opttap: option-click
+ 82.881 -- down 50.0,50.0 mods524288
+ 82.913 -- up 50.0,50.0 mods524288
+ 82.914 option tap
+
+=== opttap: drag 30, shift released mid-drag
+ 83.822 -- down 50.0,50.0 mods131072
+ 83.874 -- drag 60.0,50.0 mods131072
+ 83.922 -- drag 80.0,50.0
+ 83.944 -- drag 90.0,50.0
+ 83.975 -- up 90.0,50.0

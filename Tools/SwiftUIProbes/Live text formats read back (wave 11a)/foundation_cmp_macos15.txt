@@ -1,0 +1,82 @@
+units wide 0 0 seconds | abbr 0 sec | narrow 0s | condensed 0 sec | show0 0 days, 0 hours, 0 minutes, 0 seconds | de 0 Sekunden | deAbbr 0 Sek.
+units wide 1 1 second | abbr 1 sec | narrow 1s | condensed 1 sec | show0 1 second | de 1 Sekunde | deAbbr 1 Sek.
+units wide 5 5 seconds | abbr 5 sec | narrow 5s | condensed 5 sec | show0 5 seconds | de 5 Sekunden | deAbbr 5 Sek.
+units wide 60 1 minute | abbr 1 min | narrow 1m | condensed 1 min | show0 1 minute, 0 seconds | de 1 Minute | deAbbr 1 Min.
+units wide 65 1 minute, 5 seconds | abbr 1 min, 5 sec | narrow 1m 5s | condensed 1 min 5 sec | show0 1 minute, 5 seconds | de 1 Minute und 5 Sekunden | deAbbr 1 Min., 5 Sek.
+units wide 125 2 minutes, 5 seconds | abbr 2 min, 5 sec | narrow 2m 5s | condensed 2 min 5 sec | show0 2 minutes, 5 seconds | de 2 Minuten und 5 Sekunden | deAbbr 2 Min., 5 Sek.
+units wide 3600 1 hour | abbr 1 hr | narrow 1h | condensed 1 hr | show0 1 hour, 0 minutes | de 1 Stunde | deAbbr 1 Std.
+units wide 3725 1 hour, 2 minutes | abbr 1 hr, 2 min | narrow 1h 2m | condensed 1 hr 2 min | show0 1 hour, 2 minutes | de 1 Stunde und 2 Minuten | deAbbr 1 Std., 2 Min.
+units wide 86400 1 day | abbr 1 day | narrow 1d | condensed 1 day | show0 1 day, 0 hours | de 1 Tag | deAbbr 1 Tg.
+units wide 90061 1 day, 1 hour | abbr 1 day, 1 hr | narrow 1d 1h | condensed 1 day 1 hr | show0 1 day, 1 hour | de 1 Tag und 1 Stunde | deAbbr 1 Tg., 1 Std.
+units wide 400000 4 days, 15 hours | abbr 4 days, 15 hr | narrow 4d 15h | condensed 4 days 15 hr | show0 4 days, 15 hours | de 4 Tage und 15 Stunden | deAbbr 4 Tg., 15 Std.
+units wide 700000 8 days, 2 hours | abbr 8 days, 2 hr | narrow 8d 2h | condensed 8 days 2 hr | show0 8 days, 2 hours | de 8 Tage und 2 Stunden | deAbbr 8 Tg., 2 Std.
+units -125 -2 minutes, 5 seconds
+units hm 3725 1 hour, 2 minutes
+units hm 3600 1 hour, 0 minutes
+units hm 86400 1 day, 0 hours
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.wide) 125.0 2 minutes, 5 seconds
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.wide) 3725.0 1 hour, 2 minutes, 5 seconds
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.wide) 90061.0 1 day, 1 hour, 1 minute, 1 second
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.wide) 400000.0 4 days, 15 hours, 6 minutes, 40 seconds
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.wide) 2678400.0 1 month
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.wide) 40000000.0 1 year, 3 months, 5 days, 23 hours, 6 minutes, 40 seconds
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.abbreviated) 125.0 2 min, 5 sec
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.abbreviated) 3725.0 1 hr, 2 min, 5 sec
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.abbreviated) 90061.0 1 day, 1 hr, 1 min, 1 sec
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.abbreviated) 400000.0 4 days, 15 hr, 6 min, 40 sec
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.abbreviated) 2678400.0 1 mth
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.abbreviated) 40000000.0 1 yr, 3 mths, 5 days, 23 hr, 6 min, 40 sec
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.narrow) 125.0 2m 5s
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.narrow) 3725.0 1h 2m 5s
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.narrow) 90061.0 1d 1h 1m 1s
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.narrow) 400000.0 4d 15h 6m 40s
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.narrow) 2678400.0 1mo
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.narrow) 40000000.0 1y 3mo 5d 23h 6m 40s
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.condensedAbbreviated) 125.0 2min 5sec
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.condensedAbbreviated) 3725.0 1hr 2min 5sec
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.condensedAbbreviated) 90061.0 1day 1hr 1min 1sec
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.condensedAbbreviated) 400000.0 4days 15hr 6min 40sec
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.condensedAbbreviated) 2678400.0 1mth
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.condensedAbbreviated) 40000000.0 1yr 3mths 5days 23hr 6min 40sec
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.spellOut) 125.0 two minutes, five seconds
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.spellOut) 3725.0 one hour, two minutes, five seconds
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.spellOut) 90061.0 one day, one hour, one minute, one second
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.spellOut) 400000.0 four days, fifteen hours, six minutes, forty seconds
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.spellOut) 2678400.0 one month
+components Style(option: Foundation.Date.ComponentsFormatStyle.Style.(unknown context at $188abb844).Option.spellOut) 40000000.0 one year, three months, five days, twenty-three hours, six minutes, forty seconds
+components y/m 40000000 1 year, 3 months
+components y/m 31622400 1 year
+components de y/m 40000000 1 Jahr und 3 Monate
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) -400000.0 5 months ago ref 400000.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) -90000.0 5 months ago ref 90000.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) -3725.0 5 months ago ref 3725.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) -125.0 5 months ago ref 125.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) -89.6 5 months ago ref 89.60000002384186
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) -30.6 5 months ago ref 30.600000023841858
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) -29.4 5 months ago ref 29.399999976158142
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) 0.0 5 months ago ref 0.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) 29.4 5 months ago ref -29.399999976158142
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) 29.6 5 months ago ref -29.600000023841858
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) 89.6 5 months ago ref -89.60000002384186
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) 125.0 5 months ago ref -125.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) 3725.0 5 months ago ref -3725.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) 90000.0 5 months ago ref -90000.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) 400000.0 5 months ago ref -400000.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.named) 5000000.0 3 months ago ref -5000000.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) -400000.0 5 months ago ref 400000.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) -90000.0 5 months ago ref 90000.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) -3725.0 5 months ago ref 3725.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) -125.0 5 months ago ref 125.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) -89.6 5 months ago ref 89.60000002384186
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) -30.6 5 months ago ref 30.600000023841858
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) -29.4 5 months ago ref 29.399999976158142
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) 0.0 5 months ago ref 0.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) 29.4 5 months ago ref -29.399999976158142
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) 29.6 5 months ago ref -29.600000023841858
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) 89.6 5 months ago ref -89.60000002384186
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) 125.0 5 months ago ref -125.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) 3725.0 5 months ago ref -3725.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) 90000.0 5 months ago ref -90000.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) 400000.0 5 months ago ref -400000.0
+relative Presentation(option: Foundation.Date.RelativeFormatStyle.Presentation.Option.numeric) 5000000.0 3 months ago ref -5000000.0
+relative plain now-30 5 months ago

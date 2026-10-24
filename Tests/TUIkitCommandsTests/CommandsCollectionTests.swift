@@ -4,8 +4,8 @@
 //  A scene's commands walked into the menu bar's menus: the order SwiftUI
 //  puts menus in, how `CommandGroup`'s three positions compose, and commands
 //  of an app's own type, whose properties resolve as a view's do. The order
-//  and the composition are SwiftUI's as measured on macOS 15.8 (the session
-//  notes' `O13/probe/menus.swift`, the main menu read back).
+//  and the composition are SwiftUI's as measured on macOS 15.8
+//  (`Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`, the main menu read back).
 //
 //  Created by Wade Tregaskis
 //  License: MIT

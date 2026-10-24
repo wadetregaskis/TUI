@@ -1,0 +1,14 @@
+A defaultScrollAnchor(.bottom), append 5                     automatic origin 200 -> 300
+A defaultScrollAnchor(.bottom), append 5                     disabled  origin 200 -> 200
+A' defaultScrollAnchor(.bottom) eager VStack, append 5       automatic origin 200 -> 300
+A' defaultScrollAnchor(.bottom) eager VStack, append 5       disabled  origin 200 -> 300
+B defaultScrollAnchor(.bottom, for: .sizeChanges), append 5  automatic origin 0 -> 0
+B defaultScrollAnchor(.bottom, for: .sizeChanges), append 5  disabled  origin 0 -> 0
+C no anchor, scrolled to bottom by proxy, append 5           automatic origin 200 -> 200
+C no anchor, scrolled to bottom by proxy, append 5           disabled  origin 200 -> 200
+D no anchor, row 10 at top by proxy, insert 5 above          automatic origin 200 -> 300
+D no anchor, row 10 at top by proxy, insert 5 above          disabled  origin 200 -> 200
+E scrollPosition marked, row 10 at top, insert 5 above       automatic origin 200 -> 300
+E scrollPosition marked, row 10 at top, insert 5 above       disabled  origin 200 -> 200
+F no anchor, at top (origin 0), append 5                     automatic origin 0 -> 0
+F no anchor, at top (origin 0), append 5                     disabled  origin 0 -> 0

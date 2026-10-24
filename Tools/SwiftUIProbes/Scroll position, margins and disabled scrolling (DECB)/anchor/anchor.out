@@ -1,0 +1,15 @@
+proxy  call .top, no txn                 originY = 1000 (row 50 top = 1000; centred = 910; bottom = 820)
+proxy  call .bottom, no txn              originY = 820 (row 50 top = 1000; centred = 910; bottom = 820)
+proxy  call nil, no txn                  originY = 820 (row 50 top = 1000; centred = 910; bottom = 820)
+proxy  call nil, txn .bottom             originY = 820 (row 50 top = 1000; centred = 910; bottom = 820)
+proxy  call nil, txn .top                originY = 1000 (row 50 top = 1000; centred = 910; bottom = 820)
+proxy  call nil, txn .center             originY = 910 (row 50 top = 1000; centred = 910; bottom = 820)
+proxy  call .top, txn .bottom            originY = 1000 (row 50 top = 1000; centred = 910; bottom = 820)
+proxy  call .center, txn .top            originY = 910 (row 50 top = 1000; centred = 910; bottom = 820)
+pos    scrollTo(id:50, anchor:.top), no txn        originY = 820
+pos    scrollTo(id:50, anchor:.center), no txn     originY = 820
+pos    scrollTo(id:50, anchor:nil), txn .top       originY = 1000
+pos    scrollTo(id:50, anchor:.bottom), txn .top   originY = 1000
+pos    scrollTo(id:50, anchor:nil), no txn         originY = 820
+pos    scrollTo(id:50, anchor:nil), txn .bottom    originY = 820
+pos    scrollTo(id:50, anchor:.top), txn .bottom   originY = 820

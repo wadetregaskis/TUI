@@ -147,7 +147,7 @@ private func fades(_ buffer: FrameBuffer) -> [Double] {
 @Suite("The default transition")
 struct DefaultTransitionTests {
 
-    /// SwiftUI's model, measured (`plan/fb16/samples.txt`): the row below
+    /// SwiftUI's model, measured (`Tools/SwiftUIProbes/Insertion and removal (FB16)/samples.txt`): the row below
     /// glides as the view comes and goes, and the view fades where it is —
     /// arriving in its new row with the row below not yet moved out of it,
     /// leaving in its old row with the row below gliding up into it. What is

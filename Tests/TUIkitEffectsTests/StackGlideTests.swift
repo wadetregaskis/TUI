@@ -11,7 +11,7 @@ import TUIkitEffects
 @testable import TUIkitTestSupport
 
 /// The probe's column, in cells: a row above, four rows that come and go, and
-/// a row below whose place is what SwiftUI animates (`plan/fb16/FB16Probe.swift`).
+/// a row below whose place is what SwiftUI animates (`Tools/SwiftUIProbes/Insertion and removal (FB16)/FB16Probe.swift`).
 private struct Column: View {
     let showing: Bool
     let transition: AnyTransition
@@ -143,7 +143,7 @@ struct StackGlideTests {
 
     /// The probe: the view below an inserted one moves from its old place to
     /// its new one with the change's animation, whatever the transition —
-    /// `samples.txt`, every column, 187 → 202 → 218 → 247 over 8 s.
+    /// `samples.txt` beside it, every column, 187 → 202 → 218 → 247 over 8 s.
     @Test("A sibling below an insertion glides down with the change", arguments: [false, true])
     func insertionGlides(identity: Bool) {
         let transition: AnyTransition = identity ? .identity : .opacity

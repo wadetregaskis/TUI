@@ -1,0 +1,40 @@
+=== behavior automatic
+[plain button automatic] no spring-loadable point
+[bordered button automatic] no spring-loadable point
+[tabview automatic] no spring-loadable point
+[disclosure automatic] no spring-loadable point
+[text automatic] no spring-loadable point
+[navlink automatic] no spring-loadable point
+=== behavior enabled
+[plain button enabled] 32 spring-loadable points, x 2.0…44.0, y 2.0…14.0 (window coords, origin bottom-left), options [1]
+[plain button enabled] entered at (2.0, 2.0) -> 1
+[plain button enabled] updated -> 1
+[plain button enabled] activated(true)…
+  -> plain button action
+[plain button enabled] activated(false)…
+[plain button enabled] activated(true) again…
+  -> plain button action
+  (no springLoadingExited:)
+[bordered button enabled] no spring-loadable point
+[tabview enabled] no spring-loadable point
+[disclosure enabled] 8 spring-loadable points, x 2.0…8.0, y 6.0…18.0 (window coords, origin bottom-left), options [1]
+[disclosure enabled] entered at (2.0, 6.0) -> 1
+[disclosure enabled] updated -> 1
+[disclosure enabled] activated(true)…
+  -> disclosure isExpanded set to true
+[disclosure enabled] activated(false)…
+[disclosure enabled] activated(true) again…
+  -> disclosure isExpanded set to false
+  (no springLoadingExited:)
+[text enabled] no spring-loadable point
+[navlink enabled] no spring-loadable point
+=== behavior disabled
+[plain button disabled] no spring-loadable point
+[bordered button disabled] no spring-loadable point
+[tabview disabled] no spring-loadable point
+[disclosure disabled] no spring-loadable point
+[text disabled] no spring-loadable point
+[navlink disabled] no spring-loadable point
+NSButton responds springLoadingEntered: true, springLoadingActivated: true
+NSButton entered -> 1
+  -> direct NSButton action

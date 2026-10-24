@@ -609,7 +609,7 @@ selection, so the two never compete.
   row, so a resize keeps the top paragraph in place. Horizontal scroll goes
   in wrap mode.
 - **Motion.** All of it is checked against an `NSTextView` probe first,
-  using `w06b/probe/nav.swift`'s harness on a `TextEditor`:
+  using `Tools/SwiftUIProbes/Vertical TextField keys, caret and size (wave 6b)/nav.swift`'s harness on a `TextEditor`:
   - Up, Down, Ctrl-P and Ctrl-N move by row, keeping a desired cell x
     through short rows.
   - Page Up and Down move a screen of rows.
@@ -869,7 +869,7 @@ Terminal compatibility survey.md sections on:
   human at `mouse_probe.py`.
 
 Fix `MouseSupport.swift:54-58`'s table to match. Also run the `NSTextView`
-and selectable-`Text` probes (the `w06b/probe` harness) for A43's motions and
+and selectable-`Text` probes (the `Tools/SwiftUIProbes/Vertical TextField keys, caret and size (wave 6b)/` harness) for A43's motions and
 for SwiftUI's selectable-`Text` answers to §4.1's rows.
 
 **C1. The clipboard writer.** Add `TerminalClient.honoursClipboardWrites`,

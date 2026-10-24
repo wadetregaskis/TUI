@@ -16,8 +16,8 @@ import TUIkitFoundation
 ///
 /// The names of these placements aren't visible in the user interface, but
 /// each belongs to one of the standard menus, as on macOS (measured on macOS
-/// 15.8 with SwiftUI's own main menu read back: the session notes'
-/// `O13/probe/menus.swift`): the app's menu, File, Edit, Format, View, Window
+/// 15.8 with SwiftUI's own main menu read back:
+/// `Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`): the app's menu, File, Edit, Format, View, Window
 /// and Help. A menu shows its groups in the order below, each set off from the
 /// next by a separator, and a standard menu with nothing in any of its groups
 /// is not drawn.

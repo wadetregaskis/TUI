@@ -208,7 +208,7 @@ struct AnimationPageShowHideTests {
             belowText: "below")
     }
 
-    /// SwiftUI's model, measured (`plan/fb16/samples.txt`): the space goes on
+    /// SwiftUI's model, measured (`Tools/SwiftUIProbes/Insertion and removal (FB16)/samples.txt`): the space goes on
     /// the frame the panel does, and the page below glides up into it while
     /// the panel slides out where it was. Kept, nothing below moves at all.
     @Test("Hiding the panel slides it out in place, the page below gliding up or kept still",

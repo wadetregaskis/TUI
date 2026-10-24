@@ -13,7 +13,7 @@ import TUIkitFoundation
 
 /// The scene's own commands — what TUIkit puts in the standard groups before
 /// an app's ``CommandGroup`` adds to or replaces them, as a `WindowGroup`'s own
-/// are on macOS (measured on macOS 15.8, session notes `O13/probe/menus.swift`:
+/// are on macOS (measured on macOS 15.8, `Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`:
 /// the app's menu holds About and Quit, the Edit menu Undo, Redo, Cut, Copy and
 /// Paste). `commandsRemoved()` takes them away, as there.
 ///

@@ -1,0 +1,20 @@
+w400.0 dateTime    10/3/2026, 8:25 PM | fixed 10/3/2026, 8:25 PM
+w400.0 wide date   Friday, May 8, 2026 | fixed Friday, May 8, 2026
+w400.0 ref max3    Friday, May 8 at 11 PM | fixed Friday, May 8 at 11 PM
+w400.0 offset 1line 4 months, 24 days | fixed 4 months, 24 days
+w400.0 timer 1line 3549:11:49 | fixed 3549:11:49
+w160.0 dateTime    10/3/2026, 8:25 PM | fixed 10/3/2026, 8:25 PM
+w160.0 wide date   Friday, May 8, 2026 | fixed Friday, May 8, 2026
+w160.0 ref max3    Friday, May 8 at 11 PM | fixed Friday, May 8 at 11 PM
+w160.0 offset 1line 4 months, 24 days | fixed 4 months, 24 days
+w160.0 timer 1line 3549:11:52 | fixed 3549:11:52
+w100.0 dateTime    10/3/2026, / 8:25 PM | fixed 10/3/2026, / 8:25 PM
+w100.0 wide date   Friday, May / 8, 2026 | fixed Friday, May / 8, 2026
+w100.0 ref max3    5/8, 11 | fixed Friday, May 8...
+w100.0 offset 1line 4 mths, 24 days | fixed 4 months, 24...
+w100.0 timer 1line 3549:11:53 | fixed 3549:11:53
+w60.0 dateTime    10/3/202 / 8:25 PM | fixed 10/3/202 / 8:25 PM
+w60.0 wide date   Friday, / May 8, / 2026 | fixed Friday, / May 8, / 2026
+w60.0 ref max3    5/8, 11 | fixed Friday,...
+w60.0 offset 1line 4mo 24d | fixed 4 mont...
+w60.0 timer 1line 3549:1... | fixed 3549:1...

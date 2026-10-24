@@ -1,0 +1,174 @@
+  0.000 setup done
+
+=== tap: slide right 35.0
+  0.316 -- down 10.0,10.0
+  0.339 -- drag 45.0,10.0
+  0.358 -- up 45.0,10.0
+  0.359 tap
+
+=== tap: slide down 35.0
+  1.065 -- down 10.0,10.0
+  1.089 -- drag 10.0,45.0
+  1.108 -- up 10.0,45.0
+  1.108 tap
+
+=== tap: slide right 40.0
+  1.818 -- down 10.0,10.0
+  1.841 -- drag 50.0,10.0
+  1.859 -- up 50.0,10.0
+  1.860 tap
+
+=== tap: slide down 40.0
+  2.564 -- down 10.0,10.0
+  2.585 -- drag 10.0,50.0
+  2.606 -- up 10.0,50.0
+  2.606 tap
+
+=== tap: slide right 45.0
+  3.314 -- down 10.0,10.0
+  3.341 -- drag 55.0,10.0
+  3.358 -- up 55.0,10.0
+
+=== tap: slide down 45.0
+  4.060 -- down 10.0,10.0
+  4.084 -- drag 10.0,55.0
+  4.102 -- up 10.0,55.0
+
+=== tap: slide right 50.0
+  4.810 -- down 10.0,10.0
+  4.837 -- drag 60.0,10.0
+  4.852 -- up 60.0,10.0
+
+=== tap: slide down 50.0
+  5.552 -- down 10.0,10.0
+  5.573 -- drag 10.0,60.0
+  5.596 -- up 10.0,60.0
+
+=== tap: slide right 60.0
+  6.300 -- down 10.0,10.0
+  6.327 -- drag 70.0,10.0
+  6.346 -- up 70.0,10.0
+
+=== tap: slide down 60.0
+  7.043 -- down 10.0,10.0
+  7.068 -- drag 10.0,70.0
+  7.085 -- up 10.0,70.0
+
+=== tap: slide right 60 and back to 10
+  7.793 -- down 10.0,10.0
+  7.818 -- drag 70.0,10.0
+  7.837 -- drag 20.0,10.0
+  7.855 -- up 20.0,10.0
+
+=== tap: held 0.78
+  8.557 -- down 10.0,10.0
+  9.341 -- up 10.0,10.0
+
+=== tap: held 0.8
+ 10.041 -- down 10.0,10.0
+ 10.846 -- up 10.0,10.0
+
+=== tap: held 0.82
+ 11.552 -- down 10.0,10.0
+ 12.374 -- up 10.0,10.0
+
+=== tap: held 0.85
+ 13.083 -- down 10.0,10.0
+ 13.934 -- up 10.0,10.0
+
+=== shift-gated tap, none-click
+ 14.637 -- down 10.0,10.0
+ 14.669 -- up 10.0,10.0
+
+=== shift+option-gated tap, none-click
+ 15.376 -- down 10.0,10.0
+ 15.410 -- up 10.0,10.0
+
+=== shift-gated tap, shift-click
+ 16.111 -- down 10.0,10.0 mods131072
+ 16.143 -- up 10.0,10.0 mods131072
+ 16.143 shift tap
+
+=== shift+option-gated tap, shift-click
+ 16.847 -- down 10.0,10.0 mods131072
+ 16.880 -- up 10.0,10.0 mods131072
+
+=== shift-gated tap, shift+option-click
+ 17.582 -- down 10.0,10.0 mods655360
+ 17.614 -- up 10.0,10.0 mods655360
+ 17.614 shift tap
+
+=== shift+option-gated tap, shift+option-click
+ 18.320 -- down 10.0,10.0 mods655360
+ 18.351 -- up 10.0,10.0 mods655360
+ 18.351 shift+opt tap
+
+=== shift-gated tap, shift+control-click
+ 19.057 -- down 10.0,10.0 mods393216
+ 19.093 -- up 10.0,10.0 mods393216
+ 19.093 shift tap
+
+=== shift+option-gated tap, shift+control-click
+ 19.796 -- down 10.0,10.0 mods393216
+ 19.829 -- up 10.0,10.0 mods393216
+
+=== shift-gated tap, option-click
+ 20.532 -- down 10.0,10.0 mods524288
+ 20.565 -- up 10.0,10.0 mods524288
+
+=== shift+option-gated tap, option-click
+ 21.267 -- down 10.0,10.0 mods524288
+ 21.302 -- up 10.0,10.0 mods524288
+
+=== shift-gated tap, shift only on the release
+ 22.012 -- down 10.0,10.0
+ 22.046 -- up 10.0,10.0 mods131072
+
+=== lp+tap: click
+ 22.750 -- down 10.0,10.0
+ 22.785 -- up 10.0,10.0
+ 22.785 tap
+
+=== lp+tap: hold 0.6
+ 23.685 -- down 10.0,10.0
+ 24.087 long
+ 24.288 -- up 10.0,10.0
+
+=== tap+lp: click
+ 25.195 -- down 10.0,10.0
+ 25.227 -- up 10.0,10.0
+ 25.227 tap
+
+=== tap+lp: hold 0.6
+ 26.129 -- down 10.0,10.0
+ 26.734 -- up 10.0,10.0
+ 26.734 tap
+
+=== lpPressing: click
+ 27.634 -- down 10.0,10.0
+ 27.635 pressing true
+ 27.665 -- up 10.0,10.0
+ 27.666 pressing false
+
+=== lpPressing: hold 0.6
+ 28.568 -- down 10.0,10.0
+ 28.569 pressing true
+ 28.975 pressing false
+ 28.975 long
+ 29.170 -- up 10.0,10.0
+
+=== lpPressingMoved: move 8 at 0.1
+ 30.077 -- down 10.0,10.0
+ 30.077 pressing true
+ 30.180 -- drag 18.0,10.0
+ 30.180 pressing false
+ 30.682 -- up 18.0,10.0
+
+=== cancelled: inner long press (updating), outer high-priority drag wins
+ 31.281 body inner=false
+ 31.583 -- down 25.0,25.0
+ 31.686 -- drag 30.0,25.0
+ 31.735 -- drag 50.0,25.0
+ 31.736 outer drag changed
+ 31.784 -- up 50.0,25.0
+ 31.784 outer drag ended

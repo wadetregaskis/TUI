@@ -121,9 +121,10 @@ package enum TextUndoBridge {
     ///
     /// What ends a run of typing as the macOS text system ends one (measured
     /// on macOS 15.8 with `NSTextView`s sharing a window's undo manager, the
-    /// INPUT lane's probe): typing that follows a step registered by anything
-    /// else — another text control's typing, an action of the app's — is a
-    /// step of its own, so the undos come back in the order of the edits.
+    /// INPUT lane's probes, `Tools/SwiftUIProbes/Undo and the pointer leaving (INPUT)/`):
+    /// typing that follows a step registered by anything else — another text
+    /// control's typing, an action of the app's — is a step of its own, so the
+    /// undos come back in the order of the edits.
     /// The focus moving away and back with nothing registered meanwhile does
     /// not end the run.
     ///

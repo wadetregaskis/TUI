@@ -1,0 +1,61 @@
+== initial
+row 1 visible true
+row 0 visible true
+row 4 visible true
+row 9 visible true
+row 8 visible true
+row 7 visible true
+row 6 visible true
+row 2 visible true
+row 3 visible true
+row 5 visible true
+== scroll to 5.0
+   clip 5.0
+== scroll to 10.0
+row 10 visible true
+   clip 10.0
+== scroll to 40.0
+row 13 visible true
+row 12 visible true
+row 11 visible true
+   clip 40.0
+== scroll to 300.0
+row 38 visible true
+row 35 visible true
+row 30 visible true
+row 37 visible true
+row 32 visible true
+row 34 visible true
+row 31 visible true
+row 39 visible true
+row 36 visible true
+row 33 visible true
+   clip 300.0
+== scroll to 0.0
+row 3 visible false
+row 8 visible false
+row 2 visible false
+row 6 visible false
+row 9 visible false
+row 0 visible false
+row 4 visible false
+row 1 visible false
+row 5 visible false
+row 7 visible false
+row 3 visible true
+row 8 visible true
+row 2 visible true
+row 6 visible true
+row 9 visible true
+row 0 visible true
+row 4 visible true
+row 1 visible true
+row 5 visible true
+row 7 visible true
+   clip 0.0
+== remove row 7
+row 10 visible false
+row 10 visible true
+== outside any scroll view (window 100 tall)
+outside below window thr0 true
+outside (half in window) true

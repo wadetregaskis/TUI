@@ -1,0 +1,18 @@
+=== tabItem TabView, automatic
+NSHostingView<ModifiedContent<ModifiedContent<TabView<Int, TupleView<(ModifiedCo frame=(0.0, 0.0, 300.0, 200.0)
+  CGDrawingView frame=(139.0, 92.0, 22.5, 16.0)
+=== tabItem TabView, enabled
+NSHostingView<ModifiedContent<ModifiedContent<TabView<Int, TupleView<(ModifiedCo frame=(0.0, 0.0, 300.0, 200.0)
+  CGDrawingView frame=(139.0, 92.0, 22.5, 16.0)
+=== tabItem TabView, disabled
+NSHostingView<ModifiedContent<ModifiedContent<TabView<Int, TupleView<(ModifiedCo frame=(0.0, 0.0, 300.0, 200.0)
+  CGDrawingView frame=(139.0, 92.0, 22.5, 16.0)
+=== Tab-API TabView, tab .springLoadingBehavior(automatic)
+NSHostingView<TabView<Int, Content<_TupleTabContent<Int, (ModifiedContent<TabIde frame=(0.0, 0.0, 300.0, 200.0)
+  CGDrawingView frame=(139.0, 92.0, 22.5, 16.0)
+=== Tab-API TabView, tab .springLoadingBehavior(enabled)
+NSHostingView<TabView<Int, Content<_TupleTabContent<Int, (ModifiedContent<TabIde frame=(0.0, 0.0, 300.0, 200.0)
+  CGDrawingView frame=(139.0, 92.0, 22.5, 16.0)
+=== Tab-API TabView, tab .springLoadingBehavior(disabled)
+NSHostingView<TabView<Int, Content<_TupleTabContent<Int, (ModifiedContent<TabIde frame=(0.0, 0.0, 300.0, 200.0)
+  CGDrawingView frame=(139.0, 92.0, 22.5, 16.0)

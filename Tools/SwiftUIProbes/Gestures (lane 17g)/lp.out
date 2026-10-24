@@ -1,0 +1,104 @@
+  0.000 setup done
+  0.000 doubleClickInterval 0.5
+
+=== long press default: hold 0.45 release
+  0.022 body pressing=false
+  0.331 -- down 50.0,50.0
+  0.463 updating true
+  0.463 changed true
+  0.463 body pressing=true
+  0.787 -- up 50.0,50.0
+  0.787 body pressing=false
+
+=== long press default: hold 0.8 release
+  1.383 body pressing=false
+  1.685 -- down 50.0,50.0
+  1.685 updating true
+  1.685 changed true
+  1.685 body pressing=true
+  2.188 ended true
+  2.188 body pressing=false
+  2.487 -- up 50.0,50.0
+
+=== long press 0.3: hold 0.45 release
+  3.093 body pressing=false
+  3.394 -- down 50.0,50.0
+  3.395 updating true
+  3.395 changed true
+  3.395 body pressing=true
+  3.697 ended true
+  3.697 body pressing=false
+  3.847 -- up 50.0,50.0
+
+=== long press 0.3: hold 0.8 release
+  4.451 body pressing=false
+  4.752 -- down 50.0,50.0
+  4.753 updating true
+  4.753 changed true
+  4.753 body pressing=true
+  5.058 ended true
+  5.058 body pressing=false
+  5.556 -- up 50.0,50.0
+
+=== long press default: move 5.0 at 0.1 then hold to 0.8
+  6.155 body pressing=false
+  6.459 -- down 50.0,50.0
+  6.575 updating true
+  6.576 changed true
+  6.576 -- drag 55.0,50.0
+  6.576 body pressing=true
+  7.079 ended true
+  7.079 body pressing=false
+  7.261 -- up 55.0,50.0
+
+=== long press default: move 9.0 at 0.1 then hold to 0.8
+  7.864 body pressing=false
+  8.169 -- down 50.0,50.0
+  8.169 updating true
+  8.169 changed true
+  8.169 body pressing=true
+  8.273 -- drag 59.0,50.0
+  8.671 ended true
+  8.672 body pressing=false
+  8.970 -- up 59.0,50.0
+
+=== long press default: move 10.0 at 0.1 then hold to 0.8
+  9.574 body pressing=false
+  9.875 -- down 50.0,50.0
+  9.875 updating true
+  9.876 changed true
+  9.876 body pressing=true
+  9.979 -- drag 60.0,50.0
+ 10.376 ended true
+ 10.376 body pressing=false
+ 10.678 -- up 60.0,50.0
+
+=== long press default: move 11.0 at 0.1 then hold to 0.8
+ 11.575 body pressing=false
+ 11.876 -- down 50.0,50.0
+ 11.876 updating true
+ 11.876 changed true
+ 11.876 body pressing=true
+ 11.978 -- drag 61.0,50.0
+ 11.978 body pressing=false
+ 12.678 -- up 61.0,50.0
+
+=== long press default: move 15.0 at 0.1 then hold to 0.8
+ 13.278 body pressing=false
+ 13.581 -- down 50.0,50.0
+ 13.581 updating true
+ 13.581 changed true
+ 13.581 body pressing=true
+ 13.683 -- drag 65.0,50.0
+ 13.683 body pressing=false
+ 14.383 -- up 65.0,50.0
+
+=== long press default: diagonal 8,8 at 0.1
+ 14.982 body pressing=false
+ 15.284 -- down 50.0,50.0
+ 15.285 updating true
+ 15.285 changed true
+ 15.285 body pressing=true
+ 15.386 -- drag 58.0,58.0
+ 15.387 body pressing=false
+ 16.089 -- up 58.0,58.0

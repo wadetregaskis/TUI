@@ -3,7 +3,7 @@
 *Lane W1, 2026-10-18: SwiftUI's shapes, after the refusal review's W1 and the
 owner's ruling on O0 (2026-10-12: square units — x in columns, y in rows ×
 `\.imageCellAspect`). SwiftUI's geometry was measured on macOS 15.8 by probes
-that print SwiftUI's own path descriptions (session notes, `W1/probe`); the
+that print SwiftUI's own path descriptions (`Tools/SwiftUIProbes/Shape paths (W1)/`); the
 macOS 26 declarations were read from the Xcode SDK's `SwiftUICore`
 interface. The format is that of the main decisions file:*
 

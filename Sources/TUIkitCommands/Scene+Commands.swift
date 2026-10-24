@@ -52,8 +52,8 @@ extension Scene {
     /// count, and nor do the scene's own: the app's menu's About and Quit and
     /// the Edit menu's Undo, Redo, Cut, Copy and Paste. Commands written
     /// outside it still do, as
-    /// SwiftUI composes them on macOS (measured on macOS 15.8: the session
-    /// notes' `O13/probe/menus.swift`, where `.commands { A }.commandsRemoved()`
+    /// SwiftUI composes them on macOS (measured on macOS 15.8:
+    /// `Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`, where `.commands { A }.commandsRemoved()`
     /// left no menu of A's or of the app's, and `.commandsRemoved().commands
     /// { A }` left A's alone). With nothing left, the scene has no menu bar.
     ///

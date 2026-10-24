@@ -122,7 +122,7 @@ the cut removes the whole reason: it stops at "Edge is fully at parity except
   written sizes, so a settable, inert channel matches macOS exactly.
 - **`submitLabel` was removed.** It was "a value nothing read".
 
-Measured on macOS 15.8 (`w17/probe/p.swift`, offscreen `NSHostingView`), and
+Measured on macOS 15.8 (`Tools/SwiftUIProbes/Foundation shims and a text snapshot (wave 17)/p.swift`, offscreen `NSHostingView`), and
 from Apple's own doc comments:
 
 | API | macOS SwiftUI behaviour |
@@ -152,7 +152,7 @@ the caller should not be asking":
 ### X6. Platform facts verified for this review
 
 - **Swift 6.3.3 static Linux SDK** (`swiftc -typecheck -target
-  aarch64-swift-linux-musl`, `w17/probe/lx*.swift`):
+  aarch64-swift-linux-musl`, `Tools/SwiftUIProbes/Foundation shims and a text snapshot (wave 17)/lx*.swift`):
 
   | Present | Absent |
   |---|---|

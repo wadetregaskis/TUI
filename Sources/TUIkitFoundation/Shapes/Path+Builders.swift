@@ -256,7 +256,7 @@ extension Path {
 
     /// Apple's continuous corner, as offsets from the corner over its radius:
     /// three cubic curves, read off SwiftUI's own path (measured, the 20 × 10
-    /// `RoundedRectangle` of radius 3 in the session notes' W1 probe).
+    /// `RoundedRectangle` of radius 3 in the W1 probes, `Tools/SwiftUIProbes/Shape paths (W1)/`).
     enum ContinuousCorner {
         /// How far from the corner along each edge the curve begins.
         static let extent: CGFloat = 1.528_665

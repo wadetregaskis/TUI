@@ -196,8 +196,8 @@ enum ShapeStroker {
     /// An odd number of lengths is laid twice end to end, so that painted and
     /// unpainted alternate through it — `[2]` is two painted, two not, and
     /// `[4, 2, 6]` paints the 2 the second time round. That is CoreGraphics'
-    /// rule, which SwiftUI strokes by (measured, the W1 review's `arcs.swift`
-    /// probe, session notes); read as it stood, a lone length was all painted.
+    /// rule, which SwiftUI strokes by (measured, the W1 review's
+    /// `Tools/SwiftUIProbes/Shape paths (W1)/review/arcs.swift`); read as it stood, a lone length was all painted.
     ///
     /// A pattern too fine to show or too long to walk draws the line unbroken
     /// — one whose lengths come to less than ``shortestDashPattern``, or one

@@ -1,0 +1,271 @@
+  0.000 setup done
+
+=== parent gesture: click child, then click blue sibling
+  0.316 -- down 25.0,25.0
+  0.348 -- up 25.0,25.0
+  0.349 child onTap
+  0.918 -- down 25.0,75.0
+  0.949 -- up 25.0,75.0
+  0.949 parent tap
+
+=== parent high: click child, then click blue sibling
+  1.852 -- down 25.0,25.0
+  1.884 -- up 25.0,25.0
+  1.884 parent tap
+  2.454 -- down 25.0,75.0
+  2.483 -- up 25.0,75.0
+  2.483 parent tap
+
+=== parent simul: click child, then click blue sibling
+  3.387 -- down 25.0,25.0
+  3.420 -- up 25.0,25.0
+  3.420 parent tap
+  3.420 child onTap
+  3.990 -- down 25.0,75.0
+  4.019 -- up 25.0,75.0
+  4.019 parent tap
+
+=== parent gesture.gesture: click child, then click blue sibling
+  4.936 -- down 25.0,25.0
+  4.968 -- up 25.0,25.0
+  4.968 parent tap
+  5.536 -- down 25.0,75.0
+  5.567 -- up 25.0,75.0
+  5.567 parent tap
+
+=== parent gesture.subviews: click child, then click blue sibling
+  6.471 -- down 25.0,25.0
+  6.502 -- up 25.0,25.0
+  6.502 child onTap
+  7.073 -- down 25.0,75.0
+  7.102 -- up 25.0,75.0
+
+=== parent gesture.none: click child, then click blue sibling
+  8.007 -- down 25.0,25.0
+  8.037 -- up 25.0,25.0
+  8.609 -- down 25.0,75.0
+  8.639 -- up 25.0,75.0
+
+=== parent high.subviews: click child, then click blue sibling
+  9.540 -- down 25.0,25.0
+  9.572 -- up 25.0,25.0
+  9.572 child onTap
+ 10.142 -- down 25.0,75.0
+ 10.172 -- up 25.0,75.0
+
+=== parent onTap: click child, then click blue sibling
+ 11.077 -- down 25.0,25.0
+ 11.110 -- up 25.0,25.0
+ 11.110 child onTap
+ 11.679 -- down 25.0,75.0
+ 11.709 -- up 25.0,75.0
+ 11.709 parent onTap
+
+=== button plain: click
+ 12.619 -- down 50.0,20.0
+ 12.650 -- up 50.0,20.0
+ 12.652 button action
+
+=== button plain: hold 0.5s
+ 13.250 -- down 50.0,20.0
+ 13.751 -- up 50.0,20.0
+ 13.751 button action
+
+=== button plain: drag 30pt
+ 14.352 -- down 50.0,20.0
+ 14.404 -- drag 60.0,20.0
+ 14.454 -- drag 80.0,20.0
+ 14.504 -- up 80.0,20.0
+ 14.505 button action
+
+=== button gesture: click
+ 15.413 -- down 50.0,20.0
+ 15.445 -- up 50.0,20.0
+ 15.445 button action
+
+=== button gesture: hold 0.5s
+ 16.043 -- down 50.0,20.0
+ 16.545 -- up 50.0,20.0
+ 16.545 button action
+
+=== button gesture: drag 30pt
+ 17.147 -- down 50.0,20.0
+ 17.199 -- drag 60.0,20.0
+ 17.249 -- drag 80.0,20.0
+ 17.299 -- up 80.0,20.0
+ 17.299 button action
+
+=== button high: click
+ 18.204 -- down 50.0,20.0
+ 18.236 -- up 50.0,20.0
+ 18.236 button action
+
+=== button high: hold 0.5s
+ 18.836 -- down 50.0,20.0
+ 19.338 -- up 50.0,20.0
+ 19.338 button action
+
+=== button high: drag 30pt
+ 19.936 -- down 50.0,20.0
+ 19.989 -- drag 60.0,20.0
+ 20.041 -- drag 80.0,20.0
+ 20.088 -- up 80.0,20.0
+ 20.089 button action
+
+=== button simul: click
+ 20.995 -- down 50.0,20.0
+ 21.030 -- up 50.0,20.0
+ 21.030 button action
+
+=== button simul: hold 0.5s
+ 21.635 -- down 50.0,20.0
+ 22.137 -- up 50.0,20.0
+ 22.137 button action
+
+=== button simul: drag 30pt
+ 22.737 -- down 50.0,20.0
+ 22.792 -- drag 60.0,20.0
+ 22.839 -- drag 80.0,20.0
+ 22.887 -- up 80.0,20.0
+ 22.888 button action
+
+=== button onTap: click
+ 23.792 -- down 50.0,20.0
+ 23.824 -- up 50.0,20.0
+ 23.824 button action
+
+=== button onTap: hold 0.5s
+ 24.427 -- down 50.0,20.0
+ 24.930 -- up 50.0,20.0
+ 24.930 button action
+
+=== button onTap: drag 30pt
+ 25.532 -- down 50.0,20.0
+ 25.585 -- drag 60.0,20.0
+ 25.633 -- drag 80.0,20.0
+ 25.682 -- up 80.0,20.0
+ 25.683 button action
+
+=== button longpress: click
+ 26.589 -- down 50.0,20.0
+ 26.621 -- up 50.0,20.0
+ 26.621 button action
+
+=== button longpress: hold 0.5s
+ 27.219 -- down 50.0,20.0
+ 27.720 -- up 50.0,20.0
+ 27.720 button action
+
+=== button longpress: drag 30pt
+ 28.321 -- down 50.0,20.0
+ 28.373 -- drag 60.0,20.0
+ 28.423 -- drag 80.0,20.0
+ 28.473 -- up 80.0,20.0
+ 28.474 button action
+
+=== button drag: click
+ 29.377 -- down 50.0,20.0
+ 29.409 -- up 50.0,20.0
+ 29.409 button action
+
+=== button drag: hold 0.5s
+ 30.012 -- down 50.0,20.0
+ 30.512 -- up 50.0,20.0
+ 30.513 button action
+
+=== button drag: drag 30pt
+ 31.113 -- down 50.0,20.0
+ 31.172 -- drag 60.0,20.0
+ 31.217 -- drag 80.0,20.0
+ 31.265 -- up 80.0,20.0
+ 31.265 button action
+
+=== button drag0: click
+ 32.175 -- down 50.0,20.0
+ 32.208 -- up 50.0,20.0
+ 32.208 button action
+
+=== button drag0: hold 0.5s
+ 32.808 -- down 50.0,20.0
+ 33.310 -- up 50.0,20.0
+ 33.310 button action
+
+=== button drag0: drag 30pt
+ 33.909 -- down 50.0,20.0
+ 33.961 -- drag 60.0,20.0
+ 34.011 -- drag 80.0,20.0
+ 34.061 -- up 80.0,20.0
+ 34.061 button action
+
+=== button highdrag: click
+ 34.965 -- down 50.0,20.0
+ 35.005 -- up 50.0,20.0
+ 35.005 button action
+
+=== button highdrag: hold 0.5s
+ 35.938 -- down 50.0,20.0
+ 36.442 -- up 50.0,20.0
+ 36.442 button action
+
+=== button highdrag: drag 30pt
+ 37.095 -- down 50.0,20.0
+ 37.150 -- drag 60.0,20.0
+ 37.196 -- drag 80.0,20.0
+ 37.248 -- up 80.0,20.0
+ 37.248 button action
+
+=== button highdrag0: click
+ 38.246 -- down 50.0,20.0
+ 38.282 -- up 50.0,20.0
+ 38.282 button action
+
+=== button highdrag0: hold 0.5s
+ 38.877 -- down 50.0,20.0
+ 39.379 -- up 50.0,20.0
+ 39.387 button action
+
+=== button highdrag0: drag 30pt
+ 39.977 -- down 50.0,20.0
+ 40.029 -- drag 60.0,20.0
+ 40.079 -- drag 80.0,20.0
+ 40.129 -- up 80.0,20.0
+ 40.130 button action
+
+=== drag-over-tap gesture: click child
+ 41.031 -- down 25.0,25.0
+ 41.065 -- up 25.0,25.0
+ 41.065 child onTap
+
+=== drag-over-tap gesture: drag from child
+ 41.665 -- down 25.0,25.0
+ 41.716 -- drag 30.0,25.0
+ 41.767 -- drag 45.0,25.0
+ 41.817 -- up 45.0,25.0
+ 41.817 child onTap
+
+=== drag-over-tap high: click child
+ 42.719 -- down 25.0,25.0
+ 42.751 -- up 25.0,25.0
+ 42.751 child onTap
+
+=== drag-over-tap high: drag from child
+ 43.351 -- down 25.0,25.0
+ 43.407 -- drag 30.0,25.0
+ 43.454 -- drag 45.0,25.0
+ 43.455 parent drag changed (20.0, 0.0)
+ 43.506 -- up 45.0,25.0
+ 43.506 parent drag ended (20.0, 0.0)
+
+=== drag-over-tap simul: click child
+ 44.405 -- down 25.0,25.0
+ 44.436 -- up 25.0,25.0
+ 44.437 child onTap
+
+=== drag-over-tap simul: drag from child
+ 45.036 -- down 25.0,25.0
+ 45.089 -- drag 30.0,25.0
+ 45.140 -- drag 45.0,25.0
+ 45.140 parent drag changed (20.0, 0.0)
+ 45.189 -- up 45.0,25.0
+ 45.189 parent drag ended (20.0, 0.0)
+ 45.189 child onTap

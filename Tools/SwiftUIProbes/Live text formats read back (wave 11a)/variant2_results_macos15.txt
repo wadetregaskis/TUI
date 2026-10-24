@@ -1,0 +1,17 @@
+offset 3725 → [260] 1 hour, 2 minutes  [98] 1 hr, 2 min  [56] 1h 2m  [32] 1h...  [20] 1..°
+offset 125 → [260] 2 minutes, 5 seconds  [128] 2 min, 5 sec  [68] 2m 5s  [32] 2m...  [26] 2..  [20] 2...
+offset 40M → [260] 1 year, 3 months  [98] 1 yr, 3 mths  [68] 1y 3mо  [38] 1y 3...  [32] ly...  [26] 1y...  [20] 1..°
+offset -125 → [260] -2 minutes, 5 seconds  [134] -2 min, 5 sec  [80] -2m 5s  [44] -2m...  [32] -2...  [26] 
+reference -125 → [260] 2 minutes ago  [80] 2 min. ago  [62] 2m ago  [44] 2m a...  [38] 2m...  [26] 2..  [20] 2...
+reference +3725 → [260] in 1 hour  [50] in 1 hr.  [38] in 1h  [26] in...  [20] ••
+reference yesterday → [260] yesterday  [56] yesterd...  [50] yester...  [44] yeste...  [38] yest  [32] yes...  [26] ye...  [20] y...
+reference abs → [260] Friday, May 8  [80] Fri, May 8  [56] 5/8  [20] 
+reference abs max3 → [260] Friday, May 8 at 11 PM  [236] Friday, May 8 at 11PM  [224] Friday, May 8 at 11 PM  [152] Friday, May 8 at 11PM  [146] Friday, May 8 at 11 PM  [140] Friday, May 8 at 11PM  [134] Friday, May 8 at 11 PM  [128] Fri, May 8 at 11PM  [122] Fri, May 8 at 11 PM  [116] Fri, May 8 at 11PM  [110] 5/8, 11  [38] 5/8,  [32] 5/8.  [26] 5...  [20] 
+reference abs year → [260] June 2025  [62] Jun 2025  [56] 6/25  [26] 6..  [20] 6
+timer 3725 max2 → [260] 1 hour, 2 minutes  [98] 1 hr 2 min  [56] 1:02  [26]   [20] 1...
+stopwatch → [260] 01:02:05.50  [254] 01:02:05.52  [242] 01:02:05.50  [236] 01:02:05.51  [230] 01:02:05.50  [224] 01:02:05.52  [212] 01:02:05.50  [200] 01:02:05.52  [194] 01:02:05.51  [188] 01:02:05.53  [182] 01:02:05.51  [170] 01:02:05.50  [164] 01:02:05.53  [158] 01:02:05.50  [152] 01:02:05.51  [140] 01:02:05.52  [110] 01:02:05.51  [104] 01:02:05.52  [98] 01:02:05.50  [92] 01:02:05.53  [86] 01:02:05.51  [80] 01:02:05.52  [74] 01:02:0552  [62] 1:02:0550  [56] 1:02:05  [44] 1:02  [26] 1h
+style relative → [260] 1 hr, 2 min  [56] 1h 2m  [32] 1h...  [20] 1..°
+style offset → [260] +1 hour  [44] +1 hr  [26] +1h  [20] ••
+style date → [260] May 8, 2026  [74] May 2026  [56] 2026  [26] 2..  [20] 2...
+style time → [260] 11:13 PM  [224] 11:13PM  [218] 11:13 PM  [50] 11 PM  [32] 11...  [20] 1..°
+style timer → [260] 1:02:05  [44] 1:02:  [38] 1:02..  [32] 1:0...  [26] 1:..  [20] 1..°

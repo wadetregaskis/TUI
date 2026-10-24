@@ -1,0 +1,10 @@
+case 1: animated scrollTo(50)
+  phase idle -> idle velocity (0.0, 0.0)
+  phase idle -> animating velocity (0.0, 0.0)
+  phase animating -> idle velocity (0.0, 0.0)
+case 2: discrete wheel (no phases), 5 events, sent to NSScrollView.scrollWheel
+  phase idle -> idle velocity (0.0, 0.0)
+  origin 0
+case 3: trackpad-like wheel (began, changed x4, ended, momentum begin/continue/end)
+  phase idle -> idle velocity (0.0, 0.0)
+  origin 0

@@ -1,0 +1,494 @@
+  0.000 setup done
+  0.000 doubleClickInterval 0.5
+
+=== count1: two clicks gap 0.2 second cc2
+  0.316 -- down 20.0,30.0
+  0.348 -- up 20.0,30.0
+  0.348 tap1
+  0.520 -- down 20.0,30.0 cc2
+  0.549 -- up 20.0,30.0 cc2
+  0.550 tap1
+
+=== count1: two clicks gap 0.2 second cc1
+  1.656 -- down 20.0,30.0
+  1.686 -- up 20.0,30.0
+  1.686 tap1
+  1.858 -- down 20.0,30.0
+  1.887 -- up 20.0,30.0
+  1.887 tap1
+
+=== count1: two clicks gap 0.45 second cc2
+  2.993 -- down 20.0,30.0
+  3.025 -- up 20.0,30.0
+  3.025 tap1
+  3.444 -- down 20.0,30.0 cc2
+  3.476 -- up 20.0,30.0 cc2
+  3.477 tap1
+
+=== count1: two clicks gap 0.6 second cc2
+  4.580 -- down 20.0,30.0
+  4.616 -- up 20.0,30.0
+  4.616 tap1
+  5.181 -- down 20.0,30.0 cc2
+  5.213 -- up 20.0,30.0 cc2
+  5.213 tap1
+
+=== count1: two clicks gap 1.0 second cc2
+  6.314 -- down 20.0,30.0
+  6.346 -- up 20.0,30.0
+  6.347 tap1
+  7.318 -- down 20.0,30.0 cc2
+  7.348 -- up 20.0,30.0 cc2
+  7.348 tap1
+
+=== count1: three clicks 0.15 apart cc1,2,3
+  8.448 -- down 20.0,30.0
+  8.478 -- up 20.0,30.0
+  8.478 tap1
+  8.601 -- down 20.0,30.0 cc2
+  8.629 -- up 20.0,30.0 cc2
+  8.630 tap1
+  8.750 -- down 20.0,30.0 cc3
+  8.780 -- up 20.0,30.0 cc3
+  8.780 tap1
+
+=== count1: click with 3pt slide
+  9.887 -- down 20.0,30.0
+  9.899 -- drag 23.0,30.0
+  9.918 -- up 23.0,30.0
+  9.918 tap1
+
+=== count1: click with 15pt slide
+ 11.021 -- down 20.0,30.0
+ 11.034 -- drag 35.0,30.0
+ 11.052 -- up 35.0,30.0
+ 11.052 tap1
+
+=== count1: press held 1.0s
+ 12.157 -- down 20.0,30.0
+ 13.158 -- up 20.0,30.0
+
+=== count2: two clicks gap 0.2 second cc2
+ 14.261 -- down 20.0,30.0
+ 14.297 -- up 20.0,30.0
+ 14.463 -- down 20.0,30.0 cc2
+ 14.493 -- up 20.0,30.0 cc2
+ 14.494 tap2
+
+=== count2: two clicks gap 0.2 second cc1
+ 15.595 -- down 20.0,30.0
+ 15.629 -- up 20.0,30.0
+ 15.797 -- down 20.0,30.0
+ 15.831 -- up 20.0,30.0
+ 15.831 tap2
+
+=== count2: two clicks gap 0.45 second cc2
+ 16.931 -- down 20.0,30.0
+ 16.964 -- up 20.0,30.0
+ 17.383 -- down 20.0,30.0 cc2
+ 17.412 -- up 20.0,30.0 cc2
+
+=== count2: two clicks gap 0.6 second cc2
+ 18.519 -- down 20.0,30.0
+ 18.551 -- up 20.0,30.0
+ 19.121 -- down 20.0,30.0 cc2
+ 19.152 -- up 20.0,30.0 cc2
+
+=== count2: two clicks gap 1.0 second cc2
+ 20.255 -- down 20.0,30.0
+ 20.287 -- up 20.0,30.0
+ 21.260 -- down 20.0,30.0 cc2
+ 21.287 -- up 20.0,30.0 cc2
+
+=== count2: three clicks 0.15 apart cc1,2,3
+ 22.392 -- down 20.0,30.0
+ 22.424 -- up 20.0,30.0
+ 22.545 -- down 20.0,30.0 cc2
+ 22.574 -- up 20.0,30.0 cc2
+ 22.574 tap2
+ 22.697 -- down 20.0,30.0 cc3
+ 22.728 -- up 20.0,30.0 cc3
+
+=== count2: click with 3pt slide
+ 23.827 -- down 20.0,30.0
+ 23.838 -- drag 23.0,30.0
+ 23.861 -- up 23.0,30.0
+
+=== count2: click with 15pt slide
+ 24.961 -- down 20.0,30.0
+ 24.973 -- drag 35.0,30.0
+ 24.993 -- up 35.0,30.0
+
+=== count2: press held 1.0s
+ 26.095 -- down 20.0,30.0
+ 27.096 -- up 20.0,30.0
+
+=== count3: two clicks gap 0.2 second cc2
+ 28.203 -- down 20.0,30.0
+ 28.235 -- up 20.0,30.0
+ 28.405 -- down 20.0,30.0 cc2
+ 28.435 -- up 20.0,30.0 cc2
+
+=== count3: two clicks gap 0.2 second cc1
+ 29.538 -- down 20.0,30.0
+ 29.570 -- up 20.0,30.0
+ 29.741 -- down 20.0,30.0
+ 29.793 -- up 20.0,30.0
+
+=== count3: two clicks gap 0.45 second cc2
+ 30.874 -- down 20.0,30.0
+ 30.906 -- up 20.0,30.0
+ 31.324 -- down 20.0,30.0 cc2
+ 31.356 -- up 20.0,30.0 cc2
+
+=== count3: two clicks gap 0.6 second cc2
+ 32.463 -- down 20.0,30.0
+ 32.495 -- up 20.0,30.0
+ 33.065 -- down 20.0,30.0 cc2
+ 33.096 -- up 20.0,30.0 cc2
+
+=== count3: two clicks gap 1.0 second cc2
+ 34.197 -- down 20.0,30.0
+ 34.231 -- up 20.0,30.0
+ 35.199 -- down 20.0,30.0 cc2
+ 35.229 -- up 20.0,30.0 cc2
+
+=== count3: three clicks 0.15 apart cc1,2,3
+ 36.331 -- down 20.0,30.0
+ 36.363 -- up 20.0,30.0
+ 36.484 -- down 20.0,30.0 cc2
+ 36.512 -- up 20.0,30.0 cc2
+ 36.632 -- down 20.0,30.0 cc3
+ 36.663 -- up 20.0,30.0 cc3
+ 36.663 tap3
+
+=== count3: click with 3pt slide
+ 37.767 -- down 20.0,30.0
+ 37.779 -- drag 23.0,30.0
+ 37.800 -- up 23.0,30.0
+
+=== count3: click with 15pt slide
+ 38.904 -- down 20.0,30.0
+ 38.918 -- drag 35.0,30.0
+ 38.936 -- up 35.0,30.0
+
+=== count3: press held 1.0s
+ 40.039 -- down 20.0,30.0
+ 41.041 -- up 20.0,30.0
+
+=== both: two clicks gap 0.2 second cc2
+ 42.147 -- down 20.0,30.0
+ 42.180 -- up 20.0,30.0
+ 42.351 -- down 20.0,30.0 cc2
+ 42.378 -- up 20.0,30.0 cc2
+ 42.379 tap2
+
+=== both: two clicks gap 0.2 second cc1
+ 43.492 -- down 20.0,30.0
+ 43.529 -- up 20.0,30.0
+ 43.696 -- down 20.0,30.0
+ 43.724 -- up 20.0,30.0
+ 43.725 tap2
+
+=== both: two clicks gap 0.45 second cc2
+ 44.827 -- down 20.0,30.0
+ 44.862 -- up 20.0,30.0
+ 45.213 tap1
+ 45.284 -- down 20.0,30.0 cc2
+ 45.310 -- up 20.0,30.0 cc2
+ 45.662 tap1
+
+=== both: two clicks gap 0.6 second cc2
+ 46.409 -- down 20.0,30.0
+ 46.442 -- up 20.0,30.0
+ 46.792 tap1
+ 47.014 -- down 20.0,30.0 cc2
+ 47.041 -- up 20.0,30.0 cc2
+ 47.394 tap1
+
+=== both: two clicks gap 1.0 second cc2
+ 48.143 -- down 20.0,30.0
+ 48.175 -- up 20.0,30.0
+ 48.528 tap1
+ 49.145 -- down 20.0,30.0 cc2
+ 49.176 -- up 20.0,30.0 cc2
+ 49.527 tap1
+
+=== both: three clicks 0.15 apart cc1,2,3
+ 50.307 -- down 20.0,30.0
+ 50.339 -- up 20.0,30.0
+ 50.459 -- down 20.0,30.0 cc2
+ 50.495 -- up 20.0,30.0 cc2
+ 50.495 tap2
+ 50.612 -- down 20.0,30.0 cc3
+ 50.641 -- up 20.0,30.0 cc3
+ 50.997 tap1
+
+=== both: click with 3pt slide
+ 51.750 -- down 20.0,30.0
+ 51.762 -- drag 23.0,30.0
+ 51.782 -- up 23.0,30.0
+ 52.135 tap1
+
+=== both: click with 15pt slide
+ 52.886 -- down 20.0,30.0
+ 52.899 -- drag 35.0,30.0
+ 52.917 -- up 35.0,30.0
+ 53.267 tap1
+
+=== both: press held 1.0s
+ 54.032 -- down 20.0,30.0
+ 55.033 -- up 20.0,30.0
+
+=== excl: two clicks gap 0.2 second cc2
+ 56.135 -- down 20.0,30.0
+ 56.167 -- up 20.0,30.0
+ 56.335 -- down 20.0,30.0 cc2
+ 56.369 -- up 20.0,30.0 cc2
+ 56.369 excl first()
+
+=== excl: two clicks gap 0.2 second cc1
+ 57.469 -- down 20.0,30.0
+ 57.504 -- up 20.0,30.0
+ 57.669 -- down 20.0,30.0
+ 57.699 -- up 20.0,30.0
+ 57.699 excl first()
+
+=== excl: two clicks gap 0.45 second cc2
+ 58.802 -- down 20.0,30.0
+ 58.834 -- up 20.0,30.0
+ 59.188 excl second()
+ 59.255 -- down 20.0,30.0 cc2
+ 59.286 -- up 20.0,30.0 cc2
+ 59.638 excl second()
+
+=== excl: two clicks gap 0.6 second cc2
+ 60.392 -- down 20.0,30.0
+ 60.424 -- up 20.0,30.0
+ 60.782 excl second()
+ 60.995 -- down 20.0,30.0 cc2
+ 61.029 -- up 20.0,30.0 cc2
+ 61.381 excl second()
+
+=== excl: two clicks gap 1.0 second cc2
+ 62.128 -- down 20.0,30.0
+ 62.159 -- up 20.0,30.0
+ 62.514 excl second()
+ 63.134 -- down 20.0,30.0 cc2
+ 63.158 -- up 20.0,30.0 cc2
+ 63.512 excl second()
+
+=== excl: three clicks 0.15 apart cc1,2,3
+ 64.263 -- down 20.0,30.0
+ 64.294 -- up 20.0,30.0
+ 64.418 -- down 20.0,30.0 cc2
+ 64.445 -- up 20.0,30.0 cc2
+ 64.445 excl first()
+ 64.565 -- down 20.0,30.0 cc3
+ 64.593 -- up 20.0,30.0 cc3
+ 64.951 excl second()
+
+=== excl: click with 3pt slide
+ 65.697 -- down 20.0,30.0
+ 65.710 -- drag 23.0,30.0
+ 65.730 -- up 23.0,30.0
+ 66.082 excl second()
+
+=== excl: click with 15pt slide
+ 66.830 -- down 20.0,30.0
+ 66.842 -- drag 35.0,30.0
+ 66.862 -- up 35.0,30.0
+ 67.214 excl second()
+
+=== excl: press held 1.0s
+ 67.967 -- down 20.0,30.0
+ 68.969 -- up 20.0,30.0
+
+=== spatial: two clicks gap 0.2 second cc2
+ 70.072 -- down 20.0,30.0
+ 70.105 -- up 20.0,30.0
+ 70.105 spatial ended (20.0,30.0)
+ 70.272 -- down 20.0,30.0 cc2
+ 70.306 -- up 20.0,30.0 cc2
+ 70.306 spatial ended (20.0,30.0)
+
+=== spatial: two clicks gap 0.2 second cc1
+ 71.408 -- down 20.0,30.0
+ 71.442 -- up 20.0,30.0
+ 71.442 spatial ended (20.0,30.0)
+ 71.609 -- down 20.0,30.0
+ 71.643 -- up 20.0,30.0
+ 71.643 spatial ended (20.0,30.0)
+
+=== spatial: two clicks gap 0.45 second cc2
+ 72.747 -- down 20.0,30.0
+ 72.779 -- up 20.0,30.0
+ 72.779 spatial ended (20.0,30.0)
+ 73.199 -- down 20.0,30.0 cc2
+ 73.229 -- up 20.0,30.0 cc2
+ 73.229 spatial ended (20.0,30.0)
+
+=== spatial: two clicks gap 0.6 second cc2
+ 74.335 -- down 20.0,30.0
+ 74.368 -- up 20.0,30.0
+ 74.369 spatial ended (20.0,30.0)
+ 74.939 -- down 20.0,30.0 cc2
+ 74.968 -- up 20.0,30.0 cc2
+ 74.968 spatial ended (20.0,30.0)
+
+=== spatial: two clicks gap 1.0 second cc2
+ 76.076 -- down 20.0,30.0
+ 76.108 -- up 20.0,30.0
+ 76.108 spatial ended (20.0,30.0)
+ 77.077 -- down 20.0,30.0 cc2
+ 77.110 -- up 20.0,30.0 cc2
+ 77.110 spatial ended (20.0,30.0)
+
+=== spatial: three clicks 0.15 apart cc1,2,3
+ 78.213 -- down 20.0,30.0
+ 78.247 -- up 20.0,30.0
+ 78.248 spatial ended (20.0,30.0)
+ 78.365 -- down 20.0,30.0 cc2
+ 78.395 -- up 20.0,30.0 cc2
+ 78.395 spatial ended (20.0,30.0)
+ 78.515 -- down 20.0,30.0 cc3
+ 78.545 -- up 20.0,30.0 cc3
+ 78.546 spatial ended (20.0,30.0)
+
+=== spatial: click with 3pt slide
+ 79.648 -- down 20.0,30.0
+ 79.661 -- drag 23.0,30.0
+ 79.680 -- up 23.0,30.0
+ 79.680 spatial ended (23.0,30.0)
+
+=== spatial: click with 15pt slide
+ 80.784 -- down 20.0,30.0
+ 80.799 -- drag 35.0,30.0
+ 80.817 -- up 35.0,30.0
+ 80.817 spatial ended (35.0,30.0)
+
+=== spatial: press held 1.0s
+ 81.919 -- down 20.0,30.0
+ 82.921 -- up 20.0,30.0
+
+=== spatial2: two clicks gap 0.2 second cc2
+ 84.024 -- down 20.0,30.0
+ 84.056 -- up 20.0,30.0
+ 84.225 -- down 20.0,30.0 cc2
+ 84.257 -- up 20.0,30.0 cc2
+ 84.257 spatial2 ended (20.0,30.0)
+
+=== spatial2: two clicks gap 0.2 second cc1
+ 85.360 -- down 20.0,30.0
+ 85.392 -- up 20.0,30.0
+ 85.562 -- down 20.0,30.0
+ 85.592 -- up 20.0,30.0
+ 85.593 spatial2 ended (20.0,30.0)
+
+=== spatial2: two clicks gap 0.45 second cc2
+ 86.693 -- down 20.0,30.0
+ 86.725 -- up 20.0,30.0
+ 87.145 -- down 20.0,30.0 cc2
+ 87.176 -- up 20.0,30.0 cc2
+
+=== spatial2: two clicks gap 0.6 second cc2
+ 88.281 -- down 20.0,30.0
+ 88.315 -- up 20.0,30.0
+ 88.885 -- down 20.0,30.0 cc2
+ 88.916 -- up 20.0,30.0 cc2
+
+=== spatial2: two clicks gap 1.0 second cc2
+ 90.017 -- down 20.0,30.0
+ 90.047 -- up 20.0,30.0
+ 91.019 -- down 20.0,30.0 cc2
+ 91.050 -- up 20.0,30.0 cc2
+
+=== spatial2: three clicks 0.15 apart cc1,2,3
+ 92.150 -- down 20.0,30.0
+ 92.183 -- up 20.0,30.0
+ 92.302 -- down 20.0,30.0 cc2
+ 92.331 -- up 20.0,30.0 cc2
+ 92.332 spatial2 ended (20.0,30.0)
+ 92.453 -- down 20.0,30.0 cc3
+ 92.482 -- up 20.0,30.0 cc3
+
+=== spatial2: click with 3pt slide
+ 93.588 -- down 20.0,30.0
+ 93.603 -- drag 23.0,30.0
+ 93.620 -- up 23.0,30.0
+
+=== spatial2: click with 15pt slide
+ 94.725 -- down 20.0,30.0
+ 94.737 -- drag 35.0,30.0
+ 94.755 -- up 35.0,30.0
+
+=== spatial2: press held 1.0s
+ 95.861 -- down 20.0,30.0
+ 96.862 -- up 20.0,30.0
+
+=== map: two clicks gap 0.2 second cc2
+ 97.967 -- down 20.0,30.0
+ 98.001 -- up 20.0,30.0
+ 98.001 map mapped
+ 98.168 -- down 20.0,30.0 cc2
+ 98.200 -- up 20.0,30.0 cc2
+ 98.200 map mapped
+
+=== map: two clicks gap 0.2 second cc1
+ 99.300 -- down 20.0,30.0
+ 99.332 -- up 20.0,30.0
+ 99.332 map mapped
+ 99.502 -- down 20.0,30.0
+ 99.531 -- up 20.0,30.0
+ 99.532 map mapped
+
+=== map: two clicks gap 0.45 second cc2
+100.633 -- down 20.0,30.0
+100.665 -- up 20.0,30.0
+100.665 map mapped
+101.085 -- down 20.0,30.0 cc2
+101.115 -- up 20.0,30.0 cc2
+101.115 map mapped
+
+=== map: two clicks gap 0.6 second cc2
+102.225 -- down 20.0,30.0
+102.259 -- up 20.0,30.0
+102.259 map mapped
+102.832 -- down 20.0,30.0 cc2
+102.860 -- up 20.0,30.0 cc2
+102.860 map mapped
+
+=== map: two clicks gap 1.0 second cc2
+103.958 -- down 20.0,30.0
+103.989 -- up 20.0,30.0
+103.990 map mapped
+104.959 -- down 20.0,30.0 cc2
+104.991 -- up 20.0,30.0 cc2
+104.991 map mapped
+
+=== map: three clicks 0.15 apart cc1,2,3
+106.094 -- down 20.0,30.0
+106.126 -- up 20.0,30.0
+106.127 map mapped
+106.246 -- down 20.0,30.0 cc2
+106.276 -- up 20.0,30.0 cc2
+106.277 map mapped
+106.399 -- down 20.0,30.0 cc3
+106.425 -- up 20.0,30.0 cc3
+106.426 map mapped
+
+=== map: click with 3pt slide
+107.527 -- down 20.0,30.0
+107.541 -- drag 23.0,30.0
+107.560 -- up 23.0,30.0
+107.560 map mapped
+
+=== map: click with 15pt slide
+108.668 -- down 20.0,30.0
+108.680 -- drag 35.0,30.0
+108.703 -- up 35.0,30.0
+108.703 map mapped
+
+=== map: press held 1.0s
+109.802 -- down 20.0,30.0
+110.802 -- up 20.0,30.0

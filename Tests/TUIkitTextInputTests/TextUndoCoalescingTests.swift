@@ -3,7 +3,8 @@
 //
 //  A run of typing is one undo step, as the macOS text system makes it
 //  (decisions-D1K B-D1K-6). Measured on macOS 15.8 with an offscreen
-//  `NSTextView` (the INPUT lane's probe): typed characters — a space and a
+//  `NSTextView` (the INPUT lane's probes, `Tools/SwiftUIProbes/Undo and the pointer leaving (INPUT)/`):
+//  typed characters — a space and a
 //  newline among them — and Backspace, each at the caret the edit before it
 //  left, undo together, however long the pauses between them; a caret moved
 //  elsewhere ends the run, one moved away and back does not; Delete, a word's

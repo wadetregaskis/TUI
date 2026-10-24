@@ -1,0 +1,74 @@
+springing.delay default = 0.5
+springing.enabled default = 1
+env[root] springLoadingBehavior = automatic
+[env-root] no AppKit control; classes: CGDrawingView, NSHostingView<EnvReader>
+[env-root] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+env[set enabled] springLoadingBehavior = enabled
+[env-enabled] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<EnvReader, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>
+[env-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+env[inner enabled] springLoadingBehavior = enabled
+[env-nested] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<VStack<ModifiedContent<ModifiedContent<EnvReader, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>
+[env-nested] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+env[inner inherits] springLoadingBehavior = disabled
+[env-nested2] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<VStack<EnvReader>, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>
+[env-nested2] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-default-automatic] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=28
+[button-default-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-bordered-automatic] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=28
+[button-bordered-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-borderless-automatic] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=2
+[button-borderless-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-plain-automatic] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<ModifiedContent<Button<Text>, PrimitiveButtonStyleContainerModifier<PlainButtonStyle>>, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>, _FocusRingView
+[button-plain-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-link-automatic] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=2
+[button-link-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[toggle-automatic] NSButton '' class=FocusRingNSButton isSpringLoaded=false bezel=2
+[toggle-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[segmented-automatic] NSSegmentedControl segments=2 isSpringLoaded=false
+[segmented-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[tabview-automatic] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<TabView<Int, TupleView<(ModifiedContent<ModifiedContent<ModifiedContent<Text, PlatformItemTraitWriter<LabelPlatformItemsStrategy, ModifiedContent<ModifiedContent<ModifiedContent<Text, ViewInputFlagModifier<AccessibilityShowsLabelIcon>>, AccessibilityAttachmentModifier>, AccessibilityDetachedPropertyWriterModifier>, TraitKey>>, TabPlatformIdentified>, _ContainerValueWritingModifier<Optional<TabItemLabel_v0>>>, ModifiedContent<ModifiedContent<ModifiedContent<Text, PlatformItemTraitWriter<LabelPlatformItemsStrategy, ModifiedContent<ModifiedContent<ModifiedContent<Text, ViewInputFlagModifier<AccessibilityShowsLabelIcon>>, AccessibilityAttachmentModifier>, AccessibilityDetachedPropertyWriterModifier>, TraitKey>>, TabPlatformIdentified>, _ContainerValueWritingModifier<Optional<TabItemLabel_v0>>>)>>, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>
+[tabview-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[disclosure-automatic] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<DisclosureGroup<Text, Text>, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>, _FocusRingView, _NSGraphicsView
+[disclosure-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[menu-automatic] NSButton 'M' class=SwiftUIPopupButton isSpringLoaded=false bezel=1
+[menu-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-default-enabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=true bezel=28
+[button-default-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-bordered-enabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=true bezel=28
+[button-bordered-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-borderless-enabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=true bezel=2
+[button-borderless-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-plain-enabled] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<ModifiedContent<Button<Text>, PrimitiveButtonStyleContainerModifier<PlainButtonStyle>>, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>, _FocusRingView
+[button-plain-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-link-enabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=true bezel=2
+[button-link-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[toggle-enabled] NSButton '' class=FocusRingNSButton isSpringLoaded=false bezel=2
+[toggle-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[segmented-enabled] NSSegmentedControl segments=2 isSpringLoaded=true
+[segmented-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[tabview-enabled] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<TabView<Int, TupleView<(ModifiedContent<ModifiedContent<ModifiedContent<Text, PlatformItemTraitWriter<LabelPlatformItemsStrategy, ModifiedContent<ModifiedContent<ModifiedContent<Text, ViewInputFlagModifier<AccessibilityShowsLabelIcon>>, AccessibilityAttachmentModifier>, AccessibilityDetachedPropertyWriterModifier>, TraitKey>>, TabPlatformIdentified>, _ContainerValueWritingModifier<Optional<TabItemLabel_v0>>>, ModifiedContent<ModifiedContent<ModifiedContent<Text, PlatformItemTraitWriter<LabelPlatformItemsStrategy, ModifiedContent<ModifiedContent<ModifiedContent<Text, ViewInputFlagModifier<AccessibilityShowsLabelIcon>>, AccessibilityAttachmentModifier>, AccessibilityDetachedPropertyWriterModifier>, TraitKey>>, TabPlatformIdentified>, _ContainerValueWritingModifier<Optional<TabItemLabel_v0>>>)>>, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>
+[tabview-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[disclosure-enabled] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<DisclosureGroup<Text, Text>, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>, _FocusRingView, _NSGraphicsView
+[disclosure-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[menu-enabled] NSButton 'M' class=SwiftUIPopupButton isSpringLoaded=false bezel=1
+[menu-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-default-disabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=28
+[button-default-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-bordered-disabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=28
+[button-bordered-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-borderless-disabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=2
+[button-borderless-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-plain-disabled] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<ModifiedContent<Button<Text>, PrimitiveButtonStyleContainerModifier<PlainButtonStyle>>, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>, _FocusRingView
+[button-plain-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[button-link-disabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=2
+[button-link-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[toggle-disabled] NSButton '' class=FocusRingNSButton isSpringLoaded=false bezel=2
+[toggle-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[segmented-disabled] NSSegmentedControl segments=2 isSpringLoaded=false
+[segmented-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[tabview-disabled] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<TabView<Int, TupleView<(ModifiedContent<ModifiedContent<ModifiedContent<Text, PlatformItemTraitWriter<LabelPlatformItemsStrategy, ModifiedContent<ModifiedContent<ModifiedContent<Text, ViewInputFlagModifier<AccessibilityShowsLabelIcon>>, AccessibilityAttachmentModifier>, AccessibilityDetachedPropertyWriterModifier>, TraitKey>>, TabPlatformIdentified>, _ContainerValueWritingModifier<Optional<TabItemLabel_v0>>>, ModifiedContent<ModifiedContent<ModifiedContent<Text, PlatformItemTraitWriter<LabelPlatformItemsStrategy, ModifiedContent<ModifiedContent<ModifiedContent<Text, ViewInputFlagModifier<AccessibilityShowsLabelIcon>>, AccessibilityAttachmentModifier>, AccessibilityDetachedPropertyWriterModifier>, TraitKey>>, TabPlatformIdentified>, _ContainerValueWritingModifier<Optional<TabItemLabel_v0>>>)>>, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>
+[tabview-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[disclosure-disabled] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<DisclosureGroup<Text, Text>, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>, _FocusRingView, _NSGraphicsView
+[disclosure-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[menu-disabled] NSButton 'M' class=SwiftUIPopupButton isSpringLoaded=false bezel=1
+[menu-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false

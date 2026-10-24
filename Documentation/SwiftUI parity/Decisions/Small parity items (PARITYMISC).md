@@ -103,8 +103,8 @@ without an app asking.
 *`TableColumn`'s `LocalizedStringKey` initializers, `Tab`'s, and
 `TextField`'s (B87's three leftovers)*
 
-Measured on macOS 15 (2026-10-18, probes in the session notes,
-`PARITYMISC/probes/b87`): SwiftUI parses Markdown in all three. A
+Measured on macOS 15 (2026-10-18, probes in
+`Tools/SwiftUIProbes/Small parity items (PARITYMISC)/b87/`): SwiftUI parses Markdown in all three. A
 `TextField`'s title becomes its placeholder as plain words
 (`TextField("**Bold** and *it*", …)` has the placeholder string "Bold and
 it", no attributes); a `TableColumn`'s header is styled (`"**Name** *x*"`

@@ -1,0 +1,28 @@
+pause at start+-100.0 countsDown true: 9:00
+pause at start+-100.0 countsDown false: 0:00
+pause at start+-20.0 countsDown true: 9:00
+pause at start+-20.0 countsDown false: 0:00
+pause at start+0.0 countsDown true: 9:00
+pause at start+0.0 countsDown false: 0:00
+pause at start+20.0 countsDown true: 9:00
+pause at start+20.0 countsDown false: 0:20
+pause at start+50.0 countsDown true: 9:00
+pause at start+50.0 countsDown false: 0:50
+pause at start+59.0 countsDown true: 9:00
+pause at start+59.0 countsDown false: 0:59
+pause at start+60.0 countsDown true: 9:00
+pause at start+60.0 countsDown false: 1:00
+pause at start+61.0 countsDown true: 9:00
+pause at start+61.0 countsDown false: 1:00
+pause at start+100.0 countsDown true: 9:00
+pause at start+100.0 countsDown false: 1:00
+pause at start+599.0 countsDown true: 9:59
+pause at start+599.0 countsDown false: 1:00
+pause at start+700.0 countsDown true: 10:00
+pause at start+700.0 countsDown false: 1:00
+not started, pause at start+20, countsDown true: 10:00
+not started, pause at start+20, countsDown false: 0:00
+ended, pause at start+20, countsDown true: 0:20
+ended, pause at start+20, countsDown false: 0:20
+doc example: 12:00
+format at start+20: 9:40

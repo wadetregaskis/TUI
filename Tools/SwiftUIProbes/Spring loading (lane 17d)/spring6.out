@@ -1,0 +1,59 @@
+springing.delay default = 0.5
+springing.enabled default = 1
+env[root] springLoadingBehavior = automatic
+[env-root] no AppKit control; classes: CGDrawingView, NSHostingView<EnvReader>
+[env-root] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+env[set enabled] springLoadingBehavior = enabled
+[env-enabled] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<EnvReader, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>
+[env-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+env[inner enabled] springLoadingBehavior = enabled
+[env-nested] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<VStack<ModifiedContent<ModifiedContent<EnvReader, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>
+[env-nested] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+env[inner inherits] springLoadingBehavior = disabled
+[env-nested2] no AppKit control; classes: CGDrawingView, NSHostingView<ModifiedContent<ModifiedContent<VStack<EnvReader>, _EnvironmentKeyWritingModifier<SpringLoadingBehavior>>, ViewInputFlagModifier<HasCustomSpringLoadedBehavior>>>
+[env-nested2] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[navlink-automatic] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=28
+[navlink-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[navlink-value-automatic] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=28
+[navlink-value-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[link-automatic] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=2
+[link-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[togglebutton-automatic] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=28
+[togglebutton-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[borderedprominent-automatic] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=28
+[borderedprominent-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[menu-picker-automatic] NSButton 'A' class=SwiftUIPopupButton isSpringLoaded=false bezel=1
+[menu-picker-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[radio-picker-automatic] NSButton '' class=FocusRingNSButton isSpringLoaded=false bezel=2
+[radio-picker-automatic] NSButton '' class=FocusRingNSButton isSpringLoaded=false bezel=2
+[radio-picker-automatic] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[navlink-enabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=true bezel=28
+[navlink-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[navlink-value-enabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=true bezel=28
+[navlink-value-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[link-enabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=true bezel=2
+[link-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[togglebutton-enabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=true bezel=28
+[togglebutton-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[borderedprominent-enabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=true bezel=28
+[borderedprominent-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[menu-picker-enabled] NSButton 'A' class=SwiftUIPopupButton isSpringLoaded=false bezel=1
+[menu-picker-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[radio-picker-enabled] NSButton '' class=FocusRingNSButton isSpringLoaded=false bezel=2
+[radio-picker-enabled] NSButton '' class=FocusRingNSButton isSpringLoaded=false bezel=2
+[radio-picker-enabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[navlink-disabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=28
+[navlink-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[navlink-value-disabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=28
+[navlink-value-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[link-disabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=2
+[link-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[togglebutton-disabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=28
+[togglebutton-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[borderedprominent-disabled] NSButton '' class=SwiftUIAppKitButton isSpringLoaded=false bezel=28
+[borderedprominent-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[menu-picker-disabled] NSButton 'A' class=SwiftUIPopupButton isSpringLoaded=false bezel=1
+[menu-picker-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false
+[radio-picker-disabled] NSButton '' class=FocusRingNSButton isSpringLoaded=false bezel=2
+[radio-picker-disabled] NSButton '' class=FocusRingNSButton isSpringLoaded=false bezel=2
+[radio-picker-disabled] hosting responds to springLoadingEntered: true; conforms NSSpringLoadingDestination: false

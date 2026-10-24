@@ -1,0 +1,8 @@
+canImport(FoundationEssentials): no
+components after 0.0..<126.0 before 0.0..<124.99999976158142
+time pattern 125.5 seconds 2:06 after Optional(126.5 seconds) before Optional(125.5 seconds)
+time pattern 125.2 seconds 2:05 after Optional(125.5 seconds) before Optional(124.5 seconds)
+time pattern -125.5 seconds -2:06 after Optional(-125.5 seconds) before Optional(-126.5 seconds)
+time pattern 0.0 seconds 0:00 after Optional(0.5 seconds) before Optional(-0.5 seconds)
+dateTime after Optional(1.0)
+shortened after Optional(40.0)

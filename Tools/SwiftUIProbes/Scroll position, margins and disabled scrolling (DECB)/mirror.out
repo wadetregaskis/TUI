@@ -1,0 +1,13 @@
+candidates: 10
+U+28 ( -> )
+U+29 ) -> (
+U+3C < -> >
+U+3E > -> <
+U+5B [ -> ]
+U+5D ] -> [
+U+7B { -> }
+U+7D } -> {
+U+2190 ← -> →
+U+2192 → -> ←
+current layout: com.apple.keylayout.Australian
+localizedKeyEquivalentForInput changes under current layout: []

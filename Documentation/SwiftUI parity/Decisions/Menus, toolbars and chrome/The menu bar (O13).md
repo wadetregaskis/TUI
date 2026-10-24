@@ -15,8 +15,8 @@ A for the owner to decide, B for a basic form shipped with its fuller version
 priced, C for a refusal recorded in `parity-map.json`.*
 
 *What SwiftUI does was measured on macOS 15.8 with a probe that builds a
-SwiftUI app per case and reads its main menu back (session notes
-`O13/probe/menus.swift`): the order of the menus, how `CommandGroup`'s three
+SwiftUI app per case and reads its main menu back
+(`Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`): the order of the menus, how `CommandGroup`'s three
 positions compose, what `commandsRemoved()` and `commandsReplaced` take away,
 what the standard command sets add.*
 

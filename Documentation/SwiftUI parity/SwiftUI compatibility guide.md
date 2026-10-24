@@ -786,8 +786,8 @@ ruled 2026-10-12). A scene that declares commands — `.commands { … }` with
 `CommandMenu`s and `CommandGroup`s, or a `Commands` type of the app's own —
 has a menu bar on the window's top row, above the top bar; one that declares
 none has no bar and loses no row. Its menus are SwiftUI's on macOS, in
-SwiftUI's order (measured on macOS 15.8, the main menu read back: session
-notes `O13/probe/menus.swift`): the standard menus that have something in
+SwiftUI's order (measured on macOS 15.8, the main menu read back:
+`Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`): the standard menus that have something in
 them (the app's, File, Edit, Format, View, Window, Help — a `CommandGroup`
 goes into its placement's), with the app's own menus between View and
 Window in order of declaration. The scene's own commands are TUIkit's: the

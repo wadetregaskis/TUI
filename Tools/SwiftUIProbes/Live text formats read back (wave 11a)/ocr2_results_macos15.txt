@@ -1,0 +1,116 @@
+time 6:13 AM
+date May 9, 2026
+time de 06:13
+date de 9. Mai 2026
+relative past 0.3 O sec | future O sec
+relative past 0.7 O sec | future O sec
+relative past 1.5 1 sec | future 1 sec
+relative past 9.5 9 sec | future 9 sec
+relative past 59.5 59 sec | future 59 sec
+relative past 60.5 1 min, O sec | future 1 min, O sec
+relative past 119.5 1 min, 59 sec | future 1 min, 59 sec
+relative past 3599.5 59 min, 59 sec | future 59 min, 59 sec
+relative past 3600.5 1 hr, 0 min | future 1 hr, 0 min
+relative past 3659.5 1 hr, 0 min | future 1 hr, 0 min
+relative past 3779.5 1 hr, 2 min | future 1 hr, 2 min
+relative past 86399.5 23 hr, 59 min | future 23 hr, 59 min
+relative past 86400.5 1 day | future 1 day
+relative past 90061.5 1 day, 1 hr | future 1 day, 1 hr
+relative past 172800.5 2 days | future 2 days
+relative past 2678400.5 1 mth, 1 day | future 30 days, 23 hr
+relative past 31622400.5 1 yr | future 1 yr
+relative past 40000000.5 1 yr, 3 mths | future 1 yr, 3 mths
+offset past 0.3 +0 seconds | future -0 seconds
+offset past 0.7 +0 seconds | future -0 seconds
+offset past 1.5 +1 second | future -1 second
+offset past 9.5 +9 seconds | future -9 seconds
+offset past 59.5 +59 seconds | future -59 seconds
+offset past 60.5 +1 minute | future -1 minute
+offset past 119.5 +1 minute | future -1 minute
+offset past 3599.5 +59 minutes | future -59 minutes
+offset past 3600.5 +1 hour | future -1 hour
+offset past 3659.5 +1 hour | future -1 hour
+offset past 3779.5 +1 hour | future -1 hour
+offset past 86399.5 +23 hours | future -23 hours
+offset past 86400.5 +1 day | future -1 day
+offset past 90061.5 +1 day | future -1 day
+offset past 172800.5 +2 days | future -2 days
+offset past 2678400.5 +1 month | future -30 days
+offset past 31622400.5 +1 year | future -1 year
+offset past 40000000.5 +1 year | future -1 year
+timer past 0.3 0:00 | future 0:00
+timer past 0.7 0:00 | future 0:00
+timer past 1.5 0:01 | future 0:01
+timer past 9.5 0:09 | future 0:09
+timer past 59.5 0:59 | future 0:59
+timer past 60.5 1:00 | future 1:00
+timer past 3599.5 59:59 | future 59:59
+timer past 3600.5 1:00:00 | future 1:00:00
+timer past 86400.5 24:00:00 | future 24:00:00
+timer past 400000.5 111:06:40 | future 111:06:40
+relative de 1 Std., 2 Min.
+offset de +1 Stunde
+offset minus is hyphen false is U+2212 true
+offset plus true
+tI down 1:01:35
+tI up 0:30
+tI noHours 119:30
+tI before start down 1:40
+tI before start up 0:00
+tI after end down 0:00
+tI after end up 1:40
+tI paused past down 9:00
+tI paused past up 0:20
+tI paused future 9:00
+tI paused before start 9:00
+tI big 111:06:40
+interp relative Ends 2 min, 5 sec ago
+interp timer Left: 1:30
+interp time At 6:13 AM
+src ref 2 minutes ago
+src offset 2 minutes, 5 seconds
+src timer 1:30
+src stopwatch 01:05.51
+src dateTime 1:50:28 AM
+src durationOffset 2:06
+src durationOffset fut -2:05
+src dateRange start 2 minutes, 5 seconds
+src dateRange end 2 minutes, 5 seconds
+src dateRange start future O seconds
+variant offset w300.0 1 hour, 2 minutes | fixed 1 hour, 2 minutes
+variant ref w300.0 Friday, August 7
+variant timer w300.0 1:02:05
+variant style relative w300.0 1 hr, 2 min
+variant style date w300.0 May 9, 2026
+variant offset w140.0 1 hour, 2 minutes | fixed 1 hour, 2 minutes
+variant ref w140.0 Friday, August 7
+variant timer w140.0 1:02:05
+variant style relative w140.0 1 hr, 2 min
+variant style date w140.0 May 9, 2026
+variant offset w100.0 1 hour, 2 / minutes | fixed 1 hour, 2 / minutes
+variant ref w100.0 Friday, August 7
+variant timer w100.0 1:02:05
+variant style relative w100.0 1 hr, 2 min
+variant style date w100.0 May 9, 2026
+variant offset w70.0 1 hour, 2 / minutes | fixed 1 hour, 2 / minutes
+variant ref w70.0 Friday, / August 7
+variant timer w70.0 1:02:05
+variant style relative w70.0 1 hr, 2 min
+variant style date w70.0 May 9, / 2026
+variant offset w50.0 1 hour, / 2 / minutes | fixed 1 hour, / 2 / minutes
+variant ref w50.0 Friday, / August / 7
+variant timer w50.0 1:02:05
+variant style relative w50.0 1 hr, / 2 min
+variant style date w50.0 May 9, / 2026
+variant offset w30.0 1 / hour / , 2 / minu / tes | fixed 1 / hour / , 2 / minu / tes
+variant ref w30.0 Frid / ay, / Aug / ust 7
+variant timer w30.0 1:02 / :05
+variant style relative w30.0 1 hr, / 2 / min
+variant style date w30.0 May / 202 / 6
+axname red C: dark red
+axname blue C: dark blue
+axname custom C: dark blue
+axname gray C: dark gray
+axname dark C: dark green
+axname primary C: black
+axname accent C: dark blue

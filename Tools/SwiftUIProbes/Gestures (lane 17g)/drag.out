@@ -1,0 +1,119 @@
+  0.000 setup done
+  0.000 doubleClickInterval 0.5
+
+=== drag min 10.0: click
+  0.013 body offset=(0.0,0.0)
+  0.322 -- down 50.0,50.0
+  0.359 -- up 50.0,50.0
+
+=== drag min 10.0: 5pt then release
+  0.956 body offset=(0.0,0.0)
+  1.258 -- down 50.0,50.0
+  1.282 -- drag 55.0,50.0
+  1.303 -- up 55.0,50.0
+
+=== drag min 10.0: 5, 12, 20, 30 at 20ms, release
+  1.903 body offset=(0.0,0.0)
+  2.206 -- down 50.0,50.0
+  2.228 -- drag 55.0,50.0
+  2.250 -- drag 62.0,50.0
+  2.251 changed loc(62.0,50.0) start(50.0,50.0) tr(12.0,0.0) vel(249.7,0.0) pEnd(124.4,50.0) pTr(74.4,0.0) t8.801
+  2.251 body offset=(12.0,0.0)
+  2.270 -- drag 70.0,50.0
+  2.270 changed loc(70.0,50.0) start(50.0,50.0) tr(20.0,0.0) vel(340.5,0.0) pEnd(155.1,50.0) pTr(105.1,0.0) t8.821
+  2.271 body offset=(20.0,0.0)
+  2.289 -- drag 80.0,50.0
+  2.289 changed loc(80.0,50.0) start(50.0,50.0) tr(30.0,0.0) vel(437.7,0.0) pEnd(189.4,50.0) pTr(139.4,0.0) t8.839
+  2.289 body offset=(30.0,0.0)
+  2.307 -- up 80.0,50.0
+  2.307 reset callback from (30.0, 0.0)
+  2.307 ended loc(80.0,50.0) start(50.0,50.0) tr(30.0,0.0) vel(408.4,0.0) pEnd(182.1,50.0) pTr(132.1,0.0) t8.858
+  2.307 body offset=(0.0,0.0)
+
+=== drag min 10.0: 9 diag (6,7) then release
+  2.909 body offset=(0.0,0.0)
+  3.212 -- down 50.0,50.0
+  3.234 -- drag 56.0,57.0
+  3.254 -- up 56.0,57.0
+
+=== drag min 10.0: 30 then hold still 0.3 then release
+  3.857 body offset=(0.0,0.0)
+  4.159 -- down 50.0,50.0
+  4.184 -- drag 65.0,50.0
+  4.184 changed loc(65.0,50.0) start(50.0,50.0) tr(15.0,0.0) vel(601.3,0.0) pEnd(215.3,50.0) pTr(165.3,0.0) t10.735
+  4.184 body offset=(15.0,0.0)
+  4.201 -- drag 80.0,50.0
+  4.201 changed loc(80.0,50.0) start(50.0,50.0) tr(30.0,0.0) vel(670.2,0.0) pEnd(247.6,50.0) pTr(197.6,0.0) t10.752
+  4.201 body offset=(30.0,0.0)
+  4.503 -- up 80.0,50.0
+  4.503 reset callback from (30.0, 0.0)
+  4.503 ended loc(80.0,50.0) start(50.0,50.0) tr(30.0,0.0) vel(657.9,0.0) pEnd(244.5,50.0) pTr(194.5,0.0) t11.054
+  4.503 body offset=(0.0,0.0)
+
+=== drag min 0.0: click
+  5.105 body offset=(0.0,0.0)
+  5.409 -- down 50.0,50.0
+  5.410 changed loc(50.0,50.0) start(50.0,50.0) tr(0.0,0.0) vel(0.0,0.0) pEnd(50.0,50.0) pTr(0.0,0.0) t11.960
+  5.445 -- up 50.0,50.0
+  5.445 reset callback from (0.0, 0.0)
+  5.446 ended loc(50.0,50.0) start(50.0,50.0) tr(0.0,0.0) vel(0.0,0.0) pEnd(50.0,50.0) pTr(0.0,0.0) t11.996
+
+=== drag min 0.0: 5pt then release
+  6.045 body offset=(0.0,0.0)
+  6.346 -- down 50.0,50.0
+  6.347 changed loc(50.0,50.0) start(50.0,50.0) tr(0.0,0.0) vel(0.0,0.0) pEnd(50.0,50.0) pTr(0.0,0.0) t12.897
+  6.368 -- drag 55.0,50.0
+  6.369 changed loc(55.0,50.0) start(50.0,50.0) tr(5.0,0.0) vel(227.2,0.0) pEnd(111.8,50.0) pTr(61.8,0.0) t12.919
+  6.369 body offset=(5.0,0.0)
+  6.388 -- up 55.0,50.0
+  6.389 reset callback from (5.0, 0.0)
+  6.389 ended loc(55.0,50.0) start(50.0,50.0) tr(5.0,0.0) vel(170.4,0.0) pEnd(97.6,50.0) pTr(47.6,0.0) t12.939
+  6.389 body offset=(0.0,0.0)
+
+=== drag min 0.0: 5, 12, 20, 30 at 20ms, release
+  6.992 body offset=(0.0,0.0)
+  7.296 -- down 50.0,50.0
+  7.296 changed loc(50.0,50.0) start(50.0,50.0) tr(0.0,0.0) vel(0.0,0.0) pEnd(50.0,50.0) pTr(0.0,0.0) t13.847
+  7.321 -- drag 55.0,50.0
+  7.322 changed loc(55.0,50.0) start(50.0,50.0) tr(5.0,0.0) vel(196.7,0.0) pEnd(104.2,50.0) pTr(54.2,0.0) t13.872
+  7.322 body offset=(5.0,0.0)
+  7.338 -- drag 62.0,50.0
+  7.338 changed loc(62.0,50.0) start(50.0,50.0) tr(12.0,0.0) vel(252.7,0.0) pEnd(125.2,50.0) pTr(75.2,0.0) t13.889
+  7.338 body offset=(12.0,0.0)
+  7.358 -- drag 70.0,50.0
+  7.358 changed loc(70.0,50.0) start(50.0,50.0) tr(20.0,0.0) vel(415.7,0.0) pEnd(173.9,50.0) pTr(123.9,0.0) t13.909
+  7.358 body offset=(20.0,0.0)
+  7.380 -- drag 80.0,50.0
+  7.380 changed loc(80.0,50.0) start(50.0,50.0) tr(30.0,0.0) vel(414.0,0.0) pEnd(183.5,50.0) pTr(133.5,0.0) t13.931
+  7.380 body offset=(30.0,0.0)
+  7.396 -- up 80.0,50.0
+  7.396 reset callback from (30.0, 0.0)
+  7.396 ended loc(80.0,50.0) start(50.0,50.0) tr(30.0,0.0) vel(340.7,0.0) pEnd(165.2,50.0) pTr(115.2,0.0) t13.947
+  7.396 body offset=(0.0,0.0)
+
+=== drag min 0.0: 9 diag (6,7) then release
+  7.999 body offset=(0.0,0.0)
+  8.302 -- down 50.0,50.0
+  8.303 changed loc(50.0,50.0) start(50.0,50.0) tr(0.0,0.0) vel(0.0,0.0) pEnd(50.0,50.0) pTr(0.0,0.0) t14.853
+  8.327 -- drag 56.0,57.0
+  8.328 changed loc(56.0,57.0) start(50.0,50.0) tr(6.0,7.0) vel(241.2,281.3) pEnd(116.3,127.3) pTr(66.3,77.3) t14.878
+  8.328 body offset=(6.0,7.0)
+  8.343 -- up 56.0,57.0
+  8.343 reset callback from (6.0, 7.0)
+  8.343 ended loc(56.0,57.0) start(50.0,50.0) tr(6.0,7.0) vel(180.9,211.0) pEnd(101.2,109.8) pTr(51.2,59.8) t14.894
+  8.343 body offset=(0.0,0.0)
+
+=== drag min 0.0: 30 then hold still 0.3 then release
+  8.946 body offset=(0.0,0.0)
+  9.251 -- down 50.0,50.0
+  9.252 changed loc(50.0,50.0) start(50.0,50.0) tr(0.0,0.0) vel(0.0,0.0) pEnd(50.0,50.0) pTr(0.0,0.0) t15.802
+  9.277 -- drag 65.0,50.0
+  9.277 changed loc(65.0,50.0) start(50.0,50.0) tr(15.0,0.0) vel(583.0,0.0) pEnd(210.8,50.0) pTr(160.8,0.0) t15.828
+  9.277 body offset=(15.0,0.0)
+  9.295 -- drag 80.0,50.0
+  9.295 changed loc(80.0,50.0) start(50.0,50.0) tr(30.0,0.0) vel(642.3,0.0) pEnd(240.6,50.0) pTr(190.6,0.0) t15.846
+  9.295 body offset=(30.0,0.0)
+  9.593 -- up 80.0,50.0
+  9.594 reset callback from (30.0, 0.0)
+  9.594 ended loc(80.0,50.0) start(50.0,50.0) tr(30.0,0.0) vel(615.2,0.0) pEnd(233.8,50.0) pTr(183.8,0.0) t16.144
+  9.594 body offset=(0.0,0.0)

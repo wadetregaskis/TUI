@@ -2,7 +2,8 @@
 //  PathTests.swift
 //
 //  `Path` against SwiftUI's own: every expected description below was printed
-//  by SwiftUI on macOS 15.8 (the W1 lane's `paths.swift` probe, session notes),
+//  by SwiftUI on macOS 15.8 (the W1 lane's
+//  `Tools/SwiftUIProbes/Shape paths (W1)/paths.swift`),
 //  and is compared point by point, to a thousandth.
 //
 //  Created by Wade Tregaskis
@@ -148,7 +149,8 @@ struct PathTests {
                 """)
     }
 
-    /// SwiftUI's own descriptions (the W1 review's `desc.swift` probe). Before,
+    /// SwiftUI's own descriptions (`Tools/SwiftUIProbes/Shape paths (W1)/review/desc.swift`).
+    /// Before,
     /// an arc was held to one turn and an end behind the start was reached
     /// the same way, so 0 to 3π drew a circle and stopped where it began.
     @Test("An arc runs on past a turn to its end, and round to an end behind its start, as SwiftUI's does")
@@ -174,7 +176,7 @@ struct PathTests {
     }
 
     /// Every expectation is SwiftUI's on macOS 15.8 (the W1 review's
-    /// `desc.swift` probe, session notes). Before, a NaN angle trapped in
+    /// `Tools/SwiftUIProbes/Shape paths (W1)/review/desc.swift`). Before, a NaN angle trapped in
     /// `Int(_:)`, and a turn of `1e10` added six billion curves.
     @Test("An arc of an angle that is no finite number, or a huge one, is SwiftUI's: a move, or 1,023 quarter turns")
     func degenerateArcs() {

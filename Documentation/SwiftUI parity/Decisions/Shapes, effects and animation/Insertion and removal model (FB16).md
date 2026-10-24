@@ -1,8 +1,8 @@
 # SwiftUI's insertion and removal model: decisions from lane FB16
 
 *Lane FB16, 2026-10-18, built the owner's ruling "FB16: (a′)" — SwiftUI's
-model as measured in a real SwiftUI app on macOS 15.8 (`plan/fb16/FB16Probe.swift`,
-Core Animation presentation frames every 0.5 s in `plan/fb16/samples.txt`):
+model as measured in a real SwiftUI app on macOS 15.8 (`Tools/SwiftUIProbes/Insertion and removal (FB16)/FB16Probe.swift`,
+Core Animation presentation frames every 0.5 s in `Tools/SwiftUIProbes/Insertion and removal (FB16)/samples.txt`):
 a change of layout takes effect at once; under `withAnimation` every view
 whose frame changed glides from its old frame to its new one, siblings
 included, for every transition (`.identity` too); the transition decides only

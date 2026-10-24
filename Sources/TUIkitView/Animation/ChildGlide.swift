@@ -41,7 +41,7 @@ extension RenderContext {
     /// every child is drawn at its target and nothing is leaving, which is the
     /// answer on every frame but the ones something moves on.
     ///
-    /// SwiftUI's model, measured (`plan/fb16/samples.txt`): a change of layout
+    /// SwiftUI's model, measured (`Tools/SwiftUIProbes/Insertion and removal (FB16)/samples.txt`): a change of layout
     /// takes effect at once, and under an animation every view whose place
     /// changed glides from its old place to its new one — siblings of an
     /// inserted or removed view included, whatever its transition. A child seen

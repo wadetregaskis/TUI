@@ -23,7 +23,7 @@ enum CommandGroupPosition {
 /// its place. Within a group the additions run on with no separator between
 /// them, the newest `before:` first and the `after:`s in order, and the last
 /// `replacing:` is the one that counts — as SwiftUI composes them on macOS
-/// (measured on macOS 15.8: the session notes' `O13/probe/menus.swift`).
+/// (measured on macOS 15.8: `Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`).
 ///
 /// ```swift
 /// CommandGroup(replacing: .newItem) {

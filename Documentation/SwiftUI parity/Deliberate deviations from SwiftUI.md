@@ -141,7 +141,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 - **SwiftUI:** Euclidean points: a drag starts after 10, a long press fails
   past 10, a tap fails past 40 (measured, macOS 15.8, by lane 17g's probes,
-  session notes `w17g/probe`, as the decisions file's note on lane 17g says).
+  `Tools/SwiftUIProbes/Gestures (lane 17g)/`, as the decisions file's note on lane 17g says).
 - **TUIkit:** whole cells along either axis. A drag and a long press allow one
   cell by default, the smallest move a terminal reports; a tap allows five
   columns or two rows. `DragGesture(minimumDistance: 10)` written for SwiftUI
@@ -563,8 +563,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **SwiftUI:** `Binding<AnyHashable>(_:)` force-casts a written value to the
   base binding's type, so a value of any other type traps (measured
   2026-10-18: `AnyHashable(Int8(7))` written through a projection of a
-  `Binding<Int>` fails its cast; probe in the session notes,
-  `PARITYMISC/probes/binding_anyhashable.swift`).
+  `Binding<Int>` fails its cast; probe `Tools/SwiftUIProbes/Small parity items (PARITYMISC)/binding_anyhashable.swift`).
 - **TUIkit:** reports it through `SoftTrap`, which stops a debug build as
   SwiftUI's trap would; a release build drops the write and the base keeps its
   value
@@ -619,8 +618,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   that locale's language only: where the language's table lacks the key it
   shows the key itself; where the app has no table in that language at all it
   reads the development language's (measured 2026-10-18, macOS 15, an app
-  bundle with `en`, `de` and `fr` tables; probe in the session notes,
-  `PARITYMISC/probes/locale`).
+  bundle with `en`, `de` and `fr` tables; probe `Tools/SwiftUIProbes/Small parity items (PARITYMISC)/locale/`).
 - **TUIkit:** reads it in that language and then in English, every place in
   turn, as it reads every key — so a key the German table lacks reads its
   English words under a German locale rather than `greeting.title`
@@ -1342,7 +1340,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 ### A6. Places glide in whole cells, and only in some containers; sizes change at once
 
-- **SwiftUI (measured, macOS 15.8, 2026-10-17, `plan/fb16/FB16Probe.swift`
+- **SwiftUI (measured, macOS 15.8, 2026-10-17, `Tools/SwiftUIProbes/Insertion and removal (FB16)/FB16Probe.swift`
   with presentation frames every 0.5 s):** a change of layout takes effect at
   once, and under an animation every view whose frame changed glides to its
   new one — the view below an inserted row moved 187 → 194 → 202 → 218 →
@@ -1594,7 +1592,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   says `.scrollContent` margins inset the content "without affecting the
   insets of its scroll indicators", and `.automatic` inset both. Measured on
   macOS 15.8 (2026-10-12, legacy scrollers as the terminal's analogue,
-  session notes `DECB/probe/margins`): `.scrollIndicators` margins place the
+  `Tools/SwiftUIProbes/Scroll position, margins and disabled scrolling (DECB)/margins/`): `.scrollIndicators` margins place the
   scroller exactly as TUIkit places its bar, shortened by the top and bottom
   margins and moved in by the trailing one, with the columns it moves in by
   taken from the content; `.automatic` agrees by outcome; and `.scrollContent`
@@ -1700,7 +1698,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **SwiftUI:** `ScrollPosition.scrollTo(id:anchor:)` ignored the call's anchor
   in the probe: `.top` and `.center` both landed at the minimal position, and a
   transaction's `scrollTargetAnchor` applied even over a `.bottom` call
-  (measured, macOS 15.8, 2026-10-12, session notes `DECB/probe/anchor`).
+  (measured, macOS 15.8, 2026-10-12, `Tools/SwiftUIProbes/Scroll position, margins and disabled scrolling (DECB)/anchor/`).
   `ScrollViewProxy.scrollTo` honours the call's anchor first, then the
   transaction's.
 - **TUIkit:** both honour the call's anchor first, then the transaction's.
@@ -1714,8 +1712,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **SwiftUI:** `Transaction.scrollContentOffsetAdjustmentBehavior = .disabled`
   stops a lazy stack's bottom follow under `defaultScrollAnchor(.bottom)`, and
   its hold of the top row when rows are inserted above; with an eager `VStack`
-  the follow happens anyway (measured, macOS 15.8, 2026-10-12, session notes
-  `DECB/probe/disabled`).
+  the follow happens anyway (measured, macOS 15.8, 2026-10-12,
+  `Tools/SwiftUIProbes/Scroll position, margins and disabled scrolling (DECB)/disabled/`).
 - **TUIkit:** `.disabled` suspends a declared anchor's adjustments for that
   change in a `ScrollView`, `List` or `Table`, whether the content is eager or
   lazy.
@@ -1973,7 +1971,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **SwiftUI:** on macOS a key equivalent goes to the key window's views first
   and to the main menu only if none takes it (AppKit's Cocoa Event Handling
   Guide, "The Path of Key Events"). Not measured in SwiftUI: the lane's probe
-  (session notes `O13/probe/menus.swift`) could not make its window key on
+  (`Tools/SwiftUIProbes/The menu bar (O13)/menus.swift`) could not make its window key on
   this machine, and with no key window the main menu took the key.
 - **TUIkit:** a `.keyboardShortcut` the window's content registers keeps its
   key when a command declares the same one; the command's fires where nothing
