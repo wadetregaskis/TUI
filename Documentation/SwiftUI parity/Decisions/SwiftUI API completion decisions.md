@@ -29,7 +29,7 @@ Every gap `api_parity.py` still reports names one of these entries, and
 nothing else is waiting. The batch closed the rest: 2,022 gaps when it started
 and 404 when it ended (the count rose from 392 at the end, when 14
 drag-session modifiers a wrong refusal had hidden became gaps under A53); 232
-on 2026-10-12, and 90 on 2026-10-19 (94 on 2026-10-23, when C11's four `Tab` forms left the map for the baseline) (93 on 2026-10-24, when B96 closed `tabBarMinimizeBehavior(_:)`) (`Tools/APIParity/baseline.json`), plus
+on 2026-10-12, and 90 on 2026-10-19 (94 on 2026-10-23, when C11's four `Tab` forms left the map for the baseline) (93 on 2026-10-24, when B96 closed `tabBarMinimizeBehavior(_:)`; 84 before C11's four shipped and 80 after) (`Tools/APIParity/baseline.json`), plus
 three overloads only CI's SDK lists. Besides the gaps, the refusal review's
 implementable P items have shipped, and so has Wave 11b, underline and
 strikethrough patterns and colours, which you read on real terminals on
@@ -3801,7 +3801,7 @@ type for this to be the content of. Every `OutlineGroup` initializer, for
 views and for table rows, is SwiftUI's; only spelling the type out by hand
 differs.
 
-### C11. `Tab`'s `image:` initialisers: declined on a wrong reason, to be shipped
+### C11. `Tab`'s `image:` initialisers: declined on a wrong reason, shipped since in a module of their own
 
 *`Tab.init(_:image:content:)`, `Tab.init(_:image:role:content:)`,
 `Tab.init(_:image:value:content:)`, `Tab.init(_:image:value:role:content:)`*
@@ -3821,10 +3821,36 @@ are to ship as `Label`'s do — an extension in TUIkitBitmaps (TUIkitTabs does
 not depend on it) that finds the name as `Image(_:bundle:)` does. The picture
 shows in the sidebar list; the strip's chips show only the title, as they do
 for a symbol the terminal cannot draw (B75 would draw the picture there too).
-That code is not written: until it lands, the four initialisers are gaps in
-`baseline.json`, and `Tab.init(_:image:*` is no longer in the map's
-`ImageResource` family. The compatibility guide and `Tab`'s own doc comment
-no longer give the asset-catalogue reason.
+`Tab.init(_:image:*` is no longer in the map's `ImageResource` family. The
+compatibility guide and `Tab`'s own doc comment no longer give the
+asset-catalogue reason.
+
+**Placed 2026-10-24** (owner, TAB-IMAGE-NAME follow-up, option 2). Built in
+TUIkitBitmaps as ruled (branch `lane-tabs-image`, f166bc31a), they made it
+depend on TUIkitTabs, and through it TUIkitLists and TUIkitPresentation, so an
+app that showed an image paid for tabs: an app on `TUIkitApp` and
+`TUIkitBitmaps` with no tab view grew 8,163,440 → 9,054,784 B (+10.9%), one on
+`TUIkitBitmaps` alone 6,771,792 → 7,680,736 B (+13.4%), measured 2026-10-24
+(Xcode's Swift 6.2.4, release, default traits, `strip`). The other way round,
+TUIkitTabs on TUIkitBitmaps, would put the image decoders under
+TUIkitColorPicker, whose panel is a `TabView` and whose module-map `lower`
+list forbids TUIkitImage. So they live in **TUIkitTabImages**, a module and
+library product of their own built on TUIkitBitmaps and TUIkitTabs, which it
+re-exports, and which the umbrella re-exports: an app pays for them only when
+it uses both, and an app on module products lists `TUIkitTabImages` to get
+them.
+
+**Shipped 2026-10-24** (lane TABIMG): the `String` forms, in
+`Sources/TUIkitTabImages/Tab+ImageName.swift` — SwiftUI's, with `role:`
+defaulted as TUIkit's `systemImage:` forms have it, and without the
+`LocalizedStringResource` titles, which no `Tab` form takes here. The name is
+found as `Image(_:bundle:)` finds it; a `.sidebarAdaptable` sidebar's row
+draws the picture in two cells before the title, and its row memo compares
+the picture's source; a strip's chip draws the title alone. TUIkitTabs carries
+the picture (`DefaultTabLabel`'s, an `Image`, TUIkitFoundation's type) and
+draws it, and opens the two initialisers the new module calls at `package`
+access; it needs nothing of TUIkitBitmaps. The four initialisers leave
+`baseline.json`.
 
 ### C12. The drag sessions' AppKit comparisons
 

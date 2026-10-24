@@ -71,8 +71,8 @@ SWIFTUI_MODULES = ["SwiftUI", "SwiftUICore"]
 TUIKIT_MODULES = [
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
     "TUIkitEffects", "TUIkitFilePanels", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
-    "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch", "TUIkitTables",
-    "TUIkitTabs", "TUIkitTextInput",
+    "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch", "TUIkitTabImages",
+    "TUIkitTables", "TUIkitTabs", "TUIkitTextInput",
     "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView",
     "TUIkitAppKit",
 ]

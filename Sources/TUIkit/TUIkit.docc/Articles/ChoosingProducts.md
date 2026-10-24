@@ -64,6 +64,7 @@ notifications and `.help`. Then add the product of each module whose names you u
 | `TUIkitSearch` | `.searchable`, search tokens and scopes | `TUIkitTextInput`, `TUIkitPickers` |
 | `TUIkitEffects` | transitions, `.symbolEffect`, `.visualEffect`, `.scrollTransition`, `.matchedGeometryEffect` | |
 | `TUIkitBitmaps` | `Image` from a file, a URL or a bundle, `AsyncImage`, the `.image*` options | `TUIkitImage` |
+| `TUIkitTabImages` | `Tab(_:image:…)`, a tab whose picture is an image resource named by a string (a product of its own so that neither of the two it brings pays for the other) | `TUIkitBitmaps`, `TUIkitTabs` |
 | `TUIkitColorPicker` | `ColorPicker`, `ColorPickerPanel`, `GradientEditorPanel` | `TUIkitPresentation`, `TUIkitTabs`, `TUIkitTextInput`, `TUIkitNumericControls` |
 | `TUIkitCurveEditors` | `ToneCurveEditorPanel`, `ChannelCurveEditorPanel` | `TUIkitColorPicker`, `TUIkitImage`, `TUIkitPickers` |
 | `TUIkitAppKit` | `Color(nsColor:)`, `NSColor(_:)`, `Image(nsImage:)` and the other bridges to AppKit and Core Graphics (Apple platforms) | `TUIkitBitmaps` |

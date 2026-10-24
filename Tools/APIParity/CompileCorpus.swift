@@ -1605,6 +1605,14 @@ private struct TabShapes: View {
             }
             .tabViewStyle(.grouped)
             .tabBarMinimizeBehavior(.automatic)
+            TabView(selection: $optionalTab) {
+                Tab("Gear", image: "gear", value: 3) { Text("gear") }
+                Tab(folders[0], image: "gear", value: 4, role: nil) { Text("gear") }
+            }
+            TabView {
+                Tab("Gear", image: "gear") { Text("gear") }
+                Tab(folders[0], image: "gear", role: .search) { Text("gear") }
+            }
         }
     }
 }

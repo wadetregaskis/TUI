@@ -887,7 +887,8 @@ jobs:
   # TUIkitLists, and TUIkitNumericControls, TUIkitPickers, TUIkitSearch and
   # TUIkitForms, which steps C7, C8, C5 and C6 peeled out of TUIkitTextInput,
   # and TUIkitCurveEditors, which C9b peeled out of TUIkitColorPicker, and
-  # TUIkitFilePanels, lane O10's leaf, a module of its own from the start.
+  # TUIkitFilePanels, lane O10's leaf, a module of its own from the start, and
+  # TUIkitTabImages, Tab's image: initialisers (decisions C11), likewise.
   windows_container:
     name: "Windows Server 2022 · Swift ${{ matrix.swift }}"
     needs: lint
@@ -1156,6 +1157,14 @@ jobs:
         timeout-minutes: 30
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitFilePanels"
 
+      # The owner's TAB-IMAGE-NAME option 2 (decisions C11): `Tab`'s `image:`
+      # initialisers, built on TUIkitBitmaps and TUIkitTabs, so after them.
+      # No POSIX API and no `#if`.
+      - name: "Build TUIkitTabImages"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitTabImages"
+
       # ── The four modules' own test targets ──
       # Each links only its module, so these are the first tests Windows can
       # run without a console layer. Advisory until they go green, then binding
@@ -1345,6 +1354,10 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         run: swift build --target TUIkitFilePanels
+      - name: "Build TUIkitTabImages"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUIkitTabImages
 
       # The same scoreboard rows as the container lane, with the same timeouts
       # and for the same reason — see that lane.

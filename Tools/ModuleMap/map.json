@@ -883,6 +883,8 @@
   "TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift": "TUIkitStrings",
   "TUIkitStrings/State/AppConfigDirectory.swift": "TUIkitStrings",
   "TUIkitStrings/State/StorageFailure.swift": "TUIkitStrings",
+  "TUIkitTabImages/Exports.swift": "TUIkitTabImages",
+  "TUIkitTabImages/Tab+ImageName.swift": "TUIkitTabImages",
   "TUIkitTables/Exports.swift": "TUIkitTables",
   "TUIkitTables/Modifiers/TableColumnHeadersModifier.swift": "TUIkitTables",
   "TUIkitTables/Modifiers/TableRowHeights.swift": "TUIkitTables",

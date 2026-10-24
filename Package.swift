@@ -8,8 +8,8 @@ let umbrellaTestDependencies: [Target.Dependency] = [
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
     "TUIkitEffects", "TUIkitFilePanels", "TUIkitForms", "TUIkitFoundation", "TUIkitGrid", "TUIkitLists", "TUIkitMenus",
     "TUIkitNavigation", "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch",
-    "TUIkitStrings", "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput", "TUIkitAppKit",
-    "TUIkitWidthCorpus", "CTestSupport",
+    "TUIkitStrings", "TUIkitTabImages", "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput",
+    "TUIkitAppKit", "TUIkitWidthCorpus", "CTestSupport",
 ]
 
 let package = Package(
@@ -121,6 +121,10 @@ let package = Package(
         // TUIkitTabs: `TabView`, `Tab`, `TabSection` and the tab styles. Re-exports TUIkitLists and
         // TUIkitPresentation, whose adapting presenter a tab's popover is shown with.
         .library(name: "TUIkitTabs", targets: ["TUIkitTabs"]),
+        // TUIkitTabImages: `Tab(_:image:…)`, the tabs whose picture is an image resource named by a string, found
+        // as `Image(_:bundle:)` finds it. Re-exports TUIkitBitmaps and TUIkitTabs, which it is built on, so that
+        // neither pays for the other (decisions C11).
+        .library(name: "TUIkitTabImages", targets: ["TUIkitTabImages"]),
         // TUIkitTextInput: `TextField`, `SecureField` and `TextEditor`.
         .library(name: "TUIkitTextInput", targets: ["TUIkitTextInput"]),
 
@@ -403,7 +407,8 @@ let package = Package(
         // TUIkitFoundation and TUIkitLists, the map's edge: a `.sidebarAdaptable` tab view lists its tabs in a
         // `List`, a tab body is painted on the lists' lifted surface, and a tab's drop destination is a row's drop
         // slot. TUIkitLists does not depend on it, nor does anything in TUIkitFoundation (Tools/ModuleMap's upward
-        // check), so the umbrella re-exports it, and so does TUIkitColorPicker, whose panel is a `TabView`. Since
+        // check), so the umbrella re-exports it, and so do TUIkitColorPicker, whose panel is a `TabView`, and
+        // TUIkitTabImages, which adds `Tab`'s `image:` initialisers (decisions C11). Since
         // 2026-10-23 also on TUIkitPresentation (decisions A21, the owner's A21-TABPOPOVER option 1): a tab's
         // popover is shown with its adapting presenter, so it becomes a sheet in a compact size class as
         // `View.popover`'s does. TUIkitPresentation does not depend on it. It re-exports TUIkitFoundation,
@@ -536,9 +541,10 @@ let package = Package(
         // and `ContentUnavailableView`. `Image` itself, `Image(systemName:)` and the raster seam the bitmap path
         // draws through (`_ImageRaster`, step A2's R2), `.aspectRatio`, `.scaledToFit`, `.scaledToFill` and
         // `.imageCellAspect` (A4's S1) stay. Nothing in TUIkitFoundation may use this module (Tools/ModuleMap's
-        // upward check), so the umbrella re-exports it; no other leaf depends on it, and beside the umbrella and
-        // the tests only TUIkitAppKit, which is no module of the map, does. It re-exports TUIkitFoundation and
-        // TUIkitImage (Sources/TUIkitBitmaps/Exports.swift).
+        // upward check), so the umbrella re-exports it; of the other leaves only TUIkitTabImages (`Tab`'s `image:`
+        // initialisers, since 2026-10-24) depends on it, and beside the umbrella and the tests only TUIkitAppKit,
+        // which is no module of the map, does. It re-exports TUIkitFoundation and TUIkitImage
+        // (Sources/TUIkitBitmaps/Exports.swift).
         //
         // TUIkitImage (the decoders, `ASCIIConverter`, `RGBAImage`) is a dependency of this module and of
         // TUIkitCurveEditors (TUIkitColorPicker's until C9b), the only two leaves that name it. Of the framework's other modules only the umbrella,
@@ -567,11 +573,26 @@ let package = Package(
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
+        // The owner's TAB-IMAGE-NAME option 2 (2026-10-24, decisions C11): `Tab`'s `image:` initialisers, which
+        // find their image as `Image(_:bundle:)` does, as `Label(_:image:)`'s do, in a module of their own built on
+        // TUIkitBitmaps and TUIkitTabs. In TUIkitBitmaps they made it depend on TUIkitTabs (and so TUIkitLists and
+        // TUIkitPresentation), which made an app on TUIkitApp and TUIkitBitmaps with no tab view 10.9% larger; in
+        // TUIkitTabs they would put the image decoders under TUIkitColorPicker, whose panel is a `TabView`, which
+        // its `lower` list in Tools/ModuleMap/rules.json forbids. Here an app pays for them only when it uses both.
+        // Nothing but the umbrella and the tests depends on it. It re-exports both
+        // (Sources/TUIkitTabImages/Exports.swift).
+        .target(
+            name: "TUIkitTabImages",
+            dependencies: ["TUIkitBitmaps", "TUIkitFoundation", "TUIkitTabs"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
         // ── High-level (aggregates all) ─────────────────────────────────────────────────────────────────
         // The umbrella: Sources/TUIkit/Exports.swift `@_exported import`s the leaves carved so far (TUIkitApp,
         // TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker, TUIkitCommands, TUIkitCurveEditors, TUIkitEffects,
         // TUIkitFilePanels, TUIkitForms, TUIkitGrid, TUIkitLists, TUIkitMenus, TUIkitNavigation, TUIkitNumericControls,
-        // TUIkitPickers, TUIkitPresentation, TUIkitScenes, TUIkitSearch, TUIkitTables, TUIkitTabs, TUIkitTextInput),
+        // TUIkitPickers, TUIkitPresentation, TUIkitScenes, TUIkitSearch, TUIkitTabImages, TUIkitTables, TUIkitTabs,
+        // TUIkitTextInput),
         // TUIkitFoundation and the lower four, and holds no code (Tools/ModuleMap's `umbrella` check), so
         // `import TUIkit` gives an app exactly what it gave when the framework was one TUIkit module. It names
         // TUIkitImage itself since step B5c: TUIkitFoundation no longer re-exports it. Its directory also holds the
@@ -582,8 +603,8 @@ let package = Package(
                 "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
                 "TUIkitEffects", "TUIkitFilePanels", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus",
                 "TUIkitNavigation", "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes",
-                "TUIkitSearch", "TUIkitTables", "TUIkitTabs", "TUIkitTextInput", "TUIkitFoundation", "TUIkitCore",
-                "TUIkitStyling", "TUIkitImage", "TUIkitView",
+                "TUIkitSearch", "TUIkitTabImages", "TUIkitTables", "TUIkitTabs", "TUIkitTextInput", "TUIkitFoundation",
+                "TUIkitCore", "TUIkitStyling", "TUIkitImage", "TUIkitView",
             ]
         ),
 
@@ -880,6 +901,13 @@ let package = Package(
                 "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitFoundation", "TUIkitLists",
                 "TUIkitListsTestSupport", "TUIkitStyling", "TUIkitTables", "TUIkitTablesTestSupport",
                 "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitTabImagesTests",
+            dependencies: [
+                "TUIkitApp", "TUIkitAppTestSupport", "TUIkitBitmaps", "TUIkitFoundation", "TUIkitTabImages", "TUIkitTabs",
+                "TUIkitTestSupport",
             ]
         ),
         .testTarget(

@@ -19,7 +19,7 @@ let products = [
     "TUIkitCurveEditors", "TUIkitEffects", "TUIkitFilePanels", "TUIkitForms", "TUIkitGrid", "TUIkitLists",
     "TUIkitMenus", "TUIkitNavigation", "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes",
     "TUIkitSearch",
-    "TUIkitTables", "TUIkitTabs", "TUIkitTextInput", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage",
+    "TUIkitTabImages", "TUIkitTables", "TUIkitTabs", "TUIkitTextInput", "TUIkitCore", "TUIkitStyling", "TUIkitView", "TUIkitImage",
     "TUIkitAppKit", "TUIkitMacros",
 ]
 

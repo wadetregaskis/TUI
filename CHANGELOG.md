@@ -15,7 +15,7 @@ These notes cover the change from the single-module package (a `TUIkit` target p
 
 ### The module split
 
-TUIkit is now 29 library products. Before, there were five (`TUIkit`, `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, `TUIkitImage`).
+TUIkit is now 30 library products. Before, there were five (`TUIkit`, `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, `TUIkitImage`).
 
 #### The umbrella still works
 
@@ -80,6 +80,7 @@ Feature modules:
 - `TUIkitSearch`: `.searchable`, search tokens and scopes, `searchSuggestions`, `dismissSearch`.
 - `TUIkitTables`: `Table`, columns, rows, styles, row drag and drop. Re-exports `TUIkitLists`.
 - `TUIkitTabs`: `TabView`, `Tab`, `TabSection`, tab styles. Re-exports `TUIkitLists`, and `TUIkitPresentation`, whose sheet a tab's popover becomes in a compact size class.
+- `TUIkitTabImages`: `Tab(_:image:…)`, the tabs whose picture is an image resource named by a string. Re-exports `TUIkitBitmaps` and `TUIkitTabs`, and is a product of its own so that an app showing images pays nothing for tabs, and one using tabs nothing for image decoding.
 - `TUIkitTextInput`: `TextField`, `SecureField`, `TextEditor`.
 
 Opt-in (not in the umbrella):

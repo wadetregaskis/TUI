@@ -25,6 +25,8 @@
 // lane O9), TUIkitLists (lists, since step B6), TUIkitTables (tables,
 // since step C2), TUIkitTabs (tab views, since step C3) and TUIkitGrid (grids,
 // since step C4), all three of which TUIkitLists compiled until then,
+// TUIkitTabImages (`Tab`'s `image:` initialisers, built on TUIkitBitmaps and
+// TUIkitTabs, since the owner's TAB-IMAGE-NAME option 2),
 // TUIkitChrome (the window chrome), TUIkitEffects (transitions and visual
 // effects) and TUIkitMenus (`Menu`, `.contextMenu`; all three since step B5b),
 // and TUIkitBitmaps (`Image`'s bitmap path, `AsyncImage` and the `.image*`
@@ -72,6 +74,7 @@
 @_exported import TUIkitScenes
 @_exported import TUIkitSearch
 @_exported import TUIkitStyling
+@_exported import TUIkitTabImages
 @_exported import TUIkitTables
 @_exported import TUIkitTabs
 @_exported import TUIkitTextInput

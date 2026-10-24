@@ -32,10 +32,6 @@
   "LayoutDirectionBehavior.mirrors",
   "LayoutDirectionBehavior.mirrors(in:)",
   "Optional.Scope",
-  "Tab.init(_:image:content:)",
-  "Tab.init(_:image:role:content:)",
-  "Tab.init(_:image:value:content:)",
-  "Tab.init(_:image:value:role:content:)",
   "TabContent.swipeActions(edge:allowsFullSwipe:content:)",
   "TabSearchActivation",
   "TabSearchActivation.automatic",
@@ -89,8 +85,6 @@
  ],
  "labelDeviations": [
   "EdgeInsets.init(_:)",
-  "Tab.init(_:image:role:content:)",
-  "Tab.init(_:image:value:content:)",
   "View.background(ignoresSafeAreaEdges:)"
  ]
 }

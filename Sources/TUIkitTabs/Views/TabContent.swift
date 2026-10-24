@@ -74,6 +74,10 @@ struct _RawTab {
     /// default label, whose text is ``title``.
     var customLabel: AnyView?
 
+    /// The picture an `image:` initialiser named, which a sidebar's row draws
+    /// before the title; a strip's chip draws the title alone.
+    var icon: Image?
+
     /// The tab's content, type-erased. `AnyView` is `Layoutable` and forwards
     /// `sizeThatFits` to the wrapped view, so measuring `content` (see the call
     /// sites in `_TabViewCore`) sizes a `Layoutable` child — e.g. a `ScrollView`

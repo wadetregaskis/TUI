@@ -141,7 +141,8 @@ private struct _TabSidebarList: View {
             tab.customLabel != nil || popoversShown.contains(true) || interactions.dragPayload != nil
             || !interactions.drops.isEmpty
         return _TabRowLook(
-            value: tab.value, title: tab.title, badge: tab.badgeSuffix.isEmpty ? nil : tab.badge?.displayText,
+            value: tab.value, title: tab.title, icon: tab.icon.map { _TabRowIcon(content: $0.content) },
+            badge: tab.badgeSuffix.isEmpty ? nil : tab.badge?.displayText,
             isDisabled: tab.isDisabled, springLoads: tab.springLoads(inheriting: springLoading),
             hasContextMenu: interactions.contextMenu != nil, popoversShown: popoversShown,
             drawnAfresh: uncomparable ? _DrawnAfresh() : nil)
@@ -218,7 +219,9 @@ private struct _TabSidebarList: View {
         }
     }
 
-    /// A tab's label in the sidebar: the app's own label view, or the title.
+    /// A tab's label in the sidebar: the app's own label view, or the title —
+    /// after the picture an `image:` initialiser named, in the two cells a
+    /// symbol takes.
     ///
     /// The app's own is drawn afresh on every frame: its row's look
     /// (``_TabRowLook``) cannot say what it draws, so the look never matches
@@ -227,6 +230,8 @@ private struct _TabSidebarList: View {
     private func label(of tab: _RawTab) -> some View {
         if let customLabel = tab.customLabel {
             customLabel
+        } else if let icon = tab.icon {
+            TUIkitFoundation.Label { Text(verbatim: tab.title) } icon: { DefaultTabLabel.icon(icon) }
         } else {
             Text(verbatim: tab.title)
         }
@@ -250,6 +255,7 @@ private struct _TabSidebarList: View {
 private struct _TabRowLook: Hashable {
     let value: AnyHashable
     let title: String
+    let icon: _TabRowIcon?
     let badge: String?
     let isDisabled: Bool
     let springLoads: Bool
@@ -260,6 +266,16 @@ private struct _TabRowLook: Hashable {
     /// action — or `nil` for none: the row is drawn afresh every frame
     /// (``_DrawnAfresh``).
     let drawnAfresh: _DrawnAfresh?
+}
+
+/// The picture a tab's row draws, in its look: the picture's content, which
+/// names its source, compared as `Image`'s own equality compares it. It
+/// hashes as nothing, which equal values do alike; the rest of the look
+/// tells rows apart.
+private struct _TabRowIcon: Hashable {
+    let content: Image.Content
+
+    func hash(into hasher: inout Hasher) {}
 }
 
 /// A mark in a row's look that only it compares equal to, made anew with

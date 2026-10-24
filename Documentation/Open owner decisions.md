@@ -57,7 +57,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [FB3-BLANK](#fb3-blank) | (a). | No change. |
 | [FB3-OTHERCAPS](#fb3-othercaps) | (2); from the switch's card (10-24): B for capsule, D for a square rectangle, `⦗●⦘` for a rounded rectangle, Blocks unchanged. | Done (lane CAPS, 2026-10-24): segmented and palette pickers and compact tab chips (the colour picker's too) take a button's caps in the control family and shape (`ControlEnds`); unchanged by default. Lane SWITCH (2026-10-24): under Lines a switch is `(○ )` / `( ●)` in a capsule, `⦗● ⦘` / `⦗ ●⦘` in a rounded rectangle (four cells, as every shape — to confirm), `│● │` / `│ ●│` square; filled unchanged (decisions B-FORMS-7). |
 | [STEPPER-WIDTH](#stepper-width) | (1). | Done: `.stepperValueWidth(_:)`, fitting the bounds by default (lane STEPPER). |
-| [TAB-IMAGE-NAME](#tab-image-name) | (a). | Partly done (lane DOCS2): C11, the parity map, the guide and Tab's doc comment are corrected; the code is built but costs every image app +10.9% where ruled: needs your choice, see the follow-up below. |
+| [TAB-IMAGE-NAME](#tab-image-name) | (a); placed by the follow-up's (2) (10-24). | Done (lanes DOCS2 and TABIMG, 2026-10-24): C11, the parity map, the guide and Tab's doc comment are corrected, and the String forms ship in `TUIkitTabImages`, a module and product of their own on TUIkitBitmaps and TUIkitTabs that the umbrella re-exports; an image app without tabs is the size it was on main (decisions C11). |
 | [TABBARMIN](#tabbarmin) | (b). | Done (lane TABS, 2026-10-24): `tabBarMinimizeBehavior(_:)` ships, and `.automatic` minimizes `.bordered` and `.grouped` tab views to the strip in a compact size class (decisions B96); the map's decline is gone with the gap. |
 | [DRAWERS](#drawers) | (1). | Done (lane DOCS2): the draft is retired to Historical. |
 | [B-D5C-1](#b-d5c-1) | Asked why SwiftUI has no if/else in SceneBuilder. | Answered below — your call. |
@@ -433,6 +433,8 @@ The other direction, TUIkitTabs depending on TUIkitBitmaps, would put the image 
 - **3. Leave the four forms as gaps.** *Price:* None. SwiftUI code that writes `Tab("Inbox", image: "tray")` does not compile against TUIkit.
 
 Recommendation: 2. Need: your choice.
+
+**Ruled 2026-10-24: option 2. Done (lane TABIMG):** the module is `TUIkitTabImages`, the 30th library product. Measured the same way against main (Swift 6.2.4, release, stripped): an app on TUIkitApp + TUIkitBitmaps with no tab view is 8,282,528 B on both, and TUIkitBitmaps alone 6,874,096 B on both; an app on TUIkitApp + TUIkitTabImages with a `Tab(_:image:)` is 9,490,160 B.
 
 ## Summary
 

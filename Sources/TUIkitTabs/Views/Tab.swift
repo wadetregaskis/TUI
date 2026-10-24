@@ -32,9 +32,13 @@ import TUIkitStyling
 /// The label is drawn in the tab view's strip as text: the title, after the
 /// SF Symbol `systemImage` names where the terminal can draw that symbol (see
 /// ``Label/init(_:systemImage:)-(LocalizedStringKey,_)``), and the text of a
-/// label view of your own (`Tab(content:label:)`). The `image:` forms, which
-/// name an image by a `String`, are not offered yet. `Label` has them, and
-/// `Tab`'s are to follow `Label`'s (decisions C11).
+/// label view of your own (`Tab(content:label:)`). The `image:` forms find
+/// the image they name as `Image(_:bundle:)` finds it, as `Label(_:image:)`'s
+/// do, and are declared in TUIkitTabImages, a module built on this one and
+/// TUIkitBitmaps: a `.sidebarAdaptable` sidebar's row draws the picture in the
+/// two cells a symbol takes before the title, and a strip's chip draws the
+/// title alone, as it does for a symbol the terminal cannot draw (decisions
+/// C11).
 ///
 /// TUI-specific: `Tab(_:value:content:)`, a title with no symbol, which SwiftUI
 /// spells with a `systemImage:` a terminal mostly cannot draw.
@@ -54,7 +58,8 @@ public struct Tab<Value: Hashable, Content: View, Label: View>: TabContent {
     /// The view shown while the tab is selected.
     let content: Content
 
-    init(value: Value?, role: TabRole?, label: Label, content: Content) {
+    /// `package` for the `image:` initialisers, which TUIkitTabImages declares.
+    package init(value: Value?, role: TabRole?, label: Label, content: Content) {
         self.value = value
         self.role = role
         self.label = label
@@ -71,8 +76,11 @@ extension Tab: _TabContentPrimitive {
     func appendTabs(to tabs: inout _TabList) {
         let title: String
         var customLabel: AnyView?
+        var icon: Image?
         switch label {
-        case let label as DefaultTabLabel: title = label.stripTitle(role: role)
+        case let label as DefaultTabLabel:
+            title = label.stripTitle(role: role)
+            icon = label.image
         case is EmptyView: title = ""
         default:
             title = ""
@@ -82,7 +90,7 @@ extension Tab: _TabContentPrimitive {
         if let value { erased = AnyHashable(value) } else { erased = tabs.nextPosition }
         tabs.append(
             _RawTab(
-                value: erased, title: title, customLabel: customLabel, content: AnyView(content),
+                value: erased, title: title, customLabel: customLabel, icon: icon, content: AnyView(content),
                 role: role))
     }
 }
@@ -378,20 +386,37 @@ extension Tab where Label == EmptyView {
 
 // MARK: - DefaultTabLabel
 
-/// The label of a tab built from a title and an SF Symbol: the symbol, where
-/// the terminal can draw it, then the title.
+/// The label of a tab built from a title and an SF Symbol or a named image:
+/// the symbol, where the terminal can draw it, or the picture, then the title.
 public struct DefaultTabLabel: View {
     /// The title, or `nil` for a tab whose role names it.
     let title: String?
     /// The SF Symbol's name, or `nil`.
     let systemImage: String?
+    /// The picture an `image:` initialiser named, or `nil`.
+    let image: Image?
+
+    /// `package` for the `image:` initialisers, which TUIkitTabImages declares.
+    package init(title: String?, systemImage: String?, image: Image? = nil) {
+        self.title = title
+        self.systemImage = systemImage
+        self.image = image
+    }
 
     public var body: some View {
-        if let systemImage, let title {
+        if let image, let title {
+            TUIkitFoundation.Label { Text(verbatim: title) } icon: { Self.icon(image) }
+        } else if let systemImage, let title {
             TUIkitFoundation.Label(title, systemImage: systemImage)
         } else {
             Text(verbatim: title ?? "")
         }
+    }
+
+    /// A tab's picture as its label draws it: in the two cells a symbol
+    /// takes, as `Label(_:image:)` draws its icon.
+    static func icon(_ image: Image) -> some View {
+        image.resizable().frame(width: 2, height: 1)
     }
 
     /// The text a tab view's strip draws for this label: the symbol's glyph

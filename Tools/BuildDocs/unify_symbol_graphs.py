@@ -8,8 +8,8 @@ of its own, and the ones carved out of it: TUIkitStrings and TUIkitTerminalHost
 below it, TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitPresentation,
 TUIkitLists, TUIkitTables, TUIkitTabs, TUIkitGrid, TUIkitChrome, TUIkitEffects,
 TUIkitMenus, TUIkitBitmaps, TUIkitTextInput, TUIkitForms, TUIkitSearch,
-TUIkitPickers, TUIkitNumericControls, TUIkitCommands, TUIkitScenes and
-TUIkitFilePanels above it, and
+TUIkitPickers, TUIkitNumericControls, TUIkitCommands, TUIkitScenes,
+TUIkitFilePanels and TUIkitTabImages above it, and
 TUIkitCurveEditors, peeled out of TUIkitColorPicker; and the TUIkit umbrella that
 `@_exported import`s them and declares nothing). That
 split is OUR business, not the reader's: `import TUIkit` is one API, so the
@@ -58,8 +58,8 @@ import sys
 MODULES = {
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
     "TUIkitEffects", "TUIkitFilePanels", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
-    "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch", "TUIkitTables",
-    "TUIkitTabs", "TUIkitTextInput",
+    "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch", "TUIkitTabImages",
+    "TUIkitTables", "TUIkitTabs", "TUIkitTextInput",
     "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView",
     "TUIkitImage",
 }
