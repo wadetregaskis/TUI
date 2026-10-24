@@ -299,12 +299,17 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
 
     /// The weekday initials, starting on the calendar's first weekday.
     private func weekdayRow(calendar: Calendar, palette: any Palette) -> String {
-        let symbols = calendar.veryShortStandaloneWeekdaySymbols.isEmpty
+        let symbols: [String] = calendar.veryShortStandaloneWeekdaySymbols.isEmpty
             ? calendar.shortWeekdaySymbols : calendar.shortStandaloneWeekdaySymbols
-        let first = calendar.firstWeekday - 1
-        let ordered = (0..<7).map { symbols[(first + $0) % symbols.count] }
-        let text = ordered.map { " " + String($0.prefix(2)).padding(toLength: 2, withPad: " ", startingAt: 0) }
-            .joined()
+        let first: Int = calendar.firstWeekday - 1
+        let count: Int = symbols.count
+        let ordered: [String] = (0..<7).map { (offset: Int) -> String in
+            symbols[(first + offset) % count]
+        }
+        let cells: [String] = ordered.map { (symbol: String) -> String in
+            " " + String(symbol.prefix(2)).padding(toLength: 2, withPad: " ", startingAt: 0)
+        }
+        let text: String = cells.joined()
         return ANSIRenderer.colorize(text, foreground: palette.foregroundTertiary.opaqueSpelling)
     }
 
