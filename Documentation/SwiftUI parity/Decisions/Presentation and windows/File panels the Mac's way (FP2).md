@@ -275,4 +275,3 @@ kinds worked out per file, 106 ms of it the kinds, and 1.29 s with each
 type's kind kept (debug build). A test pins the icons
 (`EnvironmentValues.filePanelIcons`), as the SF Symbols' font is the
 machine's. **The fuller version** is A-FP2-1.
-
