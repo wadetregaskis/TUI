@@ -52,14 +52,17 @@ enum FilePanelColumns {
 
     /// The columns a table `width` cells wide shows: the name always,
     /// starting at ``nameRoom`` and taking whatever width the others leave,
-    /// and as many of the others as ``shown(inWidth:)`` says.
+    /// and as many of the others as ``shown(inWidth:)`` says. `browser` reads
+    /// the folder an outline's branch opens on.
     @TableColumnBuilder<FileEntry, KeyPathComparator<FileEntry>>
-    static func fitting(_ width: Int) -> some TableColumnContent<FileEntry, KeyPathComparator<FileEntry>> {
+    static func fitting(
+        _ width: Int, browser: FileBrowser
+    ) -> some TableColumnContent<FileEntry, KeyPathComparator<FileEntry>> {
         let shown = shown(inWidth: width)
         TableColumn(
             LocalizationService.shared.string(for: LocalizationKey.Label.name), sortUsing: FileBrowser.nameOrder
         ) { entry in
-            nameCell(entry)
+            nameCell(entry, browser: browser)
         }
         .width(ideal: nameRoom)
         if shown >= 1 {
@@ -94,9 +97,25 @@ enum FilePanelColumns {
 
     /// An item's name: a folder's bold and ending in a slash. Typing finds it
     /// by the name alone, without the slash.
-    private static func nameCell(_ entry: FileEntry) -> some View {
-        cell(entry.displayName, entry, bold: entry.isFolder)
-            .typeSelectEquivalent(entry.name)
+    ///
+    /// A branch's placeholder says "Loading…" while its folder is read, and
+    /// its appearing is what asks for the read: the row shows only once the
+    /// outline opens the branch, so a folder is read when, and only when, it
+    /// is opened. In a task of its own, not the view's `.task`: a table that
+    /// serves a row from its memo draws none of the row's views, which ended
+    /// the view's task part-way through the read.
+    @ViewBuilder
+    private static func nameCell(_ entry: FileEntry, browser: FileBrowser) -> some View {
+        if entry.isPlaceholder {
+            Text(LocalizationService.shared.string(for: LocalizationKey.FilePanel.loading))
+                .foregroundStyle(.palette.foregroundTertiary)
+                .onAppear {
+                    Task { await browser.loadFolder(entry.placeholderFolder) }
+                }
+        } else {
+            cell(entry.displayName, entry, bold: entry.isFolder)
+                .typeSelectEquivalent(entry.name)
+        }
     }
 
     /// A cell's text, in the faint tier where the row is dimmed

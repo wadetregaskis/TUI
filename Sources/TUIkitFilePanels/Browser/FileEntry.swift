@@ -65,7 +65,35 @@ struct FileEntry: Identifiable, Sendable {
     /// folder that cannot be chosen can still be opened.
     let isChoosable: Bool
 
+    /// The rows beneath a folder's in the list view's outline: its items once
+    /// the folder has been read, else one ``placeholder(in:)`` row, whose
+    /// drawing asks for it to be read. `nil` for a file, which has none, so
+    /// the outline draws no triangle for it (`Table(_:children:…)`).
+    var children: [Self]?
+
+    /// Whether this is the row that stands for a folder's items while they
+    /// are read (``placeholder(in:)``).
+    var isPlaceholder = false
+
+    /// The folder a placeholder stands for the items of: its URL without the
+    /// fragment.
+    var placeholderFolder: URL { URL(fileURLWithPath: url.path, isDirectory: true) }
+
     var id: URL { url }
+
+    /// The row an unread folder's outline shows while the folder is read:
+    /// "Loading…", dimmed, which can be neither chosen nor opened. Its URL is
+    /// the folder's with a fragment, which no item's has, so it is never an
+    /// item's (a name no file can have would not do: `appendingPathComponent`
+    /// drops a NUL, and a `/` is a component of its own).
+    static func placeholder(in folder: URL) -> Self {
+        var components = URLComponents(url: folder, resolvingAgainstBaseURL: false)
+        components?.fragment = "loading"
+        return Self(
+            url: components?.url ?? folder, name: "", isFolder: false, isHidden: false,
+            isSymbolicLink: false, contentType: .data, size: nil, modified: nil, sizeText: "", modifiedText: "",
+            kind: "", isChoosable: false, isPlaceholder: true)
+    }
 
     /// Whether the row is drawn dimmed: an item that can be neither chosen
     /// nor opened — a file of a type the panel does not take.

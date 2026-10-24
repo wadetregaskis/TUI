@@ -12,7 +12,7 @@ its Finder and open and save panels (15.8) unless an entry says otherwise.*
 
 ## B. Shipped the safe option
 
-### B-FP2-1. The enclosing-folder button is ↰, no Tab stop, and its keys are ← and Backspace
+### B-FP2-1. The enclosing-folder button is ↰, and no Tab stop
 
 *Owner item #29: "replace `..` with a real button, e.g. ↰"*
 
@@ -25,8 +25,9 @@ terminal, and a new chrome glyph, so it is width-corpus row
 (Terminal compatibility survey, "A file panel's ↰").
 
 It is not a Tab stop, as a macOS panel's toolbar buttons are not in its key
-view loop, and a click on it leaves the focus where it was. Its keys are the
-ones the panel had: ← and Backspace in the folder's rows. macOS's ⌘↑ cannot be
+view loop, and a click on it leaves the focus where it was. Its key is
+Backspace in the folder's rows (and ← too, until the list view became an
+outline whose ← is its own, B-FP2-5). macOS's ⌘↑ cannot be
 offered: a key press never carries Command (`KeyPress.modifiers`), which
 decision B-D1K-1 is to change. **The fuller version** binds ⌘↑ once Command
 reaches `onKeyPress`, where the terminal reports it: a line, after B-D1K-1.
@@ -115,4 +116,36 @@ too (that type, and All Files), `.hidden` never. A panel that takes every
 type, a mover's, and one that chooses a folder to save into have nothing to
 filter, and show none. **The fuller version** remembers the choice under a
 `fileDialogCustomizationID(_:)`, as the folder is kept: an hour.
+
+### B-FP2-5. The list view is an outline, its branches read as they open, up to 5,000 rows
+
+*Owner item #31: "a list (outline view: disclosure triangles, Name / Date
+Modified / Size / Kind columns, sorting)"*
+
+The table of a folder's items is now an outline, as Finder's list view is
+(`Table(_:children:…)`): every folder has a triangle, a file none, and → opens
+a folder where it is, a click on the triangle too; ← closes it, or goes from
+an item to its folder's row. The
+columns, the order (each branch sorted as the folder is, folders first) and
+the dimming are the table's as they were. A branch is read when it opens, not
+before: until it is, its one row says "Loading…", and that row's appearing is
+what asks for the read (`FileBrowser.loadFolder`, off the main actor, kept
+until the folder shown is read again). Items of open branches are chosen as
+the folder's own are, and a selection may span them: Return on one chooses it,
+Open chooses them all. Return on a folder still opens it as the folder shown.
+
+So the outline has ←, which went to the enclosing folder: that is Backspace's
+alone in the list view now (and the ↰ button's), as ⌘↑ is on a Mac, where ←
+in an outline is the outline's. The status bar says ⌫.
+
+A table works out its outline afresh for every row on every pass, where a flat
+table touches only the rows it draws: a frame of a folder of 20,000 files took
+87 ms as an outline and 6.5 ms flat (debug build; 1,000 files 8.9 ms, 5,000
+18 ms). So a folder of more than 5,000 rows is drawn flat
+(`FilePanel.outlineRowLimit`), its folders opened by Return alone. **The
+fuller version** makes `_TableOutline` (TUIkitTables) cost what the rows drawn
+cost — kept from pass to pass while the rows and the expansion are the same,
+or flattened lazily, a window at a time — and drops the limit: about a day, in
+a module other lanes work in; an A/B (the stress harness's table scenarios
+over an outline) is owed with it.
 

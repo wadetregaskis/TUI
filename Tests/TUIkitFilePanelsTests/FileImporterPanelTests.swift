@@ -73,7 +73,7 @@ struct FileImporterPanelTests {
         #expect(caller.chosenPaths == [fixture.url("beta.txt").path])
     }
 
-    @Test("Return on a folder opens it; ← goes back up")
+    @Test("Return on a folder opens it; Backspace goes back up")
     func returnOpensFolder() async throws {
         let fixture = try FilePanelFixture()
         defer { fixture.remove() }
@@ -85,7 +85,7 @@ struct FileImporterPanelTests {
         #expect(inside.contains("~ │ Alpha"))
         #expect(!inside.contains("beta.txt"))
         #expect(caller.heard.isEmpty)
-        driver.press(.left)
+        driver.press(.backspace)
         let back = await driver.waitFor("beta.txt")
         #expect(!back.contains("inner.txt"))
         // The cursor starts at the top of the folder: Return opens Alpha again.

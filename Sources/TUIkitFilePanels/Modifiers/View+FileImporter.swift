@@ -27,7 +27,7 @@ extension View {
     /// The interface is a panel TUIkit draws in a sheet, as SwiftUI presents
     /// the system's open panel: the items of a folder in a table, folders first,
     /// the ones of a type `allowedContentTypes` does not name dimmed. Return
-    /// or a double-click opens a folder or chooses a file; ← or Backspace goes
+    /// or a double-click opens a folder or chooses a file; Backspace goes
     /// to the enclosing folder, `~` to the home folder; Escape cancels. It
     /// opens on the process's working directory, the folder its user started
     /// it from, then on the folder of the last choice made through this

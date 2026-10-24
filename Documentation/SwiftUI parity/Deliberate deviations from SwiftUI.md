@@ -2082,7 +2082,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   in a `Table`, folders first, opening on the process's working directory and
   then on the folder of the last choice made through the modifier. Return opens
   a folder or chooses the item under the cursor (or the selection, when the
-  cursor is in it), Space selects, ← or Backspace goes up. It browses the
+  cursor is in it), Space selects, Backspace goes up. It browses the
   file system of the machine the app runs on: over `ssh`, the remote one.
   `FileImporterPanelTests` pins the keys and the callbacks' order.
 - **Why:** a terminal has no system panel to present; the ruling is a panel

@@ -59,7 +59,7 @@ area's height), titled Open, holding
 
 - the folder's path, the home folder written `~`, with a `..` to click to the
   folder above (since 2026-10-24 a ↰ button and a segmented path control,
-  [B-FP2-1](<File panels the Mac's way (FP2).md#b-fp2-1-the-enclosing-folder-button-is--no-tab-stop-and-its-keys-are--and-backspace>)
+  [B-FP2-1](<File panels the Mac's way (FP2).md#b-fp2-1-the-enclosing-folder-button-is--and-no-tab-stop>)
   and [B-FP2-2](<File panels the Mac's way (FP2).md#b-fp2-2-the-path-is-a-segmented-picker-whose-selection-is-the-folder-shown>));
 - the folder's items in a `Table` — Name, Size, Date Modified and Kind, sorted
   by any of them from its header or the table's sort keys — a folder's name in
@@ -79,7 +79,8 @@ area's height), titled Open, holding
 The keys are a terminal file browser's: the arrows move the table's cursor and
 typing finds a name (its type-select); Return on a folder opens it and on a
 file chooses it, or the whole selection when the cursor is in it; Space selects;
-← or Backspace goes up, `~` home; `/` turns the path bar into a field to type a
+← or Backspace goes up (Backspace alone since the outline,
+[B-FP2-5](<File panels the Mac's way (FP2).md#b-fp2-5-the-list-view-is-an-outline-its-branches-read-as-they-open-up-to-5000-rows>)), `~` home; `/` turns the path bar into a field to type a
 path in, as a shell takes one — `~/…`, absolute, or relative to the folder
 shown — which Tab completes (`PathCompletion`: the one match, a folder's with
 its `/`, or as much as several share) and Return goes to (a file's folder, and

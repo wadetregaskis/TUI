@@ -449,7 +449,8 @@ Button("Open…") { importing = true }
 The keys are a terminal file browser's: <kbd>↑</kbd> and <kbd>↓</kbd> move,
 typing a name's first letters finds it, <kbd>Return</kbd> opens a folder or
 chooses a file, <kbd>Space</kbd> selects (adding to the selection where several
-may be chosen), <kbd>←</kbd> or <kbd>Backspace</kbd> goes to the enclosing
+may be chosen), <kbd>→</kbd> opens a folder in place and <kbd>←</kbd> closes
+it, <kbd>Backspace</kbd> goes to the enclosing
 folder and <kbd>~</kbd> to the home folder, and <kbd>Esc</kbd> cancels. A
 double-click opens or chooses, and the ↰ button before the path goes up. <kbd>/</kbd>
 turns the path into a field to type a path in, as at a shell prompt:

@@ -35,7 +35,9 @@ import TUIkitTables
 ///   selection, when the cursor is in it;
 /// - Space selects the item under the cursor, adding it to the selection
 ///   where several may be chosen;
-/// - ← or Backspace goes to the enclosing folder, and `~` to the home folder;
+/// - → opens a folder in place, in the outline the table is, and ← closes
+///   it, or goes from an item to its folder's row (the outline's keys);
+/// - Backspace goes to the enclosing folder, and `~` to the home folder;
 /// - `/` turns the path bar into a field to type a path in, which Tab
 ///   completes and Return goes to, as at a shell prompt;
 /// - Escape cancels (or closes that field).
@@ -224,7 +226,9 @@ struct FilePanel: View {
         } primaryAction: { urls in
             activate(urls)
         }
-        .onKeyPress(keys: [.leftArrow, .delete], phases: [.down, .repeat]) { press in
+        // Backspace, not ←: the outline's ← closes a branch or goes to the
+        // row a branch is under, as an outline view's does.
+        .onKeyPress(keys: [.delete], phases: [.down, .repeat]) { press in
             guard press.modifiers.isEmpty else { return .ignored }
             browser.goUp()
             return .handled
@@ -242,7 +246,7 @@ struct FilePanel: View {
         // button (`StatusBarState.keepPresentationItem`).
         .statusBarItems {
             StatusBarItem(
-                shortcut: Shortcut.arrowLeft,
+                shortcut: Shortcut.backspace,
                 label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusEnclosingFolder))
             StatusBarItem(
                 shortcut: "~", label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusHome))
@@ -252,16 +256,21 @@ struct FilePanel: View {
     }
 
     /// The table, with one selection binding or the other, `width` cells wide.
+    ///
+    /// An outline, whose folders open in place, up to ``outlineRowLimit``
+    /// rows; past it, the rows alone.
     @ViewBuilder private func table(width: Int) -> some View {
         Group {
-            if request.allowsMultipleSelection {
-                Table(browser.rows, selection: selectable, sortOrder: sortOrder) {
-                    FilePanelColumns.fitting(width)
+            if browser.rows.count > Self.outlineRowLimit {
+                flatTable(width: width)
+            } else if request.allowsMultipleSelection {
+                Table(browser.rows, children: \.children, selection: selectable, sortOrder: sortOrder) {
+                    FilePanelColumns.fitting(width, browser: browser)
                 }
                 .tableEmptyPlaceholder(emptyText)
             } else {
-                Table(browser.rows, selection: selectableSingle, sortOrder: sortOrder) {
-                    FilePanelColumns.fitting(width)
+                Table(browser.rows, children: \.children, selection: selectableSingle, sortOrder: sortOrder) {
+                    FilePanelColumns.fitting(width, browser: browser)
                 }
                 .tableEmptyPlaceholder(emptyText)
             }
@@ -269,6 +278,30 @@ struct FilePanel: View {
         // Inset, not bordered: the panel's box is the table's border.
         .tableStyle(.inset)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// The most rows the list view draws as an outline. A table's outline is
+    /// worked out afresh for every row on every pass, which a flat table is
+    /// not: a frame of a folder of 20,000 files took 87 ms as an outline and
+    /// 6.5 ms flat in a debug build. A folder of more is drawn flat, its
+    /// folders opened by Return alone, until the outline's cost stops growing
+    /// with the rows (decisions B-FP2-5).
+    static let outlineRowLimit = 5_000
+
+    /// The table with no outline, for a folder of more than
+    /// ``outlineRowLimit`` rows.
+    @ViewBuilder private func flatTable(width: Int) -> some View {
+        if request.allowsMultipleSelection {
+            Table(browser.rows, selection: selectable, sortOrder: sortOrder) {
+                FilePanelColumns.fitting(width, browser: browser)
+            }
+            .tableEmptyPlaceholder(emptyText)
+        } else {
+            Table(browser.rows, selection: selectableSingle, sortOrder: sortOrder) {
+                FilePanelColumns.fitting(width, browser: browser)
+            }
+            .tableEmptyPlaceholder(emptyText)
+        }
     }
 
     /// The selection, through a binding that refuses an item that can be
