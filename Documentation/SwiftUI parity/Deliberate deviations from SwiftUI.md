@@ -1032,22 +1032,31 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [B-D6M-1](<Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md#b-d6m-1-a-named-colours-light-and-dark-variants-are-chosen-when-it-is-made>), [§1](<SwiftUI compatibility guide.md#1-match>) (the Color values
   row). **Lane.**
 
-### C2. A gradient is one sample a cell, corrected for the cell's shape
+### C2. A gradient is one or two samples a cell, corrected for the cell's shape
 
 - **SwiftUI:** gradients and meshes are drawn per pixel; a `RadialGradient`'s
   radii are points (the SDK's declarations; B95 compared SwiftUI's mesh
   pictures with probes).
 - **TUIkit:** each cell takes the colour at its centre, so a smooth ramp is a
   staircase on a glyph terminal (a terminal that takes pictures draws a
-  gradient behind blank cells as a picture). A gradient filling a shape that
-  is rasterized (C8) is sampled per half cell instead, a step half a row
-  tall, as the shape's edge is. `RadialGradient`'s radii are
-  cells measured across, with the height derived through the cell's aspect so
-  a circle looks like one; `AngularGradient`'s angles are corrected the same
-  way. A mesh's patches are evaluated exactly where SwiftUI tessellates
-  (a level or two of difference).
-- **Why:** a cell shows one colour, and a cell is about twice as tall as it is
-  wide, so radii and angles are corrected for a circle to look like one.
+  gradient behind blank cells as a picture). Where the terminal draws Block
+  Elements to the line's edges, a blank cell that a ramp changing down a
+  column fills is two samples, `▄` in its bottom half's colour over its top
+  half's: a gradient view, `.background(gradient)` behind the content's bare
+  cells, and a rectangle-family shape's whole cells (since 2026-10-24, owner
+  ruling B95). Apple Terminal, whose Block Elements fall short of the line,
+  keeps one sample; so does a cell with a glyph, a translucent or blended
+  ramp, and a terminal with no colour. Copying such a region gives `▄`, not
+  spaces. A gradient filling a shape that is rasterized (C8) is sampled per
+  half cell on every terminal, a step half a row tall, as the shape's edge is.
+  `RadialGradient`'s radii are cells measured across, with the height derived
+  through the cell's aspect so a circle looks like one; `AngularGradient`'s
+  angles are corrected the same way. A mesh's patches are evaluated exactly
+  where SwiftUI tessellates (a level or two of difference).
+- **Why:** a cell shows at most two colours, split by a glyph; a cell is about
+  twice as tall as it is wide, so radii and angles are corrected for a circle
+  to look like one, and the second sample goes down the cell, where the
+  resolution is coarse.
 - **Decided:** [B95](<Decisions/SwiftUI API completion decisions.md#b95-a-mesh-is-one-sample-a-cell-on-a-glyph-terminal-and-a-picture-where-the-terminal-takes-one>),
   [§3, "Closed: `foregroundStyle`…"](<SwiftUI compatibility guide.md#closed-foregroundstyle-takes-some-shapestyle>),
   [AppearanceAndColors](../../Sources/TUIkit/TUIkit.docc/Articles/AppearanceAndColors.md#L237-L241).

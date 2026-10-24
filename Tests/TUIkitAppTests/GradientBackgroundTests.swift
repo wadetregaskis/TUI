@@ -59,13 +59,18 @@ struct GradientBackgroundTests {
         return out
     }
 
+    /// One sample a cell, as on a terminal whose Block Elements fall short of
+    /// the line: where they fill it, a row's bare cells are two samples each
+    /// (`GradientHalfBlockTests`, decisions B95).
     @Test("A vertical ramp fills each row with one colour")
     func verticalFillsRows() {
+        var oneSample = context()
+        oneSample.environment.blockElementsFillTheLine = false
         let lines = renderToBuffer(
             Text(verbatim: "one\ntwo\nthree")
                 .background(
                     LinearGradient(colors: [red, blue], startPoint: .top, endPoint: .bottom)),
-            context: context()
+            context: oneSample
         ).lines
         let rows = lines.prefix(3).map { Set(fills($0).compactMap { $0 }) }
         for (index, row) in rows.enumerated() {

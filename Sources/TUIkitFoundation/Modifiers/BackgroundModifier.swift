@@ -277,8 +277,13 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
             // piece filled.
             return painted(padded, over: sampler.runs(row: row, cells: width), width: width)
         }
+        let opaque = if case .opaque = alphaShape { true } else { false }
+        // Two samples a cell behind the content's bare cells, where they can
+        // show (decisions B95); `nil` everywhere else, which costs this check.
+        var halfRows = GradientHalfRows(paint: paint, sampler: sampler, opaque: opaque, extent: extent, context: context)
         let lines = buffer.lines.enumerated().map { row, line in
-            paintedRow(line.padToVisibleWidth(width), row: row)
+            halfRows?.row(line.padToVisibleWidth(width), row: row, width: width, oneSample: paintedRow, escape: escape)
+                ?? paintedRow(line.padToVisibleWidth(width), row: row)
         }
 
         // Background colouring is a styling pass — content stays in
@@ -295,7 +300,6 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
         let said = Self.saidOfTheRamp(
             for: alphaShape, rowAlphas: rowFieldAlphas, over: buffer, sampler: sampler, width: width,
             palette: palette, escape: escape(forEntry:), mode: paint.blendMode)
-        let opaque = if case .opaque = alphaShape { true } else { false }
         if !opaque { ramped.opacityRegions += said }
         // And each run's ground, painted as its row was over the run's columns —
         // the ramp's cells differ across a row, so each piece gets its own entry,

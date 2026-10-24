@@ -83,12 +83,16 @@ struct MeshGradientRenderingTests {
     /// SwiftUI drew the documentation's example at 400 × 200 points; each 20 ×
     /// 20 square is one cell of a 20 × 10 grid, and its centre pixel is what
     /// the cell's centre should be.
+    ///
+    /// One sample a cell, as on a terminal whose Block Elements fall short of
+    /// the line: where they fill it, a blank cell is the cell's two halves
+    /// (`GradientHalfBlockTests`, decisions B95).
     @Test("A mesh used as a view fills each cell with the colour SwiftUI draws at its centre")
     func viewMatchesSwiftUI() {
         withColorDepth(.truecolor) {
-            let lines = renderToBuffer(
-                Self.documentationExample.frame(width: 20, height: 10), context: context(width: 20, height: 10)
-            ).lines
+            var oneSample = context(width: 20, height: 10)
+            oneSample.environment.blockElementsFillTheLine = false
+            let lines = renderToBuffer(Self.documentationExample.frame(width: 20, height: 10), context: oneSample).lines
             #expect(lines.count == 10)
             let grid = lines.map { cells($0, prefix: "48;2;") }
             for (column, row, expected) in [

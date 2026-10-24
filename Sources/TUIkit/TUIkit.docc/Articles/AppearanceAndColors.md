@@ -250,7 +250,10 @@ it paints, as a ``LinearGradient``'s points are, so it stretches with its box
 and takes no correction either. Each cell takes the mesh's colour at its
 centre, which draws a smooth mesh as a staircase of cells — or, used as a view
 on a terminal that draws pictures, as a picture with the mesh's colour at
-every pixel:
+every pixel. Where the terminal draws Block Elements to the line's edges (all
+but Apple Terminal), a blank cell that a mesh or a gradient changing down a
+column fills is two samples instead, `▄` in its bottom half's colour over its
+top half's, which halves the staircase's steps:
 
 ```swift
 MeshGradient(width: 3, height: 3, points: [

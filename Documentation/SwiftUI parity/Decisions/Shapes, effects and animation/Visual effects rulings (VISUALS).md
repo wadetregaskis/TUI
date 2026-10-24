@@ -69,3 +69,53 @@ drawn through `Text`.
 `modifiers`, `dashboard` and `scrollfollow`, the scenarios most sensitive to
 a per-`Text` cost in A40's measurement. None writes a content transition, so
 they measure the environment read alone.
+
+## B95. A ramp's blank cells are two samples where Block Elements fill the line
+
+*Gradient views, `.background(gradient)`, rectangle-family gradient fills,
+`MeshGradient`; ruling: option 2. The follow-up's ▌, quadrant and diagonal
+glyphs were answered and not built.*
+
+**Shipped.** One rule, the rasterized shapes' (`ShapeHalfBlocks.cell(upper:
+lower:)`, shared by a prepared refactor), and one half-row sampler
+(`RampSampler(halfRowsOf:…)`), now used by three paths:
+
+- **A box-drawn fill** (`RoundedRectangle`, `Capsule`, an inset `Rectangle`,
+  the container shapes): a cell the shape covers whole is its two halves; a
+  corner keeps its quadrant glyph in one sample, since a quadrant has one ink.
+- **A `.background` ramp** (which is also how `Rectangle().fill`, `Color`'s
+  and the gradients' own view bodies draw): `GradientHalfRows` draws each
+  bare cell of the content — a space with no SGR in force — as the two
+  halves, and the content's other cells on the one sample they had. A row
+  holding an escape that is not SGR (a hyperlink) keeps one sample whole.
+  A content run is closed with a reset before half cells follow, so its
+  styling cannot reach them.
+- **A rasterized shape** already drew this way on every terminal.
+
+**Where it applies:** a ramp that changes down a column (a horizontal ramp's
+halves agree, so it is untouched and pays one flag test), opaque throughout,
+with no blend mode, on a terminal with colour whose Block Elements fill the
+line. Apple Terminal keeps one sample, as its button faces keep whole cells
+(Terminal compatibility survey). A terminal that takes pictures still draws
+an opaque ramp behind blank cells as a picture; the halves are what it draws
+behind content.
+
+**Judgement calls.** A translucent ramp keeps one sample: the halves' ink
+would owe a claim per half, and the background's claims are field claims
+only. A blended ramp keeps one, as it is never a picture either. Under a
+layer — `.background { LinearGradient(…) }`, a `ZStack` — a cell the
+content draws, a space included, covers the `▄` and shows the top half's
+colour where it showed the centre's: a quarter of a row's shift in that
+cell's sample. The fill under a fade inside an opaque ramp
+(`resolvingOpacity`'s backdrop) is the one-sample row, as before.
+
+**Cost.** Counted, not timed: a ramp that qualifies samples each blank cell
+twice and spells each distinct pair of half entries once per fill (a
+dictionary, as the background's one-sample escapes are an array); a row
+with content is scanned once for bare cells (`String.bareCells(width:)`) and
+cut at the runs. Bytes: a run of halves states a foreground and a
+background where a run of one sample stated a background, and a vertical
+linear ramp, which was one fill per row, is now one run of `▄` per row. A
+ramp that does not qualify pays one `Bool` and a flag test per fill. For an
+A/B if wanted: `gradients` (its geometry and mesh bands are gradient views)
+and `app-shapes`.

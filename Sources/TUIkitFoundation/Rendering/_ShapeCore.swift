@@ -182,9 +182,12 @@ extension ShapeCells {
             let corners = RoundedCorners(radii)
             switch drawing {
             case .fill:
+                // Two samples a cell where the paint changes down a column and
+                // the halves draw to the line's edges (decisions B95).
+                let halves = wholeCells || monochrome || !painter.variesDownColumn ? nil : painter.pixelColour
                 var cells = ShapeBoxCells.fill(
                     shape.path(in: rect), columns: columns, rows: rows, aspect: aspect, corners: corners,
-                    wholeCells: wholeCells, colour: painter.cellColour)
+                    wholeCells: wholeCells, colour: painter.cellColour, halves: halves)
                 if monochrome { cells.dropColours() }
                 return cells
             case .stroke(let style, _) where style.dash.isEmpty && style.lineWidth > 0 && style.lineWidth <= 1:
@@ -236,6 +239,10 @@ struct ShapePainter {
         pixels = RampSampler(halfRowsOf: paint, extent: extent, depth: depth, cellAspect: aspect)
         flat = cells == nil ? paint.representative.resolve(with: palette) : nil
     }
+
+    /// Whether the paint changes down a column: a ramp that is not
+    /// horizontal, or a mesh. A flat colour does not.
+    var variesDownColumn: Bool { pixels?.variesDownColumn ?? false }
 
     /// The paint at cell (`x`, `y`).
     func cellColour(_ x: Int, _ y: Int) -> Color {

@@ -89,7 +89,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [A27](#a27) | Remind you of the details. | Reminder below — your call. |
 | [A34](#a34) | (2); asked how good (3) could be and its cost. | Done (lane VISUALS, 2026-10-24): `.blurReplace` is the reveal from 0.9 at the centre plus a fade, SwiftUI's scale measured (`tr4.out`); `.upUp` leaves by the fade. Option 3 answered below. |
 | [B61](#b61) | (2). | Built 2026-10-24 on lane `lane-visuals`: each `Text` and raster `Image` reads the transition and dissolves its own change (decisions B61, VISUALS); an A/B is owed before it lands (textwall, fanout, menus, anyview, modifiers, dashboard, scrollfollow). |
-| [B95](#b95) | (2); also asked about ▌ and quadrant or diagonal glyphs. | Option 2 queued; the glyph questions answered below. |
+| [B95](#b95) | (2); also asked about ▌ and quadrant or diagonal glyphs. | Done (lane VISUALS, 2026-10-24): where Block Elements fill the line, a ramp's blank cells are `▄` two samples, through the shapes' half-block rule (decisions B95, deviations C2); ▌, quadrants and diagonals not built, answered below. |
 | [O5-FROSTED](#o5-frosted) | (b), watching performance; (c) if it is significant. | Queued. |
 | [O1-LOOSEN](#o1-loosen) | (a). | No change. |
 | [P5](#p5) | (c). | Queued. |

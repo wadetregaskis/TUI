@@ -3555,10 +3555,11 @@ behind blank cells, is a picture on a graphics terminal; inside
 
 Where it differs, or rests on less than a measurement:
 
-- **One sample a cell.** A cell is the mesh at its centre, so a smooth mesh is
-  a staircase on a glyph terminal; the picture path removes the staircase
-  where the terminal draws pictures. This is the same rule every gradient
-  follows.
+- **One sample a cell, or two.** A cell is the mesh at its centre, so a smooth
+  mesh is a staircase on a glyph terminal; the picture path removes the
+  staircase where the terminal draws pictures. Since 2026-10-24 (the fuller
+  version below) a blank cell is two samples where the terminal's Block
+  Elements fill the line. This is the same rule every gradient follows.
 - **Exact evaluation, not SwiftUI's tessellation.** TUIkit evaluates the
   Hermite patch at each sample; SwiftUI interpolates linearly between the
   vertices of its tessellation. The two differ by a level or two where a colour
@@ -3595,15 +3596,25 @@ filled its whole picture first). A `Table`'s ramp runs over every row of its
 data, so a mesh there is worked out a band of eight rows at a time, only for
 the rows asked about.
 
-**The fuller version: two samples a cell on a glyph terminal.** A gradient
-used as a view — any of the five, behind blank cells — could draw each cell as
-an upper half block (`▀`) whose foreground is the sample a quarter of the way
-down the cell and whose background the sample three quarters down, doubling
-the vertical resolution where there is no picture. `Image` already draws this
-way. About half a day with the self-check, and a look in Apple Terminal and
-Warp, which take no pictures and are where it would show. It changes how every
-gradient view looks on those terminals, and copying such a region yields `▀`
-rather than spaces, which is why it is not done here.
+**Two samples a cell where Block Elements fill the line** (owner ruling of
+2026-10-23, option 2; lane VISUALS, 2026-10-24). A ramp or mesh that changes
+down a column draws each blank cell it fills by the rasterized shapes' rule
+(`ShapeHalfBlocks.cell(upper:lower:)`): `▄` in the colour a quarter of the
+way up from the cell's bottom over the colour a quarter of the way down from
+its top, or a space where the two agree. That is a gradient view, a
+`.background(gradient)` behind the content's bare cells (a space with nothing
+in force), and a rectangle-family shape's whole cells (its corners keep their
+quadrant in one sample), so a gradient `Rectangle`, `RoundedRectangle` and
+`Circle` agree. Apple Terminal (`blockElementsFillTheLine` false) keeps one
+sample, as do a cell with a glyph, a translucent or blended ramp, a
+horizontal ramp (whose halves agree) and a terminal with no colour; a
+terminal that takes pictures still draws an opaque ramp behind blank cells
+as one. Copying such a region gives `▄` rather than spaces. The `▀`/`▌`
+choice, quadrants and diagonals were not built (the ruling's follow-up
+answer). Where a layer is drawn under content — `.background { gradient }`,
+a `ZStack` — a cell the content draws, a space included, covers the `▄` and
+shows the top half's colour. See the lane file `Shapes, effects and
+animation/Visual effects rulings (VISUALS).md`.
 
 ### B96. `tabBarMinimizeBehavior(.automatic)` minimizes the folder tabs in a compact size class
 

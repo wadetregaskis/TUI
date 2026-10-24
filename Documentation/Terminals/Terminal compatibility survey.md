@@ -783,6 +783,13 @@ fills the whole cell there, which is what the survey's `█` note below
 `overhang_card.py` page of the rows would show how far short). (A first card of
 the families drew nothing in colour on Apple Terminal: it was spelt in 24-bit
 SGR, which Terminal.app ignores; TUIkit spells 256 colours there.)
+The same flag keeps a gradient at one sample a cell there (decisions B95,
+2026-10-24): where Block Elements fill the line, a ramp that changes down a
+column draws each blank cell it fills as `▄` in its bottom half's colour over
+its top half's — a gradient view, `.background(gradient)` behind the content's
+bare cells, and a rectangle-family shape's whole cells — as a rasterized shape
+already did everywhere; on Apple Terminal the halves would be stripes, so each
+cell keeps the colour at its centre. `▄` is the corpus's `chrome_lower_half`.
 
 **Braille borders and faces** (`.braille`, `.braille(thickness:)`; the same
 evening): a box's border and a button's outline in Braille dots, the top and

@@ -113,9 +113,15 @@ enum ShapeBoxCells {
     /// - Parameters:
     ///   - wholeCells: Whether a cut corner is a whole cell rather than
     ///     quadrants, for a terminal that draws Block Elements short of the line.
+    ///   - halves: The paint at half cell (`x`, `y`), `y` counting half rows,
+    ///     for a paint that changes down a column on a terminal whose Block
+    ///     Elements fill the line: a cell the shape covers whole is then its
+    ///     two halves, as a rasterized shape's is
+    ///     (``ShapeHalfBlocks/cell(upper:lower:)``, decisions B95). `nil` for
+    ///     one sample a cell.
     static func fill(
         _ path: Path, columns: Int, rows: Int, aspect: Double, corners: RoundedCorners, wholeCells: Bool,
-        colour: (Int, Int) -> Color
+        colour: (Int, Int) -> Color, halves: ((Int, Int) -> Color)? = nil
     ) -> ShapeCells {
         var cells = ShapeCells(width: columns, height: rows)
         guard columns > 0, rows > 0, aspect > 0 else { return cells }
@@ -136,6 +142,11 @@ enum ShapeBoxCells {
                 if wholeCells { bits = total / 4 >= 0.5 ? 15 : 0 }
                 bits = cut(bits, column: column, row: row, columns: columns, rows: rows, corners: corners, wholeCells: wholeCells)
                 guard bits != 0 else { continue }
+                if bits == 15, let halves {
+                    cells[column, row] = ShapeHalfBlocks.cell(
+                        upper: halves(column, row * 2), lower: halves(column, row * 2 + 1))
+                    continue
+                }
                 let paint = colour(column, row)
                 cells[column, row] =
                     bits == 15
