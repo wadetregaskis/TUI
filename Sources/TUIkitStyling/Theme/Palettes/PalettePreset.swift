@@ -314,13 +314,17 @@ extension SystemPalette.Tuning {
                 accentHue: 270,
                 accentSaturation: 85,
                 accentLightness: 78,
-                successHue: wrapHue(270 + 120),
+                // Green, amber and red, as every other preset reads them: the
+                // colour-theory offsets these were (triadic, analogous,
+                // complementary) put success at orange and error at lime, so
+                // "✓ passed" drew orange and "✗ failed" green.
+                successHue: 150,
                 successSaturation: 70,
                 successLightness: 65,
-                warningHue: wrapHue(270 + 60),
+                warningHue: 45,
                 warningSaturation: 80,
                 warningLightness: 70,
-                errorHue: wrapHue(270 + 180),
+                errorHue: 355,
                 errorSaturation: 85,
                 errorLightness: 65,
                 infoHue: wrapHue(270 - 60),

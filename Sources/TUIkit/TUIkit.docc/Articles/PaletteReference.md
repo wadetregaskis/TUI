@@ -173,11 +173,7 @@ The violet preset takes a base hue (270°) and derives all color tokens using HS
 - **Background**: Base hue at very low lightness (3%) with reduced saturation
 - **Foregrounds**: Base hue at medium-high lightness (40–70%)
 - **Accent**: Base hue at high lightness (78%) with high saturation
-- **Semantic colors**: Derived from color theory offsets:
-  - `success` = base + 120° (triadic)
-  - `warning` = base + 60° (analogous warm)
-  - `error` = base + 180° (complementary)
-  - `info` = base − 60° (analogous cool)
+- **Semantic colors**: green, amber and red for success, warning and error, as every other preset reads them, and `info` at base − 60° (analogous cool). They were colour-theory offsets from the base hue until 2026-10-25, which put success at orange and error at lime green.
 
 ### Violet Token Values
 
@@ -188,9 +184,9 @@ The violet preset takes a base hue (270°) and derives all color tokens using HS
 | `foregroundSecondary` | hsl(270, 70%, 55%) | Medium violet |
 | `foregroundTertiary` | hsl(270, 60%, 40%) | Dim violet |
 | `accent` | hsl(270, 85%, 78%) | Bright lavender |
-| `success` | hsl(30, 70%, 65%) | Warm orange (270+120=30°) |
-| `warning` | hsl(330, 80%, 70%) | Pink (270+60=330°) |
-| `error` | hsl(90, 85%, 65%) | Lime green (270+180=90°) |
+| `success` | hsl(150, 70%, 65%) | Green |
+| `warning` | hsl(45, 80%, 70%) | Amber |
+| `error` | hsl(355, 85%, 65%) | Red |
 | `info` | hsl(210, 70%, 70%) | Sky blue (270−60=210°) |
 | `border` | hsl(270, 40%, 25%) | Dark purple border |
 | `statusBarBackground` | hsl(270, 35%, 7%) | Very dark violet (the header's tone too) |
