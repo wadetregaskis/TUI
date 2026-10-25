@@ -126,10 +126,15 @@ final class FilePanelDriver<Page: View> {
 
     /// One frame of the page, built afresh, with no icons unless the page
     /// asks for them: the SF Symbols are drawn where the machine has their
-    /// font, which a test cannot depend on (`filePanelIcons`).
+    /// font, which a test cannot depend on (`filePanelIcons`). And at the
+    /// desk unless the page says otherwise: the remote-machine notice is
+    /// judged on how the test process was started, and inside tmux the
+    /// judgement asks tmux for its clients (`filePanelSession`).
     @discardableResult
     private func frame() -> FrameBuffer {
-        harness.frame(build().defaultAppStorage(storage).environment(\.filePanelIcons, FilePanelIcon.none))
+        harness.frame(
+            build().defaultAppStorage(storage).environment(\.filePanelIcons, FilePanelIcon.none)
+                .environment(\.filePanelSession, FilePanelSession(judgement: .local, hostName: "desk")))
     }
 
     /// Draws frames until the screen shows `text` — a folder is read on

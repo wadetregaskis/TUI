@@ -260,6 +260,9 @@ public enum LocalizationKey {
         case viewList = "filePanel.view.list"
         /// The view switcher's column view.
         case viewColumns = "filePanel.view.columns"
+        /// The notice a panel shows when it browses another machine than the
+        /// user's, that machine's name as `%@`.
+        case remoteNotice = "filePanel.remoteNotice"
     }
 
     /// Menu items and sections

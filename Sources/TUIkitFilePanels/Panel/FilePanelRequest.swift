@@ -61,6 +61,10 @@ struct FilePanelRequest {
     /// (``typeChoices``).
     var contentTypePicker: Visibility = .automatic
 
+    /// Whether the panel says it browses another machine than the user's
+    /// (`fileDialogRemoteNotice(_:)`, ``FilePanelSession/notice(_:)``).
+    var remoteNotice: Visibility = .automatic
+
     /// The key the panel's view mode is kept under in the app's storage:
     /// app-wide, or a `fileDialogCustomizationID(_:)`'s own
     /// (``FilePanelViewMode/storageKey(for:)``).

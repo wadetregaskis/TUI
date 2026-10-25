@@ -43,9 +43,10 @@ import TUIkitFoundation
 /// ⚠️ is: icons drawn in their own colours rather than the palette's, each a
 /// two-cell pictograph (🛑 and ✅ by default presentation, ⚠️ and ℹ️ with
 /// U+FE0F) — the class the advance table measures and the writer compensates
-/// where a host advances one a cell short.
-enum AlertPanelMark {
-    static let warning = "\u{26A0}\u{FE0F}"
+/// where a host advances one a cell short. Package-wide for the file panels'
+/// remote-machine notice, which starts with the same warning sign.
+package enum AlertPanelMark {
+    package static let warning = "\u{26A0}\u{FE0F}"
     static let error = "\u{1F6D1}"
     static let info = "\u{2139}\u{FE0F}"
     static let success = "\u{2705}"

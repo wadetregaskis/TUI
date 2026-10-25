@@ -124,6 +124,7 @@
   "filePanel.type.allFiles": "Alle Dateien",
   "filePanel.view.list": "Liste",
   "filePanel.view.columns": "Spalten",
+  "filePanel.remoteNotice": "Sie durchsuchen das Dateisystem von %@, nicht das Ihres lokalen Rechners.",
 
   "menu.file": "Datei",
   "menu.edit": "Bearbeiten",

@@ -93,7 +93,8 @@ struct FilePanelPresenter<Content: View>: View {
     }
 
     /// `customization` applied to `request`: the words, the default folder,
-    /// the browsing options, the URL test and how links are handed back.
+    /// the browsing options, the URL test, how links are handed back, and
+    /// whether the type pop-up and the remote-machine notice show.
     static func apply(_ customization: FileDialogCustomization, to request: inout FilePanelRequest) {
         if let message = customization.message { request.message = message }
         if let label = customization.confirmationLabel { request.confirmationLabel = label }
@@ -104,6 +105,7 @@ struct FilePanelPresenter<Content: View>: View {
         request.rule.urlEnabled = customization.urlEnabled?.predicate
         request.resolvesSymbolicLinks = !customization.importsUnresolvedAliases
         request.contentTypePicker = customization.contentTypePicker
+        request.remoteNotice = customization.remoteNotice
     }
 
     private func finish(_ outcome: FilePanelOutcome) {

@@ -97,6 +97,14 @@ struct FilePanel: View {
     /// Whether the terminal is short of rows, where the panel stays dense.
     @Environment(\.verticalSizeClass) private var verticalSizeClass
 
+    /// The machine the notice above the path names, where the panel browses
+    /// one the user is not at: judged as the panel opens, off the main actor
+    /// (``FilePanelSession``), so it shows a moment later.
+    @State private var remoteHost: String?
+
+    /// A session pinned in place of this process's (tests, the Example).
+    @Environment(\.filePanelSession) private var pinnedSession
+
     init(request: FilePanelRequest, finish: @escaping (FilePanelOutcome) -> Void) {
         self.request = request
         self.finish = finish
@@ -122,10 +130,15 @@ struct FilePanel: View {
             footer: footer
         )
         .task(id: browser.refreshKey) { await browser.refresh() }
+        .task(id: pinnedSession) {
+            remoteHost = await FilePanelSession.noticeHost(pinned: pinnedSession, visibility: request.remoteNotice)
+        }
     }
 
     /// What the box holds: the message, a save panel's name field, the path
-    /// and the folder's items, with the room between them the control size
+    /// (with the remote-machine notice on it, where the panel browses another
+    /// machine than the user's) and the folder's items, with the room
+    /// between them the control size
     /// gives (``spacing(controlSize:verticalSizeClass:)``).
     private var panelContent: some View {
         let spacing = Self.spacing(controlSize: controlSize, verticalSizeClass: verticalSizeClass)
@@ -142,20 +155,11 @@ struct FilePanel: View {
                 .focused($focus, equals: .name)
                 .onSubmit { confirm() }
             }
-            if typedPath != nil {
-                FilePanelGoToField(path: Binding(get: { typedPath ?? "" }, set: { typedPath = $0 }))
-                    .focused($focus, equals: .path)
-                    .onSubmit { goToTypedPath() }
-                    .onKeyPress(.tab) {
-                        completeTypedPath()
-                        return .handled
-                    }
-                    .onKeyPress(.escape) {
-                        closeGoToField()
-                        return .handled
-                    }
-            } else {
-                FilePanelPathBar(browser: browser, home: request.homeDirectory, viewMode: $viewMode)
+            // The remote-machine notice sits on the path, with no room
+            // between: it is about the file system the path is in.
+            VStack(alignment: .leading, spacing: 0) {
+                if let remoteHost { FilePanelRemoteNotice(hostName: remoteHost) }
+                pathRow
             }
             rows
             if let choices = request.typeChoices {
@@ -175,6 +179,25 @@ struct FilePanel: View {
         .onChange(of: browser.directory) { old, new in
             guard viewMode == .columns, case .column = focus, old.path.hasPrefix(new.path) else { return }
             focus = .column(new.path)
+        }
+    }
+
+    /// The path bar, or the go-to field in its place while `/` has it open.
+    @ViewBuilder private var pathRow: some View {
+        if typedPath != nil {
+            FilePanelGoToField(path: Binding(get: { typedPath ?? "" }, set: { typedPath = $0 }))
+                .focused($focus, equals: .path)
+                .onSubmit { goToTypedPath() }
+                .onKeyPress(.tab) {
+                    completeTypedPath()
+                    return .handled
+                }
+                .onKeyPress(.escape) {
+                    closeGoToField()
+                    return .handled
+                }
+        } else {
+            FilePanelPathBar(browser: browser, home: request.homeDirectory, viewMode: $viewMode)
         }
     }
 

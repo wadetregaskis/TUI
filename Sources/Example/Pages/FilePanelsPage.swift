@@ -40,12 +40,23 @@ struct FilePanelsPage: View {
     /// The file the mover moves: made on demand, in the temporary folder.
     @State private var fileToMove: URL?
 
+    /// Whether the panels are told this is a remote session, so that they
+    /// show the notice an ssh session gets: "You are browsing the file
+    /// system on <host>, not your local machine". A demo's pin of the
+    /// judgement the panels make themselves (`filePanelSession`, package
+    /// API, not an app's).
+    @State private var simulatingRemote = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             Text("page.files.intro").foregroundStyle(.palette.foregroundSecondary)
-            open
-            save
-            move
+            Toggle("page.files.simulateRemote", isOn: $simulatingRemote)
+            Group {
+                open
+                save
+                move
+            }
+            .environment(\.filePanelSession, simulatedSession)
             KeyboardHelpSection(
                 "page.files.keys",
                 shortcuts: [
@@ -59,6 +70,14 @@ struct FilePanelsPage: View {
         }
         .scrollableDemoPage()
         .navigationTitle("menu.item.files")
+    }
+
+    /// The session the panels are judged on: a remote one on this machine's
+    /// name (`gethostname`'s, read once, as a panel reads it) while the
+    /// toggle is on, else `nil`, the process's own.
+    private var simulatedSession: FilePanelSession? {
+        guard simulatingRemote else { return nil }
+        return FilePanelSession(judgement: .remote, hostName: TerminalClient.localHostName ?? "localhost")
     }
 
     // MARK: - Open

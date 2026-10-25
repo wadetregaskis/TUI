@@ -53,6 +53,10 @@ struct FileDialogCustomization: Equatable, Sendable {
     /// (`fileDialogContentTypePicker(_:)`).
     var contentTypePicker: Visibility = .automatic
 
+    /// Whether a panel says it browses another machine than the user's
+    /// (`fileDialogRemoteNotice(_:)`).
+    var remoteNotice: Visibility = .automatic
+
     /// A `fileDialogURLEnabled(_:)` predicate, by the identity of the box the
     /// modifier keeps it in: a `Predicate` cannot be compared, and an
     /// environment value that cannot be compared turns the memos beneath it
@@ -238,6 +242,34 @@ extension View {
     ///   or chooses a folder, has none to show.
     public func fileDialogContentTypePicker(_ visibility: Visibility) -> some View {
         transformEnvironment(\.fileDialogCustomization) { $0.contentTypePicker = visibility }
+    }
+
+    /// Shows or hides the line the `fileImporter`, `fileExporter` and
+    /// `fileMover` panels beneath this view show when they browse a machine
+    /// other than the one the user is at. A TUI-specific modifier: a macOS
+    /// panel always browses the Mac it is on, where a terminal app's panel
+    /// browses the machine the app runs on, which over ssh is not the
+    /// user's.
+    ///
+    /// The line, above the folder's path, reads "You are browsing the file
+    /// system on *host*, not your local machine", after a warning sign, in
+    /// the palette's warning colour, *host* being the name of the machine
+    /// the app runs on.
+    ///
+    /// ```swift
+    /// .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { … }
+    /// .fileDialogRemoteNotice(.hidden)  // an app only ever run over ssh
+    /// ```
+    ///
+    /// - Parameter visibility: `.automatic`, the default, shows it where
+    ///   TUIkit has evidence that the user is at another machine: an ssh,
+    ///   mosh or other remote session, or, inside tmux, an attached client
+    ///   that is one. `.visible` shows it too where TUIkit cannot tell — a
+    ///   session kept by GNU screen, zellij or another keeper whose clients
+    ///   cannot be asked, which may be attached from anywhere — so the line
+    ///   may then be wrong at the desk. `.hidden` never shows it.
+    public func fileDialogRemoteNotice(_ visibility: Visibility) -> some View {
+        transformEnvironment(\.fileDialogCustomization) { $0.remoteNotice = visibility }
     }
 
     /// On macOS, configures the `fileImporter` or `fileMover` to conditionally

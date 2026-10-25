@@ -8,7 +8,9 @@ larger control sizes. Where the work met a judgement call the items did not
 settle, the safe option shipped and is written up here, in the three parts the
 other lanes use: A needs a decision, B shipped the safe option (with the fuller
 version and its price), C declined with a parity-map reason. macOS's side is
-its Finder and open and save panels (15.8) unless an entry says otherwise.*
+its Finder and open and save panels (15.8) unless an entry says otherwise.
+Lane PANELS, the same day, built A-FP2-1's option 2 and the owner's
+remote-machine notice (B-FP2-8).*
 
 ## A. Needs a decision
 
@@ -338,3 +340,66 @@ type's kind kept (debug build). A test pins the icons
 machine's. **The fuller version** is A-FP2-1, built as its option 2: an app's own
 icons through `fileDialogIcon(_:)`, and the Finder's through TUIkitAppKit's
 `fileDialogSystemIcons()`.
+
+### B-FP2-8. A panel browsing another machine than the user's says so, on evidence only
+
+*Owner, 2026-10-24: "If we believe that the client is on a different machine
+to the app itself, add a warning in file dialogs, something like '⚠️ You are
+browsing the file system on <hostname>, not your local machine'."*
+
+A panel browses the file system of the machine the app runs on, which over
+ssh is not the one the user sits at (deviations W14), and nothing on a panel
+said so. Now a line above the path does (`FilePanelRemoteNotice`): "You are
+browsing the file system on *host*, not your local machine.", in the
+palette's warning colour, after the alert's ⚠️ where the terminal draws emoji
+chrome (`supportsEmojiChrome`) and a bold `!` elsewhere — the bare U+26A0 is a
+character of text presentation that terminals draw one cell or two. It sits
+on the path with no blank row between, whatever the control size
+(B-FP2-3), as it is about the file system the path is in; it is one line,
+cut at its end in a narrow panel, and takes no focus. *Host* is the name
+`gethostname` gives, as `hostname` prints it (the one `file:` links name,
+`TerminalClient.localHostName`), else `ProcessInfo`'s. The sentence is
+`filePanel.remoteNotice` in TUIkit's seven languages.
+
+**When.** The judgement is `SessionLocality`'s, the one TUIkit's clipboard
+and spring-loading delay ask, given its other side
+(`SessionLocality.judgement()`, `SessionLocality+Remote.swift`): **local**
+where `isLocal()` finds positive evidence of the desk; **remote** on positive
+evidence of a session from elsewhere *as the session is now* — inside tmux,
+an attached client whose chain passes `sshd`, `mosh-server` or another
+remote-session daemon (the pane's own variables were the server's when it
+started, so a session started over ssh and attached at the desk is not
+remote); outside it, such a daemon in this process's chain nearer than any
+session keeper, or OpenSSH's variables where no keeper holds the session;
+and **unknown** otherwise: inside GNU screen, zellij, dtach and the other
+keepers whose clients cannot be asked, a tmux that cannot be asked, a chain
+that cannot be read, a platform with no processes to walk.
+
+The notice shows on **remote** only, not on unknown. The sentence is a
+statement, and a statement wrong at the desk — every zellij user at their
+own machine told they are on another — teaches the user to read past it;
+a notice missing over a keeper costs what the panel cost before this one, and
+the path (a home folder of another name, a server's folders) still says where
+it is. It is judged as the panel is presented, off the main actor (`@concurrent`,
+since inside tmux it asks tmux for its clients, a subprocess), so it appears
+a moment after the panel; a test pins the session
+(`EnvironmentValues.filePanelSession`, package API), as what a test shows must
+not depend on how its process was started.
+
+**`fileDialogRemoteNotice(_:)`**, a TUI-specific modifier beside
+`fileDialogContentTypePicker(_:)` and taking the same `Visibility`, since two
+kinds of app want otherwise and nothing else would let them: one only ever run
+over ssh (a server's admin tool), whose users know where they are, writes
+`.hidden`; one usually run inside a keeper on a server, which would rather
+warn in doubt, writes `.visible`, which shows the line on unknown too.
+`.automatic`, the default, is the rule above.
+
+The Example's File Panels page has a switch that pins a remote session on
+this machine's name, to show the line at the desk (seven languages).
+
+**The fuller version** asks the other keepers for their clients, as tmux is
+asked, turning those unknowns into answers: a different interface per keeper
+(screen's `-Q`; zellij unclear; dtach and abduco have none), a subprocess
+each, and the clipboard would gain from it too. The owner's answer to
+D4X-LOCALITY (Open owner decisions) keeps such queries to a keeper someone
+uses and asks for.

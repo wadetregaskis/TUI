@@ -124,6 +124,7 @@
   "filePanel.type.allFiles": "すべてのファイル",
   "filePanel.view.list": "リスト",
   "filePanel.view.columns": "カラム",
+  "filePanel.remoteNotice": "ローカルのマシンではなく、%@ のファイルシステムをブラウズしています。",
 
   "menu.file": "ファイル",
   "menu.edit": "編集",

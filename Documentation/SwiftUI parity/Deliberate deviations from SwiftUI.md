@@ -2233,13 +2233,17 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   then on the folder of the last choice made through the modifier. Return opens
   a folder or chooses the item under the cursor (or the selection, when the
   cursor is in it), Space selects, Backspace goes up. It browses the
-  file system of the machine the app runs on: over `ssh`, the remote one.
+  file system of the machine the app runs on: over `ssh`, the remote one,
+  and where TUIkit has evidence of that (an ssh or mosh session, a tmux
+  client attached from one) a line above the path names the machine
+  (decisions B-FP2-8; `fileDialogRemoteNotice(_:)` hides it).
   `FileImporterPanelTests` pins the keys and the callbacks' order.
 - **Why:** a terminal has no system panel to present; the ruling is a panel
   drawn for the terminal. Folders first is the terminal file managers' order,
   the working directory is where a terminal app's user is working, and the
   cursor is apart from the selection in every TUIkit list (V2). A remote
-  session's app reads the remote disk, so that is the one to browse.
+  session's app reads the remote disk, so that is the one to browse, and the
+  user is told it is not theirs.
 - **Decided:** refusal review [O10](<Refusals re-examined, wave 17 (2026-10-03).md#o10-file-panels-from-p16--ml>),
   ruled 2026-10-12; the details are [B-O10-1 to B-O10-4](<Decisions/Presentation and windows/File panels (O10).md>).
   **Owner** (the panel), **Lane** (the details).

@@ -124,6 +124,7 @@
   "filePanel.type.allFiles": "Todos los archivos",
   "filePanel.view.list": "Lista",
   "filePanel.view.columns": "Columnas",
+  "filePanel.remoteNotice": "Estás explorando el sistema de archivos de %@, no el de tu máquina local.",
 
   "menu.file": "Archivo",
   "menu.edit": "Editar",

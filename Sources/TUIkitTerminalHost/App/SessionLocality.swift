@@ -17,11 +17,15 @@ import Musl
 /// Whether the person at the keyboard is on the machine this app runs on —
 /// the one condition under which what belongs to this machine is theirs: its
 /// clipboard above all, the case this was written for and the one described
-/// below. Every locality question TUIkit asks is answered here, by one of two
+/// below. Every locality question TUIkit asks is answered here, by one of three
 /// tests:
 ///
 /// - ``isLocal()``, positive evidence, for what a wrong "local" would do to
 ///   someone: a copy put on a machine they are not at.
+/// - ``judgement()``, the same evidence and its other side, positive evidence
+///   of a session from elsewhere, for what a wrong "remote" would tell
+///   someone: a file panel's notice that they are browsing another machine
+///   (`SessionLocality+Remote.swift`).
 /// - ``isLikelyLocal(environment:)``, the environment's word alone, for what a
 ///   wrong answer only mis-sizes: the display scale a picture is drawn at.
 ///

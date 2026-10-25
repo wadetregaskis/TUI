@@ -60,4 +60,25 @@ struct FilePanelsPageTests {
         #expect(shown[0] == "page.files.cancelled" && shown[2] == "page.files.cancelled", "\(shown)")
         #expect(shown[1] == "—")
     }
+
+    /// The panel judges the session as it opens, off the main actor, so the
+    /// notice is a few frames behind the panel.
+    @Test("The simulated ssh session's toggle gives the panels their remote-machine notice")
+    func simulatedRemoteSession() async throws {
+        let driver = driver()
+        let notice = "not your local machine"
+        driver.click("page.files.simulateRemote")
+        driver.click("page.files.open ▌")
+        for _ in 0..<500 where !driver.shows(notice) {
+            try await Task.sleep(for: .milliseconds(10))
+            driver.advance()
+        }
+        #expect(driver.shows("You are browsing the file system on "), "\(driver.lines)")
+        driver.press(.escape)
+        // Off again: the panel judges this process's own session, which a
+        // test run at the desk or in CI does not show it for. Not asserted:
+        // the suite may itself run over ssh.
+        driver.click("page.files.simulateRemote")
+        #expect(!driver.shows(notice), "closed with its panel")
+    }
 }

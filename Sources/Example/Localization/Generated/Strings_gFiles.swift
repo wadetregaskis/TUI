@@ -42,6 +42,7 @@ extension ExampleStrings {
             "page.files.help.space": "[Space] selects, adding to the selection where several may be chosen",
             "page.files.help.up": "[⌫] the enclosing folder ([←] in the column view), [→]/[←] open and close a folder in place, [~] the home folder",
             "page.files.help.escape": "[⇥] the buttons, [Esc] cancels",
+            "page.files.simulateRemote": "Simulate an ssh session, to see the panels' notice that they browse another machine",
         ],
         "de": [
             "menu.item.files": "Dateidialoge",
@@ -72,6 +73,7 @@ extension ExampleStrings {
             "page.files.help.space": "[Leertaste] wählt aus, wo mehrere möglich sind auch zusätzlich",
             "page.files.help.up": "[⌫] übergeordneter Ordner ([←] in der Spaltenansicht), [→]/[←] Ordner aufklappen und zuklappen, [~] Benutzerordner",
             "page.files.help.escape": "[⇥] die Tasten, [Esc] bricht ab",
+            "page.files.simulateRemote": "Eine SSH-Sitzung simulieren, um den Hinweis der Dialoge zu sehen, dass sie einen anderen Rechner durchsuchen",
         ],
         "fr": [
             "menu.item.files": "Panneaux de fichiers",
@@ -102,6 +104,7 @@ extension ExampleStrings {
             "page.files.help.space": "[Espace] sélectionne, en ajoutant à la sélection quand plusieurs sont permis",
             "page.files.help.up": "[⌫] dossier parent ([←] en présentation par colonnes), [→]/[←] déplier et replier un dossier, [~] dossier de départ",
             "page.files.help.escape": "[⇥] les boutons, [Échap] annule",
+            "page.files.simulateRemote": "Simuler une session ssh, pour voir l'avis des panneaux indiquant qu'ils parcourent une autre machine",
         ],
         "it": [
             "menu.item.files": "Pannelli file",
@@ -132,6 +135,7 @@ extension ExampleStrings {
             "page.files.help.space": "[Barra spaziatrice] seleziona, aggiungendo alla selezione dove ne sono ammessi più",
             "page.files.help.up": "[⌫] cartella superiore ([←] nella vista a colonne), [→]/[←] espandi e comprimi una cartella, [~] cartella Inizio",
             "page.files.help.escape": "[⇥] i pulsanti, [Esc] annulla",
+            "page.files.simulateRemote": "Simula una sessione ssh, per vedere l'avviso dei pannelli che stanno sfogliando un'altra macchina",
         ],
         "es": [
             "menu.item.files": "Paneles de archivos",
@@ -162,6 +166,7 @@ extension ExampleStrings {
             "page.files.help.space": "[Espacio] selecciona, añadiendo a la selección donde se permiten varios",
             "page.files.help.up": "[⌫] carpeta contenedora ([←] en la vista de columnas), [→]/[←] desplegar y contraer una carpeta, [~] carpeta de inicio",
             "page.files.help.escape": "[⇥] los botones, [Esc] cancela",
+            "page.files.simulateRemote": "Simular una sesión ssh, para ver el aviso de los paneles de que exploran otra máquina",
         ],
         "zh": [
             "menu.item.files": "文件面板",
@@ -192,6 +197,7 @@ extension ExampleStrings {
             "page.files.help.space": "[空格键] 选择；可多选时加入所选内容",
             "page.files.help.up": "[⌫] 上层文件夹（分栏视图中为 [←]），[→]/[←] 展开和折叠文件夹，[~] 个人文件夹",
             "page.files.help.escape": "[⇥] 切到按钮，[Esc] 取消",
+            "page.files.simulateRemote": "模拟 ssh 会话，以查看面板关于正在浏览另一台机器的提示",
         ],
         "ja": [
             "menu.item.files": "ファイルパネル",
@@ -222,6 +228,7 @@ extension ExampleStrings {
             "page.files.help.space": "[スペース] 選択（複数選べる場合は追加）",
             "page.files.help.up": "[⌫] 親フォルダ（カラム表示では [←]）、[→]/[←] フォルダを展開・折りたたむ、[~] ホームフォルダ",
             "page.files.help.escape": "[⇥] ボタンへ、[Esc] キャンセル",
+            "page.files.simulateRemote": "ssh セッションをシミュレートして、パネルが別のマシンをブラウズしているという通知を表示します",
         ],
     ]
 }

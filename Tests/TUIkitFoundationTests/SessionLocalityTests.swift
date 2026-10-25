@@ -144,3 +144,65 @@ struct SessionLocalityTests {
         #endif
     }
 }
+
+/// The judgement a file panel's remote-machine notice is shown on: local where
+/// `isLocal` says so, remote only on evidence of the session as it is now.
+@Suite("Session locality: whether the user is at another machine")
+struct SessionJudgementTests {
+    static let deskChain = SessionLocalityTests.deskChain
+    static let sshChain = ["zsh", "sshd-session", "sshd", "launchd"]
+    static let ssh = ["SSH_CONNECTION": "10.0.0.1 5000 10.0.0.2 22"]
+
+    private func judge(
+        _ environment: [String: String] = [:], chain: [String]?, clients: [[String]?]? = nil, inTmux: Bool = false
+    ) -> SessionLocality.Judgement {
+        SessionLocality.judgement(
+            environment: environment, ownChain: chain, tmuxClientChains: clients, inTmux: inTmux)
+    }
+
+    @Test("A desk session is local; an ssh or mosh session is remote")
+    func plainSessions() {
+        #expect(judge(chain: Self.deskChain) == .local)
+        #expect(judge(Self.ssh, chain: Self.sshChain) == .remote)
+        // mosh sets no variable: its daemon in the chain says it.
+        #expect(judge(chain: ["zsh", "mosh-server", "launchd"]) == .remote)
+        // A daemon TUIkit does not know of, with OpenSSH's variables.
+        #expect(judge(Self.ssh, chain: ["zsh", "some-daemon", "launchd"]) == .remote)
+    }
+
+    /// The keeper's server runs detached: the variables and the chain above
+    /// it are from whenever it started, and anyone may be attached now.
+    @Test("Inside a session keeper, what it kept from its start is not evidence")
+    func keepers() {
+        #expect(judge(Self.ssh, chain: ["zsh", "SCREEN", "launchd"]) == .unknown)
+        #expect(judge(["ZELLIJ": "0"], chain: Self.deskChain) == .unknown)
+        #expect(judge(["STY": "1.tty"].merging(Self.ssh) { $1 }, chain: Self.deskChain) == .unknown)
+        #expect(judge(chain: ["zsh", "dtach", "sshd", "launchd"]) == .unknown)
+        // An ssh from inside the session: its daemon is nearer than the keeper.
+        #expect(judge(chain: ["zsh", "sshd-session", "sshd", "SCREEN", "launchd"]) == .remote)
+    }
+
+    @Test("A chain that could not be read tells nothing, ssh variables or not")
+    func unreadableChain() {
+        #expect(judge(chain: nil) == .unknown)
+        #expect(judge(Self.ssh, chain: nil) == .unknown)
+    }
+
+    /// The pane's variables and chain are the tmux server's start; the clients
+    /// are who watches now.
+    @Test("Inside tmux, a client attached from afar is remote; the pane's variables are not evidence")
+    func tmux() {
+        let pane = ["zsh", "tmux", "launchd"]
+        let remoteClient = ["tmux", "zsh", "sshd-session", "sshd", "launchd"]
+        #expect(judge(chain: pane, clients: [Self.deskChain], inTmux: true) == .local)
+        #expect(judge(chain: pane, clients: [Self.deskChain, remoteClient], inTmux: true) == .remote)
+        // Started over ssh, attached at the desk now.
+        #expect(judge(Self.ssh, chain: pane, clients: [["tmux"] + Self.deskChain], inTmux: true) == .unknown)
+        #expect(judge(chain: pane, clients: nil, inTmux: true) == .unknown)
+        #expect(judge(chain: pane, clients: [nil], inTmux: true) == .unknown)
+        // A client inside a screen session that was started over ssh: the
+        // keeper holds it, so the sshd above it is that session's start.
+        #expect(
+            judge(chain: pane, clients: [["tmux", "zsh", "SCREEN", "sshd", "launchd"]], inTmux: true) == .unknown)
+    }
+}
