@@ -14,9 +14,11 @@ import TUIkit
 let themingClip = Clip(
     id: "theming",
     title: "Theming",
-    columns: 84,
-    rows: 24,
+    columns: 112,
+    rows: 30,
     script: [
+        // On the build's panels, the target list's edge at the left.
+        .camera(Shot(x: 21.4, y: 3.3, width: 46, height: 16.5)),
         .wait(0.8), .down, .wait(0.2), .space,
         .wait(0.4), .cue("palette Amber"),
         .wait(0.9), .cue("palette Ocean"), .cue("appearance doubleLine"),
@@ -80,6 +82,8 @@ struct ThemingPage: View {
     @State private var optimise = true
     @State private var strip = false
     @State private var jobs = 8.0
+    /// The build's clock: the bar creeps on between selections.
+    @State private var tick = 0
 
     private let targets = ["TUIkit", "TUIkitApp", "TUIkitLists", "TUIkitTables", "Example", "Stress"]
 
@@ -122,12 +126,19 @@ struct ThemingPage: View {
         .toolbar {
             ToolbarItem(placement: .navigation) { Text(verbatim: "Theming · \(paletteName)") }
         }
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(150))
+                tick += 1
+            }
+        }
     }
 
     /// Each target is a different way through its build, so moving the
     /// selection moves the bar.
     private var progress: Double {
         let index = targets.firstIndex(of: selection ?? "") ?? 0
-        return [0.62, 0.35, 0.88, 0.47, 0.74, 0.21][index]
+        let base = [0.42, 0.25, 0.58, 0.37, 0.54, 0.21][index]
+        return min(1, base + Double(tick % 40) * 0.01)
     }
 }

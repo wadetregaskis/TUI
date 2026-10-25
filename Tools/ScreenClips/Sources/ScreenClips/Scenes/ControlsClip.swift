@@ -14,8 +14,8 @@ import TUIkit
 let controlsClip = Clip(
     id: "controls",
     title: "Controls",
-    columns: 84,
-    rows: 24,
+    columns: 112,
+    rows: 30,
     script: controlsScript(),
     run: { await ControlsApp.main() }
 )
@@ -23,7 +23,7 @@ let controlsClip = Clip(
 /// Types a name, flips the toggle, chooses a theme, moves the slider and the
 /// stepper, and saves: one Tab to each control, in the form's order.
 private func controlsScript() -> [Step] {
-    var script: [Step] = [.wait(0.6)]
+    var script: [Step] = [.camera(Shot(x: 0.5, y: 3.3, width: 56, height: 18)), .wait(0.6)]
     script += Step.type("Ada Lovelace", interval: 0.07)
     script += [.wait(0.3), .tab, .wait(0.35), .space, .wait(0.45)]
     script += [.tab, .wait(0.3), .right, .wait(0.3), .space, .wait(0.45)]
@@ -39,6 +39,7 @@ struct ControlsApp: App {
     var body: some Scene {
         WindowGroup("TUIkit · Controls") {
             ControlsPage()
+                .palette(AppleTerminalPalette(.redSands))
         }
     }
 }
@@ -80,6 +81,8 @@ struct ControlsPage: View {
             .padding(.leading, 2)
             Spacer(minLength: 0)
         }
+        .frame(maxWidth: 60, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 1)
         .toolbar {
             ToolbarItem(placement: .navigation) { Text(verbatim: "Settings") }
