@@ -11,7 +11,8 @@ generated files never enter the history and clones do not grow.
 | `/` | the landing page — a placeholder until the project has a website — linking to the three below | `Tools/Site/index.html` |
 | `/docs/` | the DocC reference; `/docs/` itself redirects to `/docs/documentation/tuikit/` | `Tools/BuildDocs/build-docs.sh --static-hosting --hosting-base-path <base>/docs`, on macOS as CI's `docs` job does |
 | `/demo/` | the Example app in WebAssembly, which loads only when the visitor presses *Run* | `Tools/Web/build.sh`, in CI's `swift:6.3.3-noble` + wasm SDK pair |
-| `/media/<name>` | every asset of the GitHub release tagged `media` | `gh release download media` |
+| `/media/<version>/<name>` | every asset of that version's GitHub release (tag `v<version>`) | `gh release download` |
+| `/media/latest/<name>` | the newest version's, or before any version has media, the release tagged `media` | `gh release download` |
 | `/404.html` | what Pages answers for any missing path | `Tools/Site/404.html` |
 
 On a project site the base is `https://<owner>.github.io/<repository>/`, so
@@ -31,17 +32,50 @@ nothing else is wrong. No branch, folder or token needs configuring.
 
 ## Media
 
-The README's pictures and recordings are assets of one release, tagged
-`media`, rather than files in the repository, where every clone would carry
-every version of every one of them for ever. The workflow downloads all of its
-assets into `media/`, so an asset uploaded as `demo.gif` is served at
-`<site>/media/demo.gif`. Until the release exists the site is published
-without `media/`; any other failure to read it (network, token) fails the run
-rather than publishing a site whose pictures have vanished.
+The README's pictures and recordings are assets of releases rather than files
+in the repository, where every clone would carry every version of every one of
+them for ever. Each version's clips are attached to its release by
+[`Tools/Release/release.sh`](../Release/release.sh) (see
+[RELEASING.md](../../RELEASING.md)), and the workflow downloads them into
+`media/<version>/`, and the newest version's again into `media/latest/`, so an
+asset `mixer.webp` of release `v1.2.0` is served at `<site>/media/1.2.0/mixer.webp`
+and, while 1.2.0 is the newest, at `<site>/media/latest/mixer.webp`. The README
+links `latest`; a version's own notes can link its own folder, which never
+changes.
 
-To change the media: upload to (or delete from) the `media` release, then run
-the workflow by hand (*Run workflow*), since nothing in the repository changes
-and no push will.
+Before any version has media, the release tagged `media` stands in for
+`latest` (`Tools/ScreenClips/regenerate.sh --publish` uploads to it). With no
+media at all the site is published without `media/`; any other failure to read
+the releases (network, token) fails the run rather than publishing a site whose
+pictures have vanished.
+
+Publishing a release runs the workflow. To change a release's media
+afterwards: upload to (or delete from) it, then run the workflow by hand
+(*Run workflow*), since nothing in the repository changes and no push will.
+
+## The custom domain
+
+The site's canonical address is **https://swift-tui.com/**; `swifttui.com`
+forwards to it. Set once, by hand, outside the repository:
+
+1. **Settings → Pages → Custom domain:** `swift-tui.com`, then *Save*, and
+   *Enforce HTTPS* once GitHub has issued the certificate (it offers the box
+   when it has).
+2. **DNS at the registrar,** for `swift-tui.com`: `A` records to GitHub Pages'
+   four addresses (185.199.108.153, 185.199.109.153, 185.199.110.153,
+   185.199.111.153), `AAAA` to its four IPv6 ones (2606:50c0:8000::153,
+   2606:50c0:8001::153, 2606:50c0:8002::153, 2606:50c0:8003::153), and a
+   `CNAME` for `www` to `<owner>.github.io`. GitHub's "Managing a custom domain
+   for your GitHub Pages site" is the authority if these change.
+3. **Verify the domain** for the account (*Settings → Pages → Add a domain*,
+   a `TXT` record), so nobody else's repository can claim it.
+4. **`swifttui.com`:** a permanent (301) forward to `https://swift-tui.com/`
+   at its registrar. It is not a second Pages domain; a repository has one.
+
+With a custom domain the site is served at the root of its host, so
+`actions/configure-pages` reports an empty base path and the workflow builds
+for that: nothing here changes. An Actions-deployed site needs no `CNAME`
+file in the artifact; the domain is the setting in step 1.
 
 ## Building it locally
 

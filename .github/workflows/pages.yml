@@ -24,8 +24,12 @@ name: Pages
 on:
   push:
     branches: [main]
-  # A redeploy without a push: after the `media` release's assets change, say,
-  # since nothing in the repository changes when they do.
+  # A version's release brings its clips (media/<version>/, and media/latest/);
+  # Tools/Release/release.sh publishes the release once its assets are up.
+  release:
+    types: [published]
+  # A redeploy without a push: after a release's assets change, say, since
+  # nothing in the repository changes when they do.
   workflow_dispatch:
 
 permissions:
@@ -173,9 +177,11 @@ jobs:
           name: demo
           path: ${{ runner.temp }}/demo
 
-      # `--media release` downloads the assets of the release tagged `media`
-      # (the README's pictures and recordings, kept out of the history), and
-      # goes on without them while there is no such release.
+      # `--media release` downloads each version's release's assets (the
+      # README's pictures and recordings, kept out of the history) into
+      # media/<version>/ and the newest into media/latest/ — the release
+      # tagged `media` standing in for latest until a version has some — and
+      # goes on without them while there are none.
       - name: Assemble
         env:
           BASE_PATH: ${{ needs.configure.outputs.base_path }}

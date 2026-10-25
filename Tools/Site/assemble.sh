@@ -18,9 +18,12 @@
 #                 and --hosting-base-path <base-path>/docs (checked)
 #   --demo        `build` runs Tools/Web/build.sh; a path uses a directory it
 #                 produced (Tools/Web/site, or a copy of it)
-#   --media       `release` downloads every asset of the GitHub release tagged
-#                 `media` with `gh` (GH_TOKEN in CI), and carries on without
-#                 media if there is no such release yet; a path copies a folder
+#   --media       `release` downloads, with `gh` (GH_TOKEN in CI), the assets
+#                 of every version's release (tags vX.Y.Z) into media/X.Y.Z/,
+#                 and the newest version's again into media/latest/; before
+#                 any version has media, the assets of the release tagged
+#                 `media` go to media/latest/. It carries on without media if
+#                 there is none yet. A path copies a folder to media/ as it is
 #   --repository  for the landing page's links (default $GITHUB_REPOSITORY,
 #                 else the `origin` remote)
 #
@@ -30,7 +33,8 @@
 #   index.html  404.html   the landing page and the not-found page
 #   docs/                  the DocC archive; docs/ itself redirects into it
 #   demo/                  the WebAssembly demo, the module gzipped
-#   media/                 the `media` release's assets, by file name
+#   media/X.Y.Z/           each version's release's assets, by file name
+#   media/latest/          the newest version's (or the `media` release's)
 #
 # Preview (the demo's service worker makes any static server enough):
 #
@@ -193,24 +197,44 @@ esac
 case "$MEDIA" in
     skip) echo "==> Media: skipped" ;;
     release)
-        # The README's pictures and recordings live as assets of one release,
-        # tagged `media`, rather than in the history, where every clone would
-        # carry every version of them for ever. A missing release is not an
-        # error: the site goes up without media until one exists. Anything else
-        # (no network, no token) is, since publishing a site whose README
-        # pictures have silently vanished is worse than not publishing.
-        if ! ASSETS="$(gh release view media --repo "$REPOSITORY" --json assets --jq '.assets | length' 2>&1)"; then
-            if printf '%s' "$ASSETS" | grep -qi 'not found'; then
-                echo "==> Media: $REPOSITORY has no release tagged 'media' yet; none published"
+        # The README's pictures and recordings live as assets of releases
+        # rather than in the history, where every clone would carry every
+        # version of them for ever: each version's clips are attached to its
+        # release (Tools/Release/release.sh), and the site serves them under
+        # media/<version>/, the newest also under media/latest/, which is what
+        # the README links. Before the first version with clips, the release
+        # tagged `media` stands in for latest. No media at all is not an
+        # error: the site goes up without until some exist. Anything else (no
+        # network, no token) is, since publishing a site whose README pictures
+        # have silently vanished is worse than not publishing.
+        if ! RELEASES="$(gh release list --repo "$REPOSITORY" --limit 1000 --json tagName,isDraft \
+                --jq '.[] | select(.isDraft | not) | .tagName' 2>&1)"; then
+            echo "error: could not list $REPOSITORY's releases: $RELEASES" >&2
+            exit 1
+        fi
+        VERSIONS="$(printf '%s\n' "$RELEASES" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V || true)"
+        NEWEST=""
+        for TAG in $VERSIONS; do
+            COUNT="$(gh release view "$TAG" --repo "$REPOSITORY" --json assets --jq '.assets | length')"
+            [ "$COUNT" = 0 ] && continue
+            echo "==> Media: $COUNT asset(s) from $TAG"
+            gh release download "$TAG" --repo "$REPOSITORY" --dir "$OUTPUT/media/${TAG#v}"
+            NEWEST="$TAG"
+        done
+        if [ -n "$NEWEST" ]; then
+            echo "==> Media: latest is $NEWEST"
+            mkdir -p "$OUTPUT/media/latest"
+            cp -R "$OUTPUT/media/${NEWEST#v}"/. "$OUTPUT/media/latest/"
+        elif printf '%s\n' "$RELEASES" | grep -qx media; then
+            COUNT="$(gh release view media --repo "$REPOSITORY" --json assets --jq '.assets | length')"
+            if [ "$COUNT" = 0 ]; then
+                echo "==> Media: no version has media and the 'media' release has no assets; none published"
             else
-                echo "error: could not read the 'media' release: $ASSETS" >&2
-                exit 1
+                echo "==> Media: no version has media yet; latest is the 'media' release's $COUNT asset(s)"
+                gh release download media --repo "$REPOSITORY" --dir "$OUTPUT/media/latest"
             fi
-        elif [ "$ASSETS" = 0 ]; then
-            echo "==> Media: the 'media' release has no assets yet; none published"
         else
-            echo "==> Media: $ASSETS asset(s) from $REPOSITORY's 'media' release"
-            gh release download media --repo "$REPOSITORY" --dir "$OUTPUT/media"
+            echo "==> Media: $REPOSITORY has no release with media yet; none published"
         fi
         ;;
     *)
