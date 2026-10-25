@@ -44,7 +44,19 @@ package enum SoftTrap {
         #endif
     }
 
-    /// Every distinct message reported so far, oldest first.
+    /// Reports `message` as SwiftUI reports a runtime warning — an app doing
+    /// something the framework has cut short, such as an action that keeps
+    /// triggering itself: once per distinct message, in every build, and
+    /// without stopping a debug build, since what follows is what SwiftUI
+    /// does too, not a fallback that hides the mistake. Where it goes follows
+    /// ``DiagnosticChannel``, as a soft trap's report does.
+    ///
+    /// - Parameter message: SwiftUI's own words, where it has them.
+    package static func warn(_ message: String) {
+        log.report(message, text: SoftTrapLog.warningText(for: message))
+    }
+
+    /// Every distinct message reported so far, oldest first — warnings too.
     package static var recorded: [String] { log.recorded }
 
     /// Holds stderr reports from now on, because an app has just taken the
@@ -102,7 +114,12 @@ package final class SoftTrapLog: Sendable {
 
     /// Records `message` and, the first time it is seen, writes it or holds it.
     package func report(_ message: String) {
-        let text = Self.text(for: message)
+        report(message, text: Self.text(for: message))
+    }
+
+    /// Records `message` and, the first time it is seen, writes or holds
+    /// `text`, the words it is written in.
+    package func report(_ message: String, text: String) {
         let writeNow = state.withLock { state in
             guard state.seen.insert(message).inserted else { return false }
             state.recorded.append(message)
@@ -131,6 +148,11 @@ package final class SoftTrapLog: Sendable {
             return held
         }
         for text in held { write(text) }
+    }
+
+    /// The words a warning is written in (``SoftTrap/warn(_:)``).
+    static func warningText(for message: String) -> String {
+        "[TUIkit] \(message)\n"
     }
 
     /// The words a report is written in.

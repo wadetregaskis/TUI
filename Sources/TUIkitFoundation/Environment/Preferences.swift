@@ -165,7 +165,7 @@ extension OnPreferenceChangeModifier: Renderable {
         storage.markActive(context.identity)
         if previous != value {
             storage.setChangedTrackedValue(value, for: key)
-            storage.perform(action, with: value)
+            storage.perform(action, with: value, at: key, preference: K.self)
         } else {
             storage.setTrackedValue(value, for: key)
         }

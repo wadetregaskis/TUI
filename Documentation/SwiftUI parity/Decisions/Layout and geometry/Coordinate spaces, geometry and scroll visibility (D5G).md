@@ -396,6 +396,25 @@ So, as SwiftUI does:
    every walk is laid out against the rows the first was (toolbars are still
    adopted a frame late, W1).
 
+5. **Per-action cut-offs, as measured.** An `onChange` or `onPreferenceChange`
+   action runs at most twice in one written frame; a third run is refused
+   and its change dropped, not deferred — the value is already tracked as
+   seen, so the next frame does not fire it either; a later change runs it
+   again — with SwiftUI's words, once (`SoftTrap.warn`, which reports as a
+   soft trap does but never stops a debug build): "onChange(of: Int) action
+   tried to update multiple times per frame." and "Bound preference IntKey
+   tried to update multiple times per frame." Counted per action as it runs,
+   so a discarded drawing's count nothing. SwiftUI's limit reads as twice per
+   *draw*; TUIkit's draw is the written frame, whose walks a chain may end
+   partway through, so a self-feeding action can run twice in each of two
+   frames before a third run in one is refused — four runs where SwiftUI
+   made three (`EffectSettlingTests.selfTriggeringOnChangeIsCutOff`). An
+   `onGeometryChange` has no count but SwiftUI's duplicate-cycle rule: a
+   report going back, within one frame, to the value before last (`A → B →
+   A`) is refused and taken as seen, with "Geometry action is cycling between
+   duplicate values." A value a view takes again on a later frame is
+   reported as usual.
+
 **What changes for an app.** The first frame written shows what an `onAppear`
 loaded, everywhere it is shown; an `onChange`'s derived value is drawn in the
 frame that shows its source; a size a preference or `onGeometryChange` feeds
@@ -421,6 +440,9 @@ below them; a derived value is drawn beside its source on both sides of the
 a sibling before an `onGeometryChange` draws the width it reports; a chain
 of four is walked again twice and finishes in the next frame; an `onAppear`
 `withAnimation` slides from the first walk's place; a frame whose effects
-write nothing is walked once. `AnimatorViewTests.keyframesInterrupted` — a
+write nothing is walked once; a self-triggering `onChange` and a self-feeding
+preference stop, and a geometry action that flips its own view's width
+settles in the first frame, each with SwiftUI's warning.
+`AnimatorViewTests.keyframesInterrupted` — a
 keyframe animator restarting a frame late when effects were first held
 without a walk made again — passes.

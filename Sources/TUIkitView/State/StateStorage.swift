@@ -297,6 +297,15 @@ public final class StateStorage: @unchecked Sendable {
     /// each is kept. See ``EffectStage``.
     package let effectStage = EffectStage()
 
+    /// How many times each `onChange` and `onPreferenceChange` action has run
+    /// in the frame being drawn, by its tracked value's key — see
+    /// ``admitsActionRun(at:warning:)``. Emptied when the pass it counts
+    /// (``actionRunsPass``) is not the current one.
+    private var actionRuns: [StateKey: Int] = [:]
+
+    /// The pass ``actionRuns`` counts.
+    private var actionRunsPass: UInt32 = 0
+
     /// The `@Environment` boxes a view value drawn this pass held resolved
     /// for another place (``noteDisplacedEnvironment(_:from:)``), by box.
     private var displacedEnvironments: [ObjectIdentifier: DisplacedEnvironment] = [:]
@@ -634,6 +643,33 @@ extension StateStorage {
             effectStage.noteUndo { [weak self] in self?.trackedValues[key] = prior }
         }
         trackedValues[key] = value
+    }
+
+    /// How many times an `onChange` or `onPreferenceChange` action runs in one
+    /// frame, at most: SwiftUI's, which runs one that keeps triggering itself
+    /// twice per draw and then refuses it (decisions B-D5G-11).
+    package static let actionRunsPerFrame = 2
+
+    /// Whether the action whose value is tracked at `key` may run again in
+    /// this frame — counting the run if so. The third run in one frame is
+    /// refused, with `warning` (SwiftUI's words) reported once
+    /// (`SoftTrap.warn`): the change is dropped, not deferred, since its
+    /// value is already tracked as seen, so the next frame does not fire it
+    /// either — as SwiftUI drops it. A later change runs it again.
+    ///
+    /// Asked as the action runs, once its drawing is kept, so a drawing a
+    /// correction discarded counts nothing. Only an action that runs pays the
+    /// count: one dictionary update.
+    package func admitsActionRun(at key: StateKey, warning: () -> String) -> Bool {
+        if actionRunsPass != currentPass {
+            actionRunsPass = currentPass
+            actionRuns.removeAll(keepingCapacity: true)
+        }
+        let runs = actionRuns[key, default: 0] + 1
+        actionRuns[key] = runs
+        guard runs > Self.actionRunsPerFrame else { return true }
+        SoftTrap.warn(warning())
+        return false
     }
 
     // MARK: - Render Pass Lifecycle

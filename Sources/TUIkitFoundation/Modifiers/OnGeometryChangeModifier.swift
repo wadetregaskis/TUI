@@ -154,22 +154,42 @@ extension OnGeometryChangeModifier: Renderable {
     /// Calls `action` when `value` differs from the one last reported at
     /// `key` — and on the first report, with the same value as old and new.
     ///
-    /// Reported as the view renders, inside a drawing that may be drawn
-    /// again, the call waits for the drawing to be kept, and the report is put
-    /// back if it is not (`EffectStage`): what the kept drawing's view came
-    /// out at is what the action hears. Reported once the frame is done, no
-    /// drawing is open, and it is called at once.
+    /// The call waits for the walk to be done, and the report is put back if
+    /// the drawing it was made in is discarded (`EffectStage`): what the kept
+    /// drawing's view came out at is what the action hears.
+    ///
+    /// SwiftUI's cut-off: a value that goes back, within one frame, to the one
+    /// reported before the last — `A → B → A`, an action whose write moves
+    /// the view back to where it was — is refused, with SwiftUI's warning,
+    /// and taken as seen, so the action is not called for it this frame or
+    /// the next (measured, `Tools/SwiftUIProbes/Effect and update ordering/geofeedback.out`).
+    /// There is no count: a value that keeps changing is reported each walk.
     private static func report(
         _ value: T, at key: StateStorage.StateKey, in storage: StateStorage, action: @escaping (T, T) -> Void
     ) {
-        let previous: T? = storage.trackedValue(for: key)
-        guard previous != value else {
-            storage.setTrackedValue(value, for: key)
+        let previous: GeometryReport<T>? = storage.trackedValue(for: key)
+        guard previous?.value != value else { return }
+        let pass = storage.currentPass
+        if let previous, previous.pass == pass, previous.prior == value {
+            storage.setChangedTrackedValue(GeometryReport(value: value, prior: previous.value, pass: pass), for: key)
+            SoftTrap.warn("Geometry action is cycling between duplicate values.")
             return
         }
-        storage.setChangedTrackedValue(value, for: key)
-        storage.effectStage.perform(as: .geometry) { action(previous ?? value, value) }
+        storage.setChangedTrackedValue(GeometryReport(value: value, prior: previous?.value, pass: pass), for: key)
+        storage.effectStage.perform(as: .geometry) { action(previous?.value ?? value, value) }
     }
+}
+
+/// What an `onGeometryChange` last reported at a key, and what it changed from in the frame
+/// it was reported in — the two values SwiftUI's cut-off compares.
+private struct GeometryReport<T> {
+    /// The value last reported.
+    let value: T
+    /// The value before it, for a report made in ``pass``: the one before
+    /// last, which a report going back to is a cycle.
+    let prior: T?
+    /// The render pass (the frame) the report was made in.
+    let pass: UInt32
 }
 
 extension OnGeometryChangeModifier: Layoutable {

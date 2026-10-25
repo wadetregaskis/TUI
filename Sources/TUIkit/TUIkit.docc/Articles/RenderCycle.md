@@ -188,6 +188,12 @@ its update, and a frame is settled the same way (`FrameSettling`):
    updates twice inside its layout pass. A longer chain is written as it
    stands and continues a walk per frame. A frame whose effects wrote nothing
    is walked once.
+4. **An action that keeps triggering itself is cut off**, as SwiftUI cuts it
+   off: an `onChange` or `onPreferenceChange` action runs at most twice a
+   frame, and a third change is dropped with SwiftUI's warning ("… tried to
+   update multiple times per frame."); an `onGeometryChange` whose value goes
+   back to the one before last within a frame is refused ("Geometry action
+   is cycling between duplicate values.").
 
 So the first frame of a page that loads in `onAppear` shows what it loaded,
 above the loader and below it; an `onChange`'s derived value is drawn in the

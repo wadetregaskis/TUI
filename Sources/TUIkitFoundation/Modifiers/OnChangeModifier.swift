@@ -89,11 +89,14 @@ extension StateStorage {
     /// is not (``EffectStage``): the drawing a geometry correction makes again
     /// compares against the frame's starting value, not the first drawing's
     /// guess — so a reader's first frame fires nothing, as SwiftUI's does.
+    ///
+    /// An action run twice already in this frame is refused a third time,
+    /// with SwiftUI's warning (``admitsActionRun(at:warning:)``).
     package func compareTrackedValue<V: Equatable>(
         _ value: V, at key: StateKey, initial: Bool, action: @escaping (V, V) -> Void
     ) {
         guard let oldValue: V = trackedValue(for: key) else {
-            if initial { effectStage.perform(as: .change) { action(value, value) } }
+            if initial { performChange(at: key, of: V.self) { action(value, value) } }
             setChangedTrackedValue(value, for: key)
             return
         }
@@ -101,19 +104,36 @@ extension StateStorage {
             setTrackedValue(value, for: key)
             return
         }
-        effectStage.perform(as: .change) { action(oldValue, value) }
+        performChange(at: key, of: V.self) { action(oldValue, value) }
         setChangedTrackedValue(value, for: key)
     }
 
-    /// Calls `action` with `value` — at once, or, in a drawing that may yet be
-    /// drawn again, once the drawing is kept (``EffectStage``).
+    /// Hands `call`, an `onChange(of: V)` action's, to the stage, to run once
+    /// the walk is done if the action has not already run twice this frame.
+    private func performChange<V>(at key: StateKey, of _: V.Type, _ call: @escaping () -> Void) {
+        effectStage.perform(as: .change) { [self] in
+            guard admitsActionRun(at: key, warning: { "onChange(of: \(V.self)) action tried to update multiple times per frame." })
+            else { return }
+            call()
+        }
+    }
+
+    /// Calls `action`, `preference`'s observer, with `value` — at once, or, in
+    /// a drawing, once the walk is done (``EffectStage``) — unless it has
+    /// already run twice this frame (``admitsActionRun(at:warning:)``).
     ///
     /// The call is made up here, outside the view's main-actor render, so the
     /// value — a preference's reduction, read from the walk's preference
     /// storage — is captured where the storage it came from is, rather than
     /// sent into a main-actor closure.
-    package func perform<V>(_ action: @escaping (V) -> Void, with value: V) {
-        effectStage.perform(as: .preference) { action(value) }
+    package func perform<V>(
+        _ action: @escaping (V) -> Void, with value: V, at key: StateKey, preference: Any.Type
+    ) {
+        effectStage.perform(as: .preference) { [self] in
+            guard admitsActionRun(at: key, warning: { "Bound preference \(preference) tried to update multiple times per frame." })
+            else { return }
+            action(value)
+        }
     }
 }
 

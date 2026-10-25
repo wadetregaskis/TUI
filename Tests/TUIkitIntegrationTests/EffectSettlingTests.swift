@@ -139,6 +139,57 @@ private struct SlidesInPage: View {
     }
 }
 
+/// An `onChange(of: x)` that sets `x + 1`, as far as 200: SwiftUI's
+/// self-loop, which an outside write starts again.
+private struct SelfLoopPage: View {
+    let source: Source
+    @State private var x = 0
+
+    var body: some View {
+        Text("x \(x)")
+            .onAppear { x = 1 }
+            .onChange(of: x) { if x < 200 { x += 1 } }
+            .onChange(of: source.value) { x = 100 }
+    }
+}
+
+/// The value a preference is made from, set by its own observer to what it
+/// heard + 1, as far as 200.
+private struct LoopKey: PreferenceKey {
+    static var defaultValue: Int { 0 }
+    static func reduce(value: inout Int, nextValue: () -> Int) { value = nextValue() }
+}
+
+private struct PreferenceLoopPage: View {
+    @State private var n = 0
+
+    var body: some View {
+        Text("n \(n)")
+            .preference(key: LoopKey.self, value: n)
+            .onPreferenceChange(LoopKey.self) { if $0 < 200 { n = $0 + 1 } }
+    }
+}
+
+/// A view whose width its own `onGeometryChange` flips: three cells wide
+/// makes it six, six makes it three.
+private struct FlippingWidthPage: View {
+    @State private var wide = false
+
+    var body: some View {
+        Text(String(repeating: "w", count: wide ? 6 : 3))
+            .onGeometryChange(for: Int.self) { $0.size.width } action: { wide = $0 == 3 }
+    }
+}
+
+/// The first number after `prefix` on `screen`.
+private func number(after prefix: String, on screen: [String]) -> Int? {
+    for line in screen.map(\.stripped) {
+        guard let range = line.range(of: prefix) else { continue }
+        return Int(line[range.upperBound...].prefix { $0.isNumber })
+    }
+    return nil
+}
+
 /// A page that writes nothing from its effects.
 private struct QuietPage: View {
     var body: some View {
@@ -218,6 +269,53 @@ struct EffectSettlingTests {
         #expect(middle > 0 && middle < 10, "part-way at half the animation: \(middle)")
         app.frame(atNanos: 1_100_000_000)
         #expect(column() == 10)
+    }
+
+    @Test("An onChange that keeps triggering itself runs twice a frame; the third is refused, with SwiftUI's warning")
+    func selfTriggeringOnChangeIsCutOff() {
+        let source = Source()
+        let app = HeadlessApp(PageApp { SelfLoopPage(source: source) }, width: 30, height: 4)
+        var drawn: [Int] = []
+        for frame in 0..<6 {
+            app.frame(atNanos: Int64(frame) * 16_666_667)
+            drawn.append(number(after: "x ", on: app.screen) ?? -1)
+        }
+        #expect(drawn.last.map { $0 < 200 } == true, "the loop ran on: \(drawn)")
+        #expect(Set(drawn.suffix(3)).count == 1, "the loop stopped: \(drawn)")
+        #expect(SoftTrap.recorded.contains("onChange(of: Int) action tried to update multiple times per frame."))
+        // The change refused is dropped, not deferred; a later write starts
+        // the action again.
+        let stopped = drawn.last ?? 0
+        source.value = 1
+        app.frame(atNanos: 6 * 16_666_667)
+        let restarted = number(after: "x ", on: app.screen) ?? -1
+        #expect(restarted > 100 && restarted != stopped, "\(restarted)")
+    }
+
+    @Test("An onPreferenceChange that feeds its own preference runs twice a frame; the third is refused, with SwiftUI's warning")
+    func selfFeedingPreferenceIsCutOff() {
+        let app = HeadlessApp(PageApp { PreferenceLoopPage() }, width: 30, height: 4)
+        var drawn: [Int] = []
+        for frame in 0..<6 {
+            app.frame(atNanos: Int64(frame) * 16_666_667)
+            drawn.append(number(after: "n ", on: app.screen) ?? -1)
+        }
+        #expect(drawn.last.map { $0 < 200 } == true, "the loop ran on: \(drawn)")
+        #expect(Set(drawn.suffix(3)).count == 1, "the loop stopped: \(drawn)")
+        #expect(SoftTrap.recorded.contains("Bound preference LoopKey tried to update multiple times per frame."))
+    }
+
+    @Test("An onGeometryChange whose action moves its view back to the size before last is refused, with SwiftUI's warning")
+    func geometryCycleIsCutOff() {
+        let app = HeadlessApp(PageApp { FlippingWidthPage() }, width: 30, height: 4)
+        var drawn: [String] = []
+        for frame in 0..<4 {
+            app.frame(atNanos: Int64(frame) * 16_666_667)
+            drawn.append(app.screen.map(\.stripped).first { $0.contains("w") } ?? "")
+        }
+        #expect(Set(drawn).count == 1, "it settled in the first frame: \(drawn)")
+        #expect(SoftTrap.recorded.contains("Geometry action is cycling between duplicate values."))
+        #expect(app.effectSettling.leftWriting == 0, "\(app.effectSettling)")
     }
 
     @Test("A frame whose effects write nothing is walked once")
