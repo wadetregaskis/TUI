@@ -71,9 +71,10 @@ final class ScrollTargetVisibilityObserver {
     /// How much of a view must be shown for it to count.
     let threshold: Double
 
-    /// Keeps the ids of the observer's type, compares them with the last
-    /// list, and acts on a change — or on the first list.
-    private let report: ([AnyHashable], inout [AnyHashable]?) -> Void
+    /// Keeps the ids of the observer's type and compares them with the last
+    /// list, keeping them; on a change — or on the first list — returns the
+    /// action to take, and otherwise `nil`.
+    private let report: ([AnyHashable], inout [AnyHashable]?) -> (() -> Void)?
 
     /// The scroll view this observer reports to — see
     /// ``ScrollGeometryObserver/claim(for:)``.
@@ -84,9 +85,9 @@ final class ScrollTargetVisibilityObserver {
         report = { ids, last in
             let shown = ids.compactMap { $0 as? ID }
             let erased = shown.map { AnyHashable($0) }
-            guard erased != last else { return }
+            guard erased != last else { return nil }
             last = erased
-            action(shown)
+            return { action(shown) }
         }
     }
 
@@ -98,7 +99,9 @@ final class ScrollTargetVisibilityObserver {
         return true
     }
 
-    func report(_ ids: [AnyHashable], last: inout [AnyHashable]?) {
+    /// Keeps `ids` in `last`, and returns what to do about a change — `nil`
+    /// for none.
+    func report(_ ids: [AnyHashable], last: inout [AnyHashable]?) -> (() -> Void)? {
         report(ids, &last)
     }
 }
@@ -151,7 +154,14 @@ extension _ScrollViewCore {
                         rows: handler.scrollOffset..<(handler.scrollOffset + handler.viewportHeight),
                         columns: handler.horizontal.scrollOffset..<(handler.horizontal.scrollOffset + contentWidth))
                 } ?? []
-            observer.report(ids, last: &handler.targetVisibilityValues[index])
+            let before = handler.targetVisibilityValues[index]
+            guard let action = observer.report(ids, last: &handler.targetVisibilityValues[index]) else { continue }
+            // Held where this drawing may be drawn again, and the list put
+            // back if it is (`EffectStage`).
+            context.performEffect(action) { [weak handler] in
+                guard let handler, handler.targetVisibilityValues.indices.contains(index) else { return }
+                handler.targetVisibilityValues[index] = before
+            }
         }
     }
 

@@ -90,7 +90,8 @@ extension _ScrollViewCore {
     /// would invalidate its own subtree every frame and never settle — the
     /// same discipline `onPreferenceChange` follows, and for the same reason.
     func reportVisibleID(_ id: AnyHashable, handler: ScrollViewHandler, context: RenderContext) {
-        pageScrollPosition(context.environment)?.report(id, tracking: &handler.positionTracking)
+        pageScrollPosition(context.environment)?.report(
+            id, trackedBy: handler, at: \.positionTracking, context: context)
     }
 
     /// Tells a bound ``ScrollPosition`` that the user scrolled it since the last

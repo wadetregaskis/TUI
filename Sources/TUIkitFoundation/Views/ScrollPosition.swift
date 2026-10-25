@@ -542,12 +542,26 @@ extension ScrollPositionBinding {
     /// pass that wrote its binding every frame would invalidate its own
     /// subtree every frame and never settle, the discipline
     /// `onPreferenceChange` follows, for the same reason.
-    package func report(_ id: AnyHashable, tracking: inout ScrollPositionTracking) {
-        guard tracking.lastReportedID != id else { return }
-        tracking.lastReportedID = id
-        var position = binding.wrappedValue
-        position.reportVisible(id: id)
-        binding.wrappedValue = position
+    ///
+    /// The tracking is `owner`'s, at `tracking`. In a drawing that may yet be
+    /// drawn again, the write waits for the drawing to be kept, and the row
+    /// noted as reported is put back if it is not (`EffectStage`): the row the
+    /// kept drawing shows is the one the binding is told.
+    package func report<Owner: AnyObject>(
+        _ id: AnyHashable, trackedBy owner: Owner, at tracking: ReferenceWritableKeyPath<Owner, ScrollPositionTracking>,
+        context: RenderContext
+    ) {
+        let before = owner[keyPath: tracking].lastReportedID
+        guard before != id else { return }
+        owner[keyPath: tracking].lastReportedID = id
+        let binding = binding
+        context.performEffect(
+            {
+                var position = binding.wrappedValue
+                position.reportVisible(id: id)
+                binding.wrappedValue = position
+            },
+            undo: { [weak owner] in owner?[keyPath: tracking].lastReportedID = before })
     }
 
     /// Tells the position that the user scrolled it: its request is dropped

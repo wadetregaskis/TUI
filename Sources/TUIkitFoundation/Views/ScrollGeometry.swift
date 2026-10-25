@@ -174,9 +174,10 @@ struct ScrollObservers: Equatable {
 /// the scroll view that has claimed it.
 @MainActor
 final class ScrollGeometryObserver {
-    /// Derives the value, compares it with the last one, and acts on a change
-    /// — or on the first value, as old and new.
-    private let report: (ScrollGeometry, inout Any?) -> Void
+    /// Derives the value and compares it with the last one, keeping it; on a
+    /// change — or on the first value, as old and new — returns the action to
+    /// take, and otherwise `nil`.
+    private let report: (ScrollGeometry, inout Any?) -> (() -> Void)?
 
     /// The scroll view this observer reports to: the first to draw with it.
     /// See ``claim(for:)``.
@@ -189,12 +190,11 @@ final class ScrollGeometryObserver {
             let value = transform(geometry)
             guard let previous = last as? T else {
                 last = value
-                action(value, value)
-                return
+                return { action(value, value) }
             }
-            guard previous != value else { return }
+            guard previous != value else { return nil }
             last = value
-            action(previous, value)
+            return { action(previous, value) }
         }
     }
 
@@ -207,7 +207,9 @@ final class ScrollGeometryObserver {
         return true
     }
 
-    func report(_ geometry: ScrollGeometry, last: inout Any?) {
+    /// Keeps `geometry`'s value in `last`, and returns what to do about a
+    /// change — `nil` for none.
+    func report(_ geometry: ScrollGeometry, last: inout Any?) -> (() -> Void)? {
         report(geometry, &last)
     }
 }
@@ -302,7 +304,14 @@ extension _ScrollViewCore {
             handler.geometryObserverValues = Array(repeating: nil, count: observers.count)
         }
         for (index, observer) in observers.enumerated() where observer.claim(for: context.identity) {
-            observer.report(geometry, last: &handler.geometryObserverValues[index])
+            let before = handler.geometryObserverValues[index]
+            guard let action = observer.report(geometry, last: &handler.geometryObserverValues[index]) else { continue }
+            // Held where this drawing may be drawn again, and the value put
+            // back if it is (`EffectStage`).
+            context.performEffect(action) { [weak handler] in
+                guard let handler, handler.geometryObserverValues.indices.contains(index) else { return }
+                handler.geometryObserverValues[index] = before
+            }
         }
     }
 }

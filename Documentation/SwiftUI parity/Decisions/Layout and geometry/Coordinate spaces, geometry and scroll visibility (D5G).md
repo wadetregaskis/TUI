@@ -147,14 +147,15 @@ made. Held back, with what is put back:
 | `onInteractiveResizeChange` | the last answer |
 | `onAppear`, `.task`, and every task a view starts on appearing (`Image`/`AsyncImage` loads, a notification host's expiry, gradient graphics) | that the token appeared, and that it is present this pass |
 | `onDisappear` | its callback, where the drawing registered it first |
+| `onScrollGeometryChange`, `onScrollTargetVisibilityChange`, `onScrollPhaseChange` | the last value the scroll view told each |
+| a bound `ScrollPosition` told the row shown | the row last reported |
 
 So a reader's first frame inside a corrected subtree fires no `onChange`, as
 SwiftUI fires none (`CoordinateSpaceTests.correctedSubtreeSideEffects`), a move
 fires one, old answer to new, and a view only the discarded drawing drew —
 a branch the guess chose — neither appears, starts a task, nor later
-disappears (`CorrectedSubtreeEffectsTests`, the root's walk included). The
-scroll observers' effects still act for both drawings, until they move onto
-the stage.
+disappears (`CorrectedSubtreeEffectsTests`, including the root's walk and owners
+nested in owners).
 
 **Why armed, not always.** Holding every effect back from the start of every
 drawing that may be made again was tried first: it moves every effect in

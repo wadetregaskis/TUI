@@ -372,6 +372,8 @@ The `OnAppearModifier` calls `lifecycle.recordAppear(token, action)` during rend
 
 > Note: `onAppear` fires **synchronously** during the render traversal: not after the frame completes. This is because TUIkit uses single-pass rendering with no layout phase.
 
+> Note: The exception is a subtree that may be drawn twice in one frame. A geometry reader told an answer that could be wrong is drawn again once its owner (a `coordinateSpace(_:)`, a scroll view, a list, or the scene root for `.global`) finds it. From the moment the reader is told, the views drawn after it hand their `onAppear`, `onChange`, `.task` start and the other observers' actions to the app's `EffectStage`. They run once the owner keeps its drawing, and only for the drawing kept.
+
 ### onDisappear
 
 The `OnDisappearModifier` does two things during rendering:

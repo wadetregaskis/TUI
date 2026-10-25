@@ -231,7 +231,15 @@ extension RenderContext {
             scrollable.reportedPhases[index] = phase
             let made = changeContext ?? ScrollPhaseChangeContext(geometry: geometry(), velocity: .zero)
             changeContext = made
-            observer.action(old ?? phase, phase, made)
+            // Held where this drawing may be drawn again, and the phase put
+            // back if it is (`EffectStage`).
+            let action = observer.action
+            performEffect(
+                { action(old ?? phase, phase, made) },
+                undo: { [weak scrollable] in
+                    guard let scrollable, scrollable.reportedPhases.indices.contains(index) else { return }
+                    scrollable.reportedPhases[index] = old
+                })
         }
     }
 

@@ -5,8 +5,9 @@
 //  does once, for the drawing that reaches the screen (decisions B-D5G-4):
 //  every effect a view inside makes — `onChange`, `onPreferenceChange`,
 //  `onGeometryChange`, `onAppear`, `onDisappear`, `.task`,
-//  `onModifierKeysChanged`, `onInteractiveResizeChange` — is the kept
-//  drawing's, and a view only the discarded drawing drew does nothing at all.
+//  `onModifierKeysChanged`, `onInteractiveResizeChange`, the scroll
+//  observers — is the kept drawing's, and a view only the discarded drawing
+//  drew does nothing at all.
 //
 //  The reader below is told a guess on its first frame (the container it is
 //  in moves it without carrying the move), draws from the guess, and is drawn
@@ -67,12 +68,19 @@ private func effectsReader(_ log: EffectLog, in space: CoordinateSpace) -> some 
 /// A view named `name` carrying every lifecycle and observer effect.
 @MainActor
 private func effects(_ log: EffectLog, _ name: String) -> some View {
-    Text(name)
-        .onAppear { log.lines.append("\(name) appear") }
-        .onDisappear { log.lines.append("\(name) disappear") }
-        .task { log.lines.append("\(name) task") }
-        .onModifierKeysChanged(mask: .shift, initial: true) { _, _ in log.lines.append("\(name) keys") }
-        .onInteractiveResizeChange { resizing in log.lines.append("\(name) resizing \(resizing)") }
+    ScrollView {
+        Text(name)
+    }
+    .onScrollGeometryChange(for: Int.self) { $0.contentSize.height } action: { _, new in
+        log.lines.append("\(name) scroll geometry \(new)")
+    }
+    .onScrollPhaseChange { _, new in log.lines.append("\(name) scroll phase \(new)") }
+    .frame(height: 1)
+    .onAppear { log.lines.append("\(name) appear") }
+    .onDisappear { log.lines.append("\(name) disappear") }
+    .task { log.lines.append("\(name) task") }
+    .onModifierKeysChanged(mask: .shift, initial: true) { _, _ in log.lines.append("\(name) keys") }
+    .onInteractiveResizeChange { resizing in log.lines.append("\(name) resizing \(resizing)") }
 }
 
 /// What a view earlier in the walk wrote, read when a later view's body runs.
@@ -129,7 +137,7 @@ struct CorrectedSubtreeEffectsTests {
         // never shown.
         #expect(log.count("change") == 0, "\(log.lines)")
         #expect(!log.lines.contains { $0.hasPrefix("guess") }, "\(log.lines)")
-        for effect in ["appear", "task", "keys", "resizing true"] {
+        for effect in ["appear", "task", "keys", "resizing true", "scroll geometry", "scroll phase"] {
             #expect(log.count("kept \(effect)") == 1, "kept \(effect): \(log.lines)")
         }
         #expect(log.lines.filter { $0.hasPrefix("preference") } == ["preference 1"], "\(log.lines)")
@@ -174,6 +182,52 @@ struct CorrectedSubtreeEffectsTests {
         #expect(!places.contains(nil), "\(log.lines)")
         let found = places.compactMap(\.self)
         #expect(found == found.sorted(), "\(log.lines)")
+    }
+
+    @Test(
+        "Adversarial: inside a scroll view or a list in the corrected space, each effect still runs once",
+        arguments: [false, true])
+    func nestedOwners(list: Bool) async {
+        let log = EffectLog()
+        let harness = harness()
+        // Owners within owners: the named space's correction draws the scroll
+        // view (or the list) again, which opened a drawing of its own inside.
+        let view = { (lead: Int, top: Int) in
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<lead, id: \.self) { Text("lead \($0)") }
+                if list {
+                    List { UnconvertedContainer(rows: top) { effectsReader(log, in: .named("s")) } }
+                        .frame(height: 8)
+                } else {
+                    ScrollView { UnconvertedContainer(rows: top) { effectsReader(log, in: .named("s")) } }
+                        .frame(height: 8)
+                }
+            }
+            .onPreferenceChange(ReaderY.self) { log.lines.append("preference \($0)") }
+            .coordinateSpace(.named("s"))
+        }
+        harness.frame(view(0, 1))
+        #expect(harness.geometryCorrections.total >= 1, "the reader's guess was not corrected")
+        await settle(until: { log.count("kept task") == 1 })
+        #expect(!log.lines.contains { $0.hasPrefix("guess") }, "\(log.lines)")
+        #expect(log.count("change") == 0, "\(log.lines)")
+        for effect in ["appear", "task", "keys", "resizing true", "scroll geometry", "scroll phase"] {
+            #expect(log.count("kept \(effect)") == 1, "kept \(effect): \(log.lines)")
+        }
+        #expect(log.count("preference") == 1, "\(log.lines)")
+        harness.frame(view(0, 1))
+        log.lines.removeAll()
+        harness.frame(view(1, 3))
+        let changes = log.lines.filter { $0.hasPrefix("change") }
+        let preferences = log.lines.filter { $0.hasPrefix("preference") }
+        #expect(changes.count == 1, "\(log.lines)")
+        #expect(preferences.count == 1, "\(log.lines)")
+        #expect(log.count("width") == 1, "\(log.lines)")
+        #expect(!log.lines.contains { $0.hasPrefix("guess") || $0.hasPrefix("kept") }, "\(log.lines)")
+        // The preference reports the answer the change moved to.
+        if let change = changes.first, let preference = preferences.first {
+            #expect(preference == "preference \(change.split(separator: "→").last ?? "")", "\(log.lines)")
+        }
     }
 
     @Test("With no reader, effects act at once, mid-walk: a later view's body sees what an onAppear wrote")

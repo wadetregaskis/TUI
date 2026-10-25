@@ -60,3 +60,24 @@ package struct ProvisionalEffects {
         if let stage, let mark { stage.close(mark) }
     }
 }
+
+extension RenderContext {
+    /// Does what a view decided, as it renders, to do: at once, or — in a
+    /// drawing that may yet be drawn again — once the drawing is kept, with
+    /// `undo` putting back what deciding it changed should the drawing be
+    /// discarded (``EffectStage``). For a decision whose memory is not a
+    /// tracked value (``StateStorage/setChangedTrackedValue(_:for:)``) — the
+    /// last value a scroll view told an observer.
+    ///
+    /// - Parameters:
+    ///   - effect: What the view does.
+    ///   - undo: Puts back what the view changed in deciding to do it.
+    package func performEffect(_ effect: @escaping () -> Void, undo: @escaping () -> Void) {
+        guard let stage = stateStorage?.effectStage else {
+            effect()
+            return
+        }
+        stage.noteUndo(undo)
+        stage.perform(effect)
+    }
+}

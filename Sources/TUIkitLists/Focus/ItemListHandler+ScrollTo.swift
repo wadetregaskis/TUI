@@ -123,7 +123,7 @@ extension ItemListHandler {
             let row = row(atRowLine: Int((Double(rowLineBudget - 1) * position.anchor.y).rounded(.down))),
             let id = rowID(row)
         {
-            position.report(id, tracking: &positionTracking)
+            position.report(id, trackedBy: self, at: \.positionTracking, context: context)
         }
         if userScrolledSinceRender {
             userScrolledSinceRender = false
