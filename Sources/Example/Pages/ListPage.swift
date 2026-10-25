@@ -218,6 +218,8 @@ struct ListPage: View {
                             }
                         }
                     }
+                    // Page Up/Down, Home and End glide the rows (TUI-specific).
+                    .scrollKeyboardAnimation()
                     // A primary action and no menu: an empty menu never opens.
                     .contextMenu(forSelectionType: String.self) { _ in
                     } primaryAction: { ids in

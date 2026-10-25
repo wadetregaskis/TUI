@@ -203,8 +203,17 @@ extension RenderContext {
     /// (`scrollKeyboardAnimation(_:)`) is held to the same rule.
     @MainActor
     package func scrollGlideAnimation(_ animation: Animation?) -> Animation? {
-        guard let animation, environment.animationFrame.canAnimate, !environment.accessibilityReduceMotion
-        else { return nil }
+        environment.scrollGlideAnimation(animation)
+    }
+}
+
+extension EnvironmentValues {
+    /// `animation`, or `nil` where a scroll may not glide: without a scheduler
+    /// or under reduce motion — `RenderContext.scrollGlideAnimation(_:)`'s rule,
+    /// for a view that captures it from the environment alone (a list's frame
+    /// inputs).
+    package func scrollGlideAnimation(_ animation: Animation?) -> Animation? {
+        guard let animation, animationFrame.canAnimate, !accessibilityReduceMotion else { return nil }
         return animation
     }
 }

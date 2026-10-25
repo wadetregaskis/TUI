@@ -136,6 +136,50 @@ extension ItemListHandler {
     }
 }
 
+// MARK: - Keys
+
+extension ItemListHandler {
+    /// Runs a page key's cursor move `move` — Page Up/Down, Home, End — and,
+    /// under `scrollKeyboardAnimation(_:)`, glides the viewport to where the
+    /// move's reveal put it rather than jump there: the cursor moves at once,
+    /// the offset is put back where the list is drawn, and the next frame
+    /// starts the glide (``ScrollGlide/awaitsFirstFrame``). Event time.
+    ///
+    /// A page key's glide in flight lands first, so the key counts from where
+    /// it was going and N presses move exactly N pages; a programmatic glide
+    /// stops where it stands. The glide lands exactly where the reveal put the
+    /// list, a tall row's clipped lines included. The cursor moving is no
+    /// scroll of the user's, so no phase changes.
+    func glidingPageKey(_ move: () -> Void) {
+        let drawn = (row: scrollOffset, subRowLines: scrollTopClipLines)
+        interruptGlide()
+        move()
+        guard let animation = keyboardAnimation, scrollOffset != drawn.row else { return }
+        let target = (row: scrollOffset, subRowLines: scrollTopClipLines)
+        (scrollOffset, scrollTopClipLines) = (drawn.row, drawn.subRowLines)
+        glide = ScrollGlide(
+            keyDistance: target.row - drawn.row, animation: animation,
+            landing: .rowPosition(row: target.row, subRowLines: target.subRowLines))
+    }
+
+    /// What a cursor move does to a glide in flight before it moves: a page
+    /// key's lands at its target at once, so the move counts from there; a
+    /// programmatic one stops where it stands (``stopGlide()``). Event time.
+    func interruptGlide() {
+        guard let current = glide else { return }
+        guard current.isKeyboard else {
+            stopGlide()
+            return
+        }
+        glide = nil
+        if case .rowPosition(let row, let subRowLines) = current.landing {
+            (scrollOffset, scrollTopClipLines) = (row, subRowLines)
+            clampScrollOffset()
+            clampTopClip()
+        }
+    }
+}
+
 // MARK: - The frame's end
 
 extension ItemListHandler {

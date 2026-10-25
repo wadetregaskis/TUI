@@ -110,14 +110,20 @@ extension ItemListHandler {
             }
             return true
 
+        // The page keys glide the viewport under `scrollKeyboardAnimation(_:)`;
+        // the cursor moves at once (`glidingPageKey`).
         case .home:
-            if let row = firstLandableRow(orElse: 0) { focusedIndex = row }
-            revealWithEdge(.top)
+            glidingPageKey {
+                if let row = firstLandableRow(orElse: 0) { focusedIndex = row }
+                revealWithEdge(.top)
+            }
             return true
 
         case .end:
-            if let row = lastLandableRow(orElse: itemCount - 1) { focusedIndex = row }
-            revealWithEdge(.bottom)
+            glidingPageKey {
+                if let row = lastLandableRow(orElse: itemCount - 1) { focusedIndex = row }
+                revealWithEdge(.bottom)
+            }
             return true
 
         // The CURSOR moves by the rows on screen, which is what
@@ -128,11 +134,11 @@ extension ItemListHandler {
         // anyway, so the staleness that forces `pageDistance` to recompute
         // does not bite here.
         case .pageUp:
-            moveFocus(by: -viewportHeight, wrap: false)
+            glidingPageKey { moveFocus(by: -viewportHeight, wrap: false) }
             return true
 
         case .pageDown:
-            moveFocus(by: viewportHeight, wrap: false)
+            glidingPageKey { moveFocus(by: viewportHeight, wrap: false) }
             return true
 
         default:
@@ -212,19 +218,19 @@ extension ItemListHandler {
             return true
 
         case .home:
-            if let row = firstLandableRow(orElse: 0) { extendSelection(to: row) }
+            glidingPageKey { if let row = firstLandableRow(orElse: 0) { extendSelection(to: row) } }
             return true
 
         case .end:
-            if let row = lastLandableRow(orElse: itemCount - 1) { extendSelection(to: row) }
+            glidingPageKey { if let row = lastLandableRow(orElse: itemCount - 1) { extendSelection(to: row) } }
             return true
 
         case .pageUp:
-            extendSelection(movingBy: -viewportHeight)
+            glidingPageKey { extendSelection(movingBy: -viewportHeight) }
             return true
 
         case .pageDown:
-            extendSelection(movingBy: viewportHeight)
+            glidingPageKey { extendSelection(movingBy: viewportHeight) }
             return true
 
         default:
@@ -275,8 +281,8 @@ extension ItemListHandler {
     func moveFocus(by delta: Int, wrap: Bool) {
         guard itemCount > 0, delta != 0 else { return }
         // The cursor moving is the user's: a programmatic glide stops where it
-        // stands, and the reveal below acts from there.
-        stopGlide()
+        // stands, a page key's lands, and the reveal below acts from there.
+        interruptGlide()
 
         var newIndex = focusedIndex + delta
 
@@ -367,7 +373,7 @@ extension ItemListHandler {
     /// The cursor still wins: rows past it taller than the window leave it
     /// revealed, not them.
     private func revealWithEdge(_ edge: VerticalEdge) {
-        stopGlide()
+        interruptGlide()
         scrollOffset = edge == .top ? 0 : settledMaxOffset
         scrollTopClipLines = 0
         ensureFocusedItemVisible()

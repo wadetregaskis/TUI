@@ -1118,6 +1118,16 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _glide: ScrollGlide?
 
+    /// The animation the cursor's page keys — Page Up/Down, Home, End — glide
+    /// the viewport with, or `nil` to jump: `scrollKeyboardAnimation(_:)`,
+    /// captured at render (``syncFrameInputs(environment:reorderFeedback:keyboardMoveIsLive:rowHeight:)``)
+    /// because event time has no environment.
+    package var keyboardAnimation: Animation? { get { _keyboardAnimation } set { _keyboardAnimation = newValue } }
+
+    /// ``keyboardAnimation``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _keyboardAnimation: Animation?
+
     /// What the list's scrolling is doing, for `onScrollPhaseChange`
     /// (`ScrollPhaseReporting`): `.interacting` from a user's scroll until it
     /// has been quiet a quarter of a second, `.animating` while a request

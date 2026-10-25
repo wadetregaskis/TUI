@@ -96,6 +96,10 @@ extension ItemListHandler {
         // being captured here a single-line Table was the one scroller in that
         // list that kept the 500 ms default whatever the app asked for.
         wheelEdgeHold.delayNanos = environment.scrollChainingDelay.clampedNanoseconds
+        // The page keys' glide (`scrollKeyboardAnimation(_:)`), for event time:
+        // one lookup, and the motion rule only for a list that sets it.
+        let keyAnimation = environment.scrollKeyboardAnimation
+        keyboardAnimation = keyAnimation == nil ? nil : environment.scrollGlideAnimation(keyAnimation)
         // Wheel events arrive when the environment is out of reach; the scroll
         // target behaviour decides whether a step is lines, rows or a page.
         scrollTargeting = ListScrollTargeting(environment.scrollTargetBehavior, environment: environment)

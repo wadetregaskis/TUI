@@ -37,13 +37,18 @@ extension View {
     /// jump there; `nil` jumps, as the keys do by default. TUI-specific:
     /// SwiftUI on macOS has no keyboard scrolling of this kind to animate.
     ///
+    /// In a `List` or a `Table` the keys move the cursor, at once, and the
+    /// rows glide a row at a time to where the cursor's reveal puts them; the
+    /// cursor moving is no scroll, so no phase changes there.
+    ///
     /// The key lands where it always has — on the page the scroll target
     /// behaviour (`.paging`, `.viewAligned`) picks, at the edge, or at the tail
     /// for End — and the view glides there. A key pressed while one glides
     /// counts from where it is going, so three presses move exactly three
     /// pages; an arrow lands the glide first and then steps. The wheel stops
-    /// it where it stands. The view is ``ScrollPhase/interacting`` throughout,
-    /// as for any key, and idle a quarter of a second after it lands. Under
+    /// it where it stands. A `ScrollView` is ``ScrollPhase/interacting``
+    /// throughout, as for any key, and idle a quarter of a second after it
+    /// lands. Under
     /// reduce motion, and with no animation scheduler, the keys jump.
     ///
     /// The arrows, the wheel and a push into an overscroll allowance do not
