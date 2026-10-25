@@ -1,0 +1,3 @@
+# Pins of TUIkit's own dependencies, resolved through the path dependency: the root package's
+# Package.resolved is the one that counts, and a second copy here would only drift from it.
+Package.resolved
