@@ -107,13 +107,32 @@ public struct RefreshAction: Equatable, Sendable {
             defer { lock.unlock() }
             return running
         }
+
+        /// The `.refreshable`'s action as of the last render that drew it.
+        /// Kept here, in the box its modifier keeps across frames, rather than
+        /// in each ``RefreshAction``: a handle made by an earlier render — one
+        /// a memoized row captured in its handler, or that a re-checked row
+        /// was drawn with — runs the CURRENT closure, with what it captures
+        /// now, which is what makes two handles of one run state equal for real.
+        private var action: (@Sendable () async -> Void)?
+
+        func setAction(_ action: @escaping @Sendable () async -> Void) {
+            lock.lock()
+            self.action = action
+            lock.unlock()
+        }
+
+        var currentAction: (@Sendable () async -> Void)? {
+            lock.lock()
+            defer { lock.unlock() }
+            return action
+        }
     }
 
     private let state: RunState
-    private let action: @Sendable () async -> Void
 
     init(_ action: @escaping @Sendable () async -> Void, state: RunState) {
-        self.action = action
+        state.setAction(action)
         self.state = state
     }
 
@@ -134,13 +153,14 @@ public struct RefreshAction: Equatable, Sendable {
         // `.refreshable` and ask its app for a frame, through the cache's link
         // the run state is bound to — the app that drew the indicator.
         guard state.beginIfIdle() else { return }
-        await action()
+        await state.currentAction?()
         state.finish()
     }
 
     /// Two handles to the same `.refreshable` are equal. The run state carries
-    /// that identity — it is the part that persists across frames, where the
-    /// closure is rebuilt with the view every time.
+    /// that identity — it is the part that persists across frames — and the
+    /// action, refreshed by every render, so either handle runs the closure
+    /// the latest render gave.
     public static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.state === rhs.state
     }

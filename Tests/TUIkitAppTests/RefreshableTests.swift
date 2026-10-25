@@ -270,6 +270,19 @@ struct RefreshableTests {
         #expect(handle != other)
     }
 
+    @Test("A handle from an earlier frame runs the action the latest frame gave")
+    func earlierHandleRunsTheCurrentAction() async {
+        // Equal handles must do the same thing: a row served from a memo, or
+        // re-checked and kept, holds the handle it was drawn with, and a closure
+        // stored beside each handle ran what the view captured back then.
+        let state = RefreshAction.RunState()
+        let ran = RanBox()
+        let earlier = RefreshAction({ await ran.note("first frame") }, state: state)
+        _ = RefreshAction({ await ran.note("latest frame") }, state: state)
+        await earlier()
+        #expect(await ran.notes == ["latest frame"])
+    }
+
     @Test("The in-flight state survives the view being rebuilt each frame")
     func inFlightSurvivesRebuild() async {
         // Every other test here renders ONE stored view value twice, which is
@@ -567,4 +580,10 @@ struct RefreshableTests {
 private extension Lock where State == Int {
     func bump() { withLock { $0 += 1 } }
     var total: Int { withLock { $0 } }
+}
+
+/// What the refresh actions in ``RefreshableTests/earlierHandleRunsTheCurrentAction()`` ran.
+private actor RanBox {
+    private(set) var notes: [String] = []
+    func note(_ note: String) { notes.append(note) }
 }
