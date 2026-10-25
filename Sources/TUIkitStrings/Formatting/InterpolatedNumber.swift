@@ -1,17 +1,18 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  InterpolatedNumber.swift
 //
-//  A number interpolated into a localized string's key with no specifier —
-//  `Text("\(count) rows")` — and how it is written in a locale (owner ruling
-//  B-TEXTFMT-1, 2026-10-24).
+//  A number interpolated into a localized string's key —
+//  `Text("\(count) rows")`, or with a specifier, `Text("\(price, specifier:
+//  "%.2f")")` — and how it is written in a locale (owner ruling B-TEXTFMT-1,
+//  2026-10-24).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Foundation
 
-/// A number interpolated into a `LocalizedStringKey` with no specifier, kept
-/// with the key so it can be written in whichever locale the key is read in.
+/// A number interpolated into a `LocalizedStringKey`, kept with the key so it
+/// can be written in whichever locale the key is read in.
 ///
 /// Written as `.number` writes it (``formatted(in:)``): grouped as the locale
 /// groups, with its decimal separator, and a floating-point number to at most
@@ -25,6 +26,10 @@ import Foundation
 /// `%lf`'s precision, so what is drawn is SwiftUI's number with the trailing
 /// zeros dropped — not the shortest form that round-trips, which writes
 /// `0.1 + 0.2` as `0.30000000000000004` (Deliberate deviations T11).
+///
+/// A number interpolated **with** a specifier, `\(price, specifier: "%.2f")`,
+/// is written by exactly that conversion (``specified(_:_:)``), through
+/// `String(format:locale:)` in the locale: `3.14` in `en`, `3,14` in `de`.
 package enum InterpolatedNumber: Hashable, Sendable {
     /// A signed integer, widened.
     case signed(Int64)
@@ -38,6 +43,33 @@ package enum InterpolatedNumber: Hashable, Sendable {
     /// only a conformance to `_FormatSpecifiable` of an app's own makes (its
     /// underscore says not to): its description, in every locale.
     case verbatim(String)
+    /// A number of the standard library's or `CGFloat`, with the printf
+    /// conversion the interpolation named — `%.2f`, `%x` — written exactly as
+    /// that conversion writes it in the locale (no grouping, no trimming).
+    case specified(String, Argument)
+
+    /// What a printf conversion is given, at the width C's variadic promotion
+    /// gives it: `%d` reads an `Int32`, `%lld` an `Int64`, and `%f` a `Double`
+    /// (which a `Float` and a `CGFloat` are widened to).
+    package enum Argument: Hashable, Sendable {
+        case int32(Int32)
+        case int64(Int64)
+        case uint32(UInt32)
+        case uint64(UInt64)
+        /// By its bits, as ``floating(bitPattern:)`` keeps a `Double`.
+        case double(bitPattern: UInt64)
+
+        /// The value as `String(format:locale:)` takes it.
+        fileprivate var cVarArg: any CVarArg {
+            switch self {
+            case .int32(let value): value
+            case .int64(let value): value
+            case .uint32(let value): value
+            case .uint64(let value): value
+            case .double(let bits): Double(bitPattern: bits)
+            }
+        }
+    }
 
     /// A floating-point number.
     package init(_ value: Double) {
@@ -58,6 +90,8 @@ package enum InterpolatedNumber: Hashable, Sendable {
         case .unsigned(let value): IntegerFormatStyle<UInt64>(locale: locale).format(value)
         case .floating(let bits): FloatingPointFormatStyle<Double>(locale: locale).format(Double(bitPattern: bits))
         case .verbatim(let description): description
+        case .specified(let specifier, let argument):
+            String(format: specifier, locale: locale, argument.cVarArg)
         }
     }
 }

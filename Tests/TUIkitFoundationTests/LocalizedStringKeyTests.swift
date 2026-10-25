@@ -434,9 +434,11 @@ struct LocalizedStringKeyTests {
         let price = 3.14159
         let count: Int32 = 255
         let key: LocalizedStringKey = "Total \(price, specifier: "%.2f") in \(count, specifier: "%x") parts"
-        #expect(key.arguments == ["3.14", "ff"])
+        let english = Locale(identifier: "en_US")
+        #expect(key.formattingNumbers(in: english).arguments == ["3.14", "ff"])
         #expect(key.key == "Total %@ in %@ parts")
-        #expect(key.resolved(with: isolatedService()) == "Total 3.14 in ff parts")
+        #expect(key.swiftUIKey == "Total %.2f in %x parts")
+        #expect(key.numberArguments.count == 2, "the values are kept, to be written in \\.locale")
     }
 }
 

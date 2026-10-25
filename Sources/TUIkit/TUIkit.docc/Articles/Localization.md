@@ -155,7 +155,10 @@ locale is `\.locale` — the app's, or the one a subtree sets for the `Text`s
 below it. A floating-point number has at most six fraction digits and no
 trailing zeros, `3.5` where SwiftUI writes `3.500000`: a deliberate deviation.
 Interpolate a `String` for a number that must not be grouped, such as a year:
-`Text("© \(String(year))")`. A key with **no**
+`Text("© \(String(year))")`. A number with a `specifier:` is written by exactly
+that conversion, in the same locale: `\(price, specifier: "%.2f")` is `3.14` in
+English and `3,14` in German, and its key keeps the specifier, as SwiftUI's does,
+so a translation keyed `"Price %.2f"` matches. A key with **no**
 interpolations is never scanned for placeholders, so `Text("100% done")` says
 100% done.
 

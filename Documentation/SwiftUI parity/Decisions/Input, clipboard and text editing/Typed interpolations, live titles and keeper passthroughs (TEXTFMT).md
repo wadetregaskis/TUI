@@ -123,10 +123,42 @@ once (`InterpolatedNumberTests`). A `Text` under a subtree with another locale
 writes its numbers again each time it draws, unkept; that subtree is rare, and
 its words are already read again there.
 
-**Not changed:** `\(value, specifier:)` still formats at once in the process's
-locale (`.current`), as before; it is not re-read under a subtree's
-`\.locale`. Following `\.locale` there means keeping the `CVarArg` with the
-key, which is not `Equatable`; left for a follow-up if wanted.
+**The gap, closed (lane SPECIFIER, 2026-10-24).** `\(value, specifier:)` first
+formatted at once in the process's locale (`.current`), so under an app-chosen
+language its numbers could differ from a bare one's and a subtree's `\.locale`
+did not reach it. It now takes the bare number's path: the value is kept with
+the key as `InterpolatedNumber.specified(specifier, argument)`, the argument at
+the width C's variadic promotion gives it (`Int32` for `%d`, `Int64` for
+`%lld`, `UInt32`/`UInt64`, and a `Double` for `%f`, which a `Float` and a
+`CGFloat` are widened to; a `CVarArg` itself is not `Equatable`, which is why
+this was left). It is written with `String(format:locale:)` in the app's
+locale where the key is built, kept per number in
+`LocalizationService.formatted(_:)` like a bare number, and written again where
+a `Text`'s `\.locale` differs, through the same `numberArguments` and
+`Text.relocalized(in:)`. The key is as SwiftUI's: `%@` in TUIkit's spelling and
+the specifier as written (`"Price %.2f"`) in SwiftUI's, so a translation keyed
+with it matches.
+
+| | `en_US` | `de_DE` | `fr_FR` |
+|---|---|---|---|
+| `\(234.5, specifier: "%.2f")` | `234.50` | `234,50` | `234,50` |
+| `\(7, specifier: "%03d")` | `007` | `007` | `007` |
+
+Unlike a bare number, a specifier writes **exactly** the conversion: `%.2f`
+pads, which is the author's ask and not SwiftUI's `%lf` default the owner ruled
+against. `String(format:locale:)` on Apple's platforms also groups a
+conversion's digits in the locale (`1,234.50` in `en`, `1.234,50` in `de`, with
+`%.2f` and `%lld` alike); that is Foundation's (measured on macOS 15.8 through the tests; whether SwiftUI
+draws the same, and whether swift-corelibs-foundation groups, are unmeasured),
+so the tests compare the digits of a large value rather than assert it. A value whose `_arg` is none of the
+standard library's (only an app's own `_FormatSpecifiable` conformance makes
+one) is still written at once in `.current`.
+
+**Cost.** Better than before: every body that built a key with a specifier paid
+`String(format:locale:)` (3.6 µs for an integer, 13 µs for a `Double`, measured
+2026-10-24) each time; it now pays a type switch, a hash of the specifier and a
+lock, and the formatting only when the number or the locale is new. Counted in
+`InterpolatedNumberTests` (100 builds of one specified number write it once).
 
 ### B-TEXTFMT-2. The `formatter:` interpolations ship, although O11 deferred the `Formatter` forms
 

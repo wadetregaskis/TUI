@@ -4,8 +4,10 @@
 //  A number interpolated into a key with no specifier is written in the
 //  locale, as SwiftUI writes it, but a floating-point one is not padded to
 //  six digits, as SwiftUI's is (owner ruling B-TEXTFMT-1, 2026-10-24;
-//  Deliberate deviations T11). Every locale here is explicit: the process's
-//  own, and the app's, are whatever the machine running the tests says.
+//  Deliberate deviations T11). One with a specifier, `\(x, specifier:
+//  "%.2f")`, is written by exactly that conversion, in the same locale.
+//  Every locale here is explicit: the process's own, and the app's, are
+//  whatever the machine running the tests says.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -148,6 +150,91 @@ struct InterpolatedNumberTests {
         #expect(key.numberArguments == [1: .signed(1_000), 3: InterpolatedNumber(2.5)])
         #expect(key.formattingNumbers(in: Self.german).arguments == ["a", "1.000", "b", "2,5"])
     }
+
+    // MARK: - A specifier
+
+    @Test("A specifier's conversion is written in the locale: %.2f and %d in en, de and fr", arguments: [
+        (Locale(identifier: "en_US"), "234.50", "234.57", "42"),
+        (Locale(identifier: "de_DE"), "234,50", "234,57", "42"),
+        (Locale(identifier: "fr_FR"), "234,50", "234,57", "42"),
+    ])
+    func specifiers(_ locale: Locale, _ padded: String, _ rounded: String, _ integer: String) {
+        #expect(InterpolatedNumber(234.5, specifier: "%.2f").formatted(in: locale) == padded, "padding is the conversion's own")
+        #expect(InterpolatedNumber(234.567, specifier: "%.2f").formatted(in: locale) == rounded)
+        #expect(InterpolatedNumber(42, specifier: "%d").formatted(in: locale) == integer)
+        #expect(InterpolatedNumber(Int32(42), specifier: "%d").formatted(in: locale) == integer)
+    }
+
+    @Test("Each width is given the conversion at the width C promotes it to")
+    func specifiedWidths() {
+        let english = Self.english
+        #expect(InterpolatedNumber(Int32(-5), specifier: "%d").formatted(in: english) == "-5")
+        #expect(InterpolatedNumber(Int8(-5), specifier: "%d").formatted(in: english) == "-5")
+        // Foundation groups a conversion's integer in the locale on Apple's
+        // platforms and not everywhere, so the digits are what is compared.
+        let digits = { (number: InterpolatedNumber) in number.formatted(in: english).filter(\.isNumber) }
+        #expect(digits(InterpolatedNumber(Int.min, specifier: "%lld")) == "9223372036854775808", "all 64 bits")
+        #expect(digits(InterpolatedNumber(UInt.max, specifier: "%llu")) == "18446744073709551615", "all 64 bits")
+        #expect(InterpolatedNumber(UInt8(200), specifier: "%u").formatted(in: english) == "200")
+        #expect(InterpolatedNumber(255, specifier: "%llx").formatted(in: english) == "ff")
+        #expect(InterpolatedNumber(Float(2.5), specifier: "%.1f").formatted(in: english) == "2.5")
+        #expect(InterpolatedNumber(CGFloat(2.25), specifier: "%.3f").formatted(in: english) == "2.250")
+        #expect(InterpolatedNumber(Double.pi, specifier: "%.10f").formatted(in: Self.german) == "3,1415926536")
+    }
+
+    @Test("The same value under two specifiers is two numbers")
+    func specifierIsPartOfTheNumber() {
+        #expect(InterpolatedNumber(2.5, specifier: "%.1f") != InterpolatedNumber(2.5, specifier: "%.2f"))
+        #expect(InterpolatedNumber(2.5, specifier: "%.1f") != InterpolatedNumber(2.5))
+        let again = InterpolatedNumber(2.5, specifier: "%.1f")
+        #expect(InterpolatedNumber(2.5, specifier: "%.1f") == again)
+    }
+
+    @Test("A specifier's key is SwiftUI's, so a translation keyed with it still matches, in each locale")
+    func specifierKey() {
+        let key: LocalizedStringKey = "Price \(234.5, specifier: "%.2f") for \(3, specifier: "%d")"
+        #expect(key.key == "Price %@ for %@")
+        #expect(key.swiftUIKey == "Price %.2f for %d")
+        let translations = [
+            "en": ["Price %.2f for %d": "Cost %.2f x%d"], "de": ["Price %.2f for %d": "Preis %.2f für %d"],
+            "fr": ["Price %.2f for %d": "Prix %.2f pour %d"],
+        ]
+        for (language, lang, expected) in [
+            (LocalizationService.Language.english, "en_US.UTF-8", "Cost 234.50 x3"),
+            (.german, "de_DE.UTF-8", "Preis 234,50 für 3"), (.french, "fr_FR.UTF-8", "Prix 234,50 pour 3"),
+        ] {
+            let service = service(language, lang: lang)
+            service.register(translations: translations)
+            #expect(key.resolved(with: service) == expected)
+        }
+    }
+
+    @Test("A specifier's number keeps its place and is written afresh in another locale")
+    func specifierPlace() {
+        let key: LocalizedStringKey = "\("a") \(2.5, specifier: "%.2f") \(1_000) \(7, specifier: "%03d")"
+        #expect(key.numberArguments.keys.sorted() == [1, 2, 3])
+        #expect(key.formattingNumbers(in: Self.german).arguments == ["a", "2,50", "1.000", "007"])
+        #expect(key.formattingNumbers(in: Self.english).arguments == ["a", "2.50", "1,000", "007"])
+    }
+
+    @Test("A specifier's number is written once while unchanged, and again when the locale moves")
+    func specifierKeptPerLocale() {
+        let service = service(.english, lang: "de_DE.UTF-8")
+        let number = InterpolatedNumber(234.5, specifier: "%.2f")
+        for _ in 0..<100 { #expect(service.formatted(number) == "234,50") }
+        #expect(service.numbersFormatted == 1)
+        service.pinLanguageForTesting(.french)
+        #expect(service.formatted(number) == number.formatted(in: service.currentLocale))
+        #expect(service.numbersFormatted == 2)
+    }
+
+    @Test("A key's specifier is written through the shared service, in its locale")
+    func specifierBuiltThroughTheSharedService() {
+        let key: LocalizedStringKey = "v \(234.5, specifier: "%.2f")"
+        let locale = LocalizationService.shared.currentLocale
+        #expect(key.arguments == [InterpolatedNumber(234.5, specifier: "%.2f").formatted(in: locale)])
+        #expect(key.numberArguments == [0: InterpolatedNumber(234.5, specifier: "%.2f")])
+    }
 }
 
 // MARK: - Drawn
@@ -204,5 +291,33 @@ struct InterpolatedNumberTextTests {
     func live() {
         let view = Text("n \(1_234) \(Date(), style: .relative)").environment(\.locale, Locale(identifier: "de_DE"))
         #expect(drawn(view).contains("n 1.234"), "\(drawn(view))")
+    }
+
+    @Test("A specifier's number follows \\.locale too: %.2f and %d under en, de and fr", arguments: [
+        ("en_US", "p 234.50 n 007"), ("de_DE", "p 234,50 n 007"), ("fr_FR", "p 234,50 n 007"),
+    ])
+    func specifierDrawnInTheLocale(_ identifier: String, _ expected: String) {
+        let view = Text("p \(234.5, specifier: "%.2f") n \(7, specifier: "%03d")")
+            .environment(\.locale, Locale(identifier: identifier))
+        let lines = drawn(view)
+        #expect(lines.contains(expected), "\(lines)")
+    }
+
+    @Test("A change of \\.locale writes a specifier's number again, German, English, French")
+    func specifierLocaleChange() {
+        let view = VStack {
+            Text("\(234.5, specifier: "%.2f")").environment(\.locale, Locale(identifier: "de_DE"))
+            Text("\(234.5, specifier: "%.2f")").environment(\.locale, Locale(identifier: "en_US"))
+            Text("\(234.5, specifier: "%.2f")").environment(\.locale, Locale(identifier: "fr_FR"))
+        }
+        let lines = drawn(view).split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+        #expect(lines == ["234,50", "234.50", "234,50"], "\(lines)")
+    }
+
+    @Test("A translation keyed with the specifier is found and its number follows \\.locale")
+    func specifierTranslated() {
+        LocalizationService.shared.register(translations: ["en": ["test.spec price %.2f": "test.spec cost %.2f"]])
+        let view = Text("test.spec price \(234.5, specifier: "%.2f")").environment(\.locale, Locale(identifier: "de_DE"))
+        #expect(drawn(view).contains("test.spec cost 234,50"), "\(drawn(view))")
     }
 }

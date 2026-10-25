@@ -111,17 +111,24 @@ extension LocalizedStringKey.StringInterpolation {
     /// mirrors SwiftUI's `appendInterpolation(_:specifier:)`:
     /// `Text("\(price, specifier: "%.2f")")`.
     ///
-    /// Formatted at once, in the current locale, as `Text(_:format:)`
-    /// formats. The key carries `%@` where the value goes, like every other
-    /// interpolation here, and its `swiftUIKey` the
-    /// specifier itself, as SwiftUI's key does; both are looked up.
+    /// Written exactly as the conversion writes it (`String(format:locale:)`)
+    /// in the locale, like a bare number: `\.locale`, the app's where the key
+    /// is built and a subtree's where its `Text` draws, so `%.2f` is `3.14` in
+    /// `en` and `3,14` in `de`. The value is kept with the key
+    /// (`InterpolatedNumber`), not only its text, and what the app's locale
+    /// wrote is kept per number, as a bare number's is. The key carries `%@`
+    /// where the value goes, like every other interpolation here, and its
+    /// `swiftUIKey` the specifier itself, as SwiftUI's key does; both are
+    /// looked up.
     ///
     /// - Parameters:
     ///   - value: The value to format.
     ///   - specifier: The format specifier, such as `%.2f` or `%x`.
     public mutating func appendInterpolation<T: _FormatSpecifiable>(_ value: T, specifier: String) {
         appendPlaceholder(specifier)
-        arguments.append(String(format: specifier, locale: .current, value._arg))
+        let number = InterpolatedNumber(value, specifier: specifier)
+        numberArguments[arguments.count] = number
+        arguments.append(LocalizationService.shared.formatted(number))
     }
 
     /// Interpolates a value through a format style — the same eager

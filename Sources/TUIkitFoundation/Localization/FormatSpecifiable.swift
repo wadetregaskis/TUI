@@ -127,3 +127,27 @@ extension InterpolatedNumber {
         }
     }
 }
+
+extension InterpolatedNumber {
+    /// `value` as `\(value, specifier:)` keeps it: the printf conversion the
+    /// interpolation named and the value at the width C's variadic promotion
+    /// gives it (``_FormatSpecifiable/_arg``), to be written in the locale
+    /// the key is read in.
+    ///
+    /// A value whose ``_FormatSpecifiable/_arg`` is none of the standard
+    /// library's (only a conformance of an app's own makes one) is written at
+    /// once in the process's locale, as every specifier was before they
+    /// followed `\.locale`.
+    init<T: _FormatSpecifiable>(_ value: T, specifier: String) {
+        switch value._arg {
+        case let integer as Int64: self = .specified(specifier, .int64(integer))
+        case let integer as Int32: self = .specified(specifier, .int32(integer))
+        case let integer as UInt64: self = .specified(specifier, .uint64(integer))
+        case let integer as UInt32: self = .specified(specifier, .uint32(integer))
+        case let double as Double: self = .specified(specifier, .double(bitPattern: double.bitPattern))
+        case let float as Float: self = .specified(specifier, .double(bitPattern: Double(float).bitPattern))
+        case let float as CGFloat: self = .specified(specifier, .double(bitPattern: Double(float).bitPattern))
+        default: self = .verbatim(String(format: specifier, locale: .current, value._arg))
+        }
+    }
+}
