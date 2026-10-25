@@ -151,6 +151,23 @@ struct FindNavigatorTests {
         #expect(offsets() == 4..<7)
     }
 
+    @Test("The find state compares what it was set with, not what its binding says now")
+    func stateComparesItsSnapshot() {
+        var presented = false
+        let binding = Binding(get: { presented }, set: { presented = $0 })
+        var closed = FindNavigatorState()
+        closed.isPresented = binding
+        presented = true
+        var open = FindNavigatorState()
+        open.isPresented = binding
+        // Read live, both said `true` now, and a state kept from the render
+        // with the bar closed compared equal to this one.
+        #expect(closed != open)
+        var openAgain = FindNavigatorState()
+        openAgain.isPresented = binding
+        #expect(open == openAgain)
+    }
+
     @Test("Ctrl-G finds the next match with the bar closed, and Shift-Ctrl-G the previous")
     func controlGSteps() {
         guard #available(macOS 15, *) else { return }

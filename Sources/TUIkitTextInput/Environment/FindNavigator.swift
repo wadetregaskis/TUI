@@ -20,7 +20,16 @@ import TUIkitFoundation
 /// off.
 struct FindNavigatorState: Equatable {
     /// The app's presentation binding, from ``View/findNavigator(isPresented:)``.
-    var isPresented: Binding<Bool>?
+    var isPresented: Binding<Bool>? {
+        didSet { presentedWhenSet = isPresented?.wrappedValue }
+    }
+
+    /// What ``isPresented`` said when it was set, which is when the modifier
+    /// applied it, in the render that drew with it: what `==` compares. NOT the
+    /// binding's value now — two states holding the same binding read the same
+    /// value now, whatever each was drawn with, so a state kept from an earlier
+    /// render compared equal to this render's after the bar had opened.
+    private var presentedWhenSet: Bool?
 
     /// Whether ``View/findDisabled(_:)`` is in force.
     var isFindDisabled = false
@@ -29,7 +38,7 @@ struct FindNavigatorState: Equatable {
     var isReplaceDisabled = false
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        guard lhs.isPresented?.wrappedValue == rhs.isPresented?.wrappedValue,
+        guard lhs.presentedWhenSet == rhs.presentedWhenSet,
             (lhs.isPresented == nil) == (rhs.isPresented == nil),
             lhs.isFindDisabled == rhs.isFindDisabled
         else { return false }
