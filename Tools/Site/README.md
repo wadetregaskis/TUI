@@ -55,27 +55,17 @@ afterwards: upload to (or delete from) it, then run the workflow by hand
 
 ## The custom domain
 
-The site's canonical address is **https://swift-tui.com/**; `swifttui.com`
-forwards to it. Set once, by hand, outside the repository:
-
-1. **Settings → Pages → Custom domain:** `swift-tui.com`, then *Save*, and
-   *Enforce HTTPS* once GitHub has issued the certificate (it offers the box
-   when it has).
-2. **DNS at the registrar,** for `swift-tui.com`: `A` records to GitHub Pages'
-   four addresses (185.199.108.153, 185.199.109.153, 185.199.110.153,
-   185.199.111.153), `AAAA` to its four IPv6 ones (2606:50c0:8000::153,
-   2606:50c0:8001::153, 2606:50c0:8002::153, 2606:50c0:8003::153), and a
-   `CNAME` for `www` to `<owner>.github.io`. GitHub's "Managing a custom domain
-   for your GitHub Pages site" is the authority if these change.
-3. **Verify the domain** for the account (*Settings → Pages → Add a domain*,
-   a `TXT` record), so nobody else's repository can claim it.
-4. **`swifttui.com`:** a permanent (301) forward to `https://swift-tui.com/`
-   at its registrar. It is not a second Pages domain; a repository has one.
+The site is served at **https://swift-tui.com/**, its canonical address, set
+under *Settings → Pages → Custom domain* (with *Enforce HTTPS*) and pointed at
+GitHub Pages by the domain's DNS records. Write the site's address as
+`https://swift-tui.com/` wherever it is mentioned.
 
 With a custom domain the site is served at the root of its host, so
 `actions/configure-pages` reports an empty base path and the workflow builds
-for that: nothing here changes. An Actions-deployed site needs no `CNAME`
-file in the artifact; the domain is the setting in step 1.
+for that: nothing in the workflow names the domain. An Actions-deployed site
+needs no `CNAME` file in the artifact; the domain is the Pages setting. If it
+ever moves, the setting and the DNS records are all that change; GitHub's
+"Managing a custom domain for your GitHub Pages site" is the reference.
 
 ## Building it locally
 
