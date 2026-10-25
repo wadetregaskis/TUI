@@ -361,13 +361,30 @@ extension StateStorage {
     public func storage<Value>(
         for key: StateKey, default defaultValue: @autoclosure () -> Value
     ) -> StateBox<Value> {
+        box(for: key, default: defaultValue(), softly: false)
+    }
+
+    /// ``storage(for:default:)`` for a composite view's `@State`: a box whose
+    /// writes are a parent's (``StateBox/invalidatesSoftly``). Called only by
+    /// `@State`'s binding; a core's slots go through
+    /// ``storage(for:default:)`` and stay hard.
+    func compositeStorage<Value>(
+        for key: StateKey, default defaultValue: @autoclosure () -> Value
+    ) -> StateBox<Value> {
+        box(for: key, default: defaultValue(), softly: true)
+    }
+
+    private func box<Value>(
+        for key: StateKey, default defaultValue: @autoclosure () -> Value, softly: Bool
+    ) -> StateBox<Value> {
         if let existing = values[key] as? StateBox<Value> {
+            assert(existing.invalidatesSoftly == softly, "one state key reached as a core's slot and a composite's")
             // Its identity is the key's it was placed at, which this key
             // equals; its sink is written only if the storage's link moved.
             existing.setInvalidationSink(renderCacheLink)
             return existing
         }
-        let fresh = StateBox(defaultValue())
+        let fresh = StateBox(defaultValue(), invalidatesSoftly: softly)
         fresh.place(at: key.identity)
         fresh.setInvalidationSink(renderCacheLink)
         // A box of another type under the key — the property's type changed
@@ -967,9 +984,19 @@ public final class StateBox<Value>: @unchecked Sendable {
     public var value: Value {
         didSet {
             let (sink, identity) = withStamp { ($0.invalidationSink, $0.identity) }
-            sink?.invalidateRender(for: identity)
+            if invalidatesSoftly, let identity {
+                sink?.invalidateRenderSoftly(for: identity)
+            } else {
+                sink?.invalidateRender(for: identity)
+            }
         }
     }
+
+    /// Whether a write is a parent's — this is a composite `@State`'s box,
+    /// made by ``StateStorage/compositeStorage(for:default:)`` — rather than
+    /// a core's own slot (Option C, §2.1). A `let`, fixed when the box is
+    /// made, so no thread can read it while another writes it.
+    let invalidatesSoftly: Bool
 
     /// Whether the ``StateStorage`` that kept this box has dropped it: its
     /// view's place pruned, the storage reset, its enum case left. A `@State`
@@ -981,6 +1008,12 @@ public final class StateBox<Value>: @unchecked Sendable {
     /// - Parameter value: The initial value.
     public init(_ value: Value) {
         self.value = value
+        invalidatesSoftly = false
+    }
+
+    init(_ value: Value, invalidatesSoftly: Bool) {
+        self.value = value
+        self.invalidatesSoftly = invalidatesSoftly
     }
 }
 

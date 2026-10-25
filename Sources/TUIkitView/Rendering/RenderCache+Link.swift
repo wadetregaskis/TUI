@@ -67,6 +67,10 @@ extension RenderCache {
             /// Subtrees whose cached buffers must be dropped (unless
             /// `clearAll`).
             var identities: Set<ViewIdentity> = []
+            /// Those of `identities` every report of which was SOFT — a
+            /// parent's write (Option C, §2.1): one hard report of an
+            /// identity makes it hard, whatever came before or after.
+            var softOnly: Set<ViewIdentity> = []
             /// The render state of the app the cache draws, which every report
             /// asks for a frame — and whose pending transaction a report made
             /// inside `withAnimation` sets — or `nil` for a cache no app
@@ -88,6 +92,11 @@ extension RenderCache {
             package let clearAll: Bool
             /// The identities queued, when `clearAll` is not set.
             package let identities: Set<ViewIdentity>
+            /// Those of ``identities`` only ever reported softly — written by a
+            /// composite `@State`, or read by a body whose observation fired.
+            /// The drain still drops what it drops for a hard writer (C4a);
+            /// Option C's soft drain keeps what is below them (C4b).
+            package let softOnly: Set<ViewIdentity>
         }
 
         private let queue = Lock(initialState: Queue())
@@ -110,6 +119,7 @@ extension RenderCache {
                 queue.attached = false
                 queue.clearAll = false
                 queue.identities.removeAll()
+                queue.softOnly.removeAll()
                 queue.appState = nil
                 queue.diagnostic = nil
             }
@@ -149,23 +159,38 @@ extension RenderCache {
         /// (`AppState.setNeedsRenderForObservedChange()`), so a later write
         /// under `withAnimation` that the spent observation cannot report
         /// still animates it.
-        package func invalidateRenderForObservedChange(at identity: ViewIdentity) {
-            enqueue(identity)?.setNeedsRenderForObservedChange()
+        package func invalidateRenderForObservedChange(at identity: ViewIdentity, softly: Bool = false) {
+            enqueue(identity, softly: softly)?.setNeedsRenderForObservedChange()
+        }
+
+        /// ``invalidateRender(for:)`` for a parent's write: a composite
+        /// `@State`'s, whose view's body — and so the values of the views it
+        /// makes — is certain to be evaluated again (Option C, §2.1).
+        package func invalidateRenderSoftly(for identity: ViewIdentity) {
+            enqueue(identity, softly: true)?.setNeedsRender()
         }
 
         /// Queues the invalidation of `identity` (`nil`: of everything), and
         /// returns the app state to ask for the frame — `nil` once the cache
         /// has gone, or for a cache no app draws.
-        private func enqueue(_ identity: ViewIdentity?) -> AppState? {
+        private func enqueue(_ identity: ViewIdentity?, softly: Bool = false) -> AppState? {
             typealias Report = (queued: Bool, appState: AppState?, diagnostic: BodyMutationDiagnostic?)
             let (queued, appState, diagnostic) = queue.withLock { queue -> Report in
                 guard queue.attached else { return (false, nil, nil) }
                 queue.writes &+= 1
                 if let identity {
-                    if !queue.clearAll { queue.identities.insert(identity) }
+                    if !queue.clearAll {
+                        let (isNew, _) = queue.identities.insert(identity)
+                        if !softly {
+                            queue.softOnly.remove(identity)
+                        } else if isNew {
+                            queue.softOnly.insert(identity)
+                        }
+                    }
                 } else {
                     queue.clearAll = true
                     queue.identities.removeAll(keepingCapacity: true)
+                    queue.softOnly.removeAll(keepingCapacity: true)
                 }
                 return (true, queue.appState, queue.diagnostic)
             }
@@ -227,9 +252,11 @@ extension RenderCache {
         /// empty. Called by the cache, on the main actor.
         func drain() -> Pending {
             queue.withLock { queue in
-                let pending = Pending(clearAll: queue.clearAll, identities: queue.identities)
+                let pending = Pending(
+                    clearAll: queue.clearAll, identities: queue.identities, softOnly: queue.softOnly)
                 queue.clearAll = false
                 queue.identities.removeAll(keepingCapacity: true)
+                queue.softOnly.removeAll(keepingCapacity: true)
                 return pending
             }
         }

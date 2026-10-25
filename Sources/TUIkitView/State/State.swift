@@ -357,6 +357,19 @@ public protocol RenderInvalidationSink: AnyObject, Sendable {
     /// re-render. Thread-safe; the cache mutation itself is deferred to the
     /// next main-actor frame boundary.
     func invalidateRender(for identity: ViewIdentity?)
+
+    /// ``invalidateRender(for:)`` for a parent's write — a composite
+    /// `@State`'s — whose body is certain to run again, so the values of the
+    /// views below it are rebuilt before any is served (Option C, §2.1). A
+    /// sink that makes no such distinction drops what a write drops.
+    func invalidateRenderSoftly(for identity: ViewIdentity)
+}
+
+extension RenderInvalidationSink {
+    /// Drops what a write drops: a sink that tells no soft write from a hard one.
+    public func invalidateRenderSoftly(for identity: ViewIdentity) {
+        invalidateRender(for: identity)
+    }
 }
 
 // MARK: - Environment Registration
@@ -889,7 +902,7 @@ extension State: StateBindable {
     static func bindState(at address: UnsafeMutableRawPointer, to storage: StateStorage, key: StateStorage.StateKey) -> Bool {
         let state = address.assumingMemoryBound(to: Self.self)
         let backing = state.pointee.backing
-        let box = storage.storage(for: key, default: backing.defaultValue)
+        let box = storage.compositeStorage(for: key, default: backing.defaultValue)
         if backing.box === box { return false }
         // Rebound where its box is gone, not given a backing in this copy:
         // the copy may be one the runtime made (an `indirect` case's

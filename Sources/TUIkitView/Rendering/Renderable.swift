@@ -379,13 +379,18 @@ package func observedChange(
     if sentinel == nil { cache?.noteReads(reader) }
     let registration = cache?.observationCensus?.arm(
         kind, unleased: sentinel == nil && cache?.leases.retirement != .never)
+    // A body's read is a parent's: its body runs again, and with it the
+    // values of the views it makes (Option C, §2.1). A kept result's scope
+    // collects reads made anywhere beneath it, a control's core's included,
+    // so its change stays hard.
+    let softly = kind == .bodyRender || kind == .bodyMeasure
     return { [link = cache?.link, identity = context.identity] in
         if let sentinel, sentinel.isRetired {
             registration?.cancel()
             return
         }
         registration?.fire()
-        reportObservedChange(at: identity, to: link)
+        reportObservedChange(at: identity, to: link, softly: softly)
     }
 }
 
@@ -452,11 +457,11 @@ package func observingKeptResult<T>(
 ///     whose work made the change (``AmbientApp``), if any, for a frame drawn
 ///     from an empty cache. A parameter so a test can see it run.
 package func reportObservedChange(
-    at identity: ViewIdentity, to link: RenderCache.Link?,
+    at identity: ViewIdentity, to link: RenderCache.Link?, softly: Bool = false,
     fallback: () -> Void = { AmbientApp.renderState?.setNeedsRenderWithCacheClear() }
 ) {
     if let link {
-        link.invalidateRenderForObservedChange(at: identity)
+        link.invalidateRenderForObservedChange(at: identity, softly: softly)
     } else {
         fallback()
     }
