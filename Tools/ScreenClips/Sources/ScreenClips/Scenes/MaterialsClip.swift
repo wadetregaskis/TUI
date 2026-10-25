@@ -2,7 +2,7 @@
 //  MaterialsClip.swift
 //
 //  `materials`: a photo library, and what floats over it — a share panel on
-//  frosted glass, a toast on a thinner one, a popover — the library still
+//  frosted glass, a toast on another, a popover — the library still
 //  there, frosted, behind each.
 //
 //  Created by Wade Tregaskis
@@ -94,15 +94,16 @@ struct PhotoLibrary: View {
         .overlay(alignment: .topLeading) {
             if sharing {
                 sharePanel
-                    .offset(x: 30, y: 6)
+                    .offset(x: 24, y: 6)
                     .transition(.opacity)
             }
         }
         .overlay(alignment: .topLeading) {
             if toasting {
                 Text(verbatim: " ✓ Copied 8 photos to the clipboard ")
+                    .bold()
                     .padding(.horizontal, 1)
-                    .background(.ultraThinMaterial)
+                    .background(.regularMaterial)
                     .offset(x: 18, y: 14)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
