@@ -427,6 +427,50 @@ package func observingKeptResult<T>(
         onChange: observedChange(of: context, kind: kind, reader: reader, sentinel: sentinel))
 }
 
+/// Builds a memoized row — `build`, its `ForEach` closure or builder — under
+/// a scope of its own that reports a change SOFTLY, at the row's `parent`
+/// (Option C): a read the builder makes is the parent's view of its rows, as
+/// SwiftUI re-evaluates a `ForEach` whose closure read what changed and keeps
+/// each row whose value compares equal. The rows below the parent are then
+/// re-checked by their rebuilt values — the edited line of an index-keyed
+/// editor drawn again, the others served — where under the row's kept scope,
+/// which reports hard, every row the builder read for was dropped.
+///
+/// Only for a row that can be re-checked, while re-checked rows are served
+/// (`renderValueMemoized`); any other keeps its builder under its kept scope.
+@inline(__always)
+@MainActor
+package func observingRowBuild<T>(
+    of reader: Any.Type, parent: ViewIdentity, context: RenderContext, _ build: () -> T
+) -> T {
+    let cache = context.renderCache
+    let sentinel = cache?.scopeSentinel(forReader: reader, at: parent)
+    return withObservationTracking(
+        {
+            sentinel?.touch()
+            return build()
+        },
+        onChange: rowBuildChange(cache: cache, reader: reader, parent: parent, sentinel: sentinel))
+}
+
+/// ``observingRowBuild(of:parent:context:_:)``'s change: a soft invalidation
+/// at `parent`, unless the lease retired the scope.
+private func rowBuildChange(
+    cache: RenderCache?, reader: Any.Type, parent: ViewIdentity, sentinel: ScopeSentinel?
+) -> @Sendable () -> Void {
+    if sentinel == nil { cache?.noteReads(reader) }
+    let registration = cache?.observationCensus?.arm(
+        .bodyRender, unleased: sentinel == nil && cache?.leases.retirement != .never)
+    return { [link = cache?.link] in
+        if let sentinel, sentinel.isRetired {
+            registration?.cancel()
+            return
+        }
+        registration?.fire()
+        reportObservedChange(at: parent, to: link, softly: true)
+    }
+}
+
 /// Where an observed body's change goes: to the cache the body was drawn
 /// with, as an invalidation at the body's identity, through the cache's link;
 /// to the whole-cache fallback when it was drawn with no cache; and nowhere

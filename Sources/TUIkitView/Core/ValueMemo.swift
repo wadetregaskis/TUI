@@ -188,13 +188,22 @@ func renderValueMemoized<Key: Equatable, Row>(
     // long as that is kept — and, stored or not, by what encloses this memo
     // (see `ObservationLeases`).
     let leaseMark = cache.leases.beginComputation()
-    // Built once, inside the scope — a read the row's builder makes is the
-    // kept buffer's too — and kept: what the buffer is re-checked by (Option C).
+    // Built once and kept: what the buffer is re-checked by (Option C). Under
+    // the kept scope — a read the row's builder makes is the kept buffer's
+    // too — unless the row can be re-checked, when its builder's reads are
+    // its parent's, softly (`observingRowBuild`).
     var built: Row?
-    let buffer = observingKeptResult(of: Key.self, kind: .keptRender, context: context) {
-        let row = build()
+    let buffer: FrameBuffer
+    if let parent = softBuildParent(of: Row.self, cache: cache, identity: identity) {
+        let row = observingRowBuild(of: Key.self, parent: parent, context: context, build)
         built = row
-        return render(row, renderContext)
+        buffer = observingKeptResult(of: Key.self, kind: .keptRender, context: context) { render(row, renderContext) }
+    } else {
+        buffer = observingKeptResult(of: Key.self, kind: .keptRender, context: context) {
+            let row = build()
+            built = row
+            return render(row, renderContext)
+        }
     }
     let lease = cache.leases.endComputation(leaseMark)
 
@@ -426,13 +435,20 @@ func measureValueMemoized<Key: Equatable, Row>(
     // The scopes this measure arms are kept alive by the size it stores — see
     // the buffer half.
     let leaseMark = cache.leases.beginComputation()
-    // Built once, inside the scope — a read the row's builder makes is the
-    // kept size's too — and kept: what the size is re-checked by (Option C).
+    // As the buffer half: under the kept scope, or for a row that can be
+    // re-checked, under its parent's soft one.
     var built: Row?
-    let size = observingKeptResult(of: Key.self, kind: .keptMeasure, context: context) {
-        let row = build()
+    let size: ViewSize
+    if let parent = softBuildParent(of: Row.self, cache: cache, identity: context.identity) {
+        let row = observingRowBuild(of: Key.self, parent: parent, context: context, build)
         built = row
-        return measure(row, measureContext)
+        size = observingKeptResult(of: Key.self, kind: .keptMeasure, context: context) { measure(row, measureContext) }
+    } else {
+        size = observingKeptResult(of: Key.self, kind: .keptMeasure, context: context) {
+            let row = build()
+            built = row
+            return measure(row, measureContext)
+        }
     }
     let lease = cache.leases.endComputation(leaseMark)
     // The uncomparable-environment clause. A non-Equatable environment value in
@@ -449,4 +465,14 @@ func measureValueMemoized<Key: Equatable, Row>(
             revalidation: built.flatMap { cache.revalidationRecord(for: $0, context: context) })
     }
     return size
+}
+
+/// The identity a memoized row's builder reports its reads to, softly — the
+/// row's parent — when the row can be re-checked and re-checked rows are
+/// served; `nil` keeps the builder under the row's kept scope, as before.
+@inline(__always)
+@MainActor
+private func softBuildParent(of row: Any.Type, cache: RenderCache, identity: ViewIdentity) -> ViewIdentity? {
+    guard cache.revalidation.servesRechecked, cache.revalidation.equality(ofRowsOf: row) != nil else { return nil }
+    return identity.parent
 }
