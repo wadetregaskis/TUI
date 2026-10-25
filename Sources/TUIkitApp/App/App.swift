@@ -337,6 +337,8 @@ extension AppRunner {
         // And the one that sends the terminal a progress bar, where the
         // terminal it identified takes one.
         loop.sendsProgressReports = TerminalClient.progressReportsSupported
+        loop.progressAbsence = TerminalCapabilities.progressAbsence(
+            program: TerminalHost.program, environment: ProcessInfo.processInfo.environment)
         return loop
     }
 
@@ -490,6 +492,13 @@ extension AppRunner {
         // follows the clients attached.
         tuiContext.terminalFeatures = tuiContext.terminalFeatures.withProgress(
             showsProgress: false, postsNotifications: TerminalClient.notificationsSupported)
+        // And everything those answers settle of what the terminal can do,
+        // feature by feature, to `\.terminalCapabilities`: its tables, the
+        // graphics handshake and the keyboard negotiation, all in by now, so
+        // the first frame reads them. The loop adds the progress bar as it
+        // learns whether it shows, and a key Option as Meta.
+        tuiContext.terminalCapabilities = .atLaunch(
+            features: tuiContext.terminalFeatures, reporting: tuiContext.keyboardReporting)
 
         let renderer = makeRenderLoop()
         startHostSettings(renderer: renderer)
@@ -1053,8 +1062,11 @@ extension AppRunner {
                     // The notice went out behind the diff writer's back.
                     renderer.forgetTerminalStyling()
                 }
+                // What the key shows of the terminal (Option sent as Meta), drawn
+                // by the frame it asks for, whether or not anything takes it.
+                let learnt = tuiContext.observeTerminalInput(keyEvent)
                 let silencedTooltip = inputHandler.silencePointerTooltip(for: keyEvent)
-                if inputHandler.handle(keyEvent) || silencedTooltip {
+                if inputHandler.handle(keyEvent) || silencedTooltip || learnt {
                     appState.setNeedsRender()
                 }
 

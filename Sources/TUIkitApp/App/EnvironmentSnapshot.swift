@@ -102,6 +102,13 @@ internal struct EnvironmentSnapshot: Equatable {
     /// drawing it, or not, as before the change.
     let terminalFeatures: TerminalFeatures
 
+    /// What the terminal can do, feature by feature (`\.terminalCapabilities`).
+    /// It changes mid-run with no view value changing — a key that shows
+    /// Option is sent as Meta, a tmux client that draws the progress bar
+    /// attaching — and without it here a memoized view that said the terminal
+    /// lacked a feature went on saying so.
+    let terminalCapabilities: TerminalCapabilities
+
     /// When tooltips appear, as the root publishes it: the Help menu's Show
     /// Tooltips and Show All Tooltips change it between frames with no view
     /// value changing, and a memoized subtree that drew its `help(_:)` views'
@@ -123,6 +130,7 @@ internal struct EnvironmentSnapshot: Equatable {
         self.terminalWidth = environment.terminalWidth
         self.terminalHeight = environment.terminalHeight
         self.terminalFeatures = environment.terminalFeatures
+        self.terminalCapabilities = environment.terminalCapabilities
         self.tooltipTrigger = environment.tooltipTrigger
     }
 }

@@ -87,5 +87,14 @@ extension EnvironmentValues {
         if context.terminalFeatures != .none {
             terminalFeatures = context.terminalFeatures
         }
+        // What the terminal can do, feature by feature, on the same terms:
+        // written only where something is known, so a context with no terminal
+        // pays no write per frame. Not constant for the run — a key can show a
+        // feature, and under tmux whether the progress bar shows follows the
+        // clients attached — so the render loop's `EnvironmentSnapshot` holds
+        // it.
+        if context.terminalCapabilities != .nothingKnown {
+            terminalCapabilities = context.terminalCapabilities
+        }
     }
 }

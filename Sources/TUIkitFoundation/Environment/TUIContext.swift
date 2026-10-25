@@ -397,6 +397,30 @@ package final class TUIContext: @unchecked Sendable {
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _terminalFeatures = TerminalFeatures.none
 
+    /// What the terminal can do, feature by feature, published to
+    /// `\.terminalCapabilities`. Set by the app runner at launch from TUIkit's
+    /// tables and the terminal's answers, by the render loop when whether the
+    /// progress bar shows changes, and by the run loop when a key shows a
+    /// feature (``observeTerminalInput(_:)``); every feature undetermined until
+    /// then, and for a context with no terminal behind it.
+    package var terminalCapabilities: TerminalCapabilities {
+        get { _terminalCapabilities }
+        set { _terminalCapabilities = newValue }
+    }
+
+    /// ``terminalCapabilities``'s storage: private, under the `package`
+    /// accessor (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _terminalCapabilities = TerminalCapabilities.nothingKnown
+
+    /// Learns what `event`, a key read from the terminal, shows of it
+    /// (``TerminalCapabilities/observing(_:)``).
+    /// - Returns: Whether the capabilities changed, so that a frame shows it.
+    package func observeTerminalInput(_ event: KeyEvent) -> Bool {
+        guard let learnt = _terminalCapabilities.observing(event) else { return false }
+        _terminalCapabilities = learnt
+        return true
+    }
+
     /// The app's undo and redo keys, as the scene set them
     /// (`Scene.undoShortcuts(_:)`): published by the render loop each frame,
     /// read by the input chain and the status bar between frames.

@@ -294,4 +294,16 @@ struct EnvironmentSnapshotTests {
         let after = EnvironmentSnapshot(from: environment)
         #expect(before != after, "a client that draws no bar attaching must clear the render cache")
     }
+
+    /// What the terminal can do changes mid-run too — a key shows Option is
+    /// sent as Meta — with no view value changing, so a memoized view that
+    /// said the terminal lacked it would go on saying so.
+    @Test("A change of what the terminal can do invalidates the render cache (snapshot inequality)")
+    func terminalCapabilitiesChangeChangesSnapshot() {
+        var environment = EnvironmentValues()
+        let before = EnvironmentSnapshot(from: environment)
+        environment.terminalCapabilities = TerminalCapabilities.nothingKnown.settling(.optionAsMeta, as: .supported)
+        let after = EnvironmentSnapshot(from: environment)
+        #expect(before != after, "a feature learnt must clear the render cache")
+    }
 }

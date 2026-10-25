@@ -66,8 +66,18 @@ extension RenderLoop {
     /// answer, push-refreshed as they attach and detach). A change takes a
     /// frame: the render loop's `EnvironmentSnapshot` holds the value, so a
     /// memoized view that read it draws again.
+    ///
+    /// And the same answer to `\.terminalCapabilities`, as
+    /// ``TerminalCapabilities/Feature/progressReports``: supported where the
+    /// bar shows, else what ``progressAbsence`` says its absence means. Two
+    /// bit tests a frame, and a write only on a change.
     func publishTerminalFeatures(_ capabilities: ClientCapabilities) {
         let showsProgress = sendsProgressReports && (!isTmux || capabilities.drawsProgressBars)
+        let progressStatus: TerminalCapabilities.Status = showsProgress ? .supported : progressAbsence
+        let known = tuiContext.terminalCapabilities
+        if known.status(of: .progressReports) != progressStatus {
+            tuiContext.terminalCapabilities = known.settling(.progressReports, as: progressStatus)
+        }
         let features = tuiContext.terminalFeatures
         guard features.showsProgress != showsProgress else { return }
         tuiContext.terminalFeatures = features.withProgress(

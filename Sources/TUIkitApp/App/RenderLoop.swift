@@ -311,6 +311,14 @@ internal final class RenderLoop<A: App> {
     /// the tmux clients (`publishTerminalFeatures(_:)`).
     var sendsProgressReports = false
 
+    /// What a progress bar that does not show says of the terminal, published
+    /// to `\.terminalCapabilities` beside whether it shows
+    /// (`publishTerminalFeatures(_:)`): set by the app runner from the terminal
+    /// it identified (`TerminalCapabilities.progressAbsence(program:environment:)`),
+    /// and undetermined in every other loop, for the reason
+    /// ``sendsProgressReports`` gives.
+    var progressAbsence = TerminalCapabilities.Status.undetermined
+
     /// Where ``terminalColors`` publishes what the terminal says about its
     /// colours: `TerminalColors.current` in an app, through
     /// `TerminalColorRefresher.publishProcessWide(_:)`.

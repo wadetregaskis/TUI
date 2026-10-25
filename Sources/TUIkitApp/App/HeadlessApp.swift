@@ -174,6 +174,9 @@ package final class HeadlessApp<A: App> {
     package func send(_ event: KeyEvent) -> Bool {
         focusManager.noteInputSource(.keyboard)
         tuiContext.mouseEventDispatcher.noteInput()
+        // What it shows of the terminal, as the event funnel learns it; the
+        // next frame a script draws shows it.
+        _ = tuiContext.observeTerminalInput(event)
         return AmbientApp.$renderState.withValue(tuiContext.appState) { inputHandler.handle(event) }
     }
 
@@ -200,6 +203,14 @@ package final class HeadlessApp<A: App> {
             tuiContext.keyboardReporting = newValue
             tuiContext.undoKeys.reporting = newValue
         }
+    }
+
+    /// What the terminal can do, feature by feature: every feature
+    /// undetermined unless a script says what a run's launch would have
+    /// settled, and what keys sent since have shown.
+    package var terminalCapabilities: TerminalCapabilities {
+        get { tuiContext.terminalCapabilities }
+        set { tuiContext.terminalCapabilities = newValue }
     }
 
     /// Reports the modifier keys held on their own, as a terminal speaking the

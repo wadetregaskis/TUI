@@ -5337,6 +5337,16 @@ Terminal.app and pressed the two chords. Do that before relying on either
 reading. The same run should cover iTerm2, Ghostty and Warp, whose Option
 handling is a per-profile setting in each ("Esc+" vs "Meta" vs "Normal").
 
+Since 2026-10-24 TUIkit learns from these spellings whether Option is sent as
+Meta (`TerminalCapabilities.Feature.optionAsMeta`): an Option chord on a
+printable key settles it as supported. Option-B, -D and -F do not count, because
+`ESC b`, `ESC d` and `ESC f` are what key maps send for ⌥←, ⌥⌦ and ⌥→ with the
+setting off (Apple Terminal's, by the expectation above; iTerm2's "Natural Text
+Editing" preset). Nothing settles it as unsupported: Option composing `≈` cannot
+be told from `≈` typed on a layout that has it, so there it stays undetermined.
+Escape followed by a letter within one read is an Option chord to the parser,
+and counts.
+
 Either way the framework's rule stands on its own: **a ⌥-arrow binding must be
 an accelerator, never the only route.** `OutlineGroup`'s recursive disclosure
 follows it — plain Right and Left reach every branch one level at a time on
@@ -7193,6 +7203,17 @@ K3).
   `String.withSkinToneFallback(scope:)` — the swatch strip: live only for
   tmux (the measured `.keepingTmuxMerged` set) and as the no-traits
   fallback on iTerm2/Warp.
+- `TerminalCapabilities` + `\.terminalCapabilities` (decisions TERMCAPS-API,
+  2026-10-24) — what this document's tables decide, published to an app
+  feature by feature as supported, unsupported or undetermined: the line
+  styles from `TerminalHost.lineStyles(for:)` and the strikethrough row of
+  "Underline shapes and colours"; pictures from the graphics handshake; the
+  keyboard from the kitty protocol's negotiation; links, clipboard writes,
+  notifications, the progress bar and pointer shapes from the ladders TUIkit
+  sends them by (`TerminalCapabilities+Launch.swift`); and Option as Meta from
+  the keys ("Option arrives in two different spellings"). A host this document
+  has not measured for a feature is undetermined, not unsupported, and a row
+  re-measured here reaches the app through the table it already changes.
 
 ### Per-host output pipeline (FrameDiffWriter)
 
