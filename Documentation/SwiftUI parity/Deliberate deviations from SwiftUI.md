@@ -576,6 +576,36 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 ---
 
+### S8. Only an `Equatable` row is re-checked after its parent writes, and its environment is compared whole
+
+- **SwiftUI:** when a parent's body runs again, compares each child's new value
+  with its old one, and draws the child again only if the value changed or a
+  dependency it tracked did — its state, an environment key it read, an
+  observed property it read. A partial `==`, or a read it cannot track, is
+  served stale (Apple's documentation of `Equatable` views and of the
+  Observation framework; the comparison of child values not measured).
+- **TUIkit:** re-checks a row kept below a parent's write — a view's own
+  `@State`, or an `@Observable` property its body read — only if the row's
+  view is `Equatable` and holds no `Binding` and no existential
+  (`RevalidationState.eligibility(ofRowsOf:)`); any other row is drawn again,
+  as before. A row of plain values is compared by its `==`, never by its bytes.
+  Its environment is compared whole — every key, but the few no row can draw
+  differently for — not key by key as the row read them
+  ([RenderCycle.md](../../Sources/TUIkit/TUIkit.docc/Articles/RenderCycle.md),
+  "Re-checking Rows After a Parent Writes"; `RecheckTests`, `SoftDrainTests`,
+  `EnvironmentStampTests`). What a `ForEach` closure or a row's builder reads
+  marks every row below the row's parent for a re-check, rather than the one
+  row that read it.
+- **Why:** a row whose view is not `Equatable` could be compared only through
+  reflection, which cost `scrollfollow` +32% in Option C's first measurement
+  (2026-09-23); a `Binding`'s value is not in the bytes of the row that holds
+  it; comparing the environment whole costs one comparison per environment
+  instead of a record of every key each row read, and can only lose a saving,
+  never draw a wrong cell. A builder's reads are the parent's view of its rows,
+  as SwiftUI re-evaluates a `ForEach` whose closure read what changed.
+- **Decided:** Option C, approved by the owner on 2026-09-26 and again on
+  2026-10-25 ("land convergence now, and then Option C"). Current.
+
 ## Environment
 
 ### E1. Two environment values are read-only constants

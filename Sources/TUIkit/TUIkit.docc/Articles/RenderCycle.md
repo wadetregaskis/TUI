@@ -503,7 +503,7 @@ Cache invalidation is **identity-scoped** where possible, with full clears as th
 
 | Trigger | Mechanism |
 |---------|-----------|
-| A `@State` change | `StateBox.value.didSet` calls `renderCache.invalidateRender(for: identity)`, which queues the identity behind a lock (the write may come from a background `Task`) and requests a render. `beginRenderPass()` drains the queue on the main actor, dropping for each queued identity what `clearAffected(by: identity)` would — the cached buffers and sizes of the identity, its ancestors and its descendants — in one walk of each table however many are queued, so only the affected subtrees' cached buffers are invalidated. A box gets its identity and its render cache together, when `StateStorage` binds it, so a `@State` that has not been bound yet has no cache to invalidate and requests no render |
+| A `@State` change | `StateBox.value.didSet` calls `renderCache.invalidateRender(for: identity)`, which queues the identity behind a lock (the write may come from a background `Task`) and requests a render. `beginRenderPass()` drains the queue on the main actor, dropping for each queued identity what `clearAffected(by: identity)` would — the cached buffers and sizes of the identity, its ancestors and its descendants — in one walk of each table however many are queued, so only the affected subtrees' cached buffers are invalidated. A box gets its identity and its render cache together, when `StateStorage` binds it, so a `@State` that has not been bound yet has no cache to invalidate and requests no render. A view's own `@State` is a *parent's* write: its body runs again, and with it the values of the views it makes, so what lies below it that can be re-checked is kept, marked, and re-checked when it is looked up instead of dropped (<doc:RenderCycle#Re-checking-Rows-After-a-Parent-Writes>). A control's own slots drop their descendants as before |
 | An `@Observable` change | The body that read the property was evaluated under `withObservationTracking` at its view's identity, so the change calls `renderCache.invalidateRender(for: identity)` — the same sink as a `@State` write, and the same scope. `AppState.setNeedsRenderWithCacheClear()` → `clearAll()`, asked of the app whose work made the change, is the fallback only when the render has no cache to scope to. A body evaluated to *measure* a view is observed the same way once its type is known to read: the first registration a type arms while its body is evaluated to draw it — or to measure it by rendering it, which evaluates the body as a draw does — teaches the cache that it reads (`RenderCache.readingTypes`), and from then on its measured bodies are observed too, so a result kept from a measure — a hugging `List`'s width, the picture of an `.equatable()` view whose `ViewThatFits` measured a candidate it did not choose — is dropped by a write to what only the measure read. A type first seen to read clears the whole cache once, at the next pass, since what the cache kept before was measured with those reads untracked; a type that reads only in bodies measured without rendering them, and is never drawn, is never learned, and is measured untracked as before. The registration holds the cache's link (`RenderCache.Link`, below), not the cache, and a change drawn with a cache that has since gone does nothing. A registration lives until a property it read is written, or until nothing the cache keeps depends on the evaluation that armed it: every scope is armed under the lease of the innermost result being computed that may be kept — a memo's buffer, a size kept across frames, a per-pass measure, the content-width ladder's record, or else the frame, which the cache holds until the next frame is drawn — and a result that uses another kept result holds its lease too. When the last holder of a lease lets go, a sentinel property every scope under it also read is written, which fires and so cancels them, and each finds the sentinel retired and reports nothing (`ObservationLeases`). So a reader drawn every frame of a property nobody writes leaves the scopes of the frame on screen and the frame being drawn, not one a frame; a scope a kept result still depends on — a hugging `List`'s width walked under its own context, a size kept at another proposal, a record kept above rows that have left the window — stays until that result goes. The one registration per view type that taught the cache the type reads is never cancelled early. A read no body makes is observed too, wherever its result is kept: a render or measure whose buffer or size the cache keeps — a value memo's (an `.equatable()` view, a `ForEach` row), a hugging `List`'s width, a `Table`'s fitted column — runs under a scope of its own at the keeping view's identity (`observingKeptResult`, the `kept-render` and `kept-measure` kinds), which collects every read beneath it. That is how a control's `Binding` is caught: a toggle reads it while it draws, in its core, after the body that made the binding has returned, and under an `.equatable()` view that compares equal (it holds the same model) the toggle kept the state it was drawn with until something else cleared the cache. A read nothing keeps — a top-level control's `Binding`, a custom style's `makeBody` evaluated in a control's core, the app's body — is observed for a frame and nothing else: nothing kept what it drew, and the next walk reads it again. The app's body runs under a scope of its own; every `Binding` read on the main thread during the walk is noted and read again after it, under one scope (`BindingReads`); and a control evaluates a style's `makeBody` under one (`observingStyleBody`, the `style-render` and `style-measure` kinds). Their change asks for a frame and invalidates nothing (the `frame` kind for the first two). Unobserved, a write made outside an event asked for no frame, and the control kept showing the old value until something else drew. Not one scope around the whole walk: a scope sees every read beneath it, nested scopes' included, and re-registering every read of every frame cost a session whose kept results change every step 9%. Each is leased, as every scope is |
 | A `.refreshable` run starting or ending | The run state behind `\.refresh` is the one thing about a `.refreshable` that changes without its view value changing, so a memo above it would keep serving the idle picture and the spinner would never draw. Each render binds the run state to its render cache and identity, and a run starting or ending calls `invalidateRender(for: identity)`, the same sink and scope as a `@State` write |
 | A `.draggable` view lifted out of its place, or landing back in it | A view being carried draws blank where it was, and whether it is being carried is the drag session's answer, which no memo keys on: a card in a memoized `ForEach` row was served beside its own floating preview, and a row stored blank while the drag lasted would have stayed blank after it. The session reports every change of the view it draws as gone — the drag beginning and ending, and a cancelled drag's preview setting off home and landing — through `invalidateRender(for: identity)` on the app's render cache, the same sink and scope as a `@State` write at that view |
@@ -589,6 +589,48 @@ cell's width. It is paid for: a queue of memoized rows whose spinners turn at
 six speeds (`Stress --session jobs`) measures +9.4% [+8.6%, +10.4%] a frame
 against the stale serve, on an idle machine (2026-09-24) — each row whose run
 moved is drawn again rather than served.
+
+### Re-checking Rows After a Parent Writes
+
+A write drops what it makes stale: the writer's cached buffers and sizes, its
+ancestors', and — for most writes — its descendants'. For a *parent's* write
+— a view's own `@State`, or an `@Observable` property its `body` read — that
+last part costs the most and is usually wasted: a list's parent writes one
+row's data and every row below it was drawn again. SwiftUI rebuilds the
+parent's child views and redraws only those whose values changed. TUIkit does
+the same for rows it can compare.
+
+**What can be re-checked.** A `ForEach` row whose view is `Equatable`, or a
+view in ``View/equatable()``, holding nothing the framework cannot see the
+value of: no `Binding` (whose value its bytes do not say), no existential (which
+a hand-written `==` cannot see all of). Such a row's entry remembers the value
+it was drawn from and the environment it was drawn under (an *environment
+stamp*: every key compared — by value, a class by identity — except the keys
+that cannot change what a row draws, such as the key and mouse channels, and a
+few compared by a projection, such as the palette and the frame's animation
+clock).
+
+**What happens.** Below a parent's write, such an entry is kept and marked.
+When the walk next asks for it, the row's value is built again and compared
+with the one it was drawn from by the row's own `==`, and the environment it
+would be drawn under now with the one it was drawn under. Both equal, it is
+served; otherwise it is drawn again. A marked entry nothing asks for within the
+pass is dropped. A row whose value keeps changing — a list whose rows change
+every frame — is not re-checked for a while (2, 4, 8 … up to 64 passes), since
+each check would be followed by a draw anyway.
+
+**A row's builder.** What a `ForEach` closure or a row's builder reads is the
+parent's view of its rows: a change to it marks the rows below the parent, and
+each is re-checked by its rebuilt value — the edited line of an index-keyed
+editor is drawn again, and the others are served.
+
+**The contract this rests on is SwiftUI's.** A row's `==` must cover everything
+the row draws. One that leaves something out — compares an id, say, while the
+row draws a title — is served showing the old title after the parent writes a
+new one, as SwiftUI would show it. Run with `TUIKIT_VERIFY_RENDER_MEMO=1` to find
+such a row: every served buffer is drawn again and compared, and a mismatch is
+reported and the fresh one drawn (<doc:RenderCycle#Checking-What-the-Cache-Serves>).
+A row that is not `Equatable` is drawn again after its parent writes, as before.
 
 ### What Declines the Cache
 

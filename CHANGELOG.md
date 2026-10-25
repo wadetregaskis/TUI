@@ -186,6 +186,8 @@ All of these are pre-1.0 changes with no old spelling kept.
 
 #### Behaviour changes you may notice
 
+- A `ForEach` row whose view is `Equatable`, or a view in `.equatable()`, is kept when its parent writes — its own `@State`, or an `@Observable` property its body read — and served if its rebuilt value compares equal and its environment is unchanged, as SwiftUI does; before, every row below the write was drawn again. A long log or chat draws in about three quarters of the time or less. A row's `==` must cover everything the row draws: one that leaves something out now shows the old picture after its parent writes, as it would in SwiftUI. `TUIKIT_VERIFY_RENDER_MEMO=1` finds such a row, and `TUIKIT_OPTION_C=0` turns the re-check off to compare. See "Re-checking Rows After a Parent Writes" in the render cycle article.
+
 - The Violet palette draws success green, warning amber and error red, as every other palette does. Its semantic colours were colour-theory offsets from violet, so success was orange and error lime green.
 
 - Inside GNU screen a copy is sent to the terminal through screen's passthrough and reported "Sent", where it was "Not copied". In a tmux pane whose `allow-passthrough` is on, a copy goes through tmux's passthrough when `set-clipboard` is not `on`, and is reported "Sent". Measured on screen 4.00.03 and tmux 3.7c with `Tools/TerminalProbes/keeper_passthrough_probe.py`.
