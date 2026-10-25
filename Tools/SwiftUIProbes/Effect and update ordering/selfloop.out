@@ -1,0 +1,71 @@
+case selfloop: onChange(of: x) sets x + 1, to 200; at 0.5 s an outside write leads to x = 100
+   1 f0       0.0  making the NSHostingView
+   2 f0       3.2  NSHostingView made; setting the window's contentView
+   3 f0      11.9  ordering the window front
+   4 f0      12.7  body SelfLoopRoot x=0
+          stack of a body outside host.layout, outside run-loop observers: SwiftUICore specialized ViewBodyAccessor.updateBody(of:changed:) <- SwiftUICore closure #1 in DynamicBody.updateValue() <- SwiftUICore DynamicBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore specialized EnvironmentalViewChild.updateValue() <- SwiftUICore specialized implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore specialized AnimatableAttribute.updateValue() <- SwiftUICore specialized implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore specialized LeafResponderFilter.updateValue() <- SwiftUICore specialized implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:)
+   5 f0      19.5  window ordered front; the turn that made it ends next
+   6 f0      20.0  runloop: beforeTimers observers begin
+   7 f0      20.0  host.updateConstraints begin
+   8 f0      20.2  host.updateConstraints end
+   9 f0      20.2  host.layout begin
+          stack of host.layout: AppKit _NSViewLayout <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeIfNeededAndAllowTemporaryEngine:] <- AppKit -[NSView layoutSubtreeIfNeeded] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) _layoutViewTree] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) layoutIfNeeded] <- AppKit NSDisplayCycleObserverInvoke <- AppKit NSDisplayCycleFlush <- QuartzCore CA::Transaction::run_commit_handlers(CATransactionPhase) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  10 f0      23.1  onAppear -> x = 1   [in host.layout]
+  11 f0      23.2  body SelfLoopRoot x=1   [in host.layout]
+  12 f0      23.4  DRAW x=1 (canvas 8x8)   [in host.layout]
+  13 f0      23.4  onChange(x) saw 0 -> 1 -> x = 2   [in host.layout]
+  14 f0      23.4  body SelfLoopRoot x=2   [in host.layout]
+  15 f0      23.5  DRAW x=2 (canvas 8x8)   [in host.layout]
+  16 f0      23.9  onChange(x) saw 1 -> 2 -> x = 3   [in host.layout]
+  17 f0      23.9  host.layout end
+  18 f0      24.3  host.viewWillDraw
+          stack of host.viewWillDraw: AppKit _NSViewWillDraw <- AppKit -[NSViewBackingLayer display] <- QuartzCore CA::Layer::display_if_needed(CA::Transaction*) <- QuartzCore CA::Context::commit_transaction(CA::Transaction*, double, double*) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  19 f0      26.2  CA post-commit handler: the transaction is committed (armed by host.layout)
+  20 f0      26.5    committed layer tree: pixel=RED
+  21 f0      26.6  runloop: beforeTimers observers done
+  22 f0      26.6  runloop: beforeWaiting observers begin
+  23 f0      26.6  body SelfLoopRoot x=3
+          stack of a body outside host.layout, in the beforeWaiting observers: SwiftUICore specialized ViewBodyAccessor.updateBody(of:changed:) <- SwiftUICore closure #1 in DynamicBody.updateValue() <- SwiftUICore DynamicBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Subgraph::update(unsigned int) <- SwiftUICore specialized GraphHost.runTransaction(_:do:id:) <- SwiftUICore closure #1 in closure #1 in closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore partial apply for closure #1 in ViewGraphDelegate.updateGraph<A>(body:) <- SwiftUICore ViewRendererHost.updateViewGraph<A>(body:) <- SwiftUICore ViewGraphDelegate.updateGraph<A>(body:) <- SwiftUICore closure #1 in closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore thunk for @escaping @callee_guaranteed () -> () <- SwiftUICore specialized closure #1 in static NSRunLoop.addObserver(_:) <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon
+  24 f0      28.9  host.needsLayout = true
+  25 f0      29.0  onChange(x) saw 2 -> 3 -> x = 4
+  26 f0      29.1  body SelfLoopRoot x=4
+[runtime] [Invalid Configuration] onChange(of: Int) action tried to update multiple times per frame.
+  27 f0      29.5  runloop: beforeWaiting observers done
+  28 f1      29.6  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  29 f1      29.6  ── vsync f1
+  30 f1      29.7  host.updateConstraints begin
+  31 f1      29.7  host.updateConstraints end
+  32 f1      29.8  host.layout begin
+  33 f1      29.9  DRAW x=4 (canvas 8x8)   [in host.layout]
+  34 f1      29.9  host.layout end
+  35 f1      29.9  CA post-commit handler: the transaction is committed (armed by host.layout)
+  36 f1      30.2    committed layer tree: pixel=RED
+  37 f2      33.5  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  38 f2      33.6  ── vsync f2
+  39 f32    541.7  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  40 f32    541.8  TRIGGER: driver.flag = true (outside any update)
+  41 f32    541.9  runloop: exit observers begin
+  42 f32    541.9  body SelfLoopRoot x=4
+          stack of a body outside host.layout, in the exit observers: SwiftUICore specialized ViewBodyAccessor.updateBody(of:changed:) <- SwiftUICore closure #1 in DynamicBody.updateValue() <- SwiftUICore DynamicBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Subgraph::update(unsigned int) <- SwiftUICore specialized GraphHost.runTransaction(_:do:id:) <- SwiftUICore closure #1 in closure #1 in closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore partial apply for closure #1 in ViewGraphDelegate.updateGraph<A>(body:) <- SwiftUICore ViewRendererHost.updateViewGraph<A>(body:) <- SwiftUICore ViewGraphDelegate.updateGraph<A>(body:) <- SwiftUICore closure #1 in closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore thunk for @escaping @callee_guaranteed () -> () <- SwiftUICore specialized closure #1 in static NSRunLoop.addObserver(_:) <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter
+  43 f32    544.2  host.needsLayout = true
+  44 f32    544.2  onChange(flag): x = 100
+  45 f32    544.2  body SelfLoopRoot x=100
+  46 f32    544.3  onChange(x) saw 4 -> 100 -> x = 101
+  47 f32    544.3  body SelfLoopRoot x=101
+  48 f32    544.4  onChange(x) saw 100 -> 101 -> x = 102
+  49 f32    544.4  body SelfLoopRoot x=102
+  50 f32    544.5  runloop: exit observers done
+  51 f32    544.5  runloop: beforeTimers observers begin
+  52 f32    544.5  host.updateConstraints begin
+  53 f32    544.5  host.updateConstraints end
+  54 f32    544.5  host.layout begin
+  55 f32    544.6  DRAW x=102 (canvas 8x8)   [in host.layout]
+  56 f32    544.6  host.layout end
+  57 f32    544.6  CA post-commit handler: the transaction is committed (armed by host.layout)
+  58 f32    544.9    committed layer tree: pixel=RED
+  59 f32    544.9  runloop: beforeTimers observers done
+          (30 vsyncs with no event)
+  60 f33    550.1  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  61 f33    550.2  ── vsync f33
+          (62 vsyncs with no event)
+end of case selfloop

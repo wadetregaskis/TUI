@@ -1,0 +1,55 @@
+case appear: one view with every effect; onAppear sets loaded = true
+   1 f0       0.0  making the NSHostingView
+   2 f0       5.0  NSHostingView made; setting the window's contentView
+   3 f0      15.9  ordering the window front
+   4 f0      17.1  body AppearRoot loaded=false
+          stack of a body outside host.layout, outside run-loop observers: SwiftUICore specialized ViewBodyAccessor.updateBody(of:changed:) <- SwiftUICore closure #1 in DynamicBody.updateValue() <- SwiftUICore DynamicBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore ShapeStyledResponderFilter.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore PairPreferenceCombiner.value.getter <- SwiftUICore implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore HitTestBindingFilter.updateValue() <- SwiftUICore specialized implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:)
+   5 f0      25.4  Layout[outer].sizeThatFits proposal=400x300 begin   [in Layout]
+   6 f0      25.4  body AppearChild loaded=false   [in Layout]
+   7 f0      31.5  Layout[outer].sizeThatFits -> 400x56   [in Layout]
+   8 f0      31.7  Layout[outer].placeSubviews bounds=400x56   [in Layout]
+   9 f0      31.7  body (GeometryReader content) size=400x40
+  10 f0      33.6  window ordered front; the turn that made it ends next
+  11 f0      34.3  runloop: beforeTimers observers begin
+  12 f0      34.3  host.updateConstraints begin
+  13 f0      34.3  Layout[outer].sizeThatFits proposal=0x0 begin   [in host.updateConstraints, in Layout]
+  14 f0      34.8  Layout[outer].sizeThatFits -> 0x152   [in host.updateConstraints, in Layout]
+  15 f0      34.9  Layout[outer].sizeThatFits proposal=infxinf begin   [in host.updateConstraints, in Layout]
+  16 f0      34.9  Layout[outer].sizeThatFits -> infx56   [in host.updateConstraints, in Layout]
+  17 f0      36.2  host.updateConstraints end
+  18 f0      36.2  host.layout begin
+          stack of host.layout: AppKit _NSViewLayout <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeIfNeededAndAllowTemporaryEngine:] <- AppKit -[NSView layoutSubtreeIfNeeded] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) _layoutViewTree] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) layoutIfNeeded] <- AppKit NSDisplayCycleObserverInvoke <- AppKit NSDisplayCycleFlush <- QuartzCore CA::Transaction::run_commit_handlers(CATransactionPhase) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  19 f0      39.5  onGeometryChange of: size=400x300   [in host.layout]
+  20 f0      40.2  onPreferenceChange 0   [in host.layout]
+  21 f0      40.4  onGeometryChange action: 400x300   [in host.layout]
+  22 f0      40.4  onAppear (loaded=false) -> loaded = true   [in host.layout]
+          stack of onAppear: SwiftUICore thunk for @escaping @callee_guaranteed () -> () <- SwiftUICore FunctionalLocation.get() <- SwiftUICore Update.Action.callAsFunction() <- SwiftUICore static Update.dispatchActions() <- SwiftUICore closure #2 in closure #1 in ViewRendererHost.render(interval:updateDisplayList:targetTimestamp:) <- SwiftUICore closure #1 in ViewRendererHost.render(interval:updateDisplayList:targetTimestamp:) <- SwiftUICore ViewRendererHost.render(interval:updateDisplayList:targetTimestamp:) <- SwiftUI closure #1 in NSHostingView.layout() <- SwiftUI partial apply for thunk for @callee_guaranteed (@guaranteed RBDisplayList) -> () <- SwiftUI thunk for @escaping @callee_guaranteed (@guaranteed RBDisplayList) -> () <- AppKit +[NSAnimationContext runAnimationGroup:] <- SwiftUI NSHostingView.layout() <- SwiftUI @objc NSHostingView.layout() <- AppKit _NSViewLayout <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeIfNeededAndAllowTemporaryEngine:] <- AppKit -[NSView layoutSubtreeIfNeeded] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) _layoutViewTree] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) layoutIfNeeded] <- AppKit NSDisplayCycleObserverInvoke <- AppKit NSDisplayCycleFlush
+  23 f0      45.2  AppearChild.onAppear   [in host.layout]
+  24 f0      45.3  body AppearRoot loaded=true   [in host.layout]
+  25 f0      45.4  body AppearChild loaded=true   [in host.layout]
+  26 f0      45.7  Layout[outer].sizeThatFits proposal=400x300 begin   [in host.layout, in Layout]
+  27 f0      45.8  Layout[outer].sizeThatFits -> 400x56   [in host.layout, in Layout]
+  28 f0      45.8  Layout[outer].placeSubviews bounds=400x56   [in host.layout, in Layout]
+  29 f0      45.8  body (GeometryReader content) size=400x40   [in host.layout]
+  30 f0      46.1  DRAW loaded=true (canvas 8x8)   [in host.layout]
+  31 f0      46.1  onPreferenceChange 1   [in host.layout]
+  32 f0      46.2  onChange(loaded) false -> true   [in host.layout]
+  33 f0      46.8  host.layout end
+  34 f0      47.3  host.viewWillDraw
+          stack of host.viewWillDraw: AppKit _NSViewWillDraw <- AppKit -[NSViewBackingLayer display] <- QuartzCore CA::Layer::display_if_needed(CA::Transaction*) <- QuartzCore CA::Context::commit_transaction(CA::Transaction*, double, double*) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  35 f0      50.0  CA post-commit handler: the transaction is committed (armed by host.layout)
+  36 f0      50.5    committed layer tree: pixel=GREEN
+  37 f0      50.7  runloop: beforeTimers observers done
+  38 f1      50.8  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  39 f1      50.8  ── vsync f1
+  40 f1      52.3  runloop: after beforeSources: CFRunLoop blocks, version-0 sources, and main-queue work already waiting
+  41 f1      52.3  task starts: main thread=true isolation=Optional(Swift.MainActor) priority=TaskPriority.high
+  42 f1      52.3  task(priority: .background) starts: main thread=true isolation=Optional(Swift.MainActor)
+  43 f1      52.4  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  44 f1      52.4  task after Task.yield()
+  45 f1      53.6  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  46 f1      53.6  task after Task.sleep(1 ms)
+  47 f2      79.2  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  48 f2      79.2  ── vsync f2
+          (91 vsyncs with no event)
+end of case appear

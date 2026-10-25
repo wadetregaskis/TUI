@@ -1037,3 +1037,38 @@ messages cite that path), and what cites it.
   (B51-LIVE), `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (T5),
   `Sources/TUIkitFoundation/Views/Text+Markdown.swift`, `Sources/TUIkitTextInput/Views/TextField.swift`,
   `Sources/TUIkitTables/Views/TableColumn.swift`; `Tests/TUIkitIntegrationTests/LiveTitleTests.swift`.
+
+### Effect and update ordering
+
+- **Asks:** when SwiftUI runs a view's effects — `onAppear`, `onChange(of:)`, `onPreferenceChange`,
+  `onGeometryChange(for:of:action:)`, `onScrollGeometryChange`, `.task` — against its body evaluations, a custom
+  `Layout`'s calls, `GeometryReader` content, drawing (a `Canvas` renderer) and the Core Animation commit that
+  carries a frame to the screen; whether the first frame drawn after a state write made in an effect shows the old
+  state or the new; how many update passes a chain of effects gets per frame, and where the "tried to update
+  multiple times per frame" warnings start; whether a `GeometryReader` is ever run with a provisional size; on which
+  executor `.task` starts; and what a `@State` write inside `body` does. One program, `ordering.swift`, one case a
+  process (`appear`, `change`, `chain`, `selfloop`, `prefloop`, `geofeedback`, `geocount`, `geoscroll`, `geolist`,
+  `bodywrite`), each in an on-screen borderless window, logging one numbered line per event from an
+  `NSHostingView` subclass's `updateConstraints()`/`layout()`, main run-loop observers at the lowest and highest
+  order of every activity, a Core Animation post-commit handler (SPI `addCommitHandler:forPhase:`) that renders the
+  committed layer tree, and the view's `CADisplayLink`. With `PROBE_STACKS` it prints the stack behind a few events.
+- **Files:** `ordering.swift`; `run.sh`, which builds it with Xcode's `swiftc`, runs every case with
+  `OS_ACTIVITY_DT_MODE=YES` (SwiftUI's runtime warnings appear in the log as `[runtime] …`) and writes
+  `<case>.out`, its stacks demangled. The times and frame numbers in the `.out` files differ from run to run; the
+  order of events did not, over four runs of each case, except in the two ways that
+  `Documentation/Investigations/SwiftUI's update and effect ordering, measured (2026-10-24).md` names.
+- **Answers:** no effect ran inside a body or inside a `Layout` call: SwiftUI runs them in `Update.dispatchActions()`,
+  either from `ViewRendererHost.render(…)` inside `NSHostingView.layout()` or from `Update.end()` at the end of a
+  graph update in SwiftUI's own run-loop observer. A state write in `onAppear`, `onChange` or `onPreferenceChange` is
+  drawn before the first commit after it: no frame after the write shows the state before it. A layout pass re-renders
+  after two rounds of effects at most, and that state is committed; the rest of a chain runs in SwiftUI's
+  `beforeWaiting` observer (98 more `onChange` steps, 298 more `onGeometryChange` calls, no limit met) and is drawn in
+  a second commit. The same `onChange` or preference action runs at most twice after a draw ("… tried to update
+  multiple times per frame"); the change after that gets no call, then or later. `onGeometryChange` has no count
+  limit, but stops when a value repeats one it delivered ("Geometry action is cycling between duplicate values."). A
+  reader's content runs once per update, with that update's final size, never for a measuring proposal. `.task` starts
+  after the first commit, on the main actor, whatever its priority. A write in `body` warns "Modifying state during
+  view update, this will cause undefined behavior." and is lost.
+- **Ran:** macOS 15.8.1 (SwiftUI of macOS 15.8.1), Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK,
+  2026-10-24.
+- **Cited by:** `Documentation/Investigations/SwiftUI's update and effect ordering, measured (2026-10-24).md`.

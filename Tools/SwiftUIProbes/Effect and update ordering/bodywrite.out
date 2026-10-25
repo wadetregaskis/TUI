@@ -1,0 +1,64 @@
+case bodywrite: a body writes @State; at 0.5 s an outside write re-runs the body, which writes again; at 1 s another re-runs it to read n
+   1 f0       0.0  making the NSHostingView
+   2 f0       1.6  NSHostingView made; setting the window's contentView
+   3 f0       6.6  ordering the window front
+   4 f0       7.3  body BodyWriteRoot n=0 flag=false prefFlag=false
+          stack of a body outside host.layout, outside run-loop observers: SwiftUICore specialized ViewBodyAccessor.updateBody(of:changed:) <- SwiftUICore closure #1 in DynamicBody.updateValue() <- SwiftUICore DynamicBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore specialized EnvironmentalViewChild.updateValue() <- SwiftUICore specialized implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore specialized AnimatableAttribute.updateValue() <- SwiftUICore specialized implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore specialized LeafResponderFilter.updateValue() <- SwiftUICore specialized implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:)
+   5 f0      11.6  body writes n = 1   [in a body]
+[runtime] [SwiftUI] Modifying state during view update, this will cause undefined behavior.
+   6 f0      11.7  body after the write reads n=0   [in a body]
+   7 f0      13.5  window ordered front; the turn that made it ends next
+   8 f0      14.0  runloop: beforeTimers observers begin
+   9 f0      14.0  host.updateConstraints begin
+  10 f0      14.3  host.updateConstraints end
+  11 f0      14.3  host.layout begin
+          stack of host.layout: AppKit _NSViewLayout <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeIfNeededAndAllowTemporaryEngine:] <- AppKit -[NSView layoutSubtreeIfNeeded] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) _layoutViewTree] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) layoutIfNeeded] <- AppKit NSDisplayCycleObserverInvoke <- AppKit NSDisplayCycleFlush <- QuartzCore CA::Transaction::run_commit_handlers(CATransactionPhase) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  12 f0      17.3  DRAW n=0 (canvas 8x8)   [in host.layout]
+  13 f0      17.7  host.layout end
+  14 f0      18.0  host.viewWillDraw
+          stack of host.viewWillDraw: AppKit _NSViewWillDraw <- AppKit -[NSViewBackingLayer display] <- QuartzCore CA::Layer::display_if_needed(CA::Transaction*) <- QuartzCore CA::Context::commit_transaction(CA::Transaction*, double, double*) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  15 f0      19.7  CA post-commit handler: the transaction is committed (armed by host.layout)
+  16 f0      19.9    committed layer tree: pixel=RED
+  17 f0      20.0  runloop: beforeTimers observers done
+  18 f1      20.1  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  19 f1      20.1  ── vsync f1
+  20 f32    535.3  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  21 f32    535.3  TRIGGER: driver.flag = true (outside any update)
+  22 f32    535.5  runloop: exit observers begin
+  23 f32    535.5  body BodyWriteRoot n=0 flag=true prefFlag=false
+          stack of a body outside host.layout, in the exit observers: SwiftUICore specialized ViewBodyAccessor.updateBody(of:changed:) <- SwiftUICore closure #1 in DynamicBody.updateValue() <- SwiftUICore DynamicBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Subgraph::update(unsigned int) <- SwiftUICore specialized GraphHost.runTransaction(_:do:id:) <- SwiftUICore closure #1 in closure #1 in closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore partial apply for closure #1 in ViewGraphDelegate.updateGraph<A>(body:) <- SwiftUICore ViewRendererHost.updateViewGraph<A>(body:) <- SwiftUICore ViewGraphDelegate.updateGraph<A>(body:) <- SwiftUICore closure #1 in closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore thunk for @escaping @callee_guaranteed () -> () <- SwiftUICore specialized closure #1 in static NSRunLoop.addObserver(_:) <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter
+  24 f32    537.7  body writes n = 2   [in a body]
+[runtime] [SwiftUI] Modifying state during view update, this will cause undefined behavior.
+  25 f32    537.8  body after the write reads n=0   [in a body]
+  26 f32    537.9  host.needsLayout = true
+  27 f32    538.0  runloop: exit observers done
+  28 f32    538.0  runloop: beforeTimers observers begin
+  29 f32    538.0  host.updateConstraints begin
+  30 f32    538.1  host.updateConstraints end
+  31 f32    538.1  host.layout begin
+  32 f32    538.2  host.layout end
+  33 f32    538.2  CA post-commit handler: the transaction is committed (armed by host.layout)
+  34 f32    538.4    committed layer tree: pixel=RED
+  35 f32    538.4  runloop: beforeTimers observers done
+          (31 vsyncs with no event)
+  36 f33    541.8  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  37 f33    541.8  ── vsync f33
+  38 f64   1058.9  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  39 f64   1059.0  TRIGGER: driver.prefFlag = true (outside any update; the body reads it, and n)
+  40 f64   1059.0  runloop: exit observers begin
+  41 f64   1059.0  body BodyWriteRoot n=0 flag=true prefFlag=true
+  42 f64   1059.1  host.needsLayout = true
+  43 f64   1059.2  runloop: exit observers done
+  44 f64   1059.2  runloop: beforeTimers observers begin
+  45 f64   1059.2  host.updateConstraints begin
+  46 f64   1059.2  host.updateConstraints end
+  47 f64   1059.2  host.layout begin
+  48 f64   1059.3  host.layout end
+  49 f64   1059.3  CA post-commit handler: the transaction is committed (armed by host.layout)
+  50 f64   1059.4    committed layer tree: pixel=RED
+  51 f64   1059.5  runloop: beforeTimers observers done
+          (31 vsyncs with no event)
+  52 f65   1076.1  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  53 f65   1076.1  ── vsync f65
+          (30 vsyncs with no event)
+end of case bodywrite

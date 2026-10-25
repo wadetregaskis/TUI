@@ -1,0 +1,69 @@
+case change: an outside write; onChange and onPreferenceChange write the drawn state
+   1 f0       0.0  making the NSHostingView
+   2 f0       1.5  NSHostingView made; setting the window's contentView
+   3 f0       9.1  ordering the window front
+   4 f0      10.2  body ChangeRoot flag=false phase=A fromPreference=0
+          stack of a body outside host.layout, outside run-loop observers: SwiftUICore specialized ViewBodyAccessor.updateBody(of:changed:) <- SwiftUICore closure #1 in DynamicBody.updateValue() <- SwiftUICore DynamicBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore specialized EnvironmentalViewChild.updateValue() <- SwiftUICore specialized implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore specialized AnimatableAttribute.updateValue() <- SwiftUICore specialized implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore specialized LeafResponderFilter.updateValue() <- SwiftUICore specialized implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:)
+   5 f0      22.2  body PrefSource prefFlag=false
+   6 f0      23.3  window ordered front; the turn that made it ends next
+   7 f0      23.8  runloop: beforeTimers observers begin
+   8 f0      23.8  host.updateConstraints begin
+   9 f0      24.0  host.updateConstraints end
+  10 f0      24.1  host.layout begin
+          stack of host.layout: AppKit _NSViewLayout <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeIfNeededAndAllowTemporaryEngine:] <- AppKit -[NSView layoutSubtreeIfNeeded] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) _layoutViewTree] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) layoutIfNeeded] <- AppKit NSDisplayCycleObserverInvoke <- AppKit NSDisplayCycleFlush <- QuartzCore CA::Transaction::run_commit_handlers(CATransactionPhase) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  11 f0      27.1  onPreferenceChange 0: fromPreference = 0   [in host.layout]
+  12 f0      27.2  DRAW left phase=A (canvas 8x8)   [in host.layout]
+  13 f0      27.2  DRAW right fromPreference=0 (canvas 8x8)   [in host.layout]
+  14 f0      27.6  host.layout end
+  15 f0      28.0  host.viewWillDraw
+          stack of host.viewWillDraw: AppKit _NSViewWillDraw <- AppKit -[NSViewBackingLayer display] <- QuartzCore CA::Layer::display_if_needed(CA::Transaction*) <- QuartzCore CA::Context::commit_transaction(CA::Transaction*, double, double*) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  16 f0      29.8  CA post-commit handler: the transaction is committed (armed by host.layout)
+  17 f0      30.2    committed layer tree: left=RED right=RED
+  18 f0      30.3  runloop: beforeTimers observers done
+  19 f1      30.4  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  20 f1      30.4  ── vsync f1
+  21 f32    545.4  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  22 f32    545.4  TRIGGER 1: driver.flag = true (outside any update)
+  23 f32    545.6  runloop: exit observers begin
+  24 f32    545.6  body ChangeRoot flag=true phase=A fromPreference=0
+          stack of a body outside host.layout, in the exit observers: SwiftUICore specialized ViewBodyAccessor.updateBody(of:changed:) <- SwiftUICore closure #1 in DynamicBody.updateValue() <- SwiftUICore DynamicBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Subgraph::update(unsigned int) <- SwiftUICore specialized GraphHost.runTransaction(_:do:id:) <- SwiftUICore closure #1 in closure #1 in closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore partial apply for closure #1 in ViewGraphDelegate.updateGraph<A>(body:) <- SwiftUICore ViewRendererHost.updateViewGraph<A>(body:) <- SwiftUICore ViewGraphDelegate.updateGraph<A>(body:) <- SwiftUICore closure #1 in closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore thunk for @escaping @callee_guaranteed () -> () <- SwiftUICore specialized closure #1 in static NSRunLoop.addObserver(_:) <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter
+  25 f32    548.3  host.needsLayout = true
+  26 f32    548.3  onChange(flag) -> true: phase = B
+          stack of onChange(flag): SwiftUICore _ValueActionModifier2.sendAction(old:) <- SwiftUICore partial apply for closure #2 in ValueActionDispatcher.updateValue() <- SwiftUICore Update.Action.callAsFunction() <- SwiftUICore static Update.dispatchActions() <- SwiftUICore static Update.end() <- SwiftUICore specialized closure #1 in static NSRunLoop.addObserver(_:) <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  27 f32    549.7  body ChangeRoot flag=true phase=B fromPreference=0
+  28 f32    549.9  runloop: exit observers done
+  29 f32    550.0  runloop: beforeTimers observers begin
+  30 f32    550.0  host.updateConstraints begin
+  31 f32    550.0  host.updateConstraints end
+  32 f32    550.0  host.layout begin
+  33 f32    550.1  DRAW left phase=B (canvas 8x8)   [in host.layout]
+  34 f32    550.2  DRAW right fromPreference=0 (canvas 8x8)   [in host.layout]
+  35 f32    550.2  host.layout end
+  36 f32    550.3  CA post-commit handler: the transaction is committed (armed by host.layout)
+  37 f32    550.5    committed layer tree: left=GREEN right=RED
+  38 f32    550.5  runloop: beforeTimers observers done
+          (31 vsyncs with no event)
+  39 f33    561.6  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  40 f33    561.6  ── vsync f33
+  41 f63   1072.7  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  42 f63   1072.7  TRIGGER 2: driver.prefFlag = true (outside any update)
+  43 f63   1072.8  runloop: exit observers begin
+  44 f63   1072.8  body PrefSource prefFlag=true
+  45 f63   1073.0  host.needsLayout = true
+  46 f63   1073.0  onPreferenceChange 1: fromPreference = 1
+  47 f63   1073.0  body ChangeRoot flag=true phase=B fromPreference=1
+  48 f63   1073.2  runloop: exit observers done
+  49 f63   1073.2  runloop: beforeTimers observers begin
+  50 f63   1073.2  host.updateConstraints begin
+  51 f63   1073.2  host.updateConstraints end
+  52 f63   1073.2  host.layout begin
+  53 f63   1073.3  DRAW right fromPreference=1 (canvas 8x8)   [in host.layout]
+  54 f63   1073.4  host.layout end
+  55 f63   1073.4  CA post-commit handler: the transaction is committed (armed by host.layout)
+  56 f63   1073.7    committed layer tree: left=GREEN right=GREEN
+  57 f63   1073.7  runloop: beforeTimers observers done
+          (30 vsyncs with no event)
+  58 f64   1078.2  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  59 f64   1078.2  ── vsync f64
+          (31 vsyncs with no event)
+end of case change

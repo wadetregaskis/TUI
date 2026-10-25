@@ -1,0 +1,45 @@
+case geolist: GeometryReaders in List rows
+   1 f0       0.0  making the NSHostingView
+   2 f0       1.5  NSHostingView made; setting the window's contentView
+   3 f0       8.8  ordering the window front
+   4 f0       9.8  body GeoListRoot
+          stack of a body outside host.layout, outside run-loop observers: SwiftUICore specialized ViewBodyAccessor.updateBody(of:changed:) <- SwiftUICore closure #1 in StaticBody.updateValue() <- SwiftUICore StaticBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore DynamicBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUI _ListValue.Init1.base.getter <- SwiftUI _ListValue.Init1.value.getter <- SwiftUICore implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUI DefaultListStyle.Body.base.getter
+   5 f0      28.8  window ordered front; the turn that made it ends next
+   6 f0      29.5  runloop: beforeTimers observers begin
+   7 f0      29.5  host.updateConstraints begin
+   8 f0      29.8  host.updateConstraints end
+   9 f0      29.9  host.layout begin
+          stack of host.layout: AppKit _NSViewLayout <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeIfNeededAndAllowTemporaryEngine:] <- AppKit -[NSView layoutSubtreeIfNeeded] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) _layoutViewTree] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) layoutIfNeeded] <- AppKit NSDisplayCycleObserverInvoke <- AppKit NSDisplayCycleFlush <- QuartzCore CA::Transaction::run_commit_handlers(CATransactionPhase) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  10 f0      34.7  host.layout end
+  11 f0      38.5  host.needsLayout = true
+  12 f0      42.1  body (GeometryReader content, a List row alone) size=368x16
+          stack of a body outside host.layout, in the beforeTimers observers: SwiftUICore partial apply for closure #1 in closure #1 in GeometryReader.Child.updateValue() <- SwiftUICore closure #1 in Attribute.syncMainIfReferences<A>(do:) <- SwiftUICore specialized static Update.syncMain(_:) <- SwiftUICore Attribute.syncMainIfReferences<A>(do:) <- SwiftUICore partial apply for closure #1 in GeometryReader.Child.updateValue() <- SwiftUICore closure #1 in _withObservation<A>(do:) <- SwiftUICore partial apply for closure #1 in _withObservation<A>(do:) <- SwiftUICore withUnsafeMutablePointer<A, B, C>(to:_:) <- SwiftUICore GeometryReader.Child.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore StaticLayoutComputer.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore LayoutChildGeometries.value.getter <- SwiftUICore specialized implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:)
+  13 f0      51.8  DRAW list row reader for 368x16 (canvas 8x8)
+  14 f0      51.9  body (GeometryReader content, behind a List row's text) size=160.50x16
+  15 f0      52.2  List row onGeometryChange of: 160.50x16
+  16 f0      52.2  List row onGeometryChange action: 160.50x16
+  17 f0      52.2  List row onAppear
+          stack of List row onAppear: SwiftUICore closure #1 in _AppearanceActionModifier.MergedBox.update() <- SwiftUICore Update.Action.callAsFunction() <- SwiftUICore static Update.dispatchActions() <- SwiftUICore closure #2 in closure #1 in ViewRendererHost.render(interval:updateDisplayList:targetTimestamp:) <- SwiftUICore closure #1 in ViewRendererHost.render(interval:updateDisplayList:targetTimestamp:) <- SwiftUICore ViewRendererHost.render(interval:updateDisplayList:targetTimestamp:) <- SwiftUI closure #1 in NSHostingView.layout() <- SwiftUI partial apply for thunk for @callee_guaranteed (@guaranteed RBDisplayList) -> () <- SwiftUI thunk for @escaping @callee_guaranteed (@guaranteed RBDisplayList) -> () <- AppKit +[NSAnimationContext runAnimationGroup:] <- SwiftUI NSHostingView.layout() <- SwiftUI @objc NSHostingView.layout() <- AppKit _NSViewLayout <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:]
+  18 f0      59.1  host.layout begin
+  19 f0      59.3  host.layout end
+  20 f0      59.4  host.updateConstraints begin
+  21 f0      59.5  host.updateConstraints end
+  22 f0      60.5  host.viewWillDraw
+          stack of host.viewWillDraw: AppKit _NSViewWillDraw <- AppKit -[NSViewBackingLayer display] <- QuartzCore CA::Layer::display_if_needed(CA::Transaction*) <- QuartzCore CA::Context::commit_transaction(CA::Transaction*, double, double*) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  23 f0      65.1  CA post-commit handler: the transaction is committed (armed by host.layout)
+  24 f0      65.8    committed layer tree: pixel=rgb(1.00,1.00,1.00)
+  25 f0      66.0  runloop: beforeTimers observers done
+  26 f0      66.1  runloop: after beforeSources: CFRunLoop blocks, version-0 sources, and main-queue work already waiting
+  27 f0      66.1  host.needsLayout = true
+  28 f1      66.2  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  29 f1      66.2  ── vsync f1
+  30 f1      66.2  host.updateConstraints begin
+  31 f1      66.3  host.updateConstraints end
+  32 f1      66.3  host.layout begin
+  33 f1      66.4  host.layout end
+  34 f1      66.5  CA post-commit handler: the transaction is committed (armed by host.layout)
+  35 f1      66.9    committed layer tree: pixel=rgb(1.00,1.00,1.00)
+  36 f2      82.6  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  37 f2      82.6  ── vsync f2
+          (91 vsyncs with no event)
+end of case geolist

@@ -1,0 +1,37 @@
+case geoscroll: a GeometryReader in a ScrollView, and onScrollGeometryChange
+   1 f0       0.0  making the NSHostingView
+   2 f0       2.0  NSHostingView made; setting the window's contentView
+   3 f0       7.7  body GeoScrollRoot
+          stack of a body outside host.layout, outside run-loop observers: SwiftUICore specialized ViewBodyAccessor.updateBody(of:changed:) <- SwiftUICore closure #1 in StaticBody.updateValue() <- SwiftUICore StaticBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore StaticBody.container.getter <- SwiftUICore closure #1 in StaticBody.updateValue() <- SwiftUICore StaticBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore StaticBody.container.getter <- SwiftUICore closure #1 in StaticBody.updateValue() <- SwiftUICore StaticBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int)
+   4 f0      16.2  ordering the window front
+   5 f0      30.4  body (GeometryReader content, in ScrollView) size=400x10
+   6 f0      31.7  window ordered front; the turn that made it ends next
+   7 f0      32.3  runloop: beforeTimers observers begin
+   8 f0      32.3  host.updateConstraints begin
+   9 f0      33.8  host.updateConstraints end
+  10 f0      33.9  host.layout begin
+          stack of host.layout: AppKit _NSViewLayout <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeIfNeededAndAllowTemporaryEngine:] <- AppKit -[NSView layoutSubtreeIfNeeded] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) _layoutViewTree] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) layoutIfNeeded] <- AppKit NSDisplayCycleObserverInvoke <- AppKit NSDisplayCycleFlush <- QuartzCore CA::Transaction::run_commit_handlers(CATransactionPhase) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  11 f0      36.7  onScrollGeometryChange of: contentSize=400x410 container=400x300   [in host.layout]
+  12 f0      37.1  onScrollGeometryChange action: 400x410 -> 400x410   [in host.layout]
+  13 f0      37.1  ScrollView onAppear   [in host.layout]
+  14 f0      37.2  DRAW scroll reader for 400x10 (canvas 8x8)   [in host.layout]
+  15 f0      38.8  host.layout end
+  16 f0      39.4  host.viewWillDraw
+          stack of host.viewWillDraw: AppKit _NSViewWillDraw <- AppKit -[NSViewBackingLayer display] <- QuartzCore CA::Layer::display_if_needed(CA::Transaction*) <- QuartzCore CA::Context::commit_transaction(CA::Transaction*, double, double*) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  17 f0      43.3  CA post-commit handler: the transaction is committed (armed by host.layout)
+  18 f0      45.1    committed layer tree: pixel=BLUE
+  19 f0      45.2  runloop: beforeTimers observers done
+  20 f0      45.2  runloop: after beforeSources: CFRunLoop blocks, version-0 sources, and main-queue work already waiting
+  21 f0      45.3  host.needsLayout = true
+  22 f1      45.3  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  23 f1      45.3  ── vsync f1
+  24 f1      45.4  host.updateConstraints begin
+  25 f1      45.4  host.updateConstraints end
+  26 f1      45.4  host.layout begin
+  27 f1      45.7  host.layout end
+  28 f1      45.7  CA post-commit handler: the transaction is committed (armed by host.layout)
+  29 f1      46.5    committed layer tree: pixel=BLUE
+  30 f2      58.6  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+  31 f2      58.6  ── vsync f2
+          (92 vsyncs with no event)
+end of case geoscroll

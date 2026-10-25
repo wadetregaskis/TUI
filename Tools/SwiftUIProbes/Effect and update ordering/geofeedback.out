@@ -1,0 +1,252 @@
+case geofeedback: a reader's width, through onGeometryChange and @State, sets its sibling's width
+   1 f0       0.0  making the NSHostingView
+   2 f0       1.4  NSHostingView made; setting the window's contentView
+   3 f0       6.0  ordering the window front
+   4 f0       6.4  body GeoFeedbackRoot readerWidth=0
+          stack of a body outside host.layout, outside run-loop observers: SwiftUICore specialized ViewBodyAccessor.updateBody(of:changed:) <- SwiftUICore closure #1 in DynamicBody.updateValue() <- SwiftUICore DynamicBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore Attribute.syncMainIfReferences<A>(do:) <- SwiftUICore partial apply for closure #1 in GeometryReader.Child.updateValue() <- SwiftUICore closure #1 in _withObservation<A>(do:) <- SwiftUICore partial apply for closure #1 in _withObservation<A>(do:) <- SwiftUICore withUnsafeMutablePointer<A, B, C>(to:_:) <- SwiftUICore GeometryReader.Child.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Graph::input_value_ref_slow(AG::data::ptr<AG::Node>, AG::AttributeID, unsigned int, unsigned int, AGSwiftMetadata const*, unsigned char&, long) <- AttributeGraph AGGraphGetValue <- SwiftUICore specialized EnvironmentalViewChild.updateValue() <- SwiftUICore specialized implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update()
+   5 f0      11.7  body (GeometryReader content) size=400x300
+   6 f0      12.9  window ordered front; the turn that made it ends next
+   7 f0      13.3  runloop: beforeTimers observers begin
+   8 f0      13.4  host.updateConstraints begin
+   9 f0      13.5  host.updateConstraints end
+  10 f0      13.6  host.layout begin
+          stack of host.layout: AppKit _NSViewLayout <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeWithOldSize:] <- AppKit -[NSView _layoutSubtreeIfNeededAndAllowTemporaryEngine:] <- AppKit -[NSView layoutSubtreeIfNeeded] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) _layoutViewTree] <- AppKit -[NSWindow(NSConstraintBasedLayoutInternal) layoutIfNeeded] <- AppKit NSDisplayCycleObserverInvoke <- AppKit NSDisplayCycleFlush <- QuartzCore CA::Transaction::run_commit_handlers(CATransactionPhase) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  11 f0      16.2  onGeometryChange of: width=400.0   [in host.layout]
+  12 f0      16.4  onGeometryChange action: 400.0 -> readerWidth   [in host.layout]
+  13 f0      16.4  body GeoFeedbackRoot readerWidth=400   [in host.layout]
+  14 f0      16.5  body (GeometryReader content) size=200x300   [in host.layout]
+  15 f0      16.5  onGeometryChange of: width=200.0   [in host.layout]
+  16 f0      16.6  DRAW reader content for 200x300 (canvas 8x8)   [in host.layout]
+  17 f0      16.6  onGeometryChange action: 200.0 -> readerWidth   [in host.layout]
+  18 f0      16.6  body GeoFeedbackRoot readerWidth=200   [in host.layout]
+  19 f0      16.6  body (GeometryReader content) size=300x300   [in host.layout]
+  20 f0      16.6  onGeometryChange of: width=300.0   [in host.layout]
+  21 f0      16.7  DRAW reader content for 300x300 (canvas 8x8)   [in host.layout]
+  22 f0      17.0  onGeometryChange action: 300.0 -> readerWidth   [in host.layout]
+  23 f0      17.0  host.layout end
+  24 f0      17.3  host.viewWillDraw
+          stack of host.viewWillDraw: AppKit _NSViewWillDraw <- AppKit -[NSViewBackingLayer display] <- QuartzCore CA::Layer::display_if_needed(CA::Transaction*) <- QuartzCore CA::Context::commit_transaction(CA::Transaction*, double, double*) <- QuartzCore CA::Transaction::commit() <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon <- HIToolbox _BlockUntilNextEventMatchingListInModeWithFilter <- AppKit _DPSNextEvent <- AppKit -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] <- AppKit -[NSApplication run]
+  25 f0      18.9  CA post-commit handler: the transaction is committed (armed by host.layout)
+  26 f0      19.2    committed layer tree: red begins at x=300
+  27 f0      19.3  runloop: beforeTimers observers done
+  28 f0      19.4  runloop: beforeWaiting observers begin
+  29 f0      19.4  body GeoFeedbackRoot readerWidth=300
+          stack of a body outside host.layout, in the beforeWaiting observers: SwiftUICore specialized ViewBodyAccessor.updateBody(of:changed:) <- SwiftUICore closure #1 in DynamicBody.updateValue() <- SwiftUICore DynamicBody.updateValue() <- SwiftUICore partial apply for implicit closure #1 in closure #1 in closure #1 in Attribute.init<A>(_:) <- AttributeGraph AG::Graph::UpdateStack::update() <- AttributeGraph AG::Graph::update_attribute(AG::data::ptr<AG::Node>, unsigned int) <- AttributeGraph AG::Subgraph::update(unsigned int) <- SwiftUICore specialized GraphHost.runTransaction(_:do:id:) <- SwiftUICore closure #1 in closure #1 in closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore partial apply for closure #1 in ViewGraphDelegate.updateGraph<A>(body:) <- SwiftUICore ViewRendererHost.updateViewGraph<A>(body:) <- SwiftUICore ViewGraphDelegate.updateGraph<A>(body:) <- SwiftUICore closure #1 in closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore closure #1 in closure #1 in GraphDelegate.beginTransaction() <- SwiftUICore thunk for @escaping @callee_guaranteed () -> () <- SwiftUICore specialized closure #1 in static NSRunLoop.addObserver(_:) <- CoreFoundation __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__ <- CoreFoundation __CFRunLoopDoObservers <- CoreFoundation __CFRunLoopRun <- CoreFoundation CFRunLoopRunSpecific <- HIToolbox RunCurrentEventLoopInMode <- HIToolbox ReceiveNextEventCommon
+  30 f0      21.7  body (GeometryReader content) size=250x300
+  31 f0      21.8  onGeometryChange of: width=250.0
+  32 f0      21.8  host.needsLayout = true
+  33 f0      21.8  onGeometryChange action: 250.0 -> readerWidth
+  34 f0      21.9  body GeoFeedbackRoot readerWidth=250
+  35 f0      21.9  body (GeometryReader content) size=275x300
+  36 f0      22.0  onGeometryChange of: width=275.0
+  37 f0      22.0  onGeometryChange action: 275.0 -> readerWidth
+  38 f0      22.0  body GeoFeedbackRoot readerWidth=275
+  39 f0      22.1  body (GeometryReader content) size=262.50x300
+  40 f0      22.1  onGeometryChange of: width=262.5
+  41 f0      22.2  onGeometryChange action: 262.5 -> readerWidth
+  42 f0      22.2  body GeoFeedbackRoot readerWidth=262.50
+  43 f0      22.2  body (GeometryReader content) size=268.75x300
+  44 f0      22.3  onGeometryChange of: width=268.75
+  45 f0      22.3  onGeometryChange action: 268.75 -> readerWidth
+  46 f0      22.3  body GeoFeedbackRoot readerWidth=268.75
+  47 f0      22.4  body (GeometryReader content) size=265.62x300
+  48 f0      22.4  onGeometryChange of: width=265.625
+  49 f0      22.4  onGeometryChange action: 265.625 -> readerWidth
+  50 f0      22.4  body GeoFeedbackRoot readerWidth=265.62
+  51 f0      22.5  body (GeometryReader content) size=267.19x300
+  52 f0      22.6  onGeometryChange of: width=267.1875
+  53 f0      22.6  onGeometryChange action: 267.1875 -> readerWidth
+  54 f0      22.6  body GeoFeedbackRoot readerWidth=267.19
+  55 f0      22.6  body (GeometryReader content) size=266.41x300
+  56 f0      22.7  onGeometryChange of: width=266.40625
+  57 f0      22.7  onGeometryChange action: 266.40625 -> readerWidth
+  58 f0      22.7  body GeoFeedbackRoot readerWidth=266.41
+  59 f0      22.8  body (GeometryReader content) size=266.80x300
+  60 f0      22.8  onGeometryChange of: width=266.796875
+  61 f0      22.8  onGeometryChange action: 266.796875 -> readerWidth
+  62 f0      22.8  body GeoFeedbackRoot readerWidth=266.80
+  63 f0      22.9  body (GeometryReader content) size=266.60x300
+  64 f0      22.9  onGeometryChange of: width=266.6015625
+  65 f0      22.9  onGeometryChange action: 266.6015625 -> readerWidth
+  66 f0      22.9  body GeoFeedbackRoot readerWidth=266.60
+  67 f0      23.0  body (GeometryReader content) size=266.70x300
+  68 f0      23.0  onGeometryChange of: width=266.69921875
+  69 f0      23.1  onGeometryChange action: 266.69921875 -> readerWidth
+  70 f0      23.1  body GeoFeedbackRoot readerWidth=266.70
+  71 f0      23.1  body (GeometryReader content) size=266.65x300
+  72 f0      23.2  onGeometryChange of: width=266.650390625
+  73 f0      23.2  onGeometryChange action: 266.650390625 -> readerWidth
+  74 f0      23.2  body GeoFeedbackRoot readerWidth=266.65
+  75 f0      23.2  body (GeometryReader content) size=266.67x300
+  76 f0      23.4  onGeometryChange of: width=266.6748046875
+  77 f0      23.4  onGeometryChange action: 266.6748046875 -> readerWidth
+  78 f0      23.4  body GeoFeedbackRoot readerWidth=266.67
+  79 f0      23.5  body (GeometryReader content) size=266.66x300
+  80 f0      23.6  onGeometryChange of: width=266.66259765625
+  81 f0      23.6  onGeometryChange action: 266.66259765625 -> readerWidth
+  82 f0      23.6  body GeoFeedbackRoot readerWidth=266.66
+  83 f0      23.7  body (GeometryReader content) size=266.67x300
+  84 f0      23.7  onGeometryChange of: width=266.668701171875
+  85 f0      23.7  onGeometryChange action: 266.668701171875 -> readerWidth
+  86 f0      23.7  body GeoFeedbackRoot readerWidth=266.67
+  87 f0      23.9  body (GeometryReader content) size=266.67x300
+  88 f0      24.0  onGeometryChange of: width=266.6656494140625
+  89 f0      24.0  onGeometryChange action: 266.6656494140625 -> readerWidth
+  90 f0      24.1  body GeoFeedbackRoot readerWidth=266.67
+  91 f0      24.2  body (GeometryReader content) size=266.67x300
+  92 f0      24.3  onGeometryChange of: width=266.66717529296875
+  93 f0      24.3  onGeometryChange action: 266.66717529296875 -> readerWidth
+  94 f0      24.3  body GeoFeedbackRoot readerWidth=266.67
+  95 f0      24.4  body (GeometryReader content) size=266.67x300
+  96 f0      24.4  onGeometryChange of: width=266.6664123535156
+  97 f0      24.5  onGeometryChange action: 266.6664123535156 -> readerWidth
+  98 f0      24.5  body GeoFeedbackRoot readerWidth=266.67
+  99 f0      24.5  body (GeometryReader content) size=266.67x300
+ 100 f0      24.6  onGeometryChange of: width=266.6667938232422
+ 101 f0      24.6  onGeometryChange action: 266.6667938232422 -> readerWidth
+ 102 f0      24.6  body GeoFeedbackRoot readerWidth=266.67
+ 103 f0      24.7  body (GeometryReader content) size=266.67x300
+ 104 f0      24.7  onGeometryChange of: width=266.6666030883789
+ 105 f0      24.7  onGeometryChange action: 266.6666030883789 -> readerWidth
+ 106 f0      24.8  body GeoFeedbackRoot readerWidth=266.67
+ 107 f0      24.8  body (GeometryReader content) size=266.67x300
+ 108 f0      24.9  onGeometryChange of: width=266.66669845581055
+ 109 f0      24.9  onGeometryChange action: 266.66669845581055 -> readerWidth
+ 110 f0      24.9  body GeoFeedbackRoot readerWidth=266.67
+ 111 f0      25.0  body (GeometryReader content) size=266.67x300
+ 112 f0      25.0  onGeometryChange of: width=266.6666507720947
+ 113 f0      25.0  onGeometryChange action: 266.6666507720947 -> readerWidth
+ 114 f0      25.0  body GeoFeedbackRoot readerWidth=266.67
+ 115 f0      25.1  body (GeometryReader content) size=266.67x300
+ 116 f0      25.2  onGeometryChange of: width=266.66667461395264
+ 117 f0      25.2  onGeometryChange action: 266.66667461395264 -> readerWidth
+ 118 f0      25.2  body GeoFeedbackRoot readerWidth=266.67
+ 119 f0      25.2  body (GeometryReader content) size=266.67x300
+ 120 f0      25.3  onGeometryChange of: width=266.6666626930237
+ 121 f0      25.3  onGeometryChange action: 266.6666626930237 -> readerWidth
+ 122 f0      25.3  body GeoFeedbackRoot readerWidth=266.67
+ 123 f0      25.4  body (GeometryReader content) size=266.67x300
+ 124 f0      25.4  onGeometryChange of: width=266.66666865348816
+ 125 f0      25.4  onGeometryChange action: 266.66666865348816 -> readerWidth
+ 126 f0      25.4  body GeoFeedbackRoot readerWidth=266.67
+ 127 f0      25.5  body (GeometryReader content) size=266.67x300
+ 128 f0      25.6  onGeometryChange of: width=266.6666656732559
+ 129 f0      25.6  onGeometryChange action: 266.6666656732559 -> readerWidth
+ 130 f0      25.6  body GeoFeedbackRoot readerWidth=266.67
+ 131 f0      25.6  body (GeometryReader content) size=266.67x300
+ 132 f0      25.7  onGeometryChange of: width=266.66666716337204
+ 133 f0      25.7  onGeometryChange action: 266.66666716337204 -> readerWidth
+ 134 f0      25.7  body GeoFeedbackRoot readerWidth=266.67
+ 135 f0      25.8  body (GeometryReader content) size=266.67x300
+ 136 f0      25.8  onGeometryChange of: width=266.666666418314
+ 137 f0      25.8  onGeometryChange action: 266.666666418314 -> readerWidth
+ 138 f0      25.8  body GeoFeedbackRoot readerWidth=266.67
+ 139 f0      25.9  body (GeometryReader content) size=266.67x300
+ 140 f0      26.0  onGeometryChange of: width=266.666666790843
+ 141 f0      26.0  onGeometryChange action: 266.666666790843 -> readerWidth
+ 142 f0      26.0  body GeoFeedbackRoot readerWidth=266.67
+ 143 f0      26.0  body (GeometryReader content) size=266.67x300
+ 144 f0      26.1  onGeometryChange of: width=266.6666666045785
+ 145 f0      26.1  onGeometryChange action: 266.6666666045785 -> readerWidth
+ 146 f0      26.1  body GeoFeedbackRoot readerWidth=266.67
+ 147 f0      26.2  body (GeometryReader content) size=266.67x300
+ 148 f0      26.2  onGeometryChange of: width=266.66666669771075
+ 149 f0      26.2  onGeometryChange action: 266.66666669771075 -> readerWidth
+ 150 f0      26.3  body GeoFeedbackRoot readerWidth=266.67
+ 151 f0      26.3  body (GeometryReader content) size=266.67x300
+ 152 f0      26.4  onGeometryChange of: width=266.6666666511446
+ 153 f0      26.4  onGeometryChange action: 266.6666666511446 -> readerWidth
+ 154 f0      26.4  body GeoFeedbackRoot readerWidth=266.67
+ 155 f0      26.5  body (GeometryReader content) size=266.67x300
+ 156 f0      26.5  onGeometryChange of: width=266.6666666744277
+ 157 f0      26.5  onGeometryChange action: 266.6666666744277 -> readerWidth
+ 158 f0      26.5  body GeoFeedbackRoot readerWidth=266.67
+ 159 f0      26.6  body (GeometryReader content) size=266.67x300
+ 160 f0      26.7  onGeometryChange of: width=266.66666666278616
+ 161 f0      26.7  onGeometryChange action: 266.66666666278616 -> readerWidth
+ 162 f0      26.7  body GeoFeedbackRoot readerWidth=266.67
+ 163 f0      26.7  body (GeometryReader content) size=266.67x300
+ 164 f0      26.8  onGeometryChange of: width=266.6666666686069
+ 165 f0      26.8  onGeometryChange action: 266.6666666686069 -> readerWidth
+ 166 f0      26.8  body GeoFeedbackRoot readerWidth=266.67
+ 167 f0      26.9  body (GeometryReader content) size=266.67x300
+ 168 f0      26.9  onGeometryChange of: width=266.66666666569654
+ 169 f0      26.9  onGeometryChange action: 266.66666666569654 -> readerWidth
+ 170 f0      26.9  body GeoFeedbackRoot readerWidth=266.67
+ 171 f0      27.0  body (GeometryReader content) size=266.67x300
+ 172 f0      27.0  onGeometryChange of: width=266.66666666715173
+ 173 f0      27.1  onGeometryChange action: 266.66666666715173 -> readerWidth
+ 174 f0      27.1  body GeoFeedbackRoot readerWidth=266.67
+ 175 f0      27.1  body (GeometryReader content) size=266.67x300
+ 176 f0      27.2  onGeometryChange of: width=266.66666666642413
+ 177 f0      27.2  onGeometryChange action: 266.66666666642413 -> readerWidth
+ 178 f0      27.2  body GeoFeedbackRoot readerWidth=266.67
+ 179 f0      27.2  body (GeometryReader content) size=266.67x300
+ 180 f0      27.3  onGeometryChange of: width=266.66666666678793
+ 181 f0      27.3  onGeometryChange action: 266.66666666678793 -> readerWidth
+ 182 f0      27.3  body GeoFeedbackRoot readerWidth=266.67
+ 183 f0      27.4  body (GeometryReader content) size=266.67x300
+ 184 f0      27.4  onGeometryChange of: width=266.66666666660603
+ 185 f0      27.4  onGeometryChange action: 266.66666666660603 -> readerWidth
+ 186 f0      27.4  body GeoFeedbackRoot readerWidth=266.67
+ 187 f0      27.5  body (GeometryReader content) size=266.67x300
+ 188 f0      27.5  onGeometryChange of: width=266.666666666697
+ 189 f0      27.6  onGeometryChange action: 266.666666666697 -> readerWidth
+ 190 f0      27.6  body GeoFeedbackRoot readerWidth=266.67
+ 191 f0      27.6  body (GeometryReader content) size=266.67x300
+ 192 f0      27.7  onGeometryChange of: width=266.6666666666515
+ 193 f0      27.7  onGeometryChange action: 266.6666666666515 -> readerWidth
+ 194 f0      27.7  body GeoFeedbackRoot readerWidth=266.67
+ 195 f0      27.7  body (GeometryReader content) size=266.67x300
+ 196 f0      27.8  onGeometryChange of: width=266.66666666667425
+ 197 f0      27.8  onGeometryChange action: 266.66666666667425 -> readerWidth
+ 198 f0      27.8  body GeoFeedbackRoot readerWidth=266.67
+ 199 f0      27.9  body (GeometryReader content) size=266.67x300
+ 200 f0      27.9  onGeometryChange of: width=266.6666666666629
+ 201 f0      27.9  onGeometryChange action: 266.6666666666629 -> readerWidth
+ 202 f0      27.9  body GeoFeedbackRoot readerWidth=266.67
+ 203 f0      28.0  body (GeometryReader content) size=266.67x300
+ 204 f0      28.1  onGeometryChange of: width=266.66666666666856
+ 205 f0      28.1  onGeometryChange action: 266.66666666666856 -> readerWidth
+ 206 f0      28.1  body GeoFeedbackRoot readerWidth=266.67
+ 207 f0      28.1  body (GeometryReader content) size=266.67x300
+ 208 f0      28.2  onGeometryChange of: width=266.6666666666657
+ 209 f0      28.2  onGeometryChange action: 266.6666666666657 -> readerWidth
+ 210 f0      28.2  body GeoFeedbackRoot readerWidth=266.67
+ 211 f0      28.3  body (GeometryReader content) size=266.67x300
+ 212 f0      28.3  onGeometryChange of: width=266.66666666666714
+ 213 f0      28.3  onGeometryChange action: 266.66666666666714 -> readerWidth
+ 214 f0      28.3  body GeoFeedbackRoot readerWidth=266.67
+ 215 f0      28.4  body (GeometryReader content) size=266.67x300
+ 216 f0      28.4  onGeometryChange of: width=266.6666666666664
+ 217 f0      28.4  onGeometryChange action: 266.6666666666664 -> readerWidth
+ 218 f0      28.5  body GeoFeedbackRoot readerWidth=266.67
+ 219 f0      28.5  body (GeometryReader content) size=266.67x300
+ 220 f0      28.6  onGeometryChange of: width=266.6666666666668
+ 221 f0      28.6  onGeometryChange action: 266.6666666666668 -> readerWidth
+ 222 f0      28.6  body GeoFeedbackRoot readerWidth=266.67
+ 223 f0      28.6  body (GeometryReader content) size=266.67x300
+ 224 f0      28.7  onGeometryChange of: width=266.66666666666663
+ 225 f0      28.7  onGeometryChange action: 266.66666666666663 -> readerWidth
+ 226 f0      28.7  body GeoFeedbackRoot readerWidth=266.67
+ 227 f0      28.8  body (GeometryReader content) size=266.67x300
+ 228 f0      28.8  onGeometryChange of: width=266.6666666666667
+ 229 f0      28.9  onGeometryChange action: 266.6666666666667 -> readerWidth
+ 230 f0      28.9  body GeoFeedbackRoot readerWidth=266.67
+ 231 f0      29.0  body (GeometryReader content) size=266.67x300
+ 232 f0      29.1  onGeometryChange of: width=266.66666666666663
+[runtime] [Invalid Configuration] Geometry action is cycling between duplicate values.
+ 233 f0      29.1  runloop: beforeWaiting observers done
+ 234 f1      29.9  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+ 235 f1      29.9  ── vsync f1
+ 236 f1      29.9  host.updateConstraints begin
+ 237 f1      30.0  host.updateConstraints end
+ 238 f1      30.0  host.layout begin
+ 239 f1      30.1  DRAW reader content for 266.67x300 (canvas 8x8)   [in host.layout]
+ 240 f1      30.2  host.layout end
+ 241 f1      30.3  CA post-commit handler: the transaction is committed (armed by host.layout)
+ 242 f1      30.5    committed layer tree: red begins at x=267
+ 243 f2      43.9  runloop: after afterWaiting: the timer, main-queue work or port that woke the loop
+ 244 f2      43.9  ── vsync f2
+          (92 vsyncs with no event)
+end of case geofeedback
