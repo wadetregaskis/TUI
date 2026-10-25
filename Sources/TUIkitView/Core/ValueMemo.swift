@@ -186,8 +186,13 @@ func renderValueMemoized<Key: Equatable, Row>(
     // long as that is kept — and, stored or not, by what encloses this memo
     // (see `ObservationLeases`).
     let leaseMark = cache.leases.beginComputation()
+    // Built once, inside the scope — a read the row's builder makes is the
+    // kept buffer's too — and kept: what the buffer is re-checked by (Option C).
+    var built: Row?
     let buffer = observingKeptResult(of: Key.self, kind: .keptRender, context: context) {
-        render(build(), renderContext)
+        let row = build()
+        built = row
+        return render(row, renderContext)
     }
     let lease = cache.leases.endComputation(leaseMark)
 
@@ -203,7 +208,8 @@ func renderValueMemoized<Key: Equatable, Row>(
             contextWidth: context.availableWidth, contextHeight: context.availableHeight,
             gradientFrame: context.gradientFrame,
             surfaceBackground: context.environment.surfaceBackground,
-            recorded: (effects, effects.isEmpty ? .none : context.effectScope, lease))
+            recorded: (effects, effects.isEmpty ? .none : context.effectScope, lease),
+            revalidation: built.flatMap { cache.revalidationRecord(for: $0, context: context) })
     }
     // Empties the journal when this was the outermost recording memo. An inner
     // one leaves its entries in place for the memo enclosing it.
@@ -414,8 +420,13 @@ func measureValueMemoized<Key: Equatable, Row>(
     // The scopes this measure arms are kept alive by the size it stores — see
     // the buffer half.
     let leaseMark = cache.leases.beginComputation()
+    // Built once, inside the scope — a read the row's builder makes is the
+    // kept size's too — and kept: what the size is re-checked by (Option C).
+    var built: Row?
     let size = observingKeptResult(of: Key.self, kind: .keptMeasure, context: context) {
-        measure(build(), measureContext)
+        let row = build()
+        built = row
+        return measure(row, measureContext)
     }
     let lease = cache.leases.endComputation(leaseMark)
     // The uncomparable-environment clause. A non-Equatable environment value in
@@ -427,7 +438,9 @@ func measureValueMemoized<Key: Equatable, Row>(
     if tracker.cacheUnsafeCount == unsafeBefore,
         !context.environment.hasUncomparableEnvironmentValue
     {
-        cache.storeSize(key: sizeKey, identity: context.identity, view: key, size: size, lease: lease)
+        cache.storeSize(
+            key: sizeKey, identity: context.identity, view: key, size: size, lease: lease,
+            revalidation: built.flatMap { cache.revalidationRecord(for: $0, context: context) })
     }
     return size
 }

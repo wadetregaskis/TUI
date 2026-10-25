@@ -17,6 +17,10 @@ extension RenderCache {
         let pending = link.drain()
         if pending.clearAll {
             clearAll()
+        } else if pending.identities.count == 1, let writer = pending.softOnly.first {
+            clearAffected(softlyBy: writer)
+        } else if !pending.softOnly.isEmpty {
+            clearAffected(byEachOf: pending.identities, softly: pending.softOnly)
         } else if pending.identities.count == 1, let writer = pending.identities.first {
             clearAffected(by: writer)
         } else if !pending.identities.isEmpty {
@@ -92,6 +96,65 @@ extension RenderCache {
         logDebug("CLEAR AFFECTED by \(identity.path): \(staleKeys.count) of \(entries.count + staleKeys.count) entries")
     }
 
+    /// What ``clearAffected(byEachOf:softly:)`` does for one soft writer, the
+    /// usual drain — one `@State` written, or one body's read — as cheaply as
+    /// ``clearAffected(by:keepingSizes:includingDescendants:)`` does it for a
+    /// hard one: `writer` and its ancestors go, and below it, an entry that
+    /// recorded what it was drawn from and under is kept, a suspect, and one
+    /// that did not goes.
+    func clearAffected(softlyBy writer: ViewIdentity) {
+        sizeClearGeneration &+= 1
+        stats.subtreeClears += 1
+        var chain = Set<Int>()
+        var cursor: ViewIdentity? = writer
+        while let node = cursor {
+            chain.insert(node.structuralHash)
+            cursor = node.parent
+        }
+        func verdict(_ cached: ViewIdentity, stamped: Bool) -> DrainVerdict {
+            let atOrAbove: Bool
+            let below: Bool
+            if writer.isRawRooted || cached.isRawRooted {
+                atOrAbove = cached == writer || cached.isAncestor(of: writer)
+                below = !atOrAbove && writer.isAncestor(of: cached)
+            } else if cached.depth <= writer.depth {
+                atOrAbove = chain.contains(cached.structuralHash) && (cached == writer || cached.isAncestor(of: writer))
+                below = false
+            } else {
+                atOrAbove = false
+                below = writer.isAncestor(of: cached)
+            }
+            if atOrAbove { return .drop }
+            guard below else { return .keep }
+            return stamped ? .suspect : .dropUnrecorded
+        }
+        stats.clearVisits += entries.count + sizeEntries.count
+        var staleKeys: [Int] = []
+        for (key, entry) in entries {
+            switch verdict(entry.identity, stamped: entry.revalidation != nil) {
+            case .keep: continue
+            case .drop: staleKeys.append(key)
+            case .dropUnrecorded:
+                staleKeys.append(key)
+                revalidation.counts.unstampedDropped += 1
+            case .suspect:
+                if !entry.isSuspect { revalidation.counts.suspectsMarked += 1 }
+                entry.isSuspect = true
+            }
+        }
+        for key in staleKeys { entries.removeValue(forKey: key) }
+        var staleSizeKeys: [SizeKey] = []
+        for (key, entry) in sizeEntries {
+            switch verdict(entry.identity, stamped: entry.revalidation != nil) {
+            case .keep: continue
+            case .drop, .dropUnrecorded: staleSizeKeys.append(key)
+            case .suspect: entry.isSuspect = true
+            }
+        }
+        for key in staleSizeKeys { sizeEntries.removeValue(forKey: key) }
+        logDebug("CLEAR SOFTLY by \(writer.path): \(staleKeys.count) of \(entries.count + staleKeys.count) entries")
+    }
+
     /// What ``clearAffected(by:keepingSizes:includingDescendants:)`` would
     /// drop for each of `writers` in turn, sizes and descendants included, in
     /// ONE walk of each table.
@@ -114,7 +177,7 @@ extension RenderCache {
     /// identities have no chain to index, so while one is among the writers
     /// every entry takes the pairwise test against each writer, which is what
     /// the pairwise clears asked of it.
-    func clearAffected(byEachOf writers: Set<ViewIdentity>) {
+    func clearAffected(byEachOf writers: Set<ViewIdentity>, softly soft: Set<ViewIdentity> = []) {
         sizeClearGeneration &+= writers.count
         stats.subtreeClears += writers.count
         let anyRawWriter = writers.contains(where: \.isRawRooted)
@@ -128,20 +191,62 @@ extension RenderCache {
                 cursor = node.parent
             }
         }
-        var below = RetainedSubtreeIndex(roots: Array(writers))
-        func affects(_ cached: ViewIdentity) -> Bool {
+        // Below a soft writer — a parent's write (Option C, §2.2) — an entry
+        // that recorded what it was drawn from and under is kept, a suspect,
+        // to be re-checked when it is looked up; one that did not is dropped.
+        // Below a hard writer, everything goes, as below every writer before.
+        let hard = soft.isEmpty ? writers : writers.subtracting(soft)
+        var belowHard = RetainedSubtreeIndex(roots: Array(hard))
+        var belowSoft = RetainedSubtreeIndex(roots: Array(soft))
+        func verdict(_ cached: ViewIdentity, stamped: Bool) -> DrainVerdict {
             if anyRawWriter || cached.isRawRooted {
-                return writers.contains { cached == $0 || cached.isAncestor(of: $0) || $0.isAncestor(of: cached) }
+                if writers.contains(where: { cached == $0 || cached.isAncestor(of: $0) }) { return .drop }
+                if hard.contains(where: { $0.isAncestor(of: cached) }) { return .drop }
+                guard soft.contains(where: { $0.isAncestor(of: cached) }) else { return .keep }
+                return stamped ? .suspect : .dropUnrecorded
             }
-            return atOrAbove[cached.structuralHash]?.contains(cached) == true || below.retains(cached)
+            if atOrAbove[cached.structuralHash]?.contains(cached) == true || belowHard.retains(cached) { return .drop }
+            guard !soft.isEmpty, belowSoft.retains(cached) else { return .keep }
+            return stamped ? .suspect : .dropUnrecorded
         }
         stats.clearVisits += entries.count + sizeEntries.count
         var staleKeys: [Int] = []
-        for (key, entry) in entries where affects(entry.identity) { staleKeys.append(key) }
+        for (key, entry) in entries {
+            switch verdict(entry.identity, stamped: entry.revalidation != nil) {
+            case .keep: continue
+            case .drop:
+                staleKeys.append(key)
+            case .dropUnrecorded:
+                staleKeys.append(key)
+                revalidation.counts.unstampedDropped += 1
+            case .suspect:
+                if !entry.isSuspect { revalidation.counts.suspectsMarked += 1 }
+                entry.isSuspect = true
+            }
+        }
         for key in staleKeys { entries.removeValue(forKey: key) }
         var staleSizeKeys: [SizeKey] = []
-        for (key, entry) in sizeEntries where affects(entry.identity) { staleSizeKeys.append(key) }
+        for (key, entry) in sizeEntries {
+            switch verdict(entry.identity, stamped: entry.revalidation != nil) {
+            case .keep: continue
+            case .drop, .dropUnrecorded: staleSizeKeys.append(key)
+            case .suspect: entry.isSuspect = true
+            }
+        }
         for key in staleSizeKeys { sizeEntries.removeValue(forKey: key) }
         logDebug("CLEAR AFFECTED by \(writers.count) writers: \(staleKeys.count) of \(entries.count + staleKeys.count) entries")
     }
+}
+
+/// What a drain does with one entry.
+private enum DrainVerdict {
+    /// Nothing written reaches it.
+    case keep
+    /// A write at it, above it or hard above it: it goes.
+    case drop
+    /// Only parents' writes above it, and it recorded nothing to re-check it
+    /// by: it goes, as everything below a writer did before.
+    case dropUnrecorded
+    /// Only parents' writes above it, and it recorded what to re-check it by.
+    case suspect
 }

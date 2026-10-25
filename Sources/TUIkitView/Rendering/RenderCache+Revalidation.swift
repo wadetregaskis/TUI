@@ -32,8 +32,29 @@ package final class RevalidationState {
     /// so until Option C's re-check needs it (C4b).
     package var countsStamps = false
 
+    /// What the soft drain and the lookups have done, for the census and
+    /// the tests.
+    package var counts = Counts()
+
+    /// See ``counts``.
+    package struct Counts: Equatable {
+        /// Stores that recorded what they were drawn from and under.
+        package var stamped = 0
+        /// Entries a soft drain kept, marked suspect.
+        package var suspectsMarked = 0
+        /// Entries a soft drain dropped below a soft writer, because they
+        /// recorded nothing to re-check them by.
+        package var unstampedDropped = 0
+        /// Suspects dropped when they were looked up (C4b: not re-checked yet).
+        package var suspectsDropped = 0
+    }
+
     /// What ``eligibility(ofRowsOf:)`` has answered, by type.
     private var eligibilities: [ObjectIdentifier: RowEligibility] = [:]
+
+    /// The `==` of each eligible row type, made once from its metatype: what
+    /// a record compares its snapshot by, so a store casts nothing.
+    private var equalities: [ObjectIdentifier: (Any, Any) -> Bool] = [:]
 
     package init() {}
 
@@ -57,6 +78,25 @@ package final class RevalidationState {
         eligibilities[ObjectIdentifier(type)] = decided
         return decided
     }
+
+    /// The `==` rows of `type` are compared by, when they can be re-checked
+    /// (``eligibility(ofRowsOf:)``); `nil` when they cannot. Made once per
+    /// type, by opening its metatype — not by casting each row to
+    /// `any Equatable` as it is stored, which cost a dynamic cast per store
+    /// (3.9% of a `scrollfollow` frame).
+    package func equality(ofRowsOf type: Any.Type) -> ((Any, Any) -> Bool)? {
+        if let known = equalities[ObjectIdentifier(type)] { return known }
+        guard eligibility(ofRowsOf: type) == .eligible, let equatable = type as? any Equatable.Type else { return nil }
+        func make<E: Equatable>(_: E.Type) -> (Any, Any) -> Bool {
+            { lhs, rhs in
+                guard let left = lhs as? E, let right = rhs as? E else { return false }
+                return left == right
+            }
+        }
+        let equal = make(equatable)
+        equalities[ObjectIdentifier(type)] = equal
+        return equal
+    }
 }
 
 /// Whether rows of a type can be re-checked by their value: see
@@ -68,4 +108,47 @@ package enum RowEligibility: Equatable, Sendable {
     case notEquatable
     /// The type walk refused it, and why.
     case refused(TypeWalk.Refusal)
+}
+
+// MARK: - What an entry is re-checked by
+
+extension RenderCache {
+    /// What a memoized subtree was drawn from and under, kept with its entry
+    /// so a parent's write can re-check it rather than drop it (Option C,
+    /// §2.4).
+    ///
+    /// A class: an entry holds it by one reference, which the drain and the
+    /// lookups read without copying an existential and a stamp each time.
+    package final class Revalidation {
+        /// The row's view value as it was built when drawn: what the rebuilt
+        /// value is compared with, by ``equal``.
+        package let snapshot: Any
+        /// The `==` of the snapshot's type.
+        package let equal: (Any, Any) -> Bool
+        /// The environment it was drawn under (``EnvironmentStamp``), from the
+        /// context the memo was handed.
+        package let environment: EnvironmentStamp
+        /// How many environment modifiers that note themselves were above it.
+        package let depth: Int
+
+        init(snapshot: Any, equal: @escaping (Any, Any) -> Bool, environment: EnvironmentStamp, depth: Int) {
+            self.snapshot = snapshot
+            self.equal = equal
+            self.environment = environment
+            self.depth = depth
+        }
+    }
+
+    /// The record for a row of `row`'s value drawn under `context`, or `nil`
+    /// when it cannot be re-checked: its view is not eligible
+    /// (``RevalidationState/eligibility(ofRowsOf:)``), or its environment
+    /// cannot be compared. An entry stored with `nil` is dropped by a soft
+    /// drain, as every entry below a writer is today.
+    package func revalidationRecord<Row>(for row: Row, context: RenderContext) -> Revalidation? {
+        guard let equal = revalidation.equality(ofRowsOf: Row.self),
+            let stamp = revalidation.stamps.stamp(of: context.environment)
+        else { return nil }
+        revalidation.counts.stamped += 1
+        return Revalidation(snapshot: row, equal: equal, environment: stamp, depth: context.environmentApplicationDepth)
+    }
 }

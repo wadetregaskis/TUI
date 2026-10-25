@@ -19,9 +19,20 @@ extension RenderCache {
     ///   pulls an entry out of the dictionary — including the **reject** paths,
     ///   which discard it immediately — and a struct copy retains every
     ///   refcounted field: the snapshot existential plus the five arrays inside
-    ///   the `FrameBuffer`. One reference instead. Every property is `let`, so
-    ///   sharing the instance cannot alias a mutation.
+    ///   the `FrameBuffer`. One reference instead. Every public property is
+    ///   `let`; the two `package var`s below — what Option C re-checks the
+    ///   entry by, and whether it must be — are changed only on the main
+    ///   actor, by the drain and the lookup, and a caller holding a returned
+    ///   entry never reads them.
     public final class CacheEntry {
+        /// What the subtree was drawn from and under, when its row can be
+        /// re-checked (Option C): `nil` for an entry a soft drain must drop.
+        package var revalidation: Revalidation?
+
+        /// Whether a parent's write was drained above it since it was stored:
+        /// it may be stale, and is not served as it stands.
+        package var isSuspect = false
+
         /// The type-erased view value at the time of caching.
         ///
         /// Cast back to the concrete `Equatable` type for comparison.
@@ -130,8 +141,10 @@ extension RenderCache {
             viewSnapshot: Any, buffer: FrameBuffer, contextWidth: Int, contextHeight: Int,
             gradientFrame: GradientFrame?, surfaceBackground: Color?,
             effects: [EffectJournal.Entry], effectScope: EffectScope,
-            drawnAt: AnimationInstant? = nil, lease: ObservationLease? = nil
+            drawnAt: AnimationInstant? = nil, lease: ObservationLease? = nil,
+            revalidation: Revalidation? = nil
         ) {
+            self.revalidation = revalidation
             self.identity = identity
             self.viewSnapshot = viewSnapshot
             self.buffer = buffer

@@ -133,9 +133,14 @@ public final class RenderCache: @unchecked Sendable {
     ///   pulls an entry out of the dictionary on the REJECT path as well as the
     ///   hit, and both prunes copy one per entry they walk, so a struct copy
     ///   would retain the snapshot existential AND the identity chain every
-    ///   time. One reference instead. Every property is `let`, so sharing the
-    ///   instance cannot alias a mutation.
+    ///   time. One reference instead. Every property but the two Option C
+    ///   keeps (as ``CacheEntry``'s) is `let`, so sharing the instance cannot
+    ///   alias a mutation.
     final class SizeEntry {
+        /// What the size was measured from and under; see ``CacheEntry``.
+        var revalidation: Revalidation?
+        /// See ``CacheEntry``.
+        var isSuspect = false
         let viewSnapshot: Any
         let size: ViewSize
         /// Where the measured view sat — read by ``removeInactive()`` and
@@ -154,7 +159,11 @@ public final class RenderCache: @unchecked Sendable {
         /// observation scopes that measure armed alive while the size is kept
         /// (see ``ObservationLeases``). `nil` when nothing beneath it read.
         let lease: ObservationLease?
-        init(viewSnapshot: Any, size: ViewSize, identity: ViewIdentity, lapsesAt: Date?, lease: ObservationLease?) {
+        init(
+            viewSnapshot: Any, size: ViewSize, identity: ViewIdentity, lapsesAt: Date?, lease: ObservationLease?,
+            revalidation: Revalidation?
+        ) {
+            self.revalidation = revalidation
             self.viewSnapshot = viewSnapshot
             self.size = size
             self.identity = identity
@@ -747,6 +756,14 @@ extension RenderCache {
             logDebug("MISS (no entry) \(identity.path)")
             return nil
         }
+        // Option C's re-check is not on yet (C4b): a suspect is what a hard
+        // drain would have dropped, and goes now.
+        guard !entry.isSuspect else {
+            dropSuspect(entry, at: identity)
+            stats.misses += 1
+            logDebug("MISS (suspect) \(identity.path)")
+            return nil
+        }
         guard let oldView = entry.viewSnapshot as? V else {
             stats.misses += 1
             logDebug("MISS (type mismatch) \(identity.path)")
@@ -813,6 +830,17 @@ extension RenderCache {
     /// The scope is read only when the own slot is empty or holds registrations,
     /// as the check after it always was: the common entry costs no environment
     /// read.
+    /// Removes `entry`, a suspect looked up at `identity`, from whichever of
+    /// the identity's two slots holds it (``scopedEntry(for:effectScope:)``).
+    private func dropSuspect(_ entry: CacheEntry, at identity: ViewIdentity) {
+        revalidation.counts.suspectsDropped += 1
+        if entries[identity.structuralHash] === entry {
+            entries[identity.structuralHash] = nil
+        } else {
+            entries[Self.backdropKey(identity.structuralHash)] = nil
+        }
+    }
+
     private func scopedEntry(for identity: ViewIdentity, effectScope: () -> EffectScope) -> CacheEntry? {
         let own = entries[identity.structuralHash]
         if let own, own.effects.isEmpty { return own }
@@ -888,7 +916,8 @@ extension RenderCache {
         contextHeight: Int,
         gradientFrame: GradientFrame?,
         surfaceBackground: Color?,
-        recorded: (effects: [EffectJournal.Entry], scope: EffectScope, lease: ObservationLease?)
+        recorded: (effects: [EffectJournal.Entry], scope: EffectScope, lease: ObservationLease?),
+        revalidation: Revalidation? = nil
     ) {
         stats.stores += 1
         let key =
@@ -905,7 +934,8 @@ extension RenderCache {
             effects: recorded.effects,
             effectScope: recorded.scope,
             drawnAt: frameInstant,
-            lease: recorded.lease
+            lease: recorded.lease,
+            revalidation: revalidation
         )
         logDebug("STORE \(identity.path)")
     }
@@ -988,7 +1018,17 @@ extension RenderCache {
     /// (`VolatileReadTracker.recordServedHold(lapsingAt:)`), or a memo above it
     /// keeps it for good.
     package func lookupHeldSize<V: Equatable>(key: SizeKey, view: V) -> (size: ViewSize, lapsesAt: Date?)? {
-        guard let entry = sizeEntries[key], let old = entry.viewSnapshot as? V, old == view, holds(lapsingAt: entry.lapsesAt) else {
+        // One lookup of the table, the suspect check behind it: a second one
+        // on this path, which `fanout` takes 4,000 times a frame, cost it 5%.
+        let found = sizeEntries[key]
+        if let found, found.isSuspect {
+            // As a buffer's (``lookupEntry``): not re-checked yet (C4b).
+            sizeEntries[key] = nil
+            revalidation.counts.suspectsDropped += 1
+            stats.misses += 1
+            return nil
+        }
+        guard let entry = found, let old = entry.viewSnapshot as? V, old == view, holds(lapsingAt: entry.lapsesAt) else {
             stats.misses += 1
             return nil
         }
@@ -1008,7 +1048,7 @@ extension RenderCache {
     public func storeSize<V: Equatable>(
         key: SizeKey, identity: ViewIdentity, view: V, size: ViewSize, lapsingAt: Date? = nil
     ) {
-        storeSize(key: key, identity: identity, view: view, size: size, lapsingAt: lapsingAt, lease: nil)
+        storeSize(key: key, identity: identity, view: view, size: size, lapsingAt: lapsingAt, lease: nil, revalidation: nil)
     }
 
     /// Stores a memoized measurement with the lease of the measure that found
@@ -1017,11 +1057,12 @@ extension RenderCache {
     /// default: a store that keeps a result must say what it keeps with it.
     package func storeSize<V: Equatable>(
         key: SizeKey, identity: ViewIdentity, view: V, size: ViewSize, lapsingAt: Date? = nil,
-        lease: ObservationLease?
+        lease: ObservationLease?, revalidation: Revalidation? = nil
     ) {
         stats.stores += 1
         sizeEntries[key] = SizeEntry(
-            viewSnapshot: view, size: size, identity: identity, lapsesAt: lapsingAt, lease: lease)
+            viewSnapshot: view, size: size, identity: identity, lapsesAt: lapsingAt, lease: lease,
+            revalidation: revalidation)
     }
 
     /// Looks up this pass's memoized `measureChild` result.
@@ -1292,15 +1333,20 @@ extension RenderCache {
         // Over the PAIRS, not the keys: a key is now just a hash, and `isLive`
         // needs the chain `retained.retains` climbs, which lives in the entry.
         // Collect-then-remove is kept, so nothing mutates the dictionary mid-walk.
+        // A suspect still unresolved at the pass's end goes too: kept, it is
+        // walked by every drain after (measured on `scrollfollow`: 2.6× the
+        // entries a clear visited, the sizes at proposals nobody asked again),
+        // for a re-check that may never come — and that the hard drain never
+        // offered, so dropping it loses nothing that was there before.
         var staleKeys: [Int] = []
-        for (key, entry) in entries where !isLive(entry.identity) { staleKeys.append(key) }
+        for (key, entry) in entries where entry.isSuspect || !isLive(entry.identity) { staleKeys.append(key) }
         for key in staleKeys { entries.removeValue(forKey: key) }
         // Collect-then-remove, the spelling `AnimationStore.endRenderPass()`
         // uses and for its reason: removing inside `for … in sizeEntries`
         // COW-copies the whole table on the first removal, and this table is
         // hundreds of entries on a live page and thousands on `fanout`.
         var staleSizeKeys: [SizeKey] = []
-        for (key, entry) in sizeEntries where !isLive(entry.identity) { staleSizeKeys.append(key) }
+        for (key, entry) in sizeEntries where entry.isSuspect || !isLive(entry.identity) { staleSizeKeys.append(key) }
         for key in staleSizeKeys { sizeEntries.removeValue(forKey: key) }
         // Ids interned per identity go the same way, and by the same rule: a
         // handler id baked into a stored buffer's regions must still name its
