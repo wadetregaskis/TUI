@@ -322,6 +322,20 @@ when unset), the visual/aspect probes print to the terminal.
   python3 hairline_probe.py          # the checks, then the cards
   python3 hairline_probe.py --auto   # the checks alone
   ```
+- `hairline_review.py` — not a probe: what TUIkit DRAWS with the answers.
+  Builds Stress (its `megalist`, a windowed `List`) or the Example, and runs it
+  in the terminal it is started from, so a person can look at `.hairline` list
+  separators (decisions A-D6L-2): a line along the top of every row, taking no
+  row. Its docstring lists what to look at — the boundary, the focused row,
+  scrolling, a menu over the list, resize, quit, and where a line ends.
+  `--force` draws them on a host the table leaves out (`TUIKIT_HAIRLINES=1`),
+  `--off` draws the same list without them. Run from the repository root.
+
+  ```sh
+  python3 Tools/TerminalProbes/hairline_review.py           # megalist
+  python3 Tools/TerminalProbes/hairline_review.py example   # the Lists page
+  python3 Tools/TerminalProbes/hairline_review.py --force   # iTerm2, kitty, WezTerm
+  ```
 - `cell_aspect_probe.py` — the terminal cell's height:width ratio (what
   `Image` needs to render undistorted), via `TIOCGWINSZ` pixel fields and
   the `CSI 14t`/`18t` escape queries. Report to `$PROBE_OUT` (default
