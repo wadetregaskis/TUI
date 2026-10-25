@@ -9,6 +9,7 @@ import Testing
 @testable import TUIkitApp
 @testable import TUIkitFoundation
 @testable import TUIkitTestSupport
+@testable import TUIkitView
 
 /// A view whose text is NOT part of its memo token, so a served entry is
 /// observable: if the old rendering is reused the old text is what appears.
@@ -107,6 +108,23 @@ struct MemoizedViewTests {
             ClosureHolder(text: "second", action: {}).memoized(id: "k"), context: context)
 
         #expect(second.lines.first?.contains("first") == true)
+    }
+
+    @Test("A token memo is not Equatable: its token is a memo key, never a view's own equality")
+    func notEquatable() {
+        // Option C re-checks a row by its view's `==` (C4c); a token memo that
+        // compared its tokens would be served by its token whether or not the
+        // row around it was re-checked.
+        #expect(!(_MemoizedView<TokenLabel, Int>.self is any Equatable.Type))
+        #expect(RevalidationState().eligibility(ofRowsOf: _MemoizedView<TokenLabel, Int>.self) == .notEquatable)
+    }
+
+    @Test("Two contents memoized with one token at one identity do not share an entry")
+    func keyedByContentType() {
+        let context = testContext()
+        _ = renderToBuffer(TokenLabel(text: "label").memoized(id: 1), context: context)
+        let other = renderToBuffer(ClosureHolder(text: "holder", action: {}).memoized(id: 1), context: context)
+        #expect(other.lines.first?.contains("holder") == true)
     }
 
     @Test("Wrapping adds no level to the render identity")

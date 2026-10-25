@@ -31,8 +31,8 @@ public struct _MemoizedView<Content: View, ID: Hashable>: View {
         self.content = content
     }
 
-    /// The whole mechanism, in one line: two of these are "the same view" when
-    /// the caller's token matches, whatever the content happens to be.
+    /// The whole mechanism: its rendering is kept under the caller's token (and
+    /// the content's type), whatever the content happens to be.
     ///
     /// `Content` is deliberately NOT compared. It usually cannot be — that is
     /// the reason this type exists — and comparing what part of it can be would
@@ -43,12 +43,20 @@ public struct _MemoizedView<Content: View, ID: Hashable>: View {
     }
 }
 
-// `@preconcurrency`, as every other `Equatable` view in the tree declares it:
-// `View` is `@MainActor`, so the conformance crosses isolation. Comparing two
-// tokens touches nothing isolated, and this is the same spelling
-// `FlexibleFrameView`, `OverlayModifier` and the rest already use.
-extension _MemoizedView: @preconcurrency Equatable {
-    public static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+// NOT `Equatable`. It was, comparing the tokens, so that `.memoized(id:)` could
+// be an `EquatableView` of it — which made a token-only `==` look like a view's
+// own equality to anything that asks a view whether it is unchanged. Option C
+// re-checks a row by its view's `==` and serves it when that says "unchanged"
+// (C4c): a token memo inside a row would then be served by its token whether or
+// not the row around it was. So the token is a memo KEY, private to this type,
+// and the view is no more `Equatable` than its content is.
+
+/// What a token memo is filed under: the token, and the content's type, so a
+/// token memo and a row memo of the same key type at one identity do not
+/// share an entry.
+private struct MemoKey<ID: Hashable>: Equatable {
+    let contentType: ObjectIdentifier
+    let id: ID
 }
 
 // MARK: - Rendering
@@ -61,13 +69,19 @@ extension _MemoizedView: @preconcurrency Equatable {
 // reason.
 extension _MemoizedView: Renderable {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIkitView.renderToBuffer(content, context: context)
+        renderValueMemoized(
+            key: memoKey, viewType: Content.self, context: context, build: { content },
+            render: { TUIkitView.renderToBuffer($0, context: $1) })
     }
+
+    private var memoKey: MemoKey<ID> { MemoKey(contentType: ObjectIdentifier(Content.self), id: id) }
 }
 
 extension _MemoizedView: Layoutable {
     public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureChild(content, proposal: proposal, context: context)
+        measureValueMemoized(
+            key: memoKey, proposal: proposal, context: context, build: { content },
+            measure: { measureChild($0, proposal: proposal, context: $1) })
     }
 }
 
@@ -120,8 +134,8 @@ extension View {
     ///
     /// - Parameter id: What this subtree's appearance is a function of.
     /// - Returns: A view that reuses its rendering while `id` holds.
-    public func memoized<ID: Hashable>(id: ID) -> EquatableView<_MemoizedView<Self, ID>> {
-        EquatableView(content: _MemoizedView(id: id, content: self))
+    public func memoized<ID: Hashable>(id: ID) -> _MemoizedView<Self, ID> {
+        _MemoizedView(id: id, content: self)
     }
 }
 
