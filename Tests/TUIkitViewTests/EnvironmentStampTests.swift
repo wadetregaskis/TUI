@@ -47,6 +47,17 @@ private struct ChannelKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     static let defaultValue = 0
 }
 
+/// Not `Equatable`: a name, and an action no render draws from.
+private struct Labelled {
+    var name: String
+    var action: () -> Void = {}
+}
+
+private struct LabelledKey: EnvironmentKey, _RenderProjectingEnvironmentKey {
+    nonisolated(unsafe) static let defaultValue = Labelled(name: "")
+    static func renderProjection(of value: Any) -> (any Equatable)? { (value as? Labelled)?.name }
+}
+
 /// A class whose `==` says two instances are equal: compared by identity all
 /// the same, since what a render below reads from a class is the object.
 private final class Service: Equatable, @unchecked Sendable {
@@ -147,6 +158,16 @@ struct EnvironmentStampTests {
         #expect(stamps.counts.uncomparable == 1)
         #expect(stamps.uncomparableKeys[ObjectIdentifier(ActionKey.self)] == 1)
         #expect(EnvironmentStamps.debugName(of: ObjectIdentifier(ActionKey.self)).hasSuffix("ActionKey"))
+    }
+
+    @Test("A key that declares a projection is compared by it")
+    func projectingKey() throws {
+        let stamps = EnvironmentStamps()
+        let first = try #require(stamps.build(environment { $0[LabelledKey.self] = Labelled(name: "a") }))
+        let same = try #require(stamps.build(environment { $0[LabelledKey.self] = Labelled(name: "a", action: { print("other") }) }))
+        let other = try #require(stamps.build(environment { $0[LabelledKey.self] = Labelled(name: "b") }))
+        #expect(first.isEquivalent(to: same))
+        #expect(!first.isEquivalent(to: other))
     }
 
     @Test("A neutral key is skipped")

@@ -182,8 +182,9 @@ package final class EnvironmentStamps {
     package var tracksVariety = false
     package private(set) var variety: [ObjectIdentifier: Set<Int>] = [:]
 
-    /// Whether each key type stored is neutral, by the key's identity.
-    private var neutralKeys: [ObjectIdentifier: Bool] = [:]
+    /// How each key type stored is treated, by the key's identity: skipped,
+    /// projected, or its value compared by the value's own rule.
+    private var keyRules: [ObjectIdentifier: KeyRule] = [:]
 
     /// How each value type stored is compared, by the type's identity.
     private var valueRules: [ObjectIdentifier: ValueRule] = [:]
@@ -236,7 +237,21 @@ package final class EnvironmentStamps {
         var hashed: [(entry: EnvironmentStamp.Entry, hash: Int)] = []
         hashed.reserveCapacity(stored.count)
         var comparable = true
-        for (key, value) in stored where !isNeutral(key) {
+        for (key, raw) in stored {
+            let value: Any
+            switch keyRule(key) {
+            case .neutral:
+                continue
+            case .projecting(let project):
+                guard let projection = project(raw) else {
+                    comparable = false
+                    uncomparableKeys[key, default: 0] += 1
+                    continue
+                }
+                value = projection
+            case .plain:
+                value = raw
+            }
             // Each token's cheap part is hashed on its own and folded in after
             // the sort: a dictionary's iteration order is its own, and two
             // equal environments need not share it.
@@ -307,11 +322,19 @@ package final class EnvironmentStamps {
 
     // MARK: Classification
 
-    private func isNeutral(_ key: ObjectIdentifier) -> Bool {
-        if let known = neutralKeys[key] { return known }
-        let neutral = unsafeBitCast(key, to: Any.Type.self) is _RenderNeutralEnvironmentKey.Type
-        neutralKeys[key] = neutral
-        return neutral
+    private func keyRule(_ key: ObjectIdentifier) -> KeyRule {
+        if let known = keyRules[key] { return known }
+        let type = unsafeBitCast(key, to: Any.Type.self)
+        let rule: KeyRule
+        if type is _RenderNeutralEnvironmentKey.Type {
+            rule = .neutral
+        } else if let projecting = type as? _RenderProjectingEnvironmentKey.Type {
+            rule = .projecting(projecting.renderProjection(of:))
+        } else {
+            rule = .plain
+        }
+        keyRules[key] = rule
+        return rule
     }
 
     /// The token for `value`, folding its cheap part into `hasher`, or `nil`
@@ -353,6 +376,17 @@ package final class EnvironmentStamps {
         valueRules[type] = made
         return made
     }
+}
+
+/// How a stored key is treated: decided once per key type.
+private enum KeyRule {
+    /// Declared ``_RenderNeutralEnvironmentKey``: skipped.
+    case neutral
+    /// Declared ``_RenderProjectingEnvironmentKey``: its value compared by
+    /// its projection.
+    case projecting((Any) -> (any Equatable)?)
+    /// Its value compared by the value's own rule.
+    case plain
 }
 
 /// A stamp held weakly by the intern table.

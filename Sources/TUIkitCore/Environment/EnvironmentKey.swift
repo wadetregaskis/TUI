@@ -45,6 +45,17 @@ public protocol EnvironmentKey {
 /// leave one out; `EnvironmentStampTests` lists every conformer with why.
 package protocol _RenderNeutralEnvironmentKey {}
 
+/// An environment key whose values a render below it depends on only through
+/// a projection, declared at the key because its values can be of any type —
+/// an app's own palette, say — that the framework cannot make conform to
+/// anything. `EnvironmentStamp` compares the projection, and an environment
+/// with a `nil` one is uncomparable.
+package protocol _RenderProjectingEnvironmentKey {
+    /// What a render below depends on in `value`, or `nil` when that cannot be
+    /// compared.
+    static func renderProjection(of value: Any) -> (any Equatable)?
+}
+
 /// A framework environment value whose `==` is not what a render below it
 /// depends on — partial on purpose, or a class whose drawn state changes in
 /// place — and so says what a stamp compares instead: its projection, or

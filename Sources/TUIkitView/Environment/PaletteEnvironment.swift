@@ -10,8 +10,16 @@ import TUIkitStyling
 // MARK: - Palette Environment Key
 
 /// Environment key for the current palette.
-private struct PaletteKey: EnvironmentKey {
+private struct PaletteKey: EnvironmentKey, _RenderProjectingEnvironmentKey {
     static let defaultValue: any Palette = SystemPalette(.green)
+
+    /// Compared as the cache compares palettes everywhere else
+    /// (``ComparablePalette``): an app's own palette need not be `Equatable`,
+    /// and one that is not would make every environment under it
+    /// uncomparable.
+    static func renderProjection(of value: Any) -> (any Equatable)? {
+        (value as? any Palette).map(ComparablePalette.init)
+    }
 }
 
 extension EnvironmentValues {
