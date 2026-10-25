@@ -41,9 +41,11 @@ to fit a thumbnail: it is a **believable full-size app** — toolbar, sidebar,
 real-looking data, at the normal font size in a normal-size window — and the
 clip is a small frame of it, cut by a **camera**:
 
-- The camera is a rectangle of the terminal's grid, in cells, with fractional
-  edges, so a frame can cut through a glyph and let the app's chrome peek in
-  at its edges: there is a bigger app behind the mask.
+- The camera is a rectangle of the terminal's grid, in cells. Its left and
+  right edges may be fractional and cut through a glyph, and borders and
+  repeating rows may run off the top and bottom, so the app's chrome peeks in
+  at the edges: there is a bigger app behind the mask. A line of text is never
+  cut in half across (see Framing, under Writing a clip).
 - It can move — pan, or zoom — easing from one shot to the next, to follow the
   action (a card dragged across a board).
 - The macOS title bar is left out (it is the terminal's chrome, not the app's).
@@ -152,6 +154,11 @@ script is `[Step]`:
 
 In a `List` or `Table`, an arrow moves the cursor and Space selects. End the
 script where it began if you can, so the loop has no seam.
+
+**Framing.** The top and bottom edges of a shot fall between rows: a line of
+text cut in half reads as a mistake. What may run out of the frame is a border,
+or something that repeats — a list's rows, a grid of pictures — which reads as
+more of the same beyond it. The left and right edges may cut through text.
 
 `ScreenClips play <clip>` runs a clip in the terminal you are in, for a look at
 it while you write it. (With `--markers`, as regenerate.sh plays it, it first

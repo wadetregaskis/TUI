@@ -124,9 +124,10 @@ enum Step {
     }
 }
 
-/// What the camera frames: a rectangle of the terminal's grid, in cells, with
-/// fractional edges allowed, so a frame can cut through a glyph and let the
-/// app's chrome peek in at its edges.
+/// What the camera frames: a rectangle of the terminal's grid, in cells. The
+/// left and right edges may be fractional and cut through a glyph; the top and
+/// bottom fall between rows, unless the row cut is a border or a repeating one
+/// (README, Framing): a line of text cut in half across reads as a mistake.
 ///
 /// The encoder crops each frame of the film to the camera's rectangle and
 /// scales it to the clip's output width. Every shot after the first keeps the

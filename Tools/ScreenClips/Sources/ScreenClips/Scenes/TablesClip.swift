@@ -31,7 +31,7 @@ private enum TableHeader {
 }
 
 private func tablesScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0.6, y: 3.3, width: 66, height: 21)), .wait(1.0)]
+    var script: [Step] = [.camera(Shot(x: 0.6, y: 3, width: 66, height: 21)), .wait(1.0)]
     // Down through the rows, past the bottom: the header stays.
     script += Step.repeat(.down, 6, interval: 0.18)
     script += [.wait(0.3), .pageDown, .wait(0.9), .pageDown, .wait(0.9)]

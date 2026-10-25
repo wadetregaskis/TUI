@@ -26,7 +26,7 @@ let menusClip = Clip(
 )
 
 private func menusScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: -0.3, y: -0.2, width: 50, height: 17.5)), .wait(0.9)]
+    var script: [Step] = [.camera(Shot(x: 0, y: 0, width: 50, height: 17)), .wait(0.9)]
     // The menu bar: the app menu opens, then across to File, Edit and Message,
     // down to Move To, and into it.
     script += [.f10, .wait(0.8), .right, .wait(0.6), .down, .wait(0.35), .down, .wait(0.5)]
