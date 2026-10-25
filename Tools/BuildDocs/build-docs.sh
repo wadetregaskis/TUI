@@ -208,8 +208,9 @@ echo "==> $ARCHIVE ($PAGES pages)"
 # `colorpicker` TUIkitColorPicker's (step B4), `gradienteditorpanel`
 # TUIkitColorPicker's too (TUIkitColorEditors' from C9b to 2026-10-12),
 # `tonecurveeditorpanel` TUIkitCurveEditors' (named TUIkitColorEditors until then), `navigationstack`
-# TUIkitNavigation's (step B5), `alert` TUIkitPresentation's (TUIkitNavigation's
-# from step B5 until step C1 peeled it out), `list` TUIkitLists' (step B6),
+# TUIkitNavigation's (step B5), `alertpanel` TUIkitPresentation's (named `alert` until the type became
+# AlertPanel on 2026-10-23, and TUIkitNavigation's from step B5 until step C1
+# peeled it out), `list` TUIkitLists' (step B6),
 # `table` TUIkitTables', `tabview` TUIkitTabs' and `grid` TUIkitGrid's
 # (TUIkitLists' from step B6 until steps C2 to C4 peeled them out), `statusbar`
 # TUIkitChrome's, `anytransition` TUIkitEffects' and `menu` TUIkitMenus' (step
@@ -221,7 +222,7 @@ echo "==> $ARCHIVE ($PAGES pages)"
 MISSING=()
 for symbol in view color binding state environmentvalues framebuffer palette text \
     localizationservice terminalclient windowgroup colorpicker gradienteditorpanel tonecurveeditorpanel \
-    navigationstack alert \
+    navigationstack alertpanel \
     list table tabview grid statusbar anytransition menu asyncimage \
     textfield picker form searchfieldplacement slider; do
     [ -e "$ARCHIVE/data/documentation/tuikit/$symbol.json" ] || MISSING+=("$symbol")
