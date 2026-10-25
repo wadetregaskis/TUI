@@ -4371,8 +4371,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// after it: its separator, where that is a hairline and the terminal
     /// draws one. None from a row painted in the focus or selection fill, nor
     /// into one (at the call): a line across a highlight reads as a seam in
-    /// it, and macOS draws none there either (an unmeasured reading, left to
-    /// the owner — decisions A-D6L-2).
+    /// it. Whether macOS draws one there is unmeasured, so this is a look call
+    /// left to the owner (decisions A-D6L-2).
     private static func hairline(
         below row: SelectableListRow<SelectionValue>, isHighlighted: Bool
     ) -> ListRowSeparatorLine? {
