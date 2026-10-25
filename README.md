@@ -405,7 +405,8 @@ Sources/
 │                         image loading — ImageIO on Apple, else stb_image
 │                         (depends on CSTBImage + TUIkitStyling)
 ├── TUIkitAppKit/         Bridges to AppKit: Color(nsColor:), NSColor(_:),
-│                         Image(nsImage:) — the ONE module that imports AppKit, so that
+│                         Image(nsImage:), the file panels' fileDialogSystemIcons()
+│                         — the ONE module that imports AppKit, so that
 │                         SwiftUICore (which AppKit imports) never reaches an app that
 │                         imports only TUIkit. Empty off Apple platforms.
 ├── TUIkit/               The umbrella: Exports.swift (re-exports, no code), and TUIkit.docc/ (DocC)

@@ -642,10 +642,13 @@ let package = Package(
         // umbrella, which only the apps and the tests depend on: since step
         // B5c TUIkitBitmaps too, whose bitmap path an image made from a
         // `CGImage` or an `NSImage`, or a compiled asset catalogue's, draws
-        // through.
+        // through; and since 2026-10-24 TUIkitFilePanels, whose items
+        // `fileDialogSystemIcons()` draws with NSWorkspace's icons (decisions
+        // A-FP2-1, the owner's option 2: the panels stay free of AppKit and
+        // of the image modules).
         .target(
             name: "TUIkitAppKit",
-            dependencies: ["TUIkitBitmaps", "TUIkitFoundation", "TUIkitImage"],
+            dependencies: ["TUIkitBitmaps", "TUIkitFilePanels", "TUIkitFoundation", "TUIkitImage"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
@@ -751,7 +754,7 @@ let package = Package(
             name: "TUIkitAppKitTests",
             dependencies: [
                 "TUIkitApp", "TUIkitAppKit", "TUIkitAppTestSupport", "TUIkitBitmaps", "TUIkitBitmapsTestSupport",
-                "TUIkitCore", "TUIkitFoundation", "TUIkitImage", "TUIkitTestSupport",
+                "TUIkitCore", "TUIkitFilePanels", "TUIkitFoundation", "TUIkitImage", "TUIkitTestSupport",
             ],
             exclude: ["__Fixtures__"]
         ),

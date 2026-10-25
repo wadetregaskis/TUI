@@ -439,6 +439,20 @@ Button("Open…") { importing = true }
 Items of a type the caller does not take are dimmed: the cursor lands on them,
 but they can be neither selected nor chosen.
 
+`fileDialogIcon(_:)` draws an app's own icon before each name, in the two
+cells an emoji icon takes; its closure is given the item's URL and type, and
+`nil` keeps the kind's icon. On macOS, `fileDialogSystemIcons()`, from
+`TUIkitAppKit`, draws the Finder's where the terminal draws pictures (Ghostty,
+kitty, iTerm2, WezTerm), and the kinds' icons elsewhere:
+
+```swift
+import TUIkitAppKit
+
+Button("Open…") { importing = true }
+    .fileImporter(isPresented: $importing, allowedContentTypes: [.pdf]) { result in … }
+    .fileDialogSystemIcons()
+```
+
 ```swift
 @State private var importing = false
 

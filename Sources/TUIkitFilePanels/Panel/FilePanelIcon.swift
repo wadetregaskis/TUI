@@ -51,9 +51,10 @@ extension EnvironmentValues {
     }
 }
 
-/// An item's name cell: its kind's icon where the terminal draws one, then
-/// its name — bold for a folder, and ending in a slash where no icon says it
-/// is one — in the faint tier where the row is dimmed.
+/// An item's name cell: the app's icon for it (`fileDialogIcon(_:)`), else
+/// its kind's where the terminal draws one, then its name — bold for a
+/// folder, and ending in a slash where no icon says it is one — in the faint
+/// tier where the row is dimmed.
 struct FilePanelNameCell: View {
     let entry: FileEntry
 
@@ -61,7 +62,24 @@ struct FilePanelNameCell: View {
 
     @Environment(\.filePanelIcons) private var pinned
 
+    /// The app's icons, where it supplies them.
+    @Environment(\.fileDialogIcon) private var appIcons
+
     var body: some View {
+        if let icon = appIcons?.icon(for: entry) {
+            // In the cells an emoji icon takes, so the names line up whatever
+            // the app draws.
+            HStack(spacing: 1) {
+                icon.frame(width: 2, height: 1)
+                FilePanelColumns.cell(entry.name, entry, bold: entry.isFolder)
+            }
+        } else {
+            kindIcon
+        }
+    }
+
+    /// The kind's icon in the glyphs the terminal draws, then the name.
+    @ViewBuilder private var kindIcon: some View {
         let icons =
             pinned
             ?? FilePanelIcon.resolve(

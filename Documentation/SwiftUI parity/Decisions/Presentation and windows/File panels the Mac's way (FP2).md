@@ -53,6 +53,51 @@ stand in the way, and each is a choice about modules:
 the terminal draws them, and the cost falls on an app that takes the panels
 without the umbrella. 2 is the right shape if that cost is not wanted.
 
+**Decided 2026-10-24, owner: option 2** — "Okay, go with (2)". **Built**
+(lane PANELS, 2026-10-24):
+
+- **`fileDialogIcon(_:)`** (TUIkitFilePanels), a TUI-specific modifier
+  written beside the `fileDialog` ones:
+  `.fileDialogIcon { url, type in … }`, a closure of each item's URL and
+  content type returning a view, or `nil`. It is an environment value, so the
+  sheet the panel is presented in inherits it, and both views read it in
+  each name cell (`FilePanelNameCell`). The view is drawn in the two cells,
+  one row high, an emoji icon takes (`.frame(width: 2, height: 1)`), so the
+  names line up with the rows the closure answered `nil` for, which keep the
+  kind's emoji, SF Symbol or none (B-FP2-7). The type is passed because the
+  panel has it already, worked out off the main actor as the folder was read,
+  and an icon is usually the type's: the URL alone would have the closure
+  look the type up again on every row. The closure is kept in a box held in
+  the modifier's `@State` and compared by the box, as `fileDialogURLEnabled`'s
+  predicate is, so the memos below stay on; the price is that a row the table
+  serves from its memo keeps its icon until the row changes. The module
+  gains no dependency.
+- **`fileDialogSystemIcons()`** (TUIkitAppKit, which now depends on
+  TUIkitFilePanels): a `fileDialogIcon` whose views are
+  `Image(nsImage:)` of `NSWorkspace`'s icon, resizable and fitted, drawn
+  where an `Image` draws pictures — `KittyGraphics.isSupported` (asked as each
+  row draws, since the handshake may answer after the first frame) and the
+  app's `terminalGraphics`, read where the panels are presented. Elsewhere it
+  answers `nil`, and the panel draws its glyphs: a two-cell icon in glyphs
+  is a smudge. The icons are kept in a store of the modifier's own
+  (`FileDialogSystemIcons`): `NSWorkspace` makes a new `NSImage` per call,
+  and an `Image(nsImage:)` is named by its `NSImage`'s address, so an icon
+  asked for afresh would be read out and sent to the terminal again every
+  frame. A file's icon is its type's (`icon(for:)`), asked once per type; a
+  folder's, a package's (an application's) and a symbolic link's are their
+  own (`icon(forFile:)`), kept by path, as the Downloads folder or an app has
+  an icon of its own; the store starts again past 512. Drawn out at 32
+  points, more pixels than two cells hold on a Retina terminal. The main
+  thread: `NSWorkspace` may be asked from any thread, and an `NSImage` made
+  on one drawn on another; the closure runs on the main actor anyway, as the
+  rows draw, which is where the store is.
+
+So a panel draws real icons only where an app asks, and an app that imports
+TUIkitAppKit for its colour bridges now links the file panels too (it
+links TUIkitBitmaps already). Untested live: no terminal session in the lane
+ran an app with the modifier; the tests pin the store, the key, the gate and
+the fallback (`FileDialogSystemIconsTests`, `FilePanelIconTests`).
+
 ## B. Shipped the safe option
 
 ### B-FP2-1. The enclosing-folder button is ↰, and no Tab stop
@@ -290,4 +335,6 @@ actor, once per type: 20,000 files of ten types took 1.32 s to list with the
 kinds worked out per file, 106 ms of it the kinds, and 1.29 s with each
 type's kind kept (debug build). A test pins the icons
 (`EnvironmentValues.filePanelIcons`), as the SF Symbols' font is the
-machine's. **The fuller version** is A-FP2-1.
+machine's. **The fuller version** is A-FP2-1, built as its option 2: an app's own
+icons through `fileDialogIcon(_:)`, and the Finder's through TUIkitAppKit's
+`fileDialogSystemIcons()`.

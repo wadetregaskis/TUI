@@ -107,6 +107,66 @@ struct FilePanelIconTests {
         #expect(caller.chosenPaths == [fixture.url("gamma.pdf").path])
     }
 
+    @Test("An app's icon takes the kind's place, in its two cells, and nil keeps the kind's")
+    func appIcons() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        var asked: [String: String] = [:]
+        let driver = FilePanelDriver {
+            panel(fixture, caller: caller, icons: nil)
+                .fileDialogIcon { url, type in
+                    asked[url.lastPathComponent] = type.identifier
+                    return type.conforms(to: .pdf) ? Text("P") : nil
+                }
+        }
+        let shown = await driver.waitFor("notes.md")
+        // One cell drawn in the two an emoji takes, so the name stays where
+        // the others' are.
+        #expect(shown.contains("P  gamma.pdf") || shown.contains(" P gamma.pdf"), "\(shown)")
+        #expect(!shown.contains("📕"))
+        #expect(shown.contains("📝 beta.txt"))
+        #expect(shown.contains("📁 Alpha "))
+        #expect(asked["gamma.pdf"] == UTType.pdf.identifier)
+        let gamma = try #require(driver.position(of: "gamma.pdf"))
+        let beta = try #require(driver.position(of: "beta.txt"))
+        // In cells, the same column: the position is a character's offset,
+        // and the emoji before beta.txt is one character of two cells.
+        #expect(gamma.x == beta.x + 1)
+    }
+
+    @Test("Without emoji or symbols, an app's icon still draws, and a folder it gives one has no slash")
+    func appIconsWithoutGlyphs() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver {
+            panel(fixture, caller: caller, icons: FilePanelIcon.none)
+                .fileDialogIcon { _, type in type.conforms(to: .directory) ? Text("D") : nil }
+        }
+        let shown = await driver.waitFor("notes.md")
+        #expect(shown.contains("Alpha "), "\(shown)")
+        #expect(!shown.contains("Alpha/"))
+        #expect(shown.contains("beta.txt"))
+    }
+
+    @Test("The icon modifier's environment value is the same from frame to frame")
+    func appIconsCompareEqual() {
+        let harness = InputChainHarness(width: 40, height: 4) { _ in }
+        var seen: [FileDialogIconProvider?] = []
+        // Made inside each pass, as an app's body makes it: a new modifier
+        // value each frame, whose kept box is what makes the two equal.
+        func view() -> some View {
+            EnvironmentReader(\.fileDialogIcon) { seen.append($0) }
+                .fileDialogIcon { _, _ in Text("x") }
+        }
+        harness.frame(view())
+        harness.frame(view())
+        #expect(seen.count >= 2)
+        #expect(seen.first != nil)
+        #expect(Set(seen.map { $0.map { ObjectIdentifier($0.box) } }).count == 1)
+    }
+
     @Test("With no icons, a folder's name ends in a slash")
     func noIcons() async throws {
         let fixture = try FilePanelFixture()
@@ -116,5 +176,30 @@ struct FilePanelIconTests {
         let shown = await driver.waitFor("notes.md")
         #expect(shown.contains("Alpha/"))
         #expect(!shown.contains("📁"))
+    }
+}
+
+/// Hands `read` the environment value at `keyPath` when it renders.
+private struct EnvironmentReader<Value>: View {
+    let keyPath: KeyPath<EnvironmentValues, Value>
+    let read: (Value) -> Void
+
+    init(_ keyPath: KeyPath<EnvironmentValues, Value>, read: @escaping (Value) -> Void) {
+        self.keyPath = keyPath
+        self.read = read
+    }
+
+    var body: some View {
+        _EnvironmentReaderCore(keyPath: keyPath, read: read)
+    }
+}
+
+private struct _EnvironmentReaderCore<Value>: View, Renderable {
+    let keyPath: KeyPath<EnvironmentValues, Value>
+    let read: (Value) -> Void
+    var body: Never { fatalError("renders via Renderable") }
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        read(context.environment[keyPath: keyPath])
+        return FrameBuffer(lines: [" "])
     }
 }
