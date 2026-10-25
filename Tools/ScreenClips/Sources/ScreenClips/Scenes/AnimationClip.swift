@@ -17,8 +17,9 @@ let animationClip = Clip(
     title: "Animation",
     columns: 112,
     rows: 30,
+    output: 800,
     script: [
-        .camera(Shot(x: 1.4, y: 3.4, width: 50, height: 17.6)),
+        .camera(Shot(x: 0, y: 2, width: 86, height: 18)),
         .wait(0.9), .cue("done"),
         .wait(1.1), .cue("tab 1"),
         .wait(1.0), .cue("done"),
@@ -55,6 +56,7 @@ struct HabitTracker: View {
             HStack(alignment: .top, spacing: 2) {
                 column("To do", habits: toDo)
                 column("Done", habits: done)
+                week
             }
             streak
             if let notice {
@@ -119,9 +121,47 @@ struct HabitTracker: View {
                     .matchedGeometryEffect(id: habit, in: space)
             }
         }
-        .frame(width: 20, height: 7, alignment: .topLeading)
+        .frame(width: 17, height: 7, alignment: .topLeading)
         .padding(.horizontal, 1)
         .border()
+    }
+
+    /// The week so far: a row of days per habit, today's lit once it is done.
+    private var week: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 1) {
+                Text(verbatim: "This week").bold()
+                Spacer(minLength: 0)
+                Text(verbatim: "M T W T F S S").foregroundStyle(.palette.foregroundTertiary)
+            }
+            ForEach(Self.allHabits, id: \.self) { habit in
+                HStack(spacing: 1) {
+                    Text(verbatim: habit).foregroundStyle(.palette.foregroundSecondary)
+                    Spacer(minLength: 0)
+                    HStack(spacing: 1) {
+                        ForEach(0..<7, id: \.self) { day in
+                            Text(verbatim: day > Self.today ? "·" : "■")
+                                .foregroundStyle(cellColour(habit: habit, day: day))
+                        }
+                    }
+                }
+            }
+        }
+        .frame(width: 30, height: 7, alignment: .topLeading)
+        .padding(.horizontal, 1)
+        .border()
+    }
+
+    private static let allHabits = ["Meditate", "Stretch", "Read 20 pages", "Water plants", "Walk 5 km"]
+    /// Friday.
+    private static let today = 4
+
+    /// Done days in the accent, missed ones dim; today's follows the columns.
+    private func cellColour(habit: String, day: Int) -> Color {
+        if day > Self.today { return .palette.foregroundTertiary }
+        if day == Self.today { return done.contains(habit) ? .palette.success : .palette.foregroundTertiary }
+        let hash = habit.unicodeScalars.reduce(day * 31) { $0 &+ Int($1.value) }
+        return hash.isMultiple(of: 4) ? .palette.foregroundTertiary : .palette.accent
     }
 
     /// The streak: a bar as long as the habits done, springing to it.
