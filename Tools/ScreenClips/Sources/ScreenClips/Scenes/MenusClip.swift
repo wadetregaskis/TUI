@@ -46,7 +46,7 @@ struct MenusApp: App {
     var body: some Scene {
         WindowGroup("TUIkit · Mail") {
             Mailbox()
-                .palette(AppleTerminalPalette(.silverAerogel))
+                .palette(SystemPalette(.violet))
         }
         .commands {
             CommandGroup(replacing: .newItem) {
