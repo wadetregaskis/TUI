@@ -7,7 +7,7 @@
 //  Translation fragment for the Terminal page: a progress bar the terminal
 //  draws on its tab (`.terminalProgress`), a request for the person's attention
 //  (`\.requestAttention`), and whether this terminal does each
-//  (`\.terminalFeatures`). English is the source of truth; every other language
+//  (`\.terminalCapabilities`). English is the source of truth; every other language
 //  carries the same key set.
 
 // A sentence a translator reads whole is one string on one line.

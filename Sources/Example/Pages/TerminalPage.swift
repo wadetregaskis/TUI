@@ -10,7 +10,7 @@ import TUIkit
 
 /// What an app asks the terminal itself to do, outside the app's cells: a
 /// progress bar on its tab (`.terminalProgress(_:)`) and the person's attention
-/// (`\.requestAttention`), with `\.terminalFeatures` saying whether this
+/// (`\.requestAttention`), with `\.terminalCapabilities` saying whether this
 /// terminal does each. And, last, everything `\.terminalCapabilities` knows of
 /// what this terminal can do (``TerminalCapabilitiesDemo``).
 ///
@@ -26,7 +26,7 @@ struct TerminalPage: View {
     /// Whether a request for attention is due in a few seconds.
     @State private var isAskingSoon = false
 
-    @Environment(\.terminalFeatures) private var terminal
+    @Environment(\.terminalCapabilities) private var terminal
     @Environment(\.requestAttention) private var requestAttention
 
     /// The progress kinds the picker offers, one per `TerminalProgress` case,
@@ -87,7 +87,7 @@ struct TerminalPage: View {
                     .foregroundStyle(.palette.foregroundSecondary)
                 ValueDisplayRow(
                     "page.terminal.showsProgress",
-                    L(terminal.showsProgress ? "page.terminal.yes" : "page.terminal.no"))
+                    L(TerminalCapabilitiesDemo.statusKey(terminal.status(of: .progressReports))))
                 Picker("page.terminal.progressKind", selection: $kind) {
                     ForEach(Kind.allCases, id: \.self) { kind in
                         Text(L(kind.key)).tag(kind)
@@ -110,7 +110,9 @@ struct TerminalPage: View {
                     .foregroundStyle(.palette.foregroundSecondary)
                 ValueDisplayRow(
                     "page.terminal.attentionHere",
-                    L(terminal.postsNotifications ? "page.terminal.notification" : "page.terminal.bell"))
+                    // Where a notification is not known to show, TUIkit rings
+                    // the bell instead.
+                    L(terminal.supports(.notifications) ? "page.terminal.notification" : "page.terminal.bell"))
                 Button(L(isAskingSoon ? "page.terminal.asking" : "page.terminal.ask")) {
                     isAskingSoon = true
                 }

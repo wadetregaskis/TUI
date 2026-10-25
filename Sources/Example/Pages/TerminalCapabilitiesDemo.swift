@@ -82,8 +82,9 @@ struct TerminalCapabilitiesDemo: View {
         }
     }
 
-    /// The word for `status`.
-    private static func statusKey(_ status: TerminalCapabilities.Status) -> String {
+    /// The word for `status`: also the Terminal page's, for whether the
+    /// progress bar shows.
+    static func statusKey(_ status: TerminalCapabilities.Status) -> String {
         switch status {
         case .supported: "page.terminal.yes"
         case .unsupported: "page.terminal.no"

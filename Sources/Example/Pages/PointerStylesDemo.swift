@@ -9,9 +9,10 @@ import TUIkit
 /// A box per pointer style (`.pointerStyle(_:)`): the pointer takes each one's
 /// shape while it is over it — on a terminal that takes shapes by name. On any
 /// other the boxes change nothing, and the demo says so
-/// (`\.terminalFeatures.pointerShapes`).
+/// (`\.terminalCapabilities`, ``TerminalCapabilities/Feature/pointerShapes``);
+/// where nobody knows, it says nothing.
 struct PointerStylesDemo: View {
-    @Environment(\.terminalFeatures) private var terminal
+    @Environment(\.terminalCapabilities) private var terminal
 
     /// Each style, the name it is written with, and what it shows.
     private var styles: [(style: PointerStyle, name: String, shows: LocalizedStringKey)] {
@@ -36,8 +37,14 @@ struct PointerStylesDemo: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text("page.mouse.pointerStylesExplain")
                     .foregroundStyle(.palette.foregroundSecondary)
-                Text(terminal.pointerShapes ? "page.mouse.pointerStylesShown" : "page.mouse.pointerStylesNotShown")
-                    .foregroundStyle(.palette.foregroundTertiary)
+                switch terminal.status(of: .pointerShapes) {
+                case .supported:
+                    Text("page.mouse.pointerStylesShown").foregroundStyle(.palette.foregroundTertiary)
+                case .unsupported:
+                    Text("page.mouse.pointerStylesNotShown").foregroundStyle(.palette.foregroundTertiary)
+                case .undetermined:
+                    EmptyView()
+                }
                 Flow(spacing: 1) {
                     ForEach(styles.indices, id: \.self) { index in
                         box(styles[index])
