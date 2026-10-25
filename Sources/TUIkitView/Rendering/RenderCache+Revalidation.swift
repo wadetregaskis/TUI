@@ -94,6 +94,12 @@ package final class RevalidationState {
         if pass.isMultiple(of: 64), !cooldowns.isEmpty { cooldowns = cooldowns.filter { $0.value.until >= pass - 64 } }
     }
 
+    /// Ends a pass: this pass's stamps, and the environments they were
+    /// memoized by, are let go (``EnvironmentStamps/endPass()``).
+    package func endPass() {
+        stamps.endPass()
+    }
+
     /// Whether the row at `identityHash` is cooling down: its stores record
     /// nothing, so a parent's write drops it, unchecked, as it did before.
     package func isCoolingDown(_ identityHash: Int) -> Bool {

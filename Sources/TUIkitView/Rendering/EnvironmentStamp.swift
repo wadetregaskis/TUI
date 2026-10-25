@@ -207,10 +207,7 @@ package final class EnvironmentStamps {
     /// Forgets this pass's memo, and the stamps that have died since. Called
     /// from the cache's `beginRenderPass()`.
     package func beginPass() {
-        passStamps.removeAll(keepingCapacity: true)
-        passEnvironments.removeAll(keepingCapacity: true)
-        lastWord = nil
-        lastStamp = nil
+        endPass()
         for (hash, bucket) in buckets {
             let alive = bucket.filter { $0.stamp != nil }
             if alive.isEmpty {
@@ -219,6 +216,20 @@ package final class EnvironmentStamps {
                 buckets[hash] = alive
             }
         }
+    }
+
+    /// Forgets this pass's memo and lets go of the environments it kept.
+    /// Called when the pass ends (the cache's `removeInactive()`) and when the
+    /// cache is emptied (`reset()`), not only when the next pass begins: an
+    /// environment holds the render cache and the state storage, and the cache
+    /// holds this, so the environments kept here were a cycle with the cache
+    /// until a next pass came — and a one-off render has none. Every snapshot
+    /// stayed alive, whole, for the life of the process.
+    package func endPass() {
+        passStamps.removeAll(keepingCapacity: true)
+        passEnvironments.removeAll(keepingCapacity: true)
+        lastWord = nil
+        lastStamp = nil
     }
 
     /// The stamp of `environment`, or `nil` when something in it cannot be

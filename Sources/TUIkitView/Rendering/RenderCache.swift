@@ -1411,6 +1411,9 @@ extension RenderCache {
         // released with it.
         for index in passLeases.indices { passLeases[index] = nil }
         leases.endPass { retained.retains($0) }
+        // And the environments this pass's stamps were memoized by, which hold
+        // this cache: kept to the next pass, they were a cycle with it.
+        revalidation.endPass()
         // Environment slots are pruned by pass number, not by `activeIdentities`
         // — only memoizing views mark themselves active, and an environment
         // modifier is not one, so an identity check would drop every slot on
@@ -1475,6 +1478,7 @@ extension RenderCache {
         retainedSubtreeRoots.removeAll()
         appliedEnvironment.removeAll()
         erasedContent.removeAll()
+        revalidation.endPass()
         stats = Stats()
         statsAtFrameStart = Stats()
     }
