@@ -810,26 +810,6 @@ extension FocusManager {
         focusBindings[store, default: [:]][value] = FocusBinding(focusID: focusID, generation: focusRenderGeneration)
     }
 
-    /// The value whose bound control currently holds focus, for a store — the
-    /// getter behind `@FocusState`. `nil` (the empty value) when none does.
-    func focusedValue(forStore store: String) -> AnyHashable? {
-        guard let focused = focusedID, let map = focusBindings[store] else { return nil }
-        return map.first { $0.value.focusID == focused }?.key
-    }
-
-    /// Moves focus to the control bound to `value` for a store, or — when
-    /// `value` is `nil` (the empty value) — relinquishes focus if one of the
-    /// store's controls currently holds it. The setter behind `@FocusState`,
-    /// called from event closures (outside a render pass).
-    func setFocusValue(_ value: AnyHashable?, forStore store: String) {
-        let map = focusBindings[store] ?? [:]
-        if let value, let binding = map[value] {
-            focus(id: binding.focusID)
-        } else if let focused = focusedID, map.values.contains(where: { $0.focusID == focused }) {
-            relinquishFocus()
-        }
-    }
-
     /// Declares a store's initial-focus value (from `.defaultFocus`), stamped
     /// with the current render generation.
     func setDefaultFocusValue(
