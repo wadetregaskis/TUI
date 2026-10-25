@@ -395,10 +395,12 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// gesture interrupts an animated scroll in SwiftUI: the wheel, a key, the
     /// scrollbar or a drag's auto-scroll acts from the line the glide was drawn
     /// on, and the phase goes from ``ScrollPhase/animating`` straight to
-    /// ``ScrollPhase/interacting``.
+    /// ``ScrollPhase/interacting``. Both axes' glides: a scroll of either is
+    /// the user taking the view over.
     public func noteUserScroll() {
         userScrolledSinceRender = true
         glide = nil
+        horizontal.glide = nil
         phase = .interacting
         lastUserScrollNanos = phaseNow()
     }

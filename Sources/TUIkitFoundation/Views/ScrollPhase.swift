@@ -19,8 +19,8 @@ import TUIkitView
 /// until the steps have stopped for a quarter of a second (and for as long as
 /// a scrollbar is held), and ``idle`` otherwise. A `ScrollView`'s
 /// programmatic scroll made inside `withAnimation` — a `scrollTo`, a
-/// ``ScrollPosition`` write — glides to its target, and is ``animating`` from
-/// the frame it starts on to the one it lands on, as SwiftUI's is (measured,
+/// ``ScrollPosition`` write, along either axis — glides to its target, and is
+/// ``animating`` from the frame it starts on to the one it lands on, as SwiftUI's is (measured,
 /// B27); a `List`'s or a `Table`'s jumps, and reports no phase. The other two
 /// phases are SwiftUI's for input a terminal does not send: ``tracking`` a
 /// finger that has not moved yet, ``decelerating`` after a fling. macOS never

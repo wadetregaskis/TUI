@@ -486,13 +486,25 @@ extension _ScrollViewCore {
             // anchor, adopted as a row's is — any overscroll excursion dropped
             // with it. Drawn again at that offset when it moves, so what reads
             // its place in the viewport reads the place it is drawn at. Once:
-            // the request is spent.
+            // the request is spent. Made inside an animation, it glides there
+            // instead, and this drawing, at where the view stands, is the
+            // glide's first frame; a glide's landing, sought again, jumps.
             let target = seek.columnOffset(
                 targetX: column.origin, width: column.length, currentOffset: horizontalScrollOffset,
                 viewportWidth: contentWidth, totalWidth: extents.width)
-            handler?.horizontal.scrollOffset = target
-            handler?.horizontal.clearOverscroll()
-            if target != horizontalScrollOffset {
+            let glides =
+                handler.map {
+                    !$0.pendingScrollToIsLanding
+                        && glideIfAnimated(
+                            handler: $0, horizontally: true, to: target, landing: .seek(seek),
+                            viewport: CellSize(width: contentWidth, height: viewportHeight), context: context)
+                } ?? false
+            if !glides {
+                handler?.stopGlide(horizontally: true)
+                handler?.horizontal.scrollOffset = target
+                handler?.horizontal.clearOverscroll()
+            }
+            if !glides, target != horizontalScrollOffset {
                 checkpoint?.rewind(context: context)
                 var redrawn = renderedContent(
                     contentWidth: contentWidth, viewportHeight: viewportHeight, horizontal: horizontal,
@@ -504,10 +516,10 @@ extension _ScrollViewCore {
                 return redrawn
             }
         }
-        // Not while gliding: a bound position is told the row it lands on,
-        // not every row it passes, or each glide frame would draw the app's
-        // body again.
-        if let id = reply?.anchorID, let handler, !context.isMeasuring, handler.glide == nil {
+        // Not while gliding: a bound position is told the row or column it
+        // lands on, not every one it passes, or each glide frame would draw
+        // the app's body again.
+        if let id = reply?.anchorID, let handler, !context.isMeasuring, !handler.isGliding {
             reportVisibleID(id, handler: handler, context: context)
         }
         if let handler, !context.isMeasuring, handler.scrollTargeting != nil {

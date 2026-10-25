@@ -45,17 +45,18 @@ public struct ScrollGlide: Sendable {
         /// or estimated heights the frames in between were drawn at, leave the
         /// distance short or long by however far that moved the row.
         case seek(ScrollToRequest)
-        /// A ``ScrollPosition`` offset, clamped again.
+        /// A ``ScrollPosition`` offset along the glide's axis, clamped again.
         case offset(Int)
-        /// The top edge.
+        /// The start of the glide's axis: the top, or the leading edge.
         case top
-        /// The bottom edge, through the End key's tail seek, so rows that
-        /// arrived during the glide are followed from the landing on.
+        /// The end of the glide's axis: the bottom, through the End key's tail
+        /// seek, so rows that arrived during the glide are followed from the
+        /// landing on; or the trailing edge.
         case bottom
     }
 
     /// How far the glide travels, in the scrollable's offset unit: lines, for
-    /// a `ScrollView`.
+    /// a `ScrollView`, and columns for its horizontal axis.
     package let distance: Int
 
     /// How much of ``distance`` the frames so far have stepped the offset by.
@@ -221,11 +222,14 @@ extension ScrollableOffsetState {
     /// drawing time-varying, which keeps any memo above from serving a frame
     /// of it after the glide has moved on. Render passes only, and the caller
     /// tests for a glide first.
+    ///
+    /// `axis` tells apart the wakes of two glides one view runs at once, its
+    /// rows' and its columns': each asks for its own frames.
     @MainActor
-    package func requestGlideFrame(context: RenderContext) {
+    package func requestGlideFrame(context: RenderContext, axis: String = "") {
         guard let glide, !context.isMeasuring else { return }
         context.requestWake(
-            token: "scroll-glide-\(context.identity.path)",
+            token: "scroll-glide\(axis)-\(context.identity.path)",
             atNanos: glide.nextFrameNanos(after: context.environment.frameNowNanos))
     }
 }

@@ -1611,16 +1611,16 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   animates; phases include `.tracking`, `.decelerating` and `.animating`, with
   a velocity; a bounce springs back (the `scrollTo` phases measured, B27; the
   rest Apple's documentation).
-- **TUIkit:** an offset is whole rows and columns. A `ScrollView`'s `scrollTo`,
-  `ScrollPosition` request (a row, an edge or a vertical offset) or written
-  `anchorPosition` edge made inside `withAnimation` glides there a whole line
-  at a time along the animation's curve (its first pass only, for a repeating
+- **TUIkit:** an offset is whole rows and columns. A `ScrollView`'s `scrollTo`
+  (a row, or a column on a purely horizontal view), `ScrollPosition` request
+  (a row, an edge or an offset, on either axis) or written `anchorPosition`
+  edge made inside `withAnimation` glides there a whole line or column at a
+  time along the animation's curve (its first pass only, for a repeating
   one), drawn only on the 1/60 s ticks where its line changes, and is sought
   again on landing (since 2026-10-24, B27-ANIMATING); under reduce motion it
   jumps. A user's scroll, or a reveal of the focus, stops it where it stands;
   a second animated request glides on from there, at rest, and an unanimated
-  one jumps. A `List`'s or a `Table`'s request, and a column or horizontal
-  offset, still jump. A user scroll is `.interacting` until 250 ms pass with no step; a
+  one jumps. A `List`'s or a `Table`'s request still jumps. A user scroll is `.interacting` until 250 ms pass with no step; a
   glide is `.animating` until it lands; `.tracking` and `.decelerating` never
   occur; the velocity is (0, 0) at every report,
   as SwiftUI's is where it was measured. An overscroll

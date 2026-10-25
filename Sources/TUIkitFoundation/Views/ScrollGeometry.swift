@@ -236,6 +236,7 @@ extension _ScrollViewCore {
         guard !context.isMeasuring else { return }
         handler.tailAsLastDrawn = handler.maxOffset
         if handler.glide != nil { handler.requestGlideFrame(context: context) }
+        if handler.horizontal.glide != nil { handler.horizontal.requestGlideFrame(context: context, axis: "-x") }
         recordTargetingGeometry(handler: handler, contentWidth: contentWidth)
         reportScrollGeometry(
             handler: handler, contentWidth: contentWidth, viewportHeight: viewportHeight,

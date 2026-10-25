@@ -299,8 +299,9 @@ public final class ScrollAxis: ScrollableOffsetState {
     public var wheelEdgeHold = WheelEdgeHold()
     /// Overscroll excursion + allowance (``ScrollableOffsetState``).
     public var overscrollState = ScrollOverscrollState()
-    /// The glide in flight (``ScrollableOffsetState``). A horizontal axis does
-    /// not glide yet: a column request jumps.
+    /// The glide in flight (``ScrollableOffsetState``): a column `scrollTo`,
+    /// or a ``ScrollPosition``'s `x` or leading or trailing edge, made inside
+    /// an animation. Stepped by the owning scroll view's render.
     public var glide: ScrollGlide?
     /// Drag auto-scroll drive flag (``ScrollableOffsetState``).
     public var isAutoScrolling = false

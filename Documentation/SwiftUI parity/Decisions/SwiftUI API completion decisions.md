@@ -1486,10 +1486,12 @@ parks SGR-Pixels (mode 1016).
 **Shipped 2026-10-13 (SCROLLB):** the velocity is `(0, 0)` at every report —
 the first frame's and both changes — and never `nil`.
 
-**Shipped 2026-10-24 (B27-ANIMATING, option 3, pieces 1–3):** a
-`ScrollView`'s `scrollTo`, `ScrollPosition` request (a row, an edge, a
-vertical offset) or written `anchorPosition` edge made inside `withAnimation`
-glides to its target a line at a time, and reports `.idle` → `.animating` on
+**Shipped 2026-10-24 (B27-ANIMATING, option 3, pieces 1–4):** a
+`ScrollView`'s `scrollTo` (a row, or a purely horizontal view's column),
+`ScrollPosition` request (a row, an edge, an offset on either axis) or written
+`anchorPosition` edge made inside `withAnimation` glides to its target a line
+or column at a time (both axes at once, for an offset with both, `.animating`
+until both land), and reports `.idle` → `.animating` on
 the frame it starts and `.animating` → `.idle` on the frame it lands, with
 velocity `(0, 0)` at both, as measured above. A user's scroll during it stops
 it where it stands, `.animating` → `.interacting` with no `.idle` between; a

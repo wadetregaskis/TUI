@@ -168,9 +168,10 @@ extension _ScrollViewCore {
     ///    (``adoptWrittenAnchor(handler:viewport:context:)``). Before the glue check,
     ///    whose `seekingTail` read is one-shot.
     /// 2. A programmatic scroll gliding to its target moves to this frame's
-    ///    line before anything below reads the offset, and lands when it is
-    ///    done (``settleGlide(handler:viewport:context:)``). A view at rest
-    ///    pays the test.
+    ///    line, or column, before anything below reads the offset, and lands
+    ///    when it is done (``settleGlide(handler:viewport:context:)``,
+    ///    ``settleHorizontalGlide(handler:viewport:context:)``). A view at rest
+    ///    pays a test for each axis.
     /// 3. A bound position's edge or offset target moves the view BEFORE the
     ///    content renders, so the frame carrying the request already shows
     ///    the destination — `.bottom` by raising the tail-seek flag the End
@@ -183,6 +184,9 @@ extension _ScrollViewCore {
     ) -> (requested: Bool, seekingTail: Bool) {
         adoptWrittenAnchor(handler: handler, viewport: viewport, context: context)
         if handler.glide != nil { settleGlide(handler: handler, viewport: viewport, context: context) }
+        if handler.horizontal.glide != nil {
+            settleHorizontalGlide(handler: handler, viewport: viewport, context: context)
+        }
         let requested =
             !context.isMeasuring && applyPositionOffset(handler: handler, viewport: viewport, context: context)
         // A position request on the frame a glide lands supersedes its re-seek.

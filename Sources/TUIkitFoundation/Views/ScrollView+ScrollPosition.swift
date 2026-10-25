@@ -42,10 +42,10 @@ extension _ScrollViewCore {
     /// Returns whether it placed the view — an edge or an offset — which the
     /// top-row hold must then leave where it is (`topRowHold`).
     ///
-    /// Made inside an animation, a vertical one glides there instead
-    /// (decisions B27-ANIMATING), from `viewport`, the content area; the
-    /// bottom edge lands through the tail seek it would have raised. A
-    /// horizontal one still jumps.
+    /// Made inside an animation, it glides there instead (decisions
+    /// B27-ANIMATING), from `viewport`, the content area: the rows, the
+    /// columns, or both at once for an offset with both coordinates. The
+    /// bottom edge lands through the tail seek it would have raised.
     func applyPositionOffset(handler: ScrollViewHandler, viewport: CellSize, context: RenderContext) -> Bool {
         guard let placement = pageScrollPosition(context.environment)?.placementRequest(
             tracking: &handler.positionTracking)
@@ -61,8 +61,13 @@ extension _ScrollViewCore {
                 let glides = moveProgrammatically(
                     handler: handler, to: handler.maxOffset, landing: .bottom, viewport: viewport, context: context)
                 if !glides { handler.seekingTail = true }
-            case .leading: handler.horizontal.scrollToOffset(0)
-            case .trailing: handler.horizontal.scrollToOffset(handler.horizontal.maxOffset)
+            case .leading:
+                moveProgrammatically(
+                    handler: handler, horizontally: true, to: 0, landing: .top, viewport: viewport, context: context)
+            case .trailing:
+                moveProgrammatically(
+                    handler: handler, horizontally: true, to: handler.horizontal.maxOffset, landing: .bottom,
+                    viewport: viewport, context: context)
             }
         case .offset(let x, let y):
             if let y {
@@ -70,7 +75,11 @@ extension _ScrollViewCore {
                     handler: handler, to: max(0, min(y, handler.maxOffset)), landing: .offset(y), viewport: viewport,
                     context: context)
             }
-            if let x { handler.horizontal.scrollToOffset(max(0, min(x, handler.horizontal.maxOffset))) }
+            if let x {
+                moveProgrammatically(
+                    handler: handler, horizontally: true, to: max(0, min(x, handler.horizontal.maxOffset)),
+                    landing: .offset(x), viewport: viewport, context: context)
+            }
         }
         return true
     }
