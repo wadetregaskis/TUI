@@ -45,6 +45,12 @@ public struct ScrollGlide: Sendable {
         /// or estimated heights the frames in between were drawn at, leave the
         /// distance short or long by however far that moved the row.
         case seek(ScrollToRequest)
+        /// A `List`'s or a `Table`'s row request, sought again from the row it
+        /// was found at: that row is looked at first, and the rows searched
+        /// for the key only when it no longer holds it. A list finds a key by
+        /// asking its rows in order, so a second search would cost the request
+        /// over again.
+        case listSeek(ScrollToRequest, row: Int)
         /// A ``ScrollPosition`` offset along the glide's axis, clamped again.
         case offset(Int)
         /// The start of the glide's axis: the top, or the leading edge.

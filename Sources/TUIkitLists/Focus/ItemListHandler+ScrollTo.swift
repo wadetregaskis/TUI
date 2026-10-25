@@ -84,7 +84,7 @@ extension ItemListHandler {
             tracking: &positionTracking, transactionAnchor: context.environment.transaction.scrollTargetAnchor)
         {
             if let index = rowIndex(request.key) {
-                placeProgrammatically(landing: .seek(request), context: context) {
+                placeProgrammatically(landing: .listSeek(request, row: index), context: context) {
                     scroll(toRow: index, anchor: request.anchor)
                 }
             }

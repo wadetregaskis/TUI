@@ -34,7 +34,7 @@ extension _ScrollViewCore {
         // A key's glide is the user's scroll, quiet from its landing.
         if keyboard { handler.lastUserScrollNanos = handler.phaseNow() }
         switch landing {
-        case .distance, .rowPosition:
+        case .distance, .rowPosition, .listSeek:
             break
         case .seek(let request):
             parkLandingSeek(request, handler: handler)
@@ -62,7 +62,7 @@ extension _ScrollViewCore {
         case .offset(let x): axis.scrollToOffset(max(0, min(x, axis.maxOffset)))
         case .top: axis.scrollToOffset(0)
         case .bottom: axis.scrollToOffset(axis.maxOffset)
-        case .distance, .rowPosition: break
+        case .distance, .rowPosition, .listSeek: break
         }
     }
 

@@ -32,18 +32,21 @@ extension ItemListHandler {
     /// is done; then a parked `scrollTo`; then what a bound `.scrollPosition`
     /// asks for (``applyScrollPosition(rowIndex:context:)``). Each glides when
     /// it was made inside an animation and jumps otherwise. `rowIndex` finds
-    /// a row by the key a request names it by. Render passes only.
+    /// a row by the key a request names it by, and `rowKey` is the key of the
+    /// row at an index. Render passes only.
     ///
     /// The focus and the selection do not move, gliding or not, as
     /// ``scroll(toRow:anchor:)`` promises.
     @MainActor
-    package func resolveScrollRequests(rowIndex: (String) -> Int?, context: RenderContext) {
+    package func resolveScrollRequests(
+        rowIndex: (String) -> Int?, rowKey: (Int) -> String?, context: RenderContext
+    ) {
         guard !context.isMeasuring else { return }
-        if glide != nil { settleGlide(rowIndex: rowIndex, context: context) }
+        if glide != nil { settleGlide(rowIndex: rowIndex, rowKey: rowKey, context: context) }
         if let request = pendingScrollTo {
             pendingScrollTo = nil
             if let index = rowIndex(request.key) {
-                placeProgrammatically(landing: .seek(request), context: context) {
+                placeProgrammatically(landing: .listSeek(request, row: index), context: context) {
                     scroll(toRow: index, anchor: request.anchor)
                 }
             }
@@ -82,12 +85,13 @@ extension ItemListHandler {
     /// Steps a glide in flight to this frame's row, and lands it when its
     /// animation is done — or at once, when the list has changed size under
     /// it — applying its request once more, unanimated: the row sought again,
-    /// which corrects rows that arrived between the viewport and it, or the
-    /// edge, the line or the place. A `scrollTo` made since the last frame
+    /// which corrects rows that arrived between the viewport and it — looked
+    /// for where the request found it first, and searched for only when rows
+    /// moved it (`Landing.listSeek`) — or the edge, the line or the place. A `scrollTo` made since the last frame
     /// supersedes a re-seek. Landed, the list is idle again, or — a key's
     /// glide — quiet from here.
     @MainActor
-    private func settleGlide(rowIndex: (String) -> Int?, context: RenderContext) {
+    private func settleGlide(rowIndex: (String) -> Int?, rowKey: (Int) -> String?, context: RenderContext) {
         let keyboard = glide?.isKeyboard == true
         // Held only for the call: no cycle to break.
         let stepRows: (Int) -> Int = { delta in
@@ -101,6 +105,11 @@ extension ItemListHandler {
         if phase == .animating { phase = .idle }
         if keyboard { lastUserScrollNanos = phaseNow() }
         switch landing {
+        case .listSeek(let request, let row):
+            guard pendingScrollTo == nil,
+                let index = rowKey(row) == request.key ? row : rowIndex(request.key)
+            else { return }
+            scroll(toRow: index, anchor: request.anchor)
         case .seek(let request):
             guard pendingScrollTo == nil, let index = rowIndex(request.key) else { return }
             scroll(toRow: index, anchor: request.anchor)

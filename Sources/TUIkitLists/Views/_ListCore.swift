@@ -226,10 +226,14 @@ private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSepar
     /// identity keys are. Asks every row's type until it finds one — once, for
     /// a request, never on an ordinary frame.
     func index(ofScrollKey key: String) -> Int? {
-        (0..<count).first { index in
-            guard case .content(let id) = typeAt(index) else { return false }
-            return identityKey(id) == key
-        }
+        (0..<count).first { scrollKey(at: $0) == key }
+    }
+
+    /// The key ``index(ofScrollKey:)`` finds the row at `index` by, or `nil`
+    /// for a section's header or footer and past the rows.
+    func scrollKey(at index: Int) -> String? {
+        guard index >= 0, index < count, case .content(let id) = typeAt(index) else { return nil }
+        return identityKey(id)
     }
 
     /// The id a bound `.scrollPosition` is told for the row at `index`: the
@@ -1901,7 +1905,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 handler: handler, identity: context.identity, renderCache: context.renderCache)
             // A glide in flight, then the request, then a bound position —
             // each gliding when made inside an animation.
-            handler.resolveScrollRequests(rowIndex: { source.index(ofScrollKey: $0) }, context: context)
+            handler.resolveScrollRequests(
+                rowIndex: { source.index(ofScrollKey: $0) }, rowKey: { source.scrollKey(at: $0) }, context: context)
         }
         // Clamp, snap off the resting duplicate, apply the anchor — one sequence,
         // shared with `Table`'s two paths, along with the render-pass guard that

@@ -42,6 +42,12 @@ private struct Numbered: Identifiable, Sendable {
     let id: Int
 }
 
+/// Rows a test inserts into while a glide runs.
+@MainActor
+private final class GlideIDs {
+    var values = Array(0..<200)
+}
+
 /// The selection the views below are bound to.
 @MainActor
 private final class GlideSelection {
@@ -163,6 +169,28 @@ struct ListTableGlideTests {
         #expect(handler.glide == nil, "the cursor's move stopped it")
         frames.render(view, atNanos: frames.now + 1)
         #expect(log.changes.last == "animating→idle", "\(log.changes)")
+    }
+
+    @Test("Rows inserted between the viewport and the row mid-glide are corrected by the landing")
+    func insertionBetweenIsReSought() throws {
+        let frames = GlideFrames()
+        let box = GlideProxyBox()
+        let ids = GlideIDs()
+        func view() -> some View {
+            ScrollViewReader { proxy in
+                let _ = box.proxy = proxy
+                List { ForEach(ids.values, id: \.self) { Text("row " + String($0)) } }
+            }
+        }
+        frames.render(view())
+        withAnimation(.linear(duration: 1)) { box.proxy?.scrollTo(120, anchor: .top) }
+        frames.render(view())
+        for _ in 0..<5 { if let wake = frames.nextWake { frames.render(view(), atNanos: wake) } }
+        let handler = try #require(listHandler(frames))
+        #expect(handler.glide != nil, "under way")
+        ids.values.insert(contentsOf: 1_000..<1_005, at: 100)
+        let landed = frames.follow(view())
+        #expect(firstRow(landed.last?.lines ?? []) == 120, "the landing finds the row again: \(landed.last?.lines ?? [])")
     }
 
     @Test("A bound scrollPosition(id:) row request glides, and is told the row once, on landing")

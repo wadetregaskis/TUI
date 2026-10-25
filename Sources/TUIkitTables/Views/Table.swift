@@ -2984,7 +2984,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // A glide in flight, then the request, then a bound position — each
         // gliding when made inside an animation, as a `List`'s.
         handler.resolveScrollRequests(
-            rowIndex: { key in rows.firstIndex { identityKey($0.id) == key } }, context: context)
+            rowIndex: { key in rows.firstIndex { identityKey($0.id) == key } },
+            rowKey: { rows.indices.contains($0) ? identityKey(rows[$0].id) : nil }, context: context)
     }
 
     /// The table's content width: the selection gutter plus the columns and their
