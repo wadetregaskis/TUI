@@ -395,21 +395,15 @@ extension _ScrollViewCore {
     /// first drawing gave them: a scroll visibility observer's marker, a
     /// control's mouse handler, an `onChange` slot.
     ///
-    /// `force` draws it again whatever the band covers: the frame a glide
-    /// starts on drew the content at the glide's target, to find it, and
-    /// what is placed by where it is drawn — a scroll transition's phase, a
-    /// visibility report — has to be drawn at the start the frame shows.
+    /// The frame a glide starts on is one: the content was drawn at the
+    /// glide's target, to find it, and the frame shows its start.
     func coverSnappedViewport(
         handler: ScrollViewHandler, drawing: inout ScrollContentDrawing, contentWidth: Int,
-        viewportHeight: Int, horizontal: Bool, checkpoint: RenderWalkCheckpoint?, force: Bool = false,
-        context: RenderContext
+        viewportHeight: Int, horizontal: Bool, checkpoint: RenderWalkCheckpoint?, context: RenderContext
     ) {
-        guard !context.isMeasuring else { return }
-        if !force {
-            guard let band = drawing.band else { return }
-            let visibleEnd = min(handler.scrollOffset + viewportHeight, handler.contentHeight)
-            guard handler.scrollOffset < band.lowerBound || visibleEnd > band.upperBound else { return }
-        }
+        guard !context.isMeasuring, let band = drawing.band else { return }
+        let visibleEnd = min(handler.scrollOffset + viewportHeight, handler.contentHeight)
+        guard handler.scrollOffset < band.lowerBound || visibleEnd > band.upperBound else { return }
         checkpoint?.rewind(context: context)
         let recovered = renderedContent(
             contentWidth: contentWidth, viewportHeight: viewportHeight,

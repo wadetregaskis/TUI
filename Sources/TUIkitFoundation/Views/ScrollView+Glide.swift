@@ -57,15 +57,18 @@ extension _ScrollViewCore {
     /// made inside an animation, and jumps there otherwise — always when it
     /// is a glide's landing, sought again (`isLanding`), and when there is no
     /// request (`nil`: the offset the top-row hold moved to). Answers whether
-    /// a glide began, in which case the offset has not moved and the frame
-    /// draws the glide's start, and the view is ``ScrollPhase/animating``
-    /// from this frame to the landing's. A jump changes no phase, as an
-    /// unanimated `scrollTo` changes none in SwiftUI (measured, B27).
+    /// a glide began, in which case the offset has not moved — the frame
+    /// shows the glide's start, drawn again there where the band drawn at the
+    /// request does not reach it (`coverSnappedViewport`) — and the view is
+    /// ``ScrollPhase/animating`` from this frame to the landing's. A jump
+    /// changes no phase, as an unanimated `scrollTo` changes none in SwiftUI
+    /// (measured, B27).
     ///
     /// The target is clamped to the content as this frame measured it: a
     /// row near the end is shown at the last screenful, as the clamp after a
     /// jump would put it, and a glide that aims past the end would spend its
     /// last frames pressed against it.
+    @discardableResult
     func adoptSeek(
         _ offset: Int, request: ScrollToRequest?, isLanding: Bool, handler: ScrollViewHandler,
         viewport: CellSize, context: RenderContext

@@ -657,12 +657,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // below must not fight it — scrolling away IS the release,
         // expressed programmatically.) Made inside an animation, a request
         // glides there instead, from where the view stands; a hold jumps.
-        let glideBegan = seekOffset.map {
+        if let seekOffset {
             adoptSeek(
-                $0, request: firstDrawing.seek?.isHold == true ? nil : pendingSeek, isLanding: seekIsLanding,
+                seekOffset, request: firstDrawing.seek?.isHold == true ? nil : pendingSeek, isLanding: seekIsLanding,
                 handler: handler, viewport: contentViewport, context: context)
-        } ?? false
-        if seekOffset == nil, wasGluedToBottom {
+        } else if wasGluedToBottom {
             // Re-glue against the REAL rendered height: the content rendered
             // at the offset the frame began with — for a followed view, the
             // tail as last drawn — and this frame's tail is further down by
@@ -704,11 +703,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             // the same frame is revealed: suppressed, it stayed off screen.
             suppressed: seekOffset != nil && firstDrawing.seek?.isHold != true,
             context: context)
-        // A glide that began this frame draws its start, which the content
-        // was not drawn at: it was drawn at the request, to find it.
         coverSnappedViewport(
             handler: handler, drawing: &drawing, contentWidth: contentWidth, viewportHeight: contentViewportHeight,
-            horizontal: wantsHorizontal, checkpoint: checkpoint, force: glideBegan, context: context)
+            horizontal: wantsHorizontal, checkpoint: checkpoint, context: context)
         if wasGluedToBottom, seekOffset == nil {
             reglueToRefinedTail(
                 handler: handler, drawing: &drawing, contentWidth: contentWidth, viewportHeight: contentViewportHeight,
