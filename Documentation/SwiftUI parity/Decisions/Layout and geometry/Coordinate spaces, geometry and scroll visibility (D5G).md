@@ -471,6 +471,20 @@ Profiled (release Stress, 8 s Time Profiler, `analyze_timeprofile.py
   13 ms (0.5%), `EffectStage.close` 2 ms. That frame used to be written showing the old
   top line in the status bar; it is now written once, settled.
 
+A/B (`ab_bench.py`, 2026-10-25, batch1025a, `main` 7c3803be9 against the lane,
+paired, randomised order): `session/log` +21.9% [+20.4%, +24.8%],
+`session/log-observable` +22.4%, `session/editor` +9.7%; `inbox`, `chat`,
+`kitchensink`, `menus`, `geometry`, `scrollfollow`, `preferences`, `deep` and
+`modifiers` indistinguishable. **The owner's ruling (2026-10-25): land it now,
+and bring the cost down with Option C** (the soft drain that keeps what lies
+below a write and re-checks it, which is what a walk made again needs).
+
+A write an effect makes that only a frame-only scope saw — a top-level
+control's `Binding`, read again after the walk (`BindingReads`) — is counted
+as a write too (`RenderCache.Link.requestFrameForObservedChange`), so the
+frame is walked again for it like any other: an `onAppear` turning on a lamp
+only a top-level `Toggle` reads draws it on in the first frame written.
+
 Tests (`EffectSettlingTests`, all reading the frame written): the first frame
 of a page that loads in `onAppear` shows the rows and the count above and
 below them; a derived value is drawn beside its source on both sides of the

@@ -73,6 +73,27 @@ private struct DerivingPage: View {
     }
 }
 
+/// A switch only a top-level `Toggle`'s binding reads — in the toggle's core,
+/// where no body's scope sees it — turned on by an `onAppear` drawn after it.
+@MainActor
+@Observable
+private final class Lamp {
+    var isOn = false
+    init(isOn: Bool) { self.isOn = isOn }
+}
+
+private struct LampPage: View {
+    let lamp: Lamp
+    let turnsOnAtAppear: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Toggle("lamp", isOn: Bindable(lamp).isOn)
+            Text("switch").onAppear { if turnsOnAtAppear { lamp.isOn = true } }
+        }
+    }
+}
+
 /// The widest of its rows, collected by a preference.
 private struct WidestRow: PreferenceKey {
     static var defaultValue: Int { 0 }
@@ -210,6 +231,20 @@ struct EffectSettlingTests {
         #expect(shows("row c", on: app.screen), "\(app.screen.map(\.stripped))")
         #expect(shows("below 3", on: app.screen), "\(app.screen.map(\.stripped))")
         #expect(app.effectSettling.walkedAgainOnce == 1, "\(app.effectSettling)")
+    }
+
+    @Test("An onAppear's write that only a top-level control's binding reads is in the first frame written")
+    func bindingReadSettles() {
+        // One lamp each, held outside the page: a walk made again evaluates
+        // the app's body again, and a lamp made there would be a new one.
+        let off = Lamp(isOn: false)
+        let on = Lamp(isOn: true)
+        let turnedOn = HeadlessApp(PageApp { LampPage(lamp: off, turnsOnAtAppear: true) }, width: 30, height: 4)
+        turnedOn.frame(atNanos: 0)
+        let alreadyOn = HeadlessApp(PageApp { LampPage(lamp: on, turnsOnAtAppear: false) }, width: 30, height: 4)
+        alreadyOn.frame(atNanos: 0)
+        #expect(turnedOn.screen == alreadyOn.screen, "\(turnedOn.screen.map(\.stripped))")
+        #expect(turnedOn.effectSettling.walkedAgainOnce == 1, "\(turnedOn.effectSettling)")
     }
 
     @Test("A value an onChange derives is drawn in the frame that shows its source, on both sides of it")
