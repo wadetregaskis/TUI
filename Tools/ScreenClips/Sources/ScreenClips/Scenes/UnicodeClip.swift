@@ -23,18 +23,15 @@ let unicodeClip = Clip(
     run: { await UnicodeApp.main() }
 )
 
-/// The selection walks down the phrasebook and back up: something is always
-/// moving, whichever card is in front when.
+/// The cards hold still — the carousel's slide and each card's spinner are
+/// the motion — so the four films cost far less than a moving selection in
+/// each did (739 KB, over budget).
 private func unicodeScript() -> [Step] {
     // Every terminal's window is at least 80×24 (iTerm2's is its profile's,
     // 80×25; Warp's is whatever its window is), and the app draws in the top
     // left of it, so this one shot frames the same cells in each: the
     // phrasebook alone, at a size the carousel's cards keep legible.
-    var script: [Step] = [.camera(Shot(x: 0, y: 3, width: 48, height: 13)), .wait(1.0)]
-    for _ in 0..<4 { script += [.down, .wait(0.1), .space, .wait(1.1)] }
-    for _ in 0..<4 { script += [.up, .wait(0.05), .space, .wait(0.5)] }
-    script += [.wait(0.4)]
-    return script
+    [.camera(Shot(x: 0, y: 3, width: 48, height: 13)), .wait(8.0)]
 }
 
 struct UnicodeApp: App {
@@ -90,7 +87,9 @@ struct Phrasebook: View {
             }
             .frame(width: 46, height: 11)
             HStack(spacing: 1) {
-                Text(verbatim: "👩‍💻 🧑🏽‍🚀 ❤️‍🔥 🏳️‍🌈 🫶🏾")
+                // Few ZWJ sequences: Apple Terminal and Warp draw each as its
+                // components, wider, and a longer line wrapped there.
+                Text(verbatim: "👩‍💻 ❤️‍🔥 🫶🏾 🎉")
                 Text(verbatim: "Ǻ ṩ ḉ").foregroundStyle(.palette.foregroundSecondary)
                 Spacer(minLength: 0)
                 Spinner()
