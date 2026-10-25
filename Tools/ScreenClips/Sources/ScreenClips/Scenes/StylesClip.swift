@@ -125,6 +125,7 @@ struct BookingForm: View {
                     .pickerStyle(.segmented)
                     Stepper("Passengers: \(passengers)", value: $passengers, in: 1...6)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             GroupBox("Extras") {
                 VStack(alignment: .leading, spacing: 0) {
