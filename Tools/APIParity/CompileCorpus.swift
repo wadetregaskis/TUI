@@ -771,6 +771,24 @@ private struct ExecutorTaskShapes: View {
                 status = "ready"
             }
             .task(id: 2, executorPreference: executor, priority: .low) {}
+            .task(name: "poll", executorPreference: executor) {}
+            .task(executorPreference: executor, priority: .low, action: {})
+    }
+}
+
+/// A view's task, named.
+@MainActor
+private struct NamedTaskShapes: View {
+    @State private var status = ""
+
+    var body: some View {
+        Text(status)
+            .task(name: "status") { status = "ready" }
+            .task(name: nil, priority: .low) {}
+            .task(id: 1, name: "reload") { status = "reloaded" }
+            .task(id: 2, priority: .background) {}
+            .task {}
+            .task(priority: .low) {}
     }
 }
 
