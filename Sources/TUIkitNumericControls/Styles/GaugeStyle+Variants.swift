@@ -13,7 +13,10 @@ extension GaugeStyle {
     /// return its concrete ``Body``. Used only for custom styles.
     @MainActor
     func makeBuffer(configuration: Configuration, context: RenderContext) -> FrameBuffer {
-        renderToBuffer(makeBody(configuration: configuration), context: context)
+        renderToBuffer(
+            observingStyleBody(of: Self.self, kind: .styleRender, context: context) {
+                makeBody(configuration: configuration)
+            }, context: context)
     }
 
     /// Measures this style's body for `configuration`, opening the existential
@@ -27,7 +30,10 @@ extension GaugeStyle {
     func makeSize(
         configuration: Configuration, proposal: ProposedSize, context: RenderContext
     ) -> ViewSize {
-        measureChild(makeBody(configuration: configuration), proposal: proposal, context: context)
+        measureChild(
+            observingStyleBody(of: Self.self, kind: .styleMeasure, context: context) {
+                makeBody(configuration: configuration)
+            }, proposal: proposal, context: context)
     }
 }
 

@@ -94,7 +94,10 @@ extension ToggleStyle {
     /// return its concrete ``Body``. Used only for custom styles.
     @MainActor
     func makeBuffer(configuration: Configuration, context: RenderContext) -> FrameBuffer {
-        renderToBuffer(makeBody(configuration: configuration), context: context)
+        renderToBuffer(
+            observingStyleBody(of: Self.self, kind: .styleRender, context: context) {
+                makeBody(configuration: configuration)
+            }, context: context)
     }
 }
 

@@ -187,6 +187,15 @@ extension RenderCache {
             appState?.setNeedsRender()
         }
 
+        /// ``requestFrame()`` for an `@Observable` change a frame-only scope
+        /// reported (`observingFrameReads`, `observingStyleBody`): asked as an
+        /// observed change's, as ``invalidateRenderForObservedChange(at:)``
+        /// asks it, and dropping nothing.
+        package func requestFrameForObservedChange() {
+            let appState = queue.withLock { $0.attached ? $0.appState : nil }
+            appState?.setNeedsRenderForObservedChange()
+        }
+
         /// Whether the cache is still there: `false` from the start of its
         /// `deinit` on. Thread-safe, unlike ``cache``.
         package var isAttached: Bool {

@@ -217,7 +217,10 @@ extension ButtonStyle {
         configuration: Configuration,
         context: RenderContext
     ) -> FrameBuffer {
-        renderToBuffer(makeBody(configuration: configuration), context: context)
+        renderToBuffer(
+            observingStyleBody(of: Self.self, kind: .styleRender, context: context) {
+                makeBody(configuration: configuration)
+            }, context: context)
     }
 
     /// Whether this style's body can answer its own size without being drawn.
@@ -244,7 +247,10 @@ extension ButtonStyle {
         proposal: ProposedSize,
         context: RenderContext
     ) -> ViewSize {
-        measureChild(makeBody(configuration: configuration), proposal: proposal, context: context)
+        measureChild(
+            observingStyleBody(of: Self.self, kind: .styleMeasure, context: context) {
+                makeBody(configuration: configuration)
+            }, proposal: proposal, context: context)
     }
 }
 

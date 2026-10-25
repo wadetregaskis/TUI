@@ -167,6 +167,24 @@ package final class HeadlessApp<A: App> {
         for owed in tuiContext.keysAfterFrame.take() { inputHandler.perform(owed) }
     }
 
+    /// The census of observation registrations the app's render cache arms,
+    /// when one is installed (`Stress --census` installs one the same way).
+    package var observationCensus: ObservationCensus? {
+        get { tuiContext.renderCache.observationCensus }
+        set { tuiContext.renderCache.observationCensus = newValue }
+    }
+
+    /// Whether anything has asked this app for a frame since the last time
+    /// this was asked: what the run loop reads, and clears, before it decides
+    /// to draw (`AppRunner.foldPendingWork`). A frame drawn here is drawn
+    /// whether or not one was asked for, so a test that asks whether a change
+    /// would have been drawn asks this.
+    package func takeFrameRequest() -> Bool {
+        let requested = tuiContext.appState.needsRender
+        tuiContext.appState.didRender()
+        return requested
+    }
+
     /// Delivers a key through the five-layer chain, as a keypress is — noted
     /// first as the keyboard's, as the app's event funnel notes it.
     /// - Returns: Whether some layer consumed it.

@@ -482,7 +482,13 @@ public struct Binding<Value> {
 
     /// The current value.
     public var wrappedValue: Value {
-        get { getValue() }
+        get {
+            // A control reads its binding in its core, outside any body: noted,
+            // during a walk, to be read again under a scope that asks for a
+            // frame when it changes (`BindingReads`, FrameObservation.swift).
+            BindingReads.note(getValue)
+            return getValue()
+        }
         nonmutating set {
             guard let declaredTransaction else {
                 setValue(newValue)

@@ -527,7 +527,11 @@ extension RenderLoop {
         environment.installVolatileReadTracker(VolatileReadTracker())
         cursorTimer?.beginFrameReadTracking()
 
-        let scene = evaluateAppBody(environment: environment)
+        // The app's body reads nothing a walk keeps; a change to what it read
+        // asks for a frame (`observingFrameReads`, FrameObservation.swift).
+        let scene = observingFrameReads(cache: tuiContext.renderCache, identity: rootIdentity) {
+            evaluateAppBody(environment: environment)
+        }
         // The app's scenes, gathered in one walk of its body, and the windows
         // open on them; then what the window in front's modifiers state — its
         // root environment, mouse support, chrome style and undo keys — and
@@ -545,11 +549,21 @@ extension RenderLoop {
         // Render the scene: its chrome host lays the top bar, the content
         // and the bottom bar out as one frame the size of the terminal, in one
         // walk (two on the first frame). See `renderContent`.
+        BindingReads.begin()
         let buffer = renderContent(
             scene: scene,
             environment: environment,
             terminalWidth: terminalWidth,
             terminalHeight: terminalHeight)
+        // Every `Binding` the walk read, read again under one scope that asks
+        // for a frame when one changes: a control reads its binding in its
+        // core, where no body's scope sees it (`BindingReads`).
+        let bindingReads = BindingReads.end()
+        if !bindingReads.isEmpty {
+            observingFrameReads(cache: tuiContext.renderCache, identity: rootIdentity) {
+                for read in bindingReads { read() }
+            }
+        }
 
         focusManager.endRenderPass()
         // Where the focus recovery left a focus a modifier-key alternate took.

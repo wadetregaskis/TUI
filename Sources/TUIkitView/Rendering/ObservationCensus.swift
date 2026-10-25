@@ -72,6 +72,9 @@ package final class ObservationCensus: Sendable {
         case keptRender
         /// A measure whose size the cache keeps, likewise.
         case keptMeasure
+        /// The app's body, or the `Binding`s a walk read, read again: for a
+        /// frame and nothing else (``observingFrameReads(cache:identity:_:)``).
+        case frame
 
         package var description: String {
             switch self {
@@ -83,6 +86,7 @@ package final class ObservationCensus: Sendable {
             case .bindingMeasure: "binding-measure"
             case .keptRender: "kept-render"
             case .keptMeasure: "kept-measure"
+            case .frame: "frame"
             }
         }
     }
