@@ -20,9 +20,14 @@ extension FocusManager {
     /// store's controls currently holds it. The setter behind `@FocusState`,
     /// called from event closures (outside a render pass).
     func setFocusValue(_ value: AnyHashable?, forStore store: String) {
+        pendingFocusValues[store] = nil
         let map = focusBindings[store] ?? [:]
         if let value, let binding = map[value] {
             focus(id: binding.focusID)
+        } else if let value {
+            // No control bound to it has registered yet: it may be appearing in
+            // this pass (``pendingFocusValues``).
+            pendingFocusValues[store] = (value, focusRenderGeneration)
         } else if let focused = currentFocusedID, map.values.contains(where: { $0.focusID == focused }) {
             relinquishFocus()
         }

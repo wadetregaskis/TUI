@@ -114,6 +114,45 @@ struct FocusStateTests {
         }
     }
 
+    // MARK: - Focused as it appears
+
+    /// The email field appears with `.onAppear { field = .email }`: the write
+    /// is made before the field's `.focused` has registered (an `onAppear`
+    /// runs before its content draws), while the name field holds the focus.
+    private struct AppearingFocusHarness: View {
+        @FocusState var field: Field?
+        let binding: Box<FocusState<Field?>.Binding?>
+        let showEmail: Box<Bool>
+        var body: some View {
+            binding.value = $field
+            return VStack {
+                TextField("name", text: .constant("")).focused($field, equals: .name)
+                if showEmail.value {
+                    VStack {
+                        TextField("email", text: .constant("")).focused($field, equals: .email)
+                    }
+                    .onAppear { field = .email }
+                }
+            }
+        }
+    }
+
+    @Test("A @FocusState set in onAppear focuses the control that appears with it")
+    func focusedAsItAppears() {
+        let tui = TUIContext()
+        let manager = FocusManager()
+        let bindingBox = Box<FocusState<Field?>.Binding?>(nil)
+        let showEmail = Box(false)
+        let view = AppearingFocusHarness(binding: bindingBox, showEmail: showEmail)
+        render(view, tuiContext: tui, focusManager: manager)
+        render(view, tuiContext: tui, focusManager: manager)
+        #expect(bindingBox.value?.wrappedValue == .name)
+        showEmail.value = true
+        render(view, tuiContext: tui, focusManager: manager)
+        render(view, tuiContext: tui, focusManager: manager)
+        #expect(bindingBox.value?.wrappedValue == .email, "the write was dropped: no control was bound to it yet")
+    }
+
     // MARK: - One target, not a whole subtree
 
     /// `.focused($binding, equals:)` names ONE focusable. Applied to a

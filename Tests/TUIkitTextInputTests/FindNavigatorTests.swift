@@ -124,6 +124,33 @@ struct FindNavigatorTests {
         #expect(!still.contains { $0.contains("Done") }, "\(still)")
     }
 
+    @Test("After Ctrl-F the keys type into the search field, not the text")
+    func controlFFocusesTheQuery() {
+        guard #available(macOS 15, *) else { return }
+        let model = Model()
+        model.text = "one two"
+        var selection: TextSelection?
+        let text = Binding(get: { model.text }, set: { model.text = $0 })
+        let selectionBinding = Binding<TextSelection?>(get: { selection }, set: { selection = $0 })
+        let harness = InputChainHarness(width: 50, height: 8)
+        func view() -> some View { TextEditor(text: text, selection: selectionBinding) }
+        func offsets() -> Range<Int>? {
+            guard case .selection(let range)? = selection?.indices else { return nil }
+            return model.text.distance(from: model.text.startIndex, to: range.lowerBound)
+                ..< model.text.distance(from: model.text.startIndex, to: range.upperBound)
+        }
+        harness.frame(view())
+        harness.frame(view())
+        harness.press(KeyEvent(key: .character("f"), ctrl: true))
+        harness.frame(view())
+        for character in "two" {
+            harness.press(KeyEvent(character: character))
+            harness.frame(view())
+        }
+        #expect(model.text == "one two", "the query was typed into the text")
+        #expect(offsets() == 4..<7)
+    }
+
     @Test("Ctrl-G finds the next match with the bar closed, and Shift-Ctrl-G the previous")
     func controlGSteps() {
         guard #available(macOS 15, *) else { return }

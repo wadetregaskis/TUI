@@ -326,6 +326,15 @@ public final class FocusManager: @unchecked Sendable {
     /// of `.focused` rows never accumulates thousands of stale entries).
     private(set) var focusBindings: [String: [AnyHashable: FocusBinding]] = [:]
 
+    /// A `@FocusState` value set before any control bound to it had
+    /// registered, per store, with the pass it was set in: applied when such a
+    /// control registers (``registerFocusBinding(store:value:focusID:)``), and
+    /// forgotten after the next pass if none does. The common case is a field
+    /// that appears and is focused at once — `.onAppear { focused = true }` on
+    /// a bar that has just appeared — since `onAppear` runs before its content
+    /// draws, and so before the field's `.focused` has registered.
+    var pendingFocusValues: [String: (value: AnyHashable, generation: UInt64)] = [:]
+
     /// The declared default-focus value per store (from `.defaultFocus`), used
     /// to pick the initial focus once its bound control's id is known.
     private var focusDefaultValues: [String: DefaultFocusDeclaration] = [:]
@@ -808,6 +817,10 @@ extension FocusManager {
     /// generation for ``pruneFocusRegistry()``.
     func registerFocusBinding(store: String, value: AnyHashable, focusID: String) {
         focusBindings[store, default: [:]][value] = FocusBinding(focusID: focusID, generation: focusRenderGeneration)
+        if let pending = pendingFocusValues[store], pending.value == value {
+            pendingFocusValues[store] = nil
+            focus(id: focusID)
+        }
     }
 
     /// Declares a store's initial-focus value (from `.defaultFocus`), stamped
@@ -882,6 +895,10 @@ extension FocusManager {
     /// pass's entries for the next frame's body-top reads. A default whose scope
     /// vanished loses its applied-flag, so re-presenting the scope re-applies it.
     private func pruneFocusRegistry() {
+        // A value set for a control that never came: kept through the pass it
+        // was set in and the next, then dropped, so it cannot take the focus
+        // from the user's own choice later.
+        pendingFocusValues = pendingFocusValues.filter { $0.value.generation &+ 1 >= focusRenderGeneration }
         for (store, var map) in focusBindings {
             map = map.filter { $0.value.generation == focusRenderGeneration }
             if map.isEmpty { focusBindings[store] = nil } else { focusBindings[store] = map }
