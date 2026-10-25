@@ -175,27 +175,57 @@ final class ScrollPhaseObserver {
     }
 }
 
-// MARK: - The scroll view's side
+// MARK: - The scrollable's side
 
-extension _ScrollViewCore {
-    /// Settles this view's phase for the frame and reports it to the
-    /// `onScrollPhaseChange` observers it has claimed. Render passes only, and
-    /// only with an observer: without one the phase is never read, and a view
-    /// left `.interacting` costs nothing.
-    func reportScrollPhase(geometry: () -> ScrollGeometry, handler: ScrollViewHandler, context: RenderContext) {
-        let observers = pageScrollObservers(context.environment).phase
-        guard !observers.isEmpty, !context.isMeasuring else { return }
-        context.environment.volatileReadTracker?.recordRenderSideEffect()
-        settlePhase(handler: handler, context: context)
-        if handler.reportedPhases.count != observers.count {
-            handler.reportedPhases = Array(repeating: nil, count: observers.count)
+/// A scrollable whose phase `onScrollPhaseChange` is told: a `ScrollView`'s
+/// handler, and a `List`'s or a `Table`'s, which are scroll views in SwiftUI.
+/// What it holds is the phase and its timing; the reporting is shared
+/// (`RenderContext.reportScrollPhase(of:geometry:)`).
+@MainActor
+package protocol ScrollPhaseReporting: AnyObject {
+    /// What the view's scrolling is doing.
+    var phase: ScrollPhase { get set }
+    /// When the user last scrolled, on ``phaseNow``'s clock.
+    var lastUserScrollNanos: UInt64 { get set }
+    /// The phase each observer was last told, by its place among the
+    /// observers the view reports to; `nil` before the first.
+    var reportedPhases: [ScrollPhase?] { get set }
+    /// The clock the phase is timed on.
+    var phaseNow: () -> UInt64 { get }
+    /// Whether the user's scroll is still under way though no step has come:
+    /// a scrollbar held, a drag's auto-scroll. Its quiet waits until it is not.
+    var holdsUserScroll: Bool { get }
+}
+
+extension RenderContext {
+    /// Settles `scrollable`'s phase for the frame and reports it to the
+    /// `onScrollPhaseChange` observers it claims (``reportScrollPhase(of:observers:geometry:)``),
+    /// the ones stated above it.
+    @MainActor
+    package func reportScrollPhase(of scrollable: some ScrollPhaseReporting, geometry: () -> ScrollGeometry) {
+        reportScrollPhase(of: scrollable, observers: environment.scrollObservers.phase, geometry: geometry)
+    }
+
+    /// Settles `scrollable`'s phase for the frame and reports it to those of
+    /// `observers` it has claimed. Render passes only, and only with an
+    /// observer: without one the phase is never read, and a view left
+    /// `.interacting` costs nothing.
+    @MainActor
+    func reportScrollPhase(
+        of scrollable: some ScrollPhaseReporting, observers: [ScrollPhaseObserver], geometry: () -> ScrollGeometry
+    ) {
+        guard !observers.isEmpty, !isMeasuring else { return }
+        environment.volatileReadTracker?.recordRenderSideEffect()
+        settlePhase(of: scrollable)
+        if scrollable.reportedPhases.count != observers.count {
+            scrollable.reportedPhases = Array(repeating: nil, count: observers.count)
         }
-        let phase = handler.phase
+        let phase = scrollable.phase
         var changeContext: ScrollPhaseChangeContext?
-        for (index, observer) in observers.enumerated() where observer.claim(for: context.identity) {
-            let old = handler.reportedPhases[index]
+        for (index, observer) in observers.enumerated() where observer.claim(for: identity) {
+            let old = scrollable.reportedPhases[index]
             guard old != phase else { continue }
-            handler.reportedPhases[index] = phase
+            scrollable.reportedPhases[index] = phase
             let made = changeContext ?? ScrollPhaseChangeContext(geometry: geometry(), velocity: .zero)
             changeContext = made
             observer.action(old ?? phase, phase, made)
@@ -203,23 +233,42 @@ extension _ScrollViewCore {
     }
 
     /// Returns an interacting view to `.idle` once the user's scrolling has
-    /// been quiet for ``ScrollPhase/quietNanos`` and nothing is held, and
+    /// been quiet for ``ScrollPhase/quietNanos`` and nothing holds it, and
     /// otherwise asks for the frame that will find it so.
-    private func settlePhase(handler: ScrollViewHandler, context: RenderContext) {
-        guard handler.phase == .interacting else { return }
-        // A key's glide (`scrollKeyboardAnimation(_:)`) holds it too: its
-        // quiet is counted from its landing, so a held Page Down is one span.
-        let held =
-            handler.scrollbarDragGrab != nil || handler.scrollbarRepeat != nil
-            || handler.horizontal.scrollbarDragGrab != nil || handler.horizontal.scrollbarRepeat != nil
-            || handler.isAutoScrolling || handler.glide?.isKeyboard == true
-        let quietFor = handler.phaseNow() &- handler.lastUserScrollNanos
+    @MainActor
+    private func settlePhase(of scrollable: some ScrollPhaseReporting) {
+        guard scrollable.phase == .interacting else { return }
+        let held = scrollable.holdsUserScroll
+        let quietFor = scrollable.phaseNow() &- scrollable.lastUserScrollNanos
         if !held, quietFor >= ScrollPhase.quietNanos {
-            handler.phase = .idle
+            scrollable.phase = .idle
             return
         }
         let remaining = held ? ScrollPhase.quietNanos : ScrollPhase.quietNanos - quietFor
-        context.requestWake(
-            token: "scroll-phase-\(context.identity.path)", afterSeconds: Double(remaining) / 1e9)
+        requestWake(token: "scroll-phase-\(identity.path)", afterSeconds: Double(remaining) / 1e9)
+    }
+}
+
+extension ScrollViewHandler: ScrollPhaseReporting {
+    /// A scrollbar held on either axis, or a drag's auto-scroll
+    /// (``ScrollPhaseReporting``). A key's glide (`scrollKeyboardAnimation(_:)`)
+    /// holds it too: its quiet is counted from its landing, so a held Page
+    /// Down is one span.
+    package var holdsUserScroll: Bool {
+        scrollbarDragGrab != nil || scrollbarRepeat != nil
+            || horizontal.scrollbarDragGrab != nil || horizontal.scrollbarRepeat != nil
+            || isAutoScrolling || glide?.isKeyboard == true
+    }
+}
+
+// MARK: - The scroll view's side
+
+extension _ScrollViewCore {
+    /// Settles this view's phase for the frame and reports it to the
+    /// `onScrollPhaseChange` observers it has claimed — none, for a framework
+    /// scroller. Render passes only, and only with an observer.
+    func reportScrollPhase(geometry: () -> ScrollGeometry, handler: ScrollViewHandler, context: RenderContext) {
+        context.reportScrollPhase(
+            of: handler, observers: pageScrollObservers(context.environment).phase, geometry: geometry)
     }
 }

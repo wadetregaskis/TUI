@@ -153,18 +153,18 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// render once the scrolling has been quiet long enough, which a render
     /// does only for a view an `onScrollPhaseChange` observes. `.animating`
     /// from the frame a ``glide`` starts on to the one it lands on.
-    var phase: ScrollPhase = .idle
+    package var phase: ScrollPhase = .idle
 
     /// When the user last scrolled, on ``phaseNow``'s clock.
-    var lastUserScrollNanos: UInt64 = 0
+    package var lastUserScrollNanos: UInt64 = 0
 
     /// The phase each `onScrollPhaseChange` observer was last told, by its
     /// place among the observers this view reports to; `nil` before the first.
-    var reportedPhases: [ScrollPhase?] = []
+    package var reportedPhases: [ScrollPhase?] = []
 
     /// The clock the phase is timed on: the monotonic one the frame clock
     /// reads. Replaceable so a test can step it.
-    var phaseNow: () -> UInt64 = { MonotonicClock.nowNanoseconds }
+    package var phaseNow: () -> UInt64 = { MonotonicClock.nowNanoseconds }
 
     /// One screenful of READABLE lines (``ScrollableOffsetState``
     /// requirement). Under the text indicators the viewport's first and last
