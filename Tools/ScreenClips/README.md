@@ -1,37 +1,79 @@
 # Screen clips
 
-The README's animated clips: each one a small TUIkit app that plays itself in a
-**real terminal window** — Ghostty, iTerm2, Terminal.app or Warp — filmed and
-encoded as a looping animated WebP. One command makes them all again, so a
-change to how TUIkit draws is a re-run away from the README showing it.
+The README's animated clips: each one a TUIkit app that plays itself in a
+**real terminal window** — Ghostty, iTerm2, Terminal.app or Warp — filmed,
+cropped to a small frame of it, and encoded as a looping animated WebP. One
+command makes them all again, so a change to how TUIkit draws is a re-run
+away from the README showing it.
 
 ```sh
 Tools/ScreenClips/regenerate.sh                       # every clip, each in its own terminal
 Tools/ScreenClips/regenerate.sh theming controls      # just these
 Tools/ScreenClips/regenerate.sh theming --terminal iterm   # → theming-iterm.webp
 Tools/ScreenClips/regenerate.sh --mp4 --composite     # also MP4s, and one movie of them all
+Tools/ScreenClips/regenerate.sh --keep-frames tables  # keep the film, then…
+Tools/ScreenClips/regenerate.sh --encode-only tables  # …re-crop and re-encode it without filming again
+Tools/ScreenClips/regenerate.sh --publish             # upload them to the `media` release (see Publishing)
 ```
 
-Output goes to `Documentation/Media/clips/` (`--out` to change it), at 1.5 pixels
-per point (`--scale`): sharp on a Retina display at the size GitHub shows it. Each run
-opens a new terminal window, films it for the clip's length, and closes it.
-Leave the windows alone while it runs; a window in front of the filmed one does
-no harm (the window itself is filmed, not the screen), but a key pressed into
-it reaches the app.
+Output goes to `Tools/ScreenClips/.build/media/` (`--out` to change it), which
+git ignores: the clips are **never committed** — every version of every clip
+would be in every clone forever. They are published as release assets instead.
+
+Each run opens a terminal window **in the background**, films it for the
+clip's length, and closes it. Leave the windows alone while it runs: a window
+in front of the filmed one does no harm (the window itself is filmed, not the
+screen), but a key pressed into it reaches the app. See [Terminals](#terminals)
+for what each terminal does when opened, and why a Ghostty window shows in
+front for a moment.
 
 Needs Screen Recording permission for the app the script runs in (System
-Settings → Privacy & Security → Screen & System Audio Recording), and
-`img2webp` (`brew install webp`) and, for MP4s, `ffmpeg`.
+Settings → Privacy & Security → Screen & System Audio Recording), an unlocked
+screen (nothing is drawn while it is locked), `img2webp` (`brew install webp`),
+Pillow (`python3 -m pip install Pillow`) and, for MP4s, `ffmpeg`.
+
+## What a clip looks like
+
+The README shows them small: a three-column grid of tiles about 270 CSS pixels
+wide (`output: 560`, for Retina screens), flagship rows of about 400 (`output:
+800`), and the hero, code beside its result. So a clip is not a tiny app made
+to fit a thumbnail: it is a **believable full-size app** — toolbar, sidebar,
+real-looking data, at the normal font size in a normal-size window — and the
+clip is a small frame of it, cut by a **camera**:
+
+- The camera is a rectangle of the terminal's grid, in cells, with fractional
+  edges, so a frame can cut through a glyph and let the app's chrome peek in
+  at its edges: there is a bigger app behind the mask.
+- It can move — pan, or zoom — easing from one shot to the next, to follow the
+  action (a card dragged across a board).
+- The macOS title bar is left out (it is the terminal's chrome, not the app's).
+- The corners are rounded, on a transparent ground, so the tiles sit as well
+  on GitHub's light pages as on its dark ones.
+- Something always moves: a clip with nothing happening reads as a still.
+
+Keep each WebP well under 1 MB; 100–400 KB is the aim. The encoder steps its
+quality down to fit `--budget-kb` (450). A camera move changes every pixel of
+every frame it lasts, so moves cost more than anything else in a clip: keep
+them short and few.
 
 ## How it works
 
 | Piece | What it does |
 |---|---|
-| `Sources/ScreenClips/Scenes/` | One file per clip: the app, and its **script** — keys and cues on a clock. |
-| `ScreenClips play <clip>` (`Player.swift`) | Runs the clip's app under a pseudo-terminal of its own and relays everything between it and the real terminal, untouched, so TUIkit sees the real terminal (its identity, size, colours, quirks). Types the script's keys into that stream — through TUIkit's own parser and dispatch, as typed keys go — and sends its cues (a palette change, say: something no key does) down a pipe the app reads (`ClipCues`). Drops the terminal's focus reports, so the app never goes inactive because its window is not in front. Writes `start` and `end` markers. |
-| `WindowRecorder` | ScreenCaptureKit. Finds the window by its process (Ghostty: the new instance's; the others: the app's window that was not there before), films it at the display's resolution, and writes a PNG per frame, scaled with Lanczos (vImage) off the capture queue, with its presentation time. Stops at the `end` marker. |
-| `encode.py` | Keeps what was on the screen between the markers, sampled at 30 fps, runs of one picture merged into one longer frame, and encodes a lossy WebP looped forever with `img2webp`, stepping the quality down until it fits the size budget (1.4 MB). Optionally an MP4 per clip and a composite movie, with ffmpeg. |
-| `regenerate.sh` | Builds, stages the binaries in `~/Library/Caches/tuikit-probe/screenclips` (Ghostty may not open files under `~/Documents`), and for each clip opens the terminal, films, closes, encodes. |
+| `Sources/ScreenClips/Scenes/` | One file per clip: the app, and its **script** — keys, cues and camera shots on a clock. |
+| `ScreenClips play <clip>` (`Player.swift`) | Draws a calibration card (below), then runs the clip's app under a pseudo-terminal of its own and relays everything between it and the real terminal, untouched, so TUIkit sees the real terminal (its identity, size, colours, quirks). Types the script's keys into that stream — through TUIkit's own parser and dispatch, as typed keys go (mouse reports too) — and sends its cues (a palette change, say: something no key does) down a pipe the app reads (`ClipCues`). Drops the terminal's focus reports, so the app never goes inactive because its window is not in front. Writes `start` and `end` markers. |
+| `WindowRecorder` | ScreenCaptureKit. Finds the window by its process (Ghostty: the new instance's; the others: the window titled for the clip), films it at the display's resolution, and writes a PNG per frame, with its presentation time. Stops at the `end` marker. Also gives the front back to the app that had it (`--refront`), and finds the screen corner where a window shows most from behind it (`--spot`). |
+| `encode.py` | Finds the grid in the film from the calibration card, keeps what was on the screen between the markers, sampled at 30 fps, cuts each frame at the camera's rectangle for that instant, scales it to the clip's output width (Lanczos), rounds its corners, merges runs of one picture into one longer frame, and encodes a lossy WebP looped forever with `img2webp`. Also composites carousels, and MP4s with ffmpeg. |
+| `regenerate.sh` | Builds, stages the binaries in `~/Library/Caches/tuikit-probe/screenclips` (Ghostty may not open files under `~/Documents`), and for each clip opens the terminal, films, closes, encodes. Publishes with `--publish`. |
+
+**The calibration card.** Before the app starts, the player clears the screen
+and paints two cells magenta: the second cell of the second row, and the
+second-last of the second-last row (not the corners, whose colour a terminal
+may extend into its padding). It holds them until the recorder says it is
+filming, and notes the instant and the grid's size in cells. The distance
+between the two cells is a cell's size in the film's pixels, and the first cell
+less one is where the grid starts — whatever the terminal, font, padding,
+title bar or display scale — which is what lets a camera be written in cells.
 
 The script's clock starts once the app has drawn its first frame and settled
 (1.2 s after its first output), and nothing before that is kept, so every run
@@ -41,28 +83,81 @@ screen costs one frame, however long it is held.
 
 ### Terminals
 
-- **Ghostty** (`ghostty`, the default): a new instance (`open -na`) with every
-  option on the command line and no config file read, so the look never depends
-  on anyone's settings: JetBrains Mono 14 pt, the clip's size in cells, padding
-  in the page's own colour, a native title bar. The clip is the window's
-  `--initial-command=direct:…`, not `-e`: `-e` asks "Allow Ghostty to execute
-  …?" for every new script path, and a window macOS restores runs its command
-  again (that is how a clip once played twice, in two tabs). The instance is
-  found by its command line, which names the run's folder, and quits when the
-  clip's window closes, leaving the owner's own Ghostty alone.
-- **iTerm2, Terminal.app, Warp** (`iterm`, `apple`, `warp`): a window opened
-  with `open -a <app> play.command`, in the user's default profile, sized by
-  `ESC[8;rows;cols t` (which iTerm2 refuses, so its window is the profile's
-  size). Whether the window closes when the clip ends is the profile's choice.
+No terminal is brought to the front on purpose, but not every terminal can be
+opened without it, and a covered window is not always drawn:
+
+- **Ghostty** (`ghostty`, the default): a new instance (`open -g -n`) with
+  every option on the command line and no config file read, so the look never
+  depends on anyone's settings: JetBrains Mono 14 pt, the clip's size in cells
+  (Ghostty rounds it up a cell or two), padding in the page's own colour. The
+  clip is the window's `--initial-command=direct:…`, not `-e`: `-e` asks
+  "Allow Ghostty to execute …?" for every new script path, and a window macOS
+  restores runs its command again. The instance quits when the clip's window
+  closes, leaving the owner's own Ghostty alone.
+  - Opened in the background, Ghostty 1.3 makes **no window at all** until it
+    is first activated. So the recorder activates it (`--wake`) and gives the
+    front straight back (`--refront`): the window shows in front for a moment,
+    then sits behind.
+  - Ghostty **stops drawing a window that is wholly covered**, and the film
+    freezes. So the window opens in the screen corner where it shows most from
+    behind the frontmost app's windows (`--spot`); a sliver showing is enough.
+    If the frontmost app covers every corner, regenerate.sh warns, and the
+    clip must be filmed again with some of the screen free.
+- **Terminal.app** (`apple`): a new window, in the background, sized by the
+  script (`ESC[8;rows;cols t`), in the default profile. It draws while covered.
+  Its default profile keeps the window open when the script ends ("[Process
+  completed]"), and with Apple Events refused there is no closing it from
+  here: it stays, behind, to be closed by hand.
+- **iTerm2** (`iterm`): brings itself to the front (`-g` or not) and opens the
+  script as a new **tab** of the window it already has; the recorder gives the
+  front back. It refuses the resize (the profile's "Disable session-initiated
+  window resizing"), so the clip plays at that window's size. It closes the
+  tab itself when the script ends.
+- **Warp** (`warp`): brings itself to the front and opens the script as a new
+  tab of its existing window, which the script must not resize (it is the
+  owner's), so the clip plays at that window's size. The tab's shell is left
+  when the script ends; regenerate.sh ends it, which closes the tab.
+
+Since iTerm2 and Warp films are of a window someone already uses, at its size,
+write clips for them to need no more than 80×24 and to draw from the top left.
 
 ## Writing a clip
 
 Add a file to `Sources/ScreenClips/Scenes/` with a `Clip` — an id, a title,
-the terminal's size in cells, the terminal to film it in, the script, and the
-app to run — and list it in `clips` (`Clip.swift`). A script is `[Step]`:
-`.wait(seconds)`, `.keys(bytes)` (`.tab`, `.space`, `.down`, `Step.type("text")`,
-…) and `.cue(name)`, which the app's `.task { for await cue in ClipCues.stream() { … } }`
-receives. End the script where it began if you can, so the loop has no seam.
+the terminal's size in cells, the terminal to film it in, the output width,
+the script, and the app to run — and list it in `clips` (`Clip.swift`). A
+script is `[Step]`:
 
-`ScreenClips play <clip>` runs a clip in the terminal you are in, for a look
-at it while you write it.
+- `.wait(seconds)`;
+- `.keys(bytes)` — `.tab`, `.space`, `.down`, `.shiftLeft`, `.f10`,
+  `Step.control("z")`, `Step.type("text")`, `Step.click(column, row)`,
+  `Step.drag(from:to:)` (SGR mouse reports, 1-based cells), …;
+- `.cue(name)`, which the app's `.task { for await cue in ClipCues.stream() { … } }`
+  receives;
+- `.camera(Shot(x:y:width:height:over:))`, a shot in cells, eased over `over`
+  seconds from that instant. Start the script with one; every later shot keeps
+  the first one's proportions (only its centre and width are taken).
+
+In a `List` or `Table`, an arrow moves the cursor and Space selects. End the
+script where it began if you can, so the loop has no seam.
+
+`ScreenClips play <clip>` runs a clip in the terminal you are in, for a look at
+it while you write it. (With `--markers`, as regenerate.sh plays it, it first
+shows the calibration card and waits up to 20 s for a recorder.)
+
+A **carousel** clip (`carousel: ["ghostty", "iterm", "apple", "warp"]`) is
+filmed once in each terminal and composited by `encode.py carousel`: the cards
+stacked diagonally, one in front and the ones before and after it peeking out
+at its top left and bottom right, the stack sliding a step every few seconds,
+each card named at its foot. The cards are composited with Pillow and encoded
+with img2webp (and ffmpeg for `--mp4`); Homebrew's ffmpeg has no `drawtext`,
+and a stack whose order changes mid-slide is simpler drawn than filtered.
+
+## Publishing
+
+The clips live as assets of one GitHub release, `media`, which is not a release
+of TUIkit. `regenerate.sh --publish` uploads every `.webp` and `.mp4` in the
+output folder to it (`gh release upload media … --clobber`, replacing assets of
+the same name), creating the release first if there is none. The docs site's
+workflow downloads the assets and serves them at `<site>/media/<name>`, which
+is where the README points. Publishing is public: run it only when you mean to.

@@ -5,6 +5,7 @@
 //
 //      ScreenClips list                      every clip: id, size, length, terminal, title
 //      ScreenClips info <clip>               one clip's size and length, as shell variables
+//      ScreenClips framing <clip>            its camera's moves and output width, as JSON, for encode.py
 //      ScreenClips play <clip> [--markers F] run it in this terminal, its script typed into it
 //
 //  `--child <clip>` is the app itself, as the player starts it under its own
@@ -40,6 +41,10 @@ case "info":
     print("duration=\(clip.duration)")
     print("terminal=\(clip.terminal)")
     print("title='\(clip.title)'")
+    print("output=\(clip.output)")
+    print("carousel='\(clip.carousel.joined(separator: " "))'")
+case "framing":
+    print(clip(named: arguments.dropFirst().first).framingJSON)
 case "play":
     let clip = clip(named: arguments.dropFirst().first)
     var markers: String?
@@ -48,6 +53,6 @@ case "play":
 case "--child":
     await clip(named: arguments.dropFirst().first).run()
 default:
-    print("usage: ScreenClips list | info <clip> | play <clip> [--markers FILE]")
+    print("usage: ScreenClips list | info <clip> | framing <clip> | play <clip> [--markers FILE]")
     exit(arguments.isEmpty ? 0 : 2)
 }

@@ -20,10 +20,17 @@ import Foundation
 /// the player types the script's keys, at the script's instants, and those go
 /// through TUIkit's own input path exactly as typed keys do.
 ///
-/// The markers file gets two lines, each a `CLOCK_UPTIME_RAW` time in
+/// The markers file gets lines of a name and a `CLOCK_UPTIME_RAW` time in
 /// nanoseconds — the clock ScreenCaptureKit stamps its frames with: `start`,
 /// when the script's clock starts, and `end`, when it has played. The recorder
 /// stops at `end`, and the encoder keeps the frames between the two.
+///
+/// Before the app starts, the player draws a calibration card (see
+/// ``calibrate(size:)``) and notes `calibrated` once the recorder has filmed
+/// it, with a `grid` line giving the terminal's size in cells: from the card
+/// the encoder learns where the grid sits in the window and how big a cell is,
+/// in the film's own pixels, whatever the terminal, its font, its padding and
+/// its title bar — so a clip's camera can be stated in cells.
 struct Player {
     let clip: Clip
     let markers: String?
@@ -39,6 +46,7 @@ struct Player {
         if ioctl(STDOUT_FILENO, TIOCGWINSZ, &size) != 0 {
             size = winsize(ws_row: UInt16(clip.rows), ws_col: UInt16(clip.columns), ws_xpixel: 0, ws_ypixel: 0)
         }
+        if markers != nil { calibrate(size: size) }
 
         // The cue pipe: the app keeps the read end across exec, the player's
         // write end closes on it.
@@ -98,6 +106,7 @@ struct Player {
                 case .wait(let seconds): due = deadline + Self.nanoseconds(seconds)
                 case .keys(let text): writeAll(master, Array(text.utf8))
                 case .cue(let name): writeAll(cues, Array((name + "\n").utf8))
+                case .camera: break  // the encoder's, not the app's
                 }
             }
             if ended {
@@ -150,6 +159,41 @@ struct Player {
         return ended ? 0 : 1
     }
 
+    /// Draws the calibration card, waits until the recorder has filmed it, and
+    /// clears it.
+    ///
+    /// The card is two cells painted magenta (`#FF00FF`, colour 201 of the
+    /// 256, so a terminal without 24-bit colour paints it exactly too) on a
+    /// cleared screen: the second cell of the second row, and the second-last
+    /// cell of the second-last row. Not the corner cells, whose colour a
+    /// terminal may extend into its padding (Ghostty's
+    /// `window-padding-color=extend`). The distance between the two, over the
+    /// cells between them, is a cell's size; the first, less a cell, is where
+    /// the grid starts.
+    ///
+    /// The recorder writes `filming` to the markers file once its stream has
+    /// started. Played by hand, with nobody filming, the player waits for it
+    /// at most 20 seconds.
+    private func calibrate(size: winsize) {
+        let rows = Int(size.ws_row), columns = Int(size.ws_col)
+        let paint = "\u{1B}[48;5;201m \u{1B}[0m"
+        let card = "\u{1B}[?25l\u{1B}[2J\u{1B}[2;2H\(paint)\u{1B}[\(rows - 1);\(columns - 1)H\(paint)"
+        writeAll(STDOUT_FILENO, Array(card.utf8))
+        let deadline = Self.now() + Self.nanoseconds(20)
+        while Self.now() < deadline, !markersSay("filming") { usleep(50_000) }
+        // Long enough for the terminal to have drawn the card and the stream
+        // to have sent the frame that shows it.
+        usleep(600_000)
+        mark("grid \(columns) \(rows)")
+        mark("calibrated", Self.now())
+        writeAll(STDOUT_FILENO, Array("\u{1B}[2J\u{1B}[H".utf8))
+    }
+
+    private func markersSay(_ word: String) -> Bool {
+        guard let markers, let text = try? String(contentsOfFile: markers, encoding: .utf8) else { return false }
+        return text.split(separator: "\n").contains { $0.hasPrefix(word + " ") }
+    }
+
     /// The terminal's input without its focus reports (`ESC [ I`, `ESC [ O`).
     ///
     /// A TUIkit app whose terminal loses the focus goes inactive: its focus
@@ -174,15 +218,18 @@ struct Player {
     }
 
     private func mark(_ name: String, _ time: UInt64) {
+        mark("\(name) \(time)")
+    }
+
+    /// Appends a line to the markers file. `O_APPEND`, because the recorder
+    /// appends to it too (its `filming`), and a write at a remembered offset
+    /// could land on top of the other's.
+    private func mark(_ line: String) {
         guard let markers else { return }
-        let line = "\(name) \(time)\n"
-        if let handle = FileHandle(forWritingAtPath: markers) {
-            handle.seekToEndOfFile()
-            handle.write(Data(line.utf8))
-            try? handle.close()
-        } else {
-            FileManager.default.createFile(atPath: markers, contents: Data(line.utf8))
-        }
+        let descriptor = open(markers, O_WRONLY | O_APPEND | O_CREAT, 0o644)
+        guard descriptor >= 0 else { return }
+        writeAll(descriptor, Array((line + "\n").utf8))
+        close(descriptor)
     }
 
     private func writeAll(_ descriptor: Int32, _ bytes: [UInt8]) {
