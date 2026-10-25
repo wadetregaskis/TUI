@@ -2199,14 +2199,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         for (rowIndex, row) in visibleRows {
             // The stripes count on across the sections, as a macOS list's do
             // (decisions B-D6L-4): a header starts no new count.
-            let isFocused = handler.isCursorRow(rowIndex) && listHasFocus
-            let isSelected = handler.isSelected(at: rowIndex)
+            let state = RowDrawState.of(row: rowIndex, in: handler, listHasFocus: listHasFocus)
             let rendered = renderRow(
-                row: row,
-                at: rowIndex,
-                state: RowDrawState(
-                    isFocused: isFocused, isSelected: isSelected,
-                    isReturningHome: handler.returningRows.contains(rowIndex)),
+                row: row, at: rowIndex, state: state,
                 rowWidth: rowWidth, contentRowIndex: contentRowIndex,
                 style: style, context: context, palette: palette)
             let scrollClip = rowIndex == origin.offset ? origin.topClip : 0
@@ -2526,14 +2521,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // A pinned header and the lines it covers — see `composeRowLines`.
         var pin = PinnedHeaderCover(origin: origin.offset, first: visibleRows.first)
         for (rowIndex, row) in visibleRows {
-            let isFocused = handler.isCursorRow(rowIndex) && listHasFocus
-            let isSelected = handler.isSelected(at: rowIndex)
+            let state = RowDrawState.of(row: rowIndex, in: handler, listHasFocus: listHasFocus)
             let rendered = renderRow(
                 row: row,
                 at: rowIndex,
-                state: RowDrawState(
-                    isFocused: isFocused, isSelected: isSelected,
-                    isReturningHome: handler.returningRows.contains(rowIndex)),
+                state: state,
                 rowWidth: contentRowWidth,
                 contentRowIndex: contentRowIndex,
                 style: style,
@@ -4336,6 +4328,16 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         /// The row's picture is still walking home to it, so it keeps its space
         /// and draws nothing in it — see ``ItemListHandler/returningRows``.
         let isReturningHome: Bool
+
+        /// The state of the row at `index` this frame, as the window's two
+        /// assembly paths ask it.
+        static func of(
+            row index: Int, in handler: ItemListHandler<SelectionValue>, listHasFocus: Bool
+        ) -> Self {
+            Self(
+                isFocused: handler.isCursorRow(index) && listHasFocus, isSelected: handler.isSelected(at: index),
+                isReturningHome: handler.returningRows.contains(index))
+        }
     }
 
     private func renderRow(
