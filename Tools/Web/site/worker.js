@@ -86,8 +86,19 @@ self.onmessage = async (event) => {
 
   try {
     self.postMessage({ kind: "status", text: "fetching…" });
-    const response = await fetch(wasmURL);
+    let response = await fetch(wasmURL);
     if (!response.ok) throw new Error(`could not fetch the module: ${response.status}`);
+    // The Pages site ships the module gzipped (`Tools/Site/assemble.sh`), as a
+    // plain `.gz` file rather than with `Content-Encoding: gzip`, because
+    // GitHub Pages decides compression for itself and sets no headers on
+    // request. So the browser hands over the compressed bytes and they are
+    // inflated here — still streaming, so compilation starts before the
+    // download ends. `serve.py` serves the raw module, which skips this.
+    if (new URL(wasmURL, self.location.href).pathname.endsWith(".gz")) {
+      response = new Response(response.body.pipeThrough(new DecompressionStream("gzip")), {
+        headers: { "Content-Type": "application/wasm" },
+      });
+    }
     self.postMessage({ kind: "status", text: "compiling…" });
     const { instance } = await WebAssembly.instantiateStreaming(response, {
       wasi_snapshot_preview1: wasi.exports(),

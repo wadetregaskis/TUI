@@ -6,8 +6,11 @@
   The page owns the terminal (xterm.js) and the keyboard; the worker owns the
   Swift program. Between them sit two SharedArrayBuffers: one ring of keystroke
   bytes, and one control block the worker parks on when it has nothing to do.
-  Serve this with `Tools/Web/serve.py` — SharedArrayBuffer needs the
-  cross-origin isolation headers it sets.
+  SharedArrayBuffer needs cross-origin isolation: `Tools/Web/serve.py` sends
+  the headers for it, and on a host that cannot (GitHub Pages) pressing Run
+  installs `isolation-sw.js`, which adds them. Nothing large is fetched until
+  Run is pressed: the published copy is one link off the project's landing
+  page, and a visitor who only reads it should not pay for the module.
 -->
 <html lang="en">
   <head>
@@ -79,6 +82,33 @@
         padding: 1px 5px;
         font: 11px ui-monospace, monospace;
       }
+      #launch {
+        width: 60ch;
+        max-width: 100%;
+        padding: 24px 18px;
+        text-align: center;
+      }
+      #launch p {
+        font-size: 13.5px;
+        margin-bottom: 18px;
+      }
+      #run {
+        font: 600 14px/1 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+        color: var(--page);
+        background: var(--accent);
+        border: 0;
+        border-radius: 6px;
+        padding: 10px 28px;
+        cursor: pointer;
+      }
+      #run:focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 2px;
+      }
+      #run:disabled {
+        opacity: 0.6;
+        cursor: progress;
+      }
       #unsupported {
         max-width: 60ch;
         margin: 40px auto;
@@ -100,9 +130,20 @@
         <code>wasm32-unknown-wasip1</code> and driven through a WASI host written for this page.
       </p>
     </header>
-    <main><div id="frame"><div id="terminal"></div></div></main>
+    <main>
+      <div id="frame">
+        <div id="launch">
+          <p>
+            Run downloads the module (<span id="size">a few tens of megabytes</span>) and
+            starts it in a terminal on this page. Nothing that large is fetched before then.
+          </p>
+          <button id="run" type="button">Run</button>
+        </div>
+        <div id="terminal" hidden></div>
+      </div>
+    </main>
     <footer>
-      <span id="status">loading…</span>
+      <span id="status">ready</span>
       <span><kbd>↑</kbd><kbd>↓</kbd> move · <kbd>enter</kbd> open · <kbd>esc</kbd> back · <kbd>q</kbd> quit</span>
     </footer>
 
@@ -121,18 +162,75 @@
     <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@xterm/addon-unicode-graphemes@0.5.0-beta.301/lib/addon-unicode-graphemes.js"></script>
     <script type="module">
       const status = document.getElementById("status");
+      const runButton = document.getElementById("run");
       const COLUMNS = 100;
       const ROWS = 32;
+      // What the page carries across the one reload that installing the
+      // isolation worker takes: "the visitor already pressed Run".
+      const RUN_AFTER_RELOAD = "#run";
 
-      if (!crossOriginIsolated || typeof SharedArrayBuffer === "undefined") {
+      const isolated = () => crossOriginIsolated && typeof SharedArrayBuffer !== "undefined";
+
+      function unsupported() {
         document.querySelector("main").innerHTML =
           `<div id="unsupported"><p><strong>This page needs cross-origin isolation.</strong></p>
            <p>The Swift program blocks while it waits for a keystroke, which only a worker may do,
            and the page hands it those keystrokes through a <code>SharedArrayBuffer</code> — available
-           only on a cross-origin-isolated page. Serve this directory with
-           <code>Tools/Web/serve.py</code>, which sets the two headers that turn it on.</p></div>`;
+           only on a cross-origin-isolated page. Where the server cannot send the two headers that
+           turn it on (GitHub Pages cannot), the page installs a small service worker that adds them,
+           and this browser did not allow it: a private window, or service workers turned off.
+           Locally, serve this directory with <code>Tools/Web/serve.py</code>, which sends them.</p></div>`;
         status.textContent = "not isolated";
-      } else {
+      }
+
+      // The download's size, when the site build recorded it. Only the
+      // manifest is fetched for this — a few kilobytes — never the module.
+      fetch("./manifest.json")
+        .then((response) => (response.ok ? response.json() : null))
+        .then((manifest) => {
+          if (manifest && manifest.downloadBytes) {
+            document.getElementById("size").textContent =
+              `${Math.round(manifest.downloadBytes / 1e6)} MB`;
+          }
+        })
+        .catch(() => {});
+
+      // Not isolated: install isolation-sw.js, which adds the headers to every
+      // response from this directory, then reload so the page itself comes
+      // through it. That happens once per browser; afterwards the worker
+      // answers the very first request and the page arrives isolated.
+      async function isolateAndReload() {
+        if (!("serviceWorker" in navigator)) return unsupported();
+        status.textContent = "installing…";
+        try {
+          await navigator.serviceWorker.register("./isolation-sw.js");
+          await navigator.serviceWorker.ready;
+        } catch {
+          return unsupported();
+        }
+        location.hash = RUN_AFTER_RELOAD;
+        location.reload();
+      }
+
+      const resumed = location.hash === RUN_AFTER_RELOAD;
+      if (resumed) history.replaceState(null, "", location.pathname + location.search);
+      if (resumed && isolated()) {
+        start();
+      } else if (resumed && navigator.serviceWorker && navigator.serviceWorker.controller) {
+        // The worker answered this page and it is still not isolated, so a
+        // second reload would not be any different.
+        unsupported();
+      }
+      runButton.addEventListener("click", () => {
+        runButton.disabled = true;
+        if (isolated()) start();
+        else isolateAndReload();
+      });
+
+      async function start() {
+        document.getElementById("launch").remove();
+        const terminalElement = document.getElementById("terminal");
+        terminalElement.hidden = false;
         const terminal = new Terminal({
           cols: COLUMNS,
           rows: ROWS,
@@ -146,7 +244,7 @@
         const graphemes = new UnicodeGraphemesAddon.UnicodeGraphemesAddon();
         terminal.loadAddon(graphemes);
         terminal.unicode.activeVersion = "15-graphemes";
-        terminal.open(document.getElementById("terminal"));
+        terminal.open(terminalElement);
         terminal.focus();
 
         // The two shared buffers. The ring is generous: a paste is the only

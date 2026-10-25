@@ -42,18 +42,29 @@ done
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SITE="$ROOT/Tools/Web/site"
-TOOLCHAIN="$HOME/Library/Developer/Toolchains/swift-${TOOLCHAIN_VERSION}-RELEASE.xctoolchain"
-SWIFT="$TOOLCHAIN/usr/bin/swift"
 
-if [ ! -x "$SWIFT" ]; then
-    echo "no swift.org toolchain at $TOOLCHAIN" >&2
+# Which `swift`. On macOS the plain `swift` is usually Xcode's, which cannot
+# target wasm (see above), so it is the swift.org toolchain swiftly installs,
+# by path. Elsewhere there is no Xcode to dodge, and the `swift` on PATH is a
+# swift.org toolchain already — the Pages workflow builds in CI's
+# `swift:6.3.3-noble` container. `TUIKIT_WASM_SWIFT` overrides both.
+if [ -n "${TUIKIT_WASM_SWIFT:-}" ]; then
+    SWIFT="$TUIKIT_WASM_SWIFT"
+elif [ "$(uname -s)" = Darwin ]; then
+    SWIFT="$HOME/Library/Developer/Toolchains/swift-${TOOLCHAIN_VERSION}-RELEASE.xctoolchain/usr/bin/swift"
+else
+    SWIFT="$(command -v swift || true)"
+fi
+
+if [ -z "$SWIFT" ] || [ ! -x "$SWIFT" ]; then
+    echo "no swift.org toolchain at ${SWIFT:-(none on PATH)}" >&2
     echo "install one with: swiftly install ${TOOLCHAIN_VERSION}" >&2
     exit 1
 fi
-if ! swift sdk list 2>/dev/null | grep -qx "$SDK_NAME"; then
+if ! "$SWIFT" sdk list 2>/dev/null | grep -qx "$SDK_NAME"; then
     echo "no Swift SDK named '$SDK_NAME' (see the header of this script)" >&2
     echo "installed SDKs:" >&2
-    swift sdk list >&2 || true
+    "$SWIFT" sdk list >&2 || true
     exit 1
 fi
 

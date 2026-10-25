@@ -1,0 +1,59 @@
+<!doctype html>
+<!--
+  🖥️ TUIkit — Terminal UI Kit for Swift
+  GitHub Pages answers every missing path with the site's root 404.html, at
+  whatever URL was asked for, so the link home cannot be relative:
+  Tools/Site/assemble.sh replaces @BASE_PATH@ with the site's base path
+  ("/TUIkit" on a project site, "" on a custom domain).
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Not found · TUIkit</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --page: #f7f7f5;
+        --ink: #1d1f23;
+        --muted: #5d6370;
+        --accent: #0a7d62;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --page: #16181d;
+          --ink: #d7dae0;
+          --muted: #8d93a0;
+          --accent: #7fd1b9;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--page);
+        color: var(--ink);
+        font: 16px/1.55 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+      }
+      main {
+        max-width: 44rem;
+        margin: 0 auto;
+        padding: 72px 16px;
+      }
+      h1 {
+        margin: 0;
+        font: 700 1.5rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      p {
+        color: var(--muted);
+      }
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Nothing here</h1>
+      <p>There is no page at this address. <a href="@BASE_PATH@/">The TUIkit site</a> links to everything it has.</p>
+    </main>
+  </body>
+</html>

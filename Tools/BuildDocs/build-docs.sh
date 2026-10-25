@@ -8,12 +8,19 @@
 # unify_symbol_graphs.py for how (and why the obvious approach does not work).
 #
 # Usage:
-#   Tools/BuildDocs/build-docs.sh [--output <dir>] [--static-hosting] [--analyze]
+#   Tools/BuildDocs/build-docs.sh [--output <dir>] [--static-hosting]
+#                                  [--hosting-base-path <path>] [--analyze]
 #                                  [--strict]
 #   Tools/BuildDocs/build-docs.sh --preview [--port <n>]
 #
 #   --output <dir>     where to write TUIkit.doccarchive (default: .build/docs)
 #   --static-hosting   emit a tree servable from a plain web server (GitHub Pages)
+#   --hosting-base-path <path>
+#                      the URL path the tree will be served under, e.g.
+#                      `TUIkit/docs` for https://<owner>.github.io/TUIkit/docs/
+#                      (slashes at either end are ignored). DocC compiles it
+#                      into every page, so a tree built for one path is broken
+#                      at any other. Tools/Site/assemble.sh passes it.
 #   --analyze          report every diagnostic DocC can produce, not just errors
 #   --strict           --analyze, and FAIL if it reports anything at all
 #   --preview          serve the docs locally instead of writing an archive,
@@ -26,8 +33,9 @@
 # A plain `python3 -m http.server` will NOT work on the built archive: the
 # renderer is a single-page app, so a deep link like /documentation/tuikit has
 # to be answered with index.html rather than a 404 or a redirect. Static hosts
-# need the 404.html fallback that the CI publish step sets up; locally, use
-# --preview.
+# need the 404.html fallback, or --static-hosting, which writes an index.html
+# for every page (what the Pages site uses, see Tools/Site/README.md); locally,
+# use --preview.
 #
 # Exit status is DocC's: non-zero on error. Warnings do not fail the build —
 # which is why `--strict` exists and why CI uses it. DocC's warnings are almost
@@ -42,6 +50,7 @@ cd "$(dirname "$0")/../.."
 
 OUTPUT=".build/docs"
 STATIC_HOSTING=()
+HOSTING_BASE_PATH=()
 ANALYZE=()
 STRICT=0
 PREVIEW=0
@@ -51,11 +60,15 @@ while [ $# -gt 0 ]; do
     case "$1" in
         --output) OUTPUT="$2"; shift 2 ;;
         --static-hosting) STATIC_HOSTING=(--transform-for-static-hosting); shift ;;
+        --hosting-base-path)
+            BASE="${2#/}"; BASE="${BASE%/}"
+            [ -n "$BASE" ] && HOSTING_BASE_PATH=(--hosting-base-path "$BASE")
+            shift 2 ;;
         --analyze) ANALYZE=(--analyze); shift ;;
         --strict) ANALYZE=(--analyze); STRICT=1; shift ;;
         --preview) PREVIEW=1; shift ;;
         --port) PORT="$2"; shift 2 ;;
-        -h|--help) sed -n '2,40p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,48p' "$0"; exit 0 ;;
         *) echo "unknown option: $1" >&2; exit 2 ;;
     esac
 done
@@ -182,7 +195,8 @@ set +e
     --additional-symbol-graph-dir "$STAGED" \
     --output-path "$ARCHIVE" \
     --emit-lmdb-index \
-    ${STATIC_HOSTING[@]+"${STATIC_HOSTING[@]}"} ${ANALYZE[@]+"${ANALYZE[@]}"} \
+    ${STATIC_HOSTING[@]+"${STATIC_HOSTING[@]}"} \
+    ${HOSTING_BASE_PATH[@]+"${HOSTING_BASE_PATH[@]}"} ${ANALYZE[@]+"${ANALYZE[@]}"} \
     2>&1 | tee "$DIAGNOSTICS"
 DOCC_STATUS=${PIPESTATUS[0]}
 set -e

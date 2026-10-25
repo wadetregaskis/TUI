@@ -1,0 +1,205 @@
+name: Pages
+
+# ── The project site ──────────────────────────────────────────────────────────
+#
+# Builds the GitHub Pages site and deploys it: a landing page, the DocC
+# reference under docs/, the Example app compiled to WebAssembly under demo/,
+# and the README's media under media/. Tools/Site/README.md describes the
+# layout; Tools/Site/assemble.sh puts it together, and runs locally too.
+#
+# Deployed as an Actions artifact (upload-pages-artifact + deploy-pages), not
+# from a gh-pages branch: a branch would commit ~800 MB of generated files (126,000 of
+# them, nearly all DocC's) on every push, and every clone of the repository
+# would carry all of them for ever. The site is 79% of Pages' 1 GB limit;
+# assemble.sh reports the figure on every run and fails past the limit. This way nothing is committed at all.
+#
+# ONE-TIME SETUP: Settings → Pages → Build and deployment → Source: "GitHub
+# Actions". Until then `configure` fails with "Get Pages site failed", which is
+# that setting and nothing else.
+#
+# No name is written down here: URLs come from configure-pages (`base_path`)
+# and `github.repository`, so renaming the repository, or giving the site a
+# custom domain, needs no edit.
+
+on:
+  push:
+    branches: [main]
+  # A redeploy without a push: after the `media` release's assets change, say,
+  # since nothing in the repository changes when they do.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time, and a running one is never cancelled (GitHub's own
+# starter workflow for Pages says the same: let a production deployment
+# finish). Pushes that land meanwhile collapse into one queued run, of the
+# newest.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  # The base path every other job builds for: "/<repository>" on a project
+  # site, "" on a custom domain. DocC compiles it into every page, so it has to
+  # be known before the docs are built, not just when they are copied.
+  configure:
+    name: Configure Pages
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: read
+    outputs:
+      base_path: ${{ steps.pages.outputs.base_path }}
+    steps:
+      - name: Read the Pages configuration
+        id: pages
+        uses: actions/configure-pages@v6
+
+  # ── docs/ ──────────────────────────────────────────────────────────────────
+  # Built the way CI's `docs` job builds them (macOS, Xcode 26, the same
+  # script), so what is published is what CI checked. Not `--strict`: CI's job
+  # is the gate for DocC's warnings, and a stray broken link should not hold
+  # back everything else on the site.
+  docs:
+    name: Build DocC
+    needs: configure
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Select Xcode 26 (Swift 6.2+)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26'
+
+      # The dependencies' clones only, keyed on the exact pins. Never the
+      # build products: SwiftPM's incremental build can miss a stored-property
+      # layout change in a lower module and link a binary that runs wrong
+      # without failing to compile — tolerable on a laptop, where a clean build
+      # is the remedy, but not in what this publishes.
+      - name: Cache SwiftPM dependencies
+        uses: actions/cache@v6
+        with:
+          path: .build/repositories
+          key: pages-swiftpm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+
+      - name: Build DocC documentation
+        env:
+          BASE_PATH: ${{ needs.configure.outputs.base_path }}
+        run: |
+          ./Tools/BuildDocs/build-docs.sh --output docc-output --static-hosting \
+            --hosting-base-path "${BASE_PATH#/}/docs"
+
+      - name: Upload the archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: docs
+          path: docc-output/TUIkit.doccarchive
+          retention-days: 1
+          if-no-files-found: error
+
+  # ── demo/ ──────────────────────────────────────────────────────────────────
+  # The toolchain and SDK pair of CI's `wasm` lane, for the reasons given
+  # there (an SDK loads only under the exact toolchain it was built for, and
+  # 6.3.3 is the version the port has been measured with). Moving to another
+  # pair means editing both files.
+  wasm:
+    name: Build the WebAssembly demo
+    needs: configure
+    runs-on: ubuntu-24.04
+    container: swift:6.3.3-noble
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Trust the workspace
+        run: git config --global --add safe.directory '*'
+
+      # The `swift:*-noble` images carry no Python (see CI's Linux lane), and
+      # build.sh writes the demo's manifest with it.
+      - name: Install Python and curl
+        run: apt-get update && apt-get install -y python3 curl
+
+      - name: Install the WebAssembly SDK
+        run: |
+          set -eux
+          url="https://download.swift.org/swift-6.3.3-release/wasm-sdk/swift-6.3.3-RELEASE/swift-6.3.3-RELEASE_wasm.artifactbundle.tar.gz"
+          curl -fsSL "$url" -o wasm-sdk.tar.gz
+          echo "cabfa08b73bb8ac783927ecd15fa386e99d0c139c5f232445067bcf58379cae7  wasm-sdk.tar.gz" | sha256sum -c -
+          swift sdk install wasm-sdk.tar.gz
+          rm wasm-sdk.tar.gz
+          swift sdk list
+
+      - name: Cache SwiftPM dependencies
+        uses: actions/cache@v6
+        with:
+          path: .build/repositories
+          key: pages-swiftpm-wasm-${{ hashFiles('Package.resolved') }}
+
+      # Release, and without wasm-opt: build.sh ships the linker's output
+      # when there is none, and no binaryen has been tried on this module yet
+      # (whether Ubuntu's is new enough for what Swift 6.3's LLVM emits, and
+      # what it would save, are both unmeasured).
+      - name: Build Example.wasm
+        run: ./Tools/Web/build.sh
+
+      - name: Upload the demo
+        uses: actions/upload-artifact@v7
+        with:
+          name: demo
+          path: Tools/Web/site
+          retention-days: 1
+          if-no-files-found: error
+
+  # ── The site ───────────────────────────────────────────────────────────────
+  site:
+    name: Assemble the site
+    needs: [configure, docs, wasm]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download the docs
+        uses: actions/download-artifact@v8
+        with:
+          name: docs
+          path: ${{ runner.temp }}/docs
+
+      - name: Download the demo
+        uses: actions/download-artifact@v8
+        with:
+          name: demo
+          path: ${{ runner.temp }}/demo
+
+      # `--media release` downloads the assets of the release tagged `media`
+      # (the README's pictures and recordings, kept out of the history), and
+      # goes on without them while there is no such release.
+      - name: Assemble
+        env:
+          BASE_PATH: ${{ needs.configure.outputs.base_path }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ./Tools/Site/assemble.sh --output _site --base-path "$BASE_PATH" \
+            --docs "$RUNNER_TEMP/docs" --demo "$RUNNER_TEMP/demo" --media release
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    name: Deploy
+    needs: site
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

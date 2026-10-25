@@ -103,6 +103,20 @@ Requiring it rather than the individual jobs matters for two reasons:
   would look mergeable having built nothing. The gate treats `skipped` as a
   failure, so that cannot happen.
 
+### The project site
+
+A second workflow, `.github/workflows/pages.yml`, publishes the GitHub Pages
+site on every push to `main`: a landing page, the DocC reference (built as the
+`docs` lane builds it), the Example app in WebAssembly (built on the `wasm`
+lane's toolchain and SDK), and the assets of the `media` release, which hold
+the README's pictures. It deploys an Actions artifact rather than committing
+to a `gh-pages` branch, so nothing generated enters the history. It is not
+part of the `CI` gate, and it does not wait for CI: a push that breaks the
+docs or the wasm build fails it too, and the site stays as it was. Run it by hand (*Actions → Pages → Run workflow*) after
+changing the `media` release. [`Tools/Site/README.md`](Tools/Site/README.md)
+has the layout, the local preview (`Tools/Site/assemble.sh`), and the one
+repository setting it needs (Settings → Pages → Source: "GitHub Actions").
+
 ### WebAssembly
 
 TUIkit builds for `wasm32-unknown-wasip1`, and the Example app runs in a browser

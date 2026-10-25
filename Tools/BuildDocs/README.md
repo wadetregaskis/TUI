@@ -9,8 +9,15 @@ Tools/BuildDocs/build-docs.sh                       # → .build/docs/TUIkit.doc
 Tools/BuildDocs/build-docs.sh --analyze             # every diagnostic, for a docs audit
 Tools/BuildDocs/build-docs.sh --strict              # --analyze, and fail on any of them
 Tools/BuildDocs/build-docs.sh --static-hosting \
+    --hosting-base-path TUIkit/docs \
     --output docc-output                            # for publishing
 ```
+
+The published copy is the `docs/` section of the GitHub Pages site, built by
+`.github/workflows/pages.yml` on every push to `main`; `Tools/Site/README.md`
+says how. `--hosting-base-path` is the URL path the tree is served under:
+DocC compiles it into every page, so a tree built for one path is broken at
+any other.
 
 **`--strict` is what CI runs, and it is not pedantry.** DocC warnings never fail
 a build, and nearly all of them are broken doc *links* — a `` ``Symbol`` `` that
@@ -36,9 +43,10 @@ the navigator — indistinguishable from the archive failing to load.
 **Not** `python3 -m http.server`. The renderer is a single-page app: it needs
 a server that answers unknown deep paths with `index.html`, and the site root
 `/` is not a route at all, so a dumb static server lands you on DocC's own
-"The page you're looking for can't be found." A real static host needs the
-`404.html` fallback (copy `index.html` to `404.html`), which is what the
-publish step sets up.
+"The page you're looking for can't be found." A real static host needs either the
+`404.html` fallback (copy `index.html` to `404.html`) or `--static-hosting`,
+which writes an `index.html` into every page's directory — the Pages site
+uses the latter.
 
 ## Why this exists (don't replace it with `generate-documentation`)
 

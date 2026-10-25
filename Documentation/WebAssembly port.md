@@ -105,7 +105,11 @@ worker parks with `Atomics.wait` on a `SharedArrayBuffer` the page shares with
 it, and the page wakes it by bumping a sequence word when a key arrives. This is
 why the page must be **cross-origin isolated** — `SharedArrayBuffer` does not
 exist otherwise — and why `serve.py` exists rather than a line in a README
-telling you to use `python3 -m http.server`.
+telling you to use `python3 -m http.server`. A host that cannot send the
+headers, such as GitHub Pages (where the demo is published, see
+`Tools/Site/README.md`), gets them from `isolation-sw.js`: a service worker,
+installed when the visitor presses Run, that adds them to every response from
+the demo's directory, after which the page reloads once and arrives isolated.
 
 Three details in `wasi.js` are load-bearing, and each one was a bug first:
 
@@ -155,7 +159,7 @@ Does not, and why:
 | Terminal graphics | the released xterm.js implements no picture protocol at all, so the handshake gets silence and pictures fall back to cells. The beta image addon (with the beta core) *acknowledges* Kitty and decodes the pixels but does not place a virtual placement — the only kind TUIkit emits — so turning it on draws blank space where the ramps belong. Measured; see the xterm.js section of `Terminal compatibility survey.md`. |
 | Some glyph widths | 29 of 145 corpus clusters still disagree with the framework even with the addon — newer emoji than its Unicode 15 tables, SF Symbols (private-use codepoints have no width anywhere), and Indic vowel signs. The SF Symbols page will shift; no terminal measured does better on that row. |
 | Grapheme-clustering mode | `DECRQM ?2027` answers "not recognised", so the framework keeps its own advance model rather than pinning the terminal's. |
-| Size on disk | ~50 MB of wasm, ~20 MB gzipped, almost all of it Foundation and ICU. |
+| Size on disk | 88.3 MB of wasm, 27.8 MB gzipped (`gzip -9`): 40.3 MB of data and 32.2 MB of code, almost all of it Foundation and ICU, and a 14.7 MB `name` section (function names, for stack traces; without it, 73.0 MB and 25.5 MB gzipped). Measured 2026-10-24, 6.3.3 release build, no `wasm-opt`; it was ~50 MB earlier in the port. |
 
 ## The build's shape
 

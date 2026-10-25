@@ -3,8 +3,11 @@
 ```sh
 Tools/Web/build.sh          # compile to wasm, collect resources, write the manifest
 Tools/Web/serve.py          # serve it, cross-origin isolated
-open http://127.0.0.1:8000/
+open http://127.0.0.1:8000/          # and press Run
 ```
+
+The same page is published on the project's GitHub Pages site, under `demo/`
+— see [`Tools/Site/README.md`](../Site/README.md).
 
 The design, the toolchain requirements and the list of what does not work are in
 [`Documentation/WebAssembly port.md`](<../../Documentation/WebAssembly port.md>). This file
@@ -14,8 +17,9 @@ is the map of the directory.
 |---|---|
 | `build.sh` | builds `Example.wasm` with a swift.org 6.3+ toolchain and the WebAssembly SDK, runs `wasm-opt` when it is installed, copies the SwiftPM resource bundles into `site/resources/`, and writes `site/manifest.json` |
 | `serve.py` | a static server that sets `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`. The demo needs `SharedArrayBuffer`, which needs those headers, which `python3 -m http.server` cannot send |
-| `site/index.html` | the page: an xterm.js terminal, the keystroke ring, and the worker |
-| `site/worker.js` | instantiates the module and runs it; owns stdout batching |
+| `site/index.html` | the page: an xterm.js terminal, the keystroke ring, and the worker. Fetches nothing large until *Run* is pressed |
+| `site/worker.js` | instantiates the module and runs it; owns stdout batching. Inflates the module as it streams when it is a `.gz` (the published copy) |
+| `site/isolation-sw.js` | a service worker that adds the cross-origin isolation headers to every response from the page's directory, for hosts that cannot send them (GitHub Pages). The page installs it on *Run* only when it is not isolated already, then reloads once |
 | `site/wasi.js` | the WASI preview1 implementation — about 35 calls, the ones a Swift executable imports |
 | `glyph-probe.html` | measures the browser terminal against the shared width corpus and the records of real terminals, and asks it the capability questions the framework asks at startup. Open it after `build.sh` and press *save* to write a record into `Tools/TerminalProbes/data/` |
 | `site/manifest.json` | generated; maps each resource file to the guest path the binary looks for it at |
@@ -45,4 +49,6 @@ measurements.
 
 If the terminal stays blank, check the status line under it: `fetching…` and
 `compiling…` come from the worker, and anything after `running` means the guest
-started. If the page says it is not isolated, it was not served by `serve.py`.
+started. If the page says it is not isolated, it was not served by `serve.py`
+and the browser would not install `isolation-sw.js` either (a private window,
+or service workers turned off).
