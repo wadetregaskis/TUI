@@ -60,7 +60,7 @@ public final class DepartureStore: @unchecked Sendable {
         /// `nil` where the transition names none, and `.some(nil)` where it
         /// names none at all (`.animation(nil)`): the view then goes at once,
         /// whatever the change's animation, as SwiftUI's does — a double
-        /// optional, the third state ``removalAnimation(frameAnimation:)``
+        /// optional, the third state `removalAnimation(frameAnimation:)`
         /// reads.
         public let explicitAnimation: Animation??
 

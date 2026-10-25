@@ -15,7 +15,7 @@ import TUIkitView
 
 // MARK: - Content Toolbar Placement
 
-/// The kind of content view whose toolbar ``View/contentToolbar(for:content:)``
+/// The kind of content view whose toolbar ``View/contentToolbar(for:content:)-22vmd``
 /// populates — mirrors SwiftUI's `ContentToolbarPlacement`.
 public struct ContentToolbarPlacement: Hashable, Sendable {
     /// The content views a content toolbar can be placed on.

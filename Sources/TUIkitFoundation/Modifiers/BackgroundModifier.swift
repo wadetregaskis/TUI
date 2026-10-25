@@ -26,7 +26,7 @@ public struct BackgroundModifier<S: ShapeStyle>: BufferModifier {
     }
 
     /// The content's context: raised under a style that raises the prominence
-    /// of what is drawn over it (``BackgroundProminenceRaising`` — the
+    /// of what is drawn over it (`BackgroundProminenceRaising` — the
     /// selection), as is.
     public func adjustContext(_ context: RenderContext) -> RenderContext {
         context.raisingBackgroundProminence(under: style)

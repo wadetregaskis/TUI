@@ -113,7 +113,7 @@ package func departingSlot<Content: View>(
 /// `if show { Toast().transition(.opacity).onAppear { … } }` — the commonest
 /// toast there is — although the picture was right. A wrapper that conforms
 /// is looked through, to the view inside it; see
-/// ``departingPictureType(heldAs:)``.
+/// `departingPictureType(heldAs:)`.
 ///
 /// ## What may conform
 ///
@@ -149,7 +149,7 @@ package func departingSlot<Content: View>(
 /// Public, as ``SingleContentWrapper`` is, for the one public witness it
 /// supplies: a wrapper that draws its content unchanged is its content's size,
 /// so an alignment guide its content states is the wrapper's at the same
-/// dimensions, and its ``View/_providesAlignmentGuide`` forwards its content's
+/// dimensions, and its `View._providesAlignmentGuide` forwards its content's
 /// (see that extension in ChildInfo.swift).
 @MainActor
 public protocol DrawsContentUnchanged: SingleContentWrapper {}

@@ -17,7 +17,7 @@
 /// a box of lines, or its shape drawn in quadrants on a solid face (see
 /// ``ButtonBorderShape`` for the families) — and breathes whole while it holds
 /// the focus. The other controls follow where they have chrome to trim or room
-/// to give, on their one row (``padding(regular:)``, ``drawsEndCaps``):
+/// to give, on their one row (`padding(regular:)`, `drawsEndCaps`):
 ///
 /// | size          | segmented picker        | stepper   | slider          | text field |
 /// |---------------|-------------------------|-----------|-----------------|------------|

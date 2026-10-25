@@ -196,7 +196,7 @@ extension View {
     /// - Important: It stops at a modifier that moves or resizes its content
     ///   without saying by how much — a `.toolbar`, a list row's insets or
     ///   colours, a ``BufferModifier`` of your own (unless it states
-    ///   ``BufferModifier/_keepsContentGeometry``). Put the guide outside such a
+    ///   `BufferModifier._keepsContentGeometry`). Put the guide outside such a
     ///   modifier. A guide is a closure evaluated against the dimensions the
     ///   view laid out at, and a wrapper that does not translate it would
     ///   report a position from the wrong coordinate space.

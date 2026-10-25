@@ -35,7 +35,7 @@ import TUIkitCore
 /// moves anything. That is the commonest shape there is: a page re-rendered
 /// because something ELSE on it changed, its stacks served, then the change
 /// that matters. So a record lives while its container renders, or while a
-/// memo serves a subtree it stands in (``retainServedSubtree(_:)``): the one
+/// memo serves a subtree it stands in (`retainServedSubtree(_:)`): the one
 /// way a container is on screen without being rendered.
 ///
 /// Not for as long as `@State` lives, which also outlasts a window's skip
@@ -55,13 +55,13 @@ import TUIkitCore
 /// every record on every frame: 81.5% of a `fanout` frame, and that scenario
 /// +557% (Time Profiler, 2026-10-18, `PlacementStore.endRenderPass` under
 /// `StateStorage.endRenderPass`). So the table is pruned only when it has
-/// grown past ``pruneThreshold`` — twice what the last prune left, and never
-/// below ``minimumPruneThreshold`` — which a page whose containers stay the
+/// grown past `pruneThreshold` — twice what the last prune left, and never
+/// below `minimumPruneThreshold` — which a page whose containers stay the
 /// same never reaches, and which a list scrolled through reaches once per
 /// doubling: amortised, a constant per record. Until then a record that
 /// went off screen lingers, and a container that renders again after a pass
 /// in which it was neither rendered nor served is a first sight, its record
-/// made afresh (``record(at:)``): it went, and it is back as a view SwiftUI
+/// made afresh (`record(at:)`): it went, and it is back as a view SwiftUI
 /// inserts. Read, the lingering record faded in the rows its container had
 /// gained while it was gone and glided the rest from places nobody had seen
 /// since — `if show { Column() }`, its rows changed while hidden, shown again

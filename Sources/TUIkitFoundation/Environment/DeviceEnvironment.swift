@@ -155,7 +155,7 @@ extension EnvironmentValues {
     /// ``EnvironmentValues/accessibilityReduceMotion`` (owner ruling P5 (c)).
     /// TUIkit's own drawing does not change with it: its palettes hold their
     /// contrast floors either way. Read-only, as in SwiftUI;
-    /// ``_colorSchemeContrast`` writes it, as SwiftUI's does.
+    /// `_colorSchemeContrast` writes it, as SwiftUI's does.
     public package(set) var colorSchemeContrast: ColorSchemeContrast {
         get { self[ColorSchemeContrastKey.self] }
         set { self[ColorSchemeContrastKey.self] = newValue }

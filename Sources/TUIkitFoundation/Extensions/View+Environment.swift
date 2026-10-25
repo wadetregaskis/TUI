@@ -27,7 +27,7 @@ extension View {
     /// what it already is.
     ///
     /// Mirrors SwiftUI's `transformEnvironment(_:transform:)`, and exists for
-    /// the cases ``environment(_:_:)`` cannot express: a value that must be
+    /// the cases ``View/environment(_:_:)`` cannot express: a value that must be
     /// *derived* from the inherited one. What is inherited is not known where
     /// the view is written — that is the whole point of the environment — so
     /// the closure runs when the subtree renders instead.
@@ -43,7 +43,7 @@ extension View {
     /// ```
     ///
     /// The second is the shape that makes this worth having: with
-    /// ``environment(_:_:)`` you would have to name a whole `Calendar`, which
+    /// ``View/environment(_:_:)`` you would have to name a whole `Calendar`, which
     /// means deciding every other field of it too — and deciding them without
     /// being able to see what an ancestor set.
     ///

@@ -225,7 +225,7 @@ public struct RenderContext {
     /// shape that exists, and the consequence of a wrap would be the stale
     /// serve that is the status quo everywhere this is not called. A keyed
     /// bump steps by up to 63 at once, so a few bumps can wrap; what that
-    /// brings back round is counted at ``invalidatingMeasureMemo(keyedBy:)``.
+    /// brings back round is counted at `invalidatingMeasureMemo(keyedBy:)`.
     ///
     /// ## Bits 7 and 6 are not a generation
     ///
@@ -253,7 +253,7 @@ public struct RenderContext {
     /// costs a wrap at 64 plain bumps rather than 128; the keyed bump's
     /// sixty-four generations became sixty-three; and a keyed bump with a plain
     /// bump or two beneath it, or nested in another, can now come back round to
-    /// the generation it started from (``invalidatingMeasureMemo(keyedBy:)``
+    /// the generation it started from (`invalidatingMeasureMemo(keyedBy:)`
     /// counts which). The stride has no free byte, and a mark anywhere else
     /// would have had to be added to both keys.
     public var measureGeneration: UInt8 = 0

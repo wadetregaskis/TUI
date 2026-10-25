@@ -314,7 +314,7 @@ public struct LinkShapeStyle: ShapeStyle, Equatable {
 /// colours and behaviours: the tint in force, or the accent — what a selected
 /// row is drawn in.
 ///
-/// As a background — ``View/background(_:)``, ``View/background(_:in:fillStyle:)``,
+/// As a background — ``View/background(_:)-(S)``, ``View/background(_:in:fillStyle:)``,
 /// erased in an ``AnyShapeStyle`` or not — it raises
 /// ``EnvironmentValues/backgroundProminence`` for the content drawn over it,
 /// so the content styles there resolve to the palette's text tiers, the inks

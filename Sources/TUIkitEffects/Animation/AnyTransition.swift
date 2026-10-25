@@ -26,7 +26,7 @@ import TUIkitView
 /// The effects are applied to the **rendered buffer**, not to the layout. A
 /// view sliding in gets its space at once and moves into it, as SwiftUI's
 /// does — measured, the layout changes at once and the views it displaces
-/// glide out of its way with the change (``View/transition(_:)``, "The views
+/// glide out of its way with the change (``View/transition(_:)-(AnyTransition)``, "The views
 /// around it"). What a transition here never does is change the view's own
 /// size as it plays: that is what makes it cost one buffer transform per
 /// frame rather than a full re-layout — in a grid of whole cells, a view

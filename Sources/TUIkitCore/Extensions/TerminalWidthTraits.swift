@@ -158,7 +158,7 @@ public struct TerminalWidthTraits: Sendable, Equatable {
         /// with mode 2027 set, and the assumption for any unmeasured host.
         case clustered
         /// Each code point advances its own width, so the cluster claims its
-        /// scalars' sum (``Unicode/Scalar/loneTerminalWidth``): स्त्र is
+        /// scalars' sum (`Unicode.Scalar.loneTerminalWidth`): स्त्र is
         /// 1 + 0 + 1 + 0 + 1 = 3, स्त्री 4. The conjoining vowel and trailing
         /// jamo of a Hangul syllable spelled as jamo add nothing — `wcwidth`'s
         /// zero, and what every current host advances (한 as U+1112 U+1161

@@ -102,7 +102,7 @@ public enum ImageLoadError: Error, LocalizedError, CustomStringConvertible {
 /// reads (HEIC, TIFF, WebP, …), and of a file holding several images (an
 /// icon's sizes, a multi-resolution TIFF) the largest. On Apple platforms a
 /// PDF is rasterised too, its first page at one pixel a point
-/// (``decodePDF(_:maxPixelCount:)``); EPS is not read.
+/// (`decodePDF(_:maxPixelCount:)`); EPS is not read.
 public struct PlatformImageLoader: ImageLoader {
 
     public init() {}

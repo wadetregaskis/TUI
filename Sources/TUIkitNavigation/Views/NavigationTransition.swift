@@ -55,7 +55,7 @@ extension NavigationTransition where Self == AutomaticNavigationTransition {
 /// SwiftUI whether or not the code that pushed asked for it — and not at all
 /// where the transaction disables animations or motion is reduced. With no
 /// source on screen to zoom from, the stack changes at once, as for
-/// ``automatic``.
+/// ``NavigationTransition/automatic``.
 public struct ZoomNavigationTransition: NavigationTransition {
     /// The source's group: its namespace, and its id wrapped as a transition
     /// source's (``MatchedTransitionSourceID``).

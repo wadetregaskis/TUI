@@ -37,7 +37,7 @@ extension EnvironmentValues {
     /// where TUIkit is sure the user is at this machine, as for
     /// ``accessibilityReduceMotion``: read at launch and whenever the terminal
     /// regains the focus. GNOME has no such setting. Read-only, as SwiftUI's
-    /// is; ``_accessibilityReduceTransparency`` writes it, as SwiftUI's does.
+    /// is; `_accessibilityReduceTransparency` writes it, as SwiftUI's does.
     public package(set) var accessibilityReduceTransparency: Bool {
         get { self[AccessibilityReduceTransparencyKey.self] }
         set { self[AccessibilityReduceTransparencyKey.self] = newValue }
@@ -63,7 +63,7 @@ extension EnvironmentValues {
     /// environment the app runs in, or when macOS's Differentiate without
     /// colour is on where TUIkit is sure the user is at this machine, as for
     /// ``accessibilityReduceMotion``. GNOME has no such setting. Read-only, as
-    /// SwiftUI's is; ``_accessibilityDifferentiateWithoutColor`` writes it.
+    /// SwiftUI's is; `_accessibilityDifferentiateWithoutColor` writes it.
     public package(set) var accessibilityDifferentiateWithoutColor: Bool {
         get { self[AccessibilityDifferentiateWithoutColorKey.self] }
         set { self[AccessibilityDifferentiateWithoutColorKey.self] = newValue }

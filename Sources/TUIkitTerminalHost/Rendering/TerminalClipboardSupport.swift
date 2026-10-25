@@ -29,7 +29,7 @@ extension TerminalClient {
         /// "Applications in terminal may access clipboard" does; or the
         /// terminal says it can in its Device Attributes; or tmux, told to
         /// with `set-clipboard on`, or GNU screen or tmux, through their
-        /// passthroughs (``ClipboardPassthrough``), pass it on to whatever
+        /// passthroughs (`ClipboardPassthrough`), pass it on to whatever
         /// terminal they are drawn in.
         case unconfirmed
 

@@ -47,7 +47,7 @@ extension Tab where Label == DefaultTabLabel {
 
     /// Creates a tab with a title shown as written and an image resource,
     /// selected by `value` — see
-    /// ``init(_:image:value:role:content:)-(LocalizedStringKey,_,_,_,_)``.
+    /// ``init(_:image:value:role:content:)-(LocalizedStringKey,_,Value,_,_)``.
     ///
     /// - Parameters:
     ///   - title: The tab's title.
@@ -98,7 +98,7 @@ extension Tab where Value == Never, Label == DefaultTabLabel {
     /// `init(_:image:role:content:)`.
     ///
     /// The image is found and drawn as
-    /// ``init(_:image:value:role:content:)-(LocalizedStringKey,_,_,_,_)``'s.
+    /// ``init(_:image:value:role:content:)-(LocalizedStringKey,_,Value,_,_)``'s.
     ///
     /// - Parameters:
     ///   - titleKey: The key for the tab's title.

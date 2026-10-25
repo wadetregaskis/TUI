@@ -26,7 +26,7 @@ import TUIkitView
 /// else moves the offset meanwhile — rows arriving above the top row, which the
 /// top-row hold follows — moves the destination with it. The landing then
 /// applies the request once more, without animation, which corrects whatever a
-/// distance could not know of (``Landing``).
+/// distance could not know of (`Landing`).
 ///
 /// It is not an `AnimationStore` value. That store's values move with no
 /// thought for the event-time code that moves a scroll offset too, a new

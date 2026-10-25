@@ -390,7 +390,7 @@ public final class StatusBarState: @unchecked Sendable {
     }
 
     /// The current system items based on configuration flags — but the bare
-    /// keys a focused type select takes (``typeSelectHoldsTypedKeys``).
+    /// keys a focused type select takes (`typeSelectHoldsTypedKeys`).
     public var currentSystemItems: [StatusBarItem] {
         let items = allSystemItems
         guard items.contains(where: Self.namesTypedKey) else { return items }
@@ -490,7 +490,7 @@ public final class StatusBarState: @unchecked Sendable {
 
     /// The current user items resolved from focus sections, context stack, or
     /// global items — but those whose bare key a focused type select takes
-    /// (``typeSelectHoldsTypedKeys``).
+    /// (`typeSelectHoldsTypedKeys`).
     public var currentUserItems: [any StatusBarItemProtocol] {
         let items = resolvedUserItems
         guard items.contains(where: Self.bindsTypedKey) else { return items }
@@ -550,7 +550,7 @@ public final class StatusBarState: @unchecked Sendable {
 
     /// Whether the status bar has any items to display — counting those it
     /// leaves out while type select holds the focus
-    /// (``typeSelectHoldsTypedKeys``), so the bar keeps its row as the focus
+    /// (`typeSelectHoldsTypedKeys`), so the bar keeps its row as the focus
     /// moves into a list and out again, rather than the page jumping by a row
     /// each time.
     public var hasItems: Bool { !resolvedUserItems.isEmpty || !allSystemItems.isEmpty }

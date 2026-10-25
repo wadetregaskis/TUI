@@ -101,7 +101,7 @@ extension ShapeStyle where Self == ImagePaint {
 // MARK: - The paint
 
 /// An ``ImagePaint`` resolved: the image, the region and the scale, and — once
-/// whatever draws with it has asked (``Paint/materializingImages(in:)``) —
+/// whatever draws with it has asked (`Paint.materializingImages(in:owner:)`) —
 /// the image's pixels.
 public struct ImagePaintSource: Equatable, Sendable {
     /// The image: a picture, or a symbol, which has no pixels.

@@ -244,7 +244,7 @@ extension Text {
     ///
     /// > Note: The colour is kept in the text's own value, not painted by a
     ///   modifier, so a change to it inside ``withAnimation(_:_:)`` happens at
-    ///   once, where ``View/foregroundStyle(_:)``'s fades: nothing here asks the
+    ///   once, where ``View/foregroundStyle(_:)-(S)``'s fades: nothing here asks the
     ///   animator, and asking it would cost a lookup in every `Text` on every
     ///   frame. Wrap the text — `VStack { Text(…) }.foregroundStyle(…)` — to
     ///   fade it (Deliberate deviations T10, decisions WL-Q1).

@@ -276,7 +276,7 @@ public final class StateStorage: @unchecked Sendable {
     ///
     /// Held here rather than standing alone because its lifetime is exactly
     /// this one's: an animation belongs to a view identity, and dies with it.
-    /// ``endRenderPass()``, ``invalidateDescendants(of:)`` and ``reset()``
+    /// ``endRenderPass()``, `invalidateDescendants(of:)` and ``reset()``
     /// forward to it, so an animating view that leaves the tree — or a
     /// conditional branch that flips — takes its animations along.
     public let animations = AnimationStore()

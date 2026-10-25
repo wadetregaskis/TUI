@@ -34,7 +34,7 @@ extension LocalizedStringKey.StringInterpolation {
     /// for an integer or a floating-point number:
     /// `Text("Moved \(count) rows")`.
     ///
-    /// The key holds `%@` where the number goes, and its ``LocalizedStringKey/swiftUIKey``
+    /// The key holds `%@` where the number goes, and its `LocalizedStringKey.swiftUIKey`
     /// the number's own printf conversion (`%lld` for an `Int`, `%lf` for a
     /// `Double`), as SwiftUI's key does, so a String Catalog extracted from
     /// SwiftUI code is read; both are looked up.

@@ -45,7 +45,7 @@ import TUIkitStyling
 /// ```
 ///
 /// `View.shadow(color:radius:x:y:)` draws a drop shadow, and
-/// ``ShapeStyle/shadow(_:)`` — the one place SwiftUI takes a `ShadowStyle` — a
+/// ``ShapeStyle/shadow(_:)-method`` — the one place SwiftUI takes a `ShadowStyle` — a
 /// style drawn with either kind, cast by whatever draws with the style from
 /// the cells it drew:
 ///

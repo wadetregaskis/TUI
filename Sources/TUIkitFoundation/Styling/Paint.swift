@@ -56,7 +56,7 @@ public enum Paint: Equatable, Sendable {
     /// paint would otherwise carry the room for one.
     indirect case mesh(MeshPaint)
 
-    /// A paint drawn with a shadow: ``ShapeStyle/shadow(_:)``'s.
+    /// A paint drawn with a shadow: ``ShapeStyle/shadow(_:)-method``'s.
     ///
     /// The first paint is what is drawn, and may itself be shadowed: each
     /// shadow is cast from what that paint draws, independently of the others,
