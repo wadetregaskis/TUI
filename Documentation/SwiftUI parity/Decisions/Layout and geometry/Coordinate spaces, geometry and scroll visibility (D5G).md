@@ -452,6 +452,25 @@ lifecycle view first seen in the pass). A frame whose effects write pays a
 walk more, which the render cache serves except for what the write
 invalidated.
 
+Profiled (release Stress, 8 s Time Profiler, `analyze_timeprofile.py
+--process Stress`, 2026-10-24; under the profiler, so not an A/B):
+
+- `--scenario kitchensink`, which walks nothing again: of 2,305 ms,
+  `RenderWalkCheckpoint.init` 5 ms (0.2%), `EffectStage.open` and `close`
+  1 ms each; `FrameSettling.settle` is the walk (89.0%) and adds nothing
+  that shows.
+- `--scenario session/log`, the shape that walks again most (1,211 of 4,001
+  frames, 327 of them twice: 1.38 walks a frame): the walks are 82.4% of the
+  frame inclusive (`RenderLoop.walkScene`), against 76.7% at `main`
+  (`renderContent`); the bench's own per-frame figure while profiled was
+  3,364 µs against 2,817 µs at `main` (+19%). A walk made again costs about
+  what the first did (≈2.0 ms), because the write it is made for — the
+  top line, in an `@Observable` the page's body reads — clears the page
+  above the scroll view, so the memo serves little of it (the class Option
+  C addresses). The settling itself is small: `RenderCache.beginRewalk`
+  13 ms (0.5%), `EffectStage.close` 2 ms. That frame used to be written showing the old
+  top line in the status bar; it is now written once, settled.
+
 Tests (`EffectSettlingTests`, all reading the frame written): the first frame
 of a page that loads in `onAppear` shows the rows and the count above and
 below them; a derived value is drawn beside its source on both sides of the
