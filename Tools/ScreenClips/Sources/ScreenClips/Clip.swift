@@ -244,6 +244,6 @@ struct Clip {
 /// Every clip, in the order the README shows them.
 @MainActor
 let clips: [Clip] = [
-    mixerClip, unicodeClip, imagesClip, tablesClip, materialsClip, dragDropClip, themingClip, animationClip,
+    mixerClip, unicodeClip, imagesClip, glyphsClip, tablesClip, materialsClip, dragDropClip, themingClip, animationClip,
     progressClip, menusClip, textEditClip, navigationClip, controlsClip, searchClip, todoClip,
 ]

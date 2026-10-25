@@ -90,7 +90,6 @@ if (( ! encode_only )); then
     rm -rf $stage/bin/*(N)
     cp $bin/ScreenClips $bin/WindowRecorder $stage/bin/
     for bundle in $bin/*.bundle(N); do cp -R $bundle $stage/bin/; done
-    cp $repo/Sources/TUIkit/TUIkit.docc/Resources/tuikit-logo.png $stage/bin/
     python3 $here/make_photos.py $stage/bin/photos >/dev/null  # the photo library's pictures, painted
 fi
 
