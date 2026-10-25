@@ -560,8 +560,10 @@ def main():
     deck.add_argument('out')
     deck.add_argument('pairs', nargs='+', help='TERMINAL RUN_DIR, repeated')
     deck.add_argument('--hold', type=float, default=2.6)
-    deck.add_argument('--slide', type=float, default=0.5)
-    deck.add_argument('--fps', type=float, default=15)
+    # A slide moves and rescales whole cards, so every frame of it is new: at 0.5 s and 15 fps, the four-terminal
+    # Unicode carousel was 736 KB at quality 45; at 0.3 s and 10 fps it is 416 KB at 55 (2026-10-25).
+    deck.add_argument('--slide', type=float, default=0.3)
+    deck.add_argument('--fps', type=float, default=10)
     deck.add_argument('--width', type=int, default=0)
     options = parser.parse_args()
 
