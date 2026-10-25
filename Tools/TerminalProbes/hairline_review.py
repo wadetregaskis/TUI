@@ -44,6 +44,11 @@ import os
 import subprocess
 import sys
 
+# Xcode's toolchain, as the repository's builds use: a bare `swift` may be another toolchain (swiftly's), and
+# two compilers in one .build give a stale, mixed build.
+SWIFT = ["xcrun", "swift"]
+os.environ.setdefault("DEVELOPER_DIR", "/Applications/Xcode.app/Contents/Developer")
+
 TARGETS = {
     "megalist": ("Stress", {"TUIKIT_STRESS_SCENARIO": "megalist"}),
     "example": ("Example", {}),
@@ -72,11 +77,11 @@ def main(argv):
     product, extra = TARGETS[target]
     environment.update(extra)
     print(f"Building {product}…", flush=True)
-    build = subprocess.run(["swift", "build", "--product", product], env=environment)
+    build = subprocess.run(SWIFT + ["build", "--product", product], env=environment)
     if build.returncode != 0:
         return build.returncode
     binary = subprocess.run(
-        ["swift", "build", "--show-bin-path"], env=environment, capture_output=True, text=True
+        SWIFT + ["build", "--show-bin-path"], env=environment, capture_output=True, text=True
     ).stdout.strip()
     path = os.path.join(binary, product)
     os.execve(path, [path], environment)

@@ -4520,12 +4520,15 @@ window going from 99 × 35 to 123 × 37.
 On both hosts, a strip with no placement left was placed again without being
 re-sent (Q6), and `d=I` frees a strip's data.
 
-#### What TUIkit draws — built 2026-10-24, from the records above; not yet looked at live
+#### What TUIkit draws — built 2026-10-24, from the records above; looked at live in Ghostty the same day
 
 The `.hairline` list separator look (`ListSeparatorStyle`, decisions
 A-D6L-2) draws on the hosts below. The table is the measured one above, and
 nothing in it was re-measured for the prototype: the owner's look with
-`Tools/TerminalProbes/hairline_review.py` is what confirms it.
+`Tools/TerminalProbes/hairline_review.py` is what confirms it. The owner
+looked in Ghostty on 2026-10-24 (the Stress megalist): "The new KGP row
+dividers look great in Ghostty!" — the 16n px crop reads right there, so Q3's
+unit is settled for Ghostty by eye; iTerm2 and the rest stay unconfirmed.
 
 | | Drawn | z | Crop of a run of n columns | Why |
 |---|---|---|---|---|
