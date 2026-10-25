@@ -12,6 +12,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
+
 /// The cache's state for re-checking rows.
 ///
 /// A class held by a `let`: reading a field reaches it through a pointer the
@@ -45,9 +47,35 @@ package final class RevalidationState {
         /// Entries a soft drain dropped below a soft writer, because they
         /// recorded nothing to re-check them by.
         package var unstampedDropped = 0
-        /// Suspects dropped when they were looked up (C4b: not re-checked yet).
+        /// Suspects dropped when they were looked up without being re-checked.
         package var suspectsDropped = 0
+        /// Suspects re-checked and found unchanged: served (C4c).
+        package var rechecked = 0
+        /// Suspects whose rebuilt value differed from what they were drawn from.
+        package var unequalValues = 0
+        /// Suspects whose environment, or modifier depth, differed.
+        package var unequalEnvironments = 0
     }
+
+    /// Whether a suspect is re-checked and served when it is unchanged (C4c),
+    /// rather than dropped as the hard drain would have dropped it. Off by
+    /// default until every framework environment class has been audited
+    /// (C2b): a class compared by identity whose drawn state changes in place
+    /// would be served stale. `TUIKIT_OPTION_C=1` turns it on, to measure.
+    package var servesRechecked = RevalidationState.servesRecheckedByDefault
+
+    /// Why re-checks found environments unequal, by the first key that
+    /// differed — or `depth` and `uncomparable` — when ``countsStamps`` is on
+    /// (the census): what to make neutral, project or audit next.
+    package private(set) var unequalEnvironmentReasons: [String: Int] = [:]
+
+    func noteUnequalEnvironment(_ reason: @autoclosure () -> String) {
+        guard countsStamps else { return }
+        unequalEnvironmentReasons[reason(), default: 0] += 1
+    }
+
+    private static let servesRecheckedByDefault =
+        ProcessInfo.processInfo.environment["TUIKIT_OPTION_C"] == "1"
 
     /// What ``eligibility(ofRowsOf:)`` has answered, by type.
     private var eligibilities: [ObjectIdentifier: RowEligibility] = [:]
@@ -55,6 +83,8 @@ package final class RevalidationState {
     /// The `==` of each eligible row type, made once from its metatype: what
     /// a record compares its snapshot by, so a store casts nothing.
     private var equalities: [ObjectIdentifier: (Any, Any) -> Bool] = [:]
+    private var lastEqualityType: ObjectIdentifier?
+    private var lastEquality: ((Any, Any) -> Bool)?
 
     package init() {}
 
@@ -85,7 +115,15 @@ package final class RevalidationState {
     /// `any Equatable` as it is stored, which cost a dynamic cast per store
     /// (3.9% of a `scrollfollow` frame).
     package func equality(ofRowsOf type: Any.Type) -> ((Any, Any) -> Bool)? {
-        if let known = equalities[ObjectIdentifier(type)] { return known }
+        let id = ObjectIdentifier(type)
+        // The last type asked first: a list stores rows of one type in a run.
+        if id == lastEqualityType { return lastEquality }
+        defer { lastEqualityType = id }
+        if let known = equalities[id] {
+            lastEquality = known
+            return known
+        }
+        lastEquality = nil
         guard eligibility(ofRowsOf: type) == .eligible, let equatable = type as? any Equatable.Type else { return nil }
         func make<E: Equatable>(_: E.Type) -> (Any, Any) -> Bool {
             { lhs, rhs in
@@ -94,7 +132,8 @@ package final class RevalidationState {
             }
         }
         let equal = make(equatable)
-        equalities[ObjectIdentifier(type)] = equal
+        equalities[id] = equal
+        lastEquality = equal
         return equal
     }
 }
@@ -120,14 +159,17 @@ extension RenderCache {
     /// A class: an entry holds it by one reference, which the drain and the
     /// lookups read without copying an existential and a stamp each time.
     package final class Revalidation {
-        /// The row's view value as it was built when drawn: what the rebuilt
-        /// value is compared with, by ``equal``.
-        package let snapshot: Any
+        /// The row's view value as it was built when drawn — or, after a
+        /// re-check found it unchanged, as rebuilt then: what the rebuilt value
+        /// is compared with, by ``equal``. Replaced on an equal verdict, so it
+        /// holds the row's current captures, which the live model holds anyway,
+        /// and not those of the render that drew it (v4 §2.4).
+        package var snapshot: Any
         /// The `==` of the snapshot's type.
         package let equal: (Any, Any) -> Bool
         /// The environment it was drawn under (``EnvironmentStamp``), from the
         /// context the memo was handed.
-        package let environment: EnvironmentStamp
+        package var environment: EnvironmentStamp
         /// How many environment modifiers that note themselves were above it.
         package let depth: Int
 
@@ -150,5 +192,62 @@ extension RenderCache {
         else { return nil }
         revalidation.counts.stamped += 1
         return Revalidation(snapshot: row, equal: equal, environment: stamp, depth: context.environmentApplicationDepth)
+    }
+}
+
+// MARK: - Re-checking a suspect
+
+extension RenderCache {
+    /// Re-checks a suspect: whether what it was drawn from and under is still
+    /// what it would be drawn from and under now. Supplied by the value memo,
+    /// which can rebuild the row; a lookup without one cannot re-check.
+    package typealias Recheck = (Revalidation) -> Bool
+
+    /// The value memo's re-check of a suspect drawn from `row`'s type: the
+    /// row rebuilt (`build`), compared by its `==` with the snapshot; the
+    /// environment it would be drawn under now, by its stamp; and the depth
+    /// of environment modifiers above it. On an equal verdict the record
+    /// takes the rebuilt row and the current stamp.
+    package func recheck<Row>(building build: @escaping () -> Row, context: RenderContext) -> Recheck? {
+        guard revalidation.servesRechecked else { return nil }
+        return { [self] record in  // strong: the lookup calls it and keeps nothing of it
+            let row = build()
+            guard record.equal(record.snapshot, row) else {
+                revalidation.counts.unequalValues += 1
+                return false
+            }
+            guard record.depth == context.environmentApplicationDepth,
+                let stamp = revalidation.stamps.stamp(of: context.environment),
+                stamp === record.environment || stamp.isEquivalent(to: record.environment)
+            else {
+                revalidation.counts.unequalEnvironments += 1
+                revalidation.noteUnequalEnvironment(
+                    record.depth != context.environmentApplicationDepth
+                        ? "depth \(record.depth) → \(context.environmentApplicationDepth)"
+                        : revalidation.stamps.stamp(of: context.environment)
+                            .flatMap { $0.firstDifference(from: record.environment) }
+                            .map(EnvironmentStamps.debugName(of:)) ?? "uncomparable now")
+                return false
+            }
+            record.snapshot = row
+            record.environment = stamp
+            return true
+        }
+    }
+
+    /// What a lookup does with `entry`, a suspect: re-checked by `recheck`
+    /// and, unchanged, unmarked and `true` — the lookup goes on to its usual
+    /// checks; otherwise dropped and `false`. Dropped DIRECTLY, not through
+    /// a clear: ``Stats/subtreeClears`` does not move, so the memo around it
+    /// still stores what it draws (`renderValueMemoized`'s
+    /// `invalidatedDuringRender`).
+    func resolveSuspect(_ entry: CacheEntry, recheck: Recheck?, drop: () -> Void) -> Bool {
+        guard let recheck, let record = entry.revalidation, recheck(record) else {
+            drop()
+            return false
+        }
+        entry.isSuspect = false
+        revalidation.counts.rechecked += 1
+        return true
     }
 }

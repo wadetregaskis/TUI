@@ -194,6 +194,10 @@ package final class EnvironmentStamps {
     /// another environment.
     private var passStamps: [UInt: EnvironmentStamp?] = [:]
     private var passEnvironments: [EnvironmentValues] = []
+    /// The last of ``passStamps`` asked for. Within the pass only, as the
+    /// table is: its environment is kept alive by ``passEnvironments``.
+    private var lastWord: UInt?
+    private var lastStamp: EnvironmentStamp?
 
     /// Every live stamp by shallow hash, most recently used first.
     private var buckets: [Int: [WeakStamp]] = [:]
@@ -205,6 +209,8 @@ package final class EnvironmentStamps {
     package func beginPass() {
         passStamps.removeAll(keepingCapacity: true)
         passEnvironments.removeAll(keepingCapacity: true)
+        lastWord = nil
+        lastStamp = nil
         for (hash, bucket) in buckets {
             let alive = bucket.filter { $0.stamp != nil }
             if alive.isEmpty {
@@ -220,13 +226,24 @@ package final class EnvironmentStamps {
     /// give the same stamp across passes.
     package func stamp(of environment: EnvironmentValues) -> EnvironmentStamp? {
         let word = environment.storageWord
+        // The last asked first: the rows of one list are stored one after
+        // another under one environment, and a dictionary lookup per store
+        // was most of what stamping cost a store.
+        if word == lastWord {
+            counts.memoHits += 1
+            return lastStamp
+        }
         if let known = passStamps[word] {
+            lastWord = word
+            lastStamp = known
             counts.memoHits += 1
             return known
         }
         let made = build(environment).map(intern)
         passStamps[word] = made
         passEnvironments.append(environment)
+        lastWord = word
+        lastStamp = made
         return made
     }
 

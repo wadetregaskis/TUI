@@ -145,6 +145,9 @@ enum SessionRunner {
         var uncomparableKeys: [ObjectIdentifier: Int] = [:]
         /// How many distinct values each key had across the stamps.
         var keyVariety: [ObjectIdentifier: Int] = [:]
+        /// What the soft drain and the re-check did.
+        var revalidation: RevalidationState.Counts?
+        var unequalEnvironmentReasons: [String: Int] = [:]
         /// Whether the render cache's reference count had moved to a side
         /// table by the end — printed when `--census` asked (`nil` when the probe
         /// cannot read this runtime).
@@ -241,7 +244,10 @@ enum SessionRunner {
             }
         }
         report.censusAtEnd = warm.census()
-        if options.census { (report.stamps, report.uncomparableKeys, report.keyVariety) = warm.stamps() }
+        if options.census {
+            (report.stamps, report.uncomparableKeys, report.keyVariety) = warm.stamps()
+            (report.revalidation, report.unequalEnvironmentReasons) = warm.revalidation()
+        }
         report.leasesAtEnd = warm.leaseCounts()
         report.readingTypes = warm.readingTypes()
         report.renderCacheSideTable = warm.renderCacheSideTable()
@@ -344,7 +350,18 @@ enum SessionRunner {
     /// C), and which keys made one uncomparable, most often first.
     private static func stampLines(_ report: Report) -> [String] {
         guard let counts = report.stamps, counts.built > 0 else { return [] }
-        var lines = [
+        var lines: [String] = []
+        if let rows = report.revalidation {
+            lines.append(
+                "re-check (Option C): \(rows.stamped) stores recorded, \(rows.suspectsMarked) suspects marked, "
+                    + "\(rows.rechecked) re-checked and served, \(rows.unequalValues) unequal values, "
+                    + "\(rows.unequalEnvironments) unequal environments, \(rows.suspectsDropped) dropped unchecked, "
+                    + "\(rows.unstampedDropped) unrecorded dropped")
+            for (reason, count) in report.unequalEnvironmentReasons.sorted(by: { $0.value > $1.value }).prefix(8) {
+                lines.append("  unequal environment: \(reason) ×\(count)")
+            }
+        }
+        lines += [
             String(
                 format: "environment stamps: %d built, %d from the pass's memo, %d interned to one already made,"
                     + " %.2f merge walks a build, %d pushed out, %d uncomparable",

@@ -178,6 +178,8 @@ final class DrivenSession {
     /// What stamping the environment of every stored row has counted, and
     /// the keys that made an environment uncomparable (with `--census`).
     let stamps: () -> (counts: EnvironmentStamps.Counts, uncomparable: [ObjectIdentifier: Int], variety: [ObjectIdentifier: Int])
+    /// What Option C's soft drain and re-check did (with `--census`).
+    let revalidation: () -> (counts: RevalidationState.Counts, reasons: [String: Int])
     /// What the app's render cache's observation leases have done so far,
     /// and how many view types it knows to read.
     let leaseCounts: () -> ObservationLeases.Counts
@@ -254,6 +256,7 @@ final class DrivenSession {
             app.renderCache.revalidation.countsStamps = true
             app.renderCache.revalidation.stamps.tracksVariety = true
         }
+        revalidation = { (app.renderCache.revalidation.counts, app.renderCache.revalidation.unequalEnvironmentReasons) }
         stamps = {
             let stamps = app.renderCache.revalidation.stamps
             return (stamps.counts, stamps.uncomparableKeys, stamps.variety.mapValues(\.count))

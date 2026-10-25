@@ -741,7 +741,8 @@ extension RenderCache {
         gradientFrame: GradientFrame?,
         surfaceBackground: Color?,
         effectScope: @autoclosure () -> EffectScope,
-        animationMustBeCurrent: Bool
+        animationMustBeCurrent: Bool,
+        recheck: Recheck? = nil
     ) -> CacheEntry? {
         // Read at most once, and only for an entry that has registrations.
         var scopeRead: EffectScope?
@@ -756,10 +757,12 @@ extension RenderCache {
             logDebug("MISS (no entry) \(identity.path)")
             return nil
         }
-        // Option C's re-check is not on yet (C4b): a suspect is what a hard
-        // drain would have dropped, and goes now.
-        guard !entry.isSuspect else {
-            dropSuspect(entry, at: identity)
+        // A suspect — a parent wrote above it — is re-checked and goes on to
+        // the usual checks if unchanged; otherwise, or with nothing to
+        // re-check it by, it is what the hard drain would have dropped, and
+        // goes now (Option C).
+        guard !entry.isSuspect || resolveSuspect(entry, recheck: recheck, drop: { dropSuspect(entry, at: identity) })
+        else {
             stats.misses += 1
             logDebug("MISS (suspect) \(identity.path)")
             return nil
@@ -1017,16 +1020,23 @@ extension RenderCache {
     /// store that kept one: whoever serves such a size passes the lapse on
     /// (`VolatileReadTracker.recordServedHold(lapsingAt:)`), or a memo above it
     /// keeps it for good.
-    package func lookupHeldSize<V: Equatable>(key: SizeKey, view: V) -> (size: ViewSize, lapsesAt: Date?)? {
+    package func lookupHeldSize<V: Equatable>(
+        key: SizeKey, view: V, recheck: Recheck? = nil
+    ) -> (size: ViewSize, lapsesAt: Date?)? {
         // One lookup of the table, the suspect check behind it: a second one
         // on this path, which `fanout` takes 4,000 times a frame, cost it 5%.
         let found = sizeEntries[key]
         if let found, found.isSuspect {
-            // As a buffer's (``lookupEntry``): not re-checked yet (C4b).
-            sizeEntries[key] = nil
-            revalidation.counts.suspectsDropped += 1
-            stats.misses += 1
-            return nil
+            // As a buffer's (``lookupEntry``).
+            if let recheck, let record = found.revalidation, recheck(record) {
+                found.isSuspect = false
+                revalidation.counts.rechecked += 1
+            } else {
+                sizeEntries[key] = nil
+                revalidation.counts.suspectsDropped += 1
+                stats.misses += 1
+                return nil
+            }
         }
         guard let entry = found, let old = entry.viewSnapshot as? V, old == view, holds(lapsingAt: entry.lapsesAt) else {
             stats.misses += 1

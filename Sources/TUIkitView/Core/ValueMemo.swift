@@ -84,15 +84,21 @@ func renderValueMemoized<Key: Equatable, Row>(
     let identity = context.identity
     cache.markActive(identity)
 
-    if let entry = cache.lookupEntry(
-        identity: identity, view: key,
-        contextWidth: context.availableWidth, contextHeight: context.availableHeight,
-        gradientFrame: context.gradientFrame,
-        surfaceBackground: context.environment.surfaceBackground,
-        effectScope: context.effectScope,
-        // A measure draws nothing, and a run's frames are all one width.
-        animationMustBeCurrent: !context.isMeasuring)
-    {
+    // The re-check a suspect gets (Option C): the row rebuilt and compared.
+    // `withoutActuallyEscaping`: the lookup calls it before it returns, and
+    // keeps nothing of it.
+    let found = withoutActuallyEscaping(build) { build in
+        cache.lookupEntry(
+            identity: identity, view: key,
+            contextWidth: context.availableWidth, contextHeight: context.availableHeight,
+            gradientFrame: context.gradientFrame,
+            surfaceBackground: context.environment.surfaceBackground,
+            effectScope: context.effectScope,
+            // A measure draws nothing, and a run's frames are all one width.
+            animationMustBeCurrent: !context.isMeasuring,
+            recheck: cache.recheck(building: build, context: context))
+    }
+    if let entry = found {
         // Keep the cached subtree's state alive for GC — the WHOLE subtree, not
         // just this identity: nothing below is visited on a hit, so a `@State`
         // deeper than a direct child would otherwise be pruned this pass and
@@ -395,7 +401,11 @@ func measureValueMemoized<Key: Equatable, Row>(
         availableWidth: context.availableWidth, availableHeight: context.availableHeight,
         hasExplicitWidth: context.hasExplicitWidth, hasExplicitHeight: context.hasExplicitHeight,
         measureGeneration: context.measureGeneration)
-    if let cached = cache.lookupSize(key: sizeKey, view: key) {
+    // As the buffer half's lookup: a suspect is re-checked by its rebuilt row.
+    let held = withoutActuallyEscaping(build) { build in
+        cache.lookupHeldSize(key: sizeKey, view: key, recheck: cache.recheck(building: build, context: context))?.size
+    }
+    if let cached = held {
         if RenderCache.verifiesMeasureMemo {
             return verifyServedSize(
                 cached, label: "\(Key.self)", proposal: proposal, context: context, measure: { measure(build(), $0) })
