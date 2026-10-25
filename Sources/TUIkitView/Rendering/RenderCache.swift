@@ -138,9 +138,9 @@ public final class RenderCache: @unchecked Sendable {
     ///   alias a mutation.
     final class SizeEntry {
         /// What the size was measured from and under; see ``CacheEntry``.
-        var revalidation: Revalidation?
+        @exclusivity(unchecked) var revalidation: Revalidation?
         /// See ``CacheEntry``.
-        var isSuspect = false
+        @exclusivity(unchecked) var isSuspect = false
         let viewSnapshot: Any
         let size: ViewSize
         /// Where the measured view sat — read by ``removeInactive()`` and
@@ -741,8 +741,32 @@ extension RenderCache {
         gradientFrame: GradientFrame?,
         surfaceBackground: Color?,
         effectScope: @autoclosure () -> EffectScope,
+        animationMustBeCurrent: Bool
+    ) -> CacheEntry? {
+        lookupEntryRechecking(
+            identity: identity, view: view, contextWidth: contextWidth, contextHeight: contextHeight,
+            gradientFrame: gradientFrame, surfaceBackground: surfaceBackground, effectScope: effectScope(),
+            animationMustBeCurrent: animationMustBeCurrent, rebuild: {}, recheckingUnder: nil, depth: 0)
+    }
+
+    /// ``lookupEntry(identity:view:contextWidth:contextHeight:gradientFrame:surfaceBackground:effectScope:animationMustBeCurrent:)``
+    /// for the value memo, which can re-check a suspect (Option C): `rebuild`
+    /// makes the row, and `environment` and `depth` are what it would be drawn
+    /// under now; `nil` drops a suspect unchecked. The re-check's inputs are
+    /// parameters, not a closure the caller makes, so a lookup that finds no
+    /// suspect makes no closure at all — hence the parameter count.
+    package func lookupEntryRechecking<V: Equatable, Row>(  // swiftlint:disable:this function_parameter_count
+        identity: ViewIdentity,
+        view: V,
+        contextWidth: Int,
+        contextHeight: Int,
+        gradientFrame: GradientFrame?,
+        surfaceBackground: Color?,
+        effectScope: @autoclosure () -> EffectScope,
         animationMustBeCurrent: Bool,
-        recheck: Recheck? = nil
+        rebuild: () -> Row,
+        recheckingUnder environment: EnvironmentValues?,
+        depth: Int
     ) -> CacheEntry? {
         // Read at most once, and only for an entry that has registrations.
         var scopeRead: EffectScope?
@@ -761,7 +785,13 @@ extension RenderCache {
         // the usual checks if unchanged; otherwise, or with nothing to
         // re-check it by, it is what the hard drain would have dropped, and
         // goes now (Option C).
-        guard !entry.isSuspect || resolveSuspect(entry, recheck: recheck, drop: { dropSuspect(entry, at: identity) })
+        guard !entry.isSuspect
+            || resolveSuspect(
+                entry,
+                recheck: { record in
+                    environment.map { recheckRow(record, rebuild: rebuild, environment: $0, depth: depth) } ?? .off
+                },
+                drop: { dropSuspect(entry, at: identity) })
         else {
             stats.misses += 1
             logDebug("MISS (suspect) \(identity.path)")
@@ -1020,15 +1050,25 @@ extension RenderCache {
     /// store that kept one: whoever serves such a size passes the lapse on
     /// (`VolatileReadTracker.recordServedHold(lapsingAt:)`), or a memo above it
     /// keeps it for good.
-    package func lookupHeldSize<V: Equatable>(
-        key: SizeKey, view: V, recheck: Recheck? = nil
+    package func lookupHeldSize<V: Equatable>(key: SizeKey, view: V) -> (size: ViewSize, lapsesAt: Date?)? {
+        lookupHeldSize(key: key, view: view, rebuild: {}, recheckingUnder: nil, depth: 0)
+    }
+
+    /// ``lookupHeldSize(key:view:)`` for the value memo, which can re-check a
+    /// suspect: see ``lookupEntryRechecking(identity:view:contextWidth:contextHeight:gradientFrame:surfaceBackground:effectScope:animationMustBeCurrent:rebuild:recheckingUnder:depth:)``.
+    package func lookupHeldSize<V: Equatable, Row>(
+        key: SizeKey, view: V, rebuild: () -> Row, recheckingUnder environment: EnvironmentValues?, depth: Int
     ) -> (size: ViewSize, lapsesAt: Date?)? {
         // One lookup of the table, the suspect check behind it: a second one
         // on this path, which `fanout` takes 4,000 times a frame, cost it 5%.
         let found = sizeEntries[key]
         if let found, found.isSuspect {
             // As a buffer's (``lookupEntry``).
-            if let recheck, let record = found.revalidation, recheck(record) {
+            let verdict = environment.flatMap { environment in
+                found.revalidation.map { recheckRow($0, rebuild: rebuild, environment: environment, depth: depth) }
+            } ?? .off
+            revalidation.noteVerdict(verdict, at: found.identity.structuralHash)
+            if verdict == .unchanged {
                 found.isSuspect = false
                 revalidation.counts.rechecked += 1
             } else {
@@ -1273,7 +1313,7 @@ extension RenderCache {
         // The measure memo is this frame's scratch space and nothing more.
         measureScratch.endOfPass(&measureEntries)
         passLeases.removeAll(keepingCapacity: true)
-        revalidation.stamps.beginPass()
+        revalidation.beginPass()
         childViewScratch.endOfPass(&childViewEntries)
         measureHits = 0
         measureMisses = 0

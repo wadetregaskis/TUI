@@ -77,6 +77,46 @@ package final class RevalidationState {
     private static let servesRecheckedByDefault =
         ProcessInfo.processInfo.environment["TUIKIT_OPTION_C"] == "1"
 
+    /// The passes begun: what a cooldown is counted in.
+    private var pass = 0
+
+    /// Rows whose value keeps changing, by identity hash (Option C, C5): how
+    /// many re-checks in a row found the value unequal, and the pass until
+    /// which the row is neither recorded nor re-checked. A row that changes
+    /// every frame — a churning list — was rebuilt to be compared, found
+    /// unequal, and drawn anyway, every frame: +25% on `churn`.
+    private var cooldowns: [Int: (run: Int, until: Int)] = [:]
+
+    /// Starts a pass: this pass's stamps, and the cooldowns that have run out.
+    package func beginPass() {
+        pass &+= 1
+        stamps.beginPass()
+        if pass.isMultiple(of: 64), !cooldowns.isEmpty { cooldowns = cooldowns.filter { $0.value.until >= pass - 64 } }
+    }
+
+    /// Whether the row at `identityHash` is cooling down: its stores record
+    /// nothing, so a parent's write drops it, unchecked, as it did before.
+    package func isCoolingDown(_ identityHash: Int) -> Bool {
+        guard !cooldowns.isEmpty, let cooldown = cooldowns[identityHash] else { return false }
+        return cooldown.until > pass
+    }
+
+    /// Notes a re-check's verdict at `identityHash`: an unequal value extends
+    /// the row's run — from the second, a cooldown of 2, 4, 8 … at most 64
+    /// passes — and an equal one ends it.
+    package func noteVerdict(_ verdict: RecheckVerdict, at identityHash: Int) {
+        switch verdict {
+        case .unchanged:
+            if !cooldowns.isEmpty { cooldowns[identityHash] = nil }
+        case .valueChanged:
+            let run = (cooldowns[identityHash]?.run ?? 0) + 1
+            let until = run >= 2 ? pass + min(64, 1 << min(run - 1, 6)) : pass
+            cooldowns[identityHash] = (run, until)
+        case .environmentChanged, .off:
+            break
+        }
+    }
+
     /// What ``eligibility(ofRowsOf:)`` has answered, by type.
     private var eligibilities: [ObjectIdentifier: RowEligibility] = [:]
 
@@ -138,6 +178,18 @@ package final class RevalidationState {
     }
 }
 
+/// What a re-check found.
+package enum RecheckVerdict {
+    /// The row and its environment are what it was drawn from and under.
+    case unchanged
+    /// The rebuilt row differs.
+    case valueChanged
+    /// The environment, or the modifier depth above it, differs.
+    case environmentChanged
+    /// Serving re-checked rows is off; nothing was compared.
+    case off
+}
+
 /// Whether rows of a type can be re-checked by their value: see
 /// ``RevalidationState/eligibility(ofRowsOf:)``.
 package enum RowEligibility: Equatable, Sendable {
@@ -188,6 +240,7 @@ extension RenderCache {
     /// drain, as every entry below a writer is today.
     package func revalidationRecord<Row>(for row: Row, context: RenderContext) -> Revalidation? {
         guard let equal = revalidation.equality(ofRowsOf: Row.self),
+            !revalidation.isCoolingDown(context.identity.structuralHash),
             let stamp = revalidation.stamps.stamp(of: context.environment)
         else { return nil }
         revalidation.counts.stamped += 1
@@ -198,41 +251,43 @@ extension RenderCache {
 // MARK: - Re-checking a suspect
 
 extension RenderCache {
-    /// Re-checks a suspect: whether what it was drawn from and under is still
-    /// what it would be drawn from and under now. Supplied by the value memo,
-    /// which can rebuild the row; a lookup without one cannot re-check.
-    package typealias Recheck = (Revalidation) -> Bool
-
-    /// The value memo's re-check of a suspect drawn from `row`'s type: the
-    /// row rebuilt (`build`), compared by its `==` with the snapshot; the
-    /// environment it would be drawn under now, by its stamp; and the depth
-    /// of environment modifiers above it. On an equal verdict the record
-    /// takes the rebuilt row and the current stamp.
-    package func recheck<Row>(building build: @escaping () -> Row, context: RenderContext) -> Recheck? {
-        guard revalidation.servesRechecked else { return nil }
-        return { [self] record in  // strong: the lookup calls it and keeps nothing of it
-            let row = build()
-            guard record.equal(record.snapshot, row) else {
-                revalidation.counts.unequalValues += 1
-                return false
-            }
-            guard record.depth == context.environmentApplicationDepth,
-                let stamp = revalidation.stamps.stamp(of: context.environment),
-                stamp === record.environment || stamp.isEquivalent(to: record.environment)
-            else {
-                revalidation.counts.unequalEnvironments += 1
-                revalidation.noteUnequalEnvironment(
-                    record.depth != context.environmentApplicationDepth
-                        ? "depth \(record.depth) → \(context.environmentApplicationDepth)"
-                        : revalidation.stamps.stamp(of: context.environment)
-                            .flatMap { $0.firstDifference(from: record.environment) }
-                            .map(EnvironmentStamps.debugName(of:)) ?? "uncomparable now")
-                return false
-            }
-            record.snapshot = row
-            record.environment = stamp
-            return true
+    /// The value memo's re-check of a suspect, `record`: the row rebuilt
+    /// (`build`) and compared by its `==` with the snapshot; the environment
+    /// it would be drawn under now, by its stamp; and the depth of
+    /// environment modifiers above it. On an equal verdict the record takes
+    /// the rebuilt row and the current stamp. `false` without a look when
+    /// serving re-checked rows is off (``RevalidationState/servesRechecked``).
+    ///
+    /// The lookup is handed the memo's own `build` and environment and makes
+    /// the closure that calls this only for a suspect: a lookup that finds
+    /// none — 4,000 a frame on `fanout` — makes nothing. A re-check closure
+    /// made for every lookup cost that scenario 19% (stored, capturing the
+    /// render context) and `anyview` 4% (on the stack).
+    package func recheckRow<Row>(
+        _ record: Revalidation, rebuild build: () -> Row, environment: EnvironmentValues, depth: Int
+    ) -> RecheckVerdict {
+        guard revalidation.servesRechecked else { return .off }
+        let row = build()
+        guard record.equal(record.snapshot, row) else {
+            revalidation.counts.unequalValues += 1
+            return .valueChanged
         }
+        guard record.depth == depth,
+            let stamp = revalidation.stamps.stamp(of: environment),
+            stamp === record.environment || stamp.isEquivalent(to: record.environment)
+        else {
+            revalidation.counts.unequalEnvironments += 1
+            revalidation.noteUnequalEnvironment(
+                record.depth != depth
+                    ? "depth \(record.depth) → \(depth)"
+                    : revalidation.stamps.stamp(of: environment)
+                        .flatMap { $0.firstDifference(from: record.environment) }
+                        .map(EnvironmentStamps.debugName(of:)) ?? "uncomparable now")
+            return .environmentChanged
+        }
+        record.snapshot = row
+        record.environment = stamp
+        return .unchanged
     }
 
     /// What a lookup does with `entry`, a suspect: re-checked by `recheck`
@@ -241,8 +296,10 @@ extension RenderCache {
     /// a clear: ``Stats/subtreeClears`` does not move, so the memo around it
     /// still stores what it draws (`renderValueMemoized`'s
     /// `invalidatedDuringRender`).
-    func resolveSuspect(_ entry: CacheEntry, recheck: Recheck?, drop: () -> Void) -> Bool {
-        guard let recheck, let record = entry.revalidation, recheck(record) else {
+    func resolveSuspect(_ entry: CacheEntry, recheck: (Revalidation) -> RecheckVerdict, drop: () -> Void) -> Bool {
+        let verdict = entry.revalidation.map(recheck) ?? .off
+        revalidation.noteVerdict(verdict, at: entry.identity.structuralHash)
+        guard verdict == .unchanged else {
             drop()
             return false
         }

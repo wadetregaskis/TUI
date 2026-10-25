@@ -27,11 +27,19 @@ extension RenderCache {
     public final class CacheEntry {
         /// What the subtree was drawn from and under, when its row can be
         /// re-checked (Option C): `nil` for an entry a soft drain must drop.
-        package var revalidation: Revalidation?
+        ///
+        /// `@exclusivity(unchecked)`, as ``isSuspect``: see there.
+        @exclusivity(unchecked) package var revalidation: Revalidation?
 
         /// Whether a parent's write was drained above it since it was stored:
         /// it may be stale, and is not served as it stands.
-        package var isSuspect = false
+        ///
+        /// `@exclusivity(unchecked)`: read on every hit, and a class's `var`
+        /// is checked for exclusive access at run time on each read — on
+        /// `fanout`'s 4,000 hits a frame, measurable. Read and written only
+        /// on the main actor, by the drain and the lookups, so two accesses
+        /// never overlap.
+        @exclusivity(unchecked) package var isSuspect = false
 
         /// The type-erased view value at the time of caching.
         ///

@@ -107,6 +107,24 @@ struct RecheckTests {
         #expect(cache.revalidation.counts.suspectsDropped == 1)
     }
 
+    @Test("A row whose value keeps changing stops being compared, and is re-checked again once it settles")
+    func cooldown() {
+        let (cache, storage, renders) = setUp(serving: true)
+        // Changing on every parent's write: compared twice, then less and
+        // less often — cooldowns of 2, 4, 8 … passes — not ten times in ten.
+        for step in 0..<10 {
+            _ = frame(Leaf(text: "\(step)", renders: renders), cache, storage)
+            cache.link.invalidateRenderSoftly(for: root)
+        }
+        #expect(cache.revalidation.counts.unequalValues <= 3, "\(cache.revalidation.counts)")
+        // Settled: within 64 passes it is recorded again, and served.
+        for _ in 0..<70 {
+            _ = frame(Leaf(text: "settled", renders: renders), cache, storage)
+            cache.link.invalidateRenderSoftly(for: root)
+        }
+        #expect(cache.revalidation.counts.rechecked > 0)
+    }
+
     @Test("A hard write above it drops it, served or not")
     func hardWriteDrops() {
         let (cache, storage, renders) = setUp(serving: true)
