@@ -51,7 +51,8 @@ import TUIkitCore
 ///   ran in before there was a stage. In a kept drawing that an armed one
 ///   encloses, they wait for the enclosing one.
 /// - an **undo** — how to put back what the view remembered to decide whether
-///   to act: the value an `onChange` compares against. The memory is written as the drawing goes, so the rest of the
+///   to act: the value an `onChange` compares against, that a view has
+///   appeared. The memory is written as the drawing goes, so the rest of the
 ///   drawing sees it as before; a discarded drawing runs its undos, last
 ///   first, so the drawing that replaces it decides from what the frame began
 ///   with — and an `onChange` whose first drawing stored a prediction fires

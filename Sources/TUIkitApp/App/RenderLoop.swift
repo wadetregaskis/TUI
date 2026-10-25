@@ -756,9 +756,9 @@ extension RenderLoop {
         context = context.carryingGeometryRootOrigin()
         let reservation = windowChrome.reservation
         // The walk may be walked again, below, so what its views do once a
-        // reader has been told an answer — an `onChange` action — waits
-        // until the walk drawn is known, and only the kept walk's runs
-        // (decisions B-D5G-4).
+        // reader has been told an answer — an `onChange` action, an
+        // `onAppear`, a task's start — waits until the walk drawn is known,
+        // and only the kept walk's runs (decisions B-D5G-4).
         let effects = ProvisionalEffects(stateStorage: tuiContext.stateStorage)
         defer { effects.keep() }
         var frame = renderScene(scene, context: context.withChildIdentity(type: type(of: scene)))
@@ -1017,10 +1017,13 @@ extension RenderLoop {
     ///
     /// What must NOT move here, and why: `focusManager.beginRenderPass()`
     /// (snapshots last frame's ring so a focus LOSS can still reach its
-    /// element), `lifecycle` and `renderCache` (a token
-    /// or cache entry seen only in a discarded walk surviving one extra frame
-    /// is the conservative direction — no spurious `onDisappear`, no premature
-    /// eviction), and above all `stateStorage.beginRenderPass()`, which also
+    /// element), `lifecycle` (what a discarded walk's views did after a reader
+    /// was told an answer — their appearances, tasks and presence — is put
+    /// back with the rest of what they did: `renderContent` discards its
+    /// ``ProvisionalEffects``; what they did before it, the second walk draws
+    /// again as it was), `renderCache` (a cache entry seen only in a discarded
+    /// walk surviving one extra frame is the conservative direction — no
+    /// premature eviction), and above all `stateStorage.beginRenderPass()`, which also
     /// clears `activeIdentities` — already carrying `evaluateAppBody`'s
     /// `markActive(rootIdentity)` by the time a walk starts, so clearing it
     /// mid-pass would let `endRenderPass` prune the App's own root `@State` on

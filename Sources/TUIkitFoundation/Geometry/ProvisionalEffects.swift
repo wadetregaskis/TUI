@@ -14,7 +14,8 @@ import TUIkitView
 ///
 /// Once a reader in it has been told an answer that could be wrong — or from
 /// the start, for a drawing made ``init(context:armed:)`` armed — its views
-/// hold back what they do (an `onChange` action) and note how to put back what they remembered in deciding to.
+/// hold back what they do (an `onChange` action, an `onAppear`, a task's
+/// start) and note how to put back what they remembered in deciding to.
 /// ``discard()`` throws the drawing away for another to be made in its place:
 /// its held effects dropped and its views' memories put back. ``keep()`` lets
 /// the effects run, when nothing armed encloses the drawing.

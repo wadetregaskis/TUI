@@ -52,6 +52,19 @@ package final class LifecycleManager: @unchecked Sendable {
     /// and a snapshot must not mutate shared state as a side effect.
     private let firesEffects: Bool
 
+    /// Where an `onAppear` action and a task's start wait while the walk is in
+    /// a drawing it may still discard, and where what an appearance changed is
+    /// noted so it can be put back (``EffectStage``). The app's state
+    /// storage's stage, wired by ``TUIContext``; `nil` for a manager standing
+    /// alone, which acts at once.
+    package var effectStage: EffectStage? {
+        get { lock.withLock { _effectStage } }
+        set { lock.withLock { _effectStage = newValue } }
+    }
+
+    /// ``effectStage``'s storage, under the lock.
+    private var _effectStage: EffectStage?
+
     // MARK: - Init
 
     /// Creates a new lifecycle manager.
@@ -108,26 +121,50 @@ extension LifecycleManager {
 
     /// Records that a view with the given token appeared.
     ///
+    /// Inside a drawing the walk may still discard, the action waits for the
+    /// drawing to be kept, and the appearance — and the view's presence in
+    /// this pass — is taken back if it is not (``EffectStage``): the drawing
+    /// made in its place is the view's first, and a view only the discarded
+    /// drawing drew is not on screen.
+    ///
     /// - Parameters:
     ///   - token: Unique identifier for the view.
     ///   - action: The onAppear action to execute.
-    /// - Returns: True if this is the first appearance (action was executed).
+    /// - Returns: True if this is the first appearance (the action runs, or
+    ///   waits for the drawing to be kept).
     @discardableResult
-    package func recordAppear(token: String, action: () -> Void) -> Bool {
+    package func recordAppear(token: String, action: @escaping () -> Void) -> Bool {
         lock.lock()
-        currentRenderTokens.insert(token)
-
-        if !appearedTokens.contains(token) {
-            appearedTokens.insert(token)
-            let shouldFire = firesEffects
+        let isPresent = !currentRenderTokens.insert(token).inserted
+        let stage = _effectStage
+        guard !appearedTokens.contains(token) else {
             lock.unlock()
-            // In snapshot mode the view is still recorded as appeared
-            // (so repeat renders behave), but the action is suppressed.
-            if shouldFire { action() }
-            return shouldFire
+            if !isPresent, let stage, stage.isStaging {
+                stage.noteUndo { [self] in
+                    lock.lock()
+                    currentRenderTokens.remove(token)
+                    lock.unlock()
+                }
+            }
+            return false
         }
+        appearedTokens.insert(token)
+        let shouldFire = firesEffects
         lock.unlock()
-        return false
+        if let stage, stage.isStaging {
+            stage.noteUndo { [self, isPresent] in
+                lock.lock()
+                appearedTokens.remove(token)
+                if !isPresent { currentRenderTokens.remove(token) }
+                lock.unlock()
+            }
+        }
+        // In snapshot mode the view is still recorded as appeared
+        // (so repeat renders behave), but the action is suppressed.
+        if shouldFire {
+            if let stage { stage.perform(action) } else { action() }
+        }
+        return shouldFire
     }
 
     /// Checks if a view has appeared before.
@@ -152,8 +189,18 @@ extension LifecycleManager {
     ///   - action: The onDisappear action to execute.
     package func registerDisappear(token: String, action: @escaping () -> Void) {
         lock.lock()
-        defer { lock.unlock() }
-        disappearCallbacks[token] = action
+        let isNew = disappearCallbacks.updateValue(action, forKey: token) == nil
+        let stage = _effectStage
+        lock.unlock()
+        // Registered first by a drawing the walk then discards, it would stay
+        // for a view the kept drawing may never draw. One registered on an
+        // earlier frame stays: the kept drawing's registration replaces it.
+        guard isNew, let stage, stage.isStaging else { return }
+        stage.noteUndo { [self] in
+            lock.lock()
+            disappearCallbacks.removeValue(forKey: token)
+            lock.unlock()
+        }
     }
 
     /// Unregisters the disappear callback for the given token.
@@ -183,6 +230,25 @@ extension LifecycleManager {
         name: String? = nil,
         @_inheritActorContext operation: sending @escaping @isolated(any) @Sendable () async ->
             Void
+    ) {
+        // Inside a drawing the walk may still discard, the task starts once
+        // the drawing is kept (``EffectStage``): a discarded drawing's task
+        // never starts, and the drawing made in its place starts its own.
+        if let stage = effectStage, stage.isStaging {
+            stage.perform { [self] in
+                startTaskNow(token: token, priority: priority, name: name, operation: operation)
+            }
+            return
+        }
+        startTaskNow(token: token, priority: priority, name: name, operation: operation)
+    }
+
+    /// ``startTask(token:priority:name:operation:)``'s work, done now.
+    private func startTaskNow(
+        token: String,
+        priority: TaskPriority,
+        name: String?,
+        operation: @escaping @isolated(any) @Sendable () async -> Void
     ) {
         lock.lock()
         defer { lock.unlock() }
@@ -529,6 +595,11 @@ package final class TUIContext: @unchecked Sendable {
         self.keyEventDispatcher = KeyEventDispatcher()
         self.mouseEventDispatcher = MouseEventDispatcher()
         self.dragAndDropSession = DragAndDropSession()
+        self.stateStorage = StateStorage()
+        // A drawing the walk may still discard holds back its views' appearances
+        // and tasks on the same stage as their other effects, so they run in
+        // the order they were made.
+        self.lifecycle.effectStage = self.stateStorage.effectStage
         // Drop targeting hit-tests the dispatcher's composited regions; the
         // dispatcher stamps the session with absolute cursor positions.
         self.dragAndDropSession.dispatcher = self.mouseEventDispatcher
@@ -537,7 +608,6 @@ package final class TUIContext: @unchecked Sendable {
         // bar's reflow (`TooltipState.held`).
         self.mouseEventDispatcher.tooltipState = self.tooltipState
         self.preferences = PreferenceStorage()
-        self.stateStorage = StateStorage()
         self.renderCache = RenderCache(valueHashPlans: .tuikit())
         // Point the state storage at this context's cache so a `@State` change
         // (``StateBox/value`` didSet) invalidates the right cache. Without the
@@ -598,6 +668,8 @@ package final class TUIContext: @unchecked Sendable {
         self.mouseEventDispatcher.tooltipState = self.tooltipState
         self.preferences = preferences
         self.stateStorage = stateStorage
+        // See init(clipboard:urlOpener:appState:): one stage for every effect.
+        self.lifecycle.effectStage = stateStorage.effectStage
         self.renderCache = renderCache
         // See init(): wire state-change invalidation to this context's cache,
         // and the cache's frame requests to this context's render state.

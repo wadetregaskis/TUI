@@ -40,12 +40,13 @@ import TUIkitView
 ///   it — and a row the first drawing alone left out read as left out.
 ///
 /// ``rollBack(context:)`` puts those back. What the first drawing would have
-/// DONE — an `onChange` action — it did not do
+/// DONE — an `onChange` action, an `onAppear`, a task's start — it did not do
 /// where it could differ: a checkpoint opens the drawing on the effect stage
 /// (``ProvisionalEffects``), and once a reader in it is told an answer that
 /// could be wrong, the subtree's views hold those back until the drawing is
 /// kept, noting how to put back what they remembered in deciding to (the
-/// value an `onChange` compares against). A rollback drops the held effects and puts the memories back;
+/// value an `onChange` compares against, that a view appeared and is on
+/// screen). A rollback drops the held effects and puts the memories back;
 /// ``keep()``, which the owner calls once it is done with the subtree however
 /// it drew it, lets the last drawing's run (decisions B-D5G-4). What the views
 /// before the first answer did, they did at once: nothing they drew depends
