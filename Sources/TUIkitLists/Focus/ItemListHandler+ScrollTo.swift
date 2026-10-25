@@ -59,9 +59,14 @@ extension ItemListHandler {
 
 extension ItemListHandler {
     /// Records that the user scrolled the list (``ScrollableOffsetState``),
-    /// for a bound `.scrollPosition` to hear at the next render.
+    /// for a bound `.scrollPosition` to hear at the next render and for
+    /// `onScrollPhaseChange`, which reports it `.interacting`. It stops a
+    /// programmatic glide where it stands, as a `ScrollView`'s does.
     package func noteUserScroll() {
         userScrolledSinceRender = true
+        glide = nil
+        phase = .interacting
+        lastUserScrollNanos = phaseNow()
     }
 
     /// Places what a `.scrollPosition` bound above the list asks for on this
@@ -70,19 +75,28 @@ extension ItemListHandler {
     /// least move), the top or bottom edge as the first or last row, or a
     /// line of the content. A list does not scroll across, so the leading
     /// and trailing edges and an `x` move nothing. Before the offset settles.
+    /// Made inside an animation, each glides there
+    /// (``placeProgrammatically(landing:context:_:)``).
     @MainActor
     package func applyScrollPosition(rowIndex: (String) -> Int?, context: RenderContext) {
         guard !context.isMeasuring, let position = context.environment.scrollPositionBinding else { return }
         if let request = position.rowRequest(
             tracking: &positionTracking, transactionAnchor: context.environment.transaction.scrollTargetAnchor)
         {
-            if let index = rowIndex(request.key) { scroll(toRow: index, anchor: request.anchor) }
+            if let index = rowIndex(request.key) {
+                placeProgrammatically(landing: .seek(request), context: context) {
+                    scroll(toRow: index, anchor: request.anchor)
+                }
+            }
             return
         }
         switch position.placementRequest(tracking: &positionTracking) {
-        case .edge(.top): scroll(toRow: 0, anchor: .top)
-        case .edge(.bottom): scroll(toRow: itemCount - 1, anchor: .bottom)
-        case .offset(_, let y?): scroll(toLine: y)
+        case .edge(.top):
+            placeProgrammatically(landing: .top, context: context) { scroll(toRow: 0, anchor: .top) }
+        case .edge(.bottom):
+            placeProgrammatically(landing: .bottom, context: context) { scroll(toRow: itemCount - 1, anchor: .bottom) }
+        case .offset(_, let y?):
+            placeProgrammatically(landing: .offset(y), context: context) { scroll(toLine: y) }
         default: break
         }
     }
@@ -91,14 +105,22 @@ extension ItemListHandler {
     /// named by `rowID`, nothing for a row it names nothing — and tells it
     /// the user scrolled, when they did, as a `ScrollView` does. After the
     /// offset settles.
+    ///
+    /// The frame's scroll is settled here, so this is also where a glide in
+    /// flight asks for its next frame and the phase is reported
+    /// (``finishScrollFrame(context:)``). Mid-glide the row is not written:
+    /// a bound position is told the row the glide lands on, not each it
+    /// passes, or each glide frame would draw the app's body again.
     @MainActor
     package func reportScrollPosition(rowID: (Int) -> AnyHashable?, context: RenderContext) {
         guard !context.isMeasuring else { return }
+        finishScrollFrame(context: context)
         guard let position = context.environment.scrollPositionBinding else {
             userScrolledSinceRender = false
             return
         }
-        if let row = row(atRowLine: Int((Double(rowLineBudget - 1) * position.anchor.y).rounded(.down))),
+        if glide == nil,
+            let row = row(atRowLine: Int((Double(rowLineBudget - 1) * position.anchor.y).rounded(.down))),
             let id = rowID(row)
         {
             position.report(id, tracking: &positionTracking)
@@ -110,7 +132,7 @@ extension ItemListHandler {
     }
 
     /// Scrolls so the content's line `line` is the first the rows show.
-    private func scroll(toLine line: Int) {
+    func scroll(toLine line: Int) {
         guard itemCount > 0 else { return }
         clearOverscroll()
         let rowHeight = self.rowHeight ?? { _ in 1 }

@@ -76,8 +76,10 @@ extension ItemListHandler {
         // measured from it, while steps stay on `scrollOffset` — which is what
         // makes them able to leave the duplicate at all. See
         // ``ScrollableOffsetState/drawnOffset``.
+        // Nor while a glide moves the viewport (decisions B27-ANIMATING): it
+        // passes offset 1 on its way, and lands where it lands.
         guard overflowing, drawsTextIndicators, scrollOffset == 1,
-            !isAutoScrolling, !isReordering, externalDropSlot == nil
+            !isAutoScrolling, !isReordering, externalDropSlot == nil, glide == nil
         else { return }
         // Ask the rule that DRAWS, rather than restate it. Not a tidy-up: this
         // was `scrollStepUnit == .line && (scrollTopClipLines > 0 ||

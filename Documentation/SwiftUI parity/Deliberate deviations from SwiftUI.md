@@ -1620,7 +1620,13 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   again on landing (since 2026-10-24, B27-ANIMATING); under reduce motion it
   jumps. A user's scroll, or a reveal of the focus, stops it where it stands;
   a second animated request glides on from there, at rest, and an unanimated
-  one jumps. A `List`'s or a `Table`'s request still jumps. Under the
+  one jumps. A `List`'s or a `Table`'s request glides a row at a time (a
+  row of several lines in one step: its height is known only by building it,
+  and a glide must not build the rows it passes to count their lines), lands
+  exactly where the jump would, leaves the cursor and the selection, and is
+  stopped by a cursor move; the lists report their phases as a `ScrollView`
+  does, with a geometry whose offset counts each row above the top as a
+  line. Under the
   TUI-specific `scrollKeyboardAnimation(_:)` a `ScrollView`'s Page Up/Down,
   Home and End glide to where they land too, and stay `.interacting`. A user scroll is `.interacting` until 250 ms pass with no step; a
   glide is `.animating` until it lands; `.tracking` and `.decelerating` never
@@ -1632,8 +1638,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   pushed by a scroll view's arrow or page key at the end as by the wheel (a
   focused `List`'s or `Table`'s keys move its cursor instead).
 - **Why:** a terminal reports no gesture phases and no momentum, and draws
-  no line between two of its rows. The lists' requests join the glide later
-  ([the design note](<Decisions/Scrolling/Animated scrolling, a design (B27).md>), pieces 4–8).
+  no line between two of its rows. The lists' paging keys join the glide
+  later ([the design note](<Decisions/Scrolling/Animated scrolling, a design (B27).md>), piece 7).
 - **Decided:** [B27](<Decisions/SwiftUI API completion decisions.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B27-ANIMATING](<../Open owner decisions.md#b27-animating>), [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance-and-always-springs-back>).
   **Medium**. The owner decided on 2026-10-12 that the velocity is (0, 0) at
   both changes, as SwiftUI reports it, and to add a bounce under `.always`;

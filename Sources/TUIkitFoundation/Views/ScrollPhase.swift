@@ -21,7 +21,9 @@ import TUIkitView
 /// programmatic scroll made inside `withAnimation` — a `scrollTo`, a
 /// ``ScrollPosition`` write, along either axis — glides to its target, and is
 /// ``animating`` from the frame it starts on to the one it lands on, as SwiftUI's is (measured,
-/// B27); a `List`'s or a `Table`'s jumps, and reports no phase. The other two
+/// B27); so is a `List`'s or a `Table`'s, which glides a row at a time, and
+/// whose user scrolls — the wheel, the scrollbar — are ``interacting`` too (its
+/// cursor keys move the cursor, and report none). The other two
 /// phases are SwiftUI's for input a terminal does not send: ``tracking`` a
 /// finger that has not moved yet, ``decelerating`` after a fling. macOS never
 /// decelerates under a mouse wheel either; a switch over them is still
@@ -46,9 +48,9 @@ public enum ScrollPhase: Hashable, Sendable {
     /// a terminal, whose scrolling has no momentum.
     case decelerating
 
-    /// The view is animating to a target set by code: a `ScrollView`'s
-    /// `scrollTo` or ``ScrollPosition`` request made inside `withAnimation`,
-    /// while it glides there. A user's scroll stops the glide, and the phase
+    /// The view is animating to a target set by code: a `ScrollView`'s, a
+    /// `List`'s or a `Table`'s `scrollTo` or ``ScrollPosition`` request made
+    /// inside `withAnimation`, while it glides there. A user's scroll stops the glide, and the phase
     /// goes straight to ``interacting``.
     case animating
 

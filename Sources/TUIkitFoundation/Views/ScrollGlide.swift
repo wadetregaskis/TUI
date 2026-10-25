@@ -56,10 +56,15 @@ public struct ScrollGlide: Sendable {
         /// Nothing: a page key's glide lands where its distance takes it, as
         /// the key would have put the view (`scrollKeyboardAnimation(_:)`).
         case distance
+        /// A list's place, put back exactly: its top row, and the lines of it
+        /// scrolled off the top. A list glides a row at a time; this is the
+        /// line within a tall row a key or a request left it on.
+        case rowPosition(row: Int, subRowLines: Int)
     }
 
     /// How far the glide travels, in the scrollable's offset unit: lines, for
-    /// a `ScrollView`, and columns for its horizontal axis.
+    /// a `ScrollView`, columns for its horizontal axis, and rows for a `List`
+    /// or a `Table`.
     package let distance: Int
 
     /// How much of ``distance`` the frames so far have stepped the offset by.
@@ -243,13 +248,17 @@ extension ScrollableOffsetState {
     ///
     /// The steps go through ``scrollFine(by:)``, clamped at the content's
     /// ends, and are counted in the offset they moved: the unit a `ScrollView`
-    /// steps in. A list's line steps through multi-line rows are not, and
-    /// need their own count when the lists glide.
+    /// steps in. A scrollable whose glide moves in another unit than its fine
+    /// step — a list, whose glide steps whole rows where its fine step is a
+    /// line — passes `step`, which moves the view by a number of its units
+    /// and answers how far it went.
     ///
     /// A key's glide starts here, on the frame after the key: this frame
     /// draws its start, and its clock and viewport are this frame's.
     @MainActor
-    package func advanceGlide(viewport: CellSize, context: RenderContext) -> ScrollGlide.Landing? {
+    package func advanceGlide(
+        viewport: CellSize, context: RenderContext, step: ((Int) -> Int)? = nil
+    ) -> ScrollGlide.Landing? {
         guard var current = glide, !context.isMeasuring else { return nil }
         let now = context.environment.frameNowNanos
         if current.awaitsFirstFrame {
@@ -258,11 +267,15 @@ extension ScrollableOffsetState {
             return nil
         }
         let lands = current.viewport != viewport || current.isFinished(atNanos: now)
-        let step = (lands ? current.distance : current.place(atNanos: now)) - current.covered
-        if step != 0 {
-            let before = scrollOffset
-            scrollFine(by: step)
-            current.covered += scrollOffset - before
+        let delta = (lands ? current.distance : current.place(atNanos: now)) - current.covered
+        if delta != 0 {
+            if let step {
+                current.covered += step(delta)
+            } else {
+                let before = scrollOffset
+                scrollFine(by: delta)
+                current.covered += scrollOffset - before
+            }
         }
         glide = lands ? nil : current
         return lands ? current.landing : nil

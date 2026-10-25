@@ -1899,13 +1899,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         if !context.isMeasuring {
             context.environment.scrollToRegistry?.register(
                 handler: handler, identity: context.identity, renderCache: context.renderCache)
-            if let request = handler.pendingScrollTo {
-                handler.pendingScrollTo = nil
-                if let index = source.index(ofScrollKey: request.key) {
-                    handler.scroll(toRow: index, anchor: request.anchor)
-                }
-            }
-            handler.applyScrollPosition(rowIndex: { source.index(ofScrollKey: $0) }, context: context)
+            // A glide in flight, then the request, then a bound position —
+            // each gliding when made inside an animation.
+            handler.resolveScrollRequests(rowIndex: { source.index(ofScrollKey: $0) }, context: context)
         }
         // Clamp, snap off the resting duplicate, apply the anchor — one sequence,
         // shared with `Table`'s two paths, along with the render-pass guard that

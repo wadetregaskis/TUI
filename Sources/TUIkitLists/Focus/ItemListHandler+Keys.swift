@@ -274,6 +274,9 @@ extension ItemListHandler {
     ///   - wrap: Whether to wrap around at boundaries.
     func moveFocus(by delta: Int, wrap: Bool) {
         guard itemCount > 0, delta != 0 else { return }
+        // The cursor moving is the user's: a programmatic glide stops where it
+        // stands, and the reveal below acts from there.
+        stopGlide()
 
         var newIndex = focusedIndex + delta
 
@@ -364,6 +367,7 @@ extension ItemListHandler {
     /// The cursor still wins: rows past it taller than the window leave it
     /// revealed, not them.
     private func revealWithEdge(_ edge: VerticalEdge) {
+        stopGlide()
         scrollOffset = edge == .top ? 0 : settledMaxOffset
         scrollTopClipLines = 0
         ensureFocusedItemVisible()

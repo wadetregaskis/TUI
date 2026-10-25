@@ -2981,13 +2981,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         guard !context.isMeasuring else { return }
         context.environment.scrollToRegistry?.register(
             handler: handler, identity: context.identity, renderCache: context.renderCache)
-        if let request = handler.pendingScrollTo {
-            handler.pendingScrollTo = nil
-            if let index = rows.firstIndex(where: { identityKey($0.id) == request.key }) {
-                handler.scroll(toRow: index, anchor: request.anchor)
-            }
-        }
-        handler.applyScrollPosition(rowIndex: { key in rows.firstIndex { identityKey($0.id) == key } }, context: context)
+        // A glide in flight, then the request, then a bound position — each
+        // gliding when made inside an animation, as a `List`'s.
+        handler.resolveScrollRequests(
+            rowIndex: { key in rows.firstIndex { identityKey($0.id) == key } }, context: context)
     }
 
     /// The table's content width: the selection gutter plus the columns and their

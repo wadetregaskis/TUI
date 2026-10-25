@@ -1109,14 +1109,46 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _overscrollState = ScrollOverscrollState()
 
-    /// The glide in flight (``ScrollableOffsetState``). Never set yet: a list
-    /// resolves `scrollTo` and its position requests on its own path, which
-    /// jumps.
+    /// The glide in flight (``ScrollableOffsetState``): a `scrollTo` or a
+    /// bound `.scrollPosition` request made inside `withAnimation`, a row at a
+    /// time (`ItemListHandler+Glide.swift`).
     package var glide: ScrollGlide? { get { _glide } set { _glide = newValue } }
 
     /// ``glide``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _glide: ScrollGlide?
+
+    /// What the list's scrolling is doing, for `onScrollPhaseChange`
+    /// (`ScrollPhaseReporting`): `.interacting` from a user's scroll until it
+    /// has been quiet a quarter of a second, `.animating` while a request
+    /// glides, as a `ScrollView`'s.
+    package var phase: ScrollPhase { get { _phase } set { _phase = newValue } }
+
+    /// ``phase``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _phase = ScrollPhase.idle
+
+    /// When the user last scrolled, on ``phaseNow``'s clock.
+    package var lastUserScrollNanos: UInt64 { get { _lastUserScrollNanos } set { _lastUserScrollNanos = newValue } }
+
+    /// ``lastUserScrollNanos``'s storage: private, under the `package`
+    /// accessor (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _lastUserScrollNanos: UInt64 = 0
+
+    /// The phase each `onScrollPhaseChange` observer was last told.
+    package var reportedPhases: [ScrollPhase?] { get { _reportedPhases } set { _reportedPhases = newValue } }
+
+    /// ``reportedPhases``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _reportedPhases: [ScrollPhase?] = []
+
+    /// The clock the phase is timed on: the monotonic one the frame clock
+    /// reads. Replaceable so a test can step it.
+    package var phaseNow: () -> UInt64 { get { _phaseNow } set { _phaseNow = newValue } }
+
+    /// ``phaseNow``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _phaseNow: () -> UInt64 = { MonotonicClock.nowNanoseconds }
 
     /// Drag auto-scroll drive flag (``ScrollableOffsetState``).
     package var isAutoScrolling: Bool { get { _isAutoScrolling } set { _isAutoScrolling = newValue } }
