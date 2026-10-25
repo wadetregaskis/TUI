@@ -15,6 +15,9 @@ import TUIkit
 /// - Gradients, as strips and as styles
 /// - Materials, glass, shadows and the colour effects
 struct ColorsPage: View {
+    /// How much the materials demo's materials frost what is behind them.
+    @State private var materialFrost = MaterialFrostChoice.automatic
+
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
 
@@ -213,6 +216,13 @@ struct ColorsPage: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("page.colors.material.caption")
                         .foregroundStyle(.palette.foregroundSecondary)
+                    // The frost's degree for every row at once (TUI-specific):
+                    // each thickness's own box, none, or one box for all.
+                    Picker("page.colors.material.frost", selection: $materialFrost) {
+                        ForEach(MaterialFrostChoice.allCases, id: \.self) { choice in
+                            Text(L(choice.key)).tag(choice)
+                        }
+                    }
                     // Each material is a panel over the middle of the same busy
                     // row, the row's ends left bare to compare against: under
                     // the panel the pattern's glyphs are dropped and its colours
@@ -229,6 +239,7 @@ struct ColorsPage: View {
                                 .background(sample.material)
                         }
                     }
+                    .materialFrost(materialFrost.frost)
                 }
             }
 
@@ -249,6 +260,23 @@ extension ColorsPage {
     /// The one ramp every style demo above draws with, so what changes between
     /// them is visibly the GEOMETRY and not the colours.
     fileprivate static let warm: [Color] = [.rgb(255, 80, 80), .rgb(80, 160, 255)]
+}
+
+/// The frosts the materials demo's picker offers (``View/materialFrost(_:)``).
+private enum MaterialFrostChoice: String, CaseIterable, Hashable {
+    case automatic, glyphsOnly, small, large
+
+    /// The picker's label for it.
+    var key: String { "page.colors.material.frost.\(rawValue)" }
+
+    var frost: MaterialFrost {
+        switch self {
+        case .automatic: .automatic
+        case .glyphsOnly: .none
+        case .small: .radius(columns: 1, rows: 0)
+        case .large: .radius(columns: 8, rows: 4)
+        }
+    }
 }
 
 /// One row of the materials demo: a material and the name that spells it.
