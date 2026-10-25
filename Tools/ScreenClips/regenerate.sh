@@ -98,6 +98,9 @@ mkdir -p $out
 work=$stage/runs
 mkdir -p $work
 movies=()
+# The pointer the clips draw where their scripts point: this machine's own arrow, at its screen's scale.
+cursor=$stage/cursor.png
+hot_spot=${(j:,:)${(z)"$($recorder --cursor $cursor)"}}
 
 # ── Terminals ──────────────────────────────────────────────────────────────────────────────────────────────────────
 # Each opener starts a window running $script, in the background, and sets `pid` (the process that owns the window)
@@ -245,7 +248,8 @@ for clip in $clips_wanted; do
     [[ $chosen == $terminal ]] || name=$clip-$chosen
     (( encode_only )) || film
     run=$work/$name
-    encode=(python3 $here/encode.py clip $run/frames $run/markers $out/$name.webp --framing $run/framing.json)
+    encode=(python3 $here/encode.py clip $run/frames $run/markers $out/$name.webp --framing $run/framing.json
+            --cursor $cursor --hot-spot $hot_spot)
     (( mp4 )) && { encode+=(--mp4 $work/$name.mp4); movies+=$work/$name.mp4 }
     $encode
     (( keep )) || rm -rf $run/frames

@@ -28,6 +28,10 @@ enum Step {
     /// from this instant. The player ignores it (it is the encoder's), so it
     /// takes no time on the script's clock.
     case camera(Shot)
+    /// Moves the drawn pointer to this cell (1-based) without a press — to
+    /// show where attention goes before a key acts there. The player ignores
+    /// it, as it does a shot: only the encoder draws the pointer.
+    case point(column: Int, row: Int)
 
     /// Tab: the next focus stop.
     static let tab = Self.keys("\t")
@@ -49,6 +53,9 @@ enum Step {
     static let shiftRight = Self.keys("\u{1B}[1;2C")
     static let shiftLeft = Self.keys("\u{1B}[1;2D")
     static let shiftDown = Self.keys("\u{1B}[1;2B")
+    /// Option with left or right: a word at a time, in text.
+    static let optionRight = Self.keys("\u{1B}[1;3C")
+    static let optionLeft = Self.keys("\u{1B}[1;3D")
     /// Option with an arrow: moves the focused row of a reorderable list.
     static let optionDown = Self.keys("\u{1B}[1;3B")
     static let optionUp = Self.keys("\u{1B}[1;3A")
@@ -80,18 +87,28 @@ enum Step {
         [mouse(0, column, row), .wait(0.08), mouse(0, column, row, release: true)]
     }
 
+    /// A double click on a cell: a word selected, in a text view.
+    static func doubleClick(_ column: Int, _ row: Int) -> [Self] {
+        click(column, row) + [.wait(0.08)] + click(column, row)
+    }
+
     /// A left-button drag from one cell to another, a cell of motion every
-    /// `interval` seconds, as a hand moves a mouse.
-    static func drag(from start: (Int, Int), to end: (Int, Int), interval: Double = 0.03) -> [Self] {
-        var steps: [Self] = [mouse(0, start.0, start.1), .wait(0.15)]
+    /// `interval` seconds, as a hand moves a mouse. With `option`, the report
+    /// carries the Meta flag (+8), as a terminal sends an Option-drag: a
+    /// rectangular selection in a text editor.
+    static func drag(
+        from start: (Int, Int), to end: (Int, Int), interval: Double = 0.03, option: Bool = false
+    ) -> [Self] {
+        let flags = option ? 8 : 0
+        var steps: [Self] = [mouse(flags, start.0, start.1), .wait(0.15)]
         let count = max(abs(end.0 - start.0), abs(end.1 - start.1))
         for index in 1...max(1, count) {
             let fraction = Double(index) / Double(max(1, count))
             let column = start.0 + Int((Double(end.0 - start.0) * fraction).rounded())
             let row = start.1 + Int((Double(end.1 - start.1) * fraction).rounded())
-            steps += [mouse(32, column, row), .wait(interval)]
+            steps += [mouse(32 + flags, column, row), .wait(interval)]
         }
-        steps += [.wait(0.2), mouse(0, end.0, end.1, release: true)]
+        steps += [.wait(0.2), mouse(flags, end.0, end.1, release: true)]
         return steps
     }
 
@@ -126,6 +143,15 @@ struct Shot: Encodable {
 }
 
 /// A clip: an app that draws the capability, and the script that shows it off.
+/// A move of the drawn pointer: `press`, `drag`, `release` or `move` (no
+/// button), at a 1-based cell, at an instant on the script's clock.
+struct PointerEvent: Encodable {
+    let at: Double
+    let column: Int
+    let row: Int
+    let kind: String
+}
+
 struct Clip {
     /// The name the clip is run and saved by (`theming` → `theming.webp`).
     let id: String
@@ -167,18 +193,47 @@ struct Clip {
             switch step {
             case .wait(let seconds): clock += seconds
             case .camera(let shot): keys.append((clock, shot))
-            case .keys, .cue: break
+            case .keys, .cue, .point: break
             }
         }
         return keys
     }
 
     /// What the encoder needs to know about this clip, as JSON.
+    /// Where the pointer is sent, on the script's clock, for the encoder to
+    /// draw: every SGR mouse report the script types (a press, a motion, a
+    /// release), and every `.point`. Cells are 1-based, as the reports count.
+    var pointerEvents: [PointerEvent] {
+        var clock = 0.0
+        var events: [PointerEvent] = []
+        for step in script {
+            switch step {
+            case .wait(let seconds): clock += seconds
+            case .point(let column, let row): events.append(PointerEvent(at: clock, column: column, row: row, kind: "move"))
+            case .keys(let bytes):
+                guard bytes.hasPrefix("\u{1B}[<"), let last = bytes.last, last == "M" || last == "m" else { continue }
+                let fields = bytes.dropFirst(3).dropLast().split(separator: ";").compactMap { Int($0) }
+                guard fields.count == 3 else { continue }
+                let kind = last == "m" ? "release" : fields[0] & 32 != 0 ? "drag" : "press"
+                events.append(PointerEvent(at: clock, column: fields[1], row: fields[2], kind: kind))
+            case .camera, .cue: break
+            }
+        }
+        return events
+    }
+
     var framingJSON: String {
         struct Key: Encodable { let at: Double; let shot: Shot }
-        struct Framing: Encodable { let columns: Int; let rows: Int; let output: Int; let keys: [Key] }
+        struct Framing: Encodable {
+            let columns: Int
+            let rows: Int
+            let output: Int
+            let keys: [Key]
+            let pointer: [PointerEvent]
+        }
         let framing = Framing(
-            columns: columns, rows: rows, output: output, keys: cameraKeys.map { Key(at: $0.at, shot: $0.shot) })
+            columns: columns, rows: rows, output: output, keys: cameraKeys.map { Key(at: $0.at, shot: $0.shot) },
+            pointer: pointerEvents)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         return String(decoding: (try? encoder.encode(framing)) ?? Data("{}".utf8), as: UTF8.self)

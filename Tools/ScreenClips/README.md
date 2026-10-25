@@ -63,7 +63,7 @@ them short and few.
 | `Sources/ScreenClips/Scenes/` | One file per clip: the app, and its **script** — keys, cues and camera shots on a clock. |
 | `ScreenClips play <clip>` (`Player.swift`) | Draws a calibration card (below), then runs the clip's app under a pseudo-terminal of its own and relays everything between it and the real terminal, untouched, so TUIkit sees the real terminal (its identity, size, colours, quirks). Types the script's keys into that stream — through TUIkit's own parser and dispatch, as typed keys go (mouse reports too) — and sends its cues (a palette change, say: something no key does) down a pipe the app reads (`ClipCues`). Drops the terminal's focus reports, so the app never goes inactive because its window is not in front. Writes `start` and `end` markers. |
 | `WindowRecorder` | ScreenCaptureKit. Finds the window by its process (Ghostty: the new instance's; the others: the window titled for the clip), films it at the display's resolution, and writes a PNG per frame, with its presentation time. Stops at the `end` marker. Also gives the front back to the app that had it (`--refront`), and finds the screen corner where a window shows most from behind it (`--spot`). |
-| `encode.py` | Finds the grid in the film from the calibration card, keeps what was on the screen between the markers, sampled at 30 fps, cuts each frame at the camera's rectangle for that instant, scales it to the clip's output width (Lanczos), rounds its corners, merges runs of one picture into one longer frame, and encodes a lossy WebP looped forever with `img2webp`. Also composites carousels, and MP4s with ffmpeg. |
+| `encode.py` | Finds the grid in the film from the calibration card, keeps what was on the screen between the markers, sampled at 30 fps, cuts each frame at the camera's rectangle for that instant, scales it to the clip's output width (Lanczos), draws the pointer (below), rounds its corners, merges runs of one picture into one longer frame, and encodes a lossy WebP looped forever with `img2webp`. Also composites carousels, and MP4s with ffmpeg. |
 | `regenerate.sh` | Builds, stages the binaries in `~/Library/Caches/tuikit-probe/screenclips` (Ghostty may not open files under `~/Documents`), and for each clip opens the terminal, films, closes, encodes. Publishes with `--publish`. |
 
 **The calibration card.** Before the app starts, the player clears the screen
@@ -74,6 +74,15 @@ filming, and notes the instant and the grid's size in cells. The distance
 between the two cells is a cell's size in the film's pixels, and the first cell
 less one is where the grid starts — whatever the terminal, font, padding,
 title bar or display scale — which is what lets a camera be written in cells.
+
+**The pointer.** A clip's mouse reports go to the app as bytes: nothing moves
+the machine's own pointer, and a terminal does not draw one. So the encoder
+draws it, where the script points: `WindowRecorder --cursor` saves this
+machine's own arrow (at its screen's scale, with its hot spot) once a run, and
+`ScreenClips framing` lists every mouse report and `.point` on the script's
+clock. The pointer glides into each press from wherever it was, follows a drag
+report by report, and a press sends out a fading ring. Filmed on another
+system, the pointer is that system's.
 
 The script's clock starts once the app has drawn its first frame and settled
 (1.2 s after its first output), and nothing before that is kept, so every run
@@ -129,9 +138,12 @@ the script, and the app to run — and list it in `clips` (`Clip.swift`). A
 script is `[Step]`:
 
 - `.wait(seconds)`;
-- `.keys(bytes)` — `.tab`, `.space`, `.down`, `.shiftLeft`, `.f10`,
-  `Step.control("z")`, `Step.type("text")`, `Step.click(column, row)`,
-  `Step.drag(from:to:)` (SGR mouse reports, 1-based cells), …;
+- `.keys(bytes)` — `.tab`, `.space`, `.down`, `.shiftLeft`, `.optionRight`,
+  `.f10`, `Step.control("z")`, `Step.type("text")`, `Step.click(column, row)`,
+  `Step.doubleClick(column, row)`, `Step.drag(from:to:option:)` (SGR mouse
+  reports, 1-based cells; `option` makes it an Option-drag), …;
+- `.point(column:row:)`, which moves the drawn pointer without a press — to
+  show where attention goes before a key acts there;
 - `.cue(name)`, which the app's `.task { for await cue in ClipCues.stream() { … } }`
   receives;
 - `.camera(Shot(x:y:width:height:over:))`, a shot in cells, eased over `over`

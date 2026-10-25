@@ -167,6 +167,70 @@ class Camera:
         return rect
 
 
+# ── The pointer ─────────────────────────────────────────────────────────────────────────────────────────────────────
+
+class Pointer:
+    """Where the drawn pointer is at any instant of the script's clock, and how far a click's ripple has spread.
+
+    The script's mouse reports go to the app as bytes; nothing moves the machine's own pointer, and a terminal does not
+    draw one. So it is drawn here, from `framing['pointer']` (`ScreenClips framing`), with the system's own arrow
+    image (`WindowRecorder --cursor`): it glides into each press or `.point` from wherever it was, follows a drag
+    report by report, and a press sends out a ring. Before the first event it is not drawn."""
+
+    GLIDE = 0.45      # seconds a move into a press takes, when the press is not part of a drag
+    RIPPLE = 0.4      # seconds a click's ring takes to spread and fade
+
+    def __init__(self, events, image, hot_spot):
+        self.events = sorted(events, key=lambda e: e['at'])
+        self.image = image
+        self.hot_spot = hot_spot
+
+    def at(self, time):
+        """((column, row) in cells from the grid's top-left, ripple progress 0–1 or None), or None if not drawn."""
+        if not self.events or time < self.events[0]['at'] - self.GLIDE - 0.25:
+            return None
+        def centre(event):
+            return (event['column'] - 0.5, event['row'] - 0.4)
+        first = self.events[0]
+        position = (centre(first)[0] + 5, centre(first)[1] + 3)  # comes in from below right
+        previous_at = first['at'] - self.GLIDE
+        for event in self.events:
+            target = centre(event)
+            if event['kind'] == 'drag' or event['kind'] == 'release':
+                glide_start = previous_at
+            else:
+                glide_start = max(previous_at, event['at'] - self.GLIDE)
+            if time < event['at']:
+                if time <= glide_start:
+                    break
+                p = ease((time - glide_start) / max(1e-6, event['at'] - glide_start))
+                position = tuple(a + (b - a) * p for a, b in zip(position, target))
+                break
+            position, previous_at = target, event['at']
+        ripple = None
+        for event in self.events:
+            if event['kind'] == 'press' and 0 <= time - event['at'] < self.RIPPLE:
+                ripple = (time - event['at']) / self.RIPPLE
+        return position, ripple
+
+    def draw(self, picture, state, grid, box):
+        """Draws the pointer onto `picture`, an output frame cut from the film at `box` (film pixels)."""
+        (column, row), ripple = state
+        scale = picture.width / (box[2] - box[0])
+        x = (grid.x + column * grid.cell_width - box[0]) * scale
+        y = (grid.y + row * grid.cell_height - box[1]) * scale
+        if ripple is not None:
+            layer = Image.new('RGBA', picture.size, (0, 0, 0, 0))
+            radius = grid.cell_width * scale * (0.6 + 1.6 * ripple)
+            alpha = int(200 * (1 - ripple))
+            ImageDraw.Draw(layer).ellipse((x - radius, y - radius, x + radius, y + radius),
+                                          outline=(255, 255, 255, alpha), width=max(2, int(scale * 3)))
+            picture.alpha_composite(layer)
+        size = (max(1, round(self.image.width * scale)), max(1, round(self.image.height * scale)))
+        arrow = self.image.resize(size, Image.LANCZOS)
+        picture.alpha_composite(arrow, (round(x - self.hot_spot[0] * scale), round(y - self.hot_spot[1] * scale)))
+
+
 def rounded_mask(size, radius, supersample=4):
     """An anti-aliased rounded rectangle, white on black, the size of an output frame."""
     width, height = size
@@ -203,7 +267,7 @@ def shown_at(frames, start, end, fps):
     return shown
 
 
-def clip_sequence(frames, markers, framing, fps, radius, workdir, camera_fps=15):
+def clip_sequence(frames, markers, framing, fps, radius, workdir, camera_fps=15, cursor=None):
     """[(png path, duration ms)]: the clip, cropped and cornered, runs of one picture merged.
 
     The camera moves at `camera_fps`, not every tick: a move changes every pixel of every frame it lasts, so it is
@@ -215,24 +279,31 @@ def clip_sequence(frames, markers, framing, fps, radius, workdir, camera_fps=15)
     mask = rounded_mask((width, height), radius)
     start, end = markers['start'], markers['end']
     shown = shown_at(frames, start, end, fps)
-    runs = []  # [key, path, rect, first tick, last tick]
+    pointer = Pointer(framing['pointer'], *cursor) if cursor and framing.get('pointer') else None
+    runs = []  # [key, path, rect, pointer state, first tick, last tick]
     for k, path in enumerate(shown):
         rect = tuple(round(v, 3) for v in camera.at(int(k / fps * camera_fps) / camera_fps))
-        key = (digest(path), rect)
+        state = pointer.at(k / fps) if pointer else None
+        if state:
+            state = (tuple(round(v, 2) for v in state[0]), None if state[1] is None else round(state[1], 2))
+        key = (digest(path), rect, state)
         if runs and runs[-1][0] == key:
-            runs[-1][4] = k
+            runs[-1][5] = k
         else:
-            runs.append([key, path, rect, k, k])
+            runs.append([key, path, rect, state, k, k])
     source = Source()
     total_ms = (end - start) / 1e6
     sequence = []
-    for i, (_, path, rect, first, _) in enumerate(runs):
-        picture = source.image(path).resize((width, height), Image.LANCZOS, box=grid.box(*rect)).convert('RGBA')
+    for i, (_, path, rect, state, first, _) in enumerate(runs):
+        box = grid.box(*rect)
+        picture = source.image(path).resize((width, height), Image.LANCZOS, box=box).convert('RGBA')
+        if state:
+            pointer.draw(picture, state, grid, box)
         picture.putalpha(mask)
         out = os.path.join(workdir, f'out-{i:05d}.png')
         picture.save(out, compress_level=1)
         begin = round(first * 1000 / fps)
-        finish = round(runs[i + 1][3] * 1000 / fps) if i + 1 < len(runs) else round(total_ms)
+        finish = round(runs[i + 1][4] * 1000 / fps) if i + 1 < len(runs) else round(total_ms)
         sequence.append((out, max(1, finish - begin)))
     return sequence
 
@@ -483,6 +554,8 @@ def main():
     clip.add_argument('out')
     clip.add_argument('--framing', required=True)
     clip.add_argument('--fps', type=float, default=30)
+    clip.add_argument('--cursor', help='the pointer to draw where the script points: a PNG (WindowRecorder --cursor)')
+    clip.add_argument('--hot-spot', default='0,0', help="the pointer image's hot spot, in its pixels: X,Y")
     deck = modes.add_parser('carousel', parents=[common])
     deck.add_argument('out')
     deck.add_argument('pairs', nargs='+', help='TERMINAL RUN_DIR, repeated')
@@ -504,7 +577,12 @@ def main():
         framing = json.load(handle)
     markers = read_markers(options.markers)
     with tempfile.TemporaryDirectory() as workdir:
-        sequence = clip_sequence(read_frames(options.frames), markers, framing, options.fps, options.radius, workdir)
+        cursor = None
+        if options.cursor:
+            hot_spot = tuple(int(v) for v in options.hot_spot.split(','))
+            cursor = (Image.open(options.cursor).convert('RGBA'), hot_spot)
+        sequence = clip_sequence(read_frames(options.frames), markers, framing, options.fps, options.radius, workdir,
+                                 cursor=cursor)
         size, quality = encode_within_budget(sequence, options.out, options.quality, options.min_quality,
                                              options.budget_kb)
         report(options.out, size, sequence, quality)

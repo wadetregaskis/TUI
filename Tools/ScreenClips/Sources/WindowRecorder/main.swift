@@ -9,6 +9,8 @@
 //      WindowRecorder --list [--pid PID]      the windows on screen, with their ids
 //      WindowRecorder --front                 the frontmost app's process id
 //      WindowRecorder --spot WxH              where a W×H pt window shows most from behind the frontmost app
+//      WindowRecorder --cursor PNG            the system's arrow pointer, at the main screen's scale,
+//                                             and its hot spot in that image's pixels (printed `x y`)
 //
 //  The window is the newest on-screen window of process PID (not one in
 //  --exclude, which lists the windows that app already had when it was asked
@@ -77,6 +79,7 @@ struct Options {
     var wake = false
     var refront: pid_t?
     var spot: CGSize?
+    var cursor: String?
 
     init(_ arguments: [String]) {
         var iterator = arguments.dropFirst().makeIterator()
@@ -99,13 +102,14 @@ struct Options {
             case "--title": title = value(argument)
             case "--wake": wake = true
             case "--refront": refront = pid_t(value(argument))
+            case "--cursor": cursor = value(argument)
             case "--spot":
                 let parts = value(argument).split(separator: "x").compactMap { Double($0) }
                 if parts.count == 2 { spot = CGSize(width: parts[0], height: parts[1]) }
             default: Self.usage("unknown argument \(argument)")
             }
         }
-        if !list, !front, spot == nil, pid == nil { Self.usage("--pid is required") }
+        if !list, !front, spot == nil, cursor == nil, pid == nil { Self.usage("--pid is required") }
     }
 
     static func usage(_ message: String) -> Never {
@@ -335,6 +339,10 @@ struct WindowRecorder {
         let options = Options(CommandLine.arguments)
         // Connects to the window server before anything asks about screens.
         _ = NSApplication.shared
+        if let path = options.cursor {
+            try saveCursor(to: path)
+            return
+        }
         if !options.list, !options.front, options.spot == nil, screenIsLocked() {
             Options.usage("the screen is locked: nothing can be filmed until it is unlocked")
         }
@@ -432,4 +440,27 @@ struct WindowRecorder {
         print("WindowRecorder: \(writer.count) frames of window \(window.windowID) to \(directory.path) (\(reason))")
         if reason == "timeout" || reason == "screen locked" { exit(1) }
     }
+}
+
+/// Writes the system's arrow pointer to `path` as a PNG, at the main screen's
+/// backing scale (the scale the films are taken at), and prints its hot spot
+/// in that image's pixels. The encoder draws it where a clip's script points:
+/// the pointer a person on this machine would have seen, not a drawing of one.
+@MainActor
+func saveCursor(to path: String) throws {
+    let cursor = NSCursor.arrow
+    let scale = NSScreen.main?.backingScaleFactor ?? 2
+    let size = cursor.image.size
+    var rect = NSRect(x: 0, y: 0, width: size.width * scale, height: size.height * scale)
+    guard let image = cursor.image.cgImage(forProposedRect: &rect, context: nil, hints: nil) else {
+        Options.usage("the arrow pointer has no image")
+    }
+    let bitmap = NSBitmapImageRep(cgImage: image)
+    guard let png = bitmap.representation(using: .png, properties: [:]) else {
+        Options.usage("the arrow pointer could not be written as a PNG")
+    }
+    try png.write(to: URL(fileURLWithPath: path))
+    let hotSpot = cursor.hotSpot
+    print(Int((hotSpot.x * Double(image.width) / size.width).rounded()),
+          Int((hotSpot.y * Double(image.height) / size.height).rounded()))
 }

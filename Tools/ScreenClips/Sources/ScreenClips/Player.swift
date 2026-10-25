@@ -106,7 +106,7 @@ struct Player {
                 case .wait(let seconds): due = deadline + Self.nanoseconds(seconds)
                 case .keys(let text): writeAll(master, Array(text.utf8))
                 case .cue(let name): writeAll(cues, Array((name + "\n").utf8))
-                case .camera: break  // the encoder's, not the app's
+                case .camera, .point: break  // the encoder's, not the app's
                 }
             }
             if ended {
