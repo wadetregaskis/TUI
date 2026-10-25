@@ -119,9 +119,12 @@ def run(binary, scenario, scale, iterations, cols, rows, cold=False):
 
     A scenario id written `scenario/variant` (as `Stress --variants` and the
     selfcheck name them, e.g. `modifiers/color-effects`) runs that variant of
-    the scenario: `--scenario modifiers --variant color-effects`.
+    the scenario: `--scenario modifiers --variant color-effects`. A session,
+    `session/<id>`, is not a variant: the harness takes that id whole.
     """
     scenario_id, _, variant = scenario.partition("/")
+    if scenario_id == "session":
+        scenario_id, variant = scenario, ""
     out = subprocess.run(
         [binary, "--bench", "--scenario", scenario_id, "--scale", str(scale),
          "--iterations", str(iterations), "--cols", str(cols), "--rows", str(rows)]
