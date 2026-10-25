@@ -43,6 +43,7 @@ swift run -c release Stress -- --bench --scenario fanout --iterations 2000 --col
 | `TUIKIT_STRESS_SEED` | `--seed <n>` | synthetic-data seed |
 | `TUIKIT_STRESS_AUTOPILOT` | `--autopilot` | self-drive continuous re-renders |
 | `TUIKIT_STRESS_STRIPES` | `--stripes <b>` | `--bench` of a scenario only: draw it under `.alternatingRowBackgrounds(<b>)` — `automatic`, `enabled` or `disabled` — to price the stripe on one binary (see below); any other run that states it, or any other value, stops |
+| `TUIKIT_HAIRLINES` | — | `1`: `--bench` as if the terminal drew `.hairline` list separators (a list then marks its rows for them; the run loop that places them is not benched) |
 
 `--variants` lists every matrix scenario's variants, grouped by the axis each
 one varies. `--bench` also takes `--iterations N`, `--cols C`, `--rows R`, and `--cold`

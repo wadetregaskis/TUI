@@ -25,6 +25,7 @@
 //    --bench options: --iterations <n> --cols <c> --rows <r> --cold
 //    TUIKIT_STRESS_STRIPES  | --stripes <b>      --bench under .alternatingRowBackgrounds(<b>): automatic, enabled, disabled
 //                                                (a scenario only: any other run, or another value, stops)
+//    TUIKIT_HAIRLINES=1                          --bench as if the terminal drew hairline list separators
 //
 //  Sessions (interaction scripts played over time — see Sessions/Session.swift):
 //    --sessions                                  list them
@@ -153,6 +154,13 @@ if rawArgs.contains("--help") || rawArgs.contains("-h") {
     let failures = await MainActor.run { Headless.selfcheck(config) }
     exit(failures == 0 ? 0 : 1)
 } else if rawArgs.contains("--bench") {
+    // A bench draws no terminal, so nothing answers whether it draws hairlines:
+    // `TUIKIT_HAIRLINES=1` says yes, to price what a list's `.hairline`
+    // separators cost the render on a host that draws them (the marks; the
+    // writer and the placements are the run loop's, which a bench does not run).
+    if ProcessInfo.processInfo.environment["TUIKIT_HAIRLINES"] == "1" {
+        await MainActor.run { KittyGraphics.isHairlineSupported = true }
+    }
     let iterations = flagValue("--iterations").flatMap(Int.init) ?? 2_000
     let cols = flagValue("--cols").flatMap(Int.init) ?? 120
     let rows = flagValue("--rows").flatMap(Int.init) ?? 40
