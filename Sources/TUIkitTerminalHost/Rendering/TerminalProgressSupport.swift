@@ -19,8 +19,9 @@ extension TerminalClient {
     /// A capability, so the default is "no", for the reason
     /// ``honoursHyperlinks(_:)`` gives: an unmeasured terminal gets the answer
     /// that cannot hurt. TUIkit sends the report only where this says yes.
-    /// Whether the person then SEES it is `TerminalFeatures.showsProgress`,
-    /// which says no wherever this does, and under tmux asks tmux which
+    /// Whether the person then SEES it is `\.terminalCapabilities`'
+    /// ``TerminalCapabilities/Feature/progressReports``, which is not
+    /// supported wherever this says no, and under tmux asks tmux which
     /// clients it passes the bar on to; where it says no an app draws its
     /// progress itself.
     ///

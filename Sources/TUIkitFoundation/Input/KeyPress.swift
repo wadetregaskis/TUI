@@ -25,7 +25,8 @@ import TUIkitCore
 ///   every press, labelled `.down`, and a ``Phases/up`` handler never runs.
 ///   Where the terminal speaks the kitty keyboard protocol, which TUIkit turns
 ///   on wherever it can, all three phases are reported as SwiftUI reports
-///   them. ``EnvironmentValues/keyboardReporting`` says which is the case.
+///   them. ``EnvironmentValues/terminalCapabilities`` says which is the case
+///   (``TerminalCapabilities/Feature/keyRepeats``, ``TerminalCapabilities/Feature/keyReleases``).
 /// - **``modifiers`` holds what the terminal reports**: Control, Option and
 ///   Shift; and Command, Caps Lock and the numeric pad where it speaks the
 ///   kitty keyboard protocol — Command only on a chord the terminal does not
@@ -44,7 +45,7 @@ public struct KeyPress: Sendable, CustomDebugStringConvertible {
     ///
     /// Always ``Phases/down`` from a terminal in its legacy encodings, where
     /// repeats arrive as presses and releases never arrive; see the type's
-    /// documentation and ``EnvironmentValues/keyboardReporting``.
+    /// documentation and ``EnvironmentValues/terminalCapabilities``.
     public let phase: Phases
 
     /// The key that was pressed — `"A"` for Shift-A, ``KeyEquivalent/upArrow``
@@ -59,7 +60,7 @@ public struct KeyPress: Sendable, CustomDebugStringConvertible {
 
     /// The modifier keys held with the key: Control, Option and Shift, and
     /// Command, Caps Lock and the numeric pad where the terminal speaks the
-    /// kitty keyboard protocol (``EnvironmentValues/keyboardReporting``).
+    /// kitty keyboard protocol (``EnvironmentValues/terminalCapabilities``).
     public let modifiers: EventModifiers
 
     /// `KeyPress(.down, "a")`, SwiftUI's spelling.
@@ -130,12 +131,12 @@ extension KeyPress {
     /// `KeyPress.Phases`.
     ///
     /// All three are reported where the terminal speaks the kitty keyboard
-    /// protocol (``KeyboardReporting/reportsRepeats``,
-    /// ``KeyboardReporting/reportsReleases``). In the legacy encodings a
+    /// protocol (``TerminalCapabilities/Feature/keyRepeats``,
+    /// ``TerminalCapabilities/Feature/keyReleases``). In the legacy encodings a
     /// terminal cannot tell an auto-repeat from a press, so a handler for
     /// ``down`` or ``repeat`` hears every press, and it never reports a
     /// release, so an ``up`` handler never runs: offer a fallback there, by
-    /// reading ``EnvironmentValues/keyboardReporting``.
+    /// reading ``EnvironmentValues/terminalCapabilities``.
     public struct Phases: OptionSet, Sendable, CustomDebugStringConvertible {
         public let rawValue: Int
         public init(rawValue: Int) { self.rawValue = rawValue }
@@ -151,7 +152,7 @@ extension KeyPress {
         public static let `repeat` = Self(rawValue: 1 << 1)
 
         /// The user released a key. Reported only where the terminal speaks
-        /// the kitty keyboard protocol (``KeyboardReporting/reportsReleases``);
+        /// the kitty keyboard protocol (``TerminalCapabilities/Feature/keyReleases``);
         /// elsewhere a handler for it never runs.
         public static let up = Self(rawValue: 1 << 2)
 

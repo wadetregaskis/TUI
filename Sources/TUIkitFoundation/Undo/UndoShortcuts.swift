@@ -6,6 +6,7 @@
 
 import Foundation
 import TUIkitCore
+import TUIkitTerminalHost
 
 // MARK: - Undo Command
 
@@ -143,9 +144,10 @@ public struct UndoShortcuts: Hashable, Sendable {
         boundShortcuts(for: command, commandKey: commandKey)
     }
 
-    /// The chord to show for `command` on a terminal that reports keys as
-    /// `reporting` says: of the keys that reach it, the ones such a terminal
-    /// can deliver as themselves — ⌃Z for undo and ⌃⇧Z for redo first, the
+    /// The chord to show for `command` on a terminal whose keyboard is as
+    /// `terminal` says (an app passes its `\.terminalCapabilities`; a keyboard
+    /// feature not known to be supported counts as missing): of the keys that
+    /// reach it, the ones such a terminal can deliver as themselves — ⌃Z for undo and ⌃⇧Z for redo first, the
     /// names they are known by, then TUIkit's own, then in order; `nil`
     /// when it can deliver none. In a legacy encoding a Control chord with
     /// Shift, or on a key other than a letter or minus, arrives as another
@@ -160,9 +162,9 @@ public struct UndoShortcuts: Hashable, Sendable {
     /// Shift in the case it types, as its own items are written — `u`, and
     /// `U` for Shift-U — because in the bar the case is the Shift.
     public func hint(
-        for command: UndoCommand, on reporting: KeyboardReporting, commandKey: CommandKeyBinding = .control
+        for command: UndoCommand, on terminal: TerminalCapabilities, commandKey: CommandKeyBinding = .control
     ) -> String? {
-        hintShortcut(for: command, on: reporting, commandKey: commandKey)?.displayString
+        hintShortcut(for: command, on: KeyboardReporting(terminal), commandKey: commandKey)?.displayString
     }
 
     /// The shortcut ``hint(for:on:commandKey:)`` names, before it is written.

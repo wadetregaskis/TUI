@@ -105,7 +105,7 @@ extension View {
     ///
     /// The terminal draws the pointer, and only some let an app choose its
     /// shape; elsewhere this changes nothing. Read
-    /// ``TerminalFeatures/pointerShapes`` (`\.terminalFeatures`) to tell. See
+    /// ``EnvironmentValues/terminalCapabilities``' ``TerminalCapabilities/Feature/pointerShapes`` to tell. See
     /// ``PointerStyle``. While a style is on screen, the terminal is asked to
     /// report the pointer's every move, as `.onHover` asks.
     ///

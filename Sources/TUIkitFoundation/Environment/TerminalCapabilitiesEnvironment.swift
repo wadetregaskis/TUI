@@ -49,6 +49,24 @@ extension TerminalCapabilities {
     ]
 }
 
+extension KeyboardReporting {
+    /// What `capabilities` says the terminal reports: each keyboard feature
+    /// it supports `true`, an unsupported or undetermined one `false`, as a
+    /// terminal TUIkit never asked reads (``legacy``). The way back from
+    /// ``TerminalCapabilities/keyboard(_:)``, for a public API that takes the
+    /// app's `\.terminalCapabilities`.
+    package init(_ capabilities: TerminalCapabilities) {
+        isEnhanced = capabilities.supportsAny(of: TerminalCapabilities.negotiatedKeyboard)
+        disambiguatesKeys = capabilities.supports(.disambiguatedKeys)
+        reportsShiftedKeys = capabilities.supports(.shiftedKeys)
+        reportsRepeats = capabilities.supports(.keyRepeats)
+        reportsReleases = capabilities.supports(.keyReleases)
+        reportsModifierKeys = capabilities.supports(.modifierKeys)
+        reportsLockStates = capabilities.supports(.capsLock)
+        reportsNumericPad = capabilities.supports(.numericPad)
+    }
+}
+
 // MARK: - Environment key
 
 private struct TerminalCapabilitiesKey: EnvironmentKey {

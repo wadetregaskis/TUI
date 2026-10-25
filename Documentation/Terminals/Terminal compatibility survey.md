@@ -4006,9 +4006,10 @@ passes it on to a client that draws it. Elsewhere nothing is sent.
 unprompted is sent the same dozen bytes again every 5 s, but for tmux, which
 is sent none (it keeps the bar, and passes no repeat on).
 
-**Whether the person sees it** is `\.terminalFeatures.showsProgress`, which
-an app reads to draw its own progress where the terminal shows none: `false`
-wherever nothing is sent, `true` on Ghostty and iTerm2, and under tmux `true`
+**Whether the person sees it** is `\.terminalCapabilities`'
+`.progressReports`, which an app reads to draw its own progress where the
+terminal shows none: not supported wherever nothing is sent, supported on
+Ghostty and iTerm2, and under tmux supported
 only while every client attached has tmux's `progressbar` feature — the
 clients tmux passes the bar on to (measured below). TUIkit asks tmux
 (`#{client_termfeatures}`, in the `list-clients` it already runs to name the
@@ -4083,8 +4084,8 @@ runs itself in the pane to send every sequence):
 | Requests made as the app quits | written in the exit's farewell, before the alternate screen is left |
 
 Only to a host documented to post one (`TerminalClient.honoursNotifications`):
-Ghostty and iTerm2. `\.terminalFeatures.postsNotifications` says which this
-is; `TUIKIT_NOTIFICATIONS=1` sends notifications to any host, `0` keeps every
+Ghostty and iTerm2. `\.terminalCapabilities`' `.notifications` says which
+this is; `TUIKIT_NOTIFICATIONS=1` sends notifications to any host, `0` keeps every
 request to the bell. Nothing reports whether the person saw either.
 
 | Host | Posts `OSC 9` | Evidence | The bell |
@@ -5915,7 +5916,7 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
   read as legacy bytes, Return, `q` and Ctrl-C would all be dropped and the app
   could not be typed at or quit (found in review, 2026-10-04). The protocol's
   grammar decodes a key whichever flags were taken, so the only cost of the
-  guess is `\.keyboardReporting` claiming what was asked for; the late answer
+  guess is `\.terminalCapabilities` claiming the keyboard features asked for; the late answer
   is dropped as input, as any reply is.
 - **Pops** with `CSI < u` on quit, on a suspend (SIGTSTP, or a Ctrl-Z the undo
   keys leave unbound), on `SIGINT` and `SIGTERM` (an
@@ -5944,8 +5945,9 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
 - **Pops its flags when the app stalls**: input left unread for 1.5 s has the
   stall watchdog pop them, so a hung app's next ⌃\\ is the byte the driver
   quits on; a loop that recovers pushes them back ("The quit key, ⌃\\").
-- **Publishes** what was taken as `\.keyboardReporting` (`KeyboardReporting`),
-  so an app can tell which of SwiftUI's keyboard features work here.
+- **Publishes** what was taken as `\.terminalCapabilities`' keyboard features
+  (`.disambiguatedKeys` to `.numericPad`), so an app can tell which of
+  SwiftUI's keyboard features work here.
 - **Stays out** where `TUIKIT_KEYBOARD_PROTOCOL=0` is set: the user's way out
   should a terminal claim the protocol and encode keys in a way TUIkit
   misreads, as `TUIKIT_HYPERLINKS=0` is for links.
@@ -6171,8 +6173,8 @@ only. An app that wants either chord to do something else binds it.
 
 **The status bar names the first key the terminal can deliver** as itself:
 the bound keys in `KeyboardShortcut` order, TUIkit's own first, filtered by
-what a terminal reporting as `\.keyboardReporting` says can be sent — in a
-legacy encoding a Control chord only on a letter (bar Ctrl-H, I, J, M) or
+what the terminal's keyboard features (`\.terminalCapabilities`) say can be
+sent — in a legacy encoding a Control chord only on a letter (bar Ctrl-H, I, J, M) or
 minus, and never with Shift; under the protocol any Control chord, one on a
 shifted character only with flag 4; an Option chord always, since whether
 Option is Meta cannot be asked. With the defaults that is `^-` for undo

@@ -79,7 +79,7 @@ extension EnvironmentValues {
     ///   this undo too, and its Ctrl-Shift-Z this redo.
     /// - **Redo:** Ctrl-Shift-Z and Ctrl-_ (Ctrl-Shift-minus) where the
     ///   terminal tells them from Ctrl-Z and Ctrl-minus — the kitty keyboard
-    ///   protocol, ``KeyboardReporting/reportsShiftedKeys``; and Option-_
+    ///   protocol, ``TerminalCapabilities/Feature/shiftedKeys``; and Option-_
     ///   where the terminal sends Option as Meta (or reports Option under the
     ///   protocol). Ctrl-Y is the text controls' yank, and is not taken.
     /// - **Ctrl-Z is the shell's suspend key too.** Bound to undo, with

@@ -36,7 +36,7 @@ import TUIkitCore
 /// notification on (measured), so inside tmux it is the bell, which tmux
 /// passes on. Requests made between two frames are written together: each
 /// message once, and the bell once. Nothing reports whether the person saw
-/// it. `\.terminalFeatures`'s ``TerminalFeatures/postsNotifications`` says
+/// it. ``EnvironmentValues/terminalCapabilities``' ``TerminalCapabilities/Feature/notifications`` says
 /// which this terminal gets, and `TUIKIT_NOTIFICATIONS=1` or `0` is the
 /// user's switch.
 ///

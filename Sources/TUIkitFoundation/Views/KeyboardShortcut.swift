@@ -85,7 +85,7 @@ public struct KeyEquivalent: Hashable, Sendable, ExpressibleByExtendedGraphemeCl
 /// protocol, and only on a chord the terminal does not keep for itself — see
 /// `Documentation/Terminals/Terminal compatibility survey.md`. Caps Lock and
 /// the numeric pad are reported only under that protocol too
-/// (``EnvironmentValues/keyboardReporting``). So a shortcut declared with
+/// (``EnvironmentValues/terminalCapabilities``). So a shortcut declared with
 /// ``command`` fires on the key that stands in for ⌘ here
 /// (``View/commandKey(_:)``, Control by default), and on a real ⌘ only where
 /// the app asks for that (``View/keyboardShortcutsMatchCommand(_:)``).
@@ -100,7 +100,7 @@ public struct EventModifiers: OptionSet, Hashable, Sendable {
     ///
     /// In a ``KeyPress``'s modifiers while Caps Lock is on, where the terminal
     /// speaks the kitty keyboard protocol
-    /// (``KeyboardReporting/reportsLockStates``); and seen by
+    /// (``TerminalCapabilities/Feature/capsLock``); and seen by
     /// ``View/onModifierKeysChanged(mask:initial:_:)`` when it is toggled
     /// there. In a terminal's legacy encodings it is never reported: a letter
     /// typed under Caps Lock arrives as the uppercase character, which is to
@@ -122,7 +122,7 @@ public struct EventModifiers: OptionSet, Hashable, Sendable {
     ///
     /// In a ``KeyPress``'s modifiers for a keypad key, where the terminal
     /// speaks the kitty keyboard protocol
-    /// (``KeyboardReporting/reportsNumericPad``). Not set on the arrow keys,
+    /// (``TerminalCapabilities/Feature/numericPad``). Not set on the arrow keys,
     /// which macOS also counts as the numeric pad. In a terminal's legacy
     /// encodings a keypad digit arrives as the digit, so it is never
     /// reported. A keyboard shortcut ignores it, and one that requires it can
@@ -305,7 +305,7 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// Ctrl-letter range, so in a terminal's legacy encodings they never arrive
     /// as a modified letter. Where the terminal speaks the kitty keyboard
     /// protocol they do arrive, and such a shortcut fires
-    /// (``KeyboardReporting/disambiguatesKeys``); this answers for every
+    /// (``TerminalCapabilities/Feature/disambiguatedKeys``); this answers for every
     /// terminal, so it stays `false`. Consult it
     /// after `resolved(commandKey:)` — that is where a ⌘ shortcut becomes a
     /// Control one and can collide.

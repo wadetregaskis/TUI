@@ -31,10 +31,10 @@ extension View {
     /// A terminal reports a modifier key pressed or released on its own only
     /// under the kitty keyboard protocol's "report all keys as escape codes"
     /// enhancement, which TUIkit turns on wherever the terminal answers its
-    /// query. Read ``EnvironmentValues/keyboardReporting``'s
-    /// ``KeyboardReporting/reportsModifierKeys`` to know: where it is `false`
+    /// query. Read ``EnvironmentValues/terminalCapabilities``'
+    /// ``TerminalCapabilities/Feature/modifierKeys`` to know: where it is not supported
     /// the action never runs, so offer another route to whatever it reveals.
-    /// Where it is `true`, Shift, Control, Option and Caps Lock are reported,
+    /// Where it is, Shift, Control, Option and Caps Lock are reported,
     /// and Command (⌘) on the macOS terminals that pass it through as the
     /// protocol's Super key; ``EventModifiers/numericPad`` is never part of
     /// the state.

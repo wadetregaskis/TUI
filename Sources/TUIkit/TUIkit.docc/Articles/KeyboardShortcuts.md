@@ -122,8 +122,10 @@ the terminal answers its query, the three phases are SwiftUI's: a press is
 release ``KeyPress/Phases/up``. In the legacy encodings a terminal sends a held
 key's repeats as more presses and never sends a release, so every press is
 `.down` (a `.down` or `.repeat` handler hears them all) and an `.up` handler
-never runs. ``EnvironmentValues/keyboardReporting`` says which, for an app that
-wants to offer a fallback. Its ``KeyPress/modifiers`` are the three a terminal
+never runs. ``EnvironmentValues/terminalCapabilities`` says which
+(``TerminalCapabilities/Feature/keyRepeats``,
+``TerminalCapabilities/Feature/keyReleases``), for an app that wants to offer
+a fallback. Its ``KeyPress/modifiers`` are the three a terminal
 reports — Control, Option and Shift — and ⌘ (``EventModifiers/command``) on a
 chord the kitty keyboard protocol lets through.
 

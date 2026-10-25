@@ -179,6 +179,8 @@ All of these are pre-1.0 changes with no old spelling kept.
 - **`Spacer.minLength` is a public `var`** under SwiftUI's name. `SpacerProtocol`'s requirement is `minLength`, not `spacerMinLength`.
 - **`UnitCurve.easeInEaseOut`, `WindowGroup.init(content:)` and the `CoordinateSpace`-enum overloads are removed or made internal** (see below).
 - **TUIkit's alert panel view is `AlertPanel`**, no longer `Alert`, whose name read as SwiftUI's retired value type. `.alert(…)` is unchanged; only code that names the view (`Alert(title:message:)`, `Alert.warning(…)`) changes. Its `.warning`, `.error`, `.info` and `.success` presets now start their titles with ⚠️, 🛑, ℹ️ and ✅.
+- **`\.terminalFeatures` (`TerminalFeatures`) and `\.keyboardReporting` (`KeyboardReporting`) are no longer public.** `\.terminalCapabilities` answers what they did: `.pointerShapes`, `.progressReports` and `.notifications` for `pointerShapes`, `showsProgress` and `postsNotifications`, and `.disambiguatedKeys`, `.shiftedKeys`, `.keyRepeats`, `.keyReleases`, `.modifierKeys`, `.capsLock` and `.numericPad` for the seven `reports…`/`disambiguatesKeys` properties. Ask `terminal.supports(.keyReleases)` where you read `keyboard.reportsReleases`. A feature can also be undetermined where nobody knows, such as pointer shapes under tmux, where `pointerShapes` read `true` or `false` by what TUIkit sends. `KeyboardReporting.isEnhanced` has no single replacement: ask about the feature you need, as a terminal can speak the kitty protocol and take only some of it.
+- **`UndoShortcuts.hint(for:on:commandKey:)` takes the `TerminalCapabilities`** (`\.terminalCapabilities`) where it took a `KeyboardReporting`.
 
 #### Behaviour changes you may notice
 

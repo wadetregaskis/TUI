@@ -205,6 +205,35 @@ struct TerminalCapabilitiesTests {
         #expect(some.status(of: .capsLock) == .unsupported)
     }
 
+    @Test(
+        "Read back from the capabilities, the keyboard is the one the negotiation reported",
+        arguments: [
+            KittyKeyboardFlags(), .requested, [.disambiguateEscapeCodes], [.disambiguateEscapeCodes, .reportEventTypes],
+            [.disambiguateEscapeCodes, .reportAlternateKeys], [.reportAllKeysAsEscapeCodes],
+        ])
+    func keyboardReadBack(flags: KittyKeyboardFlags) {
+        let reporting = KeyboardReporting(flags: flags)
+        #expect(KeyboardReporting(TerminalCapabilities.keyboard(reporting)) == reporting)
+    }
+
+    @Test("Nothing known reads as the legacy keyboard")
+    func nothingKnownIsLegacy() {
+        #expect(KeyboardReporting(TerminalCapabilities.nothingKnown) == .legacy)
+    }
+
+    @Test("An undo hint follows the keyboard the capabilities report")
+    func undoHintFollowsCapabilities() {
+        let shortcuts = UndoShortcuts.default
+        let legacy = TerminalCapabilities.keyboard(.legacy)
+        let kitty = TerminalCapabilities.keyboard(KeyboardReporting(flags: .requested))
+        // Ctrl-Shift-Z arrives as Ctrl-Z in a legacy encoding, so redo is
+        // named by Ctrl-Y, which every terminal sends (FB9-REDO).
+        #expect(shortcuts.hint(for: .undo, on: legacy) == "⌃Z")
+        #expect(shortcuts.hint(for: .redo, on: legacy) == "⌃Y")
+        #expect(shortcuts.hint(for: .redo, on: kitty) == "⌃⇧Z")
+        #expect(shortcuts.hint(for: .redo, on: .nothingKnown) == "⌃Y")
+    }
+
     // MARK: What a key shows
 
     @Test(

@@ -825,8 +825,8 @@ extension _ButtonCore {
 /// protocol, which TUIkit turns on wherever the terminal answers its query, a
 /// repeat is reported as one, and the behavior holds: ``enabled`` acts on the
 /// press and on each repeat, at the terminal's own key-repeat rate; the other
-/// two act on the press alone. ``EnvironmentValues/keyboardReporting``'s
-/// ``KeyboardReporting/reportsRepeats`` says which is the case. The mouse half
+/// two act on the press alone. ``EnvironmentValues/terminalCapabilities``'
+/// ``TerminalCapabilities/Feature/keyRepeats`` says which is the case. The mouse half
 /// works on every terminal that reports clicks.
 public struct ButtonRepeatBehavior: Hashable, Sendable {
     private enum Kind: Hashable, Sendable { case automatic, enabled, disabled }
@@ -877,7 +877,7 @@ extension View {
     ///
     /// The keyboard half needs a terminal that reports a held key's repeats as
     /// repeats: one speaking the kitty keyboard protocol
-    /// (``KeyboardReporting/reportsRepeats``). A terminal in its legacy
+    /// (``TerminalCapabilities/Feature/keyRepeats``). A terminal in its legacy
     /// encodings sends each repeat as another press, so there a held key acts
     /// again and again under every behavior, `.disabled` included.
     ///

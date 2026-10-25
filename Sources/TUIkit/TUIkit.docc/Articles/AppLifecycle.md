@@ -51,7 +51,7 @@ Before the main loop starts, `run()` prepares the terminal:
 | 2 | Enter alternate screen | Preserve the user's existing terminal content |
 | 3 | Hide cursor | Avoid cursor flicker during rendering |
 | 4 | Enable raw mode | Disable line buffering and echo, and every signal character but the quit key, ⌃\\ |
-| 4a | Ask about the kitty keyboard protocol | Where the terminal speaks it, push its flags, so key releases, repeats, modifier keys alone, Caps Lock and the keypad are reported (``EnvironmentValues/keyboardReporting``); one round trip where it does not |
+| 4a | Ask about the kitty keyboard protocol | Where the terminal speaks it, push its flags, so key releases, repeats, modifier keys alone, Caps Lock and the keypad are reported (``EnvironmentValues/terminalCapabilities``' keyboard features); one round trip where it does not |
 | 5 | Register state observer | `AppState` changes set `appState.needsRender` and `wake()` the loop |
 | 6 | Register focus observer | Focus changes restart the breath (so the newly focused control is at its brightest) and trigger re-renders |
 | 7 | Prepare the animation clock | CursorTimer (50 ms), started on demand only while a rendered frame consumes it |

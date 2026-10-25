@@ -382,7 +382,11 @@ extension TerminalClient {
     /// from 3.5.0, xterm). See *Terminal compatibility survey*, "Pointer
     /// shapes (OSC 22)".
     ///
-    /// A view reads the same answer as `\.terminalFeatures.pointerShapes`.
+    /// A view reads it as `\.terminalCapabilities`'
+    /// ``TerminalCapabilities/Feature/pointerShapes``: supported where this is
+    /// `true`, but undetermined where nobody knows whether the person sees
+    /// the shape (GNOME Terminal and tmux, and a terminal TUIkit did not
+    /// identify where this is `false`).
     @MainActor public static var pointerShapesSupported: Bool {
         pointerShapeHost(override: pointerShapeSupport, environment: ProcessInfo.processInfo.environment) != nil
     }

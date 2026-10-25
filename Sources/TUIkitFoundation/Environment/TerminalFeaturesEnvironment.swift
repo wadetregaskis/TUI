@@ -8,44 +8,22 @@ import TUIkitCore
 
 // MARK: - TerminalFeatures
 
-/// What the terminal does outside its grid of cells that an app can ask for
-/// — which of the features that reach past the window's content show anything
-/// here.
+/// What TUIkit decided to send the terminal outside its grid of cells: the
+/// pointer's shape (``View/pointerStyle(_:)``), a progress bar on its tab
+/// (``View/terminalProgress(_:)``), a desktop notification
+/// (``EnvironmentValues/requestAttention``).
 ///
-/// A terminal app draws only cells. Whatever else it changes — the shape of
-/// the mouse pointer (``View/pointerStyle(_:)``), a progress bar on the
-/// terminal's tab (``View/terminalProgress(_:)``), a desktop notification
-/// (``EnvironmentValues/requestAttention``) — it changes by asking the
-/// terminal, and only some terminals do as they are asked; none says whether
-/// it did, so TUIkit asks only a terminal documented to. Each feature here
-/// compiles and runs everywhere, does what it says where its property is
-/// `true`, and changes nothing where it is `false`. Read it to offer something
-/// else instead:
-///
-/// ```swift
-/// @Environment(\.terminalFeatures) private var terminal
-///
-/// var body: some View {
-///     VStack {
-///         if !terminal.showsProgress {
-///             ProgressView(value: fraction)
-///         }
-///         Divider()
-///             .pointerStyle(.rowResize)
-///         if !terminal.pointerShapes {
-///             Text("Drag the line to resize")
-///         }
-///     }
-///     .terminalProgress(.value(fraction))
-/// }
-/// ```
+/// TUIkit's own record, which its views and the run loop act on. An app asks
+/// `\.terminalCapabilities` instead — `.pointerShapes`, `.progressReports`
+/// and `.notifications` — which is built from this and also says where nobody
+/// knows whether the person sees what is sent.
 ///
 /// It follows from which terminal TUIkit identified at startup and the user's
 /// `TUIKIT_*` switches, and is fixed for the run — but for whether the
 /// progress bar shows under tmux, which follows the terminals attached to it
 /// as they come and go. See `Documentation/Terminals/Terminal compatibility
 /// survey.md`, "Pointer shapes (OSC 22)" and "Progress and attention".
-public struct TerminalFeatures: Hashable, Sendable {
+package struct TerminalFeatures: Hashable, Sendable {
     /// Whether the terminal sets the mouse pointer's shape when asked, so
     /// ``View/pointerStyle(_:)`` changes the pointer.
     ///
@@ -54,7 +32,7 @@ public struct TerminalFeatures: Hashable, Sendable {
     /// unless turned on. The app turns it either way with
     /// `TerminalClient.pointerShapeSupport`, and the user with
     /// `TUIKIT_POINTER_SHAPES` (`1` or `0`).
-    public let pointerShapes: Bool
+    package let pointerShapes: Bool
 
     /// Whether TUIkit's own controls set the pointer's shape without being
     /// asked: the I-beam over a text field, a pointing hand over a link or a
@@ -75,7 +53,7 @@ public struct TerminalFeatures: Hashable, Sendable {
     ///
     /// A user turns progress on for a terminal TUIkit does not know, or off,
     /// with `TUIKIT_PROGRESS=1` or `0`.
-    public let showsProgress: Bool
+    package let showsProgress: Bool
 
     /// Whether the terminal posts a desktop notification, so
     /// ``EnvironmentValues/requestAttention`` shows its message: Ghostty and
@@ -84,11 +62,11 @@ public struct TerminalFeatures: Hashable, Sendable {
     ///
     /// A user keeps every request to the bell, or turns notifications on for
     /// a terminal TUIkit does not know, with `TUIKIT_NOTIFICATIONS=0` or `1`.
-    public let postsNotifications: Bool
+    package let postsNotifications: Bool
 
     /// A terminal that does none of these: what a view rendered outside a
     /// running app (a test, a snapshot) reads.
-    public static let none = Self()
+    package static let none = Self()
 
     /// The features a terminal was found to have; each one left out it does
     /// not have. Built-in control shapes need pointer shapes.
@@ -130,13 +108,12 @@ private struct TerminalFeaturesKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    /// What the terminal does outside its grid of cells that an app can ask
-    /// for — see ``TerminalFeatures``.
+    /// What TUIkit decided to send the terminal outside its grid of cells —
+    /// see ``TerminalFeatures``. An app reads `\.terminalCapabilities`.
     ///
     /// Published by the run loop from the terminal it identified at startup,
-    /// and under tmux from the clients attached; read-only, because no view
-    /// can change what the terminal does.
-    public package(set) var terminalFeatures: TerminalFeatures {
+    /// and under tmux from the clients attached.
+    package var terminalFeatures: TerminalFeatures {
         get { self[TerminalFeaturesKey.self] }
         set { self[TerminalFeaturesKey.self] = newValue }
     }

@@ -19,8 +19,8 @@ import TUIkitTerminalHost
 /// the ones that document it — Ghostty from 1.0.0, kitty and foot in CSS's
 /// names; iTerm2 from 3.5.0 and xterm in X11's — and leaves every other
 /// terminal alone, where a style changes nothing. Read
-/// ``TerminalFeatures/pointerShapes`` (`\.terminalFeatures`) to tell which is
-/// the case. See *Terminal compatibility survey*, "Pointer shapes (OSC 22)".
+/// ``EnvironmentValues/terminalCapabilities``' ``TerminalCapabilities/Feature/pointerShapes`` to tell which
+/// is the case. See *Terminal compatibility survey*, "Pointer shapes (OSC 22)".
 ///
 /// A style a terminal has no name for — a closed hand on iTerm2, say — shows
 /// that terminal's own pointer. SwiftUI's `image(_:hotSpot:)` is not available: no

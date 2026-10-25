@@ -35,8 +35,8 @@ extension View {
     /// A terminal reports a modifier key held on its own only under the kitty
     /// keyboard protocol's "report all keys as escape codes" enhancement,
     /// which TUIkit turns on wherever the terminal answers its query. Read
-    /// ``EnvironmentValues/keyboardReporting``'s
-    /// ``KeyboardReporting/reportsModifierKeys`` to know: where it is `false`
+    /// ``EnvironmentValues/terminalCapabilities``'
+    /// ``TerminalCapabilities/Feature/modifierKeys`` to know: where it is not supported
     /// the modified view is always drawn and the alternate never is, so give
     /// whatever the alternate does another route.
     ///

@@ -156,21 +156,31 @@ extension TerminalCapabilities {
         /// the part of it this needs. Unsupported where it does not speak the
         /// protocol, on Apple Terminal, which is not asked, and wherever
         /// `TUIKIT_KEYBOARD_PROTOCOL=0` keeps TUIkit from asking. Settled on
-        /// every terminal TUIkit runs in. See `KeyboardReporting`.
+        /// every terminal TUIkit runs in.
+        ///
+        /// Where it is supported, a binding on one of those chords fires, and
+        /// one that nothing binds still acts as the key it used to arrive as.
+        /// Where it is not, a shortcut on one can never fire
+        /// (`KeyboardShortcut.isDeliverableInTerminal`).
         public static let disambiguatedKeys = Self(rawValue: 1 << 32)
 
         /// A Control or Option chord with Shift arrives as its shifted key, so
-        /// Ctrl-Shift-Z is not Ctrl-Z. Asked at launch, as
-        /// ``disambiguatedKeys`` is.
+        /// Ctrl-Shift-Z is not Ctrl-Z, and Ctrl-Shift-minus (Ctrl-_) is not
+        /// Ctrl-minus. Where it is not supported, Shift on a Control chord is
+        /// lost, as the legacy encodings' control byte has no case. Asked at
+        /// launch, as ``disambiguatedKeys`` is.
         public static let shiftedKeys = Self(rawValue: 1 << 33)
 
         /// A held key's repeats are told apart from its press
-        /// (`KeyPress.Phases.repeat`). Asked at launch, as
-        /// ``disambiguatedKeys`` is.
+        /// (`KeyPress.Phases.repeat`): a `.repeat` handler hears only repeats,
+        /// and a `.down` handler only the press. Where it is not supported,
+        /// every repeat arrives as another press, and a handler for either
+        /// phase hears them all. Asked at launch, as ``disambiguatedKeys`` is.
         public static let keyRepeats = Self(rawValue: 1 << 34)
 
-        /// A key's release is reported (`KeyPress.Phases.up`). Asked at
-        /// launch, as ``disambiguatedKeys`` is.
+        /// A key's release is reported, so a `KeyPress.Phases.up` handler
+        /// runs; where it is not supported, one never does. Asked at launch,
+        /// as ``disambiguatedKeys`` is.
         public static let keyReleases = Self(rawValue: 1 << 35)
 
         /// A modifier key pressed or released on its own is reported — the
