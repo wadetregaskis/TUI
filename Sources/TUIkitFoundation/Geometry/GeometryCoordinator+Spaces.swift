@@ -242,7 +242,7 @@ extension RenderContext {
         let geometry = dispatcher.geometry
         let ask = GeometryAsk(
             id: id, identity: identity, role: role, coordinator: geometry,
-            tracker: environment.volatileReadTracker, effectStage: stateStorage?.effectStage, origin: geometryOrigin)
+            tracker: environment.volatileReadTracker, origin: geometryOrigin)
         for space in geometry.lateAsks[id] ?? [] { ask.want(space) }
         return ask
     }

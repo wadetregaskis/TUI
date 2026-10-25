@@ -128,23 +128,19 @@ What the first drawing would have DONE is now held back instead
 (`EffectStage`, `ProvisionalEffects`). Every drawing that may be made again —
 a checkpoint's, and the scene root's walk (`RenderLoop.renderContent`, and the
 headless and test drivers that mirror it) — is opened on the app's effect
-stage, and *armed* the moment a reader inside is told an answer that could be
-wrong (`GeometryAsk.observation(in:)`): the drawing of the owner that will
-check that reader (the nearest owner of the space it asked, else the root's
-walk) and every drawing inside it. **Since B-D5G-11 the root's walk is armed
-from its start**, so in a walk of the scene every view holds back, whether or
-not a reader is in it, and the effects run after the walk in SwiftUI's order. From then until that drawing is kept, a
-view does not act: it hands its action to the stage and notes how to put back
-what it remembered in deciding to. A discarded drawing drops its actions and
-runs its undos, last first, so the drawing made in its place decides from
-what the frame began with; a kept one runs its actions in the order they were
-made. Held back, with what is put back:
+stage. While one is open a view does not act: it hands its action to the
+stage and notes how to put back what it remembered in deciding to. A
+discarded drawing drops its actions and runs its undos, last first, so the
+drawing made in its place decides from what the frame began with; a kept one
+joins the drawing around it, and the outermost — the scene's walk — runs its
+actions once the walk is done, in SwiftUI's order (B-D5G-11). Held back, with
+what is put back:
 
 | Effect | Remembered state put back |
 |---|---|
 | `onChange` (views and scenes) | the compared value (`setChangedTrackedValue`) |
 | `onPreferenceChange` | the reduction last heard |
-| `onGeometryChange`, reported as the view renders | the last report (reported at the frame's end it acts at once: nothing is open) |
+| `onGeometryChange` | the last report (reported at the frame's end, with the walk's drawing still open, it joins the walk's effects) |
 | `onModifierKeysChanged(initial: true)` | that the view has appeared |
 | `onInteractiveResizeChange` | the last answer |
 | `onAppear`, `.task`, and every task a view starts on appearing (`Image`/`AsyncImage` loads, a notification host's expiry, gradient graphics) | that the token appeared, and that it is present this pass |
@@ -159,34 +155,27 @@ a branch the guess chose — neither appears, starts a task, nor later
 disappears (`CorrectedSubtreeEffectsTests`, including the root's walk and owners
 nested in owners).
 
-**Why armed, not always** (superseded by B-D5G-11, which holds every
-effect back and walks the frame again for what they wrote). Holding every effect back from the start of every
-drawing that may be made again was tried first: it moves every effect in
-every scroll view, list and, through the root's walk, the whole scene, to the
-end of its drawing, so a view drawn after an `onAppear` or `onChange` no longer
-sees what the action wrote in the same frame — a keyframe animator restarted
-one frame late (`AnimatorViewTests.keyframesInterrupted`), and a page that
-loads in `onAppear` would draw one frame empty. Nothing a drawing draws before
-a reader is told an answer depends on one (a measurement asks no space, and an
-answer reaches only what is drawn after it is told — the reader's content and
-what that writes), so the second drawing draws that part exactly as the first
-did, and what those views did at once they do not do again: their memories
-say so. Arming at the first answer keeps every subtree without a reader
-exactly as it was, and in one with a reader holds back only what comes after
-it, which runs once its owner keeps the drawing — the end of the owner's
-subtree, or of the scene's walk for a `.global` reader — rather than where it
-sits in the walk.
+**How it was armed, until B-D5G-11.** Holding every effect back from the
+start of every drawing was tried first, without walking the frame again: a
+view drawn after an `onAppear` or `onChange` then no longer saw what the
+action wrote in the same frame — a keyframe animator restarted one frame late
+(`AnimatorViewTests.keyframesInterrupted`), and a page that loads in
+`onAppear` would draw one frame empty. So a drawing held back only once
+*armed*, by a reader inside it being told an answer that could be wrong, and
+everything before that acted at once. B-D5G-11 walks the frame again for
+what the effects wrote, which takes that frame off the screen, and every
+drawing now holds back from its start; the arming (`GeometryAsk` finding the
+owner's depth on the stage) is gone.
 
 **Not held back, and why:**
 
-- what an owner draws again for a reason no reader signals: a scroll view's
-  band redrawn at the offset the frame settled on, and a glass container
-  whose pieces joined otherwise than it last found. Their second drawing
-  differs from the first in which rows are drawn or how glass is painted,
-  which no effect observes; a row only the discarded band drew may still act
-  for that frame, as it may stay registered. A matched geometry effect drawn
-  again at its matched frame's size opens its drawing armed from the start,
-  since what its content does at its own size may differ.
+- nothing an owner draws again is now left out: a scroll view's band redrawn
+  at the offset the frame settled on, a glass container whose pieces joined
+  otherwise than it last found, and a matched geometry effect drawn again at
+  its matched frame's size discard their first drawing's effects too (the
+  band's and glass's were not held while a drawing held back only once a
+  reader armed it). A row
+  only the discarded band drew may still stay registered for that frame.
 - the framework's own memory written while drawing (a scroll view's offset, a
   `.task(id:)` generation, an animation's start, a keyframe animator's
   playback): the second drawing reads what the first wrote and comes to the
@@ -194,10 +183,9 @@ sits in the walk.
 - `onRenderPass`, instrumentation that reports every pass a view takes part
   in: a discarded drawing is one.
 
-**Price.** On the common path (no reader, or a reader predicted right) a
-drawing's opening and keeping is a depth count, arming a comparison, and a
-view tests one flag on the frames it acts; the one closure an action needs is
-made only when it acts. Profiled (release Stress, 8 s Time Profiler,
+**Price.** A drawing's opening and keeping is a depth count, and a view
+tests one flag on the frames it acts; the one closure an action needs is
+made only when it acts. Profiled before B-D5G-11 (release Stress, 8 s Time Profiler,
 2026-10-24): `RenderWalkCheckpoint.init`, which now opens the drawing, is at
 most 12 ms of 24 s in `kitchensink`; in `geometry`, whose scroll transitions
 are readers told an answer every frame, arming is 1 ms of 7.9 s, once it
@@ -365,7 +353,7 @@ updating again before it draws ([the probe](<../../../Investigations/SwiftUI's u
 So, as SwiftUI does:
 
 1. **Every effect waits for the walk.** The scene root's drawing is opened
-   on the effect stage armed (`FrameSettling`, in `RenderLoop`, the Stress
+   on the effect stage (`FrameSettling`, in `RenderLoop`, the Stress
    bench's headless frame and the test harness alike), so every view in the
    walk hands its effects over (B-D5G-4's mechanism), and they run once the
    walk — and the root's geometry correction, and the geometry reports made

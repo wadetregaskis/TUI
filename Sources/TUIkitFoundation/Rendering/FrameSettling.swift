@@ -83,7 +83,7 @@ package enum FrameSettling {
     ) -> Walk {
         var rewalks = 0
         while true {
-            let effects = ProvisionalEffects(stateStorage: storage, armed: true)
+            let effects = ProvisionalEffects(stateStorage: storage)
             let drawn = walk(effects)
             // Counted from the walk's end, not its start: a write made during
             // the walk is a body's, which asks for the next frame as it always

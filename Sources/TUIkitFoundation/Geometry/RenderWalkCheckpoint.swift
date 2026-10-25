@@ -40,18 +40,15 @@ import TUIkitView
 ///   it — and a row the first drawing alone left out read as left out.
 ///
 /// ``rollBack(context:)`` puts those back. What the first drawing would have
-/// DONE — an `onChange` action, an `onAppear`, a task's start — it did not do
-/// where it could differ: a checkpoint opens the drawing on the effect stage
-/// (``ProvisionalEffects``), and once a reader in it is told an answer that
-/// could be wrong, the subtree's views hold those back until the drawing is
-/// kept, noting how to put back what they remembered in deciding to (the
-/// value an `onChange` compares against, that a view appeared and is on
-/// screen). A rollback drops the held effects and puts the memories back;
+/// DONE — an `onChange` action, an `onAppear`, a task's start — it has not
+/// done: a checkpoint opens the drawing on the effect stage
+/// (``ProvisionalEffects``), where the subtree's views hold those back, noting
+/// how to put back what they remembered in deciding to (the value an
+/// `onChange` compares against, that a view appeared and is on screen). A
+/// rollback, or a rewind, drops the held effects and puts the memories back;
 /// ``keep()``, which the owner calls once it is done with the subtree however
-/// it drew it, lets the last drawing's run (decisions B-D5G-4). What the views
-/// before the first answer did, they did at once: nothing they drew depends
-/// on an answer, so the second drawing draws them as the first did, and what
-/// they remember says it is done.
+/// it drew it, keeps the last drawing's, which run when the walk is done
+/// (decisions B-D5G-4, B-D5G-11).
 ///
 /// Nor does it put back the live registrations that are not numbered by
 /// position: a control's place in the focus ring, a keyboard shortcut, a
@@ -91,13 +88,7 @@ package struct RenderWalkCheckpoint {
 
     /// Notes where the walk stands, before the subtree at `context.identity`
     /// renders.
-    ///
-    /// - Parameter armsEffects: Whether the subtree's views hold back what
-    ///   they do from the start, for an owner that may draw it again for a
-    ///   reason of its own, which no reader signals — a matched geometry
-    ///   effect drawing its content again at another size. Otherwise they do
-    ///   once a reader in it is told an answer that could be wrong.
-    package init(context: RenderContext, armsEffects: Bool = false) {
+    package init(context: RenderContext) {
         identity = context.identity
         let dispatcher = context.environment.mouseEventDispatcher
         handlerSlots = dispatcher?.handlerIDs.slotCount(at: identity)
@@ -108,7 +99,7 @@ package struct RenderWalkCheckpoint {
         journalCount = context.recordingEffectJournal?.count
         docks = context.environment.focusManager?.panes.docks
         windowedRowsNoted = context.stateStorage?.windowedRowsNoted
-        effects = ProvisionalEffects(context: context, armed: armsEffects)
+        effects = ProvisionalEffects(context: context)
     }
 
     /// Keeps the subtree as it was last drawn: the effects its views held
