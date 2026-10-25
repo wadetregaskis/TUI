@@ -212,7 +212,7 @@ extension FrameBuffer {
             let columns = start..<last
             let alphas = Self.foldedAlphas(
                 of: covering, over: columns, row: row, substituting: substituting)
-            let span = Self.blendedSpan(
+            var span = Self.blendedSpan(
                 source: line,
                 destination: behindLine,
                 columns: columns,
@@ -222,6 +222,12 @@ extension FrameBuffer {
                 defaultForeground: resolvedForeground,
                 statingTheSurface: statingTheSurface,
                 fillingStatedTerminalField: fillingStatedTerminalField)
+            // A hairline's mark (`HairlineMarker`) rides a faded cell's styling
+            // untouched — it is not a colour this blend knows — so the line
+            // would be drawn at full strength over a page the fade dimmed, a
+            // modal's backdrop above all. Until the mark's colour is blended as
+            // the cells' are, the line goes where its cells fade.
+            if KittyGraphics.isHairlineSupported { span = HairlineMarker.stripping(span) }
             // Collapsed at the seam, where the seam is made: splicing leaves the
             // span's closing reset hard against the styling `insertOverlay`
             // restores for the suffix, and where the region reaches the end of

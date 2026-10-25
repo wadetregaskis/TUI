@@ -12,9 +12,11 @@ import TUIkitView
 /// What a row, a section or a list says about its separators: a visibility
 /// and a tint for each vertical edge (decisions A47).
 ///
-/// A list row is whole lines of cells, so a separator is a whole line: a
-/// faint `─` rule BETWEEN two rows, in the border's ink unless tinted. Which
-/// line answers to whom:
+/// A list row is whole lines of cells, so a separator drawn with cells is a
+/// whole line: a faint `─` rule BETWEEN two rows, in the border's ink unless
+/// tinted. Where the terminal can draw one, it is a hairline instead, along
+/// the top of the row below, which takes no line (`ListSeparatorStyle`,
+/// decisions A-D6L-2). Which separator answers to whom:
 ///
 /// - Between two rows: the upper row's bottom edge (its
 ///   ``View/listRowSeparator(_:edges:)``). A row's TOP edge is the style's to
@@ -27,9 +29,11 @@ import TUIkitView
 /// - Below the list's last row: never — a list's edges are its border's, or
 ///   the page's.
 ///
-/// `.automatic` is the style's answer, and no built-in style draws separators
-/// by default yet: each costs a line of height, which a list of single-line
-/// rows doubles (decisions A47; the default is A-D6L-2's open question).
+/// `.automatic` is the style's answer. Under a rule look no built-in style
+/// draws separators by default: each costs a line of height, which a list of
+/// single-line rows doubles (decisions A47). Under a hairline look, which
+/// costs none, every style but `.sidebar` and `.insetGrouped` does, as
+/// SwiftUI's do (A-D6L-2, the owner's option 4).
 ///
 /// `@usableFromInline`, with its fields (the module split's tier 2): TUIkitLists
 /// asks ``overridden(by:)`` of every row's preference, and an `@inlinable`
@@ -88,14 +92,20 @@ package enum ListSeparatorChange: Equatable, Sendable {
     /// visibility the default already has changes nothing; and a tint shows
     /// only on a rule that is drawn, which only a statement answering yes — or a
     /// default that draws one — puts there.
-    package func changesRow(over defaults: ListSeparatorPreference) -> Bool {
+    ///
+    /// - Parameters:
+    ///   - defaults: The list-wide preference.
+    ///   - automaticShows: Whether `.automatic` shows a separator in this list —
+    ///     its style's answer under the look it draws (`ListSeparatorStyle`).
+    package func changesRow(over defaults: ListSeparatorPreference, automaticShows: Bool) -> Bool {
+        let defaultShows = defaults.bottom == .visible || defaults.bottom == .automatic && automaticShows
         switch self {
         case .visibility(let visibility, let edges):
             guard edges.contains(.bottom), visibility != .automatic else { return false }
-            return (visibility == .visible) != (defaults.bottom == .visible)
+            return (visibility == .visible) != defaultShows
         case .tint(let tint, let edges):
             guard edges.contains(.bottom), let tint else { return false }
-            return defaults.bottom == .visible && tint != defaults.bottomTint
+            return defaultShows && tint != defaults.bottomTint
         }
     }
 

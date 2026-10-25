@@ -195,9 +195,10 @@ package final class LazyListRowContent {
     /// Whether ``separatorDecider`` has been asked about the render in hand.
     private var separatorDecided = false
 
-    /// The separator this row draws below its content, when it draws one: the
-    /// buffer's last line is its place, so every height the list reads counts
-    /// it, and the list draws the rule there (`_ListCore.renderRow`).
+    /// The separator below this row's content, when it has one. A rule's place
+    /// is the buffer's last line, so every height the list reads counts it, and
+    /// the list draws the rule there (`_ListCore.renderRow`); a hairline has no
+    /// line of its own, and the list draws it along the top of the row below.
     package var separatorLine: ListRowSeparatorLine? { _separatorLine }
 
     /// This row's size without rendering it, when the content can answer —
@@ -349,7 +350,9 @@ package final class LazyListRowContent {
         guard !separatorDecided, let decider = separatorDecider else { return }
         separatorDecided = true
         _separatorLine = decider.separatorLine(at: rowIndex, of: self)
-        if separatorLine != nil { cached!.buffer.appendVertically(FrameBuffer(lines: [""])) }
+        // A rule's line; a hairline is drawn along the top of the row below
+        // and takes none.
+        if separatorLine?.takesRow == true { cached!.buffer.appendVertically(FrameBuffer(lines: [""])) }
     }
 
     /// The row's rendered buffer, BORROWED rather than returned.
@@ -397,7 +400,7 @@ package final class LazyListRowContent {
     /// carried block read as a gap in it.
     package var bufferWithoutSeparator: FrameBuffer {
         var drawn = buffer
-        if separatorLine != nil, !drawn.lines.isEmpty { drawn.lines.removeLast() }
+        if separatorLine?.takesRow == true, !drawn.lines.isEmpty { drawn.lines.removeLast() }
         return drawn
     }
 

@@ -4520,6 +4520,41 @@ window going from 99 × 35 to 123 × 37.
 On both hosts, a strip with no placement left was placed again without being
 re-sent (Q6), and `d=I` frees a strip's data.
 
+#### What TUIkit draws — built 2026-10-24, from the records above; not yet looked at live
+
+The `.hairline` list separator look (`ListSeparatorStyle`, decisions
+A-D6L-2) draws on the hosts below. The table is the measured one above, and
+nothing in it was re-measured for the prototype: the owner's look with
+`Tools/TerminalProbes/hairline_review.py` is what confirms it.
+
+| | Drawn | z | Crop of a run of n columns | Why |
+|---|---|---|---|---|
+| Ghostty (any version; 1.3.1 measured) | yes, where the handshake says it places pictures and `TIOCGWINSZ` reports pixels | `+1` | n × (`ws_xpixel` // `ws_col`) px — 16n on the measured window | the one host meeting every criterion; Q3's exact unit OPEN |
+| iTerm2 3.7.3 | only under `TUIKIT_HAIRLINES=1` | `-1` | the same rule: 14n px, which Q1 found short of the run | no pixel unit found (Q3) |
+| kitty, WezTerm, Rio, Konsole, Warp, xterm.js, anything else | only under `TUIKIT_HAIRLINES=1` | `-1` | the same rule | unmeasured (Konsole: `z<0` hidden under painted cells, source-read) |
+| tmux, Apple Terminal | never by default | — | — | tmux keeps no placement; Apple Terminal prints APC |
+
+What every drawn line is: a strip per colour, the screen's width by
+max(1, cell height // 17) px (2 at Ghostty's 34), raw RGB (`f=24`, `o=z` where
+the handshake took it), sent before the frame's synchronized hold; then, in
+the hold, `CUP` to the run's first cell on the LOWER row and
+`a=p,i,p,x=0,y=0,w,h,C=1,z,q=2`, so the line's top edge is the boundary, as
+the probe placed it. A placement id is the screen row above eight bits and
+the run's place in the row below. Each frame sends only what changed: a run
+that moved is placed again under its `(i, p)`, one that went is deleted by
+it (`d=i`), and a strip left with no placement is deleted (`d=I`) rather than
+kept for quota eviction to take silently. A resize or a resumed suspend
+deletes every strip and places every line again, which also covers Ghostty
+freeing strips on `ESC[2J` and the screen switch. A suspend and a quit delete
+every strip before leaving the alternate screen (iTerm2 would otherwise show
+the lines on the shell's screen, Q8). A `SIGQUIT`'s farewell deletes images,
+not strips: on Ghostty the screen switch frees them; under `TUIKIT_HAIRLINES=1`
+on iTerm2 a line can be left behind.
+
+Open, to be read off the review: whether Ghostty's line ends short, exact or
+past the run's last cell (Q3's OPEN item, now on TUIkit's own rows); and the
+look beside the focused and selected rows, which draw no line.
+
 ---
 
 ## Measured advance table (divergences and key rows)

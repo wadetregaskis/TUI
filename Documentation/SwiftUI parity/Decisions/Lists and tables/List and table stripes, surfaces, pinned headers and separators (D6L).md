@@ -3,7 +3,7 @@
 *Lane D6L implemented the owner's decisions A29 (tables striped by default),
 A29/A46 (a distinct-surface look, as an opt-in prototype), A45 (pinned
 section headers in `List`) and A47 (separators as a rule line between rows),
-2026-10-07. Each call below came up on the way. The safe option shipped; the
+2026-10-07; A-D6L-2's option 4, hairline separators, followed 2026-10-24. Each call below came up on the way. The safe option shipped; the
 alternative and its price are given. Numbered as the main decisions document
 is: A = owner decision, B = basic shipped, C = declined.*
 
@@ -99,9 +99,59 @@ the default is left to the owner.
    have no border to tell them apart — or tied to rows of more than one line,
    where a separator costs proportionally less.
 
+4. **Wait for the Kitty hairline:** build the TUI-only `.hairline` look,
+   then take SwiftUI's default wherever the host can draw a line that takes
+   no row, and stay off elsewhere.
+
 **Recommendation:** 1 for now; try the Example's toggle (Lists page, Styles
 section, "Separators between rows") and decide with A-D6L-1, since a
 surface-styled list is where separators would most help.
+
+**Owner: option 4.** **Prototype shipped 2026-10-24.**
+
+- **The look:** `ListSeparatorStyle` and `.listSeparatorStyle(_:)`, TUI-only,
+  beside SwiftUI's separator modifiers, which keep their signatures. `.line`
+  is the rule line of its own; `.hairline` is a line a pixel or two thick
+  along the top of the row below, which takes no row on any terminal and is
+  drawn only where the terminal can draw it; `.automatic`, the default, is
+  `.hairline` where the terminal draws hairlines and `.line` elsewhere.
+- **What `.automatic` visibility means:** under `.line`, hidden in every
+  style, as shipped. Under `.hairline`, SwiftUI's default: shown under
+  `.automatic`, `.inset`, `.bordered`, `.plain` and `.surface` (TUIkit's own,
+  an inset list, so shown as `.inset` is), hidden under `.sidebar` and
+  `.insetGrouped`. Section separators likewise. A `.visible` separator is a
+  hairline where they are drawn, a rule line elsewhere.
+- **Which terminals:** Ghostty, where the startup handshake says it places
+  pictures and the terminal reports its cell's pixel size — the one host
+  measured to draw the line on the boundary (`hairline_probe.py`, Ghostty
+  1.3.1). iTerm2 drew it too, but in a pixel unit no query revealed, so a line
+  there ends short; kitty and WezTerm are unmeasured; Konsole hides the layer.
+  `TUIKIT_HAIRLINES=1` (or `TerminalClient.hairlineSupport`) turns them on
+  anywhere, `0` off (`TerminalClient.hairlinesSupported`).
+- **How it is drawn:** the list marks the cells of the next row's first line
+  with a private SGR parameter carrying the line's colour
+  (`HairlineMarker`); the mark rides every cell stage — a scroll clip cuts
+  it, an overlay replaces it — and the diff writer reads the runs off the
+  finished frame and takes the mark out. `HairlineLayer` keeps what the
+  terminal holds: one strip per colour, sent once and cropped per run, a
+  classic placement per run (`z=+1` on Ghostty, `-1` elsewhere), and only the
+  difference sent each frame; nothing at all on a frame whose lines did not
+  move, and nothing ever on a host that draws none. A resize or a resumed
+  suspend deletes the strips and places every line again; a suspend and a
+  quit delete them.
+- **Look calls made in the prototype, for the owner:** no line touches the
+  focused or a selected row (a line across a highlight reads as a seam;
+  macOS's own is unmeasured); no line along the top of the window's first
+  row, whose row above is scrolled away; under a fade or a sheet's dimmed
+  backdrop the lines are hidden, not dimmed, until the mark's colour is
+  blended as the cells' are; a tint with no RGB (a palette slot the terminal
+  never reported) draws no line.
+- **Not covered:** `Table` (no separators to draw), Ghostty's exact crop
+  unit (the probe left it OPEN: a run of n columns is cropped to
+  n × (`ws_xpixel` // `ws_col`) px), a `SIGQUIT` (its farewell deletes images,
+  not strips; Ghostty frees both with the alternate screen).
+- **Where to look:** `python3 Tools/TerminalProbes/hairline_review.py` in
+  Ghostty (`--force` in iTerm2), or the Example's Lists page.
 
 ## B. Shipped the safe option
 

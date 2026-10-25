@@ -1,8 +1,9 @@
 # Thin lines between rows with Kitty graphics
 
-> **Status:** open. Researched 2026-10-08; the probe that gates it was run the same day by the owner, on Ghostty and
-> iTerm2; the prototype (about 5–6 days) waits to be scheduled, and the default for list separators (decisions
-> A-D6L-2) waits on it. **Asked by:** the owner, 2026-10-04 (A47: Kitty-graphics thin lines are "a later project …
+> **Status:** prototype built 2026-10-24 (lane-hairline), after the owner chose option 4 of decisions A-D6L-2: a
+> `.hairline` separator look on `List`, drawn on Ghostty only, and SwiftUI's default separators there. Researched
+> 2026-10-08; the probe that gates it was run the same day by the owner, on Ghostty and iTerm2. What was built, and
+> what it left open, is in the D6L decisions' A-D6L-2 and the survey's "What TUIkit draws". **Asked by:** the owner, 2026-10-04 (A47: Kitty-graphics thin lines are "a later project …
 > keep in mind, not now"). **Working notes** (not in git): `KGP/research.md` (the design, revised after a review),
 > `KGP/records/`; the probe's own records are committed (below).
 

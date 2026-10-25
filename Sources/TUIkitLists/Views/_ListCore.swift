@@ -353,15 +353,20 @@ private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSepar
     var minimumHeaderHeight: Int?
 
     /// What a row's separator is decided from (decisions A47): the defaults
-    /// written above the list, and the collector its rows report to. `nil`
+    /// written above the list, the collector its rows report to, whether the
+    /// list's look draws hairlines, and whether `.automatic` shows a separator
+    /// under that look and the list's style (`ListSeparatorStyle`). `nil`
     /// draws none, and asks nothing.
-    var separators: (defaults: ListSeparatorDefaults, reports: RowEditRestrictions)?
+    var separators: (
+        defaults: ListSeparatorDefaults, reports: RowEditRestrictions, hairline: Bool, automaticShows: Bool
+    )?
 
     /// The separator the row at `index` — drawn as `box` — draws below itself,
     /// or `nil`. Never below the last row or a footer; a section's header or
     /// last row by its section's edge, every other row by its own `.bottom`
-    /// over the list-wide default. `.automatic` is hidden: no built-in style
-    /// draws them by default (decisions A47, A-D6L-2).
+    /// over the list-wide default. `.automatic` is the look's: hidden under a
+    /// rule, which costs a row, and SwiftUI's default under a hairline, which
+    /// costs none (decisions A47, A-D6L-2).
     ///
     /// Asked of every row whose buffer is read — the hug walk's included — so it
     /// asks no row its TYPE, which for a tagged looped row is a build of the row
@@ -375,17 +380,24 @@ private final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSepar
             let visibility =
                 section.visibility != .automatic
                 ? section.visibility : (section.edge == .top ? defaults.top : defaults.bottom)
-            guard visibility == .visible else { return nil }
+            guard shows(visibility, separators.automaticShows) else { return nil }
             return ListRowSeparatorLine(
                 tint: section.tint ?? (section.edge == .top ? defaults.topTint : defaults.bottomTint),
-                leading: guides?.leading ?? 0, trailing: guides?.trailing)
+                leading: guides?.leading ?? 0, trailing: guides?.trailing, isHairline: separators.hairline)
         }
         let preference =
             separators.reports.separators[index].map { separators.defaults.rows.overridden(by: $0) }
             ?? separators.defaults.rows
-        guard preference.bottom == .visible, !isSectionChrome(index) else { return nil }
+        guard shows(preference.bottom, separators.automaticShows), !isSectionChrome(index) else { return nil }
         return ListRowSeparatorLine(
-            tint: preference.bottomTint, leading: guides?.leading ?? 0, trailing: guides?.trailing)
+            tint: preference.bottomTint, leading: guides?.leading ?? 0, trailing: guides?.trailing,
+            isHairline: separators.hairline)
+    }
+
+    /// Whether a separator of `visibility` is drawn, `.automatic` being
+    /// `automaticShows`.
+    private func shows(_ visibility: Visibility, _ automaticShows: Bool) -> Bool {
+        visibility == .visible || visibility == .automatic && automaticShows
     }
 
     /// Whether the row at `index` is a section's header or footer, by
@@ -1659,7 +1671,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let source = extractRows(from: content, context: rowContext)
         (source.minimumRowHeight, source.minimumHeaderHeight) =
             (context.environment.defaultMinListRowHeight, context.environment.defaultMinListHeaderHeight)
-        source.separators = (context.environment.listSeparatorDefaults, editRestrictions)
+        source.separators = (
+            context.environment.listSeparatorDefaults, editRestrictions,
+            context.environment.listSeparatorStyle.drawsHairlines, context.environment.listSeparatorsShowByDefault)
         return source
     }
 
@@ -2196,6 +2210,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // `RowSource.contentRowIndex(at:)`.
         var contentRowIndex = firstContentRowIndex
         var pin = PinnedHeaderCover(origin: origin.offset, first: visibleRows.first)
+        // The hairline the row drawn last leaves along the top of the next.
+        var hairlineAbove: ListRowSeparatorLine?
         for (rowIndex, row) in visibleRows {
             // The stripes count on across the sections, as a macOS list's do
             // (decisions B-D6L-4): a header starts no new count.
@@ -2203,13 +2219,16 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             let rendered = renderRow(
                 row: row, at: rowIndex, state: state,
                 rowWidth: rowWidth, contentRowIndex: contentRowIndex,
-                style: style, context: context, palette: palette)
+                style: style, context: context, palette: palette,
+                hairlineAbove: state.isHighlighted ? nil : hairlineAbove)
+            hairlineAbove = Self.hairline(below: row, isHighlighted: state.isHighlighted)
             let scrollClip = rowIndex == origin.offset ? origin.topClip : 0
-            let endsInRule = row.content.separatorLine != nil
+            let endsInRule = row.content.separatorLine?.takesRow == true
             guard let covered = pin.cover(rowIndex, lines: rendered.lines.count - scrollClip, endsInRule: endsInRule) else {
                 // Wholly under the pinned header: nothing of it is drawn, and it
                 // has no range to be clicked through.
                 if row.type.countsAsStripedRow { contentRowIndex += 1 }
+                hairlineAbove = nil
                 continue
             }
             if let claims = rendered.contentClaims {
@@ -2520,6 +2539,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         var contentRowIndex = firstContentRowIndex
         // A pinned header and the lines it covers — see `composeRowLines`.
         var pin = PinnedHeaderCover(origin: origin.offset, first: visibleRows.first)
+        // The hairline the row drawn last leaves — see `composeRowLines`.
+        var hairlineAbove: ListRowSeparatorLine?
         for (rowIndex, row) in visibleRows {
             let state = RowDrawState.of(row: rowIndex, in: handler, listHasFocus: listHasFocus)
             let rendered = renderRow(
@@ -2530,12 +2551,15 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 contentRowIndex: contentRowIndex,
                 style: style,
                 context: context,
-                palette: palette
+                palette: palette,
+                hairlineAbove: state.isHighlighted ? nil : hairlineAbove
             )
+            hairlineAbove = Self.hairline(below: row, isHighlighted: state.isHighlighted)
             let scrollClip = rowIndex == origin.offset ? origin.topClip : 0
-            let endsInRule = row.content.separatorLine != nil
+            let endsInRule = row.content.separatorLine?.takesRow == true
             guard let covered = pin.cover(rowIndex, lines: rendered.lines.count - scrollClip, endsInRule: endsInRule) else {
                 if row.type.countsAsStripedRow { contentRowIndex += 1 }
+                hairlineAbove = nil
                 continue
             }
             if let claims = rendered.contentClaims {
@@ -4329,6 +4353,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         /// and draws nothing in it — see ``ItemListHandler/returningRows``.
         let isReturningHome: Bool
 
+        /// Whether the row is painted in the focus or the selection fill.
+        var isHighlighted: Bool { isFocused || isSelected }
+
         /// The state of the row at `index` this frame, as the window's two
         /// assembly paths ask it.
         static func of(
@@ -4340,6 +4367,33 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         }
     }
 
+    /// The hairline `row`, just drawn, leaves along the top of the row drawn
+    /// after it: its separator, where that is a hairline and the terminal
+    /// draws one. None from a row painted in the focus or selection fill, nor
+    /// into one (at the call): a line across a highlight reads as a seam in
+    /// it, and macOS draws none there either (an unmeasured reading, left to
+    /// the owner — decisions A-D6L-2).
+    private static func hairline(
+        below row: SelectableListRow<SelectionValue>, isHighlighted: Bool
+    ) -> ListRowSeparatorLine? {
+        guard KittyGraphics.isHairlineSupported, !isHighlighted, let line = row.content.separatorLine, line.isHairline
+        else { return nil }
+        return line
+    }
+
+    /// A row's `lines` with the first one's cells marked for `hairline`, the
+    /// separator of the row above (`HairlineMarker`): across the content the
+    /// rule would have run across, for the writer to place the line on.
+    private static func marking(
+        _ lines: [String], for hairline: ListRowSeparatorLine?, rowWidth: Int, palette: any Palette
+    ) -> [String] {
+        guard let hairline, !lines.isEmpty else { return lines }
+        var marked = lines
+        marked[0] = hairline.markingHairline(
+            on: lines[0], offset: listRowGutter / 2, width: max(0, rowWidth - listRowGutter), palette: palette)
+        return marked
+    }
+
     private func renderRow(
         row: SelectableListRow<SelectionValue>,
         at rowIndex: Int,
@@ -4348,7 +4402,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         contentRowIndex: Int,
         style: any ListStyle,
         context: RenderContext,
-        palette: any Palette
+        palette: any Palette,
+        hairlineAbove: ListRowSeparatorLine? = nil
     ) -> RenderedRow {
         // A row that names its own background (the reorder slot) keeps it; the
         // rest ask their type and state.
@@ -4399,7 +4454,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         /// own ground (below).
         func claims(over backgroundColor: Color?) -> [OpacityRegion] {
             Self.rowClaims(
-                over: backgroundColor, lines: row.buffer.lines.count - (row.content.separatorLine == nil ? 0 : 1),
+                over: backgroundColor, lines: row.buffer.lines.count - (row.content.separatorLine?.takesRow == true ? 1 : 0),
                 rowWidth: rowWidth, indicator: indicator, badgeColumns: badgeColumns, badgeInk: badgeInk)
         }
 
@@ -4411,13 +4466,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         /// this row looks like, called once for the frame on screen and once per
         /// point of a pulse for the runs that replay it.
         func lines(over backgroundColor: Color?) -> [String] {
-            content.lines(over: backgroundColor).enumerated().map { lineIndex, line in
+            let drawn = content.lines(over: backgroundColor).enumerated().map { lineIndex, line in
                 // The separator's line: the rule across the content's width, on
                 // the list's own ground, whatever the row's fill. A separator
                 // is between rows, not part of one: painted in the row's fill,
                 // a selected or focused row's highlight ran on over the rule
                 // under it, and read as a row a line taller than its content.
-                if let separator = row.content.separatorLine, lineIndex == row.buffer.lines.count - 1 {
+                if let separator = row.content.separatorLine, separator.takesRow, lineIndex == row.buffer.lines.count - 1 {
                     let rule = separator.drawn(width: max(0, rowWidth - listRowGutter), palette: palette)
                     return renderPlainLine(
                         line: rule, lineLength: rule.strippedLength, rowWidth: rowWidth, backgroundColor: nil, gutter: " ")
@@ -4434,6 +4489,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                         backgroundColor: backgroundColor, gutter: lineIndex == 0 ? gutter : " ")
                 }
             }
+            // The hairline of the row above, along this row's top — here, in
+            // the one description of the row, so every point of a pulse
+            // carries the mark the frame on screen does; a drag's copy is
+            // drawn from the row's own buffer and carries none.
+            return Self.marking(drawn, for: hairlineAbove, rowWidth: rowWidth, palette: palette)
         }
 
         /// The row content's own runs, moved past the leading pad this renderer

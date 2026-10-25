@@ -39,7 +39,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [SINGLETON-CACHES](#singleton-caches) | (c). | Partly done (lane DOCS2): the rule is clarified and the palette store documented; injecting URLImageCache and bounding it still needs code (queued). |
 | [WINDOWS-PORT](#windows-port) | (b); don't make future Windows work harder. | Bookkeeping queued for after the push. |
 | [A-D6L-1](#a-d6l-1) | Not deciding yet; keep open. | Kept open; reminder at the end of the queue. |
-| [A-D6L-2](#a-d6l-2) | (4). | Queued: the Kitty hairline prototype comes first. |
+| [A-D6L-2](#a-d6l-2) | (4). | Prototype built (lane-hairline, 2026-10-24): `.listSeparatorStyle(_:)`; on Ghostty `.automatic` separators are SwiftUI's default, drawn as Kitty hairlines that take no row; elsewhere off, as before. To look: `Tools/TerminalProbes/hairline_review.py`. |
 | [B-D2S-6](#b-d2s-6) | Asked whether "0 more" should ever show. | Answered below — your call. |
 | [S3-NO-EXTENT-SPACING](#s3-no-extent-spacing) | Leaning (2); asked why SwiftUI does this. | Answered below — your call. |
 | [B27-ANIMATING](#b27-animating) | (3). | Done 2026-10-24, all eight pieces of [Animated scrolling, a design (B27)](<SwiftUI parity/Decisions/Scrolling/Animated scrolling, a design (B27).md>): a `ScrollView`'s, a `List`'s and a `Table`'s animated `scrollTo`, `ScrollPosition` and anchor-edge requests glide (a `ScrollView` on both axes), report `.animating`, and are interrupted, retargeted and re-sought on landing; the lists report scroll phases; under `scrollKeyboardAnimation(_:)` the page keys glide; the Stress `glide` scenario prices a glide frame. Deviations from the note: lists glide a row at a time; the keys' and the request's details are in the note's status. |

@@ -1128,3 +1128,22 @@ if anything §3.2 strengthens it, because the fourteen Sixel-or-iTerm2 hosts cos
 two encoders and a host table to reach and these six cost neither. What §6 did
 not consider is that the protocol it *did* choose has two placement models and
 this framework only ever built one.
+
+## 13. The first classic placements TUIkit sends: hairline list separators — built 2026-10-24
+
+§11's writer substitution has its first user, and it is not `Image`: the
+`.hairline` list separator look (decisions A-D6L-2, the owner's option 4;
+`Documentation/Investigations/Thin lines between rows with Kitty graphics.md`).
+A list marks the cells a line runs along with a private SGR parameter
+(`HairlineMarker`), the diff writer reads the runs off the composited frame
+and takes the mark out, and `HairlineLayer` keeps the terminal's placements
+in step with them — the damage model of §11.3, for one picture per colour,
+cropped per run. The encoder is `KittyGraphics.classicPlacement(id:placement:sourceWidth:sourceHeight:z:)`
+and `deletePlacement(id:placement:)`.
+
+What it does NOT do yet is what §12 is about: `Image` still draws through
+placeholders only, so no host gains pictures from this. The handshake asks no
+classic-placement question either; the lines are gated on a measured host
+(Ghostty) instead (`KittyGraphics.isHairlineSupported`), with
+`TUIKIT_HAIRLINES=1` to try any other. The per-host rules are in
+`Documentation/Terminals/Terminal compatibility survey.md`, "What TUIkit draws".

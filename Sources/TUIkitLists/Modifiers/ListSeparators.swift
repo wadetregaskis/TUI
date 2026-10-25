@@ -123,11 +123,12 @@ extension _ListRowSeparatorPreferenceView: AlignmentGuideQuerying {
 /// The report is `_RowEditRestrictionView`'s mechanism — the list stamps which
 /// row is rendering on its per-frame collector — and declares a render side
 /// effect where losing it could change what the row draws
-/// (``ListSeparatorChange/changesRow(over:)``), so a memoized row cannot skip
-/// it and lose its preference. A row carrying no separator modifier pays
-/// nothing, and neither does one whose modifiers change nothing — the
-/// ported `.listRowSeparator(.hidden)` under a list that draws none: a side
-/// effect stops the row's memo, and every memo around the list, from keeping
+/// (``ListSeparatorChange/changesRow(over:automaticShows:)``), so a memoized
+/// row cannot skip it and lose its preference. A row carrying no separator
+/// modifier pays nothing, and neither does one whose modifiers change nothing
+/// — the ported `.listRowSeparator(.hidden)` under a list that draws none by
+/// default (a rule look; under a hairline look, which shows them, the same row
+/// does change something): a side effect stops the row's memo, and every memo around the list, from keeping
 /// anything, as `_RowEditRestrictionView` refuses to for a row that refuses
 /// nothing. Such a row still reports while it renders: in a row whose other
 /// statements DO change something, it is rendered every frame, and the order
@@ -141,7 +142,10 @@ func renderReportingSeparator<Content: View>(
 ) -> FrameBuffer {
     if !sections, let reports = context.environment.listRowEditRestrictions, let row = reports.currentRowIndex {
         if !context.isMeasuring {
-            if change.changesRow(over: context.environment.listSeparatorDefaults.rows) {
+            let environment = context.environment
+            if change.changesRow(
+                over: environment.listSeparatorDefaults.rows, automaticShows: environment.listSeparatorsShowByDefault)
+            {
                 context.environment.volatileReadTracker?.recordRenderSideEffect()
             }
             reports.reportSeparator(row: row, change)

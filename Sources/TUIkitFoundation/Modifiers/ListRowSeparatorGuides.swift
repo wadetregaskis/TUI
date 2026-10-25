@@ -9,8 +9,9 @@ import TUIkitView
 
 // MARK: - The line
 
-/// One separator line as a row draws it: the rule's ink and where it starts
-/// and stops across the row's content (decisions A47).
+/// One separator line as a row draws it: the rule's ink, where it starts and
+/// stops across the row's content (decisions A47), and whether it is a rule
+/// of its own or a hairline (A-D6L-2).
 ///
 /// `@usableFromInline`, with its fields (the module split's tier 2): TUIkitLists
 /// makes one for every row that draws a separator, and an `@inlinable` member of
@@ -30,24 +31,55 @@ package struct ListRowSeparatorLine: Equatable, Sendable {
     /// row's own ``HorizontalAlignment/listRowSeparatorTrailing``, else `nil`
     /// — the row's trailing edge.
     @usableFromInline package var trailing: Int?
+    /// Whether it is drawn as a hairline along the top of the row below
+    /// (`ListSeparatorStyle.hairline`), which takes no row, rather than as a
+    /// rule on a line of its own below the row (``takesRow``).
+    @usableFromInline package var isHairline: Bool
 
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUIkitLists makes these, for its lists.
     @inlinable
-    package init(tint: Color? = nil, leading: Int = 0, trailing: Int? = nil) {
+    package init(tint: Color? = nil, leading: Int = 0, trailing: Int? = nil, isHairline: Bool = false) {
         self.tint = tint
         self.leading = leading
         self.trailing = trailing
+        self.isHairline = isHairline
+    }
+
+    /// Whether the row this separates draws it on a line of its own below
+    /// itself: the rule does, the hairline does not.
+    @inlinable
+    package var takesRow: Bool { !isHairline }
+
+    /// The cells of a content `width` cells wide the separator runs across.
+    private func columns(width: Int) -> Range<Int> {
+        let start = max(0, min(leading, width))
+        return start..<max(start, min(trailing ?? width, width))
     }
 
     /// The rule drawn `width` cells wide (the row's content width).
     package func drawn(width: Int, palette: any Palette) -> String {
-        let start = max(0, min(leading, width))
-        let end = max(start, min(trailing ?? width, width))
+        let columns = columns(width: width)
         let ink = (tint ?? palette.border).resolve(with: palette).opaqueSpelling
-        return String.spaces(start)
-            + ANSIRenderer.colorize(String(repeating: "─", count: end - start), foreground: ink)
-            + String.spaces(width - end)
+        return String.spaces(columns.lowerBound)
+            + ANSIRenderer.colorize(String(repeating: "─", count: columns.count), foreground: ink)
+            + String.spaces(width - columns.upperBound)
+    }
+
+    /// `line` — the row below's first line — marked for the hairline along its
+    /// top (``HairlineMarker``): across the same cells the rule would run
+    /// across, `offset` cells into the line, where the row's content starts.
+    ///
+    /// Unmarked where the ink has no RGB to draw a strip in: a palette slot
+    /// the terminal never reported, which a blend cannot use either.
+    package func markingHairline(on line: String, offset: Int, width: Int, palette: any Palette) -> String {
+        let columns = columns(width: width)
+        guard !columns.isEmpty,
+            let rgb = (tint ?? palette.border).resolve(with: palette).opaqueSpelling.rgbComponents
+        else { return line }
+        return HairlineMarker.marking(
+            line, columns: (offset + columns.lowerBound)..<(offset + columns.upperBound),
+            red: rgb.red, green: rgb.green, blue: rgb.blue)
     }
 }
 

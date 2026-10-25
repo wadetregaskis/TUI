@@ -12,13 +12,17 @@ extension View {
     /// Sets the display mode for the separator associated with this specific
     /// row.
     ///
-    /// A separator is a faint `─` rule on a line of its own between this row and
-    /// the next (decisions A47): a terminal row has no hairline thinner than a
-    /// cell, so each separator costs a line of height. No built-in style draws
-    /// them by default yet — `.automatic` is hidden — so `.visible` asks for
-    /// one. The line under a row is the row's `.bottom` edge; the line above a
-    /// row is the row before it's, so `.top` is the style's to decline, as
-    /// SwiftUI documents a style may. Never below a list's last row. Tint it
+    /// Where the terminal draws hairlines (Ghostty), a separator is a line a
+    /// pixel or two thick along the top of the next row, which takes no row,
+    /// and `.automatic` is SwiftUI's default: shown in every style but
+    /// `.sidebar` and `.insetGrouped`. Elsewhere it is a faint `─` rule on a
+    /// line of its own between this row and the next (decisions A47): drawn
+    /// with cells, a separator costs a line of height, so `.automatic` is
+    /// hidden and `.visible` asks for one. ``listSeparatorStyle(_:)`` chooses
+    /// the look (decisions A-D6L-2). The line under a row is the row's
+    /// `.bottom` edge; the line above a row is the row before it's, so `.top`
+    /// is the style's to decline, as SwiftUI documents a style may. Never
+    /// below a list's last row. Tint it
     /// with ``listRowSeparatorTint(_:edges:)`` and place its ends with the
     /// ``HorizontalAlignment/listRowSeparatorLeading`` and
     /// ``HorizontalAlignment/listRowSeparatorTrailing`` guides.
