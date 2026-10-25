@@ -55,8 +55,19 @@ public struct AnimationFrame: Sendable, Equatable {
     }
 }
 
-private struct AnimationFrameKey: EnvironmentKey {
+private struct AnimationFrameKey: EnvironmentKey, _RenderProjectingEnvironmentKey {
     static var defaultValue: AnimationFrame { AnimationFrame() }
+
+    /// Compared by whether changes may animate, not by the frame's instant
+    /// and step, which move every frame: a view that draws from those reads
+    /// the frame clock, which records a volatile read, so nothing it drew is
+    /// ever stored to be compared (Option C, v4 §4.7). Compared as it stands,
+    /// no environment matched a stored one, and no row was ever re-checked
+    /// (`Stress --census`: every unequal environment on log, inbox, chat and
+    /// residual was this key).
+    static func renderProjection(of value: Any) -> (any Equatable)? {
+        (value as? AnimationFrame)?.canAnimate
+    }
 }
 
 extension EnvironmentValues {
