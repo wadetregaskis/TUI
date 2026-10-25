@@ -16,6 +16,7 @@ let controlsClip = Clip(
     title: "Controls",
     columns: 112,
     rows: 30,
+    output: 800,
     script: controlsScript(),
     run: { await ControlsApp.main() }
 )
@@ -23,7 +24,7 @@ let controlsClip = Clip(
 /// Types a name, flips the toggle, chooses a theme, moves the slider and the
 /// stepper, and saves: one Tab to each control, in the form's order.
 private func controlsScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0.5, y: 3.3, width: 56, height: 18)), .wait(0.6)]
+    var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 92, height: 20)), .wait(0.6)]
     script += Step.type("Ada Lovelace", interval: 0.07)
     script += [.wait(0.3), .tab, .wait(0.35), .space, .wait(0.45)]
     script += [.tab, .wait(0.3), .right, .wait(0.3), .space, .wait(0.45)]
@@ -53,7 +54,53 @@ struct ControlsPage: View {
     @State private var copies = 1
     @State private var saved = 0
 
+    private let themes = ["Light", "Dark", "System"]
+
     var body: some View {
+        HStack(alignment: .top, spacing: 2) {
+            form
+            preview
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, 1)
+        .toolbar {
+            ToolbarItem(placement: .navigation) { Text(verbatim: "Settings") }
+        }
+    }
+
+    /// What the settings make: the profile as others see it, live.
+    private var preview: some View {
+        GroupBox("Preview") {
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 1) {
+                    Text(verbatim: " \(initials) ")
+                        .bold()
+                        .foregroundStyle(.palette.background)
+                        .background(.palette.accent)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(verbatim: name.isEmpty ? "No name yet" : name).bold()
+                        Text(verbatim: notifications ? "🔔 Notifications on" : "🔕 Notifications off")
+                            .foregroundStyle(.palette.foregroundSecondary)
+                    }
+                }
+                LabeledContent("Theme", value: themes[theme])
+                LabeledContent("Volume") {
+                    ProgressView(value: volume, total: 100).frame(width: 12)
+                }
+                LabeledContent("Copies", value: String(repeating: "▤ ", count: copies))
+                Text(verbatim: saved > 0 ? "✓ Saved" : "Not saved")
+                    .foregroundStyle(saved > 0 ? .palette.success : .palette.foregroundTertiary)
+            }
+        }
+        .frame(width: 32)
+    }
+
+    private var initials: String {
+        let letters = name.split(separator: " ").compactMap(\.first).prefix(2)
+        return letters.isEmpty ? "?" : String(letters)
+    }
+
+    private var form: some View {
         VStack(alignment: .leading, spacing: 1) {
             Form {
                 Section("Profile") {
@@ -62,9 +109,7 @@ struct ControlsPage: View {
                 }
                 Section("Preferences") {
                     Picker("Theme", selection: $theme) {
-                        Text("Light").tag(0)
-                        Text("Dark").tag(1)
-                        Text("System").tag(2)
+                        ForEach(themes.indices, id: \.self) { index in Text(themes[index]).tag(index) }
                     }
                     .pickerStyle(.segmented)
                     LabeledContent("Volume") { Slider(value: $volume, in: 0...100, step: 5) }
@@ -81,11 +126,6 @@ struct ControlsPage: View {
             .padding(.leading, 2)
             Spacer(minLength: 0)
         }
-        .frame(maxWidth: 60, alignment: .leading)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 1)
-        .toolbar {
-            ToolbarItem(placement: .navigation) { Text(verbatim: "Settings") }
-        }
+        .frame(width: 56, alignment: .leading)
     }
 }
