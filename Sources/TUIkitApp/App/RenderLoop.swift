@@ -491,12 +491,6 @@ extension RenderLoop {
         frameNowNanos: Int64,
         frameDate: Date
     ) -> RenderActivity {
-        // If an @Published property changed, clear the entire render cache
-        // so EquatableView-cached subtrees re-render with new model data.
-        if tuiContext.appState.consumeNeedsCacheClear() {
-            tuiContext.renderCache.clearAll()
-        }
-
         // Terminal size: single getSize() call avoids 2 ioctl syscalls per frame.
         let terminalSize = terminal.getSize()
         let terminalWidth = terminalSize.width
@@ -508,62 +502,12 @@ extension RenderLoop {
         }
         lastFrameSize = terminalSize
 
-        // Create render context with environment
-        var environment = buildEnvironment()
-        publishAnimationValues(
-            into: &environment, pulsePhase: pulsePhase, cursorTimer: cursorTimer,
+        let walk = walkScene(
+            width: terminalWidth, height: terminalHeight, pulsePhase: pulsePhase, cursorTimer: cursorTimer,
             animationScheduler: animationScheduler, frameNowNanos: frameNowNanos, frameDate: frameDate)
-        // Install a fresh volatile-read tracker at the render root so that, after
-        // the frame, we can tell whether anything actually consumed the pulse
-        // clock (the row memo reuses this same tracker further down). Likewise
-        // reset the cursor clock's per-frame read flag. These drive demand-driven
-        // animation: the run loop keeps a clock ticking only while a frame uses
-        // it, so a static screen produces no further frames.
-        // Mirrored onto the render cache as well as installed here: the measure
-        // memo's gate reads it off the cache (`ChildInfo.measureChild`), and a
-        // tracker the cache has not been told about switches that memo off.
-        // Safe here and not earlier: `beginRenderPass()` above does not clear
-        // the mirror, and `buildEnvironment()` has already wired the cache.
-        environment.installVolatileReadTracker(VolatileReadTracker())
-        cursorTimer?.beginFrameReadTracking()
-
-        // The app's body reads nothing a walk keeps; a change to what it read
-        // asks for a frame (`observingFrameReads`, FrameObservation.swift).
-        let scene = observingFrameReads(cache: tuiContext.renderCache, identity: rootIdentity) {
-            evaluateAppBody(environment: environment)
-        }
-        // The app's scenes, gathered in one walk of its body, and the windows
-        // open on them; then what the window in front's modifiers state — its
-        // root environment, mouse support, chrome style and undo keys — and
-        // the app's commands (`RenderLoop+Scene.swift`).
-        adoptScenes(SceneCatalog(scene, identity: sceneIdentity(of: scene)), environment: &environment)
-        // Before the height is read, which is the whole trick: a tooltip's
-        // triggers all land between frames (a mouse event, a key press, the
-        // scheduled wake for the hover delay), so the candidate is already known
-        // and the bar can be sized for it in this pass rather than the next.
-        let tooltipMovedThePage = resolveStatusBarTooltip(
-            terminalWidth: terminalWidth, nowNanos: frameNowNanos, scheduler: animationScheduler)
-        publishTerminalGeometry(into: &environment, width: terminalWidth, height: terminalHeight)
-        invalidateCacheIfEnvironmentChanged(environment: environment)
-
-        // Render the scene: its chrome host lays the top bar, the content
-        // and the bottom bar out as one frame the size of the terminal, in one
-        // walk (two on the first frame). See `renderContent`.
-        BindingReads.begin()
-        let buffer = renderContent(
-            scene: scene,
-            environment: environment,
-            terminalWidth: terminalWidth,
-            terminalHeight: terminalHeight)
-        // Every `Binding` the walk read, read again under one scope that asks
-        // for a frame when one changes: a control reads its binding in its
-        // core, where no body's scope sees it (`BindingReads`).
-        let bindingReads = BindingReads.end()
-        if !bindingReads.isEmpty {
-            observingFrameReads(cache: tuiContext.renderCache, identity: rootIdentity) {
-                for read in bindingReads { read() }
-            }
-        }
+        let buffer = walk.frame
+        let environment = walk.environment
+        let tooltipMovedThePage = walk.tooltipMovedThePage
 
         focusManager.endRenderPass()
         // Where the focus recovery left a focus a modifier-key alternate took.
@@ -621,6 +565,94 @@ extension RenderLoop {
         return recordActivity(
             usesPulse: (environment.volatileReadTracker?.reads ?? 0) > 0,
             usesCursor: cursorTimer?.didReadThisFrame ?? false)
+    }
+
+    /// What one walk of the scene drew, and what it drew it from.
+    private struct SceneWalk {
+        /// The frame: the scene, with its chrome.
+        let frame: FrameBuffer
+        /// The environment the walk was rendered in.
+        let environment: EnvironmentValues
+        /// Whether the status bar's tooltip changed the rows the page had.
+        let tooltipMovedThePage: Bool
+    }
+
+    /// One walk of the scene, with what it is drawn from: the environment
+    /// built afresh, the app's body evaluated, its scenes adopted, the status
+    /// bar's tooltip placed and the terminal's geometry published, then the
+    /// scene rendered with its chrome (``renderContent(scene:environment:terminalWidth:terminalHeight:)``).
+    private func walkScene(
+        width: Int,
+        height: Int,
+        pulsePhase: Double,
+        cursorTimer: CursorTimer?,
+        animationScheduler: AnimationScheduler?,
+        frameNowNanos: Int64,
+        frameDate: Date
+    ) -> SceneWalk {
+        // If an @Published property changed, clear the entire render cache
+        // so EquatableView-cached subtrees re-render with new model data.
+        if tuiContext.appState.consumeNeedsCacheClear() {
+            tuiContext.renderCache.clearAll()
+        }
+
+        // Create render context with environment
+        var environment = buildEnvironment()
+        publishAnimationValues(
+            into: &environment, pulsePhase: pulsePhase, cursorTimer: cursorTimer,
+            animationScheduler: animationScheduler, frameNowNanos: frameNowNanos, frameDate: frameDate)
+        // Install a fresh volatile-read tracker at the render root so that, after
+        // the frame, we can tell whether anything actually consumed the pulse
+        // clock (the row memo reuses this same tracker further down). Likewise
+        // reset the cursor clock's per-frame read flag. These drive demand-driven
+        // animation: the run loop keeps a clock ticking only while a frame uses
+        // it, so a static screen produces no further frames.
+        // Mirrored onto the render cache as well as installed here: the measure
+        // memo's gate reads it off the cache (`ChildInfo.measureChild`), and a
+        // tracker the cache has not been told about switches that memo off.
+        // Safe here and not earlier: `beginRenderPass()` above does not clear
+        // the mirror, and `buildEnvironment()` has already wired the cache.
+        environment.installVolatileReadTracker(VolatileReadTracker())
+        cursorTimer?.beginFrameReadTracking()
+
+        // The app's body reads nothing a walk keeps; a change to what it read
+        // asks for a frame (`observingFrameReads`, FrameObservation.swift).
+        let scene = observingFrameReads(cache: tuiContext.renderCache, identity: rootIdentity) {
+            evaluateAppBody(environment: environment)
+        }
+        // The app's scenes, gathered in one walk of its body, and the windows
+        // open on them; then what the window in front's modifiers state — its
+        // root environment, mouse support, chrome style and undo keys — and
+        // the app's commands (`RenderLoop+Scene.swift`).
+        adoptScenes(SceneCatalog(scene, identity: sceneIdentity(of: scene)), environment: &environment)
+        // Before the height is read, which is the whole trick: a tooltip's
+        // triggers all land between frames (a mouse event, a key press, the
+        // scheduled wake for the hover delay), so the candidate is already known
+        // and the bar can be sized for it in this pass rather than the next.
+        let tooltipMovedThePage = resolveStatusBarTooltip(
+            terminalWidth: width, nowNanos: frameNowNanos, scheduler: animationScheduler)
+        publishTerminalGeometry(into: &environment, width: width, height: height)
+        invalidateCacheIfEnvironmentChanged(environment: environment)
+
+        // Render the scene: its chrome host lays the top bar, the content
+        // and the bottom bar out as one frame the size of the terminal, in one
+        // walk (two on the first frame). See `renderContent`.
+        BindingReads.begin()
+        let frame = renderContent(
+            scene: scene,
+            environment: environment,
+            terminalWidth: width,
+            terminalHeight: height)
+        // Every `Binding` the walk read, read again under one scope that asks
+        // for a frame when one changes: a control reads its binding in its
+        // core, where no body's scope sees it (`BindingReads`).
+        let bindingReads = BindingReads.end()
+        if !bindingReads.isEmpty {
+            observingFrameReads(cache: tuiContext.renderCache, identity: rootIdentity) {
+                for read in bindingReads { read() }
+            }
+        }
+        return SceneWalk(frame: frame, environment: environment, tooltipMovedThePage: tooltipMovedThePage)
     }
 
     /// Runs the timed input to this frame's instant, before
