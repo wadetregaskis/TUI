@@ -1,11 +1,11 @@
 # SwiftUI's update model beside TUIkit's
 
 > **Status:** written 2026-10-24, read-only against `main` at `ac1cd30cf` and lane EFFECTS (`lane-effects`,
-> B-D5G-4 steps 1–5, not yet landed). No builds and no timing runs were made for it. Every number is quoted,
-> with its date, from a committed record, except Option C's step-0 table in §1.4, which was measured on
-> 2026-09-23 and recorded nowhere else. **Asked by:** the owner, 2026-10-24. **Working notes:** none. A
-> separate probe is measuring SwiftUI's exact ordering of effects; its results go in §2.3, where the slots
-> are marked.
+> B-D5G-4 steps 1–5, not yet landed). No TUIkit builds and no timing runs were made for it. Every number is
+> quoted, with its date, from a committed record, except Option C's step-0 table in §1.4, which was measured on
+> 2026-09-23 and recorded nowhere else. **Asked by:** the owner, 2026-10-24. **Working notes:** none.
+> SwiftUI's ordering of effects was measured the same day by a separate probe, on macOS 15.8.1's SwiftUI
+> (Xcode 26.3; macOS 26's is untested): §2.3 summarises it, and the claims it settles are marked **[M]**.
 
 ## Question
 
@@ -26,10 +26,11 @@
   TUIkit a view can only learn where it is after it has been drawn, a measure is a speculative partial
   drawing, an effect runs before anything after it in the walk is drawn, and whatever an effect changes
   reaches the screen a frame later.
-- **What users can observe.** In TUIkit, frames that SwiftUI never shows reach the screen: the state an
+- **What users can observe.** In TUIkit, frames that SwiftUI does not show reach the screen: the state an
   effect writes (`onAppear`, `onChange`, `onPreferenceChange`, `onGeometryChange`) is drawn one frame later,
   ≥ 16.7 ms at the default cap. The frame before it is drawn without that state, or with it in only some
-  places. Geometry is predicted and then corrected by drawing the subtree again, and where a container
+  places. SwiftUI draws an effect's write in the first frame after it; only a chain longer than its two
+  in-pass re-updates, or a size fed back through state, commits intermediate states (measured, §2.3). Geometry is predicted and then corrected by drawing the subtree again, and where a container
   drops the markers nothing checks the prediction. A body can run more than once per frame. In return,
   TUIkit can draw a subtree, look at what it drew, and draw it again within the same frame, and its lazy
   rows keep their state off screen. SwiftUI can do neither.
@@ -39,13 +40,15 @@
   `Equatable` rows (§1.4). A graph would cost months, every `_*Core`, and the debuggability of a
   synchronous walk. The *functional* differences that matter come from presenting the first walk, not
   from the lack of a graph. They close with a much smaller change: **walk again before writing the frame
-  whenever an effect changed state, bounded as SwiftUI bounds it; then, once the probe has measured
-  SwiftUI's order, hold the effects to the end of the walk in that order** (option (a), §5). Lane
-  EFFECTS' `EffectStage` already holds the effects. The geometry gap keeps closing along the path D5G
+  whenever an effect changed state, bounded as SwiftUI bounds it (per action: an action that re-triggers
+  itself runs twice per draw, then is cut off; two re-updates inside the frame's own pass), then hold the
+  effects to the end of the walk, which is where the probe found SwiftUI runs them** (option (a), §5).
+  Lane EFFECTS' `EffectStage` already holds the effects. The geometry gap keeps closing along the path D5G
   already chose: convert the containers that still leave a correction to the residual.
 - **Measure first** (§6): how many frames per session an effect writes state in (the body-mutation
-  diagnostic already counts writes during the walk); what a second walk costs on those frames once the
-  memo serves it; and the SwiftUI ordering probe, which fixes the order that option (a) must reproduce.
+  diagnostic already counts writes during the walk); and what a second walk costs on those frames once the
+  memo serves it. The SwiftUI ordering that option (a) must reproduce has been measured (§2.3); what the
+  probe left out is listed there.
 
 How to read the claims about SwiftUI: **[A]** is Apple's documentation or a WWDC session, **[C]** is
 community analysis (reverse-engineered or observed; marked with its author), and **[M]** is measured by
@@ -70,7 +73,7 @@ TUIkit's own SwiftUI probes (`Tools/SwiftUIProbes/`). Sources are listed at the 
 | **Drawing** | A display list built from geometry and resolved content, combined upward into a root display list, which the system asks for on the next display cycle [C: Breur 2024, Eidhof 2025]. | `FrameBuffer`s composited bottom-up. The root buffer is diffed line by line against the last frame, and the diff is written in one `write()` (`RenderCycle.md`, steps 7–11). |
 | **Geometry readers** | A `GeometryReader` defines its content "as a function of its own size and coordinate space", and returns a flexible size [A]. Its content is built after layout, from known geometry. Feeding a child's size back up through state "bypasses the layout engine, which might result in a loop" [A: 2022]. | The size is exact: the space offered (`GeometryReader.swift:276-286`). The *position* is predicted, from an origin carried down where the containers translate it. Each owner (a named space, a scroll view, a list, the root) reads the markers back out of what it drew, and draws its subtree once more in the same walk when the prediction missed (`GeometryCoordinator.swift:17-41`; decisions D5G; design study A2, "G4"). |
 | **Preferences, anchors** | Values flow up through the graph. A `preference` write is read by an `overlayPreferenceValue` through graph nodes in the same update [C: Breur 2024]. | A push/pop stack during the walk (`PreferenceKey.swift:199-215`). A layer reads its base's preferences and anchor markers in the same walk, since the base is drawn first. An ancestor drawn *before* the writer, such as the window reading a `.navigationTitle` or a toolbar, reads them a frame later (deviation W1). |
-| **Effects** | `onAppear`'s action "completes before the first rendered frame appears" [A]. Change handlers, `onPreferenceChange` and `onAppear` run after the invalidated bodies have run and before control returns to the run loop. If they invalidate again, the graph is updated again *before* anything is drawn, and a runaway is cut off with "onChange(of:) action tried to update multiple times per frame" [C: Breur 2022]. **[probe: §2.3]** | In walk order, mid-walk: `onAppear` and `onChange` before their content draws (`LifecycleModifier.swift:76-85`, `OnChangeModifier.swift:62-73`), `onPreferenceChange` after (`Preferences.swift:140-163`), `onGeometryChange` and scroll visibility at the frame's end but **before** it is written (`RenderLoop.swift:568`, then `writeFrame` at `:576`), `onDisappear` after it is written (`endRenderPass`, `:584`). A drawing that may be drawn again holds its effects back once a reader in it has been told a guess (lane EFFECTS). |
+| **Effects** | `onAppear`'s action "completes before the first rendered frame appears" [A]. Never inside a body or a `Layout` call: after a graph update, inside the hosting view's `layout()` before drawing, or at the end of an update in SwiftUI's run-loop observer [M]. A write in `onAppear` is in the first committed frame [M]. Two re-updates run inside the layout pass, the rest of a chain in the observer, drawn next cycle; distinct `onChange`s are not limited (100 ran) [M]. An action that feeds itself runs twice per draw, then is cut off with "tried to update multiple times per frame" and the change dropped; `onGeometryChange` instead stops on a 2-cycle of duplicate values [M] (§2.3). | In walk order, mid-walk: `onAppear` and `onChange` before their content draws (`LifecycleModifier.swift:76-85`, `OnChangeModifier.swift:62-73`), `onPreferenceChange` after (`Preferences.swift:140-163`), `onGeometryChange` and scroll visibility at the frame's end but **before** it is written (`RenderLoop.swift:568`, then `writeFrame` at `:576`), `onDisappear` after it is written (`endRenderPass`, `:584`). A drawing that may be drawn again holds its effects back once a reader in it has been told a guess (lane EFFECTS). |
 | **Animation, transactions** | A transaction is "a dictionary SwiftUI uses to implicitly propagate all the context for the current update", discarded at the update's end. Animatable attributes keep a model and a presentation value; built-in effects animate "without calling into any of your view code"; a custom `Animatable` view re-runs `body` and layout every frame [A: 2023]. | `withAnimation` stamps a `Transaction` that is consumed into the environment for one pass. An `Animatable` view is substituted at the point its picture has reached, as it renders (`Renderable.swift:172-207`). Animated cell runs (spinners, pulses, `.opacity` cycles) are spliced into the frame on screen without a walk (`RenderCycle.md`, "What Triggers a Frame"); every other animating subtree is walked each frame. |
 | **Off-screen rows** | A lazy stack creates a row as it nears the screen and releases it a few updates after it leaves (deviation L7). | A lazy stack draws only its window. A row out of it keeps its state (deviation L7; decisions B-D5G-1). |
 
@@ -147,10 +150,10 @@ in only some places:
 
 | Pattern | TUIkit | SwiftUI |
 |---|---|---|
-| `onAppear { model.load() }` where an ancestor or an earlier sibling shows `model` | The earlier views show the old value for one frame, the later ones the new: a tear (2026-08-07 record, §4, "Can frame 1 tear? yes, from views walked earlier"). | Not shown: the action completes before the first rendered frame [A], and the write updates again before commit [C: Breur 2022]. |
-| Sizes collected by `onPreferenceChange`, written to `@State`, read by the layout (the "flow layout" idiom) | On the first frame, a layout with `sizes` empty; on every later change, one frame laid out from the previous sizes. | "If a view's body needs to be evaluated twice, the first body is never rendered on screen" [C: Breur 2022]. |
-| `onGeometryChange(for:of:action:)` writing `@State` | Reported at the frame's end, before the write (`RenderLoop.swift:568`), so the frame shows the old state, and the next frame shows the new. | Action called "whenever the data type changes" [A]; whether the write reaches the same frame: **[probe: §2.3]**. |
-| `onChange(of:)` writing state that an earlier view read | A tear, as for `onAppear`. A later view sees the write in the same frame. | Re-updated before commit [C]. **[probe]** |
+| `onAppear { model.load() }` where an ancestor or an earlier sibling shows `model` | The earlier views show the old value for one frame, the later ones the new: a tear (2026-08-07 record, §4, "Can frame 1 tear? yes, from views walked earlier"). | Not shown: the action completes before the first rendered frame [A], the write is updated and drawn in the same layout pass, and the first committed frame shows the new state [M]. |
+| Sizes collected by `onPreferenceChange`, written to `@State`, read by the layout (the "flow layout" idiom) | On the first frame, a layout with `sizes` empty; on every later change, one frame laid out from the previous sizes. | "If a view's body needs to be evaluated twice, the first body is never rendered on screen" [C: Breur 2022]; the first draw after a preference change shows the new value [M]. |
+| `onGeometryChange(for:of:action:)` writing `@State` | Reported at the frame's end, before the write (`RenderLoop.swift:568`), so the frame shows the old state, and the next frame shows the new. | Action called "whenever the data type changes" [A], in the layout pass; its write is updated and drawn in the same pass [M]. A size that keeps feeding back is drawn and committed at its intermediate steps (§2.4) [M]. |
+| `onChange(of:)` writing state that an earlier view read | A tear, as for `onAppear`. A later view sees the write in the same frame. | Updated before anything is drawn; no frame shows the old state [M]. |
 | `@FocusedValue` read by a view drawn before its publisher | A frame late (deviation S5, decisions B34). | Readers are mostly commands and toolbar items, updated outside the view graph (S5; not measured). |
 | A toolbar placed or removed by the page | The bar appears or goes one frame later; the frame between is drawn at the old reservation (deviation W1, `RenderCycle.md` "Chrome Rendering"). | Part of the same update. |
 
@@ -166,17 +169,17 @@ idioms in the table write on every change of their input, not only on frame 1.
 
 | Effect | TUIkit | SwiftUI |
 |---|---|---|
-| `onAppear` | Before its content draws, mid-walk. Its content sees the write in this frame; views walked earlier do not. | Before the first rendered frame [A]. Relative order among siblings, and against `onChange`: **[probe]**. |
-| `.task` | Started at the appearance, mid-walk. The operation runs once the main actor is free, which is after the frame. | Started on appearance [A]. **[probe: before or after the first frame is committed]** |
-| `onChange(of:)` | Before its content draws, mid-walk, once per frame on a changed value (`OnChangeModifier.swift:62-98`). | After the update's bodies, before commit [C]. A cascade can fire it again in the same frame, capped with a warning [C]. **[probe]** |
-| `onPreferenceChange` | After its content draws, mid-walk, once per frame on a changed *reduced* value (`Preferences.swift:140-163`). | After the update [C]. **[probe]** |
-| `onGeometryChange`, `onScrollVisibilityChange` | At the frame's end, before the write (`RenderLoop.swift:568`): reported once, for what was finally drawn. | **[probe]** |
-| `onDisappear` | After the frame is written (`RenderLoop.swift:584`). | After the view disappears [A, as quoted in the 2026-08-07 record]. **[probe]** |
+| `onAppear` | Before its content draws, mid-walk. Its content sees the write in this frame; views walked earlier do not. | Before the first rendered frame [A], after the first graph update, inside the host's `layout()` [M]. A parent's before its child's; on one view, `onGeometryChange` and `onPreferenceChange` ran before it, and the `onChange` its write caused ran after the redraw [M]. Order among siblings: not measured. |
+| `.task` | Started at the appearance, mid-walk. The operation runs once the main actor is free, which is after the frame. | After the first frame is committed, on the main actor, whatever its priority [M]. |
+| `onChange(of:)` | Before its content draws, mid-walk, once per frame on a changed value (`OnChangeModifier.swift:62-98`). | After a graph update, never in a body: in the host's `layout()`, or at the end of an update in SwiftUI's observer [M]. Re-fired by its own writes at most twice per draw, then cut off with a warning and the change dropped; distinct chains are not limited [M]. |
+| `onPreferenceChange` | After its content draws, mid-walk, once per frame on a changed *reduced* value (`Preferences.swift:140-163`). | Where `onChange` runs, with the same cut-off for a preference it feeds itself [M]. |
+| `onGeometryChange`, `onScrollVisibilityChange` | At the frame's end, before the write (`RenderLoop.swift:568`): reported once, for what was finally drawn. | `onGeometryChange`: in the layout pass, its write drawn in the same pass; no count limit, stops on a 2-cycle of duplicate values [M]. `onScrollGeometryChange` reported in the first layout pass [M]. `onScrollVisibilityChange`: not measured. |
+| `onDisappear` | After the frame is written (`RenderLoop.swift:584`). | After the view disappears [A, as quoted in the 2026-08-07 record]. Its timing against the commit: not measured. |
 
 The consequences:
 
 - **A later view sees an earlier effect's write in the same frame; an earlier view does not.** In SwiftUI
-  every view sees it, in the next update before anything is shown. Results are the same once things
+  every view sees it, in the next update before anything is shown [M]. Results are the same once things
   settle. They differ in the frame between, as in §2.1, and in what an `onChange` *further down* the same
   walk compares against: it sees the new value this frame in TUIkit, and in the second update in SwiftUI.
   The number of firings is the same. Whether they fall in the same frame is not.
@@ -189,24 +192,48 @@ The consequences:
   `onChange` "no longer sees what the action wrote in the same frame". A keyframe animator restarted a
   frame late (`AnimatorViewTests.keyframesInterrupted`), and a page that loads in `onAppear` would draw
   one frame empty (D5G decisions, B-D5G-4, on `lane-effects`). SwiftUI's ordering is safe only because a
-  second update precedes the commit. Taking SwiftUI's order means taking its re-update too (option (a),
-  §5).
+  second update precedes the drawing, which the probe confirmed [M]. Taking SwiftUI's order means taking
+  its re-update too (option (a), §5).
 
-### 2.3 SwiftUI's effect ordering, measured — **slot for the probe**
+### 2.3 SwiftUI's effect ordering, measured
 
-*To be filled from the probe running now. Until then, §1.1 and §2.2 rest on Apple's `onAppear` contract and
-on Breur's 2022 breakpoint study (community). The probe should settle, and option (a) is shaped by:*
+From [SwiftUI's update and effect ordering, measured](<SwiftUI's update and effect ordering, measured (2026-10-24).md>)
+(probe `Tools/SwiftUIProbes/Effect and update ordering/`, each case run four times, on macOS 15.8.1's
+SwiftUI built with Xcode 26.3; macOS 26's SwiftUI is untested). Every item is measured unless it says
+otherwise:
 
-1. *The order of `onAppear`, `onChange`, `onPreferenceChange` and `onGeometryChange` within one update,
-   and among siblings and nested views (is it tree order, or reverse, or by kind?).*
-2. *Whether a `@State` write in each of those reaches the **same** committed frame: in other words,
-   whether the update repeats before commit, and how many times before the warning.*
-3. *Whether `.task`'s operation starts before or after the first committed frame.*
-4. *Whether `onDisappear` runs before or after the frame without the view is committed.*
-5. *What a body drawn after an effect sees in the first update: the old value (with a second update
-   fixing it) or the new one.*
-6. *Whether `onGeometryChange` with a non-local space reports in the update its geometry changed in, or
-   in the next.*
+- **Where effects run.** Never inside a body or a custom `Layout` call. They run after a graph update, from
+  `Update.dispatchActions()`, in one of two places: inside the hosting view's `layout()`, before drawing;
+  or at the end of an update that SwiftUI's run-loop observer runs (after a change from outside, or for the
+  rest of a chain of effects).
+- **A write in `onAppear` is never drawn in its old state.** The first round of effects runs before
+  anything is drawn; the write is updated (bodies, layout, the `GeometryReader`) and drawn in the same
+  layout pass, so the first committed frame shows the new state. A body drawn after the effect sees the new
+  value in its first drawing. `onChange` and `onPreferenceChange` reacting to a write from outside are
+  updated in the observer and drawn in the next display cycle with the new state.
+- **Chains.** Distinct `onChange` chains have no limit: 100, each setting the next, all ran (two inside the
+  layout pass, 98 in one `beforeWaiting` callout) before the next display-link callback, with no warning.
+  The first commit carried an intermediate state of the chain; the next display cycle drew the last.
+- **Self-feeding actions.** An `onChange(of: x)` that sets `x + 1`, and an `onPreferenceChange` that feeds
+  its own preference, each ran twice per draw and were then cut off with "tried to update multiple times
+  per frame". The suppressed change is dropped, not deferred; a later write from outside starts two more
+  calls. "Twice per draw" is inferred from two runs consistent with it and with no other rule tried.
+- **`onGeometryChange`** has no count limit (298 calls in one callout). It stops only when the value it
+  would deliver repeats the one it delivered two calls before, with "Geometry action is cycling between
+  duplicate values."
+- **`GeometryReader`** content runs once per update, with that update's final size, never with AppKit's
+  `0×0` and `∞×∞` sizing queries, nor when a `List` sizes its rows. A reader whose size feeds back through
+  state goes through full updates, and their intermediate states are drawn and committed (300 points, then
+  266.67).
+- **`.task`** starts after the first committed frame, on the main actor, regardless of priority.
+- **A `@State` write inside `body`** is lost, with "Modifying state during view update, this will cause
+  undefined behavior."; no update follows and later bodies read the old value.
+
+The questions this section was left to settle: the order within one update is parent before child for
+`onAppear`, and on one view's modifier chain `onGeometryChange`, `onPreferenceChange`, then `onAppear`;
+order among siblings, `onDisappear` against the commit, `onScrollVisibilityChange`, and `onGeometryChange`
+in a non-local coordinate space were **not measured**, nor were animations, `Table`, `NavigationStack`,
+sheets or iOS.
 
 ### 2.4 Geometry is predicted, then corrected
 
@@ -235,9 +262,11 @@ differ (decisions D5G; design study A2, G4). The results:
   drop targets), where a view only the first drawing drew stays registered for that frame
   (`RenderWalkCheckpoint.swift:43-55`).
 - **SwiftUI's own failure mode here is a loop, not a miss.** A reader whose size is written to state and
-  fed back into layout re-updates, and Apple warns that it "might result in a loop" [A: 2022]. TUIkit's
-  walk cannot loop within a frame: such a cycle advances one frame at a time, and every intermediate step
-  is shown.
+  fed back into layout re-updates, and Apple warns that it "might result in a loop" [A: 2022]. Measured,
+  each step is a full update whose state is drawn and committed, and the loop runs on within one turn of
+  the run loop until a value repeats two steps back [M]. TUIkit's walk cannot loop within a frame: such a
+  cycle advances one frame at a time. Both show the intermediate steps; SwiftUI's hold the main thread
+  until they end.
 
 ### 2.5 A body may run more than once per frame, and a measure is speculative
 
@@ -285,7 +314,8 @@ simply does (L5, SwiftUI side).
   drawn, through clipping, compositing, dimming (which drops them) and memoization. There is no separate
   hit-test geometry to drift.
 - **A cycle cannot hang a frame.** State → layout → state advances one frame per step and is visible.
-  SwiftUI cuts it off with a warning [C].
+  SwiftUI cuts off an action that feeds itself after two calls per draw, but runs a chain of distinct
+  actions, or a geometry feedback, to its end in one run-loop turn (100 steps, 298 calls) [M].
 
 ### 2.8 Where the semantics already match
 
@@ -347,7 +377,7 @@ the walk is the commit.
 **A SwiftUI-style graph's, from Apple and the community:**
 
 1. **Update loops**: state written during an update, or a layout feeding itself back through geometry
-   ("might result in a loop" [A: 2022]; "tried to update multiple times per frame" [C]).
+   ("might result in a loop" [A: 2022]; "tried to update multiple times per frame" [C, M]).
 2. **Unstable identity**, which loses state and breaks animation [A: 2021], and `AnyView` or variable
    per-element view counts, which force eager creation of every row [A: 2023].
 3. **Over-invalidation from broad dependencies**: passing a whole model where a field would do [A: 2023].
@@ -453,14 +483,31 @@ which costs far less.
 **What.** Two pieces, both built on lane EFFECTS' `EffectStage`:
 
 1. **Re-walk before writing.** After the walk, if an effect wrote state during it or at the frame's end
-   (`onGeometryChange`, scroll visibility, preference callbacks), walk again before `writeFrame`. Bound it
-   at a small count, say three walks, as SwiftUI bounds its updates [C], and report a runaway the way the
-   body-mutation diagnostic reports a write. With effects still mid-walk, this alone removes the stale and
-   torn frames of §2.1.
+   (`onGeometryChange`, scroll visibility, preference callbacks), walk again before `writeFrame`. With
+   effects still mid-walk, this alone removes the stale and torn frames of §2.1. Bound it as SwiftUI does,
+   which the probe found is per action, not per frame (§2.3):
+   - **Per action, two per written frame.** An `onChange` or `onPreferenceChange` action that has run
+     twice since the last written frame is refused a third time, its change dropped rather than deferred
+     (the value is recorded as seen, so the next frame does not fire it either), with SwiftUI's warning,
+     once. A later change starts the count again.
+   - **No cap on distinct chains, in principle.** SwiftUI re-updates twice inside its layout pass, then
+     commits and runs the rest of a chain outside it. TUIkit's nearest equivalent: at most two re-walks
+     before writing; if effects are still writing, write the frame and let the rest of the chain continue
+     a walk per frame, as today. That spreads a chain longer than three steps over frames where SwiftUI
+     finishes it in one run-loop turn; it shows intermediate frames as SwiftUI's commits do, and cannot
+     hold the main thread. If the count (step (1) below) finds long chains, the rest of a chain can be
+     walked unwritten before the next frame instead.
+   - **`onGeometryChange`: SwiftUI's duplicate-cycle rule, no count.** Keep the last two values each
+     action delivered, and refuse a delivery equal to the one before last (`A → B → A`), with "Geometry
+     action is cycling between duplicate values." Its writes fall under the two-re-walk bound like any
+     other.
 2. **Then, optionally, SwiftUI's order.** Hold every effect to the end of its walk, on the stage that
-   already holds nine kinds, and run them in the order the probe measures (§2.3). Lane EFFECTS found that
+   already holds nine kinds, and run them where the probe found SwiftUI runs them: after the walk, never
+   inside a body or a measure, a parent's `onAppear` before its child's (§2.3). Lane EFFECTS found that
    holding effects without a re-walk restarted a keyframe animator a frame late, and would draw a page that
-   loads in `onAppear` empty for a frame. With the re-walk, that frame is never written.
+   loads in `onAppear` empty for a frame. With the re-walk, that frame is never written, which is what
+   SwiftUI was measured to do. `.task` needs no change: TUIkit's operation already runs on the main actor
+   after the frame, as SwiftUI's does.
 
 The same loop can take a toolbar placed by the page, or a focused value published after its reader:
 walk again with the new reservation or value, and W1 and S5 stop being a frame late.
@@ -475,14 +522,15 @@ first (§6). It does not touch §2.4–§2.6.
 
 **Risks.** The 2026-08-07 record listed "converge before presenting" and set it aside as "re-walking to
 fixpoint, i.e. a discarded pass, unbounded". The bound is the answer to that: an effect that does not
-converge used to cost a frame per step; now it costs up to the bound per frame, then reports, and the
-next frame continues as today. The `onAppear` ordering the 2026-08-07 record kept ("matches SwiftUI's documented
+converge used to cost a frame per step; now it costs up to two re-walks per frame, and the next frame
+continues as today. An action that feeds itself is cut off as SwiftUI cuts it off. The `onAppear` ordering the 2026-08-07 record kept ("matches SwiftUI's documented
 guarantee") is preserved: the action still completes before the first frame is written.
 
 **Steps, each landable.** (1) Count: frames with a write during the walk, by cause, across the Example and
 Stress (instrumentation exists). (2) The bounded re-walk, effects unmoved, with `RenderPassScopeTests`-style
-tests for each idiom in §2.1, and an A/B on the scenarios with effects. (3) Toolbars and focused values
-through the same loop, which retires W1 and S5. (4) After the probe, the end-of-walk order, kind by kind.
+tests for each idiom in §2.1, the per-action cut-off and the geometry duplicate-cycle rule, and an A/B on
+the scenarios with effects. (3) Toolbars and focused values through the same loop, which retires W1 and S5.
+(4) The end-of-walk order measured in §2.3, kind by kind.
 
 **Memo interaction.** None new. A re-walk is an ordinary walk, and lane EFFECTS' checkpoint discipline
 already rolls back per-walk registries. The memo makes it cheap.
@@ -588,8 +636,8 @@ The reasons:
 
 1. **The functional differences that users can see come from presenting the first walk, not from the
    absence of a graph.** Every row of §2.1's table disappears once the frame is not written until effects
-   have settled. SwiftUI itself gets that property from its re-update before commit [C], not from the
-   graph as such.
+   have settled. SwiftUI itself gets that property from its re-update before drawing [M], not from the
+   graph as such, and only for two re-updates: past them, it too commits intermediate states (§2.3).
 2. **The graph's measured win is narrow, and it has a cheaper route.** At terminal scale, warm frames are
    0.2–4 ms against a 16.7 ms budget. The structural loss is the ancestor-write class. Option C adopts
    SwiftUI's contract for it, value comparison of `Equatable` rows, without SwiftUI's machinery.
@@ -608,8 +656,9 @@ The reasons:
    and that idiom is the one to price.
 2. **What the second walk costs on those frames.** The memo hit rate and µs of a re-walk after each kind of
    write, on `geometry`, `preferences`, `scrollfollow` and the Example's page opens.
-3. **The SwiftUI ordering probe** (§2.3), which decides step 4 of (a), and whether SwiftUI really re-updates
-   before commit for each effect kind (claim 2 of §2.3 is community, not Apple).
+3. **What the SwiftUI probe left out** (§2.3): `onDisappear` against the commit, sibling order,
+   `onScrollVisibilityChange`, non-local geometry, and macOS 26's SwiftUI. None changes (a)'s first two
+   steps; each refines step 4 for its kind.
 4. **The Stress correction counter**, per container, which orders (a′).
 
 ---
@@ -650,6 +699,9 @@ The reasons:
 - [M] TUIkit's own SwiftUI probes, `Tools/SwiftUIProbes/Coordinate spaces and scroll visibility (D5G)/` and
   their neighbours: scroll visibility reports, `.scrollView` in viewport space, unknown names answering
   globally.
+- [M] `Tools/SwiftUIProbes/Effect and update ordering/`, written up in [SwiftUI's update and effect ordering, measured](<SwiftUI's update and effect ordering, measured (2026-10-24).md>)
+  (2026-10-24, macOS 15.8.1): where effects run, re-updates and their cut-offs, `GeometryReader` sizes,
+  `.task`'s start, a `@State` write in `body`.
 
 ## Links (TUIkit)
 
