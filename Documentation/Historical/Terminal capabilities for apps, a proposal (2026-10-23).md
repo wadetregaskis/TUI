@@ -1,5 +1,28 @@
 # Terminal capabilities for apps: a proposal (2026-10-23)
 
+> **Historical: built 2026-10-24** (decisions TERMCAPS-API; `git log --grep TERMCAPS-API`). The owner
+> answered the open questions on 2026-10-24, and the API differs from this draft where he did:
+>
+> - **Names** as drafted: `\.terminalCapabilities`, `TerminalCapabilities.Feature`.
+> - **Colour depth** stays `ColorDepth`; `TerminalCapabilities.colorDepth` passes `ColorDepth.current`
+>   through, so there is no copy.
+> - **Granularity:** one `OptionSet` (UInt64) with a member per style (`.curlyUnderline`,
+>   `.dottedUnderline`, `.dashedUnderline`, not one `patternedUnderline` case), and groups for asking
+>   broadly (`.patternedUnderline`, `.textDecorations`, `.hostIntegration`, `.keyboard`), with
+>   `supports(_:)` and `supportsAny(of:)`.
+> - **Three states** as drafted, named `Status` (`.supported`, `.unsupported`, `.undetermined`), held as
+>   `supported` and `unsupported` sets and asked with `status(of:)` rather than a subscript.
+> - **Scope** includes input where a query or the person's input settles it reliably: the seven
+>   keyboard features the kitty protocol's negotiation decides, and Option as Meta, learnt from an
+>   Option chord that arrives as one (never settled as unsupported: a composed character cannot be told
+>   from one typed on a layout that has it).
+> - **Not built:** `terminalName` and `explanation(for:)`. TUIkit names the terminal through
+>   `TerminalClient.current`, and the Example writes its own words (`CapabilityNote`, the Terminal
+>   page's list), so no explanation strings were added to TUIkit's tables.
+>
+> Each feature's documentation (`Sources/TUIkitTerminalHost/Capabilities/TerminalCapabilities+Feature.swift`)
+> says how it is determined; the survey's "Where the adaptations live" lists the sources.
+
 The owner's item 9: the Example should say, only where it is true, that a feature it shows
 does not work in the terminal in front of you. For example, the Text Styles page's patterned
 underlines should carry a quiet note under Apple Terminal, which paints `4:3` as a coloured

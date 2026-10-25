@@ -58,6 +58,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [FB3-OTHERCAPS](#fb3-othercaps) | (2); from the switch's card (10-24): B for capsule, D for a square rectangle, `⦗●⦘` for a rounded rectangle, Blocks unchanged. | Done (lane CAPS, 2026-10-24): segmented and palette pickers and compact tab chips (the colour picker's too) take a button's caps in the control family and shape (`ControlEnds`); unchanged by default. Lane SWITCH (2026-10-24): under Lines a switch is `(○ )` / `( ●)` in a capsule, `⦗● ⦘` / `⦗ ●⦘` in a rounded rectangle (four cells, as every shape — to confirm), `│● │` / `│ ●│` square; filled unchanged (decisions B-FORMS-7). |
 | [STEPPER-WIDTH](#stepper-width) | (1). | Done: `.stepperValueWidth(_:)`, fitting the bounds by default (lane STEPPER). |
 | [TAB-IMAGE-NAME](#tab-image-name) | (a); placed by the follow-up's (2) (10-24). | Done (lanes DOCS2 and TABIMG, 2026-10-24): C11, the parity map, the guide and Tab's doc comment are corrected, and the String forms ship in `TUIkitTabImages`, a module and product of their own on TUIkitBitmaps and TUIkitTabs that the umbrella re-exports; an image app without tabs is the size it was on main (decisions C11). |
+| [TERMCAPS-API](#termcaps-api) | (2026-10-24) Build it: the names as drafted; colour depth stays `ColorDepth`, with a pass-through; one `OptionSet` with a member per style and group constants; supported, unsupported or undetermined, settling as replies and observations arrive; input capabilities where a query or observation settles them reliably. | Done (lane TERMCAPS, 2026-10-24): `\.terminalCapabilities` (`TerminalCapabilities`, `Feature`, `Status`, `supports(_:)`, `supportsAny(of:)`, `colorDepth`), from the tables, the graphics handshake, the keyboard negotiation, the progress bar's clients under tmux, and Option as Meta from an Option chord (never settled as unsupported: a composed character is not proof). The Terminal page lists every feature live; Text Styles notes what this terminal does not draw. The proposal is in Historical. |
 | [TABBARMIN](#tabbarmin) | (b). | Done (lane TABS, 2026-10-24): `tabBarMinimizeBehavior(_:)` ships, and `.automatic` minimizes `.bordered` and `.grouped` tab views to the strip in a compact size class (decisions B96); the map's decline is gone with the gap. |
 | [DRAWERS](#drawers) | (1). | Done (lane DOCS2): the draft is retired to Historical. |
 | [B-D5C-1](#b-d5c-1) | Asked why SwiftUI has no if/else in SceneBuilder. | Answered below — your call. |
@@ -772,7 +773,7 @@ CLAUDE.md says Windows is a port in progress, with the goal of keeping it easy; 
 
 ### TERMCAPS-API
 
-**Terminal capabilities for apps (your item #9).** The draft is [Terminal capabilities for apps, a proposal (2026-10-23)](<Terminals/Terminal capabilities for apps, a proposal (2026-10-23).md>): a read-only, TUI-specific `\.terminalCapabilities` value answering, per `Feature`, what TUIkit already knows of the terminal (its host tables and the measured survey), so that a page can say "your terminal doesn't draw curly underlines" instead of showing nothing. Three questions:
+**Terminal capabilities for apps (your item #9).** The draft is [Terminal capabilities for apps, a proposal (2026-10-23)](<Historical/Terminal capabilities for apps, a proposal (2026-10-23).md>): a read-only, TUI-specific `\.terminalCapabilities` value answering, per `Feature`, what TUIkit already knows of the terminal (its host tables and the measured survey), so that a page can say "your terminal doesn't draw curly underlines" instead of showing nothing. Three questions:
 
 - **Naming.** `terminalCapabilities` and `Feature`, or something shorter; and whether colour depth belongs here (a user can force it at run time) or stays `ColorDepth`.
 - **Granularity.** One `patternedUnderline` (curly, dotted and dashed together), or one case per shape. Every terminal measured so far treats them as a group.
@@ -784,7 +785,7 @@ CLAUDE.md says Windows is a port in progress, with the goal of keeping it easy; 
 
 **If you don't answer:** Nothing is exposed.
 
-<sub>Sources: Documentation/Terminals/Terminal capabilities for apps, a proposal (2026-10-23).md, "Open questions for the owner"</sub>
+<sub>Sources: Documentation/Historical/Terminal capabilities for apps, a proposal (2026-10-23).md, "Open questions for the owner"</sub>
 
 ## Layout, scrolling and lists
 
