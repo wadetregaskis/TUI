@@ -3,8 +3,8 @@
 //
 //  `unicode`: one phrasebook, filmed in Ghostty, iTerm2, Terminal.app and
 //  Warp and shown as a carousel of the four — emoji with skin tones, ZWJ
-//  sequences and flags, CJK, combining marks and right-to-left scripts, laid
-//  out in columns that stay columns in every one of them.
+//  sequences and flags, CJK, Hangul, Cyrillic, Georgian, Greek and combining
+//  marks, laid out in columns that stay columns in every one of them.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -30,10 +30,10 @@ private func unicodeScript() -> [Step] {
     // 80×25; Warp's is whatever its window is), and the app draws in the top
     // left of it, so this one shot frames the same cells in each: the
     // phrasebook alone, at a size the carousel's cards keep legible.
-    var script: [Step] = [.camera(Shot(x: 0, y: 3, width: 48, height: 12)), .wait(0.8)]
-    for _ in 0..<7 { script += [.down, .wait(0.1), .space, .wait(0.65)] }
-    for _ in 0..<7 { script += [.up, .wait(0.05), .space, .wait(0.25)] }
-    script += [.wait(0.3)]
+    var script: [Step] = [.camera(Shot(x: 0, y: 3, width: 48, height: 13)), .wait(1.0)]
+    for _ in 0..<4 { script += [.down, .wait(0.1), .space, .wait(1.1)] }
+    for _ in 0..<4 { script += [.up, .wait(0.05), .space, .wait(0.5)] }
+    script += [.wait(0.4)]
     return script
 }
 
@@ -62,7 +62,9 @@ struct Greeting: Identifiable {
 /// No Devanagari: Apple Terminal draws it at the font's proportional advance
 /// and moves the rest of its row left, which no emission repairs (Terminal
 /// compatibility survey, "What Apple Terminal paints"), and this clip is
-/// filmed there too.
+/// filmed there too. And no Arabic or Hebrew: TUIkit does not reorder a
+/// right-to-left run, nor do the terminals filmed, so it would read backwards
+/// (the survey's "Right-to-left text").
 struct Phrasebook: View {
     @State private var selection: Int? = 0
 
@@ -70,8 +72,8 @@ struct Phrasebook: View {
         Greeting(id: 0, flag: "🇯🇵", language: "日本語", hello: "こんにちは、世界"),
         Greeting(id: 1, flag: "🇨🇳", language: "中文", hello: "你好，世界"),
         Greeting(id: 2, flag: "🇰🇷", language: "한국어", hello: "안녕하세요, 세계"),
-        Greeting(id: 3, flag: "🇸🇦", language: "العربية", hello: "مرحبا بالعالم"),
-        Greeting(id: 4, flag: "🇮🇱", language: "עברית", hello: "שלום עולם"),
+        Greeting(id: 3, flag: "🇺🇦", language: "Українська", hello: "Привіт, світе"),
+        Greeting(id: 4, flag: "🇬🇪", language: "ქართული", hello: "გამარჯობა, სამყარო"),
         Greeting(id: 5, flag: "🇻🇳", language: "Tiếng Việt", hello: "Xin chào thế giới"),
         Greeting(id: 6, flag: "🇬🇷", language: "Ελληνικά", hello: "Γειά σου κόσμε"),
         // "Zoë" and "Åsa" spelled with COMBINING marks (e + U+0308, A + U+030A),
@@ -97,6 +99,9 @@ struct Phrasebook: View {
             }
             .frame(width: 46)
             .padding(.leading, 1)
+            // A row of space under the strip, for the camera's bottom edge:
+            // a carousel's cards take one shape, which may shave a row.
+            Color.clear.frame(height: 1)
         }
         .padding(.horizontal, 1)
         .toolbar {
