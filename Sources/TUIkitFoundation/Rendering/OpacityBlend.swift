@@ -91,6 +91,12 @@ extension FrameBuffer {
         /// claim's.
         var frosts = false
 
+        /// The field behind the cell where its frost averages — its box's
+        /// average colour (``FrostFields``), filled in by the resolution once
+        /// the alphas are folded — or `nil`, where the frost keeps the field
+        /// behind as it is.
+        var frostField: Color?
+
         init(layer: Double, ink: Double = 1, field: Double = 1, mode: BlendMode = .normal) {
             self.layer = layer
             self.ink = ink
@@ -221,9 +227,10 @@ extension FrameBuffer {
                 behindCells.indices.contains(behindColumn) ? behindCells[behindColumn] : nil
             var coverage = alpha(column)
             // Under a material's field what is behind shows as its field alone,
-            // its glyph dropped (§111): one flag test a covered cell.
-            if coverage?.frosts == true, let shown = behind {
-                behind = Self.frosted(shown)
+            // its glyph dropped — the field its box averaged, where the frost
+            // averages (§111): one flag test a covered cell.
+            if let frosting = coverage, frosting.frosts {
+                behind = frosting.frostField.map(Self.frosted(field:)) ?? behind.map(Self.frosted)
             }
             // A compositor reads a layer's stated 49 as naming no field, and fills it
             // with the field under its column (`String.paintedOver(background:)`): the

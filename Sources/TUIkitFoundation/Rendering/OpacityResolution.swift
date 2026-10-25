@@ -166,6 +166,15 @@ extension FrameBuffer {
         // is not free, and unresolved it does not happen at all.
         let resolvedSurface = surface.resolve(with: palette)
         let resolvedForeground = palette.foreground.resolve(with: palette)
+        // A material's frost (§111): where it averages, each cell under its
+        // translucent field takes its box's average colour as the field behind
+        // it, worked out here because a box reaches rows not yet blended. One
+        // test of the claims for every other resolution.
+        let frostFields =
+            !destination.isEmpty && translucent.contains(where: \.frosts)
+            ? destination.frostFields(
+                under: translucent, at: position, surface: resolvedSurface, defaultForeground: resolvedForeground)
+            : nil
 
         // One row at a time, and each row rebuilt by the SAME function whatever
         // it is being rebuilt for — the current picture, or a phase of a
@@ -210,8 +219,9 @@ extension FrameBuffer {
                 destination.lines.indices.contains(destinationRow)
                 ? destination.lines[destinationRow] : ""
             let columns = start..<last
-            let alphas = Self.foldedAlphas(
+            var alphas = Self.foldedAlphas(
                 of: covering, over: columns, row: row, substituting: substituting)
+            frostFields?.fill(&alphas, from: start, destinationRow: destinationRow, shift: position.x)
             var span = Self.blendedSpan(
                 source: line,
                 destination: behindLine,
@@ -284,7 +294,7 @@ extension FrameBuffer {
         result.animatedCells = animatedCells.compactMap { run in
             Self.faded(
                 run, drawnLine: lines.indices.contains(run.offsetY) ? lines[run.offsetY] : "",
-                covering: regionsForRuns, destination: destination,
+                covering: regionsForRuns, destination: destination, frostFields: frostFields,
                 position: position, surface: resolvedSurface,
                 defaultForeground: resolvedForeground, statingTheSurface: statingTheSurface,
                 fillingStatedTerminalField: fillingStatedTerminalField)
@@ -369,11 +379,14 @@ extension FrameBuffer {
     ///   - covering: What covers the run from OUTSIDE it, and only that. A run's own
     ///     per-frame statement must not be in this list or every frame would be folded
     ///     with the drawn frame's alpha as well as its own.
+    ///   - frostFields: The averages a material's frost made of `destination`
+    ///     (§111), for a run's cells under one to blend over as the lines' did.
     private static func faded(  // swiftlint:disable:this function_parameter_count
         _ run: AnimatedCellRun,
         drawnLine: String,
         covering regions: [OpacityRegion],
         destination: FrameBuffer,
+        frostFields: FrostFields?,
         position: (x: Int, y: Int),
         surface resolvedSurface: Color,
         defaultForeground resolvedForeground: Color,
@@ -478,8 +491,9 @@ extension FrameBuffer {
         // frame of a run occupies the same cells, so the answer cannot differ
         // between them, and an eight-frame spinner was computing it eight
         // times.
-        let alphas = Self.foldedAlphas(
+        var alphas = Self.foldedAlphas(
             of: covering, over: columns, row: run.offsetY, substituting: { $0.cellAlpha })
+        frostFields?.fill(&alphas, from: columns.lowerBound, destinationRow: destinationRow, shift: position.x)
         /// The blend for one frame, at `perColumn` alphas indexed from the run's
         /// first cell — the one expression both arms below go through, so the frame
         /// a payload describes and the frame it does not are blended identically.

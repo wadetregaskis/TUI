@@ -44,8 +44,9 @@ enum TranslucentScenario {
 
     /// The faded labels (the default), and the same rows with each label on a
     /// material over text that redraws every frame: a material frosts what is
-    /// behind it (owner ruling O5-FROSTED), so this prices the frost — the
-    /// dropped glyphs — where nothing else does.
+    /// behind it (owner ruling O5-FROSTED (b)), so this prices the frost — the
+    /// dropped glyphs and each cell's 5 × 3 average, a thin material's box —
+    /// where nothing else does.
     @MainActor
     static let variants: [ScenarioVariant] = [
         ScenarioVariant(

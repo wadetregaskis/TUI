@@ -1027,10 +1027,13 @@ Deliberate deviations C5). **Glass shipped 2026-10-18** (lane GLASS: `Glass`,
 modifiers, and the glass button styles; Deliberate deviations C11, decisions
 [GLASS](<Decisions/Shapes, effects and animation/Glass (GLASS).md>)): the material's surface with option (c)'s
 highlighted rim, drawn in the appearance's lines. **The frost shipped
-2026-10-24** (owner ruling O5-FROSTED, 2026-10-23, shipped as (c) after (b)'s
-neighbourhood average cost +66% where a material is drawn): what a material
-or glass covers loses its glyphs, its fields tinted as before
-(`Opacity as composition.md` §111, Deliberate deviations C5).
+2026-10-24** (owner ruling O5-FROSTED, 2026-10-23): first as (c), the glyphs
+dropped and the fields tinted as before, after (b)'s neighbourhood average
+cost +66% where a material is drawn; then, the owner having seen both
+rendered, as (b): what a material or glass covers loses its glyphs and each
+cell takes the average colour of a box around it, larger the thicker the
+material, before the tint (`Opacity as composition.md` §111, Deliberate
+deviations C5).
 
 ### O6. `ShadowStyle` (+ W16 `shadow`, W13 `ShapeStyle.shadow`) — M
 

@@ -116,17 +116,21 @@ public struct OpacityRegion: Equatable, Sendable {
     /// multiply at 1 is all of the effect — so ``isTranslucent`` counts it.
     public var blendMode: BlendMode
 
-    /// Whether what is behind these cells is frosted as they are laid over
-    /// it — its glyphs dropped, its fields kept — as a material's are
-    /// (`Paint.frosted`, owner ruling O5-FROSTED). `false` for every claim but
-    /// a material's translucent field.
-    public var frosts: Bool
+    /// How what is behind these cells is frosted as they are laid over it — its
+    /// glyphs dropped, and each cell, where the frost averages, the average of
+    /// its neighbourhood's colours — as a material's are (`Paint.frosted`, owner
+    /// ruling O5-FROSTED (b)). `nil` for every claim but a material's
+    /// translucent field.
+    public var frost: Frost?
+
+    /// Whether what is behind these cells is frosted at all (``frost``).
+    public var frosts: Bool { frost != nil }
 
     public init(
         offsetX: Int, offsetY: Int, width: Int, height: Int, opacity: Double,
         inkOpacity: Double = 1, fieldOpacity: Double = 1,
         cycle: OpacityCycle? = nil, fieldUnderContent: FieldUnderContent? = nil,
-        blendMode: BlendMode = .normal, frosts: Bool = false
+        blendMode: BlendMode = .normal, frost: Frost? = nil
     ) {
         self.offsetX = offsetX
         self.offsetY = offsetY
@@ -140,7 +144,7 @@ public struct OpacityRegion: Equatable, Sendable {
         self.cycle = cycle
         self.fieldUnderContent = fieldUnderContent
         self.blendMode = blendMode
-        self.frosts = frosts
+        self.frost = frost
     }
 
     /// Whether this region says anything at all — the test that decides whether
@@ -221,6 +225,26 @@ public struct OpacityRegion: Equatable, Sendable {
     public func contains(column: Int, row: Int) -> Bool {
         column >= offsetX && column < offsetX + width
             && row >= offsetY && row < offsetY + height
+    }
+}
+
+extension OpacityRegion {
+    /// How a material's translucent field frosts what is behind it
+    /// (``OpacityRegion/frost``, `Opacity as composition.md` §111).
+    ///
+    /// A blur, as a cell grid can have one: the glyphs behind are dropped
+    /// either way, and an averaging frost then gives each cell the mean of the
+    /// colours in a box around it. The reach is in CELLS, and a cell is about
+    /// twice as tall as it is wide, so a box about as tall as it is wide
+    /// reaches about twice as many columns as rows.
+    public enum Frost: Hashable, Sendable {
+        /// The glyphs dropped, each field kept as it is: nothing averaged.
+        case droppingGlyphs
+
+        /// The glyphs dropped and each cell the average of the cells
+        /// `columns` either side of it and `rows` above and below — a box
+        /// `2 × columns + 1` wide and `2 × rows + 1` tall.
+        case averaging(columns: UInt8, rows: UInt8)
     }
 }
 

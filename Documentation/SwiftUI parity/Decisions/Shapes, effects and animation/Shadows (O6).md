@@ -58,7 +58,7 @@ what the blur is, at a cell's resolution.
 1. **Coverage below a whole cell.** A glyph inks perhaps a fifth of its cell,
    so SwiftUI's shadow of a letter is fainter than its shadow of a filled
    rectangle. A constant table of how much of a cell each common glyph inks
-   (the frosted-material add-on of O5 needs the same table) would scale a
+   (the material frost's `FrameBuffer.frostCoverage(of:)` is one) would scale a
    letter's shadow down. About a day with the table; it changes every text
    shadow's look, so an owner's look first.
 2. **A translucent caster.** A view drawn with a translucent field (a

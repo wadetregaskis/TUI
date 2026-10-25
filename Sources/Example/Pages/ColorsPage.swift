@@ -215,9 +215,10 @@ struct ColorsPage: View {
                         .foregroundStyle(.palette.foregroundSecondary)
                     // Each material is a panel over the middle of the same busy
                     // row, the row's ends left bare to compare against: under
-                    // the panel the pattern's glyphs are dropped (a material's
-                    // frost) and the ramp's colours show through tinted toward
-                    // the surface, more of them the thinner it is.
+                    // the panel the pattern's glyphs are dropped and its colours
+                    // blurred over a box that grows with the thickness (a
+                    // material's frost), and they show through tinted toward the
+                    // surface, more of them the thinner it is.
                     ForEach(MaterialSample.all) { sample in
                         ZStack {
                             Text(verbatim: String(repeating: "▚", count: MaterialSample.rowWidth))

@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIkitCore
 import TUIkitStyling
 
 /// A structure that defines the configuration of a physical glass material —
@@ -24,9 +25,10 @@ import TUIkitStyling
 ///
 /// SwiftUI's glass refracts and blurs what is behind it. A cell has nothing
 /// below it to refract, so glass here is what a ``Material`` is — what it
-/// covers frosted (its glyphs dropped) and a palette surface at a fraction
-/// of its opacity composited over that, cell by cell — with the edge that makes glass read as
-/// glass: a **rim**, the shape's outline drawn in a highlight, in the lines of
+/// covers frosted (its glyphs dropped, its colours averaged with their
+/// neighbours', over a smaller box than a material's: ``frost``) and a
+/// palette surface at a fraction of its opacity composited over that, cell by
+/// cell — with the edge that makes glass read as glass: a **rim**, the shape's outline drawn in a highlight, in the lines of
 /// the ``Appearance`` in force (Deliberate deviations C11). ``regular`` is the
 /// regular material's surface and ``clear`` the ultra-thin one's; a ``tint(_:)``
 /// makes the surface that colour instead, and lifts the rim from it.
@@ -120,6 +122,16 @@ extension Glass {
 
     /// The material whose opacity this glass's surface takes.
     private var material: Material { variant == .clear ? .ultraThin : .regular }
+
+    /// How this glass frosts what is behind it: with the box of a material one
+    /// step thinner than the one whose surface it takes — ``Material/thin``'s
+    /// for ``regular`` and ``Material/ultraThin``'s, there being none thinner,
+    /// for ``clear`` — because SwiftUI's glass lenses what is behind it more
+    /// than it blurs it, and keeps it plainer than a material as see-through
+    /// does.
+    var frost: OpacityRegion.Frost {
+        (variant == .clear ? Material.ultraThin : Material.thin).frost
+    }
 
     /// The surface: the tint or the page's background, at the material's
     /// opacity while it appears active and at full strength while not. Semantic

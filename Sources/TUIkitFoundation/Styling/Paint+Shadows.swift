@@ -16,10 +16,10 @@ extension Paint {
     ///
     /// Everything that draws with a paint draws this, and casts ``shadows``
     /// from the cells it drew, and marks them with ``blendMode`` and
-    /// ``frosts``; a renderer below it never sees any of them.
+    /// ``frost``; a renderer below it never sees any of them.
     public var unshadowed: Paint {
         switch self {
-        case .shadowed(let base, _), .blended(let base, _), .frosted(let base): base.unshadowed
+        case .shadowed(let base, _), .blended(let base, _), .frosted(let base, _): base.unshadowed
         default: self
         }
     }
@@ -29,7 +29,7 @@ extension Paint {
     public var shadows: [ShadowStyle] {
         switch self {
         case .shadowed(let base, let shadow): base.shadows + [shadow]
-        case .blended(let base, _), .frosted(let base): base.shadows
+        case .blended(let base, _), .frosted(let base, _): base.shadows
         default: []
         }
     }
@@ -38,7 +38,7 @@ extension Paint {
     public var hasShadows: Bool {
         switch self {
         case .shadowed: true
-        case .blended(let base, _), .frosted(let base): base.hasShadows
+        case .blended(let base, _), .frosted(let base, _): base.hasShadows
         default: false
         }
     }
@@ -48,20 +48,24 @@ extension Paint {
     public var blendMode: BlendMode? {
         switch self {
         case .blended(_, let mode): mode
-        case .shadowed(let base, _), .frosted(let base): base.blendMode
+        case .shadowed(let base, _), .frosted(let base, _): base.blendMode
         default: nil
         }
     }
 
-    /// Whether what is behind the cells this paint draws is frosted first: a
-    /// material's (``frosted(_:)``).
-    public var frosts: Bool {
+    /// How what is behind the cells this paint draws is frosted first — a
+    /// material's (``frosted(_:_:)``) — or `nil`.
+    public var frost: OpacityRegion.Frost? {
         switch self {
-        case .frosted: true
-        case .shadowed(let base, _), .blended(let base, _): base.frosts
-        default: false
+        case .frosted(_, let frost): frost
+        case .shadowed(let base, _), .blended(let base, _): base.frost
+        default: nil
         }
     }
+
+    /// Whether what is behind the cells this paint draws is frosted first
+    /// (``frost``).
+    public var frosts: Bool { frost != nil }
 
     /// Whether whatever draws with this paint has more to do than draw it: a
     /// shadow to cast or a blend mode to mark. One comparison for nearly every
@@ -83,7 +87,7 @@ extension Paint {
         switch self {
         case .shadowed(let base, let shadow): .shadowed(base.keepingShadows(on: drawn), shadow)
         case .blended(let base, let mode): .blended(base.keepingShadows(on: drawn), mode)
-        case .frosted(let base): .frosted(base.keepingShadows(on: drawn))
+        case .frosted(let base, let frost): .frosted(base.keepingShadows(on: drawn), frost)
         default: drawn
         }
     }
@@ -95,7 +99,7 @@ extension Paint {
         switch self {
         case .shadowed(let base, let shadow): .shadowed(base.mappingUnshadowed(transform), shadow)
         case .blended(let base, let mode): .blended(base.mappingUnshadowed(transform), mode)
-        case .frosted(let base): .frosted(base.mappingUnshadowed(transform))
+        case .frosted(let base, let frost): .frosted(base.mappingUnshadowed(transform), frost)
         default: transform(self)
         }
     }

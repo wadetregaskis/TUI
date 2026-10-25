@@ -3,8 +3,8 @@
 *Lane VISUALS, 2026-10-24, building the owner's rulings of 2026-10-23 on six
 visual questions in `Documentation/Open owner decisions.md`: A34 (option 2),
 B61 (2, landing if the A/B is within a few percent), B95 (2), O5-FROSTED (b),
-or (c) if (b) costs significantly (shipped as (c)), P5 (c) and WL-Q3 (b,
-measuring first). Each section says what shipped, what was measured, and any
+or (c) if (b) costs significantly (shipped as (c), then as (b) once the owner
+had seen both), P5 (c) and WL-Q3 (b, measuring first). Each section says what shipped, what was measured, and any
 judgement call the ruling did not settle.*
 
 ## A34. `BlurReplaceTransition` is its scale and a fade
@@ -124,40 +124,78 @@ and `app-shapes`.
 ## O5-FROSTED. A material frosts what is behind it
 
 *`Material` (every thickness, `.bar`), `Glass`, `glassEffect(_:in:)`;
-ruling: (b), watching performance, (c) if the cost is significant.*
+ruling: (b), watching performance, (c) if the cost is significant; then,
+2026-10-24, after seeing (a), (b) and (c) rendered: "Let's do the 'full
+frost' approach. But also, it seems like it would be nice to be able to
+control the degree of frosting."*
 
-**Shipped:** option (c). Under a material's translucent field, what is
-behind loses its glyphs; its fields are tinted by the material as before,
-each cell its own colour, nothing averaged. Glass is a material's surface,
-and frosts too. The mechanics are `Opacity as composition.md` §111: a
-`Paint.frosted` paint, a `frosts` flag on the painter's claim, carried to
-the cell's alpha, and the cell behind blanked in the blend.
+**Shipped:** option (b), the full frost. Under a material's translucent
+field, what is behind loses its glyphs and each cell takes the average of
+the effective colours of a box of cells around it (a glyph's ink counted at
+a constant share of its cell), and the material's surface is composited over
+that as before. Glass is a material's surface, and frosts too. The mechanics
+are `Opacity as composition.md` §111: a `Paint.frosted` paint carrying its
+box, a `frost` on the painter's claim, the averages made once per
+resolution where the destination is known, and the cell behind replaced in
+the blend.
 
-**Why (c), not (b).** (b) was built first: the glyphs dropped and each
-cell the average of the effective colours of its 5 × 3 neighbourhood, a
-glyph's ink counted at a constant share of its cell. The owner's A/B of it
-(the frost commit against the one before, release Stress, warm, 15 reps):
+**History.** (b) was built first and cost +66.4% on `translucent --variant
+material` in the owner's A/B (release Stress, warm, 15 reps; `translucent`
++0.8%, `alpharamp` and `kitchensink` indistinguishable), so (c) shipped:
+the glyphs dropped, the fields tinted as before, nothing averaged. The owner
+then chose (b) on its look. This build is (b) made cheaper:
 
-| Scenario | Cost of (b) |
-|---|---|
-| `translucent` | +0.8%, indistinguishable |
-| `translucent --variant material` | **+66.4%** [+62.5, +68.6] |
-| `alpharamp`, `kitchensink` | indistinguishable |
+| Release Stress, `translucent --variant material`, Time Profiler | (c) | first (b) | this (b) |
+|---|---|---|---|
+| `resolvingOpacity`, inclusive | 42.1% | 63.2% | 51.9% |
+| the frost's own pass | — | 18.4% (`frosted(under:…)`) | 6.9% (`frostFields`) |
+| row parsing (`cells(in:)`) | 10.0% | 17.1% | 11.1% |
+| splicing | 3.2% | 8.5% | 2.9% |
+| frame, against (c), the rest held fixed | — | ≈ +57% (A/B: +66.4%) | ≈ +20% |
 
-Nothing is paid where no material is drawn, but +66% where one is is
-significant, so by the ruling's own terms (c) ships. The averaging needed
-a second parse of every row a material's neighbourhood touched, fifteen
-colours summed per covered cell and the destination's rows re-spliced
-before the blend; (c) needs none of that. The glyph is dropped inside the
-blend that already reads both cells: one flag test per covered cell, no
-extra parse and no neighbour sampled.
+The first build frosted the destination as strings before the blend: a
+second parse of every row, fifteen `Color`s summed per cell, the rows
+re-spliced and parsed again by the blend. This one parses each row once
+into a summed-area table of bytes (four lookups a channel per cell,
+whatever the box) and hands the blend each cell's average on its alpha.
+Of the ≈ +20% left, about two fifths is the averaging and the rest is
+spelling a picture whose every cell is its own colour, which is what a
+blur is. Sharing the frost's parse with the blend measured no better and
+was not kept. An A/B is owed: `translucent --variant material` (the one
+that draws a material), `translucent`, `alpharamp`, `kitchensink`.
 
-**Judgement calls.** A cell behind keeps the field it shows exactly as it
-spells it (a reversed cell's, the terminal's own), its ink and attributes
-dropped with the glyph. A material that does not appear active is opaque
-and is not marked. A material over nothing but the page is its tint,
-unchanged. **A/B scenarios** for the (c) build if wanted: the same four,
-`translucent --variant material` the one that draws a material.
+**The degree follows the thickness.** SwiftUI's only control of a
+material's blur is its thickness, a thicker one blurring more and letting
+less through. Each step of thickness here reaches one more column either
+side of a cell, and half as many rows as columns, rounded down, because a
+cell is about twice as tall as it is wide:
+
+| Material | Opacity | Box (columns × rows) |
+|---|---|---|
+| `.ultraThin` | 0.35 | 3 × 1 |
+| `.thin` | 0.5 | 5 × 3 (the box the owner saw rendered) |
+| `.regular` | 0.65 | 7 × 3 |
+| `.thick`, `.bar` | 0.8 | 9 × 5 |
+| `.ultraThick` | 0.92 | 11 × 5 |
+
+Each box is about as tall as it is wide on screen (7 × 3 cells is 7 × 6
+cell-widths) but the thinnest, which blurs along its row alone: a row above
+and below would already be a box twice as tall as it is wide. `.bar` has been
+drawn at a thick material's opacity since materials shipped (SwiftUI's
+documentation says only that it matches system toolbars), so it takes
+thick's box too: one thickness, one look. Glass takes the box of the material one step thinner than
+the one whose surface it takes — thin's for `.regular`, ultra-thin's for
+`.clear` — because SwiftUI's glass lenses what is behind it more than it
+blurs it, and what shows through glass stays plainer than through a
+material as see-through.
+
+**Judgement calls.** The average is of encoded sRGB bytes, as every TUIkit
+blend is; past the end of a line a cell is the surface, and a wide glyph's
+later columns are the glyph's. A box reaches only what is behind the
+material where it is composited (in the Example's and Stress's one-row
+`ZStack`s, that row alone). Two claims with different boxes over one cell:
+the larger frosts it. A material that does not appear active is opaque and
+is not marked. A material over nothing but the page is its tint, unchanged.
 
 ## P5. Reduce transparency, differentiate without colour and increase contrast are read as reduce motion is
 

@@ -113,7 +113,7 @@ ruling is in the review under its item. In brief, with the ruling:
 - **O5** Materials and Glass (A41, now removed, listed the material symbols waiting on it).
   **(b) for both**; a cell-resolution blur is an optional add-on. Materials
   and glass shipped 2026-10-18 ([Glass (GLASS)](<Shapes, effects and animation/Glass (GLASS).md>)); the
-  frosted add-on waits on the owner.
+  frost, the add-on, shipped 2026-10-24 (O5-FROSTED, [VISUALS](<Shapes, effects and animation/Visual effects rulings (VISUALS).md#o5-frosted-a-material-frosts-what-is-behind-it>)).
 - **O6** `ShadowStyle`. **(b)**, radius and offsets in cells. `View.shadow(color:radius:x:y:)`
   and `ShadowStyle` shipped 2026-10-18; `ShapeStyle.shadow` waits on W1 ([Shadows (O6)](<Shapes, effects and animation/Shadows (O6).md>)).
 - **O7** `ScrollEdgeEffectStyle`. **Only `.hard`**; no `.soft`. Shipped 2026-10-14.

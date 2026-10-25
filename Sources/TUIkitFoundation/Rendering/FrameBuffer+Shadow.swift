@@ -144,7 +144,7 @@ extension FrameBuffer {
         let moded = paint.blendMode.map { markingBlendMode($0, glyphsOnly: glyphsOnly) } ?? self
         // A material's translucent field frosts what is behind it, marked before
         // any shadow adds claims of its own.
-        let marked = paint.frosts ? moded.markingFrost() : moded
+        let marked = paint.frost.map { moded.markingFrost($0) } ?? moded
         guard paint.hasShadows else { return marked }
         return marked.castingShadowsOnly(of: paint, context: context, owner: owner, glyphsOnly: glyphsOnly)
     }

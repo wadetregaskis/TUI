@@ -64,7 +64,9 @@ look like glass rather than a material, and where that goes.
 drop the glyphs beneath, give each cell the average of its neighbours'
 effective colours and tint that — applies to glass unchanged, as one more
 surface treatment. About two days, offered once the owner has seen this in the
-Example.
+Example. **Shipped 2026-10-24** (owner ruling O5-FROSTED (b)): glass frosts
+as a material one thickness thinner than the one whose surface it takes does
+(decisions [VISUALS](<Visual effects rulings (VISUALS).md#o5-frosted-a-material-frosts-what-is-behind-it>)).
 
 ### B-GLASS-2. The rim is drawn in the appearance's family
 

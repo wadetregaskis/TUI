@@ -110,7 +110,7 @@ scale live · `a` toggle autopilot.
 | `framedcolumns` | non-infinity `.frame` measure, frames-in-stacks-in-frames cascade, uncacheable interactive rows |
 | `churn` | full re-render per frame, cache invalidation, measure with no memo hits |
 | `animating` | animation store lookups, uncacheable subtrees, colour resolution per frame |
-| `translucent` | cell decomposition of both sides, per-cell region lookup, SGR re-emission. Two variants: `faded` (the default: faded labels over shaded rows) and `material` (each label on a thin material over a row of text that changes every frame: a material frosts what is behind it, so this prices the frost — the dropped glyphs — which no other scenario draws) |
+| `translucent` | cell decomposition of both sides, per-cell region lookup, SGR re-emission. Two variants: `faded` (the default: faded labels over shaded rows) and `material` (each label on a thin material over a row of text that changes every frame: a material frosts what is behind it, so this prices the frost — the dropped glyphs and a thin material's 5 × 3 average — which no other scenario draws) |
 | `gradients` | ramp quantisation, per-cell geometry, origin propagation, re-ink on move, SGR runs, mesh patches |
 | `alpharamp` | per-cell alpha compositing over a patterned ground, blend arithmetic |
 | `menus` | `ButtonStyle` body measure, menu hug-width pass, shortcut hint column, per-row `@Environment` resolution |

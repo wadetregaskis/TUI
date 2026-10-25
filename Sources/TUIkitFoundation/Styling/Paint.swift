@@ -83,16 +83,18 @@ public enum Paint: Equatable, Sendable {
     indirect case blended(Self, BlendMode)
 
     /// A material's paint: what is drawn is the first paint, and what is behind
-    /// the cells it is drawn on is FROSTED — its glyphs dropped, its fields
-    /// kept — as a material blurs what is behind it (owner ruling O5-FROSTED).
+    /// the cells it is drawn on is FROSTED as the second says — its glyphs
+    /// dropped and, where the frost averages, each cell its neighbourhood's
+    /// average colour — as a material blurs what is behind it (owner ruling
+    /// O5-FROSTED (b)).
     ///
     /// Carried as a blend mode is: whatever draws with the paint marks the
-    /// translucent field it painted (`OpacityRegion.frosts`), and the frost is
+    /// translucent field it painted (`OpacityRegion.frost`), and the frost is
     /// made where what is behind is known, as the claim is resolved. A colour
     /// derived from the paint reads through it.
     ///
     /// Indirect for a mesh's reason.
-    indirect case frosted(Self)
+    indirect case frosted(Self, OpacityRegion.Frost)
 
     /// An ``ImagePaint``: a region of an image, repeated, sampled cell by cell.
     ///
@@ -116,7 +118,7 @@ extension Paint {
         case .mesh(let mesh): mesh.representative
         case .shadowed(let base, _): base.representative
         case .blended(let base, _): base.representative
-        case .frosted(let base): base.representative
+        case .frosted(let base, _): base.representative
         case .image(let source): source.representative
         }
     }
@@ -131,7 +133,7 @@ extension Paint {
         case .color(let colour): colour
         case .shadowed(let base, _): base.solid
         case .blended(let base, _): base.solid
-        case .frosted(let base): base.solid
+        case .frosted(let base, _): base.solid
         case .gradient, .mesh, .image: nil
         }
     }
@@ -150,7 +152,7 @@ extension Paint {
         case .mesh(let mesh): mesh.isOpaqueThroughout
         case .shadowed(let base, _): base.isOpaqueThroughout
         case .blended(let base, _): base.isOpaqueThroughout
-        case .frosted(let base): base.isOpaqueThroughout
+        case .frosted(let base, _): base.isOpaqueThroughout
         case .image(let source): source.opacity >= 1 && source.pixels?.isOpaque == true
         }
     }
@@ -184,8 +186,8 @@ extension Paint {
         case .blended(let base, let mode):
             // A translucent source under a mode is half a blend, as macOS draws one.
             return .blended(base.faded(opacity), mode)
-        case .frosted(let base):
-            return .frosted(base.faded(opacity))
+        case .frosted(let base, let frost):
+            return .frosted(base.faded(opacity), frost)
         case .image(var source):
             source.opacity *= min(1, max(0, opacity.isNaN ? 0 : opacity))
             return .image(source)

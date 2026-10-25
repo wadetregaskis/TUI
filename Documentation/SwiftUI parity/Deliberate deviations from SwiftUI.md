@@ -1157,28 +1157,33 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [§2.4](<SwiftUI compatibility guide.md#24-image-is-textascii-sf-symbols-render-as-glyphs-in-narrow-circumstances>), [B-D3M-2](<Decisions/Presentation and windows/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-2-an-images-natural-size-is-known-on-four-hosts-and-ghosttys-only-locally>),
   [B-D3M-3](<Decisions/Presentation and windows/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-3-tiles-and-caps-follow-the-natural-size-and-caps-are-in-points>). **Medium**, with **Lane** choices.
 
-### C5. A material drops the glyphs behind it and is a translucent surface
+### C5. A material frosts what is behind it and is a translucent surface
 
 - **SwiftUI:** a `Material` blurs what is behind it and tints it, with
-  vibrancy for the content on it; an inactive window's materials go flat
-  (Apple's documentation; not measured).
-- **TUIkit:** what a `Material` covers is frosted — its glyphs dropped,
-  each cell keeping its own field — and a palette surface at a fraction of
-  its opacity (`.ultraThin` 0.35 to `.ultraThick` 0.92; `.bar` the bars'
-  surface at 0.8) is composited over that, cell by cell (since 2026-10-24,
-  owner ruling O5-FROSTED, option (c); before, the glyphs behind stayed).
-  The colours are not averaged with their neighbours. Over nothing but the
-  page it is the tint. One that does not appear active is opaque
-  (`Material.paint(in:)`; `MaterialTests`, `MaterialFrostTests`). Nothing
-  of TUIkit's sets `\.backgroundMaterial`.
-- **Why:** a cell has no sub-cell detail to blur, and a dropped glyph is what
-  a blur does to a letter at that scale. Averaging each cell with its 5 × 3
-  neighbourhood, option (b), was built and cost +66.4% on Stress
-  `translucent --variant material` (owner's A/B, 15 reps), which the ruling
-  counted significant (`Opacity as composition.md` §111).
+  vibrancy for the content on it, a thicker one blurring more and letting
+  less through; an inactive window's materials go flat (Apple's
+  documentation; not measured).
+- **TUIkit:** what a `Material` covers is frosted — its glyphs dropped, and
+  each cell the average colour of a box of cells around it, a glyph's ink
+  counted at a constant share of its cell — and a palette surface at a
+  fraction of its opacity (`.ultraThin` 0.35 to `.ultraThick` 0.92; `.bar`
+  the bars' surface at 0.8) is composited over that, cell by cell (since
+  2026-10-24, owner ruling O5-FROSTED, option (b); before, the glyphs behind
+  stayed). The box grows with the thickness: 3 × 1 cells for `.ultraThin`,
+  5 × 3, 7 × 3, 9 × 5 and 11 × 5 for `.ultraThick`, `.bar` a thick
+  material's. Over nothing but the page it is the tint. One that does not
+  appear active is opaque (`Material.paint(in:)`; `MaterialTests`,
+  `MaterialFrostTests`). Nothing of TUIkit's sets `\.backgroundMaterial`.
+- **Why:** a cell has no sub-cell detail to blur, so a blur at cell
+  resolution is a box average of whole cells, and a dropped glyph is what a
+  blur does to a letter at that scale. The box is about as tall as it is
+  wide because a cell is about twice as tall as it is wide; the thinnest
+  blurs along its row alone (`Opacity as composition.md` §111).
 - **Decided:** [O5](<Refusals re-examined, wave 17 (2026-10-03).md#o5-materials-and-glass-materialactiveappearance-plus-differentshape-material-w13s-material-backgroundmaterial-p14s-glass>),
   ruled 2026-10-12: option (b); the frost, [O5-FROSTED](<Decisions/Shapes, effects and animation/Visual effects rulings (VISUALS).md#o5-frosted-a-material-frosts-what-is-behind-it>),
-  ruled 2026-10-23: (b), or (c) if (b)'s cost is significant; shipped as (c). **Medium**. Glass, the same surface with a rim, is
+  ruled 2026-10-23: (b), or (c) if (b)'s cost is significant; shipped as (c),
+  then as (b) once the owner had seen both (2026-10-24), its degree
+  following the thickness. **Medium**. Glass, the same surface with a rim, is
   [C11](#c11-glass-is-a-material-with-a-highlighted-rim-not-a-lens).
 
 ### C6. A shape draws within its frame
@@ -1290,7 +1295,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **TUIkit:** the shape is filled with a material's surface — `.regular` the
   regular material's (0.65 of the page's surface), `.clear` the ultra-thin
   one's (0.35), a tint that colour instead — composited cell by cell over what
-  it covers, whose glyphs are dropped as under a material (C5), and rimmed: its outline drawn behind the view in the border's ink
+  it covers, frosted as under a material (C5) — its glyphs dropped, its colours
+  averaged over thin's 5 × 3 box for `.regular` and ultra-thin's 3 × 1 for
+  `.clear` — and rimmed: its outline drawn behind the view in the border's ink
   lifted (the tint's, tinted), in the lines of the appearance in force (a
   Braille outline, a solid band, or none under `.blank`). Glass that does not
   appear active is opaque, as a material is. Interactive glass lifts its rim
@@ -1303,7 +1310,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   arriving there under an animation fades in, `.matchedGeometry` too, without
   SwiftUI's growing out of a nearby glass (`GlassEffectTransitionTests`).
 - **Why:** a cell has nothing below it to bend, and its blur is a material's
-  frost, the glyphs behind dropped (C5); a rim is what is
+  frost, the glyphs behind dropped and the colours averaged over a box one
+  thickness smaller than its material's, as glass lenses more than it blurs
+  (C5); a rim is what is
   left of glass's edge at cell resolution, and drawn in the appearance's lines
   it sits beside the app's boxes and buttons as one of them.
 - **Decided:** [O5](<Refusals re-examined, wave 17 (2026-10-03).md#o5-materials-and-glass-materialactiveappearance-plus-differentshape-material-w13s-material-backgroundmaterial-p14s-glass>),

@@ -7564,36 +7564,72 @@ contest is §6a's: where both sides draw one, the view's at ½ or more, in the b
 
 ## 111. A material frosts what is behind it (2026-10-24)
 
-Owner ruling O5-FROSTED, 2026-10-23: (b), watching performance, (c) if its cost is significant;
-shipped as (c). A material drops the glyphs beneath it, and its tint is laid over the fields there
-as before. Until then a material was §105's translucent field and nothing more: what was behind it
+Owner ruling O5-FROSTED, 2026-10-23: (b), watching performance, (c) if its cost is significant.
+Shipped first as (c), after (b)'s first build cost +66.4% where a material is drawn; then, the
+owner having seen (a), (b) and (c) rendered, as (b) (2026-10-24: "Let's do the 'full frost'
+approach"), with its degree following the material's thickness. A material drops the glyphs
+beneath it and gives each cell the average of a box of colours around it before its tint is laid
+over. Until then a material was §105's translucent field and nothing more: what was behind it
 showed through tinted, letters included, which is what a material exists to hide.
 
-**Carried as a blend mode is (§110).** A material's paint is `Paint.frosted(.color(surface))`
-while it appears active (an inactive one is opaque and covers what is behind anyway). Whatever
-draws with it marks the translucent field it painted: `.background`'s one painter claim
+**Carried as a blend mode is (§110).** A material's paint is
+`Paint.frosted(.color(surface), frost)` while it appears active (an inactive one is opaque and
+covers what is behind anyway), `frost` an `OpacityRegion.Frost`: `.averaging(columns:rows:)`, the
+box's reach either side of a cell, or `.droppingGlyphs`, which averages nothing. Whatever draws
+with it marks the translucent field it painted: `.background`'s one painter claim
 (`BackgroundModifier.withMode`), a shape's cells through `FrameBuffer.castingShadows(of:context:
-owner:)` (`markingFrost`: the claims with a field between 0 and 1, so a cell the shape does not
-reach, claimed at a field of 0, frosts nothing), and glass's surface. The claim carries
-`OpacityRegion.frosts`; `appendCoalescing` does not merge a frosted claim with one that is not.
+owner:)` (`markingFrost(_:)`: the claims with a field between 0 and 1, so a cell the shape does
+not reach, claimed at a field of 0, frosts nothing), and glass's surface. The claim carries
+`OpacityRegion.frost`; `appendCoalescing` does not merge claims that frost differently.
 
-**Made in the blend, cell by cell.** `foldedAlphas` carries the flag to the cell's alpha
+**The box follows the thickness.** SwiftUI's thicker materials blur more and let less through;
+here each step of thickness reaches one more column either side, and half as many rows as columns
+(rounded down), since a cell is about twice as tall as it is wide: `.ultraThin` 3 × 1 cells (its
+row alone), `.thin` 5 × 3, `.regular` 7 × 3, `.thick` 9 × 5, `.ultraThick` 11 × 5 — each about as
+tall as it is wide but the thinnest. `.bar` is a thick material's opacity, and so its box. Glass
+frosts with the box of the material one step thinner than the one whose surface it takes (thin's
+for `.regular`, ultra-thin's for `.clear`): SwiftUI's glass lenses what is behind more than it
+blurs it.
+
+**The averages, made where what is behind is known.** `resolvingOpacity(over:at:…)` asks
+`FrameBuffer.frostFields(under:at:surface:defaultForeground:)` for the averages before it blends
+any row, because a cell's box reaches rows the row-at-a-time blend has not read. It parses each
+row the boxes reach once, takes each cell's effective colour — its field, or the surface where it
+states none or the line has ended, with its ink laid over it at the share of the cell its glyph
+inks (a constant table, `frostCoverage(of:)`: a space 0, `█` 1, the block elements by their
+eighths and quarters, box lines 0.15, a letter about 0.3; a wide glyph's later columns its own) —
+in encoded sRGB, through `opacity(_:over:)`, as every fade is, and sums them into a summed-area
+table, so a cell's box is four lookups a channel whatever its size. The average is of the encoded
+bytes, rounded, so it cannot leave 0…255. A colour with no RGB (the terminal's own, unreported) is
+left out of the sum; a box of nothing else averages nothing, and the cell is (c)'s. Two claims
+with different boxes over one cell: the larger frosts it.
+
+**Laid in the blend, cell by cell.** `foldedAlphas` carries the flag to the cell's alpha
 (`CellAlpha.frosts`, set where any covering claim frosts, a painter's or the content's, and read
-from the claim rather than a cycling phase's substitute). `blendedSpan`, which already reads the
-cell behind, replaces it under such an alpha with its field alone (`FrameBuffer.frosted(_:)`): a
-blank, its ink and attributes dropped, its background slot exactly as it was spelled (a reversed
-cell's shown field, the terminal's own where stated, none where it names none). Then the blend runs
-as §105 says: the painter's field over that blank, the material's content over that. Over nothing,
-there is no cell behind to frost, and the material is its tint. A run's frames are blended through
-the same span and frost the same way.
+from the claim rather than a cycling phase's substitute), and the resolution fills in the cell's
+average (`CellAlpha.frostField`, from `FrostFields.fill`). `blendedSpan`, which already reads the
+cell behind, replaces it under such an alpha with a blank on the average
+(`FrameBuffer.frosted(field:)`), or, where nothing was averaged, with its field alone
+(`FrameBuffer.frosted(_:)`): a blank, its ink and attributes dropped, its background slot exactly
+as it was spelled. Then the blend runs as §105 says: the painter's field over that blank, the
+material's content over that. Over nothing — a root with the page alone, or a claim carried up over
+nothing (§108) — there is nothing to frost, and the material is its tint. A run's frames are
+blended through the same span, with the same averages.
 
-**Why not (b).** (b), built first, frosted the destination before the blend: each cell under a
-frosted rectangle became a blank on the average of the effective colours of its 5 × 3
-neighbourhood (a glyph's ink counted at a constant coverage share), which meant a second parse of
-every row the neighbourhoods touched, fifteen colours summed per covered cell and the rows
-re-spliced. The owner's A/B of it (release Stress, warm, 15 reps) measured `translucent` +0.8%
-(indistinguishable), `alpharamp` and `kitchensink` indistinguishable, and
-`translucent --variant material` **+66.4%** [+62.5, +68.6]: significant where a material is drawn,
-so (c). What (c) costs is one flag test per covered cell, inside a walk that already happens.
-`Stress --scenario translucent --variant material` draws a row of changing text under a thin
-material on every row.
+**What it costs.** Where no material is drawn: one `contains(where:)` over a resolution's claims,
+and none where there are no claims. Where one is, its first build frosted the destination before
+the blend — a second parse of every row the boxes touched, fifteen colours summed per covered cell
+through `Color`, and the rows re-spliced as strings for the blend to parse a third time — and the
+owner's A/B measured `translucent --variant material` at +66.4% over (c). This build parses each
+row the boxes reach once, sums integer bytes into a summed-area table (four lookups a channel per
+cell, whatever the box), and hands the blend each cell's average on its alpha, so no row is
+re-spliced or parsed again. Time Profiler, release Stress, `translucent --variant material`,
+inclusive share of the frame: `resolvingOpacity` 42.1% under (c), 63.2% under the first (b) build
+(`frosted(under:…)` 18.4%, row parsing 17.1%, splicing 8.5%) and 51.9% under this one
+(`frostFields` 6.9%, row parsing 11.1%, splicing 2.9%) — about +20% over (c) on that scenario
+where the first build was about +57%, holding the rest of the frame fixed. About two fifths of
+what is left is the averaging; the rest is spelling a picture whose every cell is its own colour
+(`SGRState.rendered(changingFrom:)`, `collapsingAdjacentSGR`), which is what a blur draws. Sharing
+the frost's row parse with the blend was tried and measured no better (51.9% → 53.2%), so it was
+not kept. `Stress --scenario
+translucent --variant material` draws a row of changing text under a thin material on every row.

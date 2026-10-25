@@ -1,9 +1,10 @@
 //  🖥️ TUIkit — Terminal UI Kit for Swift
 //  MaterialFrostTests.swift
 //
-//  A material frosts what is behind it (owner ruling O5-FROSTED, shipped as
-//  (c)): the glyphs beneath are dropped, and the fields beneath are tinted by
-//  the material as before, each its own, with no averaging.
+//  A material frosts what is behind it (owner ruling O5-FROSTED (b)): the
+//  glyphs beneath are dropped, each cell takes the average of a box of the
+//  colours around it — larger the thicker the material — and the material's
+//  tint is laid over that.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -48,32 +49,83 @@ struct MaterialFrostTests {
         #expect(labelled == ["hi  ef", "    kl", "mnopqr"])
     }
 
-    @Test("A cell under a material keeps its own field, tinted as the tint alone tints it: nothing is averaged")
-    func fieldsAreTintedNotAveraged() {
-        func stripes(_ cover: some View) -> some View {
-            ZStack(alignment: .topLeading) {
-                HStack(spacing: 0) {
-                    Color.rgb(255, 0, 0).frame(width: 4, height: 3)
-                    Color.rgb(0, 0, 255).frame(width: 4, height: 3)
-                }
-                cover
+    /// Two stripes, red then blue, each `half` columns wide and `height` rows
+    /// tall, and `cover` laid over them from the top-leading corner.
+    private func stripes(_ cover: some View, half: Int = 4, height: Int = 3) -> some View {
+        ZStack(alignment: .topLeading) {
+            HStack(spacing: 0) {
+                Color.rgb(255, 0, 0).frame(width: half, height: height)
+                Color.rgb(0, 0, 255).frame(width: half, height: height)
             }
+            cover
         }
-        let rows = screen(
-            stripes(Color.clear.frame(width: 8, height: 3).background(.ultraThinMaterial)), width: 8, height: 3)
+    }
+
+    private func fields(_ rows: [[PaintedCell]]) -> [[String]] {
+        rows.map { $0.map(\.background) }
+    }
+
+    @Test("A cell under a material takes its box's colours, averaged, then tinted")
+    func coloursAreAveraged() {
+        let rows = screen(stripes(Color.clear.frame(width: 8, height: 3).background(.ultraThinMaterial)), width: 8, height: 3)
         let bare = screen(
             stripes(Color.clear.frame(width: 8, height: 3).background(Color.palette.background.opacity(0.35))),
             width: 8, height: 3)
-        // At the red/blue seam too, each cell is its own colour tinted, as the
-        // translucent colour alone draws it.
-        #expect(rows.map { $0.map(\.background) } == bare.map { $0.map(\.background) })
-        #expect(rows[1][3].background != rows[1][4].background)
+        // Far from the seam the box is one colour, as the tint alone draws it; at
+        // the seam it is both, where the tint alone is one or the other.
+        #expect(rows[1][0].background == bare[1][0].background)
+        #expect(rows[1][3].background != bare[1][3].background)
+        #expect(rows[1][4].background != bare[1][4].background)
+        #expect(rows[1][3].background != rows[1][0].background)
     }
 
-    @Test("A coloured field behind a material keeps its tinted colour where its glyph is dropped")
-    func glyphOnAFieldKeepsTheField() {
+    @Test("The average is the mean of the encoded bytes of the box, tinted as any field is")
+    func averageIsTheMeanOfTheBytes() {
+        // Ultra-thin's box is three cells of one row: at column 3, two red and one blue.
+        let rows = screen(stripes(Color.clear.frame(width: 8, height: 3).background(.ultraThinMaterial)), width: 8, height: 3)
+        let expected = screen(
+            ZStack(alignment: .topLeading) {
+                Color.rgb(170, 0, 85).frame(width: 8, height: 3)
+                Color.clear.frame(width: 8, height: 3).background(Color.palette.background.opacity(0.35))
+            }, width: 8, height: 3)
+        #expect(rows[1][3].background == expected[1][3].background)
+    }
+
+    @Test("A thicker material frosts a larger box")
+    func thickerFrostsFarther() {
+        // Column 2 of two six-wide stripes: ultra-thin's box (one column either
+        // side) is all red, ultra-thick's (five) reaches the blue.
+        func frosted(_ material: Material, opacity: Double) -> (frosted: String, tint: String) {
+            let rows = screen(stripes(Color.clear.frame(width: 12, height: 3).background(material), half: 6), width: 12, height: 3)
+            let bare = screen(
+                stripes(Color.clear.frame(width: 12, height: 3).background(Color.palette.background.opacity(opacity)), half: 6),
+                width: 12, height: 3)
+            return (rows[1][2].background, bare[1][2].background)
+        }
+        let thin = frosted(.ultraThin, opacity: 0.35)
+        #expect(thin.frosted == thin.tint)
+        let thick = frosted(.ultraThick, opacity: 0.92)
+        #expect(thick.frosted != thick.tint)
+    }
+
+    @Test("The boxes grow with thickness, each wider than tall; a bar's is a thick material's")
+    func boxesByThickness() {
+        let order: [Material] = [.ultraThin, .thin, .regular, .thick, .ultraThick]
+        let reaches = order.map { material -> (columns: UInt8, rows: UInt8) in
+            guard case .averaging(let columns, let rows) = material.frost else { return (0, 0) }
+            return (columns, rows)
+        }
+        for (smaller, larger) in zip(reaches, reaches.dropFirst()) {
+            #expect(larger.columns > smaller.columns && larger.rows >= smaller.rows)
+        }
+        for reach in reaches { #expect(reach.columns >= reach.rows * 2 && reach.columns > 0) }
+        #expect(Material.bar.frost == Material.thick.frost)
+    }
+
+    @Test("A glyph's ink counts toward its cell's average")
+    func inkCounts() {
         let behind = Text(verbatim: "abcd").foregroundStyle(Color.rgb(255, 255, 255)).background(Color.rgb(0, 128, 0))
-        let rows = screen(
+        let text = screen(
             ZStack(alignment: .topLeading) {
                 behind
                 Color.clear.frame(width: 4, height: 1).background(.thinMaterial)
@@ -83,8 +135,8 @@ struct MaterialFrostTests {
                 Color.rgb(0, 128, 0).frame(width: 4, height: 1)
                 Color.clear.frame(width: 4, height: 1).background(.thinMaterial)
             }, width: 4, height: 1)
-        #expect(glyphs(rows) == ["    "])
-        #expect(rows.map { $0.map(\.background) } == field.map { $0.map(\.background) })
+        #expect(glyphs(text) == ["    "])
+        #expect(fields(text) != fields(field), "white letters lighten the green they are on")
     }
 
     @Test("Over nothing, a material is its tint, as it was")
@@ -108,11 +160,29 @@ struct MaterialFrostTests {
         #expect(!Paint.color(.red.opacity(0.5)).frosts, "a translucent colour is a tint, not a material")
     }
 
+    @Test("Glass frosts a box one thickness thinner than the material whose surface it takes")
+    func glassBoxes() {
+        #expect(Glass.regular.frost == Material.thin.frost)
+        #expect(Glass.clear.frost == Material.ultraThin.frost)
+    }
+
     @Test("Glass frosts what is behind it as a material does")
     func glassFrosts() {
         let frosted = glyphs(
             screen(overText(Color.clear.frame(width: 6, height: 3).glassEffect(.regular, in: Rectangle())), width: 6, height: 3))
         // The rim is drawn in the frame's outermost cells; inside it, the text is gone.
         #expect(!frosted[1].contains("h") && !frosted[1].contains("i") && !frosted[1].contains("j"))
+    }
+
+    @Test("Coverage: a space inks nothing, a full block everything, a letter some")
+    func coverage() {
+        #expect(FrameBuffer.frostCoverage(of: " ") == 0)
+        #expect(FrameBuffer.frostCoverage(of: "█") == 1)
+        #expect(FrameBuffer.frostCoverage(of: "▄") == 0.5)
+        #expect(FrameBuffer.frostCoverage(of: "▁") == 0.125)
+        let letter = FrameBuffer.frostCoverage(of: "a")
+        #expect(letter > 0.1 && letter < 0.5)
+        #expect(FrameBuffer.frostCoverage(of: "─") < letter)
+        #expect(FrameBuffer.frostCoverage(of: "Ä") == FrameBuffer.frostCoverage(of: "A"))
     }
 }
