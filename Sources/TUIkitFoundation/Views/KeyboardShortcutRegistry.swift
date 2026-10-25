@@ -405,7 +405,7 @@ final class KeyboardShortcutAssignment: @unchecked Sendable {
 
 // MARK: - Environment
 
-private struct KeyboardShortcutRegistryKey: EnvironmentKey {
+private struct KeyboardShortcutRegistryKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     static let defaultValue: KeyboardShortcutRegistry? = nil
 }
 

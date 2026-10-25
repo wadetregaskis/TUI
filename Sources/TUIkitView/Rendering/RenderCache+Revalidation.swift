@@ -26,5 +26,11 @@ package final class RevalidationState {
     /// would get now. See ``EnvironmentStamp``.
     package let stamps = EnvironmentStamps()
 
+    /// Whether every value-memo store stamps the environment it was drawn
+    /// under, so the stamps' counts say which keys would keep rows from being
+    /// re-checked (`Stress --census`). Off, nothing is stamped: no store does
+    /// so until Option C's re-check needs it (C4b).
+    package var countsStamps = false
+
     package init() {}
 }

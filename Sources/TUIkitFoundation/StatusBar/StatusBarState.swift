@@ -865,7 +865,7 @@ extension StatusBarState {
 /// `@usableFromInline`, so internal rather than `private`, with its default: the
 /// `@inlinable` accessor reads it (module split step A3).
 @usableFromInline
-struct StatusBarKey: EnvironmentKey {
+struct StatusBarKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     @usableFromInline static let defaultValue: StatusBarState? = nil
 }
 

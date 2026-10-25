@@ -175,6 +175,9 @@ final class DrivenSession {
     /// it: what `--census` counts.
     let installCensus: () -> Void
     let census: () -> ObservationCensus.Counts?
+    /// What stamping the environment of every stored row has counted, and
+    /// the keys that made an environment uncomparable (with `--census`).
+    let stamps: () -> (counts: EnvironmentStamps.Counts, uncomparable: [ObjectIdentifier: Int], variety: [ObjectIdentifier: Int])
     /// What the app's render cache's observation leases have done so far,
     /// and how many view types it knows to read.
     let leaseCounts: () -> ObservationLeases.Counts
@@ -246,7 +249,15 @@ final class DrivenSession {
         knownIssues = session.knownIssues
         checkpointEvery = session.checkpointEvery
         finish = { session.finish() }
-        installCensus = { app.renderCache.observationCensus = ObservationCensus() }
+        installCensus = {
+            app.renderCache.observationCensus = ObservationCensus()
+            app.renderCache.revalidation.countsStamps = true
+            app.renderCache.revalidation.stamps.tracksVariety = true
+        }
+        stamps = {
+            let stamps = app.renderCache.revalidation.stamps
+            return (stamps.counts, stamps.uncomparableKeys, stamps.variety.mapValues(\.count))
+        }
         census = { app.renderCache.observationCensus?.snapshot }
         leaseCounts = { app.renderCache.leases.counts }
         readingTypes = { app.renderCache.readingTypes.count }

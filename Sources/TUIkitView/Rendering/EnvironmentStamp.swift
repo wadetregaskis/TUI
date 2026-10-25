@@ -175,6 +175,13 @@ package final class EnvironmentStamps {
     /// diagnostic names (``debugName(of:)``).
     package private(set) var uncomparableKeys: [ObjectIdentifier: Int] = [:]
 
+    /// When on (the census), every key's distinct cheap hashes as stamps are
+    /// built: a key with many is one whose value moves from frame to frame,
+    /// which keeps every environment holding it from interning, and so every
+    /// row drawn under it from being re-checked.
+    package var tracksVariety = false
+    package private(set) var variety: [ObjectIdentifier: Set<Int>] = [:]
+
     /// Whether each key type stored is neutral, by the key's identity.
     private var neutralKeys: [ObjectIdentifier: Bool] = [:]
 
@@ -228,6 +235,7 @@ package final class EnvironmentStamps {
         let stored = environment.storedValues
         var hashed: [(entry: EnvironmentStamp.Entry, hash: Int)] = []
         hashed.reserveCapacity(stored.count)
+        var comparable = true
         for (key, value) in stored where !isNeutral(key) {
             // Each token's cheap part is hashed on its own and folded in after
             // the sort: a dictionary's iteration order is its own, and two
@@ -235,11 +243,19 @@ package final class EnvironmentStamps {
             var hasher = Hasher()
             hasher.combine(key)
             guard let token = token(for: value, hasher: &hasher) else {
-                counts.uncomparable += 1
+                // Every such key is counted, not only the first: the census
+                // that reads these is a list of what to make comparable.
+                comparable = false
                 uncomparableKeys[key, default: 0] += 1
-                return nil
+                continue
             }
-            hashed.append((EnvironmentStamp.Entry(key: key, token: token), hasher.finalize()))
+            let entryHash = hasher.finalize()
+            if tracksVariety { variety[key, default: []].insert(entryHash) }
+            if comparable { hashed.append((EnvironmentStamp.Entry(key: key, token: token), entryHash)) }
+        }
+        guard comparable else {
+            counts.uncomparable += 1
+            return nil
         }
         hashed.sort { $0.entry.key < $1.entry.key }
         var hasher = Hasher()

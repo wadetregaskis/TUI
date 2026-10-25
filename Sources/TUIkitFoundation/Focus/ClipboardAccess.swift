@@ -111,7 +111,7 @@ package struct ClipboardAccess: Sendable {
         read: { nil })
 }
 
-private struct ClipboardAccessKey: EnvironmentKey {
+private struct ClipboardAccessKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     static let defaultValue = ClipboardAccess.unavailable
 }
 

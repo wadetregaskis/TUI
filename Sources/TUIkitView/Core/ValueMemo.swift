@@ -197,6 +197,7 @@ func renderValueMemoized<Key: Equatable, Row>(
         invalidatedDuringRender: cache.stats.subtreeClears > clearsBefore)
     {
         let effects = journal.count > journalStart ? ownChannelEffects(journal, since: journalStart, context: context) : []
+        if cache.revalidation.countsStamps { _ = cache.revalidation.stamps.stamp(of: context.environment) }
         cache.store(
             identity: identity, view: key, buffer: buffer,
             contextWidth: context.availableWidth, contextHeight: context.availableHeight,

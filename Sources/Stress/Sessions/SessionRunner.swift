@@ -139,6 +139,12 @@ enum SessionRunner {
         var leasesAtEnd = ObservationLeases.Counts()
         var readingTypes = 0
         var censusAfterFinish: ObservationCensus.Counts?
+        /// What stamping the environments of stored rows counted, and the
+        /// keys that made one uncomparable, after the last step.
+        var stamps: EnvironmentStamps.Counts?
+        var uncomparableKeys: [ObjectIdentifier: Int] = [:]
+        /// How many distinct values each key had across the stamps.
+        var keyVariety: [ObjectIdentifier: Int] = [:]
         /// Whether the render cache's reference count had moved to a side
         /// table by the end — printed when `--census` asked (`nil` when the probe
         /// cannot read this runtime).
@@ -235,6 +241,7 @@ enum SessionRunner {
             }
         }
         report.censusAtEnd = warm.census()
+        if options.census { (report.stamps, report.uncomparableKeys, report.keyVariety) = warm.stamps() }
         report.leasesAtEnd = warm.leaseCounts()
         report.readingTypes = warm.readingTypes()
         report.renderCacheSideTable = warm.renderCacheSideTable()
@@ -324,10 +331,31 @@ enum SessionRunner {
                 end, leases: report.leasesAtEnd, since: report.leasesAtOpen, readingTypes: report.readingTypes,
                 per: report.steps, unit: "step"))
         if let after = report.censusAfterFinish { lines.append("  after the finish: alive " + liveByKind(after)) }
+        lines.append(contentsOf: stampLines(report))
         switch report.renderCacheSideTable {
         case false?: lines.append("render cache's reference count: inline (nothing ever referenced it weakly)")
         case true?: lines.append("render cache's reference count: in a side table (something referenced it weakly)")
         case nil: break
+        }
+        return lines
+    }
+
+    /// The stamps' lines: how the environments of stored rows compared (Option
+    /// C), and which keys made one uncomparable, most often first.
+    private static func stampLines(_ report: Report) -> [String] {
+        guard let counts = report.stamps, counts.built > 0 else { return [] }
+        var lines = [
+            String(
+                format: "environment stamps: %d built, %d from the pass's memo, %d interned to one already made,"
+                    + " %.2f merge walks a build, %d pushed out, %d uncomparable",
+                counts.built, counts.memoHits, counts.internHits,
+                Double(counts.mergeWalks) / Double(counts.built), counts.overflows, counts.uncomparable)
+        ]
+        for (key, count) in report.uncomparableKeys.sorted(by: { $0.value > $1.value }).prefix(10) {
+            lines.append("  uncomparable: \(EnvironmentStamps.debugName(of: key)) ×\(count)")
+        }
+        for (key, count) in report.keyVariety.sorted(by: { $0.value > $1.value }).prefix(8) where count > 4 {
+            lines.append("  varies: \(EnvironmentStamps.debugName(of: key)) — \(count) distinct values")
         }
         return lines
     }

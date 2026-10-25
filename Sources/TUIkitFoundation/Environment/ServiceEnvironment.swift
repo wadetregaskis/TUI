@@ -65,7 +65,7 @@ private struct AnimationSchedulerKey: EnvironmentKey, _RenderNeutralEnvironmentK
 /// only producer (``AppRunner/run()``) all run on the main
 /// actor; the annotation also satisfies `Sendable` for the
 /// static `defaultValue` storage.
-private struct SynthesizeKeyEventKey: EnvironmentKey {
+private struct SynthesizeKeyEventKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     static let defaultValue: (@MainActor (KeyEvent) -> Void)? = nil
 }
 

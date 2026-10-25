@@ -257,6 +257,10 @@ struct EnvironmentStampTests {
         "LifecycleKey": "a service: registrations are journalled and replayed",
         "AnimationSchedulerKey": "a service: wakes are asked for, nothing drawn from it",
         "DrawsBackdropKey": "carried by the key: the buffer's effect scope includes it",
+        "StatusBarKey": "a per-walk channel: items are registered into the one in force, nothing drawn from it",
+        "KeyboardShortcutRegistryKey": "a per-walk channel: shortcuts are registered into the one in force",
+        "SynthesizeKeyEventKey": "an app service called at event time, installed once from the TUIContext",
+        "ClipboardAccessKey": "an app service called at event time, installed once from the TUIContext",
     ]
 
     @Test("Every key declared neutral is listed with why")
