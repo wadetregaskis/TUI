@@ -141,6 +141,10 @@ made. Held back, with what is put back:
 | Effect | Remembered state put back |
 |---|---|
 | `onChange` (views and scenes) | the compared value (`setChangedTrackedValue`) |
+| `onPreferenceChange` | the reduction last heard |
+| `onGeometryChange`, reported as the view renders | the last report (reported at the frame's end it acts at once: nothing is open) |
+| `onModifierKeysChanged(initial: true)` | that the view has appeared |
+| `onInteractiveResizeChange` | the last answer |
 | `onAppear`, `.task`, and every task a view starts on appearing (`Image`/`AsyncImage` loads, a notification host's expiry, gradient graphics) | that the token appeared, and that it is present this pass |
 | `onDisappear` | its callback, where the drawing registered it first |
 
@@ -149,8 +153,8 @@ SwiftUI fires none (`CoordinateSpaceTests.correctedSubtreeSideEffects`), a move
 fires one, old answer to new, and a view only the discarded drawing drew —
 a branch the guess chose — neither appears, starts a task, nor later
 disappears (`CorrectedSubtreeEffectsTests`, the root's walk included). The
-observers' effects still act for both drawings, until they move onto the
-stage.
+scroll observers' effects still act for both drawings, until they move onto
+the stage.
 
 **Why armed, not always.** Holding every effect back from the start of every
 drawing that may be made again was tried first: it moves every effect in

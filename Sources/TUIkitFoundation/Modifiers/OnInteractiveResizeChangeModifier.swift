@@ -131,9 +131,14 @@ extension OnInteractiveResizeChangeModifier: Renderable {
         let key = StateStorage.StateKey(identity: context.identity, propertyIndex: index)
         let reported: Bool = storage.trackedValue(for: key) ?? false
         if reported != isResizing {
-            action(isResizing)
+            // Held until the drawing is kept, where it may be drawn again
+            // (`EffectStage`), and the answer put back if it is not.
+            let action = self.action
+            storage.effectStage.perform { action(isResizing) }
+            storage.setChangedTrackedValue(isResizing, for: key)
+        } else {
+            storage.setTrackedValue(isResizing, for: key)
         }
-        storage.setTrackedValue(isResizing, for: key)
         storage.markActive(context.identity)
 
         return TUIkitView.renderToBuffer(content, context: context)

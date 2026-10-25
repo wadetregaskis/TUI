@@ -155,11 +155,19 @@ extension OnPreferenceChangeModifier: Renderable {
         // This also replaced a per-publisher storage callback that delivered
         // RAW un-reduced values — the action now only ever sees the final
         // reduction, once, like SwiftUI.
+        //
+        // Inside a drawing that may be drawn again — a reader in the subtree
+        // told an answer its owner may correct — the action waits for the
+        // drawing to be kept, and the baseline is put back if it is not
+        // (`EffectStage`): the reduction the kept drawing makes is the one the
+        // action hears, once.
         let previous: K.Value? = storage.trackedValue(for: key)
-        storage.setTrackedValue(value, for: key)
         storage.markActive(context.identity)
         if previous != value {
-            action(value)
+            storage.setChangedTrackedValue(value, for: key)
+            storage.perform(action, with: value)
+        } else {
+            storage.setTrackedValue(value, for: key)
         }
 
         return buffer

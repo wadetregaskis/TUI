@@ -153,16 +153,22 @@ extension OnGeometryChangeModifier: Renderable {
 
     /// Calls `action` when `value` differs from the one last reported at
     /// `key` — and on the first report, with the same value as old and new.
+    ///
+    /// Reported as the view renders, inside a drawing that may be drawn
+    /// again, the call waits for the drawing to be kept, and the report is put
+    /// back if it is not (`EffectStage`): what the kept drawing's view came
+    /// out at is what the action hears. Reported once the frame is done, no
+    /// drawing is open, and it is called at once.
     private static func report(
-        _ value: T, at key: StateStorage.StateKey, in storage: StateStorage, action: (T, T) -> Void
+        _ value: T, at key: StateStorage.StateKey, in storage: StateStorage, action: @escaping (T, T) -> Void
     ) {
         let previous: T? = storage.trackedValue(for: key)
-        storage.setTrackedValue(value, for: key)
-        if let previous {
-            if previous != value { action(previous, value) }
-        } else {
-            action(value, value)
+        guard previous != value else {
+            storage.setTrackedValue(value, for: key)
+            return
         }
+        storage.setChangedTrackedValue(value, for: key)
+        storage.effectStage.perform { action(previous ?? value, value) }
     }
 }
 

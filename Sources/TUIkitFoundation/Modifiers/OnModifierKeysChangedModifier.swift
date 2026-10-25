@@ -94,8 +94,13 @@ extension OnModifierKeysChangedModifier: Renderable {
             let appeared: Bool? = storage.trackedValue(for: key)
             if appeared == nil {
                 let held = monitor.current.intersection(mask)
-                if initial, !held.isEmpty { action([], held) }
-                storage.setTrackedValue(true, for: key)
+                // Held until the drawing is kept, where it may be drawn again
+                // (`EffectStage`), and the appearance put back if it is not.
+                if initial, !held.isEmpty {
+                    let action = self.action
+                    storage.effectStage.perform { action([], held) }
+                }
+                storage.setChangedTrackedValue(true, for: key)
             }
             storage.markActive(context.identity)
         }

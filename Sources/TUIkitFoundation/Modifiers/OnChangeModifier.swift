@@ -104,6 +104,17 @@ extension StateStorage {
         effectStage.perform { action(oldValue, value) }
         setChangedTrackedValue(value, for: key)
     }
+
+    /// Calls `action` with `value` — at once, or, in a drawing that may yet be
+    /// drawn again, once the drawing is kept (``EffectStage``).
+    ///
+    /// The call is made up here, outside the view's main-actor render, so the
+    /// value — a preference's reduction, read from the walk's preference
+    /// storage — is captured where the storage it came from is, rather than
+    /// sent into a main-actor closure.
+    package func perform<V>(_ action: @escaping (V) -> Void, with value: V) {
+        effectStage.perform { action(value) }
+    }
 }
 
 // MARK: - Layoutable
