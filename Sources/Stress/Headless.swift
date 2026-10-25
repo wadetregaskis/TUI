@@ -490,6 +490,7 @@ enum Headless {
         let observation = BenchObservationCounter(
             requested: countsObservation, cold: cold, cache: warm.renderCache)
         let correctionsBefore = channels.geometryCorrections
+        let settlingBefore = warm.stateStorage?.effectStage.settling
         for iteration in 0..<iterations {
             if iteration.isMultiple(of: 64) { memory.sample() }
             if cold {
@@ -559,6 +560,12 @@ enum Headless {
         printGeometryCorrections(
             from: correctionsBefore, to: channels.geometryCorrections, frames: iterations,
             always: id == GeometryScenario.descriptor.id)
+        // How often the frames' effects wrote state, so a frame was walked
+        // again before it was written (`FrameSettling`). A `--cold` frame has
+        // a context of its own, so its count is its own frame's.
+        if !cold, let before = settlingBefore, let after = warm.stateStorage?.effectStage.settling {
+            print("  effects: \(after.delta(since: before))")
+        }
         MemoCounts.printValueHashCensus(of: warm.renderCache)
         observation?.report(frames: iterations)
         // `TUIKIT_VERIFY_MEASURE_MEMO=1` re-measures every memo hit and reports

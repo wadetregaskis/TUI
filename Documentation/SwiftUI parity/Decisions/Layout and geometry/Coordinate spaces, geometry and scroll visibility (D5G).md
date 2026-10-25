@@ -426,6 +426,25 @@ animated values starting from the first phase (`AnimatorViewTests.cycles`);
 whether SwiftUI's first frame shows the first phase's content was not
 measured.
 
+**How often a frame is walked again** (counted 2026-10-24, debug build; the
+Stress bench prints `effects:`, each session report too, and
+`TUIKIT_DIAGNOSE_BODY_MUTATION=1` writes a line for each frame whose effects
+wrote):
+
+- Every Stress `--bench` scenario (37, 60 frames each after the warm-up):
+  none.
+- Stress sessions (401 frames each, the opening frame included): `log`,
+  `log-observable` and `log-captures` 146 (88 once, 58 twice) — the bound
+  `scrollPosition(id:)` reporting the top line as lines arrive, which the
+  status line above the scroll view shows; `editor` 36 once — its
+  `onChange(of: document.line) { proxy.scrollTo(line) }`; the other 19 none.
+  No frame was left still writing.
+- The Example, every page opened with ⌃T in a headless app (140 × 42, ten
+  frames a page, then Down ×3, Up and Tab ×2 with two frames each): 8 of 841
+  frames, each once, each a page's first frame (`layout`, `tables`,
+  `scrollView`, `imageFile`, `imageURL`, `lifecycle`, `preferences`,
+  `animation`); none on a key.
+
 **Price.** A frame whose effects write nothing is walked once, and pays one
 count compare of the invalidation queue and, for every view, the hand-over of
 the effects it makes (a closure each, made only when it acts, and a token per

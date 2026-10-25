@@ -111,6 +111,9 @@ enum SessionRunner {
         /// of one build (see the README), so a difference that small is noise.
         var cacheStats = RenderCache.Stats()
         var rowWork = RenderCache.RowWork()
+        /// How the warm instance's frames settled, its opening frame included:
+        /// how many its effects made walk again before they were written.
+        var effectSettling = EffectStage.Settling()
 
         /// Whether the run found nothing wrong: no divergence from the twin, no
         /// frame that failed the session's own check, and a deterministic script.
@@ -241,6 +244,7 @@ enum SessionRunner {
         let counts = warm.cacheCounts()
         report.cacheStats = counts.stats.delta(since: countsAtOpen.stats)
         report.rowWork = counts.rows.delta(since: countsAtOpen.rows)
+        report.effectSettling = warm.effectSettling()
         report.memoVerified = RenderCache.verifiesRenderMemo
         report.staleServes = warm.staleServes()
         report.sizesVerified = RenderCache.verifiesMeasureMemo
@@ -455,6 +459,7 @@ enum SessionRunner {
                     + "value memos: %d hits, %d misses, %d stores; subtree clears: %d (%d entries visited)",
                 rows.rendered, rows.served, Double(rows.rendered) / steps, Double(rows.served) / steps,
                 stats.hits, stats.misses, stats.stores, stats.subtreeClears, stats.clearVisits))
+        Swift.print("  effects: \(report.effectSettling)")
         for line in report.checkpoints { Swift.print("  " + line) }
         for line in censusLines(report) { Swift.print("  " + line) }
         if let finish = report.finish { Swift.print("  finish: " + finish) }

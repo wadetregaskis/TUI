@@ -42,6 +42,11 @@ import TUIkitCore
 /// ``reports`` collects the same records in memory, which is how tests read
 /// them and how an app could surface them itself.
 ///
+/// It also says which frames' *effects* wrote state, which are not body
+/// mutations — effects run after the walk — but cost the frame a walk more
+/// (`FrameSettling`): one line a frame, with a running count
+/// (``noteSettled(rewalks:stillWriting:)``).
+///
 /// ## Why the traversing *thread*, not "the main thread"
 ///
 /// A write only counts if it happens on the thread doing the walking, while it
@@ -81,6 +86,10 @@ public final class BodyMutationDiagnostic: @unchecked Sendable {
     private var reportedThisFrame: Set<String> = []
     private var frameNumber = 0
     private var collected: [Report] = []
+    /// Frames settled, and of those, the ones whose effects wrote state —
+    /// see ``noteSettled(rewalks:stillWriting:)``.
+    private var settledFrames = 0
+    private var framesEffectsWrote = 0
 
     /// Every mutation reported so far, oldest first.
     public var reports: [Report] {
@@ -130,6 +139,27 @@ public final class BodyMutationDiagnostic: @unchecked Sendable {
             frameNumber += 1
             reportedThisFrame.removeAll(keepingCapacity: true)
         }
+    }
+
+    /// Records how a frame settled (`FrameSettling`): after `rewalks` walks
+    /// more for what its effects wrote, its last walk's effects still writing
+    /// where `stillWriting`. A frame whose effects wrote state is reported,
+    /// with how many of the frames so far did: how often a frame pays a walk
+    /// more. A write by an effect is not a body mutation — effects run after
+    /// the walk, outside it — so this is the count of the writes that are.
+    public func noteSettled(rewalks: Int, stillWriting: Bool) {
+        let counts: (frame: Int, wrote: Int, of: Int)? = lock.withLock {
+            settledFrames += 1
+            guard rewalks > 0 else { return nil }
+            framesEffectsWrote += 1
+            return (frameNumber, framesEffectsWrote, settledFrames)
+        }
+        guard let counts else { return }
+        let times = rewalks == 1 ? "once" : "\(rewalks) times"
+        let writing = stillWriting ? ", still writing" : ""
+        DiagnosticChannel.emit(
+            "[TUIkit] effects wrote state, frame \(counts.frame): walked again \(times)\(writing) "
+                + "(\(counts.wrote) of \(counts.of) frames so far)\n")
     }
 
     /// Records an invalidation if it came from the traversing thread mid-walk.

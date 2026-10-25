@@ -93,11 +93,11 @@ package enum FrameSettling {
             endWalk(drawn)
             effects.keep()
             guard let cache, cache.link.writeCount != writes else {
-                storage?.effectStage.noteSettled(rewalks: rewalks, stillWriting: false)
+                note(rewalks: rewalks, stillWriting: false, storage: storage, cache: cache)
                 return drawn
             }
             guard rewalks < maxRewalks else {
-                storage?.effectStage.noteSettled(rewalks: rewalks, stillWriting: true)
+                note(rewalks: rewalks, stillWriting: true, storage: storage, cache: cache)
                 return drawn
             }
             rewalks += 1
@@ -107,5 +107,12 @@ package enum FrameSettling {
             lifecycle?.beginRewalk()
             beginRewalk()
         }
+    }
+
+    /// Counts how a frame settled, on the stage and — when
+    /// `TUIKIT_DIAGNOSE_BODY_MUTATION` is set — on the diagnostic channel.
+    private static func note(rewalks: Int, stillWriting: Bool, storage: StateStorage?, cache: RenderCache?) {
+        storage?.effectStage.noteSettled(rewalks: rewalks, stillWriting: stillWriting)
+        cache?.bodyMutationDiagnostic?.noteSettled(rewalks: rewalks, stillWriting: stillWriting)
     }
 }

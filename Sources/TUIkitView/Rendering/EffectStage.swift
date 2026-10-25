@@ -126,6 +126,16 @@ package final class EffectStage {
         /// Every walk made again.
         package var rewalks: Int { walkedAgainOnce + 2 * walkedAgainTwice }
 
+        /// What was counted since `earlier`.
+        package func delta(since earlier: Self) -> Self {
+            var delta = Self()
+            delta.frames = frames - earlier.frames
+            delta.walkedAgainOnce = walkedAgainOnce - earlier.walkedAgainOnce
+            delta.walkedAgainTwice = walkedAgainTwice - earlier.walkedAgainTwice
+            delta.leftWriting = leftWriting - earlier.leftWriting
+            return delta
+        }
+
         package var description: String {
             "\(frames) frames: \(walkedAgainOnce) walked again once, \(walkedAgainTwice) twice, "
                 + "\(leftWriting) still writing"
