@@ -175,6 +175,10 @@ extension StressStrings {
         "stress.scenario.scrolleager.blurb": "纵向 ScrollView，内含 N 行非惰性 VStack，每个 tick 文本都会变化。",
         "stress.scenario.scrolleager.stresses": "遍历整个内容的测量 · 滚动条预留 · 理想尺寸查询 · 每帧 O(N)",
         "stress.scenario.scrolleager.heading": "非惰性滚动 — 非惰性 VStack 中的 {0} 行（每帧每行都变化）",
+        "stress.scenario.glide.title": "滑动",
+        "stress.scenario.glide.blurb": "ScrollView 或 List 在静态行上每帧滑动一行，如同带动画的 scrollTo。",
+        "stress.scenario.glide.stresses": "一帧滑动 · 它所花费的单行步进 · 滚动视图与堆栈重新合成 · 偏移移动后的行缓存",
+        "stress.scenario.glide.heading": "滑动：{0} — {1} 行静态内容，每帧一行",
 
         // MARK: kitchensink
         "stress.scenario.menus.title": "菜单栏",

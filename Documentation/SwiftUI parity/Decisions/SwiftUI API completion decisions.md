@@ -1486,23 +1486,26 @@ parks SGR-Pixels (mode 1016).
 **Shipped 2026-10-13 (SCROLLB):** the velocity is `(0, 0)` at every report —
 the first frame's and both changes — and never `nil`.
 
-**Shipped 2026-10-24 (B27-ANIMATING, option 3, pieces 1–4, 6):** a
-`ScrollView`'s `scrollTo` (a row, or a purely horizontal view's column),
-`ScrollPosition` request (a row, an edge, an offset on either axis) or written
-`anchorPosition` edge made inside `withAnimation` glides to its target a line
-or column at a time (both axes at once, for an offset with both, `.animating`
-until both land), and reports `.idle` → `.animating` on
-the frame it starts and `.animating` → `.idle` on the frame it lands, with
-velocity `(0, 0)` at both, as measured above. A user's scroll during it stops
-it where it stands, `.animating` → `.interacting` with no `.idle` between; a
-reveal of the focus stops it too, a second animated request glides on from
-where it is drawn, and an unanimated one jumps. An unanimated request and one
-under reduce motion still jump and change no phase. A `List`'s and a
-`Table`'s requests glide too, a row at a time, and the lists report their
-phases as a `ScrollView` does: `.interacting` for a user's scroll (the wheel,
-the scrollbar, a drag's auto-scroll; the cursor keys move the cursor, and
-report none), `.animating` while a request glides ([the design
-note](<Scrolling/Animated scrolling, a design (B27).md>), piece 6).
+**Shipped 2026-10-24 (B27-ANIMATING, option 3, all eight pieces):** a
+programmatic scroll made inside `withAnimation` — a `scrollTo`, a
+`ScrollPosition` request (a row, an edge, an offset) or a written
+`anchorPosition` edge — glides to its target and reports `.idle` →
+`.animating` on the frame it starts and `.animating` → `.idle` on the frame it
+lands, with velocity `(0, 0)` at both, as measured above: a `ScrollView`'s a
+line or a column at a time (both axes at once for an offset with both,
+`.animating` until both land), a `List`'s or a `Table`'s a row at a time. A
+user's scroll during it stops it where it stands, `.animating` →
+`.interacting` with no `.idle` between; a reveal of the focus or a list's
+cursor move stops it too, a second animated request glides on from where it
+is drawn, and an unanimated one jumps. An unanimated request and one under
+reduce motion still jump and change no phase. The lists, which reported no
+phase at all, report theirs as a `ScrollView` does: `.interacting` for a
+user's scroll (the wheel, the scrollbar, a drag's auto-scroll; the cursor keys
+move the cursor, and report none), `.animating` while a request glides. Under
+the TUI-specific `scrollKeyboardAnimation(_:)` the page keys glide too: a
+`ScrollView`'s stay `.interacting`, counted quiet from the landing, so a held
+Page Down is one span; a list's move the cursor and report nothing ([the
+design note](<Scrolling/Animated scrolling, a design (B27).md>)).
 
 ### B28. `scrollIndicatorsFlash` flashes the indicators for half a second
 

@@ -63,6 +63,12 @@ struct Scenario {
 struct DrivenScenario {
     let view: AnyView
     let advance: @MainActor (_ tick: Int) -> Void
+    /// Whether `--bench` gives each frame the clock the run loop gives it — a
+    /// 60 Hz frame time from the tick, and that it can animate — rather than a
+    /// one-off render's. Off for every scenario but one whose motion is what
+    /// it measures (`glide`): turned on everywhere, it would let every change
+    /// in every other scenario start an animation the bench never finishes.
+    var runsAnimationClock = false
 }
 
 // MARK: - Registry
@@ -74,6 +80,7 @@ enum Scenarios {
         MegaListScenario.descriptor,
         ScrollFollowScenario.descriptor,
         ScrollEagerScenario.descriptor,
+        GlideMatrix.descriptor,
         WideTableScenario.descriptor,
         MultiLineTableScenario.descriptor,
         TruncatingTableScenario.descriptor,

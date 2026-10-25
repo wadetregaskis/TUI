@@ -492,6 +492,12 @@ enum Headless {
             // A driven scenario's write, outside the timed region; what it
             // invalidates is paid in the frame, where an app pays it.
             driven?.advance(clock.tick)
+            // The run loop's frame clock, for a scenario that asks for it
+            // (``DrivenScenario/runsAnimationClock``): a tick a 1/60 s frame.
+            if driven?.runsAnimationClock == true {
+                warm.environment.animationFrame = AnimationFrame(
+                    nowNanos: Int64(clock.tick) * 16_666_667, step: clock.tick / 3, canAnimate: true)
+            }
             let countsBefore = MemoCounts(warm.renderCache)
             let cpuStart = threadCPUNanoseconds()
             let frameStart = DispatchTime.now()

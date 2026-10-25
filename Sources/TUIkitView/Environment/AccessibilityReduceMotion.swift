@@ -36,9 +36,10 @@ extension EnvironmentValues {
     /// motion: colour and opacity
     /// animations, the focus breath, the caret's blink, spinners, progress
     /// indicators and symbol effects each say something, and keep moving.
-    /// So does a scroll view's offset: a `scrollTo` or a `ScrollPosition`
-    /// request made inside an animation jumps to its target rather than
-    /// gliding there. An ``Animatable`` view of the app's own, a keyframe animator's
+    /// A scroll is held still: a `ScrollView`'s, a `List`'s or a `Table`'s
+    /// `scrollTo` or `ScrollPosition` request made inside an animation, and
+    /// the page keys under `scrollKeyboardAnimation(_:)`, jump to their target
+    /// rather than glide there. An ``Animatable`` view of the app's own, a keyframe animator's
     /// tracks and a custom layout's data animate as they did; read this value
     /// to hold them still too, as in SwiftUI.
     ///

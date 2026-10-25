@@ -177,6 +177,10 @@ extension StressStrings {
         "stress.scenario.scrolleager.blurb": "ScrollView vertical sobre un VStack no perezoso de N filas cuyo texto cambia en cada tick.",
         "stress.scenario.scrolleager.stresses": "recorridos de medición del contenido completo · reserva de la barra de desplazamiento · consulta del tamaño ideal · O(N) por fotograma",
         "stress.scenario.scrolleager.heading": "Desplazamiento no perezoso — {0} filas en un VStack no perezoso (cada fila cambia en cada fotograma)",
+        "stress.scenario.glide.title": "Deslizamiento",
+        "stress.scenario.glide.blurb": "Una ScrollView o una List que se desliza una línea por fotograma sobre filas estáticas, como un scrollTo animado.",
+        "stress.scenario.glide.stresses": "un fotograma de deslizamiento · el paso de una línea que cuesta · vista de desplazamiento y pila recompuestas · memos de filas en un desplazamiento movido",
+        "stress.scenario.glide.heading": "Deslizamiento: {0} — {1} filas estáticas, una línea por fotograma",
 
         // MARK: kitchensink
         "stress.scenario.menus.title": "Barra de menús",

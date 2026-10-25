@@ -17,14 +17,15 @@ import TUIkitView
 /// A terminal scrolls by discrete steps — a wheel tick, a key, a drag on the
 /// scrollbar — so a user's scroll is ``interacting`` from its first step
 /// until the steps have stopped for a quarter of a second (and for as long as
-/// a scrollbar is held), and ``idle`` otherwise. A `ScrollView`'s
-/// programmatic scroll made inside `withAnimation` — a `scrollTo`, a
-/// ``ScrollPosition`` write, along either axis — glides to its target, and is
-/// ``animating`` from the frame it starts on to the one it lands on, as SwiftUI's is (measured,
-/// B27); so is a `List`'s or a `Table`'s, which glides a row at a time, and
-/// whose user scrolls — the wheel, the scrollbar — are ``interacting`` too (its
-/// cursor keys move the cursor, and report none). The other two
-/// phases are SwiftUI's for input a terminal does not send: ``tracking`` a
+/// a scrollbar is held, or a page key's glide under
+/// `scrollKeyboardAnimation(_:)` runs), and ``idle`` otherwise. A programmatic
+/// scroll made inside `withAnimation` — a `scrollTo`, a ``ScrollPosition``
+/// write — glides to its target, a `ScrollView` a line or a column at a time
+/// and a `List` or a `Table` a row at a time, and is ``animating`` from the
+/// frame it starts on to the one it lands on, as SwiftUI's is (measured,
+/// B27). A `List` and a `Table` report their phases as a `ScrollView` does;
+/// their cursor keys move the cursor, not a scroll, and report none. The other
+/// two phases are SwiftUI's for input a terminal does not send: ``tracking`` a
 /// finger that has not moved yet, ``decelerating`` after a fling. macOS never
 /// decelerates under a mouse wheel either; a switch over them is still
 /// exhaustive and still correct.
@@ -50,8 +51,8 @@ public enum ScrollPhase: Hashable, Sendable {
 
     /// The view is animating to a target set by code: a `ScrollView`'s, a
     /// `List`'s or a `Table`'s `scrollTo` or ``ScrollPosition`` request made
-    /// inside `withAnimation`, while it glides there. A user's scroll stops the glide, and the phase
-    /// goes straight to ``interacting``.
+    /// inside `withAnimation`, while it glides there. A user's scroll stops
+    /// the glide, and the phase goes straight to ``interacting``.
     case animating
 
     /// Whether the view is scrolling: any phase but ``idle``.

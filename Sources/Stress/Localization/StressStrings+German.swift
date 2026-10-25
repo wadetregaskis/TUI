@@ -177,6 +177,10 @@ extension StressStrings {
         "stress.scenario.scrolleager.blurb": "Vertikale ScrollView über einem nicht-lazy VStack mit N Zeilen, deren Text sich bei jedem Tick ändert.",
         "stress.scenario.scrolleager.stresses": "Messdurchläufe über den ganzen Inhalt · Scrollleisten-Reservierung · Frage nach der Idealgröße · O(N) pro Frame",
         "stress.scenario.scrolleager.heading": "Eager-Scrollen — {0} Zeilen in einem nicht-lazy VStack (jede Zeile ändert sich in jedem Frame)",
+        "stress.scenario.glide.title": "Gleiten",
+        "stress.scenario.glide.blurb": "Eine ScrollView oder eine List gleitet Zeile für Zeile pro Bild über statische Zeilen, wie ein animiertes scrollTo.",
+        "stress.scenario.glide.stresses": "ein Gleit-Bild · der Ein-Zeilen-Schritt, den es kostet · Scroll-Ansicht und Stapel neu zusammengesetzt · Zeilen-Memos bei verschobenem Versatz",
+        "stress.scenario.glide.heading": "Gleiten: {0} — {1} statische Zeilen, eine Zeile pro Bild",
 
         // MARK: kitchensink
         "stress.scenario.menus.title": "Menüleiste",

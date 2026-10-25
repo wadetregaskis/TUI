@@ -2,8 +2,36 @@
 
 *Written 2026-10-24 for the owner's answer to
 [B27-ANIMATING](<../../../Open owner decisions.md#b27-animating>) (option 3,
-2026-10-23). Nothing here is built. Line references are to `main` at
-`83d6292fd`.*
+2026-10-23). Line references are to `main` at `83d6292fd`.*
+
+**Status: built, 2026-10-24, in the eight pieces below** (`git log --grep
+B27-ANIMATING`). Where the build parts from this note:
+
+- **The request frame does not draw the content twice by default.** The
+  forced redraw at the start was measured unnecessary (what is placed by where
+  it is drawn is worked out against the frame's final offset), so the frame
+  draws again only where the band drawn at the request misses the start,
+  `coverSnappedViewport`'s own rule (§1, "The request frame").
+- **A glide asks for one more frame than its line changes:** the tick its
+  animation ends on, which lands it and fires `withAnimation`'s completion.
+- **A written `anchorPosition` edge glides too**, as an edge request does.
+- **A `List` or a `Table` glides a row at a time, not a line** (§1 says "a line
+  step for a list too"). A list's row height is known only by building the row,
+  so line steps past rows a glide never draws would build them all to count
+  their lines. The landing puts the list exactly where the jump would, a tall
+  row's clipped lines included, so only the frames between are coarser.
+- **The lists' cursor keys report no phase**, nor do their page keys' glides:
+  they move the cursor, which is no scroll of the user's (SwiftUI not
+  measured). The wheel, the scrollbar and a drag's auto-scroll are
+  `.interacting`. The phase context's geometry counts each row above a list's
+  top one as a line, rather than build rows to measure them.
+- **A key's glide starts on the frame after the key** (event time has no frame
+  clock), which draws its start, as every glide's first frame does.
+- **What still jumps:** a page key's move onto the other axis by a two-axis
+  `.paging` behaviour, and a push into an overscroll allowance (as §4 says).
+- **The Stress `glide` scenario** needs the run loop's frame clock, which
+  `--bench` gives only a scenario that asks for it
+  (`DrivenScenario.runsAnimationClock`).
 
 The ruling covers three things. Programmatic scrolls made inside an animation
 (`ScrollViewProxy.scrollTo`, `ScrollPosition` writes, anchor changes) move in

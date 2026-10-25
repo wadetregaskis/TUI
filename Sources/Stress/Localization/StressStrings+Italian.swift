@@ -177,6 +177,10 @@ extension StressStrings {
         "stress.scenario.scrolleager.blurb": "ScrollView verticale su un VStack non pigro di N righe il cui testo cambia a ogni tick.",
         "stress.scenario.scrolleager.stresses": "passaggi di misura sull'intero contenuto · riserva della barra di scorrimento · richiesta della dimensione ideale · O(N) per frame",
         "stress.scenario.scrolleager.heading": "Scorrimento non pigro — {0} righe in un VStack non pigro (ogni riga cambia a ogni frame)",
+        "stress.scenario.glide.title": "Scivolamento",
+        "stress.scenario.glide.blurb": "Una ScrollView o una List che scivola di una riga per fotogramma su righe statiche, come uno scrollTo animato.",
+        "stress.scenario.glide.stresses": "un fotogramma di scivolamento · il passo di una riga che costa · vista di scorrimento e pila ricomposte · memo delle righe a uno scostamento spostato",
+        "stress.scenario.glide.heading": "Scivolamento: {0} — {1} righe statiche, una riga per fotogramma",
 
         // MARK: kitchensink
         "stress.scenario.menus.title": "Barra dei menu",

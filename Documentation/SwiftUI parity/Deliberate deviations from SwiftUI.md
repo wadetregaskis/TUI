@@ -1605,40 +1605,62 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 ## Scrolling
 
-### R1. Scrolling moves in whole lines, and only a `ScrollView`'s programmatic scrolls animate
+### R1. Scrolling moves in whole lines and cells, and glides a line at a time
 
 - **SwiftUI:** scrolls in points, with momentum; an animated `scrollTo`
   animates; phases include `.tracking`, `.decelerating` and `.animating`, with
   a velocity; a bounce springs back (the `scrollTo` phases measured, B27; the
   rest Apple's documentation).
-- **TUIkit:** an offset is whole rows and columns. A `ScrollView`'s `scrollTo`
-  (a row, or a column on a purely horizontal view), `ScrollPosition` request
-  (a row, an edge or an offset, on either axis) or written `anchorPosition`
-  edge made inside `withAnimation` glides there a whole line or column at a
-  time along the animation's curve (its first pass only, for a repeating
-  one), drawn only on the 1/60 s ticks where its line changes, and is sought
-  again on landing (since 2026-10-24, B27-ANIMATING); under reduce motion it
-  jumps. A user's scroll, or a reveal of the focus, stops it where it stands;
-  a second animated request glides on from there, at rest, and an unanimated
-  one jumps. A `List`'s or a `Table`'s request glides a row at a time (a
-  row of several lines in one step: its height is known only by building it,
-  and a glide must not build the rows it passes to count their lines), lands
-  exactly where the jump would, leaves the cursor and the selection, and is
-  stopped by a cursor move; the lists report their phases as a `ScrollView`
-  does, with a geometry whose offset counts each row above the top as a
-  line. Under the
-  TUI-specific `scrollKeyboardAnimation(_:)` a `ScrollView`'s Page Up/Down,
-  Home and End glide to where they land too, and stay `.interacting`; a
-  `List`'s or a `Table`'s move the cursor at once and glide the rows, with no
-  phase. A user scroll is `.interacting` until 250 ms pass with no step; a
-  glide is `.animating` until it lands; `.tracking` and `.decelerating` never
-  occur; the velocity is (0, 0) at every report,
-  as SwiftUI's is where it was measured. An overscroll
-  allowance the app asked for stays where it was pushed (bounce behaviour
-  decides only when it applies); `.always` adds a bounce of a line or two on an
-  end with none, sprung back a line a frame once the scroll goes idle, and
-  pushed by a scroll view's arrow or page key at the end as by the wheel (a
-  focused `List`'s or `Table`'s keys move its cursor instead).
+- **TUIkit:** an offset is whole rows and columns, and every scroll moves in
+  them.
+  - **Programmatic scrolls made inside `withAnimation` glide** (since
+    2026-10-24, B27-ANIMATING): a `scrollTo`, a `ScrollPosition` request (a
+    row, an edge, an offset) or a written `anchorPosition` edge moves there a
+    whole line at a time along the animation's curve — its first pass only,
+    for a repeating one — drawn only on the 1/60 s ticks where its line
+    changes. A `ScrollView` glides by lines, and by columns along its
+    horizontal axis (a purely horizontal view's column `scrollTo`, a
+    position's `x` or leading or trailing edge), both axes at once for an
+    offset with both. A `List` or a `Table` glides by ROWS, a tall row in one
+    step: its height is known only by building it, and a glide must not build
+    the rows it passes to count their lines; its cursor and selection stay
+    where they were. The landing applies the request once more, unanimated,
+    so it ends where the jump would have — the row sought again (rows that
+    arrived between the view and it are allowed for), the bottom edge through
+    the tail seek (rows that arrived while it glided are followed), a tall
+    row's clipped lines put back. Under reduce motion, and in a one-off render
+    with no scheduler, it jumps.
+  - **Interruptions:** a user's scroll (the wheel, a key, the scrollbar, a
+    drag's auto-scroll), a reveal of the focus, or a cursor move in a list
+    stops it where it stands; a second animated request glides on from there,
+    at rest, under its own animation (no velocity is carried over); an
+    unanimated one jumps; a resize lands it at once. A bound
+    `.scrollPosition(id:)` is told the row or column it lands on, not each it
+    passes.
+  - **Keys:** under the TUI-specific `scrollKeyboardAnimation(_:)`, Page
+    Up/Down, Home and End glide too. A `ScrollView`'s land where they always
+    have — on the page a scroll target behaviour picks, at an edge, at the
+    tail — and stay `.interacting`; a `List`'s or a `Table`'s move the cursor
+    at once and glide the rows to where its reveal puts them. A key pressed
+    during the glide counts from its target, so N presses move N pages, and an
+    arrow lands it before it steps. Without the modifier, and under reduce
+    motion, the keys jump.
+  - **Phases:** a user scroll is `.interacting` until 250 ms pass with no step
+    (from the landing, for a key's glide); a programmatic glide is
+    `.animating` from the frame it starts to the frame it lands, `.idle` →
+    `.animating` → `.idle` as SwiftUI's (measured), and a user's scroll during
+    it goes straight to `.interacting`; a jump changes no phase. A `List` and
+    a `Table` report them too, as SwiftUI's list is a scroll view — their
+    cursor keys move the cursor, not a scroll, and report none — with a
+    context geometry whose offset counts each row above the top one as a
+    line. `.tracking` and `.decelerating` never occur; the velocity is (0, 0)
+    at every report, as SwiftUI's is where it was measured.
+  - **Overscroll:** an allowance the app asked for stays where it was pushed
+    (bounce behaviour decides only when it applies); `.always` adds a bounce
+    of a line or two on an end with none, sprung back a line a frame once the
+    scroll goes idle, and pushed by a scroll view's arrow or page key at the
+    end as by the wheel (a focused `List`'s or `Table`'s keys move its cursor
+    instead). A push into an allowance never glides.
 - **Why:** a terminal reports no gesture phases and no momentum, and draws
   no line between two of its rows ([the design
   note](<Decisions/Scrolling/Animated scrolling, a design (B27).md>)).

@@ -188,6 +188,10 @@ extension StressStrings {
         "stress.scenario.scrolleager.blurb": "Vertical ScrollView over an eager VStack of N rows whose text changes every tick.",
         "stress.scenario.scrolleager.stresses": "whole-content measure walks · scrollbar reservation · ideal-size ask · O(N) per frame",
         "stress.scenario.scrolleager.heading": "Scroll Eager — {0} rows in an eager VStack (every row changes every frame)",
+        "stress.scenario.glide.title": "Glide",
+        "stress.scenario.glide.blurb": "A ScrollView or a List gliding a line a frame over static rows, as an animated scrollTo does.",
+        "stress.scenario.glide.stresses": "a glide frame · the one-line step it costs · scroll view and stack composited again · row memos at a moved offset",
+        "stress.scenario.glide.heading": "Glide: {0} — {1} static rows, a line a frame",
 
         // MARK: kitchensink
         "stress.scenario.menus.title": "Menu Bar",

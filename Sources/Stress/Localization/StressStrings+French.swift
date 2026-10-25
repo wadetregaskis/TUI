@@ -177,6 +177,10 @@ extension StressStrings {
         "stress.scenario.scrolleager.blurb": "ScrollView verticale sur un VStack non paresseux de N lignes dont le texte change à chaque tick.",
         "stress.scenario.scrolleager.stresses": "parcours de mesure du contenu entier · réservation de la barre de défilement · demande de taille idéale · O(N) par image",
         "stress.scenario.scrolleager.heading": "Défilement non paresseux — {0} lignes dans un VStack non paresseux (chaque ligne change à chaque image)",
+        "stress.scenario.glide.title": "Glissement",
+        "stress.scenario.glide.blurb": "Une ScrollView ou une List glisse d'une ligne par image sur des lignes statiques, comme un scrollTo animé.",
+        "stress.scenario.glide.stresses": "une image de glissement · le pas d'une ligne qu'elle coûte · vue de défilement et pile recomposées · mémos des lignes à un décalage déplacé",
+        "stress.scenario.glide.heading": "Glissement : {0} — {1} lignes statiques, une ligne par image",
 
         // MARK: kitchensink
         "stress.scenario.menus.title": "Barre de menus",

@@ -175,6 +175,10 @@ extension StressStrings {
         "stress.scenario.scrolleager.blurb": "テキストが tick ごとに変わる N 行の非遅延 VStack を持つ縦 ScrollView。",
         "stress.scenario.scrolleager.stresses": "コンテンツ全体の計測走査 · スクロールバーの確保 · 理想サイズの問い合わせ · フレームごとに O(N)",
         "stress.scenario.scrolleager.heading": "非遅延スクロール — 非遅延 VStack に {0} 行（毎フレームすべての行が変化）",
+        "stress.scenario.glide.title": "グライド",
+        "stress.scenario.glide.blurb": "ScrollView または List が静的な行の上を 1 フレームに 1 行ずつ滑る。アニメーション付きの scrollTo と同じ。",
+        "stress.scenario.glide.stresses": "グライドの 1 フレーム · それにかかる 1 行分のステップ · スクロールビューとスタックの再合成 · ずれたオフセットでの行メモ",
+        "stress.scenario.glide.heading": "グライド: {0} — 静的な {1} 行、1 フレームに 1 行",
 
         // MARK: kitchensink
         "stress.scenario.menus.title": "メニューバー",
