@@ -32,5 +32,40 @@ package final class RevalidationState {
     /// so until Option C's re-check needs it (C4b).
     package var countsStamps = false
 
+    /// What ``eligibility(ofRowsOf:)`` has answered, by type.
+    private var eligibilities: [ObjectIdentifier: RowEligibility] = [:]
+
     package init() {}
+
+    /// Whether a memoized row whose built view is of `type` can be re-checked
+    /// by its value, rather than drawn again, when a parent writes (Option C,
+    /// §5.2): its view must be `Equatable` — the re-check is its `==` — and
+    /// hold nothing the type walk refuses: a `Binding`, whose value its own
+    /// bytes do not say; an existential, which a hand-written `==` over it
+    /// cannot see all of; or a type the runtime cannot describe. Decided once
+    /// per type.
+    package func eligibility(ofRowsOf type: Any.Type) -> RowEligibility {
+        if let known = eligibilities[ObjectIdentifier(type)] { return known }
+        let decided: RowEligibility
+        if !(type is any Equatable.Type) {
+            decided = .notEquatable
+        } else if let refusal = typeWalk.verdict(for: type).refusal {
+            decided = .refused(refusal)
+        } else {
+            decided = .eligible
+        }
+        eligibilities[ObjectIdentifier(type)] = decided
+        return decided
+    }
+}
+
+/// Whether rows of a type can be re-checked by their value: see
+/// ``RevalidationState/eligibility(ofRowsOf:)``.
+package enum RowEligibility: Equatable, Sendable {
+    /// They can.
+    case eligible
+    /// The row's view is not `Equatable`: there is no `==` to re-check it by.
+    case notEquatable
+    /// The type walk refused it, and why.
+    case refused(TypeWalk.Refusal)
 }
