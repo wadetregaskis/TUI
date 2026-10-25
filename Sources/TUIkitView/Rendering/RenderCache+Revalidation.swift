@@ -21,5 +21,10 @@ package final class RevalidationState {
     /// can be re-checked by its value at all. See ``TypeWalk``.
     package var typeWalk = TypeWalk()
 
+    /// The environments rows were drawn under, as compared: what tells
+    /// whether a row would be drawn differently under the environment it
+    /// would get now. See ``EnvironmentStamp``.
+    package let stamps = EnvironmentStamps()
+
     package init() {}
 }

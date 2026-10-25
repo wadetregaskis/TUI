@@ -158,6 +158,6 @@ extension EnvironmentValues {
 /// `@usableFromInline`, so internal rather than `private`, with its default: the
 /// `@inlinable` accessor reads it (module split step A3).
 @usableFromInline
-struct RowEditRestrictionsKey: EnvironmentKey {
+struct RowEditRestrictionsKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     @usableFromInline static let defaultValue: RowEditRestrictions? = nil
 }

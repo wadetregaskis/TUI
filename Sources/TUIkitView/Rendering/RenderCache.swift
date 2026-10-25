@@ -1222,6 +1222,7 @@ extension RenderCache {
         // The measure memo is this frame's scratch space and nothing more.
         measureScratch.endOfPass(&measureEntries)
         passLeases.removeAll(keepingCapacity: true)
+        revalidation.stamps.beginPass()
         childViewScratch.endOfPass(&childViewEntries)
         measureHits = 0
         measureMisses = 0

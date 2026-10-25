@@ -34,6 +34,26 @@ public protocol EnvironmentKey {
     static var defaultValue: Value { get }
 }
 
+// MARK: - Render comparison markers
+
+/// An environment key whose value a render below it cannot draw differently
+/// for: a per-walk channel (the dispatchers, the focus manager), a mailbox a
+/// view posts into and never draws from (the volatile-read tracker), a
+/// service mirrored onto the render context (the render cache). An
+/// `EnvironmentStamp` skips it, so two environments that differ only in such
+/// keys compare equal. Declared at the key, so nobody building a cache can
+/// leave one out; `EnvironmentStampTests` lists every conformer with why.
+package protocol _RenderNeutralEnvironmentKey {}
+
+/// A framework environment value whose `==` is not what a render below it
+/// depends on — partial on purpose, or a class whose drawn state changes in
+/// place — and so says what a stamp compares instead: its projection, or
+/// `nil` when nothing about it can be compared (Option C, C2b).
+package protocol _EnvironmentRenderComparing {
+    /// What a render below depends on, or `nil` when that cannot be compared.
+    var renderProjection: (any Equatable)? { get }
+}
+
 // MARK: - Environment Values
 
 /// A collection of environment values propagated through the view hierarchy.
@@ -117,6 +137,21 @@ public struct EnvironmentValues: @unchecked Sendable {
     public func storedObject(ofType type: Any.Type) -> Any? {
         storage[ObjectIdentifier(type)]
     }
+
+    /// Every value set in this environment, by its key's identity: what an
+    /// `EnvironmentStamp` is built from. A copy of the storage, which is
+    /// copy-on-write, so it costs a retain.
+    package var storedValues: [ObjectIdentifier: Any] { storage }
+
+    /// The storage's own word — a native `Dictionary` is one pointer to its
+    /// buffer — which names this environment's storage for as long as some
+    /// copy of it is alive. Two environments that share it are the same
+    /// values; the converse does not hold. A per-pass memo keyed by it must
+    /// keep the environment alive for the pass, or a freed buffer's address
+    /// can come back for another. `EnvironmentStampTests` pins the size.
+    /// A data buffer's address, never a function's, so deduplication cannot
+    /// make two share it.
+    package var storageWord: UInt { unsafeBitCast(storage, to: UInt.self) }  // swiftlint:disable:this function_address_identity
 
     /// Creates a copy of this environment with a modified value.
     ///

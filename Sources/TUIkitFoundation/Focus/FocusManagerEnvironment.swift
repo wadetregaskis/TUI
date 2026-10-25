@@ -16,7 +16,7 @@
 /// `@usableFromInline`, so internal rather than `private`, with its default: the
 /// `@inlinable` accessor reads it (module split step A3).
 @usableFromInline
-struct FocusManagerKey: EnvironmentKey {
+struct FocusManagerKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     // No shared default instance — consistent with the other runtime services
     // (lifecycle, keyEventDispatcher, mouseEventDispatcher are all nil-default
     // Optionals). A single shared default would let every context that doesn't

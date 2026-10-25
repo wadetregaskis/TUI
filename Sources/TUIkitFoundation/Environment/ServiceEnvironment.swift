@@ -14,7 +14,7 @@ private struct LocalizationServiceKey: EnvironmentKey {
 // MARK: - Lifecycle Manager
 
 /// EnvironmentKey for view lifecycle tracking (appear/disappear/task).
-private struct LifecycleKey: EnvironmentKey {
+private struct LifecycleKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     static let defaultValue: LifecycleManager? = nil
 }
 
@@ -25,7 +25,7 @@ private struct LifecycleKey: EnvironmentKey {
 /// `@usableFromInline`, so internal rather than `private`, with its default: the
 /// `@inlinable` accessor reads it (module split step A3).
 @usableFromInline
-struct KeyEventDispatcherKey: EnvironmentKey {
+struct KeyEventDispatcherKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     @usableFromInline static let defaultValue: KeyEventDispatcher? = nil
 }
 
@@ -36,7 +36,7 @@ struct KeyEventDispatcherKey: EnvironmentKey {
 /// `@usableFromInline`, so internal rather than `private`, with its default: the
 /// `@inlinable` accessor reads it (module split step A3).
 @usableFromInline
-struct MouseEventDispatcherKey: EnvironmentKey {
+struct MouseEventDispatcherKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     @usableFromInline static let defaultValue: MouseEventDispatcher? = nil
 }
 
@@ -49,7 +49,7 @@ struct MouseEventDispatcherKey: EnvironmentKey {
 ///
 /// `nil` outside the live run loop — e.g. `ViewRenderer`'s one-off snapshot path,
 /// which renders a single static frame and schedules no animation.
-private struct AnimationSchedulerKey: EnvironmentKey {
+private struct AnimationSchedulerKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     static let defaultValue: AnimationScheduler? = nil
 }
 
@@ -76,21 +76,21 @@ private struct SynthesizeKeyEventKey: EnvironmentKey {
 /// `@usableFromInline`, so internal rather than `private`, with its default: the
 /// `@inlinable` accessor reads it (module split step A3).
 @usableFromInline
-struct PreferenceStorageKey: EnvironmentKey {
+struct PreferenceStorageKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     @usableFromInline static let defaultValue: PreferenceStorage? = nil
 }
 
 // MARK: - Pulse Phase
 
 /// EnvironmentKey for the focus indicator breathing animation phase.
-private struct PulsePhaseKey: EnvironmentKey {
+private struct PulsePhaseKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     static let defaultValue: Double = 0
 }
 
 // MARK: - Cursor Timer
 
 /// EnvironmentKey for TextField/SecureField cursor blink animation.
-private struct CursorTimerKey: EnvironmentKey {
+private struct CursorTimerKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     // `CursorTimer` is `@MainActor` (hence implicitly `Sendable`), so a `nil`
     // default needs no `nonisolated(unsafe)`.
     static let defaultValue: CursorTimer? = nil

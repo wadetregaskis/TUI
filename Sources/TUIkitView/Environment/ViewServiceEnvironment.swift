@@ -9,21 +9,21 @@ import TUIkitCore
 // MARK: - State Storage
 
 /// EnvironmentKey for the persistent `@State` value storage.
-private struct StateStorageKey: EnvironmentKey {
+private struct StateStorageKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     static let defaultValue: StateStorage? = nil
 }
 
 // MARK: - Render Cache
 
 /// EnvironmentKey for memoized subtree rendering results.
-private struct RenderCacheKey: EnvironmentKey {
+private struct RenderCacheKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     static let defaultValue: RenderCache? = nil
 }
 
 // MARK: - Key Channels
 
 /// EnvironmentKey for the identity of the key channels in force.
-private struct KeyChannelTokenKey: EnvironmentKey {
+private struct KeyChannelTokenKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     static let defaultValue: ObjectIdentifier? = nil
 }
 
@@ -37,7 +37,7 @@ private struct ActiveFocusSectionKey: EnvironmentKey {
 // MARK: - Backdrop
 
 /// EnvironmentKey for whether this render draws a backdrop.
-private struct DrawsBackdropKey: EnvironmentKey {
+private struct DrawsBackdropKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     static let defaultValue = false
 }
 

@@ -339,7 +339,7 @@ package enum SizeHold: Equatable {
     }
 }
 
-private struct VolatileReadTrackerKey: EnvironmentKey {
+private struct VolatileReadTrackerKey: EnvironmentKey, _RenderNeutralEnvironmentKey {
     static var defaultValue: VolatileReadTracker? { nil }
 }
 
