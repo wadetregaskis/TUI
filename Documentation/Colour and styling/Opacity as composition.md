@@ -7604,6 +7604,14 @@ bytes, rounded, so it cannot leave 0…255. A colour with no RGB (the terminal's
 left out of the sum; a box of nothing else averages nothing, and the cell is (c)'s. Two claims
 with different boxes over one cell: the larger frosts it.
 
+**An app's control (TUI-specific).** `.materialFrost(_:)` sets `\.materialFrost`, a
+`MaterialFrost`, for the materials and glass in a subtree: `.automatic` (the default: the
+thickness's box), `.none` (`.droppingGlyphs`: option (c)'s look, nothing averaged and nothing
+parsed beyond what the blend reads), or `.radius(columns:rows:)`, one box for every thickness. It is
+read where the paint is made (`Material.paint(in:)`, `Glass.frost(in:)`), so the claim carries the
+resolved box and nothing downstream asks the environment. SwiftUI has no such control — a
+material's thickness is its only one — so it is a modifier, apart from SwiftUI's API.
+
 **Laid in the blend, cell by cell.** `foldedAlphas` carries the flag to the cell's alpha
 (`CellAlpha.frosts`, set where any covering claim frosts, a painter's or the content's, and read
 from the claim rather than a cycling phase's substitute), and the resolution fills in the cell's
@@ -7631,5 +7639,5 @@ where the first build was about +57%, holding the rest of the frame fixed. About
 what is left is the averaging; the rest is spelling a picture whose every cell is its own colour
 (`SGRState.rendered(changingFrom:)`, `collapsingAdjacentSGR`), which is what a blur draws. Sharing
 the frost's row parse with the blend was tried and measured no better (51.9% → 53.2%), so it was
-not kept. `Stress --scenario
+not kept. `.materialFrost(.none)` is (c)'s path exactly: no averages are made. `Stress --scenario
 translucent --variant material` draws a row of changing text under a thin material on every row.

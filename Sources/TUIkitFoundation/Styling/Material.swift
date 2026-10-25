@@ -30,7 +30,8 @@ import TUIkitStyling
 /// 7 × 3, 9 × 5 and 11 × 5, each about as tall as it is wide but the thinnest,
 /// which blurs along its row alone. ``bar`` is the surface of the palette's
 /// bars (``Palette/statusBarBackground``) rather than of the page, at a
-/// ``thick`` material's opacity and box.
+/// ``thick`` material's opacity and box. ``View/materialFrost(_:)`` sets the
+/// box for a subtree — TUI-specific.
 ///
 /// A material that does not appear active is opaque: SwiftUI's materials go
 /// flat in an inactive window, and here that is the surface at full strength.
@@ -57,7 +58,7 @@ public struct Material: Sendable, Equatable, Hashable {
     let isBar: Bool
 
     /// How this thickness frosts what is behind it: the box its average
-    /// reaches, larger the thicker it is.
+    /// reaches, larger the thicker it is (``MaterialFrost/automatic``).
     let frost: OpacityRegion.Frost
 
     /// The appearance this material asked for, ``MaterialActiveAppearance/automatic``
@@ -112,10 +113,12 @@ extension Material: ShapeStyle {
     /// While it is translucent it is FROSTED (``Paint/frosted(_:_:)``): what is
     /// behind it loses its glyphs and each cell takes its box's average colour,
     /// and the surface is laid over that — a cell's reading of a material's blur
-    /// (owner ruling O5-FROSTED (b)). The box is this thickness's.
+    /// (owner ruling O5-FROSTED (b)). The box is this thickness's, or what
+    /// ``EnvironmentValues/materialFrost`` sets.
     public func paint(in environment: EnvironmentValues) -> Paint {
         let colour = surface(isBar ? Color.palette.statusBarBackground : Color.palette.background, in: environment)
-        return colour.isOpaque ? .color(colour) : .frosted(.color(colour), frost)
+        return colour.isOpaque
+            ? .color(colour) : .frosted(.color(colour), environment.materialFrost.resolved(thickness: frost))
     }
 
     /// `surface` as this material paints it in `environment`: at the

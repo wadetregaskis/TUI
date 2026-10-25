@@ -1171,8 +1171,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   2026-10-24, owner ruling O5-FROSTED, option (b); before, the glyphs behind
   stayed). The box grows with the thickness: 3 × 1 cells for `.ultraThin`,
   5 × 3, 7 × 3, 9 × 5 and 11 × 5 for `.ultraThick`, `.bar` a thick
-  material's. Over nothing but the page it is the tint. One that does not
-  appear active is opaque (`Material.paint(in:)`; `MaterialTests`,
+  material's; `.materialFrost(_:)` (TUI-specific) sets one box for a subtree,
+  or `.none` for the glyphs dropped and nothing averaged. Over nothing but the
+  page it is the tint. One that does not appear active is opaque (`Material.paint(in:)`; `MaterialTests`,
   `MaterialFrostTests`). Nothing of TUIkit's sets `\.backgroundMaterial`.
 - **Why:** a cell has no sub-cell detail to blur, so a blur at cell
   resolution is a box average of whole cells, and a dropped glyph is what a

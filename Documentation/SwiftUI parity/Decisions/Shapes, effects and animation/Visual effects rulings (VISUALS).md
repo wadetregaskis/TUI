@@ -189,6 +189,16 @@ the one whose surface it takes — thin's for `.regular`, ultra-thin's for
 blurs it, and what shows through glass stays plainer than through a
 material as see-through.
 
+**The explicit control** the owner asked about is TUI-specific, so a
+modifier (the CLAUDE.md rule): `.materialFrost(_:)`, an environment value,
+`MaterialFrost` — `.automatic` (each thickness's box), `.none` ((c)'s look:
+the glyphs dropped, the colours each their own; nothing averaged, the cheap
+path), and `.radius(columns:rows:)`, one box for every thickness, in cells
+either side of a cell. Named degrees were weighed and left out: a box in
+cells says exactly what it does, and `.automatic` already names the five the
+thicknesses give. It reaches materials and glass alike, and an opaque
+material frosts nothing whatever it says.
+
 **Judgement calls.** The average is of encoded sRGB bytes, as every TUIkit
 blend is; past the end of a line a cell is the surface, and a wide glyph's
 later columns are the glyph's. A box reaches only what is behind the

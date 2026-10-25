@@ -4,7 +4,7 @@
 //  A material frosts what is behind it (owner ruling O5-FROSTED (b)): the
 //  glyphs beneath are dropped, each cell takes the average of a box of the
 //  colours around it — larger the thicker the material — and the material's
-//  tint is laid over that.
+//  tint is laid over that. `.materialFrost(_:)` sets the box for a subtree.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -122,6 +122,64 @@ struct MaterialFrostTests {
         #expect(Material.bar.frost == Material.thick.frost)
     }
 
+    @Test("materialFrost sets the box for a subtree, over the thickness's")
+    func modifierSetsTheBox() {
+        var environment = EnvironmentValues()
+        environment.appearsActive = true
+        #expect(Material.thin.paint(in: environment).frost == Material.thin.frost)
+        environment.materialFrost = .radius(columns: 3, rows: 1)
+        #expect(Material.thin.paint(in: environment).frost == OpacityRegion.Frost.averaging(columns: 3, rows: 1))
+        environment.materialFrost = .none
+        #expect(Material.ultraThick.paint(in: environment).frost == OpacityRegion.Frost.droppingGlyphs)
+        #expect(MaterialFrost.radius(columns: -1, rows: 300) == .radius(columns: 0, rows: 255))
+        // Thin's own box at column 3 of two six-wide stripes is all red; a wider one reaches the blue.
+        let cover = Color.clear.frame(width: 12, height: 3).background(.thinMaterial)
+        let automatic = screen(stripes(cover, half: 6), width: 12, height: 3)
+        let wider = screen(stripes(cover, half: 6).materialFrost(.radius(columns: 4, rows: 0)), width: 12, height: 3)
+        let bare = screen(
+            stripes(Color.clear.frame(width: 12, height: 3).background(Color.palette.background.opacity(0.5)), half: 6),
+            width: 12, height: 3)
+        #expect(automatic[1][3].background == bare[1][3].background)
+        #expect(wider[1][3].background != bare[1][3].background)
+    }
+
+    @Test("At .none nothing is averaged: each cell keeps its own field, tinted, and its glyph is still dropped")
+    func noneDropsGlyphsOnly() {
+        let cover = Color.clear.frame(width: 8, height: 3).background(.ultraThinMaterial)
+        let rows = screen(stripes(cover).materialFrost(.none), width: 8, height: 3)
+        let bare = screen(
+            stripes(Color.clear.frame(width: 8, height: 3).background(Color.palette.background.opacity(0.35))),
+            width: 8, height: 3)
+        // At the red/blue seam too, each cell is its own colour tinted.
+        #expect(fields(rows) == fields(bare))
+        #expect(rows[1][3].background != rows[1][4].background)
+        let behind = Text(verbatim: "abcd").foregroundStyle(Color.rgb(255, 255, 255)).background(Color.rgb(0, 128, 0))
+        let text = screen(
+            ZStack(alignment: .topLeading) {
+                behind
+                Color.clear.frame(width: 4, height: 1).background(.thinMaterial)
+            }.materialFrost(.none), width: 4, height: 1)
+        let field = screen(
+            ZStack(alignment: .topLeading) {
+                Color.rgb(0, 128, 0).frame(width: 4, height: 1)
+                Color.clear.frame(width: 4, height: 1).background(.thinMaterial)
+            }, width: 4, height: 1)
+        #expect(glyphs(text) == ["    "])
+        #expect(fields(text) == fields(field))
+    }
+
+    @Test("A frost that drops glyphs only makes no averages: .none is (c)'s path")
+    func droppingGlyphsMakesNoAverages() {
+        let behind = FrameBuffer(text: "abc")
+        var claim = OpacityRegion(
+            offsetX: 0, offsetY: 0, width: 3, height: 1, opacity: 1, fieldOpacity: 0.5, frost: .droppingGlyphs)
+        let surface = Color.rgb(0, 0, 0)
+        let ink = Color.rgb(255, 255, 255)
+        #expect(behind.frostFields(under: [claim], at: (0, 0), surface: surface, defaultForeground: ink) == nil)
+        claim.frost = .averaging(columns: 1, rows: 0)
+        #expect(behind.frostFields(under: [claim], at: (0, 0), surface: surface, defaultForeground: ink) != nil)
+    }
+
     @Test("A glyph's ink counts toward its cell's average")
     func inkCounts() {
         let behind = Text(verbatim: "abcd").foregroundStyle(Color.rgb(255, 255, 255)).background(Color.rgb(0, 128, 0))
@@ -162,8 +220,11 @@ struct MaterialFrostTests {
 
     @Test("Glass frosts a box one thickness thinner than the material whose surface it takes")
     func glassBoxes() {
-        #expect(Glass.regular.frost == Material.thin.frost)
-        #expect(Glass.clear.frost == Material.ultraThin.frost)
+        var environment = EnvironmentValues()
+        #expect(Glass.regular.frost(in: environment) == Material.thin.frost)
+        #expect(Glass.clear.frost(in: environment) == Material.ultraThin.frost)
+        environment.materialFrost = .none
+        #expect(Glass.regular.frost(in: environment) == .droppingGlyphs)
     }
 
     @Test("Glass frosts what is behind it as a material does")
