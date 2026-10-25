@@ -235,6 +235,7 @@ extension RenderContext {
             // back if it is (`EffectStage`).
             let action = observer.action
             performEffect(
+                as: .change,
                 { action(old ?? phase, phase, made) },
                 undo: { [weak scrollable] in
                     guard let scrollable, scrollable.reportedPhases.indices.contains(index) else { return }

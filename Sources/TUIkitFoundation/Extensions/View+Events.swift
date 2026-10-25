@@ -234,6 +234,8 @@ extension View {
     ///
     /// The action receives both the old and new values. Use this to react
     /// to state changes, for example to validate input or trigger side effects.
+    /// It runs once the walk of the frame is done, before the frame is
+    /// written, and state it writes is drawn in the same frame.
     ///
     /// # Example
     ///
@@ -302,6 +304,11 @@ extension View {
     ///
     /// The action is only executed once per view appearance. If the view
     /// is removed and then added again, the action will execute again.
+    ///
+    /// As in SwiftUI, the action runs before the first frame showing the
+    /// view is written, and what it writes is in that frame: it runs once
+    /// the walk of the frame is done, and the frame is walked again for what
+    /// it changed.
     ///
     /// # Example
     ///

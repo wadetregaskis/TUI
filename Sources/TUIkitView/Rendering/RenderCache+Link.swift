@@ -77,6 +77,9 @@ extension RenderCache {
             /// here so a write on another thread reads it without reading the
             /// cache.
             var diagnostic: BodyMutationDiagnostic?
+            /// How many invalidations have been queued since the link was
+            /// made — see ``writeCount``.
+            var writes: UInt64 = 0
         }
 
         /// What a drain takes: the invalidations queued since the last one.
@@ -157,6 +160,7 @@ extension RenderCache {
             typealias Report = (queued: Bool, appState: AppState?, diagnostic: BodyMutationDiagnostic?)
             let (queued, appState, diagnostic) = queue.withLock { queue -> Report in
                 guard queue.attached else { return (false, nil, nil) }
+                queue.writes &+= 1
                 if let identity {
                     if !queue.clearAll { queue.identities.insert(identity) }
                 } else {
@@ -192,8 +196,25 @@ extension RenderCache {
         /// observed change's, as ``invalidateRenderForObservedChange(at:)``
         /// asks it, and dropping nothing.
         package func requestFrameForObservedChange() {
-            let appState = queue.withLock { $0.attached ? $0.appState : nil }
+            // Counted as a write (``writeCount``): an effect that wrote what
+            // only such a read saw has made the walk out of date as surely as
+            // one that wrote a body's read.
+            let appState = queue.withLock { queue -> AppState? in
+                guard queue.attached else { return nil }
+                queue.writes &+= 1
+                return queue.appState
+            }
             appState?.setNeedsRenderForObservedChange()
+        }
+
+        /// How many invalidations — a `@State` write, an `@Observable` change a
+        /// body read, a whole-cache clear — have been queued since the link was
+        /// made: what tells a frame's driver that the effects it has just run
+        /// wrote state, so the walk it made is out of date (`FrameSettling`).
+        /// A count, not a flag, so reading it takes nothing from the queue.
+        /// Thread-safe.
+        package var writeCount: UInt64 {
+            queue.withLock { $0.writes }
         }
 
         /// Whether the cache is still there: `false` from the start of its

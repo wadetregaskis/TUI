@@ -134,7 +134,7 @@ extension OnInteractiveResizeChangeModifier: Renderable {
             // Held until the drawing is kept, where it may be drawn again
             // (`EffectStage`), and the answer put back if it is not.
             let action = self.action
-            storage.effectStage.perform { action(isResizing) }
+            storage.effectStage.perform(as: .change) { action(isResizing) }
             storage.setChangedTrackedValue(isResizing, for: key)
         } else {
             storage.setTrackedValue(isResizing, for: key)

@@ -4,7 +4,7 @@ Understand how TUIkit turns your view tree into terminal output: one frame at a 
 
 ## Overview
 
-Every frame in TUIkit follows the same synchronous pipeline: **clear per-frame state → build environment → render the view tree → diff against previous frame → flush to terminal → track lifecycle**. Each frame evaluates `app.body` again and walks the view tree from the root, but not every body runs: a memoized subtree whose cached buffer is still valid (an `.equatable()` view, or a `ForEach` row over an `Equatable` element) is served from `RenderCache`, and nothing below it is visited (see <doc:RenderCycle#Subtree-Memoization>). Only **changed terminal lines** are written, and all writes are collected in a frame buffer and flushed as a **single `write()` syscall**.
+Every frame in TUIkit follows the same synchronous pipeline: **clear per-frame state → build environment → render the view tree → run the effects, walking the tree again while they wrote state → diff against previous frame → flush to terminal → track lifecycle**. Each frame evaluates `app.body` again and walks the view tree from the root, but not every body runs: a memoized subtree whose cached buffer is still valid (an `.equatable()` view, or a `ForEach` row over an `Equatable` element) is served from `RenderCache`, and nothing below it is visited (see <doc:RenderCycle#Subtree-Memoization>). Only **changed terminal lines** are written, and all writes are collected in a frame buffer and flushed as a **single `write()` syscall**.
 
 ## What Triggers a Frame
 
@@ -112,6 +112,9 @@ The content's overlay layers (a drop-down, a sheet) are composited inside the co
 
 > See <doc:RenderCycle#The-Dual-Rendering-System> below for details on how views are dispatched.
 
+Steps 3 to 6 are one *walk*, and a frame may take up to three of them before
+it is written: see <doc:RenderCycle#Effects-and-the-Walk-Made-Again>.
+
 ### Step 7: Build Output Lines
 
 The ``FrameBuffer`` is converted into terminal-ready output lines by `FrameDiffWriter.buildOutputLines()`:
@@ -162,6 +165,49 @@ The window's chrome host draws the bars after the content, as views, into the sa
 5. Each bar's buffer has its opacity resolved against its own background, is painted on it and fitted to its reserved rows, then the menu bar, the top bar, the content and the bottom bar are stacked
 
 The bars are **never affected** by view dimming or overlays: the compositor works inside the content area only.
+
+## Effects and the Walk Made Again
+
+SwiftUI never runs an effect inside a body or a layout. It updates the view
+graph, runs the effects the update gave rise to, and, where they wrote
+state, updates and draws again before anything is committed. TUIkit's walk is
+its update, and a frame is settled the same way (`FrameSettling`):
+
+1. **The walk holds every effect back.** The scene root's drawing is open on
+   the app's `EffectStage` for the whole walk, so `onAppear`, `onChange`,
+   `onPreferenceChange`, `onGeometryChange`, a task's start, the scroll
+   observers and a bound `ScrollPosition`'s report are handed over as the
+   views render, not run.
+2. **Once the walk is done they run, in SwiftUI's order:** the geometry
+   reports (including those made as the frame's geometry is settled), then
+   the preference actions, then `onAppear` and the tasks' starts, then
+   `onChange` and the other value observers; within a kind, in the walk's
+   order, so a parent's `onAppear` runs before its child's.
+3. **If they wrote state, the frame is walked again** before it is written —
+   steps 3 to 6 over, against what they wrote — at most twice, as SwiftUI
+   updates twice inside its layout pass. A longer chain is written as it
+   stands and continues a walk per frame. A frame whose effects wrote nothing
+   is walked once.
+
+So the first frame of a page that loads in `onAppear` shows what it loaded,
+above the loader and below it; an `onChange`'s derived value is drawn in the
+frame that shows its source; a size a preference feeds into the layout is in
+the first frame. A write made by a body *during* the walk asks for the next
+frame instead.
+
+A walk may also be discarded inside the frame: a geometry owner whose reader
+drew from a wrong answer draws its subtree again (`RenderWalkCheckpoint`), and
+the scene root walks the whole scene again. The first drawing's effects are
+dropped there, and what its views remembered in deciding to act is put back,
+so only the drawing kept acts.
+
+Between the walks of one frame a view's appearance carries over (its
+`onAppear` has run) and its presence is the last walk's, so a view only an
+earlier walk drew disappears with the frame. The animation stores take each
+walk as a pass of its own: a value an effect changed under `withAnimation`
+animates from where the walk before drew it. `onDisappear` runs after the
+frame is written (step 12), and a task's operation once the main actor is
+free, after it.
 
 ## The Dual Rendering System
 
@@ -370,9 +416,7 @@ The `OnAppearModifier` calls `lifecycle.recordAppear(token, action)` during rend
 - If the token has **never appeared before**: it's added to `appearedTokens` and the action fires
 - If it **has** appeared before: the action does **not** fire (prevents repeated triggers)
 
-> Note: `onAppear` fires **synchronously** during the render traversal: not after the frame completes. This is because TUIkit uses single-pass rendering with no layout phase.
-
-> Note: The exception is a subtree that may be drawn twice in one frame. A geometry reader told an answer that could be wrong is drawn again once its owner (a `coordinateSpace(_:)`, a scroll view, a list, or the scene root for `.global`) finds it. From the moment the reader is told, the views drawn after it hand their `onAppear`, `onChange`, `.task` start and the other observers' actions to the app's `EffectStage`. They run once the owner keeps its drawing, and only for the drawing kept.
+> Note: The action does not run where the view is in the walk. It is handed to the app's `EffectStage` and runs once the walk is done, before the frame is written, and what it writes is drawn in the same frame: see <doc:RenderCycle#Effects-and-the-Walk-Made-Again>.
 
 ### onDisappear
 

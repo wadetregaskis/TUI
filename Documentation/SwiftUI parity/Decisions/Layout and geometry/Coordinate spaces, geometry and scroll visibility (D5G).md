@@ -131,7 +131,9 @@ headless and test drivers that mirror it) — is opened on the app's effect
 stage, and *armed* the moment a reader inside is told an answer that could be
 wrong (`GeometryAsk.observation(in:)`): the drawing of the owner that will
 check that reader (the nearest owner of the space it asked, else the root's
-walk) and every drawing inside it. From then until that drawing is kept, a
+walk) and every drawing inside it. **Since B-D5G-11 the root's walk is armed
+from its start**, so in a walk of the scene every view holds back, whether or
+not a reader is in it, and the effects run after the walk in SwiftUI's order. From then until that drawing is kept, a
 view does not act: it hands its action to the stage and notes how to put back
 what it remembered in deciding to. A discarded drawing drops its actions and
 runs its undos, last first, so the drawing made in its place decides from
@@ -157,7 +159,8 @@ a branch the guess chose — neither appears, starts a task, nor later
 disappears (`CorrectedSubtreeEffectsTests`, including the root's walk and owners
 nested in owners).
 
-**Why armed, not always.** Holding every effect back from the start of every
+**Why armed, not always** (superseded by B-D5G-11, which holds every
+effect back and walks the frame again for what they wrote). Holding every effect back from the start of every
 drawing that may be made again was tried first: it moves every effect in
 every scroll view, list and, through the root's walk, the whole scene, to the
 end of its drawing, so a view drawn after an `onAppear` or `onChange` no longer
@@ -345,3 +348,91 @@ deep and fanout shapes is a cost a reader somewhere should not impose on
 everything; the other five as the List is priced (a day, with their own
 A/Bs), when the Stress counter shows a shape paying for them.
 
+### B-D5G-11. Effects run after the walk, in SwiftUI's order, and a frame they changed is walked again before it is written
+
+*every `onAppear`, `onChange`, `onPreferenceChange`, `onGeometryChange`,
+`.task` start, scroll observer and bound `ScrollPosition`; the architecture
+study's option (a), approved by the owner on 2026-10-24*
+
+**Built (2026-10-24).** The architecture study ([SwiftUI's update model beside
+TUIkit's](<../../../Investigations/SwiftUI's update model beside TUIkit's (2026-10-24).md>),
+§5 option (a)) found that the frames TUIkit showed and SwiftUI does not — a
+page that loads in `onAppear` drawn empty for a frame, or torn (the views
+before the loader old, the ones after new), a value an `onChange` derives a
+frame behind its source, the flow-layout idiom laid out once from empty
+sizes — all came from writing the first walk, and that SwiftUI avoids them by
+updating again before it draws ([the probe](<../../../Investigations/SwiftUI's update and effect ordering, measured (2026-10-24).md>)).
+So, as SwiftUI does:
+
+1. **Every effect waits for the walk.** The scene root's drawing is opened
+   on the effect stage armed (`FrameSettling`, in `RenderLoop`, the Stress
+   bench's headless frame and the test harness alike), so every view in the
+   walk hands its effects over (B-D5G-4's mechanism), and they run once the
+   walk — and the root's geometry correction, and the geometry reports made
+   at the frame's end — is done. A corrected drawing's effects are dropped and
+   their memories put back, as before.
+2. **In SwiftUI's order where it was measured** (`EffectStage.Kind`):
+   geometry (`onGeometryChange`, and a scroll view's reports of what it
+   shows), then `onPreferenceChange`, then `onAppear` and the start of a
+   task, then `onChange` and the other value observers. The probe measured
+   geometry → preference → `onAppear` on one view, and a parent's `onAppear`
+   before its child's; within a kind the walk's order stands, which gives the
+   parent first. **Not measured:** where `onChange` falls among the others in
+   one round (it is last here), and the order among siblings (the walk's, top
+   to bottom). `onScrollVisibilityChange` is reported as the frame's geometry
+   is settled, before the held effects. `onDisappear` still runs after the
+   frame is written, and a task's operation still runs once the main actor is
+   free, after it: both as before, and `.task`'s as measured.
+3. **A frame the effects changed is walked again before it is written, at
+   most twice.** If an effect wrote state — anything that reaches the render
+   cache's invalidation queue: a `@State`, an `@Observable` a body read — the
+   walk is out of date, so the frame is walked again against what it wrote
+   (what it invalidated dropped, the pass's measure memos emptied), its
+   effects run, and so on, up to two walks more, as SwiftUI updates twice
+   inside its layout pass. Then the frame is written. A longer chain is
+   written as it stands and carries on one walk a frame, as every chain did
+   before, so a chain that does not end never holds the main thread
+   (SwiftUI runs a chain of different actions to its end inside one turn of
+   the run loop — 100 steps, measured). A write made *during* a walk (a body
+   that writes) does not walk again: it asks for the next frame, as before.
+   The frame request the effects' writes made is let go before the walk made
+   again, since that walk is the frame they asked for.
+4. **What carries over between the walks of one frame.** Lifecycle: a
+   view's appearance stays (its `onAppear` ran), its presence is the last
+   walk's, so a view only an earlier walk drew disappears with the frame and
+   its `onDisappear` runs. Animation: the stores take a walk made again as a
+   pass of their own, so a value the walk before drew and an effect changed
+   under `withAnimation` animates from there — `onAppear { withAnimation {
+   shown = true } }` slides or fades in, as in SwiftUI. The completions of
+   changes the effects made join the frame's. The bars' rows are the frame's:
+   every walk is laid out against the rows the first was (toolbars are still
+   adopted a frame late, W1).
+
+**What changes for an app.** The first frame written shows what an `onAppear`
+loaded, everywhere it is shown; an `onChange`'s derived value is drawn in the
+frame that shows its source; a size a preference or `onGeometryChange` feeds
+into the layout is in the first frame. A view drawn after an effect no longer
+sees what it wrote *in the same walk*: it sees it in the walk made again,
+before anything is shown. A phase animator with no trigger takes its first
+step as it appears, so its first frame shows the second phase's content, its
+animated values starting from the first phase (`AnimatorViewTests.cycles`);
+whether SwiftUI's first frame shows the first phase's content was not
+measured.
+
+**Price.** A frame whose effects write nothing is walked once, and pays one
+count compare of the invalidation queue and, for every view, the hand-over of
+the effects it makes (a closure each, made only when it acts, and a token per
+lifecycle view first seen in the pass). A frame whose effects write pays a
+walk more, which the render cache serves except for what the write
+invalidated.
+
+Tests (`EffectSettlingTests`, all reading the frame written): the first frame
+of a page that loads in `onAppear` shows the rows and the count above and
+below them; a derived value is drawn beside its source on both sides of the
+`onChange`; the flow-layout idiom's first frame is laid out from its sizes;
+a sibling before an `onGeometryChange` draws the width it reports; a chain
+of four is walked again twice and finishes in the next frame; an `onAppear`
+`withAnimation` slides from the first walk's place; a frame whose effects
+write nothing is walked once. `AnimatorViewTests.keyframesInterrupted` — a
+keyframe animator restarting a frame late when effects were first held
+without a walk made again — passes.

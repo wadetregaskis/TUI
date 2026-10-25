@@ -304,8 +304,9 @@ enum Headless {
         return failures
     }
 
-    /// One frame of `view`: the walk, the scene root's geometry correction, and
-    /// what the frame owes its geometry observers — the part of
+    /// One frame of `view`: the walk, the scene root's geometry correction,
+    /// what the frame owes its geometry observers, the effects, and the walk
+    /// made again while they wrote state (`FrameSettling`) — the part of
     /// `RenderLoop.render` a headless walk still needs.
     @MainActor
     private static func renderFrame(
@@ -316,11 +317,21 @@ enum Headless {
         // `RenderLoop` carries it.
         let context = context.carryingGeometryRootOrigin()
         func walk() -> FrameBuffer {
-            let buffer = channels.drawSettlingRootGeometry(
-                width: cols, height: rows, stateStorage: storage
-            ) { renderToBuffer(view, context: context) }
-            channels.endFrame(buffer, stateStorage: storage)
-            return buffer
+            FrameSettling.settle(
+                storage: storage, cache: context.environment.renderCache, lifecycle: context.environment.lifecycle,
+                appState: nil,
+                walk: { effects in
+                    channels.drawSettlingRootGeometry(
+                        width: cols, height: rows, stateStorage: storage, effects: effects
+                    ) { renderToBuffer(view, context: context) }
+                },
+                endWalk: { channels.endFrame($0, stateStorage: storage) },
+                // The per-walk registries, emptied as the frame loop empties
+                // them before the first walk.
+                beginRewalk: {
+                    channels.beginWalk()
+                    storage?.beginSceneRender()
+                })
         }
         // In the pass, as `RenderLoop` draws a frame: a `@State` made in it
         // notes it (`StateStorage.inRenderPass(_:)`).

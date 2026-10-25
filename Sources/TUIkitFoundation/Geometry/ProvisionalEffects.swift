@@ -70,14 +70,18 @@ extension RenderContext {
     /// last value a scroll view told an observer.
     ///
     /// - Parameters:
+    ///   - kind: What kind of effect it is, which decides when it runs among
+    ///     the others the drawing held (``EffectStage/Kind``).
     ///   - effect: What the view does.
     ///   - undo: Puts back what the view changed in deciding to do it.
-    package func performEffect(_ effect: @escaping () -> Void, undo: @escaping () -> Void) {
+    package func performEffect(
+        as kind: EffectStage.Kind, _ effect: @escaping () -> Void, undo: @escaping () -> Void
+    ) {
         guard let stage = stateStorage?.effectStage else {
             effect()
             return
         }
         stage.noteUndo(undo)
-        stage.perform(effect)
+        stage.perform(as: kind, effect)
     }
 }

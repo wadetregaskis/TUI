@@ -158,7 +158,7 @@ extension _ScrollViewCore {
             guard let action = observer.report(ids, last: &handler.targetVisibilityValues[index]) else { continue }
             // Held where this drawing may be drawn again, and the list put
             // back if it is (`EffectStage`).
-            context.performEffect(action) { [weak handler] in
+            context.performEffect(as: .geometry, action) { [weak handler] in
                 guard let handler, handler.targetVisibilityValues.indices.contains(index) else { return }
                 handler.targetVisibilityValues[index] = before
             }

@@ -276,6 +276,10 @@ package final class HeadlessApp<A: App> {
     /// many rows were served and how many drawn, what the memos hit.
     package var renderCache: RenderCache { tuiContext.renderCache }
 
+    /// How the frames drawn so far settled: how many were walked again for
+    /// what their effects wrote before they were written (`FrameSettling`).
+    package var effectSettling: EffectStage.Settling { tuiContext.stateStorage.effectStage.settling }
+
     /// The app's runtime services — for a test that hands it a clipboard
     /// writer of its own, or reads its screen selection.
     var services: TUIContext { tuiContext }

@@ -83,17 +83,23 @@ private func effects(_ log: EffectLog, _ name: String) -> some View {
     .onInteractiveResizeChange { resizing in log.lines.append("\(name) resizing \(resizing)") }
 }
 
-/// What a view earlier in the walk wrote, read when a later view's body runs.
-@MainActor
-private final class Written {
-    var value = 0
-}
+/// A value an `onAppear` in a scroll view writes, shown above the scroll
+/// view and in it, after the view that writes it.
+private struct WritesOnAppear: View {
+    @State private var value = 0
 
-/// Shows ``Written/value`` as its body runs.
-private struct ShowsWritten: View {
-    let written: Written
-
-    var body: some View { Text("value \(written.value)") }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("above \(value)")
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("first").onAppear { value = 7 }
+                    Text("after \(value)")
+                }
+            }
+            .coordinateSpace(.named("s"))
+        }
+    }
 }
 
 @MainActor
@@ -175,9 +181,10 @@ struct CorrectedSubtreeEffectsTests {
         let log = EffectLog()
         let harness = harness()
         harness.frame(page(log, top: 1, in: .named("s")))
-        // The modifiers outermost first, then the content top to bottom, and
-        // the preference once the subtree is drawn: the walk's order.
-        let order = ["kept resizing true", "kept keys", "kept appear", "width 2→2", "preference 1"]
+        // SwiftUI's order by kind — geometry, preference, appearance, then
+        // the value observers — and the walk's within a kind: the modifiers
+        // outermost first (`EffectStage.Kind`).
+        let order = ["width 2→2", "preference 1", "kept appear", "kept resizing true", "kept keys"]
         let places = order.map { log.lines.firstIndex(of: $0) }
         #expect(!places.contains(nil), "\(log.lines)")
         let found = places.compactMap(\.self)
@@ -230,18 +237,12 @@ struct CorrectedSubtreeEffectsTests {
         }
     }
 
-    @Test("With no reader, effects act at once, mid-walk: a later view's body sees what an onAppear wrote")
-    func noReaderActsAtOnce() {
-        let written = Written()
+    @Test("With no reader, an onAppear's write waits for the walk, and the frame walked again shows it before and after")
+    func noReaderSettlesBeforeTheFrame() {
         let harness = InputChainHarness()
-        let view = ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("first").onAppear { written.value = 7 }
-                ShowsWritten(written: written)
-            }
-        }
-        .coordinateSpace(.named("s"))
-        let buffer = harness.frame(view)
-        #expect(buffer.lines.contains { $0.stripped.contains("value 7") }, "\(buffer.lines.map(\.stripped))")
+        let buffer = harness.frame(WritesOnAppear())
+        let lines = buffer.lines.map(\.stripped)
+        #expect(lines.contains { $0.contains("above 7") }, "\(lines)")
+        #expect(lines.contains { $0.contains("after 7") }, "\(lines)")
     }
 }

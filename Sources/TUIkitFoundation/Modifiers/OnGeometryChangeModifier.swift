@@ -168,7 +168,7 @@ extension OnGeometryChangeModifier: Renderable {
             return
         }
         storage.setChangedTrackedValue(value, for: key)
-        storage.effectStage.perform { action(previous ?? value, value) }
+        storage.effectStage.perform(as: .geometry) { action(previous ?? value, value) }
     }
 }
 

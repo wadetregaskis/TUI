@@ -200,7 +200,10 @@ struct AnimatorViewTests {
     func cycles() {
         let driver = Driver(CyclingApp())
         driver.frames(60, prefix: "P")
-        #expect(Array(driver.seen.prefix(7)) == [0, 1, 2, 0, 1, 2, 0], "\(driver.seen)")
+        // The first step is taken as the animator appears, before its first
+        // frame is written (decisions B-D5G-11): the first phase is the walk
+        // the step replaced, and what animates starts from it.
+        #expect(Array(driver.seen.prefix(7)) == [1, 2, 0, 1, 2, 0, 1], "\(driver.seen)")
         #expect(Array(CyclingApp.model.animatedInto.prefix(4)) == [1, 2, 0, 1])
     }
 
@@ -208,7 +211,8 @@ struct AnimatorViewTests {
     func unanimatedStops() {
         let driver = Driver(UnanimatedApp())
         driver.frames(40, prefix: "P")
-        #expect(driver.seen == [0, 1, 2, 0], "\(driver.seen)")
+        // The first step is in the first frame written, as `cycles` says.
+        #expect(driver.seen == [1, 2, 0], "\(driver.seen)")
     }
 
     @Test("The modifier's placeholder draws the view it is on, beside the phase")

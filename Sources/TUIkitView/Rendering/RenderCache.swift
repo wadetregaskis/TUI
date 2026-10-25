@@ -1227,6 +1227,19 @@ extension RenderCache {
         measureMisses = 0
     }
 
+    /// Starts a walk of the frame made again within the pass, for what the
+    /// effects of the walk before it wrote (`FrameSettling`): the writes are
+    /// applied — what they invalidated is dropped, as at a pass's start — and
+    /// the pass's measure memos are emptied, since a view whose value is the
+    /// same bytes may now read different state, and so measure differently.
+    /// What the pass has marked active, and the leases its measures hold,
+    /// stand: a walk made again prunes nothing the walk before kept alive.
+    package func beginRewalk() {
+        drainPendingInvalidations()
+        measureEntries.removeAll(keepingCapacity: true)
+        childViewEntries.removeAll(keepingCapacity: true)
+    }
+
     /// Records that a body of `reader` armed an observation registration under
     /// this cache — called where the scope's `onChange` is evaluated, which is
     /// only when it read something.

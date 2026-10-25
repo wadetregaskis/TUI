@@ -65,9 +65,19 @@ public final class AnimationCompletionTracker: @unchecked Sendable {
 
     /// Starts a pass that must place `completions`. Nothing to place, nothing
     /// collected.
+    ///
+    /// Called again within a pass for each walk made again for what the
+    /// effects wrote (`FrameSettling`), with the completions of the changes
+    /// they made: those join the pass's batch, which still waits on what the
+    /// walks before started, rather than replacing it.
     package func beginPass(placing completions: [AnimationCompletion]) {
         guard !completions.isEmpty else { return }
-        collecting = Batch(completions: completions)
+        guard var batch = collecting else {
+            collecting = Batch(completions: completions)
+            return
+        }
+        batch.completions.append(contentsOf: completions)
+        collecting = batch
     }
 
     /// Reports an animation the pass started at `nowNanos`, on the value at

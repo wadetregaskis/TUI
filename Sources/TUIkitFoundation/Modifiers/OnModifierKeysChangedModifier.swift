@@ -98,7 +98,7 @@ extension OnModifierKeysChangedModifier: Renderable {
                 // (`EffectStage`), and the appearance put back if it is not.
                 if initial, !held.isEmpty {
                     let action = self.action
-                    storage.effectStage.perform { action([], held) }
+                    storage.effectStage.perform(as: .change) { action([], held) }
                 }
                 storage.setChangedTrackedValue(true, for: key)
             }

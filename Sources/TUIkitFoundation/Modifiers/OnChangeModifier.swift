@@ -93,7 +93,7 @@ extension StateStorage {
         _ value: V, at key: StateKey, initial: Bool, action: @escaping (V, V) -> Void
     ) {
         guard let oldValue: V = trackedValue(for: key) else {
-            if initial { effectStage.perform { action(value, value) } }
+            if initial { effectStage.perform(as: .change) { action(value, value) } }
             setChangedTrackedValue(value, for: key)
             return
         }
@@ -101,7 +101,7 @@ extension StateStorage {
             setTrackedValue(value, for: key)
             return
         }
-        effectStage.perform { action(oldValue, value) }
+        effectStage.perform(as: .change) { action(oldValue, value) }
         setChangedTrackedValue(value, for: key)
     }
 
@@ -113,7 +113,7 @@ extension StateStorage {
     /// storage — is captured where the storage it came from is, rather than
     /// sent into a main-actor closure.
     package func perform<V>(_ action: @escaping (V) -> Void, with value: V) {
-        effectStage.perform { action(value) }
+        effectStage.perform(as: .preference) { action(value) }
     }
 }
 

@@ -502,9 +502,28 @@ extension RenderLoop {
         }
         lastFrameSize = terminalSize
 
-        let walk = walkScene(
-            width: terminalWidth, height: terminalHeight, pulsePhase: pulsePhase, cursorTimer: cursorTimer,
-            animationScheduler: animationScheduler, frameNowNanos: frameNowNanos, frameDate: frameDate)
+        // The scene walked, what its views did run once it is drawn, and the
+        // walk made again while that wrote state, at most twice, before the
+        // frame is written (`FrameSettling`, decisions B-D5G-11). The bars'
+        // rows are the frame's: each walk made again is laid out against
+        // the rows the first was, as the root's correction is.
+        let geometry = tuiContext.mouseEventDispatcher.geometry
+        var reservation: (top: WindowChromeState.Bar, bottom: WindowChromeState.Bar)?
+        let walk = FrameSettling.settle(
+            storage: tuiContext.stateStorage, cache: tuiContext.renderCache, lifecycle: tuiContext.lifecycle,
+            appState: tuiContext.appState,
+            walk: { effects in
+                walkScene(
+                    size: (terminalWidth, terminalHeight), pulsePhase: pulsePhase, cursorTimer: cursorTimer,
+                    animationScheduler: animationScheduler, frameNowNanos: frameNowNanos, frameDate: frameDate,
+                    effects: effects, reservation: &reservation)
+            },
+            // What the frame's geometry observers are owed, now it is drawn
+            // (`GeometryCoordinator`): reports the frame's effects begin with.
+            endWalk: { geometry.endFrame(frame: $0.frame, retainedBy: tuiContext.stateStorage) },
+            beginRewalk: { [self] in
+                if let reservation { windowChrome.reservation = reservation }
+            })
         let buffer = walk.frame
         let environment = walk.environment
         let tooltipMovedThePage = walk.tooltipMovedThePage
@@ -522,8 +541,6 @@ extension RenderLoop {
         publishHitTestRegions(
             buffer.hitTestRegions, tooltipMovedThePage: tooltipMovedThePage, nowNanos: frameNowNanos,
             scheduler: animationScheduler)
-        // What the frame's geometry observers are owed, now it is drawn (`GeometryCoordinator`).
-        tuiContext.mouseEventDispatcher.geometry.endFrame(frame: buffer, retainedBy: tuiContext.stateStorage)
         // A gesture this walk disabled is given up at the next frame's tick,
         // which runs what it held back: that frame is asked for now, so it
         // comes at the disable (decisions B-F2-2).
@@ -580,16 +597,24 @@ extension RenderLoop {
     /// One walk of the scene, with what it is drawn from: the environment
     /// built afresh, the app's body evaluated, its scenes adopted, the status
     /// bar's tooltip placed and the terminal's geometry published, then the
-    /// scene rendered with its chrome (``renderContent(scene:environment:terminalWidth:terminalHeight:)``).
+    /// scene rendered with its chrome
+    /// (``renderContent(scene:environment:terminalWidth:terminalHeight:effects:)``) — what its
+    /// views do held on the root's drawing, `effects`.
+    ///
+    /// `reservation` is the bars' rows the frame's first walk was laid out
+    /// against: `nil` going in to the first, which notes them, and the rows
+    /// a walk made again is laid out against.
     private func walkScene(
-        width: Int,
-        height: Int,
+        size: (width: Int, height: Int),
         pulsePhase: Double,
         cursorTimer: CursorTimer?,
         animationScheduler: AnimationScheduler?,
         frameNowNanos: Int64,
-        frameDate: Date
+        frameDate: Date,
+        effects: ProvisionalEffects,
+        reservation: inout (top: WindowChromeState.Bar, bottom: WindowChromeState.Bar)?
     ) -> SceneWalk {
+        let (width, height) = size
         // If an @Published property changed, clear the entire render cache
         // so EquatableView-cached subtrees re-render with new model data.
         if tuiContext.appState.consumeNeedsCacheClear() {
@@ -637,12 +662,17 @@ extension RenderLoop {
         // Render the scene: its chrome host lays the top bar, the content
         // and the bottom bar out as one frame the size of the terminal, in one
         // walk (two on the first frame). See `renderContent`.
+        // A walk made again is not the frame's first: the window's chrome is
+        // seeded and its frame counted once.
+        if reservation == nil { prepareWindowChrome(scene: scene, environment: environment, width: width, height: height) }
+        reservation = reservation ?? windowChrome.reservation
         BindingReads.begin()
         let frame = renderContent(
             scene: scene,
             environment: environment,
             terminalWidth: width,
-            terminalHeight: height)
+            terminalHeight: height,
+            effects: effects)
         // Every `Binding` the walk read, read again under one scope that asks
         // for a frame when one changes: a control reads its binding in its
         // core, where no body's scope sees it (`BindingReads`).
@@ -652,6 +682,7 @@ extension RenderLoop {
                 for read in bindingReads { read() }
             }
         }
+
         return SceneWalk(frame: frame, environment: environment, tooltipMovedThePage: tooltipMovedThePage)
     }
 
@@ -728,9 +759,8 @@ extension RenderLoop {
         }
     }
 
-    /// Renders the scene — the content framed by its chrome — and returns the
-    /// frame. One walk, on every frame after the first, but one on which the
-    /// scene root corrects a geometry reader (a second).
+    /// Readies the window's chrome for the frame, before its first walk: the
+    /// bars' rows seeded on a window's first frame, and the frame counted.
     ///
     /// The chrome host reserves the bars' rows before the content draws, and
     /// the content is what declares them, so the rows are last frame's answer
@@ -740,20 +770,9 @@ extension RenderLoop {
     /// seeds the reservations from it: there is no last frame to reserve the
     /// bars from, and a window that declares its chrome once should not draw a
     /// frame without it.
-    private func renderContent(
-        scene: A.Body,
-        environment: EnvironmentValues,
-        terminalWidth: Int,
-        terminalHeight: Int
-    ) -> FrameBuffer {
-        // The render tree is rooted at `rootIdentity` — the SAME identity
-        // `evaluateAppBody` hydrates `@State` under (see that property's note).
-        var context = RenderContext(
-            availableWidth: terminalWidth,
-            availableHeight: terminalHeight,
-            environment: environment,
-            identity: rootIdentity
-        )
+    private func prepareWindowChrome(scene: A.Body, environment: EnvironmentValues, width: Int, height: Int) {
+        let context = RenderContext(
+            availableWidth: width, availableHeight: height, environment: environment, identity: rootIdentity)
         // A window's first frame, the launch window's on the app's first: no
         // last frame to reserve its bars from.
         if let front = scenes.front, front.needsSeeding {
@@ -780,6 +799,27 @@ extension RenderLoop {
             front.needsSeeding = false
         }
         windowChrome.beginFrame()
+    }
+
+    /// Renders the scene — the content framed by its chrome — and returns the
+    /// frame: one walk, but one on which the scene root corrects a geometry
+    /// reader (a second), discarding what the first walk's views would have
+    /// done (`effects`).
+    private func renderContent(
+        scene: A.Body,
+        environment: EnvironmentValues,
+        terminalWidth: Int,
+        terminalHeight: Int,
+        effects: ProvisionalEffects
+    ) -> FrameBuffer {
+        // The render tree is rooted at `rootIdentity` — the SAME identity
+        // `evaluateAppBody` hydrates `@State` under (see that property's note).
+        var context = RenderContext(
+            availableWidth: terminalWidth,
+            availableHeight: terminalHeight,
+            environment: environment,
+            identity: rootIdentity
+        )
 
         context.hasExplicitWidth = true
         context.hasExplicitHeight = true
@@ -787,12 +827,10 @@ extension RenderLoop {
         // they are before anything is drawn — when there are readers.
         context = context.carryingGeometryRootOrigin()
         let reservation = windowChrome.reservation
-        // The walk may be walked again, below, so what its views do once a
-        // reader has been told an answer — an `onChange` action, an
-        // `onAppear`, a task's start — waits until the walk drawn is known,
-        // and only the kept walk's runs (decisions B-D5G-4).
-        let effects = ProvisionalEffects(stateStorage: tuiContext.stateStorage)
-        defer { effects.keep() }
+        // What the walk's views do — an `onChange` action, an `onAppear`, a
+        // task's start — waits on `effects`, the root's drawing, until the
+        // frame's driver keeps it once the walk is done; the scene walked
+        // again below discards the first walk's (decisions B-D5G-4, B-D5G-11).
         var frame = renderScene(scene, context: context.withChildIdentity(type: type(of: scene)))
 
         // The scene root owns `.global` — the screen, which the frame is, with

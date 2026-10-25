@@ -556,6 +556,7 @@ extension ScrollPositionBinding {
         owner[keyPath: tracking].lastReportedID = id
         let binding = binding
         context.performEffect(
+            as: .geometry,
             {
                 var position = binding.wrappedValue
                 position.reportVisible(id: id)

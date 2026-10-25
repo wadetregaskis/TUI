@@ -676,6 +676,24 @@ extension StateStorage {
         try StateRegistration.$renderPass.withValue(currentPass, operation: body)
     }
 
+    /// Starts a walk of the frame made again within the pass, for what the
+    /// effects of the walk before it wrote (`FrameSettling`).
+    ///
+    /// The animation stores take it as a pass of their own: the walk before
+    /// was the first sight of what it drew, so a value it showed and an
+    /// effect changed under `withAnimation` animates from there — an
+    /// `onAppear { withAnimation { shown = true } }` fades in, as SwiftUI's
+    /// does, rather than appearing at its end because the walk before was
+    /// never written (the rule a discarded drawing keeps,
+    /// `AnimationStore.beginWalk()`). Nothing else here is the pass's to
+    /// start again: what the pass has marked active stays marked, and
+    /// ``currentPass`` stays the frame's.
+    public func beginRewalk() {
+        animations.beginRenderPass()
+        departures.beginRenderPass()
+        placements.beginRenderPass()
+    }
+
     /// Begins one WALK of the view tree, of which a render pass may contain
     /// more than one (the app header's height-discovery and correction
     /// re-renders — see `RenderLoop.beginSceneRender()`).

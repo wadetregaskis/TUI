@@ -60,8 +60,9 @@ package final class HeadlessInputChannels {
     /// Draws the frame, answers its readers of `.global` and of names nothing
     /// declared, as the scene root does in `RenderLoop`, and draws the frame
     /// once more when one of them drew from a wrong answer — the root's
-    /// correction. What the views do waits until the drawing kept is known,
-    /// as the root's does (``ProvisionalEffects``).
+    /// correction. What the views do waits on `effects`, the root's drawing,
+    /// which a correction discards (``ProvisionalEffects``); the caller keeps
+    /// it, once the frame's effects are due (`FrameSettling`).
     ///
     /// - Parameters:
     ///   - width: The width the frame is rendered at.
@@ -69,13 +70,12 @@ package final class HeadlessInputChannels {
     ///   - stateStorage: The storage it renders against, whose per-walk
     ///     counters a second walk restarts, and whose stage holds the views'
     ///     effects.
+    ///   - effects: The root's drawing, open on that stage.
     ///   - draw: Renders the frame.
     /// - Returns: The frame to show.
     package func drawSettlingRootGeometry(
-        width: Int, height: Int, stateStorage: StateStorage?, draw: () -> FrameBuffer
+        width: Int, height: Int, stateStorage: StateStorage?, effects: ProvisionalEffects, draw: () -> FrameBuffer
     ) -> FrameBuffer {
-        let effects = ProvisionalEffects(stateStorage: stateStorage)
-        defer { effects.keep() }
         let frame = draw()
         let geometry = mouseEventDispatcher.geometry
         let size = CellSize(width: width, height: height)

@@ -59,7 +59,11 @@ package final class LifecycleManager: @unchecked Sendable {
     /// alone, which acts at once.
     package var effectStage: EffectStage? {
         get { lock.withLock { _effectStage } }
-        set { lock.withLock { _effectStage = newValue } }
+        set {
+            lock.withLock { _effectStage = newValue }
+            // A discarded drawing takes back the presence it noted.
+            newValue?.presenceUndo = { [weak self] token in self?.forgetPresence(token) }
+        }
     }
 
     /// ``effectStage``'s storage, under the lock.
@@ -85,6 +89,26 @@ extension LifecycleManager {
         lock.lock()
         defer { lock.unlock() }
         currentRenderTokens.removeAll()
+    }
+
+    /// Starts a walk of the frame made again for what its effects wrote
+    /// (`FrameSettling`): a view's presence is the last walk's, so one the
+    /// walk before drew — on screen last frame, or appearing in it — that this
+    /// one does not, disappears with the frame, its `onDisappear` run. What
+    /// has appeared stays appeared: the walk before's `onAppear`s have run.
+    package func beginRewalk() {
+        lock.lock()
+        defer { lock.unlock() }
+        visibleTokens.formUnion(currentRenderTokens)
+        currentRenderTokens.removeAll()
+    }
+
+    /// Takes back `token`'s presence in this pass, for a discarded drawing
+    /// that first saw it (``EffectStage/presenceUndo``).
+    private func forgetPresence(_ token: String) {
+        lock.lock()
+        currentRenderTokens.remove(token)
+        lock.unlock()
     }
 
     /// Marks the end of a render pass and triggers onDisappear for views that are no longer visible.
@@ -139,13 +163,7 @@ extension LifecycleManager {
         let stage = _effectStage
         guard !appearedTokens.contains(token) else {
             lock.unlock()
-            if !isPresent, let stage, stage.isStaging {
-                stage.noteUndo { [self] in
-                    lock.lock()
-                    currentRenderTokens.remove(token)
-                    lock.unlock()
-                }
-            }
+            if !isPresent { stage?.notePresence(token) }
             return false
         }
         appearedTokens.insert(token)
@@ -162,7 +180,7 @@ extension LifecycleManager {
         // In snapshot mode the view is still recorded as appeared
         // (so repeat renders behave), but the action is suppressed.
         if shouldFire {
-            if let stage { stage.perform(action) } else { action() }
+            if let stage { stage.perform(as: .appearance, action) } else { action() }
         }
         return shouldFire
     }
@@ -235,7 +253,7 @@ extension LifecycleManager {
         // the drawing is kept (``EffectStage``): a discarded drawing's task
         // never starts, and the drawing made in its place starts its own.
         if let stage = effectStage, stage.isStaging {
-            stage.perform { [self] in
+            stage.perform(as: .appearance) { [self] in
                 startTaskNow(token: token, priority: priority, name: name, operation: operation)
             }
             return

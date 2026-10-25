@@ -6,6 +6,10 @@
 > 2026-09-23 and recorded nowhere else. **Asked by:** the owner, 2026-10-24. **Working notes:** none.
 > SwiftUI's ordering of effects was measured the same day by a separate probe, on macOS 15.8.1's SwiftUI
 > (Xcode 26.3; macOS 26's is untested): §2.3 summarises it, and the claims it settles are marked **[M]**.
+> **Decided and built:** the owner approved §6's recommendation on 2026-10-24. Option (a)'s steps 2 and 4 —
+> effects held to the end of the walk in SwiftUI's order, and up to two walks more before the frame is written —
+> are built on lane EFFECTS (decisions B-D5G-11). Step 3 (toolbars and focused values through the same loop) is
+> not. The tables below describe TUIkit as it was when this was written.
 
 ## Question
 
@@ -479,6 +483,8 @@ which costs far less.
 ## 5. Options, smallest to largest
 
 ### (a) Keep the walk; converge before presenting
+
+**Built, 2026-10-24** (steps 2 and 4; decisions B-D5G-11). Step 3 is not.
 
 **What.** Two pieces, both built on lane EFFECTS' `EffectStage`:
 

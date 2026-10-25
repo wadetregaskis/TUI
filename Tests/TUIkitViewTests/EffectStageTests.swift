@@ -135,4 +135,33 @@ struct EffectStageTests {
         #expect(!stage.isStaging)
         stage.close(outer)
     }
+
+    @Test("A kept drawing runs its effects kind by kind, in SwiftUI's order, and in the order handed over within a kind")
+    func keptRunsByKind() {
+        let stage = EffectStage()
+        let log = Log()
+        let mark = stage.open()
+        stage.arm(atDepth: 1)
+        stage.perform(as: .change) { log.lines.append("change") }
+        stage.perform(as: .appearance) { log.lines.append("appear 1") }
+        stage.perform(as: .geometry) { log.lines.append("geometry") }
+        stage.perform(as: .appearance) { log.lines.append("appear 2") }
+        stage.perform(as: .preference) { log.lines.append("preference") }
+        stage.close(mark)
+        #expect(log.lines == ["geometry", "preference", "appear 1", "appear 2", "change"])
+    }
+
+    @Test("A discarded drawing takes back the presence it noted; a kept one keeps it")
+    func presenceTakenBackOnDiscard() {
+        let stage = EffectStage()
+        let log = Log()
+        stage.presenceUndo = { log.lines.append("gone \($0)") }
+        let mark = stage.open()
+        stage.arm(atDepth: 1)
+        stage.notePresence("a")
+        stage.discard(since: mark)
+        stage.notePresence("b")
+        stage.close(mark)
+        #expect(log.lines == ["gone a"])
+    }
 }

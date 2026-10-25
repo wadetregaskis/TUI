@@ -308,7 +308,7 @@ extension _ScrollViewCore {
             guard let action = observer.report(geometry, last: &handler.geometryObserverValues[index]) else { continue }
             // Held where this drawing may be drawn again, and the value put
             // back if it is (`EffectStage`).
-            context.performEffect(action) { [weak handler] in
+            context.performEffect(as: .geometry, action) { [weak handler] in
                 guard let handler, handler.geometryObserverValues.indices.contains(index) else { return }
                 handler.geometryObserverValues[index] = before
             }

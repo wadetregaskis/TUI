@@ -159,30 +159,15 @@ final class InputChainHarness {
         frameContext = frameContext.carryingGeometryRootOrigin()
         let geometry = tui.mouseEventDispatcher.geometry
         var buffer = tui.stateStorage.inRenderPass {
-            let view = view()
-            // What the views do waits for the walk kept, as
-            // `RenderLoop.renderContent` holds it: every walk but the last is
-            // discarded.
-            let effects = ProvisionalEffects(stateStorage: tui.stateStorage)
-            defer { effects.keep() }
-            var buffer = renderToBuffer(view, context: frameContext)
-            for _ in 1..<max(1, walks) {
-                effects.discard()
-                beginSceneRender()
-                buffer = renderToBuffer(view, context: frameContext)
-            }
-            // The scene root's geometry: `.global` and every name nothing nearer
-            // declared, answered from the frame, and drawn once more when a reader
-            // drew from a wrong answer — as `RenderLoop.renderContent` does.
-            let size = CellSize(width: context.availableWidth, height: context.availableHeight)
-            if geometry.resolveRemaining(in: buffer, size: size) {
-                geometry.noteCorrection(.root)
-                effects.discard()
-                beginSceneRender()
-                buffer = renderToBuffer(view, context: frameContext)
-                if geometry.resolveRemaining(in: buffer, size: size) { geometry.noteResidual() }
-            }
-            return buffer
+            // The walks, what the views did once one is drawn, and the walk
+            // made again while that wrote state, as `RenderLoop` settles a
+            // frame (`FrameSettling`). The view is made for each walk, as an
+            // app's body is evaluated for each.
+            FrameSettling.settle(
+                storage: tui.stateStorage, cache: tui.renderCache, lifecycle: tui.lifecycle, appState: tui.appState,
+                walk: { effects in walk(view(), walks: walks, context: frameContext, effects: effects) },
+                endWalk: { geometry.endFrame(frame: $0, retainedBy: tui.stateStorage) },
+                beginRewalk: { beginSceneRender() })
         }
         tui.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
         // As the run loop hands it each composited frame: what a selection reads
@@ -191,12 +176,38 @@ final class InputChainHarness {
             buffer, width: context.availableWidth, palette: frameContext.environment.palette)
         focusManager.endRenderPass()
         tui.modifierKeys.endFrame()
-        geometry.endFrame(frame: buffer, retainedBy: tui.stateStorage)
         // As `RenderLoop.endRenderPass()` closes it: the views not drawn in
         // this frame have gone, and their `onDisappear` runs.
         tui.lifecycle.endRenderPass()
         tui.stateStorage.endRenderPass()
         tui.renderCache.removeInactive()
+        return buffer
+    }
+
+    /// One walk of `view`, `walks` times over — every walk but the last
+    /// discarded, as a corrected frame's are — with the scene root's geometry
+    /// correction, its first drawing's effects discarded on `effects`.
+    private func walk<V: View>(
+        _ view: V, walks: Int, context frameContext: RenderContext, effects: ProvisionalEffects
+    ) -> FrameBuffer {
+        let geometry = tui.mouseEventDispatcher.geometry
+        var buffer = renderToBuffer(view, context: frameContext)
+        for _ in 1..<max(1, walks) {
+            effects.discard()
+            beginSceneRender()
+            buffer = renderToBuffer(view, context: frameContext)
+        }
+        // The scene root's geometry: `.global` and every name nothing nearer
+        // declared, answered from the frame, and drawn once more when a reader
+        // drew from a wrong answer — as `RenderLoop.renderContent` does.
+        let size = CellSize(width: context.availableWidth, height: context.availableHeight)
+        if geometry.resolveRemaining(in: buffer, size: size) {
+            geometry.noteCorrection(.root)
+            effects.discard()
+            beginSceneRender()
+            buffer = renderToBuffer(view, context: frameContext)
+            if geometry.resolveRemaining(in: buffer, size: size) { geometry.noteResidual() }
+        }
         return buffer
     }
 
