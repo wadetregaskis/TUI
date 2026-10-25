@@ -18,7 +18,7 @@ let materialsClip = Clip(
     rows: 30,
     output: 800,
     script: [
-        .camera(Shot(x: 18.6, y: 3.4, width: 76, height: 23)),
+        .camera(Shot(x: 0, y: 3, width: 76, height: 22)),
         .wait(1.2), .cue("sheet"),
         .wait(2.6), .cue("dismiss"),
         .wait(0.9), .cue("alert"),
@@ -39,21 +39,18 @@ struct MaterialsApp: App {
     }
 }
 
-/// An album of gradient "photos", and the three ways it asks something.
+/// An album of photos, and the three ways it asks something.
 struct PhotoLibrary: View {
     @State private var sharing = false
     @State private var deleting = false
     @State private var showingInfo = false
 
-    private static let photos: [(String, [Color])] = [
-        ("Harbour at dawn", [.rgb(255, 140, 90), .rgb(120, 60, 160)]),
-        ("Fern", [.rgb(40, 120, 60), .rgb(190, 230, 120)]),
-        ("Glacier", [.rgb(200, 240, 255), .rgb(40, 110, 190)]),
-        ("Market", [.rgb(250, 200, 60), .rgb(220, 70, 60)]),
-        ("Night bus", [.rgb(20, 20, 70), .rgb(230, 90, 200)]),
-        ("Dunes", [.rgb(240, 190, 120), .rgb(170, 90, 50)]),
-        ("Lagoon", [.rgb(30, 200, 190), .rgb(20, 60, 120)]),
-        ("Orchard", [.rgb(250, 230, 200), .rgb(220, 90, 110)]),
+    /// The album: make_photos.py's pictures, by file and caption.
+    private static let photos: [(file: String, caption: String)] = [
+        ("harbour-at-dawn", "Harbour at dawn"), ("glacier", "Glacier lagoon"),
+        ("dunes", "Dunes"), ("night-city", "Night city"),
+        ("fern-valley", "Fern valley"), ("lagoon", "Lagoon"),
+        ("orchard", "Orchard"), ("aurora", "Aurora"),
     ]
 
     var body: some View {
@@ -125,13 +122,17 @@ struct PhotoLibrary: View {
         }
     }
 
-    /// A photo, its name beneath.
-    private func tile(_ photo: (String, [Color]), index: Int) -> some View {
+    /// A photo, its caption beneath. Drawn in text cells (half blocks), not
+    /// the terminal's graphics: a sheet's frost blurs what is beneath it cell
+    /// by cell, and a picture the terminal draws itself is not in the cells.
+    private func tile(_ photo: (file: String, caption: String), index: Int) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Rectangle()
-                .fill(LinearGradient(colors: photo.1, startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(width: 22, height: 8)
-            Text(verbatim: photo.0).foregroundStyle(.palette.foregroundSecondary)
+            Image(.file(ClipAssets.photo(photo.file)))
+                .resizable()
+                .scaledToFill()
+                .terminalGraphics(false)
+                .frame(width: 22, height: 7)
+            Text(verbatim: photo.caption).foregroundStyle(.palette.foregroundSecondary)
         }
     }
 }
