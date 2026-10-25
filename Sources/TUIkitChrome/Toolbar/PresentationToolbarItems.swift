@@ -140,7 +140,8 @@ extension PresentationToolbarItems {
 
         let top = entries(.top)
         let bottom = entries(.bottom)
-        let natural = (top: naturalSize(top, context: context), bottom: naturalSize(bottom, context: context))
+        let natural = (
+            top: naturalSize(top, row: 0, context: context), bottom: naturalSize(bottom, row: 1, context: context))
         let width = min(
             max(0, context.availableWidth), max(content.width, natural.top.width, natural.bottom.width))
         var buffer = FrameBuffer()
@@ -168,17 +169,33 @@ extension PresentationToolbarItems {
     /// The rows this walk's items want, as the seed takes them.
     @MainActor
     private func needed(context: RenderContext) -> (top: Int, bottom: Int) {
-        (naturalSize(entries(.top), context: context).height, naturalSize(entries(.bottom), context: context).height)
+        (
+            naturalSize(entries(.top), row: 0, context: context).height,
+            naturalSize(entries(.bottom), row: 1, context: context).height
+        )
     }
 
     /// The row of `entries` at its natural size — its items side by side, its
     /// spacers at their least — or zero with none.
+    ///
+    /// Measured at the identity the row is drawn at, `index`, never one
+    /// identity for both rows. The per-pass measure memo keys a view by its
+    /// identity, type, proposal and the hash of its bytes, and a row's bytes
+    /// hold its entries array's buffer ADDRESS, not the items: measured at one
+    /// identity, the button row whose array the allocator put where the top
+    /// row's had just been freed (`needed(context:)` makes each a temporary)
+    /// was served the top row's size — `HEADING`'s 7 cells for
+    /// `CANCEL` and `SAVE`'s 19 — and drawn that wide, which cut `SAVE` off.
+    /// Whether the address came back was the allocator's call, so the sheet
+    /// lost its confirmation button in about one run in thirty.
     @MainActor
-    private func naturalSize(_ entries: [WindowChromeState.ToolbarEntry], context: RenderContext) -> ViewSize {
+    private func naturalSize(
+        _ entries: [WindowChromeState.ToolbarEntry], row index: Int, context: RenderContext
+    ) -> ViewSize {
         guard !entries.isEmpty else { return ViewSize(width: 0, height: 0) }
         return measureChild(
             _ToolbarBarRow(entries: entries, title: "", subtitle: "", isPresentation: true),
-            proposal: .unspecified, context: rowContext(0, context: context).askingIdealWidth())
+            proposal: .unspecified, context: rowContext(index, context: context).askingIdealWidth())
     }
 
     /// The row of `entries`, drawn in `height` rows at `width`.
