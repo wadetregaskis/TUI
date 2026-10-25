@@ -11,7 +11,9 @@ import TUIkit
 ///
 /// Shows various text styling options including:
 /// - Basic styles (bold, italic, underline, etc.)
-/// - Line styles (underline patterns and colours, a coloured strikethrough)
+/// - Line styles (underline patterns and colours, a coloured strikethrough),
+///   each with a note where `\.terminalCapabilities` says this terminal does
+///   not draw it as asked, or nobody has measured whether it does
 /// - Combined styles
 /// - Special effects (blink, inverted)
 /// - Cascading styles (container-level modifiers that apply to a whole subtree)
@@ -45,6 +47,7 @@ struct TextStylesPage: View {
                 Text("page.textStyles.italic").italic()
                 Text("page.textStyles.underline").underline()
                 Text("page.textStyles.strikethrough").strikethrough()
+                    .capabilityNote(.strikethrough)
                 Text("page.textStyles.dimmed").dim()
             }
 
@@ -52,10 +55,15 @@ struct TextStylesPage: View {
                 Text("page.textStyles.line.caption")
                     .foregroundStyle(.palette.foregroundSecondary)
                 Text("page.textStyles.line.double").underline(pattern: .double)
+                    .capabilityNote(.doubleUnderline)
                 Text("page.textStyles.line.curly").underline(pattern: .curly, color: .red)
+                    .capabilityNote([.curlyUnderline, .underlineColor])
                 Text("page.textStyles.line.dotted").underline(pattern: .dot)
+                    .capabilityNote(.dottedUnderline)
                 Text("page.textStyles.line.dashed").underline(pattern: .dash, color: .palette.accent)
+                    .capabilityNote([.dashedUnderline, .underlineColor])
                 Text("page.textStyles.line.struck").strikethrough(color: .red)
+                    .capabilityNote([.strikethrough, .strikethroughColor])
             }
 
             DemoSection("page.textStyles.section.combined") {

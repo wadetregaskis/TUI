@@ -77,6 +77,24 @@ final class ExamplePageDriver<A: App> {
         return taken
     }
 
+    /// Sends `event`, as the terminal would, and settles.
+    @discardableResult
+    func send(_ event: KeyEvent) -> Bool {
+        let taken = app.send(event)
+        advance()
+        return taken
+    }
+
+    /// What the terminal can do, as a run's launch would have settled it
+    /// (`\.terminalCapabilities`): set, the page is drawn again with it.
+    var terminalCapabilities: TerminalCapabilities {
+        get { app.terminalCapabilities }
+        set {
+            app.terminalCapabilities = newValue
+            advance()
+        }
+    }
+
     /// Scrolls the wheel over (`column`, `row`) by `ticks` and settles.
     func scroll(row: Int, column: Int, down ticks: Int) {
         for _ in 0..<abs(ticks) {

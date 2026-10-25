@@ -11,7 +11,8 @@ import TUIkit
 /// What an app asks the terminal itself to do, outside the app's cells: a
 /// progress bar on its tab (`.terminalProgress(_:)`) and the person's attention
 /// (`\.requestAttention`), with `\.terminalFeatures` saying whether this
-/// terminal does each.
+/// terminal does each. And, last, everything `\.terminalCapabilities` knows of
+/// what this terminal can do (``TerminalCapabilitiesDemo``).
 ///
 /// The page states its progress for as long as it is open, so the bar is up
 /// while it is shown and gone when it is left.
@@ -57,12 +58,14 @@ struct TerminalPage: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
-            progressSection
-            attentionSection
-            Spacer()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 1) {
+                progressSection
+                attentionSection
+                TerminalCapabilitiesDemo()
+            }
+            .padding(.horizontal, 1)
         }
-        .padding(.horizontal, 1)
         .terminalProgress(progress)
         .task(id: isAskingSoon) {
             guard isAskingSoon else { return }
