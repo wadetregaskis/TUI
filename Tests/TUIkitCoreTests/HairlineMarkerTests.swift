@@ -54,6 +54,21 @@ struct HairlineMarkerTests {
         #expect(stripped.contains("48;2;0;0;0"))
     }
 
+    /// The memo behind `marking` is keyed by a line's bytes: two spellings of
+    /// one text are equal `String`s, and each must come back with its own
+    /// bytes, not the spelling marked first.
+    @Test("A line marked again comes back the same; two spellings of one text, each its own")
+    func memoKeysByBytes() {
+        let precomposed = "caf\u{E9} au lait"
+        let decomposed = "cafe\u{301} au lait"
+        #expect(precomposed == decomposed)
+        let first = mark(precomposed, 0..<4)
+        #expect(mark(precomposed, 0..<4) == first)
+        let other = mark(decomposed, 0..<4)
+        #expect(Array(other.utf8) != Array(first.utf8))
+        #expect(Array(HairlineMarker.extracting(other).line.stripped.utf8) == Array(decomposed.utf8))
+    }
+
     @Test("A wide character is marked whole when it starts in the run, not when it starts before")
     func wideCharacters() {
         let line = "中文ab"

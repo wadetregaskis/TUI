@@ -113,8 +113,26 @@ package enum HairlineMarker {
     /// last, a reset and the styling in force without it. A wide character
     /// that starts before `columns` is not marked; one that starts inside is,
     /// whole.
+    ///
+    /// Served from ``MarkedLines`` when the same line was marked the same way
+    /// before: a list's rows come out of the render memo unchanged frame after
+    /// frame, and marking walks every character of the row's first line.
     package static func marking(_ line: String, columns: Range<Int>, red: UInt8, green: UInt8, blue: UInt8) -> String {
         guard !columns.isEmpty, columns.lowerBound >= 0 else { return line }
+        let key = MarkedLines.Key(line: line, columns: columns, ink: UInt32(red) << 16 | UInt32(green) << 8 | UInt32(blue))
+        if let marked = MarkedLines.shared.withLock({ $0[key] }) { return marked }
+        let marked = walkMarking(line, columns: columns, red: red, green: green, blue: blue)
+        MarkedLines.shared.withLock { cache in
+            if cache.count >= MarkedLines.capacity { cache.removeAll(keepingCapacity: true) }
+            cache[key] = marked
+        }
+        return marked
+    }
+
+    /// ``marking(_:columns:red:green:blue:)``, worked out: one walk of `line`.
+    private static func walkMarking(_ line: String, columns: Range<Int>, red: UInt8, green: UInt8, blue: UInt8)
+        -> String
+    {
         let mark = sequence(red: red, green: green, blue: blue)
         var result = ""
         result.reserveCapacity(line.utf8.count + 2 * mark.utf8.count + 16)
@@ -146,6 +164,45 @@ package enum HairlineMarker {
         }
         if inside { result += "\u{1B}[0m" + state.rendered }
         return result
+    }
+
+    /// The lines ``marking(_:columns:red:green:blue:)`` has marked, by what
+    /// the marking reads: the line, the columns and the colour.
+    ///
+    /// A static, and not a singleton in the sense of the project's "No
+    /// Singletons" rule: a private, bounded memo of a pure function, so
+    /// nothing outside it can tell a hit from a miss (CLAUDE.md, the exemption
+    /// `ASCIIPalette+SearchIndex.swift` is the example of). Bounded by
+    /// emptying it when full rather than by evicting the oldest: what fills it
+    /// is a list scrolled through, whose rows on the screen are marked again
+    /// once after it empties.
+    private enum MarkedLines {
+        /// Equal when the line's BYTES are, not when the strings are: `String`'s
+        /// `==` and hash are canonical equivalence, which hashes a line with any
+        /// non-ASCII character through its NFC form (9% of a frame of hairlined
+        /// rows in `megalist`, whose bars are block glyphs) — and two spellings
+        /// of one text are two markings, which a memo must not mix up.
+        struct Key: Hashable, Sendable {
+            var line: String
+            var columns: Range<Int>
+            var ink: UInt32
+
+            static func == (lhs: Self, rhs: Self) -> Bool {
+                lhs.columns == rhs.columns && lhs.ink == rhs.ink && lhs.line.utf8.elementsEqual(rhs.line.utf8)
+            }
+
+            func hash(into hasher: inout Hasher) {
+                hasher.combine(columns)
+                hasher.combine(ink)
+                var line = line  // `withUTF8` is mutating: it may make a bridged string contiguous
+                line.withUTF8 { hasher.combine(bytes: UnsafeRawBufferPointer($0)) }
+            }
+        }
+
+        /// A few screens of rows.
+        static let capacity = 512
+
+        static let shared = Lock<[Key: String]>(initialState: [:])
     }
 
     /// Whether SGR `sequence` ends a passthrough code: a reset among its
