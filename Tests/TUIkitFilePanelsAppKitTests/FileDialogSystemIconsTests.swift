@@ -13,7 +13,7 @@ import Testing
 
 #if canImport(AppKit)
     import AppKit
-    @testable import TUIkitAppKit
+    @testable import TUIkitFilePanelsAppKit
     import UniformTypeIdentifiers
 #endif
 

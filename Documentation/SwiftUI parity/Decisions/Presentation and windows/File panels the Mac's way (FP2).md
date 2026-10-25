@@ -45,10 +45,11 @@ stand in the way, and each is a choice about modules:
    load QuickLookThumbnailing at launch.
 2. **A TUI-specific modifier for an app to hand the panel its icons**,
    `fileDialogIcon { url, type in Image? }`, beside SwiftUI's `fileDialog`
-   ones, which TUIkitAppKit (that may import AppKit) fills from `NSWorkspace`
+   ones, which a module that may import AppKit fills from `NSWorkspace`
    in one call, `.fileDialogSystemIcons()`. No new dependency for the file
-   panels; real icons only where an app asks. About a day, and TUIkitAppKit
-   would depend on TUIkitFilePanels.
+   panels; real icons only where an app asks. About a day, and the module that
+   fills it would depend on TUIkitFilePanels (built in TUIkitAppKit, which then
+   cost every app on it 29.3%; placed in its own module, below).
 3. **Leave the glyphs** (shipped): emoji, SF Symbols or the slash.
 
 **Recommendation:** 1, as the item asks for the real icons by default where
@@ -74,8 +75,8 @@ without the umbrella. 2 is the right shape if that cost is not wanted.
   predicate is, so the memos below stay on; the price is that a row the table
   serves from its memo keeps its icon until the row changes. The module
   gains no dependency.
-- **`fileDialogSystemIcons()`** (TUIkitAppKit, which now depends on
-  TUIkitFilePanels): a `fileDialogIcon` whose views are
+- **`fileDialogSystemIcons()`** (TUIkitFilePanelsAppKit, see "Placed in a
+  module of its own" below): a `fileDialogIcon` whose views are
   `Image(nsImage:)` of `NSWorkspace`'s icon, resizable and fitted, drawn
   where an `Image` draws pictures — `KittyGraphics.isSupported` (asked as each
   row draws, since the handshake may answer after the first frame) and the
@@ -94,11 +95,32 @@ without the umbrella. 2 is the right shape if that cost is not wanted.
   on one drawn on another; the closure runs on the main actor anyway, as the
   rows draw, which is where the store is.
 
-So a panel draws real icons only where an app asks, and an app that imports
-TUIkitAppKit for its colour bridges now links the file panels too (it
-links TUIkitBitmaps already). Untested live: no terminal session in the lane
+So a panel draws real icons only where an app asks. Untested live: no terminal session in the lane
 ran an app with the modifier; the tests pin the store, the key, the gate and
 the fallback (`FileDialogSystemIconsTests`, `FilePanelIconTests`).
+
+**Placed in a module of its own: TUIkitFilePanelsAppKit** (owner, 2026-10-24,
+option 2 of the follow-up). Built first in TUIkitAppKit, `fileDialogSystemIcons()`
+made that module depend on TUIkitFilePanels, and through it on TUIkitPickers,
+TUIkitPresentation, TUIkitTables and TUIkitTextInput (and so the lists), so an
+app that took TUIkitAppKit only for `Color(nsColor:)` linked the file panels
+too. Measured (Xcode's Swift 6.2.4, release, `strip -o`, one executable on
+TUIkitApp + TUIkitAppKit using only `Color(nsColor:)`, the TUIkit package by
+path):
+
+| app | with the modifier in TUIkitAppKit | in TUIkitFilePanelsAppKit |
+|---|---|---|
+| TUIkitApp + TUIkitAppKit, `Color(nsColor:)` only | 10,816,112 B (+2,448,912 B, +29.3%) | 8,367,216 B (main before the modifier: 8,367,200 B) |
+| the same plus TUIkitFilePanelsAppKit, a `fileImporter` and `.fileDialogSystemIcons()` | - | 10,849,200 B |
+
+So the module, a library product (the 31st) built on TUIkitAppKit,
+TUIkitBitmaps, TUIkitFilePanels and TUIkitFoundation, holds the modifier, its
+icon store and its tests (`TUIkitFilePanelsAppKitTests`). TUIkitAppKit's
+dependencies are what they were before the modifier. Like TUIkitAppKit it
+re-exports nothing, the umbrella does not re-export it, and an app writes
+`import TUIkitFilePanelsAppKit` beside `import TUIkit`; it is empty off Apple
+platforms. The icons' own cost is the file panels': an app that shows a file
+panel at all has them.
 
 ## B. Shipped the safe option
 
@@ -338,7 +360,7 @@ kinds worked out per file, 106 ms of it the kinds, and 1.29 s with each
 type's kind kept (debug build). A test pins the icons
 (`EnvironmentValues.filePanelIcons`), as the SF Symbols' font is the
 machine's. **The fuller version** is A-FP2-1, built as its option 2: an app's own
-icons through `fileDialogIcon(_:)`, and the Finder's through TUIkitAppKit's
+icons through `fileDialogIcon(_:)`, and the Finder's through TUIkitFilePanelsAppKit's
 `fileDialogSystemIcons()`.
 
 ### B-FP2-8. A panel browsing another machine than the user's says so, on evidence only

@@ -82,7 +82,7 @@ extension View {
     /// It is called on the main actor as rows are drawn, so it should be
     /// quick, keeping what it makes: an `Image` made afresh from new pixels
     /// for every call is a new picture each frame. On macOS,
-    /// `fileDialogSystemIcons()` in TUIkitAppKit installs one that draws each
+    /// `fileDialogSystemIcons()` in TUIkitFilePanelsAppKit installs one that draws each
     /// item's own icon, the Finder's, where the terminal draws pictures.
     ///
     /// - Parameter icon: The view to draw for the item at a URL, of a content

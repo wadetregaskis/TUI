@@ -53,12 +53,15 @@ struct AppKitBridgeTests {
         let sources = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Sources")
-        // Every Sources/TUIkit… directory but the bridges themselves and the
-        // two no library module depends on: read from the tree, not listed,
+        // Every Sources/TUIkit… directory but the bridges themselves (the
+        // file panels' icons among them) and the macros and the width corpus,
+        // which no library module depends on: read from the tree, not listed,
         // because the module split gives each planned module a directory of
         // its own (Sources/TUIkitFoundation, Sources/TUIkitLists …), and a
         // list would miss the next one. They may import each other.
-        let notBuiltFrom: Set<String> = ["TUIkitAppKit", "TUIkitMacros", "TUIkitMacrosPlugin", "TUIkitWidthCorpus"]
+        let notBuiltFrom: Set<String> = [
+            "TUIkitAppKit", "TUIkitFilePanelsAppKit", "TUIkitMacros", "TUIkitMacrosPlugin", "TUIkitWidthCorpus",
+        ]
         let modules = try FileManager.default.contentsOfDirectory(atPath: sources.path)
             .filter { $0.hasPrefix("TUIkit") && !notBuiltFrom.contains($0) }
             .sorted()

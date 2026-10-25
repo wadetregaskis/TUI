@@ -52,9 +52,10 @@ import shutil
 import sys
 
 # The library modules that make up the public API surface. Test targets, the
-# example apps, the AppKit bridges (a product of their own, imported beside
-# TUIkit) and the C image-decoder target are deliberately excluded. A module
-# carved out of TUIkitFoundation, or peeled out of a coarse group, joins this set then.
+# example apps, the AppKit bridges and the file panels' system icons (products
+# of their own, imported beside TUIkit) and the C image-decoder target are
+# deliberately excluded. A module carved out of TUIkitFoundation, or peeled out
+# of a coarse group, joins this set then.
 MODULES = {
     "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
     "TUIkitEffects", "TUIkitFilePanels", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",

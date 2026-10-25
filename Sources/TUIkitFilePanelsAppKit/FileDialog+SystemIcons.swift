@@ -2,15 +2,17 @@
 //  FileDialog+SystemIcons.swift
 //
 //  `fileDialogSystemIcons()`: the file panels' items drawn with their own
-//  icons, the Finder's, from `NSWorkspace` — here, in TUIkitAppKit, because
-//  the file panels may not import AppKit (decisions A-FP2-1, the owner's
-//  option 2; `Exports.swift` in this module says why).
+//  icons, the Finder's, from `NSWorkspace` — here, in TUIkitFilePanelsAppKit,
+//  because the file panels may not import AppKit (decisions A-FP2-1, the
+//  owner's option 2; `Exports.swift` in this module says why it is not in
+//  TUIkitAppKit either).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 #if canImport(AppKit)
     import AppKit
+    import TUIkitAppKit
     import TUIkitBitmaps
     import TUIkitFilePanels
     import TUIkitFoundation

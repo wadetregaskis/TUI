@@ -74,7 +74,7 @@ TUIKIT_MODULES = [
     "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch", "TUIkitTabImages",
     "TUIkitTables", "TUIkitTabs", "TUIkitTextInput",
     "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView",
-    "TUIkitAppKit",
+    "TUIkitAppKit", "TUIkitFilePanelsAppKit",
 ]
 
 # The symbol kinds a caller can name. Deliberately excludes the ones that are

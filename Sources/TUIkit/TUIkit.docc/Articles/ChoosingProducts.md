@@ -67,11 +67,12 @@ notifications and `.help`. Then add the product of each module whose names you u
 | `TUIkitTabImages` | `Tab(_:image:…)`, a tab whose picture is an image resource named by a string (a product of its own so that neither of the two it brings pays for the other) | `TUIkitBitmaps`, `TUIkitTabs` |
 | `TUIkitColorPicker` | `ColorPicker`, `ColorPickerPanel`, `GradientEditorPanel` | `TUIkitPresentation`, `TUIkitTabs`, `TUIkitTextInput`, `TUIkitNumericControls` |
 | `TUIkitCurveEditors` | `ToneCurveEditorPanel`, `ChannelCurveEditorPanel` | `TUIkitColorPicker`, `TUIkitImage`, `TUIkitPickers` |
-| `TUIkitAppKit` | `Color(nsColor:)`, `NSColor(_:)`, `Image(nsImage:)` and the other bridges to AppKit and Core Graphics, and `.fileDialogSystemIcons()` (Apple platforms) | `TUIkitBitmaps`, `TUIkitFilePanels` |
+| `TUIkitAppKit` | `Color(nsColor:)`, `NSColor(_:)`, `Image(nsImage:)` and the other bridges to AppKit and Core Graphics (Apple platforms) | `TUIkitBitmaps` |
+| `TUIkitFilePanelsAppKit` | `.fileDialogSystemIcons()`, the file panels drawn with the Finder's icons (Apple platforms; a product of its own so that `TUIkitAppKit` does not bring the file panels) | `TUIkitAppKit`, `TUIkitFilePanels` |
 | `TUIkitMacros` | the `@Animatable` and `@AnimatableIgnored` macros (it builds swift-syntax) | `TUIkitCore` |
 
-Every product in the table but `TUIkitMacros` brings `TUIkitFoundation` too, and every module in it but `TUIkitAppKit`
-and `TUIkitMacros`, which are imported beside the others, re-exports the modules it is built on, so one import covers
+Every product in the table but `TUIkitMacros` brings `TUIkitFoundation` too, and every module in it but `TUIkitAppKit`,
+`TUIkitFilePanelsAppKit` and `TUIkitMacros`, which are imported beside the others, re-exports the modules it is built on, so one import covers
 them: `import TUIkitTables` gives you `List` as well. `TUIkitFoundation`, `TUIkitCore`, `TUIkitStyling`,
 `TUIkitView` and `TUIkitImage` are products too, for a library that needs nothing more. `TUIkitFoundation`
 re-exports `TUIkitCore`, `TUIkitStyling` and `TUIkitView`; `TUIkitView` re-exports `TUIkitCore` and

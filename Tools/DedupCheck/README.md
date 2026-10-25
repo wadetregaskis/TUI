@@ -27,7 +27,7 @@ sharing an address with another whose demangled name it cannot read.
 
 Not covered: key paths or functions that reach `==` through a dynamic cast (`x as? any Hashable`) or generic code
 that never names them; an `unsafeBitCast` of a Swift closure; and K1 for a module the checked binary does not link
-(Stress links every library module but TUIkitAppKit and TUIkitMacros). Two SwiftLint rules in `.swiftlint.yml`,
+(Stress links every library module but TUIkitAppKit, TUIkitFilePanelsAppKit and TUIkitMacros). Two SwiftLint rules in `.swiftlint.yml`,
 `key_path_identity` and `function_address_identity`, flag a new comparison or bit cast at the source, before any
 build; each site that means it carries a `swiftlint:disable` with its reason and manifest entry. `lint-cases/` holds
 what they must and must not flag, and `test-lint-rules.sh` (CI's lint job) checks them.

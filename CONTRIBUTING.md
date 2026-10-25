@@ -396,7 +396,7 @@ Public APIs **must** match SwiftUI signatures exactly unless terminal constraint
   and in every directory of the module split (`Sources/TUIkit`,
   `Sources/TUIkitFoundation` and the others Tools/ModuleMap/rules.json
   lists), not in the other targets (TUIkitCore, TUIkitStyling, TUIkitImage,
-  TUIkitAppKit, the macros, the width corpus); see "What built-in controls
+  TUIkitAppKit, TUIkitFilePanelsAppKit, the macros, the width corpus); see "What built-in controls
   draw with" in the Theming Guide article
 - Search the codebase for similar patterns before implementing anything new
 - Consolidate and reuse before adding new functions or types

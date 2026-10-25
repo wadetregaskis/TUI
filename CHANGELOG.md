@@ -15,11 +15,11 @@ These notes cover the change from the single-module package (a `TUIkit` target p
 
 ### The module split
 
-TUIkit is now 30 library products. Before, there were five (`TUIkit`, `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, `TUIkitImage`).
+TUIkit is now 31 library products. Before, there were five (`TUIkit`, `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, `TUIkitImage`).
 
 #### The umbrella still works
 
-- `import TUIkit` is the whole framework, as `import SwiftUI` is SwiftUI. The `TUIkit` module declares nothing itself. It re-exports every other module except `TUIkitAppKit` and `TUIkitMacros`, which you import separately.
+- `import TUIkit` is the whole framework, as `import SwiftUI` is SwiftUI. The `TUIkit` module declares nothing itself. It re-exports every other module except `TUIkitAppKit`, `TUIkitFilePanelsAppKit` and `TUIkitMacros`, which you import separately.
 - Qualified names such as `TUIkit.Label` or `TUIkit.ColorPicker` still resolve, through the umbrella's re-exports. The test suite pins this for types from many of the modules.
 - `TUIkit` is still the right default for an app. The README and the docs assume it.
 
@@ -55,7 +55,7 @@ import TUIkitTables
 
 Foundation and app:
 
-- `TUIkit`: the umbrella. Everything below except `TUIkitAppKit` and `TUIkitMacros`.
+- `TUIkit`: the umbrella. Everything below except `TUIkitAppKit`, `TUIkitFilePanelsAppKit` and `TUIkitMacros`.
 - `TUIkitApp`: `App`, `Scene`, `WindowGroup` and the scene modifiers, the run loop, the terminal (POSIX only), and `renderOnce`. Re-exports `TUIkitChrome` and `TUIkitFoundation`.
 - `TUIkitFoundation`: what everything else is built on: `View`, `Text`, stacks, `ScrollView`, `Button`, `Toggle`, `Label`, `Image(systemName:)`, layout, state, the environment, focus and rendering. It cannot run an app on its own. It re-exports `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and two modules that have no product of their own: `TUIkitStrings` (localization, string tables, SF Symbols names, the resource bundle) and `TUIkitTerminalHost` (the terminal's identity, quirks and capabilities).
 
@@ -85,7 +85,8 @@ Feature modules:
 
 Opt-in (not in the umbrella):
 
-- `TUIkitAppKit`: `Color(nsColor:)`, `NSColor(_:)` and `Image(nsImage:)`, compiled asset catalogue reading, and `fileDialogSystemIcons()`, which draws the file panels' items with the Finder's icons (so it brings `TUIkitFilePanels`). Apple platforms only; empty elsewhere.
+- `TUIkitAppKit`: `Color(nsColor:)`, `NSColor(_:)` and `Image(nsImage:)`, and compiled asset catalogue reading. Apple platforms only; empty elsewhere.
+- `TUIkitFilePanelsAppKit`: `fileDialogSystemIcons()`, which draws the file panels' items with the Finder's icons. Built on `TUIkitAppKit` and `TUIkitFilePanels`, and a product of its own so that an app that takes `TUIkitAppKit` for `Color(nsColor:)` does not link the file panels (+29% in an app that does). Apple platforms only; empty elsewhere.
 - `TUIkitMacros`: the `@Animatable`, `@AnimatableIgnored` and `@Entry` macros.
 
 Low-level, as before:
@@ -139,7 +140,7 @@ Two traits are enabled by default. Both apply only to macOS release builds. Debu
 - **A saved `NavigationPath.codable` representation is tied to module names.** It stores each value's type by its mangled name, which includes the module. A saved path holding a TUIkit type that has moved to another module stops decoding. This already affected `LocalizationService.Language` and the system format styles, which moved to `TUIkitStrings`. Types can still move before 1.0, so do not keep such a path across versions.
 - **`renderOnce(content:)` is in `TUIkitApp`.** A tool that uses only it depends on `TUIkitApp`. With `import TUIkit` nothing changes.
 - **`ASCIIConverter` and the rest of `TUIkitImage` are not re-exported by `TUIkitFoundation`.** With `import TUIkit` you still get them. An app on module products adds `TUIkitImage` (or `TUIkitBitmaps`, which re-exports it).
-- **MemberImportVisibility is on for TUIkit's own modules.** Every carved module, `TUIkitFoundation` and `TUIkitAppKit` compile with Swift's `MemberImportVisibility` upcoming feature. It does not apply to your code unless you enable it yourself. If you do, a call to a member that a module adds in an extension needs `import` of the module that declares it in that file. `import TUIkit` covers every module except `TUIkitAppKit` and `TUIkitMacros`. On an app built from module products, the compiler's fix-it names the module to add, but only when that module is already loaded. One effect you get without turning anything on: because TUIkit's modules use it, SwiftUICore's extension members no longer reach an app through TUIkit.
+- **MemberImportVisibility is on for TUIkit's own modules.** Every carved module, `TUIkitFoundation`, `TUIkitAppKit` and `TUIkitFilePanelsAppKit` compile with Swift's `MemberImportVisibility` upcoming feature. It does not apply to your code unless you enable it yourself. If you do, a call to a member that a module adds in an extension needs `import` of the module that declares it in that file. `import TUIkit` covers every module except `TUIkitAppKit`, `TUIkitFilePanelsAppKit` and `TUIkitMacros`. On an app built from module products, the compiler's fix-it names the module to add, but only when that module is already loaded. One effect you get without turning anything on: because TUIkit's modules use it, SwiftUICore's extension members no longer reach an app through TUIkit.
 - **The AppKit bridges need `import TUIkitAppKit`.** `Color(nsColor:)`, `NSColor(_:)` and `Image(nsImage:)` (and compiled asset catalogue reading) are in the separate `TUIkitAppKit` product, because a module that imports AppKit makes every importing app see SwiftUICore's extension members. Without this split, `FormatStyle.offset(to:)` and similar SwiftUI members were ambiguous in apps importing TUIkit. The Core Graphics bridges (`Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)`, `Image(decorative:scale:orientation:)`) need only TUIkit.
 - **swift-syntax is resolved for every client**, although only apps that depend on `TUIkitMacros` build it (see Dependencies).
 
@@ -267,7 +268,7 @@ Deprecated SwiftUI spellings TUIkit still has, on purpose:
 - A menu bar. A scene that declares `commands` gets a menu bar on the window's top row, with `CommandMenu`, `CommandGroup`, the standard command sets, and TUIkit's own app, Edit, View and Window menus. Menus open by click, F10, or Alt and a title's first letter. TUIkit's own `DisplayCommands()` adds View ▸ Palette, Border Style and Control Style, each a submenu of the built-in choices: it chooses through the app's palette and appearance managers and a new control style manager (`\.controlStyleManager`), disables a submenu whose value the scene sets itself, and writes the app's own state instead where it is given a binding (`DisplayCommands(palette:appearance:controlStyle:)`).
 - Several scenes and windows. A body can declare more than one scene. `openWindow`, `dismissWindow`, windows presenting data, a `Settings` scene shown as a sheet (`openSettings`), `AlertScene`, per-window `@SceneStorage`, and the terminal's title following the window in front.
 - Toolbars. SwiftUI's `.toolbar` places items in the top and bottom bars by placement. Window toolbar styles, accessory bars, title menus, `toolbar(id:)` customization from a panel, and tab view sidebar toolbars.
-- File panels. `fileImporter`, `fileExporter`, `fileMover` and the `fileDialog` modifiers present open and save panels that TUIkit draws, in the new `TUIkitFilePanels` module. Each item is drawn after an icon of its kind; `fileDialogIcon(_:)` draws an app's own instead, and `TUIkitAppKit`'s `fileDialogSystemIcons()` the Finder's, where the terminal draws pictures. A panel browsing a machine the user is not at (over ssh or mosh, or from a tmux client attached from one) says so in a line above the path, which `fileDialogRemoteNotice(_:)` hides.
+- File panels. `fileImporter`, `fileExporter`, `fileMover` and the `fileDialog` modifiers present open and save panels that TUIkit draws, in the new `TUIkitFilePanels` module. Each item is drawn after an icon of its kind; `fileDialogIcon(_:)` draws an app's own instead, and `fileDialogSystemIcons()`, from `TUIkitFilePanelsAppKit`, the Finder's, where the terminal draws pictures. A panel browsing a machine the user is not at (over ssh or mosh, or from a tmux client attached from one) says so in a line above the path, which `fileDialogRemoteNotice(_:)` hides.
 - Shapes and paths. Shapes are views, drawn in box glyphs or rasterized, with `Path`, container shapes, and shapes as backgrounds, overlays, clips and hit areas.
 - Materials, glass, shadows and blend modes. Materials as translucent surfaces, `GlassEffectContainer` that joins glass, drop and inner shadows (animatable), `View.blendMode`, `ShapeStyle.blendMode`, and image paints.
 - Animation. Branch fades, matched geometry, the zoom navigation transition, `.blurReplace` (its scale and a fade, the blur drawn as the fade), `CustomAnimation`, animations that carry their motion when interrupted, and stacks whose children glide when a view comes or goes.

@@ -20,7 +20,7 @@
 #   - a module whose re-exports do not give an importer what the docs say
 #     they do: each app writes only the imports Choosing Products tells a
 #     client of its product to write (its product's module; beside it, for
-#     TUIkitAppKit and TUIkitMacros the module they extend), with
+#     TUIkitAppKit, TUIkitFilePanelsAppKit and TUIkitMacros the module they extend), with
 #     MemberImportVisibility on, and uses
 #     a name from beneath its module where there is one. One or two names
 #     each: a re-export no app happens to use goes unchecked;

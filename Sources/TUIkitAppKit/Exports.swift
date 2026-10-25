@@ -5,9 +5,7 @@
 //  `Color(nsColor:)`, `NSColor(_:)` and `Image(nsImage:)` — and the named
 //  colours and images of a compiled asset catalogue (`Color(_:bundle:)` and
 //  `Image(_:bundle:)` reading `Assets.car`, after TUIkit's own reading of an
-//  uncompiled one), and `fileDialogSystemIcons()`, which draws the file
-//  panels' items with `NSWorkspace`'s icons (decisions A-FP2-1). Import it
-//  beside TUIkit where you use them:
+//  uncompiled one). Import it beside TUIkit where you use them:
 //
 //      import TUIkit
 //      import TUIkitAppKit

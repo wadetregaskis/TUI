@@ -9,7 +9,7 @@ let umbrellaTestDependencies: [Target.Dependency] = [
     "TUIkitEffects", "TUIkitFilePanels", "TUIkitForms", "TUIkitFoundation", "TUIkitGrid", "TUIkitLists", "TUIkitMenus",
     "TUIkitNavigation", "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch",
     "TUIkitStrings", "TUIkitTabImages", "TUIkitTables", "TUIkitTabs", "TUIkitTerminalHost", "TUIkitTextInput",
-    "TUIkitAppKit", "TUIkitWidthCorpus", "CTestSupport",
+    "TUIkitAppKit", "TUIkitFilePanelsAppKit", "TUIkitWidthCorpus", "CTestSupport",
 ]
 
 let package = Package(
@@ -30,7 +30,7 @@ let package = Package(
 
         // ── The umbrella: the default ───────────────────────────────────────────────────────────────────
         // `import TUIkit` is the whole framework, as `import SwiftUI` is the whole of SwiftUI: every module
-        // below but TUIkitAppKit and TUIkitMacros, which are opt-in. Start here; the README and the docs do.
+        // below but TUIkitAppKit, TUIkitFilePanelsAppKit and TUIkitMacros, which are opt-in. Start here; the README and the docs do.
         .library(name: "TUIkit", targets: ["TUIkit"]),
 
         // ── À la carte: one product per module ──────────────────────────────────────────────────────────
@@ -39,8 +39,8 @@ let package = Package(
         // on `TUIkit` gives that app the whole framework, whatever the app itself lists. Each module from
         // TUIkitFoundation up re-exports the modules it is built on (its Sources/<module>/Exports.swift), so a
         // client imports the modules whose names it uses and gets their foundations with them, as TUIkitView
-        // and TUIkitImage do the lower modules their API names; TUIkitCore, TUIkitStyling, TUIkitAppKit and
-        // TUIkitMacros re-export nothing. Mixing these with `TUIkit` in one
+        // and TUIkitImage do the lower modules their API names; TUIkitCore, TUIkitStyling, TUIkitAppKit,
+        // TUIkitFilePanelsAppKit and TUIkitMacros re-export nothing. Mixing these with `TUIkit` in one
         // app is safe: each module is linked into it once. What is not: a `.dynamic` library product of the
         // client's own built from TUIkit while an app also links a TUIkit product statically (two copies of
         // the shared modules with SwiftPM's native build system; Swift Build turns them into dynamic
@@ -147,6 +147,10 @@ let package = Package(
         // A module of its own so that nothing TUIkit is built from imports
         // AppKit — see Sources/TUIkitAppKit/Exports.swift.
         .library(name: "TUIkitAppKit", targets: ["TUIkitAppKit"]),
+        // TUIkitFilePanelsAppKit: `fileDialogSystemIcons()`, the file panels drawn with the Finder's icons. Opt-in
+        // like TUIkitAppKit, and a module of its own so that TUIkitAppKit does not depend on TUIkitFilePanels
+        // (decisions A-FP2-1).
+        .library(name: "TUIkitFilePanelsAppKit", targets: ["TUIkitFilePanelsAppKit"]),
 
         // ── SwiftUI's `@Animatable` and `@Entry` macros, opt-in (decisions A52) ─────────────────────────
         // A product of their own, so that only an app that depends on it builds
@@ -642,13 +646,22 @@ let package = Package(
         // umbrella, which only the apps and the tests depend on: since step
         // B5c TUIkitBitmaps too, whose bitmap path an image made from a
         // `CGImage` or an `NSImage`, or a compiled asset catalogue's, draws
-        // through; and since 2026-10-24 TUIkitFilePanels, whose items
-        // `fileDialogSystemIcons()` draws with NSWorkspace's icons (decisions
-        // A-FP2-1, the owner's option 2: the panels stay free of AppKit and
-        // of the image modules).
+        // through.
         .target(
             name: "TUIkitAppKit",
-            dependencies: ["TUIkitBitmaps", "TUIkitFilePanels", "TUIkitFoundation", "TUIkitImage"],
+            dependencies: ["TUIkitBitmaps", "TUIkitFoundation", "TUIkitImage"],
+            swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
+        ),
+
+        // `fileDialogSystemIcons()`: the file panels' items drawn with NSWorkspace's icons (decisions A-FP2-1, the
+        // owner's option 2, 2026-10-24). A module of its own, on TUIkitAppKit and TUIkitFilePanels, because in
+        // TUIkitAppKit it made that depend on the file panels (and through them the lists, tables, pickers and
+        // presentation modules): an app on TUIkitApp and TUIkitAppKit using only `Color(nsColor:)` grew 29.3%. Opt-in
+        // like TUIkitAppKit, which it is imported beside; nothing but the tests depends on it, and the umbrella does
+        // not re-export it. Empty off Apple platforms.
+        .target(
+            name: "TUIkitFilePanelsAppKit",
+            dependencies: ["TUIkitAppKit", "TUIkitBitmaps", "TUIkitFilePanels", "TUIkitFoundation"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
@@ -754,7 +767,7 @@ let package = Package(
             name: "TUIkitAppKitTests",
             dependencies: [
                 "TUIkitApp", "TUIkitAppKit", "TUIkitAppTestSupport", "TUIkitBitmaps", "TUIkitBitmapsTestSupport",
-                "TUIkitCore", "TUIkitFilePanels", "TUIkitFoundation", "TUIkitImage", "TUIkitTestSupport",
+                "TUIkitCore", "TUIkitFoundation", "TUIkitImage", "TUIkitTestSupport",
             ],
             exclude: ["__Fixtures__"]
         ),
@@ -904,6 +917,13 @@ let package = Package(
                 "TUIkitApp", "TUIkitAppTestSupport", "TUIkitCore", "TUIkitFoundation", "TUIkitLists",
                 "TUIkitListsTestSupport", "TUIkitStyling", "TUIkitTables", "TUIkitTablesTestSupport",
                 "TUIkitTestSupport", "TUIkitView",
+            ]
+        ),
+        .testTarget(
+            name: "TUIkitFilePanelsAppKitTests",
+            dependencies: [
+                "TUIkitAppTestSupport", "TUIkitCore", "TUIkitFilePanels", "TUIkitFilePanelsAppKit", "TUIkitFoundation",
+                "TUIkitTestSupport",
             ]
         ),
         .testTarget(

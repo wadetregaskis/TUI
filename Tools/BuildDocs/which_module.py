@@ -40,7 +40,7 @@ what follows it there (a note for a reader of an ungenerated copy) is replaced b
 
 Every library product's module must contribute a row, or the graphs did not cover it and the script fails, except a
 module named with --allow-empty: one that declares nothing on the platform the docs are built on. build-docs.sh
-names TUIkitAppKit off Apple platforms, since all of it is `#if canImport(AppKit)`.
+names TUIkitAppKit and TUIkitFilePanelsAppKit off Apple platforms, since all of each is `#if canImport(AppKit)`.
 
 --verify-rendered checks that DocC's render JSON of the page (`data/documentation/tuikit/moduleindex.json` in the
 archive) is the generated index, not the template: that it holds the generated summary line, and a table under the

@@ -373,7 +373,7 @@ For complete documentation, see the [Localization Guide](https://github.com/wade
 
 ## Architecture
 
-- **Modular package**: 33 Swift library modules, a macro plugin and 1 in-tree C target, offered as 30 library products: the `TUIkit` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIkitAppKit` and `TUIkitMacros` ([Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md); Project Structure below)
+- **Modular package**: 34 Swift library modules, a macro plugin and 1 in-tree C target, offered as 31 library products: the `TUIkit` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIkitAppKit`, `TUIkitFilePanelsAppKit` and `TUIkitMacros` ([Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md); Project Structure below)
 - **Per-app state**: every app owns its render state — whether a frame is owed, and the transaction the change behind it was made under — and its views' `@State` and `@Observable` changes reach it through the render cache the app draws with, so two apps in one process never take each other's frames; application state flows through the Environment system. Still process-wide: the localization service (`LocalizationService.shared`), the notification queue (`NotificationService.current`) and the default `@AppStorage` store (`StorageDefaults.backend`)
 - **Pure ANSI rendering**: no ncurses runtime dependency; the only C is the bundled `stb_image` decoder, and only as the fallback where ImageIO is unavailable (selected via `canImport(ImageIO)`, not a hard-coded platform list)
 - **Linux compatible**: works on macOS and Linux (XDG paths supported)
@@ -405,10 +405,13 @@ Sources/
 │                         image loading — ImageIO on Apple, else stb_image
 │                         (depends on CSTBImage + TUIkitStyling)
 ├── TUIkitAppKit/         Bridges to AppKit: Color(nsColor:), NSColor(_:),
-│                         Image(nsImage:), the file panels' fileDialogSystemIcons()
-│                         — the ONE module that imports AppKit, so that
+│                         Image(nsImage:) — the module that imports AppKit, so that
 │                         SwiftUICore (which AppKit imports) never reaches an app that
 │                         imports only TUIkit. Empty off Apple platforms.
+├── TUIkitFilePanelsAppKit/ The file panels' fileDialogSystemIcons(): NSWorkspace's
+│                         icons (the second module that imports AppKit; a module of
+│                         its own so that TUIkitAppKit does not link the file panels).
+│                         Empty off Apple platforms.
 ├── TUIkit/               The umbrella: Exports.swift (re-exports, no code), and TUIkit.docc/ (DocC)
 │
 │   The framework's sources, one directory per module of the planned split
