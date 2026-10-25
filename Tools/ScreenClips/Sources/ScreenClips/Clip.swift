@@ -143,7 +143,6 @@ struct Shot: Encodable {
     var over: Double = 0
 }
 
-/// A clip: an app that draws the capability, and the script that shows it off.
 /// A move of the drawn pointer: `press`, `drag`, `release` or `move` (no
 /// button), at a 1-based cell, at an instant on the script's clock.
 struct PointerEvent: Encodable {
@@ -153,6 +152,7 @@ struct PointerEvent: Encodable {
     let kind: String
 }
 
+/// A clip: an app that draws the capability, and the script that shows it off.
 struct Clip {
     /// The name the clip is run and saved by (`theming` → `theming.webp`).
     let id: String
@@ -200,7 +200,6 @@ struct Clip {
         return keys
     }
 
-    /// What the encoder needs to know about this clip, as JSON.
     /// Where the pointer is sent, on the script's clock, for the encoder to
     /// draw: every SGR mouse report the script types (a press, a motion, a
     /// release), and every `.point`. Cells are 1-based, as the reports count.
@@ -223,6 +222,7 @@ struct Clip {
         return events
     }
 
+    /// What the encoder needs to know about this clip, as JSON.
     var framingJSON: String {
         struct Key: Encodable { let at: Double; let shot: Shot }
         struct Framing: Encodable {
@@ -245,5 +245,5 @@ struct Clip {
 @MainActor
 let clips: [Clip] = [
     mixerClip, unicodeClip, imagesClip, glyphsClip, tablesClip, materialsClip, dragDropClip, themingClip, animationClip,
-    progressClip, menusClip, textEditClip, navigationClip, controlsClip, searchClip, todoClip,
+    stylesClip, tracksClip, menusClip, textEditClip, navigationClip, controlsClip, searchClip, todoClip,
 ]
