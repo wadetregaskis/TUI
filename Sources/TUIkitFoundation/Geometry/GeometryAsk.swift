@@ -184,9 +184,10 @@ package final class GeometryAsk: @unchecked Sendable {
             if needsSize { told[space]?.usedSize = true }
             return known.observation
         }
-        let answer = predictedAnswer(in: space) ?? coordinator?.keptObservation(for: id, in: space)
+        var owner = OwnerSearch.notSearched
+        let answer = predictedAnswer(in: space, owner: &owner) ?? coordinator?.keptObservation(for: id, in: space)
         note(answer, in: space, needsSize: needsSize)
-        armEffects(for: space)
+        armEffects(for: space, owner: owner)
         return answer
     }
 
@@ -196,17 +197,36 @@ package final class GeometryAsk: @unchecked Sendable {
     /// be wrong, so that owner may draw it again, and what the views drawn
     /// from here on do waits until the drawing is kept (decisions B-D5G-4).
     /// An answer this walk's owner found is never wrong, and arms nothing.
-    private func armEffects(for space: CoordinateSpace) {
+    ///
+    /// The owner is the one the prediction just looked for (`owner`), so the
+    /// chain is walked again only where the prediction stopped short of it.
+    /// Comparing spaces is not cheap — a name is an `AnyHashable` — and a
+    /// second walk per reader cost a Stress `geometry` frame 0.7%.
+    private func armEffects(for space: CoordinateSpace, owner: OwnerSearch) {
         guard let effectStage, effectStage.depth > 0, space != .local else { return }
-        var scope = owners
-        while let owner = scope {
-            if owner.spaces.contains(space) {
-                effectStage.arm(atDepth: owner.effectDepth)
-                return
+        switch owner {
+        case .found(let depth): effectStage.arm(atDepth: depth)
+        case .none: effectStage.arm(atDepth: 1)
+        case .notSearched:
+            var scope = owners
+            while let owner = scope {
+                if owner.spaces.contains(space) {
+                    effectStage.arm(atDepth: owner.effectDepth)
+                    return
+                }
+                scope = owner.parent
             }
-            scope = owner.parent
+            effectStage.arm(atDepth: 1)
         }
-        effectStage.arm(atDepth: 1)
+    }
+
+    /// What ``predictedAnswer(in:owner:)`` found of the owner of a space: the
+    /// effect-stage depth of its drawing, none around the view (the scene root
+    /// answers), or nothing, where it stopped before looking all the way.
+    private enum OwnerSearch {
+        case notSearched
+        case found(effectDepth: Int)
+        case none
     }
 
     /// Notes what the view was told about `space` the first time it asked.
@@ -225,6 +245,13 @@ package final class GeometryAsk: @unchecked Sendable {
     /// origin), and last frame's answer as it stands when last frame made
     /// none to take a residual from.
     private func predictedAnswer(in space: CoordinateSpace) -> GeometryObservation? {
+        var owner = OwnerSearch.notSearched
+        return predictedAnswer(in: space, owner: &owner)
+    }
+
+    /// ``predictedAnswer(in:)``, noting in `owner` what it found of the
+    /// space's owner on the way, for ``armEffects(for:owner:)``.
+    private func predictedAnswer(in space: CoordinateSpace, owner found: inout OwnerSearch) -> GeometryObservation? {
         guard let origin, space != .local else { return nil }
         // The owner of the space is the nearest scope around the view that
         // declares it; past them all, the scene root, which answers `.global`
@@ -234,14 +261,19 @@ package final class GeometryAsk: @unchecked Sendable {
         var ownerSize: CellSize?
         var ownerAxis: Axis?
         var scope = owners
+        found = .none
         while let owner = scope {
             if owner.spaces.contains(space) {
                 ownerOrigin = owner.origin
                 ownerSize = owner.size
                 ownerAxis = owner.scrollAxis
+                found = .found(effectDepth: owner.effectDepth)
                 break
             }
-            if owner.startsReference { return nil }
+            if owner.startsReference {
+                found = .notSearched
+                return nil
+            }
             scope = owner.parent
         }
         let predicted = CellPoint(x: origin.x - ownerOrigin.x, y: origin.y - ownerOrigin.y)

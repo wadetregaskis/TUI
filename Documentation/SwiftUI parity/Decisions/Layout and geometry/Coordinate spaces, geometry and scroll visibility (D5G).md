@@ -194,7 +194,13 @@ sits in the walk.
 **Price.** On the common path (no reader, or a reader predicted right) a
 drawing's opening and keeping is a depth count, arming a comparison, and a
 view tests one flag on the frames it acts; the one closure an action needs is
-made only when it acts. Profiled in the commit that shipped it.
+made only when it acts. Profiled (release Stress, 8 s Time Profiler,
+2026-10-24): `RenderWalkCheckpoint.init`, which now opens the drawing, is at
+most 12 ms of 24 s in `kitchensink`; in `geometry`, whose scroll transitions
+are readers told an answer every frame, arming is 1 ms of 7.9 s, once it
+reuses the owner the prediction found (it was 0.7% while it walked the owner
+chain a second time); nothing of the stage shows in `scrollfollow` or
+`preferences`. A/B timings are owed.
 
 ### B-D5G-5. `CellRect` gains `minX`, `minY`, `origin` and `size` — and still no `midX`/`midY`
 
