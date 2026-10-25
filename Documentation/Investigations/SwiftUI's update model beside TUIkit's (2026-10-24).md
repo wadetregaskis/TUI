@@ -693,7 +693,7 @@ The reasons:
   <https://rensbr.eu/blog/swiftui-attribute-graph/>
 - [C] Chris Eidhof (objc.io), *Attribute graph* (talk, 2025-07-01) and notes: dependencies rather than
   structure, layout computers producing geometry without re-running bodies, display lists as a preference,
-  mark-dirty and pull-on-demand. He calls these "educated guesses", based on a paper on one-way constraint
+  mark-dirty and pull-on-demand. The talk calls these "educated guesses", based on a paper on one-way constraint
   evaluation. <https://chris.eidhof.nl/presentations/attribute-graph/>,
   <https://chris.eidhof.nl/note/attribute-graph-implementations>
 - [M] TUIkit's own SwiftUI probes, `Tools/SwiftUIProbes/Coordinate spaces and scroll visibility (D5G)/` and
