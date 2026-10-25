@@ -701,9 +701,9 @@ extension AppRunner {
     }
 
     /// What the exit writes before the terminal leaves the alternate screen:
-    /// the image deletes, and then a copy made in the last moments — a Ctrl-C
-    /// and then `q` before a frame drew — which is still owed to the terminal's
-    /// clipboard; likewise attention asked for on the way out
+    /// the image deletes and the hairlines' strips, and then a copy made in
+    /// the last moments — a Ctrl-C and then `q` before a frame drew — which is
+    /// still owed to the terminal's clipboard; likewise attention asked for on the way out
     /// (`requestAttention("Done")` and then `dismiss()`), which no frame would
     /// write; and what the app set on the terminal emulator, given back.
     ///
@@ -711,7 +711,8 @@ extension AppRunner {
     /// caller is the exit's cleanup, which hands back the console.
     func exitFarewell(renderer: RenderLoop<A>) -> String {
         let attention = renderer.attentionWrites()
-        return tuiContext.terminalImageStore.takePending() + tuiContext.clipboardWriter.takePendingSequences()
+        return tuiContext.terminalImageStore.takePending() + renderer.handBackHairlines()
+            + tuiContext.clipboardWriter.takePendingSequences()
             + attention.notifications + attention.bell + renderer.handBackHostState()
     }
 }
@@ -931,9 +932,11 @@ extension AppRunner {
         // The styling reset first: a frame may have ended with styling in
         // force, and leaving the alternate screen does not restore SGR. The
         // shell's window title back with it; the first frame after the resume
-        // sets the app's again.
+        // sets the app's again. The hairlines' strips go too: iTerm2 shows a
+        // line left on the alternate screen on the shell's (`HairlineLayer`).
         terminal.handBack(
-            farewell: renderer.handBackHostState(), restoringStyling: renderer.restoreTerminalStyling)
+            farewell: renderer.handBackHairlines() + renderer.handBackHostState(),
+            restoringStyling: renderer.restoreTerminalStyling)
         // The shell's screen is back, so held soft-trap reports can be read there.
         SoftTrap.terminalRestored()
         // Our own resume delivers a SIGCONT too; the repaint is already

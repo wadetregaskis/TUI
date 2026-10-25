@@ -82,6 +82,7 @@ extension TerminalClient {
     public static func applyGraphicsSupport() {
         KittyGraphics.isSupported = graphicsSupported
         KittyGraphics.isCompressionSupported = graphicsCompressionSupported
+        KittyGraphics.isHairlineSupported = hairlinesSupported
     }
 
     /// Whether the terminal painting this app's output will place an image in
@@ -127,6 +128,63 @@ extension TerminalClient {
         }
     }
 
+    /// Force whether `.hairline` list separators are drawn, whatever the
+    /// measured table says: `true` to try them on a host nobody has measured
+    /// (kitty, WezTerm) or one left out (iTerm2, whose pixel unit is unknown),
+    /// `false` to keep a list's separators the rule lines of their own they
+    /// are everywhere else.
+    ///
+    /// The same three-way ladder as ``graphicsSupport``: this, then
+    /// `TUIKIT_HAIRLINES` (`1` or `0`), then the table of measured hosts
+    /// (``hairlinesSupported``).
+    @MainActor public static var hairlineSupport: Bool? {
+        didSet {
+            guard hairlineSupport != oldValue else { return }
+            applyGraphicsSupport()
+        }
+    }
+
+    /// Whether the terminal reported its cell's size in pixels when the app
+    /// started, which a hairline's crop is counted in. `nil` until asked.
+    @MainActor public private(set) static var detectedCellPixels: Bool?
+
+    /// Whether this terminal draws `.hairline` list separators — a Kitty
+    /// classic placement along the boundary between two rows, taking no row —
+    /// the override, then the environment, then the hosts measured to draw one.
+    ///
+    /// Read through ``TerminalClient/current`` rather than ``effective``, as
+    /// ``graphicsSupported`` is: a simulated host changes the compensations,
+    /// not what the terminal in front of the user can draw.
+    @MainActor public static var hairlinesSupported: Bool {
+        hairlinesSupported(
+            override: hairlineSupport, environment: ProcessInfo.processInfo.environment,
+            graphics: graphicsSupported, program: current.program, reportsCellPixels: detectedCellPixels ?? false)
+    }
+
+    /// The ladder behind ``hairlinesSupported``, posed on its inputs.
+    ///
+    /// The table is ONE host: Ghostty, measured on 1.3.1 to draw the line on
+    /// the boundary, keep it through every rewrite TUIkit sends, delete it by
+    /// id and hold it still at 60 Hz (`hairline_probe.py`, 2026-10-08). And
+    /// only where the startup handshake said it places pictures, so a Ghostty
+    /// that has them turned off is left alone, and where the terminal reported
+    /// its cell's pixels, which the line's length is counted in. iTerm2 3.7.3
+    /// drew the line too, in a pixel unit no query revealed, so a line there
+    /// ends short of its row; kitty and WezTerm are unmeasured; Konsole hides
+    /// the layer the line needs. Each is one `TUIKIT_HAIRLINES=1` away from
+    /// being tried. See `Documentation/Terminals/Terminal compatibility survey.md`.
+    static func hairlinesSupported(
+        override: Bool?, environment: [String: String], graphics: Bool, program: Program,
+        reportsCellPixels: Bool
+    ) -> Bool {
+        if let override { return override }
+        switch environment["TUIKIT_HAIRLINES"] {
+        case "1": return true
+        case "0": return false
+        default: return graphics && program == .ghostty && reportsCellPixels
+        }
+    }
+
     /// Runs the startup handshake, if its answer is not already known, and
     /// publishes the result.
     ///
@@ -140,6 +198,7 @@ extension TerminalClient {
     @MainActor
     static func detectGraphics(using terminal: Terminal) {
         defer { applyGraphicsSupport() }
+        detectedCellPixels = terminal.cellPixelSize() != nil
         guard graphicsSupport == nil else { return }
         let forced = ProcessInfo.processInfo.environment["TUIKIT_GRAPHICS"]
         guard forced != "1", forced != "0" else { return }

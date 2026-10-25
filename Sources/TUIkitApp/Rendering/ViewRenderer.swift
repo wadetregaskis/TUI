@@ -218,7 +218,12 @@ extension ViewRenderer {
             // newline in user data would otherwise move the cursor here, as it
             // cannot in an `App`) and the host's cursor-advance compensation.
             // This is a second write boundary, and it used to skip the first.
-            terminal.write(writer.compensatingCursorAdvance(line.sanitizedForTerminalRow()))
+            // And without a hairline's mark (`HairlineMarker`), which a list
+            // makes on a host that draws hairlines: a one-off render places no
+            // lines, so the mark only has to go.
+            var sanitized = line.sanitizedForTerminalRow()
+            if KittyGraphics.isHairlineSupported { sanitized = HairlineMarker.stripping(sanitized) }
+            terminal.write(writer.compensatingCursorAdvance(sanitized))
             // Styled bytes this writer did not plan, so its belief about what
             // the terminal is wearing no longer holds — see
             // ``FrameDiffWriter/terminalStyle``.

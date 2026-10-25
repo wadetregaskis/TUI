@@ -1566,9 +1566,10 @@ extension RenderCache: RenderInvalidationSink {
 extension RenderCache {
     /// What a render reads from process-wide answers and bakes into what it
     /// draws: the colour depth, which decides how every colour is spelled and
-    /// how a blend is quantised; and whether the terminal takes OSC 8 links and
+    /// how a blend is quantised; whether the terminal takes OSC 8 links and
     /// Kitty pictures, which decide whether a `Link` emits one and whether a
-    /// picture is placed or drawn in glyphs.
+    /// picture is placed or drawn in glyphs; and whether it draws hairlines,
+    /// which decides whether a list's separator takes a row of its own.
     ///
     /// None has a generation, and each can change while an app runs — a
     /// runtime `ColorDepth.cap`, a diagnostic override — or for one task, under
@@ -1578,19 +1579,22 @@ extension RenderCache {
     /// answers, pins included, and clears everything when they moved.
     ///
     /// Links and pictures are a margin today — both renders declare side
-    /// effects, so neither is ever stored — kept because four reads a pass is
+    /// effects, so neither is ever stored — kept because five reads a pass is
     /// nothing, and a memo that could hold one some day would otherwise
-    /// inherit the hole.
+    /// inherit the hole. Hairlines are not a margin: the answer changes what a
+    /// list's separator costs, a row or none, in rows a memo does store.
     struct RenderedUnder: Equatable {
         var colorDepth: ColorDepth
         var hyperlinks: Bool
         var pictures: Bool
         var compressedPictures: Bool
+        var hairlines: Bool
 
         static var now: Self {
             Self(
                 colorDepth: ColorDepth.current, hyperlinks: TerminalHyperlink.isSupported,
-                pictures: KittyGraphics.isSupported, compressedPictures: KittyGraphics.isCompressionSupported)
+                pictures: KittyGraphics.isSupported, compressedPictures: KittyGraphics.isCompressionSupported,
+                hairlines: KittyGraphics.isHairlineSupported)
         }
     }
 }

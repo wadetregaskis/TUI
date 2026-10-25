@@ -201,6 +201,11 @@ internal final class RenderLoop<A: App> {
     /// The diff writer that tracks previous frames and writes only changed lines.
     let diffWriter = FrameDiffWriter()
 
+    /// The lines `.hairline` list separators draw, as the terminal holds them
+    /// (`RenderLoop+Hairlines.swift`). Idle, and never asked, on a host that
+    /// draws none.
+    let hairlines = HairlineLayer(z: HairlineLayer.z(for: TerminalClient.current.program))
+
     /// The push-refreshed emoji-chrome answer (see ``ClientCapabilityRefresher``):
     /// seeded synchronously before the first frame, re-probed asynchronously
     /// when the tmux client-change hooks (or a real resize) send a SIGWINCH,
@@ -771,6 +776,10 @@ extension RenderLoop {
 
     func invalidateDiffCache() {
         diffWriter.invalidate()
+        // The screen is thrown away, so what the hairline layer says is on it
+        // is not to be trusted either: its strips go, and every line is placed
+        // again by the next frame.
+        hairlines.invalidate()
         // A SIGWINCH is also our signal that the tmux CLIENT may have changed —
         // either a real resize (attaching from a different-sized terminal), or
         // the synthetic one our tmux hooks send for a SAME-size attach/detach
@@ -1078,6 +1087,9 @@ extension RenderLoop {
         // joins this frame's single write rather than issuing one of its own.
         let graphics = tuiContext.terminalImageStore.takePending()
         if !graphics.isEmpty { terminal.write(graphics) }
+        // The hairlines' strips, and the deletes an invalidation owes, with the
+        // other images: they draw nothing.
+        let hairlinesPrepared = prepareHairlines(environment: environment, terminalWidth: terminalWidth)
 
         // Copies owed to the terminal's clipboard (OSC 52), made between frames
         // by a key or a release. They draw nothing and move no cursor, so they
@@ -1108,10 +1120,12 @@ extension RenderLoop {
             bgCode: backgroundCodes.content,
             reset: reset
         )
+        // The lines, after the cells they run along, inside the same hold.
+        let placedHairlines = hairlinesPrepared && hairlines.place(on: terminal, startRow: 1)
         parkCursor(
             at: insertionPointOnScreen(
                 in: buffer.hitTestRegions, width: terminalWidth, height: outputLines.count),
-            afterWriting: wrote)
+            afterWriting: wrote || placedHairlines)
 
         // Keep what an animation tick would need to patch: the lines actually on
         // screen, the runs composited into absolute positions, and the geometry
