@@ -41,6 +41,7 @@ topic's folder, or starts one when a second summary shares its topic.
 | Terminal graphics: [Thin lines between rows with Kitty graphics](<Thin lines between rows with Kitty graphics.md>) (2026-10-08) | feasible on Ghostty and iTerm2; the prototype waits to be scheduled | `KGP` |
 | Linux toolchain: [GNU ld RWX LOAD segment warning on Linux aarch64](<GNU ld RWX LOAD segment warning on Linux aarch64.md>) (2026-10-23) | documented; workaround via `-Xlinker -z -Xlinker separate-code` | none |
 | Architecture: [SwiftUI's update model beside TUIkit's](<SwiftUI's update model beside TUIkit's (2026-10-24).md>) (2026-10-24) | open: recommends keeping the walk and converging effects before a frame is written; awaits the SwiftUI effect-ordering probe | none |
+| SwiftUI behaviour: [SwiftUI's update and effect ordering, measured](<SwiftUI's update and effect ordering, measured (2026-10-24).md>) (2026-10-24) | measured to inform TUIkit's update loop; no decision yet | none |
 
 ### Decided (`Historical/Investigations/`)
 
