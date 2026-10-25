@@ -177,7 +177,11 @@ struct Player {
     private func calibrate(size: winsize) {
         let rows = Int(size.ws_row), columns = Int(size.ws_col)
         let paint = "\u{1B}[48;5;201m \u{1B}[0m"
-        let card = "\u{1B}[?25l\u{1B}[2J\u{1B}[2;2H\(paint)\u{1B}[\(rows - 1);\(columns - 1)H\(paint)"
+        // On the alternate screen, as the app will be: Warp draws a command
+        // block's header over the top rows of the primary screen (where the
+        // first cell would be), and gives a program on the alternate screen
+        // the whole window.
+        let card = "\u{1B}[?1049h\u{1B}[?25l\u{1B}[2J\u{1B}[2;2H\(paint)\u{1B}[\(rows - 1);\(columns - 1)H\(paint)"
         writeAll(STDOUT_FILENO, Array(card.utf8))
         let deadline = Self.now() + Self.nanoseconds(20)
         while Self.now() < deadline, !markersSay("filming") { usleep(50_000) }
