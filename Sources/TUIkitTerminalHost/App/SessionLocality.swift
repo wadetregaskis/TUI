@@ -174,18 +174,37 @@ package enum SessionLocality {
     /// the kernel only.
     package static func isLocal() -> Bool {
         #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
-        let environment = ProcessInfo.processInfo.environment
-        let inTmux = TerminalHost.isTmux
-        let ownChain = ProcessAncestry.ownCommandNames()
-        let clientChains = inTmux && ownChain != nil ? tmuxClients()?.map { $0.chain?.map(\.name) } : nil
+        let inputs = Inputs.current()
         return isLocal(
-            environment: environment, ownChain: ownChain, tmuxClientChains: clientChains, inTmux: inTmux)
+            environment: inputs.environment, ownChain: inputs.ownChain, tmuxClientChains: inputs.tmuxClientChains,
+            inTmux: inputs.inTmux)
         #else
             // No processes to walk, so no positive evidence, so not local: a
             // wasm guest has none and no helper to run — the machine it runs
             // on is a browser page's sandbox — and Windows has no ancestry
             // walk here (``ProcessAncestry/ownCommandNames()``).
             return false
+        #endif
+    }
+
+    /// What the decision is posed on, for this process, now
+    /// (``isLocal(environment:ownChain:tmuxClientChains:inTmux:)``'s
+    /// parameters). Inside tmux, reading it asks tmux for its clients.
+    struct Inputs {
+        var environment: [String: String]
+        var ownChain: [String]?
+        var tmuxClientChains: [[String]?]?
+        var inTmux: Bool
+
+        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
+            static func current() -> Self {
+                let inTmux = TerminalHost.isTmux
+                let ownChain = ProcessAncestry.ownCommandNames()
+                let clientChains = inTmux && ownChain != nil ? tmuxClients()?.map { $0.chain?.map(\.name) } : nil
+                return Self(
+                    environment: ProcessInfo.processInfo.environment, ownChain: ownChain,
+                    tmuxClientChains: clientChains, inTmux: inTmux)
+            }
         #endif
     }
 
