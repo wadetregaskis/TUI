@@ -153,7 +153,8 @@ close_ghostty() {
 #  - Terminal.app opens a new window in the background, sized by the script (ESC[8;rows;cols t). Its default
 #    profile keeps the window open once the script ends ("[Process completed]"), and with Apple Events refused there
 #    is no closing it from here: it stays, behind, for the owner to close.
-#  - iTerm2 opens a new window but brings itself to the front (`-g` or not), and refuses the resize (its profile's
+#  - iTerm2 opens a new window — or, with a window open already, a new tab in it (2026-10-25) — but brings itself to
+#    the front (`-g` or not), and refuses the resize (its profile's
 #    "Disable session-initiated window resizing"), so the window is the profile's size. It closes the window itself
 #    when the script ends.
 #  - Warp brings itself to the front and opens the script as a new TAB of the window it already has, not a window of
@@ -170,7 +171,9 @@ open_shared() {  # $1: app name for `open -a`, $2: process name
         sleep 0.1
     done
     which_window=(--title "TUIkit · $title|$run/play.command|${run:t}/play.command")
-    [[ $2 == stable || -z $before ]] || which_window+=(--exclude $before)  # Warp films the window it already had
+    # Warp, and iTerm2 when it already has a window, open the script as a tab of a window they had: that window is
+    # filmed, found by the title the script sets, so it must not be excluded.
+    [[ $2 == stable || $2 == iTerm2 || -z $before ]] || which_window+=(--exclude $before)
 }
 open_iterm() { open_shared iTerm iTerm2 }
 open_apple() { open_shared Terminal Terminal }

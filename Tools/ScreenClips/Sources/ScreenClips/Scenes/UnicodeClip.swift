@@ -17,7 +17,9 @@ let unicodeClip = Clip(
     title: "Unicode",
     columns: 80,
     rows: 24,
-    carousel: ["ghostty", "iterm", "apple", "warp"],
+    // Warp leaves for now: it shows the script as a command block whose header covers the top-left calibration
+    // cell, so the encoder cannot find the grid (2026-10-25).
+    carousel: ["ghostty", "iterm", "apple"],
     output: 800,
     script: unicodeScript(),
     run: { await UnicodeApp.main() }
