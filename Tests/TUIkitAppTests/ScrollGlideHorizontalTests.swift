@@ -13,6 +13,7 @@
 import Testing
 
 @testable import TUIkitApp
+@testable import TUIkitAppTestSupport
 @testable import TUIkitCore
 @testable import TUIkitFoundation
 @testable import TUIkitTestSupport
