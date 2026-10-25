@@ -458,7 +458,7 @@ struct CoordinateSpaceTests {
         #expect(counted.last == 1)
     }
 
-    @Test("Known issue: an onChange inside a corrected subtree hears the first drawing's answer too")
+    @Test("An onChange inside a corrected subtree hears only the kept drawing: a reader's first frame fires nothing")
     func correctedSubtreeSideEffects() {
         let seen = Seen()
         let harness = InputChainHarness()
@@ -475,12 +475,13 @@ struct CoordinateSpaceTests {
         .coordinateSpace(.named("s"))
         harness.frame(view)
         // SwiftUI fires nothing on a first appearance. The corrected frame's
-        // first drawing stored the prediction, which the second drawing's value
-        // differs from — the known issue the app header's correction had
-        // (`RenderWalkCheckpoint`), scoped to the subtree.
-        withKnownIssue("a correction re-runs the subtree's onChange against the first drawing") {
-            #expect(seen.changes.isEmpty)
-        }
+        // first drawing stored the prediction; the correction puts it back
+        // with the rest of what that drawing did (`EffectStage`), so the
+        // second drawing's answer is the first value tracked (B-D5G-4).
+        #expect(harness.geometryCorrections.named == 1)
+        #expect(seen.changes.isEmpty)
+        harness.frame(view)
+        #expect(seen.changes.isEmpty)
     }
 
     // MARK: - onGeometryChange

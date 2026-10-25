@@ -755,6 +755,12 @@ extension RenderLoop {
         // they are before anything is drawn — when there are readers.
         context = context.carryingGeometryRootOrigin()
         let reservation = windowChrome.reservation
+        // The walk may be walked again, below, so what its views do once a
+        // reader has been told an answer — an `onChange` action — waits
+        // until the walk drawn is known, and only the kept walk's runs
+        // (decisions B-D5G-4).
+        let effects = ProvisionalEffects(stateStorage: tuiContext.stateStorage)
+        defer { effects.keep() }
         var frame = renderScene(scene, context: context.withChildIdentity(type: type(of: scene)))
 
         // The scene root owns `.global` — the screen, which the frame is, with
@@ -767,6 +773,9 @@ extension RenderLoop {
         let size = CellSize(width: terminalWidth, height: terminalHeight)
         if geometry.resolveRemaining(in: frame, size: size) {
             geometry.noteCorrection(.root)
+            // What the first walk did is not done; the second walk's views
+            // decide again from what the frame began with.
+            effects.discard()
             // Laid out against the rows the first walk was, which its settling
             // may have changed for the NEXT frame — and settled again from them.
             windowChrome.reservation = reservation

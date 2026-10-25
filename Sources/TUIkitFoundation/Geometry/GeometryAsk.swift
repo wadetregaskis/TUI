@@ -102,6 +102,12 @@ package final class GeometryAsk: @unchecked Sendable {
     /// memo keys on — see ``observation(in:)``.
     private let tracker: VolatileReadTracker?
 
+    /// Where the views drawn after a reader is told an answer that could be
+    /// wrong hold back what they do, until its owner keeps the drawing
+    /// (``EffectStage``) — `nil` for any role but ``Role/reader``, whose
+    /// answers alone are corrected.
+    private let effectStage: EffectStage?
+
     /// Whether the view is rendering, and so whether what it asks is recorded.
     private(set) var isRecording: Bool
 
@@ -136,7 +142,7 @@ package final class GeometryAsk: @unchecked Sendable {
 
     init(
         id: HitTestRegion.HandlerID, identity: ViewIdentity, role: Role, coordinator: GeometryCoordinator,
-        tracker: VolatileReadTracker?, origin: (x: Int, y: Int)? = nil
+        tracker: VolatileReadTracker?, effectStage: EffectStage? = nil, origin: (x: Int, y: Int)? = nil
     ) {
         self.id = id
         self.identity = identity
@@ -146,6 +152,7 @@ package final class GeometryAsk: @unchecked Sendable {
         self.anchorScope = coordinator.anchorScope
         self.owners = coordinator.ownerScope
         self.origin = role == .reader ? origin.map { CellPoint(x: $0.x, y: $0.y) } : nil
+        self.effectStage = role == .reader ? effectStage : nil
         self.isRecording = true
     }
 
@@ -179,7 +186,27 @@ package final class GeometryAsk: @unchecked Sendable {
         }
         let answer = predictedAnswer(in: space) ?? coordinator?.keptObservation(for: id, in: space)
         note(answer, in: space, needsSize: needsSize)
+        armEffects(for: space)
         return answer
+    }
+
+    /// Arms the drawing of the owner that will hold this reader to what it was
+    /// just told about `space` — the nearest owner of the space, else the
+    /// scene root's walk, the outermost — on the effect stage: the answer may
+    /// be wrong, so that owner may draw it again, and what the views drawn
+    /// from here on do waits until the drawing is kept (decisions B-D5G-4).
+    /// An answer this walk's owner found is never wrong, and arms nothing.
+    private func armEffects(for space: CoordinateSpace) {
+        guard let effectStage, effectStage.depth > 0, space != .local else { return }
+        var scope = owners
+        while let owner = scope {
+            if owner.spaces.contains(space) {
+                effectStage.arm(atDepth: owner.effectDepth)
+                return
+            }
+            scope = owner.parent
+        }
+        effectStage.arm(atDepth: 1)
     }
 
     /// Notes what the view was told about `space` the first time it asked.

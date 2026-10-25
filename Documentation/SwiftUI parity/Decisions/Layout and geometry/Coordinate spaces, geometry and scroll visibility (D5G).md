@@ -106,10 +106,12 @@ root's correction, and such a reader was right only from the frame after.)
 reader in a surface is predicted and the scene is not walked again; the
 compositor's placement run before the surface's content draws. About a day.
 
-### B-D5G-4. Side effects inside a corrected subtree run for both drawings
+### B-D5G-4. Side effects inside a corrected subtree run for the kept drawing alone
 
-*every owner's correction: `coordinateSpace(_:)`, a scroll view, the root*
+*every owner's correction: `coordinateSpace(_:)`, a scroll view, a list, an
+anchor layer, the root*
 
+**Fuller version shipped (lane EFFECTS, 2026-10-24; the owner's ruling (2)).**
 A correction draws the owner's subtree once more in the same walk. The
 registrations the first drawing made are put back first
 (`RenderWalkCheckpoint`: mouse and marker ids, `onChange` indices, key
@@ -120,24 +122,68 @@ band again at the offset the frame settled on puts the same things back but
 the cache. The registries that take a second registration of the same thing
 as one — the focus ring, keyboard shortcuts, status-bar items, drop targets
 — are not put back: a view only the first drawing drew (a row of a band the
-scroll view replaced) stays registered for that frame. What
-the first drawing DID cannot be put back: an `onChange` that fired runs again
-against the first drawing's value — on a reader's first frame, an
-`.onChange(of: proxy.frame(in: …).minY)` fires once from the guess to the
-answer, where SwiftUI fires nothing (pinned as a known issue,
-`CoordinateSpaceTests.correctedSubtreeSideEffects`). It is the known issue the
-app header's correction re-render had (`RenderPassScopeTests`) until the
-window's chrome was adopted a frame late, scoped to the subtree, and made only
-as often as a reader's answer moves — which the prediction rungs (design study
-§10 steps 5–7) exist to make rarely. The scene root's correction is not scoped:
-it walks the whole scene again (`RenderLoop.renderContent`, the per-walk
-registries reset as for any walk, the window's bars laid out against the rows
-the first walk was), so on a frame a `.global` reader's prediction misses,
-every effect in the scene runs for both walks — the one walk of the scene a
-frame after the first ever repeats.
+scroll view replaced) stays registered for that frame.
 
-**Fuller version:** stage a walk's side effects and adopt only the last
-drawing's. Days, across every side-effecting modifier.
+What the first drawing would have DONE is now held back instead
+(`EffectStage`, `ProvisionalEffects`). Every drawing that may be made again —
+a checkpoint's, and the scene root's walk (`RenderLoop.renderContent`, and the
+headless and test drivers that mirror it) — is opened on the app's effect
+stage, and *armed* the moment a reader inside is told an answer that could be
+wrong (`GeometryAsk.observation(in:)`): the drawing of the owner that will
+check that reader (the nearest owner of the space it asked, else the root's
+walk) and every drawing inside it. From then until that drawing is kept, a
+view does not act: it hands its action to the stage and notes how to put back
+what it remembered in deciding to. A discarded drawing drops its actions and
+runs its undos, last first, so the drawing made in its place decides from
+what the frame began with; a kept one runs its actions in the order they were
+made. Held back, with what is put back:
+
+| Effect | Remembered state put back |
+|---|---|
+| `onChange` (views and scenes) | the compared value (`setChangedTrackedValue`) |
+
+So a reader's first frame inside a corrected subtree fires no `onChange`, as
+SwiftUI fires none (`CoordinateSpaceTests.correctedSubtreeSideEffects`). The
+other effects still act for both drawings, until they move onto the stage.
+
+**Why armed, not always.** Holding every effect back from the start of every
+drawing that may be made again was tried first: it moves every effect in
+every scroll view, list and, through the root's walk, the whole scene, to the
+end of its drawing, so a view drawn after an `onAppear` or `onChange` no longer
+sees what the action wrote in the same frame — a keyframe animator restarted
+one frame late (`AnimatorViewTests.keyframesInterrupted`), and a page that
+loads in `onAppear` would draw one frame empty. Nothing a drawing draws before
+a reader is told an answer depends on one (a measurement asks no space, and an
+answer reaches only what is drawn after it is told — the reader's content and
+what that writes), so the second drawing draws that part exactly as the first
+did, and what those views did at once they do not do again: their memories
+say so. Arming at the first answer keeps every subtree without a reader
+exactly as it was, and in one with a reader holds back only what comes after
+it, which runs once its owner keeps the drawing — the end of the owner's
+subtree, or of the scene's walk for a `.global` reader — rather than where it
+sits in the walk.
+
+**Not held back, and why:**
+
+- what an owner draws again for a reason no reader signals: a scroll view's
+  band redrawn at the offset the frame settled on, and a glass container
+  whose pieces joined otherwise than it last found. Their second drawing
+  differs from the first in which rows are drawn or how glass is painted,
+  which no effect observes; a row only the discarded band drew may still act
+  for that frame, as it may stay registered. A matched geometry effect drawn
+  again at its matched frame's size opens its drawing armed from the start,
+  since what its content does at its own size may differ.
+- the framework's own memory written while drawing (a scroll view's offset, a
+  `.task(id:)` generation, an animation's start, a keyframe animator's
+  playback): the second drawing reads what the first wrote and comes to the
+  same answer, so it is written once.
+- `onRenderPass`, instrumentation that reports every pass a view takes part
+  in: a discarded drawing is one.
+
+**Price.** On the common path (no reader, or a reader predicted right) a
+drawing's opening and keeping is a depth count, arming a comparison, and a
+view tests one flag on the frames it acts; the one closure an action needs is
+made only when it acts. Profiled in the commit that shipped it.
 
 ### B-D5G-5. `CellRect` gains `minX`, `minY`, `origin` and `size` — and still no `midX`/`midY`
 

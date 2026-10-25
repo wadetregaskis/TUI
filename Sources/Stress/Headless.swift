@@ -316,8 +316,8 @@ enum Headless {
         // `RenderLoop` carries it.
         let context = context.carryingGeometryRootOrigin()
         func walk() -> FrameBuffer {
-            let buffer = channels.settleRootGeometry(
-                renderToBuffer(view, context: context), width: cols, height: rows, stateStorage: storage
+            let buffer = channels.drawSettlingRootGeometry(
+                width: cols, height: rows, stateStorage: storage
             ) { renderToBuffer(view, context: context) }
             channels.endFrame(buffer, stateStorage: storage)
             return buffer

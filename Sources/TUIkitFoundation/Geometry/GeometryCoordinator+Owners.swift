@@ -56,9 +56,14 @@ final class GeometryOwnerScope {
     /// The owner around this one, if any.
     let parent: GeometryOwnerScope?
 
+    /// The depth on the effect stage of the drawing the owner opened for its
+    /// content (`RenderWalkCheckpoint`) — the drawing a reader told an answer
+    /// in this owner's space arms (``EffectStage/arm(atDepth:)``).
+    let effectDepth: Int
+
     init(
         spaces: [CoordinateSpace], origin: CellPoint, size: CellSize?, scrollAxis: Axis?, startsReference: Bool,
-        parent: GeometryOwnerScope?
+        parent: GeometryOwnerScope?, effectDepth: Int
     ) {
         self.spaces = spaces
         self.origin = origin
@@ -66,6 +71,7 @@ final class GeometryOwnerScope {
         self.scrollAxis = scrollAxis
         self.startsReference = startsReference
         self.parent = parent
+        self.effectDepth = effectDepth
     }
 }
 
@@ -90,7 +96,8 @@ extension GeometryCoordinator {
         let origin = contentContext.geometryOrigin ?? (0, 0)
         let scope = GeometryOwnerScope(
             spaces: spaces, origin: CellPoint(x: origin.x, y: origin.y), size: size, scrollAxis: scrollAxis,
-            startsReference: !context.carriesGeometryOrigin, parent: ownerScope)
+            startsReference: !context.carriesGeometryOrigin, parent: ownerScope,
+            effectDepth: context.stateStorage?.effectStage.depth ?? 0)
         ownerScope = scope
         return scope
     }

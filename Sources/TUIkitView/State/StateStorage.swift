@@ -293,6 +293,10 @@ public final class StateStorage: @unchecked Sendable {
     /// ``AnimationCompletionTracker``.
     public let animationCompletions = AnimationCompletionTracker()
 
+    /// The side effects of drawings the walk may still discard, held until
+    /// each is kept. See ``EffectStage``.
+    package let effectStage = EffectStage()
+
     /// The `@Environment` boxes a view value drawn this pass held resolved
     /// for another place (``noteDisplacedEnvironment(_:from:)``), by box.
     private var displacedEnvironments: [ObjectIdentifier: DisplacedEnvironment] = [:]
@@ -618,6 +622,20 @@ extension StateStorage {
         trackedValues[key] = value
     }
 
+    /// Stores `value` as ``setTrackedValue(_:for:)`` does, for a caller that
+    /// found it differs from what was tracked — and, inside a drawing that may
+    /// be discarded, notes how to put back what it replaces
+    /// (``EffectStage``): the drawing that replaces a discarded one compares
+    /// against what the frame began with. A caller whose value is unchanged
+    /// writes with ``setTrackedValue(_:for:)``, and notes nothing.
+    package func setChangedTrackedValue<V>(_ value: V, for key: StateKey) {
+        if effectStage.isStaging {
+            let prior = trackedValues[key]
+            effectStage.noteUndo { [weak self] in self?.trackedValues[key] = prior }
+        }
+        trackedValues[key] = value
+    }
+
     // MARK: - Render Pass Lifecycle
 
     /// Begins a new render pass by clearing the active identity set.
@@ -627,6 +645,7 @@ extension StateStorage {
     /// made with a view value is then taken for one made before the pass, and
     /// restarts at its defaults every frame.
     public func beginRenderPass() {
+        effectStage.beginRenderPass()
         previousPass = currentPass
         currentPass = renderPassSerials.withLock { serial in
             // Wrapping, and skipping `0`: at sixty passes a second the count

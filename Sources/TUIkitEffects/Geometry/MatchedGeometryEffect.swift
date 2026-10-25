@@ -198,7 +198,10 @@ extension _MatchedGeometryEffectView: Renderable, Layoutable {
         // Where the walk stands before the content draws, for a second drawing
         // at another size to start from — taken only where the member may be
         // drawn anywhere but its own place, which a source at rest is not.
-        let checkpoint = member.needsPlacement ? RenderWalkCheckpoint(context: context) : nil
+        // Its effects held back from the start: what the content does at its
+        // own size, the drawing at the frame's size may not do.
+        let checkpoint = member.needsPlacement ? RenderWalkCheckpoint(context: context, armsEffects: true) : nil
+        defer { checkpoint?.keep() }
         let own = TUIkitView.renderToBuffer(content, context: context)
         member.drew(size: own.cellSize)
 

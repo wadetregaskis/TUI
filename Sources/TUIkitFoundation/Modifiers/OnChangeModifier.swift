@@ -83,17 +83,26 @@ extension StateStorage {
     /// `value` twice where none is tracked yet and `initial` says so; then
     /// tracks `value` for the next pass. What `onChange(of:initial:_:)` does
     /// each pass, for a view and for a scene.
+    ///
+    /// Inside a drawing the walk may still discard, the action is held until
+    /// the drawing is kept, and what the comparison replaced is put back if it
+    /// is not (``EffectStage``): the drawing a geometry correction makes again
+    /// compares against the frame's starting value, not the first drawing's
+    /// guess — so a reader's first frame fires nothing, as SwiftUI's does.
     package func compareTrackedValue<V: Equatable>(
-        _ value: V, at key: StateKey, initial: Bool, action: (V, V) -> Void
+        _ value: V, at key: StateKey, initial: Bool, action: @escaping (V, V) -> Void
     ) {
-        if let oldValue: V = trackedValue(for: key) {
-            if oldValue != value {
-                action(oldValue, value)
-            }
-        } else if initial {
-            action(value, value)
+        guard let oldValue: V = trackedValue(for: key) else {
+            if initial { effectStage.perform { action(value, value) } }
+            setChangedTrackedValue(value, for: key)
+            return
         }
-        setTrackedValue(value, for: key)
+        guard oldValue != value else {
+            setTrackedValue(value, for: key)
+            return
+        }
+        effectStage.perform { action(oldValue, value) }
+        setChangedTrackedValue(value, for: key)
     }
 }
 

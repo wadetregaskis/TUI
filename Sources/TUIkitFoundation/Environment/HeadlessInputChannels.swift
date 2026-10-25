@@ -57,29 +57,34 @@ package final class HeadlessInputChannels {
         mouseEventDispatcher.beginRenderPass()
     }
 
-    /// Answers the frame's readers of `.global` and of names nothing declared,
-    /// as the scene root does in `RenderLoop`, and draws the frame once more
-    /// when one of them drew from a wrong answer — the root's correction.
+    /// Draws the frame, answers its readers of `.global` and of names nothing
+    /// declared, as the scene root does in `RenderLoop`, and draws the frame
+    /// once more when one of them drew from a wrong answer — the root's
+    /// correction. What the views do waits until the drawing kept is known,
+    /// as the root's does (``ProvisionalEffects``).
     ///
     /// - Parameters:
-    ///   - frame: The frame as rendered.
-    ///   - width: The width it was rendered at.
-    ///   - height: The height it was rendered at.
-    ///   - stateStorage: The storage it rendered against, whose per-walk
-    ///     counters a second walk restarts.
-    ///   - redraw: Renders the frame again.
+    ///   - width: The width the frame is rendered at.
+    ///   - height: The height it is rendered at.
+    ///   - stateStorage: The storage it renders against, whose per-walk
+    ///     counters a second walk restarts, and whose stage holds the views'
+    ///     effects.
+    ///   - draw: Renders the frame.
     /// - Returns: The frame to show.
-    package func settleRootGeometry(
-        _ frame: FrameBuffer, width: Int, height: Int, stateStorage: StateStorage?,
-        redraw: () -> FrameBuffer
+    package func drawSettlingRootGeometry(
+        width: Int, height: Int, stateStorage: StateStorage?, draw: () -> FrameBuffer
     ) -> FrameBuffer {
+        let effects = ProvisionalEffects(stateStorage: stateStorage)
+        defer { effects.keep() }
+        let frame = draw()
         let geometry = mouseEventDispatcher.geometry
         let size = CellSize(width: width, height: height)
         guard geometry.resolveRemaining(in: frame, size: size) else { return frame }
         geometry.noteCorrection(.root)
+        effects.discard()
         beginWalk()
         stateStorage?.beginSceneRender()
-        let redrawn = redraw()
+        let redrawn = draw()
         if geometry.resolveRemaining(in: redrawn, size: size) { geometry.noteResidual() }
         return redrawn
     }

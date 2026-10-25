@@ -160,8 +160,14 @@ final class InputChainHarness {
         let geometry = tui.mouseEventDispatcher.geometry
         var buffer = tui.stateStorage.inRenderPass {
             let view = view()
+            // What the views do waits for the walk kept, as
+            // `RenderLoop.renderContent` holds it: every walk but the last is
+            // discarded.
+            let effects = ProvisionalEffects(stateStorage: tui.stateStorage)
+            defer { effects.keep() }
             var buffer = renderToBuffer(view, context: frameContext)
             for _ in 1..<max(1, walks) {
+                effects.discard()
                 beginSceneRender()
                 buffer = renderToBuffer(view, context: frameContext)
             }
@@ -171,6 +177,7 @@ final class InputChainHarness {
             let size = CellSize(width: context.availableWidth, height: context.availableHeight)
             if geometry.resolveRemaining(in: buffer, size: size) {
                 geometry.noteCorrection(.root)
+                effects.discard()
                 beginSceneRender()
                 buffer = renderToBuffer(view, context: frameContext)
                 if geometry.resolveRemaining(in: buffer, size: size) { geometry.noteResidual() }

@@ -46,6 +46,7 @@ extension RenderContext {
         guard !isMeasuring, let geometry = geometryCoordinator else { return draw().buffer }
         let spaces = Self.verticalScrollerSpaces
         let checkpoint = RenderWalkCheckpoint(context: self)
+        defer { checkpoint.keep() }
         // Opened, as a scroll view opens it, only where an origin is carried
         // here for the readers inside to be predicted from.
         let scope =

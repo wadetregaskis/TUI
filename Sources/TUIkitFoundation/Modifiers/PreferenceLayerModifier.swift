@@ -73,6 +73,7 @@ extension PreferenceLayerModifier: Renderable {
             return composite(value, over: baseBuffer, context)
         }
         let checkpoint = RenderWalkCheckpoint(context: layerContext)
+        defer { checkpoint.keep() }
         // The layer's space is the base's frame, whose origin is this view's:
         // carried for the layer (started here when nothing above has), so a
         // reader is told where it is in the layer before it is drawn — at the

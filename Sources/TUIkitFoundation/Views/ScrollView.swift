@@ -639,6 +639,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // frame settles on (`coverSnappedViewport`), and a correction of a
         // reader asking this view's space (`ownScrollSpace`).
         let checkpoint = context.isMeasuring ? nil : RenderWalkCheckpoint(context: context)
+        defer { checkpoint?.keep() }
         // This view's space, open to the readers its content draws while it does.
         let scrollSpace = enterScrollSpace(
             viewport: CellSize(width: contentWidth, height: contentViewportHeight), context: context)

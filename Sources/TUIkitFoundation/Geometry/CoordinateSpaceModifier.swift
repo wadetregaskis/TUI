@@ -63,6 +63,7 @@ extension CoordinateSpaceModifier: Renderable {
         // Noted before the content renders, so a correction can put the walk
         // back to here and draw the content again as if for the first time.
         let checkpoint = RenderWalkCheckpoint(context: context)
+        defer { checkpoint.keep() }
         // A declaration exists to be read, so it carries an origin for its
         // content (starting one here when nothing above has) while there may
         // be a reader to predict for — not for a subtree whose only askers

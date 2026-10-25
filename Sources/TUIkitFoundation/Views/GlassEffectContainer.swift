@@ -126,6 +126,7 @@ extension _GlassEffectContainerCore: Renderable {
         // Noted before the content draws, so a walk that drew the glass joined
         // otherwise than it stands can be put back and drawn again.
         let checkpoint = RenderWalkCheckpoint(context: context)
+        defer { checkpoint.keep() }
         var walk = drawContent(drawing: record.pieces, context: context)
         if !walk.drewAsFound {
             record.pieces = walk.found
