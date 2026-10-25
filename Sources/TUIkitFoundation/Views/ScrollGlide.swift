@@ -53,6 +53,9 @@ public struct ScrollGlide: Sendable {
         /// seek, so rows that arrived during the glide are followed from the
         /// landing on; or the trailing edge.
         case bottom
+        /// Nothing: a page key's glide lands where its distance takes it, as
+        /// the key would have put the view (`scrollKeyboardAnimation(_:)`).
+        case distance
     }
 
     /// How far the glide travels, in the scrollable's offset unit: lines, for
@@ -70,7 +73,7 @@ public struct ScrollGlide: Sendable {
     package let animation: Animation
 
     /// When the glide started, on the frame clock.
-    package let startNanos: Int64
+    package private(set) var startNanos: Int64
 
     /// What the landing applies.
     package let landing: Landing
@@ -78,7 +81,19 @@ public struct ScrollGlide: Sendable {
     /// The viewport the glide started in. A resize lands it at once, before
     /// anything that settles a resize — a scroll target behaviour putting the
     /// view back on a page — sees the offset.
-    package let viewport: CellSize
+    package private(set) var viewport: CellSize
+
+    /// Whether a key started it, under `scrollKeyboardAnimation(_:)`, rather
+    /// than a request made inside `withAnimation`. A key's glide is the user's
+    /// scroll: the view is ``ScrollPhase/interacting`` through it, a scroll
+    /// key pressed during it counts from its target, and its quiet is counted
+    /// from its landing.
+    package let isKeyboard: Bool
+
+    /// Whether it waits for its first frame to start: a key's, made at event
+    /// time, has no frame clock to start on and no viewport to start in, and
+    /// takes both from the frame that draws its start.
+    package private(set) var awaitsFirstFrame: Bool
 
     package init(distance: Int, animation: Animation, startNanos: Int64, landing: Landing, viewport: CellSize) {
         self.distance = distance
@@ -86,6 +101,28 @@ public struct ScrollGlide: Sendable {
         self.startNanos = startNanos
         self.landing = landing
         self.viewport = viewport
+        isKeyboard = false
+        awaitsFirstFrame = false
+    }
+
+    /// A key's glide of `distance`, made at event time: it starts on the next
+    /// frame (``awaitsFirstFrame``).
+    package init(keyDistance distance: Int, animation: Animation, landing: Landing) {
+        self.distance = distance
+        self.animation = animation.firstPass
+        startNanos = 0
+        self.landing = landing
+        viewport = CellSize(width: 0, height: 0)
+        isKeyboard = true
+        awaitsFirstFrame = true
+    }
+
+    /// Starts a glide that waited for its first frame (``awaitsFirstFrame``)
+    /// at `nanos`, in `viewport`.
+    mutating func start(atNanos nanos: Int64, in viewport: CellSize) {
+        startNanos = nanos
+        self.viewport = viewport
+        awaitsFirstFrame = false
     }
 
     /// Seconds since the glide started, at `nanos` on the frame clock.
@@ -153,9 +190,15 @@ extension RenderContext {
     /// Asked on the frames that carry a request only.
     @MainActor
     package var scrollGlideAnimation: Animation? {
-        let frame = environment.animationFrame
-        guard frame.canAnimate, let animation = environment.transaction.effectiveAnimation,
-            !environment.accessibilityReduceMotion
+        scrollGlideAnimation(environment.transaction.effectiveAnimation)
+    }
+
+    /// `animation`, or `nil` where a scroll may not glide: without a scheduler
+    /// or under reduce motion (``scrollGlideAnimation``). The keys' animation
+    /// (`scrollKeyboardAnimation(_:)`) is held to the same rule.
+    @MainActor
+    package func scrollGlideAnimation(_ animation: Animation?) -> Animation? {
+        guard let animation, environment.animationFrame.canAnimate, !environment.accessibilityReduceMotion
         else { return nil }
         return animation
     }
@@ -202,10 +245,18 @@ extension ScrollableOffsetState {
     /// ends, and are counted in the offset they moved: the unit a `ScrollView`
     /// steps in. A list's line steps through multi-line rows are not, and
     /// need their own count when the lists glide.
+    ///
+    /// A key's glide starts here, on the frame after the key: this frame
+    /// draws its start, and its clock and viewport are this frame's.
     @MainActor
     package func advanceGlide(viewport: CellSize, context: RenderContext) -> ScrollGlide.Landing? {
         guard var current = glide, !context.isMeasuring else { return nil }
         let now = context.environment.frameNowNanos
+        if current.awaitsFirstFrame {
+            current.start(atNanos: now, in: viewport)
+            glide = current
+            return nil
+        }
         let lands = current.viewport != viewport || current.isFinished(atNanos: now)
         let step = (lands ? current.distance : current.place(atNanos: now)) - current.covered
         if step != 0 {
@@ -231,5 +282,46 @@ extension ScrollableOffsetState {
         context.requestWake(
             token: "scroll-glide\(axis)-\(context.identity.path)",
             atNanos: glide.nextFrameNanos(after: context.environment.frameNowNanos))
+    }
+}
+
+// MARK: - Keys that glide
+
+extension ScrollableOffsetState {
+    /// Runs the scroll key `move` — Page Up/Down, Home, End — as a glide with
+    /// `animation`, landing as `landing` says, or as the jump it is when
+    /// `animation` is `nil` (`scrollKeyboardAnimation(_:)`, unset or under
+    /// reduce motion). Event time.
+    ///
+    /// The key moves the view as it always has — the scroll target behaviour,
+    /// the edge anchors and the tail seek all applied — and the offset is then
+    /// put back where the view is drawn and the distance kept, for the next
+    /// frame to start gliding (``ScrollGlide/awaitsFirstFrame``). A key's glide
+    /// in flight lands first, so the key counts from its target and N presses
+    /// move exactly N pages. A key that moved nothing, or pushed into an
+    /// overscroll allowance — a line or two, shown at once — does not glide.
+    ///
+    /// The key is the user's scroll (it stops a programmatic glide where it
+    /// stands, as any does), so the view stays ``ScrollPhase/interacting``.
+    package func glideKey(with animation: Animation?, landing: ScrollGlide.Landing, _ move: () -> Void) {
+        let drawn = scrollOffset
+        landKeyboardGlide()
+        let excursion = overscrollState.excursion
+        move()
+        guard let animation, scrollOffset != drawn, overscrollState.excursion == excursion else { return }
+        let distance = scrollOffset - drawn
+        scrollOffset = drawn
+        glide = ScrollGlide(keyDistance: distance, animation: animation, landing: landing)
+    }
+
+    /// Lands a key's glide in flight at its target at once — a scroll key
+    /// pressed during it counts from where it is going, not from where it is
+    /// drawn — and leaves a programmatic one, which the key's own user scroll
+    /// stops where it stands. Event time.
+    package func landKeyboardGlide() {
+        guard let current = glide, current.isKeyboard else { return }
+        glide = nil
+        let rest = current.distance - current.covered
+        if rest != 0 { scrollFine(by: rest) }
     }
 }

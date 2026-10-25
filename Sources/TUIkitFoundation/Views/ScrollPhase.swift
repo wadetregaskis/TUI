@@ -207,10 +207,12 @@ extension _ScrollViewCore {
     /// otherwise asks for the frame that will find it so.
     private func settlePhase(handler: ScrollViewHandler, context: RenderContext) {
         guard handler.phase == .interacting else { return }
+        // A key's glide (`scrollKeyboardAnimation(_:)`) holds it too: its
+        // quiet is counted from its landing, so a held Page Down is one span.
         let held =
             handler.scrollbarDragGrab != nil || handler.scrollbarRepeat != nil
             || handler.horizontal.scrollbarDragGrab != nil || handler.horizontal.scrollbarRepeat != nil
-            || handler.isAutoScrolling
+            || handler.isAutoScrolling || handler.glide?.isKeyboard == true
         let quietFor = handler.phaseNow() &- handler.lastUserScrollNanos
         if !held, quietFor >= ScrollPhase.quietNanos {
             handler.phase = .idle

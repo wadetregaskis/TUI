@@ -28,9 +28,14 @@ extension _ScrollViewCore {
     /// Landed, the view is idle again (``ScrollPhase/animating`` ends), as
     /// SwiftUI's is when its animated `scrollTo` arrives (measured, B27).
     func settleGlide(handler: ScrollViewHandler, viewport: CellSize, context: RenderContext) {
+        let keyboard = handler.glide?.isKeyboard == true
         guard let landing = handler.advanceGlide(viewport: viewport, context: context) else { return }
         handler.noteGlideLanded()
+        // A key's glide is the user's scroll, quiet from its landing.
+        if keyboard { handler.lastUserScrollNanos = handler.phaseNow() }
         switch landing {
+        case .distance:
+            break
         case .seek(let request):
             parkLandingSeek(request, handler: handler)
         case .offset(let y):
@@ -57,6 +62,7 @@ extension _ScrollViewCore {
         case .offset(let x): axis.scrollToOffset(max(0, min(x, axis.maxOffset)))
         case .top: axis.scrollToOffset(0)
         case .bottom: axis.scrollToOffset(axis.maxOffset)
+        case .distance: break
         }
     }
 

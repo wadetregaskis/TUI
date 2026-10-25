@@ -404,6 +404,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             pageDeclaredAnchorModes(context.environment)
         handler.wheelEdgeHold.delayNanos = context.environment.scrollChainingDelay.clampedNanoseconds
         handler.horizontal.wheelEdgeHold.delayNanos = context.environment.scrollChainingDelay.clampedNanoseconds
+        // One lookup a frame, and the motion rule only for a view that sets it.
+        // A framework scroller's keys never glide: it takes none of the page's
+        // scroll settings.
+        handler.keyboardAnimation =
+            isChrome ? nil : context.scrollGlideAnimation(context.environment.scrollKeyboardAnimation)
         // Both axes: `.scrollDisabled` pins the view, not one direction of it.
         handler.isScrollEnabled = context.environment.isScrollEnabled
         handler.horizontal.isScrollEnabled = context.environment.isScrollEnabled

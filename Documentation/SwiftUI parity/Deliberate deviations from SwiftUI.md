@@ -1620,7 +1620,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   again on landing (since 2026-10-24, B27-ANIMATING); under reduce motion it
   jumps. A user's scroll, or a reveal of the focus, stops it where it stands;
   a second animated request glides on from there, at rest, and an unanimated
-  one jumps. A `List`'s or a `Table`'s request still jumps. A user scroll is `.interacting` until 250 ms pass with no step; a
+  one jumps. A `List`'s or a `Table`'s request still jumps. Under the
+  TUI-specific `scrollKeyboardAnimation(_:)` a `ScrollView`'s Page Up/Down,
+  Home and End glide to where they land too, and stay `.interacting`. A user scroll is `.interacting` until 250 ms pass with no step; a
   glide is `.animating` until it lands; `.tracking` and `.decelerating` never
   occur; the velocity is (0, 0) at every report,
   as SwiftUI's is where it was measured. An overscroll

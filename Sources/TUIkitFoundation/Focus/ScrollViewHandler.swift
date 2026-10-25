@@ -200,6 +200,11 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _glide: ScrollGlide?
 
+    /// The animation Page Up/Down and Home/End glide with, or `nil` to jump:
+    /// `scrollKeyboardAnimation(_:)`, captured at render because event time
+    /// has no environment — `nil` under reduce motion and with no scheduler.
+    var keyboardAnimation: Animation?
+
     /// Drag auto-scroll drive flag (``ScrollableOffsetState``).
     public var isAutoScrolling = false
 
@@ -492,27 +497,38 @@ extension ScrollViewHandler {
         // ignore Shift.
         let step = event.shift ? max(1, shiftStepMultiplier) : 1
         switch event.key {
+        // A key's glide in flight (`scrollKeyboardAnimation(_:)`) lands before
+        // an arrow steps, so the arrow steps from where the key was going.
         case .up:
+            landKeyboardGlide()
             return userScroll(by: -step)
         case .down:
+            landKeyboardGlide()
             return userScroll(by: step)
         // `pageDistance` rather than `viewportHeight` directly: same value
         // here (a ScrollView scrolls by line, and its viewport is lines), but
         // a page has exactly one definition — see `ScrollableOffsetState`.
+        // Under `scrollKeyboardAnimation(_:)` the four keys glide to where
+        // they land (`glideKey`).
         case .pageUp:
-            return userScroll(by: -pageDistance)
+            glideKey(with: keyboardAnimation, landing: .distance) { _ = userScroll(by: -pageDistance) }
+            return true
         case .pageDown:
-            return userScroll(by: pageDistance)
+            glideKey(with: keyboardAnimation, landing: .distance) { _ = userScroll(by: pageDistance) }
+            return true
         case .home:
             // §1.3: Home restores the anchor-to-top default (and End
             // anchor-to-bottom). Note this ENGAGES an edge rather than
             // releasing to `.window` as an ordinary scroll does — jumping
             // deliberately to an edge is the clearest statement a user can make
             // that they want to sit at it.
-            userScrollToTop()
+            glideKey(with: keyboardAnimation, landing: .top) { userScrollToTop() }
             return true
         case .end:
-            userScrollToBottom()
+            glideKey(with: keyboardAnimation, landing: .bottom) { userScrollToBottom() }
+            // Gliding, the tail seek waits for the landing, which raises it:
+            // raised now, the next frame would pin the view to the tail.
+            if glide != nil { seekingTail = false }
             return true
         case .left:
             // Scroll the horizontal axis (Shift-accelerated). Returns false (not
@@ -520,8 +536,10 @@ extension ScrollViewHandler {
             // the edge — so the key still bubbles to whatever else might handle
             // Left/Right; a step a scroll target behaviour lands on the rows
             // instead, or holds short of the edge, is this view's.
+            landKeyboardGlide()
             return horizontal.userHorizontalStep(-step)
         case .right:
+            landKeyboardGlide()
             return horizontal.userHorizontalStep(step)
         default:
             return false

@@ -8,7 +8,8 @@ import TUIkit
 
 /// Scrolling to a place, and knowing where you are: `ScrollViewReader` and its
 /// proxy's `scrollTo(_:anchor:)` — inside `withAnimation`, so it glides there
-/// (decisions B27-ANIMATING) — `.scrollPosition(id:)` reporting the row at
+/// (decisions B27-ANIMATING), as the keys do under `.scrollKeyboardAnimation()`
+/// — `.scrollPosition(id:)` reporting the row at
 /// the top, `.safeAreaInset` pinning a line of its own under the rows, and
 /// `.containerRelativeFrame` sizing cards to a share of the scroll view.
 struct ScrollPositionsDemo: View {
@@ -46,6 +47,8 @@ struct ScrollPositionsDemo: View {
                             }
                         }
                         .scrollPosition(id: $topRow)
+                        // Page Up/Down, Home and End glide too (TUI-specific).
+                        .scrollKeyboardAnimation()
                         // A line of the scroll view's own, under its rows: the
                         // rows scroll above it and never behind it.
                         .safeAreaInset(edge: .bottom) {
