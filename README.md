@@ -369,6 +369,8 @@ LocalizationService.shared.string(for: "app.greeting")  // honours the current l
 
 The `LocalizationKey` namespace groups all framework strings into `Button`, `Label`, `Error`, `Placeholder`, `Menu`, `Dialog`, `Validation`, and `StatusBar`, with typed-key overloads for `Text(localized:)`, `LocalizedString(_:)`, and `LocalizationService.string(for:)`. The fallback chain is current language → English → the key itself, and the selection is persisted per-app in the platform config directory alongside `@AppStorage` (macOS: `~/Library/Application Support/<App>/language`; Linux: `$XDG_CONFIG_HOME/<App>/language`, else `~/.config/<App>/language`).
 
+Text in scripts a terminal shapes — Devanagari and the other Indic scripts, Thai, Lao, Khmer, and Latin with stacked marks — is laid out at the width each terminal advances it. Apple's Terminal.app draws such text at the font's own proportional width and moves everything after it on the row a little to the left (a table's next column, a border), and no escape sequence moves it back; see "What Apple Terminal paints" in [Documentation/Terminals/Terminal compatibility survey.md](<Documentation/Terminals/Terminal compatibility survey.md>).
+
 For complete documentation, see the [Localization Guide](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUIkit/TUIkit.docc/Articles/Localization.md) in the DocC documentation.
 
 ## Architecture

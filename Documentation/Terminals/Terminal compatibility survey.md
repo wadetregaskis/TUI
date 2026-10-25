@@ -7870,7 +7870,7 @@ default-ignorable. Zero is still the right number for three hosts out of four
 and for the standard, and TUIkit emits none of these controls itself — this can
 only arrive in content the user pastes.
 
-## Complex scripts — 38 corpus rows: the advance measured on five hosts, the paint on none
+## Complex scripts — 38 corpus rows: the advance measured on five hosts, the paint on Apple Terminal
 
 Added to the corpus 2026-09-04. **Their ADVANCE is measured** — the DSR
 column, which governs wrapping (see "What the hosts advance", below):
@@ -7893,7 +7893,8 @@ column, which governs wrapping (see "What the hosts advance", below):
   for row and replaced) were committed. This section had been written that
   morning, and was not updated with them until 2026-10-19.
 
-**Their PAINT is measured on no host.** Landing and ink come from
+**Their PAINT is measured on Apple Terminal alone** (2026-10-25, below: it
+cannot be aligned from the application), and on no other host. Landing and ink come from
 `landing_probe.py`, and every row is still listed in
 `TerminalLedgerConformanceTests.awaitingLandingMeasurement`, which is what stops
 "no landing record has it" from reading as "the models pass". Also unmeasured:
@@ -8033,8 +8034,9 @@ bordered row of the five and advances it by each host's MEASURED numbers, not
 the model's.
 
 **What this rests on is the advance alone.** The paint — where the glyph's ink
-lands inside the cells it advances — is unmeasured on every host, and every row
-stays in `awaitingLandingMeasurement`. If a host drew स्त्र in two cells while
+lands inside the cells it advances — is unmeasured on every host but Apple
+Terminal (above, where it cannot be aligned), and every row stays in
+`awaitingLandingMeasurement`. If a host drew स्त्र in two cells while
 advancing three, the row would now be aligned with a blank cell inside the
 cluster, which is the trade TUIkit already takes for SF Symbols on Ghostty;
 `landing_probe.py` would say. Also unmeasured: the advance on Ghostty with mode
@@ -8046,6 +8048,54 @@ gives a spacing vowel sign no cell, so the per-code-point claim would put
 are claimed 2 under either. A pricing of tmux's own — per code point, spacing marks zero — matches
 all 38 of its rows; it waits on a tmux built against another width table being
 measured, since the one measured is Homebrew's on macOS.
+
+### What Apple Terminal paints — measured 2026-10-25, and nothing repairs it
+
+Found by the README's Unicode clip, filmed in Apple Terminal 455.1 (profile
+Basic, SF Mono 11, macOS 15.7): its Hindi row's second column and the table's
+right border were drawn about two cells left of the other rows'. The advance
+was right — हिन्दी advances 5 and नमस्ते दुनिया 10, the per-code-point claim —
+so the error is in the paint, which `landing_probe.py` then measured, over the
+38 corpus rows and a 103-row Devanagari battery (every common matra on four
+consonants, with anusvara, chandrabindu and visarga, sixteen conjuncts and
+seven words), each page captured with `screencapture -l` of the window
+(`Tools/TerminalProbes/data/apple-terminal-455.1-complex-script-paint.json`).
+
+**Apple Terminal draws text it shapes at the font's own proportional advance,
+and everything after it on the row — absolutely addressed text included — is
+drawn that much left of its cell.** The emoji half of this was already known
+(the table at the top of the Apple Terminal section); these scripts are the
+rest of it. In Devanagari roughly one cell is lost per non-spacing mark
+(ु ू ृ े ै ं ँ, and the virama of a conjunct), so कु, के and कं advance 1 and
+draw their follower ON the consonant, स्ते advances 2 and draws it on the
+cluster's first cell, and spacing matras (ा ि ी ो ौ ः) lose nothing. The
+rule has exceptions that only shaping explains — कां, निं, र्क and क़ lose
+nothing, किं and मिं lose one — and the loss is FRACTIONAL: a follower after
+नमस्ते was drawn at column 17.5, after संस्कृत at 16.43. Thai and Lao tone
+marks, Khmer's coeng and Latin with stacked marks (e◌́◌̈◌̧) lose a cell the same
+way. Apple Terminal also dropped a glyph outright: संस्कृत drew no त.
+
+`reanchor_card.py` asked what puts the row back on the grid, aiming a marker
+at column 20 after हिन्दी (drawn at 19): `CHA`, `CUP`, `CR` then `CHA`, `EL`
+then `CHA`, two tabs, a space in another colour, U+3000, a box-drawing glyph,
+and the text on a background of its own — **none**, every one drawn at 19.
+The store surgery that repairs flags (`CUB DCH CUF`, the surplus columns
+deleted) lands the follower true and **destroys the text**: न्दी lost its ी,
+स्ते was not drawn at all.
+
+So **TUIkit does not align these scripts on Apple Terminal**, and documents
+it rather than degrading the text: the displacement is the font's, fractional,
+and depends on what follows on the row, so no claim, compensation or cursor
+move can match it, and the one edit of the row store that moves the paint
+deletes glyphs (owner, 2026-10-25). Text after such a run on the same row —
+a table's next column, a border — is drawn up to a few cells left. In the
+same clip iTerm2 3.7 and Ghostty 1.3.1 drew the Hindi row on its claim; their
+paint over the battery, and Warp's, is not measured.
+
+The rows stay in `TerminalLedgerConformanceTests.awaitingLandingMeasurement`:
+that ledger holds one whole-cell landing per row, and a displacement that
+moves with what follows is not one number. The record above keeps the
+analyser's rounded readings for reference.
 
 ### What the 38 rows cover
 

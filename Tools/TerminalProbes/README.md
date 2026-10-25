@@ -41,6 +41,13 @@ when unset), the visual/aspect probes print to the terminal.
   closing lines). Run in all four hosts 2026-09-01; the results and what
   they settled are in Terminal compatibility survey.md's "Right-to-left text"
   section.
+- `reanchor_card.py` — after text the host SHAPES (Devanagari), does anything
+  put the row back on the grid? Fifteen variants — absolute moves, a tab, an
+  SGR change, wide glyphs, and Apple Terminal's `CUB DCH CUF` flag repair —
+  each ending in a magenta marker aimed at a known column; `--read shot.png`
+  prints where each was drawn, fractions included. Run on Apple Terminal
+  455.1 on 2026-10-25: nothing re-anchors, and the repair deletes glyphs —
+  the survey's "What Apple Terminal paints" section.
 - `rtl_image_card.py` — the same question asked of a PICTURE rather than of a
   line of text: a gradient drawn from a ten-letter Hebrew ramp, printed five
   ways (an ASCII control, plain, a colour change per cell as a render emits,

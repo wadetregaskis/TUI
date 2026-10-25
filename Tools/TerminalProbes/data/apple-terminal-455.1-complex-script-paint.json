@@ -1,0 +1,1332 @@
+{
+ "host": "Apple Terminal 455.1, macOS 15.7, profile Basic (SF Mono 11), alternate screen",
+ "date": "2026-10-25",
+ "method": "landing_probe.py (paged, PROBE_SYNC), each page captured with screencapture -l of the Terminal window; landing_analyze.py. advance = DSR, landing = the cell the next character is drawn in, ink = cells inked.",
+ "stamp": {
+  "env": {
+   "TERM": "xterm-256color",
+   "TERM_PROGRAM": "Apple_Terminal",
+   "TERM_PROGRAM_VERSION": "455.1",
+   "TERM_SESSION_ID": "8F6F24F9-FF89-47BC-A1C9-73C059C7D077",
+   "__CFBundleIdentifier": "com.apple.Terminal"
+  },
+  "machine": "arm64",
+  "measured": "2026-10-25T14:50:52-07:00",
+  "method": "DSR cursor report — confirm any disagreement with visual_card.py",
+  "mode_2027_grapheme_clustering": "not asked (Apple Terminal prints this query's final byte)",
+  "os": "macOS 15.8.1",
+  "probe": "landing_probe.py",
+  "screen": "alternate",
+  "terminal_app_build": "455.1"
+ },
+ "note": "landing is rounded to whole cells by the analyser; the reanchor_card.py readings show the real displacement is fractional and depends on what follows on the row.",
+ "measurements": [
+  {
+   "id": "arabic_harakat",
+   "text": "بَ",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "arabic",
+   "ink": 1,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "arabic_lam_alef",
+   "text": "ﻻ",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "arabic",
+   "ink": 1,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "arabic_shadda_harakat",
+   "text": "بَّ",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "arabic",
+   "ink": 1,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "bidi_lrm",
+   "text": "‎",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "format_control",
+   "ink": 0,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "bidi_rlm",
+   "text": "‏",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "format_control",
+   "ink": 0,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "chillu_malayalam_atomic",
+   "text": "ൻ",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "chillu",
+   "ink": 2,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "chillu_malayalam_zwj",
+   "text": "ന്‍",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "chillu",
+   "ink": 2,
+   "landing": 1,
+   "reserve": 2
+  },
+  {
+   "id": "combining_acute",
+   "text": "é",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "combining",
+   "ink": 1,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "combining_stack",
+   "text": "ȩ́̈",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "combining",
+   "ink": 2,
+   "landing": 0,
+   "reserve": 1
+  },
+  {
+   "id": "conjunct_bengali_ksha",
+   "text": "ক্ষ",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "indic_conjunct",
+   "ink": 2,
+   "landing": 1,
+   "reserve": 2
+  },
+  {
+   "id": "conjunct_deva_ksha",
+   "text": "क्ष",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "indic_conjunct",
+   "ink": 2,
+   "landing": 1,
+   "reserve": 2
+  },
+  {
+   "id": "conjunct_deva_shtra",
+   "text": "ष्ट्र",
+   "source": "width-corpus",
+   "advance": 3,
+   "class": "indic_conjunct",
+   "ink": 2,
+   "landing": 1,
+   "reserve": 3
+  },
+  {
+   "id": "conjunct_deva_stra",
+   "text": "स्त्र",
+   "source": "width-corpus",
+   "advance": 3,
+   "class": "indic_conjunct",
+   "ink": 2,
+   "landing": 1,
+   "reserve": 3
+  },
+  {
+   "id": "conjunct_deva_stri",
+   "text": "स्त्री",
+   "source": "width-corpus",
+   "advance": 4,
+   "class": "indic_conjunct",
+   "ink": 2,
+   "landing": 2,
+   "reserve": 4
+  },
+  {
+   "id": "conjunct_telugu_ksha",
+   "text": "క్ష",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "indic_conjunct",
+   "ink": 1,
+   "landing": 1,
+   "reserve": 2
+  },
+  {
+   "id": "hangul_jamo_lv",
+   "text": "하",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "hangul_jamo",
+   "ink": 2,
+   "landing": 2,
+   "reserve": 2
+  },
+  {
+   "id": "hangul_jamo_lvt",
+   "text": "한",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "hangul_jamo",
+   "ink": 2,
+   "landing": 2,
+   "reserve": 2
+  },
+  {
+   "id": "hebrew_dagesh_qamats",
+   "text": "בָּ",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "hebrew_points",
+   "ink": 1,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "hebrew_hiriq",
+   "text": "בִ",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "hebrew_points",
+   "ink": 1,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "lao_vowel_tone",
+   "text": "ກີ່",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "thai_lao",
+   "ink": 1,
+   "landing": 0,
+   "reserve": 1
+  },
+  {
+   "id": "latin_zwj",
+   "text": "a‍",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "format_control",
+   "ink": 1,
+   "landing": 1,
+   "reserve": 2
+  },
+  {
+   "id": "latin_zwnj",
+   "text": "a‌",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "format_control",
+   "ink": 1,
+   "landing": 2,
+   "reserve": 2
+  },
+  {
+   "id": "matra_deva_au",
+   "text": "कौ",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "spacing_vowel_sign",
+   "ink": 2,
+   "landing": 2,
+   "reserve": 2
+  },
+  {
+   "id": "matra_deva_i",
+   "text": "कि",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "spacing_vowel_sign",
+   "ink": 3,
+   "landing": 2,
+   "reserve": 2
+  },
+  {
+   "id": "matra_deva_i_anusvara",
+   "text": "किं",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "spacing_vowel_sign",
+   "ink": 3,
+   "landing": 1,
+   "reserve": 2
+  },
+  {
+   "id": "matra_deva_o",
+   "text": "को",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "spacing_vowel_sign",
+   "ink": 2,
+   "landing": 2,
+   "reserve": 2
+  },
+  {
+   "id": "matra_khmer_aa",
+   "text": "កា",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "spacing_vowel_sign",
+   "ink": 2,
+   "landing": 1,
+   "reserve": 2
+  },
+  {
+   "id": "matra_tamil_aa",
+   "text": "ரா",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "spacing_vowel_sign",
+   "ink": 2,
+   "landing": 2,
+   "reserve": 2
+  },
+  {
+   "id": "nukta_deva_qa",
+   "text": "क़",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "nukta",
+   "ink": 2,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "nukta_deva_rra",
+   "text": "ड़",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "nukta",
+   "ink": 1,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "thai_sara_am",
+   "text": "กำ",
+   "source": "width-corpus",
+   "advance": 2,
+   "class": "thai_lao",
+   "ink": 3,
+   "landing": 3,
+   "reserve": 2
+  },
+  {
+   "id": "thai_tone",
+   "text": "ก่",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "thai_lao",
+   "ink": 1,
+   "landing": 0,
+   "reserve": 1
+  },
+  {
+   "id": "thai_vowel_tone",
+   "text": "กิ้",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "thai_lao",
+   "ink": 1,
+   "landing": 0,
+   "reserve": 1
+  },
+  {
+   "id": "tibetan_subjoined",
+   "text": "ཀྐ",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "tibetan_stack",
+   "ink": 1,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "tibetan_subjoined_vowel",
+   "text": "ཀྐུ",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "tibetan_stack",
+   "ink": 1,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "virama_kannada_ka",
+   "text": "ಕ್",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "virama_final",
+   "ink": 2,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "virama_khmer_ka",
+   "text": "ក្",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "virama_final",
+   "ink": 2,
+   "landing": 0,
+   "reserve": 1
+  },
+  {
+   "id": "virama_tamil_sa",
+   "text": "ஸ்",
+   "source": "width-corpus",
+   "advance": 1,
+   "class": "virama_final",
+   "ink": 2,
+   "landing": 1,
+   "reserve": 1
+  },
+  {
+   "id": "deva_dya",
+   "text": "द्य",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 1,
+   "landing": 1
+  },
+  {
+   "id": "deva_half_ka",
+   "text": "क्",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 2,
+   "landing": 0
+  },
+  {
+   "id": "deva_ka",
+   "text": "क",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 2,
+   "landing": 1
+  },
+  {
+   "id": "deva_ka_aa",
+   "text": "का",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ka_aa_anusvara",
+   "text": "कां",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ka_aa_chandrabindu",
+   "text": "काँ",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ka_aa_visarga",
+   "text": "काः",
+   "source": "devanagari-battery",
+   "advance": 3,
+   "class": "deva",
+   "ink": 3,
+   "landing": 3
+  },
+  {
+   "id": "deva_ka_ai",
+   "text": "कै",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 2,
+   "landing": 0
+  },
+  {
+   "id": "deva_ka_anusvara",
+   "text": "कं",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 2,
+   "landing": 0
+  },
+  {
+   "id": "deva_ka_au",
+   "text": "कौ",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ka_chandrabindu",
+   "text": "कँ",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 2,
+   "landing": 0
+  },
+  {
+   "id": "deva_ka_e",
+   "text": "के",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 2,
+   "landing": 0
+  },
+  {
+   "id": "deva_ka_i",
+   "text": "कि",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 3,
+   "landing": 2
+  },
+  {
+   "id": "deva_ka_i_anusvara",
+   "text": "किं",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 3,
+   "landing": 1
+  },
+  {
+   "id": "deva_ka_i_chandrabindu",
+   "text": "किँ",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 3,
+   "landing": 1
+  },
+  {
+   "id": "deva_ka_i_visarga",
+   "text": "किः",
+   "source": "devanagari-battery",
+   "advance": 3,
+   "class": "deva",
+   "ink": 3,
+   "landing": 3
+  },
+  {
+   "id": "deva_ka_ii",
+   "text": "की",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ka_o",
+   "text": "को",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ka_r",
+   "text": "कृ",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 2,
+   "landing": 0
+  },
+  {
+   "id": "deva_ka_u",
+   "text": "कु",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 2,
+   "landing": 0
+  },
+  {
+   "id": "deva_ka_uu",
+   "text": "कू",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 2,
+   "landing": 0
+  },
+  {
+   "id": "deva_ka_visarga",
+   "text": "कः",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ksha",
+   "text": "क्ष",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 1
+  },
+  {
+   "id": "deva_ktaa",
+   "text": "क्ता",
+   "source": "devanagari-battery",
+   "advance": 3,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ma",
+   "text": "म",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 1
+  },
+  {
+   "id": "deva_ma_aa",
+   "text": "मा",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ma_aa_anusvara",
+   "text": "मां",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ma_aa_chandrabindu",
+   "text": "माँ",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ma_aa_visarga",
+   "text": "माः",
+   "source": "devanagari-battery",
+   "advance": 3,
+   "class": "deva",
+   "ink": 3,
+   "landing": 3
+  },
+  {
+   "id": "deva_ma_ai",
+   "text": "मै",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_ma_anusvara",
+   "text": "मं",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_ma_au",
+   "text": "मौ",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ma_chandrabindu",
+   "text": "मँ",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_ma_e",
+   "text": "मे",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_ma_i",
+   "text": "मि",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ma_i_anusvara",
+   "text": "मिं",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 1
+  },
+  {
+   "id": "deva_ma_i_chandrabindu",
+   "text": "मिँ",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 1
+  },
+  {
+   "id": "deva_ma_i_visarga",
+   "text": "मिः",
+   "source": "devanagari-battery",
+   "advance": 3,
+   "class": "deva",
+   "ink": 3,
+   "landing": 3
+  },
+  {
+   "id": "deva_ma_ii",
+   "text": "मी",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ma_o",
+   "text": "मो",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ma_r",
+   "text": "मृ",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_ma_u",
+   "text": "मु",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_ma_uu",
+   "text": "मू",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_ma_visarga",
+   "text": "मः",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_na",
+   "text": "न",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 1
+  },
+  {
+   "id": "deva_na_aa",
+   "text": "ना",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_na_aa_anusvara",
+   "text": "नां",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_na_aa_chandrabindu",
+   "text": "नाँ",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_na_aa_visarga",
+   "text": "नाः",
+   "source": "devanagari-battery",
+   "advance": 3,
+   "class": "deva",
+   "ink": 3,
+   "landing": 3
+  },
+  {
+   "id": "deva_na_ai",
+   "text": "नै",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_na_anusvara",
+   "text": "नं",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_na_au",
+   "text": "नौ",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_na_chandrabindu",
+   "text": "नँ",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_na_e",
+   "text": "ने",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_na_i",
+   "text": "नि",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_na_i_anusvara",
+   "text": "निं",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_na_i_chandrabindu",
+   "text": "निँ",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_na_i_visarga",
+   "text": "निः",
+   "source": "devanagari-battery",
+   "advance": 3,
+   "class": "deva",
+   "ink": 3,
+   "landing": 3
+  },
+  {
+   "id": "deva_na_ii",
+   "text": "नी",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_na_o",
+   "text": "नो",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_na_r",
+   "text": "नृ",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_na_u",
+   "text": "नु",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_na_uu",
+   "text": "नू",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_na_visarga",
+   "text": "नः",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_nda",
+   "text": "न्द",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 1
+  },
+  {
+   "id": "deva_ndii",
+   "text": "न्दी",
+   "source": "devanagari-battery",
+   "advance": 3,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_nti",
+   "text": "न्ति",
+   "source": "devanagari-battery",
+   "advance": 3,
+   "class": "deva",
+   "ink": 3,
+   "landing": 2
+  },
+  {
+   "id": "deva_pra",
+   "text": "प्र",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 1,
+   "landing": 1
+  },
+  {
+   "id": "deva_qa",
+   "text": "क़",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 2,
+   "landing": 1
+  },
+  {
+   "id": "deva_qaa",
+   "text": "क़ा",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_rka",
+   "text": "र्क",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_shri",
+   "text": "श्री",
+   "source": "devanagari-battery",
+   "advance": 3,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_sta",
+   "text": "स्त",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 1
+  },
+  {
+   "id": "deva_ste",
+   "text": "स्ते",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 0
+  },
+  {
+   "id": "deva_stra",
+   "text": "स्त्र",
+   "source": "devanagari-battery",
+   "advance": 3,
+   "class": "deva",
+   "ink": 2,
+   "landing": 1
+  },
+  {
+   "id": "deva_tra",
+   "text": "त्र",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 1,
+   "landing": 1
+  },
+  {
+   "id": "deva_ya",
+   "text": "य",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 1
+  },
+  {
+   "id": "deva_ya_aa",
+   "text": "या",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ya_aa_anusvara",
+   "text": "यां",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ya_aa_chandrabindu",
+   "text": "याँ",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ya_aa_visarga",
+   "text": "याः",
+   "source": "devanagari-battery",
+   "advance": 3,
+   "class": "deva",
+   "ink": 3,
+   "landing": 3
+  },
+  {
+   "id": "deva_ya_ai",
+   "text": "यै",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_ya_anusvara",
+   "text": "यं",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_ya_au",
+   "text": "यौ",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ya_chandrabindu",
+   "text": "यँ",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_ya_e",
+   "text": "ये",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_ya_i",
+   "text": "यि",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ya_i_anusvara",
+   "text": "यिं",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 1
+  },
+  {
+   "id": "deva_ya_i_chandrabindu",
+   "text": "यिँ",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 1
+  },
+  {
+   "id": "deva_ya_i_visarga",
+   "text": "यिः",
+   "source": "devanagari-battery",
+   "advance": 3,
+   "class": "deva",
+   "ink": 3,
+   "landing": 3
+  },
+  {
+   "id": "deva_ya_ii",
+   "text": "यी",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ya_o",
+   "text": "यो",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "deva_ya_r",
+   "text": "यृ",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_ya_u",
+   "text": "यु",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 1,
+   "landing": 0
+  },
+  {
+   "id": "deva_ya_uu",
+   "text": "यू",
+   "source": "devanagari-battery",
+   "advance": 1,
+   "class": "deva",
+   "ink": 2,
+   "landing": 0
+  },
+  {
+   "id": "deva_ya_visarga",
+   "text": "यः",
+   "source": "devanagari-battery",
+   "advance": 2,
+   "class": "deva",
+   "ink": 2,
+   "landing": 2
+  },
+  {
+   "id": "word_0",
+   "text": "हिन्दी",
+   "source": "devanagari-battery",
+   "advance": 5,
+   "class": "word",
+   "ink": 4,
+   "landing": 4
+  },
+  {
+   "id": "word_1",
+   "text": "नमस्ते",
+   "source": "devanagari-battery",
+   "advance": 4,
+   "class": "word",
+   "ink": 4,
+   "landing": 2
+  },
+  {
+   "id": "word_2",
+   "text": "दुनिया",
+   "source": "devanagari-battery",
+   "advance": 5,
+   "class": "word",
+   "ink": 5,
+   "landing": 4
+  },
+  {
+   "id": "word_3",
+   "text": "नमस्ते दुनिया",
+   "source": "devanagari-battery",
+   "advance": 10,
+   "class": "word",
+   "ink": 8,
+   "landing": 7
+  },
+  {
+   "id": "word_4",
+   "text": "भारत",
+   "source": "devanagari-battery",
+   "advance": 4,
+   "class": "word",
+   "ink": 4,
+   "landing": 4
+  },
+  {
+   "id": "word_5",
+   "text": "हिंदी",
+   "source": "devanagari-battery",
+   "advance": 4,
+   "class": "word",
+   "ink": 4,
+   "landing": 3
+  },
+  {
+   "id": "word_6",
+   "text": "संस्कृत",
+   "source": "devanagari-battery",
+   "advance": 4,
+   "class": "word",
+   "ink": 3,
+   "landing": 0
+  }
+ ]
+}
