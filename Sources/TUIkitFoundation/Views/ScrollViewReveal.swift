@@ -208,14 +208,12 @@ extension _ScrollViewCore {
                 let bottomIndicatorWouldAppear =
                     indicatorsActive && indicatorsFit
                     && (proposed + viewportHeight < handler.contentHeight)
-                handler.scrollOffset = max(
-                    0,
-                    min(
-                        handler.maxOffset,
-                        proposed + (bottomIndicatorWouldAppear ? 1 : 0)
-                    )
-                )
+                handler.scrollOffset = max(0, min(handler.maxOffset, proposed + (bottomIndicatorWouldAppear ? 1 : 0)))
             }
+            // A reveal that moved the view stops a programmatic glide where
+            // the reveal put it: the focus moved, or the focused control took a
+            // key, and showing it is what the user is now asking for.
+            if handler.scrollOffset != offsetBeforeSnap { handler.stopGlide() }
             // The overscroll slide (`applyOverscroll`) is drawn on the finished
             // viewport AFTER this, and every number above is unslid geometry,
             // so an excursion left standing moves the control just placed. A

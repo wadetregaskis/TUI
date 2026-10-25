@@ -1486,13 +1486,17 @@ parks SGR-Pixels (mode 1016).
 **Shipped 2026-10-13 (SCROLLB):** the velocity is `(0, 0)` at every report —
 the first frame's and both changes — and never `nil`.
 
-**Shipped 2026-10-24 (B27-ANIMATING, option 3, pieces 1–2):** a
-`ScrollView`'s `scrollTo` or `ScrollPosition` row request made inside
-`withAnimation` glides to its target a line at a time, and reports `.idle`
-→ `.animating` on the frame it starts and `.animating` → `.idle` on the frame
-it lands, with velocity `(0, 0)` at both, as measured above. An unanimated
-request, one under reduce motion and a `List`'s or a `Table`'s still jump and
-change no phase; the lists report no phase at all yet ([the design
+**Shipped 2026-10-24 (B27-ANIMATING, option 3, pieces 1–3):** a
+`ScrollView`'s `scrollTo`, `ScrollPosition` request (a row, an edge, a
+vertical offset) or written `anchorPosition` edge made inside `withAnimation`
+glides to its target a line at a time, and reports `.idle` → `.animating` on
+the frame it starts and `.animating` → `.idle` on the frame it lands, with
+velocity `(0, 0)` at both, as measured above. A user's scroll during it stops
+it where it stands, `.animating` → `.interacting` with no `.idle` between; a
+reveal of the focus stops it too, a second animated request glides on from
+where it is drawn, and an unanimated one jumps. An unanimated request, one
+under reduce motion and a `List`'s or a `Table`'s still jump and change no
+phase; the lists report no phase at all yet ([the design
 note](<Scrolling/Animated scrolling, a design (B27).md>), piece 6).
 
 ### B28. `scrollIndicatorsFlash` flashes the indicators for half a second

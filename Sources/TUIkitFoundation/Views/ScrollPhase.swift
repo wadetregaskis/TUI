@@ -48,7 +48,8 @@ public enum ScrollPhase: Hashable, Sendable {
 
     /// The view is animating to a target set by code: a `ScrollView`'s
     /// `scrollTo` or ``ScrollPosition`` request made inside `withAnimation`,
-    /// while it glides there.
+    /// while it glides there. A user's scroll stops the glide, and the phase
+    /// goes straight to ``interacting``.
     case animating
 
     /// Whether the view is scrolling: any phase but ``idle``.

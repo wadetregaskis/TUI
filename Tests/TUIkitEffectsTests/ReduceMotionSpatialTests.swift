@@ -233,8 +233,14 @@ struct ReduceMotionSpatialTests {
             _ = screen.render(page, atMillis: 0)
             // Row 4 comes wholly into view: from its edge phase to identity,
             // on the frame after the scroll lands, which finds it there.
+            // Written without animation, as the harness's standing transaction
+            // would otherwise make it: a scroll made inside one glides there
+            // (decisions B27-ANIMATING), and this is about the transition.
             position.scrollTo(y: 1)
+            let standing = screen.context.environment.transaction
+            screen.context.environment.transaction = Transaction()
             _ = screen.render(page, atMillis: 0)
+            screen.context.environment.transaction = standing
             _ = screen.render(page, atMillis: 0)
             return place(of: "row 4", in: screen.render(page, atMillis: millis))
         }

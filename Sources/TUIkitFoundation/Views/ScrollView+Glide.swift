@@ -32,6 +32,8 @@ extension _ScrollViewCore {
         if handler.phase == .animating { handler.phase = .idle }
         switch landing {
         case .seek(let request):
+            // A `scrollTo` made since the last frame supersedes the re-seek.
+            guard handler.pendingScrollTo == nil else { return }
             handler.pendingScrollTo = request
             handler.pendingScrollToIsLanding = true
         case .offset(let y):
@@ -73,15 +75,58 @@ extension _ScrollViewCore {
         _ offset: Int, request: ScrollToRequest?, isLanding: Bool, handler: ScrollViewHandler,
         viewport: CellSize, context: RenderContext
     ) -> Bool {
-        if let request, !isLanding, let animation = context.scrollGlideAnimation,
-            handler.beginGlide(
-                to: max(0, min(offset, handler.maxOffset)), animation: animation, landing: .seek(request),
-                viewport: viewport, context: context)
-        {
-            handler.phase = .animating
+        guard let request, !isLanding else {
+            handler.jumpProgrammatically(to: offset)
+            return false
+        }
+        return moveProgrammatically(
+            handler: handler, to: max(0, min(offset, handler.maxOffset)), landing: .seek(request),
+            viewport: viewport, context: context)
+    }
+
+    /// Moves the view to `offset` for a programmatic request: glides there
+    /// when it was made inside an animation, answering `true`, and otherwise
+    /// stops any glide in flight and jumps — a second request mid-glide
+    /// retargets from where the first had got to, and an unanimated one
+    /// cancels it.
+    @discardableResult
+    func moveProgrammatically(
+        handler: ScrollViewHandler, to offset: Int, landing: ScrollGlide.Landing, viewport: CellSize,
+        context: RenderContext
+    ) -> Bool {
+        if glideIfAnimated(handler: handler, to: offset, landing: landing, viewport: viewport, context: context) {
             return true
         }
+        handler.stopGlide()
         handler.jumpProgrammatically(to: offset)
         return false
+    }
+
+    /// Starts a glide to `offset` when this frame's transaction animates, and
+    /// the view is ``ScrollPhase/animating`` from this frame to the landing's;
+    /// answers whether it started one. A glide in flight is replaced, so the
+    /// new one starts from the line the old one is drawn on this frame, at
+    /// rest. Nothing starts when the view is already there.
+    func glideIfAnimated(
+        handler: ScrollViewHandler, to offset: Int, landing: ScrollGlide.Landing, viewport: CellSize,
+        context: RenderContext
+    ) -> Bool {
+        guard let animation = context.scrollGlideAnimation,
+            handler.beginGlide(to: offset, animation: animation, landing: landing, viewport: viewport, context: context)
+        else { return false }
+        handler.phase = .animating
+        return true
+    }
+}
+
+extension ScrollViewHandler {
+    /// Stops a glide in flight where it stands, with no landing, and returns
+    /// the view to ``ScrollPhase/idle`` if it was ``ScrollPhase/animating``.
+    /// What stops it moves the view itself: a jump to another request, or
+    /// the reveal of a control the focus moved to.
+    func stopGlide() {
+        guard glide != nil else { return }
+        glide = nil
+        if phase == .animating { phase = .idle }
     }
 }

@@ -138,7 +138,9 @@ extension _ScrollViewCore {
         let modes = pageDeclaredAnchorModes(context.environment)
         let declared = ScrollAnchorMode.governing(
             opening: modes.opening, standing: modes.standing, hasOpened: handler.hasOpened)
-        let followsBottom = !context.isMeasuring
+        // A view in the middle of a glide is not glued to its tail: the glide
+        // is moving it, and a bottom edge glide lands through the tail seek.
+        let followsBottom = !context.isMeasuring && handler.glide == nil
             && ScrollAnchorMode.effective(
                 boundAnchor: pageAnchorPosition(context.environment)?.wrappedValue,
                 declared: declared) == .bottom
@@ -163,7 +165,7 @@ extension _ScrollViewCore {
     /// seek is pending (`seekingTail`), spent here.
     ///
     /// 1. A freshly WRITTEN edge anchor jumps to that edge
-    ///    (``adoptWrittenAnchor(handler:context:)``). Before the glue check,
+    ///    (``adoptWrittenAnchor(handler:viewport:context:)``). Before the glue check,
     ///    whose `seekingTail` read is one-shot.
     /// 2. A programmatic scroll gliding to its target moves to this frame's
     ///    line before anything below reads the offset, and lands when it is
@@ -173,15 +175,20 @@ extension _ScrollViewCore {
     ///    content renders, so the frame carrying the request already shows
     ///    the destination — `.bottom` by raising the tail-seek flag the End
     ///    key uses, so the glue pins it exactly against the real height
-    ///    (``applyPositionOffset(handler:context:)``).
+    ///    (``applyPositionOffset(handler:viewport:context:)``).
     /// 4. A one-shot End / `scrollToBottom` intent converges exactly like a
     ///    glued frame (see `ScrollViewHandler.seekingTail`).
     func placeBeforeDrawing(
         handler: ScrollViewHandler, viewport: CellSize, context: RenderContext
     ) -> (requested: Bool, seekingTail: Bool) {
-        adoptWrittenAnchor(handler: handler, context: context)
+        adoptWrittenAnchor(handler: handler, viewport: viewport, context: context)
         if handler.glide != nil { settleGlide(handler: handler, viewport: viewport, context: context) }
-        let requested = !context.isMeasuring && applyPositionOffset(handler: handler, context: context)
+        let requested =
+            !context.isMeasuring && applyPositionOffset(handler: handler, viewport: viewport, context: context)
+        // A position request on the frame a glide lands supersedes its re-seek.
+        if requested, handler.pendingScrollToIsLanding {
+            (handler.pendingScrollTo, handler.pendingScrollToIsLanding) = (nil, false)
+        }
         let seekingTail = handler.seekingTail
         if !context.isMeasuring { handler.seekingTail = false }
         return (requested, seekingTail)
@@ -199,7 +206,11 @@ extension _ScrollViewCore {
     /// Render passes only, and before the glue is evaluated: `.bottom` sets
     /// `seekingTail` rather than an offset, so the post-render re-glue lands on
     /// the real tail instead of a pre-render estimate of it.
-    func adoptWrittenAnchor(handler: ScrollViewHandler, context: RenderContext) {
+    ///
+    /// Written inside an animation, the jump is a glide to that edge instead
+    /// (decisions B27-ANIMATING), landing as the jump would have: at the top,
+    /// or through the tail seek. `viewport` is the content area it starts in.
+    func adoptWrittenAnchor(handler: ScrollViewHandler, viewport: CellSize, context: RenderContext) {
         guard !context.isMeasuring else { return }
         let bound = pageAnchorPosition(context.environment)?.wrappedValue
         guard handler.lastBoundAnchor != .some(bound) else { return }
@@ -209,8 +220,18 @@ extension _ScrollViewCore {
         // initial placement to the declared anchor's own machinery.
         guard !isFirstSighting else { return }
         switch bound {
-        case .top: handler.scrollOffset = 0
-        case .bottom: handler.seekingTail = true
+        case .top:
+            if !glideIfAnimated(handler: handler, to: 0, landing: .top, viewport: viewport, context: context) {
+                handler.stopGlide()
+                handler.scrollOffset = 0
+            }
+        case .bottom:
+            let glides = glideIfAnimated(
+                handler: handler, to: handler.maxOffset, landing: .bottom, viewport: viewport, context: context)
+            if !glides {
+                handler.stopGlide()
+                handler.seekingTail = true
+            }
         default: break
         }
     }

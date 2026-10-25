@@ -419,6 +419,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         handler: ScrollViewHandler, edgeInset: Int, context: RenderContext
     ) -> ScrollToRequest? {
         guard !context.isMeasuring else { return nil }
+        // A glide's landing, sought again, gives way to a fresh position
+        // request on the frame it lands: the new request supersedes it.
+        if handler.pendingScrollToIsLanding, let fresh = positionSeek(handler: handler, context: context) {
+            (handler.pendingScrollTo, handler.pendingScrollToIsLanding) = (fresh, false)
+        }
         // A `.scrollPosition` write is the same request a `scrollTo` makes; it
         // just arrives as state rather than as a call, so it rides the same
         // machinery rather than a second one beside it.

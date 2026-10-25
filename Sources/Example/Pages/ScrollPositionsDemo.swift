@@ -7,7 +7,8 @@
 import TUIkit
 
 /// Scrolling to a place, and knowing where you are: `ScrollViewReader` and its
-/// proxy's `scrollTo(_:anchor:)`, `.scrollPosition(id:)` reporting the row at
+/// proxy's `scrollTo(_:anchor:)` — inside `withAnimation`, so it glides there
+/// (decisions B27-ANIMATING) — `.scrollPosition(id:)` reporting the row at
 /// the top, `.safeAreaInset` pinning a line of its own under the rows, and
 /// `.containerRelativeFrame` sizing cards to a share of the scroll view.
 struct ScrollPositionsDemo: View {
