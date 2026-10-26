@@ -740,7 +740,7 @@ extension StateStorage {
     /// never written (the rule a discarded drawing keeps,
     /// `AnimationStore.beginWalk()`). Nothing else here is the pass's to
     /// start again: what the pass has marked active stays marked, and
-    /// ``currentPass`` stays the frame's.
+    /// `currentPass` stays the frame's.
     public func beginRewalk() {
         animations.beginRenderPass()
         departures.beginRenderPass()

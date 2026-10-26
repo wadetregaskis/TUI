@@ -26,7 +26,7 @@ import TUIStyling
 /// SwiftUI's glass refracts and blurs what is behind it. A cell has nothing
 /// below it to refract, so glass here is what a ``Material`` is — what it
 /// covers frosted (its glyphs dropped, its colours averaged with their
-/// neighbours', over a smaller box than a material's: ``frost(in:)``) and a
+/// neighbours', over a smaller box than a material's: `frost(in:)`) and a
 /// palette surface at a fraction of its opacity composited over that, cell by
 /// cell — with the edge that makes glass read as glass: a **rim**, the shape's outline drawn in a highlight, in the lines of
 /// the ``Appearance`` in force (Deliberate deviations C11). ``regular`` is the
