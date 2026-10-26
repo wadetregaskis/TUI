@@ -84,7 +84,7 @@ struct KittyGraphicsEscapeTests {
     func placementIsVirtual() {
         #expect(
             KittyGraphics.placement(id: 9, columns: 20, rows: 8)
-                == "\u{1B}_Ga=p,U=1,q=2,i=9,c=20,r=8\u{1B}\\")
+                == "\u{1B}_Ga=p,U=1,q=2,i=9,p=1,c=20,r=8\u{1B}\\")
     }
 
     /// `d=I` frees the pixels; `d=i` would drop the placements and leave the

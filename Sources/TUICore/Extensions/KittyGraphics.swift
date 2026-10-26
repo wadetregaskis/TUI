@@ -197,11 +197,20 @@ public enum KittyGraphics {
     /// it the terminal would draw the image at the cursor and the grid would
     /// know nothing about it.
     ///
-    /// Sent once per (image, size); a resize needs a new one, which replaces
-    /// the old placement for that id.
+    /// Sent once per (image, size), and again to resize: always with the same
+    /// placement id, `p=1`, which is what makes a second one REPLACE the
+    /// first rather than add another. Measured 2026-10-26
+    /// (`Tools/TerminalProbes/replacement_probe.py`): with no placement id,
+    /// Ghostty 1.3.1 kept drawing an image at its FIRST placement's size, in the
+    /// corner of the new box's cells — a photo growing frame by frame sat at
+    /// its first frame's size — while iTerm2 3.7.6 moved it; deleting the old
+    /// placement first (`a=d,d=i`) fixed Ghostty and drew nothing at all in
+    /// iTerm2. With `p=1` both replace it, as the protocol says a placement
+    /// with the same id does. The cells name no placement, and both draw the
+    /// image's one placement for them.
     public static func placement(id: ImageID, columns: Int, rows: Int) -> String {
         guard id > 0, id <= maximumImageID, columns > 0, rows > 0 else { return "" }
-        return "\u{1B}_Ga=p,U=1,q=2,i=\(id),c=\(columns),r=\(rows)\u{1B}\\"
+        return "\u{1B}_Ga=p,U=1,q=2,i=\(id),p=1,c=\(columns),r=\(rows)\u{1B}\\"
     }
 
     /// The escape that deletes image `id` and frees its data.

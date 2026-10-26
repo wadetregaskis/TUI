@@ -252,8 +252,9 @@ package final class TerminalImageStore: @unchecked Sendable {
                 return image.cells
             }
             // The same picture in a DIFFERENT box. Alone on the image, this
-            // needs no bytes: an `a=p` replaces the placement for that id and
-            // the terminal refits the picture to the new rectangle. Without
+            // needs no bytes: an `a=p` replaces the placement (its id says
+            // which, `KittyGraphics.placement`) and the terminal refits the
+            // picture to the new rectangle. Without
             // this case every step of a resize drag ran delete + transmit +
             // place — megabytes, per step, to end up with the pixels already
             // in the store. Shared, the box belongs to the others too, so the

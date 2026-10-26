@@ -4564,6 +4564,32 @@ look beside the focused and selected rows, which draw no line.
 
 ---
 
+### Resizing a virtual placement: name the placement — measured 2026-10-26, Ghostty 1.3.1 and iTerm2 3.7.6
+
+A picture already in the terminal is resized by placing it again at the new
+size (`a=p,U=1` with the new `c` and `r`) and drawing the new box's
+placeholder cells: no pixels are sent. Whether a second placement REPLACES the
+first depends on the spelling (`Tools/TerminalProbes/replacement_probe.py`,
+one ramp image per panel, drawn in a 20 × 10 box):
+
+| Panel | Ghostty 1.3.1 | iTerm2 3.7.6 |
+|---|---|---|
+| A — placed 10 × 5, then 20 × 10, no placement id | **first size kept**: 10 × 5 in the box's corner | fills the box |
+| B — the same, placements deleted between (`a=d,d=i`, pixels kept) | fills the box | **draws nothing** |
+| C — placed once at 20 × 10 (reference) | fills the box | fills the box |
+| D — `p=1` both times, cells naming placement 1 (underline colour) | fills the box | fills the box |
+| E — `p=1` both times, cells naming no placement | fills the box | fills the box |
+
+So every virtual placement TUI makes names placement 1
+(`KittyGraphics.placement(id:columns:rows:)`, since 2026-10-26), and a resize
+is a second placement, which replaces it in both. Before, a picture growing
+frame by frame in Ghostty — the Navigation clip's photo zooming into its
+screen — stayed at its first frame's size while its cells grew; it went
+unnoticed because a resize used to resample and re-send the picture under a
+fresh id almost every time. kitty 0.49.1 is not measured (it needs OpenGL
+3.3, which the VM the probe ran in lacks); the protocol says a placement
+with an existing placement id replaces it, which is the behaviour E relies on.
+
 ## Measured advance table (divergences and key rows)
 
 DSR-measured on the ALTERNATE screen (the app's buffer). Terminal.app +
