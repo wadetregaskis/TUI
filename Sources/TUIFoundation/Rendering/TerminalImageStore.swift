@@ -329,6 +329,13 @@ package final class TerminalImageStore: @unchecked Sendable {
     package func derived(
         _ cell: KittyGraphics.PlaceholderCell, by transform: ImageTransform
     ) -> KittyGraphics.PlaceholderCell? {
+        // A copy's cell — a faded picture under a veil — is copied again from the
+        // picture itself, by its transform and then this one.
+        if images[cell.id] == nil, let origin = derivedImages.origin(of: cell.id) {
+            return derived(
+                KittyGraphics.PlaceholderCell(id: origin.source, row: cell.row, column: cell.column),
+                by: origin.transform.followed(by: transform))
+        }
         guard images[cell.id] != nil else { return nil }
         if let copy = derivedImages.existingCopy(of: cell.id, by: transform) {
             return KittyGraphics.PlaceholderCell(id: copy, row: cell.row, column: cell.column)
@@ -345,7 +352,11 @@ package final class TerminalImageStore: @unchecked Sendable {
     package func average(
         of cell: KittyGraphics.PlaceholderCell, by transform: ImageTransform
     ) -> (red: UInt8, green: UInt8, blue: UInt8)? {
-        derivedImages.average(of: cell.id, by: transform, column: cell.column, row: cell.row)
+        if images[cell.id] == nil, let origin = derivedImages.origin(of: cell.id) {
+            return derivedImages.average(
+                of: origin.source, by: origin.transform.followed(by: transform), column: cell.column, row: cell.row)
+        }
+        return derivedImages.average(of: cell.id, by: transform, column: cell.column, row: cell.row)
     }
 
     // MARK: - Owning
@@ -481,7 +492,7 @@ package final class TerminalImageStore: @unchecked Sendable {
         for _ in 0..<KittyGraphics.maximumImageID {
             let candidate = nextID
             nextID = candidate >= KittyGraphics.maximumImageID - 2 ? 1 : candidate + 1
-            if images[candidate] == nil, !derivedImages.ids.contains(candidate) { return candidate }
+            if images[candidate] == nil, !derivedImages.isCopy(candidate) { return candidate }
         }
         return 1
     }

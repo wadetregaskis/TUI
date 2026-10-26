@@ -56,7 +56,7 @@ extension FrameBuffer {
         let fraction = 1 - alpha.layer
         let transform = ImageTransform(blurs: false, toward: ground ?? (0, 0, 0), fraction: fraction)
         // Unfaded, or over a ground with no colour to mix toward: the picture as it is.
-        guard transform.amount > 0, ground != nil else { return cell }
+        guard !transform.isIdentity, ground != nil else { return cell }
         guard let copy = images.derived(picture, by: transform) else { return cell }
         var drawn = cell
         drawn.character = copy.character
@@ -98,7 +98,7 @@ extension FrameBuffer {
         let fraction = field == nil ? 0 : painter.map { $0.layer * $0.field } ?? alpha.layer * alpha.field
         let paintsGlyph = cell.character != " " || cell.style.paintsInkOnBlankCell
         let transform = ImageTransform(blurs: alpha.frosts, toward: field ?? (0, 0, 0), fraction: fraction)
-        guard transform.blurs || transform.amount > 0 || paintsGlyph else { return behind }
+        guard !transform.isIdentity || paintsGlyph else { return behind }
         guard let copy = images.derived(picture, by: transform) else { return nil }
         if paintsGlyph {
             guard let average = images.average(of: picture, by: transform) else { return nil }

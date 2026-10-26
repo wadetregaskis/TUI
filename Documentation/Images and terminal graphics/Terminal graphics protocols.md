@@ -1233,8 +1233,7 @@ C is what TUI does.
 
 Reviewed live in Ghostty with `ScreenClips --child frostreview`: a share
 panel on `.thinMaterial` and a toast on `.regularMaterial` over four photos
-read as frosted glass. Not yet done: the modal veil and `.dimmed()` over a
-picture, which take the same copies with a different transform.
+read as frosted glass.
 
 ### 14.3 A faded picture (2026-10-26)
 
@@ -1252,3 +1251,26 @@ small copy, since a blur hides that. A fade's made that way was visibly soft
 pixels too, up to 4 MiB a picture, and makes an unblurred copy from them at
 the picture's own size. A larger picture fades from its small copy, soft
 rather than unbounded.
+
+### 14.4 A picture behind a sheet, and copies of copies (2026-10-26)
+
+The modal veil rewrites the page's colours toward the overlay colour
+(`veiledAsBackdrop`), and passed a picture's rows over, so a picture kept
+its own brightness behind a sheet or an alert. With the store known, each
+picture cell on the veiled page draws a copy mixed toward the scrim as the
+veil mixes a colour: by ½, in linear light, as `Color.compositing(_:over:)`
+mixes. So `ImageTransform` carries whether a mix is linear.
+
+**Layers stack, so copies do.** A faded picture, or glass over one, is already
+a copy when the veil reaches it. A copy's id names no picture the store
+holds, and the veil had rewritten its row's colours, id included, so it drew
+nothing: the faded photo vanished behind the sheet, and the frosted panel went
+flat. A transform is now a blur and then a chain of mixes. The store
+remembers each copy's picture and transform, and copies a copy from the
+picture itself, by the copy's transform and then the new one.
+
+Reviewed live with `ScreenClips --child veilreview`: four photos, one
+faded, the frosted panel and the toast, behind an open sheet, all veiled
+alike. Not yet done: `.dimmed()`, which flattens a page to two colours on
+purpose and still passes a picture's rows through.
+

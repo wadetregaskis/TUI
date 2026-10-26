@@ -64,11 +64,22 @@ extension FrameBuffer {
     ///   - palette: Resolves the colours.
     /// - Returns: The veiled page.
     public func veiledAsBackdrop(by scrim: Color, surface: Color, palette: any Palette) -> FrameBuffer {
+        veiledAsBackdrop(by: scrim, surface: surface, palette: palette, images: nil)
+    }
+
+    /// ``veiledAsBackdrop(by:surface:palette:)`` knowing the pictures the app has
+    /// put in the terminal: a picture on the page draws a copy of itself veiled as
+    /// the page's colours are, toward `scrim` in linear light
+    /// (`OpacityBlend+Pictures.swift`), where without them it keeps its own
+    /// brightness. What the screen root runs.
+    package func veiledAsBackdrop(
+        by scrim: Color, surface: Color, palette: any Palette, images: TerminalImageStore?
+    ) -> FrameBuffer {
         guard !isEmpty else { return self }
         let scrim = scrim.resolve(with: palette).opaqueSpelling
         let surface = surface.resolve(with: palette)
         let ink = palette.foreground.resolve(with: palette)
-        var page = opacityRegions.isEmpty ? self : resolvingOpacity(surface: surface, palette: palette)
+        var page = opacityRegions.isEmpty ? self : resolvingOpacity(surface: surface, palette: palette, images: images)
         var veil = Veil(scrim: scrim)
         // Where the scrim has no RGB (the terminal's own background, not yet
         // reported) nothing can be blended toward it: the page is drawn faint
@@ -84,17 +95,33 @@ extension FrameBuffer {
         // its row, and a field it does not name is the row's (its records), so
         // stating one would draw the frame on it instead.
         func veiled(_ line: String, startingWith defaults: String?, afterAReset restated: String) -> String {
-            guard !line.unicodeScalars.contains(.terminalImagePlaceholder) else { return line }
+            let drawsPictures = line.unicodeScalars.contains(.terminalImagePlaceholder)
+            // A picture's cells name the image in their foreground: without the
+            // store there is nothing to veil them with, so the row keeps its own.
+            guard !drawsPictures || (images != nil && !faint) else { return line }
             var result = defaults ?? ""
+            // Where the row draws a picture, the ink in force, to read each
+            // picture cell's image by.
+            var state = SGRState()
             result.reserveCapacity(line.utf8.count + restated.utf8.count * 2)
             line.forEachANSISegment { segment in
                 switch segment {
                 case .visible(let character):
-                    result.append(character)
+                    if drawsPictures, let images, let picture = Self.veiledPicture(
+                        character, ink: state.foregroundColour, toward: scrim, store: images)
+                    {
+                        // The copy's cell, its id stated, and the row's state put
+                        // back for whatever follows it: the next picture cell's own
+                        // id, or the `ESC[39m` a picture's row ends with.
+                        result += picture + "\u{1B}[39m" + state.rendered
+                    } else {
+                        result.append(character)
+                    }
                 // A rendered line's escape segment, not a colour: the rule
                 // matches `.ansi(` wherever it is written.
                 // swiftlint:disable:next framework_colour_literal
                 case .ansi(let sequence, _):
+                    if drawsPictures { state.apply(sequence) }
                     guard !faint else {
                         result += sequence
                         var reset = false
@@ -129,6 +156,26 @@ extension FrameBuffer {
         page.hitTestRegions = []
         page.overlays = overlays
         return page
+    }
+}
+
+extension FrameBuffer {
+    /// The cell drawing a copy of the picture `character` names in `ink`, veiled
+    /// toward `scrim` as ``modalVeilOpacity`` veils a colour — spelled with its
+    /// copy's id — or `nil` where `character` is no picture's.
+    fileprivate static func veiledPicture(
+        _ character: Character, ink: SGRState.Colour?, toward scrim: Color, store: TerminalImageStore
+    ) -> String? {
+        // A pattern reading the ink's channels, not a colour this draws with.
+        // swiftlint:disable:next framework_colour_literal
+        guard case .rgb(let red, let green, let blue)? = ink,
+            let picture = KittyGraphics.placeholderCell(
+                character, foreground: (UInt8(clamping: red), UInt8(clamping: green), UInt8(clamping: blue))),
+            let toward = scrim.rgbComponents
+        else { return nil }
+        let transform = ImageTransform(
+            blurs: false, toward: toward, fraction: 1 - modalVeilOpacity, linearLight: true)
+        return store.derived(picture, by: transform)?.spelled
     }
 }
 

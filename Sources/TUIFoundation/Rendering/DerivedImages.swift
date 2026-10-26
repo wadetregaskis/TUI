@@ -10,27 +10,55 @@
 //  License: MIT
 
 import TUICore
+import TUIStyling
 
 /// How a derived copy differs from its picture: blurred or not, then mixed
-/// toward a colour by an amount.
+/// toward one colour after another.
 ///
-/// The amount is in 64ths, so a layer whose alpha moves — a fade, a breath —
-/// asks for at most 65 copies rather than one a frame (and the store keeps
-/// only a few of those, ``DerivedImages/limit``).
+/// Each mix's amount is in 64ths, so a layer whose alpha moves — a fade, a
+/// breath — asks for at most 65 copies rather than one a frame (and the store
+/// keeps only a few of those, ``DerivedImages/limit``). Mixes chain because
+/// layers stack: a faded picture behind a sheet is a fade and then a veil, a
+/// copy of a copy, made from the picture itself.
 package struct ImageTransform: Hashable, Sendable {
+    /// One mix toward a colour.
+    package struct Mix: Hashable, Sendable {
+        /// The colour mixed in, as 0xRRGGBB.
+        package var toward: UInt32
+        /// How much of it is mixed in, in 64ths.
+        package var amount: UInt8
+        /// Whether the mix is in linear light, as `Color.compositing(_:over:)`
+        /// mixes — the modal veil's — rather than in encoded sRGB, as
+        /// `Color.opacity(_:over:)` and every fade do.
+        package var linearLight: Bool
+    }
+
     /// Whether the copy is blurred over about a cell, as a material frosts.
     package var blurs: Bool
-    /// The colour mixed in, as 0xRRGGBB.
-    package var toward: UInt32
-    /// How much of `toward` is mixed in, in 64ths.
-    package var amount: UInt8
+    /// The mixes, in order, after the blur.
+    package var mixes: [Mix]
 
     /// A transform mixing `colour` in by `fraction`, quantised to 64ths;
-    /// blurred where `blurs`.
-    package init(blurs: Bool, toward colour: (red: UInt8, green: UInt8, blue: UInt8), fraction: Double) {
+    /// blurred where `blurs`, and mixed in linear light where `linearLight`.
+    package init(
+        blurs: Bool, toward colour: (red: UInt8, green: UInt8, blue: UInt8), fraction: Double, linearLight: Bool = false
+    ) {
         self.blurs = blurs
-        toward = UInt32(colour.red) << 16 | UInt32(colour.green) << 8 | UInt32(colour.blue)
-        amount = UInt8((min(1, max(0, fraction)) * 64).rounded())
+        let amount = UInt8((min(1, max(0, fraction)) * 64).rounded())
+        let toward = UInt32(colour.red) << 16 | UInt32(colour.green) << 8 | UInt32(colour.blue)
+        mixes = amount > 0 ? [Mix(toward: toward, amount: amount, linearLight: linearLight)] : []
+    }
+
+    /// Whether the copy would be the picture itself.
+    package var isIdentity: Bool { !blurs && mixes.isEmpty }
+
+    /// This transform, then `next`: blurred if either blurs, and mixed by this
+    /// one's mixes and then by `next`'s.
+    package func followed(by next: Self) -> Self {
+        var both = self
+        both.blurs = blurs || next.blurs
+        both.mixes += next.mixes
+        return both
     }
 }
 
@@ -80,8 +108,17 @@ struct DerivedImages {
     }
 
     private var sources: [KittyGraphics.ImageID: Source] = [:]
-    /// Every derived copy's id, for the store's id search to skip.
-    private(set) var ids: Set<KittyGraphics.ImageID> = []
+    /// Each derived copy's picture and transform, by the copy's id: so a copy
+    /// can be copied again — a fade under a veil — from the picture itself.
+    private var origins: [KittyGraphics.ImageID: (source: KittyGraphics.ImageID, transform: ImageTransform)] = [:]
+
+    /// Whether `id` is a derived copy's, for the store's id search to skip.
+    func isCopy(_ id: KittyGraphics.ImageID) -> Bool { origins[id] != nil }
+
+    /// The picture copy `id` was made from, and how.
+    func origin(of id: KittyGraphics.ImageID) -> (source: KittyGraphics.ImageID, transform: ImageTransform)? {
+        origins[id]
+    }
 
     // MARK: - Pictures
 
@@ -118,7 +155,7 @@ struct DerivedImages {
     mutating func forget(_ id: KittyGraphics.ImageID) -> [KittyGraphics.ImageID] {
         guard let source = sources.removeValue(forKey: id) else { return [] }
         let gone = source.copies.values.map(\.id)
-        ids.subtract(gone)
+        for copy in gone { origins.removeValue(forKey: copy) }
         return gone
     }
 
@@ -126,7 +163,7 @@ struct DerivedImages {
     /// drops its copies, which were placed in the old one.
     mutating func resize(_ id: KittyGraphics.ImageID, columns: Int, rows: Int) {
         guard let source = sources[id] else { return }
-        ids.subtract(source.copies.values.map(\.id))
+        for copy in source.copies.values { origins.removeValue(forKey: copy.id) }
         var resized = Source(
             columns: columns, rows: rows,
             pixels: Self.downsampled(
@@ -166,7 +203,7 @@ struct DerivedImages {
         if source.order.count >= Self.limit, let oldest = source.order.first {
             source.order.removeFirst()
             if let gone = source.copies.removeValue(forKey: oldest) {
-                ids.remove(gone.id)
+                origins.removeValue(forKey: gone.id)
                 escapes += KittyGraphics.delete(id: gone.id)
             }
         }
@@ -185,7 +222,7 @@ struct DerivedImages {
         escapes += KittyGraphics.placement(id: copyID, columns: source.columns, rows: source.rows)
         source.copies[transform] = Copy(id: copyID, pixels: pixels)
         source.order.append(transform)
-        ids.insert(copyID)
+        origins[copyID] = (id, transform)
         sources[id] = source
         return escapes
     }
@@ -253,7 +290,7 @@ struct DerivedImages {
 
     /// `pixels` (RGBA, `width` × `height`) changed by `transform`: blurred over
     /// about a cell — a box blur run twice each way, which is close to a
-    /// Gaussian — then mixed toward its colour in encoded sRGB, as TUI mixes.
+    /// Gaussian — then mixed toward each of its colours in turn.
     /// Alpha is left alone, so a transparent picture stays transparent.
     static func applying(_ transform: ImageTransform, to pixels: [UInt8], width: Int, height: Int) -> [UInt8] {
         var out = pixels
@@ -263,19 +300,33 @@ struct DerivedImages {
                 out = boxBlurred(out, width: width, height: height, radius: (0, pixelsDown))
             }
         }
-        guard transform.amount > 0 else { return out }
-        let fraction = Double(transform.amount) / 64
+        for mix in transform.mixes { apply(mix, to: &out) }
+        return out
+    }
+
+    /// `pixels` (RGBA) mixed toward `mix`'s colour by its amount.
+    private static func apply(_ mix: ImageTransform.Mix, to out: inout [UInt8]) {
+        let fraction = Double(mix.amount) / 64
         // One channel of the colour, by its shift: a function rather than three
         // shifts in one array literal, which the type-check guard times out on.
-        func channel(_ shift: UInt32) -> Double { Double((transform.toward >> shift) & 0xFF) }
-        let toward: [Double] = [channel(16), channel(8), channel(0)]
+        func channel(_ shift: UInt32) -> UInt8 { UInt8((mix.toward >> shift) & 0xFF) }
+        let toward: [UInt8] = [channel(16), channel(8), channel(0)]
+        if mix.linearLight {
+            let towardLinear = toward.map(Color.linearChannel)
+            for at in stride(from: 0, to: out.count, by: 4) {
+                for channel in 0..<3 {
+                    let mixed = Color.linearChannel(out[at + channel]) * (1 - fraction) + towardLinear[channel] * fraction
+                    out[at + channel] = Color.encodedChannel(mixed)
+                }
+            }
+            return
+        }
         for at in stride(from: 0, to: out.count, by: 4) {
             for channel in 0..<3 {
-                let mixed = Double(out[at + channel]) * (1 - fraction) + toward[channel] * fraction
+                let mixed = Double(out[at + channel]) * (1 - fraction) + Double(toward[channel]) * fraction
                 out[at + channel] = UInt8(min(255, max(0, mixed.rounded())))
             }
         }
-        return out
     }
 
     /// One pass of a box blur `radius` pixels across or down, the edges held.

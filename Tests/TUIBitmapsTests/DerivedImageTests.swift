@@ -208,4 +208,50 @@ struct DerivedImageTests {
         _ = store.derived(picture, by: ImageTransform(blurs: true, toward: (0, 0, 0), fraction: 0.5))
         #expect(store.takePending().contains("s=8,v=8"), "the small copy: 4 cells × 2 across, 2 × 4 down")
     }
+
+    /// The page behind a sheet: its colours veiled toward the scrim, and a picture
+    /// on it, which kept its own brightness, now a copy veiled the same way — in
+    /// linear light, as `Color.compositing(_:over:)` veils the page's colours.
+    @Test("A picture behind a sheet draws a copy veiled toward the scrim")
+    func veiledPictureDrawsCopy() throws {
+        let (store, rows) = storeWithPicture()
+        let palette = makeRenderContext(width: 8, height: 2).environment.palette
+        let page = FrameBuffer(lines: rows.map { $0 + "abc" })
+        let scrim = Color.rgb(0, 0, 0)
+        let veiled = page.veiledAsBackdrop(by: scrim, surface: .rgb(250, 250, 250), palette: palette, images: store)
+        let original = try #require(pictureCells(rows[0])[2])
+        let drawn = try #require(pictureCells(veiled.lines[0])[2])
+        #expect(drawn.id != original.id && drawn.row == 0 && drawn.column == 2)
+        let veil = ImageTransform(
+            blurs: false, toward: (0, 0, 0), fraction: 1 - FrameBuffer.modalVeilOpacity, linearLight: true)
+        #expect(store.average(of: original, by: veil) != nil, "veiled as the page's colours are")
+        // The text after the picture is veiled as it would be on its own.
+        let text = FrameBuffer(lines: ["abc"]).veiledAsBackdrop(by: scrim, surface: .rgb(250, 250, 250), palette: palette)
+        let after = paintedCells(veiled.lines[0])
+        #expect(after[4].glyph == "a")
+        #expect(after[4].visibleState == paintedCells(text.lines[0])[0].visibleState)
+        // Without the store, the picture keeps its own.
+        let unknowing = page.veiledAsBackdrop(by: scrim, surface: .rgb(250, 250, 250), palette: palette)
+        #expect(pictureCells(unknowing.lines[0])[2] == original)
+    }
+
+    /// Layers stack: a faded picture under a sheet is a copy veiled again. The
+    /// store makes that from the picture itself, by the fade and then the veil —
+    /// a copy's own id names no picture the store holds, and its row's colours,
+    /// id included, were rewritten by the veil, so left alone it drew nothing.
+    @Test("A copy is copied again from the picture, by both transforms in turn")
+    func copyOfACopy() throws {
+        let (store, rows) = storeWithPicture()
+        let picture = try #require(pictureCells(rows[0])[1])
+        let fade = ImageTransform(blurs: false, toward: (250, 250, 250), fraction: 0.6)
+        let veil = ImageTransform(blurs: false, toward: (0, 0, 0), fraction: 0.5, linearLight: true)
+        let faded = try #require(store.derived(picture, by: fade))
+        let veiled = try #require(store.derived(faded, by: veil))
+        #expect(veiled.id != faded.id && veiled.id != picture.id)
+        #expect(veiled.row == picture.row && veiled.column == picture.column)
+        #expect(store.average(of: picture, by: fade.followed(by: veil)) != nil, "made from the picture, fade then veil")
+        let throughTheCopy = store.average(of: faded, by: veil).map { [$0.red, $0.green, $0.blue] }
+        let fromThePicture = store.average(of: picture, by: fade.followed(by: veil)).map { [$0.red, $0.green, $0.blue] }
+        #expect(throughTheCopy == fromThePicture)
+    }
 }

@@ -118,7 +118,7 @@ extension FrameBuffer {
                         result = result.replacingLines(expanded)
                     }
                     result = result.veiledAsBackdrop(
-                        by: palette.overlayBackground, surface: palette.background, palette: palette)
+                        by: palette.overlayBackground, surface: palette.background, palette: palette, images: images)
                 }
                 let placed = layer.placed(maxWidth: maxWidth, maxHeight: maxHeight)
                 wentLeading = layer.besideAnchorWidth != nil && placed.x < layer.offsetX
