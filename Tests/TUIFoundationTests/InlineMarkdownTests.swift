@@ -10,8 +10,9 @@
 //  The parse was also run against Foundation on 550,000 random strings over
 //  three alphabets (the syntax characters, URL and email pieces, Unicode
 //  punctuation and spaces) with no difference outside the two noted in
-//  `InlineMarkdown`: named references missing from the table, and link
-//  reference definitions.
+//  `InlineMarkdown`: named references missing from the table (none since
+//  2026-10-26, when the table became HTML's whole list), and link reference
+//  definitions.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -284,13 +285,14 @@ struct InlineMarkdownTests {
         }
     }
 
-    // MARK: - The known difference
+    // MARK: - Named references
 
-    @Test("A named reference missing from the table stays as written")
-    func unknownReference() {
-        // Foundation knows all of HTML's 2,125 names and draws `&Aacute;` as Á;
-        // this table holds the common ones. The difference is pinned so a change
-        // to it is a decision rather than an accident.
-        #expect(encode(InlineMarkdown.parse("&Aacute; &amp;")) == "«&Aacute; &»")
+    /// HTML's named references, all 2,125 Foundation knows (owner ruling B86,
+    /// 2026-10-26; `HTMLEntitiesTests` checks every one against Foundation),
+    /// and a name HTML does not define stays as written, as in Foundation.
+    @Test("A named reference decodes, and a name HTML does not define stays as written")
+    func namedReferences() {
+        #expect(encode(InlineMarkdown.parse("&Aacute; &amp;")) == "«Á &»")
+        #expect(encode(InlineMarkdown.parse("&Bogus; &amp;")) == "«&Bogus; &»")
     }
 }

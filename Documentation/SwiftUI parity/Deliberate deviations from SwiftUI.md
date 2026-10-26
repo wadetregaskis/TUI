@@ -951,8 +951,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 - **SwiftUI:** Foundation's parser (B86 measured its quirks).
 - **TUI:** `InlineMarkdown`, which agrees with Foundation on a 138-case table
-  and 550,000 random strings but for two things: named character references
-  beyond about 140 common ones are drawn as written, and link reference
+  and 550,000 random strings, and on every one of HTML's 2,125 named
+  character references (since 2026-10-26), but for one thing: link reference
   definitions are not consumed. Two more differences are in the drawing:
   `^[…](inflect: true)` is drawn without inflection, and a code span is plain
   text, every cell being monospaced already.

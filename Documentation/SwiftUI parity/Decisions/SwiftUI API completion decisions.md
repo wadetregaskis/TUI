@@ -3398,6 +3398,15 @@ construction only puts its values in.
 
 **Recommendation:** leave both differences until a translation needs them.
 
+**Since closed, the first (owner ruling B86, 2026-10-26: "support the full
+entity table … now"):** all 2,125 named references decode
+(`HTMLEntities`), generated from Python's `html.entities.html5` by
+`Tools/GenerateHTMLEntities/generate.py` and stored front-coded as the SF
+Symbols table is (`FrontCodedNames`): 12,242 bytes of names and 8,341 of
+values, compile-time data a lookup reads in place. DEFLATE would halve it but
+put the inflated table in dirty memory in every process. `HTMLEntitiesTests`
+checks every name against Foundation's parser on Darwin.
+
 ### B87. Markdown in a control's title key: parsed, though a column header and a tab title draw only its words
 
 *`Button(_:action:)` and the other `LocalizedStringKey` initializers*
