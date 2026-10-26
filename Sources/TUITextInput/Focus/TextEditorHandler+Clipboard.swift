@@ -65,6 +65,9 @@ extension TextEditorHandler {
             // At the caret, as Ctrl-K kills: the selection goes first.
             killToStartOfLine()
             return true
+        case .killWordBackward:
+            killWordBackward()
+            return true
         case .undo, .redo:
             return false
         }
@@ -82,6 +85,21 @@ extension TextEditorHandler {
         killRing = String(lines[cursorLine][..<cursorColumn])
         lines[cursorLine].removeSubrange(..<cursorColumn)
         cursorColumn = 0
+        writeLines(lines)
+        syncDesiredColumn()
+    }
+
+    /// Ctrl-W: kills the word before the cursor into the kill ring
+    /// (``StandInEditingCommand/wordRuboutStart(in:before:lineStart:)``),
+    /// staying on the cursor's line as Ctrl-U does.
+    func killWordBackward() {
+        clearSelection()
+        var lines = readLines()
+        let start = StandInEditingCommand.wordRuboutStart(in: lines[cursorLine], before: cursorColumn)
+        guard start < cursorColumn else { return }
+        killRing = String(lines[cursorLine][start..<cursorColumn])
+        lines[cursorLine].removeSubrange(start..<cursorColumn)
+        cursorColumn = start
         writeLines(lines)
         syncDesiredColumn()
     }

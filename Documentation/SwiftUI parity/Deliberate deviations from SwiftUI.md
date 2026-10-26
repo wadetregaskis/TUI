@@ -1019,7 +1019,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   vertical field and a `TextEditor`, never its line break — as one undoable
   edit that Ctrl-Y yanks back (a `SecureField` keeps no kill). macOS binds
   no Ctrl-U (Cocoa's `StandardKeyBinding.dict`); ⌘⌫ deletes to the start of
-  the line there.
+  the line there. Ctrl-W likewise kills the word before the caret, as
+  readline's `unix-word-rubout` (words lie between blanks, so a path goes in
+  one kill), staying on the caret's line, and keeps the key from an app's ⌘W
+  (owner ruling O9, 2026-10-26); Cocoa's Ctrl-W is `deleteToMark:`, which
+  TUI has no mark for.
 - **Why:** what the terminal delivers. ⌘ is the terminal's, so ⌘F and ⌘G are
   Control chords, and the editor gives up Emacs Ctrl-F (Right arrow does the
   same) where it has a find bar; a field keeps it. A legacy terminal sends

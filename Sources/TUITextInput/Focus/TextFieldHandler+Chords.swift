@@ -81,7 +81,7 @@ extension TextFieldHandler {
     /// decline, so the chord goes on to the app: to its ⌘C or ⌘X, which
     /// arrive as these chords, or to `QuitShortcut.ctrlC`. With a selection
     /// they take the key, a ``SecureField``'s too, although it refuses to copy
-    /// or cut its contents. Paste, undo and Ctrl-U always take it. Undo with
+    /// or cut its contents. Paste, undo, Ctrl-U and Ctrl-W always take it. Undo with
     /// nothing to undo must not decline: an unclaimed Ctrl-Z reaches layer 4,
     /// which suspends the app.
     private func perform(_ command: StandInEditingCommand) -> Bool {
@@ -96,6 +96,10 @@ extension TextFieldHandler {
         case .undo: undo()
         case .redo: redo()
         case .killToStartOfLine: killToStart(at: lineKillStart())
+        case .killWordBackward:
+            killToStart(
+                at: StandInEditingCommand.wordRuboutStart(
+                    in: Array(text.wrappedValue), before: cursorPosition, lineStart: lineKillStart()))
         }
         return true
     }

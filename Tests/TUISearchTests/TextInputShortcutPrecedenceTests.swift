@@ -393,6 +393,11 @@ struct KeepingCase: Sendable, CustomTestStringConvertible {
         Self(
             name: "Ctrl-U kills to the start", shortcut: .command("u"),
             keys: [KeyEvent(key: .left), ctrl("u")], text: ("d", "d")),
+        // An app's ⌘W (Close) is Ctrl-W here, and a text field's word rubout
+        // keeps it (owner ruling O9, 2026-10-26).
+        Self(
+            name: "Ctrl-W kills the word before the caret", shortcut: .command("w"),
+            keys: [KeyEvent(key: .left), ctrl("w")], text: ("d", "d")),
     ]
 
     /// Every field, paired with every case.

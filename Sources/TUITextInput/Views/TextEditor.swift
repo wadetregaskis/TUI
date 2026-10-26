@@ -31,6 +31,7 @@ import TUIFoundation
 /// | Ctrl-D | Delete forward |
 /// | Ctrl-K | Kill to end of line (yank with Ctrl-Y) |
 /// | Ctrl-U | Kill to start of line, as readline's `unix-line-discard` (yank with Ctrl-Y) |
+/// | Ctrl-W | Kill the word before the cursor, as readline's `unix-word-rubout` (yank with Ctrl-Y) |
 /// | Ctrl-Y | Yank the last kill |
 /// | Ctrl-T | Transpose the two characters around the cursor |
 /// | Ctrl-O | Open a new line after the cursor |

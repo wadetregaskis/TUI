@@ -185,11 +185,33 @@ extension TextEditingCommand {
     }
 }
 
+// MARK: - Word rubout
+
+extension StandInEditingCommand {
+    /// Where Ctrl-W's kill starts on one line of text with the caret at
+    /// `column`: back over the blanks just before the caret, then over the
+    /// run of non-blank characters before them — readline's
+    /// `unix-word-rubout`, whose words are whatever lies between blanks, so a
+    /// path or a URL goes in one kill where ⌥⌫'s word deletion stops at each
+    /// punctuation mark. Never before `lineStart`: as Ctrl-U, Ctrl-W stays on
+    /// the caret's line.
+    ///
+    /// A plain function of a character array and an index, like
+    /// ``TextEditingCommand/transpose(in:at:)``: the editor passes one line,
+    /// and a field passes its text.
+    static func wordRuboutStart(in line: [Character], before column: Int, lineStart: Int = 0) -> Int {
+        var start = min(column, line.count)
+        while start > lineStart, line[start - 1].isWhitespace { start -= 1 }
+        while start > lineStart, !line[start - 1].isWhitespace { start -= 1 }
+        return start
+    }
+}
+
 // MARK: - Command-Key Stand-Ins
 
 /// An editing command that a text control binds to a Control chord in place
 /// of the Command-key chord a terminal app never receives: ⌘C, ⌘X, ⌘V, ⌘Z and
-/// ⇧⌘Z are Ctrl-C, X, V, Z and Shift-Z here, and Ctrl-U erases.
+/// ⇧⌘Z are Ctrl-C, X, V, Z and Shift-Z here, and Ctrl-U and Ctrl-W erase.
 ///
 /// A separate table from ``TextEditingCommand``, because the two disagree
 /// about V: here it is paste, and in the Emacs table it is page down. A
@@ -216,6 +238,13 @@ enum StandInEditingCommand: Equatable {
     /// ``TextEditor``, the caret's logical line, so Ctrl-U at the start of a
     /// line kills nothing and never crosses a line break.
     case killToStartOfLine
+    /// Ctrl-W: kills the word before the caret, as readline's
+    /// `unix-word-rubout` does in a shell at a terminal (``wordRuboutStart(in:before:lineStart:)``):
+    /// one undoable edit, kept for Ctrl-Y; a ``SecureField`` deletes and keeps
+    /// nothing. Like Ctrl-U it keeps the key from an app's shortcut on it, an
+    /// app's ⌘W among them (owner ruling O9, 2026-10-26: a text field's ⌃W
+    /// comes first), and stays on the caret's line.
+    case killWordBackward
 
     /// The command a Control chord names, or `nil` when it names none here.
     /// Option held as well changes nothing; Shift changes Z from undo to redo.
@@ -226,6 +255,7 @@ enum StandInEditingCommand: Equatable {
         case "v", "V": self = .paste
         case "z", "Z": self = shift ? .redo : .undo
         case "u", "U": self = .killToStartOfLine
+        case "w", "W": self = .killWordBackward
         default: return nil
         }
     }
