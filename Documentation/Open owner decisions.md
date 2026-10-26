@@ -1,8 +1,8 @@
 # Open owner decisions
 
-What is waiting on you, re-checked on 2026-10-26 against `main`. Each question was put to you between
-2026-10-18 and 2026-10-24, and its full write-up, with the options and the evidence, is in the
-historical record, [Owner decisions, 2026-10-18 to 2026-10-25](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md>). That record also holds every
+What is waiting on you, re-checked on 2026-10-26 against `main`. Most questions were put to you between
+2026-10-18 and 2026-10-26. The full write-ups of those asked by 2026-10-25, with the options and the
+evidence, are in the historical record, [Owner decisions, 2026-10-18 to 2026-10-25](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md>). That record also holds every
 question you have already answered and what each answer set in motion. None of these blocks other work:
 each has a default, which holds until you answer.
 
@@ -10,42 +10,53 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 ## Owner actions
 
-- **Push `main`.** Local `main` is 261 commits ahead of GitHub (last pushed 2026-10-24, `9f8439764`).
+- **Push `main`.** Local `main` is several hundred commits ahead of GitHub (last pushed 2026-10-24, `9f8439764`).
   It includes the rename to TUI (`c5cdfca27`): pushing it renames every module and product for anyone
   depending on `main`.
 - **Rename the GitHub repository to `TUI`,** then say so. The commit that points every URL at the new
   name (branch `hold-repourls`) lands only after the rename, since GitHub redirects old names to new and
   never new to old.
-- **The 2026-09-01 stash** (`stash@{0}`, "WIP on main: e4155942 RTL: the override is refused…") is still
-  there, made by no agent: keep or drop.
 - **Compiler bug reports** on the Desktop, one file per bug, are yours to file.
 
 ## Decisions waiting on you
 
-These are the follow-ups to answers you gave on 2026-10-23 and 2026-10-24: each was answered or
-measured, and ends "your call".
+Asked again on 2026-10-26, after your answers that day: each needs one more word from you.
 
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
-| [B-D6M-2](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b-d6m-2>) | Should the @Animatable and @Entry macros move into a separate package, in a second repository, so apps that don't use them never resolve swift-syntax? | (a) for now, and measure (c) cheaply. Take (b) only if users complain about resolution time or conflicts, because two packages are an ongoing release cost. | Things stay as they are: every client resolves swift-syntax and only macro users compile it. |
-| [B-DYNVFIX-3](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b-dynvfix-3>) | When several views hold one class object, closures made in any of them read the first holder's environment. Do you accept that limit, want the cheap 'focused holder becomes primary' fix prototyped, or want the full per-dispatch fix built? | (b), landing it only if the A/B is flat. Decline (c). | The limit stays documented, and a sheet that shares its page's object needs the workaround. |
-| [PACKAGE-RESOLVED](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#package-resolved>) | Should Package.resolved be committed fresh once, as an exception to your 'never commit it' rule, or removed from git and ignored? | (b). It matches your never-commit rule permanently and ends the noise. (a) is the census's earlier suggestion if you'd rather keep pins. | The stale file stays committed, and every worktree carries a local modification that agents must skip. |
-| [SDK15-CI](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#sdk15-ci>) | Should CI build TUI with a swift.org 6.2 toolchain against the macOS 15.5 SDK, which is what a swiftly user on macOS 15 with the default Command Line Tools gets? | (a) if you want swiftly users on macOS 15 supported (your 10-07 point that users may not use Xcode); otherwise (c). I lean (a). | In effect (b): it builds today and may silently stop. |
-| [B-D2S-6](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b-d2s-6>) | Under a scroll target behaviour such as `.paging`, should a `.text`-indicator scroll view keep its '▲ N more' / '▼ N more' lines drawn at every stop (shipped), or let them come and go and make every page two lines shorter? | Option 1, unless the '▲ 0 more' line at the top bothers you on the Example's Scroll View page. | The pair stays drawn at every stop under a scroll target behaviour. |
-| [S3-NO-EXTENT-SPACING](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#s3-no-extent-spacing>) | Should a stack put its spacing on both sides of a child that takes no rows (an empty `VStack`, `Color.clear.frame(height: 0)`), as SwiftUI does, or keep TUI's rule that such a child takes no gap? | Option 2. Your stack-spacing rulings so far all followed SwiftUI (A-BITEMS1-1, L12, L14), and the gap is the app's own spacing request. Ship it only after the audit shows framework internals won't add stray gaps. | TUI's rule stays, the Example keeps relying on it, and it stays an open divergence in guide §3. |
-| [B75](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b75>) | Should a tab whose label is the app's own view (Tab(content:label:)) draw that view inside its chip in the tab strip, instead of only its first line as plain text? | Option a, unless you want pictures in chips for TAB-IMAGE-NAME, in which case b. | Chips keep drawing a custom label as text. The shipped option stands, open to your veto. |
-| [B-D5C-1](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b-d5c-1>) | Keep TUI's extra windowToolbarStyle(_: any WindowToolbarStyle) overload, replace it with if/else support in SceneBuilder, or have the Example choose its toolbar style only at launch? | Option 1. | The overload stays. |
-| [B63-CTRLJ](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b63-ctrlj>) | Should the input parser read LF (0x0A) as Ctrl-J instead of Return, so a vertical TextField can bind Ctrl-J to insert a newline on every terminal? | Parse LF as Ctrl-J. The existing fallback limits the risk to vertical fields, and the result is a newline key that works on every terminal, Apple Terminal included. | LF stays Return. In a vertical field a newline is Ctrl-O everywhere, or Option-Return where Option is sent as Meta. |
-| [B63-KITTY](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b63-kitty>) | Under the kitty keyboard protocol, should Ctrl-Return in a vertical TextField insert U+2028 LINE SEPARATOR, as SwiftUI does, instead of submitting? | Insert U+2028, as SwiftUI does, once the text-path work is priced. If that comes to more than about a day, ship '\n' for now. | Ctrl-Return submits a vertical field on every terminal, as it does today. |
-| [B89](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b89>) | Should every control's press become a full gesture recognizer that can wait, fail and be cancelled, as SwiftUI's plain-style button is? | Keep for now. Build it when a port needs a gesture on a control to hear a press that failed: the cases are narrow, and the change touches every control's click path. | Controls never fail or wait, and the two differences stay as documented. |
-| [A48](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#a48>) | How should SwiftUI's .swipeActions be reached in a terminal: as an edge menu opened by a row chord or a horizontal wheel, as buttons revealed in the row, or not at all? | Option 1. A swipe action is a context menu for one edge, and the menu engine already provides the keyboard handling, dismissal and colours. | swipeActions stays unbuilt (two parity gaps), and SwiftUI code that uses it does not compile. |
-| [A53-KEYBOARD-DRAG](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#a53-keyboard-drag>) | Should .draggable get a keyboard route, overriding your 2026-07-30 decision to table keyboard drag-and-drop on modality, or should .draggable be recorded as an explicit exception to the no-mouse-only rule? | Confirm the tabling as an explicit exception and document the .copyable/.pasteDestination route. The modality objection still stands, and the same copy-and-paste route is what SwiftUI offers on macOS. | .draggable stays mouse-only with no recorded exception, an open breach of the no-mouse-only rule. |
-| [B-BITEMS1-1](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b-bitems1-1>) | Beyond the badges ruled on 10-12 (+ for copy, ↗ for link, ⊘ for forbidden, nothing for move), should a .delete drop wear a glyph, and should dropDestination propose .copy so its drags show +? | Leave .delete bare. Have dropDestination propose .copy only once a real-window macOS probe shows the +, since TUI shouldn't claim macOS behaviour it hasn't measured. | Only item-provider drops show badges; .delete, .cancel and TUI's own destinations show none. |
-| [O13-KEYS](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#o13-keys>) | For the menu bar that O13 has now landed on main, should the keys stay the ones you accepted on 10-04 (F10, Alt-letter, a click), with no extra chord and no TUI-only menuBarVisibility for now? | The 10-04 keys. The 10-05 objection was about spending F-keys on a minor feature, and opening a menu bar is F10's standard use. Measure F10 (the lane landed without measuring it), and add a chord or menuBarVisibility only if an app asks. | The menu bar keeps the keys it shipped with (F10, Alt-letter, click), with no extra chord and no menuBarVisibility. |
-| [B-HELP-2](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b-help-2>) | Should '?' pressed when the focused control has no help show every help panel on screen, with '?' again hiding them, as the keyboard route to the help on views that can't take focus? | '?' reveals all. It closes the mouse-only gap that your 10-12 ruling and the no-mouse-only rule both point at, using the help key users already know. | Non-focusable help stays keyboard-reachable only where the app turns on .tooltips(.always), and '?' with no help on the focused control does nothing. |
-| [B-PASTE-1-EDITOR](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b-paste-1-editor>) | Should TextEditor and TextField be redesigned for large text: undo that records edits instead of whole-text copies, and possibly UTF-8 storage? If so, should it be folded into A42's storage refactor once the 16 MiB paste has been measured? | Measure first, then do undo-as-edits inside R1: it is the big, cheap win. Take on the UTF-8 storage redesign only if the measurement shows a 16 MiB document is unusable. | Nothing changes. Large texts keep the memory costs above, and R1 keeps whole-text undo. |
-| [B86](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b86>) | Should TUI's Markdown parse close its two known differences from Foundation's: all 2,125 HTML named entities, and link reference definitions? | Leave both until a translation needs them, as the decision doc says. If you want the parse identical, do reference definitions first, since they cost no bytes. | Both differences stay, recorded in T3. |
-| [A27](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#a27>) | For Wave 16's leftovers, do you take the recommended set (decline the six transforms, ship mask(alignment:_:) at cell coverage, ship drawingGroup as compositingGroup)? And should linear-light blending be added so that drawingGroup(colorMode: .linear) is honoured rather than ignored? | Option 2. Declining the transforms keeps rule 2 (nothing is silently ignored), mask and drawingGroup have honest cell readings, and linear blending is cheap and makes drawingGroup's colorMode honoured instead of documented as ignored. | All eight stay as gaps that fail to compile, A39 keeps waiting, and blending stays in encoded sRGB only. |
+| [B-D2S-6](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b-d2s-6>) | A scroll target behaviour with `.text` indicators: pages TUI sizes follow your rule (no repeats or skips, a "N more" line only where needed or under `.visible`, no blank rows), and only content whose pages are sized to the container (`containerRelativeFrame`, which TUI can tell) keeps both lines reserved, since a page of a fixed height cannot land whole otherwise. Agreed? | Yes. | Both lines stay reserved under any behaviour, as shipped. |
+| [S3-NO-EXTENT-SPACING](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#s3-no-extent-spacing>) | Keep TUI's rule (a child with no rows takes no gap, so "A B" becomes "A C B" and never "A, two gaps, B"; `EmptyView` and an empty stack agree) and record it as a deliberate deviation from SwiftUI? | Yes: your reading of 2026-10-26, which removes the audit too. | TUI's rule stays, recorded as an open divergence. |
+| FORMATTER (Refusals re-examined, wave 17, O11) | Ship `Text(_:formatter:)` and `TextField(value:formatter:)` beside the `format:` forms (the interpolation already ships), without the deprecated `onEditingChanged:`/`onCommit:` variants? On Linux a custom `Formatter` subclass displays but does not parse; the common ones parse. | Yes, about a day and a half. | Both stay refused. |
+| D2S-SCROLLCLIP ([D2S](<SwiftUI parity/Decisions/Scrolling/Scroll anchors, target behaviours and clipping (D2S).md>)) | Under `scrollClipDisabled`, should a scroll view's overflow also show through the blank cells inside a later view's line (between its words), as SwiftUI's shows between glyphs, not only around them? | No: two texts interleaved cell by cell are hardly legible. | Overflow shows only around a line's drawn cells. |
+| B-D2S-7 ([D2S](<SwiftUI parity/Decisions/Scrolling/Scroll anchors, target behaviours and clipping (D2S).md>)) | Should `.paging` and `.viewAligned` honour `.contentMargins` as SwiftUI documents (pages land inside the margins; a carousel aligns at its leading margin with neighbours showing)? | Yes, with a resize probe first: half a day. | Behaviours page and align by the whole window, margins included. |
+| TEXT2-INTERIOR ([TEXT2](<SwiftUI parity/Decisions/Input, clipboard and text editing/Ctrl-U, selection kept to a container, undoable reorders (TEXT2).md>)) | A drag selection begun in a bordered box keeps to its interior by default, at `modifiers` +6.4% and `dashboard` +3.7% warm. Make that opt-in instead, which removes the cost? | Keep the default: it fixed the Contact card, and the cost is under your ~10% line. | The default stays. |
+| OPACITY-28.2 ([Opacity §28.2](<Colour and styling/Opacity as composition.md>)) | A field well or lifted surface stepped off a half-transparent page: as transparent as the page (one wash), or solid (a field to read in)? Nothing reaches it today. | Solid: a field is where text is read. | They drop the page's alpha, as today. |
+| OPACITY-92 ([Opacity §92](<Colour and styling/Opacity as composition.md>)) | Carry a view's request for frames on the buffer it drew, so a `.hidden()` view's animation stops costing renders (a sheet presented from inside it keeps animating)? Nine places that build a run from parts must carry the flag. | Yes. | A hidden view that animates keeps asking for frames. |
+
+## Answered on 2026-10-26
+
+| Id | Answer | Status |
+|---|---|---|
+| B-D6M-2 | (a): swift-syntax is cloned by everyone, compiled only by macro users. | Nothing to change. |
+| B-DYNVFIX-3 | (c), the dispatching identity; then (b), then (a), if each is too costly after optimisation. | Queued. |
+| PACKAGE-RESOLVED | Untrack it and ignore it. | Done in lane SMALL1026. |
+| SDK15-CI | (c): the macOS 15 SDKs are not supported. | Done in lane SMALL1026: the guards and CONTRIBUTING. |
+| B-D5C-1 | (1): the existential overload stays. | Nothing to change. |
+| B63-CTRLJ | LF is Ctrl-J. | Done in lane SMALL1026: a vertical field's newline; Return where nothing takes it. |
+| B63-KITTY | Ctrl-Return: an app's handler, then a context menu, then U+2028 in a vertical field or `TextEditor`; a plain CR stays Return. | Queued, with a probe of a single-line field. |
+| B89 | Full gesture recognisers for every control, now. | Queued. |
+| A48 | The recommendation: buttons revealed in the row, ⇧→ / ⇧← (again for the full swipe), Ctrl-L / Ctrl-T fallbacks. | Queued. |
+| A53-KEYBOARD-DRAG | The carry mode, after its prerequisite (`.draggable` as a focus stop with Copy and Paste). | Queued. |
+| B-BITEMS1-1 | The three-party model. | Queued. |
+| O13-KEYS | The recommendation: F10 enters bar mode; measure F10 and fn-F10. | Queued. |
+| B-HELP-2 | Shift-F1 at the lowest priority (any app or built-in handler takes it first); ⌥? toggles all help; a menu-bar item where Option does not arrive. | Queued. |
+| B-PASTE-1-EDITOR | Undo as edits, not snapshots, with exhaustive tests that the stack cannot drift from the text; and undo for every built-in control that changes a value. | Queued. |
+| B75 | Draw a tab's custom label view in its chip (variable heights allowed); text labels keep their path and cost. | Queued. |
+| B86 | Both now: the full entity table, stored compressed, and link reference definitions. | Queued. |
+| A27 | (2). | Queued. |
+| O9 | ⌃W stays delete-word in text fields; File ▸ Close and Close All (⌘W, ⌥⌘W) only where the focus is outside a text field and nothing else takes the key. | Queued. |
+| INERT-APIS (wave 17) | No stubs: an API that does nothing on macOS either is implemented for real, doing what its user would expect, or not at all. | Recorded. |
+| B82 | Not open: answered 2026-10-23, built 2026-10-24. | Done. |
 
 ## New on 2026-10-25
 
