@@ -187,8 +187,22 @@ package enum HairlineMarker {
             var columns: Range<Int>
             var ink: UInt32
 
+            /// The bytes compared contiguously, and not at all where both lines
+            /// are one buffer — the usual hit: a row the render memo served is
+            /// the very string marked last frame. Through `utf8.elementsEqual`
+            /// the bytes were stepped one index at a time (2026-10-26: 6.8% of
+            /// a frame of `megalist` with hairlines, in the lookup alone).
             static func == (lhs: Self, rhs: Self) -> Bool {
-                lhs.columns == rhs.columns && lhs.ink == rhs.ink && lhs.line.utf8.elementsEqual(rhs.line.utf8)
+                guard lhs.columns == rhs.columns, lhs.ink == rhs.ink,
+                    lhs.line.utf8.count == rhs.line.utf8.count
+                else { return false }
+                var left = lhs.line  // `withUTF8` is mutating: it may make a bridged string contiguous
+                var right = rhs.line
+                return left.withUTF8 { leftBytes in
+                    right.withUTF8 { rightBytes in
+                        leftBytes.baseAddress == rightBytes.baseAddress || leftBytes.elementsEqual(rightBytes)
+                    }
+                }
             }
 
             func hash(into hasher: inout Hasher) {
