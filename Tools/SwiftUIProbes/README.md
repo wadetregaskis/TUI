@@ -1056,7 +1056,7 @@ messages cite that path), and what cites it.
   `OS_ACTIVITY_DT_MODE=YES` (SwiftUI's runtime warnings appear in the log as `[runtime] …`) and writes
   `<case>.out`, its stacks demangled. The times and frame numbers in the `.out` files differ from run to run; the
   order of events did not, over four runs of each case, except in the two ways that
-  `Documentation/Investigations/SwiftUI's update and effect ordering, measured (2026-10-24).md` names.
+  `Documentation/Historical/Investigations/Update model/SwiftUI's update and effect ordering, measured (2026-10-24).md` names.
 - **Answers:** no effect ran inside a body or inside a `Layout` call: SwiftUI runs them in `Update.dispatchActions()`,
   either from `ViewRendererHost.render(…)` inside `NSHostingView.layout()` or from `Update.end()` at the end of a
   graph update in SwiftUI's own run-loop observer. A state write in `onAppear`, `onChange` or `onPreferenceChange` is
@@ -1071,4 +1071,4 @@ messages cite that path), and what cites it.
   view update, this will cause undefined behavior." and is lost.
 - **Ran:** macOS 15.8.1 (SwiftUI of macOS 15.8.1), Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK,
   2026-10-24.
-- **Cited by:** `Documentation/Investigations/SwiftUI's update and effect ordering, measured (2026-10-24).md`.
+- **Cited by:** `Documentation/Historical/Investigations/Update model/SwiftUI's update and effect ordering, measured (2026-10-24).md`.

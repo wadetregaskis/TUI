@@ -38,15 +38,15 @@ topic's folder, or starts one when a second summary shares its topic.
 | summary | decision | working notes |
 |---|---|---|
 | Binary size: [Full LTO, conditional runtime records and the reflection descriptor request](<Full LTO, conditional runtime records and the reflection descriptor request.md>) (2026-10-10, 2026-10-11) | deferred; a feature request is drafted for the owner to file | `SIZE3/q/lto`, `CONDREQ` |
-| Terminal graphics: [Thin lines between rows with Kitty graphics](<Thin lines between rows with Kitty graphics.md>) (2026-10-08) | feasible on Ghostty and iTerm2; the prototype waits to be scheduled | `KGP` |
-| Linux toolchain: [GNU ld RWX LOAD segment warning on Linux aarch64](<GNU ld RWX LOAD segment warning on Linux aarch64.md>) (2026-10-23) | documented; workaround via `-Xlinker -z -Xlinker separate-code` | none |
-| Architecture: [SwiftUI's update model beside TUI's](<SwiftUI's update model beside TUI's (2026-10-24).md>) (2026-10-24) | open: recommends keeping the walk and converging effects before a frame is written, bounded per action as SwiftUI was measured to bound them | none |
-| SwiftUI behaviour: [SwiftUI's update and effect ordering, measured](<SwiftUI's update and effect ordering, measured (2026-10-24).md>) (2026-10-24) | measured to inform TUI's update loop; no decision yet | none |
 
 ### Decided (`Historical/Investigations/`)
 
 | summary | decision | working notes |
 |---|---|---|
+| Architecture: [SwiftUI's update model beside TUI's](<../Historical/Investigations/Update model/SwiftUI's update model beside TUI's (2026-10-24).md>) (2026-10-24) | landed: effects run after the walk in SwiftUI's order, and a frame they change is walked again before it is written (`910819db3`, decisions B-D5G-11); §6 step 3, toolbars and focused values through the same loop, is not built | none |
+| SwiftUI behaviour: [SwiftUI's update and effect ordering, measured](<../Historical/Investigations/Update model/SwiftUI's update and effect ordering, measured (2026-10-24).md>) (2026-10-24) | informed the convergence above; context only | none |
+| Terminal graphics: [Thin lines between rows with Kitty graphics](<../Historical/Investigations/Thin lines between rows with Kitty graphics (2026-10-08).md>) (2026-10-08) | landed: the `.hairline` separator look on Ghostty (decisions A-D6L-2), its row marking memoised (`e807fce55`) | `KGP` |
+| Linux toolchain: [GNU ld RWX LOAD segment warning on Linux aarch64](<../Historical/Investigations/GNU ld RWX LOAD segment warning on Linux aarch64 (2026-10-23).md>) (2026-10-23) | documented; no change to TUI: the workaround is `-Xlinker -z -Xlinker separate-code` | none |
 | Dynamic properties: [Finding dynamic properties from values or from types](<../Historical/Investigations/Finding dynamic properties from values or from types (2026-10-12).md>) | the hybrid, keeping TUI's reaches: lanes DYNVFIX and DYNVCLAIM landed | `DYNP/optional`, `DYNV`, `DYNV2`, `DYNVFIX`, `DYNVCLAIM` |
 | Binary size: [Where the bytes of a TUI app go](<../Historical/Investigations/Binary size/Where the bytes of a TUI app go (2026-10-10).md>) | products, internalize, unexport and package changes landed; flags stay the app's | `SIZE2`, `SIZE3` |
 | Binary size: [A program copied out of its build stopped at launch, libswiftCompatibilitySpan](<../Historical/Investigations/Binary size/A program copied out of its build stopped at launch, libswiftCompatibilitySpan (2026-10-11).md>) | swift-collections dropped; CI check; upstream drafts unfiled | `SIZE3/q/span`, `SIZE3/q/spanq`, `NODQ` |

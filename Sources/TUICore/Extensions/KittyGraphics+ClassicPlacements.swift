@@ -19,7 +19,8 @@ extension KittyGraphics {
     /// the cursor was when it was sent and stays there until it is deleted —
     /// whatever is drawn over it, whatever scrolls. It is for the one picture
     /// a cell cannot carry: a line thinner than a row, along the boundary
-    /// between two (`Documentation/Investigations/Thin lines between rows with Kitty graphics.md`).
+    /// between two (`Documentation/Historical/Investigations/Thin lines between
+    /// rows with Kitty graphics (2026-10-08).md`).
     /// Whoever sends one owns keeping it where it belongs, and deleting it.
     ///
     /// The keys, and why each is spelled:

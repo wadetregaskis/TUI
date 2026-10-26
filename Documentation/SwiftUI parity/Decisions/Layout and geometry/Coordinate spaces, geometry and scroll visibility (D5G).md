@@ -343,13 +343,13 @@ A/Bs), when the Stress counter shows a shape paying for them.
 study's option (a), approved by the owner on 2026-10-24*
 
 **Built (2026-10-24).** The architecture study ([SwiftUI's update model beside
-TUI's](<../../../Investigations/SwiftUI's update model beside TUI's (2026-10-24).md>),
+TUI's](<../../../Historical/Investigations/Update model/SwiftUI's update model beside TUI's (2026-10-24).md>),
 §5 option (a)) found that the frames TUI showed and SwiftUI does not — a
 page that loads in `onAppear` drawn empty for a frame, or torn (the views
 before the loader old, the ones after new), a value an `onChange` derives a
 frame behind its source, the flow-layout idiom laid out once from empty
 sizes — all came from writing the first walk, and that SwiftUI avoids them by
-updating again before it draws ([the probe](<../../../Investigations/SwiftUI's update and effect ordering, measured (2026-10-24).md>)).
+updating again before it draws ([the probe](<../../../Historical/Investigations/Update model/SwiftUI's update and effect ordering, measured (2026-10-24).md>)).
 So, as SwiftUI does:
 
 1. **Every effect waits for the walk.** The scene root's drawing is opened

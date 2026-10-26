@@ -1133,7 +1133,7 @@ this framework only ever built one.
 
 §11's writer substitution has its first user, and it is not `Image`: the
 `.hairline` list separator look (decisions A-D6L-2, the owner's option 4;
-`Documentation/Investigations/Thin lines between rows with Kitty graphics.md`).
+`Documentation/Historical/Investigations/Thin lines between rows with Kitty graphics (2026-10-08).md`).
 A list marks the cells a line runs along with a private SGR parameter
 (`HairlineMarker`), the diff writer reads the runs off the composited frame
 and takes the mark out, and `HairlineLayer` keeps the terminal's placements

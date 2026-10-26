@@ -6,6 +6,7 @@
 > 2026-09-23 and recorded nowhere else. **Asked by:** the owner, 2026-10-24. **Working notes:** none.
 > SwiftUI's ordering of effects was measured the same day by a separate probe, on macOS 15.8.1's SwiftUI
 > (Xcode 26.3; macOS 26's is untested): §2.3 summarises it, and the claims it settles are marked **[M]**.
+> **Landed** 2026-10-24 (`910819db3` and the commits after it); moved here from `Investigations/` on 2026-10-26.
 > **Decided and built:** the owner approved §6's recommendation on 2026-10-24. Option (a)'s steps 2 and 4 —
 > effects held to the end of the walk in SwiftUI's order, and up to two walks more before the frame is written —
 > are built on lane EFFECTS (decisions B-D5G-11). Step 3 (toolbars and focused values through the same loop) is
@@ -714,17 +715,17 @@ The reasons:
 - `Sources/TUI/TUI.docc/Articles/RenderCycle.md`: the frame's twelve steps, the memo, its
   invalidation table and the registration replay. It still says `onAppear` fires during the walk "because
   TUI uses single-pass rendering with no layout phase", which is this document's subject in one line.
-- [Locating things without drawing them](<../Layout and scrolling/Locating things without drawing them.md>):
+- [Locating things without drawing them](<../../../Layout and scrolling/Locating things without drawing them.md>):
   §7 weighs retained trees (7i), a retained layout tree (7j) and SwiftUI's `Layout` shape (7h).
-- [Geometry design study, A2 and A7](<../Historical/Geometry design study, A2 and A7 (2026-10-04).md>): G1,
+- [Geometry design study, A2 and A7](<../../Geometry design study, A2 and A7 (2026-10-04).md>): G1,
   G3, G4 and the container audit.
-- [Decisions D5G](<../SwiftUI parity/Decisions/Layout and geometry/Coordinate spaces, geometry and scroll visibility (D5G).md>):
+- [Decisions D5G](<../../../SwiftUI parity/Decisions/Layout and geometry/Coordinate spaces, geometry and scroll visibility (D5G).md>):
   B-D5G-2, -3, -4 (lane EFFECTS rewrites it), -9 and -10.
-- [Discarded render passes and redundant frames](<../Performance/Discarded render passes and redundant frames.md>):
+- [Discarded render passes and redundant frames](<../../../Performance/Discarded render passes and redundant frames.md>):
   the 2026-08-07 analysis of writes during the walk and of `onAppear` timing that option (a) revisits.
-- [Full performance profile of Stress and the Example](<../Performance/Full performance profile of Stress and the Example (2026-08).md>),
-  §19, §25, §56; [What makes a page slow to open](<../Performance/What makes a page slow to open.md>).
-- [Deliberate deviations from SwiftUI](<../SwiftUI parity/Deliberate deviations from SwiftUI.md>): L5, L7,
+- [Full performance profile of Stress and the Example](<../../../Performance/Full performance profile of Stress and the Example (2026-08).md>),
+  §19, §25, §56; [What makes a page slow to open](<../../../Performance/What makes a page slow to open.md>).
+- [Deliberate deviations from SwiftUI](<../../../SwiftUI parity/Deliberate deviations from SwiftUI.md>): L5, L7,
   S5, W1.
 - Option C's commits: `4dbc98081`..`6b1977c51` and `2eedf8321` (2026-09-27); lane EFFECTS: `48d74a60c`,
   `63e53b6c7`, `fc134b3d7`, `f94b72be4`, `fb7cb5186` on `lane-effects`.

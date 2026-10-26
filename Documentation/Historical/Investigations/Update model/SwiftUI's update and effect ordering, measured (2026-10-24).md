@@ -1,7 +1,8 @@
 # SwiftUI's update and effect ordering, measured (2026-10-24)
 
-> **Status:** measured 2026-10-24, to inform how TUI orders body evaluation, layout, drawing and effects; no
-> decision taken yet. **Asked by:** the owner, through the lead agent. **Probe:**
+> **Status:** measured 2026-10-24, to inform how TUI orders body evaluation, layout, drawing and effects. It
+> informed the convergence that landed the same day (`910819db3`, decisions B-D5G-11); moved here from
+> `Investigations/` on 2026-10-26. **Asked by:** the owner, through the lead agent. **Probe:**
 > `Tools/SwiftUIProbes/Effect and update ordering/` (`ordering.swift`, `run.sh`, one `.out` per case). **Working
 > notes:** none.
 

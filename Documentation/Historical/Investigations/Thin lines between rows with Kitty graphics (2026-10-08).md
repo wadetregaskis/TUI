@@ -1,6 +1,8 @@
 # Thin lines between rows with Kitty graphics
 
-> **Status:** prototype built 2026-10-24 (lane-hairline), after the owner chose option 4 of decisions A-D6L-2: a
+> **Status:** landed 2026-10-24 (`3e60414ac`: lists draw SwiftUI's separators as hairlines where the terminal can),
+> its row marking memoised on 2026-10-25 (`e807fce55`); moved here from `Investigations/` on 2026-10-26. Before
+> that: prototype built 2026-10-24 (lane-hairline), after the owner chose option 4 of decisions A-D6L-2: a
 > `.hairline` separator look on `List`, drawn on Ghostty only, and SwiftUI's default separators there. Researched
 > 2026-10-08; the probe that gates it was run the same day by the owner, on Ghostty and iTerm2. What was built, and
 > what it left open, is in the D6L decisions' A-D6L-2 and the survey's "What TUI draws". **Asked by:** the owner, 2026-10-04 (A47: Kitty-graphics thin lines are "a later project …
@@ -38,7 +40,7 @@ rows instead, at no cost in rows, and what would it take?
 the alternate screen, every card answered: Ghostty 1.3.1 and iTerm2 3.7.3. A 2048 × 2 px strip, placed with
 `C=1` at the run's first cell on the lower row, so that its top edge is the boundary. Records are committed in
 `Tools/TerminalProbes/data/` and written up in the
-[Terminal compatibility survey](<../Terminals/Terminal compatibility survey.md#a-line-on-a-row-boundary-kitty-classic-placements--measured-2026-10-08-ghostty-131-and-iterm2-373>)
+[Terminal compatibility survey](<../../Terminals/Terminal compatibility survey.md#a-line-on-a-row-boundary-kitty-classic-placements--measured-2026-10-08-ghostty-131-and-iterm2-373>)
 (`963018543`, `ad855dcf8`).
 
 | | Ghostty 1.3.1 | iTerm2 3.7.3 |
@@ -57,7 +59,7 @@ placed again without re-sending, and the line held steady at 60 Hz, with and wit
 
 - **Why the writer, not the list:** the line must follow the final composited frame. Drawing it from the list would
   re-implement clipping, overlays and scrolling, which the writer already gets from the frame's cells (the
-  argument of §11 of [Terminal graphics protocols](<../Images and terminal graphics/Terminal graphics protocols.md>)).
+  argument of §11 of [Terminal graphics protocols](<../../Images and terminal graphics/Terminal graphics protocols.md>)).
 - **The risks:** the line lives outside the cell grid, so a missed resize, resume, modal, replay or scroll leaves a
   ghost; the marker must survive every stage that rewrites cells; a marker-only change leaves the built row identical,
   so the layer must diff its own runs. Tests must cover each.
@@ -66,6 +68,6 @@ placed again without re-sending, and the line held steady at 60 Hz, with and wit
 
 ## Links
 
-Decisions [D6L](<../SwiftUI parity/Decisions/Lists and tables/List and table stripes, surfaces, pinned headers and separators (D6L).md>)
+Decisions [D6L](<../../SwiftUI parity/Decisions/Lists and tables/List and table stripes, surfaces, pinned headers and separators (D6L).md>)
 (A-D6L-2, the separator default); the compatibility guide's list-separator entry in
-[SwiftUI compatibility guide](<../SwiftUI parity/SwiftUI compatibility guide.md>).
+[SwiftUI compatibility guide](<../../SwiftUI parity/SwiftUI compatibility guide.md>).

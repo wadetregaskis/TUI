@@ -1,7 +1,7 @@
 # GNU ld RWX LOAD segment warning on Linux aarch64
 
 > **Status:** documented: root cause identified; build workaround via `-Xlinker -z -Xlinker separate-code`.
-> Investigated 2026-10-23. **Asked by:** the user, 2026-10-23.
+> Investigated 2026-10-23; nothing in TUI changes, so moved here from `Investigations/` on 2026-10-26. **Asked by:** the user, 2026-10-23.
 
 ## Question
 
