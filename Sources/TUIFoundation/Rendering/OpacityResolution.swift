@@ -106,7 +106,8 @@ extension FrameBuffer {
     /// per colour.
     func resolvingOpacity(
         over destination: Self, at position: (x: Int, y: Int), surface: Color, palette: any Palette,
-        statingTheSurface: Bool, fillingStatedTerminalField: Bool, buildingRuns: Bool
+        statingTheSurface: Bool, fillingStatedTerminalField: Bool, buildingRuns: Bool,
+        images: TerminalImageStore? = nil
     ) -> Self {
         // A run may be the only thing on the buffer with anything to say: a blinking
         // caret over a faded well claims nothing statically, because no one rectangle
@@ -232,7 +233,8 @@ extension FrameBuffer {
                 surface: resolvedSurface,
                 defaultForeground: resolvedForeground,
                 statingTheSurface: statingTheSurface,
-                fillingStatedTerminalField: fillingStatedTerminalField)
+                fillingStatedTerminalField: fillingStatedTerminalField,
+                images: images)
             // A hairline's mark (`HairlineMarker`) rides a faded cell's styling
             // untouched — it is not a colour this blend knows — so the line
             // would be drawn at full strength over a page the fade dimmed, a
@@ -673,12 +675,14 @@ extension FrameBuffer {
         at position: (x: Int, y: Int),
         palette: any Palette,
         surface: Color? = nil,
-        overlayIsPainted: Bool = false
+        overlayIsPainted: Bool = false,
+        images: TerminalImageStore? = nil
     ) -> Self {
         composited(
             with: overlay.resolvingOpacity(
                 over: self, at: position, surface: surface ?? palette.background, palette: palette,
-                statingTheSurface: true, fillingStatedTerminalField: !overlayIsPainted, buildingRuns: true),
+                statingTheSurface: true, fillingStatedTerminalField: !overlayIsPainted, buildingRuns: true,
+                images: images),
             at: position, overlayIsPainted: overlayIsPainted,
             terminalForeground: { Self.reportedTerminalForegroundField })
     }

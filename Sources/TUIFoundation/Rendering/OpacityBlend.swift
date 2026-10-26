@@ -172,7 +172,8 @@ extension FrameBuffer {
         surface: Color,
         defaultForeground: Color,
         statingTheSurface: Bool = true,
-        fillingStatedTerminalField: Bool = false
+        fillingStatedTerminalField: Bool = false,
+        images: TerminalImageStore? = nil
     ) -> String {
         // Pinned rather than clamped: the span is documented as already trimmed to
         // the source's own coordinates, and the walk below indexes `sourceCells` by
@@ -361,6 +362,12 @@ extension FrameBuffer {
                 blended.background = surface
                 blended.style = blended.style.settingBackground(surface)
             }
+            // A picture behind: its cells name an image the terminal holds, and the
+            // blend above read the image's id as a colour. They draw a copy of the
+            // picture with this layer already applied (`Terminal graphics
+            // protocols.md` §14). Read from the cell as it was, not the frost's
+            // stand-in for it.
+            blended = Self.overPicture(behindCells, at: behindColumn, under: cell, alpha: coverage, images: images) ?? blended
             // A revealed DESTINATION character can be wide, and the walk
             // advances by what it emits: a two-column character from a
             // one-column decision would swallow the next source column's own

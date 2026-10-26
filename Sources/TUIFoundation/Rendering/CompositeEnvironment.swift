@@ -23,13 +23,21 @@ package struct CompositeEnvironment {
     /// `drawingGroup(colorMode: .linear)`.
     package var linearLight: Bool
 
-    package init(palette: any Palette, linearLight: Bool) {
+    /// The pictures this app has put in the terminal, so a translucent layer
+    /// spent over one draws a copy of it with the layer applied
+    /// (`OpacityBlend+Pictures.swift`); `nil` where there are none to know.
+    package var images: TerminalImageStore?
+
+    package init(palette: any Palette, linearLight: Bool, images: TerminalImageStore? = nil) {
         self.palette = palette
         self.linearLight = linearLight
+        self.images = images
     }
 
     /// The compositor's own environment's.
     package init(_ environment: EnvironmentValues) {
-        self.init(palette: environment.palette, linearLight: environment.blendsInLinearLight)
+        self.init(
+            palette: environment.palette, linearLight: environment.blendsInLinearLight,
+            images: environment.terminalImageStore)
     }
 }

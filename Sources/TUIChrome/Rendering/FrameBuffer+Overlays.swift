@@ -26,8 +26,17 @@ extension FrameBuffer {
     /// This is exactly what `RenderLoop` runs at the screen root; it's public so
     /// tests can reproduce the composited result a headless `renderToBuffer`
     /// otherwise leaves pending in ``overlays``.
-    public func compositingOverlays(
-        maxWidth: Int, maxHeight: Int, palette: any Palette
+    public func compositingOverlays(maxWidth: Int, maxHeight: Int, palette: any Palette) -> FrameBuffer {
+        compositingOverlays(maxWidth: maxWidth, maxHeight: maxHeight, palette: palette, images: nil)
+    }
+
+    /// ``compositingOverlays(maxWidth:maxHeight:palette:)`` knowing the pictures
+    /// the app has put in the terminal, so a translucent layer over one draws a
+    /// copy of it with the layer applied (`OpacityBlend+Pictures.swift`);
+    /// without them, a layer over a picture is blended as if the picture's
+    /// cells were colours. What the screen root runs.
+    package func compositingOverlays(
+        maxWidth: Int, maxHeight: Int, palette: any Palette, images: TerminalImageStore?
     ) -> FrameBuffer {
         // The page's OWN opacity resolves first, before anything is drawn over
         // it. This is the screen root, so nothing is behind the page but the
@@ -161,7 +170,7 @@ extension FrameBuffer {
                 // between renders — a known gap (§109).
                 result = result.compositedResolvingOpacity(
                     with: content, at: (x: placed.x, y: placed.y), palette: palette,
-                    overlayIsPainted: layer.isOpaque)
+                    overlayIsPainted: layer.isOpaque, images: images)
             }
             // What this layer's content carried, lifted by the composite: into
             // the queue, not the next pass.

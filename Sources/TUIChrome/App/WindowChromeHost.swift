@@ -193,7 +193,9 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
             // What is presented over the page, counted before the layers are
             // spent (`WindowChromeState.presentationsOverPage`).
             chrome?.presentationsOverPage = Self.presentations(in: page.overlays)
-            page = page.compositingOverlays(maxWidth: width, maxHeight: contentHeight, palette: palette)
+            page = page.compositingOverlays(
+                maxWidth: width, maxHeight: contentHeight, palette: palette,
+                images: context.environment.terminalImageStore)
         }
         guard let chrome else { return page }
 

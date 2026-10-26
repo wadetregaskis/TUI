@@ -159,6 +159,8 @@ package final class TerminalImageStore: @unchecked Sendable {
     /// Which image each token is drawing.
     private var entries: [String: KittyGraphics.ImageID] = [:]
     private var pending = ""
+    /// Copies of the pictures, changed for a translucent layer over them.
+    private var derivedImages = DerivedImages()
     private var nextID: KittyGraphics.ImageID = 1
     /// The next image's arrival.
     private var nextArrival = 0
@@ -258,6 +260,10 @@ package final class TerminalImageStore: @unchecked Sendable {
                 guard !cells.isEmpty else { return nil }
                 pending += KittyGraphics.placement(id: id, columns: columns, rows: rows)
                 refile(id, in: Slot(bucket: image.slot.bucket, columns: columns, rows: rows), cells: cells)
+                // Its copies were placed in the old box; they are made again
+                // when next asked for, from a small copy of the new size.
+                deleteCopies(of: id)
+                derivedImages.resize(id, columns: columns, rows: rows)
                 return cells
             }
         }
@@ -304,10 +310,42 @@ package final class TerminalImageStore: @unchecked Sendable {
         guard !transmit.isEmpty else { return nil }
         pending += transmit
         pending += KittyGraphics.placement(id: id, columns: columns, rows: rows)
+        derivedImages.remember(id, columns: columns, rows: rows, pixels: payload)
         file(Image(id: id, signature: wanted, slot: slot, arrival: nextArrival, cells: cells, holders: [token]))
         nextArrival += 1
         entries[token] = id
         return cells
+    }
+
+    // MARK: - Derived copies
+
+    /// `cell` of a picture, re-pointed at the picture changed by `transform` —
+    /// transmitting that copy first if the terminal does not have it — or `nil`
+    /// for a picture this store did not put there.
+    ///
+    /// For a translucent layer over a picture: what the cells under it draw
+    /// is the picture with the layer already applied (`Terminal graphics
+    /// protocols.md` §14).
+    package func derived(
+        _ cell: KittyGraphics.PlaceholderCell, by transform: ImageTransform
+    ) -> KittyGraphics.PlaceholderCell? {
+        guard images[cell.id] != nil else { return nil }
+        if let copy = derivedImages.existingCopy(of: cell.id, by: transform) {
+            return KittyGraphics.PlaceholderCell(id: copy, row: cell.row, column: cell.column)
+        }
+        let copyID = claimID()
+        guard let escapes = derivedImages.make(of: cell.id, by: transform, as: copyID) else { return nil }
+        pending += escapes
+        return KittyGraphics.PlaceholderCell(id: copyID, row: cell.row, column: cell.column)
+    }
+
+    /// The colour `cell` of a picture shows changed by `transform`, on
+    /// average: what a glyph drawn over it stands on. Ask ``derived(_:by:)``
+    /// first, which makes the copy.
+    package func average(
+        of cell: KittyGraphics.PlaceholderCell, by transform: ImageTransform
+    ) -> (red: UInt8, green: UInt8, blue: UInt8)? {
+        derivedImages.average(of: cell.id, by: transform, column: cell.column, row: cell.row)
     }
 
     // MARK: - Owning
@@ -345,8 +383,12 @@ package final class TerminalImageStore: @unchecked Sendable {
     /// calls ``releaseAll()`` (`Terminal.quitFarewell`).
     package func farewell(fitting limit: Int = .max) -> String {
         var farewell = ""
-        for image in images.values.sorted(by: { $0.arrival < $1.arrival }) {
-            let delete = KittyGraphics.delete(id: image.id)
+        // Each picture's copies after it, sorted too.
+        let deletes = images.values.sorted(by: { $0.arrival < $1.arrival }).flatMap { image in
+            [image.id] + derivedImages.copyIDs(of: image.id)
+        }
+        for id in deletes {
+            let delete = KittyGraphics.delete(id: id)
             guard farewell.utf8.count + delete.utf8.count <= limit else { break }
             farewell += delete
         }
@@ -388,8 +430,17 @@ package final class TerminalImageStore: @unchecked Sendable {
         images[id]?.holders.remove(token)
         guard images[id]?.holders.isEmpty == true else { return false }
         pending += KittyGraphics.delete(id: id)
+        deleteCopies(of: id)
+        derivedImages.forget(id)
         unfile(id)
         return true
+    }
+
+    /// Deletes every copy derived from picture `id` from the terminal.
+    private func deleteCopies(of id: KittyGraphics.ImageID) {
+        for copy in derivedImages.copyIDs(of: id) {
+            pending += KittyGraphics.delete(id: copy)
+        }
     }
 
     private func file(_ image: Image) {
@@ -430,7 +481,7 @@ package final class TerminalImageStore: @unchecked Sendable {
         for _ in 0..<KittyGraphics.maximumImageID {
             let candidate = nextID
             nextID = candidate >= KittyGraphics.maximumImageID - 2 ? 1 : candidate + 1
-            if images[candidate] == nil { return candidate }
+            if images[candidate] == nil, !derivedImages.ids.contains(candidate) { return candidate }
         }
         return 1
     }

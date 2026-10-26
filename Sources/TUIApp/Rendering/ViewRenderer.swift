@@ -182,7 +182,9 @@ extension ViewRenderer {
         // Free when there is neither payload: the opacity pass returns `self`
         // on an empty region list and the layer queue never iterates, so the
         // buffer comes back byte-identical.
-        let composited = buffer.compositingOverlays(maxWidth: size.width, maxHeight: size.height, palette: environment.palette)
+        let composited = buffer.compositingOverlays(
+            maxWidth: size.width, maxHeight: size.height, palette: environment.palette,
+            images: environment.terminalImageStore)
         flush(composited, atRow: row, column: column)
         // Then what the walk left is emptied, as `App.cleanup` empties its own
         // at quit: the focus manager, then the context, in that order. Letting

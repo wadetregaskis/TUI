@@ -1199,3 +1199,41 @@ rewrites.
 The same move answers `.dimmed()` and `.opacity` over an image: a derived
 copy, darkened or mixed toward what is behind, in place of "the picture keeps
 its own brightness".
+
+### 14.1 A tiny copy is enough (measured 2026-10-26)
+
+`--derived-pixels N` sends the frosted copy at N pixels across a cell. At one
+pixel a cell (36×24 pixels for a 36×12 box, under 3 KB) both Ghostty and iTerm2
+3.6 scale it as smoothly as the full-resolution copy: a frosted copy has no
+detail a terminal's own scaling loses. So TUI keeps only a small copy of each
+picture, 2 × 4 pixels a cell (square pixels on a 1:2 cell), to make its copies
+from, and each copy costs that much to send.
+
+### 14.2 Built (2026-10-26)
+
+C is what TUI does.
+
+- **The store.** `TerminalImageStore` keeps a small copy of each picture it
+  transmits (`DerivedImages`). It makes a copy for a transform on request:
+  blurred over about a cell where a material frosts, then mixed toward a colour
+  by an amount in 64ths. Each copy gets an id of its own and is placed in the
+  picture's box. It is kept, at most 8 to a picture, until the picture goes,
+  and deleted with it.
+- **The resolution.** Where a translucent layer is spent over a picture's
+  cell, the blend no longer reads the image id as a colour
+  (`OpacityBlend+Pictures.swift`). A cell painting nothing leaves the picture
+  alone. One painting a field or a frost draws the copy's cell: the topmost
+  painter's field at its claim's alpha where a painter is under the content (a
+  material, a `.background`), or the cell's own field. One drawing a glyph
+  stands on the copy's average colour there.
+- **Both routes.** A compositor inside the tree reaches the store through
+  `CompositeEnvironment`. The screen root's composite of floating layers (an
+  `.offset` panel, a popover) reaches it through
+  `compositingOverlays(maxWidth:maxHeight:palette:images:)`.
+
+Reviewed live in Ghostty with `ScreenClips --child frostreview`: a share
+panel on `.thinMaterial` and a toast on `.regularMaterial` over four photos
+read as frosted glass. Not yet done: a faded picture (`.opacity` on an
+image, whose rows the resolution still leaves at full strength), and the
+modal veil and `.dimmed()` over one. They take the same copies with a
+different transform.

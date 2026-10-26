@@ -179,7 +179,8 @@ extension FrameBuffer {
         if composite.linearLight { landing.opacityRegions.placeInLinearLight() }
         var resolved = landing.resolvingOpacity(
             over: settled.base, at: position, surface: composite.palette.background, palette: composite.palette,
-            statingTheSurface: false, fillingStatedTerminalField: true, buildingRuns: true)
+            statingTheSurface: false, fillingStatedTerminalField: true, buildingRuns: true,
+            images: composite.images)
         resolved.opacityRegions = split.carried + settled.carried
         resolved.animatedCells += split.setAside
         return (settled.base, resolved, settled.kept)

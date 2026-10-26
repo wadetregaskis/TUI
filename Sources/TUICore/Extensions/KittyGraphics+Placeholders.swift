@@ -156,3 +156,74 @@ extension KittyGraphics {
         0x1D1AA, 0x1D1AB, 0x1D1AC, 0x1D1AD, 0x1D242, 0x1D243, 0x1D244,
     ]
 }
+
+// MARK: - Reading a placeholder cell back
+
+extension KittyGraphics {
+    /// What one placeholder cell names: an image, and the cell of it.
+    public struct PlaceholderCell: Hashable, Sendable {
+        /// The image the cell draws part of.
+        public var id: ImageID
+        /// The cell's row in the image.
+        public var row: Int
+        /// The cell's column in the image.
+        public var column: Int
+
+        public init(id: ImageID, row: Int, column: Int) {
+            self.id = id
+            self.row = row
+            self.column = column
+        }
+
+        /// The placeholder and its three marks: the cell's character, without
+        /// the foreground that names the image.
+        public var character: Character {
+            var scalars = String.UnicodeScalarView()
+            scalars.append(.terminalImagePlaceholder)
+            scalars.append(diacritic(row))
+            scalars.append(diacritic(column))
+            scalars.append(diacritic(0))
+            return Character(String(scalars))
+        }
+
+        /// The cell as ``placeholderRows(id:columns:rows:)`` spells it: the id in a
+        /// direct-colour foreground, then the placeholder and its three marks,
+        /// the foreground left in force.
+        public var spelled: String {
+            var cell = "\u{1B}[38;2;\((id >> 16) & 0xFF);\((id >> 8) & 0xFF);\(id & 0xFF)m"
+            cell.unicodeScalars.append(.terminalImagePlaceholder)
+            cell.unicodeScalars.append(diacritic(row))
+            cell.unicodeScalars.append(diacritic(column))
+            cell.unicodeScalars.append(diacritic(0))
+            return cell
+        }
+    }
+
+    /// The image cell `character` names, drawn in `foreground` — the
+    /// placeholder and its marks, and the id the colour carries — or `nil` for
+    /// anything else.
+    ///
+    /// The inverse of ``placeholderRows(id:columns:rows:)`` for one cell, which
+    /// is how what is drawn behind a translucent layer is recognised as a
+    /// picture rather than blended as a colour (`TerminalImageStore`'s derived
+    /// images). A cell with no third mark is read with a high byte of zero, as
+    /// kitty and Ghostty read it.
+    public static func placeholderCell(
+        _ character: Character, foreground: (red: UInt8, green: UInt8, blue: UInt8)
+    ) -> PlaceholderCell? {
+        var scalars = character.unicodeScalars.makeIterator()
+        guard scalars.next() == .terminalImagePlaceholder,
+            let rowMark = scalars.next(), let row = diacriticIndex[rowMark.value],
+            let columnMark = scalars.next(), let column = diacriticIndex[columnMark.value]
+        else { return nil }
+        let high = scalars.next().flatMap { diacriticIndex[$0.value] } ?? 0
+        let id = ImageID(high) << 24 | ImageID(foreground.red) << 16 | ImageID(foreground.green) << 8
+            | ImageID(foreground.blue)
+        return PlaceholderCell(id: id, row: row, column: column)
+    }
+
+    /// Each row/column diacritic's index, for reading a cell back. A table of
+    /// the protocol's constants, built once: the inverse of a fixed list.
+    private static let diacriticIndex: [UInt32: Int] = Dictionary(
+        uniqueKeysWithValues: rowColumnDiacritics.enumerated().map { (UInt32($0.element), $0.offset) })
+}
