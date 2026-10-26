@@ -131,6 +131,10 @@ def main():
     parser.add_argument("--photo", default="fawn", help="a name in Tools/ScreenClips/Photos (no extension)")
     parser.add_argument("--tint", default="dark", choices=sorted(TINTS))
     parser.add_argument("--text-blocks", action="store_true", help="C's text cells as B draws them")
+    parser.add_argument(
+        "--derived-pixels", type=int, default=0,
+        help="C's derived image at this many pixels across a cell (0: full resolution), for whether the "
+        "terminal's own scaling smooths a tiny frosted copy")
     args = parser.parse_args()
 
     source = Image.open(os.path.join(PHOTOS, args.photo + ".webp")).convert("RGB")
@@ -149,14 +153,19 @@ def main():
     derived_id = original_id + 1
     out = sys.stdout
     out.write(quiet(transmit(image.tobytes(), original_id, *size) + place(original_id, COLUMNS, ROWS)))
-    out.write(quiet(transmit(glass.tobytes(), derived_id, *size) + place(derived_id, COLUMNS, ROWS)))
+    derived = glass
+    if args.derived_pixels:
+        small = (COLUMNS * args.derived_pixels, ROWS * args.derived_pixels * 2)
+        derived = glass.resize(small, Image.BOX)
+    out.write(quiet(transmit(derived.tobytes(), derived_id, *derived.size) + place(derived_id, COLUMNS, ROWS)))
 
     kinds = [("covered", "A. covered"), ("blocks", "B. blocks"), ("derived", "C. derived image")]
     panels = [panel_rows(kind, original_id, derived_id, image, glass, tint, args.text_blocks) for kind, _ in kinds]
     out.write("\n" + "  ".join(title.ljust(COLUMNS) for _, title in kinds) + "\n")
     for row in range(ROWS):
         out.write("  ".join(panel[row] for panel in panels) + f"{E}0m\n")
-    out.write(f"\n{args.photo}, {args.tint} glass{', text cells as blocks' if args.text_blocks else ''}\n")
+    detail = f", derived at {args.derived_pixels}px a cell ({derived.size[0]}x{derived.size[1]})" if args.derived_pixels else ""
+    out.write(f"\n{args.photo}, {args.tint} glass{', text cells as blocks' if args.text_blocks else ''}{detail}\n")
     out.flush()
 
 
