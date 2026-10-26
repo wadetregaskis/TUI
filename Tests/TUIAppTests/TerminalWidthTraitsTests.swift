@@ -274,9 +274,10 @@ struct TerminalWidthTraitsTests {
     /// the store poisons everything later on the row — so the walk deletes the
     /// surplus stored column: `CUB(1)`, `DCH(1)`, `CUF(1)` (the one emission of
     /// ten card variants whose sequential AND absolutely-placed followers both
-    /// landed true; treatment card 4, 2026-08-27).
+    /// landed true; treatment card 4, 2026-08-27). A flag is sent as its
+    /// country code instead since 2026-10-25.
     @Test(
-        "Flags and keycaps get the stored-column surgery",
+        "Keycaps get the stored-column surgery, and a flag its country code",
         arguments: ["🇺🇸", "1\u{FE0F}\u{20E3}", "#\u{FE0F}\u{20E3}"])
     func flagsAndKeycapsGetStoreSurgery(text: String) {
         TerminalWidthTraits.withTraits(Self.apple) {
@@ -285,7 +286,10 @@ struct TerminalWidthTraitsTests {
             #expect(character.terminalAppCursorAdvance == 2, "internal, DSR-measured")
             #expect(character.terminalAppStoresWiderThanPainted)
             let out = TerminalClient.compensating(text, for: .appleTerminal)
-            #expect(out == text + "\u{1B}[1D\u{1B}[1P\u{1B}[1C", "|\(out)|")
+            // A flag goes out as its country code instead (2026-10-25: on
+            // 455.1 the surgery leaves a boxed letter); keycaps keep it.
+            let expected = character.regionalIndicatorCountryCode ?? text + "\u{1B}[1D\u{1B}[1P\u{1B}[1C"
+            #expect(out == expected, "|\(out)|")
         }
     }
 
