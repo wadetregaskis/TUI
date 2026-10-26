@@ -24,7 +24,10 @@ extension InlineMarkdownParser {
     ///   digits (`x.com%41` is linked, `x.com%4` is not); anything outside
     ///   ASCII is fine, being spelled through IDNA;
     /// - a port that is not all digits (`x.com:80` is linked, `x.com:80b`
-    ///   and `x.com:8:9` are not).
+    ///   and `x.com:8:9` are not);
+    /// - in a host holding anything beyond ASCII, which IDNA spells, a label
+    ///   that starts or ends with `-` (`é-.com`, `-é.com`); an ASCII host is
+    ///   taken as it is (`x-.com` is linked).
     ///
     /// A destination with no `//` has no authority, and a value interpolated
     /// into one is not known here; both are accepted.
@@ -54,6 +57,12 @@ extension InlineMarkdownParser {
             }
             if scalar.value < 0x21 || scalar.value == 0x7F || unlinkableInHost.contains(scalar) { return false }
             index += 1
+        }
+        if !host.allSatisfy(\.isASCII) {
+            for label in host.split(separator: ".", omittingEmptySubsequences: false)
+            where label.first == "-" || label.last == "-" {
+                return false
+            }
         }
         return true
     }

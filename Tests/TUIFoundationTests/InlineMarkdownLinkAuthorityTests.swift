@@ -52,6 +52,16 @@ struct InlineMarkdownLinkAuthorityTests {
         ("see https://x.com?a\"b end", "«see »«https://x.com?a\"b»→https://x.com?a%22b« end»"),
         ("see https://u\"@x.com end", "«see »«https://u\"@x.com»→https://u%22@x.com« end»"),
         ("see https://u:p@x.com end", "«see »«https://u:p@x.com»→https://u:p@x.com« end»"),
+        // Beyond ASCII, what is refused is the same everywhere; what is linked is
+        // spelled by IDNA, which is the platform's (`idnaCases`).
+        ("see https://—x.com end", "«see https://—x.com end»"),
+        ("see https://«x.com end", "«see https://«x.com end»"),
+        ("see https://é-.com end", "«see https://é-.com end»"),
+        ("see https://-é.com end", "«see https://-é.com end»"),
+        ("see https://xé.-y.com end", "«see https://xé.-y.com end»"),
+        ("see https://é@-é end", "«see https://é@-é end»"),
+        ("see https://-x.com end", "«see https://-x.com end»"),
+        ("see https://x-.com end", "«see »«https://x-.com»→https://x-.com« end»"),
         // Every kind of link, not only a bare one.
         ("<https://x\"y.com>", "«https://x\"y.com»"),
         ("<https://x.com:8b>", "«https://x.com:8b»"),
@@ -61,6 +71,18 @@ struct InlineMarkdownLinkAuthorityTests {
         ("[a]: https://x^y.com\n[a]", "«a»"),
     ]
 
+    /// Hosts beyond ASCII that Foundation links, spelled through Darwin's IDNA:
+    /// a host may begin with anything but a space or punctuation, and an
+    /// underscore after such a character is not counted against the domain, as
+    /// cmark-gfm's byte-wise walk counts it.
+    static let idnaCases: [(String, String)] = [
+        ("see https://éx.com end", "«see »«https://éx.com»→https://xn--x-9fa.com« end»"),
+        ("see https://€x.com end", "«see »«https://€x.com»→https://xn--x-wpn.com« end»"),
+        ("see www.yé_x end", "«see »«www.yé_x»→http://www.xn--y_x-bma« end»"),
+        ("see http://é_.com end", "«see »«http://é_.com»→http://xn--_-9fa.com« end»"),
+        ("see www.é8_1 end", "«see »«www.é8_1»→http://www.xn--8_1-9la« end»"),
+    ]
+
     @Test("Each reads as Foundation reads it", arguments: cases)
     func reads(source: String, expected: String) {
         #expect(
@@ -68,7 +90,14 @@ struct InlineMarkdownLinkAuthorityTests {
     }
 
     #if canImport(Darwin)
-        @Test("Each reads as Foundation reads it on this machine", arguments: cases)
+        @Test("A host beyond ASCII reads as Foundation reads it", arguments: idnaCases)
+        func readsBeyondASCII(source: String, expected: String) {
+            #expect(
+                InlineMarkdownReferenceTests.encode(InlineMarkdown.parse(source)) == expected,
+                "\(source.debugDescription)")
+        }
+
+        @Test("Each reads as Foundation reads it on this machine", arguments: cases + idnaCases)
         func agreesWithFoundation(source: String, expected: String) throws {
             let foundation = try InlineMarkdownReferenceTests.foundationReading(source)
             #expect(foundation == expected, "the table is stale: \(source.debugDescription)")

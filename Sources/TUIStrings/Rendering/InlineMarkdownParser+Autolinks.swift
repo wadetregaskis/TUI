@@ -100,8 +100,14 @@ extension InlineMarkdownParser {
         }
         let scheme = String(String.UnicodeScalarView(source[(position - rewind)..<position].compactMap(\.scalar)))
             .lowercased()
-        guard ["http", "https", "ftp"].contains(scheme),
-            let afterSlashes = atom(at: position + 3)?.scalar, Self.isASCIIAlphanumeric(afterSlashes)
+        // What follows the slashes starts a host: an ASCII letter or digit, as
+        // cmark-gfm asks, or anything beyond ASCII that is neither a space nor
+        // punctuation — Foundation links `https://é…` and `https://€…` and not
+        // `https://—…` (measured 2026-10-26).
+        guard ["http", "https", "ftp"].contains(scheme), let afterSlashes = atom(at: position + 3),
+            let first = afterSlashes.scalar,
+            Self.isASCIIAlphanumeric(first)
+                || (!first.isASCII && !afterSlashes.isWhitespace && !afterSlashes.isPunctuation)
         else { return false }
         // The scheme's letters are already in the text node being built.
         guard rewind > 0, let last = nodes.indices.last, nodes[last].kind == .text, !nodes[last].removed,
@@ -122,8 +128,17 @@ extension InlineMarkdownParser {
     /// cmark-gfm's `check_domain`: how far a host name runs from `start`, or 0
     /// when it is not one — an underscore in either of the last two labels, or
     /// (unless `allowShort`) no dot at all.
+    ///
+    /// cmark-gfm walks BYTES, from the second, and a character beyond ASCII is
+    /// several: its first byte reads as the character, and the byte after it
+    /// as no host character, so the walk ends just past it. A host that starts
+    /// beyond ASCII ends at once, and an underscore after such a character is
+    /// never counted — Foundation links `www.yé_x` (measured 2026-10-26).
     private func checkDomain(from start: Int, allowShort: Bool) -> Int {
         let size = source.count - start
+        if let first = source[start].scalar, !first.isASCII {
+            return allowShort ? 1 : 0
+        }
         var index = 1
         var dots = 0
         var underscoresBeforeLastDot = 0
@@ -140,6 +155,9 @@ extension InlineMarkdownParser {
                 underscoresSinceLastDot = 0
                 dots += 1
             } else if !Self.isHostCharacter(atom), !atom.is("-") {
+                break
+            } else if let scalar = atom.scalar, !scalar.isASCII {
+                index += 1
                 break
             }
             index += 1
