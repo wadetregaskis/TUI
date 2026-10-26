@@ -3407,6 +3407,19 @@ values, compile-time data a lookup reads in place. DEFLATE would halve it but
 put the inflated table in dirty memory in every process. `HTMLEntitiesTests`
 checks every name against Foundation's parser on Darwin.
 
+**Since closed, the second (the same ruling):** link reference definitions
+at the start of a key, and the full, collapsed and shortcut references that
+use them, read as Foundation reads them in inline-only mode
+(`InlineMarkdownParser+ReferenceDefinitions.swift`, which states the rules
+measured: definitions only at the very start, a destination that runs into
+the end making none, labels fully case-folded, the first definition of a label
+used, an undefined full reference left as text, image references drawn as
+their alt text). `InlineMarkdownReferenceTests` holds the 41 measured cases
+and checks each against Foundation live on Darwin; a run of 40,000 random
+strings of reference syntax against Foundation found no difference in
+references, and one elsewhere: a bare URL holding `"` or `>` is linked here
+and left unlinked by Foundation (queued).
+
 ### B87. Markdown in a control's title key: parsed, though a column header and a tab title draw only its words
 
 *`Button(_:action:)` and the other `LocalizedStringKey` initializers*

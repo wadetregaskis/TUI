@@ -951,9 +951,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 - **SwiftUI:** Foundation's parser (B86 measured its quirks).
 - **TUI:** `InlineMarkdown`, which agrees with Foundation on a 138-case table
-  and 550,000 random strings, and on every one of HTML's 2,125 named
-  character references (since 2026-10-26), but for one thing: link reference
-  definitions are not consumed. Two more differences are in the drawing:
+  and 550,000 random strings, on every one of HTML's 2,125 named character
+  references, and on link reference definitions (both since 2026-10-26: a
+  41-case table and 40,000 random strings of reference syntax), but for one
+  thing found then: a bare URL holding `"` or `>` is linked here and left
+  unlinked by Foundation. Two more differences are in the drawing:
   `^[…](inflect: true)` is drawn without inflection, and a code span is plain
   text, every cell being monospaced already.
 - **Why:** Foundation's Markdown parser is Darwin-only.

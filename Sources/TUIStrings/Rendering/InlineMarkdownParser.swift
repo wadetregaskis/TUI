@@ -23,6 +23,9 @@ struct InlineMarkdownParser {
     var nodes: [Node] = []
     var delimiters: [Delimiter] = []
     var brackets: [Bracket] = []
+    /// The link reference definitions the source opens with, by normalized
+    /// label (``parseReferenceDefinitions()``): empty for nearly every key.
+    var definitions: [String: [Atom]] = [:]
 
     init(source: [Atom]) {
         self.source = source
@@ -71,6 +74,9 @@ struct InlineMarkdownParser {
         enum Kind { case link, image, attribute }
         let node: Int
         let kind: Kind
+        /// Where the bracket's text starts in the source, after its `[`: a
+        /// reference link's label, when it is used as one.
+        let textStart: Int
         /// The delimiter stack's height when the bracket opened: emphasis
         /// inside the brackets is resolved down to here and no further.
         let delimiterBottom: Int
@@ -81,6 +87,7 @@ struct InlineMarkdownParser {
 
     /// Parses the whole source.
     mutating func run() -> [InlineMarkdown.Span] {
+        parseReferenceDefinitions()
         while position < source.count {
             parseOne()
         }
@@ -259,7 +266,8 @@ struct InlineMarkdownParser {
 
     private mutating func pushBracket(_ kind: Bracket.Kind, length: Int) {
         nodes.append(Node(atoms: Array(source[position..<(position + length)]), kind: .bracket))
-        brackets.append(Bracket(node: nodes.count - 1, kind: kind, delimiterBottom: delimiters.count))
+        brackets.append(
+            Bracket(node: nodes.count - 1, kind: kind, textStart: position + length, delimiterBottom: delimiters.count))
         position += length
     }
 
@@ -268,6 +276,7 @@ struct InlineMarkdownParser {
     var isInBracket: Bool { !brackets.isEmpty }
 
     private mutating func closeBracket() {
+        let closer = position
         position += 1
         guard let opener = brackets.last else {
             appendText(.scalar("]"))
@@ -282,7 +291,7 @@ struct InlineMarkdownParser {
         if opener.kind == .attribute {
             destination = parseAttributeTail().map { _ in [] }
         } else {
-            destination = parseLinkTail()
+            destination = parseLinkTail() ?? parseReferenceTail(text: opener.textStart..<closer)
         }
         guard let destination else {
             brackets.removeLast()
@@ -352,7 +361,7 @@ struct InlineMarkdownParser {
     /// CommonMark spec in one way that shows: a bare destination may leave a
     /// `(` unclosed when whitespace ends it (measured, `[b](x(y )` links to
     /// `x(y`). Running into the end of the source is a failure either way.
-    private func scanLinkDestination(from start: Int) -> ([Atom], Int)? {
+    func scanLinkDestination(from start: Int) -> ([Atom], Int)? {
         var destination: [Atom] = []
         var index = start
         let bracketed = atom(at: index)?.is("<") == true
@@ -387,7 +396,7 @@ struct InlineMarkdownParser {
 
     /// A link title — `"…"`, `'…'` or `(…)` — at `start` and the index past it,
     /// or `nil`.
-    private func scanLinkTitle(from start: Int) -> Int? {
+    func scanLinkTitle(from start: Int) -> Int? {
         guard let opening = atom(at: start)?.scalar, opening == "\"" || opening == "'" || opening == "(" else {
             return nil
         }
@@ -406,7 +415,7 @@ struct InlineMarkdownParser {
     }
 
     /// Spaces and tabs, and at most one line ending among them.
-    private func skipLinkWhitespace(from start: Int) -> Int {
+    func skipLinkWhitespace(from start: Int) -> Int {
         var index = start
         var sawNewline = false
         while let atom = atom(at: index) {
