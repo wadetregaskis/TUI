@@ -377,6 +377,13 @@ package final class TerminalImageStore: @unchecked Sendable {
         letGo(of: id, by: token)
     }
 
+    /// The signature of the picture `token` draws, as it was given, or `nil`
+    /// if it draws none: what a view has already sent, for it to judge
+    /// whether a new box needs new pixels.
+    package func signature(heldBy token: String) -> Any? {
+        entries[token].flatMap { images[$0]?.signature.value }
+    }
+
     /// Keeps every picture the cells of `lines` draw — a copy's picture, for
     /// a copy's cell, which keeps the copy — until ``release(token:)``, as if
     /// `token` drew them; any it held before are let go.

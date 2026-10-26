@@ -46,6 +46,28 @@ extension _ImageCore {
     /// - **the store's own answer** — `nil` for an extent past what
     ///   placeholders can address (297 cells; there is no combining mark for
     ///   the 298th column).
+    /// The resolution to send `rawImage` at for `wanted` pixels: as many,
+    /// but never more than the picture HAS. The terminal fits the image to the
+    /// placement rectangle, so upscaling before transmission buys nothing and
+    /// costs everything: on a 135x48 grid of 16x34-pixel cells at zoom 2 the
+    /// unclamped size is 4320x3264, which is 56 MB of RGBA resampled UP from a
+    /// 1101x1080 source. Zoom is what makes this reachable, and zoom is
+    /// exactly when an app feels slow.
+    ///
+    /// Clamped by a single factor rather than per axis, so a source whose
+    /// aspect differs from the box is not stretched on the way out.
+    static func pixelSize(
+        of rawImage: RGBAImage, fitting wanted: (width: Int, height: Int)
+    ) -> (width: Int, height: Int) {
+        let widthShrink = Double(rawImage.width) / Double(max(1, wanted.width))
+        let heightShrink = Double(rawImage.height) / Double(max(1, wanted.height))
+        let shrink = min(1.0, min(widthShrink, heightShrink))
+        return (
+            max(1, Int((Double(wanted.width) * shrink).rounded())),
+            max(1, Int((Double(wanted.height) * shrink).rounded()))
+        )
+    }
+
     func renderWithTerminalGraphics(
         _ rawImage: RGBAImage, width: Int, height: Int, stretches: Bool, context: RenderContext
     ) -> FrameBuffer? {
@@ -79,23 +101,11 @@ extension _ImageCore {
                 lines: Array(repeating: String.spaces(target.width), count: target.height))
         }
 
-        // Never transmit more pixels than the picture HAS. The terminal fits
-        // the image to the placement rectangle, so upscaling before
-        // transmission buys nothing and costs everything: on a 135x48 grid of
-        // 16x34-pixel cells at zoom 2 the unclamped size is 4320x3264, which
-        // is 56 MB of RGBA resampled UP from a 1101x1080 source. Zoom is what
-        // makes this reachable, and zoom is exactly when an app feels slow.
-        //
-        // Clamped by a single factor rather than per axis, so a source whose
-        // aspect differs from the box is not stretched on the way out.
+        // The box's pixels, which ``pixelSize(of:fitting:)`` clamps to the
+        // picture's own.
         let cell = context.environment.imageCellPixels
         let wantedWidth = target.width * cell.width
         let wantedHeight = target.height * cell.height
-        let widthShrink: Double = Double(rawImage.width) / Double(max(1, wantedWidth))
-        let heightShrink: Double = Double(rawImage.height) / Double(max(1, wantedHeight))
-        let shrink = min(1.0, min(widthShrink, heightShrink))
-        let pixelWidth = max(1, Int((Double(wantedWidth) * shrink).rounded()))
-        let pixelHeight = max(1, Int((Double(wantedHeight) * shrink).rounded()))
 
         // The colour settings apply to a real picture as much as to a field of
         // glyphs — more so, since there is no character in the way — and they
@@ -133,18 +143,39 @@ extension _ImageCore {
         // The transmitted resolution, not the cell box: two boxes that resample
         // to the same pixels are the same picture, and the store answers the
         // second with a placement instead of megabytes.
-        let signature = TerminalImageSignature(
+        let token = "image-\(context.identity.path)"
+        let boxPixels = Self.pixelSize(of: rawImage, fitting: (wantedWidth, wantedHeight))
+        var signature = TerminalImageSignature(
             source: source,
             rawWidth: rawImage.width, rawHeight: rawImage.height,
-            pixelWidth: pixelWidth, pixelHeight: pixelHeight,
+            pixelWidth: boxPixels.width, pixelHeight: boxPixels.height,
             colorMode: colorMode, toneCurve: toneCurve,
             edgeContrast: edgeContrast, dithering: dithering,
             monoInk: mono.ink, monoPaper: mono.paper,
             terminalColors: TerminalColors.current)
+        // A picture whose box changes — a frame animating it, a zoom growing
+        // it, a window dragged — was sent again at every new size, half a
+        // megabyte a frame for a photo growing into a screen: the frames came
+        // a third of a second apart and the photo jumped in already large.
+        // What this view has already sent of this picture is kept wherever it
+        // has enough pixels for the box (the store answers with a placement,
+        // the terminal fitting it), and where it has too few — the picture
+        // grew — it is sent once at twice what the box wants, so a growth
+        // costs a send or two, not one a frame.
+        if let held = store.signature(heldBy: token) as? TerminalImageSignature, held.isResample(of: signature) {
+            if held.pixelWidth >= signature.pixelWidth, held.pixelHeight >= signature.pixelHeight {
+                (signature.pixelWidth, signature.pixelHeight) = (held.pixelWidth, held.pixelHeight)
+            } else {
+                let grown = Self.pixelSize(of: rawImage, fitting: (wantedWidth * 2, wantedHeight * 2))
+                (signature.pixelWidth, signature.pixelHeight) = (grown.width, grown.height)
+            }
+        }
+        let pixelWidth = signature.pixelWidth
+        let pixelHeight = signature.pixelHeight
 
         guard
             let lines = store.placeholderRows(
-                token: "image-\(context.identity.path)", signature: signature,
+                token: token, signature: signature,
                 columns: target.width, rows: target.height,
                 pixels: {
                     // Only on a miss: this resamples and recolours the decoded

@@ -119,6 +119,18 @@ struct TerminalImageSignature: Equatable {
     var terminalColors: TerminalColors
 }
 
+extension TerminalImageSignature {
+    /// Whether this is the same picture as `other` at a resolution that may
+    /// differ: every field equal but the two that say how many pixels were
+    /// sent. A view that holds one can be given the other's box by a
+    /// placement alone, the terminal fitting the pixels it has.
+    func isResample(of other: Self) -> Bool {
+        var same = self
+        (same.pixelWidth, same.pixelHeight) = (other.pixelWidth, other.pixelHeight)
+        return same == other
+    }
+}
+
 extension TerminalImageSignature: ImageStoreSignature {
     /// Which file or address: a list of different icons at one size is as
     /// many buckets as icons.
