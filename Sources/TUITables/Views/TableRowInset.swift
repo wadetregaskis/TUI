@@ -152,3 +152,56 @@ enum TableRowInset {
         return claim
     }
 }
+
+/// The cells a table keeps between its rows and its trailing edge (or border),
+/// drawn by the rows themselves for the reason ``TableRowInset`` draws the
+/// leading one.
+///
+/// As the container's padding, the cell was a space appended after the row's
+/// line, so it took whatever fill the line left open: a cursor row's colour at
+/// the frame that was drawn. The row's breath covered the row's own cells, so
+/// the last cell held that colour while the rest breathed — plain in the
+/// README's Unicode clip, filmed in Ghostty and iTerm2 alike. Drawn here, the
+/// cell is the same space after the same line, and a run or a claim that
+/// reaches the line's end is widened over it.
+enum TableTrailingInset {
+    /// `line` with `cells` spaces after it, taking the fill it leaves open — the
+    /// cells the container's padding drew, as it drew them.
+    static func inset(_ line: String, cells: Int) -> String {
+        cells > 0 ? line + String(repeating: " ", count: cells) : line
+    }
+
+    /// `run`, widened over the `cells` after it when it reaches the end of its
+    /// line, `lineWidth` cells wide; as it was otherwise.
+    static func inset(_ run: AnimatedCellRun, cells: Int, lineWidth: Int) -> AnimatedCellRun {
+        guard cells > 0, run.offsetX + run.width == lineWidth else { return run }
+        let width = run.width
+        let alpha = run.alpha.map { alpha in
+            AnimatedRunAlpha(
+                perFrame: alpha.perFrame.map { spans in
+                    spans.map { span in
+                        var span = span
+                        if span.start + span.cells == width { span.cells += cells }
+                        return span
+                    }
+                },
+                drawnIndex: alpha.drawnIndex)
+        }
+        var widened = AnimatedCellRun(
+            offsetX: run.offsetX, offsetY: run.offsetY, width: width + cells,
+            frames: run.frames.map { inset($0, cells: cells) },
+            frameTicks: run.frameTicks, clock: run.clock, alpha: alpha)
+        widened.ground = run.ground.map { inset($0, cells: cells) }
+        widened.groundUnderStatedDefault = run.groundUnderStatedDefault.map { inset($0, cells: cells) }
+        return widened
+    }
+
+    /// `claim`, widened over the `cells` after it when it reaches the end of its
+    /// line, `lineWidth` cells wide.
+    static func inset(_ claim: OpacityRegion, cells: Int, lineWidth: Int) -> OpacityRegion {
+        guard cells > 0, claim.offsetX + claim.width == lineWidth else { return claim }
+        var claim = claim
+        claim.width += cells
+        return claim
+    }
+}

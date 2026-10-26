@@ -897,11 +897,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         showsBar && environment.tableStyle.builtInChrome == .surface ? 0 : Self.containerPadding.trailing
     }
 
-    /// The padding the container is drawn with, for a table that shows its
-    /// vertical scrollbar or does not — see ``trailingPadding(_:showsBar:)``.
+    /// The padding the container is drawn with: none either side, the header and
+    /// the rows drawing the cells there themselves (`TableRowInset`,
+    /// `TableTrailingInset`) — ``trailingPadding(_:showsBar:)`` of them after
+    /// each line.
     private func drawnPadding(_ environment: EnvironmentValues, showsBar: Bool) -> EdgeInsets {
         var padding = Self.drawnContainerPadding
-        padding.trailing = trailingPadding(environment, showsBar: showsBar)
+        padding.trailing = 0
         return padding
     }
 
@@ -1216,9 +1218,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 // No claims on the analytic MEASURE path: it reports a size and draws
                 // nothing, and a claim describes cells that were never on screen.
                 _TableHeaderView(
-                    line: headerLines(context.environment) > 0 ? headerLine : nil, claims: [])
-                // The rows' lines with the inset cell each draws (`TableRowInset`).
-                _TableSizeStub(width: content.height > 0 ? content.width + 1 : content.width, height: content.height)
+                    line: headerLines(context.environment) > 0 ? headerLine : nil, claims: [],
+                    trailingCells: trailingPadding(context.environment, showsBar: showsBar))
+                // The rows' lines with the inset cells each draws (`TableRowInset`,
+                // `TableTrailingInset`).
+                _TableSizeStub(
+                    width: content.height > 0
+                        ? content.width + 1 + trailingPadding(context.environment, showsBar: showsBar) : content.width,
+                    height: content.height)
             }
         }
         let measured = measureChild(
@@ -1411,10 +1418,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             VStack(alignment: .leading, spacing: 0) {
                 _TableHeaderView(
                     line: headerLines(context.environment) > 0 ? headerLine : nil,
-                    claims: header.claims)
+                    claims: header.claims,
+                    trailingCells: trailingPadding(context.environment, showsBar: wantsScrollbar))
                 _TableContentView(
                     lines: filledContentLines, lineWidths: filledContentWidths, runs: contentRuns,
-                    claims: contentClaims, payload: contentPayload)
+                    claims: contentClaims, payload: contentPayload,
+                    trailingCells: trailingPadding(context.environment, showsBar: wantsScrollbar))
             }
         }
         var buffer = render(container, on: surface, context: context)
@@ -6549,35 +6558,50 @@ private struct _TableContentView: View, Renderable, Layoutable {
     /// carries them to where the cells are drawn. See ``_TableRowPayload``.
     var payload = _TableRowPayload()
 
+    /// The cells after each line, between the rows and the table's trailing
+    /// edge, which the rows draw rather than the container (`TableTrailingInset`).
+    var trailingCells = 0
+
     var body: Never {
         fatalError("_TableContentView renders via Renderable")
     }
 
     /// The size the rows draw at, without drawing them: each line a cell
-    /// wider for the inset (`TableRowInset`), and none at all for no lines.
-    /// The container that holds them measures them every frame, and measured
-    /// by rendering, every line was inset — a new string — only to be counted.
+    /// wider for the inset (`TableRowInset`) and ``trailingCells`` wider for the
+    /// trailing one, and none at all for no lines. The container that holds them
+    /// measures them every frame, and measured by rendering, every line was
+    /// inset — a new string — only to be counted.
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
         guard !lines.isEmpty else { return ViewSize.fixed(0, 0) }
-        return ViewSize.fixed((lineWidths.max() ?? 0) + 1, lines.count)
+        return ViewSize.fixed((lineWidths.max() ?? 0) + 1 + trailingCells, lines.count)
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // The table's leading inset cell, drawn as part of each row
         // (`TableRowInset`): everything here moves one cell along. The inset
         // adds exactly one cell to every line, so the widths are known.
-        let widths = lineWidths.map { $0 + 1 }
+        // And the trailing cells after it (`TableTrailingInset`).
+        let inset = lineWidths.map { $0 + 1 }
+        let widths = inset.map { $0 + trailingCells }
         let width = widths.max() ?? 0
         var buffer = FrameBuffer(
-            lines: lines.map(TableRowInset.inset), width: width,
+            lines: lines.map { TableTrailingInset.inset(TableRowInset.inset($0), cells: trailingCells) }, width: width,
             uniformWidth: widths.allSatisfy { $0 == width }, lineWidths: widths)
         // A measure pass draws nothing, so a run left on it would describe
         // cells that were never on screen — and keep the clock alive from a
         // pass that produced no frame. A claim on a measure buffer is harmless
         // by comparison, but it is the same statement about cells nobody drew.
         guard !context.isMeasuring else { return buffer }
-        buffer.animatedCells = runs.map(TableRowInset.inset)
-        buffer.opacityRegions = claims.map(TableRowInset.inset)
+        /// The width of the line `row` is on, after the leading inset.
+        func insetWidth(_ row: Int) -> Int { inset.indices.contains(row) ? inset[row] : 0 }
+        buffer.animatedCells = runs.map {
+            let run = TableRowInset.inset($0)
+            return TableTrailingInset.inset(run, cells: trailingCells, lineWidth: insetWidth(run.offsetY))
+        }
+        buffer.opacityRegions = claims.map {
+            let claim = TableRowInset.inset($0)
+            return TableTrailingInset.inset(claim, cells: trailingCells, lineWidth: insetWidth(claim.offsetY))
+        }
         buffer.hitTestRegions = payload.hitTestRegions.map { $0.shifted(byX: 1, y: 0) }
         buffer.overlays = payload.overlays.map { $0.shifted(byX: 1, y: 0) }
         // The rows' text is inked in the foreground style, so a shadowed one's
@@ -6605,15 +6629,23 @@ private struct _TableHeaderView: View, Renderable {
     /// (§33) one commit apart.
     let claims: [OpacityRegion]
 
+    /// The cells after the line, as the rows draw them (`TableTrailingInset`).
+    var trailingCells = 0
+
     var body: Never {
         fatalError("_TableHeaderView renders via Renderable")
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         guard let line else { return FrameBuffer(lines: []) }
-        // The leading inset cell, as the rows draw it (`TableRowInset`).
-        var buffer = FrameBuffer(lines: [TableRowInset.inset(line)])
-        buffer.opacityRegions += claims.map(TableRowInset.inset)
+        // The leading inset cell and the trailing ones, as the rows draw them
+        // (`TableRowInset`, `TableTrailingInset`).
+        let inset = TableRowInset.inset(line)
+        let width = line.strippedLength + 1
+        var buffer = FrameBuffer(lines: [TableTrailingInset.inset(inset, cells: trailingCells)])
+        buffer.opacityRegions += claims.map {
+            TableTrailingInset.inset(TableRowInset.inset($0), cells: trailingCells, lineWidth: width)
+        }
         return buffer
     }
 }
