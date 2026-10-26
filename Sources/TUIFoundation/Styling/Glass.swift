@@ -35,9 +35,9 @@ import TUIStyling
 /// ``interactive(_:)`` glass answers the pointer: its rim lifts again while the
 /// pointer is over it.
 ///
-/// Glass that does not appear active is opaque, as a material is: SwiftUI's
-/// glass goes flat in an inactive window, and here that is its surface at full
-/// strength (``MaterialActiveAppearance``).
+/// Glass that does not appear active stays frosted, as a material does, its
+/// surface half way to opaque: SwiftUI's glass goes flat in an inactive
+/// window, which read here as the glass having broken (``MaterialActiveAppearance``).
 ///
 /// You can combine glass effects by using a ``GlassEffectContainer``, which
 /// draws the glass of views near one another as one shape.
@@ -136,8 +136,8 @@ extension Glass {
     }
 
     /// The surface: the tint or the page's background, at the material's
-    /// opacity while it appears active and at full strength while not. Semantic
-    /// where the colour is, so it follows the palette.
+    /// opacity while it appears active and half way from that to opaque while
+    /// not. Semantic where the colour is, so it follows the palette.
     func surface(in environment: EnvironmentValues) -> Color {
         material.surface(tintColor ?? Color.palette.background, in: environment)
     }

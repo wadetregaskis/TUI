@@ -7610,8 +7610,9 @@ over. Until then a material was §105's translucent field and nothing more: what
 showed through tinted, letters included, which is what a material exists to hide.
 
 **Carried as a blend mode is (§110).** A material's paint is
-`Paint.frosted(.color(surface), frost)` while it appears active (an inactive one is opaque and
-covers what is behind anyway), `frost` an `OpacityRegion.Frost`: `.averaging(columns:rows:)`, the
+`Paint.frosted(.color(surface), frost)` whether or not it appears active (an inactive one is
+its surface half way to opaque, still frosted, since 2026-10-26; only reduced transparency makes it
+opaque and unfrosted), `frost` an `OpacityRegion.Frost`: `.averaging(columns:rows:)`, the
 box's reach either side of a cell, or `.droppingGlyphs`, which averages nothing. Whatever draws
 with it marks the translucent field it painted: `.background`'s one painter claim
 (`BackgroundModifier.withMode`), a shape's cells through `FrameBuffer.castingShadows(of:context:

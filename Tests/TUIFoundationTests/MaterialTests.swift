@@ -55,26 +55,32 @@ struct MaterialTests {
         #expect(material(.ultraThickMaterial) == .ultraThick)
     }
 
-    @Test("A material that does not appear active is its surface at full strength")
-    func inactiveIsOpaque() {
+    /// Not flat, as SwiftUI's go: that read as the frost having broken
+    /// (owner, 2026-10-26). Half way from its own opacity to opaque: a thin
+    /// material's 0.5 is 0.75.
+    @Test("A material that does not appear active stays translucent, half way to opaque")
+    func inactiveIsMoreOpaque() {
         let inactiveScene = environment(appearsActive: false)
-        #expect(colour(Material.thin, in: inactiveScene) == Color.palette.background)
+        let inactive = Color.palette.background.opacity(0.75)
+        #expect(colour(Material.thin, in: inactiveScene) == inactive)
+        #expect(Material.ultraThick.inactiveOpacity < 1, "every thickness stays translucent")
         // Its own appearance wins over the scene's, either way.
-        #expect(colour(Material.thin.materialActiveAppearance(.active), in: inactiveScene)?.alpha ?? 255 < 255)
-        #expect(colour(Material.thin.materialActiveAppearance(.inactive), in: environment()) == Color.palette.background)
-        #expect(colour(Material.thin.materialActiveAppearance(.matchWindow), in: inactiveScene) == Color.palette.background)
+        #expect(colour(Material.thin.materialActiveAppearance(.active), in: inactiveScene) == Color.palette.background.opacity(0.5))
+        #expect(colour(Material.thin.materialActiveAppearance(.inactive), in: environment()) == inactive)
+        #expect(colour(Material.thin.materialActiveAppearance(.matchWindow), in: inactiveScene) == inactive)
     }
 
     @Test("The environment's appearance reaches a material that asks for none, and a style can set it")
     func environmentAppearance() {
         var forcedInactive = environment()
         forcedInactive.materialActiveAppearance = .inactive
-        #expect(colour(Material.thin, in: forcedInactive) == Color.palette.background)
+        let inactive = Color.palette.background.opacity(0.75)
+        #expect(colour(Material.thin, in: forcedInactive) == inactive)
         #expect(colour(Material.thin.materialActiveAppearance(.active), in: forcedInactive)?.alpha ?? 255 < 255)
         let styled = Material.thin.materialActiveAppearance(.inactive) as any ShapeStyle
-        #expect(colour(AnyShapeStyleBox(styled), in: environment()) == Color.palette.background)
+        #expect(colour(AnyShapeStyleBox(styled), in: environment()) == inactive)
         let wrapped = ShapeStyleWrapperProbe.inactive(.thinMaterial)
-        #expect(colour(wrapped, in: environment()) == Color.palette.background)
+        #expect(colour(wrapped, in: environment()) == inactive)
     }
 
     @Test("Behind a view, a material lets what is under it show through, tinted")

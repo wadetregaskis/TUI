@@ -1230,8 +1230,13 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   5 × 3, 7 × 3, 9 × 5 and 11 × 5 for `.ultraThick`, `.bar` a thick
   material's; `.materialFrost(_:)` (TUI-specific) sets one box for a subtree,
   or `.none` for the glyphs dropped and nothing averaged. Over nothing but the
-  page it is the tint. One that does not appear active is opaque (`Material.paint(in:)`; `MaterialTests`,
-  `MaterialFrostTests`). Nothing of TUI's sets `\.backgroundMaterial`.
+  page it is the tint. One that does not appear active is NOT flat, as
+  SwiftUI's is: it stays frosted, its surface half way from its own opacity
+  to opaque (`Material.inactiveOpacity`; owner, 2026-10-26: flat glass in an
+  inactive window "looks like a bug", and it may dim or turn a little more
+  opaque instead). Only reduced transparency draws it opaque and unfrosted
+  (`Material.paint(in:)`; `MaterialTests`, `MaterialFrostTests`). Nothing of
+  TUI's sets `\.backgroundMaterial`.
 - **Why:** a cell has no sub-cell detail to blur, so a blur at cell
   resolution is a box average of whole cells, and a dropped glyph is what a
   blur does to a letter at that scale. The box is about as tall as it is
@@ -1358,7 +1363,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `.clear` — and rimmed: its outline drawn behind the view in the border's ink
   lifted (the tint's, tinted), in the lines of the appearance in force (a
   Braille outline, a solid band, or none under `.blank`). Glass that does not
-  appear active is opaque, as a material is. Interactive glass lifts its rim
+  appear active stays frosted, half way to opaque, as a material does (C5). Interactive glass lifts its rim
   again under the pointer; it takes no click and no focus. Layout is
   untouched, and the rim shows only in the view's blank cells — pad the view,
   as SwiftUI's examples do (`GlassEffectTests`). In a `GlassEffectContainer`,

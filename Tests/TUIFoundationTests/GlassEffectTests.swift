@@ -85,10 +85,10 @@ struct GlassEffectTests {
         #expect(Glass.clear.tint(.blue).surface(in: environment()) == Color.blue.opacity(0.35))
     }
 
-    @Test("Glass that does not appear active is its surface at full strength, as a material is")
-    func inactiveIsOpaque() {
-        #expect(Glass.regular.surface(in: environment(active: false)) == Color.palette.background)
-        #expect(Glass.clear.tint(.blue).surface(in: environment(active: false)) == Color.blue)
+    @Test("Glass that does not appear active stays translucent, half way to opaque, as a material does")
+    func inactiveIsMoreOpaque() {
+        #expect(Glass.regular.surface(in: environment(active: false)) == Color.palette.background.opacity(0.825))
+        #expect(Glass.clear.tint(.blue).surface(in: environment(active: false)) == Color.blue.opacity(0.675))
     }
 
     @Test("The default glass shape is a capsule")
@@ -191,7 +191,10 @@ struct GlassEffectTests {
             screen(
                 Text("ab").padding(.horizontal).glassEffect(in: Rectangle()).background(Color.red), width: 4, height: 1,
                 active: false)[0])[1].background
-        #expect(inactive == renderedBackground(of: SystemPalette.green.background), "flat in an inactive window")
+        let quieter = cell(
+            Text("ab").padding(.horizontal).background(Color.palette.background.opacity(0.825)).background(Color.red))
+        #expect(inactive != renderedBackground(of: SystemPalette.green.background), "not flat in an inactive window")
+        #expect(inactive == quieter, "half way to opaque")
     }
 
     @Test("Tinted glass is the tint, translucent")

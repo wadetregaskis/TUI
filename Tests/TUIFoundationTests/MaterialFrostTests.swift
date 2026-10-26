@@ -204,14 +204,17 @@ struct MaterialFrostTests {
         #expect(material.map { $0.map(\.background) } == tint.map { $0.map(\.background) })
     }
 
-    @Test("A material that does not appear active is opaque, and frosts nothing it does not cover")
+    @Test("A material that does not appear active still frosts; one under reduced transparency does not")
     func inactiveMaterial() {
         let paint = Material.thin.paint(in: {
             var environment = EnvironmentValues()
             environment.appearsActive = false
             return environment
         }())
-        #expect(!paint.frosts)
+        #expect(paint.frosts, "an inactive window's glass is still glass")
+        var reduced = EnvironmentValues()
+        reduced._accessibilityReduceTransparency = true
+        #expect(!Material.thin.paint(in: reduced).frosts)
         var active = EnvironmentValues()
         active.appearsActive = true
         #expect(Material.thin.paint(in: active).frosts)

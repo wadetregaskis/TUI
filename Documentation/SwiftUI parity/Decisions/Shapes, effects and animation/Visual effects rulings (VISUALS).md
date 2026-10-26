@@ -225,7 +225,10 @@ holds. On macOS the host is `com.apple.universalaccess`'s `reduceMotion`,
 not toggled and read here). On GNOME, `org.gnome.desktop.a11y.interface
 high-contrast` is increased contrast; GNOME has no setting for the other
 two. The root writes all four. TUI honours reduce transparency: every
-material, and glass, is opaque, as an inactive one is, and so unfrosted.
+material, and glass, is opaque, as an inactive one then was, and so unfrosted.
+(Since 2026-10-26 an inactive material stays frosted, half way to opaque —
+owner: flat glass in an inactive window "looks like a bug". Reduced
+transparency is still opaque.)
 
 **Judgement calls.** The three are read-only, as SwiftUI's are, with
 SwiftUI's own underscored setters (`_accessibilityReduceTransparency`,

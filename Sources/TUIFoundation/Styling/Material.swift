@@ -33,12 +33,14 @@ import TUIStyling
 /// ``thick`` material's opacity and box. ``View/materialFrost(_:)`` sets the
 /// box for a subtree — TUI-specific.
 ///
-/// A material that does not appear active is opaque: SwiftUI's materials go
-/// flat in an inactive window, and here that is the surface at full strength.
-/// Whether one appears active is ``MaterialActiveAppearance``'s to say — by
-/// default whether the scene does (``EnvironmentValues/appearsActive``). So
-/// is every material where the user asked for reduced transparency
-/// (``EnvironmentValues/accessibilityReduceTransparency``).
+/// A material that does not appear active stays frosted, its surface half way
+/// from its own opacity to opaque: SwiftUI's materials go flat in an inactive
+/// window, and here that read as the frost having broken (owner ruling,
+/// 2026-10-26: glass stays frosty when the window is inactive, a little more
+/// opaque). Whether one appears active is ``MaterialActiveAppearance``'s to
+/// say — by default whether the scene does (``EnvironmentValues/appearsActive``).
+/// Every material is opaque, and frosts nothing, where the user asked for
+/// reduced transparency (``EnvironmentValues/accessibilityReduceTransparency``).
 ///
 /// ```swift
 /// ZStack {
@@ -122,8 +124,9 @@ extension Material: ShapeStyle {
     }
 
     /// `surface` as this material paints it in `environment`: at the
-    /// material's opacity while it appears active, and at full strength while
-    /// it does not, or where the user asked for reduced transparency
+    /// material's opacity while it appears active, half way from that to
+    /// opaque while it does not (``inactiveOpacity``), and at full strength
+    /// where the user asked for reduced transparency
     /// (``EnvironmentValues/accessibilityReduceTransparency``).
     ///
     /// - Parameters:
@@ -131,12 +134,17 @@ extension Material: ShapeStyle {
     ///   - environment: Where it is painted, for its active appearance.
     /// - Returns: The colour to paint.
     func surface(_ surface: Color, in environment: EnvironmentValues) -> Color {
-        // Reduce transparency draws every material opaque, as an inactive one
-        // is (owner ruling P5).
+        // Reduce transparency draws every material opaque (owner ruling P5).
         guard !environment.accessibilityReduceTransparency else { return surface }
         let appearance = activeAppearance == .automatic ? environment.materialActiveAppearance : activeAppearance
-        return appearance.appearsActive(in: environment) ? surface.opacity(opacity) : surface
+        return surface.opacity(appearance.appearsActive(in: environment) ? opacity : inactiveOpacity)
     }
+
+    /// The opacity of this material's surface while it does not appear
+    /// active: half way from its own to opaque. Still translucent, so still
+    /// frosted — what is behind it shows less, as an inactive window's glass
+    /// is quieter — and never flat, which read as a bug (owner, 2026-10-26).
+    var inactiveOpacity: Double { opacity + (1 - opacity) / 2 }
 }
 
 extension ShapeStyle where Self == Material {
@@ -164,8 +172,8 @@ extension ShapeStyle where Self == Material {
 /// Whether a material appears active — mirrors SwiftUI's
 /// `MaterialActiveAppearance`.
 ///
-/// An active material is translucent; an inactive one is its surface at full
-/// strength. ``automatic`` and ``matchWindow`` follow
+/// An active material is translucent; an inactive one is still frosted, its
+/// surface half way to opaque (``Material``). ``automatic`` and ``matchWindow`` follow
 /// ``EnvironmentValues/appearsActive``, which is the scene's — and a terminal
 /// says whether its window is active only where it reports focus (DEC 1004),
 /// so most of the time a material simply appears active.
@@ -181,7 +189,7 @@ public struct MaterialActiveAppearance: Sendable, Equatable, Hashable {
     /// Always active: translucent, whatever the window is doing.
     public static let active = Self(kind: .active)
 
-    /// Always inactive: opaque.
+    /// Always inactive: frosted, and more opaque than active.
     public static let inactive = Self(kind: .inactive)
 
     /// Active while the window is (``EnvironmentValues/appearsActive``).
