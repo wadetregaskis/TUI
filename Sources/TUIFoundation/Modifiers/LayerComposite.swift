@@ -36,7 +36,7 @@ func layerContext(_ context: RenderContext, modifierType: Any.Type) -> RenderCon
 }
 
 /// Where a layer goes in a base's frame — or why it goes nowhere.
-private enum LayerPlacement {
+enum LayerPlacement {
     /// The base has nothing at all in it: the layer is what there is to draw.
     case alone(FrameBuffer)
     /// The layer has nothing at all in it: the base is unchanged.
@@ -50,7 +50,7 @@ private enum LayerPlacement {
 /// `layer` rendered in `baseBuffer`'s frame and placed in it by `alignment` —
 /// the half an overlay and a background share.
 @MainActor
-private func placeLayer<Layer: View>(
+func placeLayer<Layer: View>(
     _ layer: Layer, in baseBuffer: FrameBuffer, alignment: Alignment,
     context: RenderContext, modifierType: Any.Type
 ) -> LayerPlacement {

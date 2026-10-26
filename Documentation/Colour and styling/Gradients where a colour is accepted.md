@@ -70,6 +70,9 @@ SwiftUI's only spanning idiom is `gradient.mask(content)`, which resolves over
 the gradient view's frame (short block reaches only `#C86A84` where the long one
 reaches `#747CD1`) and costs you either a duplicated copy of the content or its
 interactivity — the masked view is what hit-tests, and it is the gradient.
+(TUI draws that idiom too since 2026-10-26: a glyph the mask draws over a
+cell the gradient fills is the glyph inked in the gradient there, decisions
+A27.)
 (`.overlay(gradient.blendMode(.sourceAtop)).compositingGroup()` duplicates
 nothing and keeps hit-testing. TUI draws it since 2026-10-19: `sourceAtop`
 over text keeps the letters and inks them in the gradient, and adds no field

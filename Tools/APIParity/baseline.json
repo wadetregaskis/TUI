@@ -60,7 +60,6 @@
   "View.dropConfiguration(_:)",
   "View.dropPreviewsFormation(_:)",
   "View.layoutDirectionBehavior(_:)",
-  "View.mask(alignment:_:)",
   "View.multilineTextAlignment(strategy:)",
   "View.onDragSessionUpdated(_:)",
   "View.onDropSessionUpdated(_:)",

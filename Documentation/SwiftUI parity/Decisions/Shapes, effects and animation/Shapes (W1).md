@@ -337,6 +337,7 @@ and why, is in its decisions,
   shipped by W1B (B-W1B-1, B-W1B-2); the glass effect's shape is lane GLASS's.*
 - **`mask(alignment:_:)`** (decisions A27): the cell-coverage rule a clip shape
   keeps by (B-W1-11) is the natural one, but A27's choice is the owner's.
+  *Shipped 2026-10-26 at cell coverage (A27, option 2).*
 - **`Canvas` and `GraphicsContext`** (the refusal review's D3): a drawing context
   of paths, filled and stroked through this lane's rasterizer.
 - **`ImagePaint`** (W9): a shape filled with an image, which the rasterizer's

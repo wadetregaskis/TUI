@@ -193,7 +193,7 @@ why. None is a decision.
 
 - **`mask(alignment:_:)`** — decisions A27, the owner's: excluded from this lane
   by its brief. The cell-coverage rule a clip and a content shape keep by is
-  the natural one (B-W1-11, B-W1B-3).
+  the natural one (B-W1-11, B-W1B-3). *Shipped 2026-10-26, at that rule.*
 - **`Canvas` and `GraphicsContext`** — the refusal review's D3, which needs a
   design of its own: excluded by the brief.
 - **`glassEffect(_:in:)` and `DefaultGlassEffectShape`** — lane GLASS's work,

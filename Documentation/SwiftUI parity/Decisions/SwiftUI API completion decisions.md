@@ -522,6 +522,13 @@ cell coverage, a shape mask by `clipShape`'s half-cell rule; `drawingGroup`
 ships as `compositingGroup()`, with linear-light blending inside it for
 `.linear` and `.extendedLinear`.
 
+**`mask` shipped 2026-10-26** (`MaskModifier.swift`), with one rule beyond
+coverage: a glyph's alpha is its letter's shape, so where the mask draws a
+glyph with no field over a cell the view only fills, the cell is the mask's
+glyph inked in the view's colour. Without it `gradient.mask { Text(…) }`,
+SwiftUI's gradient-text idiom, drew solid blocks where the letters are. Where
+the view draws a glyph of its own it keeps it.
+
 **You asked (2026-10-04)** whether linear and extended-linear blending could be
 supported. Yes (answer of 2026-10-05): blending happens in one place, in
 encoded sRGB by design today, and linear blending is decode, blend and
