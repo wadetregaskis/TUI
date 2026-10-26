@@ -225,10 +225,13 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         // weight each line of them is drawn a tier heavier, whole.
         var grid = [weekdayRow(calendar: calendar, palette: palette)]
         let days = monthGrid(month: month, calendar: calendar)
+        let marks = DayMarks(selection: selection.wrappedValue, range: range, calendar: calendar)
         for week in 0..<6 {
             grid.append(
                 (0..<7).map { column in
-                    dayCell(days[week * 7 + column], isDisabled: isDisabled, calendar: calendar, palette: palette)
+                    dayCell(
+                        days[week * 7 + column], isDisabled: isDisabled, marks: marks, calendar: calendar,
+                        palette: palette)
                 }.joined())
         }
         lines += legibility.drawsPlainBold ? grid.map(ANSIRenderer.applyPersistentBold) : grid
@@ -321,17 +324,40 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         }
     }
 
+    /// The days a cell is compared with, each reduced to the start of its day
+    /// once a frame rather than once a cell: the selected day, today, and the
+    /// first day in range.
+    ///
+    /// Asked of each of 42 cells, `isDate(_:inSameDayAs:)`, `isDateInToday(_:)`
+    /// and `startOfDay(for:)` on the range were five calendar computations a
+    /// cell, every frame a calendar was drawn (2026-10-26: `Calendar.compare`
+    /// and `dateInterval(of:for:)` 5.4–5.5% of a frame of the Stress `pickers`
+    /// scenario). Two dates are in the same day exactly when their days start
+    /// at the same instant, so a cell now costs one `startOfDay(for:)`.
+    private struct DayMarks {
+        let selected: Date
+        let today: Date
+        /// The range's first day's start, and its last instant as given.
+        let range: (start: Date, end: Date)?
+
+        init(selection: Date, range: ClosedRange<Date>?, calendar: Calendar) {
+            selected = calendar.startOfDay(for: selection)
+            today = calendar.startOfDay(for: Date())
+            self.range = range.map { (calendar.startOfDay(for: $0.lowerBound), $0.upperBound) }
+        }
+    }
+
     /// One day: its number in three cells, the selected day in the accent,
     /// today in the accent's ink, a day out of range dimmed.
-    private func dayCell(_ day: Date?, isDisabled: Bool, calendar: Calendar, palette: any Palette) -> String {
+    private func dayCell(
+        _ day: Date?, isDisabled: Bool, marks: DayMarks, calendar: Calendar, palette: any Palette
+    ) -> String {
         guard let day else { return "   " }
         let number = calendar.component(.day, from: day)
         let text = (number < 10 ? "  " : " ") + String(number)
-        let inRange = range.map { range in
-            let start = calendar.startOfDay(for: range.lowerBound)
-            return day >= start && day <= range.upperBound
-        } ?? true
-        if calendar.isDate(day, inSameDayAs: selection.wrappedValue) {
+        let inRange = marks.range.map { range in day >= range.start && day <= range.end } ?? true
+        let dayStart = calendar.startOfDay(for: day)
+        if dayStart == marks.selected {
             let fill = isDisabled ? palette.foregroundTertiary : palette.accent
             return " " + ANSIRenderer.colorize(
                 String(text.dropFirst()), foreground: palette.background.opaqueSpelling,
@@ -340,7 +366,7 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         let ink: Color =
             !inRange || isDisabled
             ? palette.foregroundTertiary
-            : calendar.isDateInToday(day) ? palette.accent : palette.foreground
+            : dayStart == marks.today ? palette.accent : palette.foreground
         return ANSIRenderer.colorize(text, foreground: ink.opaqueSpelling)
     }
 
