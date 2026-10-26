@@ -134,6 +134,12 @@ extension TextFieldHandler {
             moveRow(by: -1, extending: event.shift, in: layout)
         case .down:
             moveRow(by: 1, extending: event.shift, in: layout)
+        // Ctrl-Return as itself, which only the kitty keyboard protocol
+        // delivers, and only once the app's keys and a context menu have
+        // passed it by: a line separator, as the macOS text system's
+        // `insertLineBreak:` puts in. It breaks the row as a newline does.
+        case .enter where event.ctrl:
+            insertCharacter("\u{2028}")
         case .enter where event.alt:
             insertCharacter("\n")
         // Ctrl-J, the newline the terminal sends LF for on every host:

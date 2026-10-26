@@ -320,6 +320,11 @@ extension KeyEvent {
         return KeyEvent(key: base, ctrl: ctrl, alt: alt, shift: true)
     }
 
+    /// Whether this is Ctrl-Return as itself, with or without Option: what
+    /// only a terminal speaking the kitty keyboard protocol sends, since
+    /// every legacy encoding sends Ctrl-Return as a plain CR, which is Return.
+    package var isControlReturn: Bool { key == .enter && ctrl && !shift && !command }
+
     /// The key a legacy encoding delivers for this Control chord, or `nil`
     /// for any other event.
     ///

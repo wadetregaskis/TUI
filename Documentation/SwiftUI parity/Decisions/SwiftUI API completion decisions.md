@@ -2440,6 +2440,21 @@ harnesses do. Test: `VerticalTextFieldTests.controlJ`.
    negotiated, where they arrive as themselves. Possible now that the
    protocol has shipped (A4, 2026-10-05).
 
+**Ctrl-Return, shipped since (owner ruling B63-KITTY, 2026-10-26).** Where the
+terminal sends it as itself (the kitty keyboard protocol; every legacy encoding
+sends a plain CR, which stays Return), it goes as macOS layers it: to the app's
+handlers and shortcuts first (an app's ⌘↩ is Ctrl-Return under
+`.commandKey(.control)`); then to a context menu, as macOS's Control-Return
+"Show contextual menu" — an app's `.contextMenu` answers it, and with no text
+input focused it goes round as Shift-F10 so a list's or a tab's row menu opens,
+but a text control's own editing menu does not answer it; then to a vertical
+`TextField` as a line separator (U+2028, the text system's `insertLineBreak:`);
+and otherwise as Return. A `TextEditor` puts in a newline for it, not U+2028:
+the editor keeps its text as lines joined by newlines, where a separator would
+neither break the row nor survive the next write. On macOS the terminal itself
+may keep the chord for its own menu; nothing relies on it alone. Tests:
+`ControlReturnTests`.
+
 ### B64. `lineLimit`'s range forms ship, reversing their omission
 
 *`View.lineLimit(_:)` with `ClosedRange<Int>`, `PartialRangeFrom<Int>`,

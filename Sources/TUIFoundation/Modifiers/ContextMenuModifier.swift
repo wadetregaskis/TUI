@@ -27,6 +27,13 @@ package struct ContextMenuModifier<Content: View, MenuItems: View>: View {
     let menuItems: MenuItems
     let keyboardRoute: KeyboardRoute
 
+    /// Whether Ctrl-Return opens the menu too, where the terminal sends it as
+    /// itself (the kitty keyboard protocol), as macOS's Control-Return "Show
+    /// contextual menu" does: an app's menu, but not a text control's own
+    /// editing menu, ahead of whose Ctrl-Return the control's line break comes
+    /// (owner ruling B63-KITTY, 2026-10-26).
+    let answersControlReturn: Bool
+
     /// How the keyboard reaches the menu.
     package enum KeyboardRoute {
         /// The content becomes a focus stop of its own, on which Shift+F10
@@ -49,10 +56,14 @@ package struct ContextMenuModifier<Content: View, MenuItems: View>: View {
 
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUIMenus makes these, for `.contextMenu(menuItems:)`.
-    package init(content: Content, menuItems: MenuItems, keyboardRoute: KeyboardRoute = .ownStop) {
+    package init(
+        content: Content, menuItems: MenuItems, keyboardRoute: KeyboardRoute = .ownStop,
+        answersControlReturn: Bool = true
+    ) {
         self.content = content
         self.menuItems = menuItems
         self.keyboardRoute = keyboardRoute
+        self.answersControlReturn = answersControlReturn
     }
 
     package var body: Never {
@@ -75,7 +86,8 @@ extension ContextMenuModifier: FormRowRewrapping {
             case .contentStops: .contentStops
             case .contentStopRegions: .contentStopRegions
             }
-        return ContextMenuModifier<V, MenuItems>(content: row, menuItems: menuItems, keyboardRoute: route)
+        return ContextMenuModifier<V, MenuItems>(
+            content: row, menuItems: menuItems, keyboardRoute: route, answersControlReturn: answersControlReturn)
     }
 }
 
@@ -266,8 +278,10 @@ extension ContextMenuModifier: Renderable {
         stateBox: StateBox<ContextMenuState>, focusIDs: [String], onOpen: MenuOpenAction?, context: RenderContext
     ) {
         let sectionID = context.environment.activeFocusSectionID
+        let answersControlReturn = answersControlReturn
         ContextMenuKeyRegistrar.register(
-            stateBox: stateBox, focusIDs: focusIDs, onOpen: onOpen, sectionID: sectionID, context: context)
+            stateBox: stateBox, focusIDs: focusIDs, onOpen: onOpen, answersControlReturn: answersControlReturn,
+            sectionID: sectionID, context: context)
         context.environment.volatileReadTracker?.recordReplayableEffect()
         if let journal = context.recordingEffectJournal {
             journal.append(
@@ -275,8 +289,8 @@ extension ContextMenuModifier: Renderable {
                     kind: ContextMenuKeyRegistrar.kind, channelToken: context.environment.keyChannelToken
                 ) { replay in
                     ContextMenuKeyRegistrar.register(
-                        stateBox: stateBox, focusIDs: focusIDs, onOpen: onOpen, sectionID: sectionID,
-                        context: replay)
+                        stateBox: stateBox, focusIDs: focusIDs, onOpen: onOpen,
+                        answersControlReturn: answersControlReturn, sectionID: sectionID, context: replay)
                 })
         }
     }
@@ -307,14 +321,14 @@ private enum ContextMenuKeyRegistrar {
     /// The journal kind of the registration.
     static let kind = EffectJournal.Kind("contextMenu.openKey")
 
-    /// Adds the handler that opens the menu on Shift+F10 while one of
-    /// `focusIDs` holds the focus, to `context`'s key dispatcher in
-    /// `sectionID`. It looks the dispatcher and the focus manager up in
+    /// Adds the handler that opens the menu on Shift+F10 — and on Ctrl-Return
+    /// as itself, where `answersControlReturn` — while one of `focusIDs` holds
+    /// the focus, to `context`'s key dispatcher in `sectionID`. It looks the dispatcher and the focus manager up in
     /// `context`, so a replay registers into, and asks, the services of the
     /// frame that serves it.
     static func register(
-        stateBox: StateBox<ContextMenuState>, focusIDs: [String], onOpen: MenuOpenAction?, sectionID: String?,
-        context: RenderContext
+        stateBox: StateBox<ContextMenuState>, focusIDs: [String], onOpen: MenuOpenAction?,
+        answersControlReturn: Bool, sectionID: String?, context: RenderContext
     ) {
         // The focus manager, weakly, and not the context: the key dispatcher
         // holds this handler, and the context holds the key dispatcher — kept
@@ -322,7 +336,7 @@ private enum ContextMenuKeyRegistrar {
         // after its loop (scroll lane review 3).
         let focusManager = context.environment.focusManager
         context.environment.keyEventDispatcher!.addHandler(sectionID: sectionID) { [weak focusManager] event in
-            guard event.opensContextMenu, let focusManager,
+            guard event.opensContextMenu || (answersControlReturn && event.isControlReturn), let focusManager,
                 focusIDs.contains(where: { focusManager.isFocused(id: $0) })
             else { return false }
             // Opened from the keyboard, which has no other way to point at a

@@ -84,8 +84,12 @@ struct TextEditingMenu: View {
 extension View {
     /// This text control with its editing menu, opened by a right-click (or
     /// Ctrl-click) on it, or by Shift+F10 while it holds the focus. It adds
-    /// no focus stop: the control is one already.
+    /// no focus stop: the control is one already. Not by Ctrl-Return, which a
+    /// text control reads as its line break once an app's menu has passed it
+    /// by.
     func textEditingMenu(_ target: TextEditingMenuTarget) -> some View {
-        ContextMenuModifier(content: self, menuItems: TextEditingMenu(target: target), keyboardRoute: .contentStops)
+        ContextMenuModifier(
+            content: self, menuItems: TextEditingMenu(target: target), keyboardRoute: .contentStops,
+            answersControlReturn: false)
     }
 }

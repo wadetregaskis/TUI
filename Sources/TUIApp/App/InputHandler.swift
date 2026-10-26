@@ -208,6 +208,7 @@ extension InputHandler {
         // key a text input takes (layer 0) — so a field focused before the drag
         // must not copy its own older selection instead.
         if let taken = screenSelection?.handleKey(event) { return taken }
+        if event.isControlReturn { return dispatchControlReturn(event) }
         if dispatchPress(event) { return true }
 
         // Ctrl-H, I, J, M and [ arrive as themselves only where the kitty
@@ -244,6 +245,50 @@ extension InputHandler {
             return true
         }
         return false
+    }
+
+    /// Ctrl-Return, which arrives as itself only where the terminal speaks the
+    /// kitty keyboard protocol — every legacy encoding sends a plain CR, which
+    /// is Return and never comes here — offered as macOS layers it (owner
+    /// ruling B63-KITTY, 2026-10-26):
+    ///
+    /// 1. to the app: its key handlers on the way to the focused view, then
+    ///    its keyboard shortcuts (an app's ⌘↩ is Ctrl-Return under
+    ///    `.commandKey(.control)`), then the handlers it registered;
+    /// 2. to a context menu on what has the focus, as macOS's Control-Return
+    ///    "Show contextual menu": an app's `.contextMenu` answers the chord
+    ///    itself, and where no text input has the focus it goes round as the
+    ///    context-menu key, Shift-F10, so a list's or a tab's row menu opens
+    ///    too. A text control's own editing menu is not one of them: its
+    ///    line break comes first;
+    /// 3. to the focused control as itself, where a vertical text field reads
+    ///    it as a line separator (U+2028), the text system's
+    ///    `insertLineBreak:`;
+    /// 4. and, nothing having taken it, as the Return the legacy encodings
+    ///    would have sent.
+    ///
+    /// On macOS the terminal itself may keep the chord for its own contextual
+    /// menu, and then it never arrives: nothing relies on it alone.
+    private func dispatchControlReturn(_ event: KeyEvent) -> Bool {
+        if focusPathHearsKeys, let focused = focusManager.focusedIdentity,
+            keyEventDispatcher.dispatchFocusPath(event, focusedIdentity: focused, stage: .keyPress)
+        {
+            focusManager.noteInputToFocusedControl()
+            return true
+        }
+        if keyboardShortcuts.trigger(
+            for: event, activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal)
+        {
+            return true
+        }
+        if keyEventDispatcher.dispatch(event) { return true }
+        if !focusManager.hasTextInputFocus,
+            dispatchPress(KeyEvent(key: .f10, alt: event.alt, shift: true, phase: event.phase))
+        {
+            return true
+        }
+        if dispatchPress(event) { return true }
+        return dispatchPress(KeyEvent(key: .enter, alt: event.alt, phase: event.phase))
     }
 
     /// The chain for a ⌘ chord, which only a terminal speaking the kitty
