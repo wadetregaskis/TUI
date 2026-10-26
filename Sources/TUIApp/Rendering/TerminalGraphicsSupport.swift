@@ -83,6 +83,7 @@ extension TerminalClient {
         KittyGraphics.isSupported = graphicsSupported
         KittyGraphics.isCompressionSupported = graphicsCompressionSupported
         KittyGraphics.isHairlineSupported = hairlinesSupported
+        KittyGraphics.isPictureUnderTextSupported = picturesUnderTextSupported
     }
 
     /// Whether the terminal painting this app's output will place an image in
@@ -182,6 +183,49 @@ extension TerminalClient {
         case "1": return true
         case "0": return false
         default: return graphics && program == .ghostty && reportsCellPixels
+        }
+    }
+
+    /// Force whether a glyph over a frosted picture stands on the picture,
+    /// laid under the text by a Kitty classic placement
+    /// (``KittyGraphics/isPictureUnderTextSupported``), whatever the measured
+    /// table says: `true` to try it on a host nobody has measured (kitty),
+    /// `false` for the average-colour cells everywhere.
+    ///
+    /// The same ladder as ``hairlineSupport``: this, then
+    /// `TUIKIT_PICTURES_UNDER_TEXT` (`1` or `0`), then the measured hosts
+    /// (``picturesUnderTextSupported``).
+    @MainActor public static var pictureUnderTextSupport: Bool? {
+        didSet {
+            guard pictureUnderTextSupport != oldValue else { return }
+            applyGraphicsSupport()
+        }
+    }
+
+    /// Whether this terminal draws a picture under a glyph — the override,
+    /// then the environment, then the hosts measured to draw one.
+    @MainActor public static var picturesUnderTextSupported: Bool {
+        picturesUnderTextSupported(
+            override: pictureUnderTextSupport, environment: ProcessInfo.processInfo.environment,
+            graphics: graphicsSupported, program: current.program)
+    }
+
+    /// The ladder behind ``picturesUnderTextSupported``, posed on its inputs.
+    ///
+    /// The table is ONE host: Ghostty, measured on 1.3.1 to draw a classic
+    /// placement at `z=-1` below the glyphs and above a cell's default field
+    /// (`frost_over_image_card.py`'s panel D, 2026-10-26), and only where the
+    /// startup handshake said it places pictures at all. iTerm2 3.7.6 refuses
+    /// the placement and orders `z` otherwise; kitty is unmeasured. See the
+    /// graphics notes §14.5.
+    static func picturesUnderTextSupported(
+        override: Bool?, environment: [String: String], graphics: Bool, program: Program
+    ) -> Bool {
+        if let override { return override }
+        switch environment["TUIKIT_PICTURES_UNDER_TEXT"] {
+        case "1": return true
+        case "0": return false
+        default: return graphics && program == .ghostty
         }
     }
 

@@ -225,6 +225,9 @@ extension ViewRenderer {
             // lines, so the mark only has to go.
             var sanitized = line.sanitizedForTerminalRow()
             if KittyGraphics.isHairlineSupported { sanitized = HairlineMarker.stripping(sanitized) }
+            // And a glyph's mark for a picture under it (`PictureUnderTextMarker`),
+            // which places nothing here either.
+            if KittyGraphics.isPictureUnderTextSupported { sanitized = PictureUnderTextMarker.stripping(sanitized) }
             terminal.write(writer.compensatingCursorAdvance(sanitized))
             // Styled bytes this writer did not plan, so its belief about what
             // the terminal is wearing no longer holds — see

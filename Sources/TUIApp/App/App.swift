@@ -721,6 +721,7 @@ extension AppRunner {
     func exitFarewell(renderer: RenderLoop<A>) -> String {
         let attention = renderer.attentionWrites()
         return tuiContext.terminalImageStore.takePending() + renderer.handBackHairlines()
+            + renderer.handBackPicturesUnderText()
             + tuiContext.clipboardWriter.takePendingSequences()
             + attention.notifications + attention.bell + renderer.handBackHostState()
     }
@@ -944,7 +945,8 @@ extension AppRunner {
         // sets the app's again. The hairlines' strips go too: iTerm2 shows a
         // line left on the alternate screen on the shell's (`HairlineLayer`).
         terminal.handBack(
-            farewell: renderer.handBackHairlines() + renderer.handBackHostState(),
+            farewell: renderer.handBackHairlines() + renderer.handBackPicturesUnderText()
+                + renderer.handBackHostState(),
             restoringStyling: renderer.restoreTerminalStyling)
         // The shell's screen is back, so held soft-trap reports can be read there.
         SoftTrap.terminalRestored()

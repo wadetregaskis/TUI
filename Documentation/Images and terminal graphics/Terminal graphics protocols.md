@@ -1298,3 +1298,15 @@ them:
 The owner's ruling (2026-10-26): build it, adapted to the terminal in use and
 conservative by default — the plain rendering, the average-colour cells,
 everywhere it is not measured to work.
+
+**Built (2026-10-26).** Where `KittyGraphics.isPictureUnderTextSupported`
+(Ghostty that places pictures; `TerminalClient.pictureUnderTextSupport`, then
+`TUIKIT_PICTURES_UNDER_TEXT=1`/`0`, override the table), a glyph over a
+frosted picture stands on the terminal's own field and carries a private
+mark, `ESC[7745:…m`, naming the copy and the rectangle of its pixels the
+cell covers (`PictureUnderTextMarker`, sharing `SGRMarks` with the hairline
+mark). The diff writer reads the marked runs back off the finished frame and
+takes the marks out; `PictureUnderTextLayer` places each run — the copy
+cropped to the run's pixels, scaled to its cells, `z=-1` — and deletes it
+when it goes, sending only what changed. Everywhere else the glyph stands on
+the copy's average colour, as before.

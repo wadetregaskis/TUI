@@ -121,6 +121,35 @@ struct DerivedImageTests {
         #expect(names(store.takePending(), covered.id), "the copy reaches the terminal")
     }
 
+    /// A glyph cannot be a picture's cell. Where the terminal draws a picture
+    /// under text, it stands on the terminal's own field and carries the mark
+    /// that lays its cell of the copy under it; elsewhere it stands on the
+    /// copy's average colour, a block behind the letter.
+    @Test("A glyph over a picture is marked for the copy under it, where the terminal draws one there", arguments: [true, false])
+    func glyphOverPicture(underText: Bool) throws {
+        let (store, rows) = storeWithPicture()
+        let base = FrameBuffer(lines: rows)
+        let context = makeRenderContext(width: 2, height: 1)
+        let pane = renderToBuffer(Text("ab").background(Color.rgb(0, 0, 255).opacity(0.5)), context: context)
+        let line = KittyGraphics.withPictureUnderTextSupport(underText) {
+            base.compositedCarryingClaimsOverNothing(
+                with: pane, at: (x: 1, y: 0),
+                in: CompositeEnvironment(palette: context.environment.palette, linearLight: false, images: store)
+            ).lines[0]
+        }
+        #expect(line.stripped.contains("ab"))
+        let (_, runs) = PictureUnderTextMarker.extracting(line)
+        if underText {
+            let run = try #require(runs.first)
+            #expect(run.column == 1 && run.columns == 2, "the two glyphs, one run")
+            #expect(run.width == 2 * DerivedImages.pixelsAcross && run.height == DerivedImages.pixelsDown)
+            #expect(run.x == DerivedImages.pixelsAcross, "from the copy's second cell")
+            #expect(line.contains("49"), "on the terminal's own field")
+        } else {
+            #expect(runs.isEmpty)
+        }
+    }
+
     /// The screen root's route: a layer lifted off the page — an `.offset` panel, a
     /// popover — is spent over the finished page (`compositingOverlays`), not at a
     /// compositor inside the tree, and found the picture there just the same.

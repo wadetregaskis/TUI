@@ -4590,6 +4590,24 @@ fresh id almost every time. kitty 0.49.1 is not measured (it needs OpenGL
 3.3, which the VM the probe ran in lacks); the protocol says a placement
 with an existing placement id replaces it, which is the behaviour E relies on.
 
+### A picture under text: a classic placement at z=-1 — measured 2026-10-26, Ghostty 1.3.1 and iTerm2 3.7.6
+
+A glyph over a frosted picture cannot be the picture's placeholder cell, so
+TUI lays the picture under it instead, where the terminal can: a classic
+placement of the frosted copy, cropped to the run of glyphs and scaled to its
+cells, at `z=-1` (`Tools/TerminalProbes/frost_over_image_card.py`, panel D):
+
+| Host | Result |
+|---|---|
+| Ghostty 1.3.1 | **Drawn exactly**: below the glyphs, above the cells' default field. A cell with any field of its own hides it, so the glyph's cell states the terminal's own (`ESC[49m`). |
+| iTerm2 3.7.6 | **Refused** ("invalid payload"); its z order differs too (z=0 under text, z=-1 over a cell's fill — the hairline probe) |
+| kitty 0.49.1 | not measured (no OpenGL 3.3 in the VM); the spec draws `z<0` as Ghostty does |
+
+So only Ghostty does it unasked (`TerminalClient.picturesUnderTextSupported`);
+everywhere else the glyph stands on the copy's average colour, a block behind
+each letter. `TUIKIT_PICTURES_UNDER_TEXT=1` tries it anywhere. Graphics notes
+§14.5.
+
 ## Measured advance table (divergences and key rows)
 
 DSR-measured on the ALTERNATE screen (the app's buffer). Terminal.app +

@@ -206,6 +206,11 @@ internal final class RenderLoop<A: App> {
     /// draws none.
     let hairlines = HairlineLayer(z: HairlineLayer.z(for: TerminalClient.current.program))
 
+    /// The pictures laid under glyphs that stand on a frosted picture
+    /// (`RenderLoop+PicturesUnderText.swift`). Idle, and never asked, on a
+    /// host that draws none.
+    let picturesUnderText = PictureUnderTextLayer()
+
     /// The push-refreshed emoji-chrome answer (see ``ClientCapabilityRefresher``):
     /// seeded synchronously before the first frame, re-probed asynchronously
     /// when the tmux client-change hooks (or a real resize) send a SIGWINCH,
@@ -881,6 +886,7 @@ extension RenderLoop {
         // is not to be trusted either: its strips go, and every line is placed
         // again by the next frame.
         hairlines.invalidate()
+        picturesUnderText.invalidate()
         // A SIGWINCH is also our signal that the tmux CLIENT may have changed —
         // either a real resize (attaching from a different-sized terminal), or
         // the synthetic one our tmux hooks send for a SAME-size attach/detach
@@ -1195,6 +1201,7 @@ extension RenderLoop {
         // The hairlines' strips, and the deletes an invalidation owes, with the
         // other images: they draw nothing.
         let hairlinesPrepared = prepareHairlines(environment: environment, terminalWidth: terminalWidth)
+        let picturesPrepared = preparePicturesUnderText()
 
         // Copies owed to the terminal's clipboard (OSC 52), made between frames
         // by a key or a release. They draw nothing and move no cursor, so they
@@ -1227,10 +1234,12 @@ extension RenderLoop {
         )
         // The lines, after the cells they run along, inside the same hold.
         let placedHairlines = hairlinesPrepared && hairlines.place(on: terminal, startRow: 1)
+        // The pictures under the glyphs, likewise.
+        let placedPictures = picturesPrepared && picturesUnderText.place(on: terminal, startRow: 1)
         parkCursor(
             at: insertionPointOnScreen(
                 in: buffer.hitTestRegions, width: terminalWidth, height: outputLines.count),
-            afterWriting: wrote || placedHairlines)
+            afterWriting: wrote || placedHairlines || placedPictures)
 
         // Keep what an animation tick would need to patch: the lines actually on
         // screen, the runs composited into absolute positions, and the geometry

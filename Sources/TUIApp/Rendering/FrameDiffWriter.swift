@@ -119,10 +119,10 @@ final class FrameDiffWriter {
         /// focused or not; only its animated run differed.
         var builtLines: [String] = []
 
-        /// The hairline runs each built row carried (``HairlineMarker``), beside
+        /// The marks each built row carried (``RowMarks``), beside
         /// ``builtLines`` so a reused row reuses them too. Empty unless this
-        /// frame's host draws hairlines.
-        var builtRuns: [[HairlineMarker.Run]] = []
+        /// frame's host draws hairlines or pictures under text.
+        var builtMarks: [RowMarks] = []
     }
 
     private var contentReuse = LineReuseCache()
@@ -192,10 +192,31 @@ final class FrameDiffWriter {
     /// keep marks it should not, or lose the runs it should report.
     private var appliedHairlines = false
 
-    /// The hairline runs the last ``buildReusingOutputLines(buffer:terminalWidth:terminalHeight:bgCode:reset:)``
-    /// found, one entry per row, each cut to the terminal's width: what the
-    /// run loop's ``HairlineLayer`` places. Empty when the host draws none.
-    private(set) var hairlineRows: [[HairlineMarker.Run]] = []
+    /// Whether the rows were last built for a host that draws pictures under
+    /// text (``PictureUnderTextMarker``), on the same terms as ``appliedHairlines``.
+    private var appliedPicturesUnderText = false
+
+    /// The marks one built row carried, read and taken out of it: the hairline
+    /// runs along its top and the picture runs under its text, each cut to the
+    /// terminal's width.
+    struct RowMarks {
+        var hairlines: [HairlineMarker.Run] = []
+        var pictures: [PictureUnderTextMarker.Run] = []
+    }
+
+    /// The marks the last ``buildReusingOutputLines(buffer:terminalWidth:terminalHeight:bgCode:reset:)``
+    /// found, one entry per row. Empty when the host draws neither kind.
+    private var markRows: [RowMarks] = []
+
+    /// The hairline runs of each row: what the run loop's ``HairlineLayer``
+    /// places. Empty when the host draws none.
+    var hairlineRows: [[HairlineMarker.Run]] { appliedHairlines ? markRows.map(\.hairlines) : [] }
+
+    /// The picture runs under each row's text: what the run loop's
+    /// ``PictureUnderTextLayer`` places. Empty when the host draws none.
+    var pictureUnderTextRows: [[PictureUnderTextMarker.Run]] {
+        appliedPicturesUnderText ? markRows.map(\.pictures) : []
+    }
 
     /// Number of rows actually (re)built by the most recent
     /// `buildReusingOutputLines(…)` call; the remainder were reused from the
@@ -245,7 +266,7 @@ extension FrameDiffWriter {
         reset: String
     ) -> [String] {
         invalidateIfProgramChanged()
-        invalidateIfHairlinesChanged()
+        invalidateIfMarksChanged()
         let eraseLine = "\u{1B}[2K"
         let emptyLine = bgCode + eraseLine + reset
 
@@ -292,11 +313,11 @@ extension FrameDiffWriter {
         reset: String
     ) -> [String] {
         invalidateIfProgramChanged()
-        invalidateIfHairlinesChanged()
+        invalidateIfMarksChanged()
         let eraseLine = "\u{1B}[2K"
         let emptyLine = bgCode + eraseLine + reset
         let params = LineParams(width: terminalWidth, bgCode: bgCode, reset: reset)
-        let extractsHairlines = appliedHairlines
+        let extractsMarks = appliedHairlines || appliedPicturesUnderText
 
         let cache = contentReuse
         let previousBuilt = cache.builtLines
@@ -313,8 +334,8 @@ extension FrameDiffWriter {
 
         var lines: [String] = []
         lines.reserveCapacity(terminalHeight)
-        var runs: [[HairlineMarker.Run]] = []
-        if extractsHairlines { runs.reserveCapacity(terminalHeight) }
+        var marks: [RowMarks] = []
+        if extractsMarks { marks.reserveCapacity(terminalHeight) }
         var builtCount = 0
 
         for row in 0..<terminalHeight {
@@ -329,7 +350,7 @@ extension FrameDiffWriter {
 
             if canReuse, rawUnchanged, row < previousBuilt.count {
                 lines.append(previousBuilt[row])
-                if extractsHairlines { runs.append(row < cache.builtRuns.count ? cache.builtRuns[row] : []) }
+                if extractsMarks { marks.append(row < cache.builtMarks.count ? cache.builtMarks[row] : RowMarks()) }
             } else {
                 let built = buildLine(
                     raw: isEmpty ? nil : buffer.lines[row],
@@ -337,15 +358,15 @@ extension FrameDiffWriter {
                     eraseLine: eraseLine, emptyLine: emptyLine
                 )
                 lines.append(built.line)
-                if extractsHairlines { runs.append(built.runs) }
+                if extractsMarks { marks.append(built.marks) }
                 builtCount += 1
             }
         }
 
         contentReuse = LineReuseCache(
             rawLines: buffer.lines, rawHeight: buffer.height, params: params,
-            builtLines: lines, builtRuns: runs)
-        hairlineRows = runs
+            builtLines: lines, builtMarks: marks)
+        markRows = marks
         rowsBuiltInLastBuild = builtCount
         if Self.debugEnabled {
             FileHandle.standardError.write(
@@ -388,8 +409,9 @@ extension FrameDiffWriter {
     }
 
     /// Builds one terminal-ready output line from a raw buffer line (`nil` marks
-    /// an empty row past the buffer's height), and the hairline runs it carried.
-    /// Pure given the writer's `isAppleTerminal` and ``appliedHairlines``.
+    /// an empty row past the buffer's height), and the marks it carried.
+    /// Pure given the writer's `isAppleTerminal`, ``appliedHairlines`` and
+    /// ``appliedPicturesUnderText``.
     private func buildLine(
         raw: String?,
         terminalWidth: Int,
@@ -397,8 +419,8 @@ extension FrameDiffWriter {
         reset: String,
         eraseLine: String,
         emptyLine: String
-    ) -> (line: String, runs: [HairlineMarker.Run]) {
-        guard let raw else { return (emptyLine, []) }
+    ) -> (line: String, marks: RowMarks) {
+        guard let raw else { return (emptyLine, RowMarks()) }
         // Neutralise any cursor-moving control character (a stray newline /
         // carriage return / tab in a buffer line — e.g. user data with an
         // embedded newline placed verbatim into a table cell) before it reaches
@@ -415,11 +437,17 @@ extension FrameDiffWriter {
         // row's own cells, which the clip below only cuts at the right. Only
         // where the host draws hairlines — nothing else made a mark — and
         // only on a line whose bytes name one.
-        var runs: [HairlineMarker.Run] = []
+        var marks = RowMarks()
         if appliedHairlines, HairlineMarker.mayCarryMark(sanitized) {
             let extracted = HairlineMarker.extracting(sanitized)
             sanitized = extracted.line
-            runs = Self.cut(extracted.runs, toWidth: terminalWidth)
+            marks.hairlines = Self.cut(extracted.runs, toWidth: terminalWidth)
+        }
+        // The pictures under its text (``PictureUnderTextMarker``), likewise.
+        if appliedPicturesUnderText, PictureUnderTextMarker.mayCarryMark(sanitized) {
+            let extracted = PictureUnderTextMarker.extracting(sanitized)
+            sanitized = extracted.line
+            marks.pictures = Self.cut(extracted.runs, toWidth: terminalWidth)
         }
         // Clip first so over-wide content (a layout that does not shrink to fit
         // a narrower terminal) cannot wrap past the right edge.  Cursor
@@ -475,7 +503,7 @@ extension FrameDiffWriter {
         // Measured on one frame of a divider drag: 2,565 escapes for 4,800
         // cells, 19,974 of the frame's 32,394 bytes. See
         // ``String/collapsingAdjacentSGR()``.
-        return (line.collapsingAdjacentSGR(), runs)
+        return (line.collapsingAdjacentSGR(), marks)
     }
 
     /// `runs` cut to the first `width` cells: what is left of each that is on
@@ -489,13 +517,30 @@ extension FrameDiffWriter {
         }
     }
 
-    /// Drops every cache if whether this host draws hairlines changed since the
-    /// last frame (``appliedHairlines``).
-    private func invalidateIfHairlinesChanged() {
-        let current = KittyGraphics.isHairlineSupported
-        guard appliedHairlines != current else { return }
-        appliedHairlines = current
-        hairlineRows = []
+    /// `runs` cut to the first `width` cells: what is left of each that is on
+    /// screen, its pixels cut in proportion.
+    private static func cut(
+        _ runs: [PictureUnderTextMarker.Run], toWidth width: Int
+    ) -> [PictureUnderTextMarker.Run] {
+        runs.compactMap { run in
+            guard run.column < width else { return nil }
+            var cut = run
+            cut.columns = min(run.columns, width - run.column)
+            cut.width = run.width * cut.columns / run.columns
+            return cut.width > 0 ? cut : nil
+        }
+    }
+
+    /// Drops every cache if whether this host draws hairlines, or pictures
+    /// under text, changed since the last frame (``appliedHairlines``,
+    /// ``appliedPicturesUnderText``).
+    private func invalidateIfMarksChanged() {
+        let hairlines = KittyGraphics.isHairlineSupported
+        let pictures = KittyGraphics.isPictureUnderTextSupported
+        guard appliedHairlines != hairlines || appliedPicturesUnderText != pictures else { return }
+        appliedHairlines = hairlines
+        appliedPicturesUnderText = pictures
+        markRows = []
         invalidate()
     }
 
@@ -655,7 +700,8 @@ extension FrameDiffWriter {
         // frame on a row a hairline runs along carries the line's mark. The
         // line is the render's to place, and a breath moves no boundary: the
         // mark is taken out here and the layer is not told (``HairlineLayer``).
-        let frame = appliedHairlines ? HairlineMarker.stripping(frame) : frame
+        var frame = appliedHairlines ? HairlineMarker.stripping(frame) : frame
+        if appliedPicturesUnderText { frame = PictureUnderTextMarker.stripping(frame) }
         return FrameBuffer.patchingAnimatedCells(
             in: line, with: frame, atColumn: run.offsetX, width: run.width,
             fields: fields, compensating: compensatingCursorAdvance)

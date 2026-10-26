@@ -378,6 +378,14 @@ package final class TerminalImageStore: @unchecked Sendable {
         letGo(of: id, by: token)
     }
 
+    /// The rectangle of derived copy `copyID`'s pixels that its cell
+    /// (`column`, `row`) draws, for laying that cell of it under a glyph (``DerivedImages``).
+    package func pixelRect(
+        ofCopy copyID: KittyGraphics.ImageID, column: Int, row: Int
+    ) -> (x: Int, y: Int, width: Int, height: Int)? {
+        derivedImages.pixelRect(ofCopy: copyID, column: column, row: row)
+    }
+
     /// The signature of the picture `token` draws, as it was given, or `nil`
     /// if it draws none: what a view has already sent, for it to judge
     /// whether a new box needs new pixels.

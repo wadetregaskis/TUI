@@ -54,6 +54,30 @@ extension KittyGraphics {
         return "\u{1B}_Ga=p,i=\(id),p=\(placement),x=0,y=0,w=\(sourceWidth),h=\(sourceHeight),C=1,z=\(z),q=2\u{1B}\\"
     }
 
+    /// The escape that draws the rectangle `crop` of image `id`'s pixels at
+    /// the cursor, as a **classic** placement scaled to
+    /// fill `columns` × `rows` cells — the cells of a run of glyphs a picture
+    /// is laid under (`PictureUnderTextMarker`).
+    ///
+    /// Spelled as ``classicPlacement(id:placement:sourceWidth:sourceHeight:z:)``
+    /// is — `p` always, `C=1`, `z` never 0, `q=2` — but scaled with `c` and
+    /// `r`, which the hosts disagree about only where the crop's shape is not
+    /// the cells' (the spec letterboxes, Ghostty stretches): this crop IS the
+    /// cells' pixels of a picture laid cell for cell, so its shape is theirs.
+    ///
+    /// - Returns: the escape, or `""` for a request the protocol cannot
+    ///   express, as the other's.
+    package static func classicPlacement(
+        id: ImageID, placement: UInt32, crop: (x: Int, y: Int, width: Int, height: Int), columns: Int, rows: Int,
+        z: Int32
+    ) -> String {
+        guard id > 0, id <= maximumImageID, placement > 0, crop.x >= 0, crop.y >= 0, crop.width > 0, crop.height > 0,
+            columns > 0, rows > 0, z != 0
+        else { return "" }
+        return "\u{1B}_Ga=p,i=\(id),p=\(placement),x=\(crop.x),y=\(crop.y),w=\(crop.width),h=\(crop.height),"
+            + "c=\(columns),r=\(rows),C=1,z=\(z),q=2\u{1B}\\"
+    }
+
     /// The escape that deletes one placement of image `id`, by its placement
     /// id, and keeps the image's data in the store.
     ///

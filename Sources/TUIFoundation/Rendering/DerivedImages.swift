@@ -105,6 +105,10 @@ struct DerivedImages {
     private struct Copy {
         let id: KittyGraphics.ImageID
         let pixels: [UInt8]
+        /// The size it was sent at: the small copy's, or the picture's own
+        /// where an unblurred copy was made from its kept pixels.
+        let sentWidth: Int
+        let sentHeight: Int
     }
 
     private var sources: [KittyGraphics.ImageID: Source] = [:]
@@ -210,21 +214,45 @@ struct DerivedImages {
         let pixels = Self.applying(transform, to: source.pixels, width: source.width, height: source.height)
         // An unblurred copy keeps the picture's detail, from its own pixels where
         // they were kept; a blurred one has none to keep, and the small copy is it.
+        let sent: (width: Int, height: Int)
         if !transform.blurs, let full = source.full {
             escapes += KittyGraphics.transmit(
                 pixels: Self.applying(transform, to: full.bytes, width: full.width, height: full.height), format: .rgba,
                 width: full.width, height: full.height, id: copyID, compressed: KittyGraphics.isCompressionSupported)
+            sent = (full.width, full.height)
         } else {
             escapes += KittyGraphics.transmit(
                 pixels: pixels, format: .rgba, width: source.width, height: source.height, id: copyID,
                 compressed: KittyGraphics.isCompressionSupported)
+            sent = (source.width, source.height)
         }
         escapes += KittyGraphics.placement(id: copyID, columns: source.columns, rows: source.rows)
-        source.copies[transform] = Copy(id: copyID, pixels: pixels)
+        source.copies[transform] = Copy(id: copyID, pixels: pixels, sentWidth: sent.width, sentHeight: sent.height)
         source.order.append(transform)
         origins[copyID] = (id, transform)
         sources[id] = source
         return escapes
+    }
+
+    /// The rectangle of copy `copyID`'s pixels, as it was sent, that its cell
+    /// (`column`, `row`) draws: what a classic placement crops it to, to lay
+    /// that cell of it under a glyph (`PictureUnderTextMarker`). Edges at
+    /// `column × width / columns`, rounded down, so a cell's right edge is the
+    /// next one's left and a run's rectangles tile. `nil` for an unknown copy
+    /// or a cell outside it.
+    func pixelRect(
+        ofCopy copyID: KittyGraphics.ImageID, column: Int, row: Int
+    ) -> (x: Int, y: Int, width: Int, height: Int)? {
+        guard let origin = origins[copyID], let source = sources[origin.source],
+            let copy = source.copies[origin.transform],
+            (0..<source.columns).contains(column), (0..<source.rows).contains(row)
+        else { return nil }
+        let left = column * copy.sentWidth / source.columns
+        let right = (column + 1) * copy.sentWidth / source.columns
+        let top = row * copy.sentHeight / source.rows
+        let bottom = (row + 1) * copy.sentHeight / source.rows
+        guard right > left, bottom > top else { return nil }
+        return (left, top, right - left, bottom - top)
     }
 
     /// The average colour of cell (`column`, `row`) of picture `id` changed by

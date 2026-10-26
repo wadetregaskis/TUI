@@ -82,7 +82,10 @@ extension FrameBuffer {
     ///   the picture, blurred where it frosts and mixed toward the field by its
     ///   alpha: the same row and column of the copy (``TerminalImageStore/derived(_:by:)``).
     /// - One drawing a glyph cannot also hold a picture, so the glyph stands on
-    ///   the copy's average colour there.
+    ///   the copy's average colour there — or, where the terminal draws a
+    ///   picture under text (``KittyGraphics/isPictureUnderTextSupported``), on
+    ///   the terminal's own field, carrying the mark that has the copy's pixels
+    ///   for the cell laid under it (``PictureUnderTextMarker``).
     static func overPicture(
         _ behind: RowCell, under cell: RowCell, alpha: CellAlpha, images: TerminalImageStore
     ) -> RowCell? {
@@ -101,6 +104,20 @@ extension FrameBuffer {
         guard !transform.isIdentity || paintsGlyph else { return behind }
         guard let copy = images.derived(picture, by: transform) else { return nil }
         if paintsGlyph {
+            if KittyGraphics.isPictureUnderTextSupported,
+                let rect = images.pixelRect(ofCopy: copy.id, column: picture.column, row: picture.row)
+            {
+                var drawn = cell
+                // The terminal's own field, stated: a cell with any field of its own
+                // hides a picture laid under its text (graphics notes §14.5).
+                drawn.background = .terminalBackground
+                drawn.statesTerminalField = true
+                drawn.style = drawn.style.settingBackground(.terminalBackground)
+                drawn.style.apply(
+                    PictureUnderTextMarker.sequence(
+                        .init(image: copy.id, x: rect.x, y: rect.y, width: rect.width, height: rect.height)))
+                return drawn
+            }
             guard let average = images.average(of: picture, by: transform) else { return nil }
             var drawn = cell
             // An average, not a colour a control picks: what the picture shows there.
