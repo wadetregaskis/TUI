@@ -188,10 +188,9 @@ package enum HairlineMarker {
             var ink: UInt32
 
             /// The bytes compared contiguously, and not at all where both lines
-            /// are one buffer — the usual hit: a row the render memo served is
-            /// the very string marked last frame. Through `utf8.elementsEqual`
-            /// the bytes were stepped one index at a time (2026-10-26: 6.8% of
-            /// a frame of `megalist` with hairlines, in the lookup alone).
+            /// are one buffer. Through `utf8.elementsEqual` the bytes were
+            /// stepped one index at a time (2026-10-26: 6.8% of a frame of
+            /// `megalist` with hairlines, in the lookup alone).
             static func == (lhs: Self, rhs: Self) -> Bool {
                 guard lhs.columns == rhs.columns, lhs.ink == rhs.ink,
                     lhs.line.utf8.count == rhs.line.utf8.count
@@ -200,9 +199,33 @@ package enum HairlineMarker {
                 var right = rhs.line
                 return left.withUTF8 { leftBytes in
                     right.withUTF8 { rightBytes in
-                        leftBytes.baseAddress == rightBytes.baseAddress || leftBytes.elementsEqual(rightBytes)
+                        leftBytes.baseAddress == rightBytes.baseAddress || Self.bytesEqual(leftBytes, rightBytes)
                     }
                 }
+            }
+
+            /// Whether two buffers of the same length hold the same bytes,
+            /// compared eight at a time: `elementsEqual` on the buffers still
+            /// stepped an iterator a byte at a time (3.0% of the same frame),
+            /// and the hit is rarely one buffer — a served row is a string
+            /// built again, with the bytes of the last.
+            private static func bytesEqual(_ left: UnsafeBufferPointer<UInt8>, _ right: UnsafeBufferPointer<UInt8>)
+                -> Bool
+            {
+                guard let leftBase = left.baseAddress, let rightBase = right.baseAddress else { return true }
+                let count = left.count
+                var index = 0
+                while index + 8 <= count {
+                    let leftWord = UnsafeRawPointer(leftBase + index).loadUnaligned(as: UInt64.self)
+                    let rightWord = UnsafeRawPointer(rightBase + index).loadUnaligned(as: UInt64.self)
+                    if leftWord != rightWord { return false }
+                    index += 8
+                }
+                while index < count {
+                    if leftBase[index] != rightBase[index] { return false }
+                    index += 1
+                }
+                return true
             }
 
             func hash(into hasher: inout Hasher) {

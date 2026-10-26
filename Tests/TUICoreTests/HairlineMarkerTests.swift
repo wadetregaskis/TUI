@@ -69,6 +69,20 @@ struct HairlineMarkerTests {
         #expect(Array(HairlineMarker.extracting(other).line.stripped.utf8) == Array(decomposed.utf8))
     }
 
+    /// The memo compares a line's bytes eight at a time, and the rest one at a
+    /// time: two lines of one length that differ only inside a word, or only in
+    /// the bytes past the last whole word, are two keys.
+    @Test("Lines of one length that differ in one byte are marked each as itself")
+    func memoTellsApartLinesOfOneLength() {
+        let base = "abcdefghijklmnopqrs"  // 19 bytes: two words and three left over
+        let inWord = "abcdefghijkXmnopqrs"
+        let inTail = "abcdefghijklmnopqrX"
+        for line in [base, inWord, inTail] {
+            let marked = mark(line, 0..<4)
+            #expect(Array(HairlineMarker.extracting(marked).line.stripped.utf8) == Array(line.utf8))
+        }
+    }
+
     @Test("A wide character is marked whole when it starts in the run, not when it starts before")
     func wideCharacters() {
         let line = "中文ab"
