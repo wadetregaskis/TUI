@@ -1147,3 +1147,55 @@ classic-placement question either; the lines are gated on a measured host
 (Ghostty) instead (`KittyGraphics.isHairlineSupported`), with
 `TUIKIT_HAIRLINES=1` to try any other. The per-host rules are in
 `Documentation/Terminals/Terminal compatibility survey.md`, "What TUI draws".
+
+## 14. Frosting a picture the terminal draws — probed 2026-10-26
+
+The owner asked whether glass, materials and fades work over a Kitty image,
+and to try the best answer in probes before any clip uses it.
+
+**Why they do not today.** An image is cells naming a picture the terminal
+holds (§8), so the pixels under a translucent layer are not TUI's to blend.
+The opacity resolution reads a placeholder cell's foreground as the image's
+id, not as a colour, and skips such rows; `.dimmed()` passes them through
+unchanged for the same reason. An OPAQUE layer covers an image cell by cell,
+like any other cells. That is inferred, still not demonstrated (§7).
+
+**The probe.** `Tools/TerminalProbes/frost_over_image_card.py` draws one
+photo with one glass panel across it three ways:
+
+- **A, covered.** The panel's cells are opaque in the glass's tint. This is
+  the floor.
+- **B, blocks.** The cells under the panel are half blocks of the frosted
+  picture (blurred about a cell, mixed toward the tint in encoded sRGB). This
+  is what TUI can do from pixels it has, with no help from the terminal.
+- **C, derived image.** A second image is transmitted once: the whole
+  picture, blurred and tinted at full resolution. The cells under the panel
+  name it instead of the original, at the same row and column, so it lines up
+  exactly. A cell the panel writes text in cannot also hold a picture, so it
+  takes the frosted picture's average colour there.
+
+**Measured in Ghostty 1.3.1** (fawn under dark glass, forest path under light
+glass): C reads as frosted glass, smooth at pixel resolution, and its text
+cells' solid fields are barely visible behind the words. B is plainly blocky.
+C is the one to build.
+
+**Found on the way.** Transmitting an id the terminal already holds replaces
+the picture under every cell that already names it. The card's second run
+repainted the first until each run took its own ids. For TUI that means a
+derived image needs an id of its own, and that changing a derived image in
+place (a glass whose tint animates, say) is one retransmission and no cell
+rewrites.
+
+**What building C takes.**
+
+- Source pixels at composite time. `TerminalImageStore` transmits them and
+  would keep them, or a way back to them, for derivation.
+- A derived image per (image, blur, tint), transmitted once and shared like
+  any other.
+- A covered placeholder cell is re-pointed at the derived id, keeping its
+  row and column.
+- A glyph cell over the picture takes the frosted average there.
+
+The same move answers `.dimmed()` and `.opacity` over an image: a derived
+copy, darkened or mixed toward what is behind, in place of "the picture keeps
+its own brightness".
