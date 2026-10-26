@@ -23,6 +23,35 @@ let frostReviewClip = Clip(
     run: { await FrostReviewApp.main() }
 )
 
+/// `veilreview`: the same photos behind an open sheet, veiled toward the
+/// overlay colour as the page's colours are.
+@MainActor
+let veilReviewClip = Clip(
+    id: "veilreview",
+    title: "Veiled pictures (review)",
+    columns: 100,
+    rows: 28,
+    output: 800,
+    script: [.wait(4.0)],
+    run: { await VeilReviewApp.main() }
+)
+
+struct VeilReviewApp: App {
+    var body: some Scene {
+        WindowGroup("TUI · Veil review") {
+            FrostReview()
+                .sheet(isPresented: .constant(true)) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(verbatim: "Delete 4 photos?").bold()
+                        Text(verbatim: "They go to Recently Deleted for 30 days.")
+                    }
+                    .padding(1)
+                }
+                .palette(AppleTerminalPalette(.novel))
+        }
+    }
+}
+
 struct FrostReviewApp: App {
     var body: some Scene {
         WindowGroup("TUI · Frost review") {

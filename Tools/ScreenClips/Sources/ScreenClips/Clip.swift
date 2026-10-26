@@ -258,4 +258,4 @@ let clips: [Clip] = [
 /// Scenes for reviewing a change before any clip uses it: run and played by
 /// name like a clip, and left out of `list`, so nothing films them all.
 @MainActor
-let reviewScenes: [Clip] = [frostReviewClip]
+let reviewScenes: [Clip] = [frostReviewClip, veilReviewClip]
