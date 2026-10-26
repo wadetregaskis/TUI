@@ -20,7 +20,7 @@ What SwiftUI does was measured on macOS 15.8.1 with
 
 The lane brief paired O14 with FB3-OTHERCAPS — whether the segmented picker,
 the tab chips and the switch's knob follow the appearance's family. That is
-already yours in `Documentation/Open owner decisions.md` (FB3-OTHERCAPS), and
+already yours in `Documentation/Historical/Owner decisions, 2026-10-18 to 2026-10-25.md` (FB3-OTHERCAPS), and
 this lane leaves it there: nothing shipped here changes a family, and the
 density below draws a picker's caps only where the size does, so either answer
 slots in without undoing it. (Ruled 2026-10-23, option 2: since 2026-10-24 a

@@ -1,7 +1,7 @@
 # Visual effects rulings: decisions from lane VISUALS
 
 *Lane VISUALS, 2026-10-24, building the owner's rulings of 2026-10-23 on six
-visual questions in `Documentation/Open owner decisions.md`: A34 (option 2),
+visual questions in `Documentation/Historical/Owner decisions, 2026-10-18 to 2026-10-25.md`: A34 (option 2),
 B61 (2, landing if the A/B is within a few percent), B95 (2), O5-FROSTED (b),
 or (c) if (b) costs significantly (shipped as (c), then as (b) once the owner
 had seen both), P5 (c) and WL-Q3 (b, measuring first). Each section says what shipped, what was measured, and any
