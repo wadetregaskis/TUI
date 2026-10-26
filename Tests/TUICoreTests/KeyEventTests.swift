@@ -174,10 +174,13 @@ struct KeyEventParseTests {
         #expect(event?.key == .enter)
     }
 
-    @Test("Parse enter (line feed)")
+    /// Return sends CR in raw mode; LF is Ctrl-J (owner ruling B63-CTRLJ),
+    /// which acts as Return where nothing takes the chord.
+    @Test("A line feed is Ctrl-J, whose legacy reading is Return")
     func parseLineFeed() {
         let event = KeyEvent.parse([0x0A])
-        #expect(event?.key == .enter)
+        #expect(event == KeyEvent(key: .character("j"), ctrl: true))
+        #expect(event?.legacyControlEquivalent?.key == .enter)
     }
 
     @Test("Parse tab")

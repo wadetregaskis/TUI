@@ -515,12 +515,15 @@ struct CommandKeySubstitutionTests {
     func c0CollisionsAreQueryable() {
         // Ctrl-H is Backspace: `KeyEvent.parse` reads 0x08 before the
         // Control range, so a ⌘H shortcut could never fire.
-        for key: KeyEquivalent in ["h", "i", "j", "m", "["] {
+        for key: KeyEquivalent in ["h", "i", "m", "["] {
             let resolved = KeyboardShortcut(key).resolved(commandKey: .control)
             #expect(
                 resolved?.isDeliverableInTerminal == false,
                 "Ctrl-\(key.character) is spoken for by the C0 range")
         }
+        // Ctrl-J's LF is not Return's CR in raw mode, so it arrives as the
+        // chord (owner ruling B63-CTRLJ).
+        #expect(KeyboardShortcut("j").resolved(commandKey: .control)?.isDeliverableInTerminal == true)
         // Ctrl-\ is the user's quit key, which a binding of the app's takes
         // from the driver.
         #expect(KeyboardShortcut("\\", modifiers: .control).isDeliverableInTerminal == true)

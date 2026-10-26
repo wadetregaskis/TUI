@@ -39,9 +39,9 @@ package struct KeyboardReporting: Hashable, Sendable {
     package let isEnhanced: Bool
 
     /// Whether Escape and every Control chord arrive as themselves. Where
-    /// `false`, Ctrl-H, Ctrl-I, Ctrl-J, Ctrl-M and Ctrl-[ arrive as Backspace,
-    /// Tab, Return, Return and Escape, because the legacy encodings spend
-    /// those bytes on them (see
+    /// `false`, Ctrl-H, Ctrl-I, Ctrl-M and Ctrl-[ arrive as Backspace, Tab,
+    /// Return and Escape, because the legacy encodings spend those bytes on
+    /// them (see
     /// ``KeyboardShortcut/isDeliverableInTerminal``). Where `true`, a binding
     /// on one of them fires, and one that nothing binds still acts as the key
     /// it used to arrive as.

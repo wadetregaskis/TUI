@@ -5397,7 +5397,7 @@ not already spent:
 |---|---|---|
 | Ctrl-H | Backspace | 0x08 is BS, matched before the Ctrl range (`parseSingleByte`) |
 | Ctrl-I | Tab | 0x09 is HT, matched before the Ctrl range |
-| Ctrl-J | Enter | 0x0A is LF |
+| Ctrl-J | Ctrl-J itself, since 2026-10-26 | 0x0A is LF, which Return never sends in raw mode (it sends CR), so `parseSingleByte` reads it as the chord (owner ruling B63-CTRLJ); one that nothing takes goes round again as Enter, as before |
 | Ctrl-M | Enter | 0x0D is CR |
 | Ctrl-[ | Escape | 0x1B, outside the 0x01–0x1A range |
 | Ctrl-\\ | `SIGQUIT`: the app quits — unless it binds the chord | 0x1C is the user's quit key, which the driver turns into the signal; masked while the app binds it, and then a key (see "The quit key, ⌃\\" below) |

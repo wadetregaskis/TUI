@@ -2418,7 +2418,14 @@ What a terminal delivers decides what TUI can honour:
   that does not speak an extended keyboard protocol, so they submit. Ctrl-Return
   would be U+2028 in SwiftUI.
 
-**The fuller version:**
+**Shipped since (owner ruling B63-CTRLJ, 2026-10-26): Ctrl-J is a newline in
+a vertical field on every terminal.** The parser reads LF as Ctrl-J and CR as
+Return; a field on one line lets the chord through, and a Ctrl-J that nothing
+takes goes round the chain again as Return, so it submits there as it always
+did. Automation that means Return sends CR, as the repository's own PTY
+harnesses do. Test: `VerticalTextFieldTests.controlJ`.
+
+**The fuller version, as it was written:**
 
 1. **Ctrl-J as newline-and-advance on every terminal.** LF (0x0A) is Ctrl-J,
    and only Ctrl-J sends it in raw mode, where the Return key sends CR. Today

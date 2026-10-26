@@ -22,6 +22,7 @@ import TUIFoundation
 // | Up / Down, Ctrl-P / Ctrl-N | Move a row, keeping the column; from the first row Up goes to the start, from the last Down to the end |
 // | Shift+Up / Shift+Down | Extend the selection a row |
 // | Option+Return | Insert a newline (macOS's `insertNewlineIgnoringFieldEditor:`) |
+// | Ctrl-J | Insert a newline (LF, which every terminal sends for it; Return sends CR) |
 // | Ctrl-O | Insert a newline in front of the caret (Cocoa's open line) |
 // | Ctrl-A / Ctrl-E | The start / end of the caret's line |
 // | Ctrl-K | Kill to the end of the line, or the newline at its end |
@@ -29,7 +30,7 @@ import TUIFoundation
 //
 // Option+Return needs a terminal that sends Option as Meta (ESC before the
 // key); without it the terminal sends a plain Return, which submits. Ctrl-O
-// arrives on every terminal. macOS's Ctrl-Return, which inserts a line
+// and Ctrl-J arrive on every terminal. macOS's Ctrl-Return, which inserts a line
 // separator, arrives as a plain Return from every terminal that does not
 // speak an extended keyboard protocol, so it submits.
 
@@ -134,6 +135,12 @@ extension TextFieldHandler {
         case .down:
             moveRow(by: 1, extending: event.shift, in: layout)
         case .enter where event.alt:
+            insertCharacter("\n")
+        // Ctrl-J, the newline the terminal sends LF for on every host:
+        // Return is CR, so the two are told apart in raw mode, and this is
+        // the newline key that needs no Option sent as Meta. A field on one
+        // line lets it fall through, and nothing taking it, it acts as Return.
+        case .character("j") where event.ctrl && !event.alt && !event.shift:
             insertCharacter("\n")
         default:
             return nil

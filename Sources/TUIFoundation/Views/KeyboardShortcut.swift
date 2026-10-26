@@ -300,10 +300,11 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// shortcuts ignore wherever they are reported.
     ///
     /// `false` too for the Control combinations the C0 range spends on other keys:
-    /// Ctrl-H is Backspace, Ctrl-I is Tab, Ctrl-J and Ctrl-M are newline and
-    /// Return, Ctrl-[ is Escape — `KeyEvent.parse` matches those *before* the
-    /// Ctrl-letter range, so in a terminal's legacy encodings they never arrive
-    /// as a modified letter. Where the terminal speaks the kitty keyboard
+    /// Ctrl-H is Backspace, Ctrl-I is Tab, Ctrl-M is Return, Ctrl-[ is
+    /// Escape — `KeyEvent.parse` matches those *before* the Ctrl-letter range,
+    /// so in a terminal's legacy encodings they never arrive as a modified
+    /// letter. Ctrl-J does: its byte is LF, which Return never sends in raw
+    /// mode, so TUI reads it as the chord (owner ruling B63-CTRLJ). Where the terminal speaks the kitty keyboard
     /// protocol they do arrive, and such a shortcut fires
     /// (``TerminalCapabilities/Feature/disambiguatedKeys``); this answers for every
     /// terminal, so it stays `false`. Consult it
@@ -354,9 +355,9 @@ public struct KeyboardShortcut: Hashable, Sendable {
     }
 
     /// The keys whose Control chord a legacy encoding sends as another key's
-    /// byte: H, I, J, M and `[` (Backspace, Tab, newline, Return and Escape),
-    /// and `|` and `4`, which some terminals send as ⌃\\'s 0x1C.
-    private static let controlCollisions: Set<Character> = ["h", "i", "j", "m", "[", "|", "4"]
+    /// byte: H, I, M and `[` (Backspace, Tab, Return and Escape), and `|` and
+    /// `4`, which some terminals send as ⌃\\'s 0x1C.
+    private static let controlCollisions: Set<Character> = ["h", "i", "m", "[", "|", "4"]
 
     /// The modifiers a shortcut that needs one cannot fire on everywhere: ⌘,
     /// which only the kitty keyboard protocol reports with a key, and only

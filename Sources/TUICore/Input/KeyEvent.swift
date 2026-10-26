@@ -324,10 +324,12 @@ extension KeyEvent {
     /// for any other event.
     ///
     /// A legacy encoding sends Ctrl plus a letter as the C0 control byte, and
-    /// five of those bytes are other keys' too: Ctrl-H is Backspace's 0x08,
-    /// Ctrl-I is Tab, Ctrl-J and Ctrl-M are Return's LF and CR, and Ctrl-[ is
-    /// Escape. Under the kitty keyboard protocol the chords arrive as
-    /// themselves, and this is what each would have been without it. Option
+    /// some of those bytes are other keys' too: Ctrl-H is Backspace's 0x08,
+    /// Ctrl-I is Tab, Ctrl-M is Return's CR, and Ctrl-[ is Escape. Under the
+    /// kitty keyboard protocol the chords arrive as themselves, and this is
+    /// what each would have been without it. Ctrl-J is LF, which TUI reads as
+    /// the chord on every host (Return is CR in raw mode), and which acted as
+    /// Return before it did, so a Ctrl-J nothing takes is Return too. Option
     /// is kept, as the legacy encoding's ESC prefix keeps it; a chord with
     /// Shift is not one of these, its control byte having no case.
     public var legacyControlEquivalent: KeyEvent? {
@@ -374,8 +376,18 @@ extension KeyEvent {
         switch byte {
         case ASCIIByte.escape:
             return KeyEvent(key: .escape)
-        case ASCIIByte.carriageReturn, ASCIIByte.lineFeed:
+        case ASCIIByte.carriageReturn:
             return KeyEvent(key: .enter)
+        case ASCIIByte.lineFeed:
+            // Ctrl-J. Return sends CR in raw mode on every host, and LF only
+            // where the cooked line discipline turned it into one, which raw
+            // mode does not; so LF is the chord, which a vertical field binds
+            // to a newline (owner ruling B63-CTRLJ, 2026-10-26). A Ctrl-J
+            // nothing takes goes round again as Return
+            // (``legacyControlEquivalent``), so where nothing binds it, it is
+            // the Return it always read as. Automation that means Return
+            // sends CR.
+            return KeyEvent(key: .character("j"), ctrl: true)
         case ASCIIByte.tab:
             return KeyEvent(key: .tab)
         case ASCIIByte.delete, ASCIIByte.backspace:

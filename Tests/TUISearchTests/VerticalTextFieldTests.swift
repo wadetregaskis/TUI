@@ -124,6 +124,26 @@ struct VerticalTextFieldTests {
         #expect(model.submits == 1)
     }
 
+    /// Ctrl-J is LF, which every terminal sends for it and Return never does
+    /// in raw mode (owner ruling B63-CTRLJ): the newline key that needs no
+    /// Option sent as Meta. A field on one line does not take it, and the
+    /// chord nothing takes is Return, which submits.
+    @Test("Ctrl-J inserts a newline in a vertical field, and submits one on one line")
+    func controlJ() {
+        let harness = InputChainHarness(width: 20)
+        let model = Model("ab")
+        harness.play([KeyEvent(key: .left), key("j", ctrl: true), key("X")]) { field(model) }
+        #expect(model.text == "a\nXb")
+        #expect(model.submits == 0)
+
+        let line = Model("ab")
+        harness.play([key("j", ctrl: true)]) {
+            TextField("T", text: line.binding).onSubmit { line.submits += 1 }.textFieldStyle(.plain)
+        }
+        #expect(line.text == "ab")
+        #expect(line.submits == 1)
+    }
+
     @Test("Ctrl-O opens a line: the newline goes in front of the caret")
     func openLine() {
         let harness = InputChainHarness(width: 20)
