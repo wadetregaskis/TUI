@@ -257,7 +257,7 @@ struct QuirkPermutationTests {
             mergesTonesOnTextBases: true, erasesUnderGlyphs: true)),
         ("warp", TerminalQuirks(
             barePictographs: true, loneRegionalIndicators: true, planeSixteenPUA: true,
-            preUnicode16WidthTable: true, zwjSequences: true,
+            preUnicode16WidthTable: true, zwjSequences: true, flagsAsCountryCodes: true,
             skinTones: .keepDetached, erasesUnderGlyphs: true, advancesTextPerCodePoint: true)),
         ("tmux", TerminalQuirks(
             loneRegionalIndicators: true, planeSixteenPUA: true,
@@ -327,7 +327,7 @@ struct QuirkPermutationTests {
             // A host that stores composites wide is sent a flag as its
             // country code (🇯🇵 as JP), by design: the letters stand for its
             // regional indicators.
-            let flags = quirks.storesWideComposites
+            let flags = quirks.storesWideComposites || quirks.flagsAsCountryCodes
                 ? entry.text.compactMap(\.regionalIndicatorCountryCode) : []
             for code in flags {
                 #expect(emission.contains(code), "\(entry) under '\(name)': \(code) was not sent for its flag")

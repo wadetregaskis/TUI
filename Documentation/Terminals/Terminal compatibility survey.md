@@ -8095,6 +8095,11 @@ same two cells (owner, 2026-10-25: convey the information, crudely, rather
 than a box or a shifted row). Keycaps keep the surgery; whether 455.1 still
 composes them after it is unmeasured.
 
+Warp, filmed in the same clip (the build on this machine, 2026-10-25), draws a
+flag pair as its two regional-indicator letters, each in a box, on its claim.
+TUI sends Warp the plain letters too (`withWarpCursorCompensation`), which read
+the same and draw cleanly.
+
 So **TUI does not align these scripts on Apple Terminal**, and documents
 it rather than degrading the text: the displacement is the font's, fractional,
 and depends on what follows on the row, so no claim, compensation or cursor

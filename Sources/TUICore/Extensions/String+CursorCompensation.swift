@@ -618,7 +618,10 @@ extension String {
     /// correct; they are left alone and documented.
     /// ANSI escape sequences are preserved.
     public func withWarpCursorCompensation() -> String {
-        withCursorForwardCompensation(erasingUnderGlyph: true) { $0.warpCursorAdvance }
+        // Warp draws a flag as its two letters, each in a box (measured
+        // 2026-10-25, the Unicode clip): sent as the letters themselves, they
+        // read plainly, as Apple Terminal's do.
+        withCursorForwardCompensation(erasingUnderGlyph: true, flagsAsCountryCodes: true) { $0.warpCursorAdvance }
     }
 
     /// Returns a copy of this string with GNOME Terminal's (VTE) cursor-advance
@@ -733,10 +736,14 @@ extension String {
     ///     documented treatment is "change nothing", and a rewrite calibrated
     ///     for four measured hosts is not something an unmeasured one consented
     ///     to. Left `true` by default so no existing caller changes.
+    ///   - flagsAsCountryCodes: Whether a flag goes out as the two letters its
+    ///     regional indicators spell (`JP` for 🇯🇵): for a host that cannot
+    ///     draw flags (``Character/regionalIndicatorCountryCode``).
     ///   - advance: The host's cursor advance for a character.
     func withCursorForwardCompensation(
         erasingUnderGlyph: Bool = false,
         normalizing: Bool = true,
+        flagsAsCountryCodes: Bool = false,
         advance: (Character) -> Int
     ) -> String {
         // Fast path: every quirk cluster is non-ASCII (same reasoning and
@@ -757,6 +764,10 @@ extension String {
             // 4 cells against a 2-cell claim), iTerm2 and Warp render it in
             // exactly the bare-base + swatch cells the claim allocates. See
             // ``Character/withoutRedundantToneVS16`` for the per-host numbers.
+            if flagsAsCountryCodes, let code = character.regionalIndicatorCountryCode {
+                result += code
+                return
+            }
             let c = normalizing ? (character.withoutRedundantToneVS16 ?? character) : character
             let claimed = c.terminalWidth
             let actual = advance(c)

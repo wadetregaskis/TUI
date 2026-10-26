@@ -215,7 +215,7 @@ All of these are pre-1.0 changes with no old spelling kept.
 
 - A view with a `@Bindable` property is made with the model itself, `AccountView(account: account)`, as in SwiftUI. Its memberwise initialiser used to ask for a `Bindable<Account>`.
 
-- On Apple Terminal a flag emoji is drawn as its country code, `JP` for 🇯🇵, in the same two cells. Terminal 455.1 draws the flag either as a boxed letter (after the repair TUI used to send) or shifted, with the rest of its row one cell left (sent bare). Other terminals draw the flag.
+- On Apple Terminal and Warp a flag emoji is drawn as its country code, `JP` for 🇯🇵, in the same two cells. Terminal 455.1 draws the flag either as a boxed letter (after the repair TUI used to send) or shifted, with the rest of its row one cell left (sent bare), and Warp draws its two letters in boxes. Other terminals draw the flag. `TerminalQuirks.flagsAsCountryCodes` asks for this on a terminal you describe yourself.
 
 - `.textSelection(.enabled)` on one `Table` cell's `Text` makes that cell's text selectable and nothing else: a click on another column's text selects the row again, and a drag there selects nothing. Around the whole table, a drag still selects across a row's columns.
 

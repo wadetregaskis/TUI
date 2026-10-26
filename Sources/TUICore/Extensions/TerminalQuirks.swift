@@ -168,6 +168,12 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
     /// Apple Terminal.
     public var storesWideComposites: Bool
 
+    /// The terminal cannot draw a flag: it draws the regional indicators as
+    /// letters in boxes. A flag pair goes out as the two letters themselves
+    /// (🇯🇵 as `JP`), which say the same, plainly. Warp. (Apple Terminal's
+    /// flags go out the same way under ``storesWideComposites``.)
+    public var flagsAsCountryCodes: Bool
+
     /// How this terminal handles skin-tone clusters.
     public var skinTones: SkinTones
 
@@ -224,6 +230,7 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
         zwjSequences: Bool = false,
         tagFlags: Bool = false,
         storesWideComposites: Bool = false,
+        flagsAsCountryCodes: Bool = false,
         skinTones: SkinTones = .keep,
         mergesTonesOnTextBases: Bool = false,
         erasesUnderGlyphs: Bool = false,
@@ -240,6 +247,7 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
         self.zwjSequences = zwjSequences
         self.tagFlags = tagFlags
         self.storesWideComposites = storesWideComposites
+        self.flagsAsCountryCodes = flagsAsCountryCodes
         self.skinTones = skinTones
         self.mergesTonesOnTextBases = mergesTonesOnTextBases
         self.erasesUnderGlyphs = erasesUnderGlyphs
@@ -299,6 +307,7 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
         if zwjSequences { parts.append("zwjSequences: true") }
         if tagFlags { parts.append("tagFlags: true") }
         if storesWideComposites { parts.append("storesWideComposites: true") }
+        if flagsAsCountryCodes { parts.append("flagsAsCountryCodes: true") }
         if skinTones != .keep { parts.append("skinTones: .\(skinTones.rawValue)") }
         if mergesTonesOnTextBases { parts.append("mergesTonesOnTextBases: true") }
         if erasesUnderGlyphs { parts.append("erasesUnderGlyphs: true") }
@@ -576,7 +585,9 @@ extension String {
             }
             let claimed = character.terminalWidth
             let advance = quirks.cursorAdvance(of: character)
-            if quirks.storesWideComposites, let code = character.regionalIndicatorCountryCode {
+            if quirks.storesWideComposites || quirks.flagsAsCountryCodes,
+                let code = character.regionalIndicatorCountryCode
+            {
                 // As the Apple walk does: the flag goes out as its country code.
                 result += code
                 return

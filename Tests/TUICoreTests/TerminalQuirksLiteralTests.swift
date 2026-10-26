@@ -21,14 +21,14 @@ struct TerminalQuirksLiteralTests {
             vs16Pictographs: true, barePictographs: true, vs15ChromeGlyphs: true,
             loneRegionalIndicators: true, flagPairs: true, keycaps: .underAdvances,
             planeSixteenPUA: true, preUnicode16WidthTable: true,
-            zwjSequences: true, tagFlags: true, storesWideComposites: true,
+            zwjSequences: true, tagFlags: true, storesWideComposites: true, flagsAsCountryCodes: true,
             skinTones: .separate, mergesTonesOnTextBases: true, erasesUnderGlyphs: true,
             advancesTextPerCodePoint: true)
         let literal = all.swiftLiteral
         for name in [
             "vs16Pictographs", "barePictographs", "vs15ChromeGlyphs", "loneRegionalIndicators",
             "flagPairs", "keycaps", "planeSixteenPUA", "preUnicode16WidthTable", "zwjSequences",
-            "tagFlags", "storesWideComposites", "skinTones", "mergesTonesOnTextBases", "erasesUnderGlyphs",
+            "tagFlags", "storesWideComposites", "flagsAsCountryCodes", "skinTones", "mergesTonesOnTextBases", "erasesUnderGlyphs",
             "advancesTextPerCodePoint",
         ] {
             #expect(literal.contains(name + ":"), "\(name) is missing from \(literal)")

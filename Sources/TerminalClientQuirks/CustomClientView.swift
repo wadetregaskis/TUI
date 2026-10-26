@@ -90,6 +90,10 @@ struct CustomClientView: View {
             Text("Turn this on if content after a flag or keycap — including later runs on the same row — lands one cell left of where it belongs.")
                 .foregroundStyle(.palette.foregroundSecondary)
             toggle("Trim wide-stored composites  🇺🇸 1\u{FE0F}\u{20E3}", \.storesWideComposites)
+            Text("A flag shows as letters in boxes").bold()
+            Text("Turn this on if 🇺🇸 shows as two boxed letters: the letters are sent plainly instead.")
+                .foregroundStyle(.palette.foregroundSecondary)
+            toggle("Flags as country codes  🇺🇸 → US", \.flagsAsCountryCodes)
             Text("Everything after a conjunct sits a cell or two right").bold()
             Text(
                 "Turn this on if what follows a Devanagari conjunct on its row lands right of where "
