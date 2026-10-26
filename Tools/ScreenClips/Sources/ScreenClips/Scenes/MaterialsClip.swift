@@ -141,20 +141,20 @@ struct PhotoLibrary: View {
         }
         .padding(1)
         .frame(width: 40)
-        .background(.thinMaterial)
+        // Behind the border, not inside it: inside, the border's own inset
+        // (a cell each side) was left unglazed, the photo plain in it.
         .border()
+        .background(.thinMaterial)
     }
 
-    /// A photo, its caption beneath. Drawn in text cells (half blocks), not
-    /// the terminal's graphics: a material's frost blurs what is beneath it
-    /// cell by cell, and a picture the terminal draws itself is not in the
-    /// cells.
+    /// A photo, its caption beneath, in the terminal's own pixels (Kitty's
+    /// graphics, in Ghostty). A material over it frosts a blurred copy of the
+    /// picture, which the cells under the glass draw instead.
     private func tile(_ photo: (file: String, caption: String), index: Int) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Image(.file(ClipAssets.photo(photo.file)))
                 .resizable()
                 .scaledToFill()
-                .terminalGraphics(false)
                 .frame(width: 22, height: 6)
             Text(verbatim: photo.caption).foregroundStyle(.palette.foregroundSecondary)
         }
