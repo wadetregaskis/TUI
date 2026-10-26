@@ -115,9 +115,28 @@ extension String {
     ///   - absolutesSpelled: Incremented once per absolute spelled.
     package func collapsingAdjacentSGR(resetRestoresAField: Bool, absolutesSpelled: inout Int) -> String {
         guard containsAnySGR else { return self }
+        // Walked in UTF-8 bytes, not Characters: every byte the netting reads —
+        // ESC, the CSI framing, `m`, a space — is ASCII, and asking each cell
+        // for its grapheme cluster was most of the cost (2026-10-26: the walk
+        // was 14.6% of a frame of `translucent --variant material`, whose rows
+        // change colour at every cell). A cluster still matters in two places,
+        // a space and an escape's terminator, where a following scalar can fuse
+        // with them; those ask the Character, and only when the next byte is
+        // not ASCII, which no ASCII byte can fuse with.
+        var source = self
+        return source.withUTF8 { bytes in
+            collapsingAdjacentSGR(
+                bytes, resetRestoresAField: resetRestoresAField, absolutesSpelled: &absolutesSpelled)
+        }
+    }
 
-        var result = ""
-        result.reserveCapacity(count)
+    /// The walk behind ``collapsingAdjacentSGR(resetRestoresAField:absolutesSpelled:)``,
+    /// over `bytes` — this string's UTF-8.
+    private func collapsingAdjacentSGR(
+        _ bytes: UnsafeBufferPointer<UInt8>, resetRestoresAField: Bool, absolutesSpelled: inout Int
+    ) -> String {
+        var result: [UInt8] = []
+        result.reserveCapacity(bytes.count)
         // Before the line's first reset the incoming state is UNKNOWN, so
         // nothing may be netted and nothing may be skipped — an added reset
         // would clear styling the original deliberately inherited, and a
@@ -142,8 +161,9 @@ extension String {
         func flushUnresetRun() {
             defer { unresetRun.removeAll(keepingCapacity: true) }
             guard !unresetRun.isEmpty else { return }
-            let parameters = unresetRun.joined(separator: ";")
-            result += "\u{1B}[" + parameters + "m"
+            result.append(contentsOf: "\u{1B}[".utf8)
+            result.append(contentsOf: unresetRun.joined(separator: ";").utf8)
+            result.append(0x6D)  // 'm'
         }
 
         func reconcile() {
@@ -174,7 +194,7 @@ extension String {
                     after: emitted.map { ($0.backgroundColour != nil, emittedStates49) },
                     absolutesSpelled: &absolutesSpelled)
             }
-            result += change
+            result.append(contentsOf: change.utf8)
             emitted = desired
             emittedStates49 = desiredStates49
         }
@@ -192,43 +212,19 @@ extension String {
             return desired.paintsBlankCellsIdentically(to: emitted)
         }
 
-        var index = startIndex
-        while index < endIndex {
-            if self[index] == "\u{1B}", let end = escapeEnd(from: index) {
-                var sequence = String(self[index..<end])
+        var index = 0
+        while index < bytes.count {
+            let byte = bytes[index]
+            if byte == 0x1B, let end = escapeEnd(from: index, in: bytes) {
                 // The escape's final byte can FUSE with following zero-width
                 // scalars (a combining mark, a variation selector) into one
-                // Character, leaving a "sequence" that no longer ends in its
-                // own terminator: it would take the barrier branch below,
-                // never reach the model, and the state would diverge silently
-                // — a later escape netting to what the model believes is on
-                // the wire then reconciles to nothing, dropping a reset. Peel
-                // the fused scalars back off: they are CONTENT, binding to
-                // the previous glyph wherever they sit relative to styling.
-                var fusedContent = ""
-                if let last = sequence.last, last.unicodeScalars.count > 1,
-                    let final = last.unicodeScalars.first?.value, Self.isCSIFinalByte(final)
-                {
-                    let scalars = last.unicodeScalars
-                    fusedContent = String(Self.UnicodeScalarView(scalars.dropFirst()))
-                    sequence = String(sequence.dropLast())
-                        + String(Self.UnicodeScalarView(scalars.prefix(1)))
-                }
-                defer {
-                    if !fusedContent.isEmpty {
-                        // A fused scalar that OCCUPIES cells — a lone
-                        // Fitzpatrick modifier is a 2-cell swatch — is
-                        // content, and must pass the same gate as any
-                        // printable character, or it is painted in whatever
-                        // state the previous fragment left and the escape it
-                        // followed lands after it. A zero-width mark binds to
-                        // the glyph before it whatever sits between, and
-                        // stays where it was.
-                        if fusedContent.strippedLength > 0 { reconcile() }
-                        result += fusedContent
-                    }
-                }
-                if sequence.hasSuffix("m") {
+                // Character. They are CONTENT, binding to the previous glyph
+                // wherever they sit relative to styling, and are peeled off
+                // the sequence so it reaches the model whole.
+                let fusedEnd = clusterEnd(ofByteBefore: end, in: bytes)
+                // swiftlint:disable:next optional_data_string_conversion - no `Data`; whole scalars of valid UTF-8
+                let sequence = String(decoding: UnsafeBufferPointer(rebasing: bytes[index..<end]), as: UTF8.self)
+                if bytes[end - 1] == 0x6D {  // 'm'
                     if sawReset {
                         switch desired.applyReportingBackground(sequence) {
                         case .terminalDefault: desiredStates49 = true
@@ -252,25 +248,61 @@ extension String {
                     // cursor move must not be crossed by styling: both are
                     // barriers, so settle before letting one past.
                     reconcile()
-                    result += sequence
+                    result.append(contentsOf: UnsafeBufferPointer(rebasing: bytes[index..<end]))
                 }
-                index = end
+                if fusedEnd > end {
+                    let fused = UnsafeBufferPointer(rebasing: bytes[end..<fusedEnd])
+                    // A fused scalar that OCCUPIES cells — a lone Fitzpatrick
+                    // modifier is a 2-cell swatch — is content, and must pass
+                    // the same gate as any printable character, or it is
+                    // painted in whatever state the previous fragment left and
+                    // the escape it followed lands after it. A zero-width mark
+                    // binds to the glyph before it whatever sits between, and
+                    // stays where it was.
+                    // swiftlint:disable:next optional_data_string_conversion - no `Data`; whole scalars of valid UTF-8
+                    if String(decoding: fused, as: UTF8.self).strippedLength > 0 { reconcile() }
+                    result.append(contentsOf: fused)
+                }
+                index = fusedEnd
                 continue
             }
             // A space shows its background and whatever draws ink on an empty
             // cell, and nothing else — so a change confined to the rest of the
-            // state waits for a cell that can show it.
-            if self[index] != " " || !canDeferAcross {
+            // state waits for a cell that can show it. A continuation byte is
+            // inside a scalar already passed, and is never a place to emit.
+            if byte & 0xC0 != 0x80, !isBlankCell(at: index, in: bytes) || !canDeferAcross {
                 reconcile()
             }
-            result.append(self[index])
-            index = self.index(after: index)
+            result.append(byte)
+            index += 1
         }
         // The trailing reset is load-bearing — it is what stops a row's styling
         // leaking into whatever is drawn next — so the line always ends
         // reconciled, printable characters or not.
         reconcile()
-        return result
+        // swiftlint:disable:next optional_data_string_conversion - no `Data`; whole scalars of valid UTF-8
+        return String(decoding: result, as: UTF8.self)
+    }
+
+    /// Whether the cell beginning at byte `index` is a space and nothing else:
+    /// a space whose Character is not widened by a scalar fused onto it.
+    private func isBlankCell(at index: Int, in bytes: UnsafeBufferPointer<UInt8>) -> Bool {
+        guard bytes[index] == 0x20 else { return false }
+        guard index + 1 < bytes.count, bytes[index + 1] >= 0x80 else { return true }
+        return self[utf8.index(utf8.startIndex, offsetBy: index)] == " "
+    }
+
+    /// The byte offset just past the Character holding the ASCII byte before
+    /// `end` — `end` itself unless a scalar from `end` on fuses with it.
+    ///
+    /// Only a non-ASCII byte at `end` can fuse (LF after CR aside, which no
+    /// caller asks about), so only that asks the Character. A byte before `end`
+    /// that is not ASCII is the end of the 8-bit `ST`, U+009C, a control that
+    /// nothing after it fuses with.
+    private func clusterEnd(ofByteBefore end: Int, in bytes: UnsafeBufferPointer<UInt8>) -> Int {
+        guard end < bytes.count, bytes[end] >= 0x80, bytes[end - 1] < 0x80 else { return end }
+        let start = utf8.index(utf8.startIndex, offsetBy: end - 1)
+        return utf8.distance(from: utf8.startIndex, to: self.index(after: start))
     }
 
     /// `change` — the escape that takes the row from what was emitted to a state
@@ -344,56 +376,57 @@ extension String {
         return String(dropFirst(2).dropLast())
     }
 
-    /// The index just past the escape sequence starting at `start`, or `nil`
-    /// when it is neither a complete CSI nor a string-terminated sequence.
+    /// The byte offset just past the escape sequence whose `ESC` is at
+    /// `start`, or `nil` when it is neither a complete CSI nor a
+    /// string-terminated sequence.
     ///
-    /// Not `String.escapeSequenceEnd(from:)`, which is otherwise the
-    /// walker for exactly this: that one classifies a final byte by the whole
-    /// `Character`'s single scalar and so refuses to consume a terminator that
-    /// has FUSED with a following combining mark, while this one must consume
-    /// it — the caller peels the fused scalars back off as content, and a
-    /// sequence stopped short of its own terminator would take the barrier
-    /// branch and never reach the SGR model. See the peeling code above.
-    private func escapeEnd(from start: Index) -> Index? {
-        var index = self.index(after: start)
-        guard index < endIndex else { return nil }
+    /// Not `String.escapeSequenceEnd(startingAt:in:)`, which is otherwise the
+    /// walker for exactly this: that one stops a CSI at its first byte outside
+    /// the parameter and intermediate ranges, and reads `ESC ( B` as a
+    /// sequence, while this one has always run a CSI on to its final byte and
+    /// left every other escape to be printed — a difference that changes which
+    /// escapes are netted, so it is kept rather than merged here. An
+    /// introducer, and the `\` of an `ST`, count only as a Character of their
+    /// own: one with a scalar fused onto it is not the ASCII byte it starts
+    /// with.
+    private func escapeEnd(from start: Int, in bytes: UnsafeBufferPointer<UInt8>) -> Int? {
+        var index = start + 1
+        guard index < bytes.count else { return nil }
+        let introducer = bytes[index]
+        let introducerIsAlone = clusterEnd(ofByteBefore: index + 1, in: bytes) == index + 1
         // A string-terminated sequence — the OSC 8 hyperlink among them — runs
         // to its `BEL` or `ST`, with an arbitrary payload in between. Left
         // unrecognised it is not merely copied wrong: the payload's characters
         // reach the reconciler one at a time, so a pending `ESC[…m` gets
         // emitted INSIDE the URI, and both the styling and the link are lost.
-        if let scalar = self[index].unicodeScalars.first, self[index].unicodeScalars.count == 1,
-            Self.isStringFamilyIntroducer(scalar.value)
-        {
-            index = self.index(after: index)
-            while index < endIndex {
-                let character = self[index]
-                index = self.index(after: index)
-                if character == "\u{07}" || character == "\u{9C}" { return index }  // BEL, or 8-bit ST
-                if character == "\u{1B}", index < endIndex, self[index] == "\\" {
-                    return self.index(after: index)  // ESC \ — ST
+        if introducerIsAlone, Self.isStringFamilyIntroducer(UInt32(introducer)) {
+            index += 1
+            while index < bytes.count {
+                let byte = bytes[index]
+                index += 1
+                if byte == 0x07 { return index }  // BEL
+                if byte == 0xC2, index < bytes.count, bytes[index] == 0x9C { return index + 1 }  // 8-bit ST
+                if byte == 0x1B, index < bytes.count, bytes[index] == 0x5C,  // ESC \ — ST
+                    clusterEnd(ofByteBefore: index + 1, in: bytes) == index + 1
+                {
+                    return index + 1
                 }
             }
             return index  // unterminated: the payload runs to the end
         }
-        guard self[index] == "[" else { return nil }
-        index = self.index(after: index)
-        while index < endIndex {
-            let character = self[index]
-            index = self.index(after: index)
-            // The FIRST scalar, not the Character: the terminator can fuse
-            // with a following combining scalar into a cluster (`m` + U+0301
-            // is one Character, "ḿ") whose letter-ness is an accident of the
-            // mark. The caller peels the fused scalars back off the sequence.
-            //
-            // And the ECMA-48 final-byte test (0x40…0x7E), NOT "is a letter":
-            // `ESC[1@` (ICH) ends at `@`, and a walker that runs on past it
-            // to the next letter swallows the following escape — which, when
-            // that one ends in `m`, turns `ESC[1@ ESC[0m` into one "SGR" and
-            // merges it into a corrupt parameter list.
-            if let value = character.unicodeScalars.first?.value, Self.isCSIFinalByte(value) {
-                return index
-            }
+        guard introducer == 0x5B, introducerIsAlone else { return nil }  // '['
+        index += 1
+        while index < bytes.count {
+            let byte = bytes[index]
+            index += 1
+            // The ECMA-48 final-byte test (0x40…0x7E), NOT "is a letter":
+            // `ESC[1@` (ICH) ends at `@`, and a walker that runs on past it to
+            // the next letter swallows the following escape — which, when that
+            // one ends in `m`, turns `ESC[1@ ESC[0m` into one "SGR" and merges
+            // it into a corrupt parameter list. A terminator with a scalar
+            // fused onto it still ends the sequence; the caller peels the
+            // scalar back off as content.
+            if Self.isCSIFinalByte(UInt32(byte)) { return index }
         }
         return nil
     }

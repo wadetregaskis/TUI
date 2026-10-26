@@ -131,6 +131,18 @@ struct SGRCollapsingTests {
         #expect(collapsed == line, "nothing here may be merged")
     }
 
+    /// An unterminated OSC runs to the end of the line, and its last
+    /// Character there can be `m` with a mark fused onto it. The Character
+    /// walk peeled the mark off as it does a CSI terminator's, found a
+    /// "sequence" ending in `m`, and netted the hyperlink as an SGR with no
+    /// parameters — a reset, the link gone.
+    @Test("An unterminated OSC ending in a fused m is carried through, not netted as a reset")
+    func unterminatedOSCEndingInFusedMIsNotSGR() {
+        let line = "\(esc)[31mlink\(esc)]8;;http://x.com\u{0301}"
+        #expect(line.collapsingAdjacentSGR() == line)
+        #expect(line.collapsingAdjacentSGR(resetRestoresAField: true) == line)
+    }
+
     @Test("The shape the diff writer actually emits: reset, then re-establish")
     func resetThenBackground() {
         check("\(esc)[0m\(esc)[48;5;16mhello\(esc)[0m\(esc)[48;5;16m world")
