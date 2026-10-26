@@ -33,7 +33,7 @@ struct FrostReviewApp: App {
 }
 
 /// Four photographs drawn by the terminal, a share panel on thin glass across
-/// two of them, and a toast on regular glass across the other two.
+/// two of them, a toast on regular glass across a third, and the fourth faded.
 struct FrostReview: View {
     private static let photos: [(file: String, caption: String)] = [
         ("fawn", "Fawn"), ("galago", "Galago"), ("forest-path", "Forest path"), ("pacific-trillium", "Trillium"),
@@ -47,7 +47,8 @@ struct FrostReview: View {
             }
             HStack(spacing: 2) {
                 tile(Self.photos[2])
-                tile(Self.photos[3])
+                // Faded: a picture inside a fade draws a copy mixed toward the page.
+                tile(Self.photos[3]).opacity(0.4)
             }
         }
         .padding(1)
