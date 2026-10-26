@@ -20,6 +20,10 @@ the interesting part.
 
 ### Genuine gaps · `defer`
 
+> **Since this review** all three have landed: `GeometryReader` (`222d5a2dd`,
+> 2026-08-07), `AlignmentID` (`fde6d6a0f`, 2026-08-07), and the `Layout` protocol
+> with `AnyLayout` (`74844bd96`, 2026-08-08). The review below is as it was written.
+
 - **`GeometryReader`** (`68489ec0`) — we have no equivalent. A real parity gap,
   and unlike most it is a *capability* gap: nothing in TUI lets a view read
   the space it was given and branch on it. Worth wanting.
@@ -47,6 +51,9 @@ against the real SDK rather than ported.
 which **we already did** (§3.6 of the compatibility audit).
 
 ## `issue/27-async-image-pipeline` — 4 commits · `defer`
+
+> **Since this review** TUI has its own `AsyncImage`, which fetches over the network
+> (`2719467ca`, 2026-10-03). The review below is as it was written.
 
 An `URLImageCoordinator`: async URL image loads with request dedup and an
 injectable transport, routed through `PlatformImageLoader`.
