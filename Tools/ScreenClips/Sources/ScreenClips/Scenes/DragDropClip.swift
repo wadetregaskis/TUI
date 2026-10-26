@@ -1,9 +1,10 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  DragDropClip.swift
 //
-//  `dragdrop`: a task board whose cards are dragged with the mouse from one
-//  column to the next — the camera following the card — and then reordered
-//  in their new column from the keyboard.
+//  `dragdrop`: a task board, all by mouse: a card dragged from one column to
+//  the next, a card dragged to the top of its own column, and three of Done's
+//  cards selected (a click and a Shift-click) and dragged up their column
+//  together; then the three moves undone.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -26,23 +27,35 @@ let dragDropClip = Clip(
 private enum Board {
     static let todo = 12
     static let doing = 52
+    static let done = 92
     static let firstCard = 7
 }
 
+/// A Shift-click on a cell: the selection extended to it.
+private func shiftClick(_ column: Int, _ row: Int) -> [Step] {
+    // Shift is the report's +4.
+    [.mouse(4, column, row), .wait(0.08), .mouse(4, column, row, release: true)]
+}
+
 private func dragDropScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0, y: 3, width: 84, height: 15)), .wait(1.0)]
-    // The second card of To do, across into Doing, between its cards.
-    script += Step.drag(from: (Board.todo, Board.firstCard + 1), to: (Board.doing, Board.firstCard + 1), interval: 0.035)
-    script += [.wait(1.0)]
-    // Another, the top one, to the end of Doing.
-    script += Step.drag(from: (Board.todo, Board.firstCard), to: (Board.doing, Board.firstCard + 3), interval: 0.03)
-    script += [.wait(0.8)]
-    // Keyboard: in Doing, the selected card up one place with ⌥↑.
-    script += Step.click(Board.doing, Board.firstCard + 3)
-    script += [.wait(0.5), .optionUp, .wait(0.6), .optionUp, .wait(0.9)]
-    // Undo all three, and back where it began.
-    script += [Step.control("z"), .wait(0.45), Step.control("z"), .wait(0.45), Step.control("z"), .wait(0.45),
-               Step.control("z"), .wait(1.2)]
+    let card = { (column: Int, index: Int) in (column, Board.firstCard + index) }
+    var script: [Step] = [.camera(Shot(x: 0, y: 3, width: 84, height: 15)), .wait(0.8)]
+    // Across: To do's second card into Doing, between its first two.
+    script += Step.glide(from: (70, 20), to: card(Board.todo, 1), over: 0.7)
+    script += Step.drag(from: card(Board.todo, 1), to: card(Board.doing, 1), interval: 0.035) + [.wait(1.0)]
+    // Within a column: Doing's last card, now its fourth, to its top.
+    script += Step.glide(from: card(Board.doing, 1), to: card(Board.doing, 3), over: 0.4)
+    script += Step.drag(from: card(Board.doing, 3), to: card(Board.doing, 0), interval: 0.12) + [.wait(1.0)]
+    // Several at once: Done's second card clicked, its fourth Shift-clicked —
+    // three selected — and the three dragged to the column's top together.
+    script += Step.glide(from: card(Board.doing, 0), to: card(Board.done, 1), over: 0.6)
+    script += Step.click(Board.done, Board.firstCard + 1) + [.wait(0.4)]
+    script += Step.glide(from: card(Board.done, 1), to: card(Board.done, 3), over: 0.3)
+    script += shiftClick(Board.done, Board.firstCard + 3) + [.wait(0.7)]
+    script += Step.drag(from: card(Board.done, 2), to: card(Board.done, 0), interval: 0.18) + [.wait(1.2)]
+    // Undone, the three moves, and back where it began.
+    script += Step.glide(from: card(Board.done, 0), to: (70, 20), over: 0.6)
+    script += [Step.control("z"), .wait(0.5), Step.control("z"), .wait(0.5), Step.control("z"), .wait(1.2)]
     return script
 }
 
@@ -90,7 +103,8 @@ struct TaskBoard: View {
          BoardCard(id: "SGR mouse parser", tag: "input", owner: "AL", priority: 1),
          BoardCard(id: "Undo grouping", tag: "edit", owner: "GH", priority: 0)],
     ]
-    @State private var selections: [String?] = [nil, nil, nil]
+    /// Each column's selected cards: several, so they can be dragged together.
+    @State private var selections: [Set<String>] = [[], [], []]
 
     private let titles = ["To do", "Doing", "Done"]
 
@@ -104,16 +118,13 @@ struct TaskBoard: View {
                     }
                     List(selection: selectionBinding(column)) {
                         ForEach(columns[column]) { card in
-                            HStack(spacing: 1) {
-                                Text(verbatim: "●").foregroundStyle(priorityColour(card.priority))
-                                Text(verbatim: card.id).lineLimit(1).layoutPriority(1)
-                                Spacer(minLength: 0)
-                                Text(verbatim: " \(card.tag) ")
-                                    .foregroundStyle(.palette.background)
-                                    .background(tagColour(card.tag))
-                                Text(verbatim: card.owner).foregroundStyle(.palette.foregroundSecondary)
+                            // Done's cards are dropped into, never dragged out: its own
+                            // reorder takes a drag there, and carries every selected card.
+                            if column == 2 {
+                                cardRow(card)
+                            } else {
+                                cardRow(card).draggable(BoardDrag(column: column, id: card.id))
                             }
-                            .draggable(BoardDrag(column: column, id: card.id))
                         }
                         .dropDestination(for: BoardDrag.self) { drops, index in
                             let before = columns
@@ -137,6 +148,19 @@ struct TaskBoard: View {
         }
     }
 
+    /// A card: its priority, title, tag and owner.
+    private func cardRow(_ card: BoardCard) -> some View {
+        HStack(spacing: 1) {
+            Text(verbatim: "●").foregroundStyle(priorityColour(card.priority))
+            Text(verbatim: card.id).lineLimit(1).layoutPriority(1)
+            Spacer(minLength: 0)
+            Text(verbatim: " \(card.tag) ")
+                .foregroundStyle(.palette.background)
+                .background(tagColour(card.tag))
+            Text(verbatim: card.owner).foregroundStyle(.palette.foregroundSecondary)
+        }
+    }
+
     private func priorityColour(_ priority: Int) -> Color {
         [Color.palette.foregroundTertiary, .palette.warning, .palette.error][priority]
     }
@@ -150,7 +174,7 @@ struct TaskBoard: View {
         return colours[tag.unicodeScalars.reduce(0) { $0 + Int($1.value) } % colours.count]
     }
 
-    private func selectionBinding(_ column: Int) -> Binding<String?> {
+    private func selectionBinding(_ column: Int) -> Binding<Set<String>> {
         Binding(get: { selections[column] }, set: { selections[column] = $0 })
     }
 
@@ -163,7 +187,7 @@ struct TaskBoard: View {
         var target = index
         if drop.column == column, from < index { target -= 1 }
         columns[column].insert(card, at: min(max(0, target), columns[column].count))
-        selections[column] = card.id
+        selections[column] = [card.id]
     }
 
     private func register(_ before: [[BoardCard]]) {
