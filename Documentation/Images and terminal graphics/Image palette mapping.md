@@ -417,7 +417,7 @@ Measured, applying rule 3 per pixel:
 | mean OKLab error, near-neutral band | 0.0124 | **0.0260** (2.1×) |
 | the former `demo-image.jpg`¹ at 220×220, mean OKLab error | 0.0225 | **0.0381** (1.7×) |
 
-¹ The Example's demo picture until 2026-10-25, when a painted one replaced it;
+¹ The Example's demo picture until 2026-10-25, when one of the owner's photographs replaced it;
 the measurements on this page used the old one, which is in the history.
 
 The near-neutral row is the one that matters, because that is what a photograph
