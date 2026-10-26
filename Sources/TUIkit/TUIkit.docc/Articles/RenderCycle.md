@@ -889,6 +889,9 @@ widest row, a `Table`'s `.fit` column width. So:
 - **It still does not update.** The cache is not the problem: the state is not
   reaching the view, and the log stays empty.
 
+A buffer served to a measure that draws is checked by its size alone, because
+a measure keeps nothing else of it.
+
 The switches are a diagnostic, never a fix. They re-render everything the cache
 serves, which costs more than the cache saves, and every difference they draw
 they also report. Set without a path (`=1`), they keep the findings in memory

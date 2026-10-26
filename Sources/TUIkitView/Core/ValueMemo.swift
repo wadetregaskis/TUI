@@ -305,7 +305,17 @@ private func verifyServe(
     let checkMark = cache.leases.beginDetachedComputation()
     let fresh = render(context)
     _ = cache.leases.endComputation(checkMark)
-    if fresh.lines != entry.buffer.lines {
+    // A measure takes a served buffer's size and nothing else: no buffer a
+    // measure draws is stored, and none it is served reaches the screen. So
+    // under a measure only the size is compared. Comparing cells reported
+    // every control that measures by drawing itself without its focus mark,
+    // such as a segmented picker's labels, served in the ink the render
+    // stored.
+    let differs =
+        context.isMeasuring
+        ? fresh.width != entry.buffer.width || fresh.lines.count != entry.buffer.lines.count
+        : fresh.lines != entry.buffer.lines
+    if differs {
         cache.noteRenderMemoMismatch(
             viewType: String(describing: viewType()), served: entry.buffer,
             fresh: fresh, identity: context.identity.path)

@@ -28,17 +28,31 @@ private struct TitledCard: View, @preconcurrency Equatable {
     var body: some View { Text(verbatim: text) }
 }
 
+/// A card whose `==` ignores its ink: served in another ink, it is the same
+/// size.
+private struct InkedCard: View, @preconcurrency Equatable {
+    let text: String
+    let ink: Color
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.text == rhs.text }
+
+    var body: some View { Text(verbatim: text).foregroundStyle(ink) }
+}
+
 /// Frames of the real loop's lifecycle over one render cache.
 @MainActor
 private final class VerifierLoop {
     let tui = TUIContext()
 
-    func frame(_ view: some View, width: Int = 30) -> [String] {
+    /// One frame of `view`; `measuring` draws it as a measure that renders
+    /// does, which stores nothing and is served what the render stored.
+    func frame(_ view: some View, width: Int = 30, measuring: Bool = false) -> [String] {
         var environment = EnvironmentValues()
         environment.applyRuntimeServices(from: tui)
         environment.installVolatileReadTracker(VolatileReadTracker())
-        let context = RenderContext(
+        var context = RenderContext(
             availableWidth: width, availableHeight: 4, environment: environment, tuiContext: tui)
+        context.isMeasuring = measuring
         tui.stateStorage.beginRenderPass()
         tui.renderCache.beginRenderPass()
         let buffer = renderToBuffer(view, context: context)
@@ -78,6 +92,28 @@ struct MemoVerifierDrawsFreshTests {
         #expect(
             served.reports.contains { $0.contains("TitledCard") },
             "the stale serve went unreported: \(served.reports)")
+    }
+
+    /// A measure keeps only the size of what it is served, so under one the
+    /// verifier compares sizes: a control that measures by drawing itself, as
+    /// a segmented picker does, without the focus mark the render draws, was
+    /// reported for the ink of every label it was served.
+    @Test("Under a measure, the verifier compares the size it serves, not the ink")
+    func measureComparesSize() {
+        let was = RenderCache.verifiesRenderMemo
+        defer { RenderCache.verifiesRenderMemo = was }
+        RenderCache.verifiesRenderMemo = true
+        let loop = VerifierLoop()
+        _ = loop.frame(InkedCard(text: "ab", ink: .red).equatable())
+        _ = loop.frame(InkedCard(text: "ab", ink: .red).equatable())
+        _ = loop.frame(InkedCard(text: "ab", ink: .blue).equatable(), measuring: true)
+        #expect(loop.tui.renderCache.renderMemoMismatches.isEmpty, "\(loop.tui.renderCache.renderMemoMismatches)")
+        _ = loop.frame(TitledCard(title: "t", text: "ab").equatable())
+        _ = loop.frame(TitledCard(title: "t", text: "ab").equatable())
+        _ = loop.frame(TitledCard(title: "t", text: "abcdef").equatable(), measuring: true)
+        #expect(
+            loop.tui.renderCache.renderMemoMismatches.contains { $0.contains("TitledCard") },
+            "a served buffer of another size went unreported under a measure")
     }
 
     /// The size half: a card beside a bar, whose served width is the old
