@@ -340,6 +340,33 @@ struct RadioButtonGroupHandlerTests {
     }
 
     /// Builds a 2-item vertical handler for the boundary tests.
+    @Test("A selection made elsewhere moves the cursor onto it; the group's own choice leaves it")
+    func cursorFollowsAnOutsideSelection() {
+        var selection = AnyHashable("opt1")
+        let binding = Binding(get: { selection }, set: { selection = $0 })
+        let handler = RadioButtonGroupHandler(
+            focusID: "test", selection: binding,
+            itemValues: [AnyHashable("opt1"), AnyHashable("opt2"), AnyHashable("opt3")],
+            orientation: .vertical, canBeFocused: true)
+        handler.followSelection()  // the first render
+        #expect(handler.focusedIndex == 0)
+        // Chosen from outside, by a status-bar key say: the cursor follows,
+        // and the group marks one option, not two.
+        selection = AnyHashable("opt3")
+        handler.followSelection()
+        #expect(handler.focusedIndex == 2)
+        // Nothing changed since: the cursor is the keyboard's again.
+        handler.focusedIndex = 1
+        handler.followSelection()
+        #expect(handler.focusedIndex == 1)
+        // The group's own choice: Space selects the cursor's option, which is
+        // where the cursor already is.
+        #expect(handler.handleKeyEvent(KeyEvent(key: .space)))
+        handler.followSelection()
+        #expect(selection == AnyHashable("opt2"))
+        #expect(handler.focusedIndex == 1)
+    }
+
     private func boundaryHandler() -> RadioButtonGroupHandler {
         var selection = AnyHashable("opt1")
         let binding = Binding(get: { selection }, set: { selection = $0 })

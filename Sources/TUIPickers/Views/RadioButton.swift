@@ -458,6 +458,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         handler.canBeFocused = !isDisabled
         handler.edgeBehavior = context.environment.radioButtonGroupEdgeBehavior
         handler.shiftStepMultiplier = context.environment.shiftStepMultiplier
+        handler.followSelection()
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
@@ -896,6 +897,9 @@ final class RadioButtonGroupHandler: PersistedFocusable {
     /// Persisted across renders to maintain focus position.
     var focusedIndex: Int = 0
 
+    /// The selection as the last render found it (``followSelection()``).
+    private var lastSeenSelection: AnyHashable?
+
     init(
         focusID: String,
         selection: Binding<AnyHashable>,
@@ -919,6 +923,26 @@ final class RadioButtonGroupHandler: PersistedFocusable {
 // MARK: - Focus Lifecycle
 
 extension RadioButtonGroupHandler {
+    /// Moves the cursor onto the selection when the selection changed since the
+    /// last render without the group choosing it: a status-bar key, a menu, a
+    /// second control over the same binding. As on macOS, the focus is on the
+    /// selected option. The cursor stayed where it was, and a focused group
+    /// then marked two options, the new selection and the focused one, both
+    /// with the selected bullet (the Example's image controls, cycled from
+    /// their status bar).
+    ///
+    /// The group's own choice needs nothing: it selects the option the cursor
+    /// is on. Called from every render's sync, measuring ones included; the
+    /// second call of a render finds nothing changed.
+    func followSelection() {
+        let current = selection.wrappedValue
+        defer { lastSeenSelection = current }
+        guard let last = lastSeenSelection, last != current,
+            let index = itemValues.firstIndex(of: current)
+        else { return }
+        focusedIndex = index
+    }
+
     /// The cursor starts on the selection, wherever that is now: it may have
     /// been chosen elsewhere while the group did not hold the focus — a second
     /// control over the same binding — and a Space on a cursor left where the

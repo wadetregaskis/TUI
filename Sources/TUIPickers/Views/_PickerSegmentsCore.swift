@@ -220,6 +220,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
         handler.canBeFocused = !isDisabled
         handler.edgeBehavior = .wrap
         handler.shiftStepMultiplier = context.environment.shiftStepMultiplier
+        handler.followSelection()
         handler.focusedIndex = min(max(0, handler.focusedIndex), values.count - 1)
         return handler
     }
