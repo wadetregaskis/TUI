@@ -324,7 +324,16 @@ struct QuirkPermutationTests {
         TerminalWidthTraits.withTraits(quirks.widthTraits) {
             let emission = entry.text.withCursorCompensation(for: quirks)
             let emitted = Set(emission.unicodeScalars.map(\.value))
+            // A host that stores composites wide is sent a flag as its
+            // country code (🇯🇵 as JP), by design: the letters stand for its
+            // regional indicators.
+            let flags = quirks.storesWideComposites
+                ? entry.text.compactMap(\.regionalIndicatorCountryCode) : []
+            for code in flags {
+                #expect(emission.contains(code), "\(entry) under '\(name)': \(code) was not sent for its flag")
+            }
             for scalar in entry.text.unicodeScalars {
+                if !flags.isEmpty, (0x1F1E6...0x1F1FF).contains(scalar.value) { continue }
                 // Software ZWJ decomposition drops the joiners by design —
                 // they are what the host cannot store truthfully.
                 if scalar.value == 0x200D && quirks.zwjSequences { continue }

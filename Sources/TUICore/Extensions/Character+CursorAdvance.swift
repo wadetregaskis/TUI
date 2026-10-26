@@ -917,6 +917,28 @@ extension Character {
         return (0x1F1E6...0x1F1FF).contains(only.value)
     }
 
+    /// The two capital letters a flag's regional indicators spell (`"JP"` for
+    /// 🇯🇵), or `nil` for anything but a pair of them.
+    ///
+    /// What Apple Terminal is sent in place of the flag. The store surgery
+    /// (``terminalAppStoresWiderThanPainted``) keeps the row aligned, but on
+    /// 455.1 (measured 2026-10-25) the flag it leaves draws as its first
+    /// letter in a box; sent bare, the flag draws and moves the rest of its
+    /// row one cell left. The country code says what the flag says, crudely,
+    /// in the same two cells.
+    var regionalIndicatorCountryCode: String? {
+        let scalars = unicodeScalars
+        guard scalars.count == 2 else { return nil }
+        var letters = ""
+        for scalar in scalars {
+            guard (0x1F1E6...0x1F1FF).contains(scalar.value),
+                let letter = Unicode.Scalar(scalar.value - 0x1F1E6 + 0x41)
+            else { return nil }
+            letters.unicodeScalars.append(letter)
+        }
+        return letters
+    }
+
     /// Whether this character is an emoji-presentation base carrying the
     /// U+FE0E TEXT-presentation selector (⬛︎ ⬜︎ — TUI's emoji chrome
     /// glyphs), which Ghostty paints 2 cells wide but advances by only 1.

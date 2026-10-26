@@ -163,7 +163,9 @@ public struct TerminalQuirks: Sendable, Equatable, Codable {
     /// everything later on the row — absolutely-addressed writes included —
     /// lands one cell left, whatever the cursor does. The walk deletes the
     /// surplus stored column from inside the cluster: `CUB(1)`, `DCH(1)`,
-    /// `CUF(1)`. Apple Terminal.
+    /// `CUF(1)`. A flag pair, which that repair leaves drawn as a boxed letter
+    /// on Terminal 455.1, is sent as its country code instead (🇯🇵 as `JP`).
+    /// Apple Terminal.
     public var storesWideComposites: Bool
 
     /// How this terminal handles skin-tone clusters.
@@ -574,6 +576,11 @@ extension String {
             }
             let claimed = character.terminalWidth
             let advance = quirks.cursorAdvance(of: character)
+            if quirks.storesWideComposites, let code = character.regionalIndicatorCountryCode {
+                // As the Apple walk does: the flag goes out as its country code.
+                result += code
+                return
+            }
             if quirks.storesWideComposites, character.terminalAppStoresWiderThanPainted,
                 advance == claimed
             {

@@ -1246,7 +1246,8 @@ exchanges that used it. A link that slow loses its answers either way.
 > | tone, emoji-presentation base (🤙🏽 ✊🏿 👍🏽) | 5 | base + **ZWNJ** + modifier, no moves | base, one blank cell, swatch — tone kept |
 > | tone, text-presentation base (☝🏻 ✍🏿 ⛹🏾) | 5 | `ECH(5)` + **VS-16-promoted** base+ZWNJ+modifier + `CUF(1)` | emoji base and swatch ADJACENT, one trailing blank (painted by the ECH) — tone kept (2026-08-28; superseded the `CUB(int−2)` pull-back, which re-rendered the bare NARROW glyph beside a blank cell) |
 > | ZWJ sequence (👨‍👩‍👧‍👦 ❤️‍🔥 👩🏽‍🚀) | Σ segments | **decomposed** — joiners removed, each segment its own class | component glyphs |
-> | flag pair (🇺🇸), keycap (1️⃣) | 2 | cluster + `CUB(1)` `DCH(1)` `CUF(1)` | composed; surplus stored column deleted |
+> | flag pair (🇺🇸) | 2 | the **country code** (`US`), since 2026-10-25 | two letters; before it, the keycap row's surgery, which 455.1 now draws as a boxed letter |
+> | keycap (1️⃣) | 2 | cluster + `CUB(1)` `DCH(1)` `CUF(1)` | composed (2026-08-27); surplus stored column deleted |
 > | BARE keycap (1⃣, no VS-16) | 1 | cluster + `CUB(1)` | advance 2 (DSR record); it used to mis-enter the FE0F surgery on a fall-through model value of 1 and end one column past the claim. Paint/store unmeasured — pixel card queued (2026-08-28) |
 > | tag flag (🏴󠁧󠁢󠁳󠁣󠁴󠁿) | 2 | cluster + `CUB(tags)` | aligned; bare 🏴 |
 > | VS-16 / bare pictograph / lone RI / PUA | 2 | `ECH(2)` + glyph + `CUF(1)` | composed |
@@ -1422,7 +1423,9 @@ exchanges that used it. A link that slow loses its answers either way.
 - **Flag pairs** (🇺🇸): paints 2, **advances 2** — and the row STORES one
   column more than it paints, displacing every later write on the row one cell
   left. Repaired with store surgery: `CUB(1)` `DCH(1)` `CUF(1)` (2026-08-27;
-  the earlier `CUB(1)+CUF(1)` nudge measured misaligned on the cards).
+  the earlier `CUB(1)+CUF(1)` nudge measured misaligned on the cards). On
+  455.1 the surgery leaves a boxed first letter (2026-10-25), so a flag is now
+  sent as its country code (`US`) instead ("What Apple Terminal paints").
 - **Lone regional indicator** (🇦): paints 2, **advances 1** →
   `ECH(2)`+glyph+`CUF(1)`, like every under-advancer here.
 - **Keycaps** (1️⃣ #️⃣, with VS-16): advance 2 ✓ — and store one column
@@ -8082,6 +8085,15 @@ and the text on a background of its own — **none**, every one drawn at 19.
 The store surgery that repairs flags (`CUB DCH CUF`, the surplus columns
 deleted) lands the follower true and **destroys the text**: न्दी lost its ी,
 स्ते was not drawn at all.
+
+**Flags on 455.1 (same session).** The surgery no longer leaves a flag
+composed either: 🇯🇵 after `CUB DCH CUF` drew as a boxed **J**, and the bare
+pair drew the flag and moved the rest of its row one cell left (the store
+defect the surgery was for, 2026-08-27). So on Apple Terminal TUI now sends a
+flag pair as the **country code** its regional indicators spell, `JP` in the
+same two cells (owner, 2026-10-25: convey the information, crudely, rather
+than a box or a shifted row). Keycaps keep the surgery; whether 455.1 still
+composes them after it is unmeasured.
 
 So **TUI does not align these scripts on Apple Terminal**, and documents
 it rather than degrading the text: the displacement is the font's, fractional,

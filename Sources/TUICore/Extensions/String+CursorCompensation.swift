@@ -370,6 +370,13 @@ extension String {
             }
             let claimed = c.terminalWidth
             let internalAdvance = c.terminalAppCursorAdvance
+            if let code = c.regionalIndicatorCountryCode {
+                // A flag goes out as its country code: neither the surgery
+                // below nor the bare flag draws it right on 455.1 (see
+                // `Character.regionalIndicatorCountryCode`).
+                result += code
+                return
+            }
             if c.terminalAppStoresWiderThanPainted, internalAdvance == claimed {
                 // Store surgery presumes the cursor maths already balance —
                 // measured true for this host's flags and keycaps. (The guard
