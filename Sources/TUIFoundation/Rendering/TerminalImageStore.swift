@@ -158,6 +158,9 @@ package final class TerminalImageStore: @unchecked Sendable {
     private var slots: [Slot: [KittyGraphics.ImageID]] = [:]
     /// Which image each token is drawing.
     private var entries: [String: KittyGraphics.ImageID] = [:]
+    /// The images each holding token keeps (``hold(picturesIn:for:)``): a
+    /// token that draws none of them itself.
+    private var holds: [String: Set<KittyGraphics.ImageID>] = [:]
     private var pending = ""
     /// Copies of the pictures, changed for a translucent layer over them.
     private var derivedImages = DerivedImages()
@@ -367,8 +370,55 @@ package final class TerminalImageStore: @unchecked Sendable {
     /// Called from the view's disappear handler, which is the only moment
     /// anything knows the picture is not coming back.
     package func release(token: String) {
+        if let held = holds.removeValue(forKey: token) {
+            for id in held { letGo(of: id, by: token) }
+        }
         guard let id = entries.removeValue(forKey: token) else { return }
         letGo(of: id, by: token)
+    }
+
+    /// Keeps every picture the cells of `lines` draw — a copy's picture, for
+    /// a copy's cell, which keeps the copy — until ``release(token:)``, as if
+    /// `token` drew them; any it held before are let go.
+    ///
+    /// For a drawing that stays on screen after the views that drew it have
+    /// gone: a navigation zoom's still, the screen being folded away by a
+    /// pop. That screen's pictures are released as it disappears, and deleted
+    /// unheld, so the zoom drew empty cells where its photo had been.
+    package func hold(picturesIn lines: [String], for token: String) {
+        let before = holds.removeValue(forKey: token) ?? []
+        var held = Set<KittyGraphics.ImageID>()
+        for line in lines where line.unicodeScalars.contains(.terminalImagePlaceholder) {
+            // The ink in force, which names each picture cell's image.
+            var state = SGRState()
+            // `true`: on to the next segment, every time.
+            _ = line.forEachANSISegment { segment in
+                switch segment {
+                case .visible(let character):
+                    // A pattern reading the ink's channels, not a colour this
+                    // draws with.
+                    // swiftlint:disable:next framework_colour_literal
+                    guard case .rgb(let red, let green, let blue)? = state.foregroundColour,
+                        let cell = KittyGraphics.placeholderCell(
+                            character,
+                            foreground: (UInt8(clamping: red), UInt8(clamping: green), UInt8(clamping: blue)))
+                    else { return true }
+                    let id = derivedImages.origin(of: cell.id)?.source ?? cell.id
+                    guard images[id] != nil, held.insert(id).inserted else { return true }
+                    images[id]?.holders.insert(token)
+                // A rendered line's escape segment, not a colour: the rule
+                // matches `.ansi(` wherever it is written.
+                // swiftlint:disable:next framework_colour_literal
+                case .ansi(let sequence, _):
+                    state.apply(sequence)
+                }
+                return true
+            }
+        }
+        if !held.isEmpty { holds[token] = held }
+        // After the new holds, so a picture in both is kept, not deleted and
+        // sent again.
+        for id in before.subtracting(held) { letGo(of: id, by: token) }
     }
 
     /// Gives back every image, for a shutdown that wants to leave the terminal

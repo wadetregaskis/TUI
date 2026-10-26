@@ -113,6 +113,7 @@ extension NavigationCoordinator {
             for: key, animation: started ? Self.zoomAnimation(context) : nil, nowNanos: now, isMeasuring: false)
         guard storage.animations.isAnimating(at: key, nowNanos: now) else {
             zoom.running = nil
+            context.environment.terminalImageStore?.release(token: Self.stillToken(context))
             return buffer
         }
         // Drawn this frame from where the stack's owner predicts it; a wrong
@@ -185,7 +186,18 @@ extension NavigationCoordinator {
             direction: pushed ? .reveal : .conceal, key: key, source: source, still: still,
             configuration: zoom.configurations[key] ?? _ResolvedMatchedTransitionSourceConfiguration(),
             epoch: zoom.epoch)
+        // The still's pictures, kept while it is drawn: the views that drew
+        // them are gone by the end of this pass — a popped screen's at once —
+        // and a picture nobody draws is deleted from the terminal, which left
+        // the zoom folding away empty cells where the photo had been.
+        context.environment.terminalImageStore?.hold(picturesIn: still.lines, for: Self.stillToken(context))
         return true
+    }
+
+    /// The image store token a zoom holds its still's pictures under: one per
+    /// stack, so a zoom starting over a running one takes its holds over.
+    private static func stillToken(_ context: RenderContext) -> String {
+        "navigation-zoom-\(context.identity.path)"
     }
 
     /// How a zoom the path's change starts plays: the change's animation, or
