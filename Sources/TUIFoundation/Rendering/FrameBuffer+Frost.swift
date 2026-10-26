@@ -85,6 +85,23 @@ struct FrostFields {
     /// averaging claim covers the cell, or its box had no colour with an RGB.
     var fields: [Color?]
 
+    /// The destination rows the averages were read from, taken apart by
+    /// `FrameBuffer.cells(in:through:defaultForeground:surface:)` as far as
+    /// the boxes reach — kept so the blend need not take them apart again
+    /// (``destinationCells(row:through:)``).
+    var parsedRows: [Int: [FrameBuffer.RowCell?]] = [:]
+
+    /// Destination row `row` taken apart through column `through`, as the
+    /// blend would take it apart, where the averages already did that far.
+    ///
+    /// A parse through fewer columns is the prefix of one through more: the
+    /// walk only ever stops early, and a zero-width scalar joins the cell before
+    /// it, which is in the prefix whenever the scalar is.
+    func destinationCells(row: Int, through: Int) -> ArraySlice<FrameBuffer.RowCell?>? {
+        guard let cells = parsedRows[row], cells.count >= through else { return nil }
+        return cells.prefix(max(0, through))
+    }
+
     /// The average at destination `(column, row)`, or `nil`.
     func field(column: Int, row: Int) -> Color? {
         guard rows.contains(row), columns.contains(column) else { return nil }
@@ -151,12 +168,15 @@ extension FrameBuffer {
         let readRows =
             max(0, boxes.map { $0.rows.lowerBound - $0.reachY }.min()!)
             ..< min(lines.count, boxes.map { $0.rows.upperBound + $0.reachY }.max()!)
+        var parsedRows: [Int: [RowCell?]] = [:]
         let table = Self.summedEffectiveColours(
-            of: lines, columns: readColumns, rows: readRows, surface: surface, defaultForeground: defaultForeground)
+            of: lines, columns: readColumns, rows: readRows, surface: surface, defaultForeground: defaultForeground,
+            parsed: &parsedRows)
 
         var result = FrostFields(
             rows: covered.rows, columns: covered.columns,
-            fields: [Color?](repeating: nil, count: covered.rows.count * covered.columns.count))
+            fields: [Color?](repeating: nil, count: covered.rows.count * covered.columns.count),
+            parsedRows: parsedRows)
         for box in boxes {
             for row in box.rows {
                 let top = max(readRows.lowerBound, row - box.reachY) - readRows.lowerBound
@@ -174,15 +194,18 @@ extension FrameBuffer {
 
     /// A summed-area table of the effective colours of `rows` × `columns` of
     /// `lines`: four channels (red, green, blue, and how many cells had an RGB)
-    /// summed over every cell above and to the left of each corner.
+    /// summed over every cell above and to the left of each corner — and each
+    /// row as it was taken apart, in `parsed`.
     private static func summedEffectiveColours(
-        of lines: [String], columns: Range<Int>, rows: Range<Int>, surface: Color, defaultForeground: Color
+        of lines: [String], columns: Range<Int>, rows: Range<Int>, surface: Color, defaultForeground: Color,
+        parsed: inout [Int: [RowCell?]]
     ) -> SummedColours {
         var table = SummedColours(width: columns.count, height: rows.count)
         let surfaceRGB = surface.rgbComponents
         for (rowIndex, row) in rows.enumerated() {
             let cells = cells(
                 in: lines[row], through: columns.upperBound, defaultForeground: defaultForeground, surface: surface)
+            parsed[row] = cells
             var running = (red: 0, green: 0, blue: 0, cells: 0)
             // A wide glyph's later columns are the glyph's: `cells(in:)` leaves
             // them nil, as it leaves the columns past the line's end, which show

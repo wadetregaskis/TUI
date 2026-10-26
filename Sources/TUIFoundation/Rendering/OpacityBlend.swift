@@ -138,6 +138,10 @@ extension FrameBuffer {
     /// cells over, so each is blended as the cell the splice will show. And
     /// `drawnLine`, the line the render drew with the run's drawn frame in it, which
     /// spells the field a painter's claim says the cell SHOWS.
+    ///
+    /// `destinationCells` is `destination` already taken apart through
+    /// `columns.upperBound + destinationShift`, by a caller that had to anyway — a
+    /// material's frost reads the rows behind it to average them.
     static func blendedSpan(
         source: String,
         destination: String,
@@ -146,6 +150,7 @@ extension FrameBuffer {
         fieldsFrom: String? = nil,
         fieldsUnderStatedDefault: String? = nil,
         drawnLine: String? = nil,
+        destinationCells: ArraySlice<RowCell?>? = nil,
         alpha: (Int) -> CellAlpha?,
         surface: Color,
         defaultForeground: Color,
@@ -178,9 +183,13 @@ extension FrameBuffer {
         let statedDefaultFieldCells = fieldsUnderStatedDefault.map {
             cells(in: $0, through: columns.upperBound, defaultForeground: defaultForeground, surface: surface)
         }
-        let behindCells = cells(
-            in: destination, through: columns.upperBound + destinationShift,
-            defaultForeground: defaultForeground, surface: surface)
+        // Taken apart already where a frost's averages read the same row this far
+        // (``FrostFields/destinationCells(row:through:)``).
+        let behindCells =
+            destinationCells
+            ?? cells(
+                in: destination, through: columns.upperBound + destinationShift,
+                defaultForeground: defaultForeground, surface: surface)[...]
         // The drawn line's cells, read the first time a painter's claim under a
         // frame's cell says it is about the field the line shows there.
         var drawnCells: [RowCell?]?

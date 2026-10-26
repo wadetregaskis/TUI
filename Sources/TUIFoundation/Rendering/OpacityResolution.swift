@@ -227,6 +227,7 @@ extension FrameBuffer {
                 destination: behindLine,
                 columns: columns,
                 destinationShift: position.x,
+                destinationCells: frostFields?.destinationCells(row: destinationRow, through: last + position.x),
                 alpha: { alphas[$0 - start] },
                 surface: resolvedSurface,
                 defaultForeground: resolvedForeground,
