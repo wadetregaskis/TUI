@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prints a card of a glass panel over a Kitty image, drawn three ways, for
+"""Prints a card of a glass panel over a Kitty image, drawn four ways, for
 choosing how TUI frosts a picture it does not draw (owner, 2026-10-26: "give
 it a shot; review it in probes before the clips").
 
@@ -19,9 +19,20 @@ is the same photo with the same glass panel across it:
      exactly. A cell the panel writes text in cannot hold a picture, so it
      takes the frosted picture's average colour there.
 
+  D. DERIVED, UNDER TEXT — C, but the text cells hold no field: the derived
+     image, cropped to the glass, is laid UNDER the text as well, by a classic
+     placement at z = -1 (kitty: below text, above cell fields) at the glass's
+     top-left cell, the cursor left where it was (C=1).
+
 Read: does C's glass read as frosted glass over the photo, and B's as a blocky
 stand-in? Are C's text cells (solid fields) acceptable against the pixels
-around them, or do they need B's blocks too (`--text-blocks`)?
+around them, or do they need B's blocks too (`--text-blocks`)? Does D lose
+C's cell-shaped blocks behind the words?
+
+Measured 2026-10-26: Ghostty 1.3.1 draws D exactly — the words on the frosted
+picture, no blocks. iTerm2 3.7.6 refuses D's placement ("invalid payload");
+its z order differs too (z=0 under text, z=-1 over a cell's fill: the
+hairline probe). `ONLY=under` (comma-separated kinds) draws just those panels.
 
     python3 Tools/TerminalProbes/frost_over_image_card.py
     python3 Tools/TerminalProbes/frost_over_image_card.py --photo galago --tint light
@@ -117,6 +128,8 @@ def panel_rows(kind, original_id, derived_id, image, glass, tint, text_blocks):
                 else:
                     top, bottom = average(glass, column, row, "top"), average(glass, column, row, "bottom")
                     out += sgr_fg(top) + sgr_bg(bottom) + "▀" + f"{E}0m"
+            elif kind == "under":
+                out += (sgr_fg(ink) + glyph + f"{E}39m") if glyph else " "
             else:  # derived
                 if glyph:
                     out += sgr_bg(average(glass, column, row)) + sgr_fg(ink) + glyph + f"{E}0m"
@@ -159,11 +172,31 @@ def main():
         derived = glass.resize(small, Image.BOX)
     out.write(quiet(transmit(derived.tobytes(), derived_id, *derived.size) + place(derived_id, COLUMNS, ROWS)))
 
-    kinds = [("covered", "A. covered"), ("blocks", "B. blocks"), ("derived", "C. derived image")]
+    kinds = [("covered", "A. covered"), ("blocks", "B. blocks"), ("derived", "C. derived image"),
+             ("under", "D. derived, under text")]
+    if os.environ.get("ONLY"):
+        kinds = [k for k in kinds if k[0] in os.environ["ONLY"].split(",")]
     panels = [panel_rows(kind, original_id, derived_id, image, glass, tint, args.text_blocks) for kind, _ in kinds]
     out.write("\n" + "  ".join(title.ljust(COLUMNS) for _, title in kinds) + "\n")
     for row in range(ROWS):
         out.write("  ".join(panel[row] for panel in panels) + f"{E}0m\n")
+    # D's glass: the derived copy, cropped to the glass, laid UNDER the text by a
+    # classic placement at z = -1 (kitty: below text, above cell fields), at the
+    # glass's top-left cell, the cursor left where it was (C=1).
+    names = [kind for kind, _ in kinds]
+    if "under" in names:
+        index = names.index("under")
+        rows_up = ROWS - GLASS_TOP  # the cursor is on the line after the panels
+        column = index * (COLUMNS + 2) + GLASS_LEFT + 1
+        scale_x, scale_y = derived.size[0] / size[0], derived.size[1] / size[1]
+        x, y = int(GLASS_LEFT * CELL_W * scale_x), int(GLASS_TOP * CELL_H * scale_y)
+        w = int((GLASS_RIGHT - GLASS_LEFT) * CELL_W * scale_x)
+        h = int((GLASS_BOTTOM - GLASS_TOP) * CELL_H * scale_y)
+        out.write("\x1b7")  # save the cursor
+        out.write(f"\x1b[{rows_up}A\x1b[{column}G")
+        out.write(f"\x1b_Ga=p,i={derived_id},p=7,x={x},y={y},w={w},h={h},"
+                  f"c={GLASS_RIGHT - GLASS_LEFT},r={GLASS_BOTTOM - GLASS_TOP},z=-1,C=1,q=2\x1b\\")
+        out.write("\x1b8")  # and put it back
     detail = f", derived at {args.derived_pixels}px a cell ({derived.size[0]}x{derived.size[1]})" if args.derived_pixels else ""
     out.write(f"\n{args.photo}, {args.tint} glass{', text cells as blocks' if args.text_blocks else ''}{detail}\n")
     out.flush()

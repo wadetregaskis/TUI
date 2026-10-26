@@ -1274,3 +1274,27 @@ faded, the frosted panel and the toast, behind an open sheet, all veiled
 alike. Not yet done: `.dimmed()`, which flattens a page to two colours on
 purpose and still passes a picture's rows through.
 
+
+
+### 14.5 Under the text: a classic placement (measured 2026-10-26)
+
+A cell that writes a glyph over a frosted picture cannot also hold the
+picture, so it takes the frosted copy's average colour (§14.2): a small
+block of colour behind each letter, which the owner noticed ("blockiness
+around the three lines of text, where you can see the cell shapes behind
+each character"). Panel **D** of the probe lays the frosted copy UNDER the
+text as well, by a Kitty *classic* placement (§12) cropped to the glass,
+at `z=-1`, the text cells holding no field so the picture shows through
+them:
+
+- **Ghostty 1.3.1:** exact. The words sit on the frosted picture, no
+  blocks. A cell with any field of its own hides a `z=-1` placement, which
+  is why the cells must state none.
+- **iTerm2 3.7.6:** refused ("invalid payload"); and its z order is not the
+  spec's (z=0 under text, z=-1 over a cell's fill, from the hairline probe).
+- **kitty:** not measured from this VM (no OpenGL 3.3); the spec puts
+  `z=-1` below text and above cell fields, as Ghostty draws it.
+
+The owner's ruling (2026-10-26): build it, adapted to the terminal in use and
+conservative by default — the plain rendering, the average-colour cells,
+everywhere it is not measured to work.
