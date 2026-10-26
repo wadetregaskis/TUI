@@ -1111,7 +1111,10 @@ can't actually do anything sensible with." So the APIs that are inert on macOS t
   under reduced space, so honour it by collapsing to the compact strip
   (`TabViewStyle.compact`); `.onScrollDown` likewise. Decide with W15.
 
-**Restated 2026-10-12, at the owner's request; awaiting the owner.** Some
+**Restated 2026-10-12, at the owner's request; answered 2026-10-26: no
+stubs.** An API that does nothing on macOS either is implemented for real, doing
+what its user would expect, or not at all ("implement it only if we can do
+it"); less than full API coverage is acceptable for these. Some
 SwiftUI APIs do nothing on macOS either, by Apple's documentation or by
 measurement: `submitLabel`, most `sensoryFeedback` kinds,
 `ToolbarTitleDisplayMode`, `scrollDismissesKeyboard` (A11) and
@@ -1184,6 +1187,13 @@ A18.
 
 ### O11. `TextField(…value:formatter:…)` / `Text(_:formatter:)` / `\(x, formatter:)` family
 
+**Owner, 2026-10-26: skipped.** They stay refused, for two reasons together: they are the inferior API, with a
+superior replacement TUI ships (`Text(_:format:)`, `TextField(_:value:format:)` and the `format:` interpolation, whose
+`FormatStyle` is a value with a type checked at compile time where a `Formatter` is a class taking `Any`); and they
+do not port, since on Linux parsing through an arbitrary `Formatter` is internal to Foundation, so a custom subclass
+would display but never parse. The `\(x, formatter:)` interpolation already ships in `LocalizedStringKey`, for
+SwiftUI source compatibility; it only displays.
+
 **Owner, 2026-10-12 (second message):** deferred. The `Formatter`-based forms are not deprecated in SwiftUI (only the
 `TextField` initialisers with `onEditingChanged:`/`onCommit:` are), but Linux's internal `getObjectValue` makes the
 parse direction costly, so they wait: "we can always add them later if we change our mind." They stay refused until
@@ -1205,8 +1215,8 @@ on.
   Linux dispatch.
 - **Recommendation: (b).** This is common pre-iOS-15 code.
 
-**Restated 2026-10-12, at the owner's request; awaiting the owner.** Should
-TUI accept the older `Formatter`-based spellings, `Text(_:formatter:)`,
+**Restated 2026-10-12, at the owner's request; answered 2026-10-26: skip
+(above).** Should TUI accept the older `Formatter`-based spellings, `Text(_:formatter:)`,
 `\(value, formatter:)` and `TextField(value:formatter:)`, beside the
 `format:` ones it ships? The refusal's reason ("the type safety taken out") is
 taste; the real constraint is Linux, where parsing through an arbitrary
