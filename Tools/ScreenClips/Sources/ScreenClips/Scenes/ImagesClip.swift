@@ -40,17 +40,16 @@ let glyphsClip = Clip(
     environment: ["TUIKIT_GRAPHICS": "0"]
 )
 
-/// From fine blocks in true colour: shape matching on; ASCII, then Unicode;
-/// back to blocks; 256 and 16 colours, dithered, grey; the tone curves; and
-/// back to where it began.
+/// From fine blocks in true colour: ASCII, then shape matching on (after the
+/// cycle has passed the custom ramp, which cannot shape-match and turns it off
+/// as it is passed); Unicode and blocks, shape-matched; 256 and 16 colours,
+/// dithered, grey; the tone curves; and back to where it began.
 private func glyphsScript() -> [Step] {
     func key(_ k: String, _ hold: Double) -> [Step] { [.keys(k), .wait(hold)] }
-    // In Ghostty the script's first key never reaches the page (at 2 s and at
-    // 3 s alike; under a plain PTY it does): an unbound one goes first.
-    var script: [Step] = [.wait(2.0), .keys("x"), .wait(1.0)]
-    script += key("s", 1.6)                                    // shape matching
-    script += key("c", 0.05) + key("c", 1.8) + key("c", 1.8)   // (custom) ascii, unicode
-    script += key("c", 1.4)                                    // blocks again
+    var script: [Step] = [.wait(2.0)]
+    script += key("c", 0.05) + key("c", 1.6)                   // (custom) ascii
+    script += key("s", 1.8)                                    // shape matching
+    script += key("c", 1.6) + key("c", 1.4)                    // unicode, blocks
     script += key("m", 1.4) + key("m", 1.4) + key("d", 1.8)    // 256, 16, dithered
     script += key("m", 1.6) + key("d", 0.05)                   // grey, undithered
     script += key("M", 0.05) + key("M", 0.05) + key("M", 1.0)  // back to true colour
