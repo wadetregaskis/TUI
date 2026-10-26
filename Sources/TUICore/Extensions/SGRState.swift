@@ -624,7 +624,12 @@ public struct SGRState: Sendable, Equatable {
     /// terminal, so that case falls back to a reset-prefixed absolute.
     public func rendered(changingFrom previous: Self) -> String {
         guard self != previous else { return "" }
-        let absolute = isDefault ? "\u{1B}[0m" : "\u{1B}[0;" + parameters + "m"
+        // Spelled only where it is the answer or a delta might be longer: it is
+        // the whole state's parameters built again, a string per colour, and a
+        // row whose colour changes at every cell asked for it at every cell
+        // (2026-10-26: `SGRState.parameters` was 4.5% of a frame of
+        // `translucent --variant material`, nearly all of it from here).
+        var absolute: String { isDefault ? "\u{1B}[0m" : "\u{1B}[0;" + parameters + "m" }
         guard previous.attributes & ~attributes == 0,
             previous.passthrough == passthrough
         else { return absolute }
@@ -641,34 +646,48 @@ public struct SGRState: Sendable, Equatable {
             }
             attribute += 1
         }
-        appendColourChanges(from: previous, to: &codes)
+        let clearsAColour = appendColourChanges(from: previous, to: &codes)
         // Unreachable — equal attributes, shape and colours with equal
         // passthrough IS equality — but a delta that says nothing would silently
         // leave the previous styling in force, so spend the bytes rather than
         // trust the reasoning.
         guard !codes.isEmpty else { return absolute }
         let delta = "\u{1B}[" + codes + "m"
-        // A delta is usually shorter, but not always: going back to the default
-        // spells out `ESC[39;49m` where `ESC[0m` says the same in four bytes.
-        // Both are correct, so take whichever is smaller.
-        return delta.utf8.count <= absolute.utf8.count ? delta : absolute
+        // A delta that only turns things on names a subset of what the absolute
+        // names, spelled the same, without the absolute's `0;`: it is shorter,
+        // and the absolute need not be built to find that out.
+        guard clearsAColour else { return delta }
+        // Otherwise it is usually shorter, but not always: going back to the
+        // default spells out `ESC[39;49m` where `ESC[0m` says the same in four
+        // bytes. Both are correct, so take whichever is smaller.
+        let reset = absolute
+        return delta.utf8.count <= reset.utf8.count ? delta : reset
     }
 
     /// Appends the codes for each colour that differs from `previous`'s: the
     /// colour, or its slot's default code (39, 49, 59) where it went.
-    private func appendColourChanges(from previous: Self, to codes: inout String) {
+    ///
+    /// - Returns: Whether any of them went — a code the absolute does not name.
+    private func appendColourChanges(from previous: Self, to codes: inout String) -> Bool {
+        var clears = false
         if foreground != previous.foreground {
             if !codes.isEmpty { codes += ";" }
-            if let foreground { foreground.append(to: &codes, introducer: 38) } else { codes += "39" }
+            if let foreground { foreground.append(to: &codes, introducer: 38) } else { codes += "39"; clears = true }
         }
         if background != previous.background {
             if !codes.isEmpty { codes += ";" }
-            if let background { background.append(to: &codes, introducer: 48) } else { codes += "49" }
+            if let background { background.append(to: &codes, introducer: 48) } else { codes += "49"; clears = true }
         }
         if underlineColour != previous.underlineColour {
             if !codes.isEmpty { codes += ";" }
-            if let underlineColour { underlineColour.appendUnderlineColour(to: &codes) } else { codes += "59" }
+            if let underlineColour {
+                underlineColour.appendUnderlineColour(to: &codes)
+            } else {
+                codes += "59"
+                clears = true
+            }
         }
+        return clears
     }
 
     /// ``rendered(changingFrom:)`` for bytes a row has yet to be finished with —
