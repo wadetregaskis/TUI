@@ -89,8 +89,62 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
     }
 
     /// The strip is fixed: its segments lay out at their natural size.
+    ///
+    /// Worked out from what the strip is made of — the two caps, a rule
+    /// between each pair of segments, and each label at its natural width with
+    /// the control size's padding either side — where every label measures as
+    /// one row of a fixed width and the strip fits the space offered, and by
+    /// drawing the strip otherwise: a label of several rows is cut to its first,
+    /// a flexible one is drawn at its natural width, which only the drawing
+    /// says, and a strip too wide is clipped as a drawing is.
+    ///
+    /// Drawn every time, the measure drew every label once more than the frame
+    /// shows it, each under its own styles, for a strip whose size does not
+    /// depend on which segment is selected or under the cursor (2026-10-26:
+    /// `_PickerSegmentsCore.sizeThatFits` 26.6% of a frame of the Stress
+    /// `pickers` scenario, `drawSegment` 16.3% of it).
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        measureFixedByRendering(self, proposal: proposal, context: context)
+        let options = self.options
+        guard !options.isEmpty, context.stateStorage != nil else { return ViewSize.fixed(0, 0) }
+        let measureContext = fixedMeasureContext(proposal: proposal, context: context)
+        let effect = measureContext.environment.paletteSelectionEffect
+        let marksSelection = !isPalette || effect.drawsSelection
+        let padding = measureContext.environment.controlSize.padding(regular: 1)
+        var width = ControlEnds(in: measureContext.environment).width + options.count - 1
+        for (index, option) in options.enumerated() {
+            let isSelected = !isMixed && option.tag == selection.wrappedValue
+            let label = segmentLabel(option.label, isSelected: isSelected, effect: effect)
+            let labelContext = Self.labelContext(index: index, in: measureContext)
+            let size = measureChild(
+                label.bold(isSelected && marksSelection),
+                proposal: ProposedSize(width: labelContext.availableWidth, height: labelContext.availableHeight),
+                context: labelContext)
+            guard size.height <= 1, !size.isWidthFlexible else {
+                return measureFixedByRendering(self, proposal: proposal, context: context)
+            }
+            width += size.width + 2 * padding
+        }
+        // A strip that does not fit is clipped as a drawing is clipped, which
+        // can stop short of the space where a wide glyph straddles its edge:
+        // drawn, then, as before.
+        guard width <= measureContext.availableWidth, measureContext.availableHeight >= 1 else {
+            return measureFixedByRendering(self, proposal: proposal, context: context)
+        }
+        return ViewSize.fixed(width, 1)
+    }
+
+    /// The label a segment draws: a palette's selected option in the variant
+    /// its selection effect asks for.
+    private func segmentLabel(_ label: AnyView, isSelected: Bool, effect: PaletteSelectionEffect) -> AnyView {
+        guard isPalette, isSelected, let variant = effect.selectedVariant else { return label }
+        return AnyView(label.symbolVariant(variant))
+    }
+
+    /// Where segment `index`'s label is drawn: at a child identity of its own,
+    /// one row of a strip at its natural width, whatever the strip was offered.
+    private static func labelContext(index: Int, in context: RenderContext) -> RenderContext {
+        context.withChildIdentity(erasedType: AnyView.self, index: index)
+            .withAvailableWidth(max(context.availableWidth, context.environment.terminalWidth))
     }
 
     /// The options, in order, without the dividers.
@@ -164,10 +218,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
                 isSelected: isSelected, marksSelection: marksSelection,
                 isCursor: isFocused && index == handler.focusedIndex,
                 isHovered: !isDisabled && (index == hoverBox.value || index == springLoading), isDisabled: isDisabled)
-            var label = option.label
-            if isPalette, isSelected, let variant = effect.selectedVariant {
-                label = AnyView(label.symbolVariant(variant))
-            }
+            let label = segmentLabel(option.label, isSelected: isSelected, effect: effect)
             let start = row.cells
             drawSegment(
                 label, as: segment, index: index, field: field, padding: padding, into: &row, runs: &runs,
@@ -257,11 +308,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
                 ? RowBackground.focusedSelection(in: context, palette: palette)
                 : RowBackground.focused(in: context, palette: palette)) : nil
 
-        var labelContext = context.withChildIdentity(erasedType: AnyView.self, index: index)
-        // A label is one row of a strip, at its natural width, whatever the
-        // strip was offered.
-        labelContext = labelContext.withAvailableWidth(
-            max(context.availableWidth, context.environment.terminalWidth))
+        var labelContext = Self.labelContext(index: index, in: context)
         if let ink = labelInk(for: segment, isMarked: isMarked, face: face, context: context) {
             labelContext = labelContext.settingNotedEnvironment(
                 \.foregroundStyle, to: labelContext.environment.foregroundStyle.keepingShadows(on: .color(ink)), paint: true)
