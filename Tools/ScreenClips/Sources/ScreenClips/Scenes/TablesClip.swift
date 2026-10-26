@@ -3,7 +3,8 @@
 //
 //  `tables`: an activity monitor's process table, its numbers live — scrolled
 //  under a header that stays put, sorted by a click on a column's header and
-//  then on another, a row selected and followed.
+//  then on another, a row selected and followed, and then filtered by name
+//  through `.searchable`.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -22,10 +23,11 @@ let tablesClip = Clip(
     run: { await TablesApp.main() }
 )
 
-/// Header cells, as the table lays them out (row 7 of the window: the toolbar
-/// takes three rows, the summary line, a gap and the table's top border four more).
+/// Header cells, as the table lays them out (row 8 of the window: the toolbar
+/// takes three rows; the summary line, a gap, the search field and the
+/// table's top border five more).
 private enum TableHeader {
-    static let row = 7
+    static let row = 8
     static let cpu = 38
     static let name = 14
 }
@@ -42,9 +44,14 @@ private func tablesScript() -> [Step] {
     script += [.wait(1.6), .home, .wait(0.5)]
     script += Step.repeat(.down, 3, interval: 0.3)
     script += [.wait(1.2)]
-    // Then by name, and back to the top, where it began.
+    // Then by name, and back to the top.
     script += Step.click(TableHeader.name, TableHeader.row)
     script += [.wait(1.4), .home, .wait(0.8)]
+    // Into the search field (Shift-Tab: it comes before the table), a name
+    // typed, and cleared again (Ctrl-U) where it began.
+    script += [.keys("\u{1B}[Z"), .wait(0.5)]
+    script += Step.type("swift", interval: 0.22)
+    script += [.wait(1.8), .control("u"), .wait(0.6), .keys("\t"), .wait(0.8)]
     return script
 }
 
@@ -75,6 +82,7 @@ struct ActivityMonitor: View {
     @State private var tick = 0
     @State private var selection: Int?
     @State private var sortOrder = [KeyPathComparator(\ProcessRow.id)]
+    @State private var query = ""
 
     private static let names: [(String, String)] = [
         ("kernel_task", "root"), ("WindowServer", "_windowserver"), ("Ghostty", "ada"), ("swift-frontend", "ada"),
@@ -101,7 +109,9 @@ struct ActivityMonitor: View {
                 memory: Double((index * 97) % 900 + 40) * (index < 6 ? 4.2 : 1),
                 threads: (index * 13) % 40 + 2)
         }
-        return rows.sorted(using: sortOrder)
+        return rows
+            .filter { query.isEmpty || $0.name.localizedStandardContains(query) }
+            .sorted(using: sortOrder)
     }
 
     var body: some View {
@@ -127,6 +137,10 @@ struct ActivityMonitor: View {
                     .width(8).alignment(.trailing)
                 TableColumn("User", value: \ProcessRow.user)
             }
+            .searchable(text: $query, prompt: "Filter processes")
+            // Held at the top when a filter leaves only a few rows: without it
+            // the page centred itself in the window as the table shrank.
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, 1)
         .toolbar {

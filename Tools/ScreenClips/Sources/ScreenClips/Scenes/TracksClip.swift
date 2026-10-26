@@ -9,6 +9,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUI
 
 @MainActor
@@ -70,7 +71,10 @@ struct TracksApp: App {
 /// A backup to a NAS: what it is copying, how far it has got, how fast it may go.
 struct BackupPage: View {
     @State private var style = 0
-    @State private var copied = 18.4
+    /// When the copy (re)started: how far it has got is worked out from the
+    /// time each frame is drawn, so the bars move a little every frame
+    /// instead of jumping on a timer's tick.
+    @State private var started = Date()
     @State private var limit = 60.0
 
     private let files = [
@@ -78,7 +82,30 @@ struct BackupPage: View {
         "Panorama-Landmannalaugar.jpg", "IMG_4031.HEIC", "IMG_4032.HEIC",
     ]
 
+    /// GB copied at `date`: 18.4 to begin with, 1.8 GB a second, and
+    /// stopping short of finishing. Fast enough that the bar's fill moves an
+    /// eighth of a cell about every 55 ms: at a gigabyte a second it moved one
+    /// every 100 ms, a step the eye reads as a judder.
+    private func copied(at date: Date) -> Double {
+        min(41.5, 18.4 + date.timeIntervalSince(started) * 1.8)
+    }
+
     var body: some View {
+        TimelineView(.animation) { context in
+            page(copied: copied(at: context.date))
+        }
+        .task {
+            for await cue in ClipCues.stream() {
+                if cue.hasPrefix("style "), let index = Int(cue.dropFirst(6)) {
+                    style = index
+                    // The first style starts the copy again: the loop's seam.
+                    if index == 0 { started = Date() }
+                }
+            }
+        }
+    }
+
+    private func page(copied: Double) -> some View {
         VStack(alignment: .leading, spacing: 1) {
             VStack(alignment: .leading, spacing: 0) {
                 Text(verbatim: "Backing up “Photos” to nas-01.local").bold()
@@ -115,22 +142,6 @@ struct BackupPage: View {
         .padding(.horizontal, 2)
         .toolbar {
             ToolbarItem(placement: .navigation) { Text(verbatim: "Backup") }
-        }
-        .task {
-            for await cue in ClipCues.stream() {
-                if cue.hasPrefix("style "), let index = Int(cue.dropFirst(6)) {
-                    style = index
-                    // The first style starts the copy again: the loop's seam.
-                    if index == 0 { copied = 18.4 }
-                }
-            }
-        }
-        .task {
-            // The copy creeps on, and stops short of finishing.
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(120))
-                copied = min(41.5, copied + 0.12)
-            }
         }
     }
 }

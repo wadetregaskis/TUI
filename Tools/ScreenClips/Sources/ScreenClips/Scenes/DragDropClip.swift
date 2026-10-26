@@ -75,7 +75,7 @@ struct BoardDrag {
 struct TaskBoard: View {
     @Environment(\.undoManager) private var undoManager
     @State private var columns: [[BoardCard]] = [
-        [BoardCard(id: "Sticky table headers", tag: "tables", owner: "AL", priority: 2),
+        [BoardCard(id: "Sticky headers", tag: "tables", owner: "AL", priority: 2),
          BoardCard(id: "Kitty image cache", tag: "images", owner: "GH", priority: 1),
          BoardCard(id: "Warp quirks survey", tag: "terms", owner: "KJ", priority: 0),
          BoardCard(id: "Braille dithering", tag: "images", owner: "GH", priority: 1),

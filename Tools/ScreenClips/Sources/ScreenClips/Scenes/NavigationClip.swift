@@ -3,7 +3,8 @@
 //
 //  `navigation`: a field guide in a three-column split view — a category in
 //  the sidebar, a species in the list, its page in the detail — and a stack
-//  in the detail, pushed into a related species and popped back out.
+//  in the detail, pushed into another species of the same habitat (Kestrel
+//  to Barn owl, both on farmland) and popped back out.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -15,22 +16,24 @@ let navigationClip = Clip(
     id: "navigation",
     title: "Navigation",
     columns: 112,
-    rows: 30,
+    // As tall as the content: the split view's columns fill the window, and
+    // at 30 rows half of every column was empty.
+    rows: 18,
     output: 800,
     script: navigationScript(),
     run: { await NavigationApp.main() }
 )
 
 private func navigationScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0, y: 0, width: 70, height: 20)), .wait(0.9)]
+    var script: [Step] = [.camera(Shot(x: 0, y: 0, width: 70, height: 18)), .wait(0.9)]
     // Sidebar: down to Birds (an arrow moves a list's cursor, Space selects);
     // across to the species (past the column divider's collapse toggle, which
     // is a focus stop of its own), two down.
     script += [.down, .wait(0.1), .space, .wait(0.8), .tab, .wait(0.1), .tab, .wait(0.5)]
     script += [.down, .wait(0.1), .space, .wait(0.6), .down, .wait(0.1), .space, .wait(0.7)]
     // The camera drifts right to the detail (and stays: the loop's seam is its
-    // cut back); into the related species, and back out.
-    script += [.camera(Shot(x: 30, y: 0, width: 70, height: 20, over: 1.2))]
+    // cut back); into the species that shares the habitat, and back out.
+    script += [.camera(Shot(x: 30, y: 0, width: 70, height: 18, over: 1.2))]
     script += [.tab, .wait(0.1), .tab, .wait(0.9), .enter, .wait(1.4), .escape, .wait(0.9)]
     script += [.backTab, .wait(0.1), .backTab, .wait(0.1), .backTab, .wait(0.1), .backTab, .wait(0.4),
                .up, .wait(0.1), .space, .wait(1.2)]
@@ -51,7 +54,6 @@ struct Species: Identifiable, Hashable {
     let id: String
     let latin: String
     let note: String
-    let related: String
     var size = "—"
     var lifespan = "—"
     var habitat = "Woodland"
@@ -70,30 +72,30 @@ struct FieldGuide: View {
     private let categories = ["Mammals", "Birds", "Fungi", "Trees"]
     private let guide: [String: [Species]] = [
         "Mammals": [
-            Species(id: "Red fox", latin: "Vulpes vulpes", note: "Hunts at dusk; caches food.", related: "Arctic fox",
+            Species(id: "Red fox", latin: "Vulpes vulpes", note: "Hunts at dusk; caches food.",
                 size: "70 cm", lifespan: "3–4 years", habitat: "Everywhere", sightings: 72),
-            Species(id: "Badger", latin: "Meles meles", note: "Lives in setts for generations.", related: "Otter",
+            Species(id: "Badger", latin: "Meles meles", note: "Lives in setts for generations.",
                 size: "80 cm", lifespan: "6 years", habitat: "Woodland edge", sightings: 31),
-            Species(id: "Hedgehog", latin: "Erinaceus europaeus", note: "Travels 2 km a night.", related: "Mole",
+            Species(id: "Hedgehog", latin: "Erinaceus europaeus", note: "Travels 2 km a night.",
                 size: "25 cm", lifespan: "2–5 years", habitat: "Gardens", status: "VU", sightings: 18),
         ],
         "Birds": [
-            Species(id: "Puffin", latin: "Fratercula arctica", note: "Carries ten fish at once.", related: "Razorbill",
+            Species(id: "Puffin", latin: "Fratercula arctica", note: "Carries ten fish at once.",
                 size: "30 cm", lifespan: "20 years", habitat: "Sea cliffs", status: "VU", sightings: 26),
-            Species(id: "Wren", latin: "Troglodytes troglodytes", note: "Loud for its size.", related: "Dunnock",
+            Species(id: "Wren", latin: "Troglodytes troglodytes", note: "Loud for its size.",
                 size: "10 cm", lifespan: "2 years", habitat: "Hedgerows", sightings: 88),
-            Species(id: "Kestrel", latin: "Falco tinnunculus", note: "Hovers into the wind.", related: "Merlin",
+            Species(id: "Kestrel", latin: "Falco tinnunculus", note: "Hovers into the wind.",
                 size: "35 cm", lifespan: "4 years", habitat: "Farmland", status: "NT", sightings: 47),
-            Species(id: "Barn owl", latin: "Tyto alba", note: "Hears a vole under snow.", related: "Tawny owl",
+            Species(id: "Barn owl", latin: "Tyto alba", note: "Hears a vole under snow.",
                 size: "35 cm", lifespan: "4 years", habitat: "Farmland", sightings: 22),
         ],
         "Fungi": [
-            Species(id: "Fly agaric", latin: "Amanita muscaria", note: "Red cap, white spots.", related: "Panther cap"),
-            Species(id: "Chanterelle", latin: "Cantharellus cibarius", note: "Smells of apricots.", related: "Hedgehog fungus"),
+            Species(id: "Fly agaric", latin: "Amanita muscaria", note: "Red cap, white spots."),
+            Species(id: "Chanterelle", latin: "Cantharellus cibarius", note: "Smells of apricots."),
         ],
         "Trees": [
-            Species(id: "Silver birch", latin: "Betula pendula", note: "First into new ground.", related: "Downy birch"),
-            Species(id: "Rowan", latin: "Sorbus aucuparia", note: "Berries for thrushes.", related: "Whitebeam"),
+            Species(id: "Silver birch", latin: "Betula pendula", note: "First into new ground."),
+            Species(id: "Rowan", latin: "Sorbus aucuparia", note: "Berries for thrushes."),
         ],
     ]
 
@@ -122,6 +124,12 @@ struct FieldGuide: View {
             }
         }
         .onChange(of: category) { species = listed.first?.id; path = [] }
+    }
+
+    /// Another species of the guide found in the same habitat: what the
+    /// page's link pushes, its own page in full.
+    private func neighbour(of entry: Species) -> Species? {
+        categories.compactMap { guide[$0] }.joined().first { $0.habitat == entry.habitat && $0.id != entry.id }
     }
 
     /// Least concern green, near threatened amber, vulnerable and worse red.
@@ -156,8 +164,10 @@ struct FieldGuide: View {
                     }
                 }
                 .frame(width: 34)
-                NavigationLink(value: Species(id: entry.related, latin: "see also", note: "A relative of the \(entry.id.lowercased()).", related: entry.id)) {
-                    Text(verbatim: "Related: \(entry.related) ›")
+                if let neighbour = neighbour(of: entry) {
+                    NavigationLink(value: neighbour) {
+                        Text(verbatim: "Same habitat: \(neighbour.id) ›")
+                    }
                 }
                 Spacer(minLength: 0)
             }

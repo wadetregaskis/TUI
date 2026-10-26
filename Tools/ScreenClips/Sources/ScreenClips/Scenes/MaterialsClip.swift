@@ -18,7 +18,7 @@ let materialsClip = Clip(
     rows: 30,
     output: 800,
     script: [
-        .camera(Shot(x: 0, y: 3, width: 76, height: 22)),
+        .camera(Shot(x: 0, y: 3, width: 76, height: 25)),
         .wait(1.2), .cue("panel"),
         .wait(2.8), .cue("dismiss"),
         .wait(0.6), .cue("toast"),
@@ -45,27 +45,29 @@ struct PhotoLibrary: View {
     @State private var toasting = false
     @State private var showingInfo = false
 
-    /// The album: make_photos.py's pictures, by file and caption.
+    /// The album: the owner's photographs (Photos/), by file and caption.
     private static let photos: [(file: String, caption: String)] = [
-        ("harbour-at-dawn", "Harbour at dawn"), ("glacier", "Glacier lagoon"),
-        ("dunes", "Dunes"), ("night-city", "Night city"),
-        ("fern-valley", "Fern valley"), ("lagoon", "Lagoon"),
-        ("orchard", "Orchard"), ("aurora", "Aurora"),
+        ("burrowing-owl", "Burrowing owl"), ("ground-squirrel", "Ground squirrel"),
+        ("bald-eagle", "Bald eagle"), ("fawn", "Fawn"),
+        ("banana-slug", "Banana slug"), ("cedar-waxwings", "Cedar waxwings"),
+        ("lioness", "Lioness"), ("galago", "Galago"),
+        ("spurred-tortoise", "Spurred tortoise"), ("salamander", "Salamander"),
+        ("snail", "Snail"), ("bee-drinking", "Bee drinking"),
     ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             HStack(spacing: 2) {
-                Text(verbatim: "Iceland, 2026").bold()
-                Text(verbatim: "8 photos · 214 MB").foregroundStyle(.palette.foregroundSecondary)
+                Text(verbatim: "Wildlife").bold()
+                Text(verbatim: "12 photos · 41 MB").foregroundStyle(.palette.foregroundSecondary)
                 Spinner()
                 Text(verbatim: "Syncing").foregroundStyle(.palette.foregroundTertiary)
                 Button("Info") { showingInfo = true }
                     .popover(isPresented: $showingInfo) {
                         VStack(alignment: .leading, spacing: 0) {
-                            Text(verbatim: "Harbour at dawn").bold()
-                            Text(verbatim: "Reykjavík · 06:12")
-                            Text(verbatim: "ƒ/2.8 · 1/250 s · ISO 100").foregroundStyle(.palette.foregroundSecondary)
+                            Text(verbatim: "Burrowing owl").bold()
+                            Text(verbatim: "Athene cunicularia").italic()
+                            Text(verbatim: "1024 × 987 · 3.2 MB").foregroundStyle(.palette.foregroundSecondary)
                         }
                         .padding(.horizontal, 1)
                     }
@@ -74,7 +76,7 @@ struct PhotoLibrary: View {
                 Spacer()
             }
             Grid(horizontalSpacing: 2, verticalSpacing: 1) {
-                ForEach(0..<2, id: \.self) { row in
+                ForEach(0..<3, id: \.self) { row in
                     GridRow {
                         ForEach(0..<4, id: \.self) { column in
                             tile(Self.photos[row * 4 + column], index: row * 4 + column)
@@ -100,7 +102,7 @@ struct PhotoLibrary: View {
         }
         .overlay(alignment: .topLeading) {
             if toasting {
-                Text(verbatim: " ✓ Copied 8 photos to the clipboard ")
+                Text(verbatim: " ✓ Copied 12 photos to the clipboard ")
                     .bold()
                     .padding(.horizontal, 1)
                     .background(.regularMaterial)
@@ -125,10 +127,10 @@ struct PhotoLibrary: View {
     /// The share panel: a floating inspector on frosted glass.
     private var sharePanel: some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(verbatim: "Share 8 photos").bold()
+            Text(verbatim: "Share 12 photos").bold()
             VStack(alignment: .leading, spacing: 0) {
-                LabeledContent("To") { Text(verbatim: "kristín@example.is") }
-                LabeledContent("Size") { Text(verbatim: "Large · 214 MB") }
+                LabeledContent("To") { Text(verbatim: "sam@example.com") }
+                LabeledContent("Size") { Text(verbatim: "Large · 41 MB") }
                 Toggle("Include location", isOn: .constant(true))
             }
             HStack(spacing: 2) {
@@ -153,7 +155,7 @@ struct PhotoLibrary: View {
                 .resizable()
                 .scaledToFill()
                 .terminalGraphics(false)
-                .frame(width: 22, height: 7)
+                .frame(width: 22, height: 6)
             Text(verbatim: photo.caption).foregroundStyle(.palette.foregroundSecondary)
         }
     }
