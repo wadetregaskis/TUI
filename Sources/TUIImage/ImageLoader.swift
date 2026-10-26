@@ -543,7 +543,9 @@ extension PlatformImageLoader {
 
 // MARK: - URL Image Cache
 
-/// A cache of the images downloaded from URLs, decoded, bounded in bytes.
+/// A cache of the images downloaded from URLs and read from files, decoded,
+/// bounded in bytes. A file's picture is kept under its path, size and
+/// modification time, so an edited file is read again.
 ///
 /// Not process-wide: each app has its own, which `Image` and `AsyncImage`
 /// find through the environment, and `.urlImageCache(_:)` gives a subtree a
@@ -613,6 +615,81 @@ public final class URLImageCache: @unchecked Sendable {
     }
 }
 
+// MARK: - Cached Loading
+
+extension PlatformImageLoader {
+    /// The picture `cache` holds for `urlString`, or `nil` if it holds none:
+    /// a lookup, with no download, that a view can make while it draws.
+    ///
+    /// - Throws: `ImageLoadError.imageTooLarge` for a held picture past
+    ///   `maxPixelCount`.
+    public func cachedImage(fromURL urlString: String, cache: URLImageCache?, maxPixelCount: Int?) throws -> RGBAImage? {
+        try Self.clearingLimit(cache?.get(urlString), maxPixelCount: maxPixelCount)
+    }
+
+    /// The picture `cache` holds for the file at `path` as the file is now —
+    /// the same size, modified at the same moment — or `nil`: a lookup, with
+    /// no decode, that a view can make while it draws, so a picture another
+    /// view has shown draws on a new view's first frame instead of after a
+    /// decode.
+    ///
+    /// - Throws: `ImageLoadError.imageTooLarge` for a held picture past
+    ///   `maxPixelCount`.
+    public func cachedImage(fromFile path: String, cache: URLImageCache?, maxPixelCount: Int?) throws -> RGBAImage? {
+        guard let cache, let key = Self.cacheKey(forFile: path) else { return nil }
+        return try Self.clearingLimit(cache.get(key), maxPixelCount: maxPixelCount)
+    }
+
+    /// Loads an image from a file, through `cache` when there is one: a file
+    /// decoded once is kept, and handed back while the file is unchanged.
+    ///
+    /// - Parameters:
+    ///   - path: The absolute file path to the image.
+    ///   - cache: The image cache to use, or `nil` to cache nothing.
+    ///   - maxPixelCount: The maximum allowed total pixel count, or `nil` for no limit.
+    /// - Returns: The decoded image.
+    /// - Throws: `ImageLoadError` if the file cannot be read, decoded, or exceeds the limit.
+    public func loadImage(from path: String, cache: URLImageCache?, maxPixelCount: Int?) throws -> RGBAImage {
+        if let cached = try cachedImage(fromFile: path, cache: cache, maxPixelCount: maxPixelCount) {
+            return cached
+        }
+        let image = try loadImage(from: path, maxPixelCount: maxPixelCount)
+        if let cache, let key = Self.cacheKey(forFile: path) { cache.set(key, image: image) }
+        return image
+    }
+
+    /// The key a file's picture is cached under: its path, size and
+    /// modification time, so an edited file is decoded again rather than
+    /// served as it was. `nil` for a file whose attributes cannot be read.
+    static func cacheKey(forFile path: String) -> String? {
+        guard let attributes = try? FileManager.default.attributesOfItem(atPath: path),
+            let size = attributes[.size] as? NSNumber,
+            let modified = attributes[.modificationDate] as? Date
+        else { return nil }
+        // A file URL, which no download's key can be.
+        return "file://\(path)#\(size.int64Value)@\(modified.timeIntervalSinceReferenceDate)"
+    }
+
+    /// `image`, if it clears the caller's limit.
+    ///
+    /// A cache hit still has to clear it. The cache is keyed by the picture
+    /// alone and shared by an app's views, but `maxPixelCount` comes from the
+    /// environment and so differs from one view to the next — so without
+    /// this, the FIRST load decides for everyone. A view with no limit warms
+    /// the cache; a later view that asked for a strict one is handed the
+    /// oversized image anyway, its limit not applying precisely because
+    /// something else got there first. Whether an image is too big cannot
+    /// depend on who arrived before you.
+    private static func clearingLimit(_ image: RGBAImage?, maxPixelCount: Int?) throws -> RGBAImage? {
+        guard let image else { return nil }
+        let pixelCount = image.width * image.height
+        if let limit = maxPixelCount, pixelCount > limit {
+            throw ImageLoadError.imageTooLarge(pixelCount: pixelCount, limit: limit)
+        }
+        return image
+    }
+}
+
 // MARK: - URL Image Loading
 
 extension PlatformImageLoader {
@@ -649,20 +726,7 @@ extension PlatformImageLoader {
         timeout: TimeInterval = 30,
         maxPixelCount: Int? = nil
     ) async throws -> RGBAImage {
-        if let cached = cache?.get(urlString) {
-            // A cache hit still has to clear the caller's limit. The cache is
-            // keyed by URL alone and shared by an app's views, but
-            // `maxPixelCount` comes from the environment and so differs from
-            // one view to the next — so without this, the FIRST load decides
-            // for everyone. A view with no limit warms the cache; a later view
-            // that asked for a strict one is handed the oversized image anyway,
-            // its limit not applying precisely because something else got there
-            // first. Whether an image is too big cannot depend on who arrived
-            // before you.
-            let pixelCount = cached.width * cached.height
-            if let limit = maxPixelCount, pixelCount > limit {
-                throw ImageLoadError.imageTooLarge(pixelCount: pixelCount, limit: limit)
-            }
+        if let cached = try cachedImage(fromURL: urlString, cache: cache, maxPixelCount: maxPixelCount) {
             return cached
         }
 

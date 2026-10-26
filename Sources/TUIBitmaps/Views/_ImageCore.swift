@@ -73,7 +73,17 @@ struct _ImageCore: View, Renderable, Layoutable {
                 identity: context.identity, propertyIndex: StateIndex.phase)
             let phaseBox: StateBox<ImageLoadingPhase> = stateStorage.storage(
                 for: phaseKey, default: decoded.map { .success($0.pixels) } ?? .loading)
-            guard case .success(let rawImage) = phaseBox.value, rawImage.width > 0, rawImage.height > 0 else {
+            // Still loading, a picture the cache holds is the one the render
+            // pass about to follow will draw (``cachedPhase(of:cache:maxPixelCount:)``).
+            var phase = phaseBox.value
+            if case .loading = phase, decoded == nil,
+                let cached = Self.cachedPhase(
+                    of: source, cache: environment.resolvedURLImageCache,
+                    maxPixelCount: environment.imageMaxPixelCount)
+            {
+                phase = cached
+            }
+            guard case .success(let rawImage) = phase, rawImage.width > 0, rawImage.height > 0 else {
                 return nil
             }
             return rawImage
@@ -344,7 +354,8 @@ extension _ImageCore {
         let maxPixelCount: Int?
         /// How long a download may take, in seconds.
         let urlTimeout: Double
-        /// The cache a URL loads through (`resolvedURLImageCache`), or `nil`.
+        /// The cache a load goes through (`resolvedURLImageCache`), a URL's
+        /// or a file's, or `nil`.
         let urlCache: URLImageCache?
     }
 
@@ -387,33 +398,44 @@ extension _ImageCore {
         if !lifecycle.hasAppeared(token: token), loads {
             _ = lifecycle.recordAppear(token: token) {}
 
-            let src = source
-            lifecycle.startTask(token: token, priority: .userInitiated) {
-                // Decode off the main actor (@concurrent guarantees it), then
-                // write the box ON it. The box's invalidation SINK is
-                // thread-safe, but the value itself is a plain property the
-                // render loop reads every frame — assigning a multi-word enum
-                // payload from a pool thread raced those reads (a torn read of
-                // the CoW pixel array is heap corruption, not a glitch). This
-                // is the one place the framework itself wrote @State off-main.
-                guard
-                    let phase = await Self.loadPhase(source: src, settings: settings)
-                else { return }
-                await MainActor.run {
-                    // Cancellation is observed HERE, not (only) inside the
-                    // decode. `loadPhase` returns nil when it notices — but a
-                    // `.file` decode is synchronous with no cancellation
-                    // points at all, so the flag `cancelTask` sets on a source
-                    // change is never seen by it. Without this check the OLD
-                    // task publishes its stale result whenever it finishes
-                    // second, and the image the user switched away from
-                    // replaces the one they switched to (or an error from the
-                    // abandoned path lands on a view that loaded fine).
-                    //
-                    // Last thing before the write, so it also covers a cancel
-                    // that arrives during the hop onto the main actor.
-                    guard !Task.isCancelled else { return }
-                    phaseBox.value = phase
+            // A picture the cache already holds draws on this, the view's
+            // first frame, with no decode: a new view of a picture another
+            // view showed — a navigation zoom's photo screen, a list row
+            // scrolled back into view — drew a blank frame first, while a
+            // task decoded the file again.
+            if case .loading = phaseBox.value,
+                let cached = Self.cachedPhase(of: source, cache: settings.urlCache, maxPixelCount: settings.maxPixelCount)
+            {
+                phaseBox.value = cached
+            } else {
+                let src = source
+                lifecycle.startTask(token: token, priority: .userInitiated) {
+                    // Decode off the main actor (@concurrent guarantees it), then
+                    // write the box ON it. The box's invalidation SINK is
+                    // thread-safe, but the value itself is a plain property the
+                    // render loop reads every frame — assigning a multi-word enum
+                    // payload from a pool thread raced those reads (a torn read of
+                    // the CoW pixel array is heap corruption, not a glitch). This
+                    // is the one place the framework itself wrote @State off-main.
+                    guard
+                        let phase = await Self.loadPhase(source: src, settings: settings)
+                    else { return }
+                    await MainActor.run {
+                        // Cancellation is observed HERE, not (only) inside the
+                        // decode. `loadPhase` returns nil when it notices — but a
+                        // `.file` decode is synchronous with no cancellation
+                        // points at all, so the flag `cancelTask` sets on a source
+                        // change is never seen by it. Without this check the OLD
+                        // task publishes its stale result whenever it finishes
+                        // second, and the image the user switched away from
+                        // replaces the one they switched to (or an error from the
+                        // abandoned path lands on a view that loaded fine).
+                        //
+                        // Last thing before the write, so it also covers a cancel
+                        // that arrives during the hop onto the main actor.
+                        guard !Task.isCancelled else { return }
+                        phaseBox.value = phase
+                    }
                 }
             }
         } else {
@@ -427,6 +449,28 @@ extension _ImageCore {
         lifecycle.registerDisappear(token: token) { [lifecycle] in
             lifecycle.cancelTask(token: token)
             imageStore?.release(token: token)
+        }
+    }
+
+    /// The phase `cache` already holds the answer for: the picture, or the
+    /// failure of one past `maxPixelCount` — `nil` where it holds nothing, or
+    /// there is no cache. A lookup, cheap enough to make while drawing.
+    static func cachedPhase(
+        of source: ImageSource, cache: URLImageCache?, maxPixelCount: Int?
+    ) -> ImageLoadingPhase? {
+        guard let cache else { return nil }
+        let loader = PlatformImageLoader()
+        do {
+            let image =
+                switch source {
+                case .file(let path): try loader.cachedImage(fromFile: path, cache: cache, maxPixelCount: maxPixelCount)
+                case .url(let address): try loader.cachedImage(fromURL: address, cache: cache, maxPixelCount: maxPixelCount)
+                }
+            return image.map { .success($0) }
+        } catch let loadError as ImageLoadError {
+            return .failure(loadError.description)
+        } catch {
+            return .failure(error.localizedDescription)
         }
     }
 
@@ -448,7 +492,8 @@ extension _ImageCore {
             let rawImage: RGBAImage
             switch source {
             case .file(let path):
-                rawImage = try loader.loadImage(from: path, maxPixelCount: settings.maxPixelCount)
+                rawImage = try loader.loadImage(
+                    from: path, cache: settings.urlCache, maxPixelCount: settings.maxPixelCount)
             case .url(let urlString):
                 rawImage = try await loader.loadImage(
                     fromURL: urlString,

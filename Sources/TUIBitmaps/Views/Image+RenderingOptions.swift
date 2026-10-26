@@ -239,7 +239,7 @@ extension EnvironmentValues {
         set { self[ImageURLTimeoutKey.self] = newValue }
     }
 
-    /// The cache images downloaded from URLs are kept in, when a subtree names
+    /// The cache images downloaded from URLs and read from files are kept in, when a subtree names
     /// one (``View/urlImageCache(_:)``); `nil` leaves it to the app's own.
     var urlImageCache: URLImageCache? {
         get { self[URLImageCacheKey.self] }

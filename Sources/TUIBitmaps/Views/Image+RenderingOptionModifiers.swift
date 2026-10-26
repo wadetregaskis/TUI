@@ -322,9 +322,11 @@ extension View {
         environment(\.imageURLTimeout, seconds)
     }
 
-    /// Sets the cache the images in this view load URLs through — in place of
-    /// the app's own, which every app has, bounded at
-    /// ``URLImageCache/defaultByteLimit``.
+    /// Sets the cache the images in this view load URLs and files through — in
+    /// place of the app's own, which every app has, bounded at
+    /// ``URLImageCache/defaultByteLimit``. A file is kept under its path, size
+    /// and modification time, so an edited file is read again; a picture the
+    /// cache holds draws on a new view's first frame.
     ///
     /// A test that wants a cache nothing else sees, or an app that wants a
     /// different bound for one part of itself, hands its views its own:
