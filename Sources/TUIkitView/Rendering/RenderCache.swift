@@ -517,6 +517,10 @@ public final class RenderCache: @unchecked Sendable {
     /// the clear and the prune only.
     var hostedMembers: [ViewIdentity: HostedMembers] = [:]
 
+    /// Every host in ``hostedMembers`` under the structural hash of each of
+    /// its ancestors, and its own: what a clear looks a host up by.
+    var hostsByAncestor: [Int: [ViewIdentity]] = [:]
+
     /// The content type each `AnyView` drew last, keyed by its identity's hash
     /// folded with its depth — see ``noteErasedContent(_:identity:depth:)``.
     /// Internal for the same reason as ``appliedEnvironment``.
@@ -1458,7 +1462,7 @@ extension RenderCache {
         for (host, record) in hostedMembers where record.lastSeenFrame < frameCounter && !isLive(host) {
             staleHosts.append(host)
         }
-        for host in staleHosts { hostedMembers.removeValue(forKey: host) }
+        for host in staleHosts { forgetHost(host) }
     }
 
     /// How many passes apart ``removeInactive()`` sweeps the environment slots
@@ -1489,6 +1493,7 @@ extension RenderCache {
         appliedEnvironment.removeAll()
         erasedContent.removeAll()
         hostedMembers.removeAll()
+        hostsByAncestor.removeAll()
         revalidation.endPass()
         stats = Stats()
         statsAtFrameStart = Stats()

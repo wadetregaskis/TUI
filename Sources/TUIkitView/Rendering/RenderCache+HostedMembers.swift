@@ -38,14 +38,40 @@ extension RenderCache {
             hostedMembers[host] = record
         } else {
             hostedMembers[host] = HostedMembers(members: [member], lastSeenFrame: frameCounter)
+            var cursor: ViewIdentity? = host
+            while let node = cursor {
+                hostsByAncestor[node.structuralHash, default: []].append(host)
+                cursor = node.parent
+            }
+        }
+    }
+
+    /// Drops `host`'s record and its places in ``hostsByAncestor``.
+    func forgetHost(_ host: ViewIdentity) {
+        hostedMembers.removeValue(forKey: host)
+        var cursor: ViewIdentity? = host
+        while let node = cursor {
+            let key = node.structuralHash
+            if var hosts = hostsByAncestor[key] {
+                hosts.removeAll { $0 == host }
+                hostsByAncestor[key] = hosts.isEmpty ? nil : hosts
+            }
+            cursor = node.parent
         }
     }
 
     /// The members drawn at `identity` or below it whose own identity is not
     /// there too — which the clear at `identity` has already reached.
+    ///
+    /// Looked up by `identity`'s structural hash (``hostsByAncestor``), each
+    /// host confirmed structurally: a scan of every host on every clear was a
+    /// fiftieth of a `pickers` frame, its rows' segments each a host and each
+    /// re-inked segment a clear.
     func membersHosted(under identity: ViewIdentity) -> [ViewIdentity] {
+        guard let hosts = hostsByAncestor[identity.structuralHash] else { return [] }
         var found: [ViewIdentity] = []
-        for (host, record) in hostedMembers where host == identity || identity.isAncestor(of: host) {
+        for host in hosts where host == identity || identity.isAncestor(of: host) {
+            guard let record = hostedMembers[host] else { continue }
             for member in record.members where member != identity && !identity.isAncestor(of: member) {
                 found.append(member)
             }
