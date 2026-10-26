@@ -81,25 +81,7 @@ package enum HairlineMarker {
     /// list's marked rows on one that is — pays one pass over its bytes and no
     /// decoding.
     package static func mayCarryMark(_ line: String) -> Bool {
-        var line = line
-        return line.withUTF8 { bytes in
-            let needle = parameterBytes
-            guard bytes.count >= needle.count + 3 else { return false }
-            var index = 0
-            let last = bytes.count - needle.count
-            while index <= last {
-                // Only after the `[` or `;` that starts a parameter: a `7744:`
-                // in a cell's text is text, and a sanitised row's text holds no
-                // ESC to make it anything else.
-                if bytes[index] == needle[0], index > 0, bytes[index - 1] == 0x5B || bytes[index - 1] == 0x3B {
-                    var matched = 1
-                    while matched < needle.count, bytes[index + matched] == needle[matched] { matched += 1 }
-                    if matched == needle.count { return true }
-                }
-                index += 1
-            }
-            return false
-        }
+        SGRMarks.mayCarry(line, parameterBytes: parameterBytes)
     }
 
     // MARK: Marking
@@ -146,7 +128,7 @@ package enum HairlineMarker {
                 result += text
                 if isSGR {
                     state.apply(text)
-                    if inside, resets(text) { result += mark }
+                    if inside, SGRMarks.resets(text) { result += mark }
                 }
             case .visible(let character):
                 if !done, !inside, column >= columns.lowerBound, column < columns.upperBound {
@@ -242,41 +224,6 @@ package enum HairlineMarker {
         static let shared = Lock<[Key: String]>(initialState: [:])
     }
 
-    /// Whether SGR `sequence` ends a passthrough code: a reset among its
-    /// parameters (``isReset(_:at:)``).
-    private static func resets(_ sequence: String) -> Bool {
-        let parameters = sequence.dropFirst(2).dropLast().split(separator: ";", omittingEmptySubsequences: false)
-        var index = 0
-        while index < parameters.count {
-            if isReset(parameters, at: index) { return true }
-            index += span(parameters, at: index)
-        }
-        return false
-    }
-
-    /// Whether the parameter at `index` is SGR 0: empty (`ESC[m`, `ESC[;1m`)
-    /// or all zeroes. Asked only at a parameter's own start, so the 0 of
-    /// `38;5;0` — a colour's index — is never read as one.
-    private static func isReset(_ parameters: [Substring], at index: Int) -> Bool {
-        let parameter = parameters[index]
-        return parameter.isEmpty || parameter.allSatisfy { $0 == "0" }
-    }
-
-    /// How many parameters the one at `index` takes up: a `38`, `48` or `58`
-    /// in its semicolon form takes its colour's arguments with it (`5;n`,
-    /// `2;r;g;b`), as ``SGRState`` reads it; everything else is one.
-    private static func span(_ parameters: [Substring], at index: Int) -> Int {
-        let parameter = parameters[index]
-        guard parameter == "38" || parameter == "48" || parameter == "58", index + 1 < parameters.count else {
-            return 1
-        }
-        switch parameters[index + 1] {
-        case "5": return min(3, parameters.count - index)
-        case "2": return min(5, parameters.count - index)
-        default: return 1
-        }
-    }
-
     // MARK: Reading back
 
     /// `line` without its marks, and the runs they made.
@@ -287,56 +234,19 @@ package enum HairlineMarker {
     /// cells of one colour; a cell under no mark ends one, as does a change of
     /// colour.
     package static func extracting(_ line: String) -> (line: String, runs: [Run]) {
-        var result = ""
-        result.reserveCapacity(line.utf8.count)
         var runs: [Run] = []
-        var ink: (UInt8, UInt8, UInt8)?
-        var column = 0
-        line.forEachANSISegment { segment in
-            switch segment {
-            case .ansi(let text, let isSGR):
-                guard isSGR else {
-                    result += text
-                    return true
-                }
-                let parameters = text.dropFirst(2).dropLast().split(separator: ";", omittingEmptySubsequences: false)
-                var kept: [Substring] = []
-                var removed = false
-                var index = 0
-                while index < parameters.count {
-                    let span = span(parameters, at: index)
-                    if let colour = colour(of: parameters[index]) {
-                        ink = colour
-                        removed = true
-                    } else {
-                        if isReset(parameters, at: index) { ink = nil }
-                        kept += parameters[index..<(index + span)]
-                    }
-                    index += span
-                }
-                if !removed {
-                    result += text
-                } else if !kept.isEmpty {
-                    result += "\u{1B}[" + kept.joined(separator: ";") + "m"
-                }
-            case .visible(let character):
-                let width = character.terminalWidth
-                if let (red, green, blue) = ink, width > 0 {
-                    if var last = runs.last, last.column + last.width == column,
-                        last.red == red, last.green == green, last.blue == blue
-                    {
-                        last.width += width
-                        runs[runs.count - 1] = last
-                    } else {
-                        runs.append(Run(column: column, width: width, red: red, green: green, blue: blue))
-                    }
-                }
-                result.append(character)
-                column += width
+        let stripped = SGRMarks.extracting(line, payload: colour(of:)) { column, width, ink in
+            let (red, green, blue) = ink
+            if var last = runs.last, last.column + last.width == column,
+                last.red == red, last.green == green, last.blue == blue
+            {
+                last.width += width
+                runs[runs.count - 1] = last
+            } else {
+                runs.append(Run(column: column, width: width, red: red, green: green, blue: blue))
             }
-            return true
         }
-        return (result, runs)
+        return (stripped, runs)
     }
 
     /// `line` without its marks — ``extracting(_:)``'s line alone, for a
@@ -347,9 +257,8 @@ package enum HairlineMarker {
 
     /// The colour a mark parameter states, or `nil` for any other parameter.
     private static func colour(of parameter: Substring) -> (UInt8, UInt8, UInt8)? {
-        let fields = parameter.split(separator: ":", omittingEmptySubsequences: false)
-        guard fields.count == 4, fields[0] == "\(Self.parameter)",
-            let red = UInt8(fields[1]), let green = UInt8(fields[2]), let blue = UInt8(fields[3])
+        guard let fields = SGRMarks.fields(of: parameter, number: Self.parameter, count: 3),
+            let red = UInt8(exactly: fields[0]), let green = UInt8(exactly: fields[1]), let blue = UInt8(exactly: fields[2])
         else { return nil }
         return (red, green, blue)
     }
