@@ -1,10 +1,11 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  AnimationClip.swift
 //
-//  `animation`: a habit tracker that moves — a tab underline gliding between
-//  tabs (matched geometry), habits flying from one column to the other as
-//  they are done, a notice sliding in and out (a transition), and a streak
-//  bar springing to its new length.
+//  `animation`: a habit tracker that moves, one thing at a time — habits flying
+//  from one column to the other as they are done (matched geometry), a notice
+//  sliding in and out, a streak bar springing to its new length, and the
+//  period tabs, whose underline glides across as the week's grid and then the
+//  month's heat map push in, each lit by what was just done.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -18,14 +19,16 @@ let animationClip = Clip(
     columns: 112,
     rows: 30,
     output: 800,
+    // Today's habits done, one at a time; then the week, and the month, each
+    // showing what was just done; then back to today, reset, for the loop.
     script: [
-        .camera(Shot(x: 0, y: 2, width: 86, height: 18)),
+        .camera(Shot(x: 0, y: 2, width: 62, height: 18)),
         .wait(0.9), .cue("done"),
-        .wait(1.1), .cue("tab 1"),
-        .wait(1.0), .cue("done"),
-        .wait(1.1), .cue("tab 2"),
-        .wait(1.0), .cue("done"),
-        .wait(1.3), .cue("reset"), .cue("tab 0"),
+        .wait(1.2), .cue("done"),
+        .wait(1.2), .cue("done"),
+        .wait(1.4), .cue("tab 1"),
+        .wait(1.9), .cue("tab 2"),
+        .wait(1.9), .cue("tab 0"), .cue("reset"),
         .wait(1.4),
     ],
     run: { await AnimationApp.main() }
@@ -53,11 +56,20 @@ struct HabitTracker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
             tabBar
-            HStack(alignment: .top, spacing: 2) {
-                column("To do", habits: toDo)
-                column("Done", habits: done)
-                week
+            // The period's own view, pushed in from the side the tab is on.
+            Group {
+                switch tab {
+                case 0:
+                    HStack(alignment: .top, spacing: 2) {
+                        column("To do", habits: toDo)
+                        column("Done", habits: done)
+                    }
+                case 1: week
+                default: month
+                }
             }
+            .id(tab)
+            .transition(.push(from: .trailing))
             streak
             if let notice {
                 Text(verbatim: "✓ \(notice) — streak +1")
@@ -86,7 +98,7 @@ struct HabitTracker: View {
                 notice = habit
             }
         } else if cue.hasPrefix("tab "), let index = Int(cue.dropFirst(4)) {
-            withAnimation(spring) { tab = index; notice = nil }
+            withAnimation(.easeInOut(duration: 0.5)) { tab = index; notice = nil }
         } else if cue == "reset" {
             withAnimation(spring) {
                 toDo = ["Stretch", "Read 20 pages", "Water plants", "Walk 5 km"]
@@ -124,6 +136,46 @@ struct HabitTracker: View {
         .frame(width: 17, height: 7, alignment: .topLeading)
         .padding(.horizontal, 1)
         .border()
+    }
+
+    /// The month so far: a square a day, as bright as the habits done that
+    /// day; today's follows the columns.
+    private var month: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 1) {
+                Text(verbatim: "October").bold()
+                Spacer(minLength: 0)
+                Text(verbatim: "M T W T F S S").foregroundStyle(.palette.foregroundTertiary)
+            }
+            ForEach(0..<5, id: \.self) { week in
+                HStack(spacing: 1) {
+                    Spacer(minLength: 0)
+                    ForEach(0..<7, id: \.self) { weekday in
+                        let day = week * 7 + weekday
+                        Text(verbatim: day > Self.dayOfMonth ? "·" : "■")
+                            .foregroundStyle(monthColour(day: day))
+                    }
+                }
+            }
+        }
+        .frame(width: 30, height: 7, alignment: .topLeading)
+        .padding(.horizontal, 1)
+        .border()
+    }
+
+    /// The day of the month today is: a Friday, as `today` is.
+    private static let dayOfMonth = 25
+
+    /// A past day as bright as its habits done (from none to all five);
+    /// today's as many as are done now.
+    private func monthColour(day: Int) -> Color {
+        if day > Self.dayOfMonth { return .palette.foregroundTertiary }
+        let count = day == Self.dayOfMonth ? done.count : (day &* 37 &+ 11) % 6
+        let shades: [Color] = [
+            .palette.foregroundTertiary, .palette.accent.opacity(0.35), .palette.accent.opacity(0.55),
+            .palette.accent.opacity(0.75), .palette.accent, .palette.success,
+        ]
+        return shades[min(count, shades.count - 1)]
     }
 
     /// The week so far: a row of days per habit, today's lit once it is done.
