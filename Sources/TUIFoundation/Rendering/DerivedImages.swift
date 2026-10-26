@@ -52,11 +52,19 @@ struct DerivedImages {
     /// The derived copies kept of one picture. Past it, the oldest goes.
     static let limit = 8
 
+    /// The most bytes of a picture's own pixels kept to make its unblurred
+    /// copies from (a fade, a veil), whose detail a small copy loses: a
+    /// photograph a screen wide. A larger picture's copies are made from its
+    /// small copy, soft rather than unbounded.
+    static let fullPixelLimit = 4 << 20
+
     /// A picture's small copy, as RGBA bytes, and its derived copies.
     private struct Source {
         let columns: Int
         let rows: Int
         let pixels: [UInt8]
+        /// The picture's own pixels, as RGBA, where they fit ``DerivedImages/fullPixelLimit``.
+        var full: (bytes: [UInt8], width: Int, height: Int)?
         var copies: [ImageTransform: Copy] = [:]
         /// The transforms in the order they were made, oldest first.
         var order: [ImageTransform] = []
@@ -83,10 +91,25 @@ struct DerivedImages {
         _ id: KittyGraphics.ImageID, columns: Int, rows: Int,
         pixels: (bytes: [UInt8], format: KittyGraphics.PixelFormat, width: Int, height: Int)
     ) {
-        sources[id] = Source(
+        var source = Source(
             columns: columns, rows: rows,
             pixels: Self.downsampled(
                 pixels, to: (columns * Self.pixelsAcross, rows * Self.pixelsDown)))
+        if pixels.width * pixels.height * 4 <= Self.fullPixelLimit {
+            source.full = (Self.rgba(pixels), pixels.width, pixels.height)
+        }
+        sources[id] = source
+    }
+
+    /// `pixels` as RGBA: as they are, or opaque where they had no alpha.
+    static func rgba(_ pixels: (bytes: [UInt8], format: KittyGraphics.PixelFormat, width: Int, height: Int)) -> [UInt8] {
+        guard pixels.format.stride == 3 else { return pixels.bytes }
+        var out = [UInt8]()
+        out.reserveCapacity(pixels.width * pixels.height * 4)
+        for at in stride(from: 0, to: min(pixels.bytes.count, pixels.width * pixels.height * 3), by: 3) {
+            out += [pixels.bytes[at], pixels.bytes[at + 1], pixels.bytes[at + 2], 255]
+        }
+        return out
     }
 
     /// Forgets picture `id` and every copy derived from it, returning the
@@ -104,11 +127,14 @@ struct DerivedImages {
     mutating func resize(_ id: KittyGraphics.ImageID, columns: Int, rows: Int) {
         guard let source = sources[id] else { return }
         ids.subtract(source.copies.values.map(\.id))
-        sources[id] = Source(
+        var resized = Source(
             columns: columns, rows: rows,
             pixels: Self.downsampled(
                 (source.pixels, .rgba, source.width, source.height),
                 to: (columns * Self.pixelsAcross, rows * Self.pixelsDown)))
+        // The same picture in a new box: its own pixels still are its pixels.
+        resized.full = source.full
+        sources[id] = resized
     }
 
     /// The ids of picture `id`'s copies.
@@ -145,9 +171,17 @@ struct DerivedImages {
             }
         }
         let pixels = Self.applying(transform, to: source.pixels, width: source.width, height: source.height)
-        escapes += KittyGraphics.transmit(
-            pixels: pixels, format: .rgba, width: source.width, height: source.height, id: copyID,
-            compressed: KittyGraphics.isCompressionSupported)
+        // An unblurred copy keeps the picture's detail, from its own pixels where
+        // they were kept; a blurred one has none to keep, and the small copy is it.
+        if !transform.blurs, let full = source.full {
+            escapes += KittyGraphics.transmit(
+                pixels: Self.applying(transform, to: full.bytes, width: full.width, height: full.height), format: .rgba,
+                width: full.width, height: full.height, id: copyID, compressed: KittyGraphics.isCompressionSupported)
+        } else {
+            escapes += KittyGraphics.transmit(
+                pixels: pixels, format: .rgba, width: source.width, height: source.height, id: copyID,
+                compressed: KittyGraphics.isCompressionSupported)
+        }
         escapes += KittyGraphics.placement(id: copyID, columns: source.columns, rows: source.rows)
         source.copies[transform] = Copy(id: copyID, pixels: pixels)
         source.order.append(transform)

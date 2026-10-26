@@ -1172,7 +1172,8 @@ extension RenderLoop {
         // theirs against them as it stacked them, so none of their claims is
         // left for this one.
         let palette = environment.palette
-        let buffer = buffer.resolvingOpacity(surface: palette.background, palette: palette)
+        let buffer = buffer.resolvingOpacity(
+            surface: palette.background, palette: palette, images: tuiContext.terminalImageStore)
 
         let outputLines = diffWriter.buildReusingOutputLines(
             buffer: buffer,

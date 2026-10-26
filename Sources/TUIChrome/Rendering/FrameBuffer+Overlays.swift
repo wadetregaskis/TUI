@@ -43,7 +43,7 @@ extension FrameBuffer {
         // surface — and if a region were still pending when a layer composited
         // over it, the region would go on naming those cells and the LAYER's
         // cells would be faded at the root instead of the page's.
-        var result = resolvingOpacity(surface: palette.background, palette: palette)
+        var result = resolvingOpacity(surface: palette.background, palette: palette, images: images)
         // ONE queue, re-sorted every time a layer is drawn. A layer nested in
         // another layer's content — an alert presented from inside a sheet —
         // is lifted into `overlays` only when its host composites, and a pass

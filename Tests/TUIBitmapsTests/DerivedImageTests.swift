@@ -160,4 +160,52 @@ struct DerivedImageTests {
         #expect(store.average(of: picture, by: halfWay) != nil, "the copy made is the one mixed half-way")
         #expect(store.average(of: picture, by: ImageTransform(blurs: true, toward: (200, 190, 170), fraction: 1)) == nil)
     }
+
+    /// A picture inside a fade: its rows were left at full strength, since the
+    /// resolution read each cell's id as a colour. Each cell now draws a copy mixed
+    /// toward what is behind it by the fade.
+    @Test("A faded picture draws a copy mixed toward the ground")
+    func fadedPictureDrawsCopy() throws {
+        let (store, rows) = storeWithPicture()
+        var page = FrameBuffer(lines: rows)
+        page.opacityRegions = [OpacityRegion(offsetX: 0, offsetY: 0, width: 4, height: 2, opacity: 0.5)]
+        let context = makeRenderContext(width: 4, height: 2)
+        let ground = Color.rgb(10, 20, 30)
+        let faded = page.resolvingOpacity(surface: ground, palette: context.environment.palette, images: store)
+        let original = try #require(pictureCells(rows[1])[3])
+        let drawn = try #require(pictureCells(faded.lines[1])[3])
+        #expect(drawn.id != original.id && drawn.row == 1 && drawn.column == 3, "the copy, at the same cell")
+        let halfWay = ImageTransform(blurs: false, toward: (10, 20, 30), fraction: 0.5)
+        #expect(store.average(of: original, by: halfWay) != nil, "mixed half-way toward the ground")
+    }
+
+    @Test("Unfaded, or with no store to copy from, a picture is drawn as it is")
+    func unfadedPictureUnchanged() throws {
+        let (store, rows) = storeWithPicture()
+        var page = FrameBuffer(lines: rows)
+        page.opacityRegions = [OpacityRegion(offsetX: 0, offsetY: 0, width: 4, height: 2, opacity: 0.5)]
+        let palette = makeRenderContext(width: 4, height: 2).environment.palette
+        let withoutStore = page.resolvingOpacity(surface: .rgb(10, 20, 30), palette: palette, images: nil)
+        #expect(pictureCells(withoutStore.lines[0]) == pictureCells(rows[0]))
+        page.opacityRegions = [OpacityRegion(offsetX: 0, offsetY: 0, width: 4, height: 2, opacity: 1)]
+        let unfaded = page.resolvingOpacity(surface: .rgb(10, 20, 30), palette: palette, images: store)
+        #expect(pictureCells(unfaded.lines[0]) == pictureCells(rows[0]))
+    }
+
+    /// A fade keeps the picture's detail: its copy is made from the picture's own
+    /// pixels at their own size, where a frost's is the small copy, blurred.
+    @Test("An unblurred copy is sent at the picture's size; a frosted one small")
+    func copyResolution() throws {
+        let store = TerminalImageStore()
+        let rows = try #require(
+            store.placeholderRows(
+                token: "a", signature: signature("big"), columns: 4, rows: 2,
+                pixels: { ([UInt8](repeating: 0x80, count: 16 * 16 * 4), .rgba, 16, 16) }))
+        _ = store.takePending()
+        let picture = try #require(pictureCells(rows[0])[0])
+        _ = store.derived(picture, by: ImageTransform(blurs: false, toward: (0, 0, 0), fraction: 0.5))
+        #expect(store.takePending().contains("s=16,v=16"), "the picture's own 16 × 16")
+        _ = store.derived(picture, by: ImageTransform(blurs: true, toward: (0, 0, 0), fraction: 0.5))
+        #expect(store.takePending().contains("s=8,v=8"), "the small copy: 4 cells × 2 across, 2 × 4 down")
+    }
 }

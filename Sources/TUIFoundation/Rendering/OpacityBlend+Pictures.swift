@@ -11,6 +11,21 @@
 import TUICore
 
 extension FrameBuffer {
+    /// What a covered cell draws where a picture is involved — `cell` a picture's
+    /// cell inside a fade (``fadedPicture(_:over:alpha:surface:images:)``), or the
+    /// cell behind it one (``overPicture(_:under:alpha:images:)``) — or `nil` where
+    /// neither is, for the blend's own answer. The one call `blendedSpan` makes per
+    /// covered cell; the cell behind is read as it was, not as a frost's stand-in.
+    static func picture(
+        _ cell: RowCell, over behindCells: ArraySlice<RowCell?>, at column: Int, alpha: CellAlpha?, surface: Color,
+        images: TerminalImageStore?
+    ) -> RowCell? {
+        guard images != nil, alpha != nil else { return nil }
+        let behind = behindCells.indices.contains(column) ? behindCells[column] : nil
+        return fadedPicture(cell, over: behind, alpha: alpha, surface: surface, images: images)
+            ?? overPicture(behindCells, at: column, under: cell, alpha: alpha, images: images)
+    }
+
     /// ``overPicture(_:under:alpha:images:)`` for the cell at `column` of
     /// `cells` — `nil` where there is no such cell, no alpha over it, or no
     /// store to draw a copy from. The one call `blendedSpan` makes per covered
@@ -21,6 +36,40 @@ extension FrameBuffer {
     ) -> RowCell? {
         guard let images, let alpha, cells.indices.contains(column), let behind = cells[column] else { return nil }
         return overPicture(behind, under: cell, alpha: alpha, images: images)
+    }
+
+    /// `cell`, a picture's cell in a layer faded by `alpha`, drawn as a copy of
+    /// the picture mixed toward what is behind it — `behind`'s field, or the
+    /// surface — by as much as the fade takes away: or `nil` where `cell` is no
+    /// picture's, or there is nothing to change.
+    ///
+    /// A picture is not a glyph, so the glyph contest does not apply: at any
+    /// alpha above none the picture draws, fainter; at none the blend's answer,
+    /// what is behind, stands.
+    static func fadedPicture(
+        _ cell: RowCell, over behind: RowCell?, alpha: CellAlpha?, surface: Color, images: TerminalImageStore?
+    ) -> RowCell? {
+        guard let images, let alpha, alpha.layer > 0, let ink = cell.foreground?.rgbComponents,
+            let picture = KittyGraphics.placeholderCell(cell.character, foreground: ink)
+        else { return nil }
+        let ground = (behind?.background ?? surface).rgbComponents
+        let fraction = 1 - alpha.layer
+        let transform = ImageTransform(blurs: false, toward: ground ?? (0, 0, 0), fraction: fraction)
+        // Unfaded, or over a ground with no colour to mix toward: the picture as it is.
+        guard transform.amount > 0, ground != nil else { return cell }
+        guard let copy = images.derived(picture, by: transform) else { return cell }
+        var drawn = cell
+        drawn.character = copy.character
+        // swiftlint:disable:next framework_colour_literal
+        let id = Color.rgb(UInt8((copy.id >> 16) & 0xFF), UInt8((copy.id >> 8) & 0xFF), UInt8(copy.id & 0xFF))
+        drawn.foreground = id
+        drawn.style = drawn.style.settingForeground(id, depth: .truecolor)
+        // Where the picture is transparent, what is behind shows.
+        if drawn.background == nil, let field = behind?.background {
+            drawn.background = field
+            drawn.style = drawn.style.settingBackground(field)
+        }
+        return drawn
     }
 
     /// What a cell of a translucent layer, `cell` at `alpha`, makes of the

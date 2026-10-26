@@ -367,7 +367,7 @@ extension FrameBuffer {
             // picture with this layer already applied (`Terminal graphics
             // protocols.md` §14). Read from the cell as it was, not the frost's
             // stand-in for it.
-            blended = Self.overPicture(behindCells, at: behindColumn, under: cell, alpha: coverage, images: images) ?? blended
+            blended = Self.picture(cell, over: behindCells, at: behindColumn, alpha: coverage, surface: surface, images: images) ?? blended
             // A revealed DESTINATION character can be wide, and the walk
             // advances by what it emits: a two-column character from a
             // one-column decision would swallow the next source column's own

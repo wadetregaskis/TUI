@@ -1233,7 +1233,22 @@ C is what TUI does.
 
 Reviewed live in Ghostty with `ScreenClips --child frostreview`: a share
 panel on `.thinMaterial` and a toast on `.regularMaterial` over four photos
-read as frosted glass. Not yet done: a faded picture (`.opacity` on an
-image, whose rows the resolution still leaves at full strength), and the
-modal veil and `.dimmed()` over one. They take the same copies with a
-different transform.
+read as frosted glass. Not yet done: the modal veil and `.dimmed()` over a
+picture, which take the same copies with a different transform.
+
+### 14.3 A faded picture (2026-10-26)
+
+`.opacity` on a picture drew it at full strength: the resolution left any row
+holding a picture alone, since it read each cell's id as a colour. Where the
+store is known, it no longer does. Each picture cell inside a fade draws a copy
+mixed toward what is behind it (the cell's field there, or the surface) by
+what the fade takes away. A picture is not a glyph, so no contest at ½: it
+draws, fainter, at any alpha above none. Both the screen root's resolution and
+a compositor's reach the store.
+
+A fade's copy keeps the picture's detail. A frost's copy is made from the
+small copy, since a blur hides that. A fade's made that way was visibly soft
+(the trillium's water drops went), so the store keeps each picture's own
+pixels too, up to 4 MiB a picture, and makes an unblurred copy from them at
+the picture's own size. A larger picture fades from its small copy, soft
+rather than unbounded.

@@ -81,6 +81,15 @@ extension FrameBuffer {
             fillingStatedTerminalField: false, buildingRuns: true)
     }
 
+    /// ``resolvingOpacity(over:at:surface:palette:)`` at the screen root, knowing
+    /// the pictures the app has put in the terminal: a faded picture draws a copy
+    /// of itself mixed toward what is behind it (`OpacityBlend+Pictures.swift`).
+    package func resolvingOpacity(surface: Color, palette: any Palette, images: TerminalImageStore?) -> Self {
+        resolvingOpacity(
+            over: Self(), at: (x: 0, y: 0), surface: surface, palette: palette, statingTheSurface: true,
+            fillingStatedTerminalField: false, buildingRuns: true, images: images)
+    }
+
     /// ``resolvingOpacity(over:at:surface:palette:)``, saying whether a covered cell the
     /// blend leaves with no field states `surface` as its field (§9.8), whether a stated
     /// `ESC[49m` is read as the field under it, and whether it builds the runs at all.
@@ -197,11 +206,11 @@ extension FrameBuffer {
             // describe, rather than wrong in a way that looks like the image
             // failed to load.
             //
-            // Fading a real picture is possible — the alpha would go into the
-            // pixels before they are transmitted — but that is the store's
-            // business and it cannot be done from here, where all that is left
-            // of the image is cells.
-            guard !line.unicodeScalars.contains(.terminalImagePlaceholder) else { return nil }
+            // Where the store is known, it is not left alone: each picture cell
+            // draws a copy of the picture mixed toward what is behind it by the
+            // fade (`OpacityBlend+Pictures.swift`). Only without one is there
+            // nothing to fade it with.
+            guard images != nil || !line.unicodeScalars.contains(.terminalImagePlaceholder) else { return nil }
             let first = covering.map(\.offsetX).min() ?? 0
             // No further than the LINE reaches. A region is stamped as wide as
             // its buffer — the longest line — over lines that may be shorter,
