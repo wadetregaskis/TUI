@@ -1946,6 +1946,8 @@ in), and choosing changes the chrome depth of every faded theme. No paint site
 migrated so far reaches them, so nothing is silently wrong *today* — what was missing
 was any statement that the question is open. This is the project owner's call.
 
+*Answered 2026-09-10 by the owner: carry. §39.*
+
 
 ## 29. Four copies of one pulse pair, three of them wrong (2026-09-10)
 
