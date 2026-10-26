@@ -278,12 +278,7 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
     private func header(
         month: Date, isFocused: Bool, legibility: LegibilityWeight?, calendar: Calendar, palette: any Palette
     ) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.timeZone = calendar.timeZone
-        formatter.locale = calendar.locale ?? .current
-        formatter.setLocalizedDateFormatFromTemplate("MMMMyyyy")
-        let title = formatter.string(from: month)
+        let title = CalendarMonthTitle.title(of: month, calendar: calendar, locale: calendar.locale ?? .current)
         let inner = Self.width - 4
         let fitted = title.count > inner ? String(title.prefix(inner)) : title
         let left = (inner - fitted.count) / 2
