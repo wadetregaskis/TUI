@@ -593,7 +593,8 @@ extension FrameBuffer {
             guard from < upTo else { continue }
             if let under = region.fieldUnderContent {
                 let painted = Self.PainterField(
-                    colour: Self.colour(of: under), layer: cell.layer, field: cell.field, mode: cell.mode)
+                    colour: Self.colour(of: under), layer: cell.layer, field: cell.field, mode: cell.mode,
+                    linearLight: cell.linearLight)
                 if layerless == nil { layerless = [Bool](repeating: false, count: columns.count) }
                 for column in from..<upTo {
                     let index = column - columns.lowerBound
@@ -616,6 +617,7 @@ extension FrameBuffer {
                 }
                 if layerless?[index] == true {
                     accumulated.layer = cell.layer
+                    accumulated.linearLight = cell.linearLight
                     layerless?[index] = false
                 }
                 accumulated.ink *= cell.ink

@@ -97,6 +97,11 @@ extension FrameBuffer {
         /// behind as it is.
         var frostField: Color?
 
+        /// Whether the cell's colours mix in linear light
+        /// (``OpacityRegion/blendsInLinearLight``): the innermost covering
+        /// claim's, as for ``mode``.
+        var linearLight = false
+
         init(layer: Double, ink: Double = 1, field: Double = 1, mode: BlendMode = .normal) {
             self.layer = layer
             self.ink = ink
@@ -120,6 +125,18 @@ extension FrameBuffer {
         var field: Double
         /// How the field combines with what is behind it (``ShapeStyle/blendMode(_:)``).
         var mode: BlendMode = .normal
+        /// Whether the field mixes in linear light (``CellAlpha/linearLight``).
+        var linearLight = false
+    }
+
+    /// `colour` at `coverage` over `behind`, mixed in the space `alpha` names:
+    /// ``Color/opacity(_:over:)``'s encoded sRGB, or
+    /// ``Color/compositing(_:over:)``'s linear light inside a
+    /// `drawingGroup(colorMode: .linear)`. The colour's own alpha is coverage
+    /// either way, as `opacity(_:over:)` reads it.
+    static func mixing(_ colour: Color, _ coverage: Double, over behind: Color, in alpha: CellAlpha) -> Color {
+        guard alpha.linearLight else { return colour.opacity(coverage, over: behind) }
+        return colour.compositing(Double(colour.alpha) / 255 * coverage, over: behind)
     }
 
     /// The blended replacement for `columns` of `source`, as a self-contained
@@ -563,7 +580,11 @@ extension FrameBuffer {
                 foreground: nil, background: colour)
             below = blendLayer(
                 source: pane, destination: below,
-                alpha: CellAlpha(layer: painter.layer, field: painter.field, mode: painter.mode),
+                alpha: {
+                    var alpha = CellAlpha(layer: painter.layer, field: painter.field, mode: painter.mode)
+                    alpha.linearLight = painter.linearLight
+                    return alpha
+                }(),
                 surface: surface, defaultForeground: defaultForeground)
         }
         var own = alpha
@@ -698,7 +719,7 @@ extension FrameBuffer {
         // cell does not end up having — 40% green over FULL red, sitting on a
         // background that is 40% red.
         let fieldWithinLayer =
-            source.background.map { $0.opacity(alpha.field, over: destinationField) }
+            source.background.map { mixing($0, alpha.field, over: destinationField, in: alpha) }
         let ownField = fieldWithinLayer ?? destinationField
         let sourcePaintsInk =
             source.character != " " || source.style.paintsInkOnBlankCell
@@ -714,14 +735,14 @@ extension FrameBuffer {
         // shows through: over a blank the answer is a blank, whose ink nobody sees.
         let inkWithinLayer: Color?
         if !sourcePaintsInk, destinationPaintsInk, let field = source.background {
-            inkWithinLayer = field.opacity(alpha.field, over: destinationInk)
+            inkWithinLayer = mixing(field, alpha.field, over: destinationInk, in: alpha)
         } else {
-            inkWithinLayer = sourceInk.map { $0.opacity(alpha.ink, over: ownField) }
+            inkWithinLayer = sourceInk.map { mixing($0, alpha.ink, over: ownField, in: alpha) }
         }
         let foreground: Color?
         if mode == .normal {
             foreground =
-                inkWithinLayer.map { $0.opacity(alpha.layer, over: destinationInk) }
+                inkWithinLayer.map { mixing($0, alpha.layer, over: destinationInk, in: alpha) }
                 ?? destination?.foreground
         } else {
             foreground = Self.inkBlended(
@@ -742,9 +763,11 @@ extension FrameBuffer {
         // is what macOS draws for `Color.red.opacity(0.5).blendMode(.multiply)`.
         let background =
             mode == .normal
-            ? fieldWithinLayer.map { $0.opacity(alpha.layer, over: destinationField) }
+            ? fieldWithinLayer.map { mixing($0, alpha.layer, over: destinationField, in: alpha) }
                 ?? destination?.background
-            : source.background.map { $0.blending(mode, at: alpha.layer * alpha.field, over: destinationField) }
+            : source.background.map {
+                $0.blending(mode, at: alpha.layer * alpha.field, over: destinationField, linearLight: alpha.linearLight)
+            }
                 ?? destination?.background
 
         // Only the glyph needs a DECISION, because a cell can hold one and
@@ -1131,6 +1154,8 @@ extension OpacityRegion {
     /// cycle phases — reads the same three fields. `OpacityRegion` lives a module
     /// below `FrameBuffer.CellAlpha`, hence the extension here rather than there.
     var cellAlpha: FrameBuffer.CellAlpha {
-        FrameBuffer.CellAlpha(layer: opacity, ink: inkOpacity, field: fieldOpacity, mode: blendMode)
+        var alpha = FrameBuffer.CellAlpha(layer: opacity, ink: inkOpacity, field: fieldOpacity, mode: blendMode)
+        alpha.linearLight = blendsInLinearLight
+        return alpha
     }
 }

@@ -68,11 +68,12 @@ extension FrameBuffer {
     ///     `here`).
     ///   - position: Where it lands, in this buffer's cells.
     ///   - palette: Resolves the surface and SGR 39 for a claim spent first.
+    ///   - linearLight: Whether a claim spent first mixes in linear light.
     /// - Returns: This buffer, its claims under the layer's fades spent; the claims it
     ///   keeps under the layer's cells, each about the field alone; and the layer, less
     ///   the claims of its own that go up with those (`carried`, in its coordinates).
     func settlingClaims(
-        under layer: Self, at position: (x: Int, y: Int), palette: any Palette
+        under layer: Self, at position: (x: Int, y: Int), palette: any Palette, linearLight: Bool
     ) -> (base: Self, kept: [OpacityRegion], layer: Self, carried: [OpacityRegion]) {
         guard !opacityRegions.isEmpty || animatedCells.contains(where: { $0.alpha?.isTranslucent == true }),
             var settling = ClaimsUnderALayer(base: self, layer: layer, at: position)
@@ -83,6 +84,7 @@ extension FrameBuffer {
         guard !spentFirst.isEmpty || !spentRuns.isEmpty else { return (self, kept, layer, carried) }
         var spending = self
         spending.opacityRegions = spentFirst
+        if linearLight { spending.opacityRegions.placeInLinearLight() }
         spending.animatedCells = spentRuns
         let spent = spending.resolvingOpacity(
             over: Self(), at: (x: 0, y: 0), surface: palette.background, palette: palette, statingTheSurface: false,
@@ -92,7 +94,7 @@ extension FrameBuffer {
         return (base, kept, layer, carried)
     }
 
-    /// How many of a base's cells ``settlingClaims(under:at:palette:)`` asked the fate
+    /// How many of a base's cells ``settlingClaims(under:at:palette:linearLight:)`` asked the fate
     /// of, for a test that bounds that by the cells the layer covers
     /// (`CompositorOverNothingTests`); `nil`, and nothing counted, everywhere else.
     @TaskLocal package static var settleWork: SettleWork?
@@ -107,7 +109,7 @@ extension FrameBuffer {
 }
 
 /// A base's claims under the cells of a layer about to land on it, and what becomes
-/// of each (``FrameBuffer/settlingClaims(under:at:palette:)``).
+/// of each (``FrameBuffer/settlingClaims(under:at:palette:linearLight:)``).
 private struct ClaimsUnderALayer {
 
     /// What becomes of the base's claims under one of the layer's cells.

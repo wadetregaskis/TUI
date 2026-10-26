@@ -724,7 +724,8 @@ The rules, updated as each lands:
    `Color.opacity(_:over:)` — the same encoded mix style derivation has
    always used, which also removes the split where one screen faded two ways.
    `Color.compositing(_:over:)` remains, correct and public, for the question
-   it actually answers.
+   it actually answers, and since 2026-10-26 for the blends inside a
+   `drawingGroup(colorMode: .linear)`, which asks for it (§113).
 
 6. **The blend reads the colours a cell DISPLAYS, not the ones it stores.**
    Reverse video (SGR 7) makes the foreground the colour the cell is painted:
@@ -7320,7 +7321,7 @@ stayed. Measured on this tree before the fix, truecolor, the default page:
   (§105's limit): the base's own claim, punched the same way.
 
 **The rule.** A compositor settles its base's claims under a layer before the layer lands on it
-(`FrameBuffer.settlingClaims(under:at:palette:)`), cell by cell. It reads the layer's cells as
+(`FrameBuffer.settlingClaims(under:at:palette:linearLight:)`), cell by cell. It reads the layer's cells as
 the composite reads them: a cell naming no colour in its background slot takes the base's field
 there, and a stated `ESC[49m` is one of them (`String.paintedOver(background:)`, §95), where a
 painter reading a 49 as the content's own field (`columnsLeavingFieldToPainter(width:)`) would
@@ -7664,3 +7665,32 @@ behind the dialog. Hit-test regions are dropped, as before, and pending overlays
 through.
 
 `.dimmed()` keeps the flatten, which is the look it asks for.
+
+## 113. A drawing group can blend in linear light (2026-10-26)
+
+`drawingGroup(opaque:colorMode:)` ships (decisions A27): the group itself is
+`compositingGroup()`, which TUI's composite is already, and `colorMode:
+.linear` or `.extendedLinear` mixes the blends inside it in linear light —
+`Color.compositing(_:over:)`, and a blend mode's channels decoded, combined
+and encoded again (`Color.blending(_:at:over:linearLight:)`).
+
+**Inside means spent at a composite inside the group.** SwiftUI composites
+the group into an offscreen image in the working space and that image into
+the window in the window's. Here a claim is spent where what is behind it is
+known, so the split falls out of where that is:
+
+- a composite inside the group (a `ZStack`, an overlay, a background, a
+  `Layout`, a shadow) marks the claims it spends with its environment's
+  `blendsInLinearLight` just before it spends them
+  (`OpacityRegion.blendsInLinearLight`, read into `CellAlpha.linearLight`);
+- a claim that leaves the group unspent lands on what is outside it and is
+  spent by a composite there, or at the root, in that composite's space:
+  `ZStack { red; blue.opacity(0.5).drawingGroup(colorMode: .linear) }`
+  mixes encoded, as the window would.
+
+The innermost group decides, since it sets the environment its composites
+read; a sheet resets it, being a window of its own. `.extendedLinear` is
+`.linear` on a terminal's colours, which are all in the standard range.
+`opaque` is the caller's promise that every pixel paints, which a cell grid
+has no use for.
+

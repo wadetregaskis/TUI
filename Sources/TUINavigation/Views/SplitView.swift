@@ -284,13 +284,15 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
             let buffer = child.render(
                 width: axis == .horizontal ? size : across, height: axis == .horizontal ? across : size,
                 context: paneContext)
-            result.compositeCarryingClaimsOverNothing(with: buffer, at: position(offset), palette: palette)
+            result.compositeCarryingClaimsOverNothing(
+                with: buffer, at: position(offset), palette: palette, linearLight: context.environment.blendsInLinearLight)
             offset += size
             guard index + 1 < children.count else { break }
             let divider = dividerBuffer(
                 index: index, panes: panes, length: across,
                 hides: index == children.count - 2 ? trailingToggle : nil, context: context)
-            result.compositeCarryingClaimsOverNothing(with: divider, at: position(offset), palette: palette)
+            result.compositeCarryingClaimsOverNothing(
+                with: divider, at: position(offset), palette: palette, linearLight: context.environment.blendsInLinearLight)
             offset += 1
         }
         return result.clamped(toWidth: width, height: height)

@@ -16,7 +16,7 @@ extension FrameBuffer {
     /// Character-level compositing, so a narrower layer does not truncate a
     /// wider one beneath it — the uncovered sides of the lower layer show
     /// through — and each layer keeps its fills, blank-but-coloured cells
-    /// included (``compositedCarryingClaimsOverNothing(with:at:palette:)``).
+    /// included (``compositedCarryingClaimsOverNothing(with:at:palette:linearLight:)``).
     ///
     /// A layer that does not fit the canvas is, where `splitsOverhang`, drawn
     /// past it at its place in the stacking order
@@ -56,7 +56,8 @@ extension FrameBuffer {
             }
             showingThrough += result.runsShowingThrough(buffer, at: (x: dx, y: dy))
             result = result.compositedCarryingClaimsOverNothing(
-                with: buffer, at: (x: dx, y: dy), palette: context.environment.palette)
+                with: buffer, at: (x: dx, y: dy), palette: context.environment.palette,
+                linearLight: context.environment.blendsInLinearLight)
         }
         if !showingThrough.isEmpty {
             context.requestWake(

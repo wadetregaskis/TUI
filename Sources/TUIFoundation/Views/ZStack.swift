@@ -145,7 +145,9 @@ private struct _ZStackCore<Content: View>: View, Renderable {
                 return gliding
             }
             return buffers.reduce(FrameBuffer()) {
-                $0.compositedCarryingClaimsOverNothing(with: $1, at: (x: 0, y: 0), palette: context.environment.palette)
+                $0.compositedCarryingClaimsOverNothing(
+                    with: $1, at: (x: 0, y: 0), palette: context.environment.palette,
+                    linearLight: context.environment.blendsInLinearLight)
             }
         }
 

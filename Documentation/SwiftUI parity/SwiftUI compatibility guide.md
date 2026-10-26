@@ -42,7 +42,9 @@ The line between the two is worth stating because it is not "does the parameter
 get used": `.monospaced()` and `.autocorrectionDisabled()` ignore their argument
 and are correct, because the grid *already guarantees* what they ask for (and
 `.compositingGroup()` returns the view, because a container's children are
-already composited into one picture before an opacity above them applies)
+already composited into one picture before an opacity above them applies;
+`.drawingGroup()` is that too, and its `colorMode: .linear` is honoured, the
+blends inside it mixed in linear light)
 (`Sources/TUIFoundation/Modifiers/MediumGuaranteedModifiers.swift`). A guarantee the
 medium keeps for free is honoured; a request it silently discards is not.
 

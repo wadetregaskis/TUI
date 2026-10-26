@@ -126,6 +126,14 @@ public struct OpacityRegion: Equatable, Sendable {
     /// Whether what is behind these cells is frosted at all (``frost``).
     public var frosts: Bool { frost != nil }
 
+    /// Whether these cells' alphas blend in linear light rather than encoded
+    /// sRGB: set by a composite inside a `drawingGroup(colorMode: .linear)` on
+    /// the claims it spends there, just before it spends them
+    /// (`compositeCarryingClaimsOverNothing`). A claim that leaves the group
+    /// unspent lands on what is outside it, which blends encoded, as SwiftUI
+    /// composites a drawing group's image into the window.
+    public var blendsInLinearLight = false
+
     public init(
         offsetX: Int, offsetY: Int, width: Int, height: Int, opacity: Double,
         inkOpacity: Double = 1, fieldOpacity: Double = 1,

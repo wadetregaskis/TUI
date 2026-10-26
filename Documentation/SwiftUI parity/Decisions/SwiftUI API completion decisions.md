@@ -529,6 +529,12 @@ glyph inked in the view's colour. Without it `gradient.mask { Text(…) }`,
 SwiftUI's gradient-text idiom, drew solid blocks where the letters are. Where
 the view draws a glyph of its own it keeps it.
 
+**`drawingGroup` shipped 2026-10-26** (`DrawingGroupModifier.swift`, with
+`ColorRenderingMode`): the blends spent at a composite inside a linear group
+mix in linear light, and what leaves the group unspent mixes where it lands,
+as SwiftUI composites the group's image into the window (`Opacity as
+composition.md` §113).
+
 **You asked (2026-10-04)** whether linear and extended-linear blending could be
 supported. Yes (answer of 2026-10-05): blending happens in one place, in
 encoded sRGB by design today, and linear blending is decode, blend and

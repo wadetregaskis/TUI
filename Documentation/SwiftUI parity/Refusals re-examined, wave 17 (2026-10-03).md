@@ -1535,6 +1535,8 @@ window manager and window toolbar, which the host terminal owns.
   `drawingGroup(colorMode:)` and `ImageRenderer`, none of which exist.
   - The reason "never composites colour" is false (X2). TUI has composited
     in both spaces.
+  - *Shipped 2026-10-26 with `drawingGroup(opaque:colorMode:)` (decisions
+    A27).*
 - Both become implementable with Canvas (see D3).
 
 ### Families

@@ -257,7 +257,8 @@ func compositeDrawnLayer(
     // layers, lifted after the base's: over whatever the base floats past it.
     return clampedToBase(
         baseBuffer.compositedCarryingClaimsOverNothing(
-            with: overlayBuffer, at: offset, palette: context.environment.palette),
+            with: overlayBuffer, at: offset, palette: context.environment.palette,
+            linearLight: context.environment.blendsInLinearLight),
         baseBuffer)
 }
 
@@ -322,14 +323,16 @@ func compositeDrawnLayer(
     // What the layer draws past the base's frame rides among its floating
     // layers, lifted before the base's: under whatever the base floats past
     // it, and cut under the base's cells as the base lands.
-    result.compositeCarryingClaimsOverNothing(with: layerBuffer, at: offset, palette: palette)
+    let linearLight = context.environment.blendsInLinearLight
+    result.compositeCarryingClaimsOverNothing(with: layerBuffer, at: offset, palette: palette, linearLight: linearLight)
     let showingThrough = result.runsShowingThrough(baseBuffer, at: (x: 0, y: 0))
     if !showingThrough.isEmpty {
         context.requestWake(
             token: layerWakeToken("background-layer-run", context: context, modifierType: modifierType),
             forNextStepOf: showingThrough.map { ($0.clock, $0.frameTicks) })
     }
-    result.compositeCarryingClaimsOverNothing(with: baseBuffer, at: (x: 0, y: 0), palette: palette)
+    result.compositeCarryingClaimsOverNothing(
+        with: baseBuffer, at: (x: 0, y: 0), palette: palette, linearLight: linearLight)
     return clampedToBase(result, baseBuffer)
 }
 

@@ -217,6 +217,9 @@ extension ModalPresentationModifier: Renderable {
         // section, and the presentation's ways out (`presentedContext`).
         let overlayHeight = context.environment.overlayContentHeight
         var modalContext = presentedContext(sectionID: sectionID, gate: gate, overlayHeight: overlayHeight, context: context)
+        // A sheet is a window of its own, as in SwiftUI: no drawing group its
+        // presenter is in composites it.
+        modalContext.environment.blendsInLinearLight = false
         // Where the content's state lies, for the frame it goes (`startOver`).
         if !context.isMeasuring { notePresentedContent(at: modalContext.identity, context: context) }
 

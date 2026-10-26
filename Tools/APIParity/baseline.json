@@ -56,7 +56,6 @@
   "View.draggable(_:id:item:containerNamespace:)",
   "View.draggable(_:item:containerNamespace:)",
   "View.draggable(containerItemID:containerNamespace:)",
-  "View.drawingGroup(opaque:colorMode:)",
   "View.dropConfiguration(_:)",
   "View.dropPreviewsFormation(_:)",
   "View.layoutDirectionBehavior(_:)",

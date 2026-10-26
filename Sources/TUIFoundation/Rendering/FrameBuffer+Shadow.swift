@@ -80,17 +80,21 @@ extension FrameBuffer {
     ///   - style: The shadow. Its kind is not read.
     ///   - palette: The palette the colour resolves in and the compositor
     ///     resolves against.
+    ///   - linearLight: Whether the shadow mixes in linear light, inside a
+    ///     `drawingGroup(colorMode: .linear)`.
     /// - Returns: The composite, this buffer's size; this buffer as it is when
     ///   the shadow lays nothing.
-    func castingInnerShadow(_ style: ShadowStyle, palette: any Palette) -> FrameBuffer {
+    func castingInnerShadow(_ style: ShadowStyle, palette: any Palette, linearLight: Bool) -> FrameBuffer {
         guard width > 0, !lines.isEmpty else { return self }
-        return castingInnerShadow(style, from: ShadowFootprint(self), palette: palette)
+        return castingInnerShadow(style, from: ShadowFootprint(self), palette: palette, linearLight: linearLight)
     }
 
-    /// ``castingInnerShadow(_:palette:)`` cast from `footprint` rather than
+    /// ``castingInnerShadow(_:palette:linearLight:)`` cast from `footprint` rather than
     /// from the cells this buffer paints — see
     /// ``castingDropShadow(_:from:context:owner:)``.
-    func castingInnerShadow(_ style: ShadowStyle, from footprint: ShadowFootprint, palette: any Palette) -> FrameBuffer {
+    func castingInnerShadow(
+        _ style: ShadowStyle, from footprint: ShadowFootprint, palette: any Palette, linearLight: Bool
+    ) -> FrameBuffer {
         let colour = style.color.resolve(with: palette)
         guard width > 0, !lines.isEmpty,
             let field = ShadowField.inner(footprint: footprint, style: style, peak: colour.alpha),
@@ -107,7 +111,7 @@ extension FrameBuffer {
                 width: piece.width, height: piece.height, inkAlpha: .max, fieldAlpha: alpha
             ).map { [$0] } ?? []
             result.compositeCarryingClaimsOverNothing(
-                with: block, at: (x: piece.offsetX, y: piece.offsetY), palette: palette)
+                with: block, at: (x: piece.offsetX, y: piece.offsetY), palette: palette, linearLight: linearLight)
         }
         return result
     }
@@ -194,7 +198,8 @@ extension FrameBuffer {
         let footprint = ShadowFootprint(self, glyphsOnly: glyphsOnly)
         var result = self
         for shadow in shadows where shadow.kind == .inner {
-            result = result.castingInnerShadow(shadow, from: footprint, palette: palette)
+            result = result.castingInnerShadow(
+                shadow, from: footprint, palette: palette, linearLight: context.environment.blendsInLinearLight)
         }
         for shadow in shadows where shadow.kind == .drop {
             result = result.castingDropShadow(shadow, from: footprint, context: context, owner: owner)

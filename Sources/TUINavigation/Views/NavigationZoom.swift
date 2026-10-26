@@ -158,7 +158,8 @@ extension NavigationCoordinator {
                 aspect: environment.imageCellAspect)
         }
         return ZoomEdge(
-            kept: kept, shadow: configuration.shadow?.style(at: remaining), palette: environment.palette)
+            kept: kept, shadow: configuration.shadow?.style(at: remaining), palette: environment.palette,
+            linearLight: environment.blendsInLinearLight)
     }
 
     /// Starts a zoom if the path's change calls for one: a push of a screen
@@ -280,6 +281,9 @@ struct ZoomEdge {
     var shadow: ShadowStyle?
     /// The palette the shadow resolves and blends in.
     var palette: (any Palette)?
+    /// Whether the edge's claims mix in linear light, inside a
+    /// `drawingGroup(colorMode: .linear)`.
+    var linearLight = false
 
     /// `part` — a piece of the rectangle whose top-leading cell is at
     /// `offset` in it — with the cells the clip shape leaves out cleared, so
@@ -305,7 +309,7 @@ struct ZoomEdge {
     func laying(_ piece: FrameBuffer, onto base: FrameBuffer, at position: (x: Int, y: Int)) -> FrameBuffer {
         guard kept != nil, let palette else { return base.composited(with: piece, at: position) }
         var laid = base
-        laid.compositeCarryingClaimsOverNothing(with: piece, at: position, palette: palette)
+        laid.compositeCarryingClaimsOverNothing(with: piece, at: position, palette: palette, linearLight: linearLight)
         return laid
     }
 
@@ -322,7 +326,7 @@ struct ZoomEdge {
         else { return base }
         var shadowed = base
         shadowed.compositeCarryingClaimsOverNothing(
-            with: inside.content, at: (inside.offsetX, inside.offsetY), palette: palette)
+            with: inside.content, at: (inside.offsetX, inside.offsetY), palette: palette, linearLight: linearLight)
         return shadowed
     }
 }

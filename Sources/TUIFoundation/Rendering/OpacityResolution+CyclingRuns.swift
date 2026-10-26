@@ -163,9 +163,9 @@ extension FrameBuffer {
                 // The LAYER channel is the one that cycles; a colour's alpha does not
                 // animate itself (an animated one is a fresh region per frame through
                 // the ordinary render path), so the other two ride along unchanged.
-                return Self.CellAlpha(
-                    layer: values[step % values.count], ink: region.inkOpacity,
-                    field: region.fieldOpacity, mode: region.blendMode)
+                var alpha = region.cellAlpha
+                alpha.layer = values[step % values.count]
+                return alpha
             }
             // The group's columns of the row as rebuilt, with the styling in force
             // where they begin carried in front: what the line shows there.

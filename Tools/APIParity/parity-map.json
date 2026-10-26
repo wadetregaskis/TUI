@@ -625,9 +625,6 @@
     "ColorMatrix": {
       "why": "It exists only as the payload of `GraphicsContext.Filter.colorMatrix`, applied per pixel, and with no `GraphicsContext` there is nothing to apply it. A channel transform of a cell's foreground and background is the colour-effect modifiers' ground (`ColorEffectModifiers.swift`)."
     },
-    "ColorRenderingMode": {
-      "why": "It selects the colour space a Canvas or an ImageRenderer composites in, linear or non-linear sRGB. TUI has neither, and its blends, `opacity` and the blend modes, are done in encoded sRGB, as macOS draws them, so the mode would have nothing to select. If `drawingGroup(opaque:colorMode:)` ships (decisions A27), the type comes with it."
-    },
     "ContentShapeKinds.accessibility": {
       "why": "The accessibility frame and path of a view's accessibility element, for VoiceOver's focus ring and ordering. A screen reader reads a terminal from the text on screen; TUI publishes no accessibility elements with frames for a shape to replace. Omitted so the kind fails to compile rather than shape nothing (refusal review P3); ContentShapeKinds ships `.interaction` and `.dragPreview`."
     },

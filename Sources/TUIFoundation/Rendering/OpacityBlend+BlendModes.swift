@@ -74,13 +74,14 @@ extension FrameBuffer {
         sourcePaintsInk: Bool, destinationPaintsInk: Bool
     ) -> Color? {
         if !sourcePaintsInk, destinationPaintsInk, let field = source.background {
-            return field.blending(mode, at: alpha.layer * alpha.field, over: destinationInk)
+            return field.blending(mode, at: alpha.layer * alpha.field, over: destinationInk, linearLight: alpha.linearLight)
         }
         guard let ink = sourceInk else { return nil }
         guard let field = source.background else {
-            return ink.blending(mode, at: alpha.layer * alpha.ink, over: destinationInk)
+            return ink.blending(mode, at: alpha.layer * alpha.ink, over: destinationInk, linearLight: alpha.linearLight)
         }
-        return ink.opacity(alpha.ink, over: field).blending(mode, at: alpha.layer, over: destinationInk)
+        return mixing(ink, alpha.ink, over: field, in: alpha)
+            .blending(mode, at: alpha.layer, over: destinationInk, linearLight: alpha.linearLight)
     }
 
     /// `behind` painted with `source`'s colours where it paints, and nowhere else: a
@@ -99,7 +100,7 @@ extension FrameBuffer {
         let sourcePaintsInk = source.character != " " || source.style.paintsInkOnBlankCell
         let behindPaintsInk = behind.character != " " || behind.style.paintsInkOnBlankCell
         if let field = behind.background, let paint = source.background {
-            result.background = paint.opacity(alpha.layer * alpha.field, over: field)
+            result.background = mixing(paint, alpha.layer * alpha.field, over: field, in: alpha)
         }
         if behindPaintsInk {
             let ink = behind.foreground ?? defaultForeground
@@ -109,9 +110,9 @@ extension FrameBuffer {
                     result = source
                     result.background = field
                 }
-                result.foreground = sourceInk.opacity(alpha.layer * alpha.ink, over: ink)
+                result.foreground = mixing(sourceInk, alpha.layer * alpha.ink, over: ink, in: alpha)
             } else if let paint = source.background {
-                result.foreground = paint.opacity(alpha.layer * alpha.field, over: ink)
+                result.foreground = mixing(paint, alpha.layer * alpha.field, over: ink, in: alpha)
             }
         }
         result.style = result.style.settingForeground(result.foreground).settingBackground(result.background)
