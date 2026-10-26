@@ -35,6 +35,7 @@ public final class VolatileReadTracker: @unchecked Sendable {
     /// properties of the same names, which read them.
     private struct Counts {
         var reads = 0
+        var discardedReads = 0
         var sideEffects = 0
         var replayableEffects = 0
         var unkeyedReads = 0
@@ -53,6 +54,24 @@ public final class VolatileReadTracker: @unchecked Sendable {
     /// requests in would spin the pulse clock whenever any scheduler-driven
     /// animation (a Spinner, say) is on screen.
     public var reads: Int { counts.pointee.reads }
+
+    /// The reads that still ask for frames: ``reads`` less those a render
+    /// made for a picture it then threw away whole (``discardReads(_:)``).
+    /// What the run loop's pulse demand is read from; the memos read
+    /// ``reads``, since a discarded picture's subtree is no safer to keep.
+    package var demandingReads: Int { counts.pointee.reads &- counts.pointee.discardedReads }
+
+    /// Says that `count` of the ``demandingReads`` were made for a picture
+    /// thrown away whole, so they ask for no frames.
+    ///
+    /// A caller passes the change in ``demandingReads`` across the render it
+    /// discards, never in ``reads``: a discard inside it has already taken its
+    /// own, and taking them twice would deny a frame to a read that is on
+    /// screen. Undercounting is safe (a frame nobody needed); overcounting
+    /// freezes an animation, so a caller that cannot tell takes nothing.
+    package func discardReads(_ count: Int) {
+        counts.pointee.discardedReads &+= max(0, count)
+    }
 
     /// Monotonic count of per-frame render side effects made during the
     /// scoped render — work that must re-run every frame, which a cached

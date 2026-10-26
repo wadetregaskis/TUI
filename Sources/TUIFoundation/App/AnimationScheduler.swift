@@ -93,6 +93,18 @@ package final class AnimationScheduler {
         wakes[token] = Wake(instant: instant, liveThisFrame: true)
     }
 
+    /// Declares this frame everything `other` has live: the requests a render
+    /// made into a scheduler of its own, handed on once it knows its picture
+    /// survives (`_HiddenView`).
+    package func adopt(_ other: AnimationScheduler) {
+        for (token, lattice) in other.lattices where lattice.liveThisFrame {
+            lattices[token] = lattice
+        }
+        for (token, wake) in other.wakes where wake.liveThisFrame {
+            wakes[token] = wake
+        }
+    }
+
     /// Ends the frame: drops every lattice and wake that did not re-declare.
     package func endFrame() {
         lattices = lattices.filter { $0.value.liveThisFrame }

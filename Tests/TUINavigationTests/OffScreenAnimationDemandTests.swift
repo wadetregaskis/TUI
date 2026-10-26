@@ -50,6 +50,49 @@ private struct HiddenProbeApp: App {
     var body: some Scene { WindowGroup { TickHungryProbe().hidden() } }
 }
 
+/// The scheduler half of ``HiddenProbeApp``.
+private struct HiddenSchedulerApp: App {
+    init() {}
+    var body: some Scene { WindowGroup { SchedulerDrivenProbe().hidden() } }
+}
+
+/// A probe on screen beside one hidden twice over: the inner discard must not
+/// be taken again by the outer one, or the probe on screen loses its frames.
+private struct VisibleBesideNestedHiddenApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            VStack {
+                TickHungryProbe().hidden().hidden()
+                TickHungryProbe()
+            }
+        }
+    }
+}
+
+/// A view that presents a screen-level layer — a sheet's shape — and reads the
+/// pulse, as a sheet's content can.
+private struct PresentingProbe: View, Renderable {
+    var body: Never { fatalError("PresentingProbe renders via Renderable") }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        context.environment.volatileReadTracker?.recordVolatileRead()
+        context.requestAnimation(token: "presented", frameTicks: 3)
+        var buffer = FrameBuffer(text: "page")
+        buffer.overlays.append(
+            OverlayLayer(offsetX: 0, offsetY: 0, content: FrameBuffer(text: "sheet"), level: .modal, centered: true))
+        return buffer
+    }
+}
+
+/// A hidden view that presents a sheet: the sheet stays on screen, so the
+/// demand made in the same render is kept with it.
+private struct HiddenPresentingApp: App {
+    init() {}
+    var body: some Scene { WindowGroup { PresentingProbe().hidden() } }
+}
+
 /// The probe is the stack's ROOT, and a screen is pushed over it. The root
 /// still renders — that is how its `@State` survives being covered — and its
 /// buffer is thrown away.
@@ -134,19 +177,12 @@ private struct DimmedProbeApp: App {
 /// animation that is hidden or covered therefore went on costing a full render
 /// twenty times a second while showing nobody anything.
 ///
-/// A render whose buffer is discarded WHOLE can say so, and the covered
-/// `NavigationStack` root — the only such site — now does
-/// (`withThrowawayFrameDemand`). The two that discard only PART of their
-/// output cannot: `.hidden()` keeps screen-level overlays, so a `.sheet`
-/// presented from inside a hidden subtree still presents, which is what
-/// SwiftUI does (measured: a real, visible sheet window in every arrangement,
-/// both modifier orders); and `ScrollView`'s window keeps the rows inside the
-/// viewport. In both the surviving part renders in the same pass as the
-/// discarded part, so denying the demand would deny it to the picture that
-/// survives. Those stay known issues, and the shape that would fix them — a
-/// demand that rides on the `FrameBuffer` the way an ``AnimatedCellRun``
-/// already does — is priced in §92 of `Opacity as composition.md` and not yet
-/// bought.
+/// A render whose buffer is discarded WHOLE can say so: the covered
+/// `NavigationStack` root does (`withThrowawayFrameDemand`), and `.hidden()`
+/// does whenever its content presents no sheet (§92.2 of `Opacity as
+/// composition.md`). `ScrollView`'s window keeps the rows inside the viewport
+/// from the same render as the rows outside it, so it cannot; what reads the
+/// pulse there is a focused control's, which the window scrolls to.
 ///
 /// The last test is the standing condition rather than a defect, and is here
 /// because it is the same fact seen from the other side.
@@ -165,26 +201,60 @@ struct OffScreenAnimationDemandTests {
         #expect(activity.usesPulse)
     }
 
-    /// `.hidden()` renders its content and returns an empty buffer, so the read
-    /// is made and counted against a frame that shows none of it.
-    ///
-    /// NOT fixed the way the covered root above is, and the reason is three
-    /// lines below the read in `HitTestingModifier`: the empty buffer keeps
-    /// `drawn.overlays.filter { $0.isScreenLevel }`, so a `.sheet` presented
-    /// from inside a hidden subtree still presents — which is what SwiftUI
-    /// does, measured rather than recalled. That sheet renders in this same
-    /// pass, so a throwaway tracker here would blind a picture that IS on
-    /// screen. The discard is partial, and only a demand carried on the buffer
-    /// can tell the halves apart.
-    @Test("A hidden one draws nothing and asks for frames anyway")
-    func hiddenLeaksTheDemand() {
+    /// `.hidden()` renders its content and returns an empty buffer, and the
+    /// read was counted against a frame that shows none of it. It is now
+    /// counted as discarded (`VolatileReadTracker.discardReads(_:)`), since
+    /// nothing of the content survives.
+    @Test("A hidden one draws nothing and asks for no frames")
+    func hiddenMakesNoDemand() {
         let harness = RenderLoopHarness()
         let activity = harness.loop(HiddenProbeApp()).render()
 
         #expect(!harness.terminal.allOutput.contains("tick"), "nothing is on screen")
-        withKnownIssue("the demand outlives the buffer it was made in") {
-            #expect(!activity.usesPulse)
-        }
+        #expect(!activity.usesPulse)
+    }
+
+    /// The scheduler channel at the same site: the content's lattices go to a
+    /// scheduler of the hidden view's own, which nothing hands on.
+    @Test("A hidden one leaves no lattice on the scheduler")
+    func hiddenLeavesNoLattice() {
+        let harness = RenderLoopHarness()
+        let scheduler = AnimationScheduler()
+        _ = harness.loop(HiddenSchedulerApp()).render(animationScheduler: scheduler)
+
+        #expect(!harness.terminal.allOutput.contains("spin"))
+        #expect(scheduler.isIdle)
+    }
+
+    /// The discard is taken net of the discards inside it. Taken from the raw
+    /// count, the outer `.hidden()` took the inner one's read a second time,
+    /// and the probe on screen lost its frames: a frozen animation, the one
+    /// failure this must never have.
+    @Test("A hidden view inside a hidden view takes its reads once")
+    func nestedHiddenTakesOnce() {
+        let harness = RenderLoopHarness()
+        let activity = harness.loop(VisibleBesideNestedHiddenApp()).render()
+
+        #expect(harness.terminal.allOutput.contains("tick"), "one probe is on screen")
+        #expect(activity.usesPulse)
+    }
+
+    /// `.hidden()` keeps screen-level layers, so a `.sheet` presented from
+    /// inside a hidden subtree still presents, as SwiftUI's does (measured: a
+    /// real, visible sheet window in every arrangement, both modifier orders).
+    /// The sheet renders in the same pass as the hidden page, and nothing
+    /// tells their demand apart, so all of it is kept: a frame too many rather
+    /// than a sheet that stops animating.
+    @Test("A hidden view presenting a sheet keeps the demand made with it")
+    func hiddenPresentingKeepsDemand() {
+        let harness = RenderLoopHarness()
+        let scheduler = AnimationScheduler()
+        let activity = harness.loop(HiddenPresentingApp()).render(animationScheduler: scheduler)
+
+        #expect(harness.terminal.allOutput.contains("sheet"), "the sheet is on screen")
+        #expect(!harness.terminal.allOutput.contains("page"), "the page is hidden")
+        #expect(activity.usesPulse)
+        #expect(!scheduler.isIdle)
     }
 
     /// `NavigationStack` renders a covered root to keep its `@State` alive and

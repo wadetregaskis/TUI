@@ -6028,6 +6028,38 @@ last test in the file asserts that condition plainly, so the next animation to a
 scheduler for its frames meets the rule before it meets the symptom: asking the scheduler
 keeps no clock running, so nothing that asks may read one.
 
+### 92.2 `.hidden()` asks for no frames unless it presents (2026-10-26)
+
+The owner asked for the fix to be tried ("give it a shot", 2026-10-26), and it is
+smaller than the flag priced above, because the one case that measured needs no
+position: `.hidden()` throws its content's picture away whole unless a screen-level
+layer survives, and that is known the moment the content has rendered.
+
+- **Reads.** The tracker keeps a second count, `discardedReads`, and the run loop's
+  pulse demand is `demandingReads`, the reads less the discarded ones. `_HiddenView`
+  takes the change in `demandingReads` across its content's render, and counts it as
+  discarded when nothing screen-level came back. The memos still read `reads`: a
+  hidden subtree is no safer to keep than a visible one.
+- **The scheduler.** The content requests into a scheduler of the hidden view's own,
+  which is handed on (`AnimationScheduler.adopt(_:)`) only when a layer survives.
+- **A sheet keeps all of it.** A `.sheet` presented from inside renders in the same
+  pass, and its demand cannot be told from the page's, so everything is kept: a
+  frame too many rather than a sheet that stops animating.
+
+**The failure that must not happen is an over-count**, which freezes an animation
+on screen, where an under-count only costs a frame. That is why the discard is the
+change in `demandingReads` rather than in `reads`: a `.hidden()` inside a `.hidden()`
+has already taken its content's reads, and the outer one taking them again drew a
+probe beside them with no frames (`nestedHiddenTakesOnce`). And it is why the
+fix is a subtraction rather than the flag priced above. A dropped flag stops
+an animation; a dropped subtraction wastes a frame.
+
+`ScrollView`'s window stays as it was: it keeps the rows inside the viewport from
+the same render as the rows outside, so only a demand with a position could tell
+them apart. What reads the pulse there is a multi-row button's caps (only while
+focused, and the focus scrolls into view) or a modifier-key alternate, so nothing
+measured asks for the flag yet.
+
 ## 93. A faded run's bare cells blend over the field beneath them (2026-09-24)
 
 A run's frame that states no field for a cell is drawn over whatever the containers

@@ -580,7 +580,7 @@ extension RenderLoop {
             at: frameNowNanos, animations: tuiContext.stateStorage.animations)
 
         return recordActivity(
-            usesPulse: (environment.volatileReadTracker?.reads ?? 0) > 0,
+            usesPulse: (environment.volatileReadTracker?.demandingReads ?? 0) > 0,
             usesCursor: cursorTimer?.didReadThisFrame ?? false)
     }
 

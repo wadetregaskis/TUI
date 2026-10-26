@@ -136,7 +136,22 @@ private struct _HiddenView<Content: View>: View, Renderable, Layoutable {
         // reach across a view that is not there.
         var environment = context.environment.setting(\.isFocusSuppressed, to: true)
         environment.leaveGlassEffectContainer()
+        // Nor does it ask for frames for a picture it throws away (Opacity as
+        // composition §92). Its content's requests go to a scheduler of its
+        // own and its reads are counted, and both are handed on only if a
+        // screen-level layer survives: a sheet presented from in here renders
+        // in this same pass, and its demand cannot be told from the rest.
+        let tracker = context.environment.volatileReadTracker
+        let demandBefore = tracker?.demandingReads ?? 0
+        let scheduler = context.environment.animationScheduler
+        let ownScheduler = AnimationScheduler()
+        if scheduler != nil { environment.animationScheduler = ownScheduler }
         let drawn = TUIView.renderToBuffer(content, context: context.withEnvironment(environment))
+        if drawn.overlays.contains(where: \.isScreenLevel) {
+            scheduler?.adopt(ownScheduler)
+        } else if let tracker {
+            tracker.discardReads(tracker.demandingReads - demandBefore)
+        }
         // Spaces, not zero-width nothing: this is the same convention `Spacer`
         // uses for space that is occupied but blank, and it is what stops the
         // hole from collapsing in a stack. Hit regions and animated runs are
