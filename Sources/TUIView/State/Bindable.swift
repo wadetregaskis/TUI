@@ -55,6 +55,23 @@ public struct Bindable<Value> {
         self = projectedValue
     }
 
+    /// Wraps an observable object (the `@Bindable var settings = …` form).
+    ///
+    /// Declared here, with a `where` clause of its own, not in a constrained
+    /// extension: Swift makes a struct's memberwise initialiser take the
+    /// wrapped type, `View(model: m)`, only for a wrapper whose own declaration
+    /// has `init(wrappedValue:)`. From an extension it asked for a
+    /// `Bindable<Model>`, and SwiftUI's `struct V: View { @Bindable var model:
+    /// Model }` built as `V(model: m)` did not compile.
+    public init(wrappedValue: Value) where Value: AnyObject, Value: Observable {
+        self.wrappedValue = wrappedValue
+    }
+
+    /// Wraps an observable object (the `Bindable(settings)` form).
+    public init(_ wrappedValue: Value) where Value: AnyObject, Value: Observable {
+        self.wrappedValue = wrappedValue
+    }
+
     /// Derives a `Binding` to a mutable property of the wrapped object.
     ///
     /// This is what makes `$model.field` yield a `Binding`: the derived binding
@@ -80,16 +97,4 @@ extension Bindable: Identifiable where Value: Identifiable {
     /// The identity of the wrapped object: like a binding, a `Bindable` has
     /// none of its own, so `ForEach` over them keys by what they wrap.
     public var id: Value.ID { wrappedValue.id }
-}
-
-extension Bindable where Value: AnyObject, Value: Observable {
-    /// Wraps an observable object (the `@Bindable var settings = …` form).
-    public init(wrappedValue: Value) {
-        self.wrappedValue = wrappedValue
-    }
-
-    /// Wraps an observable object (the `Bindable(settings)` form).
-    public init(_ wrappedValue: Value) {
-        self.wrappedValue = wrappedValue
-    }
 }

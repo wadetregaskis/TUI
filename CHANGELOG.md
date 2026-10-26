@@ -211,6 +211,8 @@ All of these are pre-1.0 changes with no old spelling kept.
 
 - Inside GNU screen a copy is sent to the terminal through screen's passthrough and reported "Sent", where it was "Not copied". In a tmux pane whose `allow-passthrough` is on, a copy goes through tmux's passthrough when `set-clipboard` is not `on`, and is reported "Sent". Measured on screen 4.00.03 and tmux 3.7c with `Tools/TerminalProbes/keeper_passthrough_probe.py`.
 
+- A view with a `@Bindable` property is made with the model itself, `AccountView(account: account)`, as in SwiftUI. Its memberwise initialiser used to ask for a `Bindable<Account>`.
+
 - On Apple Terminal a flag emoji is drawn as its country code, `JP` for 🇯🇵, in the same two cells. Terminal 455.1 draws the flag either as a boxed letter (after the repair TUI used to send) or shifted, with the rest of its row one cell left (sent bare). Other terminals draw the flag.
 
 - `.textSelection(.enabled)` on one `Table` cell's `Text` makes that cell's text selectable and nothing else: a click on another column's text selects the row again, and a drag there selects nothing. Around the whole table, a drag still selects across a row's columns.

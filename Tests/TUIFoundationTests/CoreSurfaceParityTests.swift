@@ -37,6 +37,16 @@ private struct OptionalSelection: View {
     }
 }
 
+/// A view holding a model through `@Bindable`, made by its memberwise
+/// initialiser with the model itself, as SwiftUI's is: `AccountView(account: a)`.
+private struct AccountView: View {
+    @Bindable var account: Account
+
+    var body: some View {
+        Text(account.name)
+    }
+}
+
 @MainActor
 @Suite("Core SwiftUI surface")
 struct CoreSurfaceParityTests {
@@ -93,6 +103,14 @@ struct CoreSurfaceParityTests {
         #expect(Binding.constant(account).id == 7)
         #expect(Bindable<Account>.ID.self == Int.self)
         #expect(Binding<Account>.ID.self == Int.self)
+    }
+
+    @Test("A view's @Bindable property takes the model itself in its memberwise initialiser")
+    func bindableMemberwise() {
+        let account = Account(id: 3, name: "Grace")
+        let view = AccountView(account: account)
+        #expect(view.account === account)
+        #expect(view.$account.name.wrappedValue == "Grace")
     }
 
     @Test("A UnitPoint made with no arguments is zero, and it round-trips")
