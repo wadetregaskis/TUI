@@ -4,7 +4,9 @@
 //  `menus`: a mail app's menu bar opened from the keyboard — File, across to
 //  Message, into Flag — which flags a message; a message's context menu,
 //  which archives it out of the list; and Edit ▸ Undo, twice, by its
-//  shortcut, which puts both back.
+//  shortcut, which puts both back. Each chord is captioned as it is pressed,
+//  each change is animated — the flag fades in, an archived row fades and
+//  closes up, an undone one fades back — and a toast says what happened.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -28,21 +30,32 @@ let menusClip = Clip(
     }
 )
 
+/// A key, captioned as it is pressed: the chord and what it does, for a viewer
+/// who cannot see the keyboard.
+private func key(_ step: Step, _ caption: String) -> [Step] {
+    [.cue("key \(caption)"), step]
+}
+
 private func menusScript() -> [Step] {
     var script: [Step] = [.camera(Shot(x: 0, y: 0, width: 50, height: 17)), .wait(0.9)]
     // The menu bar: the app menu opens, across File and Edit to Message, down
     // to Flag, and into it: the first message is flagged red.
-    script += [.f10, .wait(0.8), .right, .wait(0.6), .down, .wait(0.35), .down, .wait(0.5)]
+    script += key(.f10, "F10  menu bar") + [.wait(0.8)]
+    script += key(.right, "→  next menu") + [.wait(0.6), .down, .wait(0.35), .down, .wait(0.5)]
     script += [.right, .wait(0.6), .right, .wait(0.6)]
-    script += Step.repeat(.down, 4, interval: 0.35)
-    script += [.wait(0.3), .right, .wait(0.8), .enter, .wait(1.1)]
+    script += [.cue("key ↓  down the menu")] + Step.repeat(.down, 4, interval: 0.35)
+    script += [.wait(0.3)] + key(.right, "→  into Flag") + [.wait(0.8)]
+    script += key(.enter, "⏎  Red") + [.wait(1.4)]
     // A message's context menu, from the keyboard (Shift+F10): Archive, and
     // it leaves the list.
-    script += [.down, .wait(0.4), .down, .wait(0.5), .shiftF10, .wait(0.8), .down, .wait(0.35), .down, .wait(0.7),
-               .enter, .wait(1.3)]
+    script += [.cue("clear"), .down, .wait(0.4), .down, .wait(0.5)]
+    script += key(.shiftF10, "⇧F10  context menu") + [.wait(0.8), .down, .wait(0.35), .down, .wait(0.7)]
+    script += key(.enter, "⏎  Archive") + [.wait(1.8)]
     // Edit ▸ Undo, twice from its shortcut: the message comes back, then the
-    // flag goes, and the loop ends where it began.
-    script += [.control("z"), .wait(1.0), .control("z"), .wait(0.6), .up, .wait(0.3), .up, .wait(0.8)]
+    // flag goes, and the loop ends where it began, toast and caption gone.
+    script += key(.control("z"), "⌃Z  undo") + [.wait(1.4)]
+    script += key(.control("z"), "⌃Z  undo") + [.wait(1.0), .up, .wait(0.3), .up, .wait(0.6)]
+    script += [.cue("clear"), .wait(0.9)]
     return script
 }
 
@@ -53,6 +66,14 @@ struct MenusApp: App {
         WindowGroup("TUI · Mail") {
             Mailbox(store: store)
                 .palette(SystemPalette(.violet))
+                .task {
+                    for await cue in ClipCues.stream() {
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            store.caption = cue.hasPrefix("key ") ? String(cue.dropFirst(4)) : nil
+                            if cue == "clear" { store.toast = nil }
+                        }
+                    }
+                }
         }
         .commands {
             CommandGroup(replacing: .newItem) {
@@ -96,7 +117,7 @@ struct MailMessage: Identifiable, Hashable {
     let from: String
     let subject: String
     let time: String
-    var flag: Color? = nil
+    var flag: Color?
     var unread = false
 }
 
@@ -114,36 +135,56 @@ final class MailStore {
         MailMessage(id: 6, from: "Claude Shannon", subject: "Juggling robot, part II", time: "Sun"),
     ]
     var selection: Int? = 0
-    private var history: [(messages: [MailMessage], selection: Int?)] = []
+    /// What just happened, said in a toast at the foot of the window.
+    var toast: String?
+    /// The chord last pressed and what it does, captioned until the next.
+    var caption: String?
+    /// The message fading out of the list as it is archived.
+    var leaving: Int?
+    private var history: [(messages: [MailMessage], selection: Int?, said: String)] = []
 
     var canUndo: Bool { !history.isEmpty }
     var selected: MailMessage? { messages.first { $0.id == selection } ?? messages.first }
 
-    private func change(_ edit: (inout [MailMessage]) -> Void) {
-        history.append((messages, selection))
-        withAnimation(.easeInOut(duration: 0.25)) { edit(&messages) }
+    private func change(_ said: String, _ edit: (inout [MailMessage]) -> Void) {
+        history.append((messages, selection, said))
+        withAnimation(.easeInOut(duration: 0.35)) {
+            edit(&messages)
+            toast = said
+        }
     }
 
-    private func editSelected(_ edit: @escaping (inout MailMessage) -> Void) {
+    private func editSelected(_ said: String, _ edit: @escaping (inout MailMessage) -> Void) {
         guard let id = selection else { return }
-        change { list in
+        change(said) { list in
             if let index = list.firstIndex(where: { $0.id == id }) { edit(&list[index]) }
         }
     }
 
-    func flagSelected(_ colour: Color) { editSelected { $0.flag = colour } }
-    func markSelectedUnread() { editSelected { $0.unread = true } }
+    func flagSelected(_ colour: Color) { editSelected("Flagged") { $0.flag = colour } }
+    func markSelectedUnread() { editSelected("Marked as unread") { $0.unread = true } }
     func archiveSelected() { if let id = selection { archive(id) } }
 
+    /// Fades `id` out where it is, then takes it out of the list, so the eye
+    /// sees which row went before the rows close up.
     func archive(_ id: Int) {
-        guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
-        change { $0.remove(at: index) }
-        if selection == id { selection = messages[min(index, messages.count - 1)].id }
+        guard let message = messages.first(where: { $0.id == id }) else { return }
+        withAnimation(.easeIn(duration: 0.3)) { leaving = id }
+        Task {
+            try? await Task.sleep(for: .seconds(0.35))
+            guard let index = messages.firstIndex(where: { $0.id == id }) else { return }
+            change("Archived “\(message.subject)”") { $0.remove(at: index) }
+            leaving = nil
+            if selection == id { selection = messages[min(index, messages.count - 1)].id }
+        }
     }
 
     func undo() {
         guard let last = history.popLast() else { return }
-        withAnimation(.easeInOut(duration: 0.25)) { messages = last.messages }
+        withAnimation(.easeInOut(duration: 0.35)) {
+            messages = last.messages
+            toast = "Undid: \(last.said)"
+        }
         selection = last.selection
     }
 }
@@ -160,11 +201,15 @@ struct Mailbox: View {
                         Text(verbatim: message.unread ? "●" : " ").foregroundStyle(.palette.accent)
                         Text(verbatim: message.from).bold()
                         Spacer()
-                        if let flag = message.flag { Text(verbatim: "⚑").foregroundStyle(flag) }
+                        if let flag = message.flag {
+                            Text(verbatim: "⚑").foregroundStyle(flag).transition(.opacity)
+                        }
                         Text(verbatim: message.time).foregroundStyle(.palette.foregroundTertiary)
                     }
                     Text(verbatim: "  " + message.subject).foregroundStyle(.palette.foregroundSecondary)
                 }
+                .opacity(store.leaving == message.id ? 0 : 1)
+                .transition(.opacity)
                 .contextMenu {
                     Button("Reply") {}
                     Button("Forward") {}
@@ -185,5 +230,31 @@ struct Mailbox: View {
             .padding(.horizontal, 1)
         }
         .padding(.horizontal, 1)
+        // The camera's height, less the menu bar: the toast and the caption sit at
+        // the foot of what is filmed, not of the window.
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(height: 15, alignment: .topLeading)
+        .overlay(alignment: .bottomLeading) {
+            HStack(spacing: 2) {
+                if let toast = store.toast {
+                    Text(verbatim: " \(toast) ")
+                        .background(.regularMaterial)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                Spacer(minLength: 0)
+                if let caption = store.caption {
+                    Text(verbatim: " \(caption) ")
+                        .bold()
+                        .foregroundStyle(.palette.background)
+                        .background(.palette.accent)
+                        .transition(.opacity)
+                }
+            }
+            .padding(.horizontal, 1)
+            // The camera's width: the caption at the right of what is filmed.
+            .frame(width: 50)
+        }
+        // Held at the top of the window, as the camera frames it.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
