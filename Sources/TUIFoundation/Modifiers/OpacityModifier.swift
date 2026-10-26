@@ -309,6 +309,7 @@ package enum SGRColorRewrite {
     /// `nil` in the callback means the terminal's default, which is what 39 and
     /// 49 select; the caller decides what that means for it.
     static func readingColors(_ sequence: String, _ report: (ColorSlot, Color?) -> Void) {
+        if readingNumericColors(sequence, report) { return }
         guard sequence.hasPrefix("\u{1B}["), sequence.hasSuffix("m") else { return }
         let body = sequence.dropFirst(2).dropLast()
         let parameters = body.split(separator: ";", omittingEmptySubsequences: false).map(String.init)
@@ -408,7 +409,7 @@ package enum SGRColorRewrite {
     /// (`base`, 0–7, in SGR order, which is also slot order) and whether it is
     /// one of the bright codes (90–97 / 100–107), or `nil` for a digit that
     /// names no slot.
-    private static func basicColor(base: Int, isBright: Bool) -> Color? {
+    static func basicColor(base: Int, isBright: Bool) -> Color? {
         guard let slot = UInt8(exactly: base).flatMap(ANSIColor.init(rawValue:)), !slot.isBright else {
             return nil
         }
