@@ -616,12 +616,17 @@ struct _ButtonStyleBody: View, Renderable {
             let body = TUIView.renderToBuffer(
                 labelView.foregroundStyle(labelFg),
                 context: plainLabelContext(labelView, context: context))
+            // The marker on the label's first row only, as a `List` marks a
+            // multi-line row: repeated down a tall label — a picture, say —
+            // it drew a column of dots. The rows below keep its width blank,
+            // so the label stays square.
+            let blank = BorderRenderer.focusIndicatorPrefix(isFocused: false, color: ends.dim)
             var buffer = FrameBuffer(
-                lines: body.lines.map { prefixes[cycle.step % prefixes.count] + $0 })
+                lines: body.lines.enumerated().map { row, line in
+                    (row == 0 ? prefixes[cycle.step % prefixes.count] : blank) + line
+                })
             guard !context.isMeasuring else { return buffer }
-            // The label's own runs ride the prefix's width to the right; the
-            // prefix repeats on every row of a multi-line label, so each row is
-            // its own run.
+            // The label's own runs ride the prefix's width to the right.
             buffer.animatedCells = body.shiftedAnimatedCells(
                 byX: BorderRenderer.focusIndicatorWidth, y: 0)
             buffer.opacityRegions = body.shiftedOpacityRegions(
@@ -634,13 +639,12 @@ struct _ButtonStyleBody: View, Renderable {
             buffer.hitTestRegions = body.shiftedHitTestRegions(
                 byX: BorderRenderer.focusIndicatorWidth, y: 0)
             // The ends asked too, as for a string label: one colour is a still prefix.
-            if cycle.isAnimating(dim: ends.dim, bright: ends.bright) {
-                buffer.animatedCells += body.lines.indices.map { row in
+            if cycle.isAnimating(dim: ends.dim, bright: ends.bright), !body.lines.isEmpty {
+                buffer.animatedCells.append(
                     AnimatedCellRun(
-                        offsetX: 0, offsetY: row,
+                        offsetX: 0, offsetY: 0,
                         width: BorderRenderer.focusIndicatorWidth, frames: prefixes,
-                        frameTicks: cycle.frameTicks, clock: cycle.clock)
-                }
+                        frameTicks: cycle.frameTicks, clock: cycle.clock))
             }
             return buffer
         }

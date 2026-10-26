@@ -96,6 +96,28 @@ struct LinkFocusIndicatorTests {
         #expect(line.count == "Press".count + 2, "got \(line)")
     }
 
+    /// A plain button's label taller than a row — a picture, two lines — is
+    /// marked on its first row only, as a `List` marks a multi-line row; the
+    /// rows below keep the marker's two cells blank. Repeated on every row,
+    /// a picture's marker was a column of dots down its side.
+    @Test("A focused plain button marks only the first row of a tall label")
+    func tallLabelMarkedOnce() {
+        let (tui, context) = harness()
+        let buffer = render(
+            Button {} label: {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(verbatim: "One")
+                    Text(verbatim: "Two")
+                    Text(verbatim: "Six")
+                }
+            }
+            .buttonStyle(.plain),
+            tui: tui, context: context)
+        let lines = buffer.lines.map(\.stripped)
+        #expect(lines == ["● One", "  Two", "  Six"], "got \(lines)")
+        #expect(buffer.animatedCells.allSatisfy { $0.offsetY == 0 }, "a breathing marker below the first row")
+    }
+
     /// The two affordances differ in WHICH cells move, not in whether anything
     /// does: a focused link still animates, on the same clock.
     @Test("A focused link animates its label rather than a prefix")
