@@ -1,10 +1,12 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  TracksClip.swift
 //
-//  `tracks`: a backup in progress, its one bar restyled every couple of
-//  seconds — from the plain fills to ones an app might wear for fun (hearts,
-//  Pac-Man eating the dots ahead of it) — and its bandwidth slider with it,
-//  each look named under the control by the `.trackStyle` that makes it.
+//  `tracks`: a backup in progress, its one bar filling steadily while it is
+//  restyled every couple of seconds — from the plain fills to ones an app
+//  might wear for fun (hearts, Pac-Man eating the dots ahead of it) — and its
+//  bandwidth limit raised a click at a time on the slider's ▶ and backed off
+//  on its ◀, each look named under the control by the `.trackStyle` that
+//  makes it.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -24,16 +26,40 @@ let tracksClip = Clip(
     run: { await TracksApp.main() }
 )
 
-/// A style every 1.6 s, the slider nudged in each, and back to the first.
+/// Where the slider's arrows are: row 10, ◀ in column 13 and ▶ in 49
+/// (1-based, read from the page drawn headless at 112 × 30; the track styles
+/// change its glyphs, never where they are).
+private enum SliderArrows {
+    static let row = 10
+    static let less = 13
+    static let more = 49
+}
+
+/// How long each look shows.
+private let lookSeconds = 1.8
+
+/// The copy runs from start to end, a look every 1.8 s, while the bandwidth
+/// limit is raised a step a look — the pointer clicking ▶ — and then backed off
+/// two steps with ◀. Nothing jumps but the loop's seam, where the copy starts
+/// again.
 private func tracksScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 60, height: 16)), .cue("style 0"), .wait(1.6)]
+    var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 60, height: 16)), .cue("start"), .cue("style 0")]
+    script += Step.glide(from: (58, 16), to: (SliderArrows.more, SliderArrows.row), over: 0.6)
+    script += [.wait(lookSeconds - 0.6)]
     for index in 1..<TrackLook.progressStyles.count {
-        script += [.cue("style \(index)"), .wait(0.6)]
-        script += Step.repeat(index.isMultiple(of: 2) ? .right : .left, 3, interval: 0.08)
-        script += [.wait(0.76)]
+        script += [.cue("style \(index)"), .wait(0.5)]
+        script += Step.click(SliderArrows.more, SliderArrows.row)
+        script += [.wait(lookSeconds - 0.58)]
     }
-    script += [.cue("style 0"), .wait(1.2)]
+    script += Step.glide(from: (SliderArrows.more, SliderArrows.row), to: (SliderArrows.less, SliderArrows.row), over: 0.7)
+    script += Step.click(SliderArrows.less, SliderArrows.row) + [.wait(0.45)]
+    script += Step.click(SliderArrows.less, SliderArrows.row) + [.wait(0.9)]
     return script
+}
+
+/// The script's length, for the copy's rate: so it fills over the whole clip.
+private let tracksSeconds = tracksScript().reduce(0.0) { total, step in
+    if case .wait(let seconds) = step { total + seconds } else { total }
 }
 
 /// The looks, as the caption names them.
@@ -75,19 +101,20 @@ struct BackupPage: View {
     /// time each frame is drawn, so the bars move a little every frame
     /// instead of jumping on a timer's tick.
     @State private var started = Date()
-    @State private var limit = 60.0
+    @State private var limit = 40.0
 
     private let files = [
         "IMG_4021.HEIC", "IMG_4022.HEIC", "Laugavegur-day2.mov", "IMG_4025.HEIC",
         "Panorama-Landmannalaugar.jpg", "IMG_4031.HEIC", "IMG_4032.HEIC",
     ]
 
-    /// GB copied at `date`: 18.4 to begin with, 1.8 GB a second, and
-    /// stopping short of finishing. Fast enough that the bar's fill moves an
-    /// eighth of a cell about every 55 ms: at a gigabyte a second it moved one
-    /// every 100 ms, a step the eye reads as a judder.
+    /// GB copied at `date`: 3 to begin with and 40 at the clip's end, so the
+    /// bar fills steadily over the whole clip whatever look it wears. About
+    /// three gigabytes a second, which moves the fill an eighth of a cell every
+    /// 35 ms or so: smooth, where a gigabyte a second moved one every 100 ms, a
+    /// step the eye reads as a judder.
     private func copied(at date: Date) -> Double {
-        min(41.5, 18.4 + date.timeIntervalSince(started) * 1.8)
+        min(40, 3 + date.timeIntervalSince(started) * 37 / tracksSeconds)
     }
 
     var body: some View {
@@ -96,11 +123,13 @@ struct BackupPage: View {
         }
         .task {
             for await cue in ClipCues.stream() {
-                if cue.hasPrefix("style "), let index = Int(cue.dropFirst(6)) {
-                    style = index
-                    // The first style starts the copy again: the loop's seam.
-                    if index == 0 { started = Date() }
+                // The copy starts again at the clip's start, and only there: the
+                // loop's seam.
+                if cue == "start" {
+                    started = Date()
+                    limit = 40
                 }
+                if cue.hasPrefix("style "), let index = Int(cue.dropFirst(6)) { style = index }
             }
         }
     }

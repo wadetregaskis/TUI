@@ -118,6 +118,21 @@ enum Step {
         text.flatMap { [Self.keys(String($0)), .wait(interval)] }
     }
 
+    /// The drawn pointer glided from one cell to another over `seconds`, a
+    /// cell's step at a time, as a hand moves a mouse, ending where it lands.
+    static func glide(from start: (Int, Int), to end: (Int, Int), over seconds: Double = 0.5) -> [Self] {
+        let count = max(1, max(abs(end.0 - start.0), abs(end.1 - start.1)))
+        let interval = seconds / Double(count)
+        return (1...count).flatMap { index -> [Self] in
+            let fraction = Double(index) / Double(count)
+            // Eased in and out, as a hand starts and stops.
+            let eased = fraction * fraction * (3 - 2 * fraction)
+            let column = start.0 + Int((Double(end.0 - start.0) * eased).rounded())
+            let row = start.1 + Int((Double(end.1 - start.1) * eased).rounded())
+            return [.point(column: column, row: row), .wait(interval)]
+        }
+    }
+
     /// `step`, `count` times, `interval` seconds apart.
     static func `repeat`(_ step: Self, _ count: Int, interval: Double) -> [Self] {
         (0..<count).flatMap { _ in [step, .wait(interval)] }
