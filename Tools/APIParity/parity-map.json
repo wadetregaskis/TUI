@@ -150,7 +150,7 @@
         "TextField.init(value:formatter:prompt:label:)",
         "Text.init(_:formatter:)"
       ],
-      "why": "Deferred, not refused for good: the owner's ruling O11 (2026-10-12). SwiftUI has not deprecated the `Formatter` forms, but parsing through one is costly to make portable: `Formatter.getObjectValue(_:for:errorDescription:)`, the parse direction, is internal in Linux Foundation, so a generic parse through an arbitrary Formatter is impossible there and would need a dispatch over Foundation's concrete formatters (refusals re-examined, wave 17, O11). \"We can always add them later if we change our mind.\" The typed forms ship: `TextField(_:value:format:)` and its two siblings (Sources/TUITextInput/Views/TextFieldValue.swift), `Text(_:format:)` (Sources/TUIFoundation/Views/Text.swift) and `\\(value, format:)` in a LocalizedStringKey interpolation. The interpolation `\\(value, formatter:)` ships (lane TEXTFMT, 2026-10-24, under the owner's ruling DEPR-CATCHALL): it only formats, through `Formatter.string(for:)`, which every platform's Foundation has."
+      "why": "Declined: the owner's ruling O11 (2026-10-26, after a deferral on 2026-10-12): the inferior API, beside the typed `format:` forms TUI ships, and not portable. SwiftUI has not deprecated the `Formatter` forms, but parsing through one is costly to make portable: `Formatter.getObjectValue(_:for:errorDescription:)`, the parse direction, is internal in Linux Foundation, so a generic parse through an arbitrary Formatter is impossible there and would need a dispatch over Foundation's concrete formatters (refusals re-examined, wave 17, O11). \"We can always add them later if we change our mind.\" The typed forms ship: `TextField(_:value:format:)` and its two siblings (Sources/TUITextInput/Views/TextFieldValue.swift), `Text(_:format:)` (Sources/TUIFoundation/Views/Text.swift) and `\\(value, format:)` in a LocalizedStringKey interpolation. The interpolation `\\(value, formatter:)` ships (lane TEXTFMT, 2026-10-24, under the owner's ruling DEPR-CATCHALL): it only formats, through `Formatter.string(for:)`, which every platform's Foundation has."
     },
     {
       "match": [
@@ -511,6 +511,20 @@
         "ScrollDismissesKeyboardMode*"
       ],
       "why": "When scrolling dismisses an on-screen keyboard, which a terminal does not have, and macOS does not either: every mode is inert there. The owner's ruling O8 (2026-10-12): an API that does nothing on macOS either is refused, failing to compile, as `submitLabel` is (\"we don't implement SwiftUI API we can't actually do anything sensible with\"; refusals re-examined, wave 17, O8)."
+    },
+    {
+      "match": [
+        "View.scaleEffect(*",
+        "View.rotationEffect(*",
+        "View.rotation3DEffect(*",
+        "View.projectionEffect(*",
+        "View.transformEffect(*",
+        "VisualEffect.scaleEffect(*",
+        "VisualEffect.rotationEffect(*",
+        "VisualEffect.rotation3DEffect(*",
+        "VisualEffect.transformEffect(*"
+      ],
+      "why": "Declined: the owner's ruling A27 (2026-10-26, option 2), with A39's VisualEffect spellings, which waited on it. A glyph cannot be scaled or turned, and an affine transform of a cell grid is not a cell grid; the only readings a terminal has (a reveal from the anchor, a resampled Image) would silently draw `scaleEffect(0.95)` as 1, which rule 2 forbids. Ported code fails to compile and the developer removes the effect. Shapes, unlike views, do rotate (lane W1): `Shape.rotation(_:anchor:)` and `Shape.scale(_:anchor:)` ship."
     }
   ],
   "renamed": {

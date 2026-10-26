@@ -42,8 +42,9 @@ B1–B37), my answers to its questions of 2026-10-05 (which you answered
 landed is removed, and no entry is renumbered. **Lane owed** marks an entry
 that is decided and waits only on its implementation.
 
-**Still yours to answer.** A27 (pixel effects) and A48 (swipe actions): each
-entry ends in a recommendation. A34 (the blur transition) was answered on
+**Still yours to answer.** None of the A entries: A27 (pixel effects) and A48
+(swipe actions) were answered on 2026-10-26, A27 with option 2 and A48 with
+its recommendation, and are lanes owed. A34 (the blur transition) was answered on
 2026-10-23 with its option 2 and has shipped (lane VISUALS, decisions
 `Shapes, effects and animation/Visual effects rulings (VISUALS).md`).
 
@@ -66,7 +67,8 @@ Shipped on 2026-10-19: O8's refusals, with A11 and A51.
 **Deferred.** A3, and B8's mirroring, with right-to-left (B1); A50 and A53
 until macOS 26 or 27 can be measured.
 
-**Waiting on another answer.** A39 (A27).
+**Waiting on another answer.** None: A39 was answered with A27 (declined,
+2026-10-26).
 
 ---
 
@@ -514,6 +516,12 @@ blend does not do.
 **Recommendation:** transforms (1); mask, the cell-coverage rule; drawingGroup
 (1), since nearly every use is the argument-free performance hint.
 
+**Ruled 2026-10-26: option 2.** The six transforms are declined (the API
+parity map's family, with A39's spellings); `mask(alignment:_:)` ships at
+cell coverage, a shape mask by `clipShape`'s half-cell rule; `drawingGroup`
+ships as `compositingGroup()`, with linear-light blending inside it for
+`.linear` and `.extendedLinear`.
+
 **You asked (2026-10-04)** whether linear and extended-linear blending could be
 supported. Yes (answer of 2026-10-05): blending happens in one place, in
 encoded sRGB by design today, and linear blending is decode, blend and
@@ -534,8 +542,9 @@ an SDR terminal, clamped at the end. Not yet decided.
 `VisualEffect.transformEffect(_:)`*
 
 The `View` modifiers of the same names are Wave 16's (sub-cell geometry, an
-owner decision: A27). The visual-effect spellings are the same requests made from a
-geometry proxy, and should be answered with them; `VisualEffect` itself and the
+owner decision: A27, declined on 2026-10-26, and these with them). The
+visual-effect spellings are the same requests made from a geometry proxy, and
+are answered with them; `VisualEffect` itself and the
 effects with a cell reading are this wave's.
 
 ### A40. Should a content change dissolve by default under an animation?
