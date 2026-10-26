@@ -3439,8 +3439,15 @@ used, an undefined full reference left as text, image references drawn as
 their alt text). `InlineMarkdownReferenceTests` holds the 41 measured cases
 and checks each against Foundation live on Darwin; a run of 40,000 random
 strings of reference syntax against Foundation found no difference in
-references, and one elsewhere: a bare URL holding `"` or `>` is linked here
-and left unlinked by Foundation (queued).
+references, and one elsewhere: a bare URL holding `"` or `>` was linked here
+and left unlinked by Foundation. Fixed the same day. Foundation makes a link
+only where `URL(string:)` accepts the destination, and what it refuses is a
+host holding `"`, `<`, `>`, `\`, `^`, a backtick, `{`, `|`, `}`, `[`, `]` or a
+stray `%`, or a port that is not all digits; the rest of a destination,
+user information included, is percent-encoded. So every kind of link with
+such a host is its text alone, here as there
+(`InlineMarkdownParser.hasLinkableAuthority`,
+`InlineMarkdownLinkAuthorityTests`, 34 measured cases).
 
 ### B87. Markdown in a control's title key: parsed, though a column header and a tab title draw only its words
 

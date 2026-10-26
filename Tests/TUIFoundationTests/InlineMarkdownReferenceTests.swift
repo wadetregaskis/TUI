@@ -19,8 +19,9 @@ import Testing
 @Suite("Inline Markdown's link reference definitions")
 struct InlineMarkdownReferenceTests {
     /// Runs as «text»→link, adjacent runs with the same link merged, as
-    /// Foundation's runs are once emphasis is set aside.
-    private static func encode(_ spans: [InlineMarkdown.Span]) -> String {
+    /// Foundation's runs are once emphasis is set aside. Shared with the other
+    /// suites that hold a table of Foundation's readings.
+    static func encode(_ spans: [InlineMarkdown.Span]) -> String {
         var runs: [(text: String, link: String?)] = []
         for span in spans {
             let text = String(String.UnicodeScalarView(span.atoms.compactMap(\.scalar)))
@@ -90,8 +91,8 @@ struct InlineMarkdownReferenceTests {
     }
 
     #if canImport(Darwin)
-        @Test("Each reads as Foundation reads it on this machine", arguments: cases)
-        func agreesWithFoundation(source: String, expected: String) throws {
+        /// Foundation's own reading of `source`, encoded as ``encode(_:)`` encodes TUI's.
+        static func foundationReading(_ source: String) throws -> String {
             let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
             let theirs = try AttributedString(markdown: source, options: options)
             var runs: [(text: String, link: String?)] = []
@@ -104,7 +105,12 @@ struct InlineMarkdownReferenceTests {
                     runs.append((text, link))
                 }
             }
-            let foundation = runs.map { "«\($0.text)»" + ($0.link.map { "→" + $0 } ?? "") }.joined()
+            return runs.map { "«\($0.text)»" + ($0.link.map { "→" + $0 } ?? "") }.joined()
+        }
+
+        @Test("Each reads as Foundation reads it on this machine", arguments: cases)
+        func agreesWithFoundation(source: String, expected: String) throws {
+            let foundation = try Self.foundationReading(source)
             #expect(foundation == expected, "the table is stale: \(source.debugDescription)")
             #expect(Self.encode(InlineMarkdown.parse(source)) == foundation, "\(source.debugDescription)")
         }
