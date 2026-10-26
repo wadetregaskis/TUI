@@ -32,6 +32,24 @@ private struct HelpfulApp: App {
 }
 
 /// The same with no help anywhere.
+/// A page whose focused button hears every key itself.
+private struct KeyHungryApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            VStack {
+                Button("PAGE") {}.help("Explains the button")
+                    .onKeyPress(phases: .down) { _ in
+                        FieldProbe.shared.text += "k"
+                        return .handled
+                    }
+                Text("LABEL").help("Explains the label")
+            }
+        }
+        .commands { CommandMenu("Note") {} }
+    }
+}
+
 private struct HelplessApp: App {
     init() {}
     var body: some Scene {
@@ -139,6 +157,30 @@ struct MenuBarHelpTests {
         app.send(KeyEvent(key: .character("?")))
         frame(app)
         #expect(shows("Explains the button", app), "\(app.screen.map(\.stripped))")
+        #expect(!shows("Explains the label", app), "\(app.screen.map(\.stripped))")
+    }
+
+    @Test("Shift-F1 shows every tooltip, and again hides them, where Option does not arrive")
+    mutating func shiftF1() {
+        let app = launched(HelpfulApp())
+        #expect(app.send(KeyEvent(key: .f1, shift: true)))
+        frame(app)
+        #expect(shows("Explains the label", app), "\(app.screen.map(\.stripped))")
+        app.send(KeyEvent(key: .f1, shift: true))
+        frame(app)
+        frame(app)
+        #expect(!shows("Explains the label", app), "\(app.screen.map(\.stripped))")
+    }
+
+    /// Shift-F1 is the chain's last resort: a handler of the app's on the
+    /// focused view hears it first, and keeps it.
+    @Test("An app's own handler on Shift-F1 takes it before Show All Tooltips")
+    mutating func shiftF1GivesWay() {
+        FieldProbe.shared.text = ""
+        let app = launched(KeyHungryApp())
+        app.send(KeyEvent(key: .f1, shift: true))
+        frame(app)
+        #expect(FieldProbe.shared.text == "k")
         #expect(!shows("Explains the label", app), "\(app.screen.map(\.stripped))")
     }
 

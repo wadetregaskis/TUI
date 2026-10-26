@@ -28,7 +28,7 @@ import TUIFoundation
 /// | `appTermination` | Quit *app* | quits as the quit key does, after the menu closes | `StatusBarState.quitShortcut` |
 /// | `undoRedo` | Undo, Redo | the app's `UndoManager`; disabled with nothing to undo or redo | the scene's undo and redo keys |
 /// | `pasteboard` | Cut, Copy, Paste | ⌘X, ⌘C, ⌘V to the focused view, after the menu closes | the same, through `commandKey` |
-/// | `help` | Show Tooltips; Show All Tooltips | whether tooltips show at all; every tooltip on the screen at once (`TooltipState`); each disabled where no view on the screen has help | —; ⌥ and the help key (⌥?) |
+/// | `help` | Show Tooltips; Show All Tooltips | whether tooltips show at all; every tooltip on the screen at once (`TooltipState`); each disabled where no view on the screen has help | —; ⌥ and the help key (⌥?), and Shift-F1, the chain's last resort, where Option does not arrive |
 /// | `saveItem` | Close; Close All | closes the window in front; every window that may close but the one at the back; each disabled where it would close nothing (the Window menu's rule) | ⌘W; ⌥⌘W — a focused text field keeps Ctrl-W, its word rubout |
 /// | `windowArrangement` | Close Window | closes the window in front; disabled where the person may not: the last, one whose content disabled its dismissal, one showing a sheet | Escape |
 /// | `windowList` | each open window, the one in front checked | brings it to the front | — |
