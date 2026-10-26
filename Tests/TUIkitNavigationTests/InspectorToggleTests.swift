@@ -14,6 +14,7 @@ import TUIkitApp
 @testable import TUIkitFoundation
 import TUIkitNavigation
 @testable import TUIkitTestSupport
+@testable import TUIkitView
 
 /// Whether an inspector shows, by reference so the binding a frame built
 /// reaches it. Each app has its own, so suites running side by side share
@@ -185,6 +186,23 @@ struct InspectorToggleTests {
         #expect(position(of: "ITEM", in: app) != nil, "the bar is there: \(screen)")
         #expect(position(of: "TRAITS", in: app) != nil, "\(screen)")
         #expect(!screen.contains { $0.contains("▶") || $0.contains("◀") }, "\(screen)")
+    }
+
+    /// The bar measures its inspector button before the inspector has
+    /// registered its toggle with the window, and again after, in one pass:
+    /// the first measure finds no toggle and is 0 × 0. The per-pass measure
+    /// memo served that to the second until the button's read of the window's
+    /// chrome declared itself unkeyed. The measure verifier is the oracle: it
+    /// re-measures every served size and lists each that disagrees.
+    @Test("The bar's inspector button is never served a size measured before its inspector registered")
+    func toggleSizeIsNotServedAcrossRegistration() {
+        let was = RenderCache.verifiesMeasureMemo
+        defer { RenderCache.verifiesMeasureMemo = was }
+        RenderCache.verifiesMeasureMemo = true
+        AroundApp.presented.value = true
+        let app = HeadlessApp(AroundApp(), width: 60, height: 12)
+        for index in 1...3 { app.frame(atNanos: Int64(index) * 16_666_667) }
+        #expect(app.renderCache.measureMemoMismatches.isEmpty, "\(app.renderCache.measureMemoMismatches)")
     }
 
     @Test("Without a placed item the bar has no inspector button: it is opt-in")

@@ -141,9 +141,16 @@ private struct _DefaultToolbarItemCore: View, Renderable, Layoutable {
 
     /// What the item draws: `nil` for nothing — in a presentation, which does
     /// not move the window's items, or with nothing to draw.
+    ///
+    /// What it reads of the window's chrome — a field a `.searchable` hands
+    /// over, a title a `.navigationTitle` sets, a panel's toggle — is set as
+    /// the walk draws the page, so it is an unkeyed read
+    /// (``VolatileReadTracker/recordUnkeyedRead()``), as `SearchFieldPlace`'s
+    /// is: the bar can measure this item before and after in one pass.
     private func item(_ context: RenderContext) -> AnyView? {
         guard let chrome = context.environment.windowChrome, !context.environment.presentationHostsToolbar
         else { return nil }
+        context.environment.volatileReadTracker?.recordUnkeyedRead()
         switch kind {
         case .search:
             return chrome.searchField

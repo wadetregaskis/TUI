@@ -37,10 +37,21 @@ struct _PanelToggleButton: View, Renderable, Layoutable {
 
     /// The toggle this button works: the split view's it was declared in, else
     /// the window's.
+    ///
+    /// The window's is an unkeyed read (``VolatileReadTracker/recordUnkeyedRead()``):
+    /// a panel registers its toggle with the window's chrome as the walk
+    /// draws it, so the bar can measure this button before its panel has
+    /// registered — finding no toggle and drawing nothing — and again after,
+    /// in the same pass, with the same identity and the same view value. Read
+    /// unannounced, the per-pass measure memo served the first answer, 0 × 0,
+    /// to the second (found by `TUIKIT_VERIFY_MEASURE_MEMO`).
     private func toggle(_ context: RenderContext) -> PanelToggle? {
         switch context.environment.panelToggleScope(panel) {
-        case .window: context.environment.windowChrome?.panelToggle(panel)
-        case .split(let toggle): toggle
+        case .window:
+            guard let chrome = context.environment.windowChrome else { return nil }
+            context.environment.volatileReadTracker?.recordUnkeyedRead()
+            return chrome.panelToggle(panel)
+        case .split(let toggle): return toggle
         }
     }
 
