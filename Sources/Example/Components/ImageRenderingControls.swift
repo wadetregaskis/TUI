@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ImageRenderingControls.swift
 //
 //  The image demos' control pane: every rendering knob, as a column beside the
@@ -14,7 +14,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Live controls for every image-rendering knob, driving the owning page's
 /// ``ImageDemoSettings``.
@@ -495,7 +495,7 @@ struct ImageRenderingControls: View {
                 // track and walked the right arrow sideways under the cursor
                 // that had just clicked it. Left-aligned so the digits stay
                 // against the slider and the slack falls on the outside —
-                // TUIkit's own value read-out pads the same way, and for the
+                // TUI's own value read-out pads the same way, and for the
                 // same reason (see `_SliderCore.valueLabelText`).
                 .frame(width: Self.valueFieldWidth(for: range), alignment: .topLeading)
         }

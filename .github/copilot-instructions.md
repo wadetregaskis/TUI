@@ -1,4 +1,4 @@
-# Copilot Instructions for TUIkit
+# Copilot Instructions for TUI
 
 ## Hard Constraints (non-negotiable)
 
@@ -8,7 +8,7 @@
 
 ## Project
 
-TUIkit is a SwiftUI-like framework for building Terminal User Interfaces in pure Swift: no ncurses or external C dependencies (the only C is the in-tree `stb_image` decoder).
+TUI is a SwiftUI-like framework for building Terminal User Interfaces in pure Swift: no ncurses or external C dependencies (the only C is the in-tree `stb_image` decoder).
 
 ## Build, Test & Lint
 
@@ -33,7 +33,7 @@ swift-format format -i -r Sources Tests
 
 ### View System
 
-TUIkit uses a dual rendering system:
+TUI uses a dual rendering system:
 
 1. **Composite views**: Implement `body` to compose other views. The renderer recurses into `body`.
 2. **Primitive views**: Conform to `Renderable` and produce a `FrameBuffer` directly. Set `body: Never`.
@@ -104,7 +104,7 @@ Public APIs **must** match SwiftUI signatures exactly unless terminal constraint
 
 - Uses Swift Testing framework (`@Test`, `#expect`, `@Suite`)
 - Tests run in parallel
-- Tests live in a target per module, the target of the highest module a test needs (`TUIkitFoundationTests`, `TUIkitAppTests`, `TUIkitListsTests`, …; `TUIkitIntegrationTests` for a test needing two feature modules), and share helpers in support targets (`Tests/TUIkitTestSupport`, `TUIkitAppTestSupport`, …); CONTRIBUTING.md says which target a test goes in
+- Tests live in a target per module, the target of the highest module a test needs (`TUIFoundationTests`, `TUIAppTests`, `TUIListsTests`, …; `TUIIntegrationTests` for a test needing two feature modules), and share helpers in support targets (`Tests/TUITestSupport`, `TUIAppTestSupport`, …); CONTRIBUTING.md says which target a test goes in
 
 ## Code Style
 

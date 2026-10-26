@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prints a card for how this terminal paints TUIkit's reversing row breaths.
+"""Prints a card for how this terminal paints TUI's reversing row breaths.
 
 On a 16-colour terminal a palette sometimes has too few slots to keep the
 selected row, the cursor row and the selected cursor row apart, and one end of
@@ -9,7 +9,7 @@ on every frame and breathes by its weight, bold on the bright frames. The frames
 are checked byte for byte by the test suite; what a host PAINTS for them is what
 this card asks (Terminal compatibility survey.md, "Reverse video (SGR 7)").
 
-The rows are the bytes TUIkit emits (captured 2026-09-30 from the framework:
+The rows are the bytes TUI emits (captured 2026-09-30 from the framework:
 Red Sands on xterm's sixteen, and the default palette without colour), so this
 card needs nothing built. Each breath shows its two frames, then the references.
 
@@ -29,7 +29,7 @@ say "this row" against the plain row beside them.
 **Which sixteen.** The 16-colour rows are placed against xterm's sixteen, which
 is what a terminal that does not report its own is assumed to paint. A host that
 reports them (OSC 4) gets fills placed against ITS table, and replaying xterm's
-picks there says nothing about what TUIkit draws: on a default-config Ghostty
+picks there says nothing about what TUI draws: on a default-config Ghostty
 (Tomorrow Night) xterm's blue fill is a pale steel blue and the text on it all
 but vanishes. `--host ghostty` shows the frames for Ghostty's default table
 instead — rule.py's picks for Red Sands there (`rule_16`), spelled as the
@@ -98,7 +98,7 @@ def frames():
 
 def card():
     print(f"{E}2J{E}H", end="")
-    print("TUIkit reversing breath card\n")
+    print("TUI reversing breath card\n")
     for label, (bright, dim) in frames().items():
         print(label)
         print(f"  frame 0:  {bright}")
@@ -110,7 +110,7 @@ def card():
 
 def animate(seconds=10.0, frame_seconds=0.05):
     print(f"{E}2J{E}H", end="")
-    print("TUIkit reversing breath card — animated\n")
+    print("TUI reversing breath card — animated\n")
     rows = frames()
     labels = list(rows)
     end = time.time() + seconds

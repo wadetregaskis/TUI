@@ -2,13 +2,13 @@
 """Kitty UNICODE PLACEHOLDER probe: does an image behave like CELLS?
 
 `graphics_probe.py` asked which of the three graphics protocols a terminal
-speaks. This asks the one question that decides whether TUIkit can use the
+speaks. This asks the one question that decides whether TUI can use the
 answer: with a *virtual* placement and Unicode placeholders, is an image
 addressable as ordinary text — C columns by R rows of real cells that the
 cursor walks one at a time, that scroll with their row, and that anything drawn
 afterwards covers?
 
-Everything TUIkit does downstream of a view is defined on cells: `clamped`
+Everything TUI does downstream of a view is defined on cells: `clamped`
 clips them, `composited(with:at:)` overlays them, `ScrollView` windows them,
 `FrameDiffWriter` diffs them one cell at a time and rewrites only the runs that
 differ. An image drawn at the cursor is none of those things. An image drawn
@@ -20,7 +20,7 @@ Five questions, and the first is the one everything else rests on:
 1. **Does a placeholder cell advance the cursor exactly one column?**
    U+10EEEE sits inside the Plane-16 Private Use Area, and every host this
    project has measured paints a Plane-16 codepoint two cells wide while
-   advancing one — it is how SF Symbols behave, and TUIkit compensates for it
+   advancing one — it is how SF Symbols behave, and TUI compensates for it
    by erasing under the glyph and pushing the cursor on. If the placeholder
    inherited that rule, every image would shear. So the advance is measured,
    per row, against the number of cells actually written.
@@ -177,7 +177,7 @@ def cell(row, column, image_id=None, elide=False):
 
     THREE marks, always — row, column, and the image id's high byte even when
     it is zero. The spec lets a cell omit the third and inherit it, and this
-    probe once did for ids under 2^24 (every id TUIkit issues); measured
+    probe once did for ids under 2^24 (every id TUI issues); measured
     2026-09-03, iTerm2 3.6.11 acknowledges such a cell and draws nothing,
     while kitty and Ghostty read both spellings alike. The encoder writes all
     three since 0d4d2015, and a probe that spelled cells differently from the

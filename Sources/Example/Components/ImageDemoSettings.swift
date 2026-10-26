@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ImageDemoSettings.swift
 //
 //  Every knob the image demos expose, in one value.
@@ -12,7 +12,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// The complete rendering configuration of an image demo page.
 ///

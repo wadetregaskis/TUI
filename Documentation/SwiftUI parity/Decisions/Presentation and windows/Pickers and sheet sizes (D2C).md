@@ -20,7 +20,7 @@ the segment under it; **Return does nothing**.
 
 **Shipped:** all of that, except that Return chooses too. The control keys
 through the horizontal radio group's handler, where Return and Space both
-choose, and Return is the activation key of every TUIkit control. The
+choose, and Return is the activation key of every TUI control. The
 arrows wrap here as on macOS, whatever `.radioButtonGroupEdgeBehavior(_:)`
 says to radio groups around it.
 
@@ -34,14 +34,14 @@ button can take it. A flag on the shared handler; a quarter of an hour.
 **Shipped:** Return or a click on a `.compact` field opens the `.graphical`
 calendar in a popover, and the calendar takes the focus as it appears, so
 the arrows move the day at once; Return closes it on that day, Escape or a
-click outside just closes it. A TUIkit popover otherwise leaves the focus
+click outside just closes it. A TUI popover otherwise leaves the focus
 where it was until a first key finds its content, which would spend that
 key.
 
 **Not measured:** what macOS's keyboard does while a compact picker's
 calendar overlay is up. If it stays in the field, with the calendar
 following it, then matching that makes the calendar a pointer-only
-surface, which TUIkit's rule against mouse-only interactions forbids — so
+surface, which TUI's rule against mouse-only interactions forbids — so
 the alternative is "the field keeps the keyboard and the calendar is
 reached by Tab", an hour, and worth measuring first.
 
@@ -76,7 +76,7 @@ A one-line change.
 *`PresentationSizing` (decisions A20)*
 
 macOS never makes a sheet smaller than 100 by 80 points (measured, above),
-about 14 columns by 5 rows. A TUIkit sheet has always been exactly its
+about 14 columns by 5 rows. A TUI sheet has always been exactly its
 content, and a sized one keeps that: a fitted axis is as small as the
 content is.
 
@@ -94,7 +94,7 @@ side in an `HStack` take it flexibly and share it. A `ScrollView` clears it
 as a box does, so the boxes in one are their content's size, as SwiftUI's are
 (measured on macOS 15.6: two `GroupBox`es in a `ScrollView` in a `.form`
 sheet 400 points tall are 43 points each — as they are in a `VStack`, where
-TUIkit's share the sheet because a terminal sheet has no material and its
+TUI's share the sheet because a terminal sheet has no material and its
 box is what shows the size). Every other container passes the size on to
 each box below, and each takes all of it: a `ZStack`'s boxes overlap at the
 sheet's size, which is what a sheet of layers wants; a `Grid`'s first box

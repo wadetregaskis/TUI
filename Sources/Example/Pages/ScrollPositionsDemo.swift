@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ScrollPositionsDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Scrolling to a place, and knowing where you are: `ScrollViewReader` and its
 /// proxy's `scrollTo(_:anchor:)` — inside `withAnimation`, so it glides there

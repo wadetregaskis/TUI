@@ -1,0 +1,762 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  NavigationSplitViewTests.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import Foundation
+import Testing
+
+import TUI
+@testable import TUIFoundation
+@testable import TUINavigation
+@testable import TUITestSupport
+
+// MARK: - Test Helpers
+
+/// Creates a test render context with the specified width.
+@MainActor
+private func testContext(width: Int = 80, height: Int = 24) -> RenderContext {
+    RenderContext(
+        availableWidth: width,
+        availableHeight: height,
+        tuiContext: TUIContext()
+    ).isolatingRenderCache()
+}
+
+// MARK: - NavigationSplitViewVisibility Tests
+
+@Suite("NavigationSplitViewVisibility Tests")
+struct NavigationSplitViewVisibilityTests {
+    @Test(
+        "every visibility equals itself",
+        arguments: [
+            NavigationSplitViewVisibility.automatic, .all, .doubleColumn, .detailOnly,
+        ])
+    func visibilityReflexiveEquality(visibility: NavigationSplitViewVisibility) {
+        let other = visibility
+        #expect(visibility == other)
+    }
+
+    @Test("different visibilities are not equal")
+    func differentVisibilitiesNotEqual() {
+        #expect(NavigationSplitViewVisibility.all != NavigationSplitViewVisibility.detailOnly)
+        #expect(NavigationSplitViewVisibility.automatic != NavigationSplitViewVisibility.doubleColumn)
+        #expect(NavigationSplitViewVisibility.doubleColumn != NavigationSplitViewVisibility.detailOnly)
+    }
+
+    @Test("visibility is Hashable")
+    func visibilityIsHashable() {
+        var set: Set<NavigationSplitViewVisibility> = []
+        set.insert(.all)
+        set.insert(.detailOnly)
+        set.insert(.all)  // Duplicate
+        #expect(set.count == 2)
+    }
+
+    @Test("visibility is Codable")
+    func visibilityIsCodable() throws {
+        let original = NavigationSplitViewVisibility.doubleColumn
+        let encoded = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(NavigationSplitViewVisibility.self, from: encoded)
+        #expect(original == decoded)
+    }
+}
+
+// MARK: - NavigationSplitViewColumn Tests
+
+@Suite("NavigationSplitViewColumn Tests")
+struct NavigationSplitViewColumnTests {
+    @Test(
+        "every column equals itself",
+        arguments: [NavigationSplitViewColumn.sidebar, .content, .detail])
+    func columnReflexiveEquality(column: NavigationSplitViewColumn) {
+        let other = column
+        #expect(column == other)
+    }
+
+    @Test("different columns are not equal")
+    func differentColumnsNotEqual() {
+        #expect(NavigationSplitViewColumn.sidebar != NavigationSplitViewColumn.content)
+        #expect(NavigationSplitViewColumn.content != NavigationSplitViewColumn.detail)
+        #expect(NavigationSplitViewColumn.sidebar != NavigationSplitViewColumn.detail)
+    }
+
+    @Test("column is Hashable")
+    func columnIsHashable() {
+        var set: Set<NavigationSplitViewColumn> = []
+        set.insert(.sidebar)
+        set.insert(.content)
+        set.insert(.detail)
+        set.insert(.sidebar)  // Duplicate
+        #expect(set.count == 3)
+    }
+}
+
+// MARK: - NavigationSplitViewStyle Tests
+
+@Suite("NavigationSplitViewStyle Tests")
+struct NavigationSplitViewStyleTests {
+    @Test("AutomaticNavigationSplitViewStyle has correct sidebar proportion")
+    func automaticStyleSidebarProportion() {
+        let style = AutomaticNavigationSplitViewStyle()
+        #expect(style.sidebarProportion == 0.33)
+    }
+
+    @Test("AutomaticNavigationSplitViewStyle has correct three-column proportions")
+    func automaticStyleThreeColumnProportions() {
+        let style = AutomaticNavigationSplitViewStyle()
+        let props = style.threeColumnProportions
+        #expect(props.sidebar == 0.25)
+        #expect(props.content == 0.25)
+        #expect(props.detail == 0.50)
+    }
+
+    @Test("BalancedNavigationSplitViewStyle keeps sidebar and detail comparable")
+    func balancedStyleSidebarProportion() {
+        let style = BalancedNavigationSplitViewStyle()
+        #expect(style.sidebarProportion == 0.42)
+    }
+
+    @Test("BalancedNavigationSplitViewStyle has correct three-column proportions")
+    func balancedStyleThreeColumnProportions() {
+        let style = BalancedNavigationSplitViewStyle()
+        let props = style.threeColumnProportions
+        #expect(props.sidebar == 0.30)
+        #expect(props.content == 0.30)
+        #expect(props.detail == 0.40)
+    }
+
+    @Test("ProminentDetailNavigationSplitViewStyle has narrower sidebar")
+    func prominentDetailStyleSidebarProportion() {
+        let style = ProminentDetailNavigationSplitViewStyle()
+        #expect(style.sidebarProportion == 0.22)
+    }
+
+    @Test("ProminentDetailNavigationSplitViewStyle gives more space to detail")
+    func prominentDetailStyleThreeColumnProportions() {
+        let style = ProminentDetailNavigationSplitViewStyle()
+        let props = style.threeColumnProportions
+        #expect(props.sidebar == 0.18)
+        #expect(props.content == 0.18)
+        #expect(props.detail == 0.64)
+    }
+
+    @Test("The three built-in styles favour the detail to different degrees")
+    func stylesFavourDetailDistinctly() {
+        // automatic: detail-favoured default; balanced: comparable columns
+        // (largest sidebar); prominentDetail: most detail-dominant (smallest
+        // sidebar). These orderings are what make the styles render distinctly.
+        let auto = AutomaticNavigationSplitViewStyle()
+        let balanced = BalancedNavigationSplitViewStyle()
+        let prominent = ProminentDetailNavigationSplitViewStyle()
+        #expect(prominent.sidebarProportion < auto.sidebarProportion)
+        #expect(auto.sidebarProportion < balanced.sidebarProportion)
+        #expect(prominent.threeColumnProportions.detail > auto.threeColumnProportions.detail)
+        #expect(auto.threeColumnProportions.detail > balanced.threeColumnProportions.detail)
+    }
+
+    @Test("Static style properties are accessible")
+    func staticStyleProperties() {
+        let auto: any NavigationSplitViewStyle = .automatic
+        let balanced: any NavigationSplitViewStyle = .balanced
+        let prominent: any NavigationSplitViewStyle = .prominentDetail
+
+        #expect(auto.sidebarProportion == 0.33)
+        #expect(balanced.sidebarProportion == 0.42)
+        #expect(prominent.sidebarProportion == 0.22)
+    }
+}
+
+// MARK: - NavigationSplitView Rendering Tests
+
+@Suite("NavigationSplitView Rendering Tests")
+@MainActor
+struct NavigationSplitViewRenderingTests {
+    @Test("Two-column split view renders both columns")
+    func twoColumnRendersBothColumns() {
+        let splitView = NavigationSplitView {
+            Text("Sidebar")
+        } detail: {
+            Text("Detail")
+        }
+
+        let context = testContext(width: 80)
+        let buffer = renderToBuffer(splitView, context: context)
+
+        // Both columns should be rendered
+        let content = buffer.lines.joined()
+        #expect(content.contains("Sidebar"))
+        #expect(content.contains("Detail"))
+    }
+
+    @Test("Two-column split view includes separator")
+    func twoColumnIncludesSeparator() {
+        let splitView = NavigationSplitView {
+            Text("Left")
+        } detail: {
+            Text("Right")
+        }
+
+        let context = testContext(width: 80)
+        let buffer = renderToBuffer(splitView, context: context)
+
+        // TUI-specific: Columns are separated by space, not a line character.
+        // Verify both columns are rendered with proper spacing.
+        let content = buffer.lines.first ?? ""
+        #expect(content.stripped.contains("Left"))
+        #expect(content.stripped.contains("Right"))
+        // The sidebar has fixed width (20) + space separator, so Right should start after that
+        #expect(buffer.width == 80)
+    }
+
+    @Test("Three-column split view renders all columns")
+    func threeColumnRendersAllColumns() {
+        let splitView = NavigationSplitView {
+            Text("Sidebar")
+        } content: {
+            Text("Content")
+        } detail: {
+            Text("Detail")
+        }
+
+        let context = testContext(width: 100)
+        let buffer = renderToBuffer(splitView, context: context)
+
+        let content = buffer.lines.joined()
+        #expect(content.contains("Sidebar"))
+        #expect(content.contains("Content"))
+        #expect(content.contains("Detail"))
+    }
+
+    @Test("sizeToFitFromLeft hugs a naturally-narrow column; the split still fills")
+    func sizeToFitHugsSidebar() {
+        // The detail's start column = the sidebar's width plus the divider.
+        func detailColumn(style: some NavigationSplitViewStyle) -> Int {
+            let split = NavigationSplitView { Text("Fifteen chars!!") } detail: { Text("XYZ") }
+                .navigationSplitViewStyle(style)
+            let row = renderToBuffer(split, context: testContext(width: 80)).lines.first?.stripped ?? ""
+            return row.range(of: "XYZ").map { row.distance(from: row.startIndex, to: $0.lowerBound) } ?? -1
+        }
+        // Size-to-fit hugs the 15-wide sidebar; balanced gives it a ~0.42 share.
+        let fitCol = detailColumn(style: .sizeToFitFromLeft)
+        #expect(fitCol > 0 && fitCol <= 17)
+        #expect(fitCol < detailColumn(style: .balanced))
+    }
+
+    @Test("detailOnly visibility hides sidebar in two-column")
+    func detailOnlyHidesSidebar() {
+        var visibility = NavigationSplitViewVisibility.detailOnly
+        let binding = Binding(get: { visibility }, set: { visibility = $0 })
+
+        let splitView = NavigationSplitView(columnVisibility: binding) {
+            Text("Sidebar")
+        } detail: {
+            Text("Detail")
+        }
+
+        let context = testContext(width: 80)
+        let buffer = renderToBuffer(splitView, context: context)
+
+        let content = buffer.lines.joined()
+        #expect(!content.contains("Sidebar"))
+        #expect(content.contains("Detail"))
+    }
+
+    @Test("detailOnly visibility hides sidebar and content in three-column")
+    func detailOnlyHidesBothLeadingColumns() {
+        var visibility = NavigationSplitViewVisibility.detailOnly
+        let binding = Binding(get: { visibility }, set: { visibility = $0 })
+
+        let splitView = NavigationSplitView(columnVisibility: binding) {
+            Text("Sidebar")
+        } content: {
+            Text("Content")
+        } detail: {
+            Text("Detail")
+        }
+
+        let context = testContext(width: 100)
+        let buffer = renderToBuffer(splitView, context: context)
+
+        let content = buffer.lines.joined()
+        #expect(!content.contains("Sidebar"))
+        #expect(!content.contains("Content"))
+        #expect(content.contains("Detail"))
+    }
+
+    @Test("doubleColumn visibility hides sidebar in three-column")
+    func doubleColumnHidesSidebarInThreeColumn() {
+        var visibility = NavigationSplitViewVisibility.doubleColumn
+        let binding = Binding(get: { visibility }, set: { visibility = $0 })
+
+        let splitView = NavigationSplitView(columnVisibility: binding) {
+            Text("Sidebar")
+        } content: {
+            Text("Content")
+        } detail: {
+            Text("Detail")
+        }
+
+        let context = testContext(width: 100)
+        let buffer = renderToBuffer(splitView, context: context)
+
+        let content = buffer.lines.joined()
+        #expect(!content.contains("Sidebar"))
+        #expect(content.contains("Content"))
+        #expect(content.contains("Detail"))
+    }
+
+    /// The width of the leading (sidebar) column in a rendered two-column split:
+    /// the run of `S` glyphs at the start of the first row, where the sidebar is
+    /// filled with `S` and the detail with `D`, separated by the divider space.
+    private func sidebarWidth(style: any NavigationSplitViewStyle, width: Int = 100) -> Int {
+        let view = NavigationSplitView {
+            Text(String(repeating: "S", count: 300))
+        } detail: {
+            Text(String(repeating: "D", count: 300))
+        }
+        .navigationSplitViewStyle(style)
+        .navigationSplitViewResizable(false)  // no stored-width override: pure style default
+        let context = testContext(width: width, height: 4)
+        let first = renderToBuffer(view, context: context).lines.first?.stripped ?? ""
+        return first.prefix { $0 == "S" }.count
+    }
+
+    @Test("The three styles render visibly different column widths")
+    func stylesRenderDistinctColumnWidths() {
+        let automatic = sidebarWidth(style: .automatic)
+        let balanced = sidebarWidth(style: .balanced)
+        let prominent = sidebarWidth(style: .prominentDetail)
+
+        // prominentDetail → narrowest sidebar (widest detail);
+        // balanced → widest sidebar (comparable columns);
+        // automatic → in between. All three differ.
+        #expect(prominent < automatic, "prominentDetail sidebar (\(prominent)) < automatic (\(automatic))")
+        #expect(automatic < balanced, "automatic sidebar (\(automatic)) < balanced (\(balanced))")
+        // The spread is substantial, not a rounding wobble.
+        #expect(balanced - prominent >= 5,
+            "styles differ substantially (balanced \(balanced) vs prominent \(prominent))")
+    }
+
+    @Test("Split view respects available height")
+    func splitViewRespectsAvailableHeight() {
+        let splitView = NavigationSplitView {
+            Text("Sidebar")
+        } detail: {
+            Text("Detail")
+        }
+
+        let context = testContext(width: 80, height: 10)
+        let buffer = renderToBuffer(splitView, context: context)
+
+        #expect(buffer.height == 10)
+    }
+}
+
+// MARK: - Focus Section Tests
+
+@Suite("NavigationSplitView Focus Section Tests")
+@MainActor
+struct NavigationSplitViewFocusSectionTests {
+    @Test("Two-column split view registers two focus sections")
+    func twoColumnRegistersTwoFocusSections() {
+        let focusManager = FocusManager()
+        var environment = EnvironmentValues()
+        environment.focusManager = focusManager
+
+        let splitView = NavigationSplitView {
+            Text("Sidebar")
+        } detail: {
+            Text("Detail")
+        }
+
+        let context = RenderContext(
+            availableWidth: 80,
+            availableHeight: 24,
+            environment: environment,
+            tuiContext: TUIContext()
+        ).isolatingRenderCache()
+
+        _ = renderToBuffer(splitView, context: context)
+
+        // Both sections should be registered
+        #expect(focusManager.section(withPrefix: "nav-split-sidebar") != nil)
+        #expect(focusManager.section(withPrefix: "nav-split-detail") != nil)
+    }
+
+    @Test("Three-column split view registers three focus sections")
+    func threeColumnRegistersThreeFocusSections() {
+        let focusManager = FocusManager()
+        var environment = EnvironmentValues()
+        environment.focusManager = focusManager
+
+        let splitView = NavigationSplitView {
+            Text("Sidebar")
+        } content: {
+            Text("Content")
+        } detail: {
+            Text("Detail")
+        }
+
+        let context = RenderContext(
+            availableWidth: 100,
+            availableHeight: 24,
+            environment: environment,
+            tuiContext: TUIContext()
+        ).isolatingRenderCache()
+
+        _ = renderToBuffer(splitView, context: context)
+
+        // All three sections should be registered
+        #expect(focusManager.section(withPrefix: "nav-split-sidebar") != nil)
+        #expect(focusManager.section(withPrefix: "nav-split-content") != nil)
+        #expect(focusManager.section(withPrefix: "nav-split-detail") != nil)
+    }
+
+    @Test("Hidden columns do not register focus sections")
+    func hiddenColumnsNoFocusSections() {
+        let focusManager = FocusManager()
+        var environment = EnvironmentValues()
+        environment.focusManager = focusManager
+
+        var visibility = NavigationSplitViewVisibility.detailOnly
+        let binding = Binding(get: { visibility }, set: { visibility = $0 })
+
+        let splitView = NavigationSplitView(columnVisibility: binding) {
+            Text("Sidebar")
+        } detail: {
+            Text("Detail")
+        }
+
+        let context = RenderContext(
+            availableWidth: 80,
+            availableHeight: 24,
+            environment: environment,
+            tuiContext: TUIContext()
+        ).isolatingRenderCache()
+
+        _ = renderToBuffer(splitView, context: context)
+
+        // Only detail section should be registered
+        #expect(focusManager.section(withPrefix: "nav-split-sidebar") == nil)
+        #expect(focusManager.section(withPrefix: "nav-split-detail") != nil)
+    }
+}
+
+// MARK: - Style Environment Tests
+
+@Suite("NavigationSplitView Style Environment Tests")
+@MainActor
+struct NavigationSplitViewStyleEnvironmentTests {
+    @Test("Default environment style is automatic")
+    func defaultStyleIsAutomatic() {
+        let environment = EnvironmentValues()
+        let style = environment.navigationSplitViewStyle
+        #expect(style.sidebarProportion == 0.33)
+    }
+
+    @Test("Style can be set via environment")
+    func styleCanBeSetViaEnvironment() {
+        var environment = EnvironmentValues()
+        environment.navigationSplitViewStyle = ProminentDetailNavigationSplitViewStyle()
+
+        let style = environment.navigationSplitViewStyle
+        #expect(style.sidebarProportion == 0.22)
+    }
+
+    @Test("navigationSplitViewStyle modifier sets environment")
+    func modifierSetsEnvironment() {
+        let view = Text("Test").navigationSplitViewStyle(.prominentDetail)
+
+        var environment = EnvironmentValues()
+        environment.navigationSplitViewStyle = ProminentDetailNavigationSplitViewStyle()
+
+        // The modifier should compile without errors
+        _ = view
+    }
+}
+
+// MARK: - Equatable Tests
+
+@Suite("NavigationSplitView Equatable Tests")
+@MainActor
+struct NavigationSplitViewEquatableTests {
+    @Test("Equal split views are equal")
+    func equalSplitViewsAreEqual() {
+        let view1 = NavigationSplitView {
+            Text("Sidebar")
+        } detail: {
+            Text("Detail")
+        }
+
+        let view2 = NavigationSplitView {
+            Text("Sidebar")
+        } detail: {
+            Text("Detail")
+        }
+
+        #expect(view1 == view2)
+    }
+
+    @Test("Different sidebar content makes views unequal")
+    func differentSidebarMakesUnequal() {
+        let view1 = NavigationSplitView {
+            Text("Sidebar A")
+        } detail: {
+            Text("Detail")
+        }
+
+        let view2 = NavigationSplitView {
+            Text("Sidebar B")
+        } detail: {
+            Text("Detail")
+        }
+
+        #expect(view1 != view2)
+    }
+
+    @Test("Different detail content makes views unequal")
+    func differentDetailMakesUnequal() {
+        let view1 = NavigationSplitView {
+            Text("Sidebar")
+        } detail: {
+            Text("Detail A")
+        }
+
+        let view2 = NavigationSplitView {
+            Text("Sidebar")
+        } detail: {
+            Text("Detail B")
+        }
+
+        #expect(view1 != view2)
+    }
+}
+
+// MARK: - Resizable Columns
+
+@MainActor
+@Suite("NavigationSplitView Resize")
+struct NavigationSplitViewResizeTests {
+    /// A context with a fresh focus manager plus the TUIContext services
+    /// (state storage, mouse dispatcher) the resize machinery needs.
+    private func resizeContext(width: Int = 80, height: Int = 12) -> RenderContext {
+        let tui = TUIContext()
+        var env = EnvironmentValues()
+        env.focusManager = FocusManager()
+        return RenderContext(
+            availableWidth: width, availableHeight: height, environment: env, tuiContext: tui)
+    }
+
+    /// The visible column of the divider grip (a `◦` dot) on the centre row —
+    /// i.e. the sidebar column's width.
+    private func gripX(_ buffer: FrameBuffer) -> Int? {
+        guard buffer.height > 0 else { return nil }
+        let mid = buffer.lines[buffer.height / 2].stripped
+        // The leftmost divider's centre row is its ◀ toggle.
+        guard let r = mid.firstIndex(where: { $0 == "◦" || $0 == "◀" }) else { return nil }
+        return mid.distance(from: mid.startIndex, to: r)
+    }
+
+    @Test("Divider handler arrow keys adjust the stored width")
+    func handlerKeyboard() {
+        let widths = SplitViewWidths()
+        widths.set(25, for: .sidebar)
+        let handler = _SplitDividerHandler(
+            focusID: "d", column: .sidebar, widths: widths, minimumColumnWidth: 10)
+
+        #expect(handler.handleKeyEvent(KeyEvent(key: .right)))
+        #expect(widths.value(for: .sidebar) == 26)
+        _ = handler.handleKeyEvent(KeyEvent(key: .left))
+        _ = handler.handleKeyEvent(KeyEvent(key: .left))
+        #expect(widths.value(for: .sidebar) == 24)
+        _ = handler.handleKeyEvent(KeyEvent(key: .right, shift: true))
+        #expect(widths.value(for: .sidebar) == 29, "Shift = 5-cell step")
+        _ = handler.handleKeyEvent(KeyEvent(key: .home))
+        #expect(widths.value(for: .sidebar) == 10, "Home = narrowest")
+        #expect(widths.value(for: .content) == nil, "only its own column")
+        #expect(!handler.handleKeyEvent(KeyEvent(key: .up)), "unrelated key not consumed")
+    }
+
+    /// Renders one frame through the run loop's per-frame begin/end render
+    /// passes — including the `StateStorage` GC that collects identities not
+    /// marked active. Resizes must survive this; rendering without it (as the
+    /// earlier tests did) hid the bug where the widths box was collected every
+    /// frame and the resize reset.
+    private func frame(_ view: some View, _ context: RenderContext) -> FrameBuffer {
+        let ss = context.environment.stateStorage!
+        let fm = context.environment.focusManager!
+        ss.beginRenderPass(); fm.beginRenderPass()
+        let buffer = renderToBuffer(view, context: context)
+        fm.endRenderPass(); ss.endRenderPass()
+        return buffer
+    }
+
+    @Test("Arrow keys on the focused divider resize it — and the change persists across the GC")
+    func keyboardResize() {
+        let context = resizeContext()
+        let fm = context.environment.focusManager!
+        let view = NavigationSplitView { Text("SIDEBAR") } detail: { Text("DETAIL") }
+
+        _ = frame(view, context)  // register divider section + handler
+        guard let before = gripX(frame(view, context)) else {
+            Issue.record("expected a divider grip"); return
+        }
+        fm.activateSection(id: dividerSectionID(in: fm) ?? "")
+        _ = fm.dispatchKeyEvent(KeyEvent(key: .left))
+        _ = fm.dispatchKeyEvent(KeyEvent(key: .left))
+        _ = fm.dispatchKeyEvent(KeyEvent(key: .left))
+        let after = gripX(frame(view, context))
+
+        #expect(after == before - 3,
+            "← thrice should narrow the sidebar by 3 and survive the per-frame GC (before \(before), after \(String(describing: after)))")
+    }
+
+    @Test("Dragging the divider widens the sidebar — and the change persists across the GC")
+    func mouseDragResize() {
+        let context = resizeContext()
+        let dispatcher = context.environment.mouseEventDispatcher!
+        dispatcher.setActiveSupport(.standard)
+        let view = NavigationSplitView { Text("SIDEBAR") } detail: { Text("DETAIL") }
+
+        let buffer = frame(view, context)
+        dispatcher.setRegions(buffer.hitTestRegions)
+        guard let x0 = gripX(buffer) else { Issue.record("no grip"); return }
+
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: x0, y: 6))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .dragged, x: x0 + 5, y: 6))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: x0 + 5, y: 6))
+
+        let x1 = gripX(frame(view, context))
+        #expect(x1 == x0 + 5,
+            "dragging right by 5 should widen the sidebar by 5 and survive the GC (before \(x0), after \(String(describing: x1)))")
+    }
+
+    @Test("The divider grip is three stacked marks at its centre: two dots around the ◀ toggle")
+    func gripIsThreeDots() {
+        let context = resizeContext(width: 60, height: 12)
+        let view = NavigationSplitView { Text("SIDEBAR") } detail: { Text("DETAIL") }
+        let buffer = frame(view, context)
+        let dots = buffer.lines.reduce(0) { sum, line in
+            sum + line.stripped.filter { $0 == "◦" }.count
+        }
+        #expect(dots == 2, "the leftmost divider shows two grip dots, got \(dots)")
+        #expect(buffer.lines[6].stripped.contains("◀"), "and ◀ between them")
+    }
+
+    @Test("Hovering the divider changes the grip rendering")
+    func hoverPulsesGrip() {
+        let context = resizeContext(width: 60, height: 12)
+        let dispatcher = context.environment.mouseEventDispatcher!
+        // Motion must be enabled for the dispatcher to synthesise enter/exit.
+        dispatcher.setActiveSupport(MouseSupport(clicks: true, scrolling: true, drag: true, motion: true))
+        let view = NavigationSplitView { Text("SIDEBAR") } detail: { Text("DETAIL") }
+
+        let buffer = frame(view, context)
+        dispatcher.setRegions(buffer.hitTestRegions)
+        guard let x = gripX(buffer) else { Issue.record("no grip"); return }
+        let mid = buffer.height / 2
+        let dividerRowBefore = buffer.lines[mid]  // raw, with ANSI
+
+        // Move the cursor onto the divider → dispatcher synthesises `.entered`.
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .moved, x: x, y: mid))
+        let dividerRowAfter = frame(view, context).lines[mid]
+
+        #expect(dividerRowBefore != dividerRowAfter,
+            "hovering the divider should restyle the grip dot")
+    }
+
+    @Test("A focused divider gains a (pulsing) background")
+    func focusedDividerHasBackground() {
+        let context = resizeContext(width: 60, height: 12)
+        let fm = context.environment.focusManager!
+        let view = NavigationSplitView { Text("SIDEBAR") } detail: { Text("DETAIL") }
+
+        _ = frame(view, context)
+        let unfocused = frame(view, context).lines[6]  // raw, with ANSI
+        fm.activateSection(id: dividerSectionID(in: fm) ?? "")
+        let focused = frame(view, context).lines[6]
+
+        #expect(unfocused != focused,
+            "focusing the divider should add a background to its column")
+    }
+
+    @Test("A focused divider's background stays in its own column (no bleed)")
+    func backgroundDoesNotBleed() {
+        let context = resizeContext(width: 40, height: 8)
+        let fm = context.environment.focusManager!
+        let view = NavigationSplitView { Text("S") } detail: { Text("D") }
+
+        _ = frame(view, context)
+        fm.activateSection(id: dividerSectionID(in: fm) ?? "")
+        let raw = frame(view, context).lines[4]  // a grip row → has the pulsing bg
+
+        // After the divider cell's reset, the rest of the line (the next
+        // column) must carry no further ANSI — otherwise the background bled
+        // past the one-cell divider toward the end of line.
+        guard let lastReset = raw.range(of: "\u{1b}[0m", options: .backwards) else {
+            Issue.record("expected a reset in the focused divider line"); return
+        }
+        let tail = raw[lastReset.upperBound...]
+        #expect(!tail.contains("\u{1b}["),
+            "divider background bled into the next column: \(raw.debugDescription)")
+    }
+
+    @Test("A focused divider hands its cells to the run loop")
+    func focusedDividerAnimatesWithoutRerendering() {
+        // The divider's background pulses down its whole column while focused.
+        // Built from the live clock that costs a full re-render of the split on
+        // every tick; as runs it costs the loop an array index. The runs must
+        // also describe exactly the cells that were drawn — see the replay
+        // check below, which is what the loop actually does on a tick.
+        let context = resizeContext(width: 60, height: 12)
+        let fm = context.environment.focusManager!
+        let view = NavigationSplitView { Text("SIDEBAR") } detail: { Text("DETAIL") }
+
+        _ = frame(view, context)
+        #expect(frame(view, context).animatedCells.isEmpty, "an untouched split animates")
+
+        fm.activateSection(id: dividerSectionID(in: fm) ?? "")
+        let buffer = frame(view, context)
+        let gripColumn = gripX(buffer)
+        #expect(gripColumn != nil)
+        // One run per row of the divider column, and nowhere else.
+        #expect(buffer.animatedCells.count == buffer.height)
+        #expect(buffer.animatedCells.allSatisfy { $0.offsetX == gripColumn && $0.width == 1 })
+        #expect(Set(buffer.animatedCells.map(\.offsetY)) == Set(0..<buffer.height))
+
+        // Replaying the step the frame was drawn at must change nothing.
+        for run in buffer.animatedCells {
+            let replayed = buffer.composited(
+                with: FrameBuffer(lines: [run.frame(atIndex: 0)]),
+                at: (x: run.offsetX, y: run.offsetY))
+            #expect(replayed.lines.map(\.stripped) == buffer.lines.map(\.stripped),
+                "the divider run does not sit on the cells it was drawn from")
+        }
+    }
+
+    @Test("navigationSplitViewResizable(false) removes the grip dots and keeps only the ◀ toggle")
+    func optOut() {
+        let context = resizeContext()
+        let fm = context.environment.focusManager!
+        let view = NavigationSplitView { Text("SIDEBAR") } detail: { Text("DETAIL") }
+            .navigationSplitViewResizable(false)
+
+        let buffer = renderToBuffer(view, context: context)
+        #expect(!buffer.lines.contains { $0.stripped.contains("◦") }, "no grip dots when not resizable")
+        #expect(buffer.lines[buffer.height / 2].stripped.contains("◀"), "the toggle stays")
+        #expect(fm.section(withPrefix: "nav-split-divider-sidebar") != nil, "and is a Tab stop")
+    }
+}
+
+/// The id of the `index`th divider's focus section, counted left to right
+/// among the dividers registered this frame. The id itself names the column on
+/// the divider's left and ends in the split's identity path (see
+/// `wireDivider`), so tests drive a divider by where it is rather than by
+/// spelling the whole id.
+@MainActor
+func dividerSectionID(in manager: FocusManager, index: Int = 0) -> String? {
+    let dividers = manager.sectionIDs.filter { $0.hasPrefix("nav-split-divider-") }
+    return dividers.indices.contains(index) ? dividers[index] : nil
+}

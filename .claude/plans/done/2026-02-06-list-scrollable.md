@@ -385,9 +385,9 @@ List(selection: $selected) {
 
 ## Files
 
-- `Sources/TUIkit/Views/List.swift`: List component + ListHandler
-- `Tests/TUIkitTests/ListTests.swift`: 25+ tests
-- `Sources/TUIkitExample/Pages/ListPage.swift`: Example page
+- `Sources/TUI/Views/List.swift`: List component + ListHandler
+- `Tests/TUITests/ListTests.swift`: 25+ tests
+- `Sources/TUIExample/Pages/ListPage.swift`: Example page
 
 ## Dependencies
 

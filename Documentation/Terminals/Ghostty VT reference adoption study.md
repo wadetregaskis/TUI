@@ -1,4 +1,4 @@
-# Ghostty's VT reference: what TUIkit should adopt
+# Ghostty's VT reference: what TUI should adopt
 
 *Read-only study, 2026-10-04, against `main` at `697d9ef48`. Nothing was built,
 run or measured, and every cost is an estimate.*
@@ -33,7 +33,7 @@ Ghostty calls it a work in progress and implements more than it lists: mode
 2048 is in its source and nowhere in its docs.
 
 Most of the reference describes cursor, erase and margin semantics. The
-readers checked TUIkit's code against them and found **no bug** in the cursor
+readers checked TUI's code against them and found **no bug** in the cursor
 model, the right-edge compensation, the sanitiser, the reply parsers or the
 terminators. Ghostty's CUF page ("never wraps") confirms the compensation's
 right-edge reasoning. What is worth taking is below.
@@ -66,7 +66,7 @@ cost is the decisions-text lane's, not this track's.
 **Do these three first.**
 1. **Synchronized output.** Ghostty's own help page names the defect: apps
    that redraw large areas tear or flicker on it, especially when they erase a
-   row and then redraw it. TUIkit's whole-line path does exactly that
+   row and then redraw it. TUI's whole-line path does exactly that
    (`ESC[2K` + content, FrameDiffWriter.swift:529-531). The fix costs 16 bytes
    on a multi-row frame, and terminals without the mode ignore it.
 2. **OSC 52.** Already queued, by the owner's clipboard rule. Ghostty's page
@@ -99,7 +99,7 @@ everything else follows the lane that owns its files.
 - **OSC 8.** Already shipped; two small fixes (item 11).
 
 **Seven owner questions** (§5): Shift-click capture, pointer shapes (O12), a
-progress API, an attention API, the hardware-scroll budget, whether TUIkit may
+progress API, an attention API, the hardware-scroll budget, whether TUI may
 ever set the terminal's own colours, and the landing order.
 
 ---
@@ -244,7 +244,7 @@ How output items are measured:
 
 | Trim | Today | Change | Expected (hypothesis) |
 |---|---|---|---|
-| Padding after `EL` | A whole-line row appends `terminalWidth - clippedWidth` spaces after a head `ESC[2K` that already painted those cells in the row background (FrameDiffWriter.swift:529-531). This is BCE, which TUIkit relies on everywhere. | Drop them from the bytes. Keep them in the cell model: the decomposer fills blanks after a head `K` (String+CellSpanDiff.swift:110-113, 265-271). | Single digits to ~10% of a full repaint; nothing on span frames |
+| Padding after `EL` | A whole-line row appends `terminalWidth - clippedWidth` spaces after a head `ESC[2K` that already painted those cells in the row background (FrameDiffWriter.swift:529-531). This is BCE, which TUI relies on everywhere. | Drop them from the bytes. Keep them in the cell model: the decomposer fills blanks after a head `K` (String+CellSpanDiff.swift:110-113, 265-271). | Single digits to ~10% of a full repaint; nothing on span frames |
 | `ECH` for blank runs | A span ending in a run of background-only blanks writes them as spaces | `CSI n X` for n ≥ ~5 at a span's end. ECH leaves the cursor in place, so mid-span it is not worth it. | Low single-digit % on gestures (splitdrag: cells 18.8% of bytes, SGR 69%) |
 | `CUF` between spans | Every span gets an absolute `CSI r;c H` (FrameDiffWriter.swift:891-893) | `CSI n C` for the second and later spans on a row. The span path runs only on rows of single-cell scalars (String+CellSpanDiff.swift:205-216), so the column is known. Re-tune `spanMergeGap` (:948). Use CUF, not HPR: HPR is unmeasured on Apple Terminal and Warp and adds nothing. | 2–6% of span-heavy frames (splitdrag ≈ 2.6 KB/frame) |
 | Default `CUP` column | `CSI row;1 H` for every whole-line row (ANSIRenderer.swift:408-410) | `CSI row H`, and `CSI H` for 1;1 | Under 1% |
@@ -367,7 +367,7 @@ that rule. Ghostty's page (and its config reference) adds:
   and OSC 2 right after A28 lands, and closes P15's title bullet. The A28 lane
   routes the root `.navigationTitle` into the ledger and writes no OSC itself.
 - **Built (2026-10-19, lane O9, which P15 was given to):** the ledger is
-  `TerminalHostState` (`Sources/TUIkitApp/Rendering/TerminalHostState.swift`),
+  `TerminalHostState` (`Sources/TUIApp/Rendering/TerminalHostState.swift`),
   owned by the render loop, which writes its changes with each frame
   (`RenderLoop+HostState.swift`); the hand-back (suspend, exit) writes its
   restore, and `Terminal.signalDebt` carries it for a fatal signal. V8–V10
@@ -431,7 +431,7 @@ The look on Ghostty and iTerm2 is owed. Decisions B-GHOSTTY-1 to 5.
     by name. xterm uses X11. Other hosts get nothing.
   - **Ghostty's page warns:** avoid the sequence "unless your program only
     targets certain terminal emulators, or you can switch between cursor names
-    by detecting the current terminal". TUIkit does detect the terminal.
+    by detecting the current terminal". TUI does detect the terminal.
   - **Region resolution.** The dispatcher already tracks the pointer for
     `onHover` and `onContinuousHover` (OnHoverModifier.swift:207-266), and
     raises the mouse mode per frame through `requestFeature`.
@@ -489,7 +489,7 @@ the app").
   :2897-2902).
 - **Policy (Q1).** Send `> 1` only while a Shift-click consumer has focus, and
   `> 0` otherwise and at every teardown. Make it app-wide once A13's D1 drag
-  selection gives users TUIkit's own selection.
+  selection gives users TUI's own selection.
 - **API.** Nothing public: an internal flag on `MouseSupport`, set by the
   consumers and applied in `applyMouseSupport`. This is mouse-mode state, so
   it does not need the ledger. User switch: `TUIKIT_SHIFT_CLICKS=0`.
@@ -548,7 +548,7 @@ B-GHOSTTY-6 to 8.
   - the keypad as `ESC O M`, `ESC O j..y` and `ESC O X`.
 
   `parseSS3Sequence` (KeyEvent.swift:266-274) maps only P, Q, R and S and
-  drops the rest. A TUIkit app launched after such a program therefore has
+  drops the rest. A TUI app launched after such a program therefore has
   **dead arrow keys**. The compatibility doc's numeric-pad paragraph
   (:3775-3790) assumes nothing else left the mode on.
 - **Fix.**
@@ -588,7 +588,7 @@ defaults a shell expects, so none is restored on exit.
 
 - **Mechanism.** `CSI ? 7 l` with `?1049h` and on resume; `CSI ? 7 h` before
   leaving, on suspend, exit and the fatal-signal debt.
-- **What it buys.** Suppose a host advances a row further than TUIkit claimed:
+- **What it buys.** Suppose a host advances a row further than TUI claimed:
   an unmeasured host, or iTerm2 and Terminal.app with "ambiguous characters
   are wide".
   - With autowrap off, that row loses its own tail.
@@ -640,9 +640,9 @@ defaults a shell expects, so none is restored on exit.
      stops the terminal opening a same-named local file.
    - Leave `localhost` and explicit hosts alone.
    - Take the hostname from `gethostname()` once, above the lower modules
-     (TUIkitTerminalHost's `TerminalClient.localHostName`, a module of its
+     (TUITerminalHost's `TerminalClient.localHostName`, a module of its
      own since module split step B2).
-     TUIkitCore, where `TerminalHyperlink` lives, must keep building on
+     TUICore, where `TerminalHyperlink` lives, must keep building on
      Windows, so it is handed the name and never calls POSIX itself.
      **Hypothesis:** `ProcessInfo.hostName` can block on DNS on macOS, which
      is why it is not used.
@@ -675,13 +675,13 @@ defaults a shell expects, so none is restored on exit.
 
 #### D1. Truecolour the environment under-reports
 
-- **What the code does, by reading** (TUIkitStyling/Color/ColorDepth.swift:231-282).
+- **What the code does, by reading** (TUIStyling/Color/ColorDepth.swift:231-282).
   It checks `COLORTERM` first, then `TERM`. `xterm-ghostty` and `xterm-kitty`
   contain neither `direct`, nor `256color`, nor `color`, so they fall to
   `.basic16`.
 - **When it bites.** Locally, Ghostty sets `COLORTERM`. Over ssh, OpenSSH
   forwards `TERM` and not `COLORTERM`. So a Ghostty user who sshes into a box
-  running a TUIkit app gets the **16-colour** rendering, the tier the owner
+  running a TUI app gets the **16-colour** rendering, the tier the owner
   calls "technical only".
 - **A correction to the readers.** They predicted 256 colours. That is the
   case where something has rewritten `TERM` to `xterm-256color`, such as
@@ -694,7 +694,7 @@ Steps:
    tests in the `detect(environment:)` shape. This fixes the common case with
    no query.
 2. **Probe (2 h).** Extend `identity_probe.py` to ask XTGETTCAP for `RGB` and
-   `Tc` on identified non-Apple hosts. It needs no TUIkit code.
+   `Tc` on identified non-Apple hosts. It needs no TUI code.
 3. **Query (1 day; only if step 2 is positive and wanted).** Ask the same in a
    second exchange, when XTVERSION answered and the host is not tmux.
    - DCS must never reach Apple Terminal, which prints it (compat :539-541).
@@ -710,12 +710,12 @@ Measure with unit tests, then by hand: `ssh localhost` from Ghostty with
 #### D2. Facts for `Terminal compatibility survey.md` (2 hours; each lands with the step that touches its section)
 
 - **Mode 2027.** Ghostty's `grapheme-width-method` config explains the
-  "supported, and off" state TUIkit already handles: it is what a user with
+  "supported, and off" state TUI already handles: it is what a user with
   `legacy` presents. Setting 2027 forces `unicode` width; resetting it hands
   back the user's config.
 - **Mode 2031.** Ghostty documents it (features page, 1.0.1 and 1.3.0 notes).
   It reports theme flips, not OSC 10/11/12 changes. It is still unmeasured
-  here, and TUIkit's re-ask on any 997 is right either way.
+  here, and TUI's re-ask on any 997 is right either way.
 - **From Ghostty's source mode table:**
   - 2026 (synchronized output);
   - 2048 (`in_band_size_reports`, undocumented);
@@ -764,12 +764,12 @@ Notes behind the rows:
   - OSC 21's `@alpha` is opacity, not HDR.
   - Nothing here bears on A16's custom-provider benchmark.
 - **The root ground.** The open owner decision is whether to spend a
-  translucent root ground over the terminal's background. TUIkit already asks
+  translucent root ground over the terminal's background. TUI already asks
   for that background with OSC 11 (TerminalColorQuery.swift:116). Ghostty
   confirms the reply format the parser already reads (4-digit `rgb:`), so the
   decision needs nothing new from this track.
   - Setting the terminal's own background (OSC 11, restored with OSC 111) is a
-    different question: whether TUIkit may change the user's terminal
+    different question: whether TUI may change the user's terminal
     colours. That is Q6.
   - Root grounds are painted explicitly on every frame (RenderLoop.swift:36),
     so the only visible gain would be Ghostty's window padding and the cells
@@ -789,23 +789,23 @@ Notes behind the rows:
 | REP `CSI n b` | A host that parses CSI but lacks REP silently drops cells. xterm repeats only characters below 256, so `─` would vanish. No DA bit reports it. M0's capture records run lengths, so it can be reopened on evidence. |
 | ICH / DCH for in-line edits | Without DECSLRM they shift everything to the screen edge (borders, sibling panes), and hosts split wide characters differently. The span diff already writes only a field's tail. DCH stays only in Apple Terminal's card-measured surgery. |
 | DECSLRM, DECLRMM (?69) | Valuable only on top of O2, for non-full-width panes. Apple Terminal and tmux lack it, which doubles the test matrix for a minority layout. Deferred until O2 has run for a while. |
-| CUU, CUD, CNL, CPL, VPA, VPR, HPA, HPR, CHT, CBT, TBC, HTS | Relative or tab-stop motion saves 2–4 bytes over CUP and gives up absolute re-anchoring, which is load-bearing (images; containing advance divergence). Tab stops are terminal state TUIkit does not own. O3's CUF is the one relative move worth having. |
+| CUU, CUD, CNL, CPL, VPA, VPR, HPA, HPR, CHT, CBT, TBC, HTS | Relative or tab-stop motion saves 2–4 bytes over CUP and gives up absolute re-anchoring, which is load-bearing (images; containing advance divergence). Tab stops are terminal state TUI does not own. O3's CUF is the one relative move worth having. |
 | IND, RI alone | Covered by SU/SD. IND stays as O2's fallback. |
 | ED for vanished rows | One ED 0 would also erase the status bar, and the loop runs only when a frame shrinks. |
-| RIS | Clears the primary screen, wiping the shell's output. K2 asserts the few defaults TUIkit depends on instead. |
+| RIS | Clears the primary screen, wiping the shell's output. K2 asserts the few defaults TUI depends on instead. |
 | DECALN | A test pattern. |
 | DECSCUSR | The caret is a drawn, breathing cell (owner, 09-26). The user's cursor shape cannot be restored: `0` is implementation-defined, and DECRQSS is a DCS that Apple Terminal prints. |
 | LF/NL mode (20), LNM double Enter | No measured host or shell leaves mode 20 set. The fix is known if it ever appears: merge CR LF in `tryExtractPlainText`. |
 | OSC 0, OSC 1 | OSC 0 equals OSC 2 on Ghostty. Keep it only as C2's fallback. Almost nothing implements OSC 1. |
-| OSC 4 *set*, OSC 104 | Reprogramming the palette would shift the cube the image quantiser assumes, the colour re-ask would read back TUIkit's own values, a crash leaves the tab altered, and tmux forwards OSC 4 to one client only. |
+| OSC 4 *set*, OSC 104 | Reprogramming the palette would shift the cube the image quantiser assumes, the colour re-ask would read back TUI's own values, a crash leaves the tab altered, and tmux forwards OSC 4 to one client only. |
 | OSC 4 multi-pair query | ~90 bytes once per startup. |
 | OSC 5, OSC 105 (special colours) | Slot 0 reveals only Ghostty's `bold-color`, not iTerm2's "brighten bold". `quantizeToANSI256` already avoids the hazard on every host. |
-| OSC 7 (working directory) | A TUIkit app does not change the shell's directory. If a file browser ever wants new tabs to open where it is, add `.terminalWorkingDirectory(_:)` then (2–3 h). |
+| OSC 7 (working directory) | A TUI app does not change the shell's directory. If a file browser ever wants new tabs to open where it is, add `.terminalWorkingDirectory(_:)` then (2–3 h). |
 | OSC 10–19 / 110–119 *sets*, except Q6 | Ghostty ignores 13–19. Only xterm answers 17 and 19. |
 | OSC 21 (kitty colour protocol) | OSC 10/11/4 already work on every host that answers OSC 21, and on more besides. Its stack is for apps that recolour the terminal. |
 | Mode 2048 now | See §2 (A5). Revisit with the wasm port. |
 | Mode 2027, 2031 code changes | Already right. Documentation only (D2). |
-| C1 (8-bit) controls, BEL as a terminator, non-numeric OSC | TUIkit already sends ST, accepts BEL or ST in replies, and strips both C1 forms. |
+| C1 (8-bit) controls, BEL as a terminator, non-numeric OSC | TUI already sends ST, accepts BEL or ST in replies, and strips both C1 forms. |
 
 ---
 
@@ -835,7 +835,7 @@ Notes behind the rows:
 ## 5. Questions only the owner can answer
 
 1. **Shift-click on Ghostty (XTSHIFTESCAPE).** While it is on, Ghostty users
-   lose Shift-drag native selection in exchange for TUIkit's Shift-click range
+   lose Shift-drag native selection in exchange for TUI's Shift-click range
    selection. Never; only while a Shift-click consumer has focus; or app-wide?
    *Recommend: only while focused now, app-wide once A13's drag-select ships.*
 2. **Pointer shapes (O12).** Ship SwiftUI's `pointerStyle` with CSS names on
@@ -851,7 +851,7 @@ Notes behind the rows:
 5. **Hardware scrolling.** Spend 3–5 days after A28 if the ½-day estimate
    shows at least 50% fewer bytes on scrolling? *Recommend: yes, at that
    threshold.*
-6. **Setting the terminal's colours.** May TUIkit ever *set* the terminal's
+6. **Setting the terminal's colours.** May TUI ever *set* the terminal's
    own colours? For example, OSC 11 to the app's background so Ghostty's
    window padding and resize gaps match, restored on exit; a SIGKILL would
    leave the tab recoloured. *Recommend: no, stay read-only. Revisit with the
@@ -866,7 +866,7 @@ Notes behind the rows:
 
 **Gates for every step:**
 - the 6.2.4 build and the suite, with zero warnings;
-- the Linux cross-compile for anything in TUIkitCore or TUIkitStyling;
+- the Linux cross-compile for anything in TUICore or TUIStyling;
 - no POSIX in the four lower modules (G2 hands the hostname in);
 - `Stress --selfcheck` for drawing steps (V2, V5, V11, V12);
 - CPU A/Bs (`emit_bench.py`) only by the owner, on a quiet box. Agents capture
@@ -907,8 +907,8 @@ stamps its output with `probe_stamp.py`.
 
 | Step | What | Files | Tests | Terminals / probe |
 |---|---|---|---|---|
-| G1 | D1 step 1: TERM names that mean truecolour | `Sources/TUIkitStyling/Color/ColorDepth.swift`, its detect tests | `detect(environment:)` table; `xterm-ghostty` without `COLORTERM` is `.truecolor` | Ghostty and kitty via `ssh localhost` with `COLORTERM` unset (by hand) |
-| G2 | K5: host-named `file://` links; skip URIs over 2083 bytes | `Sources/TUIkitCore/Extensions/TerminalHyperlink.swift` (takes the host name), `Sources/TUIkitTerminalHost/Rendering/TerminalHyperlinkSupport.swift` (reads `gethostname` once), hyperlink tests, the compat doc's OSC 8 section | openings for `file:` with no host, `localhost`, an explicit host; the cap | `hyperlink_probe.py` with `file://` rows: Ghostty, iTerm2, kitty |
+| G1 | D1 step 1: TERM names that mean truecolour | `Sources/TUIStyling/Color/ColorDepth.swift`, its detect tests | `detect(environment:)` table; `xterm-ghostty` without `COLORTERM` is `.truecolor` | Ghostty and kitty via `ssh localhost` with `COLORTERM` unset (by hand) |
+| G2 | K5: host-named `file://` links; skip URIs over 2083 bytes | `Sources/TUICore/Extensions/TerminalHyperlink.swift` (takes the host name), `Sources/TUITerminalHost/Rendering/TerminalHyperlinkSupport.swift` (reads `gethostname` once), hyperlink tests, the compat doc's OSC 8 section | openings for `file:` with no host, `localhost`, an explicit host; the cap | `hyperlink_probe.py` with `file://` rows: Ghostty, iTerm2, kitty |
 | G3 | K4: DSR 5 fences | `TerminalIdentityQuery.swift`, `TerminalModeQuery.swift`, `TerminalGraphicsQuery.swift`, their tests, `Tools/Smoke/identity_smoke.py`, compat doc identity section | each parser ends on `CSI 0 n` and passes over an interleaved `CSI 1;2 R` | `identity_probe.py` on four hosts, tmux, screen |
 | G4 | K6, probe half: `ESC 7` / `ESC 8` in the graphics probe | `TerminalGraphicsQuery.swift`, its test | request bytes pinned | graphics probe re-run on Ghostty, Apple Terminal (nothing printed) |
 | M0 | Measurement tooling for O2 and O3: step markers in dumps; `--shift` and `--runs` analyses | `Tools/Profiling/drive.py`, `Tools/Profiling/analyze_stream.py`, `Tools/Profiling/README.md` | `test_drive.py` covers the markers | none (captures of `tour`, `splitdrag`, `table`, `scroll`, `list`; numbers go in the commit message) |
@@ -925,10 +925,10 @@ stamps its output with `probe_stamp.py`.
 
 | Step | What | Files | Tests | Terminals / probe |
 |---|---|---|---|---|
-| V1 | K6, dump half: `ESC 7` / `ESC 8` and `forgetTerminalStyling()` after the dump | `Sources/TUIkitApp/Rendering/Terminal.swift` | dump bytes through the write seam | none |
+| V1 | K6, dump half: `ESC 7` / `ESC 8` and `forgetTerminalStyling()` after the dump | `Sources/TUIApp/Rendering/Terminal.swift` | dump bytes through the write seam | none |
 | V2 | O1: synchronized output around multi-row frames | `Terminal.swift` (reserve/flush, error path, `disableRawMode`), `RenderLoop.swift` (one call after the graphics write), `FatalSignalTerminalRestore.swift` (debt), compat doc, new `Tools/TerminalProbes/sync_probe.py` | multi-row frame wrapped once; single-row frame unwrapped; empty frame writes nothing; marker after graphics; end marker in teardown and debt | `sync_probe.py` on four hosts and tmux; Ghostty by eye on `splitdrag`; bytes on `tour` and `splitdrag`; owner: `emit_bench.py` on `animating`, `scrollfollow`, `kitchensink` |
 | V3 | K2: assert the inherited defaults | `Terminal.swift` (`enableRawMode`) | `enableRawMode`'s bytes pinned; each sequence's shape asserted Apple-safe | pre-set region and origin mode, then Example, on four hosts and tmux |
-| V4 | K1: SS3 application keys | `Sources/TUIkitCore/Input/KeyEvent.swift`, `KeyEvent` and split-invariance tests, compat doc numeric-pad paragraph | every SS3 spelling, split at every byte; keypad digits carry `.numericPad` | `printf '\e[?1h\e='` then Example on four hosts; a PTY smoke |
+| V4 | K1: SS3 application keys | `Sources/TUICore/Input/KeyEvent.swift`, `KeyEvent` and split-invariance tests, compat doc numeric-pad paragraph | every SS3 spelling, split at every byte; keypad digits carry `.numericPad` | `printf '\e[?1h\e='` then Example on four hosts; a PTY smoke |
 | V5 | K3: autowrap off; peak guard for custom quirks | `Terminal.swift`, `FatalSignalTerminalRestore.swift`, `String+ANSISplitting.swift` call site, compat doc | enable and restore bytes; debt; custom-quirks clip | an over-wide last-row card on Apple Terminal first, then iTerm2 (ambiguous-wide), Ghostty, Warp, kitty, tmux; `Stress --selfcheck` |
 
 V1, V3 and V5 all touch `Terminal.swift`, so they run in sequence in one lane.
@@ -939,17 +939,17 @@ lane's OSC 52 drain. Land V2 before that lane launches, or after it lands.
 
 | Step | What | Files | Tests | Terminals / probe |
 |---|---|---|---|---|
-| V6 | C5: XTSHIFTESCAPE while a Shift-click consumer is focused | `Sources/TUIkitFoundation/App/MouseSupport.swift`, `Terminal.swift` (`applyMouseSupport`), the consumers' registration (List selection, TextField, TextEditor mouse handlers), `FatalSignalTerminalRestore.swift`, compat doc | `> 1` / `> 0` follow focus; teardown and debt; `TUIKIT_SHIFT_CLICKS=0` | `mouse_probe.py` Shift-clicks with and without on Ghostty, Warp, iTerm2, Apple Terminal (CPR leak check), kitty |
+| V6 | C5: XTSHIFTESCAPE while a Shift-click consumer is focused | `Sources/TUIFoundation/App/MouseSupport.swift`, `Terminal.swift` (`applyMouseSupport`), the consumers' registration (List selection, TextField, TextEditor mouse handlers), `FatalSignalTerminalRestore.swift`, compat doc | `> 1` / `> 0` follow focus; teardown and debt; `TUIKIT_SHIFT_CLICKS=0` | `mouse_probe.py` Shift-clicks with and without on Ghostty, Warp, iTerm2, Apple Terminal (CPR leak check), kitty |
 
 ### Phase 4 — after A28 lands (and Q2–Q5)
 
 | Step | What | Files | Tests | Terminals / probe |
 |---|---|---|---|---|
-| V7 | **Done 2026-10-19 (lane O9; see C2).** The ledger plus C2's window title (P15's `WindowGroup` titles; a root `.navigationTitle` per A28 §9) | new `Sources/TUIkitApp/Rendering/TerminalHostState.swift`, new `Sources/TUIkitApp/App/RenderLoop+HostState.swift`, `App.swift` (suspend, cleanup, resume), `Scene.swift`, `FatalSignalTerminalRestore.swift`, the capability environment value, `Tools/APIParity` baseline, map and corpus, compat doc | change-only writes; sanitiser (BEL, ESC, C1 in a title); push/pop around suspend; SwiftUI-shaped corpus | new `title_probe.py` on four hosts and tmux |
-| V8 | **Done 2026-10-19 (lane GHOSTTY; see C3).** C3: progress (Q3) | new `Sources/TUIkitFoundation/Modifiers/TerminalProgressModifier.swift`, the ledger, the run-loop timed wake, compat doc, new `progress_probe.py` | states and clamping; keep-alive without renders; teardown | `progress_probe.py` on Ghostty, iTerm2, kitty, tmux; `idle_cpu.py` with a bar shown |
+| V7 | **Done 2026-10-19 (lane O9; see C2).** The ledger plus C2's window title (P15's `WindowGroup` titles; a root `.navigationTitle` per A28 §9) | new `Sources/TUIApp/Rendering/TerminalHostState.swift`, new `Sources/TUIApp/App/RenderLoop+HostState.swift`, `App.swift` (suspend, cleanup, resume), `Scene.swift`, `FatalSignalTerminalRestore.swift`, the capability environment value, `Tools/APIParity` baseline, map and corpus, compat doc | change-only writes; sanitiser (BEL, ESC, C1 in a title); push/pop around suspend; SwiftUI-shaped corpus | new `title_probe.py` on four hosts and tmux |
+| V8 | **Done 2026-10-19 (lane GHOSTTY; see C3).** C3: progress (Q3) | new `Sources/TUIFoundation/Modifiers/TerminalProgressModifier.swift`, the ledger, the run-loop timed wake, compat doc, new `progress_probe.py` | states and clamping; keep-alive without renders; teardown | `progress_probe.py` on Ghostty, iTerm2, kitty, tmux; `idle_cpu.py` with a bar shown |
 | V9 | C4: pointer shapes (Q2) | new `PointerStyle.swift` and `PointerStyleModifier.swift`, new per-host name table beside `TerminalHyperlinkSupport.swift`, `MouseEventDispatcher` (region resolution), the ledger, parity map (refusal removed), baseline, corpus, compat doc, new `pointer_probe.py` | topmost style wins; change-only writes; reset on exit and suspend; inert on unidentified hosts | `pointer_probe.py` with screenshots: Ghostty, iTerm2, kitty, tmux |
 | V10 | **Done 2026-10-19 (lane GHOSTTY; see C6).** C6: attention (Q4) | new `RequestAttentionAction.swift`, the ledger's write queue, compat doc | ConEmu guard; sanitiser; BEL fallback outside strings | four hosts and tmux, by eye |
-| V11a–d | O3: the four trims, one commit each, each kept only on its M0 number | `Sources/TUIkitApp/Rendering/FrameDiffWriter.swift`, `Sources/TUIkitCore/Extensions/String+CellSpanDiff.swift`, golden snapshots | decomposer fill after a head `K`; span planner; goldens | bytes per M0; Apple Terminal light-profile card; owner: `emit_bench.py` on `textwall`, `kitchensink`, `table` |
+| V11a–d | O3: the four trims, one commit each, each kept only on its M0 number | `Sources/TUIApp/Rendering/FrameDiffWriter.swift`, `Sources/TUICore/Extensions/String+CellSpanDiff.swift`, golden snapshots | decomposer fill after a head `K`; span planner; goldens | bytes per M0; Apple Terminal light-profile card; owner: `emit_bench.py` on `textwall`, `kitchensink`, `table` |
 | V12 | O2: hardware scrolling (Q5) | `FrameDiffWriter.swift` (band detection and cache rotation), `Documentation/Images and terminal graphics/Terminal graphics protocols.md` (its "no scroll region" sentence), compat doc | band detection table; cache rotation equals a fresh build; replay rows excluded; split invariance | scroll cards on Apple Terminal (light and dark), iTerm2, Ghostty, Warp, kitty, tmux; bytes on `scroll` and `list`; owner: `emit_bench.py` on `scrollfollow`, `scrolleager`, `megalist`, `kitchensink` |
 | V13 | D1 step 3: XTGETTCAP `RGB` (only if the G-phase probe is positive) | `TerminalIdentityQuery.swift`, its tests, compat doc | sent only after XTVERSION and never under tmux; parse | `identity_probe.py` on four hosts and tmux |
 

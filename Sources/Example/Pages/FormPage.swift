@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  FormPage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Form demo page: the **same** form rendered two ways — the macOS-style
 /// **columns** layout (the default) and the **grouped** layout — for an

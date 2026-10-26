@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ContainersPage+Groups.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// `GroupBox` and `ControlGroup`: a titled box around related content, and a
 /// row of related controls drawn as one — the two SwiftUI containers that are

@@ -103,14 +103,14 @@ Implement List and Table using shared handlers/helpers with proper View architec
 **Moderate to High**, requires careful implementation. ~6-8 hours for List, ~8-10 hours for Table.
 
 ## Files Changed/Created
-- `Sources/TUIkit/Views/List.swift` (refactored)
-- `Sources/TUIkit/Views/Table.swift` (new)
-- `Sources/TUIkit/Focus/ItemListHandler.swift` (new, shared)
-- `Tests/TUIkitTests/ListTests.swift` (updated)
-- `Tests/TUIkitTests/TableTests.swift` (new)
-- `Tests/TUIkitTests/ItemListHandlerTests.swift` (new)
-- `Sources/TUIkitExample/Pages/ListPage.swift` (updated)
-- `Sources/TUIkitExample/Pages/TablePage.swift` (new)
+- `Sources/TUI/Views/List.swift` (refactored)
+- `Sources/TUI/Views/Table.swift` (new)
+- `Sources/TUI/Focus/ItemListHandler.swift` (new, shared)
+- `Tests/TUITests/ListTests.swift` (updated)
+- `Tests/TUITests/TableTests.swift` (new)
+- `Tests/TUITests/ItemListHandlerTests.swift` (new)
+- `Sources/TUIExample/Pages/ListPage.swift` (updated)
+- `Sources/TUIExample/Pages/TablePage.swift` (new)
 
 ## Dependencies
 - Phase 1: ContainerView refactoring ✓

@@ -2,7 +2,7 @@
 
 > **Status.** The input-reader recommendation (option A, DispatchSource)
 > shipped as `StdinArrivalNotifier` in
-> `Sources/TUIkitApp/App/StdinArrivalStream.swift` — a demand-driven
+> `Sources/TUIApp/App/StdinArrivalStream.swift` — a demand-driven
 > continuation on the main queue rather than the `AsyncStream` sketched
 > below; see that file's doc comment for why. The actor question
 > (options 1–4) remains open; the status quo (option 1) is the current
@@ -12,14 +12,14 @@ This document is a design discussion, not yet a specification. It catalogues
 two coupled questions that came up while adopting `ordo-one/benchmark`
 (task #26) and revisiting input responsiveness:
 
-1. **The input-reader loop.** TUIkit currently sleeps between polls of
+1. **The input-reader loop.** TUI currently sleeps between polls of
    stdin. The desired shape is "respond to input immediately, never
    busy-spin, never block the main actor." What does the read path look
    like?
-2. **Actor isolation.** TUIkit's `View` API and render pipeline are
+2. **Actor isolation.** TUI's `View` API and render pipeline are
    `@MainActor`-isolated. That isolation is the proximate cause of the
    benchmark-deadlock that prevents view-using benchmarks from running.
-   Should TUIkit move its render pipeline onto a dedicated global actor?
+   Should TUI move its render pipeline onto a dedicated global actor?
 
 The two questions are loosely coupled — most input-reader approaches
 work under either actor model — but the actor decision shapes what "the
@@ -28,7 +28,7 @@ the other.
 
 ## The input-reader question
 
-The "poll-and-sleep" loop is the wrong shape regardless of where TUIkit
+The "poll-and-sleep" loop is the wrong shape regardless of where TUI
 lives. Conceptually:
 
 ```swift
@@ -106,7 +106,7 @@ DispatchSource specifically fails us. Skip unless that happens.
 #### D — swift-nio
 
 Battle-tested cross-platform I/O. Pulling a 10 MB dependency for "read
-from stdin" is heavyweight. Skip unless TUIkit grows other network
+from stdin" is heavyweight. Skip unless TUI grows other network
 needs.
 
 **Recommendation:** reach for (A) first, hold (B) as the fallback.
@@ -123,8 +123,8 @@ Pros:
 - Matches SwiftUI's conceptual model (Views are `@MainActor` there too).
 - User-written action closures, `body` computations, and state mutations
   all share one isolation domain — easy to reason about.
-- TUIkit-the-whole-app is the common case, and in that case `MainActor`
-  effectively *is* the TUIkit thread.
+- TUI-the-whole-app is the common case, and in that case `MainActor`
+  effectively *is* the TUI thread.
 
 Cons:
 
@@ -133,37 +133,37 @@ Cons:
   `DispatchSemaphore`, async benchmark closures hop to `MainActor`,
   and the work queues against a blocked thread until the runtime
   detects the deadlock and traps with SIGTRAP.
-- Tests that want to run TUIkit code from non-main contexts need
+- Tests that want to run TUI code from non-main contexts need
   contortions.
-- If TUIkit is ever embedded inside a hybrid app (e.g., a CLI tool that
+- If TUI is ever embedded inside a hybrid app (e.g., a CLI tool that
   also pops a SwiftUI window), it competes for `MainActor` with the
   host.
 - The input reader thread, after parsing events, has to hop to
   `MainActor` to dispatch. Fine for keystroke rates, but if the user's
   `MainActor` is busy with other work, events queue.
 
-### 2. Full migration — everything moves to a new `@TUIkitActor`
+### 2. Full migration — everything moves to a new `@TUIActor`
 
 Pros:
 
 - Benchmark deadlock disappears. package-benchmark blocks `MainActor`,
-  not `TUIkitActor`, so `await TUIkitActor.run { ... }` is
+  not `TUIActor`, so `await TUIActor.run { ... }` is
   non-deadlocking.
-- Tests can spawn arbitrary tasks, each entering `TUIkitActor` cleanly.
-- Input reader dispatches events directly to `TUIkitActor` without
+- Tests can spawn arbitrary tasks, each entering `TUIActor` cleanly.
+- Input reader dispatches events directly to `TUIActor` without
   competing with anything the host does on `MainActor`.
-- Explicit conceptual model: "TUIkit owns its actor."
+- Explicit conceptual model: "TUI owns its actor."
 - Future-proof for custom executors, priority assignment, etc.
 
 Cons:
 
 - Massive refactor. Every `@MainActor` annotation across the
-  View/render/focus/state code becomes `@TUIkitActor`. Hundreds of
+  View/render/focus/state code becomes `@TUIActor`. Hundreds of
   declarations.
 - Breaks SwiftUI conceptual parity. `View` in SwiftUI is `@MainActor`;
-  here it would be `@TUIkitActor`. Users coming from SwiftUI will trip
+  here it would be `@TUIActor`. Users coming from SwiftUI will trip
   on this.
-- Action callbacks (`Button("Save") { ... }`) now run on `TUIkitActor`.
+- Action callbacks (`Button("Save") { ... }`) now run on `TUIActor`.
   User code in those callbacks that wants to do `MainActor` work has
   to explicitly hop. Most user actions are "update a `@State` value"
   which is fine, but the API surface is wider.
@@ -171,16 +171,16 @@ Cons:
   boundary (e.g., user data passed to a `Binding`) needs to be
   `Sendable`. Painful for some shapes.
 
-### 3. Hybrid — View construction nonisolated, render pipeline on `@TUIkitActor`, actions stay `@MainActor`
+### 3. Hybrid — View construction nonisolated, render pipeline on `@TUIActor`, actions stay `@MainActor`
 
 The most interesting middle ground.
 
 - `View` protocol: `nonisolated`. View structs are pure value types;
   their constructors don't need an actor.
 - `body: some View`: nonisolated by default; the user can opt into
-  `@MainActor` or `@TUIkitActor` if needed.
+  `@MainActor` or `@TUIActor` if needed.
 - `renderToBuffer`, `FocusManager`, `StateStorage`,
-  `MouseEventDispatcher`: `@TUIkitActor`.
+  `MouseEventDispatcher`: `@TUIActor`.
 - Action callbacks (`Button(action:)`, `.onTapGesture { }`, etc.):
   typed as `@MainActor () -> Void`. The dispatcher hops to `MainActor`
   to fire them.
@@ -188,7 +188,7 @@ The most interesting middle ground.
 Pros:
 
 - Benchmarks work. Constructors are nonisolated (call from anywhere),
-  the render call hops to `TUIkitActor` which package-benchmark's
+  the render call hops to `TUIActor` which package-benchmark's
   worker can enter.
 - User actions feel natural — they run on `MainActor`, the place users
   expect "their" code to run. No surprise hops.
@@ -199,7 +199,7 @@ Cons:
 
 - Still a sizable refactor — less than option 2 but more than 1.
 - The render loop now has two actor hops per click: dispatcher
-  (`TUIkitActor`) → action (`MainActor`) → state update (which may
+  (`TUIActor`) → action (`MainActor`) → state update (which may
   trigger render). Manageable but real.
 - Need to be careful about which state goes where. `@State`-stored
   values that the body reads need to be on the same actor as the body.
@@ -208,8 +208,8 @@ Cons:
 
 ### 4. Custom executor for `MainActor`
 
-Reroute `MainActor`'s executor to a TUIkit-owned executor — `MainActor`
-becomes "TUIkit's main thread" by construction. Doesn't actually solve
+Reroute `MainActor`'s executor to a TUI-owned executor — `MainActor`
+becomes "TUI's main thread" by construction. Doesn't actually solve
 the benchmark deadlock (the issue is package-benchmark's *blocking
 call* on the main thread, not the actor binding) and requires deep
 runtime poking. Skip.
@@ -223,15 +223,15 @@ stream:
 - **Under (1) MainActor:** the consumer `await`s on `MainActor`. If
   the user's app has any other `MainActor` work scheduled (a timer
   firing, a Combine subscriber, an async function awaiting on
-  `MainActor`), input events queue behind that work. For a "TUIkit is
+  `MainActor`), input events queue behind that work. For a "TUI is
   the whole app" CLI tool this is invisible; for anything more
   interesting it matters.
-- **Under (2) or (3) TUIkitActor:** the consumer awaits on
-  `TUIkitActor`. Events get dispatched to TUIkit immediately. Only the
+- **Under (2) or (3) TUIActor:** the consumer awaits on
+  `TUIActor`. Events get dispatched to TUI immediately. Only the
   action callbacks themselves (under option 3) wait for `MainActor`.
 
 So the actor choice mostly buys you latency robustness in hybrid
-embeddings. For a pure TUIkit app it's roughly invisible.
+embeddings. For a pure TUI app it's roughly invisible.
 
 ## Where this leaves the project
 

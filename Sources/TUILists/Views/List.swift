@@ -1,0 +1,958 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  List.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import TUIFoundation
+
+// MARK: - List (Single Selection)
+
+/// A scrollable list with keyboard navigation and single selection.
+///
+/// `List` displays a vertical collection of items inside a bordered container
+/// with support for:
+/// - Optional title in the border
+/// - Optional footer (typically buttons or status text)
+/// - Keyboard navigation (Up/Down/Home/End/PageUp/PageDown)
+/// - Single selection via optional binding
+/// - Multi-selection via Set binding
+/// - Scrolling with automatic viewport management
+/// - Visual states for focused and selected items
+///
+/// ## Usage
+///
+/// ```swift
+/// @State var selectedID: String?
+///
+/// List("My Items", selection: $selectedID) {
+///     ForEach(items) { item in
+///         Text(item.name)
+///     }
+/// }
+///
+/// // With footer
+/// List("My Items", selection: $selectedID) {
+///     ForEach(items) { item in
+///         Text(item.name)
+///     }
+/// } footer: {
+///     ButtonRow {
+///         Button("Add") { }
+///         Button("Remove") { }
+///     }
+/// }
+/// ```
+///
+/// ## The cursor row where the terminal decides the colours
+///
+/// The cursor row marks itself with a fill: the palette's accent over its page,
+/// breathing while the list has focus. A palette may name colours the terminal
+/// decides instead — its own foreground or background, or one of its sixteen
+/// slots — and until the terminal says what it paints for those, there is no
+/// tint between them to draw: the fill would be a solid accent nobody can check
+/// the text on, or the page itself, which shows nothing.
+///
+/// Such a row draws **reverse video** instead, over the palette's own ink and
+/// page, so the cursor is visible in whatever colours the terminal paints. It is
+/// steady rather than breathing, and it keeps its `●`. A selected row that is
+/// not the cursor then shows its `●` and no fill at all, as a `Table` always
+/// has, and alternating rows are left plain. A palette that states ordinary
+/// colours is unaffected, on any terminal.
+///
+/// ## Presenting from a row
+///
+/// Attach a `.sheet` / `.alert` / `.modal` to the **List**, not to a row:
+///
+/// ```swift
+/// List(selection: $selectedID) {
+///     ForEach(items) { item in
+///         Text(item.name)
+///     }
+/// }
+/// .sheet(item: $editing) { item in            // ← here
+///     Dialog(title: item.name) { … }
+/// }
+/// ```
+///
+/// A `List` is windowed: it renders the rows the viewport can show, not all of
+/// them, which is what keeps a ten-thousand-row list costing the same as a
+/// ten-row one. A modifier attached to a row therefore only exists while that
+/// row does, so
+///
+/// ```swift
+/// ForEach(items) { item in
+///     Text(item.name)
+///         .sheet(item: $editing) { … }        // ← only while this row is drawn
+/// }
+/// ```
+///
+/// presents nothing when `$editing` is set for a row that is scrolled out of
+/// view — and then presents it if the user happens to scroll that row back in,
+/// which makes a dialog's appearance a function of the scroll position.
+///
+/// This is not a TUI limitation to work around; SwiftUI's lazy containers
+/// behave the same way for the same reason, and attaching the presentation to
+/// the container is the idiom there too. The rule is worth stating plainly
+/// because the row-attached form looks natural and fails quietly.
+///
+/// ## Visual States
+///
+/// | State | Rendering |
+/// |-------|-----------|
+/// | Focused + Selected | Pulsing accent background, bold |
+/// | Focused only | Pulsing focus-wash background |
+/// | Selected only | Dimmed accent indicator |
+/// | Neither | Default foreground |
+///
+/// ## Scroll Indicators
+///
+/// When content extends beyond the viewport, scroll indicators (arrows)
+/// appear at the top and/or bottom edges inside the container.
+public struct List<SelectionValue: Hashable & Sendable, Content: View, Footer: View>: View {
+    /// The optional title displayed in the border.
+    let title: String?
+
+    /// The content of the list (typically ForEach).
+    let content: Content
+
+    /// The footer content (optional).
+    let footer: Footer?
+
+    /// Binding for single selection (optional ID).
+    let singleSelection: Binding<SelectionValue?>?
+
+    /// Binding for multi-selection (Set of IDs).
+    let multiSelection: Binding<Set<SelectionValue>>?
+
+    /// The selection mode derived from which binding is set.
+    var selectionMode: SelectionMode {
+        multiSelection != nil ? .multi : .single
+    }
+
+    /// The unique focus identifier for this list.
+    var focusID: String?
+
+    /// Whether the list is disabled.
+    var isDisabled: Bool
+
+    /// The placeholder text shown when the list is empty.
+    var emptyPlaceholder: String
+
+    /// Whether to show separator before footer.
+    var showFooterSeparator: Bool
+
+    public var body: some View {
+        // `.disabled(isDisabled)` as well as the stored flag — see the same
+        // pairing in `ScrollView.body`. The flag governs this list's own focus;
+        // the modifier is what carries the disable into the rows, which is what
+        // SwiftUI's `.disabled(_:)` means and what the concrete
+        // `disabled(_:) -> List` below was quietly not doing.
+        _ListCore(
+            title: title,
+            content: content,
+            footer: footer,
+            singleSelection: singleSelection,
+            multiSelection: multiSelection,
+            selectionMode: selectionMode,
+            focusID: focusID,
+            isDisabled: isDisabled,
+            emptyPlaceholder: emptyPlaceholder,
+            showFooterSeparator: showFooterSeparator
+        )
+        .disabled(isDisabled)
+        .paintingScrollContentBackground()
+    }
+}
+
+// MARK: - Single Selection Initializers (with Footer)
+
+extension List {
+    /// Creates a list with single selection, a localized title, and a footer.
+    ///
+    /// A string **literal** binds here, so the title is a lookup key — see
+    /// ``LocalizedStringKey``. Every titled `List` initializer below takes one
+    /// the same way.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the title displayed in the border.
+    ///   - selection: A binding to the selected item's ID (nil = no selection).
+    ///   - content: A ViewBuilder that defines the list content.
+    ///   - footer: A ViewBuilder that defines the footer content.
+    public init(
+        _ titleKey: LocalizedStringKey,
+        selection: Binding<SelectionValue?>?,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        self.init(
+            titleKey.localized, selection: selection, content: content, footer: footer)
+    }
+
+    /// Creates a list whose title is displayed as written.
+    ///
+    /// Generic over `StringProtocol` rather than taking a concrete `String`,
+    /// which is what keeps a *literal* binding to the key overload above — see
+    /// ``LocalizedStringKey``. Every disfavoured `List` initializer below is
+    /// spelled the same way, for the same reason.
+    ///
+    /// - Parameters:
+    ///   - title: The title displayed in the border.
+    ///   - selection: A binding to the selected item's ID (nil = no selection).
+    ///   - content: A ViewBuilder that defines the list content.
+    ///   - footer: A ViewBuilder that defines the footer content.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(
+        _ title: S,
+        selection: Binding<SelectionValue?>?,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        self.title = String(title)
+        self.content = content()
+        self.footer = footer()
+        self.singleSelection = selection
+        self.multiSelection = nil
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = true
+    }
+
+    /// Creates a list with single selection and footer, without a title.
+    ///
+    /// - Parameters:
+    ///   - selection: A binding to the selected item's ID (nil = no selection).
+    ///   - content: A ViewBuilder that defines the list content.
+    ///   - footer: A ViewBuilder that defines the footer content.
+    public init(
+        selection: Binding<SelectionValue?>?,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        self.title = nil
+        self.content = content()
+        self.footer = footer()
+        self.singleSelection = selection
+        self.multiSelection = nil
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = true
+    }
+}
+
+// MARK: - Single Selection Initializers (without Footer)
+
+extension List where Footer == EmptyView {
+    /// Creates a list with single selection and a localized title.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the title displayed in the border.
+    ///   - selection: A binding to the selected item's ID (nil = no selection).
+    ///   - content: A ViewBuilder that defines the list content.
+    public init(
+        _ titleKey: LocalizedStringKey,
+        selection: Binding<SelectionValue?>?,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.init(titleKey.localized, selection: selection, content: content)
+    }
+
+    /// Creates a list whose title is displayed as written.
+    ///
+    /// Generic over `StringProtocol` for the same reason as the footered
+    /// single-selection initializer — see ``LocalizedStringKey``.
+    ///
+    /// - Parameters:
+    ///   - title: The title displayed in the border.
+    ///   - selection: A binding to the selected item's ID (nil = no selection).
+    ///   - content: A ViewBuilder that defines the list content.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(
+        _ title: S,
+        selection: Binding<SelectionValue?>?,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = String(title)
+        self.content = content()
+        self.footer = nil
+        self.singleSelection = selection
+        self.multiSelection = nil
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = false
+    }
+
+    /// Creates a list with single selection without a title.
+    ///
+    /// - Parameters:
+    ///   - selection: A binding to the selected item's ID (nil = no selection).
+    ///   - content: A ViewBuilder that defines the list content.
+    public init(
+        selection: Binding<SelectionValue?>?,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = nil
+        self.content = content()
+        self.footer = nil
+        self.singleSelection = selection
+        self.multiSelection = nil
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = false
+    }
+}
+
+// MARK: - Multi Selection Initializers (with Footer)
+
+extension List {
+    /// Creates a list with multi-selection, a localized title, and a footer.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the title displayed in the border.
+    ///   - selection: A binding to the set of selected item IDs.
+    ///   - content: A ViewBuilder that defines the list content.
+    ///   - footer: A ViewBuilder that defines the footer content.
+    public init(
+        _ titleKey: LocalizedStringKey,
+        selection: Binding<Set<SelectionValue>>?,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        self.init(
+            titleKey.localized, selection: selection, content: content, footer: footer)
+    }
+
+    /// Creates a multi-selection list whose title is displayed as written.
+    ///
+    /// Generic over `StringProtocol` for the same reason as the single-selection
+    /// initializers above — see ``LocalizedStringKey``.
+    ///
+    /// - Parameters:
+    ///   - title: The title displayed in the border.
+    ///   - selection: A binding to the set of selected item IDs.
+    ///   - content: A ViewBuilder that defines the list content.
+    ///   - footer: A ViewBuilder that defines the footer content.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(
+        _ title: S,
+        selection: Binding<Set<SelectionValue>>?,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        self.title = String(title)
+        self.content = content()
+        self.footer = footer()
+        self.singleSelection = nil
+        self.multiSelection = selection
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = true
+    }
+
+    /// Creates a list with multi-selection and footer, without a title.
+    ///
+    /// - Parameters:
+    ///   - selection: A binding to the set of selected item IDs.
+    ///   - content: A ViewBuilder that defines the list content.
+    ///   - footer: A ViewBuilder that defines the footer content.
+    public init(
+        selection: Binding<Set<SelectionValue>>?,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        self.title = nil
+        self.content = content()
+        self.footer = footer()
+        self.singleSelection = nil
+        self.multiSelection = selection
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = true
+    }
+}
+
+// MARK: - Multi Selection Initializers (without Footer)
+
+extension List where Footer == EmptyView {
+    /// Creates a list with multi-selection and a localized title.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the title displayed in the border.
+    ///   - selection: A binding to the set of selected item IDs.
+    ///   - content: A ViewBuilder that defines the list content.
+    public init(
+        _ titleKey: LocalizedStringKey,
+        selection: Binding<Set<SelectionValue>>?,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.init(titleKey.localized, selection: selection, content: content)
+    }
+
+    /// Creates a multi-selection list whose title is displayed as written.
+    ///
+    /// Generic over `StringProtocol` for the same reason as the single-selection
+    /// initializers above — see ``LocalizedStringKey``.
+    ///
+    /// - Parameters:
+    ///   - title: The title displayed in the border.
+    ///   - selection: A binding to the set of selected item IDs.
+    ///   - content: A ViewBuilder that defines the list content.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(
+        _ title: S,
+        selection: Binding<Set<SelectionValue>>?,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = String(title)
+        self.content = content()
+        self.footer = nil
+        self.singleSelection = nil
+        self.multiSelection = selection
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = false
+    }
+
+    /// Creates a list with multi-selection without a title.
+    ///
+    /// - Parameters:
+    ///   - selection: A binding to the set of selected item IDs.
+    ///   - content: A ViewBuilder that defines the list content.
+    public init(
+        selection: Binding<Set<SelectionValue>>?,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = nil
+        self.content = content()
+        self.footer = nil
+        self.singleSelection = nil
+        self.multiSelection = selection
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = false
+    }
+}
+
+// MARK: - Selectionless Initializers (with Footer)
+
+extension List {
+    /// Creates a list without selection, with title and footer.
+    ///
+    /// The list still scrolls — wheel events go straight to the
+    /// viewport, and arrow keys move the focus cursor when the
+    /// list itself is focused — but there is no selection
+    /// binding, so the keyboard `Enter` / `Space` selection
+    /// toggle is a no-op and no row ever renders with the
+    /// selected style.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the title displayed in the border.
+    ///   - content: A ViewBuilder that defines the list content.
+    ///   - footer: A ViewBuilder that defines the footer content.
+    public init(
+        _ titleKey: LocalizedStringKey,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        self.init(titleKey.localized, content: content, footer: footer)
+    }
+
+    /// Creates a selectionless list whose title is displayed as written.
+    ///
+    /// Generic over `StringProtocol` for the same reason as the selecting
+    /// initializers above — see ``LocalizedStringKey``.
+    ///
+    /// - Parameters:
+    ///   - title: The title displayed in the border.
+    ///   - content: A ViewBuilder that defines the list content.
+    ///   - footer: A ViewBuilder that defines the footer content.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(
+        _ title: S,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        self.title = String(title)
+        self.content = content()
+        self.footer = footer()
+        self.singleSelection = nil
+        self.multiSelection = nil
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = true
+    }
+
+    /// Creates a list without selection, with a footer, without
+    /// a title. See ``init(_:content:footer:)-(LocalizedStringKey,_,_)`` for details.
+    ///
+    /// - Parameters:
+    ///   - content: A ViewBuilder that defines the list content.
+    ///   - footer: A ViewBuilder that defines the footer content.
+    public init(
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        self.title = nil
+        self.content = content()
+        self.footer = footer()
+        self.singleSelection = nil
+        self.multiSelection = nil
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = true
+    }
+}
+
+// MARK: - Selectionless Initializers (without Footer)
+
+extension List where Footer == EmptyView {
+    /// Creates a list without selection, with a title. See
+    /// ``init(_:content:footer:)-(LocalizedStringKey,_,_)`` for details on selectionless
+    /// behaviour.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the title displayed in the border.
+    ///   - content: A ViewBuilder that defines the list content.
+    public init(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content) {
+        self.init(titleKey.localized, content: content)
+    }
+
+    /// Creates a selectionless list whose title is displayed as written.
+    ///
+    /// Generic over `StringProtocol` for the same reason as the selecting
+    /// initializers above — see ``LocalizedStringKey``.
+    ///
+    /// - Parameters:
+    ///   - title: The title displayed in the border.
+    ///   - content: A ViewBuilder that defines the list content.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(_ title: S, @ViewBuilder content: () -> Content) {
+        self.title = String(title)
+        self.content = content()
+        self.footer = nil
+        self.singleSelection = nil
+        self.multiSelection = nil
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = false
+    }
+
+    /// Creates a list without selection or title. See
+    /// ``init(_:content:footer:)-(LocalizedStringKey,_,_)`` for details on selectionless
+    /// behaviour.
+    ///
+    /// - Parameter content: A ViewBuilder that defines the list
+    ///   content.
+    public init(@ViewBuilder content: () -> Content) {
+        self.title = nil
+        self.content = content()
+        self.footer = nil
+        self.singleSelection = nil
+        self.multiSelection = nil
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = false
+    }
+}
+
+// MARK: - Selectionless Default-Type Initializers
+
+// When the caller writes `List { Text("a") }` with no ForEach
+// inside, Swift has nothing to infer `SelectionValue` from. The
+// constrained extensions below give SelectionValue a default of
+// Int so those bare-content lists type-check without requiring
+// the caller to spell out `List<Int, _, _>(...)`. When a ForEach
+// or other content does provide a SelectionValue type, the
+// generic inits above are picked instead.
+
+extension List where SelectionValue == Int, Footer == EmptyView {
+    /// Creates a selectionless list with a localized title and a default
+    /// SelectionValue of `Int`. See ``init(_:content:footer:)-(LocalizedStringKey,_,_)``
+    /// for the selectionless semantics.
+    public init(_ titleKey: LocalizedStringKey, @ViewBuilder content: () -> Content) {
+        self.init(titleKey.localized, content: content)
+    }
+
+    /// Creates a selectionless list whose title is displayed as written.
+    ///
+    /// Generic over `StringProtocol` for the same reason as the selecting
+    /// initializers above — see ``LocalizedStringKey``.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(_ title: S, @ViewBuilder content: () -> Content) {
+        self.title = String(title)
+        self.content = content()
+        self.footer = nil
+        self.singleSelection = nil
+        self.multiSelection = nil
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = false
+    }
+
+    /// Creates a selectionless list with a default SelectionValue
+    /// of `Int`. See ``init(_:content:footer:)-(LocalizedStringKey,_,_)`` for the
+    /// selectionless semantics.
+    public init(@ViewBuilder content: () -> Content) {
+        self.title = nil
+        self.content = content()
+        self.footer = nil
+        self.singleSelection = nil
+        self.multiSelection = nil
+        self.focusID = nil
+        self.isDisabled = false
+        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
+        self.showFooterSeparator = false
+    }
+}
+
+// MARK: - Data-Driven Initializers (Identifiable)
+
+// SwiftUI-parity `List(_:rowContent:)` sugar. Each overload builds the existing
+// `ForEach` row path internally — no new rendering — so large lists keep their
+// O(visible) windowed cost. Footer is `EmptyView` (data-driven lists take no
+// footer, as in SwiftUI). Selection variants fix `SelectionValue` to the row's
+// id type so the selection binding lines up with what `ForEach` keys rows by.
+
+extension List where Footer == EmptyView, SelectionValue == Int {
+    /// Creates a list from an `Identifiable` collection, without selection.
+    ///
+    /// - Parameters:
+    ///   - data: The collection to show, one row per element.
+    ///   - rowContent: Builds the row view for each element.
+    public init<Data: RandomAccessCollection, RowContent: View>(
+        _ data: Data,
+        @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
+    ) where Content == ForEach<Data, Data.Element.ID, RowContent>, Data.Element: Identifiable {
+        self.init { ForEach(data, content: rowContent) }
+    }
+
+    /// Creates a list from a collection keyed by an explicit id, without selection.
+    ///
+    /// - Parameters:
+    ///   - data: The collection to show, one row per element.
+    ///   - id: A key path to each element's stable identity.
+    ///   - rowContent: Builds the row view for each element.
+    public init<Data: RandomAccessCollection, ID: Hashable, RowContent: View>(
+        _ data: Data,
+        id: KeyPath<Data.Element, ID>,
+        @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
+    ) where Content == ForEach<Data, ID, RowContent> {
+        self.init { ForEach(data, id: id, content: rowContent) }
+    }
+}
+
+extension List where Footer == EmptyView, SelectionValue == Int {
+    /// Creates a list of the rows a range of integers makes, without
+    /// selection — mirrors SwiftUI's `init(_:rowContent:)` over a
+    /// `Range<Int>`.
+    ///
+    /// - Parameters:
+    ///   - data: The range, one row per integer.
+    ///   - rowContent: Builds the row view for each integer.
+    public init<RowContent: View>(_ data: Range<Int>, @ViewBuilder rowContent: @escaping (Int) -> RowContent)
+    where Content == ForEach<Range<Int>, Int, RowContent> {
+        self.init { ForEach(data, content: rowContent) }
+    }
+
+    /// Creates a list of the rows a range of integers makes, with single
+    /// selection by the integer.
+    ///
+    /// - Parameters:
+    ///   - data: The range, one row per integer.
+    ///   - selection: A binding to the selected integer (`nil` = none).
+    ///   - rowContent: Builds the row view for each integer.
+    public init<RowContent: View>(
+        _ data: Range<Int>, selection: Binding<Int?>?, @ViewBuilder rowContent: @escaping (Int) -> RowContent
+    ) where Content == ForEach<Range<Int>, Int, RowContent> {
+        self.init(selection: selection) { ForEach(data, content: rowContent) }
+    }
+
+    /// Creates a list of the rows a range of integers makes, with
+    /// multi-selection by the integer.
+    ///
+    /// - Parameters:
+    ///   - data: The range, one row per integer.
+    ///   - selection: A binding to the set of selected integers.
+    ///   - rowContent: Builds the row view for each integer.
+    public init<RowContent: View>(
+        _ data: Range<Int>, selection: Binding<Set<Int>>?, @ViewBuilder rowContent: @escaping (Int) -> RowContent
+    ) where Content == ForEach<Range<Int>, Int, RowContent> {
+        self.init(selection: selection) { ForEach(data, content: rowContent) }
+    }
+}
+
+extension List where Footer == EmptyView {
+    /// Creates a list from an `Identifiable` collection with single selection.
+    ///
+    /// - Parameters:
+    ///   - data: The collection to show, one row per element.
+    ///   - selection: A binding to the selected element's id (`nil` = none).
+    ///   - rowContent: Builds the row view for each element.
+    public init<Data: RandomAccessCollection, RowContent: View>(
+        _ data: Data,
+        selection: Binding<SelectionValue?>?,
+        @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
+    ) where Content == ForEach<Data, Data.Element.ID, RowContent>,
+            Data.Element: Identifiable, SelectionValue == Data.Element.ID {
+        self.init(selection: selection) { ForEach(data, content: rowContent) }
+    }
+
+    /// Creates a list from an `Identifiable` collection with multi-selection.
+    ///
+    /// - Parameters:
+    ///   - data: The collection to show, one row per element.
+    ///   - selection: A binding to the set of selected element ids.
+    ///   - rowContent: Builds the row view for each element.
+    public init<Data: RandomAccessCollection, RowContent: View>(
+        _ data: Data,
+        selection: Binding<Set<SelectionValue>>?,
+        @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
+    ) where Content == ForEach<Data, Data.Element.ID, RowContent>,
+            Data.Element: Identifiable, SelectionValue == Data.Element.ID {
+        self.init(selection: selection) { ForEach(data, content: rowContent) }
+    }
+
+    /// Creates a list keyed by an explicit id with single selection.
+    ///
+    /// The id key path's value type is the selection type, so `selection` binds
+    /// to the same id the rows are keyed by.
+    ///
+    /// - Parameters:
+    ///   - data: The collection to show, one row per element.
+    ///   - id: A key path to each element's stable identity.
+    ///   - selection: A binding to the selected id (`nil` = none).
+    ///   - rowContent: Builds the row view for each element.
+    public init<Data: RandomAccessCollection, RowContent: View>(
+        _ data: Data,
+        id: KeyPath<Data.Element, SelectionValue>,
+        selection: Binding<SelectionValue?>?,
+        @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
+    ) where Content == ForEach<Data, SelectionValue, RowContent> {
+        self.init(selection: selection) { ForEach(data, id: id, content: rowContent) }
+    }
+
+    /// Creates a list keyed by an explicit id with multi-selection.
+    ///
+    /// - Parameters:
+    ///   - data: The collection to show, one row per element.
+    ///   - id: A key path to each element's stable identity.
+    ///   - selection: A binding to the set of selected ids.
+    ///   - rowContent: Builds the row view for each element.
+    public init<Data: RandomAccessCollection, RowContent: View>(
+        _ data: Data,
+        id: KeyPath<Data.Element, SelectionValue>,
+        selection: Binding<Set<SelectionValue>>?,
+        @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
+    ) where Content == ForEach<Data, SelectionValue, RowContent> {
+        self.init(selection: selection) { ForEach(data, id: id, content: rowContent) }
+    }
+}
+
+// MARK: - Hierarchical Initializers (children:)
+
+// SwiftUI-parity `List(_:children:)`. Each overload builds an ``OutlineGroup``
+// internally, and an outline hands its container one row per VISIBLE node — so
+// the list's cursor, its selection binding and its scrolling all address nodes,
+// not the tree. A closed branch costs nothing: its descendants are never
+// flattened, so they are never counted, built or measured.
+//
+// The disclosure triangle is what opens a node; the rest of the row is the
+// list's, to select. That division is the reason ``OutlineGroup`` narrows its
+// toggle target where ``DisclosureGroup`` does not, and it is the same division
+// from the keyboard: Space selects the focused row, Return activates it (which
+// for a branch is to disclose it, unless a `primaryAction` claims Return), and
+// Right / Left open and close it regardless — held with Option, the whole
+// subtree at once.
+
+extension List where Footer == EmptyView, SelectionValue == Int {
+    /// Creates a list of a tree, without selection.
+    ///
+    /// - Parameters:
+    ///   - data: The elements at the top of the tree.
+    ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - rowContent: Builds the row view for each node.
+    public init<Data: RandomAccessCollection, RowContent: View>(
+        _ data: Data,
+        children: KeyPath<Data.Element, Data?>,
+        @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
+    ) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>, Data.Element: Identifiable {
+        self.init { OutlineGroup(data, children: children, content: rowContent) }
+    }
+
+    /// Creates a list of a tree keyed by an explicit id, without selection.
+    ///
+    /// - Parameters:
+    ///   - data: The elements at the top of the tree.
+    ///   - id: A key path to each element's stable identity.
+    ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - rowContent: Builds the row view for each node.
+    public init<Data: RandomAccessCollection, ID: Hashable, RowContent: View>(
+        _ data: Data,
+        id: KeyPath<Data.Element, ID>,
+        children: KeyPath<Data.Element, Data?>,
+        @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
+    ) where Content == OutlineGroup<Data, ID, RowContent> {
+        self.init { OutlineGroup(data, id: id, children: children, content: rowContent) }
+    }
+}
+
+extension List where Footer == EmptyView {
+    /// Creates a list of a tree with single selection.
+    ///
+    /// - Parameters:
+    ///   - data: The elements at the top of the tree.
+    ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - selection: A binding to the selected node's id (`nil` = none).
+    ///   - rowContent: Builds the row view for each node.
+    public init<Data: RandomAccessCollection, RowContent: View>(
+        _ data: Data,
+        children: KeyPath<Data.Element, Data?>,
+        selection: Binding<SelectionValue?>?,
+        @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
+    ) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>,
+            Data.Element: Identifiable, SelectionValue == Data.Element.ID {
+        self.init(selection: selection) {
+            OutlineGroup(data, children: children, content: rowContent)
+        }
+    }
+
+    /// Creates a list of a tree with multi-selection.
+    ///
+    /// - Parameters:
+    ///   - data: The elements at the top of the tree.
+    ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - selection: A binding to the set of selected node ids.
+    ///   - rowContent: Builds the row view for each node.
+    public init<Data: RandomAccessCollection, RowContent: View>(
+        _ data: Data,
+        children: KeyPath<Data.Element, Data?>,
+        selection: Binding<Set<SelectionValue>>?,
+        @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
+    ) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>,
+            Data.Element: Identifiable, SelectionValue == Data.Element.ID {
+        self.init(selection: selection) {
+            OutlineGroup(data, children: children, content: rowContent)
+        }
+    }
+
+    /// Creates a list of a tree keyed by an explicit id, with single selection.
+    ///
+    /// - Parameters:
+    ///   - data: The elements at the top of the tree.
+    ///   - id: A key path to each element's stable identity.
+    ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - selection: A binding to the selected node's id (`nil` = none).
+    ///   - rowContent: Builds the row view for each node.
+    public init<Data: RandomAccessCollection, RowContent: View>(
+        _ data: Data,
+        id: KeyPath<Data.Element, SelectionValue>,
+        children: KeyPath<Data.Element, Data?>,
+        selection: Binding<SelectionValue?>?,
+        @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
+    ) where Content == OutlineGroup<Data, SelectionValue, RowContent> {
+        self.init(selection: selection) {
+            OutlineGroup(data, id: id, children: children, content: rowContent)
+        }
+    }
+
+    /// Creates a list of a tree keyed by an explicit id, with multi-selection.
+    ///
+    /// - Parameters:
+    ///   - data: The elements at the top of the tree.
+    ///   - id: A key path to each element's stable identity.
+    ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - selection: A binding to the set of selected node ids.
+    ///   - rowContent: Builds the row view for each node.
+    public init<Data: RandomAccessCollection, RowContent: View>(
+        _ data: Data,
+        id: KeyPath<Data.Element, SelectionValue>,
+        children: KeyPath<Data.Element, Data?>,
+        selection: Binding<Set<SelectionValue>>?,
+        @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
+    ) where Content == OutlineGroup<Data, SelectionValue, RowContent> {
+        self.init(selection: selection) {
+            OutlineGroup(data, id: id, children: children, content: rowContent)
+        }
+    }
+}
+
+// MARK: - Convenience Modifiers
+
+extension List {
+    /// Creates a disabled version of this list.
+    ///
+    /// - Parameter disabled: Whether the list is disabled.
+    /// - Returns: A new list with the disabled state.
+    public func disabled(_ disabled: Bool = true) -> List<SelectionValue, Content, Footer> {
+        var copy = self
+        copy.isDisabled = disabled
+        return copy
+    }
+
+    /// Sets an explicit focus identifier for this list.
+    ///
+    /// By default, lists generate a focus identifier from their position
+    /// in the view hierarchy. Use this modifier when you need a stable,
+    /// explicit identifier for programmatic focus management.
+    ///
+    /// - Parameter id: The focus identifier.
+    /// - Returns: A list with the specified focus identifier.
+    public func focusID(_ id: String) -> List<SelectionValue, Content, Footer> {
+        var copy = self
+        copy.focusID = id
+        return copy
+    }
+
+    /// Sets the localized placeholder text displayed when the list has no items.
+    ///
+    /// A string **literal** binds here, so it is a lookup key — see
+    /// ``LocalizedStringKey``.
+    ///
+    /// - Parameter placeholderKey: The key for the text to show when empty.
+    /// - Returns: A list with the specified empty placeholder.
+    public func listEmptyPlaceholder(
+        _ placeholderKey: LocalizedStringKey
+    ) -> List<SelectionValue, Content, Footer> {
+        listEmptyPlaceholder(placeholderKey.localized)
+    }
+
+    /// Sets the empty placeholder text, displayed as written.
+    ///
+    /// Generic over `StringProtocol` rather than taking a concrete `String`,
+    /// which is what keeps a *literal* binding to the key overload above — see
+    /// ``LocalizedStringKey``.
+    ///
+    /// - Parameter placeholder: The text to show when the list is empty.
+    /// - Returns: A list with the specified empty placeholder.
+    @_disfavoredOverload
+    public func listEmptyPlaceholder<S: StringProtocol>(
+        _ placeholder: S
+    ) -> List<SelectionValue, Content, Footer> {
+        var copy = self
+        copy.emptyPlaceholder = String(placeholder)
+        return copy
+    }
+
+    /// Controls whether a separator line is shown before the footer.
+    ///
+    /// - Parameter show: Whether to show the footer separator. Defaults to `true`.
+    /// - Returns: A list with the specified footer separator visibility.
+    public func listFooterSeparator(_ show: Bool = true) -> List<SelectionValue, Content, Footer> {
+        var copy = self
+        copy.showFooterSeparator = show
+        return copy
+    }
+}

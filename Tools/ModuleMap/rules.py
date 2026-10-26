@@ -15,7 +15,7 @@ class Rules:
         for m, ds in self.deps.items():
             for d in ds:
                 if d not in self.deps: raise SystemExit(f'rules.json: {m} depends on unknown module {d}')
-        # The lower modules (outside the map: TUIkitCore, TUIkitView …) each module may use; None, when a module has no
+        # The lower modules (outside the map: TUICore, TUIView …) each module may use; None, when a module has no
         # `lower` list, is all of them. Which names are real modules is the index's to say (modulemap.py checks it).
         self.lower = {m['name']: (set(m['lower']) if 'lower' in m else None) for m in data['modules']}
         for m, ls in self.lower.items():
@@ -86,7 +86,7 @@ class Rules:
     def decl_rule(self, labels):
         """The `declarations` rule that places a declaration with these labels (`Model.rule_labels`), else None. The
         LAST that matches wins, so a narrower rule after a broader one is an exception to it: the r4 rules pin
-        `Image.*Key` to TUIkitBitmaps, then three of those keys to TUIkitFoundation. The assigner, `map.json`'s reader and
+        `Image.*Key` to TUIBitmaps, then three of those keys to TUIFoundation. The assigner, `map.json`'s reader and
         `public-above` all ask here, so they cannot disagree."""
         hit = None
         for r in self.decls:

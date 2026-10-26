@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TracksClip.swift
 //
 //  `tracks`: a backup in progress, its one bar restyled every couple of
@@ -9,7 +9,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 @MainActor
 let tracksClip = Clip(
@@ -60,7 +60,7 @@ enum TrackLook {
 
 struct TracksApp: App {
     var body: some Scene {
-        WindowGroup("TUIkit · Backup") {
+        WindowGroup("TUI · Backup") {
             BackupPage()
                 .palette(SystemPalette(.green))
         }

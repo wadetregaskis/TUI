@@ -1,7 +1,7 @@
 # Conjunct widths on hosts that don't compose: decisions from lane WIDTHS
 
 *Lane WIDTHS, 2026-10-19. A Devanagari conjunct is one grapheme cluster, and
-TUIkit claimed two cells for it on every host — the cluster rule's number —
+TUI claimed two cells for it on every host — the cluster rule's number —
 while Apple Terminal, iTerm2 and Warp advance it per code point: स्त्र and
 ष्ट्र 3, स्त्री 4. Every cell after one on a row was placed a cell or two left
 of where those hosts draw it. The evidence is the DSR advance records in
@@ -17,7 +17,7 @@ The format is that of
 - **C-WIDTHS-n — declined.** With the reason.
 
 No SwiftUI API is involved. SwiftUI lays text out by the font's glyph advance;
-TUIkit lays it out by the cells the terminal advances, and this lane only makes
+TUI lays it out by the cells the terminal advances, and this lane only makes
 that number right on more hosts, so it adds no deliberate deviation.
 
 ## B. Shipped the safe option
@@ -33,7 +33,7 @@ width-adding extras and is not an emoji sequence.
 
 | Host | `textClusters` | स्त्र ष्ट्र स्त्री | 한 as jamo |
 |---|---|---|---|
-| Ghostty (mode 2027 set, as TUIkit runs it) | `.clustered` | 2 2 2 | 2 |
+| Ghostty (mode 2027 set, as TUI runs it) | `.clustered` | 2 2 2 | 2 |
 | Apple Terminal, iTerm2, Warp | `.perCodePoint` | 3 3 4 | 2 |
 | tmux, unidentified | `.clustered` | 2 2 2 | 2 |
 
@@ -58,7 +58,7 @@ conjunct's ink inside the three cells it advances is measured on no host —
 `TerminalLedgerConformanceTests.awaitingLandingMeasurement`, so a claim that
 matches the advance cannot read as a row known to render right. If a host
 draws स्त्र in two cells and advances three, the row is now aligned with a
-blank cell inside the cluster — the trade TUIkit already takes for SF Symbols
+blank cell inside the cluster — the trade TUI already takes for SF Symbols
 on Ghostty — where before it was sheared.
 
 Tests: `ComplexScriptHostAdvanceTests` asserts each host's claim for all 38
@@ -120,7 +120,7 @@ here), and a Linux tmux on glibc's `wcwidth` may well give `Mc` a cell.
 Today: `.clustered`, the cluster rule — the same "assume it renders correctly"
 reasoning every other unidentified-host claim follows, and right for a host
 that clusters graphemes. But of the five hosts measured, four advance per code
-point, and the terminals TUIkit cannot identify (xterm, VTE, Alacritty, kitty
+point, and the terminals TUI cannot identify (xterm, VTE, Alacritty, kitty
 without its grapheme mode) are `wcwidth` terminals, which also advance per code
 point — none of them measured here (kitty cannot open a window on this VM).
 
@@ -153,7 +153,7 @@ Found by the same probe runs and recorded in the survey, not acted on:
   whose model would follow its version. (Survey: "iTerm2 3.7.6 re-measured".)
 - **Warp v0.2026.09.30 stopped over-advancing** keycaps and 〰️ 〽️ on the
   alternate screen (3 → 2), and a raw ZWJ sequence's joiner no longer takes a
-  column. Nothing TUIkit emits changes, but the landing record behind
+  column. Nothing TUI emits changes, but the landing record behind
   `knownAdvanceDivergences` is v0.2026.08.26's; a landing re-run would say
   whether those seven divergences are gone. (Survey: "Warp v0.2026.09.30
   re-measured".)

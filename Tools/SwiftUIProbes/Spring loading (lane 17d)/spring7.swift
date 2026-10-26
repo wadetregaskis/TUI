@@ -1,5 +1,5 @@
 // Probe 7: does a SwiftUI ColorPicker's colour well spring-load, on macOS
-// 15.8 (SDK 26.2)? Owner ruling B82: TUIkit's well follows what macOS's does.
+// 15.8 (SDK 26.2)? Owner ruling B82: TUI's well follows what macOS's does.
 // Scans the hosting view with a fake NSDraggingInfo, as spring2.swift does,
 // under each behavior; activates the first spring-loadable point; reports
 // whether the colour panel opened, and what the AppKit well itself answers.

@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  MenusClip.swift
 //
 //  `menus`: a mail app's menu bar opened from the keyboard — File, across to
@@ -8,7 +8,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 @MainActor
 let menusClip = Clip(
@@ -44,7 +44,7 @@ struct MenusApp: App {
     @State private var unread = 3
 
     var body: some Scene {
-        WindowGroup("TUIkit · Mail") {
+        WindowGroup("TUI · Mail") {
             Mailbox()
                 .palette(SystemPalette(.violet))
         }

@@ -21,7 +21,7 @@ the interesting part.
 ### Genuine gaps · `defer`
 
 - **`GeometryReader`** (`68489ec0`) — we have no equivalent. A real parity gap,
-  and unlike most it is a *capability* gap: nothing in TUIkit lets a view read
+  and unlike most it is a *capability* gap: nothing in TUI lets a view read
   the space it was given and branch on it. Worth wanting.
 - **`Layout` protocol family + `AnyLayout`** (`9caf40c7`) — we have
   `LayoutPlacing`, which is our internal two-pass contract, not SwiftUI's public

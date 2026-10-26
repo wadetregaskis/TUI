@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Does the user's quit key, ⌃\\, end a TUIkit app the way a quit does —
+"""Does the user's quit key, ⌃\\, end a TUI app the way a quit does —
 even when the app hangs — while ⌃C, ⌃Z, ⌃Y and ⌃T stay keys?
 
 Raw mode keeps the line discipline's signals on with every signal character
 but the quit key turned off (`Terminal.rawModeAttributes(from:)`), so the
 DRIVER turns ⌃\\ (0x1C) into SIGQUIT before the app reads a byte, as in a
-shell. TUIkit's signal handler pays SIGQUIT as a QUIT, not as a crash: it
+shell. TUI's signal handler pays SIGQUIT as a QUIT, not as a crash: it
 writes what a normal quit writes — the styling reset, every mode the app
 turned on turned off, the cursor shown, and the alternate screen LEFT — puts
 the shell's termios back, and ends the process by the signal's default action
@@ -13,7 +13,7 @@ the shell's termios back, and ends the process by the signal's default action
 which would print a backtrace on the alternate screen and wait half a minute
 for a key.
 
-Runs `IdleProbe` (the smallest TUIkit app; its `keys` mode shows every key it
+Runs `IdleProbe` (the smallest TUI app; its `keys` mode shows every key it
 hears, its `hang` mode blocks its main thread once on screen) under a PTY
 that answers the startup exchange, and checks:
 

@@ -24,7 +24,7 @@ background raised.
 
 **Shipped:** `background(_:)` and `background(_:in:fillStyle:)` raise it for
 their content when the style is `.selection`, erased in an `AnyShapeStyle` or
-not; no other style does. TUIkit's selection style is drawn vivid always, as a
+not; no other style does. TUI's selection style is drawn vivid always, as a
 terminal's one window is always the key one, so it raises always.
 
 **Not shipped:** the selection drawn by a view rather than a style —
@@ -136,7 +136,7 @@ Hierarchical table insertions/`); a terminal's drop line has none. **Shipped:**
 the deeper loop that takes the payload has that slot, and the next row's loop
 the ones it alone reaches. **Not copied:** where a branch's rows have no loop
 that takes the drop, SwiftUI hands it to the roots' loop at the offset it had
-among the branch's rows; TUIkit gives the slot to the loop whose rows it is
+among the branch's rows; TUI gives the slot to the loop whose rows it is
 among, or to none: a slot none takes opens no gap, and a drop there is
 refused and flies home, as it does in a flat table at a slot outside its
 loops.

@@ -19,7 +19,7 @@ with nothing selected, and a double-click on empty space, run nothing. On a
 table with no selection binding a double-click runs it with the clicked row,
 and Return runs nothing.
 
-On macOS the keyboard cursor IS the selection. In TUIkit it is not: the
+On macOS the keyboard cursor IS the selection. In TUI it is not: the
 arrows move a cursor and Space selects, so the cursor can rest on a row the
 selection does not include. A30 described the set as "the selection, or the
 cursor row when nothing is selected".
@@ -45,7 +45,7 @@ non-empty. One line in `RowContextMenuHost.activation(for:selection:)`.
 *`View.contextMenu(forSelectionType:menu:primaryAction:)`,
 `TableRowContent.contextMenu(menuItems:)` (decisions A30)*
 
-TUIkit's rows toggle on Ctrl-click and Option-click — the stand-ins for ⌘,
+TUI's rows toggle on Ctrl-click and Option-click — the stand-ins for ⌘,
 which no terminal reports — and `.contextMenu` opens on Ctrl-click where a
 terminal keeps the right button (iTerm2 does by default).
 
@@ -67,19 +67,19 @@ pointer route to the menu. Free.
 binding `.contextMenu` already uses for a focused view; and the PC
 keyboard's Menu key does the same, as a new `Key.menu`. Only the kitty
 keyboard protocol reports that key (functional key 57363); the legacy
-encodings send nothing TUIkit could tell from another key, so elsewhere
+encodings send nothing TUI could tell from another key, so elsewhere
 Shift+F10 is the route. Both go through one test (`KeyEvent.opensContextMenu`),
 honoured by every menu Shift+F10 opens and closes: `.contextMenu`, a list's
 or table's row menu, a tab's context menu in the strip and the sidebar.
 
 The first cut shipped Shift+F10 alone, on the reasoning that a new `Key`
-case breaks exhaustive switches over `Key`, in TUIkit and in apps. The
+case breaks exhaustive switches over `Key`, in TUI and in apps. The
 lane's review set that beside the new `RowAction.customizeColumns`
 (B-D4T-7), which breaks exhaustive switches over `RowAction` just the same —
 and `RowAction`'s own documentation already says that cases will be added
 and that this is "a semantic-version event, not a reason to avoid switching
 over this exhaustively". The same holds for `Key`, which gained F13…F20
-before; so the two calls now agree, and the Menu key shipped. In TUIkit the
+before; so the two calls now agree, and the Menu key shipped. In TUI the
 cost was one switch (the Example's key names).
 
 ### B-D4T-4. A menu that builds nothing still takes the press, and reports an opening
@@ -229,7 +229,7 @@ premise was not.
 The probe, to re-check it on a later SDK — `swiftc -typecheck` of this file
 fails with "cannot infer key path type from context" at each `\.email`, once
 per shape, and compiles with `\Person.email` in all three. The same file
-importing TUIkit in place of SwiftUI gives the same answers (measured
+importing TUI in place of SwiftUI gives the same answers (measured
 2026-10-05, against this lane's build):
 
 ```swift
@@ -285,10 +285,10 @@ The solver's reason is the same on both sides: the `Group`'s row type is
 `Group<Content>`'s conformance, which cannot bind a type variable through an
 associated type; the closure inside is then solved with no row type. No
 other initializer is involved — the failing solution picks the column `Group`
-in TUIkit, and SwiftUI has no other candidates in play.
+in TUI, and SwiftUI has no other candidates in play.
 
-**Nothing shipped:** TUIkit already rejects exactly what SwiftUI rejects, and
+**Nothing shipped:** TUI already rejects exactly what SwiftUI rejects, and
 SwiftUI source that names the root (`\Person.email`) compiles on both. B47
-can close. A TUIkit-only overload that infers the root for a lone column
+can close. A TUI-only overload that infers the root for a lone column
 (`init` over `TableColumn<RowValue, Sort, C, L>` content) would compile source
 SwiftUI refuses, which the two parity rules do not ask for.

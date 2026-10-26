@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  GradientStopsCodec.swift
 //
 //  A Gradient ⇄ a string, for persisting an editable gradient in @AppStorage.
@@ -8,7 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 enum GradientStopsCodec {
     /// Decodes `"3CC8BE@0.000,506EF0@1.000"` to a gradient. Invalid entries

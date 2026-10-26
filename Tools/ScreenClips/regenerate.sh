@@ -64,7 +64,7 @@ if (( publish )); then
     (( ${#files} )) || { print -u2 "regenerate.sh: nothing to publish in $out"; exit 1 }
     if ! gh release view media >/dev/null 2>&1; then
         gh release create media --title "README media" \
-            --notes "The README's clips, made by Tools/ScreenClips/regenerate.sh and served by the docs site. Not a release of TUIkit."
+            --notes "The README's clips, made by Tools/ScreenClips/regenerate.sh and served by the docs site. Not a release of TUI."
     fi
     gh release upload media $files --clobber
     print "published ${#files} files to the release 'media'"
@@ -130,7 +130,7 @@ open_ghostty() {
         --window-position-x=${spot[1]} --window-position-y=${spot[2]} \
         --window-padding-x=12 --window-padding-y=10 --window-padding-color=extend \
         --background=#1e1e1e --foreground=#d4d4d4 \
-        --title="TUIkit · $title" \
+        --title="TUI · $title" \
         --macos-titlebar-style=native \
         --window-save-state=never --confirm-close-surface=false --quit-after-last-window-closed=true \
         --shell-integration=none --cursor-style-blink=false --resize-overlay=never \
@@ -151,7 +151,7 @@ close_ghostty() {
 }
 
 # The others are single-instance apps that may already have the owner's windows open. The clip's window is the one
-# whose title the script set (`TUIkit · <title>`), and not one that was there before.
+# whose title the script set (`TUI · <title>`), and not one that was there before.
 #
 #  - Terminal.app opens a new window in the background, sized by the script (ESC[8;rows;cols t). Its default
 #    profile keeps the window open once the script ends ("[Process completed]"), and with Apple Events refused there
@@ -173,7 +173,7 @@ open_shared() {  # $1: app name for `open -a`, $2: process name
         [[ -n $pid ]] && break
         sleep 0.1
     done
-    which_window=(--title "TUIkit · $title|$run/play.command|${run:t}/play.command")
+    which_window=(--title "TUI · $title|$run/play.command|${run:t}/play.command")
     # Warp, and iTerm2 when it already has a window, open the script as a tab of a window they had: that window is
     # filmed, found by the title the script sets, so it must not be excluded.
     [[ $2 == stable || $2 == iTerm2 || -z $before ]] || which_window+=(--exclude $before)
@@ -204,13 +204,13 @@ film() {
     [[ $chosen == ghostty || $chosen == iterm || $chosen == warp ]] && resize=0
     cat > $script <<EOF
 #!/bin/zsh
-# One clip, as regenerate.sh plays it. A config folder of its own, so nothing the owner chose in TUIkit apps shows.
+# One clip, as regenerate.sh plays it. A config folder of its own, so nothing the owner chose in TUI apps shows.
 # Played once: should a terminal run this a second time (a restored window, say), that one leaves at once rather
 # than writing a second set of markers.
 cd '$run'
 mkdir '$run/played' 2>/dev/null || exit 0
 export TUIKIT_CONFIG_DIR='$run/config'
-printf '\e]0;%s\a' 'TUIkit · $title'
+printf '\e]0;%s\a' 'TUI · $title'
 (( $resize )) && printf '\e[8;%d;%dt' $rows $columns
 exec '$player' play '$clip' --markers '$markers'
 EOF

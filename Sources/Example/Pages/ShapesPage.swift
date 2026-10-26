@@ -1,11 +1,11 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ShapesPage.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 // MARK: - Shapes Page
 

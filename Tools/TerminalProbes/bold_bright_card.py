@@ -9,7 +9,7 @@ default), Warp's own bold handling, Ghostty's weight-only bold, Terminal.app's
 "Use bright colors for bold text" — so a sequence that is a pure weight change
 on one host is a colour change on the next.
 
-That mattered to TUIkit because `ASCIIConverter+HalfBlocks` used to embolden
+That mattered to TUI because `ASCIIConverter+HalfBlocks` used to embolden
 every `▄` of a 16-colour image, to close a rasterisation gap under SF Mono in
 Terminal.app. In true colour the foreground is an explicit RGB triple and bold
 cannot touch it. In ``ASCIIColorMode/ansi16`` it is SGR 30-37, so on a host
@@ -32,7 +32,7 @@ emboldened. A host that bands the plain block as well as the bold one is not
 brightening bold at all — it is enforcing a minimum contrast on a foreground it
 considers unreadable, which a foreground equal to its background certainly is.
 Warp does this by default (`enforce_minimum_contrast` = `only_named_colors`),
-and it is why TUIkit now emits a space for a cell that has nothing to draw.
+and it is why TUI now emits a space for a cell that has nothing to draw.
 
 `palette_probe.py` is the companion for the other half of a 16-colour image:
 which colours this host actually has.
@@ -69,7 +69,7 @@ def card():
     print("2. An image cell with nothing in it, spelled three ways. All three")
     print("   are one colour top to bottom, so all three must be FLAT BARS.")
     print()
-    print("   space " + f"{CSI}40m{SPACE}{RESET}" + "  <- what TUIkit emits now")
+    print("   space " + f"{CSI}40m{SPACE}{RESET}" + "  <- what TUI emits now")
     print("   block " + f"{CSI}30m{CSI}40m{HALF}{RESET}" + "  <- a block, foreground == background")
     print("   bold  " + f"{CSI}1m{CSI}30m{CSI}40m{HALF}{RESET}" + "  <- the same, emboldened")
     print()
@@ -83,7 +83,7 @@ def card():
     print("                        `only_named_colors`.")
     print("     space           -> should never band. If it does, the host is")
     print("                        not painting a cell background across the")
-    print("                        whole cell, and nothing TUIkit emits can help.")
+    print("                        whole cell, and nothing TUI emits can help.")
     print()
 
 
@@ -92,7 +92,7 @@ def main():
     print("The other half of a 16-colour image is WHICH colours this host has:")
     print("`palette_probe.py` asks it over OSC 4 and writes the answer as JSON.")
     print("A host whose slot 0 is not #000000 draws a near-black photograph")
-    print("lighter than it is, and nothing TUIkit chooses can change that —")
+    print("lighter than it is, and nothing TUI chooses can change that —")
     print("16-colour means THIS HOST'S sixteen.")
 
 

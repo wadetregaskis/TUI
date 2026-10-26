@@ -1,12 +1,12 @@
 #!/bin/bash
 #
-#  🖥️ TUIkit — Terminal UI Kit for Swift
+#  🖥️ TUI — A Terminal UI framework for Swift
 #  generate.sh
 #
 #  Created by Wade Tregaskis
 #  License: MIT
 #
-#  Regenerates Sources/TUIkitImage/ImageGlyphCalibration.generated.swift by
+#  Regenerates Sources/TUIImage/ImageGlyphCalibration.generated.swift by
 #  rasterising the reference monospace font (SF Mono Regular 11) and measuring
 #  glyph ink coverage. macOS only (CoreText). See README.md and
 #  main.swift.
@@ -31,7 +31,7 @@ source_file="Tools/GenerateImageGlyphs/main.swift"
 # Compile the framework's own sampling geometry INTO the tool, so the tool and
 # the runtime share one definition of the circle centres / radius / spiral and
 # cannot drift apart.
-shared_file="Sources/TUIkitImage/ShapeSampling.swift"
+shared_file="Sources/TUIImage/ShapeSampling.swift"
 binary="$(mktemp -t generate-image-glyphs)"
 trap 'rm -f "$binary"' EXIT
 

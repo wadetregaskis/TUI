@@ -1,17 +1,17 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ThemesSession.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 // MARK: - The script
 
 /// Someone working through a task list — walking and selecting rows, tabbing
 /// through a form, typing, toggling, saving, choosing from a menu — while the
 /// look changes under them: the app's palette cycled with `t` through every
-/// one TUIkit ships, the form put in a palette of the session's own, the table
+/// one TUI ships, the form put in a palette of the session's own, the table
 /// in another, the colour depth dropped to 256 and 16 colours and raised
 /// again, a tint flipped over a band of controls, some of it while the menu is
 /// open — and quiet steps between, while the focused rows breathe.

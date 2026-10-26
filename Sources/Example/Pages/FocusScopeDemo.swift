@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  FocusScopeDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Where the focus starts in a part of the screen, and putting it back there:
 /// `.focusScope(_:)` marks the part, `.prefersDefaultFocus(in:)` the control

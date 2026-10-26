@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Attribute the bytes a TUIkit app wrote to a terminal.
+Attribute the bytes a TUI app wrote to a terminal.
 
 `drive.py --dump OUT.ansi` captures the raw stream; this splits it into the
 three things it can be — styling (SGR), positioning and erasing (other CSI),
@@ -337,7 +337,7 @@ def paint_cost(row, y):
     "Blank" is a space in the row's own background, the colour of its last
     cell: a scroll fills what it exposes with the background in force, which
     the writer can set before it, so those cells cost nothing. The rest is
-    priced as the span path writes it. An estimate in TUIkit's own spelling,
+    priced as the span path writes it. An estimate in TUI's own spelling,
     on the generous side, not a promise about a future writer."""
     background = row[-1].bg if row else "default"
 

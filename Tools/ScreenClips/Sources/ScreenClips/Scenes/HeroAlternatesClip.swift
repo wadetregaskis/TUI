@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  HeroAlternatesClip.swift
 //
 //  The hero's two alternates, kept for rotating into the README: `search`, a
@@ -10,7 +10,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 @MainActor
 let searchClip = Clip(
@@ -40,7 +40,7 @@ private func searchScript() -> [Step] {
 
 struct SearchApp: App {
     var body: some Scene {
-        WindowGroup("TUIkit · Countries") {
+        WindowGroup("TUI · Countries") {
             Countries()
                 .palette(LiveTerminalPalette())
         }
@@ -90,7 +90,7 @@ private func todoScript() -> [Step] {
 
 struct TodoApp: App {
     var body: some Scene {
-        WindowGroup("TUIkit · To do") {
+        WindowGroup("TUI · To do") {
             TodoList()
                 .palette(LiveTerminalPalette())
         }

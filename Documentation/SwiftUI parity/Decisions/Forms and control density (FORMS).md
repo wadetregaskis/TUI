@@ -34,7 +34,7 @@ a probe card, and the owner's pick of 2026-10-24 is built: B-FORMS-7.)
 confirmation buttons on the right)", and the form does that. Measured, SwiftUI's
 columns form puts a bare button in the value column, where a field's control
 goes (`rows.out`: "Button bare", 21 points against a value column at 17), and
-its grouped form at the row's leading edge; TUIkit puts it at the trailing edge
+its grouped form at the row's leading edge; TUI puts it at the trailing edge
 in both. The deviations document has no entry for it, so it is either an
 undocumented deviation or a bug.
 
@@ -65,7 +65,7 @@ drawn whole, since the style places its label.
 **Fuller version:** SwiftUI does the same with two more (measured): a
 `TextField`, whose title goes in the label column, and a `Toggle` in the
 `.switch` style, whose label goes in the label column and the switch in the
-value column. TUIkit's text field draws no title at all (the semantic audit's
+value column. TUI's text field draws no title at all (the semantic audit's
 TextField finding, pinned by `LocalizedTitleTests` as deliberate), so the first
 is that finding's fix, scoped to forms; the second needs the form to read the
 toggle style at extraction rather than at render. *Price:* about half a day
@@ -94,7 +94,7 @@ form's layout; the walk it replaces is also what reads sections and `if`s.
 
 **Shipped:** a grouped form lays a colour picker's row out as it lays out any
 labelled row whose content fills: the label at the leading edge, the content
-from 45% of the row (SwiftUI's rule for a field or a slider). TUIkit's colour
+from 45% of the row (SwiftUI's rule for a field or a slider). TUI's colour
 picker carries its channel sliders inline, so in a row much under a hundred
 cells its sliders shrink to their knobs. SwiftUI's colour well is a fixed
 swatch at the trailing edge, so it never meets the case.

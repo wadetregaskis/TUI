@@ -3,7 +3,7 @@
 one that copies and pastes any MIME type, not only text — and what does a
 write of several types put on the system clipboard?
 
-Run INSIDE the terminal under test. Nothing here needs TUIkit built.
+Run INSIDE the terminal under test. Nothing here needs TUI built.
 
   python3 clipboard_mime_probe.py          # support, write, list
   python3 clipboard_mime_probe.py --read   # ...and read text/plain back,
@@ -116,9 +116,9 @@ def main():
         results['supported'] = mode not in (None, 0, 4)
 
         payloads = {
-            'text/plain': 'TUIkit probe ' + str(os.getpid()),
-            'text/html': '<b>TUIkit</b> probe',
-            'text/markdown': '**TUIkit** probe',
+            'text/plain': 'TUI probe ' + str(os.getpid()),
+            'text/html': '<b>TUI</b> probe',
+            'text/markdown': '**TUI** probe',
             'image/png': png_2x2(),
         }
         out = ESC + ']5522;type=write' + ST

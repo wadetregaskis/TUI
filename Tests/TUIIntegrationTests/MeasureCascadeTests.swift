@@ -1,0 +1,162 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  MeasureCascadeTests.swift
+//
+//  Regression guards for GitHub issue #7 ("Immense CPU resource consumption"):
+//  the layout cascade must not multiply passes over a subtree. The frame
+//  modifier used to measure by rendering its subtree twice (natural + probe),
+//  and because ancestors measure a child both in their own sizeThatFits and
+//  again in their render pass, nested `.frame`s compounded that into 15 full
+//  subtree renders and 29 leaf measures per frame for the issue's layout —
+//  ~18 ms per idle pulse frame on a fast machine, 70–90% of a core at 10 Hz
+//  on the reporter's. With the frame measuring analytically the same leaf
+//  sees one render and a handful of cheap measures.
+//
+//  These tests count actual passes through a probe leaf — deterministic, no
+//  wall-clock — so a regression in the measure cascade fails loudly and
+//  precisely.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+import TUI
+@testable import TUICore
+@testable import TUIFoundation
+@testable import TUITestSupport
+
+// MARK: - Pass-counting probe
+
+@MainActor
+private final class PassCounter {
+    var renders = 0
+    var measures = 0
+    func reset() {
+        renders = 0
+        measures = 0
+    }
+}
+
+private struct CountingProbe: View, Renderable, Layoutable {
+    let counter: PassCounter
+
+    var body: Never { fatalError("probe renders via Renderable") }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if context.isMeasuring {
+            counter.measures += 1
+        } else {
+            counter.renders += 1
+        }
+        return FrameBuffer(text: "PROBE")
+    }
+
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        counter.measures += 1
+        return ViewSize.fixed(5, 1)
+    }
+}
+
+@MainActor
+@Suite("Measure cascade pass counts (issue #7)")
+struct MeasureCascadeTests {
+    /// Renders one settled frame (after warm-up frames for focus registration
+    /// and caches) and returns the probe's per-frame pass counts.
+    private func passCounts<V: View>(
+        _ counter: PassCounter, _ view: V, width: Int = 100, height: Int = 32
+    ) -> (renders: Int, measures: Int) {
+        let context = makeRenderContext(width: width, height: height)
+        for _ in 0..<2 { _ = renderToBuffer(view, context: context) }
+        counter.reset()
+        _ = renderToBuffer(view, context: context)
+        return (counter.renders, counter.measures)
+    }
+
+    @Test("A framed leaf is not re-measured by rendering")
+    func framedLeafMeasuresOnce() {
+        let counter = PassCounter()
+        let view = VStack {
+            Card(title: "T") { CountingProbe(counter: counter) }.frame(height: 8)
+            Spacer()
+        }.frame(width: 30)
+
+        let passes = passCounts(counter, view)
+        #expect(passes.renders == 1, "one real render per frame, got \(passes.renders)")
+        #expect(
+            passes.measures <= 3,
+            "nested frames must not multiply measures (was 29 pre-fix), got \(passes.measures)")
+    }
+
+    @Test("The issue's nested layout visits a leaf O(depth) times, not O(2^depth)")
+    func issueShapePassCounts() {
+        let counter = PassCounter()
+        // The issue's shape: framed columns in an HStack under an outer VStack,
+        // with a List sibling and a Panel column — the probe sits where the
+        // toggle rows were.
+        let view = VStack {
+            Text("Hello, TUI!")
+            Text("Welcome")
+            HStack {
+                Button("A") {}
+                Button("B") {}
+            }.padding()
+            HStack {
+                VStack {
+                    List("Customer", selection: .constant(String?.none)) { Text("Harry") }
+                        .frame(height: 5)
+                    Card(title: "Item List", padding: .init(horizontal: 1)) {
+                        VStack(spacing: 0) { CountingProbe(counter: counter) }
+                    }
+                    .frame(height: 8)
+                    Spacer()
+                }
+                .frame(width: 30)
+                VStack {
+                    Panel("Log", padding: EdgeInsets(horizontal: 1)) {
+                        ScrollView {
+                            VStack(alignment: .leading) { Text("a") }
+                        }
+                    }
+                }
+            }
+        }.padding()
+
+        let passes = passCounts(counter, view)
+        #expect(passes.renders == 1, "one real render per frame, got \(passes.renders)")
+        #expect(
+            passes.measures <= 8,
+            "the cascade must stay linear in nesting depth (was 29 pre-fix), got \(passes.measures)")
+    }
+
+    @Test("A column's one scroll view is not measured to deal the column out")
+    func loneScrollViewInColumn() {
+        let counter = PassCounter()
+        let alone = passCounts(counter, ScrollView { CountingProbe(counter: counter) })
+        let underHeading = passCounts(
+            counter,
+            VStack(spacing: 0) {
+                Text("Heading")
+                Divider()
+                ScrollView { CountingProbe(counter: counter) }
+            })
+        // The column gives the scroll view what the heading and divider leave,
+        // whatever its content says: its content is measured only by its own
+        // render, as when it stands alone.
+        #expect(underHeading.measures == alone.measures, "\(underHeading) against \(alone)")
+    }
+
+    @Test("Two scroll views in a column are measured: their natural heights share the space")
+    func twoScrollViewsInColumn() {
+        let counter = PassCounter()
+        let alone = passCounts(counter, ScrollView { CountingProbe(counter: counter) })
+        let two = passCounts(
+            counter,
+            VStack(spacing: 0) {
+                ScrollView { CountingProbe(counter: counter) }
+                ScrollView { Text("other") }
+            })
+        // The column asks each for its natural height, one measure more than
+        // the scroll view's own render makes.
+        #expect(two.measures == alone.measures + 1, "\(two) against \(alone)")
+    }
+}

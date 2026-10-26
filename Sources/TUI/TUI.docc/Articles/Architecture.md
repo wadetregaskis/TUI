@@ -1,0 +1,85 @@
+# Architecture
+
+Understand the layer model and rendering pipeline of TUI.
+
+## Overview
+
+TUI is structured in six layers, each building on the one below. This clean separation makes the framework easy to extend and maintain.
+
+## Layer Model
+
+### 1. App Layer
+
+The ``App`` protocol is the entry point. It defines one or more scenes that make up your application. The internal `AppRunner` manages the main run loop, terminal setup, signal handling, and event dispatching.
+
+```
+@main → App → AppRunner → Main Loop
+```
+
+### 2. View Layer
+
+Every UI component conforms to the ``View`` protocol. Views are composed declaratively using ``ViewBuilder``, which supports:
+
+- Single and multiple child views (up to 10)
+- Conditionals (`if`, `if-else`, `if let`)
+- Loops (`for-in` via ``ForEach``)
+
+Built-in views include:
+
+- **Content**: ``Text``, ``Image``, ``Label``, ``Spinner``, ``Divider``, ``EmptyView``, ``LocalizedString``, ``ProgressView``, ``Gauge``
+- **Interactive controls**: ``Button``, ``ButtonRow``, ``TextField``, ``SecureField``, ``TextEditor``, ``Toggle``, ``Slider``, ``Stepper``, ``RadioButtonGroup``, ``Menu``, ``Picker``, ``DatePicker``, ``ColorPicker``, ``Link`` (plus combo-box behaviour via `.textInputSuggestions` on ``TextField``)
+- **Containers**: ``Card``, ``Panel``, ``AlertPanel``, ``Dialog``, ``NavigationSplitView``, ``TabView``, ``ContentUnavailableView``, ``StatusBar``, ``Form``, ``LabeledContent``
+- **Data collections**: ``List``, ``Table``, ``Section``
+- **Layout & scrolling**: ``VStack``, ``HStack``, ``ZStack``, ``LazyVStack``, ``LazyHStack``, ``Group``, ``ViewThatFits``, ``Spacer``, ``ForEach``, ``ScrollView``
+
+### 3. Layout Layer
+
+Layout containers use a two-pass system to distribute space among children:
+
+1. **Measure**: Each child is proposed a size (``ProposedSize``) and returns a ``ViewSize`` with flexibility flags
+2. **Render**: The parent distributes remaining space among flexible children and renders each with its final allocation
+
+This enables spacers, flexible text fields, and proportional sizing. See <doc:LayoutSystem> for details.
+
+### 4. Modifier Layer
+
+Buffer modifiers implement the ``BufferModifier`` protocol (SwiftUI-style ``ViewModifier``s compose views instead, and render as ordinary composite views). Buffer modifiers operate in two phases: `adjustContext(_:)` modifies the ``RenderContext`` before children render (e.g. setting environment values), and `modify(buffer:context:)` transforms the rendered ``FrameBuffer`` (e.g. adding padding, borders, backgrounds).
+
+```swift
+Text("Hello")
+    .padding(1)
+    .border(.rounded)
+    .frame(width: 40)
+```
+
+### 5. State & Environment Layer
+
+- **``State``**: Mutable per-view state that triggers re-renders
+- **``Binding``**: Two-way connection to a value owned elsewhere
+- **``EnvironmentValues``**: Values propagated down the view tree
+- **``AppStorage``**: Persistent key-value storage, matching SwiftUI's `UserDefaults` backing. The default backend is `UserDefaultsStorage` on Apple platforms (the preferences domain — `~/Library/Preferences/<bundle-id-or-executable>.plist`) and `JSONFileStorage` on Linux (`$XDG_CONFIG_HOME/<App>` or `~/.config/<App>`, since Foundation's `UserDefaults` doesn't reliably persist there). Either backend can be set explicitly.
+
+### 6. Rendering Layer
+
+The rendering pipeline converts the view tree into terminal output:
+
+1. **View tree traversal**: Each view produces a ``FrameBuffer``
+2. **Modifier application**: Modifiers transform buffers
+3. **ANSI rendering**: The `ANSIRenderer` converts colors and styles to escape codes
+4. **Terminal output**: The ``FrameBuffer`` lines are written to the terminal
+
+## Event Loop
+
+`AppRunner` initializes all subsystems (Terminal, AppState, StatusBarState, FocusManager, ThemeManager x2, TUIContext), creates InputHandler and RenderLoop, installs POSIX signal handlers, sets up the terminal (alternate screen, raw mode, mouse tracking), registers state and focus observers, and performs an initial render before entering the main loop. CursorTimer (50 ms) — the one animation timer, behind the cursor's blink, every focus indicator's breath and every spinner alike, on two clocks that differ only in whether moving the focus restarts them — is demand-driven: started only while a rendered frame actually consumed it (an animating ``Spinner``, a focused ``TextField`` caret) and stopped otherwise, so a static screen drives no animation at all.
+
+Rendering is **demand-driven and frame-capped**, not a fixed-rate poll. With nothing pending and nothing animating, the loop blocks in `await stdinArrival.waitForArrival(...)` until woken — by terminal input, a render request, or a signal — so a static screen does zero renders and consumes no CPU. When work is pending it renders at most once per frame interval (`App.maxFrameRate`, default 60 FPS), coalescing a burst of requests into a single frame. Each iteration checks `shouldShutdown` (set by SIGINT or SIGTERM) and the in-app dismiss flag, consumes the resize flag to invalidate the diff cache if SIGWINCH fired, drains up to 128 pending terminal events (keys and mouse) and dispatches each — keys through five handler layers, mouse through the hit-test dispatcher — then renders if a frame is due and the frame-rate cap has cleared. The wait is a real suspension point, so it releases the main actor and lets `Task`, `MainActor.run`, and `DispatchQueue.main` work run between frames. Signals arrive as ordinary libdispatch events: `SignalManager` monitors SIGWINCH (resize), SIGINT/SIGTERM (graceful shutdown) and SIGTSTP/SIGCONT (job control) with `DispatchSource.makeSignalSource` on the main queue, and each source's handler sets its flag and `wake()`s the idle-blocked loop. Other asynchronous render triggers (animation deadlines, @State changes, focus changes) feed back into the render decision via `appState.needsRender`, which also `wake()`s the loop.
+
+@Image(source: "architecture-event-loop.svg", alt: "Flowchart of the TUI demand-driven event loop: after subsystems are initialised the loop checks shouldShutdown; if not shutting down it consumes the resize flag (invalidating the diff cache on SIGWINCH), drains up to 128 key and mouse events per frame and dispatches them (keys through five layers plus the ESC pre-route and semantic-shortcut stages, mouse through hit-testing), renders at most once per App.maxFrameRate when a frame is due, then blocks until woken by input, a render request, or a signal before looping again. When shouldShutdown is true it cleans up and exits.")
+
+Input dispatch uses a first-consumer-wins model. Layer 0 and Layer 3 are mutually exclusive: when a text input element (TextField/SecureField/TextEditor) is focused, Layer 0 runs and Layer 3 is skipped; otherwise Layer 0 is skipped and Layer 3 runs. The one key a focused text input is not offered is an Emacs editing chord an app's `.keyboardShortcut` is registered on, which goes on down the chain for Layer 3.5 to fire (see <doc:KeyboardShortcuts>). Both use `focusManager.dispatchKeyEvent()`, which first delegates to the focused element, then handles ⇥/⇧⇥ navigation, then arrow key fallback. Three additional stages refine this: when an open drop-down has claimed Escape, ESC is pre-routed through the focus system before Layer 1 so the surface closes instead of a page-level handler firing; Layer 0.5 then offers the key to a drag in flight, so arrows and paging scroll whatever the pointer is over rather than moving the focused control; and between Layer 3 and Layer 4 a semantic-shortcut stage (Layer 3.5) fires the default button on Return and the cancel button on Escape, à la SwiftUI's `.keyboardShortcut(.defaultAction / .cancelAction)`.
+
+@Image(source: "keyboard-event-dispatch.svg", alt: "Flowchart of the keyboard dispatch: a hasTextInputFocus check gates Layer 0 (Text Input via focusManager.dispatchKeyEvent for TextField/SecureField/TextEditor), except that an editing chord the focused control gives up to an app shortcut registered on it skips Layer 0 and continues down the chain. Without text focus, an ESC-claimed-by-an-open-surface check pre-routes Escape through the focus system so an open drop-down closes before any page-level handler. Layer 0.5 Drag Navigators (while a drag is in flight, arrows and paging scroll whatever the pointer is over). Layer 1 Status Bar Items (statusBar.handleKeyEvent). Layer 2 View Handlers (keyEventDispatcher.dispatch, deepest view first). A second hasTextInputFocus check skips Layer 3 if text input was focused. Layer 3 Focus System (focusManager.dispatchKeyEvent: focused element delegation, Tab/Shift+Tab, arrow key fallback). Layer 3.5 Semantic Shortcuts (Return fires the default button, Escape the cancel button, and a key-equivalent .keyboardShortcut fires on its key). Layer 4 Default Bindings (q quit always; t theme and a appearance gated while a modal grabs input). Unmatched events are dropped.")
+
+## Focus System
+
+The `FocusManager` manages keyboard navigation between interactive elements. Views register as focusable, and the user navigates with ⇥/⇧⇥ or arrow keys.

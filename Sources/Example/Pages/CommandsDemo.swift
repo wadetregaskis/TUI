@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  CommandsDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// The commands a focused view answers: `.onMoveCommand` (the arrows, as a
 /// direction), `.onDeleteCommand` (Delete) and `.onExitCommand` (Escape) — a

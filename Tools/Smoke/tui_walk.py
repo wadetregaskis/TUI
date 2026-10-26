@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Walk a TUIkit app's menu in a real PTY, visiting every item and checking
+"""Walk a TUI app's menu in a real PTY, visiting every item and checking
 the process stays alive and keeps painting.
 
 Usage:

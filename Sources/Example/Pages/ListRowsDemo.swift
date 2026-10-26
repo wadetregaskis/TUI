@@ -1,16 +1,16 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ListRowsDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// What a row can say about itself in a list: a badge, and a more prominent
 /// one (`.badgeProminence`); a background of its own (`.listRowBackground`);
 /// insets of its own (`.listRowInsets`); a section header made prominent
 /// (`.headerProminence`). And what an empty list draws in place of its rows —
-/// TUIkit's `.listEmptyPlaceholder(_:)`.
+/// TUI's `.listEmptyPlaceholder(_:)`.
 struct ListRowsDemo: View {
     @State private var showsTasks = true
 

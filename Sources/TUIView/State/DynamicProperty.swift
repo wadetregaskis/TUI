@@ -1,0 +1,88 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  DynamicProperty.swift
+//
+//  SwiftUI's protocol for a stored property that the framework updates before a
+//  view's body runs — what lets an app write its own property wrapper out of
+//  `@State`, `@Environment` and friends.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+/// An interface for a stored variable that updates an external property of a
+/// view.
+///
+/// Conform a property wrapper to it and the `@State`, `@Environment` and other
+/// dynamic properties it holds behave as they would on the view itself: the
+/// state is kept for the place the view is in the tree, and the environment is
+/// the one in force there.
+///
+/// The framework finds a view's properties from its fields' declared types,
+/// once per view type, as SwiftUI does: a custom `Mirror` changes nothing,
+/// and a field that cannot hold a property is never read. It also finds one
+/// in an optional, an existential (whatever the field held first), a class
+/// property's own fields, and a modifier stored in a field, where SwiftUI
+/// finds none.
+///
+/// Each `@State` is kept for where it is declared in the view, whatever the
+/// view's other fields hold, and for each place the view is drawn at.
+/// In an enum, a view that is one or a property
+/// that is one, a case that replaces another starts the `@State` it holds at
+/// their defaults, as SwiftUI's does (measured on macOS 15).
+///
+/// ```swift
+/// @propertyWrapper
+/// struct Shouting: DynamicProperty {
+///     @Environment(\.locale) private var locale
+///     let text: String
+///
+///     var wrappedValue: String { text.uppercased(with: locale) }
+/// }
+/// ```
+///
+/// ``update()`` is called before every evaluation of the view's `body`, after
+/// the properties inside it have been given their values, and what it changes
+/// in the property's own stored values is what `body` then reads, as in
+/// SwiftUI: the property is written back into the view `body` is evaluated on.
+/// What it reads of an `@Observable` object is observed as `body`'s reads
+/// are, so a change to it draws the view again, as SwiftUI does (measured on
+/// macOS 15).
+/// A struct's own fields, an optional's wrapped value and an enum's payload
+/// are written back. In an `indirect` enum case, `update()` still runs, on a
+/// copy, so what it changes is seen only through what the property holds by
+/// reference; so it does in every enum's payload on WebAssembly and Windows,
+/// where the walk cannot reach a payload where it lies. A property held `unowned` is updated where it is (it is a
+/// class), and one held `weak` is not updated, as in SwiftUI (both measured
+/// on macOS 15). What a class property holds is the object's: every view
+/// holding it binds its `@State` to the object's own state, so one object
+/// has one state whichever views show it, and a write to it redraws every
+/// view drawn holding it. An object made anew with each value of the view
+/// holding it keeps that view's state from frame to frame, as a view value's
+/// `@State` does. Its `@Environment` is each holding view's while that view's
+/// body and content run, and at rest — in an action's closure — the first
+/// view's drawn holding it.
+/// SwiftUI installs nothing inside a class (measured on macOS 15).
+public protocol DynamicProperty {
+    /// Updates the underlying value of the stored value.
+    ///
+    /// Called before the view's `body` is evaluated. The default does nothing.
+    mutating func update()
+}
+
+extension DynamicProperty {
+    /// Does nothing: most dynamic properties have nothing to update.
+    public mutating func update() {}
+}
+
+/// The dynamic properties TUI itself provides, which the property walks
+/// handle directly and need not look inside.
+package protocol FrameworkDynamicProperty: DynamicProperty {}
+
+/// A dynamic property TUI itself provides that holds properties the walks
+/// must reach — `@GestureState` keeps its value in a `@State` — but whose
+/// ``DynamicProperty/update()`` does nothing: descended into as an app's
+/// property is, but not counted as one, so that `update()` is never run.
+package protocol FrameworkPropertyContainer: DynamicProperty {}
+
+extension State: FrameworkDynamicProperty {}
+extension Binding: FrameworkDynamicProperty {}
+extension Environment: FrameworkDynamicProperty {}

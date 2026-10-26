@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""A list drawn with TUIkit's `.hairline` separators, to look at in a real terminal.
+"""A list drawn with TUI's `.hairline` separators, to look at in a real terminal.
 
 Not a measuring probe: `hairline_probe.py` asked the protocol questions and
-recorded the answers (`data/*-hairline.json`). This one builds a TUIkit app
+recorded the answers (`data/*-hairline.json`). This one builds a TUI app
 and runs it in the terminal it is started from, so a person can look at what
 the framework now draws: a line a pixel or two thick on the boundary between
 two list rows, taking no row (decisions A-D6L-2, the owner's option 4).
@@ -33,7 +33,7 @@ terminal's half):
 5. Resize the window: every line back on its boundary after the redraw.
 6. Quit (and Ctrl-Z, then `fg`): no line left on the shell's screen.
 7. Where each line ends against the row's last cell. Ghostty's crop unit was
-   left OPEN by the probe; TUIkit crops a run of n columns to
+   left OPEN by the probe; TUI crops a run of n columns to
    n × (ws_xpixel // ws_col) pixels. Say whether it ends short, exact or past.
 
 `example`: open the Lists page; the Styles section shows each list style,
@@ -69,7 +69,7 @@ def main(argv):
             print(__doc__)
             return 2
     if os.environ.get("TERM_PROGRAM") == "Apple_Terminal":
-        print("Apple Terminal prints Kitty graphics escapes; TUIkit never sends them there. Nothing to see.")
+        print("Apple Terminal prints Kitty graphics escapes; TUI never sends them there. Nothing to see.")
         return 1
     if not sys.stdin.isatty() or not sys.stdout.isatty():
         print("Run this in the terminal to be judged: it needs a TTY.")

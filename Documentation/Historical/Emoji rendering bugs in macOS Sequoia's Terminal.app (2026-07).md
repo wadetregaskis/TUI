@@ -20,10 +20,10 @@
 > context) are measurements that still constrain any future attempt.
 > References to the "working tree" reflect the state during the
 > investigation; helpers it names now live in
-> `Sources/TUIkitCore/Extensions/String+CursorCompensation.swift` and
+> `Sources/TUICore/Extensions/String+CursorCompensation.swift` and
 > `String+TerminalWidth.swift`, much evolved.
 
-This document catalogues the Terminal.app rendering quirks that TUIkit has
+This document catalogues the Terminal.app rendering quirks that TUI has
 to work around in macOS 15 (Sequoia), the approaches that were tried during
 the investigation in this branch (12 commits on top of `a95d7164`), and why
 the bug class that affects Fitzpatrick skin-tone clusters has no clean
@@ -105,7 +105,7 @@ in chronological order, and the failure mode that drove the next attempt.
 | 11 | `ca8c0427` | Defer the cluster to end-of-line via `CHA(col) + cluster`; main pass writes a `CUF` over its cells | ✅              | ❌ (shift left)  | Modifier preserved; row-wide LEFT shift (Bug B2) discovered — `│` lands 2 cells left of corners |
 | 12 | `8698eec0` | Same deferral as #11, but use real spaces as placeholder and re-emit `bgCode` before the deferred section | ✅              | ❌ (shift left)  | Cleaner bytes than #11, same visual shift |
 | 13 | (working tree, abandoned) | "Bare under-advancer" theory — add `🥳` (`U+1F973`) etc. to the under-advance set with `CUF(1)` compensation | depends | ❌ | Empirical re-test showed `🥳` does *not* under-advance — direction was wrong |
-| 14 | (working tree, abandoned) | DECSC/DECRC around the cluster — save cursor before any emoji is written, restore after the row is laid out, write the cluster last | ✅ (some widths) | ❌ | DECRC is backward movement on emoji rows in Terminal.app's logic — modifier was stripped in TUIkit context, even though isolated tests preserved it |
+| 14 | (working tree, abandoned) | DECSC/DECRC around the cluster — save cursor before any emoji is written, restore after the row is laid out, write the cluster last | ✅ (some widths) | ❌ | DECRC is backward movement on emoji rows in Terminal.app's logic — modifier was stripped in TUI context, even though isolated tests preserved it |
 | 15 | (working tree, abandoned) | Absorb the over-advance by consuming subsequent skippable spaces from the input without emitting them | ✅ (some widths) | ❌ | Compressed the row by 2 cells visually → `│` ended up 2 cells *further* left, not aligned |
 | 16 | (working tree, abandoned) | `+2` bump to `repaintRightEdge` CUP target on skin-tone rows                                  | ✅                  | partial         | `│` appeared at the right column in some screenshots; rightmost 2 cells still left at default bg |
 | 17 | (working tree, abandoned) | Append 2 overdraw `bg`-spaces past the line's logical end on skin-tone rows                  | ✅                  | ❌               | Bytes past terminal width either wrap or clamp; right-edge cells stay at default bg |
@@ -157,7 +157,7 @@ write the row's normal content with plain-space placeholders where the
 cluster will go, and finally — after all other writes on the row are
 done — restore the cursor with `\e8` and write the cluster bytes last.
 
-Worked in isolated test scripts. In TUIkit's `FrameDiffWriter` context
+Worked in isolated test scripts. In TUI's `FrameDiffWriter` context
 the modifier was stripped — most likely because the longer SGR-rich
 content path between the DECSC and DECRC counts as backward movement
 once `\e8` fires. Inconclusive but unreliable.

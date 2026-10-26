@@ -1,12 +1,12 @@
 #!/bin/bash
 #
-#  🖥️ TUIkit — Terminal UI Kit for Swift
+#  🖥️ TUI — A Terminal UI framework for Swift
 #  generate.sh
 #
 #  Created by LAYERED.work
 #  License: MIT
 #
-#  Regenerates Sources/TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift from the
+#  Regenerates Sources/TUIStrings/SFSymbols/SFSymbolTable.generated.swift from the
 #  installed SF Symbols app. macOS only; requires the SF Symbols app (Beta or
 #  release) in /Applications, unless the mapping comes from a pairs file. See
 #  README.md and GenerateSFSymbols.swift.

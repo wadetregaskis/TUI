@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ModifierChains.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
-import TUIkit
+import TUI
 
 // MARK: - Modifier Chains
 
@@ -90,7 +90,7 @@ private struct ModifierChainsView: View {
 }
 
 /// Rows of coloured text on a coloured ground, each under every colour effect
-/// TUIkit has. The effects' amounts fold in the harness's tick, so no memo
+/// TUI has. The effects' amounts fold in the harness's tick, so no memo
 /// serves a row: every frame pays every effect's rewrite of every line.
 private struct ColorEffectChainsView: View {
     let config: StressConfig

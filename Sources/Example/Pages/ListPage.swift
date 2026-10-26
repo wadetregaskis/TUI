@@ -1,11 +1,11 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ListPage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 // MARK: - Demo Item
 
@@ -63,7 +63,7 @@ private struct FileItem: Identifiable {
 /// - Scroll indicators
 struct ListPage: View {
     /// What the editable list's moves and deletions register their undo with:
-    /// SwiftUI leaves a list's undo to the app, and so does TUIkit.
+    /// SwiftUI leaves a list's undo to the app, and so does TUI.
     @Environment(\.undoManager) private var undoManager
     @State private var singleSelection: String?
     @State private var multiSelection: Set<String> = []
@@ -170,7 +170,7 @@ struct ListPage: View {
                     List(selection: $editableSelection) {
                         ForEach(editableItems, id: \.self) { Text($0) }
                             // Each registers its own undo — Ctrl-Z, Edit ▸ Undo
-                            // Move — with TUIkit's `registerRestoring`.
+                            // Move — with TUI's `registerRestoring`.
                             .onMove { source, destination in
                                 let before = editableItems
                                 editableItems.move(fromOffsets: source, toOffset: destination)
@@ -332,7 +332,7 @@ struct ListPage: View {
                         .frame(maxWidth: .infinity)
                     }
 
-                    // The default look beside TUIkit's prototype `.surface`
+                    // The default look beside TUI's prototype `.surface`
                     // style, which tells a list from the text around it by a
                     // surface of its own instead of a border (decisions A46).
                     // Sectioned, so the headers' stronger tone shows, and taller

@@ -1,14 +1,14 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  generate.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-// Regenerates `Sources/TUIkitCore/Extensions/CombiningMarkRanges.generated.swift`
+// Regenerates `Sources/TUICore/Extensions/CombiningMarkRanges.generated.swift`
 // from the Unicode Character Database.
 //
 //     swift Tools/GenerateCombiningMarks/generate.swift \
-//         > Sources/TUIkitCore/Extensions/CombiningMarkRanges.generated.swift
+//         > Sources/TUICore/Extensions/CombiningMarkRanges.generated.swift
 //
 // With no argument it reads the CURRENT Unicode release from unicode.org
 // (`Public/UCD/latest/`). Pass a version — `17.0.0` — to read that release's
@@ -97,7 +97,7 @@ for value in marks.sorted() {
 }
 
 print("""
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  CombiningMarkRanges.generated.swift
 //
 //  Created by Wade Tregaskis

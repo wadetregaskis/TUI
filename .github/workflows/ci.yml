@@ -43,7 +43,7 @@ name: CI
 # Every released row floats to the newest patch of its line — an Xcode MAJOR,
 # a `swift:6.x` image tag, swift.org's `6.4` with `check-latest` — so 6.4.1
 # and 6.4.2 arrive without an edit here. That is deliberate (owner's call,
-# 2026-09-28): a patch toolchain can break the build without a TUIkit change,
+# 2026-09-28): a patch toolchain can break the build without a TUI change,
 # and that red is accepted as the price of never testing a stale toolchain.
 #
 # The 6.4 row was `release/6.4.x` snapshots until 6.4.0 shipped. There is no
@@ -131,7 +131,7 @@ jobs:
       # Milliseconds, and it guards a failure nothing else can see: a manifest
       # with a path/branch/revision dependency builds and tests perfectly here
       # while being impossible for anyone to depend on, and one with an
-      # unsafeFlags linker setting other than TUIkit's own unexport patterns,
+      # unsafeFlags linker setting other than TUI's own unexport patterns,
       # or any unsafeFlags no trait can turn off, imposes a flag on every
       # client's build. The expensive half of that
       # question is the `consumer` job below. The self-test first: it proves
@@ -146,7 +146,7 @@ jobs:
   # One runner, one Xcode, deliberately. Both sides of the comparison come out
   # of `swift symbolgraph-extract` against the SDK, so the answer is a property
   # of the toolchain as much as of the code: run this on two SDKs and the two
-  # reports disagree for reasons that have nothing to do with TUIkit. The
+  # reports disagree for reasons that have nothing to do with TUI. The
   # baseline records the toolchain it was taken on, and the tool says so when
   # they differ.
   #
@@ -155,7 +155,7 @@ jobs:
   # the Xcode MAJOR, which floats across point releases on purpose (see the
   # matrix note at the top of this file), so `macos-26` + `xcode-version: "26"`
   # rode 6.2.4 → 6.3.3 and the 6.3 SwiftUI SDK arrived carrying three
-  # `View.task` task-naming overloads TUIkit does not have. Three new gaps, no
+  # `View.task` task-naming overloads TUI does not have. Three new gaps, no
   # code change.
   #
   # So: expect this lane to drift on any Xcode 26.x that moves the SwiftUI SDK,
@@ -446,10 +446,10 @@ jobs:
       # The planned split into modules (Tools/ModuleMap): what WOULD cross a
       # module boundary upward, or fall into the split's silent traps (a
       # conformance in a module owning neither side, a constrained default
-      # out of sight, public API above its type, POSIX API outside TUIkitApp,
+      # out of sight, public API above its type, POSIX API outside TUIApp,
       # code in the umbrella, a lower module its `lower` list does not name,
       # a file of a module's directory that no target compiles),
-      # were TUIkit split as mapped today; and, of the modules carved so far,
+      # were TUI split as mapped today; and, of the modules carved so far,
       # a file that uses another module without importing it, which costs
       # every closure it passes there a run-time MainActor check (`imports`),
       # and a file that imports a module it names nothing of
@@ -542,7 +542,7 @@ jobs:
         run: python3 -m unittest discover -s Tools/Profiling -p 'test_*.py'
 
       # One tiny app per library product, each depending on that product
-      # alone and importing its module, with TUIkit resolved by version from a
+      # alone and importing its module, with TUI resolved by version from a
       # staged copy of this tree, as a client resolves it; every app is built
       # and run (Tools/ProductSmoke/verify-products.sh says what that catches
       # that the package's own builds cannot: every executable here links the
@@ -553,12 +553,12 @@ jobs:
       # own build system can find such a module by luck
       # (Documentation/Historical/Per-module products (2026-10-11).md, E5),
       # and the script fails on its warning when it only warns. An import of
-      # TUIkitLists planted in TUIkitGrid failed it locally (the
-      # TUIkitGrid app's link). The Linux 6.4 and Xcode 27 lanes' default
+      # TUILists planted in TUIGrid failed it locally (the
+      # TUIGrid app's link). The Linux 6.4 and Xcode 27 lanes' default
       # build system is unchecked. Debug, a scratch of its own: one build of
-      # every TUIkit module and 26 small apps; measured on the shared
+      # every TUI module and 26 small apps; measured on the shared
       # development machine with swift.org 6.4.0, which used a prebuilt
-      # swift-syntax for TUIkitMacros, 47.9 s in all on 2026-10-11, 25.4 s
+      # swift-syntax for TUIMacros, 47.9 s in all on 2026-10-11, 25.4 s
       # of it the build (156 s of CPU), the rest staging, resolution and the
       # runs. Runners: unmeasured.
       - name: Each library product builds and runs on its own
@@ -569,7 +569,7 @@ jobs:
       # The package's products in RELEASE — every library target, Stress,
       # Example and the tools. Every other build in this workflow is debug, and
       # some failures exist only under `-O`: on 2026-10-08 Swift 6.3.3 could
-      # not build TUIkitFoundation in release ("sending 'value' risks causing
+      # not build TUIFoundation in release ("sending 'value' risks causing
       # data races", Theme.swift; a 6.3 optimiser clone that loses a function's
       # actor isolation, see the comment there) while every lane here was
       # green. On three lanes: swift.org's 6.4 on macOS 26, the main target;
@@ -594,7 +594,7 @@ jobs:
         timeout-minutes: 30
         run: $SWIFT build -c release
 
-      # A TUIkit program has to launch copied out of `.build`, onto a Mac with
+      # A TUI program has to launch copied out of `.build`, onto a Mac with
       # no toolchain. Below macOS 26 that rules out linking
       # libswiftCompatibilitySpan.dylib, a back-deployment library macOS lacks
       # until 26: a Span-family type in unspecialised generic code, or a
@@ -606,21 +606,21 @@ jobs:
       # swift-collections' reference weakly; on the 6.2.4 lane's release build
       # too, which costs it nothing more. It reads every library module's
       # objects as well as Stress and Example, because no executable here
-      # links TUIkitAppKit.
+      # links TUIAppKit.
       - name: Release executables and library modules link no Span back-deployment library
         if: matrix.release_build
         run: Tools/check-span-compatibility.sh
 
       # The README's "Shipping size" offers app developers a link flag that
-      # changes their whole program, `-Xlinker -deduplicate`, beside TUIkit's
-      # default traits, which take TUIkit's symbols out of the program's
-      # export table; TUIkit has to stay correct under them.
+      # changes their whole program, `-Xlinker -deduplicate`, beside TUI's
+      # default traits, which take TUI's symbols out of the program's
+      # export table; TUI has to stay correct under them.
       # `-deduplicate` gives byte-identical functions one address, so two key
       # paths to computed properties whose getters compile alike compare and
       # hash equal. This relinks Stress with it and checks that nothing in
-      # TUIkit depends on an address the fold changed
+      # TUI depends on an address the fold changed
       # (Tools/DedupCheck/README.md), then links Stress, Example and IdleProbe
-      # as the recipe does, checks that they export no symbol of a TUIkit
+      # as the recipe does, checks that they export no symbol of a TUI
       # module (the default traits' patterns reached the link), strips them,
       # and runs --selfcheck (render memo
       # verified) and the quick PTY smoke on what a developer would ship. After
@@ -630,8 +630,8 @@ jobs:
       # development machine with Swift 6.4.0 (Swift Build), after this lane's
       # steps run there: 4 s a link, 3 s for the check, 243 s in all, nearly
       # all of it the PTY smoke; runners unmeasured. What folds depends on the
-      # machine code each compiler emits for TUIkit's code, so the answer is
-      # per toolchain, and it runs on two: swift.org's 6.4, the one TUIkit
+      # machine code each compiler emits for TUI's code, so the answer is
+      # per toolchain, and it runs on two: swift.org's 6.4, the one TUI
       # targets first, and Xcode's 6.2.4 on macOS 15, which folds
       # `buttonStyle` with `installedButtonAppearance` where 6.4.0 does not
       # (allowed in the manifest, with its review). There it costs the lane
@@ -646,20 +646,20 @@ jobs:
         timeout-minutes: 20
         run: Tools/DedupCheck/ci-check.sh
 
-      # SwiftUI's macOS deprecations that TUIkit still implements, against the
+      # SwiftUI's macOS deprecations that TUI still implements, against the
       # newest SDK CI has (Tools/APIParity/README.md). A report for a person to
       # read when an SDK moves: it fails nothing, and the step may not either.
-      - name: SwiftUI deprecations TUIkit still has (report)
+      - name: SwiftUI deprecations TUI still has (report)
         if: matrix.deprecated_report
         continue-on-error: true
         run: python3 Tools/APIParity/api_parity.py --deprecated
 
-      # TUIkit builds with no compiler warnings, every target included
+      # TUI builds with no compiler warnings, every target included
       # (CONTRIBUTING.md, "What CI covers"). This lane checks: its Build step
       # compiled everything from a clean checkout (no cache), so nothing hides
-      # behind an incremental build; `TUIkitBenchmarks`, which only
+      # behind an incremental build; `TUIBenchmarks`, which only
       # TUIKIT_BENCHMARKS adds to the graph and no other step builds, is built
-      # here. Swift 6.2, the oldest Swift TUIkit supports, on macOS: the lane
+      # here. Swift 6.2, the oldest Swift TUI supports, on macOS: the lane
       # whose diagnostics every contributor's Xcode 26 shows. A warning in a
       # dependency's own code (the benchmark plugin's deprecations) is printed
       # and not counted. Before the type-check budget, which rebuilds with a
@@ -670,7 +670,7 @@ jobs:
           TUIKIT_BENCHMARKS: "1"
         run: |
           set -o pipefail
-          $SWIFT build --target TUIkitBenchmarks 2>&1 | tee "$RUNNER_TEMP/benchmarks-build.log"
+          $SWIFT build --target TUIBenchmarks 2>&1 | tee "$RUNNER_TEMP/benchmarks-build.log"
 
       - name: No compiler warnings
         if: matrix.warnings_check
@@ -685,7 +685,7 @@ jobs:
       # worst expression:
       #
       # * macOS 15 (Xcode 26.3's 6.2.4), 2,000. On 2026-10-07 the worst was
-      #   TUIkitCore's Animation.swift:586, between 1,800 and 1,900 (not tried
+      #   TUICore's Animation.swift:586, between 1,800 and 1,900 (not tried
       #   at 1,850), then ScrollTransition.swift:218, 1,700–1,800. (Until
       #   2026-10-10 the step also rebuilt swift-collections, whose
       #   UniqueDeque.swift:240 needed between 1,850 and 1,900.)
@@ -715,7 +715,7 @@ jobs:
       # (today one line, SoftTrap.report's `log.report`), only on another
       # platform, or only under an opt-in define such as
       # TUIKIT_VALUE_HASH_CENSUS is not counted here. Set on the command line
-      # only: in Package.swift it would reach every client's build of TUIkit.
+      # only: in Package.swift it would reach every client's build of TUI.
       # Swift Build (6.4's default) passes
       # `-Xswiftc -Xfrontend` through as the native build system does. Last in
       # the job, because it rebuilds those modules with a different command
@@ -738,14 +738,14 @@ jobs:
       #     swiftc -typecheck -Xfrontend -solver-scope-threshold=N FILE
       #   succeeds (bisect N): for the combining-mark table, 4 × its ranges +
       #   2. That works for the two tables that need only the standard
-      #   library; RowFillTable.swift needs TUIkitStyling, so bisect this
+      #   library; RowFillTable.swift needs TUIStyling, so bisect this
       #   step's cap instead.
       # * Unchanged code, after the lane's Swift moved to a newer release: the
       #   compiler's counts moved. Find the worst site again (bisect the cap)
       #   and set the cap just above it.
       - name: Type-check budget (solver scopes)
         if: matrix.solver_scopes
-        run: $SWIFT build --target TUIkit -Xswiftc -Xfrontend -Xswiftc -solver-scope-threshold=${{ matrix.solver_scopes }}
+        run: $SWIFT build --target TUI -Xswiftc -Xfrontend -Xswiftc -solver-scope-threshold=${{ matrix.solver_scopes }}
 
   # ── Linux ──────────────────────────────────────────────────────────────────
   linux:
@@ -815,7 +815,7 @@ jobs:
       # unpinned, SwiftPM resolves the newest swift-syntax in range and
       # compiles it, while it takes swift-syntax prebuilt only at 602.0.0 on a
       # 6.2 toolchain. Pinning it on this lane keeps the prebuilt here and
-      # builds and tests TUIkitMacros against the oldest swift-syntax the
+      # builds and tests TUIMacros against the oldest swift-syntax the
       # range allows; every other lane tests the newest.
       - name: Pin swift-syntax to the range's floor
         if: matrix.image == 'swift:6.2-noble'
@@ -874,21 +874,21 @@ jobs:
   #
   # Steps are deliberately separate so the job reads as a porting scoreboard:
   # the four lower modules already compile without POSIX and must stay green,
-  # while the umbrella, which re-exports TUIkitApp, is expected to fail until
-  # the console layer is ported. The console layer is TUIkitApp since module
+  # while the umbrella, which re-exports TUIApp, is expected to fail until
+  # the console layer is ported. The console layer is TUIApp since module
   # split step B3: POSIX by design, so it has no step of its own, and the
-  # umbrella's step covers it. TUIkitFoundation, which held the console layer
-  # until then, has a step of its own since B3 (see "Build TUIkitFoundation"),
-  # and so have TUIkitChrome, TUIkitEffects, TUIkitMenus, TUIkitBitmaps,
-  # TUIkitNavigation, TUIkitLists, TUIkitTextInput and TUIkitColorPicker, the
+  # umbrella's step covers it. TUIFoundation, which held the console layer
+  # until then, has a step of its own since B3 (see "Build TUIFoundation"),
+  # and so have TUIChrome, TUIEffects, TUIMenus, TUIBitmaps,
+  # TUINavigation, TUILists, TUITextInput and TUIColorPicker, the
   # leaves steps B5b, B5c, B5, B6, B7 and B4 carved out of it, and
-  # TUIkitPresentation, which step C1 peeled out of TUIkitNavigation, and
-  # TUIkitTables, TUIkitTabs and TUIkitGrid, which steps C2 to C4 peeled out of
-  # TUIkitLists, and TUIkitNumericControls, TUIkitPickers, TUIkitSearch and
-  # TUIkitForms, which steps C7, C8, C5 and C6 peeled out of TUIkitTextInput,
-  # and TUIkitCurveEditors, which C9b peeled out of TUIkitColorPicker, and
-  # TUIkitFilePanels, lane O10's leaf, a module of its own from the start, and
-  # TUIkitTabImages, Tab's image: initialisers (decisions C11), likewise.
+  # TUIPresentation, which step C1 peeled out of TUINavigation, and
+  # TUITables, TUITabs and TUIGrid, which steps C2 to C4 peeled out of
+  # TUILists, and TUINumericControls, TUIPickers, TUISearch and
+  # TUIForms, which steps C7, C8, C5 and C6 peeled out of TUITextInput,
+  # and TUICurveEditors, which C9b peeled out of TUIColorPicker, and
+  # TUIFilePanels, lane O10's leaf, a module of its own from the start, and
+  # TUITabImages, Tab's image: initialisers (decisions C11), likewise.
   windows_container:
     name: "Windows Server 2022 · Swift ${{ matrix.swift }}"
     needs: lint
@@ -955,18 +955,18 @@ jobs:
       # to do — the point of binding it is that it can only ever grow. When a
       # step below goes green, delete its `continue-on-error` and it joins this
       # group permanently.
-      - name: "Build TUIkitCore"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitCore"
+      - name: "Build TUICore"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUICore"
 
-      - name: "Build TUIkitStyling"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitStyling"
+      - name: "Build TUIStyling"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIStyling"
 
       # Passes on 6.3 and later; fails on 6.2 for reasons not yet diagnosed
       # (the lane was advisory, so nobody had to look). Binding everywhere the
       # evidence supports, advisory exactly where it does not.
-      - name: "Build TUIkitView"
+      - name: "Build TUIView"
         continue-on-error: ${{ matrix.swift == '6.2' }}
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitView"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIView"
 
       # ── Expected to fail until the port lands ──
       # `continue-on-error` per step, so one red stage does not hide the ones
@@ -975,219 +975,219 @@ jobs:
       # `ShapeSampling` imported Glibc-or-Darwin and called `cos`/`sin`
       # unconditionally, so Windows got no `cos` at all. Fixed, and green on
       # all five Windows lanes since, so it is binding.
-      - name: "Build TUIkitImage"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitImage"
+      - name: "Build TUIImage"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIImage"
 
-      # ── The modules carved out of TUIkitFoundation ──
-      # Module split step B2's two side modules, which need TUIkitCore alone.
+      # ── The modules carved out of TUIFoundation ──
+      # Module split step B2's two side modules, which need TUICore alone.
       # Their POSIX code sits in POSIX-only `#if` arms (CLAUDE.md), and
       # TerminalHost.swift names `pid_t` only inside its Darwin arms (decisions
       # B-SPB2-1), but no Windows toolchain has built them yet: advisory until
       # CI has seen them green, then binding like the four above.
-      - name: "Build TUIkitStrings"
+      - name: "Build TUIStrings"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitStrings"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIStrings"
 
-      - name: "Build TUIkitTerminalHost"
+      - name: "Build TUITerminalHost"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitTerminalHost"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITerminalHost"
 
       # ── The module the console layer left ──
-      # TUIkitFoundation held the console layer until module split step B3
-      # carved it out as TUIkitApp, so until then the umbrella's step stood for
+      # TUIFoundation held the console layer until module split step B3
+      # carved it out as TUIApp, so until then the umbrella's step stood for
       # it. Since B3 its directories import no Darwin, Glibc or Musl and call
       # no termios, ioctl or signal API (checked by grep, 2026-10-08); whether
       # anything else stops it on Windows is unmeasured, since no Windows build
       # of it without the console layer has been seen. Advisory until CI has
       # seen it green, then binding like the four above. It builds the two
       # side modules above first, so a red step here after green ones there is
-      # TUIkitFoundation's own.
-      - name: "Build TUIkitFoundation"
+      # TUIFoundation's own.
+      - name: "Build TUIFoundation"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitFoundation"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIFoundation"
 
-      # ── The leaves carved out above TUIkitFoundation ──
-      # Module split step B5b's three leaves, each built on TUIkitFoundation
-      # alone: TUIkitChrome (the status bar view, toolbars, notifications,
-      # tooltips, the window chrome host), TUIkitEffects (transitions, visual,
-      # scroll and colour effects) and TUIkitMenus (Menu, ControlGroup,
-      # .contextMenu). They come first: TUIkitPresentation depends on
-      # TUIkitChrome. Step B5c's leaf, TUIkitBitmaps (Image's bitmap path,
-      # AsyncImage, the image options), built on TUIkitFoundation and
-      # TUIkitImage (which TUIkitFoundation no longer needs since B5c), comes
-      # after them. Step B5's leaf, TUIkitNavigation, built on
-      # TUIkitFoundation: the navigation containers. Step C1's,
-      # TUIkitPresentation, which it peeled out of TUIkitNavigation, built on
-      # TUIkitFoundation and TUIkitChrome: the presentations. Step B6's leaf,
-      # TUIkitLists, built on TUIkitFoundation: the lists. Step C2's,
-      # TUIkitTables, and step C3's, TUIkitTabs, which they peeled out of
-      # TUIkitLists, each built on TUIkitFoundation and TUIkitLists, so they
-      # come after it: the tables and the tab views (TUIkitTabs on
-      # TUIkitPresentation too since 2026-10-23, decisions A21, which comes
-      # before it). Step C4's, TUIkitGrid,
-      # which it peeled out of TUIkitLists too, built on TUIkitFoundation
-      # alone: the grids. Step B7's leaf, TUIkitTextInput, built on
-      # TUIkitFoundation: the text inputs. Step C7's, TUIkitNumericControls,
-      # which it peeled out of TUIkitTextInput (the last peel), built on
-      # TUIkitFoundation alone: the numeric controls. Step C8's,
-      # TUIkitPickers, which it peeled out of TUIkitTextInput too, built on
-      # TUIkitFoundation alone: the pickers. Step C5's, TUIkitSearch, which it
-      # peeled out of TUIkitTextInput too, built on TUIkitFoundation,
-      # TUIkitTextInput and TUIkitPickers, so it comes after both: search.
-      # Step C6's, TUIkitForms, which it peeled out of TUIkitTextInput too,
-      # built on TUIkitFoundation alone: the forms and the view groupings.
-      # Step B4's leaf, TUIkitColorPicker, built on TUIkitFoundation,
-      # TUIkitPresentation, TUIkitTabs, TUIkitTextInput and
-      # TUIkitNumericControls, and C9b's peel, TUIkitCurveEditors, built on
-      # it, TUIkitImage, TUIkitPickers and TUIkitNumericControls, so they come
+      # ── The leaves carved out above TUIFoundation ──
+      # Module split step B5b's three leaves, each built on TUIFoundation
+      # alone: TUIChrome (the status bar view, toolbars, notifications,
+      # tooltips, the window chrome host), TUIEffects (transitions, visual,
+      # scroll and colour effects) and TUIMenus (Menu, ControlGroup,
+      # .contextMenu). They come first: TUIPresentation depends on
+      # TUIChrome. Step B5c's leaf, TUIBitmaps (Image's bitmap path,
+      # AsyncImage, the image options), built on TUIFoundation and
+      # TUIImage (which TUIFoundation no longer needs since B5c), comes
+      # after them. Step B5's leaf, TUINavigation, built on
+      # TUIFoundation: the navigation containers. Step C1's,
+      # TUIPresentation, which it peeled out of TUINavigation, built on
+      # TUIFoundation and TUIChrome: the presentations. Step B6's leaf,
+      # TUILists, built on TUIFoundation: the lists. Step C2's,
+      # TUITables, and step C3's, TUITabs, which they peeled out of
+      # TUILists, each built on TUIFoundation and TUILists, so they
+      # come after it: the tables and the tab views (TUITabs on
+      # TUIPresentation too since 2026-10-23, decisions A21, which comes
+      # before it). Step C4's, TUIGrid,
+      # which it peeled out of TUILists too, built on TUIFoundation
+      # alone: the grids. Step B7's leaf, TUITextInput, built on
+      # TUIFoundation: the text inputs. Step C7's, TUINumericControls,
+      # which it peeled out of TUITextInput (the last peel), built on
+      # TUIFoundation alone: the numeric controls. Step C8's,
+      # TUIPickers, which it peeled out of TUITextInput too, built on
+      # TUIFoundation alone: the pickers. Step C5's, TUISearch, which it
+      # peeled out of TUITextInput too, built on TUIFoundation,
+      # TUITextInput and TUIPickers, so it comes after both: search.
+      # Step C6's, TUIForms, which it peeled out of TUITextInput too,
+      # built on TUIFoundation alone: the forms and the view groupings.
+      # Step B4's leaf, TUIColorPicker, built on TUIFoundation,
+      # TUIPresentation, TUITabs, TUITextInput and
+      # TUINumericControls, and C9b's peel, TUICurveEditors, built on
+      # it, TUIImage, TUIPickers and TUINumericControls, so they come
       # last. None imports
       # Darwin, Glibc or Musl or calls a termios, ioctl, signal or
       # DispatchSource API (checked by grep, 2026-10-08 and, for B5b's three,
-      # TUIkitBitmaps, TUIkitTextInput, TUIkitNavigation, TUIkitPresentation
-      # and TUIkitTables, 2026-10-09, and TUIkitTabs, TUIkitGrid, TUIkitSearch,
-      # TUIkitForms, TUIkitPickers and TUIkitNumericControls, 2026-10-10, and
-      # TUIkitCurveEditors, as TUIkitColorEditors, 2026-10-11). Two have an
+      # TUIBitmaps, TUITextInput, TUINavigation, TUIPresentation
+      # and TUITables, 2026-10-09, and TUITabs, TUIGrid, TUISearch,
+      # TUIForms, TUIPickers and TUINumericControls, 2026-10-10, and
+      # TUICurveEditors, as TUIColorEditors, 2026-10-11). Two have an
       # `#if`, none around a
       # POSIX call:
-      # TUIkitEffects one, `canImport(Symbols)` around the `.symbolEffect`
+      # TUIEffects one, `canImport(Symbols)` around the `.symbolEffect`
       # modifiers that take Apple's Symbols types (absent off macOS, as on
-      # Linux), and TUIkitTables three (TUIkitLists' until step C2), on two
+      # Linux), and TUITables three (TUILists' until step C2), on two
       # conditions, `canImport(Darwin)` once (a string column's default
       # comparator) and `canImport(UniformTypeIdentifiers)` twice (a table
       # row's item provider). So they are meant to build on Windows, but none
-      # can until TUIkitFoundation does: advisory until CI has seen them
-      # green, then binding like the four above. TUIkitApp, the other leaf, is
+      # can until TUIFoundation does: advisory until CI has seen them
+      # green, then binding like the four above. TUIApp, the other leaf, is
       # POSIX by design and has no step (the umbrella's covers it).
-      - name: "Build TUIkitChrome"
+      - name: "Build TUIChrome"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitChrome"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIChrome"
 
-      - name: "Build TUIkitEffects"
+      - name: "Build TUIEffects"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitEffects"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIEffects"
 
-      - name: "Build TUIkitMenus"
+      - name: "Build TUIMenus"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitMenus"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIMenus"
 
-      - name: "Build TUIkitBitmaps"
+      - name: "Build TUIBitmaps"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitBitmaps"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIBitmaps"
 
-      - name: "Build TUIkitNavigation"
+      - name: "Build TUINavigation"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitNavigation"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUINavigation"
 
-      - name: "Build TUIkitPresentation"
+      - name: "Build TUIPresentation"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitPresentation"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIPresentation"
 
-      - name: "Build TUIkitLists"
+      - name: "Build TUILists"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitLists"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUILists"
 
-      - name: "Build TUIkitTables"
+      - name: "Build TUITables"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitTables"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITables"
 
-      - name: "Build TUIkitTabs"
+      - name: "Build TUITabs"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitTabs"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITabs"
 
-      - name: "Build TUIkitGrid"
+      - name: "Build TUIGrid"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitGrid"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIGrid"
 
-      - name: "Build TUIkitTextInput"
+      - name: "Build TUITextInput"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitTextInput"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITextInput"
 
-      - name: "Build TUIkitNumericControls"
+      - name: "Build TUINumericControls"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitNumericControls"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUINumericControls"
 
-      - name: "Build TUIkitPickers"
+      - name: "Build TUIPickers"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitPickers"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIPickers"
 
-      - name: "Build TUIkitSearch"
+      - name: "Build TUISearch"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitSearch"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUISearch"
 
-      - name: "Build TUIkitForms"
+      - name: "Build TUIForms"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitForms"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIForms"
 
-      - name: "Build TUIkitColorPicker"
+      - name: "Build TUIColorPicker"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitColorPicker"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIColorPicker"
 
-      - name: "Build TUIkitCurveEditors"
+      - name: "Build TUICurveEditors"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitCurveEditors"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUICurveEditors"
 
-      # Lane O10's leaf, built on TUIkitPresentation, TUIkitTables and
-      # TUIkitTextInput, so after them: the file panels. It reads folders
+      # Lane O10's leaf, built on TUIPresentation, TUITables and
+      # TUITextInput, so after them: the file panels. It reads folders
       # through FileManager and calls no POSIX API; its `#if`s are
       # `canImport(UniformTypeIdentifiers)` (Apple's `UTType`, or its own
       # where that module is absent, as on Windows) and `canImport(Darwin)`
-      # (a name column's comparator, as TUIkitTables').
-      - name: "Build TUIkitFilePanels"
+      # (a name column's comparator, as TUITables').
+      - name: "Build TUIFilePanels"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitFilePanels"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIFilePanels"
 
       # The owner's TAB-IMAGE-NAME option 2 (decisions C11): `Tab`'s `image:`
-      # initialisers, built on TUIkitBitmaps and TUIkitTabs, so after them.
+      # initialisers, built on TUIBitmaps and TUITabs, so after them.
       # No POSIX API and no `#if`.
-      - name: "Build TUIkitTabImages"
+      - name: "Build TUITabImages"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitTabImages"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITabImages"
 
       # ── The four modules' own test targets ──
       # Each links only its module, so these are the first tests Windows can
       # run without a console layer. Advisory until they go green, then binding
       # like everything above.
-      - name: "Build TUIkitCoreTests"
+      - name: "Build TUICoreTests"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitCoreTests"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUICoreTests"
 
-      - name: "Build TUIkitStylingTests"
+      - name: "Build TUIStylingTests"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitStylingTests"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIStylingTests"
 
-      - name: "Build TUIkitViewTests"
+      - name: "Build TUIViewTests"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitViewTests"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIViewTests"
 
-      - name: "Build TUIkitImageTests"
+      - name: "Build TUIImageTests"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkitImageTests"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIImageTests"
 
       # Every advisory step carries a timeout. `swift build --build-tests` on
       # the 6.3 container printed its last diagnostic and then sat for six
@@ -1195,10 +1195,10 @@ jobs:
       # cancelled job is not `continue-on-error`'s to forgive, so the gate
       # went red for a hang in a step that is allowed to fail. Thirty minutes
       # is several times what any of these takes when it finishes.
-      - name: "Build TUIkit (umbrella)"
+      - name: "Build TUI (umbrella)"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIkit"
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUI"
 
       - name: "Build everything"
         continue-on-error: true
@@ -1257,129 +1257,129 @@ jobs:
       - name: Toolchain version
         run: swift --version
 
-      - name: "Build TUIkitCore"
-        run: swift build --target TUIkitCore
-      - name: "Build TUIkitStyling"
-        run: swift build --target TUIkitStyling
-      - name: "Build TUIkitView"
-        run: swift build --target TUIkitView
+      - name: "Build TUICore"
+        run: swift build --target TUICore
+      - name: "Build TUIStyling"
+        run: swift build --target TUIStyling
+      - name: "Build TUIView"
+        run: swift build --target TUIView
 
       # Green on both native lanes as well as every container lane, so binding
       # here too.
-      - name: "Build TUIkitImage"
-        run: swift build --target TUIkitImage
+      - name: "Build TUIImage"
+        run: swift build --target TUIImage
 
       # Advisory, as in the container lane — see that lane.
-      - name: "Build TUIkitStrings"
+      - name: "Build TUIStrings"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitStrings
-      - name: "Build TUIkitTerminalHost"
+        run: swift build --target TUIStrings
+      - name: "Build TUITerminalHost"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitTerminalHost
-      - name: "Build TUIkitFoundation"
+        run: swift build --target TUITerminalHost
+      - name: "Build TUIFoundation"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitFoundation
-      - name: "Build TUIkitChrome"
+        run: swift build --target TUIFoundation
+      - name: "Build TUIChrome"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitChrome
-      - name: "Build TUIkitEffects"
+        run: swift build --target TUIChrome
+      - name: "Build TUIEffects"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitEffects
-      - name: "Build TUIkitMenus"
+        run: swift build --target TUIEffects
+      - name: "Build TUIMenus"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitMenus
-      - name: "Build TUIkitBitmaps"
+        run: swift build --target TUIMenus
+      - name: "Build TUIBitmaps"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitBitmaps
-      - name: "Build TUIkitNavigation"
+        run: swift build --target TUIBitmaps
+      - name: "Build TUINavigation"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitNavigation
-      - name: "Build TUIkitPresentation"
+        run: swift build --target TUINavigation
+      - name: "Build TUIPresentation"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitPresentation
-      - name: "Build TUIkitLists"
+        run: swift build --target TUIPresentation
+      - name: "Build TUILists"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitLists
-      - name: "Build TUIkitTables"
+        run: swift build --target TUILists
+      - name: "Build TUITables"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitTables
-      - name: "Build TUIkitTabs"
+        run: swift build --target TUITables
+      - name: "Build TUITabs"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitTabs
-      - name: "Build TUIkitGrid"
+        run: swift build --target TUITabs
+      - name: "Build TUIGrid"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitGrid
-      - name: "Build TUIkitTextInput"
+        run: swift build --target TUIGrid
+      - name: "Build TUITextInput"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitTextInput
-      - name: "Build TUIkitNumericControls"
+        run: swift build --target TUITextInput
+      - name: "Build TUINumericControls"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitNumericControls
-      - name: "Build TUIkitPickers"
+        run: swift build --target TUINumericControls
+      - name: "Build TUIPickers"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitPickers
-      - name: "Build TUIkitSearch"
+        run: swift build --target TUIPickers
+      - name: "Build TUISearch"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitSearch
-      - name: "Build TUIkitForms"
+        run: swift build --target TUISearch
+      - name: "Build TUIForms"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitForms
-      - name: "Build TUIkitColorPicker"
+        run: swift build --target TUIForms
+      - name: "Build TUIColorPicker"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitColorPicker
-      - name: "Build TUIkitCurveEditors"
+        run: swift build --target TUIColorPicker
+      - name: "Build TUICurveEditors"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitCurveEditors
-      - name: "Build TUIkitFilePanels"
+        run: swift build --target TUICurveEditors
+      - name: "Build TUIFilePanels"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitFilePanels
-      - name: "Build TUIkitTabImages"
+        run: swift build --target TUIFilePanels
+      - name: "Build TUITabImages"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitTabImages
+        run: swift build --target TUITabImages
 
       # The same scoreboard rows as the container lane, with the same timeouts
       # and for the same reason — see that lane.
-      - name: "Build TUIkitCoreTests"
+      - name: "Build TUICoreTests"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitCoreTests
+        run: swift build --target TUICoreTests
 
-      - name: "Build TUIkitStylingTests"
+      - name: "Build TUIStylingTests"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitStylingTests
+        run: swift build --target TUIStylingTests
 
-      - name: "Build TUIkitViewTests"
+      - name: "Build TUIViewTests"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitViewTests
+        run: swift build --target TUIViewTests
 
-      - name: "Build TUIkitImageTests"
+      - name: "Build TUIImageTests"
         continue-on-error: true
         timeout-minutes: 30
-        run: swift build --target TUIkitImageTests
+        run: swift build --target TUIImageTests
 
       - name: "Build everything"
         continue-on-error: true
@@ -1410,7 +1410,7 @@ jobs:
   # URL below deterministic; raising both together is the intended maintenance.
   #
   # 6.3 rather than 6.2: on 6.2.4 the compiler asserts on `TupleView`'s
-  # pack-expansion conformance and `TUIkitView` cannot be built for wasm at all
+  # pack-expansion conformance and `TUIView` cannot be built for wasm at all
   # (the same assertion that blocks the Linux static-SDK check).
   #
   # And 6.3.3 rather than 6.4.0, for now: 6.4.0 shipped with a matching SDK,
@@ -1448,21 +1448,21 @@ jobs:
       #
       # One `--target` per step, as the Windows lanes do it. `swift build` keeps
       # only the LAST `--target` it is given, so the single step this used to be
-      # (`--target TUIkitCore --target TUIkitStyling --target TUIkitView
-      # --target TUIkitImage`) built TUIkitImage and what it depends on
-      # (TUIkitStyling, CSTBImage) and nothing else: "Build of target:
-      # 'TUIkitImage' complete!". TUIkitCore and TUIkitView were compiled only
+      # (`--target TUICore --target TUIStyling --target TUIView
+      # --target TUIImage`) built TUIImage and what it depends on
+      # (TUIStyling, CSTBImage) and nothing else: "Build of target:
+      # 'TUIImage' complete!". TUICore and TUIView were compiled only
       # by the Example step below, which is the step that reported a 64-bit
-      # literal in TUIkitView — so the ratchet this lane promises for the four
+      # literal in TUIView — so the ratchet this lane promises for the four
       # modules held for two of them.
-      - name: "Build TUIkitCore for WebAssembly"
-        run: swift build --swift-sdk swift-6.3.3-RELEASE_wasm --static-swift-stdlib --target TUIkitCore
-      - name: "Build TUIkitStyling for WebAssembly"
-        run: swift build --swift-sdk swift-6.3.3-RELEASE_wasm --static-swift-stdlib --target TUIkitStyling
-      - name: "Build TUIkitView for WebAssembly"
-        run: swift build --swift-sdk swift-6.3.3-RELEASE_wasm --static-swift-stdlib --target TUIkitView
-      - name: "Build TUIkitImage for WebAssembly"
-        run: swift build --swift-sdk swift-6.3.3-RELEASE_wasm --static-swift-stdlib --target TUIkitImage
+      - name: "Build TUICore for WebAssembly"
+        run: swift build --swift-sdk swift-6.3.3-RELEASE_wasm --static-swift-stdlib --target TUICore
+      - name: "Build TUIStyling for WebAssembly"
+        run: swift build --swift-sdk swift-6.3.3-RELEASE_wasm --static-swift-stdlib --target TUIStyling
+      - name: "Build TUIView for WebAssembly"
+        run: swift build --swift-sdk swift-6.3.3-RELEASE_wasm --static-swift-stdlib --target TUIView
+      - name: "Build TUIImage for WebAssembly"
+        run: swift build --swift-sdk swift-6.3.3-RELEASE_wasm --static-swift-stdlib --target TUIImage
 
       - name: Build the umbrella and the Example app
         run: |
@@ -1500,7 +1500,7 @@ jobs:
   # ── Versioned consumer ─────────────────────────────────────────────────────
   # Tags only. Everything else in this file builds the package as ITSELF; this
   # builds it as somebody else's dependency, resolved by exact version, and
-  # RUNS the result so that the two resources read from TUIkit's bundle —
+  # RUNS the result so that the two resources read from TUI's bundle —
   # VERSION and the localization tables — have to actually resolve. Both fail
   # silently in a real app (wrong version in a status bar, every framework
   # string in English whatever the user asked for), which is what makes them worth a

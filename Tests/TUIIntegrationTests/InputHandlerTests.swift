@@ -1,0 +1,527 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  InputHandlerTests.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+import TUI
+@testable import TUIApp
+@testable import TUIFoundation
+@testable import TUILists
+@testable import TUIStyling
+@testable import TUITestSupport
+@testable import TUITextInput
+
+/// Tests for `InputHandler`'s five-layer key-dispatch priority chain.
+///
+/// The chain is: 0 text input (a focused `TextFieldHandler`) → 1 status
+/// bar → 2 view handlers (`onKeyEvent`) → 3 focus system → 4 default
+/// bindings (`q`/`t`/`a`). A consuming layer short-circuits the rest.
+/// These tests wire each layer with a double that records whether it
+/// ran and consumes the event, then assert which layer actually fired.
+///
+/// Layer 0 is exercised by focusing a real text handler, since
+/// `hasTextInputFocus` asks for a `TextInputFocusHandler` (a field, an
+/// editor, a date picker); a generic focusable exercises layer 3 instead.
+/// `TextInputShortcutPrecedenceTests` plays whole pages through the chain.
+@MainActor
+@Suite("InputHandler dispatch chain")
+struct InputHandlerTests {
+
+    /// A focusable test double that records whether it was asked to
+    /// handle a key and consumes it on request.
+    private final class FakeFocusable: Focusable {
+        let focusID: String
+        var canBeFocused = true
+        let consumes: Bool
+        private(set) var eventCount = 0
+        var sawEvent: Bool { eventCount > 0 }
+
+        init(focusID: String, consumes: Bool) {
+            self.focusID = focusID
+            self.consumes = consumes
+        }
+
+        func onFocusReceived() {}
+        func onFocusLost() {}
+        func handleKeyEvent(_ event: KeyEvent) -> Bool {
+            eventCount += 1
+            return consumes
+        }
+    }
+
+    /// A minimal ``Cyclable`` for theme/appearance managers.
+    private struct FakeCyclable: Cyclable {
+        let id: String
+        let name: String
+    }
+
+    /// Collects per-layer side effects.
+    private final class Probe {
+        var statusBarRan = false
+        var dispatcherRan = false
+        var quitCount = 0
+        var suspendCount = 0
+    }
+
+    /// An `InputHandler` over fresh collaborators, bundled with the
+    /// pieces a test configures and inspects.
+    private struct Fixture {
+        let handler: InputHandler
+        let statusBar: StatusBarState
+        let dispatcher: KeyEventDispatcher
+        let focus: FocusManager
+        let palette: ThemeManager
+        let appearance: ThemeManager
+        let shortcuts: KeyboardShortcutRegistry
+        let probe: Probe
+    }
+
+    private func makeFixture() -> Fixture {
+        let statusBar = StatusBarState()
+        let dispatcher = KeyEventDispatcher()
+        let focus = FocusManager()
+        let palette = ThemeManager(items: [
+            FakeCyclable(id: "p1", name: "p1"), FakeCyclable(id: "p2", name: "p2"),
+        ])
+        let appearance = ThemeManager(items: [
+            FakeCyclable(id: "a1", name: "a1"), FakeCyclable(id: "a2", name: "a2"),
+        ])
+        let probe = Probe()
+        let shortcuts = KeyboardShortcutRegistry()
+        let handler = InputHandler(
+            statusBar: statusBar,
+            keyEventDispatcher: dispatcher,
+            focusManager: focus,
+            paletteManager: palette,
+            appearanceManager: appearance,
+            keyboardShortcuts: shortcuts,
+            dragAndDropSession: nil,
+            onQuit: { probe.quitCount += 1 },
+            onSuspend: { probe.suspendCount += 1 }
+        )
+        return Fixture(
+            handler: handler, statusBar: statusBar, dispatcher: dispatcher,
+            focus: focus, palette: palette, appearance: appearance,
+            shortcuts: shortcuts, probe: probe)
+    }
+
+    /// Registers a focused, consuming focusable so layer 3 would fire
+    /// if reached.
+    @discardableResult
+    private func focusConsumer(_ focus: FocusManager, key: String = "f") -> FakeFocusable {
+        let element = FakeFocusable(focusID: key, consumes: true)
+        focus.register(element)
+        focus.focus(element)
+        return element
+    }
+
+    @Test("Layer 1 (status bar) wins over view handlers and focus")
+    func statusBarWins() {
+        let fixture = makeFixture()
+        fixture.statusBar.setItemsSilently([
+            StatusBarItem(shortcut: "x", label: "X", action: { fixture.probe.statusBarRan = true })
+        ])
+        fixture.dispatcher.addHandler { _ in fixture.probe.dispatcherRan = true; return true }
+        let focusable = focusConsumer(fixture.focus)
+
+        fixture.handler.handle(KeyEvent(key: .character("x")))
+
+        #expect(fixture.probe.statusBarRan)
+        #expect(!fixture.probe.dispatcherRan)
+        #expect(!focusable.sawEvent)
+    }
+
+    @Test("Layer 2 (view handlers) wins over focus")
+    func dispatcherWinsOverFocus() {
+        let fixture = makeFixture()
+        fixture.dispatcher.addHandler { _ in fixture.probe.dispatcherRan = true; return true }
+        let focusable = focusConsumer(fixture.focus)
+
+        fixture.handler.handle(KeyEvent(key: .character("x")))
+
+        #expect(fixture.probe.dispatcherRan)
+        #expect(!focusable.sawEvent)
+    }
+
+    @Test("Layer 3 (focus) consumes when no higher layer does")
+    func focusConsumesWhenHigherLayersDont() {
+        let fixture = makeFixture()
+        // No status-bar item; a view handler that declines the event.
+        fixture.dispatcher.addHandler { _ in false }
+        let focusable = focusConsumer(fixture.focus)
+
+        // A focusable consuming the key is the List/Table-navigation case: the
+        // handler mutates plain (non-`@State`) focus/scroll state, so `handle`
+        // returning `true` is the run loop's only signal to repaint.
+        let consumed = fixture.handler.handle(KeyEvent(key: .character("x")))
+
+        #expect(consumed, "a consumed key must report true so the run loop repaints")
+        #expect(focusable.sawEvent)
+        #expect(fixture.probe.quitCount == 0)
+    }
+
+    @Test("Layer 4 quit binding fires onQuit when nothing else consumes")
+    func quitBindingFires() {
+        let fixture = makeFixture()
+
+        fixture.handler.handle(KeyEvent(key: .character("q")))
+
+        #expect(fixture.probe.quitCount == 1)
+    }
+
+    /// Raw mode turns ^Z off as a signal character, so Ctrl-Z arrives as a
+    /// KEY, not a SIGTSTP — and
+    /// its shell meaning (suspend) applies only when no view claimed it.
+    @Test("Layer 4: an unconsumed Ctrl-Z requests suspension")
+    func unconsumedCtrlZSuspends() {
+        let fixture = makeFixture()
+
+        let consumed = fixture.handler.handle(KeyEvent(key: .character("z"), ctrl: true))
+
+        #expect(consumed)
+        #expect(fixture.probe.suspendCount == 1)
+        #expect(fixture.probe.quitCount == 0)
+    }
+
+    /// A view that binds Ctrl-Z (an editor's undo, say) wins over job control,
+    /// exactly as it should — the suspend meaning is the fallback, not a claim.
+    @Test("A view that consumes Ctrl-Z pre-empts the suspend")
+    func consumedCtrlZDoesNotSuspend() {
+        let fixture = makeFixture()
+        fixture.dispatcher.addHandler { event in
+            event.ctrl && event.key == .character("z")
+        }
+
+        let consumed = fixture.handler.handle(KeyEvent(key: .character("z"), ctrl: true))
+
+        #expect(consumed)
+        #expect(fixture.probe.suspendCount == 0, "the view's binding won")
+    }
+
+    /// Ctrl-Z in a focused text control is undo, as it is in a field. The
+    /// editor had no Ctrl-Z of its own, so the key fell through every layer
+    /// and suspended the whole app, with the text still unsaved in it.
+    @Test("Ctrl-Z in a focused TextEditor undoes, and does not suspend the app")
+    func ctrlZInAnEditorUndoes() {
+        let fixture = makeFixture()
+        var text = "ab"
+        let editor = TextEditorHandler(
+            focusID: "editor", text: Binding(get: { text }, set: { text = $0 }))
+        fixture.focus.register(editor)
+        #expect(fixture.focus.hasTextInputFocus, "precondition: the editor holds the focus")
+
+        #expect(fixture.handler.handle(KeyEvent(key: .character("X"))))
+        #expect(text == "Xab", "precondition: the typing reached the editor")
+        #expect(fixture.handler.handle(KeyEvent(key: .character("z"), ctrl: true)))
+
+        #expect(fixture.probe.suspendCount == 0, "Ctrl-Z suspended the app")
+        #expect(text == "ab", "and it did not undo the typing")
+
+        // Nothing left to undo: still the editor's key, still no suspend.
+        #expect(fixture.handler.handle(KeyEvent(key: .character("z"), ctrl: true)))
+        #expect(fixture.probe.suspendCount == 0, "an empty history let Ctrl-Z through to suspend")
+    }
+
+    /// Raw mode turns ^C off as a signal character too, so it is a key and
+    /// not SIGINT —
+    /// and, unlike Ctrl-Z, nothing gives it a meaning of its own. It falls
+    /// through every layer, quits nothing, and is reported unconsumed.
+    @Test("An unclaimed Ctrl-C is an ordinary key that nothing binds")
+    func unclaimedCtrlCDoesNothing() {
+        let fixture = makeFixture()
+
+        let consumed = fixture.handler.handle(KeyEvent(key: .character("c"), ctrl: true))
+
+        #expect(!consumed)
+        #expect(fixture.probe.quitCount == 0)
+        #expect(fixture.probe.suspendCount == 0)
+    }
+
+    /// Because Ctrl-C is a key, it can be bound: an app's ⌘C under the default
+    /// command key, or the opt-in quit shortcut, and the shortcut comes first.
+    @Test("Ctrl-C fires an app's ⌘C shortcut, and quits under quitShortcut .ctrlC")
+    func ctrlCCanBeBound() throws {
+        let fixture = makeFixture()
+        fixture.statusBar.quitShortcut = .ctrlC
+        #expect(fixture.handler.handle(KeyEvent(key: .character("c"), ctrl: true)))
+        #expect(fixture.probe.quitCount == 1)
+
+        var copied = 0
+        let copy = KeyboardShortcut("c").resolved(commandKey: .control)
+        #expect(copy?.isDeliverableInTerminal == true)
+        fixture.shortcuts.register(try #require(copy)) { copied += 1 }
+        #expect(fixture.handler.handle(KeyEvent(key: .character("c"), ctrl: true)))
+        #expect(copied == 1)
+        #expect(fixture.probe.quitCount == 1, "the shortcut, layer 3.5, came before quit")
+    }
+
+    @Test("Layer 4 't' cycles the palette when the theme item is shown")
+    func themeKeyCyclesPalette() {
+        let fixture = makeFixture()
+        fixture.statusBar.showThemeItem = true
+        let before = fixture.palette.current.id
+
+        fixture.handler.handle(KeyEvent(key: .character("t")))
+
+        #expect(fixture.palette.current.id != before)
+        #expect(fixture.palette.current.id == "p2")
+    }
+
+    @Test("Layer 4 'a' cycles the appearance, once the app opts into it")
+    func appearanceKeyCyclesAppearance() {
+        let fixture = makeFixture()
+        fixture.statusBar.showAppearanceItem = true
+        let before = fixture.appearance.current.id
+
+        fixture.handler.handle(KeyEvent(key: .character("a")))
+
+        #expect(fixture.appearance.current.id != before)
+        #expect(fixture.appearance.current.id == "a2")
+    }
+
+    /// A bare `a` restyling every app was a chrome default nobody asked for, and
+    /// with the bars opt-in there may be nothing on screen to say what it does
+    /// (A28, owner answer 6). It is opt-in now, as `t` already was.
+    @Test("Layer 4 'a' is an ordinary key unless the app opts into appearance cycling")
+    func appearanceKeyIsOptIn() {
+        let fixture = makeFixture()
+        let before = fixture.appearance.current.id
+
+        #expect(!fixture.handler.handle(KeyEvent(key: .character("a"))), "the key is left unconsumed")
+        #expect(fixture.appearance.current.id == before)
+    }
+
+    /// Layer 4's bindings mean the BARE key: `t` cycles the theme, `a` the
+    /// appearance, `q` quits. A modifier chord of the same letter belongs to
+    /// whatever layer owns that chord (Ctrl+A is select-all, Ctrl+T is a
+    /// common app binding) — reaching layer 4 unconsumed must not mutate the
+    /// app chrome as a surprise.
+    @Test("Layer 4 bindings ignore modifier chords of their letters")
+    func globalShortcutsIgnoreModifiedChords() {
+        let fixture = makeFixture()
+        fixture.statusBar.showThemeItem = true
+        let paletteBefore = fixture.palette.current.id
+        let appearanceBefore = fixture.appearance.current.id
+
+        #expect(!fixture.handler.handle(KeyEvent(key: .character("t"), ctrl: true)))
+        #expect(!fixture.handler.handle(KeyEvent(key: .character("t"), alt: true)))
+        #expect(!fixture.handler.handle(KeyEvent(key: .character("a"), ctrl: true)))
+        #expect(!fixture.handler.handle(KeyEvent(key: .character("a"), alt: true)))
+        #expect(fixture.palette.current.id == paletteBefore)
+        #expect(fixture.appearance.current.id == appearanceBefore)
+
+        fixture.handler.handle(KeyEvent(key: .character("q"), alt: true))
+        #expect(fixture.probe.quitCount == 0, "Alt+Q is not the quit binding")
+    }
+
+    /// Leaves the focus manager in the state a presented modal/alert produces:
+    /// a section that is active *and* marked modal (input-grabbing).
+    private func activateModalSection(_ focus: FocusManager, id: String = "modal-test") {
+        focus.registerSection(id: id)
+        focus.activateSection(id: id)
+        focus.markSectionModal(id: id)
+    }
+
+    @Test("Layer 4 'a' is suppressed while a modal section is active")
+    func appearanceSuppressedBehindModal() {
+        let fixture = makeFixture()
+        activateModalSection(fixture.focus)
+        let before = fixture.appearance.current.id
+
+        let consumed = fixture.handler.handle(KeyEvent(key: .character("a")))
+
+        #expect(!consumed, "'a' must not be consumed behind a modal")
+        #expect(fixture.appearance.current.id == before, "the appearance must not cycle behind a modal")
+    }
+
+    @Test("Layer 4 't' is suppressed while a modal section is active")
+    func themeSuppressedBehindModal() {
+        let fixture = makeFixture()
+        fixture.statusBar.showThemeItem = true
+        activateModalSection(fixture.focus)
+        let before = fixture.palette.current.id
+
+        fixture.handler.handle(KeyEvent(key: .character("t")))
+
+        #expect(fixture.palette.current.id == before, "the theme must not cycle behind a modal")
+    }
+
+    @Test("Layer 4 'a' is suppressed while a drop-down has claimed Escape")
+    func appearanceSuppressedBehindDropdown() {
+        let fixture = makeFixture()
+        // An open Picker drop-down signals its transient grab via the escape
+        // override; the global appearance shortcut must defer to it too.
+        fixture.statusBar.escapeLabelOverride = "Close"
+        let before = fixture.appearance.current.id
+
+        fixture.handler.handle(KeyEvent(key: .character("a")))
+
+        #expect(fixture.appearance.current.id == before)
+    }
+
+    @Test("Quit still fires from behind a modal (its status bar offers it)")
+    func quitStillWorksBehindModal() {
+        let fixture = makeFixture()
+        activateModalSection(fixture.focus)
+
+        let consumed = fixture.handler.handle(KeyEvent(key: .character("q")))
+
+        #expect(consumed)
+        #expect(fixture.probe.quitCount == 1, "q remains an escape hatch behind a modal")
+    }
+
+    /// The `.rootOnly` half of the quit gate, driven through the layer that
+    /// actually consults it. Asserted on the SIDE EFFECT, not on
+    /// `isQuitAllowed`: the key must still report consumed (so the bar's own
+    /// `q` never falls through to the theme shortcuts) while `onQuit` stays
+    /// unfired.
+    @Test("Layer 4 quit is refused under a pushed context when quitBehavior is .rootOnly")
+    func rootOnlyQuitRefusedOffRoot() {
+        let fixture = makeFixture()
+        fixture.statusBar.quitBehavior = .rootOnly
+        fixture.statusBar.push(context: "detail", items: [])
+
+        let consumed = fixture.handler.handle(KeyEvent(key: .character("q")))
+
+        #expect(consumed, "q is still the quit binding; it simply declines to act")
+        #expect(fixture.probe.quitCount == 0, "rootOnly must not quit from a subpage")
+
+        fixture.statusBar.pop(context: "detail")
+        fixture.handler.handle(KeyEvent(key: .character("q")))
+
+        #expect(fixture.probe.quitCount == 1, "back at the root, q quits again")
+    }
+
+    @Test("An unhandled key with no consumers is a no-op")
+    func unhandledKeyIsNoOp() {
+        let fixture = makeFixture()
+        let paletteBefore = fixture.palette.current.id
+        let appearanceBefore = fixture.appearance.current.id
+
+        let consumed = fixture.handler.handle(KeyEvent(key: .character("z")))
+
+        #expect(!consumed, "an unconsumed key must report false so the loop doesn't repaint needlessly")
+        #expect(fixture.probe.quitCount == 0)
+        #expect(fixture.palette.current.id == paletteBefore)
+        #expect(fixture.appearance.current.id == appearanceBefore)
+    }
+
+    @Test("A modal-claimed Escape routes to the focus system before the status bar")
+    func modalEscapeRoutesToFocusFirst() {
+        let fixture = makeFixture()
+        // A page-level status-bar Escape handler that must NOT fire while
+        // a modal owns Escape.
+        fixture.statusBar.setItemsSilently([
+            StatusBarItem(shortcut: "esc", label: "Back", key: .escape,
+                action: { fixture.probe.statusBarRan = true })
+        ])
+        fixture.statusBar.escapeLabelOverride = "Close"
+        let focusable = focusConsumer(fixture.focus)
+
+        fixture.handler.handle(KeyEvent(key: .escape))
+
+        #expect(focusable.sawEvent, "focus system should receive the modal-claimed Escape")
+        #expect(!fixture.probe.statusBarRan, "the page-level Escape handler must not fire")
+    }
+
+    /// The pre-route already offered the event to the focus system; when it
+    /// declines, layer 3 must not offer the SAME event again — a dispatch
+    /// can have side effects (a one-shot claim consumed, internal state
+    /// advanced) even when it returns false.
+    @Test("A declined modal-claimed Escape is not dispatched to focus twice")
+    func modalEscapeDeclinedIsNotDoubleDispatched() {
+        let fixture = makeFixture()
+        fixture.statusBar.escapeLabelOverride = "Close"
+        // A focused element that DECLINES the key — the pre-route falls
+        // through to the later layers.
+        let element = FakeFocusable(focusID: "f", consumes: false)
+        fixture.focus.register(element)
+        fixture.focus.focus(element)
+
+        _ = fixture.handler.handle(KeyEvent(key: .escape))
+
+        #expect(element.eventCount == 1, "the focus system saw the same Escape \(element.eventCount) times")
+    }
+
+    @Test("A list's Escape claim clears its selection; without one Escape navigates")
+    func listEscapeClaimClearsSelectionNotPage() {
+        let fixture = makeFixture()
+        fixture.statusBar.setItemsSilently([
+            StatusBarItem(shortcut: "esc", label: "Back", key: .escape,
+                action: { fixture.probe.statusBarRan = true })
+        ])
+
+        var selection: Set<String> = ["b"]
+        let list = ItemListHandler<String>(
+            focusID: "list", itemCount: 3, viewportHeight: 3, selectionMode: .multi)
+        list.itemIDs = ["a", "b", "c"]
+        list.multiSelection = Binding(get: { selection }, set: { selection = $0 })
+        fixture.focus.register(list)
+        fixture.focus.focus(list)
+
+        // The render pass would have published the claim (selection non-empty).
+        fixture.statusBar.escapeLabelOverride = "clear selection"
+        fixture.statusBar.escapeClaimGrabsInput = false
+
+        #expect(fixture.handler.handle(KeyEvent(key: .escape)))
+        #expect(selection.isEmpty, "the claimed Escape clears the selection")
+        #expect(!fixture.probe.statusBarRan, "the page's Escape item must not fire that press")
+
+        // Next frame: nothing to clear, so no claim is published — Escape
+        // reaches the page's own binding untouched (the fall-through the
+        // list guarantees).
+        fixture.statusBar.escapeLabelOverride = nil
+        fixture.statusBar.escapeClaimGrabsInput = true
+
+        #expect(fixture.handler.handle(KeyEvent(key: .escape)))
+        #expect(fixture.probe.statusBarRan, "with no selection the page navigates as usual")
+    }
+
+    @Test("Layer 4 'a' still works under a lightweight (non-grabbing) Escape claim")
+    func appearanceSurvivesLightweightEscapeClaim() {
+        let fixture = makeFixture()
+        // A list's selection claim re-routes only ESC itself — unlike an open
+        // drop-down, it must NOT ground the global chrome shortcuts.
+        fixture.statusBar.escapeLabelOverride = "clear selection"
+        fixture.statusBar.escapeClaimGrabsInput = false
+        fixture.statusBar.showAppearanceItem = true
+        let before = fixture.appearance.current.id
+
+        #expect(fixture.handler.handle(KeyEvent(key: .character("a"))))
+        #expect(fixture.appearance.current.id != before, "the appearance shortcut stays live")
+    }
+    @Test("Layer 3.5: an unconsumed Return fires the registered default action")
+    func defaultActionFiresWhenReturnFallsThrough() {
+        let fixture = makeFixture()
+        var fired = 0
+        fixture.shortcuts.register(.defaultAction) { fired += 1 }
+
+        // No focused consumer: Return falls through layers 0–3 to the registry.
+        #expect(fixture.handler.handle(KeyEvent(key: .enter)))
+        #expect(fired == 1)
+    }
+
+    @Test("Layer 3.5: a focused consumer keeps Return from the default action")
+    func focusedConsumerBeatsDefaultAction() {
+        let fixture = makeFixture()
+        var fired = 0
+        fixture.shortcuts.register(.defaultAction) { fired += 1 }
+        focusConsumer(fixture.focus)  // consumes every key at layer 3
+
+        #expect(fixture.handler.handle(KeyEvent(key: .enter)))
+        #expect(fired == 0, "the focused control consumed Return first")
+    }
+
+    @Test("Layer 3.5: Escape fires the cancel action when nothing else claims it")
+    func cancelActionFiresOnEscape() {
+        let fixture = makeFixture()
+        var fired = 0
+        fixture.shortcuts.register(.cancelAction) { fired += 1 }
+
+        #expect(fixture.handler.handle(KeyEvent(key: .escape)))
+        #expect(fired == 1)
+    }
+}

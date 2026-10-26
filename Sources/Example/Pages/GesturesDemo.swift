@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  GesturesDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Gestures as values: a double click (`TapGesture(count: 2)`), a press held
 /// (`.onLongPressGesture`, which also reports the pressing as it happens), a

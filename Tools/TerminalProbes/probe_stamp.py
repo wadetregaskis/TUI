@@ -21,7 +21,7 @@ re-read years later and either trusted or discarded on its own evidence.
 **These stamps describe DSR advances.** DSR is a cursor *report*, and on Apple
 Terminal it disagrees with the paint for ZWJ sequences — it claims 5, 8, 11
 while the glyph composes into 2 cells and the row does not shear. So an advance
-recorded here that disagrees with TUIkit's width claim is a hypothesis about
+recorded here that disagrees with TUI's width claim is a hypothesis about
 rendering, not a finding; confirm it with `visual_card.py` before compensating.
 See Documentation/Terminals/Terminal compatibility survey.md, "ZWJ: where DSR lies".
 """

@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  MatchedGeometryDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Views that share an id in a namespace share their geometry
 /// (`matchedGeometryEffect`): a chip carried from one list to the other, a

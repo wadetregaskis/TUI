@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# TUIkit CLI Installer
+# TUI CLI Installer
 # Installs the tuikit command globally with platform detection
 
 set -e
@@ -90,7 +90,7 @@ install() {
     echo -e "${CYAN}"
     echo "  ╭──────────────────────────────────────╮"
     echo "  │                                      │"
-    echo "  │       TUIkit CLI Installer           │"
+    echo "  │       TUI CLI Installer           │"
     echo "  │                                      │"
     echo "  ╰──────────────────────────────────────╯"
     echo -e "${NC}"
@@ -116,7 +116,7 @@ INSTALL_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "Uninstalling tuikit from $INSTALL_PATH..."
 rm -f "$INSTALL_PATH/tuikit"
 rm -f "$INSTALL_PATH/tuikit-uninstall"
-echo "Done! TUIkit CLI removed."
+echo "Done! TUI CLI removed."
 UNINSTALL_SCRIPT
 
     chmod +x "$INSTALL_PATH/${SCRIPT_NAME}-uninstall"
@@ -146,7 +146,7 @@ UNINSTALL_SCRIPT
 
             # Add to PATH
             echo "" >> "$SHELL_CONFIG"
-            echo "# Added by TUIkit installer" >> "$SHELL_CONFIG"
+            echo "# Added by TUI installer" >> "$SHELL_CONFIG"
             echo "export PATH=\"\$PATH:$INSTALL_PATH\"" >> "$SHELL_CONFIG"
 
             echo ""
@@ -170,7 +170,7 @@ UNINSTALL_SCRIPT
 # Uninstall function
 uninstall() {
     echo ""
-    echo -e "  ${DIM}Uninstalling TUIkit CLI...${NC}"
+    echo -e "  ${DIM}Uninstalling TUI CLI...${NC}"
 
     INSTALL_PATH=$(detect_install_path)
 
@@ -182,10 +182,10 @@ uninstall() {
             sudo rm -f "$INSTALL_PATH/$SCRIPT_NAME"
             sudo rm -f "$INSTALL_PATH/${SCRIPT_NAME}-uninstall"
         fi
-        echo -e "  ${GREEN}Done!${NC} TUIkit CLI removed."
+        echo -e "  ${GREEN}Done!${NC} TUI CLI removed."
         echo ""
     else
-        echo -e "  ${DIM}TUIkit CLI not found at $INSTALL_PATH${NC}"
+        echo -e "  ${DIM}TUI CLI not found at $INSTALL_PATH${NC}"
         echo ""
     fi
 }

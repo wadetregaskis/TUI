@@ -50,9 +50,9 @@ Three details matter to anyone implementing it:
 The write side is the one with consequences: it is **global mutable system
 state**, and every other app's ⌘G is downstream of it. Reading is harmless.
 
-## Can TUIkit reach it at all? Yes — measured
+## Can TUI reach it at all? Yes — measured
 
-TUIkit deliberately does not link AppKit; `SystemClipboard` shells out to
+TUI deliberately does not link AppKit; `SystemClipboard` shells out to
 `pbcopy`/`pbpaste` with hardened, deadline-bounded child I/O. Those helpers
 take the pasteboard as an argument:
 
@@ -129,7 +129,7 @@ None of these is exotic. The honest summary is that the environment gives a
 **dependable "definitely remote"** and an **unreliable "probably local"**, which
 is the wrong way round for a feature whose dangerous half is the write.
 
-**Since 2026-10-05, for the general clipboard,** TUIkit asks the second
+**Since 2026-10-05, for the general clipboard,** TUI asks the second
 mechanism too (`SessionLocality`): besides the three variables, this
 process's parents must reach the root without passing `sshd` or `mosh-server`
 (which catches mosh), and inside tmux every attached client's parents must

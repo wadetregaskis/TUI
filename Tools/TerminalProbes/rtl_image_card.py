@@ -2,7 +2,7 @@
 """Prints a PICTURE built out of right-to-left characters, six ways.
 
 `bidi_card.py` asks what a terminal does to a LINE OF TEXT containing an RTL
-run. This asks what it does to a picture — a `TUIkitImage` render whose ramp
+run. This asks what it does to a picture — a `TUIImage` render whose ramp
 contains Hebrew letters, which is where the corruption was reported and where
 the stakes differ: in text, reordering a run is arguably right and merely looks
 odd; in a picture every character is a pixel, so moving one is corruption with
@@ -36,7 +36,7 @@ The blocks:
 
   * `control`    — the same gradient drawn with an ASCII ramp. Whatever this
                    does is what correct looks like on this host.
-  * `hebrew`     — the gradient with a ten-letter Hebrew ramp, as TUIkit emits
+  * `hebrew`     — the gradient with a ten-letter Hebrew ramp, as TUI emits
                    it today. Compare its shape with the control's.
   * `coloured`   — the same picture with an SGR colour change per cell, which
                    is what a real render emits and the one thing a plain text
@@ -52,7 +52,7 @@ The blocks:
                    `ESC[<n>G` column move, which is what `FrameDiffWriter`
                    already does for a partial row. This asks whether the host
                    reorders what it is HANDED or what it has STORED, and those
-                   have opposite consequences: the first is already TUIkit's
+                   have opposite consequences: the first is already TUI's
                    mechanism and costs no glyphs, the second closes that route.
   * `lrm+coloured` and `lrm+wide` — the two things the working `lrm` block
                    does NOT have, and the reason it is not trusted. Emitting

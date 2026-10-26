@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  AccumulateSession.swift
 //
 //  What an `@Observable` property that is read on every frame and never
@@ -12,7 +12,7 @@
 //  model lives — here, the whole run; about 1.2 KB each, as `--census`
 //  measured this page, more for a deeper reader, since each holds its
 //  reader's identity chain — and the first write, whenever it comes, runs
-//  every one of them on the writer's thread. TUIkit cancels a registration
+//  every one of them on the writer's thread. TUI cancels a registration
 //  once nothing the render cache keeps depends on the evaluation that armed
 //  it (`ObservationLeases`), so what is alive stays flat however long the
 //  run; `TUIKIT_OBSERVATION_RETIREMENT=never` plays it as the cache played it
@@ -25,7 +25,7 @@
 
 import Dispatch
 import Observation
-import TUIkit
+import TUI
 
 // MARK: - The model
 

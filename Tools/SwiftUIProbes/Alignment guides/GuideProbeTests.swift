@@ -1,12 +1,12 @@
-//  GUIDE probe (scratch, not for landing): where TUIkit places a child whose
+//  GUIDE probe (scratch, not for landing): where TUI places a child whose
 //  explicit guide lies outside its own extent, for comparison with SwiftUI.
 
 import Foundation
 import Testing
 
-import TUIkit
-@testable import TUIkitFoundation
-@testable import TUIkitTestSupport
+import TUI
+@testable import TUIFoundation
+@testable import TUITestSupport
 
 private func run(_ char: Character, _ count: Int) -> String { String(repeating: char, count: count) }
 

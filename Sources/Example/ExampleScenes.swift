@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ExampleScenes.swift
 //
 //  The Example's scenes beside its main window: an Inspector window, opened
@@ -8,7 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 // MARK: - The Inspector
 

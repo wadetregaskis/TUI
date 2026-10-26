@@ -1,13 +1,13 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  CustomClientView.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
-/// Build a workaround set for a terminal TUIkit has never measured, by trying
+/// Build a workaround set for a terminal TUI has never measured, by trying
 /// the switches and watching the strip at the bottom.
 ///
 /// This is the screen for the case the rest of the app cannot serve: a terminal
@@ -19,7 +19,7 @@ import TUIkit
 ///
 /// The export at the bottom is the point of the exercise: it names the terminal,
 /// records what it answered when asked, and lists the switches that turned out
-/// to be needed — which is everything required to add it to TUIkit properly.
+/// to be needed — which is everything required to add it to TUI properly.
 struct CustomClientView: View {
     let client: TerminalClient
 
@@ -234,7 +234,7 @@ struct CustomClientView: View {
         }
     }
 
-    /// Everything needed to add this terminal to TUIkit: what it is, what it
+    /// Everything needed to add this terminal to TUI: what it is, what it
     /// said when asked, and which workarounds turned out to be needed. The
     /// `TerminalQuirks(...)` line is valid Swift, so it can go straight into a
     /// test as the expected model.
@@ -244,7 +244,7 @@ struct CustomClientView: View {
     private var reportLines: [String] {
         let identity = client
         var lines = [
-            "# TUIkit terminal quirks report",
+            "# TUI terminal quirks report",
             "terminal:      \(terminalName.isEmpty ? "(unnamed — please fill in)" : terminalName)",
             "TERM:          \(ProcessInfo.processInfo.environment["TERM"] ?? "unset")",
             "TERM_PROGRAM:  \(ProcessInfo.processInfo.environment["TERM_PROGRAM"] ?? "unset")",

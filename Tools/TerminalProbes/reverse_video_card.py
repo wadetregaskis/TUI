@@ -30,7 +30,7 @@ Reading the card:
     reference is built from the host's own OSC 10/11 answer, spelled as 24-bit
     colour. With no answer (GNU screen, for one) those rows show no reference.
     A host without 24-bit colour quantises the reference, so compare with care.
-  * Rows I and J are the spelling TUIkit uses for a cell laid over a reversal of
+  * Rows I and J are the spelling TUI uses for a cell laid over a reversal of
     the terminal's own ink (`Opacity as composition.md` §107): 39 in the
     foreground slot, so the ground is the DEFAULT foreground, and the glyph's red
     in the background slot. Their reference states that foreground as 24-bit

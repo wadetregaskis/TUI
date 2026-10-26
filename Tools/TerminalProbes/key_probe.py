@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Legacy key probe: what does each key a TUIkit binding names actually send,
+"""Legacy key probe: what does each key a TUI binding names actually send,
 with no keyboard protocol pushed — and does it arrive at all?
 
 Raw mode, no kitty flags, no mouse reporting: the encoding an app sees on a
@@ -21,7 +21,7 @@ held or System Settings → Keyboard says to use F1, F2, etc. as standard functi
 keys: record which was pressed, F10 or fn-F10, and that setting.
 
 Run INSIDE the terminal under test, from its DEFAULT profile, once on each
-screen: TUIkit draws on the alternate screen (`PROBE_ALT=1`), and a host's
+screen: TUI draws on the alternate screen (`PROBE_ALT=1`), and a host's
 scrollback keys can behave differently there from the primary screen, where
 there is a buffer to scroll. Press each key once when asked; a prompt gives up
 after `PROBE_WAIT` seconds (default 6) and records nothing arrived. Ctrl-C

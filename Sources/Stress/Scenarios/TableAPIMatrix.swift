@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TableAPIMatrix.swift
 //
 //  Every way an app can build a `Table`, as one scenario with many variants.
@@ -26,7 +26,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 // MARK: - The rows
 

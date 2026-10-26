@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TextInputPage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// The text-entry family on one focused page: single-line ``TextField``,
 /// masked ``SecureField``, and the multi-line ``TextEditor`` — plus the shared
@@ -162,7 +162,7 @@ struct TextInputPage: View {
                     // (per-field first, then the cascading form action).
                     // SwiftUI's `.submitLabel(_:)` has no counterpart: it
                     // labels an on-screen keyboard's Return key, which a
-                    // terminal does not have, so TUIkit omits it rather than
+                    // terminal does not have, so TUI omits it rather than
                     // accepting it and doing nothing.
                     VStack(alignment: .leading, spacing: 0) {
                         TextField(

@@ -12,7 +12,7 @@ is: A = owner decision, B = basic shipped, C = declined.*
 ### A-D6L-1. The surface look: try it, then decide what (if anything) becomes the default
 
 *`SurfaceTableStyle` / `.tableStyle(.surface)`, `SurfaceListStyle` /
-`.listStyle(.surface)` — TUIkit's own, a prototype (decisions A29, A46)*
+`.listStyle(.surface)` — TUI's own, a prototype (decisions A29, A46)*
 
 **Shipped, opt-in, no default changed:** a table or list in the `.surface`
 style draws no border; its rows inset a cell from the edges, as `.inset`'s
@@ -56,7 +56,7 @@ the sixteen stated palettes):
    re-baselined (about half a day, most of it tests, as A29/A46 priced). At 16
    colours it needs a fallback: draw the border there (the surface cannot be
    seen), about an hour.
-3. **Fold the surface into `.inset`** rather than keeping a TUIkit-only
+3. **Fold the surface into `.inset`** rather than keeping a TUI-only
    style: `.inset` is then "no border, on a surface", and `.surface` goes. Free
    apart from the docs; changes the look of every app that names `.inset`.
 
@@ -91,7 +91,7 @@ the default is left to the owner.
 
 1. **Off by default** (shipped). Free.
 2. **SwiftUI's default: on under `.automatic`, `.inset`, `.bordered` and
-   `.plain`**, off under `.sidebar` and TUIkit's `.insetGrouped`. Every list
+   `.plain`**, off under `.sidebar` and TUI's `.insetGrouped`. Every list
    doubles in height, every row's click target and page distance with it;
    tests that read a list's lines need re-baselining (most of a day — lists
    are everywhere in the suite).
@@ -117,7 +117,7 @@ surface-styled list is where separators would most help.
   `.hairline` where the terminal draws hairlines and `.line` elsewhere.
 - **What `.automatic` visibility means:** under `.line`, hidden in every
   style, as shipped. Under `.hairline`, SwiftUI's default: shown under
-  `.automatic`, `.inset`, `.bordered`, `.plain` and `.surface` (TUIkit's own,
+  `.automatic`, `.inset`, `.bordered`, `.plain` and `.surface` (TUI's own,
   an inset list, so shown as `.inset` is), hidden under `.sidebar` and
   `.insetGrouped`. Section separators likewise. A `.visible` separator is a
   hairline where they are drawn, a rule line elsewhere.
@@ -257,11 +257,11 @@ line between rows that belongs to neither — its own claims and its own
 **Measured (macOS 15.8, offscreen `NSHostingView`, each row's background
 sampled; [`Tools/SwiftUIProbes/List pinned headers and row stripes/phase.swift`](<../../../../Tools/SwiftUIProbes/List pinned headers and row stripes/phase.swift>)):** a list's
 stripes tint the second content row and every other after it — the phase
-TUIkit now draws, for tables and lists alike — and in a sectioned list they
+TUI now draws, for tables and lists alike — and in a sectioned list they
 count the content rows across the sections, headers not counted: three rows
 under A then three under B tint A's second and B's first and third.
 
-**Shipped at first:** TUIkit's count restarted at each section's first row
+**Shipped at first:** TUI's count restarted at each section's first row
 (`ListStyle.alternatingRowColors`), so B's first row was plain.
 
 **Shipped since 2026-10-18 (lane LISTS):** one count across the list, as

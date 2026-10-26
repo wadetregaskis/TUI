@@ -1,4 +1,4 @@
-# SwiftLint Configuration for TUIkit
+# SwiftLint Configuration for TUI
 
 # Only lint project sources (not build artifacts or dependencies)
 included:
@@ -115,7 +115,7 @@ opt_in_rules:
 # build, new in 0.64, requires `\n` line endings in every file it lints, so a
 # Windows lint lane would need an LF checkout whatever this pattern accepts.)
 file_header:
-  required_pattern: '\A//  🖥️ TUIkit — Terminal UI Kit for Swift\r?\n//  SWIFTLINT_CURRENT_FILENAME\r?\n//\r?\n(?:(?!//  License:)//[^\n]*\r?\n)*?//  Created by (?![^\n]* on \d)[^\n]+\r?\n//  License: MIT$'
+  required_pattern: '\A//  🖥️ TUI — A Terminal UI framework for Swift\r?\n//  SWIFTLINT_CURRENT_FILENAME\r?\n//\r?\n(?:(?!//  License:)//[^\n]*\r?\n)*?//  Created by (?![^\n]* on \d)[^\n]+\r?\n//  License: MIT$'
 
 # `invisible_character`, a default rule since SwiftLint 0.63.3, rejects a raw
 # zero-width space (U+200B), zero-width non-joiner (U+200C) or U+FEFF inside a
@@ -480,15 +480,15 @@ custom_rules:
   #
   # How it is scoped, each part of which was measured with SwiftLint 0.63.2:
   # - `included` and `excluded` are regexes matched against the file's path,
-  #   not globs; a brace glob such as `Sources/TUIkit/{Views,Styles}` matches
+  #   not globs; a brace glob such as `Sources/TUI/{Views,Styles}` matches
   #   nothing and silently switches the rule off.
-  # - Every Sources/TUIkit… directory, less the ones `excluded` names, not a
+  # - Every Sources/TUI… directory, less the ones `excluded` names, not a
   #   list of the framework's: so a new directory, or a new module of the
   #   split (each sits in Sources/<module>), is covered without anyone
   #   remembering to add it. That is the umbrella, every planned module and
-  #   TUIkitView. The other lower modules are not covered: TUIkitStyling is the
-  #   colour vocabulary and the palettes themselves, and TUIkitCore,
-  #   TUIkitImage, the AppKit bridges, the macros and the width corpus draw no
+  #   TUIView. The other lower modules are not covered: TUIStyling is the
+  #   colour vocabulary and the palettes themselves, and TUICore,
+  #   TUIImage, the AppKit bridges, the macros and the width corpus draw no
   #   view.
   # - `match_kinds: [identifier]` keeps it out of comments and string
   #   literals, where the framework's docs spell `.rgb(` freely.
@@ -512,27 +512,27 @@ custom_rules:
       "What built-in controls draw with" in ThemingGuide.md; if the colour is
       content or arithmetic, not ink, disable this rule on that line and say why.
     included:
-      - "Sources/TUIkit[A-Za-z]*/.*\\.swift$"
+      - "Sources/TUI[A-Za-z]*/.*\\.swift$"
     excluded:
-      - "Sources/TUIkit(Core|Styling|Image|AppKit|Macros|MacrosPlugin|WidthCorpus)/"
-      - "Sources/TUIkitColorPicker/Views/(SwatchPalettes|ColorPickerPanel|ColorPicker|GradientEditorPanel)\\.swift$"
-      - "Sources/TUIkitCurveEditors/Views/(ToneCurveEditorPanel|ChannelCurveEditorPanel)\\.swift$"
-      - "Sources/TUIkitFoundation/Rendering/OpacityBlend\\.swift$"
-      - "Sources/TUIkitApp/Rendering/TerminalColorQuery\\.swift$"
-      - "Sources/TUIkitFoundation/Modifiers/OpacityModifier\\.swift$"
-      - "Sources/TUIkitEffects/Modifiers/(ColorEffectModifiers|OpacityFade)\\.swift$"
-      - "Sources/TUIkitFoundation/Styling/AnyGradient\\.swift$"
-      - "Sources/TUIkitView/Animation/ColorAnimation\\.swift$"
+      - "Sources/TUI(Core|Styling|Image|AppKit|Macros|MacrosPlugin|WidthCorpus)/"
+      - "Sources/TUIColorPicker/Views/(SwatchPalettes|ColorPickerPanel|ColorPicker|GradientEditorPanel)\\.swift$"
+      - "Sources/TUICurveEditors/Views/(ToneCurveEditorPanel|ChannelCurveEditorPanel)\\.swift$"
+      - "Sources/TUIFoundation/Rendering/OpacityBlend\\.swift$"
+      - "Sources/TUIApp/Rendering/TerminalColorQuery\\.swift$"
+      - "Sources/TUIFoundation/Modifiers/OpacityModifier\\.swift$"
+      - "Sources/TUIEffects/Modifiers/(ColorEffectModifiers|OpacityFade)\\.swift$"
+      - "Sources/TUIFoundation/Styling/AnyGradient\\.swift$"
+      - "Sources/TUIView/Animation/ColorAnimation\\.swift$"
     regex: '(\bColor)?\.(rgb|hex|hsl|hsb|cmyk|ansi)\(|\bColor\.(black|white|red|green|yellow|blue|magenta|cyan|gray|orange|pink|purple|brown|mint|teal|indigo|bright\w+)\b|\.bright(Black|Red|Green|Yellow|Blue|Magenta|Cyan|White)\b'
     match_kinds:
       - identifier
     severity: error
 
   # `-Xlinker -deduplicate`, which the README offers app developers, folds
-  # byte-identical functions onto one address across the whole app, TUIkit
+  # byte-identical functions onto one address across the whole app, TUI
   # included. A key path to a COMPUTED property is identified by its getter's
   # address, so two such key paths can then compare and hash equal although
-  # they name different properties. TUIkit's code that compares or hashes key
+  # they name different properties. TUI's code that compares or hashes key
   # paths is listed in Tools/DedupCheck/manifest.json, which CI checks against
   # a deduplicated link (Tools/DedupCheck/README.md); this rule makes a NEW
   # site visible when it is written. Each site that is meant takes a
@@ -551,8 +551,8 @@ custom_rules:
   # job, checks them. The bit cast of a plain value is flagged by design: no
   # regex can tell it from a function's.
   key_path_identity:
-    included: 'Sources/TUIkit'
-    excluded: 'Sources/TUIkit(MacrosPlugin|WidthCorpus)/'
+    included: 'Sources/TUI'
+    excluded: 'Sources/TUI(MacrosPlugin|WidthCorpus)/'
     name: "Key-path identity"
     message: >-
       Comparing or hashing key paths compares getter addresses, and
@@ -580,8 +580,8 @@ custom_rules:
   # plain value (a metatype, a C union), so every `unsafeBitCast` to an
   # integer or a pointer is flagged and reviewed at the site.
   function_address_identity:
-    included: 'Sources/TUIkit'
-    excluded: 'Sources/TUIkit(MacrosPlugin|WidthCorpus)/'
+    included: 'Sources/TUI'
+    excluded: 'Sources/TUI(MacrosPlugin|WidthCorpus)/'
     name: "Function-address identity"
     message: >-
       This reinterprets a value as an address. If it is a function's (a

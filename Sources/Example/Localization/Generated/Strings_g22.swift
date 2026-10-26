@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Strings_g22.swift
 //
 //  Created by Wade Tregaskis
@@ -37,7 +37,7 @@ extension ExampleStrings {
             "page.terminal.bell": "the bell",
             "page.terminal.ask": "Ask for attention in 5 s",
             "page.terminal.asking": "Asking in 5 s…",
-            "page.terminal.attentionMessage": "The TUIkit Example would like your attention",
+            "page.terminal.attentionMessage": "The TUI Example would like your attention",
         ],
         "de": [
             "menu.item.terminal": "Das Terminal selbst",
@@ -61,7 +61,7 @@ extension ExampleStrings {
             "page.terminal.bell": "die Glocke",
             "page.terminal.ask": "In 5 s um Aufmerksamkeit bitten",
             "page.terminal.asking": "Bitte folgt in 5 s …",
-            "page.terminal.attentionMessage": "Das TUIkit-Beispiel bittet um deine Aufmerksamkeit",
+            "page.terminal.attentionMessage": "Das TUI-Beispiel bittet um deine Aufmerksamkeit",
         ],
         "fr": [
             "menu.item.terminal": "Le terminal lui-même",
@@ -85,7 +85,7 @@ extension ExampleStrings {
             "page.terminal.bell": "la sonnerie",
             "page.terminal.ask": "Demander l'attention dans 5 s",
             "page.terminal.asking": "Demande dans 5 s…",
-            "page.terminal.attentionMessage": "L'exemple TUIkit demande votre attention",
+            "page.terminal.attentionMessage": "L'exemple TUI demande votre attention",
         ],
         "it": [
             "menu.item.terminal": "Il terminale stesso",
@@ -109,7 +109,7 @@ extension ExampleStrings {
             "page.terminal.bell": "il campanello",
             "page.terminal.ask": "Chiedi attenzione tra 5 s",
             "page.terminal.asking": "Richiesta tra 5 s…",
-            "page.terminal.attentionMessage": "L'esempio TUIkit chiede la tua attenzione",
+            "page.terminal.attentionMessage": "L'esempio TUI chiede la tua attenzione",
         ],
         "es": [
             "menu.item.terminal": "El terminal en sí",
@@ -133,7 +133,7 @@ extension ExampleStrings {
             "page.terminal.bell": "el timbre",
             "page.terminal.ask": "Pedir atención en 5 s",
             "page.terminal.asking": "Pidiendo en 5 s…",
-            "page.terminal.attentionMessage": "El ejemplo de TUIkit pide tu atención",
+            "page.terminal.attentionMessage": "El ejemplo de TUI pide tu atención",
         ],
         "zh": [
             "menu.item.terminal": "终端本身",
@@ -157,7 +157,7 @@ extension ExampleStrings {
             "page.terminal.bell": "响铃",
             "page.terminal.ask": "5 秒后请求注意",
             "page.terminal.asking": "5 秒后请求…",
-            "page.terminal.attentionMessage": "TUIkit 示例想请你注意一下",
+            "page.terminal.attentionMessage": "TUI 示例想请你注意一下",
         ],
         "ja": [
             "menu.item.terminal": "ターミナルそのもの",
@@ -181,7 +181,7 @@ extension ExampleStrings {
             "page.terminal.bell": "ベル",
             "page.terminal.ask": "5 秒後に注意を求める",
             "page.terminal.asking": "5 秒後に求めます…",
-            "page.terminal.attentionMessage": "TUIkit のサンプルがお知らせしています",
+            "page.terminal.attentionMessage": "TUI のサンプルがお知らせしています",
         ],
     ]
 }

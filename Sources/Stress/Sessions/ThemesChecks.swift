@@ -1,14 +1,14 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ThemesChecks.swift
 //
 //  What the `themes` session's frames must show and how they must be painted,
 //  judged from the look the session put on the page — the palettes, the depth
-//  — and the promises TUIkit makes about the colours it chooses.
+//  — and the promises TUI makes about the colours it chooses.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 // MARK: - A frame, as the checks read it
 
@@ -104,7 +104,7 @@ struct ThemeFrame {
     }
 }
 
-/// Whether `palette` is one TUIkit ships with its colours stated — the
+/// Whether `palette` is one TUI ships with its colours stated — the
 /// palettes its readability audit holds to its pairs (`PaletteContrastAuditTests`).
 @MainActor
 private func isStatedShipped(_ palette: any Palette) -> Bool {
@@ -113,11 +113,11 @@ private func isStatedShipped(_ palette: any Palette) -> Bool {
 
 // MARK: - The promises
 
-/// A contrast TUIkit promises between the ink and the field of some cells,
+/// A contrast TUI promises between the ink and the field of some cells,
 /// at some depths: the pair, the floor it comes from, and where the pair is
 /// drawn. Add one to hold a new promise to every frame of the session.
 ///
-/// Written from TUIkit's promises as they stand — the floors in
+/// Written from TUI's promises as they stand — the floors in
 /// `ViewConstants`, the pairs `PaletteContrastAuditTests` holds shipped
 /// palettes to — and nothing more: a proposed redesign of the list rows'
 /// colours is not encoded here.
@@ -221,7 +221,7 @@ struct ContrastPromise {
     /// it, breathing the accent; an unselected row on anything else, the
     /// cursor, breathing the focus wash. From the drawing rather than from a
     /// cursor the session walks, which would be one more thing for it to get
-    /// wrong: where TUIkit puts the cursor as the focus comes back is TUIkit's
+    /// wrong: where TUI puts the cursor as the focus comes back is TUI's
     /// to decide, and not what these promises are about.
     enum RowKind {
         case plain, selectedTint, accentBreath, washBreath
@@ -300,10 +300,10 @@ extension ThemesSession {
     /// terminal chooses them, nor in a palette that leaves its page to the
     /// terminal; and not on the page's first frame — the opening frame, which
     /// the runner checks as step -1, hence `index >= 0` — whose status line
-    /// reads a frame late the focus TUIkit gives out at the end of that pass. A
+    /// reads a frame late the focus TUI gives out at the end of that pass. A
     /// selected row on the tint a selection rests in may be the cursor all the
     /// same: at 256 colours the accent's breath can land on the tint's entry
-    /// (Basic, Ocean, Red Sands), and TUIkit promises today only that the
+    /// (Basic, Ocean, Red Sands), and TUI promises today only that the
     /// breath keeps off the page and off its ● — a promise that the cursor on
     /// a selection stays apart from the selection's tint would go here.
     private func cursorProblem(_ frame: ThemeFrame, after index: Int) -> String? {
@@ -334,7 +334,7 @@ extension ThemesSession {
         return nil
     }
 
-    /// A colour TUIkit computed, spelled for another depth: a 24-bit colour
+    /// A colour TUI computed, spelled for another depth: a 24-bit colour
     /// sent to a 256-colour terminal is one it cannot draw, and an index sent
     /// to a truecolour one is a colour quantised for a terminal that is not
     /// there. The page states no colour of its own by index, and its one named
@@ -367,7 +367,7 @@ extension ThemesSession {
     /// A cell still in a colour of a palette the page no longer uses: one of
     /// the retired palette's roles that no blend of the roles in use can make.
     ///
-    /// TUIkit derives most of what it draws by blending two roles — a fill is
+    /// TUI derives most of what it draws by blending two roles — a fill is
     /// the accent over the page, a fade the ink toward it — so a retired role
     /// that lies on a line between two roles in use (Pro's grey focus wash, and
     /// White's black page and grey ink) may be one the new look drew for itself.

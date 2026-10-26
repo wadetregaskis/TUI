@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# 🖥️ TUIkit — Terminal UI Kit for Swift
+# 🖥️ TUI — A Terminal UI framework for Swift
 # build.sh — builds the Example app for the browser.
 #
 #   Tools/Web/build.sh [--debug] [--no-opt]
@@ -135,7 +135,7 @@ with open(os.path.join(site, "manifest.json"), "w") as handle:
 print(f"   {len(files)} resource file(s)")
 PYTHON
 
-# The width probe's inputs: the shared corpus, TUIkit's own widths, and the
+# The width probe's inputs: the shared corpus, TUI's own widths, and the
 # records the Python probes wrote for real terminals. Copied rather than
 # fetched from the repo because the demo server serves one directory.
 echo "── collecting probe data"

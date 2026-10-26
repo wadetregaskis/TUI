@@ -1,7 +1,7 @@
 # Compressed image transfer — investigated 2026-09-02; `o=z` ADOPTED 2026-09-04, PNG passthrough still declined
 
 **Status, revised.** The Kitty graphics protocol can take a picture as a PNG
-(`f=100`) or as a zlib-compressed payload (`o=z`). TUIkit now sends the
+(`f=100`) or as a zlib-compressed payload (`o=z`). TUI now sends the
 second where the terminal says it can take it, and still not the first. The
 `o=z` half of this document is therefore history: what follows records the
 2026-09-02 reasoning as it stood, with the reversal marked where it lands.
@@ -21,12 +21,12 @@ rendered as pixels is a stack of identical rows, and 16 KB of them deflate to
 
 Two things were asked, and they have different answers.
 
-- **Implementing compression in TUIkit** — writing or vendoring a deflate
+- **Implementing compression in TUI** — writing or vendoring a deflate
   encoder, or opening the system zlib opportunistically at runtime. Ruled out
   by the project owner before it was costed, on 2026-09-02; **reversed
   2026-09-04** for the opportunistic form only, as above. The vendored and
   hand-rolled forms stay ruled out.
-- **Passing through PNG bytes TUIkit was already given** — no encoder, no
+- **Passing through PNG bytes TUI was already given** — no encoder, no
   dependency, just not throwing away a compressed file the app handed us.
   Investigated properly. It works, the premise it rests on is sound, and it is
   still not worth it yet. That is the substance of this document.
@@ -40,7 +40,7 @@ decision and is superseded by it.
 ## 1. The premise holds: the terminal really does rescale
 
 The idea only works if the terminal, handed a picture at some arbitrary
-resolution, will fit it to the `c=` × `r=` cell box TUIkit declares. It will.
+resolution, will fit it to the `c=` × `r=` cell box TUI declares. It will.
 This is the best-evidenced claim in the whole investigation, confirmed three
 independent ways:
 
@@ -50,18 +50,18 @@ independent ways:
 - Ghostty's separate implementation (`src/terminal/kitty/graphics_unicode.zig`,
   "preserving aspect ratio. We will center the image horizontally/vertically").
 
-So TUIkit's placement, placeholder and id-encoding code would need no change at
+So TUI's placement, placeholder and id-encoding code would need no change at
 all. Whatever else is wrong with the idea, this part is not.
 
 ### 1.1 …but it FITS and CENTRES, it does not FILL
 
 The verb matters, and this codebase had it wrong.
-`Sources/TUIkitBitmaps/Views/Image+TerminalGraphics.swift` said "the terminal scales
+`Sources/TUIBitmaps/Views/Image+TerminalGraphics.swift` said "the terminal scales
 the picture to **fill** them". It does not: it preserves the source aspect
 ratio and centres the result, leaving bars on one axis when the box's aspect
 differs from the picture's.
 
-**Today that is harmless**, and that is exactly why it went unnoticed — TUIkit
+**Today that is harmless**, and that is exactly why it went unnoticed — TUI
 resamples to the box before transmitting, so the picture handed over is already
 box-shaped and the fit is exact. Passthrough is what would make it
 load-bearing: an unresampled source whose aspect does not match the cell box
@@ -73,7 +73,7 @@ would letterbox. The comment is corrected in the same commit as this file.
 
 This is the argument that decides it, and it is not obvious until stated.
 
-**Today's payload scales with the CELL BOX.** TUIkit resamples down first, so a
+**Today's payload scales with the CELL BOX.** TUI resamples down first, so a
 huge photograph in a small box costs what the small box costs. **Passthrough's
 payload scales with the SOURCE FILE**, which has no relationship to the box at
 all. So passthrough is not a straight improvement; it is a different curve that
@@ -86,7 +86,7 @@ three-byte `f=24` path). Ratio is passthrough bytes ÷ today's bytes:
 | file (measured size) | 12×4 cells | 40×14 | 80×24 | break-even |
 |---|---|---|---|---|
 | `.github/assets/github-banner.png` — 950×480, 252,411 B | 2.4× worse | **4.8× better** | **5.7× better** | 116 cells |
-| `TUIkit.docc/Resources/tuikit-logo.png` — 1024×1024, 888,147 B | 8.5× worse | **1.4× better** | **3.4× better** | 408 cells |
+| `TUI.docc/Resources/tuikit-logo.png` — 1024×1024, 888,147 B | 8.5× worse | **1.4× better** | **3.4× better** | 408 cells |
 | `.github/assets/spotnik_1.png` — 4276×2266, 4,052,719 B | 38.8× worse | 3.3× worse | **1.03× better** | 1,862 cells |
 
 A 2 MiB PNG in a 12×4 box is **20.1× worse**. At the 8×16 fallback cell every
@@ -155,7 +155,7 @@ project's live-app smoke discipline.
 - **Unmeasured letterbox behaviour** (§5, blocker 1).
 - **Terminal-side memory gets worse, not better.** kitty charges
   `4 × width × height` at *source* resolution for a PNG. Passing a 4276×2266
-  photo through charges ~38.8 MB against the image store for a picture TUIkit
+  photo through charges ~38.8 MB against the image store for a picture TUI
   would have sent as a few hundred KB. Eviction is silent under `q=2`.
 - **Downscaling quality moves to the terminal**, and which filter each host
   uses is not something this project controls or has measured.
@@ -303,7 +303,7 @@ matter.
   filesystem with its terminal, so each needs its own startup probe, disabled
   under tmux, and a positive probe on `/tmp` does not license the app's own
   path. Under `q=2` a per-file refusal is silent. They save only the 4/3 of
-  base64. And `t=f` decouples what the terminal draws from what TUIkit
+  base64. And `t=f` decouples what the terminal draws from what TUI
   measured, since the terminal re-reads the path at its own moment.
 - **A `.png` case on `KittyGraphics.PixelFormat`** — that enum's documented
   contract is that the case *is* the byte stride, and `stride` would have to

@@ -1,15 +1,15 @@
 #!/bin/bash
-# ci-check.sh : TUIkit's programs linked, stripped and run as the README's "Shipping size" recipe ships them.
+# ci-check.sh : TUI's programs linked, stripped and run as the README's "Shipping size" recipe ships them.
 #
 # The README offers app developers a link flag that changes the whole program, `-Xlinker -deduplicate`, beside
-# TUIkit's default traits, whose `UnexportTUIkitSymbols` takes TUIkit's symbols out of the program's export table (it
-# replaced the README's `-Xlinker -no_exported_symbols`, which ld refuses beside it). This keeps TUIkit correct under
+# TUI's default traits, whose `UnexportTUISymbols` takes TUI's symbols out of the program's export table (it
+# replaced the README's `-Xlinker -no_exported_symbols`, which ld refuses beside it). This keeps TUI correct under
 # them:
 #
-#   1. Relinks Stress with the flag and `--disable-dead-strip`, so that every key path TUIkit's objects form is in it
+#   1. Relinks Stress with the flag and `--disable-dead-strip`, so that every key path TUI's objects form is in it
 #      (a dead-stripped Stress keeps 227 to 288 of 315), and runs dedup_check.py on it and the release objects.
 #   2. Relinks Stress, Example and IdleProbe with the flag, as an app developer would, checks that none of them
-#      exports a symbol of a TUIkit module (the trait's patterns reached the link), and strips them.
+#      exports a symbol of a TUI module (the trait's patterns reached the link), and strips them.
 #   3. Runs `Stress --selfcheck`, with the render-memo verifier, and the quick PTY smoke (Tools/Smoke/ci-pty-smoke.sh:
 #      the walks, the handshake, the kitty keyboard protocol, the quit key's SIGQUIT handler) on the stripped
 #      programs.
@@ -58,12 +58,12 @@ products=(Stress Example IdleProbe)
 for product in "${products[@]}"; do
     echo "── $product linked with ${flags[*]}, then stripped ──"
     $SWIFT build -c release --product "$product" "${flags[@]}"
-    # `_$s` + a length + `TUIkit…` begins every symbol Swift names under a TUIkit module. With the default trait
-    # `UnexportTUIkitSymbols` none is exported; thousands are if its patterns miss the link. Read before `strip`
+    # `_$s` + a length + `TUI…` begins every symbol Swift names under a TUI module. With the default trait
+    # `UnexportTUISymbols` none is exported; thousands are if its patterns miss the link. Read before `strip`
     # empties the symbol table `nm` lists; `-gU` lists the exported definitions only.
-    exported=$(nm -gU "$bin/$product" | grep -cE ' _\$s[0-9]+TUIkit' || true)
+    exported=$(nm -gU "$bin/$product" | grep -cE ' _\$s[0-9]+TUI' || true)
     if [[ "$exported" != 0 ]]; then
-        echo "ci-check: $product exports $exported symbols of TUIkit's modules: UnexportTUIkitSymbols' patterns" \
+        echo "ci-check: $product exports $exported symbols of TUI's modules: UnexportTUISymbols' patterns" \
             "did not reach its link (Package.swift, the App size section)" >&2
         exit 1
     fi

@@ -17,7 +17,7 @@ read anything other than its arguments?**
 
 ## 1. Why a framework wants to know
 
-TUIkit is a terminal UI framework with a SwiftUI-shaped API. Its `Table`
+TUI is a terminal UI framework with a SwiftUI-shaped API. Its `Table`
 composes each drawn row from its columns every frame, and a scrolled,
 frequently-updating table redraws rows whose text has not changed. So `Table`
 memoises composed rows across frames. The memo has two tiers, and which tier a
@@ -242,7 +242,7 @@ fatal, but they are real:
    surface for the feature to be worth having. How large is that surface? Is
    `Int.formatted(_:)` pure? (It reads the current locale, so: no — which is a
    *correct* answer that would have caught a real bug class, and also means the
-   TUIkit example above would not be `pure` as written. That is informative
+   TUI example above would not be `pure` as written. That is informative
    rather than disqualifying: the framework would then know to fall back, which
    is exactly right.)
 2. **What counts as a read.** A captured `let String` is immutable and its
@@ -295,9 +295,9 @@ matters: several of these behave differently under `-swift-version 5`, and the
 names are accepted silently by 6.2.4, so "it compiled with the flag" is not on
 its own evidence that the feature was enabled.
 
-### For TUIkit readers
+### For TUI readers
 
-The memo this is about is `Sources/TUIkitLists/Views/TableRowMemo.swift`, the two
+The memo this is about is `Sources/TUILists/Views/TableRowMemo.swift`, the two
 tiers are `TableRowMemoStore.namesItsValues` and the cell comparison in
 `Table.renderRow`, and the flag that decides them is
 `TableColumn.namesAProperty`. If Swift ever grows the effect described here,

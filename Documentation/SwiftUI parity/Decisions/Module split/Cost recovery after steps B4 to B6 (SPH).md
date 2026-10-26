@@ -15,8 +15,8 @@ judgement calls it reached that the plan did not settle, in the format of
 
 ### B-SPH-1. Tier 2 covers the per-row crossings that inline as annotated, not the ones that would need more
 
-*Sources/TUIkitFoundation (RowBackground, ListRowSeparatorLine, ListSeparatorPreference, the line-limit and
-truncation-mode environment), Sources/TUIkitStyling (HighlightFill) — no API*
+*Sources/TUIFoundation (RowBackground, ListRowSeparatorLine, ListSeparatorPreference, the line-limit and
+truncation-mode environment), Sources/TUIStyling (HighlightFill) — no API*
 
 The brief allowed `@inlinable` on the crossings that the plan's tier 2 or set T lists, or that step B6's inventory
 names per row or per cell, and asked that each one's call be gone from the release Stress binary, or go to a
@@ -31,7 +31,7 @@ specialised or inlined body. Annotating is not enough for that, as two measureme
 - **`-O` does not inline a generic into an unspecialised generic caller.** `Button.init(action:label:)` and
   `HStack.init(alignment:spacing:content:)` made `@inlinable` were still called, unspecialised, from
   `_NavigationLinkCore.button` and `_OutlineRow.branchRow`, which are generic over the app's views and are not
-  specialised in TUIkitNavigation or TUIkitLists. The same holds for `extractBadgeValue(from:)` and
+  specialised in TUINavigation or TUILists. The same holds for `extractBadgeValue(from:)` and
   `staticListRowID(of:ordinal:as:)`, which `_ListCore.extractRows(ofUnwrapped:context:)` calls, generic over the
   row. `HorizontalAlignment.childOffset(childWidth:in:)`, made `@inlinable` with `ViewDimensions`' initializer and
   subscripts, was serialized but not inlined: with the guides' dictionary lookup inlined into it, it is past the

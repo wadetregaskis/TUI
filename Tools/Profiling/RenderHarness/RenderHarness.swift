@@ -1,11 +1,11 @@
-//  🖥️ TUIKit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  RenderHarness.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 //  Mode A profiling harness (see Tools/Profiling/README.md).
 //
@@ -60,7 +60,7 @@ struct RenderHarness {
         // (it is nil by default), so the harness must supply one. The focus
         // manager and the various dispatchers have non-nil defaults or are
         // skipped when absent, so state storage is all a layout/render profile
-        // needs. (The richer `tuiContext:` initializer is internal to TUIkit.)
+        // needs. (The richer `tuiContext:` initializer is internal to TUI.)
         var environment = EnvironmentValues()
         environment.stateStorage = StateStorage()
         // EquatableView memoizes through the render cache (its render

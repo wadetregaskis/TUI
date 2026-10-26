@@ -3,7 +3,7 @@
 `.tint` subtree -- and the reference `RowFillRule.swift` must match (generate.py --goldens).
 
 The sixteen shipped palettes never run it: they read the constants in values.json. This is the design's
-v5c rule (2026-09-29), with its colour maths replaced by TUIkitStyling's own so the two agree to the bit:
+v5c rule (2026-09-29), with its colour maths replaced by TUIStyling's own so the two agree to the bit:
 WCAG luminance and contrast, `Color.perceivedLightness` (CIE L* of that luminance), `Color.lerp`'s
 rounding, `Color.lighter(by:)` / `darker(by:)` (HSL), `Color.oklab`, `nearestPalette256Index` and
 `Color.cubeRamp(from:to:)`.

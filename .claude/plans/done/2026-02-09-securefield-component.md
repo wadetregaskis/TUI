@@ -108,13 +108,13 @@ SecureField reuses `TextFieldHandler` for key input since editing logic is ident
 ## Files
 
 ### New Files
-- `Sources/TUIkit/Views/SecureField.swift`
-- `Tests/TUIkitTests/SecureFieldTests.swift`
-- `Sources/TUIkitExample/Pages/SecureFieldPage.swift`
+- `Sources/TUI/Views/SecureField.swift`
+- `Tests/TUITests/SecureFieldTests.swift`
+- `Sources/TUIExample/Pages/SecureFieldPage.swift`
 
 ### Modified Files
-- `Sources/TUIkitExample/ContentView.swift` - Added SecureField page and shortcut
-- `Sources/TUIkitExample/Pages/MainMenuPage.swift` - Added menu item
+- `Sources/TUIExample/ContentView.swift` - Added SecureField page and shortcut
+- `Sources/TUIExample/Pages/MainMenuPage.swift` - Added menu item
 
 ## Dependencies
 

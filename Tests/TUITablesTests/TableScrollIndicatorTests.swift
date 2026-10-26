@@ -1,0 +1,505 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  TableScrollIndicatorTests.swift
+//
+//  A "▲ N more" indicator spends a content line to report that content is
+//  hidden. Where it hides no more lines than it costs, drawing it is pure
+//  loss: the line reads "1 more row above" in the very place that row would
+//  have been. These tests pin the rule that the window absorbs such an
+//  offset and shows the content itself.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIApp
+@testable import TUICore
+@testable import TUIFoundation
+@testable import TUILists
+@testable import TUIListsTestSupport
+import TUITables
+@testable import TUITestSupport
+
+private struct Note: Identifiable, Sendable {
+    let id: Int
+    var name: String { "row \(id)" }
+    /// A two-line cell value, for the line-granularity cases where a row is
+    /// taller than the clip being absorbed.
+    var twoLine: String { "row \(id)\ndetail \(id)" }
+}
+
+@MainActor
+@Suite("Table scroll indicators")
+struct TableScrollIndicatorTests {
+    /// Top border + column header + bottom border leave `height - 3` lines of
+    /// content, so 14 gives 11 — and the reveal budgets rows against 9 of them
+    /// (it reserves a line for each of the two indicators).
+    private static let height = 14
+
+    /// A table whose rows are all one line tall, taking the MULTI-LINE layout
+    /// path (any column with a line limit above 1 does that) — the path the
+    /// fixed-height demo uses.
+    private func renderFrame(
+        tui: TUIContext, fm: FocusManager,
+        twoLineRows: Bool = false,
+        singleLinePath: Bool = false,
+        granularity: ScrollStepUnit = .row,
+        scrollbar: ScrollIndicatorVisibility = .hidden,
+        height: Int = Self.height,
+        count: Int = 20
+    ) -> [String] {
+        renderBuffer(
+            tui: tui, fm: fm, twoLineRows: twoLineRows, singleLinePath: singleLinePath,
+            granularity: granularity, scrollbar: scrollbar, height: height, count: count
+        ).lines.map { $0.stripped }
+    }
+
+    private func renderBuffer(
+        tui: TUIContext, fm: FocusManager,
+        twoLineRows: Bool = false,
+        singleLinePath: Bool = false,
+        granularity: ScrollStepUnit = .row,
+        scrollbar: ScrollIndicatorVisibility = .hidden,
+        height: Int = Self.height,
+        /// How many rows. The default is plenty; a `count` chosen so the
+        /// whole-row bottom IS offset 1 is what reaches the tail case.
+        count: Int = 20
+    ) -> FrameBuffer {
+        let rows = (0..<count).map(Note.init(id:))
+        // A line limit above 1 takes the MULTI-line layout path even for
+        // one-line values; `singleLinePath` leaves it off to reach the
+        // uniform single-line path, which windows rows its own way.
+        let table = Table(rows, selection: .constant(Int?.none)) {
+            singleLinePath
+                ? TableColumn("Name", value: \Note.name)
+                : twoLineRows
+                    ? TableColumn("Name", value: \Note.twoLine).lineLimit(2)
+                    : TableColumn("Name", value: \Note.name).lineLimit(2)
+        }
+        .frame(height: height)
+
+        var env = EnvironmentValues()
+        env.focusManager = fm
+        env.scrollTargetBehavior = granularity.behavior
+        // The suite predates the visibility/style split (#555): `scrollbar` here
+        // has always meant "bar or 'N more' lines", which is now a STYLE. Both
+        // are visible on demand; the knob picks which one is drawn.
+        env.scrollIndicatorStyle = scrollbar == .visible ? .scrollbar : .text
+        env.verticalScrollIndicatorVisibility = .automatic
+        env.horizontalScrollIndicatorVisibility = .automatic
+        env.applyRuntimeServices(from: tui)
+        let context = RenderContext(
+            availableWidth: 30, availableHeight: height, environment: env, tuiContext: tui)
+
+        tui.preferences.beginRenderPass()
+        tui.stateStorage.beginRenderPass()
+        tui.renderCache.beginRenderPass()
+        fm.beginRenderPass()
+        let buffer = renderToBuffer(table, context: context)
+        fm.endRenderPass()
+        tui.stateStorage.endRenderPass()
+        tui.renderCache.removeInactive()
+        return buffer
+    }
+
+    /// Walking the cursor down lands the reveal on an offset of exactly one
+    /// row. That row is a single line, and the indicator that would announce
+    /// it costs a single line — so the row itself must be drawn instead.
+    @Test("An above-indicator that would hide one line shows that line instead")
+    func aboveIndicatorMustEarnItsLine() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        _ = renderFrame(tui: tui, fm: fm)  // registers + auto-focuses the table
+
+        var lines: [String] = []
+        for _ in 0..<9 {
+            _ = fm.dispatchKeyEvent(KeyEvent(key: .down))
+            lines = renderFrame(tui: tui, fm: fm)
+        }
+
+        #expect(
+            !lines.contains { $0.contains("1 more row above") },
+            "the indicator hid a single line, which it also costs: \(lines)")
+        #expect(
+            lines.contains { $0.contains("row 0") },
+            "row 0 fits in the line the indicator wanted: \(lines)")
+        // The cursor's row stays visible — absorbing the offset must not cost
+        // the reveal its target.
+        #expect(lines.contains { $0.contains("row 9") }, "cursor row scrolled off: \(lines)")
+    }
+
+    /// A content area too short for the "N more" pair drops them and draws
+    /// rows, rather than spending the whole area saying rows exist.
+    ///
+    /// `height` 4 is top border + header + bottom border + ONE content line.
+    /// Scrolled away from the top, that line used to read "▲ N more rows
+    /// above" — the composer emitted the indicator, one row and the bottom
+    /// indicator into a one-line budget, and the container clips from the
+    /// BOTTOM, so the indicator was the line that survived. The table then
+    /// advertised rows that no offset could reach.
+    ///
+    /// `ScrollView` has guarded this since it was written, with a comment
+    /// naming the failure; `List` and `Table` had no equivalent. The rule is
+    /// one constant now, `ResolvedScrollIndicators.minimumTextHeight`.
+    @Test("A one-line content area draws a row, not an indicator", arguments: [4, 5])
+    func shortContentAreaKeepsItsRows(height: Int) {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        _ = renderFrame(tui: tui, fm: fm, height: height)
+        var lines: [String] = []
+        for _ in 0..<9 {
+            _ = fm.dispatchKeyEvent(KeyEvent(key: .down))
+            lines = renderFrame(tui: tui, fm: fm, height: height)
+        }
+        #expect(
+            lines.contains { $0.contains("row ") },
+            "height \(height): no data row survived the indicators: \(lines)")
+        #expect(
+            !lines.contains { $0.contains("more row") },
+            "height \(height): an indicator took content the view could not spare: \(lines)")
+    }
+
+    /// The other side of the floor: as soon as the area can hold both
+    /// indicators and a row, they come back. Without this the fix could be
+    /// "never draw them" and still pass the case above.
+    @Test("A content area that can afford the indicators still draws them")
+    func tallEnoughContentAreaStillIndicates() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        _ = renderFrame(tui: tui, fm: fm, height: 6)  // 3 content lines
+        var lines: [String] = []
+        for _ in 0..<9 {
+            _ = fm.dispatchKeyEvent(KeyEvent(key: .down))
+            lines = renderFrame(tui: tui, fm: fm, height: 6)
+        }
+        #expect(
+            lines.contains { $0.contains("more row") },
+            "the indicators were dropped where they fit: \(lines)")
+    }
+
+    /// A flag the multi-line composer raises must be lowered by the other path.
+    ///
+    /// It lives in this file for the harness rather than the subject: this is
+    /// the one place that renders a `Table` down BOTH layout paths at a single
+    /// identity, which is exactly the state the defect needs.
+    ///
+    /// `buildMultiLineContent` sets `keyboardMoveIsLive = true` because its
+    /// composer draws no reorder slot, so a keyboard move has nothing to
+    /// preview and the row moving under the cursor is the only indication.
+    /// The handler persists across frames at one identity and the path is
+    /// chosen per frame by whether any column reports `lineLimit > 1` — a
+    /// public modifier — so a table that stopped being multi-line arrived at
+    /// the single-line path still claiming that, and previewed `.live`: a
+    /// keyboard move that shuffles the data with no slot and no indication.
+    /// Nothing else in the package ever wrote the flag.
+    @Test("Leaving the multi-line path clears the flag only that path sets")
+    func singleLinePathClearsMultiLineFlag() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        _ = renderBuffer(tui: tui, fm: fm)  // multi-line path: raises the flag
+        let handler = fm.currentFocused as? ItemListHandler<Int>
+        #expect(handler?.keyboardMoveIsLive == true, "the multi-line path did not set it")
+
+        // Same table, same identity, columns no longer multi-line.
+        _ = renderBuffer(tui: tui, fm: fm, singleLinePath: true)
+        #expect(
+            handler?.keyboardMoveIsLive == false,
+            "the single-line path inherited a flag it cannot honour")
+    }
+
+    /// The single-line path, while STEERING — the one state where offset 1
+    /// survives to render, because the resting settle deliberately does not
+    /// snap it while an auto-scroll / reorder / external drag is in flight.
+    @Test("The single-line path absorbs offset 1 even while steering")
+    func singleLineAbsorbsWhileSteering() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        _ = renderBuffer(tui: tui, fm: fm, singleLinePath: true)
+        let handler = fm.currentFocused as? ItemListHandler<Int>
+        #expect(handler != nil, "the table registered its handler")
+        handler?.scrollOffset = 1
+        handler?.isAutoScrolling = true
+        tui.renderCache.clearAll()
+
+        tui.preferences.beginRenderPass()
+        tui.stateStorage.beginRenderPass()
+        tui.renderCache.beginRenderPass()
+        fm.beginRenderPass()
+        let lines = renderBuffer(tui: tui, fm: fm, singleLinePath: true).lines.map { $0.stripped }
+
+        #expect(
+            !lines.contains { $0.contains("more row above") },
+            "the indicator hid exactly the one row it stands for: \(lines)")
+        #expect(
+            lines.contains { $0.contains("row 0") },
+            "the shared absorb draws row 0 instead — as List and the multi-line path do: \(lines)")
+    }
+
+    /// The converse: an indicator that hides more than its own line is worth
+    /// drawing, and still is.
+    @Test("An above-indicator that hides more than a line is still drawn")
+    func aboveIndicatorSurvivesWhenItEarnsItsLine() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        _ = renderFrame(tui: tui, fm: fm)
+
+        var lines: [String] = []
+        for _ in 0..<12 {
+            _ = fm.dispatchKeyEvent(KeyEvent(key: .down))
+            lines = renderFrame(tui: tui, fm: fm)
+        }
+
+        #expect(
+            lines.contains { $0.contains("more rows above") },
+            "several rows are hidden; the indicator earns its line: \(lines)")
+        #expect(!lines.contains { $0.contains("row 0") }, "row 0 should be scrolled away: \(lines)")
+    }
+
+    /// Line granularity, one fine step into two-line rows: the window absorbs
+    /// the single clipped line (offset 0, clip 1 — the indicator would cost
+    /// exactly what it hides), so the renderer must draw that line. It used to
+    /// clip by the handler's RAW `scrollTopClipLines` instead of the window's
+    /// absorbed origin: the absorbed line silently vanished — no row, no
+    /// indicator — and every rendered row sat one line above its hit band.
+    @Test("An absorbed line-granularity clip draws the absorbed line")
+    func absorbedLineClipRendersTheAbsorbedLine() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        _ = renderFrame(tui: tui, fm: fm, twoLineRows: true, granularity: .line)
+
+        let handler = fm.currentFocused as? ItemListHandler<Int>
+        #expect(handler != nil, "the table auto-focuses; its handler is the focused element")
+        #expect(handler?.scrollFine(by: 1) == true)
+        #expect(handler?.scrollOffset == 0)
+        #expect(handler?.scrollTopClipLines == 1, "one line clipped off the two-line top row")
+
+        let lines = renderFrame(tui: tui, fm: fm, twoLineRows: true, granularity: .line)
+        #expect(
+            !lines.contains { $0.contains("more row above") },
+            "one hidden line is absorbed, not announced: \(lines)")
+        #expect(
+            lines.contains { $0.contains("row 0") },
+            "the absorbed line must actually be drawn: \(lines)")
+        // And it is drawn at the window's origin — the first content line
+        // (border, header, then rows), with its second line right below,
+        // exactly where the hit bands expect the row.
+        #expect(lines.count > 3 && lines[2].contains("row 0") && lines[3].contains("detail 0"),
+            "the absorbed row starts at the window origin: \(lines)")
+    }
+
+    /// The converse under line granularity: a two-line clip hides more than
+    /// the indicator costs, so the indicator shows and the window's clip and
+    /// the renderer's agree (no absorption to diverge on).
+    @Test("A two-line clip keeps the indicator and clips exactly that much")
+    func unabsorbedLineClipKeepsIndicator() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        _ = renderFrame(tui: tui, fm: fm, twoLineRows: true, granularity: .line)
+
+        let handler = fm.currentFocused as? ItemListHandler<Int>
+        // Three fine lines through two-line rows: offset 1, clip 1 —
+        // three lines hidden above, more than the indicator's one-line cost.
+        #expect(handler?.scrollFine(by: 3) == true)
+        #expect(handler?.scrollOffset == 1)
+        #expect(handler?.scrollTopClipLines == 1)
+
+        let lines = renderFrame(tui: tui, fm: fm, twoLineRows: true, granularity: .line)
+        // The count reads whole hidden rows (row 0) — the partially-clipped
+        // top row isn't counted, but its clip still earns the indicator.
+        #expect(
+            lines.contains { $0.contains("1 more row above") },
+            "three hidden lines earn the indicator: \(lines)")
+        #expect(
+            !lines.contains { $0.contains("row 0") } && !lines.contains { $0.contains("row 1 ") },
+            "row 0 and row 1's first line are scrolled away: \(lines)")
+        #expect(
+            lines.count > 3 && lines[3].contains("detail 1"),
+            "the clipped top row enters at its second line, under the indicator: \(lines)")
+    }
+
+    /// The multi-line path shares `settleRestingOffset` with the single-line
+    /// path and `_ListCore`, and this used to assert that a two-line-row table
+    /// at offset 1 snapped to 0 — "the '▲ 1 more row above' line shows the
+    /// row's first line instead of announcing it".
+    ///
+    /// **That is not a swap when the row is two lines.** The indicator costs one
+    /// line and row 0 needs two, so going back to 0 pushes a line off the
+    /// bottom; the offset-1 window is a legitimate one-row scroll, not the pure
+    /// loss the rule exists to undo. Because the snap ran on every render pass,
+    /// what it actually pinned was a table that **could not be scrolled at all**:
+    /// traced with four successive `scroll(by: 1)` calls, every one of them asked
+    /// for offset 1 and was put back to 0, with `maxOffset` at 9. The wheel, the
+    /// scrollbar's arrows and its page-track were all dead at the top of any
+    /// multi-line table drawing "N more" indicators.
+    @Test("A multi-line table's one-row step is not undone")
+    func multiLineStepIsNotUndone() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        _ = renderFrame(tui: tui, fm: fm, twoLineRows: true)
+
+        let handler = fm.currentFocused as? ItemListHandler<Int>
+        #expect(handler != nil)
+        #expect(handler?.maxOffset ?? 0 > 1, "the fixture has somewhere to scroll to")
+        handler?.scroll(by: 1)
+
+        let lines = renderFrame(tui: tui, fm: fm, twoLineRows: true)
+        #expect(handler?.scrollOffset == 1, "the step stands, got \(handler?.scrollOffset ?? -1)")
+        // Two lines hidden, one line spent: the indicator is EARNED here, which
+        // is the whole reason the offset may rest.
+        #expect(
+            lines.contains { $0.contains("1 more row above") },
+            "two hidden lines earn the indicator: \(lines)")
+        #expect(
+            !lines.contains { $0.contains("row 0") },
+            "row 0 is scrolled away, not redrawn: \(lines)")
+
+        // And the next step moves again — one undone step looks like a stiff
+        // wheel, a permanently undone one is a dead wheel, and only a second
+        // step tells them apart.
+        handler?.scroll(by: 1)
+        _ = renderFrame(tui: tui, fm: fm, twoLineRows: true)
+        #expect(handler?.scrollOffset == 2, "and again, got \(handler?.scrollOffset ?? -1)")
+    }
+
+    /// The other half of `663d98cc`, whose message says it was left open: with
+    /// six two-line rows the whole-row bottom is offset 1, so the snap made the
+    /// last row's second line unreachable at any offset. At 0 the window already
+    /// covers every row — row 5 is clipped to its first line and there is no
+    /// "▼ N more below" to announce anything — so offset 1 is not scrolling
+    /// PAST anything, it is the one position that draws row 5 whole.
+    @Test("A short multi-line table can reach its last row whole")
+    func multiLineTailIsReachable() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        _ = renderFrame(tui: tui, fm: fm, twoLineRows: true, height: 14, count: 6)
+
+        let handler = fm.currentFocused as? ItemListHandler<Int>
+        #expect(handler?.maxOffset == 1, "the whole-row bottom is the snap's own value")
+
+        let atTop = renderFrame(tui: tui, fm: fm, twoLineRows: true, height: 14, count: 6)
+        #expect(
+            atTop.contains { $0.contains("row 5") } && !atTop.contains { $0.contains("detail 5") },
+            "at the top the last row is clipped to one line: \(atTop)")
+
+        handler?.scroll(by: 1)
+        let atTail = renderFrame(tui: tui, fm: fm, twoLineRows: true, height: 14, count: 6)
+        #expect(handler?.scrollOffset == 1, "the tail offset stands, got \(handler?.scrollOffset ?? -1)")
+        #expect(
+            atTail.contains { $0.contains("detail 5") },
+            "…and draws the last row whole: \(atTail)")
+    }
+
+    /// …but never off a legitimate line-granularity rest: a fine wheel tick
+    /// through tall rows lands on offset 1 with no clip, and snapping that
+    /// back would make the table unscrollable at the top.
+    @Test("A line-granularity mid-row rest at offset 1 is not settled")
+    func lineGranularityRestSurvivesSettling() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        _ = renderFrame(tui: tui, fm: fm, twoLineRows: true, granularity: .line)
+
+        let handler = fm.currentFocused as? ItemListHandler<Int>
+        #expect(handler?.scrollFine(by: 2) == true)
+        #expect(handler?.scrollOffset == 1 && handler?.scrollTopClipLines == 0)
+
+        _ = renderFrame(tui: tui, fm: fm, twoLineRows: true, granularity: .line)
+        #expect(
+            handler?.scrollOffset == 1,
+            "a tall first row makes offset 1 a legitimate fine-scroll rest")
+    }
+
+    /// The multi-line resolve must re-sync the scrollbar/indicator flags every
+    /// frame: it draws indicator lines and never a bar, and stale values from
+    /// a single-line frame (rows can switch paths as data changes) mis-budget
+    /// the focus-reveal arithmetic.
+    @Test("The multi-line resolve syncs the scrollbar/indicator flags")
+    func multiLineResolveSyncsChromeFlags() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        _ = renderFrame(tui: tui, fm: fm, twoLineRows: true)
+
+        let handler = fm.currentFocused as? ItemListHandler<Int>
+        #expect(handler != nil)
+        // As if left behind by a single-line frame that showed a scrollbar.
+        handler?.showsScrollbar = true
+        handler?.drawsScrollIndicators = false
+
+        _ = renderFrame(tui: tui, fm: fm, twoLineRows: true)
+        #expect(handler?.showsScrollbar == false, "this path never draws a bar")
+        #expect(handler?.drawsScrollIndicators == true, "overflow marks rows with indicator lines")
+    }
+
+    // MARK: - Scrollbars (multi-line path)
+
+    /// The multi-line layout path used to draw no scrollbar at all — it marked
+    /// hidden rows with "N more" lines and nothing else, so `.scrollIndicators`
+    /// was silently inert on any table with a multi-line column, and a table
+    /// whose columns merely ALLOW two lines (this one: every row is one line)
+    /// lost the bar a single-line table would have drawn.
+    @Test("A multi-line table honours .scrollIndicators(.visible)")
+    func multiLineTableDrawsAScrollbar() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        let lines = renderFrame(tui: tui, fm: fm, scrollbar: .visible)
+        let body = lines.joined(separator: "\n")
+        #expect(
+            !body.contains("more rows below"),
+            "the bar supersedes the text indicators:\n\(body)")
+        #expect(
+            lines.contains { $0.contains("█") || $0.contains("▓") || $0.contains("▲") },
+            "a bar (thumb or arrow) is drawn:\n\(body)")
+    }
+
+    /// A bar takes a column, not a line, so the rows get the WHOLE content area
+    /// — one more row than the indicator layout leaves.
+    @Test("A scrollbar costs a column, not a content line")
+    func scrollbarFreesTheIndicatorLine() {
+        let withBar = renderFrame(tui: TUIContext(), fm: FocusManager(), scrollbar: .visible)
+        let withIndicators = renderFrame(tui: TUIContext(), fm: FocusManager())
+        #expect(withBar.count == withIndicators.count, "the frame height is unchanged")
+        func rowCount(_ lines: [String]) -> Int { lines.filter { $0.contains("row ") }.count }
+        #expect(
+            rowCount(withBar) == rowCount(withIndicators) + 1,
+            "the freed indicator line shows another row: \(rowCount(withBar)) vs \(rowCount(withIndicators))")
+    }
+
+    /// Hidden is the default, and stays the default: nothing about the bar
+    /// support may make an un-asked-for one appear.
+    @Test("Without an opt-in a multi-line table still draws indicators")
+    func hiddenVisibilityKeepsIndicators() {
+        let body = renderFrame(tui: TUIContext(), fm: FocusManager()).joined(separator: "\n")
+        #expect(body.contains("more rows below"), "the default chrome is unchanged:\n\(body)")
+    }
+
+    /// The bar is a real control: it publishes a hit region in its own column,
+    /// so clicks and drags on it reach the scrollbar handler (the same wiring
+    /// the single-line path and the `List` use).
+    @Test("The multi-line scrollbar is clickable")
+    func multiLineScrollbarHasAHitRegion() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        let buffer = renderBuffer(tui: tui, fm: fm, scrollbar: .visible)
+        #expect(
+            buffer.hitTestRegions.contains { $0.width == 1 && $0.height > 1 },
+            "the bar's single-column region is published: \(buffer.hitTestRegions)")
+    }
+
+    /// With no indicator line to reserve, the furthest scroll is the true last
+    /// screenful — the "list ends one row short / blank line at the bottom"
+    /// class the `List` hit in `ListMultiLineScrollTests`.
+    @Test("A scrollbar table scrolls to a flush bottom")
+    func scrollbarTableReachesTheBottom() {
+        let tui = TUIContext()
+        let fm = FocusManager()
+        _ = renderFrame(tui: tui, fm: fm, scrollbar: .visible)
+        let handler = fm.currentFocused as? ItemListHandler<Int>
+        #expect(handler != nil)
+        handler?.scrollOffset = 1000
+        let lines = renderFrame(tui: tui, fm: fm, scrollbar: .visible)
+        let body = lines.joined(separator: "\n")
+        #expect(lines.contains { $0.contains("row 19") }, "the last row is reachable:\n\(body)")
+        #expect(
+            lines.filter { $0.contains("row ") }.count == 11,
+            "all 11 content lines carry rows — no reserved indicator line, no blank remainder:\n\(body)")
+    }
+}

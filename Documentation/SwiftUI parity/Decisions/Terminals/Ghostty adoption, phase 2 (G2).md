@@ -81,7 +81,7 @@ protocol would deliver. Five minutes either way.
 left `O_NONBLOCK`) polls for room and carries on, with no deadline
 (`Terminal.writeAll`, `waitForRoom(on:until:)`). That is exactly what a
 blocking write, the normal case, does: it never gives up on a terminal that
-reads slowly, and it hangs on one that stops reading, as TUIkit always has.
+reads slowly, and it hangs on one that stops reading, as TUI always has.
 The review suggested a short deadline before the end marker's retry.
 
 **The alternative:** a deadline, about ten minutes' work. It would keep the app

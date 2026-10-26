@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  SpinnersSpeedSection.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// The Spinners page's speed controls: one speed for the whole catalogue, and a
 /// frame duration of whole 1/60 s ticks for any style that should differ.

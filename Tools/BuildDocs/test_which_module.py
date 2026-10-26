@@ -167,7 +167,7 @@ class WhichModuleTests(unittest.TestCase):
         template.write_text(TEMPLATE)
         output = self.graphs / "Generated.md"
         errors = io.StringIO()
-        # The miniature's umbrella is Kit, which declares nothing, as TUIkit's does.
+        # The miniature's umbrella is Kit, which declares nothing, as TUI's does.
         with mock.patch.object(which_module, "UMBRELLA", "Kit"), \
                 contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(errors):
             status = which_module.main([str(self.graphs), "--describe", str(describe), "--template", str(template),
@@ -188,7 +188,7 @@ class WhichModuleTests(unittest.TestCase):
         self.assertIsNone(article)
 
     def test_a_module_allowed_to_be_empty_generates_without_it(self):
-        # TUIkitAppKit off Apple platforms: all of it is `#if canImport(AppKit)`.
+        # TUIAppKit off Apple platforms: all of it is `#if canImport(AppKit)`.
         (self.graphs / "KitLists.symbols.json").write_text(json.dumps({"module": {"name": "KitLists"}, "symbols": []}))
         status, errors, article = self.generate("--allow-empty", "KitLists")
         self.assertEqual(status, 0)
@@ -234,14 +234,14 @@ ROWS = [["List", "Structure", "KitLists", "KitLists"], ["Table", "Structure", "K
 
 class RenderedIndexTests(unittest.TestCase):
     def test_the_templates_note_is_not_taken_for_the_index(self):
-        # The template names modules in its prose, as the real one does ("`TUIkitTables` gives you `List` too"), so
+        # The template names modules in its prose, as the real one does ("`TUITables` gives you `List` too"), so
         # the page that a build which skipped the generator renders holds a module's name all the same.
         template_page = page(
-            paragraph(text("Look the name up below. "), code("TUIkitTables"), text(" gives you "), code("List"),
+            paragraph(text("Look the name up below. "), code("TUITables"), text(" gives you "), code("List"),
                       text(" too.")),
             paragraph(text("This copy of the page has no index.")),
         )
-        self.assertIn("TUIkitTables", json.dumps(template_page))
+        self.assertIn("TUITables", json.dumps(template_page))
         self.assertIn("no generated summary line", which_module.rendered_index_problem(template_page))
 
     def test_the_generated_index_passes(self):
@@ -261,7 +261,7 @@ class RenderedIndexTests(unittest.TestCase):
         self.assertIn("no table headed Name, Kind, Module, Product", problem)
 
     def test_the_catalogs_template_has_neither_the_summary_line_nor_the_table(self):
-        template = pathlib.Path(__file__).resolve().parents[2] / "Sources/TUIkit/TUIkit.docc/Articles/ModuleIndex.md"
+        template = pathlib.Path(__file__).resolve().parents[2] / "Sources/TUI/TUI.docc/Articles/ModuleIndex.md"
         content = template.read_text()
         self.assertIsNone(which_module.SUMMARY_PATTERN.search(content))
         self.assertNotIn("| " + " | ".join(which_module.COLUMNS) + " |", content)
@@ -273,7 +273,7 @@ class RenderedIndexTests(unittest.TestCase):
                 paragraph(text(which_module.SUMMARY.format(names=len(ROWS), modules=2))),
                 table([which_module.COLUMNS] + ROWS))))
             bad = pathlib.Path(directory) / "bad.json"
-            bad.write_text(json.dumps(page(paragraph(code("TUIkitTables")))))
+            bad.write_text(json.dumps(page(paragraph(code("TUITables")))))
             self.assertEqual(which_module.main(["--verify-rendered", str(good)]), 0)
             self.assertEqual(which_module.main(["--verify-rendered", str(bad)]), 1)
             self.assertEqual(which_module.main(["--verify-rendered", str(pathlib.Path(directory) / "none.json")]), 1)

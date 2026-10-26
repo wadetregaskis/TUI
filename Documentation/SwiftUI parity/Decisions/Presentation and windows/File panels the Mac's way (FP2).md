@@ -18,37 +18,37 @@ remote-machine notice (B-FP2-8).*
 
 *Owner item #32: "real ones via Kitty graphics where supported"*
 
-Where the terminal takes Kitty graphics (Ghostty, iTerm2, kitty: TUIkit's
+Where the terminal takes Kitty graphics (Ghostty, iTerm2, kitty: TUI's
 `Image` draws real pixels there through Unicode placeholders), a panel could
 draw each item's own icon, the Finder's, scaled to its two cells. Two things
 stand in the way, and each is a choice about modules:
 
 - **Getting the icon.** `NSWorkspace.icon(forFile:)` is AppKit's, and no
-  module TUIkit is built from imports AppKit (decisions B50: from the macOS 15
+  module TUI is built from imports AppKit (decisions B50: from the macOS 15
   SDK it brings SwiftUICore into every app that imports the module).
   QuickLookThumbnailing's `QLThumbnailGenerator`, asked for an `.icon`
   representation, gives the same icon as a `CGImage` and does not: it loads
   only CoreTransferable (which the module loads already), Network,
   ExtensionFoundation and Distributed (measured with `-Rmodule-loading` on
   the Xcode 26 SDK).
-- **Drawing it.** An `Image` of a `CGImage` is TUIkitBitmaps', which the file
+- **Drawing it.** An `Image` of a `CGImage` is TUIBitmaps', which the file
   panels do not depend on.
 
 **Options.**
-1. **TUIkitFilePanels depends on TUIkitBitmaps on Apple platforms** (a
+1. **TUIFilePanels depends on TUIBitmaps on Apple platforms** (a
    conditional target dependency) and links QuickLookThumbnailing, asks it for
    each kind's icon once (an application's for each application), keeps them,
    and draws them where `KittyGraphics.isSupported` and `terminalGraphics`
    allow, the glyphs (B-FP2-7) elsewhere. About a day with its tests. An app
-   that imports the umbrella links TUIkitBitmaps already; one that takes the
-   file panels à la carte would link it, TUIkitImage and CSTBImage too, and
+   that imports the umbrella links TUIBitmaps already; one that takes the
+   file panels à la carte would link it, TUIImage and CSTBImage too, and
    load QuickLookThumbnailing at launch.
 2. **A TUI-specific modifier for an app to hand the panel its icons**,
    `fileDialogIcon { url, type in Image? }`, beside SwiftUI's `fileDialog`
    ones, which a module that may import AppKit fills from `NSWorkspace`
    in one call, `.fileDialogSystemIcons()`. No new dependency for the file
    panels; real icons only where an app asks. About a day, and the module that
-   fills it would depend on TUIkitFilePanels (built in TUIkitAppKit, which then
+   fills it would depend on TUIFilePanels (built in TUIAppKit, which then
    cost every app on it 29.3%; placed in its own module, below).
 3. **Leave the glyphs** (shipped): emoji, SF Symbols or the slash.
 
@@ -59,7 +59,7 @@ without the umbrella. 2 is the right shape if that cost is not wanted.
 **Decided 2026-10-24, owner: option 2** — "Okay, go with (2)". **Built**
 (lane PANELS, 2026-10-24):
 
-- **`fileDialogIcon(_:)`** (TUIkitFilePanels), a TUI-specific modifier
+- **`fileDialogIcon(_:)`** (TUIFilePanels), a TUI-specific modifier
   written beside the `fileDialog` ones:
   `.fileDialogIcon { url, type in … }`, a closure of each item's URL and
   content type returning a view, or `nil`. It is an environment value, so the
@@ -75,7 +75,7 @@ without the umbrella. 2 is the right shape if that cost is not wanted.
   predicate is, so the memos below stay on; the price is that a row the table
   serves from its memo keeps its icon until the row changes. The module
   gains no dependency.
-- **`fileDialogSystemIcons()`** (TUIkitFilePanelsAppKit, see "Placed in a
+- **`fileDialogSystemIcons()`** (TUIFilePanelsAppKit, see "Placed in a
   module of its own" below): a `fileDialogIcon` whose views are
   `Image(nsImage:)` of `NSWorkspace`'s icon, resizable and fitted, drawn
   where an `Image` draws pictures — `KittyGraphics.isSupported` (asked as each
@@ -99,26 +99,26 @@ So a panel draws real icons only where an app asks. Untested live: no terminal s
 ran an app with the modifier; the tests pin the store, the key, the gate and
 the fallback (`FileDialogSystemIconsTests`, `FilePanelIconTests`).
 
-**Placed in a module of its own: TUIkitFilePanelsAppKit** (owner, 2026-10-24,
-option 2 of the follow-up). Built first in TUIkitAppKit, `fileDialogSystemIcons()`
-made that module depend on TUIkitFilePanels, and through it on TUIkitPickers,
-TUIkitPresentation, TUIkitTables and TUIkitTextInput (and so the lists), so an
-app that took TUIkitAppKit only for `Color(nsColor:)` linked the file panels
+**Placed in a module of its own: TUIFilePanelsAppKit** (owner, 2026-10-24,
+option 2 of the follow-up). Built first in TUIAppKit, `fileDialogSystemIcons()`
+made that module depend on TUIFilePanels, and through it on TUIPickers,
+TUIPresentation, TUITables and TUITextInput (and so the lists), so an
+app that took TUIAppKit only for `Color(nsColor:)` linked the file panels
 too. Measured (Xcode's Swift 6.2.4, release, `strip -o`, one executable on
-TUIkitApp + TUIkitAppKit using only `Color(nsColor:)`, the TUIkit package by
+TUIApp + TUIAppKit using only `Color(nsColor:)`, the TUI package by
 path):
 
-| app | with the modifier in TUIkitAppKit | in TUIkitFilePanelsAppKit |
+| app | with the modifier in TUIAppKit | in TUIFilePanelsAppKit |
 |---|---|---|
-| TUIkitApp + TUIkitAppKit, `Color(nsColor:)` only | 10,816,112 B (+2,448,912 B, +29.3%) | 8,367,216 B (main before the modifier: 8,367,200 B) |
-| the same plus TUIkitFilePanelsAppKit, a `fileImporter` and `.fileDialogSystemIcons()` | - | 10,849,200 B |
+| TUIApp + TUIAppKit, `Color(nsColor:)` only | 10,816,112 B (+2,448,912 B, +29.3%) | 8,367,216 B (main before the modifier: 8,367,200 B) |
+| the same plus TUIFilePanelsAppKit, a `fileImporter` and `.fileDialogSystemIcons()` | - | 10,849,200 B |
 
-So the module, a library product (the 31st) built on TUIkitAppKit,
-TUIkitBitmaps, TUIkitFilePanels and TUIkitFoundation, holds the modifier, its
-icon store and its tests (`TUIkitFilePanelsAppKitTests`). TUIkitAppKit's
-dependencies are what they were before the modifier. Like TUIkitAppKit it
+So the module, a library product (the 31st) built on TUIAppKit,
+TUIBitmaps, TUIFilePanels and TUIFoundation, holds the modifier, its
+icon store and its tests (`TUIFilePanelsAppKitTests`). TUIAppKit's
+dependencies are what they were before the modifier. Like TUIAppKit it
 re-exports nothing, the umbrella does not re-export it, and an app writes
-`import TUIkitFilePanelsAppKit` beside `import TUIkit`; it is empty off Apple
+`import TUIFilePanelsAppKit` beside `import TUI`; it is empty off Apple
 platforms. The icons' own cost is the file panels': an app that shows a file
 panel at all has them.
 
@@ -149,7 +149,7 @@ reaches `onKeyPress`, where the terminal reports it: a line, after B-D1K-1.
 *Owner item #30: "a real segmented path control (distinct, hoverable segments)"*
 
 macOS draws a folder's path as a path control (`NSPathControl`): a segment per
-folder, each a target of its own, a click on one going there. A TUIkit panel's
+folder, each a target of its own, a click on one going there. A TUI panel's
 path is a segmented `Picker` of the folders from the root, `/`, or from the
 home folder, written `~` as a shell prompt writes it, to the folder shown —
 whose selection is the folder shown, so a choice is a move
@@ -180,7 +180,7 @@ day, and a menu per segment.
 *Owner item #34: "size classes; in regular/large, space between list, path
 control, name field"*
 
-The size classes the item names are read as TUIkit's control sizes, which
+The size classes the item names are read as TUI's control sizes, which
 `ControlSize`'s own documentation calls "the size classes, like regular or
 small" and which say how much chrome a control draws: at `.regular` and
 `.large` a blank row parts the panel's message, name field, path and folder,
@@ -202,7 +202,7 @@ pop-up to an `NSOpenPanel` as its accessory view (TextEdit, Office), which
 narrows the files the panel takes to one kind or widens them to all; and
 `NSSavePanel.showsContentTypes` (macOS 15) shows a "Format:" pop-up of its
 allowed types, whose choice is the type saved and the name's extension. A
-TUIkit panel draws the two as a menu `Picker` under the folder
+TUI panel draws the two as a menu `Picker` under the folder
 (`FilePanelTypePopUp`):
 
 - **To open,** "Show:": All Supported Files — the caller's types together, as
@@ -284,7 +284,7 @@ macOS's; the current list becomes one of them. Remember the chosen mode per
 app"*
 
 Finder and a macOS panel have four views: icons, list, columns and gallery. A
-TUIkit panel has the two a terminal draws well: the list (B-FP2-5) and the
+TUI panel has the two a terminal draws well: the list (B-FP2-5) and the
 columns (`FilePanelColumnView`). The switcher is a segmented `Picker` at the
 end of the path's row, List and Columns in words, where Finder's toolbar has
 icons: one Tab stop, between the path control and the folder, ← and → among
@@ -313,14 +313,14 @@ panel's. The keys:
 
 The view is kept in the app's storage (`@AppStorage`, the store
 `defaultAppStorage(_:)` names, else `StorageDefaults.backend`) under
-`TUIkitFilePanels.viewMode` for every panel of the app, and under
-`TUIkitFilePanels.<id>.viewMode` for one with a `fileDialogCustomizationID(_:)`,
+`TUIFilePanels.viewMode` for every panel of the app, and under
+`TUIFilePanels.<id>.viewMode` for one with a `fileDialogCustomizationID(_:)`,
 as macOS keeps a panel's "view style" under it; so a panel opens in the view
 the last was left in, in this launch or a later one. **The fuller version**,
 in parts: icons on the switcher's segments where SF Symbols draw (an hour);
 an icon view, a grid of names under their icons, once icons draw at more than
 a cell (B-FP2-7; a day); a preview column for a file, as Finder's last column
-shows one (a text file's head: half a day; an image's needs TUIkitBitmaps).
+shows one (a text file's head: half a day; an image's needs TUIBitmaps).
 
 ### B-FP2-7. Icons: emoji where the terminal draws them, else SF Symbols, else the slash
 
@@ -360,7 +360,7 @@ kinds worked out per file, 106 ms of it the kinds, and 1.29 s with each
 type's kind kept (debug build). A test pins the icons
 (`EnvironmentValues.filePanelIcons`), as the SF Symbols' font is the
 machine's. **The fuller version** is A-FP2-1, built as its option 2: an app's own
-icons through `fileDialogIcon(_:)`, and the Finder's through TUIkitFilePanelsAppKit's
+icons through `fileDialogIcon(_:)`, and the Finder's through TUIFilePanelsAppKit's
 `fileDialogSystemIcons()`.
 
 ### B-FP2-8. A panel browsing another machine than the user's says so, on evidence only
@@ -381,9 +381,9 @@ on the path with no blank row between, whatever the control size
 cut at its end in a narrow panel, and takes no focus. *Host* is the name
 `gethostname` gives, as `hostname` prints it (the one `file:` links name,
 `TerminalClient.localHostName`), else `ProcessInfo`'s. The sentence is
-`filePanel.remoteNotice` in TUIkit's seven languages.
+`filePanel.remoteNotice` in TUI's seven languages.
 
-**When.** The judgement is `SessionLocality`'s, the one TUIkit's clipboard
+**When.** The judgement is `SessionLocality`'s, the one TUI's clipboard
 and spring-loading delay ask, given its other side
 (`SessionLocality.judgement()`, `SessionLocality+Remote.swift`): **local**
 where `isLocal()` finds positive evidence of the desk; **remote** on positive

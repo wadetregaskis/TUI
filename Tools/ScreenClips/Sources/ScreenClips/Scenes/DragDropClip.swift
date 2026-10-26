@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  DragDropClip.swift
 //
 //  `dragdrop`: a task board whose cards are dragged with the mouse from one
@@ -8,7 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 @MainActor
 let dragDropClip = Clip(
@@ -48,7 +48,7 @@ private func dragDropScript() -> [Step] {
 
 struct DragDropApp: App {
     var body: some Scene {
-        WindowGroup("TUIkit · Board") {
+        WindowGroup("TUI · Board") {
             TaskBoard()
                 .palette(SystemPalette(.amber))
         }
@@ -133,7 +133,7 @@ struct TaskBoard: View {
         .padding(.horizontal, 2)
         .padding(.top, 1)
         .toolbar {
-            ToolbarItem(placement: .navigation) { Text(verbatim: "Board · TUIkit 1.0") }
+            ToolbarItem(placement: .navigation) { Text(verbatim: "Board · TUI 1.0") }
         }
     }
 

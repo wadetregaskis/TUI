@@ -1,11 +1,11 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  KeyPressDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 /// `.onKeyPress`: a view of the app's own that answers keys while it holds
 /// the focus — the arrows move a marker along a track, the digits typed are

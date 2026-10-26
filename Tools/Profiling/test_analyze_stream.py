@@ -5,7 +5,7 @@ Tests for `analyze_stream.py`'s two estimates, `--runs` (O3's byte trims) and
 
     python3 Tools/Profiling/test_analyze_stream.py
 
-No build and no PTY: the streams are written here in TUIkit's own spellings
+No build and no PTY: the streams are written here in TUI's own spellings
 (`ESC[r;cH`, `ESC[2K`, a row's padding), so each expected number is a sum a
 reader can redo. `--shift` needs pyte, and its tests are skipped without it.
 """

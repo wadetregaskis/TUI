@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ResidualRows.swift
 //
 //  The rows of the `residual` page, and what they read that is not their
@@ -11,7 +11,7 @@
 //  License: MIT
 
 import Observation
-import TUIkit
+import TUI
 
 // MARK: - What rows read besides their element
 

@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TableAPIColumnVariants.swift
 //
 //  The COLUMN axes of the Table API matrix: how a column gets its value, how
@@ -8,7 +8,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 // MARK: - How a column gets its value
 

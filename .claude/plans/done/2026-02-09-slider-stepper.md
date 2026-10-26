@@ -179,8 +179,8 @@ enum TrackRenderer {
 
 ### Phase 2: Slider
 
-1. Create `SliderHandler` in `Sources/TUIkit/Focus/`
-2. Create `Slider.swift` in `Sources/TUIkit/Views/`
+1. Create `SliderHandler` in `Sources/TUI/Focus/`
+2. Create `Slider.swift` in `Sources/TUI/Views/`
 3. Implement rendering with `◀ track ▶` and value display
 4. Implement focus indicators (pulsing bars)
 5. Add keyboard controls (←/→, -/+, Home/End)
@@ -188,8 +188,8 @@ enum TrackRenderer {
 
 ### Phase 3: Stepper
 
-1. Create `StepperHandler` in `Sources/TUIkit/Focus/`
-2. Create `Stepper.swift` in `Sources/TUIkit/Views/`
+1. Create `StepperHandler` in `Sources/TUI/Focus/`
+2. Create `Stepper.swift` in `Sources/TUI/Views/`
 3. Implement rendering with `◀ value ▶`
 4. Implement focus indicators (pulsing bars + arrows)
 5. Add keyboard controls (←/→, -/+, Home/End)
@@ -253,21 +253,21 @@ enum TrackRenderer {
 ## Files
 
 ### New Files
-- `Sources/TUIkit/Rendering/TrackRenderer.swift`
-- `Sources/TUIkit/Focus/SliderHandler.swift`
-- `Sources/TUIkit/Focus/StepperHandler.swift`
-- `Sources/TUIkit/Views/Slider.swift`
-- `Sources/TUIkit/Views/Stepper.swift`
-- `Tests/TUIkitTests/SliderTests.swift`
-- `Tests/TUIkitTests/SliderHandlerTests.swift`
-- `Tests/TUIkitTests/StepperTests.swift`
-- `Tests/TUIkitTests/StepperHandlerTests.swift`
-- `Sources/TUIkitExample/Pages/SliderPage.swift`
-- `Sources/TUIkitExample/Pages/StepperPage.swift`
+- `Sources/TUI/Rendering/TrackRenderer.swift`
+- `Sources/TUI/Focus/SliderHandler.swift`
+- `Sources/TUI/Focus/StepperHandler.swift`
+- `Sources/TUI/Views/Slider.swift`
+- `Sources/TUI/Views/Stepper.swift`
+- `Tests/TUITests/SliderTests.swift`
+- `Tests/TUITests/SliderHandlerTests.swift`
+- `Tests/TUITests/StepperTests.swift`
+- `Tests/TUITests/StepperHandlerTests.swift`
+- `Sources/TUIExample/Pages/SliderPage.swift`
+- `Sources/TUIExample/Pages/StepperPage.swift`
 
 ### Modified Files
-- `Sources/TUIkit/Views/ProgressView.swift` - use TrackStyle + TrackRenderer
-- `Sources/TUIkit/Styles/TrackStyle.swift` - renamed from ProgressBarStyle (or new file)
+- `Sources/TUI/Views/ProgressView.swift` - use TrackStyle + TrackRenderer
+- `Sources/TUI/Styles/TrackStyle.swift` - renamed from ProgressBarStyle (or new file)
 
 ## Dependencies
 

@@ -1,12 +1,12 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ScrollViewPage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
-import TUIkit
+import TUI
 
-/// Demonstrates ``ScrollView`` — TUIkit's generic scrollable
+/// Demonstrates ``ScrollView`` — TUI's generic scrollable
 /// container for arbitrary content. Unlike ``List``, ScrollView
 /// has no rows, no selection, no item structure; it just gives
 /// you a viewport over content taller than itself.

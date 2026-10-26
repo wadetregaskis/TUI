@@ -123,14 +123,14 @@ These are made `Equatable` but NOT automatically wrapped in `EquatableView`. Use
 
 ### 1. RenderCache
 
-- [x] Create `RenderCache` class in `Sources/TUIkit/Rendering/RenderCache.swift`
+- [x] Create `RenderCache` class in `Sources/TUI/Rendering/RenderCache.swift`
 - [x] Add `CacheEntry` struct with `viewSnapshot: Any`, `buffer: FrameBuffer`, `contextWidth: Int`, `contextHeight: Int`
 - [x] API: `lookup()`, `store()`, `clearAll()`, `removeInactive()`, `markActive()`, `beginRenderPass()`
 - [x] Add `renderCache` property to `TUIContext`
 
 ### 2. EquatableView + Modifier
 
-- [x] Create `EquatableView<Content>` in `Sources/TUIkit/Core/EquatableView.swift`
+- [x] Create `EquatableView<Content>` in `Sources/TUI/Core/EquatableView.swift`
 - [x] Conform to `Renderable` with cache-check logic
 - [x] Add `.equatable()` extension on `View where Self: Equatable`
 - [x] Hydration: `EquatableView` must propagate hydration context to content

@@ -35,7 +35,7 @@ when unset), the visual/aspect probes print to the terminal.
   and tmux").
 - `bidi_card.py` — static `|<sample>|X` alignment card for RIGHT-TO-LEFT
   text, printed twice: plain, and with each RTL run wrapped in
-  U+202D … U+202C. Rows whose `X` moves are painted at a width TUIkit did
+  U+202D … U+202C. Rows whose `X` moves are painted at a width TUI did
   not count; whether the host also REORDERS is read off the
   `digits_after_rtl` row instead (the X cannot see it — see the card's own
   closing lines). Run in all four hosts 2026-09-01; the results and what
@@ -77,7 +77,7 @@ when unset), the visual/aspect probes print to the terminal.
   three, every row ending in a `|` that lines up only when each glyph advances
   one cell. Read on four hosts 2026-10-17 (the survey's "Bracket pairs for a
   compact face").
-- `breath_card.py` — how a host paints TUIkit's reversing row breaths: at 16
+- `breath_card.py` — how a host paints TUI's reversing row breaths: at 16
   colours, a cursor row whose breath runs between a slot fill and reverse video
   (the whole row the text's colour, every glyph on it the page's); without
   colour, reversal on every frame and bold on the bright ones. The rows are the
@@ -108,7 +108,7 @@ when unset), the visual/aspect probes print to the terminal.
   are UNREAD on every host — `↩`, which replaced `↵` as Return, first on
   Ghostty. The mechanism it feeds is
   `TerminalWidthTraits.chromeOverhang` with the sets in
-  `Sources/TUIkitCore/Extensions/ChromeOverhang.swift`; the reading is written
+  `Sources/TUICore/Extensions/ChromeOverhang.swift`; the reading is written
   up in Terminal compatibility survey.md, "The ink half". Record the FONT and its size
   with the host — overhang is a font property at least as much as a host one,
   and the 2026-09-04 reading did NOT capture it, which is the one gap in it.
@@ -130,18 +130,18 @@ when unset), the visual/aspect probes print to the terminal.
   rows double-width (DECDWL) for the capture.
 - `mouse_probe.py` — raw-mode SGR mouse byte capture (1000/1002/1006);
   every input sequence is appended human-readably. `q` quits.
-  `PROBE_SHIFT_ESCAPE=1` also sends XTSHIFTESCAPE (`CSI > 1 s`), as TUIkit
+  `PROBE_SHIFT_ESCAPE=1` also sends XTSHIFTESCAPE (`CSI > 1 s`), as TUI
   does while it reports the mouse: Shift-click with it and without, and a
   click the terminal now reports carries +4 (`<4;x;yM`) where one it kept
   for its own selection is missing from the log.
 - `keyboard_protocol_probe.py` — does the terminal speak the kitty keyboard
-  protocol, and which of the five flags TUIkit pushes (31) does it take? Asks
-  exactly as TUIkit does — `CSI ? u` fenced by DA1 — then pushes 31, asks
+  protocol, and which of the five flags TUI pushes (31) does it take? Asks
+  exactly as TUI does — `CSI ? u` fenced by DA1 — then pushes 31, asks
   again, pops and asks a third time; JSON to `$PROBE_OUT`. `PROBE_ALT=1` does
-  it on the alternate screen, where TUIkit does it.
+  it on the alternate screen, where TUI does it.
 - `keyboard_events_probe.py` — with those flags pushed, what each key sends:
   every read logged raw and decoded by a decoder written from the
-  specification, independently of TUIkit's `KittyKeyDecoder`. Ctrl-C ends it;
+  specification, independently of TUI's `KittyKeyDecoder`. Ctrl-C ends it;
   the flags are popped on the way out. Which keys to press is listed in
   Terminal compatibility survey.md, "The kitty keyboard protocol" → "To measure, per
   host". NOT YET RUN on any host (2026-10-04).
@@ -154,7 +154,7 @@ when unset), the visual/aspect probes print to the terminal.
   whether the Mission Control shortcuts are on. JSON to `$PROBE_OUT`. See
   Terminal compatibility survey.md, "Keys a sheet's grabber uses". NOT YET RUN on
   any host (2026-10-06).
-- `sync_probe.py` — synchronized output (DEC mode 2026), which TUIkit wraps
+- `sync_probe.py` — synchronized output (DEC mode 2026), which TUI wraps
   every multi-row frame in. Checks that `CSI ? 2026 h` `CSI ? 2026 l` prints
   nothing (the cursor column before and after), asks DECRQM `?2026$p` of a
   host that identifies itself (never of Apple Terminal, which prints that
@@ -167,7 +167,7 @@ when unset), the visual/aspect probes print to the terminal.
   those fill the "pair prints nothing" and DECRQM cells of
   Terminal compatibility survey.md's synchronized-output table.
 - `clipboard_probe.py` — does the terminal put an application's OSC 52 write
-  on the clipboard? Writes a nonce exactly as TUIkit spells it
+  on the clipboard? Writes a nonce exactly as TUI spells it
   (`ESC ] 52 ; c ; <base64> ESC \`) and reads the clipboard back with this
   machine's helper (`pbpaste`, `wl-paste`, `xclip`, `xsel`), so a local run
   needs no person; `--manual` asks for a paste instead, for a run over ssh.
@@ -215,7 +215,7 @@ when unset), the visual/aspect probes print to the terminal.
   HONOURS the link — hover, ⌘-click — no query reports, so the probe prints
   a card for a person and records their answer beside the measurement
   instead of pretending to have derived it.
-- `title_probe.py` — the window title TUIkit sets (`OSC 2`) and the stack it
+- `title_probe.py` — the window title TUI sets (`OSC 2`) and the stack it
   saves the terminal's own on (`CSI 22 ; 2 t`, `CSI 23 ; 2 t`): whether each
   sequence is swallowed on both screens (the DSR question again), and, where
   the host reports its title (`CSI 21 t`, or tmux's `#{pane_title}`), whether
@@ -223,7 +223,7 @@ when unset), the visual/aspect probes print to the terminal.
   and pops it last. `--hold N` keeps the probe's title up for a look at the
   tab. JSON to `$PROBE_OUT`. Run 2026-10-19 on Apple Terminal, iTerm2, Warp
   and tmux (records `data/*-title.json`); Ghostty is owed.
-- `progress_probe.py` — the progress bar TUIkit asks the terminal to draw
+- `progress_probe.py` — the progress bar TUI asks the terminal to draw
   (`OSC 9 ; 4`, ConEmu's): whether each spelling it sends is swallowed on both
   screens, and, inside tmux, what tmux's own bar for the pane made of it
   (`#{pane_pb_state}`). `--timeout N` sends a bar and nothing for N seconds;
@@ -246,7 +246,7 @@ when unset), the visual/aspect probes print to the terminal.
   appeared is a question about pixels, so the probe draws a card and asks. The
   analysis and the recommendation are in
   `Documentation/Images and terminal graphics/Terminal graphics protocols.md`.
-- `placement_probe.py` — the follow-on question, and the one TUIkit's design
+- `placement_probe.py` — the follow-on question, and the one TUI's design
   rests on: with a *virtual* placement and Unicode placeholders, does a Kitty
   image behave like **cells**? It transmits a hue-ramp image, places it, writes
   the placeholder rows, and asks DSR how far the cursor moved — because
@@ -258,7 +258,7 @@ when unset), the visual/aspect probes print to the terminal.
   transmit costs in bytes and milliseconds. Skips the big transmit on a
   terminal that answered no Kitty query — Apple Terminal would print it.
 - `graphics_compression_probe.py` — does a **deflated** transmission (`o=z`,
-  RFC 1950 before base64) reach the screen? Asks TUIkit's own two handshake
+  RFC 1950 before base64) reach the screen? Asks TUI's own two handshake
   questions — a virtual placement, then the 32×32 block sent as twenty-six
   deflated bytes, sized so a terminal that ignored the key would have to
   refuse it — and then draws the same hue ramp raw and deflated, one under
@@ -285,7 +285,7 @@ when unset), the visual/aspect probes print to the terminal.
   for a terminal to draw it? `pixel_format_probe.py` had established that
   iTerm2 acknowledges everything, draws a direct placement, and drew nothing
   for a virtual one; "placeholders unimplemented" was one explanation and this
-  tested a cheaper one. TUIkit then wrote TWO combining marks per cell — row
+  tested a cheaper one. TUI then wrote TWO combining marks per cell — row
   and column — and omitted the third, which states the image id's high byte
   and which the spec lets a cell inherit from its left neighbour; a decoder
   carrying a sentinel for "absent" rather than zero would look up an image
@@ -329,7 +329,7 @@ when unset), the visual/aspect probes print to the terminal.
   python3 hairline_probe.py          # the checks, then the cards
   python3 hairline_probe.py --auto   # the checks alone
   ```
-- `hairline_review.py` — not a probe: what TUIkit DRAWS with the answers.
+- `hairline_review.py` — not a probe: what TUI DRAWS with the answers.
   Builds Stress (its `megalist`, a windowed `List`) or the Example, and runs it
   in the terminal it is started from, so a person can look at `.hairline` list
   separators (decisions A-D6L-2): a line along the top of every row, taking no
@@ -352,7 +352,7 @@ when unset), the visual/aspect probes print to the terminal.
 `palette_probe.py` asks a different question from the rest: not how the cursor
 moves, but what colour the terminal actually paints for a name we emit. The
 sixteen ANSI colours are slots in the user's scheme, so `SGR 31` is "red" only
-by convention — and TUIkit's contrast floor and 256-colour quantiser both
+by convention — and TUI's contrast floor and 256-colour quantiser both
 derive from a table of what those slots conventionally hold. Run it in each
 host and record the answers in the compatibility document. What it takes to
 ask those questions from inside an app (every host's reply spelling, latency,

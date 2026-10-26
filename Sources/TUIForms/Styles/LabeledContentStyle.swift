@@ -1,0 +1,217 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  LabeledContentStyle.swift
+//
+//  How a ``LabeledContent`` lays out its label and its content — SwiftUI's
+//  open style protocol, modelled on ``LabelStyle``: pure recomposition of two
+//  views the caller supplied, so anything a custom style wants to do here a
+//  terminal can do.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import TUIFoundation
+
+// MARK: - Configuration
+
+/// The properties of a labeled content instance.
+public struct LabeledContentStyleConfiguration {
+    /// A type-erased label of a labeled content instance.
+    public typealias Label = AnyView
+
+    /// A type-erased content of a labeled content instance.
+    public typealias Content = AnyView
+
+    /// The label of the labeled content instance.
+    public let label: Label
+
+    /// The content of the labeled content instance.
+    public let content: Content
+}
+
+// MARK: - Protocol
+
+/// The appearance and layout behavior of labeled content in a view hierarchy.
+///
+/// ```swift
+/// struct StackedLabeledContentStyle: LabeledContentStyle {
+///     func makeBody(configuration: Configuration) -> some View {
+///         VStack(alignment: .leading) {
+///             configuration.label.bold()
+///             configuration.content
+///         }
+///     }
+/// }
+/// ```
+///
+/// Applied inside a ``Form`` too: a form lays its labelled rows out in a column
+/// of right-aligned labels itself, and a custom style takes that row over.
+public protocol LabeledContentStyle: Sendable {
+    /// A view that represents the appearance and behavior of labeled content.
+    associatedtype Body: View
+
+    /// Creates a view that represents the body of labeled content.
+    ///
+    /// - Parameter configuration: The label and content being styled.
+    @MainActor @ViewBuilder
+    func makeBody(configuration: Configuration) -> Body
+
+    /// The properties of a labeled content instance.
+    typealias Configuration = LabeledContentStyleConfiguration
+}
+
+extension LabeledContentStyle {
+    /// This style's body for `configuration`, type-erased — opening the
+    /// existential the environment holds, as ``LabelStyle`` does.
+    @MainActor
+    func makeAnyBody(configuration: Configuration) -> AnyView {
+        AnyView(makeBody(configuration: configuration))
+    }
+}
+
+// MARK: - The built-in style
+
+/// The default labeled content style, laid out as SwiftUI's is for where the
+/// row stands (measured on macOS 15.8):
+///
+/// - **On its own**, the row hugs: the content right after the label, a field
+///   or a slider filling the rest of the line, the lines of a multi-line value
+///   leading.
+/// - **In a list's row**, the label leads and a fixed value sits at the
+///   trailing edge, each line of a multi-line value ending there; a field or a
+///   slider fills the rest after the label.
+/// - **In a grouped form**, as in a list's row, except that a field or a
+///   slider starts at 45% of the row (`_GroupedLabeledRow`).
+///
+/// In both, the content's text is drawn in the secondary style, as SwiftUI's
+/// is: a value's `Text` is greyed, while a field's, a slider's or a toggle's
+/// own drawing, which does not read the foreground style, is not.
+///
+/// A row of a TUI `Form` is not drawn through this style: the form lays its
+/// labelled rows out itself (`_FormFieldRow`).
+///
+/// In a list's row the leftover goes to the CONTENT, not to a spacer beside it.
+/// A `Spacer` is width-flexible and so is a `TextField`, and the stack
+/// distributes to flexible children evenly — so a labelled field came out with
+/// half the line spent on the gap in front of it. A flexible frame gives the
+/// content the whole remainder and aligns a fixed-width content (the `value:`
+/// overloads' `Text`) at its trailing edge. The label goes through
+/// `_CollapsingLabel`, the unit every labelled control uses, so `.labelsHidden()`
+/// leaves the content holding the whole row, and its separating space is the
+/// gap after the label.
+///
+/// A trailing content of several lines trails line by line: each line of its
+/// text ends at the trailing edge (`EnvironmentValues.unstatedMultilineTextAlignment`),
+/// as SwiftUI's does, its wrapped lines too (measured,
+/// `Tools/SwiftUIProbes/Trailing values and labels`). The frame alone places
+/// the content as one block, its lines leading inside it, which is SwiftUI's
+/// frame and draws "short" over "a much longer line" with "short" left of the
+/// trailing edge.
+///
+/// Only where the app states no alignment: one stated on the `LabeledContent`
+/// or above it, or inside the content, wins. And only in the content's own
+/// drawing: a surface the content presents — a popover, a sheet, an alert —
+/// is drawn somewhere else, and leads its lines as it would anywhere (found by
+/// the BUGS13 lane's second review, when this style still wrote
+/// `.multilineTextAlignment(.trailing)` on the content).
+public struct AutomaticLabeledContentStyle: LabeledContentStyle, Equatable {
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        _AutomaticLabeledContent(configuration: configuration)
+    }
+}
+
+/// The automatic style's row, which reads where it stands.
+struct _AutomaticLabeledContent: View {
+    let configuration: LabeledContentStyleConfiguration
+    @Environment(\.labeledContentPlacement) private var placement
+
+    @ViewBuilder var body: some View {
+        switch placement {
+        case .standalone:
+            HStack(spacing: 0) {
+                _CollapsingLabel(label: configuration.label, controlDisabled: false)
+                configuration.content
+            }
+        case .listRow:
+            HStack(spacing: 0) {
+                _CollapsingLabel(label: configuration.label, controlDisabled: false)
+                configuration.content
+                    .foregroundStyle(.secondary)
+                    .environment(\.unstatedMultilineTextAlignment, .trailing)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        case .groupedFormRow:
+            _GroupedLabeledRow(label: configuration.label, content: configuration.content)
+        }
+    }
+}
+
+extension _AutomaticLabeledContent: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _placement.resolveEnvironment(environment)
+    }
+}
+
+extension LabeledContentStyle where Self == AutomaticLabeledContentStyle {
+    /// A labeled content style that resolves its appearance automatically
+    /// based on the current context.
+    public static var automatic: AutomaticLabeledContentStyle { AutomaticLabeledContentStyle() }
+}
+
+// MARK: - Environment
+
+private struct LabeledContentStyleKey: EnvironmentKey {
+    static let defaultValue = StyleChain<any LabeledContentStyle>(AutomaticLabeledContentStyle())
+}
+
+extension EnvironmentValues {
+    /// The style labeled content in this environment draws with, and the ones
+    /// outside it. See ``StyleChain``.
+    var labeledContentStyleChain: StyleChain<any LabeledContentStyle> {
+        get { self[LabeledContentStyleKey.self] }
+        set { self[LabeledContentStyleKey.self] = newValue }
+    }
+}
+
+extension View {
+    /// Sets a style for labeled content.
+    ///
+    /// - Parameter style: The style to use.
+    /// - Returns: A view whose labeled content uses `style`.
+    public func labeledContentStyle<S: LabeledContentStyle>(_ style: S) -> some View {
+        transformEnvironment(\.labeledContentStyleChain) { $0 = $0.pushing(style) }
+    }
+}
+
+// MARK: - Drawing one
+
+/// Labeled content drawn through the style in force: the body of
+/// ``LabeledContent``, and of a ``Form`` row whose style is a custom one.
+///
+/// The style's body sees the style outside it, so a `LabeledContent(configuration)`
+/// a custom style draws decorates the content as it would otherwise look rather
+/// than recursing into the custom style.
+struct _StyledLabeledContent: View {
+    let configuration: LabeledContentStyleConfiguration
+    @Environment(\.labeledContentStyleChain) private var styles
+
+    /// At the root — no custom style anywhere above — the automatic style is
+    /// drawn unerased, which is the case nearly every row is in.
+    @ViewBuilder var body: some View {
+        if styles.isRoot {
+            AutomaticLabeledContentStyle().makeBody(configuration: configuration)
+        } else {
+            styles.style.makeAnyBody(configuration: configuration)
+                .environment(\.labeledContentStyleChain, styles.inside)
+        }
+    }
+}
+
+// MARK: - Environment without reflection
+
+extension _StyledLabeledContent: ResolvesOwnEnvironment {
+    package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
+        _styles.resolveEnvironment(environment)
+    }
+}

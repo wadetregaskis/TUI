@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  DragScrollDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Demonstrates drag auto-scroll (a scrollable that scrolls when a drag hovers
 /// near its edge): the folder list holds far more rows than fit, so dragging

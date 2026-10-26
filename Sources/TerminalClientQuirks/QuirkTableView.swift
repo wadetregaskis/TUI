@@ -1,13 +1,13 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  QuirkTableView.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// The measured model for the terminal in front of you: for each class of
-/// cluster, how wide TUIkit lays it out and how far this terminal actually
+/// cluster, how wide TUI lays it out and how far this terminal actually
 /// moves the cursor over it.
 ///
 /// Where those two disagree, everything after the cluster on that row lands in
@@ -72,7 +72,7 @@ struct QuirkTableView: View {
         }
     }
 
-    /// What TUIkit does about a divergence — named rather than described, so a
+    /// What TUI does about a divergence — named rather than described, so a
     /// reader can find it in the source.
     private func workaround(for cluster: Cluster, diverges: Bool) -> String {
         guard client.program != .unidentified else {
@@ -101,7 +101,7 @@ struct QuirkTableView: View {
 
     private var legend: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Wide  = cells TUIkit lays the cluster out as (Character.terminalWidth).")
+            Text("Wide  = cells TUI lays the cluster out as (Character.terminalWidth).")
                 .foregroundStyle(.palette.foregroundTertiary)
             Text("Moves = cells this terminal actually advances the cursor by.")
                 .foregroundStyle(.palette.foregroundTertiary)

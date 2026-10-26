@@ -1,7 +1,7 @@
 # Completing the SwiftUI API: decisions from lane SP0
 
 *Lane SP0 carried out steps 0b, 0c and A1 of the module-split plan: the owner's decision of 2026-10-07 to split
-TUIkit into à-la-carte modules. The plan is the session notes' `buildtime/split2/plan.md`. A1 added
+TUI into à-la-carte modules. The plan is the session notes' `buildtime/split2/plan.md`. A1 added
 `Tools/ModuleMap`, which checks the planned map against today's single module; it changed no public API. This file
 holds the judgement calls the work reached that the plan did not already settle, in the format of
 [`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>):*
@@ -12,21 +12,21 @@ holds the judgement calls the work reached that the plan did not already settle,
 
 ## B. Shipped the safe option
 
-### B-SP0-1. ViewRenderer stays in TUIkitBase, and K3 stays a refactor to do
+### B-SP0-1. ViewRenderer stays in TUIBase, and K3 stays a refactor to do
 
 *`Tools/ModuleMap/rules.json`, the `declarations` rule for `Rendering/ViewRenderer.swift`*
 
 Plan §1 lists ViewRenderer under Base's rendering infrastructure. K3 then makes it take its terminal, with no
-`Terminal()` default, and moves `renderOnce` to TUIkitApp.
+`Terminal()` default, and moves `renderOnce` to TUIApp.
 
 Once `renderOnce` is pinned to App, nothing in Base uses ViewRenderer. The assigner then pushes it up into
-TUIkitApp, and K3's upward reference disappears. ViewRenderer is now pinned to Base, as the plan says, and K3
+TUIApp, and K3's upward reference disappears. ViewRenderer is now pinned to Base, as the plan says, and K3
 stays a scheduled refactor.
 
-**The alternative, and its price.** Let ViewRenderer go to TUIkitApp, and drop K3:
+**The alternative, and its price.** Let ViewRenderer go to TUIApp, and drop K3:
 - It saves K3's refactor: two sites, plus `renderOnce` passing `Terminal()` explicitly.
 - A headless renderer would then live only in the POSIX module. Today that matters for nothing: every app links
-  TUIkitApp, and the test target can import it. It would matter for a future Windows console backend or a
+  TUIApp, and the test target can import it. It would matter for a future Windows console backend or a
   WASI host that wants ViewRenderer without App.
 
 ### B-SP0-2. Twelve pieces of public API stay above their type's module, recorded rather than moved
@@ -38,7 +38,7 @@ three such placements. One of them, `.safeAreaInset`, it pinned back to Base wit
 does not report it. At HEAD there are twelve findings. Each now has its reason in `rules.json`, and the map is
 unchanged.
 - The plan's other two: `.modal` in Presentation, and `.listStyle` with the row-selection modifiers in Lists.
-- `TerminalClient`'s graphics-support API (`graphicsSupported` and its kin) goes to TUIkitApp. It reads what App's
+- `TerminalClient`'s graphics-support API (`graphicsSupported` and its kin) goes to TUIApp. It reads what App's
   startup handshake records. Every app imports App, so no app loses it.
 - `.automatic` for the List, Picker and NavigationSplitView styles stays in the leaf. It is usable only through
   the leaf's own modifier.
@@ -78,10 +78,10 @@ policy choice, not a cost one.
 The `posix` check's list lacked `pid_t`, although plan §4's K6 says Windows signatures must not use it. With
 `pid_t` in the list, two declarations report it:
 - ProcessAncestry, one of K6's two files. Its K6 entry now names `pid_t` beside `getpid`.
-- TerminalHost (Rendering/TerminalHost.swift, all of it in TUIkitBase), which plan §4 does not list. Thirteen
+- TerminalHost (Rendering/TerminalHost.swift, all of it in TUIBase), which plan §4 does not list. Thirteen
   unguarded uses: the tmux client's `pid` field and the tmux hook and unhook argument builders.
 
-An audit of every C symbol that a declaration outside TUIkitApp references outside a POSIX-only branch found no
+An audit of every C symbol that a declaration outside TUIApp references outside a POSIX-only branch found no
 other POSIX-only one; the rest are Foundation, Dispatch and libm. The only POSIX-only ones are `getpid` (K6),
 `setenv` (K4) and `pid_t`.
 

@@ -1,4 +1,4 @@
-// 🖥️ TUIkit — Terminal UI Kit for Swift
+// 🖥️ TUI — A Terminal UI framework for Swift
 // isolation-sw.js — makes the demo cross-origin isolated on a host that
 // cannot be told to.
 //

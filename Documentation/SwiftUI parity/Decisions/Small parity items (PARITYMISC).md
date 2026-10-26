@@ -66,13 +66,13 @@ stops at. Not recommended.
 
 *`TextContentType` (every `NSTextContentType` member), `View.textContentType(_:)`*
 
-TUIkit had 8 of the SDK's 43 content types (macOS 15), and spelled
+TUI had 8 of the SDK's 43 content types (macOS 15), and spelled
 SwiftUI's `.URL` as `.url`, so most `.textContentType(_:)` calls failed to
 compile. A content type is a filter here (T8, owner 2026-10-13: keep the
 filter, ring the bell, and admit every character a valid value holds).
 
 **Shipped:** all 43 under their Swift names (`.url` became `.URL`, no alias),
-beside TUIkit's own `.integer` and `.decimal`. A type gets a character set
+beside TUI's own `.integer` and `.decimal`. A type gets a character set
 only where its values are drawn from a closed alphabet: digits for a card's
 security code, its expiration month and year and a birth date's day and
 year; digits, space and `-` for a card number; digits and `/-. ` for an
@@ -112,7 +112,7 @@ draws a semibold "Name" and an italic "x"); a `Tab`'s title draws exactly as
 a `Text` of the key does.
 
 **Shipped:** a field's title is its key's `Text`, so the placeholder draws its
-words plain, exactly as SwiftUI's. A header and a tab title, which TUIkit
+words plain, exactly as SwiftUI's. A header and a tab title, which TUI
 measures, truncates and draws as strings in a style of its own (the header
 bold in the secondary ink, the strip's cells), take the key's words with the
 delimiters gone (`LocalizedStringKey.titleWords`) and draw them in that
@@ -181,7 +181,7 @@ English (E4).
 **The fuller version** reaches what reads a key as a string when it is made:
 `Button`'s and `ColorPicker`'s titles (kept as strings for their measure and
 truncation, B87), the titles drawn as strings (a column header, a tab's title,
-a field's placeholder), `LocalizedStringKey.localized`, and TUIkit's own
+a field's placeholder), `LocalizedStringKey.localized`, and TUI's own
 chrome words (`frameworkString(for:)`: an alert's OK, a search field's
 prompt). Each would resolve at draw from the environment's language: about a
 day, most of it the string-titled controls. An A/B of the shipped half is

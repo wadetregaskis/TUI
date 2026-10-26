@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  GesturesDemoTests.swift
 //
 //  Created by Wade Tregaskis
@@ -7,8 +7,8 @@
 import Testing
 
 @testable import Example
-import TUIkit
-@testable import TUIkitApp
+import TUI
+@testable import TUIApp
 
 /// The nested boxes as the page builds them, in words short enough to fit the
 /// boxes' counts line whatever language the process is in.

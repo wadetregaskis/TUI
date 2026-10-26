@@ -47,7 +47,7 @@ it: a hypothesis.
 
 *`drive.py --answer-fence`.*
 
-A PTY answers nothing, so a TUIkit app's identity, graphics and colour
+A PTY answers nothing, so a TUI app's identity, graphics and colour
 exchanges each wait out half a second and the first frame comes about 1.5 s
 after launch. A scenario's keys sent before then are handed back and parsed as
 one burst once the app is up: on a debug Example, `scroll` drew its page for

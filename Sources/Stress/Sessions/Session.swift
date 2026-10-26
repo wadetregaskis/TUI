@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Session.swift
 //
 //  A SESSION is an interaction script played against a page over time: keys
@@ -12,7 +12,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 // MARK: - A session
 
@@ -81,7 +81,7 @@ protocol StressSession: AnyObject {
     /// ``check(_:after:)``'s, its styling left in (``ScreenCells`` takes it
     /// apart) — or `nil` when it is painted as it should be. Asked only when
     /// that check found nothing. For what the text cannot show: which row of an
-    /// open menu is highlighted, whether a label keeps the contrast TUIkit
+    /// open menu is highlighted, whether a label keeps the contrast TUI
     /// promises it, whether a colour of the palette before a switch is still
     /// drawn.
     func check(styled screen: [String], after index: Int) -> String?
@@ -95,7 +95,7 @@ protocol StressSession: AnyObject {
     var knownIssues: [String: String] { get }
 
     /// The colour depth every frame is drawn at — pinned for the frame with
-    /// `ColorDepth.withCurrent(_:operation:)`, TUIkit's scoped pin, as a test
+    /// `ColorDepth.withCurrent(_:operation:)`, TUI's scoped pin, as a test
     /// pins it — or `nil` for whatever the process detected. Read before each
     /// frame, so a session can change it between two, as an app changes it
     /// when it lowers `ColorDepth.cap`.

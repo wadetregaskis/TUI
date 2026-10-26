@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ScreenCells.swift
 //
 //  A drawn frame taken apart into cells, each with the colours it is drawn
@@ -10,7 +10,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// One terminal cell as the frame paints it: its character and the colours
 /// the SGR in force there states, reverse video already swapped out, so
@@ -52,7 +52,7 @@ enum ColourSpelling: Comparable, Hashable, CustomStringConvertible {
     /// 24 bits (`38;2;r;g;b`).
     case rgb
 
-    /// The spelling TUIkit gives the colours it computes at `depth`: 24 bits,
+    /// The spelling TUI gives the colours it computes at `depth`: 24 bits,
     /// an index into the 256, or one of the sixteen — `nil` where it spells
     /// none. A named colour is spelled by name at every depth.
     static func computed(at depth: ColorDepth) -> Self? {
@@ -80,7 +80,7 @@ struct ScreenCells {
     let rows: [[ScreenCell]]
     /// The first cell each spelling of a colour paints, by spelling: a frame
     /// drawn for a 256-colour terminal must state no 24-bit colour anywhere,
-    /// and one drawn for a truecolour terminal no index TUIkit computed.
+    /// and one drawn for a truecolour terminal no index TUI computed.
     let spellings: [ColourSpelling: (row: Int, column: Int)]
 
     init(_ lines: [String]) {

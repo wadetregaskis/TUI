@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Flow.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Wraps its subviews onto as many lines as they need, like text — the layout a
 /// terminal has no built-in for, and the one that shows what ``Layout`` is for.

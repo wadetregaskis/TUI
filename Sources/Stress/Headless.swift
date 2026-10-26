@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Headless.swift
 //
 //  Created by LAYERED.work
@@ -6,8 +6,8 @@
 
 import Dispatch
 import Foundation
-import TUIkit
-import TUIkitCore
+import TUI
+import TUICore
 
 // MARK: - Headless runners
 

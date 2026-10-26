@@ -1,4 +1,4 @@
-// 🖥️ TUIkit — Terminal UI Kit for Swift
+// 🖥️ TUI — A Terminal UI framework for Swift
 // wasi.js — a WASI preview1 host for the browser, sized to what a TUI needs.
 //
 // This implements the thirty-odd `wasi_snapshot_preview1` calls a Swift
@@ -213,7 +213,7 @@ export class BrowserWASI {
         if (fd === 0) {
           // Never blocks, which is what a terminal in raw mode gives a POSIX
           // guest: `VMIN`/`VTIME` of zero means "hand me what you have, even if
-          // that is nothing". The waiting is `poll_oneoff`'s job, and TUIkit
+          // that is nothing". The waiting is `poll_oneoff`'s job, and TUI
           // asks for it there — so a read that blocked here would park the
           // worker inside a call the guest expected to return at once, and the
           // app would draw its first frame and then freeze. `EAGAIN` is the

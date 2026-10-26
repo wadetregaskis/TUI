@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ThemingClip.swift
 //
 //  `theming`: one small app, its look changed under it — the palette walked
@@ -8,7 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 @MainActor
 let themingClip = Clip(
@@ -63,7 +63,7 @@ struct ThemingApp: App {
     @State private var look = ThemingLook()
 
     var body: some Scene {
-        WindowGroup("TUIkit · Theming") {
+        WindowGroup("TUI · Theming") {
             ThemingPage(paletteName: look.palette.name)
                 .task {
                     for await cue in ClipCues.stream() { look.apply(cue) }
@@ -78,14 +78,14 @@ struct ThemingApp: App {
 /// them — enough kinds of control that every palette role shows.
 struct ThemingPage: View {
     let paletteName: String
-    @State private var selection: String? = "TUIkit"
+    @State private var selection: String? = "TUI"
     @State private var optimise = true
     @State private var strip = false
     @State private var jobs = 8.0
     /// The build's clock: the bar creeps on between selections.
     @State private var tick = 0
 
-    private let targets = ["TUIkit", "TUIkitApp", "TUIkitLists", "TUIkitTables", "Example", "Stress"]
+    private let targets = ["TUI", "TUIApp", "TUILists", "TUITables", "Example", "Stress"]
 
     var body: some View {
         HStack(alignment: .top, spacing: 2) {

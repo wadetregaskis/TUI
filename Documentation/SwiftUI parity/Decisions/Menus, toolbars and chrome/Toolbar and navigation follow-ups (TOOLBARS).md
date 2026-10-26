@@ -19,8 +19,8 @@ priced, C for a refusal recorded in `parity-map.json`.*
 
 SwiftUI documents the empty form as "a toolbar title menu where actions are
 inferred from your app's commands" — `CommandGroupPlacement.saveItem`,
-`.printItem` and their kind. TUIkit's commands are the menu bar's
-(TUIkitCommands, refusal review O13), which TUIkitChrome, where the title is
+`.printItem` and their kind. TUI's commands are the menu bar's
+(TUICommands, refusal review O13), which TUIChrome, where the title is
 drawn, cannot see; and a command drawn in a second place has its keyboard
 shortcut registered twice.
 
@@ -28,7 +28,7 @@ shortcut registered twice.
 nothing to open. `ToolbarTitleMenu { … }` and `.toolbarTitleMenu { … }`, with
 items, make the title a pull-down of them.
 
-**The fuller version** has TUIkitCommands hand the window's chrome the File
+**The fuller version** has TUICommands hand the window's chrome the File
 menu's document groups (`newItem`, `saveItem`, `importExport`, `printItem`)
 as a view, drawn by the empty title menu in the registration-free way the
 menu bar draws a closed menu — so each command's key stays registered once.
@@ -40,7 +40,7 @@ menu.
 *`ToolbarItemPlacement.principal` in a screen pushed onto a `NavigationStack`*
 
 A pushed screen's top-bar items are drawn in the stack's bar (the A28 study,
-step 7). That bar is TUIkit's own: the crumb trail, or ‹ Back and the title,
+step 7). That bar is TUI's own: the crumb trail, or ‹ Back and the title,
 on one row whose height is fixed before the screen draws. In the window's top
 bar a principal item takes the title's place (iOS's reading); in the stack's
 bar the title is also the end of the trail, which says where the person is.
@@ -91,7 +91,7 @@ bound them, Reset and Done. It opens from the bar's
 context menu — a right-click, or Shift+F10 while one of the bar's items has the
 focus — and from the menu bar's View ▸ Customize Toolbar… (`ToolbarCommands`).
 What the person chose is kept per toolbar identifier in the app's default
-storage, as JSON in TUIkit's own encoding (`order`, `shown`), with nothing
+storage, as JSON in TUI's own encoding (`order`, `shown`), with nothing
 written until they change something; Reset forgets it.
 
 Where it differs from macOS:
@@ -131,8 +131,8 @@ the row rather than an overflow menu: a terminal sidebar hugs its widest row,
 so it has room to show it. A title menu and a default item name the window's
 bars and are not drawn; neither is an item hidden with `hidden(_:)`. The
 placement, the view-builder form and the sidebar's slot moved to
-TUIkitFoundation so this form, in TUIkitChrome, can reach the sidebar in
-TUIkitTabs without a module edge.
+TUIFoundation so this form, in TUIChrome, can reach the sidebar in
+TUITabs without a module edge.
 
 **The fuller version:** the `.automatic` and other top-bar placements in a
 `»` overflow pull-down at the row's trailing end, as iPadOS's sidebar has,
@@ -146,7 +146,7 @@ only if an app puts more there than a sidebar is wide.
 *`View.toolbarColorScheme(_:for:)`*
 
 The A28 study sends it to A17, which keeps `preferredColorScheme(_:)` out for
-now (owner, 2026-10-04): a terminal's look is a palette, and TUIkit's palettes
+now (owner, 2026-10-04): a terminal's look is a palette, and TUI's palettes
 do not come in light and dark pairs. A bar's fill is stated with
 `.toolbarBackground(_:for:)`. Recorded in `parity-map.json`; it returns with
 `preferredColorScheme` if light palettes are wanted for their own sake.

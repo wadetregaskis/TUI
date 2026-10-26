@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ImageDemoHelpers.swift
 //
 //  What the image demos' knobs MEAN — which ones a given configuration
@@ -11,7 +11,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 /// Shared image demo configuration used by both `ImageFilePage` and `ImageURLPage`.
 enum ImageDemoHelpers {

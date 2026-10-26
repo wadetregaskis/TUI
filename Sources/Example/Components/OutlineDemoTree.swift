@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  OutlineDemoTree.swift
 //
 //  Created by Wade Tregaskis
@@ -24,13 +24,13 @@ let outlineDemoTree = [
         id: "Sources",
         children: [
             OutlineDemoNode(
-                id: "TUIkitCore",
+                id: "TUICore",
                 children: [
                     OutlineDemoNode(id: "Rendering", children: nil),
                     OutlineDemoNode(id: "Extensions", children: nil),
                 ]),
             OutlineDemoNode(
-                id: "TUIkit",
+                id: "TUI",
                 children: [OutlineDemoNode(id: "Views", children: nil)]),
         ]),
     OutlineDemoNode(id: "Tests", children: []),

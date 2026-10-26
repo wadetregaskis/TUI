@@ -112,11 +112,11 @@ dot:       ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬●───────
 
 ## Steps
 
-- [x] Create `Sources/TUIkit/Views/ProgressView.swift`
+- [x] Create `Sources/TUI/Views/ProgressView.swift`
 - [x] Implement all 4 initializers with SwiftUI-matching signatures
 - [x] Implement `Renderable` with bar rendering
 - [x] Add `Equatable` conformance
 - [x] Implement 5 bar styles via `ProgressBarStyle` enum + `.progressBarStyle(_:)` modifier
-- [x] Create tests in `Tests/TUIkitTests/ProgressViewTests.swift` (26 tests / 3 suites)
+- [x] Create tests in `Tests/TUITests/ProgressViewTests.swift` (26 tests / 3 suites)
 - [x] Add to example app (ContainersPage: ProgressViewRow)
 - [x] `swift build` + `swiftlint` + `swift test`

@@ -20,7 +20,7 @@ Before 1.0 the project made no such promise, and the 0.x tags predate it.
 nearly done**, not before: the rename changes every product and module name,
 which is a major change by the table above.
 
-The version lives in one file, `Sources/TUIkitStrings/VERSION`, which the
+The version lives in one file, `Sources/TUIStrings/VERSION`, which the
 framework bundles (`tuiKitVersion`). Nothing else in the repository carries it.
 
 ## As you go

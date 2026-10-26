@@ -159,7 +159,7 @@ removal sample the removed view's layer comes first in its column, beneath
 both siblings, whatever its transition (`samples.txt`, the `remove` lines),
 while an inserted view's layer is in declaration order. That is SwiftUI's
 well-known removal z-order, and why apps put a `.zIndex` on a view whose
-removal should draw on top. TUIkit draws it so: beneath the present children
+removal should draw on top. TUI draws it so: beneath the present children
 of its z-index, above those of a lower one, a `.zIndex` written inside the
 transition lifting it.
 

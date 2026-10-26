@@ -1,0 +1,1504 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  ItemListHandler+Reorder.swift
+//
+//  The drag-to-reorder state machine for `List` and `Table` rows, shared by
+//  every feedback mode (``RowReorderFeedback``). It lives on the handler rather
+//  than in the views' mouse closures for two reasons: a closure is captured at
+//  press time and outlives the render that made it, and the handler is what
+//  survives between renders — so the drag reads the CURRENT row geometry
+//  (``ItemListHandler/visibleRowBands``, republished every render) instead of a
+//  press-frame copy that `.live` reordering would immediately invalidate.
+//
+//  Which handler a gesture belongs to is `DragAndDropSession`'s question, not
+//  this file's: see `DragAndDropSession+Reorder`.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import TUIFoundation
+
+/// The handler *is* the reorder state machine, so the protocol the drag-and-drop
+/// session resolves gestures through needs only the writers it asks for in
+/// place of settable requirements.
+extension ItemListHandler: RowReorderHosting {
+    package func adoptReorder(_ reorder: RowReorder, isKeyboardMove: Bool) {
+        self.reorder = reorder
+        self.isKeyboardMove = isKeyboardMove
+    }
+
+    package func relinquishReorder() { reorder = nil }
+
+    package func noteReorderCancelled(_ cancelled: Bool) { reorderCancelled = cancelled }
+}
+
+extension ItemListHandler {
+
+    // MARK: - Where a row may land
+
+    /// The list rows the row at `index` may be moved among — the rows of the
+    /// `ForEach` that produced it — or `nil` when no movable `ForEach` did.
+    ///
+    /// A reorder cannot cross that boundary. `onMove`'s offsets index ONE
+    /// collection, and the rows on the far side of a section header belong to
+    /// another, so a drag that crossed would hand an offset to an array that
+    /// never held the row. SwiftUI keeps a row inside its section for exactly
+    /// this reason.
+    ///
+    /// With no resolver installed the whole list is one span — a `Table`, and a
+    /// flat `List { ForEach … }`, where a row's index IS its offset and every
+    /// answer would be `0..<itemCount` anyway.
+    func movableSpan(of index: Int) -> Range<Int>? {
+        guard let movableRowSpan else { return 0..<itemCount }
+        return movableRowSpan(index)
+    }
+
+    /// The rows the gesture in flight may land among: the span of whatever it
+    /// has hold of.
+    ///
+    /// The whole list when nothing is in hand — a drop from ELSEWHERE lands
+    /// wherever the list's own `dropDestination` says, and is not an `onMove`
+    /// at all — and when no resolver is installed.
+    var reorderSpan: Range<Int> {
+        guard let grabbed = reorder?.grabbedOffset, let span = movableSpan(of: grabbed)
+        else { return 0..<itemCount }
+        return span
+    }
+
+    /// `slot` clamped to the closed-up positions a row of `span` can land at.
+    ///
+    /// The same arithmetic the flat list has always applied — `0` through
+    /// `itemCount - 1` — expressed against the span instead of the list, so it
+    /// reduces to exactly that when the span IS the list.
+    func clampedSlot(_ slot: Int, in span: Range<Int>) -> Int {
+        min(max(span.lowerBound, slot), max(span.lowerBound, span.upperBound - 1))
+    }
+
+    // MARK: - Rows that move together
+
+    /// The rows that move with the row at `index` — the rows of the element it
+    /// draws, for a `ForEach` whose rows are several views each
+    /// (``reorderGroupSpan``) — or that row alone.
+    func reorderGroup(of index: Int) -> Range<Int> {
+        reorderGroupSpan?(index) ?? index..<(index + 1)
+    }
+
+    /// `rows` grown to the whole groups they are in (``reorderGroup(of:)``):
+    /// a reorder never takes part of an element.
+    func wholeReorderGroups(of rows: IndexSet) -> IndexSet {
+        guard reorderGroupSpan != nil else { return rows }
+        var whole = IndexSet()
+        for row in rows { whole.insert(integersIn: reorderGroup(of: row)) }
+        return whole
+    }
+
+    /// `slot` — a closed-up position, with `held` taken out — moved to the
+    /// nearest one between two groups of rows, never inside one: up (`toward`
+    /// positive), down (negative) or to whichever is nearer (zero). Unchanged
+    /// where every row moves alone.
+    ///
+    /// `held` is whole groups (``wholeReorderGroups(of:)``), so the group a
+    /// slot falls inside holds no row in hand, and all of its rows sit together
+    /// in the closed-up order.
+    func groupBoundarySlot(_ slot: Int, held: IndexSet, toward direction: Int = 0) -> Int {
+        guard reorderGroupSpan != nil else { return slot }
+        let row = reorderInsertionOffset(forSlot: slot, removed: held)
+        guard row < itemCount else { return slot }
+        let group = reorderGroup(of: row)
+        guard row != group.lowerBound else { return slot }
+        let before = slot - (row - group.lowerBound)
+        let after = before + group.count
+        if direction > 0 { return after }
+        if direction < 0 { return before }
+        return slot - before <= after - slot ? before : after
+    }
+
+    // MARK: - Geometry
+
+    /// The data offset of the **content** row covering `contentY`, or `nil` for
+    /// a section header, the reorder drop slot, a line no row occupies, or a
+    /// list that hasn't published its geometry yet.
+    ///
+    /// This is the row the keyboard cursor should sit on. For where a DROP would
+    /// land, ask ``dropTarget(atContentY:)`` — during a drag the two differ.
+    ///
+    /// `contentY` is in the same space as ``visibleRowBands``: lines from the
+    /// first content line of the list's interior.
+    func contentRowIndex(atContentY contentY: Int) -> Int? {
+        band(atContentY: contentY).flatMap { $0.isContent ? $0.rowIndex : nil }
+    }
+
+    /// Where a drop at `contentY` would put the dragged row, or `nil` when that
+    /// line is not a drop target (a section header, or nothing at all).
+    ///
+    /// The answer is a prospective FINAL index, not a data offset: a drag takes
+    /// the row out of the list, so what is drawn is already the post-drop order
+    /// and a line's position in it is exactly where a drop there lands the row.
+    /// `move(from:to:)` is defined to produce that index, so the two agree by
+    /// construction. Outside a drag every band's `dropIndex` is its own
+    /// `rowIndex`, so `.live` and the click path are unaffected.
+    func dropTarget(atContentY contentY: Int) -> Int? {
+        band(atContentY: contentY)?.dropIndex
+    }
+
+    /// The lines of the CONTENT row covering `contentY`, in the same space, or
+    /// `nil` for a section header, the reorder slot or a line no row occupies:
+    /// the row a selection of its text keeps to.
+    package func contentRowLines(atContentY contentY: Int) -> Range<Int>? {
+        guard let band = band(atContentY: contentY), band.isContent else { return nil }
+        return band.yStart..<(band.yStart + band.height)
+    }
+
+    /// The published band covering `contentY`.
+    private func band(atContentY contentY: Int) -> RowBand? {
+        visibleRowBands.first { contentY >= $0.yStart && contentY < $0.yStart + $0.height }
+    }
+
+    /// `index` as it will be numbered once the dragged row has left its place —
+    /// everything after the source shifts down one.
+    ///
+    /// The single piece of index arithmetic the whole feature rests on; the drop
+    /// slot, the drop target and the decoration all derive from it, so it lives
+    /// in one place rather than being re-derived at each site.
+    func reorderClosedUpIndex(_ index: Int, removed: IndexSet) -> Int {
+        index - removed.count(where: { $0 < index })
+    }
+
+    /// The data offset that a drop at closed-up position `slot` must pass to
+    /// `onMove`, whose `toOffset` is measured against the collection BEFORE the
+    /// move: the index of the `slot`-th row that is NOT in hand.
+    ///
+    /// Subsumes the single-row rule this replaced (`from < target ? target + 1
+    /// : target`) — for one removed row the two agree at every position.
+    func reorderInsertionOffset(forSlot slot: Int, removed: IndexSet) -> Int {
+        var seen = 0
+        for index in 0..<itemCount where !removed.contains(index) {
+            if seen == slot { return index }
+            seen += 1
+        }
+        return itemCount
+    }
+
+    /// The row a non-`.live` drag has taken OUT of the list, or `nil` when the
+    /// list is drawn in its plain data order.
+    ///
+    /// The two conditions have to be asked together, and by everything that
+    /// cares, or the drawing and the hit-testing disagree about what is on
+    /// screen. `.dimmed` draws the row only at the drop slot, so with nowhere to
+    /// drop it there is nothing to draw and the list is left exactly as it was;
+    /// `.cursor` has the row on the pointer for the whole drag, so it is out of
+    /// the list for the whole drag, slot or no slot.
+    var reorderRemovedRow: Int? {
+        guard let source = reorderSource else { return nil }
+        guard effectiveReorderFeedback == .cursor || reorderPlaceholder != nil else { return nil }
+        return source
+    }
+
+    /// Whether this frame draws a landing slot for a reorder of its own.
+    ///
+    /// Exactly the condition ``reorderDrawnRows(_:excluding:)`` inserts one
+    /// under, asked separately because the SCROLL arithmetic needs it before
+    /// the rows are drawn: a slot occupies a line, and the rows the drag took
+    /// out give their lines back, so a window that counted neither is a window
+    /// that overruns by one entry — and the overrun is clipped away from the
+    /// slot, which means it comes out of a real row.
+    var reorderDrawsSlot: Bool { reorderRemovedRow != nil && reorderPlaceholder != nil }
+
+    /// Whether the landing slot this frame draws needs a line of its OWN.
+    ///
+    /// A reorder takes its rows out of the drawing and their lines pay for the
+    /// slot — but only the rows that are ON SCREEN can pay. Auto-scrolling
+    /// toward the end carries them out of the window, and from there the slot
+    /// is unfunded: the drawing overruns by one entry, the overrun is clipped
+    /// away from the slot (deliberately — it is the only thing on screen saying
+    /// where the rows will land), and so it comes out of a REAL row. The last
+    /// row then vanishes with no indicator saying it is there, and "after the
+    /// last row" cannot be pointed at: the furthest the pointer can aim is the
+    /// second-last line.
+    ///
+    /// `_ListCore.borrowsDropRow` reached the same conclusion by the same route
+    /// for a `.draggable` row of the list's own; this is the reorder twin of
+    /// it, and it lives here because both `List` and `Table` need it.
+    ///
+    /// Asked of ``visibleRange`` — the viewport the last frame settled — because
+    /// the answer FEEDS the budget this frame's window is computed from. The
+    /// two agree except at the boundary, where being one row out costs one
+    /// reserved line, a state the overflow machinery already expresses.
+    package var reorderSlotNeedsALine: Bool {
+        guard reorderDrawsSlot else { return false }
+        let window = visibleRange
+        return !reorderRemovedRows.contains(where: window.contains)
+    }
+
+    /// EVERY row the drag has taken out of the list — the whole selection when
+    /// one was picked up. ``reorderRemovedRow`` is the one of them the pointer
+    /// grabbed, which is what the float and the faint copy show; this is what
+    /// the drawing and the index arithmetic have to work from, or a multi-row
+    /// drag draws rows it is carrying.
+    package var reorderRemovedRows: IndexSet {
+        guard reorderRemovedRow != nil, let reorder else { return IndexSet() }
+        return reorder.held
+    }
+
+    /// Where the row with data offset `index` sits in the order currently
+    /// DRAWN: closed up behind the dragged row, then pushed past the drop slot.
+    ///
+    /// This is what a drop on that row has to produce. A prospective FINAL index
+    /// is the same currency ``move(from:to:)`` takes, so the slot opens on the
+    /// very line the pointer is on, whichever direction the pointer arrived
+    /// from — and every position, including the row's own, can be named.
+    ///
+    /// Reading the row's DATA offset instead agrees only while the pointer is
+    /// below the slot. Above it every row named the position one past itself, so
+    /// dragging back up moved the slot a row late; and the source's own place —
+    /// the one destination a user is most likely to want back, and mid-drag the
+    /// only way to change their mind — could not be named at all, because the
+    /// line it came from is occupied by its successor, which names its own
+    /// offset, which is one too far.
+    ///
+    /// Returns `index` unchanged outside such a drag, where the list is drawn in
+    /// data order and the two are the same number.
+    func reorderDrawnPosition(of index: Int) -> Int {
+        let removed = reorderRemovedRows
+        guard !removed.isEmpty else {
+            // A drag from ELSEWHERE takes no rows out of this list, but its
+            // landing slot still pushes every row at or past it down a line —
+            // so a row below the slot names the position after itself, exactly
+            // as a reorder's does. Without this the mapping is a fixed point:
+            // the row under the pointer keeps naming the index the slot is
+            // already at, and the gap sits one row above the cursor for the
+            // rest of the drag.
+            guard let slot = externalDropSlot else { return index }
+            return index >= slot ? index + 1 : index
+        }
+        let closedUp = reorderClosedUpIndex(index, removed: removed)
+        guard let slot = reorderPlaceholder?.slot else { return closedUp }
+        return closedUp >= slot ? closedUp + 1 : closedUp
+    }
+
+    // MARK: - Which feedback
+
+    /// The feedback actually shown, which is ``reorderFeedback`` except where
+    /// ``RowReorderFeedback/cursor`` has no cursor to ride.
+    ///
+    /// That mode's whole idea is the row travelling with the pointer, which
+    /// takes two things: a pointer, and a drag session to draw the row above the
+    /// frame. A move driven from the KEYBOARD has neither, and a build with no
+    /// drag session has no way to draw it. Both fall back to
+    /// ``RowReorderFeedback/dimmed`` — the same information (a faint copy of the
+    /// row where it would land) in the one place that is left to show it. The
+    /// alternative, an empty gap and a row that is nowhere at all, would just
+    /// look like the row had been deleted.
+    package var effectiveReorderFeedback: RowReorderFeedback {
+        // A move started from the KEYBOARD always previews dimmed, whatever the
+        // view asked for. A mouse drag needs no mode indicator — the pointer is
+        // one — but Ctrl-R puts the control into a state the user cannot see
+        // otherwise, and `.live` (which just shuffles the data) shows nothing at
+        // all. The faint copy at the slot IS the indicator — except where the
+        // view cannot draw one (``keyboardMoveIsLive``), where the row moving
+        // under the cursor is the only indication there can be.
+        if isKeyboardMove { return keyboardMoveIsLive ? .live : .dimmed }
+        guard reorderFeedback == .cursor else { return reorderFeedback }
+        return canFloatDraggedRow ? .cursor : .dimmed
+    }
+
+    // MARK: - Moving a row from the keyboard
+
+    /// Picks the focused row up, or — if one is already in hand — puts it down
+    /// where it now is. Reports whether anything happened, so an unreorderable
+    /// list lets the key through to whatever else wants it.
+    ///
+    /// From here the arrow keys (and Home/End/Page) move the row's landing SLOT
+    /// rather than the cursor, ``placeHeldRow()`` commits and
+    /// ``cancelKeyboardMove()`` puts it back. That is the only way this control's
+    /// grammar changes, and only while a row is in hand.
+    @discardableResult
+    func beginKeyboardMove() -> Bool {
+        guard onMove != nil, itemCount > 0 else { return false }
+        if isKeyboardMove {
+            placeHeldRow()
+            return true
+        }
+        beginReorder(grabbing: focusedIndex)
+        // The grab declines for a `.moveDisabled()` row. Latching the mode
+        // anyway swallowed every navigation key as a held-row no-op — with
+        // nothing in hand and no visible mode — until Enter or Escape
+        // happened to be pressed. A refused pick-up falls through instead,
+        // like the chord in a list that is not reorderable at all.
+        guard reorder != nil else { return false }
+        // A keyboard move is a move from the first keystroke: there is no
+        // "moved far enough to not be a click" question to answer.
+        reorder?.active = true
+        // The slot starts where the held rows already are — as a CLOSED-UP
+        // position, which for a multi-row hold is not the focused index: the
+        // rows above it in the selection have already left.
+        let held = reorder?.held ?? IndexSet()
+        reorder?.targetOffset = reorderClosedUpIndex(focusedIndex, removed: held)
+        isKeyboardMove = true
+        return true
+    }
+
+    /// Moves the landing slot by `delta` rows, clamped to the list — past
+    /// whole elements, where an element draws several rows.
+    func moveHeldRow(by delta: Int) {
+        guard let reorder else { return }
+        moveHeldRow(to: (reorder.targetOffset ?? reorder.currentOffset) + delta, toward: delta)
+    }
+
+    /// Moves the landing slot to `slot`, clamped to the list.
+    ///
+    /// Under ``RowReorderFeedback/live`` there is no slot to move: the data
+    /// moves now, one `onMove` per step, exactly as a live drag does. The slot
+    /// modes leave the data alone and move the gap, so the list keeps its length
+    /// and one `onMove` fires at the drop.
+    func moveHeldRow(to slot: Int, toward direction: Int = 0) {
+        guard var reorder, reorder.active else { return }
+        // Clamped to the rows in hand may land among — the whole list for a
+        // flat one, and this section's rows inside a Section. That is what
+        // makes Home / End / a page step mean "this section's end" rather than
+        // an offset in a collection the row never belonged to. And between two
+        // elements, never inside one, where an element draws several rows.
+        let target = groupBoundarySlot(
+            clampedSlot(slot, in: reorderSpan), held: reorder.held, toward: direction)
+        if effectiveReorderFeedback == .live {
+            let landed = move(from: reorder.currentOffset, to: target)
+            reorder.currentOffset = landed
+            reorder.targetOffset = landed
+            focusedIndex = clampedRowIndex(landed)
+        } else {
+            reorder.targetOffset = target
+            // Keep the cursor beside the slot so an enclosing scroller follows
+            // it off-screen: the slot itself is not a row the cursor can sit on.
+            focusedIndex = clampedRowIndex(target < reorder.grabbedOffset ? target : target + 1)
+        }
+        self.reorder = reorder
+        ensureFocusedItemVisible()
+    }
+
+    /// Drops the row at the slot it is showing.
+    func placeHeldRow() {
+        defer { endKeyboardMove() }
+        guard let reorder, reorder.active else { return }
+        if effectiveReorderFeedback == .live {
+            focusedIndex = clampedRowIndex(reorder.currentOffset)
+        } else if let target = reorder.targetOffset {
+            focusedIndex = clampedRowIndex(
+                move(reorder.held, to: target) + reorder.primaryRank)
+        }
+        ensureFocusedItemVisible()
+    }
+
+    /// Abandons the move: the row goes back where it was picked up.
+    ///
+    /// Under `.live` that means moving it back — the data has been moving all
+    /// along — while the slot modes never moved it, so there is only the gap to
+    /// drop.
+    func cancelKeyboardMove() {
+        defer { endKeyboardMove() }
+        guard let reorder, reorder.active else { return }
+        if effectiveReorderFeedback == .live, reorder.currentOffset != reorder.grabbedOffset {
+            move(from: reorder.currentOffset, to: reorder.grabbedOffset)
+        }
+        focusedIndex = clampedRowIndex(reorder.grabbedOffset)
+        ensureFocusedItemVisible()
+    }
+
+    private func endKeyboardMove() {
+        reorder = nil
+        isKeyboardMove = false
+    }
+
+    /// The whole keyboard-reorder branch: the keys a held row answers, or the
+    /// chord that picks one up. `nil` when neither applies, so the key goes on
+    /// to mean whatever it usually means.
+    /// Every key reordering claims, in one place: the chords, the held-row
+    /// movement, and — while a MOUSE drag is in flight — the navigators, which
+    /// scroll rather than move the cursor. `nil` means "not ours".
+    func handleReorderKey(_ event: KeyEvent) -> Bool? {
+        if let handled = handleRowMoveKey(event) { return handled }
+        guard isReordering, !isKeyboardMove else { return nil }
+        return handleDragScrollKey(event)
+    }
+
+    func handleRowMoveKey(_ event: KeyEvent) -> Bool? {
+        // A mouse drag owns the gesture: it must not fall into the keyboard-move
+        // keys. `.pickUpRow` there would overwrite the in-flight reorder and
+        // latch `isKeyboardMove`, which the mouse release does not clear —
+        // leaving the list in a mode with nothing in hand. NO key cancels it
+        // either, deliberately: see ``cancelMouseDragReorder()``.
+        if isReordering, !isKeyboardMove { return nil }
+        if isKeyboardMove, let handled = handleKeyboardMoveKey(event) { return handled }
+        // Chords, so they work in either selection mode.
+        guard let (action, accelerated) = shortcuts.action(for: event) else { return nil }
+        // Shift rides along as the coarse step, exactly as it does for the
+        // cursor keys — same environment-configured multiplier.
+        let step = accelerated ? max(1, shiftStepMultiplier) : 1
+        switch action {
+        case .pickUpRow: return beginKeyboardMove() ? true : nil
+        case .moveRowUp: return nudgeFocusedRow(by: -step) ? true : nil
+        case .moveRowDown: return nudgeFocusedRow(by: step) ? true : nil
+        case .moveRowPageUp: return nudgeFocusedRow(by: -pageStep) ? true : nil
+        case .moveRowPageDown: return nudgeFocusedRow(by: pageStep) ? true : nil
+        case .moveRowToTop: return moveFocusedRow(to: 0) ? true : nil
+        case .moveRowToBottom: return moveFocusedRow(to: itemCount - 1) ? true : nil
+        // Sorting is not a reorder — and must not happen during one, which is
+        // `handleSortKey`'s `!isReordering` guard.
+        case .selectAll, .extendSelection, .placeRow, .cancelMove,
+            .sortNextColumn, .reverseSortOrder, .customizeColumns:
+            return nil
+        }
+    }
+
+    /// Moves the focused row one place, with no mode to enter or leave — the
+    /// single-step shortcut that is most of what reordering ever is.
+    ///
+    /// Each press is one `onMove`, so it is undoable and repeatable in the
+    /// app's own terms, and the cursor rides along with the row.
+    /// Applies a bound chord to the row currently in hand. Returns whether it
+    /// meant anything here — a selection chord does not.
+    private func heldRowChord(_ bound: (action: RowAction, accelerated: Bool)) -> Bool {
+        let step = bound.accelerated ? max(1, shiftStepMultiplier) : 1
+        switch bound.action {
+        case .placeRow, .pickUpRow: placeHeldRow()
+        case .cancelMove: cancelKeyboardMove()
+        case .moveRowUp: moveHeldRow(by: -step)
+        case .moveRowDown: moveHeldRow(by: step)
+        case .moveRowPageUp: moveHeldRow(by: -pageStep)
+        case .moveRowPageDown: moveHeldRow(by: pageStep)
+        case .moveRowToTop: moveHeldRow(to: 0)
+        case .moveRowToBottom: moveHeldRow(to: itemCount - 1)
+        case .selectAll, .extendSelection, .sortNextColumn, .reverseSortOrder, .customizeColumns:
+            return false
+        }
+        return true
+    }
+
+    /// The navigators, while a MOUSE drag is in flight: they scroll the
+    /// viewport and leave the cursor and the selection exactly where they are.
+    ///
+    /// Moving the focus mid-drag is confusing in a specific way — the next
+    /// pointer movement snaps it back, because the drag re-points the cursor at
+    /// the row under the pointer. Scrolling is what these keys are FOR here:
+    /// reaching a destination that is off-screen without letting go.
+    ///
+    /// Every claimed key returns `true` even at an edge: an unconsumed arrow is
+    /// taken by the focus system's in-section navigation and would move focus to
+    /// another control mid-drag, which is worse than a no-op.
+    /// They move whatever the POINTER is over, which need not be this list: a
+    /// drag is carried across the app, and the scrollable a user wants to reach
+    /// into is the one under the payload, not the one it came from. Resolved by
+    /// the session against the same rule the edge auto-scroll uses, so the keys
+    /// and the edges can never disagree about which view is in play. Falls back
+    /// to this list when nothing qualifies — which is what a reorder inside its
+    /// own list gets, since that is the only zone its gesture can land in.
+    func handleDragScrollKey(_ event: KeyEvent) -> Bool? {
+        let target: any ScrollableOffsetState = dragSession?.scrollableUnderCursor() ?? self
+        let step = event.shift ? max(1, shiftStepMultiplier) : 1
+        // A screenful of the view being MOVED, not of this one — and its own
+        // idea of a screenful, since the unit and the indicator reservation
+        // are the target's. See `ScrollableOffsetState.pageDistance`.
+        let page = target.pageDistance
+        switch event.key {
+        case .up: target.scrollFine(by: -step)
+        case .down: target.scrollFine(by: step)
+        // Pages are re-based on what the target DREW (``pageDelta(_:)``): near
+        // the top edge a viewport at offset 1 draws from 0, and mid-drag that
+        // duplicate is reachable — Home leaves you on 0, Page Up on 1 — so
+        // without this one Page Down from two identical-looking screens went
+        // two rows or three. The steps above deliberately do NOT re-base:
+        // stepping is how the offset gets past the duplicate at all.
+        case .pageUp: target.scrollFine(by: target.pageDelta(-page))
+        case .pageDown: target.scrollFine(by: target.pageDelta(page))
+        case .home: target.scrollToOffset(0)
+        case .end: target.scrollToOffset(target.settledMaxOffset)
+        default: return nil
+        }
+        target.releaseAnchorOnUserScroll()
+        return true
+    }
+
+    /// A screenful, in rows — the same unit the Page keys scroll by.
+    var pageStep: Int { max(1, viewportHeight - 1) }
+
+    /// Moves the focused row to an absolute position, with no mode to enter:
+    /// the Home/End of reordering.
+    @discardableResult
+    func moveFocusedRow(to destination: Int) -> Bool {
+        guard onMove != nil, itemCount > 1,
+            // The rows this one can be moved among — `nil` for a row no movable
+            // `ForEach` produced, which refuses the chord exactly as the
+            // `.moveDisabled()` check below does.
+            let span = movableSpan(of: clampedRowIndex(focusedIndex)),
+            // `.moveDisabled()` on the row: a refused row leaves the chord
+            // alone entirely, falling through exactly as in a list that is
+            // not reorderable at all — the same reasoning, and the same
+            // FALSE, as `deleteFocusedRow`'s guard.
+            !moveDisabledRows.contains(clampedRowIndex(focusedIndex))
+        else { return false }
+        let from = clampedRowIndex(focusedIndex)
+        guard reorderGroupSpan == nil else {
+            return moveFocusedGroup(from: from, toSlot: clampedSlot(destination, in: span), toward: 0)
+        }
+        let target = clampedSlot(destination, in: span)
+        guard target != from else { return false }
+        focusedIndex = move(from: from, to: target)
+        ensureFocusedItemVisible()
+        return true
+    }
+
+    @discardableResult
+    func nudgeFocusedRow(by delta: Int) -> Bool {
+        guard onMove != nil, itemCount > 0,
+            // See `moveFocusedRow(to:)` — the same two refusals, the same FALSE.
+            let span = movableSpan(of: clampedRowIndex(focusedIndex)),
+            !moveDisabledRows.contains(clampedRowIndex(focusedIndex))
+        else { return false }
+        guard reorderGroupSpan == nil else {
+            let group = reorderGroup(of: clampedRowIndex(focusedIndex))
+            moveFocusedGroup(
+                from: clampedRowIndex(focusedIndex),
+                toSlot: clampedSlot(group.lowerBound + delta, in: span), toward: delta)
+            return true
+        }
+        let target = clampedSlot(focusedIndex + delta, in: span)
+        guard target != focusedIndex else { return true }
+        focusedIndex = clampedRowIndex(move(from: focusedIndex, to: target))
+        ensureFocusedItemVisible()
+        return true
+    }
+
+    /// Moves the rows that move with the focused row at `from`
+    /// (``reorderGroup(of:)``) to closed-up position `slot`, snapped to the
+    /// nearest element boundary `toward` the direction of travel, keeping the
+    /// cursor on the same row of the element. Reports whether anything moved.
+    @discardableResult
+    private func moveFocusedGroup(from: Int, toSlot slot: Int, toward direction: Int) -> Bool {
+        let group = reorderGroup(of: from)
+        let held = IndexSet(integersIn: group)
+        let target = groupBoundarySlot(slot, held: held, toward: direction)
+        // Where the element already starts, closed up, is no move.
+        guard target != group.lowerBound else { return false }
+        focusedIndex = clampedRowIndex(move(held, to: target) + (from - group.lowerBound))
+        ensureFocusedItemVisible()
+        return true
+    }
+
+    /// The keys a held row answers, or `nil` for one that keeps its usual
+    /// meaning (so a chord the app bound elsewhere still works mid-move).
+    private func handleKeyboardMoveKey(_ event: KeyEvent) -> Bool? {
+        if let bound = shortcuts.action(for: event), heldRowChord(bound) { return true }
+        let page = pageStep
+        // Shift is the coarse step here too. It cannot arrive as an accelerated
+        // CHORD the way a nudge does — this mode claims the BARE arrows, which
+        // no binding names — so the multiplier is applied on this path as well.
+        // Page/Home/End ignore it: a screenful and an end are already coarse.
+        let step = event.shift ? max(1, shiftStepMultiplier) : 1
+        switch event.key {
+        case .up: moveHeldRow(by: -step)
+        case .down: moveHeldRow(by: step)
+        case .pageUp: moveHeldRow(by: -page)
+        case .pageDown: moveHeldRow(by: page)
+        case .home: moveHeldRow(to: 0)
+        case .end: moveHeldRow(to: itemCount - 1)
+        default: return nil
+        }
+        return true
+    }
+
+    // MARK: - What to draw
+
+    /// One entry in the order a view actually draws during a reorder drag.
+    package enum DrawnRow: Equatable {
+        /// A real row, by data offset.
+        case row(Int)
+
+        /// The drop slot — a gap the size of the dragged row (`.cursor`), or a
+        /// faint copy of it (`.dimmed`). It has no data behind it: the keyboard
+        /// cursor cannot sit on it and selection ignores it, but it IS a drop
+        /// target, because after every step of the drag the pointer is on it.
+        case slot
+    }
+
+    /// The rows to draw for `visible`, with the dragged row taken out and the
+    /// drop slot opened where it would land.
+    ///
+    /// So a drag never changes how much is on screen, and what IS on screen is
+    /// exactly the order a drop would produce — the preview is the result rather
+    /// than the result plus a leftover.
+    ///
+    /// Returns `visible` unchanged (every entry a `.row`) when nothing is
+    /// dragging, or when ``RowReorderFeedback/live`` is moving the data instead,
+    /// or when a `.dimmed` drag has nowhere to drop — see ``reorderRemovedRow``
+    /// for why those three are one question.
+    ///
+    /// Shared by `List` and `Table`: the index arithmetic is the same for both,
+    /// and it is subtle enough (every index here is CLOSED-UP, which is also what
+    /// `move(from:to:)` produces) that having it twice is how the two drift.
+    ///
+    /// `excluding` names a row that has left the list without the list owning
+    /// the gesture: a `.draggable` row whose drag started HERE, which the drag
+    /// is already carrying at the cursor. It only arises on the external-drag
+    /// path, and only for a `List` — a `Table` builds its rows from `data`, so
+    /// they cannot be `.draggable` and there is no such row to leave.
+    func reorderDrawnRows(
+        _ visible: some Sequence<Int>, excluding excluded: Int? = nil
+    ) -> [DrawnRow] {
+        let removed = reorderRemovedRows
+        guard !removed.isEmpty else {
+            // No reorder of our own — but a drag may be hovering, and it opens
+            // the same gap for the same reason. When that drag STARTED here the
+            // row it took is dropped as well, so the list keeps its length: one
+            // row out, one slot in. Drawn AND slotted, it gained a line — the
+            // gap the drop opens plus the blank the row left behind.
+            let rows = Array(visible).filter { $0 != excluded }
+            guard let slot = externalDropSlot else { return rows.map { .row($0) } }
+            var drawn = rows.map { DrawnRow.row($0) }
+            let at = rows.firstIndex { $0 >= slot } ?? drawn.count
+            drawn.insert(.slot, at: min(at, drawn.count))
+            return drawn
+        }
+        // EVERY held row leaves — a multi-row drag carries them all — but only
+        // ONE slot opens: they land as a single block, so a gap per row would
+        // promise something the drop does not do.
+        let rows = visible.filter { !removed.contains($0) }
+        guard let placeholder = reorderPlaceholder else { return rows.map { .row($0) } }
+        // The slot goes at closed-up position `placeholder.slot` — before the
+        // first surviving row that already numbers at or past it.
+        let slot =
+            rows.firstIndex { reorderClosedUpIndex($0, removed: removed) >= placeholder.slot }
+            ?? rows.count
+        var drawn = rows.map { DrawnRow.row($0) }
+        drawn.insert(.slot, at: slot)
+        return drawn
+    }
+
+    /// ``reorderDrawnRows(_:excluding:)`` for a window of consecutive rows,
+    /// which is what a `Table` asks with, on every frame.
+    ///
+    /// A concrete entry, not generic, so that it is specialised here: a
+    /// generic function reaches another module only as its unspecialised
+    /// entry unless its body crosses too (CONTRIBUTING.md, "Crossing a module
+    /// boundary"), and a table's row code is in TUITables, where this
+    /// one's would step through the window row by row through `Sequence`'s
+    /// witnesses. Not `@inlinable` either, which needs this class
+    /// `@usableFromInline` and so every member that witnesses one of its
+    /// protocols' requirements, its stored properties among them.
+    package func reorderDrawnRows(_ visible: Range<Int>) -> [DrawnRow] {
+        reorderDrawnRows(visible, excluding: nil)
+    }
+
+    /// Re-reads the drop target from the bands just published, while edge
+    /// auto-scroll is driving THIS list.
+    ///
+    /// The target is a DRAWN position, and it is otherwise only computed in the
+    /// `.dragged` branch of the mouse handler — but auto-scroll is by
+    /// definition the case where the pointer holds still and no drag event
+    /// arrives. Left stale, the slot walks to the top edge as its index scrolls
+    /// off, and the eventual drop lands a place out.
+    private func retargetForAutoScroll() {
+        guard isAutoScrolling else { return }
+        // A drag from ANOTHER view has the same problem and no reorder state to
+        // solve it with: `hovering` is only called when the pointer moves, so
+        // the slot it last chose is a data index that the scrolling rows carry
+        // away from under the cursor — the gap drifting off the screen while
+        // the drag holds still at the edge.
+        if reorder == nil, let y = lastExternalDropContentY {
+            // Only when the rows have actually MOVED. That is the whole reason
+            // this path exists, and asking again when they have not is not
+            // merely wasted: the answer is read off bands that the previous
+            // answer helped lay out, so it can oscillate. See
+            // ``ItemListHandler/externalDropResolvedOffset``, which is written
+            // by the retarget and cleared by every hover — and which, until
+            // 2026-08-24, nothing read: the guard these three comments describe
+            // was documented and never written, so the retarget re-answered
+            // every frame and the gap flipped above and below the last row for
+            // as long as the pointer was held there.
+            guard externalDropResolvedOffset != scrollOffset else { return }
+            // Unclamped: `retargetExternalDrop` has its own past-the-end rule,
+            // and it has to, because the gap it is recomputing is itself a
+            // droppable band whose `dropIndex` IS `externalDropSlot`. Clamping
+            // onto that would resolve the slot to the value it already has and
+            // the gap would sit still while the rows streamed past it — the bug.
+            //
+            // After the rows are drawn, so a move of the gap is reported: see
+            // `drawing`. Mid-render, which is what keeps the row around this
+            // list from storing the picture the move has just made stale.
+            let before = externalDropSlot
+            retargetExternalDrop(atContentY: y)
+            if externalDropSlot != before { drawing?.changed() }
+            return
+        }
+        guard reorder != nil, let y = lastReorderContentY else { return }
+        // CLAMPED onto the rows, not replayed verbatim. Auto-scroll engages at
+        // the control's edge, and the hot margin is chrome — the indicator line,
+        // the header — so the pointer is by definition NOT on a droppable row.
+        // Replayed as-is it resolved to nothing, `dragReorder` returned without
+        // touching the target, and the slot sat still while the rows streamed
+        // past it: the "wiggle the mouse and it snaps back" report. Clamped, the
+        // slot rides the leading edge of the viewport, which is what a drag past
+        // the edge means.
+        // Through the resolver, NOT `dragReorder`: that records its argument as
+        // the pointer's position, and the argument here is a clamped derivative
+        // of it. Stored, the clamp compounds — the true position is gone after
+        // the first tick and every later frame re-clamps an already-clamped
+        // value. It stayed invisible because the clamp is idempotent whenever
+        // the last droppable band's end holds still, which it does for as long
+        // as the row area is exactly full of rows. Let a slot or an indicator
+        // move that end and the replay resolves to whatever band has inherited
+        // the stale line.
+        resolveReorderTarget(atContentY: clampedToDroppableRows(y))
+    }
+
+    /// `contentY` moved onto the nearest line that can actually take a drop.
+    /// Unchanged when it already is one.
+    private func clampedToDroppableRows(_ contentY: Int) -> Int {
+        clamped(contentY, onto: visibleRowBands.filter { $0.dropIndex != nil })
+    }
+
+    /// The drop position `contentY` names, reaching over the lines the DRAG
+    /// itself emptied — and `nil` from anywhere further out.
+    ///
+    /// A `.cursor` drag closes the rows up behind the rows it is carrying, so
+    /// the row area ends in as many blank lines as they occupied (the views pad
+    /// to keep the control's height — a drag never changes how much is on
+    /// screen). Those lines are still the control's, and pointing at one plainly
+    /// means somewhere; read as "no band here" they instead CANCEL the gesture,
+    /// which is what dragging below the last row and back onto the line it used
+    /// to occupy did. The rows had moved up by one the moment the gap went, so
+    /// the line the user was still aiming at was no longer a row.
+    ///
+    /// What such a line means depends on which side it is. Below the last row it
+    /// is AFTER it, not at it: clamping onto the last row's band instead names
+    /// the position that row occupies, which opens the gap one line ABOVE the
+    /// pointer — visibly wrong, and self-correcting on the next movement, which
+    /// is exactly how it was reported.
+    ///
+    /// The bound is what keeps this honest. A control whose rows do not fill its
+    /// content area draws its bottom border on a line that is nonetheless inside
+    /// ``rowSpaceContentY(_:)``, and reaching from THERE would make the border a
+    /// drop target — which it is not, for a drag any more than for a click.
+    private func vacatedRowsTarget(atContentY contentY: Int) -> Int? {
+        if let target = dropTarget(atContentY: contentY) { return target }
+        let droppable = visibleRowBands.filter { $0.dropIndex != nil }
+        guard let first = droppable.first, let last = droppable.last else { return nil }
+        if contentY < first.yStart { return first.dropIndex }
+        let end = last.yStart + last.height
+        guard contentY >= end, contentY < end + reorderVacatedLines else { return nil }
+        return last.dropIndex.map { $0 + 1 }
+    }
+
+    /// How many lines of this frame's row area the drag emptied and did not
+    /// fill again — the rows it is carrying that were in the window, once no
+    /// gap is drawn to stand in for them.
+    ///
+    /// Zero the moment a gap IS drawn: the gap is exactly as many lines as the
+    /// rows in hand, so the area is whole again.
+    private var reorderVacatedLines: Int {
+        guard !reorderDrawsSlot else { return 0 }
+        let removed = reorderRemovedRows
+        guard !removed.isEmpty else { return 0 }
+        let window = drawnVisibleRange
+        return removed.filter(window.contains).reduce(0) { $0 + max(1, rowHeight?($1) ?? 1) }
+    }
+
+    private func clamped(_ contentY: Int, onto bands: [RowBand]) -> Int {
+        guard let first = bands.first, let last = bands.last else { return contentY }
+        if contentY < first.yStart { return first.yStart }
+        let end = last.yStart + max(1, last.height) - 1
+        return contentY > end ? end : contentY
+    }
+
+    /// Whether this data row carries the keyboard cursor *right now*.
+    ///
+    /// While a row is out of the list — the slot feedback modes — the cursor
+    /// belongs to the SLOT, which is where the row visually is. `focusedIndex`
+    /// is meanwhile parked on a neighbour of the slot on purpose (see
+    /// ``moveHeldRow(to:)``): the scroll-follow machinery reasons in data
+    /// indices and a slot has no data behind it. Highlighting straight from
+    /// `focusedIndex` is what put the cursor one row BELOW the row being moved.
+    package func isCursorRow(_ index: Int) -> Bool {
+        reorderRemovedRow == nil && isFocused(at: index)
+    }
+
+    /// Whether the control is steering a row that has left the list, so the
+    /// slot should read as "this is in your hand" rather than as a hole.
+    var isHoldingRow: Bool { reorderRemovedRow != nil }
+
+    /// The one held row the keyboard cursor is on — the row the user actually
+    /// grabbed, and the one that is still "the" row after the drop — or `nil`
+    /// when the question does not arise.
+    ///
+    /// It arises for a keyboard move holding SEVERAL rows, and only there. The
+    /// held rows leave the list and are redrawn as the slot, which carries the
+    /// focus pulse across its whole height; with one row that pulse IS the
+    /// cursor, but with three it is on all of them at once, and an indicator
+    /// everything wears indicates nothing. Before <kbd>Ctrl</kbd>+<kbd>R</kbd>
+    /// the cursor row was plainly distinguishable from its selected neighbours,
+    /// and picking the block up must not take that away.
+    ///
+    /// `nil` for a mouse drag whatever it is holding: the pointer says where
+    /// the rows are, and there is no keyboard cursor in play to lose.
+    package var reorderPrimaryHeldRow: Int? {
+        guard isKeyboardMove, let reorder, reorder.held.count > 1 else { return nil }
+        return reorder.grabbedOffset
+    }
+
+        /// The sentinel `rowIndex` the reorder drop slot is published with: it has
+    /// no data behind it, so it cannot carry a real offset.
+    static var reorderSlotRowIndex: Int { -1 }
+
+    /// One drawn entry's extent on screen, as a view reports it.
+    package struct DrawnBand {
+        /// What occupies a drawn line, for band purposes.
+        package enum Content {
+            /// A real, selectable data row.
+            case row(Int)
+            /// The reorder drop slot: a drop target with no data behind it.
+            case slot
+            /// Chrome that shares the row area — a `List`'s section header. Not
+            /// selectable, and not somewhere a row can land.
+            case chrome(rowIndex: Int)
+        }
+
+        /// What is drawn there.
+        package var entry: Content
+        /// Its first line, counted from the first CONTENT line of the interior,
+        /// with the "N more above" indicator's offset and any overscroll slide
+        /// already in: this is the space the mouse handler works in.
+        ///
+        /// The indicator's line is INSIDE this space rather than subtracted out
+        /// ahead of it, which is what makes the origin one a scroll cannot move
+        /// — the reason ``ItemListHandler/lastReorderContentY`` is worth holding
+        /// across frames at all. Both views satisfy it: `List` pre-slides its
+        /// ranges (`_ListCore.slidRanges`) and adds the indicator's offset in
+        /// `slideAndWrap`; `Table`'s three publishers sum the same two terms
+        /// (`Table.publishRowBands`, `Table.multiLineRowBands`).
+        package var yStart: Int
+        /// How many lines it occupies (a clipped row counts what is shown).
+        package var height: Int
+    }
+
+    /// Hands this frame's drawn row geometry to the drag, applying the
+    /// drop-index rules once for both `List` and `Table`.
+    ///
+    /// It has to come from the handler rather than a mouse closure's captured
+    /// copy: a ``RowReorderFeedback/live`` drag reorders the rows underneath the
+    /// cursor, so press-frame bands would describe an order that no longer
+    /// exists (and a wheel tick can scroll them out from under any mode).
+    /// Keeps the drop target under a MOTIONLESS pointer while auto-scroll moves
+    /// the rows beneath it. Call BEFORE the rows are composed — that is the
+    /// whole point of it.
+    ///
+    /// ``retargetForAutoScroll()`` re-resolves the target from the drawn bands,
+    /// and ``publishRowBands(_:)`` defers that until after the rows are
+    /// composed. Standing still, drawing from the previous frame's answer is
+    /// invisible. Under auto-scroll it is not: the content has moved a row in
+    /// between, so every frame draws the slot one row above the pointer, for as
+    /// long as the scroll runs. It never catches up, because the rows keep
+    /// moving — only a mouse event, which resolves before a render, does. That
+    /// is what "wiggle the mouse and it snaps into place" was.
+    ///
+    /// The pointer is not moving, so the slot must not either. Advance the
+    /// target by however far the rows have scrolled since the bands were
+    /// published, which is exactly what keeps it on the same line.
+    package func carryReorderTargetThroughAutoScroll() {
+        guard isAutoScrolling, var reorder, reorder.active, let target = reorder.targetOffset
+        else { return }
+        let delta = scrollOffset - visibleRowBandsOffset
+        guard delta != 0 else { return }
+        // Within the span the drag may land in — the whole list for a flat one,
+        // so this is the old `max(0, min(itemCount, …))` wherever it always was.
+        let span = reorderSpan
+        reorder.targetOffset = groupBoundarySlot(
+            max(span.lowerBound, min(span.upperBound, target + delta)), held: reorder.held)
+        self.reorder = reorder
+        visibleRowBandsOffset = scrollOffset
+    }
+
+    /// How much of an over-long reorder frame to clip, and from which end.
+    ///
+    /// A drag never changes how much is on screen, so a frame that overruns its
+    /// budget is clipped — but never THROUGH THE SLOT. It overruns when rows in
+    /// hand have scrolled out of the visible range, and when the slot is the
+    /// last entry (the "move to the end" destination) the tail IS the slot:
+    /// clipping it took away the only thing on screen saying where the rows
+    /// would land, which reads as the selection falling off the bottom. So the
+    /// overrun comes off the FRONT instead — visually, the view scrolled down
+    /// to keep the destination in sight.
+    ///
+    /// One function for both views because it is a rule, and two copies of a
+    /// rule are two chances to state it differently. They had: `Table` clipped
+    /// against `budget` and `_ListCore` against `max(1, budget)`, a difference
+    /// that shows only at a budget below one. Neither view can reach that — the
+    /// List's two budgets are `max(1, …)` at source, and the Table's is a count
+    /// of rows it has already drawn — so the floor was inert, and it is dropped
+    /// rather than adopted: a floor that keeps a line the caller did not budget
+    /// for would overflow the container if it ever did apply, which is the
+    /// wrong direction to fail in.
+    ///
+    /// - Parameters:
+    ///   - lineCount: How many lines the frame drew.
+    ///   - budget: How many it may keep.
+    ///   - endsWithSlot: Whether the last drawn entry is the drop slot.
+    /// - Returns: Lines to drop from each end. At most one is non-zero.
+    package static func reorderOverrun(
+        lineCount: Int, budget: Int, endsWithSlot: Bool
+    ) -> (front: Int, back: Int) {
+        let overrun = lineCount - budget
+        guard overrun > 0 else { return (front: 0, back: 0) }
+        return endsWithSlot ? (front: overrun, back: 0) : (front: 0, back: overrun)
+    }
+
+    /// The frame's bands, from the entries it drew and where they landed.
+    ///
+    /// One builder for both views, because ``DrawnBand/yStart``'s contract —
+    /// "lines from the first CONTENT line of the interior, with the 'N more
+    /// above' indicator's offset and any overscroll slide already in" — is a
+    /// rule about arithmetic, and two views doing that arithmetic separately is
+    /// how one of them came to skip it. `Table`'s multi-line publisher applied
+    /// neither term.
+    ///
+    /// - Parameters:
+    ///   - drawn: what occupies each drawn entry, top to bottom, with the number
+    ///     of lines it takes. Chrome interleaves with rows, which is why this is
+    ///     a list of entries rather than a range.
+    ///   - slide: what moves the ROWS as a block within the interior, and only
+    ///     them — the lines a reorder overrun took off their front, and MINUS
+    ///     the overscroll excursion, because `slid()` draws unslid line `y` at
+    ///     `y − excursion` and the bands have to travel with the rows rather
+    ///     than mirror them.
+    ///   - rowsTop: where the row block begins, in `yStart`'s space: the chrome
+    ///     already drawn above the rows, which the slide does NOT move. It is
+    ///     both added to every `yStart` and the floor a slid band is trimmed to.
+    ///     Kept separate from `slide` because summing them loses the floor, and
+    ///     the floor is the whole difference between trimming a slid row and
+    ///     putting it on the indicator's line.
+    ///
+    ///     `Table` measured `yStart` from the first ROW line until 2026-08-22,
+    ///     subtracting the indicator out in its mouse closure instead; that was
+    ///     self-consistent within a frame and wrong across frames, because it
+    ///     put the origin on a line the scroll moves. What survives a scroll is
+    ///     the interior's first CONTENT line, and holding a pointer position
+    ///     across frames (``ItemListHandler/lastReorderContentY``) needs an
+    ///     origin that does.
+    ///   - lineCount: how many lines the row area actually has, so a band slid
+    ///     or clipped past either edge is trimmed to what is on screen and
+    ///     dropped when nothing of it is.
+    package static func drawnBands(
+        _ drawn: [(entry: DrawnBand.Content, height: Int)],
+        slide: Int,
+        rowsTop: Int,
+        lineCount: Int
+    ) -> [DrawnBand] {
+        var line = rowsTop
+        return drawn.compactMap { entry, height in
+            let yStart = line + slide
+            line += height
+            // TRIMMED to the row block's own top — `rowsTop`, not zero, because
+            // the slide cuts lines off the front of the ROWS and the chrome above
+            // them does not move. A row the slide cut THROUGH is still partly
+            // drawn, and has to answer a click on the lines it kept: dropped
+            // instead, a multi-line table pushed two lines past its bottom left
+            // its top row's last line on screen selecting nothing.
+            //
+            // The guard compares against the CLAMPED start, which is what makes
+            // clamping safe at all: a row slid entirely off the top ends at or
+            // above `rowsTop` and still goes. Comparing against the raw `yStart`
+            // is what a first attempt got wrong — a row wholly above the window
+            // kept a full-height band on the first line and competed there with
+            // the row really drawn on it, which three reorder-drag tests caught.
+            let start = max(rowsTop, yStart)
+            let end = min(lineCount, yStart + height)
+            guard end > start else { return nil }
+            return DrawnBand(entry: entry, yStart: start, height: end - start)
+        }
+    }
+
+    package func publishRowBands(_ bands: [DrawnBand]) {
+        defer { retargetForAutoScroll() }
+        visibleRowBandsOffset = scrollOffset
+        let placeholder = reorderPlaceholder
+        /// The drawn position of the last ROW seen so far — what a slot drawn
+        /// after it can honestly name. See the `.slot` case.
+        var lastRowDrop: Int?
+        // The rows the gesture in flight may land among. Everything outside it
+        // publishes NO drop index: a reorder's offsets index one collection,
+        // and a row past a section header belongs to another, so a landing
+        // there would hand an offset to an array the row never came from.
+        // Refusing it here is what confines the pointer clamp
+        // (``clampedToDroppableRows``), the landing slot and the `.live`
+        // shuffle at one stroke, instead of at three places that can disagree.
+        // The whole list when nothing is in hand, which is every ordinary frame.
+        let span = reorderSpan
+        visibleRowBands = bands.enumerated().map { index, band in
+            switch band.entry {
+            case .row(let rowIndex) where !span.contains(rowIndex):
+                return RowBand(
+                    rowIndex: rowIndex, yStart: band.yStart, height: band.height,
+                    isContent: true, dropIndex: nil)
+            case .row(let rowIndex):
+                // A real row means "put it where this row is" — as the row is
+                // DRAWN, not as its data is numbered. Mid-drag the list has
+                // closed up behind the dragged row and opened a slot elsewhere,
+                // so the two differ, and it is the drawn position the pointer is
+                // actually resting on.
+                let drop = reorderDrawnPosition(of: rowIndex)
+                lastRowDrop = drop
+                return RowBand(
+                    rowIndex: rowIndex, yStart: band.yStart, height: band.height,
+                    isContent: true, dropIndex: drop)
+            case .slot:
+                // The gap holds the target it already has. It is the line the
+                // pointer rests on after every step, so reading it as "off the
+                // rows" is what made a `.cursor` drag cancel its own gap.
+                //
+                // …but never a target the DRAWING cannot honour. Auto-scroll
+                // carries the target along with the rows
+                // (``carryReorderTargetThroughAutoScroll``) and the retarget's
+                // clamp lands on this very band, so nothing opposes the carry
+                // once the gap is the last entry: the target walks on down the
+                // data while the gap stays where the window ends, and the drop
+                // lands past the row the gap is drawn under. A gap drawn LAST
+                // means "after the row above me", and says so.
+                let honest =
+                    placeholder != nil && index == bands.count - 1
+                    ? lastRowDrop.map { $0 + 1 } : nil
+                return RowBand(
+                    rowIndex: Self.reorderSlotRowIndex, yStart: band.yStart,
+                    height: band.height, isContent: false,
+                    // `externalDropSlot` for a drag from elsewhere: that slot is
+                    // where the pointer rests after every step too, and reading
+                    // it as "off the rows" sent the gap to the end of the list
+                    // and back on alternate mouse reports. It carries nothing,
+                    // so it cannot outrun the drawing and takes no correction.
+                    dropIndex: honest.map { min($0, placeholder?.slot ?? $0) }
+                        ?? placeholder?.slot ?? externalDropSlot)
+            case .chrome(let rowIndex):
+                return RowBand(
+                    rowIndex: rowIndex, yStart: band.yStart, height: band.height,
+                    isContent: false, dropIndex: nil)
+            }
+        }
+    }
+
+    // MARK: - The drag
+
+    /// Whether a reorder drag is in flight *and* has moved — the test that
+    /// separates a reorder from a plain click.
+    package var isReordering: Bool { reorder?.active == true }
+
+    /// The row a non-`.live` drag has hold of. `nil` when nothing is dragging
+    /// or when `.live` is moving the data instead.
+    ///
+    /// The row LEAVES its place for the duration of the drag — the list closes
+    /// up behind it, so what is on screen is the order a drop would produce.
+    /// It reappears only at the drop slot, and only in `.dimmed`.
+    var reorderSource: Int? {
+        guard effectiveReorderFeedback != .live, let reorder, reorder.active else { return nil }
+        return reorder.currentOffset
+    }
+
+    /// The row a ``RowReorderFeedback/cursor`` drag is carrying on the pointer,
+    /// or `nil` when no such drag is in flight. `_ListCore` hands this row's
+    /// buffer to the drag session, which floats it at the cursor.
+    ///
+    /// Held for the WHOLE drag, including while the cursor is off the rows and
+    /// there is no drop slot: the row is in the user's hand either way, and the
+    /// absent slot is what says releasing here would put it back.
+    var reorderFloatingRow: Int? {
+        guard effectiveReorderFeedback == .cursor else { return nil }
+        return reorderSource
+    }
+
+    /// EVERY row a ``RowReorderFeedback/cursor`` drag is carrying, in data
+    /// order — stacked, they are what the float shows and what the gap makes
+    /// room for. One row is the ordinary case; a multi-row gesture carries the
+    /// whole selection, and showing only the grabbed one of them looked exactly
+    /// like the rest had been deleted.
+    package var reorderFloatingRows: [Int] {
+        guard effectiveReorderFeedback == .cursor else { return [] }
+        return Array(reorderRemovedRows)
+    }
+
+    /// The rows in hand that sit above the one the pointer grabbed — the part
+    /// of the floating stack drawn before it, and so the distance the grab
+    /// point moves down within the stack. Without it a multi-row drag hangs
+    /// from its first row however far down the block you took hold.
+    package var reorderHeldRowsAboveGrab: [Int] {
+        guard let reorder else { return [] }
+        return reorder.held.filter { $0 < reorder.grabbedOffset }
+    }
+
+    /// Where the dragged row would land — what `.dimmed` and `.cursor` open a
+    /// slot for (a faint copy of the row, and an empty gap, respectively).
+    ///
+    /// The slot is a CLOSED-UP index: the row's prospective final position, with
+    /// the source already taken out. See ``reorderClosedUpIndex(_:source:)``.
+    ///
+    /// `nil` when nothing is dragging, when `.live` is moving the data instead,
+    /// or when the cursor has left the rows (`.cursor` drops its gap then, so
+    /// the list reads as "let go here and nothing moves").
+    ///
+    /// The row's OWN place is a legitimate destination, and the preview shows it
+    /// like any other: putting the row back where it came from is a thing a user
+    /// may want to do, and mid-drag it is the only way to change their mind. It
+    /// was suppressed once, on the grounds that a copy of the row drawn against
+    /// itself made the list look like it had gained a duplicate — true while the
+    /// source row stayed put, and untrue since it started LEAVING its place for
+    /// the duration of the drag. Suppressing it now just makes the preview stop
+    /// tracking the cursor over one row for no reason the user can see.
+    var reorderPlaceholder: (source: Int, slot: Int)? {
+        guard let source = reorderSource, let slot = reorder?.targetOffset else { return nil }
+        return (source, slot)
+    }
+
+    /// Picks up the row at `offset` for a possible reorder. Not yet a
+    /// reorder — a press released without movement is a click.
+    ///
+    /// The row also takes the keyboard cursor, so the user can see what they
+    /// have hold of before moving anything.
+    package func beginReorder(grabbing offset: Int) {
+        // `.moveDisabled()` on the row: no gesture starts, so there is no
+        // floating preview and nothing to release. The focus still moves,
+        // because a press is also a click and clicking a locked row should
+        // select it like any other.
+        // A fresh grab of any kind ends the previous mode: a mouse press
+        // during a keyboard move replaced the reorder but left the mode
+        // latched, and every navigation key after the click was swallowed
+        // doing nothing. (The keyboard pick-up re-raises it after this.)
+        // Ended entirely — `reorder` as well as the flag — and BEFORE the grab
+        // is refused below: with the flag cleared but the keyboard move's
+        // `reorder` still armed, a press on a `.moveDisabled()` row read as a
+        // mouse drag in flight, and every navigation key after it scrolled
+        // instead of moving the cursor.
+        reorder = nil
+        isKeyboardMove = false
+        // …and a row no movable `ForEach` produced declines it the same way: a
+        // static row, a header, a row of the one Section in this list whose
+        // `ForEach` carries no `.onMove`.
+        guard !moveDisabledRows.contains(offset), movableSpan(of: offset) != nil else {
+            focusedIndex = offset
+            return
+        }
+        reorder = RowReorder(grabbedOffset: offset, held: heldRows(grabbing: offset), active: false)
+        focusedIndex = offset
+    }
+
+    /// Arms `session` for this grab — only when the grab actually began: a
+    /// `.moveDisabled()` row declines it, and arming the session anyway let
+    /// an empty-handed drag auto-scroll the list from its edges. One helper
+    /// rather than a guard in each press path, so the `List`/`Table` twins
+    /// cannot drift on it.
+    package func armReorderSession(_ session: DragAndDropSession?, focusID: String) {
+        guard reorder != nil else { return }
+        session?.beginReorder(focusID: focusID, handler: self)
+    }
+
+    /// The rows a gesture starting at `offset` picks up: the whole selection
+    /// when `offset` is part of one, otherwise just that row.
+    ///
+    /// macOS's rule, and the one that makes a multi-row drag discoverable —
+    /// grab ANY selected row and they all come. Dragging an UNselected row
+    /// takes only it, which is what makes it possible to move a row out of a
+    /// selection without clearing the selection first.
+    private func heldRows(grabbing offset: Int) -> IndexSet {
+        guard selectionMode == .multi, isSelected(at: offset) else {
+            return wholeReorderGroups(of: IndexSet(integer: offset))
+        }
+        // Minus the rows the app said do not travel: the restriction was
+        // enforced for the grabbed row alone, and a selection containing a
+        // pinned row carried it to the drop. The grabbed offset itself has
+        // already passed the check in `beginReorder`.
+        //
+        // Gathered from the grabbed row's OWN span, not the whole list: a
+        // selection can reach across a section boundary, and one `onMove` moves
+        // rows within one collection. The rows on the far side stay where they
+        // are rather than being handed to the wrong array.
+        let selected = IndexSet(
+            (movableSpan(of: offset) ?? 0..<itemCount).filter { isSelected(at: $0) }
+        )
+        .subtracting(IndexSet(moveDisabledRows))
+        // Whole elements, where an element draws several rows: its rows travel
+        // together, as one `onMove` of the element.
+        return wholeReorderGroups(of: selected.contains(offset) ? selected : IndexSet(integer: offset))
+    }
+
+    /// How many rows the drag has hold of. One outside a multi-row gesture.
+    var heldRowCount: Int { reorder?.held.count ?? 0 }
+
+    /// `contentY` if it is a line of this control's ROW space, `nil` when it is
+    /// not: above the first row line (the top border, a title, a `Table`'s
+    /// column header) or at or past the end of the content area (the bottom
+    /// border, and everything below the control).
+    ///
+    /// The horizontal half of the same question is the caller's — only it knows
+    /// which of its columns are rows — but the vertical bound belongs here,
+    /// where ``contentHeight`` is, and it has to be asked at all: a `contentY`
+    /// off the rows still names a LINE, and every consumer that merely fails to
+    /// find a band there treats it as "the pointer is somewhere I can't resolve"
+    /// rather than "the pointer is not on this control". Auto-scroll's retarget
+    /// then clamps it onto the nearest row — which is right for a chrome line
+    /// INSIDE the row space (the "N more" indicator the hot margin sits on) and
+    /// wrong for a cursor that has left the control, where it resurrected a drop
+    /// slot nowhere near the pointer and let a release outside land at an edge.
+    package func rowSpaceContentY(_ contentY: Int) -> Int? {
+        guard contentY >= 0 else { return nil }
+        // No content height means the owner reserves its own lines and cannot
+        // say where its row space ends (the handler's own unit tests).
+        if let contentHeight, contentY >= contentHeight { return nil }
+        return contentY
+    }
+
+    /// Tracks a drag to `contentY` (`nil` when the cursor is off the rows —
+    /// over the border, a header, or past the last row — which holds the
+    /// current target rather than snapping anywhere).
+    ///
+    /// Under ``RowReorderFeedback/live`` this moves the row *now*, one `onMove`
+    /// per slot crossed, so the list itself is the preview. The other modes
+    /// only move the cursor to mark where the drop would land.
+    package func dragReorder(toContentY contentY: Int?) {
+        guard onMove != nil else { return }
+        // Where the POINTER is, kept so the target can be recomputed when the
+        // rows move under a motionless one — see `retargetForAutoScroll`, which
+        // is why only this entry point records it.
+        //
+        // It is worth holding across frames only because ``DrawnBand/yStart``'s
+        // origin — the interior's first content line — is one a scroll does not
+        // move: the "N more above" indicator appears INSIDE that space rather
+        // than shifting it. A view measuring its bands from the first ROW line
+        // instead would have to re-derive this value every frame.
+        lastReorderContentY = contentY
+        resolveReorderTarget(atContentY: contentY)
+    }
+
+    /// Points the drag at whatever `contentY` names, without claiming that is
+    /// where the pointer is.
+    ///
+    /// Split out of ``dragReorder(toContentY:)`` so the auto-scroll replay can
+    /// resolve a clamped position without overwriting the real one.
+    private func resolveReorderTarget(atContentY contentY: Int?) {
+        guard var reorder, onMove != nil else { return }
+        // Any movement at all makes this a reorder rather than a click, even
+        // when the cursor hasn't yet reached another row.
+        reorder.active = true
+        self.reorder = reorder
+
+        // Over the lines the drag itself emptied as well as the rows — see
+        // ``vacatedRowsTarget(atContentY:)``.
+        guard let contentY, let target = vacatedRowsTarget(atContentY: contentY) else {
+            // Off the rows entirely. `.cursor` forgets its slot — the gap
+            // disappears and releasing there is a cancel — while the other modes
+            // hold the last one, since they have nothing that says "nowhere".
+            if effectiveReorderFeedback == .cursor {
+                reorder.targetOffset = nil
+                self.reorder = reorder
+            }
+            return
+        }
+        // `.live` moves the data NOW, one `onMove` per slot crossed — the whole
+        // block of held rows, not just the one under the pointer. Pointing at a
+        // row already in hand is not a crossing.
+        if effectiveReorderFeedback == .live, !reorder.held.contains(target) {
+            let landed = move(reorder.held, to: liveSlot(forTarget: target, held: reorder.held))
+            // (`liveSlot` lands the block between two elements of several rows.)
+            // The block is contiguous from here on, wherever it started: after
+            // the first move the disjoint set no longer exists, and every later
+            // step has to name the rows where they NOW are.
+            reorder.held = IndexSet(integersIn: landed..<(landed + reorder.held.count))
+            reorder.currentOffset = landed + reorder.primaryRank
+            reorder.targetOffset = target
+        } else {
+            // The slot the drop lands at — between two elements of several
+            // rows, the nearer, never inside one.
+            reorder.targetOffset =
+                effectiveReorderFeedback == .live
+                ? target : groupBoundarySlot(target, held: reorder.held)
+        }
+        self.reorder = reorder
+        // The keyboard cursor follows the row the pointer is actually OVER, by
+        // data offset. Over the gap there is no such row, so it stays put —
+        // moving it to the drop target would light up a neighbour instead.
+        if let row = contentRowIndex(atContentY: contentY) { focusedIndex = row }
+    }
+
+    /// The closed-up slot a `.live` step should move the held block to, given
+    /// the DATA index of the row the pointer is over.
+    ///
+    /// Dragging down lands the block after that row, dragging up lands it
+    /// before — the asymmetry a single-row drag has always had, because the row
+    /// under the pointer is the one you are displacing. For one row in hand
+    /// this is exactly the old `move(from:to: target)`.
+    private func liveSlot(forTarget target: Int, held: IndexSet) -> Int {
+        let closedUp = reorderClosedUpIndex(target, removed: held)
+        let downward = held.min().map { target > $0 } ?? false
+        return groupBoundarySlot(closedUp + (downward ? 1 : 0), held: held, toward: downward ? 1 : -1)
+    }
+
+    /// Commits a drop at `contentY`, and reports whether this gesture was a
+    /// reorder at all — `false` means the caller should treat it as a click.
+    ///
+    /// ``RowReorderFeedback/live`` has already moved the row; the others move
+    /// it exactly once, here.
+    @discardableResult
+    package func dropReorder(atContentY contentY: Int?) -> Bool {
+        guard let reorder, reorder.active, onMove != nil else {
+            self.reorder = nil
+            return false
+        }
+        // BEFORE the teardown below: `effectiveReorderFeedback` is derived from
+        // the state this is about to clear, so reading it afterwards answers a
+        // different question than the drag was answering all along.
+        let feedback = effectiveReorderFeedback
+        self.reorder = nil
+
+        if feedback == .live {
+            focusedIndex = clampedRowIndex(reorder.currentOffset)
+            return true
+        }
+        // The SLOT first, and the release position only as a fallback: what is
+        // on screen is the promise, and the two part company whenever the rows
+        // moved without the pointer — a wheel tick, a mid-drag Page key, an
+        // auto-scroll. The band under the release point then names a different
+        // place than the gap the user is looking at, and the drop belongs to
+        // the gap.
+        //
+        // Released off the rows, `.cursor` has no slot and has promised the drop
+        // would do nothing — keep that promise. `.dimmed` holds its last slot,
+        // so it commits to it.
+        guard let target = reorder.targetOffset
+            ?? contentY.flatMap({ dropTarget(atContentY: $0) })
+        else {
+            // Nothing moves, so the rows are already where the floating
+            // picture is about to arrive — and it takes a fifth of a second to
+            // get there. They draw blank until it does; without that the same
+            // rows are on screen twice for the length of the flight. Same
+            // reason, and same mechanism, as `cancelReorder`.
+            returningRows = reorder.held
+            focusedIndex = clampedRowIndex(reorder.grabbedOffset)
+            return true
+        }
+        let landing = move(reorder.held, to: target)
+        focusedIndex = clampedRowIndex(landing + reorder.primaryRank)
+        // The rows the floating picture is about to BECOME draw blank until it
+        // has finished becoming them — the same rule the rows it walks back to
+        // follow when nothing moved. Without it the same rows are on screen
+        // twice while the cells spread back out into the grid: once in the list
+        // already laid out, and once in the air above it still condensed.
+        //
+        // `syncReturningRows` clears this the moment there is no flight, so a
+        // drop with no picture to settle (`.dimmed`, `.live`, a `List` row,
+        // which has no travel) blanks nothing.
+        let count = reorder.held.count
+        if count > 0 {
+            returningRows = IndexSet(integersIn: landing..<(landing + count))
+        }
+        return true
+    }
+
+    /// Abandons a MOUSE drag: the rows go back where they were picked up and
+    /// the floating preview walks home rather than vanishing under the pointer.
+    ///
+    /// Deliberately bound to NO key. Escape was the obvious candidate and is
+    /// spoken for: a drag has to be carriable across the app — pick a row up on
+    /// one page, navigate, drop it on another — and that requires the
+    /// navigation keys to keep navigating while something is in hand. Releasing
+    /// over nothing is the cancel, as it is on macOS. Kept whole (and covered
+    /// by tests) for the day a chord is chosen for it.
+    func cancelMouseDragReorder() {
+        cancelReorder()
+        // The button is still down, so a release is still coming: without the
+        // latch it falls into the click path and selects whatever row the
+        // pointer happens to be over.
+        reorderCancelled = true
+        // Clears the session's binding to this gesture as well, and walks the
+        // floating preview home.
+        dragSession?.cancelReorder()
+    }
+
+    /// Whether a release off the rows commits rather than abandons.
+    ///
+    /// It does under `.live` and `.dimmed`, and does not under `.cursor`. The
+    /// difference is whether the rows ever left: those two draw them INSIDE
+    /// the control for the whole gesture — the list on screen already IS the
+    /// order a drop would produce — so carrying the pointer out of the control
+    /// does not carry the rows with it, and letting go commits to what is
+    /// shown. `.cursor` floats a copy at the pointer and drops its slot the
+    /// moment the pointer leaves, so out there it is holding the rows over
+    /// nothing and releasing is the cancel, as it is on macOS.
+    package var commitsReorderReleasedOutside: Bool { effectiveReorderFeedback != .cursor }
+
+    /// Whether a release at `contentY` would put the rows anywhere.
+    ///
+    /// Not "is the pointer still over the content columns", which is all a `nil`
+    /// `contentY` means: dragging a row straight out through the top of a list
+    /// keeps x inside the columns, and reading it that way said "landed
+    /// somewhere" while the row vanished. `List` and `Table` asked this
+    /// identically before their drops; it belongs beside the drop.
+    package func reorderLandsNowhere(atContentY contentY: Int?) -> Bool {
+        let slot: Int? = contentY.flatMap { dropTarget(atContentY: $0) } ?? reorderPlaceholder?.slot
+        return slot == nil
+    }
+
+    /// Drops any in-flight reorder without moving anything.
+    package func cancelReorder() {
+        // The rows the floating picture is about to walk back to: they draw
+        // blank until it lands, so the row is on screen once rather than twice
+        // for the length of the flight (see ``returningRows``).
+        //
+        // Empty under `.live`, and correctly so: that mode has been moving the
+        // data itself at every step and shows no float, so there is no picture
+        // in the air to wait for. ``reorderRemovedRows`` already answers
+        // exactly that question — the rows this drag took OUT of the drawing.
+        returningRows = reorderRemovedRows
+        // `.live` has been moving the data at every step of the drag, so
+        // clearing the state is not a cancel — the row is wherever the pointer
+        // last left it. Put it back where it was picked up. (The slot modes
+        // move nothing until the drop, so for them there is nothing to undo.)
+        if let reorder, reorder.currentOffset != reorder.grabbedOffset {
+            // The whole block goes back, to the slot the grabbed row came from.
+            // For a selection that was DISJOINT when it was picked up that is a
+            // consolidation rather than an undo — the first live step already
+            // gathered it, and one `onMove` cannot scatter it again.
+            move(reorder.held, to: reorder.grabbedOffset)
+            focusedIndex = reorder.grabbedOffset
+        }
+        reorder = nil
+        lastReorderContentY = nil
+    }
+
+    // MARK: - Moving
+
+    /// Moves the row at `from` onto `target` through ``onMove`` and returns
+    /// where it now sits. A drop onto itself is skipped, so an aimless drag
+    /// doesn't churn the app's state.
+    @discardableResult
+    func move(from: Int, to target: Int) -> Int {
+        move(IndexSet(integer: from), to: target)
+    }
+
+    /// Moves every row in `held` to closed-up position `target`, in ONE
+    /// `onMove` — which is all it takes, because that is `(IndexSet, Int)` and
+    /// `move(fromOffsets:toOffset:)` already implements the disjoint case:
+    /// rows 2, 4 and 5 arrive as one block, in that order.
+    ///
+    /// Returns where the block starts, which for a single row is where it
+    /// landed.
+    @discardableResult
+    func move(_ held: IndexSet, to target: Int) -> Int {
+        guard let onMove, !held.isEmpty else { return target }
+        let destination = reorderInsertionOffset(forSlot: target, removed: held)
+        onMove(held, destination)
+        movedRowsPendingFrames = Self.movedRowsWaitFrames
+        movedRowsWaitEndsAtNanos = nil
+        // Where the block actually starts now — which is `target` except when
+        // the slot was past the end and the insertion clamped, and a `.live`
+        // drag that believed the clamped number would move the block again from
+        // a place it is not.
+        return reorderClosedUpIndex(destination, removed: held)
+    }
+
+    /// `index` clamped to the rows that exist (an empty list yields 0).
+    private func clampedRowIndex(_ index: Int) -> Int {
+        min(max(0, index), max(0, itemCount - 1))
+    }
+}

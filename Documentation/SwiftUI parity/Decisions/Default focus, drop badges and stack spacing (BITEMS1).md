@@ -19,14 +19,14 @@ decisions file:*
 
 Measured on SwiftUI (`distances.out`, `spacer|box`): a `Spacer`'s preference
 is zero on every edge, so `HStack { Text("a"); Spacer(); Text("b") }` puts no
-gap either side of the spacer — the spacer takes it all. TUIkit's `Spacer`
+gap either side of the spacer — the spacer takes it all. TUI's `Spacer`
 prefers the default like any view, so the row keeps one column either side.
 Wherever the row has room the difference cannot be seen (the spacer absorbs
 it); it shows where the row has none — at its ideal width, or squeezed — as
-two columns more than SwiftUI's reading would give it (TUIkit's side not run
+two columns more than SwiftUI's reading would give it (TUI's side not run
 for this note).
 
-- **(a) Keep TUIkit's.** A spacer's gaps stay as they are; documented as a
+- **(a) Keep TUI's.** A spacer's gaps stay as they are; documented as a
   deviation.
 - **(b) SwiftUI's.** A spacer states `.zero`. Every `HStack` with a spacer
   then resolves its gaps per pair (B20's path): a static witness makes that
@@ -73,16 +73,16 @@ not settle:
   where it means anything. **`.cancel`** wears none either: it proposes no drop
   at all, which macOS shows with a plain pointer (unmeasured here; drag and
   drop needs a window server an offscreen probe does not have).
-- **TUIkit's other destinations.** `dropDestination(for:action:isTargeted:)`,
+- **TUI's other destinations.** `dropDestination(for:action:isTargeted:)`,
   a `List`'s or `Table`'s insertion and reordering, and a tab's drop zone
   propose no operation, so they wear no badge. SwiftUI documents no operation
   for `dropDestination`; on macOS it is believed to draw `+` (unmeasured).
   **The fuller version:** `dropDestination` proposes `.copy` and a reorder
   `.move` (which wears nothing anyway): one line in `DropDestinationModifier`,
-  plus a decision on whether a TUIkit-only API should look like macOS's
+  plus a decision on whether a TUI-only API should look like macOS's
   `Transferable` drop.
 - **The destination's highlight.** The proposal said the drop target's
-  highlight "can" shift colour to match. TUIkit draws no highlight for these
+  highlight "can" shift colour to match. TUI draws no highlight for these
   views — the app draws its own from `isTargeted` — so there is nothing to
   shift. **The fuller version** would hand the app the proposed operation,
   which SwiftUI does not do either.
@@ -101,13 +101,13 @@ place the picture grows by a cell: covering it hid a one-glyph drag whole.
 *`ViewSpacing`, `ViewSpacing.distance(to:along:)`, `ViewSpacing.formUnion(_:edges:)`,
 `Layout.spacing(subviews:cache:)`*
 
-B20's entry described TUIkit's `ViewSpacing`: a union takes each edge's larger
+B20's entry described TUI's `ViewSpacing`: a union takes each edge's larger
 value, a distance the larger of the two facing edges, and `ViewSpacing()` is
 one column beside a view. Probing SwiftUI for B20's fuller version
 (`Tools/SwiftUIProbes/Stack spacing per pair/distances.out`) found its
 arithmetic is not that. `ViewSpacing()` is the DEFAULT, not a number: `.zero`
-facing it is 0 apart either way round (TUIkit said one column), `.zero`
-merged with it is still `.zero` (TUIkit said `ViewSpacing()`), and two views
+facing it is 0 apart either way round (TUI said one column), `.zero`
+merged with it is still `.zero` (TUI said `ViewSpacing()`), and two views
 are the default apart only when both facing edges are the default. So a
 layout that asks for no space beside it gets none from a plain neighbour
 either (`spacing.out`: a tight layout beside a box, 0 points).
@@ -125,10 +125,10 @@ shipped at first, let one `else { EmptyView() }` make a layout's whole merge
 for an app: a custom layout that spaces its subviews by `LayoutSubview.spacing`
 now puts no column between a plain view and a neighbour that states `.zero`;
 `ViewSpacing().union(.zero, edges: .leading)` now asks for no space on its
-leading edge, where it asked for the default before (no TUIkit spelling could
+leading edge, where it asked for the default before (no TUI spelling could
 say that before).
 
-**The alternative** is TUIkit's old arithmetic, which would have the stacks
+**The alternative** is TUI's old arithmetic, which would have the stacks
 of B20 keep a column between a plain view and a tight layout where SwiftUI
 keeps none. It has no use but the old answer.
 
@@ -157,7 +157,7 @@ states the default on both sides (`all.frame|box` +8, `box|all.frame` +8,
 measured 2026-10-13 after the review of ff7a14acc), as a frame that sets a
 width does here. An earlier reading that it kept its content's preference
 rested on `all.frame|all` +0, whose right neighbour is itself a layout that
-asks for none: that +0 was the neighbour's. Where TUIkit differs:
+asks for none: that +0 was the neighbour's. Where TUI differs:
 
 - **`AnyView`.** SwiftUI's forwards what it erases (+0, measured with the
   erased layout on either side); here an `AnyView` states the default. Its
@@ -173,7 +173,7 @@ asks for none: that +0 was the neighbour's. Where TUIkit differs:
   answers its body's), since the review of be3ee7385 found a row of them
   never asking. **A nested `HStack`** states the default too, where SwiftUI's
   states its children's preferences merged.
-- **An app's own `BufferModifier`** (a TUIkit API with no SwiftUI
+- **An app's own `BufferModifier`** (a TUI API with no SwiftUI
   counterpart) keeps its content's preference, as `.border` does; one that
   draws cells beside its content, as the Custom Views article's
   `QuoteModifier` does, puts a

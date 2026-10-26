@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  PointerStylesDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// A box per pointer style (`.pointerStyle(_:)`): the pointer takes each one's
 /// shape while it is over it — on a terminal that takes shapes by name. On any

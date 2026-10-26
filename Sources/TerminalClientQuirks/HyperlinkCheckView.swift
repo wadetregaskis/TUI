@@ -1,13 +1,13 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  HyperlinkCheckView.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
-/// Whether this terminal honours OSC 8 hyperlinks — the answer TUIkit is
+/// Whether this terminal honours OSC 8 hyperlinks — the answer TUI is
 /// using, how it reached it, and the two links that let you check it.
 ///
 /// It is here rather than on the Quirks screen because it is not a quirk. A
@@ -38,7 +38,7 @@ struct HyperlinkCheckView: View {
         .border(.palette.border)
     }
 
-    // MARK: - What TUIkit decided
+    // MARK: - What TUI decided
 
     private var verdict: some View {
         let honoured = TerminalClient.hyperlinksSupported
@@ -98,7 +98,7 @@ struct HyperlinkCheckView: View {
             "Emitting the sequence is safe on every terminal measured: one with an OSC parser "
                 + "swallows it whether or not it implements the command. So the cost of this "
                 + "being wrong is a link that does nothing, not a corrupted row — which is why "
-                + "TUIKIT_HYPERLINKS=1 is a reasonable thing to try on a terminal TUIkit has "
+                + "TUIKIT_HYPERLINKS=1 is a reasonable thing to try on a terminal TUI has "
                 + "never measured. Report what you find."
         )
         .foregroundStyle(.palette.foregroundSecondary)

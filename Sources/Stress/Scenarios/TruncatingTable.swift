@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TruncatingTable.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 // MARK: - Truncating Table
 
@@ -44,7 +44,7 @@ enum TruncatingTableScenario {
 
 /// Row model. The strings are synthesised ONCE, in `init` — a scenario that
 /// rebuilds them per frame measures the harness's RNG and string joins rather
-/// than TUIkit's clip (the mistake `TextWall`'s comment records).
+/// than TUI's clip (the mistake `TextWall`'s comment records).
 struct TruncatingItem: Identifiable, Sendable, Equatable {
     let id: Int
     let plain: String

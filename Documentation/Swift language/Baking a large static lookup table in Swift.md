@@ -4,9 +4,9 @@ How to embed a large, immutable lookup table (thousands of entries) into a Swift
 binary so that **all the work happens at compile time** — no runtime parsing, no
 `String` churn — while keeping the source readable and the build fast.
 
-The concrete case is TUIkit's SF Symbol table: **8466** symbol names mapped to
+The concrete case is TUI's SF Symbol table: **8466** symbol names mapped to
 their Plane-16 Private-Use codepoints, backing `SFSymbol.glyph(named:)` and
-`Label(_:systemImage:)` (see `Sources/TUIkitStrings/SFSymbols/` and the generator in
+`Label(_:systemImage:)` (see `Sources/TUIStrings/SFSymbols/` and the generator in
 `Tools/GenerateSFSymbols/`). The names are pure ASCII (`[a-z0-9.]`); the
 codepoints all lie in `U+100000…U+1037D1`, so `codepoint − 0x100000` fits a
 `UInt16`. The lookup is a binary search by name. Everything below generalizes to
@@ -97,7 +97,7 @@ readable.
 
 **`InlineArray` (Swift 6.2) is not yet usable at a real deployment floor.** It is
 attractive (fixed-size, inline, no `Array` heap buffer) and its array-literal
-initialization compiles cleanly — but it is gated to **macOS 26**. With TUIkit's
+initialization compiles cleanly — but it is gated to **macOS 26**. With TUI's
 floor of macOS 15 + Linux/Swift 6.2 it fails to link (needs the macOS 26 runtime
 metadata symbol), so it was disqualified despite good compile numbers. Revisit
 when the floor moves.
@@ -161,7 +161,7 @@ already-full value.
 
 ## What the integer arrays cost a release build (2026-10-07)
 
-The compile times above are whole-file `swiftc -O` times. Inside TUIkit's clean
+The compile times above are whole-file `swiftc -O` times. Inside TUI's clean
 release build the two integer arrays turned out to be its most expensive
 initialisers: the optimiser folds an array literal into static data element by
 element, and each array's one-time initialiser took about 0.31 s of SIL
@@ -210,7 +210,7 @@ literal stays one name to a line and its diffs stay readable.
 
 Measured in the session notes' SIZE3 research (`SIZE3/q/sf-table/notes.md`:
 6.4.0 `-O` probes, stripped and dead-stripped; lookup timings INDICATIVE, one
-VM): −142,442 bytes per executable (TUIkit's stripped release `Stress`, built
+VM): −142,442 bytes per executable (TUI's stripped release `Stress`, built
 with Xcode 26.3's 6.2.4 when the change landed: −144,076 bytes of sections,
 −132,096 of file), and a lookup of 114 ns over all names in
 random order and 56 ns over 20 common ones, against 122 and 41 ns for the blob
@@ -244,6 +244,6 @@ name, where this table is clean, file-backed and read where a lookup reads.
    walk short, and a digest of the mapping pinned in a test proves a change of
    format changed no answer.
 
-Reference implementation: `Sources/TUIkitStrings/SFSymbols/SFSymbol.swift` (lookup) and
+Reference implementation: `Sources/TUIStrings/SFSymbols/SFSymbol.swift` (lookup) and
 `SFSymbolTable.generated.swift` (the baked literals), produced by
 `Tools/GenerateSFSymbols/`.

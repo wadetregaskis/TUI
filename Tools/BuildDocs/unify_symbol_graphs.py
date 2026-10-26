@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """Stage every library module's symbol graph as if it were one module.
 
-TUIkit is split into library modules for layering, test isolation and build time
-(TUIkitCore / TUIkitStyling / TUIkitView / TUIkitImage; TUIkitFoundation, which
+TUI is split into library modules for layering, test isolation and build time
+(TUICore / TUIStyling / TUIView / TUIImage; TUIFoundation, which
 compiled every module of the planned split until each was carved into a target
-of its own, and the ones carved out of it: TUIkitStrings and TUIkitTerminalHost
-below it, TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitPresentation,
-TUIkitLists, TUIkitTables, TUIkitTabs, TUIkitGrid, TUIkitChrome, TUIkitEffects,
-TUIkitMenus, TUIkitBitmaps, TUIkitTextInput, TUIkitForms, TUIkitSearch,
-TUIkitPickers, TUIkitNumericControls, TUIkitCommands, TUIkitScenes,
-TUIkitFilePanels and TUIkitTabImages above it, and
-TUIkitCurveEditors, peeled out of TUIkitColorPicker; and the TUIkit umbrella that
+of its own, and the ones carved out of it: TUIStrings and TUITerminalHost
+below it, TUIApp, TUIColorPicker, TUINavigation, TUIPresentation,
+TUILists, TUITables, TUITabs, TUIGrid, TUIChrome, TUIEffects,
+TUIMenus, TUIBitmaps, TUITextInput, TUIForms, TUISearch,
+TUIPickers, TUINumericControls, TUICommands, TUIScenes,
+TUIFilePanels and TUITabImages above it, and
+TUICurveEditors, peeled out of TUIColorPicker; and the TUI umbrella that
 `@_exported import`s them and declares nothing). That
-split is OUR business, not the reader's: `import TUIkit` is one API, so the
+split is OUR business, not the reader's: `import TUI` is one API, so the
 documentation has to be one API reference.
 
 DocC builds from symbol graphs, one module at a time, and an `@_exported`
 re-export does not put the re-exported symbols into the importing module's
-graph. Pointing DocC at the TUIkit target therefore produces an archive with
+graph. Pointing DocC at the TUI target therefore produces an archive with
 no symbol page at all — not `View`, `Color`, `Binding` or `Text`, since the
 umbrella declares nothing — and every catalog link to one dangles. (Swift
 Package Index builds the docs that way, a target at a time; .spi.yml lists
@@ -25,20 +25,20 @@ every module in MODULES so it documents them all, and check_spi_targets.py
 holds it to that.)
 
 So: take the graphs for all of these modules and rewrite the module identity to
-`TUIkit` before handing them to `docc convert`. Three things need changing,
+`TUI` before handing them to `docc convert`. Three things need changing,
 and all three matter:
 
   1. `module.name` — decides which module page a symbol is filed under, and
-     hence its URL. Without this the pages land under /documentation/tuikitcore.
+     hence its URL. Without this the pages land under /documentation/tuicore.
   2. `swiftExtension.extendedModule` on every symbol — DocC treats an
      extension whose extended module differs from the current one as an
      extension to an *external* type and does not give its members pages.
-     `extension View { … }` declared in TUIkitFoundation is exactly that shape, so
+     `extension View { … }` declared in TUIFoundation is exactly that shape, so
      leaving it alone costs you every `View` modifier.
   3. The FILE NAME — DocC decides "is this a primary graph or an extension
      graph" from the `A@B.symbols.json` convention, before it reads the JSON.
      An extension graph's symbols are skipped unless extended types are
-     enabled, so `TUIkit@TUIkitView.symbols.json` must not keep its `@`.
+     enabled, so `TUI@TUIView.symbols.json` must not keep its `@`.
 
 Symbol identity is the USR, which already encodes the defining module and
 stays untouched, so relationships and cross-references still resolve.
@@ -53,18 +53,18 @@ import sys
 
 # The library modules that make up the public API surface. Test targets, the
 # example apps, the AppKit bridges and the file panels' system icons (products
-# of their own, imported beside TUIkit) and the C image-decoder target are
-# deliberately excluded. A module carved out of TUIkitFoundation, or peeled out
+# of their own, imported beside TUI) and the C image-decoder target are
+# deliberately excluded. A module carved out of TUIFoundation, or peeled out
 # of a coarse group, joins this set then.
 MODULES = {
-    "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
-    "TUIkitEffects", "TUIkitFilePanels", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
-    "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch", "TUIkitTabImages",
-    "TUIkitTables", "TUIkitTabs", "TUIkitTextInput",
-    "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView",
-    "TUIkitImage",
+    "TUI", "TUIApp", "TUIBitmaps", "TUIChrome", "TUIColorPicker", "TUICommands", "TUICurveEditors",
+    "TUIEffects", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists", "TUIMenus", "TUINavigation",
+    "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes", "TUISearch", "TUITabImages",
+    "TUITables", "TUITabs", "TUITextInput",
+    "TUIFoundation", "TUIStrings", "TUITerminalHost", "TUICore", "TUIStyling", "TUIView",
+    "TUIImage",
 }
-UMBRELLA = "TUIkit"
+UMBRELLA = "TUI"
 
 
 def main(source: pathlib.Path, destination: pathlib.Path) -> int:

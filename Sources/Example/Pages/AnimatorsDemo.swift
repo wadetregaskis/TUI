@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  AnimatorsDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Animations that run themselves: a `PhaseAnimator` cycling through phases,
 /// one run through its phases when a trigger changes, a `KeyframeAnimator`

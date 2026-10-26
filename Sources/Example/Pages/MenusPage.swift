@@ -1,14 +1,14 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  MenusPage.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Menus demo page.
 ///
-/// The three menu idioms TUIkit ships today:
+/// The three menu idioms TUI ships today:
 ///   - `.contextMenu { … }` — a right-click (or Ctrl-click) pop-up of Buttons,
 ///     anchored at the click cell.
 ///   - `Menu(_:content:)` — a pull-down button: a collapsed label whose items

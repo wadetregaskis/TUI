@@ -137,7 +137,7 @@ Both List and Table wrap content in ContainerView via `.border()` modifier:
 ## File Structure
 
 ```
-Sources/TUIkit/
+Sources/TUI/
 ├── Focus/
 │   ├── ItemListHandler.swift      # Shared navigation handler
 │   └── ItemStateRenderer.swift    # Shared item rendering

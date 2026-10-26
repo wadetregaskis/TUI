@@ -56,12 +56,12 @@ Skip Layer 3 later since it was already attempted.
 
 ## Checklist
 
-- [ ] 1. Add `hasTextInputFocus` to `Sources/TUIkit/Focus/Focus.swift`
-- [ ] 2. Rewrite `handle()` in `Sources/TUIkit/App/InputHandler.swift`
+- [ ] 1. Add `hasTextInputFocus` to `Sources/TUI/Focus/Focus.swift`
+- [ ] 2. Rewrite `handle()` in `Sources/TUI/App/InputHandler.swift`
 - [ ] 3. `swift build` succeeds
 - [ ] 4. `swift test` passes (all 1064+ tests)
 
 ## Files
 
-- `Sources/TUIkit/Focus/Focus.swift` - Add `hasTextInputFocus` property
-- `Sources/TUIkit/App/InputHandler.swift` - Rewrite dispatch logic
+- `Sources/TUI/Focus/Focus.swift` - Add `hasTextInputFocus` property
+- `Sources/TUI/App/InputHandler.swift` - Rewrite dispatch logic

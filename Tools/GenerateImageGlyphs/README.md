@@ -12,7 +12,7 @@ the real font instead of guessing.
 It rasterises each candidate glyph in a reference monospace font
 (**SF Mono Regular 11** by default — the font macOS Terminal.app ships with) via
 CoreText, measures ink coverage, and regenerates
-[`Sources/TUIkitImage/ImageGlyphCalibration.generated.swift`](../../Sources/TUIkitImage/ImageGlyphCalibration.generated.swift).
+[`Sources/TUIImage/ImageGlyphCalibration.generated.swift`](../../Sources/TUIImage/ImageGlyphCalibration.generated.swift).
 
 ## Output
 
@@ -28,7 +28,7 @@ One table, **`generatedGlyphCalibration`** — for every candidate glyph:
   grey ink, not a binary bitmap. The runtime normalises these at load, and
   derives per-glyph *flatness* (region-ink variance) from them.
 
-The runtime (`GlyphRepertoire` in `Sources/TUIkitImage`) partitions the table
+The runtime (`GlyphRepertoire` in `Sources/TUIImage`) partitions the table
 into the fundamental charsets by Unicode range — printable ASCII; non-block
 Unicode (box drawing, geometric shapes); the Block Elements plus the corner
 triangles `◢◣◤◥` for the shape-aware block repertoire — and selects the
@@ -67,7 +67,7 @@ or the `NSFont` lookup at the top of `main.swift` to retarget.
 The sampling geometry — the circle centres, radius, sample count, and the
 golden-angle spiral that places the samples — is **not** copied into this tool.
 `generate.sh` compiles the framework's own
-[`Sources/TUIkitImage/ShapeSampling.swift`](../../Sources/TUIkitImage/ShapeSampling.swift)
+[`Sources/TUIImage/ShapeSampling.swift`](../../Sources/TUIImage/ShapeSampling.swift)
 alongside `main.swift`, and both the runtime and this tool call
 `ShapeRegion.normalizedSamplePoints()`. So there is one definition of *where* a
 cell is sampled; changing it in `ShapeSampling.swift` changes both at once, and

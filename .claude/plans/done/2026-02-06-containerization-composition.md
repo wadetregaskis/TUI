@@ -89,7 +89,7 @@ internal func renderListWithFocus<SelectionValue, Content: View>(
     context: RenderContext
 ) -> FrameBuffer {
     // 1. Render content and extract rows
-    let contentBuffer = TUIkit.renderToBuffer(content, context: context)
+    let contentBuffer = TUI.renderToBuffer(content, context: context)
     let rows = contentBuffer.lines
     
     // 2. Manage focus/selection/scrolling

@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  CapabilityNote.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// A quiet note after a sample, said only where it is true: that this terminal
 /// is known not to draw it as asked, or that nobody has measured whether it

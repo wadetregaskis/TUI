@@ -1,0 +1,769 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  ImageTests.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import Foundation
+import Testing
+
+@testable import TUIBitmaps
+@testable import TUIBitmapsTestSupport
+@testable import TUIFoundation
+@testable import TUITestSupport
+
+// MARK: - RGBA Tests
+
+@Suite("RGBA Pixel Tests")
+struct RGBAPixelTests {
+
+    @Test("RGBA initializes with correct values")
+    func rgbaInit() {
+        let pixel = RGBA(r: 255, g: 128, b: 0, a: 200)
+        #expect(pixel.r == 255)
+        #expect(pixel.g == 128)
+        #expect(pixel.b == 0)
+        #expect(pixel.a == 200)
+    }
+
+    @Test("RGBA default alpha is 255 (opaque)")
+    func rgbaDefaultAlpha() {
+        let pixel = RGBA(r: 100, g: 100, b: 100)
+        #expect(pixel.a == 255)
+    }
+
+    @Test("Luminance calculation follows ITU-R BT.601")
+    func luminanceCalculation() {
+        // Pure white
+        let white = RGBA(r: 255, g: 255, b: 255)
+        #expect(white.luminance > 254.0)
+
+        // Pure black
+        let black = RGBA(r: 0, g: 0, b: 0)
+        #expect(black.luminance == 0.0)
+
+        // Green contributes most to luminance
+        let green = RGBA(r: 0, g: 255, b: 0)
+        let red = RGBA(r: 255, g: 0, b: 0)
+        #expect(green.luminance > red.luminance)
+    }
+
+    @Test("RGBA equality works correctly")
+    func rgbaEquality() {
+        let a = RGBA(r: 10, g: 20, b: 30, a: 40)
+        let b = RGBA(r: 10, g: 20, b: 30, a: 40)
+        let c = RGBA(r: 10, g: 20, b: 31, a: 40)
+        #expect(a == b)
+        #expect(a != c)
+    }
+}
+
+// MARK: - RGBAImage Tests
+
+@Suite("RGBAImage Tests")
+struct RGBAImageTests {
+
+    @Test("Image stores correct dimensions")
+    func imageDimensions() {
+        let pixels = [RGBA](repeating: RGBA(r: 0, g: 0, b: 0), count: 12)
+        let image = RGBAImage(width: 4, height: 3, pixels: pixels)
+        #expect(image.width == 4)
+        #expect(image.height == 3)
+    }
+
+    @Test("Pixel access returns correct values")
+    func pixelAccess() {
+        var pixels = [RGBA](repeating: RGBA(r: 0, g: 0, b: 0), count: 4)
+        pixels[3] = RGBA(r: 255, g: 0, b: 0)  // (1, 1) in a 2x2 image
+        let image = RGBAImage(width: 2, height: 2, pixels: pixels)
+
+        let topLeft = image.pixel(at: 0, 0)
+        #expect(topLeft.r == 0)
+
+        let bottomRight = image.pixel(at: 1, 1)
+        #expect(bottomRight.r == 255)
+    }
+
+    @Test("Set pixel modifies correct position")
+    func setPixel() {
+        let pixels = [RGBA](repeating: RGBA(r: 0, g: 0, b: 0), count: 4)
+        var image = RGBAImage(width: 2, height: 2, pixels: pixels)
+
+        image.setPixel(at: 1, 0, value: RGBA(r: 128, g: 64, b: 32))
+        let pixel = image.pixel(at: 1, 0)
+        #expect(pixel.r == 128)
+        #expect(pixel.g == 64)
+        #expect(pixel.b == 32)
+    }
+
+    @Test("Add error clamps to valid range")
+    func addErrorClamping() {
+        let pixels = [RGBA(r: 250, g: 5, b: 128)]
+        var image = RGBAImage(width: 1, height: 1, pixels: pixels)
+
+        // Adding positive error should clamp at 255
+        image.addError(at: 0, 0, rError: 20, gError: -10, bError: 0)
+        let pixel = image.pixel(at: 0, 0)
+        #expect(pixel.r == 255)  // 250 + 20 -> clamped to 255
+        #expect(pixel.g == 0)  // 5 - 10 -> clamped to 0
+        #expect(pixel.b == 128)  // unchanged
+    }
+
+    @Test("Nearest-neighbor scaling produces correct dimensions")
+    func nearestNeighborScaling() {
+        let pixels = [RGBA](repeating: RGBA(r: 128, g: 128, b: 128), count: 100)
+        let image = RGBAImage(width: 10, height: 10, pixels: pixels)
+
+        let scaled = image.scaled(to: 5, 5)
+        #expect(scaled.width == 5)
+        #expect(scaled.height == 5)
+    }
+
+    @Test("Bilinear scaling produces correct dimensions")
+    func bilinearScaling() {
+        let pixels = [RGBA](repeating: RGBA(r: 128, g: 128, b: 128), count: 100)
+        let image = RGBAImage(width: 10, height: 10, pixels: pixels)
+
+        let scaled = image.scaledBilinear(to: 20, 20)
+        #expect(scaled.width == 20)
+        #expect(scaled.height == 20)
+    }
+
+    @Test("Scaling to zero returns empty image")
+    func scalingToZero() {
+        let pixels = [RGBA](repeating: RGBA(r: 0, g: 0, b: 0), count: 4)
+        let image = RGBAImage(width: 2, height: 2, pixels: pixels)
+
+        let scaled = image.scaled(to: 0, 0)
+        #expect(scaled.width == 0)
+        #expect(scaled.height == 0)
+    }
+}
+
+// MARK: - ASCIIConverter Tests
+
+@Suite("ASCIIConverter Tests")
+struct ASCIIConverterTests {
+
+    @Test("A degenerate image sizes to one cell instead of trapping")
+    func targetSizeDegenerate() {
+        // 0/0 is NaN and w/0 is infinite; fed onward, the first
+        // Int(.rounded()) is a runtime trap. A zero-sized image can arrive as
+        // a decode SUCCESS, so the guard belongs here, not in the loader.
+        #expect(ASCIIConverter.targetSize(imageWidth: 0, imageHeight: 0, maxWidth: 40) == (1, 1))
+        #expect(ASCIIConverter.targetSize(imageWidth: 8, imageHeight: 0, maxWidth: 40) == (1, 1))
+        #expect(ASCIIConverter.targetSize(imageWidth: 0, imageHeight: 8, maxWidth: 40) == (1, 1))
+        #expect(
+            ASCIIConverter.targetSize(
+                imageWidth: 8, imageHeight: 8, maxWidth: 40, overrideAspectRatio: 0
+            ) == (1, 1))
+    }
+    @Test("Target size calculation preserves aspect ratio")
+    func targetSizeAspectRatio() {
+        let size = ASCIIConverter.targetSize(
+            imageWidth: 100,
+            imageHeight: 100,
+            maxWidth: 50
+        )
+        // 100x100 image -> 50 chars wide, ~25 chars tall (2:1 aspect correction)
+        #expect(size.width == 50)
+        #expect(size.height == 25)
+    }
+
+    @Test("Target size corrects for the terminal cell aspect (fewer rows as cells grow taller)")
+    func targetSizeCellAspect() {
+        func height(_ cellAspect: Double) -> Int {
+            ASCIIConverter.targetSize(
+                imageWidth: 100, imageHeight: 100, maxWidth: 50, cellAspect: cellAspect
+            ).height
+        }
+        // A square image at 50 columns: the taller/narrower the cell, the fewer
+        // rows it takes (so the on-screen image stays square instead of being
+        // squished). This is the whole point — a hard-coded 2.0 distorts images
+        // on terminals whose real cell aspect differs (e.g. iTerm2).
+        #expect(height(1.0) == 50, "square cell → square char grid")
+        #expect(height(2.0) == 25, "2:1 cell (default) → 2:1 grid")
+        #expect(height(4.0) == 13, "4:1 cell → ~4:1 grid")
+        // Strictly monotonic: more vertically-stretched cells need fewer rows.
+        #expect(height(1.0) > height(2.0))
+        #expect(height(2.0) > height(4.0))
+        // A non-positive value is ignored (falls back to the 2.0 default).
+        #expect(height(0) == 25)
+        #expect(height(-1) == 25)
+    }
+
+    @Test("Target size respects max height")
+    func targetSizeMaxHeight() {
+        let size = ASCIIConverter.targetSize(
+            imageWidth: 100,
+            imageHeight: 200,
+            maxWidth: 80,
+            maxHeight: 20
+        )
+        #expect(size.height <= 20)
+        #expect(size.width > 0)
+    }
+
+    @Test("Target size is at least 1x1")
+    func targetSizeMinimum() {
+        let size = ASCIIConverter.targetSize(
+            imageWidth: 1,
+            imageHeight: 1,
+            maxWidth: 1
+        )
+        #expect(size.width >= 1)
+        #expect(size.height >= 1)
+    }
+
+    @Test("ASCII character set conversion produces output")
+    func asciiConversion() {
+        let pixels = [RGBA](repeating: RGBA(r: 128, g: 128, b: 128), count: 100)
+        let image = RGBAImage(width: 10, height: 10, pixels: pixels)
+
+        let converter = ASCIIConverter(characterSet: .ascii, colorMode: .mono, dithering: .none)
+        let lines = converter.convert(image, width: 10, height: 5).lines
+
+        #expect(lines.count == 5)
+        #expect(!lines[0].isEmpty)
+    }
+
+    @Test("Block character set conversion produces output")
+    func blockConversion() {
+        let pixels = [RGBA](repeating: RGBA(r: 200, g: 100, b: 50), count: 100)
+        let image = RGBAImage(width: 10, height: 10, pixels: pixels)
+
+        let converter = ASCIIConverter(characterSet: .blocks(.coarse), colorMode: .trueColor, dithering: .none)
+        let lines = converter.convert(image, width: 10, height: 5).lines
+
+        #expect(lines.count == 5)
+    }
+
+    @Test("Fine-block conversion uses two vertical pixels per cell")
+    func halfBlocksUsesTwoPixelsPerCell() {
+        // Rows that ALTERNATE, so each cell's two source pixels differ and the
+        // doubled vertical resolution is the thing under test. A solid image
+        // cannot show it: with nothing to distinguish the halves the cell has
+        // no shape, and the converter says so with a space — which is the next
+        // case, and which used to pass here for the wrong reason.
+        var pixels = [RGBA]()
+        for row in 0..<8 {
+            let colour =
+                row.isMultiple(of: 2)
+                ? RGBA(r: 200, g: 50, b: 80) : RGBA(r: 20, g: 180, b: 90)
+            pixels.append(contentsOf: [RGBA](repeating: colour, count: 8))
+        }
+        let image = RGBAImage(width: 8, height: 8, pixels: pixels)
+        let converter = ASCIIConverter(
+            characterSet: .blocks(.fine), colorMode: .trueColor, dithering: .none)
+
+        withColorDepth(.truecolor) {
+            let lines = converter.convert(image, width: 8, height: 4).lines
+            #expect(lines.count == 4, "Output height matches the requested cell count")
+            #expect(lines[0].contains("\u{2584}"), "Each cell uses the lower-half-block glyph")
+            // True-colour mode emits both 38;2; (fg) and 48;2; (bg) codes — bg is
+            // what makes the half-block effectively double the vertical resolution.
+            #expect(lines[0].contains("38;2;"), "Foreground colour is emitted")
+            #expect(lines[0].contains("48;2;"), "Background colour is emitted (top pixel)")
+        }
+    }
+
+    /// The complement, and the common case in a photograph: where both source
+    /// pixels are the same colour there is no shape to draw, so the cell is a
+    /// space with only a background and states no foreground at all. See
+    /// `HalfBlockUniformCellTests` for why that matters to Warp.
+    @Test("A fine-block cell of one colour states no foreground")
+    func halfBlocksCollapseAUniformCell() {
+        let pixels = [RGBA](repeating: RGBA(r: 200, g: 50, b: 80), count: 64)
+        let image = RGBAImage(width: 8, height: 8, pixels: pixels)
+        let converter = ASCIIConverter(
+            characterSet: .blocks(.fine), colorMode: .trueColor, dithering: .none)
+
+        withColorDepth(.truecolor) {
+            let lines = converter.convert(image, width: 8, height: 4).lines
+            #expect(lines.count == 4)
+            #expect(!lines[0].contains("\u{2584}"), "nothing to draw, so no glyph")
+            #expect(!lines[0].contains("38;2;"), "and no foreground to draw it in")
+            #expect(lines[0].contains("48;2;200;50;80"), "the colour is the field")
+        }
+    }
+
+    @Test(
+        "Shape-based conversion picks a horizontal line for a clean top/bottom split",
+        arguments: [true, false])
+    func shapeAwarePicksHorizontalEdge(darkTopHalf: Bool) {
+        // One half black, the other white — a clean HORIZONTAL edge across the
+        // cell (in either polarity). Edge detection recognises it and draws the
+        // orientation-matched line glyph `-`, rather than a top-heavy coverage
+        // char (which was the pre-Sobel approximation).
+        let dark = RGBA(r: 0, g: 0, b: 0)
+        let light = RGBA(r: 255, g: 255, b: 255)
+        var pixels = [RGBA](repeating: darkTopHalf ? dark : light, count: 100)
+        for index in 50..<100 { pixels[index] = darkTopHalf ? light : dark }
+        let image = RGBAImage(width: 10, height: 10, pixels: pixels)
+        let converter = ASCIIConverter(
+            characterSet: .ascii, shapeAware: true, colorMode: .mono, dithering: .none)
+        let stripped = converter.convert(image, width: 1, height: 1).lines.first?.stripped ?? ""
+        #expect(stripped.first == "-", "a half/half split is a horizontal edge: '\(stripped)'")
+    }
+
+    @Test("Fine-block conversion in mono mode uses block glyphs only")
+    func halfBlocksMonoUsesBlockGlyphs() {
+        // Top half black, bottom half white. Mono inks the BRIGHT pixels (see
+        // `ASCIIConverter.isMonoInk`), matching every text charset's ramp — a
+        // black pixel paints nothing on a dark terminal, a white one paints
+        // solid. So the top cell row is empty and the bottom is full.
+        var pixels = [RGBA](repeating: RGBA(r: 0, g: 0, b: 0), count: 16)
+        for index in 8..<16 { pixels[index] = RGBA(r: 255, g: 255, b: 255) }
+        let image = RGBAImage(width: 4, height: 4, pixels: pixels)
+
+        let converter = ASCIIConverter(
+            characterSet: .blocks(.fine), colorMode: .mono, dithering: .none)
+        let lines = converter.convert(image, width: 4, height: 2).lines
+
+        #expect(lines.count == 2)
+        // 4×4 → 4 cells wide × 2 cells tall is 1:1, so cell row 0 sees source
+        // rows 0–1 (both black) and cell row 1 sees rows 2–3 (both white).
+        #expect(lines[0].allSatisfy { $0 == " " }, "Top cell row: both halves black → space")
+        #expect(lines[1].allSatisfy { $0 == "\u{2588}" }, "Bottom cell row: both halves white → █")
+    }
+
+    @Test("Mono does not turn a dark image into a solid slab of ink")
+    func monoKeepsADarkImageMostlyBlank() {
+        // The shipped demo image is 87% below mid-luminance. Under the old
+        // polarity (dark = ink) that rendered as a near-solid rectangle of █
+        // with the subject invisible inside it — "mono draws nothing".
+        //
+        // A bright disc on a dark field stands in for it: the ink must be the
+        // disc, and the field must stay blank.
+        let side = 32
+        var pixels = [RGBA](repeating: RGBA(r: 10, g: 10, b: 10), count: side * side)
+        for y in 0..<side {
+            for x in 0..<side where (x - 16) * (x - 16) + (y - 16) * (y - 16) < 36 {
+                pixels[y * side + x] = RGBA(r: 250, g: 250, b: 250)
+            }
+        }
+        let image = RGBAImage(width: side, height: side, pixels: pixels)
+
+        for charset in [ASCIICharacterSet.blocks(.fine), .blocks(.solid), .ascii] {
+            let converter = ASCIIConverter(
+                characterSet: charset, colorMode: .mono, dithering: .none)
+            let lines = converter.convert(image, width: side, height: side / 2).lines
+            let cells = lines.joined()
+            let blank = cells.filter { $0 == " " }.count
+            #expect(
+                blank > cells.count / 2,
+                "\(charset): the dark field must stay blank, not become ink (\(blank)/\(cells.count))")
+            #expect(cells.contains { $0 != " " }, "\(charset): the lit disc must be drawn")
+        }
+    }
+
+    @Test("Braille conversion produces output")
+    func brailleConversion() {
+        let pixels = [RGBA](repeating: RGBA(r: 255, g: 255, b: 255), count: 400)
+        let image = RGBAImage(width: 20, height: 20, pixels: pixels)
+
+        let converter = ASCIIConverter(characterSet: .blocks(.braille), colorMode: .trueColor, dithering: .none)
+        let lines = converter.convert(image, width: 10, height: 5).lines
+
+        #expect(lines.count == 5)
+    }
+
+    @Test(
+        "Colour mode × terminal depth emits exactly the right escape family",
+        arguments: [
+            // (pixel, mode, depth, mustContain, mustNotContain)
+            // True colour on a truecolor terminal → 24-bit codes.
+            (RGBA(r: 255, g: 0, b: 0), ASCIIColorMode.trueColor, ColorDepth.truecolor, ["38;2;"], [String]()),
+            // ANSI 256 on a palette256 terminal → palette codes.
+            (RGBA(r: 255, g: 0, b: 0), .ansi256, .palette256, ["38;5;"], []),
+            // Grayscale on a palette256 terminal → palette codes.
+            (RGBA(r: 128, g: 128, b: 128), .grayscale, .palette256, ["38;5;"], []),
+            // True colour on a 256-color terminal falls back to palette codes —
+            // 24-bit codes would corrupt 256-color terminals.
+            (RGBA(r: 255, g: 0, b: 0), .trueColor, .palette256, ["38;5;"], ["38;2;"]),
+            // True colour on a basic16 terminal falls back to the terminal's
+            // own sixteen — SGR 30-37/90-97, and NOT a triple or an index.
+            // Bright red is one of the sixteen, so it is emitted as one: `91`.
+            (RGBA(r: 255, g: 0, b: 0), .trueColor, .basic16, ["\u{1B}[91m"], ["38;2;", "38;5;"]),
+            // Asked for directly, at any depth that has colour at all.
+            (RGBA(r: 255, g: 0, b: 0), .ansi16, .truecolor, ["\u{1B}[91m"], ["38;2;", "38;5;"]),
+            (RGBA(r: 255, g: 0, b: 0), .ansi16, .basic16, ["\u{1B}[91m"], ["38;2;", "38;5;"]),
+        ])
+    func colorModeEscapeCodes(
+        pixel: RGBA, mode: ASCIIColorMode, depth: ColorDepth,
+        mustContain: [String], mustNotContain: [String]
+    ) {
+        let image = RGBAImage(width: 1, height: 1, pixels: [pixel])
+        let converter = ASCIIConverter(characterSet: .ascii, colorMode: mode, dithering: .none)
+
+        withColorDepth(depth) {
+            let lines = converter.convert(image, width: 1, height: 1).lines
+            #expect(lines.count == 1)
+            for needle in mustContain {
+                #expect(lines[0].contains(needle), "expected \(needle) in '\(lines[0])'")
+            }
+            for needle in mustNotContain {
+                #expect(!lines[0].contains(needle), "unexpected \(needle) in '\(lines[0])'")
+            }
+        }
+    }
+
+    @Test("Mono output contains no ANSI codes")
+    func monoOutput() {
+        let pixels = [RGBA(r: 128, g: 128, b: 128)]
+        let image = RGBAImage(width: 1, height: 1, pixels: pixels)
+
+        let converter = ASCIIConverter(characterSet: .ascii, colorMode: .mono, dithering: .none)
+        let lines = converter.convert(image, width: 1, height: 1).lines
+
+        #expect(lines.count == 1)
+        // Mono should not contain color escape sequences
+        #expect(!lines[0].contains("38;2;"))
+        #expect(!lines[0].contains("38;5;"))
+    }
+
+    @Test("Floyd-Steinberg dithering does not crash")
+    func ditheringNoCrash() {
+        var pixels = [RGBA]()
+        for i in 0..<100 {
+            let r = UInt8(clamping: i * 2)
+            let g = UInt8(clamping: i)
+            let b = UInt8(clamping: 255 - i * 2)
+            pixels.append(RGBA(r: r, g: g, b: b))
+        }
+        let image = RGBAImage(width: 10, height: 10, pixels: pixels)
+
+        let converter = ASCIIConverter(characterSet: .blocks(.coarse), colorMode: .ansi256, dithering: .floydSteinberg)
+        let lines = converter.convert(image, width: 10, height: 5).lines
+
+        #expect(lines.count == 5)
+    }
+
+    @Test("Empty image returns empty lines")
+    func emptyImageConversion() {
+        let image = RGBAImage(width: 0, height: 0, pixels: [])
+        let converter = ASCIIConverter()
+        let lines = converter.convert(image, width: 10, height: 5).lines
+        #expect(lines.isEmpty)
+    }
+
+    @Test("All color modes emit no color codes on noColor terminal")
+    func noColorTerminalSuppressesEscapes() {
+        let pixels = [RGBA(r: 200, g: 100, b: 50)]
+        let image = RGBAImage(width: 1, height: 1, pixels: pixels)
+
+        withColorDepth(.noColor) {
+            for mode in [ASCIIColorMode.trueColor, .ansi256, .ansi16, .grayscale, .mono] {
+                let converter = ASCIIConverter(characterSet: .ascii, colorMode: mode, dithering: .none)
+                let lines = converter.convert(image, width: 1, height: 1).lines
+
+                #expect(lines.count == 1)
+                #expect(!lines[0].contains("38;2;"))
+                #expect(!lines[0].contains("38;5;"))
+            }
+        }
+    }
+}
+
+// MARK: - ASCIIColorMode.effective(for:)
+
+@Suite("ASCIIColorMode.effective(for:)")
+struct ASCIIColorModeEffectiveTests {
+
+    @Test(
+        "Requested mode × terminal depth resolves to the effective mode",
+        arguments: [
+            // (requested, depth, effective)
+            // True color survives only truecolor terminals; 256 → ansi256, below → mono.
+            (ASCIIColorMode.trueColor, ColorDepth.truecolor, ASCIIColorMode.trueColor),
+            (.trueColor, .palette256, .ansi256),
+            (.trueColor, .basic16, .ansi16),
+            (.trueColor, .noColor, .mono),
+            // ANSI 256 stays through palette256 terminals, then the sixteen.
+            (.ansi256, .truecolor, .ansi256),
+            (.ansi256, .palette256, .ansi256),
+            (.ansi256, .basic16, .ansi16),
+            (.ansi256, .noColor, .mono),
+            // Grayscale stays through palette256 terminals, then the sixteen —
+            // which costs it nothing, since its pixels are grey and the nearest
+            // of the sixteen to a grey is one of the four greys among them.
+            (.grayscale, .truecolor, .grayscale),
+            (.grayscale, .palette256, .grayscale),
+            (.grayscale, .basic16, .ansi16),
+            (.grayscale, .noColor, .mono),
+            // The sixteen are the floor of colour: kept wherever there is any,
+            // and only `.noColor` takes them away.
+            (.ansi16, .truecolor, .ansi16),
+            (.ansi16, .palette256, .ansi16),
+            (.ansi16, .basic16, .ansi16),
+            (.ansi16, .noColor, .mono),
+            // Mono stays mono everywhere.
+            (.mono, .truecolor, .mono),
+            (.mono, .palette256, .mono),
+            (.mono, .basic16, .mono),
+            (.mono, .noColor, .mono),
+        ])
+    func effectiveMode(requested: ASCIIColorMode, depth: ColorDepth, expected: ASCIIColorMode) {
+        #expect(requested.effective(for: depth) == expected)
+    }
+}
+
+// MARK: - Image View Tests
+
+@Suite("Image View Tests")
+@MainActor
+struct ImageViewTests {
+
+    @Test("Image initializes with file source")
+    func imageFileInit() {
+        let image = Image(.file("/path/to/image.png"))
+        #expect(image.sourcedRaster?.source == .file("/path/to/image.png"))
+    }
+
+    @Test("Image initializes with URL source")
+    func imageURLInit() {
+        let image = Image(.url("https://example.com/image.png"))
+        #expect(image.sourcedRaster?.source == .url("https://example.com/image.png"))
+    }
+
+    // MARK: - SF Symbols
+
+    @Test("Image(systemName:) keeps the name, not a resolved glyph")
+    func imageSystemNameInit() {
+        // Stored rather than resolved, and this is the reason: the variant that
+        // decides which cut is drawn lives in the environment, which an
+        // initialiser cannot read. Resolving here would freeze `star` even
+        // under a `.symbolVariant(.fill)` further down.
+        #expect(Image(systemName: "star.fill").content == .symbol("star.fill"))
+    }
+
+    @Test("A symbol image and a raster image are never equal")
+    func symbolAndRasterDiffer() {
+        // They share a type and nothing else. The memo compares `Image` values,
+        // so a definition that ignored the case could serve one's buffer for
+        // the other.
+        let star = Image(systemName: "star")
+        let sameStar = Image(systemName: "star")
+        #expect(star != Image(.file("star")))
+        #expect(star == sameStar)
+        #expect(star != Image(systemName: "star.fill"))
+    }
+
+    @Test("An unresolvable symbol renders nothing at all")
+    func unresolvableSymbolIsEmpty() {
+        // Not a box, not a placeholder: nothing. A resolved codepoint with no
+        // font behind it draws as a missing-glyph box, and a name nobody has
+        // heard of resolves to nothing anywhere — in both cases an empty run is
+        // the honest output, and it is what `Label` falls back to as well.
+        let out = renderToBuffer(
+            Image(systemName: "definitely.not.a.symbol"),
+            context: makeBareRenderContext(width: 20, height: 3))
+        #expect(out.lines.joined().stripped.isEmpty, "\(out.lines)")
+    }
+
+    @Test("A symbol draws exactly when SFSymbol says it can")
+    func symbolDrawsWhenRenderable() {
+        // Host-dependent by nature — the SF Symbols font is not installed by
+        // default and never present on Linux — so the assertion is the
+        // AGREEMENT between the two, not a fixed glyph. That makes it mean
+        // something on either kind of machine.
+        let out = renderToBuffer(
+            Image(systemName: "star.fill"),
+            context: makeBareRenderContext(width: 20, height: 3))
+        let drewSomething = !out.lines.joined().stripped.isEmpty
+        #expect(drewSomething == SFSymbol.canRender(named: "star.fill"))
+    }
+
+    @Test("ImageSource equality works")
+    func imageSourceEquality() {
+        let a = ImageSource.file("/path/a.png")
+        let b = ImageSource.file("/path/a.png")
+        let c = ImageSource.url("https://example.com")
+        #expect(a == b)
+        #expect(a != c)
+    }
+}
+
+// MARK: - ImageLoadError Tests
+
+@Suite("ImageLoadError Tests")
+struct ImageLoadErrorTests {
+
+    @Test("Error descriptions are informative")
+    func errorDescriptions() {
+        let fileError = ImageLoadError.fileNotFound("/missing.png")
+        #expect(fileError.description.contains("/missing.png"))
+
+        let formatError = ImageLoadError.unsupportedFormat("bmp")
+        #expect(formatError.description.contains("bmp"))
+
+        let decodeError = ImageLoadError.decodingFailed("corrupt data")
+        #expect(decodeError.description.contains("corrupt data"))
+
+        let downloadError = ImageLoadError.downloadFailed("timeout")
+        #expect(downloadError.description.contains("timeout"))
+    }
+}
+
+// MARK: - Image sizing (aspect-driven, not greedy)
+
+@MainActor
+@Suite("Image sizing")
+struct ImageSizingTests {
+    @Test("An unloaded image reserves a bounded height, not an unbounded offered height")
+    func unloadedImageHeightBounded() {
+        // A ScrollView measures its content against a deliberately tall canvas; the
+        // image must not claim that whole height before its aspect ratio is known
+        // (the regression that buried the demo image thousands of lines down).
+        var environment = EnvironmentValues()
+        environment.stateStorage = StateStorage()
+        let context = RenderContext(
+            availableWidth: 40, availableHeight: 4096,
+            environment: environment, tuiContext: TUIContext()
+        ).isolatingRenderCache()
+        let size = measureChild(
+            Image(.file("/no/such/image.png")),
+            proposal: ProposedSize(width: 40, height: nil),
+            context: context)
+        #expect(size.width == 40, "takes the offered width: \(size.width)")
+        #expect(size.height < 100, "height is bounded, not the 4096-line canvas: \(size.height)")
+    }
+
+    @Test(".imageFitTarget(.viewport) fits the visible viewport, not the proposed canvas")
+    func viewportFitUsesViewport() {
+        // Proposed width 80 but viewport only 20 wide → the image sizes to the
+        // viewport (20), so at zoom 1 it fills the visible area and won't overflow.
+        let context = makeScrollContext(viewport: (20, 10))
+        let size = measureChild(
+            Image(.file("/no/such/image.png")).imageFitTarget(.viewport),
+            proposal: ProposedSize(width: 80, height: nil),
+            context: context)
+        #expect(size.width == 20, "uses the viewport width (20), not the proposal (80): \(size.width)")
+        #expect(size.height <= 10, "bounded by the viewport height (10): \(size.height)")
+    }
+
+    @Test(".proposedSize (default) ignores the viewport and uses the proposal")
+    func proposedFitIgnoresViewport() {
+        // Same published viewport, but the default target tracks the proposal — so an
+        // unzoomed image in a horizontal scroll can still be wider than the viewport.
+        let context = makeScrollContext(viewport: (20, 10))
+        let size = measureChild(
+            Image(.file("/no/such/image.png")),
+            proposal: ProposedSize(width: 80, height: nil),
+            context: context)
+        #expect(size.width == 80, "default uses the proposal width (80), not the viewport (20): \(size.width)")
+    }
+
+    @Test(".imageZoom multiplies the fitted size")
+    func zoomMultipliesSize() {
+        let context = makeScrollContext(viewport: (20, 10))
+        let base = measureChild(
+            Image(.file("/no/such/image.png")).imageFitTarget(.viewport),
+            proposal: ProposedSize(width: 80, height: nil),
+            context: context)
+        let zoomed = measureChild(
+            Image(.file("/no/such/image.png")).imageFitTarget(.viewport).imageZoom(2),
+            proposal: ProposedSize(width: 80, height: nil),
+            context: context)
+        #expect(zoomed.width == base.width * 2, "zoom 2 doubles width: \(zoomed.width) vs \(base.width)")
+        #expect(zoomed.height == base.height * 2, "zoom 2 doubles height: \(zoomed.height) vs \(base.height)")
+    }
+    private func renderContext(width: Int, height: Int) -> RenderContext {
+        var environment = EnvironmentValues()
+        environment.focusManager = FocusManager()
+        environment.stateStorage = StateStorage()
+        return RenderContext(
+            availableWidth: width, availableHeight: height,
+            environment: environment, tuiContext: TUIContext()).isolatingRenderCache()
+    }
+
+    @Test("In a real ScrollView, .viewport fits the visible area; the default overflows")
+    func viewportFitComposesWithScrollView() {
+        // End to end: ScrollView publishes its viewport, the Image fits it, and the
+        // `.automatic` scrollbar (▼) only appears once content exceeds the viewport.
+        // Two renders settle the handler's lazily-measured content height.
+        func hasVerticalScrollbar(_ content: some View) -> Bool {
+            let view = ScrollView { content }.scrollIndicators(.automatic)
+            let context = renderContext(width: 24, height: 5)
+            _ = renderToBuffer(view, context: context)
+            let buffer = renderToBuffer(view, context: context)
+            return buffer.lines.contains { $0.contains("▼") }
+        }
+        #expect(
+            !hasVerticalScrollbar(Image(.file("/no/such/x.png")).imageFitTarget(.viewport)),
+            ".viewport fits the 5-line viewport → no scrollbar")
+        #expect(
+            hasVerticalScrollbar(Image(.file("/no/such/x.png"))),
+            "the default image overflows the short viewport → scrollbar appears")
+    }
+}
+
+// MARK: - Decoder Parity
+
+@Suite("Platform decoder parity")
+struct PlatformDecoderParityTests {
+
+    // A 2×2 PNG with four distinct opaque corners — top-left red, top-right
+    // green, bottom-left blue, bottom-right white. Decoding it pins channel
+    // order (R, G, B), row orientation (row 0 = top, not vertically flipped)
+    // and opaque alpha for whichever backend `PlatformImageLoader` selects
+    // (NSImage on Apple platforms via `canImport(AppKit)`, stb_image
+    // elsewhere), so the two backends stay interchangeable.
+    private static let cornerPNGBase64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEklEQVR42mP4z8DwHwyBNBgAAEnICfcD2WTxAAAAAElFTkSuQmCC"
+
+    private static func cornerPNGData() throws -> Data {
+        try #require(Data(base64Encoded: cornerPNGBase64))
+    }
+
+    /// Tolerates ±a few per channel (colour-management rounding) while still
+    /// catching channel-swap or vertical-flip bugs, which are off by ~255.
+    private func expectCorners(_ image: RGBAImage) {
+        #expect(image.width == 2)
+        #expect(image.height == 2)
+
+        func expectNear(_ pixel: RGBA, _ r: UInt8, _ g: UInt8, _ b: UInt8, _ corner: String) {
+            #expect(abs(Int(pixel.r) - Int(r)) <= 6, "\(corner) red")
+            #expect(abs(Int(pixel.g) - Int(g)) <= 6, "\(corner) green")
+            #expect(abs(Int(pixel.b) - Int(b)) <= 6, "\(corner) blue")
+            #expect(pixel.a == 255, "\(corner) alpha")
+        }
+
+        expectNear(image.pixel(at: 0, 0), 255, 0, 0, "top-left")
+        expectNear(image.pixel(at: 1, 0), 0, 255, 0, "top-right")
+        expectNear(image.pixel(at: 0, 1), 0, 0, 255, "bottom-left")
+        expectNear(image.pixel(at: 1, 1), 255, 255, 255, "bottom-right")
+    }
+
+    @Test("Decodes a known 2×2 image from data with correct channels, orientation and alpha")
+    func decodesKnownCornersFromData() throws {
+        try expectCorners(PlatformImageLoader().loadImage(from: Self.cornerPNGData()))
+    }
+
+    @Test("Decodes the same image identically from a file path")
+    func decodesKnownCornersFromPath() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tuikit-corner-\(UUID().uuidString).png")
+        try Self.cornerPNGData().write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        try expectCorners(PlatformImageLoader().loadImage(from: url.path))
+    }
+
+    /// stb_image's own `stbi_load(path:)` opened the file with the narrow
+    /// `fopen`, which on Windows decodes a UTF-8 path under the ANSI codepage,
+    /// so this load failed with `decodingFailed("stb_image: can't fopen")` for
+    /// a file `fileExists(atPath:)` had just confirmed. This test cannot fail
+    /// on macOS (which never enters the stb arm) or Linux (whose `fopen` is
+    /// byte-transparent); it is the cross-platform contract pin, and Windows
+    /// cannot run it until the umbrella builds there.
+    @Test("Decodes the same image from a path outside ASCII")
+    func decodesKnownCornersFromNonASCIIPath() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tuikit-café-日本-\(UUID().uuidString).png")
+        try Self.cornerPNGData().write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        try expectCorners(PlatformImageLoader().loadImage(from: url.path))
+    }
+}

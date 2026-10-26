@@ -2,11 +2,11 @@
 
 ## Preface
 
-This plan introduces SwiftUI-conformant Image view support for TUIkit using ASCII art rendering with full 24-bit true color support. The implementation converts raster images (PNG, JPEG) to colored ASCII/Unicode characters, enabling rich visual content in terminal UIs. The system uses platform-specific image decoding (CoreGraphics on macOS, swift-png on Linux) and sophisticated algorithms including brightness mapping, color quantization, Floyd-Steinberg dithering, and aspect ratio correction. The public API mirrors SwiftUI's Image API with terminal-specific modifiers for character set selection and color modes. Performance is optimized through caching, downsampling, and lazy rendering.
+This plan introduces SwiftUI-conformant Image view support for TUI using ASCII art rendering with full 24-bit true color support. The implementation converts raster images (PNG, JPEG) to colored ASCII/Unicode characters, enabling rich visual content in terminal UIs. The system uses platform-specific image decoding (CoreGraphics on macOS, swift-png on Linux) and sophisticated algorithms including brightness mapping, color quantization, Floyd-Steinberg dithering, and aspect ratio correction. The public API mirrors SwiftUI's Image API with terminal-specific modifiers for character set selection and color modes. Performance is optimized through caching, downsampling, and lazy rendering.
 
 ## Context/Problem
 
-TUIkit currently lacks image support, limiting visual richness in terminal UIs. Users cannot display logos, icons, charts, or decorative graphics. While terminals don't support raster images natively, ASCII art rendering converts images to colored characters, providing a visually compelling alternative that works across all terminal types.
+TUI currently lacks image support, limiting visual richness in terminal UIs. Users cannot display logos, icons, charts, or decorative graphics. While terminals don't support raster images natively, ASCII art rendering converts images to colored characters, providing a visually compelling alternative that works across all terminal types.
 
 **Key Requirements:**
 - SwiftUI API parity (`Image(systemName:)`, `Image(_:bundle:)`)
@@ -323,14 +323,14 @@ struct ImageCache {
 - Add `.package(url: "https://github.com/tayloraswift/swift-png", from: "4.4.0")`
 
 **1.2 Create ImageLoader protocol + implementations**
-- `Sources/TUIkit/Image/ImageLoader.swift`
+- `Sources/TUI/Image/ImageLoader.swift`
 - Protocol: `loadImage(from:) throws -> RGBAImage`
 - `CoreGraphicsImageLoader` (macOS): Uses `CGImageSource`
 - `SwiftPNGImageLoader` (Linux): Uses `PNG.decompress()`
 - Platform detection: `#if canImport(CoreGraphics)`
 
 **1.3 RGBAImage data structure**
-- `Sources/TUIkit/Image/RGBAImage.swift`
+- `Sources/TUI/Image/RGBAImage.swift`
 - Struct with `width`, `height`, `pixels: [RGBA]`
 - Helper: `pixel(at:)`, `setPixel(at:)`, `addError(at:)`
 - RGBA struct with `luminance` computed property
@@ -344,7 +344,7 @@ struct ImageCache {
 ### Phase 2: ASCII Conversion Algorithms
 
 **2.1 Brightness mapping**
-- `Sources/TUIkit/Image/ASCIIConverter.swift`
+- `Sources/TUI/Image/ASCIIConverter.swift`
 - Function: `mapToCharacter(_:characterSet:) -> Character`
 - Character sets: `.ascii`, `.blocks`, `.braille`
 
@@ -371,7 +371,7 @@ struct ImageCache {
 ### Phase 3: Public API
 
 **3.1 Image view**
-- `Sources/TUIkit/Views/Image.swift`
+- `Sources/TUI/Views/Image.swift`
 - `init(_:bundle:)`
 - `init(systemName:)` (with Unicode fallback warning)
 - `var body: some View` returns `_ImageCore`
@@ -396,19 +396,19 @@ struct ImageCache {
 ### Phase 4: Rendering
 
 **4.1 _ImageCore (Renderable + Layoutable)**
-- `Sources/TUIkit/Views/Internal/_ImageCore.swift`
+- `Sources/TUI/Views/Internal/_ImageCore.swift`
 - Implements `Renderable`, `Layoutable`
 - `sizeThatFits()`: Return image dimensions (fixed size)
 - `renderToBuffer()`: Call `ASCIIConverter`, return colored ASCII
 
 **4.2 Terminal capability detection**
-- `Sources/TUIkit/Image/TerminalCapabilities.swift`
+- `Sources/TUI/Image/TerminalCapabilities.swift`
 - Detect 24-bit color support (`COLORTERM` env var)
 - Detect Unicode/Braille support (`TERM` env var)
 - Auto-select best color mode
 
 **4.3 Caching**
-- `Sources/TUIkit/Image/ImageCache.swift`
+- `Sources/TUI/Image/ImageCache.swift`
 - Cache converted ASCII art (not raw images)
 - Cache key: path + size + character set + color mode + dithering
 - LRU eviction (max 100 entries)
@@ -435,7 +435,7 @@ struct ImageCache {
 - Terminal compatibility notes
 
 **5.3 Example app integration**
-- Add image examples to TUIkitExample
+- Add image examples to TUIExample
 - Showcase different character sets
 - Compare color modes side-by-side
 - Demonstrate .resizable() behavior
@@ -505,7 +505,7 @@ struct ImageCache {
 - [ ] Profile memory usage
 - [ ] Add comprehensive doc comments
 - [ ] Create usage examples
-- [ ] Integrate into TUIkitExample app
+- [ ] Integrate into TUIExample app
 - [ ] Write performance tests
 - [ ] Test edge cases (1x1, large images, corrupt files)
 
@@ -546,21 +546,21 @@ struct ImageCache {
 ## Files
 
 **New:**
-- `Sources/TUIkit/Views/Image.swift`
-- `Sources/TUIkit/Views/Internal/_ImageCore.swift`
-- `Sources/TUIkit/Image/ImageLoader.swift`
-- `Sources/TUIkit/Image/CoreGraphicsImageLoader.swift`
-- `Sources/TUIkit/Image/SwiftPNGImageLoader.swift`
-- `Sources/TUIkit/Image/RGBAImage.swift`
-- `Sources/TUIkit/Image/ASCIIConverter.swift`
-- `Sources/TUIkit/Image/TerminalCapabilities.swift`
-- `Sources/TUIkit/Image/ImageCache.swift`
-- `Sources/TUIkit/Modifiers/ImageModifiers.swift`
-- `Tests/TUIkitTests/Image/ImageTests.swift`
-- `Tests/TUIkitTests/Image/ASCIIConverterTests.swift`
-- `Tests/TUIkitTests/Image/ImageLoaderTests.swift`
+- `Sources/TUI/Views/Image.swift`
+- `Sources/TUI/Views/Internal/_ImageCore.swift`
+- `Sources/TUI/Image/ImageLoader.swift`
+- `Sources/TUI/Image/CoreGraphicsImageLoader.swift`
+- `Sources/TUI/Image/SwiftPNGImageLoader.swift`
+- `Sources/TUI/Image/RGBAImage.swift`
+- `Sources/TUI/Image/ASCIIConverter.swift`
+- `Sources/TUI/Image/TerminalCapabilities.swift`
+- `Sources/TUI/Image/ImageCache.swift`
+- `Sources/TUI/Modifiers/ImageModifiers.swift`
+- `Tests/TUITests/Image/ImageTests.swift`
+- `Tests/TUITests/Image/ASCIIConverterTests.swift`
+- `Tests/TUITests/Image/ImageLoaderTests.swift`
 
 **Modified:**
 - `Package.swift` (add swift-png dependency)
-- `Sources/TUIkit/TUIkit.swift` (export Image)
-- `Sources/TUIkitExample/ExampleApp.swift` (add image examples)
+- `Sources/TUI/TUI.swift` (export Image)
+- `Sources/TUIExample/ExampleApp.swift` (add image examples)

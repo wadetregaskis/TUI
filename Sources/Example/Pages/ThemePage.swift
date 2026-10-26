@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ThemePage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Theme demo page — switch presets, change the border appearance, and build a
 /// **custom theme** by editing the palette's colours: **every** one of them,

@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  MaterialsClip.swift
 //
 //  `materials`: a photo library, and what floats over it — a share panel on
@@ -8,7 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 @MainActor
 let materialsClip = Clip(
@@ -32,7 +32,7 @@ let materialsClip = Clip(
 
 struct MaterialsApp: App {
     var body: some Scene {
-        WindowGroup("TUIkit · Library") {
+        WindowGroup("TUI · Library") {
             PhotoLibrary()
                 .palette(AppleTerminalPalette(.novel))
         }

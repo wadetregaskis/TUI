@@ -1,13 +1,13 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  GraphicsCheckView.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
-/// Whether this terminal will draw a real picture — the answer TUIkit is using,
+/// Whether this terminal will draw a real picture — the answer TUI is using,
 /// and, unusually for this app, where it came from.
 ///
 /// Every other screen here reports a MEASUREMENT: somebody ran a probe, wrote
@@ -37,7 +37,7 @@ struct GraphicsCheckView: View {
         .border(.palette.border)
     }
 
-    // MARK: - What TUIkit decided
+    // MARK: - What TUI decided
 
     private var verdict: some View {
         let drawing = TerminalClient.graphicsSupported

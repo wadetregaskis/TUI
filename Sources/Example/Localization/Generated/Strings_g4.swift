@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Strings_g4.swift
 //
 //  Created by LAYERED.work
@@ -79,7 +79,7 @@ extension ExampleStrings {
             "page.imageURL.scroll": "scroll",
             // page.emoji
             "page.emoji.subtitle": "Rendering quirks + searchable corpus",
-            "page.emoji.bugCasesSection": "Bug cases (the rows TUIkit has to compensate)",
+            "page.emoji.bugCasesSection": "Bug cases (the rows TUI has to compensate)",
             "page.emoji.symbolsInViews": "SF Symbols in views (Label, Image(systemName:), .symbolEffect)",
             "page.emoji.symbolsInViewsExplain": "Symbols draw where the terminal's font has them. Without it a Label keeps its title, and a bare Image draws nothing. Of the symbol effects, a glyph in one cell can show pulse and breathe (macOS).",
             "page.emoji.symbols.favourites": "Favourites",
@@ -174,7 +174,7 @@ extension ExampleStrings {
             "page.imageURL.back": "zurück",
             "page.imageURL.scroll": "scrollen",
             "page.emoji.subtitle": "Render-Eigenheiten + durchsuchbarer Korpus",
-            "page.emoji.bugCasesSection": "Fehlerfälle (die Zeilen, die TUIkit ausgleichen muss)",
+            "page.emoji.bugCasesSection": "Fehlerfälle (die Zeilen, die TUI ausgleichen muss)",
             "page.emoji.symbolsInViews": "SF Symbols in Views (Label, Image(systemName:), .symbolEffect)",
             "page.emoji.symbolsInViewsExplain": "Symbole erscheinen, wo die Schrift des Terminals sie enthält. Ohne sie behält ein Label seinen Titel, und ein einzelnes Image zeichnet nichts. Von den Symboleffekten kann ein Zeichen in einer Zelle Pulsieren und Atmen zeigen (macOS).",
             "page.emoji.symbols.favourites": "Favoriten",
@@ -269,7 +269,7 @@ extension ExampleStrings {
             "page.imageURL.back": "retour",
             "page.imageURL.scroll": "défiler",
             "page.emoji.subtitle": "Particularités de rendu + corpus consultable",
-            "page.emoji.bugCasesSection": "Cas de bogue (les lignes que TUIkit doit compenser)",
+            "page.emoji.bugCasesSection": "Cas de bogue (les lignes que TUI doit compenser)",
             "page.emoji.symbolsInViews": "SF Symbols dans les vues (Label, Image(systemName:), .symbolEffect)",
             "page.emoji.symbolsInViewsExplain": "Les symboles s'affichent là où la police du terminal les contient. Sans elle, un Label garde son titre et une Image seule n'affiche rien. Parmi les effets de symbole, un glyphe dans une cellule peut montrer la pulsation et la respiration (macOS).",
             "page.emoji.symbols.favourites": "Favoris",
@@ -364,7 +364,7 @@ extension ExampleStrings {
             "page.imageURL.back": "indietro",
             "page.imageURL.scroll": "scorri",
             "page.emoji.subtitle": "Particolarità di rendering + corpus ricercabile",
-            "page.emoji.bugCasesSection": "Casi di bug (le righe che TUIkit deve compensare)",
+            "page.emoji.bugCasesSection": "Casi di bug (le righe che TUI deve compensare)",
             "page.emoji.symbolsInViews": "SF Symbols nelle viste (Label, Image(systemName:), .symbolEffect)",
             "page.emoji.symbolsInViewsExplain": "I simboli compaiono dove il font del terminale li contiene. Senza, un Label mantiene il titolo e un'Image da sola non disegna nulla. Tra gli effetti dei simboli, un glifo in una cella può mostrare pulsazione e respiro (macOS).",
             "page.emoji.symbols.favourites": "Preferiti",
@@ -459,7 +459,7 @@ extension ExampleStrings {
             "page.imageURL.back": "atrás",
             "page.imageURL.scroll": "desplazar",
             "page.emoji.subtitle": "Peculiaridades de renderizado + corpus con búsqueda",
-            "page.emoji.bugCasesSection": "Casos de error (las filas que TUIkit debe compensar)",
+            "page.emoji.bugCasesSection": "Casos de error (las filas que TUI debe compensar)",
             "page.emoji.symbolsInViews": "SF Symbols en vistas (Label, Image(systemName:), .symbolEffect)",
             "page.emoji.symbolsInViewsExplain": "Los símbolos se dibujan donde la fuente del terminal los tiene. Sin ella, un Label conserva su título y una Image sola no dibuja nada. De los efectos de símbolo, un glifo en una celda puede mostrar pulso y respiración (macOS).",
             "page.emoji.symbols.favourites": "Favoritos",
@@ -554,7 +554,7 @@ extension ExampleStrings {
             "page.imageURL.back": "返回",
             "page.imageURL.scroll": "滚动",
             "page.emoji.subtitle": "渲染怪癖 + 可搜索语料库",
-            "page.emoji.bugCasesSection": "问题案例（TUIkit 必须补偿的行）",
+            "page.emoji.bugCasesSection": "问题案例（TUI 必须补偿的行）",
             "page.emoji.symbolsInViews": "视图中的 SF Symbols（Label、Image(systemName:)、.symbolEffect）",
             "page.emoji.symbolsInViewsExplain": "终端字体中有这些符号时才会显示。没有时，Label 保留标题，而单独的 Image 什么也不画。在符号效果中，一个格子里的字形可以显示脉动和呼吸（macOS）。",
             "page.emoji.symbols.favourites": "收藏",
@@ -649,7 +649,7 @@ extension ExampleStrings {
             "page.imageURL.back": "戻る",
             "page.imageURL.scroll": "スクロール",
             "page.emoji.subtitle": "レンダリングの癖 + 検索可能なコーパス",
-            "page.emoji.bugCasesSection": "バグのケース（TUIkit が補正しなければならない行）",
+            "page.emoji.bugCasesSection": "バグのケース（TUI が補正しなければならない行）",
             "page.emoji.symbolsInViews": "ビューの中の SF Symbols（Label、Image(systemName:)、.symbolEffect）",
             "page.emoji.symbolsInViewsExplain": "シンボルは端末のフォントに含まれているときに表示されます。ない場合、Label はタイトルを残し、単独の Image は何も描きません。シンボルエフェクトのうち、1 セルのグリフで表せるのはパルスと呼吸です（macOS）。",
             "page.emoji.symbols.favourites": "お気に入り",

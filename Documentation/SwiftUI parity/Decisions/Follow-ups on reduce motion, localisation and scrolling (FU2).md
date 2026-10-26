@@ -13,24 +13,24 @@ format of [`SwiftUI API completion decisions.md`](<SwiftUI API completion decisi
 
 ## B. Shipped the safe option
 
-### B-FU2-1. A language TUIkit does not ship is read only as far as the first it does
+### B-FU2-1. A language TUI does not ship is read only as far as the first it does
 
 *`LocalizationService` (A14)*
 
 **Shipped:** the languages a key is looked up in are the environment's list up
-to and including the first language TUIkit ships (`currentLanguage`), then
+to and including the first language TUI ships (`currentLanguage`), then
 English: `LANG=pt_BR` reads `pt`, then `en`; `LANGUAGE=pt:es` reads `pt`, `es`,
 `en`; `LANGUAGE=fi:pt` with no shipped language reads `fi`, `pt`, `en`. A
 language chosen with `setLanguage(_:)`, or stored by it, is read alone before
-English. `currentLanguage` stays one of TUIkit's seven, so its public type does
+English. `currentLanguage` stays one of TUI's seven, so its public type does
 not change, and the app's `Localizable` is read in the user's own language
-first — for TUIkit's words only where TUIkit has none of them.
+first — for TUI's words only where TUI has none of them.
 
 **The fuller version** is Foundation's own matching: a bundle's
 `preferredLocalizations` against the whole of the user's list, per table, so an
 app shipping `pt` under a `de:pt` user still reads German for the keys it has in
 German and Portuguese for the rest only where German has none. A public way to
-choose a language TUIkit does not ship (`setLanguage` takes a `Language`) would
+choose a language TUI does not ship (`setLanguage` takes a `Language`) would
 come with it. About half a day; nothing in the tree needs it yet.
 
 ### B-FU2-2. A two-axis pager's container leaves out a horizontal bar only when it is `.visible`
@@ -71,9 +71,9 @@ old container (decisions SCROLL B-SCROLL-2).
 
 *`EnvironmentValues.accessibilityReduceMotion` (A-D3M-1)*
 
-Reduce motion holds still the movement TUIkit's own modifiers make — an
+Reduce motion holds still the movement TUI's own modifiers make — an
 animated offset, position, padding or fixed frame, a visual effect's offset, a
 drag preview's lift and fly-back. An `Animatable` view of the app's own, a
 keyframe animator's tracks and a custom `Layout`'s data animate as before:
-TUIkit cannot tell which of an app's numbers are positions, and SwiftUI leaves
+TUI cannot tell which of an app's numbers are positions, and SwiftUI leaves
 them to the app too, which reads `\.accessibilityReduceMotion`.

@@ -21,7 +21,7 @@ copy mode (declined as feature creep).
 
 ## B. Shipped the safe option
 
-### B-D4X-1. OSC 52 goes only to a terminal TUIkit can name
+### B-D4X-1. OSC 52 goes only to a terminal TUI can name
 
 *The clipboard writer's ladder (`TerminalClient.clipboardWrites`)*
 
@@ -52,8 +52,8 @@ outer terminal whatever `set-clipboard` says. Half a day with a probe row.
 ### B-D4X-3. iTerm2 is a maybe, whatever its setting
 
 **Shipped:** iTerm2 writes OSC 52 only with "Applications in terminal may
-access clipboard", off by default, and nothing TUIkit can read says which. At
-the desk TUIkit uses `pbcopy` instead (sure); over ssh it sends OSC 52 and
+access clipboard", off by default, and nothing TUI can read says which. At
+the desk TUI uses `pbcopy` instead (sure); over ssh it sends OSC 52 and
 says "Sent".
 
 **The fuller version:** if `clipboard_probe.py` shows iTerm2's DA1 `52`
@@ -95,7 +95,7 @@ mouse took away — selected any text. List and Table rows keep their meaning
 unless `.enabled`.
 
 **The alternative:** SwiftUI's default literally — nothing selectable without
-`.textSelection(.enabled)`. Free; it would leave a TUIkit app with less than a
+`.textSelection(.enabled)`. Free; it would leave a TUI app with less than a
 terminal gives a plain program.
 
 ### B-D4X-7. Row text under `.enabled` is kept to the row, not to the cell
@@ -105,14 +105,14 @@ terminal gives a plain program.
 the text — a drag selects it, a double-click a word, a click selects nothing,
 the row selection untouched — and a press on blank cells is the row's. macOS
 keeps a selection inside one `Text`, so in a multi-column `Table` inside one
-cell; TUIkit keeps it to the row, crossing the columns.
+cell; TUI keeps it to the row, crossing the columns.
 
 **Menus on such a row** (measured, macOS 15.8.1, a SwiftUI `List` and `Table`
 whose rows carry `Text(…).textSelection(.enabled)` and a `.contextMenu`, the
 D4X `rowdrag.swift` probe): a right-click on the row's text with nothing
 selected opens the row's menu; a right-click on a selection's highlight opens
 the text's own menu (Look Up, Translate, Cut, Copy, Paste…), not the row's.
-TUIkit does both: the highlight's Copy menu is offered the press first. A
+TUI does both: the highlight's Copy menu is offered the press first. A
 Control-click on the row's text — the owner's call, 2026-10-06 — opens the
 row's menu as a right-click does, and with no menu the row takes it as on its
 blank cells; it no longer starts a selection. It is the secondary click for
@@ -143,7 +143,7 @@ crossed — and the row is neither moved nor selected; a press on the plain
 control list's text goes to the list instead. (The probe cannot see a row
 drag begin even from blank cells — synthesised drags start no AppKit drag
 session — so the evidence is that the text, not the row, received the
-press and tracked the drag.) TUIkit matches: a drag handle under selectable
+press and tracked the drag.) TUI matches: a drag handle under selectable
 text gives a press on the text to the selection (`PressRole.dragSource`), and
 the row still drags from its blank cells and from text no `.enabled` made
 selectable. Selectable is decided by the innermost scope under the press,
@@ -207,9 +207,9 @@ beside SwiftUI's `textSelection(_:)` family. Rename freely.
 `NSTextView`): Up, Down, Ctrl-P and Ctrl-N move by rows keeping the column
 through short rows; Up from the first row goes to the start and Down from the
 last to the end; Ctrl-A and Ctrl-E keep the paragraph; a tab's stop is counted
-from its row's start. TUIkit's wrapping editor does all of these. Page Up and
+from its row's start. TUI's wrapping editor does all of these. Page Up and
 Page Down only scroll an `NSTextView`, and Home and End scroll to the ends;
-TUIkit's editor moves the caret for them, by a screen of rows and to the
+TUI's editor moves the caret for them, by a screen of rows and to the
 document's ends, as it already did. With `textEditorWrapsLines(false)` the
 editor is exactly as before, Up and Down stopping at the first and last line.
 
@@ -242,7 +242,7 @@ editors read.
 *The clipboard rule's locality (`ClipboardLocality`) and the writer's ladder
 (`TerminalClient.clipboardWrites`)*
 
-**Shipped:** a session keeper TUIkit knows — GNU screen, zellij, dtach,
+**Shipped:** a session keeper TUI knows — GNU screen, zellij, dtach,
 abduco, shpool, tmate, WezTerm's mux server, and a tmux above a tmux client
 in its chain (a tmux run inside another tmux's pane) — in the process's chain
 or by its variable (`STY`, `ZELLIJ`, `ZELLIJ_SESSION_NAME`, `ABDUCO_SESSION`,
@@ -250,7 +250,7 @@ or by its variable (`STY`, `ZELLIJ`, `ZELLIJ_SESSION_NAME`, `ABDUCO_SESSION`,
 detached from the terminal that started it, so a session begun at the desk
 can be attached over ssh with nothing in the process to say so, and none of
 them can be asked for its clients as tmux is. Eternal Terminal's
-`etterminal` joins `etserver` as a remote-session daemon. A keeper TUIkit
+`etterminal` joins `etserver` as a remote-session daemon. A keeper TUI
 does not know passes as a plain parent: the list is what has been found, not
 everything there is. (Review 2 found nested tmux, `wezterm-mux-server` and
 `tmate` missing; the first is the one that put text on a server Mac's
@@ -445,7 +445,7 @@ tmux still attached from inside screen; tmux's clients decide now),
 frame, and the probe advising a plain-text copy where types cannot be
 listed — all fixed — these remain:
 
-- **Clipboard locality** (B-D4X-13): a session keeper TUIkit does not know
+- **Clipboard locality** (B-D4X-13): a session keeper TUI does not know
   passes as a plain parent; a nested tmux at the desk is "not local" (its
   outer server is not asked for its clients); under GNU screen a copy goes
   through its DCS passthrough since 2026-10-24 (measured on 4.00.03), and
@@ -493,7 +493,7 @@ listed — all fixed — these remain:
   field's text: a drag in a `TextField` in a draggable row moves the row and
   selects nothing in the field, scope or no scope (macOS unmeasured; a field
   that kept such a drag for its own selection would change the no-scope
-  case too, so it is a design question, not this rule's). A region of TUIkit's
+  case too, so it is a design question, not this rule's). A region of TUI's
   that takes no plain left press but is not filed as passive is taken for a
   control, so a handle in front of it keeps a press on text: the passive
   regions are drop zones, spring-loading zones, context menus' triggers and

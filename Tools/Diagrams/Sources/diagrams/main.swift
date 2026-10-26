@@ -37,7 +37,7 @@ if let name = option("--dot") {
 }
 
 // Default: render every diagram to <output>/<name>.svg.
-let outputDir = option("--output") ?? "Sources/TUIkit/TUIkit.docc/Resources"
+let outputDir = option("--output") ?? "Sources/TUI/TUI.docc/Resources"
 
 guard let dot = locateDot() else {
     fail(RenderError.dotNotFound.description)

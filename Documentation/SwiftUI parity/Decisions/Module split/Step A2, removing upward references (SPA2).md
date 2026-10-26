@@ -2,7 +2,7 @@
 
 *Lane SPA2 implemented step A2 of the module-split plan
 (`buildtime/split2/plan.md`, §4 rows K1–K6): six refactors inside today's one
-TUIkit module that remove the references which would point upward — from the
+TUI module that remove the references which would point upward — from the
 substrate (Base) into a feature leaf or into the POSIX app layer — once the
 code is split. Where that work reached a judgement call the plan's rows did not
 settle, the safe option shipped and is written up here, in the format of

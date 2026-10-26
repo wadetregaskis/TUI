@@ -76,7 +76,7 @@ what the blur is, at a cell's resolution.
 
 *`View.shadow(color:radius:x:y:)`*
 
-A drop shadow reaches past the view, and nothing in TUIkit composited a layer
+A drop shadow reaches past the view, and nothing in TUI composited a layer
 beneath a view's cells before. The shadow is a layer of blank cells in the
 colour's opaque spelling, each claiming its field at the shadow's alpha
 there, laid under the view by `.background { … }`'s own compositor

@@ -53,7 +53,7 @@ worth recording here because it is not what §1 predicted:
 - **Not honoured yet**, each said at its own line: a translucent gradient (a ramp
   states a colour per cell, and a region carries one alpha for a rectangle — the
   one place a rectangle is genuinely the wrong shape), `Text`'s attributed-run
-  path, `Table`/`PaintRenderer`/`DimmedModifier`, and `TUIkitImage`, which cannot
+  path, `Table`/`PaintRenderer`/`DimmedModifier`, and `TUIImage`, which cannot
   see `OpacityRegion` at all.
 Commissioned
 to answer two questions before any of it is built — does it add complexity or
@@ -342,8 +342,8 @@ Four facts, from mapping `_OpacityView.cycling` → `AnimatedBufferCycle.runs` �
    resolution, contrast correction and 256-cube downsampling are all done at
    bake time and frozen into bytes. Up to 120 phases, one line-set each.
 2. **It has to be**, and this is the constraint rather than a choice:
-   `AnimatedCellRun` lives in `TUIkitCore`, which cannot see `Color` at all
-   (`TUIkitCore` and `TUIkitStyling` are siblings with no dependency between
+   `AnimatedCellRun` lives in `TUICore`, which cannot see `Color` at all
+   (`TUICore` and `TUIStyling` are siblings with no dependency between
    them). A run cannot carry "this colour, faded by that much" because it
    cannot name a colour.
 3. **`ReplayableFrame` keeps no way back.** It holds finished rows, run
@@ -359,7 +359,7 @@ Two consequences for the implementation:
 
 - **The bake must move to composite time, and it can**, because every one of
   the eight `composited` callers lives above the lower modules, in
-  TUIkitFoundation, where `Color` is visible. The bake costs the same as it
+  TUIFoundation, where `Color` is visible. The bake costs the same as it
   does today — N phases × rows of string rewriting — it simply happens
   against a real destination instead of an assumed one. It is only
   *repeated* when the destination changes.
@@ -1145,7 +1145,7 @@ ramp, hit no assertion, and ship it.
 A translucent ramp now declines the picture path outright (`Paint`
 `.isOpaqueThroughout`, asked of the STOPS, before any sampling). Transmitting real
 RGBA would not fix it even where the protocol allows: the terminal composites
-against the cells' own background rather than against what TUIkit knows is behind
+against the cells' own background rather than against what TUI knows is behind
 them, which is the guess this design exists to avoid. The cost is sub-cell
 smoothness, for translucent ramps only. (Since 2026-09-15 also for a ramp with a
 colour that has no RGB, for the other half of the same reason: §77.)
@@ -2182,7 +2182,7 @@ whole job is to recede against the page it sits on.
 - **The picture path.** `.block` — `ProgressView`'s default — becomes Kitty
   placeholder cells on a terminal that draws pictures, and `GradientRaster.Picture
   .format` is hardcoded `.rgb`. Even with an alpha channel it would be the *terminal*
-  compositing against its own background, not against what TUIkit drew behind the
+  compositing against its own background, not against what TUI drew behind the
   cell. So a translucent track now **declines** the picture and takes the cell path,
   which claims correctly. Without the decline the gap would be
   terminal-distributed — right on Apple Terminal, wrong on kitty and Ghostty — which
@@ -2577,7 +2577,7 @@ It also proves the gap was real rather than theoretical. Built against the previ
 commit, in debug:
 
 ```
-TUIkitStyling/Color+ANSICodes.swift:70: Assertion failed: a translucent colour
+TUIStyling/Color+ANSICodes.swift:70: Assertion failed: a translucent colour
 reached the ANSI emitter (alpha 45): the view that painted it does not carry alpha
 to the compositor, so it renders opaque.
 ```
@@ -4968,7 +4968,7 @@ blend the framework derives from one has a side without RGB. The change reaches 
 that puts `Color.default`, a slot or the terminal's own colours into a palette, a style
 or a blend of its own.
 
-`BlendEndsTests` (TUIkitStylingTests) pins the rule, including
+`BlendEndsTests` (TUIStylingTests) pins the rule, including
 `restingControlFace`, `focusBackground` and both pulse pairs over a page with no RGB, and
 a gradient stop with no RGB, which is a hard edge at the middle of its segment.
 
@@ -5016,7 +5016,7 @@ handling of SGR 8 is measured, so that is not pursued.
 reaches an app whose palette or background is `.terminalBackground`, and the grounding
 step of the terminal-colour plan, which makes a `.clear` root that page (§80).
 
-`FadeOverUnreportedPageTests` (TUIkitEffectsTests) pins it through `renderToScreen`: a label at
+`FadeOverUnreportedPageTests` (TUIEffectsTests) pins it through `renderToScreen`: a label at
 0.3 and 0.49 is gone and at 0.5 and 0.6 is drawn in its own ink; a dropped underline
 leaves no attribute; an ink at alpha 0.3 is gone over the page and over the text it
 covers, and at 0.6 is drawn over that text; and over a reported page the label at 0.3
@@ -5085,7 +5085,7 @@ What it does not touch:
   page (rule 9), and on an unreported page that cap is 39 again. No built-in palette has
   one.
 
-`ButtonCapsOnUnmeasurableFaceTests` (TUIkitPickersTests) pins it for a string label, a view label
+`ButtonCapsOnUnmeasurableFaceTests` (TUIPickersTests) pins it for a string label, a view label
 and a menu picker. On an unreported page the caps are the tier at rest and when disabled,
 and the accent with no run when focused. An accent of `Color.default` gives the same caps
 on an RGB page while the terminal has not reported. (Since §80 a palette's `Color.default`
@@ -5140,12 +5140,12 @@ snapped at ½ and they alternated between their two ends. §79.1 holds them the 
 functions return what they did, byte for byte. A translucent colour below ½ spends to its
 ground (rule 9), so its steady breath is the ground; no built-in palette has one.
 
-`SteadyBreathOnUnmeasurableColourTests` (TUIkitIntegrationTests) pins it for a List, a standard and
+`SteadyBreathOnUnmeasurableColourTests` (TUIIntegrationTests) pins it for a List, a standard and
 a plain button, a Toggle, a radio group, a Stepper, a Slider and a TextField, over an
 accent of the terminal's foreground and over the terminal's page, both unreported. Each
 leaves no run and reads no clock, draws its `.selectionIndicatorStyle(.none)` picture at
 every point of the cycle, and gives the run loop nothing to wake for. Reported, the same
-controls breathe. `BlendEndsTests` (TUIkitStylingTests) pins both pairs, and that RGB
+controls breathe. `BlendEndsTests` (TUIStylingTests) pins both pairs, and that RGB
 pairs are the composite and the spent colour, as before.
 
 ### 79.1 A breath between two colours chosen apart (2026-09-15)
@@ -5188,7 +5188,7 @@ could not reach the rule while its sixteen slots measured as xterm's table. Sinc
 slot the terminal has not reported has no RGB, so a cursor on slots 0 to 15 holds still
 until the terminal reports them.
 
-`SteadyBreathCopiesOnUnmeasurableColourTests` (TUIkitIntegrationTests) pins it over an accent of the
+`SteadyBreathCopiesOnUnmeasurableColourTests` (TUIIntegrationTests) pins it over an accent of the
 terminal's foreground and over the terminal's page, both unreported, and since §81 over a
 slot accent and for the 256-colour grid too. Where an end has no RGB, each leaves no run, reads no clock and draws its
 still picture at every point of the cycle. Where both ends are RGB, it still breathes.
@@ -5263,7 +5263,7 @@ Limits:
 - The Example's `CustomizablePalette` stores `focusBackground` from its source, so after an
   edit of a ground it no longer equals its derived default and is kept as it was.
 
-`GroundedPaletteTerminalTests` (TUIkitChromeTests) pins the roots at alpha 0, 64 and 128 and
+`GroundedPaletteTerminalTests` (TUIChromeTests) pins the roots at alpha 0, 64 and 128 and
 spelled `Color.default`, silent and reported, including the 49 the root spells. It pins
 each of the fifteen stated roles spelled `Color.default` on its own, the overlay's kept
 alpha, the tiers silent and reported, the derived and stated surfaces, idempotence (under
@@ -5318,7 +5318,7 @@ xterm's table gave (103, 0, 128).
 built-in swatch but the 256-colour grid's first sixteen is RGB. The change reaches an app
 whose palette, style or blend names a slot, and that grid.
 
-`UnreportedANSISlotTests` (TUIkitIntegrationTests) pins one row per rule, with the slots unreported and
+`UnreportedANSISlotTests` (TUIIntegrationTests) pins one row per rule, with the slots unreported and
 with Apple Terminal "Basic"'s reported, and the parts that do not change.
 `SteadyBreathOnUnmeasurableColourTests` and `SteadyBreathCopiesOnUnmeasurableColourTests`
 add a slot accent, and the 256-colour grid.
@@ -5377,9 +5377,9 @@ What it does not touch:
   shows the twin there, so the first rung is no visible step on that host. Inferred from
   that table, not measured on a hovered control.
 
-`HoverLadderTests` (TUIkitStylingTests) pins the ladder, unreported and with Apple Terminal
+`HoverLadderTests` (TUIStylingTests) pins the ladder, unreported and with Apple Terminal
 "Basic"'s and Ghostty 1.3.1's reported colours, and that no colour the terminal decides lifts
-to RGB, or to a harder read where it measures. `HoverWithoutAFillTests` (TUIkitIntegrationTests) pins
+to RGB, or to a harder read where it measures. `HoverWithoutAFillTests` (TUIIntegrationTests) pins
 each of the five controls, a resize grip and a scrollbar's hovered arrow, and that a built-in
 palette's hovered arrows are still the wash.
 
@@ -5415,7 +5415,7 @@ What it leaves alone:
 - **The colour effects.** They share the rewrite, but a colour with no RGB passes through
   them unchanged, so none of them turns a colour into the page.
 
-`FadeOverUnreportedPageTests` (TUIkitEffectsTests) pins it on `OpacityFade` and through
+`FadeOverUnreportedPageTests` (TUIEffectsTests) pins it on `OpacityFade` and through
 `AnyTransition.Effect.opacity`. A slot, the palette's ink and an RGB ink at 0, 0.3 and 0.49
 leave blanks, and a wide glyph leaves two. At 0.5 and 0.6 the slot is drawn as 31. A dropped
 glyph's underline is cleared, and a reversed glyph after it keeps its own. Over a reported
@@ -5449,7 +5449,7 @@ What it leaves alone:
   inversion take their amount from the call, not from a colour, so a colour with no RGB
   under them is left as it is and the rest of the line still changes.
 
-`ColorEffectTests` (TUIkitEffectsTests) pins it for `.ansi(.blue)`, `Color.default`, the
+`ColorEffectTests` (TUIEffectsTests) pins it for `.ansi(.blue)`, `Color.default`, the
 terminal's foreground and `Color.palette256(4)`, unreported: a label in 39, an RGB label and a
 slot on an RGB field draw byte for byte as they do unmultiplied, and at half alpha the
 lines are `.white.opacity(0.5)`'s. With Apple Terminal "Basic"'s slots reported, a multiply
@@ -5501,7 +5501,7 @@ cell blended as a unit at layer alpha ½. The spelling rule was taken instead: i
 model of the blend, reaches the destination side and the uncovered column the plan did not
 name, and meets each of the plan's tests.
 
-`ReversedCellOverUnreportedPageTests` (TUIkitFoundationTests) pins it through `renderToScreen`, with
+`ReversedCellOverUnreportedPageTests` (TUIFoundationTests) pins it through `renderToScreen`, with
 the terminal's pair unreported: a reversed label at 0.5 and 0.6 keeps its 7 with its glyphs
 and states no RGB, and at 0.3 and 0.49 is gone, over the page and over text; a reversed space
 at 0.6 covers text and at 0.3 yields to it; a red label at 0.6 over a reversed row is drawn
@@ -5576,7 +5576,7 @@ Limits:
   container's right pad cell, which a persistent background left in force used to colour by
   bleed, stays bare — as its left pad always was.
 
-`ReversedCursorRowTests` (TUIkitIntegrationTests) pins it for both twins, at all three depths, with an
+`ReversedCursorRowTests` (TUIIntegrationTests) pins it for both twins, at all three depths, with an
 `.ansi` accent over an RGB page and with the terminal's own pair: every cell of the cursor
 row from its text to the row's end carries the 7 with the palette's ink and field, the
 padding after a child's own reset included; the ● is kept; no run is left and the loop is
@@ -5695,7 +5695,7 @@ Limits:
 - What a host actually PAINTS for a reversed cell is unmeasured on every terminal
   (Terminal compatibility survey.md).
 
-`ReversedTextSelectionTests` (TUIkitTextInputTests) pins it, for a field and for an editor, at all three
+`ReversedTextSelectionTests` (TUITextInputTests) pins it, for a field and for an editor, at all three
 depths, with an `.ansi(.blue)` accent over an RGB well and with the terminal's own pair: the
 selected cells carry the 7 with the field's own ink and well and nothing else, and the cells
 around them do not; a `.textFieldTextStyle` ink is what is exchanged; a block caret reverses the
@@ -5707,7 +5707,7 @@ drawn as before.
 ## 88. A menu's highlight bar on colours the terminal decides (2026-09-15)
 
 A menu's highlight bar is the fill a cursor row draws (§86): the accent breathing between 22%
-and 50% over the page (`Palette.accentFillPulse`). Two renderers paint it, because TUIkit has
+and 50% over the page (`Palette.accentFillPulse`). Two renderers paint it, because TUI has
 two kinds of menu row — `_MenuItemRowBar`, over the finished line of a view-composed row (a
 pop-up `Menu`, a `.contextMenu`), and `DropdownMenu.lines`, over the interior of a procedural
 one (a `Picker`'s drop-down, a combo box's suggestions). Where the accent or the page has no
@@ -5760,7 +5760,7 @@ Limits:
 - What a host actually PAINTS for a reversed row is unmeasured on every terminal
   (Terminal compatibility survey.md).
 
-`ReversedMenuHighlightTests` (TUIkitPickersTests) pins it at all three depths, with an `.ansi(.blue)`
+`ReversedMenuHighlightTests` (TUIPickersTests) pins it at all three depths, with an `.ansi(.blue)`
 accent over an RGB page and with the terminal's own pair: a focused menu row's bar and an open
 drop-down's highlighted row carry the 7 with the palette's ink and page, the ✓'s own cell
 excepted; the popup's frame does not; a drop-down windowed behind a scrollbar reverses its row
@@ -5810,7 +5810,7 @@ Limits:
 - What a host actually PAINTS for a reversed cell is unmeasured on every terminal
   (Terminal compatibility survey.md).
 
-`ReversedDateComponentTests` (TUIkitPickersTests) pins it at all three depths, with an `.ansi(.blue)`
+`ReversedDateComponentTests` (TUIPickersTests) pins it at all three depths, with an `.ansi(.blue)`
 accent over a mid-tone RGB page and with the terminal's own pair: the active component carries
 the 7 with the palette's ink and page and its underline; the reversal is never a bare 7 and
 always states a field; the components either side are not reversed; it leaves no run and the
@@ -5862,7 +5862,7 @@ Limits:
 - What a host actually PAINTS for a reversed cell is unmeasured on every terminal
   (Terminal compatibility survey.md).
 
-`ReversedSplitDividerTests` (TUIkitIntegrationTests) pins it at all three depths, with an `.ansi(.blue)`
+`ReversedSplitDividerTests` (TUIIntegrationTests) pins it at all three depths, with an `.ansi(.blue)`
 accent over an RGB page and with the terminal's own pair: a focused divider carries the 7 with
 the palette's ink and page down every cell of its column; a resting one carries none; it
 leaves no run and the loop is asked for no tick; the grip is where it was; and with Apple
@@ -5902,7 +5902,7 @@ What it leaves alone:
   either slot; the rewrite only edits the bytes in front of it, and for a cell it cannot spell
   the answer is the one §76 and §83 already give.
 
-`FadeOverUnreportedPageTests` (TUIkitEffectsTests) pins it on `OpacityFade` and through
+`FadeOverUnreportedPageTests` (TUIEffectsTests) pins it on `OpacityFade` and through
 `AnyTransition.Effect.opacity`: at 0, 0.3 and 0.49 a slot, an RGB ink and the palette's own
 pair, each reversed, leave blanks carrying no 7, and a wide glyph leaves two; at 0.5 and 0.6
 the cell keeps its 7 with its colours; a reversed cell with nothing stated, and one stating
@@ -6002,7 +6002,7 @@ from inside a hidden subtree still presents — and that is a parity decision wo
 rather than recalling, so it was measured: a SwiftUI probe on macOS 15, one arrangement
 per launch, reports a real sheet window (`NSApp.windows.filter(\.isSheet)`, count 1,
 visible 1) for `.hidden()` applied outside the presentation modifier, inside it, and for
-`.opacity(0)` — TUIkit matches. `ScrollView.windowedBuffer` slices one canvas render into
+`.opacity(0)` — TUI matches. `ScrollView.windowedBuffer` slices one canvas render into
 the rows inside the viewport and the rows outside. In both, the surviving picture renders
 in the SAME pass as the discarded one, so a throwaway tracker would blind the half that is
 on screen. Only a demand carried on the buffer can tell the halves apart, and those two
@@ -6741,7 +6741,7 @@ replayed '⠧' in 146;60;88 on 142;100;160, rendered '⠧' in 90;20;120 on 146;6
 `AnimatedRunGroundTests`' faded probe inside a list row now compares the cells as they look, and
 drops its known issue: before, `listRowFill at 0.6, frame ab: replayed 'a' in rgb(220, 220, 220)
 on rgb(220, 220, 220), the resolved row shows 'a' in the terminal's background on …`.
-`GroundStyleRestatementTests` (TUIkitCoreTests) holds the restatement to a painter restating its
+`GroundStyleRestatementTests` (TUICoreTests) holds the restatement to a painter restating its
 style after every reset, read by the independent reference model: a spinner's three frames, 1,200
 seeded frames under three styles (a reversal with an ink, a bare reversal, a dim), a frame that
 already states the style (unchanged, byte for byte), a style that restates nothing, and one that

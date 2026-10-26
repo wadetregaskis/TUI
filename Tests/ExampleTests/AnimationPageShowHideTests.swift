@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  AnimationPageShowHideTests.swift
 //
 //  Created by Wade Tregaskis
@@ -7,9 +7,9 @@
 import Testing
 
 @testable import Example
-import TUIkit
-@testable import TUIkitApp
-@testable import TUIkitFoundation
+import TUI
+@testable import TUIApp
+@testable import TUIFoundation
 
 /// What the panel says, as the page draws it: the key's English text when the
 /// Example's strings are registered, and the key itself when — as in this

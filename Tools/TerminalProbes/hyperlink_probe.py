@@ -3,7 +3,7 @@
 
 Two different questions, and only the first one an escape sequence can answer.
 
-**Safe** is measurable, and it is the one that decides whether TUIkit may emit
+**Safe** is measurable, and it is the one that decides whether TUI may emit
 the sequence at all. An OSC is `ESC ] … ST`, and a terminal that has an OSC
 parser consumes the whole thing whether or not it implements the command —
 costing nothing, painting nothing. A terminal WITHOUT one prints the payload as
@@ -28,7 +28,7 @@ forward ⌘-click as the protocol's meta bit). The gesture question is asked
 separately at the end of the card for that reason.
 
 The distinction matters because the two answers license different things. A
-host that SWALLOWS is one TUIkit can emit to unconditionally — nothing is lost
+host that SWALLOWS is one TUI can emit to unconditionally — nothing is lost
 if the link is inert. A host that PRINTS must be excluded by name, and that
 exclusion is a correctness requirement, not a nicety.
 
@@ -135,7 +135,7 @@ def card():
           f"   (one link if honoured: hovering either should light both)")
     # Three spellings of a link to a file that exists (this script): the
     # empty host `URL(fileURLWithPath:)` writes and Ghostty documents
-    # refusing, the machine's own name, which TUIkit writes since 2026-10-04,
+    # refusing, the machine's own name, which TUI writes since 2026-10-04,
     # and `localhost`.
     path = os.path.abspath(__file__)
     host = socket.gethostname()
@@ -149,18 +149,18 @@ def card():
   Five things to answer by looking, none of which a query reports:
 
     1. Is the URL VISIBLE as text anywhere above? If so this host has no OSC
-       parser and TUIkit must never emit the sequence here.
+       parser and TUI must never emit the sequence here.
     2. Does hovering a label show the URL? That is "honoured", and it is the
        half that does not depend on anything the application is doing.
     3. Do the two `id=` runs highlight TOGETHER on hover? That is the id
        parameter working, which is what lets one link survive a line break.
     4. Which gesture OPENS one — plain click, ⌘-click, shift-click? Then ask
-       the same question again inside a running TUIkit app, where mouse
+       the same question again inside a running TUI app, where mouse
        reporting is on: the answers can differ, because a terminal that
        forwards the modified click to the application cannot also act on it.
        That second answer is the one that matters and the one still open.
     5. Which of the three file links opens, or shows its destination? Ghostty
-       documents refusing the first; TUIkit sends the second.
+       documents refusing the first; TUI sends the second.
 """)
 
 

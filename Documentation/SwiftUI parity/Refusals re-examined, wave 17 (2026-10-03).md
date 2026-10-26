@@ -72,21 +72,21 @@ a wave cannot implement its modifier without first overturning a map entry.
 Several reasons cite an absence that has since been filled. They are false
 today, whatever the verdict.
 
-- **"No transition system in TUIkit (no `.transition`/`AnyTransition`)"** —
+- **"No transition system in TUI (no `.transition`/`AnyTransition`)"** —
   `NavigationTransition`, `MatchedTransitionSourceConfiguration`,
   `SymbolEffectTransition`, `Namespace`. `AnyTransition`, `TransitionModifier`,
   `DepartureStore` and `withAnimation` all ship
-  (`Sources/TUIkitEffects/Animation/AnyTransition.swift`).
-- **"TUIkit has no Font type"** — `ToolbarTitleDisplayMode`. `Font` ships
-  (`Sources/TUIkitFoundation/Styling/Font.swift`).
+  (`Sources/TUIEffects/Animation/AnyTransition.swift`).
+- **"TUI has no Font type"** — `ToolbarTitleDisplayMode`. `Font` ships
+  (`Sources/TUIFoundation/Styling/Font.swift`).
 - **"There are no shapes, no ShapeStyle"** — `ImagePaint`. `ShapeStyle`,
-  `AnyShapeStyle` and four gradient styles ship (`Sources/TUIkitFoundation/Styling/`).
+  `AnyShapeStyle` and four gradient styles ship (`Sources/TUIFoundation/Styling/`).
 - **"Never composites colour"** — `ColorRenderingMode`. Opacity is real
   compositing in encoded sRGB (`Documentation/Colour and styling/Opacity as composition.md`), and
   until 2026-09-04 it was done in linear light.
 - **"Custom keys on a Transaction that does not exist"** — `TransactionKey`.
-  `Transaction` ships (`Sources/TUIkitCore/Animation/Transaction.swift:15`).
-- **"No window-activation state"** — `MaterialActiveAppearance`. TUIkit enables
+  `Transaction` ships (`Sources/TUICore/Animation/Transaction.swift:15`).
+- **"No window-activation state"** — `MaterialActiveAppearance`. TUI enables
   focus reporting (DEC 1004, `App.swift:692`) and publishes `\.appearsActive`
   (`ScenePhaseEnvironment.swift:127`).
 - **"Spring curves ... need a continuous timeline"** — the `Spring*`/`*.spring*`
@@ -97,7 +97,7 @@ today, whatever the verdict.
   placeholders where the terminal supports them (compat doc §2.4).
 - **`VisualEffect.brightness/contrast/grayscale/hueRotation/saturation` under
   "per-pixel shading"** — the same five effects ship as `View` modifiers that
-  rewrite cell colours (`Sources/TUIkitEffects/Modifiers/ColorEffectModifiers.swift`).
+  rewrite cell colours (`Sources/TUIEffects/Modifiers/ColorEffectModifiers.swift`).
 
 ### X3. The map's reasons are truncated
 
@@ -140,7 +140,7 @@ The compat doc already has this rule (lines 36–40; `MediumGuaranteedModifiers.
 It applies to several refusals that call a TRUE constant "answering a question
 the caller should not be asking":
 
-- `ViewSpacing`: TUIkit's real defaults are `HStack` 1 column and `VStack` 0 rows
+- `ViewSpacing`: TUI's real defaults are `HStack` 1 column and `VStack` 0 rows
   (`HStack.swift:48`, `VStack.swift:50`), with a zero-extent child charged none.
 - `GeometryProxy.containerCornerInsets`: zero. A corner glyph is never inside
   the content area.
@@ -187,11 +187,11 @@ the caller should not be asking":
 `TransformedShape`. The `Rectangle` gap in W13 belongs here too.
 
 **What the refusals say, and why they fail.** "A cell grid has no partial
-coverage", "TUIkit has no path rasterizer", "a radius needs sub-cell coverage",
-"line width is exactly one cell". TUIkit already rasterizes arbitrary RGBA
+coverage", "TUI has no path rasterizer", "a radius needs sub-cell coverage",
+"line width is exactly one cell". TUI already rasterizes arbitrary RGBA
 images to cells:
 
-- `TUIkitImage/ASCIIConverter` covers half-blocks, quadrants, Braille and shape
+- `TUIImage/ASCIIConverter` covers half-blocks, quadrants, Braille and shape
   matching.
 - Kitty pictures are sent where supported (`Image+TerminalGraphics`,
   `TerminalImageStore`).
@@ -204,7 +204,7 @@ images to cells:
   arithmetic before rasterization, not rotating glyphs, so the
   Rotated/Scaled/Offset/TransformedShape refusals conflate the two.
 
-**What a shape means in TUIkit.** Two render paths behind one `Shape` protocol.
+**What a shape means in TUI.** Two render paths behind one `Shape` protocol.
 
 1. **Rectangle family, box-drawing fast path.** This covers rectangular paths
    whose edges land on cell boundaries: `Rectangle`, `RoundedRectangle`,
@@ -224,7 +224,7 @@ images to cells:
      request (SwiftUI's two styles are near-identical at small radii too).
    - A one-row `Capsule().fill` is `▐████▌`. Those are
      `TerminalSymbols.openCap`/`closeCap` (`TerminalSymbols.swift:18-21`),
-     already TUIkit's capsule vocabulary for `TextField`.
+     already TUI's capsule vocabulary for `TextField`.
    - `ContainerRelativeShape` and `ConcentricRectangle` resolve to the
      enclosing container's corner glyphs. The container publishes its
      `BorderStyle` through the environment, which is what W05's
@@ -262,10 +262,10 @@ images to cells:
 `TransformedShape`, `Shape.transform(_:)` and `Path.applying(_:)` take one.
 Declaring `CGAffineTransform` under `#if !canImport(CoreGraphics)` is what
 swift-corelibs-foundation itself did for `CGRect`. The lower modules must stay
-Windows-clean, so put shapes in the `TUIkit` umbrella module or confine the
-rasterizer to `TUIkitImage`, which is pure math. *(2026-10-08: since module
+Windows-clean, so put shapes in the `TUI` umbrella module or confine the
+rasterizer to `TUIImage`, which is pure math. *(2026-10-08: since module
 split step B1 the umbrella holds only re-exports; that module is
-`TUIkitFoundation`.)*
+`TUIFoundation`.)*
 
 **Owner sub-decision: the unit of `path(in:)`.** See §O0. Recommendation:
 square units, x in columns and y in half-rows.
@@ -309,10 +309,10 @@ Keys: `ContentTransition`, plus W12's `View.contentTransition(_:)` and
   cross-fade exactly, glyphs swap at ½, and matching characters never snap
   (`Opacity as composition.md`).
 - **How:** keep the outgoing buffer in a departing slot
-  (`TUIkitView/Animation/DepartingSlot.swift`, `DepartureStore.swift`) and
+  (`TUIView/Animation/DepartingSlot.swift`, `DepartureStore.swift`) and
   composite outgoing → incoming per frame.
 
-| Case | Meaning in TUIkit |
+| Case | Meaning in TUI |
 |---|---|
 | `.identity` | no animation |
 | `.opacity` | cross-fade |
@@ -339,7 +339,7 @@ composition.md` §110), and `ShapeStyle.blendMode(_:)`, the same day.
 - **Separable modes** — `multiply`, `screen`, `overlay`, `darken`, `lighten`,
   `colorDodge`, `colorBurn`, `softLight`, `hardLight`, `difference`,
   `exclusion`, `plusDarker`, `plusLighter` — work per channel in encoded sRGB,
-  the space TUIkit already composites in to match SwiftUI.
+  the space TUI already composites in to match SwiftUI.
 - **Non-separable modes** — `hue`, `saturation`, `color`, `luminosity` — go
   through `Color+ColorSpaces.swift`.
 - **Porter–Duff modes** — `sourceAtop`, `destinationOver`, `destinationOut` —
@@ -352,7 +352,7 @@ composition.md` §110), and `ShapeStyle.blendMode(_:)`, the same day.
 All refused on maintenance or "not useful here" grounds, none on a medium
 limit.
 
-- **`Spring` (S–M).** Pure math, and TUIkit already owns the closed form
+- **`Spring` (S–M).** Pure math, and TUI already owns the closed form
   (`AnimationCurve.spring(omega:zeta:)`, `AnimationCurve.swift:24`).
   - Expose every SwiftUI initializer: `duration:bounce:`,
     `response:dampingRatio:`, `mass:stiffness:damping:allowOverDamping:` and
@@ -360,15 +360,15 @@ limit.
   - Also the parameters, `value`/`velocity`/`force`/`settlingDuration`
     (closed form with initial velocity), `update(value:velocity:target:deltaTime:)`,
     and the `.smooth`/`.snappy`/`.bouncy` presets.
-  - Put it in `TUIkitCore`, which is Windows-safe.
+  - Put it in `TUICore`, which is Windows-safe.
   - The reason "nothing in a terminal integrates motion" is a judgement.
     `SpringKeyframe` and `Animation.spring(_:blendDuration:)` both need the
     type.
 - **`Animation.interpolatingSpring`, `(mass:stiffness:damping:initialVelocity:)`,
   `(duration:bounce:initialVelocity:)` (S).**
-  - The refusal: "velocity-preserving on retarget; TUIkit carries position
+  - The refusal: "velocity-preserving on retarget; TUI carries position
     only".
-  - But TUIkit's shipped `.spring` already retargets at rest where SwiftUI's
+  - But TUI's shipped `.spring` already retargets at rest where SwiftUI's
     preserves velocity. The deviation is common to every spring and belongs in
     one documented place, not a reason to refuse one spelling.
   - `initialVelocity` *is* honourable in the closed form (x′(0) = v₀).
@@ -391,7 +391,7 @@ limit.
   `Transaction.addAnimationCompletion`.
   - The store already retires an animation on the first frame past its
     duration. That is the completion point.
-  - For a TUIkit spring the duration *is* the settling envelope, so
+  - For a TUI spring the duration *is* the settling envelope, so
     `.logicallyComplete` and `.removed` fire on the same frame. Document it
     rather than refuse.
 - **`TransactionKey` (S).** `Transaction` exists. Add a keyed store, the
@@ -432,7 +432,7 @@ limit.
 ### W7. Layout and geometry vocabulary — 8 keys, S each
 
 - **`ViewSpacing`.**
-  - `distance(to:along:)` answers TUIkit's actual rule: 1 column horizontally,
+  - `distance(to:along:)` answers TUI's actual rule: 1 column horizontally,
     0 rows vertically, 0 against a zero-extent child (compat doc §3, "A child
     with no extent takes no stack spacing"). Add `formUnion`, `union` and
     `.zero` beside it.
@@ -449,11 +449,11 @@ limit.
 - **`ScenePadding`.**
   - `scenePadding()` is "the recommended spacing around the root view of a
     window" (20 pt on macOS, measured).
-  - TUIkit already picks platform defaults: `.padding()` is 1 cell
+  - TUI already picks platform defaults: `.padding()` is 1 cell
     (`View+Layout.swift:393`). Choose the scene margin the same way: 1 cell, or
     the app header's title indent. `.minimum` is that value.
   - "A terminal exposes no such metric" — nor does a terminal expose the
-    `.padding()` default. TUIkit chose that one too.
+    `.padding()` default. TUI chose that one too.
 - **`GeometryProxy.safeAreaInsets`.**
   - `.zero` is TRUE today, because chrome is subtracted before layout.
   - It must become real if W05's `safeAreaInset` lets content run under a bar.
@@ -494,7 +494,7 @@ Keys: `ImagePaint`, with W13's `ShapeStyle.image(_:sourceRect:scale:)`.
   gradients are.
 - **Why the reason fails:** "no ShapeStyle" is stale (X2).
 
-**Shipped 2026-10-19** with lane W1B (`Sources/TUIkitFoundation/Styling/ImagePaint.swift`,
+**Shipped 2026-10-19** with lane W1B (`Sources/TUIFoundation/Styling/ImagePaint.swift`,
 sampled through `SampledCells` as a mesh is; decisions
 [B-W1B-4](<Decisions/Shapes, effects and animation/What the shapes unblocked (W1B).md#b-w1b-4-an-image-paint-is-sampled-cell-by-cell-and-paints-nothing-until-its-picture-is-there>)).
 The picture over blank cells is not taken: an image paint is cells.
@@ -514,7 +514,7 @@ Ship `.default` and `.monospaced` and omit `.serif` and `.rounded`, so
 - This is the `TextFieldStyle` pattern (`.roundedBorder` omitted).
 - It also unlocks W11's `fontDesign(_:)` and `Font.system(_:design:weight:)`
   (§P10).
-- **Why it's only partly wrong:** "TUIkit cannot honour any case" is too
+- **Why it's only partly wrong:** "TUI cannot honour any case" is too
   strong. Serif and rounded *are* unhonourable: measured on macOS, `.serif`
   changes the width (31 → 34 pt).
 
@@ -532,10 +532,10 @@ redefine `.headline`.
 
 | Kind | Verdict |
 |---|---|
-| `.interaction` with `Rectangle` | Already TUIkit's behaviour: hit regions are the view's frame (`HitTestRegion.swift`), so a guarantee. |
+| `.interaction` with `Rectangle` | Already TUI's behaviour: hit regions are the view's frame (`HitTestRegion.swift`), so a guarantee. |
 | `.interaction` with other shapes | A cell mask from the W1 rasterizer, so the dispatcher needs masked regions. |
-| `.dragPreview` | Clip the drag preview TUIkit already draws (`DragAndDrop.swift`). |
-| `.focusEffect` | Omit; TUIkit draws no focus ring to shape. |
+| `.dragPreview` | Clip the drag preview TUI already draws (`DragAndDrop.swift`). |
+| `.focusEffect` | Omit; TUI draws no focus ring to shape. |
 | `.contextMenuPreview`, `.hoverEffect` | Inert on macOS too, which makes them an §O8 question. |
 | `.accessibility` | Omit. |
 
@@ -545,7 +545,7 @@ pixel-identical on macOS, since its effect is only on hit-testing.
 **Shipped 2026-10-19** with lane W1B: `.interaction` with any shape cuts the
 hit area to the cells it keeps, carried to the modifiers around it as geometry
 markers, and `.dragPreview` cuts a drag's preview; `.focusEffect` and
-`.accessibility` are omitted (`Sources/TUIkitFoundation/Modifiers/ContentShapeModifier.swift`,
+`.accessibility` are omitted (`Sources/TUIFoundation/Modifiers/ContentShapeModifier.swift`,
 decisions [B-W1B-3](<Decisions/Shapes, effects and animation/What the shapes unblocked (W1B).md#b-w1b-3-a-content-shape-is-carried-to-the-modifiers-around-it-as-geometry-markers>),
 C-W1B-1).
 
@@ -559,7 +559,7 @@ The reason ("no transition system") is stale (X2).
 - **Need glyph geometry or layers, so their types are omitted:** bounce, scale,
   wiggle, rotate, variableColor.
 - **Caveat:** the `SymbolEffect` protocols live in Apple's Symbols framework,
-  absent on Linux, so TUIkit would declare its own effect types under the same
+  absent on Linux, so TUI would declare its own effect types under the same
   names.
 
 ### P5. Family `["Accessibility*", "AX*", "*.accessibility*", "View.accessibility*", "*.speech*"]`
@@ -573,7 +573,7 @@ The reason ("no transition system") is stale (X2).
     `…ReduceTransparency`, `…DimFlashingLights`, `…PlayAnimatedImages`,
     `…InvertColors`, `…ShowButtonShapes` / `…ShowBorders`,
     `…VoiceOverEnabled`, `…SwitchControlEnabled`, `accessibilityEnabled`.
-  - These are not AX-tree metadata. They describe the *user*, and TUIkit has
+  - These are not AX-tree metadata. They describe the *user*, and TUI has
     the motion and colour-only cues they exist to modulate: breathing focus,
     spinners, transitions, focus-by-colour.
   - Where the value comes from is §O1.
@@ -593,7 +593,7 @@ and `onTapGesture` (`View+Events.swift`):
   `AnyGesture`.
 - `DragGesture` (`Value` with location, startLocation, translation, time,
   velocity and predictedEnd*).
-  - TUIkit's `DragGestureEvent` already carries location, start and
+  - TUI's `DragGestureEvent` already carries location, start and
     translation in cells (`View+Events.swift:245-274`).
   - Velocity comes from report timestamps, which is also how a Mac mouse
     produces it.
@@ -645,7 +645,7 @@ Verified on the Linux 6.3.3 SDK: a custom `AttributeScope` with an
 
 **Not available on Linux:** `AttributedString(markdown:)` and
 `inlinePresentationIntent`. SwiftUI's `Text("**bold**")` literal markdown
-therefore needs a small TUIkit inline parser (`**`, `*`/`_`, `` ` ``, `~~`,
+therefore needs a small TUI inline parser (`**`, `*`/`_`, `` ` ``, `~~`,
 `[..](..)`), which is cross-platform. Compat §4a already lists
 AttributedString/Markdown as "should add". This family contradicts it.
 
@@ -661,8 +661,8 @@ editing: defer it, not refuse it.
     any custom `Animatable`, a general replacement for nested `AnimatablePair`.
     It has nothing to do with geometry, and Swift 6.2 has parameter packs.
   - `AnyLayout.animatableData` and `ModifiedContent.animatableData` (S). These
-    are types TUIkit *has*. The rule claims it only hides conformances "on types
-    TUIkit does not have".
+    are types TUI *has*. The rule claims it only hides conformances "on types
+    TUI does not have".
   - `Color.Resolved.animatableData` (S, with W13's `Color.Resolved`). Colours
     already animate.
 - **The shape conformances** go with W1.
@@ -688,7 +688,7 @@ editing: defer it, not refuse it.
 - **`SpringLoadingBehavior` is wrong (M):** `View.springLoadingBehavior`,
   `TabContent.springLoadingBehavior` and `\.springLoadingBehavior`.
   - It means activating a control by pausing over it during a drag.
-  - TUIkit's in-process drag (`DragAndDropSession.swift`, plus keyboard drag)
+  - TUI's in-process drag (`DragAndDropSession.swift`, plus keyboard drag)
     can time a hover-pause over a `Button` or a tab. The `*.spring*` glob caught
     it by name only.
 - **`MeshGradient` is wrong (M–L).**
@@ -710,7 +710,7 @@ editing: defer it, not refuse it.
   `Picker` here).
   - `ImageResource` is DeveloperToolsSupport's type, emitted by Xcode's
     asset-symbol generator, and absent on Linux.
-  - Ported asset-symbol code would not produce a TUIkit stand-in.
+  - Ported asset-symbol code would not produce a TUI stand-in.
 
 ### P13. Family `PhaseAnimator`, `KeyframeAnimator`, `Keyframes*`, `KeyframeTrack*`, `*Keyframe`
 
@@ -782,7 +782,7 @@ editing: defer it, not refuse it.
 
 - **Wrong for the find bar (M):** `findNavigator(isPresented:)`,
   `findDisabled`, `replaceDisabled` and `FindContext`.
-  - A TUIkit-drawn find/replace bar for `TextEditor`, whose text is a `String`.
+  - A TUI-drawn find/replace bar for `TextEditor`, whose text is a `String`.
   - `.searchable` already draws a field above a subtree.
   - `Find pasteboard and the remote viewer.md` declined only the *system*
     find-pasteboard sync, not an in-app bar.
@@ -797,7 +797,7 @@ editing: defer it, not refuse it.
     `draggable(containerItemID:)`.
   - Session phase and items.
   - Allowed operations.
-  - Preview formations `.list`/`.pile`/`.stack`, which TUIkit would draw.
+  - Preview formations `.list`/`.pile`/`.stack`, which TUI would draw.
 - **All implementable** on `DragAndDropSession.swift` and List selection.
 - **CONFIRM:** `DragSession.ID.matches(NSDraggingSession)` (AppKit).
 - **Effort and priority:** new API, little ported code yet.
@@ -841,7 +841,7 @@ unit that needs the scale factor. Half right:
 
 - (B) and (C) read the same terminal report, but (B) needs only the cell's
   height-to-width **ratio**, in which the display scale cancels. Where the
-  ratio is unknown (tmux, a host that reports zeros) TUIkit falls back to 2.0:
+  ratio is unknown (tmux, a host that reports zeros) TUI falls back to 2.0:
   within 2% on Apple Terminal and Warp, circles 6–8% too tall on Ghostty and
   21–29% on iTerm2. Even known, iTerm2's two reports disagree by about 6%.
 - (C) needs an **absolute** size, whose unit is device pixels on some hosts
@@ -863,7 +863,7 @@ the same deliberate choice `.padding(20)` is. Lane owed: W1, about 12 commits
 - **(b) Read the host setting when local, with an env override.**
   - macOS `com.apple.universalaccess`; GNOME `enable-animations`.
   - `TUIKIT_REDUCE_MOTION=1` etc., the `TUIKIT_OPEN_URLS` precedent.
-  - TUIkit honours them itself: no breathing focus, instant transitions,
+  - TUI honours them itself: no breathing focus, instant transitions,
     static spinners, and non-colour focus cues for differentiate-without-colour.
 - **(c) Settable only.**
 - **Recommendation: (b).**
@@ -872,7 +872,7 @@ the same deliberate choice `.padding(20)` is. Lane owed: W1, about 12 commits
 - **`accessibilityVoiceOverEnabled`:** leave it refused unless (b) can detect
   VoiceOver reading the terminal. A wrong `false` would mislead.
 
-**Ruled 2026-10-12: (b), but only `TUIKIT_REDUCE_MOTION`, unless TUIkit can
+**Ruled 2026-10-12: (b), but only `TUIKIT_REDUCE_MOTION`, unless TUI can
 be confident the terminal is on the same machine.** B53 (2026-10-04) had
 already decided the stricter half and shipped it: the environment variable
 plus the app-wide `Scene.reduceMotion(_:)`, OR-combined, and explicitly not
@@ -881,7 +881,7 @@ user sits at. The conflict above was settled on 2026-10-05 (A-D3M-1): reduce
 motion means movement in x and y, so the focus breath, spinners and the caret
 keep moving.
 
-TUIkit can be confident by positive evidence, with the test the clipboard
+TUI can be confident by positive evidence, with the test the clipboard
 already uses (`ClipboardLocality`): no `SSH_*` variable, no remote-session
 daemon or session keeper among the process's ancestors, and inside tmux
 every attached client passing the same test. Where it says local, the host's
@@ -910,7 +910,7 @@ into the root with `TUIKIT_REDUCE_MOTION`.
   `withAnimation` with the phase's animation, and completion advances it (needs
   W12's completion criteria). The animatable modifiers inside interpolate per
   frame.
-- **The cost:** continuous per-frame renders while it runs. TUIkit already
+- **The cost:** continuous per-frame renders while it runs. TUI already
   accepts exactly that for `TimelineView(.animation)` (`AnimationTimelineSchedule`)
   and for any running `withAnimation`.
 - **Options:**
@@ -936,24 +936,24 @@ from its initial value, not from the end value. A step into a phase is a
 `withAnimation` with that phase's animation, the next starting when it is
 logically complete; keyframes play on the frame clock through a
 `TimelineView(.animation)`, paused at rest. Keyframes restarted part-way carry
-no velocity, TUIkit's keyframes taking no initial velocity.
+no velocity, TUI's keyframes taking no initial velocity.
 
 ### O3. `CustomAnimation` family — M
 
 - **The reason fails:** "State between frames forbids pre-sampling" is false
   for the non-retargeted case. `animate(value:time:context:)` is deterministic
-  given its call sequence, so TUIkit can integrate it once at the frame cadence
+  given its call sequence, so TUI can integrate it once at the frame cadence
   until it returns `nil` and replay the samples like any curve.
 - **What it really breaks:** retargeting (`shouldMerge`, velocity) does break
   the closed-form model.
 - **Options:**
   - (a) refuse;
-  - (b) pre-sample, with retargets restarting from rest — TUIkit's spring
+  - (b) pre-sample, with retargets restarting from rest — TUI's spring
     deviation;
   - (c) live only.
 - **Recommendation: (b).**
 
-**2026-10-12: detect, else live.** The owner asked whether TUIkit can detect
+**2026-10-12: detect, else live.** The owner asked whether TUI can detect
 when pre-sampling is viable, use it then, and fall back to running live. It
 can, with no detection step: integrate each custom animation lazily on the
 frame grid, one frame at a time, memoising every step. If it finishes
@@ -990,12 +990,12 @@ three to four days, then the zoom transition with `matchedTransitionSource`,
 whose source configuration needs W1. A23 and A36 follow it.
 
 **Matched geometry shipped 2026-10-18**
-(`Sources/TUIkitEffects/Geometry/MatchedGeometryEffect.swift`, the groups in
-`Sources/TUIkitFoundation/Geometry/MatchedGeometryRegistry.swift`; Deliberate
+(`Sources/TUIEffects/Geometry/MatchedGeometryEffect.swift`, the groups in
+`Sources/TUIFoundation/Geometry/MatchedGeometryRegistry.swift`; Deliberate
 deviations A8, decisions O4).
 **The zoom transition shipped 2026-10-18** (`ZoomNavigationTransition`,
 `matchedTransitionSource` and the source configuration's `background(_:)`,
-`Sources/TUIkitNavigation/Views/NavigationZoom.swift`; Deliberate deviations
+`Sources/TUINavigation/Views/NavigationZoom.swift`; Deliberate deviations
 A9). The configuration's `clipShape(_:)` and `shadow(color:radius:x:y:)`
 **shipped 2026-10-19** with lane W1B (decisions
 [B-W1B-2](<Decisions/Shapes, effects and animation/What the shapes unblocked (W1B).md#b-w1b-2-a-zoom-sources-clip-shape-and-shadow-shrink-to-nothing-as-the-rectangle-grows>)).
@@ -1021,7 +1021,7 @@ an optional add-on of about two days, offered once (b) shows in the Example.
 Lane owed: the materials about a day; Glass one to two days after W1, since
 `glassEffect` takes a `Shape`. A41 follows it.
 
-**Materials shipped 2026-10-18** (`Sources/TUIkitFoundation/Styling/Material.swift`,
+**Materials shipped 2026-10-18** (`Sources/TUIFoundation/Styling/Material.swift`,
 Deliberate deviations C5). **Glass shipped 2026-10-18** (lane GLASS: `Glass`,
 `glassEffect(_:in:)`, `GlassEffectContainer`, the union, id and transition
 modifiers, and the glass button styles; Deliberate deviations C11, decisions
@@ -1055,11 +1055,11 @@ look too heavy in the Example.
 `ShapeStyle.shadow` after W1.
 
 **`View.shadow(color:radius:x:y:)` and `ShadowStyle` shipped 2026-10-18**
-(`Sources/TUIkitFoundation/Modifiers/ShadowModifier.swift`, Deliberate
+(`Sources/TUIFoundation/Modifiers/ShadowModifier.swift`, Deliberate
 deviations C10, decisions [Shadows (O6)](<Decisions/Shapes, effects and animation/Shadows (O6).md>)).
 `ShapeStyle.shadow(_:)`, the one consumer of a `ShadowStyle` and so the only
 route to `.inner`, **shipped 2026-10-19** with lane W1B
-(`Sources/TUIkitFoundation/Styling/ShapeStyle+Shadow.swift`, decisions
+(`Sources/TUIFoundation/Styling/ShapeStyle+Shadow.swift`, decisions
 [B-W1B-1](<Decisions/Shapes, effects and animation/What the shapes unblocked (W1B).md#b-w1b-1-a-styles-shadow-is-cast-by-whatever-draws-with-it-from-the-cells-it-drew>)).
 
 ### O7. `ScrollEdgeEffectStyle` (+ W10 `scrollEdgeEffectStyle`/`Hidden`) — S–M
@@ -1080,7 +1080,7 @@ that names `.soft` (a macOS 26 API) fails to compile. The idiom itself, a
 beside the view (B6), because making it an error would mean removing the
 `safeAreaBar` that shipped. Since B6's safe area is not being built
 (2026-10-12), nothing ever passes under a bar, so `.automatic`, `.hard` and
-`scrollEdgeEffectHidden` describe what TUIkit always draws and are honoured by
+`scrollEdgeEffectHidden` describe what TUI always draws and are honoured by
 the medium, tested as a guarantee. Lane owed: about half a day. A12 follows
 it.
 
@@ -1095,7 +1095,7 @@ parity map.
 can't actually do anything sensible with." So the APIs that are inert on macOS too stay refused, failing to compile, as
 `submitLabel` already does; A11 and A51 stay refused.
 
-- **(a) Refuse anything TUIkit cannot do, even when macOS SwiftUI cannot
+- **(a) Refuse anything TUI cannot do, even when macOS SwiftUI cannot
   either.** This is the submitLabel precedent.
 - **(b) Accept where Apple documents, or a probe measures, macOS SwiftUI as
   inert.** This matches macOS exactly, the DynamicTypeSize precedent. Each
@@ -1105,7 +1105,7 @@ can't actually do anything sensible with." So the APIs that are inert on macOS t
   - `submitLabel` returns.
   - Most `SensoryFeedback` kinds ship. `.alignment` and `.levelChange`, which
     *do* play on a Force Touch trackpad, are hardware-dependent there too.
-  - `ToolbarTitleDisplayMode` ships. Its reason ("TUIkit has no Font type") is
+  - `ToolbarTitleDisplayMode` ships. Its reason ("TUI has no Font type") is
     stale regardless.
 - **`TabBarMinimizeBehavior` is not inert on macOS.** `.automatic` minimizes
   under reduced space, so honour it by collapsing to the compact strip
@@ -1116,11 +1116,11 @@ SwiftUI APIs do nothing on macOS either, by Apple's documentation or by
 measurement: `submitLabel`, most `sensoryFeedback` kinds,
 `ToolbarTitleDisplayMode`, `scrollDismissesKeyboard` (A11) and
 `sectionIndexLabel` (A51). Multiplatform code calls them without `#if`,
-because they compile on macOS. Should TUIkit accept them and do nothing, as
+because they compile on macOS. Should TUI accept them and do nothing, as
 macOS does, or refuse them so they fail to compile? **Recommended: (b),
 strictly where Apple documents or a probe measures macOS as inert**, each with
 its evidence. A compile error tells a macOS developer nothing they do not
-already see on macOS, code shared with iOS keeps compiling, and no TUIkit
+already see on macOS, code shared with iOS keeps compiling, and no TUI
 capability is given up. An API that does something on macOS and nothing here
 stays refused (`TabBarMinimizeBehavior` is honoured, not stubbed). (b)
 settles A11 and A51; A21 is settled by B3 instead. About a day; the Example's
@@ -1169,15 +1169,15 @@ management with no reading on one surface, and `UtilityWindow`, stay declined
 `fileImporter`, `fileExporter` and `fileMover`.
 
 - **(a) Refuse.** "An app draws its own from `List`".
-- **(b) A TUIkit-drawn file browser sheet.** The precedent:
+- **(b) A TUI-drawn file browser sheet.** The precedent:
   `ColorPickerPanel` stands in for the system colour panel. `allowedContentTypes:
   [UTType]` needs `UniformTypeIdentifiers`, absent on Linux. Either use it
   under `#if canImport(UniformTypeIdentifiers)` with an extension-based shim
-  elsewhere, or a TUIkit `UTType` subset.
+  elsewhere, or a TUI `UTType` subset.
 - **Recommendation: (b).** The meaning, "let the user pick a file", fully
   survives.
 
-**Ruled 2026-10-12: (b), open and save dialogs drawn by TUIkit, adapted
+**Ruled 2026-10-12: (b), open and save dialogs drawn by TUI, adapted
 natively and elegantly to the terminal.** Lane owed: about six days, in a
 module of its own. On Linux, `fileExporter(item:)` and `FileDocument` wait on
 A18.
@@ -1206,7 +1206,7 @@ on.
 - **Recommendation: (b).** This is common pre-iOS-15 code.
 
 **Restated 2026-10-12, at the owner's request; awaiting the owner.** Should
-TUIkit accept the older `Formatter`-based spellings, `Text(_:formatter:)`,
+TUI accept the older `Formatter`-based spellings, `Text(_:formatter:)`,
 `\(value, formatter:)` and `TextField(value:formatter:)`, beside the
 `format:` ones it ships? The refusal's reason ("the type safety taken out") is
 taste; the real constraint is Linux, where parsing through an arbitrary
@@ -1264,7 +1264,7 @@ measured clean, with a run-time check of whether the host honours shapes.
 `image(_:hotSpot:)`, `View.pointerStyle(_:)`, `FrameResizePosition` and
 `FrameResizeDirection`, emitted where a host documents OSC 22 and inert
 elsewhere, with `\.terminalFeatures.pointerShapes` as the run-time check; the
-reset on exit, suspend and a fatal signal; TUIkit's own controls' shapes built
+reset on exit, suspend and a fatal signal; TUI's own controls' shapes built
 and off until a host's reset is read off `pointer_shape_card.py`.
 `image(_:hotSpot:)` and `pointerVisibility(_:)` stay refused. See
 [Pointer shapes (O12)](<Decisions/Terminals/Pointer shapes (O12).md>).
@@ -1282,7 +1282,7 @@ entry. `pointerVisibility` and `.image(_:hotSpot:)` stay refused.
   and opened by F10, Alt-letter or a click: the Turbo Vision and mc idiom.
   - Command shortcuts register globally through the existing `keyboardShortcut`
     machinery.
-  - `CommandGroupPlacement` standard groups map onto TUIkit's built-ins: quit →
+  - `CommandGroupPlacement` standard groups map onto TUI's built-ins: quit →
     `QuitShortcut`, `.appSettings` → `openSettings`.
 - **(c) A command palette (Ctrl-P).**
 - **(d) Shortcuts only, no menus:** a partial seam, so reject it.
@@ -1300,7 +1300,7 @@ shows it; F10, Alt-letter and a click open it; it is not in the Tab ring) and
 not built. Lane owed: about six days, a new leaf module over the app, chrome
 and menu modules; its Window menu comes with O9.
 
-**Built by lane O13 (2026-10-18)**, as TUIkitCommands: the vocabulary, the
+**Built by lane O13 (2026-10-18)**, as TUICommands: the vocabulary, the
 scene modifiers, the bar with its keys, the scene's own commands and four of
 the standard sets. What it decided, and what waits (Settings… and the Window
 menu on O9, `TextFormattingCommands` on A42), is in
@@ -1314,7 +1314,7 @@ Measured on macOS: `.large` makes a `Button` 20 → 28 pt tall, `.mini` 24×13.
 - **(b) Ship the environment value and the modifiers (including the range
   form), and give built-ins an explicit density table:**
   - `.mini`/`.small`: compact chrome (no caps or brackets, tighter padding).
-    TUIkit already has compact variants such as `TabViewStyle.compact`.
+    TUI already has compact variants such as `TabViewStyle.compact`.
   - `.regular`: today's look.
   - `.large`/`.extraLarge`: roomier, with extra padding cells, or a three-row
     boxed `Button` at `.extraLarge`.
@@ -1363,7 +1363,7 @@ with the appearance families. See
 **Why the reason fails:** "No radius exists" is true, but choosing between
 caps, brackets and a box IS choosing a border shape.
 
-**Ruled 2026-10-12: support it as best TUIkit can**, in O14's table. Lane
+**Ruled 2026-10-12: support it as best TUI can**, in O14's table. Lane
 owed: about a day and a half, after O14; its `Shape` conformance after W1.
 
 **Shipped 2026-10-15 with O14's button table**, a little differently from the
@@ -1383,7 +1383,7 @@ A24 rides on O0 and O15.
     whole-cell translation.
   - `TypographicBounds` ascent, descent and leading have no honest value, so
     omit them.
-- **What it buys:** apps get the per-character effects TUIkit keeps internal
+- **What it buys:** apps get the per-character effects TUI keeps internal
   today (`AnimatedCellRun`).
 - **Recommendation:** defer, but rewrite the reason. "No glyphs" is not the
   blocker; the size of the `GraphicsContext` subset is.
@@ -1393,7 +1393,7 @@ A24 rides on O0 and O15.
 
 ### O17. `ToolbarDefaultItemKind.title`, `.search` (W15)
 
-- **`.title`:** hide `NavigationStack`'s title crumb, which TUIkit's framework
+- **`.title`:** hide `NavigationStack`'s title crumb, which TUI's framework
   does draw (S). Recommend implementing it.
 - **`.search`:** pairs with `DefaultToolbarItem(kind:placement:)` for
   re-placing `.searchable`'s field. Decide with W15.
@@ -1403,7 +1403,7 @@ slot and the stack's title crumb. `.search`: `DefaultToolbarItem(kind:
 .search, placement:)` draws `.searchable`'s field in that toolbar placement
 instead of at the top of the subtree, and `toolbar(removing: .search)` hides
 it. Lane owed: about a day, with the stale reasons it leaves (the map's and
-`ToolbarRemovalModifier`'s, which still say TUIkit draws no default title).
+`ToolbarRemovalModifier`'s, which still say TUI draws no default title).
 
 **`.title` shipped 2026-10-14**, with those reasons: the window's chrome
 records the removal per walk, as it records titles, and the stack's bar (and a
@@ -1411,7 +1411,7 @@ collapsed split view's) reads it from the screen's preferences or the
 environment above.
 
 **`.search` shipped 2026-10-14**, with `DefaultToolbarItem(kind:placement:)`
-(TUIkitChrome; `ToolbarDefaultItemKind` moved to TUIkitFoundation so the three
+(TUIChrome; `ToolbarDefaultItemKind` moved to TUIFoundation so the three
 sibling modules can name it). Declaring a search item claims the window's
 field from its chrome, kept by frame, so a toolbar inside the searchable's
 content moves the field a frame later; the searchable hands its field, scopes
@@ -1455,7 +1455,7 @@ Switch Control surface, or is an iOS scene.
 - **`EdgeInsets.init(_:)` (NSDirectionalEdgeInsets):** an AppKit-type bridge,
   so the `NSHostingView` family's reasoning applies.
   - Rewrite the reason: "would invent a point-to-cell scale" is wrong, because
-    TUIkit already maps 1 pt to 1 cell everywhere (§2.1).
+    TUI already maps 1 pt to 1 cell everywhere (§2.1).
 
 ### Text metrics
 
@@ -1472,7 +1472,7 @@ Switch Control surface, or is an iOS scene.
 - **`Image.Scale`:** relative symbol size, honoured on macOS (17×16 → 23×20).
   A symbol is one codepoint at the terminal's size.
 - **`TextInputFormattingControlPlacement`:** OS-drawn rich-text formatting
-  chrome. Nothing in TUIkit is OS-drawn, and rich editing does not exist.
+  chrome. Nothing in TUI is OS-drawn, and rich editing does not exist.
 
 ### Symbols
 
@@ -1509,10 +1509,10 @@ window manager and window toolbar, which the host terminal owns.
 `View.preview*` family. Rewrite the reason:
 
 - **The current reason is wrong:** "No canvas can host a FrameBuffer" is false.
-  `#Preview { … }` accepts an `NSView`, and a TUIkit-provided `NSView` that
+  `#Preview { … }` accepts an `NSView`, and a TUI-provided `NSView` that
   draws a `FrameBuffer` would show in the canvas. That is a TUI-only feature,
   not parity.
-- **The actual reason:** a TUIkit `PreviewProvider` is not the protocol Xcode
+- **The actual reason:** a TUI `PreviewProvider` is not the protocol Xcode
   discovers, so it would compile and never appear. That is rule 2. (Hypothesis
   — check against Xcode's discovery before quoting it.)
 
@@ -1523,7 +1523,7 @@ window manager and window toolbar, which the host terminal owns.
     what `ColorEffectModifiers` does.
 - **`ColorRenderingMode`:** its consumers are `Canvas(colorMode:)`,
   `drawingGroup(colorMode:)` and `ImageRenderer`, none of which exist.
-  - The reason "never composites colour" is false (X2). TUIkit has composited
+  - The reason "never composites colour" is false (X2). TUI has composited
     in both spaces.
 - Both become implementable with Canvas (see D3).
 
@@ -1532,7 +1532,7 @@ window manager and window toolbar, which the host terminal owns.
 - **`View.preview*` / `Preview*`:** as above.
 - **`*.hashValue`, `*.Element`, …:** standard-library conformance members.
   - Caveat: this also masks a *missing* `Hashable`/`Collection` conformance on
-    a TUIkit counterpart. Check conformances with `sconf.py` when a type ships.
+    a TUI counterpart. Check conformances with `sconf.py` when a type ships.
 - **`*.Body` / `*.body`:** the type is reported instead.
 - **`Font.smallCaps*`:** glyph variants. Unicode's small-capital letters are
   different codepoints (and miss Q and X), which is the `textCase` objection

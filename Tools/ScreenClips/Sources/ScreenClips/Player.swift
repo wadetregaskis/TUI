@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Player.swift
 //
 //  Plays a clip: runs its app under a pseudo-terminal of the player's own,
@@ -14,11 +14,11 @@ import Foundation
 /// app, which it starts under a pseudo-terminal of its own.
 ///
 /// Everything the app writes is copied to the terminal unchanged, and
-/// everything the terminal sends (its answers to TUIkit's queries, a key the
+/// everything the terminal sends (its answers to TUI's queries, a key the
 /// viewer presses) to the app, so the app sees the real terminal — its name,
 /// its size, its colours — as it would without the player. Into that stream
 /// the player types the script's keys, at the script's instants, and those go
-/// through TUIkit's own input path exactly as typed keys do.
+/// through TUI's own input path exactly as typed keys do.
 ///
 /// The markers file gets lines of a name and a `CLOCK_UPTIME_RAW` time in
 /// nanoseconds — the clock ScreenCaptureKit stamps its frames with: `start`,
@@ -200,7 +200,7 @@ struct Player {
 
     /// The terminal's input without its focus reports (`ESC [ I`, `ESC [ O`).
     ///
-    /// A TUIkit app whose terminal loses the focus goes inactive: its focus
+    /// A TUI app whose terminal loses the focus goes inactive: its focus
     /// stops breathing and its controls draw as an unfocused window's do. The
     /// window being filmed may not be the frontmost — it may open behind
     /// another, or the person running the clips may click elsewhere — and the

@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  AppShapeViews.swift
 //
 //  The applications themselves. See `AppShapes.swift` for why they exist.
@@ -12,7 +12,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 // MARK: - File browser
 

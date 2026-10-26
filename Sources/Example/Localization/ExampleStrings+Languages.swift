@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ExampleStrings+Languages.swift
 //
 //  Created by LAYERED.work
@@ -10,7 +10,7 @@
 
 extension ExampleStrings {
     static let en: [String: String] = [
-        "app.title": "🖥️ TUIkit Example App 💫",
+        "app.title": "🖥️ TUI Example App 💫",
         "app.subtitle": "A SwiftUI-like framework for Terminal User Interfaces 😎",
         "menu.title": "Select a Demo",
         "menu.item.textStyles": "Text Styles",
@@ -54,7 +54,7 @@ extension ExampleStrings {
     ]
 
     static let de: [String: String] = [
-        "app.title": "🖥️ TUIkit Beispiel-App 💫",
+        "app.title": "🖥️ TUI Beispiel-App 💫",
         "app.subtitle": "Ein SwiftUI-ähnliches Framework für Terminal-Benutzeroberflächen 😎",
         "menu.title": "Demo auswählen",
         "menu.item.textStyles": "Textstile",
@@ -98,7 +98,7 @@ extension ExampleStrings {
     ]
 
     static let fr: [String: String] = [
-        "app.title": "🖥️ Application exemple TUIkit 💫",
+        "app.title": "🖥️ Application exemple TUI 💫",
         "app.subtitle": "Un framework de type SwiftUI pour les interfaces de terminal 😎",
         "menu.title": "Choisir une démo",
         "menu.item.textStyles": "Styles de texte",
@@ -142,7 +142,7 @@ extension ExampleStrings {
     ]
 
     static let it: [String: String] = [
-        "app.title": "🖥️ App di esempio TUIkit 💫",
+        "app.title": "🖥️ App di esempio TUI 💫",
         "app.subtitle": "Un framework in stile SwiftUI per interfacce da terminale 😎",
         "menu.title": "Scegli una demo",
         "menu.item.textStyles": "Stili di testo",
@@ -186,7 +186,7 @@ extension ExampleStrings {
     ]
 
     static let es: [String: String] = [
-        "app.title": "🖥️ App de ejemplo TUIkit 💫",
+        "app.title": "🖥️ App de ejemplo TUI 💫",
         "app.subtitle": "Un framework tipo SwiftUI para interfaces de terminal 😎",
         "menu.title": "Elige una demo",
         "menu.item.textStyles": "Estilos de texto",
@@ -230,7 +230,7 @@ extension ExampleStrings {
     ]
 
     static let zh: [String: String] = [
-        "app.title": "🖥️ TUIkit 示例应用 💫",
+        "app.title": "🖥️ TUI 示例应用 💫",
         "app.subtitle": "一个类似 SwiftUI 的终端用户界面框架 😎",
         "menu.title": "选择一个演示",
         "menu.item.textStyles": "文本样式",
@@ -274,7 +274,7 @@ extension ExampleStrings {
     ]
 
     static let ja: [String: String] = [
-        "app.title": "🖥️ TUIkit サンプルアプリ 💫",
+        "app.title": "🖥️ TUI サンプルアプリ 💫",
         "app.subtitle": "ターミナルUI向けのSwiftUIライクなフレームワーク 😎",
         "menu.title": "デモを選択",
         "menu.item.textStyles": "テキストスタイル",

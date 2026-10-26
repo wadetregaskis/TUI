@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  AnimationPanelSlot.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 extension AnimationPage {
     /// The panel, and the three answers to "what happens to the space it was
@@ -15,7 +15,7 @@ extension AnimationPage {
     /// page below glides with the change while the panel plays its transition
     /// where it is — fading in where it lands, the page sliding away from over
     /// it; fading out where it was, the page sliding up over it. Held
-    /// (`.transitionSpace(.held)`, TUIkit's own), the space stays while the
+    /// (`.transitionSpace(.held)`, TUI's own), the space stays while the
     /// panel leaves and goes once it has gone, so the page stands still under
     /// the removal and then moves up at once. Kept, a fixed frame holds the
     /// space whether the panel is there or not, so nothing below ever moves.
@@ -47,7 +47,7 @@ extension AnimationPage {
         // value the moment the picker moves, which is a bug this page would
         // have been an unusually good place to demonstrate accidentally.
         // Unkept and empty, the stack is no rows and takes no spacing, so the
-        // page closes up — TUIkit's rule, not SwiftUI's, which would leave a
+        // page closes up — TUI's rule, not SwiftUI's, which would leave a
         // spacing's gap (`Documentation/SwiftUI parity/SwiftUI compatibility
         // guide.md`, "A child with no extent takes no stack spacing"). Its
         // place moves up a row with that gap, but the panel leaving it plays

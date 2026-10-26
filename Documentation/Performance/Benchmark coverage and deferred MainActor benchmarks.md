@@ -17,7 +17,7 @@ closure from a worker while **blocking the main thread** on a
 type) queues work behind the blocked main thread; the runtime
 detects the stall and traps with SIGTRAP.
 
-TUIkit's `View` API, the render pipeline (`ViewRenderer`,
+TUI's `View` API, the render pipeline (`ViewRenderer`,
 `Renderable.renderToBuffer`, `FrameDiffWriter`), layout
 (`Layoutable.sizeThatFits`), modifier application, and the
 focus/state services reached through rendering are all
@@ -26,7 +26,7 @@ measures layout, or applies a modifier, cannot be benchmarked
 under the current harness.
 
 The escape hatch in code is `skipViewBenchmarks` /
-`viewBenchmarkConfiguration()` in `Benchmarks/TUIkitBenchmarks/
+`viewBenchmarkConfiguration()` in `Benchmarks/TUIBenchmarks/
 Benchmarks.swift`: view-using suites stamp `skip:` true unless
 `TUIKIT_BENCH_RUN_VIEW=1`. With that env var set they *attempt*
 to run and SIGTRAP — useful only as a smoke test once a
@@ -149,7 +149,7 @@ the benchmark harness). Flagged for the broad-review pass.
 
 When the actor refactor (hybrid option 3 in `Actor isolation
 and the input-reader loop.md`) lands — render
-pipeline on `@TUIkitActor`, view construction `nonisolated` —
+pipeline on `@TUIActor`, view construction `nonisolated` —
 the `skipViewBenchmarks` gate can be removed and the four
 existing skipped suites enabled, then the new entries above
 added. Until then, this list is the backlog.

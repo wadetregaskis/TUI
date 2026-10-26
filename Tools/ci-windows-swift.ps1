@@ -13,7 +13,7 @@
 #
 # Usage:
 #   Tools/ci-windows-swift.ps1 -Image swift:6.3-windowsservercore-ltsc2022 `
-#                              -Arguments "build --target TUIkitCore"
+#                              -Arguments "build --target TUICore"
 #
 # -Arguments is one string rather than a list of positional parameters on
 # purpose: PowerShell binds any leading-dash token to a parameter name, so a

@@ -16,7 +16,7 @@ call the lane reached that its brief did not already settle, in the format of
 
 ### B-RES-1. A container's footer lines are still built by an out-of-line call
 
-*Sources/TUIkitFoundation/Rendering/BorderRenderer.swift — no API*
+*Sources/TUIFoundation/Rendering/BorderRenderer.swift — no API*
 
 **Shipped:** `@inline(__always)` on `standardContentLines`, whose one caller,
 `renderStandardStyle`, calls it twice: once for the body's lines, once for the

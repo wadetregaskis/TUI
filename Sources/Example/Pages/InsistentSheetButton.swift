@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  InsistentSheetButton.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// A sheet that wants an answer: `.interactiveDismissDisabled()` takes away
 /// the ways of walking off — Escape, and a click outside — so only its own

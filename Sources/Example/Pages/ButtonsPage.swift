@@ -1,11 +1,11 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ButtonsPage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 /// Buttons and focus demo page.
 ///
@@ -16,7 +16,7 @@ import TUIkit
 /// - ButtonRow for horizontal groups
 /// - Focus navigation with Tab
 /// - Live click counter demonstrating `@State` persistence across re-renders
-/// Records the links TUIkit opened itself.
+/// Records the links TUI opened itself.
 ///
 /// A reference type, and `@unchecked Sendable`, because `OpenURLAction`'s
 /// handler is `@Sendable` and so cannot mutate the page's main-actor `@State`
@@ -30,7 +30,7 @@ import TUIkit
 /// reads these values.
 private final class LinkOpenLog: @unchecked Sendable {
     private(set) var last = ""
-    /// How many opens TUIkit has performed. Named `opens` rather than `count`
+    /// How many opens TUI has performed. Named `opens` rather than `count`
     /// so the emptiness check below reads as arithmetic and not as a
     /// collection being probed — which is what `count > 0` looks like.
     private(set) var opens = 0
@@ -76,7 +76,7 @@ struct ButtonsPage: View {
     /// ones inside the sentence below.
     @State private var linkDisplay: LinkDisplay = .popover
 
-    /// Where TUIkit's OWN opens are recorded.
+    /// Where TUI's OWN opens are recorded.
     ///
     /// Worth instrumenting because the two openers are otherwise
     /// indistinguishable: where a terminal honours OSC 8 it may open a link on
@@ -164,7 +164,7 @@ struct ButtonsPage: View {
     /// One button at every control size (rows) and border shape (columns),
     /// under the control style and appearance picked: the axes a bordered
     /// button's face is drawn from. `.controlSize(_:)` and
-    /// `.buttonBorderShape(_:)` are SwiftUI's; the control style is TUIkit's,
+    /// `.buttonBorderShape(_:)` are SwiftUI's; the control style is TUI's,
     /// and chooses the family — filled, lines, Braille dots, or the label
     /// alone — and the appearance the glyphs of the lines.
     @ViewBuilder
@@ -386,7 +386,7 @@ struct ButtonsPage: View {
             // activatable controls: Tab to it and press Enter, or click it.
     }
 
-    /// Records every activation TUIkit handles, then hands the URL on exactly
+    /// Records every activation TUI handles, then hands the URL on exactly
     /// as the default action would.
     ///
     /// `.systemAction`, not `.handled`: the demo must show what a real app
@@ -430,7 +430,7 @@ struct ButtonsPage: View {
             }
     }
 
-    /// What TUIkit itself opened.
+    /// What TUI itself opened.
     ///
     /// In the full-width section, NOT beside the links it reports on, and that
     /// is a layout constraint rather than a preference: it is prose, the links
@@ -466,7 +466,7 @@ struct ButtonsPage: View {
     ///
     /// Live and not a static paragraph, because the escape is invisible either
     /// way: "hover a link and your terminal shows you the URL" is true on two
-    /// of the five hosts TUIkit models and false on the rest, and nothing on
+    /// of the five hosts TUI models and false on the rest, and nothing on
     /// screen tells the reader which one they are looking at. That IS the
     /// incomplete support, so the demo has to name it.
     @ViewBuilder

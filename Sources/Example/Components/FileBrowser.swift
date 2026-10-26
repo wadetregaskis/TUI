@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  FileBrowser.swift
 //
 //  A small real-filesystem model shared by the List and Table file-browser
@@ -8,7 +8,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 /// One row in a file-browser demo — a real filesystem entry, or the synthetic
 /// ".." parent that navigates up a level.

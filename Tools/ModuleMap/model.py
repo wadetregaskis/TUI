@@ -114,10 +114,10 @@ def unit_freshness(files, source_mtime, unit_mtime, newest):
     UNCOMPILED: it has no unit although the last build wrote one after the source was written. That build compiled other
     files once this one existed and did not compile it, so no target does: Package.swift leaves it out. A coarse group's
     `directories:` named its members' directories until step C7 peeled the last member out, as the one target that
-    compiled them (TUIkit's, `TUIkitFoundation` from step B1) named every module directory in its `sources:` from step
+    compiled them (TUI's, `TUIFoundation` from step B1) named every module directory in its `sources:` from step
     A5 to step B7, so a new member's directory was compiled only once named there; since C7 every module is a target
     at its default path, so a new module's directory is compiled only once its target exists (and until step B2
-    TUIkitStrings was listed below its directory, file by file,
+    TUIStrings was listed below its directory, file by file,
     because its resources may not sit under a source path; its own target now takes every file in it). SwiftPM reports
     such a file as unhandled, but only as a warning, which does not fail CI: this finding does. (A build that failed
     before reaching a file also leaves it without a unit: build again, and the finding goes.)"""
@@ -131,9 +131,9 @@ def unit_freshness(files, source_mtime, unit_mtime, newest):
 
 # The lower modules' USR prefixes (`s:` + the mangled module name): which one defines a symbol when the index's own
 # answer (`lower_owner`) is missing, as in a model built without reading them. A member a lower module adds to an SDK
-# type (`s:Sa10TUIkitViewE…`) has no such prefix; only the index knows it.
-LOWER_PREFIXES = [('s:10TUIkitCore', 'TUIkitCore'), ('s:10TUIkitView', 'TUIkitView'),
-                  ('s:13TUIkitStyling', 'TUIkitStyling'), ('s:11TUIkitImage', 'TUIkitImage')]
+# type (`s:Sa7TUIViewE…`) has no such prefix; only the index knows it.
+LOWER_PREFIXES = [('s:7TUICore', 'TUICore'), ('s:7TUIView', 'TUIView'),
+                  ('s:10TUIStyling', 'TUIStyling'), ('s:8TUIImage', 'TUIImage')]
 
 
 class Model:
@@ -207,10 +207,10 @@ class Model:
 
     # ── loading ───────────────────────────────────────────────────────────────────────────────────────────
     @classmethod
-    def load(cls, root, source_dir, store, lib=None, module='TUIkit', modules=None):
+    def load(cls, root, source_dir, store, lib=None, module='TUI', modules=None):
         """The model of `source_dir`'s sources. With `modules` (the map's module names), only its directories
-        `source_dir/<module>` are read, and a file's label starts with its directory: `TUIkitLists/Views/List.swift`.
-        Their index units may name any of those modules (TUIkitFoundation's units cover all of them until each is
+        `source_dir/<module>` are read, and a file's label starts with its directory: `TUILists/Views/List.swift`.
+        Their index units may name any of those modules (TUIFoundation's units cover all of them until each is
         carved out), or `module`."""
         mine = [d for d in modules if os.path.isdir(os.path.join(root, source_dir, d))] if modules else ['']
         names = {module} | set(modules or ())
@@ -236,7 +236,7 @@ class Model:
             {f: mtimes[prefix + f] for f in m.files if prefix + f in mtimes}, max(mtimes.values(), default=None))
         m.target = {f: units[prefix + f] for f in m.files if prefix + f in units}
         m.build({f: o for f, o in occ.items() if f in m.lexed})
-        # The lower modules: the package's other modules whose sources sit beside this one's (Sources/TUIkitCore …)
+        # The lower modules: the package's other modules whose sources sit beside this one's (Sources/TUICore …)
         # and that this module's sources can see, read in one more pass over the store's units. The `lower` check asks
         # which of them defines what a declaration uses. Beside the map's own directories, when it has several.
         if modules:
@@ -390,7 +390,7 @@ class Model:
 
     # ── helpers the assigner and the checks share ────────────────────────────────────────────────────────
     def lower_module(self, usr):
-        """The lower module that defines a symbol (TUIkitCore, TUIkitView …), else None: the index's answer, which
+        """The lower module that defines a symbol (TUICore, TUIView …), else None: the index's answer, which
         sees members a lower module adds to SDK types, else the module named by the USR's prefix."""
         m = self.lower_owner.get(usr)
         if m is not None: return m

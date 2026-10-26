@@ -1,10 +1,10 @@
 # Completing the SwiftUI API: lane BNDL's decisions for review
 
 *A companion to [`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>),
-written by the lane that made a TUIkit program run without its resource bundle
-(2026-10-10): the binary-size follow-ups found that every TUIkit app stopped at
-launch (`Fatal error: unable to find bundle named TUIkit_TUIkitStrings`) when
-`TUIkit_TUIkitStrings.bundle` was not beside the binary. It holds only what
+written by the lane that made a TUI program run without its resource bundle
+(2026-10-10): the binary-size follow-ups found that every TUI app stopped at
+launch (`Fatal error: unable to find bundle named TUI_TUIStrings`) when
+`TUI_TUIStrings.bundle` was not beside the binary. It holds only what
 that work raised that was not already decided: the same three parts as the
 main file.*
 
@@ -15,14 +15,14 @@ main file.*
 
 ## B. Shipped the safe option
 
-### B-BNDL-1. TUIkit's English is compiled in as well as bundled
+### B-BNDL-1. TUI's English is compiled in as well as bundled
 
 *`LocalizationService`, `LocalizationService+BuiltInEnglish.swift`*
 
 **Shipped:** a copy of `en.json`, as the file's text in a raw string literal,
 parsed by the same parser the bundled files go through, and only where `en.json`
 cannot be read. Without it a program shipped without the bundle would not run
-"in English": TUIkit's words would read as their keys (`statusbar.quit`), the
+"in English": TUI's words would read as their keys (`statusbar.quit`), the
 quiet failure the first WebAssembly build showed. `BuiltInEnglishTests` fails,
 naming the keys, until the copy matches the file, and the localization article's
 "Adding New Keys" says to paste it.
@@ -50,7 +50,7 @@ gate test against.
 second place to change at every release (or a generator), for a string a
 program without the bundle shows only where it prints the version.
 
-### B-BNDL-3. TUIkit looks for its bundle itself, and never at the build directory
+### B-BNDL-3. TUI looks for its bundle itself, and never at the build directory
 
 *`ModuleResources` (was `moduleResourceURL`, a function of `Bundle.module`)*
 
@@ -75,7 +75,7 @@ one.
 **Shipped:** no call to `Bundle.module` (but on WebAssembly, B-BNDL-4). A
 check before calling it cannot be made safe: the two accessors look in
 different places, and one at a path nothing else can read, so nothing checked
-here proves the one compiled in will find the bundle. TUIkit looks in Swift
+here proves the one compiled in will find the bundle. TUI looks in Swift
 Build's three places (not the environment variable, which is Xcode's), and in
 the directory holding the bundle its code was loaded from when that is not the
 main bundle, which is the native build's compiled-in path in the one layout
@@ -106,7 +106,7 @@ Linux lane is the check.
 Still unmeasured on 2026-10-19: this machine has no container runtime, and
 nothing has been pushed since 2026-10-01, so that lane has not run it. What
 was checked that day: `Tools/verify-versioned-consumer.sh` passes (a package
-depending on TUIkit 1.0.0 by version reads `tuiKitVersion` 0.6.0 and German's
+depending on TUI 1.0.0 by version reads `tuiKitVersion` 0.6.0 and German's
 `button.cancel`), and `ModuleResourcesTests` now fails if any library module
 reads `Bundle.module` again outside `ModuleResources`' WebAssembly arm — the
 revert that would bring the stop back.

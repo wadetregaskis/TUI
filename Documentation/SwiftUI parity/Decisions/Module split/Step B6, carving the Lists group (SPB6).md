@@ -3,12 +3,12 @@
 *Lane SPB6 took step B6 of the module split
 ([`Module split plan, revision 4`](<../../../Historical/Module split plan, revision 4 (2026-10-07).md>),
 §5), 2026-10-08: the carve of the Lists group, the fourth module built on
-TUIkitFoundation rather than under it, and the second coarse group: one
-target, TUIkitLists, that compiles four planned modules' directories,
-`Sources/TUIkitLists`, `Sources/TUIkitTables`, `Sources/TUIkitTabs` and
-`Sources/TUIkitGrid`, until steps C2, C3 and C4 peel the last three into
+TUIFoundation rather than under it, and the second coarse group: one
+target, TUILists, that compiles four planned modules' directories,
+`Sources/TUILists`, `Sources/TUITables`, `Sources/TUITabs` and
+`Sources/TUIGrid`, until steps C2, C3 and C4 peel the last three into
 targets of their own. It changed no public API: the umbrella re-exports
-TUIkitLists beside TUIkitFoundation, so `import TUIkit` gives an app what it
+TUILists beside TUIFoundation, so `import TUI` gives an app what it
 gave before. This file holds the judgement calls the step reached that the
 plan did not already settle, in the format of
 [`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>):*
@@ -21,17 +21,17 @@ plan did not already settle, in the format of
 
 Not judgement calls: the plan (§5, row C9a) lists these for the release notes,
 and C9a writes them. They are recorded here because this step made them. Each
-name below was `TUIkitFoundation`'s after step B1, and `TUIkit`'s in v0.6.0.
+name below was `TUIFoundation`'s after step B1, and `TUI`'s in v0.6.0.
 
 - **Reflected names.** `String(reflecting:)`, `dump` and the debugger name a
-  moved type's new module: `TUIkitLists.EditMode`,
-  `TUIkitLists.SidebarListStyle`. That includes the types of
-  `Sources/TUIkitTables`, `Sources/TUIkitTabs` and `Sources/TUIkitGrid`, which
-  compile into TUIkitLists until steps C2, C3 and C4:
-  `TUIkitLists.Table<…>`, `TUIkitLists.TableColumnCustomizationBehavior`,
-  `TUIkitLists.TabViewCustomization`, `TUIkitLists.TabBarPlacement`,
-  `TUIkitLists.GridItem`, `TUIkitLists.GridItem.Size`. Those names change
-  again at each peel, to `TUIkitTables.`, `TUIkitTabs.` and `TUIkitGrid.`, so
+  moved type's new module: `TUILists.EditMode`,
+  `TUILists.SidebarListStyle`. That includes the types of
+  `Sources/TUITables`, `Sources/TUITabs` and `Sources/TUIGrid`, which
+  compile into TUILists until steps C2, C3 and C4:
+  `TUILists.Table<…>`, `TUILists.TableColumnCustomizationBehavior`,
+  `TUILists.TabViewCustomization`, `TUILists.TabBarPlacement`,
+  `TUILists.GridItem`, `TUILists.GridItem.Size`. Those names change
+  again at each peel, to `TUITables.`, `TUITabs.` and `TUIGrid.`, so
   the release notes should give the peeled name for a type if its peel ships
   in the same release. `UmbrellaQualifiedNameTests` pins at least one from
   each directory.
@@ -43,11 +43,11 @@ name below was `TUIkitFoundation`'s after step B1, and `TUIkit`'s in v0.6.0.
   a `NavigationPath`, whose saved representation is the one that stores type
   names (decisions SPB5, "Saved navigation paths").
 - **The bundle is unchanged.** The four directories hold Swift files only (the
-  rows', tables' and tabs' labels come from TUIkitStrings' tables through
-  `LocalizationService`), so the bundle is still `TUIkit_TUIkitStrings`
+  rows', tables' and tabs' labels come from TUIStrings' tables through
+  `LocalizationService`), so the bundle is still `TUI_TUIStrings`
   (decisions SPB2).
 - **The documentation lists the group's modifiers on `View` and on the
-  group's own types, not on TUIkitFoundation's.** As at step B5:
+  group's own types, not on TUIFoundation's.** As at step B5:
   `symbolgraph-extract` copies a protocol extension's members onto the
   conforming types of its own module only, so `Text`'s page no longer lists
   `listStyle(_:)`, `tabViewStyle(_:)` or `gridCellColumns(_:)` among its default
@@ -56,26 +56,26 @@ name below was `TUIkitFoundation`'s after step B1, and `TUIkit`'s in v0.6.0.
   59,764 pages against step B5's 63,396; how many of the 3,632 are such
   copies was not counted. No doc link had resolved only through one: the
   strict build reports nothing.
-- **`import TUIkitColorPicker` brings lists, tables, tabs and grids too**, once
-  per-module products ship: it re-exports TUIkitLists, its new direct
+- **`import TUIColorPicker` brings lists, tables, tabs and grids too**, once
+  per-module products ship: it re-exports TUILists, its new direct
   dependency (its panel lays its modes out in a `TabView` of `Tab`s). After C3
-  it re-exports TUIkitTabs instead, which re-exports TUIkitLists (plan §4).
+  it re-exports TUITabs instead, which re-exports TUILists (plan §4).
   Under the umbrella, which is the only product today, nothing changes.
-- **`import TUIkitNavigation` does not bring `List`.** TUIkitNavigation does
-  not depend on TUIkitLists: no file of its two directories names a
+- **`import TUINavigation` does not bring `List`.** TUINavigation does
+  not depend on TUILists: no file of its two directories names a
   declaration of the group's four (the pre-carve index: 0 references; the
   split views take their columns as any `View`), and the plan's map has no
   such edge. An app that writes `NavigationSplitView { List … }` gets `List`
-  from the umbrella today, and from `import TUIkitLists` once per-module
+  from the umbrella today, and from `import TUILists` once per-module
   products ship.
 
 ## B. Shipped
 
 ### B-SPB6-1. `Group`'s initializers for table columns, table rows and tabs build it through a package factory
 
-*Sources/TUIkitFoundation/Views/Group.swift — no API*
+*Sources/TUIFoundation/Views/Group.swift — no API*
 
-`Group` is TUIkitFoundation's, and its `let content` is set by a `fileprivate
+`Group` is TUIFoundation's, and its `let content` is set by a `fileprivate
 init(grouping:)`, so that no memberwise `init(content:)` exists for a trailing
 closure to bind to (`Group { … }` with `Content` unconstrained would match it
 with the closure as the content). Three of its public initializers live with
@@ -86,7 +86,7 @@ in another module may not do ("'let' property 'content' may not be
 initialized directly", the class step B5 met with `Button(_:action:)`).
 
 B5 moved its initializer into the type's own file. These three cannot move:
-TUIkitFoundation cannot see the builders. A `package init(grouping:)` would
+TUIFoundation cannot see the builders. A `package init(grouping:)` would
 let the trailing closure bind again, now from every module of the package.
 
 **Shipped:** `package static func grouping(_ content:) -> Self`, which calls

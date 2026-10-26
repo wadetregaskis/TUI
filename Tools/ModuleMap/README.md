@@ -1,24 +1,24 @@
 # Tools/ModuleMap
 
-TUIkit is to be split into à-la-carte modules: the substrate (TUIkitFoundation), side modules that compile beside the
-lower ones, feature leaves over the substrate, TUIkitApp and a thin `TUIkit` umbrella. `rules.json` lists them and
+TUI is to be split into à-la-carte modules: the substrate (TUIFoundation), side modules that compile beside the
+lower ones, feature leaves over the substrate, TUIApp and a thin `TUI` umbrella. `rules.json` lists them and
 what each holds. Since step A5 each module's files sit in a directory of their own, `Sources/<module>`
-(`Sources/TUIkitFoundation`, `Sources/TUIkitLists` …), where the module lives once a step of Phase B carves it out;
-from step B1 the one `TUIkitFoundation` target compiled them all (`TUIkit` is the umbrella, which only re-exports),
-until step B7 carved the last of them out. Carved: TUIkitStrings and TUIkitTerminalHost (step B2), targets of their
-own that TUIkitFoundation depends on and re-exports, and TUIkitApp (step B3), TUIkitColorPicker (step B4),
-TUIkitNavigation (step B5), TUIkitLists (step B6), TUIkitChrome, TUIkitEffects and TUIkitMenus (step B5b),
-TUIkitBitmaps (step B5c), TUIkitTextInput (step B7), TUIkitPresentation (step C1), TUIkitTables and TUIkitTabs
-(steps C2 and C3, which also depend on TUIkitLists), TUIkitGrid (step C4), TUIkitForms (step C6), TUIkitSearch
-(step C5, which also depends on TUIkitTextInput and TUIkitPickers), TUIkitPickers (step C8) and TUIkitNumericControls
-(step C7), targets of their own that depend on TUIkitFoundation and that the umbrella re-exports. Every planned module
+(`Sources/TUIFoundation`, `Sources/TUILists` …), where the module lives once a step of Phase B carves it out;
+from step B1 the one `TUIFoundation` target compiled them all (`TUI` is the umbrella, which only re-exports),
+until step B7 carved the last of them out. Carved: TUIStrings and TUITerminalHost (step B2), targets of their
+own that TUIFoundation depends on and re-exports, and TUIApp (step B3), TUIColorPicker (step B4),
+TUINavigation (step B5), TUILists (step B6), TUIChrome, TUIEffects and TUIMenus (step B5b),
+TUIBitmaps (step B5c), TUITextInput (step B7), TUIPresentation (step C1), TUITables and TUITabs
+(steps C2 and C3, which also depend on TUILists), TUIGrid (step C4), TUIForms (step C6), TUISearch
+(step C5, which also depends on TUITextInput and TUIPickers), TUIPickers (step C8) and TUINumericControls
+(step C7), targets of their own that depend on TUIFoundation and that the umbrella re-exports. Every planned module
 is a target of its own since step C7, at its default path. Three were **coarse groups** until then, one target
-compiling several planned modules' directories: TUIkitNavigation over `Sources/TUIkitNavigation` and
-`Sources/TUIkitPresentation` until step C1 peeled the second into a target of its own, TUIkitLists over
-`Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid` until steps C2 to C4 peeled the last three, and
-TUIkitTextInput over `Sources/TUIkitTextInput`, `TUIkitForms`, `TUIkitSearch`, `TUIkitPickers` and
-`TUIkitNumericControls` until steps C5 to C8 peeled the last four (see [Coarse groups](#coarse-groups)).
-`TUIkitFoundation` is an ordinary target at `Sources/TUIkitFoundation` since step B7. **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
+compiling several planned modules' directories: TUINavigation over `Sources/TUINavigation` and
+`Sources/TUIPresentation` until step C1 peeled the second into a target of its own, TUILists over
+`Sources/TUILists`, `TUITables`, `TUITabs` and `TUIGrid` until steps C2 to C4 peeled the last three, and
+TUITextInput over `Sources/TUITextInput`, `TUIForms`, `TUISearch`, `TUIPickers` and
+`TUINumericControls` until steps C5 to C8 peeled the last four (see [Coarse groups](#coarse-groups)).
+`TUIFoundation` is an ordinary target at `Sources/TUIFoundation` since step B7. **A file's directory is its module**: moving a file to another module is a `git mv`. This tool holds:
 
 - the planned map: which module each declaration will live in;
 - the assigner that computes the map from a short list of rules;
@@ -64,7 +64,7 @@ index unit, it warns: rebuild, then check again.
 The design behind the map is `Documentation/Historical/Module split plan, revision 4 (2026-10-07).md` (the refined
 plan, after the owner's answers of 2026-10-07; why it exists is in `Compile time and binary size analysis
 (2026-10-07).md` beside it). This tool is the plan's step A1; `rules.json` is revision 4's map, committed at step A1′
-with the `lower` lists, and its base module is named TUIkitFoundation (the owner's choice, after the plan was written). The assigner is the research assigner
+with the `lower` lists, and its base module is named TUIFoundation (the owner's choice, after the plan was written). The assigner is the research assigner
 (`split2/plan/w/sassign.py` + `finalize.py`) ported. On HEAD 4611730eb it gave every one of the 4,127 declarations the
 same module as the re-indexed research run (`split2/reindex/`).
 
@@ -94,14 +94,14 @@ not count as new. Only new findings fail `check`, or raise an annotation in CI.
 
 ### `uncompiled`: a file in a module's directory that no target compiles
 
-`TUIkitStrings: TUIkitStrings/Localization/Foo.swift is compiled by no target, though the last build ran after it was written: …`
+`TUIStrings: TUIStrings/Localization/Foo.swift is compiled by no target, though the last build ran after it was written: …`
 
-From step A5 to step B7 the one target that compiled them (`TUIkitFoundation` from step B1) named the module
+From step A5 to step B7 the one target that compiled them (`TUIFoundation` from step B1) named the module
 directories in its `sources:` (Package.swift; its `directories:` from step B6, which the manifest passed to SwiftPM
 as `sources:`, with every other directory of the manifest's `sourcesDirectories` list as `exclude:`), and a coarse
 group did until step C7. Since then every module is a target at its default path, `Sources/<module>`. So a module
 directory added to `rules.json` and to no target is compiled by no target, and its declarations, public API
-included, are simply missing. Until step B2 carved it, TUIkitStrings was listed below its
+included, are simply missing. Until step B2 carved it, TUIStrings was listed below its
 own directory, one entry per subdirectory and per `Localization/*.swift` file, because a resource may not sit under
 a declared source path, so a new file there was the same case; its own target takes every file in its directory now.
 SwiftPM says nothing about such a directory: no target's path covers it (while a target over several directories
@@ -114,7 +114,7 @@ is reported as stale
 
 ### `upward`: a reference its module cannot see
 
-`TUIkitFoundation -> TUIkitLists: TUIkitFoundation/Views/Foo.swift::Foo uses TUIkitLists/Views/List.swift::ListThing (3 references)`
+`TUIFoundation -> TUILists: TUIFoundation/Views/Foo.swift::Foo uses TUILists/Views/List.swift::ListThing (3 references)`
 
 Once split, this is a compile error, or a cycle. Fix it in one of these ways:
 - Move the user up: `git mv` its file into the higher module's directory, or move the one declaration into a file
@@ -131,11 +131,11 @@ entry matches nothing any more, and the `rules` check asks you to delete it.
 
 That is the debug-runtime crash class: Package.swift's note on `Color: View`, and M3's "failed to demangle witness
 … TabsPage: View". Move the conformance next to the type or the protocol. Conformances whose type and protocol
-both live outside the map's directories are skipped: TUIkit owns neither of those today either.
+both live outside the map's directories are skipped: TUI owns neither of those today either.
 
 ### `witness`: a conformance that cannot see the constrained default it relies on
 
-`T: View is declared in TUIkitFoundation (…), which cannot see T: Renderable in TUIkitLists (…)`
+`T: View is declared in TUIFoundation (…), which cannot see T: Renderable in TUILists (…)`
 
 `extension View where Self: Renderable` supplies a View requirement. That witness is picked where `T: View` is
 checked. If `T: Renderable` sits in a module that site cannot see, the unconstrained default wins, and nothing
@@ -148,14 +148,14 @@ the second one lower.
 ### `public-above`: public API placed above the type it belongs to
 
 There are two forms:
-- `public API of ListStyle (TUIkitFoundation) is declared in TUIkitLists: …`. An app that imports only the type's module
+- `public API of ListStyle (TUIFoundation) is declared in TUILists: …`. An app that imports only the type's module
   does not get this API.
   - Not reported when the extension's header (conformance list or `where` clause) names a declaration of its own
     module. Such API only works with that module's types: `extension PickerStyle where Self == MenuPickerStyle`,
     or `extension ForEach: TableRowContent`.
-- `public API on View carried from TUIkitFoundation up to TUIkitPresentation by the assigner: …`. A modifier block on a
+- `public API on View carried from TUIFoundation up to TUIPresentation by the assigner: …`. A modifier block on a
   type from below the map, which the assigner lifted away from its file's module for its dependencies.
-  - `public API on View placed in TUIkitBitmaps by a declarations rule, above its file's TUIkitFoundation: …`. The same
+  - `public API on View placed in TUIBitmaps by a declarations rule, above its file's TUIFoundation: …`. The same
     move made by a `declarations` rule: a placement someone chose, so it is reported **accepted**, with the rule's
     reason, never new. It is reported at all so that `-v` lists the block's public members: a rule is written for the
     members its author had in mind, and the block may hold others.
@@ -178,18 +178,18 @@ member joins an accepted block, re-read the finding with `-v`.
 A member that does not belong with the rest of its block, and that a refactor will split out, is a `scheduled` entry:
 `from` matches the block's label, `to` the member's name as the list prints it. The finding is scheduled while a
 flagged block holds the member, and the entry goes stale once none does. It follows the member, not the block: a block
-split out but still placed above its file's module (by the assigner, or by a broad declarations rule, as TUIkitBitmaps'
+split out but still placed above its file's module (by the assigner, or by a broad declarations rule, as TUIBitmaps'
 `Views/Image.swift::…View\(ext\)` was until A4) keeps it open. Members no entry names keep an unaccepted block's finding new, so a
 split scheduled for one member cannot hide the rest. The refined plan's S1 (the layout trio and the cell-aspect option,
 out of the image-option blocks) and S2 (`.focusSection`, out of the `.statusBarItems` block) were recorded this way
 until step A4 landed them.
 
-### `posix`: a POSIX-only API outside TUIkitApp
+### `posix`: a POSIX-only API outside TUIApp
 
-`TUIkitFoundation: TUIkitFoundation/Rendering/Foo.swift::Bar uses isatty, which only POSIX platforms have`
+`TUIFoundation: TUIFoundation/Rendering/Foo.swift::Bar uses isatty, which only POSIX platforms have`
 
 CLAUDE.md keeps termios, ioctl, signals and stdin dispatch sources out of the modules that must build on Windows.
-The plan puts the console layer in TUIkitApp, so a use elsewhere is reported. Since the owner relaxed the Windows rule
+The plan puts the console layer in TUIApp, so a use elsewhere is reported. Since the owner relaxed the Windows rule
 (CLAUDE.md, 2026-10-07: POSIX-only code may live in any module, isolated, never in a module that builds on Windows
 today), `rules.json`'s `posix.informational` marks such a finding accepted — information, not a new finding — unless
 a `scheduled` refactor covers it. A use counts as isolated when it sits in an `#if` branch that neither Windows nor
@@ -201,56 +201,56 @@ canImport(WASILibc)` does not, because Windows compiles it, and nor does a branc
 (`arch(x86_64)`, `compiler(…)`, a build flag). The
 `posix` section of `rules.json` lists the APIs: C functions, types (`pid_t`), structs and macros, plus the two
 Dispatch sources. The
-check also reports an unguarded `import Darwin` (or Glibc, Musl …) in a file with code outside TUIkitApp.
+check also reports an unguarded `import Darwin` (or Glibc, Musl …) in a file with code outside TUIApp.
 
 ### `umbrella`: code in the umbrella, or a module it does not re-export
 
-`TUIkit does not re-export TUIkitNavigation`
+`TUI does not re-export TUINavigation`
 
-The `TUIkit` umbrella re-exports and holds nothing else. No declaration may be assigned to it, and its files may
-hold only imports. And it re-exports, by name, every module carved out above `TUIkitFoundation` (the `default` in
-`rules.json`): a module whose files `@_exported import` TUIkitFoundation, or a module that does (TUIkitApp,
-TUIkitColorPicker, TUIkitNavigation since step B5, TUIkitLists since step B6, TUIkitChrome, TUIkitEffects and
-TUIkitMenus since step B5b, TUIkitBitmaps since step B5c, TUIkitTextInput since step B7, TUIkitPresentation since
-step C1, TUIkitTables since step C2, TUIkitTabs since step C3, TUIkitGrid since step C4, TUIkitForms since step
-C6, TUIkitSearch since step C5, TUIkitPickers since step C8, TUIkitNumericControls since step C7). TUIkitFoundation
-cannot re-export a module built on it, so `import TUIkit` has it
+The `TUI` umbrella re-exports and holds nothing else. No declaration may be assigned to it, and its files may
+hold only imports. And it re-exports, by name, every module carved out above `TUIFoundation` (the `default` in
+`rules.json`): a module whose files `@_exported import` TUIFoundation, or a module that does (TUIApp,
+TUIColorPicker, TUINavigation since step B5, TUILists since step B6, TUIChrome, TUIEffects and
+TUIMenus since step B5b, TUIBitmaps since step B5c, TUITextInput since step B7, TUIPresentation since
+step C1, TUITables since step C2, TUITabs since step C3, TUIGrid since step C4, TUIForms since step
+C6, TUISearch since step C5, TUIPickers since step C8, TUINumericControls since step C7). TUIFoundation
+cannot re-export a module built on it, so `import TUI` has it
 only through the umbrella.
-Reaching it through a sibling instead compiles the same: TUIkitApp and TUIkitPresentation re-export TUIkitChrome,
-which they depend on, for good (TUIkitNavigation did from step B5b until step C1, only because its target compiled
-the TUIkitPresentation directory, whose entry depends on TUIkitChrome). TUIkitColorPicker re-exports
-TUIkitPresentation since step C1 (TUIkitNavigation from B5 until then; it used nothing of the navigation
-containers'), so an umbrella without TUIkitPresentation's line still gives an app `TUIkit.Alert`, and only the
-umbrella re-exports TUIkitNavigation now. It re-exports TUIkitTabs since step C3, which depends on TUIkitLists and
-re-exports it (plan §4), as TUIkitColorPicker did directly from step B6 until then. So an umbrella without TUIkitTabs'
-line still gives an app `TUIkit.TabView`, and without TUIkitLists' line `TUIkit.List`; TUIkitTables re-exports
-TUIkitLists too since step C2, TUIkitSearch re-exports TUIkitTextInput since step C5, TUIkitSearch and
-TUIkitColorPicker re-export TUIkitPickers since step C8, and TUIkitColorPicker re-exports TUIkitNumericControls since
-step C7. Nothing but the umbrella re-exports TUIkitTables, TUIkitGrid, TUIkitForms or TUIkitSearch. No build notices
+Reaching it through a sibling instead compiles the same: TUIApp and TUIPresentation re-export TUIChrome,
+which they depend on, for good (TUINavigation did from step B5b until step C1, only because its target compiled
+the TUIPresentation directory, whose entry depends on TUIChrome). TUIColorPicker re-exports
+TUIPresentation since step C1 (TUINavigation from B5 until then; it used nothing of the navigation
+containers'), so an umbrella without TUIPresentation's line still gives an app `TUI.Alert`, and only the
+umbrella re-exports TUINavigation now. It re-exports TUITabs since step C3, which depends on TUILists and
+re-exports it (plan §4), as TUIColorPicker did directly from step B6 until then. So an umbrella without TUITabs'
+line still gives an app `TUI.TabView`, and without TUILists' line `TUI.List`; TUITables re-exports
+TUILists too since step C2, TUISearch re-exports TUITextInput since step C5, TUISearch and
+TUIColorPicker re-export TUIPickers since step C8, and TUIColorPicker re-exports TUINumericControls since
+step C7. Nothing but the umbrella re-exports TUITables, TUIGrid, TUIForms or TUISearch. No build notices
 a missing line; this check does.
 A coarse group's other members had no Exports.swift until their peels (the last at step C7), so they re-exported
 nothing and were not asked for,
-as a module TUIkitFoundation compiled was not until step B7; nor is a module below
-TUIkitFoundation (TUIkitStrings), which TUIkitFoundation re-exports. Fix it by adding `@_exported import` of the
-module to `Sources/TUIkit/Exports.swift`.
+as a module TUIFoundation compiled was not until step B7; nor is a module below
+TUIFoundation (TUIStrings), which TUIFoundation re-exports. Fix it by adding `@_exported import` of the
+module to `Sources/TUI/Exports.swift`.
 
 ### `lower`: a lower module the module's `lower` list does not name
 
-`TUIkitStrings: TUIkitStrings/Localization/Foo.swift::Foo uses TUIkitView.AppState.shared, and TUIkitStrings's lower list does not name TUIkitView`
+`TUIStrings: TUIStrings/Localization/Foo.swift::Foo uses TUIView.AppState.shared, and TUIStrings's lower list does not name TUIView`
 
 The lower modules are the package's other modules in `Sources`, beside the map's directories, that its sources
 import, and what those
-re-export with `@_exported import` (TUIkitCore, TUIkitStyling, TUIkitView, TUIkitImage today). The map does not split
+re-export with `@_exported import` (TUICore, TUIStyling, TUIView, TUIImage today). The map does not split
 them. A module's `lower` list in `rules.json` names the ones it may use; a
 module without a list may use them all. Once split, the module would not depend on the one it uses, so this is a
 compile error. The lists also keep a module off the critical path it was placed to avoid: a side module compiles
-beside TUIkitView only for as long as nothing in it uses TUIkitView, and a module that must build without
-TUIkitImage stays without it.
+beside TUIView only for as long as nothing in it uses TUIView, and a module that must build without
+TUIImage stays without it.
 
 There is one finding per declaration and symbol, with its references counted. Fix it as for `upward`: move the user,
 or break the edge (inject the value, or split the code that needs the lower module into an extension in a module
 that may use it). A refactor that will remove one is a `scheduled` entry whose `to` matches the symbol as the finding
-names it: its module, then the types it is nested in or extends, then its name (`^TUIkitView\.AppState\.shared$`; an
+names it: its module, then the types it is nested in or extends, then its name (`^TUIView\.AppState\.shared$`; an
 accessor is `AppState.getter:shared`). A bare name would make every `shared` or `init(_:)` of the module one finding,
 and one pattern would cover them all.
 
@@ -262,45 +262,45 @@ names: a list denies what it leaves out, and a module the index lacks would deny
 
 ### `imports`: a file of a carved module that uses another module without importing it
 
-`TUIkitLists/Views/Foo.swift uses TUIkitFoundation (RowBackground, ANSIRenderer; 3 references) without importing it, …`
+`TUILists/Views/Foo.swift uses TUIFoundation (RowBackground, ANSIRenderer; 3 references) without importing it, …`
 
 Unlike the checks above, this one is about the build as it is, not the map. A module carved out above
-TUIkitFoundation (TUIkitApp, TUIkitColorPicker, TUIkitNavigation, TUIkitLists …) re-exports it from its
-`Exports.swift`, so every one of its files can name TUIkitFoundation's declarations without importing it, and
+TUIFoundation (TUIApp, TUIColorPicker, TUINavigation, TUILists …) re-exports it from its
+`Exports.swift`, so every one of its files can name TUIFoundation's declarations without importing it, and
 compiles. But Swift decides whether a closure passed to a function needs a run-time check that it runs on the main
 actor by the calling **file's** imports (`CSApply.cpp`, `closuresRequireDynamicIsolationChecking`, through
 `ValueDecl::findImport`, Swift 6.2.4): a callee from a module the file imports, directly or through the re-exports of
 a module it imports, is trusted; one from a module it reaches only through another file's `@_exported import` is
 not, and every closure passed to it gets a `swift_task_isCurrentExecutor` call: steps B4 to B6 added 190 of them
 to a release Stress (1,482 call sites at B3, 1,672 at B6). So a file of such a module must import, itself, every module whose
-declarations it uses: TUIkitFoundation (whose re-exports bring the lower modules and the side modules), and any other
-carved module (a ColorPicker file that lays out a `TabView` imports TUIkitTabs).
+declarations it uses: TUIFoundation (whose re-exports bring the lower modules and the side modules), and any other
+carved module (a ColorPicker file that lays out a `TabView` imports TUITabs).
 
 The modules are the targets as the build compiled them: the index unit of each file names its target, so a file of a
 coarse group's member was the group's until its peel, and needed no import to use a declaration of the group's own
-directory (as a file of `Sources/TUIkitTables` or `TUIkitTabs` was TUIkitLists' until step C2 or C3; since then each
-imports TUIkitLists where it uses it). Since step C7 each module's files are its own target's. A reference to a lower
-module (TUIkitCore, TUIkitView …) counts too; any import that re-exports it answers it. Today that is
-`import TUIkitFoundation`, whose `Exports.swift` re-exports every lower and side module: no lower module re-exports
+directory (as a file of `Sources/TUITables` or `TUITabs` was TUILists' until step C2 or C3; since then each
+imports TUILists where it uses it). Since step C7 each module's files are its own target's. A reference to a lower
+module (TUICore, TUIView …) counts too; any import that re-exports it answers it. Today that is
+`import TUIFoundation`, whose `Exports.swift` re-exports every lower and side module: no lower module re-exports
 another in this tree, though the check would follow one that did (`reexports_of`). One finding per file and
-module, with the declarations it names and the references counted. TUIkitFoundation's own files and the side
+module, with the declarations it names and the references counted. TUIFoundation's own files and the side
 modules below it are not checked: no carve changed what they import. Fix it by adding the `import` to the file.
 
 ### `stale-imports`: a file of a carved module that imports a module it names nothing of
 
-`TUIkitSearch/Environment/SearchScopes.swift imports TUIkitTextInput but names nothing of it, …`
+`TUISearch/Environment/SearchScopes.swift imports TUITextInput but names nothing of it, …`
 
 The other half of `imports`. A peel moves what a dependant's file used into the peeled module, and the file's import
-of the group stays: step C8 left SearchScopes.swift importing TUIkitTextInput for a `Picker` that had moved to
-TUIkitPickers, and step C7 five TUIkitColorPicker files for `Slider`s that had moved to TUIkitNumericControls. It
+of the group stays: step C8 left SearchScopes.swift importing TUITextInput for a `Picker` that had moved to
+TUIPickers, and step C7 five TUIColorPicker files for `Slider`s that had moved to TUINumericControls. It
 compiles, and costs nothing at run time, but the file's imports stop saying which modules it is built on. A finding
-is an `import` of one of the package's targets, in a file of a module carved out above TUIkitFoundation, when the file
+is an `import` of one of the package's targets, in a file of a module carved out above TUIFoundation, when the file
 names no declaration of that module (by the index, as `imports` counts them) and the import is not the file's only
 way to a module it does use (through that module's re-exports). Not judged: the default module, which every such file
 imports (CONTRIBUTING.md, "Crossing a module boundary"); a module outside the map (an SDK module, or a lower module);
 and a file with an `#if`, since the index holds only the branches the macOS build compiled. Fix it by deleting the
-import line. Of the lower modules, TUIkitFoundation re-exports TUIkitCore, TUIkitStyling and TUIkitView, so an extra
-import of one costs nothing; it does not re-export TUIkitImage, so a stale `import TUIkitImage` is a real one this
+import line. Of the lower modules, TUIFoundation re-exports TUICore, TUIStyling and TUIView, so an extra
+import of one costs nothing; it does not re-export TUIImage, so a stale `import TUIImage` is a real one this
 check does not report.
 
 ### `rules`: a `scheduled` or `accepted` entry that matches nothing
@@ -314,29 +314,29 @@ give the entry the key the report now prints instead.
 Phase B carved some planned modules as a **coarse group**: one target that compiled several modules' directories
 (declared with `directories:` in Package.swift: `path: "Sources"`, each of its directories in `sources:`, every other
 directory under Sources in `exclude:`), and phase C peeled each member into a target of its own. Step B5's
-`TUIkitNavigation` compiled `Sources/TUIkitNavigation` and `Sources/TUIkitPresentation` until step C1 peeled the
-second into `TUIkitPresentation`, which left `TUIkitNavigation` an ordinary target at its default path; step B6's
-`TUIkitLists` compiled `Sources/TUIkitLists`, `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid` until steps C2 to C4
-peeled the last three into `TUIkitTables` and `TUIkitTabs`, each built on `TUIkitLists`, and `TUIkitGrid`, which left
-`TUIkitLists` an ordinary target at its default path; step
-B7's `TUIkitTextInput` compiled `Sources/TUIkitForms` until step C6 peeled it into `TUIkitForms`, built on
-`TUIkitFoundation` alone, `Sources/TUIkitSearch` until step C5 peeled it into `TUIkitSearch`, built on
-`TUIkitTextInput`, `Sources/TUIkitPickers` until step C8 peeled it into `TUIkitPickers`, built on `TUIkitFoundation`
-alone, and `Sources/TUIkitNumericControls` until step C7 peeled it into `TUIkitNumericControls`, built on
-`TUIkitFoundation` alone, which left `TUIkitTextInput` an ordinary target at its default path, the last: Package.swift
+`TUINavigation` compiled `Sources/TUINavigation` and `Sources/TUIPresentation` until step C1 peeled the
+second into `TUIPresentation`, which left `TUINavigation` an ordinary target at its default path; step B6's
+`TUILists` compiled `Sources/TUILists`, `TUITables`, `TUITabs` and `TUIGrid` until steps C2 to C4
+peeled the last three into `TUITables` and `TUITabs`, each built on `TUILists`, and `TUIGrid`, which left
+`TUILists` an ordinary target at its default path; step
+B7's `TUITextInput` compiled `Sources/TUIForms` until step C6 peeled it into `TUIForms`, built on
+`TUIFoundation` alone, `Sources/TUISearch` until step C5 peeled it into `TUISearch`, built on
+`TUITextInput`, `Sources/TUIPickers` until step C8 peeled it into `TUIPickers`, built on `TUIFoundation`
+alone, and `Sources/TUINumericControls` until step C7 peeled it into `TUINumericControls`, built on
+`TUIFoundation` alone, which left `TUITextInput` an ordinary target at its default path, the last: Package.swift
 lost its `directories:` helper and its `sourcesDirectories` list with it. Nothing here changed for a group, at its
 carve or at its peels:
 
-- `map.json` and the findings name the planned module. A file under `Sources/TUIkitPresentation` is
-  `TUIkitPresentation`'s, as its directory says, and the peel moves it to its own target with no edit here: at step
+- `map.json` and the findings name the planned module. A file under `Sources/TUIPresentation` is
+  `TUIPresentation`'s, as its directory says, and the peel moves it to its own target with no edit here: at step
   C1, `map.json` gained the new module's Exports.swift (`assign --write`) and nothing else, and no declaration
   changed module.
 - The index records the group's target as the module of each of its files' units. The tool reads the units of every
   module `rules.json` names, so it reads them whichever of those targets compiled them. A member's directory that the
   group's `directories:` left out was compiled by no target, so each of its files was an `uncompiled` finding.
-- The checks hold the members to the planned map, as they held the modules TUIkitFoundation compiled together until
+- The checks hold the members to the planned map, as they held the modules TUIFoundation compiled together until
   step B7. That is stricter than the build, never looser. The group's target sees everything its members' planned
-  dependencies give them (TUIkitFoundation, and TUIkitChrome for TUIkitPresentation from step B5b until C1), so what
+  dependencies give them (TUIFoundation, and TUIChrome for TUIPresentation from step B5b until C1), so what
   passes the checks compiles. An edge between two members compiles in the group but is still a finding, because the
   peel would have to break it; so a peel starts with no finding to fix. Step C1 did: `check` reported 0 findings
   before and after it, and the build needed no declaration widened. Treating a group as one module would let such edges
@@ -349,7 +349,7 @@ pinned, so the assigner moves nothing and `map.json` mirrors the directories. Wh
 a `files` list, which computed the map and which the unit tests still exercise.
 
 1. **Seed.** Each declaration starts in the module its file's first matching `files` rule names, else in the
-   default (TUIkitFoundation). An extension in a default-module file goes where the type it extends is seeded.
+   default (TUIFoundation). An extension in a default-module file goes where the type it extends is seeded.
    - Fixed: pinned file rules, and `declarations` rules (minus `unpin`).
 2. **Atomic groups**, which move as one:
    - an overload set (the same member name on one type, in files seeded to one module);
@@ -381,13 +381,13 @@ not drag declarations down.
 - **`declarations`**: `{module, match, why}` over labels: a pattern is tried on the printed label
   (`path::Name(ext)#first`, as `explain` shows it) and on the base label (`path::Name(ext)`), so a copied label pins that
   one declaration and a pattern ending at `(ext)` pins every extension of the type in the file. These pin single
-  declarations. Use them for a placement decision (plan §4's X1, X2 and FormControlRow, `renderOnce` to TUIkitApp), or
+  declarations. Use them for a placement decision (plan §4's X1, X2 and FormControlRow, `renderOnce` to TUIApp), or
   to undo an assigner drift. Where several match one declaration, the **last** wins, so a narrower rule placed after a
-  broader one is an exception to it (TUIkitFoundation's three image layout keys after TUIkitBitmaps' `Image.*Key`).
+  broader one is an exception to it (TUIFoundation's three image layout keys after TUIBitmaps' `Image.*Key`).
 - **`unpin`**: declarations in pinned files that may move anyway, such as value types inside POSIX files. The list is
   empty since step A4. A declaration that moved out of its pinned file would split that file again, and A4 left
   every file whole: `RenderLoop.swift`'s value types went to `RenderFrameValues.swift`, and the last entry,
-  `RenderActivity`, was removed because only TUIkitApp uses it, so it never moved.
+  `RenderActivity`, was removed because only TUIApp uses it, so it never moved.
 - **`scheduled`**: `{id, check, from, to, why}`. A known finding (`upward`, `posix`, `lower` or `public-above`) that a
   refactor will remove. `from` and `to` match labels (the printed label or the base label without its
   `#discriminator`); for `posix`, `to` matches the API's name, for `lower`, `Module.Type.name`, and for `public-above`,
@@ -408,7 +408,7 @@ After editing, run `assign`. It prints the module table and how many declaration
 **When code changes.** New files and new declarations are placed by the rules (a new file by its directory) until
 the next `assign --write`; `check` says how many there are. A file `map.json` does not list at all is judged in the
 module its directory compiles into, extensions included (an `extension TerminalClient` in a new file under
-`Sources/TUIkitFoundation` is TUIkitFoundation's, not TUIkitTerminalHost's, as the build has it), and `check` prints
+`Sources/TUIFoundation` is TUIFoundation's, not TUITerminalHost's, as the build has it), and `check` prints
 `N files not in map.json: run assign --write` as a warning, which does not fail the gate. An edited declaration in a split file keeps its entry: when its label changes (a
 member added above its first one, or that member renamed) and exactly one entry of the same name (`View(ext)`)
 no longer matches anything, that entry is taken to be its. With two such edits to one name in one file, both are

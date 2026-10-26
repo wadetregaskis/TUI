@@ -1,5 +1,5 @@
 // swiftlint:disable file_length line_length
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Strings_g3.swift
 //
 //  Created by LAYERED.work
@@ -36,7 +36,7 @@ extension ExampleStrings {
             "page.list.boundValue": "Bound value:",
             "page.list.stylesSection": "List styles (.listStyle)",
             "page.list.rowsSection": "What a row can say about itself",
-            "page.list.rowsExplain": "Badges (.badge, .badgeProminence), a row's own background and insets (.listRowBackground, .listRowInsets), a prominent header (.headerProminence) — and what an empty list draws instead of rows (.listEmptyPlaceholder, TUIkit's).",
+            "page.list.rowsExplain": "Badges (.badge, .badgeProminence), a row's own background and insets (.listRowBackground, .listRowInsets), a prominent header (.headerProminence) — and what an empty list draws instead of rows (.listEmptyPlaceholder, TUI's).",
             "page.list.rows.inbox": "Inbox",
             "page.list.rows.badge": "Unread",
             "page.list.rows.prominentBadge": "Flagged",
@@ -320,7 +320,7 @@ extension ExampleStrings {
             "page.list.boundValue": "Gebundener Wert:",
             "page.list.stylesSection": "Listenstile (.listStyle)",
             "page.list.rowsSection": "Was eine Zeile über sich sagen kann",
-            "page.list.rowsExplain": "Plaketten (.badge, .badgeProminence), Hintergrund und Einzüge einer Zeile (.listRowBackground, .listRowInsets), eine hervorgehobene Überschrift (.headerProminence) — und was eine leere Liste statt Zeilen zeichnet (.listEmptyPlaceholder, von TUIkit).",
+            "page.list.rowsExplain": "Plaketten (.badge, .badgeProminence), Hintergrund und Einzüge einer Zeile (.listRowBackground, .listRowInsets), eine hervorgehobene Überschrift (.headerProminence) — und was eine leere Liste statt Zeilen zeichnet (.listEmptyPlaceholder, von TUI).",
             "page.list.rows.inbox": "Eingang",
             "page.list.rows.badge": "Ungelesen",
             "page.list.rows.prominentBadge": "Markiert",
@@ -604,7 +604,7 @@ extension ExampleStrings {
             "page.list.boundValue": "Valeur liée :",
             "page.list.stylesSection": "Styles de liste (.listStyle)",
             "page.list.rowsSection": "Ce qu'une ligne peut dire d'elle-même",
-            "page.list.rowsExplain": "Pastilles (.badge, .badgeProminence), fond et marges propres à une ligne (.listRowBackground, .listRowInsets), un en-tête mis en avant (.headerProminence) — et ce qu'une liste vide affiche à la place des lignes (.listEmptyPlaceholder, propre à TUIkit).",
+            "page.list.rowsExplain": "Pastilles (.badge, .badgeProminence), fond et marges propres à une ligne (.listRowBackground, .listRowInsets), un en-tête mis en avant (.headerProminence) — et ce qu'une liste vide affiche à la place des lignes (.listEmptyPlaceholder, propre à TUI).",
             "page.list.rows.inbox": "Réception",
             "page.list.rows.badge": "Non lus",
             "page.list.rows.prominentBadge": "Signalés",
@@ -888,7 +888,7 @@ extension ExampleStrings {
             "page.list.boundValue": "Valore associato:",
             "page.list.stylesSection": "Stili di elenco (.listStyle)",
             "page.list.rowsSection": "Cosa può dire una riga di sé",
-            "page.list.rowsExplain": "Badge (.badge, .badgeProminence), sfondo e margini propri di una riga (.listRowBackground, .listRowInsets), un'intestazione in risalto (.headerProminence) — e ciò che un elenco vuoto mostra al posto delle righe (.listEmptyPlaceholder, di TUIkit).",
+            "page.list.rowsExplain": "Badge (.badge, .badgeProminence), sfondo e margini propri di una riga (.listRowBackground, .listRowInsets), un'intestazione in risalto (.headerProminence) — e ciò che un elenco vuoto mostra al posto delle righe (.listEmptyPlaceholder, di TUI).",
             "page.list.rows.inbox": "In arrivo",
             "page.list.rows.badge": "Non letti",
             "page.list.rows.prominentBadge": "Contrassegnati",
@@ -1172,7 +1172,7 @@ extension ExampleStrings {
             "page.list.boundValue": "Valor enlazado:",
             "page.list.stylesSection": "Estilos de lista (.listStyle)",
             "page.list.rowsSection": "Lo que una fila puede decir de sí misma",
-            "page.list.rowsExplain": "Insignias (.badge, .badgeProminence), fondo y márgenes propios de una fila (.listRowBackground, .listRowInsets), un encabezado destacado (.headerProminence) — y lo que una lista vacía dibuja en lugar de filas (.listEmptyPlaceholder, propio de TUIkit).",
+            "page.list.rowsExplain": "Insignias (.badge, .badgeProminence), fondo y márgenes propios de una fila (.listRowBackground, .listRowInsets), un encabezado destacado (.headerProminence) — y lo que una lista vacía dibuja en lugar de filas (.listEmptyPlaceholder, propio de TUI).",
             "page.list.rows.inbox": "Entrada",
             "page.list.rows.badge": "No leídos",
             "page.list.rows.prominentBadge": "Marcados",
@@ -1456,7 +1456,7 @@ extension ExampleStrings {
             "page.list.boundValue": "绑定值：",
             "page.list.stylesSection": "列表样式 (.listStyle)",
             "page.list.rowsSection": "行可以对自身做出的设定",
-            "page.list.rowsExplain": "徽标（.badge、.badgeProminence），行自己的背景与内边距（.listRowBackground、.listRowInsets），突出的分区标题（.headerProminence）——以及空列表代替行显示的内容（TUIkit 的 .listEmptyPlaceholder）。",
+            "page.list.rowsExplain": "徽标（.badge、.badgeProminence），行自己的背景与内边距（.listRowBackground、.listRowInsets），突出的分区标题（.headerProminence）——以及空列表代替行显示的内容（TUI 的 .listEmptyPlaceholder）。",
             "page.list.rows.inbox": "收件箱",
             "page.list.rows.badge": "未读",
             "page.list.rows.prominentBadge": "已标记",
@@ -1740,7 +1740,7 @@ extension ExampleStrings {
             "page.list.boundValue": "バインドされた値：",
             "page.list.stylesSection": "リストスタイル (.listStyle)",
             "page.list.rowsSection": "行が自分について言えること",
-            "page.list.rowsExplain": "バッジ（.badge、.badgeProminence）、行独自の背景と余白（.listRowBackground、.listRowInsets）、目立つ見出し（.headerProminence）、そして空のリストが行の代わりに描くもの（TUIkit の .listEmptyPlaceholder）。",
+            "page.list.rowsExplain": "バッジ（.badge、.badgeProminence）、行独自の背景と余白（.listRowBackground、.listRowInsets）、目立つ見出し（.headerProminence）、そして空のリストが行の代わりに描くもの（TUI の .listEmptyPlaceholder）。",
             "page.list.rows.inbox": "受信",
             "page.list.rows.badge": "未読",
             "page.list.rows.prominentBadge": "フラグ付き",

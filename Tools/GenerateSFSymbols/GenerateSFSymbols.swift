@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  GenerateSFSymbols.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
-//  Regenerates `Sources/TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift` — the
+//  Regenerates `Sources/TUIStrings/SFSymbols/SFSymbolTable.generated.swift` — the
 //  baked SF Symbol name → Plane-16 PUA codepoint table that backs
 //  `SFSymbol` / `Label(_:systemImage:)`.
 //
@@ -22,7 +22,7 @@
 //
 //  This is DEVELOPER tooling, run by hand on macOS with the SF Symbols app
 //  installed (mirroring `Tools/Profiling`, which likewise needs Instruments). It
-//  is not compiled as part of TUIkit and end users never run it. If a future SF
+//  is not compiled as part of TUI and end users never run it. If a future SF
 //  Symbols release changes the table format or the decryptor's mangled name,
 //  re-derive them and update this file — the baked table keeps working until you
 //  regenerate it.
@@ -294,7 +294,7 @@ func emitSource(pairs: [(name: String, codepoint: UInt32)]) -> String {
     let offsetsLiteral = wrapElements(packed)
 
     return """
-    //  🖥️ TUIkit — Terminal UI Kit for Swift
+    //  🖥️ TUI — A Terminal UI framework for Swift
     //  SFSymbolTable.generated.swift
     //
     //  Created by LAYERED.work
@@ -435,7 +435,7 @@ guard !pairs.isEmpty else {
 
 let source = emitSource(pairs: pairs)
 
-let outputPath = "Sources/TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift"
+let outputPath = "Sources/TUIStrings/SFSymbols/SFSymbolTable.generated.swift"
 do {
     try source.write(toFile: outputPath, atomically: true, encoding: .utf8)
     FileHandle.standardError.write(

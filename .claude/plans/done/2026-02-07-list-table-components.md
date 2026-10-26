@@ -220,18 +220,18 @@ public struct TableColumn<Value> {
 ## Files
 
 New:
-- `Sources/TUIkit/Focus/ItemListHandler.swift`
-- `Sources/TUIkit/Views/List.swift`
-- `Sources/TUIkit/Views/Table.swift`
-- `Sources/TUIkit/Views/TableColumn.swift`
-- `Tests/TUIkitTests/ListTests.swift`
-- `Tests/TUIkitTests/TableTests.swift`
-- `Sources/TUIkitExample/Pages/ListPage.swift`
-- `Sources/TUIkitExample/Pages/TablePage.swift`
+- `Sources/TUI/Focus/ItemListHandler.swift`
+- `Sources/TUI/Views/List.swift`
+- `Sources/TUI/Views/Table.swift`
+- `Sources/TUI/Views/TableColumn.swift`
+- `Tests/TUITests/ListTests.swift`
+- `Tests/TUITests/TableTests.swift`
+- `Sources/TUIExample/Pages/ListPage.swift`
+- `Sources/TUIExample/Pages/TablePage.swift`
 
 Modified:
-- `Sources/TUIkitExample/ContentView.swift` (add menu entries and shortcuts)
-- `Sources/TUIkitExample/Pages/MainMenuPage.swift` (add menu items)
+- `Sources/TUIExample/ContentView.swift` (add menu entries and shortcuts)
+- `Sources/TUIExample/Pages/MainMenuPage.swift` (add menu items)
 
 ## Dependencies
 

@@ -1,6 +1,6 @@
 # SwiftUI's update and effect ordering, measured (2026-10-24)
 
-> **Status:** measured 2026-10-24, to inform how TUIkit orders body evaluation, layout, drawing and effects; no
+> **Status:** measured 2026-10-24, to inform how TUI orders body evaluation, layout, drawing and effects; no
 > decision taken yet. **Asked by:** the owner, through the lead agent. **Probe:**
 > `Tools/SwiftUIProbes/Effect and update ordering/` (`ordering.swift`, `run.sh`, one `.out` per case). **Working
 > notes:** none.
@@ -331,9 +331,9 @@ times: no update followed it, nothing was drawn green, and the body re-run by a 
   macOS 15 machine cannot run. The probe does not prove there is no global limit on update passes per frame, only that
   101 body evaluations, and 298 `onGeometryChange` calls, in one callout met none.
 
-## What this suggests for TUIkit (inferred)
+## What this suggests for TUI (inferred)
 
-These are readings of SwiftUI's behaviour for TUIkit's design, not checks of TUIkit's current code:
+These are readings of SwiftUI's behaviour for TUI's design, not checks of TUI's current code:
 
 - Effects belong after an update completes, outside any body evaluation and any `Layout` call; SwiftUI then
   updates and draws again within the same layout pass, so that a write in `onAppear` is in the first frame.
@@ -346,6 +346,6 @@ These are readings of SwiftUI's behaviour for TUIkit's design, not checks of TUI
 - `.task` work starts on the main actor after the first frame is committed.
 - A write to `@State` from `body` is dropped with a warning.
 
-TUIkit's corresponding code: `Sources/TUIkitFoundation/Extensions/View+Events.swift` (`onAppear`, `onChange`),
-`Sources/TUIkitFoundation/Extensions/View+Preferences.swift` (`onPreferenceChange`),
-`Sources/TUIkitFoundation/Modifiers/OnGeometryChangeModifier.swift`.
+TUI's corresponding code: `Sources/TUIFoundation/Extensions/View+Events.swift` (`onAppear`, `onChange`),
+`Sources/TUIFoundation/Extensions/View+Preferences.swift` (`onPreferenceChange`),
+`Sources/TUIFoundation/Modifiers/OnGeometryChangeModifier.swift`.

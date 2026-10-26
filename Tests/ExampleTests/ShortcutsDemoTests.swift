@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ShortcutsDemoTests.swift
 //
 //  Created by Wade Tregaskis
@@ -8,8 +8,8 @@ import Foundation
 import Testing
 
 @testable import Example
-import TUIkit
-@testable import TUIkitApp
+import TUI
+@testable import TUIApp
 
 extension ShortcutsDemo: ExamplePageContent {}
 

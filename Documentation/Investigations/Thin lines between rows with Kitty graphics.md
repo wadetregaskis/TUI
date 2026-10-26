@@ -3,25 +3,25 @@
 > **Status:** prototype built 2026-10-24 (lane-hairline), after the owner chose option 4 of decisions A-D6L-2: a
 > `.hairline` separator look on `List`, drawn on Ghostty only, and SwiftUI's default separators there. Researched
 > 2026-10-08; the probe that gates it was run the same day by the owner, on Ghostty and iTerm2. What was built, and
-> what it left open, is in the D6L decisions' A-D6L-2 and the survey's "What TUIkit draws". **Asked by:** the owner, 2026-10-04 (A47: Kitty-graphics thin lines are "a later project …
+> what it left open, is in the D6L decisions' A-D6L-2 and the survey's "What TUI draws". **Asked by:** the owner, 2026-10-04 (A47: Kitty-graphics thin lines are "a later project …
 > keep in mind, not now"). **Working notes** (not in git): `KGP/research.md` (the design, revised after a review),
 > `KGP/records/`; the probe's own records are committed (below).
 
 ## Question
 
-Every separator TUIkit draws between rows costs a whole row: `.listRowSeparator(.visible)` puts its `─` rule on a
+Every separator TUI draws between rows costs a whole row: `.listRowSeparator(.visible)` puts its `─` rule on a
 line of its own, which is why separators are off by default where macOS draws a hairline under every row. Could a
 terminal that speaks the Kitty graphics protocol draw a line one or two pixels thick on the boundary between two
 rows instead, at no cost in rows, and what would it take?
 
 ## Answer
 
-- **Feasible, but only with Kitty's classic placements,** which TUIkit had never emitted. The Unicode placeholders
+- **Feasible, but only with Kitty's classic placements,** which TUI had never emitted. The Unicode placeholders
   `Image` uses cannot do it: a placeholder cell is the picture and holds no text, so the line would cost the row it
   is meant to save. A classic placement is drawn at the cursor, outside the cell grid, with a pixel offset.
 - **Ship it as a look, not a layout:** a TUI-only `.hairline` separator style that never takes a row on any host,
   and draws nothing where the graphics handshake says no. SwiftUI's separator modifiers stay as they are; SwiftUI has
-  no separator-style API, so this would be a TUIkit addition beside them. With it, A-D6L-2 could take SwiftUI's
+  no separator-style API, so this would be a TUI addition beside them. With it, A-D6L-2 could take SwiftUI's
   default (separators on) without halving every list.
 - **Draw it at the writer, from the composited frame:** the list marks the next row's first cells with a private
   marker; the writer turns marker runs into placements and keeps a model of what the terminal holds. A sheet or menu
@@ -30,7 +30,7 @@ rows instead, at no cost in rows, and what would it take?
 - **Per host:** from source reading, kitty, Ghostty and Rio looked clean and iTerm2 workable with quirks; the probe
   then found that Ghostty needs the line above the text (`z=+1`), and so the host identified first, and that iTerm2
   gives no pixel unit to crop by. WezTerm deletes the line on `ESC[2K`, which starts every whole-line rewrite, so the
-  layer must re-place it there; Konsole hides `z<0` under painted cells, and TUIkit cannot yet recognise Konsole.
+  layer must re-place it there; Konsole hides `z<0` under painted cells, and TUI cannot yet recognise Konsole.
 
 ## Key measurements
 

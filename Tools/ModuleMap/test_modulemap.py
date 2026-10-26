@@ -123,7 +123,7 @@ class RulesTests(unittest.TestCase):
         self.assertTrue(R.sees('Tables', 'Base'))
         self.assertFalse(R.sees('Base', 'Lists'))
         self.assertFalse(R.sees('Lists', 'App'))
-        self.assertTrue(R.sees('Base', 'TUIkitView'))          # below the map: visible everywhere
+        self.assertTrue(R.sees('Base', 'TUIView'))          # below the map: visible everywhere
         self.assertEqual(R.join({'Lists', 'App'}), 'X')
         self.assertEqual(R.meet('Tables', 'App'), 'Base')
 
@@ -158,7 +158,7 @@ class SpanAttributionTests(unittest.TestCase):
         self.assertIn('s:Conf', M.edges['s:P'])
 
 
-VIEW = 's:10TUIkitView4ViewP'
+VIEW = 's:7TUIView4ViewP'
 
 
 def view_extensions(firsts):
@@ -209,7 +209,7 @@ class LabelTests(unittest.TestCase):
 class UnmappedFileTests(unittest.TestCase):
     """A file map.json does not list (added since `assign --write`) is judged where its directory compiles it. The
     old fallback sent an extension to the module of the type it extends, which invented or hid findings until the
-    map was regenerated (an `extension TerminalClient` in Sources/TUIkitFoundation was TUIkitTerminalHost's)."""
+    map was regenerated (an `extension TerminalClient` in Sources/TUIFoundation was TUITerminalHost's)."""
 
     @staticmethod
     def extension_model():
@@ -345,15 +345,15 @@ def conformance_model():
     srcs = {'Base/T.swift': 'struct T: View {\n' + '    let a = 1\n' * 8 + '}\nprotocol Q {}\n',
             'Lists/R.swift': 'extension T: Renderable {}\n',
             'Lists/Q.swift': 'extension T: Q {}\n'}
-    occ = {'Base/T.swift': [('s:T', DEF, 1, ''), ('s:10TUIkitView4ViewP', REF | IX.REL_BASE_OF, 1, 's:T'),
+    occ = {'Base/T.swift': [('s:T', DEF, 1, ''), ('s:7TUIView4ViewP', REF | IX.REL_BASE_OF, 1, 's:T'),
                             ('s:Q', DEF, 11, '')],
            'Lists/R.swift': [('s:e:R', DEF, 1, ''), ('s:T', REF | IX.REL_EXTENDED_BY, 1, 's:e:R'),
-                             ('s:10TUIkitView10RenderableP', REF | IX.REL_BASE_OF, 1, 's:e:R')],
+                             ('s:7TUIView10RenderableP', REF | IX.REL_BASE_OF, 1, 's:e:R')],
            'Lists/Q.swift': [('s:e:Q', DEF, 1, ''), ('s:T', REF | IX.REL_EXTENDED_BY, 1, 's:e:Q'),
                              ('s:Q', REF | IX.REL_BASE_OF, 1, 's:e:Q')]}
     sym = {'s:T': ('T', IX.K_STRUCT), 's:Q': ('Q', IX.K_PROTOCOL), 's:e:R': ('T', IX.K_EXTENSION),
-           's:e:Q': ('T', IX.K_EXTENSION), 's:10TUIkitView4ViewP': ('View', IX.K_PROTOCOL),
-           's:10TUIkitView10RenderableP': ('Renderable', IX.K_PROTOCOL)}
+           's:e:Q': ('T', IX.K_EXTENSION), 's:7TUIView4ViewP': ('View', IX.K_PROTOCOL),
+           's:7TUIView10RenderableP': ('Renderable', IX.K_PROTOCOL)}
     return model(srcs, occ, sym)
 
 
@@ -416,7 +416,7 @@ class PublicAboveTests(unittest.TestCase):
 
     def test_a_declaration_rule_is_a_chosen_placement_and_lists_its_members(self):
         # Chosen, so not new; but reported, accepted with the rule's reason, so `-v` lists every public member of the
-        # block. Exempting it outright hid the layout trio inside the block the r4 rules pin to TUIkitBitmaps.
+        # block. Exempting it outright hid the layout trio inside the block the r4 rules pin to TUIBitmaps.
         M, asg = public_above_model()
         R = rules(declarations=[{'module': 'Lists', 'match': r'^Base/V\.swift::View\(ext\)$', 'why': 'list styling'}])
         xs = checks.public_above(M, R, asg)
@@ -551,7 +551,7 @@ class PublicAboveTests(unittest.TestCase):
                          ([('Base/V.swift::View(ext)#status()', 'S2', True)], []))
 
     def test_a_split_out_block_a_broad_rule_still_catches_keeps_the_split_open(self):
-        # Refined plan S1: TUIkitBitmaps' rule pins `Views/Image.swift::...View\(ext\)`, every View block of the file, so
+        # Refined plan S1: TUIBitmaps' rule pins `Views/Image.swift::...View\(ext\)`, every View block of the file, so
         # a block split out for the layout trio lands in Bitmaps again unless a later, narrower rule places it.
         s1 = [{'id': 'S1', 'check': 'public-above', 'from': r'^Base/V\.swift::View\(ext\)', 'to': r'^aspect\(\)$', 'why': ''}]
         broad = {'module': 'Lists', 'match': r'^Base/V\.swift::View\(ext\)$', 'why': 'image options'}
@@ -630,7 +630,7 @@ class PosixAndUmbrellaTests(unittest.TestCase):
 
     def test_the_umbrella_re_exports_every_module_carved_above_the_default_by_name(self):
         # Step B5's shape: Lists and App are carved out above Base, and Tables above Lists, re-exporting it (as
-        # TUIkitColorPicker re-exports TUIkitNavigation from step B5 until step C1). An umbrella without Lists still reaches it,
+        # TUIColorPicker re-exports TUINavigation from step B5 until step C1). An umbrella without Lists still reaches it,
         # through Tables, so nothing fails to compile: only this check notices, and it names the module.
         def keys(umbrella, lists='@_exported import Base\n'):
             srcs = {'Exports.swift': umbrella, 'Lists/Exports.swift': lists,
@@ -646,7 +646,7 @@ class PosixAndUmbrellaTests(unittest.TestCase):
         # other member, as a module the default compiled was until step B7); nor is the default itself.
         self.assertEqual(keys('@_exported import App\n@_exported import Tables\n', lists='func l() {}\n'), [])
         # Step C3's shape, which lasts: App re-exports Tables, and Tables only Lists, its own dependency (as
-        # TUIkitColorPicker re-exports TUIkitTabs, which re-exports TUIkitLists). Two hops from Base, both are
+        # TUIColorPicker re-exports TUITabs, which re-exports TUILists). Two hops from Base, both are
         # still carved above it, and an umbrella without Lists hears of it from this check alone.
         def keys_c3(umbrella):
             srcs = {'Exports.swift': umbrella, 'Lists/Exports.swift': '@_exported import Base\n',
@@ -677,7 +677,7 @@ class PosixAndUmbrellaTests(unittest.TestCase):
 
 
 def lower_model():
-    """Base/S.swift's S uses TUIkitCore's Lock twice and TUIkitView's AppState once; Lists/L.swift's L uses AppState;
+    """Base/S.swift's S uses TUICore's Lock twice and TUIView's AppState once; Lists/L.swift's L uses AppState;
     both use Foundation's Date, which no lower module defines."""
     srcs = {'Base/S.swift': 'struct S {\n    let l = Lock()\n    func f() { _ = Lock(); _ = AppState.shared; _ = Date() }\n}\n',
             'Lists/L.swift': 'struct L {\n    func g() { _ = AppState.shared; _ = Date() }\n}\n'}
@@ -690,39 +690,39 @@ def lower_model():
            's:L.g': ('g()', 16), 's:Core.Lock': ('Lock', IX.K_STRUCT), 's:View.AppState': ('AppState', IX.K_CLASS),
            's:Foundation.Date': ('Date', IX.K_STRUCT)}
     M = model(srcs, occ, sym)
-    M.lower_owner = {'s:Core.Lock': 'TUIkitCore', 's:View.AppState': 'TUIkitView'}
-    M.lower_visible = M.lower_modules = {'TUIkitCore', 'TUIkitView'}
+    M.lower_owner = {'s:Core.Lock': 'TUICore', 's:View.AppState': 'TUIView'}
+    M.lower_visible = M.lower_modules = {'TUICore', 'TUIView'}
     return M, {'s:S': 'Base', 's:L': 'Lists'}
 
 
 def lower_rules(**extra):
     R = rules(**extra)
     data = dict(R.data)
-    data['modules'] = [dict(m, lower=['TUIkitCore']) if m['name'] == 'Base' else m for m in data['modules']]
+    data['modules'] = [dict(m, lower=['TUICore']) if m['name'] == 'Base' else m for m in data['modules']]
     return Rules(data)
 
 
 class LowerTests(unittest.TestCase):
-    """A module may use only the lower modules its `lower` list names: a side module compiles beside TUIkitView,
+    """A module may use only the lower modules its `lower` list names: a side module compiles beside TUIView,
     so it must not start using it (refined plan, step A1')."""
 
     def test_a_lower_module_the_list_does_not_name(self):
         M, asg = lower_model()
         xs = checks.lower(M, lower_rules(), asg)
-        # Base names TUIkitCore only: Lock is allowed, AppState is not. Lists has no list, so it may use every
+        # Base names TUICore only: Lock is allowed, AppState is not. Lists has no list, so it may use every
         # lower module. Date is defined by no lower module (the SDK), so it is not this check's business.
-        self.assertEqual([(x.key, x.weight, x.line) for x in xs], [('Base/S.swift::S uses TUIkitView.AppState', 1, 3)])
-        self.assertIn("Base's lower list does not name TUIkitView", xs[0].message)
+        self.assertEqual([(x.key, x.weight, x.line) for x in xs], [('Base/S.swift::S uses TUIView.AppState', 1, 3)])
+        self.assertIn("Base's lower list does not name TUIView", xs[0].message)
 
     def test_one_finding_per_declaration_and_symbol_weighed_by_its_references(self):
         M, asg = lower_model()
         R = lower_rules()
-        R.lower['Base'] = {'TUIkitView'}
-        self.assertEqual([(x.key, x.weight) for x in checks.lower(M, R, asg)], [('Base/S.swift::S uses TUIkitCore.Lock', 2)])
+        R.lower['Base'] = {'TUIView'}
+        self.assertEqual([(x.key, x.weight) for x in checks.lower(M, R, asg)], [('Base/S.swift::S uses TUICore.Lock', 2)])
 
     def test_a_scheduled_refactor_and_its_stale_entry(self):
         M, asg = lower_model()
-        sched = [{'id': 'R1', 'check': 'lower', 'from': r'^Base/S\.swift::S$', 'to': r'^TUIkitView\.AppState$', 'why': ''}]
+        sched = [{'id': 'R1', 'check': 'lower', 'from': r'^Base/S\.swift::S$', 'to': r'^TUIView\.AppState$', 'why': ''}]
         fs = checks.run_all(M, lower_rules(scheduled=sched), asg, '/nonexistent')
         self.assertEqual([(x.check, x.scheduled, x.new) for x in fs if x.check in ('lower', 'rules')], [('lower', 'R1', False)])
         M.lower_owner = {}                  # R1 landed: Base no longer uses AppState
@@ -734,15 +734,15 @@ class LowerTests(unittest.TestCase):
             rules(modules=[{'name': 'Base', 'deps': [], 'lower': ['Lists']}, {'name': 'Lists', 'deps': ['Base']}])
 
     def test_owners_are_the_lower_modules_definitions(self):
-        files = {'/p/Sources/TUIkitCore/Lock.swift': [('s:Lock', DEF, 1, ''), ('s:Date', REF, 2, 's:Lock')],
-                 '/p/Sources/TUIkitView/AppState.swift': [('s:AppState', DEF, 1, ''), ('s:Lock', REF, 3, 's:AppState')]}
-        dirs = {'TUIkitCore': '/p/Sources/TUIkitCore/', 'TUIkitView': '/p/Sources/TUIkitView/'}
+        files = {'/p/Sources/TUICore/Lock.swift': [('s:Lock', DEF, 1, ''), ('s:Date', REF, 2, 's:Lock')],
+                 '/p/Sources/TUIView/AppState.swift': [('s:AppState', DEF, 1, ''), ('s:Lock', REF, 3, 's:AppState')]}
+        dirs = {'TUICore': '/p/Sources/TUICore/', 'TUIView': '/p/Sources/TUIView/'}
         sym = {'s:Lock': ('Lock', IX.K_STRUCT), 's:AppState': ('AppState', IX.K_CLASS), 's:Date': ('Date', IX.K_STRUCT)}
         self.assertEqual(model_mod.lower_owners(files, dirs, sym),
-                         ({'s:Lock': 'TUIkitCore', 's:AppState': 'TUIkitView'}, {'s:Lock': 'Lock', 's:AppState': 'AppState'}))
+                         ({'s:Lock': 'TUICore', 's:AppState': 'TUIView'}, {'s:Lock': 'Lock', 's:AppState': 'AppState'}))
 
     def test_a_lower_symbol_is_named_by_the_types_it_sits_in(self):
-        # Two `shared` in TUIkitView: one on AppState, one added to Theme by an extension. A bare name made them one
+        # Two `shared` in TUIView: one on AppState, one added to Theme by an extension. A bare name made them one
         # finding, and R1's pattern for AppState's covered any other `shared` too.
         files = {'/p/V/A.swift': [('s:AppState', DEF, 1, ''), ('s:AppState.shared', DEF, 2, 's:AppState'),
                                   ('s:AppState.shared.get', DEF | IX.IMPLICIT, 2, 's:AppState.shared'),
@@ -750,7 +750,7 @@ class LowerTests(unittest.TestCase):
         sym = {'s:AppState': ('AppState', IX.K_CLASS), 's:AppState.shared': ('shared', IX.K_VARIABLE),
                's:AppState.shared.get': ('getter:shared', 19), 's:e:Theme': ('Theme', IX.K_EXTENSION),
                's:Theme.shared': ('shared', IX.K_VARIABLE)}
-        owner, names = model_mod.lower_owners(files, {'TUIkitView': '/p/V/'}, sym)
+        owner, names = model_mod.lower_owners(files, {'TUIView': '/p/V/'}, sym)
         self.assertEqual(names, {'s:AppState': 'AppState', 's:AppState.shared': 'AppState.shared',
                                  's:AppState.shared.get': 'AppState.getter:shared', 's:e:Theme': 'Theme',
                                  's:Theme.shared': 'Theme.shared'})
@@ -760,25 +760,25 @@ class LowerTests(unittest.TestCase):
                                     ('s:Theme.shared', REF, 2, 's:S.f')]},
                   {'s:S': ('S', IX.K_STRUCT), 's:S.f': ('f()', 16), **sym})
         M.lower_owner, M.lower_name = owner, names
-        sched = [{'id': 'R1', 'check': 'lower', 'from': r'^Base/S\.swift::S$', 'to': r'^TUIkitView\.AppState\.shared$',
+        sched = [{'id': 'R1', 'check': 'lower', 'from': r'^Base/S\.swift::S$', 'to': r'^TUIView\.AppState\.shared$',
                   'why': ''}]
         xs = checks.lower(M, lower_rules(scheduled=sched), {'s:S': 'Base'})
-        self.assertEqual([(x.key, x.scheduled) for x in xs], [('Base/S.swift::S uses TUIkitView.AppState.shared', 'R1'),
-                                                              ('Base/S.swift::S uses TUIkitView.Theme.shared', None)])
+        self.assertEqual([(x.key, x.scheduled) for x in xs], [('Base/S.swift::S uses TUIView.AppState.shared', 'R1'),
+                                                              ('Base/S.swift::S uses TUIView.Theme.shared', None)])
 
     def test_one_answer_to_which_lower_module_defines_a_symbol(self):
         # The `lower` check and owns-neither's module_of ask the same question. The index answers it, and sees what a
-        # lower module adds to an SDK type (no TUIkit prefix in its USR); the USR's prefix is the fallback.
+        # lower module adds to an SDK type (no TUI prefix in its USR); the USR's prefix is the fallback.
         M, asg = lower_model()
-        M.lower_owner['s:Sa10TUIkitViewE4FlagV'] = 'TUIkitView'
-        self.assertEqual(assigner.module_of(M, asg, 's:Sa10TUIkitViewE4FlagV'), 'TUIkitView')
-        self.assertEqual(assigner.module_of(M, asg, 's:View.AppState'), 'TUIkitView')
-        self.assertEqual(assigner.module_of(M, asg, 's:10TUIkitCore4LockV'), 'TUIkitCore')
+        M.lower_owner['s:Sa7TUIViewE4FlagV'] = 'TUIView'
+        self.assertEqual(assigner.module_of(M, asg, 's:Sa7TUIViewE4FlagV'), 'TUIView')
+        self.assertEqual(assigner.module_of(M, asg, 's:View.AppState'), 'TUIView')
+        self.assertEqual(assigner.module_of(M, asg, 's:7TUICore4LockV'), 'TUICore')
         self.assertEqual(assigner.module_of(M, asg, 's:Foundation.Date'), None)
         self.assertEqual(assigner.module_of(M, asg, 's:S'), 'Base')
 
     def test_the_lower_modules_are_what_the_sources_import_and_what_that_re_exports(self):
-        # Example and Stress import TUIkit and sit beside it too; reading their index cost ~0.6-0.9 s for nothing.
+        # Example and Stress import TUI and sit beside it too; reading their index cost ~0.6-0.9 s for nothing.
         with tempfile.TemporaryDirectory() as top:
             files = {'X/A.swift': '// import Commented\nimport Foundation\n@preconcurrency import View\n',
                      'View/V.swift': '@_exported import Core\nimport Styling\n', 'Core/C.swift': 'struct C {}\n',
@@ -796,7 +796,7 @@ class LowerTests(unittest.TestCase):
             self.assertEqual(model_mod.visible_modules(top, 'X', lexed), {'View', 'Core', 'Styling'})
 
     def test_by_directory_the_maps_own_modules_are_not_lower_ones(self):
-        # Since A5 the map's modules sit beside the lower ones (Sources/TUIkitLists beside Sources/TUIkitView): an
+        # Since A5 the map's modules sit beside the lower ones (Sources/TUILists beside Sources/TUIView): an
         # import of one of its own, once carved, must not make it a lower module of the map.
         with tempfile.TemporaryDirectory() as top:
             files = {'Base/A.swift': 'import View\n', 'Lists/L.swift': 'import Base\nimport Core\n',
@@ -823,9 +823,9 @@ class LowerTests(unittest.TestCase):
             with mock.patch.object(model_mod.IX, 'read', side_effect=read):
                 M = Model.load(root, 'Sources', '/store', modules=['Base', 'Lists', 'Tables', 'App', 'X'])
             self.assertEqual(M.files, ['Base/Views/A.swift', 'Lists/Views/L.swift', 'X/Exports.swift'])
-            # Every unit of the map's directories, whichever module compiled it: TUIkit, before a carve.
+            # Every unit of the map's directories, whichever module compiled it: TUI, before a carve.
             modules, prefixes = calls[0]
-            self.assertEqual(modules, {'TUIkit', 'Base', 'Lists', 'Tables', 'App', 'X'})
+            self.assertEqual(modules, {'TUI', 'Base', 'Lists', 'Tables', 'App', 'X'})
             self.assertEqual(sorted(p[len(os.path.realpath(root)):] for p in prefixes),
                              ['/Sources/Base/', '/Sources/Lists/', '/Sources/X/'])
             self.assertEqual(M.lower_visible, {'Core'})
@@ -834,25 +834,25 @@ class LowerTests(unittest.TestCase):
     def test_a_lower_list_naming_no_module_the_index_knows_is_an_error(self):
         M, asg = lower_model()
         R = lower_rules()
-        R.lower['Base'] = {'TUIkitCore', 'TUIkitVeiw'}
+        R.lower['Base'] = {'TUICore', 'TUIVeiw'}
         with mock.patch.object(modulemap.Model, 'load', return_value=M), \
                 mock.patch.object(modulemap.Rules, 'load', return_value=R), \
                 mock.patch.object(modulemap.indexstore, 'find_store', return_value='/nonexistent'), \
                 contextlib.redirect_stdout(io.StringIO()):
-            with self.assertRaisesRegex(SystemExit, 'TUIkitVeiw'):
+            with self.assertRaisesRegex(SystemExit, 'TUIVeiw'):
                 modulemap.main(['check'])
 
 
     def test_a_lower_module_the_index_lacks_is_an_error_even_when_no_list_names_it(self):
-        # Base's list leaves TUIkitImage out, which denies it. A store without TUIkitImage's units would let Base's uses
+        # Base's list leaves TUIImage out, which denies it. A store without TUIImage's units would let Base's uses
         # of it through, with no finding and no error.
         M, asg = lower_model()
-        M.lower_visible = {'TUIkitCore', 'TUIkitView', 'TUIkitImage'}
+        M.lower_visible = {'TUICore', 'TUIView', 'TUIImage'}
         with mock.patch.object(modulemap.Model, 'load', return_value=M), \
                 mock.patch.object(modulemap.Rules, 'load', return_value=lower_rules()), \
                 mock.patch.object(modulemap.indexstore, 'find_store', return_value='/nonexistent'), \
                 contextlib.redirect_stdout(io.StringIO()):
-            with self.assertRaisesRegex(SystemExit, 'no definitions of TUIkitImage'):
+            with self.assertRaisesRegex(SystemExit, 'no definitions of TUIImage'):
                 modulemap.main(['check'])
             M.lower_modules = set(M.lower_visible)
             self.assertEqual(modulemap.main(['check']), 1)       # read: the check runs (AppState in Base is new)
@@ -861,12 +861,12 @@ class LowerTests(unittest.TestCase):
 def imports_model(**sources):
     """Base/B.swift's B (with `run(_:)`) and Lists/L.swift's L, which calls it. Lists and App are carved above Base
     (their Exports.swift re-export it); Tables/T.swift compiles into Lists' target, as a coarse group's member does.
-    TUIkitCore's Lock is a lower module's, which Base reaches only through TUIkitView's re-export of it. No lower
-    module re-exports another in the real tree (TUIkitFoundation's Exports.swift re-exports each one itself), so this
+    TUICore's Lock is a lower module's, which Base reaches only through TUIView's re-export of it. No lower
+    module re-exports another in the real tree (TUIFoundation's Exports.swift re-exports each one itself), so this
     exercises the transitive path `reexports_of` would feed; `test_the_trees_shape` has the real one. `sources`
     replaces a file's text (its imports): the occurrences stay."""
     srcs = {'Base/B.swift': 'struct B {\n    func run(_ f: () -> Void) {}\n}\n',
-            'Base/Exports.swift': '@_exported import TUIkitView\n',
+            'Base/Exports.swift': '@_exported import TUIView\n',
             'Lists/Exports.swift': '@_exported import Base\n',
             'Lists/L.swift': 'struct L {\n    func g() { B().run {}; _ = Lock() }\n}\n',
             'Tables/T.swift': 'struct T {\n    func h() { L().g(); B().run {} }\n}\n',
@@ -885,9 +885,9 @@ def imports_model(**sources):
            's:Core.Lock': ('Lock', IX.K_STRUCT)}
     M = model(srcs, occ, sym)
     M.target = {f: {'Tables': 'Lists'}.get(f.split('/')[0], f.split('/')[0]) for f in srcs}
-    M.lower_owner = {'s:Core.Lock': 'TUIkitCore'}
+    M.lower_owner = {'s:Core.Lock': 'TUICore'}
     M.lower_name = {'s:Core.Lock': 'Lock'}
-    M.lower_reexports = {'TUIkitView': {'TUIkitCore'}, 'TUIkitCore': set()}
+    M.lower_reexports = {'TUIView': {'TUICore'}, 'TUICore': set()}
     return M
 
 
@@ -900,18 +900,18 @@ class ImportsTests(unittest.TestCase):
         return [(x.key, x.weight, x.line) for x in checks.imports(M, rules())]
 
     def test_a_file_that_leans_on_its_modules_re_export(self):
-        # L uses B and B.run (Base) and Lock (TUIkitCore) with no import; T uses Base the same way, and L in its own
+        # L uses B and B.run (Base) and Lock (TUICore) with no import; T uses Base the same way, and L in its own
         # target (Tables compiles into Lists), which needs none. A imports Base but uses Lists, which it does not.
         # Base's own files are not checked.
         self.assertEqual(self.keys(imports_model()), [
-            ('App/A.swift uses Lists', 2, 3), ('Lists/L.swift uses Base', 2, 2), ('Lists/L.swift uses TUIkitCore', 1, 2),
+            ('App/A.swift uses Lists', 2, 3), ('Lists/L.swift uses Base', 2, 2), ('Lists/L.swift uses TUICore', 1, 2),
             ('Tables/T.swift uses Base', 2, 2)])
         x = checks.imports(imports_model(), rules())[1]
         self.assertIn('(B; 2 references)', x.message)          # named by declaration: B for B and B.run
         self.assertIn('add `import Base`', x.message)
 
     def test_an_import_or_a_module_that_re_exports_it_answers(self):
-        # Base re-exports TUIkitView, which re-exports TUIkitCore: `import Base` answers Lock too, transitively, as
+        # Base re-exports TUIView, which re-exports TUICore: `import Base` answers Lock too, transitively, as
         # the compiler's ValueDecl::findImport does. An `@_exported import` in the file itself is an import of it.
         M = imports_model(Lists_L='import Base\nstruct L {\n    func g() { B().run {}; _ = Lock() }\n}\n',
                           Tables_T='@_exported import Base\nstruct T {}\n',
@@ -920,15 +920,15 @@ class ImportsTests(unittest.TestCase):
 
     def test_the_trees_shape(self):
         # As in the real tree: no lower module re-exports another, and Base's own Exports.swift re-exports the lower
-        # modules. `import Base` answers Lock through Base's re-export of TUIkitCore, and does not without it.
+        # modules. `import Base` answers Lock through Base's re-export of TUICore, and does not without it.
         M = imports_model(Lists_L='import Base\nstruct L {\n    func g() { B().run {}; _ = Lock() }\n}\n',
-                          Base_Exports='@_exported import TUIkitView\n@_exported import TUIkitCore\n')
-        M.lower_reexports = {'TUIkitView': set(), 'TUIkitCore': set()}
+                          Base_Exports='@_exported import TUIView\n@_exported import TUICore\n')
+        M.lower_reexports = {'TUIView': set(), 'TUICore': set()}
         self.assertEqual([k for k, _, _ in self.keys(M)], ['App/A.swift uses Lists', 'Tables/T.swift uses Base'])
         M = imports_model(Lists_L='import Base\nstruct L {\n    func g() { B().run {}; _ = Lock() }\n}\n')
-        M.lower_reexports = {'TUIkitView': set(), 'TUIkitCore': set()}
+        M.lower_reexports = {'TUIView': set(), 'TUICore': set()}
         self.assertEqual([k for k, _, _ in self.keys(M)],
-                         ['App/A.swift uses Lists', 'Lists/L.swift uses TUIkitCore', 'Tables/T.swift uses Base'])
+                         ['App/A.swift uses Lists', 'Lists/L.swift uses TUICore', 'Tables/T.swift uses Base'])
 
     def test_a_file_with_no_unit_is_not_judged(self):
         # Nor is a reference to its declarations: which target compiled them is unknown (a stale or uncompiled file,
@@ -941,13 +941,13 @@ class ImportsTests(unittest.TestCase):
 class StaleImportsTests(unittest.TestCase):
     """A file of a carved module that imports one of the package's modules and names nothing of it: a peel moves what
     a dependant's file used to the peeled module, and the file's import of the group stays (step C8 left SearchScopes
-    importing TUIkitTextInput for a `Picker` that had moved to TUIkitPickers)."""
+    importing TUITextInput for a `Picker` that had moved to TUIPickers)."""
 
     def keys(self, M):
         return [(x.key, x.line) for x in checks.stale_imports(M, rules())]
 
     def test_an_import_the_file_names_nothing_of(self):
-        # L uses Base and TUIkitCore, which `import Base` answers; App gives it nothing more. A's `import Base`, the
+        # L uses Base and TUICore, which `import Base` answers; App gives it nothing more. A's `import Base`, the
         # default module's, is never judged, and T's `import Lists` is its own target's (Tables compiles into Lists).
         M = imports_model(Lists_L='import App\nimport Base\nstruct L {\n    func g() { B().run {}; _ = Lock() }\n}\n',
                           Tables_T='import Base\nimport Lists\nstruct T {}\n',
@@ -958,7 +958,7 @@ class StaleImportsTests(unittest.TestCase):
         self.assertIn('remove the import', x.message)
 
     def test_an_import_that_alone_makes_what_the_file_uses_visible_is_not_stale(self):
-        # L names nothing of App itself, but App's re-export of Base is the file's only way to Base and TUIkitCore,
+        # L names nothing of App itself, but App's re-export of Base is the file's only way to Base and TUICore,
         # which it uses: without it the `imports` check would report the file. An SDK module is not the package's.
         M = imports_model(
             Lists_L='import App\nimport Foundation\nstruct L {\n    func g() { B().run {}; _ = Lock() }\n}\n')
@@ -1023,8 +1023,8 @@ class IndexStoreTests(unittest.TestCase):
 
 class UncompiledTests(unittest.TestCase):
     """A coarse group's `directories:` named its members' directories until C7, as the one target that compiled them
-    (TUIkit's, TUIkitFoundation from B1) named every module directory in its `sources:` from A5 to B7 (and until B2
-    TUIkitStrings' files below its own), and a module with no target of its own compiles nowhere, so a file can sit in a
+    (TUI's, TUIFoundation from B1) named every module directory in its `sources:` from A5 to B7 (and until B2
+    TUIStrings' files below its own), and a module with no target of its own compiles nowhere, so a file can sit in a
     module's directory and be compiled by no target. SwiftPM says nothing, or only warns; the module map, which reads
     what the build compiled, fails."""
 

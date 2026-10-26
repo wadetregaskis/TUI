@@ -6,7 +6,7 @@ in its format, for the owner's items of 2026-10-23 on the menu bar (#1, #2,
 #3–#8, #25–#27), following [`The menu bar (O13).md`](<The menu bar (O13).md>).
 2026-10-24.*
 
-- **A. Needs your decision.** None now. A-MENUBAR-1, whether TUIkit offers a
+- **A. Needs your decision.** None now. A-MENUBAR-1, whether TUI offers a
   standard command set for display options, was ruled on 2026-10-24
   (option 3), and is recorded below with what shipped.
 - **B. Shipped the safe option.** See below, each with its fuller version and
@@ -17,19 +17,19 @@ in its format, for the owner's items of 2026-10-23 on the menu bar (#1, #2,
 
 ### A-MENUBAR-1. A standard command set for display options (ruled: option 3)
 
-*Owner item #6: "maybe a default TUIkit View menu with display options (theme
+*Owner item #6: "maybe a default TUI View menu with display options (theme
 submenu, toggles…)".*
 
 The Example's View menu now has them, written in the Example: Palette ▸ (a
 `Picker` over the built-in presets, as a submenu, the current one checked),
 Border Style ▸ (a `Picker` over the built-in appearances) and Text Styling ▸
-(two `Toggle`s). Whether TUIkit should offer the same to every app, as SwiftUI
+(two `Toggle`s). Whether TUI should offer the same to every app, as SwiftUI
 offers `ToolbarCommands` and `SidebarCommands`, is a public API question:
 
-1. **Nothing in TUIkit** (today). An app writes its own, as the Example does —
+1. **Nothing in TUI** (today). An app writes its own, as the Example does —
    twenty lines with `Picker`s over `PaletteRegistry.all` and
    `AppearanceRegistry.all`. Free.
-2. **`DisplayCommands()`, a TUIkit-only standard set** adding View ▸ Palette ▸
+2. **`DisplayCommands()`, a TUI-only standard set** adding View ▸ Palette ▸
    and View ▸ Border Style ▸, acting on the app's palette and appearance
    managers (`\.paletteManager`, `\.appearanceManager`) as the `t` and `a` keys
    do. The catch: an app that holds its palette itself and applies it with
@@ -49,13 +49,13 @@ automatic, but failing that we should at least have a binding or somesuch to
 allow for the menu to be hooked up correctly. We definitely don't want menu
 items that basically don't work."
 
-**Shipped (lane MENUCMDS):** `DisplayCommands`, in TUIkitCommands beside
+**Shipped (lane MENUCMDS):** `DisplayCommands`, in TUICommands beside
 SwiftUI's sets and named apart from them, adds View ▸ Palette ▸, Border Style ▸
 and Control Style ▸ in a section of their own at the top of the View menu.
 Each is a `Picker`, so a submenu of the built-in choices — `PaletteRegistry.all`,
 `AppearanceRegistry.all` (by their localized names) and the control styles,
 Braille one to four dots thick among them — with the one in force checked.
-TUIkitCommands now depends on TUIkitPickers for it.
+TUICommands now depends on TUIPickers for it.
 
 ```swift
 public init(
@@ -69,7 +69,7 @@ public init(
   manager: the palette and appearance managers the `t` and `a` keys cycle, and
   a control style manager, new (`\.controlStyleManager`, a third
   `ThemeManager`, over `ControlStyle`, now `Cyclable` with a localized `name`).
-  TUIkit had no root control style an app did not set itself, so the run loop
+  TUI had no root control style an app did not set itself, so the run loop
   keeps one, as it keeps the other two, and writes its choice at the root of
   each frame where it is not the default; a scene's `.environment(\.controlStyle, …)`
   or a view's `.controlStyle(_:)` wins over it, as a scene's `.palette(_:)`
@@ -98,11 +98,11 @@ public init(
   holding an editable palette, as the Example does, converts in its binding's
   setter); the appearance an `Appearance`; the control style a `ControlStyle`.
 - **Strings.** The three titles, the help and the control styles' names are
-  TUIkit's, in its seven languages.
+  TUI's, in its seven languages.
 
 The Example's View menu is now `DisplayCommands(palette:controlStyle:)`, bound
 to its editable palette and its control style, with Border Style through the
-appearance manager: TUIkit disables it while the Theme page's custom border is
+appearance manager: TUI disables it while the Theme page's custom border is
 in force, as the Example's own code did. Text Styling stays the Example's own.
 
 ## B. Shipped the safe option
@@ -132,7 +132,7 @@ takes.
 
 ### B-MENUBAR-2. About says what the scene states, then the Info.plist, then the process
 
-*`Scene.aboutPanel(applicationName:applicationVersion:version:copyright:credits:)`, TUIkit-only*
+*`Scene.aboutPanel(applicationName:applicationVersion:version:copyright:credits:)`, TUI-only*
 
 **Shipped:** a scene modifier, named after AppKit's About panel option keys
 (SwiftUI has no spelling: a Mac app says more about itself through AppKit's
@@ -144,7 +144,7 @@ The alert shows the name, "Version 1.2 (42)" (the build only where it differs),
 the credits and the copyright. The name titles the app's menu and its About
 and Quit items too. A modifier rather than an environment value of the app's:
 it is the scene's to say, once, and it reaches the chrome-drawn menu bar
-through the scene's environment. The Example states its name, TUIkit's version
+through the scene's environment. The Example states its name, TUI's version
 and its authors.
 
 **The fuller version:** credits as `Text` (styled, with a link), an
@@ -153,7 +153,7 @@ has them), and a Credits.rtf / Credits.html read from the bundle as macOS does.
 Half a day for `Text` credits; the icon waits on a decision about what an
 app's icon is in a terminal.
 
-### B-MENUBAR-3. A Help menu of TUIkit's own: Show Tooltips and Show All Tooltips (⌥?)
+### B-MENUBAR-3. A Help menu of TUI's own: Show Tooltips and Show All Tooltips (⌥?)
 
 *The scene's own `help` group; `TooltipState.showsTooltips`, `showsAllTooltips`*
 
@@ -181,11 +181,11 @@ its focus design.
 *`ExampleCommands`, `ContentView`*
 
 **Shipped:** the page navigation moved out of File into a Go menu, as Finder's,
-and File went with it (nothing else belongs there; TUIkit draws a standard menu
+and File went with it (nothing else belongs there; TUI draws a standard menu
 only when something is in it). Main Menu shows Escape, the key the pages
 already go back with, and is disabled on the main menu; Previous Page is ⌃B
 and Next Page ⌃T. Finder's ⌘[ and ⌘] cannot be had: ⌃[ is Escape's byte and ⌃]
-a byte TUIkit does not read; and of the Control letters a terminal sends as
+a byte TUI does not read; and of the Control letters a terminal sends as
 themselves, A, C, D, F, G, K, N, O, R, S, V, X and Z are bound already (a list's
 or table's row keys, the clipboard and undo, a text editor's find, the Menus
 page's ⌘ shortcuts), and E is a text editor's end of line. B and T are only a
@@ -193,11 +193,11 @@ text control's Emacs chords, which give way to an app's shortcut. View gains
 Palette ▸, Border Style ▸ (disabled while the Theme page's custom border is in
 force) and Text Styling ▸, the submenu, checked-item, picker-as-submenu and
 disabled-item examples the owner asked for (since A-MENUBAR-1 the first three
-are TUIkit's `DisplayCommands`, bound to the Example's state). The top bar is a
+are TUI's `DisplayCommands`, bound to the Example's state). The top bar is a
 `toolbar(id:)`, so Customize Toolbar… is enabled and offers the F2 and F3
 actions as buttons, which start out of the bar.
 
-**Not done: "Customise" (en-GB).** TUIkit's strings have one English table, in
+**Not done: "Customise" (en-GB).** TUI's strings have one English table, in
 US spelling, as Apple's base English is; an en-GB table of the few words that
 differ (Customise, Colour, …) would need the localization service to fall back
 from a regional table to its language's, which it does not. Half a day; worth

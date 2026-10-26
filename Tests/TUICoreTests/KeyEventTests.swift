@@ -1,0 +1,775 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  KeyEventTests.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import Testing
+
+@testable import TUICore
+
+// MARK: - Key Enum Tests
+
+@MainActor
+@Suite("Key Enum Tests")
+struct KeyEnumTests {
+
+    @Test("Key.from creates character key")
+    func keyFromCharacter() {
+        let key = Key.from("a")
+        #expect(key == .character("a"))
+    }
+
+    @Test("Key is Hashable")
+    func keyHashable() {
+        let set: Set<Key> = [.enter, .tab, .escape, .enter]
+        #expect(set.count == 3)  // .enter deduped
+    }
+
+    @Test("Character keys with different characters are not equal")
+    func characterKeysInequality() {
+        #expect(Key.character("a") != Key.character("b"))
+    }
+
+    @Test("Same character keys are equal")
+    func characterKeysEquality() {
+        let key1 = Key.character("x")
+        let key2 = Key.character("x")
+        #expect(key1 == key2)
+    }
+
+    @Test("Special keys are distinct")
+    func specialKeysDistinct() {
+        let keys: [Key] = [
+            .escape, .enter, .tab, .backspace, .delete,
+            .up, .down, .left, .right,
+            .home, .end, .pageUp, .pageDown,
+        ]
+        let set = Set(keys)
+        #expect(set.count == 13)
+    }
+}
+
+// MARK: - KeyEvent Creation Tests
+
+@MainActor
+@Suite("KeyEvent Creation Tests")
+struct KeyEventCreationTests {
+
+    @Test("KeyEvent character init detects uppercase as shift")
+    func characterInitShift() {
+        let upper = KeyEvent(character: "A")
+        #expect(upper.shift == true)
+        #expect(upper.key == .character("A"))
+
+        let lower = KeyEvent(character: "a")
+        #expect(lower.shift == false)
+        #expect(lower.key == .character("a"))
+    }
+
+    @Test("KeyEvent character init with non-letter")
+    func characterInitNonLetter() {
+        let event = KeyEvent(character: "5")
+        #expect(event.key == .character("5"))
+        #expect(event.shift == false)
+    }
+
+    @Test("KeyEvent is Equatable")
+    func equatable() {
+        let eventA = KeyEvent(key: .enter, ctrl: false, alt: false, shift: false)
+        let eventB = KeyEvent(key: .enter)
+        #expect(eventA == eventB)
+
+        let eventC = KeyEvent(key: .enter, ctrl: true)
+        #expect(eventA != eventC)
+    }
+}
+
+// MARK: - KeyEvent Parsing Tests
+
+@MainActor
+@Suite("KeyEvent Parse Tests")
+struct KeyEventParseTests {
+
+    @Test("Parse empty bytes returns nil")
+    func parseEmpty() {
+        #expect(KeyEvent.parse([]) == nil)
+    }
+
+    @Test("Parse escape byte")
+    func parseEscape() {
+        let event = KeyEvent.parse([0x1B])
+        #expect(event?.key == .escape)
+    }
+
+    /// `ESC [ ;` — a CSI whose only parameter byte is the separator. The
+    /// modifier extractor sliced from one past the `;` to one before the end,
+    /// an inverted range, and `Array` subscripting traps on one: a truncated
+    /// or malformed sequence killed the process from the input parser.
+    @Test("A CSI whose last parameter byte is the separator does not trap")
+    func separatorAsLastByteDoesNotTrap() {
+        #expect(KeyEvent.parse([0x1B, 0x5B, 0x3B]) == nil)
+        #expect(KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B]) == nil)
+        // …and a well-formed modifier still decodes.
+        let shiftUp = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x32, 0x41])
+        #expect(shiftUp?.key == .up && shiftUp?.shift == true)
+    }
+
+    /// The sibling of the case above, and the same contract: the answer to a
+    /// malformed sequence is to drop it, never to kill the app while it holds
+    /// the terminal in raw mode.
+    ///
+    /// The modifier was read with `Int(_: String)`, which accepts a SIGN — so
+    /// `ESC [ 1 ; -9223372036854775808 A` parsed cleanly and the very next line,
+    /// `modifier - 1`, overflowed. Reachable from anything that can write to
+    /// the tty: a corrupted ssh stream, `cat` of a crafted file, another
+    /// process sharing the terminal. `MouseEvent` had already been fixed the
+    /// same way; the key parser had not, so both now read digits through
+    /// `ASCIIDecimal`.
+    @Test(
+        "A modifier that cannot be decremented is ignored rather than trapped on",
+        arguments: [
+            "\u{1B}[1;-9223372036854775808A",  // Int.min: the one value `- 1` overflows
+            "\u{1B}[1;-1A",  // any sign at all
+            "\u{1B}[1;99999999999999999999A",  // wider than an Int
+            "\u{1B}[1;+2A",
+        ])
+    func unrepresentableModifierIsIgnored(sequence: String) {
+        // No modifier is decoded, and — the point — the process is still here.
+        let event = KeyEvent.parse(Array(sequence.utf8))
+        #expect(event?.shift != true)
+        #expect(event?.alt != true)
+        #expect(event?.ctrl != true)
+    }
+
+    /// The same hole, one reader over. The VT key number in `ESC [ n ~` was
+    /// still read with `Int(_: String)` after the modifier moved to
+    /// `ASCIIDecimal`. It cannot trap there — nothing is computed from the
+    /// number — but a LEADING `+` read as the bare digits, so a malformed
+    /// sequence became a real keystroke: `ESC [ + 3 ~` deleted a character
+    /// from a focused TextField, or a whole row from a List with `.onDelete`.
+    /// The number sits before the `;`, so the already-hardened modifier reader
+    /// never saw it: `ESC [ + 3 2 ; 2 ~` was Shift+F18.
+    @Test(
+        "A signed VT key number is dropped rather than read as its digits",
+        arguments: [
+            "\u{1B}[+3~",  // Delete
+            "\u{1B}[+5~",  // Page Up
+            "\u{1B}[+11~",  // F1
+            "\u{1B}[+3;2~",  // Shift+Delete
+            "\u{1B}[+32;2~",  // Shift+F18
+        ])
+    func signedExtendedKeyNumberIsDropped(sequence: String) {
+        let signed = Array(sequence.utf8)
+        #expect(KeyEvent.parse(signed) == nil)
+        // …and it is the sign alone that is refused: the same bytes without it
+        // are a real key, so the row above is not passing by accident.
+        let unsigned = signed.filter { $0 != UInt8(ascii: "+") }
+        #expect(KeyEvent.parse(unsigned) != nil)
+    }
+
+    @Test("Parse enter (carriage return)")
+    func parseEnter() {
+        let event = KeyEvent.parse([0x0D])
+        #expect(event?.key == .enter)
+    }
+
+    @Test("Parse enter (line feed)")
+    func parseLineFeed() {
+        let event = KeyEvent.parse([0x0A])
+        #expect(event?.key == .enter)
+    }
+
+    @Test("Parse tab")
+    func parseTab() {
+        let event = KeyEvent.parse([0x09])
+        #expect(event?.key == .tab)
+    }
+
+    @Test("Parse backspace (0x7F)")
+    func parseBackspaceDelete() {
+        let event = KeyEvent.parse([0x7F])
+        #expect(event?.key == .backspace)
+    }
+
+    @Test("Parse backspace (0x08)")
+    func parseBackspace() {
+        let event = KeyEvent.parse([0x08])
+        #expect(event?.key == .backspace)
+    }
+
+    @Test("Parse printable character")
+    func parsePrintable() {
+        let event = KeyEvent.parse([0x41])  // 'A'
+        #expect(event?.key == .character("A"))
+        #expect(event?.shift == true)
+    }
+
+    @Test("Parse lowercase character")
+    func parseLowercase() {
+        let event = KeyEvent.parse([0x61])  // 'a'
+        #expect(event?.key == .character("a"))
+        #expect(event?.shift == false)
+    }
+
+    @Test("Parse space character")
+    func parseSpace() {
+        let event = KeyEvent.parse([0x20])
+        #expect(event?.key == .space)
+    }
+
+    @Test("Parse Ctrl+A")
+    func parseCtrlA() {
+        let event = KeyEvent.parse([0x01])
+        #expect(event?.key == .character("a"))
+        #expect(event?.ctrl == true)
+    }
+
+    @Test("Parse Ctrl+C")
+    func parseCtrlC() {
+        let event = KeyEvent.parse([0x03])
+        #expect(event?.key == .character("c"))
+        #expect(event?.ctrl == true)
+    }
+
+    @Test("Parse Ctrl+Z")
+    func parseCtrlZ() {
+        let event = KeyEvent.parse([0x1A])
+        #expect(event?.key == .character("z"))
+        #expect(event?.ctrl == true)
+    }
+
+    // MARK: Arrow Keys (CSI Sequences)
+
+    @Test("Parse arrow up (ESC [ A)")
+    func parseArrowUp() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x41])
+        #expect(event?.key == .up)
+    }
+
+    @Test("Parse arrow down (ESC [ B)")
+    func parseArrowDown() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x42])
+        #expect(event?.key == .down)
+    }
+
+    @Test("Parse arrow right (ESC [ C)")
+    func parseArrowRight() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x43])
+        #expect(event?.key == .right)
+    }
+
+    @Test("Parse arrow left (ESC [ D)")
+    func parseArrowLeft() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x44])
+        #expect(event?.key == .left)
+    }
+
+    // MARK: Navigation Keys
+
+    @Test("Parse home (ESC [ H)")
+    func parseHome() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x48])
+        #expect(event?.key == .home)
+    }
+
+    @Test("Parse end (ESC [ F)")
+    func parseEnd() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x46])
+        #expect(event?.key == .end)
+    }
+
+    // MARK: Extended Keys (ESC [ n ~)
+
+    @Test("Parse home via extended (ESC [ 1 ~)")
+    func parseHomeExtended() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x7E])
+        #expect(event?.key == .home)
+    }
+
+    @Test("Parse delete (ESC [ 3 ~)")
+    func parseDelete() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x33, 0x7E])
+        #expect(event?.key == .delete)
+    }
+
+    @Test("Parse end via extended (ESC [ 4 ~)")
+    func parseEndExtended() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x34, 0x7E])
+        #expect(event?.key == .end)
+    }
+
+    @Test("Parse page up (ESC [ 5 ~)")
+    func parsePageUp() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x35, 0x7E])
+        #expect(event?.key == .pageUp)
+    }
+
+    @Test("Parse page down (ESC [ 6 ~)")
+    func parsePageDown() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x36, 0x7E])
+        #expect(event?.key == .pageDown)
+    }
+
+    @Test("Parse insert returns nil (ESC [ 2 ~)")
+    func parseInsertReturnsNil() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x32, 0x7E])
+        #expect(event == nil)
+    }
+
+    // MARK: Alt+Key
+
+    @Test("Parse Alt+a")
+    func parseAltA() {
+        let event = KeyEvent.parse([0x1B, 0x61])  // ESC + 'a'
+        #expect(event?.key == .character("a"))
+        #expect(event?.alt == true)
+    }
+
+    @Test("Parse Alt+Enter")
+    func parseAltEnter() {
+        let event = KeyEvent.parse([0x1B, 0x0D])  // ESC + CR
+        #expect(event?.key == .enter)
+        #expect(event?.alt == true)
+    }
+
+    // MARK: UTF-8
+
+    @Test("Parse UTF-8 multi-byte character")
+    func parseUtf8() {
+        // "ü" = 0xC3 0xBC
+        let event = KeyEvent.parse([0xC3, 0xBC])
+        #expect(event?.key == .character("ü"))
+    }
+
+    @Test("Parse emoji UTF-8")
+    func parseEmoji() {
+        // "😀" = 0xF0 0x9F 0x98 0x80
+        let event = KeyEvent.parse([0xF0, 0x9F, 0x98, 0x80])
+        #expect(event?.key == .character("😀"))
+    }
+
+    // MARK: Edge Cases
+
+    @Test("Parse incomplete CSI returns nil")
+    func parseIncompleteCSI() {
+        let event = KeyEvent.parse([0x1B, 0x5B])
+        #expect(event == nil)
+    }
+
+    @Test("Parse Shift+Tab (CSI Z) returns tab with shift")
+    func parseShiftTab() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x5A])  // ESC [ Z
+        #expect(event?.key == .tab)
+        #expect(event?.shift == true)
+    }
+
+    @Test("Parse unknown CSI final byte returns nil")
+    func parseUnknownCSI() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x58])  // ESC [ X (not a valid sequence)
+        #expect(event == nil)
+    }
+
+    /// NOT a second copy of `parseEscape` above: a lone ESC never reaches
+    /// `parseEscapeSequence` at all — `parse` routes a one-byte input to
+    /// `parseSingleByte` — so the escape-PREFIXED fallback is a different
+    /// path with no other test on it. NUL is the probe because it is outside
+    /// every range `parseSingleByte` recognises, so the Alt-chord branch
+    /// declines it and the sequence falls out the bottom as a plain escape
+    /// rather than as nil.
+    @Test("An escape-prefixed byte that names no key decodes as a bare escape")
+    func parseEscapePrefixedNonKey() {
+        let event = KeyEvent.parse([0x1B, 0x00])
+        #expect(event?.key == .escape)
+        #expect(event?.alt == false)
+    }
+
+    // MARK: - Modifier Keys (CSI with modifiers)
+
+    @Test("Parse Shift+Up (ESC [ 1 ; 2 A)")
+    func parseShiftUp() {
+        // ESC [ 1 ; 2 A = 0x1B 0x5B 0x31 0x3B 0x32 0x41
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x32, 0x41])
+        #expect(event?.key == .up)
+        #expect(event?.shift == true)
+        #expect(event?.ctrl == false)
+        #expect(event?.alt == false)
+    }
+
+    @Test("Parse Shift+Down (ESC [ 1 ; 2 B)")
+    func parseShiftDown() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x32, 0x42])
+        #expect(event?.key == .down)
+        #expect(event?.shift == true)
+    }
+
+    @Test("Parse Shift+Right (ESC [ 1 ; 2 C)")
+    func parseShiftRight() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x32, 0x43])
+        #expect(event?.key == .right)
+        #expect(event?.shift == true)
+    }
+
+    @Test("Parse Shift+Left (ESC [ 1 ; 2 D)")
+    func parseShiftLeft() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x32, 0x44])
+        #expect(event?.key == .left)
+        #expect(event?.shift == true)
+    }
+
+    @Test("Parse Shift+Home (ESC [ 1 ; 2 H)")
+    func parseShiftHome() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x32, 0x48])
+        #expect(event?.key == .home)
+        #expect(event?.shift == true)
+    }
+
+    @Test("Parse Shift+End (ESC [ 1 ; 2 F)")
+    func parseShiftEnd() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x32, 0x46])
+        #expect(event?.key == .end)
+        #expect(event?.shift == true)
+    }
+
+    @Test("Parse Alt+Up (ESC [ 1 ; 3 A)")
+    func parseAltUp() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x33, 0x41])
+        #expect(event?.key == .up)
+        #expect(event?.alt == true)
+        #expect(event?.shift == false)
+    }
+
+    /// A terminal set to "use Option as Meta" reports Option in xterm's FOURTH
+    /// modifier bit rather than its Alt bit, so ⌥→ is `ESC[1;9C`. There is no
+    /// separate Meta on a Mac keyboard for it to mean instead, and the
+    /// ESC-prefixed spelling of the same setting (`ESC ESC [ C`) has always
+    /// decoded to alt — so the two spellings have to agree, or a ⌥-chord
+    /// arrives as the bare key on half the terminals that can send it.
+    @Test("Parse Meta+Right (ESC [ 1 ; 9 C) as alt — Option-as-Meta")
+    func parseMetaRight() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x39, 0x43])
+        #expect(event?.key == .right)
+        #expect(event?.alt == true)
+        #expect(event?.shift == false)
+        #expect(event?.ctrl == false)
+    }
+
+    @Test("Parse Meta+Left (ESC [ 1 ; 9 D) as alt")
+    func parseMetaLeft() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x39, 0x44])
+        #expect(event?.key == .left)
+        #expect(event?.alt == true)
+    }
+
+    /// Meta rides alongside the other three, so the combinations have to keep
+    /// their own bits as well: 10 = Meta+Shift, 13 = Meta+Ctrl.
+    @Test("Meta combines with the other modifiers (ESC [ 1 ; 10 C, ESC [ 1 ; 13 C)")
+    func parseMetaCombinations() {
+        let shifted = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x31, 0x30, 0x43])
+        #expect(shifted == KeyEvent(key: .right, alt: true, shift: true))
+
+        let controlled = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x31, 0x33, 0x43])
+        #expect(controlled == KeyEvent(key: .right, ctrl: true, alt: true))
+    }
+
+    /// The ESC-prefixed and CSI-parameter spellings of Option are the same
+    /// keypress, and an outline's ⌥→ has to work under either.
+    @Test("Both spellings of Option+Right agree")
+    func metaSpellingsAgree() {
+        let csi = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x39, 0x43])
+        let escPrefixed = KeyEvent.parse([0x1B, 0x1B, 0x5B, 0x43])
+        let xtermAlt = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x33, 0x43])
+        #expect(csi == escPrefixed)
+        #expect(csi == xtermAlt)
+    }
+
+    @Test("Parse Ctrl+Up (ESC [ 1 ; 5 A)")
+    func parseCtrlUp() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x35, 0x41])
+        #expect(event?.key == .up)
+        #expect(event?.ctrl == true)
+        #expect(event?.shift == false)
+    }
+
+    @Test("Parse Shift+Ctrl+Up (ESC [ 1 ; 6 A)")
+    func parseShiftCtrlUp() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x36, 0x41])
+        #expect(event?.key == .up)
+        #expect(event?.shift == true)
+        #expect(event?.ctrl == true)
+        #expect(event?.alt == false)
+    }
+
+    @Test("Parse Shift+Alt+Left (ESC [ 1 ; 4 D) — word-select navigation")
+    func parseShiftAltLeft() {
+        // This is the form modifyCursorKeys=2 enables for Shift+Option+Left;
+        // the TextField handler routes it to word-boundary selection.
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x34, 0x44])
+        #expect(event?.key == .left)
+        #expect(event?.shift == true)
+        #expect(event?.alt == true)
+        #expect(event?.ctrl == false)
+    }
+
+    @Test("Parse Shift+Alt+Right (ESC [ 1 ; 4 C) — word-select navigation")
+    func parseShiftAltRight() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x34, 0x43])
+        #expect(event?.key == .right)
+        #expect(event?.shift == true)
+        #expect(event?.alt == true)
+        #expect(event?.ctrl == false)
+    }
+
+    @Test("Parse Shift+Alt+Ctrl+Right (ESC [ 1 ; 8 C)")
+    func parseShiftAltCtrlRight() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x31, 0x3B, 0x38, 0x43])
+        #expect(event?.key == .right)
+        #expect(event?.shift == true)
+        #expect(event?.alt == true)
+        #expect(event?.ctrl == true)
+    }
+
+    @Test("Parse Shift+Delete (ESC [ 3 ; 2 ~)")
+    func parseShiftDelete() {
+        // ESC [ 3 ; 2 ~ = 0x1B 0x5B 0x33 0x3B 0x32 0x7E
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x33, 0x3B, 0x32, 0x7E])
+        #expect(event?.key == .delete)
+        #expect(event?.shift == true)
+    }
+
+    @Test("Parse Ctrl+PageUp (ESC [ 5 ; 5 ~)")
+    func parseCtrlPageUp() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x35, 0x3B, 0x35, 0x7E])
+        #expect(event?.key == .pageUp)
+        #expect(event?.ctrl == true)
+    }
+
+    @Test("Arrow without modifier has no modifiers set")
+    func arrowWithoutModifier() {
+        let event = KeyEvent.parse([0x1B, 0x5B, 0x41])  // ESC [ A
+        #expect(event?.key == .up)
+        #expect(event?.shift == false)
+        #expect(event?.ctrl == false)
+        #expect(event?.alt == false)
+    }
+}
+
+@Suite("Meta-prefixed sequences (option as meta key)")
+struct MetaPrefixedKeyTests {
+    private let esc: UInt8 = 0x1B
+
+    @Test("ESC ESC [ Z decodes as alt+shift+tab (Option-Shift-Tab)")
+    func metaShiftTab() {
+        let event = KeyEvent.parse([esc, esc] + Array("[Z".utf8))
+        #expect(event == KeyEvent(key: .tab, alt: true, shift: true))
+    }
+
+    @Test("ESC ESC [ A decodes as alt+up")
+    func metaUp() {
+        let event = KeyEvent.parse([esc, esc] + Array("[A".utf8))
+        #expect(event == KeyEvent(key: .up, alt: true))
+    }
+
+    @Test("ESC ESC alone decodes as alt+escape")
+    func metaEscape() {
+        let event = KeyEvent.parse([esc, esc])
+        #expect(event == KeyEvent(key: .escape, alt: true))
+    }
+}
+
+// MARK: - Legacy function keys (VT220 F13–F20)
+
+/// The CSI-tilde block above F12. TUI decoded nothing above 24, so every one
+/// of these was dropped at the terminal edge — which is why Shift+F10 (Apple
+/// Terminal's `ESC[32~`) did nothing at all: the binding was right, but the
+/// bytes never became an event.
+@MainActor
+@Suite("Legacy function keys")
+struct LegacyFunctionKeyTests {
+    private let esc: UInt8 = 0x1B
+
+    private func parse(_ tail: String) -> KeyEvent? {
+        KeyEvent.parse([esc] + Array(tail.utf8))
+    }
+
+    @Test(
+        "ESC [ n ~ decodes F13…F20",
+        arguments: [(25, Key.f13), (26, .f14), (28, .f15), (29, .f16),
+                    (31, .f17), (32, .f18), (33, .f19), (34, .f20)])
+    func decodesTheBlock(number: Int, key: Key) {
+        #expect(parse("[\(number)~") == KeyEvent(key: key))
+    }
+
+    /// 16, 22, 27 and 30 were never assigned by DEC, so they must stay
+    /// undecodable rather than silently becoming a neighbouring key.
+    @Test("The unassigned numbers stay unassigned", arguments: [16, 22, 27, 30])
+    func gapsDecodeToNothing(number: Int) {
+        #expect(parse("[\(number)~") == nil)
+    }
+
+    @Test("A terminal that DOES send modifiers on them is still understood")
+    func modifiersStillApply() {
+        #expect(parse("[32;2~") == KeyEvent(key: .f18, shift: true))
+    }
+
+    @Test("Normalising reads F13…F20 as Shift+F5…Shift+F12")
+    func normalisation() {
+        #expect(
+            KeyEvent(key: .f18).normalizingLegacyShiftedFunctionKeys()
+                == KeyEvent(key: .f10, shift: true),
+            "Apple Terminal's Shift+F10")
+        #expect(
+            KeyEvent(key: .f13).normalizingLegacyShiftedFunctionKeys()
+                == KeyEvent(key: .f5, shift: true))
+        #expect(
+            KeyEvent(key: .f20).normalizingLegacyShiftedFunctionKeys()
+                == KeyEvent(key: .f12, shift: true))
+    }
+
+    @Test("Normalising leaves every other key alone")
+    func normalisationIsNarrow() {
+        for key in [Key.f10, .f12, .up, .escape, .character("a")] {
+            let event = KeyEvent(key: key, ctrl: true)
+            #expect(event.normalizingLegacyShiftedFunctionKeys() == event)
+        }
+    }
+
+    /// The modern form every other terminal uses must keep working untouched —
+    /// it is already a Shift+F10, so normalising it would be a no-op anyway.
+    @Test("The modern ESC[21;2~ form is unaffected")
+    func modernFormUnchanged() {
+        let event = parse("[21;2~")
+        #expect(event == KeyEvent(key: .f10, shift: true))
+        #expect(event?.normalizingLegacyShiftedFunctionKeys() == event)
+    }
+}
+
+// MARK: - Application-mode keys (SS3)
+
+/// The cursor keys and keypad in their application modes (DECCKM, DECKPAM),
+/// which a program turns on and which outlive it: every key arrives as
+/// `ESC O` and a byte. Only F1–F4 were read, so a TUI app started after a
+/// killed `vim` had dead arrows (K1 in `Documentation/Terminals/Ghostty VT reference adoption study.md`).
+@Suite("Application-mode keys (SS3)")
+struct ApplicationModeKeyTests {
+    private func parse(_ tail: String) -> KeyEvent? {
+        KeyEvent.parse([0x1B] + Array(tail.utf8))
+    }
+
+    @Test(
+        "The cursor keys, Home, End and F1–F4",
+        arguments: [
+            ("OA", Key.up), ("OB", .down), ("OC", .right), ("OD", .left),
+            ("OH", .home), ("OF", .end), ("OP", .f1), ("OQ", .f2), ("OR", .f3), ("OS", .f4),
+        ])
+    func cursorAndFunctionKeys(tail: String, key: Key) {
+        #expect(parse(tail) == KeyEvent(key: key), "not on the keypad: the main arrows send these")
+    }
+
+    @Test(
+        "The keypad, each key carrying the numeric pad",
+        arguments: [
+            ("Op", Key.character("0")), ("Oq", .character("1")), ("Or", .character("2")),
+            ("Os", .character("3")), ("Ot", .character("4")), ("Ou", .character("5")),
+            ("Ov", .character("6")), ("Ow", .character("7")), ("Ox", .character("8")),
+            ("Oy", .character("9")), ("Oj", .character("*")), ("Ok", .character("+")),
+            ("Ol", .character(",")), ("Om", .character("-")), ("On", .character(".")),
+            ("Oo", .character("/")), ("OX", .character("=")), ("OM", .enter),
+            ("OI", .tab), ("O ", .space),
+        ])
+    func keypad(tail: String, key: Key) {
+        #expect(parse(tail) == KeyEvent(key: key, numericPad: true))
+    }
+
+    /// The same key reaches a handler whichever encoding the terminal is in:
+    /// what the kitty keyboard protocol's decoder makes of its keypad report.
+    @Test(
+        "A keypad key is the event the kitty protocol's report of it decodes to",
+        arguments: [
+            ("Op", "57399;;48u"), ("Ou", "57404;;53u"), ("Oy", "57408;;57u"),
+            ("On", "57409;;46u"), ("Oo", "57410;;47u"), ("Oj", "57411;;42u"),
+            ("Om", "57412;;45u"), ("Ok", "57413;;43u"), ("OM", "57414u"),
+            ("OX", "57415;;61u"), ("Ol", "57416;;44u"),
+        ])
+    func keypadMatchesTheKittyDecoder(tail: String, report: String) throws {
+        let legacy = try #require(parse(tail))
+        #expect(KittyKeyDecoder.decode(Array("\u{1B}[\(report)".utf8)) == [.key(legacy)])
+    }
+
+    @Test("A modifier between the O and the key is read, in either spelling")
+    func modifiers() {
+        #expect(parse("O2P") == KeyEvent(key: .f1, shift: true), "xterm's older spelling")
+        #expect(parse("O1;5A") == KeyEvent(key: .up, ctrl: true))
+        #expect(parse("O1;3p") == KeyEvent(key: .character("0"), alt: true, numericPad: true))
+        #expect(parse("O1;17A") == nil, "past every modifier code")
+        #expect(parse("O16P") == KeyEvent(key: .f1, ctrl: true, alt: true, shift: true), "the highest code")
+    }
+
+    /// Alt-Shift-O on a meta-sending terminal is `ESC O` too, so the
+    /// parameters must spell a real modifier or the bytes are not a key: the
+    /// input parser gives up on the key at the first byte that cannot.
+    @Test(
+        "Only a modifier's two spellings are read between the O and the key",
+        arguments: ["O1;A", "O2;5A", "O1;5;A", "O05A", "O0A", "O123A", "O;5A", "O1:5A", "O?A"])
+    func otherParameters(tail: String) {
+        #expect(parse(tail) == nil)
+    }
+
+    @Test(
+        "What the bytes after ESC O spell, as far as they go",
+        arguments: [
+            ("", SS3Modifier.none), ("1", .code(1)), ("2", .code(2)), ("16", .code(16)),
+            ("1;", .partial), ("1;5", .code(5)), ("1;16", .code(16)),
+            ("17", .invalid), ("123", .invalid), ("0", .invalid), ("05", .invalid), ("2;", .invalid),
+            (";", .invalid), ("1;5;", .invalid), ("1;17", .invalid), ("1;0", .invalid), ("?", .invalid),
+        ])
+    func ss3ModifierShapes(parameters: String, shape: SS3Modifier) {
+        #expect(SS3Modifier(Array(parameters.utf8)) == shape)
+    }
+
+    @Test("The keypad's Begin, and a byte that is no key, decode to nothing")
+    func keysWithoutAKey() {
+        #expect(parse("OE") == nil)
+        #expect(parse("OZ") == nil)
+    }
+
+    @Test("An Option prefix keeps the numeric pad")
+    func metaPrefixedKeypad() {
+        #expect(
+            KeyEvent.parse([0x1B, 0x1B] + Array("Ou".utf8))
+                == KeyEvent(key: .character("5"), alt: true, numericPad: true))
+    }
+}
+
+// MARK: - Modified F1–F4 (CSI 1 ; m P…S)
+
+/// xterm sends F1–F4 with a modifier as `CSI 1 ; m P` to `CSI 1 ; m S`, and the
+/// parser dropped them. `CSI 1;m R` is a cursor report's shape too; TUI
+/// asks for no cursor report, so it is F3.
+@Suite("Modified F1–F4")
+struct ModifiedFunctionKeyTests {
+    private func parse(_ tail: String) -> KeyEvent? {
+        KeyEvent.parse([0x1B] + Array(tail.utf8))
+    }
+
+    @Test(
+        "Each of F1–F4 with each modifier",
+        arguments: [
+            ("[1;2P", KeyEvent(key: .f1, shift: true)),
+            ("[1;5Q", KeyEvent(key: .f2, ctrl: true)),
+            ("[1;2R", KeyEvent(key: .f3, shift: true)),
+            ("[1;5R", KeyEvent(key: .f3, ctrl: true)),
+            ("[1;3S", KeyEvent(key: .f4, alt: true)),
+            ("[1;8S", KeyEvent(key: .f4, ctrl: true, alt: true, shift: true)),
+        ])
+    func modified(tail: String, event: KeyEvent) {
+        #expect(parse(tail) == event)
+    }
+
+    @Test(
+        "Only the 1;m shape is a key: a cursor report elsewhere, or a bare final, is not",
+        arguments: ["[24;80R", "[1;80R", "[2;2R", "[R", "[P", "[1;2;3P", "[1;P"])
+    func otherShapes(tail: String) {
+        #expect(parse(tail) == nil)
+    }
+}

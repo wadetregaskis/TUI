@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ScrollObservationDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Watching a scroll view: where it is (`.onScrollGeometryChange`), whether
 /// the user is moving it (`.onScrollPhaseChange`), whether one row is on

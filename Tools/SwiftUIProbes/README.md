@@ -1,6 +1,6 @@
 # SwiftUI probes
 
-Small programs that record what SwiftUI does, so that TUIkit can do the same. These are the ones that TUIkit's
+Small programs that record what SwiftUI does, so that TUI can do the same. These are the ones that TUI's
 doc comments, tests and decisions files cite, by path, as the measurement behind a claim about SwiftUI's
 behaviour; each is kept with what it printed. A few probes that only lane notes cite stay in the maintainers' working
 notes, and a document that cites one of those names its folder there.
@@ -13,7 +13,7 @@ read the AppKit views SwiftUI made instead (an `NSTableView`'s rows, an `NSMenu`
 with no view at all. What a probe printed is in a `.out` file of the same name; a probe with no `.out` file
 reported its result in the document that cites it.
 
-One folder, Swift runtime layouts, records the Swift runtime's own layouts that TUIkit's property walk reads,
+One folder, Swift runtime layouts, records the Swift runtime's own layouts that TUI's property walk reads,
 with no SwiftUI involved.
 
 They are evidence, not part of the package: SwiftPM, CI and SwiftLint do not see them, and no binary or other
@@ -68,7 +68,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15, 2026-10-10.
 - **Was:** `DYNP/probe/`.
 - **Cited by:** `Documentation/SwiftUI parity/Decisions/State and dynamic properties/DynamicProperty update write-back (DYNP).md`;
-  `Tests/TUIkitFoundationTests/DynamicPropertyTests.swift`, `Tests/TUIkitFoundationTests/ObservableInvalidationScopeTests.swift`. The
+  `Tests/TUIFoundationTests/DynamicPropertyTests.swift`, `Tests/TUIFoundationTests/ObservableInvalidationScopeTests.swift`. The
   probes of the next three folders reuse its harness.
 
 ### Dynamic property discovery
@@ -76,7 +76,7 @@ messages cite that path), and what cites it.
 - **Asks:** which stored fields of a view SwiftUI visits for a `DynamicProperty`: a plain field, an optional, an
   existential (`any DynamicProperty`, `Any`), a generic, a modifier held or applied, a class, a `weak` field; and
   whether it runs a `ViewModifier`'s body when the body returns `content` unchanged. `notes.md` is the write-up:
-  the answer, how discovery works, the measured matrix against TUIkit, and the divergences it found.
+  the answer, how discovery works, the measured matrix against TUI, and the divergences it found.
 - **Files:** `op.swift` (built plain and with `-D OPTCONF`; `op.out`, `op-optconf.out`), `weak.swift`
   (`weak.out`), `passmod.swift` (`passmod.out`), `notes.md`. A second round, for the suspects of lane DYNV's bug
   hunt that `op.swift` did not measure (a property in a `let` field, one view value at two places, a class
@@ -90,10 +90,10 @@ messages cite that path), and what cites it.
   namespace of its own.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, 2026-10-10; the second round 2026-10-11; `classmod.swift` and `twoplaces.swift` 2026-10-19.
 - **Was:** `DYNP/optional/`; the second round `DYNV/probe/`.
-- **Cited by:** `Sources/TUIkitView/State/DynamicProperty.swift`,
-  `Sources/TUIkitView/State/NestedPropertyBinding.swift`, `Sources/TUIkitView/State/PropertyPlans.swift`,
-  `Sources/TUIkitView/State/State.swift`; `Tests/TUIkitFoundationTests/DynamicPropertyStateKeyTests.swift` and the other
-  `DynamicProperty*Tests.swift` files, `Tests/TUIkitFoundationTests/StateSharedValueTests.swift`;
+- **Cited by:** `Sources/TUIView/State/DynamicProperty.swift`,
+  `Sources/TUIView/State/NestedPropertyBinding.swift`, `Sources/TUIView/State/PropertyPlans.swift`,
+  `Sources/TUIView/State/State.swift`; `Tests/TUIFoundationTests/DynamicPropertyStateKeyTests.swift` and the other
+  `DynamicProperty*Tests.swift` files, `Tests/TUIFoundationTests/StateSharedValueTests.swift`;
   `Documentation/SwiftUI parity/Decisions/State and dynamic properties/State keys inside a DynamicProperty (SKEY).md`,
   `Documentation/SwiftUI parity/Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md`,
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
@@ -112,7 +112,7 @@ messages cite that path), and what cites it.
   starts afresh; `@Environment(Model.self)` there traps; the write to the observable redraws both views.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, 2026-10-12; `cls.swift` against the macOS 15.5 SDK.
 - **Was:** `DYNVCLAIM/swiftui-first/` (`cls.swift`) and `DYNVCLAIM/object-owned/swiftui/` (`memo.swift`).
-- **Cited by:** `Sources/TUIkitView/State/PropertyWalk.swift`, `Sources/TUIkitView/State/PropertyWalk+Objects.swift`;
+- **Cited by:** `Sources/TUIView/State/PropertyWalk.swift`, `Sources/TUIView/State/PropertyWalk+Objects.swift`;
   `Documentation/SwiftUI parity/Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md`.
 
 ### State keys in dynamic properties
@@ -123,8 +123,8 @@ messages cite that path), and what cites it.
 - **Files:** `skey.swift`, `skey.out`, `skey-optconf.out`.
 - **Ran:** macOS 15, SwiftUI 6.5.4, 2026-10-11.
 - **Was:** `SKEY/probe/`.
-- **Cited by:** `Sources/TUIkitView/State/NestedPropertyBinding.swift`, `Sources/TUIkitView/State/StateStorage.swift`;
-  `Tests/TUIkitFoundationTests/DynamicPropertyStateKeyTests.swift`;
+- **Cited by:** `Sources/TUIView/State/NestedPropertyBinding.swift`, `Sources/TUIView/State/StateStorage.swift`;
+  `Tests/TUIFoundationTests/DynamicPropertyStateKeyTests.swift`;
   `Documentation/SwiftUI parity/Decisions/State and dynamic properties/State keys inside a DynamicProperty (SKEY).md`.
 
 ### Alignment guides
@@ -134,11 +134,11 @@ messages cite that path), and what cites it.
   `LazyVStack`, a single child's `.frame` and `.overlay` placement, a stack inside a frame, and a stack whose
   region a flexible child sets (`guide2.swift` to `guide6.swift`, each with its `.out`; all share
   `guide.swift`'s harness).
-- **Also:** `GuideProbeTests.swift`, a Swift Testing suite that records TUIkit's placements for the same matrix
-  into `tuikit.out` (copy it into `Tests/TUIkitIntegrationTests` to run it; it was written against TUIkit at 45e9a1f7a and
-  has not been re-checked against today's); `check.py`, which fits SwiftUI's rule and TUIkit's then rule to the
-  two outputs (`python3 check.py`: 135 rows each, no mismatch) and says which of TUIkit's two rules made each of
-  the 72 differing rows differ. `tuikit.out` records TUIkit before the fix this probe led to.
+- **Also:** `GuideProbeTests.swift`, a Swift Testing suite that records TUI's placements for the same matrix
+  into `tuikit.out` (copy it into `Tests/TUIIntegrationTests` to run it; it was written against TUI at 45e9a1f7a and
+  has not been re-checked against today's); `check.py`, which fits SwiftUI's rule and TUI's then rule to the
+  two outputs (`python3 check.py`: 135 rows each, no mismatch) and says which of TUI's two rules made each of
+  the 72 differing rows differ. `tuikit.out` records TUI before the fix this probe led to.
 - **Also:** `layout1.swift` (`layout1.out`): which guides leave which containers by kind — an edge or centre
   guide out of statically-one-view stacks, stack layouts, branches, loops, `AnyView`, a custom layout and a
   `Grid`; text baselines and custom guides out of rows, layers and layouts (case `A`, `C`) — and a guide through
@@ -151,13 +151,13 @@ messages cite that path), and what cites it.
   review of lane LAYOUT).
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Swift 6.2.4, 2026-10-11.
 - **Was:** `GUIDE/probe/` and `GUIDE/probe2/` (and `GUIDE/tuikit.out`); `layout1.swift` was `LAYOUT/probe/l1.swift`.
-- **Cited by:** `Tests/TUIkitChromeTests/AlignmentGuideParityTests.swift`,
-  `Tests/TUIkitChromeTests/AlignmentGuideContainerParityTests.swift`,
-  `Tests/TUIkitFoundationTests/AlignmentGuideKindTests.swift`,
-  `Tests/TUIkitFoundationTests/AlignmentGuideWrapperTests.swift`,
-  `Tests/TUIkitFoundationTests/EmptyContentLayoutTests.swift`;
-  `Sources/TUIkitView/Core/PrimitiveViews.swift`, `Sources/TUIkitFoundation/Modifiers/OverlayModifier.swift`,
-  `Sources/TUIkitView/Rendering/StaticViewListCount.swift`;
+- **Cited by:** `Tests/TUIChromeTests/AlignmentGuideParityTests.swift`,
+  `Tests/TUIChromeTests/AlignmentGuideContainerParityTests.swift`,
+  `Tests/TUIFoundationTests/AlignmentGuideKindTests.swift`,
+  `Tests/TUIFoundationTests/AlignmentGuideWrapperTests.swift`,
+  `Tests/TUIFoundationTests/EmptyContentLayoutTests.swift`;
+  `Sources/TUIView/Core/PrimitiveViews.swift`, `Sources/TUIFoundation/Modifiers/OverlayModifier.swift`,
+  `Sources/TUIView/Rendering/StaticViewListCount.swift`;
   `Documentation/SwiftUI parity/Decisions/Layout and geometry/Alignment guides outside their view (GUIDE).md`.
 
 ### List pinned headers and row stripes
@@ -167,7 +167,7 @@ messages cite that path), and what cites it.
   backgrounds, sampling each row's background pixel (`phase.swift`, built with `common.swift`).
 - **Ran:** macOS 15.8, 2026-10-06 and 2026-10-07. Neither output was kept; the results are in the D6L decisions.
 - **Was:** `D6L/probe/` (`phase.swift` and `common.swift` in `D6L/probe/phase/`).
-- **Cited by:** `Sources/TUIkitLists/Views/_ListCore.swift`, `Sources/TUIkitTables/Views/Table.swift`;
+- **Cited by:** `Sources/TUILists/Views/_ListCore.swift`, `Sources/TUITables/Views/Table.swift`;
   `Documentation/SwiftUI parity/Decisions/Lists and tables/List and table stripes, surfaces, pinned headers and separators (D6L).md`.
 
 ### Sections and subview counting
@@ -190,14 +190,14 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, 2026-10-04 and 2026-10-05; `composite-bodies.swift` macOS 15.8.1, 2026-10-19. `cv.swift`,
   `lv.swift` and `z.swift` kept no output.
 - **Was:** `D1S/probe/`, and `D1S/probe2/` for the second round.
-- **Cited by:** `Sources/TUIkitView/Core/AnyViewMembers.swift`, `Sources/TUIkitView/Rendering/CompositeMembers.swift`,
-  `Sources/TUIkitForms/Views/FormContentExtraction.swift`, `Sources/TUIkitFoundation/Rendering/MenuSections.swift`,
-  `Sources/TUIkitLists/Views/ListRowEditOwner.swift`; `Tests/TUIkitListsTests/AnyViewMembersTests.swift`,
-  `Tests/TUIkitFoundationTests/SubviewLayoutTraitsTests.swift`, `Tests/TUIkitListsTests/ForEachRowMembersTests.swift`,
-  `Tests/TUIkitListsTests/ForEachRowVaryingMembersTests.swift`,
-  `Tests/TUIkitIntegrationTests/SectionPartsTests.swift`, `Tests/TUIkitListsTests/CompositeMembersTests.swift`,
-  `Tests/TUIkitListsTests/ListMultiViewRowEditingTests.swift`,
-  `Tests/TUIkitFormsTests/FormWrappedSectionTests.swift`, `Tests/TUIkitMenusTests/MenuSectionTests.swift`;
+- **Cited by:** `Sources/TUIView/Core/AnyViewMembers.swift`, `Sources/TUIView/Rendering/CompositeMembers.swift`,
+  `Sources/TUIForms/Views/FormContentExtraction.swift`, `Sources/TUIFoundation/Rendering/MenuSections.swift`,
+  `Sources/TUILists/Views/ListRowEditOwner.swift`; `Tests/TUIListsTests/AnyViewMembersTests.swift`,
+  `Tests/TUIFoundationTests/SubviewLayoutTraitsTests.swift`, `Tests/TUIListsTests/ForEachRowMembersTests.swift`,
+  `Tests/TUIListsTests/ForEachRowVaryingMembersTests.swift`,
+  `Tests/TUIIntegrationTests/SectionPartsTests.swift`, `Tests/TUIListsTests/CompositeMembersTests.swift`,
+  `Tests/TUIListsTests/ListMultiViewRowEditingTests.swift`,
+  `Tests/TUIFormsTests/FormWrappedSectionTests.swift`, `Tests/TUIMenusTests/MenuSectionTests.swift`;
   `Documentation/SwiftUI parity/Decisions/Layout and geometry/Sections and subview counting in stacks and loops (D1S).md`.
 
 ### Pinned section headers and footers
@@ -211,8 +211,8 @@ messages cite that path), and what cites it.
   `scan.swift`.
 - **Ran:** macOS 15.8, 2026-10-03.
 - **Was:** `w10b/probe/`.
-- **Cited by:** `Tests/TUIkitIntegrationTests/PinnedRowSectionTests.swift`,
-  `Tests/TUIkitGridTests/LazyGridSectionTests.swift`; wave 10b's entries in
+- **Cited by:** `Tests/TUIIntegrationTests/PinnedRowSectionTests.swift`,
+  `Tests/TUIGridTests/LazyGridSectionTests.swift`; wave 10b's entries in
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`.
 ### Swift runtime layouts
 
@@ -229,8 +229,8 @@ messages cite that path), and what cites it.
   runs of two million (`stamp.swift`, built `-O`; `stamp.out`, two runs).
 - **Ran:** macOS 15.8, arm64 only (x86_64 is unmeasured), Xcode's Swift 6.2.4, 2026-10-12.
 - **Was:** `DYNVFIX/probe/`; `stamp.swift` `DYNVCLAIM/swiftui-first/`.
-- **Cited by:** `Sources/TUIkitView/Rendering/FieldDescriptors.swift`, `Sources/TUIkitView/State/EnumPayloads.swift`,
-  `Sources/TUIkitView/State/DynamicTypes.swift`, `Sources/TUIkitView/State/State.swift` (`stamp.out`);
+- **Cited by:** `Sources/TUIView/Rendering/FieldDescriptors.swift`, `Sources/TUIView/State/EnumPayloads.swift`,
+  `Sources/TUIView/State/DynamicTypes.swift`, `Sources/TUIView/State/State.swift` (`stamp.out`);
   `Documentation/SwiftUI parity/Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md`.
 
 ### Localization keys
@@ -241,8 +241,8 @@ messages cite that path), and what cites it.
   beside a number — read from the key's stored `key` field (`keys.swift`, `keys.out`). No view is drawn.
 - **Ran:** macOS 15.8, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-13.
 - **Was:** `T10/probe/`.
-- **Cited by:** `Sources/TUIkitFoundation/Localization/LocalizedStringKey.swift`;
-  `Tests/TUIkitPresentationTests/SwiftUIKeySpellingTests.swift`; `Sources/TUIkit/TUIkit.docc/Articles/Localization.md`;
+- **Cited by:** `Sources/TUIFoundation/Localization/LocalizedStringKey.swift`;
+  `Tests/TUIPresentationTests/SwiftUIKeySpellingTests.swift`; `Sources/TUI/TUI.docc/Articles/Localization.md`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
 ### Layout priority
@@ -256,9 +256,9 @@ messages cite that path), and what cites it.
   `GeometryReader` in its background, in characters of a monospaced font.
 - **Ran:** macOS 15.8, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-13.
 - **Was:** `L12/probe/`.
-- **Cited by:** `Sources/TUIkitFoundation/Views/LayoutValueKey.swift`, `Sources/TUIkitView/Core/BufferModifier.swift`,
-  `Sources/TUIkitFoundation/Views/StackGuidePropagation.swift`,
-  `Sources/TUIkitFoundation/Rendering/LinearSpaceDistribution.swift`; `Tests/TUIkitFoundationTests/LayoutPriorityTests.swift`;
+- **Cited by:** `Sources/TUIFoundation/Views/LayoutValueKey.swift`, `Sources/TUIView/Core/BufferModifier.swift`,
+  `Sources/TUIFoundation/Views/StackGuidePropagation.swift`,
+  `Sources/TUIFoundation/Rendering/LinearSpaceDistribution.swift`; `Tests/TUIFoundationTests/LayoutPriorityTests.swift`;
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (L14),
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
@@ -283,9 +283,9 @@ messages cite that path), and what cites it.
   12's decisions. `p9.out` prints the timing-dependent cases classified (start, end or between), so a rerun
   compares with `diff`.
 - **Was:** `w12/probe/`.
-- **Cited by:** `Sources/TUIkitView/Animation/KeyframeCurve.swift`, `Sources/TUIkitCore/Animation/Animation.swift`;
-  `Tests/TUIkitCoreTests/AnimationTimingTests.swift`, `Tests/TUIkitFoundationTests/KeyframeTimelineTests.swift`,
-  `Tests/TUIkitFoundationTests/SpringTests.swift`, `Tests/TUIkitFoundationTests/UnitCurveTests.swift`; wave 12's entries in
+- **Cited by:** `Sources/TUIView/Animation/KeyframeCurve.swift`, `Sources/TUICore/Animation/Animation.swift`;
+  `Tests/TUICoreTests/AnimationTimingTests.swift`, `Tests/TUIFoundationTests/KeyframeTimelineTests.swift`,
+  `Tests/TUIFoundationTests/SpringTests.swift`, `Tests/TUIFoundationTests/UnitCurveTests.swift`; wave 12's entries in
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`.
 
 ### Transactions of observed changes
@@ -298,8 +298,8 @@ messages cite that path), and what cites it.
   animated in both orders, and an empty `withAnimation` animates nothing.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-18, in an `NSHostingView` with no window.
 - **Was:** `APPSTATE/probe/`.
-- **Cited by:** `Sources/TUIkitView/State/State.swift` (`AppState.transactionScopeEnded(_:)`);
-  `Tests/TUIkitIntegrationTests/ObservedChangeTransactionTests.swift`;
+- **Cited by:** `Sources/TUIView/State/State.swift` (`AppState.transactionScopeEnded(_:)`);
+  `Tests/TUIIntegrationTests/ObservedChangeTransactionTests.swift`;
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (A7);
   `Documentation/SwiftUI parity/Decisions/State and dynamic properties/Per-app render state (APPSTATE).md` (B-APPSTATE-2).
 
@@ -322,9 +322,9 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, a 300×200 window, 2026-10-12 (`reorder.swift` 2026-10-13, `beside.swift` 2026-10-13).
 - **Was:** `SCROLLANCHOR/probe/hold/` (`reorder.swift` as `hold3.swift`); `beside.swift` in
   `SCROLLANCHOR/probe/beside/`.
-- **Cited by:** `Sources/TUIkitFoundation/Views/ScrollWindowHold.swift`,
-  `Sources/TUIkitFoundation/Views/StackTopRowHold.swift`, `Sources/TUIkitLists/Focus/ItemListHandler+Anchor.swift`,
-  `Tests/TUIkitTablesTests/ScrollWindowHoldTests.swift`; `Documentation/Layout and scrolling/Scroll
+- **Cited by:** `Sources/TUIFoundation/Views/ScrollWindowHold.swift`,
+  `Sources/TUIFoundation/Views/StackTopRowHold.swift`, `Sources/TUILists/Focus/ItemListHandler+Anchor.swift`,
+  `Tests/TUITablesTests/ScrollWindowHoldTests.swift`; `Documentation/Layout and scrolling/Scroll
   anchoring.md` §5; `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R13, R14);
   `Documentation/SwiftUI parity/Decisions/Scrolling/Scroll anchoring default (SCROLLANCHOR).md`.
 
@@ -338,7 +338,7 @@ messages cite that path), and what cites it.
   Both are top-level code, built alone.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
 - **Was:** `SCROLL/probe/`.
-- **Cited by:** `Sources/TUIkitEffects/Geometry/ScrollTransitionConfiguration.swift`;
+- **Cited by:** `Sources/TUIEffects/Geometry/ScrollTransitionConfiguration.swift`;
   `Documentation/SwiftUI parity/Decisions/Layout and geometry/Coordinate spaces, geometry and scroll visibility (D5G).md` (B-D5G-8);
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
@@ -357,9 +357,9 @@ messages cite that path), and what cites it.
   margin in the top's place. All three are top-level code, built alone.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
 - **Was:** `SCROLL/probe/`.
-- **Cited by:** `Sources/TUIkitFoundation/Focus/ScrollViewHandler+Targeting.swift`,
-  `Sources/TUIkitFoundation/Views/ScrollTargetBehaviors.swift`; `Tests/TUIkitAppTests/ScrollTargetViewAlignedTests.swift`,
-  `Tests/TUIkitIntegrationTests/ScrollTargetBehaviorTests.swift`;
+- **Cited by:** `Sources/TUIFoundation/Focus/ScrollViewHandler+Targeting.swift`,
+  `Sources/TUIFoundation/Views/ScrollTargetBehaviors.swift`; `Tests/TUIAppTests/ScrollTargetViewAlignedTests.swift`,
+  `Tests/TUIIntegrationTests/ScrollTargetBehaviorTests.swift`;
   `Documentation/SwiftUI parity/Decisions/Scrolling/Scroll anchors, target behaviours and clipping (D2S).md` (B-D2S-7),
   `Documentation/SwiftUI parity/Decisions/Scrolling/Scrolling fixes and parity (SCROLL).md` (B-SCROLL-1),
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R15).
@@ -388,8 +388,8 @@ messages cite that path), and what cites it.
   AppKit reports one, the live-scroll notifications around a move of the clip view: a bare move writes nothing
   back, even on the outer view. Top-level code, built alone.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
-- **Cited by:** `Sources/TUIkitFoundation/Views/ScrollView+Content.swift`;
-  `Tests/TUIkitTablesTests/ListScrollPositionTests.swift`;
+- **Cited by:** `Sources/TUIFoundation/Views/ScrollView+Content.swift`;
+  `Tests/TUITablesTests/ListScrollPositionTests.swift`;
   `Documentation/SwiftUI parity/Decisions/Scrolling/Scrolling fixes and parity (SCROLL).md` (B-SCROLL-6);
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
@@ -403,7 +403,7 @@ messages cite that path), and what cites it.
   frame both lines start 3 characters in.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-13.
 - **Was:** written for lane BUGS13 (`BUGS13/probe/`).
-- **Cited by:** `Sources/TUIkitFoundation/Modifiers/FrameModifier.swift`; `Tests/TUIkitIntegrationTests/PlacementOverflowTests.swift`;
+- **Cited by:** `Sources/TUIFoundation/Modifiers/FrameModifier.swift`; `Tests/TUIIntegrationTests/PlacementOverflowTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
 ### Trailing values and labels
@@ -419,8 +419,8 @@ messages cite that path), and what cites it.
   of "longer label"; alone, and in a columns form, the value leads.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-13.
 - **Was:** written for lane BUGS13's review fixes (`BUGS13/probe/`).
-- **Cited by:** `Sources/TUIkitForms/Styles/LabeledContentStyle.swift`; `Tests/TUIkitIntegrationTests/LabeledContentTests.swift`,
-  `Tests/TUIkitIntegrationTests/FormTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
+- **Cited by:** `Sources/TUIForms/Styles/LabeledContentStyle.swift`; `Tests/TUIIntegrationTests/LabeledContentTests.swift`,
+  `Tests/TUIIntegrationTests/FormTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
 ### Stack spacing per pair
 
@@ -439,9 +439,9 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-13 (the wider frames, `.position` and `AnyView` rows in the
   review of B20, the same day); `nested.swift` 2026-10-18.
 - **Was:** `BITEMS1/probe/`; `nested.swift` was `LAYOUT/probe/sp1.swift`.
-- **Cited by:** `Sources/TUIkitFoundation/Views/ViewSpacing.swift`, `Sources/TUIkitFoundation/Views/Layout.swift`,
-  `Sources/TUIkitFoundation/Views/StackSpacingPreference.swift`, `Sources/TUIkitView/Rendering/ChildInfo.swift`;
-  `Tests/TUIkitGridTests/ViewSpacingTests.swift`, `Tests/TUIkitGridTests/StackSpacingPerPairTests.swift`;
+- **Cited by:** `Sources/TUIFoundation/Views/ViewSpacing.swift`, `Sources/TUIFoundation/Views/Layout.swift`,
+  `Sources/TUIFoundation/Views/StackSpacingPreference.swift`, `Sources/TUIView/Rendering/ChildInfo.swift`;
+  `Tests/TUIGridTests/ViewSpacingTests.swift`, `Tests/TUIGridTests/StackSpacingPerPairTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Layout row); B20 in
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`;
   `Documentation/SwiftUI parity/Decisions/Default focus, drop badges and stack spacing (BITEMS1).md`.
@@ -458,8 +458,8 @@ messages cite that path), and what cites it.
   the frame's size; an ideal above the maximum wins.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-15.
 - **Was:** written here.
-- **Cited by:** `Sources/TUIkitFoundation/Modifiers/FlexibleFrameAxis.swift`;
-  `Tests/TUIkitFoundationTests/FlexibleFrameSwiftUIRuleTests.swift`;
+- **Cited by:** `Sources/TUIFoundation/Modifiers/FlexibleFrameAxis.swift`;
+  `Tests/TUIFoundationTests/FlexibleFrameSwiftUIRuleTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§2.1),
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (U1).
 
@@ -483,8 +483,8 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-18. `mg1`, `mg2` and `mg2b` print the same on a
   rerun (`diff` their `.out`); `mg3`'s samples move by a point or two with the frame's timing.
 - **Was:** `O4/probe/`.
-- **Cited by:** `Sources/TUIkitEffects/Geometry/MatchedGeometryEffect.swift`;
-  `Tests/TUIkitEffectsTests/MatchedGeometryEffectTests.swift`; `Documentation/SwiftUI parity/Deliberate
+- **Cited by:** `Sources/TUIEffects/Geometry/MatchedGeometryEffect.swift`;
+  `Tests/TUIEffectsTests/MatchedGeometryEffectTests.swift`; `Documentation/SwiftUI parity/Deliberate
   deviations from SwiftUI.md` (A8), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the
   Animation row); `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Matched geometry and the zoom transition (O4).md`.
 
@@ -504,8 +504,8 @@ messages cite that path), and what cites it.
   drawing, not one from the other; a ramp's shadow follows its alpha pixel by pixel.
 - **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-19; both print the same on a rerun.
 - **Was:** `W1B/probe/` (`stacked.swift` as `q6.swift`).
-- **Cited by:** `Sources/TUIkitFoundation/Styling/ShapeStyle+Shadow.swift`,
-  `Tests/TUIkitIntegrationTests/ShapeStyleShadowTests.swift`; `Documentation/SwiftUI parity/Decisions/What the
+- **Cited by:** `Sources/TUIFoundation/Styling/ShapeStyle+Shadow.swift`,
+  `Tests/TUIIntegrationTests/ShapeStyleShadowTests.swift`; `Documentation/SwiftUI parity/Decisions/What the
   shapes unblocked (W1B).md` (B-W1B-1).
 
 ### Image paint
@@ -520,8 +520,8 @@ messages cite that path), and what cites it.
   the tiles start to its rectangle's origin, and its size changes nothing.
 - **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-19; prints the same on a rerun.
 - **Was:** `W1B/probe/`.
-- **Cited by:** `Sources/TUIkitFoundation/Styling/ImagePaint.swift`, `Sources/TUIkitFoundation/Styling/ShapeStyle.swift`
-  (`in(_:)`), `Tests/TUIkitBitmapsTests/ImagePaintTests.swift`;
+- **Cited by:** `Sources/TUIFoundation/Styling/ImagePaint.swift`, `Sources/TUIFoundation/Styling/ShapeStyle.swift`
+  (`in(_:)`), `Tests/TUIBitmapsTests/ImagePaintTests.swift`;
   `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/What the shapes unblocked (W1B).md` (B-W1B-4).
 
 ### Transitions
@@ -550,17 +550,17 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-19 (`tr4`: 2026-10-24). Samples move by a point or two, and an
   opacity by a hundredth, with the frame's timing.
 - **Was:** `TRANSITIONS2/probe/`.
-- **Cited by:** `Sources/TUIkitEffects/Animation/AnyTransition.swift`,
-  `Sources/TUIkitEffects/Animation/TransitionModifier.swift`, `Sources/TUIkitEffects/Animation/TransitionEffects.swift`,
-  `Sources/TUIkitView/Animation/DefaultTransition.swift`, `Sources/TUIkitView/Animation/ChildFade.swift`,
-  `Sources/TUIkitView/Animation/BranchTransition.swift`; `Tests/TUIkitEffectsTests/TransitionTests.swift`,
-  `Tests/TUIkitEffectsTests/TransitionAnimationTests.swift`, `Tests/TUIkitEffectsTests/BranchAndRowFadeTests.swift`,
-  `Tests/TUIkitEffectsTests/DefaultTransitionTests.swift`; `Documentation/SwiftUI parity/Deliberate deviations
+- **Cited by:** `Sources/TUIEffects/Animation/AnyTransition.swift`,
+  `Sources/TUIEffects/Animation/TransitionModifier.swift`, `Sources/TUIEffects/Animation/TransitionEffects.swift`,
+  `Sources/TUIView/Animation/DefaultTransition.swift`, `Sources/TUIView/Animation/ChildFade.swift`,
+  `Sources/TUIView/Animation/BranchTransition.swift`; `Tests/TUIEffectsTests/TransitionTests.swift`,
+  `Tests/TUIEffectsTests/TransitionAnimationTests.swift`, `Tests/TUIEffectsTests/BranchAndRowFadeTests.swift`,
+  `Tests/TUIEffectsTests/DefaultTransitionTests.swift`; `Documentation/SwiftUI parity/Deliberate deviations
   from SwiftUI.md` (A3, A6), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Animation row);
   `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Transition follow-ups (TRANSITIONS2).md`,
   `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Matched geometry and the zoom transition (O4).md` (B-O4-2),
   `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Visual effects rulings (VISUALS).md` (A34);
-  `Sources/TUIkitEffects/Animation/BuiltInTransitions.swift`, `Tests/TUIkitEffectsTests/BlurReplaceTransitionTests.swift`.
+  `Sources/TUIEffects/Animation/BuiltInTransitions.swift`, `Tests/TUIEffectsTests/BlurReplaceTransitionTests.swift`.
 
 ### Badge prominence
 
@@ -571,8 +571,8 @@ messages cite that path), and what cites it.
   sits in a light grey capsule (1128 pixels), a `.decreased` one is bare grey text (157).
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-18.
 - **Was:** `LISTS/probe/`.
-- **Cited by:** `Sources/TUIkitFoundation/Modifiers/BadgeModifier.swift`,
-  `Tests/TUIkitListsTests/BadgeProminenceTests.swift`;
+- **Cited by:** `Sources/TUIFoundation/Modifiers/BadgeModifier.swift`,
+  `Tests/TUIListsTests/BadgeProminenceTests.swift`;
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (B72),
   `Documentation/SwiftUI parity/Decisions/Lists and tables/List, table and section fixes (LISTS).md` (B-LISTS-1).
 
@@ -589,7 +589,7 @@ messages cite that path), and what cites it.
   traps inside SwiftUI and is left out.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
 - **Was:** `LISTS2/probe/`.
-- **Cited by:** `Sources/TUIkitTables/Views/TableOutline.swift`, `Tests/TUIkitTablesTests/TableRowDragAndDropTests.swift`;
+- **Cited by:** `Sources/TUITables/Views/TableOutline.swift`, `Tests/TUITablesTests/TableRowDragAndDropTests.swift`;
   `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (B80).
 
 ### Picker sections
@@ -602,8 +602,8 @@ messages cite that path), and what cites it.
   option alone, `baseline`).
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-18; the emptied section 2026-10-19.
 - **Was:** `LISTS/probe/`.
-- **Cited by:** `Sources/TUIkitPickers/Views/Picker.swift`, `Sources/TUIkitPickers/Views/_PickerOptionsReader.swift`,
-  `Tests/TUIkitPickersTests/PickerSectionTitleTests.swift`;
+- **Cited by:** `Sources/TUIPickers/Views/Picker.swift`, `Sources/TUIPickers/Views/_PickerOptionsReader.swift`,
+  `Tests/TUIPickersTests/PickerSectionTitleTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§1, Pickers).
 
 - **Also asks** (`ideal-placed.swift`, `ideal-placed.out`): a frame with an ideal width and no maximum round a
@@ -612,7 +612,7 @@ messages cite that path), and what cites it.
   a column or a `ZStack` of several, `VStackLayout`, `ZStackLayout`, a `Grid` and an overlay's layer offer it a
   width as they place it (its content's, 5). Ran 2026-10-19, macOS 15.8.1, with Xcode's `swiftc`; cited by
   `EnvironmentValues.offeredNoWidth` (`ContainerAxisEnvironment.swift`) and
-  `Tests/TUIkitFoundationTests/FrameIdealOfferedNothingTests.swift`.
+  `Tests/TUIFoundationTests/FrameIdealOfferedNothingTests.swift`.
 
 ### Form rows
 
@@ -644,15 +644,15 @@ messages cite that path), and what cites it.
   `unlabelled.swift`, `more-modifiers.swift` and `appview.swift` 2026-10-19.
 - **Was:** `PROBES-1014/labeledcontent/` (`p3-modified-rows.swift`) and `FORMS/probes/` (`p4-form-rows.swift`,
   `p5/unlabelled.swift`, `p5/modifiers2.swift`).
-- **Cited by:** `Sources/TUIkitForms/Views/FormContentExtraction.swift`,
-  `Sources/TUIkitForms/Views/Form.swift` (a field row's label column),
-  `Sources/TUIkitFoundation/Views/FormRowRewrapping.swift` and the modifiers' conformances to it (in
+- **Cited by:** `Sources/TUIForms/Views/FormContentExtraction.swift`,
+  `Sources/TUIForms/Views/Form.swift` (a field row's label column),
+  `Sources/TUIFoundation/Views/FormRowRewrapping.swift` and the modifiers' conformances to it (in
   `LifecycleModifier.swift`, `OnChangeModifier.swift`, `GestureModifier.swift`, `KeyboardShortcutModifier.swift`,
   `ContextMenuModifier.swift`, `OverlayModifier.swift`, `FocusPathModifier.swift`, `DragAndDrop+Form.swift`,
-  `TransitionModifier.swift`, the presentation modifiers and beside them), `Sources/TUIkitFoundation/Views/FormControlRow.swift`
-  and the labelled controls' conformances (`Sources/TUIkitPickers/Views/Picker+Form.swift`,
-  `Sources/TUIkitNumericControls/Views/NumericControls+Form.swift`, `Sources/TUIkitColorPicker/Views/ColorPicker.swift`),
-  `Tests/TUIkitIntegrationTests/FormModifiedRowTests.swift`, `Tests/TUIkitIntegrationTests/FormLabelledControlTests.swift`;
+  `TransitionModifier.swift`, the presentation modifiers and beside them), `Sources/TUIFoundation/Views/FormControlRow.swift`
+  and the labelled controls' conformances (`Sources/TUIPickers/Views/Picker+Form.swift`,
+  `Sources/TUINumericControls/Views/NumericControls+Form.swift`, `Sources/TUIColorPicker/Views/ColorPicker.swift`),
+  `Tests/TUIIntegrationTests/FormModifiedRowTests.swift`, `Tests/TUIIntegrationTests/FormLabelledControlTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (Containers, `Form`);
   `Documentation/SwiftUI parity/SwiftUI semantic audit (2026-08).md` (item 8, and the verifiers' finding on labelled
   controls).
@@ -681,12 +681,12 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, 2026-10-19, with Xcode's `swiftc`; the window the alert is presented on is made by the
   probe, since a `WindowGroup` opened none in that session.
 - **Was:** `MENUS/probe/`.
-- **Cited by:** `Sources/TUIkitPresentation/Views/AlertActions.swift`,
-  `Sources/TUIkitFoundation/Rendering/MenuSubmenus.swift`, `Sources/TUIkitMenus/Views/_MenuPopupCore.swift`,
-  `Sources/TUIkitPickers/Views/Picker.swift`, `Sources/TUIkitPickers/Views/PickerMenuRows.swift`,
-  `Sources/TUIkitFoundation/Rendering/MenuSections.swift`;
-  `Tests/TUIkitPresentationTests/AlertButtonModifierTests.swift`, `Tests/TUIkitMenusTests/MenuSubmenuTests.swift`,
-  `Tests/TUIkitIntegrationTests/PickerInMenuTests.swift`, `Tests/TUIkitIntegrationTests/MenuBarSubmenuTests.swift`;
+- **Cited by:** `Sources/TUIPresentation/Views/AlertActions.swift`,
+  `Sources/TUIFoundation/Rendering/MenuSubmenus.swift`, `Sources/TUIMenus/Views/_MenuPopupCore.swift`,
+  `Sources/TUIPickers/Views/Picker.swift`, `Sources/TUIPickers/Views/PickerMenuRows.swift`,
+  `Sources/TUIFoundation/Rendering/MenuSections.swift`;
+  `Tests/TUIPresentationTests/AlertButtonModifierTests.swift`, `Tests/TUIMenusTests/MenuSubmenuTests.swift`,
+  `Tests/TUIIntegrationTests/PickerInMenuTests.swift`, `Tests/TUIIntegrationTests/MenuBarSubmenuTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§1, Controls; Presentation),
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (W15, W16),
   `Documentation/SwiftUI parity/Decisions/Menus, toolbars and chrome/Menu parity (MENUS).md`.
@@ -698,13 +698,13 @@ messages cite that path), and what cites it.
   (encoded sRGB or linear light); and what the Porter-Duff modes leave where the source is and where it is not
   (`blendmodes.swift`, `blendmodes.out`). Renders with `ImageRenderer` at scale 1 and reads the pixels back in
   sRGB.
-- **Answers:** one line per mode in `blendmodes.out`; what TUIkit takes from them (the formulas work on the
+- **Answers:** one line per mode in `blendmodes.out`; what TUI takes from them (the formulas work on the
   encoded sRGB values, macOS's soft light, where alpha comes in) is worked through in the EFFECTS decisions. Over
   nothing every mode but the Porter-Duff ones draws the source unchanged; source atop and destination out draw
   nothing there, and destination over leaves the backdrop wherever there is one.
 - **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-19.
-- **Cited by:** `Sources/TUIkitCore/Rendering/BlendMode.swift`,
-  `Sources/TUIkitFoundation/Styling/Color+BlendMode.swift`; `Tests/TUIkitFoundationTests/BlendModeTests.swift`;
+- **Cited by:** `Sources/TUICore/Rendering/BlendMode.swift`,
+  `Sources/TUIFoundation/Styling/Color+BlendMode.swift`; `Tests/TUIFoundationTests/BlendModeTests.swift`;
   `Documentation/Colour and styling/Opacity as composition.md`,
   `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Blend modes and image details (EFFECTS).md`.
 
@@ -717,8 +717,8 @@ messages cite that path), and what cites it.
 - **Answers:** empty, the field shows the magnifier and the prompt and nothing at its trailing end; with text, a
   filled grey ⓧ there. Its action and Escape both empty the field.
 - **Ran:** macOS 15.8.1, Xcode's `swiftc`, 2026-10-19.
-- **Cited by:** `Sources/TUIkitSearch/Modifiers/SearchableModifier.swift`,
-  `Tests/TUIkitSearchTests/SearchableTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`
+- **Cited by:** `Sources/TUISearch/Modifiers/SearchableModifier.swift`,
+  `Tests/TUISearchTests/SearchableTests.swift`; `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`
   (the clear button row), `Documentation/Terminals/Terminal compatibility survey.md` ("The search field's ✕").
 
 ### Vertical TextField keys, caret and size (wave 6b)
@@ -747,7 +747,7 @@ messages cite that path), and what cites it.
 - **Also:** `never_sort.swift` and `linuxcheck/` (whether `Never` is a `SortComparator`, and whether
   `Locale.NumberingSystem` and `SortDescriptor` are there on Linux), `dbgtype/` (a fix attempt for a column and a
   row protocol that both refine one base: each redeclares its associated type with a default, and a user type
-  relies on the default), and `tk_group.swift`, the TUIkit side of `compile2.swift`. These ask the compiler, not
+  relies on the default), and `tk_group.swift`, the TUI side of `compile2.swift`. These ask the compiler, not
   SwiftUI.
 - **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-03.
 - **Was:** `w08a/probe/`.
@@ -824,7 +824,7 @@ messages cite that path), and what cites it.
   family is macOS 26's and is from its doc comments.
 - **Was:** `w17d/probe/`.
 - **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (lane 17d's entries,
-  B82); `Sources/TUIkitColorPicker/Views/ColorPicker.swift`.
+  B82); `Sources/TUIColorPicker/Views/ColorPicker.swift`.
 
 ### Gestures (lane 17g)
 
@@ -855,7 +855,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-04.
 - **Was:** `w17m/probe/`.
 - **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (lane 17m's entry),
-  `Tests/TUIkitFoundationTests/MeshGradientTests.swift`.
+  `Tests/TUIFoundationTests/MeshGradientTests.swift`.
 
 ### Coordinate spaces and scroll visibility (D5G)
 
@@ -885,7 +885,7 @@ messages cite that path), and what cites it.
   `mirror.swift` (`mirror.out`) lists the characters AppKit's private mirroring candidates cover and what each
   becomes, and `findsel.swift`, `findsel2.swift`, `imgs.swift` and `ksc.swift` (`ksc.out`) search the Objective-C
   runtime for the selectors that do it. They call private AppKit and TextInput selectors, which is why they are
-  here and not in TUIkit.
+  here and not in TUI.
 - **Ran:** macOS 15.8, 2026-10-12.
 - **Was:** `DECB/probe/`.
 - **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`,
@@ -898,7 +898,7 @@ messages cite that path), and what cites it.
   continuous, uneven and with too large a radius, the built-in shapes, trimmed paths, insets, offset, rotation and
   scale, each with its bounding box), and how its rounded rectangle clamps a corner size larger than the rectangle
   (`clamp.swift`). `iso/` (`iso.swift` to `iso4.swift`) and `onlytuikit/` are isolation experiments on a
-  stand-in `Shape` and `View` protocol pair, and on TUIkit alone; they say nothing about SwiftUI's behaviour.
+  stand-in `Shape` and `View` protocol pair, and on TUI alone; they say nothing about SwiftUI's behaviour.
 - **Also:** `review/` is the lane's review round: `desc.swift`, `addarc.swift` and `cap.swift` (SwiftUI's
   descriptions of the arcs the review's fixes pin, of `addArc` past a turn and of a relative arc's segmentation
   near the cap, where it stops adding quarter turns), `arcs.swift` (how CoreGraphics and SwiftUI build arcs of
@@ -908,8 +908,8 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, 2026-10-18.
 - **Was:** `W1/probe/` and `W1/probe2/`.
 - **Cited by:** `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Shapes (W1).md`;
-  `Sources/TUIkitFoundation/Shapes/Path+Builders.swift`, `Sources/TUIkitFoundation/Rendering/ShapeStroker.swift`;
-  `Tests/TUIkitFoundationTests/PathTests.swift`, `Tests/TUIkitFoundationTests/ShapeTests.swift`.
+  `Sources/TUIFoundation/Shapes/Path+Builders.swift`, `Sources/TUIFoundation/Rendering/ShapeStroker.swift`;
+  `Tests/TUIFoundationTests/PathTests.swift`, `Tests/TUIFoundationTests/ShapeTests.swift`.
 
 ### Insertion and removal (FB16)
 
@@ -921,11 +921,11 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, 2026-10-17.
 - **Was:** `plan/fb16/`.
 - **Cited by:** `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Insertion and removal model (FB16).md`,
-  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`; `Sources/TUIkitEffects/Animation/TransitionModifier.swift`,
-  `Sources/TUIkitFoundation/Views/StackGlide.swift`, `Sources/TUIkitView/Animation/ChildGlide.swift`,
-  `Sources/TUIkitView/Animation/PlacementStore.swift`; `Tests/ExampleTests/AnimationPageShowHideTests.swift`,
-  `Tests/TUIkitEffectsTests/DefaultTransitionTests.swift`, `Tests/TUIkitEffectsTests/StackGlideTests.swift`,
-  `Tests/TUIkitEffectsTests/TransitionTests.swift`.
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`; `Sources/TUIEffects/Animation/TransitionModifier.swift`,
+  `Sources/TUIFoundation/Views/StackGlide.swift`, `Sources/TUIView/Animation/ChildGlide.swift`,
+  `Sources/TUIView/Animation/PlacementStore.swift`; `Tests/ExampleTests/AnimationPageShowHideTests.swift`,
+  `Tests/TUIEffectsTests/DefaultTransitionTests.swift`, `Tests/TUIEffectsTests/StackGlideTests.swift`,
+  `Tests/TUIEffectsTests/TransitionTests.swift`.
 
 ### Small parity items (PARITYMISC)
 
@@ -937,7 +937,7 @@ messages cite that path), and what cites it.
   made from a `Binding<Int>` does on a read, and on a write of an `Int`, an `Int8` and a `String`
   (`binding_anyhashable.swift`);
   whether `.scrollIndicators(_:axes:)` shows the AppKit scrollers (`shows_indicators.swift`); and the number of
-  `NSTextContentType` cases (`tct.swift`). `entry_probe.swift` (SwiftUI's `@Entry`) and `entry_diag.swift` (TUIkit's
+  `NSTextContentType` cases (`tct.swift`). `entry_probe.swift` (SwiftUI's `@Entry`) and `entry_diag.swift` (TUI's
   macro's diagnostics) check the `@Entry` macro on both sides.
 - **Ran:** macOS 15, 2026-10-18.
 - **Was:** `PARITYMISC/probes/`.
@@ -956,8 +956,8 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, 2026-10-18.
 - **Was:** `INPUT/probes/` (the three programs were `undo/main.swift`, `undo2/main.swift` and `undo3/main.swift`).
 - **Cited by:** `Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md`;
-  `Sources/TUIkitFoundation/Focus/TextUndoBridge.swift`, `Sources/TUIkitTextInput/Focus/TextUndoHistory.swift`;
-  `Tests/TUIkitTextInputTests/TextUndoCoalescingTests.swift`.
+  `Sources/TUIFoundation/Focus/TextUndoBridge.swift`, `Sources/TUITextInput/Focus/TextUndoHistory.swift`;
+  `Tests/TUITextInputTests/TextUndoCoalescingTests.swift`.
 
 ### The menu bar (O13)
 
@@ -971,12 +971,12 @@ messages cite that path), and what cites it.
 - **Was:** `O13/probe/`.
 - **Cited by:** `Documentation/SwiftUI parity/Decisions/Menus, toolbars and chrome/The menu bar (O13).md`,
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`,
-  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`; `Sources/TUIkitApp/App/SceneCommandsDeclaration.swift`,
-  `Sources/TUIkitCommands/Commands/CommandGroup.swift`, `Sources/TUIkitCommands/Commands/CommandGroupPlacement.swift`,
-  `Sources/TUIkitCommands/Commands/CommandMenu.swift`, `Sources/TUIkitCommands/Commands/CommandsCollector.swift`,
-  `Sources/TUIkitCommands/MenuBar/SceneOwnCommands.swift`, `Sources/TUIkitCommands/Scene+Commands.swift`,
-  `Sources/TUIkitFoundation/Views/KeyboardShortcutRegistry.swift`;
-  `Tests/TUIkitCommandsTests/CommandsCollectionTests.swift`.
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`; `Sources/TUIApp/App/SceneCommandsDeclaration.swift`,
+  `Sources/TUICommands/Commands/CommandGroup.swift`, `Sources/TUICommands/Commands/CommandGroupPlacement.swift`,
+  `Sources/TUICommands/Commands/CommandMenu.swift`, `Sources/TUICommands/Commands/CommandsCollector.swift`,
+  `Sources/TUICommands/MenuBar/SceneOwnCommands.swift`, `Sources/TUICommands/Scene+Commands.swift`,
+  `Sources/TUIFoundation/Views/KeyboardShortcutRegistry.swift`;
+  `Tests/TUICommandsTests/CommandsCollectionTests.swift`.
 
 ### Dropped members (RC5)
 
@@ -990,8 +990,8 @@ messages cite that path), and what cites it.
   An alert shows its text fields and secure fields (the one inside a view of the app's own too), and a toggle as
   a button titled by its label; it leaves out a `Text` and an `Image`.
 - **Ran:** macOS 15.8.1, Xcode's `swiftc`, the macOS 26.2 SDK, 2026-10-24.
-- **Cited by:** `Sources/TUIkitFoundation/Views/DroppedMembers.swift`,
-  `Sources/TUIkitPickers/Views/_PickerOptionsReader.swift`, `Sources/TUIkitPresentation/Views/AlertActions.swift`;
+- **Cited by:** `Sources/TUIFoundation/Views/DroppedMembers.swift`,
+  `Sources/TUIPickers/Views/_PickerOptionsReader.swift`, `Sources/TUIPresentation/Views/AlertActions.swift`;
   `Documentation/SwiftUI parity/SwiftUI semantic audit (2026-08).md` (root cause 5).
 
 ### Named colours by scheme
@@ -1003,8 +1003,8 @@ messages cite that path), and what cites it.
 - **Answers:** a bare environment answers the light values. Thirteen names have a dark value of their own, which
   is AppKit's darkAqua value; `.white` and `.black` are the same in both.
 - **Ran:** macOS 15.8.1, Xcode's `swiftc`, the macOS 26.2 SDK, 2026-10-24.
-- **Cited by:** `Sources/TUIkitStyling/Color/SystemColor.swift`, `Sources/TUIkitStyling/Color/Color.swift`,
-  `Tests/TUIkitStylingTests/NamedColorTests.swift`;
+- **Cited by:** `Sources/TUIStyling/Color/SystemColor.swift`, `Sources/TUIStyling/Color/Color.swift`,
+  `Tests/TUIStylingTests/NamedColorTests.swift`;
   `Documentation/SwiftUI parity/Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md`
   (B-D6M-3).
 
@@ -1019,7 +1019,7 @@ messages cite that path), and what cites it.
   `1.234.567`, `3,500000`); a range of an hour reads `11:13 PM-12:13 AM` and one of days `May 8 - May 11`, with no
   year even 400 days apart, which is none of Foundation's interval formats.
 - **Ran:** macOS 15.8.1, Xcode's `swiftc`, the macOS 26.2 SDK, 2026-10-24, in the `America/Los_Angeles` zone.
-- **Cited by:** `Sources/TUIkitFoundation/Localization/LocalizedStringKey+Interpolation.swift`;
+- **Cited by:** `Sources/TUIFoundation/Localization/LocalizedStringKey+Interpolation.swift`;
   `Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md`
   (B-TEXTFMT-1, C-TEXTFMT-1).
 
@@ -1035,8 +1035,8 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1, Xcode's `swiftc`, the macOS 26.2 SDK, 2026-10-24.
 - **Cited by:** `Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Typed interpolations, live titles and keeper passthroughs (TEXTFMT).md`
   (B51-LIVE), `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (T5),
-  `Sources/TUIkitFoundation/Views/Text+Markdown.swift`, `Sources/TUIkitTextInput/Views/TextField.swift`,
-  `Sources/TUIkitTables/Views/TableColumn.swift`; `Tests/TUIkitIntegrationTests/LiveTitleTests.swift`.
+  `Sources/TUIFoundation/Views/Text+Markdown.swift`, `Sources/TUITextInput/Views/TextField.swift`,
+  `Sources/TUITables/Views/TableColumn.swift`; `Tests/TUIIntegrationTests/LiveTitleTests.swift`.
 
 ### Effect and update ordering
 

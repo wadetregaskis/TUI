@@ -141,7 +141,7 @@ def public_above(M, R, asg):
             # placement nobody chose (plan section 4: `.modal`, `.listStyle` and `.safeAreaInset` were reviewed).
             # One a `declarations` rule put there was chosen, for the members its rule had in mind: it is reported
             # accepted with the rule's reason, so `-v` lists all its public members (the refined plan found the layout
-            # trio inside the block a rule pins to TUIkitBitmaps), and a `scheduled` split can name the others.
+            # trio inside the block a rule pins to TUIBitmaps), and a `scheduled` split can name the others.
             mn, seed = asg[n], R.seed(M.file[n])[0]
             if mn == seed or not R.sees(mn, seed): continue
             rule = R.decl_rule(M.rule_labels(n))
@@ -252,13 +252,13 @@ def re_exports(M, R):
 
 
 def built_on_default(R, reexports):
-    """The modules carved out ABOVE the default module (TUIkitApp, TUIkitColorPicker, TUIkitNavigation …): those whose
+    """The modules carved out ABOVE the default module (TUIApp, TUIColorPicker, TUINavigation …): those whose
     files re-export it, or re-export a module that does. A carved module re-exports the modules it is built on (plan
     §4); a coarse group's other members had no Exports.swift until their peels (the last at step C7),
-    so no re-exports, as a module TUIkitFoundation compiled had none until step B7; nor does a module below it
-    (TUIkitStrings), which TUIkitFoundation re-exports. TUIkitFoundation cannot re-export a module built on it, so the
-    umbrella must, by name: reaching one only through a sibling's re-export (TUIkitPresentation through
-    TUIkitColorPicker's; TUIkitNavigation through it from step B5 until step C1) compiles the same, and silently stops
+    so no re-exports, as a module TUIFoundation compiled had none until step B7; nor does a module below it
+    (TUIStrings), which TUIFoundation re-exports. TUIFoundation cannot re-export a module built on it, so the
+    umbrella must, by name: reaching one only through a sibling's re-export (TUIPresentation through
+    TUIColorPicker's; TUINavigation through it from step B5 until step C1) compiles the same, and silently stops
     compiling when that sibling's dependencies change."""
     above = set()
     while True:
@@ -312,17 +312,17 @@ def _file_uses(M, above):
 
 
 def imports(M, R):
-    """A file of a module carved out above the default module (TUIkitApp, TUIkitColorPicker, TUIkitNavigation,
-    TUIkitLists …) that uses another of the package's modules without importing it: neither directly nor through a
-    module it imports that re-exports it. It compiles, because its module's Exports.swift re-exports TUIkitFoundation
+    """A file of a module carved out above the default module (TUIApp, TUIColorPicker, TUINavigation,
+    TUILists …) that uses another of the package's modules without importing it: neither directly nor through a
+    module it imports that re-exports it. It compiles, because its module's Exports.swift re-exports TUIFoundation
     to every file of the module. But the compiler decides whether a closure passed to a function needs a run-time
     MainActor check by the calling FILE's imports (CSApply.cpp, closuresRequireDynamicIsolationChecking, through
     ValueDecl::findImport): a callee from a module the file does not import, directly or through that import's
     re-exports, gets one in every closure passed to it. One finding per file and module, weighed by its references.
 
     The modules are the targets that compiled the files, as their index units name them (a coarse group's target for
-    each of its directories), and the lower modules (TUIkitCore, TUIkitView …). A reference inside the file's own
-    target needs no import; one to the SDK is not this check's business. Not checked: TUIkitFoundation's own files and
+    each of its directories), and the lower modules (TUICore, TUIView …). A reference inside the file's own
+    target needs no import; one to the SDK is not this check's business. Not checked: TUIFoundation's own files and
     the side modules below it, whose references to the lower modules each module's own imports have always carried."""
     above, reach = _import_graph(M, R)
     seen_vis = {}
@@ -356,7 +356,7 @@ def stale_imports(M, R):
     """A file of a module carved out above the default module that imports another of the package's modules and
     names nothing of it, nor of a module the import alone makes visible to the file: a dependant's file that a peel
     left importing the group although what it used moved to the peeled module (SearchScopes.swift kept `import
-    TUIkitTextInput` when its `Picker` moved to TUIkitPickers at step C8). It compiles, and costs nothing at run time,
+    TUITextInput` when its `Picker` moved to TUIPickers at step C8). It compiles, and costs nothing at run time,
     but the file's imports no longer say which modules it is built on, which the `imports` check relies on them to
     say. The default module is not judged (every file of such a module imports it, CONTRIBUTING.md, "Crossing a
     module boundary"), nor an import of a module outside the map (the SDK's, or a lower module's), nor a file with an
@@ -385,10 +385,10 @@ def stale_imports(M, R):
 
 
 def lower(M, R, asg):
-    """A reference to a lower module (TUIkitCore, TUIkitView …: a module outside the map) that its declaration's
+    """A reference to a lower module (TUICore, TUIView …: a module outside the map) that its declaration's
     module may not use: one its `lower` list in rules.json does not name. A module with no list may use them all.
     Once split, the module would not import it, so this is a compile error; for a side module that compiles beside
-    TUIkitView, a dependency on it would also put the side module back on the critical path. One finding per
+    TUIView, a dependency on it would also put the side module back on the critical path. One finding per
     declaration and symbol, weighed by its references."""
     out, seen = [], {}
     for src, usr, f, ln in M.foreign_refs:

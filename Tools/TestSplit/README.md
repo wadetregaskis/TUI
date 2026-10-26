@@ -2,9 +2,9 @@
 
 The scripts that divided the framework's suite into a test target per module
 (the owner's request B-TC1-1, 2026-10-12), kept as the record of how each file
-was placed. They ran once, on the four test targets by area (`TUIkitTests`,
-`TUIkitCollectionTests`, `TUIkitControlTests`, `TUIkitAppTests`) and their
-`TUIkitTestSupport`, which they name; they are not a tool to re-run as they
+was placed. They ran once, on the four test targets by area (`TUITests`,
+`TUICollectionTests`, `TUIControlTests`, `TUIAppTests`) and their
+`TUITestSupport`, which they name; they are not a tool to re-run as they
 stand. A new test file is placed by hand, by the rule in CONTRIBUTING.md, and
 `Tools/validate-test-boundaries.sh` checks its imports.
 
@@ -21,10 +21,10 @@ stand. A new test file is placed by hand, by the rule in CONTRIBUTING.md, and
      implicitly, which the index records no occurrence of.
 2. **`plan.py`** folds each helper's needs into its users', and assigns each
    file to the target of the highest module that leaves it needing:
-   `TUIkitFoundationTests`, `TUIkitAppTests`, one feature module's, or
-   `TUIkitIntegrationTests`; a file with no tests to the matching support
+   `TUIFoundationTests`, `TUIAppTests`, one feature module's, or
+   `TUIIntegrationTests`; a file with no tests to the matching support
    target. Test files sharing a helper declared in one of them go together.
-3. **`move.py`** `git mv`s each file, replaces its `import TUIkit` with the
+3. **`move.py`** `git mv`s each file, replaces its `import TUI` with the
    modules it needs (and any a module above them doesn't re-export), drops the
    imports of modules it doesn't need, wraps a file entering a support target
    in that target's guard, and writes the targets into `Package.swift`.

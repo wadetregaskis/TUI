@@ -53,12 +53,12 @@ shortcuts when a developer opts in."
   handlers, then the app's shortcuts, and nothing else. No layer that never
   heard of ⌘ can take one for a bare key, now or when a new layer is added;
   the price is that an `onKeyEvent` handler never hears a ⌘ chord, which it
-  never could. TUIkit's own `onKeyPress` handlers that mean a typed character
+  never could. TUI's own `onKeyPress` handlers that mean a typed character
   refuse ⌘ themselves: the file panel's `~` and `/`, and the text editor's
   find keys (⌃F, ⌃G).
 - **Default shortcuts unchanged.** A shortcut written with ⌘ registers on its
   stand-in (`.commandKey(_:)`, Control by default) and nowhere else, so it
-  fires the same on every terminal. TUIkit's own bindings — undo and redo and
+  fires the same on every terminal. TUI's own bindings — undo and redo and
   the row keys (written with Control), the copy, cut and paste commands and a
   split view's sidebar chords (written with ⌘) — keep to their stand-ins, the
   opt-in or not.
@@ -151,14 +151,14 @@ fallback does; ⌃[ and ⌃M are nothing there). That would be truer to SwiftUI
 and would break muscle memory on exactly the terminals that got better; I
 chose the fallback. Free either way.
 
-### B-D1K-4. `TUIKIT_KEYBOARD_PROTOCOL=0` keeps TUIkit from asking for the kitty protocol
+### B-D1K-4. `TUIKIT_KEYBOARD_PROTOCOL=0` keeps TUI from asking for the kitty protocol
 
 *`EnvironmentValues.keyboardReporting`*
 
 Not asked for, and nothing to decide on its own, but a new user-facing switch,
 so recorded. The protocol is negotiated with every terminal that answers the
-query. A terminal that answers and then encodes keys in a way TUIkit misreads
-would leave a user unable to type into any TUIkit app on it, so the user gets
+query. A terminal that answers and then encodes keys in a way TUI misreads
+would leave a user unable to type into any TUI app on it, so the user gets
 the same way out the hyperlink and graphics switches give:
 `TUIKIT_KEYBOARD_PROTOCOL=0`, and the terminal stays in its legacy encodings.
 
@@ -166,7 +166,7 @@ the same way out the hyperlink and graphics switches give:
 `TerminalClient.hyperlinkSupport` is for links. Not built: nothing yet says an
 app needs one. A quarter of a day.
 
-### B-D1K-5. `UndoManager` on Linux is TUIkit's own, without notifications or selectors
+### B-D1K-5. `UndoManager` on Linux is TUI's own, without notifications or selectors
 
 *`UndoManager` (where Foundation has none), `EnvironmentValues.undoManager`*
 
@@ -175,7 +175,7 @@ It has none: against Swift 6.3.3's static Linux SDK `UndoManager()` is "cannot
 find 'UndoManager' in scope", and `libFoundation.a` holds no undo symbols. So
 `\.undoManager: UndoManager?` could not even be typed there.
 
-**Shipped:** where Objective-C is absent, TUIkit declares `@MainActor open
+**Shipped:** where Objective-C is absent, TUI declares `@MainActor open
 class UndoManager` with Foundation's Swift surface — grouping (by event, by
 default), registration with a target and a handler, undo, redo, nested undo,
 enabling and disabling, levels of undo, removing actions (all, or a target's),
@@ -283,7 +283,7 @@ registers mid-run, while the focus going away and back with nothing
 registered meanwhile leaves the run going. So a run goes on only while its
 step is the newest in the app's undo manager: each text step carries its
 mark in the step's user info (macOS 15's `setActionUserInfoValue(_:forKey:)`,
-which TUIkit's own `UndoManager` keeps too), and a key that would continue a
+which TUI's own `UndoManager` keeps too), and a key that would continue a
 run asks whether the newest step is still its own
 (`TextUndoBridge.isNewestStep(_:on:)`,
 `TextUndoHistory.endTypingRun(unlessNewestIn:)`;
@@ -346,7 +346,7 @@ wants undo), and an app with its own undo affordance turns them off.
 need to know when a step might have changed, which is not only on a key —
 an app registers from a task or a timer too — so it would need the manager
 to say so, and `NSUndoManager`'s checkpoint notifications have no
-counterpart in the `UndoManager` TUIkit provides on Linux (B-D1K-5). While
+counterpart in the `UndoManager` TUI provides on Linux (B-D1K-5). While
 there is a step, the bar also names its key: the table's chords for the
 command, sorted and filtered by what the terminal can deliver, rebuilt in
 every build of the bar and on every key that reaches layer 1. A handful of

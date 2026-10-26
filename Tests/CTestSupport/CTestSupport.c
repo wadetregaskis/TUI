@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  CTestSupport.c
 //
 //  The header's structs are all there is; SwiftPM builds a C target only

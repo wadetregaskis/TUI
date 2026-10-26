@@ -6,18 +6,18 @@ lane, 2026-10-05): "that seems like a bug that we should fix … we need to be
 very careful about the performance impact". B4 in
 [`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>)
 now points here; B-DYNP-1 below supersedes it. This file records what the write-back covers, and where
-TUIkit still differs from SwiftUI. Each SwiftUI behaviour below was measured
+TUI still differs from SwiftUI. Each SwiftUI behaviour below was measured
 on macOS 15 with an offscreen `NSHostingView`
 ([`Tools/SwiftUIProbes/Dynamic properties/dp.swift`](<../../../../Tools/SwiftUIProbes/Dynamic properties/dp.swift>); the case numbers are that probe's). The format is
 that of the main decisions file:*
 
-- **A-DYNP-n — needs your decision.** Each says which option TUIkit ships
+- **A-DYNP-n — needs your decision.** Each says which option TUI ships
   until you decide, and what this lane changed in it.
 - **B-DYNP-n — shipped the safe option.** Says what the other version would
   be, and its price.
 - **C-DYNP-n — declined.** With the reason.
 
-## A-DYNP-1. A property in an optional field: TUIkit treats it as present, SwiftUI ignores it — decided: keep it
+## A-DYNP-1. A property in an optional field: TUI treats it as present, SwiftUI ignores it — decided: keep it
 
 *Decided by the owner (2026-10-11 and 2026-10-12): keep it, "at least until we
 find a concrete reason (e.g. correctness issue) not to". Lane DYNVFIX
@@ -32,7 +32,7 @@ Shouting()`, is handled differently by the two frameworks.
   property, and does not resolve the `@Environment` inside it: body reads
   the environment key's default, where the same property in a plain field
   reads the value set on the view.
-- **TUIkit.** It looks through the optional, as its property walks always
+- **TUI.** It looks through the optional, as its property walks always
   have. The `@State` inside is bound, the `@Environment` inside is resolved,
   and `update()` runs. Since this lane, what `update()` changes is also
   written back into the optional. What a value of the type gets never
@@ -47,13 +47,13 @@ Shouting()`, is handled differently by the two frameworks.
 
 The options:
 
-- **(a) Keep TUIkit's behaviour (shipped).** An optional property behaves
+- **(a) Keep TUI's behaviour (shipped).** An optional property behaves
   as if it were unwrapped. That is more than SwiftUI does. A SwiftUI app
   would notice only if its wrapper relied on not being updated.
 - **(b) Match SwiftUI.** No walk would look through an optional: no binding,
   no environment, no `update()`. It is one rule in two walks and the
   write-back. A view holding such an optional would also stop paying for a
-  walk on every frame (see B-DYNP-2). But an app that relied on TUIkit's
+  walk on every frame (see B-DYNP-2). But an app that relied on TUI's
   behaviour would see its property's environment go back to the default.
   Whether SwiftUI binds the `@State` inside such a property is unmeasured;
   the probe's value cannot tell.

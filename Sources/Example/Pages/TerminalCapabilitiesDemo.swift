@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TerminalCapabilitiesDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Every feature `\.terminalCapabilities` knows of, with what it says of this
 /// terminal: yes, no, or not known. Live: a feature that only a keypress shows

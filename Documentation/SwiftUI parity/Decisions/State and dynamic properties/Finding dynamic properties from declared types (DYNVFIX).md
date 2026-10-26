@@ -2,7 +2,7 @@
 
 *Lane DYNVFIX, 2026-10-12, fixed the ten dynamic-property bugs the DYNV
 research confirmed (session notes `DYNV/notes.md`, `DYNV2/notes.md`), keeping
-every reach TUIkit supported, as the owner asked: "Take the best of both as
+every reach TUI supported, as the owner asked: "Take the best of both as
 much as you can; 'hybrid', but try not to lose anything that we currently
 support, even if SwiftUI doesn't support it." The property walk is now
 planned once per type from the runtime's field metadata (`PropertyPlans`),
@@ -25,7 +25,7 @@ is that of the main decisions file:*
 
 A field declared as a plain class, `let delegate: RowDelegate`, can hold a
 subclass that is a property, `CachingRowDelegate: RowDelegate,
-DynamicProperty`. TUIkit's walks found it from the value, but kept a view type
+DynamicProperty`. TUI's walks found it from the value, but kept a view type
 as holding nothing when its first value held a plain instance there, so
 whether the property was ever updated depended on the first value drawn
 (DYNV bug 10). SwiftUI never looks: it decides by the declared type
@@ -33,7 +33,7 @@ whether the property was ever updated depended on the first value drawn
 `subclass`: never updated; declared as
 the subclass, updated).
 
-**Shipped:** TUIkit keeps the reach (the owner's ruling: keep what TUIkit
+**Shipped:** TUI keeps the reach (the owner's ruling: keep what TUI
 supports). Each body, a field whose declared type is a plain class has its
 object's class read; an object of a subclass that is a property is walked as
 any class property is (B-DYNVFIX-3) — its `@State` bound, its `@Environment`
@@ -48,7 +48,7 @@ How the field holds the object decides how its class is read. The field
 metadata says of a field only whether it is strong, so the ownership is read
 from the field's mangled type name in its field descriptor, once per type
 (`Xw` for `weak`, `Xo` for `unowned`, `Xu` for `unowned(unsafe)`;
-[FieldDescriptors.swift](../../../../Sources/TUIkitView/Rendering/FieldDescriptors.swift)):
+[FieldDescriptors.swift](../../../../Sources/TUIView/Rendering/FieldDescriptors.swift)):
 
 - **Strong:** the class is read where the reference lies.
 - **`weak`**, a plain class or a class-bound existential (`weak var delegate:
@@ -84,7 +84,7 @@ from the field's mangled type name in its field descriptor, once per type
   existential was reached anywhere (review of 6c8fe3d2b, 2026-10-12), where
   the walk before the plans reached one.
 - A field whose descriptor cannot be read: where pointers are signed
-  (arm64e, which TUIkit does not build), and in a module built without
+  (arm64e, which TUI does not build), and in a module built without
   reflection metadata, whose fields are not listed at all.
 
 The fuller version, for `unowned` on Apple platforms, checks whether the
@@ -159,7 +159,7 @@ a closure made in one view's body read another's environment (DYNV bugs 3 and
 `@Environment` reads its default, and `update()` runs before each holder's
 body (measured: DYNP `op.out` vii-f;
 `Tools/SwiftUIProbes/Class properties held by several views/cls.out`). The
-owner asked to keep what TUIkit supported: a class wrapper made anew with
+owner asked to keep what TUI supported: a class wrapper made anew with
 each view value (session notes `DYNV2/notes.md` §4.11), and an
 `@Environment(Model.self)` inside one, which reading uninstalled traps.
 
@@ -398,7 +398,7 @@ holder whose subtree holds the focused element.
 The walks looked inside every `ViewModifier` value, so a modifier stored in a
 view's field had its properties bound, resolved, updated and written back as
 the view's — and then the copy the view's body applied was updated again: its
-`update()` ran twice per body (DYNV bug 5). TUIkit's own `.transaction(_:)`
+`update()` ran twice per body (DYNV bug 5). TUI's own `.transaction(_:)`
 and `.animation(_:)` store the modifier they wrap, and `.concat(_:)` the two it
 joins, so they did the same. SwiftUI updates only the copy applied, once
 (measured: DYNP `op.out` vii-c2; DYNV `dv2-main.out`, `txn`, `concat`).
@@ -406,7 +406,7 @@ joins, so they did the same. SwiftUI updates only the copy applied, once
 **Shipped:** a modifier is *applied* only as the `modifier` of the
 `ModifiedContent` being drawn, and only there is anything in it updated. One
 stored anywhere else — a view's field, a property, the modifier a wrapper
-holds, an existential — keeps what TUIkit gave it beyond SwiftUI: its
+holds, an existential — keeps what TUI gave it beyond SwiftUI: its
 `@State` is bound and its `@Environment` resolved, so the holding view's body
 can read them. But nothing in it is updated. A modifier class is the
 exception since 2026-10-19: a property class wherever it is held (below).
@@ -426,7 +426,7 @@ held here (`SlotPlan.storedCopySkipsUpdates`): updated before the body of
 each view holding it, as a property class held by several views is
 (`Class properties held by several views/cls.out`) — in a view's field, held
 `unowned`, behind a field declared as a plain class, or in an existential;
-never held `weak`, where SwiftUI updates nothing. TUIkit applies a modifier
+never held `weak`, where SwiftUI updates nothing. TUI applies a modifier
 class, which SwiftUI does not; one held in a view's field and applied by its
 body is then held by two views — the view and the `ModifiedContent` — and
 updated before each body, as such a property class is. The set of objects
@@ -476,7 +476,7 @@ for a place that a pass finding the value elsewhere does not draw is
 unplaced at that pass's end, and resolved where it lies from then on.
 
 **Since 2026-10-19 the other four too** (decided (b), the owner's rulings
-applied): TUIkit's `@FocusState`, `@Namespace`, `@FocusedValue` and
+applied): TUI's `@FocusState`, `@Namespace`, `@FocusedValue` and
 `@FocusedBinding` kept a store every copy shared, and were bound or resolved
 through it, so one value drawn at two places ended with the second place's
 id or focus manager. SwiftUI gives each place its own namespace (measured,

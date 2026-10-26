@@ -1,7 +1,7 @@
 # Terminal compatibility survey
 
 The canonical record of how each terminal emulator behaves on every axis
-TUIkit cares about — input encodings (keys, mouse, trackpad) and output
+TUI cares about — input encodings (keys, mouse, trackpad) and output
 behaviour (cursor advance vs painted width, emoji handling, glyph cell
 coverage, colour depth, OSC 8 hyperlinks, OSC 52 clipboard writes, the window
 title, progress bars and notifications, graphics protocols) — plus the environment variables each one defines and the exact
@@ -189,8 +189,8 @@ the terminal under test:
   grapheme clusters with DSR (`ESC[6n`) position queries, and dumps the
   terminal-relevant environment. Writes JSON to `$PROBE_OUT`. Advance is
   the ground truth for layout: a glyph whose advance differs from the
-  width TUIkit's tables claim shifts everything after it on the row.
-  **Set `PROBE_ALT=1` and use those numbers**: TUIkit apps run on the
+  width TUI's tables claim shifts everything after it on the row.
+  **Set `PROBE_ALT=1` and use those numbers**: TUI apps run on the
   ALTERNATE screen buffer, and advance can differ between buffers —
   iTerm2 advances VS-16 clusters by 2 on its primary screen but by 1 on
   the alternate screen. A first pass probed the primary screen only,
@@ -216,7 +216,7 @@ The `TerminalClientQuirks` app (`swift run TerminalClientQuirks`) is the
 interactive counterpart to these probes: it shows which terminal was
 detected and by which signal, the advance model in force, and an alignment
 strip that fails visibly on any cluster the host handles differently from
-TUIkit. Its **Custom** screen decomposes the workarounds into one switch per
+TUI. Its **Custom** screen decomposes the workarounds into one switch per
 cluster class, so an unmeasured terminal can be characterised by experiment
 and exported as a `TerminalQuirks(...)` literal — see
 `Sources/TerminalClientQuirks/README.md`.
@@ -224,7 +224,7 @@ and exported as a `TerminalQuirks(...)` literal — see
 Since 2026-08-28 the switches can express **every** measured host: all four
 native shapes are pinned to their real walks emission-for-emission by
 `TerminalQuirksTests`, with no skipped rows. That pin is the point of the
-app — what an explorer dials in is exactly what TUIkit would emit once the
+app — what an explorer dials in is exactly what TUI would emit once the
 model was written down — and it only became true when the mirror grew the
 four mechanisms the real walks already had: claiming the detached skin-tone
 swatch (for every base, or only a BMP one), merging a tone into a narrow
@@ -234,7 +234,7 @@ claim meets and the bare form's one-cell claim does not, so only the bare
 one is repaired.
 
 "Advance" below = cells the cursor moves; "paints" = cells with ink.
-TUIkit's shared layout width (`Character.terminalWidth`) claims 2 for all
+TUI's shared layout width (`Character.terminalWidth`) claims 2 for all
 the emoji-class clusters below unless noted.
 
 ---
@@ -242,7 +242,7 @@ the emoji-class clusters below unless noted.
 ### The framework's own chrome — advance and ink measured 2026-09-04
 
 Until 2026-09-04 the width corpus had 116 rows for every class of cluster
-someone's *data* might contain and none for a glyph TUIkit itself draws. Every
+someone's *data* might contain and none for a glyph TUI itself draws. Every
 keyboard symbol the status bar emits (`⎋ ↵ ⏎ ⇥ ⇤ ⌫ ⌦ ␣ ↑ ↓ ← → ⇧ ⌃ ⌥ ⌘`) and
 every glyph its borders, scrollbars, tracks, radio buttons, steppers and
 disclosure triangles are made of (`◀ ▶ ▼ ▲ ● ◯ ◌ █ ▌ ▐ ▒ ─ │`) was claimed at
@@ -259,7 +259,7 @@ eight of the rows paint two cells while advancing one, and not the same eight on
 every host. See "The ink half" below.) Records:
 `Tools/TerminalProbes/data/{ghostty-1.3.1,iTerm2,Apple-Terminal,Warp}-advance.json`.
 Since 2026-10-19 `ChromeGlyphAdvanceTests` reads each host's alternate-screen
-record of that day's runs instead, the screen TUIkit draws on
+record of that day's runs instead, the screen TUI draws on
 (`{ghostty-1.3.1,iterm2-3.7.6,apple-terminal-455.1,warpterminal-v0.2026.09.30.08.29.stable_01}-alternate.json`):
 every chrome row, these and the ones added since, one cell on all four.
 
@@ -355,7 +355,7 @@ ask for the font and its size. What is recorded here is host + version + date,
 so a re-run under a different font may disagree — treat a contradicting reading
 as a font difference to be recorded, not as this one being wrong.
 
-**The claim follows the host, and that is a departure.** TUIkit's standing rule
+**The claim follows the host, and that is a departure.** TUI's standing rule
 is that a claim is host-independent and covers the widest painter, with narrow
 painters taking a blank cell — the rule stated for Ghostty's SF Symbols below.
 Applied here it would give one table, the union of the eight codepoints above,
@@ -385,7 +385,7 @@ into. Four consequences are worth naming because none of them is obvious:
   status bar for a defect nobody has seen on that host — and the two hosts that
   do have it disagree about which glyphs, so there is no majority to guess with.
 - **The shortfall is ours, so it is owed by whoever emits under the claim.** It
-  is not a terminal's defect but the price of a claim TUIkit widened, so
+  is not a terminal's defect but the price of a claim TUI widened, so
   `TerminalQuirks` has no switch to turn it off, the empty-quirk-set walk still
   emits it, and an **unidentified** host — which otherwise receives no
   compensation at all — gets `String.withChromeOverhangCompensation()`. Under
@@ -393,7 +393,7 @@ into. Four consequences are worth naming because none of them is obvious:
   when a diagnostic pinned a measured host's claims. That walk compensates but
   does **not** normalize: the shared walk it borrows also strips a redundant
   VS-16 off a tone cluster and decomposes ZWJ sequences, and those are repairs
-  calibrated against the four measured hosts. Handing them to a terminal TUIkit
+  calibrated against the four measured hosts. Handing them to a terminal TUI
   could not name would rewrite its content — `☝️🏽` came back as `☝🏽` — which is
   the one thing an unidentified client is documented never to do.
 - **The compensation gate stays the UNION of all four hosts.** It decides only
@@ -414,15 +414,15 @@ reading edited into one host's table cannot silently become every host's.
 
 ### Key symbols — macOS's spelling, adopted 2026-10-05
 
-Since 2026-10-05 every key TUIkit names on screen — a menu row's shortcut
+Since 2026-10-05 every key TUI names on screen — a menu row's shortcut
 column, the status bar's keys and its undo and redo hints, the `Shortcut`
 constants, `KeyboardShortcut.displayString`, `KeyEvent.displayString` — is
 spelled by one formatter (`KeySymbols`), as a macOS menu spells a key
 equivalent: the modifiers in the order **⌃ ⌥ ⇧ ⌘**, then the key, a letter
 in upper case (`⌃⇧Z`, `⌥F`, `⇧⇥`, `⌘?`). The spelling was read from AppKit's
 `NSKeyboardShortcut` (the class that draws menus' and System Settings'
-shortcuts) on macOS 15, for every key and modifier set TUIkit can name, in all
-seven of TUIkit's languages; only the space bar's name changes with the
+shortcuts) on macOS 15, for every key and modifier set TUI can name, in all
+seven of TUI's languages; only the space bar's name changes with the
 language (`Space`, `Leertaste`, `Espace`, `Barra spaziatrice`, `Espacio`,
 `空格键`, and `Space` again in Japanese). It replaced the terminal spellings
 `^S`, `M-s` and `^S-Z` (for Control-Shift-Z), and the names `Esc`, `Return`,
@@ -453,18 +453,18 @@ Shift in the case it types — `u`, and `U` for Shift-U — where a menu draws
 Shift-Tab is `⇧⇥`, as macOS draws it, so `⇤` (U+21E4) is no longer drawn by
 the framework; the space bar is a word, so `␣` (U+2423) is not either. Their
 corpus rows stay: they were measured, and an app may still draw them. No key
-TUIkit can name is keypad Enter (`⌤`, U+2324, which macOS draws for it): there
+TUI can name is keypad Enter (`⌤`, U+2324, which macOS draws for it): there
 is no such `KeyEquivalent`, in SwiftUI or here, and the kitty keyboard
 protocol reports it as Return with the numeric-pad flag, which macOS does not
 draw.
 
 **Width: every glyph claims one cell, the Ambiguous ones included.** That is
-TUIkit's standing treatment of East Asian Ambiguous chrome, not a new
+TUI's standing treatment of East Asian Ambiguous chrome, not a new
 decision: the four measured hosts advance every Ambiguous chrome glyph one
 cell with their default settings (above), and the box drawing every border is
 made of (`─ │`) is Ambiguous too. Where a host is set to draw ambiguous
 characters wide (iTerm2's "Ambiguous characters are double-width"), every
-border and arrow already advances two, and TUIkit's answer to that setting is
+border and arrow already advances two, and TUI's answer to that setting is
 autowrap off — a row too wide by its own count loses its last cells rather
 than wrapping and scrolling the screen (see "Autowrap off while the app runs" below) — not a wider
 claim, which would be wrong on every other host. `⇧`, `↖` and `↘` join the
@@ -524,7 +524,7 @@ glyph for the symbols at all (a missing-glyph box) is a different case: it
 needs the keys' names spelled out instead, not a wider claim.
 
 **Spelled out, where the font has no glyph for them.** The symbols are drawn
-in the terminal's font, which TUIkit cannot see, so the user can turn them off
+in the terminal's font, which TUI cannot see, so the user can turn them off
 with `TUIKIT_KEY_SYMBOLS=0` and an app with `Scene.keyNotation(.spelledOut)`;
 the status bar and a menu's shortcut column then write `Ctrl-Shift-Z`, `Esc`,
 `Return`, `Shift-Tab`, `Backspace`, `Del`, `Home`, `End`, `PgUp`, `PgDn`
@@ -566,7 +566,7 @@ macOS 15.8.1:
 
 `↗` therefore joins the arrows and the borders in the class the "Key symbols"
 section describes: one cell with each host's default settings, two where a
-host is set to draw ambiguous characters wide, which TUIkit answers with
+host is set to draw ambiguous characters wide, which TUI answers with
 autowrap off rather than a wider claim. `⊘` is Neutral and measured one cell
 everywhere reached.
 
@@ -722,7 +722,7 @@ before running one, and nobody was there to answer. On 2026-10-19
 set (`ghostty-1.3.1-advance.json`, `ghostty-1.3.1-alternate.json`). The four
 Ambiguous rows join the
 borders' class (two cells where a host draws ambiguous characters wide, which
-TUIkit answers with autowrap off); the quadrants are Neutral. Ink is
+TUI answers with autowrap off); the quadrants are Neutral. Ink is
 **UNMEASURED** on every host (`overhang_card.py` draws the rows; a person reads
 it). As on 2026-10-13 the records were not rewritten, so the rows waited in
 `ChromeGlyphAdvanceTests.awaitingAdvanceMeasurement` until the 2026-10-19 runs,
@@ -783,7 +783,7 @@ fills the whole cell there, which is what the survey's `█` note below
 (*Appearance.block*) leans on too. Not yet measured as pixels (an
 `overhang_card.py` page of the rows would show how far short). (A first card of
 the families drew nothing in colour on Apple Terminal: it was spelt in 24-bit
-SGR, which Terminal.app ignores; TUIkit spells 256 colours there.)
+SGR, which Terminal.app ignores; TUI spells 256 colours there.)
 **A three-row circle** (owner, 2026-10-24: "'Circle' buttons under the
 'Blocks' are giant plusses for the large and extra large size classes") is not
 sampled as the other shapes are: three rows of an ellipse in quadrants were a
@@ -899,7 +899,7 @@ filling its cell to the shared edge, between magenta flanks:
 
 The double-width column was misread at first: Ghostty's capture shows the
 card's labels in that block at single width, and the owner read Ghostty and
-Warp as ignoring DECDWL (2026-10-18). Nothing in TUIkit sends it. The owner
+Warp as ignoring DECDWL (2026-10-18). Nothing in TUI sends it. The owner
 also read the one-arrow rows as good in every host.
 
 So the owner's FB6 rule (`◢◣`/`◥◤` by default, `▲▲`/`▼▼` where a host draws
@@ -915,7 +915,7 @@ triangles.
 
 macOS's search field shows a filled ⓧ at its trailing end while it holds text,
 and empties it on a click (`Tools/SwiftUIProbes/Search field clear button`).
-TUIkit's `.searchable` field draws `✗` (U+2717, `Shortcut.cross`) there
+TUI's `.searchable` field draws `✗` (U+2717, `Shortcut.cross`) there
 instead. ⓧ (U+24E7) is East Asian **Ambiguous**, two cells in a terminal set
 to CJK widths, and a filled circle with a cross needs a colour font's glyph.
 `✗` is a Dingbat of **Neutral** width, one cell by the rule. It is corpus row
@@ -927,7 +927,7 @@ ledger's `awaitingLandingMeasurement`.
 ### A file panel's ↰ — chosen 2026-10-24, advance not yet measured
 
 A macOS panel's toolbar goes to the enclosing folder with a button (and ⌘↑).
-TUIkit's file panel draws that button as `↰` (U+21B0, UPWARDS ARROW WITH TIP
+TUI's file panel draws that button as `↰` (U+21B0, UPWARDS ARROW WITH TIP
 LEFTWARDS) before the path, where it had a `..` (`FilePanelPathBar`). `↰` is
 an arrow of **Neutral** East Asian width, one cell by the rule, where the
 plain arrows `↑ ← ↖` are **Ambiguous** and two cells in a terminal set to CJK
@@ -999,7 +999,7 @@ Apple Terminal drops the colon and reads `4:2` to `4:5` as the backgrounds 42 to
 their own: 5 as blink, 46 and 33 as colours. The colon form of 58 is one
 parameter to both, and each ignores it.
 
-So TUIkit (`TerminalHost.lineStyles`, since 2026-10-18):
+So TUI (`TerminalHost.lineStyles`, since 2026-10-18):
 - spells an underline's colour only in the colon form, `58:5:n` or
   `58:2::r:g:b`, never `58;…` (`SGRState`, `ANSIRenderer`), and spells a
   double line `4:2`, never `21`, which several terminals read as bold-off;
@@ -1033,7 +1033,7 @@ Resetting it moves six of eleven probed classes:
 | 1️⃣ keycap | 2 | **1** |
 | 🖥 bare pictograph · SF Symbol · 🇦 lone RI · 中 · 👍 | unchanged | unchanged |
 
-In the reset state TUIkit's Ghostty compensation is wrong **in both
+In the reset state TUI's Ghostty compensation is wrong **in both
 directions**: it emits no `CUF` for a VS-16 cluster that now under-advances,
 and it emits one for a VS-15 glyph that no longer does. Skin tones, which
 Ghostty is the only measured host not to need stripped, over-advance to 4 and
@@ -1046,7 +1046,7 @@ any program that resets mode 2027 and exits without restoring it leaves every
 later Ghostty session in a state this document mis-describes — this is not a
 hypothetical about user configuration, it is two escape sequences.
 
-**What TUIkit does.** After identification, and only when the host is Ghostty,
+**What TUI does.** After identification, and only when the host is Ghostty,
 it asks `DECRQM` and — if the answer is "supported, and off" — sets the mode
 and restores it on exit. Silence, "not recognised" (`0`) and "permanently
 reset" (`4`) all leave the terminal alone, per the governing rule.
@@ -1098,7 +1098,7 @@ tell an application whether a write will land.
 
 ⚠️ **Do not send DCS queries at startup.** XTGETTCAP (`ESC P + q … ESC \`)
 is not safe: Apple Terminal does not parse DCS and *prints the payload* —
-measured, it left a literal `+q544e` on the screen. Every query TUIkit sends
+measured, it left a literal `+q544e` on the screen. Every query TUI sends
 is a CSI sequence, and every one it sends today is consumed correctly even by
 a terminal implementing none of them — but **not because CSI parsing is
 generic**, which was the reason recorded here until 2026-08-26 and is false.
@@ -1125,7 +1125,7 @@ Verified against all four combinations with two different intermediates
 (`SP`, `$`) and two different final bytes (`p`, `z`) — eight sequences, and
 the `?`-plus-intermediate quadrant is exactly the leaking one.
 
-What follows for TUIkit:
+What follows for TUI:
 
 - The four queries it sends — `CSI c`, `CSI > c`, `CSI > 0 q` and the
   status fence `CSI 5 n` — have no `?` and no intermediate. The first three
@@ -1144,7 +1144,7 @@ What follows for TUIkit:
 - Apple Terminal answers no DECRQM at all — both mode queries were silent —
   so there is nothing to gain by sending one there in any case.
 
-**The fingerprint TUIkit ships** (`TerminalHost.nameFromDeviceAttributes`)
+**The fingerprint TUI ships** (`TerminalHost.nameFromDeviceAttributes`)
 names Apple Terminal, and nothing else, by requiring all three of:
 
 - **XTVERSION silence** — excludes the three hosts above, and kitty,
@@ -1463,7 +1463,7 @@ exchanges that used it. A link that slow loses its answers either way.
   `FrameDiffWriter.repaintRightEdge` runs a scoped second pass.
 - **Bidi controls are painted, not consumed** (measured 2026-09-01): U+202D
   and U+202C come out as the missing-glyph box, one cell each, where the
-  other three hosts swallow them at zero width. This is why TUIkit does not
+  other three hosts swallow them at zero width. This is why TUI does not
   wrap right-to-left runs in an override — see
   [Right-to-left text](#right-to-left-text--measured-2026-09-01-in-part).
 - **The framework's own chrome keeps its ink inside its cells** — card-read on
@@ -1499,7 +1499,7 @@ exchanges that used it. A link that slow loses its answers either way.
   - **⌥-click: forwarded as +8 (meta), symmetric** — the bit is present
     on both the press (`M`) and the release (`m`), and identically
     whether the profile's keyboard **"Use Option as Meta key"** setting
-    is off or on (captured under both). TUIkit maps +8 to
+    is off or on (captured under both). TUI maps +8 to
     `MouseEvent.meta`, so **⌥-click** toggles rows in a multi-selection
     here. Note this is the *opposite* forwarding choice from iTerm2,
     which delivers ⌘ as +8 and swallows ⌥ (see its Input section).
@@ -1553,7 +1553,7 @@ non-default setup.
   `SGR 1` over `30`–`37` paints the bright twin. See "Bold is a COLOUR on some
   hosts"; it ruined every 16-colour image until 2026-09-01.
 - **VS-16 pictographic emoji — SCREEN-MODE DEPENDENT:** on the primary
-  screen paints 2 / advances 2; on the **alternate screen** (where TUIkit
+  screen paints 2 / advances 2; on the **alternate screen** (where TUI
   apps run) paints 2 / **advances 1** — the same under-advance as
   Terminal.app, with the same EAW exceptions (〰️ 〽️ advance 2).
   Compensated with ECH(2)+glyph+CUF(1) by `withITerm2CursorCompensation()`
@@ -1644,7 +1644,7 @@ has to follow its version.
 - **Mouse (byte-captured):** SGR click `0` press/`m` release; wheel
   64/65. macOS translates **Shift+wheel into horizontal wheel deltas**, so
   iTerm2 reports Shift+wheel as the standard horizontal buttons **66/67**
-  (+4 Shift) — reaching apps, unlike Terminal.app. (TUIkit's decoder
+  (+4 Shift) — reaching apps, unlike Terminal.app. (TUI's decoder
   maps 66/67 to `.scrollLeft`/`.scrollRight`; a pre-2026-07 decoder
   collapsed both into `.scrollDown`, which made Shift+wheel always scroll
   right.)
@@ -1652,12 +1652,12 @@ has to follow its version.
   app never sees the click; configurable in Settings → Pointer
   (user-reported). **⌘-click is reported to apps as an ⌥-click**
   (user-reported). There is no escape sequence or variable that exposes
-  the pointer configuration, so TUIkit cannot detect the setting; the
+  the pointer configuration, so TUI cannot detect the setting; the
   example's Mouse page shows a static note under iTerm2 instead. This is
-  why TUIkit's `.contextMenu` accepts a **Ctrl-click** as a secondary
+  why TUI's `.contextMenu` accepts a **Ctrl-click** as a secondary
   trigger in addition to a right-click: where iTerm2 swallows the
   right-click for its own menu, Ctrl-click still reaches the app and
-  opens the TUIkit context menu. (Right-click reaches apps directly in
+  opens the TUI context menu. (Right-click reaches apps directly in
   Apple Terminal, Ghostty and Warp — see those sections.)
 - **Modifier-clicks (byte-captured 2026-07-14, one run per modifier):**
   - **⌘-click → +8 (meta), symmetric.** Six deliberate ⌘-clicks arrived
@@ -1678,7 +1678,7 @@ has to follow its version.
   - Net: iTerm2 forwards **⌘** and swallows **⌥** — the *opposite* of
     Apple Terminal (which forwards ⌥ as +8 and strips ⌘; see its Input
     section). Both deliver the surviving key as the same +8 bit, so
-    TUIkit's `ctrl || meta` multi-select toggle works on both — but any
+    TUI's `ctrl || meta` multi-select toggle works on both — but any
     user-facing hint must name a different physical key per terminal:
     **⌘-click here, ⌥-click in Apple Terminal**.
   - **What a gesture's `modifiers(_:)` hears follows from this.** It reads the
@@ -1694,7 +1694,7 @@ has to follow its version.
   (66/67 + shift), confirming the Shift-wheel decoding above; drags
   report `+32` motion codes with clean SGR releases.
 - iTerm2 honours a large proprietary escape set (OSC 1337) — unused by
-  TUIkit so far.
+  TUI so far.
 - **Cell aspect ratio (image distortion):** iTerm2's cell height:width
   ratio differs from Apple Terminal's (font + line-spacing dependent), so
   an `Image` sized for a fixed 2:1 assumption looked horizontally squished
@@ -1835,7 +1835,7 @@ is deliberately NOT applied here — it would discard a correct rendering.
 - **Mouse (byte-captured 2026-07-14):** textbook SGR (1006). Plain clicks
   are symmetric (`ESC[<0;13;6M` press / `ESC[<0;13;6m` release); wheel is
   64 (up) / 65 (down); **horizontal wheel reports 66/67**, which is
-  exactly what TUIkit's decoder maps to `.scrollLeft`/`.scrollRight`. No
+  exactly what TUI's decoder maps to `.scrollLeft`/`.scrollRight`. No
   quirk found — nothing to work around.
 - *Not yet captured:* modifier-clicks (⌘/⌥). Ghostty is expected to
   forward more than the Apple terminals do (it has no ⌘-click binding of
@@ -1987,7 +1987,7 @@ named foreground it judges illegible; that banded every 16-colour image until
 - ⚠️ **Warp disagrees with itself across screen buffers** — more than any
   other terminal measured. Primary advances VS-16 by 1, alternate by 2;
   keycaps 1 vs 3; ZWJ 4/3/6 vs 5/5/7. The models use the **alternate**
-  screen, where TUIkit apps run. Probe with `PROBE_ALT=1`.
+  screen, where TUI apps run. Probe with `PROBE_ALT=1`.
 - **Cell aspect ratio:** fills `ws_xpixel`/`ws_ypixel` AND answers CSI
   14t/18t, agreeing within ~2% (ioctl **1.956**, CSI 2.000) — essentially
   the 2.0 default, so images need no correction here.
@@ -2003,7 +2003,7 @@ their joiner column — 👩‍🚀 5 → 4, ❤️‍🔥 5 → 4, 👩🏽‍�
 PUA row's rename.) By DSR, then, the keycaps and 〰️ 〽️ no longer
 over-advance on the alternate screen (the battery carries neither ㊗️ ㊙️ nor
 a tag-sequence flag), and the raw ZWJ advance is the dropped form's segment
-sum. Neither changes what TUIkit emits: the keycaps and 〰️
+sum. Neither changes what TUI emits: the keycaps and 〰️
 were left alone at the claim of 2, which they now advance, and the walk drops
 the joiners anyway. What is stale is the record behind
 `TerminalLedgerConformanceTests.knownAdvanceDivergences` — the 08.26 landing
@@ -2052,7 +2052,7 @@ what makes 🖥️ (pictograph + VS16) two cells rather than one plus a stray.
 Measured against the framework's own widths (`data/tuikit-widths.json`), over
 the 78 clusters the native probes covered:
 
-| Host | advance agrees with TUIkit |
+| Host | advance agrees with TUI |
 |---|---|
 | Ghostty 1.3.1 | 63 / 78 |
 | **xterm.js 6.0.0 + unicode-graphemes** | **61 / 78** |
@@ -2072,17 +2072,17 @@ agreement drops from 33 to 31.
 
 ### Where it still disagrees, and with whom
 
-Over the full 145-cluster corpus, 29 rows disagree with TUIkit. They are not
+Over the full 145-cluster corpus, 29 rows disagree with TUI. They are not
 scattered:
 
 | Class | Rows | What happens | Also disagrees |
 |---|---|---|---|
 | `recent_emoji` | 10 | one cell — the addon's tables are Unicode 15 and these are newer | Warp (7 of the same rows) |
-| `spacing_vowel_sign`, `thai_lao` | 7 | one cell where TUIkit says two — a REGRESSION from the default tables, which say two | — |
+| `spacing_vowel_sign`, `thai_lao` | 7 | one cell where TUI says two — a REGRESSION from the default tables, which say two | — |
 | `pua16` (SF Symbols) | 3 | one cell; private-use codepoints carry no width | every native terminal measured |
 | `bare_pictograph` | 3 | one cell, matching Ghostty's advance | Ghostty, iTerm2, Apple Terminal, Warp |
-| `indic_conjunct` | 3 | three cells where TUIkit says two | — |
-| `format_control`, `regional_indicator` | 3 | one cell where TUIkit says zero or two | — |
+| `indic_conjunct` | 3 | three cells where TUI says two | — |
+| `format_control`, `regional_indicator` | 3 | one cell where TUI says zero or two | — |
 
 The SF Symbols row is the one to remember for the demo: the Example's symbol
 page will shift, and no terminal can do better, because a private-use codepoint
@@ -2109,15 +2109,15 @@ Every answer below came back from the terminal itself during the probe:
 
 **The released core has no graphics of any kind.** xterm.js 6.0.0 swallows a
 Kitty transmission, a SIXEL and an iTerm2 inline image alike: no reply, and
-nothing left in the cells. TUIkit's handshake therefore gets silence and falls
+nothing left in the cells. TUI's handshake therefore gets silence and falls
 back to cells, which is what it is for.
 
 **The released image addon does not do Kitty.** `@xterm/addon-image` 0.9.0
 supports SIXEL and iTerm2's IIP — its own README says so, and the word "kitty"
-does not appear in its source. TUIkit speaks neither: it emits the Kitty
+does not appear in its source. TUI speaks neither: it emits the Kitty
 protocol only, so the addon buys the framework nothing today.
 
-**The beta does — partially, and not the part TUIkit needs.**
+**The beta does — partially, and not the part TUI needs.**
 `@xterm/addon-image` 0.10.0-beta.301 (2026-08-30) adds `kittySupport`, and needs
 `@xterm/xterm` 6.1.0-beta for it: the addon registers an APC handler, and
 `registerApcHandler` does not exist in the 6.0.0 core (loading the beta addon on
@@ -2144,11 +2144,11 @@ What can still be said with a source rather than a measurement: the addon's
 README calls the kitty support WIP, and xtermjs/xterm.js#6132, *Kitty graphics:
 Track placements independently from text cells*, was open at the time of
 writing and describes exactly the placement bookkeeping a virtual placement
-needs. TUIkit uses only virtual placements, because one that moves with the
+needs. TUI uses only virtual placements, because one that moves with the
 text is no use to a full-screen layout (see `Terminal graphics protocols.md`
 §4).
 
-**The trap this sets.** An `OK` to the placement query is exactly what TUIkit's
+**The trap this sets.** An `OK` to the placement query is exactly what TUI's
 handshake looks for, so a framework that trusted it would emit placeholder
 cells into a terminal that draws none. Forced on with `TUIKIT_GRAPHICS=1` and
 both betas loaded, the Example's Colors page emitted 444 placeholder cells
@@ -2161,7 +2161,7 @@ accident here, not by design, and that is worth remembering if the beta's
 behaviour changes.
 
 Sixel and IIP are a different question, and an open one: the addon decodes both,
-and TUIkit implements neither. Nothing here recommends adding them — it only
+and TUI implements neither. Nothing here recommends adding them — it only
 records that the browser could receive them.
 
 ### Why not something else
@@ -2200,33 +2200,33 @@ So under tmux the four native detectors all miss (`Apple_Terminal`,
 `iTerm.app`, `ghostty`, `WarpTerminal`) — but tmux is NOT treated as an
 unknown host. It is detected in its own right (`TerminalHost.isTmux`, from
 `$TMUX`) and is a **first-class host with its own width model**, because tmux
-is a **compositor**, not a passthrough: it parses TUIkit's output into its own
+is a **compositor**, not a passthrough: it parses TUI's output into its own
 grid with its own width tables and re-renders. The outer terminal's advance
-quirks apply to *tmux's* output, not TUIkit's, so tmux's model is the one
-TUIkit must satisfy — and `FrameDiffWriter` checks `isTmux` FIRST, ahead of
+quirks apply to *tmux's* output, not TUI's, so tmux's model is the one
+TUI must satisfy — and `FrameDiffWriter` checks `isTmux` FIRST, ahead of
 every native host, so a native variable that survived into the pane cannot
 select the wrong model (see `String.withTmuxCursorCompensation()`).
 
 > **History.** Until 8c1e06d8 (2026-07-15) tmux WAS treated as unknown and got
 > no compensation and no emoji chrome; the paragraphs below were once written
-> to argue that was correct. It was not — tmux's grid diverges from TUIkit's
+> to argue that was correct. It was not — tmux's grid diverges from TUI's
 > width claims (measured, next), so leaving compensation off sheared exactly
 > the glyphs a native host would have had fixed. This section now describes the
 > shipped behaviour; the "live bug" is closed.
 
 **Colour is fine:** tmux 3.7b preserves 24-bit SGR in its grid
 (`ESC[38;2;255;100;0m` survives verbatim) and sets `COLORTERM=truecolor`, so
-TUIkit's depth detection picks truecolor correctly. No `Tc`/`RGB`
+TUI's depth detection picks truecolor correctly. No `Tc`/`RGB`
 `terminal-features` tweak needed at this version.
 
-### Cursor advance — where tmux DISAGREES with TUIkit, and how it is handled
+### Cursor advance — where tmux DISAGREES with TUI, and how it is handled
 
-What matters under tmux is agreement between TUIkit's width tables and
+What matters under tmux is agreement between TUI's width tables and
 *tmux's* wcwidth. Measured, with what the tmux path now does about each
 divergence (`String.tmuxCursorAdvance` + `withTmuxCursorCompensation()` +
 `withSkinToneFallback(scope:)` with the measured keep-set):
 
-| Cluster | tmux 3.7b | TUIkit claims | Handled how |
+| Cluster | tmux 3.7b | TUI claims | Handled how |
 |---|---|---|---|
 | `U+100038` etc. (Plane-16 PUA, **SF Symbols**) | **1** | **2** (`String+TerminalWidth.swift`, the Plane-16 arm) | CUF: one `ESC[1C` after each, landing the cursor at the claimed column |
 | `U+1F5A5`, `U+1F6E1`, `U+1F577`, `U+1F39E`, `U+1F3D9` (bare SMP pictographs) | **1** | **2** | CUF, same as above |
@@ -2241,7 +2241,7 @@ divergence (`String.tmuxCursorAdvance` + `withTmuxCursorCompensation()` +
 | कि को कौ किं ரா កា (a consonant + a spacing vowel sign, `Mc`; tmux 3.7c, 2026-10-19) | **1** | 2 | **not handled**, as above |
 
 **The defect this closed:** the main menu's "Supports SF Symbols" FeatureBox
-renders **three** Plane-16 PUA glyphs. TUIkit reserves 2 cells each (6); tmux
+renders **three** Plane-16 PUA glyphs. TUI reserves 2 cells each (6); tmux
 advances 1 each (3). Before 8c1e06d8 nothing compensated, so — measured in
 tmux's own grid at 100×60 — that line's right border landed at **cell 65**
 while every other line of the box landed at **68**, exactly 3 cells short, one
@@ -2256,7 +2256,7 @@ measure. The compensation's unit tests (`TmuxCompatibilityTests`, and
 no font.
 
 The claim's comment ("SF Mono: 2 cells") is right about the *font* in a native
-terminal and about the width TUIkit paints; tmux's wcwidth has never heard of
+terminal and about the width TUI paints; tmux's wcwidth has never heard of
 SF Symbols and advances 1, which is why the tmux path adds the CUF rather than
 changing the claim. `withSkinToneFallback(scope: .keepingTmuxMerged)` is
 deliberately narrower than the blanket strip: tmux joins 70 of the 134
@@ -2376,7 +2376,7 @@ multiplexer, not a gap in the detection.
 ACTIVE one** — measured with Apple Terminal and Ghostty on one session: it
 returned `ghostty 1.3.1`, the higher `client_activity` (…632 vs …625), and did
 not drift afterwards. `list-clients` enumerates them all individually, each with
-its own termtype, which is what TUIkit uses.
+its own termtype, which is what TUI uses.
 
 **How it is used.** Widths never need the client (the grid is
 client-independent, measured), so this drives exactly one decision: the emoji
@@ -2410,7 +2410,7 @@ Every part measured or load-bearing:
 - **Global at a PID index, never session-scoped**: a session-scoped hook
   shadows the user's ENTIRE global array for that hook name (measured — the
   user's `client-attached[0]` stopped firing), while two global hooks at
-  different indices coexist. The PID index also keeps several TUIkit apps on
+  different indices coexist. The PID index also keeps several TUI apps on
   one server out of each other's slots.
 - **SIGWINCH as the channel**: the app already has a complete, tested SIGWINCH
   pipeline (async-signal-safe flag + self-pipe that wakes the idle-blocked
@@ -2437,7 +2437,7 @@ client that switches between a light and a dark theme changes what the pane is
 painted in without changing which client is attached, so none of the three hooks
 above fires. tmux does know — it sets mode 2031 on its clients at attach and
 reads the `CSI ? 997` they send (see "Colour-palette update notifications") — and
-it offers `client-light-theme` and `client-dark-theme`. TUIkit registers both,
+it offers `client-light-theme` and `client-dark-theme`. TUI registers both,
 identically to the three above (global, PID-indexed, `run-shell -b`, SIGWINCH,
 self-cleaning), because the resize path already throws the screen away and asks
 the terminal for its colours again, which is exactly what a new theme needs.
@@ -2618,7 +2618,7 @@ Over ssh or across detached contexts where environment variables are absent, GNO
 
 VTE's text layout engine is built on Pango and HarfBuzz, but cursor advance for terminal cells adheres strictly to its internal character width tables:
 
-- **VS-16 pictographs (🛡️ ✏️ ❤️):** advances **1 cell** (under-advances against TUIkit's claim of 2).
+- **VS-16 pictographs (🛡️ ✏️ ❤️):** advances **1 cell** (under-advances against TUI's claim of 2).
 - **Bare SMP pictographs (🚀 🦀 🦄):** advances **1 cell** (under-advances against claim of 2).
 - **VS-15 chrome glyphs (⬛︎ ⬜︎):** advances **2 cells** (matches claim of 2). Unlike Apple Terminal, VTE does not require extra cursor compensation for VS-15 chrome; toggles render cleanly.
 - **Lone regional indicators (U+1F1E6…):** advances **1 cell** (under-advances against claim of 2).
@@ -2655,7 +2655,7 @@ Compensated via `String.withGnomeTerminalCursorCompensation()` which uses `withC
 
 An `Image` that is not resizable takes its natural size, as SwiftUI's does
 (decisions B42): its size in points, in cells of the terminal's size in
-points. So TUIkit needs a cell's size in **points**, and the hosts report
+points. So TUI needs a cell's size in **points**, and the hosts report
 pixels — in two different units. Every number here is already measured
 elsewhere in this document (the cell-aspect probe of 2026-07-14, the
 placement records of 2026-09-02 in `Tools/TerminalProbes/data/*-placement.json`,
@@ -2668,7 +2668,7 @@ all on one Retina Mac); this section is what they say about units:
 | iTerm2 3.6.11 | 14 × 34 | 7.125 × 18.32 | ioctl retina-scaled; `14 t` in points | 7.125 × 18.32 |
 | Ghostty 1.3.1 | 16 × 34 | (aspect 2.125) | device pixels | 8 × 17 at scale 2 |
 
-**What TUIkit does with it** (`CellPointsCalibration`, chosen once at startup,
+**What TUI does with it** (`CellPointsCalibration`, chosen once at startup,
 applied to every frame's `TIOCGWINSZ` reading, so a font change moves the
 points with the pixels):
 
@@ -2691,7 +2691,7 @@ points with the pixels):
   every image did before images had a natural size.
 
 `\.imageCellPoints` carries the answer (`nil` for unknown), and an app can
-state it for a terminal TUIkit cannot ask with `.imageCellPoints(_:)`.
+state it for a terminal TUI cannot ask with `.imageCellPoints(_:)`.
 
 ## What an ANSI colour actually paints
 
@@ -2784,7 +2784,7 @@ RGB (248, 248, 248). Two things still follow:
   measured.
   That is a fact about light backgrounds, not about the table.
 
-None of this reaches colours TUIkit chooses itself: those are palette roles,
+None of this reaches colours TUI chooses itself: those are palette roles,
 which resolve to RGB and are stated exactly.
 
 ### Ghostty 1.3.1, default theme — read from its own configuration
@@ -2820,7 +2820,7 @@ Two consequences for a 16-colour image, and neither is a defect:
   subject is saturated blue reads as teal. Terminal.app's slot 4 is a pure
   `(0, 0, 179)`; Ghostty's is a grey-blue two thirds of the way to neutral.
 
-Default background `#282c34` and foreground `#ffffff` — but a TUIkit app paints
+Default background `#282c34` and foreground `#ffffff` — but a TUI app paints
 its own page, so those reach nothing an image draws.
 
 ### Asking the terminal for its colours: OSC 10, 11, 4 and `?996n` — measured 2026-09-14
@@ -3001,7 +3001,7 @@ back. It asks only when stdin is a TTY in raw mode.
   focus going away, nor a report while the app is suspended (the resume asks by
   itself).
 - **Asked again when the terminal says its theme changed:** a `CSI ? 997 ; Ps n`
-  report, which a host sends unprompted while mode 2031 is set — TUIkit sets it
+  report, which a host sends unprompted while mode 2031 is set — TUI sets it
   for the life of the app (see "Colour-palette update notifications"). The report
   names light or dark and no colour at all, so the whole request goes out: what
   the terminal PAINTS now is what nothing has said. No skip rule applies, since a
@@ -3164,7 +3164,7 @@ process just set is set.
 - Where iTerm2's record came from: the same launch that produced its
   reverse-video row, and the same caveat — see that section's provenance.
 
-**What TUIkit does.** `Terminal.enableRawMode` sets mode 2031 straight after
+**What TUI does.** `Terminal.enableRawMode` sets mode 2031 straight after
 focus reporting's `?1004h`, and `disableRawMode` resets it just after `?1004l`,
 so a suspend (SIGTSTP, or a Ctrl-Z the undo keys leave unbound) and quitting both turn it off and resuming turns it back on —
 the mode outlives the process, and the shell never asked to be told about themes.
@@ -3213,7 +3213,7 @@ foreground == background, and as that block emboldened.
 | the bold block only | bold is read as a colour | iTerm2 |
 | the plain block AND the bold one | a named foreground is being made legible | Warp |
 | neither | no adaptation applies | Ghostty, Terminal.app |
-| the space | the host is not painting a cell background across the whole cell — nothing TUIkit emits can help | none seen |
+| the space | the host is not painting a cell background across the whole cell — nothing TUI emits can help | none seen |
 
 **The fix** is not to state a foreground the cell does not use: a cell whose two
 pixels paint the same colour is emitted as a SPACE with only a background. It
@@ -3347,7 +3347,7 @@ not, which is why screen reads the same as raw.
 
 **Consequence for the card, not for the framework.** `ColorDepth.detect()` reads
 `COLORTERM` then `TERM`; Apple Terminal sets `TERM=xterm-256color` and no
-`COLORTERM`, so TUIkit resolves `.palette256` there and never emits a truecolor
+`COLORTERM`, so TUI resolves `.palette256` there and never emits a truecolor
 introducer to it. The card does, deliberately, to build an exact reference — and
 that is the one thing this host cannot be asked for.
 
@@ -3412,7 +3412,7 @@ host):
 | Apple Terminal 455.1 (Basic) | one light-grey band, every glyph (●, secondary text) red | the blue fill, white text, the ● yellow | as intended |
 | iTerm2 | one light-grey band, every glyph red | the blue fill; the secondary text (bright black) is faint on iTerm2's lighter blue | as intended; the faint secondary is the fill frame's, not the reversal's |
 | Warp | one near-white band, every glyph Warp's magenta | a light blue fill, and Warp recolours ALL its text dark, the ● included — its own contrast handling, not the frames | legible both ways |
-| Ghostty 1.3.1, default config | one light-grey band, every glyph red | xterm's picks: slot 4 is Tomorrow Night's steel blue `#81a2be` and the white text on it all but vanishes | xterm's picks do not hold here — but they are not what TUIkit draws on Ghostty, which reports its sixteen (OSC 4) and so gets fills placed against them. `breath_card.py --host ghostty` shows rule.py's picks for that table (page bright red, text white; F = bright black ↔ reverse, B = reverse ↔ black; blue unused), and those read cleanly: text 3.4:1 on the bright-black fill, 9.8:1 on the black |
+| Ghostty 1.3.1, default config | one light-grey band, every glyph red | xterm's picks: slot 4 is Tomorrow Night's steel blue `#81a2be` and the white text on it all but vanishes | xterm's picks do not hold here — but they are not what TUI draws on Ghostty, which reports its sixteen (OSC 4) and so gets fills placed against them. `breath_card.py --host ghostty` shows rule.py's picks for that table (page bright red, text white; F = bright black ↔ reverse, B = reverse ↔ black; blue unused), and those read cleanly: text 3.4:1 on the bright-black fill, 9.8:1 on the black |
 
 Without colour, every host tells the bold+reversed frame from the reversed one at
 a glance (a heavier glyph on all four; iTerm2's is also whiter), and both stand
@@ -3429,7 +3429,7 @@ divider reverse (since 2026-09-29; before, a cursor row there looked like every
 other row). A list's or table's cursor row, a menu's bar, a drop-down's highlighted
 row, a date field's active component and a split view's active divider there
 breathe by weight — reversed on every frame, bold on the
-bright ones — on every host TUIkit identifies, since each
+bright ones — on every host TUI identifies, since each
 draws bold visibly (the bold/bright card above: iTerm2 brightens, Apple Terminal,
 Ghostty and Warp thicken, tmux passes it through). On an unidentified host it holds
 still, reversed. How a host paints bold under reverse video without colour
@@ -3507,7 +3507,7 @@ DECRQSS replies, verbatim:
 - Replayed as SGR, the reply would reverse the pair a second time.
 - Whether iTerm2 stores the pair exchanged or only reports it that way, the reply
   cannot say. What it paints is the question of the card's rows B and D.
-- TUIkit never sends DECRQSS, so nothing reads this today.
+- TUI never sends DECRQSS, so nothing reads this today.
 
 **Ghostty reports the state as it was set, the 7 included** (2026-10-19):
 
@@ -3622,7 +3622,7 @@ the slots unknown.
 
 ### What follows for the framework's own colours
 
-A colour TUIkit chooses for the user — a focus highlight, a disabled label —
+A colour TUI chooses for the user — a focus highlight, a disabled label —
 should not be a fixed ANSI slot, because the slot's appearance is not ours to
 predict. It should be either a **palette role**, which the app's theme defines
 and which resolves to something we did choose, or ``Color/default``, which is
@@ -3675,12 +3675,12 @@ generous, and it is the opposite of how the cursor-advance quirks work,
 where being wrong corrupts output that was fine. See
 `TerminalClient.honoursHyperlinks(_:)`, which says so at the code.
 
-### Which gestures reach it — observed 2026-09-02, in a running TUIkit app
+### Which gestures reach it — observed 2026-09-02, in a running TUI app
 
 Not measurable from inside: the affordance is a mouse gesture over a live
 terminal, which is exactly the gesture no probe in this directory can
 perform. `hyperlink_probe.py`'s card asks a human, and this is that answer —
-the project owner's, in each terminal, with a TUIkit app running and mouse
+the project owner's, in each terminal, with a TUI app running and mouse
 reporting held open. It **replaces** an earlier paragraph here that reasoned
 from the mouse-event measurements instead and got the important one
 backwards.
@@ -3703,7 +3703,7 @@ Three things follow, and the first is the one that was wrong before.
   opens it, on every modifier" — that observation was of the OUTCOME, and the
   outcome cannot tell them apart. Distinguishing them
   needs the application to say when it acted: `Example`'s Buttons & Links
-  page now prints a line every time TUIkit does the opening, and that readout
+  page now prints a line every time TUI does the opening, and that readout
   is the instrument this row should be re-measured with.
 
   It also means the two openers put the URL on **different machines** over
@@ -3749,7 +3749,7 @@ at the renderer's cursor. Both failures are therefore silent by construction,
 and the keyboard route (Enter on a focused link) is *always* the application
 path, so it never reaches the user's browser over ssh at all.
 
-**As of 2026-09-03 TUIkit does not take the application path at all.**
+**As of 2026-09-03 TUI does not take the application path at all.**
 `OpenURLAction`'s system opener is gated behind
 `TerminalClient.urlOpeningSupport` / `TUIKIT_OPEN_URLS`, and both default to
 off. The reasoning is that the framework cannot tell which machine it is on:
@@ -3762,7 +3762,7 @@ answers do not cost the same: guessing local when remote sends somebody's URL
 to a machine they are not at and leaves it in their history, while guessing
 remote when local costs a copy and paste.
 
-So the terminal's column above is the only one TUIkit relies on, and a `Link`
+So the terminal's column above is the only one TUI relies on, and a `Link`
 is not silent as a result: it carries the OSC 8 escape where the host honours
 one, and activating it raises a popover with the destination to read and copy
 (`LinkDisplay`). An app that knows it is local sets `urlOpeningSupport = true`;
@@ -3819,7 +3819,7 @@ derived it. What the table below rests on instead:
 
 **Warp is a decided `false`, not an unknown.** It swallows the sequence like
 the others, so emitting there would be safe; the reason not to is that the
-alternate screen is the only buffer a TUIkit app ever draws into, and the
+alternate screen is the only buffer a TUI app ever draws into, and the
 one string in Warp that bounds its link handling excludes exactly that.
 Claiming a capability this framework's own users could not reach is worse
 than claiming none — it turns "this terminal does not do that" into "this
@@ -3846,7 +3846,7 @@ server per host:
 
 So a link inside tmux inside Ghostty is stored and never shown, until the
 user says `set -ga terminal-features "*:hyperlinks"`. That is tmux's
-decision and not one an application can override, which is why TUIkit emits
+decision and not one an application can override, which is why TUI emits
 regardless: the link costs nothing where it is dropped and works wherever
 the user has told tmux it can.
 
@@ -3897,14 +3897,14 @@ Both are read, not measured here; the card is `hyperlink_probe.py` with
 - **A `file:` URI must name a host.** `URL(fileURLWithPath:)` spells a local
   file `file:///path`, with an empty host, and Ghostty documents refusing such
   links, so a `Link` to a local file did nothing on the host that otherwise
-  handles OSC 8 best. TUIkit now writes `file://<hostname>/path`, as the
+  handles OSC 8 best. TUI now writes `file://<hostname>/path`, as the
   specification asks of applications: over ssh that names the REMOTE machine,
   which is what stops a terminal opening a same-named file on the user's own.
   `file:/path` (no authority at all) is rewritten the same way; `localhost`
   and any explicit host are left alone; so is a `file:` URI when the host name
   is unknown or is not a plain DNS name. The name is `gethostname()`, read once
   above the lower modules (`TerminalClient.localHostName`, in
-  TUIkitTerminalHost, a module of its own since module split step B2) and
+  TUITerminalHost, a module of its own since module split step B2) and
   handed to
   `TerminalHyperlink` — the lower module never calls POSIX — rather than
   `ProcessInfo.hostName`, which may wait on a DNS lookup on macOS (a
@@ -3932,7 +3932,7 @@ host-named file links on iTerm2 is established.
 
 ## The window title: OSC 2, and its stack (XTWINOPS 22 and 23) — measured 2026-10-19
 
-TUIkit titles the terminal's window, or tab, with the window in front's
+TUI titles the terminal's window, or tab, with the window in front's
 title (`TerminalHostState`, refusal review P15; decisions O9, B-O9-13): its
 scene's title, or a root `.navigationTitle` no top bar shows. What it sends,
 and when:
@@ -3982,14 +3982,14 @@ adoption study (C2) expected.
 
 A terminal can draw an app's progress itself, outside its cells: a bar on
 the tab, the window or the pane, seen from other tabs and windows too.
-TUIkit puts a view's `.terminalProgress(_:)` there (`TerminalHostState`, on
+TUI puts a view's `.terminalProgress(_:)` there (`TerminalHostState`, on
 the ledger the window title uses; the Ghostty adoption study, C3, step V8).
 The sequence is ConEmu's progress report, `OSC 9 ; 4`. And it can ask for the
 person's attention: `\.requestAttention` posts a desktop notification where
 the terminal posts one (iTerm2's `OSC 9`), and rings the bell everywhere else
 (C6, step V10; below).
 
-### What TUIkit sends, and to whom
+### What TUI sends, and to whom
 
 | When | Bytes |
 |---|---|
@@ -4011,7 +4011,7 @@ is sent none (it keeps the bar, and passes no repeat on).
 terminal shows none: not supported wherever nothing is sent, supported on
 Ghostty and iTerm2, and under tmux supported
 only while every client attached has tmux's `progressbar` feature — the
-clients tmux passes the bar on to (measured below). TUIkit asks tmux
+clients tmux passes the bar on to (measured below). TUI asks tmux
 (`#{client_termfeatures}`, in the `list-clients` it already runs to name the
 clients) at launch and again whenever a client attaches or detaches, so the
 answer changes while the app runs; a client that has not yet answered
@@ -4028,7 +4028,7 @@ one that attaches later.
 | Ghostty 1.3.1 | yes, by default | `progress-style` (default `true`): "graphical progress bars using the ConEmu OSC 9;4 escape sequence" (its configuration reference, `ghostty.5`) | removed after about 15 s (its VT reference, as the adoption study read it, C3); unmeasured |
 | iTerm2 3.7.6 | yes | an "Enable Progress Bars" setting, and its triggers' help text naming "the progress protocol (OSC 9;4)", both read from the app's binary; the setting's default is not read | unknown |
 | tmux 3.7c | keeps a bar per pane, and passes it on to a client with the `progressbar` feature (iTerm2's, by its built-in table) | its manual: `#{pane_pb_state}`, `#{pane_pb_progress}` "(can be set by application)", and the `progressbar` terminal feature; measured below | kept (measured) |
-| kitty 0.49.1 | yes, from 0.47.0 (`progress_bar`, default `top`) | its changelog and configuration reference. Not a host TUIkit models, so not sent; before 0.38 kitty posted every `OSC 9` as a notification, a report's digits included | unknown |
+| kitty 0.49.1 | yes, from 0.47.0 (`progress_bar`, default `top`) | its changelog and configuration reference. Not a host TUI models, so not sent; before 0.38 kitty posted every `OSC 9` as a notification, a report's digits included | unknown |
 | Apple Terminal 455.1 | no | nothing in the app | — |
 | Warp v0.2026.09.30 | no | nothing in its binary names the sequence | — |
 | GNOME Terminal 3.56.2 | no | nothing in VTE draws OSC 9;4; sequences swallowed cleanly | — |
@@ -4093,7 +4093,7 @@ request to the bell. Nothing reports whether the person saw either.
 | Ghostty 1.3.1 | yes, by default | `desktop-notifications` (default `true`), "using certain escape sequences such as OSC 9 or OSC 777" (`ghostty.5`) | `bell-features`: by default bounces the Dock icon once while unfocused, and marks the tab's title with 🔔 until it is focused |
 | iTerm2 3.7.6 | yes | the sequence is iTerm2's own; its triggers name a notification "posted by a control sequence (OSC 9)", and its default profile's notifications are on (`BM Growl`, in the app's `DefaultBookmark.plist`) | as its profile sets it; the default profile's keys: `Silence Bell` off, `Visual Bell` on, `Flashing Bell` off |
 | tmux 3.7c | **no**: passes no `OSC 9` on (measured) | — | passes it on (measured), and marks the window |
-| kitty 0.49.1 | yes (its desktop-notifications documentation, "the legacy OSC 9 protocol developed by iTerm2"); from 0.38 it drops one that starts `4;` | not a host TUIkit models: the bell | — |
+| kitty 0.49.1 | yes (its desktop-notifications documentation, "the legacy OSC 9 protocol developed by iTerm2"); from 0.38 it drops one that starts `4;` | not a host TUI models: the bell | — |
 | Apple Terminal 455.1 | no | nothing in the app | its profile's |
 | Warp v0.2026.09.30 | no | nothing in its binary names the sequence | — |
 | GNOME Terminal 3.56.2 | no | passes no OSC 9 notification | terminal bell |
@@ -4111,14 +4111,14 @@ client, with the `progressbar` feature or without, and its `BEL` reached both.
   permission for). Ghostty's run needs its consent for a new script path,
   with someone there to give it.
 - **The leak check on the GUI hosts**: both screens, on Ghostty and iTerm2,
-  which TUIkit sends it to, and on Apple Terminal and Warp, which it sends it
+  which TUI sends it to, and on Apple Terminal and Warp, which it sends it
   to only under `TUIKIT_PROGRESS=1`.
 
 ---
 
 ## Graphics protocols, and a parser gap — measured 2026-09-02, iTerm2's placeholders 2026-09-03, classic placements 2026-10-08
 
-Full treatment, including what TUIkit should do about it, is in
+Full treatment, including what TUI should do about it, is in
 `Documentation/Images and terminal graphics/Terminal graphics protocols.md`. Two facts belong here because
 they are facts about the terminals rather than about a design.
 
@@ -4185,7 +4185,7 @@ DECRC does. `TerminalOutputTests` pins the notice's bytes.
 **iTerm2 needs the spec-optional third combining mark** (iTerm2 3.6.11,
 measured 2026-09-03 with `Tools/TerminalProbes/placeholder_spelling_probe.py`).
 The Kitty spec lets a placeholder cell omit the diacritic that carries the
-image id's high byte, inheriting it from the cell to the left, and TUIkit did
+image id's high byte, inheriting it from the cell to the left, and TUI did
 omit it. kitty and Ghostty read a two-mark cell and a three-mark cell
 identically; iTerm2 draws NOTHING for the two-mark cell and the picture for the
 three-mark one, whichever way the foreground is spelled (24-bit, or the
@@ -4208,7 +4208,7 @@ a success flag with no value — while supporting no Sixel at all. Use DA1.
 
 ### Deflated transmissions (`o=z`) — asked by the handshake; Ghostty acknowledges and draws them (measured 2026-10-19), the other hosts NOT YET MEASURED
 
-TUIkit's startup handshake asks a second question since 2026-09-04: whether a
+TUI's startup handshake asks a second question since 2026-09-04: whether a
 zlib-deflated transmission is understood. It transmits a 32×32 block as
 twenty-six deflated bytes with `o=z` and `q=0`, and credits an `OK` under that
 id (`TerminalGraphicsQuery.compressionProbeID`). The size is the honesty of
@@ -4240,7 +4240,7 @@ rerun, whose replies are identical.
 
 Run `Tools/TerminalProbes/graphics_compression_probe.py` inside each host: it
 asks both questions and prints the same ramp raw and deflated, one under the
-other, for a person to compare. Until a host has a row here, the answer TUIkit
+other, for a person to compare. Until a host has a row here, the answer TUI
 acts on is the host's own at startup — and `TUIKIT_GRAPHICS_COMPRESSION=0`
 turns it off for a host that acknowledges and then draws nothing.
 
@@ -4273,7 +4273,7 @@ advances one cell per placeholder and draws the card correctly (hue L→R,
 fade T→B) — so iTerm2's decode is specification-ordered and its only defect is
 that it treats the spec-optional third diacritic as required (the desktop bug
 report, and `KittyGraphics+Placeholders.swift`, cover that; the encoder writes
-all three marks, so TUIkit is unaffected). Either way it is one cell, which is why the exemption is by
+all three marks, so TUI is unaffected). Either way it is one cell, which is why the exemption is by
 codepoint (`Unicode.Scalar.terminalImagePlaceholder`) rather than gated on
 detection.
 
@@ -4281,7 +4281,7 @@ Three further things that run settled, each of which the encoder would
 otherwise have had to guess:
 
 - **Run-length elision works.** A cell with no diacritics continues the
-  previous one; a 12-cell row costs a fraction of its explicit form. TUIkit does not
+  previous one; a 12-cell row costs a fraction of its explicit form. TUI does not
   use it — see `Documentation/Images and terminal graphics/Terminal graphics protocols.md` — because a
   self-describing cell survives being written out of sequence and an elided
   one does not.
@@ -4303,7 +4303,7 @@ size, not per frame.
 
 ### A line on a row boundary: Kitty classic placements — measured 2026-10-08, Ghostty 1.3.1 and iTerm2 3.7.3
 
-Every separator TUIkit draws between rows costs a whole row:
+Every separator TUI draws between rows costs a whole row:
 `.listRowSeparator` puts its faint `─` rule on a line of its own. (A vertical
 divider, a column of `│`, costs a column instead, and is not the question
 here.) A Kitty **classic**
@@ -4440,7 +4440,7 @@ intends. So one z for both hosts is **untested**, not ruled out.
 #### Rewrites, deletes and motion (Q5–Q7)
 
 - **Rewrites keep the line on both hosts:** `ESC[2K` then text (the way every
-  whole-line rewrite TUIkit sends begins), text written over it, and ECH then
+  whole-line rewrite TUI sends begins), text written over it, and ECH then
   text. The untouched control row kept its line too.
 - **Delete and re-place, both hosts.** `a=d,d=i,i,p` removes that one line
   and leaves the other. The same `(i, p)` placed again without re-sending the
@@ -4474,7 +4474,7 @@ On Ghostty, `ESC[2J` and a screen round trip each take both the line and the
 strip, and the strip has to be sent again on the alternate screen. On
 iTerm2, `ESC[2J` hides the line and keeps the strip. A line placed on the
 alternate screen shows on the primary one after `?1049l`, and is still there
-after `?1049h`. So a line TUIkit fails to delete by id is left on the shell's
+after `?1049h`. So a line TUI fails to delete by id is left on the shell's
 screen.
 
 #### Resize (Q9)
@@ -4521,7 +4521,7 @@ window going from 99 × 35 to 123 × 37.
 On both hosts, a strip with no placement left was placed again without being
 re-sent (Q6), and `d=I` frees a strip's data.
 
-#### What TUIkit draws — built 2026-10-24, from the records above; looked at live in Ghostty the same day
+#### What TUI draws — built 2026-10-24, from the records above; looked at live in Ghostty the same day
 
 The `.hairline` list separator look (`ListSeparatorStyle`, decisions
 A-D6L-2) draws on the hosts below. The table is the measured one above, and
@@ -4556,7 +4556,7 @@ not strips: on Ghostty the screen switch frees them; under `TUIKIT_HAIRLINES=1`
 on iTerm2 a line can be left behind.
 
 Open, to be read off the review: whether Ghostty's line ends short, exact or
-past the run's last cell (Q3's OPEN item, now on TUIkit's own rows); and the
+past the run's last cell (Q3's OPEN item, now on TUI's own rows); and the
 look beside the focused and selected rows, which draw no line.
 
 ---
@@ -4611,7 +4611,7 @@ newer than its columns, and some moved: see "iTerm2 3.7.6 re-measured" and
 
 tmux is a fifth advance model and is measured separately (its grid is
 client-independent, so it needs no per-client column) — see
-[the tmux cursor-advance table](#cursor-advance--where-tmux-disagrees-with-tuikit-and-how-it-is-handled).
+[the tmux cursor-advance table](#cursor-advance--where-tmux-disagrees-with-tui-and-how-it-is-handled).
 
 ### A skipped cell is not a painted cell — Terminal.app, FIXED 2026-08-23
 
@@ -4892,7 +4892,7 @@ a battery only contains what somebody already thought to doubt.
 
 ### The claim follows the host now — 2026-08-26
 
-For most of this document's life the **claim** — how many cells TUIkit's layout
+For most of this document's life the **claim** — how many cells TUI's layout
 reserves for a cluster — was host-independent, on the reasoning that it must
 cover the widest painter so content is never overwritten, with narrower painters
 taking a blank cell rather than a shear. That holds when the spread is one cell
@@ -4900,7 +4900,7 @@ taking a blank cell rather than a shear. That holds when the spread is one cell
 spread is nine, which is what 👨‍👩‍👧‍👦 costs on a host that does not compose
 ZWJ sequences.
 
-Where the claim could not stretch, TUIkit **substituted**: stripped the
+Where the claim could not stretch, TUI **substituted**: stripped the
 Fitzpatrick modifier, so 👍🏽 reached the screen as 👍. That kept every row
 aligned and changed what the user wrote. Taken to its conclusion the same
 remedy turns 🏳️‍🌈 into 🏳️ — a pride flag into a white flag, which is not a
@@ -4941,12 +4941,12 @@ rows, whereas the strip at least aligns them.
 **A tmux rendering defect, distinct from all of this.** While checking the
 Example emoji page under tmux, both the BMP skin-tone row and the ZWJ row came
 out visually scrambled — brackets displaced, adjacent clusters merged. That is
-**not** a width miscount and not TUIkit's: drawing the identical row with no
-TUIkit involved, `[c] [c] [c] …` written straight to a tmux pane, reproduces it
+**not** a width miscount and not TUI's: drawing the identical row with no
+TUI involved, `[c] [c] [c] …` written straight to a tmux pane, reproduces it
 exactly, and the arithmetic is right to the cell (measured 29, expected 29).
 tmux's cursor accounting says 2 per cluster and its painting does not match.
 The BMP row is broken identically on `main`, so it predates the width work. It
-is a tmux bug to report, not a TUIkit one to fix.
+is a tmux bug to report, not a TUI one to fix.
 
 **How it was caught** is the point. The unit tests passed, the geometry probes
 passed, and the defect appeared only when the Example emoji page was rendered
@@ -5015,7 +5015,7 @@ regression disappeared. A null A/B (the same binary against itself) confirmed
 the harness resolves ~1% on that scenario, so the effect was real and so is its
 absence.
 
-**What this does NOT cover.** Only the two classes TUIkit was substituting —
+**What this does NOT cover.** Only the two classes TUI was substituting —
 the ones that can change a message. Classes that merely misalign are unchanged
 and still limitations: Warp's keycaps and 〰️ at 3 cells against a claim of 2,
 and its tag-sequence flags at 3. Each needs its own measured rule, and none of
@@ -5088,7 +5088,7 @@ fixed with `CUF`: paint equals advance, so there is no gap to close. The
 remedies are a host-dependent width claim — which the whole model is built to
 avoid, since a claim must be host-independent — or a skin-tone-style
 substitution down to the first component. Neither is obviously worth it for a
-class TUIkit's own chrome never emits, so it stays documented rather than
+class TUI's own chrome never emits, so it stays documented rather than
 fixed. What has changed is that the cost is now known: it is one host, not
 two, and it is Warp.
 
@@ -5145,7 +5145,7 @@ never design around one specific macOS modifier key being available.
 
 Recorded 2026-10-03, adding SwiftUI's `onKeyPress` and `KeyPress.Phases`.
 Since 2026-10-04 this is the legacy encodings' story only: where the terminal
-speaks the kitty keyboard protocol, TUIkit turns on its event types and both
+speaks the kitty keyboard protocol, TUI turns on its event types and both
 are reported (see "The kitty keyboard protocol").
 From the legacy encodings' definitions, not a per-terminal capture: a key
 event is the bytes the key produces, sent when it goes down and again for each
@@ -5153,7 +5153,7 @@ auto-repeat while it is held, with nothing to tell a repeat from a fresh press.
 Releasing a key sends nothing. So `KeyPress.phase` is always `.down`, a
 `.repeat` handler hears every press, and `KeyPress.Phases` has no `.up`. The
 kitty keyboard protocol's "report event types" enhancement reports all three
-explicitly; TUIkit negotiates it where the terminal answers (2026-10-04).
+explicitly; TUI negotiates it where the terminal answers (2026-10-04).
 
 ### Caps Lock and the numeric pad are never reported — in the legacy encodings
 
@@ -5165,15 +5165,15 @@ typed under Caps Lock arrives as the uppercase character, indistinguishable
 from Shift and that letter; a keypad digit arrives as the digit, unless the
 keypad is in application mode (DECKPAM). The kitty keyboard protocol does
 carry both (`caps_lock`, `num_lock`, and distinct keypad key codes) once an
-app negotiates it, and TUIkit does where the terminal answers (2026-10-04,
+app negotiates it, and TUI does where the terminal answers (2026-10-04,
 "The kitty keyboard protocol").
 
 **Application mode, since 2026-10-05.** DECKPAM (`ESC =`) and its cursor-key
 twin DECCKM (`CSI ? 1 h`) outlive the program that set them: a killed `vim`,
 `less` or `htop`, or a shell that sends terminfo's `smkx` without `rmkx`,
 leaves them on. The keys then arrive in their SS3 spellings, which the parser
-dropped, all but F1–F4, so a TUIkit app started after such a program had dead
-arrow keys. Now TUIkit puts both back at startup and on resume ("Inherited
+dropped, all but F1–F4, so a TUI app started after such a program had dead
+arrow keys. Now TUI puts both back at startup and on resume ("Inherited
 state: the defaults raw mode asserts"), and reads every SS3 spelling anyway,
 for a terminal that sends them regardless (xterm's table, ctlseqs):
 
@@ -5213,7 +5213,7 @@ Ghostty's VT reference (`Documentation/Terminals/Ghostty VT reference adoption s
 
 So in the legacy encodings `EventModifiers.capsLock` never appears in a key
 press's modifiers, and `.numericPad` only on a keypad in application mode,
-which TUIkit turns off. Where the protocol is on (2026-10-04) they
+which TUI turns off. Where the protocol is on (2026-10-04) they
 do, as SwiftUI reports them — Caps Lock on every key while it is on, the
 numeric pad on a keypad key (not on the arrows, which macOS also flags). A
 keyboard shortcut ignores both either way, as AppKit's key equivalents do, so
@@ -5243,7 +5243,7 @@ key's.
 **Under the kitty keyboard protocol too** (decided 2026-10-04, after a review
 found the opposite shipped). The protocol does report Shift as a bit on a key
 that typed text — `+` is `CSI 61:43;2;43u`, Shift-`=` typing `+` — and the
-decoder first kept it. Every handler in TUIkit was written against the legacy
+decoder first kept it. Every handler in TUI was written against the legacy
 encodings, where `+` has no Shift, and some read the flag: a focused
 `Stepper` or `Slider` steps by its Shift multiplier when Shift is held, so
 under the protocol `+` and `_` stepped by five where they step by one
@@ -5280,7 +5280,7 @@ fourth bit — so the same keypress reaches an app as either of:
 | xterm Meta bit | `ESC[1;9C` | terminals configured "Option as Meta", CSI form |
 | ESC prefix | `ESC ESC[C` | the same setting's other encoding ("Esc+") |
 
-TUIkit has no `meta` flag on a **key** event (unlike `MouseEvent`, where the
+TUI has no `meta` flag on a **key** event (unlike `MouseEvent`, where the
 bit is real and the sections above measure what each terminal puts in it), and
 there is no separate Meta key on a Mac keyboard for the bit to mean instead.
 So `KeyEvent.parse` folds Meta onto `alt`, and all three spellings above decode
@@ -5321,7 +5321,7 @@ A legacy report's coordinate past 223 does not fit its byte. xterm sends a
 0 byte past the end (from its source; not captured), which the parser
 refuses with the report. A terminal that let the byte wrap would spell
 column or row 251 as `ESC` (a hypothesis: no measured terminal wraps, and
-those measured with a mouse report in SGR, 1006, which TUIkit asks for). Read as a new sequence, that `ESC` and the row's byte
+those measured with a mouse report in SGR, 1006, which TUI asks for). Read as a new sequence, that `ESC` and the row's byte
 arrived as an Option chord; since 2026-10-18 an `ESC` in a coordinate's place
 cuts the report short only when `[`, `O` or a string introducer follows it,
 and is otherwise the coordinate, the report dropped as malformed.
@@ -5338,7 +5338,7 @@ Terminal.app and pressed the two chords. Do that before relying on either
 reading. The same run should cover iTerm2, Ghostty and Warp, whose Option
 handling is a per-profile setting in each ("Esc+" vs "Meta" vs "Normal").
 
-Since 2026-10-24 TUIkit learns from these spellings whether Option is sent as
+Since 2026-10-24 TUI learns from these spellings whether Option is sent as
 Meta (`TerminalCapabilities.Feature.optionAsMeta`): an Option chord on a
 printable key settles it as supported. Option-B, -D and -F do not count, because
 `ESC b`, `ESC d` and `ESC f` are what key maps send for ⌥←, ⌥⌦ and ⌥→ with the
@@ -5450,7 +5450,7 @@ encoding, since `cat` pushes no kitty flags):
 | ⌃, | not reported | `,` (Control dropped) | `,` (Control dropped) | `CSI 44;5u` |
 
 Plain ⌃\\ was not separately reported for any of the four (Apple Terminal's
-"none do anything except ⌃⇧\\" may cover it; to confirm). TUIkit acts on the
+"none do anything except ⌃⇧\\" may cover it; to confirm). TUI acts on the
 first two rows: `TerminalClient.quitByteAliases` has Apple Terminal alias
 ⌃⇧\\ (and ⌃|) only, iTerm2 and Warp both, and Ghostty ⌃4 only; tmux and an
 unidentified host, not measured, may alias both. So on Apple Terminal a ⌘4
@@ -5458,7 +5458,7 @@ shortcut (⌃4 under `.control`) neither masks the quit nor is offered an
 unclaimed ⌃\\ — the chord sends nothing there, so it cannot fire at all —
 and on Ghostty in its legacy encoding a ⌃| or ⌃⇧\\ binding leaves the quit
 live, the chord arriving as itself. The ⌃, row is recorded only; nothing in
-TUIkit depends on it yet.
+TUI depends on it yet.
 
 **Ctrl-minus arrives as 0x1F** (2026-10-04, from the encodings' definitions,
 not a capture): the C0 unit separator, `^_`, which most terminals also send for
@@ -5472,12 +5472,12 @@ kitty keyboard protocol the three arrive apart.
 C0 record separator) — the owner's `cat -v` reading, 2026-10-05, Apple Terminal
 (version not recorded). Many terminals send 0x1E for Ctrl-6 itself; on Apple
 Terminal only the shifted chord reaches the app. `KeyEvent.parse` drops 0x1E,
-and nothing in TUIkit is bound to it (it was weighed, and declined as too
+and nothing in TUI is bound to it (it was weighed, and declined as too
 obscure, for the mouse hand-off key: decisions A13).
 
 **Ctrl-C and Ctrl-Z do arrive** (corrected 2026-09-24; this table used to list
 them as "taken by the shell's job control"). That is true of a cooked terminal,
-not of TUIkit's: `Terminal.enableRawMode()` turns `VINTR` and `VSUSP` off (until
+not of TUI's: `Terminal.enableRawMode()` turns `VINTR` and `VSUSP` off (until
 2026-10-06 it cleared `ISIG` altogether; see "The quit key, ⌃\\" below), so
 the driver sends 0x03 and 0x1A as bytes instead of raising SIGINT and SIGTSTP,
 and they decode as `.character("c")` and `.character("z")` with `ctrl`. What becomes of them is the
@@ -5493,7 +5493,7 @@ the keyboard.
 
 #### The quit key, ⌃\\ — the driver's, since 2026-10-06
 
-The owner's request: ⌃\\ is the backup to ⌃C, which TUIkit hands the app as a
+The owner's request: ⌃\\ is the backup to ⌃C, which TUI hands the app as a
 key, and it has to work when the app has HUNG. So it is the kernel's, not the
 app's. `Terminal.rawModeAttributes(from:)` keeps `ISIG` as the user had it and
 turns every signal character off but `VQUIT`: `VINTR` (⌃C) and `VSUSP` (⌃Z),
@@ -5543,7 +5543,7 @@ Measured on Darwin 24.6 (macOS 15.8), on a pseudo-terminal with `ECHO`,
 bytes and raise nothing whether `VSTATUS` and `VDSUSP` are left as inherited
 (0x14, 0x19) or turned off — Darwin's tty driver checks `VSTATUS` only in
 canonical mode with `IEXTEN`, and `VDSUSP` only with `IEXTEN` — and 0x1C raises
-`SIGQUIT`. TUIkit turns the two off anyway, so nothing rests on that. On Linux,
+`SIGQUIT`. TUI turns the two off anyway, so nothing rests on that. On Linux,
 `n_tty` never treats NUL as a signal character (`__DISABLED_CHAR` is cleared
 from its map), so a ⌃Space (NUL) is still a key; with `ISIG` on it reads input
 on its ordinary path rather than its raw-mode fast path, a cost per byte of
@@ -5610,7 +5610,7 @@ A framework rule rather than a terminal measurement, recorded here because it
 is the other half of the collision above. The letters the C0 range leaves
 deliverable are not all free either: the macOS text system (Cocoa's
 `StandardKeyBinding.dict`) gives a Control letter an Emacs editing command,
-readline gives Option-B and Option-F the word motions, and TUIkit's text
+readline gives Option-B and Option-F the word motions, and TUI's text
 controls read them the same way, from one table (`TextEditingCommand`). The ⌘
 shortcuts an app is most likely to carry land on them:
 
@@ -5677,7 +5677,7 @@ Apple Terminal and pressed ⌃S and ⌃⌥S: nothing appeared. The tty was to bl
 not the terminal: IXON flow control takes ^S as XOFF and pauses output instead of
 delivering the byte (^Q resumes). ICANON also holds input back from `cat` until
 Return, but the tty echoes each byte as it arrives, so with IXON cleared that
-echo is a reading. TUIkit's raw mode clears IXON and ICANON
+echo is a reading. TUI's raw mode clears IXON and ICANON
 (`Terminal.enableRawMode`), so `0x13` reaches the parser;
 `NavigationSplitViewSidebarChordTests` pins that through the `readSource` seam,
 and pins `ESC 0x13` too.
@@ -5742,7 +5742,7 @@ chosen against what reaches an app:
   documented route and Home and End a convenience; ⇞ ⇟ are bound to nothing.
 
 **To measure — `Tools/TerminalProbes/key_probe.py`**, run inside each host from
-its default profile, on both screens (`PROBE_ALT=1` is the one TUIkit draws on):
+its default profile, on both screens (`PROBE_ALT=1` is the one TUI draws on):
 it asks for each of the keys above in turn and records the bytes that arrived, or
 that NOTHING did, within six seconds. Record whether the Mission Control
 shortcuts are on.
@@ -5768,7 +5768,7 @@ its key map instead substitutes a *different* key:
 (The VT220 block is 25–34 with 27 and 30 unassigned, which is where the gaps
 come from. Option+Fn is aliased the same way onto F(n+5).)
 
-The collision is unresolvable from the bytes, so TUIkit picks the reading that
+The collision is unresolvable from the bytes, so TUI picks the reading that
 is reachable on a Mac keyboard: **on Apple Terminal only**, `Terminal.finalize`
 rewrites a decoded F13…F20 as Shift+F5…Shift+F12
 (`KeyEvent.normalizingLegacyShiftedFunctionKeys()`). Elsewhere those sequences
@@ -5788,9 +5788,9 @@ Added 2026-10-18 with the menu bar (lane O13; the owner's A28 answer of
 2026-10-04 and the O13-KEYS default: F10, Alt and a letter, and a click). Nothing
 here has been captured from a key press yet: pressing a key needs a person at the
 keyboard, which the lane did not have. What follows is what each encoding and the
-hosts' documentation say, and how TUIkit reads it.
+hosts' documentation say, and how TUI reads it.
 
-| Key | What a host sends | TUIkit reads it as | Under the kitty keyboard protocol |
+| Key | What a host sends | TUI reads it as | Under the kitty keyboard protocol |
 |---|---|---|---|
 | **F10** | `ESC[21~`, the VT220 code, in the xterm family and Apple Terminal alike (Apple Terminal re-codes only the *shifted* function keys, above) | F10: the menu bar's first menu opens (`_MenuBarCore.isMenuBarKey`) | `CSI 21~`, unchanged |
 | **⌥ and a letter** | `ESC` and the letter where Option is sent as Meta (Apple Terminal's "Use Option as Meta key", iTerm2's Esc+, Ghostty's `macos-option-as-alt`; none the default — expected, not measured); otherwise the character Option composes (⌥F is `ƒ`), which no binding names | Alt and the letter: the menu whose letter it is opens (one per title, no two the same: `MenuBarMnemonics`), below any app shortcut on the chord (a framework default) | `CSI <letter>;3u` where the host reports Option as Alt |
@@ -5808,7 +5808,7 @@ the click as well, and why every command's own shortcut works with the bar
 closed.
 
 **Showing the letters (2026-10-24, lane MENUBAR).** Each title's letter is
-underlined while Option is held — where the terminal tells TUIkit that Option
+underlined while Option is held — where the terminal tells TUI that Option
 is held, which only a modifier key reported on its own does: the kitty keyboard
 protocol's flag 8, "report all keys as escape codes" (below). So the letters
 show in the hosts documented to speak the protocol — iTerm2, Ghostty, Warp,
@@ -5843,7 +5843,7 @@ two purposes, and a modifier on `?` for showing every tooltip). `?` reveals the
 focused control's tooltip (`TooltipState.helpKey`); `⌥?` shows every tooltip on
 the screen, or hides them again — the menu bar's Help ▸ Show All Tooltips.
 
-| Key | What a host sends | TUIkit reads it as | Under the kitty keyboard protocol |
+| Key | What a host sends | TUI reads it as | Under the kitty keyboard protocol |
 |---|---|---|---|
 | **?** | `?` | the help key, unless a focused text control types it | the text `?` |
 | **⌥?** | `ESC ?` where Option is sent as Meta (none the default, as for the menu bar's letters above); otherwise the character Option composes (`¿` on a US layout), which is typed or ignored | Alt and `?`: every tooltip shows, or hides. A focused text field does not type an Option chord, so it reaches the key inside a field too, where `?` alone is typed | `CSI 47:63;4u` (Shift and Alt on `/`, its shifted key `?`) where the host reports Option as Alt |
@@ -5868,9 +5868,9 @@ four until 2026-10-05. It reads them now, for the first parameter 1 and a
 modifier code from 1 to 16, and nothing else ending in those letters.
 
 `CSI 1;m R` is also a cursor-position report for row 1, column m. That is safe
-to read as F3 only because TUIkit asks for no cursor report: since the startup
+to read as F3 only because TUI asks for no cursor report: since the startup
 exchanges moved to the `CSI 5 n` fence (same day, "Asking the terminal —
-Device Attributes"), nothing in TUIkit sends `CSI 6 n`, and
+Device Attributes"), nothing in TUI sends `CSI 6 n`, and
 `CursorReportRequestScanTests` fails if any code under `Sources/` spells one.
 Anything that brings a cursor-report request back must stop decoding `R`
 first, or its report arrives as Shift-F3 and the like. (An app that writes
@@ -5880,7 +5880,7 @@ there and are decoded by `KittyKeyDecoder`.
 
 ## The kitty keyboard protocol — documented, NOT yet measured
 
-Added 2026-10-04 with TUIkit's negotiation of it (decisions A4). **Nothing in
+Added 2026-10-04 with TUI's negotiation of it (decisions A4). **Nothing in
 this section has been captured from a real terminal yet.** It records what the
 specification says and what each terminal's own documentation, or the
 specification's list of implementations, says, so the measurements can be
@@ -5890,7 +5890,7 @@ does it take) and `Tools/TerminalProbes/keyboard_events_probe.py` (what each key
 sends with the flags pushed). Replace each "documented" below with a
 version-stamped measurement as it is made.
 
-### What TUIkit does
+### What TUI does
 
 The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
 
@@ -5907,7 +5907,7 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
   measured clean on Apple Terminal 455.1 ("Asking the terminal — Device
   Attributes"), so an unidentified Apple Terminal behind ssh is asked safely.
 - **Pushes** `CSI > 31 u` where it answered, and asks again: a terminal may
-  take only some flags, and the second answer is what TUIkit reads keys by. If
+  take only some flags, and the second answer is what TUI reads keys by. If
   it took flag 8 without flag 16, the push is replaced by one without 8 (see
   the flags below). One round trip in all, two with that replacement, and
   only on a terminal that speaks the protocol. **A second answer that misses the
@@ -5922,7 +5922,7 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
   keys leave unbound), on `SIGINT` and `SIGTERM` (an
   orderly shutdown), and on any signal that would end the process with
   nothing run on the way out — a trap, a bad access, `abort`, `SIGQUIT`,
-  `SIGSYS`, and the quiet terminations nothing in TUIkit handles (`SIGHUP`,
+  `SIGSYS`, and the quiet terminations nothing in TUI handles (`SIGHUP`,
   `SIGUSR1`, `SIGUSR2`, `SIGALRM`, `SIGVTALRM`, `SIGPROF`, `SIGXCPU`,
   `SIGXFSZ`, each taken only while the app has not installed a handler or an
   ignore of its own) — always before leaving the alternate screen; **pushes
@@ -5936,7 +5936,7 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
   the alternate screen and waited half a minute for a key).
   Until 2026-10-04's review only the crash signals were taken, and a
   `kill -HUP` left the flags pushed and the line discipline raw. The specification keeps a separate
-  flag stack per screen and TUIkit pushes on the alternate one, so the shell's
+  flag stack per screen and TUI pushes on the alternate one, so the shell's
   own screen is never changed.
 - **Quits on ⌃\\'s report**: under the protocol the user's quit key is a
   `CSI u` report the line discipline never turns into `SIGQUIT`, so the input
@@ -5949,11 +5949,11 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
   (`.disambiguatedKeys` to `.numericPad`), so an app can tell which of
   SwiftUI's keyboard features work here.
 - **Stays out** where `TUIKIT_KEYBOARD_PROTOCOL=0` is set: the user's way out
-  should a terminal claim the protocol and encode keys in a way TUIkit
+  should a terminal claim the protocol and encode keys in a way TUI
   misreads, as `TUIKIT_HYPERLINKS=0` is for links.
 
 `Tools/Smoke/keyboard_protocol_smoke.py` checks all of that against a PTY
-that plays a terminal by the specification (CI runs it). That checks TUIkit,
+that plays a terminal by the specification (CI runs it). That checks TUI,
 not any terminal.
 
 ### The flags, and why all five
@@ -5971,7 +5971,7 @@ a plain letter is no longer sent as its text: `a` arrives as `CSI 97 u`. Text
 reconstructed from key codes would be wrong for every shifted character on a
 non-US layout, every dead key (´ then e), every compose sequence and every
 input method. Flag 16 puts the text the terminal composed back into the report
-(`CSI 97 ; ; 97 u`, `CSI 101 ; ; 233 u` for é), and TUIkit takes the text as
+(`CSI 97 ; ; 97 u`, `CSI 101 ; ; 233 u` for é), and TUI takes the text as
 the keystroke, as it took the legacy bytes. Text arrives without the Control or
 Option it consumed (Option-S typing ß arrives as ß, as it does in a legacy
 encoding) and with Shift as the text's case ("Shift on a printable key is
@@ -5980,7 +5980,7 @@ the character, not a bit").
 **What 8 costs:** with it on, Return is `CSI 13 u`. A process that dies with
 the flags pushed and the alternate screen still up leaves a shell that cannot
 read Return, so `reset` cannot even be typed. Hence the pop on every signal
-that ends the process and that TUIkit can catch (above). `SIGKILL` (and an
+that ends the process and that TUI can catch (above). `SIGKILL` (and an
 out-of-memory kill) cannot be caught: the terminal is then left on the
 alternate screen with the flags pushed. Closing the tab recovers it, and so does any terminal action that
 resets the terminal (kitty's "reset terminal", for one); typing `tput rmcup`
@@ -6012,7 +6012,7 @@ the keypad.
   the press's modifiers; a release of a key it did not see go down is decoded
   from its code.
 - **Bit 8 means Super (⌘), not Meta.** In xterm's legacy modifier parameter the
-  same bit is Meta, which terminals send for Option, and TUIkit's legacy parser
+  same bit is Meta, which terminals send for Option, and TUI's legacy parser
   reads it as Option ("Option arrives in two different spellings"). Under the
   protocol a chord on Super that types no text is **delivered as ⌘**
   (`KeyEvent.command`; the owner's ruling B-D1K-1, 2026-10-23 — until then it
@@ -6063,7 +6063,7 @@ the keypad.
   send nothing for it that tells it from another key, so it arrives only
   here. Which terminals report it, and under which flags, is unmeasured: the
   specification lists it among the functional keys.
-- Keys TUIkit has no `Key` for are dropped: Insert, the keypad's Begin, Print
+- Keys TUI has no `Key` for are dropped: Insert, the keypad's Begin, Print
   Screen, Pause, F21 and up, the media keys.
 
 ### Which terminals — documented
@@ -6075,11 +6075,11 @@ setting) and xterm.js. Of the hosts measured elsewhere in this document:
 
 | Host | Documented | Notes |
 |---|---|---|
-| Apple Terminal | **no** | not in the list; TUIkit does not ask |
+| Apple Terminal | **no** | not in the list; TUI does not ask |
 | iTerm2 | yes | in the list; iTerm2's own CSI u page says its CSI u mode "is no longer recommended. Applications should implement the Kitty keyboard protocol instead". Which flags it takes, and what Option set to Esc+ sends under the protocol, unmeasured |
 | Ghostty | yes | in the list; its configuration reference names no setting for it |
 | Warp | yes | in the list, by an issue comment; nothing else known |
-| tmux | no | not in the list. Its own `extended-keys` (CSI u or modifyOtherKeys) is a different scheme TUIkit does not ask for; under tmux the query is answered (or not) by tmux, not by the client |
+| tmux | no | not in the list. Its own `extended-keys` (CSI u or modifyOtherKeys) is a different scheme TUI does not ask for; under tmux the query is answered (or not) by tmux, not by the client |
 | xterm.js | yes | in the list |
 
 ### To measure, per host
@@ -6167,12 +6167,12 @@ kept as it was. So:
 
 Narrowing the matcher to the chords undo would take was weighed and not done:
 it would make Ctrl-Option-Z and an unbound Ctrl-Shift-Z do nothing at all in
-a TUIkit app while they suspend at the shell prompt beside it, and the rule
+a TUI app while they suspend at the shell prompt beside it, and the rule
 "a bound key is its command's, step or no step" is about the bound keys
 only. An app that wants either chord to do something else binds it.
 
 **The status bar names the first key the terminal can deliver** as itself:
-the bound keys in `KeyboardShortcut` order, TUIkit's own first, filtered by
+the bound keys in `KeyboardShortcut` order, TUI's own first, filtered by
 what the terminal's keyboard features (`\.terminalCapabilities`) say can be
 sent — in a legacy encoding a Control chord only on a letter (bar Ctrl-H, I, J, M) or
 minus, and never with Shift; under the protocol any Control chord, one on a
@@ -6230,7 +6230,7 @@ wheel bit. Buttons 8–11 are a five-button mouse's back/forward pair plus two
 more with no agreed meaning; they are numbered in the *same low two bits* that
 mean left/middle/right, so a decoder that ignores bit 7 outside the wheel group
 turns a press of "back" into a left click wherever the pointer happens to be.
-TUIkit has no notion of those buttons and declines the report
+TUI has no notion of those buttons and declines the report
 (`MouseEvent.decodeSGRButton`); the horizontal-wheel reading is unaffected.
 
 Not measured per terminal — this follows xterm's `ctlseqs` definition rather
@@ -6244,10 +6244,10 @@ wheel, because most of them pass on the operating system's accelerated scroll
 delta. A third-party measurement on one Mac (OpenAI Codex's tui2
 `scroll_input_model.md`, logs of 2025-12-19; that machine's scroll settings are
 unknown, and it was **not reproduced here**) counted: iTerm2 1, WezTerm 1,
-Apple Terminal 3, kitty 3, Alacritty 3, Ghostty 9, Warp 9. TUIkit scrolls 3 rows
+Apple Terminal 3, kitty 3, Alacritty 3, Ghostty 9, Warp 9. TUI scrolls 3 rows
 per report, so one notch moves 3 to 27 rows depending on the host.
 
-**Decided 2026-10-12 (the owner): TUIkit does not normalise it.** "Each
+**Decided 2026-10-12 (the owner): TUI does not normalise it.** "Each
 terminal client's scroll speed is a choice they make, and by extension their
 users' choice for using that client." Merging the reports that arrive in one
 read into one step was considered and declined.
@@ -6263,14 +6263,14 @@ amounts, and shares one setting with 1006 (the last mode set wins); see
 
 **Status: sent since 2026-10-18; every host UNMEASURED.**
 
-**What TUIkit does.** Whenever it turns mouse reporting on it sends
+**What TUI does.** Whenever it turns mouse reporting on it sends
 XTSHIFTESCAPE, `CSI > 1 s`, asking the terminal to report Shift-modified
 mouse events to the app rather than keep them for its own selection; as
 reporting goes off it sends `CSI > 0 s`, handing Shift back, and the teardown
 and the debt a signal pays owe the same (`Terminal.applyMouseSupport`,
 `inputModesOwed`). App-wide, as the Ghostty study's C5 recommended once
-TUIkit drew its own screen selection (A13): a Shift-click extends a list's,
-a table's or a text control's selection, and TUIkit's own drag selects the
+TUI drew its own screen selection (A13): a Shift-click extends a list's,
+a table's or a text control's selection, and TUI's own drag selects the
 screen, so the terminal's Shift-drag selection is the one given up. Not sent
 on Apple Terminal, which reports the Shift bit and has no Shift bypass to
 turn off, and whose reading of `CSI > … s` is unmeasured (a parser that
@@ -6300,12 +6300,12 @@ ahead of the first event.
 ## Pointer shapes (OSC 22)
 
 **Status: sent since 2026-10-19 where a host DOCUMENTS it. iTerm2 3.7.6
-MEASURED 2026-10-19, its names and its reset, so TUIkit's own controls' shapes
+MEASURED 2026-10-19, its names and its reset, so TUI's own controls' shapes
 are on there; every other host UNMEASURED, and
 `Tools/TerminalProbes/pointer_shape_card.py` awaits the owner's reading of
 each.**
 
-**What TUIkit does.** `View.pointerStyle(_:)` files a region the size of its
+**What TUI does.** `View.pointerStyle(_:)` files a region the size of its
 view with the style's shape. After every batch of input, and after every
 frame, the run loop resolves the shape under the pointer — the innermost
 style on the view in front there, or the control's own — and writes
@@ -6321,7 +6321,7 @@ empty name is unmeasured too. After any
 mouse mode change the shape is written again, because Ghostty resets it on
 one. A host not in the table below is sent nothing and owed nothing.
 `TUIKIT_POINTER_SHAPES=0` turns it off, `1` turns it on for a host not in the
-table (in CSS names), and `all` also turns on TUIkit's own controls' shapes
+table (in CSS names), and `all` also turns on TUI's own controls' shapes
 (the I-beam over a text field, a hand over a link or a button, a resize arrow
 over a divider or a table's column edge), which are otherwise on only where
 a host's reset has been read off the card: iTerm2, so far.
@@ -6351,12 +6351,12 @@ happens outside the byte stream, so nothing above is measured: whether each
 name draws the shape its style describes; whether the empty name, the mouse
 modes going off, or leaving the alternate screen gives the shell its own
 pointer back on a quit and on a Ctrl-Z; whether a mode change loses a shape
-(Ghostty's source says it does, and TUIkit writes it again); and what tmux
+(Ghostty's source says it does, and TUI writes it again); and what tmux
 does with the sequence. `python3 Tools/TerminalProbes/pointer_shape_card.py`
 draws a box per style, gives the pointer each box's shape as it moves on, and
-offers four ways out (TUIkit's, and three others that tell which reset a host
+offers four ways out (TUI's, and three others that tell which reset a host
 needs) and a suspend. Its reading, per host, belongs in this section; a host
-whose reset reads clean turns on TUIkit's own controls' shapes there
+whose reset reads clean turns on TUI's own controls' shapes there
 (`PointerShapeHost.resetIsMeasured`). `pointerVisibility(_:)` stays refused
 unless the card shows a name that hides the pointer.
 
@@ -6371,16 +6371,16 @@ environment, read by the owner on this machine, primary screen, macOS
 - **Every box without one showed iTerm2's own pointer**, the I-beam over its
   text: `.verticalText`, `.grabIdle`, `.grabActive`, `.zoomIn`, `.zoomOut`
   and the three diagonal frame boxes. That is the empty name doing what the
-  table says it does, and what TUIkit sends for a style a host has no name
+  table says it does, and what TUI sends for a style a host has no name
   for. (`.horizontalText` shows the I-beam too, as its own name, `xterm`.)
 - **A new shape showed only after a click in the window**, even with the
   window frontmost and focused: moving onto a box was not enough. So on
   iTerm2 a style's shape appears under a resting pointer only once the
-  person clicks; TUIkit's sequence is the same as to every other host, and
+  person clicks; TUI's sequence is the same as to every other host, and
   nothing it can send was found to make iTerm2 show the shape sooner.
 - **The pointer is put back:** once the card closed, the owner had the
   shell's own pointer over the window again. So iTerm2's reset is measured
-  (`PointerShapeHost.resetIsMeasured`), and TUIkit's own controls' shapes —
+  (`PointerShapeHost.resetIsMeasured`), and TUI's own controls' shapes —
   the I-beam over a text field, the hand over a button, the resize arrows —
   are on there, shown, like any shape there, once the person clicks. A
   suspend writes the same reset as a quit, the empty name. The mode change
@@ -6402,7 +6402,7 @@ owner on this machine, primary screen, macOS 15.8.1):
   (`SurfaceView.setCursorShape`: "We ignore unknown shapes"), so the
   pointer keeps whatever shape it had. That is worse than the host's own
   pointer: moving from a button onto a column's divider left the hand up.
-- **So TUIkit now speaks to Ghostty in the names its macOS app draws**
+- **So TUI now speaks to Ghostty in the names its macOS app draws**
   (`PointerShapeHost.ghosttyName`): a divider either way takes the two-way
   arrow it does draw (`ew-resize`, `ns-resize`), and a diagonal or a
   magnifying glass, which it has no cursor for, Ghostty's own pointer
@@ -6410,14 +6410,14 @@ owner on this machine, primary screen, macOS 15.8.1):
   reached over ssh cannot be told apart by its platform, so every Ghostty
   is spoken to as macOS's is.
 - **Its reset is not yet read:** whether the shell's own pointer is back
-  once the card closes. Until it is, TUIkit's own controls' shapes stay off
+  once the card closes. Until it is, TUI's own controls' shapes stay off
   on Ghostty.
 
 ## Focus reporting (mode 1004)
 
 **Status: tmux 3.7c MEASURED; every native host UNMEASURED.**
 
-**What TUIkit does.** Focus reporting is always on while an app runs.
+**What TUI does.** Focus reporting is always on while an app runs.
 `Terminal.enableRawMode` writes `CSI ?1004h` straight after bracketed paste's
 `?2004h`, and `disableRawMode` writes `CSI ?1004l` just before `?2004l`. So a
 suspend (SIGTSTP, or a Ctrl-Z the undo keys leave unbound) and quitting both
@@ -6488,7 +6488,7 @@ set in a config file before the client attached.
   setting it in a running session does not reach a client already attached.
 - **Detection:** `tmux show-options -gv focus-events` answers read-only. DECRQM
   from inside a pane (`CSI ? 1004 $ p`) reports only the pane's own mode, so it
-  cannot tell whether tmux will forward anything. TUIkit has no detection code,
+  cannot tell whether tmux will forward anything. TUI has no detection code,
   because nothing would use the answer.
 - *Rejected:* tmux's `client-focus-*` / `pane-focus-*` hooks on the existing
   SIGWINCH hook channel (see "Identifying the client terminal"). The pane hooks
@@ -6517,11 +6517,11 @@ A terminal that implements DEC mode 2026 holds its display between
 `CSI ? 2026 h` and `CSI ? 2026 l`, so a frame that reaches it in several reads
 is shown whole. Ghostty's help names the defect it prevents: an app that
 redraws a large area tears or flickers, worst where it erases a row and
-redraws it, which is what TUIkit's whole-line row is (`ESC[2K`, then its
+redraws it, which is what TUI's whole-line row is (`ESC[2K`, then its
 content). Adopted from Ghostty's VT reference
 (`Documentation/Terminals/Ghostty VT reference adoption study.md`, O1).
 
-### What TUIkit does
+### What TUI does
 
 - **A frame that moves the cursor to more than one row is held**: the begin
   marker after the frame's image transmissions and before its first cell, the
@@ -6546,14 +6546,14 @@ content). Adopted from Ghostty's VT reference
   not one. Every write now waits for room on `EAGAIN` (`poll` for `POLLOUT`),
   as a blocking write would, so only a hard error gives up partway
   (`Terminal.writeAll`, pinned by `SynchronizedOutputTests` and over a real
-  non-blocking pipe by `TerminalOutputTests`). TUIkit never sets the flag
+  non-blocking pipe by `TerminalOutputTests`). TUI never sets the flag
   itself; a dispatch read source on stdin does not either (checked, macOS 15).
 - **Sent to every host, nothing asked.** `CSI ? Pm h` has a `?` and no
   intermediate byte, the shape measured clean on Apple Terminal, iTerm2,
   Ghostty and Warp ("Asking the terminal — Device Attributes"), and `?2031h`,
   the same shape, printed nothing on five hosts. Its DECRQM query
   (`CSI ? 2026 $ p`) is the shape Apple Terminal prints, and setting the mode
-  needs no answer, so TUIkit never sends it.
+  needs no answer, so TUI never sends it.
 - **`TUIKIT_SYNCHRONIZED_OUTPUT=0`** turns it off: no markers, and none owed.
 
 `SynchronizedOutputTests` pins all of the above, the marker's place in a
@@ -6575,10 +6575,10 @@ process killed mid-frame (SIGKILL, which no handler sees) freezes Ghostty's
 display for a second at most; elsewhere for as long as the host holds. So does
 one stopped mid-frame by `SIGSTOP` (`kill -STOP`, a debugger), which no
 handler sees either: the shell's "Stopped" line is held with it, until the
-process is continued or the host's timeout ends the hold. Nothing TUIkit can
+process is continued or the host's timeout ends the hold. Nothing TUI can
 do about that is specific to the hold: a stopped process also leaves raw mode,
 the alternate screen and mouse tracking on. The window is one frame's write.
-`Ctrl-Z` is `SIGTSTP`, which TUIkit handles: its suspend sends the end marker
+`Ctrl-Z` is `SIGTSTP`, which TUI handles: its suspend sends the end marker
 first.
 
 ### To measure — `Tools/TerminalProbes/sync_probe.py`
@@ -6631,9 +6631,9 @@ one route to the user's clipboard that crosses ssh. No terminal acknowledges a
 write, so whether one happened is known only from what a host is documented or
 measured to do.
 
-### What TUIkit does
+### What TUI does
 
-Every copy TUIkit makes — a text field's or editor's Ctrl-C and Ctrl-X, a
+Every copy TUI makes — a text field's or editor's Ctrl-C and Ctrl-X, a
 `copyable` view's ⌘C — goes through one writer (`ClipboardWriter`), which
 takes ONE route per copy, in this order:
 
@@ -6648,7 +6648,7 @@ takes ONE route per copy, in this order:
    test (the pane's own chain ends at the tmux server, which says nothing of
    who is watching) — a tmux above the client itself in its chain, a tmux
    run inside another tmux's pane, counting as a keeper. The other session
-   keepers TUIkit knows — GNU `screen`, `zellij`, `dtach`, `abduco`,
+   keepers TUI knows — GNU `screen`, `zellij`, `dtach`, `abduco`,
    `shpool`, `tmate`, WezTerm's `wezterm-mux-server`, in the chain or by
    their variable (`STY`, `ZELLIJ`, `ZELLIJ_SESSION_NAME`, `ABDUCO_SESSION`,
    `SHPOOL_SESSION_NAME`) — answer "not here": a keeper's server is detached
@@ -6681,7 +6681,7 @@ whichever stands behind it.
 **Inside GNU screen (`STY`), OSC 52 through screen's DCS passthrough**,
 whatever terminal the environment names, since 2026-10-24 (owner ruling
 D4X-LOCALITY): screen drops an application's bare OSC 52 and passes one on
-inside its DCS passthrough (`ESC P … ESC \`), so TUIkit sends the write
+inside its DCS passthrough (`ESC P … ESC \`), so TUI sends the write
 BEL-terminated and cut into DCS strings of at most 256 bytes. The terminal's
 name is inherited from wherever screen was started, so it says nothing of the
 terminal screen is drawn in now: every such copy is "Sent", never "Copied"
@@ -6695,7 +6695,7 @@ unmeasured. Before, every copy under screen was "Not copied".
 init or `systemd --user`, so every pane's chain is `[app, shell, tmux,
 launchd]` however its session is attached; and a server started inside
 screen keeps screen's `STY` whoever attaches, while one attached from inside
-screen later has none. So under `set-clipboard on` TUIkit asks tmux for its
+screen later has none. So under `set-clipboard on` TUI asks tmux for its
 clients (`list-clients`) and walks each one's parents, as the clipboard's
 locality does: where every client runs in a screen window — `screen` (or
 `SCREEN`) holds its terminal: the first process above the client attached
@@ -6779,10 +6779,10 @@ xterm's (`Documentation/Terminals/Ghostty VT reference adoption study.md`, C1):
 - unwrapped base64 (Foundation's default), and **never an empty or malformed
   payload**: Ghostty clears the clipboard on a payload that is neither valid
   base64 nor `?`. An empty copy sends nothing;
-- ST, as TUIkit's other OSCs;
+- ST, as TUI's other OSCs;
 - never `?`: a read prompts the user on Ghostty by default and its reply
   arrives in the input stream. Paste stays the terminal's own, through the
-  bracketed paste TUIkit already turns on.
+  bracketed paste TUI already turns on.
 
 **Delivery.** A copy is made between frames, by a key; its OSC 52 is queued
 and written at the start of the next frame, with the image transmissions and
@@ -6801,14 +6801,14 @@ there, and the copy is "Not copied", as under `on`. Through either
 passthrough a copy is its text alone: its other types (OSC 5522) are not sent.
 
 `TUIKIT_OSC52=1` makes every copy an OSC 52 to a terminal taken to honour it,
-for a host TUIkit does not know; `0` never sends one. An app can do the same
+for a host TUI does not know; `0` never sends one. An app can do the same
 with `TerminalClient.clipboardWriteSupport`. `TerminalClient.simulated`, the
 diagnostic that draws as another terminal, does not change where a copy
 goes: the ladder reads the terminal actually detected, unlike OSC 8's.
 
 ### What each host is documented to do
 
-| Host | Writes OSC 52 | Source | TUIkit's rung |
+| Host | Writes OSC 52 | Source | TUI's rung |
 |---|---|---|---|
 | Ghostty 1.3.1 | yes, by default (`clipboard-write = allow`) | its OSC 52 page and config reference; measured 2026-10-19 (below) | 1 |
 | kitty | yes, by default (`clipboard_control` allows writes) | its documentation | 1 (`TERM=xterm-kitty`, `KITTY_WINDOW_ID`) |
@@ -6828,7 +6828,7 @@ asked on 2026-10-19, Ghostty 1.3.1 answered `ESC[?62;22;52c`, which does list
 it.) Nor does DA1 follow iTerm2's setting: iTerm2 3.7.6 lists `52` with the
 setting off, when no write lands, as with it on, when every write does.
 
-Where TUIkit stands on locality inside tmux depends on tmux: the clients are
+Where TUI stands on locality inside tmux depends on tmux: the clients are
 asked for (`list-clients`) and `set-clipboard` read (`show-options -sv`) when
 a copy is made, two bounded subprocesses per copy and none per frame.
 
@@ -6931,11 +6931,11 @@ terminal is involved. Record:
 screen's limit is a DCS string's whole length, its `ESC P` and `ESC \`
 included: 256 passes, 260 does not. Chromium hterm's `osc52.sh` gives the
 history as 256 bytes until screen 4.2.0 (2008-2014), 512 then, and 768 from
-4.2.1; 256 serves every release, so TUIkit cuts at 256. Still unmeasured:
+4.2.1; 256 serves every release, so TUI cuts at 256. Still unmeasured:
 screen 5, what a real terminal does with what screen and tmux pass on (the
 tables above say what each host does with a write), tmux's own limit past
 64 KiB, and a nested keeper — tmux inside screen gets the passthrough's
-write bare at screen, which drops it, so TUIkit sends nothing there.
+write bare at screen, which drops it, so TUI sends nothing there.
 
 ## OSC 5522 clipboard: any MIME type — measured 2026-10-17 on three hosts
 
@@ -6958,7 +6958,7 @@ four-type write, the type list), each run inside the host:
 | kitty (the owner's run, 2026-10-17; version not recorded) | `2` (reset, recognised) | **yes** (`DONE`) | **the types landed**: `utf8`, `HTML`, `PNGf` and the rest of macOS's own representations of them |
 | Ghostty 1.3.1 | NOT MEASURED (its `-e` consent prompt); the protocol is on Ghostty's development branch, not in 1.3.1 | | |
 
-None of the three printed anything. TUIkit asks only Ghostty, and kitty,
+None of the three printed anything. TUI asks only Ghostty, and kitty,
 WezTerm and foot where the environment names them
 (`TerminalClient.mayAskMIMEClipboard`): Apple Terminal prints the final `p`
 of any DECRQM, and iTerm2's answer is known. Where the answer is yes, a copy
@@ -6968,7 +6968,7 @@ link as `text/uri-list`, Markdown as `text/markdown` — and its text as
 weight and decoration); `TUIKIT_OSC5522=1` or `0` overrides.
 
 **Paste events (mode 5522, kitty 0.44.1 and later).** Where a terminal says
-it takes OSC 5522, TUIkit also sets `CSI ? 5522 h` (and resets it with the
+it takes OSC 5522, TUI also sets `CSI ? 5522 h` (and resets it with the
 other input modes on exit and suspend). A paste then arrives not bracketed
 but as an unsolicited read reply listing the clipboard's types under a
 one-time password — `type=read:status=OK:pw=…`, one `status=DATA` packet
@@ -6977,7 +6977,7 @@ with `mime=.` whose payload is the types, space-separated, then
 selection (kitty's `send_paste_event`, read from its source; the
 specification shows no packet). kitty sends this INSTEAD of the bracketed
 text — `boss.py`'s `paste_from_clipboard` returns once `send_paste_event`
-has — so the text comes only through the read. TUIkit reads, with that password
+has — so the text comes only through the read. TUI reads, with that password
 and `name=Paste event` (so no permission prompt appears), the first text type
 and every other listed type a paste command on the path to the focused view
 takes — `onPasteCommand(of:)`'s types, by `UTType` conformance, so `.image`
@@ -6994,7 +6994,7 @@ every other reply. A paste in kitty, and Ghostty-tip, are owed a run.
 
 Modes outlive the program that set them. A killed `vim`, `less` or `htop`, or
 a shell that sends terminfo's `smkx` without its `rmkx`, hands the next program
-a terminal out of its defaults, and every TUIkit frame assumes them. So
+a terminal out of its defaults, and every TUI frame assumes them. So
 `Terminal.enableRawMode` (at startup and on every resume) sends, before
 anything else, `Terminal.inheritedDefaults`:
 
@@ -7058,9 +7058,9 @@ autowrap on for itself and off again inside its `ESC 7` / `ESC 8`, so a path
 wider than the screen wraps onto the rows below it as it always did, rather
 than losing its file name at the right edge.
 
-**What it buys.** Every row TUIkit writes is as wide as the screen by TUIkit's
+**What it buys.** Every row TUI writes is as wide as the screen by TUI's
 count, and nothing it draws relies on wrapping. Where a host advances a cluster
-further than that count — a host TUIkit has not measured, or iTerm2 (and, once
+further than that count — a host TUI has not measured, or iTerm2 (and, once
 its card allows, Apple Terminal) with "ambiguous characters are wide" on — the row used to wrap its
 tail into the next row, and on the bottom row scroll the whole screen up a
 line, after which the diff writer's picture of the screen was wrong until
@@ -7098,7 +7098,7 @@ against a row that *wraps*, and so was its clip's bet that an over-advancer's
 peak may end on the last cell. With autowrap off the repaint may have
 nothing left to do, or may need adjusting; an over-wide last-row card on Apple
 Terminal (light and dark), run once with `printf '\e[?7l'` sent by hand since
-TUIkit no longer sends it there, decides, then the same card on iTerm2 with
+TUI no longer sends it there, decides, then the same card on iTerm2 with
 ambiguous-wide on, Ghostty, Warp, kitty and tmux. `Stress --selfcheck`
 passes; it draws no terminal.
 
@@ -7122,7 +7122,7 @@ K3).
   under-advance).
 - `Character.terminalAppCursorAdvance` / `.iTerm2CursorAdvance` /
   `.ghosttyCursorAdvance` / `.warpCursorAdvance` — the per-host advance
-  models (TUIkitCore), pinned to the committed measurement records in
+  models (TUICore), pinned to the committed measurement records in
   `Tools/TerminalProbes/data/` by `TerminalLedgerConformanceTests` (which
   also carries the known-divergence ledger), with spot batteries in
   `GhosttyWarpCompatibilityTests` / `StringTerminalWidthTests`.
@@ -7190,9 +7190,9 @@ K3).
   (the CSI walk's, `Terminal+Input.swift`; iTerm2's is 33, "What each host
   advertises"), and a graphics error in words, iTerm2's `ENOENT` of some
   eighty characters (the classic placements, under "Graphics protocols, and
-  a parser gap"). An OSC 52 clipboard answer is unbounded by nature; TUIkit
+  a parser gap"). An OSC 52 clipboard answer is unbounded by nature; TUI
   sends no OSC 52 query, so one arriving answers another program and is
-  skipped. Every reply TUIkit asks for, with its longest:
+  skipped. Every reply TUI asks for, with its longest:
   `Documentation/SwiftUI parity/Decisions/Input, clipboard and text editing/Large pastes and over-long input sequences (PASTE).md`, B-PASTE-2.
 - `KeyEvent.normalizingLegacyShiftedFunctionKeys()` +
   `Terminal.finalize` — Apple Terminal's shifted-function-key re-coding
@@ -7211,7 +7211,7 @@ K3).
   styles from `TerminalHost.lineStyles(for:)` and the strikethrough row of
   "Underline shapes and colours"; pictures from the graphics handshake; the
   keyboard from the kitty protocol's negotiation; links, clipboard writes,
-  notifications, the progress bar and pointer shapes from the ladders TUIkit
+  notifications, the progress bar and pointer shapes from the ladders TUI
   sends them by (`TerminalCapabilities+Launch.swift`); and Option as Meta from
   the keys ("Option arrives in two different spellings"). A host this document
   has not measured for a feature is undetermined, not unsupported, and a row
@@ -7762,7 +7762,7 @@ off-code as a no-op would leave styling on that the source cleared.)
 
 Run in each host with `Tools/TerminalProbes/bidi_card.py`, in the four installs
 this document records elsewhere (no version was re-checked at the time). The
-card prints nine-cell samples as `|<sample>|X` rows, twice: `plain` as TUIkit
+card prints nine-cell samples as `|<sample>|X` rows, twice: `plain` as TUI
 would emit them today, and `forced` with each RTL run wrapped in U+202D LEFT-TO-
 RIGHT OVERRIDE … U+202C POP DIRECTIONAL FORMATTING.
 
@@ -7773,7 +7773,7 @@ RIGHT OVERRIDE … U+202C POP DIRECTIONAL FORMATTING.
 | Ghostty | ✓ | ✓ consumed at zero width |
 | Warp | ✓ | ✓ consumed at zero width |
 
-**The decision this settles: TUIkit does not emit the override.** It was the
+**The decision this settles: TUI does not emit the override.** It was the
 candidate fix for RTL, and on Apple Terminal — the one host RTL was reported
 against — it is a visible regression: two junk glyphs per run and a column of
 shear per run, in a host that was already painting the plain row's columns
@@ -7798,7 +7798,7 @@ override, which is refused on Terminal.app either way.
 
 **The arithmetic is settled.** The bidi controls — LRM, RLM, ALM, the
 embeddings and overrides (U+202A…U+202E) and the isolates (U+2066…U+2069) —
-are `Default_Ignorable_Code_Point` with no advance, and TUIkit measured them as
+are `Default_Ignorable_Code_Point` with no advance, and TUI measured them as
 one cell each until 2026-09-01. A line carrying one, as text pasted from a
 bidirectional document does, measured a cell wider than it drew. They are
 zero-width now (`BidiControlWidthTests`).
@@ -7806,7 +7806,7 @@ zero-width now (`BidiControlWidthTests`).
 ### RTL characters as image PIXELS — measured 2026-09-01, still OPEN
 
 **Apple Terminal mirrors a picture made of right-to-left glyphs.** A
-`TUIkitImage` `.customRamp` of Hebrew letters draws a gradient whose flat end
+`TUIImage` `.customRamp` of Hebrew letters draws a gradient whose flat end
 comes out at the wrong side of every row. The stakes differ from text:
 reordering a run of letters is arguably the right thing there and merely looks
 odd, but in a picture every character is a pixel, so moving one is corruption
@@ -7842,7 +7842,7 @@ Two of those are settled and one is not:
 The card's rows are plain text, about forty cells wide, and stand alone. An
 image row is full width, carries a foreground change per cell, and sits inside a
 composed layout with a panel beside it. Somewhere in that difference the mark
-stops being free. It is not TUIkit's arithmetic: captured from the running app
+stops being free. It is not TUI's arithmetic: captured from the running app
 with `TERM_PROGRAM=Apple_Terminal`, every emitted row is exactly the terminal's
 width in cells with the marks costing nothing, no cursor compensation fires, no
 right-edge repaint fires, and `strippedLength`, `ansiAwarePrefix` and
@@ -7863,11 +7863,11 @@ told apart** — and, this round's lesson, a card about a rendered PAGE has to b
 made of rows like the page's.
 
 That leaves **a known divergence on Apple Terminal in the other direction**: it
-paints U+202D and U+202C as a box that occupies a cell TUIkit no longer counts.
+paints U+202D and U+202C as a box that occupies a cell TUI no longer counts.
 Only those two were measured there; the rest of the family was not tested
 individually, and the box strongly suggests the host treats none of them as
 default-ignorable. Zero is still the right number for three hosts out of four
-and for the standard, and TUIkit emits none of these controls itself — this can
+and for the standard, and TUI emits none of these controls itself — this can
 only arrive in content the user pastes.
 
 ## Complex scripts — 38 corpus rows: the advance measured on five hosts, the paint on Apple Terminal
@@ -8019,7 +8019,7 @@ own direction. The first half held; the second did not: Ghostty with mode 2027
 set advances 2, the cluster rule's number. So the right answer is the host's,
 as it is for emoji, and it is a per-host trait:
 `TerminalWidthTraits.textClusters`. `.clustered` keeps the cluster rule —
-Ghostty, which TUIkit runs with mode 2027 set, tmux (below) and every
+Ghostty, which TUI runs with mode 2027 set, tmux (below) and every
 unidentified host. `.perCodePoint` — Apple Terminal, iTerm2 and Warp — claims a
 multi-scalar cluster of TEXT as its scalars' sum by the per-scalar rule, with a
 conjoining vowel or trailing jamo after the first scalar priced zero: स्त्र 3,
@@ -8038,7 +8038,7 @@ lands inside the cells it advances — is unmeasured on every host but Apple
 Terminal (above, where it cannot be aligned), and every row stays in
 `awaitingLandingMeasurement`. If a host drew स्त्र in two cells while
 advancing three, the row would now be aligned with a blank cell inside the
-cluster, which is the trade TUIkit already takes for SF Symbols on Ghostty;
+cluster, which is the trade TUI already takes for SF Symbols on Ghostty;
 `landing_probe.py` would say. Also unmeasured: the advance on Ghostty with mode
 2027 reset and on kitty, xterm and VTE.
 
@@ -8083,7 +8083,7 @@ The store surgery that repairs flags (`CUB DCH CUF`, the surplus columns
 deleted) lands the follower true and **destroys the text**: न्दी lost its ी,
 स्ते was not drawn at all.
 
-So **TUIkit does not align these scripts on Apple Terminal**, and documents
+So **TUI does not align these scripts on Apple Terminal**, and documents
 it rather than degrading the text: the displacement is the font's, fractional,
 and depends on what follows on the row, so no claim, compensation or cursor
 move can match it, and the one edit of the row store that moves the paint

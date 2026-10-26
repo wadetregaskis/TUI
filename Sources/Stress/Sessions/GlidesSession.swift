@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  GlidesSession.swift
 //
 //  Views coming and going under `withAnimation`, in each container that glides
@@ -14,7 +14,7 @@
 //  License: MIT
 
 import Observation
-import TUIkit
+import TUI
 
 // MARK: - The model
 

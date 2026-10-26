@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  LayeringZStackDemos.swift
 //
 //  The Layering page's ZStack section: five bands making one claim from
@@ -10,7 +10,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 extension LayeringPage {
 

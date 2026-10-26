@@ -2,24 +2,24 @@
 #
 # validate-test-boundaries.sh — enforce per-module unit-test isolation.
 #
-# TUIkit's tests are split into per-module test targets (see Package.swift):
+# TUI's tests are split into per-module test targets (see Package.swift):
 # each links only the modules its tests need, so an edit to a module rebuilds
 # only the tests that can see it. This script is the fast, human-readable guard
 # for that property: it flags a test file importing a module its target does
 # not depend on BEFORE a full build would, with a clear message.
 #
-# - TUIkit{Core,Styling,View,Image}Tests, the low modules' own unit tests, may
+# - TUI{Core,Styling,View,Image}Tests, the low modules' own unit tests, may
 #   import their module and what it depends on (the table below).
-# - Every other per-module target (TUIkitFoundationTests, TUIkitAppTests,
-#   TUIkitListsTests, ... and the support targets TUIkitTestSupport,
-#   TUIkitAppTestSupport, TUIkitListsTestSupport, ...) may import what its
-#   entry in Package.swift lists in `dependencies:`. So a stray `import TUIkit`
-#   (the umbrella) there fails here: only TUIkitIntegrationTests depends on it.
-# - TUIkitIntegrationTests, ExampleTests and TUIkitMacrosTests are unrestricted.
+# - Every other per-module target (TUIFoundationTests, TUIAppTests,
+#   TUIListsTests, ... and the support targets TUITestSupport,
+#   TUIAppTestSupport, TUIListsTestSupport, ...) may import what its
+#   entry in Package.swift lists in `dependencies:`. So a stray `import TUI`
+#   (the umbrella) there fails here: only TUIIntegrationTests depends on it.
+# - TUIIntegrationTests, ExampleTests and TUIMacrosTests are unrestricted.
 #
 # `swift test` already builds every target, so SPM enforces this at compile
 # time too; this script exists so the rule is explicit, documented, and catches
-# a stray `import TUIkit` in a module test the moment it lands (CI + pre-commit),
+# a stray `import TUI` in a module test the moment it lands (CI + pre-commit),
 # not only when the offending symbol happens to be referenced.
 #
 # It also checks that every file of a support target (Tests/*TestSupport), a
@@ -35,21 +35,21 @@ cd "$(dirname "$0")/.."
 
 # Allowed framework imports per module test target = the module + its transitive
 # framework dependencies. (Foundation / Testing / Dispatch etc. are never flagged
-# — only TUIkit* modules are checked.) A `case` keeps this portable to macOS's
+# — only TUI* modules are checked.) A `case` keeps this portable to macOS's
 # stock bash 3.2 (no associative arrays).
 #
 # This table is a copy of the library targets' `dependencies:` in Package.swift
-# and must be edited with them. TUIkitView has depended on TUIkitStyling since
+# and must be edited with them. TUIView has depended on TUIStyling since
 # `Color: View` moved into the module that owns `View` (see the comment on that
-# target), so a TUIkitView test may name a `Color`. TUIkitWidthCorpus is data
+# target), so a TUIView test may name a `Color`. TUIWidthCorpus is data
 # with no dependencies (the width corpus), so any layer's tests may read it.
 # Every other target's row is its `dependencies:` in Package.swift.
 allowed_for() {
     case "$1" in
-        TUIkitCoreTests) echo "TUIkitCore TUIkitWidthCorpus" ;;
-        TUIkitStylingTests) echo "TUIkitStyling" ;;
-        TUIkitViewTests) echo "TUIkitView TUIkitCore TUIkitStyling" ;;
-        TUIkitImageTests) echo "TUIkitImage TUIkitStyling" ;;
+        TUICoreTests) echo "TUICore TUIWidthCorpus" ;;
+        TUIStylingTests) echo "TUIStyling" ;;
+        TUIViewTests) echo "TUIView TUICore TUIStyling" ;;
+        TUIImageTests) echo "TUIImage TUIStyling" ;;
         *)
             # Its entry's `dependencies: [...]` in Package.swift, a test target's or a
             # support target's: the quoted names from its `name:` line to the list's `]`.
@@ -68,7 +68,7 @@ violations=0
 for dir in Tests/*Tests Tests/*TestSupport; do
     target="${dir#Tests/}"
     case "$target" in
-        TUIkitIntegrationTests | ExampleTests | TUIkitMacrosTests | CTestSupport) continue ;;
+        TUIIntegrationTests | ExampleTests | TUIMacrosTests | CTestSupport) continue ;;
     esac
     [ -d "$dir" ] || continue
     if [ -z "$(allowed_for "$target" | tr -d ' ')" ]; then
@@ -78,23 +78,23 @@ for dir in Tests/*Tests Tests/*TestSupport; do
     fi
     allowed=" $(allowed_for "$target") $target "
 
-    # Every `import TUIkit<Module>` (optionally @testable) in the target's files.
+    # Every `import TUI<Module>` (optionally @testable) in the target's files.
     while IFS= read -r line; do
         [ -z "$line" ] && continue
         file="${line%%:*}"
         rest="${line#*:}"
         lineno="${rest%%:*}"
         module=$(printf '%s\n' "${rest#*:}" | sed -E 's/^[[:space:]]*(@testable[[:space:]]+)?import[[:space:]]+//' \
-            | grep -oE '^TUIkit[A-Za-z]*' | head -1 || true)
-        # Only TUIkit* modules are governed here.
-        case "$module" in TUIkit*) ;; *) continue ;; esac
+            | grep -oE '^TUI[A-Za-z]*' | head -1 || true)
+        # Only TUI* modules are governed here.
+        case "$module" in TUI*) ;; *) continue ;; esac
         if [[ "$allowed" != *" $module "* ]]; then
             echo "✘ $file:$lineno imports '$module', which is outside $target's layer."
             echo "    Allowed: $(allowed_for "$target"). Move this test to the target of the highest"
             echo "    module it needs (CONTRIBUTING.md says which), or drop the cross-module dependency."
             violations=$((violations + 1))
         fi
-    done < <(grep -rnE '^[[:space:]]*(@testable[[:space:]]+)?import[[:space:]]+TUIkit' "$dir" 2>/dev/null || true)
+    done < <(grep -rnE '^[[:space:]]*(@testable[[:space:]]+)?import[[:space:]]+TUI' "$dir" 2>/dev/null || true)
 done
 
 # The guard opens the file's code, after its header comment and the comment

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Progress and attention probe: does this terminal take an application's
-progress report (OSC 9;4, ConEmu's), swallow every spelling TUIkit sends
+progress report (OSC 9;4, ConEmu's), swallow every spelling TUI sends
 without printing any of it, and — opt-in — post a desktop notification
 (OSC 9)? And what does tmux pass on to the terminal it is drawn in?
 
-TUIkit sends these (`TerminalHostState`; the Ghostty adoption study, C3 and
+TUI sends these (`TerminalHostState`; the Ghostty adoption study, C3 and
 C6), only to a host documented to take them:
 
     ESC ] 9 ; 4 ; 1 ; <0-100> ESC \\    a value
@@ -20,7 +20,7 @@ not updated for about 15 s for one its program left behind. See
 Documentation/Terminals/Terminal compatibility survey.md, "Progress and
 attention". This measures what that rests on.
 
-Run INSIDE the terminal under test. Nothing here needs TUIkit built.
+Run INSIDE the terminal under test. Nothing here needs TUI built.
 
   python3 progress_probe.py                # measure; leaves no bar up
   python3 progress_probe.py --hold 20      # ...and hold a 50% bar up for 20 s
@@ -35,14 +35,14 @@ Run INSIDE the terminal under test. Nothing here needs TUIkit built.
 Writes JSON to $PROBE_OUT (default ./progress_probe.json) and prints a summary.
 
 1. **Leak.** The cursor column (DSR 6) before and after each spelling above, on
-   the primary and the alternate screen (TUIkit's). A column that moved means
+   the primary and the alternate screen (TUI's). A column that moved means
    the host printed part of it. The notification's row only with `--notify`:
    on a host that takes it, it posts one, and a host may first ask the user
    whether it may.
 
 2. **tmux's bar.** Inside tmux, which keeps a bar for each pane and reports it
    (`#{pane_pb_state}`, `#{pane_pb_progress}`, "can be set by application"),
-   the bar tmux made of each spelling: whether it parses TUIkit's, the
+   the bar tmux made of each spelling: whether it parses TUI's, the
    value-less ones included.
 
 3. **Timeout** (`--timeout S`). A 50% bar, then nothing for S seconds: inside
@@ -53,7 +53,7 @@ Writes JSON to $PROBE_OUT (default ./progress_probe.json) and prints a summary.
    plays the terminal: it runs a tmux of its own in a pseudo-terminal, as a
    client whose terminal has the `progressbar` feature (`tmux -T progressbar`)
    and as one without, runs itself in the pane with `--emit` to send every
-   sequence above — the first one twice, as TUIkit sends a bar again to keep
+   sequence above — the first one twice, as TUI sends a bar again to keep
    it up — and records what reached the client, and the features tmux lists
    for it (`#{client_termfeatures}`, which is how an app asks tmux whether a
    client draws a bar). Then a client with the feature attaches to a pane
@@ -72,12 +72,12 @@ BEL = "\x07"
 
 
 def progress(state, value=None):
-    """`ESC ] 9 ; 4 ; state [; value] ST`, as TUIkit spells it."""
+    """`ESC ] 9 ; 4 ; state [; value] ST`, as TUI spells it."""
     return f"\x1b]9;4;{state}" + ("" if value is None else f";{value}") + ST
 
 
 def notification(message):
-    """`ESC ] 9 ; message ST`, as TUIkit spells it."""
+    """`ESC ] 9 ; message ST`, as TUI spells it."""
     return f"\x1b]9;{message}{ST}"
 
 
@@ -177,7 +177,7 @@ def timeout(fd, seconds):
 
 EMIT_STEPS = [
     ("value_50", progress(1, 50)),
-    # The same report again, as TUIkit's keep-alive sends it: does tmux pass a
+    # The same report again, as TUI's keep-alive sends it: does tmux pass a
     # repeat on, or only a change?
     ("value_50_again", progress(1, 50)),
     ("indeterminate", progress(3)),

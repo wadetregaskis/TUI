@@ -17,22 +17,22 @@
 #
 #   - In a LINKER setting, only `-Xlinker -unexported_symbol -Xlinker
 #     '_$s<length><module>*'`, where <module> is one of this package's
-#     targets named TUIkit…: Package.swift's `UnexportTUIkitSymbols`. A
+#     targets named TUI…: Package.swift's `UnexportTUISymbols`. A
 #     package's linker flags land on the app's own final link and change the
 #     developer's whole program: `-deduplicate` changes which of the app's own
 #     key paths compare equal, and a strip flag strips the app's symbols.
 #     Those are the developer's to choose; the README offers them, with what
 #     each costs. That pattern matches only symbols Swift names under a
-#     TUIkit module, and takes them out of what the link exports: TUIkit's
-#     own, and the app's own extensions of TUIkit's types and protocols,
+#     TUI module, and takes them out of what the link exports: TUI's
+#     own, and the app's own extensions of TUI's types and protocols,
 #     which Swift names after the extended type's module (Package.swift's
 #     trait comment says what that costs a developer's dynamic library and
 #     plugins). A trait of its own turns it off.
 #   - Any flag only behind a trait. A compile flag reaches every client's
-#     build of TUIkit, and no compiler flag undoes another; a link flag has
+#     build of TUI, and no compiler flag undoes another; a link flag has
 #     no counter-flag either. So the trait is the client's only way to turn
 #     one off (`traits: []`). Package.swift's `DeadStripUnusedAPI` and
-#     `UnexportTUIkitSymbols` are the ones there are.
+#     `UnexportTUISymbols` are the ones there are.
 #
 # A flag reached for to chase a profiling question, and left in, is the
 # realistic way an ungated one arrives.
@@ -88,7 +88,7 @@ check_manifest() {
 
     # Each unsafeFlags setting, one per line: its tool (the first "tool" key
     # after the setting's kind), a space, and for a linker setting `ok` if
-    # its flags are TUIkit's unexport patterns and nothing else, `bad` if not.
+    # its flags are TUI's unexport patterns and nothing else, `bad` if not.
     # Whatever shape the flags' value takes (`{"_0":[…]}` today, `[[…]]` in
     # older SwiftPMs), a `"tool":"` cannot occur inside it, because JSON
     # escapes the quotes in a flag; the flags are the strings from the first
@@ -96,7 +96,7 @@ check_manifest() {
     # end them early and read `bad`, the safe direction. A pattern is
     # `_$s` + the module name's length + the name + `*`, the start of every
     # symbol Swift mangles for that module, for a target of this manifest
-    # named TUIkit…, so that it can never match another package's symbols.
+    # named TUI…, so that it can never match another package's symbols.
     # `?` is a setting with no tool after it: JSON in a shape this does not
     # read. The flags are cut out with index() rather than with a regex for
     # a literal `[` or `]`, which mawk (the Lint job's awk) and macOS's awk
@@ -108,7 +108,7 @@ check_manifest() {
             for (k = 1; k <= n; k += 4) {
                 if (f[k] != "-Xlinker" || f[k + 1] != "-unexported_symbol" || f[k + 2] != "-Xlinker") return 0
                 p = f[k + 3]
-                if (!match(p, /^_\$s[0-9]+TUIkit[A-Za-z0-9_]*\*$/)) return 0
+                if (!match(p, /^_\$s[0-9]+TUI[A-Za-z0-9_]*\*$/)) return 0
                 match(p, /^_\$s[0-9]+/)
                 digits = substr(p, 4, RLENGTH - 3)
                 name = substr(p, RLENGTH + 1, length(p) - RLENGTH - 1)
@@ -134,11 +134,11 @@ check_manifest() {
         }' <<<"$flat")
 
     if grep -qx 'linker bad' <<<"$settings"; then
-        printf 'FAIL unsafeFlags in a linker setting, other than -unexported_symbol for a TUIkit module\n'
+        printf 'FAIL unsafeFlags in a linker setting, other than -unexported_symbol for a TUI module\n'
         printf '     A package'"'"'s linker flags land on the app'"'"'s final link and change\n'
         printf '     the developer'"'"'s whole program. Offer the flag in the README instead.\n'
         printf '     The one allowed is -Xlinker -unexported_symbol -Xlinker '"'"'_$s<length><module>*'"'"'\n'
-        printf '     for a target of this package named TUIkit…, which touches only what Swift names under it.\n'
+        printf '     for a target of this package named TUI…, which touches only what Swift names under it.\n'
         failures=$((failures + 1))
     fi
     if grep -qx '?' <<<"$settings"; then
@@ -198,13 +198,13 @@ self_test() {
         fi
     }
 
-    local linker='unsafeFlags in a linker setting, other than -unexported_symbol for a TUIkit module'
+    local linker='unsafeFlags in a linker setting, other than -unexported_symbol for a TUI module'
     local untraited='unsafeFlags without a trait'
     local swift_gated='{"condition":{"config":"release","platformNames":["macos"],"traits":["T"]},"kind":{"unsafeFlags":{"_0":["-Xfrontend","-internalize-at-link"]}},"tool":"swift"}'
     local linker_gated='{"condition":{"traits":["T"]},"kind":{"unsafeFlags":{"_0":["-Xlinker","-deduplicate"]}},"tool":"linker"}'
-    # A linker setting with these flags, behind a trait, on a target named TUIkitCore.
+    # A linker setting with these flags, behind a trait, on a target named TUICore.
     unexport() {
-        printf '{"targets":[{"name":"TUIkitCore","settings":[{"condition":{"config":"release","traits":["T"]},"kind":{"unsafeFlags":{"_0":[%s]}},"tool":"linker"}]}]}' "$1"
+        printf '{"targets":[{"name":"TUICore","settings":[{"condition":{"config":"release","traits":["T"]},"kind":{"unsafeFlags":{"_0":[%s]}},"tool":"linker"}]}]}' "$1"
     }
 
     run_case "clean manifest passes" \
@@ -227,30 +227,30 @@ self_test() {
     run_case "a linker flag in the older encoding caught" \
         '{"targets":[{"name":"T","settings":[{"condition":{"traits":["T"]},"kind":{"unsafeFlags":[["-Xlinker","-deduplicate"]]},"tool":"linker"}]}]}' "$linker"
 
-    # TUIkit's own unexport patterns: the one linker flag allowed, and only
+    # TUI's own unexport patterns: the one linker flag allowed, and only
     # in exactly that form.
-    run_case "a TUIkit module's unexport pattern behind a trait passes" \
-        "$(unexport '"-Xlinker","-unexported_symbol","-Xlinker","_$s10TUIkitCore*"')" pass
+    run_case "a TUI module's unexport pattern behind a trait passes" \
+        "$(unexport '"-Xlinker","-unexported_symbol","-Xlinker","_$s7TUICore*"')" pass
     run_case "a pretty-printed unexport pattern passes" \
-        "$(printf '{\n  "targets" : [\n    {\n      "name" : "TUIkitCore",\n      "settings" : [\n        {\n          "condition" : {\n            "traits" : [\n              "T"\n            ]\n          },\n          "kind" : {\n            "unsafeFlags" : {\n              "_0" : [\n                "-Xlinker",\n                "-unexported_symbol",\n                "-Xlinker",\n                "_$s10TUIkitCore*"\n              ]\n            }\n          },\n          "tool" : "linker"\n        }\n      ]\n    }\n  ]\n}')" pass
+        "$(printf '{\n  "targets" : [\n    {\n      "name" : "TUICore",\n      "settings" : [\n        {\n          "condition" : {\n            "traits" : [\n              "T"\n            ]\n          },\n          "kind" : {\n            "unsafeFlags" : {\n              "_0" : [\n                "-Xlinker",\n                "-unexported_symbol",\n                "-Xlinker",\n                "_$s7TUICore*"\n              ]\n            }\n          },\n          "tool" : "linker"\n        }\n      ]\n    }\n  ]\n}')" pass
     run_case "an unexport pattern in the older encoding passes" \
-        '{"targets":[{"name":"TUIkitCore","settings":[{"condition":{"traits":["T"]},"kind":{"unsafeFlags":[["-Xlinker","-unexported_symbol","-Xlinker","_$s10TUIkitCore*"]]},"tool":"linker"}]}]}' pass
+        '{"targets":[{"name":"TUICore","settings":[{"condition":{"traits":["T"]},"kind":{"unsafeFlags":[["-Xlinker","-unexported_symbol","-Xlinker","_$s7TUICore*"]]},"tool":"linker"}]}]}' pass
     run_case "an unexport pattern without a trait caught" \
-        '{"targets":[{"name":"TUIkitCore","settings":[{"condition":{"config":"release"},"kind":{"unsafeFlags":{"_0":["-Xlinker","-unexported_symbol","-Xlinker","_$s10TUIkitCore*"]}},"tool":"linker"}]}]}' "$untraited"
+        '{"targets":[{"name":"TUICore","settings":[{"condition":{"config":"release"},"kind":{"unsafeFlags":{"_0":["-Xlinker","-unexported_symbol","-Xlinker","_$s7TUICore*"]}},"tool":"linker"}]}]}' "$untraited"
     run_case "another package's module caught" \
         "$(unexport '"-Xlinker","-unexported_symbol","-Xlinker","_$s3Lib*"')" "$linker"
     run_case "a length that is not the name's caught" \
-        "$(unexport '"-Xlinker","-unexported_symbol","-Xlinker","_$s9TUIkitCore*"')" "$linker"
-    run_case "a TUIkit… name that is no target here caught" \
-        "$(unexport '"-Xlinker","-unexported_symbol","-Xlinker","_$s9TUIkitFoo*"')" "$linker"
+        "$(unexport '"-Xlinker","-unexported_symbol","-Xlinker","_$s6TUICore*"')" "$linker"
+    run_case "a TUI… name that is no target here caught" \
+        "$(unexport '"-Xlinker","-unexported_symbol","-Xlinker","_$s6TUIFoo*"')" "$linker"
     run_case "a wider wildcard caught" \
         "$(unexport '"-Xlinker","-unexported_symbol","-Xlinker","_$s*"')" "$linker"
     run_case "a prefix without its wildcard caught" \
-        "$(unexport '"-Xlinker","-unexported_symbol","-Xlinker","_$s10TUIkitCore"')" "$linker"
+        "$(unexport '"-Xlinker","-unexported_symbol","-Xlinker","_$s7TUICore"')" "$linker"
     run_case "an unexport list file caught" \
         "$(unexport '"-Xlinker","-unexported_symbols_list","-Xlinker","/tmp/list"')" "$linker"
     run_case "another flag beside the pattern caught" \
-        "$(unexport '"-Xlinker","-unexported_symbol","-Xlinker","_$s10TUIkitCore*","-Xlinker","-deduplicate"')" "$linker"
+        "$(unexport '"-Xlinker","-unexported_symbol","-Xlinker","_$s7TUICore*","-Xlinker","-deduplicate"')" "$linker"
     # Each setting's own tool, wherever it sits among the others.
     run_case "a linker flag after a compile one caught" \
         "{\"targets\":[{\"name\":\"T\",\"settings\":[$swift_gated,$linker_gated]}]}" "$linker"
@@ -285,7 +285,7 @@ fi
 manifest_json="$(swift package dump-package)"
 
 if check_manifest "$manifest_json"; then
-    printf 'Package.swift is consumable: no linker unsafeFlags but the TUIkit unexport patterns, every unsafeFlags behind a trait, no path/branch/revision dependencies\n'
+    printf 'Package.swift is consumable: no linker unsafeFlags but the TUI unexport patterns, every unsafeFlags behind a trait, no path/branch/revision dependencies\n'
     exit 0
 fi
 

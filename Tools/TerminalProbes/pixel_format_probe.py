@@ -273,7 +273,7 @@ QUESTIONS = """
                                      all, however it is asked — check the
                                      transmit lines for a refusal
     all five draw .................. this terminal is fine; the fault is in
-                                     what TUIkit sends around them
+                                     what TUI sends around them
 """
 
 

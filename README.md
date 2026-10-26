@@ -8,7 +8,7 @@
 
 <img width="1200" height="630" alt="og-image@1x" src="https://github.com/user-attachments/assets/8bf99da8-e87c-4447-b3cb-a6f3f52c6d18" />
 
-# TUIkit
+# TUI
 
 > [!IMPORTANT]
 > **This project is currently a WORK IN PROGRESS! I strongly advise against using it in a production environment because APIs are subject to change at any time.**
@@ -17,10 +17,10 @@ A SwiftUI-like framework for building Terminal User Interfaces in Swift: no ncur
 
 ## What is this?
 
-TUIkit lets you build TUI apps using the same declarative syntax you already know from SwiftUI. Define your UI with `View`, compose views with `VStack`, `HStack`, and `ZStack`, style text with modifiers like `.bold()` and `.foregroundStyle(.red)`, and run it all in your terminal.
+TUI lets you build terminal apps using the same declarative syntax you already know from SwiftUI. Define your UI with `View`, compose views with `VStack`, `HStack`, and `ZStack`, style text with modifiers like `.bold()` and `.foregroundStyle(.red)`, and run it all in your terminal.
 
 ```swift
-import TUIkit
+import TUI
 
 @main
 struct MyApp: App {
@@ -36,7 +36,7 @@ struct ContentView: View {
     
     var body: some View {
         VStack(spacing: 1) {
-            Text("Hello, TUIkit!")
+            Text("Hello, TUI!")
                 .bold()
                 .foregroundStyle(.cyan)
             
@@ -62,13 +62,13 @@ struct ContentView: View {
 Every bar is the app's to place: an app that declares no `.toolbar` draws on
 every row of the terminal, and `q` still quits.
 
-SwiftUI code should compile against TUIkit and mean the same thing; what a
+SwiftUI code should compile against TUI and mean the same thing; what a
 terminal cannot honour fails to compile rather than doing nothing, with the
 few documented exceptions the deviations page lists.
 [Documentation/SwiftUI parity/SwiftUI compatibility guide.md](<Documentation/SwiftUI parity/SwiftUI compatibility guide.md>)
 is the porting guide, and
 [Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md](<Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md>)
-lists the places where TUIkit deliberately behaves differently from SwiftUI,
+lists the places where TUI deliberately behaves differently from SwiftUI,
 and why.
 
 ## Features
@@ -104,7 +104,7 @@ and why.
   - **`Gauge`** — a labelled value read-out with min/max bounds, styled via `.gaugeStyle(_:)`: `linearCapacity` (default), `accessoryLinear` (position marker), `accessoryLinearCapacity`, `accessoryCircular` / `accessoryCircularCapacity` (ring dials), or the compact `accessoryCircularTiny` pie glyph.
   - **`Spinner`** — animated, in sixteen built-in styles (`dots` (default), `line`, `dancingLine`, `bouncing` (a Knight-Rider scanner with a fading trail), `pie`, `beachball`, `box`, `curve`, `column`, `bar`, `shade`, `blockWedge`, `spinningTriangle`, `moon`, `earth`, `clock`) plus `.custom(_:)` frame sequences, with an optional label and colour.
 - **Toolbars**: SwiftUI's `.toolbar` with `ToolbarItem`, `ToolbarItemGroup` and `ToolbarSpacer` — items join the window's top bar (title, navigation, principal, primary and secondary actions) or bottom bar by placement, framed in the scene's `.windowToolbarStyle(_:)` (`.expanded`, the default, boxes them; `.unified` rules them; `.unifiedCompact` draws neither). Every bar is opt-in.
-- **Menu bar**: SwiftUI's commands — `.commands { … }` with `CommandMenu`, `CommandGroup` (`before:`/`after:`/`replacing:` any of the twenty `CommandGroupPlacement`s), `Commands` types of your own reading `@FocusedValue`, and `SidebarCommands`, `InspectorCommands`, `ToolbarCommands` and `TextEditingCommands` — draw a menu bar on the window's top row, with the app's menu (About, Quit) and Edit (Undo, Redo, Cut, Copy, Paste) of TUIkit's own. F10, a click on a title, or Alt and its first letter opens a menu; every command's shortcut works with the menus closed. `commandsRemoved()` and `commandsReplaced(content:)` as in SwiftUI.
+- **Menu bar**: SwiftUI's commands — `.commands { … }` with `CommandMenu`, `CommandGroup` (`before:`/`after:`/`replacing:` any of the twenty `CommandGroupPlacement`s), `Commands` types of your own reading `@FocusedValue`, and `SidebarCommands`, `InspectorCommands`, `ToolbarCommands` and `TextEditingCommands` — draw a menu bar on the window's top row, with the app's menu (About, Quit) and Edit (Undo, Redo, Cut, Copy, Paste) of TUI's own. F10, a click on a title, or Alt and its first letter opens a menu; every command's shortcut works with the menus closed. `commandsRemoved()` and `commandsReplaced(content:)` as in SwiftUI.
 - **Several scenes**: a body declares several — `WindowGroup`, `WindowGroup(id:)` and `WindowGroup(for:)`, `Window` and `Settings` — and `openWindow`, `dismissWindow` and `openSettings` present them on the one surface a terminal has: a window opens over the whole terminal in front of the others, which carry on behind it and come back as they were left; the `Settings` scene comes up as a sheet (`SettingsLink`). Escape closes a window opened over another, and the last window closing quits.
 - **`StatusBar`**: a line of context-sensitive keyboard shortcuts — `StatusBar()` in the bottom bar shows the page's `.statusBarItems`, the focus section's and the system items; the keys work whether or not it is shown
 
@@ -137,7 +137,7 @@ and why.
 - **Gradients and shape styles**: `Gradient`, `LinearGradient` / `RadialGradient` / `EllipticalGradient` / `AngularGradient`, `AnyShapeStyle`, `AnyGradient` (`Color.gradient`), `Color.mix(with:by:in:)` with a `Gradient.ColorSpace`; `.foregroundStyle(_:)` and `.background(_:)` take any `ShapeStyle`, `Color` is itself a `View`, and the TUI-specific `.gradientExtent(_:)` lets a ramp run across several rows. See `Documentation/Colour and styling/Gradients where a colour is accepted.md`.
 - **Animation**: `withAnimation`, `Animation` (curves and springs), `.transition(_:)` / `AnyTransition`, and `.opacity(_:)` as real compositing — an animation is a sequence of frames the run loop replays without re-rendering the page.
 - **Text styling**: `.bold()`, `.italic()`, `.underline()`, `.strikethrough()`, `.fontWeight(_:)`, `.textCase(_:)` on any view; plus `.dim()`, `.blink()`, and `.inverted()` on `Text`.
-- **Colour**: `.foregroundStyle(_:)` and `.background(_:)`. `Color` has SwiftUI's fifteen named colours (`.red`, `.gray`, …: fixed RGB at Apple's light values) plus TUIkit's `.magenta`, the terminal's sixteen ANSI slots, bright ones included (`Color.ansi(.red)`, `Color.ansi(.brightBlack)`), the 256-colour palette (`Color.palette256(_:)`), 24-bit RGB (`Color.rgb(_:_:_:)`), hex (`Color.hex(0xFF5500)` / `Color.hex("#FF5500")`), and the HSL / HSB / CMYK colour spaces. Palette-aware semantic colours resolve against the active palette at render time.
+- **Colour**: `.foregroundStyle(_:)` and `.background(_:)`. `Color` has SwiftUI's fifteen named colours (`.red`, `.gray`, …: fixed RGB at Apple's light values) plus TUI's `.magenta`, the terminal's sixteen ANSI slots, bright ones included (`Color.ansi(.red)`, `Color.ansi(.brightBlack)`), the 256-colour palette (`Color.palette256(_:)`), 24-bit RGB (`Color.rgb(_:_:_:)`), hex (`Color.hex(0xFF5500)` / `Color.hex("#FF5500")`), and the HSL / HSB / CMYK colour spaces. Palette-aware semantic colours resolve against the active palette at render time.
 - **Border styles** (`BorderStyle`): `.line`, `.rounded`, `.doubleLine`, `.heavy`, `.block`, `.none`, plus a public initialiser for fully custom border characters; applied with `.border(_:color:)`.
 - **Control styles**: `.buttonStyle`, `.toggleStyle`, `.pickerStyle`, `.toggleCharacterSet`, `.menuStyle`, `.listStyle`, `.formStyle`, `.gaugeStyle`, `.tabViewStyle`, `.navigationSplitViewStyle`, `.trackStyle` (the shared `TrackStyle` that draws a `Slider`'s rail as well as a `ProgressView`'s bar — `.knob` and `.marker` are the two looks that only make sense on a control you can move), plus per-control text-style builders.
 - **Badges**: `.badge(_ count: Int)` (0 hides) or `.badge(_ label:)` on list rows.
@@ -185,7 +185,7 @@ See [project-template/README.md](project-template/README.md) for more options (S
 
 ### Manual setup
 
-Add TUIkit to your `Package.swift`:
+Add TUI to your `Package.swift`:
 
 ```swift
 dependencies: [
@@ -198,57 +198,57 @@ Then add it to your target:
 ```swift
 .target(
     name: "YourApp",
-    dependencies: ["TUIkit"]
+    dependencies: ["TUI"]
 )
 ```
 
-`import TUIkit` is the whole framework, as `import SwiftUI` is SwiftUI, and the `TUIkit` product is the simplest way to depend on it. Start there.
+`import TUI` is the whole framework, as `import SwiftUI` is SwiftUI, and the `TUI` product is the simplest way to depend on it. Start there.
 
 ### Depending on fewer modules
 
-TUIkit is built as separate modules, and each module an app may want on its own is a library product too. An app that lists the products of only the modules it uses compiles and links only those and what they are built on:
+TUI is built as separate modules, and each module an app may want on its own is a library product too. An app that lists the products of only the modules it uses compiles and links only those and what they are built on:
 
 ```swift
 .executableTarget(
     name: "YourApp",
     dependencies: [
-        .product(name: "TUIkitApp", package: "TUIkit"),     // App, WindowGroup, Text, stacks, Button, …
-        .product(name: "TUIkitTables", package: "TUIkit"),  // Table, and List with it
+        .product(name: "TUIApp", package: "TUI"),     // App, WindowGroup, Text, stacks, Button, …
+        .product(name: "TUITables", package: "TUI"),  // Table, and List with it
     ]
 )
 ```
 
 ```swift
-import TUIkitApp
-import TUIkitTables
+import TUIApp
+import TUITables
 ```
 
-Measured 2026-10-11 with Swift 6.4.0 (`swift build -c release`, then `strip`), a hello world is 5,964,832 bytes on `TUIkitApp` against 9,552,376 on `TUIkit` (−37.6%), and compiles 8 of TUIkit's modules where the umbrella compiles 26. On a quiet machine the same day (release, 12 jobs, two clean builds each), it built in 62.8 and 58.7 s against 68.9 and 75.1 s, reached its first output in 6.8 ms against 7.1 ms, and used 2.76 MiB against 2.85 MiB (`footprint`; medians of 20 launches each, alternated).
+Measured 2026-10-11 with Swift 6.4.0 (`swift build -c release`, then `strip`), a hello world is 5,964,832 bytes on `TUIApp` against 9,552,376 on `TUI` (−37.6%), and compiles 8 of TUI's modules where the umbrella compiles 26. On a quiet machine the same day (release, 12 jobs, two clean builds each), it built in 62.8 and 58.7 s against 68.9 and 75.1 s, reached its first output in 6.8 ms against 7.1 ms, and used 2.76 MiB against 2.85 MiB (`footprint`; medians of 20 launches each, alternated).
 
-- **The products decide what is built; the imports only which names you can see.** Depending on `TUIkit` and writing `import TUIkitTables` builds and links everything.
+- **The products decide what is built; the imports only which names you can see.** Depending on `TUI` and writing `import TUITables` builds and links everything.
 - **A forgotten product** reads `cannot find 'Table' in scope` or `value of type 'Text' has no member 'tableStyle'`, naming no module. The documentation's *Which Module Provides It* page (built by `Tools/BuildDocs/build-docs.sh`) lists every public name with its module and product.
-- **Mixing is safe**: an app can list `TUIkit` beside module products, or use a library that depends on `TUIkit`, and each module is linked once. But then the app is as large as the `TUIkit` app, so a **library** built on TUIkit should depend on module products (or `TUIkitFoundation`), never on `TUIkit`.
-- **Never build a `.dynamic` library from TUIkit while an app also links a TUIkit product statically**: SwiftPM's own build system gives the app two copies of the shared modules, and Swift Build turns them into dynamic libraries the app must ship, and can fail to link another app in the package.
+- **Mixing is safe**: an app can list `TUI` beside module products, or use a library that depends on `TUI`, and each module is linked once. But then the app is as large as the `TUI` app, so a **library** built on TUI should depend on module products (or `TUIFoundation`), never on `TUI`.
+- **Never build a `.dynamic` library from TUI while an app also links a TUI product statically**: SwiftPM's own build system gives the app two copies of the shared modules, and Swift Build turns them into dynamic libraries the app must ship, and can fail to link another app in the package.
 
-[Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md) has the product list, what each brings with it, and where the module still shows when you use the umbrella: the debugger's and `String(reflecting:)`'s type names (`TUIkitLists.List<…>`), `NavigationPath`'s saved form, the `TUIkit_TUIkitStrings` resource bundle, and `renderOnce`, which is `TUIkitApp`'s.
+[Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md) has the product list, what each brings with it, and where the module still shows when you use the umbrella: the debugger's and `String(reflecting:)`'s type names (`TUILists.List<…>`), `NavigationPath`'s saved form, the `TUI_TUIStrings` resource bundle, and `renderOnce`, which is `TUIApp`'s.
 
 ### Shipping a program
 
-`swift build` puts TUIkit's resource bundle beside your executable: `TUIkit_TUIkitStrings.bundle` on macOS, `TUIkit_TUIkitStrings.resources` elsewhere. It holds the translations of TUIkit's own words (German, French, Italian, Spanish, Chinese and Japanese) and TUIkit's version. Copy it beside the executable wherever you install it — a release archive, an installer, a Homebrew formula that links the executable into `bin` (TUIkit looks beside the real file too) — and TUIkit's words follow the user's language.
+`swift build` puts TUI's resource bundle beside your executable: `TUI_TUIStrings.bundle` on macOS, `TUI_TUIStrings.resources` elsewhere. It holds the translations of TUI's own words (German, French, Italian, Spanish, Chinese and Japanese) and TUI's version. Copy it beside the executable wherever you install it — a release archive, an installer, a Homebrew formula that links the executable into `bin` (TUI looks beside the real file too) — and TUI's words follow the user's language.
 
-The bundle is optional. A program shipped as the executable alone runs: TUIkit's words read in English, which is compiled in, whatever language the user asks for, and `tuiKitVersion` reads `unknown`. A copied executable does not read the bundle it left in `.build`, so it behaves the same on the machine that built it as on any other. Your own targets' resources are bundles of their own, which SwiftPM's `Bundle.module` still requires wherever your code reads it.
+The bundle is optional. A program shipped as the executable alone runs: TUI's words read in English, which is compiled in, whatever language the user asks for, and `tuiKitVersion` reads `unknown`. A copied executable does not read the bundle it left in `.build`, so it behaves the same on the machine that built it as on any other. Your own targets' resources are bundles of their own, which SwiftPM's `Bundle.module` still requires wherever your code reads it.
 
-TUIkit itself needs no library beside the executable on any macOS it supports. A program that uses the standard library's `Span` types itself (`Span`, `RawSpan`, `MutableSpan`, `OutputSpan` and their kin), or links swift-collections 1.4 or later, may link `libswiftCompatibilitySpan.dylib` (`otool -L` on the executable says whether it does), which macOS has only from 26: copied out of `.build`, a program that links it strongly (the usual case: weak only where the code needing it was compiled for a macOS older than 10.14.4) stops at launch on macOS 14 and 15 with `Library not loaded: @rpath/libswiftCompatibilitySpan.dylib`. Ship that library beside the executable — copy it from `usr/lib/swift-6.2/macosx/` in the toolchain that built the program (Xcode's is `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain`, swift.org's and swiftly's `~/Library/Developer/Toolchains/swift-<version>-RELEASE.xctoolchain`), and sign it with your own identity if you notarise the program — or link it weakly, `swift build -c release -Xlinker -weak_library -Xlinker <that directory>/libswiftCompatibilitySpan.dylib`, which is safe only if the code that needs it never runs before macOS 26. To check a built program, run `Tools/check-span-compatibility.sh <executable>` from a TUIkit checkout: it fails on any load of the library, strong or weak, and on any symbol imported from it.
+TUI itself needs no library beside the executable on any macOS it supports. A program that uses the standard library's `Span` types itself (`Span`, `RawSpan`, `MutableSpan`, `OutputSpan` and their kin), or links swift-collections 1.4 or later, may link `libswiftCompatibilitySpan.dylib` (`otool -L` on the executable says whether it does), which macOS has only from 26: copied out of `.build`, a program that links it strongly (the usual case: weak only where the code needing it was compiled for a macOS older than 10.14.4) stops at launch on macOS 14 and 15 with `Library not loaded: @rpath/libswiftCompatibilitySpan.dylib`. Ship that library beside the executable — copy it from `usr/lib/swift-6.2/macosx/` in the toolchain that built the program (Xcode's is `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain`, swift.org's and swiftly's `~/Library/Developer/Toolchains/swift-<version>-RELEASE.xctoolchain`), and sign it with your own identity if you notarise the program — or link it weakly, `swift build -c release -Xlinker -weak_library -Xlinker <that directory>/libswiftCompatibilitySpan.dylib`, which is safe only if the code that needs it never runs before macOS 26. To check a built program, run `Tools/check-span-compatibility.sh <executable>` from a TUI checkout: it fails on any load of the library, strong or weak, and on any symbol imported from it.
 
 ### Shipping size
 
 `swift build -c release` does not strip the program (measured), and a link flag shrinks it further; each of these costs something only you can weigh. The figures are for a stripped hello-world app (`Text("Hello, world")` in a `WindowGroup`), built with Swift 6.4.0 on 2026-10-11; Xcode's Swift 6.2.4 is within a point. The Xcode settings named are untried in Xcode unless marked measured.
 
-- **Depend on fewer modules** ([above](#depending-on-fewer-modules)): −37.6% for the hello world on `TUIkitApp` alone (stripped, with the trait below on); the link flags below apply to it as well. *Cost:* a product per module you use, in your `Package.swift`.
+- **Depend on fewer modules** ([above](#depending-on-fewer-modules)): −37.6% for the hello world on `TUIApp` alone (stripped, with the trait below on); the link flags below apply to it as well. *Cost:* a product per module you use, in your `Package.swift`.
 - **`strip`**: 20.9 MB → 9.7 MB, the symbol tables and the debug map. *Cost:* crash reports and profiles show addresses, so keep the dSYM to symbolicate them. `dsymutil` makes one and must run before `strip`; `swift build -c release` already runs it and leaves `MyApp.dSYM` beside the executable (measured, 6.2.4 and 6.4.0). In Xcode, Strip Linked Product (`STRIP_INSTALLED_PRODUCT`) with `DEBUG_INFORMATION_FORMAT = dwarf-with-dsym`; Xcode applies it only when it installs or archives the product (`DEPLOYMENT_POSTPROCESSING = YES`, per Xcode's build-setting reference), so a plain Release build stays unstripped.
-- **TUIkit's `DeadStripUnusedAPI` trait, on by default**: −14.7% with `swift build -c release`, the TUIkit API the app never calls. It works through the linker's dead stripping, so an Xcode app needs `DEAD_CODE_STRIPPING = YES`, which is not Xcode's default (measured, Xcode 26.3). *Cost:* a statically linked app whose `dlopen`ed plugin calls TUIkit API the app itself never calls: the plugin no longer loads. Such an app turns the trait off with `.package(url: …, from: …, traits: [])`, which turns off every default trait of TUIkit's (today, this one and the next, which such a plugin needs off as well).
-- **TUIkit's `UnexportTUIkitSymbols` trait, on by default**: −3.2%, TUIkit's entries in the program's export table, whose bytes `strip` leaves in place (measured 2026-10-12, Swift 6.4.0 and Xcode's 6.2.4: 317 KB of export table down to 9 KB; the 227 entries left are the program's own and TUIkit's extensions of other modules' types, `String`'s and Foundation's). It works on every link that contains TUIkit, a `.dynamic` library of yours as well, and keeps TUIkit's symbols out of what that link exports, and with them your own extensions of TUIkit's types and protocols (`extension View { func card() }`, `extension Color { static var brand }`) and your conformances of TUIkit's types to your protocols, whose symbols Swift names after the TUIkit module (measured with a small library on both toolchains). *Cost:* a plugin `dlopen`ed into your app that calls any TUIkit API through it no longer loads ("symbol not found in flat namespace"), where with the trait above alone only one calling API the app never calls fails; a dynamic library of yours that contains TUIkit no longer exports TUIkit's symbols, so an app that uses TUIkit through it fails to link ("Undefined symbols"), or, built against an older build of the library, to launch ("Symbol not found"); an app that calls one of your library's extensions of TUIkit's types fails to link as well, unless the compiler copied the extension's body into the app (it did for one built on public API alone), and a plugin that calls one in your app no longer loads; and the linker refuses it beside an export list of your own: `-no_exported_symbols`, `-exported_symbol` or `-exported_symbols_list` stop the link with "-unexported_symbol cannot be used with -exported_symbol*", and so would `LD_EXPORT_SYMBOLS = NO` or `EXPORTED_SYMBOLS_FILE` in Xcode, which pass those flags (untried in Xcode). Turn this trait off alone, and keep the other, with `.package(url: …, from: …, traits: ["DeadStripUnusedAPI"])`. The program's remaining exports go with `-Xlinker -unexported_symbol -Xlinker '*'`, which the linker takes beside the trait's patterns: 9 KB more (−0.1%), at the cost of any plugin linked against the executable (`-bundle_loader`) or `dlsym` on it.
-- **`-Xlinker -deduplicate`**: −7.5% with both traits on (measured 2026-10-12). An Xcode Release build already does this: Xcode hands the linker `-Os`, and the linker then folds identical functions (measured, Xcode 26.3: a hello-world built from a SwiftPM package dependency folds 20,575 of its 61,034 functions). `swift build` does not. *Cost:* the linker gives functions whose machine code is identical one address, across your whole program. Swift identifies a key path to a computed property by its getter's address, so two key paths with one root and one value type whose getters compile alike — `var a: Int { x }` and `var b: Int { x }`, or two constants — compare and hash equal. They still read the same values, but code using key paths as names can tell: a `Set` or `Dictionary` of key paths, `KeyPathComparator` equality (a `Table` then treats two such columns as one), and writable key paths whose setters differ. Swift closures compared by function pointer can likewise compare equal (`@convention(c)` functions are not merged), and a crash report or profile may name one of several merged functions. Adding `-Xlinker -no_deduplicate_allow_swift_addr_ref` keeps key paths and closures distinct (measured) and saves 2.2% instead. TUIkit's CI checks TUIkit's own code under it, with both traits on, as Swift 6.4.0 and Xcode's 6.2.4 compile it (each compiler folds its own set: 6.2.4 folds one more pair, reviewed; swift.org's 6.3.3, measured once outside CI, folds the same as 6.2.4; other compilers are unchecked) and in the modules its test programs link (TUIkitAppKit's key paths are not among them); `Tools/DedupCheck/dedup_check.py --report` lists, before `strip`, what it did to yours ([Tools/DedupCheck/README.md](Tools/DedupCheck/README.md)).
+- **TUI's `DeadStripUnusedAPI` trait, on by default**: −14.7% with `swift build -c release`, the TUI API the app never calls. It works through the linker's dead stripping, so an Xcode app needs `DEAD_CODE_STRIPPING = YES`, which is not Xcode's default (measured, Xcode 26.3). *Cost:* a statically linked app whose `dlopen`ed plugin calls TUI API the app itself never calls: the plugin no longer loads. Such an app turns the trait off with `.package(url: …, from: …, traits: [])`, which turns off every default trait of TUI's (today, this one and the next, which such a plugin needs off as well).
+- **TUI's `UnexportTUISymbols` trait, on by default**: −3.2%, TUI's entries in the program's export table, whose bytes `strip` leaves in place (measured 2026-10-12, Swift 6.4.0 and Xcode's 6.2.4: 317 KB of export table down to 9 KB; the 227 entries left are the program's own and TUI's extensions of other modules' types, `String`'s and Foundation's). It works on every link that contains TUI, a `.dynamic` library of yours as well, and keeps TUI's symbols out of what that link exports, and with them your own extensions of TUI's types and protocols (`extension View { func card() }`, `extension Color { static var brand }`) and your conformances of TUI's types to your protocols, whose symbols Swift names after the TUI module (measured with a small library on both toolchains). *Cost:* a plugin `dlopen`ed into your app that calls any TUI API through it no longer loads ("symbol not found in flat namespace"), where with the trait above alone only one calling API the app never calls fails; a dynamic library of yours that contains TUI no longer exports TUI's symbols, so an app that uses TUI through it fails to link ("Undefined symbols"), or, built against an older build of the library, to launch ("Symbol not found"); an app that calls one of your library's extensions of TUI's types fails to link as well, unless the compiler copied the extension's body into the app (it did for one built on public API alone), and a plugin that calls one in your app no longer loads; and the linker refuses it beside an export list of your own: `-no_exported_symbols`, `-exported_symbol` or `-exported_symbols_list` stop the link with "-unexported_symbol cannot be used with -exported_symbol*", and so would `LD_EXPORT_SYMBOLS = NO` or `EXPORTED_SYMBOLS_FILE` in Xcode, which pass those flags (untried in Xcode). Turn this trait off alone, and keep the other, with `.package(url: …, from: …, traits: ["DeadStripUnusedAPI"])`. The program's remaining exports go with `-Xlinker -unexported_symbol -Xlinker '*'`, which the linker takes beside the trait's patterns: 9 KB more (−0.1%), at the cost of any plugin linked against the executable (`-bundle_loader`) or `dlsym` on it.
+- **`-Xlinker -deduplicate`**: −7.5% with both traits on (measured 2026-10-12). An Xcode Release build already does this: Xcode hands the linker `-Os`, and the linker then folds identical functions (measured, Xcode 26.3: a hello-world built from a SwiftPM package dependency folds 20,575 of its 61,034 functions). `swift build` does not. *Cost:* the linker gives functions whose machine code is identical one address, across your whole program. Swift identifies a key path to a computed property by its getter's address, so two key paths with one root and one value type whose getters compile alike — `var a: Int { x }` and `var b: Int { x }`, or two constants — compare and hash equal. They still read the same values, but code using key paths as names can tell: a `Set` or `Dictionary` of key paths, `KeyPathComparator` equality (a `Table` then treats two such columns as one), and writable key paths whose setters differ. Swift closures compared by function pointer can likewise compare equal (`@convention(c)` functions are not merged), and a crash report or profile may name one of several merged functions. Adding `-Xlinker -no_deduplicate_allow_swift_addr_ref` keeps key paths and closures distinct (measured) and saves 2.2% instead. TUI's CI checks TUI's own code under it, with both traits on, as Swift 6.4.0 and Xcode's 6.2.4 compile it (each compiler folds its own set: 6.2.4 folds one more pair, reviewed; swift.org's 6.3.3, measured once outside CI, folds the same as 6.2.4; other compilers are unchecked) and in the modules its test programs link (TUIAppKit's key paths are not among them); `Tools/DedupCheck/dedup_check.py --report` lists, before `strip`, what it did to yours ([Tools/DedupCheck/README.md](Tools/DedupCheck/README.md)).
 
 The link flag, per build or in your app's own manifest, and in Xcode (Release configuration, where deduplication is already on):
 
@@ -259,7 +259,7 @@ swift build -c release -Xlinker -deduplicate
 ```swift
 .executableTarget(
     name: "MyApp",
-    dependencies: ["TUIkit"],
+    dependencies: ["TUI"],
     linkerSettings: [
         .unsafeFlags(
             ["-Xlinker", "-deduplicate"],
@@ -275,20 +275,20 @@ OTHER_LDFLAGS = $(inherited) -Xlinker -no_deduplicate_allow_swift_addr_ref
 
 ### Build time
 
-A clean release build of TUIkit takes minutes, not seconds. Two things decide most of it (measured 2026-10-07 on a 12-core arm64 Mac VM, Swift 6.2.4):
+A clean release build of TUI takes minutes, not seconds. Two things decide most of it (measured 2026-10-07 on a 12-core arm64 Mac VM, Swift 6.2.4):
 
-- **Which compiler you have.** Run `swift --version`. If it prints `Build config: +assertions`, the compiler is an assertions build — swift.org's 6.2.4 for macOS is one, whether installed by hand or by swiftly (its 6.3.3 and 6.4.0 are not) — and Xcode's own Swift of the same version compiles TUIkit in about 26% less time: 86.4 s against 116.7 s to the end of TUIkit's compile, paired on one machine. (Part of the gap is the swift.org toolchain rebuilding SDK module interfaces that Xcode ships prebuilt.) With Xcode installed, build with its toolchain:
+- **Which compiler you have.** Run `swift --version`. If it prints `Build config: +assertions`, the compiler is an assertions build — swift.org's 6.2.4 for macOS is one, whether installed by hand or by swiftly (its 6.3.3 and 6.4.0 are not) — and Xcode's own Swift of the same version compiles TUI in about 26% less time: 86.4 s against 116.7 s to the end of TUI's compile, paired on one machine. (Part of the gap is the swift.org toolchain rebuilding SDK module interfaces that Xcode ships prebuilt.) With Xcode installed, build with its toolchain:
 
   ```bash
   DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swift build -c release
   ```
 
   Both halves are needed. `DEVELOPER_DIR` alone does not change which compiler swiftly's `swift` runs, and `xcrun --toolchain XcodeDefault` without it runs the Command Line Tools' `swift` whenever `xcode-select` points at them.
-- **Why more cores help little.** A release build compiles each module as one whole-module job, and the modules build in a chain: TUIkitCore, then TUIkitView, then TUIkit. Inside a job, type checking and the SIL optimiser — about three quarters of TUIkit's job — run on one thread; only LLVM's code generation spreads across cores. The whole build averaged about 1.7 cores busy.
+- **Why more cores help little.** A release build compiles each module as one whole-module job, and the modules build in a chain: TUICore, then TUIView, then TUI. Inside a job, type checking and the SIL optimiser — about three quarters of TUI's job — run on one thread; only LLVM's code generation spreads across cores. The whole build averaged about 1.7 cores busy.
 
 ## Theming
 
-TUIkit ships two families of built-in palettes, both conforming to the `Palette` protocol and applied at the scene (or view) level with `.palette(_:)`.
+TUI ships two families of built-in palettes, both conforming to the `Palette` protocol and applied at the scene (or view) level with `.palette(_:)`.
 
 **Classic-phosphor presets** — `SystemPalette`:
 
@@ -324,16 +324,16 @@ Available presets (`SystemPalette.Preset`):
 .palette(LiveTerminalPalette())
 ```
 
-Until the terminal answers TUIkit's startup query for those colours (OSC 10, 11 and 4) none of them can be measured — and some hosts never answer — so the text tiers stay plain rather than dimmed, faces and hovers show no fill (a hover lifts the label's ink to another name instead), and the highlights that would have been tints, like a cursor row or a text selection, are drawn in reverse video.
+Until the terminal answers TUI's startup query for those colours (OSC 10, 11 and 4) none of them can be measured — and some hosts never answer — so the text tiers stay plain rather than dimmed, faces and hovers show no fill (a hover lifts the label's ink to another name instead), and the highlights that would have been tints, like a cursor row or a text selection, are drawn in reverse video.
 
 `PaletteRegistry.all` enumerates all 17 built-in palettes (`.phosphorPresets` + `.appleTerminalProfiles` + `.terminalPalettes`), with `PaletteRegistry.palette(withId:)` / `palette(withName:)` lookups. Custom palettes conform to `Palette` directly, and the `ColorPicker` lets users edit colours interactively — R/G/B inline, or the full modal editor from a click or `Return` on its swatch.
 
 ## Internationalization
 
-TUIkit includes comprehensive i18n support with 7 languages and type-safe string constants:
+TUI includes comprehensive i18n support with 7 languages and type-safe string constants:
 
 ```swift
-import TUIkit
+import TUI
 
 struct MyView: View {
     var body: some View {
@@ -371,11 +371,11 @@ The `LocalizationKey` namespace groups all framework strings into `Button`, `Lab
 
 Text in scripts a terminal shapes — Devanagari and the other Indic scripts, Thai, Lao, Khmer, and Latin with stacked marks — is laid out at the width each terminal advances it. Apple's Terminal.app draws such text at the font's own proportional width and moves everything after it on the row a little to the left (a table's next column, a border), and no escape sequence moves it back; see "What Apple Terminal paints" in [Documentation/Terminals/Terminal compatibility survey.md](<Documentation/Terminals/Terminal compatibility survey.md>).
 
-For complete documentation, see the [Localization Guide](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUIkit/TUIkit.docc/Articles/Localization.md) in the DocC documentation.
+For complete documentation, see the [Localization Guide](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUI/TUI.docc/Articles/Localization.md) in the DocC documentation.
 
 ## Architecture
 
-- **Modular package**: 34 Swift library modules, a macro plugin and 1 in-tree C target, offered as 31 library products: the `TUIkit` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIkitAppKit`, `TUIkitFilePanelsAppKit` and `TUIkitMacros` ([Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md); Project Structure below)
+- **Modular package**: 34 Swift library modules, a macro plugin and 1 in-tree C target, offered as 31 library products: the `TUI` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIAppKit`, `TUIFilePanelsAppKit` and `TUIMacros` ([Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md); Project Structure below)
 - **Per-app state**: every app owns its render state — whether a frame is owed, and the transaction the change behind it was made under — and its views' `@State` and `@Observable` changes reach it through the render cache the app draws with, so two apps in one process never take each other's frames; application state flows through the Environment system. Still process-wide: the localization service (`LocalizationService.shared`), the notification queue (`NotificationService.current`) and the default `@AppStorage` store (`StorageDefaults.backend`)
 - **Pure ANSI rendering**: no ncurses runtime dependency; the only C is the bundled `stb_image` decoder, and only as the fallback where ImageIO is unavailable (selected via `canImport(ImageIO)`, not a hard-coded platform list)
 - **Linux compatible**: works on macOS and Linux (XDG paths supported)
@@ -385,7 +385,7 @@ For complete documentation, see the [Localization Guide](https://github.com/wade
 ### Package dependencies
 
 - [swift-docc-plugin](https://github.com/swiftlang/swift-docc-plugin) — documentation
-- [swift-syntax](https://github.com/swiftlang/swift-syntax) — the `@Animatable` and `@Entry` macros' compiler plugin, built only for an app that depends on the `TUIkitMacros` product (every client resolves and fetches it)
+- [swift-syntax](https://github.com/swiftlang/swift-syntax) — the `@Animatable` and `@Entry` macros' compiler plugin, built only for an app that depends on the `TUIMacros` product (every client resolves and fetches it)
 - [ordo-one/benchmark](https://github.com/ordo-one/package-benchmark) — performance benchmarks, opt-in via the `TUIKIT_BENCHMARKS` flag: `TUIKIT_BENCHMARKS=1 swift package benchmark` (kept out of the default build/test graph)
 
 ## Project structure
@@ -393,106 +393,106 @@ For complete documentation, see the [Localization Guide](https://github.com/wade
 ```
 Sources/
 ├── CSTBImage/            C target: bundled stb_image — image decoder fallback (non-Apple platforms)
-├── TUIkitCore/           Primitives, key/input parsing, frame buffer, concurrency helpers
+├── TUICore/           Primitives, key/input parsing, frame buffer, concurrency helpers
 │                         (Concurrency, Environment, Extensions, Input, Rendering)
-├── TUIkitStyling/        Color, theme palettes, border styles (Color, Styles, Theme)
-├── TUIkitView/           View protocol, ViewBuilder, State, Environment, Renderable
+├── TUIStyling/        Color, theme palettes, border styles (Color, Styles, Theme)
+├── TUIView/           View protocol, ViewBuilder, State, Environment, Renderable
 │                         (Core, Environment, Rendering, State)
-│                         Depends on TUIkitStyling for ONE reason: `Color: View`
+│                         Depends on TUIStyling for ONE reason: `Color: View`
 │                         has to be declared in the module that owns `View`, or
 │                         a `Color` in a ViewBuilder pack beside a generic view
 │                         segfaults the debug runtime (a toolchain bug — see
-│                         Sources/TUIkitView/Core/ColorAsView.swift)
-├── TUIkitImage/          ASCII-art converter (braille / fine-blocks / shape / dithering),
+│                         Sources/TUIView/Core/ColorAsView.swift)
+├── TUIImage/          ASCII-art converter (braille / fine-blocks / shape / dithering),
 │                         image loading — ImageIO on Apple, else stb_image
-│                         (depends on CSTBImage + TUIkitStyling)
-├── TUIkitAppKit/         Bridges to AppKit: Color(nsColor:), NSColor(_:),
+│                         (depends on CSTBImage + TUIStyling)
+├── TUIAppKit/         Bridges to AppKit: Color(nsColor:), NSColor(_:),
 │                         Image(nsImage:) — the module that imports AppKit, so that
 │                         SwiftUICore (which AppKit imports) never reaches an app that
-│                         imports only TUIkit. Empty off Apple platforms.
-├── TUIkitFilePanelsAppKit/ The file panels' fileDialogSystemIcons(): NSWorkspace's
+│                         imports only TUI. Empty off Apple platforms.
+├── TUIFilePanelsAppKit/ The file panels' fileDialogSystemIcons(): NSWorkspace's
 │                         icons (the second module that imports AppKit; a module of
-│                         its own so that TUIkitAppKit does not link the file panels).
+│                         its own so that TUIAppKit does not link the file panels).
 │                         Empty off Apple platforms.
-├── TUIkit/               The umbrella: Exports.swift (re-exports, no code), and TUIkit.docc/ (DocC)
+├── TUI/               The umbrella: Exports.swift (re-exports, no code), and TUI.docc/ (DocC)
 │
 │   The framework's sources, one directory per module of the planned split
 │   (Tools/ModuleMap; Documentation/Historical/Module split plan, revision 4). Each
-│   became a module of its own when it was carved out of TUIkitFoundation:
-│   TUIkitStrings and TUIkitTerminalHost (step B2), which TUIkitFoundation
-│   re-exports, TUIkitApp (step B3), TUIkitColorPicker (step B4, whose
-│   curve-editor panels C9b peeled into TUIkitCurveEditors),
-│   TUIkitNavigation (step B5, which compiled TUIkitPresentation's directory
-│   too until step C1 peeled it into TUIkitPresentation), TUIkitLists (step
-│   B6, which compiled TUIkitTables', TUIkitTabs' and TUIkitGrid's
-│   directories too until steps C2 to C4 peeled them into TUIkitTables,
-│   TUIkitTabs and TUIkitGrid), TUIkitChrome, TUIkitEffects and TUIkitMenus
-│   (step B5b), TUIkitBitmaps (step B5c) and TUIkitTextInput (step B7, which
-│   compiled TUIkitForms', TUIkitSearch's, TUIkitPickers' and
-│   TUIkitNumericControls' directories too until steps C5 to C8 peeled them
-│   into TUIkitForms, TUIkitSearch, TUIkitPickers and
-│   TUIkitNumericControls). TUIkitCommands (lane O13) and TUIkitScenes
-│   (lane O9) were modules of their own from the start, built on TUIkitApp,
-│   whose Scene they extend, and so were TUIkitFilePanels (lane O10), built
-│   on TUIkitPresentation, TUIkitTables and TUIkitTextInput, and
-│   TUIkitTabImages (Tab's image: initialisers), built on TUIkitBitmaps and
-│   TUIkitTabs so that neither pays for the other.
-│   TUIkitApp, TUIkitColorPicker, TUIkitCurveEditors, TUIkitNavigation,
-│   TUIkitPresentation,
-│   TUIkitLists, TUIkitTables, TUIkitTabs, TUIkitGrid, TUIkitChrome,
-│   TUIkitEffects, TUIkitMenus, TUIkitBitmaps, TUIkitTextInput, TUIkitForms,
-│   TUIkitSearch, TUIkitPickers and TUIkitNumericControls are built on
-│   TUIkitFoundation (TUIkitTables and TUIkitTabs on TUIkitLists as well,
-│   TUIkitTabs on TUIkitPresentation too,
-│   TUIkitSearch on TUIkitTextInput and TUIkitPickers, TUIkitCurveEditors
-│   on TUIkitColorPicker), and the umbrella re-exports all twenty.
+│   became a module of its own when it was carved out of TUIFoundation:
+│   TUIStrings and TUITerminalHost (step B2), which TUIFoundation
+│   re-exports, TUIApp (step B3), TUIColorPicker (step B4, whose
+│   curve-editor panels C9b peeled into TUICurveEditors),
+│   TUINavigation (step B5, which compiled TUIPresentation's directory
+│   too until step C1 peeled it into TUIPresentation), TUILists (step
+│   B6, which compiled TUITables', TUITabs' and TUIGrid's
+│   directories too until steps C2 to C4 peeled them into TUITables,
+│   TUITabs and TUIGrid), TUIChrome, TUIEffects and TUIMenus
+│   (step B5b), TUIBitmaps (step B5c) and TUITextInput (step B7, which
+│   compiled TUIForms', TUISearch's, TUIPickers' and
+│   TUINumericControls' directories too until steps C5 to C8 peeled them
+│   into TUIForms, TUISearch, TUIPickers and
+│   TUINumericControls). TUICommands (lane O13) and TUIScenes
+│   (lane O9) were modules of their own from the start, built on TUIApp,
+│   whose Scene they extend, and so were TUIFilePanels (lane O10), built
+│   on TUIPresentation, TUITables and TUITextInput, and
+│   TUITabImages (Tab's image: initialisers), built on TUIBitmaps and
+│   TUITabs so that neither pays for the other.
+│   TUIApp, TUIColorPicker, TUICurveEditors, TUINavigation,
+│   TUIPresentation,
+│   TUILists, TUITables, TUITabs, TUIGrid, TUIChrome,
+│   TUIEffects, TUIMenus, TUIBitmaps, TUITextInput, TUIForms,
+│   TUISearch, TUIPickers and TUINumericControls are built on
+│   TUIFoundation (TUITables and TUITabs on TUILists as well,
+│   TUITabs on TUIPresentation too,
+│   TUISearch on TUITextInput and TUIPickers, TUICurveEditors
+│   on TUIColorPicker), and the umbrella re-exports all twenty.
 │   Inside each: App/, Views/, Modifiers/, Focus/, ...
-├── TUIkitStrings/        SF Symbols name table, inline Markdown, format styles,
+├── TUIStrings/        SF Symbols name table, inline Markdown, format styles,
 │                         localization (translations in 7 languages) and VERSION,
-│                         in the resource bundle TUIkit_TUIkitStrings
-├── TUIkitTerminalHost/   Terminal facts as values: host, identity, quirks, capabilities
-├── TUIkitFoundation/     The base: everything the modules below share — layout,
+│                         in the resource bundle TUI_TUIStrings
+├── TUITerminalHost/   Terminal facts as values: host, identity, quirks, capabilities
+├── TUIFoundation/     The base: everything the modules below share — layout,
 │                         stacks, Text, Button, Toggle, focus, state, rendering, ...
-├── TUIkitChrome/         Status bar view, toolbars, notifications, tooltips, help
-├── TUIkitEffects/        Transitions, symbol, visual and colour effects
-├── TUIkitBitmaps/        Image from files and URLs, AsyncImage, the image options
-├── TUIkitMenus/          Menu, ControlGroup, .contextMenu, menu styles
-├── TUIkitNumericControls/ Slider, Stepper, Gauge, ProgressView
-├── TUIkitTextInput/      TextField, SecureField, TextEditor
-├── TUIkitPickers/        Picker, DatePicker, RadioButtonGroup
-├── TUIkitLists/          List, OutlineGroup, list styles, row editing
-├── TUIkitGrid/           Grid, LazyVGrid, LazyHGrid
-├── TUIkitNavigation/     NavigationStack, NavigationSplitView, Inspector
-├── TUIkitPresentation/   alert, confirmationDialog, sheet, presentation modifiers
-├── TUIkitForms/          Form, LabeledContent, GroupBox, Card, Panel
-├── TUIkitSearch/         .searchable, search tokens and scopes
-├── TUIkitTables/         Table, columns, rows, table styles
-├── TUIkitTabs/           TabView, Tab, tab styles
-├── TUIkitTabImages/      Tab(_:image:…): a tab's picture found by name, as Image(_:bundle:)
-├── TUIkitColorPicker/    ColorPicker, ColorPickerPanel and GradientEditorPanel
-├── TUIkitCurveEditors/   The tone-curve and channel-curve editor panels
-├── TUIkitApp/            App, Scene, WindowGroup, the run loop, the terminal (POSIX)
-├── TUIkitCommands/       Commands, CommandMenu, CommandGroup, .commands: the menu bar
-├── TUIkitFilePanels/     fileImporter, fileExporter, fileMover: the open and save panels
-├── TUIkitScenes/         Settings (a sheet) and AlertScene: scenes shown over the windows
+├── TUIChrome/         Status bar view, toolbars, notifications, tooltips, help
+├── TUIEffects/        Transitions, symbol, visual and colour effects
+├── TUIBitmaps/        Image from files and URLs, AsyncImage, the image options
+├── TUIMenus/          Menu, ControlGroup, .contextMenu, menu styles
+├── TUINumericControls/ Slider, Stepper, Gauge, ProgressView
+├── TUITextInput/      TextField, SecureField, TextEditor
+├── TUIPickers/        Picker, DatePicker, RadioButtonGroup
+├── TUILists/          List, OutlineGroup, list styles, row editing
+├── TUIGrid/           Grid, LazyVGrid, LazyHGrid
+├── TUINavigation/     NavigationStack, NavigationSplitView, Inspector
+├── TUIPresentation/   alert, confirmationDialog, sheet, presentation modifiers
+├── TUIForms/          Form, LabeledContent, GroupBox, Card, Panel
+├── TUISearch/         .searchable, search tokens and scopes
+├── TUITables/         Table, columns, rows, table styles
+├── TUITabs/           TabView, Tab, tab styles
+├── TUITabImages/      Tab(_:image:…): a tab's picture found by name, as Image(_:bundle:)
+├── TUIColorPicker/    ColorPicker, ColorPickerPanel and GradientEditorPanel
+├── TUICurveEditors/   The tone-curve and channel-curve editor panels
+├── TUIApp/            App, Scene, WindowGroup, the run loop, the terminal (POSIX)
+├── TUICommands/       Commands, CommandMenu, CommandGroup, .commands: the menu bar
+├── TUIFilePanels/     fileImporter, fileExporter, fileMover: the open and save panels
+├── TUIScenes/         Settings (a sheet) and AlertScene: scenes shown over the windows
 ├── Example/        Example app (executable target)
 └── Stress/         Performance stress harness, also a complex-TUI demo (executable)
 
 Tests/                    ~11,600 tests across ~1,560 suites in ~1,360 files, a target per module
-├── TUIkitFoundationTests/  Tests needing only TUIkitFoundation and what it re-exports:
+├── TUIFoundationTests/  Tests needing only TUIFoundation and what it re-exports:
 │                         views, layout, styling, rendering, the environment
-├── TUIkitAppTests/       … the App and run loop, the terminal, input, chrome
-├── TUIkitListsTests/     One target per feature module (Lists, Tables, Menus,
-├── TUIkitTablesTests/    TextInput, …) for the tests needing it, and maybe the
+├── TUIAppTests/       … the App and run loop, the terminal, input, chrome
+├── TUIListsTests/     One target per feature module (Lists, Tables, Menus,
+├── TUITablesTests/    TextInput, …) for the tests needing it, and maybe the
 ├── …                     App, so an edit to a module rebuilds only its tests
-├── TUIkitIntegrationTests/  Tests needing two feature modules (golden snapshots,
+├── TUIIntegrationTests/  Tests needing two feature modules (golden snapshots,
 │                         i18n consistency, cross-control focus): the umbrella
-├── TUIkitTestSupport/    Shared helpers, mocks and golden snapshots; App-, Lists-,
-│                         Tables-… level helpers in TUIkitAppTestSupport and the like
-├── TUIkitCoreTests/      The low modules' own unit tests, which cannot lean on
-├── TUIkitStylingTests/   anything above them. Each target imports only what it
-├── TUIkitViewTests/      depends on: Tools/validate-test-boundaries.sh enforces it
-├── TUIkitImageTests/
+├── TUITestSupport/    Shared helpers, mocks and golden snapshots; App-, Lists-,
+│                         Tables-… level helpers in TUIAppTestSupport and the like
+├── TUICoreTests/      The low modules' own unit tests, which cannot lean on
+├── TUIStylingTests/   anything above them. Each target imports only what it
+├── TUIViewTests/      depends on: Tools/validate-test-boundaries.sh enforces it
+├── TUIImageTests/
 └── ExampleTests/         The Example app's own views, driven whole (@testable import Example)
 
 Tools/
@@ -515,12 +515,12 @@ Tools/
                           Documentation/Terminals/Terminal compatibility survey.md
 
 Benchmarks/
-└── TUIkitBenchmarks/     ordo-one/package-benchmark suite (color, frame buffer, image,
+└── TUIBenchmarks/     ordo-one/package-benchmark suite (color, frame buffer, image,
                           input parsing, layout, list/table, render, scroll, text width,
                           view identity); run via `TUIKIT_BENCHMARKS=1 swift package benchmark`
 ```
 
-`import TUIkit` re-exports every module: `TUIkitFoundation` (the views and modifiers), `TUIkitApp` (`App`, `Scene` and the run loop), `TUIkitCommands` (`Commands`, `CommandMenu`, `CommandGroup` and the menu bar a scene's `.commands` draws), `TUIkitFilePanels` (`fileImporter`, `fileExporter`, `fileMover` and the open and save panels TUIkit draws for them), `TUIkitScenes` (the `Settings` scene and `AlertScene`), `TUIkitColorPicker` (`ColorPicker`, `ColorPickerPanel` and `GradientEditorPanel`), `TUIkitCurveEditors` (the tone-curve and channel-curve editors), `TUIkitNavigation` (the navigation containers), `TUIkitPresentation` (alerts, dialogs, sheets and the presentation modifiers), `TUIkitLists` (lists), `TUIkitTables` (tables), `TUIkitTabs` (tab views), `TUIkitTabImages` (`Tab`'s `image:` initialisers, which find the image by name), `TUIkitGrid` (grids), `TUIkitChrome` (the status bar, toolbars, notifications and tooltips), `TUIkitEffects` (transitions and visual effects), `TUIkitMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIkitBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options), `TUIkitTextInput` (the text fields and editors), `TUIkitForms` (`Form`, `LabeledContent`, `GroupBox` and the other view groupings), `TUIkitSearch` (`.searchable`, search tokens and scopes), `TUIkitPickers` (`Picker`, `RadioButtonGroup` and `DatePicker`), `TUIkitNumericControls` (`Slider`, `Stepper`, `Gauge` and `ProgressView`) and `TUIkitCore`, `TUIkitStyling`, `TUIkitView`, and `TUIkitImage` (via `@_exported`). Each of these is also a library product of its own (TUIkitStrings and TUIkitTerminalHost come with `TUIkitFoundation`); [Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md) says when to depend on them instead. The AppKit bridges — `Color(nsColor:)`, `NSColor(_:)` and `Image(nsImage:)` — are the separate `TUIkitAppKit` product: add `import TUIkitAppKit` where you use them. The Core Graphics ones — `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)` and `Image(decorative:scale:orientation:)` — need only TUIkit, on Apple platforms. They are kept out of TUIkit because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUIkit's.
+`import TUI` re-exports every module: `TUIFoundation` (the views and modifiers), `TUIApp` (`App`, `Scene` and the run loop), `TUICommands` (`Commands`, `CommandMenu`, `CommandGroup` and the menu bar a scene's `.commands` draws), `TUIFilePanels` (`fileImporter`, `fileExporter`, `fileMover` and the open and save panels TUI draws for them), `TUIScenes` (the `Settings` scene and `AlertScene`), `TUIColorPicker` (`ColorPicker`, `ColorPickerPanel` and `GradientEditorPanel`), `TUICurveEditors` (the tone-curve and channel-curve editors), `TUINavigation` (the navigation containers), `TUIPresentation` (alerts, dialogs, sheets and the presentation modifiers), `TUILists` (lists), `TUITables` (tables), `TUITabs` (tab views), `TUITabImages` (`Tab`'s `image:` initialisers, which find the image by name), `TUIGrid` (grids), `TUIChrome` (the status bar, toolbars, notifications and tooltips), `TUIEffects` (transitions and visual effects), `TUIMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options), `TUITextInput` (the text fields and editors), `TUIForms` (`Form`, `LabeledContent`, `GroupBox` and the other view groupings), `TUISearch` (`.searchable`, search tokens and scopes), `TUIPickers` (`Picker`, `RadioButtonGroup` and `DatePicker`), `TUINumericControls` (`Slider`, `Stepper`, `Gauge` and `ProgressView`) and `TUICore`, `TUIStyling`, `TUIView`, and `TUIImage` (via `@_exported`). Each of these is also a library product of its own (TUIStrings and TUITerminalHost come with `TUIFoundation`); [Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md) says when to depend on them instead. The AppKit bridges — `Color(nsColor:)`, `NSColor(_:)` and `Image(nsImage:)` — are the separate `TUIAppKit` product: add `import TUIAppKit` where you use them. The Core Graphics ones — `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)` and `Image(decorative:scale:orientation:)` — need only TUI, on Apple platforms. They are kept out of TUI because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUI's.
 
 ## Requirements
 
@@ -529,7 +529,7 @@ Benchmarks/
 
 ## Developer notes
 
-- Benchmarks: `TUIKIT_BENCHMARKS=1 swift package benchmark` (full suite) — see `Benchmarks/TUIkitBenchmarks`. The `TUIKIT_BENCHMARKS` flag opts the `ordo-one/benchmark` dependency into the graph; without it the default build/test stays benchmark-free (no jemalloc requirement, no plugin deprecation warnings).
+- Benchmarks: `TUIKIT_BENCHMARKS=1 swift package benchmark` (full suite) — see `Benchmarks/TUIBenchmarks`. The `TUIKIT_BENCHMARKS` flag opts the `ordo-one/benchmark` dependency into the graph; without it the default build/test stays benchmark-free (no jemalloc requirement, no plugin deprecation warnings).
 - Profiling: see [Tools/Profiling/README.md](Tools/Profiling/README.md) (Instruments Time Profiler via a PTY, plus the no-PTY `RenderHarness` for `xctrace --launch`).
 
 ## License

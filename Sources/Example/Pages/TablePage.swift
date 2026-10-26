@@ -1,11 +1,11 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TablePage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 // MARK: - Demo Data
 
@@ -360,7 +360,7 @@ struct TablePage: View {
                 }
             }
 
-            // The default look beside TUIkit's prototype `.surface` style, which
+            // The default look beside TUI's prototype `.surface` style, which
             // tells a table from the text around it by a surface of its own
             // instead of a border (decisions A29). Both stripe, as every style
             // does.
@@ -369,7 +369,7 @@ struct TablePage: View {
                     Text("page.table.stylesBody")
                         .foregroundStyle(.palette.foregroundSecondary)
                     // `.tableColumnHeaders(.hidden)`, `.alternatingRowBackgrounds`
-                    // and TUIkit's `.scrollbarSpacing(_:)`, on both tables.
+                    // and TUI's `.scrollbarSpacing(_:)`, on both tables.
                     HStack(spacing: 2) {
                         Toggle("page.table.styles.headers", isOn: $stylesShowHeaders)
                         Toggle("page.table.styles.stripes", isOn: $stylesStripe)

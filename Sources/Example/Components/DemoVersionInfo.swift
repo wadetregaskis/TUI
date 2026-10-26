@@ -1,11 +1,11 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  DemoVersionInfo.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 #if canImport(Darwin)
     import Darwin
@@ -15,7 +15,7 @@ import TUIkit
     import Musl
 #endif
 
-/// The TUIkit version and the system it runs on, right-aligned in two rows:
+/// The TUI version and the system it runs on, right-aligned in two rows:
 /// the trailing item of the Example's top bar.
 ///
 /// The bar's leading end is the page's own `.navigationTitle` (and
@@ -24,7 +24,7 @@ import TUIkit
 struct DemoVersionInfo: View {
     var body: some View {
         VStack(alignment: .trailing) {
-            Text(verbatim: "TUIkit v\(tuiKitVersion)")
+            Text(verbatim: "TUI v\(tuiKitVersion)")
             Text(verbatim: systemInfo)
         }
         .foregroundStyle(.palette.foregroundTertiary)

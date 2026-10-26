@@ -209,8 +209,8 @@ TextField("Search", text: $query)
 
 ### Phase 1: Core TextField
 
-1. Create `TextFieldHandler` in `Sources/TUIkit/Focus/`
-2. Create `TextField.swift` in `Sources/TUIkit/Views/`
+1. Create `TextFieldHandler` in `Sources/TUI/Focus/`
+2. Create `TextField.swift` in `Sources/TUI/Views/`
 3. Implement basic rendering (text + cursor)
 4. Implement character input
 5. Implement backspace/delete
@@ -255,14 +255,14 @@ TextField("Search", text: $query)
 ## Files
 
 ### New Files
-- `Sources/TUIkit/Focus/TextFieldHandler.swift`
-- `Sources/TUIkit/Views/TextField.swift`
-- `Sources/TUIkit/Modifiers/TextFieldStyleModifier.swift`
-- `Tests/TUIkitTests/TextFieldTests.swift`
-- `Tests/TUIkitTests/TextFieldHandlerTests.swift`
+- `Sources/TUI/Focus/TextFieldHandler.swift`
+- `Sources/TUI/Views/TextField.swift`
+- `Sources/TUI/Modifiers/TextFieldStyleModifier.swift`
+- `Tests/TUITests/TextFieldTests.swift`
+- `Tests/TUITests/TextFieldHandlerTests.swift`
 
 ### Modified Files
-- `Sources/TUIkitExample/Pages/` - Add TextField demo page
+- `Sources/TUIExample/Pages/` - Add TextField demo page
 
 ## Dependencies
 

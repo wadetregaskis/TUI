@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 🖥️ TUIkit — Terminal UI Kit for Swift
+# 🖥️ TUI — A Terminal UI framework for Swift
 # release.sh — cuts a release from this Mac: the version, the changelog, the
 # tag, the GitHub release with its notes and clips, and the site.
 #
@@ -22,7 +22,7 @@
 #   2. Films the clips (Tools/ScreenClips/regenerate.sh) into a scratch folder,
 #      unless told otherwise. That opens terminal windows: the screen must be
 #      unlocked, and the machine left alone until it is done.
-#   3. Writes Sources/TUIkitStrings/VERSION, turns `## Unreleased` into
+#   3. Writes Sources/TUIStrings/VERSION, turns `## Unreleased` into
 #      `## X.Y.Z — <date>` under a fresh empty `## Unreleased`, commits
 #      "Release X.Y.Z", and tags it `vX.Y.Z` (annotated).
 #   4. Asks, then pushes `main` and the tag, creates the release as a draft
@@ -38,7 +38,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-VERSION_FILE="Sources/TUIkitStrings/VERSION"
+VERSION_FILE="Sources/TUIStrings/VERSION"
 CHANGELOG="CHANGELOG.md"
 VERSION=""
 CLIPS=""

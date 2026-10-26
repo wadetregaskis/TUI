@@ -13,11 +13,11 @@ of [`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.
 - **C-KS-n — declined.** With the reason.
 
 What shipped, in one paragraph: one formatter (`KeySymbols`) names every key
-TUIkit shows, as a macOS menu names a key equivalent — the modifiers in the
+TUI shows, as a macOS menu names a key equivalent — the modifiers in the
 order ⌃ ⌥ ⇧ ⌘, then the key, a letter in upper case, the non-printing keys as
 ⎋ ↩ ⇥ ⌫ ⌦ ↖ ↘ ⇞ ⇟ and the arrows, the function keys and the space bar as
 words. The spelling was read from AppKit's `NSKeyboardShortcut` on macOS 15
-for every key and modifier set, in all seven of TUIkit's languages. See
+for every key and modifier set, in all seven of TUI's languages. See
 `Documentation/Terminals/Terminal compatibility survey.md`, "Key symbols", for the glyphs'
 widths and what is still to measure.
 
@@ -27,11 +27,11 @@ widths and what is still to measure.
 
 *`StatusBarItem(shortcut:label:)`*
 
-The formatter names a key wherever TUIkit names one: a menu row's shortcut
+The formatter names a key wherever TUI names one: a menu row's shortcut
 column, `KeyboardShortcut.displayString`, the undo and redo hints, every
 ``Shortcut`` constant (so `Shortcut.enter` is now `↩` and `Shortcut.ctrl("q")`
 is `⌃Q`). An item's `shortcut` string that an app typed itself — `"q"`, `"N"`,
-`"c|C"`, `"1-9"` — is drawn as typed. So TUIkit's own quit item still reads
+`"c|C"`, `"1-9"` — is drawn as typed. So TUI's own quit item still reads
 `q quit`, where a macOS menu would draw the key `Q`, and an app's `"N"` item
 (Shift-N, in the status bar's vocabulary, where Shift is the case) still reads
 `N`, not `⇧N`.

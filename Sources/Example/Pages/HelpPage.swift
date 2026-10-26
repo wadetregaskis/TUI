@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  HelpPage.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Help and tooltips demo page: `help(_:)` on views that can take the focus
 /// and on views that cannot, in both presentations, under every trigger.

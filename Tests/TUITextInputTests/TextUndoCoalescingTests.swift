@@ -1,0 +1,339 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  TextUndoCoalescingTests.swift
+//
+//  A run of typing is one undo step, as the macOS text system makes it
+//  (decisions-D1K B-D1K-6). Measured on macOS 15.8 with an offscreen
+//  `NSTextView` (the INPUT lane's probes, `Tools/SwiftUIProbes/Undo and the pointer leaving (INPUT)/`):
+//  typed characters — a space and a
+//  newline among them — and Backspace, each at the caret the edit before it
+//  left, undo together, however long the pauses between them; a caret moved
+//  elsewhere ends the run, one moved away and back does not; Delete, a word's
+//  deletion and a paste are steps of their own and end it; typing or Backspace
+//  over a selection starts a new run, which the typing after it continues.
+//  Every case below is one the probe measured, in a field and in an editor.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import Testing
+
+import TUIApp
+@testable import TUIAppTestSupport
+@testable import TUICore
+@testable import TUIFoundation
+@testable import TUITestSupport
+@testable import TUITextInput
+
+@MainActor
+@Suite("Text controls: a run of typing is one undo step")
+struct TextUndoCoalescingTests {
+    private final class TextBox: @unchecked Sendable {
+        var text: String
+        init(_ text: String) { self.text = text }
+    }
+
+    /// The two text controls, behind one interface: keys in, text out.
+    enum Control: CaseIterable, Sendable {
+        case field, editor
+    }
+
+    /// A control of `kind` over empty text, registering its steps with
+    /// `manager` as a running app's controls do with the app's.
+    private func make(
+        _ kind: Control, manager: UndoManager? = nil
+    ) -> (handle: (KeyEvent) -> Void, text: () -> String) {
+        let box = TextBox("")
+        let binding = Binding(get: { box.text }, set: { box.text = $0 })
+        switch kind {
+        case .field:
+            let field = TextFieldHandler(focusID: "field", text: binding)
+            field.undoManager = manager
+            return ({ _ = field.handleKeyEvent($0) }, { box.text })
+        case .editor:
+            let editor = TextEditorHandler(focusID: "editor", text: binding)
+            editor.undoManager = manager
+            return ({ _ = editor.handleKeyEvent($0) }, { box.text })
+        }
+    }
+
+    private static let undo = KeyEvent(key: .character("z"), ctrl: true)
+    private static let backspace = KeyEvent(key: .backspace)
+    private static let left = KeyEvent(key: .left)
+    private static let right = KeyEvent(key: .right)
+    private static let home = KeyEvent(key: .home)
+    private static let forwardDelete = KeyEvent(key: .delete)
+    private static let wordDelete = KeyEvent(key: .backspace, alt: true)
+    private static let selectLeft = KeyEvent(key: .left, shift: true)
+
+    private func type(_ text: String, into handle: (KeyEvent) -> Void) {
+        for character in text {
+            handle(character == " " ? KeyEvent(key: .space) : KeyEvent(key: .character(character)))
+        }
+    }
+
+    /// Undoes once, and reads the text.
+    private func undone(_ control: (handle: (KeyEvent) -> Void, text: () -> String)) -> String {
+        control.handle(Self.undo)
+        return control.text()
+    }
+
+    @Test("A run of typing, spaces and all, is one step", arguments: Control.allCases)
+    func typingRun(kind: Control) {
+        let control = make(kind)
+        type("ab cd", into: control.handle)
+        #expect(undone(control).isEmpty)
+    }
+
+    @Test("Backspace in a run of typing is part of it", arguments: Control.allCases)
+    func backspaceInARun(kind: Control) {
+        let control = make(kind)
+        type("abc", into: control.handle)
+        control.handle(Self.backspace)
+        type("de", into: control.handle)
+        #expect(control.text() == "abde", "precondition")
+        #expect(undone(control).isEmpty)
+    }
+
+    @Test("A newline in a run of typing is part of it")
+    func newlineInARun() {
+        let control = make(.editor)
+        type("ab", into: control.handle)
+        control.handle(KeyEvent(key: .enter))
+        type("cd", into: control.handle)
+        #expect(undone(control).isEmpty)
+    }
+
+    /// Found by the lane's review: the editor took every Control and Option
+    /// chord for a step of its own, where a field's Ctrl-O and Option-Return
+    /// insert their newline as typing. Measured on macOS 15.8 (a plain-text
+    /// `NSTextView`), the field is right: Ctrl-O's newline joins the run
+    /// before it, and the typing after it is a step of its own, since the
+    /// chord moves the caret back before the newline.
+    @Test("Ctrl-O's newline joins the run before it, and the typing after it is a step of its own")
+    func openLineInARun() {
+        let control = make(.editor)
+        type("ab", into: control.handle)
+        control.handle(KeyEvent(key: .character("o"), ctrl: true))
+        type("cd", into: control.handle)
+        #expect(control.text() == "abcd\n", "precondition")
+        #expect(undone(control) == "ab\n")
+        #expect(undone(control).isEmpty)
+    }
+
+    /// Measured the same way: Option-Tab's tab is typed as any tab is.
+    @Test("Option-Tab's tab is part of a run of typing")
+    func optionTabInARun() {
+        let control = make(.editor)
+        type("ab", into: control.handle)
+        control.handle(KeyEvent(key: .tab, alt: true))
+        type("cd", into: control.handle)
+        #expect(control.text() == "ab\tcd", "precondition")
+        #expect(undone(control).isEmpty)
+    }
+
+    /// Measured the same way, and what a vertical field already did:
+    /// Option-Return's newline and Ctrl-O's join the run before them.
+    @Test("In a vertical field, Option-Return's and Ctrl-O's newlines join the run before them",
+          arguments: [false, true])
+    func newlineChordsInAVerticalField(openLine: Bool) {
+        let box = TextBox("")
+        let harness = InputChainHarness()
+        let field = {
+            TextField("Notes", text: Binding(get: { box.text }, set: { box.text = $0 }), axis: .vertical)
+        }
+        let chord = openLine ? KeyEvent(key: .character("o"), ctrl: true) : KeyEvent(key: .enter, alt: true)
+        harness.play("ab".map { KeyEvent(character: $0) } + [chord], field)
+        #expect(box.text == "ab\n", "precondition")
+        harness.play([Self.undo], field)
+        #expect(box.text.isEmpty)
+    }
+
+    @Test("A caret moved elsewhere ends the run", arguments: Control.allCases)
+    func caretMovedElsewhere(kind: Control) {
+        let control = make(kind)
+        type("ab", into: control.handle)
+        control.handle(Self.home)
+        type("cd", into: control.handle)
+        #expect(control.text() == "cdab", "precondition")
+        #expect(undone(control) == "ab")
+        #expect(undone(control).isEmpty)
+    }
+
+    @Test("A caret moved away and back does not end the run", arguments: Control.allCases)
+    func caretAwayAndBack(kind: Control) {
+        let control = make(kind)
+        type("ab", into: control.handle)
+        control.handle(Self.left)
+        control.handle(Self.right)
+        type("cd", into: control.handle)
+        #expect(undone(control).isEmpty)
+    }
+
+    @Test("Delete is a step of its own, and the typing after it another", arguments: Control.allCases)
+    func forwardDeleteEndsTheRun(kind: Control) {
+        let control = make(kind)
+        type("abc", into: control.handle)
+        control.handle(Self.left)
+        control.handle(Self.forwardDelete)
+        type("Z", into: control.handle)
+        #expect(control.text() == "abZ", "precondition")
+        #expect(undone(control) == "ab")
+        #expect(undone(control) == "abc")
+        #expect(undone(control).isEmpty)
+    }
+
+    @Test("A word's deletion is a step of its own", arguments: Control.allCases)
+    func wordDeleteEndsTheRun(kind: Control) {
+        let control = make(kind)
+        type("ab cd", into: control.handle)
+        control.handle(Self.wordDelete)
+        type("ef", into: control.handle)
+        #expect(control.text() == "ab ef", "precondition")
+        #expect(undone(control) == "ab ")
+        #expect(undone(control) == "ab cd")
+    }
+
+    @Test("A paste is a step of its own", arguments: Control.allCases)
+    func pasteEndsTheRun(kind: Control) {
+        let control = make(kind)
+        type("ab", into: control.handle)
+        control.handle(KeyEvent(key: .paste("PP")))
+        type("cd", into: control.handle)
+        #expect(control.text() == "abPPcd", "precondition")
+        #expect(undone(control) == "abPP")
+        #expect(undone(control) == "ab")
+        #expect(undone(control).isEmpty)
+    }
+
+    @Test("Typing over a selection starts a new run, which the typing after it continues")
+    func typingOverASelection() {
+        let control = make(.field)
+        type("abcd", into: control.handle)
+        control.handle(Self.selectLeft)
+        control.handle(Self.selectLeft)
+        type("XY", into: control.handle)
+        #expect(control.text() == "abXY", "precondition")
+        #expect(undone(control) == "abcd")
+        #expect(undone(control).isEmpty)
+    }
+
+    @Test("Backspace over a selection starts a new run, which the typing after it continues")
+    func backspaceOverASelection() {
+        let control = make(.field)
+        type("abcd", into: control.handle)
+        control.handle(Self.selectLeft)
+        control.handle(Self.selectLeft)
+        control.handle(Self.backspace)
+        type("XY", into: control.handle)
+        #expect(control.text() == "abXY", "precondition")
+        #expect(undone(control) == "abcd")
+        #expect(undone(control).isEmpty)
+    }
+
+    @Test("After an undo, typing starts a new run", arguments: Control.allCases)
+    func undoEndsTheRun(kind: Control) {
+        let control = make(kind)
+        type("ab", into: control.handle)
+        #expect(undone(control).isEmpty)
+        type("cd", into: control.handle)
+        #expect(undone(control).isEmpty)
+    }
+
+    // MARK: - Beside other steps in the app's undo manager
+
+    /// Steps are explicit groups, so a test does not depend on a run loop
+    /// turning: each registration is its own step, as each event's are in a
+    /// running app.
+    private func makeManager() -> UndoManager {
+        let manager = UndoManager()
+        manager.groupsByEvent = false
+        return manager
+    }
+
+    /// Whether an undo step's user info can be asked, which is how a run
+    /// knows its step is no longer the newest: from macOS 15, and always
+    /// where TUI's own `UndoManager` stands in for Foundation's.
+    nonisolated static var stepsCanBeAsked: Bool {
+        if #available(macOS 15, *) { true } else { false }
+    }
+
+    /// Measured on macOS 15.8 with two `NSTextView`s sharing a window's undo
+    /// manager: "ab" in one, "x" in the other, and "c" back in the first
+    /// undo as "c", then "x", then "ab". The first control's run went on
+    /// under the other's step, so "c" was undone with "ab", after "x".
+    @Test(
+        "Typing after another control's step is a step of its own, so the undos keep the edits' order",
+        .enabled(if: stepsCanBeAsked), arguments: Control.allCases)
+    func runEndsUnderAnotherControlsStep(kind: Control) {
+        let manager = makeManager()
+        let first = make(kind, manager: manager)
+        let second = make(kind, manager: manager)
+        type("ab", into: first.handle)
+        type("x", into: second.handle)
+        type("c", into: first.handle)
+        manager.undo()
+        #expect(first.text() == "ab" && second.text() == "x", "\(first.text()) / \(second.text())")
+        manager.undo()
+        #expect(first.text() == "ab" && second.text().isEmpty, "\(first.text()) / \(second.text())")
+        manager.undo()
+        #expect(first.text().isEmpty)
+    }
+
+    private final class Flag {
+        var on = true
+    }
+
+    /// Measured the same way: an action the app registers in the middle of a
+    /// run ends it.
+    @Test(
+        "Typing after a step of the app's is a step of its own", .enabled(if: stepsCanBeAsked),
+        arguments: Control.allCases)
+    func runEndsUnderTheAppsStep(kind: Control) {
+        let manager = makeManager()
+        let control = make(kind, manager: manager)
+        let flag = Flag()
+        type("ab", into: control.handle)
+        manager.beginUndoGrouping()
+        manager.registerUndo(withTarget: flag) { $0.on = false }
+        manager.endUndoGrouping()
+        type("c", into: control.handle)
+        manager.undo()
+        #expect(control.text() == "ab" && flag.on)
+        manager.undo()
+        #expect(control.text() == "ab" && !flag.on)
+        manager.undo()
+        #expect(control.text().isEmpty)
+    }
+
+    /// Measured the same way: the focus going to the other view and back,
+    /// with nothing typed there, does not end the run. Here the other
+    /// control takes a key that registers nothing.
+    @Test("With nothing registered meanwhile, the run goes on", arguments: Control.allCases)
+    func runGoesOnPastAnotherControlsKeys(kind: Control) {
+        let manager = makeManager()
+        let first = make(kind, manager: manager)
+        let second = make(kind, manager: manager)
+        type("ab", into: first.handle)
+        second.handle(Self.left)
+        type("c", into: first.handle)
+        manager.undo()
+        #expect(first.text().isEmpty)
+    }
+
+    /// In a running app the run is one step in the app's undo manager too:
+    /// the first key registers it, and the rest register nothing.
+    @Test("A run of typing is one step of the app's undo manager")
+    func oneStepInTheApp() {
+        let manager = UndoManager()
+        manager.groupsByEvent = false
+        let box = TextBox("")
+        let harness = InputChainHarness(undoManager: manager)
+        let field = { TextField("Name", text: Binding(get: { box.text }, set: { box.text = $0 })) }
+        harness.play("hello".map { KeyEvent(character: $0) }, field)
+        #expect(box.text == "hello", "precondition")
+        harness.play([KeyEvent.parse([0x1F])!], field)
+        #expect(box.text.isEmpty)
+        #expect(!manager.canUndo && manager.canRedo)
+    }
+}

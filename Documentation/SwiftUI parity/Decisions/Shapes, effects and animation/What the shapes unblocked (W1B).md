@@ -123,7 +123,7 @@ Where the measurement did not reach:
   moving from one piece to another inside the shape is staying on it.
 
 **The fuller version:** hit-testing per view against its shape, the padding
-included — a change to how every hit area is found, which TUIkit's
+included — a change to how every hit area is found, which TUI's
 frame-as-hit-area rule does not ask for. No price until a port needs it.
 
 ### B-W1B-4. An image paint is sampled cell by cell, and paints nothing until its picture is there
@@ -178,7 +178,7 @@ the `Image`s of one file would share too — half a day.
 *as the refusal review's P3 ruled*
 
 `.focusEffect` shapes the focus ring macOS draws round a focused view, and
-TUIkit draws none a shape could outline: focus is the control's own drawing
+TUI draws none a shape could outline: focus is the control's own drawing
 breathing. `.accessibility` shapes a view's accessibility frame, and a screen
 reader reads a terminal from its text. Both are omitted, so a ported
 `.contentShape(.focusEffect, …)` fails to compile; parity-map entries say why.

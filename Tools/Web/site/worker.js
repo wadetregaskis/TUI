@@ -1,4 +1,4 @@
-// 🖥️ TUIkit — Terminal UI Kit for Swift
+// 🖥️ TUI — A Terminal UI framework for Swift
 // worker.js — runs the Swift program, off the page's thread.
 //
 // Everything here happens in a Web Worker for one reason: the guest blocks.

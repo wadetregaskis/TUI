@@ -1,0 +1,202 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  ScrollViewReader.swift
+//
+//  SwiftUI-parity programmatic scrolling: ScrollViewReader hands its content
+//  a ScrollViewProxy whose scrollTo(_:anchor:) scrolls the scroll views
+//  inside to the row with the matching identity — a ForEach element's, or a
+//  View.id(_:) tag — same-frame, and in O(window) via the seek machinery of
+//  "Locating things without drawing them" (the request rides the
+//  ScrollContentWindow handshake; the windowed stack that finds the key
+//  renders its band AT the resolved offset).
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import TUICore
+import TUIView
+
+// MARK: - ScrollViewProxy
+
+/// A proxy value for programmatically scrolling the scroll views within an
+/// enclosing ``ScrollViewReader``'s content. Matches SwiftUI's type of the
+/// same name.
+@MainActor
+public struct ScrollViewProxy {
+    let registry: ScrollToRegistry
+
+    /// Scrolls the reader's scroll views so the row identified by `id`
+    /// is visible. Matches SwiftUI's signature exactly.
+    ///
+    /// `id` is an identity within the scroll view's content: a `ForEach`
+    /// element's — `proxy.scrollTo(item.id)` for a data-driven list, or the
+    /// element value itself for `ForEach(0..<n, id: \.self)` — or the tag a
+    /// ``View/id(_:)`` bound to one of the content stack's own children, the
+    /// spelling SwiftUI's own `ScrollViewReader` example is built out of. An
+    /// unknown id is a no-op, as in SwiftUI.
+    ///
+    /// - Parameters:
+    ///   - id: The identity of the row to scroll to.
+    ///   - anchor: Where the row lands in the viewport — `.top`,
+    ///     `.center`, `.bottom` — or `nil` (the default) for minimal
+    ///     movement: scroll just enough to make the row visible, not at
+    ///     all if it already is.
+    ///
+    /// On a purely horizontal scroll view the id names a column of the
+    /// `HStack` or `LazyHStack` that is its content, and the anchor's `x`
+    /// places it: `.leading`, `.center`, `.trailing`, or `nil` for minimal
+    /// movement.
+    ///
+    /// > Note: A deviation from SwiftUI, from the terminal scroll model: a
+    ///   `.id(_:)` tag is read off the
+    ///   content stack's own children, never from inside a `ForEach` row: a
+    ///   row's identity is its element's `id`, which is the rule `.tag(_:)`
+    ///   follows too. Decided in one place, so every seek path gives the same
+    ///   answer — the ones serving a whole-`ForEach` stack resolve from the
+    ///   data's keys and never build a row view to look inside.
+    public func scrollTo<ID: Hashable>(_ id: ID, anchor: UnitPoint? = nil) {
+        // The SAME stringification ForEach derives its identity keys with,
+        // so the key comparison in the seek paths is exact.
+        // An anchor of the call's own wins; without one, a `withTransaction`
+        // around the call may name it (`Transaction.scrollTargetAnchor`).
+        registry.scrollTo(key: identityKey(id), anchor: anchor ?? Transaction.ambient?.scrollTargetAnchor)
+    }
+}
+
+// MARK: - ScrollViewReader
+
+/// A view whose content builder receives a ``ScrollViewProxy`` capable of
+/// scrolling the scroll views it contains. Matches SwiftUI's type of the
+/// same name.
+///
+/// ```swift
+/// ScrollViewReader { proxy in
+///     ScrollView {
+///         LazyVStack {
+///             ForEach(0..<1_000_000, id: \.self) { i in Text("row \(i)") }
+///         }
+///     }
+///     Button("Jump to the middle") { proxy.scrollTo(500_000, anchor: .center) }
+/// }
+/// ```
+public struct ScrollViewReader<Content: View>: View {
+    /// The reader's content, given the proxy.
+    public var content: (ScrollViewProxy) -> Content
+
+    /// The proxy↔scroll-view rendezvous. `@State` so the SAME registry
+    /// survives across frames: a proxy captured by a closure in frame 1
+    /// must still reach a scroll view that registers in frame 50.
+    @State private var registry = ScrollToRegistry()
+
+    /// Creates a reader whose `content` receives the scrolling proxy.
+    public init(@ViewBuilder content: @escaping (ScrollViewProxy) -> Content) {
+        self.content = content
+    }
+
+    public var body: some View {
+        content(ScrollViewProxy(registry: registry))
+            .environment(\.scrollToRegistry, registry)
+    }
+}
+
+// MARK: - Registry
+
+/// A scrolling view a ``ScrollViewProxy`` reaches: a `ScrollView`'s handler,
+/// or a `List`'s or a `Table`'s, each resolving the request its next render
+/// finds parked against its own rows.
+package protocol ScrollToTarget: AnyObject {
+    /// The request the next render resolves, one-shot: cleared whether or not
+    /// the key was found, as an unknown id is a no-op in SwiftUI.
+    var pendingScrollTo: ScrollToRequest? { get set }
+}
+
+extension ScrollViewHandler: ScrollToTarget {}
+
+/// The rendezvous between a proxy (used at event time or from async
+/// contexts) and the scroll views in a reader's content (which register
+/// during render): `scrollTo` parks the request on every live handler and
+/// wakes the render loop; the next frame resolves and applies it.
+///
+/// Not `@MainActor` — like the handlers themselves, it is only ever touched
+/// from the render loop and event dispatch (both main-actor); staying
+/// nonisolated lets `@State` hold it and view inits create it.
+package final class ScrollToRegistry: @unchecked Sendable {
+    private struct Entry {
+        weak var handler: (any ScrollToTarget)?
+        let identity: ViewIdentity
+        /// The link of the cache the scroll view rendered with: the queue a
+        /// `@State` write reports to. Not the cache, and not weakly — see
+        /// `RenderCache.Link`.
+        let renderCacheLink: RenderCache.Link?
+    }
+
+    /// Live scroll views, keyed by identity path so a re-render refreshes
+    /// its entry in place. Handlers are held weakly: a scroll view that
+    /// leaves the tree dies with its state, and its entry is swept on the
+    /// next `scrollTo`.
+    private var entries: [String: Entry] = [:]
+
+    /// Registers (or refreshes) a scrolling view for this frame.
+    package func register(handler: any ScrollToTarget, identity: ViewIdentity, renderCache: RenderCache?) {
+        entries[identity.path] = Entry(
+            handler: handler, identity: identity, renderCacheLink: renderCache?.link)
+    }
+
+    /// Parks the request on every live registered scroll view — each
+    /// resolves independently against its own content; ones without the
+    /// key no-op — and invalidates each one's identity through the render
+    /// cache it rendered with, so `scrollTo` works from `.task`/async
+    /// contexts where no input event would otherwise trigger a frame.
+    ///
+    /// That is the sink a `@State` write uses: it asks the run loop for a
+    /// frame, and that frame's start drops the cached buffers of the scroll
+    /// view, of its content and of everything above it. With no live scroll
+    /// view it asks for nothing.
+    func scrollTo(key: String, anchor: UnitPoint?) {
+        for (path, entry) in entries {
+            guard let handler = entry.handler else {
+                entries[path] = nil
+                continue
+            }
+            handler.pendingScrollTo = ScrollToRequest(key: key, anchor: anchor)
+            entry.renderCacheLink?.invalidateRender(for: entry.identity)
+        }
+    }
+}
+
+/// Equal by IDENTITY: a reader's registry is its `@State`, one object for the
+/// reader's life, and the environment value it publishes changes only when the
+/// reader is replaced.
+///
+/// Without this the value was not `Equatable` at all, and an environment value
+/// that cannot be compared tells every memo below it that it cannot see what
+/// the subtree depends on: `EnvironmentModifier` declines them all, and the
+/// kept all-rows width of a two-axis stack is never filed. So everything inside
+/// a `ScrollViewReader` was drawn from scratch on every frame, and an editor
+/// that follows its caret with `proxy.scrollTo` walked every row of its
+/// document on every keystroke — 61% of the frame (measured, `Stress --session
+/// editor`).
+///
+/// Nothing the registry holds is read while drawing. A request reaches its
+/// scroll view by invalidating that view's identity (`invalidateRender(for:)`),
+/// which works whatever a memo would have served; and a registration outlives
+/// the frame that made it, held weakly, so a scroll view served from a memo
+/// keeps the entry it made when it was last drawn.
+extension ScrollToRegistry: Equatable {
+    package static func == (lhs: ScrollToRegistry, rhs: ScrollToRegistry) -> Bool { lhs === rhs }
+}
+
+// MARK: - Environment
+
+private struct ScrollToRegistryKey: EnvironmentKey {
+    static let defaultValue: ScrollToRegistry? = nil
+}
+
+extension EnvironmentValues {
+    /// The enclosing ``ScrollViewReader``'s registry, which the scroll
+    /// views in its content register with each render pass. `nil` outside
+    /// any reader.
+    package var scrollToRegistry: ScrollToRegistry? {
+        get { self[ScrollToRegistryKey.self] }
+        set { self[ScrollToRegistryKey.self] = newValue }
+    }
+}

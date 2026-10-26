@@ -22,7 +22,7 @@ existential, because the result's opaque type would depend on it. So an app
 that lets its user choose — the Example's Theme page — had no way to apply the
 choice.
 
-**Shipped:** a TUIkit addition beside SwiftUI's generic form,
+**Shipped:** a TUI addition beside SwiftUI's generic form,
 `windowToolbarStyle(_ style: any WindowToolbarStyle) -> some Scene`, marked
 `@_disfavoredOverload` so SwiftUI source (`.windowToolbarStyle(.unified)`, a
 concrete style) still binds to the generic one. A style an app writes itself
@@ -30,7 +30,7 @@ concrete style) still binds to the generic one. A style an app writes itself
 
 **The fuller version** is no addition at all: give `SceneBuilder` an
 `if`/`else` (`buildEither` producing a conditional scene) so the choice is
-written as SwiftUI cannot write it either — a TUIkit extension in a different
+written as SwiftUI cannot write it either — a TUI extension in a different
 place. About half a day, and it would let every scene modifier be chosen at
 run time, not only this one. Or drop the addition and have the Example choose
 the style at launch only. Your call if the addition's name sharing bothers you.
@@ -104,6 +104,6 @@ modal presenter, which another lane is changing for `presentationSizing`.
 **Shipped 2026-10-19 (lane TOOLBARS)** for sheets and full-screen covers
 (`PresentationToolbarItems`): the presentation's first frame seeds its rows
 from a measuring render of its content, so it opens with them. A popover,
-whose presenter is in TUIkitFoundation, still draws round the view (deviation
+whose presenter is in TUIFoundation, still draws round the view (deviation
 W2).
 

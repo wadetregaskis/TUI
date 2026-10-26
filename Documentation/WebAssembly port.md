@@ -1,6 +1,6 @@
 # WebAssembly
 
-TUIkit builds for `wasm32-unknown-wasip1`, and the Example app runs in a
+TUI builds for `wasm32-unknown-wasip1`, and the Example app runs in a
 browser. This file is the record of what that took, what works, what does not,
 and why — the same kind of record `Terminal compatibility survey.md` keeps for
 terminals.
@@ -45,8 +45,8 @@ standard library to find.
 ## What had to change in the framework
 
 Very little in the four lower modules, which is the dividend of the rule that
-keeps POSIX above them: `TUIkitCore` built for wasm unchanged, and
-`TUIkitStyling`, `TUIkitView` and `TUIkitImage` needed one fix each.
+keeps POSIX above them: `TUICore` built for wasm unchanged, and
+`TUIStyling`, `TUIView` and `TUIImage` needed one fix each.
 
 | Where | What | Why |
 |---|---|---|
@@ -54,13 +54,13 @@ keeps POSIX above them: `TUIkitCore` built for wasm unchanged, and
 | `BodyMutationDiagnostic` | `Thread.current` → a token | Foundation has no `Thread` where the platform has no threads |
 | `ImageLoader` | the remote-image path is gated | `URLSession` is in neither Foundation nor FoundationNetworking on WASI, and wasip1 has no sockets to use it with |
 
-The work was above them, in what was then one module, TUIkit. Its files are
-TUIkitFoundation's since module split step B1, except the tmux queries below,
-which are TUIkitTerminalHost's since step B2, and the console layer below
+The work was above them, in what was then one module, TUI. Its files are
+TUIFoundation's since module split step B1, except the tmux queries below,
+which are TUITerminalHost's since step B2, and the console layer below
 (`SignalManager`, the stdin notifier, `Terminal`, `SystemClipboard` and
-`SystemURLOpener`), which is TUIkitApp's since step B3. `Dispatch` does not
+`SystemURLOpener`), which is TUIApp's since step B3. `Dispatch` does not
 exist on wasip1, and it was imported into six files — mostly to read a clock.
-`MonotonicClock` (in `TUIkitCore`) replaced
+`MonotonicClock` (in `TUICore`) replaced
 `DispatchTime.now().uptimeNanoseconds` at a dozen call sites, which removed the
 dependency from every file that only wanted to measure an interval. What
 remained genuinely needed a platform arm:
@@ -118,7 +118,7 @@ Three details in `wasi.js` are load-bearing, and each one was a bug first:
   current task never runs: the first version batched output into
   `queueMicrotask` and drew a blank terminal with every frame sitting in a queue.
 - **`fd_read` on stdin never blocks; it returns `EAGAIN`.** That is what raw
-  mode gives a POSIX guest (`VMIN`/`VTIME` of zero), and it is what TUIkit's
+  mode gives a POSIX guest (`VMIN`/`VTIME` of zero), and it is what TUI's
   drain loop expects. A blocking read parks the worker inside a call the guest
   expected to return at once, and the app draws one frame and freezes.
 - **`poll_oneoff` reports an fd subscription ready only when bytes are queued.**
@@ -154,9 +154,9 @@ Does not, and why:
 |---|---|
 | Resize | wasip1 has no `ioctl` and the browser has no way to tell the guest; the size is fixed at start from `COLUMNS`/`LINES`. An in-band resize channel would fix it and is not built. |
 | Remote images | no sockets. A file image works; `Image(url:)` reports that the platform has no URL loading. |
-| Clipboard | the page has one; the guest cannot reach it. OSC 52 lets the *terminal* do it, and TUIkit sends it where the terminal is known to write it (`Terminal compatibility survey.md`, "OSC 52 clipboard writes"); xterm.js writes it only with its clipboard addon, which TUIkit cannot see, so a copy says "Not copied" unless `TUIKIT_OSC52=1` says the page has the addon. |
+| Clipboard | the page has one; the guest cannot reach it. OSC 52 lets the *terminal* do it, and TUI sends it where the terminal is known to write it (`Terminal compatibility survey.md`, "OSC 52 clipboard writes"); xterm.js writes it only with its clipboard addon, which TUI cannot see, so a copy says "Not copied" unless `TUIKIT_OSC52=1` says the page has the addon. |
 | Opening links | no subprocess. OSC 8 hyperlinks still work, because the terminal opens those, not the app. |
-| Terminal graphics | the released xterm.js implements no picture protocol at all, so the handshake gets silence and pictures fall back to cells. The beta image addon (with the beta core) *acknowledges* Kitty and decodes the pixels but does not place a virtual placement — the only kind TUIkit emits — so turning it on draws blank space where the ramps belong. Measured; see the xterm.js section of `Terminal compatibility survey.md`. |
+| Terminal graphics | the released xterm.js implements no picture protocol at all, so the handshake gets silence and pictures fall back to cells. The beta image addon (with the beta core) *acknowledges* Kitty and decodes the pixels but does not place a virtual placement — the only kind TUI emits — so turning it on draws blank space where the ramps belong. Measured; see the xterm.js section of `Terminal compatibility survey.md`. |
 | Some glyph widths | 29 of 145 corpus clusters still disagree with the framework even with the addon — newer emoji than its Unicode 15 tables, SF Symbols (private-use codepoints have no width anywhere), and Indic vowel signs. The SF Symbols page will shift; no terminal measured does better on that row. |
 | Grapheme-clustering mode | `DECRQM ?2027` answers "not recognised", so the framework keeps its own advance model rather than pinning the terminal's. |
 | Size on disk | 88.3 MB of wasm, 27.8 MB gzipped (`gzip -9`): 40.3 MB of data and 32.2 MB of code, almost all of it Foundation and ICU, and a 14.7 MB `name` section (function names, for stack traces; without it, 73.0 MB and 25.5 MB gzipped). Measured 2026-10-24, 6.3.3 release build, no `wasm-opt`; it was ~50 MB earlier in the port. |
@@ -169,6 +169,6 @@ build directory, because SwiftPM compiles the bundle's location into the binary
 and there is no way to ask it to look elsewhere — the manifest is regenerated on
 every build, so it stays true, but a site built on one machine will not find its
 resources on another. Anyone shipping this properly should embed the resources
-instead. (Elsewhere TUIkit looks for its own bundle itself, beside the program,
+instead. (Elsewhere TUI looks for its own bundle itself, beside the program,
 and runs in English without it; on WebAssembly it still asks `Bundle.module`,
 because both places that looks are compiled in — decisions BNDL, B-BNDL-4.)

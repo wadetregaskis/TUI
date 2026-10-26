@@ -1,8 +1,8 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  CompileCorpus.swift
 //
 //  SwiftUI source, written the way SwiftUI's own documentation writes it, that
-//  must COMPILE against TUIkit. It is never run — `swiftc -typecheck` is the
+//  must COMPILE against TUI. It is never run — `swiftc -typecheck` is the
 //  whole test (`Tools/APIParity/compile_corpus.sh`).
 //
 //  This is the half `api_parity.py` cannot see. That tool compares argument
@@ -11,7 +11,7 @@
 //  directions it misses are opposite and both real:
 //
 //  * A symbol the tool reports as MISSING that in fact compiles, because
-//    TUIkit's declaration adds optional parameters after SwiftUI's —
+//    TUI's declaration adds optional parameters after SwiftUI's —
 //    `alert(_:isPresented:actions:)` is spelled `…:borderStyle:borderColor:
 //    titleColor:` here. `source_compatible` now models that, and this file is
 //    what proves the model right rather than merely plausible.
@@ -29,12 +29,12 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 // MARK: - Extra optional arguments must not break SwiftUI's spelling
 
 /// Each of these is reported by `api_parity.py` as source-compatible rather
-/// than missing, because TUIkit's declaration appends defaulted parameters of
+/// than missing, because TUI's declaration appends defaulted parameters of
 /// its own. If a default is ever removed, this stops compiling — which is the
 /// point: the tool would go on calling it compatible.
 @MainActor
@@ -44,7 +44,7 @@ private struct AddedOptionalArguments: View {
     var body: some View {
         VStack {
             Text("body")
-                // TUIkit adds borderStyle:/borderColor:/titleColor:.
+                // TUI adds borderStyle:/borderColor:/titleColor:.
                 .alert("alert.title", isPresented: $isPresented) {
                     Button("button.ok") {}
                 } message: {
@@ -53,11 +53,11 @@ private struct AddedOptionalArguments: View {
                 .alert("alert.title", isPresented: $isPresented) {
                     Button("button.ok") {}
                 }
-                // TUIkit adds style: BETWEEN the colour and the width, which
+                // TUI adds style: BETWEEN the colour and the width, which
                 // is the case a prefix rule would miss: Swift lets a call skip
                 // a defaulted parameter from anywhere, not just the tail.
                 .border(.red, width: 2)
-                // TUIkit spells this fixedSize(horizontal:vertical:), both
+                // TUI spells this fixedSize(horizontal:vertical:), both
                 // defaulted to true — so this means what SwiftUI means.
                 .fixedSize()
                 // Two fully-defaulted EdgeInsets initialisers exist, so this
@@ -122,7 +122,7 @@ private struct NestedTypeSpellings: View {
     }
 }
 
-// MARK: - Labels TUIkit once spelled differently
+// MARK: - Labels TUI once spelled differently
 
 /// Each of these was a label deviation: the capability existed, but SwiftUI's
 /// spelling of the call did not bind to it. A trailing closure hides the label,
@@ -140,7 +140,7 @@ private struct FormerLabelDeviations: View {
 
 /// The `BorderedCaption` example from SwiftUI's `ViewModifier` documentation,
 /// with only the rounded-rectangle overlay swapped for a border. Until
-/// 2026-10-03 TUIkit's `ViewModifier` was a buffer transform with no
+/// 2026-10-03 TUI's `ViewModifier` was a buffer transform with no
 /// `body(content:)`, so this — the most common custom-modifier shape there is —
 /// did not compile.
 @MainActor
@@ -203,7 +203,7 @@ private struct ButtonStyleNames: View {
 /// SwiftUI's `onKeyPress` in the shapes its documentation and ported code write:
 /// a trailing closure that returns a `KeyPress.Result` by implicit member, one
 /// that does work first, and the `KeyPress`-taking forms. Until 2026-10-03 the
-/// name belonged to TUIkit's focus-blind `(KeyEvent) -> Bool` handler (now
+/// name belonged to TUI's focus-blind `(KeyEvent) -> Bool` handler (now
 /// `onKeyEvent`), and none of these compiled.
 @MainActor
 private struct KeyPressShapes: View {
@@ -311,7 +311,7 @@ private struct CommandShapes: View {
 }
 
 /// SwiftUI's `dropDestination(for:isEnabled:action:)`, whose action returns
-/// nothing, beside TUIkit's `(for:action:isTargeted:)`, whose action answers
+/// nothing, beside TUI's `(for:action:isTargeted:)`, whose action answers
 /// whether it took the drop: each closure shape has to reach its own.
 @MainActor
 private struct DropDestinationShapes: View {
@@ -710,7 +710,7 @@ private struct TemplateImageShapes: View {
 
 #if canImport(AppKit)
     import AppKit
-    import TUIkitAppKit
+    import TUIAppKit
 
     /// Colours to and from AppKit's and Core Graphics' own.
     @MainActor
@@ -840,7 +840,7 @@ private struct ResizableImageShapes: View {
 /// `sortUsing:` with a `SortDescriptor` order, a `Text` label, an `if`, a
 /// `Group`, columns factored into a builder property, and `TableColumnForEach`.
 /// `KeyPathComparator` and `SortDescriptor` are Foundation's, which SwiftUI
-/// re-exports and TUIkit does not; this file imports it above.
+/// re-exports and TUI does not; this file imports it above.
 @MainActor
 private struct TableColumnShapes: View {
     struct Person: Identifiable {
@@ -1279,7 +1279,7 @@ private struct LiveTimeTextShapes: View {
 
 /// The system formats over a time data source. On macOS SwiftUI's own
 /// `.offset(to:)` and the rest are visible here too, through AppKit; every one
-/// of these must still bind to TUIkit's (`SystemFormatStyle+DiscreteStatics`).
+/// of these must still bind to TUI's (`SystemFormatStyle+DiscreteStatics`).
 @available(macOS 15, *)
 @MainActor
 private struct TimeDataSourceShapes: View {
@@ -1886,7 +1886,7 @@ private enum DragSessionValueShapes {
 /// SwiftUI's attributed `Text`, as its documentation writes it. The parity
 /// tool cannot see `Text(_:)` for an `AttributedString` — its key collapses
 /// onto `Text.init(_:)` — so this is the check. On macOS SwiftUICore's scope
-/// is visible here too; the assignments below must still bind to TUIkit's.
+/// is visible here too; the assignments below must still bind to TUI's.
 @MainActor
 private struct AttributedText: View {
     var content: AttributedString {
@@ -2563,9 +2563,9 @@ private struct StringTableShapes: View {
 
 // MARK: - Asset catalogues (D6M A15)
 
-/// SwiftUI's named colour and image. This file imports `TUIkitAppKit`, so
+/// SwiftUI's named colour and image. This file imports `TUIAppKit`, so
 /// these bind to its declarations (which also read `Assets.car`); the
-/// TUIkit-only corpus binds the same calls to TUIkit's.
+/// TUI-only corpus binds the same calls to TUI's.
 @MainActor
 private struct AssetCatalogShapes: View {
     var body: some View {
@@ -3112,10 +3112,10 @@ private func scrollTransitionConfigurations() -> [ScrollTransitionConfiguration]
 // MARK: - ColorPicker, from a module of its own
 
 /// SwiftUI's own `ColorPicker` example, once more with `supportsOpacity`
-/// spelled out, and the two other initializers TUIkit has for a `Color`
+/// spelled out, and the two other initializers TUI has for a `Color`
 /// selection: a `String` title and a label view. Since module split step B4
-/// the type is TUIkitColorPicker's, which the umbrella re-exports (and
-/// TUIkitCurveEditors), so this is SwiftUI source reaching it as an app does.
+/// the type is TUIColorPicker's, which the umbrella re-exports (and
+/// TUICurveEditors), so this is SwiftUI source reaching it as an app does.
 @MainActor
 private struct FormattingControls: View {
     @State private var bgColor =
@@ -3141,10 +3141,10 @@ private struct CorpusPark: Hashable, Identifiable {
 
 /// SwiftUI's own `NavigationStack` examples: a stack of values pushed by
 /// `NavigationLink(_:value:)`, its path bound as an array and as a
-/// `NavigationPath`. Since module split step B5 these are TUIkitNavigation's,
+/// `NavigationPath`. Since module split step B5 these are TUINavigation's,
 /// which the umbrella re-exports (only the umbrella since step C1;
-/// TUIkitColorPicker did too from B5 until then), so this is SwiftUI source
-/// reaching that module as an app does: through `import TUIkit`.
+/// TUIColorPicker did too from B5 until then), so this is SwiftUI source
+/// reaching that module as an app does: through `import TUI`.
 @MainActor
 private struct ParkStack: View {
     let parks: [CorpusPark]
@@ -3198,9 +3198,9 @@ private struct DepartmentSplit: View {
 }
 
 /// SwiftUI's own `confirmationDialog` example. The presentations are
-/// TUIkitPresentation's since module split step C1 (they compiled into
-/// TUIkitNavigation from step B5 until then), which the umbrella re-exports,
-/// and so does TUIkitColorPicker.
+/// TUIPresentation's since module split step C1 (they compiled into
+/// TUINavigation from step B5 until then), which the umbrella re-exports,
+/// and so does TUIColorPicker.
 @MainActor
 private struct ConfirmEraseItems: View {
     @State private var isShowingDialog = false
@@ -3225,15 +3225,15 @@ private struct ConfirmEraseItems: View {
 /// SwiftUI's own sectioned `List` example, with single selection, under a
 /// `NavigationStack` where the documentation's has the deprecated
 /// `NavigationView`, and the header as a view builder. Since module split step
-/// B6 `List` is TUIkitLists', which the umbrella re-exports, since step C2
-/// `Table` is TUIkitTables', which the umbrella alone re-exports, since step C3
-/// `TabView` is TUIkitTabs', which the umbrella re-exports (and so does
-/// TUIkitColorPicker, which the umbrella re-exports too), and since step C4
-/// `Grid` is TUIkitGrid's, which the umbrella alone re-exports; all three were
-/// TUIkitLists' from B6 until their peels, and the first two re-export it. So
+/// B6 `List` is TUILists', which the umbrella re-exports, since step C2
+/// `Table` is TUITables', which the umbrella alone re-exports, since step C3
+/// `TabView` is TUITabs', which the umbrella re-exports (and so does
+/// TUIColorPicker, which the umbrella re-exports too), and since step C4
+/// `Grid` is TUIGrid's, which the umbrella alone re-exports; all three were
+/// TUILists' from B6 until their peels, and the first two re-export it. So
 /// this, the grid below, and the `Table`, `OutlineGroup`, `LazyVGrid` and
 /// `TabView` snippets earlier in this file are SwiftUI source reaching those
-/// modules as an app does: through `import TUIkit`.
+/// modules as an app does: through `import TUI`.
 @MainActor
 private struct OceanRegionsList: View {
     struct Sea: Hashable, Identifiable {
@@ -3295,12 +3295,12 @@ private struct HelloWorldGrid: View {
 
 /// SwiftUI's own `Menu` examples: three buttons and a submenu under a title,
 /// and a menu whose label is a view builder. Since module split step B5b
-/// `Menu` is TUIkitMenus', `help(_:)` TUIkitChrome's and `transition(_:)`
-/// TUIkitEffects': the umbrella re-exports each (and TUIkitApp and
-/// TUIkitPresentation re-export TUIkitChrome too), so these three snippets, and
+/// `Menu` is TUIMenus', `help(_:)` TUIChrome's and `transition(_:)`
+/// TUIEffects': the umbrella re-exports each (and TUIApp and
+/// TUIPresentation re-export TUIChrome too), so these three snippets, and
 /// the `.contextMenu`, `.toolbar` and `.scrollTransition` ones earlier in this
 /// file, are SwiftUI source reaching those modules as an app does: through
-/// `import TUIkit`.
+/// `import TUI`.
 @MainActor
 private struct ActionsMenu: View {
     func duplicate() {}
@@ -3428,10 +3428,10 @@ private struct SlidingDetail: View {
 /// the same made resizable under a `ProgressView` placeholder, and a phase
 /// closure that shows a colour for the error and for the wait. Since module
 /// split step B5c `AsyncImage`, `Image(_:bundle:)` and the image options are
-/// TUIkitBitmaps', which only the umbrella re-exports, so these, and the
+/// TUIBitmaps', which only the umbrella re-exports, so these, and the
 /// bitmap snippets earlier in this file, are SwiftUI source reaching it as an
-/// app does: through `import TUIkit`. `resizable()` and `aspectRatio` stay
-/// TUIkitFoundation's.
+/// app does: through `import TUI`. `resizable()` and `aspectRatio` stay
+/// TUIFoundation's.
 @MainActor
 private struct ServerIcons: View {
     var body: some View {
@@ -3466,15 +3466,15 @@ private struct ServerIcons: View {
 /// text field, a stepper and a slider added to its first section and each
 /// header as a view builder (the documentation's `Section(header:)` is
 /// deprecated), and its own `searchable(text:)` example. Since module split step B7 `TextField`
-/// is TUIkitTextInput's, which the umbrella re-exports (and TUIkitColorPicker
-/// and TUIkitSearch, which the umbrella re-exports too), `Picker` is
-/// TUIkitPickers' since step C8, which the same three re-export, `Stepper`
-/// and `Slider` TUIkitNumericControls' since step C7, which the umbrella and
-/// TUIkitColorPicker re-export, `Form` is TUIkitForms' since step C6 and `.searchable`
-/// TUIkitSearch's since step C5, which only the umbrella re-exports, so this,
+/// is TUITextInput's, which the umbrella re-exports (and TUIColorPicker
+/// and TUISearch, which the umbrella re-exports too), `Picker` is
+/// TUIPickers' since step C8, which the same three re-export, `Stepper`
+/// and `Slider` TUINumericControls' since step C7, which the umbrella and
+/// TUIColorPicker re-export, `Form` is TUIForms' since step C6 and `.searchable`
+/// TUISearch's since step C5, which only the umbrella re-exports, so this,
 /// and the text input, picker, form, search and numeric snippets earlier in
 /// this file, are SwiftUI source reaching those modules as an app does:
-/// through `import TUIkit`.
+/// through `import TUI`.
 @MainActor
 private struct NotificationSettingsForm: View {
     enum NotifyMeAboutType {
@@ -3610,7 +3610,7 @@ private struct ZoomFromRows: View {
 
 /// The commonest non-trivial `DynamicProperty`: it reads the environment and
 /// keeps what it derives in a stored value of its own, in `update()`. SwiftUI
-/// writes that value back before `body` reads it, and TUIkit does too
+/// writes that value back before `body` reads it, and TUI does too
 /// (decisions B4).
 @propertyWrapper
 private struct CorpusLocaleName: DynamicProperty {
@@ -3780,7 +3780,7 @@ private struct CorpusFormView: View {
 
 /// A class property holding a `@State` and an `@Environment`, shown by a row
 /// and by a detail view that changes it: SwiftUI installs neither inside a
-/// class, TUIkit installs both as the object's.
+/// class, TUI installs both as the object's.
 private final class CorpusDocument: DynamicProperty {
     @State var expanded = false
     @Environment(\.isEnabled) var enabled
@@ -3823,7 +3823,7 @@ private struct CorpusPagerView: View {
 
 /// A shape of the app's own, written as SwiftUI's documentation writes one:
 /// computed from the rectangle it is given, so it keeps its proportions in
-/// TUIkit's square units.
+/// TUI's square units.
 private struct CorpusTriangle: Shape {
     func path(in rect: CGRect) -> Path {
         Path { path in

@@ -1,14 +1,14 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ControlsClip.swift
 //
 //  `controls`: a settings form used from the keyboard — a field typed into,
 //  a toggle flipped, a segmented picker and a slider moved, a stepper
-//  stepped, a button pressed — every key through TUIkit's own input path.
+//  stepped, a button pressed — every key through TUI's own input path.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 @MainActor
 let controlsClip = Clip(
@@ -38,7 +38,7 @@ private func controlsScript() -> [Step] {
 
 struct ControlsApp: App {
     var body: some Scene {
-        WindowGroup("TUIkit · Controls") {
+        WindowGroup("TUI · Controls") {
             ControlsPage()
                 .palette(AppleTerminalPalette(.redSands))
         }

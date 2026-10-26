@@ -1,0 +1,209 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  ScrollContentExtentTests.swift
+//
+//  A ScrollView's scrollable extent has NO ceiling.
+//
+//  Sizing the content used to offer it one fixed, enormous budget
+//  (`max(viewport * 64, 4096)`). That does not remove the clamp every measure
+//  applies — it relocates it. Content taller than the budget measured EXACTLY
+//  the budget, so a ScrollView stopped 4,096 lines in: the rows past it existed,
+//  rendered nowhere, and no amount of scrolling reached them. The budget is now
+//  the first rung of a ladder that grows while the content keeps filling it
+//  (``measureNaturalExtent``), so what bounds the answer is the content.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+import TUI
+@testable import TUICore
+@testable import TUIFoundation
+@testable import TUITestSupport
+@testable import TUIView
+
+@MainActor
+@Suite("ScrollView content extent is unbounded")
+struct ScrollContentExtentTests {
+    private static let viewport = 10
+
+    /// Taller than the old 4,096-line budget by enough that a capped measure and
+    /// an honest one cannot be confused for each other.
+    private static let tallRowCount = 5_000
+
+    private func context(width: Int = 40, height: Int = viewport) -> RenderContext {
+        RenderContext(availableWidth: width, availableHeight: height, tuiContext: TUIContext())
+            .isolatingRenderCache()
+    }
+
+    private func lines<V: View>(_ view: V, width: Int = 40, height: Int = viewport) -> [String] {
+        // Predates the visibility/style split (#555): these assertions are about
+        // the "N more" lines, which are now a style. The default is a scrollbar.
+        renderToBuffer(view.scrollIndicatorStyle(.text), context: context(width: width, height: height))
+            .lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+    }
+
+    /// The count out of an "N more lines above/below" indicator, taken as digits
+    /// so the assertion doesn't depend on the locale's grouping separator.
+    private func indicatorCount(in rendered: [String], containing marker: String) -> Int? {
+        guard let line = rendered.first(where: { $0.contains(marker) }) else { return nil }
+        return Int(String(line.filter(\.isNumber)))
+    }
+
+    // MARK: - The extent itself
+
+    @Test("Eager content past the old budget is measured in full, not cut off at it")
+    func eagerContentPastTheBudget() {
+        let rendered = lines(
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<Self.tallRowCount, id: \.self) { Text(verbatim: "row \($0)") }
+                }
+            })
+        // One viewport is on screen; everything else is below. Pre-fix this read
+        // 4,086 — the 4,096-line canvas less the viewport — no matter how many
+        // rows the content actually had.
+        #expect(
+            indicatorCount(in: rendered, containing: "more lines below")
+                == Self.tallRowCount - Self.viewport,
+            "the whole content is scrollable: \(rendered.last ?? "")")
+    }
+
+    @Test("The rows past the old budget can actually be reached")
+    func lastRowIsReachable() {
+        // Counting them is not the same as being able to get to them: this
+        // renders the tail directly. The last row is the one furthest past the
+        // old ceiling, so it is exactly the row that used to render nowhere.
+        let rendered = lines(
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<Self.tallRowCount, id: \.self) { Text(verbatim: "row \($0)") }
+                }
+            }
+            .defaultScrollAnchor(.bottom))
+        #expect(
+            rendered.contains { $0.hasPrefix("row \(Self.tallRowCount - 1)") },
+            "the tail is reachable: \(rendered)")
+    }
+
+    @Test("Content that measures by RENDERING is unbounded too")
+    func renderBasedMeasurePastTheBudget() {
+        // A `Form` reports the height of a buffer it builds inside
+        // `availableHeight` (`measureFixedByRendering`) rather than summing its
+        // children analytically like a stack. Both clamp to the budget, so both
+        // have to grow past it — a fix that only taught the stacks would leave
+        // every control that measures this way capped.
+        let rows = 6_000
+        let rendered = lines(
+            ScrollView { Form { ForEach(0..<rows, id: \.self) { Text(verbatim: "r \($0)") } } })
+        #expect(
+            indicatorCount(in: rendered, containing: "more lines below") == rows - Self.viewport,
+            "\(rendered.last ?? "")")
+    }
+
+    // MARK: - The ladder
+
+    @Test("The ladder converges on the natural extent along either axis")
+    func ladderConvergesOnBothAxes() {
+        let tall = VStack(alignment: .leading, spacing: 0) {
+            ForEach(0..<Self.tallRowCount, id: \.self) { Text(verbatim: "row \($0)") }
+        }
+        let height = measureNaturalExtent(
+            tall, along: .vertical,
+            proposal: ProposedSize(width: 40, height: nil),
+            context: context(), startingBudget: 4_096
+        ).height
+        #expect(height == Self.tallRowCount, "vertical extent is the content's, not the budget's")
+
+        // The width axis had the identical cap (`max(contentWidth * 64, 4096)`)
+        // for horizontal scrolling, and gets the identical ladder.
+        let wide = HStack(spacing: 0) {
+            ForEach(0..<Self.tallRowCount, id: \.self) { _ in Text("x") }
+        }
+        let width = measureNaturalExtent(
+            wide, along: .horizontal,
+            proposal: ProposedSize(width: nil, height: nil),
+            context: context(), startingBudget: 4_096
+        ).width
+        #expect(width == Self.tallRowCount, "horizontal extent is the content's, not the budget's")
+    }
+
+    @Test("A row pitch that does not divide the budget does not end the ladder")
+    func rowBoundaryShortfallDoesNotEndTheLadder() {
+        // Rows of 3 lines against a starting budget of 4: the append-while-
+        // fits walk fits one row and used to report 3 — strictly under the
+        // budget, which reads as \"the content chose a size\" and stopped the
+        // ladder at ~one rung. The true extent is 30.
+        let view = LazyVStack(spacing: 0) {
+            ForEach(0..<10, id: \.self) { _ in Text("a\nb\nc") }
+        }
+        let size = measureNaturalExtent(
+            view, along: .vertical,
+            proposal: ProposedSize(width: 20, height: nil),
+            context: context(), startingBudget: 4)
+        #expect(size.height == 30, "truncated at the first budget's row boundary")
+    }
+
+    @Test("Content that fills whatever it is offered ends the ladder instead of inflating it")
+    func flexibleContentTerminatesTheLadder() {
+        // A view that reports every budget it is handed would climb until the
+        // budget overflowed `Int`, so height-flexibility ends the ladder: such a
+        // view is saying the question has no answer, and the caller's own
+        // viewport is the honest value. (If this ever regresses it hangs rather
+        // than fails, which is why the assertion is on the rung reached.)
+        //
+        // A `List` is the real shape of that — it fills its viewport by
+        // construction. `.frame(maxHeight: .infinity)` is NOT, any more: under an
+        // unspecified height proposal it reports its content's height (see
+        // `infiniteFrameDoesNotInventScrollableEmptiness`), which ends the ladder
+        // by the ordinary under-budget rule instead.
+        let size = measureNaturalExtent(
+            List { ForEach(0..<3, id: \.self) { Text(verbatim: "row \($0)") } }, along: .vertical,
+            proposal: ProposedSize(width: 40, height: nil),
+            context: context(), startingBudget: 4_096)
+        #expect(size.height == 4_096, "stopped at the first rung: \(size.height)")
+        #expect(size.isHeightFlexible, "…because the content said it fills what it is given")
+    }
+
+    @Test("An .infinity-height frame does not invent scrollable emptiness")
+    func infiniteFrameDoesNotInventScrollableEmptiness() {
+        // `.frame(maxHeight: .infinity)` means "as tall as I'm given", which has
+        // no answer when the measure gives nothing — and answering with the
+        // measure budget made a one-line label report thousands of lines of
+        // content. A ScrollView believed it and offered 4,086 lines of blank
+        // scrolling. The frame now reports what it actually contains and stays
+        // flagged flexible, so it still FILLS the viewport when rendered.
+        let rendered = lines(ScrollView { Text("F").frame(maxHeight: .infinity) })
+        #expect(
+            !rendered.contains { $0.contains("more lines") },
+            "nothing to scroll to: \(rendered)")
+        #expect(rendered.count == Self.viewport, "…and it still fills the viewport")
+
+        // The same shape one level in: a flexible filler under real content must
+        // not push that content into a phantom scroll either.
+        let mixed = lines(
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("top")
+                    Text("F").frame(maxHeight: .infinity)
+                }
+            })
+        #expect(mixed.first == "top")
+        #expect(!mixed.contains { $0.contains("more lines") }, "\(mixed)")
+    }
+
+    @Test("Content that fits inside the first rung is unaffected")
+    func shortContentUnchanged() {
+        // The ladder must be invisible to ordinary content: a page that fits in
+        // one rung resolves there, with the same extents (and the same single
+        // measure) as before.
+        let rendered = lines(
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<20, id: \.self) { Text(verbatim: "row \($0)") }
+                }
+            })
+        #expect(rendered.first == "row 0")
+        #expect(indicatorCount(in: rendered, containing: "more lines below") == 20 - Self.viewport)
+    }
+}

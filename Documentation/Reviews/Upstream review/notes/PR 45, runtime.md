@@ -17,7 +17,7 @@ specific to the architecture we did not adopt.
 ### Taken
 
 - **`744ef091` — invalidation routes to its owner.** Shipped as `44660d87`: a
-  `RenderInvalidationSink` protocol in TUIkitView, `RenderCache` as the
+  `RenderInvalidationSink` protocol in TUIView, `RenderCache` as the
   per-context sink, and `StateBox.didSet` enqueueing behind a lock rather than
   mutating the cache directly. That last part fixed a real (narrow) data race,
   not just a layering complaint — a `@State` write from a background `Task` was

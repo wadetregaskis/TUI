@@ -3,7 +3,7 @@
 **Status: shipped as `.userResizable(_:)`.** This note was the design; what
 follows is it, updated where building it taught me something. Two things did.
 
-TUIkit could already resize one thing by hand — a `NavigationSplitView` column,
+TUI could already resize one thing by hand — a `NavigationSplitView` column,
 by dragging its divider — and the question was what it would take to let any
 view be resized the same way, by the person using the app rather than by the
 layout.
@@ -19,10 +19,10 @@ question is always "what is the SwiftUI signature". Here there is none:
 - **`NavigationSplitView` column dragging** is the one place SwiftUI lets a
   person resize *within* a window, and it is not expressed as a modifier — it
   is behaviour the container has, configured by
-  `.navigationSplitViewColumnWidth(...)`. TUIkit already mirrors this, including
+  `.navigationSplitViewColumnWidth(...)`. TUI already mirrors this, including
   the modifier name.
 - **`Image.resizable()`** is a false friend. It means "scale the content to fill
-  the frame", not "let the user drag an edge". Any general TUIkit modifier must
+  the frame", not "let the user drag an edge". Any general TUI modifier must
   **not** be called `resizable()`, or the two meanings collide the moment
   `Image.resizable()` is added for parity.
 

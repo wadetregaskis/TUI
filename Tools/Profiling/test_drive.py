@@ -12,7 +12,7 @@ about where the `tour`'s keys land in the real Example, drives a built one
 
 What they guard is where the app's persisted state goes. `record.sh` — the
 profiling flow CLAUDE.md sends everyone through — runs `drive.py`, and a
-TUIkit app writes its `@AppStorage` wherever `TUIKIT_CONFIG_DIR` says, or,
+TUI app writes its `@AppStorage` wherever `TUIKIT_CONFIG_DIR` says, or,
 with it unset on macOS, into the user's real preferences domain
 (`~/Library/Preferences/Example.plist`; UserDefaults ignores a `$HOME`
 override, so nothing short of the variable isolates it). The driver passed
@@ -196,9 +196,9 @@ class TestStepMarkers(unittest.TestCase):
         self.assertEqual(times, sorted(times))
 
 
-# A stand-in that asks what every TUIkit startup exchange asks last, the
+# A stand-in that asks what every TUI startup exchange asks last, the
 # status report `CSI 5n`, and records whether `CSI 0n` came back before the
-# deadline TUIkit gives it — split across two writes, as a slow app might.
+# deadline TUI gives it — split across two writes, as a slow app might.
 _FENCE_STUB = """\
 import json, os, select, sys, time, tty
 tty.setraw(0)
@@ -224,7 +224,7 @@ while b"q" not in got:
 class TestAnswerFence(unittest.TestCase):
     """`--answer-fence` answers the status request as a terminal would.
 
-    A PTY answers nothing, so each of a TUIkit app's three startup exchanges
+    A PTY answers nothing, so each of a TUI app's three startup exchanges
     waits out its half-second deadline, and a scenario's keys land while it
     does: `scroll` lost all but a dozen of its steps to that. The flag is off
     by default, so numbers taken without it stay comparable.

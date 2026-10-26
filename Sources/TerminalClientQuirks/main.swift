@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  main.swift
 //
 //  Created by Wade Tregaskis
@@ -7,9 +7,9 @@
 //  A combined diagnostic and demonstration of terminal-client determination and
 //  the workarounds for the clients that need them.
 
-import TUIkit
+import TUI
 
-/// Terminal Client Quirks — what TUIkit thinks your terminal is, why, and what
+/// Terminal Client Quirks — what TUI thinks your terminal is, why, and what
 /// it is doing differently as a result.
 ///
 /// Five screens, in the order the questions arise:
@@ -41,7 +41,7 @@ struct QuirksContentView: View {
     @State private var tab = 0
 
     /// The client being simulated, or `nil` to use the one detected. Mirrors
-    /// ``TUIkit/TerminalClient/simulated``, which is what the renderer reads —
+    /// ``TUI/TerminalClient/simulated``, which is what the renderer reads —
     /// this is the control's copy of it.
     @State private var simulated: TerminalClient.Program?
 
@@ -82,7 +82,7 @@ struct QuirksContentView: View {
             ToolbarItem(placement: .navigation) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Terminal Client Quirks").bold()
-                    Text("what TUIkit thinks your terminal is, why, and what it does about it")
+                    Text("what TUI thinks your terminal is, why, and what it does about it")
                         .foregroundStyle(.palette.foregroundSecondary)
                 }
             }

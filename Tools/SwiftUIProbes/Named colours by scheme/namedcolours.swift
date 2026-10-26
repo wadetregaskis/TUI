@@ -1,7 +1,7 @@
 // What SwiftUI's named colours resolve to under each colour scheme, and what
 // a colour resolved in a bare environment (as a view body sees one) answers.
 //
-// Cited by Sources/TUIkitStyling/Color/SystemColor.swift and
+// Cited by Sources/TUIStyling/Color/SystemColor.swift and
 // Documentation/SwiftUI parity/Decisions/Named colours, localisation lookup and
 // the swift-syntax range (D6M).md. Top-level code: build it alone.
 import AppKit

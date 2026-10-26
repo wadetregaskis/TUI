@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""dedup_check.py: does anything in TUIkit depend on two different functions having different addresses, in an app
+"""dedup_check.py: does anything in TUI depend on two different functions having different addresses, in an app
 linked with `-Xlinker -deduplicate`? (ld then folds byte-identical functions onto one address.)
 
 Run it after a release build that linked an app with `-Xlinker -deduplicate`, on the UNSTRIPPED app and the build's
@@ -9,11 +9,11 @@ object files (arm64 only):
         [--manifest <manifest>] [--plain <the app linked without it>] [--json out.json]
 
 The manifest defaults to manifest.json beside this file. With `--report` it fails on nothing and lists, for an app
-developer, the key paths their binary forms that now compare equal ("app" against TUIkit's "tk"), and the code that
+developer, the key paths their binary forms that now compare equal ("app" against TUI's "tk"), and the code that
 compares or hashes key paths.
 
 Exit status: 0 clean (always, under --report), 1 a finding the manifest does not account for, 2 the check could not
-run: no objects, none of TUIkit's, no key paths in them, a stripped or universal binary, a folded key-path getter
+run: no objects, none of TUI's, no key paths in them, a stripped or universal binary, a folded key-path getter
 whose demangled name it cannot read. Never a pass.
 
 Swift code can observe a function's address in two ways, and the check covers both:
@@ -22,7 +22,7 @@ KEY PATHS. A key path to a COMPUTED property (or subscript) is identified by its
 compare that address, plus the key path's class (root and value type). So once two getters with the same root and
 value type are folded, two different key paths compare and hash equal. A key path to a STORED property is an offset
 and cannot be folded.
-  [K1] Every key path TUIkit itself forms is a pattern (`l_keypath*`) in its objects, whose relocations name the
+  [K1] Every key path TUI itself forms is a pattern (`l_keypath*`) in its objects, whose relocations name the
        getter that identifies each computed component. Groups of those getters that share one address in the binary,
        and share a root and a value type, are equal key paths. Each group is classified:
          alias      - every member is read-only, or every member's setter also shares one address: the key paths
@@ -30,7 +30,7 @@ and cannot be folded.
          DIVERGENT  - they compare equal but write differently. A finding unless the manifest's `key_path_aliases`
                       lists the group with a reason.
        An alias still breaks a consumer that uses a key path as a NAME (a tag in a table); see K2.
-  [K2] The CONSUMERS: every function in TUIkit's objects that references the standard library's key-path equality or
+  [K2] The CONSUMERS: every function in TUI's objects that references the standard library's key-path equality or
        hashing (`AnyKeyPath.==`, `.hashValue`, `hash(into:)`, its Equatable/Hashable witness tables) or Foundation's
        KeyPathComparator/SortDescriptor conformances. The set must match `key_path_consumers` in the manifest: a new
        consumer is a finding until someone has checked where its key paths come from and listed it.
@@ -38,13 +38,13 @@ and cannot be folded.
        value type: the key paths anyone COULD form that would compare equal. Stored properties are left out.
 
 FUNCTION POINTERS. Comparing the address of a C function (`@convention(c)`) or of a closure.
-  [F1] Every `@convention(c)` function (mangled suffix `To`) whose address TUIkit's code or data takes. The set must
-       match `c_function_addresses` in the manifest (each entry says whether TUIkit compares that address).
-  [F2] Every function the manifest's `address_identity` patterns match (an address TUIkit compares) must be alone at
+  [F1] Every `@convention(c)` function (mangled suffix `To`) whose address TUI's code or data takes. The set must
+       match `c_function_addresses` in the manifest (each entry says whether TUI compares that address).
+  [F2] Every function the manifest's `address_identity` patterns match (an address TUI compares) must be alone at
        its address in the binary, and every pattern must match one: a pattern that names nothing (a renamed
        function, or a binary that does not link it) would otherwise check nothing and pass.
 
-Which objects are TUIkit's: the manifest's `modules` names them by module, and an object's module is where SwiftPM
+Which objects are TUI's: the manifest's `modules` names them by module, and an object's module is where SwiftPM
 put it (`<Module>.build/…/x.o`, or Swift Build's merged `<Module>.o`). Every other module's objects are the app's:
 reported, never failed. Not covered (documented gaps): key paths and functions compared through a dynamic cast
 (`x as? any Hashable`) or generic code that never names them; `unsafeBitCast` of a Swift closure (the SwiftLint rule
@@ -95,7 +95,7 @@ def module_of(path):
 
 
 def module_filter(manifest):
-    """A predicate: is this module one of TUIkit's (checked), per the manifest's `modules`? Without a manifest, none
+    """A predicate: is this module one of TUI's (checked), per the manifest's `modules`? Without a manifest, none
     is: everything is the app's."""
     spec = (manifest or {}).get('modules')
     if not spec:
@@ -129,7 +129,7 @@ class Scan:
     def __init__(self):
         self.objects = 0
         self.checked_objects = 0
-        self.merged_modules, self.per_file_modules = set(), set()     # TUIkit's, by the kind of object read
+        self.merged_modules, self.per_file_modules = set(), set()     # TUI's, by the kind of object read
         self.patterns = {}          # getter -> {'sites', 'modules', 'writable', 'read_only', 'app_only'}
         self.consumers = {}         # function -> {'targets', 'checked', 'app', 'modules'}
         self.c_taken = {}           # C function -> {'references', 'checked', 'app', 'modules'}
@@ -146,7 +146,7 @@ def _note(table, name, module, checked):
 
 
 def scan_objects(objects, is_checked):
-    """Read every (path, module, merged) in `objects`; `is_checked(module)` says whether it is TUIkit's."""
+    """Read every (path, module, merged) in `objects`; `is_checked(module)` says whether it is TUI's."""
     scan = Scan()
     for p, module, merged in objects:
         img = machofile.read(p)
@@ -318,7 +318,7 @@ def check(scan, addr_of, at, manifest, dm, plain_addr=None):
     manifest_given = manifest is not None
     manifest = manifest or {}
 
-    # ---- K1: key paths TUIkit (and the app) forms
+    # ---- K1: key paths TUI (and the app) forms
     live = {g: e for g, e in scan.patterns.items() if g in addr_of}
     names = dm(list(live))
     groups = collections.defaultdict(list)
@@ -386,7 +386,7 @@ def check(scan, addr_of, at, manifest, dm, plain_addr=None):
     report['stored_fields'] = (sum(len(v) for v in stored.values()), len(stored))
 
     # ---- K2: consumers of key-path equality / hashing. The app's only if the binary has them: an object's code
-    # that the link dropped compares nothing. TUIkit's always: another app may link what this one dropped.
+    # that the link dropped compares nothing. TUI's always: another app may link what this one dropped.
     cnames = dm(list(scan.consumers))
     listed = manifest.get('key_path_consumers', {})
     k2 = []
@@ -418,7 +418,7 @@ def check(scan, addr_of, at, manifest, dm, plain_addr=None):
             findings.append(f'F1 new address-taken C function: {d} ({", ".join(sorted(e["references"]))})')
     report['F1'] = f1
 
-    # ---- F2: addresses TUIkit compares must be unique. The patterns read demangled names, as every other entry in
+    # ---- F2: addresses TUI compares must be unique. The patterns read demangled names, as every other entry in
     # the manifest does, and one that matches nothing is a finding: it would check nothing and pass.
     f2 = []
     patterns = manifest.get('address_identity', [])
@@ -442,7 +442,7 @@ def print_report(scan, report, findings, manifest_given, out=sys.stdout):
     def p(s=''):
         print(s, file=out)
     k1 = report['K1']
-    p(f'objects scanned: {scan.objects} ({scan.checked_objects} of them TUIkit\'s); key-path getters in patterns: '
+    p(f'objects scanned: {scan.objects} ({scan.checked_objects} of them TUI\'s); key-path getters in patterns: '
       f'{k1["patterns_getters"]} ({k1["in_binary"]} in the binary)')
     p(f'K1 key-path getters sharing their address with another function: {k1["sharing_an_address"]} of '
       f'{k1["in_binary"]}; groups among them with one root and value type (equal key paths): '
@@ -488,7 +488,7 @@ def print_report(scan, report, findings, manifest_given, out=sys.stdout):
         for f in findings:
             p('  ' + f)
     else:
-        p('\nOK: nothing in TUIkit depends on an address that -deduplicate folds')
+        p('\nOK: nothing in TUI depends on an address that -deduplicate folds')
 
 
 MANIFEST = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'manifest.json')
@@ -516,7 +516,7 @@ def run(argv=None, dm=None, out=sys.stdout):
             if not scan.checked_objects:
                 raise CannotCheck(f'none of the {scan.objects} objects is of a module the manifest\'s `modules` names')
             if not any(not e['app_only'] for e in scan.patterns.values()):
-                raise CannotCheck('TUIkit\'s objects form no key path: the scan could not read them')
+                raise CannotCheck('TUI\'s objects form no key path: the scan could not read them')
             merged_only = sorted(scan.merged_modules - scan.per_file_modules)
             if merged_only:
                 # Swift 6.4.0's Swift Build, measured 2026-10-11: its merged objects held 207 of the 315 key-path

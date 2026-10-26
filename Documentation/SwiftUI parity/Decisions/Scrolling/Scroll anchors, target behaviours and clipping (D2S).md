@@ -24,7 +24,7 @@ vertical view and by its `x` on a horizontal one (measured on macOS 15: a
 is 0.5). The cross axis is always centred, whatever the anchor says.
 
 What ships reads `y` on a view that scrolls vertically, which is what the
-owner's option 1 described, and ignores `x`, as TUIkit already does for the
+owner's option 1 described, and ignores `x`, as TUI already does for the
 other two roles ("the anchor modes are defined over rows"). So
 `ScrollView(.horizontal) { … }.defaultScrollAnchor(.trailing, for: .alignment)`
 compiles and keeps narrow content at the leading edge — a documented
@@ -96,7 +96,7 @@ The owner's A10 decision is about the scroll view: its content past the
 viewport draws as a floating layer around it, over the neighbours, with its hit
 regions. That ships for `ScrollView`. SwiftUI's `List` on macOS honours the
 modifier too (measured on macOS 15: rows draw on below a 100-point list's frame
-when it is set, and do not when it is not), and TUIkit's `List` and `Table`
+when it is set, and do not when it is not), and TUI's `List` and `Table`
 still clip: the modifier compiles on them and changes nothing.
 
 **The fuller version:** a list draws only the rows its window walks, so it
@@ -129,7 +129,7 @@ cells either side — a stack's alignment padding, an overlay's `Spacer`, an
 as SwiftUI's does. The overflow is drawn by the same rule: its blank cells at
 either end of a line draw nothing and take no click.
 
-**Clicks follow the drawing.** A TUIkit tap covers its view's whole frame,
+**Clicks follow the drawing.** A TUI tap covers its view's whole frame,
 padding included, and where the overflow draws over a later view's padding the
 overflow takes the click there: `Text("OK").frame(width: 12,
 alignment: .leading).onTapGesture { … }` under a scroll view whose row 2 runs
@@ -138,7 +138,7 @@ the padding past the overflow's last cell stay OK's. That is SwiftUI's routing
 for a view with no `contentShape` — its padding is not hit at all — and the
 alternative, the later view keeping its frame under the overflow, sends a
 click on visible overflow text to the view beside it. With a `contentShape`
-SwiftUI's later view takes that area; TUIkit has no `contentShape` yet (a
+SwiftUI's later view takes that area; TUI has no `contentShape` yet (a
 baseline gap waiting on shapes), and when it lands its shape should cut the
 overflow's regions as a painted cell does. Pinned by
 `laterViewPaddingClicksFollowTheDrawing`.
@@ -235,7 +235,7 @@ own page is half the top (leading) margin longer, which is not copied
   behaviour stated further out — which SwiftUI cannot say. The public
   `EnvironmentValues.scrollGranularity` is gone (SwiftUI has none).
 - `ScrollTarget.rect` is a `CellRect`, the context's sizes `CellSize` and its
-  `velocity` a `CellVector`: cells, as the rest of TUIkit's geometry. The
+  `velocity` a `CellVector`: cells, as the rest of TUI's geometry. The
   velocity is the step in cells — a terminal's steps have no duration to
   measure points per second from.
 - `.viewAligned` finds the rows (or columns) of the stack that is the scroll

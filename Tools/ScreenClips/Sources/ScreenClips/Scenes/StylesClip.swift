@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  StylesClip.swift
 //
 //  `styles`: one booking form, restyled under the person using it — the
@@ -10,7 +10,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 @MainActor
 let stylesClip = Clip(
@@ -87,7 +87,7 @@ struct StylesApp: App {
     @State private var look = StyleLook.filled
 
     var body: some Scene {
-        WindowGroup("TUIkit · Styles") {
+        WindowGroup("TUI · Styles") {
             BookingForm(look: look)
                 .task {
                     for await cue in ClipCues.stream() {

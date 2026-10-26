@@ -1,11 +1,11 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  MousePage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 /// Mouse demo page.
 ///
@@ -661,7 +661,7 @@ struct MousePage: View {
         }
     }
 
-    /// The modifiers held with a click, as TUIkit writes modifiers: macOS's
+    /// The modifiers held with a click, as TUI writes modifiers: macOS's
     /// symbols, in its order ⌃ ⌥ ⇧ (`EventModifiers.displayString`).
     private func modifierString(_ event: MouseEvent) -> String {
         var modifiers: EventModifiers = []

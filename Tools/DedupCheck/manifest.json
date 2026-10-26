@@ -1,15 +1,15 @@
 {
-  "_doc": "Reviewed facts for dedup_check.py (README.md beside it). `modules` names the modules whose objects are TUIkit's and checked; every other module's are the app's, reported only. The entries of `key_path_consumers`, `c_function_addresses` and `address_identity` are regexes matched against DEMANGLED names; `key_path_aliases` lists exact MANGLED getter names. Adding an entry is a review: say where the key paths or addresses come from and why folding cannot change the answer.",
+  "_doc": "Reviewed facts for dedup_check.py (README.md beside it). `modules` names the modules whose objects are TUI's and checked; every other module's are the app's, reported only. The entries of `key_path_consumers`, `c_function_addresses` and `address_identity` are regexes matched against DEMANGLED names; `key_path_aliases` lists exact MANGLED getter names. Adding an entry is a review: say where the key paths or addresses come from and why folding cannot change the answer.",
   "modules": {
-    "pattern": "TUIkit[A-Za-z]*",
-    "except": ["TUIkitTestSupport", "TUIkitWidthCorpus"],
-    "why": "Every module a TUIkit library product ships is named TUIkit…; TUIkitTestSupport is the tests' and TUIkitWidthCorpus the tests' and a probe app's, and no product links either into an app."
+    "pattern": "TUI[A-Za-z]*",
+    "except": ["TUITestSupport", "TUIWidthCorpus"],
+    "why": "Every module a TUI library product ships is named TUI…; TUITestSupport is the tests' and TUIWidthCorpus the tests' and a probe app's, and no product links either into an app."
   },
   "key_path_consumers": {
     "RenderCache\\.EnvironmentSlot": "The environment-change table's key: (identity, keyPath, depth). Only Theme (8 key paths), PinnedScrollableViews (2) and GeometryReader (2 tags) note more than one key path at one (identity, depth); within each site the value types differ, and AnyKeyPath.== compares the class (root AND value type) before any getter, so no fold can make two of them equal. Every other caller (EnvironmentModifier, TransformEnvironmentModifier, the single-key-path sites) notes one key path per depth.",
     "WindowGroup\\.\\(rootViewStatements ": "Root palette discovery (Scene+PaletteOverride.swift): `keyPath == \\EnvironmentValues.palette`. Equal only for a WritableKeyPath<EnvironmentValues, any Palette> whose getter is byte-identical to palette's, i.e. one that reads the palette; treating its value as the palette is what it is.",
     "SceneDisplayOptions\\.init\\(writing:": "The display option an environment write states (SceneDisplayOptions.swift): `keyPath == \\EnvironmentValues.palette`, `.appearance`, `.controlStyle`, for the key path of a scene's `.environment(_:_:)` or of a root-view environment modifier. Equal only for a key path of that root and value type whose getter is byte-identical to the property's, i.e. one that reads that value; counting its write as a write of that value is what it is. The three have different value types, so no fold makes two of them equal.",
-    "_TableSortModel": "Table's sort header (TableColumnSpec.swift, sameColumn): two KeyPathComparators name one column when their key paths are equal. The key paths are the app's own (row types); folded getters read identical values, so the two columns sort identically; the visible effect is one sort indicator for both. The README's caveat, not a TUIkit defect."
+    "_TableSortModel": "Table's sort header (TableColumnSpec.swift, sameColumn): two KeyPathComparators name one column when their key paths are equal. The key paths are the app's own (row types); folded getters read identical values, so the two columns sort identically; the visible effect is one sort indicator for both. The README's caveat, not a TUI defect."
   },
   "c_function_addresses": {
     "FatalSignalTerminalRestore\\.\\(handler ": "COMPARED: endsTheProcess(handlerAddress:) compares SIGQUIT's disposition with it. Listed under address_identity."
@@ -20,8 +20,8 @@
   "key_path_aliases": [
     {
       "members": [
-        "_$s10TUIkitCore17EnvironmentValuesV0A10FoundationE11buttonStyleAD06ButtonG0_pvg",
-        "_$s10TUIkitCore17EnvironmentValuesV0A10FoundationE25installedButtonAppearanceAD0G5Style_pvg"
+        "_$s7TUICore17EnvironmentValuesV13TUIFoundationE11buttonStyleAD06ButtonF0_pvg",
+        "_$s7TUICore17EnvironmentValuesV13TUIFoundationE25installedButtonAppearanceAD0F5Style_pvg"
       ],
       "reason": "installedButtonAppearance is buttonStyle written so that it also ends a custom primitive style (PrimitiveButtonStyle.swift): the same getter, a different setter. Its key path reaches one consumer, RenderCache.EnvironmentSlot, through EnvironmentModifier, which notes one key path per (identity, depth); buttonStyle is noted by Theme at Theme's own depth. No site notes both at one (identity, depth), so the slot table cannot confuse them. Folded on Xcode's 6.2.4 with -deduplicate only (measured 2026-10-10; 6.4.0 does not fold them)."
     }

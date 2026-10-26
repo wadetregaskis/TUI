@@ -1,0 +1,317 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  SwatchGridTests.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIColorPicker
+@testable import TUIFoundation
+@testable import TUITestSupport
+
+/// A reference holder so a `Binding<Color>` can be read back in tests.
+private final class ColorBox {
+    var color: Color
+    init(_ color: Color) { self.color = color }
+    var binding: Binding<Color> { Binding(get: { self.color }, set: { self.color = $0 }) }
+}
+
+@MainActor
+@Suite("SwatchGrid — handler")
+struct SwatchGridHandlerTests {
+
+    private let entries: [Color] = (0..<12).map { (i: Int) -> Color in
+        Color.rgb(UInt8(i * 20), 0, 0)
+    }
+
+    @Test("commit clamps to the entry range and writes the entry's colour")
+    func commitClamps() {
+        let box = ColorBox(.rgb(0, 0, 0))
+        let handler = SwatchGridHandler(
+            focusID: "g", cursor: 0, selection: box.binding, entries: entries, columns: 4)
+        handler.commit(to: 5)
+        #expect(handler.cursor == 5)
+        #expect(box.color == entries[5])
+        handler.commit(to: 999)
+        #expect(handler.cursor == entries.count - 1)
+        handler.commit(to: -3)
+        #expect(handler.cursor == 0)
+    }
+
+    @Test("Arrow keys move by one (left/right) and by a row (up/down), clamped")
+    func arrowNavigation() {
+        let box = ColorBox(.rgb(0, 0, 0))
+        // 12 entries, 4 columns → 3 rows.
+        let handler = SwatchGridHandler(
+            focusID: "g", cursor: 0, selection: box.binding, entries: entries, columns: 4)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .right)))  // 0 → 1
+        #expect(handler.cursor == 1)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .down)))   // 1 → 5 (next row)
+        #expect(handler.cursor == 5)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .up)))     // 5 → 1
+        #expect(handler.cursor == 1)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .left)))   // 1 → 0
+        #expect(handler.cursor == 0)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .up)))     // off the top → no-op
+        #expect(handler.cursor == 0)
+        #expect(box.color == entries[0])
+        // An unrelated key is not consumed.
+        #expect(!handler.handleKeyEvent(KeyEvent(key: .tab)))
+    }
+
+    @Test("nearestIndex matches an exact entry, else the closest by RGB distance")
+    func nearestIndex() {
+        let palette = SystemPalette(.green)
+        #expect(_SwatchGridCore.nearestIndex(of: entries[7], in: entries, palette: palette) == 7)
+        // A colour between entries 5 (100,0,0) and 6 (120,0,0) → nearest is 5 or 6.
+        let near = _SwatchGridCore.nearestIndex(of: .rgb(108, 0, 0), in: entries, palette: palette)
+        #expect(near == 5 || near == 6)
+        // Far-off green resolves to the darkest red entry (all entries are reddish).
+        let any = _SwatchGridCore.nearestIndex(of: .rgb(0, 255, 0), in: entries, palette: palette)
+        #expect((0..<entries.count).contains(any))
+    }
+}
+
+@MainActor
+@Suite("SwatchGrid — rendering + mouse")
+struct SwatchGridRenderTests {
+
+    private let entries: [Color] = (0..<16).map { (i: Int) -> Color in
+        let v = UInt8(i * 16)
+        return Color.rgb(v, v, v)
+    }
+
+    @Test("Renders a coloured grid with a bullet on the cursor cell")
+    func rendersGrid() {
+        let box = ColorBox(entries[3])
+        let buffer = renderToBuffer(
+            _SwatchGridCore(entries: entries, columns: 8, selection: box.binding, focusID: "sg"),
+            context: makeRenderContext(width: 40, height: 12))
+        let joined = buffer.lines.joined()
+        #expect(joined.contains("48;5;") || joined.contains("48;2;"), "swatches carry a background colour")
+        // The cursor swatch is marked with a contrasting check.
+        #expect(joined.contains("✔"), "the cursor cell shows the selection check")
+        // 16 entries / 8 columns → 2 rows.
+        #expect(buffer.lines.count == 2, "laid out in 2 rows of 8")
+    }
+
+    @Test("Clicking a swatch commits its colour (the grid responds to the mouse)")
+    func mouseClickSelects() {
+        let box = ColorBox(entries[0])
+        let tui = TUIContext()
+        let fm = FocusManager()
+        let grid = _SwatchGridCore(entries: entries, columns: 8, selection: box.binding, focusID: "sg-mouse")
+
+        var env = EnvironmentValues()
+        env.focusManager = fm
+        env.mouseEventDispatcher = tui.mouseEventDispatcher
+        let ctx = RenderContext(availableWidth: 40, availableHeight: 12, environment: env, tuiContext: tui)
+        fm.beginRenderPass()
+        let buffer = renderToBuffer(grid, context: ctx)
+        fm.endRenderPass()
+
+        #expect(buffer.hitTestRegions.count == entries.count, "one clickable region per swatch")
+        // Click entry 11 — row 1 (11 / 8), column 3, each cell two wide.
+        let x = (11 % 8) * 2
+        let y = 11 / 8
+        tui.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
+        _ = tui.mouseEventDispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: x, y: y))
+        _ = tui.mouseEventDispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: x, y: y))
+        #expect(box.color == entries[11], "the clicked swatch is selected, got \(box.color)")
+    }
+
+    @Test("cellHeight renders multi-line swatches; hit regions span the whole cell")
+    func multiLineSwatches() {
+        let box = ColorBox(entries[10])  // row 1, column 2
+        let tui = TUIContext()
+        let fm = FocusManager()
+        var env = EnvironmentValues()
+        env.focusManager = fm
+        env.mouseEventDispatcher = tui.mouseEventDispatcher
+        let ctx = RenderContext(availableWidth: 60, availableHeight: 12, environment: env, tuiContext: tui)
+        fm.beginRenderPass()
+        let buffer = renderToBuffer(
+            _SwatchGridCore(
+                entries: entries, columns: 8, selection: box.binding,
+                cellWidth: 4, cellHeight: 2, focusID: "sg-big"),
+            context: ctx)
+        fm.endRenderPass()
+
+        // 16 entries / 8 cols = 2 grid rows, each 2 lines tall → 4 lines of 8×4 = 32.
+        #expect(buffer.lines.count == 4, "two grid rows of two lines each")
+        #expect(buffer.lines.allSatisfy { $0.strippedLength == 32 }, "8 columns of 4-wide swatches")
+        #expect(buffer.lines.joined().contains("✔"), "the cursor cell is still marked")
+        // One 4×2 region per swatch.
+        #expect(buffer.hitTestRegions.count == entries.count)
+        #expect(buffer.hitTestRegions.allSatisfy { $0.width == 4 && $0.height == 2 })
+        // A click anywhere inside a swatch's 4×2 box selects it.
+        let target = 5  // row 0, column 5
+        let r = buffer.hitTestRegions[target]
+        tui.mouseEventDispatcher.setRegions(buffer.hitTestRegions)
+        _ = tui.mouseEventDispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: r.offsetX + 1, y: r.offsetY + 1))
+        _ = tui.mouseEventDispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: r.offsetX + 1, y: r.offsetY + 1))
+        #expect(box.color == entries[target], "clicking the lower line of a 2-tall swatch still selects it")
+    }
+
+    @Test("The focused selection mark animates on pulse and is steady on none (#2)")
+    func selectionIndicatorAnimation() {
+        let entries: [Color] = (0..<4).map { Color.rgb(0, UInt8($0 * 60), 0) }
+        let fm = FocusManager()
+        let tui = TUIContext()
+        /// The grid's buffer under a given indicator style, focused.
+        func render(style: TextCursorStyle.Animation) -> FrameBuffer {
+            var env = EnvironmentValues()
+            env.focusManager = fm
+            env.selectionIndicatorStyle = style
+            let ctx = RenderContext(
+                availableWidth: 16, availableHeight: 3, environment: env, tuiContext: tui)
+            fm.beginRenderPass()
+            let buffer = renderToBuffer(
+                _SwatchGridCore(
+                    entries: entries, columns: 4, selection: .constant(entries[1]),
+                    focusID: "sg-anim"),
+                context: ctx)
+            fm.endRenderPass()
+            return buffer
+        }
+        _ = render(style: .pulse)  // first render auto-focuses
+
+        // Not "the output tracks the phase": the grid no longer reads the phase
+        // as it renders — that read re-rendered the whole panel on every tick.
+        // It leaves ONE run, over the cursor swatch, and the breathing is there.
+        let pulsing = render(style: .pulse)
+        #expect(pulsing.animatedCells.count == 1, "the focused mark left no run")
+        let run = pulsing.animatedCells[0]
+        #expect(run.isAnimating, "pulse: the focused mark animates")
+        let pictures: Set<String> = Set(run.frames.map(\.stripped))
+        #expect(pictures.count == 1, "the pulse moved the mark's glyphs")
+        // And it sits on the swatch it was drawn from.
+        let replayed = pulsing.composited(
+            with: FrameBuffer(lines: [run.frame(atIndex: 0)]), at: (x: run.offsetX, y: run.offsetY))
+        #expect(replayed.lines.map(\.stripped) == pulsing.lines.map(\.stripped),
+            "the run does not sit on the cursor swatch")
+
+        // none: steady, so there is nothing for the loop to advance.
+        #expect(render(style: .none).animatedCells.isEmpty,
+            "none: the mark is steady")
+    }
+
+    @Test("exactMatchOnly hides the marker unless the colour is one of the swatches (#8)")
+    func exactMatchOnlyMarker() {
+        func markerShown(for color: Color) -> Bool {
+            renderToBuffer(
+                _SwatchGridCore(entries: entries, columns: 8, selection: .constant(color),
+                                exactMatchOnly: true, focusID: "sg-exact"),
+                context: makeRenderContext(width: 40, height: 12)
+            ).lines.joined().contains("✔")
+        }
+        // A colour that is one of the swatches → marker shown on it.
+        #expect(markerShown(for: entries[5]), "exact match shows the marker")
+        // A colour that is NOT a swatch → no marker (a nearest cell would mislead).
+        #expect(!markerShown(for: .rgb(7, 3, 1)), "no exact match → no marker")
+    }
+}
+
+@MainActor
+@Suite("ColorPickerPanel — greyscale tab")
+struct ColorPickerGreyscaleTabTests {
+
+    @Test("Greyscale is an evenly-spaced black→white ramp of greys")
+    func ramp() {
+        let greys = SwatchPalettes.greyscale
+        #expect(greys.count == 32)
+        #expect(greys.first == Color.rgb(0, 0, 0), "starts at black")
+        #expect(greys.last == Color.rgb(255, 255, 255), "ends at white")
+        // Every entry is a true grey (R == G == B).
+        #expect(greys.allSatisfy { c in
+            let rgb = c.rgbComponents!
+            return rgb.red == rgb.green && rgb.green == rgb.blue
+        }, "every entry is a neutral grey")
+    }
+
+    @Test("Greyscale is a channelless tab present in the strip")
+    func tabPresent() {
+        #expect(ColorPickerPanel.Mode.allCases.contains(.greyscale))
+        #expect(ColorPickerPanel.Mode.greyscale.channels.isEmpty)
+        let view = ColorPickerPanel(
+            "C", selection: .constant(.rgb(10, 20, 30)), isPresented: .constant(true))
+        let text = renderToBuffer(view, context: makeRenderContext(width: 80, height: 30))
+            .lines.map { $0.stripped }.joined(separator: "\n")
+        #expect(text.contains("Greyscale"))
+    }
+}
+
+@MainActor
+@Suite("ColorPickerPanel — curated palettes (#9, #10)")
+struct CuratedPaletteTests {
+
+    @Test("Web-safe is the 216-colour palette: only the six standard channel levels")
+    func webSafe() {
+        let web = SwatchPalettes.webSafe
+        #expect(web.count == 216)
+        let levels: Set<UInt8> = [0, 51, 102, 153, 204, 255]
+        #expect(web.allSatisfy { c in
+            let rgb = c.rgbComponents!
+            return levels.contains(rgb.red) && levels.contains(rgb.green) && levels.contains(rgb.blue)
+        }, "every channel is one of 00/33/66/99/CC/FF")
+        // Every combination appears exactly once.
+        let combinations: Set<[UInt8]> = Set(web.map { (colour: Color) -> [UInt8] in
+            colour.rgbComponents.map { [$0.red, $0.green, $0.blue] } ?? []
+        })
+        #expect(combinations.count == 216)
+    }
+
+    @Test("CSS named colours are the 148 keywords, synonyms collapsed")
+    func cssNamed() {
+        let named = SwatchPalettes.cssNamed
+        // 148 keywords minus 9 same-value synonyms (gray/grey ×7, aqua/cyan, fuchsia/magenta).
+        #expect(named.count == 139)
+        let byName = Dictionary(uniqueKeysWithValues: named.map { ($0.name, $0.color) })
+        #expect(byName["tomato"] == .hex(0xFF6347), "factually correct value for a known colour")
+        #expect(byName["rebeccapurple"] == .hex(0x663399), "CSS Color 4 addition is present")
+        // No two entries share a colour value (synonyms were collapsed).
+        let values = named.map { c in c.color.rgbComponents.map { [$0.red, $0.green, $0.blue] } ?? [] }
+        #expect(Set(values).count == named.count)
+    }
+
+    @Test("Crayons match Apple's selector: 48 colours, Sea Foam not Mandarin, exact values")
+    func crayons() {
+        let crayons = SwatchPalettes.crayons
+        #expect(crayons.count == 48)
+        let byName = Dictionary(uniqueKeysWithValues: crayons.map { ($0.name, $0.color) })
+        #expect(byName["Sea Foam"] != nil, "Apple's set has Sea Foam")
+        #expect(byName["Mandarin"] == nil, "…and not Mandarin (a common mis-transcription)")
+        // Spot-check the corroborated values.
+        #expect(byName["Maraschino"] == .hex(0xFF0000))
+        #expect(byName["Cantaloupe"] == .hex(0xFFCC66))
+        #expect(byName["Licorice"] == .hex(0x000000))
+        #expect(byName["Snow"] == .hex(0xFFFFFF))
+        // The 8×6 grid puts Maraschino at the start of the fourth row (index 24).
+        #expect(crayons[24].name == "Maraschino")
+    }
+
+    @Test("Named and Crayons tabs show the focused swatch's name")
+    func namedGridShowsName() {
+        // Selecting tomato should surface its name beneath the grid.
+        let view = _NamedSwatchGrid(
+            entries: SwatchPalettes.cssNamed, columns: 18, selection: .constant(.hex(0xFF6347)))
+        let text = renderToBuffer(view, context: makeRenderContext(width: 50, height: 16))
+            .lines.map { $0.stripped }.joined(separator: "\n")
+        #expect(text.contains("tomato"), "the matched colour's name is shown: \(text)")
+    }
+
+    @Test("All four curated tabs are present and channelless in the panel")
+    func tabsPresent() {
+        for mode in [ColorPickerPanel.Mode.greyscale, .named, .webSafe, .crayons] {
+            #expect(mode.channels.isEmpty, "\(mode) is a swatch tab, not a channel editor")
+        }
+        let view = ColorPickerPanel(
+            "C", selection: .constant(.rgb(10, 20, 30)), isPresented: .constant(true))
+        let text = renderToBuffer(view, context: makeRenderContext(width: 90, height: 40))
+            .lines.map { $0.stripped }.joined(separator: " ")
+        for label in ["Greyscale", "Named", "Web Safe", "Crayons"] {
+            #expect(text.contains(label), "tab \(label) present in the wrapped strip")
+        }
+    }
+}

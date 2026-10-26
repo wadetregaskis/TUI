@@ -27,14 +27,14 @@ raised that was not already decided: the same three parts as the main file.*
 **Shipped:** as decided, both kinds of asset catalogue are read: the uncompiled
 `.xcassets` folder (which is what `swift build` puts in a resource bundle —
 measured: `.process("Resources")` copies the folder as it is, and only Xcode
-makes an `Assets.car`), on every platform, by TUIkit; and on macOS a compiled
-`Assets.car` too, through AppKit, by `TUIkitAppKit` (B50's module, since TUIkit
+makes an `Assets.car`), on every platform, by TUI; and on macOS a compiled
+`Assets.car` too, through AppKit, by `TUIAppKit` (B50's module, since TUI
 may not import AppKit). A missing colour is `Color.clear`, which is SwiftUI's
 answer (measured: `#00000000`).
 
 **What differs:** the decision said a colour set's light and dark variants are
 "chosen by `\.colorScheme`". SwiftUI keeps both in the `Color` and chooses where
-the colour is drawn. A TUIkit `Color` is five bytes with no padding (the A16
+the colour is drawn. A TUI `Color` is five bytes with no padding (the A16
 analysis: every `Text` carries two, every cell run carries them, the value hash
 reads them as words), with no room for a second colour or a reference to the
 set. So the variant is chosen when the colour is made, by the colour scheme a
@@ -58,15 +58,15 @@ and should be built with it if that goes ahead.
 
 ### B-D6M-2. swift-syntax is taken from 602.0.0 up to the next major, not pinned to 602
 
-*The `TUIkitMacros` product's swift-syntax dependency (A52)*
+*The `TUIMacros` product's swift-syntax dependency (A52)*
 
 **Shipped:** `"602.0.0"..<"700.0.0"`. A52 asked for swift-syntax "pinned to the
 toolchain's release line", and it first shipped as `"602.0.0"..<"603.0.0"`,
-Swift 6.2's line. But every client of TUIkit resolves that range, macros or
+Swift 6.2's line. But every client of TUI resolves that range, macros or
 not: SwiftPM builds by target and resolves by package (measured: a client of
-the `TUIkit` product alone clones swift-syntax and compiles none of it). So
+the `TUI` product alone clones swift-syntax and compiles none of it). So
 the cap refused any app that also depends on a package wanting a newer
-swift-syntax — measured: a client with TUIkit and a package requiring
+swift-syntax — measured: a client with TUI and a package requiring
 `from: "603.0.0"` failed `swift package resolve` with a conflict, and
 resolves with the wide range. Swift 6.3's 603 and 6.4's 604 are out, so that
 is any app with a current macro package in it. The wide range is what macro
@@ -86,7 +86,7 @@ the prebuilt and tests the range's floor; every other lane tests its top.
 
 **The fuller version** keeps a client off swift-syntax entirely: the macros in
 a package of their own, in a second repository (SwiftPM cannot take a package from a subfolder of a remote one), so
-that a TUIkit-only client never resolves it. That is a release-process cost
+that a TUI-only client never resolves it. That is a release-process cost
 (versioning two packages together) for the owner to weigh; nothing in the
 code would change.
 
@@ -97,10 +97,10 @@ as a client resolves a release, changed two things. It added a non-default
 trait, `Macros`. It made the plugin's two swift-syntax products conditional
 on it, `condition: .when(traits: ["Macros"])`. The results:
 
-- A client of the `TUIkit` product with no traits listed resolves
+- A client of the `TUI` product with no traits listed resolves
   `["tuikit"]`: no swift-syntax in its `Package.resolved`, none in
   `.build/checkouts`.
-- A client of `TUIkitMacros` with `traits: [.defaults, "Macros"]` resolves
+- A client of `TUIMacros` with `traits: [.defaults, "Macros"]` resolves
   `["swift-syntax", "tuikit"]`. So does every client of the unchanged tree.
 - Both held with Xcode's Swift 6.2.4 and swift.org's 6.3.3 and 6.4.0.
 - The root package resolves the same way. A plain `swift package resolve`
@@ -134,7 +134,7 @@ palette). Unresolved, it measures and spells as its light value
 (`rgbComponents`, every blend, the emitters' own arm for it), which is what
 SwiftUI's `resolve(in: EnvironmentValues())` answers; such arithmetic returns a
 plain colour, which no longer follows the scheme. `resolve(in:)` answers each
-environment's value. `.white`, `.black` and TUIkit's `.magenta` stay plain RGB,
+environment's value. `.white`, `.black` and TUI's `.magenta` stay plain RGB,
 the same in both schemes.
 
 **Measured:** the dark values are SwiftUI's, `Color.resolve(in:)` under a dark
@@ -170,7 +170,7 @@ owed before this lands.
 `ColorValue.lightDark(LightDarkIndex)`: a two-byte place (two `UInt8`s, so
 alignment one; a `UInt16` would align `Color` to two and give it a padding
 byte) in a process-wide table of (light, dark) RGB pairs,
-`LightDarkColorTable.shared` (`Sources/TUIkitStyling/Color/LightDarkColor.swift`).
+`LightDarkColorTable.shared` (`Sources/TUIStyling/Color/LightDarkColor.swift`).
 `Color` stays five bytes with no padding; the colour's alpha is its own byte, as
 for every colour. `Color.resolve(with:)` turns it into the RGB for the palette's
 `colorScheme`, beside `.semantic` and `.system`, so it takes the scheme in force
@@ -246,30 +246,30 @@ catalogue colour, so it is a check that nothing else moved.
 
 ### A14's lookup order — decided 2026-10-05
 
-*`LocalizationService`, `Text(_:tableName:bundle:comment:)`, TUIkit's own
+*`LocalizationService`, `Text(_:tableName:bundle:comment:)`, TUI's own
 controls' strings*
 
 The first order (60296e574) read an app's `Localizable` table ahead of
-TUIkit's own strings for every key, so an app that happened to spell
-`button.ok` in it changed TUIkit's OK by accident. The owner accepted the
-recommendation, with one rule added: "if there are no built-in TUIkit
+TUI's own strings for every key, so an app that happened to spell
+`button.ok` in it changed TUI's OK by accident. The owner accepted the
+recommendation, with one rule added: "if there are no built-in TUI
 translations for the active language, … automatically try the app's strings.
 Better to get some of them, even if imperfect, than none at all."
 
 **Shipped:** both orders go language by language — the languages the user
-asked for, including any ahead of the first TUIkit ships (`LANG=pt_BR`), then
+asked for, including any ahead of the first TUI ships (`LANG=pt_BR`), then
 English.
 
-- **TUIkit's own words** (its controls and the typed `LocalizationKey`s, which
-  name TUIkit through `frameworkString(for:)`): registered strings, a
-  `TUIkit.strings` table the app ships, TUIkit's translation, and — only where
-  TUIkit has no translation of the key in that language — the app's
+- **TUI's own words** (its controls and the typed `LocalizationKey`s, which
+  name TUI through `frameworkString(for:)`): registered strings, a
+  `TUI.strings` table the app ships, TUI's translation, and — only where
+  TUI has no translation of the key in that language — the app's
   `Localizable`, before English.
 - **The app's keys:** the table the call names, registered strings,
-  `Localizable`, then TUIkit's strings (so an app can borrow them). This is a
+  `Localizable`, then TUI's strings (so an app can borrow them). This is a
   deviation from SwiftUI where the call names a table (or a bundle) that lacks
   the key: SwiftUI's `Text("greeting", tableName: "Onboarding")` shows
-  `greeting`, and TUIkit goes on to the rest of the order. Kept as the owner's
+  `greeting`, and TUI goes on to the rest of the order. Kept as the owner's
   order; the compatibility doc marks it.
 - Writing out the default table (`tableName: "Localizable"`, `bundle: .main`)
   reads exactly as leaving it off.

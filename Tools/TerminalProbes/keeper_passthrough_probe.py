@@ -6,8 +6,8 @@ whose master side this script plays (TERM=xterm-256color), a program in its
 window writes one form of an OSC 52 write, and the script reads what the keeper
 sends on to its terminal. This measures the keeper, not an emulator: whether a
 terminal then writes the clipboard is `clipboard_probe.py`'s question, run in
-that terminal. TUIkit's sequences are built exactly as `ClipboardSequence`
-builds them (`Sources/TUIkitFoundation/App/ClipboardWriter.swift`).
+that terminal. TUI's sequences are built exactly as `ClipboardSequence`
+builds them (`Sources/TUIFoundation/App/ClipboardWriter.swift`).
 
   python3 keeper_passthrough_probe.py           # every case, both keepers
   python3 keeper_passthrough_probe.py screen    # one keeper
@@ -16,7 +16,7 @@ builds them (`Sources/TUIkitFoundation/App/ClipboardWriter.swift`).
 Cases, each with a fresh nonce payload:
 
   screen
-    bare         OSC 52 as TUIkit sends it outside a keeper
+    bare         OSC 52 as TUI sends it outside a keeper
     dcs-short    one DCS (`ESC P … ESC \`) around the write, BEL-terminated
     dcs-chunked  a 3 KiB write split into DCS strings of at most 256 bytes
     dcs-chunked-big  a 64 KiB write the same way

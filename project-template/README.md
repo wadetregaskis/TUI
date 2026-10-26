@@ -1,6 +1,6 @@
-# TUIkit Project Creator
+# TUI Project Creator
 
-CLI tool for creating TUIkit terminal applications.
+CLI tool for creating TUI terminal applications.
 
 ## Quick Install
 
@@ -25,7 +25,7 @@ tuikit init git sqlite testing MyApp  # With Git, SQLite and Testing
 
 ```
 MyApp/
-├── Package.swift           # Swift Package with TUIkit dependency
+├── Package.swift           # Swift Package with TUI dependency
 ├── Sources/
 │   ├── App.swift           # Main entry point
 │   ├── ContentView.swift   # Root view
@@ -56,7 +56,7 @@ The installer:
 
 ```bash
 git clone https://github.com/wadetregaskis/TUIkit.git
-cd TUIkit/project-template
+cd TUI/project-template
 ./install.sh
 ```
 
@@ -68,14 +68,14 @@ tuikit-uninstall
 
 ## Requirements
 
-- macOS 15+ or Linux (generated projects target macOS 15; the TUIkit library itself needs only macOS 14+)
-- Swift 6.2+ (TUIkit requires a Swift 6.2 toolchain)
+- macOS 15+ or Linux (generated projects target macOS 15; the TUI library itself needs only macOS 14+)
+- Swift 6.2+ (TUI requires a Swift 6.2 toolchain)
 - Bash shell
 
 ## Documentation
 
-- [TUIkit Documentation](https://swiftpackageindex.com/wadetregaskis/TUIkit/main/documentation/tuikit)
-- [TUIkit GitHub](https://github.com/wadetregaskis/TUIkit)
+- [TUI Documentation](https://swiftpackageindex.com/wadetregaskis/TUIkit/main/documentation/tui)
+- [TUI GitHub](https://github.com/wadetregaskis/TUIkit)
 
 ## License
 

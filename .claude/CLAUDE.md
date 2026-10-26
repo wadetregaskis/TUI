@@ -8,15 +8,15 @@
   6.2/6.3/6.4 Linux containers on x86_64 plus 6.3 on arm64, with
   nightly-toolchain lanes as advisory.
   **Windows is a port in progress, and the goal is to keep it easy**: the
-  four lower modules (`TUIkitCore`, `TUIkitStyling`, `TUIkitView`,
-  `TUIkitImage`) already build there and must keep building. POSIX-only APIs
+  four lower modules (`TUICore`, `TUIStyling`, `TUIView`,
+  `TUIImage`) already build there and must keep building. POSIX-only APIs
   (`termios`, `ioctl`, signals, `DispatchSource` on stdin) may live in
   whichever module they belong to — no module is reserved for them — but
   keep them isolated (in their own files, or behind `#if os(Windows)` arms
   or a small protocol) so that a port has few, obvious places to fill in,
   and never put them in a module that builds on Windows today. The
   console layer — the run loop, the `Terminal` class and its `termios` raw
-  mode, the signal handlers, the stdin source — is `TUIkitApp`, a module of
+  mode, the signal handlers, the stdin source — is `TUIApp`, a module of
   its own since module split step B3, which has no Windows build. See
   CONTRIBUTING.md for the blocker list.
 

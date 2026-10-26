@@ -455,30 +455,30 @@ func run() throws {
 ## Files Affected
 
 ### New Files
-- `Sources/TUIkit/Rendering/TerminalProtocol.swift`
-- `Sources/TUIkit/Focus/ActionHandler.swift`
-- `Tests/TUIkitTests/MockTerminal.swift` (optional)
+- `Sources/TUI/Rendering/TerminalProtocol.swift`
+- `Sources/TUI/Focus/ActionHandler.swift`
+- `Tests/TUITests/MockTerminal.swift` (optional)
 
 ### Modified Files
-- `Sources/TUIkit/State/State.swift` (AppState with lock)
-- `Sources/TUIkit/App/SignalManager.swift` (locked flags)
-- `Sources/TUIkit/App/PulseTimer.swift` (nonisolated call)
-- `Sources/TUIkit/Rendering/Terminal.swift` (@MainActor)
-- `Sources/TUIkit/Rendering/RenderCache.swift` (@MainActor)
-- `Sources/TUIkit/State/StateStorage.swift` (@MainActor)
-- `Sources/TUIkit/Focus/Focus.swift` (@MainActor)
-- `Sources/TUIkit/Core/KeyEvent.swift` (@MainActor)
-- `Sources/TUIkit/Environment/TUIContext.swift` (@MainActor)
-- `Sources/TUIkit/Styling/ThemeManager.swift` (@MainActor)
-- `Sources/TUIkit/StatusBar/StatusBarState.swift` (@MainActor)
-- `Sources/TUIkit/AppHeader/AppHeaderState.swift` (@MainActor)
-- `Sources/TUIkit/Notification/NotificationService.swift` (@MainActor)
-- `Sources/TUIkit/Environment/Preferences.swift` (@MainActor)
-- `Sources/TUIkit/Views/ForEach.swift` (@available)
-- `Sources/TUIkit/Views/Button.swift` (use ActionHandler)
-- `Sources/TUIkit/Views/Toggle.swift` (use ActionHandler)
-- `Sources/TUIkit/Views/RadioButton.swift` (use ActionHandler)
-- `Sources/TUIkit/App/AppRunner.swift` (remove IUOs)
+- `Sources/TUI/State/State.swift` (AppState with lock)
+- `Sources/TUI/App/SignalManager.swift` (locked flags)
+- `Sources/TUI/App/PulseTimer.swift` (nonisolated call)
+- `Sources/TUI/Rendering/Terminal.swift` (@MainActor)
+- `Sources/TUI/Rendering/RenderCache.swift` (@MainActor)
+- `Sources/TUI/State/StateStorage.swift` (@MainActor)
+- `Sources/TUI/Focus/Focus.swift` (@MainActor)
+- `Sources/TUI/Core/KeyEvent.swift` (@MainActor)
+- `Sources/TUI/Environment/TUIContext.swift` (@MainActor)
+- `Sources/TUI/Styling/ThemeManager.swift` (@MainActor)
+- `Sources/TUI/StatusBar/StatusBarState.swift` (@MainActor)
+- `Sources/TUI/AppHeader/AppHeaderState.swift` (@MainActor)
+- `Sources/TUI/Notification/NotificationService.swift` (@MainActor)
+- `Sources/TUI/Environment/Preferences.swift` (@MainActor)
+- `Sources/TUI/Views/ForEach.swift` (@available)
+- `Sources/TUI/Views/Button.swift` (use ActionHandler)
+- `Sources/TUI/Views/Toggle.swift` (use ActionHandler)
+- `Sources/TUI/Views/RadioButton.swift` (use ActionHandler)
+- `Sources/TUI/App/AppRunner.swift` (remove IUOs)
 
 ## Risks and Mitigations
 

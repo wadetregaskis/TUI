@@ -13,12 +13,12 @@ failing review.
 this branch records as `adapt` pointing at it. The scope differed: only 24 of
 our 298 tests were extractable (9 Core / 8 Styling / 4 View / 3 Image), because
 the rest genuinely need the umbrella — they build real controls, which all live
-in `Sources/TUIkit`, or they use the `@testable`-umbrella render helpers.
+in `Sources/TUI`, or they use the `@testable`-umbrella render helpers.
 
 Two things from that port worth keeping in view:
 
 - Classify by **referenced types**, not by imports. The umbrella
-  `@_exported`-re-exports every submodule, so an `import TUIkit`-only file may
+  `@_exported`-re-exports every submodule, so an `import TUI`-only file may
   be using lower-module types throughout. Strip comments and strings first —
   doc-comment example types (`NavigationTitleKey`, `My*`) poison a name-based
   classifier.
@@ -40,9 +40,9 @@ written would ban an architecture we chose.
 
 But a **scoped** version of it maps onto a rule we already hold and do not
 enforce. `CLAUDE.md` says POSIX-only APIs — `termios`, `ioctl`, signals,
-`DispatchSource` on stdin — stay inside the `TUIkit` umbrella so the four lower
+`DispatchSource` on stdin — stay inside the `TUI` umbrella so the four lower
 modules keep building on Windows. That is true today (verified: none of those
-symbols appear in `TUIkitCore`, `TUIkitStyling`, `TUIkitView`), and the only
+symbols appear in `TUICore`, `TUIStyling`, `TUIView`), and the only
 thing standing behind it is the Windows CI lanes — which are
 `continue-on-error: true` and never block. A violation could land with CI fully
 green.
@@ -62,11 +62,11 @@ made that unenforceable. Both are gone, so the job now promises exactly
 *"everything that builds on Windows today still builds"* — a set that can only
 grow.
 
-Checking what that set actually was found the real defect: **`TUIkitImage` had
+Checking what that set actually was found the real defect: **`TUIImage` had
 never built on Windows**, on any lane, while `CONTRIBUTING.md` asserted it
 passed. `ShapeSampling.swift` imported `Glibc`-or-`Darwin` and called `cos`/`sin`
 unconditionally, so Windows had no `cos` at all — fixed in `e20e2d94` by adding
-the `Musl` and `ucrt` arms. `TUIkitView` also fails on Swift 6.2 specifically,
+the `Musl` and `ucrt` arms. `TUIView` also fails on Swift 6.2 specifically,
 cause not yet diagnosed; it is fenced there and binding everywhere else.
 
 Which is the argument for the change, made by the change: the claim had been

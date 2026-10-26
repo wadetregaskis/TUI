@@ -34,15 +34,15 @@ class ProductListTests(unittest.TestCase):
             )
 
     def test_a_product_without_an_app_fails_and_says_what_to_add(self):
-        result = self.run_script(APPS + ["TUIkitBogus"])
+        result = self.run_script(APPS + ["TUIBogus"])
         self.assertEqual(result.returncode, 1, result.stderr)
-        self.assertIn("product without an app: TUIkitBogus", result.stderr)
+        self.assertIn("product without an app: TUIBogus", result.stderr)
         self.assertIn("Give each product an app, Tools/ProductSmoke/Sources/Uses<Product>/main.swift", result.stderr)
 
     def test_an_app_without_a_product_fails_and_names_it(self):
-        result = self.run_script([app for app in APPS if app != "TUIkitGrid"])
+        result = self.run_script([app for app in APPS if app != "TUIGrid"])
         self.assertEqual(result.returncode, 1, result.stderr)
-        self.assertIn("app without a product: TUIkitGrid", result.stderr)
+        self.assertIn("app without a product: TUIGrid", result.stderr)
         self.assertIn("Give each product an app", result.stderr)
 
 

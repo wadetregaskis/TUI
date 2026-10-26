@@ -1,15 +1,15 @@
 # Documentation build
 
 Builds the DocC reference as **one archive covering the whole package**, with
-every public symbol under `/documentation/tuikit/`.
+every public symbol under `/documentation/tui/`.
 
 ```bash
 Tools/BuildDocs/build-docs.sh --preview             # read them: serves on :8080
-Tools/BuildDocs/build-docs.sh                       # → .build/docs/TUIkit.doccarchive
+Tools/BuildDocs/build-docs.sh                       # → .build/docs/TUI.doccarchive
 Tools/BuildDocs/build-docs.sh --analyze             # every diagnostic, for a docs audit
 Tools/BuildDocs/build-docs.sh --strict              # --analyze, and fail on any of them
 Tools/BuildDocs/build-docs.sh --static-hosting \
-    --hosting-base-path TUIkit/docs \
+    --hosting-base-path TUI/docs \
     --output docc-output                            # for publishing
 ```
 
@@ -32,9 +32,9 @@ line of `View+AlertPresenting.swift`.
 ## Reading the docs
 
 **`--preview`** is the one to reach for. It runs DocC's own server and prints
-the URL; open <http://localhost:8080/documentation/tuikit>.
+the URL; open <http://localhost:8080/documentation/tui>.
 
-**Xcode**: `open .build/docs/TUIkit.doccarchive`. This needs the archive to
+**Xcode**: `open .build/docs/TUI.doccarchive`. This needs the archive to
 carry an LMDB navigator index (`index/navigator.index` + `data.mdb`), which is
 why the script passes `--emit-lmdb-index`. Without it Xcode opens its
 documentation window on the generic landing page with the archive nowhere in
@@ -53,36 +53,36 @@ uses the latter.
 The obvious command —
 
 ```bash
-swift package generate-documentation --target TUIkit     # ← produces a BROKEN site
+swift package generate-documentation --target TUI     # ← produces a BROKEN site
 ```
 
 — builds an archive with **no symbol page at all**: not `View`, `Color`,
 `Binding`, `Text` or `List`, since the umbrella declares nothing (since module
 split step B1), and every catalog link to a symbol dangling.
 
-TUIkit is several library modules — `TUIkitCore`, `TUIkitStyling`,
-`TUIkitView`, `TUIkitImage`, `TUIkitFoundation` (which compiled every module
+TUI is several library modules — `TUICore`, `TUIStyling`,
+`TUIView`, `TUIImage`, `TUIFoundation` (which compiled every module
 of the planned split until each was carved into a target of its own), the
-modules carved out of it (`TUIkitStrings`, `TUIkitTerminalHost`, step B2;
-`TUIkitApp`, step B3; `TUIkitColorPicker`, step B4; `TUIkitNavigation`, step B5, which compiled the presentations
-too until step C1 peeled them into `TUIkitPresentation`; `TUIkitLists`, step B6, which compiled the tables, the tabs and the grids too until steps C2 to C4 peeled them into `TUIkitTables`, `TUIkitTabs` and `TUIkitGrid`;
-`TUIkitChrome`, `TUIkitEffects` and `TUIkitMenus`, step B5b; `TUIkitBitmaps`, step B5c; `TUIkitTextInput`, step
+modules carved out of it (`TUIStrings`, `TUITerminalHost`, step B2;
+`TUIApp`, step B3; `TUIColorPicker`, step B4; `TUINavigation`, step B5, which compiled the presentations
+too until step C1 peeled them into `TUIPresentation`; `TUILists`, step B6, which compiled the tables, the tabs and the grids too until steps C2 to C4 peeled them into `TUITables`, `TUITabs` and `TUIGrid`;
+`TUIChrome`, `TUIEffects` and `TUIMenus`, step B5b; `TUIBitmaps`, step B5c; `TUITextInput`, step
 B7, which compiled the forms, search, the pickers and the numeric controls too until steps C5 to C8 peeled them into
-`TUIkitForms`, `TUIkitSearch`, `TUIkitPickers` and `TUIkitNumericControls`; and
-`TUIkitCurveEditors`, peeled out of `TUIkitColorPicker` at C9b), and
-the `TUIkit` umbrella that `@_exported import`s the rest and declares nothing.
+`TUIForms`, `TUISearch`, `TUIPickers` and `TUINumericControls`; and
+`TUICurveEditors`, peeled out of `TUIColorPicker` at C9b), and
+the `TUI` umbrella that `@_exported import`s the rest and declares nothing.
 That split buys layering, per-module test isolation and build time, and it is
-*ours*: a reader writing `import TUIkit` sees one API and should never have to
+*ours*: a reader writing `import TUI` sees one API and should never have to
 learn which module happens to declare `Color`.
 
 DocC, though, builds from symbol graphs one module at a time, and an
 `@_exported` re-export does **not** copy the re-exported symbols into the
-importing module's graph. Point it at `TUIkit` and you document only what
-`TUIkit` itself declares, which is nothing. Point it at each module and you
+importing module's graph. Point it at `TUI` and you document only what
+`TUI` itself declares, which is nothing. Point it at each module and you
 get separate module trees — which leaks exactly the structure we want hidden.
 
 So this script emits the symbol graphs, rewrites their module identity to
-`TUIkit`, and hands the result to `docc convert` as one module. The three
+`TUI`, and hands the result to `docc convert` as one module. The three
 things that must be rewritten, and what each one costs if you skip it, are
 documented at the top of `unify_symbol_graphs.py` — the third (the `A@B`
 filename convention) is the non-obvious one, and skipping it silently drops
@@ -95,7 +95,7 @@ about the built product changes; this is purely how the docs are assembled.
 ## Swift Package Index
 
 Swift Package Index (SPI) hosts the docs the project template links to
-(`/documentation/tuikit`), and it does not run this script: it runs
+(`/documentation/tui`), and it does not run this script: it runs
 `generate-documentation` once per target `.spi.yml` lists, and serves the
 archives behind a selector, the first as the landing page. So `.spi.yml` lists
 the umbrella first (its archive is the catalog's articles, with no API, and
@@ -103,27 +103,27 @@ keeps the template's link) and then every other module in
 `unify_symbol_graphs.py`'s `MODULES`, each its own archive. That shows readers
 the module structure the unified build hides, and the landing page's links to
 symbols dangle. So do a module's links to symbols of modules it does not
-depend on: `docc convert --analyze` on TUIkitCore's symbol graph alone
-(2026-10-08) warns "doesn't exist" 15 times, for symbols of TUIkitView,
-TUIkitStyling, TUIkitImage and TUIkitFoundation (`View` and `Text` among
-them), and since step B3 TUIkitFoundation's links to `Scene`, its modifiers
+depend on: `docc convert --analyze` on TUICore's symbol graph alone
+(2026-10-08) warns "doesn't exist" 15 times, for symbols of TUIView,
+TUIStyling, TUIImage and TUIFoundation (`View` and `Text` among
+them), and since step B3 TUIFoundation's links to `Scene`, its modifiers
 and `WindowGroup` (eight source lines) are more. Links to a dependency's
-symbols dangle as well: the same analysis of TUIkitColorPicker's graphs alone
+symbols dangle as well: the same analysis of TUIColorPicker's graphs alone
 (step B4, 2026-10-08) warns 32 times: 31 for symbols of the modules it is
-built on, directly or under TUIkitFoundation (`LocalizedStringKey` 14,
-TUIkitImage's `ASCIIToneCurve` 5, `Slider`, `Gradient`, `Color`,
-TUIkitCore's `OpacityRegion` …), and one for the `TUIkit/` that roots
-``TUIkit/View/colorPickerLabelWidth(_:)`` at the umbrella. All of them resolve in
+built on, directly or under TUIFoundation (`LocalizedStringKey` 14,
+TUIImage's `ASCIIToneCurve` 5, `Slider`, `Gradient`, `Color`,
+TUICore's `OpacityRegion` …), and one for the `TUI/` that roots
+``TUI/View/colorPickerLabelWidth(_:)`` at the umbrella. All of them resolve in
 the unified build, which is the one `--strict` checks. The other way, one
 reference, needs the archive this script builds hosted somewhere and
 `.spi.yml`'s `external_links` pointed at it (decisions file
-`Step B1, TUIkitFoundation and the umbrella (SPB1).md`, B-SPB1-2).
+`Step B1, TUIFoundation and the umbrella (SPB1).md`, B-SPB1-2).
 
 `check_spi_targets.py` fails the build (it runs first, and costs nothing) when
 the list lacks a module of `MODULES` or does not start with the umbrella: when
 the umbrella stopped declaring anything, at step B1, a list naming only it
 would have published an empty reference. A module carved out of
-`TUIkitFoundation` joins `MODULES`, and then the list.
+`TUIFoundation` joins `MODULES`, and then the list.
 
 ## The module index
 
@@ -132,13 +132,13 @@ is a library product of its own (2026-10-11), a client that depends on
 per-module products needs to know: a name from a module it has no product for
 is an error that names no module. So before the graphs are unified,
 `which_module.py` reads them, while their file names still say which module each
-symbol comes from (`TUIkitTables@TUIkitView.symbols.json` holds TUIkitTables'
-extensions of TUIkitView's types), and writes the index of every public type,
+symbol comes from (`TUITables@TUIView.symbols.json` holds TUITables'
+extensions of TUIView's types), and writes the index of every public type,
 function and modifier with its module and product into a staged copy of the
 catalog, as the `ModuleIndex` article. The product comes from
 `swift package describe --type json`. The script's docstring says which symbols
 get a row. A library product's module with no row fails the build, as graphs
-that missed it would, except TUIkitAppKit off Apple platforms, where all of it
+that missed it would, except TUIAppKit off Apple platforms, where all of it
 is `#if canImport(AppKit)` (build-docs.sh passes `--allow-empty` there).
 
 It is generated with the reference rather than committed beside it, so it is

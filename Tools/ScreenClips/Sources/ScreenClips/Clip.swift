@@ -1,7 +1,7 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Clip.swift
 //
-//  What a clip is: a TUIkit app, and the script the player plays against it.
+//  What a clip is: a TUI app, and the script the player plays against it.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -13,7 +13,7 @@ import Foundation
 /// A script is a list of moves on one clock — the player's — that starts when
 /// the app has drawn its first frame and settled, so the same script lands at
 /// the same instants on every run. Keys are bytes typed into the app's
-/// terminal, read by TUIkit's own parser and dispatched as a keypress is; a cue
+/// terminal, read by TUI's own parser and dispatched as a keypress is; a cue
 /// is a change only the app itself can make (a palette, a value moving), sent
 /// to it over a pipe of its own, so no key is spent on it and nothing on the
 /// screen says it happened.

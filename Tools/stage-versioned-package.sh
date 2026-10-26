@@ -30,7 +30,7 @@ mkdir -p "$DEST"
 # SwiftPM validates every target's path when it loads a manifest, including
 # targets the consumer will never build. Ours declares four outside Sources/ —
 # Tools/EmojiBugScanner, Tools/EmojiBenchmark, Tools/Profiling/RenderHarness,
-# Benchmarks/TUIkitBenchmarks — so a staging area holding only Sources/ fails
+# Benchmarks/TUIBenchmarks — so a staging area holding only Sources/ fails
 # resolution with "invalid custom path", which says nothing about whether the
 # package is consumable. (It said exactly that on the consumer gate's first
 # run.)
@@ -46,7 +46,7 @@ tar -cf - --exclude=./.git --exclude=./.build --exclude=./.swiftpm -C "$PWD" . \
     | tar -xf - -C "$DEST"
 
 git -C "$DEST" init --quiet
-git -C "$DEST" config user.name "TUIkit consumer gate"
+git -C "$DEST" config user.name "TUI consumer gate"
 git -C "$DEST" config user.email "consumer-gate@localhost"
 git -C "$DEST" add .
 git -C "$DEST" commit --quiet -m "Working tree under test"

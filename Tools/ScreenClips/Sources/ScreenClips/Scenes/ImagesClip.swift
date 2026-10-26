@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ImagesClip.swift
 //
 //  `images` and `glyphs`: a picture viewer, filmed twice. `images` steps
 //  through the photos in the terminal's own pixels (Kitty's graphics
 //  protocol, in Ghostty); `glyphs` draws one photo in text cells, every way
-//  TUIkit can — half blocks, shape-matched quadrants and corner triangles,
+//  TUI can — half blocks, shape-matched quadrants and corner triangles,
 //  Braille, shape-aware ASCII with edge lines, and sixteen colours dithered —
 //  for the terminals with no graphics.
 //
@@ -12,7 +12,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 @MainActor
 let imagesClip = Clip(
@@ -54,7 +54,7 @@ struct ImagesApp: App {
     @State private var glyphs = false
 
     var body: some Scene {
-        WindowGroup("TUIkit · Images") {
+        WindowGroup("TUI · Images") {
             ImageViewer(glyphs: glyphs)
                 .palette(AppleTerminalPalette(.pro))
                 .task {

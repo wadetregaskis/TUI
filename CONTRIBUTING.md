@@ -1,6 +1,6 @@
-# Contributing to TUIkit
+# Contributing to TUI
 
-TUIkit is a SwiftUI-like framework for building Terminal User Interfaces in pure Swift, with no ncurses or external C dependencies (the only C is the in-tree `stb_image` decoder, used as the image-decoding fallback where AppKit's `NSImage` is unavailable). It targets SwiftUI API parity wherever possible.
+TUI is a SwiftUI-like framework for building Terminal User Interfaces in pure Swift, with no ncurses or external C dependencies (the only C is the in-tree `stb_image` decoder, used as the image-decoding fallback where AppKit's `NSImage` is unavailable). It targets SwiftUI API parity wherever possible.
 
 ## Hard Requirements (non-negotiable)
 
@@ -40,7 +40,7 @@ next release branch's nightlies take that place when it is cut.
 
 **Compiler warnings.** The build has none, in every target, and the 6.2 macOS
 lane (`macos-15`) fails if it gains one: it builds every target from a clean
-checkout, then `TUIkitBenchmarks` (`TUIKIT_BENCHMARKS=1`, which no other step
+checkout, then `TUIBenchmarks` (`TUIKIT_BENCHMARKS=1`, which no other step
 builds), and `Tools/check-compiler-warnings.py` reads both logs. A warning in a
 dependency's own code is printed and not counted. Locally, a count means
 nothing after an incremental build, which compiles only what changed: build
@@ -48,7 +48,7 @@ into a fresh `--scratch-path`, or after `swift package clean`.
 
 Every released lane takes the newest patch of its line — an Xcode major, a
 `swift:6.x` image tag, swift.org's newest 6.4.x — so a patch toolchain arrives
-without a workflow edit. It can also break the build without a TUIkit change;
+without a workflow edit. It can also break the build without a TUI change;
 that is accepted, as the price of never testing a stale toolchain.
 
 WebAssembly is built by its own lane, on a pinned 6.3.3 container plus the
@@ -119,7 +119,7 @@ repository setting it needs (Settings → Pages → Source: "GitHub Actions").
 
 ### WebAssembly
 
-TUIkit builds for `wasm32-unknown-wasip1`, and the Example app runs in a browser
+TUI builds for `wasm32-unknown-wasip1`, and the Example app runs in a browser
 — `Tools/Web/build.sh` compiles it, `Tools/Web/serve.py` serves it. The CI lane
 builds every module and the Example for wasm and is **binding**: what compiles
 for WebAssembly today has to keep compiling.
@@ -132,7 +132,7 @@ because each fails in a way that does not name its cause:
   wasm32-unknown-wasip1`. Use a swift.org toolchain (`swiftly install 6.3.3`).
 * **6.3 is what it has been measured with.** swift.org's 6.2 asserted on
   `TupleView`'s pack conformance, exactly as it did for the Linux static SDK, so
-  `TUIkitView` would not build. That conformance no longer asserts
+  `TUIView` would not build. That conformance no longer asserts
   (`Tools/CompilerBugs/README.md`, section 3), but nobody has built for
   WebAssembly on 6.2 since.
 * **`--static-swift-stdlib` is required**, and the SDK must be named by its
@@ -157,33 +157,33 @@ The lane is therefore **required** on released toolchains. Observed state:
 
 | Step | Status |
 |---|---|
-| `TUIkitCore`, `TUIkitStyling` | pass everywhere — **binding** |
-| `TUIkitView` | passes on 6.3+; **fails on 6.2**, cause not yet diagnosed — binding except there |
-| `TUIkitImage` | failed everywhere until 2026-08-07; green on all five lanes since, `continue-on-error` removed 2026-09-04 — **binding** |
-| `TUIkitStrings`, `TUIkitTerminalHost` | carved out of TUIkitFoundation at module split step B2 (2026-10-08), on TUIkitCore alone; advisory, each with a 30-minute timeout, until CI has seen them green (no Windows build of them yet) |
-| `TUIkitFoundation` | held the console layer until module split step B3 (2026-10-08) carved it out as TUIkitApp, so the `TUIkit` step stood for it; advisory, with a 30-minute timeout, until CI has seen it green (no Windows build of it without the console layer yet) |
-| `TUIkitChrome`, `TUIkitEffects`, `TUIkitMenus` | carved out of TUIkitFoundation at module split step B5b (2026-10-09), each built on it alone, with no POSIX API (TUIkitEffects' one `#if`, `canImport(Symbols)`, leaves out the `.symbolEffect` modifiers that take Apple's Symbols types); advisory, each with a 30-minute timeout, until CI has seen them green (none can pass before `TUIkitFoundation` does) |
-| `TUIkitBitmaps` | carved out of TUIkitFoundation at module split step B5c (2026-10-09), built on it and on TUIkitImage (which TUIkitFoundation no longer depends on since), with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation` does) |
-| `TUIkitNavigation` | carved out of TUIkitFoundation at module split step B5 (2026-10-08), built on it, with no POSIX API; it compiled the presentations' directory too, and depended on TUIkitChrome for them (from step B5b), until step C1; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation` does) |
-| `TUIkitPresentation` | peeled out of TUIkitNavigation at module split step C1 (2026-10-09), built on TUIkitFoundation and TUIkitChrome, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before both do) |
-| `TUIkitLists` | carved out of TUIkitFoundation at module split step B6 (2026-10-08), built on it, with no POSIX API; it compiled the tables', the tabs' and the grids' directories too until steps C2 to C4; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation` does) |
-| `TUIkitTables` | peeled out of TUIkitLists at module split step C2 (2026-10-09), built on TUIkitFoundation and TUIkitLists, with no POSIX API; its three `#if`s are `canImport(Darwin)` (a string column's default comparator) and `canImport(UniformTypeIdentifiers)` twice (a table row's item provider), none around a POSIX call; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation` and `TUIkitLists` do) |
-| `TUIkitTabs` | peeled out of TUIkitLists at module split step C3 (2026-10-10), built on TUIkitFoundation and TUIkitLists, and since 2026-10-23 on TUIkitPresentation (decisions A21), with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation`, `TUIkitLists` and `TUIkitPresentation` do) |
-| `TUIkitGrid` | peeled out of TUIkitLists at module split step C4 (2026-10-10), built on TUIkitFoundation, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation` does) |
-| `TUIkitTextInput` | carved out of TUIkitFoundation at module split step B7 (2026-10-09), built on it, with no POSIX API and no `#if`; it compiled search's, the forms', the pickers' and the numeric controls' directories too until steps C5 to C8; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation` does) |
-| `TUIkitNumericControls` | peeled out of TUIkitTextInput at module split step C7 (2026-10-10), the last peel, built on TUIkitFoundation alone, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation` does) |
-| `TUIkitPickers` | peeled out of TUIkitTextInput at module split step C8 (2026-10-10), built on TUIkitFoundation alone, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation` does) |
-| `TUIkitSearch` | peeled out of TUIkitTextInput at module split step C5 (2026-10-10), built on TUIkitFoundation and TUIkitTextInput, and since step C8 on TUIkitPickers, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation`, `TUIkitTextInput` and `TUIkitPickers` do) |
-| `TUIkitForms` | peeled out of TUIkitTextInput at module split step C6 (2026-10-10), built on TUIkitFoundation alone, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitFoundation` does) |
-| `TUIkitColorPicker` | carved out of TUIkitFoundation at module split step B4 (2026-10-08), built on it and (since steps C3, B7, C7 and C1) on TUIkitTabs, TUIkitTextInput, TUIkitNumericControls and TUIkitPresentation (on TUIkitLists from step B6 until C3, on TUIkitNavigation from step B5 until C1, and on TUIkitImage and, from C8, TUIkitPickers until C9b took the editors out; the gradient editor came back on 2026-10-12, needing neither), with no POSIX API; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before all four of those do) |
-| `TUIkitCurveEditors` | peeled out of TUIkitColorPicker at C9b (2026-10-11) as TUIkitColorEditors, renamed on 2026-10-12 when the gradient editor went back, built on it, on TUIkitImage, TUIkitPickers and TUIkitNumericControls, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitColorPicker` does) |
-| `TUIkitFilePanels` | lane O10's leaf (2026-10-19), a module of its own from the start, built on TUIkitPresentation, TUIkitTables and TUIkitTextInput, with no POSIX API (it reads folders through `FileManager`); its `#if`s are `canImport(UniformTypeIdentifiers)`, Apple's `UTType` or its own, and `canImport(Darwin)`, a name column's comparator; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitTables` does) |
-| `TUIkitTabImages` | the owner's TAB-IMAGE-NAME option 2 (2026-10-24, decisions C11), a module of its own from the start: `Tab`'s `image:` initialisers, built on TUIkitBitmaps and TUIkitTabs, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIkitBitmaps` and `TUIkitTabs` do) |
+| `TUICore`, `TUIStyling` | pass everywhere — **binding** |
+| `TUIView` | passes on 6.3+; **fails on 6.2**, cause not yet diagnosed — binding except there |
+| `TUIImage` | failed everywhere until 2026-08-07; green on all five lanes since, `continue-on-error` removed 2026-09-04 — **binding** |
+| `TUIStrings`, `TUITerminalHost` | carved out of TUIFoundation at module split step B2 (2026-10-08), on TUICore alone; advisory, each with a 30-minute timeout, until CI has seen them green (no Windows build of them yet) |
+| `TUIFoundation` | held the console layer until module split step B3 (2026-10-08) carved it out as TUIApp, so the `TUI` step stood for it; advisory, with a 30-minute timeout, until CI has seen it green (no Windows build of it without the console layer yet) |
+| `TUIChrome`, `TUIEffects`, `TUIMenus` | carved out of TUIFoundation at module split step B5b (2026-10-09), each built on it alone, with no POSIX API (TUIEffects' one `#if`, `canImport(Symbols)`, leaves out the `.symbolEffect` modifiers that take Apple's Symbols types); advisory, each with a 30-minute timeout, until CI has seen them green (none can pass before `TUIFoundation` does) |
+| `TUIBitmaps` | carved out of TUIFoundation at module split step B5c (2026-10-09), built on it and on TUIImage (which TUIFoundation no longer depends on since), with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIFoundation` does) |
+| `TUINavigation` | carved out of TUIFoundation at module split step B5 (2026-10-08), built on it, with no POSIX API; it compiled the presentations' directory too, and depended on TUIChrome for them (from step B5b), until step C1; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIFoundation` does) |
+| `TUIPresentation` | peeled out of TUINavigation at module split step C1 (2026-10-09), built on TUIFoundation and TUIChrome, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before both do) |
+| `TUILists` | carved out of TUIFoundation at module split step B6 (2026-10-08), built on it, with no POSIX API; it compiled the tables', the tabs' and the grids' directories too until steps C2 to C4; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIFoundation` does) |
+| `TUITables` | peeled out of TUILists at module split step C2 (2026-10-09), built on TUIFoundation and TUILists, with no POSIX API; its three `#if`s are `canImport(Darwin)` (a string column's default comparator) and `canImport(UniformTypeIdentifiers)` twice (a table row's item provider), none around a POSIX call; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIFoundation` and `TUILists` do) |
+| `TUITabs` | peeled out of TUILists at module split step C3 (2026-10-10), built on TUIFoundation and TUILists, and since 2026-10-23 on TUIPresentation (decisions A21), with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIFoundation`, `TUILists` and `TUIPresentation` do) |
+| `TUIGrid` | peeled out of TUILists at module split step C4 (2026-10-10), built on TUIFoundation, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIFoundation` does) |
+| `TUITextInput` | carved out of TUIFoundation at module split step B7 (2026-10-09), built on it, with no POSIX API and no `#if`; it compiled search's, the forms', the pickers' and the numeric controls' directories too until steps C5 to C8; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIFoundation` does) |
+| `TUINumericControls` | peeled out of TUITextInput at module split step C7 (2026-10-10), the last peel, built on TUIFoundation alone, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIFoundation` does) |
+| `TUIPickers` | peeled out of TUITextInput at module split step C8 (2026-10-10), built on TUIFoundation alone, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIFoundation` does) |
+| `TUISearch` | peeled out of TUITextInput at module split step C5 (2026-10-10), built on TUIFoundation and TUITextInput, and since step C8 on TUIPickers, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIFoundation`, `TUITextInput` and `TUIPickers` do) |
+| `TUIForms` | peeled out of TUITextInput at module split step C6 (2026-10-10), built on TUIFoundation alone, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIFoundation` does) |
+| `TUIColorPicker` | carved out of TUIFoundation at module split step B4 (2026-10-08), built on it and (since steps C3, B7, C7 and C1) on TUITabs, TUITextInput, TUINumericControls and TUIPresentation (on TUILists from step B6 until C3, on TUINavigation from step B5 until C1, and on TUIImage and, from C8, TUIPickers until C9b took the editors out; the gradient editor came back on 2026-10-12, needing neither), with no POSIX API; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before all four of those do) |
+| `TUICurveEditors` | peeled out of TUIColorPicker at C9b (2026-10-11) as TUIColorEditors, renamed on 2026-10-12 when the gradient editor went back, built on it, on TUIImage, TUIPickers and TUINumericControls, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIColorPicker` does) |
+| `TUIFilePanels` | lane O10's leaf (2026-10-19), a module of its own from the start, built on TUIPresentation, TUITables and TUITextInput, with no POSIX API (it reads folders through `FileManager`); its `#if`s are `canImport(UniformTypeIdentifiers)`, Apple's `UTType` or its own, and `canImport(Darwin)`, a name column's comparator; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUITables` does) |
+| `TUITabImages` | the owner's TAB-IMAGE-NAME option 2 (2026-10-24, decisions C11), a module of its own from the start: `Tab`'s `image:` initialisers, built on TUIBitmaps and TUITabs, with no POSIX API and no `#if`; advisory, with a 30-minute timeout, until CI has seen it green (it cannot pass before `TUIBitmaps` and `TUITabs` do) |
 | the four modules' own test targets | advisory, each with a 30-minute timeout |
-| `TUIkit`, build-tests, test, smoke | fail until the console layer is ported (TUIkitApp since module split step B3, which has no Windows step of its own: it is POSIX by design; nor have TUIkitCommands and TUIkitScenes, lanes O13's and O9's modules, which are built on it) |
+| `TUI`, build-tests, test, smoke | fail until the console layer is ported (TUIApp since module split step B3, which has no Windows step of its own: it is POSIX by design; nor have TUICommands and TUIScenes, lanes O13's and O9's modules, which are built on it) |
 
 Do not take the table on trust — it is a record of what CI did, and the whole
-point of binding the lane is that it stays true. `TUIkitImage`'s failure went
+point of binding the lane is that it stays true. `TUIImage`'s failure went
 unnoticed for as long as the lane was advisory, and this file previously claimed
 it passed. It then stayed *advisory in this table* for a month after the flag came
 off in CI, which is the same failure from the other end: the ratchet only reads
@@ -220,9 +220,9 @@ The known blockers, in rough order of difficulty:
    walk cannot.)
    `Tools/Smoke/ci-pty-smoke.sh` is skipped on the Windows lanes for this
    reason, and they run `Stress --selfcheck` alone.
-5. **The system clipboard.** `SystemClipboard` (TUIkitApp) runs this
+5. **The system clipboard.** `SystemClipboard` (TUIApp) runs this
    machine's helper (`pbcopy`, `wl-copy`, `xclip`/`xsel`), and
-   `ClipboardLocality` (TUIkitTerminalHost) allows it only when the user is
+   `ClipboardLocality` (TUITerminalHost) allows it only when the user is
    provably at this machine, from the ssh variables, the process chain and
    tmux's clients. On Windows the locality test has no process walk and
    answers "not local", so a copy goes by OSC 52 alone, and `SystemClipboard`
@@ -232,7 +232,7 @@ The known blockers, in rough order of difficulty:
    (which OpenSSH for Windows sets) plus a Toolhelp32 walk of the parents.
    Whether Windows Terminal writes OSC 52 is unmeasured. The clipboard
    modifiers themselves (`copyable`, `cuttable`, `pasteDestination`,
-   `PasteButton`) and `ClipboardWriter` live in TUIkitFoundation and need
+   `PasteButton`) and `ClipboardWriter` live in TUIFoundation and need
    nothing more.
 
 Two things that are *not* blockers, despite looking like them: `@AppStorage`
@@ -246,7 +246,7 @@ support in 0.64.0.
 # Build. With swiftly's `swift` the SDK is whichever `xcode-select` points at:
 # Xcode's (macOS 26) or the Command Line Tools' (macOS 15.5 here). Use Xcode's,
 # or Command Line Tools 26: the macOS 15 SDK carries the standard library and
-# Observation of Swift 6.1, under a 6.2 compiler. TUIkit's own modules build
+# Observation of Swift 6.1, under a 6.2 compiler. TUI's own modules build
 # against it — no `InlineArray` or task names there, each behind
 # `#if !canImport(Darwin) || canImport(FoundationModels)` (FoundationModels
 # arriving with the macOS 26 SDK), and no main-actor `UndoManager`, which
@@ -290,7 +290,7 @@ swift-format format -i -r Sources Tests
 Tools/BuildDocs/build-docs.sh            # add --analyze for every diagnostic
 ```
 
-> Use the script, not `swift package generate-documentation --target TUIkit`.
+> Use the script, not `swift package generate-documentation --target TUI`.
 > The latter documents only what the umbrella module itself declares, which
 > is nothing: `View`, `Color`, `Binding`, `Text` and everything else are
 > declared in the modules it re-exports — see [`Tools/BuildDocs/README.md`](Tools/BuildDocs/README.md).
@@ -406,11 +406,11 @@ Public APIs **must** match SwiftUI signatures exactly unless terminal constraint
   is nothing to inject.
 - Built-in views draw with the palette's roles, never a literal colour, unless
   the colour is content (an image, a swatch, a user's gradient). SwiftLint's
-  `framework_colour_literal` rule flags a new literal in `Sources/TUIkitView`
-  and in every directory of the module split (`Sources/TUIkit`,
-  `Sources/TUIkitFoundation` and the others Tools/ModuleMap/rules.json
-  lists), not in the other targets (TUIkitCore, TUIkitStyling, TUIkitImage,
-  TUIkitAppKit, TUIkitFilePanelsAppKit, the macros, the width corpus); see "What built-in controls
+  `framework_colour_literal` rule flags a new literal in `Sources/TUIView`
+  and in every directory of the module split (`Sources/TUI`,
+  `Sources/TUIFoundation` and the others Tools/ModuleMap/rules.json
+  lists), not in the other targets (TUICore, TUIStyling, TUIImage,
+  TUIAppKit, TUIFilePanelsAppKit, the macros, the width corpus); see "What built-in controls
   draw with" in the Theming Guide article
 - Search the codebase for similar patterns before implementing anything new
 - Consolidate and reuse before adding new functions or types
@@ -428,11 +428,11 @@ compiled differently from a call inside one. These rules keep that from costing
 anything at run time:
 
 - **Import what a file uses, in the file.** A module carved out above
-  TUIkitFoundation re-exports it from its `Exports.swift`, which is enough to
+  TUIFoundation re-exports it from its `Exports.swift`, which is enough to
   compile, but Swift gives every closure passed to a module that the calling
   FILE does not import (directly, or through a module it imports that
   re-exports it) a run-time check that it runs on the main actor. So each file
-  of such a module imports TUIkitFoundation, and any other carved module it
+  of such a module imports TUIFoundation, and any other carved module it
   uses, itself. Tools/ModuleMap's `imports` check fails CI on a file that
   does not, and its `stale-imports` check on one that still imports a
   carved module it names nothing of (a peel leaves those behind).
@@ -458,7 +458,7 @@ anything at run time:
   when widened, and an `@inlinable` accessor over it is then how a hot read
   from another module avoids a call. `LazyListRowContent.cached` is one such
   property, and four of `ItemListHandler`'s are more (step C2: `tableRowMemo`
-  and `returningRows`, which a table in TUIkitTables reads for every row it
+  and `returningRows`, which a table in TUITables reads for every row it
   draws, `reorder` and `outlineActivation`); each one's doc comment holds the
   evidence. Even so, measure before widening one: a widened stored property
   also gets a getter, setter and `modify` of its own, for its property
@@ -472,7 +472,7 @@ anything at run time:
   What the split widened complies, steps B2 and B3's included, which
   predate the rule and were converted after it. Some class stored
   properties were `package` before the split began, most of them
-  `RenderCache`'s in TUIkitView: they are owed the same conversion; do not
+  `RenderCache`'s in TUIView: they are owed the same conversion; do not
   copy one.
 - **No stored-property default under an `@inlinable` initializer** whose
   value is more than a literal scalar (an empty array, say): a default is a
@@ -512,23 +512,23 @@ anything at run time:
   concrete. A `some View` that the result itself returns from another
   function counts too: that function must be above `internal`, and its own
   underlying type is checked the same way. Step B5b's carve met this: it
-  moved the inline menu's column into TUIkitMenus, where it called
+  moved the inline menu's column into TUIMenus, where it called
   `bordered`, whose result names the internal `_BorderRings`, and
   `foregroundStyle(_:)`, whose result names the internal
   `_StyleEnvironmentView`, and resolved both on every draw. The column is
-  TUIkitFoundation's again, and `_InlineMenuCore` is `package` for
+  TUIFoundation's again, and `_InlineMenuCore` is `package` for
   `InlineMenuStyle` to make. So keep caller and callee in one module, or
   give the other module a concrete entry point: a non-generic `package`
   function that builds the view where its types are concrete. When the view
   it modifies is one of the caller's own types, which the callee's module
   cannot name, the entry point is generic over it: a `package` method on
-  `View`, as step B7's are (TUIkitFoundation's
+  `View`, as step B7's are (TUIFoundation's
   View+BuiltForAnotherModule.swift, for a text field's frame, a form's `if`
   groups and grouped section boxes, a search token and a text editor's find
   bar). The caller then reaches it unspecialised (the second class, below),
   and one that returns an `AnyView` boxes its result on every call, and the
   `AnyView` probes the render cache on each draw and measure of it
-  (TUIkitView's `contentContext(noting:)`). That is likely cheaper than the
+  (TUIView's `contentContext(noting:)`). That is likely cheaper than the
   lookup, which demangles a name, but unmeasured per call (the carve's A/B
   prices it), and it is paid on every render pass, so the commit names the
   scenarios that reach it. Do not widen the underlying type, nor make the
@@ -573,12 +573,12 @@ anything at run time:
     exit test's body runs in a child process of its own.
   SwiftLint's `process_wide_write_in_tests` forbids the raw writes, and
   `ProcessWideState` refuses a write made outside an exit test. See
-  `Tests/TUIkitAppTestSupport/TestHelpers/ProcessWideState.swift` for the two flakes
+  `Tests/TUIAppTestSupport/TestHelpers/ProcessWideState.swift` for the two flakes
   this came from.
 - **A test that asserts the framework's own UI words** — "No items", "dismiss",
   "Done" — depends on the language `LocalizationService.shared` picked from
   `LANGUAGE` / `LC_ALL` / `LC_MESSAGES` / `LANG`. Declare that on the suite with
-  `.rendersEnglishUI` (see `Tests/TUIkitTestSupport/TestHelpers/RendersEnglishUI.swift`),
+  `.rendersEnglishUI` (see `Tests/TUITestSupport/TestHelpers/RendersEnglishUI.swift`),
   which pins English for the process before the suite runs. Without it the suite
   passes for you and fails for anyone whose POSIX locale is not English. Do not
   set a locale variable from inside a test: `LocalizationService.shared` is a
@@ -590,35 +590,35 @@ anything at run time:
 - The suite has a test target per module, so an edit to a module rebuilds
   only the tests that can see it. A test file goes in the target of the
   highest module it needs, counting what its helpers need:
-  - `Tests/TUIkitFoundationTests` when it needs nothing above
-    `TUIkitFoundation` and what it re-exports (views, layout, styling,
+  - `Tests/TUIFoundationTests` when it needs nothing above
+    `TUIFoundation` and what it re-exports (views, layout, styling,
     rendering, animation, the environment);
-  - `Tests/TUIkitAppTests` when it needs `TUIkitApp` (`HeadlessApp`,
+  - `Tests/TUIAppTests` when it needs `TUIApp` (`HeadlessApp`,
     `RenderLoop`, `InputHandler`, `FrameDiffWriter`, `Terminal`, or
     `applyRuntimeServices(from:)`, which builds a render pass's environment)
     and no feature module;
-  - `Tests/TUIkit<Module>Tests` when it needs one feature module —
-    `TUIkitLists`, `TUIkitTables`, `TUIkitMenus`, `TUIkitTextInput`, … —
-    with or without `TUIkitApp`;
-  - `Tests/TUIkitIntegrationTests`, the one target that depends on
+  - `Tests/TUI<Module>Tests` when it needs one feature module —
+    `TUILists`, `TUITables`, `TUIMenus`, `TUITextInput`, … —
+    with or without `TUIApp`;
+  - `Tests/TUIIntegrationTests`, the one target that depends on
     everything, when it needs two feature modules.
 
   A module that depends on another counts as the higher alone: a test of a
-  `Table` that also uses a `List` goes in `TUIkitTablesTests`, as
-  `TUIkitTables` depends on `TUIkitLists`. Import the modules at the top of
-  what the file needs (`import TUIkitLists`, plus `import TUIkitApp` where it
-  drives the App), not the umbrella `TUIkit`, which only
-  `TUIkitIntegrationTests` depends on; each module re-exports what it depends
+  `Table` that also uses a `List` goes in `TUITablesTests`, as
+  `TUITables` depends on `TUILists`. Import the modules at the top of
+  what the file needs (`import TUILists`, plus `import TUIApp` where it
+  drives the App), not the umbrella `TUI`, which only
+  `TUIIntegrationTests` depends on; each module re-exports what it depends
   on. `@testable import` a module whose internals the file reaches, and add
   it to the target's `dependencies:` in `Package.swift` if it is not there.
   `Tools/TestSplit` holds the scripts that placed the existing files, from
   the compiler's index of what each one references.
 - A test target cannot see another's declarations, so a helper two targets
   share lives in a support target, a plain target split the same way:
-  `Tests/TUIkitTestSupport` for the base (with the golden snapshots, its
-  `__Snapshots__`), `Tests/TUIkitAppTestSupport` for helpers needing the App
+  `Tests/TUITestSupport` for the base (with the golden snapshots, its
+  `__Snapshots__`), `Tests/TUIAppTestSupport` for helpers needing the App
   (`MockTerminal`, the render-loop harnesses), and a feature's own
-  (`TUIkitListsTestSupport`, `TUIkitTablesTestSupport`, …). A helper only one
+  (`TUIListsTestSupport`, `TUITablesTestSupport`, …). A helper only one
   target's files use stays in that target. A test file `@testable import`s
   the support targets whose helpers it uses.
   Every file of a support target is wrapped in
@@ -628,8 +628,8 @@ anything at run time:
   (`Package.swift` says what else was measured). It holds no `@Test` and no
   `@Suite`: it is linked into every test target that uses it, and a suite in
   it would be found in each of them.
-- The four lower library modules' own unit tests (`TUIkitCoreTests`,
-  `TUIkitStylingTests`, `TUIkitViewTests`, `TUIkitImageTests`) link **only
+- The four lower library modules' own unit tests (`TUICoreTests`,
+  `TUIStylingTests`, `TUIViewTests`, `TUIImageTests`) link **only
   that module** and what it depends on, so a module test cannot reach across
   a layer boundary. A declaration's module is its directory's: each directory
   under `Sources/` is a target of its own in `Package.swift`, at its default
@@ -648,7 +648,7 @@ anything at run time:
 ## The `project-template/` directory
 
 `project-template/` is a starter kit for spinning up a new app built on
-TUIkit (a `tuikit` scaffold plus an `install.sh` and its own README). It
+TUI (a `tuikit` scaffold plus an `install.sh` and its own README). It
 is intentionally kept **inline in this repository** rather than split into
 a separate repo: it's small, low-churn, and easiest to keep in step with
 the library when it lives alongside it. It is excluded from source

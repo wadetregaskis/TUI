@@ -1,8 +1,8 @@
 # SF Symbols table generator
 
-Regenerates [`Sources/TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift`](../../Sources/TUIkitStrings/SFSymbols/SFSymbolTable.generated.swift)
+Regenerates [`Sources/TUIStrings/SFSymbols/SFSymbolTable.generated.swift`](../../Sources/TUIStrings/SFSymbols/SFSymbolTable.generated.swift)
 — the baked SF Symbol *name → Unicode codepoint* table that backs
-[`SFSymbol`](../../Sources/TUIkitStrings/SFSymbols/SFSymbol.swift) and
+[`SFSymbol`](../../Sources/TUIStrings/SFSymbols/SFSymbol.swift) and
 `Label(_:systemImage:)`.
 
 This is **developer tooling**, not part of the package build. End users never
@@ -158,7 +158,7 @@ scheme, stripped and dead-stripped; lookups INDICATIVE, one VM): the table and
 its lookup cost an executable 142,442 bytes less; a lookup took 114 ns over all
 names in random order and 56 ns over 20 common names, against 122 and 41 ns
 before; blocks of 32 would have saved 4,936 bytes more for 136 and 96 ns, and
-64 more again for 204 and 154 ns. In TUIkit's own stripped release `Stress`
+64 more again for 204 and 154 ns. In TUI's own stripped release `Stress`
 (Xcode 26.3's Swift 6.2.4, measured when the change landed) the sections
 shrank by 144,076 bytes (`__cstring` −200,352, where the old blob lived;
 `__TEXT,__const` +87,264, where the new one lands — it holds NUL bytes, likely

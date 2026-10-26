@@ -1,0 +1,1339 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  ScrollView.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import Foundation
+import TUICore
+
+// MARK: - ScrollView
+
+/// A scrollable view that displays content larger than its
+/// viewport, with a scroll position that the user controls via
+/// the mouse wheel and arrow keys.
+///
+/// `ScrollView` is the generic counterpart to ``List``: it
+/// scrolls arbitrary content (text, forms, nested layouts) the
+/// same way `List` scrolls rows of items. It does **not** model
+/// a selection or a row structure — there is just a viewport
+/// that windows into a taller buffer.
+///
+/// # Interaction model
+///
+/// - **Mouse wheel** scrolls by 3 lines per tick by default (see
+///   ``ViewConstants/mouseWheelScrollLines``). The wheel works
+///   regardless of focus.
+/// - **Arrow keys** scroll one line at a time, **Page Up** /
+///   **Page Down** scroll one viewport, and **Home** / **End**
+///   jump to the very top / bottom. All keyboard scrolling
+///   requires the scroll view to have focus.
+/// - The two axes are independent: this matches every desktop
+///   list-view convention. A focused inner control (e.g. a
+///   `TextField`) keeps its own keyboard handling; the wheel
+///   still scrolls the surrounding `ScrollView` because mouse
+///   routing follows the cursor position, not the focus.
+///
+/// # Indicators
+///
+/// When content extends beyond the viewport an indicator appears:
+/// a scrollbar beside the content by default, or the "N more above" /
+/// "N more below" lines under `.scrollIndicatorStyle(.text)`, matching
+/// the indicators used by `List`. `.scrollIndicators(.hidden)` suppresses
+/// them — note that scrolling itself still works, it's only the visual
+/// indicator that disappears. `.scrollIndicators(.visible)` goes the other
+/// way and keeps both text lines at every offset, counts and all, so the
+/// content area does not change size as the view scrolls (`d1c54212`).
+///
+/// # Example
+///
+/// ```swift
+/// ScrollView {
+///     VStack(alignment: .leading) {
+///         ForEach(0..<1000) { i in
+///             Text("Line \(i)")
+///         }
+///     }
+/// }
+/// ```
+///
+/// # Very tall content
+///
+/// There is no ceiling on how tall the content may be: it is measured
+/// against a budget that grows until the content stops filling it, so a
+/// hundred thousand rows scroll as readily as ten.
+///
+/// What that costs is a buffer as tall as the content, rebuilt every
+/// frame. Past a few thousand rows, reach for ``LazyVStack`` — inside a
+/// `ScrollView` it reports its extent without laying every row out and
+/// renders only the band the viewport shows, so the per-frame cost stops
+/// tracking the row count.
+///
+/// > Note: Both axes are supported. Pass `.vertical` (the default),
+///   `.horizontal`, or `[.horizontal, .vertical]`. When horizontal
+///   scrolling is enabled the view also renders a bottom scrollbar and
+///   responds to a native horizontal wheel (or shift + vertical wheel).
+public struct ScrollView<Content: View>: View {
+    /// The axes along which content scrolls (`.vertical`, `.horizontal`,
+    /// or both). Both are fully implemented.
+    public var axes: Axis.Set
+
+    /// The content of the scroll view.
+    public var content: Content
+
+    /// Whether the scroll view displays its indicators when nothing says
+    /// otherwise. The default is `true`.
+    ///
+    /// `false` hides them where ``View/scrollIndicators(_:axes:)`` leaves the
+    /// choice to the view (``ScrollIndicatorVisibility/automatic``, the
+    /// default): a stated `.visible`, `.hidden` or `.never` around the view
+    /// still wins, and a scroll view nested in the content keeps its own
+    /// indicators — all as SwiftUI's does (measured 2026-10-18, macOS 15:
+    /// `showsIndicators = false` under `.scrollIndicators(.visible)` shows its
+    /// scroller, under `.automatic` does not, and a nested scroll view shows
+    /// its own).
+    ///
+    /// The initializer that takes it, `ScrollView(_:showsIndicators:content:)`,
+    /// is deprecated in SwiftUI and absent here; the property is not deprecated
+    /// there, so code that reads or sets it compiles.
+    public var showsIndicators: Bool = true
+
+    /// An explicit focus identifier, or `nil` to auto-generate.
+    var explicitFocusID: String?
+
+    /// Whether the scroll view is disabled.
+    var isDisabled: Bool
+
+    /// Whether the scroll view is a focus stop of its own when it overflows —
+    /// see ``withoutFocusStop()``.
+    var isFocusStop = true
+
+    /// Whether this scroll view is framework chrome — see ``asChrome()``.
+    var isChrome = false
+
+    /// Creates a scroll view.
+    ///
+    /// - Parameters:
+    ///   - axes: The scrollable axes (default `.vertical`).
+    ///   - content: A ViewBuilder that defines the content to
+    ///     scroll.
+    ///
+    /// - Note: SwiftUI's `showsIndicators:` initializer is deliberately
+    ///   absent — it is deprecated there in favour of `scrollIndicators(_:)`,
+    ///   and TUI does not carry deprecated spellings (see
+    ///   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`). The
+    ///   ``showsIndicators`` property it set is not deprecated, and is here.
+    public init(
+        _ axes: Axis.Set = .vertical,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.axes = axes
+        self.content = content()
+        self.explicitFocusID = nil
+        self.isDisabled = false
+    }
+
+    public var body: some View {
+        // `.disabled(isDisabled)` as well as the stored flag, because the two
+        // answer different questions. The flag decides whether this scroll view
+        // is a Tab stop; SwiftUI's `.disabled(_:)` is defined on the subtree —
+        // "disables interaction in this view and its child views" — and the
+        // concrete `disabled(_:) -> ScrollView` below wins overload resolution
+        // over `View.disabled(_:)`, so without this a `Button` inside a
+        // disabled scroll view stayed focusable, clickable and actionable.
+        // `.disabled(false)` is a no-op: the modifier ANDs, so it can never
+        // re-enable a subtree an ancestor disabled.
+        _ScrollViewCore(
+            axes: axes,
+            content: content,
+            explicitFocusID: explicitFocusID,
+            isDisabled: isDisabled,
+            isFocusStop: isFocusStop,
+            isChrome: isChrome,
+            hidesAutomaticIndicators: !showsIndicators
+        )
+        .disabled(isDisabled)
+        .paintingScrollContentBackground(reads: !isChrome)
+    }
+}
+
+// MARK: - Convenience Modifiers
+
+extension ScrollView {
+    /// Sets an explicit focus identifier on this scroll view.
+    public func focusID(_ id: String) -> ScrollView<Content> {
+        var copy = self
+        copy.explicitFocusID = id
+        return copy
+    }
+
+    /// Creates a disabled version of this scroll view: no keyboard focus, and
+    /// the wheel does not scroll it either — `_ScrollViewCore` registers no
+    /// viewport mouse handler while disabled, so a tick falls through to
+    /// whatever is behind. The body also applies
+    /// ``TUI/View/disabled(_:)`` to the content, so what is inside is
+    /// disabled too, as it is everywhere else.
+    ///
+    /// To pin a scroll view's offset while leaving its content live, use
+    /// ``TUI/View/scrollDisabled(_:)`` instead: the view stays enabled, and
+    /// an unconsumed wheel tick passes out to an enclosing scroller rather
+    /// than being swallowed.
+    public func disabled(_ disabled: Bool = true) -> ScrollView<Content> {
+        var copy = self
+        copy.isDisabled = disabled
+        return copy
+    }
+
+    /// This scroll view, never a focus stop of its own: its content's controls
+    /// are the stops, and the reveal scrolls to whichever holds the focus.
+    ///
+    /// For a scroller that is chrome around a column of rows — a menu too tall
+    /// for its space. As a stop it sat after the last row, so Down from the last
+    /// row moved the focus off every row onto the container: the cursor
+    /// vanished, Return did nothing, and the arrows scrolled the rows instead
+    /// of walking them. Not `.focusable(false)`, which takes the content out of
+    /// the ring with it. The wheel still scrolls it; it answers the pointer,
+    /// not the focus.
+    func withoutFocusStop() -> ScrollView<Content> {
+        var copy = self
+        copy.isFocusStop = false
+        return copy
+    }
+
+    /// This scroll view as framework chrome: the scroller a menu, a sheet or
+    /// a framed container puts around content too tall for it, rather than a
+    /// scrollable the app wrote. It does not answer the scroll modifiers an
+    /// app states for its own scroll views, which a subtree passes down to
+    /// whatever is inside it:
+    /// - ``TUI/View/scrollContentBackground(_:)`` — the surface around it
+    ///   paints its own background;
+    /// - ``TUI/View/scrollTargetBehavior(_:)`` — it scrolls a line a step,
+    ///   as a menu's rows always have;
+    /// - ``TUI/View/scrollClipDisabled(_:)`` — it clips: its content
+    ///   belongs inside the surface it scrolls in, not over the page;
+    /// - `contentMargins` — it keeps no margins: it is
+    ///   there only while its content is too tall, and the content lays out as
+    ///   it would without it;
+    /// - ``TUI/View/defaultScrollAnchor(_:)`` and
+    ///   ``TUI/View/anchorPosition(_:)`` — it opens at its top and follows
+    ///   nothing, and writes no binding of the app's;
+    /// - ``TUI/View/scrollPosition(_:anchor:)`` — the app's position is its
+    ///   own scroll view's, not a menu's;
+    /// - `onScrollGeometryChange` and `onScrollPhaseChange` — it claims
+    ///   neither, and leaves them for the app's scroll views;
+    /// - ``TUI/View/scrollIndicatorsFlash(onAppear:)`` and
+    ///   ``TUI/View/scrollIndicatorsFlash(trigger:)`` — its indicators do
+    ///   not flash: SwiftUI's menus and sheets are not scroll views;
+    /// - ``TUI/View/scrollOverscroll(top:bottom:)`` and
+    ///   ``TUI/View/scrollBounceBehavior(_:axes:)`` — it is pushed past
+    ///   neither end, and the wheel passes on at its edges.
+    ///
+    /// The content inside it still reads them, for its own scrollables.
+    func asChrome() -> ScrollView<Content> {
+        var copy = self
+        copy.isChrome = true
+        return copy
+    }
+}
+
+// MARK: - Equatable
+
+extension ScrollView: @preconcurrency Equatable where Content: Equatable {
+    public static func == (lhs: ScrollView<Content>, rhs: ScrollView<Content>) -> Bool {
+        guard lhs.axes == rhs.axes,
+            lhs.content == rhs.content,
+            lhs.explicitFocusID == rhs.explicitFocusID,
+            lhs.isDisabled == rhs.isDisabled,
+            lhs.isFocusStop == rhs.isFocusStop,
+            lhs.showsIndicators == rhs.showsIndicators
+        else { return false }
+        return lhs.isChrome == rhs.isChrome
+    }
+}
+
+// MARK: - _ScrollViewCore (internal rendering)
+
+/// StateStorage property indices for ``_ScrollViewCore``.
+/// Lifted out of the generic struct because Swift does not
+/// allow static stored properties in generic types.
+enum ScrollViewStateIndex {
+    static let handler = 0
+    static let focusID = 1
+    static let lastFocusedID = 2
+    static let lastInteractionGen = 3
+    static let lastViewport = 4
+}
+
+/// A lightweight String-box used by ``_ScrollViewCore`` to track
+/// which focusable was focused at the previous render, so it can
+/// detect focus *changes* and scroll the new focused control into
+/// view. Class-typed so a StateBox can hold it mutably across
+/// renders.
+final class LastFocusedIDBox: @unchecked Sendable {
+    var value: String?
+}
+
+/// Tracks the ``FocusManager/focusedInteractionGeneration`` value
+/// seen at the previous render so ``_ScrollViewCore`` can detect
+/// "the focused control just consumed a key event" between
+/// frames. Class-typed for the same reason as
+/// ``LastFocusedIDBox``.
+final class LastInteractionGenBox: @unchecked Sendable {
+    var value: UInt64 = 0
+}
+
+/// The content rect this scroller was last laid out into, on a RENDER pass.
+///
+/// A viewport that changes size — the terminal resized, a split-view divider
+/// moved, a disclosure opened above — invalidates the scroll offset's meaning
+/// while leaving its number intact, which is how a focused control ends up off
+/// screen with nothing to bring it back. See
+/// ``_ScrollViewCore/snapViewportToFocusedControl(handler:fullBuffer:viewportHeight:regionOriginY:indicatorsActive:suppressed:context:)``.
+/// `nil` until the first render: there was nothing on screen to keep in view.
+final class LastViewportBox: @unchecked Sendable {
+    var value: (width: Int, height: Int)?
+}
+
+/// Internal core that performs the windowing, hit-testing, and
+/// keyboard wiring for ``ScrollView``.
+struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
+
+    let axes: Axis.Set
+    let content: Content
+    let explicitFocusID: String?
+    let isDisabled: Bool
+    var isFocusStop = true
+    /// Whether this scroll view is the framework's own — see
+    /// ``ScrollView/asChrome()``, which says what it does not answer.
+    var isChrome = false
+    /// Whether this is the copy of a scroll view that draws its content inside
+    /// its content margins — see ``margined(context:)``. Stops that copy from
+    /// making another of itself.
+    var appliesContentMargins = false
+    /// Whether ``ScrollView/showsIndicators`` is `false`: an `.automatic`
+    /// indicator visibility reads as `.hidden` for this view, and its content
+    /// gets the visibility from above back (``hidingAutomaticIndicators(_:)``).
+    var hidesAutomaticIndicators = false
+
+    var body: Never { fatalError("_ScrollViewCore renders via Renderable") }
+
+    typealias StateIndex = ScrollViewStateIndex
+
+    // MARK: Layout
+
+    func sizeThatFits(proposal: ProposedSize, context given: RenderContext) -> ViewSize {
+        let read = hidingAutomaticIndicators(given)
+        if let margined = margined(context: read) {
+            return margined.sizeThatFits(proposal: proposal, context: read)
+        }
+        // A ScrollView takes whatever size the parent *proposes* and scrolls if
+        // its content doesn't fit — so it stays width/height-flexible, and a
+        // parent that constrains it (a too-short modal) makes it scroll. But its
+        // *ideal* size (an unproposed axis) is its content's size, not the whole
+        // viewport — so a parent that sizes to fit (a TabView, a Dialog) sizes to
+        // the content it wraps and only scrolls when space is actually short.
+        // Matches SwiftUI, where a ScrollView's ideal size is its content's —
+        // plus, here, the cell a scrollbar takes out of it (`idealSize`).
+        // The viewport is its content's `containerRelativeFrame` container:
+        // what it was proposed, as the render's is what it was given.
+        let context = read.publishingContainerSize(
+            containerSize(
+                viewport: CellSize(
+                    width: max(0, proposal.width ?? read.availableWidth),
+                    height: max(0, proposal.height ?? read.availableHeight)),
+                context: read),
+            noting: false)
+        let ideal =
+            proposal.width == nil || proposal.height == nil
+            ? idealSize(proposal: proposal, context: context) : nil
+        return ViewSize(
+            width: proposal.width ?? (ideal?.width ?? context.availableWidth),
+            height: proposal.height ?? (ideal?.height ?? context.availableHeight),
+            isWidthFlexible: true,
+            isHeightFlexible: true
+        )
+    }
+
+    // MARK: Render
+
+    /// Syncs the horizontal axis to the rendered content width and clamps
+    /// its offset (render passes only).
+    /// - Parameters:
+    ///   - bufferWidth: What the render actually produced. A floor, not the
+    ///     answer: the content is windowed on both axes now, so the buffer holds
+    ///     the BAND and its width is the widest row in it.
+    ///   - contentExtentWidth: What the measure says the whole content is —
+    ///     `contentExtents`' horizontal answer, which walks every row. Metering
+    ///     the axis from the buffer instead is what made a wide row outside the
+    ///     band unreachable, and what kept the rows from being windowed at all.
+    private func syncHorizontalAxis(
+        handler: ScrollViewHandler, wantsHorizontal: Bool,
+        bufferWidth: Int, contentExtentWidth: Int, contentWidth: Int, context: RenderContext
+    ) {
+        guard wantsHorizontal else { return }
+        handler.horizontal.extent = max(bufferWidth, contentExtentWidth)
+        handler.horizontal.viewportHeight = contentWidth
+        if !context.isMeasuring {
+            handler.horizontal.clampScrollOffset()
+        }
+    }
+
+    /// Hydrates the persistent ``ScrollViewHandler`` for this scroll view and
+    /// re-syncs every render-captured field (Shift acceleration, wheel-chaining
+    /// delays — captured at render so event-time code can read them when the
+    /// environment is no longer reachable).
+    private func resolvedHandler(persistedFocusID: String, context: RenderContext) -> ScrollViewHandler {
+        let handlerKey = StateStorage.StateKey(
+            identity: context.identity,
+            propertyIndex: StateIndex.handler
+        )
+        let handlerBox: StateBox<ScrollViewHandler> = context.stateStorage!.storage(
+            for: handlerKey,
+            default: ScrollViewHandler(
+                focusID: persistedFocusID,
+                canBeFocused: isFocusStop && !isDisabled(in: context)
+            )
+        )
+        let handler = handlerBox.value
+        handler.canBeFocused = isFocusStop && !isDisabled(in: context)
+        handler.shiftStepMultiplier = context.environment.shiftStepMultiplier
+        // Captured at render so a USER scroll can release a bound anchor to
+        // `.window` at event time (the environment is out of reach there).
+        handler.anchorPositionBinding = pageAnchorPosition(context.environment)?.binding
+        (handler.declaredAnchorMode, handler.declaredOpeningAnchorMode) =
+            pageDeclaredAnchorModes(context.environment)
+        handler.wheelEdgeHold.delayNanos = context.environment.scrollChainingDelay.clampedNanoseconds
+        handler.horizontal.wheelEdgeHold.delayNanos = context.environment.scrollChainingDelay.clampedNanoseconds
+        // One lookup a frame, and the motion rule only for a view that sets it.
+        // A framework scroller's keys never glide: it takes none of the page's
+        // scroll settings.
+        handler.keyboardAnimation =
+            isChrome ? nil : context.scrollGlideAnimation(context.environment.scrollKeyboardAnimation)
+        // Both axes: `.scrollDisabled` pins the view, not one direction of it.
+        handler.isScrollEnabled = context.environment.isScrollEnabled
+        handler.horizontal.isScrollEnabled = context.environment.isScrollEnabled
+        captureScrollTargeting(handler: handler, context: context)
+        return handler
+    }
+
+    /// The parked scrollTo request to carry down this frame — render passes
+    /// only (a measure pass must neither resolve nor clear it). When the
+    /// edge indicators replace the viewport's first/last line, the request is
+    /// stamped with one row of headroom per edge: `ScrollChrome.edgeInset`.
+    private func consumedSeek(
+        handler: ScrollViewHandler, edgeInset: Int, context: RenderContext
+    ) -> ScrollToRequest? {
+        guard !context.isMeasuring else { return nil }
+        // A glide's landing, sought again, gives way to a fresh position
+        // request on the frame it lands: the new request supersedes it.
+        if handler.pendingScrollToIsLanding, let fresh = positionSeek(handler: handler, context: context) {
+            (handler.pendingScrollTo, handler.pendingScrollToIsLanding) = (fresh, false)
+        }
+        // A `.scrollPosition` write is the same request a `scrollTo` makes; it
+        // just arrives as state rather than as a call, so it rides the same
+        // machinery rather than a second one beside it.
+        guard var seek = handler.pendingScrollTo ?? positionSeek(handler: handler, context: context)
+        else {
+            return nil
+        }
+        seek.topInset = edgeInset
+        seek.bottomInset = edgeInset
+        return seek
+    }
+
+    /// The "N more above / below" pair's claim on the viewport's height: read
+    /// from the environment once a frame, then asked of each candidate
+    /// horizontal bar.
+    ///
+    /// Asked of the bar because the three-line floor is asked of the area the
+    /// pair would be drawn in — the viewport less a horizontal bar's row, and
+    /// NOT less the two lines `.visible` reserves. That reservation is what the
+    /// floor decides, so it cannot also be an input to it. Under
+    /// `ResolvedScrollIndicators.minimumTextHeight` the answer is no, through
+    /// the `fitting(contentHeight:)` `List` and `Table` resolve theirs with.
+    ///
+    /// Asked by every round of `resolveScrollbars` as well as by
+    /// `resolveChrome`, and that is the point of it being one value. The rounds
+    /// measure the content to decide the bars, and hand their extents to the
+    /// render as already settled; they used to measure at the viewport less the
+    /// bar's row alone, while the render published a window two lines shorter.
+    /// A `Spacer` or a `.frame(maxHeight: .infinity)` then filled a canvas two
+    /// lines taller than the window it scrolled through, and a zoomed
+    /// `.viewport` picture, measured two lines taller and so wider than it was
+    /// drawn, was given a horizontal bar for columns it never had.
+    struct TextIndicatorLines {
+        /// Whether the pair is this view's vertical indicator at all, before
+        /// the floor. Asked as though the content overflows: the pair gates
+        /// itself on whether there IS content above or below, so this decides
+        /// only which indicator this view uses, and deciding it must not
+        /// trigger the content measure `.automatic` would otherwise need. It
+        /// is also the reason a `.hidden` scroll view draws nothing at all
+        /// rather than falling back to the pair.
+        let text: Bool
+        /// Drawn at every offset, and so reserved out of the content window,
+        /// whatever the content: ``EnvironmentValues/alwaysShowsVerticalTextIndicators``.
+        let alwaysShown: Bool
+        /// Reserved out of the content window too, at every offset, because a
+        /// scroll target behaviour lands this view's steps AND its content
+        /// overflows the window — see
+        /// ``_ScrollViewCore/textIndicatorLines(_:viewport:horizontalBar:)``.
+        let reservedForTargets: Bool
+
+        /// The pair as `environment` states it. `landsScrollTargets` says
+        /// whether a scroll target behaviour lands this view's steps and
+        /// `overflows` whether the content is taller than the window; each is
+        /// asked only where its answer can change the reservation — the text
+        /// form, not `.visible` — and `overflows` only after a yes.
+        ///
+        /// The style is read first: the bar style — the default, and so almost
+        /// every scroll view — has no pair, and answers in that one read.
+        /// Asked on every measure and render of every scroll view, this read
+        /// the visibility first and the style after it: two environment
+        /// lookups for an answer the second of them decides
+        /// (`verticalScrollIndicators(overflowing:)` asks them in the other
+        /// order, because there the visibility decides).
+        init(_ environment: EnvironmentValues, landsScrollTargets: () -> Bool, overflows: () -> Bool) {
+            guard environment.scrollIndicatorStyle == .text else {
+                (text, alwaysShown, reservedForTargets) = (false, false, false)
+                return
+            }
+            let visibility = environment.verticalScrollIndicatorVisibility
+            text = visibility.showsIndicator(overflowing: true)
+            // `alwaysShowsVerticalTextIndicators`, from the two reads in hand.
+            alwaysShown = visibility == .visible
+            reservedForTargets = text && !alwaysShown && landsScrollTargets() && overflows()
+        }
+
+        /// Whether the pair is drawn, whether it is reserved rather than written
+        /// over the edge lines, and the content window that leaves.
+        func fitted(
+            viewportHeight: Int, horizontalBar: Bool
+        ) -> (drawn: Bool, reserved: Bool, contentHeight: Int) {
+            let area = viewportHeight - (horizontalBar ? 1 : 0)
+            // `ResolvedScrollIndicators.fitting(contentHeight:)`'s floor.
+            let drawn = text && area >= ResolvedScrollIndicators.minimumTextHeight
+            let reserved = drawn && (alwaysShown || reservedForTargets)
+            return (drawn, reserved, max(1, area - (reserved ? 2 : 0)))
+        }
+    }
+
+    /// This view's "N more" pair at `viewport`. Under a scroll target
+    /// behaviour, for content that overflows, it is reserved, drawn at every
+    /// offset as under `.visible`: a behaviour lands pages and views in the
+    /// content window, and drawn over the window's first and last line the
+    /// pair made the window a line shorter at each end wherever it showed — so
+    /// `.paging` either left those lines unread at every stop or, stepping the
+    /// lines between them, stopped off every page a `containerRelativeFrame`
+    /// sized against the viewport.
+    ///
+    /// Only for content that overflows (scroll lane review 3): content that
+    /// fits has nowhere to scroll and nothing to land, and reserved there the
+    /// pair drew "▲ 0 more lines above" over content it then pushed out of
+    /// sight — five rows in a dialog drew three, and scrolled. Decided once per
+    /// layout, on the content's height in the whole window
+    /// (``contentOverflowsWindow(viewport:horizontalBar:context:)``), so it is the same at
+    /// every stop: content sized against the container — pages a
+    /// `containerRelativeFrame` makes — that overflows the whole window still
+    /// overflows the window less the pair.
+    ///
+    /// Only for a view that scrolls down: the pair counts rows, and a
+    /// horizontal pager reserved two lines that had nothing to count.
+    ///
+    /// `horizontalBar` is the bar as known before the content is measured
+    /// (``horizontalBarDecidedFirst(viewport:context:)``).
+    func textIndicatorLines(
+        _ context: RenderContext, viewport: CellSize, horizontalBar: Bool
+    ) -> TextIndicatorLines {
+        TextIndicatorLines(context.environment) {
+            axes.contains(.vertical) && scrollTargetBehaviorInForce(context.environment) != nil
+        } overflows: {
+            contentOverflowsWindow(viewport: viewport, horizontalBar: horizontalBar, context: context)
+        }
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if let margined = margined(context: context) { return margined.renderToBuffer(context: context) }
+        // The viewport is its content's `containerRelativeFrame` container, and
+        // the context this view reads (`hidingAutomaticIndicators(_:)`).
+        let (context, viewportWidth, viewportHeight, textLines, knownHorizontalBar) = viewport(context)
+
+        // Resolve the persistent focus ID and the handler.
+        let persistedFocusID = FocusRegistration.persistFocusID(
+            context: context,
+            explicitFocusID: explicitFocusID,
+            defaultPrefix: "scrollview",
+            propertyIndex: StateIndex.focusID
+        )
+        let handler = resolvedHandler(persistedFocusID: persistedFocusID, context: context)
+
+        // Rendezvous with an enclosing ScrollViewReader, refreshed every
+        // render pass so the proxy always reaches the LIVE handler set.
+        if !context.isMeasuring {
+            context.environment.scrollToRegistry?.register(
+                handler: handler, identity: context.identity, renderCache: context.renderCache)
+        }
+
+        // Scrollbar reservation. Each bar steals one cell across the viewport — the
+        // vertical bar a trailing column, the horizontal bar a bottom row. The
+        // decisions use the prior frame's measured extents (persisted on the
+        // handler) so the content is laid out at the reduced size in a single
+        // render; on the very first frame nothing has overflowed yet, so an
+        // automatic bar appears one frame after the content first overflows.
+        let wantsHorizontal = axes.contains(.horizontal)
+
+        // Decide scrollbar reservation from THIS frame's measured content (not the
+        // previous frame's persisted extents), so a bar appears / disappears on the
+        // same frame the content crosses the viewport edge — no one-frame lag, and
+        // the "N more below" hint never flashes a frame without its bar. See
+        // `resolveScrollbars` for the monotonic fixpoint (which also prevents the
+        // reserve-bar → content-fits → drop-bar → overflows → … oscillation).
+        let (chrome, contentWidth, contentViewportHeight, settledExtents) = resolveChrome(
+            viewportWidth: viewportWidth, viewportHeight: viewportHeight, wantsHorizontal: wantsHorizontal,
+            knownHorizontalBar: knownHorizontalBar, textLines: textLines, handler: handler, context: context)
+        // §1.5: how far past its edges this view may be pushed. Re-resolved every
+        // frame because a `.viewport`-relative allowance moves with the terminal,
+        // and an existing excursion is pulled back inside a shrunken one.
+        // Gated by `.scrollBounceBehavior`, on whether the content overflowed
+        // when this view last measured it; a `.always` bounce springs back here.
+        // A framework scroller takes none (`pageOverscrollAllowances`).
+        let overflowing = handler.contentHeight > contentViewportHeight
+        handler.settleOverscroll(
+            viewportHeight: contentViewportHeight,
+            allowances: pageOverscrollAllowances(context.environment, overflowing: overflowing), context: context)
+
+        // What places the frame before the content is drawn, in order: a
+        // written anchor, a glide in flight, a bound position's edge or offset
+        // (see the helper), and the tail seek they and End leave.
+        let contentViewport = CellSize(width: contentWidth, height: contentViewportHeight)
+        let (requested, seekingTail) = placeBeforeDrawing(handler: handler, viewport: contentViewport, context: context)
+        let wasGluedToBottom =
+            isGluedToBottom(handler: handler, context: context) || seekingTail
+        // The opening frame is glued by definition (see `isGluedToBottom`) but
+        // its offset is still 0, so move it to the tail BEFORE the content
+        // renders, as End does — the height is known, because the app's first
+        // frame measured the page before drawing it. Rendered at 0 and re-glued
+        // afterwards, the jump is the whole content: the band drawn at 0 covers
+        // none of the tail, and `coverSnappedViewport` has to render it again
+        // there. Until the full walk under 256 rows reported the lines it drew,
+        // nothing could see that, and the frame showed blank lines where the
+        // newest rows belong; now it is the second render this placement spares.
+        // With no walk beforehand (a view rendered directly) the height is
+        // still 0, so is `maxOffset`, and this changes nothing.
+        if wasGluedToBottom, !handler.hasOpened, !context.isMeasuring {
+            handler.scrollOffset = handler.maxOffset
+        }
+        // The opening frame is now spent: from here on the `.sizeChanges`
+        // anchor governs. Render passes only — a measure must not consume it.
+        // It is also when the view appeared, where a flash of its indicators
+        // on appearing starts.
+        if !context.isMeasuring { handler.open(atNanos: context.environment.frameNowNanos) }
+
+        // The chrome's indicator answer, here and below, and never the
+        // environment's: only the chrome knows the viewport is too short for the
+        // pair, and a seek that charged a line for an indicator the frame does not
+        // draw landed its row one line down.
+        let pendingSeek = consumedSeek(
+            handler: handler, edgeInset: chrome.edgeInset, context: context)
+        // Where the walk stood before the content rendered, for every drawing
+        // of it after the first: a band that does not cover the offset the
+        // frame settles on (`coverSnappedViewport`), and a correction of a
+        // reader asking this view's space (`ownScrollSpace`).
+        let checkpoint = context.isMeasuring ? nil : RenderWalkCheckpoint(context: context)
+        defer { checkpoint?.keep() }
+        // This view's space, open to the readers its content draws while it does.
+        let scrollSpace = enterScrollSpace(
+            viewport: CellSize(width: contentWidth, height: contentViewportHeight), context: context)
+        let firstDrawing = renderedContent(
+            contentWidth: contentWidth, viewportHeight: contentViewportHeight, horizontal: wantsHorizontal,
+            verticalScrollOffset: handler.scrollOffset, horizontalScrollOffset: handler.horizontal.scrollOffset,
+            slide: contentSlide(handler: handler, viewportHeight: contentViewportHeight, context: context),
+            seek: pendingSeek, edgeInset: chrome.edgeInset, handler: handler, checkpoint: checkpoint,
+            context: context, settledExtents: settledExtents,
+            topRowHold: topRowHold(handler: handler, glued: wasGluedToBottom, placed: requested || pendingSeek != nil, context: context))
+        let (seekOffset, contentExtent) = (firstDrawing.seek?.offset, firstDrawing.extents)
+        var drawing = ScrollContentDrawing(
+            buffer: firstDrawing.buffer, slice: firstDrawing.slice, drawnLines: firstDrawing.drawnLines,
+            placement: firstDrawing.placement)
+        let seekIsLanding = spendSeekRequest(handler: handler, context: context)
+        // A sliced reply (Stage 6): the buffer holds only the rendered band;
+        // the content height comes from the metadata (estimated suffixes and
+        // all — the §3 scrollbar trade), and every content-space consumer
+        // below rebases by the slice origin. An estimated total is surfaced
+        // in the indicators as an approximate count.
+        recordContentHeight(
+            of: drawing, handler: handler, contentWidth: contentWidth, placed: seekOffset != nil || requested || wasGluedToBottom, context: context)
+        // The content rendered AT the request's offset; adopt it, dropping
+        // any overscroll excursion with it — the slide drawn later would
+        // otherwise move the row the seek aimed at. (The bottom re-glue
+        // below must not fight it — scrolling away IS the release,
+        // expressed programmatically.) Made inside an animation, a request
+        // glides there instead, from where the view stands; a hold jumps.
+        if let seekOffset {
+            adoptSeek(
+                seekOffset, request: firstDrawing.seek?.isHold == true ? nil : pendingSeek, isLanding: seekIsLanding,
+                handler: handler, viewport: contentViewport, context: context)
+        } else if wasGluedToBottom {
+            // Re-glue against the REAL rendered height: the content rendered
+            // at the offset the frame began with — for a followed view, the
+            // tail as last drawn — and this frame's tail is further down by
+            // whatever arrived, grew taller, or the viewport lost. The band's
+            // margin absorbs a row of that; `coverSnappedViewport` below draws
+            // the band again at the new tail when it does not.
+            handler.scrollOffset = handler.maxOffset
+        }
+        syncHorizontalAxis(
+            handler: handler, wantsHorizontal: wantsHorizontal,
+            bufferWidth: drawing.buffer.width, contentExtentWidth: contentExtent.width,
+            contentWidth: contentWidth, context: context)
+        // Re-clamp the offset against the now-known content height — but only on
+        // the real render pass. A measure pass may be offered a larger height
+        // than the ScrollView finally renders into (e.g. when it shares space
+        // with fixed siblings like a trailing footer), so clamping against that
+        // measure-time viewport computes too small a `maxOffset` and pulls the
+        // offset back every frame, making the content's last screenful
+        // unreachable. The render pass runs last and clamps with the true
+        // viewport, so legitimate clamping (content grew/shrank) still happens.
+        // Mirrors _ListCore / Table.
+        if !context.isMeasuring { handler.clampScrollOffset() }
+
+        // "Follow the focused control": snap the viewport to the focused
+        // control when focus moved or it just consumed a key. A render-pass-
+        // only side effect; the helper documents the full rationale and the
+        // measure-pass gate.
+        let pursuitArmed = snapViewportToFocusedControl(
+            handler: handler,
+            fullBuffer: drawing.buffer,
+            viewportHeight: contentViewportHeight,
+            regionOriginY: drawing.slice?.originY ?? 0,
+            // Drawn OVER the content, not merely drawn. Reserved, the pair is
+            // outside the viewport this reveal reasons about, and treating the
+            // last content line as covered scrolled a control already on screen.
+            indicatorsActive: chrome.overwritesEdgeLines,
+            // A seek's offset, or a designated row's, wins over the reveal; the
+            // top-row hold's moved with the content, and a focus move made in
+            // the same frame is revealed: suppressed, it stayed off screen.
+            suppressed: seekOffset != nil && firstDrawing.seek?.isHold != true,
+            context: context)
+        coverSnappedViewport(
+            handler: handler, drawing: &drawing, contentWidth: contentWidth, viewportHeight: contentViewportHeight,
+            horizontal: wantsHorizontal, checkpoint: checkpoint, context: context)
+        if wasGluedToBottom, seekOffset == nil {
+            reglueToRefinedTail(
+                handler: handler, drawing: &drawing, contentWidth: contentWidth, viewportHeight: contentViewportHeight,
+                horizontal: wantsHorizontal, checkpoint: checkpoint, context: context)
+        }
+        // Settle the pursuit AFTER coverage/re-glue, when the frame's offset
+        // is final — see the helper.
+        settleRevealPursuit(armed: pursuitArmed, handler: handler, context: context)
+
+        var visibleBuffer = ownedContentWindow(
+            drawing: drawing, checkpoint: checkpoint, handler: handler, chrome: chrome,
+            viewport: CellSize(width: contentWidth, height: contentViewportHeight),
+            horizontal: wantsHorizontal, context: context)
+        leaveScrollSpace(scrollSpace, context: context)
+
+        decideTabStop(
+            handler: handler, contentWidth: contentWidth,
+            contentViewportHeight: contentViewportHeight, wantsHorizontal: wantsHorizontal,
+            context: context)
+
+        // Register so the dispatchKeyEvent → handler chain is wired up; the
+        // handler's `canBeFocused` (above) keeps a non-scrollable view out of
+        // the Tab ring. When it IS focused + scrollable we highlight the
+        // scrollbar (below) so there's a visible focus indicator.
+        FocusRegistration.register(context: context, handler: handler, focusID: persistedFocusID)
+        let isFocused = FocusRegistration.isFocused(context: context, focusID: persistedFocusID)
+
+        // Drawing only — see `RenderContext.indicatesFocus(_:)`. The bars and
+        // the "N more" lines breathe as the scroll view's focus indication, so
+        // they get the gated answer; the keys and the mouse never read it. The
+        // bar memo is keyed on this value too, so a change of it redraws.
+        applyScrollChrome(
+            to: &visibleBuffer, handler: handler, contentWidth: contentWidth,
+            chrome: chrome, isFocused: context.indicatesFocus(isFocused), focusID: persistedFocusID,
+            context: context)
+
+        attachViewportMouseHandler(
+            to: &visibleBuffer, context: context, handler: handler,
+            persistedFocusID: persistedFocusID, viewportWidth: viewportWidth,
+            viewportHeight: viewportHeight, wantsHorizontal: wantsHorizontal)
+
+        finishFrame(handler, contentWidth: contentWidth, viewportHeight: contentViewportHeight, context: context)
+        return visibleBuffer
+    }
+
+    /// The viewport as the frame draws it: the window of the content at the
+    /// offset the frame settled on, after every move above — its pinned section
+    /// chrome drawn in — slid by the overscroll excursion and the alignment
+    /// anchor (``applyOverscroll(to:handler:width:clips:context:)``).
+    ///
+    /// With a sliced reply the buffer's own coordinates start at the slice
+    /// origin, so the clip offset rebases into slice space (clamped: a snap can
+    /// propose an offset a row above the slice; the next frame's slice covers
+    /// it).
+    ///
+    /// Under `scrollClipDisabled` the content's floating layers are not cut at
+    /// the viewport, and the content past it floats around the view
+    /// (``overflowLayers(of:sliceOriginY:handler:chrome:width:height:horizontal:context:)``).
+    /// That is read from the environment here, once a frame, and handed to
+    /// everything below; the framework's own scrollers do not read it, and
+    /// always clip (``ScrollView/asChrome()``).
+    func drawnViewport(
+        full fullBuffer: FrameBuffer, sliceOriginY: Int, handler: ScrollViewHandler, chrome: ScrollChrome,
+        width: Int, height: Int, horizontal: Bool, context: RenderContext
+    ) -> FrameBuffer {
+        let clips = isChrome || !context.environment.scrollClipDisabled
+        let window = windowedBuffer(
+            full: pinningSectionChrome(
+                in: fullBuffer, handler: handler, sliceOriginY: sliceOriginY, chrome: chrome,
+                contentWidth: width, context: context),
+            scrollOffset: max(0, handler.scrollOffset - sliceOriginY),
+            viewportHeight: height,
+            viewportWidth: width,
+            horizontalEnabled: horizontal,
+            horizontalOffset: handler.horizontal.scrollOffset - handler.horizontalAlignmentShift,
+            clipsLayers: clips
+        )
+        var drawn = applyOverscroll(to: window, handler: handler, width: width, clips: clips, context: context)
+        if !clips {
+            drawn.overlays += overflowLayers(
+                of: fullBuffer, sliceOriginY: sliceOriginY, handler: handler, chrome: chrome,
+                width: width, height: height, horizontal: horizontal, context: context)
+        }
+        return drawn
+    }
+
+    /// Makes this scroll view a Tab stop only when there is actually something
+    /// to scroll. Registering unconditionally made a non-overflowing ScrollView
+    /// an invisible focus trap between the real controls (Tab would land on it
+    /// with no visible indicator). Overflow is known once the content is
+    /// measured.
+    private func decideTabStop(
+        handler: ScrollViewHandler, contentWidth: Int, contentViewportHeight: Int,
+        wantsHorizontal: Bool, context: RenderContext
+    ) {
+        let hasVerticalOverflow = handler.contentHeight > contentViewportHeight
+        // From the handler, which `syncHorizontalAxis` has already set from the
+        // MEASURED content width: the buffer is a band now and its width is the
+        // widest row in it, not the widest row there is.
+        let hasHorizontalOverflow = wantsHorizontal && handler.horizontal.extent > contentWidth
+        // `.scrollDisabled` leaves no scroll command for the keys to run, so the
+        // view drops out of the Tab ring for the same reason a non-overflowing
+        // one does: a stop that can do nothing is only an obstacle.
+        handler.canBeFocused =
+            isFocusStop && !isDisabled(in: context) && handler.isScrollEnabled
+            && (hasVerticalOverflow || hasHorizontalOverflow)
+    }
+
+    /// Slides the windowed content by the overscroll excursion, blank-filling the
+    /// gap that opens and clipping the far side — the render of §1.5.
+    ///
+    /// Applied to the CONTENT only, before the chrome: pushing the content past
+    /// an edge must not carry the scrollbar or the "N more" indicators with it,
+    /// which describe the content's position rather than sitting in it. And it
+    /// is a post-hoc slide rather than an adjusted window origin precisely so
+    /// that no windowing or data-indexing arithmetic has to admit an
+    /// out-of-range offset (see ``ScrollOverscrollState``).
+    ///
+    /// `replacingLines` carries the hit-test regions and overlays along by the
+    /// same shift, so a control pushed down the screen is still clickable where
+    /// it is drawn — and the clip after it is what makes one pushed off the
+    /// viewport stop being clickable at all (see there).
+    ///
+    /// Content shorter than the viewport is drawn lower down it by the same
+    /// slide, as its alignment anchor says
+    /// (``alignmentShift(handler:viewportHeight:context:)``), and an excursion
+    /// moves it from there. The buffer is the windowed viewport, as tall as the
+    /// content window. `clips` is whether the view clips its content's layers
+    /// at the viewport — not under `scrollClipDisabled`.
+    private func applyOverscroll(
+        to buffer: FrameBuffer, handler: ScrollViewHandler, width: Int, clips: Bool, context: RenderContext
+    ) -> FrameBuffer {
+        let excursion = windowSlide(handler: handler, viewportHeight: buffer.lines.count, context: context)
+        guard excursion != 0, !buffer.lines.isEmpty else { return buffer }
+        let blank = String.spaces(max(0, width))
+        let gap = min(abs(excursion), buffer.lines.count)
+        let lines: [String] =
+            excursion < 0
+            ? Array(repeating: blank, count: gap) + buffer.lines.dropLast(gap)
+            : Array(buffer.lines.dropFirst(gap)) + Array(repeating: blank, count: gap)
+        var slid = buffer.replacingLines(
+            lines, width: width, uniformWidth: true, overlayShiftY: -excursion)
+        // `replacingLines` shifts the runs with everything else, but a slide
+        // pushes rows OUT of the viewport: a run that went with them would keep
+        // repainting, on a clock, over whatever now occupies that row — or off
+        // the buffer entirely. Kept or dropped whole, the same rule the window
+        // applies.
+        slid.animatedCells = slid.animatedCells.filter {
+            $0.offsetY >= 0 && $0.offsetY < lines.count
+        }
+        // The rest of what `replacingLines` moved is CLIPPED to the viewport, by
+        // the rules the window itself applies (`windowedBuffer`): regions and
+        // fade claims through their shared two-axis clip, layers culled and
+        // clipped through `viewportOverlay`. A translation trims nothing, and
+        // nothing above trims it either — `clamped`'s fast path hands back a
+        // buffer that fits untouched, and stacks only translate. So a push past
+        // the top left the rows it slid off the BOTTOM with their regions on the
+        // lines below the scroll view (a push past the bottom, above it): a
+        // click on whatever was drawn there pressed a control no longer drawn,
+        // and its fade claim faded that neighbour. `List` and `Table` get this
+        // from `ScrollOverscrollState.slidRange`, which drops a row pushed off.
+        // Clipped rather than dropped, like the window's, so a control half
+        // pushed off stays clickable over the half still drawn.
+        let viewportRows = 0..<lines.count
+        let viewportColumns = 0..<max(0, width)
+        slid.hitTestRegions = slid.hitTestRegions.compactMap {
+            $0.clipped(toColumns: viewportColumns, rows: viewportRows)
+        }
+        slid.opacityRegions = slid.opacityRegions.compactMap {
+            $0.clipped(toColumns: viewportColumns, rows: viewportRows)
+        }
+        slid.overlays = slid.overlays.compactMap {
+            viewportOverlay($0, shiftedByX: 0, y: 0, width: max(0, width), height: lines.count, clips: clips)
+        }
+        return slid
+    }
+
+    /// Composes the scroll chrome over the windowed content: the "N more
+    /// above/below" indicators — which replace the first/last line rather
+    /// than adding height (they're a hint, not extra content), and which a
+    /// scrollbar supersedes (it shows the same thing more precisely, so the
+    /// two are mutually exclusive) — then the trailing vertical scrollbar
+    /// column and the bottom horizontal bar, each made interactive (arrows /
+    /// track / thumb drag).
+    /// The chrome this frame draws, and what it leaves the content.
+    ///
+    /// One place, because the three answers are one decision and every one of
+    /// them is subtracted from the space the content gets: a vertical bar takes a
+    /// column, a horizontal bar takes a row, and — under `.visible` — the two
+    /// "N more" lines take a row each.
+    private func resolveChrome(
+        viewportWidth: Int, viewportHeight: Int, wantsHorizontal: Bool, knownHorizontalBar: Bool,
+        textLines: TextIndicatorLines, handler: ScrollViewHandler, context: RenderContext
+    ) -> (
+        chrome: ScrollChrome, contentWidth: Int, contentViewportHeight: Int,
+        settled: (width: Int, height: Int)?
+    ) {
+        // `textLines` is the pair at this viewport, as `viewport(_:)` decided
+        // the content's container by it.
+        //
+        // Read around the measures that decide the bars, which are the ones the
+        // hint is for: see `ScrollViewHandler.contentWalksNestedStacks`.
+        let nestedWalksBefore = context.renderCache?.nestedStackWalks
+        let bars = resolveScrollbars(
+            viewportWidth: viewportWidth, viewportHeight: viewportHeight,
+            horizontal: wantsHorizontal, knownHorizontalBar: knownHorizontalBar, textLines: textLines,
+            lastContentHeight: handler.contentHeight,
+            contentWalksNestedStacks: handler.contentWalksNestedStacks, context: context)
+        if let nestedWalksBefore, context.renderCache?.nestedStackWalks != nestedWalksBefore {
+            handler.contentWalksNestedStacks = true
+        }
+        // Fitted to the viewport BEFORE the reservation takes anything out of
+        // it. The floor used to be applied afterwards, at the draw site, to the
+        // content window, which under `.visible` the reservation had already made
+        // two lines shorter. A four-line view reserved two lines, found two left,
+        // declined to draw the pair, and never gave the two lines back.
+        //
+        // Under `.visible` both "N more" lines are drawn at EVERY offset, so
+        // they are chrome and come out of the viewport once — the way a
+        // horizontal bar's row does, and the way `List` and `Table` take them
+        // out of their row budget. Under `.automatic` they are a hint that comes
+        // and goes, and the line an indicator covers is one the reader reaches at
+        // a neighbouring offset; that path still writes over the edge lines. See
+        // `reservingScrollIndicators(around:…)` for what went wrong when
+        // `.visible` wrote over them too.
+        // A bar's indicator margin across its axis is cells the bar moves in
+        // by, which come out of the content with the bar's own.
+        let indicatorMargins = indicatorMargins(context)
+        let text = textLines.fitted(
+            viewportHeight: viewportHeight - (bars.horizontal ? indicatorMargins.bottom : 0),
+            horizontalBar: bars.horizontal)
+        let contentViewportHeight = text.contentHeight
+        handler.viewportHeight = contentViewportHeight
+        let chrome = ScrollChrome(
+            verticalBar: bars.vertical, horizontalBar: bars.horizontal,
+            textIndicators: text.drawn, reservesIndicatorLines: text.reserved,
+            indicatorMargins: indicatorMargins)
+        // …and NOT counted twice: the inset is what tells `pageDistance` that an
+        // indicator eats into the viewport it can see. Reserved, the lines are
+        // already outside it. That is the whole of `ScrollChrome.edgeInset`'s
+        // answer, and the seek, the content window and the reveal read it too.
+        handler.textIndicatorInset = chrome.edgeInset
+        let contentWidth = max(
+            1, viewportWidth - (bars.vertical ? context.environment.scrollbarWidth + indicatorMargins.trailing : 0))
+        // Where narrow content sits across the window, decided with the window.
+        handler.horizontalAlignmentShift = horizontalAlignmentShift(
+            contentWidth: contentWidth, viewportHeight: contentViewportHeight, context: context)
+        return (chrome, contentWidth, contentViewportHeight, bars.settled)
+    }
+
+    /// What chrome a frame draws around its content: the two bars, whether the
+    /// "N more" lines are drawn, and whether they are reserved out of the
+    /// viewport rather than written over its edges. One value because they are
+    /// one decision, taken together at the top of the render and consumed
+    /// together at the bottom.
+    struct ScrollChrome {
+        let verticalBar: Bool
+        let horizontalBar: Bool
+        /// Whether the "N more" lines are drawn at all. Already fitted to the
+        /// viewport, so no consumer downstream re-applies the three-line floor
+        /// to a height of its own.
+        let textIndicators: Bool
+        let reservesIndicatorLines: Bool
+        /// The bars' content margins (``indicatorMargins(_:)``): where along
+        /// their axis they are drawn, and how far in across it.
+        var indicatorMargins = EdgeInsets()
+
+        /// Whether the "N more" lines are drawn OVER the viewport's first and
+        /// last content line: the one arrangement in which those lines are on
+        /// the canvas but not on the screen. `textIndicators` alone is not
+        /// enough: reserved, the pair sits outside the content window, and every
+        /// line of that window is readable.
+        var overwritesEdgeLines: Bool { textIndicators && !reservesIndicatorLines }
+
+        /// One line of headroom per edge while `overwritesEdgeLines`, else `0`.
+        ///
+        /// This is the single statement of it. The seek stamps it, the content
+        /// window carries it to the `.scrollPosition` sample and to a designated
+        /// anchor's clamp, and `pageDistance` reads it, so no one of them can keep
+        /// a row out from under an indicator while another does not. It used to
+        /// mean "the text indicators are drawn", which under `.visible` charged a
+        /// line the reservation had already taken out: a `.top` seek landed its
+        /// row on the second content line, and a bound position reported the
+        /// row below the one at the top.
+        var edgeInset: Int { overwritesEdgeLines ? 1 : 0 }
+    }
+
+    private func applyScrollChrome(
+        to visibleBuffer: inout FrameBuffer, handler: ScrollViewHandler, contentWidth: Int,
+        chrome: ScrollChrome, isFocused: Bool, focusID persistedFocusID: String,
+        context: RenderContext
+    ) {
+        // Indicators REPLACE viewport lines, so a 1-2 line viewport scrolled
+        // mid-content would be 100% chrome — "▼ N more below" as the entire
+        // view, with the content it advertises never visible at any offset.
+        // Content always wins the last lines: indicators need 3+ rows (both
+        // may show and at least one content line survives). Reserved, they are
+        // not competing with the content for lines at all, but the floor still
+        // holds: two of three lines as chrome is the same bad picture.
+        //
+        // The floor is `chrome.textIndicators`, applied to the viewport in
+        // `resolveChrome`. It is NOT `visibleBuffer.height` tested here: that is
+        // the content window, which under `.visible` is already two lines short
+        // of the viewport the floor is about, so testing it declined to draw the
+        // pair into the very lines reserved for it. Unreserved, the two heights
+        // are one number, which is why `.automatic` draws exactly what it did.
+        //
+        // A flash (`scrollIndicatorsFlash`) is asked once, for whichever of the
+        // indicators below are drawn, and only when one is.
+        let flash =
+            chrome.textIndicators || chrome.verticalBar || chrome.horizontalBar
+            ? pageIndicatorFlash(handler, context: context) : nil
+        if chrome.textIndicators {
+            visibleBuffer = applyScrollIndicators(
+                to: visibleBuffer,
+                handler: handler,
+                width: contentWidth,
+                palette: context.environment.palette,
+                surface: context.environment.enclosingSurface,
+                // A CYCLE, not this tick's colour: the indicator hands its
+                // cells to the run loop and reads no clock (see
+                // `AnimatedCellRun`). Still only when one will be drawn —
+                // building a cycle is cheap but not free, and a scroll view
+                // that scrolls only horizontally has no vertical indicators.
+                cycle: chrome.reservesIndicatorLines || handler.hasContentAbove || handler.hasContentBelow
+                    ? scrollIndicatorCycle(isFocused: isFocused, context: context) : nil,
+                flash: flash,
+                locale: context.environment.locale,
+                // Reserved is drawn at every offset: the two are one answer.
+                always: chrome.reservesIndicatorLines,
+                reserving: chrome.reservesIndicatorLines
+            )
+            attachIndicatorMouseHandlers(
+                to: &visibleBuffer, contentWidth: contentWidth,
+                handler: handler, context: context)
+        }
+        if chrome.verticalBar {
+            visibleBuffer = appendVerticalScrollbar(
+                to: visibleBuffer, contentWidth: contentWidth, margins: chrome.indicatorMargins,
+                handler: handler, isFocused: isFocused, flash: flash, context: context)
+            attachScrollbarMouseHandler(
+                to: &visibleBuffer, contentWidth: contentWidth, margins: chrome.indicatorMargins,
+                handler: handler, focusID: persistedFocusID, context: context)
+        }
+        if chrome.horizontalBar {
+            visibleBuffer = appendHorizontalScrollbar(
+                to: visibleBuffer, contentWidth: contentWidth, margins: chrome.indicatorMargins,
+                hasVerticalBar: chrome.verticalBar, handler: handler,
+                isFocused: isFocused, flash: flash, context: context)
+            attachHorizontalScrollbarMouseHandler(
+                to: &visibleBuffer, contentWidth: contentWidth, margins: chrome.indicatorMargins,
+                handler: handler, focusID: persistedFocusID, context: context)
+        }
+    }
+
+    /// Registers the viewport-wide mouse handler + its hit region. The handler:
+    ///   - scrolls on the wheel — vertically, and horizontally (a native
+    ///     horizontal wheel, or shift + vertical wheel) when horizontal is enabled;
+    ///   - focuses the ScrollView on a left release so the keyboard scroll keys
+    ///     reach it without the user having to Tab to it.
+    /// The region is inserted at the front of the array so any interactive child
+    /// inside the content still wins its clicks (this is the fall-through).
+    @MainActor
+    private func attachViewportMouseHandler(
+        to buffer: inout FrameBuffer, context: RenderContext, handler: ScrollViewHandler,
+        persistedFocusID: String, viewportWidth: Int, viewportHeight: Int, wantsHorizontal: Bool
+    ) {
+        guard !context.isMeasuring,
+              let mouseDispatcher = context.environment.mouseEventDispatcher,
+              !isDisabled(in: context)
+        else { return }
+        let captureHandler = handler
+        let focusManager = context.environment.focusManager
+        let captureFocusID = persistedFocusID
+        let captureHorizontal = wantsHorizontal
+        let viewportHandler: (MouseEvent) -> Bool = { event in
+            // Shift + vertical wheel IS the horizontal gesture, decided before
+            // the vertical capture gets a look: the vertical handler consumes
+            // .scrollUp/.scrollDown without ever reading the shift bit, so
+            // ordering this after it made the documented gesture unreachable
+            // whenever the vertical axis could still move — the user could
+            // only pan sideways by first riding the vertical axis to an edge.
+            // Rewritten onto the horizontal wheel path, not scrolled by hand,
+            // so the edge-chaining and no-op-not-consumed rules hold for it.
+            if captureHorizontal, event.shift,
+                event.button == .scrollUp || event.button == .scrollDown
+            {
+                let sideways = MouseEvent(
+                    button: event.button == .scrollUp ? .scrollLeft : .scrollRight,
+                    phase: event.phase, x: event.x, y: event.y,
+                    shift: event.shift, ctrl: event.ctrl, meta: event.meta,
+                    clickCount: event.clickCount)
+                return captureHandler.horizontal.handleHorizontalWheelEvent(sideways)
+            }
+            if captureHandler.handleWheelEvent(event) { return true }
+            if captureHorizontal {
+                if captureHandler.horizontal.handleHorizontalWheelEvent(event) { return true }
+            }
+            if event.button == .left {
+                switch event.phase {
+                case .pressed:
+                    return true
+                case .released:
+                    focusManager?.focus(id: captureFocusID)
+                    return true
+                default:
+                    return false
+                }
+            }
+            return false
+        }
+        // The wheel scrolls a scroll view that does not hold the focus, and
+        // nothing about that is a `@State` write: reported, or the row around
+        // it is served where it was stored.
+        let mouseHandlerID = mouseDispatcher.register(
+            in: context, reportingChangesTo: { captureHandler.drawnPositions }, viewportHandler)
+        // The viewport acts on a left CLICK (the focus, at the release) and on
+        // nothing else a left press does: its press is held until it shows
+        // whether it is one (`PressRole`).
+        mouseDispatcher.filePressRole(.background, for: mouseHandlerID, in: context)
+        // The ScrollView's focusID rides on this region: it is how an
+        // ENCLOSING ScrollView locates a focused embedded ScrollView to
+        // scroll it into view (`snapViewportToFocusedControl` scans regions
+        // by focusID — the same rule Table and List follow).
+        buffer.hitTestRegions.insert(
+            HitTestRegion(
+                offsetX: 0, offsetY: 0, width: viewportWidth, height: viewportHeight,
+                handlerID: mouseHandlerID,
+                focusID: persistedFocusID),
+            at: 0
+        )
+        // Register this viewport as a drag auto-scroll zone (sharing the region
+        // id, so the driver can read its absolute rect): a drag hovering near an
+        // edge scrolls the content to bring an off-screen drop target into view.
+        // Auto-scroll is a gesture, so `.scrollDisabled` withholds the zone —
+        // the drop targets that are visible stay droppable, the rest stay out of
+        // reach, which is what pinning the view means.
+        guard context.environment.isScrollEnabled else { return }
+        context.environment.dragAndDropSession?.registerAutoScrollZone(
+            DragAndDropSession.AutoScrollZone(
+                handlerID: mouseHandlerID,
+                vertical: handler,
+                horizontal: wantsHorizontal ? handler.horizontal : nil,
+                delayNanos: context.environment.dragAutoScrollDelay.clampedNanoseconds,
+                shiftStep: context.environment.shiftStepMultiplier),
+            in: context)
+    }
+
+    /// Resolves which scrollbars to reserve this frame, from the CURRENT content's
+    /// measured extents, to a monotonic fixpoint.
+    ///
+    /// Each bar steals one cell (vertical → trailing column, horizontal → bottom
+    /// row), shrinking the area the content lays into — which, for a `.viewport`-fit
+    /// image, resizes the image and can tip the OTHER axis over — so we re-measure
+    /// after each reservation. Bars are only ever ADDED within the pass, never
+    /// dropped because the content then fits the reduced area: dropping is exactly
+    /// what oscillates (bar → fits → no bar → overflows → bar → …). Measuring is
+    /// side-effect-free (`measureChild`), so this never double-fires the content's
+    /// effects; the content is rendered once, afterwards, at the resolved size.
+    /// `.visible` forces that axis's bar on, `.hidden`/`.never` force it off.
+    ///
+    /// Also returns the extents it settled on, when they were measured against
+    /// the dimensions the reservation finally chose. That is the same question
+    /// `renderedContent` asks next, at the same numbers, and answering it is a
+    /// walk of ``measureNaturalExtent``'s budget ladder over the whole content
+    /// — the single most expensive thing a scrolling page does. `nil` when the
+    /// loop ran out of rounds with the flags still moving (its extents then
+    /// describe dimensions that are no longer the answer), and on the
+    /// non-`.automatic` path, which measures nothing.
+    ///
+    /// The first round's extents are read only when the content fits. When it
+    /// overflows, the vertical bar takes a column and the next round measures
+    /// again, narrower; the first round's width is then drawn nowhere, and its
+    /// ladder climbed for nothing — for a lazy stack past the windowing
+    /// threshold, one asking of its sampled rows per rung, and a rung per factor
+    /// of eight past 4,096 lines. So on a view that scrolls only vertically, a
+    /// round that can only ADD the vertical bar asks first whether the content
+    /// overflows at all, at the ladder's first rung and no further
+    /// (``contentOverflowsCanvas(contentWidth:viewportHeight:oneLinePast:context:)``): a
+    /// yes reserves the bar and moves on; a no measures the ladder as before,
+    /// and its answer decides. Content that is, by its type, an eager column
+    /// is asked the same question with the overflow mark, and stops measuring
+    /// its rows a line past the viewport (see there). For content this view
+    /// has seen walk a nested lazy stack (`contentWalksNestedStacks`) it asks
+    /// one line past the
+    /// viewport instead: at the rung each such stack walks every row it
+    /// holds, and there each stops a screenful in (see
+    /// `contentOverflowsCanvas`). Not on a view that also scrolls
+    /// horizontally, whose horizontal bar reads the round's measured WIDTH. And only when the
+    /// content overflowed as the handler last recorded it (`lastContentHeight`)
+    /// — at the latest render of this view. That is the previous frame's last
+    /// draw, unless another render of this view came after that draw: a
+    /// measuring one, or a frame's walk redone at a corrected header height
+    /// (`RenderLoop` walks a frame again when the app header's height differs
+    /// from its estimate, and the walk it throws away writes the hint too).
+    /// Then it is that render's. For content that fits, the question is the
+    /// ladder's first rung asked twice, and the second ask is served the first
+    /// only where the pass's memo keeps it — not for content that reads the
+    /// viewport, as an image fitted to it does, nor anywhere else the memo
+    /// declines to keep a measure. Asked on every frame, such content was
+    /// measured twice at that width where it had been once, for an answer that
+    /// is almost always the last pass's.
+    ///
+    /// - Parameter textLines: The "N more" pair's claim on the height, so each
+    ///   round measures at the content window the render will publish — the
+    ///   viewport less the bar's row AND the two lines `.visible` reserves.
+    /// - Parameter lastContentHeight: The content's height as
+    ///   ``ScrollViewHandler/contentHeight`` holds it — NOT a record of what was
+    ///   last drawn: every render of this view writes it, a measuring render
+    ///   (`context.isMeasuring`) as well as the drawn one, so it is what the
+    ///   view's latest render found, at whatever size that render was offered.
+    ///   That is the previous frame's last draw, unless another render of
+    ///   this view came after that draw — a measuring one, or a frame's walk
+    ///   redone at a corrected header height, whose thrown-away walk writes it
+    ///   too — and then it is that render's. It decides which question the
+    ///   first round asks first, never the answer; `0`, the default and what
+    ///   the ideal-size ask passes, never asks the shortcut.
+    /// - Parameter contentWalksNestedStacks:
+    ///   ``ScrollViewHandler/contentWalksNestedStacks``: whether the measures
+    ///   that decided this view's bars have seen its content walk a lazy stack
+    ///   nested in it. It
+    ///   picks the budget the shortcut asks at — one line past the viewport
+    ///   rather than the ladder's first rung — never the answer, which a yes
+    ///   at either budget decides and a no at either leaves to the ladder.
+    ///
+    /// Internal rather than private for ``idealSize(proposal:context:)``,
+    /// which asks a horizontally scrolling view the same question on the
+    /// measure side.
+    func resolveScrollbars(
+        viewportWidth: Int, viewportHeight: Int, horizontal: Bool, knownHorizontalBar: Bool = false,
+        textLines: TextIndicatorLines, lastContentHeight: Int = 0,
+        contentWalksNestedStacks: Bool = false, context: RenderContext
+    ) -> (vertical: Bool, horizontal: Bool, settled: (width: Int, height: Int)?) {
+        let verticalPolicy = context.environment.verticalScrollIndicatorVisibility
+        let horizontalPolicy = context.environment.horizontalScrollIndicatorVisibility
+        // Only the scrollbar style reserves a COLUMN on the vertical axis; the
+        // text indicators take lines, not a column — written over the edge lines
+        // and decided after the render from what is actually hidden, or under
+        // `.visible` reserved, which `textLines` answers for in the probe below.
+        // The horizontal axis has no text form, so its bar stands whatever the
+        // style says.
+        let verticalBar = context.environment.scrollIndicatorStyle == .scrollbar
+        var wantsScrollbar = verticalBar && verticalPolicy == .visible
+        // A bar known before the content's container was published — a
+        // pager's `.automatic` one decided by a measure of its own
+        // (`horizontalBarDecidedFirst`) — stands from the first round, as a
+        // `.visible` one does: its row is already off the container.
+        var wantsHorizontalBar = horizontal && (horizontalPolicy == .visible || knownHorizontalBar)
+        // Only an axis that asked to be told whether it overflows is worth
+        // measuring for, and measuring is the expensive part — so a view with
+        // `.visible` down one side and nothing on the other still measures
+        // nothing at all, and neither does one whose bars are hidden or whose
+        // vertical indicator is the text form.
+        let measuresVertical = verticalBar && verticalPolicy == .automatic
+        let measuresHorizontal = horizontal && horizontalPolicy == .automatic
+        guard measuresVertical || measuresHorizontal else {
+            return (wantsScrollbar, wantsHorizontalBar, nil)
+        }
+        var settled: (width: Int, height: Int)?
+        let indicatorMargins = indicatorMargins(context)
+        // ≤2 reservations (one per axis) ⇒ converges in ≤3 measure rounds.
+        for _ in 0..<3 {
+            let probeWidth = max(
+                1, viewportWidth - (wantsScrollbar ? context.environment.scrollbarWidth + indicatorMargins.trailing : 0))
+            // What `resolveChrome` will leave the content at these bars, and not
+            // just the bar's row: a round that changes nothing hands its extents
+            // to the render, which fills them.
+            let probeHeight = textLines.fitted(
+                viewportHeight: viewportHeight - (wantsHorizontalBar ? indicatorMargins.bottom : 0),
+                horizontalBar: wantsHorizontalBar
+            ).contentHeight
+            // Does the content overflow at all? A yes needs no climb (see
+            // above). Not on a view that also scrolls horizontally: its
+            // horizontal bar reads this round's measured WIDTH. Nor for content
+            // that fitted at the last render of this view, for which the
+            // question can be a second measure.
+            if measuresVertical, !wantsScrollbar, !horizontal, lastContentHeight > probeHeight,
+                contentOverflowsCanvas(
+                    contentWidth: probeWidth, viewportHeight: probeHeight,
+                    oneLinePast: contentWalksNestedStacks, context: context)
+            {
+                wantsScrollbar = true
+                continue
+            }
+            let extents = contentExtents(
+                contentWidth: probeWidth, viewportHeight: probeHeight,
+                horizontal: horizontal, context: context)
+            var changed = false
+            if measuresVertical, !wantsScrollbar, extents.height > probeHeight {
+                wantsScrollbar = true
+                changed = true
+            }
+            if measuresHorizontal, !wantsHorizontalBar, extents.width > probeWidth {
+                wantsHorizontalBar = true
+                changed = true
+            }
+            // Only a round that changed nothing measured the dimensions the
+            // caller is about to render at.
+            if !changed {
+                settled = extents
+                break
+            }
+        }
+        return (wantsScrollbar, wantsHorizontalBar, settled)
+    }
+}
+
+// MARK: - Disabled state
+
+extension _ScrollViewCore {
+    /// Whether this scroll view is disabled, counting an ancestor's
+    /// `.disabled(true)`.
+    ///
+    /// The third of the three containers that read neither `\.isEnabled` nor
+    /// anything derived from it — see ``_ListCore/isDisabled(in:)`` for why
+    /// their own concrete `disabled(_:)` overload hid it.
+    func isDisabled(in context: RenderContext) -> Bool {
+        isDisabled || !context.environment.isEnabled
+    }
+}

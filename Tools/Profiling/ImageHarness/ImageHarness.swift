@@ -1,12 +1,12 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ImageHarness.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Foundation
-import TUIkitImage
-import TUIkitStyling
+import TUIImage
+import TUIStyling
 
 //  Mode A profiling harness for the IMAGE pipeline (see
 //  Tools/Profiling/README.md).

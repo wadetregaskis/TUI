@@ -107,7 +107,7 @@ over the view". Shipped, read as the hover machine reads its observers:
   .draggable(item)` shows the open hand. It still covers what is behind it,
   and a control inside it what that control covers.
 - A style the app set **beats a control's own shape** (B-O12-6), even one set
-  further out: the app asked for it, and the control's is TUIkit's guess.
+  further out: the app asked for it, and the control's is TUI's guess.
 - `nil` sets none, and a view inside **`.disabled(true)`** shows none (as an
   `.onHover` there hears nothing): a resize arrow or a hand over a view that
   cannot be acted on says that it can.
@@ -185,7 +185,7 @@ so an app sets it in its `init` (the hyperlink override is live; making this
 one live costs an `onChange` path through the context, an hour, and nothing
 has asked for it).
 
-### B-O12-6. TUIkit's own controls' shapes are built, and off until a host's reset is read
+### B-O12-6. TUI's own controls' shapes are built, and off until a host's reset is read
 
 *`MouseEventDispatcher.fileControlPointerShape(_:for:in:)`,
 `TerminalFeatures.controlPointerShapes`*

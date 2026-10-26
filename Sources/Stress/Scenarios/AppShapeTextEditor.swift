@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  AppShapeTextEditor.swift
 //
 //  A notes app's editor over a long document: what a TextEditor costs a frame
@@ -7,7 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// One `TextEditor` over two thousand lines of prose, each a tenth longer than
 /// the 120-cell screen the bench draws, so every line overflows the editor.

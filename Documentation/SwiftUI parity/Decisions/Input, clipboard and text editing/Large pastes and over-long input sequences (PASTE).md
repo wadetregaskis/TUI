@@ -65,7 +65,7 @@ the terminal already holds. So the limit capped the parser's memory by
 refusing the user's paste, and the memory it saved is the memory that
 delivering the paste takes.
 
-**What a paste of N bytes costs inside TUIkit**, before the app has it:
+**What a paste of N bytes costs inside TUI**, before the app has it:
 
 - The input buffer grows by half whenever it is full, so it ends at most
   1.5 N, and while it grows its old storage and its new one are both alive.
@@ -205,7 +205,7 @@ now 16 KiB for a CSI and 64 KiB for the string families (below).
 nature, as an OSC 52 answer might be. Past the limit nothing is typed, so
 the limit decides how much of a sequence is held before the rest is skipped,
 and with it whether a CSI that long is read (a key) or dropped. Every reply
-TUIkit asks for or is sent, and the longest each runs to:
+TUI asks for or is sent, and the longest each runs to:
 
 | Reply | Why it comes | Longest |
 |---|---|---|
@@ -220,10 +220,10 @@ TUIkit asks for or is sent, and the longest each runs to:
 | the appearance, `CSI ? 997 ; Ps n` | sent unasked while mode 2031 is on | 10 bytes |
 | graphics, `APC G …;OK` or an error in words | each image transmitted, unless it says `q=2` | about 100 bytes: Warp's error is sixty characters, iTerm2's some eighty |
 | a key with its text, `CSI … ; … ; text u` | the kitty keyboard protocol, `reportAssociatedText` | 8 bytes a character typed |
-| focus, mouse, paste markers | the modes TUIkit turns on | under 20 bytes |
-| a clipboard answer, `OSC 52 ; c ; base64 ST` | nothing TUIkit sends | unbounded |
+| focus, mouse, paste markers | the modes TUI turns on | under 20 bytes |
+| a clipboard answer, `OSC 52 ; c ; base64 ST` | nothing TUI sends | unbounded |
 
-TUIkit sends no DA3, no cursor-position report (`CSI 6 n`), no OSC 12 and no
+TUI sends no DA3, no cursor-position report (`CSI 6 n`), no OSC 12 and no
 DCS question (XTGETTCAP, DECRQSS: Apple Terminal prints a DCS rather than
 parse it, `Documentation/Terminals/Terminal compatibility survey.md`).
 
@@ -240,12 +240,12 @@ parse it, `Documentation/Terminals/Terminal compatibility survey.md`).
   sequence is swallowed whole within the limit and skipped past it, which
   comes to the same for the app.
 - **OSC 52 is the one reply unbounded by nature**: the base64 of whatever
-  the clipboard holds. TUIkit asks for none. It reads the clipboard through
+  the clipboard holds. TUI asks for none. It reads the clipboard through
   the platform's tools (`SystemClipboard`), and a terminal's own paste comes
   bracketed (B-PASTE-1). So an OSC 52 answer here answers another program's
   question, and the limit and its skip suit it: it is dropped either way,
   and held only up to 64 KiB. `OverlongSequenceTests` skips one of a
-  mebibyte whole. Were TUIkit to read the clipboard by OSC 52 (a paste over
+  mebibyte whole. Were TUI to read the clipboard by OSC 52 (a paste over
   ssh, say, where the platform's tools read the far machine's clipboard),
   that answer would have to be read as a paste is, whole, with no limit.
 
@@ -261,7 +261,7 @@ off for the walk and put back, which moves the front, so that walk starts
 over every pass, and one arriving a byte a read still costs its length
 squared over two, some 134 million byte checks at 16 KiB, at most 16 K a
 pass. Only the Escape key pressed straight before a sequence puts a prefix
-there, and every sequence TUIkit expects is under a hundred bytes but a key
+there, and every sequence TUI expects is under a hundred bytes but a key
 report carrying a long text. Resuming there too would take the prefix's
 offset carried through every walk; not done (review round 1 of lane PASTE2
 found the first version of this paragraph claiming every walk resumes).

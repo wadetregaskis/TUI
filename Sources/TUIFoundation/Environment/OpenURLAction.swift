@@ -1,0 +1,264 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  OpenURLAction.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import Foundation
+import TUICore
+
+// MARK: - Open URL Action
+
+/// An action that opens a URL, mirroring SwiftUI's `OpenURLAction`.
+///
+/// Read it from the environment with `@Environment(\.openURL)` and call it like
+/// a function. It backs ``Link``, and can be called directly:
+///
+/// ```swift
+/// struct HelpButton: View {
+///     @Environment(\.openURL) private var openURL
+///
+///     var body: some View {
+///         Button("Docs") { openURL(URL(string: "https://example.com")!) }
+///     }
+/// }
+/// ```
+///
+/// The default action hands the URL to the operating system's opener — `open`
+/// on macOS, `xdg-open` on Linux — but that opener is OFF unless the session
+/// has been declared local: over ssh it would run on the wrong machine, and
+/// the framework cannot tell which machine it is on (3a96d8fc). A tool that
+/// knows it is local turns it on through ``TerminalClient/urlOpeningSupport``,
+/// and `TUIKIT_OPEN_URLS=1` lets a user answer for their own session. Only a
+/// running app reaches the opener at all — an action read from its
+/// environment, or one the app makes itself and calls directly: a headless
+/// run, a snapshot or a test launches nothing, whatever the setting. A
+/// ``Link`` shows its destination in a popover either way, and carries an
+/// OSC 8 hyperlink for the terminal — which IS on the user's machine — to
+/// open. Override the action for a scope by putting a custom one in the
+/// environment:
+///
+/// ```swift
+/// content.environment(\.openURL, OpenURLAction { url in log("would open \(url)") })
+/// ```
+///
+/// Both handler forms ship: SwiftUI's `(URL) -> Result`, and a `(URL) -> Void`
+/// convenience with no SwiftUI counterpart for the common case of a handler
+/// that always handles.
+public struct OpenURLAction: Sendable {
+    /// What a custom handler did with the URL.
+    ///
+    /// The reason a handler returns something rather than returning nothing:
+    /// **`systemAction` lets it decline**. An app that wants to intercept its
+    /// own scheme and leave every other URL alone has no way to say so
+    /// otherwise — it would have to re-implement the system opener to hand the
+    /// rest on, and then it is the thing deciding what "open" means for URLs it
+    /// never wanted.
+    ///
+    /// A struct with static members rather than an enum, matching SwiftUI, so
+    /// cases can be added without breaking a `switch` nobody should be writing
+    /// over it anyway.
+    public struct Result: Sendable, Equatable {
+        /// What the action does after the handler returns.
+        enum Disposition: Sendable, Equatable {
+            /// Nothing: the handler dealt with it.
+            case handled
+            /// Nothing: the handler decided it should not be opened.
+            case discarded
+            /// Hand this URL to the system opener.
+            case system(URL?)
+        }
+
+        let disposition: Disposition
+
+        /// The handler opened the URL itself.
+        public static let handled = Self(disposition: .handled)
+
+        /// The URL should not be opened at all.
+        public static let discarded = Self(disposition: .discarded)
+
+        /// Let the system open the URL the handler was given.
+        public static let systemAction = Self(disposition: .system(nil))
+
+        /// Let the system open a DIFFERENT URL — a rewrite, most usefully:
+        /// canonicalise or sign a link and hand the result on.
+        ///
+        /// - Parameter url: The URL to open instead.
+        /// - Returns: A result deferring to the system opener.
+        public static func systemAction(_ url: URL) -> Self {
+            Self(disposition: .system(url))
+        }
+
+        /// Let the system open the URL, or `url` instead, preferring an in-app
+        /// browser.
+        ///
+        /// A terminal app has no in-app browser — nor has a macOS one, where
+        /// SwiftUI opens the default browser too — so this is
+        /// ``systemAction(_:)``.
+        ///
+        /// - Parameters:
+        ///   - url: The URL to open instead, or `nil` for the one given.
+        ///   - prefersInApp: Whether an in-app browser is preferred.
+        /// - Returns: A result deferring to the system opener.
+        public static func systemAction(_ url: URL? = nil, prefersInApp: Bool) -> Self {
+            Self(disposition: .system(url))
+        }
+    }
+
+    private let handler: @Sendable (URL) -> Result
+
+    /// This machine's opener, for a handler that defers to the system: the one
+    /// the environment this action was read from carries
+    /// (``EnvironmentValues/urlOpener``), set by that read. `nil` for an
+    /// action read from an environment no context reached, or never read from
+    /// one — an action the app made itself — which defers instead to the
+    /// running app's opener (``TerminalURLOpening/runLoopOpener``), and
+    /// outside a running app launches nothing.
+    var systemOpener: (any URLOpenerBackend)?
+
+    /// Creates an open-URL action with a custom handler — SwiftUI's spelling.
+    ///
+    /// - Parameter handler: A closure invoked with the URL to open, returning
+    ///   what it did with it.
+    public init(handler: @escaping @Sendable (URL) -> Result) {
+        self.handler = handler
+    }
+
+    /// Creates an open-URL action from a handler that always handles.
+    ///
+    /// No SwiftUI counterpart, and kept because it is what most overrides
+    /// actually want to say — a logger, a redirect to an in-app help screen.
+    /// Returning nothing is the same statement as returning ``Result/handled``.
+    ///
+    /// - Parameter handler: A closure invoked with the URL to open.
+    @_disfavoredOverload
+    public init(handler: @escaping @Sendable (URL) -> Void) {
+        self.handler = { url in
+            handler(url)
+            return .handled
+        }
+    }
+
+    /// Opens the URL. Equivalent to writing `openURL(url)`.
+    ///
+    /// - Parameter url: The URL to open.
+    public func callAsFunction(_ url: URL) {
+        _ = open(url)
+    }
+
+    /// Opens the URL, and reports whether it could.
+    ///
+    /// `completion` is `true` when a handler dealt with the URL or the system
+    /// opener was started for it, and `false` when a handler discarded it or
+    /// no opener could run — over ssh, say (see `TerminalURLOpening`).
+    ///
+    /// - Parameters:
+    ///   - url: The URL to open.
+    ///   - completion: Called once it is known whether the URL can be opened.
+    public func callAsFunction(_ url: URL, completion: @escaping (Bool) -> Void) {
+        completion(open(url))
+    }
+
+    /// Opens the URL, preferring an in-app browser.
+    ///
+    /// A terminal app has no in-app browser, as a macOS app has none, so this
+    /// opens the URL as ``callAsFunction(_:)`` does.
+    ///
+    /// - Parameters:
+    ///   - url: The URL to open.
+    ///   - prefersInApp: Whether an in-app browser is preferred.
+    public func callAsFunction(_ url: URL, prefersInApp: Bool) {
+        _ = open(url)
+    }
+
+    /// Opens `url` as the handler says, returning whether it was accepted.
+    private func open(_ url: URL) -> Bool {
+        switch result(for: url).disposition {
+        case .handled:
+            return true
+        case .discarded:
+            return false
+        case .system(let replacement):
+            return systemOpen(replacement ?? url)
+        }
+    }
+
+    /// What the handler says to do with `url`, without doing it.
+    ///
+    /// The test seam, and it has to exist because the alternative is not
+    /// testable: deferring to the system opener LAUNCHES A PROCESS, so a case
+    /// that called the action could only assert what did not happen. Internal —
+    /// an app has no use for the answer, having just written the handler that
+    /// produces it.
+    func result(for url: URL) -> Result {
+        handler(url)
+    }
+
+    /// Hands `url` to this machine's opener, where opening URLs is on at all:
+    /// the one that came with the action (``systemOpener``), else the running
+    /// app's (``TerminalURLOpening/runLoopOpener``). Returns whether the
+    /// opener took it: `false` with the gate closed, and where there is no
+    /// opener — no context's came with the action and no app is running — so
+    /// nothing was launched.
+    @discardableResult
+    func systemOpen(_ url: URL) -> Bool {
+        // Not unless something said this machine is the user's. The opener
+        // runs HERE, and over ssh "here" is the server: either headless, where
+        // the launch is a silent no-op, or somebody's desktop, where the URL
+        // lands in front of a person who did not ask for it. The framework
+        // cannot tell which — `SSH_*` is reliable when present and proves
+        // nothing when absent, and a multiplexer session outlives the hop that
+        // started it — so it declines and the destination is shown instead.
+        // See ``TerminalClient/urlOpeningSupport`` and ``LinkDisplay``.
+        guard TerminalURLOpening.isEnabled,
+            let opener = systemOpener ?? TerminalURLOpening.runLoopOpener
+        else { return false }
+        return opener.open(url)
+    }
+}
+
+// MARK: - Environment Key
+
+/// Environment key for the open-URL action.
+private struct OpenURLActionKey: EnvironmentKey {
+    // `.systemAction`, not a handler that calls `systemOpen` itself: the
+    // default IS "let the system open it", and saying so means the fallback
+    // lives in exactly one place — `callAsFunction` — rather than in the
+    // default handler and in every `.systemAction` a custom one returns.
+    static let defaultValue = OpenURLAction { _ in .systemAction }
+}
+
+/// Environment key for this machine's URL opener — `nil` where no context's
+/// services reached the environment.
+private struct URLOpenerKey: EnvironmentKey {
+    static let defaultValue: (any URLOpenerBackend)? = nil
+}
+
+extension EnvironmentValues {
+    /// An action that opens a URL (see ``OpenURLAction``).
+    ///
+    /// Read it with `@Environment(\.openURL)` and call it like a function.
+    /// The default hands the URL to the system opener (`open` / `xdg-open`),
+    /// which is off unless the session is declared local — see
+    /// ``OpenURLAction`` — and is reached only in a running app: a headless
+    /// run, a snapshot or a test launches nothing.
+    public var openURL: OpenURLAction {
+        get {
+            // The action, a custom one included, carries this environment's
+            // opener on: it is read here and called later, from an event
+            // handler, where no environment is in reach.
+            var action = self[OpenURLActionKey.self]
+            action.systemOpener = urlOpener
+            return action
+        }
+        set { self[OpenURLActionKey.self] = newValue }
+    }
+
+    /// This machine's URL opener (``URLOpenerBackend``), published from the
+    /// context each frame (``applyRuntimeServices(from:)``): this machine's
+    /// `open` or `xdg-open` in a running app, memory everywhere else.
+    package var urlOpener: (any URLOpenerBackend)? {
+        get { self[URLOpenerKey.self] }
+        set { self[URLOpenerKey.self] = newValue }
+    }
+}

@@ -95,7 +95,7 @@ ruling is in the review under its item. In brief, with the ruling:
   ratio, which (C)'s absolute size cannot say. Shipped 2026-10-18
   ([Shapes (W1)](<Shapes, effects and animation/Shapes (W1).md>)).
 - **O1** Reduce-motion and the other accessibility preferences. **(b), but
-  only `TUIKIT_REDUCE_MOTION`** (B53, shipped) unless TUIkit can be confident
+  only `TUIKIT_REDUCE_MOTION`** (B53, shipped) unless TUI can be confident
   the terminal is on the same machine; then the host's setting too, by the
   clipboard's locality test. Shipped 2026-10-14.
 - **O2** `PhaseAnimator` and `KeyframeAnimator`. **(b)**; (c) is not easy,
@@ -122,7 +122,7 @@ ruling is in the review under its item. In brief, with the ruling:
   did, and `scrollDismissesKeyboard` (A11) and `sectionIndexLabel` (A51) with
   them. Recorded in the parity map 2026-10-19.
 - **O9** Multi-scene apps. **(b)**, leaving room for real windowing.
-- **O10** File panels. **(b)**, TUIkit-drawn open and save dialogs.
+- **O10** File panels. **(b)**, TUI-drawn open and save dialogs.
 - **O11** The `formatter:` APIs. **Deferred** (ruled 2026-10-12): not refused
   for good, and not built now.
 - **O12** `PointerStyle`. **(b)**, inert where unsupported (the review's
@@ -167,7 +167,7 @@ cannot ship as a no-op, and one enum case cannot be made a compile error.
 
 **Decided 2026-10-04: defer with right-to-left** (option 2; you left it to
 me). You also raised that a terminal's own bidi may mirror a Hebrew line a
-second time. That is the per-terminal survey right-to-left needs first: TUIkit
+second time. That is the per-terminal survey right-to-left needs first: TUI
 already puts invisible left-to-right marks round its image glyphs to stop
 terminals reordering them, and one terminal (VTE) lets an app turn its
 reordering off; most do not (answer of 2026-10-05).
@@ -178,7 +178,7 @@ condition is a right-to-left environment, which cannot occur yet (B1).
 `View.multilineTextAlignment(strategy:)`, `View.writingDirection(strategy:)`,
 `Text.AlignmentStrategy` and `Text.WritingDirectionStrategy`. Each strategy
 chooses between the layout direction and a paragraph's own writing
-direction. TUIkit lays every paragraph out left to right, so the two agree
+direction. TUI lays every paragraph out left to right, so the two agree
 except on a right-to-left paragraph. There, `.writingDirectionBased` and
 `.contentBased` would right-align a Hebrew line in SwiftUI and left-align it
 here. Shipping them before right-to-left would be a quiet lie for exactly
@@ -201,7 +201,7 @@ members; `Color.resolveHDR(in:)`, `Color.headroom(_:)`,
 shipped. Two things remain.
 
 - **A custom colour provider.** SwiftUI's `Color(MyStyle())` defers to the
-  style at every resolve. TUIkit's `Color` is five bytes with no padding:
+  style at every resolve. TUI's `Color` is five bytes with no padding:
   every `Text` carries two, every cell's run carries them, and the value
   hash reads them as plain words. A provider case would hold an existential
   (40 bytes), growing every one of those, or an index into a registry, which
@@ -233,7 +233,7 @@ O10's Linux file exporter may be absent where its type is Apple-only. Lane owed.
 **Shipped 2026-10-13** (the storage half; Core Data and O10 remain). On Apple platforms `@AppStorage`'s `store:` takes
 a `UserDefaults` in every form SwiftUI has (the tab view and table column customization forms, and `@SceneStorage`'s
 tab view one, included), and `View.defaultAppStorage(_:)` and `Scene.defaultAppStorage(_:)` take one; on every
-platform both also take a TUIkit `StorageBackend`. An `@AppStorage` that names no store reads and writes the one set
+platform both also take a TUI `StorageBackend`. An `@AppStorage` that names no store reads and writes the one set
 nearest above its view, found before its body runs and kept in a lock-guarded box the property's copies share — so a
 closure the body made writes where the body read — and `StorageDefaults.backend` where none is set. **Which stores
 share change announcements** (decided in the lane, a technical call): a `UserDefaults` cannot name its domain, and two
@@ -268,7 +268,7 @@ does not offer it, so it cannot compile there and do nothing.
    (`UserDefaultsStorage` gains an `init(_ defaults: UserDefaults)`), and Core
    Data's `FetchRequest` becomes possible for macOS-only apps (a few days).
 2. **Forbid it.** Remove the Wave 7 and Wave 13 surfaces above, and keep the
-   storage spellings TUIkit's own (`StorageBackend`), with
+   storage spellings TUI's own (`StorageBackend`), with
    `defaultAppStorage(_:)` taking one. A ported `@AppStorage(…, store:
    UserDefaults(…))` then fails to compile.
 3. **Allow bridges and value conversions only** (colours, item providers),
@@ -300,8 +300,8 @@ Core Data's `FetchRequest`, unbuilt; O10's file panels shipped with
 
 All of these say what to do in a compact size class: present a popover as a
 sheet, show which split view column on top once the split collapses into one.
-macOS is never compact, so on a Mac they are inert; TUIkit's size classes are
-`.regular` unless an app sets them, and nothing TUIkit draws reads them (B3) —
+macOS is never compact, so on a Mac they are inert; TUI's size classes are
+`.regular` unless an app sets them, and nothing TUI draws reads them (B3) —
 the split never collapses and a popover never adapts.
 
 **Options.**
@@ -322,7 +322,7 @@ the split never collapses and a popover never adapts.
 "regular", 3 if B3 makes narrow terminals compact.
 
 **Decided 2026-10-12, with B3: option 3, lane owed.** B3's ruling is that
-TUIkit follows a compact class an app sets and changes no default, so when an
+TUI follows a compact class an app sets and changes no default, so when an
 app writes `.compact` a popover must adapt and a split view must collapse;
 shipping these inert would ignore the app's own setting. The defaults stay
 regular, so nothing changes for an app that sets nothing. The work (about two
@@ -338,26 +338,26 @@ there; SwiftUI documents no order. The popover, sheet and cover presenters
 are always all present around the presenting view, and the size class picks
 whose binding is live, so a class written while the popover is up leaves the
 presenting view's state alone. Not yet adapting: `TabContent.popover`, which
-SwiftUI offers on iOS 18. TUIkitTabs draws a tab's popover with Foundation's
-`PopoverPresentationModifier` and does not depend on TUIkitPresentation, where
+SwiftUI offers on iOS 18. TUITabs draws a tab's popover with Foundation's
+`PopoverPresentationModifier` and does not depend on TUIPresentation, where
 the sheet and the cover are; adapting it means that dependency, or an
 environment hook the app installs. Left for a ruling: a tab's popover in a
 compact class is an edge case, and the dependency is not free.
 
-**Ruled 2026-10-23** (owner, A21-TABPOPOVER, option 1): TUIkitTabs depends on
-TUIkitPresentation, measuring first what that adds to an app that imports
-only TUIkitTabs. **Shipped 2026-10-24** (lane TABS): a tab's popover is shown
+**Ruled 2026-10-23** (owner, A21-TABPOPOVER, option 1): TUITabs depends on
+TUIPresentation, measuring first what that adds to an app that imports
+only TUITabs. **Shipped 2026-10-24** (lane TABS): a tab's popover is shown
 with `View.popover`'s adapting presenter (`_AdaptivePopover`, `package` for
 it), so in a compact class it is a sheet, a cover or a popover still, as a
-view's is; TUIkitTabs re-exports TUIkitPresentation, and TUIkitPresentation
+view's is; TUITabs re-exports TUIPresentation, and TUIPresentation
 does not depend on it. **Its price,** measured 2026-10-24 (Xcode's Swift
-6.2.4, release, default traits, `strip`): an app on `TUIkitApp` and
-`TUIkitTabs`, a tab with a popover, 8,731,120 → 8,997,600 B (+266,480 B,
-+3.1%); the same app with a sheet of its own, which links TUIkitPresentation
-already, 8,997,664 B before and after; an executable on `TUIkitTabs` alone,
-with no `App` (Tools/ProductSmoke's `UsesTUIkitTabs`), 7,373,168 → 8,106,192
-B (+733,024 B, +9.9%), TUIkitChrome coming with TUIkitPresentation there,
-where `TUIkitApp` brings it to an app. The umbrella's apps pay nothing.
+6.2.4, release, default traits, `strip`): an app on `TUIApp` and
+`TUITabs`, a tab with a popover, 8,731,120 → 8,997,600 B (+266,480 B,
++3.1%); the same app with a sheet of its own, which links TUIPresentation
+already, 8,997,664 B before and after; an executable on `TUITabs` alone,
+with no `App` (Tools/ProductSmoke's `UsesTUITabs`), 7,373,168 → 8,106,192
+B (+733,024 B, +9.9%), TUIChrome coming with TUIPresentation there,
+where `TUIApp` brings it to an app. The umbrella's apps pay nothing.
 
 **Shipped 2026-10-13: the sheet's adaptation.** SwiftUI documents it: "In
 vertically compact environments, such as iPhone in landscape orientation, a
@@ -438,7 +438,7 @@ and with them O9's settings scene: `Settings`, `SettingsLink`,
 
 SwiftUI's examples apply the dialog modifiers to an `AlertScene`, and the two
 builder methods exist for `if #available` around a scene among others. Both
-need more than one scene, which TUIkit's `SceneBuilder` does not build: that is
+need more than one scene, which TUI's `SceneBuilder` does not build: that is
 O9 of the refusal review.
 
 **Options.**
@@ -504,7 +504,7 @@ a day.
 **`drawingGroup(opaque:colorMode:)`.** In SwiftUI it flattens the view into an
 offscreen image before display. Here every view already composites as one
 picture, as for `compositingGroup()`. `opaque` is a promise by the caller.
-`colorMode: .linear` asks for linear-light blending, which TUIkit's encoded-sRGB
+`colorMode: .linear` asks for linear-light blending, which TUI's encoded-sRGB
 blend does not do.
 
 1. **Ship it as `compositingGroup()`**, honouring `.nonLinear`, the default,
@@ -545,7 +545,7 @@ effects with a cell reading are this wave's.
 
 SwiftUI's environment holds an unnamed default content transition (measured:
 equal to none of `.identity`, `.opacity`, `.interpolate`), under which a
-`Text` whose string changes inside an animation cross-fades. TUIkit's default
+`Text` whose string changes inside an animation cross-fades. TUI's default
 draws the change at once, as it always has; `contentTransition(_:)` shipped
 (B61) dissolves only where it is written.
 
@@ -703,7 +703,7 @@ what option 1 uses, and a full swipe could be inferred from a long burst
 On macOS 26 `.searchable` on a `TabView` puts the search field into the tab
 whose role is `.search`, and `.searchTabSelection` focuses the field when
 that tab is chosen and goes back to the previous tab when the search is
-dismissed. TUIkit draws `.searchable` on a tab view as it does on any view —
+dismissed. TUI draws `.searchable` on a tab view as it does on any view —
 a field above the whole tab view — and has the `.search` role only as a
 label. Nothing here could be measured: these are macOS 26 APIs, and this
 machine runs 15.8.
@@ -745,7 +745,7 @@ over it and leave, and chooses the operation; a container turns a drag of one
 item into a drag of the selection, its payload built from identifiers when
 the drag starts; and the previews of several items are composed as a list, a
 stack or a pile. The review (P18) found the refusal wrong: none of it needs
-anything outside the process, and TUIkit's drag session and list selection
+anything outside the process, and TUI's drag session and list selection
 are where it would be built. The values (B83) ship; these fourteen
 modifiers stay out until this is answered, recorded in `baseline.json` as
 known gaps.
@@ -756,16 +756,16 @@ measurement pass on macOS 26.
 
 Three things are genuinely the owner's:
 
-- **What an operation means.** TUIkit's drops do not distinguish copy, move
+- **What an operation means.** TUI's drops do not distinguish copy, move
   and delete today (B10): a source that hears `.ended(.move)` is the point of
   `onDragSessionUpdated`, so the session would carry the destination's chosen
   operation back to the source, and a destination's `dropConfiguration`
   choosing an operation the source does not allow — or `.cancel` or
   `.forbidden` — would refuse the drop and send the drag home.
 - **`dropDestination(for:isEnabled:action:)`.** SwiftUI hands its action a
-  `DropSession`; TUIkit hands a `DropInfo` (the cell, the modifiers held at
+  `DropSession`; TUI hands a `DropInfo` (the cell, the modifiers held at
   release, the preview's frame). Either the action switches to `DropSession`,
-  which then also carries the modifiers and the preview frame as TUIkit's own
+  which then also carries the modifiers and the preview frame as TUI's own
   members, or `DropInfo` keeps the action and grows the session's members
   (`phase`, `itemsCount`, `size`, `suggestedOperations`, `localSession`) so
   SwiftUI source reading them compiles. Pre-1.0, the switch needs no shim.
@@ -849,7 +849,7 @@ that runs along the horizontal axis:
 - text alignment;
 - images that are marked to flip.
 
-TUIkit's views do none of that yet, so a write would be accepted and
+TUI's views do none of that yet, so a write would be accepted and
 ignored. The setter is left out instead, so the write fails to compile.
 
 **The fuller version** is real right-to-left support. Every layout site that
@@ -880,7 +880,7 @@ SwiftUI's is settable. Under `.bold`, every piece of system text is drawn
 one weight heavier. That was measured on a SwiftUI build: light→regular,
 regular→bold, and bold stays bold. In SwiftUI that includes control labels.
 
-TUIkit draws many labels without going through `Text`, so honouring it in
+TUI draws many labels without going through `Text`, so honouring it in
 `Text` alone would be a partial honour, which is the shape Rule 2 forbids.
 
 **The fuller version** is one "heavier by one step" rule applied at every
@@ -934,7 +934,7 @@ without it); tests under `.bold`; and the A/B on the quiet machine. Some
 terminals draw bold as a brighter colour (Terminal compatibility survey.md), which the
 heavier weight inherits.
 
-### B3. Size classes are settable, and nothing TUIkit draws reads them
+### B3. Size classes are settable, and nothing TUI draws reads them
 
 `\.horizontalSizeClass` and `\.verticalSizeClass` default to `.regular`, as
 macOS reports for any window. They are settable, as SwiftUI's are, for an
@@ -950,14 +950,14 @@ frame. It would make split views worth teaching to collapse.
 
 The same reasoning covers `\.displayScale` and `\.isLuminanceReduced`:
 
-- They are settable channels, and nothing TUIkit draws reads them.
+- They are settable channels, and nothing TUI draws reads them.
 - macOS's text ignores both; that was measured.
 - `\.dynamicTypeSize` is the same, which also answers the old refusal of
   `DynamicTypeSize`. The refusal was true about terminals and wrong about
   the API, because macOS reads `.large` and ignores writes for text too.
 
 **Decided 2026-10-12: follow what an app sets, and change no default.** An
-app decides when a class is `.compact`, and TUIkit adapts where it can. (You
+app decides when a class is `.compact`, and TUI adapts where it can. (You
 asked the cost on 2026-10-04; the 2026-10-05 answer priced reporting
 `.compact` at nothing and the views that adapt to it, chiefly a split view
 collapsing, at one to two days.) Since A6, `.viewAligned` reads both classes
@@ -990,7 +990,7 @@ its state. The lane is done; what it left is listed under A21.
 
 The owner ruled this a bug to fix, carefully for performance (2026-10-05).
 Lane DYNP made `update()` write back what it changes, as SwiftUI's does, at
-no measured per-frame cost. What the write-back covers, and where TUIkit
+no measured per-frame cost. What the write-back covers, and where TUI
 still differs from SwiftUI, is in
 [`DynamicProperty update write-back (DYNP).md`](<State and dynamic properties/DynamicProperty update write-back (DYNP).md>),
 B-DYNP-1 onwards.
@@ -1041,7 +1041,7 @@ axes it scrolls (B25).
 
 **Decided 2026-10-12: SA-B is not built.** You asked on 2026-10-04 what
 safe-area support is worth. The 2026-10-05 answer: very little here. With no
-notch and no system bars, the only producers would be TUIkit's own bars, and
+notch and no system bars, the only producers would be TUI's own bars, and
 the payoff is colour under a bar's blank cells; it would matter only if
 toolbars wanted content scrolling beneath them. You were not convinced, so the
 half that shipped is the behaviour, kept as a deliberate deviation
@@ -1073,7 +1073,7 @@ That is honest on its own, because neither half has anything to act on:
 - A terminal reports the character a key typed, never the key's place on
   the keyboard. A shortcut already matches its character however the
   layout types it, and there is no US-layout position to remap from.
-- TUIkit lays out left to right only (B1 in the main decisions doc), so
+- TUI lays out left to right only (B1 in the main decisions doc), so
   there is nothing to mirror.
 
 **The fuller version:**
@@ -1091,12 +1091,12 @@ That is honest on its own, because neither half has anything to act on:
 
 **Decided 2026-10-12: mirror once right-to-left lands** (B1); one commit then,
 the pairs under `.automatic` in a right-to-left environment. You asked how big
-AppKit's tables are, and whether TUIkit could copy them:
+AppKit's tables are, and whether TUI could copy them:
 
 - **The mirroring table is 10 characters, 5 pairs** (measured on macOS 15.8
   through AppKit's own mirroring call over U+0020–U+2FFF): `(`↔`)`, `<`↔`>`,
   `[`↔`]`, `{`↔`}`, `←`↔`→`. `NSMenuItem.h` in the macOS SDK documents the
-  same list, so TUIkit can write it from the documentation and copy nothing.
+  same list, so TUI can write it from the documentation and copy nothing.
 - **The remapping is not a data file.** It is compiled AppKit code
   (`NSKeyboardShortcut`'s localization methods, found through the Objective-C
   runtime), possibly an algorithm over the layout's key map plus a cache of
@@ -1105,7 +1105,7 @@ AppKit's tables are, and whether TUIkit could copy them:
   proprietary code, so it cannot be copied.
 - **Matching AppKit is not table-free either.** AppKit remaps only a shortcut
   the current layout cannot type (`NSMenuItem.h`). The kitty protocol's
-  base-layout key gives a positional fallback, which TUIkit already uses for a
+  base-layout key gives a positional fallback, which TUI already uses for a
   Ctrl or Alt chord on a non-Latin key, but matching every shortcut by
   position would also move the reachable ones (⌘Z on the key labelled W on
   AZERTY), and a terminal does not say which characters the user's layout can
@@ -1120,7 +1120,7 @@ AppKit's tables are, and whether TUIkit could copy them:
 
 **Shipped:**
 
-- On Apple platforms, the four modifiers and the delegate, riding TUIkit's
+- On Apple platforms, the four modifiers and the delegate, riding TUI's
   in-app drag session. An `onDrag` provider, or a `draggable` string or URL
   wrapped as SwiftUI wraps a `Transferable`, lands in an `onDrop` whose types
   it conforms to.
@@ -1133,12 +1133,12 @@ Two things SwiftUI's drop does are not here:
 - *The operation's meaning.* A proposal of `.cancel` or `.forbidden` refuses
   the drop, and the drag goes home. `.copy`, `.move`, `.delete` and `.alias`
   all accept it. On macOS they differ in the pointer's badge and in what the
-  source application is told. A TUIkit drag has no badge and never leaves the
+  source application is told. A TUI drag has no badge and never leaves the
   app, so the delegate's `performDrop` is where any difference has to be
   made.
 - *`operationOutsideApplication`.* It is recorded and never applies.
 
-`DropOperation.Set`'s raw values are TUIkit's own: SwiftUI does not document
+`DropOperation.Set`'s raw values are TUI's own: SwiftUI does not document
 its own, and it is macOS 26 only, so it could not be probed on this machine.
 
 **The fuller version:** a badge beside the drag preview naming the proposed
@@ -1180,16 +1180,16 @@ proposes what `dropUpdated` last returned, once `validateDrop` said yes.
 Apple Terminal, iTerm2, Ghostty, Warp and tmux (Terminal compatibility
 survey.md, "The drop-operation badge"; ink unmeasured). Three choices of the
 lane's own are in [B-BITEMS1-1](<Default focus, drop badges and stack spacing (BITEMS1).md#b-bitems1-1-a-delete-wears-no-badge-and-only-the-item-provider-drops-propose-one>):
-`.delete` and `.cancel` wear none, TUIkit's own `dropDestination` and a
+`.delete` and `.cancel` wear none, TUI's own `dropDestination` and a
 list's drops propose nothing, and no destination highlight shifts colour
-(TUIkit draws none for these views; the app's `isTargeted` does).
+(TUI draws none for these views; the app's `isTargeted` does).
 
 ### B19. A guide travels out of a view type of the app's own
 
 *`View.alignmentGuide(_:computeValue:)`, `Layout.explicitAlignment(of:in:proposal:subviews:cache:)`*
 
 SwiftUI resolves a guide recursively through everything between it and the
-container aligning on it. TUIkit now does the same through `VStack`,
+container aligning on it. TUI now does the same through `VStack`,
 `HStack`, `ZStack`, `.padding` (each moving the guide by where it put its
 content) and a custom `Layout` (`explicitAlignment`), which closes the gap the
 compatibility notes recorded: `.alignmentGuide(.decimalPoint)` on a `Text`
@@ -1293,7 +1293,7 @@ for — one column in a row, none in a column — and is used between every pair
 
 The two readings differ less than they sound. `ViewSpacing` has SwiftUI's
 surface only: `init()` (one column beside, no row above or below), `.zero`,
-and unions, which take per-edge maxima. So every preference a TUIkit view can
+and unions, which take per-edge maxima. So every preference a TUI view can
 state is the default or less, edge by edge, and every vertical edge is 0.
 Each pair's distance in a column is therefore always 0 — exact — and in a row
 it is 1 unless BOTH neighbours are custom layouts whose
@@ -1440,7 +1440,7 @@ moment) and nothing is held (a scrollbar drag or auto-repeat). A terminal
 reports no gesture phases, so the end of a scroll is inferred from quiet:
 wheel ticks and key repeats arrive well inside 250 ms, a pause to read does
 not. `.tracking`, `.decelerating` and `.animating` are never produced — there
-is no touch, no momentum, and TUIkit does not animate scrolling, so an
+is no touch, no momentum, and TUI does not animate scrolling, so an
 animated `scrollTo` is a jump here and changes no phase. `velocity` is always
 `nil`; SwiftUI's is optional for the same reason.
 
@@ -1460,16 +1460,16 @@ is a class, not the render context; nothing per frame, since it is read only
 when a phase change is reported to an observer. B91's drag estimator can be
 shared.
 
-**Asked 2026-10-12: what the number should mean.** TUIkit reports two
+**Asked 2026-10-12: what the number should mean.** TUI reports two
 changes. From idle to interacting, one step in, there is no rate yet: `nil`.
 From interacting to idle, 250 ms after the last step, the view is still.
 SwiftUI documents the velocity as the speed "at the time of the scroll phase
 change", and measured (0, 0) at its appear call and at both changes of an
 animated `scrollTo` (macOS 15.8, `Tools/SwiftUIProbes/Scroll position, margins and disabled scrolling (DECB)/phase/`); its value
 when a user's scroll starts decelerating could not be driven offscreen. Read
-literally, TUIkit's change to idle reports (0, 0), and the number never says
+literally, TUI's change to idle reports (0, 0), and the number never says
 anything. **Recommended:** report the speed the scrolling had when its steps
-stopped. TUIkit's one change to idle stands for SwiftUI's two (interacting to
+stopped. TUI's one change to idle stands for SwiftUI's two (interacting to
 decelerating, then to idle), and the speed belongs to the first; B91's
 precedent, measured on macOS, is that a still pointer keeps its last motion's
 velocity. That is a deliberate deviation, recorded when it ships.
@@ -1526,7 +1526,7 @@ the bar memo is keyed on the pulse already, and the trigger needs a
 per-view "last value" and a wake. I would only do it if a port asks.
 
 **Decided 2026-10-12: implement it.** (On 2026-10-04 you pointed out that
-TUIkit supports automatic visibility; the 2026-10-05 answer was that TUIkit's
+TUI supports automatic visibility; the 2026-10-05 answer was that TUI's
 `.automatic` shows the bar whenever the content overflows, with no fading, so
 the bar is already visible whenever a flash could matter, and the alternative
 is a half-second pulse.) **Lane owed** (shipped 2026-10-13, below): 2–3 commits, half a day to a day
@@ -1590,40 +1590,40 @@ macOS 15.8 (a 300×200 window, rows 20 high; `Tools/SwiftUIProbes/Scroll positio
 and `Tools/SwiftUIProbes/Scroll position, margins and disabled scrolling (DECB)/disabled/`):
 
 - **`ScrollViewProxy.scrollTo`:** the call's anchor wins over the
-  transaction's, and with none the transaction's applies. That is TUIkit's
+  transaction's, and with none the transaction's applies. That is TUI's
   rule exactly.
 - **`ScrollPosition.scrollTo(id:anchor:)`:** SwiftUI ignored the call's anchor
   (`.top` and `.center` both landed at the minimal position) and applied the
-  transaction's even over a `.bottom` call. TUIkit honours the call's anchor
-  first. That looks like a SwiftUI defect, so TUIkit's rule stays, recorded as
+  transaction's even over a `.bottom` call. TUI honours the call's anchor
+  first. That looks like a SwiftUI defect, so TUI's rule stays, recorded as
   a deliberate deviation
   ([Deliberate deviations from SwiftUI.md R11](<../Deliberate deviations from SwiftUI.md#r11-scrollpositionscrolltoidanchor-honours-its-own-anchor>)).
 - **`.disabled`** stops SwiftUI's lazy-stack bottom follow and its hold of the
-  top row on an insertion above, as it stops TUIkit's follows. SwiftUI ignores
-  it for an eager `VStack`, which follows anyway; TUIkit treats eager and lazy
+  top row on an insertion above, as it stops TUI's follows. SwiftUI ignores
+  it for an eager `VStack`, which follows anyway; TUI treats eager and lazy
   alike. Kept, and recorded
   ([Deliberate deviations from SwiftUI.md R12](<../Deliberate deviations from SwiftUI.md#r12-no-adjustment-suspends-an-eager-stacks-follow-too>)).
 - **The larger gap is the default.** With no `scrollPosition` at all, SwiftUI
   keeps the top row in place when rows are inserted above it (a lazy stack,
-  one insertion: the offset moves 200 → 300). TUIkit's Window default, from
+  one insertion: the offset moves 200 → 300). TUI's Window default, from
   your 2026-07-17 anchoring spec, leaves the offset in line coordinates, so the
   rows shift and a "load earlier messages" list jumps.
 
 **Shipped 2026-10-12 (SCROLLANCHOR):** the reader that was missing inside
-TUIkit — a windowed `LazyVStack`'s `.anchorPosition(.row)` hold ignored "no
+TUI — a windowed `LazyVStack`'s `.anchorPosition(.row)` hold ignored "no
 adjustment". All three of the stack's paths now let the row go, and adopt it
 on the change's own frame where the change left it. `List` and `Table` adopt
 it there too: they adopted it a frame later, where the NEXT change left it,
 so a second change, made without the transaction, went unheld as well.
 
-**Asked 2026-10-12:** keep TUIkit's Window default and record it as a
+**Asked 2026-10-12:** keep TUI's Window default and record it as a
 deviation, or hold the top row by default as SwiftUI does? The second reverses
 part of `Scroll anchoring.md`'s first slice for views that declare no anchor,
 at a cost not measured.
 
 **Owner, 2026-10-12 (later):** follow SwiftUI. With no anchor declared, rows
 inserted above the top row keep the reader's place. Make it configurable
-either way, and redesign TUIkit's existing anchoring API where that makes it
+either way, and redesign TUI's existing anchoring API where that makes it
 cleaner (pre-1.0, no compatibility spellings). **Lane owed** (SCROLLANCHOR),
 together with the missing reader above; the cost is measured in that lane.
 
@@ -1649,9 +1649,9 @@ across scrollables. Cost: neutral in the A/B (no scenario past +0.8%,
 `EnvironmentValues.horizontalScrollBounceBehavior`*
 
 The refusal review called this a cheap alias over `ScrollOverscroll`, and the
-two are close but not the same: SwiftUI's bounce springs back, TUIkit's
+two are close but not the same: SwiftUI's bounce springs back, TUI's
 overscroll stays (that is what makes a deliberate push readable, §1.5 of
-`Scroll anchoring.md`), and the allowance's size is TUIkit's own setting.
+`Scroll anchoring.md`), and the allowance's size is TUI's own setting.
 
 **Shipped:** the behaviour decides *when* the allowance applies, and
 `.scrollOverscroll` keeps deciding *how far*:
@@ -1660,10 +1660,10 @@ overscroll stays (that is what makes a deliberate push readable, §1.5 of
   sits still. This is the reason the modifier is written in practice, and it
   is the opt-out from your 2026-07-31 decision that a fitting view may still
   be pushed.
-- `.always` and `.automatic` — whatever the content's size: TUIkit's default,
+- `.always` and `.automatic` — whatever the content's size: TUI's default,
   as `.always` is SwiftUI's.
 
-With no allowance (TUIkit's default) nothing is pushed at all, which is also
+With no allowance (TUI's default) nothing is pushed at all, which is also
 what macOS does under a mouse wheel. The allowance is vertical only, so the
 horizontal value is recorded and decides nothing yet.
 
@@ -1680,7 +1680,7 @@ one wake request per step while it is; a spring-back of one to two frames,
 re-sliding a buffer already drawn; one flag per handler. **Scope:** `.always`
 gets a sprung allowance of one or two lines; `.automatic` keeps today's feel;
 an explicit `.scrollOverscroll` allowance keeps staying where it was pushed,
-since that is TUIkit's deliberate-push signal. **Lane owed** (shipped 2026-10-13,
+since that is TUI's deliberate-push signal. **Lane owed** (shipped 2026-10-13,
 below): 2–3 commits, half a day to a day, which includes detecting the end of a scroll without a
 phase observer (shared with B27) and the spring-back in `List` and `Table`.
 Nothing is paid by an app that does not write `.always`.
@@ -1721,7 +1721,7 @@ documentation, and each reading below is a guess at the look:
 - **`enabledBounds:`:** every input stops at the bounds, and a value the app
   writes outside them is brought inside, as `bounds` already does. The track
   beyond them is drawn in a disabled slider's colours.
-- **`currentValueLabel:`:** SwiftUI says not every style shows it. TUIkit's
+- **`currentValueLabel:`:** SwiftUI says not every style shows it. TUI's
   slider draws a numeric read-out, so a label given here replaces it.
 - **`sliderThumbVisibility(.hidden)`:** the knob's cell shows the fill's end.
   On the `.marker` track, which has no fill, nothing then shows the value.
@@ -1736,7 +1736,7 @@ fonts lack); and a measured look once a macOS 26 machine is available.
 `View.focusedSceneValue(_:_:)`*
 
 SwiftUI's readers are mostly `Commands` and toolbar items, which are updated
-outside the view graph. A terminal has neither, so TUIkit's readers are views,
+outside the view graph. A terminal has neither, so TUI's readers are views,
 and they usually sit beside the publisher — a detail pane next to a list, a
 status line above it — and are drawn before it in the same walk.
 
@@ -1780,7 +1780,7 @@ matches the provided namespace", and that a reset reevaluates default focus
 "when the currently-focused item is within the provided namespace". Its
 examples are tvOS ones. Three readings were needed:
 
-- **Who has focus.** TUIkit focuses the first control of a screen or a newly
+- **Who has focus.** TUI focuses the first control of a screen or a newly
   presented sheet by itself, mid-render. That choice is not counted as a view
   having the focus, so the preferred control takes it from there; a focus the
   user, an app's `@FocusState` write or a `.defaultFocus` put somewhere is
@@ -1849,7 +1849,7 @@ picker it was heading for.
 **The alternative** is to show the scopes whenever the field is on screen,
 since a terminal's field is never hidden. That reads well for a dedicated
 search page but makes `.onTextEntry` meaningless, so it would have to be a
-TUIkit-only activation rather than a reading of SwiftUI's.
+TUI-only activation rather than a reading of SwiftUI's.
 
 ### B49. `SystemFormatStyle`: where the rules go beyond the measurements
 
@@ -1862,10 +1862,10 @@ measurements, these were chosen:
 - **`DateReference`'s absolute form is drawn in the calendar's time zone.**
   SwiftUI's keeps a zone of its own beside the calendar, set from the current
   zone and not reachable through its API; `calendar(_:)` with a calendar in
-  another zone therefore moves TUIkit's absolute form and not SwiftUI's. With
+  another zone therefore moves TUI's absolute form and not SwiftUI's. With
   the default calendar the two agree.
 - **`now`.** Foundation's anchored relative style says "this minute" (or
-  "this hour") where SwiftUI's reference says "now"; TUIkit says "now" when
+  "this hour") where SwiftUI's reference says "now"; TUI says "now" when
   the finest allowed unit is a minute or an hour and the offset rounds to
   nothing in it. With seconds allowed Foundation says "now" itself; with days
   the finest, "today" is left alone (unmeasured).
@@ -1875,7 +1875,7 @@ measurements, these were chosen:
 - **Boundaries.** `discreteInput(after:)` and `(before:)` return the instant the
   reading changes, at a boundary or one representable `Date` past it. SwiftUI's
   `before` sometimes returns the boundary itself, where the reading has not yet
-  changed, which its protocol allows; TUIkit's never does. `DateReference`
+  changed, which its protocol allows; TUI's never does. `DateReference`
   turns between its forms half a second before a period begins (the point of
   reference is rounded to the second), where SwiftUI's turn at a new year was
   measured at the year's first instant.
@@ -1888,7 +1888,7 @@ three-field clock face. An hour each.
 *`Text(_:style:)`, `Text(timerInterval:…)`, the live interpolations,
 `Text(_:format:)` over a `TimeDataSource`*
 
-A live `Text` draws its words at each frame. But some of TUIkit's API takes a
+A live `Text` draws its words at each frame. But some of TUI's API takes a
 `Text` only for its string — `navigationTitle(Text)`, `help(Text)`,
 `dismissalConfirmationDialog`'s title — and a `LocalizedStringKey` handed to a
 control other than `Text` (a button's title) is resolved to a string where the
@@ -1913,7 +1913,7 @@ text drawn only as a view — worth measuring on a list of a few hundred
 sense; measure; case by case").** Measured on macOS 15.8: SwiftUI keeps a live
 value live in a button's title, a field's placeholder and a table column's
 header, and reads it once in a window's navigation title and an alert's title
-and message. TUIkit now matches all five: a button's and a colour picker's
+and message. TUI now matches all five: a button's and a colour picker's
 title key, a text, secure or value field's title and prompt, and a column's
 header (key or `Text`) are live; `navigationTitle` and the alert family keep
 reading once. Help and a tab's title, unmeasured, still read once. Details and
@@ -1936,7 +1936,7 @@ moves are the animatable modifiers inside it, each interpolated between the
 value it had at one phase and the value it has at the other. "If no animatable
 change is applied, then the transition will be a no-op."
 
-**How TUIkit had it.** A transition was a value — `AnyTransition`'s closed set
+**How TUI had it.** A transition was a value — `AnyTransition`'s closed set
 of effects — applied to the view's rendered buffer as a function of one number,
 how present the view is (0 absent, 1 there, above 1 while a spring overshoots).
 An insertion reads that number from the animation store as the view arrives; a
@@ -1982,7 +1982,7 @@ being recorded the placeholder draws nothing, so the content's side effects
 At rest the body is drawn at `.identity` every frame: SwiftUI applies it for as
 long as the view is visible, and a body is allowed to leave something there.
 
-**Where TUIkit cannot follow SwiftUI, and why.**
+**Where TUI cannot follow SwiftUI, and why.**
 
 - **A departing view's content is a picture.** A removed view does not exist
   any more — that is what `DepartureStore` is for — so while it leaves, the
@@ -1994,7 +1994,7 @@ long as the view is visible, and a body is allowed to leave something there.
 - **The slot is the size of the `.identity` body.** A body that changes the
   view's size between phases (`.frame(height: phase.isIdentity ? nil : 0)`,
   a collapse) is drawn inside the size it has at rest, rather than re-laying
-  out its siblings on every frame. TUIkit's transitions have never moved
+  out its siblings on every frame. TUI's transitions have never moved
   their neighbours (see `AnyTransition`); this is the same rule applied to a
   custom body. (Since 2026-10-18 the neighbours glide with the change of
   layout itself, as SwiftUI's do — decisions FB16; a transition still never
@@ -2009,7 +2009,7 @@ long as the view is visible, and a body is allowed to leave something there.
 **The built-in transition types** (`OpacityTransition`, `MoveTransition`,
 `OffsetTransition`, `ScaleTransition`, `SlideTransition`, `PushTransition`,
 `IdentityTransition`, `AsymmetricTransition`) have real bodies, built from one
-animatable modifier that applies TUIkit's own effect at the body's presence —
+animatable modifier that applies TUI's own effect at the body's presence —
 so `OpacityTransition().apply(content: v, phase: phase)` inside an app's own
 transition fades exactly as `.opacity` does. Erased to `AnyTransition` (which
 is what `View.transition(_:)` does with any `Transition`), they keep the
@@ -2041,7 +2041,7 @@ price, is decisions
 `Transition.scale`, `Transition.scale(_:anchor:)`,
 `AnyTransition.scale(scale:anchor:)`*
 
-TUIkit's `.scale` already reveals the view from its anchor a whole cell at a
+TUI's `.scale` already reveals the view from its anchor a whole cell at a
 time, there being no sub-cell rendering to shrink. The scale factor is now
 where that reveal starts: `.scale(0.5)` shows half the view at once and
 uncovers the rest. `.scale` itself is `ScaleTransition(1e-5)`, SwiftUI's own
@@ -2052,15 +2052,15 @@ cannot draw that: the reveal is clamped at the whole view, so the transition
 draws the view whole from the first frame. `opacity` above 1 is clamped the
 same way in SwiftUI itself.
 
-TUIkit's own spelling, `AnyTransition.scale(anchor:)`, was not SwiftUI's and is
+TUI's own spelling, `AnyTransition.scale(anchor:)`, was not SwiftUI's and is
 gone; `scale(scale: 0, anchor:)` is the same transition.
 
 **The fuller version** would draw an oversized start by cropping the view to
 its middle and widening the crop as it settles — a zoom-out rather than a
-grow. Nothing in TUIkit crops from the middle today; half a day, and I would
+grow. Nothing in TUI crops from the middle today; half a day, and I would
 wait for someone to ask.
 
-### B55. `tracksVelocity` is recorded and read by nothing; `isContinuous` is set by TUIkit's own continuous controls
+### B55. `tracksVelocity` is recorded and read by nothing; `isContinuous` is set by TUI's own continuous controls
 
 **Since 2026-10-18** a retarget hands the velocity on (O3's merging, with A38): a merging
 spring starts the next at the speed the value was moving. What follows is the entry as written
@@ -2070,17 +2070,17 @@ before that, when no velocity was carried; `tracksVelocity` is still recorded an
 
 **`tracksVelocity`.** SwiftUI accumulates the velocity of values changed under
 such a transaction, so a later animation can start moving at that speed.
-TUIkit's animations are closed-form functions of elapsed time that start at
+TUI's animations are closed-form functions of elapsed time that start at
 rest — a spring retargeted mid-flight already restarts from where its picture
 is, without its speed — so there is nothing to track, and the flag is a value
 the transaction carries for whoever reads it. This is the one place the
-"retargets at rest" deviation of every TUIkit spring shows up as a property;
+"retargets at rest" deviation of every TUI spring shows up as a property;
 the Wave 17 review (W6) asked for it to be documented in one place rather than
 used to refuse spellings, and B58 (the spring animations) points here
 too.
 
 **`isContinuous`.** SwiftUI sets it when "a continuous action created the
-transaction" — dragging a slider, holding a stepper. TUIkit now sets it on the
+transaction" — dragging a slider, holding a stepper. TUI now sets it on the
 writes its own controls make that way: a press and drag on a `Slider`'s track,
 and the repeats of a held arrow (`Slider`, `Stepper`) or a repeating
 `Button` (the first action of the press is a click, and is not continuous).
@@ -2125,7 +2125,7 @@ a departing one) for that pass only. Then:
   whatever the deadlines say; a `repeatForever` animation still on screen
   never completes, as in SwiftUI.
 
-Two transactions in one frame render under the last one (the rule TUIkit
+Two transactions in one frame render under the last one (the rule TUI
 already had), but each keeps its completion: the pending completions are
 collected separately from the pending transaction.
 
@@ -2162,7 +2162,7 @@ Where a curve is vertical — `circularEaseIn` at its end, the circular in-out
 at its middle — the velocity is infinite, as in SwiftUI. Where a Bézier's
 control point sits on its end point the tangent vanishes, and SwiftUI answers
 1 (`easeOut` at 0) or 0 (`easeIn` at 1, the quotient of two rounding errors)
-rather than the limit the curve approaches (1.72 for both). TUIkit answers
+rather than the limit the curve approaches (1.72 for both). TUI answers
 the same, by the same arithmetic: a keyframe track carries a linear
 keyframe's end velocity into the cubic keyframe after it, and the two
 frameworks' tracks agree only if these do.
@@ -2185,7 +2185,7 @@ shipped with O3's merging (and A38). The rest of the entry stands.
 `interactiveSpring` (all three), `interpolatingSpring` (all four)*
 
 The Wave 17 review (W6) found the refusal of all of these to be a judgement,
-not a limit: TUIkit already drew springs in closed form. `Spring` is that
+not a limit: TUI already drew springs in closed form. `Spring` is that
 closed form made public — one implementation (`SpringMotion`) behind both the
 type's arithmetic and the curve a spring animation is drawn with — and every
 number was checked against SwiftUI's `Spring` on a probe
@@ -2206,7 +2206,7 @@ settling durations, the conversions, the presets.
   reported, at ζ = 0.8), and a ratio above 1 is treated as 1.
 
 **A quirk not kept:** SwiftUI's overdamped `velocity(…)` reads exactly one
-more than the derivative of its own `value(…)` (1 at rest at t = 0). TUIkit
+more than the derivative of its own `value(…)` (1 at rest at t = 0). TUI
 answers the derivative.
 
 **Bounce at or below −1** is NaN in SwiftUI; here it stops at −0.999, a spring
@@ -2215,13 +2215,13 @@ too sluggish to visibly arrive, rather than a NaN on its way to a cell.
 **Retargeting.** SwiftUI's `spring` hands its velocity to the next spring on
 the same value, blending the durations over `blendDuration`; its
 `interpolatingSpring` adds overlapping animations so velocity is preserved.
-TUIkit's animations are functions of elapsed time from a start at rest: a
+TUI's animations are functions of elapsed time from a start at rest: a
 change that retargets a running spring starts the new one from where the
 picture is, without the speed it had. So `blendDuration` has nothing to blend,
 and `interpolatingSpring`'s `initialVelocity` is honoured for the change it
 is given to — it moves the start of the curve and lengthens the settling the
 loop waits for — but not inherited by the next. This is the deviation every
-TUIkit spring already had (B55 records `tracksVelocity` against it); the
+TUI spring already had (B55 records `tracksVelocity` against it); the
 `interactiveSpring` presets are, accordingly, the quick springs their numbers
 describe.
 
@@ -2261,7 +2261,7 @@ together from the initial value and the last to write a property wins.
 **Where it differs.**
 
 - **Main-actor isolated.** The protocols, builders and the timeline's
-  initialiser and samplers are, because TUIkit's `Animatable` is (its values
+  initialiser and samplers are, because TUI's `Animatable` is (its values
   are read and written through `animatableData`). SwiftUI's are
   nonisolated. Code that builds a timeline in a view, a body or a `.task`
   compiles unchanged; one built off the main actor does not.
@@ -2305,7 +2305,7 @@ exempted nothing (deviations A4 as it was).
 
 The price is A40's, confined: a leaf keeps its last drawing only where a
 transition that dissolves is in force, in a record at an identity of its
-own (`ContentDissolve`, TUIkitFoundation); everywhere else each `Text` and
+own (`ContentDissolve`, TUIFoundation); everywhere else each `Text` and
 raster `Image` pays one environment read a draw (a `Bool`,
 `contentDissolves`, written by `\.contentTransition`'s setter, since the
 leaves cannot see `ContentTransition`'s module). The ruling lands it if the
@@ -2359,19 +2359,19 @@ is added, each measured on macOS 15.8:
 | Ctrl-A / Ctrl-E | the start / end of the caret's line (Cocoa's paragraph commands); they keep the key from an app's shortcut, since Home and End go to the ends of the text |
 | Ctrl-K | to the end of the line; at its end, the newline |
 
-**Where TUIkit chose, unmeasured.** A combo box's `▾` sits on the first row,
+**Where TUI chose, unmeasured.** A combo box's `▾` sits on the first row,
 and Down opens the suggestions only from the last row (above it Down moves a
 row). Page Up and Page Down only scroll a SwiftUI vertical field, leaving the
-caret where it was (measured); TUIkit's field scrolls only to follow its caret,
+caret where it was (measured); TUI's field scrolls only to follow its caret,
 so it has nothing for them to page, and leaves them to the view around it.
 
 **The fuller version:**
 
 - **The caret's lean at a wrap, per caret.** Where a row wrapped, one offset is
-  both the end of a row and the start of the next. TUIkit draws the caret by
+  both the end of a row and the start of the next. TUI draws the caret by
   `\.textSelectionAffinity`, and `.automatic` at the start of the later row.
   macOS keeps a lean per caret (measured): an arrow key leaves it downstream,
-  as TUIkit draws it, but typing, a click and Ctrl-E leave it upstream, at the
+  as TUI draws it, but typing, a click and Ctrl-E leave it upstream, at the
   end of the earlier row. The two draw the same offset in different places, and
   the next character typed goes to the same place either way. About half a day
   to track the lean through each kind of motion, after measuring the motions
@@ -2402,14 +2402,14 @@ Measured on macOS 15.8, in a vertical field:
 | Ctrl-O | inserts a newline, caret before it (Cocoa's open line) |
 | Ctrl-J, Ctrl-M | nothing |
 
-What a terminal delivers decides what TUIkit can honour:
+What a terminal delivers decides what TUI can honour:
 
 - **Option-Return** arrives as ESC CR where the terminal sends Option as Meta
   (Terminal.app with "Use Option as Meta Key", iTerm2 with Option as Esc+, and
-  the terminals whose own setting does the same). TUIkit inserts a newline
+  the terminals whose own setting does the same). TUI inserts a newline
   for it. Without Meta it is a plain CR, indistinguishable from Return, and
   submits.
-- **Ctrl-O** is byte 0x0F from every terminal. TUIkit opens a line, as macOS
+- **Ctrl-O** is byte 0x0F from every terminal. TUI opens a line, as macOS
   does. This is the route that is always there: Ctrl-O, then Ctrl-F (or Right)
   past the newline.
 - **A paste** keeps its line breaks, each as one newline whatever the
@@ -2507,7 +2507,7 @@ the header under the line, and only its second line onward showing.
 *`LazyVStack.init(alignment:spacing:pinnedViews:content:)`*
 
 SwiftUI pins the sections in the stack's own list of subviews, however
-wrapped, and not one inside a row. TUIkit's stack sees each section as one
+wrapped, and not one inside a row. TUI's stack sees each section as one
 child — a section in a stack draws as one unit (B16; shipped 2026-10-05, so
 the compatibility doc now says where a section is taken apart) — so the question is
 asked from the section's side, by two tests:
@@ -2540,7 +2540,7 @@ under the header pinned there (measured: the row is drawn, and the header
 covers it). A seek here does the same, unchanged: it is SwiftUI's API, and a
 program that wants the row clear can say `.center`.
 
-The reveal that follows focus is TUIkit's own, and it does allow for pinned
+The reveal that follows focus is TUI's own, and it does allow for pinned
 chrome: a focused row is kept clear of the lines a pinned header or footer
 covers, as it is kept clear of the "N more" lines. Without that, stepping up
 through rows with Shift-Tab put each one under the header as it arrived —
@@ -2629,7 +2629,7 @@ style alike: a `.standard` badge is bold grey text in a light grey capsule; a
 `.decreased` one is lighter grey text with no capsule; an `.increased` one is
 drawn exactly as a `.standard` one (the same pixels).
 
-TUIkit's list badge has always been plain text in the palette's tertiary
+TUI's list badge has always been plain text in the palette's tertiary
 foreground, which is closer to macOS's `.decreased` than to its `.standard`.
 
 **Shipped:** `.standard` keeps that look, `.decreased` draws in the quaternary
@@ -2668,7 +2668,7 @@ there to a monochrome that keeps their contrast.
 **Shipped:** a `List` and a `Table` raise it for the row under the cursor while
 the control has the focus, when that row is also selected (in a table, for its
 view cells) — the row whose fill is the accent's
-breath (TUIkit has one cursor, so one row; SwiftUI raises every selected row of
+breath (TUI has one cursor, so one row; SwiftUI raises every selected row of
 a focused list, all of which it fills alike). The content levels `.primary`
 through `.quinary` resolve to the palette's own text tiers under a raised
 background, whatever foreground style the row inherited: those are the inks the
@@ -2703,7 +2703,7 @@ On macOS the value follows the "Sidebar icon size" setting, and a write
 forces a sidebar's rows — their height and their `Label` icons — to that
 size. Off macOS SwiftUI always reports `.medium` and ignores a write.
 
-A terminal row is one line in the terminal's one font, so TUIkit's is always
+A terminal row is one line in the terminal's one font, so TUI's is always
 `.medium`. **Shipped:** the type with its three cases, and the value
 read-only, so a write fails to compile rather than being ignored (the B1/B2
 precedent).
@@ -2760,9 +2760,9 @@ and below the list. The two environment values report as measured.
 Where it differs:
 
 - **Choosing a tab.** The arrow keys move the list's cursor, and Return,
-  Space or a click choose the tab — TUIkit's list convention. A macOS sidebar
+  Space or a click choose the tab — TUI's list convention. A macOS sidebar
   selects as the cursor moves. Following the cursor needs a list mode that
-  selects as it moves (a `List` option of TUIkit's own, or the sidebar style
+  selects as it moves (a `List` option of TUI's own, or the sidebar style
   watching the cursor), about two hours; whether every keystroke should swap
   the content beside it is the question.
 - **The header and footer stay put.** SwiftUI's header and footer scroll with
@@ -2811,12 +2811,12 @@ table row's first column. An empty equivalent takes the row out.
 
 Where it differs:
 
-- **The cursor moves, not the selection.** TUIkit's lists and tables move the
+- **The cursor moves, not the selection.** TUI's lists and tables move the
   cursor with the arrow keys and select with Return or Space; type select
   follows them. Selecting as well is a line, if the owner prefers macOS's
   behaviour for this one gesture.
 - **A prefix's first character gives way to bare-key bindings.** macOS's
-  shortcuts take Command, so its type select never meets one; TUIkit binds
+  shortcuts take Command, so its type select never meets one; TUI binds
   bare keys — its own `q` (quit), `t` (theme), `a` (appearance) and help key,
   and any bare `.keyboardShortcut` an app registers. The first character of a
   prefix goes to such a binding (the Stress `themes` session presses `t` with
@@ -2835,7 +2835,7 @@ pop-up menu take every character type select takes (`TypeSelectBuffer.takes`:
 printable, not Space, no Control, Option or ⌘), the first of a prefix
 included, whether or not a row answers to it — as macOS does, and without
 needing every row's text when the key arrives. So while one has the focus no
-bare-key binding hears such a character: TUIkit's `q`, `t`, `a` and help key,
+bare-key binding hears such a character: TUI's `q`, `t`, `a` and help key,
 an app's bare `.keyboardShortcut`, a menu row's bare key equivalent, and a
 status-bar item with an action on one. The user leaves the list, or uses a
 modified key, an F-key or the menu bar. The status bar stops advertising what
@@ -2918,7 +2918,7 @@ says the documentation). Its encoding is private (a UUID, `perTabState`,
 **Shipped:** all of it, as measured, with the shape of table column customization (B45, shipped 2026-10-06): a hidden tab leaves
 the sidebar and not a strip; a stated tab order (per section) and section
 order are applied to the sidebar, the identified items taking the slots
-identified items had; `Codable` in TUIkit's own encoding; persisted through
+identified items had; `Codable` in TUI's own encoding; persisted through
 `@AppStorage`/`@SceneStorage` with no default written. The binding is read,
 never written: the environment carries the value, not the binding, so the
 render memos below the tab view stay on.
@@ -2975,7 +2975,7 @@ Where it differs:
   would land on in the accent; a ring needs a cell around the row, which the
   grid does not have. The selection fill is the nearest drawn answer, and
   goes when the drag leaves.
-- **A draggable row is not picked up by `Table.onMove(_:)`** (TUIkit's own
+- **A draggable row is not picked up by `Table.onMove(_:)`** (TUI's own
   table-level reorder): the press carries the payload. SwiftUI's tables have
   no `onMove`; their reorder is a loop's `dropDestination` with draggable
   rows, which works here too.
@@ -2987,7 +2987,7 @@ Where it differs:
   (`Tools/SwiftUIProbes/Hierarchical table insertions/outlineinsert.swift`),
   a drop SwiftUI's outline proposes among a branch's rows goes to those rows'
   loop at its offset among them, and one among the roots to the roots' loop;
-  TUIkit's table now walks the outline it shows and does the same. A slot
+  TUI's table now walks the outline it shows and does the same. A slot
   two loops reach — the end of a branch's rows is also the place before the
   next row out — goes to the deeper loop that takes the payload, as a
   terminal's drop line has no indentation to aim by. Not copied: where a
@@ -3035,7 +3035,7 @@ current one selected over it; and macOS's options, which it keeps in a menu
 under the magnifier, are a row under the search field: an Ignore Case toggle
 and a button that steps through Contains, Starts With and Full Word
 (`FindNavigatorTests`). A menu and a picker would have made the text editor's
-module depend on TUIkitMenus and TUIkitPickers, which the module split keeps
+module depend on TUIMenus and TUIPickers, which the module split keeps
 it free of. An app's own shortcut on ⌘F or ⌘G takes the key from the bar, as
 the editor's other chords give way to one; `TextEditingCommands`' Edit ▸
 Find… and Find Next press the two keys.
@@ -3098,7 +3098,7 @@ Where it differs:
   per arrival: the pointer has to leave and come back for a second
   activation, so a disclosure group opened by a pause is not shut by the
   next. AppKit's own repeat rule could not be measured.
-- **The delay is the user's where TUIkit can read it** (owner ruling B82:
+- **The delay is the user's where TUI can read it** (owner ruling B82:
   "system delay when local, with an override"; built 2026-10-24, lane MISC).
   macOS reads the user's spring-loading speed, `com.apple.springing.delay` in
   the global domain (a float in seconds: `defaults read-type -g` says so, and
@@ -3165,7 +3165,7 @@ Where it differs:
 - **Nothing hands a session out.** The modifiers that would are A53,
   and do not compile; a value can be named, built where SwiftUI lets one be
   built (the configurations, the formations), and passed around.
-- **The descriptions are TUIkit's spelling** (`.ended(.move)`,
+- **The descriptions are TUI's spelling** (`.ended(.move)`,
   `DragSession.ID(3)`, `DragConfiguration(operationsWithinApp: [.copy,
   .move], …)`): SwiftUI does not document its own, and it is macOS 26 only.
 
@@ -3174,36 +3174,36 @@ way.
 
 *Lane 17t's entries (B84–B88, C13–C14), `Text(AttributedString)` and Markdown in `Text` keys (refusal review P8): SwiftUI's rules measured on macOS 15.8 (SDK 26.2) by comparing offscreen bitmaps; the probes and the differential fuzz harness are in the session notes, `w17t`.*
 
-### B84. On macOS, SwiftUI's attribute scope is visible beside TUIkit's
+### B84. On macOS, SwiftUI's attribute scope is visible beside TUI's
 
 *`AttributeScopes.SwiftUIAttributes` and its members, `AttributeScopes.swiftUI`,
 `AttributeDynamicLookup.subscript(dynamicMember:)`*
 
-TUIkit imports AppKit (for the `NSColor` and `NSImage` bridges), and AppKit
+TUI imports AppKit (for the `NSColor` and `NSImage` bridges), and AppKit
 loads SwiftUICore. Swift makes every extension member of every loaded module
-visible, so a TUIkit app on macOS sees SwiftUICore's
-`AttributeScopes.SwiftUIAttributes` as well as TUIkit's. This is the same leak
+visible, so a TUI app on macOS sees SwiftUICore's
+`AttributeScopes.SwiftUIAttributes` as well as TUI's. This is the same leak
 B50 met with `SystemFormatStyle`'s statics.
 
-**Since 2026-10-05 this applies only to an app that imports `TUIkitAppKit`
-(or AppKit itself).** B50 shipped: the AppKit bridges are the `TUIkitAppKit`
-module, no module TUIkit is built from imports AppKit (a test guards it), and
-an app that imports TUIkit alone sees no SwiftUICore member. The rest of this
+**Since 2026-10-05 this applies only to an app that imports `TUIAppKit`
+(or AppKit itself).** B50 shipped: the AppKit bridges are the `TUIAppKit`
+module, no module TUI is built from imports AppKit (a test guards it), and
+an app that imports TUI alone sees no SwiftUICore member. The rest of this
 entry describes the app that imports the bridges too.
 
 **Shipped:**
 
-- **Setting and reading an attribute binds to TUIkit's.**
-  `string.foregroundColor = .red` and the rest resolve here, because TUIkit
+- **Setting and reading an attribute binds to TUI's.**
+  `string.foregroundColor = .red` and the rest resolve here, because TUI
   declares one dynamic-member subscript per key where SwiftUI declares one
-  generic subscript. A concrete overload outranks a generic one, so TUIkit's
+  generic subscript. A concrete overload outranks a generic one, so TUI's
   wins; two generic ones would tie and be ambiguous. (AppKit's own subscript is
   `@_disfavoredOverload`, which is how SwiftUI's beats AppKit's.) This was
   measured against a standalone module that imports AppKit, and it is pinned
   by the compile corpus.
-- **Inside TUIkit, the leak is closed.** The TUIkit target turns on
-  `MemberImportVisibility`, so SwiftUICore, which no TUIkit file imports, is
-  invisible there. Without it, TUIkit could not spell its own scope in a type
+- **Inside TUI, the leak is closed.** The TUI target turns on
+  `MemberImportVisibility`, so SwiftUICore, which no TUI file imports, is
+  invisible there. Without it, TUI could not spell its own scope in a type
   position.
 
 **What remains, on macOS only:**
@@ -3217,9 +3217,9 @@ entry describes the app that imports the bridges too.
 
 **The fuller version** was B50's, and shipped with it on 2026-10-05: the AppKit
 bridges (`Color(nsColor:)`, `NSColor(_:)`, the `CGColor` pair, `Image`'s
-`NSImage`/`CGImage` initializers) are the `TUIkitAppKit` module. An
+`NSImage`/`CGImage` initializers) are the `TUIAppKit` module. An
 `internal import` of AppKit was not enough — it still loads SwiftUICore into
-clients of a SwiftPM module — so TUIkit imports none.
+clients of a SwiftPM module — so TUI imports none.
 
 ### B85. A link in a `Text` is drawn and hyperlinked, and is a control
 
@@ -3234,7 +3234,7 @@ SwiftUI makes a `Text`'s link clickable, and it opens through the
 - **Colour:** the accent, which follows `.tint`, as SwiftUI's link colour does.
   The run's own colour wins over it, and the text's `.foregroundStyle` does not
   reach it, as measured.
-- **Underline:** underlined, as `Link` is. This is TUIkit's deviation, for
+- **Underline:** underlined, as `Link` is. This is TUI's deviation, for
   `Link`'s reason. `.linkUnderline(false)` removes it.
 - **Hyperlink:** an OSC 8 hyperlink under `Link`'s three conditions:
   - the host honours OSC 8;
@@ -3307,13 +3307,13 @@ a drawing of the text per colour of the breath.
 `TextLinkStopsTests` pins all of it through the app; the Example's Buttons
 page has one (`page.buttons.links.textLink`).
 
-### B86. TUIkit's Markdown parse is its own, with two known differences
+### B86. TUI's Markdown parse is its own, with two known differences
 
 *Markdown in `Text(_ key: LocalizedStringKey)`*
 
 Foundation's Markdown parser is Darwin-only. swift-foundation has neither
 `AttributedString(markdown:)` nor `InlinePresentationIntent`; this was checked
-on the 6.3.3 static Linux SDK. TUIkit therefore parses with `InlineMarkdown`:
+on the 6.3.3 static Linux SDK. TUI therefore parses with `InlineMarkdown`:
 
 - CommonMark's inline algorithm;
 - cmark-gfm's strikethrough and autolink extensions;
@@ -3334,13 +3334,13 @@ with two exceptions:
    20 KB of generated source and an hour's work.
 2. **Link reference definitions.** In inline-only mode Foundation still
    consumes a `[label]: destination` line and makes `[label]` elsewhere a link.
-   TUIkit draws both as text. Definitions and reference links would take half
+   TUI draws both as text. Definitions and reference links would take half
    a day. A UI string that starts with `[x]: …` is rare.
 
-**Two places where TUIkit draws differently, neither a parse difference:**
+**Two places where TUI draws differently, neither a parse difference:**
 
 - **`^[text](inflect: true)`** (automatic grammar agreement) draws its text
-  without inflecting it. TUIkit has no inflection engine. SwiftUI also draws
+  without inflecting it. TUI has no inflection engine. SwiftUI also draws
   "2 apple" when it has no localized bundle, as measured.
 - **A code span** draws as plain text, because every cell is monospaced
   already.
@@ -3381,7 +3381,7 @@ construction only puts its values in.
 *`Button(_:action:)` and the other `LocalizedStringKey` initializers*
 
 SwiftUI parses Markdown in a control's title key. Measured: `Button("**Save**")
-{}`, `Toggle`, `Label`, `Link` and `LabeledContent` all draw the bold. TUIkit's
+{}`, `Toggle`, `Label`, `Link` and `LabeledContent` all draw the bold. TUI's
 controls resolve the key eagerly to a `String` (`key.localized`) and draw it as
 written, so the asterisks show. This gap existed before this wave. It is more
 visible now that `Text("**Save**")` is bold.
@@ -3397,7 +3397,7 @@ label with `Text(titleKey)`.
   measure that instead.
 - **Price:** about a day with the tests. The `LocalizedTitleTests` round trips
   would each gain a Markdown case.
-- **What stays as is:** TUIkit's own chrome (status-bar labels, `AlertPanel`,
+- **What stays as is:** TUI's own chrome (status-bar labels, `AlertPanel`,
   `Card`, `Dialog` titles) has no SwiftUI meaning to match.
 
 **Recommendation:** do it for the SwiftUI controls listed above.
@@ -3411,7 +3411,7 @@ did). `Button` and `ColorPicker` keep their title as a `String`: a key whose
 Markdown styles it is drawn as its `Text`, and its plain words stay the title.
 A plain key costs the byte scan `Text` already pays. Not done: a `TextField`'s
 title (drawn as its placeholder), a `TableColumn`'s header and a `Tab`'s title,
-which are measured and drawn as strings; and TUIkit's own chrome, as above.
+which are measured and drawn as strings; and TUI's own chrome, as above.
 Tests: `MarkdownTitleTests`.
 
 **2026-10-18 (lane PARITYMISC):** the three are parsed. A `TextField`'s title is
@@ -3448,7 +3448,7 @@ runs, which needs the key's substitution to splice runs. Not priced.
 *`View.gesture(_:including:)`, `View.highPriorityGesture(_:including:)`,
 `View.simultaneousGesture(_:including:)` (all forms), `GestureMask`*
 
-The arena (`Sources/TUIkitFoundation/App/GestureArena.swift`) ranks every region under
+The arena (`Sources/TUIFoundation/App/GestureArena.swift`) ranks every region under
 a press: gestures, and the ordinary controls' regions — a `Button`'s press is
 one of the view's own gestures and ranks as one, as measured. A gesture is a
 recognizer: it sees every event, is held back while anything ahead of it is
@@ -3469,7 +3469,7 @@ Where that differs from macOS:
   back by the double-tap interval, since the list waits for the double tap to
   fail. (macOS's bordered `Button` is an AppKit control that ignores attached
   gestures altogether — measured: none of tap, high-priority, simultaneous,
-  long press or drag ran on it. TUIkit's buttons are drawn, and follow the
+  long press or drag ran on it. TUI's buttons are drawn, and follow the
   plain-style SwiftUI button, which was measured.)
 
 **The fuller version** makes controls recognizers: each control's press
@@ -3519,7 +3519,7 @@ earlier rulings, open to veto).** The velocity is the least-squares slope of
 the press and the moves of the last 100 ms up to the last report
 (`DragSample.fit`), anchored at that report, so a pointer held still keeps
 its velocity as on macOS. Where the window holds one report (a move after a
-pause) or a burst read at once (reports under 1 ms apart, since TUIkit stamps
+pause) or a burst read at once (reports under 1 ms apart, since TUI stamps
 a report at dispatch), the fit reaches back to the report before. A pair read
 at once no longer spikes it: 500,000 cells a second between two such reports
 went into the average halved, where the fit reads the steady speed around them
@@ -3598,7 +3598,7 @@ log rows) and the full suite passes.
 `Resolved`), `MeshGradient.BezierPoint` (its initialiser and five points),
 `MeshGradient.Locations` (`.points`, `.bezierPoints`),
 `MeshGradient.Colors` (`.colors`, `.resolvedColors`); `Paint.mesh` and
-`MeshPaint`, TUIkit's own*
+`MeshPaint`, TUI's own*
 
 **Shipped:** all of SwiftUI's surface, a style and a view. Each cell takes
 the mesh's colour at the cell's centre; an opaque mesh used as a view, or
@@ -3636,7 +3636,7 @@ Where it differs, or rests on less than a measurement:
   staircase where the terminal draws pictures. Since 2026-10-24 (the fuller
   version below) a blank cell is two samples where the terminal's Block
   Elements fill the line. This is the same rule every gradient follows.
-- **Exact evaluation, not SwiftUI's tessellation.** TUIkit evaluates the
+- **Exact evaluation, not SwiftUI's tessellation.** TUI evaluates the
   Hermite patch at each sample; SwiftUI interpolates linearly between the
   vertices of its tessellation. The two differ by a level or two where a colour
   curves.
@@ -3706,7 +3706,7 @@ default, a `.bordered` or `.grouped` tab view in a horizontally compact size
 class draws the compact strip instead of its folder tabs over a box, as a
 `.sidebarAdaptable` one draws the strip instead of its sidebar (B3). The
 default strip, `.automatic`, `.tabBarOnly` and `.compact`, is already the
-minimal bar. TUIkit's size classes are `.regular` unless the app writes one,
+minimal bar. TUI's size classes are `.regular` unless the app writes one,
 so no default changes. The modifier writes the behavior into the environment,
 where the tab view reads it; with one value it changes nothing yet, and a
 second (a TUI-specific `.never`, or iOS's when they reach macOS) would be read
@@ -3729,7 +3729,7 @@ This is a compiler wall, not a judgement. On Apple platforms, SwiftUICore's
 own extensions of the CoreGraphics types are visible to any module that
 imports Foundation, through a cross-import overlay. That is the same overlay
 `Collection+Offsets.swift` already works around. SwiftUICore's
-`AnimatableData` typealias on each type is found before any witness TUIkit
+`AnimatableData` typealias on each type is found before any witness TUI
 could give, so `extension CGPoint: Animatable` does not compile on macOS. I
 tried with and without an explicit typealias.
 
@@ -3753,7 +3753,7 @@ That call never linked before either.
 SwiftUI's `.clear` is AppKit's Clear key, U+F739: the keypad key in Num
 Lock's position on a full-size Mac keyboard. A shortcut or `onKeyPress` on it
 fires only if a terminal sends that key as a key of its own. The legacy
-encodings TUIkit parses have no sequence for it, and the parser has nothing
+encodings TUI parses have no sequence for it, and the parser has nothing
 to map to it. So `.clear` would name a key no event can carry, and a
 shortcut on it would compile and never fire. Rule 2 says leave it out.
 
@@ -3790,7 +3790,7 @@ in both forms*
 
 The language a run is typeset in sets its line height (taller for Thai, say),
 its line breaking and its spacing. Line height is the terminal's row, and
-spacing is whole cells. TUIkit's word wrapper breaks at spaces and at
+spacing is whole cells. TUI's word wrapper breaks at spaces and at
 characters a line cannot hold, whatever the language, so a language would
 change none of the three, and accepting one would be the quiet no-op the
 parity rules forbid. If the wrapper ever learns dictionary-based breaking
@@ -3814,7 +3814,7 @@ SwiftUI offers beside them ship — `@FocusedValue(Model.self)`,
 
 The content type of the `DisclosureGroup` that is SwiftUI's
 `OutlineGroup<…, Subgroup>` for views — a type only ever written inside
-`OutlineGroup`'s full generic signature. TUIkit's `OutlineGroup` declares
+`OutlineGroup`'s full generic signature. TUI's `OutlineGroup` declares
 the three generic parameters that carry information and drops the two that
 are always the same (`Parent` is `Leaf`; `Subgroup` is that one
 `DisclosureGroup`), as its documentation records, so there is no subgroup
@@ -3838,7 +3838,7 @@ already ships and draws a 2×1-cell picture (refusal review P12,
 `ImageNameInitializers.swift`). The `systemImage:` forms are implemented.
 
 **Corrected 2026-10-23** (owner, TAB-IMAGE-NAME, option a): the `String` forms
-are to ship as `Label`'s do — an extension in TUIkitBitmaps (TUIkitTabs does
+are to ship as `Label`'s do — an extension in TUIBitmaps (TUITabs does
 not depend on it) that finds the name as `Image(_:bundle:)` does. The picture
 shows in the sidebar list; the strip's chips show only the title, as they do
 for a symbol the terminal cannot draw (B75 would draw the picture there too).
@@ -3847,30 +3847,30 @@ compatibility guide and `Tab`'s own doc comment no longer give the
 asset-catalogue reason.
 
 **Placed 2026-10-24** (owner, TAB-IMAGE-NAME follow-up, option 2). Built in
-TUIkitBitmaps as ruled (branch `lane-tabs-image`, f166bc31a), they made it
-depend on TUIkitTabs, and through it TUIkitLists and TUIkitPresentation, so an
-app that showed an image paid for tabs: an app on `TUIkitApp` and
-`TUIkitBitmaps` with no tab view grew 8,163,440 → 9,054,784 B (+10.9%), one on
-`TUIkitBitmaps` alone 6,771,792 → 7,680,736 B (+13.4%), measured 2026-10-24
+TUIBitmaps as ruled (branch `lane-tabs-image`, f166bc31a), they made it
+depend on TUITabs, and through it TUILists and TUIPresentation, so an
+app that showed an image paid for tabs: an app on `TUIApp` and
+`TUIBitmaps` with no tab view grew 8,163,440 → 9,054,784 B (+10.9%), one on
+`TUIBitmaps` alone 6,771,792 → 7,680,736 B (+13.4%), measured 2026-10-24
 (Xcode's Swift 6.2.4, release, default traits, `strip`). The other way round,
-TUIkitTabs on TUIkitBitmaps, would put the image decoders under
-TUIkitColorPicker, whose panel is a `TabView` and whose module-map `lower`
-list forbids TUIkitImage. So they live in **TUIkitTabImages**, a module and
-library product of their own built on TUIkitBitmaps and TUIkitTabs, which it
+TUITabs on TUIBitmaps, would put the image decoders under
+TUIColorPicker, whose panel is a `TabView` and whose module-map `lower`
+list forbids TUIImage. So they live in **TUITabImages**, a module and
+library product of their own built on TUIBitmaps and TUITabs, which it
 re-exports, and which the umbrella re-exports: an app pays for them only when
-it uses both, and an app on module products lists `TUIkitTabImages` to get
+it uses both, and an app on module products lists `TUITabImages` to get
 them.
 
 **Shipped 2026-10-24** (lane TABIMG): the `String` forms, in
-`Sources/TUIkitTabImages/Tab+ImageName.swift` — SwiftUI's, with `role:`
-defaulted as TUIkit's `systemImage:` forms have it, and without the
+`Sources/TUITabImages/Tab+ImageName.swift` — SwiftUI's, with `role:`
+defaulted as TUI's `systemImage:` forms have it, and without the
 `LocalizedStringResource` titles, which no `Tab` form takes here. The name is
 found as `Image(_:bundle:)` finds it; a `.sidebarAdaptable` sidebar's row
 draws the picture in two cells before the title, and its row memo compares
-the picture's source; a strip's chip draws the title alone. TUIkitTabs carries
-the picture (`DefaultTabLabel`'s, an `Image`, TUIkitFoundation's type) and
+the picture's source; a strip's chip draws the title alone. TUITabs carries
+the picture (`DefaultTabLabel`'s, an `Image`, TUIFoundation's type) and
 draws it, and opens the two initialisers the new module calls at `package`
-access; it needs nothing of TUIkitBitmaps. The four initialisers leave
+access; it needs nothing of TUIBitmaps. The four initialisers leave
 `baseline.json`.
 
 ### C12. The drag sessions' AppKit comparisons
@@ -3878,7 +3878,7 @@ access; it needs nothing of TUIkitBitmaps. The four initialisers leave
 *`DragSession.ID.matches(_:)`, `DropSession.ID.matches(_:)`*
 
 Each compares a session with AppKit's own dragging object
-(`NSDraggingSession`, `NSDraggingInfo`), which a TUIkit drag never is: a
+(`NSDraggingSession`, `NSDraggingInfo`), which a TUI drag never is: a
 terminal app drags inside itself, without AppKit, and Linux has no AppKit at
 all. The review listed both as its CONFIRM for P18. They are now the only
 declined members of the family, each with its own `notImplemented` entry; the
@@ -3923,7 +3923,7 @@ a reason that holds: they recognize the scale and angle between two contacts,
 or report every simultaneous contact with its kind, 3D location and pose, and
 a terminal's mouse protocols report one pointer — its cell, its buttons, the
 wheel and three modifier bits. `WindowDragGesture` is declined with the Window
-family (a TUIkit app has no window to drag), and `View.gesture(_:)` with the
+family (a TUI app has no window to drag), and `View.gesture(_:)` with the
 AppKit-bridge family. The family's old reason — "no velocity, no simultaneous
 touches, nothing to arbitrate" — is gone with what it refused.
 
@@ -3937,7 +3937,7 @@ The owner declined these on 2026-10-23 (SA-82-TABVIEW-PLAIN, option b).
 `TabView(content:)` with `SelectionValue == Int` is not deprecated in SwiftUI,
 and it takes plain views. On macOS, though, a page needs a label to appear in
 the tab strip, and the only way to give a plain view one is `.tabItem`, which
-is deprecated (in favour of `Tab`) and which TUIkit does not implement. TUIkit
+is deprecated (in favour of `Tab`) and which TUI does not implement. TUI
 would have had to invent the strip: numbered tabs, blank tabs as macOS shows,
 or a page indicator. SwiftUI code that compiled would then show unlabelled
 tabs.

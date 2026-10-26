@@ -13,7 +13,7 @@ The duplication called out in the original task description
 clamp logic" — is gone. Commit `22b3982c` extracted the
 shared arithmetic into a single protocol,
 ``ScrollableOffsetState``, in
-`Sources/TUIkitFoundation/Focus/`. Both ``ScrollViewHandler`` and
+`Sources/TUIFoundation/Focus/`. Both ``ScrollViewHandler`` and
 ``ItemListHandler`` conform; the protocol's extension supplies
 every formula and predicate they previously open-coded:
 
@@ -121,7 +121,7 @@ let extents = contentExtents(
     horizontal: horizontal, context: context)
 measureContext.availableWidth = extents.width
 measureContext.availableHeight = extents.height
-let fullBuffer = TUIkit.renderToBuffer(content, context: measureContext)
+let fullBuffer = TUI.renderToBuffer(content, context: measureContext)
 ```
 
 It then windows from `fullBuffer.lines` by index. That works

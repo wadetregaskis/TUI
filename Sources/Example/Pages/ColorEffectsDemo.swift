@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ColorEffectsDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// The colour effects: one strip of colour, and what each modifier makes of
 /// it — brighter, flatter, greyer, turned round the colour wheel, inverted,

@@ -1,4 +1,4 @@
-//  🖥️ TUIKit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  EmojiBugScanner / main.swift
 //
 //  Probes Terminal.app for the actual cursor advance of each emoji
@@ -23,7 +23,7 @@
     import Darwin
 #endif
 import Foundation
-import TUIkitCore
+import TUICore
 
 // MARK: - Raw mode
 

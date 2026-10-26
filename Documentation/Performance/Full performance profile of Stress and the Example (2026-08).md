@@ -1,4 +1,4 @@
-# Where TUIkit spends its time — a full profile of Stress and the Example
+# Where TUI spends its time — a full profile of Stress and the Example
 
 **Measured 2026-08-11**, on macOS 15.7 / arm64, release build (`-Xswiftc -g` for
 symbols). Every number here is measured, not estimated; the method for each is
@@ -164,9 +164,9 @@ scenarios:
 |---|---|
 | `libswiftCore.dylib` (ARC, generic metadata, dynamic casts, conformances) | **48–64%** |
 | `libsystem_malloc.dylib` | **6–18%** |
-| TUIkit + Stress's own code | **17–27%** |
+| TUI + Stress's own code | **17–27%** |
 
-**TUIkit spends roughly a fifth of its time in its own logic.** The rest is
+**TUI spends roughly a fifth of its time in its own logic.** The rest is
 Swift runtime overhead: `swift_retain`/`swift_release`/`swift_bridgeObjectRelease`
 dominate every leaf profile, followed by `tryCast`,
 `_swift_getGenericMetadata`, `swift_conformsToProtocolMaybeInstantiate…` and
@@ -174,7 +174,7 @@ dominate every leaf profile, followed by `tryCast`,
 §3 seen from the other side — a large graph of small reference-counted objects,
 walked generically.
 
-Within TUIkit's own ~20%, the hot functions fall into two clean families:
+Within TUI's own ~20%, the hot functions fall into two clean families:
 
 **Family A — cell-width machinery** (`megalist`, `table`, `table-multiline`,
 `tables-scroll`, `tables-vstack`, `dashboard`, `kitchensink`, `customlayout`):
@@ -1578,7 +1578,7 @@ not memory — which is `Equatable`, which is what the opt-in memo already uses
 and which reaches 100%. Making that automatic means either app-side
 `.equatable()` (SwiftUI's own answer) or a synthesised structural comparator
 that ignores heap identity; the byte shortcut cannot be repaired, because the
-instability is in the language's representation, not in TUIkit.
+instability is in the language's representation, not in TUI.
 
 ---
 
@@ -1604,7 +1604,7 @@ count (14.4k / 28.8k / 75.2k / 150.4k). What did grow was the cost *per call*:
 1.49 -> 2.18 -> 2.96 -> 5.35 microseconds, with an unchanged instruction mix.
 The self-time split said the same thing from another angle — 48-64% in
 libswiftCore (ARC, generic metadata, `tryCast`), 6-18% in malloc, only 17-27%
-in TUIkit's own code.
+in TUI's own code.
 
 Same work, more expensive each time, dominated by retain/release and
 allocation. That is not an algorithm doing more; it is an array being copied.
@@ -1936,7 +1936,7 @@ malformed escapes.
 | % | self time by module |
 |---|---|
 | 48.7 | libswiftCore (ARC, generic metadata, `tryCast`) |
-| 28.4 | TUIkit's own code |
+| 28.4 | TUI's own code |
 | 12.9 | libsystem_malloc |
 
 with `swift_release` 5.0%, `swift_retain` 4.3%, `tryCast` 2.0% and
@@ -1950,7 +1950,7 @@ work.
 
 With the width scan fixed, `fanout` (the slowest scenario, and the shape of an
 ordinary wide non-lazy list) became the profiling target. Its leaf profile is
-almost entirely runtime, not TUIkit: ARC 18%, generic-metadata instantiation
+almost entirely runtime, not TUI: ARC 18%, generic-metadata instantiation
 ~14%, `tryCast` 4%. None of that is actionable *as leaves* — the question is
 who is calling it, which is what `analyze_timeprofile.py --callers` is for.
 
@@ -2462,7 +2462,7 @@ The aggressive form is not available at all: `-cross-module-optimization`
     While running pass #190002 SILModuleTransform "CrossModuleOptimization"
     compile command failed due to signal 6
 
-on `TUIkitView`. Worth a minimised upstream report if anyone wants that lever;
+on `TUIView`. Worth a minimised upstream report if anyone wants that lever;
 until then it is not an option.
 
 ### The localization scan — shipped
@@ -3565,7 +3565,7 @@ which was one climb per root per entry. `endRenderPass` 9.7% of the
 frame, `isRetained` 7.5%; `clearAffected` at the pass's start, two climbs
 per entry, 7.4%.
 
-`RetainedSubtreeIndex` (TUIkitCore) indexes the pass's roots by structural
+`RetainedSubtreeIndex` (TUICore) indexes the pass's roots by structural
 hash once; an entry climbs its own chain once and confirms structurally
 only on a hash hit. `clearAffected` puts the changed identity's chain in a
 set for the "above" half. Raw-rooted identities keep the prefix walk.
@@ -4281,7 +4281,7 @@ toolchain has never been able to see the function.
 ### What the compiler says
 
 Xcode 26.3's toolchain (`swiftlang-6.2.4.1.4`, MacOSX26.2 SDK) fails
-`TUIkitView` in **debug** as well as release:
+`TUIView` in **debug** as well as release:
 
     EnvironmentProperty.swift:7:2: warning: '@_spi' import of 'Swift' will not
       include any SPI symbols; 'Swift' was built from the public interface at
@@ -4314,7 +4314,7 @@ Xcode 26.3's toolchain fails with the error above. swiftly 6.3.3 against the
 same SDK is clean, with or without `-O`.
 
 **CI never saw it.** `ee3d422f` is not on `origin/main`. Once pushed, both
-released macOS lanes would have failed at `TUIkitView`: they run Xcode 26's
+released macOS lanes would have failed at `TUIView`: they run Xcode 26's
 `swift` on `macos-15` and `macos-26`. That holds for `macos-26`'s Xcode 26.6
 only if its SDK is laid out like 26.3's, which is inferred and not checked.
 The two snapshot lanes use swift.org toolchains and would have passed. So would
@@ -4341,7 +4341,7 @@ per-type negative memo, then a `Mirror` walk for any type that has
 (`TypeWalk`, which decides whether a row may be re-checked by its value) used
 `_forEachField` under `@_spi(Reflection) import Swift`, and every Xcode lane —
 macOS 15, 26 and 27, and the parity and DocC jobs, which build with Xcode —
-failed at `TUIkitView` on the first push to reach CI. It could not fall back to
+failed at `TUIView` on the first push to reach CI. It could not fall back to
 `Mirror`: the walk's point is to answer with no instance. So it now reads the
 runtime's field metadata through `RuntimeFields`, which binds with
 `@_silgen_name` the runtime entry points `_forEachField` is itself built on
@@ -4867,7 +4867,7 @@ run makes:
   its static type and letting Swift open it — its payload's type, then the payload; never
   the container's words or a box's address. A static type this module can name (`Any`,
   `any View`, `any Equatable`, `any Hashable`, `any Palette`) is opened directly, and so is
-  one the table was given a `ValueHashOpener` for — TUIkit's style protocols and
+  one the table was given a `ValueHashOpener` for — TUI's style protocols and
   `AnyLayout`'s box (`ValueHashOpener.tuikit`); any other by a cast, boxing it in an `Any`
   for `type(of:)`, which mixes the same words and costs an allocation (2.2% of a `menus`
   profile when the styles went that way). Opening one is the one place the hash recurses
@@ -5042,7 +5042,7 @@ clock; the eight scenarios above repeat exactly.
   re-measured since, and the hash still walks an erased chain at every level. Views built as SwiftUI builds them keep their
   subtrees in bodies, not in stored values, and hash small; the step-heavy A/B above is the
   check on realistic trees. The follow-up if it shows: an `AnyView` that kept its content
-  in a box of TUIkit's own could remember the content's hash once asked — the content never
+  in a box of TUI's own could remember the content's hash once asked — the content never
   changes — without ever using the box's address as a key (§60). Not done here: it changes
   what `AnyView` IS to everything else that reads its type — `TypeWalk` refuses a row
   holding an existential and treats a class as a leaf, so a boxed `AnyView` would silently

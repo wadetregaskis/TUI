@@ -1,6 +1,6 @@
 # Completing the SwiftUI API: decisions from lane SKEY
 
-*Lane SKEY, 2026-10-11, fixed two bugs in how TUIkit binds the `@State` inside
+*Lane SKEY, 2026-10-11, fixed two bugs in how TUI binds the `@State` inside
 an app's `DynamicProperty` ([`Tools/SwiftUIProbes/Dynamic property discovery/notes.md`](<../../../../Tools/SwiftUIProbes/Dynamic property discovery/notes.md>) §5.5,
 `DynamicPropertyStateKeyTests`). A nested `@State` took the next index of its
 view's one counter, so what an optional, an existential or an enum case before
@@ -15,11 +15,11 @@ measured on macOS 15 (SwiftUI 6.5.4) with an offscreen `NSHostingView`
   property's, starts its `@State` at its defaults, even when the two cases
   hold the same property type; the case left starts at its defaults again
   when it comes back. The case staying while another payload value changes
-  keeps its state. TUIkit now does all of this.*
+  keeps its state. TUI now does all of this.*
 - *An optional property that goes `nil` and comes back finds the state it
   left, with `Optional` made to conform to `DynamicProperty`. Without that
   conformance SwiftUI binds nothing in an optional (decisions-DYNP
-  A-DYNP-1). TUIkit, which looks through optionals until A-DYNP-1 is
+  A-DYNP-1). TUI, which looks through optionals until A-DYNP-1 is
   decided, now behaves as the conforming build does.*
 
 *The format is that of
@@ -30,7 +30,7 @@ measured on macOS 15 (SwiftUI 6.5.4) with an offscreen `NSHostingView`
   be, and its price.
 - **C-SKEY-n — declined.** With the reason.
 
-There is no A or C entry. Both B entries exist because TUIkit looks through
+There is no A or C entry. Both B entries exist because TUI looks through
 optionals and existentials, which the owner decided to keep (decisions-DYNP
 A-DYNP-1, 2026-10-12; existential fields, 2026-10-12). Since lane DYNVFIX
 (2026-10-12) the walk plans each type from its declared fields

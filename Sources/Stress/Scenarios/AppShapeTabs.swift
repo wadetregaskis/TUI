@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  AppShapeTabs.swift
 //
 //  A mail app's sidebar as a tab view: tabs in sections, one per folder, in
@@ -10,7 +10,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 /// Two fixed tabs, then a `TabSection` of one looped tab per folder, beside the
 /// selected tab's messages.

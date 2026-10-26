@@ -17,7 +17,7 @@ cell to the bottom. Emoji ink is not.
 
 The output is a measurement record: per cluster, the DSR `advance` the probe
 read, the `landing` measured here, and `reserve` if the probe was run with
-`--wrap`. Compare it against TUIkit's models with
+`--wrap`. Compare it against TUI's models with
 
     swift test --filter TerminalLedgerConformanceTests
 """

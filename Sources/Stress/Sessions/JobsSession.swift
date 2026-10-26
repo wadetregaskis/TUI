@@ -1,11 +1,11 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  JobsSession.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Observation
-import TUIkit
+import TUI
 
 // MARK: - The queue
 

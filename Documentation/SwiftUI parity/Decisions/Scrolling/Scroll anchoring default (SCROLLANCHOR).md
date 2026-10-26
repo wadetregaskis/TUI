@@ -57,7 +57,7 @@ leave its origin where it was, and the rows on screen move up (measured,
 `hold.out` case 2); a row it has not laid out growing moves nothing, since it
 does not know (case 3 says only that the origin stayed).
 
-**Shipped:** TUIkit holds the top row whichever way the content above it
+**Shipped:** TUI holds the top row whichever way the content above it
 changed — inserted, removed, or resized where the scroll position counts lines
 and the rows above are measured (a lazy stack's exact walk; `List` and `Table`
 count rows, so a row above growing never moved theirs). "The reader's place"
@@ -178,14 +178,14 @@ moved one: O(rows) a change. Not recommended (B-SCROLLANCHOR-1).
 *`ScrollWindowHold.topRow`*
 
 A top row whose id changes where it stands — `ForEach(names, id: \.self)`
-with the top name edited — keeps the offset in SwiftUI, and in TUIkit: the
+with the top name edited — keeps the offset in SwiftUI, and in TUI: the
 rows either side of it are still where they were, so nothing above moved
 (measured, `Tools/SwiftUIProbes/Scroll anchoring/beside.out` case 1). In the
 same change as five rows inserted above it, SwiftUI holds nothing — the row
 it would hold is gone — and the five new rows push the rows on screen down
 (case 2).
 
-**Shipped:** TUIkit holds the place: the rows before and after it are still
+**Shipped:** TUI holds the place: the rows before and after it are still
 either side of one place, so the row in it changed and the rows above it
 arrived, and the arrivals are held as any are — the renamed row stays at the
 top. It is the two changes held as each is held alone, the reader's place

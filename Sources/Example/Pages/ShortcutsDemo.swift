@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ShortcutsDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// SwiftUI's ⌘ shortcuts, written as SwiftUI writes them, in a terminal that
 /// cannot send Command: `.commandKey(_:)` says which key stands in for it —

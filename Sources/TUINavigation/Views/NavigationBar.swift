@@ -1,0 +1,336 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  NavigationBar.swift
+//
+//  The bar a pushed screen sits under: the trail of titles that got there (or
+//  ‹ Back and the title), the rule beneath, and Escape going back. Drawn by
+//  `NavigationStack` over the screen on top of its path, and by a collapsed
+//  `NavigationSplitView` over the column on top of its stack.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import TUICore
+import TUIFoundation
+import TUIView
+
+/// The navigation bar over a pushed screen, going back through `coordinator`.
+@MainActor
+struct NavigationBar {
+    /// The bar's height: the title row plus the rule under it.
+    ///
+    /// A constant, deliberately. Chrome whose height depends on the content it
+    /// sits above cannot be laid out in one pass — the content's height would
+    /// have to be known to size the bar, and the bar's height has to be known
+    /// to give the content its space. A long title truncates instead.
+    static var height: Int { 2 }
+
+    /// The path the bar goes back along, and whose titles its trail names.
+    let coordinator: NavigationCoordinator
+
+    /// The navigation bar, pinned to `ChromeStyle.barHeight(contentRows:)` rows.
+    /// `escapeHandlerSlot` is the key dispatcher's handler count from before the
+    /// screen rendered: where the bar's Escape handler is filed. `hidesTitle`
+    /// (a `.toolbar(removing: .title)`) leaves the Back button alone on the
+    /// bar: no title, subtitle or trail. The screen's title is still recorded,
+    /// for the trails of the screens pushed over it.
+    ///
+    /// `items` are the top-bar items the screen declared
+    /// (``NavigationBarItems``), drawn in the bar's row: those placed at the
+    /// leading end after the Back button or the trail, the rest at the
+    /// trailing end — principal, then secondary, then primary — with the title
+    /// truncated to what they leave.
+    func render(
+        title: String, subtitle: String, hidesBack: Bool, hidesTitle: Bool, width: Int, escapeHandlerSlot: Int,
+        items: NavigationBarItems? = nil, context: RenderContext
+    ) -> FrameBuffer {
+        let coordinator = coordinator
+        // The Back button is a real `Button`: a Tab stop, clickable, and
+        // styled by whatever `.buttonStyle` is in effect above the stack.
+        let back = "‹ " + LocalizationService.shared.string(for: LocalizationKey.Button.back)
+        let barContext = context.withAvailableSize(width: width, height: Self.height)
+
+        // Escape goes back, after the focused control has had its chance at the
+        // key (the status-bar claim re-routes ESC through the focus system
+        // first, so a list clearing its selection still wins). The claim is the
+        // lightweight kind: a pushed screen is not a modal, so the app's other
+        // shortcuts keep working.
+        // Only when nothing else claimed ESC this frame: the content renders
+        // BEFORE the bar (the bar needs the title preference the content
+        // publishes), so an open menu, popover or drop-down inside it has
+        // already posted its own close label — and this write clobbered it,
+        // showing "⎋ go back" under an open menu whose ESC closes the menu.
+        //
+        // A presented sheet or alert claims ESC the OTHER way: as a dismiss item
+        // of its own input-grabbing section, never through the label. The label
+        // test alone let this write go-back over it, and the status bar renames
+        // every escape item to the claimed label — the dialog read "⎋ go back"
+        // while ESC closed the dialog. With dismissal disabled the dialog
+        // publishes no item, and go-back was the only escape entry on the bar,
+        // for a key that did nothing: the dialog's grab keeps the handler below
+        // from running. So a modal section holding the keyboard is a claim too;
+        // with none written, the dialog's own item is what the bar shows and
+        // what ESC fires. A presenter rendered AFTER the stack marks its section
+        // too late for this to see; it withdraws this claim instead, as it
+        // takes the keyboard (`StatusBarState.withdrawEscapeClaim`).
+        if !context.isMeasuring, barContext.environment.statusBar?.hasEscapeClaimHere != true,
+            barContext.environment.focusManager?.activeSectionIsModal != true
+        {
+            // The claim and the handler are both per-frame: the render loop
+            // resets the label and empties the dispatcher before every pass, so a
+            // stack served from a value memo left Escape unclaimed and unhandled.
+            // Declared, as every other writer to those registries is.
+            barContext.environment.volatileReadTracker?.recordRenderSideEffect()
+            barContext.environment.statusBar?.escapeLabelOverride =
+                LocalizationService.shared.string(for: LocalizationKey.StatusBar.goBack)
+            barContext.environment.statusBar?.escapeClaimGrabsInput = false
+            // Filed at the slot taken before the screen rendered, not appended.
+            // The dispatcher asks the most recent registration first, so an
+            // appended pop outranked every handler the screen had just
+            // registered: a screen's `.onKeyEvent(keys: [.escape])` never ran,
+            // and a screen that must not be left (the remedy
+            // `navigationBarBackButtonHidden(_:)` documents) could not say so.
+            // Filed ahead of the screen, going back is what ESC does when
+            // nothing ON the screen wants it; a handler AROUND the stack (a
+            // page returning to its menu on ESC) registered before the slot,
+            // and still loses to going back.
+            //
+            // Only the handler moves. The label claim above stays after the
+            // screen, because it has to see whether something inside claimed
+            // ESC first; hoisted, it would also lower the grabs-input flag
+            // under a drop-down that has yet to post its own claim.
+            //
+            // In a pane — a live sheet docked under the page — only while the
+            // focus is in that pane, as its claim holds only then: with the
+            // focus on the page, Escape is the page's (A19, owner Q6).
+            let focusManager = barContext.environment.focusManager
+            let pane = focusManager?.currentPaneID
+            barContext.environment.keyEventDispatcher?.insertHandler(
+                at: escapeHandlerSlot,
+                sectionID: barContext.environment.activeFocusSectionID
+            ) { event in
+                guard event.key == .escape, focusManager?.activePaneID == pane else { return false }
+                coordinator.pop()
+                return true
+            }
+        }
+
+        // The title takes whatever the button leaves, truncated rather than
+        // wrapped: the bar's height is fixed, so it has nowhere to wrap to.
+        // Measure the BUTTON, not the bar — the bar ends in a `Spacer`, so
+        // measuring it answers "the whole width", which left the title no room
+        // at all and silently truncated it to nothing.
+        let backWidth =
+            hidesBack
+            ? 0
+            : measureChild(
+                backButton(back, coordinator: coordinator),
+                proposal: ProposedSize(width: nil, height: nil),
+                context: barContext.withChildIdentity(type: NavigationBarID.self)
+            ).width
+        // The screen's items, and the room they take: the title and the trail
+        // have what is left.
+        let runs = ItemRuns(items, context: barContext.withChildIdentity(type: NavigationBarID.self))
+        let leftWidth = max(0, width - runs.trailingWidth)
+        let titleWidth = max(0, leftWidth - backWidth - 1 - runs.leadingWidth)
+        // Crumbs when they fit, the Back button when they do not. `backWidth`
+        // is what a bar with the single button would need, so it doubles as the
+        // budget the trail has to beat.
+        coordinator.recordTitle(title, atDepth: coordinator.depth)
+        // With the button hidden the trail goes too: every crumb in it pops, so
+        // keeping it would leave three ways back where the screen asked for
+        // none. The title then has the whole bar rather than what the button
+        // left it.
+        let titled = navigationBar(
+            back: back,
+            hidesBack: hidesBack,
+            title: hidesTitle ? "" : title.truncatedToWidth(titleWidth),
+            subtitle: hidesTitle ? "" : subtitle,
+            crumbs: hidesBack || hidesTitle
+                ? nil
+                : NavigationCrumbs.trail(
+                    titles: coordinator.titles(upTo: coordinator.depth),
+                    fittingWidth: max(0, leftWidth - runs.leadingWidth)),
+            runs: runs, leftWidth: leftWidth,
+            coordinator: coordinator)
+
+        let rendered = TUIView.renderToBuffer(
+            titled, context: barContext.withChildIdentity(type: NavigationBarID.self))
+        return Self.padded(rendered, toWidth: width, height: Self.height)
+    }
+
+    /// The bar's view: the crumb trail (or the Back button and title when the
+    /// trail will not fit), and the rule beneath.
+    private func navigationBar(
+        back: String, hidesBack: Bool, title: String, subtitle: String,
+        crumbs: [NavigationCrumbs.Crumb]?, runs: ItemRuns, leftWidth: Int, coordinator: NavigationCoordinator
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 0) {
+                titleRow(
+                    back: back, hidesBack: hidesBack, title: title, subtitle: subtitle, crumbs: crumbs,
+                    leading: runs.leading, coordinator: coordinator)
+                    .frame(width: leftWidth, alignment: .leading)
+                if let trailing = runs.trailing {
+                    Text(verbatim: " ")
+                    trailing.frame(height: 1, alignment: .top)
+                }
+            }
+            Divider()
+        }
+    }
+
+    /// The bar's row less the screen's trailing items: the crumb trail (or
+    /// the Back button and title when the trail will not fit), the leading
+    /// items after the trail or the Back button, and the subtitle.
+    private func titleRow(
+        back: String, hidesBack: Bool, title: String, subtitle: String, crumbs: [NavigationCrumbs.Crumb]?,
+        leading: AnyView?, coordinator: NavigationCoordinator
+    ) -> some View {
+        HStack(spacing: 0) {
+            if let crumbs {
+                // One closure parameter, NOT `{ _, crumb in`. The closure is
+                // not the bug: `{ _, crumb in` is converted to a function of
+                // one tuple parameter, and swift.org's Swift 6.2.4 (an
+                // assertions build) aborts in SILGen ("no generic
+                // environment provided for type with type parameters") on a
+                // function conversion that needs a reabstraction thunk, in
+                // a generic context (`_NavigationStackCore<Root>`, where
+                // this bar was drawn until it moved here), of a function
+                // whose opaque result does not use that context's
+                // parameters (`crumbView`). One parameter needs no conversion. Xcode's
+                // 6.2.4 compiles either spelling. See
+                // Tools/CompilerBugs/README.md, section 4.
+                ForEach(Array(crumbs.enumerated()), id: \.offset) { pair in
+                    crumbView(pair.element, coordinator: coordinator)
+                }
+                leadingItems(leading)
+            } else if hidesBack {
+                leadingItems(leading, trailingGap: true)
+                Text(title).bold()
+            } else {
+                backButton(back, coordinator: coordinator)
+                leadingItems(leading)
+                Text(" ")
+                Text(title).bold()
+            }
+            // After the title, in what the title and the trail leave: the
+            // lowest priority in the row and one line, so it truncates
+            // first and the bar keeps its height.
+            //
+            // No `Spacer` after it: one would be of a HIGHER priority than
+            // the subtitle, and a stack offers its higher priorities space
+            // first, so the spacer would take the whole slack and leave
+            // the subtitle its `…` — as SwiftUI's would. The row is framed
+            // to its width instead.
+            if !subtitle.isEmpty {
+                // The gap on its own, so truncating the subtitle cannot
+                // eat it.
+                Text(verbatim: "  ")
+                Text(verbatim: subtitle)
+                    .foregroundStyle(Color.palette.foregroundSecondary)
+                    .lineLimit(1)
+                    .layoutPriority(-1)
+            }
+        }
+    }
+
+    /// The screen's leading items, a column apart from what is before them —
+    /// or, at the start of the row, from what is after them — kept to the
+    /// bar's one row.
+    @ViewBuilder
+    private func leadingItems(_ leading: AnyView?, trailingGap: Bool = false) -> some View {
+        if let leading {
+            if !trailingGap { Text(verbatim: " ") }
+            leading.frame(height: 1, alignment: .top)
+            if trailingGap { Text(verbatim: " ") }
+        }
+    }
+
+    /// A crumb: a `Button` when it goes somewhere, plain text when it is the
+    /// separator or the screen you are already on.
+    ///
+    /// Only the clickable ones are Buttons, so only they are Tab stops — the
+    /// separators would otherwise put dead entries in the focus ring, and the
+    /// current screen is not somewhere to navigate to.
+    ///
+    /// Three weights, loudest last: the punctuation recedes, a screen you can
+    /// go back to is quiet until the focus or the pointer lifts it
+    /// (``_NavigationCrumbButtonStyle``), and the screen you are on is bold.
+    @ViewBuilder
+    private func crumbView(_ crumb: NavigationCrumbs.Crumb, coordinator: NavigationCoordinator) -> some View {
+        if let depth = crumb.popsTo {
+            // The lead rides in the label: this style reserves no cells of its
+            // own, so nothing else would space the trail.
+            Button(NavigationCrumbs.lead + crumb.label) { coordinator.pop(coordinator.depth - depth) }
+                .buttonStyle(_NavigationCrumbButtonStyle())
+        } else if crumb.isChrome {
+            Text(NavigationCrumbs.lead + crumb.label)
+                .foregroundStyle(Color.palette.foregroundTertiary)
+        } else {
+            Text(NavigationCrumbs.lead + crumb.label).bold()
+        }
+    }
+
+    /// The **‹ Back** control — a real `Button`, so it is a Tab stop, it takes
+    /// a click, and `.buttonStyle(_:)` above the stack restyles it.
+    private func backButton(_ label: String, coordinator: NavigationCoordinator) -> some View {
+        Button(label) { coordinator.pop() }
+            .buttonStyle(.borderless)
+    }
+
+    /// Pads (or clips) a buffer to exactly `width` × `height`, keeping its
+    /// overlays and hit-test regions — `replacingLines` is what preserves them.
+    static func padded(_ buffer: FrameBuffer, toWidth width: Int, height: Int) -> FrameBuffer {
+        var lines = buffer.lines.prefix(height).map { line -> String in
+            let visible = line.strippedLength
+            return visible < width ? line + String.spaces(width - visible) : line
+        }
+        let blank = String.spaces(width)
+        while lines.count < height { lines.append(blank) }
+        return buffer.replacingLines(Array(lines))
+    }
+}
+
+/// Identity tag for the navigation bar, keeping the Back button's focus
+/// registration in one stable place across pushes.
+private enum NavigationBarID {}
+
+// MARK: - The Screen's Items
+
+extension NavigationBar {
+    /// The screen's items as two runs — the leading ones, and the principal,
+    /// secondary and primary ones at the trailing end — and the columns each
+    /// takes with its gap.
+    @MainActor
+    struct ItemRuns {
+        /// The leading run, or `nil` for none.
+        let leading: AnyView?
+        /// The trailing run, or `nil` for none.
+        let trailing: AnyView?
+        /// The columns the leading run takes, its gap included; 0 for none.
+        let leadingWidth: Int
+        /// The columns the trailing run takes, its gap included; 0 for none.
+        let trailingWidth: Int
+
+        /// `items`' runs, measured in `context`.
+        init(_ items: NavigationBarItems?, context: RenderContext) {
+            let entries = items?.entries ?? []
+            guard let draw = items?.drawsItems, !entries.isEmpty else {
+                (leading, trailing, leadingWidth, trailingWidth) = (nil, nil, 0, 0)
+                return
+            }
+            func run(_ regions: [ToolbarItemPlacement.Region]) -> AnyView? {
+                let run = regions.flatMap { region in entries.filter { $0.placement.region == region } }
+                return run.isEmpty ? nil : draw(run)
+            }
+            func width(_ run: AnyView?) -> Int {
+                guard let run else { return 0 }
+                return measureChild(run, proposal: ProposedSize(width: nil, height: 1), context: context).width + 1
+            }
+            leading = run([.leading])
+            trailing = run([.principal, .secondary, .trailing])
+            leadingWidth = width(leading)
+            trailingWidth = width(trailing)
+        }
+    }
+}

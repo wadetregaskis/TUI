@@ -6,7 +6,7 @@
 
 ## Question
 
-Could `@_optimize(none)`, `@_optimize(size)`, no-specialisation and similar attributes on cold code cut TUIkit's
+Could `@_optimize(none)`, `@_optimize(size)`, no-specialisation and similar attributes on cold code cut TUI's
 compile time or bytes without costing run time? The owner, 2026-10-08: "I'm open to the concept. I think the bar has
 to be higher for merely reducing compilation time because ultimately compilation is a relatively rare thing compared
 to the accumulated runtime cost … I'm a little more inclined to accept a trade-off there if it reduces the binary
@@ -59,7 +59,7 @@ that's fine too." P0, the hint cache, landed (`d909004f3`, then `cad89cd17` so a
 language). S1a and the small sets were not taken up: `Sources` has no `@_optimize` or no-specialisation attribute at
 5369ea867. Carving the menus out (step B5b) removed the specialised popup copies S1a was to save, so it has nothing
 left to save (decisions
-[B-SPB5b-4](<../../../SwiftUI parity/Decisions/Module split/Step B5b, carving TUIkitChrome, TUIkitEffects and TUIkitMenus (SPB5b).md#b-spb5b-4-an-open-menus-popup-draws-through-the-unspecialised-rendermenupopup>)).
+[B-SPB5b-4](<../../../SwiftUI parity/Decisions/Module split/Step B5b, carving TUIChrome, TUIEffects and TUIMenus (SPB5b).md#b-spb5b-4-an-open-menus-popup-draws-through-the-unspecialised-rendermenupopup>)).
 
 Related: [pre-specialisation across module boundaries](<Pre-specialisation across module boundaries (2026-10-08).md>),
 the same day's other attribute question; and the earlier

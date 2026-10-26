@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  AppShapeSidebar.swift
 //
 //  A source list: one hand-written row above a few hundred looped ones — the
@@ -10,7 +10,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 // MARK: - The data
 

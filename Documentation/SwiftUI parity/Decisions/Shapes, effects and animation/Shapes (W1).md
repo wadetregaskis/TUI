@@ -14,14 +14,14 @@ interface. The format is that of the main decisions file:*
 
 ## A. Needs your decision
 
-### A-W1-1. Should `import TUIkit` bring Foundation's geometry with it?
+### A-W1-1. Should `import TUI` bring Foundation's geometry with it?
 
 *`CGRect`, `CGPoint`, `CGSize`, `CGFloat` in a shape of the app's own*
 
 A shape of an app's own is written against `path(in rect: CGRect)`, and
 `CGRect` is Foundation's (on Apple platforms, CoreGraphics'). SwiftUI
 re-exports Foundation, so a SwiftUI file that imports only SwiftUI compiles; a
-TUIkit file that imports only TUIkit does not — `cannot find type 'CGRect' in
+TUI file that imports only TUI does not — `cannot find type 'CGRect' in
 scope` (measured with a probe against the built modules). The same is already
 true of `Date`, `URL` and `SortDescriptor` (the compile corpus imports
 Foundation for them), so this lane changed nothing; it is where the friction is
@@ -32,9 +32,9 @@ sharpest, because every custom shape meets it.
 1. **Leave it** (shipped): a ported shape adds `import Foundation`. The
    compatibility guide's §2.12 says so. Free.
 2. **Re-export Foundation from the umbrella** — `@_exported import Foundation`
-   in `Sources/TUIkit/Exports.swift`, as SwiftUI does. An app that imports
-   TUIkit then sees all of Foundation, as a SwiftUI app does. An hour, and a
-   look at whether any TUIkit name collides with a Foundation one in a client
+   in `Sources/TUI/Exports.swift`, as SwiftUI does. An app that imports
+   TUI then sees all of Foundation, as a SwiftUI app does. An hour, and a
+   look at whether any TUI name collides with a Foundation one in a client
    (none known).
 3. **Re-export the geometry alone** — CoreGraphics on Apple platforms, where
    the types live; on Linux and Windows they are in Foundation, which cannot
@@ -45,27 +45,27 @@ Foundation in scope is one SwiftUI apps already pay.
 
 ## B. Shipped the safe option
 
-### B-W1-1. Shapes live in TUIkitFoundation, rasterizer and all
+### B-W1-1. Shapes live in TUIFoundation, rasterizer and all
 
 *`Path`, `Shape`, `ShapeCoverage`, `ShapeStroker`, `ShapeHalfBlocks`,
 `ShapeBoxCells`*
 
-The lane brief put the rasterizer in TUIkitImage, the module the refusal
-review called "pure math". It cannot be there: TUIkitFoundation does not
-depend on TUIkitImage, deliberately (module split step B5c: an app that shows
-no image links neither TUIkitImage nor its decoder, CSTBImage), and a
-rasterizer below TUIkitFoundation could not see `Path`. So the shapes, the
-rasterizer and the cell emitter are all TUIkitFoundation's, beside
+The lane brief put the rasterizer in TUIImage, the module the refusal
+review called "pure math". It cannot be there: TUIFoundation does not
+depend on TUIImage, deliberately (module split step B5c: an app that shows
+no image links neither TUIImage nor its decoder, CSTBImage), and a
+rasterizer below TUIFoundation could not see `Path`. So the shapes, the
+rasterizer and the cell emitter are all TUIFoundation's, beside
 `GradientRaster` and `MeshRaster`, which are there for the same reason. They are
 pure arithmetic and import nothing POSIX, so the Windows port loses nothing.
 
 The refusal review also said to hand the coverage to `ASCIIConverter`'s
-half-block renderer. That renderer is TUIkitImage's too; the half-block table
+half-block renderer. That renderer is TUIImage's too; the half-block table
 it follows (`Opacity as composition.md` §42.2) is re-stated in
 `ShapeHalfBlocks`, about forty lines.
 
 **The fuller version:** one half-block cell emitter shared by images and
-shapes, in TUIkitStyling, below both. Half a day, and an A/B of the image glyph
+shapes, in TUIStyling, below both. Half a day, and an A/B of the image glyph
 path, whose inner loop counts retains.
 
 ### B-W1-2. A rectangle-family stroke is a box of light lines, whatever the appearance
@@ -103,7 +103,7 @@ terminal that takes one. The other rectangle-family shapes fill their cells,
 each rounded corner cut at quadrant resolution where the shape's own path
 leaves a quadrant less than half covered, and by at least the outermost
 quadrant however small the radius (`▟`), so a corner the caller rounded looks
-rounded. One row tall, a rounded end is the half-block cap, `▐ … ▌`, TUIkit's
+rounded. One row tall, a rounded end is the half-block cap, `▐ … ▌`, TUI's
 capsule since its first text field. Where Apple Terminal draws Block Elements
 short of the line a corner is a whole cell, drawn where at least half covered,
 as a solid button face's is there; the one-row caps are kept, as a button's
@@ -129,7 +129,7 @@ draws joins, caps, the miter limit and dashes exactly.
 
 On a terminal that takes pictures a shape is still cells. Its picture would
 always have transparent pixels, and the terminal composites those against the
-cell it is placed in, not against what TUIkit knows is behind — the reason
+cell it is placed in, not against what TUI knows is behind — the reason
 `BackgroundModifier.pictured` declines a translucent gradient. A picture would
 also hide any glyph under the shape's bounding box.
 
@@ -149,15 +149,15 @@ drawn. SwiftUI draws both. `strokeBorder` draws the whole line inside.
 `.offset` already floats displaced drawing (L6). A day, for a case
 `strokeBorder` covers.
 
-### B-W1-6. A shape sizes itself in TUIkit's layout terms
+### B-W1-6. A shape sizes itself in TUI's layout terms
 
 *`Shape.sizeThatFits(_:)`*
 
-SwiftUI's takes a `ProposedViewSize` and answers a `CGSize`. TUIkit's layout
+SwiftUI's takes a `ProposedViewSize` and answers a `CGSize`. TUI's layout
 asks for cells and for whether each axis fills (`ViewSize`), as a custom
 `Layout` already answers, so a shape's `sizeThatFits` takes a `ProposedSize`
 and answers a `ViewSize`. The default fills both axes from nothing, as a
-`Color` does — SwiftUI's default, the proposal, read in TUIkit's terms. A
+`Color` does — SwiftUI's default, the proposal, read in TUI's terms. A
 ported override fails to compile (`ProposedViewSize` is `renamed` in the
 parity map) rather than being ignored.
 
@@ -170,7 +170,7 @@ cells, as a `Layout` does.
 
 Apple's continuous corner reaches 1.53 radii along each edge (measured). Where
 two such corners do not fit along a side, SwiftUI blends toward a circular
-corner by an amount the probe printed but did not explain; TUIkit draws that
+corner by an amount the probe printed but did not explain; TUI draws that
 corner circular. The difference is below a sub-cell at any size a cell grid
 shows, and the box tier never sees it.
 

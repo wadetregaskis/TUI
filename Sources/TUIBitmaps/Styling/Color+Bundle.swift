@@ -1,0 +1,78 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  Color+Bundle.swift
+//
+//  SwiftUI's named colours, read from the asset catalogue a bundle carries.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import TUIFoundation
+
+extension Color {
+    /// Creates a color from a color set that you indicate by name — mirrors
+    /// SwiftUI's `init(_:bundle:)`.
+    ///
+    /// The colour set is read from the asset catalogue the bundle carries
+    /// uncompiled: `swift build` copies an `Assets.xcassets` folder in a
+    /// target's resources into its resource bundle as it is, and TUI reads
+    /// `Name.colorset/Contents.json` there, on every platform. A catalogue
+    /// Xcode compiled (`Assets.car`) is read too, on macOS, where the file
+    /// imports `TUIAppKit`, which reads it through AppKit.
+    ///
+    /// ```swift
+    /// // Package.swift: resources: [.process("Resources")], with
+    /// // Resources/Assets.xcassets/Brand.colorset inside.
+    /// Text("Hello").foregroundStyle(Color("Brand", bundle: .module))
+    /// ```
+    ///
+    /// A colour that is not found is `Color.clear`, as SwiftUI's is (measured:
+    /// it resolves to `#00000000`).
+    ///
+    /// A set's light and dark colours are both kept, and the one drawn is the
+    /// one for the colour scheme where the colour is drawn — the palette's, or
+    /// a `.environment(\.colorScheme, …)` pin's — as in SwiftUI. Measured in a
+    /// view body (``Color/rgbComponents``, a blend), it reads its light colour,
+    /// as SwiftUI's `resolve(in: EnvironmentValues())` does.
+    ///
+    /// > Note: A set whose two colours differ in opacity, or whose colours are
+    /// > not plain RGB (a reference to a system colour or a palette role), has
+    /// > its colour chosen when it is made instead, by the colour scheme a view
+    /// > reads where nothing has set a palette: a `Color` has room for one
+    /// > opacity, and a system colour already follows the scheme by itself. So
+    /// > does every set once a process has made 65,536 different pairs. See
+    /// > `Documentation/SwiftUI parity/Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md` (B-D6M-1, B-D6M-4).
+    ///
+    /// - Parameters:
+    ///   - name: The name of the color resource to look for.
+    ///   - bundle: The bundle in which to search for the color resource. If
+    ///     you don't indicate a bundle, the initializer looks in your app's
+    ///     main bundle by default.
+    @_disfavoredOverload
+    public init(_ name: String, bundle: Bundle? = nil) {
+        // `@_disfavoredOverload` is NOT a hint about which spelling to prefer
+        // inside TUI: it is what lets `TUIAppKit`'s declaration of this
+        // same initializer, which also reads compiled catalogues, win wherever
+        // a file imports that module. Two modules declaring one member is
+        // otherwise ambiguous at the call (measured on Swift 6.2.4); a
+        // disfavoured one loses to the other, and is the only one where
+        // `TUIAppKit` is not imported.
+        self = Self.catalogColor(named: name, in: bundle) ?? .clear
+    }
+
+    /// The colour `name` in the uncompiled catalogues of `bundle` (the main
+    /// bundle for `nil`), choosing its variant where it is drawn, or in
+    /// ``catalogColorScheme`` where it cannot; `nil` where no catalogue has it.
+    /// `TUIAppKit` asks this before it asks AppKit.
+    package static func catalogColor(named name: String, in bundle: Bundle?) -> Color? {
+        guard let set = AssetCatalog.colorSet(named: name, in: bundle ?? .main) else { return nil }
+        return set.drawn ?? set.color(for: catalogColorScheme)
+    }
+
+    /// The colour scheme a named image's light and dark variants are chosen
+    /// by, and a named colour's where they cannot be kept until it is drawn:
+    /// the one a view reads where nothing has set a palette.
+    package static var catalogColorScheme: ColorScheme {
+        EnvironmentValues().colorScheme
+    }
+}

@@ -5,7 +5,7 @@ assembly and — for the three POP-UPS — one renderer. The inline style keeps 
 focus ring, which was always the plan and is not a deferral (see below). Kept as
 the record of what moved and why.
 
-**Why:** TUIkit has two pop-up-menu implementations, and the differences between
+**Why:** TUI has two pop-up-menu implementations, and the differences between
 them are user-visible. Every observable difference the owner named has been
 fixed, but they were fixed *twice over* — once in each engine — which is the
 symptom, not the disease.

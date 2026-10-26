@@ -1,6 +1,6 @@
-# API parity: TUIkit vs SwiftUI
+# API parity: TUI vs SwiftUI
 
-`api_parity.py` extracts the public API of **SwiftUI** and of **TUIkit** with the
+`api_parity.py` extracts the public API of **SwiftUI** and of **TUI** with the
 same tool and the same flags, normalises both the same way, and reports every
 difference that is not deliberate. It is the low-level half of parity — the
 symbol vocabulary. It says nothing about behaviour; see [Behaviour](#behaviour)
@@ -38,18 +38,18 @@ naive diff:
    reappearing as `ButtonBorderShape.fill`, and so on across ~800 types. On the
    SDK this was written against that was **79,162 of SwiftUI's 83,254 entries**.
    They are one declaration each and are dropped.
-3. **Deprecated API has to go, from both sides.** Otherwise TUIkit is charged
+3. **Deprecated API has to go, from both sides.** Otherwise TUI is charged
    with gaps for surface SwiftUI is itself retiring, and a symbol either side
    still has is reported as missing from *both*. `foregroundColor` was the
    example this note was written around — SwiftUI deprecated it in favour of
-   `foregroundStyle` — and it no longer illustrates it, because TUIkit has since
+   `foregroundStyle` — and it no longer illustrates it, because TUI has since
    dropped it for `foregroundStyle` too. The rule outlived the example.
 
    **But "unavailable" is per-platform, and this comparison is not.** Judging it
    from any domain deleted `Slider`, `Stepper`, `Table` and `Gauge` — all
    unavailable on *tvOS*, all ordinary macOS API — along with every member they
    own: 2,177 live macOS symbols, 180 of them `View` modifiers. Worse, it was
-   one-sided, because TUIkit annotates no platform unavailability at all, so the
+   one-sided, because TUI annotates no platform unavailability at all, so the
    rule only ever subtracted from SwiftUI and turned real gaps into silence.
    Availability is now read on macOS alone; deprecation still counts wherever it
    is spelled.
@@ -70,10 +70,10 @@ the behaviour genuinely differs too.
 Overloads that differ only in generic constraints collapse onto one key; a
 full signature check belongs in a compile corpus, not here.
 
-A TUIkit typealias of a TUIkit type names that type's members too:
+A TUI typealias of a TUI type names that type's members too:
 `Text.Case = TextCase` offers `Text.Case.uppercase`, which the symbol graph
 files under `TextCase` alone. SwiftUI's aliases are not followed, because the
-question is whether TUIkit offers a spelling, and following `Body` and the
+question is whether TUI offers a spelling, and following `Body` and the
 attribute scopes would copy whole type trees into the vocabulary.
 
 A property under a projecting wrapper (`@Binding`, `@Bindable`, `@State`,
@@ -84,14 +84,14 @@ synthesizes and a graph built from source therefore leaves out:
 ### Extra OPTIONAL arguments are not a difference
 
 The target is *source* compatibility, not identical declarations (see the two
-rules at the top of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`), so a TUIkit
+rules at the top of `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`), so a TUI
 function may append parameters of its own after SwiftUI's — `.alert` carries
 `borderStyle:`/`borderColor:`/`titleColor:` here. Comparing labels alone reads
-those as absences, and the report claiming TUIkit has no `.alert` is simply
+those as absences, and the report claiming TUI has no `.alert` is simply
 false; a report that cries wolf is one nobody reads.
 
 So a SwiftUI key is counted as **compatible** when its labels are an
-order-preserving SUBSEQUENCE of some TUIkit overload's and every label the call
+order-preserving SUBSEQUENCE of some TUI overload's and every label the call
 skips over carries a default — read out of the declaration fragments, which is
 where a symbol graph renders ` = nil`. Subsequence rather than prefix because
 that is Swift's actual rule: a defaulted parameter can be omitted from
@@ -107,7 +107,7 @@ Two limits are worth stating, because they are the ways this could mislead.
 
 1. It proves the call **compiles**, not that it **means** the same thing.
    `fixedSize()` reaches `fixedSize(horizontal:vertical:)` whatever those
-   defaults are, and is only correct because TUIkit defaults both to `true` as
+   defaults are, and is only correct because TUI defaults both to `true` as
    SwiftUI does — flip one and the match becomes a silent behaviour difference.
 2. It proves *some* overload accepts those labels, never that exactly one does.
    Two equally-good candidates would make the call ambiguous and therefore
@@ -120,7 +120,7 @@ compiler, not the model of it, has the last word.
 
 ### Label deviations are reported separately
 
-A symbol that TUIkit has under the same name and arity but a different spelling
+A symbol that TUI has under the same name and arity but a different spelling
 is worse than one it lacks: the capability is *there*, so nothing looks wrong
 until real SwiftUI source fails to compile. Those are pulled out into their own
 section rather than buried among absences, and `baseline.json` tracks them
@@ -132,11 +132,11 @@ Arity must match for the comparison to mean anything — otherwise every missing
 overload (`Button.init(_:image:action:)`, which needs an asset catalogue) would
 read as a misspelling.
 
-A TUIkit declaration that is itself SwiftUI API is never a candidate. It matches
+A TUI declaration that is itself SwiftUI API is never a candidate. It matches
 SwiftUI exactly, so it cannot be a misspelling of a *different* SwiftUI
 declaration: `View.toolbar(removing:)` is not `View.toolbar(content:)` spelt
 wrong. Without that rule, implementing one overload of a family made it read as
-a misspelling of every same-arity sibling TUIkit lacks — 60 of the 80 entries
+a misspelling of every same-arity sibling TUI lacks — 60 of the 80 entries
 the list held when the rule was added.
 
 Even with those filters the list contains coincidences:
@@ -173,8 +173,8 @@ does not have is sub-cell geometry, GPU compositing, pointer hover on most
 hosts, and an assistive-technology stack. Say which.
 
 **The map is audited back.** `--stale` reports an entry whose SwiftUI symbol no
-longer exists, a rename whose TUIkit replacement has gone, and — most usefully —
-a `notImplemented` entry for something TUIkit now implements. A map that is
+longer exists, a rename whose TUI replacement has gone, and — most usefully —
+a `notImplemented` entry for something TUI now implements. A map that is
 never wrong is a map nobody is reading.
 
 ## The baseline
@@ -183,7 +183,7 @@ never wrong is a map nobody is reading.
 than on the standing difference between a terminal framework and SwiftUI. When
 you close a gap, the tool tells you the baseline is stale and `--accept`
 re-records it. When you add API that SwiftUI does not have, nothing happens —
-this measures what SwiftUI has and TUIkit lacks, not the reverse. TUIkit's own
+this measures what SwiftUI has and TUI lacks, not the reverse. TUI's own
 vocabulary is not a defect.
 
 Seeded 2026-08-15 from an audit of all 650 differences at the time, each
@@ -197,7 +197,7 @@ the same thing — `padding` existing on both says nothing about whether either
 inserts the same space. Three things would, in increasing order of cost:
 
 1. **A compile corpus — now seeded.** `CompileCorpus.swift` is SwiftUI source
-   that must compile against TUIkit; `compile_corpus.sh` type-checks it and
+   that must compile against TUI; `compile_corpus.sh` type-checks it and
    nothing else (a clean exit IS the assertion). It catches what the symbol
    diff cannot, in both directions: a symbol reported MISSING that in fact
    compiles because of added optional arguments, and one reported PRESENT that
@@ -208,7 +208,7 @@ inserts the same space. Three things would, in increasing order of cost:
 2. **Differential rendering.** Compile the *same* snippet against both, render
    SwiftUI headlessly (`NSHostingView` + `cacheDisplay`, which
    `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` already cites for label metrics) and
-   TUIkit into a `FrameBuffer`, then compare *structural* facts rather than
+   TUI into a `FrameBuffer`, then compare *structural* facts rather than
    pixels: relative order, which things share a left edge, where text wraps,
    what is clipped. Pixels will never match; "these three labels line up" should.
 3. **Behavioural scenarios.** The interaction rules — what Space does versus
@@ -220,17 +220,17 @@ Layer 1 has begun, and the reason to grow it stands: it is deterministic, it
 needs no SwiftUI runtime, and it fails loudly on exactly the drift the symbol
 diff is blind to. Layer 2 remains the next real build.
 
-## SwiftUI's deprecations that TUIkit still has
+## SwiftUI's deprecations that TUI still has
 
 `api_parity.py --deprecated` lists the declarations SwiftUI deprecates on
-macOS that TUIkit still implements, exactly or by a call that compiles
-against a TUIkit overload with more defaulted parameters. The comparison
+macOS that TUI still implements, exactly or by a call that compiles
+against a TUI overload with more defaulted parameters. The comparison
 above drops deprecated symbols from both sides, so these are otherwise
 invisible: the 2026-10-12 audit (decisions [21]) found nine that way. Each
 line says how SwiftUI deprecates it — a version, `unconditionally`, or `soft`
 (`deprecated: 100000.0`, which warns nobody yet) — and whether a live SwiftUI
 overload shares its key, where only the two declarations, printed beside each
-other, say which overload TUIkit has (TUIkit's `onDrop(of: [UTType], …)` is
+other, say which overload TUI has (TUI's `onDrop(of: [UTType], …)` is
 the live form; SwiftUI's `[String]` form is the deprecated one). It is a
 report and fails nothing. CI prints it on the macOS 27 lane, against the
 newest SDK; on Xcode 26.3's SDK (2026-10-19) it lists 23.

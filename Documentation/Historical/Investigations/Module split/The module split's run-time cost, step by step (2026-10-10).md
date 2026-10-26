@@ -8,7 +8,7 @@
 
 ## Question
 
-Splitting TUIkit's one module into about thirty turns some calls that were inside a module into calls across a
+Splitting TUI's one module into about thirty turns some calls that were inside a module into calls across a
 module boundary, where the optimiser can no longer see the callee. How much run time does that cost, and how is it
 won back? The owner, 2026-10-08: "are these impacts cumulative? Are we losing a percent or two of performance with
 every module that gets split out? Because that would be really bad." And: "I anticipate some initial performance

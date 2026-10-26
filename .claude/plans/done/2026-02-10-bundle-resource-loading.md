@@ -2,11 +2,11 @@
 
 ## Preface
 
-This plan integrates Foundation.Bundle into TUIkit for resource loading (images, data files, localized strings). Rather than reimplementing Bundle, we leverage SPM's automatic Bundle.module generation for resource management. The implementation adds resource declarations to Package.swift, organizes assets in a Resources directory, and provides type-safe resource accessors. This enables Image(_:bundle:) API and future features like localized strings, custom fonts, and data-driven UI components. The approach is cross-platform (macOS + Linux), requires zero custom Bundle code, and follows Apple's SPM resource conventions.
+This plan integrates Foundation.Bundle into TUI for resource loading (images, data files, localized strings). Rather than reimplementing Bundle, we leverage SPM's automatic Bundle.module generation for resource management. The implementation adds resource declarations to Package.swift, organizes assets in a Resources directory, and provides type-safe resource accessors. This enables Image(_:bundle:) API and future features like localized strings, custom fonts, and data-driven UI components. The approach is cross-platform (macOS + Linux), requires zero custom Bundle code, and follows Apple's SPM resource conventions.
 
 ## Context/Problem
 
-TUIkit currently has no resource loading mechanism. This blocks:
+TUI currently has no resource loading mechanism. This blocks:
 - `Image(_:bundle:)` API (needs to load PNG/JPEG files)
 - Localized strings (future: multi-language support)
 - Data-driven UI (JSON configs, lookup tables)
@@ -31,10 +31,10 @@ Enable resource loading via Foundation.Bundle:
 ```swift
 // SPM auto-generates this:
 extension Bundle {
-    static let module: Bundle { ... }  // Points to TUIkit_TUIkit.bundle
+    static let module: Bundle { ... }  // Points to TUI_TUI.bundle
 }
 
-// Usage in TUIkit:
+// Usage in TUI:
 Image("logo", bundle: .module)
 
 // Type-safe accessors (future):
@@ -52,7 +52,7 @@ TUIResource.Data.unicode.load()
 ```swift
 // Package.swift
 .target(
-    name: "TUIkit",
+    name: "TUI",
     resources: [
         .process("Resources")  // Optimizes images, preserves structure
     ]
@@ -61,7 +61,7 @@ TUIResource.Data.unicode.load()
 
 **Resource Organization:**
 ```
-Sources/TUIkit/Resources/
+Sources/TUI/Resources/
   Icons/
     checkmark.png
     cross.png
@@ -94,7 +94,7 @@ Sources/TUIkit/Resources/
 └───────────────────────────────────────┘
               ↓
 ┌───────────────────────────────────────┐
-│ TUIkit Resource Loading               │
+│ TUI Resource Loading               │
 │ ┌───────────────────────────────────┐ │
 │ │ TUIResource (type-safe accessors) │ │
 │ │  enum Icon: String                │ │
@@ -117,7 +117,7 @@ Sources/TUIkit/Resources/
 ```swift
 extension Bundle {
     static let module: Bundle = {
-        let bundleName = "TUIkit_TUIkit"  // <Package>_<Target>
+        let bundleName = "TUI_TUI"  // <Package>_<Target>
         
         // Search order:
         // 1. Bundle.main.bundleURL (app resources)
@@ -144,7 +144,7 @@ extension Bundle {
 **Directory Structure:**
 ```
 Sources/
-  TUIkit/
+  TUI/
     Resources/                 # Root for all resources
       Icons/                   # Image assets
         checkmark.png
@@ -159,7 +159,7 @@ Sources/
 **Package.swift Declaration:**
 ```swift
 .target(
-    name: "TUIkit",
+    name: "TUI",
     dependencies: [...],
     resources: [
         .process("Resources")  // Optimizes images, preserves directory structure
@@ -247,7 +247,7 @@ let blocks = try TUIResource.Data.unicodeBlocks.load(as: [UnicodeBlock].self)
 
 **macOS (Bundle Format):**
 ```
-TUIkit_TUIkit.bundle/
+TUI_TUI.bundle/
   Contents/
     Info.plist
     Resources/
@@ -259,7 +259,7 @@ TUIkit_TUIkit.bundle/
 
 **Linux (Flat Format):**
 ```
-TUIkit_TUIkit.bundle/
+TUI_TUI.bundle/
   Icons/
     checkmark.png
   Data/
@@ -306,15 +306,15 @@ private func loadImageData(name: String, bundle: Bundle) -> Data? {
 
 **1.1 Create Resources directory structure**
 ```bash
-mkdir -p Sources/TUIkit/Resources/Icons
-mkdir -p Sources/TUIkit/Resources/Data
+mkdir -p Sources/TUI/Resources/Icons
+mkdir -p Sources/TUI/Resources/Data
 ```
 
 **1.2 Update Package.swift**
-Add `resources:` to TUIkit target:
+Add `resources:` to TUI target:
 ```swift
 .target(
-    name: "TUIkit",
+    name: "TUI",
     dependencies: [...],
     resources: [
         .process("Resources")
@@ -335,7 +335,7 @@ Add `resources:` to TUIkit target:
 ### Phase 2: Type-Safe Accessors
 
 **2.1 Create TUIResource enum**
-- `Sources/TUIkit/Resources/TUIResource.swift`
+- `Sources/TUI/Resources/TUIResource.swift`
 - Nested enums: `Icon`, `Data`
 - `url(in:)` and `load()` methods
 
@@ -426,7 +426,7 @@ func loadImage(named name: String, in bundle: Bundle) throws -> RGBAImage {
 ```
 
 **Tests:**
-- Image(_:bundle: .module) loads from TUIkit resources
+- Image(_:bundle: .module) loads from TUI resources
 - Image(_:bundle: .main) works for app resources
 - Image(_:bundle: customBundle) works for external bundles
 - Missing resources throw appropriate errors
@@ -440,7 +440,7 @@ Document all public APIs:
 - Bundle parameter in `Image(_:bundle:)`
 
 **5.2 Create usage examples**
-Add to TUIkitExample:
+Add to TUIExample:
 ```swift
 VStack {
     // Using type-safe accessors
@@ -473,8 +473,8 @@ VStack {
 Update Package.swift:
 ```swift
 .testTarget(
-    name: "TUIkitTests",
-    dependencies: ["TUIkit"],
+    name: "TUITests",
+    dependencies: ["TUI"],
     resources: [
         .copy("Resources")  // Test fixtures
     ]
@@ -483,7 +483,7 @@ Update Package.swift:
 
 **6.2 Create test fixtures**
 ```
-Tests/TUIkitTests/Resources/
+Tests/TUITests/Resources/
   Images/
     test-pattern.png
     corrupt.png
@@ -501,7 +501,7 @@ Tests/TUIkitTests/Resources/
 ## Checklist
 
 ### Phase 1: SPM Setup
-- [ ] Create Sources/TUIkit/Resources directory structure
+- [ ] Create Sources/TUI/Resources directory structure
 - [ ] Create Resources/Icons subdirectory
 - [ ] Create Resources/Data subdirectory
 - [ ] Add resources declaration to Package.swift
@@ -509,7 +509,7 @@ Tests/TUIkitTests/Resources/
 - [ ] Verify Bundle.module accessible
 
 ### Phase 2: Type-Safe Accessors
-- [ ] Create Sources/TUIkit/Resources/TUIResource.swift
+- [ ] Create Sources/TUI/Resources/TUIResource.swift
 - [ ] Implement TUIResource.Icon enum with url() and load()
 - [ ] Implement TUIResource.Data enum with url() and load()
 - [ ] Create ResourceError enum
@@ -532,11 +532,11 @@ Tests/TUIkitTests/Resources/
 - [ ] Add doc comments to TUIResource
 - [ ] Add doc comments to ResourceError
 - [ ] Document Image bundle parameter
-- [ ] Create usage examples in TUIkitExample
+- [ ] Create usage examples in TUIExample
 - [ ] Update project documentation
 
 ### Phase 6: Test Infrastructure
-- [ ] Add test resources to TUIkitTests target
+- [ ] Add test resources to TUITests target
 - [ ] Create test fixture files (images, data)
 - [ ] Write resource loading tests
 - [ ] Test error cases (missing, corrupt files)
@@ -574,18 +574,18 @@ Tests/TUIkitTests/Resources/
 ## Files
 
 **New:**
-- `Sources/TUIkit/Resources/` (directory)
-- `Sources/TUIkit/Resources/Icons/` (directory)
-- `Sources/TUIkit/Resources/Data/` (directory)
-- `Sources/TUIkit/Resources/TUIResource.swift`
-- `Sources/TUIkit/Resources/ResourceError.swift`
-- `Tests/TUIkitTests/Resources/` (test fixtures)
-- `Tests/TUIkitTests/Resources/ResourceLoadingTests.swift`
+- `Sources/TUI/Resources/` (directory)
+- `Sources/TUI/Resources/Icons/` (directory)
+- `Sources/TUI/Resources/Data/` (directory)
+- `Sources/TUI/Resources/TUIResource.swift`
+- `Sources/TUI/Resources/ResourceError.swift`
+- `Tests/TUITests/Resources/` (test fixtures)
+- `Tests/TUITests/Resources/ResourceLoadingTests.swift`
 
 **Modified:**
-- `Package.swift` (add resources to TUIkit target and TUIkitTests target)
-- `Sources/TUIkit/Views/Image.swift` (add bundle parameter support)
-- `Sources/TUIkit/Image/ImageLoader.swift` (add bundle-aware loading)
+- `Package.swift` (add resources to TUI target and TUITests target)
+- `Sources/TUI/Views/Image.swift` (add bundle parameter support)
+- `Sources/TUI/Image/ImageLoader.swift` (add bundle-aware loading)
 
 **Resources Added:**
 - `checkmark.png`

@@ -195,7 +195,7 @@ the layers swapped. None of (a)–(c) was needed.
 ### Not attempted, and why
 
 - **`deleteDisabled(_:)` / `moveDisabled(_:)`** — these belong on the ROWS of a
-  `ForEach`, read by the enclosing `List`'s delete/reorder machinery. TUIkit has
+  `ForEach`, read by the enclosing `List`'s delete/reorder machinery. TUI has
   `onDelete` / `onMove` on `ForEach` itself, so wiring a per-row veto means
   threading an environment value through the reorder host. Worth doing; wants
   more room than the end of a batch.

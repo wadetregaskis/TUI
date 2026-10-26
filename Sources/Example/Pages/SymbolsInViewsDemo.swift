@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  SymbolsInViewsDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// SF Symbols where SwiftUI puts them: `Label(_:systemImage:)`,
 /// `Image(systemName:)`, a `Menu` with a symbol, and — on a Mac, where the

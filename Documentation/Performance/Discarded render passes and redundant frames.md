@@ -223,4 +223,4 @@ app, to remove a startup one-off.
   verdicts.
 - `Tools/Profiling/idle-image.sh` and `Tools/Profiling/IdleProbe` — the probe
   that measured an idle `Image` at 2% CPU and zero bytes.
-- `Sources/TUIkitView/Rendering/BodyMutationDiagnostic.swift`.
+- `Sources/TUIView/Rendering/BodyMutationDiagnostic.swift`.

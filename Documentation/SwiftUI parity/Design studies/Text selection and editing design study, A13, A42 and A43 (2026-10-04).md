@@ -14,11 +14,11 @@ compatibility doc is labelled a hypothesis, with the probe that would settle it.
 
 ## 0. In one page
 
-**A13, selection.** The owner's problem is that a TUIkit app reports the
+**A13, selection.** The owner's problem is that a TUI app reports the
 mouse, so the terminal's own selection needs a modifier or a menu toggle. No
 toggling trick removes that (§3): the terminal decides at the press whether a
 gesture is its own, and with reporting off the app hears nothing more. The
-only way to make the toggle unnecessary is for TUIkit to select and copy by
+only way to make the toggle unnecessary is for TUI to select and copy by
 itself. **Recommended: D1.** A drag that no control uses selects what is on
 the screen, as a terminal would, clipped to the pane it started in, and copies
 it. `.textSelection(.enabled)` widens that to drags over list and table rows.
@@ -35,7 +35,7 @@ scrolling. It costs an environment read for every `Text`. Defer it until a
 ported app needs it. D0 + D1 is about 6½ days.
 
 **A43, wrapping.** Wrap through `SoftWrapLayout` (B62) by default, with a
-TUIkit modifier that keeps the sideways scroll. The entry's per-frame cost
+TUI modifier that keeps the sideways scroll. The entry's per-frame cost
 worry has a better answer than a per-line memo. The editor already splits
 the whole document on every frame, three times (§2.5). A layout cache on the
 editor's handler, keyed by the text's identity and the width, makes an idle
@@ -68,7 +68,7 @@ The editor is a control: its drags are its own selection, and the screen
 selection never starts inside it.
 
 **Seven things the inputs got wrong** (§1). Terminal.app has no Option bypass:
-its ⌥-click reaches the app. TUIkit's clipboard path has no OSC 52 and no
+its ⌥-click reaches the app. TUI's clipboard path has no OSC 52 and no
 `wl-copy`, so over ssh a field's copy goes to the server today. ⌘C never
 reaches the app, and Ctrl-Shift-C is the same byte as Ctrl-C. A25 is not
 waiting on A13. The Stress shape A43 names is not a `TextEditor`. The parity
@@ -134,7 +134,7 @@ spelling of formatting definitions on macOS.
 7. **B84 bites A42.** SwiftUI's own example of a formatting definition is
    `var body: some AttributedTextFormattingDefinition<AttributeScopes.SwiftUIAttributes>`.
    That names the scope in a type position, which B84 records as ambiguous
-   in a macOS app, because AppKit loads SwiftUICore's scope beside TUIkit's.
+   in a macOS app, because AppKit loads SwiftUICore's scope beside TUI's.
    B84's fuller version (move the AppKit bridges into their own module,
    ½ day) fixes it.
 
@@ -260,7 +260,7 @@ is measured against this baseline. Caching the split removes most of it.
   `Text.style(of:)` (`:70-115`). It honours foreground, background, font,
   single underline and strikethrough, Foundation's
   `inlinePresentationIntent` on Darwin, and links.
-- **The scope.** TUIkit declares its own `AttributeScopes.SwiftUIAttributes`
+- **The scope.** TUI declares its own `AttributeScopes.SwiftUIAttributes`
   (`Views/AttributeScopes+SwiftUI.swift:46`). `Font.Resolved` and
   `\.fontResolutionContext` exist (`Styling/Font+Resolved.swift`), as do
   `Font.bold(_:)` and `Font.italic(_:)`. So SwiftUI's documented bold-toggle
@@ -291,11 +291,11 @@ like the drag layer, belongs ahead of everything while it is on.
 | Turn reporting off whenever no control is on screen | **Rarely applies** | Every scroll view registers a region for the wheel, so almost no screen qualifies. Modes would also flip under the user. |
 | Scope reporting to regions | **Impossible** | Modes 1000, 1002, 1003 and 1006 are whole-screen. No terminal offers a region form. (xterm's 1001 highlight tracking is xterm-only.) |
 | **Hand the mouse to the terminal on a key (D0)** | **Yes, as a fallback** | One key turns reporting off and turns on alternate-scroll mode (DECSET 1007), so the wheel still scrolls as arrow keys. The terminal's own selection and ⌘C then work, over ssh too, in any terminal, because the terminal copies on the user's machine. Escape or the same key gives the mouse back. It is an in-app version of Terminal.app's View ▸ Allow Mouse Reporting (⌘R), but it works the same in every host. |
-| **TUIkit selects and copies by itself (D1)** | **Yes** | No toggling at all. The cost is a clipboard route to the user's machine: OSC 52 where the host honours it, the local helper when the session is local. |
+| **TUI selects and copies by itself (D1)** | **Yes** | No toggling at all. The cost is a clipboard route to the user's machine: OSC 52 where the host honours it, the local helper when the session is local. |
 | Tell users the host's bypass modifier | Document it | iTerm2 ⌥, Ghostty and Warp Shift, kitty and xterm Shift. Terminal.app: none measured, Fn to be measured. The Mouse page and the DocC article should name it per host, as the OSC 8 section does. |
 
 So the honest answer is that no clever toggle exists. The trick is not to
-need the terminal's selection: TUIkit selects, and writes the clipboard
+need the terminal's selection: TUI selects, and writes the clipboard
 itself.
 
 ---
@@ -319,7 +319,7 @@ itself.
 - **What it does not do.** It is not `.textSelection`: it selects anything,
   blocks nothing, and is the terminal's.
 
-### D1 — TUIkit's own selection, of what is on the screen (recommended)
+### D1 — TUI's own selection, of what is on the screen (recommended)
 
 #### 4.1 The ranking: what a left press and drag does
 
@@ -339,7 +339,7 @@ reads them.
 On a left press with no gesture under it, the dispatcher walks the matching
 regions innermost-first, as today. Hover observers are skipped, and a
 control that declines is passed over. **The tier** is the innermost scope at
-the point: `.enabled`, `.disabled`, or none, meaning the TUIkit default.
+the point: `.enabled`, `.disabled`, or none, meaning the TUI default.
 
 | Innermost claimer under the press | Default (no scope) | Inside `.enabled` | Inside `.disabled` |
 |---|---|---|---|
@@ -374,7 +374,7 @@ the point: `.enabled`, `.disabled`, or none, meaning the TUIkit default.
 - **Reading the cells.** The selection reads characters, not views, from
   the last composited content buffer. The run loop keeps a reference to its
   lines: copy-on-write, so nothing is copied. The cell walker is Stress's
-  `ScreenCells` (`Stress/Sessions/ScreenCells.swift`) promoted into TUIkit:
+  `ScreenCells` (`Stress/Sessions/ScreenCells.swift`) promoted into TUI:
   it already takes a drawn frame apart into cells, SGR, OSC 8 and
   reverse video included.
   - Trailing blanks on each row are dropped.
@@ -447,10 +447,10 @@ route is a mode, as in tmux:
   stays inside it, as SwiftUI's does. On a container it may cross from one
   row's text into the next, which SwiftUI's per-`Text` selection does not.
   That is D1's one visible deviation; D2 removes it.
-- **`.disabled`** means TUIkit selects nothing here: no drag and no copy
+- **`.disabled`** means TUI selects nothing here: no drag and no copy
   mode. The terminal's own modifier-drag still works. That is the
   terminal's, and documented as such.
-- **No modifier** means the TUIkit default. `.textSelection(.disabled)` at
+- **No modifier** means the TUI default. `.textSelection(.disabled)` at
   the root turns it off for a whole app.
 - **Types.** `TextSelectability` (protocol, with `allowsSelection`),
   `EnabledTextSelectability`, `DisabledTextSelectability` and their statics
@@ -539,7 +539,7 @@ its click. That needs no `rows` role.
 | Days | ½ | 4½ with copy mode, clipboard and probes | +3 |
 
 **Recommendation: D1 with D0, D2 deferred.** D1 is the owner's option 1 with
-the TUIkit default, and it covers what was asked: no toggling, a keyboard
+the TUI default, and it covers what was asked: no toggling, a keyboard
 route, a copy, and `.textSelection` honoured. D0 is the only route that
 reaches a Terminal.app user over ssh. D2 buys fidelity a terminal app rarely
 needs, at a cost every `Text` pays.
@@ -637,7 +637,7 @@ selection, so the two never compete.
   ranges.
 - **Find.** The find bar's match (B81) is revealed by row.
 - **Keeping the sideways scroll.**
-  - **The modifier:** a TUIkit modifier, named by owner question 6,
+  - **The modifier:** a TUI modifier, named by owner question 6,
     restores today's behaviour exactly.
   - **The tests:** the 35 `TextEditorTests` and 10 `TextEditorCellWidthTests`
     run under it unchanged, and become the no-wrap mode's tests instead of
@@ -699,7 +699,7 @@ selection, so the two never compete.
     not offered.
   - **Visibility:** `textInputFormattingControlVisibility(_:for: .contextMenu)`
     hides them. That reopens a refusal (`parity-map.json:385-387`, `:898`):
-    the menu is now a TUIkit-drawn formatting control, so `.contextMenu` has
+    the menu is now a TUI-drawn formatting control, so `.contextMenu` has
     a meaning. The other placements stay inert, which is O8's call.
 - **Copy and paste.**
   - **Out:** plain text to the system clipboard, and the `AttributedString`
@@ -724,7 +724,7 @@ selection, so the two never compete.
 - **Declined.** `AttributedTextFormatting.Transferable` and
   `AttributedString.init(transferable:in:)`: RTF import and export through
   `UTType`, Darwin-only. A18 governs Apple-only API, and nothing else in
-  TUIkit reads RTF.
+  TUI reads RTF.
 
 **R2, a separate attributed editor core,** would duplicate 1,600 lines
 (`TextEditor.swift` plus `TextEditorHandler.swift`). Rejected under the
@@ -899,7 +899,7 @@ for SwiftUI's selectable-`Text` answers to §4.1's rows.
 
 **S2. The screen selection, default tier.**
 
-- **What:** `TextSelectionCoordinator`; `ScreenCells` promoted into TUIkit;
+- **What:** `TextSelectionCoordinator`; `ScreenCells` promoted into TUI;
   stream and rectangle selection; snapshot; the post-pass paint; the copy
   stage after layer 0; Escape; copy on release (pending question 1);
   double- and triple-click; the notification.
@@ -1051,7 +1051,7 @@ Totals:
   release.** Every claimer audited acts on the release. A future one that
   acts on the press would see it late. Document the role contract on the
   registration API.
-- **Cell reading under tmux.** TUIkit's tmux cursor compensation
+- **Cell reading under tmux.** TUI's tmux cursor compensation
   (`String.withTmuxCursorCompensation()`) puts cursor motion inside lines.
   The cell walker must read the composited buffer *before* the writer's
   compensation, which is why it reads the content buffer and not

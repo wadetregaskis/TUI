@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  SessionRunner.swift
 //
 //  Plays a session and reports what each kind of step cost and whether any
@@ -12,8 +12,8 @@
 //  License: MIT
 
 import Dispatch
-import TUIkit
-import TUIkitCore
+import TUI
+import TUICore
 
 enum SessionRunner {
     /// How a session is played.

@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Strings_g7.swift
 //
 //  Created by Wade Tregaskis
@@ -105,7 +105,7 @@ extension ExampleStrings {
             "page.newControls.gaugeHint": "Drag the slider to change the gauge",
             "page.newControls.linkHint": "Tab to a link, then ↩ to open it",
             "page.newControls.editorHint": "Multi-line — ↩ starts a new line",
-            "page.newControls.editorSample": "TUIkit TextEditor\nEdit me — ↩ adds a line.",
+            "page.newControls.editorSample": "TUI TextEditor\nEdit me — ↩ adds a line.",
             "page.newControls.dateBoth": "Date & time",
             "page.newControls.dateOnly": "Date",
             "page.newControls.timeOnly": "Time",
@@ -225,7 +225,7 @@ extension ExampleStrings {
             "page.newControls.gaugeHint": "Ziehen Sie den Regler, um die Anzeige zu ändern",
             "page.newControls.linkHint": "Mit Tab zu einem Link, dann ↩ zum Öffnen",
             "page.newControls.editorHint": "Mehrzeilig — ↩ beginnt eine neue Zeile",
-            "page.newControls.editorSample": "TUIkit TextEditor\nBearbeite mich — ↩ fügt eine Zeile hinzu.",
+            "page.newControls.editorSample": "TUI TextEditor\nBearbeite mich — ↩ fügt eine Zeile hinzu.",
             "page.newControls.dateBoth": "Datum & Uhrzeit",
             "page.newControls.dateOnly": "Datum",
             "page.newControls.timeOnly": "Uhrzeit",
@@ -344,7 +344,7 @@ extension ExampleStrings {
             "page.newControls.gaugeHint": "Faites glisser le curseur pour changer la jauge",
             "page.newControls.linkHint": "Tab vers un lien, puis ↩ pour l'ouvrir",
             "page.newControls.editorHint": "Multiligne — ↩ commence une nouvelle ligne",
-            "page.newControls.editorSample": "TUIkit TextEditor\nModifiez-moi — ↩ ajoute une ligne.",
+            "page.newControls.editorSample": "TUI TextEditor\nModifiez-moi — ↩ ajoute une ligne.",
             "page.newControls.dateBoth": "Date et heure",
             "page.newControls.dateOnly": "Date",
             "page.newControls.timeOnly": "Heure",
@@ -463,7 +463,7 @@ extension ExampleStrings {
             "page.newControls.gaugeHint": "Trascina il cursore per cambiare l'indicatore",
             "page.newControls.linkHint": "Tab su un link, poi ↩ per aprirlo",
             "page.newControls.editorHint": "Multiriga — ↩ inizia una nuova riga",
-            "page.newControls.editorSample": "TUIkit TextEditor\nModificami — ↩ aggiunge una riga.",
+            "page.newControls.editorSample": "TUI TextEditor\nModificami — ↩ aggiunge una riga.",
             "page.newControls.dateBoth": "Data e ora",
             "page.newControls.dateOnly": "Data",
             "page.newControls.timeOnly": "Ora",
@@ -582,7 +582,7 @@ extension ExampleStrings {
             "page.newControls.gaugeHint": "Arrastra el control deslizante para cambiar el indicador",
             "page.newControls.linkHint": "Tab a un enlace, luego ↩ para abrirlo",
             "page.newControls.editorHint": "Multilínea — ↩ inicia una nueva línea",
-            "page.newControls.editorSample": "TUIkit TextEditor\nEdítame — ↩ añade una línea.",
+            "page.newControls.editorSample": "TUI TextEditor\nEdítame — ↩ añade una línea.",
             "page.newControls.dateBoth": "Fecha y hora",
             "page.newControls.dateOnly": "Fecha",
             "page.newControls.timeOnly": "Hora",
@@ -701,7 +701,7 @@ extension ExampleStrings {
             "page.newControls.gaugeHint": "拖动滑块以改变仪表",
             "page.newControls.linkHint": "用 Tab 切换到链接，再按 ↩ 打开",
             "page.newControls.editorHint": "多行 — ↩ 换行",
-            "page.newControls.editorSample": "TUIkit TextEditor\n编辑我 — ↩ 添加一行。",
+            "page.newControls.editorSample": "TUI TextEditor\n编辑我 — ↩ 添加一行。",
             "page.newControls.dateBoth": "日期和时间",
             "page.newControls.dateOnly": "日期",
             "page.newControls.timeOnly": "时间",
@@ -820,7 +820,7 @@ extension ExampleStrings {
             "page.newControls.gaugeHint": "スライダーをドラッグしてゲージを変更",
             "page.newControls.linkHint": "Tab でリンクへ、↩ で開く",
             "page.newControls.editorHint": "複数行 — ↩ で改行",
-            "page.newControls.editorSample": "TUIkit TextEditor\n編集してください — ↩ で行を追加。",
+            "page.newControls.editorSample": "TUI TextEditor\n編集してください — ↩ で行を追加。",
             "page.newControls.dateBoth": "日付と時刻",
             "page.newControls.dateOnly": "日付",
             "page.newControls.timeOnly": "時刻",

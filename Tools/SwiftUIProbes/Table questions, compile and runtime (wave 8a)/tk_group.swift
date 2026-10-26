@@ -1,5 +1,5 @@
 import Foundation
-import TUIkit
+import TUI
 
 struct Person: Identifiable {
     let id: Int

@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  MenusChecks.swift
 //
 //  What the `menus` session's screen must show, judged from what the session
@@ -8,7 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 extension MenusSession {
     // MARK: The model's side of the rows
@@ -158,7 +158,7 @@ extension MenusSession {
         }
         // Not to a document the command itself took off the list — a promotion
         // out of the filter, a deletion: there is nowhere to go back to. Nor
-        // from nowhere: with no focus to go back to, TUIkit gives it to the
+        // from nowhere: with no focus to go back to, TUI gives it to the
         // first focus stop, as it does on any page that has none.
         if let (focus, from) = focusAfterClose, index == from, let shown = Self.focus(on: screen), shown != focus,
             focus != "none", !focus.hasPrefix("row ") || desk.shown.contains(where: { "row \($0.id)" == focus })

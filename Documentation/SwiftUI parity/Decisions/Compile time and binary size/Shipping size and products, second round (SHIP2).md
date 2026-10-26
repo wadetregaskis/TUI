@@ -2,8 +2,8 @@
 
 *A companion to [`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>),
 written by the lane that shipped the owner's decisions of 2026-10-12 on size and
-products: TUIkit's symbols out of the app's export table, the gradient editor
-back in TUIkitColorPicker, the `-deduplicate` check on the 6.2.4 lane, and the
+products: TUI's symbols out of the app's export table, the gradient editor
+back in TUIColorPicker, the `-deduplicate` check on the 6.2.4 lane, and the
 tests' temporary directories. It holds only what that work raised that was not
 already decided, in the main file's three parts.*
 
@@ -14,7 +14,7 @@ already decided, in the main file's three parts.*
 
 ## B. Shipped the safe option
 
-### B-SHIP2-1. `-unexported_symbol` is a trait of its own, `UnexportTUIkitSymbols`, beside `DeadStripUnusedAPI`
+### B-SHIP2-1. `-unexported_symbol` is a trait of its own, `UnexportTUISymbols`, beside `DeadStripUnusedAPI`
 
 *`Package.swift` (the "App size" section), `README.md` ("Shipping size")*
 
@@ -34,7 +34,7 @@ in Xcode). So a developer whose own link needs an export list (a plugin host,
 a dynamic library with a curated interface, or the README's own
 `-no_exported_symbols` until now) cannot build with the default traits at all.
 
-**Shipped:** a second default trait, `UnexportTUIkitSymbols`. `traits: []`
+**Shipped:** a second default trait, `UnexportTUISymbols`. `traits: []`
 still turns both off; such a developer writes `traits:
 ["DeadStripUnusedAPI"]` and keeps the −14.7% of the dead stripping, which with
 one trait they would have had to give up to make their link work at all. The

@@ -1,0 +1,416 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  ContainerPayloadAudit.swift
+//
+//  A rendered buffer carries four things beside its lines, and every container
+//  a view can sit in has to pass all four up. Each is lost silently, and each
+//  loss reads as an ordinary page:
+//
+//  * a dropped **animated run** freezes a spinner or a caret — and looks like a
+//    performance win while doing it;
+//  * a dropped **hit-test region** leaves a control that draws its hover and
+//    focus states perfectly and cannot be clicked;
+//  * a dropped **overlay** is a `.sheet`, `.alert`, `.popover`, `Picker`
+//    drop-down or `.contextMenu` that never reaches the root compositor — for a
+//    modal, one that takes the keyboard and then does not appear;
+//  * a dropped **opacity region** is a `.opacity(…)` that draws at full
+//    strength, which is the least alarming of the four and so the easiest to
+//    ship.
+//
+//  So this is a standing audit rather than a one-off: put each payload inside
+//  each container in turn and require it to come out. `Section` was the
+//  container that dropped them — runs first (found by the audit's earlier,
+//  runs-only form) and then, for longer, the other two, because fixing the
+//  instance did not close the class. That is why the four now share one list.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import Testing
+@testable import TUIChrome
+import TUICore
+
+import TUI
+@testable import TUIApp
+@testable import TUIFoundation
+@testable import TUITestSupport
+
+/// Emits a buffer carrying one ``OpacityRegion`` — the payload under test,
+/// with nothing else attached to it.
+private struct OpacityRegionProbe: View, Renderable {
+    var body: Never { fatalError("OpacityRegionProbe renders via Renderable") }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        var buffer = FrameBuffer(text: "x")
+        buffer.opacityRegions = [
+            OpacityRegion(offsetX: 0, offsetY: 0, width: 1, height: 1, opacity: 0.5)
+        ]
+        return buffer
+    }
+}
+
+@MainActor
+@Suite("Container payload propagation")
+struct ContainerPayloadAudit {
+
+    private func harness() -> (TUIContext, RenderContext) {
+        let tui = TUIContext()
+        var environment = EnvironmentValues()
+        environment.focusManager = FocusManager()
+        environment.applyRuntimeServices(from: tui)
+        environment.terminalWidth = 40
+        environment.terminalHeight = 20
+        environment.overlayContentHeight = 18
+        return (
+            tui,
+            RenderContext(
+                availableWidth: 40, availableHeight: 20,
+                environment: environment, tuiContext: tui)
+        )
+    }
+
+    /// Renders twice — a `ScrollView` reports `extent == viewport` on its first
+    /// pass, and a `List` has not built its window yet — and returns the second
+    /// buffer, which is the steady state a user ever sees.
+    private func render(_ view: some View) -> FrameBuffer {
+        let (tui, context) = harness()
+        for _ in 0..<2 {
+            tui.mouseEventDispatcher.beginRenderPass()
+            tui.stateStorage.beginRenderPass()
+            tui.renderCache.beginRenderPass()
+            context.environment.focusManager?.beginRenderPass()
+            _ = renderToBuffer(view, context: context)
+            context.environment.focusManager?.endRenderPass()
+            tui.stateStorage.endRenderPass()
+        }
+        tui.mouseEventDispatcher.beginRenderPass()
+        tui.stateStorage.beginRenderPass()
+        tui.renderCache.beginRenderPass()
+        context.environment.focusManager?.beginRenderPass()
+        let buffer = renderToBuffer(view, context: context)
+        context.environment.focusManager?.endRenderPass()
+        tui.stateStorage.endRenderPass()
+        return buffer
+    }
+
+    // MARK: - The payloads
+
+    /// Leaves one animated run.
+    private func blinker() -> some View {
+        Text("x").animatedCells([
+            AnimatedCellRun(
+                offsetX: 0, offsetY: 0, width: 1, frames: ["a", "b"], clock: .cursor)
+        ])
+    }
+
+    /// Leaves one hit-test region.
+    private func clickable() -> some View {
+        Button("b") {}
+    }
+
+    /// Leaves one screen-level overlay.
+    private func presenter() -> some View {
+        Text("t").modal(isPresented: .constant(true)) {
+            Dialog(title: "D") { Text("x") }
+        }
+    }
+
+    /// Every container a view can sit in, applied to whatever is handed in.
+    ///
+    /// One list for all three payloads: a container that swallows one is
+    /// overwhelmingly likely to swallow the others, which is exactly how
+    /// `Section`'s hit regions and overlays outlived the fix to its runs.
+    private func containers() -> [(String, (AnyView) -> AnyView)] {
+        [
+            ("bare", { $0 }),
+            ("VStack", { child in AnyView(VStack { child }) }),
+            ("HStack", { child in AnyView(HStack { child }) }),
+            ("ZStack", { child in AnyView(ZStack { child }) }),
+            // Over a colour, which the child lands ON: a `ZStack` resolves a layer's
+            // fades where its base shows something under them, and carries them up
+            // where it shows nothing (the one above).
+            ("ZStack over a colour", { child in AnyView(ZStack { Color.blue; child }) }),
+            ("padding", { child in AnyView(child.padding()) }),
+            ("border", { child in AnyView(child.border()) }),
+            ("background", { child in AnyView(child.background(.blue)) }),
+            ("frame", { child in AnyView(child.frame(width: 24, height: 5)) }),
+            ("ScrollView", { child in AnyView(ScrollView { child }) }),
+            ("Box", { child in AnyView(Box { child }) }),
+            ("Section", { child in AnyView(Section("s") { child }) }),
+            ("Section with a footer", { child in
+                AnyView(Section(content: { child }, header: { Text("h") }, footer: { Text("f") }))
+            }),
+            // The child on the SECOND row: the list takes the focus, and its cursor
+            // row — the first — breathes, repainting its whole line every tick, so a
+            // child on it hands its runs to that breath rather than up the tree.
+            ("List", { child in AnyView(List { Text("cursor"); child }) }),
+            ("Form", { child in AnyView(Form { child }) }),
+            ("Form of Sections", { child in
+                AnyView(Form { Section("s") { child } })
+            }),
+            ("Group", { child in AnyView(Group { child }) }),
+            ("NavigationStack", { child in AnyView(NavigationStack { child }) }),
+            ("overlay", { child in AnyView(Text("under").overlay { child }) }),
+            ("opacity", { child in AnyView(child.opacity(0.5)) }),
+            ("nested stacks", { child in AnyView(VStack { HStack { Box { child } } }) }),
+            ("ScrollView in a VStack", { child in AnyView(VStack { ScrollView { child } }) }),
+            ("TabView", { child in
+                AnyView(TabView(selection: .constant(0)) { Tab("A", value: 0) { child } })
+            }),
+            // Both styles: the compact panel composes with `replacingLines` +
+            // `appendVertically` and carries everything for free, while the
+            // bordered one rebuilds its rows as fresh strings and has to
+            // re-attach each payload by hand. Only the second can fail, and
+            // only the second was failing.
+            ("a bordered TabView", { child in
+                AnyView(
+                    TabView(selection: .constant(0)) { Tab("A", value: 0) { child } }
+                        .tabViewStyle(.bordered))
+            }),
+
+            ("Grid", { child in AnyView(Grid { GridRow { child } }) }),
+            // The Layout protocol's render composites every placed child
+            // through the IN-PLACE `composite(with:at:)` fast path — a
+            // different code path from every other container here, and one
+            // that must lift all four payloads just the same.
+            ("a custom Layout", { child in AnyView(AuditColumn()({ child })) }),
+            ("LazyVStack", { child in AnyView(ScrollView { LazyVStack { child } }) }),
+            ("DisclosureGroup", { child in
+                AnyView(DisclosureGroup("g", isExpanded: .constant(true)) { child })
+            }),
+            ("NavigationSplitView", { child in
+                AnyView(NavigationSplitView(sidebar: { child }, detail: { Text("d") }))
+            }),
+            // A control's LABEL is a full view slot, and `_ControlLabel` rebuilt
+            // its buffer by hand — so this is the same question `Section` failed.
+            ("a Slider's label", { child in
+                AnyView(Slider(value: .constant(0.5), in: 0...1, label: { child }))
+            }),
+            ("a Stepper's label", { child in
+                AnyView(Stepper(value: .constant(5), in: 0...10, label: { child }))
+            }),
+            ("a Dialog's footer", { child in
+                AnyView(Dialog(title: "d", content: { Text("c") }, footer: { child }))
+            }),
+        ]
+    }
+
+    // MARK: - The three audits
+
+    /// Something with no payload of its own, to measure the container against.
+    ///
+    /// The count has to be a DIFFERENCE: several of these containers carry
+    /// payload of their own — a `Slider` publishes its track's hit region
+    /// whether or not its label has one — so "at least one came out" passes
+    /// while the child's is being dropped. That is exactly how a `Slider`
+    /// label's overlay stayed lost.
+    private func inert() -> some View { Text("x") }
+
+    /// Something that leaves one ``OpacityRegion``.
+    ///
+    /// Stamped directly rather than written as `.opacity(0.5)`, because this
+    /// case is about PROPAGATION and `.opacity` does not emit a region yet —
+    /// it still fades at render time. When it changes over, this keeps
+    /// asserting the same thing, and the modifier's own behaviour is asserted
+    /// where it belongs.
+    private func faded() -> some View {
+        OpacityRegionProbe()
+    }
+
+    @Test("Every container carries its children's animated runs")
+    func containersCarryRuns() {
+        for (what, wrap) in containers() {
+            let base = render(wrap(AnyView(inert()))).animatedCells.count
+            let found = render(wrap(AnyView(blinker()))).animatedCells.count
+            #expect(found > base, "\(what) dropped the child's run (\(base) → \(found))")
+        }
+    }
+
+    /// The fourth payload, and it fails the same way the other three do: a
+    /// container that drops it renders a plausible page in which one view is
+    /// simply not translucent.
+    ///
+    /// Five containers legitimately answer `0`. Two COMPOSITE, where the child lands
+    /// on something: a `ZStack` over a colour and `.overlay` over text draw one buffer
+    /// onto another, which is the moment what is behind the faded layer is known.
+    /// Over nothing — a `ZStack` of the child alone — the base is not what is behind
+    /// the fade, and the region travels on (`Opacity as composition.md` §108). Three
+    /// PAINT an opaque field under the child — a `.background`, and a `TabView`'s
+    /// surface in either style, which is one — and that field is what is behind every
+    /// fade inside it (§96). So all five resolve the region into cells and spend it
+    /// rather than passing it up. That is the payload arriving at its destination,
+    /// not being dropped, and the assertion for them is that the picture changed.
+    ///
+    /// Every other container is a carrier and must still hand it on.
+    @Test("Every container carries its children's opacity regions")
+    func containersCarryOpacityRegions() {
+        let sinks: Set<String> = [
+            "ZStack over a colour", "overlay", "background", "TabView", "a bordered TabView",
+        ]
+        for (what, wrap) in containers() {
+            let plain = render(wrap(AnyView(inert())))
+            let translucent = render(wrap(AnyView(faded())))
+            if sinks.contains(what) {
+                #expect(
+                    translucent.opacityRegions.isEmpty,
+                    "\(what) composites, so it must spend the region rather than carry it")
+                #expect(
+                    translucent.lines != plain.lines,
+                    "\(what) spent the region without changing a cell")
+            } else {
+                let before = plain.opacityRegions.count
+                let after = translucent.opacityRegions.count
+                #expect(after > before, "\(what) dropped the child's opacity (\(before) → \(after))")
+            }
+        }
+    }
+
+    @Test("Every container carries its children's hit-test regions")
+    func containersCarryHitRegions() {
+        // A control that cannot be clicked still draws its focus ring and its
+        // hover lift, so nothing about the screen says the region is missing.
+        for (what, wrap) in containers() {
+            let base = render(wrap(AnyView(inert()))).hitTestRegions.count
+            let found = render(wrap(AnyView(clickable()))).hitTestRegions.count
+            #expect(found > base, "\(what) dropped the child's region (\(base) → \(found))")
+        }
+    }
+
+    /// Three sites that assemble a buffer by hand — outside the container list
+    /// because the differencing above cannot see them.
+    ///
+    /// The app header is composed at the ROOT, by the render loop, so it never
+    /// appears in the page's buffer at all and the audit's before/after reads
+    /// zero either way. A `Button`'s label holds a nested `Button` badly (two
+    /// buttons publish one region between them, so the hit-region difference is
+    /// zero for a reason that has nothing to do with carrying). Both still
+    /// rebuild their lines as fresh strings and re-attach each payload by hand,
+    /// which is the failure this file exists for — so they are checked here,
+    /// with the one payload that reads the same at every site.
+    @Test("The hand-assembled buffers carry an opacity region")
+    func handAssembledBuffersCarryOpacity() {
+        // The prefix path: a plain button's label, shifted right past the focus
+        // indicator's width.
+        let label = render(Button(action: {}, label: { faded() }).buttonStyle(.plain))
+        #expect(label.opacityRegions.count == 1)
+        #expect(label.opacityRegions.first?.offsetX == BorderRenderer.focusIndicatorWidth)
+
+        // A window bar's frame takes its content PRE-RENDERED, so it is handed the
+        // probe's buffer directly rather than reached through a page.
+        let context = harness().1
+        let content = renderToBuffer(faded(), context: context)
+        let header = _ChromeBarFrame(contentBuffer: content, style: .bordered)
+            .renderToBuffer(context: context)
+        #expect(header.opacityRegions.count == 1)
+        // Inside the box's wall and below its top rule.
+        #expect(header.opacityRegions.first?.offsetX == 1)
+        #expect(header.opacityRegions.first?.offsetY == 1)
+    }
+
+    /// The two plain view-label paths assembled their buffers from the label's
+    /// LINES. The breathing one — every `Link` at the default focus indicator
+    /// — kept nothing else; the bullet one re-attached runs and opacity
+    /// regions and forgot overlays and hit regions. A `.modal` presented from
+    /// a link's label took the keyboard and never painted.
+    @Test("A plain button's view label keeps every payload, on both label paths")
+    func plainLabelPathsCarryEveryPayload() {
+        let url = URL(string: "https://example.com")!
+        // The breathing path: a Link, default indicator, no prefix.
+        let fadedLink = render(Link(destination: url) { faded() })
+        #expect(fadedLink.opacityRegions.count == 1)
+        #expect(fadedLink.opacityRegions.first?.offsetX == 0, "nothing sits in front of a breathing label")
+        #expect(!render(Link(destination: url) { presenter() }).overlays.isEmpty)
+        #expect(
+            render(Link(destination: url) { blinker() }).animatedCells.contains { $0.frames == ["a", "b"] },
+            "the label's own run rides along beside the breath")
+        let inertLink = render(Link(destination: url) { inert() }).hitTestRegions.count
+        #expect(render(Link(destination: url) { clickable() }).hitTestRegions.count > inertLink)
+        // The bullet path: a plain button, and a Link that asked for the bullet.
+        #expect(!render(Button(action: {}, label: { presenter() }).buttonStyle(.plain)).overlays.isEmpty)
+        let inertButton = render(Button(action: {}, label: { inert() }).buttonStyle(.plain)).hitTestRegions.count
+        #expect(render(Button(action: {}, label: { clickable() }).buttonStyle(.plain)).hitTestRegions.count > inertButton)
+        #expect(!render(Link(destination: url) { presenter() }.linkFocusIndicator(.bullet)).overlays.isEmpty)
+    }
+
+    @Test("A disabled container still lets a presentation float to the root")
+    func disabledContainersFloatOverlays() {
+        // Disabling a container is a statement about INTERACTION. It is not a
+        // reason to stop compositing, and the presentation does not know it has
+        // happened — it activates its focus section and grabs the keyboard
+        // either way, so a swallowed overlay is an invisible dialog holding the
+        // app rather than a dialog that politely declined to appear.
+        //
+        // `List` had exactly that: its row-overlay carry lived inside the
+        // mouse-handler attachment, which returns early for a disabled list, so
+        // every row's presentation was dropped — visible rows included.
+        for (what, wrap) in containers() {
+            let overlays = render(wrap(AnyView(presenter())).disabled(true)).overlays
+            #expect(
+                overlays.contains { $0.level == .modal && $0.centered && $0.dimsBackground },
+                "\(what), disabled, swallowed the modal's overlay")
+        }
+    }
+
+    @Test("A disabled List still floats a presentation from a row")
+    func disabledListFloatsRowOverlays() {
+        // The specific shape, pinned separately from the sweep above because
+        // the sweep does not reach it: `List`'s row-overlay carry lived inside
+        // its mouse-handler attachment, which returns early for a disabled
+        // list. So every row's presentation was dropped — visible rows
+        // included, no scrolling involved — while the presentation went on
+        // activating its focus section and grabbing the keyboard.
+        // Written WITHOUT the `AnyView` the sweep's container list needs: the
+        // erasure changes when `List` resolves `@Environment(\.isDisabled)`,
+        // so an erased list does not see the flag and the case silently stops
+        // testing anything. That is why this is a test of its own.
+        let direct = render(List { presenter() }.disabled(true)).overlays
+        #expect(
+            direct.contains { $0.level == .modal },
+            "a disabled List swallowed its row's dialog")
+
+        let rows = render(
+            List { ForEach([1], id: \.self) { _ in presenter() } }.disabled(true)
+        ).overlays
+        #expect(
+            rows.contains { $0.level == .modal },
+            "a disabled List of ForEach rows swallowed its row's dialog")
+    }
+
+    @Test("Every container lets a presented modal float to the root")
+    func containersFloatOverlays() {
+        // The modal has already taken the keyboard by the time its overlay is
+        // dropped, so a container that swallows it leaves the app looking
+        // unresponsive rather than looking wrong.
+        for (what, wrap) in containers() {
+            let overlays = render(wrap(AnyView(presenter()))).overlays
+            #expect(
+                overlays.contains { $0.level == .modal && $0.centered && $0.dimsBackground },
+                "\(what) swallowed the modal's overlay (carried \(overlays.count))")
+        }
+    }
+}
+
+/// The smallest possible `Layout`: one column, children stacked in order.
+///
+/// Exists because the `Layout` protocol renders through the in-place
+/// `FrameBuffer.composite(with:at:)` — a code path no other container in the
+/// audit exercises, and one that dropped `opacityRegions` while lifting the
+/// other three payloads.
+private struct AuditColumn: Layout {
+    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        return ViewSize(
+            width: sizes.map(\.width).max() ?? 0,
+            height: sizes.map(\.height).reduce(0, +))
+    }
+
+    func placeSubviews(
+        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+    ) {
+        var y = bounds.y
+        for index in subviews.indices {
+            subviews[index].place(at: (x: bounds.x, y: y), proposal: .unspecified)
+            y += subviews[index].sizeThatFits(.unspecified).height
+        }
+    }
+}

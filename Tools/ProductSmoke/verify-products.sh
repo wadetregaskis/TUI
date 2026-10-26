@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # verify-products.sh — build and run one tiny app per library product of
-# TUIkit, each depending on that product ALONE, with TUIkit resolved by version
+# TUI, each depending on that product ALONE, with TUI resolved by version
 # as a client resolves it.
 #
 # Everything else CI builds is the package as itself, where every executable
@@ -20,7 +20,7 @@
 #   - a module whose re-exports do not give an importer what the docs say
 #     they do: each app writes only the imports Choosing Products tells a
 #     client of its product to write (its product's module; beside it, for
-#     TUIkitAppKit, TUIkitFilePanelsAppKit and TUIkitMacros the module they extend), with
+#     TUIAppKit, TUIFilePanelsAppKit and TUIMacros the module they extend), with
 #     MemberImportVisibility on, and uses
 #     a name from beneath its module where there is one. One or two names
 #     each: a re-export no app happens to use goes unchecked;
@@ -33,10 +33,10 @@
 #
 # No dynamic product in the fixture (Package.swift says why).
 #
-# Cost: one debug build of every TUIkit module, and 26 small apps. Measured on
+# Cost: one debug build of every TUI module, and 26 small apps. Measured on
 # the shared development machine with swift.org 6.4.0 (2026-10-11): 47.9 s in
 # all, 25.4 s of it the build. SwiftPM used a prebuilt swift-syntax for
-# TUIkitMacros' plugin (in .build/prebuilts), so the macro app cost little.
+# TUIMacros' plugin (in .build/prebuilts), so the macro app cost little.
 #
 # Usage:
 #   Tools/ProductSmoke/verify-products.sh            # $SWIFT, else swift
@@ -54,7 +54,7 @@ KEEP=0
 [ "${1:-}" = "--keep" ] && KEEP=1
 
 TEMP_DIR="$(mktemp -d)"
-PACKAGE_REPO="$TEMP_DIR/TUIkit"
+PACKAGE_REPO="$TEMP_DIR/TUI"
 FIXTURE="$TEMP_DIR/Fixture"
 if [ "$KEEP" -eq 1 ]; then
     echo "scratch: $TEMP_DIR"
@@ -101,9 +101,9 @@ status=${PIPESTATUS[0]}
 set -e
 [ "$status" -eq 0 ] || { echo "error: the fixture did not build (above)" >&2; exit 1; }
 # Swift Build only WARNS when a module imports a sibling it does not declare
-# and that sibling happens to be built already: "'TUIkitGrid' is missing a
-# dependency on 'TUIkitLists' because dependency scan of Swift module
-# 'TUIkitGrid' discovered a dependency on 'TUIkitLists'" (an import planted in
+# and that sibling happens to be built already: "'TUIGrid' is missing a
+# dependency on 'TUILists' because dependency scan of Swift module
+# 'TUIGrid' discovered a dependency on 'TUILists'" (an import planted in
 # the fixture's checkout, rebuilt, 2026-10-11; the app on that product alone
 # then failed to link, undefined symbols). Failing on the warning makes the
 # verdict independent of build order. A clean run prints no warning at all.

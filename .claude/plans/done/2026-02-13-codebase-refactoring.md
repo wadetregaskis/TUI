@@ -119,7 +119,7 @@ List hat 8 Init-Overloads mit TUI-spezifischen Parametern im Initializer (`empty
 ## 7. SecureField ViewBuilder-Label-Variante (LOW)
 
 ### Problem
-SwiftUI bietet `SecureField(text:prompt:label:)` mit `@ViewBuilder`. TUIkit hat nur die String-Variante.
+SwiftUI bietet `SecureField(text:prompt:label:)` mit `@ViewBuilder`. TUI hat nur die String-Variante.
 
 ### Umsetzung
 ViewBuilder-Init analog zu TextField hinzufuegen.

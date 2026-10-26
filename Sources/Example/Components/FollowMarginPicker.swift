@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  FollowMarginPicker.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// The scroll-follow-margin choices the demo pages offer, mapped to the
 /// framework's `ScrollFollowMargin` values.

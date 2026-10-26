@@ -1,4 +1,4 @@
-import TUIkit
+import TUI
 struct Tri: Shape {
     func path(in rect: CGRect) -> Path {
         Path { $0.move(to: CGPoint(x: rect.midX, y: 0)) }

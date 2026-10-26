@@ -1,9 +1,9 @@
 # Screen clips
 
-The README's animated clips: each one a TUIkit app that plays itself in a
+The README's animated clips: each one a TUI app that plays itself in a
 **real terminal window** — Ghostty, iTerm2, Terminal.app or Warp — filmed,
 cropped to a small frame of it, and encoded as a looping animated WebP. One
-command makes them all again, so a change to how TUIkit draws is a re-run
+command makes them all again, so a change to how TUI draws is a re-run
 away from the README showing it.
 
 ```sh
@@ -63,7 +63,7 @@ them short and few.
 | Piece | What it does |
 |---|---|
 | `Sources/ScreenClips/Scenes/` | One file per clip: the app, and its **script** — keys, cues and camera shots on a clock. |
-| `ScreenClips play <clip>` (`Player.swift`) | Draws a calibration card (below), then runs the clip's app under a pseudo-terminal of its own and relays everything between it and the real terminal, untouched, so TUIkit sees the real terminal (its identity, size, colours, quirks). Types the script's keys into that stream — through TUIkit's own parser and dispatch, as typed keys go (mouse reports too) — and sends its cues (a palette change, say: something no key does) down a pipe the app reads (`ClipCues`). Drops the terminal's focus reports, so the app never goes inactive because its window is not in front. Writes `start` and `end` markers. |
+| `ScreenClips play <clip>` (`Player.swift`) | Draws a calibration card (below), then runs the clip's app under a pseudo-terminal of its own and relays everything between it and the real terminal, untouched, so TUI sees the real terminal (its identity, size, colours, quirks). Types the script's keys into that stream — through TUI's own parser and dispatch, as typed keys go (mouse reports too) — and sends its cues (a palette change, say: something no key does) down a pipe the app reads (`ClipCues`). Drops the terminal's focus reports, so the app never goes inactive because its window is not in front. Writes `start` and `end` markers. |
 | `WindowRecorder` | ScreenCaptureKit. Finds the window by its process (Ghostty: the new instance's; the others: the window titled for the clip), films it at the display's resolution, and writes a PNG per frame, with its presentation time. Stops at the `end` marker. Also gives the front back to the app that had it (`--refront`), and finds the screen corner where a window shows most from behind it (`--spot`). |
 | `encode.py` | Finds the grid in the film from the calibration card, keeps what was on the screen between the markers, sampled at 30 fps, cuts each frame at the camera's rectangle for that instant, scales it to the clip's output width (Lanczos), draws the pointer (below), rounds its corners, merges runs of one picture into one longer frame, and encodes a lossy WebP looped forever with `img2webp`. Also composites carousels, and MP4s with ffmpeg. |
 | `make_photos.py` | Paints the photographs the photo library and the image viewers show — eight landscapes, procedurally, the same every run — into the staging folder. The repository has no photographs it may show in public, and none is committed. |
@@ -176,7 +176,7 @@ and a stack whose order changes mid-slide is simpler drawn than filtered.
 ## Publishing
 
 The clips live as assets of one GitHub release, `media`, which is not a release
-of TUIkit. `regenerate.sh --publish` uploads every `.webp` and `.mp4` in the
+of TUI. `regenerate.sh --publish` uploads every `.webp` and `.mp4` in the
 output folder to it (`gh release upload media … --clobber`, replacing assets of
 the same name), creating the release first if there is none. The docs site's
 workflow downloads the assets and serves them at `<site>/media/<name>`, which

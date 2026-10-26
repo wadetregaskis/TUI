@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  MemoCounts.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// What the per-pass memos did over the frames a bench timed: the measure
 /// memo's lookups, hits, misses and stores, and the child-views memo's hits

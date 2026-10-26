@@ -50,7 +50,7 @@ and NOT the font, which is the one gap in it.)
 
 Put the reading in `Documentation/Terminals/Terminal compatibility survey.md`, and add one row
 per right-overhanging codepoint to THIS HOST's set in
-`Sources/TUIkitCore/Extensions/ChromeOverhang.swift`, which widens the claim to
+`Sources/TUICore/Extensions/ChromeOverhang.swift`, which widens the claim to
 two cells on that host and lets the existing ECH+CUF walk keep the grid where
 it is. The sets are per host because the 2026-09-04 reading came out that way:
 Ghostty smears `↵` and nothing else, Warp smears seven OTHER keyboard symbols
@@ -169,7 +169,7 @@ def main():
     print()
     print("  Into Documentation/Terminals/Terminal compatibility survey.md, and one entry per")
     print("  right-overhanging codepoint into THIS HOST's set in")
-    print("  Sources/TUIkitCore/Extensions/ChromeOverhang.swift — never from a")
+    print("  Sources/TUICore/Extensions/ChromeOverhang.swift — never from a")
     print("  report, only from this card. A host with no set claims one cell")
     print("  for every glyph; the four native hosts were read 2026-09-04.")
     print()

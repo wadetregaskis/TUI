@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  InboxVariants.swift
 //
 //  The inbox, put where a value-trusting memo (Option C) has to draw its rows
@@ -14,7 +14,7 @@
 //  License: MIT
 
 import Observation
-import TUIkit
+import TUI
 
 // MARK: - Where the inbox is put
 
@@ -393,7 +393,7 @@ extension InboxVariantSession {
     }
 }
 
-/// Where a docked frame puts the sheet, and so whether TUIkit must draw it as
+/// Where a docked frame puts the sheet, and so whether TUI must draw it as
 /// a modal: the content area is the frame less the status bar's box, the
 /// sheet runs from its rule to the content area's foot, and it docks live
 /// only at or below `.medium` (its `upThrough`) and with three rows or more

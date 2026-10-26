@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ImageRowsSession.swift
 //
 //  Rows whose values are heavy: each holds a decoded picture, and draws a
@@ -10,7 +10,7 @@
 //  License: MIT
 
 import Observation
-import TUIkit
+import TUI
 
 // MARK: - The model
 

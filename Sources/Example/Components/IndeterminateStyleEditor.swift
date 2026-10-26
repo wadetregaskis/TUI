@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  IndeterminateStyleEditor.swift
 //
 //  The indeterminate twin of `TrackStyleEditor`: the same combo fields over the
@@ -10,7 +10,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 /// Builds an ``IndeterminateConfiguration`` and previews it live on a bare
 /// ``ProgressView``.

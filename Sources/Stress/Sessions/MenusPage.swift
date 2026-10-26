@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  MenusPage.swift
 //
 //  The `menus` session's page and model: a document manager whose every
@@ -8,7 +8,7 @@
 //  License: MIT
 
 import Observation
-import TUIkit
+import TUI
 
 // MARK: - The desk
 

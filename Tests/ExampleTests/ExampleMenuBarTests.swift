@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ExampleMenuBarTests.swift
 //
 //  The Example's menu bar: no File menu, a Go menu with its keys, the View
@@ -10,9 +10,9 @@
 import Testing
 
 @testable import Example
-import TUIkit
-@testable import TUIkitApp
-@testable import TUIkitFoundation
+import TUI
+@testable import TUIApp
+@testable import TUIFoundation
 
 @MainActor
 @Suite("The Example's menu bar", .serialized)
@@ -75,7 +75,7 @@ struct ExampleMenuBarTests {
         #expect(rows(app).joined(separator: "\n") == before, "back on the main menu")
     }
 
-    @Test("View holds TUIkit's display commands and the text styling toggles, each a submenu")
+    @Test("View holds TUI's display commands and the text styling toggles, each a submenu")
     mutating func viewSubmenus() throws {
         let app = launched()
         try open("View", in: app)

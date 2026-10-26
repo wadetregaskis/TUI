@@ -194,7 +194,7 @@ BATTERY.update({
     # The framework's OWN chrome, added to the width corpus 2026-09-04 with the
     # same ids. Every one of these is claimed 1 cell by `terminalWidth` and none
     # had ever been measured on any host — which is a wide gap, because unlike
-    # an emoji in someone's data these are drawn by TUIkit itself, in every
+    # an emoji in someone's data these are drawn by TUI itself, in every
     # status bar, border, scrollbar, slider and radio group it renders.
     #
     # Two reasons to doubt the claim. Fifteen of them are East Asian AMBIGUOUS,

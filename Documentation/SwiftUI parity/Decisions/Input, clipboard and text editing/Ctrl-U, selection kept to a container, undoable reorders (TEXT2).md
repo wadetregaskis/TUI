@@ -56,7 +56,7 @@ SELWIDEN for the owner to try; the border handle and
   to it at once. The distance is counted in cells outside the interior, the
   border's own row or column being 1, separately per axis; either one past
   its limit widens. One constant pair, `HeldPress.wideningRows` and
-  `wideningColumns`, in `TUIkitFoundation/App/HeldPress+Widening.swift`,
+  `wideningColumns`, in `TUIFoundation/App/HeldPress+Widening.swift`,
   which holds the whole rule.
 - **Why 3 and 6.** The border and two rows beyond it stay inside, because a
   drag to "the end of a card" overshoots the bottom border by a row or two as
@@ -83,7 +83,7 @@ SELWIDEN for the owner to try; the border handle and
   last (an interior that fills its scroll view) is skipped.
 - **Unchanged.** A drag begun on the border or outside the container, a
   drag kept to a list's or table's row, a cell's own `.textSelection(.enabled)`,
-  and a Control-press, which selects nothing. TUIkit has no keyboard
+  and a Control-press, which selects nothing. TUI has no keyboard
   extension of the screen selection (no Shift-arrows), so there is nothing
   for the rule to apply to there.
 - **Cost.** The check runs on each drag event of a gesture begun inside an
@@ -121,7 +121,7 @@ is its delete to the start of the line (deviations T7).
 (Ctrl-K, Ctrl-U, the word deletions) join into one kill ring entry, and a
 real ring with Option-Y to cycle. *Price:* half a day for the append rule in
 both handlers; the ring is a larger design (the macOS text system keeps one
-slot, which is what TUIkit follows today).
+slot, which is what TUI follows today).
 
 ### B-TEXT2-2. A bordered container keeps a drag selection begun inside it to its interior
 
@@ -141,7 +141,7 @@ interior rows and nothing else (measured in the live Example under a PTY,
 before and after). Since A-TEXT2-1's experiment, a drag that goes more than
 3 rows or 6 columns outside the interior widens to the scope around the box.
 
-The opt-out is a TUIkit-only modifier, `.textSelectionScope(_:)` with
+The opt-out is a TUI-only modifier, `.textSelectionScope(_:)` with
 `TextSelectionScope.container` (the default) and `.pane`: on the root view it
 restores the old reach everywhere, on one box it frees that box, and
 `.container` inside puts the rule back. Named for the scope it sets, as the
@@ -170,7 +170,7 @@ of a table's own region at its header gaps, which a test pins.
 without a border (a `.background` panel, a `GroupBox` styled borderless).
 *Price:* a rule for what counts, per view; not attempted.
 
-### B-TEXT2-3. The Example's reorders, deletions and drops are undoable, through a TUIkit-only helper
+### B-TEXT2-3. The Example's reorders, deletions and drops are undoable, through a TUI-only helper
 
 *#16. The Lists page's editable list (`onMove`, `onDelete`), the Table page's
 reorderable table, the rows that travel between two lists (`onMove`, a drop),
@@ -178,7 +178,7 @@ the Mouse page's shelf and basket (three drops) and its filing tag, and the
 Focus page's command board (`onDeleteCommand`, `onExitCommand`)*
 
 SwiftUI registers no undo for `onMove`, `onDelete` or a drop: the app owns
-the data. Neither does TUIkit, and neither did the Example, so none of these
+the data. Neither does TUI, and neither did the Example, so none of these
 could be taken back. Each now registers its inverse with
 `@Environment(\.undoManager)`, named "Move", "Delete", "Copy", "Discard" or
 "Reset" (seven languages), which Edit ▸ Undo and Redo show. Checked live
@@ -187,7 +187,7 @@ the rows back one move at a time, the status bar offering "undo" and then
 "redo".
 
 The helper, `UndoManager.registerRestoring(_:to:actionName:)` in
-`TUIkitFoundation/Undo/`, is TUIkit's own name, documented as such:
+`TUIFoundation/Undo/`, is TUI's own name, documented as such:
 Foundation's `registerUndo(withTarget:handler:)` wants a class to call back,
 which a `@State` array is not, so the step holds the binding and the old value
 in a main-actor class, and its undo registers the redo, keeping the name. Two

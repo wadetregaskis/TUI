@@ -1,0 +1,602 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  TmuxCompatibilityTests.swift
+//
+//  Pins tmux 3.7b's DSR-measured cursor advance against TUI's width claims,
+//  and the detection that selects it.
+//
+//  tmux is a COMPOSITOR: it parses our output into its own grid with its own
+//  width table and re-renders to whichever client is attached. The measurement
+//  behind these numbers was taken five ways — with Apple Terminal, iTerm2,
+//  Ghostty and Warp attached, and with no client at all — and all five agree on
+//  all 58 probed clusters, so this model is client-independent by measurement.
+//  See Documentation/Terminals/Terminal compatibility survey.md.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import Testing
+
+@testable import TUIApp
+@testable import TUICore
+@testable import TUIFoundation
+@testable import TUITerminalHost
+@testable import TUITestSupport
+
+@Suite("tmux compatibility")
+struct TmuxCompatibilityTests {
+
+    // MARK: - Detection
+
+    @Test(
+        "tmux is detected from $TMUX or TERM_PROGRAM, never from TERM",
+        arguments: [
+            // $TMUX alone is enough — holds even on a tmux too old to set
+            // TERM_PROGRAM, and nothing else sets it.
+            (["TMUX": "/private/tmp/tmux-501/default,123,0"], true),
+            (["TERM_PROGRAM": "tmux"], true),
+            (["TMUX": "/tmp/x,1,0", "TERM_PROGRAM": "tmux"], true),
+            // A pane whose $TMUX was scrubbed still reports TERM_PROGRAM.
+            (["TMUX": "", "TERM_PROGRAM": "tmux"], true),
+            // Not tmux:
+            ([:], false),
+            (["TERM_PROGRAM": "iTerm.app"], false),
+            (["TERM_PROGRAM": "Apple_Terminal"], false),
+            (["TMUX": ""], false),
+            // TERM must NOT be a signal: `screen-256color` is also GNU screen,
+            // a different compositor with a different table.
+            (["TERM": "tmux-256color"], false),
+            (["TERM": "screen-256color"], false),
+        ] as [([String: String], Bool)])
+    func detection(environment: [String: String], expected: Bool) {
+        #expect(TerminalHost.detectTmux(environment: environment) == expected)
+    }
+
+    @Test("tmux overwrites TERM_PROGRAM, so no native host is detected inside it")
+    func tmuxMasksTheOuterTerminal() {
+        // Measured: a pane inside tmux reports TERM_PROGRAM=tmux even when the
+        // client is iTerm2 — tmux does not forward the outer terminal's value.
+        let env = ["TERM_PROGRAM": "tmux", "TERM_PROGRAM_VERSION": "3.7b",
+                   "TERM": "tmux-256color", "TMUX": "/tmp/s,1,0"]
+        #expect(TerminalHost.detectTmux(environment: env))
+        #expect(!TerminalHost.detectITerm2(environment: env))
+        #expect(!TerminalHost.detectAppleTerminal(environment: env))
+        #expect(!TerminalHost.detectGhostty(environment: env))
+        #expect(!TerminalHost.detectWarp(environment: env))
+    }
+
+    // MARK: - The measured advance table
+
+    @Test(
+        "tmux under-advances these against TUI's 2-cell claim",
+        arguments: [
+            ("\u{100038}", "SF Symbol (Plane-16 PUA)"),
+            ("\u{101867}", "Plane-16 PUA, lower"),
+            ("\u{102446}", "Plane-16 PUA"),
+            ("\u{1F5A5}", "bare 🖥 (Emoji=Yes, Presentation=No)"),
+            ("\u{1F6E1}", "bare 🛡"),
+            ("\u{1F579}", "bare 🕹"),
+            ("\u{1F577}", "bare 🕷"),
+            ("\u{1F39E}", "bare 🎞"),
+            ("\u{1F3D9}", "bare 🏙"),
+            ("\u{1F1E6}", "lone regional indicator"),
+        ] as [(String, String)])
+    func underAdvancers(text: String, what: String) {
+        let character = Character(text)
+        #expect(character.terminalWidth == 2, "\(what): TUI claims 2 cells")
+        #expect(character.tmuxCursorAdvance == 1, "\(what): tmux advances only 1")
+    }
+
+    @Test(
+        "tmux agrees with TUI on everything else",
+        arguments: [
+            ("a", 1, "ASCII"),
+            ("中", 2, "CJK"),
+            ("👍", 2, "emoji presentation"),
+            ("\u{1F3FD}", 2, "standalone skin-tone swatch"),
+            ("\u{23F0}", 2, "⏰ BMP emoji presentation"),
+            ("\u{231A}", 2, "⌚ watch"),
+            ("👍🏽", 2, "SMP base + skin tone — tmux joins these"),
+            ("🇺🇸", 2, "flag pair"),
+            ("👩‍🚀", 2, "ZWJ family"),
+            ("e\u{301}", 1, "NFD combining"),
+            ("\u{E0B0}", 1, "powerline"),
+            ("█", 1, "block"),
+            ("─", 1, "box drawing"),
+            ("\u{2592}", 1, "shade"),
+            // Non-emoji scalars in the pictographic planes are ONE cell, and
+            // TUI claimed 2 for them until 2026-08-26. They were listed as
+            // tmux under-advancers on the strength of that claim; measurement
+            // says every host paints and advances them 1, so the claim was the
+            // defect and there is nothing here for tmux to get wrong.
+            ("\u{1F000}", 1, "🀀 mahjong — Emoji=NO"),
+            ("\u{1F060}", 1, "🁠 domino — Emoji=NO"),
+            ("\u{1F0A1}", 1, "🂡 playing card — Emoji=NO"),
+            ("\u{1FB00}", 1, "🬀 legacy computing block graphic — Emoji=NO"),
+            ("\u{1F700}", 1, "🜀 alchemical — Emoji=NO"),
+            ("\u{1F200}", 2, "🈀 Enclosed Ideographic Supplement — genuinely wide"),
+        ] as [(String, Int, String)])
+    func agreements(text: String, expected: Int, what: String) {
+        let character = Character(text)
+        #expect(character.tmuxCursorAdvance == expected, "\(what)")
+        #expect(character.terminalWidth == expected, "\(what): claim matches")
+    }
+
+    // MARK: - Compensation
+
+    @Test("A CUF is injected after each under-advancer, and nowhere else")
+    func compensationInjectsCUF() {
+        // Three SF Symbols in a row: the exact shape of the example's
+        // "Supports SF Symbols" box, whose right border landed 3 cells early.
+        let symbols = "\u{100038}\u{101867}\u{102446}"
+        let compensated = symbols.withTmuxCursorCompensation()
+        let cufCount = compensated.components(separatedBy: "\u{1B}[1C").count - 1
+        #expect(cufCount == 3, "one CUF per symbol, got \(cufCount)")
+
+        // Plain text must be untouched — no cost, no corruption.
+        #expect("hello world".withTmuxCursorCompensation() == "hello world")
+        #expect("中文字".withTmuxCursorCompensation() == "中文字")
+        #expect("👍🏽 ok".withTmuxCursorCompensation() == "👍🏽 ok")
+    }
+
+    @Test("The compensated run occupies exactly the width the layout claimed")
+    func compensatedRunMatchesTheClaim() {
+        // This is the invariant the border alignment actually depends on: after
+        // compensation, tmux's cursor ends where TUI's layout expects it.
+        for text in ["\u{100038}", "\u{1F5A5}", "\u{1F060}", "\u{1F1E6}",
+                     "\u{100038}\u{101867}\u{102446}", "ab\u{1F5A5}cd"] {
+            let claimed = text.reduce(0) { $0 + $1.terminalWidth }
+            var advanced = 0
+            var pendingCUF = 0
+            var index = text.startIndex
+            while index < text.endIndex {
+                advanced += text[index].tmuxCursorAdvance
+                index = text.index(after: index)
+            }
+            // Each injected CUF adds exactly one column.
+            pendingCUF =
+                text.withTmuxCursorCompensation()
+                .components(separatedBy: "\u{1B}[1C").count - 1
+            let scalars = text.unicodeScalars.map { String($0.value, radix: 16) }
+            let message = "\(scalars): tmux advances \(advanced) + \(pendingCUF) CUF vs claim \(claimed)"
+            #expect(advanced + pendingCUF == claimed, "\(message)")
+        }
+    }
+
+    // MARK: - Skin tones: strip only what tmux actually gets wrong
+
+    @Test(
+        "A detached-base skin tone is stripped — tmux over-advances those to 4",
+        arguments: [
+            "\u{270A}\u{1F3FB}",  // ✊🏻 — BMP, detaches
+            "\u{261D}\u{1F3FD}",  // ☝🏽 — BMP, detaches
+            "\u{261D}\u{FE0F}\u{1F3FD}",  // ☝️🏽
+            // 🤙🏽 — SMP, and it DETACHES: the row the by-plane rule kept
+            // and sheared. The full modifier-base sweep (2026-08-28,
+            // committed as tmux-3.7b-tonebases.json) moved it to this list.
+            "\u{1F919}\u{1F3FD}",
+        ])
+    func detachedBaseSkinTonesAreStripped(text: String) {
+        let stripped = text.withSkinToneFallback(scope: .keepingTmuxMerged)
+        #expect(
+            !stripped.unicodeScalars.contains { (0x1F3FB...0x1F3FF).contains($0.value) },
+            "the modifier must go — tmux would give this cluster 4 cells against our 2")
+        let advance = stripped.reduce(0) { $0 + $1.tmuxCursorAdvance }
+        let claim = stripped.reduce(0) { $0 + $1.terminalWidth }
+        #expect(advance == claim, "after the strip, tmux agrees with the claim")
+    }
+
+    @Test(
+        "A merged-base skin tone SURVIVES — tmux joins those correctly",
+        arguments: [
+            "\u{1F44D}\u{1F3FD}",                               // 👍🏽
+            "\u{1F469}\u{1F3FD}\u{200D}\u{1F680}",              // 👩🏽‍🚀
+        ])
+    func mergedBaseSkinTonesSurvive(text: String) {
+        // The regression this guards: the tmux path first took the blanket
+        // strip, so 👍🏽 was flattened to 👍 even though tmux allocates it
+        // exactly the 2 cells we claim and every client renders it correctly.
+        // Stripping a cluster the terminal gets RIGHT is a silent loss of the
+        // user's content, not a compensation. (🤙🏽 used to be in this list —
+        // the by-plane rule kept every SMP base — and the full sweep showed
+        // tmux detaches it: it now belongs to the stripped test above.)
+        let stripped = text.withSkinToneFallback(scope: .keepingTmuxMerged)
+        #expect(stripped == text, "must pass through untouched")
+        #expect(
+            stripped.unicodeScalars.contains { (0x1F3FB...0x1F3FF).contains($0.value) },
+            "the skin tone must survive")
+        let advance = stripped.reduce(0) { $0 + $1.tmuxCursorAdvance }
+        #expect(advance == 2, "and tmux still advances it by the claimed 2")
+    }
+
+    @Test("The blanket strip still strips everything, for iTerm2 and Warp")
+    func blanketStripIsUnchanged() {
+        // `.all` is the default and must keep its old behaviour: iTerm2/Warp
+        // split EVERY skin-tone cluster, SMP bases included.
+        for text in ["\u{1F44D}\u{1F3FD}", "\u{270A}\u{1F3FB}", "\u{1F919}\u{1F3FD}"] {
+            let stripped = text.withSkinToneFallback()
+            #expect(
+                !stripped.unicodeScalars.contains { (0x1F3FB...0x1F3FF).contains($0.value) },
+                "the default must still strip every base plane")
+        }
+    }
+
+    /// The measured record behind ``Swift/Character/tmuxMergedToneBases`` —
+    /// the full modifier-base sweep (`advance_probe.py --modifier-bases`,
+    /// tmux 3.7b, headless, 2026-08-28) — checked against the model row for
+    /// row: every base the record measured merging must advance 2, every one
+    /// it measured detaching must advance 4, and the baked set must equal
+    /// the record's merge set exactly. The last expectation also catches a
+    /// toolchain upgrade whose Emoji_Modifier_Base enumeration outgrows the
+    /// swept 134 — the cue to re-run the sweep, not to guess.
+    @Test("The tone-base sweep record matches the model, row for row")
+    func toneBaseRecordMatchesModel() throws {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()  // TUIAppTests/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // repository root
+            .appendingPathComponent("Tools/TerminalProbes/data/tmux-3.7b-tonebases.json")
+        struct Row: Decodable { let advance: Int }
+        struct Record: Decodable { let advances: [String: Row] }
+        let record = try JSONDecoder().decode(Record.self, from: Data(contentsOf: url))
+        var measuredMerged: Set<UInt32> = []
+        var sweptBases: Set<UInt32> = []
+        for (id, row) in record.advances where id.hasPrefix("tonebase_") {
+            let point = UInt32(id.dropFirst("tonebase_".count), radix: 16)!
+            sweptBases.insert(point)
+            let cluster = Character(String(Unicode.Scalar(point)!) + "\u{1F3FD}")
+            #expect(
+                cluster.tmuxCursorAdvance == row.advance,
+                "U+\(String(point, radix: 16, uppercase: true)): model \(cluster.tmuxCursorAdvance), measured \(row.advance)")
+            if row.advance == 2 { measuredMerged.insert(point) }
+        }
+        #expect(measuredMerged == Character.tmuxMergedToneBases, "the baked set IS the record")
+        let toolchainBases = Set(
+            (0...0x10FFFF).compactMap { Unicode.Scalar($0) }
+                .filter(\.properties.isEmojiModifierBase).map(\.value))
+        #expect(
+            toolchainBases == sweptBases,
+            "the toolchain's modifier-base set outgrew the sweep — re-run it")
+    }
+
+    /// tmux's walk pushes with a bare CUF — deliberately NO `ECH`, because
+    /// whether tmux leaves the skipped cell at the default background has
+    /// never been measured, and an unmeasured terminal is assumed to paint
+    /// correctly. This pin exists because flipping the shared walk's
+    /// `erasingUnderGlyphs` default would otherwise pass every tmux test
+    /// silently; if tmux is ever measured to need the erase, this is the
+    /// test to update alongside the walk.
+    @Test("The tmux walk pushes with bare CUF — no erase, unmeasured there")
+    func tmuxWalkDoesNotErase() {
+        let out = "\u{100038}x".withTmuxCursorCompensation()
+        #expect(out == "\u{100038}\u{1B}[1Cx", "|\(out)|")
+        #expect(!out.contains("\u{1B}[2X"), "no ECH without a measurement")
+    }
+
+    @Test("A standalone swatch is content, and survives either way")
+    func standaloneSwatchSurvives() {
+        #expect("\u{1F3FD}".withSkinToneFallback(scope: .keepingTmuxMerged) == "\u{1F3FD}")
+        #expect("\u{1F3FD}".withSkinToneFallback() == "\u{1F3FD}")
+    }
+
+    // MARK: - tmux wins over a native host flag that leaked into the pane
+
+    @Test(
+        "Under tmux, a leaked native-host flag changes NOTHING in the output",
+        arguments: [
+            ["TMUX": "/tmp/tmux-1000/default", "TERM_PROGRAM": "Apple_Terminal"],
+            ["TMUX": "/tmp/tmux-1000/default", "TERM_PROGRAM": "iTerm.app"],
+            ["TMUX": "/tmp/tmux-1000/default", "TERM_PROGRAM": "ghostty"],
+            ["TMUX": "/tmp/tmux-1000/default", "TERM_PROGRAM": "WarpTerminal"],
+            ["TMUX": "/tmp/tmux-1000/default", "VTE_VERSION": "7600"],
+        ]
+    )
+    @MainActor
+    func leakedNativeFlagIsInertUnderTmux(env: [String: String]) {
+        // The invariant: under tmux, tmux owns the grid, so which native terminal
+        // the environment names must make no difference to a single emitted byte.
+        let pureTmux = FrameDiffWriter(program: .tmux)
+        let leaked = FrameDiffWriter(program: TerminalHost.detectProgram(environment: env))
+
+        // A line that fills to the right edge and ends in a cursor-advance quirk —
+        // exactly what the Terminal.app clip and repaintRightEdge special-case, so
+        // any leak of their behaviour shows up as a divergent line.
+        for raw in [
+            String(repeating: "x", count: 18) + "\u{1F919}\u{1F3FD}",  // …🤙🏽 at the edge
+            String(repeating: "x", count: 18) + "\u{2B1B}\u{FE0E}",    // …⬛︎ VS-15 chrome
+            "\u{261D}\u{1F3FD}" + String(repeating: "y", count: 16),   // ☝🏽 BMP skin tone
+        ] {
+            #expect(
+                buildLine(leaked, raw: raw) == buildLine(pureTmux, raw: raw),
+                "the native flag must be inert under tmux: \(raw.debugDescription)")
+        }
+    }
+
+    @Test("The writer's tmux skin-tone scope is per-client: .all strips 👍🏽, .keepingTmuxMerged keeps it")
+    @MainActor
+    func tmuxSkinToneScopeIsHonoured() {
+        // The plane is set per frame by RenderLoop from the push-refreshed
+        // client capabilities: .keepingTmuxMerged only when every attached client
+        // renders SMP-base tones (Ghostty alone, measured), .all otherwise —
+        // stripping at SOURCE is the one fix that survives tmux's verbatim
+        // re-emission (no CUF can reach the client).
+        let writer = FrameDiffWriter(program: .tmux)
+        let thumbs = "\u{1F44D}\u{1F3FD} ok"  // SMP base + tone
+
+        writer.tmuxSkinToneScope = .all
+        let stripped = buildLine(writer, raw: thumbs)
+        #expect(
+            !stripped.unicodeScalars.contains { (0x1F3FB...0x1F3FF).contains($0.value) },
+            "an Apple Terminal / Warp client would advance the toned cluster to 4 — strip at source")
+
+        writer.invalidate()  // as the refresher's onChange does on every policy change
+        writer.tmuxSkinToneScope = .keepingTmuxMerged
+        let kept = buildLine(writer, raw: thumbs)
+        #expect(
+            kept.unicodeScalars.contains { (0x1F3FB...0x1F3FF).contains($0.value) },
+            "a Ghostty client renders the toned cluster correctly — keep it")
+    }
+
+    /// Renders one raw line through the writer's real build path.
+    @MainActor
+    private func buildLine(_ writer: FrameDiffWriter, raw: String) -> String {
+        var buffer = FrameBuffer(emptyWithWidth: 20, height: 1)
+        buffer.lines = [raw]
+        return writer.buildOutputLines(
+            buffer: buffer, terminalWidth: 20, terminalHeight: 1,
+            bgCode: "", reset: "\u{1B}[0m"
+        ).joined()
+    }
+
+    // MARK: - Identifying the client terminal(s)
+
+    /// A client that answered XTVERSION, so it needs no process to identify it.
+    private static func talkative(_ termtype: String) -> TerminalHost.TmuxClient {
+        TerminalHost.TmuxClient(termtype: termtype, pid: nil)
+    }
+
+    @Test(
+        "Emoji chrome follows the attached client(s), and every one must be known",
+        arguments: [
+            // The single-client case — the common one, and the one that matters.
+            (["iTerm2 3.6.11"], true, "iTerm2"),
+            // Ghostty is allowlisted NATIVELY (our CUF patches its VS-15
+            // under-advance) but not through tmux: no compensation can reach
+            // the client, and tmux's re-emission of a VS-15 cell
+            // (`base BS BS base+VS15`) nets advance 1 on Ghostty where tmux
+            // believes 2 — measured, and observed as every toggle row shearing
+            // left by one with the scrollbar checkering row by row.
+            (["ghostty 1.3.1"], false, "Ghostty — correct natively, sheared through tmux"),
+            (["Warp(v0.2026.07.08.17.54.stable_02)"], true, "Warp"),
+            (["xterm"], false, "a terminal not on the allowlist"),
+            // Silent AND unidentifiable — no pid here, so the process walk that
+            // rescues a local Terminal.app has nothing to work with. This is a
+            // terminal over ssh that answers no XTVERSION: genuinely unknown.
+            ([""], false, "silent, and no process to identify it by"),
+            // Several clients, each with its own font, painting the same bytes.
+            (["iTerm2 3.6.11", "Warp(v0.2026)"], true, "two allowlisted clients"),
+            (["iTerm2 3.6.11", ""], false, "one unknown among them spoils it"),
+            (["iTerm2 3.6.11", "xterm"], false, "ditto for a known-bad one"),
+            // Degenerate.
+            (nil, false, "tmux could not be asked"),
+            ([], false, "no clients attached"),
+        ] as [([String]?, Bool, String)])
+    func emojiChromeFollowsTheClients(termtypes: [String]?, expected: Bool, what: String) {
+        let clients = termtypes?.map(Self.talkative)
+        #expect(TerminalHost.emojiChromeSupported(tmuxClients: clients) == expected, "\(what)")
+    }
+
+    @Test("A newer version of a known client keeps its support")
+    func versionsArePrefixMatched() {
+        // Prefix-matched so a version bump doesn't silently downgrade the glyphs.
+        #expect(TerminalHost.termtypeDrawsEmojiChrome("iTerm2 99.0"))
+        #expect(TerminalHost.termtypeDrawsEmojiChrome("Warp(v2030.01.01)"))
+        // And the through-tmux EXCLUSION is version-independent the same way:
+        // no Ghostty version is assumed fixed until re-measured.
+        #expect(!TerminalHost.termtypeDrawsEmojiChrome("ghostty 2.0.0-dev"))
+    }
+
+    @Test(
+        "A silent client is identified by the application that owns it",
+        arguments: [
+            // The whole point: Terminal.app answers no XTVERSION, so under tmux
+            // it used to be indistinguishable from an unknown terminal and lost
+            // the emoji chrome it draws perfectly well. Its bundle names it.
+            ("/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal", true, "Terminal.app"),
+            ("/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal", true, "Terminal.app, pre-Ventura path"),
+            // The other three answer XTVERSION so are normally caught earlier,
+            // but a version that stayed silent should still be recognised.
+            ("/Applications/iTerm.app/Contents/MacOS/iTerm2", true, "iTerm2"),
+            // Excluded through tmux despite native support — see
+            // termtypeDrawsEmojiChrome; ancestry must not re-admit it.
+            ("/Applications/Ghostty.app/Contents/MacOS/ghostty", false, "Ghostty — sheared through tmux"),
+            ("/Applications/Warp.app/Contents/MacOS/stable", true, "Warp"),
+            // Not terminals we've inspected, or not terminals at all.
+            ("/Applications/Alacritty.app/Contents/MacOS/alacritty", false, "a terminal not on the allowlist"),
+            ("/usr/bin/login", false, "a process on the way up the chain"),
+            ("/usr/sbin/sshd", false, "an ssh hop — the real terminal is elsewhere"),
+            ("/bin/zsh", false, "a shell"),
+            // The allowlist is anchored at a bundle boundary, so a name that
+            // merely ENDS in an allowlisted one must not match.
+            ("/Applications/My Terminal.app/Contents/MacOS/Terminal", false, "an impostor bundle"),
+        ] as [(String, Bool, String)])
+    func applicationsAreIdentifiedByTheirBundle(path: String, expected: Bool, what: String) {
+        #expect(TerminalHost.applicationDrawsEmojiChrome(executablePath: path) == expected, "\(what)")
+    }
+
+    /// The process walk returns a path ONLY for a recognised terminal, so a
+    /// non-nil path is an identification whichever list it is on. Mapping a
+    /// recognised-but-not-chrome application (Ghostty) to `nil` — "might
+    /// improve" — made the refresher re-fork `tmux list-clients` three more
+    /// times per attach to re-learn an answer it already had.
+    @Test("A recognised application that is not chrome-capable is a definitive no")
+    func recognisedApplicationIsAnAnswer() {
+        let ghostty = "/Applications/Ghostty.app/Contents/MacOS/ghostty"
+        let terminal = "/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal"
+        #expect(TerminalHost.classifyClient(termtype: "", owningApplication: ghostty) == false)
+        #expect(TerminalHost.classifyClient(termtype: "", owningApplication: terminal) == true)
+        #expect(TerminalHost.classifyClient(termtype: "", owningApplication: nil) == nil, "nothing named it yet")
+        #expect(TerminalHost.classifyClient(termtype: "ghostty 1.3.1", owningApplication: terminal) == false, "the termtype wins")
+    }
+
+    /// Terminal.app draws Block Elements short of the line, and answers no
+    /// XTVERSION, so it is known only by the application that owns it.
+    @Test("Only a Terminal.app client draws block elements short of the line")
+    func blockElementsThroughTmux() {
+        let ghostty = "/Applications/Ghostty.app/Contents/MacOS/ghostty"
+        let terminal = "/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal"
+        #expect(TerminalHost.clientFillsBlockElements(termtype: "", owningApplication: terminal) == false)
+        #expect(TerminalHost.clientFillsBlockElements(termtype: "", owningApplication: ghostty))
+        #expect(TerminalHost.clientFillsBlockElements(termtype: "", owningApplication: nil), "unnamed: as most do")
+        #expect(TerminalHost.clientFillsBlockElements(termtype: "iTerm2 3.6.11", owningApplication: terminal), "it answered")
+    }
+
+    /// Terminal.app and Warp draw the corner triangles short of their cells
+    /// (FB6): known by the application that owns the client, or by Warp's
+    /// own name; anything else draws them edge to edge, the default.
+    @Test("Terminal.app and Warp clients draw a double-width bar's arrows as two arrows")
+    func cornerTrianglesThroughTmux() {
+        let ghostty = "/Applications/Ghostty.app/Contents/MacOS/ghostty"
+        let terminal = "/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal"
+        let warp = "/Applications/Warp.app/Contents/MacOS/stable"
+        #expect(TerminalHost.clientFillsCornerTriangles(termtype: "", owningApplication: terminal) == false)
+        #expect(TerminalHost.clientFillsCornerTriangles(termtype: "", owningApplication: warp) == false)
+        #expect(TerminalHost.clientFillsCornerTriangles(termtype: "WarpTerminal v0.2026", owningApplication: nil) == false)
+        #expect(TerminalHost.clientFillsCornerTriangles(termtype: "", owningApplication: ghostty))
+        #expect(TerminalHost.clientFillsCornerTriangles(termtype: "iTerm2 3.6.11", owningApplication: nil))
+        #expect(TerminalHost.clientFillsCornerTriangles(termtype: "", owningApplication: nil), "unnamed: the default")
+    }
+
+    @Test(
+        "Skin tones survive through tmux only when every client is Ghostty",
+        arguments: [
+            // tmux re-emits SMP-base skin-tone clusters VERBATIM (byte-captured
+            // — no backspace trick), so each client applies its NATIVE advance
+            // while tmux believes 2 cells. Measured against exactly that,
+            // 2026-07-16: Ghostty 2 ✓; iTerm2 2 but paints a broken separate
+            // swatch (the appearance its native path strips for);
+            // Apple Terminal 4 ✗ and Warp 4 ✗ (row shears right by 2).
+            (["ghostty 1.3.1"], true, "Ghostty renders them correctly"),
+            (["iTerm2 3.6.11"], false, "iTerm2 splits the swatch — same as its native strip"),
+            (["Warp(v0.2026)"], false, "Warp over-advances to 4"),
+            ([""], false, "a silent, unidentified client strips until identified"),
+            (["ghostty 1.3.1", "iTerm2 3.6.11"], false, "one non-Ghostty client spoils it"),
+            // No clients: tmux's own grid joins the clusters correctly, and an
+            // attach re-probes (hook) before anyone sees a frame.
+            ([], true, "nothing to please — the grid itself is fine"),
+        ] as [([String], Bool, String)])
+    func skinTonesFollowTheClients(termtypes: [String], expected: Bool, what: String) {
+        let clients = termtypes.map { TerminalHost.TmuxClient(termtype: $0, pid: nil) }
+        let capabilities = TerminalHost.clientCapabilities(tmuxClients: clients)
+        #expect(capabilities.skinTonesSafe == expected, "\(what)")
+    }
+
+    @Test("The chrome and skin-tone capabilities are independent per client")
+    func capabilitiesAreIndependent() {
+        // Ghostty: NO chrome through tmux (VS-15 re-emission shears) but the
+        // only client whose skin tones survive. iTerm2: exactly the mirror.
+        let ghostty = TerminalHost.clientCapabilities(
+            tmuxClients: [TerminalHost.TmuxClient(termtype: "ghostty 1.3.1", pid: nil)])
+        #expect(!ghostty.emojiChrome && ghostty.skinTonesSafe)
+        let iterm = TerminalHost.clientCapabilities(
+            tmuxClients: [TerminalHost.TmuxClient(termtype: "iTerm2 3.6.11", pid: nil)])
+        #expect(iterm.emojiChrome && !iterm.skinTonesSafe)
+    }
+
+    @Test("Walking up from a process that can't lead to a terminal ends, and says so")
+    func theProcessWalkTerminates() {
+        // launchd roots every chain and is not a terminal.
+        #expect(TerminalHost.owningApplicationPath(ofTmuxClient: 1) == nil)
+        // A client that exited between tmux answering and us asking.
+        #expect(TerminalHost.owningApplicationPath(ofTmuxClient: 0x7FFF_FFFE) == nil)
+        // Deliberately NOT asserted: the walk from our own pid. It finds
+        // whatever terminal happens to be running the suite — Terminal.app on a
+        // developer's machine, nothing at all in CI — so any expectation here
+        // would be a coin toss. The live tmux probe covers the real chain.
+    }
+
+    @Test(
+        "list-clients output parses to one client per line, pid first",
+        arguments: [
+            // tmux emits "#{client_pid} #{W:#{P:#{pane_id}}} #{client_termfeatures}
+            // #{client_termtype}" per client, newline-terminated. The termtype
+            // takes the rest of the line because it contains spaces; the pid
+            // never does, nor the pane ids, which run together, each from its
+            // `%`, nor the features, comma-separated.
+            ("32465 %0 256,progressbar,title iTerm2 3.6.11\n", [(32465 as Int32?, ["%0"] as [String]?, "iTerm2 3.6.11", true)]),
+            // Apple Terminal: a real client, pid present, termtype empty. This
+            // is the line that used to be written off as unknown.
+            ("32465 %0 bpaste,title \n", [(32465 as Int32?, ["%0"], "", false)]),
+            (
+                "1 %0%1%2 progressbar iTerm2 3.6.11\n2 %3 clipboard,title ghostty 1.3.1\n",
+                [(1 as Int32?, ["%0", "%1", "%2"], "iTerm2 3.6.11", true), (2 as Int32?, ["%3"], "ghostty 1.3.1", false)]
+            ),
+            ("1 %0 title \n2 %12 title ghostty 1.3.1\n", [(1 as Int32?, ["%0"], "", false), (2 as Int32?, ["%12"], "ghostty 1.3.1", false)]),
+            ("", []),
+            ("32465 %0 progressbar iTerm2 3.6.11", [(32465 as Int32?, ["%0"], "iTerm2 3.6.11", true)]),  // no trailing newline
+            // A feature whose name merely contains the one asked for is not it.
+            ("32465 %0 noprogressbar,progressbars iTerm2\n", [(32465 as Int32?, ["%0"], "iTerm2", false)]),
+            // A tmux too old to know `client_pid` leaves it empty rather than
+            // wrong, and identification falls back to the termtype alone.
+            (" %0 title iTerm2 3.6.11\n", [(nil as Int32?, ["%0"], "iTerm2 3.6.11", false)]),
+            // One too old for the loops leaves the panes empty: not listed,
+            // which is not "no panes" (a session always holds one).
+            ("32465  title iTerm2 3.6.11\n", [(32465 as Int32?, nil, "iTerm2 3.6.11", false)]),
+            // One too old for `client_termfeatures` (before 3.2) leaves it
+            // empty: no feature listed, and the termtype still whole.
+            ("32465 %0  iTerm2 3.6.11\n", [(32465 as Int32?, ["%0"], "iTerm2 3.6.11", false)]),
+            ("32465 %0%x title iTerm2\n", [(32465 as Int32?, nil, "iTerm2", false)]),
+            ("32465 %0% title iTerm2\n", [(32465 as Int32?, nil, "iTerm2", false)]),
+        ] as [(String, [(Int32?, [String]?, String, Bool)])])
+    func clientListParsing(output: String, expected: [(Int32?, [String]?, String, Bool)]) {
+        let parsed = TerminalHost.parseTmuxClients(output)
+        #expect(
+            parsed
+                == expected.map {
+                    TerminalHost.TmuxClient(termtype: $0.2, pid: $0.0, sessionPanes: $0.1, drawsProgressBars: $0.3)
+                })
+    }
+
+    /// tmux passes a pane's progress bar on only to a client it lists with
+    /// the `progressbar` feature (measured, 3.7c, `progress_probe.py
+    /// --tmux-forwarding`), so the person sees the bar only where every
+    /// client watching has it: else the app draws its own
+    /// (`\.terminalFeatures.showsProgress`).
+    @Test(
+        "The progress bar shows through tmux only where every client has the progressbar feature",
+        arguments: [
+            ([true], true, "an iTerm2, which tmux gives the feature"),
+            ([true, true], true, "two that have it"),
+            ([false], false, "a Ghostty, an Apple Terminal or a Warp, which tmux does not give it"),
+            ([true, false], false, "one without it sees no bar"),
+            ([], false, "nobody attached sees anything"),
+        ] as [([Bool], Bool, String)])
+    func progressBarsFollowTheClients(features: [Bool], expected: Bool, what: String) {
+        let clients = features.map {
+            TerminalHost.TmuxClient(termtype: "iTerm2 3.6.11", pid: nil, drawsProgressBars: $0)
+        }
+        #expect(TerminalHost.clientCapabilities(tmuxClients: clients).drawsProgressBars == expected, "\(what)")
+    }
+
+    /// The attach race (``TerminalHost/clientCapabilities(tmuxClients:)``):
+    /// tmux gives iTerm2 the feature by its XTVERSION answer, which is still in
+    /// flight when the hook fires, though the process walk already names it.
+    /// Only that client is worth asking again for the bar: Apple Terminal
+    /// answers nothing, and tmux's table gives the feature to neither Ghostty
+    /// nor Warp.
+    @Test("Only a silent iTerm2 client may be about to draw the progress bar")
+    func silentITerm2MayGainProgressBars() {
+        let iTerm2 = "/Applications/iTerm.app/Contents/MacOS/iTerm2"
+        let iTermServer = "/Users/someone/Library/Application Support/iTerm2/iTermServer-3.7.6"
+        let ghostty = "/Applications/Ghostty.app/Contents/MacOS/ghostty"
+        let terminal = "/System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal"
+        let warp = "/Applications/Warp.app/Contents/MacOS/stable"
+        #expect(TerminalHost.clientMayGainProgressBars(termtype: "", owningApplication: iTerm2))
+        #expect(TerminalHost.clientMayGainProgressBars(termtype: "", owningApplication: iTermServer))
+        #expect(!TerminalHost.clientMayGainProgressBars(termtype: "iTerm2 3.6.11", owningApplication: iTerm2), "it answered")
+        #expect(!TerminalHost.clientMayGainProgressBars(termtype: "", owningApplication: ghostty))
+        #expect(!TerminalHost.clientMayGainProgressBars(termtype: "", owningApplication: terminal))
+        #expect(!TerminalHost.clientMayGainProgressBars(termtype: "", owningApplication: warp))
+        #expect(!TerminalHost.clientMayGainProgressBars(termtype: "", owningApplication: nil))
+    }
+}

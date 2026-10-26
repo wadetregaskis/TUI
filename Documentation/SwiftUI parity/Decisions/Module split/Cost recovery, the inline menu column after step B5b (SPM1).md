@@ -1,7 +1,7 @@
 # Completing the SwiftUI API: decisions from lane SPM1
 
 *Lane SPM1, 2026-10-09, landed remedy M1 of the profile diagnosis of module split step B5b (session notes,
-`SPB5b/regress/diagnosis.md`): the inline menu's column is built in TUIkitFoundation again, so that it is
+`SPB5b/regress/diagnosis.md`): the inline menu's column is built in TUIFoundation again, so that it is
 specialised and resolves no opaque type at run time. It changed no public API and no behaviour. This file holds what
 it found that the brief did not settle, in the format of
 [`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>):*
@@ -17,30 +17,30 @@ time.
 
 ## B. Shipped the safe option
 
-### B-SPM1-1. The inline menu's core and column stay in TUIkitFoundation, not in TUIkitMenus as the plan maps them
+### B-SPM1-1. The inline menu's core and column stay in TUIFoundation, not in TUIMenus as the plan maps them
 
-*Sources/TUIkitFoundation/Rendering/_InlineMenuCore.swift, MenuColumnLayout.swift — no API*
+*Sources/TUIFoundation/Rendering/_InlineMenuCore.swift, MenuColumnLayout.swift — no API*
 
-Plan revision 4 maps `_InlineMenuCore` and the menu column's layout to TUIkitMenus, and step B5b carved them there.
-From TUIkitMenus the column could not see the types it is made of: `View.bordered`'s result names the internal
+Plan revision 4 maps `_InlineMenuCore` and the menu column's layout to TUIMenus, and step B5b carved them there.
+From TUIMenus the column could not see the types it is made of: `View.bordered`'s result names the internal
 `_BorderRings` and `foregroundStyle(_:)`'s the internal `_StyleEnvironmentView`, so the column looked both up at run
 time on every call (`swift_getOpaqueTypeConformance2`, four call sites), and it called `bordered`, a `package`
 generic, unspecialised. The diagnosis priced these frames at about 0.24 of B5b's menus-cold time against B6s's code
 (from profile shares, not times; net about -0.1 to +0.2 on the same path). What ships is its remedy M1: both files
-compile in TUIkitFoundation, as they did until B5b; `_InlineMenuCore` is `package` so that `InlineMenuStyle`
-(TUIkitMenus) can make it; and the nine declarations the carve widened for these two files alone are internal again.
+compile in TUIFoundation, as they did until B5b; `_InlineMenuCore` is `package` so that `InlineMenuStyle`
+(TUIMenus) can make it; and the nine declarations the carve widened for these two files alone are internal again.
 Five are the diagnosis's: `View.bordered`, `EnvironmentValues.isInsideMenu` and `menuRowWidth`, `_MenuSectionedItems`
 and `_MenuItemButtonStyle`. Four more the diagnosis did not name: `ScrollView`'s `withoutFocusStop()` and
 `asChrome()`, which the column sets on its scroller, and `FocusManager.SubtreeFocusJump` and
 `moveFocus(inSubtreeAt:jump:)`, which the core's paging keys call (Page Up and Down, Home and End). The index store
 finds no file of another module that names any of the nine (session notes, `plan/overwide.py`: every `package`
-declaration of TUIkitFoundation's six directories that gained `package` since fc6f6b7db and that no other module
-references). The map follows the files (Tools/ModuleMap's map.json and the TUIkitMenus entry of rules.json). One type
+declaration of TUIFoundation's six directories that gained `package` since fc6f6b7db and that no other module
+references). The map follows the files (Tools/ModuleMap's map.json and the TUIMenus entry of rules.json). One type
 widens and nine narrow; nothing becomes usable from outside the package.
 
 The other versions, as the diagnosis priced them:
 
-- **M1′: keep `_InlineMenuCore` in TUIkitMenus** and give it two non-generic `package` entries in TUIkitFoundation
+- **M1′: keep `_InlineMenuCore` in TUIMenus** and give it two non-generic `package` entries in TUIFoundation
   that build the column there (`measureInlineMenuColumn(label:content:context:capHeight:)` and a render twin). The
   same recovery, the map unchanged for `_InlineMenuCore.swift`, at the price of two new names where M1 widens one
   type. Choose it if the plan's map matters more than the smaller surface.
@@ -48,37 +48,37 @@ The other versions, as the diagnosis priced them:
   unspecialised `bordered`, and every app could then see through `.border()` and `.foregroundStyle()` too (Stress
   has 6 and 37 such symbols): the app's own code would change, so no A/B could separate the remedy from the app
   change. Declined by the brief.
-- **`@inlinable` on `bordered`** (with `@usableFromInline` on what it names). TUIkitMenus would specialise it, but
+- **`@inlinable` on `bordered`** (with `@usableFromInline` on what it names). TUIMenus would specialise it, but
   `_BorderRings` becomes effectively public, the same app change, and it does nothing for `foregroundStyle`.
   Declined by the brief.
 
-The price of what ships: about 420 lines compile in TUIkitFoundation's job again (about 0.1 s at the carve's own
+The price of what ships: about 420 lines compile in TUIFoundation's job again (about 0.1 s at the carve's own
 rate), and two files depart from the plan's map. A third part of the price comes due only when the package ships a
-product per module, which none does yet: an app that links TUIkitFoundation but not TUIkitMenus would still carry
+product per module, which none does yet: an app that links TUIFoundation but not TUIMenus would still carry
 `_InlineMenuCore` and its specialised column, which its protocol conformance records keep from being dead-stripped.
 How many bytes that is, is unmeasured.
 
-### B-SPM1-2. `_InlineMenuCore.swift` imports TUIkitView itself, which M1 did not ask for
+### B-SPM1-2. `_InlineMenuCore.swift` imports TUIView itself, which M1 did not ask for
 
-*Sources/TUIkitFoundation/Rendering/_InlineMenuCore.swift — no API*
+*Sources/TUIFoundation/Rendering/_InlineMenuCore.swift — no API*
 
-Back in TUIkitFoundation, the inline menu's paging-key replay closure carried a `swift_task_isCurrentExecutor`
-check that it had not carried in TUIkitMenus. Swift 6.2.4 marks a closure literal for that check unless the callee's
+Back in TUIFoundation, the inline menu's paging-key replay closure carried a `swift_task_isCurrentExecutor`
+check that it had not carried in TUIMenus. Swift 6.2.4 marks a closure literal for that check unless the callee's
 module is one the calling file imports and is concurrency-checked, or is the caller's own module (CSApply.cpp
-L6283-6299). The closure goes to `EffectJournal.Entry` (TUIkitView), and TUIkitFoundation reaches TUIkitView only
-through its Exports.swift's `@_exported import`, which counts for no other file. The file in TUIkitMenus imported
-TUIkitFoundation, and so TUIkitView. B6s's file imported only TUIkitCore, and had the check too. What ships is one
-`import TUIkitView` in that file, with a comment saying why: the replay, which runs whenever a memo serves an inline
+L6283-6299). The closure goes to `EffectJournal.Entry` (TUIView), and TUIFoundation reaches TUIView only
+through its Exports.swift's `@_exported import`, which counts for no other file. The file in TUIMenus imported
+TUIFoundation, and so TUIView. B6s's file imported only TUICore, and had the check too. What ships is one
+`import TUIView` in that file, with a comment saying why: the replay, which runs whenever a memo serves an inline
 menu, checks the executor no more, as at 4771bb09c.
 
-The fuller version is an audit. The same rule applies to every file the TUIkitFoundation target compiles that passes
-a closure literal to TUIkitView's (or TUIkitStyling's, or TUIkitCore's) API without importing that module. At lane SPM1,
-before step B7, the target compiled 571 files from six directories (Sources/TUIkitFoundation and the five planned
-modules not yet carved: TUIkitNumericControls, TUIkitTextInput, TUIkitPickers, TUIkitForms, TUIkitSearch;
-Package.swift's `directories:`), and 124 of them import TUIkitView (117 of Sources/TUIkitFoundation's 476). How many of
-TUIkitFoundation's 607 check sites, a count over the whole module, that accounts for is unmeasured, and so is how many
+The fuller version is an audit. The same rule applies to every file the TUIFoundation target compiles that passes
+a closure literal to TUIView's (or TUIStyling's, or TUICore's) API without importing that module. At lane SPM1,
+before step B7, the target compiled 571 files from six directories (Sources/TUIFoundation and the five planned
+modules not yet carved: TUINumericControls, TUITextInput, TUIPickers, TUIForms, TUISearch;
+Package.swift's `directories:`), and 124 of them import TUIView (117 of Sources/TUIFoundation's 476). How many of
+TUIFoundation's 607 check sites, a count over the whole module, that accounts for is unmeasured, and so is how many
 of them run per frame. Its price: an import per file where the index shows such a closure, and Tools/ModuleMap's
-`imports` check, which skips TUIkitFoundation's own files today, extended to them for the lower modules. It is not a
+`imports` check, which skips TUIFoundation's own files today, extended to them for the lower modules. It is not a
 split regression (no carve changed those files' imports), so it belongs to a lane of its own, measured first.
 
 ### B-SPM1-3. Two static totals stay above the base's: every extra site is B6s's, and none adds a check at run time
@@ -108,7 +108,7 @@ kind of cost M1 removes.
 
 ### C-SPM1-1. Two other opaque results the carved modules resolve at run time
 
-*TUIkitChrome's `_ToolbarModifier.presentationEntries(depth:context:)`, TUIkitMenus' `_MenuPopupCore` — no API*
+*TUIChrome's `_ToolbarModifier.presentationEntries(depth:context:)`, TUIMenus' `_MenuPopupCore` — no API*
 
 The predictor fix this lane made (session notes, `plan/crossing_hazards.py`, called by the newest carve predictor
 `SPB5c/predict.py` and crossing report `SPB5c/xings_b5c.py`) flags, over B5b's and B5c's four modules after M1, two
@@ -124,4 +124,4 @@ callees besides the column's:
   process.
 
 Neither is changed here: the first is the same class as M1's, but on no measured path (the remedy would be M1's
-pattern, a concrete entry in TUIkitFoundation), and the second costs nothing per call.
+pattern, a concrete entry in TUIFoundation), and the second costs nothing per call.

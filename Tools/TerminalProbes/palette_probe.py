@@ -4,7 +4,7 @@ paint when we ask for one?
 
 Every ANSI colour we emit is a NAME, not a colour. `SGR 31` says "red", and
 what the user sees is whatever their colour scheme assigns to slot 1 — which
-they are free to make green. TUIkit carries xterm's conventional RGB table
+they are free to make green. TUI carries xterm's conventional RGB table
 (`ANSIColor.rgbValues`) and derives real decisions from it: the WCAG contrast
 floor, and the nearest-entry search that quantises a truecolor value down for a
 256-colour terminal. Both are only as true as that table.
@@ -45,7 +45,7 @@ import json, os, re, select, sys, termios, tty
 # touched everything" (xterm allows it; few schemes do).
 INDICES = list(range(16)) + [52, 124, 196, 46, 21, 231] + [232, 240, 255]
 
-# What xterm assigns, for the 16 that TUIkit's own table covers. Sourced from
+# What xterm assigns, for the 16 that TUI's own table covers. Sourced from
 # `ANSIColor.rgbValues`, so a mismatch here IS the mismatch that matters.
 XTERM = {
     0: (0, 0, 0), 1: (205, 0, 0), 2: (0, 205, 0), 3: (205, 205, 0),

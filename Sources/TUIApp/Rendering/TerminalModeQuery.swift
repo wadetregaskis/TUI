@@ -1,0 +1,214 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  TerminalModeQuery.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import TUIFoundation
+
+/// Asking a terminal whether a DEC private mode is set, and reading the answer.
+///
+/// Only one mode needs this today — 2027, grapheme clustering — and it needs it
+/// for a specific reason: **TUI's Ghostty advance model is only valid while
+/// mode 2027 is set.** Measured 2026-08-26 on Ghostty 1.3.1, resetting it moves
+/// six of eleven probed classes:
+///
+/// | cluster | 2027 set | 2027 reset |
+/// |---|---|---|
+/// | 🖥️ VS-16 pictograph | 2 | **1** |
+/// | ⬛︎ VS-15 chrome | 1 | **2** |
+/// | 🇺🇸 flag pair | 2 | **4** |
+/// | 👍🏽 skin tone | 2 | **4** |
+/// | 👩‍🚀 ZWJ | 2 | **4** |
+/// | 1️⃣ keycap | 2 | **1** |
+///
+/// In that state TUI's compensation is wrong in *both* directions: it emits
+/// no CUF for a VS-16 cluster that now under-advances, and emits one for a
+/// VS-15 glyph that no longer does. And the mode **persists across processes** —
+/// measured by resetting it in one program and reading it back in another — so
+/// any program that resets it and exits without restoring leaves every later
+/// Ghostty session in a state this framework mis-describes.
+///
+/// ## Why this is not sent to everything
+///
+/// DECRQM is `CSI ? Ps $ p`: a private-parameter marker *and* an intermediate
+/// byte, which is precisely the shape Apple Terminal's parser fails to consume —
+/// it prints the final `p` on the user's screen. See
+/// `Documentation/Terminals/Terminal compatibility survey.md`. So this is asked only of a host
+/// already identified as one that answers it, never blind.
+enum TerminalModeQuery {
+
+    /// DEC mode 2027, "grapheme clustering": the terminal groups a UAX-#29
+    /// cluster into one cell group and gives emoji presentation two columns.
+    static let graphemeClustering = 2027
+
+    /// Private mode 5522, kitty's clipboard protocol: answered set or reset
+    /// by a terminal that takes OSC 5522 writes (``TerminalClient/mimeClipboard``).
+    static let mimeClipboard = 5522
+
+    /// A DECRPM reply value (`CSI ? Ps ; Pm $ y`).
+    enum State: Int, Equatable {
+        case notRecognised = 0
+        case set = 1
+        case reset = 2
+        case permanentlySet = 3
+        case permanentlyReset = 4
+
+        /// Whether the terminal implements the mode at all. `notRecognised` and
+        /// `permanentlyReset` both mean "asking for it will achieve nothing" —
+        /// the universal reading of DECRPM, and what libvaxis and Bubble Tea
+        /// both apply.
+        var isSupported: Bool {
+            switch self {
+            case .set, .reset, .permanentlySet: true
+            case .notRecognised, .permanentlyReset: false
+            }
+        }
+
+        /// Whether the mode needs turning on: supported, and currently off.
+        /// `permanentlySet` needs nothing; `permanentlyReset` cannot be helped.
+        var needsSetting: Bool { self == .reset }
+    }
+
+    /// The query for `mode`, fenced with the DSR status request so a terminal
+    /// that ignores DECRQM reports silence instead of hanging — the fence
+    /// every startup exchange uses, and for the same reason. Not the cursor
+    /// report: its reply is a modified F3's shape (see
+    /// ``TerminalIdentityQuery``), and this runs again on resume, when a key
+    /// is likelier still.
+    static func request(mode: Int) -> String {
+        "\u{1B}[?\(mode)$p" + TerminalQueryReplies.statusFence
+    }
+
+    /// The reply's `Pm`, or `nil` if `bytes` carries no DECRPM for `mode`.
+    ///
+    /// Silence is a real answer — a terminal that does not implement DECRQM
+    /// answers the fence and nothing else — so this returning `nil` means "it
+    /// did not say", which the caller must treat as "change nothing".
+    static func parse(_ bytes: [UInt8], mode: Int) -> State? {
+        let prefix = Array("\u{1B}[?\(mode);".utf8)
+        var index = 0
+        while index + prefix.count < bytes.count {
+            guard bytes[index..<(index + prefix.count)].elementsEqual(prefix) else {
+                index += 1
+                continue
+            }
+            var cursor = index + prefix.count
+            let digitsBegin = cursor
+            while cursor < bytes.count, bytes[cursor] >= 0x30, bytes[cursor] <= 0x39 {
+                cursor += 1
+            }
+            // `ASCIIDecimal` rather than accumulating here: `value * 10` over an
+            // unbounded digit run traps, and the run comes off the wire. It
+            // also subsumes the old `sawDigit` flag, an empty run being one of
+            // the shapes it declines. The reply ends `$ y`; anything else with
+            // this prefix is not one.
+            guard let value = ASCIIDecimal.value(of: bytes[digitsBegin..<cursor]),
+                cursor + 1 < bytes.count,
+                bytes[cursor] == 0x24, bytes[cursor + 1] == 0x79
+            else {
+                index += 1
+                continue
+            }
+            return State(rawValue: value)
+        }
+        return nil
+    }
+
+    /// Whether one complete escape sequence is a DECRPM reply,
+    /// `CSI ? Ps ; Pm $ y`, about any mode. No key sends one.
+    static func isReply(_ sequence: ArraySlice<UInt8>) -> Bool {
+        guard sequence.count >= 4, sequence.first == 0x1B,
+            sequence[sequence.startIndex + 1] == 0x5B,
+            sequence[sequence.endIndex - 2] == 0x24
+        else { return false }
+        return sequence.last == 0x79  // '$' 'y'
+    }
+}
+
+// MARK: - Asking, and pinning
+
+extension Terminal {
+
+    /// Asks whether a DEC private mode is set, or `nil` if the terminal did not
+    /// say — which a terminal that does not implement DECRQM will not.
+    ///
+    /// The same exchange as ``queryIdentity(timeout:)``,
+    /// ``fencedExchange(request:timeout:sawFence:)``: one write, then read
+    /// until the DSR fence comes back or the deadline passes. And the same
+    /// policy on what else arrives: a keystroke typed during the round trip,
+    /// or a focus report sent the moment `enableRawMode` turned reporting on,
+    /// goes back to the input parser through
+    /// ``handBackUnconsumed(from:isReply:isFence:)``. That matters beyond
+    /// startup: this runs again on resume from a suspend.
+    func queryMode(_ mode: Int, timeout: Double = 0.5) -> TerminalModeQuery.State? {
+        guard isatty(STDIN_FILENO) == 1, isRawMode else { return nil }
+        return askMode(mode, timeout: timeout)
+    }
+
+    /// The exchange behind ``queryMode(_:timeout:)``, without its guard.
+    ///
+    /// Apart so a test can run the exchange through ``readSource`` and
+    /// ``exchangeTransport``: the guard wants a real TTY in raw mode, which a
+    /// test process does not have.
+    func askMode(_ mode: Int, timeout: Double) -> TerminalModeQuery.State? {
+        let collected = fencedExchange(
+            request: TerminalModeQuery.request(mode: mode), timeout: timeout,
+            sawFence: TerminalQueryReplies.sawStatusFence)
+        handBackUnconsumed(
+            from: collected, isReply: TerminalModeQuery.isReply,
+            isFence: TerminalQueryReplies.isStatusFence)
+        return TerminalModeQuery.parse(collected, mode: mode)
+    }
+
+    /// Pins grapheme clustering on, for the one host whose advance model
+    /// depends on it, and remembers to put it back.
+    ///
+    /// TUI's Ghostty model was measured with mode 2027 set, which is
+    /// Ghostty's default — but the mode persists across processes, so a program
+    /// that reset it and exited leaves later sessions in a state where six of
+    /// eleven measured classes move and the compensation is wrong in both
+    /// directions. See ``TerminalModeQuery`` for the table.
+    ///
+    /// Asked only of Ghostty, and only because DECRQM's `CSI ? Ps $ p` carries
+    /// both a private marker and an intermediate byte — the shape Apple
+    /// Terminal prints to the screen instead of consuming.
+    ///
+    /// Does nothing unless the terminal says the mode is supported and off, so
+    /// silence, "not recognised" and "permanently reset" all leave it alone.
+    func pinGraphemeClusteringIfNeeded() {
+        guard TerminalHost.program == .ghostty else { return }
+        guard let state = queryMode(TerminalModeQuery.graphemeClustering),
+            state.needsSetting
+        else { return }
+        writeImmediate("\u{1B}[?\(TerminalModeQuery.graphemeClustering)h")
+        pinnedGraphemeClustering = true
+        armSignalRestore()
+    }
+
+    /// The DEC private modes asked of a host once it is identified, which is
+    /// what makes asking safe (see ``TerminalModeQuery``): grapheme
+    /// clustering pinned on Ghostty, and OSC 5522 asked of the hosts that may
+    /// speak it.
+    func askModesOfIdentifiedHost() {
+        pinGraphemeClusteringIfNeeded()
+        detectMIMEClipboard()
+        enableMIMEPasteEventsIfSupported()
+    }
+
+    /// The same modes put back on a resume, which ``inputModesOff`` and the
+    /// grapheme-clustering restore took off: nothing is asked again.
+    func resumeModesOfIdentifiedHost() {
+        pinGraphemeClusteringIfNeeded()
+        enableMIMEPasteEventsIfSupported()
+    }
+
+    /// Asks a host that may be asked (``TerminalClient/mayAskMIMEClipboard``)
+    /// whether it takes OSC 5522, and records the answer for the clipboard
+    /// writer. Under tmux nothing is asked: it passes no OSC 5522 on.
+    func detectMIMEClipboard() {
+        guard !TerminalHost.isTmux, TerminalClient.mayAskMIMEClipboard else { return }
+        TerminalClient.mimeClipboardDetected = queryMode(TerminalModeQuery.mimeClipboard)?.isSupported ?? false
+    }
+}

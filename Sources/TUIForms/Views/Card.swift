@@ -1,0 +1,450 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  Card.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import TUIFoundation
+
+/// A padded, optionally titled container with background support.
+///
+/// `Card` is the most feature-rich of the simple containers. It combines
+/// border, inner padding, optional background color, optional title, and
+/// optional footer into one view. Everything is optional — a bare `Card`
+/// with no title or footer still adds padding (default: 1 on all sides),
+/// giving content room to breathe inside the border.
+///
+/// ## How Card Differs from Box and Panel
+///
+/// | Feature | Box | Card | Panel |
+/// |---------|-----|------|-------|
+/// | Border | Yes | Yes | Yes |
+/// | Padding | No | **Yes (default: 1 all sides)** | Yes (default: horizontal 1) |
+/// | Background color | No | **Optional** | No |
+/// | Title | No | **Optional** | Required |
+/// | Footer | No | **Optional** | Optional |
+/// | Rendering | Composite (`body`) | Primitive (`Renderable`) | Primitive (`Renderable`) |
+///
+/// Use `Card` when content needs **visual padding and optional structure**.
+/// A simple bordered view is too tight (no padding), and a ``Panel`` forces you to
+/// provide a title. `Card` sits in between: comfortable defaults, with the
+/// option to add a title, footer, and background as needed.
+///
+/// ## Typical Use Cases
+///
+/// - Displaying a block of information (user profile, system status)
+/// - Self-contained content sections in a dashboard layout
+/// - Forms or detail views with an action footer (Save / Cancel)
+/// - Highlighted content with a distinct background color
+///
+/// ## Structure
+///
+/// - **Header**: Optional title (rendered in the top border for standard
+///   appearances)
+/// - **Body**: Main content, wrapped in configurable padding
+/// - **Footer**: Optional, typically ``Button`` or ``ButtonRow``
+///
+/// ## Examples
+///
+/// ```swift
+/// // Simple card — padding, border, no title
+/// Card {
+///     Text("Card content goes here")
+/// }
+///
+/// // Card with title
+/// Card(title: "Card Title") {
+///     Text("Card content")
+/// }
+///
+/// // Card with title, footer, and background
+/// Card(title: "User Info", backgroundColor: .palette.background) {
+///     Text("Name: John")
+///     Text("Email: john@example.com")
+/// } footer: {
+///     Button("Edit") { }
+/// }
+///
+/// // Styled card
+/// Card(borderStyle: .doubleLine, borderColor: .cyan) {
+///     Text("Styled Card")
+/// }
+/// ```
+public struct Card<Content: View, Footer: View>: View {
+    /// The card title (optional).
+    let title: String?
+
+    /// The content of the card.
+    let content: Content
+
+    /// The footer content (optional).
+    let footer: Footer?
+
+    /// The shared visual configuration.
+    let config: ContainerConfig
+
+    /// The background color (nil for transparent).
+    let backgroundColor: Color?
+
+    /// Creates a card with a localized title, content and footer.
+    ///
+    /// A string **literal** binds here, so it is a lookup key — see
+    /// ``LocalizedStringKey``. The title is not optional in this overload: a
+    /// card with no title has no key to look up, and would otherwise be
+    /// ambiguous between the two.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the card title.
+    ///   - borderStyle: The border style (default: appearance borderStyle).
+    ///   - borderColor: The border color (default: theme border).
+    ///   - titleColor: The title color (default: theme accent).
+    ///   - backgroundColor: The background color (default: nil).
+    ///   - padding: The inner padding (default: 1 on all sides).
+    ///   - showFooterSeparator: Whether to show separator before footer (default: true).
+    ///   - content: The content of the card.
+    ///   - footer: The footer content.
+    public init(
+        title titleKey: LocalizedStringKey,
+        borderStyle: BorderStyle? = nil,
+        borderColor: Color? = nil,
+        titleColor: Color? = nil,
+        backgroundColor: Color? = nil,
+        padding: EdgeInsets = EdgeInsets(all: 1),
+        showFooterSeparator: Bool = true,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        self.init(
+            title: titleKey.localized,
+            borderStyle: borderStyle,
+            borderColor: borderColor,
+            titleColor: titleColor,
+            backgroundColor: backgroundColor,
+            padding: padding,
+            showFooterSeparator: showFooterSeparator,
+            content: content,
+            footer: footer
+        )
+    }
+
+    /// Creates a card with all options including footer, titled as written.
+    ///
+    /// Generic over `StringProtocol`, which is both SwiftUI's own spelling and
+    /// what keeps a *literal* binding to the key overload above — see
+    /// ``LocalizedStringKey`` for why the concrete-`String` spelling does not.
+    ///
+    /// A card's title is optional, and a generic parameter can carry neither a
+    /// default nor a `nil`: `S` is inferable from neither. So the untitled card
+    /// stays behind on the concrete `String?` overload below rather than moving
+    /// here — the same split ``QuitShortcut`` makes for its defaulted label,
+    /// except that here the omitted title and the explicit `nil` are one
+    /// signature rather than two.
+    ///
+    /// - Parameters:
+    ///   - title: The title.
+    ///   - borderStyle: The border style (default: appearance borderStyle).
+    ///   - borderColor: The border color (default: theme border).
+    ///   - titleColor: The title color (default: theme accent).
+    ///   - backgroundColor: The background color (default: nil).
+    ///   - padding: The inner padding (default: 1 on all sides).
+    ///   - showFooterSeparator: Whether to show separator before footer (default: true).
+    ///   - content: The content of the card.
+    ///   - footer: The footer content.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(
+        title: S,
+        borderStyle: BorderStyle? = nil,
+        borderColor: Color? = nil,
+        titleColor: Color? = nil,
+        backgroundColor: Color? = nil,
+        padding: EdgeInsets = EdgeInsets(all: 1),
+        showFooterSeparator: Bool = true,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        // `as String?` is load-bearing. A bare `String(title)` is a `String`,
+        // and a `String` prefers THIS overload over the optional one below —
+        // which is the right ranking everywhere else and infinite recursion
+        // here. Widening to `String?` puts the forwarding call somewhere the
+        // generic cannot follow.
+        self.init(
+            title: String(title) as String?,
+            borderStyle: borderStyle,
+            borderColor: borderColor,
+            titleColor: titleColor,
+            backgroundColor: backgroundColor,
+            padding: padding,
+            showFooterSeparator: showFooterSeparator,
+            content: content,
+            footer: footer
+        )
+    }
+
+    /// Creates an untitled card with a footer, or one whose title you already
+    /// hold as a `String?`.
+    ///
+    /// Concrete rather than generic, and that is the point of it: this is the
+    /// only signature `Card { … } footer: { … }` and
+    /// `Card(title: nil) { … } footer: { … }` can bind to, because `S` cannot be
+    /// inferred from an omitted argument or from `nil`. Everything with an
+    /// actual title goes elsewhere — a literal to the ``LocalizedStringKey``
+    /// overload, since reaching this one would mean injecting `String` into
+    /// `String?` and that ranks below a direct match; a `String` you computed to
+    /// the generic overload above, which is the more specialized of the two.
+    ///
+    /// - Parameters:
+    ///   - title: The title (default: `nil`, for an untitled card).
+    ///   - borderStyle: The border style (default: appearance borderStyle).
+    ///   - borderColor: The border color (default: theme border).
+    ///   - titleColor: The title color (default: theme accent).
+    ///   - backgroundColor: The background color (default: nil).
+    ///   - padding: The inner padding (default: 1 on all sides).
+    ///   - showFooterSeparator: Whether to show separator before footer (default: true).
+    ///   - content: The content of the card.
+    ///   - footer: The footer content.
+    @_disfavoredOverload
+    public init(
+        title: String? = nil,
+        borderStyle: BorderStyle? = nil,
+        borderColor: Color? = nil,
+        titleColor: Color? = nil,
+        backgroundColor: Color? = nil,
+        padding: EdgeInsets = EdgeInsets(all: 1),
+        showFooterSeparator: Bool = true,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder footer: () -> Footer
+    ) {
+        self.title = title
+        self.content = content()
+        self.footer = footer()
+        self.config = ContainerConfig(
+            borderStyle: borderStyle,
+            borderColor: borderColor,
+            titleColor: titleColor,
+            padding: padding,
+            showFooterSeparator: showFooterSeparator
+        )
+        self.backgroundColor = backgroundColor
+    }
+
+    public var body: some View {
+        _CardCore(
+            title: title,
+            content: content,
+            footer: footer,
+            config: config,
+            backgroundColor: backgroundColor
+        )
+    }
+}
+
+// MARK: - Equatable Conformance
+
+extension Card: @preconcurrency Equatable where Content: Equatable, Footer: Equatable {
+    public static func == (lhs: Card<Content, Footer>, rhs: Card<Content, Footer>) -> Bool {
+        guard lhs.title == rhs.title, lhs.content == rhs.content, lhs.footer == rhs.footer, lhs.config == rhs.config
+        else { return false }
+        return lhs.backgroundColor == rhs.backgroundColor
+    }
+}
+
+// MARK: - Internal Core View
+
+/// Internal view that handles the actual rendering of Card.
+private struct _CardCore<Content: View, Footer: View>: View, Renderable, Layoutable {
+    let title: String?
+    let content: Content
+    let footer: Footer?
+    let config: ContainerConfig
+    let backgroundColor: Color?
+
+    var body: Never {
+        fatalError("_CardCore renders via Renderable")
+    }
+
+    /// The body as `renderToBuffer` assembles it: wrapped in its optional
+    /// background, then type-erased. Shared so measure and render size the same
+    /// content.
+    private var bodyContent: AnyView {
+        if let bgColor = backgroundColor {
+            return AnyView(content.background(bgColor))
+        }
+        return AnyView(content)
+    }
+
+    /// Measures via the shared container path (analytical) instead of the
+    /// render-to-measure fallback.
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measureContainer(
+            title: title,
+            config: config,
+            content: bodyContent,
+            footer: footer,
+            proposal: proposal,
+            context: context
+        )
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        renderContainer(
+            title: title,
+            config: config,
+            content: bodyContent,
+            footer: footer,
+            context: context
+        )
+    }
+}
+
+// MARK: - Convenience Initializer (no footer)
+
+extension Card where Footer == EmptyView {
+    /// Creates a footerless card with a localized title.
+    ///
+    /// A string **literal** binds here, so it is a lookup key — see
+    /// ``LocalizedStringKey``. Not optional, for the reason given on the
+    /// footered overload.
+    ///
+    /// - Parameters:
+    ///   - titleKey: The key for the card title.
+    ///   - borderStyle: The border style (default: appearance borderStyle).
+    ///   - borderColor: The border color (default: theme border).
+    ///   - titleColor: The title color (default: theme accent).
+    ///   - backgroundColor: The background color (default: nil).
+    ///   - padding: The inner padding (default: 1 on all sides).
+    ///   - content: The content of the card.
+    public init(
+        title titleKey: LocalizedStringKey,
+        borderStyle: BorderStyle? = nil,
+        borderColor: Color? = nil,
+        titleColor: Color? = nil,
+        backgroundColor: Color? = nil,
+        padding: EdgeInsets = EdgeInsets(all: 1),
+        @ViewBuilder content: () -> Content
+    ) {
+        self.init(
+            title: titleKey.localized,
+            borderStyle: borderStyle,
+            borderColor: borderColor,
+            titleColor: titleColor,
+            backgroundColor: backgroundColor,
+            padding: padding,
+            content: content
+        )
+    }
+
+    /// Creates a card without a footer, titled as written.
+    ///
+    /// Generic over `StringProtocol` for the same reason as the footered
+    /// overload, and split from the untitled form for the same reason too —
+    /// see ``LocalizedStringKey``.
+    ///
+    /// - Parameters:
+    ///   - title: The title.
+    ///   - borderStyle: The border style (default: appearance borderStyle).
+    ///   - borderColor: The border color (default: theme border).
+    ///   - titleColor: The title color (default: theme accent).
+    ///   - backgroundColor: The background color (default: nil).
+    ///   - padding: The inner padding (default: 1 on all sides).
+    ///   - content: The content of the card.
+    @_disfavoredOverload
+    public init<S: StringProtocol>(
+        title: S,
+        borderStyle: BorderStyle? = nil,
+        borderColor: Color? = nil,
+        titleColor: Color? = nil,
+        backgroundColor: Color? = nil,
+        padding: EdgeInsets = EdgeInsets(all: 1),
+        @ViewBuilder content: () -> Content
+    ) {
+        // `as String?` is load-bearing — see the footered overload.
+        self.init(
+            title: String(title) as String?,
+            borderStyle: borderStyle,
+            borderColor: borderColor,
+            titleColor: titleColor,
+            backgroundColor: backgroundColor,
+            padding: padding,
+            content: content
+        )
+    }
+
+    /// Creates an untitled card, or one whose title you already hold as a
+    /// `String?`.
+    ///
+    /// Concrete rather than generic, for the reason given on its footered
+    /// counterpart: `Card(title: nil) { … }` has nowhere else to bind, since
+    /// `S` cannot be inferred from `nil`.
+    ///
+    /// The omitted-title case does have somewhere else to go — the
+    /// title-less ``init(borderStyle:borderColor:backgroundColor:padding:content:)``
+    /// below, which wins `Card { … }` on being the only candidate that is not
+    /// disfavoured. This one still has to keep its default, though: that
+    /// initializer takes no `titleColor`, so `Card(titleColor:) { … }` reaches
+    /// only here.
+    ///
+    /// - Parameters:
+    ///   - title: The title (default: `nil`, for an untitled card).
+    ///   - borderStyle: The border style (default: appearance borderStyle).
+    ///   - borderColor: The border color (default: theme border).
+    ///   - titleColor: The title color (default: theme accent).
+    ///   - backgroundColor: The background color (default: nil).
+    ///   - padding: The inner padding (default: 1 on all sides).
+    ///   - content: The content of the card.
+    @_disfavoredOverload
+    public init(
+        title: String? = nil,
+        borderStyle: BorderStyle? = nil,
+        borderColor: Color? = nil,
+        titleColor: Color? = nil,
+        backgroundColor: Color? = nil,
+        padding: EdgeInsets = EdgeInsets(all: 1),
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.content = content()
+        self.footer = nil
+        self.config = ContainerConfig(
+            borderStyle: borderStyle,
+            borderColor: borderColor,
+            titleColor: titleColor,
+            padding: padding,
+            showFooterSeparator: false
+        )
+        self.backgroundColor = backgroundColor
+    }
+}
+
+// MARK: - Convenience Initializer (no title, no footer - backward compatible)
+
+extension Card where Footer == EmptyView {
+    /// Creates a simple card without title or footer.
+    ///
+    /// This is the most basic card form, just wrapping content in a border.
+    ///
+    /// - Parameters:
+    ///   - borderStyle: The border style (default: appearance borderStyle).
+    ///   - borderColor: The border color (default: theme border).
+    ///   - backgroundColor: The background color (default: nil).
+    ///   - padding: The inner padding (default: 1 on all sides).
+    ///   - content: The content of the card.
+    public init(
+        borderStyle: BorderStyle? = nil,
+        borderColor: Color? = nil,
+        backgroundColor: Color? = nil,
+        padding: EdgeInsets = EdgeInsets(all: 1),
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = nil
+        self.content = content()
+        self.footer = nil
+        self.config = ContainerConfig(
+            borderStyle: borderStyle,
+            borderColor: borderColor,
+            titleColor: nil,
+            padding: padding,
+            showFooterSeparator: false
+        )
+        self.backgroundColor = backgroundColor
+    }
+}

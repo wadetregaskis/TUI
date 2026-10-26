@@ -207,16 +207,16 @@ func deleteBackward() {
 ## Files
 
 ### Modified Files
-- `Sources/TUIkit/Core/KeyEvent.swift` - CSI modifier parsing
-- `Sources/TUIkit/Focus/TextFieldHandler.swift` - Selection state and editing
-- `Sources/TUIkit/Views/TextField.swift` - Selection rendering
-- `Sources/TUIkit/Views/SecureField.swift` - Selection rendering
+- `Sources/TUI/Core/KeyEvent.swift` - CSI modifier parsing
+- `Sources/TUI/Focus/TextFieldHandler.swift` - Selection state and editing
+- `Sources/TUI/Views/TextField.swift` - Selection rendering
+- `Sources/TUI/Views/SecureField.swift` - Selection rendering
 
 ### New/Modified Test Files
-- `Tests/TUIkitTests/KeyEventTests.swift` - Modifier parsing tests
-- `Tests/TUIkitTests/TextFieldHandlerTests.swift` - Selection tests
-- `Tests/TUIkitTests/TextFieldTests.swift` - Selection rendering tests
-- `Tests/TUIkitTests/SecureFieldTests.swift` - Selection rendering tests
+- `Tests/TUITests/KeyEventTests.swift` - Modifier parsing tests
+- `Tests/TUITests/TextFieldHandlerTests.swift` - Selection tests
+- `Tests/TUITests/TextFieldTests.swift` - Selection rendering tests
+- `Tests/TUITests/SecureFieldTests.swift` - Selection rendering tests
 
 ## Open Questions
 

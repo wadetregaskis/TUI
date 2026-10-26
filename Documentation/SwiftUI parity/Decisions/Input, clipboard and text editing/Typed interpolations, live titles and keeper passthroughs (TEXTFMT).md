@@ -32,13 +32,13 @@ takes now (`LocalizedStringKey+Interpolation.swift`, `LocalizedStringKey+Live.sw
 | a `TimeDataSource` with `format:` | `appendInterpolation(_:format:)`, live as `Text(_:format:)` over the source is | yes |
 | anything else: `Bool`, an `Optional`, an enum, an array, a value typed `Any` | the catch-all, which now warns | — |
 
-The key each one builds is unchanged, in both spellings: `%@` in TUIkit's,
+The key each one builds is unchanged, in both spellings: `%@` in TUI's,
 and in SwiftUI's the number's conversion (`%lld`, `%lf`…) or `%@`
 (`Tools/SwiftUIProbes/Localization keys/keys.out`). A number typed `Any` now
-spells `%@` in SwiftUI's key, where TUIkit used to spell its dynamic type's
-conversion; SwiftUI's catch-all writes `%@`, and so does TUIkit's.
+spells `%@` in SwiftUI's key, where TUI used to spell its dynamic type's
+conversion; SwiftUI's catch-all writes `%@`, and so does TUI's.
 
-TUIkit's own uses that reached the catch-all were seven, all in tests (a
+TUI's own uses that reached the catch-all were seven, all in tests (a
 `Bool` in three keys, a sorted `Set` in two, and the catch-all's own test,
 which now reaches it through a protocol requirement, so no warning). The
 library and the Example had none.
@@ -47,7 +47,7 @@ library and the Example had none.
 (`-stats-output-dir`, `Sema.NumConstraintScopes`, deterministic) over a clean
 debug build of every target and test, before and after: +0.13% in all
 (41,724,430 to 41,776,786 scopes); the Example, which interpolates most,
-+3.07%; TUIkitFoundation −0.48%. Wall-clock type-check times were taken
++3.07%; TUIFoundation −0.48%. Wall-clock type-check times were taken
 on a busy machine and are not quoted.
 
 One body crossed the type-check guard (`-solver-scope-threshold=2000`), which
@@ -74,9 +74,9 @@ SwiftUI rendered through `ImageRenderer` and read back by Vision, `en_US`;
 `Tools/SwiftUIProbes/Interpolated values drawn (TEXTFMT)/`):
 `Text("a \(1234567) b")` draws `a 1,234,567 b`, `\(3.5)` draws `3.500000`,
 `\(Float(3.25))` `3.250000`, and under `de_DE` `1.234.567` and `3,500000`.
-Until this ruling TUIkit drew the number's description, `1234567` and `3.5`.
+Until this ruling TUI drew the number's description, `1234567` and `3.5`.
 
-**What ships.** The key is unchanged: `%@` in TUIkit's spelling and the
+**What ships.** The key is unchanged: `%@` in TUI's spelling and the
 number's conversion (`%lld`, `%lf`, …) in SwiftUI's, so a translation keyed
 `"Count: %lld"` still matches. The number is kept with the key
 (`InterpolatedNumber`, `LocalizedStringKey.numberArguments`) and written as
@@ -135,7 +135,7 @@ this was left). It is written with `String(format:locale:)` in the app's
 locale where the key is built, kept per number in
 `LocalizationService.formatted(_:)` like a bare number, and written again where
 a `Text`'s `\.locale` differs, through the same `numberArguments` and
-`Text.relocalized(in:)`. The key is as SwiftUI's: `%@` in TUIkit's spelling and
+`Text.relocalized(in:)`. The key is as SwiftUI's: `%@` in TUI's spelling and
 the specifier as written (`"Price %.2f"`) in SwiftUI's, so a translation keyed
 with it matches.
 
@@ -167,7 +167,7 @@ lock, and the formatting only when the number or the locale is new. Counted in
 O11 (2026-10-12) deferred SwiftUI's `Formatter` forms because the parse
 direction is internal in Linux Foundation. An interpolation only formats
 (`Formatter.string(for:)`, public everywhere), and without these overloads a
-`Date`, `URL` or `UUID` interpolated with no formatter would warn in TUIkit
+`Date`, `URL` or `UUID` interpolated with no formatter would warn in TUI
 where it compiles silently in SwiftUI, which DEPR-CATCHALL's "same lookup and
 warning as SwiftUI" rules out. So the interpolations ship; `Text(_:formatter:)`
 and the `TextField` forms stay deferred under O11. A value with no formatter
@@ -183,18 +183,18 @@ through a local `Any`. Reported on the owner's desktop as
 *`appendInterpolation(_:)` for `ClosedRange<Date>`, `DateInterval` and
 `LocalizedStringResource`; `appendInterpolation(accessibilityName:)`*
 
-Each follows a `Text` initializer or a type TUIkit does not have, and is
+Each follows a `Text` initializer or a type TUI does not have, and is
 interpolated through the deprecated catch-all, with its warning, until that
 lands:
 
 - **The date range and interval.** `Text(_:)` of a `ClosedRange<Date>` or a
-  `DateInterval` does not exist in TUIkit yet. SwiftUI's format is its own,
+  `DateInterval` does not exist in TUI yet. SwiftUI's format is its own,
   not Foundation's `Date.IntervalFormatStyle` default: measured (the same
   probe), an hour reads
   `11:13 PM-12:13 AM` and three days `May 8 - May 11`, with no year even 400
   days apart, where Foundation writes `5/8/2026, 11:13 PM – 5/9/2026, 12:13 AM`.
   Matching it is the initializers' work, and the interpolations follow them.
-- **`LocalizedStringResource`.** TUIkit takes a `LocalizedStringResource`
+- **`LocalizedStringResource`.** TUI takes a `LocalizedStringResource`
   nowhere yet: no `Text` or control initializer does.
 - **`accessibilityName:`.** Declined on 2026-10-05 (A33; the parity map).
 
@@ -206,7 +206,7 @@ lands:
 into each title, read at three times through AppKit and Vision;
 `Tools/SwiftUIProbes/Live titles (TEXTFMT)/`):
 
-| Consumer | SwiftUI | TUIkit before | TUIkit now |
+| Consumer | SwiftUI | TUI before | TUI now |
 |---|---|---|---|
 | `Button`'s title key | live | read once | live |
 | `ColorPicker`'s title key | not measured (its label is a `Text`, as a button's is) | read once | live |
@@ -280,12 +280,12 @@ around a `Table` keep each selection to one cell, as macOS does*
 Not built, because where the modifier goes already chooses: on the cells'
 `Text` (`TableColumn("Name") { Text($0.name).textSelection(.enabled) }`) a
 selection keeps to the cell, as macOS's does, and around the table it crosses
-the row's columns, which is TUIkit's screen selection everywhere else (T6). A
+the row's columns, which is TUI's screen selection everywhere else (T6). A
 third spelling for the first would add API without adding a behaviour, and no
 app has asked for a table-wide scope that keeps to cells.
 
 **Price, if wanted:** about two hours. A `.cell` case on `TextSelectionScope`
-(TUIkit's existing modifier for what a selection keeps to), read by the table,
+(TUI's existing modifier for what a selection keeps to), read by the table,
 which files its columns' x-ranges with its rows so that a press under a
 table-wide scope keeps to the column under it.
 

@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 """Kitty keyboard protocol SUPPORT probe: does this terminal answer, and which
-of the flags TUIkit pushes does it take?
+of the flags TUI pushes does it take?
 
-TUIkit asks every terminal but Apple Terminal at startup (see
+TUI asks every terminal but Apple Terminal at startup (see
 `Terminal+KeyboardProtocol.swift`), and this asks the same questions the same
-way, so its answer is what TUIkit would have been told:
+way, so its answer is what TUI would have been told:
 
 1. `CSI ? u` (the current flags), fenced by `CSI c` (Primary Device
    Attributes). A DA1 answer with no `CSI ? flags u` before it means the
    terminal does not speak the protocol — the specification's own detection.
-2. If it answered: push `CSI > 31 u` (all five enhancements, TUIkit's
+2. If it answered: push `CSI > 31 u` (all five enhancements, TUI's
    request), ask again, pop with `CSI < u`, ask a third time. The second answer
    is the flags the terminal took; the third should equal the first.
 
 Pushed and popped on the PRIMARY screen unless `PROBE_ALT=1`, which does it
-on the alternate screen, as TUIkit does: the specification keeps a stack per
+on the alternate screen, as TUI does: the specification keeps a stack per
 screen, and a terminal could get one of them wrong.
 
 Run INSIDE the terminal under test. Writes JSON to $PROBE_OUT (default

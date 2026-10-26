@@ -21,7 +21,7 @@ between 0 and 1. `.downUp` arrives from 180×90 and leaves to it; `.upUp`
 arrives from 180×90 and leaves to 220×110. `properties.hasMotion` is `true`
 (`Animation curves, springs and keyframes/p1.swift`).
 
-**What TUIkit draws.** The blur is drawn as the fade: at a cell's resolution a
+**What TUI draws.** The blur is drawn as the fade: at a cell's resolution a
 blurred view reads as a faded one, and the opacity compositor already
 dissolves its colours toward what is behind it. The scale is the `.scale`
 reveal (B54) from 0.9 of the view at its centre. So `.downUp` erases to
@@ -40,8 +40,8 @@ option 2, landing if the A/B on text-heavy scenarios is within a few percent.*
 
 **Shipped on the lane, waiting on the A/B.** The modifier only sets
 `\.contentTransition`. Its setter also writes a package `Bool`,
-`contentDissolves`, which TUIkitFoundation's leaves can read without seeing
-TUIkitEffects' type. `Text.renderToBuffer` and the raster image host end in
+`contentDissolves`, which TUIFoundation's leaves can read without seeing
+TUIEffects' type. `Text.renderToBuffer` and the raster image host end in
 `ContentDissolve.drawn(_:context:)`, which reads that `Bool` (after the
 measure check) and returns the drawing unless a dissolving transition is in
 force. Where one is, the leaf keeps its last drawing, the outgoing one and
@@ -199,7 +199,7 @@ cells says exactly what it does, and `.automatic` already names the five the
 thicknesses give. It reaches materials and glass alike, and an opaque
 material frosts nothing whatever it says.
 
-**Judgement calls.** The average is of encoded sRGB bytes, as every TUIkit
+**Judgement calls.** The average is of encoded sRGB bytes, as every TUI
 blend is; past the end of a line a cell is the surface, and a wide glyph's
 later columns are the glyph's. A box reaches only what is behind the
 material where it is composited (in the Example's and Stress's one-row
@@ -224,7 +224,7 @@ holds. On macOS the host is `com.apple.universalaccess`'s `reduceMotion`,
 (the four names are in macOS 15.8's shared cache; the three new ones were
 not toggled and read here). On GNOME, `org.gnome.desktop.a11y.interface
 high-contrast` is increased contrast; GNOME has no setting for the other
-two. The root writes all four. TUIkit honours reduce transparency: every
+two. The root writes all four. TUI honours reduce transparency: every
 material, and glass, is opaque, as an inactive one is, and so unfrosted.
 
 **Judgement calls.** The three are read-only, as SwiftUI's are, with
@@ -232,7 +232,7 @@ SwiftUI's own underscored setters (`_accessibilityReduceTransparency`,
 `_accessibilityDifferentiateWithoutColor`, `_colorSchemeContrast`) to write
 them: that is how `.environment` reaches them in SwiftUI. No `Scene`
 modifier was added for them (the ruling's option (b) names variables and
-`.environment`). TUIkit's drawing does not change for increased contrast
+`.environment`). TUI's drawing does not change for increased contrast
 (the palettes keep their floors either way) or differentiate without colour
 (its own cues wait on a design, as the entry recommends): both are reported
 for the app's views. `\.accessibilityVoiceOverEnabled` stays refused.

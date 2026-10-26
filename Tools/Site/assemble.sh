@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 🖥️ TUIkit — Terminal UI Kit for Swift
+# 🖥️ TUI — A Terminal UI framework for Swift
 # assemble.sh — puts the GitHub Pages site together in one directory.
 #
 #   Tools/Site/assemble.sh [--output <dir>] [--base-path <path>]
@@ -10,11 +10,11 @@
 #                          [--repository <owner/name>]
 #
 #   --output      where the site goes (default .build/site); emptied first
-#   --base-path   the URL path the site is served under: "/TUIkit" for
-#                 https://<owner>.github.io/TUIkit/, "" (the default) for a
+#   --base-path   the URL path the site is served under: "/TUI" for
+#                 https://<owner>.github.io/TUI/, "" (the default) for a
 #                 site at the root of its host, which is what a local preview is
 #   --docs        `build` runs Tools/BuildDocs/build-docs.sh for this base path;
-#                 a path uses a TUIkit.doccarchive built with --static-hosting
+#                 a path uses a TUI.doccarchive built with --static-hosting
 #                 and --hosting-base-path <base-path>/docs (checked)
 #   --demo        `build` runs Tools/Web/build.sh; a path uses a directory it
 #                 produced (Tools/Web/site, or a copy of it)
@@ -66,7 +66,7 @@ while [ $# -gt 0 ]; do
 done
 
 # One spelling of the base path from here on: empty, or a leading slash and
-# no trailing one ("/TUIkit"). actions/configure-pages gives exactly that.
+# no trailing one ("/TUI"). actions/configure-pages gives exactly that.
 BASE_PATH="${BASE_PATH%/}"
 [ -z "$BASE_PATH" ] || [ "${BASE_PATH#/}" != "$BASE_PATH" ] || BASE_PATH="/$BASE_PATH"
 # DocC takes its base path without the leading slash.
@@ -107,19 +107,19 @@ case "$DOCS" in
         if [ "$DOCS" = build ]; then
             Tools/BuildDocs/build-docs.sh --output "$WORK/docs" --static-hosting \
                 --hosting-base-path "$DOCS_BASE"
-            ARCHIVE="$WORK/docs/TUIkit.doccarchive"
+            ARCHIVE="$WORK/docs/TUI.doccarchive"
         else
             ARCHIVE="$DOCS"
         fi
-        [ -f "$ARCHIVE/documentation/tuikit/index.html" ] || {
-            echo "error: $ARCHIVE has no documentation/tuikit/index.html — it is not" >&2
-            echo "       a TUIkit archive built with --static-hosting" >&2
+        [ -f "$ARCHIVE/documentation/tui/index.html" ] || {
+            echo "error: $ARCHIVE has no documentation/tui/index.html — it is not" >&2
+            echo "       a TUI archive built with --static-hosting" >&2
             exit 1
         }
         # DocC compiles the base path into every page, and an archive built
         # for another one renders a blank page wherever it is served, saying
-        # nothing. So check it says ours: `baseUrl = "/TUIkit/docs/"`.
-        if ! grep -q "baseUrl *= *\"/$DOCS_BASE/\"" "$ARCHIVE/documentation/tuikit/index.html"; then
+        # nothing. So check it says ours: `baseUrl = "/TUI/docs/"`.
+        if ! grep -q "baseUrl *= *\"/$DOCS_BASE/\"" "$ARCHIVE/documentation/tui/index.html"; then
             echo "error: $ARCHIVE was not built for the base path /$DOCS_BASE/" >&2
             echo "       (build it with --hosting-base-path $DOCS_BASE)" >&2
             exit 1
@@ -136,10 +136,10 @@ case "$DOCS" in
         cat > "$OUTPUT/docs/index.html" <<'HTML'
 <!doctype html>
 <meta charset="utf-8">
-<title>TUIkit documentation</title>
-<meta http-equiv="refresh" content="0; url=documentation/tuikit/">
-<link rel="canonical" href="documentation/tuikit/">
-<p><a href="documentation/tuikit/">TUIkit documentation</a></p>
+<title>TUI documentation</title>
+<meta http-equiv="refresh" content="0; url=documentation/tui/">
+<link rel="canonical" href="documentation/tui/">
+<p><a href="documentation/tui/">TUI documentation</a></p>
 HTML
         ;;
 esac

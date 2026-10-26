@@ -1,15 +1,15 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ColorsPage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Colors demo page.
 ///
 /// Shows various color options including:
-/// - Named colours: SwiftUI's fifteen and TUIkit's magenta, fixed RGB
+/// - Named colours: SwiftUI's fifteen and TUI's magenta, fixed RGB
 /// - Terminal colours: the sixteen ANSI slots, standard and bright
 /// - Semantic colors (primary, success, warning, error)
 /// - Gradients, as strips and as styles

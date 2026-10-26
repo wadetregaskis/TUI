@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Job-control smoke probe: suspend / fg resume.
 
-Drives a TUIkit app (default: the debug Example) in a PTY and verifies the
+Drives a TUI app (default: the debug Example) in a PTY and verifies the
 suspend round trip:
 
   0. Ctrl-Z (0x1A — raw mode turns ^Z off as a signal character, so it
@@ -98,7 +98,7 @@ def pump(seconds: float) -> None:
 # 1. The app starts up onto the alternate screen.
 pump(2.0)
 check(ENTER_ALT in captured, "startup enters the alternate screen")
-check("TUIkit" in captured, "the UI painted")
+check("TUI" in captured, "the UI painted")
 check(FOCUS_REPORTS_ON in captured, "startup turns focus reporting on")
 check(PALETTE_REPORTS_ON in captured, "startup turns palette-change reporting on")
 
@@ -134,7 +134,7 @@ os.kill(pid, signal.SIGCONT)
 pump(2.0)
 resumed_output = captured[marker:]
 check(ENTER_ALT in resumed_output, "resume re-enters the alternate screen")
-check("TUIkit" in resumed_output, "resume repaints the UI")
+check("TUI" in resumed_output, "resume repaints the UI")
 check(FOCUS_REPORTS_ON in resumed_output, "resume turns focus reporting back on")
 check(PALETTE_REPORTS_ON in resumed_output, "resume turns palette-change reporting back on")
 

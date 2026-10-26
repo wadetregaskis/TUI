@@ -8,7 +8,7 @@ For the per-module test-target split (owner request B-TC1-1). Two sources, union
   the index records for the library modules' own files, which says the module that declares it (an
   extension's module for a member declared in an extension elsewhere), and among the test files'
   declarations, which says the helper it is. A USR declared nowhere in the index (a synthesised
-  member, a conformance's witness) is read for the TUIkit module names it spells.
+  member, a conformance's witness) is read for the TUI module names it spells.
 - Each test file's object: the outside symbols it refers to (`nm -u`), whose mangled names spell the
   modules involved. This catches what the index records no occurrence of, a conformance used
   only implicitly, say.
@@ -25,8 +25,8 @@ import argparse, collections, glob, json, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from indexstore import IndexStore, ROLE_DECLARATION, ROLE_DEFINITION  # noqa: E402
 
-UMBRELLA_TARGETS = ["TUIkitTests", "TUIkitCollectionTests", "TUIkitControlTests", "TUIkitAppTests"]
-SUPPORT = "TUIkitTestSupport"
+UMBRELLA_TARGETS = ["TUITests", "TUICollectionTests", "TUIControlTests", "TUIAppTests"]
+SUPPORT = "TUITestSupport"
 IDENT = re.compile(r"(\d+)([A-Za-z_][A-Za-z0-9_]*)")
 
 
@@ -137,8 +137,8 @@ def main():
     ap.add_argument("--out", default="test-split-analysis.json")
     args = ap.parse_args()
     graph = package_graph()
-    library = {t for t in graph if t.startswith("TUIkit") and not t.endswith("Tests")
-               and t not in (SUPPORT, "TUIkitMacros", "TUIkitWidthCorpus")}
+    library = {t for t in graph if t.startswith("TUI") and not t.endswith("Tests")
+               and t not in (SUPPORT, "TUIMacros", "TUIWidthCorpus")}
     files = {}
     definer = {}
     for target in UMBRELLA_TARGETS + [SUPPORT]:

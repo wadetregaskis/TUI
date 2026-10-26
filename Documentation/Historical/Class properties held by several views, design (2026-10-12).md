@@ -12,7 +12,7 @@ A class `DynamicProperty` — an object a view holds in a property field — can
 held by many views, and one object has one set of stored properties. SwiftUI
 installs nothing inside a class (measured: its `@State` is a constant, its
 `@Environment` reads its default, and `update()` runs before each holder's body).
-TUIkit installs what it holds, and the owner ruled to keep that, together with an
+TUI installs what it holds, and the owner ruled to keep that, together with an
 object made anew with each view value (`let pager = Pager()`, session notes
 `DYNV2/notes.md` §4.11) and an `@Environment(Model.self)` inside one. Lane DYNVFIX
 gave the object's contents to one view at a time, its *claimant*; four review

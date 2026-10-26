@@ -3,11 +3,11 @@
 whether the pointer is what its label says; then quit, or suspend, and read
 whether the shell gets its own pointer back.
 
-TUIkit's `pointerStyle(_:)` sets the pointer's shape by name with
+TUI's `pointerStyle(_:)` sets the pointer's shape by name with
 `ESC ] 22 ; name ESC \\` on the terminals documented to take it, and in each
 one's names: CSS's `cursor` keywords on Ghostty, kitty and foot; the X11
 cursor font's on xterm; iTerm2's own nineteen X11 names on iTerm2 (see
-`Sources/TUIkitTerminalHost/Rendering/TerminalPointerShapes.swift`). The shape
+`Sources/TUITerminalHost/Rendering/TerminalPointerShapes.swift`). The shape
 is drawn by the window system, not into the terminal's cells, so no probe can
 read it back: a person has to look.
 
@@ -17,17 +17,17 @@ The card turns on any-motion mouse reporting (mode 1003, SGR 1006) and draws
 one box per `PointerStyle`. As the pointer moves onto a box it sends that
 box's name, in the naming scheme chosen; off every box, the scheme's "no
 style" (`default` on Ghostty, which ignores an empty name in older releases;
-empty elsewhere), as TUIkit does. The last line shows what was sent last.
+empty elsewhere), as TUI does. The last line shows what was sent last.
 
 Read it as:
 - **Each box**: the pointer over it is the shape its label describes. A box
   whose name is `—` has no name in this scheme: the pointer there should be
   the terminal's own, NOT the shape of the box you came from.
 - **Mode change** (`m`): flips the reporting mode 1003 -> 1002 -> 1003, as
-  TUIkit does when the views asking for motion come and go, then sends the
+  TUI does when the views asking for motion come and go, then sends the
   current box's name again. Note whether the shape was lost before the
   re-send (Ghostty's source resets it on every mode change).
-- **Quit** (`q`): TUIkit's teardown: the empty name (every host's reset),
+- **Quit** (`q`): TUI's teardown: the empty name (every host's reset),
   then the mouse modes off, then the alternate screen left. Move the pointer
   over the shell afterwards: it should be the pointer the terminal shows
   there with no program running (an I-beam on most).
@@ -41,7 +41,7 @@ Read it as:
 
 Run it in each terminal:
 
-    python3 pointer_shape_card.py            # the names TUIkit would choose
+    python3 pointer_shape_card.py            # the names TUI would choose
     python3 pointer_shape_card.py --names css|x11|iterm2
 
 and record what each one shows in
@@ -90,7 +90,7 @@ COLUMNS, BOX_WIDTH, BOX_HEIGHT, TOP = 3, 26, 3, 3
 
 
 def detect_scheme(env):
-    """The naming scheme TUIkit would choose here (PointerShapeHost.detect)."""
+    """The naming scheme TUI would choose here (PointerShapeHost.detect)."""
     program = env.get("TUIKIT_TERM_PROGRAM") or env.get("TERM_PROGRAM", "")
     if program == "iTerm.app" or env.get("LC_TERMINAL") == "iTerm2":
         return "iterm2"
@@ -146,7 +146,7 @@ class Card:
     def draw(self):
         out = [f"{ESC}[2J{ESC}[H"]
         out.append(f"Pointer shape card — names: {self.scheme}; no style: {self.unset!r}\r\n")
-        out.append("Hover each box. q quit (TUIkit's way)  1/2/3 quit other ways  m mode change  z suspend\r\n")
+        out.append("Hover each box. q quit (TUI's way)  1/2/3 quit other ways  m mode change  z suspend\r\n")
         for index, shape in enumerate(SHAPES):
             row, column = divmod(index, COLUMNS)
             top = TOP + row * (BOX_HEIGHT + 1) + 1

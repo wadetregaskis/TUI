@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Walk a TUIkit app in a real PTY, capturing the rendered screen at every
+"""Walk a TUI app in a real PTY, capturing the rendered screen at every
 step and linting each capture for rendering defects that liveness walks and
 unit tests cannot see.
 

@@ -4,17 +4,17 @@
 Swift Package Index (SPI) does not run build-docs.sh. It runs
 `swift package generate-documentation` once per target that `.spi.yml`'s
 `documentation_targets` names, and serves each archive behind a selector, the
-first as the landing page. Since module split step B1 the `TUIkit` umbrella
+first as the landing page. Since module split step B1 the `TUI` umbrella
 declares nothing: an archive of it alone holds the catalog's articles and not
 one symbol, so a list that names only the umbrella publishes an empty API
 reference, at the URL the project template links to
-(/documentation/tuikit). Each module of the API is reached only through its
+(/documentation/tui). Each module of the API is reached only through its
 own archive.
 
 So: every module in unify_symbol_graphs.py's MODULES (the modules this
 directory's unified build documents) must be listed, and the umbrella must come
 first, so that the landing page, and with it the template's link, stays where
-it was. A module carved out of TUIkitFoundation joins MODULES when it is carved,
+it was. A module carved out of TUIFoundation joins MODULES when it is carved,
 and this check then asks for it in .spi.yml as well.
 
 Reads the flow-style list (`documentation_targets: [A, B]`) only, which is

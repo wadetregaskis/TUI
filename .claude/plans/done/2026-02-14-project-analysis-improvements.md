@@ -40,11 +40,11 @@ Acceptance:
 
 | Target | Scope | Test file location |
 |--------|-------|-------------------|
-| `ASCIIConverter` | Grayscale/color mapping, dithering paths, edge cases (1×1, empty) | `Tests/TUIkitTests/Image/ASCIIConverterTests.swift` |
-| `RGBAImage` | Pixel accessors, bounds, transforms, `Codable` round-trip if applicable | `Tests/TUIkitTests/Image/RGBAImageTests.swift` |
-| `Notification/` | Post/receive, host modifier lifecycle, service singleton behavior, `RenderNotifier` interplay | `Tests/TUIkitTests/Notification/*` |
-| `Extensions/` | View extension files (per-file test or grouped by theme) | `Tests/TUIkitTests/Extensions/*` |
-| `App/` subsystem | `RenderLoop`, `InputHandler`, `AppRunner` runtime behavior | Either extend existing tests or add `Tests/TUIkitTests/App/*` |
+| `ASCIIConverter` | Grayscale/color mapping, dithering paths, edge cases (1×1, empty) | `Tests/TUITests/Image/ASCIIConverterTests.swift` |
+| `RGBAImage` | Pixel accessors, bounds, transforms, `Codable` round-trip if applicable | `Tests/TUITests/Image/RGBAImageTests.swift` |
+| `Notification/` | Post/receive, host modifier lifecycle, service singleton behavior, `RenderNotifier` interplay | `Tests/TUITests/Notification/*` |
+| `Extensions/` | View extension files (per-file test or grouped by theme) | `Tests/TUITests/Extensions/*` |
+| `App/` subsystem | `RenderLoop`, `InputHandler`, `AppRunner` runtime behavior | Either extend existing tests or add `Tests/TUITests/App/*` |
 
 ### `project-template/` Decision
 
@@ -52,7 +52,7 @@ Three realistic options:
 
 - **A) Keep inline** — lowest effort. Document as "starter kit", leave in repo root.
 - **B) Move to separate repo** — cleaner core repo, but adds maintenance surface + version-skew risk.
-- **C) Fold into examples** — consolidate with `Sources/TUIkitExample/` if applicable.
+- **C) Fold into examples** — consolidate with `Sources/TUIExample/` if applicable.
 
 Decision is made during implementation after evaluating how often contributors actually use the template.
 
@@ -115,9 +115,9 @@ The following is preserved as historical context; all items are done.
 
 ### Remaining
 
-- [x] `ASCIIConverter` tests — **done** (in `Tests/TUIkitTests/ImageTests.swift`, not the separate `Image/` path originally proposed)
-- [x] `RGBAImage` tests — **done** (in `Tests/TUIkitTests/ImageTests.swift`)
-- [x] `Notification/` subsystem tests — **done** (`Tests/TUIkitTests/NotificationModifierTests.swift`)
+- [x] `ASCIIConverter` tests — **done** (in `Tests/TUITests/ImageTests.swift`, not the separate `Image/` path originally proposed)
+- [x] `RGBAImage` tests — **done** (in `Tests/TUITests/ImageTests.swift`)
+- [x] `Notification/` subsystem tests — **done** (`Tests/TUITests/NotificationModifierTests.swift`)
 - [x] `Extensions/` view extension tests — **done** (`OnTapGestureModifierTests`, `OnScrollGestureModifierTests`, `OnMouseEventModifierTests`, `DragGestureModifierTests`, `StringPersistentBackgroundTests`, `SignalFlagsTests`)
 - [x] `App/` subsystem coverage — **done**: `RenderLoop` has `RenderLoopRegionMergeTests` + `RenderLoopPaletteIntegrationTests`; `InputHandler` now has `InputHandlerTests.swift` (layer precedence, layer-4 defaults, modal-Escape).
 - [x] `project-template/` organization decision + action (keep / move / fold) — **done**: decided **keep inline**; rationale documented in `CONTRIBUTING.md`.

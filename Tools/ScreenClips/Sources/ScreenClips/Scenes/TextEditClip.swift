@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TextEditClip.swift
 //
 //  `textedit`: a notes app's editor in use — a line typed, a word selected
@@ -8,7 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 @MainActor
 let textEditClip = Clip(
@@ -71,7 +71,7 @@ private func textEditScript() -> [Step] {
 
 struct TextEditApp: App {
     var body: some Scene {
-        WindowGroup("TUIkit · Notes") {
+        WindowGroup("TUI · Notes") {
             NotesEditor()
                 .palette(AppleTerminalPalette(.manPage))
         }

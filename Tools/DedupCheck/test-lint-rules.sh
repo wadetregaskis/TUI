@@ -5,9 +5,9 @@
 # exactly the lines marked in lint-cases/.
 #
 # A case line ending in `hit: <rule>` must be flagged by that rule, and every
-# other line by neither. The rules read only TUIkit's library sources (their
+# other line by neither. The rules read only TUI's library sources (their
 # `included` is a regex on the path), so the cases are linted from a copy
-# under `Sources/TUIkitLintCases/`, with the repository's own configuration.
+# under `Sources/TUILintCases/`, with the repository's own configuration.
 # A second copy of Positive.swift under each module no app links, the macro
 # plugin and the width corpus, must not be flagged at all. Other rules'
 # findings on the cases are ignored.
@@ -25,18 +25,18 @@ rules='key_path_identity|function_address_identity'
 command -v swiftlint >/dev/null || { echo "test-lint-rules: no swiftlint on PATH" >&2; exit 2; }
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
-cases="$tmp/Sources/TUIkitLintCases"
+cases="$tmp/Sources/TUILintCases"
 mkdir -p "$cases"
 cp "$here"/lint-cases/*.swift "$cases/"
 hosts=()
-for module in TUIkitMacrosPlugin TUIkitWidthCorpus; do
+for module in TUIMacrosPlugin TUIWidthCorpus; do
     mkdir -p "$tmp/Sources/$module"
     cp "$here/lint-cases/Positive.swift" "$tmp/Sources/$module/"
     hosts+=("$tmp/Sources/$module/Positive.swift")
 done
 
 # "Module/File.swift:line rule", one per line, sorted.
-expected=$(cd "$tmp/Sources" && grep -nE "hit: ($rules)\$" -- TUIkitLintCases/*.swift \
+expected=$(cd "$tmp/Sources" && grep -nE "hit: ($rules)\$" -- TUILintCases/*.swift \
     | sed -E "s/^([^:]+):([0-9]+):.*hit: ($rules)\$/\1:\2 \3/" | sort)
 for rule in key_path_identity function_address_identity; do
     if ! grep -q " $rule\$" <<<"$expected"; then

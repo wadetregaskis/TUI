@@ -1,6 +1,6 @@
 // Cases for the SwiftLint rules key_path_identity and function_address_identity (.swiftlint.yml): a line ending in
 // `hit: <rule>` must be flagged by that rule, and every other line by neither. Tools/DedupCheck/test-lint-rules.sh
-// lints a copy under `Sources/TUIkitLintCases/`. Never compiled.
+// lints a copy under `Sources/TUILintCases/`. Never compiled.
 struct Slot: Hashable { let keyPath: AnyKeyPath }
 func f(a: AnyKeyPath, b: AnyKeyPath, kp: PartialKeyPath<Int>, c: KeyPathComparator<Int>, d: KeyPathComparator<Int>) {
     _ = a == \Int.bitWidth  // hit: key_path_identity

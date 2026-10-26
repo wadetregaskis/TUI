@@ -36,7 +36,7 @@ with a `.keyboardShortcut(.cancelAction)` button where no button has the
 `.cancel` role, the role first where both are written (macOS gives both Escape,
 which leaves the choice to the order AppKit asks them in).
 
-The default button answers Return by TUIkit's rule for every default button: when
+The default button answers Return by TUI's rule for every default button: when
 the focused control lets Return through, and a focused button keeps its own
 Return (`KeyboardShortcut`'s documentation). A dialog opens with the focus on its
 first button, so Return chooses that one, where macOS's alert gives Return to the

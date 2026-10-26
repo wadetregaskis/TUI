@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  MixerClip.swift
 //
 //  `mixer`: the README's hero, the code beside it and this its result — a
@@ -8,7 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 @MainActor
 let mixerClip = Clip(
@@ -36,7 +36,7 @@ private func mixerScript() -> [Step] {
 
 struct MixerApp: App {
     var body: some Scene {
-        WindowGroup("TUIkit · Mixer") {
+        WindowGroup("TUI · Mixer") {
             Mixer()
                 .palette(LiveTerminalPalette())
         }
@@ -44,10 +44,10 @@ struct MixerApp: App {
 }
 
 // The code the README shows beside the clip, as it runs. It differs from the
-// README's first draft in two places. TUIkit's `tint` takes a `Color`, not
+// README's first draft in two places. TUI's `tint` takes a `Color`, not
 // SwiftUI's any `ShapeStyle`, so there is no `.tint(Gradient(…))`: the colour
 // is picked from the level instead. And the gauge is the capacity ring with
-// its value in it: TUIkit's `.accessoryCircular` lights a single cell of its
+// its value in it: TUI's `.accessoryCircular` lights a single cell of its
 // ring, which at this size reads as a box rather than a gauge.
 struct Mixer: View {
     @State var level = 0.4

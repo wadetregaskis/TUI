@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TableAPITableVariants.swift
 //
 //  The TABLE-level axes of the API matrix: how rows are laid out, what the
@@ -9,7 +9,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 // MARK: - Row layout
 
@@ -189,7 +189,7 @@ extension TableAPIMatrix {
             },
 
             // The app sorts; the table publishes the order it was asked for.
-            // That is SwiftUI's division of labour and TUIkit's, and it means a
+            // That is SwiftUI's division of labour and TUI's, and it means a
             // live sorted table re-sorts its whole collection on every snapshot
             // — O(n log n) key-path comparisons before a single row is drawn.
             variant("sorted", axis: "interaction", "a sort binding, with the app re-sorting every frame") { config in

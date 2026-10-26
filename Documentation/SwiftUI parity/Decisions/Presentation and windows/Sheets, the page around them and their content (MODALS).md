@@ -159,16 +159,16 @@ The ledger lives in the focus manager, which every environment holds; it
 would move to an object only the run loop holds, with the root reading it
 through a weak reference. About a day, in the A19 machinery.
 
-### B-MODALS-4. TUIkit's own popovers and the dialog builders are still built eagerly
+### B-MODALS-4. TUI's own popovers and the dialog builders are still built eagerly
 
-*`alert`, `confirmationDialog`, and the popovers TUIkit draws for its own
+*`alert`, `confirmationDialog`, and the popovers TUI draws for its own
 controls*
 
 The sheet's and the popover's content closures now run only while presented.
 Some builders still run on every frame while dismissed:
 
 - `alert`'s and `confirmationDialog`'s `actions` and `message` builders.
-- The values TUIkit's own popovers are made from: the compact date picker's
+- The values TUI's own popovers are made from: the compact date picker's
   calendar, a link's destination, a tab's popovers, the toolbar's
   customization panel.
 

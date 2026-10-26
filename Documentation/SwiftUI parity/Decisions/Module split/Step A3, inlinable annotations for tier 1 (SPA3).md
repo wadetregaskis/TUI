@@ -34,14 +34,14 @@ checks each of these rules against the source, and fails on an annotation that n
 **Shipped.** The plan's form:
 - Both declarations are `@inlinable`.
 - Everything their bodies reach is `@usableFromInline`: 20 declarations for the focus registration (the enum
-  itself included, two of them `package` in TUIkitView), and 2 for the mouse one (`registerInterned`, until now
+  itself included, two of them `package` in TUIView), and 2 for the mouse one (`registerInterned`, until now
   `private`, and `MouseHandlerLane`).
 - One thing the focus registration reaches stays internal: `PersistedFocusable`. `register` re-points a persisted
   handler at its declared id through an out-of-line `@usableFromInline` `repointPersistedHandler(_:to:)`, not
   inline. Usable from inline code, the protocol's settable `focusID` cost every app a dynamic exclusivity check
   per persisted control per frame (the last finding below).
 
-**Measured** in a release (-O, whole-module) build of the tree before A3, by disassembling TUIkit's objects:
+**Measured** in a release (-O, whole-module) build of the tree before A3, by disassembling TUI's objects:
 - `FocusRegistration.register` is an out-of-line function of 389 instructions, called from 35 functions.
 - `register(in:_:)` is 115 instructions, called from 30 functions. That count includes `registerInterned`, which
   was inlined into it.
@@ -124,7 +124,7 @@ calls until tier 2. That saves nothing measurable: their bodies are 4 and 3 stat
     folded into its caller and deleted, and the accessors are emitted out of line.
   - Release build of the Stress product: `__text` +20,564 bytes (+0.22%), stripped binary +53,280 bytes
     (+0.41%), exported symbols +655.
-  - Across the TUIkit objects, 485 functions outside the accessors' own family changed. 192 of them changed
+  - Across the TUI objects, 485 functions outside the accessors' own family changed. 192 of them changed
     size, the largest the mouse-registration paths in B-SPA3-1 and `Text.init<S>`'s and TextField's
     specialisations, which shrank as B-SPA3-2 intended.
   - The other 293 kept their size. What changed in them, in the samples read, was a mangled name, a `#line`
@@ -137,13 +137,13 @@ calls until tier 2. That saves nothing measurable: their bodies are 4 and 3 stat
     - 30 are `focusID` witnesses (getter and setter) of 15 persisted focus handlers: getter 11 → 18 instructions,
       setter 4 → 20. Another 16 such witnesses (`modify`, one for each of those 15 and `ScrollViewHandler`) are
       new symbols. This was a new cost, and the fix round removed it (below).
-    - 15 lost a call to a TUIkit function that made the check: 14 mouse-registration paths, through
+    - 15 lost a call to a TUI function that made the check: 14 mouse-registration paths, through
       `registerInterned` or `register<A>(in:reportingChangesTo:_:)`, and a specialisation of
       `FocusManager.register(_:inSection:)`. The check moved into the caller with the inlining, so it is not a new
       cost.
-    - 10 are render functions that lost a call to TUIkitView's `RenderContext.recordingEffectJournal` getter, which
+    - 10 are render functions that lost a call to TUIView's `RenderContext.recordingEffectJournal` getter, which
       is now usable and so inlined into them. The check most likely came with it, so these are not a new cost
-      either; unmeasured, because the getter's own code is in TUIkitView's objects, which the comparison did not
+      either; unmeasured, because the getter's own code is in TUIView's objects, which the comparison did not
       cover.
     - 1 is `specialized debugFocusLog(_:)`.
   - **The witnesses' checks came from `PersistedFocusable` being `@usableFromInline`.** A settable requirement of a

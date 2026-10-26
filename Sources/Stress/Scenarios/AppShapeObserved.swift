@@ -1,8 +1,8 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  AppShapeObserved.swift
 //
 //  Applications whose rows read an `@Observable` of their own — the shape a
-//  change to what TUIkit observes (Option C's C3) is priced on — and one
+//  change to what TUI observes (Option C's C3) is priced on — and one
 //  whose rows each hold a timeline. The first two are DRIVEN: a model the
 //  view reads is written between frames, as an app's is, through the advance
 //  closure the bench calls before each frame (`DrivenScenario`).
@@ -11,7 +11,7 @@
 //  License: MIT
 
 import Observation
-import TUIkit
+import TUI
 
 // MARK: - A per-row model
 

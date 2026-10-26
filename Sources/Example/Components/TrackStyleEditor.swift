@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TrackStyleEditor.swift
 //
 //  An interactive TrackConfiguration builder shared by the ProgressView and
@@ -14,7 +14,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 /// Builds a ``TrackConfiguration`` from three rows (the fill pattern, the
 /// leading edge's fractional ramp, and the background) plus the colours of the

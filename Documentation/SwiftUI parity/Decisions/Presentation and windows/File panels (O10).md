@@ -2,8 +2,8 @@
 
 *Lane O10, 2026-10-19, shipped the owner's ruling on refusal review
 [O10](<../../Refusals re-examined, wave 17 (2026-10-03).md#o10-file-panels-from-p16--ml>)
-(2026-10-12: option (b), open and save dialogs drawn by TUIkit, adapted natively
-and elegantly to the terminal), in a module of its own, TUIkitFilePanels. Where
+(2026-10-12: option (b), open and save dialogs drawn by TUI, adapted natively
+and elegantly to the terminal), in a module of its own, TUIFilePanels. Where
 the work met a judgement call the ruling did not settle, the safe option shipped
 and is written up here, in the three parts the other lanes use: A needs a
 decision, B shipped the safe option (with the fuller version and its price), C
@@ -20,23 +20,23 @@ the session notes' `O10/probe/`.*
 Every `fileExporter` form takes a value of an Apple-only protocol: a
 `Transferable` (CoreTransferable) or a `FileDocument` (whose `FileWrapper` is
 Objective-C Foundation's). Under A18 option 1 both are absent on Linux, and so
-is every exporter: a Linux app can open and move files through TUIkit's panels
+is every exporter: a Linux app can open and move files through TUI's panels
 but cannot ask where to save one, though the save panel itself is portable
-(it is drawn by TUIkit and writes with `Data.write`).
+(it is drawn by TUI and writes with `Data.write`).
 
 **Options.**
 1. **Leave it** (shipped). SwiftUI code compiles on Apple platforms and fails
    to compile on Linux at the exporter, which is A18's rule.
-2. **A TUIkit-only exporter of `Data`**, beside SwiftUI's:
+2. **A TUI-only exporter of `Data`**, beside SwiftUI's:
    `fileExporter(isPresented:data:contentType:defaultFilename:onCompletion:onCancellation:)`
    on every platform — the save panel and an atomic write. About two hours
    with its tests; a TUI-specific spelling with no SwiftUI counterpart
    (allowed: kept apart from SwiftUI's names, as CLAUDE.md asks).
-3. **A portable stand-in for `Transferable`**: a TUIkit protocol with a value's
+3. **A portable stand-in for `Transferable`**: a TUI protocol with a value's
    data and type, which `fileExporter(item:)` takes on Linux. About a day, and
    a second protocol beside Apple's that code shared with macOS must satisfy
    twice.
-4. **`FileDocument` on Linux over a TUIkit `FileWrapper`** (a regular file, a
+4. **`FileDocument` on Linux over a TUI `FileWrapper`** (a regular file, a
    directory of them, a symbolic link). About a day and a half, and a type of
    Foundation's re-declared, which turns ambiguous the day Foundation ships
    its own.
@@ -47,12 +47,12 @@ compile on Linux, which none of the other Apple-only API does (A18).
 
 ## B. Shipped the safe option
 
-### B-O10-1. The open panel is a sheet of TUIkit's own: a folder's items in a table
+### B-O10-1. The open panel is a sheet of TUI's own: a folder's items in a table
 
 *`View.fileImporter(isPresented:allowedContentTypes:onCompletion:)` and its two
 multiple-selection forms*
 
-SwiftUI presents the system's open panel. TUIkit draws one (`FilePanel`), as
+SwiftUI presents the system's open panel. TUI draws one (`FilePanel`), as
 `ColorPickerPanel` stands in for the system colour panel: a ``Dialog`` in a
 sheet of the `.page` size (96 columns, or the terminal's width, by the content
 area's height), titled Open, holding
@@ -100,13 +100,13 @@ macOS panel's Open does). The folder is read and sorted off the main actor
    half a day.
 2. **A list of the matches** under the go-to field when Tab cannot complete
    further, as zsh lists them: half a day.
-3. **A preview** of a text file's head (an image's needs TUIkitBitmaps, behind a
+3. **A preview** of a text file's head (an image's needs TUIBitmaps, behind a
    seam): about a day.
 
 ### B-O10-2. Folders come first, whatever the order
 
 SwiftUI's panel sorts folders and files together (Finder's list view, unless
-"Keep folders on top" is set). TUIkit's keeps folders first and sorts each group
+"Keep folders on top" is set). TUI's keeps folders first and sorts each group
 by the table's order (`FileBrowser.arrange`), as terminal file managers do
 (`ls --group-directories-first`, Midnight Commander, ranger): the folders are
 where a keyboard user goes next. **The fuller version** is a switch between the
@@ -115,19 +115,19 @@ two orders: an hour, and a question of whether an app or the user owns it.
 ### B-O10-3. A panel opens on the working directory, then where it was last used
 
 SwiftUI's panel opens on the folder the app last used (AppKit keeps it). A
-TUIkit panel opens on the process's working directory — the folder its user
+TUI panel opens on the process's working directory — the folder its user
 started a terminal app from, the likeliest place for the file — and after a
 choice on the folder that choice was made in, for as long as the view that
 presents it lives (`FilePanelPresenter`). `fileDialogDefaultDirectory(_:)`
 comes before that memory, and a `fileDialogCustomizationID(_:)`'s kept folder
 before both (B-O10-8). **The fuller version** remembers the last folder
 app-wide and across launches with no identifier, as AppKit does: an hour, but
-it is a process-wide store, which TUIkit keeps out of its views (no
-singletons), so it would be the app's storage under a key of TUIkit's choosing.
+it is a process-wide store, which TUI keeps out of its views (no
+singletons), so it would be the app's storage under a key of TUI's choosing.
 
 ### B-O10-4. Return acts on the cursor; → is not bound
 
-TUIkit's lists keep their keyboard cursor apart from the selection
+TUI's lists keep their keyboard cursor apart from the selection
 ([V2](<../../Deliberate deviations from SwiftUI.md#v2-the-keyboard-cursor-is-apart-from-the-selection>)),
 so a panel acts as its table does: Return is the table's primary action on the
 cursor's row (or the selection when the cursor is in it), and the confirmation
@@ -136,14 +136,14 @@ the panel cannot, because nothing outside a table reads which row its cursor is
 on, and going up does not put the cursor back on the folder it came from
 (Finder does), for the same reason. **The fuller version** is a `package` seam
 in `ItemListHandler` that reports the cursor's row and accepts one to start
-on: about half a day, in TUIkitLists, which other lanes are working in.
+on: about half a day, in TUILists, which other lanes are working in.
 
-### B-O10-5. Linux has a `UTType` of TUIkit's own
+### B-O10-5. Linux has a `UTType` of TUI's own
 
 *`UTType` where UniformTypeIdentifiers is absent*
 
 UniformTypeIdentifiers is Apple's alone, and `allowedContentTypes: [UTType]` is
-in every panel's signature, so on Linux TUIkitFilePanels declares a `UTType` of
+in every panel's signature, so on Linux TUIFilePanels declares a `UTType` of
 its own (`ContentTypes/UTType.swift`) with the members a panel's caller uses —
 the identifier, the preferred extension and MIME type, `conforms(to:)`,
 `supertypes`, the initializers from an identifier, an extension and a MIME
@@ -164,18 +164,18 @@ table lacks: about a day, and a file format to parse.
 ### B-O10-6. A chosen link is the item it leads to
 
 SwiftUI's panels resolve an alias to the item it refers to unless
-`fileDialogImportsUnresolvedAliases(true)` says not to. TUIkit's resolve a
+`fileDialogImportsUnresolvedAliases(true)` says not to. TUI's resolve a
 symbolic link the user chooses (`resolvingSymlinksInPath()`), and a link to a
 folder opens as the folder. A Finder alias file (a bookmark, not a link) is a
-file to TUIkit's panel.
+file to TUI's panel.
 
 ### B-O10-7. `startAccessingSecurityScopedResource()` is left to Foundation
 
 Apple's documentation for the panels asks for `startAccessingSecurityScopedResource()`
 around a chosen URL's use, which a sandboxed app needs. On macOS the call works
-on TUIkit's plain file URLs (it returns `true`, measured in an unsandboxed
+on TUI's plain file URLs (it returns `true`, measured in an unsandboxed
 process); Linux's Foundation has no such method, so code shared with Linux keeps
-it in `#if canImport(Darwin)`. TUIkit does not add one to `URL` on Linux: a
+it in `#if canImport(Darwin)`. TUI does not add one to `URL` on Linux: a
 method of its own on a Foundation type would turn ambiguous the day Foundation
 adds the real one. The docs say so.
 
@@ -187,7 +187,7 @@ adds the real one. The docs say so.
 `fileDialogImportsUnresolvedAliases(_:)`, `fileDialogCustomizationID(_:)`*
 
 SwiftUI's documentation says what each does to the system panel on macOS, and
-nothing of when a change takes effect. TUIkit's are one environment value
+nothing of when a change takes effect. TUI's are one environment value
 (`FileDialogCustomization`) written where the modifiers are — outside the
 presenting modifier, as Apple's examples write them — and read when a panel is
 presented, as `allowedContentTypes` is ("will apply the next time it is
@@ -202,15 +202,15 @@ handed down in a box the modifier keeps, so the environment value compares
 equal from frame to frame and the memos beneath it stay on.
 
 `fileDialogCustomizationID(_:)` is documented to keep "the current directory,
-view style, recent places, and expanded window size". A TUIkit panel has no
+view style, recent places, and expanded window size". A TUI panel has no
 view styles or window size, so it keeps the folder it was left in and whether
 it listed hidden files, whenever the user ends it (a choice or Cancel; not an
-app clearing the binding), under `TUIkitFilePanels.<id>.directory` and
+app clearing the binding), under `TUIFilePanels.<id>.directory` and
 `….showsHiddenFiles` in the app's storage (the store `defaultAppStorage(_:)`
 names, else `StorageDefaults.backend`). It opens there next time, in place of
 the default directory, as Apple documents; a kept folder that no longer exists
 is passed over. Since 2026-10-24 a panel has views, and the identifier keeps
-its view too, under `TUIkitFilePanels.<id>.viewMode`, as it keeps its
+its view too, under `TUIFilePanels.<id>.viewMode`, as it keeps its
 "view style" on macOS
 ([B-FP2-6](<File panels the Mac's way (FP2).md#b-fp2-6-a-column-view-beside-the-list-chosen-with-a-segmented-switcher-and-kept>)).
 **The fuller version** keeps the sort order and recent folders
@@ -221,7 +221,7 @@ too (once there is a sidebar to show them in): an hour each.
 *`View.fileMover(isPresented:file:onCompletion:)`, `fileMover(isPresented:files:onCompletion:)`
 and their `onCancellation:` forms*
 
-Apple documents what the mover is for and not how it decides. TUIkit's is the
+Apple documents what the mover is for and not how it decides. TUI's is the
 open panel titled Move, choosing a folder: its files are dimmed, Return opens a
 folder, and Move moves into the folder selected, or the folder shown when none
 is. It opens on the folder that holds the (first) file, the natural place to
@@ -246,7 +246,7 @@ question of whether a mover should ever destroy an item.
 `fileExporter(isPresented:items:contentTypes:onCompletion:onCancellation:)`,
 `View.fileExporterFilenameLabel(_:)`*
 
-SwiftUI presents the system's save panel. TUIkit's is the open panel titled
+SwiftUI presents the system's save panel. TUI's is the open panel titled
 Save with a name field above the folder, as a macOS save panel has one: Save
 As:, or the `fileExporterFilenameLabel(_:)`, offering `defaultFilename`, else
 the item's suggested file name, else Untitled. The field takes the focus, and
@@ -278,7 +278,7 @@ to replace whichever already exist or keep both, as numbered now: half a day.
 ### B-O10-11. A `Transferable` is exported through an item provider, on Apple platforms only
 
 SwiftUI exports an item through its `transferRepresentation`.
-`Transferable.exported(as:)` would do that, but it is macOS 15.2's and TUIkit
+`Transferable.exported(as:)` would do that, but it is macOS 15.2's and TUI
 runs on macOS 14, so the item is registered with an `NSItemProvider` (macOS 13)
 and loaded from it (`TransferableExport`): the provider says which types the
 item exports as and the name it suggests, and loads its data as the type the
@@ -291,7 +291,7 @@ these two forms are absent and fail to compile (decisions A18, option 1:
 platform API where the feature is intrinsically the platform's). What Linux
 should have instead is A-O10-1.
 
-### B-O10-12. `FileDocument` ships on Apple platforms, to be written; nothing in TUIkit reads one
+### B-O10-12. `FileDocument` ships on Apple platforms, to be written; nothing in TUI reads one
 
 *`FileDocument` (+ `ReadConfiguration`, `WriteConfiguration`),
 `FileDocumentReadConfiguration`, `FileDocumentWriteConfiguration`, and
@@ -299,7 +299,7 @@ should have instead is A-O10-1.
 their `contentType:` and `contentTypes:` forms*
 
 SwiftUI's `FileDocument` is how `DocumentGroup` reads and writes documents, and
-how `fileExporter(document:)` writes one. TUIkit has the exporter and not the
+how `fileExporter(document:)` writes one. TUI has the exporter and not the
 document group, so its `FileDocument` is written and never read: the panel
 calls `fileWrapper(configuration:)` — off the main actor, as SwiftUI calls it
 on a background thread — with `existingFile: nil`, since an export writes a new
@@ -318,9 +318,9 @@ the folder has.
 
 ### C-O10-1. `ReferenceFileDocument` and the exporters that take one
 
-A `ReferenceFileDocument` is an `ObservableObject`, a family TUIkit does not
+A `ReferenceFileDocument` is an `ObservableObject`, a family TUI does not
 have (compatibility guide §2.3), and its `snapshot(contentType:)` exists for
-`DocumentGroup`'s undo and autosave, which TUIkit does not have either. The
+`DocumentGroup`'s undo and autosave, which TUI does not have either. The
 `fileExporter` overloads constrained to it share their labels with the
 `FileDocument` ones, so a call with a reference document fails to compile with
 a type error. An app exports one through a `FileDocument` value made from its

@@ -35,7 +35,7 @@ unblocked.
 `Sources/CSTBImage`, adds PNG/JPEG decoders and `ImageDecodingLimits`).
 
 The owner ruled on this on 2026-07-19: a pure-Swift decoder is a future
-*separate package*, not core TUIkit. We keep `NSImage` where AppKit exists and
+*separate package*, not core TUI. We keep `NSImage` where AppKit exists and
 `stb_image` elsewhere — see [[nsimage-decoder-selection]]. Nothing here changes
 that.
 
@@ -70,11 +70,11 @@ build is now at zero warnings across 16,287 pages.
 
 ### The versioned-consumer gate — `adapt`
 
-`178cf604` builds a package that depends on TUIkit by exact version. Adopted
+`178cf604` builds a package that depends on TUI by exact version. Adopted
 2026-08-06, in a shape narrower and stronger than theirs.
 
 **Narrower**, because most of the usual pitch does not apply here: our `Example`
-and `Stress` targets already `import TUIkit` without `@testable`, so the public
+and `Stress` targets already `import TUI` without `@testable`, so the public
 surface is exercised on every build, and the C target and `swift-collections`
 resolution are already covered in-tree. What is *not* covered anywhere else is a
 manifest that SwiftPM refuses to resolve at all — `unsafeFlags`, or a
@@ -94,7 +94,7 @@ the resource name and watching the gate fail with that message, then exit 1.
 It also had to stage the **whole tree**, not just `Sources/`: SwiftPM validates
 every target path when it loads a manifest, and four of ours live outside
 `Sources/` (`Tools/EmojiBugScanner`, `Tools/EmojiBenchmark`,
-`Tools/Profiling/RenderHarness`, `Benchmarks/TUIkitBenchmarks`). The gate's very
+`Tools/Profiling/RenderHarness`, `Benchmarks/TUIBenchmarks`). The gate's very
 first run failed on that — an artefact of staging rather than a package defect,
 but the kind of thing you only learn by running it.
 
@@ -107,7 +107,7 @@ Tags only, at ~20 s warm locally. See `.github/workflows/ci.yml`.
   (`RenderTestSupport`, `SnapshotTesting`, the PTY harnesses, the adversarial
   storm suites) is broader. No gap demonstrated.
 - `6ac3d49f` (isolate observation render state) — we made the identical fix
-  independently; `Tests/TUIkitViewTests/PublishedTests.swift` already owns an
+  independently; `Tests/TUIViewTests/PublishedTests.swift` already owns an
   `AppState` instance and says why in a header comment.
 - `cec8d2f3` (warning-free DocC generation) — we have `Tools/BuildDocs/`.
 

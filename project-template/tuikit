@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# TUIkit CLI
-# Modern command-line tool for creating TUIkit projects
+# TUI CLI
+# Modern command-line tool for creating TUI projects
 
 set -e
 
@@ -44,7 +44,7 @@ check_linux_swift() {
     echo "╚════════════════════════════════════════════════════╝"
     echo -e "${NC}"
     echo ""
-    echo -e "TUIkit requires Swift 6.2 or later to create projects."
+    echo -e "TUI requires Swift 6.2 or later to create projects."
     echo ""
     echo -e "${YELLOW}Would you like to install Swift and its dependencies?${NC}"
     echo -e "This will install: Swift, clang, libcurl, and other required packages."
@@ -286,7 +286,7 @@ install_swift_generic() {
 
 # Help text
 show_help() {
-    echo -e "${GREEN}TUIkit CLI v${VERSION}${NC}"
+    echo -e "${GREEN}TUI CLI v${VERSION}${NC}"
     echo ""
     echo "Usage:"
     echo "  tuikit init [options] [project-name]"
@@ -298,7 +298,7 @@ show_help() {
     echo "  xctest              Include XCTest framework"
     echo ""
     echo "Examples:"
-    echo "  tuikit init MyApp                    # Basic TUIkit app"
+    echo "  tuikit init MyApp                    # Basic TUI app"
     echo "  tuikit init git MyApp                # With Git repository"
     echo "  tuikit init sqlite MyApp             # With SQLite"
     echo "  tuikit init testing MyApp            # With Swift Testing"
@@ -378,7 +378,7 @@ show_banner() {
     local R='\033[0m'          # Reset
 
     echo ""
-    # TUIkit in block letters with inner shadow effect
+    # TUI in block letters with inner shadow effect
     echo -e "${C1}█${D}█${C1}█████${D}█${R}  ${C2}█${D}█${R}    ${C2}█${D}█${R}  ${C3}█${D}█${C3}█${R}  ${C4}█${D}█${R}  ${C4}█${D}█${R}  ${C5}█${D}█${R}  ${C6}█${D}█${C6}███${R}"
     echo -e "   ${C1}█${D}█${R}     ${C2}█${D}█${R}    ${C2}█${D}█${R}  ${C3}█${D}█${R}   ${C4}█${D}█${R} ${C4}█${D}█${R}   ${C5}█${D}█${R}   ${C6}█${D}█${R}"
     echo -e "   ${C1}█${D}█${R}     ${C2}█${D}█${R}    ${C2}█${D}█${R}  ${C3}█${D}█${R}   ${C4}█${D}█${C4}█${D}█${R}    ${C5}█${D}█${R}   ${C6}█${D}█${R}"
@@ -419,7 +419,7 @@ if [ "$INCLUDE_SQLITE" = true ]; then
 fi
 
 # Build target dependencies
-TARGET_DEPS="                .product(name: \"TUIkit\", package: \"TUIkit\")"
+TARGET_DEPS="                .product(name: \"TUI\", package: \"TUI\")"
 if [ "$INCLUDE_SQLITE" = true ]; then
     TARGET_DEPS="${TARGET_DEPS},
                 .product(name: \"GRDB\", package: \"GRDB.swift\")"
@@ -464,7 +464,7 @@ echo -e "${GREEN}Creating source files...${NC}"
 mkdir -p Sources
 
 cat > Sources/App.swift << EOF
-import TUIkit
+import TUI
 
 @main
 struct ${PROJECT_NAME}App: App {
@@ -477,12 +477,12 @@ struct ${PROJECT_NAME}App: App {
 EOF
 
 cat > Sources/ContentView.swift << 'EOF'
-import TUIkit
+import TUI
 
 struct ContentView: View {
     var body: some View {
         VStack {
-            Text("Hello, TUIkit!")
+            Text("Hello, TUI!")
                 .foregroundStyle(.palette.accent)
                 .bold()
 
@@ -558,7 +558,7 @@ echo -e "${GREEN}Creating README.md...${NC}"
 cat > README.md << EOF
 # $PROJECT_NAME
 
-A TUIkit terminal application.
+A TUI terminal application.
 
 ## Quick Start
 
@@ -633,8 +633,8 @@ cat >> README.md << 'EOF'
 
 ## Learn More
 
-- [TUIkit Documentation](https://swiftpackageindex.com/wadetregaskis/TUIkit/main/documentation/tuikit)
-- [TUIkit GitHub](https://github.com/wadetregaskis/TUIkit)
+- [TUI Documentation](https://swiftpackageindex.com/wadetregaskis/TUIkit/main/documentation/tui)
+- [TUI GitHub](https://github.com/wadetregaskis/TUIkit)
 EOF
 
 # Create .gitignore

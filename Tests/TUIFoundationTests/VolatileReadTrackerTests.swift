@@ -1,0 +1,83 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  VolatileReadTrackerTests.swift
+//
+//  Pins the tracker's two-counter design: `reads` drives the run loop's
+//  pulse-timer demand (`usesPulse: reads > 0`), while `sideEffects` (animation
+//  requests, preference writes, onChange comparisons) only feeds
+//  `cacheUnsafeCount` for the value memos. Folding side effects into `reads`
+//  would spin the pulse clock whenever any scheduler-driven animation (a
+//  Spinner, say) is on screen — the reason they record on a separate counter.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUICore
+@testable import TUIFoundation
+@testable import TUITestSupport
+
+@MainActor
+@Suite("VolatileReadTracker counters")
+struct VolatileReadTrackerTests {
+    @Test("requestAnimation marks the subtree cache-unsafe without demanding the pulse clock")
+    func animationRequestDoesNotDemandPulse() {
+        let tracker = VolatileReadTracker()
+        var environment = EnvironmentValues()
+        environment.volatileReadTracker = tracker
+        environment.animationScheduler = AnimationScheduler()
+        let context = RenderContext(
+            availableWidth: 40, availableHeight: 10,
+            environment: environment, tuiContext: TUIContext())
+
+        context.requestAnimation(token: "test", frameTicks: 6)
+
+        #expect(tracker.reads == 0, "no pulse demand: the pulse timer keys off `reads` alone")
+        #expect(tracker.sideEffects == 1)
+        #expect(tracker.cacheUnsafeCount == 1, "the memos see the request")
+    }
+
+    @Test("The request records even with no scheduler wired in")
+    func recordsWithoutScheduler() {
+        // A one-off render (ViewRenderer snapshot) has no scheduler; the
+        // subtree is still time-varying and must classify consistently.
+        let tracker = VolatileReadTracker()
+        var environment = EnvironmentValues()
+        environment.volatileReadTracker = tracker
+        let context = RenderContext(
+            availableWidth: 40, availableHeight: 10,
+            environment: environment, tuiContext: TUIContext())
+
+        context.requestAnimation(token: "test", frameTicks: 6)
+
+        #expect(tracker.sideEffects == 1)
+    }
+
+    @Test("No side effects during a measure pass")
+    func measurePassIsSideEffectFree() {
+        let tracker = VolatileReadTracker()
+        var environment = EnvironmentValues()
+        environment.volatileReadTracker = tracker
+        environment.animationScheduler = AnimationScheduler()
+        var context = RenderContext(
+            availableWidth: 40, availableHeight: 10,
+            environment: environment, tuiContext: TUIContext())
+        context.isMeasuring = true
+
+        context.requestAnimation(token: "test", frameTicks: 6)
+
+        #expect(tracker.cacheUnsafeCount == 0)
+    }
+
+    @Test("Volatile reads and render side effects tally independently")
+    func countersAreIndependent() {
+        let tracker = VolatileReadTracker()
+        tracker.recordVolatileRead()
+        tracker.recordVolatileRead()
+        tracker.recordRenderSideEffect()
+
+        #expect(tracker.reads == 2)
+        #expect(tracker.sideEffects == 1)
+        #expect(tracker.cacheUnsafeCount == 3)
+    }
+}

@@ -4,7 +4,7 @@ Tests for dedup_check.py on Mach-O files written here, small enough to read by e
 
     python3 -m unittest discover -s Tools/DedupCheck -p 'test_*.py'
 
-Each case writes one "TUIkit" object (forming key paths, comparing them, taking a C function's address), puts it
+Each case writes one "TUI" object (forming key paths, comparing them, taking a C function's address), puts it
 where SwiftPM would (`<Module>.build/x.swift.o`), writes an "app" whose symbol table says which functions the linker
 folded onto one address, and runs the check with a stand-in demangler. What a real `-deduplicate` link folds is the
 CI job's to show (README.md); these pin what the check concludes from a given fold.
@@ -127,7 +127,7 @@ def app_binary(setters_differ=True, handler_alone=True, with_compare=True, fold_
 
 
 MANIFEST = {
-    'modules': {'pattern': 'TUIkit[A-Za-z]*', 'except': ['TUIkitTestSupport']},
+    'modules': {'pattern': 'TUI[A-Za-z]*', 'except': ['TUITestSupport']},
     'key_path_consumers': {r'M\.compare': 'reviewed'},
     'c_function_addresses': {r'M\.handler': 'reviewed'},
     'address_identity': [r'^@objc closure .* M\.handler$'],
@@ -147,7 +147,7 @@ class DedupCheckTests(unittest.TestCase):
             f.write(data)
         return path
 
-    def run_check(self, manifest=MANIFEST, binary=None, module='TUIkitView', extra=(), obj=None, dm=demangle):
+    def run_check(self, manifest=MANIFEST, binary=None, module='TUIView', extra=(), obj=None, dm=demangle):
         self.write(f'release/{module}.build/K.swift.o', obj if obj is not None else library_object())
         binary = binary if binary is not None else app_binary()
         app = self.write('app/Stress', binary)
@@ -209,14 +209,14 @@ class DedupCheckTests(unittest.TestCase):
         self.assertEqual(status, 1, out)
 
     def test_the_apps_own_consumers_and_key_paths_are_reported_not_failed(self):
-        # The same code in a module the manifest does not name is the app's. The check still needs one of TUIkit's
+        # The same code in a module the manifest does not name is the app's. The check still needs one of TUI's
         # objects with a key path to run at all.
-        self.write('release/TUIkitCore.build/K.swift.o', library_object())
+        self.write('release/TUICore.build/K.swift.o', library_object())
         status, out = self.run_check(dict(MANIFEST, key_path_consumers={},
                                           key_path_aliases=[{'members': [GA, GB], 'reason': 'r'}]),
                                      module='Stress')
-        self.assertEqual(status, 1, out)  # TUIkitCore's copy is TUIkit's
-        shutil.rmtree(os.path.join(self.dir, 'release/TUIkitCore.build'))
+        self.assertEqual(status, 1, out)  # TUICore's copy is TUI's
+        shutil.rmtree(os.path.join(self.dir, 'release/TUICore.build'))
         status, out = self.run_check(dict(MANIFEST, key_path_consumers={}), module='Stress', extra=('--report',))
         self.assertEqual(status, 0, out)
         self.assertIn('app M.compare(', out)
@@ -278,17 +278,17 @@ class DedupCheckTests(unittest.TestCase):
 
     def test_a_debug_build_beside_the_release_one_is_not_read(self):
         # The same consumer, unlisted, in a debug build's object (as Swift Build lays one out): not a finding.
-        self.write('release/Debug/TUIkitApp-t.build/Objects-normal/arm64/K.o', library_object())
+        self.write('release/Debug/TUIApp-t.build/Objects-normal/arm64/K.o', library_object())
         manifest = dict(MANIFEST, key_path_aliases=[{'members': [GA, GB], 'reason': 'r'}])
         status, out = self.run_check(manifest)
         self.assertEqual(status, 0, out)
-        self.assertNotIn('TUIkitApp', out)
+        self.assertNotIn('TUIApp', out)
 
     def test_a_merged_module_object_alone_cannot_be_checked(self):
         # Swift Build's merged `<Module>.o` lacks key-path patterns its per-file objects hold.
         shutil.rmtree(self.dir)
         os.makedirs(self.dir)
-        self.write('release/TUIkitView.o', library_object())
+        self.write('release/TUIView.o', library_object())
         app = self.write('app/Stress', app_binary())
         mpath = self.write('manifest.json', json.dumps(MANIFEST).encode())
         err = io.StringIO()
@@ -296,10 +296,10 @@ class DedupCheckTests(unittest.TestCase):
             status = dedup_check.run(['--binary', app, '--objects', os.path.join(self.dir, 'release'),
                                       '--manifest', mpath], dm=demangle, out=io.StringIO())
         self.assertEqual(status, 2)
-        self.assertIn("only Swift Build's merged objects of TUIkitView", err.getvalue())
+        self.assertIn("only Swift Build's merged objects of TUIView", err.getvalue())
 
     def test_objects_for_another_cpu_cannot_be_checked(self):
-        self.write('release/TUIkitApp.build/X.swift.o', macho(machofile.MH_OBJECT, [], [], cputype=0x01000007))
+        self.write('release/TUIApp.build/X.swift.o', macho(machofile.MH_OBJECT, [], [], cputype=0x01000007))
         status, out = self.run_check()
         self.assertEqual(status, 2)
         self.assertIn('not arm64', out)
@@ -310,22 +310,22 @@ class ParsingTests(unittest.TestCase):
         # The native build system, then Swift Build's per-file objects (a target's `-t`, an executable's `-p`), then
         # Swift Build's merged module object: the layouts measured with Swift 6.2.4 and 6.4.0.
         cases = {
-            '.build/arm64-apple-macosx/release/TUIkitCore.build/Animation.swift.o': ('TUIkitCore', False),
+            '.build/arm64-apple-macosx/release/TUICore.build/Animation.swift.o': ('TUICore', False),
             '/scratch/release/Stress.build/main.swift.o': ('Stress', False),
-            '.build/out/Intermediates.noindex/TUIkit.build/Release/TUIkitView-t.build/Objects-normal/arm64/A.o':
-                ('TUIkitView', False),
-            '.build/out/Intermediates.noindex/TUIkit.build/Release/Stress-p.build/Objects-normal/arm64/main.o':
+            '.build/out/Intermediates.noindex/TUI.build/Release/TUIView-t.build/Objects-normal/arm64/A.o':
+                ('TUIView', False),
+            '.build/out/Intermediates.noindex/TUI.build/Release/Stress-p.build/Objects-normal/arm64/main.o':
                 ('Stress', False),
-            '.build/out/Products/Release/TUIkitApp.o': ('TUIkitApp', True),
+            '.build/out/Products/Release/TUIApp.o': ('TUIApp', True),
         }
         for path, module in cases.items():
             self.assertEqual(dedup_check.module_of(path), module, path)
 
     def test_root_value_splits_a_getter_at_the_top_level(self):
         self.assertEqual(
-            dedup_check.root_value('(extension in TUIkitFoundation):TUIkitCore.EnvironmentValues.buttonStyle.getter'
-                                   ' : TUIkitFoundation.ButtonStyle'),
-            ('TUIkitCore.EnvironmentValues', 'TUIkitFoundation.ButtonStyle', 'buttonStyle'))
+            dedup_check.root_value('(extension in TUIFoundation):TUICore.EnvironmentValues.buttonStyle.getter'
+                                   ' : TUIFoundation.ButtonStyle'),
+            ('TUICore.EnvironmentValues', 'TUIFoundation.ButtonStyle', 'buttonStyle'))
         # A static property's key path starts at the metatype; the demangler prints `static` before the extension
         # context (both measured with Xcode's swift-demangle, 6.2.4, 2026-10-11).
         self.assertEqual(dedup_check.root_value('static M.G<Swift.Int>.a.getter : Swift.Int'),
@@ -338,9 +338,9 @@ class ParsingTests(unittest.TestCase):
         self.assertIsNone(dedup_check.root_value('M.f() -> ()'))
 
     def test_host_tools_are_not_read(self):
-        for module in ('SwiftSyntax', 'SwiftParserDiagnostics', '_SwiftSyntaxCShims', 'TUIkitMacrosPlugin'):
+        for module in ('SwiftSyntax', 'SwiftParserDiagnostics', '_SwiftSyntaxCShims', 'TUIMacrosPlugin'):
             self.assertTrue(dedup_check.SKIP_MODULES.fullmatch(module), module)
-        for module in ('TUIkitMacros', 'MySyntaxHighlighter', 'Stress'):
+        for module in ('TUIMacros', 'MySyntaxHighlighter', 'Stress'):
             self.assertFalse(dedup_check.SKIP_MODULES.fullmatch(module), module)
 
 

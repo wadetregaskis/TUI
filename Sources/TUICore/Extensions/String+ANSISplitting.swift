@@ -1,0 +1,1166 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  String+ANSISplitting.swift
+//
+//  Splitting a styled line at a visible-cell boundary, and recovering the SGR
+//  state that is in force there. Both are harder than they look: the split
+//  point is counted in terminal CELLS, so the scan has to skip escape
+//  sequences, treat a wide glyph as two columns, and refuse to cut one in
+//  half — and the escapes themselves have to be carried across the cut or the
+//  styling either vanishes or bleeds.
+//
+//  Split out of String+TerminalWidth.swift, which measures cells; these cut on
+//  them. `FrameBuffer`'s compositing is the caller that exercises every corner.
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+extension String {
+
+    // MARK: - ANSI-Aware Splitting
+
+    /// Returns the first `visibleCount` terminal cells worth of visible characters,
+    /// preserving all ANSI codes that appear before or within that range.
+    ///
+    /// Wide characters (emoji, CJK) count as 2 cells. If a wide character would
+    /// exceed the limit, it is excluded.
+    ///
+    /// - Parameter visibleCount: The number of terminal cells to include.
+    /// - Returns: A substring with ANSI codes intact up to the visible boundary.
+    public func ansiAwarePrefix(visibleCount: Int) -> String {
+        ansiAwarePrefixWithWidth(visibleCount: visibleCount).prefix
+    }
+
+    /// Like ``ansiAwarePrefix(visibleCount:)``, but the caller's
+    /// already-computed ``strippedLength`` unlocks an O(excess) fast path for
+    /// the commonest clip in the framework: a line assembled one padding cell
+    /// wider than its slot (a list row's forced right-padding space meeting
+    /// the scrollbar column, a padded row meeting a container clamp). When the
+    /// excess is entirely trailing plain ASCII spaces, the answer is the
+    /// string minus those bytes — no escape-aware forward walk, no per-cell
+    /// append.
+    ///
+    /// Byte-identical to the walk by construction: the walk emits everything
+    /// before the cut cell (escape sequences included, since they precede the
+    /// cut character in the byte stream) and stops there, which for a cut
+    /// inside a trailing run of plain spaces is exactly the original minus its
+    /// last `excess` bytes. A space that is NOT a visible cell (an
+    /// intermediate byte of an unterminated escape) would break that
+    /// equivalence, so the result is verified by one (vectorised)
+    /// ``strippedLength`` re-scan and anything surprising falls back to the
+    /// exact walk.
+    ///
+    /// "By construction" holds only where the walk emits nothing of its OWN at
+    /// the cut, and there is exactly one thing it does emit: the closing
+    /// sequence of a hyperlink the cut leaves open. The width re-scan cannot
+    /// see that — a closing sequence is zero cells — so a line carrying any
+    /// string-terminated escape is handed to the walk instead.
+    ///
+    /// - Parameters:
+    ///   - visibleCount: The number of terminal cells to include.
+    ///   - knownVisibleWidth: This string's ``strippedLength``, which the
+    ///     caller computed to decide the clip was needed at all.
+    public func ansiAwarePrefix(visibleCount: Int, knownVisibleWidth: Int) -> String {
+        ansiAwarePrefixWithWidth(
+            visibleCount: visibleCount, knownVisibleWidth: knownVisibleWidth
+        ).prefix
+    }
+
+    /// Like ``ansiAwarePrefix(visibleCount:knownVisibleWidth:)`` but also
+    /// returns the visible cell width of the clipped result (see
+    /// ``ansiAwarePrefixWithWidth(visibleCount:)`` for why the pair is worth
+    /// having: it spares the caller a re-scan for right-padding arithmetic).
+    public func ansiAwarePrefixWithWidth(
+        visibleCount: Int, knownVisibleWidth: Int
+    ) -> (prefix: String, visibleWidth: Int) {
+        guard visibleCount > 0 else { return ("", 0) }
+        let excess = knownVisibleWidth - visibleCount
+        // Nothing to cut: the walk would emit the whole string unchanged.
+        guard excess > 0 else { return (self, knownVisibleWidth) }
+
+        let bytes = utf8
+        if excess <= bytes.count, !containsStringFamilyEscape {
+            var tailIsPlainSpaces = true
+            var cutIndex = bytes.endIndex
+            for _ in 0..<excess {
+                bytes.formIndex(before: &cutIndex)
+                if bytes[cutIndex] != 0x20 {
+                    tailIsPlainSpaces = false
+                    break
+                }
+            }
+            if tailIsPlainSpaces {
+                // An ASCII space is always a full character, so `cutIndex` is
+                // a character boundary and the slice is valid.
+                let candidate = String(self[..<cutIndex])
+                if candidate.strippedLength == visibleCount {
+                    return (candidate, visibleCount)
+                }
+            }
+        }
+        if let clipped = asciiPrefixWithWidth(visibleCount: visibleCount) { return clipped }
+        return exactAnsiAwarePrefixWithWidth(visibleCount: visibleCount)
+    }
+
+    /// Whether this string contains a string-terminated escape family — `ESC ]`
+    /// (OSC) and its siblings, of which TUI emits one: the OSC 8 hyperlink.
+    ///
+    /// The question the trailing-spaces clip has to ask before it may skip the
+    /// walk, and cheap enough to ask: one byte scan, no decoding, and it stops
+    /// at the first one. A CSI — the escape a styled line is actually made of —
+    /// is not one of these, so an ordinary coloured row answers `false` after
+    /// looking at its bytes once.
+    private var containsStringFamilyEscape: Bool {
+        func scan(_ bytes: UnsafeBufferPointer<UInt8>) -> Bool {
+            var sawESC = false
+            for byte in bytes {
+                if sawESC, Self.isStringFamilyIntroducer(UInt32(byte)) { return true }
+                sawESC = byte == 0x1B
+            }
+            return false
+        }
+        // Raw bytes rather than the `UTF8View`'s element machinery — see
+        // ``asciiStrippedLength(bounded:limit:)``.
+        if let contiguous = utf8.withContiguousStorageIfAvailable(scan) { return contiguous }
+        return Array(utf8).withUnsafeBufferPointer(scan)
+    }
+
+    /// Like ``ansiAwarePrefix(visibleCount:)`` but also returns the visible cell
+    /// width of the clipped result.
+    ///
+    /// The clip counts visible cells as it goes, so the width comes for free
+    /// here — a caller that needs it (e.g. to compute right-padding) avoids a
+    /// redundant `strippedLength` re-scan of the clipped string. The width is
+    /// exactly `prefix.strippedLength` by construction.
+    public func ansiAwarePrefixWithWidth(visibleCount: Int) -> (prefix: String, visibleWidth: Int) {
+        guard visibleCount > 0 else { return ("", 0) }
+
+        // The byte walk settles the overwhelming majority of lines outright —
+        // and settles them in O(cells kept) rather than O(line), which is what
+        // makes a clip to a narrow table column cost the column rather than
+        // the value.
+        if let clipped = asciiPrefixWithWidth(visibleCount: visibleCount) { return clipped }
+
+        // Otherwise: measure once, then hand the width to the twin, which is
+        // the one place that knows what a width is worth — the "it already
+        // fits" answer (the commonest case on the emission path: the walk would
+        // yield a segment per character only to hand back the string it was
+        // given), and the O(excess) trailing-spaces drop, which this entry
+        // point used to have no way to reach.
+        //
+        // Equivalent by construction: the walk emits every segment in order
+        // and only stops early at a cut, so with no cut it reassembles the
+        // original and reports `strippedLength`. `ANSIPrefixKnownWidthTests`
+        // pins that against ``exactAnsiAwarePrefixWithWidth(visibleCount:)``
+        // rather than leaving it as an argument.
+        return ansiAwarePrefixWithWidth(
+            visibleCount: visibleCount, knownVisibleWidth: strippedLength)
+    }
+
+    /// The clip done on UTF-8 bytes, for the lines whose bytes are enough to
+    /// decide it — or `nil` for the lines where they are not.
+    ///
+    /// An ASCII byte outside an escape is exactly one terminal cell, and no
+    /// ASCII scalar can combine with a neighbour into something wider, so for a
+    /// line of them the whole clip reduces to running the CSI state machine of
+    /// ``asciiStrippedLength()`` over the bytes and stopping where the cells run
+    /// out. The result is a byte prefix: one scan bounded by `visibleCount`,
+    /// one allocation, and no per-character work at all. That is the difference
+    /// between a clip costing the COLUMN and costing the VALUE: twelve cells of
+    /// a 2,048-cell line cost 8.3 µs through the segment walk and 21 ns here
+    /// (2026-09-21), and the second number does not move with the line's
+    /// length while the first is proportional to it.
+    ///
+    /// Byte-identical to the segment walk by construction: that walk emits
+    /// every segment before the cut character — escape sequences included,
+    /// since they precede it in the byte stream — and stops there, which is
+    /// exactly the bytes before the cut character's first byte.
+    ///
+    /// Declines two shapes, and both have to be declined rather than guessed:
+    ///
+    /// - **Any byte ≥ 0x80.** Width is then a property of a grapheme cluster,
+    ///   not of a byte, and a cluster can be two cells or none.
+    /// - **A string-family escape** (an OSC 8 hyperlink, `ESC ]` and its
+    ///   siblings). Those are ASCII, but the walk carries a link open at the
+    ///   cut and closes it, which a byte prefix cannot do.
+    ///
+    /// Scanning only as far as the cut means eligibility is only ever decided
+    /// about the bytes that are KEPT — which is all the answer depends on. A
+    /// line that fits is scanned whole, so there eligibility covers all of it.
+    ///
+    /// - Parameter visibleCount: Cells to keep; must be positive.
+    /// - Returns: The clipped prefix and its visible width, or `nil` to decline.
+    private func asciiPrefixWithWidth(visibleCount: Int) -> (prefix: String, visibleWidth: Int)? {
+        // Raw bytes rather than the `UTF8View`'s element machinery — see
+        // ``asciiStrippedLength(bounded:limit:)``, whose loop this mirrors.
+        if let contiguous = utf8.withContiguousStorageIfAvailable({ scan($0, visibleCount) }) {
+            return contiguous
+        }
+        return Array(utf8).withUnsafeBufferPointer { scan($0, visibleCount) }
+    }
+
+    /// ``asciiPrefixWithWidth(visibleCount:)``'s loop, over bytes that are
+    /// already contiguous.
+    private func scan(
+        _ bytes: UnsafeBufferPointer<UInt8>, _ visibleCount: Int
+    ) -> (prefix: String, visibleWidth: Int)? {
+        /// The first `count` bytes, as a `String`. Every one of them has been
+        /// proven ASCII by the time this is reached, so the boundary is a
+        /// scalar AND a character boundary and the decode cannot fail. Not
+        /// `String(self[..<index])`: a cut may land between a CR and its LF,
+        /// which is one `Character`, and a `String` subscript may not split one.
+        func prefixBytes(_ count: Int) -> String {
+            // The lint rule is about `Data`, and there is none.
+            // swiftlint:disable:next optional_data_string_conversion
+            String(decoding: UnsafeBufferPointer(rebasing: bytes[..<count]), as: UTF8.self)
+        }
+
+        var state = EscapeScanState.normal
+        var width = 0
+        var offset = 0
+        for byte in bytes {
+            if byte >= 0x80 { return nil }
+            let value = UInt32(byte)
+            switch state {
+            case .normal:
+                if byte == 0x1B {
+                    state = .sawESC
+                } else {
+                    if width == visibleCount { return (prefixBytes(offset), width) }
+                    width += 1
+                }
+
+            case .sawESC:
+                // A string-family payload, or an nF escape, ends the byte
+                // walk's competence — see the note above.
+                if Self.isStringFamilyIntroducer(value) || (0x20...0x2F).contains(value) {
+                    return nil
+                }
+                let seen = Self.escapeIntroducerScan(on: value)
+                state = seen.state
+                if seen.visible {
+                    if width == visibleCount { return (prefixBytes(offset), width) }
+                    width += 1
+                }
+
+            case .csi:
+                if Self.isCSIBodyByte(value) { break }  // parameter or intermediate
+                if Self.isCSIFinalByte(value) {
+                    state = .normal  // introducer complete, terminator consumed
+                } else if byte == 0x1B {
+                    state = .sawESC  // ESC interrupts a malformed CSI
+                } else {  // not a CSI byte where a terminator was expected
+                    if width == visibleCount { return (prefixBytes(offset), width) }
+                    width += 1
+                    state = .normal
+                }
+
+            case .escIntermediate, .string, .stringSawESC:
+                return nil  // unreachable — `.sawESC` declines these first
+            }
+            offset += 1
+        }
+        return (self, width)  // the line fits; it is its own prefix
+    }
+
+    /// The clip with no fast path at all — the segment walk itself.
+    ///
+    /// Kept reachable so the fast paths in front of it have an oracle to be
+    /// pinned against. Both public entry points are required to be
+    /// byte-identical to this for every input at every cut point, and a test
+    /// that could only compare one fast path to another would not be checking
+    /// anything.
+    func exactAnsiAwarePrefixWithWidth(visibleCount: Int) -> (prefix: String, visibleWidth: Int) {
+        guard visibleCount > 0 else { return ("", 0) }
+
+        var result = ""
+        var visible = 0
+        var link = HyperlinkScan()
+
+        // Streaming, so the walk STOPS at the cut. Materialising the segments
+        // first made a clip cost the whole line however little of it was
+        // wanted: 71 µs to take 12 cells off a 2,048-cell line, 69 µs of it
+        // spent on segments this loop returns before reading.
+        var cut = false
+        forEachANSISegment { segment in
+            switch segment {
+            case .ansi(let sequence, let isSGR):
+                result += sequence
+                // SGR is the escape a styled line is made of and can never be
+                // a hyperlink, so the scan is asked only about the rest.
+                if !isSGR { link.note(sequence) }
+                return true
+            case .visible(let character):
+                let charWidth = character.terminalWidth
+                // A cut, and the only place one happens here — so the only
+                // place a hyperlink can be left open. The natural end of the
+                // walk deliberately does NOT close: there the result is the
+                // caller's own string reassembled, and adding a sequence it
+                // did not contain would break the identity the fast path in
+                // front of this relies on (it returns `self` untouched).
+                if visible + charWidth > visibleCount {
+                    cut = true
+                    return false
+                }
+                result.append(character)
+                visible += charWidth
+                return true
+            }
+        }
+
+        return (cut ? result + link.closingIfOpen : result, visible)
+    }
+
+    /// A horizontal slice: the visible columns in
+    /// `visibleStart ..< (visibleStart + visibleCount)`, with ANSI styling intact.
+    ///
+    /// This is the column-windowing primitive for horizontal scrolling. The dropped
+    /// leading columns' SGR (colour/style) escapes are *carried* onto the front of
+    /// the result, so the slice keeps whatever styling was active at `visibleStart`
+    /// even though the codes that set it scrolled out of view. Non-SGR escapes
+    /// (cursor moves) in the dropped region are not replayed. A wide character that
+    /// straddles either edge cannot be shown whole; its IN-WINDOW cells become
+    /// spaces, so the gap it leaves still occupies its columns. (Dropping it with
+    /// no gap — the old behaviour — let everything after a left-edge straddle
+    /// render one cell left of its neighbours: aligned columns went ragged,
+    /// jittering as each wide glyph crossed the window edge while scrolling.)
+    /// The slice's visible width is therefore always
+    /// `max(0, min(strippedLength − visibleStart, visibleCount))`.
+    ///
+    /// - Parameters:
+    ///   - visibleStart: The first visible column to include (0-based).
+    ///   - visibleCount: How many visible columns to include.
+    public func ansiAwareSlice(visibleStart: Int, visibleCount: Int) -> String {
+        guard visibleCount > 0 else { return "" }
+        guard visibleStart > 0 else {
+            // Not `ansiAwarePrefix`, whose documented contract EXCLUDES a wide
+            // glyph straddling its right edge. This function's is that the
+            // straddler's in-window cells are blanked — the same rule the
+            // walk below applies at both edges for every other window — so
+            // the slice is always the width it says. A gradient background
+            // cuts a row into runs and concatenates the slices unpadded, and
+            // the first run starts at column 0: one cell short there shifted
+            // every later run a column left.
+            let width = strippedLength
+            if width <= visibleCount { return self }
+            let (prefix, got) = exactAnsiAwarePrefixWithWidth(visibleCount: visibleCount)
+            return got < visibleCount ? prefix + Self.spaces(visibleCount - got) : prefix
+        }
+
+        let end = visibleStart + visibleCount
+        var carriedStyle = ""  // SGR history replayed so the slice starts correctly styled
+        var body = ""
+        var visible = 0
+        // A hyperlink is carried across the left edge for the same reason the
+        // styling is — it is state the dropped columns established and the
+        // window's cells are still inside — and closed at the right edge for a
+        // stronger one: a window that keeps an opening sequence and drops the
+        // closing one hands the link to every cell drawn after it.
+        //
+        // It cannot ride along in `carriedStyle`, which accumulates: a link
+        // opened and closed before the window would be replayed as an open.
+        // The scan holds the state instead, and the sequence is restated ONCE,
+        // as the window is entered.
+        var link = HyperlinkScan()
+        var enteredWindow = false
+        func enterWindow() {
+            guard !enteredWindow else { return }
+            enteredWindow = true
+            body += link.reopening
+        }
+
+        // Streaming, and it stops at the right edge: past `end` every arm below
+        // is a no-op — an escape is neither carried nor kept, a character can
+        // no longer straddle — and `link` is only ever noted inside the window,
+        // so the columns after it cannot change the answer.
+        forEachANSISegment { segment in
+            guard visible < end else { return false }
+            switch segment {
+            case .ansi(let sequence, let isSGR):
+                if visible < visibleStart {
+                    if isSGR { carriedStyle += sequence } else { link.note(sequence) }
+                } else {
+                    enterWindow()
+                    body += sequence
+                    if !isSGR { link.note(sequence) }
+                }
+            case .visible(let character):
+                let charWidth = character.terminalWidth
+                let charEnd = visible + charWidth
+                if visible >= visibleStart && charEnd <= end {
+                    enterWindow()
+                    body.append(character)
+                } else if charEnd > visibleStart {
+                    // Straddles an edge: blank its in-window cells.
+                    enterWindow()
+                    body += String(
+                        repeating: " ",
+                        count: min(charEnd, end) - max(visible, visibleStart))
+                }
+                visible = charEnd
+            }
+            return true
+        }
+        return carriedStyle + body + link.closingIfOpen
+    }
+
+    /// Like ``ansiAwarePrefix(visibleCount:)`` but cursor-aware — clips so
+    /// that no character's Terminal.app cursor advance would push past the
+    /// right edge.
+    ///
+    /// An over-advancing emoji (e.g. Fitzpatrick skin-tone 🤙🏽: claims 2
+    /// cells, advances cursor by 4) whose VISIBLE cells fit but whose
+    /// advance overflows the right edge is REPLACED with plain spaces of
+    /// its claimed visible width.  If we let Terminal.app see the cluster
+    /// in this case it wraps the glyph to the next row (because it can't
+    /// reserve the 4 cells of buffer it wants), corrupting the layout
+    /// of the row below.
+    ///
+    /// - Parameter visibleCount: The number of terminal cells to include.
+    /// - Returns: A substring with ANSI codes intact, clipped so that no
+    ///   character wraps off the right edge.
+    public func ansiAwarePrefixForTerminalApp(visibleCount: Int) -> String {
+        ansiAwarePrefixForTerminalAppWithWidth(visibleCount: visibleCount).prefix
+    }
+
+    /// Width-returning twin of ``ansiAwarePrefixForTerminalApp(visibleCount:)``
+    /// — see ``ansiAwarePrefixWithWidth(visibleCount:)`` for why the visible
+    /// width is free. The width is exactly `prefix.strippedLength` (the space
+    /// substitution for an over-advancer keeps the visible width intact).
+    public func ansiAwarePrefixForTerminalAppWithWidth(visibleCount: Int) -> (prefix: String, visibleWidth: Int) {
+        guard visibleCount > 0 else { return ("", 0) }
+
+        // Same "it already fits" short-cut as the plain clip, but it needs a
+        // STRICTER guard, because this walk does a second thing: it replaces
+        // an over-advancer whose mid-emission peak would cross the right edge
+        // with plain spaces. That can fire on a line that fits — a skin tone
+        // claiming 2 at column 77 of an 80-cell row peaks at 81 — so "fits"
+        // alone is not enough to skip the walk.
+        //
+        // `utf8MayNeedCompensation` is exactly the missing half: false means
+        // the line holds no cluster any advance model acts on, so no character
+        // can have an advance wider than its claim, so no substitution can
+        // fire. That covers the case this is for — a bordered, otherwise-ASCII
+        // row, which is most rows of most TUI apps and the same rows the
+        // compensation walks now skip.
+        // An all-ASCII line has no cluster any advance model acts on either, so
+        // the byte clip's own eligibility test subsumes the gate below — and
+        // answers the whole question rather than only "does it fit". It scans
+        // no further than the cut, which is sound here for the same reason it
+        // is sound there: a substitution can only fire on a character the clip
+        // KEEPS, and an over-advancer past the cut is dropped anyway.
+        if let clipped = asciiPrefixWithWidth(visibleCount: visibleCount) { return clipped }
+
+        if !utf8MayNeedCompensation {
+            let width = strippedLength
+            if width <= visibleCount { return (self, width) }
+        }
+
+        return exactAnsiAwarePrefixForTerminalAppWithWidth(visibleCount: visibleCount)
+    }
+
+    /// ``ansiAwarePrefixForTerminalAppWithWidth(visibleCount:)`` for a
+    /// terminal described by a hand-built set of quirks rather than a measured
+    /// one: an over-advancer whose peak would pass the right edge
+    /// (``TerminalQuirks/peakAdvance(of:)``) is replaced with plain spaces of
+    /// its claimed width, as Terminal.app's are.
+    ///
+    /// The quirks explorer's clip. Without it, a set with an over-advancing
+    /// switch (`.pullBack` tones, tag flags) drew a cluster that fits its
+    /// claim but not its peak, at the edge, and the terminal wrapped it, or —
+    /// with autowrap off, as TUI runs — pinned the cursor at the last
+    /// column, so the pull-back after it moved the cursor too far.
+    ///
+    /// Stricter at the edge than Terminal.app's: a peak that ends ON the last
+    /// cell is replaced too (`peakMayEndAtEdge: false`). The repair needs the
+    /// cursor one column past the peak, and there is no such column: with
+    /// autowrap off the cursor is pinned on the last cell, and with it on an
+    /// xterm-family host holds it there with its wrap pending, so either way
+    /// the `CUB` lands a column short and the next cell overwrites the
+    /// cluster's right half. Terminal.app's clip keeps its older bet
+    /// (``exactAnsiAwarePrefixForTerminalAppWithWidth(visibleCount:peakMayEndAtEdge:)``).
+    package func ansiAwarePrefixWithWidth(
+        visibleCount: Int, guardingPeaksOf quirks: TerminalQuirks
+    ) -> (prefix: String, visibleWidth: Int) {
+        guard visibleCount > 0 else { return ("", 0) }
+        // The Terminal.app clip's two short-cuts, and sound here for its
+        // reasons: no cluster any switch acts on, so no peak past a claim.
+        if let clipped = asciiPrefixWithWidth(visibleCount: visibleCount) { return clipped }
+        if !utf8MayNeedCompensation {
+            let width = strippedLength
+            if width <= visibleCount { return (self, width) }
+        }
+        return exactAnsiAwarePrefixGuardingPeaks(visibleCount: visibleCount, peakMayEndAtEdge: false) {
+            quirks.peakAdvance(of: $0)
+        }
+    }
+
+    /// The Terminal.app clip with no fast path — the walk itself, kept
+    /// reachable as the oracle its fast path is pinned against. See
+    /// ``exactAnsiAwarePrefixWithWidth(visibleCount:)``.
+    ///
+    /// Clusters the walk rewrites (separated skin tones, decomposed ZWJ
+    /// sequences) peak at their claim, monotonically — the raw internal
+    /// advance (👨‍👩‍👧‍👦: 11) never happens, so budgeting it would replace
+    /// clusters that actually fit. Everything else peaks at Terminal.app's
+    /// internal advance.
+    ///
+    /// - Parameter peakMayEndAtEdge: `true`, the shipping clip's bet since
+    ///   2026-08-28 (77b842dd3): a peak may end on the last cell, so a tag flag
+    ///   or bare keycap there is kept. Unmeasured — its edge card is still
+    ///   owed — and made with autowrap on, which Apple Terminal keeps
+    ///   (`Terminal.keepsAutowrap`) until that card. With autowrap off the bet
+    ///   is lost (see ``ansiAwarePrefixWithWidth(visibleCount:guardingPeaksOf:)``),
+    ///   so turning it off there means passing `false`; the tests pass `false`
+    ///   to pin the quirks explorer's Apple-shaped set to this walk.
+    func exactAnsiAwarePrefixForTerminalAppWithWidth(
+        visibleCount: Int, peakMayEndAtEdge: Bool = true
+    ) -> (prefix: String, visibleWidth: Int) {
+        exactAnsiAwarePrefixGuardingPeaks(
+            visibleCount: visibleCount, peakMayEndAtEdge: peakMayEndAtEdge
+        ) { character in
+            character.terminalAppWalkRewritesToClaim
+                ? character.terminalWidth : character.terminalAppCursorAdvance
+        }
+    }
+
+    /// The clip that guards over-advancers' peaks: every cluster whose claim
+    /// fits is kept, unless `peak` says its emission reaches past the right
+    /// edge on the way, when it is replaced with plain spaces of its claimed
+    /// width.
+    ///
+    /// - Parameters:
+    ///   - peakMayEndAtEdge: Whether a peak may end on the last cell, rather
+    ///     than having to stop short of it to leave the cursor a column to
+    ///     stand in before its repair.
+    ///   - peak: How far past its first column the cursor reaches while the
+    ///     host draws a cluster as its walk emits it.
+    private func exactAnsiAwarePrefixGuardingPeaks(
+        visibleCount: Int, peakMayEndAtEdge: Bool, peak: (Character) -> Int
+    ) -> (prefix: String, visibleWidth: Int) {
+        guard visibleCount > 0 else { return ("", 0) }
+
+        var result = ""
+        var visible = 0
+        var link = HyperlinkScan()
+
+        var cut = false
+        forEachANSISegment { segment in
+            switch segment {
+            case .ansi(let sequence, let isSGR):
+                result += sequence
+                if !isSGR { link.note(sequence) }
+                return true
+            case .visible(let character):
+                let charWidth = character.terminalWidth
+                // The cut, and the only one: see the twin walk's note on why
+                // the natural end of the string does not close.
+                if visible + charWidth > visibleCount {
+                    cut = true
+                    return false
+                }
+                // The walk nets every emitted cluster back to its claim (the
+                // conservation law: under-advancers are CUF'd up, over-
+                // advancers CUB'd back, rewrites land there by construction),
+                // so the internal column at every cluster BOUNDARY is the sum
+                // of claims — `visible` — whatever raw advances came before.
+                // What can still overflow is one cluster's own mid-emission
+                // peak: an over-advancer reaches its raw internal advance
+                // before its repair pulls the column back, and the wrap fires
+                // at the peak, mid-cluster, before any compensation runs.
+                //
+                // (An earlier version kept a second accumulator of raw
+                // advances instead, which was wrong in both directions: eight
+                // compensated ⚙️ read as column 8 when the walk had really
+                // netted 16, letting a tag flag through whose peak wrapped
+                // the row — and a kept tag flag inflated the tally by its
+                // pre-CUB surplus, substituting later clusters that fit.)
+                let advance = peak(character)
+                let peakRoom = peakMayEndAtEdge ? visibleCount : visibleCount - 1
+                if advance > charWidth && visible + advance > peakRoom {
+                    // Over-advancer whose peak would push the host's cursor
+                    // past the right edge (or onto it, where the cursor then
+                    // has no column past the peak to pull back from).
+                    // Replace with `charWidth` plain spaces to preserve the
+                    // layout but avoid the wrap-to-next-row bug, or the
+                    // short repair.  Skin tone is sacrificed in this narrow
+                    // case.
+                    if charWidth > 0 {
+                        result.append(Self.spaces(charWidth))
+                    }
+                } else {
+                    result.append(character)
+                }
+                visible += charWidth
+                return true
+            }
+        }
+
+        return (cut ? result + link.closingIfOpen : result, visible)
+    }
+
+    /// Returns the accumulated SGR (colour/style) state as of `visibleOffset` visible cells,
+    /// concatenated with the remaining visible content and SGR sequences — with cursor-
+    /// moving and line-scoped ANSI sequences stripped from both the context scan *and*
+    /// the returned suffix, but `ECH` kept in the suffix.
+    ///
+    /// Used by `FrameDiffWriter.repaintRightEdge` to re-emit the last few cells of a
+    /// line with the correct SGR context: the caller positions the terminal cursor
+    /// explicitly before writing the result, so any CUF / EL / other cursor-movement
+    /// sequence left in the string would displace the cursor from where the caller put
+    /// it and write subsequent characters in the wrong terminal column.
+    ///
+    /// `ECH` (`CSI n X`) is the one exception, kept in the SUFFIX only: it paints n
+    /// cells from the cursor **without moving it**, and it is the measured background
+    /// repair for an under-advancing glyph — the walk emits `ECH(2)`+glyph+`CUF(1)`,
+    /// and re-writing that glyph here without its erase left the cell its cursor
+    /// advance skips at pass 1's app background instead of the run's: a one-cell
+    /// version of the comb the erase was added for, at exactly the right edge this
+    /// function serves. In the CONTEXT half it stays dropped — there it is positional
+    /// state from cells the caller is not rewriting.
+    ///
+    /// - Parameter visibleOffset: The number of visible terminal cells to skip.
+    /// - Returns: Accumulated SGR state + visible content from `visibleOffset` onward,
+    ///   or `nil` if the string has fewer than `visibleOffset` visible cells.
+    public func ansiSGRContextAndCleanSuffix(from visibleOffset: Int) -> String? {
+        var sgrContext = ""
+        var suffix = ""
+        var visible = 0
+        // A hyperlink is entry state exactly as the colour is — the cells being
+        // re-emitted are inside it — but it is not SGR, so it needs saying
+        // separately. It is also cursor-neutral, which is the property this
+        // function's suffix filter is really testing, so the suffix keeps its
+        // sequences alongside the `ECH`.
+        var link = HyperlinkScan()
+
+        forEachANSISegment { segment in
+            // Before the offset is reached we're accumulating the entry
+            // colour state; at or after it, content belongs in the suffix.
+            let inSuffix = visible >= visibleOffset
+            switch segment {
+            case .ansi(let sequence, let isSGR):
+                if inSuffix {
+                    // SGR, plus the cursor-neutral ECH the under-advance
+                    // treatment depends on. Movers (CUF, CUB, …) and
+                    // line-scoped erases (EL) stay dropped: the caller
+                    // positions the cursor explicitly.
+                    let isECH = sequence.last == "X" && sequence.hasPrefix("\u{1B}[")
+                        && sequence.dropFirst(2).dropLast().allSatisfy(\.isNumber)
+                    guard isSGR || isECH || TerminalHyperlink.isHyperlink(sequence) else {
+                        return true
+                    }
+                    suffix += sequence
+                } else {
+                    guard isSGR else {
+                        link.note(sequence)
+                        return true
+                    }
+                    sgrContext += sequence
+                }
+            case .visible(let character):
+                if inSuffix {
+                    suffix.append(character)
+                } else {
+                    let width = character.terminalWidth
+                    if visible + width > visibleOffset {
+                        // A wide glyph straddling the offset. Skipping it
+                        // silently started the suffix one column LATE, and
+                        // the caller — which positions the cursor at the
+                        // offset — wrote everything after it a cell left
+                        // (a border shifted, the last column blank). Its
+                        // in-window cells are blanked instead, as
+                        // `ansiAwareSlice` blanks a straddler, so the suffix
+                        // begins where the caller believes it does. The
+                        // glyph itself is lost from those cells; repainting
+                        // it whole would mean starting the window at its
+                        // own column, which this function cannot say.
+                        suffix += Self.spaces(visible + width - visibleOffset)
+                    }
+                    visible += width
+                }
+            }
+            return true
+        }
+
+        guard visible >= visibleOffset else { return nil }
+        return sgrContext + link.reopening + suffix
+    }
+
+    /// Returns everything after the first `dropCount` terminal cells of visible characters,
+    /// preserving ANSI codes that appear at or after that boundary.
+    ///
+    /// Wide characters count as 2 cells.
+    ///
+    /// - Parameter dropCount: The number of terminal cells to skip.
+    /// - Returns: The remainder of the string with ANSI codes intact.
+    public func ansiAwareSuffix(droppingVisible dropCount: Int) -> String {
+        var visible = 0
+        var result = ""
+        var link = HyperlinkScan()
+
+        forEachANSISegment { segment in
+            // Everything at or after the drop boundary is kept verbatim
+            // (ANSI included); everything before it is discarded.
+            let keeping = visible >= dropCount
+            switch segment {
+            case .ansi(let sequence, let isSGR):
+                if keeping {
+                    result += sequence
+                } else if !isSGR {
+                    link.note(sequence)
+                }
+            case .visible(let character):
+                if keeping {
+                    result.append(character)
+                } else {
+                    visible += character.terminalWidth
+                }
+            }
+            return true
+        }
+
+        // The dropped columns may have opened a hyperlink these cells are
+        // inside. Restating it is the quiet obligation of the pair — nothing
+        // looks broken when it is missed, the link is simply shorter than the
+        // label it belongs to.
+        return link.reopening + result
+    }
+
+    // MARK: - ANSI State Extraction
+
+    /// Extracts all leading ANSI SGR sequences that appear before the first
+    /// visible character and returns them concatenated.
+    ///
+    /// This captures the full styling state set up at the beginning of a line
+    /// (e.g. background, foreground, dim) so it can be replayed to restore
+    /// that state after an interruption (like an overlay insertion).
+    ///
+    /// Unlike scanning the entire string, this avoids picking up trailing
+    /// codes that follow a reset (e.g. the lone background code appended by
+    /// `applyPersistentBackground`).
+    ///
+    /// - Returns: The concatenated leading ANSI sequences, or an empty string
+    ///   if the line starts with a visible character.
+    public func leadingANSISequences() -> String {
+        leadingANSISplit().prefix
+    }
+
+    /// The leading ANSI sequences and everything after them, split at the
+    /// exact SCALAR boundary after the last terminator.
+    ///
+    /// Scalar-level deliberately: grapheme segmentation can fuse a sequence's
+    /// terminator letter with a combining mark that begins the visible text
+    /// (`…m` + U+0308 is ONE `Character`), and a `Character`-level scan
+    /// consumed the fused cluster whole — the combining mark vanished into
+    /// the "styling" prefix, and any caller reassembling around a
+    /// character-counted split point dropped it from the text too. Callers
+    /// that need both halves take THIS, rather than re-deriving the remainder
+    /// by count.
+    public func leadingANSISplit() -> (prefix: String, remainder: String) {
+        let scalars = unicodeScalars
+        var index = scalars.startIndex
+
+        while index < scalars.endIndex, scalars[index] == "\u{1B}" {
+            // The shared walker, so this agrees with every other scan about
+            // where a sequence ends. It hand-rolled the CSI rule as "digits and
+            // `;` then a letter", which stops at the `?` of `ESC[?25l` and — far
+            // worse here — at the `]` of an OSC 8 hyperlink: the split then fell
+            // between the ESC and its own introducer, handing the caller a
+            // bare ESC to replay as "styling" and a remainder beginning inside
+            // a sequence. A link opening a line is exactly where that happens.
+            let (end, _) = Self.escapeSequenceEnd(startingAt: index, in: scalars)
+            guard end > index else { break }
+            index = end
+        }
+
+        return (String(scalars[scalars.startIndex..<index]), String(scalars[index...]))
+    }
+
+    /// This line with its first `columns` visible cells cut away, the styling in force at
+    /// the cut carried onto what remains.
+    ///
+    /// Lifted out of `OverlayLayer`'s leading cut when the compositor turned out to need
+    /// the same cut for an overlay placed at a negative column — one primitive rather than
+    /// a second copy of three decisions, each of which is a bug someone shipped by doing
+    /// the obvious thing instead:
+    ///
+    /// - A SLICE, not ``ansiAwareSuffix(droppingVisible:)``. The suffix throws away every
+    ///   SGR before the cut, so a preview clipped at the left edge arrived unstyled and
+    ///   rendered in the terminal's raw defaults. The slice replays the style it cut
+    ///   through.
+    /// - A wide glyph straddling the cut cannot be half-drawn, so it is dropped whole and
+    ///   the line comes back a cell short — which slid everything after it one column
+    ///   left, off the cell a pointer grabbed. The shortfall is padded, after the carried
+    ///   style so the gap keeps the background.
+    /// - The pad goes in at the SCALAR-exact split (``leadingANSISplit()``), not after
+    ///   `leadingANSISequences()` + `dropFirst(count)`: a combining mark opening the
+    ///   visible text fuses with the last sequence's terminator into one `Character`, and
+    ///   the character-counted drop severed it.
+    func ansiAwareCuttingLeadingColumns(_ columns: Int) -> String {
+        let owed = max(0, strippedLength - columns)
+        let slice = ansiAwareSlice(visibleStart: columns, visibleCount: owed)
+        let shortfall = owed - slice.strippedLength
+        guard shortfall > 0 else { return slice }
+        let (carried, remainder) = slice.leadingANSISplit()
+        return carried + Self.spaces(shortfall) + remainder
+    }
+
+    /// The net SGR styling active just before visible column `column` — every SGR
+    /// escape that appears strictly before that column, concatenated (the terminal
+    /// nets them, so an opening sequence followed by a reset leaves no styling).
+    ///
+    /// Unlike ``leadingANSISequences()`` (the styling set up before the FIRST
+    /// visible character), this reflects styling reset or changed partway along
+    /// the line: underlined text followed by a reset and plain padding yields an
+    /// empty state past the reset, not a lingering underline. It restores the
+    /// correct tail state after an overlay is composited over a line's middle —
+    /// preserving a uniform background while not bleeding the prefix's text
+    /// decorations (bold/underline) onto the suffix. See `FrameBuffer.insertOverlay`.
+    public func ansiStateBefore(visibleColumn column: Int) -> String {
+        sgrState(throughColumn: column, includingBoundary: false).rendered
+    }
+
+    /// The netted ``SGRState`` the terminal is in as it draws the cell at
+    /// visible column `column`.
+    ///
+    /// One escape's worth more than ``ansiStateBefore(visibleColumn:)``, and the
+    /// difference is the whole point: escapes sitting *immediately* before that
+    /// cell — the `ESC[48;…m` a line opens with, say — style the cell itself, so
+    /// they belong to it. `ansiStateBefore` excludes them because it answers a
+    /// different question (what to restore where a suffix *begins*, which
+    /// carries those escapes along with it), and at column 0 that makes its
+    /// answer unconditionally empty.
+    ///
+    /// Wanted by anything that asks what a cell redrawn in place landed on. (The
+    /// animation splice no longer asks the line: a run's cells are drawn over the
+    /// field recorded beneath them — see `AnimatedCellRun.ground`.)
+    public func ansiSGRStateAt(visibleColumn column: Int) -> SGRState {
+        sgrState(throughColumn: column, includingBoundary: true)
+    }
+
+    /// The shared walk behind the two state queries.
+    private func sgrState(throughColumn column: Int, includingBoundary: Bool) -> SGRState {
+        var visible = 0
+        var state = SGRState()
+        forEachANSISegment { segment in
+            switch segment {
+            case .ansi(let sequence, let isSGR):
+                let reached = includingBoundary ? visible <= column : visible < column
+                // Past the column nothing further can apply, and the visible
+                // arm only ever grows `visible` — so the walk is finished.
+                guard reached else { return false }
+                if isSGR { state.apply(sequence) }
+            case .visible(let character):
+                visible += character.terminalWidth
+            }
+            return true
+        }
+        return state
+    }
+
+    /// Everything ``FrameBuffer``'s overlay insertion needs about a line, from
+    /// ONE scan and with no intermediate array.
+    ///
+    /// The five calls it replaces — ``ansiAwarePrefixWithWidth(visibleCount:)``,
+    /// ``ansiAwareSuffix(droppingVisible:)``, ``ansiStateBefore(visibleColumn:)``
+    /// and two ``strippedLength`` reads — each walked the line through
+    /// ``ansiSegments()``, which materialises one enum case per character.
+    /// Compositing a child into a row therefore rescanned (and re-allocated) the
+    /// whole line five times over, and a row's line grows with every styled child
+    /// already written into it. An Instruments trace of a custom `Layout` placing
+    /// 160 children put `insertOverlay` at 66.9% of the run, `ansiSegments` alone
+    /// at 37.9%.
+    ///
+    /// The semantics of each field are exactly those of the function it replaces,
+    /// including the ones that look like quirks and are not:
+    /// - the prefix STOPS at the first visible character that would overrun
+    ///   `prefixColumns`, and takes no further ANSI after that point;
+    /// - the suffix keeps everything — ANSI included — from the first character
+    ///   at or beyond `suffixDropColumns`, and nothing before it;
+    /// - `styleBeforeSuffix` is the NETTED state at that column, not the
+    ///   escapes concatenated. Concatenating is also correct — a terminal nets
+    ///   an open/reset pair itself — but the answer is written back INTO the
+    ///   line, so the next child's replay would contain this one's and the row
+    ///   would double per child. See ``SGRState``.
+    ///
+    /// - Parameters:
+    ///   - prefixColumns: Visible columns to keep at the front.
+    ///   - suffixDropColumns: Visible columns to drop before the suffix begins.
+    ///   - notingFields: Whether to note each column inside the span where the
+    ///     field changes (``ANSIOverlaySplit/fieldsUnderOverlay``). Only a caller
+    ///     that paints the overlay over them reads them; the two splices whose
+    ///     overlay already states every field — the animation tick's and the
+    ///     opacity resolution's — pass `false`, and the second runs once per step
+    ///     of every cycling fade.
+    /// - Returns: Everything ``FrameBuffer/insertOverlay(base:overlay:atColumn:overlayIsPainted:)``
+    ///   needs from this line, in one scan — see ``ANSIOverlaySplit``.
+    func ansiOverlaySplit(
+        prefixColumns: Int, suffixDropColumns: Int, notingFields: Bool = true,
+        terminalForeground: () -> SGRState.Colour? = { nil }
+    ) -> ANSIOverlaySplit {
+        var prefix = ""
+        var prefixWidth = 0
+        var prefixOpen = prefixColumns > 0
+        var suffix = ""
+        var suffixWidth = 0
+        var style = SGRState()
+        // The state where the overlay LANDS — what the covered cells are
+        // painted on, so an overlay cell that states no background of its own
+        // can keep this one.
+        //
+        // The FIELD, as a row still to be written reads one — none after a reset,
+        // where the row builder puts the page back; a stated `ESC[49m`, the
+        // terminal's own (`.named(49)`); or a colour — and not `style`'s
+        // background, which nets a reset and a 49 into one `nil`. That is exact
+        // for bytes that go to the terminal as they are, and in a row the writer
+        // has yet to finish the two are two fields (`Opacity as composition`
+        // §94): read as none, a stated 49 in the base put an overlay's bare cells,
+        // and the cells after the overlay, on the page where the base shows the
+        // terminal's own. Tracked beside `style` from what each sequence says
+        // about the background (`applyReportingBackground`), which is the same
+        // parse `apply` makes, so nothing is netted twice — netting twice made
+        // compositing a `Layout`'s children quadratic in escapes all over again,
+        // which is the very thing this one-scan split exists to have fixed.
+        var field: SGRState.Colour?
+        // The state where the overlay LANDS, with `field` at its column, and the
+        // field a cell there shows, read from it once, when first asked.
+        var stateUnder: (style: SGRState, field: SGRState.Colour?) = (SGRState(), nil)
+        var readUnder: SGRState.Colour??
+        func fieldUnder() -> SGRState.Colour? {
+            if let read = readUnder { return read }
+            let read = Self.shownField(of: stateUnder.style, slot: stateUnder.field, terminalForeground: terminalForeground)
+            readUnder = .some(read)
+            return read
+        }
+        // And where that field CHANGES under the overlay: an escape between its
+        // first and its last column moves the field under every cell after it.
+        // `style` has just applied it, so noting one costs a comparison, and only
+        // an escape inside the span is noted at all. Under nearly every overlay
+        // none of them moves the field, and nothing is kept. Nor is anything
+        // noted for a caller that will not paint the overlay (`notingFields`).
+        var changes = FieldsUnderOverlay.Recorder()
+        var total = 0
+        // Two scans, because the two halves are cut at different columns: the
+        // prefix ends at `prefixColumns` and owes a close there, the suffix
+        // begins at `suffixDropColumns` and owes the opening sequence. One
+        // scan could only ever be right about one of them.
+        var prefixLink = HyperlinkScan()
+        var suffixLink = HyperlinkScan()
+
+        let scalars = unicodeScalars
+        var index = scalars.startIndex
+        var pending = Self.UnicodeScalarView()
+
+        // Visible scalars are buffered so they can be grouped into Characters —
+        // width is a per-CHARACTER property, and a grapheme may span scalars.
+        func flushVisible() {
+            guard !pending.isEmpty else { return }
+            for character in String(pending) {
+                let width = character.terminalWidth
+                let keeping = total >= suffixDropColumns
+                if prefixOpen {
+                    if prefixWidth + width > prefixColumns {
+                        // The cut. An overlay is composited straight after
+                        // this, so a link left open would run underneath it.
+                        prefix += prefixLink.closingIfOpen
+                        prefixOpen = false
+                    } else {
+                        prefix.append(character)
+                        prefixWidth += width
+                    }
+                }
+                if keeping {
+                    suffix.append(character)
+                    suffixWidth += width
+                }
+                total += width
+            }
+            pending = Self.UnicodeScalarView()
+        }
+
+        while index < scalars.endIndex {
+            guard scalars[index].value == 0x1B else {  // not ESC → visible
+                pending.append(scalars[index])
+                index = scalars.index(after: index)
+                continue
+            }
+            flushVisible()
+            let (end, isSGR) = Self.escapeSequenceEnd(startingAt: index, in: scalars)
+            let text = String(scalars[index..<end])
+            index = end
+            if prefixOpen {
+                prefix += text
+                if !isSGR { prefixLink.note(text) }
+            }
+            if total >= suffixDropColumns {
+                suffix += text
+            } else if isSGR {
+                switch style.applyReportingBackground(text) {
+                case .reset: field = nil
+                case .terminalDefault: field = SGRState.Colour.statedTerminalField
+                case .colour: field = style.backgroundColour
+                case nil: break
+                }
+                // What a cell there SHOWS as its field (`shownField`) — read only
+                // where a cell under the overlay is in it: the last state before the
+                // overlay's first column, read once it is known to be the last, and
+                // each change inside the span for a caller that notes them. Read at
+                // every escape before the overlay, and at every one inside it for a
+                // caller that notes none, it asked the caller for the terminal's
+                // foreground at each of them while a reversal in the terminal's own
+                // ink was in force, where only the last before the overlay is under it.
+                if total <= prefixColumns {
+                    stateUnder = (style, field)
+                } else if notingFields {
+                    changes.note(
+                        Self.shownField(of: style, slot: field, terminalForeground: terminalForeground), at: total,
+                        first: fieldUnder())
+                }
+            } else {
+                suffixLink.note(text)
+            }
+        }
+        flushVisible()
+
+        // A line SHORTER than the overlay's column never reaches the cut in
+        // `flushVisible`, so its link is still open here — and the overlay is
+        // composited straight after it either way.
+        prefix += prefixLink.closingIfOpen
+        // The suffix begins inside whatever link the dropped columns opened,
+        // and carries no width, so it goes in front of the content rather than
+        // into a field of its own: `suffixWidth` is unchanged by construction.
+        let resumedSuffix = suffixLink.reopening + suffix
+        // What the suffix begins in goes back after the overlay's reset, a stated
+        // 49 included: netted away, the cells after the overlay took the page.
+        var restored = style
+        if field == SGRState.Colour.statedTerminalField { restored.setBackground(field) }
+        let under = fieldUnder()
+
+        return ANSIOverlaySplit(
+            prefix: prefix, prefixWidth: prefixWidth, suffix: resumedSuffix,
+            suffixWidth: suffixWidth,
+            styleBeforeSuffix: restored.rendered,
+            // No escape spells the terminal's own foreground as a field; a caller
+            // meets it in `fieldsUnderOverlay` and reverses the cells laid on it.
+            backgroundUnderOverlay: under.flatMap {
+                $0 == SGRState.Colour.terminalForegroundField ? nil : SGRState.backgroundEscape($0)
+            } ?? "",
+            fieldsUnderOverlay: FieldsUnderOverlay(
+                column: prefixColumns, first: under, changes: changes.changes),
+            totalWidth: total,
+            suffixDropColumns: suffixDropColumns)
+    }
+}
+
+extension String {
+    /// The field a cell in `state` SHOWS, `slot` being what its background slot holds
+    /// as a row still to be written reads it: that, unless the cell is reversed.
+    ///
+    /// Under reverse video a cell shows the ink the 7 exchanges its field with — the
+    /// colour a reversed row or caret is filled with — wherever that has a spelling as
+    /// a field. Read off the background slot, an overlay over a list's reversed cursor
+    /// row was drawn on the row's INK. The terminal's own foreground has no such
+    /// spelling — only a 7 draws it as a field — so it is held as a field of its own
+    /// kind (``SGRState/Colour/terminalForegroundField``), which the painter draws by
+    /// reversing the cell laid on it, or as the RGB the terminal reported for it, where
+    /// the caller knows one (`terminalForeground`, asked only then). Read off the slot
+    /// there too, an overlay over it took the terminal's own background (`Opacity as
+    /// composition` §107).
+    fileprivate static func shownField(
+        of state: SGRState, slot: SGRState.Colour?, terminalForeground: () -> SGRState.Colour?
+    ) -> SGRState.Colour? {
+        guard state.reversesVideo else { return slot }
+        guard let ink = state.foregroundColour else {
+            return terminalForeground() ?? SGRState.Colour.terminalForegroundField
+        }
+        return ink.asFieldFromInk ?? slot
+    }
+}
+
+// MARK: - The split itself
+
+/// One line cut for compositing, from a single scan.
+///
+/// A struct rather than a tuple because there are eight answers and they are
+/// not interchangeable; the fields carry the names the call site reads.
+struct ANSIOverlaySplit {
+    /// The visible columns before the overlay, with their styling.
+    let prefix: String
+    /// How wide ``prefix`` actually came out — short of the requested column
+    /// when a wide character straddles it.
+    let prefixWidth: Int
+    /// Everything from the first character at or past the overlay's right edge.
+    let suffix: String
+    /// How wide ``suffix`` is.
+    let suffixWidth: Int
+    /// The NETTED styling where the suffix begins, ready to re-emit — a stated
+    /// `ESC[49m` in force there included, which netting alone would drop.
+    let styleBeforeSuffix: String
+    /// The field in force where the overlay lands — `""` for none, which the row
+    /// builder puts the page under, and `ESC[49m` for the terminal's own — what
+    /// an overlay cell that names none is drawn over, where
+    /// ``fieldsUnderOverlay`` is uniform.
+    let backgroundUnderOverlay: String
+    /// The field under each column the overlay covers: the one it lands on, and
+    /// every column where it changes — or the first alone, uniform, for a split
+    /// asked not to note them.
+    let fieldsUnderOverlay: FieldsUnderOverlay
+    /// The line's whole visible width.
+    let totalWidth: Int
+
+    /// The column the suffix was dropped from — the overlay's end, so a
+    /// caller holding the split need not measure the overlay again.
+    let suffixDropColumns: Int
+}
+
+// MARK: - Painting a line over a field it did not ask about
+
+extension String {
+    /// This line with `background` in force wherever it states none of its own.
+    ///
+    /// A cell has a glyph and a field, and the two are separate statements: a
+    /// styled string that sets only a foreground has said nothing about the
+    /// field, so it can be drawn over one. That is what lets
+    /// `ZStack { Color.red; Text("hi") }` put the letters ON the red instead of
+    /// punching a hole in it — see ``FrameBuffer/composited(with:at:)``.
+    ///
+    /// The escape is emitted lazily, immediately before the first visible cell
+    /// of each run that would otherwise have no background, so a line that
+    /// states its own background everywhere comes back byte-identical and a
+    /// line that states none takes exactly one escape. Nothing is emitted after
+    /// the last visible character.
+    ///
+    /// - Parameter background: A background escape (`SGRState.renderedBackground`),
+    ///   or `""` to leave the line alone.
+    /// - Returns: The line, painted over that field.
+    package func paintedOver(background: String) -> String {
+        guard !background.isEmpty else { return self }
+
+        var state = SGRState()
+        var needsBackground = true
+        var result = ""
+        result.reserveCapacity(utf8.count + background.utf8.count * 2)
+
+        let scalars = unicodeScalars
+        var index = scalars.startIndex
+        while index < scalars.endIndex {
+            guard scalars[index].value == 0x1B else {  // not ESC → visible
+                if needsBackground {
+                    result += background
+                    needsBackground = false
+                }
+                result.unicodeScalars.append(scalars[index])
+                index = scalars.index(after: index)
+                continue
+            }
+            let (end, isSGR) = Self.escapeSequenceEnd(startingAt: index, in: scalars)
+            let text = String(scalars[index..<end])
+            index = end
+            result += text
+            if isSGR {
+                state.apply(text)
+                needsBackground = !state.namesBackground
+            }
+        }
+        return result
+    }
+}

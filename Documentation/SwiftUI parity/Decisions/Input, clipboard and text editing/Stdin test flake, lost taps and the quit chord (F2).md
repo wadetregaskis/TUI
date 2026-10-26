@@ -27,7 +27,7 @@ measured here. So for a while an app's ⌘4 quit the app there.
 **The owner's decision** (2026-10-06, about 09:00): "Ideally ^4 would be
 handled by our key handler, if one is installed for that combination.
 Without disturbing ^\\, which should be an independent shortcut (but also, if
-one is installed by TUIkit users, it should also override the SIGQUIT
+one is installed by TUI users, it should also override the SIGQUIT
 behaviour). But if we can't disambiguate the two, then… if we can detect the
 aliasing, or otherwise that ^4 — or any shortcut — needs SIGQUIT to be
 masked, then let's do that."
@@ -105,7 +105,7 @@ slow frame in a heavy app, is fed to the double tap before the tick that
 would have failed it. The press is too late to continue the
 double tap, which restarts at it. A single tap held back behind the double tap still holds the first
 click: macOS keeps a waiting tap's click (measured; see the commit "A gesture
-held back keeps the end it reached"), and TUIkit now does too. The single tap
+held back keeps the end it reached"), and TUI now does too. The single tap
 then runs late, when the restarted double tap gives up, or not at all if that
 double tap succeeds. The late click itself is no single tap. On macOS the
 first click's single tap would have run at the deadline, and the late click
@@ -134,7 +134,7 @@ It adds a branch to the press path only, not to frames.
 a double tap waiting for its next click, a sequence waiting for its second
 gesture, a drag mid-drag.*
 
-TUIkit gives up a gesture whose view the frame on screen no longer files —
+TUI gives up a gesture whose view the frame on screen no longer files —
 removed or disabled alike — once the next left-button event has been decided
 as if it were still there (the commit "A gesture whose view has gone waits
 for the next click"). For a removed view that is what macOS 15.8 does
@@ -143,15 +143,15 @@ one macOS gives the gestures up at the disable (probes review4b, review4c,
 review4d):
 
 - a `@GestureState` a disabled drag or waiting sequence updated resets at the
-  disable (S1, S3), where TUIkit resets it at the next left-button event;
+  disable (S1, S3), where TUI resets it at the next left-button event;
 - a row with a double and a single tap, clicked and disabled 0.1 s later
   inside an `.onTapGesture`, runs no single tap, but the tap around it runs
   the row's click at the disable, by a button or by a timer with no click
   after (R11d, R12d, R14d, R15d, R15d'), and the next click, beside the row
-  too, runs as usual. TUIkit runs that tap at the next press, and a press
+  too, runs as usual. TUI runs that tap at the next press, and a press
   beside the row then runs nothing of its own;
 - a waiting sequence disabled still keeps the tap around it, which it had
-  cancelled, off the next click beside it (R6, R16d), as TUIkit does. So
+  cancelled, off the next click beside it (R6, R16d), as TUI does. So
   macOS does not simply cancel at the disable either: a gesture that has won
   the press (a sequence waiting, a drag under way) still holds the next
   left-button event, while one that has not (a double tap waiting, a tap held
@@ -238,7 +238,7 @@ the app hangs.*
 Raw mode leaves the line discipline one signal character, the user's quit
 key, so the driver raises `SIGQUIT` for ⌃\\ before the app reads a byte,
 hung or not, over ssh too. But where the terminal speaks the kitty keyboard
-protocol, TUIkit pushes its "disambiguate" flag (with the other four, for the
+protocol, TUI pushes its "disambiguate" flag (with the other four, for the
 keys they deliver: flags 31), under which the terminal sends ⌃\\ as the
 report `CSI 92;5u` instead of 0x1C. No byte reaches the line discipline, so
 no signal. Which hosts: those that answer the protocol's query (kitty,
@@ -287,7 +287,7 @@ unread).
   for a binding on ⌃4, ⌃| or ⌃⇧\\ on a host that may alias, where the
   driver's quit is live but a pop would make the binding's key quit.
 - The quit's debt pops again after the watchdog's pop: on the alternate
-  screen, where TUIkit pushed, a pop of an empty stack is harmless.
+  screen, where TUI pushed, a pop of an empty stack is harmless.
 - Measured against the PTY smoke's terminal only; real hosts unmeasured.
 
 **To veto:** delete `StallWatchdog` and its three call sites (the run loop,

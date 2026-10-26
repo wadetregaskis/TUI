@@ -99,7 +99,7 @@ cd "$REPO"
 walk Example "$EXAMPLE_ITEMS"
 walk Stress  "$STRESS_ITEMS"
 
-# A program shipped as one file, without TUIkit's resource bundle beside it:
+# A program shipped as one file, without TUI's resource bundle beside it:
 # SwiftPM's `Bundle.module` stopped every such program at launch, and every
 # other check here runs the program beside its build's bundle. Stress copied
 # out alone must run in English (asked for German, which is in the bundle), and
@@ -177,7 +177,7 @@ fi
 # The same two-process shape for the language: `setLanguage(_:)` is the
 # localization service's half (change, persist) and an extension beside the
 # views that asks for the frame, put apart by the module split's R1. Switching
-# on the Theme page must redraw the page and TUIkit's own status bar words at
+# on the Theme page must redraw the page and TUI's own status bar words at
 # once, and the next launch must open in the choice. ~8 s, `full` only, on its
 # own config directory for the persistence probe's reason.
 if [ "$DEPTH" = "full" ]; then

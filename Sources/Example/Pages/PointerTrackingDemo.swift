@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  PointerTrackingDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Following the pointer cell by cell (`.onContinuousHover`, where `.onHover`
 /// says only in or out), and the modifier keys held (`.onModifierKeysChanged`

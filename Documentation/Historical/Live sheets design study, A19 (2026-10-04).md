@@ -50,7 +50,7 @@ work.
 
 ---
 
-## 1. The problem in TUIkit's terms
+## 1. The problem in TUI's terms
 
 **What a sheet is today.** `.sheet(isPresented:)` forwards to `.modal`
 (`View+Presentation.swift:395`, `:329`), which builds a
@@ -103,12 +103,12 @@ comments are paraphrased here, not quoted.
 | `View.presentationBackgroundInteraction(_:)` | same | Many platforms disable the view behind a sheet; this modifier enables it. |
 
 **Type shapes already match.** `PresentationBackgroundInteraction` is not
-`Equatable` in SwiftUI, and `PresentationContentInteraction` is. TUIkit's types
+`Equatable` in SwiftUI, and `PresentationContentInteraction` is. TUI's types
 match (`PresentationInteraction.swift:32`, `:56`), so adding cases is purely
 additive. `Visibility` exists (`ListRowSeparatorModifier.swift:34`).
 
 **What follows from the doc comments.** On iOS, `.automatic` content
-interaction behaves like `.resizes`. TUIkit documents `.automatic` as "its
+interaction behaves like `.resizes`. TUI documents `.automatic` as "its
 content scrolls" (`PresentationInteraction.swift:63`). That is owner question
 Q5.
 
@@ -287,7 +287,7 @@ From `Terminal-compatibility.md` and the memory notes:
 | Return / Space on the grabber | adopt | Cycles to the next detent, like the iOS grabber's activation (hypothesis, §2). |
 | Escape | the focused pane's | §7 and Q6. |
 | Tab / Shift-Tab | unchanged | Section cycling crosses page ↔ sheet. |
-| F6 ("next pane") | not now | Nothing in TUIkit binds it. Tab already does the job. Revisit if readers ask. |
+| F6 ("next pane") | not now | Nothing in TUI binds it. Tab already does the job. Revisit if readers ask. |
 
 Mouse: drag the sheet's top border row (the whole row is the target and the
 drawn handle is short, as with `.userResizable`). A press focuses the grabber.

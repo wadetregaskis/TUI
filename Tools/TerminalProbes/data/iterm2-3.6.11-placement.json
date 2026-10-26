@@ -74,5 +74,5 @@
     "full_screen": 3.2298159999999996,
     "full_screen_cells": "199x52"
   },
-  "rendered": "CONFIRMED 2026-09-04 by a person: the card draws, hue L->R and fade T->B, in the right place, 12x4 \u2014 with all three diacritics per cell. iTerm2 decodes in specification order and advances one cell per placeholder; its only defect is that it treats the spec-optional third diacritic as required (see the desktop bug report). The shipped encoder writes all three marks, so TUIkit draws."
+  "rendered": "CONFIRMED 2026-09-04 by a person: the card draws, hue L->R and fade T->B, in the right place, 12x4 \u2014 with all three diacritics per cell. iTerm2 decodes in specification order and advances one cell per placeholder; its only defect is that it treats the spec-optional third diacritic as required (see the desktop bug report). The shipped encoder writes all three marks, so TUI draws."
 }

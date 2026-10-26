@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TerminalPage.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 // MARK: - Terminal Page
 
@@ -110,7 +110,7 @@ struct TerminalPage: View {
                     .foregroundStyle(.palette.foregroundSecondary)
                 ValueDisplayRow(
                     "page.terminal.attentionHere",
-                    // Where a notification is not known to show, TUIkit rings
+                    // Where a notification is not known to show, TUI rings
                     // the bell instead.
                     L(terminal.supports(.notifications) ? "page.terminal.notification" : "page.terminal.bell"))
                 Button(L(isAskingSoon ? "page.terminal.asking" : "page.terminal.ask")) {

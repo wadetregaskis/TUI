@@ -3,15 +3,15 @@ builder:
   configs:
     # Swift Package Index builds one documentation archive per target, in this
     # order, behind a selector; the first is the landing page, and
-    # /documentation/tuikit (the link the project template writes) is its URL.
+    # /documentation/tui (the link the project template writes) is its URL.
     # The umbrella declares nothing, so its archive holds the catalog's
     # articles and no API: the API is in the modules after it. Every module in
     # Tools/BuildDocs/unify_symbol_graphs.py's MODULES must be listed, umbrella
     # first; Tools/BuildDocs/check_spi_targets.py fails the docs build if not.
     # (Tools/BuildDocs/build-docs.sh builds the one-module reference instead.)
-    - documentation_targets: [TUIkit, TUIkitApp, TUIkitBitmaps, TUIkitChrome, TUIkitColorPicker,
-                              TUIkitCommands, TUIkitCurveEditors, TUIkitEffects, TUIkitFilePanels, TUIkitForms, TUIkitGrid,
-                              TUIkitLists, TUIkitMenus, TUIkitNavigation, TUIkitNumericControls, TUIkitPickers,
-                              TUIkitPresentation, TUIkitScenes, TUIkitSearch, TUIkitTabImages, TUIkitTables,
-                              TUIkitTabs, TUIkitTextInput,
-                              TUIkitFoundation, TUIkitStrings, TUIkitTerminalHost, TUIkitView, TUIkitStyling, TUIkitCore, TUIkitImage]
+    - documentation_targets: [TUI, TUIApp, TUIBitmaps, TUIChrome, TUIColorPicker,
+                              TUICommands, TUICurveEditors, TUIEffects, TUIFilePanels, TUIForms, TUIGrid,
+                              TUILists, TUIMenus, TUINavigation, TUINumericControls, TUIPickers,
+                              TUIPresentation, TUIScenes, TUISearch, TUITabImages, TUITables,
+                              TUITabs, TUITextInput,
+                              TUIFoundation, TUIStrings, TUITerminalHost, TUIView, TUIStyling, TUICore, TUIImage]

@@ -1,13 +1,13 @@
-# Splitting TUIkit into modules: the plan, revision 4 (the refined map, checked)
+# Splitting TUI into modules: the plan, revision 4 (the refined map, checked)
 
-> **What this is.** The design for splitting TUIkit's single 230k-line module into an umbrella over twenty modules
+> **What this is.** The design for splitting TUI's single 230k-line module into an umbrella over twenty modules
 > that compile in parallel and that apps can later depend on à la carte: the module map, every cut out of the base
 > module with its seam and price, the migration as landable steps, and the decisions. Revision 4 (2026-10-07), after
 > three designers, two judges, a synthesis and a skeptic who re-ran every check against the code. Earlier revisions
 > and the trial split's measurements stay in the working notes.
 >
 > **Decided since this was written (owner, 2026-10-07):**
-> - **D1:** the names stand, except that the base module is **TUIkitFoundation**, not TUIkitBase (this text keeps
+> - **D1:** the names stand, except that the base module is **TUIFoundation**, not TUIBase (this text keeps
 >   the name it was written with). Committed to `Tools/ModuleMap/rules.json`.
 > - **D4:** accepted: under products option (b) every app carries the split's export table during the battle-test.
 > - **D2, D3:** deferred until after Phase C and the battle-test, as recommended.
@@ -21,7 +21,7 @@
 Revision 3 (the refine round's synthesis of the slimbase, layers and leaves designs and the judge-owner and judge-risk
 judgements) with the skeptic's corrections (`split2/refine/challenge/`) applied, 2026-10-07. Revision 3 is kept as
 `plan-refined.r3.md`; plan revision 2 (`split2/plan.md`) is kept as is. Sources at main be7aba9df, whose
-`Sources/TUIkit` equals 59e04b011's (diffed).
+`Sources/TUI` equals 59e04b011's (diffed).
 
 **Evidence tags**
 - **measured**: counts, line totals, findings, crossing sites and widening, all from the index and `Tools/ModuleMap`.
@@ -36,9 +36,9 @@ judgements) with the skeptic's corrections (`split2/refine/challenge/`) applied,
 
 **What revision 4 corrects** (the skeptic re-ran every check and recomputed the headline numbers; all reproduced)
 1. **S1 was not a pure split.** The `imageCellAspect` setter calls `ASCIIConverter.sanitizedCellAspect`
-   (`Views/Image.swift:509`), which is in TUIkitImage. S1 now also moves that rule (`sanitizedCellAspect`,
-   `cellAspectRange`) down into TUIkitStyling as `package` API, with `ASCIIConverter`'s public members forwarding to
-   it, so there is still one copy of the rule. Base drops TUIkitImage only once that lands.
+   (`Views/Image.swift:509`), which is in TUIImage. S1 now also moves that rule (`sanitizedCellAspect`,
+   `cellAspectRange`) down into TUIStyling as `package` API, with `ASCIIConverter`'s public members forwarding to
+   it, so there is still one copy of the rule. Base drops TUIImage only once that lands.
 2. **A Linux-only call the index never saw would break B2 on every Linux lane.** `UserDefaultsStorage.swift:246`
    (Base, `#elseif os(Linux)`) calls the internal `sanitizedProcessName`, which moves to Strings. B2 widens it to
    `package`. Every carve now runs the inactive-arm scan and a Linux cross-compile before landing.
@@ -61,7 +61,7 @@ Price of the corrections: about +0.75 agent-day, no extra quiet-box A/B (two emi
 B3), and no change to any build-time figure at one decimal.
 
 **What revision 3 changed over plan revision 2** (still true)
-- **The owner's answers.** TUIkitBase stays; TUIkitControls is dissolved. Small modules are kept only where they never
+- **The owner's answers.** TUIBase stays; TUIControls is dissolved. Small modules are kept only where they never
   lengthen an import list. Base is as slim as is worth doing. Under products (b), only the umbrella is advertised;
   per-module products wait for the battle-test.
 - **Base: 127,418 → 108,068 lines (54.8% → 46.5%, −19.4k)**, measured on the r4 rules. A4's two block splits put about
@@ -69,10 +69,10 @@ B3), and no change to any build-time figure at one decimal.
   moves out of Base and one back in (§2); four need code changes (R1, R2, S1, S2).
 - **Full clean build (est.):** 61.9 → **52.5 s**, 55.9 s conservative; today 77.8 s (measured). Under (b) every app
   pays exactly this build. The coarse stage drops from 66.8 to 57.4 s (60.8 conservative).
-- **20 modules plus the umbrella** (plan: 15 plus the umbrella). New: TUIkitTerminalHost (side lane), TUIkitChrome,
-  TUIkitEffects, TUIkitBitmaps, TUIkitMenus, TUIkitNumericControls. Gone: TUIkitControls.
+- **20 modules plus the umbrella** (plan: 15 plus the umbrella). New: TUITerminalHost (side lane), TUIChrome,
+  TUIEffects, TUIBitmaps, TUIMenus, TUINumericControls. Gone: TUIControls.
 - **Refactors.** New: R1, R2, S1, S2. K3 is dropped (ViewRenderer moves to App with `renderOnce`). K1 gains one slot.
-- **The tool** gains a `lower` check (a side module cannot silently start using TUIkitView) and per-member public-API
+- **The tool** gains a `lower` check (a side module cannot silently start using TUIView) and per-member public-API
   reporting.
 - **Set L** folds into A3, because several of its callees now first cross at B2 and B4.
 - **New carves:** B5b (Chrome, Effects, Menus, after the Navigation group, because Presentation uses Chrome) and B5c
@@ -83,31 +83,31 @@ B3), and no change to any build-time figure at one decimal.
 ## 0. The answer in one screen
 
 ```
- TUIkitCore ──┬────────────────────────► TUIkitView ──┐   lower four, unchanged (Windows-binding)
- TUIkitStyling┴─► TUIkitImage ─────────────────────────┼──────────────► only Bitmaps and ColorPicker use it now
+ TUICore ──┬────────────────────────► TUIView ──┐   lower four, unchanged (Windows-binding)
+ TUIStyling┴─► TUIImage ─────────────────────────┼──────────────► only Bitmaps and ColorPicker use it now
  side lane (compiles beside View; never imported; Base re-exports it):
-   TUIkitStrings       SF table, Markdown, format styles + localization and the resources   needs Core
-   TUIkitTerminalHost  terminal facts as values (host, identity, quirks, capabilities)       needs Core
+   TUIStrings       SF table, Markdown, format styles + localization and the resources   needs Core
+   TUITerminalHost  terminal facts as values (host, identity, quirks, capabilities)       needs Core
                                                        ▼
-                                                  TUIkitBase  46.5% (was 54.8%)
+                                                  TUIBase  46.5% (was 54.8%)
                                                        │
    leaves over Base (extra edges in brackets)
-   TUIkitApp [Chrome]  (POSIX run loop, Scene)   TUIkitChrome   TUIkitEffects   TUIkitBitmaps   TUIkitMenus
-   TUIkitNumericControls   TUIkitTextInput   TUIkitPickers   TUIkitForms   TUIkitGrid   TUIkitNavigation
-   TUIkitPresentation [Chrome]   TUIkitLists   TUIkitTables [Lists]   TUIkitTabs [Lists]
-   TUIkitSearch [TextInput, Pickers]   TUIkitColorPicker [NumericControls, TextInput, Pickers, Tabs, Presentation]
- TUIkit = umbrella: @_exported import of everything, no code. `import TUIkit` and its API are unchanged.
+   TUIApp [Chrome]  (POSIX run loop, Scene)   TUIChrome   TUIEffects   TUIBitmaps   TUIMenus
+   TUINumericControls   TUITextInput   TUIPickers   TUIForms   TUIGrid   TUINavigation
+   TUIPresentation [Chrome]   TUILists   TUITables [Lists]   TUITabs [Lists]
+   TUISearch [TextInput, Pickers]   TUIColorPicker [NumericControls, TextInput, Pickers, Tabs, Presentation]
+ TUI = umbrella: @_exported import of everything, no code. `import TUI` and its API are unchanged.
 ```
 
 | | Today | Plan rev 2 | **Refined (r4)** | Option D-m: + menu engine |
 |---|---|---|---|---|
-| Base lines (% of TUIkit) | 230,756 in one module | 127,418 (54.8%) | **108,068 (46.5%)**, ≈108.2k after A4 | 105,705 (45.4%) |
+| Base lines (% of TUI) | 230,756 in one module | 127,418 (54.8%) | **108,068 (46.5%)**, ≈108.2k after A4 | 105,705 (45.4%) |
 | Base job, Xcode (est.) | — | 39.6 s | **30.2 s (cons. 33.6)** | 29.2 (32.7) |
 | Full clean build, Xcode: every app under (b) | **77.8 s measured** | 61.9 s | **52.5 s (cons. 55.9)** | 51.5 (55.0) |
 | Same, swiftly 6.2.4 | ≈ 110 s (model) | 89.8 s | **77.6 s (cons. 82.0)** | 76.3 (80.8) |
 | End of Phase B (coarse stage), Xcode | — | 66.8 s | **57.4 s (cons. 60.8)** | — |
 | Stripped binary, every app under (b) | **11.15 MB measured** | 11.59 MB | **11.66 MB** | 11.66 MB |
-| À la carte later: hello world | — | 7.90 MB, 65.3% of lines | **7.56 MB, 62.0%** (≈ 7.3 MB without TUIkitImage, once S1's sanitiser move lands) | 7.45 MB, 61.0% |
+| À la carte later: hello world | — | 7.90 MB, 65.3% of lines | **7.56 MB, 62.0%** (≈ 7.3 MB without TUIImage, once S1's sanitiser move lands) | 7.45 MB, 61.0% |
 | `Tools/ModuleMap check` (measured) | — | 0 new (28) | **0 new (40; 45 with `lower`)** | 0 new (50; 55) |
 | Files split across modules (measured) | — | 80 | **93**, plus two extension blocks split (S1, S2) | 93 |
 | Widened to `package`, member level (measured) | — | 2,055 | **2,367** | 2,392 |
@@ -135,52 +135,52 @@ the new check enforces; "all" means all four.
 
 | Module | Contents | Lines (%) | Decls / files | Job | Ends | Depends on | `lower` |
 |---|---|---|---|---|---|---|---|
-| **TUIkitStrings** (side) | The SF Symbols name table, the inline-Markdown parser, the format styles; **plus localization**: `LocalizationService` and its extensions, `BundleStringTables`, `LocalizationKey`, `ModuleResource` (so it holds the resources), `StorageDiagnostics`/`StorageFailure`, `appConfigDirectory()`, `sanitizedProcessName` (`package` from B2) | 14,687 (6.3%) | 45 / 26 | 3.7 s | 13.2 / 23.3 s | — | Core (`Lock`) |
-| **TUIkitTerminalHost** (side, new) | Terminal facts as values: `TerminalHost` (cases, quirks), `TerminalIdentity` with `startupIdentity`, `TerminalClient` and its capability queries, `ClientCapabilities`, `ProcessAncestry`, `ClipboardLocality`, hyperlink and clipboard support, URL opening. The probes that fill them in stay in App (K4). | 2,616 (1.1%) | 14 / 10 | 0.5 s | 10.0 / 19.2 s | — | Core |
-| **TUIkitBase** | The default: the substrate, plus what two or more leaves use (below) | **108,068 (46.5%)** | 2,238 / 468 | **30.2 (33.6) s** | **44.8 (48.2) / 67.6 s** | Strings, TerminalHost | Core, Styling, View (**no Image**, after S1) |
-| **TUIkitChrome** (new) | What the run loop draws around the content: the `StatusBar` view, toolbars (`.toolbar`, `ToolbarItem`, the builder, bars, `ToolbarPlacement`, `.toolbarVisibility`), notifications (`NotificationService`, the host), the tooltip popover and `.tooltipStyle`/`.tooltips`/`.tooltipDelay`, `.help`, `.statusBarItems`, the window chrome host, the overlay compositor (`FrameBuffer+Overlays`), the screen-selection highlight and Copy menu. Not `.focusSection` (S2). | 5,187 (2.2%) | 93 / 28 | 2.8 s | 47.6 / 71.2 s | Base | all |
-| **TUIkitEffects** (new) | `.transition`, `AnyTransition`, `Transition` and the built-in and custom transitions; content transitions; `.symbolEffect`; `.visualEffect`; `.scrollTransition`; the colour effects (brightness, contrast, saturation, hue rotation, grayscale, invert, multiply) | 3,736 (1.6%) | 99 / 13 | 0.8 s | 45.6 / 68.7 s | Base | all |
-| **TUIkitBitmaps** (new) | Image's bitmap path: `Image(_:)` from a file or URL, `Image(_:bundle:)`, `_ImageCore` with its render cache and templates, orientation, `AsyncImage`, `.terminalGraphics`, the `.image*` options, asset catalogs and `Color(_:bundle:)`, the `image:` initialisers of `Label` and `ContentUnavailableView`. Not `.aspectRatio`, `.scaledToFit`, `.scaledToFill` or `.imageCellAspect` (S1). | 3,632 (1.6%) | 51 / 14 | 1.1 s | 46.0 / 69.1 s | Base | all (uses Image) |
-| **TUIkitMenus** (new, a pure leaf) | `Menu`, `ControlGroup` and its styles, `.contextMenu`, `.menuStyle`, `.menuOrder`, the concrete menu styles, the popup and inline menu cores, the menu-column layout. The engine and the state rows and tabs use stay in Base, so **no leaf depends on Menus**. | 1,780 (0.8%) | 64 / 7 | 0.6 s | 45.4 / 68.4 s | Base | all |
-| **TUIkitNumericControls** (new) | Slider (ticks, value labels), Stepper, Gauge, ProgressView (timer); their handlers and styles; the track and indeterminate renderers and rasters with `.trackStyle`; `.sliderShowsValue` | 8,756 (3.8%) | 160 / 25 | 2.8 s | 47.6 / 71.2 s | Base | all |
-| TUIkitTextInput | As planned | 9,681 (4.2%) | 132 / 34 | 2.8 s | 47.6 / 71.3 s | Base | all |
-| TUIkitPickers | As planned | 5,064 (2.2%) | 104 / 18 | 1.3 s | 46.1 / 69.3 s | Base | all |
-| TUIkitForms | Form, LabeledContent, GroupBox, Card, Panel; their styles; `FormButtonRow`. `Box` stays in Base, as on the plan's map. | 2,219 (1.0%) | 89 / 8 | 0.5 s | 45.3 / 68.3 s | Base | all |
-| TUIkitGrid | As planned | 1,685 (0.7%) | 28 / 7 | 0.5 s | 45.3 / 68.3 s | Base | all |
-| TUIkitNavigation | As planned (with Inspector) | 5,443 (2.3%) | 117 / 18 | 1.2 s | 46.0 / 69.2 s | Base | all |
-| TUIkitPresentation | As planned | 6,307 (2.7%) | 159 / 25 | 1.3 s | 48.9 / 73.0 s | Base, **Chrome** (`notificationHost(width:)`) | all |
-| TUIkitLists | As planned | 16,748 (7.2%) | 211 / 60 | 3.4 s | 48.2 / 72.0 s | Base | all |
-| TUIkitTables | As planned | 12,192 (5.2%) | 168 / 28 | 3.6 s | 51.8 / 76.6 s | Lists | all |
-| TUIkitTabs | As planned | 4,852 (2.1%) | 130 / 18 | 1.5 s | 49.7 / 74.0 s | Lists | all |
-| TUIkitSearch | As planned | 1,576 (0.7%) | 38 / 9 | 0.5 s | 48.1 / 71.9 s | TextInput, Pickers | all |
-| TUIkitColorPicker | As planned | 4,639 (2.0%) | 44 / 12 | 2.3 s | 52.0 / 77.0 s | NumericControls, TextInput, Pickers, Tabs, Presentation | all (uses Image) |
-| **TUIkitApp** | The POSIX console layer as planned, **plus** `Scene`, `SceneBuilder`, `WindowGroup`, `SceneConfiguration` and every Scene modifier (toolbar style, palette and appearance overrides, environment, onChange, mouse support, text selection, theme, undo shortcuts, key notation, reduce motion), `ViewRenderer`, `FrameDiffWriter`, `renderOnce` | 13,785 (5.9%) | 143 / 58 | 3.3 s | 50.9 / 75.5 s | Base, Chrome, **DequeModule** (the `Terminal` files) | all |
-| TUIkit | `Exports.swift` only | 0 | — | 0.5 s | **52.5 (55.9) / 77.6 s** | all | — |
+| **TUIStrings** (side) | The SF Symbols name table, the inline-Markdown parser, the format styles; **plus localization**: `LocalizationService` and its extensions, `BundleStringTables`, `LocalizationKey`, `ModuleResource` (so it holds the resources), `StorageDiagnostics`/`StorageFailure`, `appConfigDirectory()`, `sanitizedProcessName` (`package` from B2) | 14,687 (6.3%) | 45 / 26 | 3.7 s | 13.2 / 23.3 s | — | Core (`Lock`) |
+| **TUITerminalHost** (side, new) | Terminal facts as values: `TerminalHost` (cases, quirks), `TerminalIdentity` with `startupIdentity`, `TerminalClient` and its capability queries, `ClientCapabilities`, `ProcessAncestry`, `ClipboardLocality`, hyperlink and clipboard support, URL opening. The probes that fill them in stay in App (K4). | 2,616 (1.1%) | 14 / 10 | 0.5 s | 10.0 / 19.2 s | — | Core |
+| **TUIBase** | The default: the substrate, plus what two or more leaves use (below) | **108,068 (46.5%)** | 2,238 / 468 | **30.2 (33.6) s** | **44.8 (48.2) / 67.6 s** | Strings, TerminalHost | Core, Styling, View (**no Image**, after S1) |
+| **TUIChrome** (new) | What the run loop draws around the content: the `StatusBar` view, toolbars (`.toolbar`, `ToolbarItem`, the builder, bars, `ToolbarPlacement`, `.toolbarVisibility`), notifications (`NotificationService`, the host), the tooltip popover and `.tooltipStyle`/`.tooltips`/`.tooltipDelay`, `.help`, `.statusBarItems`, the window chrome host, the overlay compositor (`FrameBuffer+Overlays`), the screen-selection highlight and Copy menu. Not `.focusSection` (S2). | 5,187 (2.2%) | 93 / 28 | 2.8 s | 47.6 / 71.2 s | Base | all |
+| **TUIEffects** (new) | `.transition`, `AnyTransition`, `Transition` and the built-in and custom transitions; content transitions; `.symbolEffect`; `.visualEffect`; `.scrollTransition`; the colour effects (brightness, contrast, saturation, hue rotation, grayscale, invert, multiply) | 3,736 (1.6%) | 99 / 13 | 0.8 s | 45.6 / 68.7 s | Base | all |
+| **TUIBitmaps** (new) | Image's bitmap path: `Image(_:)` from a file or URL, `Image(_:bundle:)`, `_ImageCore` with its render cache and templates, orientation, `AsyncImage`, `.terminalGraphics`, the `.image*` options, asset catalogs and `Color(_:bundle:)`, the `image:` initialisers of `Label` and `ContentUnavailableView`. Not `.aspectRatio`, `.scaledToFit`, `.scaledToFill` or `.imageCellAspect` (S1). | 3,632 (1.6%) | 51 / 14 | 1.1 s | 46.0 / 69.1 s | Base | all (uses Image) |
+| **TUIMenus** (new, a pure leaf) | `Menu`, `ControlGroup` and its styles, `.contextMenu`, `.menuStyle`, `.menuOrder`, the concrete menu styles, the popup and inline menu cores, the menu-column layout. The engine and the state rows and tabs use stay in Base, so **no leaf depends on Menus**. | 1,780 (0.8%) | 64 / 7 | 0.6 s | 45.4 / 68.4 s | Base | all |
+| **TUINumericControls** (new) | Slider (ticks, value labels), Stepper, Gauge, ProgressView (timer); their handlers and styles; the track and indeterminate renderers and rasters with `.trackStyle`; `.sliderShowsValue` | 8,756 (3.8%) | 160 / 25 | 2.8 s | 47.6 / 71.2 s | Base | all |
+| TUITextInput | As planned | 9,681 (4.2%) | 132 / 34 | 2.8 s | 47.6 / 71.3 s | Base | all |
+| TUIPickers | As planned | 5,064 (2.2%) | 104 / 18 | 1.3 s | 46.1 / 69.3 s | Base | all |
+| TUIForms | Form, LabeledContent, GroupBox, Card, Panel; their styles; `FormButtonRow`. `Box` stays in Base, as on the plan's map. | 2,219 (1.0%) | 89 / 8 | 0.5 s | 45.3 / 68.3 s | Base | all |
+| TUIGrid | As planned | 1,685 (0.7%) | 28 / 7 | 0.5 s | 45.3 / 68.3 s | Base | all |
+| TUINavigation | As planned (with Inspector) | 5,443 (2.3%) | 117 / 18 | 1.2 s | 46.0 / 69.2 s | Base | all |
+| TUIPresentation | As planned | 6,307 (2.7%) | 159 / 25 | 1.3 s | 48.9 / 73.0 s | Base, **Chrome** (`notificationHost(width:)`) | all |
+| TUILists | As planned | 16,748 (7.2%) | 211 / 60 | 3.4 s | 48.2 / 72.0 s | Base | all |
+| TUITables | As planned | 12,192 (5.2%) | 168 / 28 | 3.6 s | 51.8 / 76.6 s | Lists | all |
+| TUITabs | As planned | 4,852 (2.1%) | 130 / 18 | 1.5 s | 49.7 / 74.0 s | Lists | all |
+| TUISearch | As planned | 1,576 (0.7%) | 38 / 9 | 0.5 s | 48.1 / 71.9 s | TextInput, Pickers | all |
+| TUIColorPicker | As planned | 4,639 (2.0%) | 44 / 12 | 2.3 s | 52.0 / 77.0 s | NumericControls, TextInput, Pickers, Tabs, Presentation | all (uses Image) |
+| **TUIApp** | The POSIX console layer as planned, **plus** `Scene`, `SceneBuilder`, `WindowGroup`, `SceneConfiguration` and every Scene modifier (toolbar style, palette and appearance overrides, environment, onChange, mouse support, text selection, theme, undo shortcuts, key notation, reduce motion), `ViewRenderer`, `FrameDiffWriter`, `renderOnce` | 13,785 (5.9%) | 143 / 58 | 3.3 s | 50.9 / 75.5 s | Base, Chrome, **DequeModule** (the `Terminal` files) | all |
+| TUI | `Exports.swift` only | 0 | — | 0.5 s | **52.5 (55.9) / 77.6 s** | all | — |
 
 ### Names, as the owner asked
 
-- **TUIkitBase stays.** TUIkitCore is taken by the lower module, and renaming that one would churn every lower-module
-  import and the Windows lanes. TUIkitFoundation reads as Apple's Foundation, which every TUIkit file imports.
-- **TUIkitControls is dissolved.** Its contents now sit where a SwiftUI developer would look:
-  - Slider, Stepper, Gauge and ProgressView → **TUIkitNumericControls**. Every view in it edits or shows a number in a
+- **TUIBase stays.** TUICore is taken by the lower module, and renaming that one would churn every lower-module
+  import and the Windows lanes. TUIFoundation reads as Apple's Foundation, which every TUI file imports.
+- **TUIControls is dissolved.** Its contents now sit where a SwiftUI developer would look:
+  - Slider, Stepper, Gauge and ProgressView → **TUINumericControls**. Every view in it edits or shows a number in a
     range, and they share the track renderer. No other module holds such a control: Toggle is Boolean, and a TextField
     with a number format is a text field.
-  - Menu and ControlGroup → **TUIkitMenus** (SwiftUI's "Menus and commands"). ControlGroup goes too because its
+  - Menu and ControlGroup → **TUIMenus** (SwiftUI's "Menus and commands"). ControlGroup goes too because its
     `.menu` styles draw a Menu.
-  - Link, HelpLink, PasteButton and RenameButton → **TUIkitBase**, beside Button, Text's links, `OpenURLAction` and the
+  - Link, HelpLink, PasteButton and RenameButton → **TUIBase**, beside Button, Text's links, `OpenURLAction` and the
     clipboard (SwiftUI's "Buttons" and "Links").
-- **The new names:** **TUIkitChrome** (the code already says "window chrome": `WindowChromeHost`, `ChromeStyle`);
-  **TUIkitEffects** (transitions and visual effects); **TUIkitBitmaps** (not "TUIkitImages", one letter from the lower
-  TUIkitImage decoder module); **TUIkitTerminalHost** (not "TUIkitTerminal", because the POSIX `Terminal` class stays in
+- **The new names:** **TUIChrome** (the code already says "window chrome": `WindowChromeHost`, `ChromeStyle`);
+  **TUIEffects** (transitions and visual effects); **TUIBitmaps** (not "TUIImages", one letter from the lower
+  TUIImage decoder module); **TUITerminalHost** (not "TUITerminal", because the POSIX `Terminal` class stays in
   App).
-- **TUIkitStrings keeps its name.** With localization in it, the name fits better than before.
+- **TUIStrings keeps its name.** With localization in it, the name fits better than before.
 - **No catch-all names are left.** Every name is free to change until per-module products ship (§7, D1).
 
 ### Granularity
 
 Five modules hold about 1% of the code or less: Menus 0.8%, Grid 0.7%, Search 0.7%, Forms 1.0% and TerminalHost 1.1%.
 The owner's test is whether they lengthen an import list.
-- **Under (b), nobody imports them.** `import TUIkit` stays the only import.
+- **Under (b), nobody imports them.** `import TUI` stays the only import.
 - **TerminalHost and Strings are never imported, even later.** Base re-exports them.
 - **The leaves each earn their place (est.).** Folding Grid or Forms into Base puts +0.7 s or +0.5 s on every clean
   build, because Base is on every path; folding Menus into Base costs +0.9 s; folding Search into TextInput makes
@@ -227,7 +227,7 @@ Under (b) all of this is invisible, behind the umbrella. Three public overload s
 Bitmaps: the `Image`, `Label` and `ContentUnavailableView` initialisers with an `image:` or bundle source. A missing
 half is a compile error for an à-la-carte user, never a silent rebinding; 15 sets are split across modules in all,
 against the plan's 12. One placement is odd: the public `FrameBuffer.compositingOverlays(maxWidth:maxHeight:palette:)`
-goes to Chrome with the overlay compositor; it is rarely used outside TUIkit.
+goes to Chrome with the overlay compositor; it is rarely used outside TUI.
 
 ## 2. Base before and after: every cut, its seam, price and A/B
 
@@ -237,13 +237,13 @@ The r4 pins hand back 0.04 s in all (measured on the model), which changes no to
 
 | # | Cut | Decls / lines (measured) | Base job saved: model / conservative (est.) | Seam | Runtime (new crossing sites, measured; hottest callee by profiled inclusive share) | A/B | Effort |
 |---|---|---|---|---|---|---|---|
-| 1 | **Localization → Strings** (side lane) | 14 / 1,740 | 2.18 / 0.68 s. Most of the file's SIL is stdlib `Dictionary` specialisation, which Base may still need. | **R1** (2 sites; the `lower` check finds 5 findings, 8 references). `setLanguage(_:)` and `register(translations:)` call `AppState.shared.setNeedsRender…()`, which is in TUIkitView. They become a Base extension that calls a core in Strings and then AppState: no new mechanism, no registry, no hook on the singleton. Strings gains TUIkitCore (`Lock`). The resources move with `moduleResourceURL`, so the bundle becomes `TUIkit_TUIkitStrings.bundle`. **The Linux arm of `UserDefaultsStorage` calls `sanitizedProcessName`, which moves here; B2 widens it to `package`** (the index never saw the call). | 287 sites Base→Strings, plus 7 from Chrome. Hottest: `LocalizationService.string(for:)`, 2.35%: a lock plus lookups, its own work. **Not in set L**: `@inlinable` cannot reach its private state. | B2 | R1 0.25 d |
+| 1 | **Localization → Strings** (side lane) | 14 / 1,740 | 2.18 / 0.68 s. Most of the file's SIL is stdlib `Dictionary` specialisation, which Base may still need. | **R1** (2 sites; the `lower` check finds 5 findings, 8 references). `setLanguage(_:)` and `register(translations:)` call `AppState.shared.setNeedsRender…()`, which is in TUIView. They become a Base extension that calls a core in Strings and then AppState: no new mechanism, no registry, no hook on the singleton. Strings gains TUICore (`Lock`). The resources move with `moduleResourceURL`, so the bundle becomes `TUI_TUIStrings.bundle`. **The Linux arm of `UserDefaultsStorage` calls `sanitizedProcessName`, which moves here; B2 widens it to `package`** (the index never saw the call). | 287 sites Base→Strings, plus 7 from Chrome. Hottest: `LocalizationService.string(for:)`, 2.35%: a lock plus lookups, its own work. **Not in set L**: `@inlinable` cannot reach its private state. | B2 | R1 0.25 d |
 | 2 | **Terminal facts → TerminalHost** (side lane, new) | 14 / 2,616 | 0.65 / 0.56 s | **None.** A free carve: the assigner moves the files and pulls nothing down. K4 and K6 apply here unchanged. | 28 sites Base→TerminalHost and 36 App→TerminalHost; none ≥ 0.3% in any profile. **Per emitted row:** FrameDiffWriter reads `TerminalClient.simulatedQuirks` (`FrameDiffWriter.swift:539`, and `:589–590` with `simulated` in `model`) and calls `TerminalClient.compensating` (`:570`). The `is*` flags are read once, at init. Stress's A/B never runs FrameDiffWriter, so B2 adds an emission bench. If it shows, snapshot `model` once per frame (App-local, no annotation). | B2 | 0.25 d in B2 |
-| 3 | **Window chrome → Chrome** | 93 / 5,187 (rev 3: 100 / 5,402) | 3.14 / 1.72 s (rev 3). The overlay compositor is 1.0 s of stdlib specialisation. | **None**, beyond S2 (below). A free carve. The assigner keeps in Base what Base uses: `StatusBarState`, `SystemStatusBarItem`, the item builder, `TooltipState`, `TooltipStyle` and its keys, `WindowChromeState` and `ToolbarItemPlacement` (`ToolbarPlacement` goes to Chrome), some of them by pin. **K1 gains one opaque slot** (`notificationService`), in its existing pattern. K5's edge now starts in Chrome, with the same fix. | 905 Chrome→Base sites, per frame. Hottest: the VStack/HStack inits (default CMO inlines them, t13); `ANSIRenderer.styleSequence` (its own work); `MouseEventDispatcher.register`, 1.86%, in set L. M3's TUIkitChrome held 22 of the 42 files that Chrome and Effects take, so M3's A/B partly covered this boundary, and its app-shapes cold +2.3% is still unattributed: **step 0a is binding before B5b.** | B5b | 0.5 d |
-| 4 | **Effects → Effects** | 99 / 3,736 | 1.12 / 1.00 s | **None.** A free carve. Transition removal plays back through TUIkitView's DepartureStore closures, so Base never names a transition type. `TimelineView` stays, because ProgressView uses it. `_SymbolEffectGlyph` stays too: `_SymbolIcon` draws it, and M3 lost Label icons over it. Only the `.symbolEffect` modifiers move. | 218 sites. Hottest: `View.modifier`, 0.34%. **Per row or line:** `.scrollTransition` (per row per frame; the Geometry scenario covers it), and the colour effects, which call `SGRColorRewrite.rewriting(…){closure}` (`ColorEffectModifiers.swift:252`) per line across the boundary. That costs the closure's specialisation and adds an indirect call per SGR colour code. **No Stress scenario uses colour effects**, so one is added before B5b. If it shows, the remedy is `@inlinable package` on `rewriting` (tier 2's style), or keeping the 386-line `ColorEffectModifiers.swift` in Base (≈0.1 s). | B5b | 0.25 d, + 0.25 d scenario |
-| 5 | **Bitmaps → Bitmaps** | 51 / 3,632 (rev 3: 54 / 3,650) | 1.47 / 1.43 s (rev 3). **Base drops TUIkitImage and CSTBImage once S1's sanitiser move lands.** The `lower` check gives 159 Base→TUIkitImage findings on the plan's map and 0 on this one; that 0 holds only because the S1 block is still assigned to Bitmaps until A4 splits it. | **R2** (4 edges, 11 references; below). **S1** (5 edges, 12 references; below). | One existential call per image measure or render, and 260 sites on the image's own path. Hottest: `Text.init<S>`, which tier 1's shim covers. | B5c | R2 1–1.5 d; S1 0.5 d in A4 |
+| 3 | **Window chrome → Chrome** | 93 / 5,187 (rev 3: 100 / 5,402) | 3.14 / 1.72 s (rev 3). The overlay compositor is 1.0 s of stdlib specialisation. | **None**, beyond S2 (below). A free carve. The assigner keeps in Base what Base uses: `StatusBarState`, `SystemStatusBarItem`, the item builder, `TooltipState`, `TooltipStyle` and its keys, `WindowChromeState` and `ToolbarItemPlacement` (`ToolbarPlacement` goes to Chrome), some of them by pin. **K1 gains one opaque slot** (`notificationService`), in its existing pattern. K5's edge now starts in Chrome, with the same fix. | 905 Chrome→Base sites, per frame. Hottest: the VStack/HStack inits (default CMO inlines them, t13); `ANSIRenderer.styleSequence` (its own work); `MouseEventDispatcher.register`, 1.86%, in set L. M3's TUIChrome held 22 of the 42 files that Chrome and Effects take, so M3's A/B partly covered this boundary, and its app-shapes cold +2.3% is still unattributed: **step 0a is binding before B5b.** | B5b | 0.5 d |
+| 4 | **Effects → Effects** | 99 / 3,736 | 1.12 / 1.00 s | **None.** A free carve. Transition removal plays back through TUIView's DepartureStore closures, so Base never names a transition type. `TimelineView` stays, because ProgressView uses it. `_SymbolEffectGlyph` stays too: `_SymbolIcon` draws it, and M3 lost Label icons over it. Only the `.symbolEffect` modifiers move. | 218 sites. Hottest: `View.modifier`, 0.34%. **Per row or line:** `.scrollTransition` (per row per frame; the Geometry scenario covers it), and the colour effects, which call `SGRColorRewrite.rewriting(…){closure}` (`ColorEffectModifiers.swift:252`) per line across the boundary. That costs the closure's specialisation and adds an indirect call per SGR colour code. **No Stress scenario uses colour effects**, so one is added before B5b. If it shows, the remedy is `@inlinable package` on `rewriting` (tier 2's style), or keeping the 386-line `ColorEffectModifiers.swift` in Base (≈0.1 s). | B5b | 0.25 d, + 0.25 d scenario |
+| 5 | **Bitmaps → Bitmaps** | 51 / 3,632 (rev 3: 54 / 3,650) | 1.47 / 1.43 s (rev 3). **Base drops TUIImage and CSTBImage once S1's sanitiser move lands.** The `lower` check gives 159 Base→TUIImage findings on the plan's map and 0 on this one; that 0 holds only because the S1 block is still assigned to Bitmaps until A4 splits it. | **R2** (4 edges, 11 references; below). **S1** (5 edges, 12 references; below). | One existential call per image measure or render, and 260 sites on the image's own path. Hottest: `Text.init<S>`, which tier 1's shim covers. | B5c | R2 1–1.5 d; S1 0.5 d in A4 |
 | 6 | **Menu views → Menus** (a pure leaf) | 31 / 1,104 from Base, plus 33 / 676 from Controls | 0.79 / 0.57 s | **None.** The menu engine, `ContextMenuState`, the menu-row sink and `MenuStyle` stay in Base. A4 splits `MenuPopover.swift` into its column and popup halves. | 227 Menus→Base sites, **per frame for each row of an open menu** (the MenuBar scenario covers it). Hottest: `FocusRegistration.register`, 3.15%, in set L. | B5b | 0.25 d |
-| 7 | **The Scene family and the run-loop rendering → App** | 53 / 2,219 | 0.31 / 0.30 s | **None, and K3 is dropped.** `ViewRenderer` and `FrameDiffWriter` move with `renderOnce`, so ViewRenderer needs no `any TerminalProtocol` parameter. App gains the DequeModule dependency (B3). | 172 App→Base sites, per frame. Hottest: the environment accessors (`mouseEventDispatcher` 1.24%, `preferenceStorage` 0.94%), tier 1 and E1. FrameDiffWriter's `TerminalProtocol` calls are existential already; its ANSI clip and compensation helpers are in TUIkitCore today. B3 adds an emission bench. | B3 | −0.25 d (no K3) |
+| 7 | **The Scene family and the run-loop rendering → App** | 53 / 2,219 | 0.31 / 0.30 s | **None, and K3 is dropped.** `ViewRenderer` and `FrameDiffWriter` move with `renderOnce`, so ViewRenderer needs no `any TerminalProtocol` parameter. App gains the DequeModule dependency (B3). | 172 App→Base sites, per frame. Hottest: the environment accessors (`mouseEventDispatcher` 1.24%, `preferenceStorage` 0.94%), tier 1 and E1. FrameDiffWriter's `TerminalProtocol` calls are existential already; its ANSI clip and compensation helpers are in TUICore today. B3 adds an emission bench. | B3 | −0.25 d (no K3) |
 | in | **Link, LinkDisplay, HelpLink, PasteButton, RenameButton, `.refreshIndicator`, `.shiftStepMultiplier`**, from the plan's Controls into Base | 26 / 884 | −0.20 s | **None.** Removes crossings. | — | — | — |
 
 > **Added 2026-10-08:** the profiled shares in the Runtime column, each cut's
@@ -276,13 +276,13 @@ The r4 pins hand back 0.04 s in all (measured on the model), which changes no to
   - the content-mode and aspect-ratio pair: `ImageContentModeKey`, `ImageAspectRatioKey`, `imageContentMode`,
     `imageExplicitContentMode`, `imageAspectRatio`, and the layout modifiers `.aspectRatio(_:contentMode:)`,
     `.scaledToFit()` and `.scaledToFill()`, beside `Image.resizable()`. `_ImageCore` (Bitmaps) reads them downward.
-- **The sanitiser move.** The setter's rule moves down into TUIkitStyling as `package` API: `sanitizedCellAspect` and
-  `cellAspectRange`. TUIkitImage already depends on Styling, so `ASCIIConverter`'s two public members stay and forward
+- **The sanitiser move.** The setter's rule moves down into TUIStyling as `package` API: `sanitizedCellAspect` and
+  `cellAspectRange`. TUIImage already depends on Styling, so `ASCIIConverter`'s two public members stay and forward
   to it.
   - The rule keeps exactly one implementation; its comment records that a second copy once let `.infinity` through.
   - No new public API.
   - It is pure arithmetic in a module that must keep building on Windows, which the advisory Windows lane checks.
-- **Without the move,** Base keeps a TUIkitImage dependency for one function. That costs no build time, and about
+- **Without the move,** Base keeps a TUIImage dependency for one function. That costs no build time, and about
   0.25 MB for an à-la-carte app without bitmaps later (slimbase's estimate). The move is recommended.
 
 **S2 in detail** (A4, new): `.focusSection(_:)` is split out of the `.statusBarItems` extension block
@@ -304,7 +304,7 @@ What is left in it is used by everything, so further cuts are no longer free:
   Est. −4 to −6 s on top: judge-owner's estimate from layers' full2 at 45.5 s, 49.2 conservative; not measured on this
   map. It brings per-cell crossings, set S (215 declarations) and two tie rules the tool lacks.
 - **The leaf lift and mid layers:** rejected (§6).
-- **Splitting TUIkitCore (D-d):** 9.5 s on every path, unexplored.
+- **Splitting TUICore (D-d):** 9.5 s on every path, unexplored.
 
 ## 3. Critical path, and what apps compile and link
 
@@ -362,7 +362,7 @@ against 77.8 s today.
 **Later, à la carte** (est.). Every app compiles Strings, TerminalHost, Base, Chrome and App. Plan rev 2's figures are in
 brackets.
 
-| App | Extra modules | TUIkit lines compiled | Stripped | Family ends, Xcode / swiftly |
+| App | Extra modules | TUI lines compiled | Stripped | Family ends, Xcode / swiftly |
 |---|---|---|---|---|
 | Hello world | — | 144.3k, 62.0% (151.9k, 65.3%) | 7.56 MB (7.90) | 50.9 / 75.5 s (57.2) |
 | Typical: List, TextField, Picker, alert, toolbar | Lists, TextInput, Pickers, Presentation | 182.1k, 78.3% (81.6%) | 9.12 MB (9.47) | 50.9 s (57.6) |
@@ -372,13 +372,13 @@ brackets.
 | Dashboard: Grid, Gauge, GroupBox | Grid, NumericControls, Forms | 157.0k, 67.5% (71.4%) | 8.17 MB (8.59) | 50.9 s (57.3) |
 | Everything | all | 232.7k, 100% | 11.66 MB (11.59) | 52.5 / 77.6 s (61.9) |
 
-- **TUIkitImage.** Once S1's sanitiser move lands, apps without Bitmaps or ColorPicker also stop linking TUIkitImage
+- **TUIImage.** Once S1's sanitiser move lands, apps without Bitmaps or ColorPicker also stop linking TUIImage
   and CSTBImage: about −0.25 MB more, on slimbase's estimate; the table leaves it out.
 - **The sizes** use plan §2's formula, with 156 B per new exported symbol, as 0c did.
 
 ## 4. Imports
 
-**Now:** one import, `import TUIkit`. The owner chose umbrella-only products, so nothing changes for users. The new
+**Now:** one import, `import TUI`. The owner chose umbrella-only products, so nothing changes for users. The new
 modules exist and compile in parallel, out of sight.
 
 **Later, once per-module products are advertised.** This assumes plan Q4: each module `@_exported`-imports its direct
@@ -386,19 +386,19 @@ dependencies.
 
 | App | Imports |
 |---|---|
-| Hello world | `TUIkitApp` (1) |
-| Typical (List, TextField, Picker, alert, toolbar) | TUIkitApp, TUIkitLists, TUIkitTextInput, TUIkitPickers, TUIkitPresentation (5). With `.searchable`: TUIkitSearch replaces TextInput and Pickers (4). |
-| …with row context menus | + TUIkitMenus |
-| Table | TUIkitApp, TUIkitTables (2); Tables re-exports Lists |
-| Navigation and tabs | TUIkitApp, TUIkitNavigation, TUIkitTabs (3) |
-| Forms and controls | TUIkitApp, TUIkitNumericControls, TUIkitTextInput, TUIkitPickers, TUIkitForms (5) |
-| Dashboard | TUIkitApp, TUIkitGrid, TUIkitNumericControls, TUIkitForms (4) |
-| Any app using transitions or visual effects, or bitmaps | + TUIkitEffects, + TUIkitBitmaps |
-| Everything | `TUIkit` (1) |
+| Hello world | `TUIApp` (1) |
+| Typical (List, TextField, Picker, alert, toolbar) | TUIApp, TUILists, TUITextInput, TUIPickers, TUIPresentation (5). With `.searchable`: TUISearch replaces TextInput and Pickers (4). |
+| …with row context menus | + TUIMenus |
+| Table | TUIApp, TUITables (2); Tables re-exports Lists |
+| Navigation and tabs | TUIApp, TUINavigation, TUITabs (3) |
+| Forms and controls | TUIApp, TUINumericControls, TUITextInput, TUIPickers, TUIForms (5) |
+| Dashboard | TUIApp, TUIGrid, TUINumericControls, TUIForms (4) |
+| Any app using transitions or visual effects, or bitmaps | + TUIEffects, + TUIBitmaps |
+| Everything | `TUI` (1) |
 
 **Never imported:**
 - Strings and TerminalHost: Base re-exports them.
-- Chrome: App and Presentation re-export it, so `.toolbar`, `.help` and `.statusBarItems` come with `import TUIkitApp`.
+- Chrome: App and Presentation re-export it, so `.toolbar`, `.help` and `.statusBarItems` come with `import TUIApp`.
 - Base itself: every leaf re-exports it, so `.focusSection`, `.aspectRatio` and `Image(systemName:)` come with any of
   them.
 
@@ -410,7 +410,7 @@ needed Controls. `.contextMenu`, transitions and bitmaps each add one opt-in imp
 **Conveniences.**
 - **The umbrella stays the default.** Under (b) it is the only product, and since everything compiles in parallel it
   costs no wall time.
-- **At C9b, if the battle-test shows import lists that are too long:** TUIkitApp could re-export Effects and Menus (a
+- **At C9b, if the battle-test shows import lists that are too long:** TUIApp could re-export Effects and Menus (a
   hello world à la carte then compiles 5.5k more lines and links +0.33 MB, est., for no wall time; not recommended now),
   or thin bundle products could re-export a set of leaves (about 0.5 s of parallel job each).
 
@@ -429,7 +429,7 @@ needed Controls. `.contextMenu`, transitions and bitmaps each add one opt-in imp
 | X1, X2 | Unchanged. `GaugeStyleConfiguration` stays in Base with `GaugeStyle`; the concrete gauge styles go to NumericControls. | in A4 |
 | **R1** | New (§2, cut 1): a Base extension over a Strings core, in place of `AppState.shared` in `LocalizationService`. **Its commit adds the `accepted` public-above entry** for the public `setLanguage(_:)` and `register(translations:)` it declares on a Strings type; accepting it earlier would trip the `rules` check, which reports an entry that matches nothing. Gate: a language-switch PTY smoke. | 0.25 d |
 | **R2** | New (§2): **4 edges, 11 references**. It lands **last** in A2. If it slips, B5c moves after B7 and nothing else changes: Bitmaps is a pure leaf. | 1–1.5 d |
-| **S1** | New (§2): **5 edges, 12 references**; the block split plus the sanitiser move into TUIkitStyling, in A4. | 0.5 d |
+| **S1** | New (§2): **5 edges, 12 references**; the block split plus the sanitiser move into TUIStyling, in A4. | 0.5 d |
 | **S2** | New (§2): `.focusSection` out of the `.statusBarItems` block, in A4. | 0.1 d |
 | R3, R4 | Option D-m only (§7, D2) | 2–2.75 d |
 
@@ -478,19 +478,19 @@ needed Controls. `.contextMenu`, transitions and bitmaps each add one opt-in imp
 | **A1′** | Commit this map: `r4/rules.r4.json` becomes `rules.json`, then `assign --write`. Port the `lower` check (layers' 76-line prototype, `layers/tool-lower-check.patch`) with unit tests and the README, and add `lower` lists. **public-above lists every public member of a flagged block, not just its first** (`challenge/w/pubmembers.py` is the reference). Schedule R1 under `lower`. Re-cut the tiers. | new | 1 d |
 | A2 | K1, K2, K4, K5, K6, R1 (with its accepted entry), then **R2 last**; one commit each | +R1, +R2, −K3 | 2.5–3.5 d |
 | A3 | Tier 1 (15 declarations, after 0c's corrections) **+ set L (34) + ClaimingRow**. Generate and park set T and tier 2. One A/B covers A2 + A3 and sets the +3% baseline. | set L folded in | 0.75–1.25 d + A/B |
-| A4 | File splits: **93** files (plan: 80), including `MenuPopover.swift`; the **S1** and **S2** block splits; S1's sanitiser move into TUIkitStyling; X1, X2; ControlGroup to Menus; FormControlRow; Label's and DisclosureGroup's styles. Add the **colour-effects Stress variant**. | +13 files, S1, S2, scenario | 1.25–1.75 d |
-| A5 | `git mv` into `Sources/TUIkit/<Module>/`, with the plan's path fixes. The resources (`Localization/translations`, `VERSION`) follow `ModuleResource` into the Strings directory and target. `Documentation/Terminal-compatibility.md`'s source paths for FrameDiffWriter and TerminalHost. **`Tools/verify-versioned-consumer.sh`**: its references to `Sources/TUIkit/VERSION` and the bundle. | small additions | 0.5–1 d |
+| A4 | File splits: **93** files (plan: 80), including `MenuPopover.swift`; the **S1** and **S2** block splits; S1's sanitiser move into TUIStyling; X1, X2; ControlGroup to Menus; FormControlRow; Label's and DisclosureGroup's styles. Add the **colour-effects Stress variant**. | +13 files, S1, S2, scenario | 1.25–1.75 d |
+| A5 | `git mv` into `Sources/TUI/<Module>/`, with the plan's path fixes. The resources (`Localization/translations`, `VERSION`) follow `ModuleResource` into the Strings directory and target. `Documentation/Terminal-compatibility.md`'s source paths for FrameDiffWriter and TerminalHost. **`Tools/verify-versioned-consumer.sh`**: its references to `Sources/TUI/VERSION` and the bundle. | small additions | 0.5–1 d |
 | B1 | Umbrella swap, as planned | — | 1–1.5 d |
-| **B2** | Carve Strings, now with localization and the resources (the bundle becomes `TUIkit_TUIkitStrings.bundle`), and TerminalHost, under one A/B **plus an emission bench**. **Widen `sanitizedProcessName` to `package`** for `UserDefaultsStorage`'s Linux arm. Both modules join the Windows ratchet as advisory steps. | +TerminalHost, +localization | 0.75 d |
-| B3 | Carve App, now with the Scene family, ViewRenderer and FrameDiffWriter, plus `renderOnce`, `identify(using:)` and `seedDiscoveredHost`; **App gains the DequeModule dependency**. A/B **plus an emission bench**. CLAUDE.md's POSIX rule names TUIkitApp, per the relaxed rule. | +Scene, +run-loop rendering | 0.5–1 d |
+| **B2** | Carve Strings, now with localization and the resources (the bundle becomes `TUI_TUIStrings.bundle`), and TerminalHost, under one A/B **plus an emission bench**. **Widen `sanitizedProcessName` to `package`** for `UserDefaultsStorage`'s Linux arm. Both modules join the Windows ratchet as advisory steps. | +TerminalHost, +localization | 0.75 d |
+| B3 | Carve App, now with the Scene family, ViewRenderer and FrameDiffWriter, plus `renderOnce`, `identify(using:)` and `seedDiscoveredHost`; **App gains the DequeModule dependency**. A/B **plus an emission bench**. CLAUDE.md's POSIX rule names TUIApp, per the relaxed rule. | +Scene, +run-loop rendering | 0.5–1 d |
 | B4 | Carve ColorPicker | — | 0.5 d |
 | B5 | Carve the Navigation group (with Presentation) | — | 0.5 d |
 | **B5b** | Carve Chrome, Effects and Menus under one A/B, **after 0a**, with the colour-effects variant in the A/B. App and the Navigation group gain their Chrome edge. It must follow B5: Presentation uses Chrome, so Chrome cannot leave Base while Presentation is still inside it. | new | 0.75 d |
-| **B5c** | Carve Bitmaps, after R2 and S1. Remove TUIkitImage and CSTBImage from Base's dependencies. | new | 0.5 d |
+| **B5c** | Carve Bitmaps, after R2 and S1. Remove TUIImage and CSTBImage from Base's dependencies. | new | 0.5 d |
 | B6 | Carve the Lists group (Tables, Tabs, Grid inside). Set L is already in. | — | 1–1.5 d |
 | B7 | Carve the **TextInput group** (Pickers, Forms, Search and NumericControls inside), named after its residual, since Controls no longer exists. **Coarse stage done: 57.4 / 60.8 s (est.).** | renamed | 1 d |
 | C1–C8 | Peel, top of the DAG first: Presentation; set T, then Tables; Tabs; Grid; Search; Forms; NumericControls; Pickers (TextInput is the residual). ColorPicker's dependencies follow each peel. Measure peak RSS at C2. **Full split: 52.5 / 55.9 s (est.).** | same count | 4.5 d |
-| **C9a** | Docs and release notes, now: the bundle name; `String(reflecting:)`, `dump` and debugger names (`TUIkitBase.Text`, `TUIkitChrome.StatusBar` …); **`NavigationPath.CodableRepresentation` stores `_mangledTypeName`**, so a saved path holding a TUIkit-defined type no longer decodes; `renderOnce` is in TUIkitApp; `TUIkit.X` keeps resolving (t14). Plus CONTRIBUTING's Windows table. | split from C9 | 0.5–1 d |
+| **C9a** | Docs and release notes, now: the bundle name; `String(reflecting:)`, `dump` and debugger names (`TUIBase.Text`, `TUIChrome.StatusBar` …); **`NavigationPath.CodableRepresentation` stores `_mangledTypeName`**, so a saved path holding a TUI-defined type no longer decodes; `renderOnce` is in TUIApp; `TUI.X` keeps resolving (t14). Plus CONTRIBUTING's Windows table. | split from C9 | 0.5–1 d |
 | **C9b** | Per-module products, the "which module provides X" article and the import guide, **after the battle-test** (the owner's (b)). | deferred | 0.5 d when decided |
 
 **Total.** About **18–22 agent-days** of remaining work, plus **17 quiet-box A/Bs** (one for A2 + A3, eight carves,
@@ -503,7 +503,7 @@ remain the long pole. Against the plan's remaining work (its 16–20 d, less ste
   - `challenge/w/inactive_widen.py`, re-pointed at the tree being carved, to widen what only a non-macOS arm uses;
   - the Linux cross-compile (static-linux SDK) of the package, because the index never sees those arms;
 - Strings, TerminalHost and each new non-POSIX module as advisory Windows steps (the existing Windows lane already
-  covers S1's change to TUIkitStyling);
+  covers S1's change to TUIStyling);
 - R2's image gates;
 - the PTY smokes for K1's new slot and for R1.
 
@@ -515,8 +515,8 @@ Every step lands on its own with the gates green. B5b and B5c can move later wit
 |---|---|---|
 | **Layers' lift**: public API no other module uses, in a parallel module | −2.0 s on this map (51.1 / 54.7 cons.) | Membership is defined by non-use, so public API changes module whenever a leaf starts using it. It would carry 54 public modifier blocks (`.hidden()`, `.offset`, `.zIndex`, `.tint`, `.lineLimit` …), and the map would hang on 1,151 pinned labels. A structure that drifts by construction cannot be battle-tested and then advertised. |
 | Layers' mid layers | −2.3 s | 32 public-above findings and a boundary that follows no topic |
-| **Renaming the kernel TUIkitFoundation** and giving the lift the name TUIkitBase | — | It hands the owner's chosen name to a grab-bag. |
-| A separate TUIkitLocalization side module (layers' K7) | ≈ 0.5 s, not 1.75 | `LocalizationService.swift`'s SIL is 1.13 s of stdlib specialisation and 78 ms of its own. |
+| **Renaming the kernel TUIFoundation** and giving the lift the name TUIBase | — | It hands the owner's chosen name to a grab-bag. |
+| A separate TUILocalization side module (layers' K7) | ≈ 0.5 s, not 1.75 | `LocalizationService.swift`'s SIL is 1.13 s of stdlib specialisation and 78 ms of its own. |
 | **Menus as a mid layer** (leaves' original) | — | It sits on the Lists chain (+0.6 s against a pure leaf) and moves the per-cell `selectionContextMenu` read across a boundary. |
 | Toggle out of Base (half of plan D-c) | −0.3 s | 11 findings: the default ToggleStyle draws a Toggle, and the run loop reads `ToggleCharacterSet`. |
 | A drag-and-drop module | +0.1 s | TUIContext, ScrollView, spring loading and mouse dispatch use the session, so it could only be a mid layer under Lists. |
@@ -527,7 +527,7 @@ Every step lands on its own with the gates green. B5b and B5c can move later wit
 | Grid, Forms or Search folded into Base or TextInput | +0.5–0.7 s on every build, or a TextInput→Pickers edge | §1, Granularity |
 | Shortening the tail after Base (a ColorPicker without TabView, Tabs without Lists) | ≤ 0.3 s | Tables, at 51.8 s, is the next floor; and it would change UI. |
 | Merging Strings and TerminalHost into one side module | nothing users see | It halves the side lane's margin (1.4 s) under View. |
-| TUIkitApp re-exporting Effects and Menus now | shorter import lists, later | +0.33 MB for an à-la-carte hello world. Decide at C9b with the battle-test's evidence. |
+| TUIApp re-exporting Effects and Menus now | shorter import lists, later | +0.33 MB for an à-la-carte hello world. Decide at C9b with the battle-test's evidence. |
 | Copying the cell-aspect rule into Base instead of moving it down | avoids touching Styling | Two copies of that rule are how `.infinity` once got through (the modifier's own comment). |
 | K8 and K9 (layers) now | — | They matter only to the Phase D side layer, and are trivial at any time, so land them with D-a′. |
 | Layers' full2 side layer now | −4 to −6 s on top | Phase D. About 6.2k kernel→side sites (per-cell helpers among them), set S, +0.25 MB, and two tie rules the tool lacks: `StateIndex` collisions, and environment keys separated from their accessors. |
@@ -537,14 +537,14 @@ Every step lands on its own with the gates green. B5b and B5c can move later wit
 Four are real trade-offs. Everything else is decided below, and can be vetoed.
 
 **D1. The new names.**
-- Recommended: TUIkitNumericControls; TUIkitMenus, TUIkitChrome, TUIkitEffects, TUIkitBitmaps and TUIkitTerminalHost.
-- Alternatives for NumericControls: TUIkitRangeControls; TUIkitValueControls (weaker: Picker and Toggle are value
-  controls too); TUIkitIndicators (fits only if Slider and Stepper leave, which costs the shared track renderer, +1.6k
+- Recommended: TUINumericControls; TUIMenus, TUIChrome, TUIEffects, TUIBitmaps and TUITerminalHost.
+- Alternatives for NumericControls: TUIRangeControls; TUIValueControls (weaker: Picker and Toggle are value
+  controls too); TUIIndicators (fits only if Slider and Stepper leave, which costs the shared track renderer, +1.6k
   lines in Base, or an extra edge).
 - **Price:** none before products ship. Decide before A1′ if possible: each later rename churns the re-qualification
   script.
 
-**D2. The menu engine into TUIkitMenus (D-m).**
+**D2. The menu engine into TUIMenus (D-m).**
 - Buys: −1.0 s on every clean build (−0.9 s conservative); Base −2.4k lines; −0.11 MB for an à-la-carte hello world.
 - Costs: R3 and R4, about 2–2.75 d and an A/B; R4 touches the row context-menu path; TextInput and Pickers gain a Menus
   edge, off the chain.
@@ -569,8 +569,8 @@ Four are real trade-offs. Everything else is decided below, and can be vetoed.
 
 **Decided here (veto if you disagree):**
 - **R2 and Bitmaps are in:** about 1.4 s on every build for about 2 d, with the image gates.
-- **S1 moves the cell-aspect rule down into TUIkitStyling** (`package`, one copy, `ASCIIConverter` forwards), so Base
-  needs no TUIkitImage. It touches a Windows-binding module, with pure arithmetic.
+- **S1 moves the cell-aspect rule down into TUIStyling** (`package`, one copy, `ASCIIConverter` forwards), so Base
+  needs no TUIImage. It touches a Windows-binding module, with pure arithmetic.
 - **`.focusSection`, `.aspectRatio`, `.scaledToFit`, `.scaledToFill` and `.imageCellAspect` stay in Base** (S1, S2).
 - Menus is a pure leaf.
 - Link and its kin sit in Base, at +0.2 s.
@@ -580,13 +580,13 @@ Four are real trade-offs. Everything else is decided below, and can be vetoed.
 - No lift.
 - K8 and K9 wait for Phase D.
 - The existing lower-four products are left untouched until C9b.
-- TUIkitApp does not re-export Effects or Menus.
+- TUIApp does not re-export Effects or Menus.
 
 ## 8. Verification (measured)
 
 **Setup.**
 - **Tool:** `Tools/ModuleMap` as committed at be7aba9df, copied to `refine/plan/tool`.
-- **Snapshot:** the layers lane's pristine snapshot of 59e04b011, whose `Sources/TUIkit` diffs equal to be7aba9df's,
+- **Snapshot:** the layers lane's pristine snapshot of 59e04b011, whose `Sources/TUI` diffs equal to be7aba9df's,
   with its own debug index store (Xcode 6.2.4). The repo's `.build` has no index store.
 - **Wrapper:** `refine/plan/w/mm.py`, which never writes into the repo.
 
@@ -616,8 +616,8 @@ modulemap: 0 new findings (40 scheduled or accepted) in 2.4 s
 - `assign` from revision 3's map: "10 declarations change module" (7 Chrome→Base, 3 Bitmaps→Base), the S1 and S2 pins.
 - **With the `lower` check** (layers' prototype; `r4/rules.r4.lower.json` adds R1 as scheduled):
   `lower 0 new (scheduled R1 5 (8 refs))`, and 0 new (45) in all. It is not vacuous: the plan's map, with Base's
-  `lower` set to Core, Styling and View, gives `lower 159 new` (`TUIkitImage.RGBAImage`, `width`, `height` …). Its 0
-  for Base→TUIkitImage on this map depends on S1's block still sitting in Bitmaps; once A4 splits it, the sanitiser
+  `lower` set to Core, Styling and View, gives `lower 159 new` (`TUIImage.RGBAImage`, `width`, `height` …). Its 0
+  for Base→TUIImage on this map depends on S1's block still sitting in Bitmaps; once A4 splits it, the sanitiser
   move is what keeps it 0.
 - **Option D-m** (`r4/rules.r4+engine.json`): 0 new (50; 55 with `lower`), adding `R3 3 (4 refs), R4 7 (20 refs)`;
   Base 105,705 lines.
@@ -630,14 +630,14 @@ recomputed Base's lines, Base's job, the full build, the hello-world share and t
 - **What the macOS index cannot see.** The non-macOS `#if` arms in Base, Strings, TerminalHost and App reference no
   type in a module they cannot see, with one exception: `UserDefaultsStorage.swift:246` →
   `sanitizedProcessName` (`challenge/inactive_widen.out`, apart from local-variable noise). There are no DEBUG or
-  benchmark-flag arms in `Sources/TUIkit`.
-- Lower-module use: only Bitmaps (304 references) and ColorPicker (234) use TUIkitImage; Strings' only TUIkitView use is
+  benchmark-flag arms in `Sources/TUI`.
+- Lower-module use: only Bitmaps (304 references) and ColorPicker (234) use TUIImage; Strings' only TUIView use is
   R1's.
 - Landing order: no final-map edge points from a module still inside Base into one carved earlier, at any of B2–B7.
 - The `where Self ==` extensions in moved files are only static-member conveniences, not default implementations.
 - Memo and identity: Image already skips the memo; identity paths use `String(describing:)`, so module names do not
   change focus IDs; K1's opaque slots keep each value's dynamic type.
-- TUIkitAppKit reaches the `package` members `Color.catalogColor` and `catalogColorScheme` (now in Bitmaps) through the
+- TUIAppKit reaches the `package` members `Color.catalogColor` and `catalogColorScheme` (now in Bitmaps) through the
   umbrella's re-export.
 - 15 public overload sets split across modules (plan's map: 12); the 3 new ones are the Bitmaps initialisers.
 - 93 split files; 2,367 members widened; 2,173 new crossing sites (revision 3), with each callee's profiled share.

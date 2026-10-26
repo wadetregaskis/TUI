@@ -1,0 +1,159 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  ScrollIndicatorApproximationTests.swift
+//
+//  "N more lines above/below" honesty: on the anchored (variable-height) windowed
+//  path the counts are LINES of the ESTIMATED absolute space — measured band
+//  plus unmeasured-remainder × running pitch average — so the top-of-list
+//  "below" count and the bottom-of-list "above" count come from two slightly
+//  different refinements and need not agree (the §3 trade: estimates may
+//  move the chrome, never the content). Such counts must READ as estimates:
+//  "~10K more lines below", not a false-precision "10003 more lines below". Exact
+//  counts (uniform path, eager content, List/Table rows) stay exact.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import Testing
+
+@testable import TUIApp
+@testable import TUICore
+@testable import TUIFoundation
+@testable import TUITestSupport
+@testable import TUIView
+
+@MainActor
+@Suite("scroll indicator approximation")
+struct ScrollIndicatorApproximationTests {
+    private static let viewport = 6
+
+    @discardableResult
+    private func renderFrame<V: View>(
+        _ view: V, tuiContext: TUIContext, focusManager: FocusManager
+    ) -> [String] {
+        var environment = EnvironmentValues()
+        // This suite predates the visibility/style split (#555): it is about the
+        // "N more above / below" arithmetic, which is now a style rather than
+        // the default. Ask for it by name; the default is a scrollbar.
+        environment.scrollIndicatorStyle = .text
+        environment.focusManager = focusManager
+        environment.applyRuntimeServices(from: tuiContext)
+        // `applyRuntimeServices` republishes `\.locale` from the app language
+        // every frame, and the app language comes from the developer's own
+        // LANG. These cases are about the ARITHMETIC — which count is exact and
+        // which reads as an estimate — so the grouping separator is pinned here
+        // rather than inherited: "4,994" is asserted below and a German app
+        // draws "4.994". `ScrollIndicatorLocaleTests` owns the grouping itself,
+        // and asks for each locale by name.
+        environment.locale = Locale(identifier: "en")
+        let context = RenderContext(
+            availableWidth: 40, availableHeight: Self.viewport,
+            environment: environment, tuiContext: tuiContext)
+
+        tuiContext.preferences.beginRenderPass()
+        tuiContext.stateStorage.beginRenderPass()
+        tuiContext.renderCache.beginRenderPass()
+        focusManager.beginRenderPass()
+        let buffer = renderToBuffer(view, context: context)
+        focusManager.endRenderPass()
+        tuiContext.stateStorage.endRenderPass()
+        tuiContext.renderCache.removeInactive()
+        return buffer.lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+    }
+
+    @Test("Approximate labels compress magnitude with a tilde")
+    func approximateLabels() {
+        #expect(approximateCountLabel(7) == "~7")
+        #expect(approximateCountLabel(897) == "~897")
+        #expect(approximateCountLabel(1_000) == "~1K")
+        #expect(approximateCountLabel(5_432) == "~5.4K")
+        #expect(approximateCountLabel(9_949) == "~9.9K")
+        #expect(approximateCountLabel(9_950) == "~10K", "ten of a unit drops the decimal")
+        #expect(approximateCountLabel(54_321) == "~54K")
+        #expect(approximateCountLabel(999_499) == "~999K")
+        #expect(approximateCountLabel(999_500) == "~1M", "rounding to a unit's ceiling promotes")
+        #expect(approximateCountLabel(200_000_903) == "~200M", "the reported 100M-row case")
+        #expect(approximateCountLabel(1_500_000_000) == "~1.5B")
+        #expect(approximateCountLabel(2_000_000_000_000) == "~2T")
+    }
+
+    @Test("Indicator labels name their unit, singular and plural, and degrade to fit")
+    func unitWordingAndDegradation() {
+        let palette = EnvironmentValues().palette
+        func label(
+            _ count: Int, _ unit: ScrollIndicatorUnit, width: Int,
+            direction: ScrollIndicatorDirection = .down, approximate: Bool = false
+        ) -> String {
+            renderScrollIndicator(
+                direction: direction, count: count, unit: unit,
+                width: width, palette: palette, approximate: approximate,
+                cycle: nil, over: palette.background
+            ).text.stripped.trimmingCharacters(in: .whitespaces)
+        }
+
+        // The unit is named, and agrees in number with the count.
+        #expect(label(42, .rows, width: 40) == "▼ 42 more rows below")
+        #expect(label(1, .rows, width: 40) == "▼ 1 more row below")
+        #expect(label(42, .lines, width: 40, direction: .up) == "▲ 42 more lines above")
+        #expect(label(1, .lines, width: 40) == "▼ 1 more line below")
+        #expect(
+            label(200_000_903, .lines, width: 40, approximate: true)
+                == "▼ ~200M more lines below")
+
+        // Degradation ladder for narrow viewports: drop "more", then the
+        // direction word (the arrow carries it), then the unit — the count
+        // survives longest; never clip mid-word.
+        #expect(label(14, .lines, width: 20) == "▼ 14 lines below")
+        #expect(label(14, .lines, width: 12) == "▼ 14 lines")
+        #expect(label(14, .lines, width: 6) == "▼ 14")
+        #expect(label(14, .lines, width: 2) == "▼")
+    }
+
+    @Test("Anchored-path indicators read approximate; uniform stay exact")
+    func anchoredApproximateUniformExact() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+
+        // Variable heights, above the anchored threshold: the content total
+        // is an estimate, so the indicator must say so.
+        let anchored = ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<5_000, id: \.self) { i in
+                    Text("row \(i)").frame(height: i % 3 + 1)
+                }
+            }
+        }
+        .frame(height: Self.viewport)
+        renderFrame(anchored, tuiContext: tuiContext, focusManager: focusManager)
+        let settled = renderFrame(anchored, tuiContext: tuiContext, focusManager: focusManager)
+        let below = settled.last ?? ""
+        #expect(below.contains("more lines below"), "the below indicator renders: \(settled)")
+        #expect(below.contains("~"), "an estimated count reads as approximate: '\(below)'")
+        let digitRun = below.reduce(into: (longest: 0, current: 0)) { acc, ch in
+            acc.current = ch.isNumber ? acc.current + 1 : 0
+            acc.longest = max(acc.longest, acc.current)
+        }.longest
+        #expect(
+            digitRun <= 4,
+            "estimated counts are compressed, not full digit runs: '\(below)'")
+
+        // Uniform heights: the total is hypothesis-exact — full precision,
+        // no tilde.
+        let tuiContext2 = TUIContext()
+        let focusManager2 = FocusManager()
+        let uniform = ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<5_000, id: \.self) { i in Text("row \(i)") }
+            }
+        }
+        .frame(height: Self.viewport)
+        renderFrame(uniform, tuiContext: tuiContext2, focusManager: focusManager2)
+        let uniformSettled = renderFrame(
+            uniform, tuiContext: tuiContext2, focusManager: focusManager2)
+        let uniformBelow = uniformSettled.last ?? ""
+        #expect(
+            uniformBelow.contains("4,994 more lines below"),
+            "a uniform total is exact and stays fully precise (locale-grouped): '\(uniformBelow)'")
+        #expect(!uniformBelow.contains("~"), "no tilde on an exact count: '\(uniformBelow)'")
+    }
+}

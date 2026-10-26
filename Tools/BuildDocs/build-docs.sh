@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# build-docs.sh — build the TUIkit documentation as ONE unified archive.
+# build-docs.sh — build the TUI documentation as ONE unified archive.
 #
-# Every public symbol lands under /documentation/tuikit/, whichever library
+# Every public symbol lands under /documentation/tui/, whichever library
 # module declares it, because the module split is an implementation detail of
 # the package and not something a reader should have to know. See
 # unify_symbol_graphs.py for how (and why the obvious approach does not work).
@@ -13,11 +13,11 @@
 #                                  [--strict]
 #   Tools/BuildDocs/build-docs.sh --preview [--port <n>]
 #
-#   --output <dir>     where to write TUIkit.doccarchive (default: .build/docs)
+#   --output <dir>     where to write TUI.doccarchive (default: .build/docs)
 #   --static-hosting   emit a tree servable from a plain web server (GitHub Pages)
 #   --hosting-base-path <path>
 #                      the URL path the tree will be served under, e.g.
-#                      `TUIkit/docs` for https://<owner>.github.io/TUIkit/docs/
+#                      `TUI/docs` for https://<owner>.github.io/TUI/docs/
 #                      (slashes at either end are ignored). DocC compiles it
 #                      into every page, so a tree built for one path is broken
 #                      at any other. Tools/Site/assemble.sh passes it.
@@ -28,10 +28,10 @@
 #
 # To read the docs:
 #   --preview                     browse them; this runs DocC's own server
-#   open <output>/TUIkit.doccarchive   read them in Xcode's documentation window
+#   open <output>/TUI.doccarchive   read them in Xcode's documentation window
 #
 # A plain `python3 -m http.server` will NOT work on the built archive: the
-# renderer is a single-page app, so a deep link like /documentation/tuikit has
+# renderer is a single-page app, so a deep link like /documentation/tui has
 # to be answered with index.html rather than a 404 or a redirect. Static hosts
 # need the 404.html fallback, or --static-hosting, which writes an index.html
 # for every page (what the Pages site uses, see Tools/Site/README.md); locally,
@@ -94,8 +94,8 @@ echo "==> Emitting symbol graphs for every target"
 # included — and a test target's module cannot be loaded by
 # swift-symbolgraph-extract:
 #
-#     error: Failed to emit symbol graph for 'TUIkitPackageTests':
-#            Couldn't load module 'TUIkitPackageTests' in the current SDK …
+#     error: Failed to emit symbol graph for 'TUIPackageTests':
+#            Couldn't load module 'TUIPackageTests' in the current SDK …
 #
 # so it exits non-zero having already written every library graph this script
 # actually wants. Only a CLEAN checkout hits it: once the test bundle has been
@@ -140,7 +140,7 @@ python3 Tools/BuildDocs/unify_symbol_graphs.py "$SYMBOL_GRAPHS" "$STAGED"
 
 # The "which module provides it" index (ModuleIndex.md), generated from the
 # same graphs while their file names still say which module each symbol is
-# from (the unifier renames them all to TUIkit). Generated here rather than
+# from (the unifier renames them all to TUI). Generated here rather than
 # committed, so it is never staler than the reference it is part of and no
 # commit that changes the API has to regenerate it (which_module.py says
 # more). It is written into a COPY of the catalog: the catalog's own
@@ -151,32 +151,32 @@ python3 Tools/BuildDocs/unify_symbol_graphs.py "$SYMBOL_GRAPHS" "$STAGED"
 echo "==> Generating the module index"
 rm -rf "$CATALOG_STAGE"
 mkdir -p "$CATALOG_STAGE"
-cp -R Sources/TUIkit/TUIkit.docc "$CATALOG_STAGE/"
-CATALOG="$CATALOG_STAGE/TUIkit.docc"
+cp -R Sources/TUI/TUI.docc "$CATALOG_STAGE/"
+CATALOG="$CATALOG_STAGE/TUI.docc"
 swift package describe --type json > "$CATALOG_STAGE/describe.json"
-# Off Apple platforms TUIkitAppKit and TUIkitFilePanelsAppKit declare nothing
+# Off Apple platforms TUIAppKit and TUIFilePanelsAppKit declare nothing
 # (all of each is `#if canImport(AppKit)`), which the generator otherwise takes
 # for graphs that missed a module. Expanded unquoted below: words, or none.
 ALLOW_EMPTY=""
-[ "$(uname -s)" = Darwin ] || ALLOW_EMPTY="--allow-empty=TUIkitAppKit --allow-empty=TUIkitFilePanelsAppKit"
+[ "$(uname -s)" = Darwin ] || ALLOW_EMPTY="--allow-empty=TUIAppKit --allow-empty=TUIFilePanelsAppKit"
 python3 Tools/BuildDocs/which_module.py "$SYMBOL_GRAPHS" \
     --describe "$CATALOG_STAGE/describe.json" \
-    --template Sources/TUIkit/TUIkit.docc/Articles/ModuleIndex.md \
+    --template Sources/TUI/TUI.docc/Articles/ModuleIndex.md \
     --output "$CATALOG/Articles/ModuleIndex.md" $ALLOW_EMPTY
 
 if [ "$PREVIEW" -eq 1 ]; then
-    echo "==> Serving — open http://localhost:$PORT/documentation/tuikit"
+    echo "==> Serving — open http://localhost:$PORT/documentation/tui"
     rm -f "$DUMP_LOG"
     exec "$DOCC" preview "$CATALOG" \
         --port "$PORT" \
-        --fallback-display-name TUIkit \
-        --fallback-bundle-identifier dev.tuikit.TUIkit \
+        --fallback-display-name TUI \
+        --fallback-bundle-identifier dev.tuikit.TUI \
         --additional-symbol-graph-dir "$STAGED"
 fi
 
 echo "==> Converting the catalog"
 mkdir -p "$OUTPUT"
-ARCHIVE="$OUTPUT/TUIkit.doccarchive"
+ARCHIVE="$OUTPUT/TUI.doccarchive"
 rm -rf "$ARCHIVE"
 DIAGNOSTICS="$(mktemp -t docc-diagnostics)"
 # Every temporary so far, not just this one: a `trap … EXIT` REPLACES the
@@ -190,8 +190,8 @@ trap 'rm -f "$DUMP_LOG" "$DIAGNOSTICS"; rm -rf "$STAGED" "$CATALOG_STAGE"' EXIT
 # be relied on to say WHICH side failed.
 set +e
 "$DOCC" convert "$CATALOG" \
-    --fallback-display-name TUIkit \
-    --fallback-bundle-identifier dev.tuikit.TUIkit \
+    --fallback-display-name TUI \
+    --fallback-bundle-identifier dev.tuikit.TUI \
     --additional-symbol-graph-dir "$STAGED" \
     --output-path "$ARCHIVE" \
     --emit-lmdb-index \
@@ -216,22 +216,22 @@ echo "==> $ARCHIVE ($PAGES pages)"
 # A regression guard with teeth: these types live in the modules the umbrella
 # re-exports (it declares nothing itself), and their absence is the exact
 # failure this script exists to prevent. Cheap to check, and it fails loudly the
-# day someone documents just one target again. `text` is TUIkitFoundation's,
-# `localizationservice` TUIkitStrings', `terminalclient` TUIkitTerminalHost's
-# (the modules step B2 carved out of it), `windowgroup` TUIkitApp's (step B3),
-# `colorpicker` TUIkitColorPicker's (step B4), `gradienteditorpanel`
-# TUIkitColorPicker's too (TUIkitColorEditors' from C9b to 2026-10-12),
-# `tonecurveeditorpanel` TUIkitCurveEditors' (named TUIkitColorEditors until then), `navigationstack`
-# TUIkitNavigation's (step B5), `alertpanel` TUIkitPresentation's (named `alert` until the type became
-# AlertPanel on 2026-10-23, and TUIkitNavigation's from step B5 until step C1
-# peeled it out), `list` TUIkitLists' (step B6),
-# `table` TUIkitTables', `tabview` TUIkitTabs' and `grid` TUIkitGrid's
-# (TUIkitLists' from step B6 until steps C2 to C4 peeled them out), `statusbar`
-# TUIkitChrome's, `anytransition` TUIkitEffects' and `menu` TUIkitMenus' (step
-# B5b), `asyncimage` TUIkitBitmaps' (step B5c), `textfield` TUIkitTextInput's
-# (step B7), `form` TUIkitForms', `searchfieldplacement` TUIkitSearch's,
-# `picker` TUIkitPickers' and `slider` TUIkitNumericControls'
-# (TUIkitTextInput's from step B7 until steps C5 to C8 peeled them out), the
+# day someone documents just one target again. `text` is TUIFoundation's,
+# `localizationservice` TUIStrings', `terminalclient` TUITerminalHost's
+# (the modules step B2 carved out of it), `windowgroup` TUIApp's (step B3),
+# `colorpicker` TUIColorPicker's (step B4), `gradienteditorpanel`
+# TUIColorPicker's too (TUIColorEditors' from C9b to 2026-10-12),
+# `tonecurveeditorpanel` TUICurveEditors' (named TUIColorEditors until then), `navigationstack`
+# TUINavigation's (step B5), `alertpanel` TUIPresentation's (named `alert` until the type became
+# AlertPanel on 2026-10-23, and TUINavigation's from step B5 until step C1
+# peeled it out), `list` TUILists' (step B6),
+# `table` TUITables', `tabview` TUITabs' and `grid` TUIGrid's
+# (TUILists' from step B6 until steps C2 to C4 peeled them out), `statusbar`
+# TUIChrome's, `anytransition` TUIEffects' and `menu` TUIMenus' (step
+# B5b), `asyncimage` TUIBitmaps' (step B5c), `textfield` TUITextInput's
+# (step B7), `form` TUIForms', `searchfieldplacement` TUISearch's,
+# `picker` TUIPickers' and `slider` TUINumericControls'
+# (TUITextInput's from step B7 until steps C5 to C8 peeled them out), the
 # rest the lower modules'.
 MISSING=()
 for symbol in view color binding state environmentvalues framebuffer palette text \
@@ -239,7 +239,7 @@ for symbol in view color binding state environmentvalues framebuffer palette tex
     navigationstack alertpanel \
     list table tabview grid statusbar anytransition menu asyncimage \
     textfield picker form searchfieldplacement slider; do
-    [ -e "$ARCHIVE/data/documentation/tuikit/$symbol.json" ] || MISSING+=("$symbol")
+    [ -e "$ARCHIVE/data/documentation/tui/$symbol.json" ] || MISSING+=("$symbol")
 done
 if [ ${#MISSING[@]} -gt 0 ]; then
     echo "error: no page for ${MISSING[*]} — the modules did not get unified" >&2
@@ -249,7 +249,7 @@ fi
 # summary line, and a table with as many rows as that line counts. A module's
 # name is no evidence, since the template's prose names modules too.
 python3 Tools/BuildDocs/which_module.py \
-    --verify-rendered "$ARCHIVE/data/documentation/tuikit/moduleindex.json"
+    --verify-rendered "$ARCHIVE/data/documentation/tui/moduleindex.json"
 
 # The other regression guard: DocC said nothing. Counted per SOURCE LINE, not per
 # warning, because one bad link in a `View` extension is reported once per

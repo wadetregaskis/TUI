@@ -2,7 +2,7 @@
 
 *Lane SPH3, 2026-10-08, landed the three remedies the profile of step B6 against the pre-modularisation baseline
 c181ec0f9 named: a list or table specialises its shortcut table's build (R1), a table cell's unstyled-text check
-compares in TUIkitFoundation (R2), and a list reads its rows' buffers and badges in place (R3). It changed no public
+compares in TUIFoundation (R2), and a list reads its rows' buffers and badges in place (R3). It changed no public
 API and no behaviour. This file holds what it found that the brief did not settle, in the format of
 [`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>):*
 
@@ -16,38 +16,38 @@ debug map). None is a timing; the coordinator's A/B measures time.
 
 ## B. Shipped the safe option
 
-### B-SPH3-1. R1 also changes one function in TUIkitApp, which links before TUIkitCore
+### B-SPH3-1. R1 also changes one function in TUIApp, which links before TUICore
 
-*Sources/TUIkitFoundation/Views/KeyboardShortcut.swift (`Trigger`), TUIkitApp's `ScreenSelection.handleKey` — no API*
+*Sources/TUIFoundation/Views/KeyboardShortcut.swift (`Trigger`), TUIApp's `ScreenSelection.handleKey` — no API*
 
 R1 makes `KeyboardShortcut.Trigger` `@usableFromInline`, because `ShortcutTable.triggerTable`'s body names it. A
 type that is effectively public gets its conformances' witness tables serialised, so other modules can now see
-`Trigger`'s synthesised `==`. One function outside the lists uses that: `ScreenSelection.handleKey` in TUIkitApp,
+`Trigger`'s synthesised `==`. One function outside the lists uses that: `ScreenSelection.handleKey` in TUIApp,
 which compares the incoming chord with the copy chord once per key event. It used to call `Equatable`'s dispatch
-thunk through the witness-table accessor, and now compares inline, as the single module did. TUIkitApp grows by
-108 bytes, and nothing else changes outside TUIkitLists and TUIkitFoundation. But TUIkitApp links before
-TUIkitCore, so everything after it moves by 108 bytes: the layout change the plan's gate checks for.
+thunk through the witness-table accessor, and now compares inline, as the single module did. TUIApp grows by
+108 bytes, and nothing else changes outside TUILists and TUIFoundation. But TUIApp links before
+TUICore, so everything after it moves by 108 bytes: the layout change the plan's gate checks for.
 
 What ships is R1 as the brief gave it. The other versions:
 
-- **Keep TUIkitApp's code as it was.** Write `Trigger`'s `==` and `hash(into:)` by hand with
+- **Keep TUIApp's code as it was.** Write `Trigger`'s `==` and `hash(into:)` by hand with
   `@_semantics("optimize.no.crossmodule")`, so that no other module inlines them. The price: synthesis on a
   three-case enum is given up, and the attribute is underscored, so it is the owner's call. It would also keep
-  the witness dispatch in TUIkitApp that the single module never had.
-- **R1's structural fallback.** A non-generic entry in TUIkitFoundation would expose nothing, and would recover
+  the witness dispatch in TUIApp that the single module never had.
+- **R1's structural fallback.** A non-generic entry in TUIFoundation would expose nothing, and would recover
   less (the diagnosis, section 2).
 
 The paired A/B on the layout-sensitive set (geometry, customlayout, app-shapes, deep) decides. R1 is its own commit
 for that reason.
 
-R1 also leaves three callees out of line in TUIkitLists' specialisation that c181ec0f9's inlined or never called.
+R1 also leaves three callees out of line in TUILists' specialisation that c181ec0f9's inlined or never called.
 `trigger` (it calls a private helper) has three call sites and `resolved(commandKey:)` one; with no overrides each
 runs once per default chord, 16 times per build of a list's or table's shortcut table (`RowAction`'s 14 cases bind 16
 chords). The third is `ShortcutSet.default`'s addressor, one call site (how often it runs is unmeasured: the source
 reads `.default` for each action with no override, and the optimiser may hoist the call); c181ec0f9's specialisation
 calls no addressor. `@inlinable` on `resolved(commandKey:)` would inline it, as the single module did. Its body names
-only public members, so nothing more needs widening. But TUIkitApp (`Scene+TextSelection`) and TUIkitNavigation
-(`NavigationSplitViewToggle`) call it too, so TUIkitApp's code would change again. The brief asked for
+only public members, so nothing more needs widening. But TUIApp (`Scene+TextSelection`) and TUINavigation
+(`NavigationSplitViewToggle`) call it too, so TUIApp's code would change again. The brief asked for
 `@usableFromInline`, which is what ships.
 
 ## C. Declined
@@ -72,9 +72,9 @@ Statically, none of them is a crossing the split added:
 - **`Collection.map<A, B>`, unspecialised**, is the same 792-byte body in both builds (`Collection+Offsets.swift.o`),
   with the same callers and call counts. The row path calls it from `ForEach.extractListRows` and `_ListCore`'s
   `renderRow`, `rowWidth`, `buildPopulatedContent`, `decorateForReorder`, `composeRowLines` and `publishRowBands`. All
-  of them are generic callers, unspecialised at c181ec0f9 too. Where a caller moved to TUIkitLists, the call is the
+  of them are generic callers, unspecialised at c181ec0f9 too. Where a caller moved to TUILists, the call is the
   same `bl` to the same statically linked body.
-- **`ForEach.element(at:)`** is the same 360-byte body, with the same six callers, all in TUIkitFoundation: no call
+- **`ForEach.element(at:)`** is the same 360-byte body, with the same six callers, all in TUIFoundation: no call
   crosses a module.
 
 A profile on the tip, which these static counts cannot replace, is the way to find the rest. The lane's notes

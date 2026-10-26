@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  StatefulRows.swift
 //
 //  Composite rows that each hold property wrappers, redrawn every frame, so
@@ -6,7 +6,7 @@
 //  plan, then, for a type holding a property, a copy of the row and one step
 //  per planned field, `PropertyPlans`) and, for an app property, its
 //  `update()` and write-back. The variants differ only in what each row
-//  holds, so an A/B of two TUIkit builds on one variant prices that kind of
+//  holds, so an A/B of two TUI builds on one variant prices that kind of
 //  field (session notes DYNV/notes.md).
 //
 //  Created by Wade Tregaskis
@@ -14,7 +14,7 @@
 
 import Foundation
 import Observation
-import TUIkit
+import TUI
 
 enum StatefulRowsScenario {
     @MainActor

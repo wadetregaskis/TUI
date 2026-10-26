@@ -1,11 +1,11 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ImageURLPage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 /// Image demo page for loading an image from a URL.
 ///
@@ -18,7 +18,7 @@ struct ImageURLPage: View {
     @State private var settings = ImageDemoSettings()
     @State private var zoom: Double = 1.0
     /// Whether the picture is loaded by SwiftUI's `AsyncImage`, which hands
-    /// its content the load's phase, rather than by TUIkit's `Image(.url(_:))`,
+    /// its content the load's phase, rather than by TUI's `Image(.url(_:))`,
     /// which draws its own placeholder.
     @State private var usesAsyncImage = false
 

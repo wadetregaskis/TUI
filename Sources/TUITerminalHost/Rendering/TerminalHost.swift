@@ -1,0 +1,1068 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  TerminalHost.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import Foundation
+import TUICore
+
+/// Identity of the terminal emulator hosting the process, detected once from
+/// the environment.
+///
+/// Some rendering choices are terminal-specific rather than
+/// capability-negotiable: Terminal.app mis-advances the cursor over emoji
+/// (see ``FrameDiffWriter``, which carries workarounds gated on this), and
+/// conversely draws emoji-repertoire glyphs like ⬛︎ as single seamless
+/// multi-cell glyphs where adjacent FULL BLOCK cells show seams (see
+/// ``ToggleCharacterSet/automatic``).
+package enum TerminalHost {
+    /// Whether the host terminal is macOS Terminal.app, detected once from the
+    /// process environment.
+    ///
+    /// Not gated on the platform, and that is the point: **the terminal and the
+    /// process need not be on the same machine.** An earlier model returned a
+    /// compile-time `false` off macOS on the grounds that "Terminal.app cannot
+    /// run there", which is true of the app and false of the question — over
+    /// ssh, a Mac running Terminal.app routinely hosts a process on Linux, and
+    /// the cursor-advance quirks being compensated for belong to the terminal
+    /// painting the glyphs, not to the kernel the app runs on. Gating here
+    /// would have made the whole ssh identification path — the environment
+    /// signals and the Device Attributes query alike — do its work and throw
+    /// the answer away on exactly the systems people ssh into most.
+    package static let isAppleTerminal: Bool =
+        detectAppleTerminal(environment: ProcessInfo.processInfo.environment)
+
+    /// Whether the host terminal is iTerm2, detected once from the process
+    /// environment.
+    package static let isITerm2: Bool =
+        detectITerm2(environment: ProcessInfo.processInfo.environment)
+
+    /// Whether the host terminal is Ghostty, detected once from the process
+    /// environment.
+    package static let isGhostty: Bool =
+        detectGhostty(environment: ProcessInfo.processInfo.environment)
+
+    /// Whether the host terminal is Warp, detected once from the process
+    /// environment.
+    package static let isWarp: Bool =
+        detectWarp(environment: ProcessInfo.processInfo.environment)
+
+    /// Whether the host terminal is GNOME Terminal (or a VTE-based terminal),
+    /// detected once from the process environment.
+    package static let isGnomeTerminal: Bool =
+        detectGnomeTerminal(environment: ProcessInfo.processInfo.environment)
+
+    /// Whether TUI is running inside tmux, detected once from the process
+    /// environment.
+    ///
+    /// tmux is a **compositor**, not a passthrough: it parses our output into
+    /// its own cell grid using its own width tables and re-renders that grid to
+    /// whichever client is attached. So the host that matters is tmux — the
+    /// outer terminal's advance quirks apply to *tmux's* output, not ours — and
+    /// this must be checked BEFORE the four native detectors would otherwise
+    /// win. In practice they cannot: tmux overwrites `TERM_PROGRAM` with its own
+    /// name rather than forwarding the outer terminal's (measured, 3.7b), so
+    /// running under tmux inside iTerm2 reports `tmux`, not `iTerm.app`.
+    package static let isTmux: Bool =
+        detectTmux(environment: ProcessInfo.processInfo.environment)
+
+    /// Whether the host draws the emoji-repertoire chrome glyphs (⬛︎ / ⬜︎
+    /// with the U+FE0E text-presentation selector) correctly: monochrome,
+    /// theme-tintable, two cells, no row shear. Verified by eye on every
+    /// host listed (Apple Terminal + iTerm2 2026-07-13; Ghostty + Warp
+    /// 2026-07-14); terminals not on this allowlist get the universally-safe
+    /// non-emoji glyphs instead — mis-measuring the selector shears the whole
+    /// row (issue #9), so membership is earned by inspection, not assumed.
+    ///
+    /// Ghostty qualifies only because ``String/withGhosttyCursorCompensation()``
+    /// fixes it up: Ghostty PAINTS ⬛︎ two cells but advances the cursor by
+    /// one, so uncompensated the label collides with the glyph (`■On`). Warp
+    /// advances these correctly with no help.
+    package static func supportsEmojiChrome(for program: TerminalClient.Program) -> Bool {
+        switch program {
+        case .appleTerminal, .iTerm2, .ghostty, .warp, .gnomeTerminal:
+            true
+        case .tmux, .unidentified:
+            false
+        }
+    }
+
+    package static var supportsEmojiChrome: Bool {
+        supportsEmojiChrome(for: program)
+    }
+
+    /// Whether this terminal draws a Block Elements glyph (U+2580–259F) the
+    /// full height of its line. Apple Terminal draws them from the font,
+    /// short of the line (seen 2026-10-15: a three-row button of half blocks
+    /// and quadrants came apart into bands there and held together in
+    /// Ghostty), where Ghostty, iTerm2, kitty and WezTerm draw them as
+    /// shapes of their own. See *Terminal compatibility survey*.
+    package static func blockElementsFillTheLine(for program: TerminalClient.Program) -> Bool {
+        switch program {
+        case .appleTerminal:
+            false
+        case .iTerm2, .ghostty, .warp, .gnomeTerminal, .tmux, .unidentified:
+            true
+        }
+    }
+
+    package static var blockElementsFillTheLine: Bool {
+        blockElementsFillTheLine(for: program)
+    }
+
+    /// Whether this terminal draws the corner triangles `◢ ◣ ◤ ◥`
+    /// (U+25E2–25E5) edge to edge in their cells, so that two side by side
+    /// read as ONE arrow — a double-width scrollbar's end. Apple Terminal
+    /// and Warp take them from the font, short of the cell's edges, and the
+    /// pair breaks apart (measured 2026-10-17 with `scrollbar_arrow_card.py`;
+    /// Ghostty and iTerm2 draw them as shapes). A terminal not measured is
+    /// taken to draw them well, the owner's default (FB6). See *Terminal
+    /// compatibility survey*, "A double-width scrollbar's arrows".
+    package static func cornerTrianglesFillTheCell(for program: TerminalClient.Program) -> Bool {
+        switch program {
+        case .appleTerminal, .warp:
+            false
+        case .iTerm2, .ghostty, .gnomeTerminal, .tmux, .unidentified:
+            true
+        }
+    }
+
+    package static var cornerTrianglesFillTheCell: Bool {
+        cornerTrianglesFillTheCell(for: program)
+    }
+
+    /// The `TERM_PROGRAM`-style name of the host terminal, from whichever
+    /// signal in the environment carries it.
+    ///
+    /// `TERM_PROGRAM` is the variable every terminal sets and none of them
+    /// forwards: it is not an `LC_*` variable, and OpenSSH sends only `LANG`
+    /// and `LC_*` by default (measured: `/etc/ssh/ssh_config.d/100-macos.conf`
+    /// sends `LANG LC_*`). A TUI app reached over ssh therefore sees no
+    /// `TERM_PROGRAM` at all.
+    ///
+    /// Compensating nothing is the RIGHT answer for a terminal we cannot name,
+    /// and stays so: absent explicit evidence otherwise a terminal is assumed
+    /// to render correctly, because every compensation here works around a
+    /// measured *defect* and applying one blindly would penalise a well-behaved
+    /// terminal that simply isn't special-cased. The bug is upstream of that
+    /// choice: Terminal.app is not an unknown terminal — it is the most heavily
+    /// measured host this repo has — and it was landing in the unknown bucket
+    /// for no better reason than the transport. Unnamed, it renders every row carrying a VS-16 emoji,
+    /// a lone regional indicator or an SF Symbol one cell left per cluster, and
+    /// keeps the skin-tone modifiers whose over-advance strands two cells at the
+    /// right edge.
+    ///
+    /// Three signals, in precedence order:
+    ///
+    /// 1. **`TUIKIT_TERM_PROGRAM`** — an explicit answer from the user, in the
+    ///    same vocabulary as `TERM_PROGRAM` (`Apple_Terminal`, `iTerm.app`,
+    ///    `ghostty`, `WarpTerminal`, `tmux`). First because it is the only
+    ///    signal that can name a host the other two cannot, and because
+    ///    someone who has said which terminal they are in should not be
+    ///    argued with.
+    /// 2. **`TERM_PROGRAM`** — the local answer, authoritative when present.
+    /// 3. **`LC_TERMINAL`** — iTerm2's shell integration sets it, and ssh's
+    ///    `LC_*` rule carries it across a hop (measured; see
+    ///    `Documentation/Terminals/Terminal compatibility survey.md`). Consulted after
+    ///    `TERM_PROGRAM` so a local answer always beats a forwarded one.
+    /// 4. **`TERM`** — the termtype, which ssh carries in its `pty-req`
+    ///    (RFC 4254 §6.2) and which therefore survives every hop that kills
+    ///    `TERM_PROGRAM`. Last because it is the weakest: most terminals set
+    ///    a generic value that names nothing, and a user can set it to
+    ///    anything. Only termtypes measured to name exactly one terminal are
+    ///    in the table.
+    ///
+    /// - Returns: the host's name, or `nil` when nothing in the environment
+    ///   names it — which stays a real possibility, and is why this is an
+    ///   Optional rather than a defaulted string.
+    static func hostProgram(environment: [String: String]) -> String? {
+        if let forced = environment["TUIKIT_TERM_PROGRAM"], !forced.isEmpty { return forced }
+        if let native = environment["TERM_PROGRAM"], !native.isEmpty { return native }
+        if let forwarded = environment["LC_TERMINAL"], !forwarded.isEmpty,
+            let name = forwardedTerminalNames[forwarded]
+        {
+            return name
+        }
+        if environment["GNOME_TERMINAL_SCREEN"] != nil
+            || environment["GNOME_TERMINAL_SERVICE"] != nil
+            || environment["VTE_VERSION"] != nil
+        {
+            return "gnome-terminal"
+        }
+        // An unrecognised LC_TERMINAL falls through rather than answering nil:
+        // it names a terminal with no model here, so there is nothing for it to
+        // beat, and TERM may still name one there is.
+        guard let termtype = environment["TERM"], !termtype.isEmpty else { return nil }
+        return termtypeTerminalNames[termtype]
+    }
+
+    /// Whether anything in the process environment names the host terminal.
+    ///
+    /// `false` is the ssh case, and the cue to ask the terminal itself rather
+    /// than give up on it — see ``Terminal/queryIdentity(timeout:)``.
+    package static var hostIsNamedByEnvironment: Bool {
+        hostProgram(environment: ProcessInfo.processInfo.environment) != nil
+    }
+
+    /// `LC_TERMINAL` values, mapped into the `TERM_PROGRAM` vocabulary the
+    /// detectors speak — the variable has its own spelling ("iTerm2", not
+    /// "iTerm.app").
+    ///
+    /// Only terminals measured to set it appear. An unrecognised value names a
+    /// terminal whose advance model is unmeasured, and inventing a host model
+    /// for it would produce exactly the class of misrendering this whole file
+    /// exists to prevent.
+    private static let forwardedTerminalNames = ["iTerm2": "iTerm.app"]
+
+    /// `TERM` values that name exactly one terminal, mapped into the
+    /// `TERM_PROGRAM` vocabulary.
+    ///
+    /// This is the only environment signal that survives ssh for a terminal
+    /// without shell integration: `TERM` travels in ssh's `pty-req`
+    /// (RFC 4254 §6.2), which is why the remote shell has one at all. Measured
+    /// 2026-08-26 on the four hosts here — Ghostty is the only one that names
+    /// itself:
+    ///
+    /// | terminal | `TERM` |
+    /// |---|---|
+    /// | Ghostty 1.3.1 | `xterm-ghostty` |
+    /// | Apple Terminal 455.1 | `xterm-256color` |
+    /// | iTerm2 3.6.11 | `xterm-256color` |
+    /// | Warp 2026.07 | `xterm-256color` |
+    ///
+    /// So this closes exactly one gap, and a real one: before it, Ghostty over
+    /// ssh was unidentified — `TERM_PROGRAM` gone, no `LC_TERMINAL`, and the
+    /// Device Attributes fingerprint names only Apple Terminal — so its VS-15
+    /// chrome glyphs and SF Symbols went uncompensated and every toggle row
+    /// sheared.
+    ///
+    /// Generic termtypes are deliberately absent: `xterm-256color` is three of
+    /// the four terminals above and countless others, so it names nothing.
+    /// Multiplexers rewrite `TERM` to their own (`tmux-256color`,
+    /// `screen-256color`), which is why neither appears here and why `$TMUX`
+    /// is consulted first regardless.
+    ///
+    /// Adding a row means measuring that terminal, exactly as the
+    /// ``forwardedTerminalNames`` table requires: a name with no advance model
+    /// behind it buys nothing, and a wrong one misrenders.
+    private static let termtypeTerminalNames = ["xterm-ghostty": "ghostty"]
+
+    /// `true` for macOS Terminal.app (`Apple_Terminal`), by whichever signal
+    /// ``hostProgram(environment:)`` found it.
+    ///
+    /// Pure over the environment argument — like the other native detectors
+    /// (``detectITerm2(environment:)`` and friends) — so tests exercise both
+    /// answers deterministically regardless of which terminal, or platform,
+    /// runs them.
+    package static func detectAppleTerminal(environment: [String: String]) -> Bool {
+        hostProgram(environment: environment) == "Apple_Terminal"
+    }
+
+    /// `true` for iTerm2 (`iTerm.app`), by whichever signal
+    /// ``hostProgram(environment:)`` found it.
+    ///
+    /// Across an ssh hop this rests on `LC_TERMINAL`, which iTerm2's shell
+    /// integration sets and ssh's `LC_*` rule forwards — so an iTerm2 reached
+    /// remotely is identified only when that integration is installed. Without
+    /// it, `TUIKIT_TERM_PROGRAM` is the answer.
+    static func detectITerm2(environment: [String: String]) -> Bool {
+        hostProgram(environment: environment) == "iTerm.app"
+    }
+
+    /// `true` for Ghostty (`ghostty`), on any platform — Ghostty runs on macOS
+    /// and Linux and sets `TERM_PROGRAM` on both.
+    ///
+    /// Ghostty also ships its own terminfo and sets `TERM=xterm-ghostty`, but
+    /// `TERM` is not the discriminator: it is routinely overridden to
+    /// `xterm-256color` for compatibility with hosts lacking the entry, while
+    /// `TERM_PROGRAM` survives.
+    static func detectGhostty(environment: [String: String]) -> Bool {
+        hostProgram(environment: environment) == "ghostty"
+    }
+
+    /// `true` for Warp (`WarpTerminal`), on any platform.
+    ///
+    /// Warp reports `TERM=xterm-256color`, so again only the program name
+    /// identifies it. (`WARP_TERMINAL_SESSION_UUID` and friends are also
+    /// present, but `TERM_PROGRAM` is the stable, documented signal.)
+    static func detectWarp(environment: [String: String]) -> Bool {
+        hostProgram(environment: environment) == "WarpTerminal"
+    }
+
+    /// `true` for GNOME Terminal (`gnome-terminal`) and other VTE-based terminals,
+    /// by whichever signal ``hostProgram(environment:)`` found it.
+    package static func detectGnomeTerminal(environment: [String: String]) -> Bool {
+        guard let program = hostProgram(environment: environment) else { return false }
+        return program == "gnome-terminal" || program == "GNOME_Terminal" || program == "vte"
+    }
+
+    /// `true` when running inside tmux, on any platform.
+    ///
+    /// `$TMUX` (the server socket path) is the primary signal: tmux always sets
+    /// it for its panes and nothing else does, so it holds even on an ancient
+    /// tmux. `TERM_PROGRAM == "tmux"` is the secondary signal — set since tmux
+    /// 3.2 and the same variable the other hosts key off — and covers a pane
+    /// whose `$TMUX` was scrubbed (a `env -u`, a `sudo`, some shell wrappers).
+    /// Either alone is sufficient; both are checked because the cost of missing
+    /// tmux is silently applying the wrong terminal's width model.
+    ///
+    /// `TERM` is deliberately NOT consulted: it is `tmux-256color` OR
+    /// `screen-256color` depending on the user's `default-terminal`, and
+    /// `screen*` is also what GNU screen sets — a different compositor with a
+    /// different width table that this model does not describe.
+    package static func detectTmux(environment: [String: String]) -> Bool {
+        if let socket = environment["TMUX"], !socket.isEmpty { return true }
+        return hostProgram(environment: environment) == "tmux"
+    }
+
+    /// Detects the host terminal program from the environment.
+    ///
+    /// Checks tmux first: tmux owns the grid, so which native terminal's
+    /// variables leaked into the pane must make no difference.
+    package static func detectProgram(
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> TerminalClient.Program {
+        if detectTmux(environment: environment) {
+            return .tmux
+        }
+        guard let name = hostProgram(environment: environment) else {
+            return .unidentified
+        }
+        return TerminalClient.Program(termProgramName: name)
+    }
+
+    /// The detected host terminal program for this process.
+    package static var program: TerminalClient.Program {
+        detectProgram(environment: ProcessInfo.processInfo.environment)
+    }
+
+    // MARK: - tmux client identification
+
+    /// One terminal attached to a tmux session — what tmux will tell us about
+    /// it, and the handle that lets us find out the rest ourselves.
+    package struct TmuxClient: Equatable {
+        /// The client's XTVERSION reply as `#{client_termtype}` reports it —
+        /// "iTerm2 3.6.11", "ghostty 1.3.1", "Warp(v0.2026…)" — or `""` for a
+        /// terminal that answered none (Terminal.app, and anything older than
+        /// the escape).
+        let termtype: String
+
+        /// The `tmux attach` process, whose parent chain runs back through the
+        /// login shell to the terminal application that owns the window — which
+        /// is how a silent client is identified. `nil` if tmux did not report it.
+        ///
+        /// An `Int32`, not a `pid_t`, as are the hook builders' `pid`s below:
+        /// they are the same type on every platform with a `pid_t` (Darwin,
+        /// Glibc, Musl, WASI), and the type `ProcessInfo.processIdentifier`
+        /// has everywhere, but Windows' C runtime declares no `pid_t`, so
+        /// spelling it would keep this file from compiling there. Only the
+        /// Darwin walk in ``owningApplicationPath(ofTmuxClient:)`` reads a
+        /// `pid_t`, and it is compiled only where one exists.
+        let pid: Int32?
+
+        /// tmux's ids (`%3`) of every pane in every window of the client's
+        /// session, or `nil` where tmux did not list them (a tmux too old for
+        /// the format's `W:` and `P:` loops).
+        ///
+        /// tmux passes a pane's OSC 52 write on only to the clients whose
+        /// session holds the pane's window (`session_has` in
+        /// `screen_write_set_client_cb`, read from its source), which are the
+        /// clients whose list names the pane: a session grouped with the
+        /// pane's shares its windows, so its clients' lists name it too
+        /// (measured, tmux 3.7c).
+        var sessionPanes: [String]?
+
+        /// Whether tmux lists the `progressbar` feature for the client
+        /// (`#{client_termfeatures}`): tmux passes a pane's progress bar on to
+        /// a client that has it, and to no other (measured, tmux 3.7c,
+        /// `progress_probe.py --tmux-forwarding`). tmux gives it from the
+        /// client's XTVERSION answer — iTerm2's and mintty's, by its built-in
+        /// table — or from the user's `terminal-features`.
+        var drawsProgressBars = false
+    }
+
+    /// Whether the terminals currently attached to a tmux session all draw the
+    /// emoji chrome glyphs correctly.
+    ///
+    /// Under tmux the *glyph repertoire* is still the outer terminal's — tmux
+    /// composites a grid but the client's font paints it — so the emoji-chrome
+    /// question is the one thing that genuinely depends on which client is
+    /// attached. (Widths do not: tmux's grid is client-independent, measured.)
+    ///
+    /// **Every** attached client must be recognised, not just the active one: a
+    /// tmux session can have several clients at once, each with its own font,
+    /// painting the same bytes. Requiring unanimity costs the common
+    /// single-client case nothing and keeps a stray unknown client from getting
+    /// glyphs it cannot draw.
+    ///
+    /// - Parameter clients: one entry per attached client. `nil` means the
+    ///   question could not be asked; empty means no clients are attached
+    ///   (nothing to please).
+    static func emojiChromeSupported(tmuxClients clients: [TmuxClient]?) -> Bool {
+        guard let clients else { return false }
+        return clientCapabilities(tmuxClients: clients).emojiChrome
+    }
+
+    /// The full answer for a client list: the verdict, plus whether it might
+    /// improve on a short retry.
+    ///
+    /// The retry signal exists because of a measured race: the
+    /// `client-attached` hook fires — and the app probes — BEFORE the new
+    /// client's XTVERSION reply has arrived, so `#{client_termtype}` is still
+    /// empty at that moment (measured: a hook logging `list-clients` at
+    /// attach time saw `pid:` with an empty termtype for an iTerm2 that
+    /// reported "iTerm2 3.6.11" moments later). A client that is silent AND
+    /// unidentifiable by its process chain may therefore be a recognisable
+    /// terminal whose reply is milliseconds away — worth re-asking briefly —
+    /// or a genuinely unknown terminal, in which case the bounded retries burn
+    /// out and the safe answer stands.
+    package static func clientCapabilities(tmuxClients clients: [TmuxClient]) -> ClientCapabilities {
+        guard !clients.isEmpty else {
+            // No clients: nothing to please. No emoji chrome (nobody has earned
+            // it), but skin tones stay — tmux's own grid joins them correctly,
+            // and an attach fires the hooks, which re-probe and fully redraw.
+            // No progress bar either: nobody sees one.
+            return ClientCapabilities(
+                emojiChrome: false, skinTonesSafe: true, blockElementsFillTheLine: true,
+                cornerTrianglesFillTheCell: true, drawsProgressBars: false, mayImproveShortly: false)
+        }
+        var chrome = true
+        var skinTones = true
+        var blocksFill = true
+        var trianglesFill = true
+        var progressBars = true
+        var mayImprove = false
+        for client in clients {
+            switch classifyClient(client) {
+            case true:
+                break
+            case false:
+                // Identified, and not on the allowlist: no retry will change it.
+                chrome = false
+            case nil:
+                // Silent and unidentified — possibly an XTVERSION reply in
+                // flight (the attach race above), possibly a genuine unknown.
+                chrome = false
+                mayImprove = true
+            }
+            // Skin tones: tmux re-emits the cluster VERBATIM (byte-captured, no
+            // backspace trick), so the client's NATIVE advance applies while
+            // tmux's grid believes 2 cells. Measured against exactly that,
+            // 2026-07-16: Ghostty 2 ✓; iTerm2 2 (but paints the tone as a
+            // separate swatch — the same appearance its native path strips
+            // for); Apple Terminal 4 ✗ and Warp 4 ✗, shearing the row rightward
+            // by 2 per cluster. So, exactly like every NATIVE path, only
+            // Ghostty keeps the tones; a silent client strips until identified
+            // (the shared retry covers it).
+            if clientRendersSkinTones(client) != true {
+                skinTones = false
+            }
+            if !clientFillsBlockElements(
+                termtype: client.termtype, owningApplication: client.pid.flatMap(owningApplicationPath(ofTmuxClient:)))
+            {
+                blocksFill = false
+            }
+            if !clientFillsCornerTriangles(
+                termtype: client.termtype, owningApplication: client.pid.flatMap(owningApplicationPath(ofTmuxClient:)))
+            {
+                trianglesFill = false
+            }
+            // The progress bar: tmux passes it on only to a client it lists
+            // with `progressbar`, which it gives by the XTVERSION answer — so
+            // an iTerm2 whose answer is still in flight (the attach race above)
+            // is about to have it, though its owner already named it.
+            if !client.drawsProgressBars {
+                progressBars = false
+                // The process walk only for a silent client, the one it can name.
+                let owner = client.termtype.isEmpty ? client.pid.flatMap(owningApplicationPath(ofTmuxClient:)) : nil
+                if clientMayGainProgressBars(termtype: client.termtype, owningApplication: owner) {
+                    mayImprove = true
+                }
+            }
+        }
+        return ClientCapabilities(
+            emojiChrome: chrome, skinTonesSafe: skinTones, blockElementsFillTheLine: blocksFill,
+            cornerTrianglesFillTheCell: trianglesFill, drawsProgressBars: progressBars, mayImproveShortly: mayImprove)
+    }
+
+    /// Whether a client tmux lists without the `progressbar` feature may have
+    /// it in a moment: one silent so far (no termtype) whose owning
+    /// application is iTerm2, which answers XTVERSION — the answer tmux gives
+    /// iTerm2 the feature by — and has not yet. Any other client's answer
+    /// stands: Apple Terminal answers nothing, and tmux's table gives the
+    /// feature to neither Ghostty nor Warp, so a retry would only re-learn it.
+    static func clientMayGainProgressBars(termtype: String, owningApplication: String?) -> Bool {
+        guard termtype.isEmpty, let owningApplication else { return false }
+        return owningApplication.contains("/iTerm.app/Contents/MacOS/")
+            || owningApplication.contains("/iTerm2/iTermServer-")
+    }
+
+    /// Whether one tmux client draws Block Elements the full height of the
+    /// line (``blockElementsFillTheLine``): `false` only for a client known
+    /// to be Terminal.app, which answers no XTVERSION and so is named by the
+    /// application that owns it. A client neither signal names is taken to
+    /// fill the line, as every other surveyed terminal does.
+    static func clientFillsBlockElements(termtype: String, owningApplication: String?) -> Bool {
+        guard termtype.isEmpty, let owningApplication else { return true }
+        return !owningApplication.contains("/Terminal.app/Contents/MacOS/Terminal")
+    }
+
+    /// Whether one tmux client draws the corner triangles edge to edge
+    /// (``cornerTrianglesFillTheCell``): `false` for a client known to be
+    /// Terminal.app or Warp — by the application that owns it, or by Warp's
+    /// XTVERSION name. A client neither signal names is taken to draw them
+    /// well, as the native default does.
+    static func clientFillsCornerTriangles(termtype: String, owningApplication: String?) -> Bool {
+        if termtype.lowercased().hasPrefix("warp") { return false }
+        guard termtype.isEmpty, let owningApplication else { return true }
+        return !owningApplication.contains("/Terminal.app/Contents/MacOS/Terminal")
+            && !owningApplication.contains("/Warp.app/Contents/MacOS/")
+    }
+
+    /// Whether one client renders SMP-base skin-tone clusters (👍🏽) correctly
+    /// when tmux re-emits them verbatim: `true` only for Ghostty — the same
+    /// answer as the native paths, where Ghostty alone skips the skin-tone
+    /// strip. `nil` for a client neither signal could name.
+    static func clientRendersSkinTones(_ client: TmuxClient) -> Bool? {
+        if !client.termtype.isEmpty {
+            return client.termtype.lowercased().hasPrefix("ghostty")
+        }
+        guard let pid = client.pid,
+            let executable = owningApplicationPath(ofTmuxClient: pid)
+        else { return nil }
+        return executable.contains("/Ghostty.app/Contents/MacOS/")
+    }
+
+    /// Identifies one attached client, by asking it and then — if it said
+    /// nothing — by looking at what process owns it.
+    ///
+    /// Two signals, because neither covers the field alone:
+    ///
+    /// - **XTVERSION** (`termtype`) names any terminal that answers it, local or
+    ///   across an ssh hop, but Terminal.app answers nothing at all (and every
+    ///   terminal is silent in the first moments after attaching — the reply is
+    ///   a round trip the `client-attached` hook does not wait for).
+    /// - **The owning application** identifies a silent terminal, but only a
+    ///   local one — over ssh the client's parent is `sshd`, not a terminal.
+    ///
+    /// Returns `true` for a client positively identified as chrome-capable,
+    /// `false` for one positively identified as not (a termtype we don't
+    /// recognise, or an owning application recognised but not on the chrome
+    /// list — Ghostty), and `nil` for one neither signal could name — silent,
+    /// with no recognisable local application in its process chain. `nil`
+    /// clients draw the safe glyphs, but distinguish themselves from `false`
+    /// because their answer may improve within milliseconds (see
+    /// ``clientCapabilities(tmuxClients:)``).
+    static func classifyClient(_ client: TmuxClient) -> Bool? {
+        classifyClient(
+            termtype: client.termtype,
+            owningApplication: client.pid.flatMap(owningApplicationPath(ofTmuxClient:)))
+    }
+
+    /// The decision behind ``classifyClient(_:)``, with the process walk
+    /// already done — so a test can hand it a path.
+    ///
+    /// `owningApplication` is non-nil ONLY for a path the walk recognised, so
+    /// it is an identification whichever list it is on: a recognised
+    /// application that is not chrome-capable is a definitive `false`, not an
+    /// answer that might improve. Mapping it to `nil` made the refresher
+    /// re-fork `tmux list-clients` three more times per attach under Ghostty
+    /// to re-learn an answer it already had.
+    static func classifyClient(termtype: String, owningApplication: String?) -> Bool? {
+        if !termtype.isEmpty {
+            return termtypeDrawsEmojiChrome(termtype)
+        }
+        guard let executable = owningApplication else { return nil }
+        return applicationDrawsEmojiChrome(executablePath: executable)
+    }
+
+    /// Classifies a client by its XTVERSION reply — against the THROUGH-TMUX
+    /// bar, which is stricter than the native one.
+    ///
+    /// Natively, a terminal qualifies if it draws ⬛︎/⬜︎ correctly *with our
+    /// compensation applied*. Through tmux no compensation can reach the
+    /// client — a CUF we emit lands in tmux's grid and corrupts it — and tmux
+    /// redraws a VS-15 cell to the client as `base BS BS base+VS15` (byte-
+    /// captured, 3.7b). So membership here requires the client to advance that
+    /// sequence by the 2 cells tmux believes it occupies, unaided. Measured
+    /// (DSR, alternate screen, 2026-07-16):
+    ///
+    /// - Apple Terminal 455.1: 2 ✓, iTerm2 3.6.11: 2 ✓, Warp v0.2026.07: 2 ✓
+    /// - **Ghostty 1.3.1: 1 ✗** — its VS-15 under-advance (the one quirk our
+    ///   native CUF patches) nets the trick to 1, shifting everything after
+    ///   the glyph left by one on every such row (and checkering the
+    ///   scrollbar, one shifted row at a time). Hence Ghostty, alone, is
+    ///   excluded HERE while remaining on the native allowlist.
+    ///
+    /// Prefix-matched and case-insensitive, so a version bump does not silently
+    /// drop support. Terminal.app is deliberately absent: it never answers, so
+    /// no termtype can name it — it is recognised by
+    /// ``applicationDrawsEmojiChrome(executablePath:)`` instead.
+    static func termtypeDrawsEmojiChrome(_ termtype: String) -> Bool {
+        let lowered = termtype.lowercased()
+        return lowered.hasPrefix("iterm2")
+            || lowered.hasPrefix("warp")
+    }
+
+    /// Executable paths of the terminal applications verified to draw the emoji
+    /// chrome — the same allowlist as ``supportsEmojiChrome``, spelled as
+    /// bundles rather than as `TERM_PROGRAM` values.
+    ///
+    /// Matched as substrings, each anchored with a leading `/` so a bundle
+    /// merely *ending* in one of these names ("/My Terminal.app/…") cannot
+    /// match. Only Terminal.app names its executable, because the others'
+    /// executable names are less predictable than their bundles (iTerm.app ships
+    /// `iTerm2`, Warp.app ships `stable`); matching to the `MacOS/` directory is
+    /// enough to identify the bundle and won't break when they rename a binary.
+    /// Every terminal application the process walk can name — identification,
+    /// not capability. Each capability then selects its own subset, because
+    /// they genuinely differ per terminal (Ghostty: no chrome through tmux,
+    /// but the only one that keeps skin tones).
+    private static let recognisedTerminalExecutables = [
+        "/Terminal.app/Contents/MacOS/Terminal",
+        "/iTerm.app/Contents/MacOS/",
+        // iTerm2's session-restoration daemon: with it enabled (the default),
+        // a shell's parent chain ends at
+        // ~/Library/Application Support/iTerm2/iTermServer-<version> — the app
+        // bundle never appears in the chain at all (measured; this is how a
+        // tmux client attached from iTerm2 walks). The daemon lives only in
+        // iTerm2's own Application Support directory, so the fragment is as
+        // unambiguous as the bundle paths.
+        "/iTerm2/iTermServer-",
+        "/Ghostty.app/Contents/MacOS/",
+        "/Warp.app/Contents/MacOS/",
+    ]
+
+    /// The subset of ``recognisedTerminalExecutables`` whose owners draw the
+    /// emoji chrome correctly THROUGH TMUX. Ghostty is recognised but absent:
+    /// it under-advances tmux's re-emitted VS-15 cells (see
+    /// `termtypeDrawsEmojiChrome`), so a client owned by Ghostty must not earn
+    /// the chrome by ancestry either.
+    private static let emojiChromeApplicationExecutables = [
+        "/Terminal.app/Contents/MacOS/Terminal",
+        "/iTerm.app/Contents/MacOS/",
+        "/iTerm2/iTermServer-",
+        "/Warp.app/Contents/MacOS/",
+    ]
+
+    /// Whether a terminal application, named by its executable path, is one of
+    /// the four verified to draw the emoji chrome correctly.
+    static func applicationDrawsEmojiChrome(executablePath: String) -> Bool {
+        emojiChromeApplicationExecutables.contains { executablePath.contains($0) }
+    }
+
+    /// Walks up from a tmux client process to the terminal application that owns
+    /// its window, and returns that application's executable path.
+    ///
+    /// A tmux client's ancestry is the window it was launched in — measured, for
+    /// Terminal.app:
+    ///
+    /// ```
+    ///   32465  /opt/homebrew/Cellar/tmux/3.7b/bin/tmux     ← #{client_pid}
+    ///   32453  /bin/zsh
+    ///   32452  /usr/bin/login
+    ///     509  /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+    /// ```
+    ///
+    /// This is the client's chain, not ours: the tmux *server* is a daemon
+    /// reparented to `launchd`, so our own ancestry says nothing about who is
+    /// watching. Hence `#{client_pid}`.
+    ///
+    /// Costs no subprocess — `sysctl` for each parent link and `proc_pidpath`
+    /// for each path, both plain syscalls — so it adds nothing measurable to the
+    /// probe that already forked for tmux.
+    ///
+    /// Returns the first ancestor that is a recognised terminal application, or
+    /// `nil` if the chain reaches `launchd` without one (an ssh session, a
+    /// terminal we don't know, a client that already exited).
+    ///
+    /// macOS-only, and deliberately: this exists to identify Terminal.app, which
+    /// is the only allowlisted terminal that answers no XTVERSION and doesn't
+    /// exist off macOS. Ghostty answers on Linux, so there is nothing for the
+    /// walk to add there and no `/proc` twin worth carrying.
+    static func owningApplicationPath(ofTmuxClient pid: Int32) -> String? {
+        #if canImport(Darwin)
+        var current: pid_t? = pid
+        // launchd (pid 1) roots every chain; the bound is for a pid recycled into
+        // a cycle mid-walk, which would otherwise spin forever.
+        for _ in 0..<16 {
+            guard let pid = current, pid > 1 else { return nil }
+            if let path = executablePath(ofProcess: pid),
+                recognisedTerminalExecutables.contains(where: { path.contains($0) })
+            {
+                return path
+            }
+            current = ProcessAncestry.parent(of: pid)
+        }
+        return nil
+        #else
+        return nil
+        #endif
+    }
+
+    #if canImport(Darwin)
+    /// The full executable path of a process, or `nil` if it has exited or is
+    /// unreadable (another user's process, in particular).
+    private static func executablePath(ofProcess pid: pid_t) -> String? {
+        var buffer = [UInt8](repeating: 0, count: Int(4 * MAXPATHLEN))
+        // Returns the path's length, excluding the terminating NUL.
+        let length = proc_pidpath(pid, &buffer, UInt32(buffer.count))
+        guard length > 0 else { return nil }
+        // Failable rather than lossy: a path that isn't valid UTF-8 is one we
+        // cannot match against the allowlist anyway, and saying so leaves the
+        // client unidentified — the safe answer — instead of comparing against
+        // a string peppered with U+FFFD.
+        return String(bytes: buffer[..<Int(length)], encoding: .utf8)
+    }
+    #endif
+
+    /// Asks tmux what each attached client is, or `nil` when it cannot be asked.
+    ///
+    /// There is no in-band way to learn this: tmux overwrites `TERM_PROGRAM`
+    /// with its own name, and the leaked per-terminal variables
+    /// (`LC_TERMINAL`, `GHOSTTY_*`, …) are frozen at the environment of the
+    /// client that STARTED the server — measured to still name Apple Terminal
+    /// after iTerm2 attaches to the same session. Only tmux itself knows, and
+    /// only by being asked. Hence a subprocess.
+    ///
+    /// **Cost:** one `fork`/`exec` per call, so callers MUST cache. It is not
+    /// safe to call per frame, let alone per view. `RenderLoop` calls it once
+    /// at startup (via ``ClientCapabilityRefresher``) and again — asynchronously,
+    /// off the render path — only when a SIGWINCH says something changed: a
+    /// real resize, or the synthetic one the client-change hooks send (see
+    /// ``installTmuxClientChangeHooks()``). Steady state runs no probes.
+    ///
+    /// Fails closed: not under tmux, tmux missing from `PATH`, a non-zero exit
+    /// or a hang all yield `nil`, which ``emojiChromeSupported(tmuxClients:)``
+    /// reads as "unknown" and so as the safe non-emoji glyphs.
+    ///
+    /// The wait is BOUNDED. `list-clients` answers in a few milliseconds, but a
+    /// tmux whose server is wedged — `SIGSTOP`, a stuck socket, a machine under
+    /// load — could otherwise block the render loop forever on the unbounded
+    /// `readDataToEndOfFile`/`waitUntilExit` this used to call. Past the deadline
+    /// the child is killed and the probe fails closed.
+    package static func probeTmuxClients() -> [TmuxClient]? {
+        guard isTmux else { return nil }
+        // One line per attached client. The pid comes first because it is always
+        // digits, then the session's pane ids run together (`%0%1%2`: each
+        // starts with its `%`, and a loop's comma would name the active pane's
+        // format), then the features tmux gives the client, comma-separated
+        // with no space (`bpaste,…,progressbar,title`), and the termtype takes
+        // the rest of the line, spaces and all.
+        let format = "#{client_pid} #{W:#{P:#{pane_id}}} #{client_termfeatures} #{client_termtype}"
+        guard let output = runTmux(["list-clients", "-F", format]) else { return nil }
+        return parseTmuxClients(output)
+    }
+
+    /// The value of one of tmux's server options (`show-options -sv`), or
+    /// `nil` when not under tmux or tmux cannot be asked.
+    ///
+    /// A bounded subprocess, like ``probeTmuxClients()``: asked when something
+    /// happens that needs it — a copy needs `set-clipboard` — never per frame.
+    static func tmuxOption(_ name: String) -> String? {
+        guard isTmux, let output = runTmux(["show-options", "-sv", name]) else { return nil }
+        return output.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// The value in force in `pane` (`TMUX_PANE`, as `%3`) of one of tmux's
+    /// pane options — `show-options -pvA`, which answers what the pane
+    /// inherits from its window and the global setting where it sets none
+    /// (measured, tmux 3.7c: `allow-passthrough` reads `off` by default, and
+    /// `on` after `set -gw allow-passthrough on`). `nil` when not under tmux or
+    /// tmux cannot be asked. Without a pane, tmux answers for its current one.
+    ///
+    /// A bounded subprocess, asked when a copy needs it, as ``tmuxOption(_:)``.
+    static func tmuxPaneOption(_ name: String, pane: String?) -> String? {
+        guard isTmux else { return nil }
+        let target = pane.map { $0.isEmpty ? [] : ["-t", $0] } ?? []
+        guard let output = runTmux(["show-options", "-pvA"] + target + [name]) else { return nil }
+        return output.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Runs one tmux command with a bounded wait, returning its stdout, or `nil`
+    /// on any failure (tmux missing, non-zero exit, or the deadline passing):
+    /// ``runBounded(_:)`` with tmux's arguments.
+    private static func runTmux(_ arguments: [String]) -> String? {
+        runBounded(["tmux"] + arguments)
+    }
+
+    /// Runs one command, found on `PATH`, with a bounded wait, returning its
+    /// stdout, or `nil` on any failure (the program missing, a non-zero exit, or
+    /// the deadline passing).
+    ///
+    /// The wait is BOUNDED: the commands sent through here answer in a few
+    /// milliseconds, but a wedged one — a tmux server under `SIGSTOP`, a stuck
+    /// socket — could otherwise block forever on the unbounded
+    /// `readDataToEndOfFile`/`waitUntilExit` this replaces. Exit is polled
+    /// against the deadline; reading is deferred until the child has exited,
+    /// which cannot itself block only because every command sent through here
+    /// answers with at most a few lines, far under the pipe buffer. A command
+    /// that may say more must not use this.
+    package static func runBounded(_ command: [String]) -> String? {
+        #if canImport(WASILibc)
+            // No subprocesses on wasip1, and nothing to ask: a wasm program in
+            // a browser is not inside tmux, nor on a desktop. `nil` is the
+            // answer a machine without the program on its PATH gives, and every
+            // caller already handles it.
+            return nil
+        #else
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = command
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        do {
+            try process.run()
+        } catch {
+            return nil  // not on PATH, or exec refused
+        }
+        let deadline = MonotonicClock.nowNanoseconds &+ UInt64(commandTimeoutMilliseconds) &* 1_000_000
+        while process.isRunning {
+            if MonotonicClock.nowNanoseconds >= deadline {
+                process.terminate()
+                return nil
+            }
+            Thread.sleep(forTimeInterval: 0.002)
+        }
+        guard process.terminationStatus == 0 else { return nil }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        return String(data: data, encoding: .utf8)
+        #endif
+    }
+
+    /// How long ``runBounded(_:)`` waits before giving up and failing closed.
+    /// Two orders of magnitude above tmux's normal few-ms reply, so a
+    /// loaded machine is not mistaken for a wedged one, yet short enough to be
+    /// invisible on the rare occasions a command runs.
+    private static let commandTimeoutMilliseconds = 250
+
+    /// Parses `list-clients` output into one entry per attached client.
+    ///
+    /// Empty termtypes are kept — a client whose XTVERSION went unanswered
+    /// (Terminal.app) is still a client, and now an identifiable one. Only the
+    /// empty element the trailing newline leaves behind is dropped. Split out
+    /// from the subprocess so the parsing is testable without one.
+    static func parseTmuxClients(_ output: String) -> [TmuxClient] {
+        // No output at all means no clients — distinct from one line that
+        // happens to carry no termtype, which IS a client. Without this, `""`
+        // would split to a single empty element and be miscounted as one.
+        guard !output.isEmpty else { return [] }
+        let lines = output.split(separator: "\n", omittingEmptySubsequences: false)
+        let withoutTrailingNewlineArtefact = output.hasSuffix("\n") ? lines.dropLast() : lines[...]
+        return withoutTrailingNewlineArtefact.map { line in
+            let fields = line.split(separator: " ", maxSplits: 3, omittingEmptySubsequences: false)
+            // A tmux too old to know `client_pid` substitutes nothing for it, so
+            // the pid is absent rather than wrong: identification falls back to
+            // the termtype alone, which is exactly the old behaviour. One too
+            // old for `client_termfeatures` (before 3.2) substitutes nothing
+            // either, and lists no feature.
+            let pid = fields.first.flatMap { Int32($0) }
+            let panes = fields.count > 1 ? parseTmuxPaneIDs(fields[1]) : nil
+            let features = fields.count > 2 ? fields[2].split(separator: ",") : []
+            let termtype = fields.count > 3 ? String(fields[3]) : ""
+            return TmuxClient(
+                termtype: termtype, pid: pid, sessionPanes: panes, drawsProgressBars: features.contains("progressbar"))
+        }
+    }
+
+    /// Pane ids run together as tmux's loops print them — `%0%1%2` — or `nil`
+    /// for anything else: nothing at all (a tmux whose formats have no loops
+    /// substitutes nothing, and a session always holds a pane), or a field
+    /// that is not ids.
+    static func parseTmuxPaneIDs(_ field: Substring) -> [String]? {
+        guard field.first == "%" else { return nil }
+        let numbers = field.dropFirst().split(separator: "%", omittingEmptySubsequences: false)
+        let isNumber = { (digits: Substring) in !digits.isEmpty && digits.allSatisfy { ("0"..."9").contains($0) } }
+        guard numbers.allSatisfy(isNumber) else { return nil }
+        return numbers.map { "%\($0)" }
+    }
+
+    // MARK: - tmux client-change hooks (push, not poll)
+
+    /// The tmux hooks that mean "the set of attached clients may have changed":
+    /// a client attached, detached, or switched its session to (or away from)
+    /// ours. All three fire on tmux 3.7b — measured, including for a same-size
+    /// attach (which sends no SIGWINCH) and for a client killed with SIGKILL.
+    static let tmuxClientChangeHooks = [
+        "client-attached", "client-detached", "client-session-changed",
+    ]
+
+    /// The tmux hooks that mean "a client changed its theme": the only notice a
+    /// pane gets that the colours it is being drawn in have moved under it.
+    ///
+    /// tmux learns a client's theme because it sets mode 2031 on it at attach
+    /// and reads the `CSI ? 997` it then sends (measured, 3.7c — see
+    /// `Documentation/Terminals/Terminal compatibility survey.md`). A pane is told nothing; these
+    /// hooks are how it can be.
+    ///
+    /// Registered SEPARATELY from ``tmuxClientChangeHooks``, and that is
+    /// load-bearing: tmux refuses an unknown hook name with "invalid option" and
+    /// a non-zero exit, and **stops at the first failing command in an
+    /// invocation** — measured on 3.7c with a bogus name first, after which the
+    /// real hook that followed it in the same argv was never set. A tmux too old
+    /// for these two would therefore have taken the client-change hooks down
+    /// with them.
+    static let tmuxThemeChangeHooks = ["client-light-theme", "client-dark-theme"]
+
+    /// The `set-hook` arguments that make tmux notify a process of client
+    /// changes, as one flat tmux argv (`;`-separated commands). Pure, so the
+    /// exact registration is testable without a tmux server.
+    ///
+    /// Shape, for each hook in ``tmuxClientChangeHooks``:
+    ///
+    /// ```
+    /// set-hook -g 'client-attached[<pid>]' \
+    ///     "run-shell -b \"kill -s WINCH <pid> || tmux set-hook -gu 'client-attached[<pid>]'\""
+    /// ```
+    ///
+    /// Every part is load-bearing:
+    ///
+    /// - **Global (`-g`), never session-scoped.** Hooks are per-index inherited
+    ///   options, and a session-scoped hook shadows the user's ENTIRE global
+    ///   array for that hook — measured: with a session `client-attached[7391]`
+    ///   set, the user's global `client-attached[0]` stopped firing. Two global
+    ///   hooks at different indices coexist (also measured), so global is the
+    ///   only scope that leaves the user's hooks running.
+    /// - **Index = our PID**, so several TUI apps on one server each get
+    ///   their own slot with no collisions, and unset only their own.
+    /// - **`run-shell -b`**: background, so tmux never blocks on us.
+    /// - **`kill -s WINCH`**, not a bespoke channel: the app already has a
+    ///   complete SIGWINCH pipeline (async-signal-safe flag + self-pipe that
+    ///   wakes the idle loop, full repaint), so a client change rides it with
+    ///   zero new plumbing. And SIGWINCH's default action is IGNORE, so if this
+    ///   app dies and its PID is recycled, a stale hook signalling the new
+    ///   process is harmless — which is NOT true of e.g. SIGUSR1 (terminates).
+    /// - **`|| tmux set-hook -gu …`**: self-cleaning. `kill` fails once the PID
+    ///   is gone, and the hook removes itself on its first firing after this
+    ///   app dies without running its own cleanup.
+    static func tmuxClientChangeHookArguments(pid: Int32) -> [String] {
+        hookArguments(for: tmuxClientChangeHooks, pid: pid)
+    }
+
+    /// The same registration for ``tmuxThemeChangeHooks``, as its own tmux argv:
+    /// a server too old to know these names refuses the whole invocation, and
+    /// this way that costs only the theme hooks (see the constant).
+    ///
+    /// The channel is SIGWINCH again, which is not a coincidence: the resize
+    /// path already throws the screen away and asks the terminal what it paints
+    /// now (`RenderLoop.invalidateDiffCache`), which is exactly what a client's
+    /// new theme needs. Zero new plumbing, and a signal whose default action is
+    /// IGNORE, so a stale hook signalling a recycled PID is harmless.
+    static func tmuxThemeChangeHookArguments(pid: Int32) -> [String] {
+        hookArguments(for: tmuxThemeChangeHooks, pid: pid)
+    }
+
+    /// One flat tmux argv registering every hook in `hooks` at this process's
+    /// PID index. Shared by both sets rather than written twice: every clause is
+    /// load-bearing in the same way for both, and two copies would be two things
+    /// to keep right.
+    private static func hookArguments(for hooks: [String], pid: Int32) -> [String] {
+        var arguments: [String] = []
+        for hook in hooks {
+            if !arguments.isEmpty { arguments.append(";") }
+            let slot = "\(hook)[\(pid)]"
+            arguments += [
+                "set-hook", "-g", slot,
+                "run-shell -b \"kill -s WINCH \(pid) || tmux set-hook -gu '\(slot)'\"",
+            ]
+        }
+        return arguments
+    }
+
+    /// The `set-hook -gu` arguments that remove exactly the hooks
+    /// ``tmuxClientChangeHookArguments(pid:)`` registered — ours and only ours;
+    /// unsetting one array index leaves the user's other indices untouched
+    /// (measured). Pure, for the same testability.
+    static func tmuxClientChangeUnhookArguments(pid: Int32) -> [String] {
+        unhookArguments(for: tmuxClientChangeHooks, pid: pid)
+    }
+
+    /// The same removal for ``tmuxThemeChangeHooks``, ours and only ours.
+    static func tmuxThemeChangeUnhookArguments(pid: Int32) -> [String] {
+        unhookArguments(for: tmuxThemeChangeHooks, pid: pid)
+    }
+
+    private static func unhookArguments(for hooks: [String], pid: Int32) -> [String] {
+        var arguments: [String] = []
+        for hook in hooks {
+            if !arguments.isEmpty { arguments.append(";") }
+            arguments += ["set-hook", "-gu", "\(hook)[\(pid)]"]
+        }
+        return arguments
+    }
+
+    /// Registers the client-change hooks for this process, so tmux pushes a
+    /// SIGWINCH whenever a client attaches, detaches, or changes session —
+    /// including the same-size attach that sends no SIGWINCH of its own.
+    ///
+    /// This is what makes client-change detection PUSH rather than poll: with
+    /// the hooks in place the app forks nothing in steady state, and re-probes
+    /// only when tmux says something actually happened.
+    ///
+    /// Returns whether registration succeeded. Failure (a tmux too old for
+    /// these hooks, a wedged server) is tolerated: the app then adapts only on
+    /// real SIGWINCHes, exactly the behaviour before hooks existed.
+    @discardableResult
+    static func installTmuxClientChangeHooks() -> Bool {
+        guard isTmux else { return false }
+        let pid = ProcessInfo.processInfo.processIdentifier
+        return runTmux(tmuxClientChangeHookArguments(pid: pid)) != nil
+    }
+
+    /// Removes this process's client-change hooks; the graceful-shutdown half
+    /// of ``installTmuxClientChangeHooks()``. Safe to call when nothing is
+    /// registered. (A crash skips this — then the hooks' own `||` arm removes
+    /// them on their next firing instead.)
+    static func removeTmuxClientChangeHooks() {
+        guard isTmux else { return }
+        let pid = ProcessInfo.processInfo.processIdentifier
+        _ = runTmux(tmuxClientChangeUnhookArguments(pid: pid))
+    }
+
+    /// Registers the theme-change hooks for this process, so tmux pushes a
+    /// SIGWINCH whenever a client switches to a light or a dark theme — which
+    /// makes the app ask the terminal what it paints now.
+    ///
+    /// Its own invocation, and its own failure: a tmux that does not know these
+    /// hook names refuses the command, and the client-change hooks registered by
+    /// ``installTmuxClientChangeHooks()`` are unaffected either way. Returns
+    /// whether registration succeeded; failure is tolerated, and the app then
+    /// notices a theme change only when something else throws the screen away.
+    @discardableResult
+    static func installTmuxThemeChangeHooks() -> Bool {
+        guard isTmux else { return false }
+        let pid = ProcessInfo.processInfo.processIdentifier
+        return runTmux(tmuxThemeChangeHookArguments(pid: pid)) != nil
+    }
+
+    /// Removes this process's theme-change hooks; the graceful-shutdown half of
+    /// ``installTmuxThemeChangeHooks()``, and safe when nothing is registered.
+    static func removeTmuxThemeChangeHooks() {
+        guard isTmux else { return }
+        let pid = ProcessInfo.processInfo.processIdentifier
+        _ = runTmux(tmuxThemeChangeUnhookArguments(pid: pid))
+    }
+
+    /// Registers every tmux hook this process wants: the client changes that
+    /// alter which terminal paints our output, and the theme changes that alter
+    /// what it paints them in.
+    ///
+    /// Two `set-hook` invocations rather than one, which is this function's
+    /// whole reason for existing as well as an implementation detail its caller
+    /// does not need: tmux stops at the first command it refuses, so a server
+    /// too old for ``tmuxThemeChangeHooks`` would otherwise lose the
+    /// client-change hooks with them. Each half fails on its own and is
+    /// tolerated on its own.
+    package static func installTmuxHooks() {
+        installTmuxClientChangeHooks()
+        installTmuxThemeChangeHooks()
+    }
+
+    /// Removes everything ``installTmuxHooks()`` registered, ours and only ours.
+    package static func removeTmuxHooks() {
+        removeTmuxClientChangeHooks()
+        removeTmuxThemeChangeHooks()
+    }
+}

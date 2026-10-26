@@ -1,0 +1,943 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  FrameDiffWriter.swift
+//
+//  Converts FrameBuffers to terminal-ready output lines and writes
+//  only the lines that changed since the previous frame.
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import Foundation
+import TUIFoundation
+
+// MARK: - Frame Diff Writer
+
+/// Compares rendered frames and writes only changed lines to the terminal.
+///
+/// `FrameDiffWriter` is the core of TUI's render optimization. Instead
+/// of rewriting every terminal line on every frame, it stores the previous
+/// frame's output and only writes lines that actually differ.
+///
+/// For a mostly-static UI (e.g. a menu with one animating spinner), this
+/// reduces terminal writes from ~50 lines per frame to just 1–3 lines
+/// (~94% reduction).
+///
+/// ## Usage
+///
+/// ```swift
+/// let writer = FrameDiffWriter()
+///
+/// // Each frame:
+/// let outputLines = writer.buildOutputLines(buffer: buffer, ...)
+/// writer.writeContentDiff(
+///     newLines: outputLines, terminal: terminal, startRow: 1,
+///     terminalWidth: width, bgCode: bgCode, reset: reset)
+///
+/// // On terminal resize:
+/// writer.invalidate()
+/// ```
+@MainActor
+final class FrameDiffWriter {
+    /// Which terminal's model this writer was built for, before any simulation.
+    private let detectedProgram: TerminalClient.Program
+
+    /// Whether this writer was built for macOS Terminal.app — the host with the
+    /// deepest emoji divergences (three per-row facts: internal column,
+    /// paint, row store) and so its own walk: tone separation, software ZWJ
+    /// decomposition, store surgery, the right-edge phantom repaint (see
+    /// ``buildOutputLines`` and ``repaintRightEdge``).
+    private var isAppleTerminal: Bool { detectedProgram == .appleTerminal }
+
+    /// Which skin-tone bases the tmux path strips: `.keepingTmuxMerged` when every
+    /// attached client renders SMP-base tones (Ghostty alone, measured),
+    /// `.all` otherwise — Apple Terminal and Warp advance tmux's verbatim
+    /// re-emission of 👍🏽 by 4 against tmux's believed 2, shearing the row,
+    /// and iTerm2 paints the tone as a broken separate swatch (the same
+    /// appearance its native path strips for). Stripping at SOURCE is the one
+    /// fix that survives the tmux hop: tmux's grid then holds and re-emits
+    /// the toneless cluster.
+    ///
+    /// Per-frame config, set by `RenderLoop` from the push-refreshed client
+    /// capabilities. Safe default (`.all`) so a writer nobody configures
+    /// never emits tones a client can't place. Mutable, unlike the host
+    /// flags — legitimate against the line-reuse cache only because every
+    /// change arrives via the refresher's `onChange`, which fully invalidates
+    /// this writer before the next frame is built.
+    var tmuxSkinToneScope: String.SkinToneFallbackScope = .all
+
+    /// The model the caches were last built under, so a change of it can be
+    /// noticed. `TerminalClient.simulated` and `.simulatedQuirks` can change
+    /// between frames, and a row whose BYTES happen not to change would
+    /// otherwise keep the compensation of the model it was built under — which
+    /// is precisely the half-repainted screen the simulation exists to
+    /// demonstrate away.
+    private var appliedModel: RenderingModel?
+
+    /// The previous frame's lines (terminal-ready strings with ANSI codes) —
+    /// the whole screen, chrome included, since the scene draws its chrome into
+    /// the frame.
+    private var previousContentLines: [String] = []
+
+    /// Whether this pass of ``writeContentDiff(newLines:terminal:startRow:terminalWidth:bgCode:reset:)``
+    /// has moved the terminal's cursor — which every write it makes begins by
+    /// doing, so it is also whether it wrote anything.
+    private var movedCursor = false
+
+    /// The frame last built for the terminal, in screen order. What a headless
+    /// harness compares two runs by (see `HeadlessApp.screen`).
+    package var shownLines: [String] {
+        previousContentLines
+    }
+
+    /// The parameters that feed every built line. If any differ from the
+    /// previous frame, no cached line can be reused (it would be stale).
+    private struct LineParams: Equatable {
+        let width: Int
+        let bgCode: String
+        let reset: String
+    }
+
+    /// Snapshot of the frame's raw buffer input + build parameters from the
+    /// previous frame, used by `buildReusingOutputLines(…)` to decide which
+    /// rows can reuse their previously-built line. `rawLines` is the buffer's
+    /// own array (an O(1) copy-on-write reference, not a per-element copy).
+    private struct LineReuseCache {
+        var rawLines: [String] = []
+        var rawHeight = 0
+        var params: LineParams?
+
+        /// What the last *build* produced for each row.
+        ///
+        /// Deliberately not the diff's `previousXxxLines`, which the reuse used
+        /// to read: those are what is ON SCREEN, and an animation replay writes
+        /// PATCHED lines there (a run's current frame spliced into the line it
+        /// sits on). Reusing one of those as "what the builder would produce"
+        /// hands the next render the pulse colour that happened to be showing —
+        /// and since it then equals the diff baseline, that row is never written
+        /// again. A focus indicator froze mid-breath the moment focus moved
+        /// away, because the row it left behind renders the same raw line
+        /// focused or not; only its animated run differed.
+        var builtLines: [String] = []
+
+        /// The hairline runs each built row carried (``HairlineMarker``), beside
+        /// ``builtLines`` so a reused row reuses them too. Empty unless this
+        /// frame's host draws hairlines.
+        var builtRuns: [[HairlineMarker.Run]] = []
+    }
+
+    private var contentReuse = LineReuseCache()
+
+    /// The previous frame taken apart into cells, so a row is
+    /// decomposed ONCE: the row this frame diffs as "new" is the row the next
+    /// frame diffs as "previous", and doing both sides every frame doubles the
+    /// work for no new information.
+    ///
+    /// Every entry carries the exact string it was built from, so a stale one is
+    /// not merely unlikely but impossible. `previousXxxLines = newLines` hands
+    /// the same `String` instances back, which makes the check a pointer
+    /// comparison in the case that matters; anything that changes what is on
+    /// screen behind this cache's back — an animation replay patching a row, a
+    /// rebuild, a resize — simply misses and decomposes again.
+    private struct CellCache {
+        var lines: [String] = []
+        var cells: [ANSIRowCells?] = []
+
+        /// Sizes the cache to a frame, dropping entries for rows that no longer
+        /// exist and leaving the rest to be validated by string, not by index.
+        mutating func fit(to count: Int) {
+            if lines.count != count {
+                lines = Array(repeating: "", count: count)
+                cells = Array(repeating: nil, count: count)
+            }
+        }
+
+        mutating func remember(_ row: ANSIRowCells, line: String, at index: Int) {
+            guard index < cells.count else { return }
+            cells[index] = row
+            lines[index] = line
+        }
+
+        /// The decomposition for `line`, or `nil` when this cache does not hold
+        /// one built from exactly that string.
+        func cells(matching line: String, at index: Int) -> ANSIRowCells? {
+            guard index < cells.count, lines[index] == line else { return nil }
+            return cells[index]
+        }
+    }
+
+    /// The styling the terminal is in, as far as this writer knows — `nil`
+    /// when something it cannot model has written since.
+    ///
+    /// A pass used to hand the terminal back unstyled and the next one had to
+    /// state every parameter afresh from a reset, so the boundary between two
+    /// frames cost an `ESC[0m` plus a full `ESC[0;…m` restatement of a state
+    /// the terminal was already in a moment earlier. Nothing happens between
+    /// them: the loop writes a whole frame inside one `beginFrame`/`endFrame`
+    /// and then waits for input. Carrying the state over is the same argument
+    /// that already lets one row continue from the last — the boundary is a
+    /// cursor move, and a cursor move is not styling.
+    ///
+    /// The promise this replaces is real and is kept elsewhere: the terminal is
+    /// handed back unstyled when the app gives it back, via
+    /// ``restoreDefaultStyling(on:)``. Leaving the alternate screen does not
+    /// restore SGR, so that call is not merely a replacement — nothing was
+    /// doing it before except the incidental reset at the end of every frame.
+    private var terminalStyle: SGRState?
+
+    private var contentCells = CellCache()
+
+    /// Whether the rows were last built for a host that draws hairlines —
+    /// whose marks they read and take out (``HairlineMarker``) — so a change of
+    /// it is noticed, as a change of ``model`` is: a row reused across it would
+    /// keep marks it should not, or lose the runs it should report.
+    private var appliedHairlines = false
+
+    /// The hairline runs the last ``buildReusingOutputLines(buffer:terminalWidth:terminalHeight:bgCode:reset:)``
+    /// found, one entry per row, each cut to the terminal's width: what the
+    /// run loop's ``HairlineLayer`` places. Empty when the host draws none.
+    private(set) var hairlineRows: [[HairlineMarker.Run]] = []
+
+    /// Number of rows actually (re)built by the most recent
+    /// `buildReusingOutputLines(…)` call; the remainder were reused from the
+    /// previous frame. Exposed for tests and profiling.
+    private(set) var rowsBuiltInLastBuild = 0
+
+    init(program: TerminalClient.Program = TerminalClient.current.program) {
+        self.detectedProgram = program
+    }
+}
+
+// MARK: - Internal API
+
+extension FrameDiffWriter {
+    /// Converts a ``FrameBuffer`` into terminal-ready output lines.
+    ///
+    /// Each output line begins with the background color followed by `ESC[2K`
+    /// (Erase Entire Line). This fills the terminal line with the app background
+    /// before any content is drawn, preventing stale content from previous pages
+    /// from showing through when `strippedLength` miscalculates padding.
+    ///
+    /// Building a row is pure — `buildLine` is a function of `(rawLine,
+    /// terminalWidth, bgCode, reset)` and the rendering model in force. This
+    /// entry point is not, and the model is why: which host's walk a row gets
+    /// became switchable at runtime in 0745a47b (2026-08-26), so the first
+    /// thing here is to ask whether it moved since the last frame
+    /// (`invalidateIfProgramChanged()`) and, when it did, call `invalidate()`
+    /// — dropping the previous frame, the reuse cache, the cell cache and the
+    /// belief about what the terminal is wearing. Nothing else
+    /// here writes.
+    ///
+    /// - Parameters:
+    ///   - buffer: The rendered frame buffer.
+    ///   - terminalWidth: The number of columns every row is clipped and
+    ///     padded to. Not a hint: it is what decides the right edge, so a
+    ///     caller passing the wrong number sees a sheared or an unfilled
+    ///     column rather than an error.
+    ///   - terminalHeight: The number of rows to fill.
+    ///   - bgCode: The ANSI background color code.
+    ///   - reset: The ANSI reset code.
+    /// - Returns: An array of terminal-ready strings, one per row.
+    func buildOutputLines(
+        buffer: FrameBuffer,
+        terminalWidth: Int,
+        terminalHeight: Int,
+        bgCode: String,
+        reset: String
+    ) -> [String] {
+        invalidateIfProgramChanged()
+        invalidateIfHairlinesChanged()
+        let eraseLine = "\u{1B}[2K"
+        let emptyLine = bgCode + eraseLine + reset
+
+        var lines: [String] = []
+        lines.reserveCapacity(terminalHeight)
+        for row in 0..<terminalHeight {
+            lines.append(buildLine(
+                raw: row < buffer.height ? buffer.lines[row] : nil,
+                terminalWidth: terminalWidth, bgCode: bgCode, reset: reset,
+                eraseLine: eraseLine, emptyLine: emptyLine
+            ).line)
+        }
+        return lines
+    }
+
+    /// Incremental twin of the pure builder that reuses the previous frame's
+    /// built line for any row whose raw buffer content — and the render
+    /// parameters (width, background, reset) — are unchanged.
+    ///
+    /// A built line is a pure function of `(rawLine, width, bgCode, reset)` and
+    /// the rendering model in force, which the reuse key does not carry — and
+    /// does not have to, because a model change is not gradual:
+    /// `invalidateIfProgramChanged()` empties this cache on the frame it
+    /// happens, so every line the key can still match was built under the
+    /// model in force now.
+    /// When the rest match the previous frame the
+    /// previously-built line IS exactly what the builder would produce: output
+    /// is byte-identical to ``buildOutputLines(buffer:terminalWidth:terminalHeight:bgCode:reset:)``.
+    /// The downstream `writeContentDiff` still compares the built lines to decide
+    /// what to write, so write behaviour is unchanged; this only skips the
+    /// per-line clip / compensation / pad work for rows that did not change —
+    /// the win for partial-update frames (a cursor blink, a spinner tick, or a
+    /// one-row selection move re-renders the whole screen but changes one row).
+    ///
+    /// Reuse state is self-contained: the cache holds the lines this builder
+    /// produced, NOT the lines the diff last wrote. The two
+    /// are the same after an ordinary frame and differ after an animation
+    /// replay, which patches a run's current frame into what is on screen.
+    func buildReusingOutputLines(
+        buffer: FrameBuffer,
+        terminalWidth: Int,
+        terminalHeight: Int,
+        bgCode: String,
+        reset: String
+    ) -> [String] {
+        invalidateIfProgramChanged()
+        invalidateIfHairlinesChanged()
+        let eraseLine = "\u{1B}[2K"
+        let emptyLine = bgCode + eraseLine + reset
+        let params = LineParams(width: terminalWidth, bgCode: bgCode, reset: reset)
+        let extractsHairlines = appliedHairlines
+
+        let cache = contentReuse
+        let previousBuilt = cache.builtLines
+        // A row is reusable only when every parameter feeding `buildLine` is
+        // unchanged; otherwise the cached built line is stale.
+        let canReuse = cache.params == params
+
+        // Total for ANY height. Callers clamp the content area at zero, but this
+        // must not *depend* on that: a negative height reached the row loop as
+        // `0..<negative` and trapped. Belt and braces — the same negative value
+        // used to crash `WindowGroup.centerBuffer`, and clamping only there just
+        // moved the crash here.
+        let terminalHeight = max(0, terminalHeight)
+
+        var lines: [String] = []
+        lines.reserveCapacity(terminalHeight)
+        var runs: [[HairlineMarker.Run]] = []
+        if extractsHairlines { runs.reserveCapacity(terminalHeight) }
+        var builtCount = 0
+
+        for row in 0..<terminalHeight {
+            let isEmpty = row >= buffer.height
+            let wasEmpty = row >= cache.rawHeight
+            let rawUnchanged: Bool
+            if isEmpty || wasEmpty {
+                rawUnchanged = isEmpty && wasEmpty   // both empty → identical emptyLine
+            } else {
+                rawUnchanged = row < cache.rawLines.count && cache.rawLines[row] == buffer.lines[row]
+            }
+
+            if canReuse, rawUnchanged, row < previousBuilt.count {
+                lines.append(previousBuilt[row])
+                if extractsHairlines { runs.append(row < cache.builtRuns.count ? cache.builtRuns[row] : []) }
+            } else {
+                let built = buildLine(
+                    raw: isEmpty ? nil : buffer.lines[row],
+                    terminalWidth: terminalWidth, bgCode: bgCode, reset: reset,
+                    eraseLine: eraseLine, emptyLine: emptyLine
+                )
+                lines.append(built.line)
+                if extractsHairlines { runs.append(built.runs) }
+                builtCount += 1
+            }
+        }
+
+        contentReuse = LineReuseCache(
+            rawLines: buffer.lines, rawHeight: buffer.height, params: params,
+            builtLines: lines, builtRuns: runs)
+        hairlineRows = runs
+        rowsBuiltInLastBuild = builtCount
+        if Self.debugEnabled {
+            FileHandle.standardError.write(
+                Data("[FrameDiffWriter] built \(builtCount) of \(terminalHeight) rows\n".utf8))
+        }
+        return lines
+    }
+
+    /// `TUIKIT_DEBUG_RENDER=1`, the same switch as `RenderCache`'s frame line.
+    private static let debugEnabled =
+        ProcessInfo.processInfo.environment["TUIKIT_DEBUG_RENDER"] == "1"
+
+    /// `styled` with the row's background put back after every reset.
+    ///
+    /// A reset returns the terminal to ITS default, which on Apple Terminal's
+    /// light profile is white — so a fragment that ends in one leaves the cells
+    /// after it showing the terminal's background rather than the page's. Every
+    /// styled fragment ends in a reset, so every one needs this.
+    ///
+    /// A collapsed reset (`ESC[0;…m`, the spelling
+    /// ``String/collapsingAdjacentSGR()`` gives a line's first absolute run) is
+    /// split back apart first, so there is one spelling for the restoration to
+    /// find; `collapsingAdjacentSGR()` puts the pieces together again at the end
+    /// of `buildLine`, with the background now between them.
+    ///
+    /// Native Swift `replacing(_:with:)` — NOT Foundation's
+    /// `replacingOccurrences`, which bridges to `NSString` and was ~8% of the
+    /// render loop in a Mode-B (live-app) profile.
+    ///
+    /// For a whole ROW only, where the page's background is the right answer
+    /// after every reset: the content has already been through every container's
+    /// own fill, so a reset that reaches here is one nothing above it restated.
+    /// The animation replay used to run a run's frame through this as well, and
+    /// must not — a frame is a piece of a row that sits on whatever its
+    /// containers painted, which is not the page when they painted anything. See
+    /// ``patchingAnimatedRun(_:showing:in:fields:)``.
+    private static func restoringBackground(in styled: String, bgCode: String, reset: String) -> String {
+        guard !bgCode.isEmpty else { return styled }
+        return ANSIRenderer.restating(bgCode, afterResetsIn: styled)
+    }
+
+    /// Builds one terminal-ready output line from a raw buffer line (`nil` marks
+    /// an empty row past the buffer's height), and the hairline runs it carried.
+    /// Pure given the writer's `isAppleTerminal` and ``appliedHairlines``.
+    private func buildLine(
+        raw: String?,
+        terminalWidth: Int,
+        bgCode: String,
+        reset: String,
+        eraseLine: String,
+        emptyLine: String
+    ) -> (line: String, runs: [HairlineMarker.Run]) {
+        guard let raw else { return (emptyLine, []) }
+        // Neutralise any cursor-moving control character (a stray newline /
+        // carriage return / tab in a buffer line — e.g. user data with an
+        // embedded newline placed verbatim into a table cell) before it reaches
+        // the terminal: such a character prints literally and shoves the cursor,
+        // drawing outside the row's bounds and corrupting the rows below. A
+        // buffer line is one terminal row by contract, so this is the single
+        // boundary that guarantees no view can violate it. (No-op, no
+        // allocation, for the clean lines that are virtually all of them; and
+        // only changed lines are rebuilt here, unchanged ones are reused.)
+        var sanitized = raw.sanitizedForTerminalRow()
+        // The hairline marks, read and taken out FIRST, on the sanitised row:
+        // every step after this one is a cell walk that would have to reason
+        // about a code no terminal knows, and the runs are counted in the
+        // row's own cells, which the clip below only cuts at the right. Only
+        // where the host draws hairlines — nothing else made a mark — and
+        // only on a line whose bytes name one.
+        var runs: [HairlineMarker.Run] = []
+        if appliedHairlines, HairlineMarker.mayCarryMark(sanitized) {
+            let extracted = HairlineMarker.extracting(sanitized)
+            sanitized = extracted.line
+            runs = Self.cut(extracted.runs, toWidth: terminalWidth)
+        }
+        // Clip first so over-wide content (a layout that does not shrink to fit
+        // a narrower terminal) cannot wrap past the right edge.  Cursor
+        // compensation is applied AFTER clipping so any CUF sequences are scoped
+        // to characters that actually survive the clip.
+        // Terminal.app (and a hand-built quirk set with an over-advancer) needs
+        // the cursor-aware clip + CUF / skin-tone compensation for its emoji
+        // bugs; every other terminal advances no cluster past its claim, so use
+        // the plain clip (see `clippedToRightEdge`).
+        // The clip returns its visible width (counted while clipping), so the
+        // padding below needs no separate `strippedLength` re-scan of `clipped`
+        // — which, for a styled line, would take the allocating ANSI-runs path.
+        let (clipped, clippedWidth) = clippedToRightEdge(sanitized, width: terminalWidth)
+        // iTerm2 draws a Fitzpatrick skin-tone modifier as a SEPARATE swatch
+        // beside the base — 4 painted cells against the 2 the layout
+        // allocated — so its path strips the modifiers (generic-yellow
+        // fallback) to restore the 2-cell claim; it then compensates its own
+        // (small) set of under-advancers — keycaps and SF-Symbol PUA glyphs —
+        // with CUF, exactly as the Apple path does for Terminal.app's larger
+        // set. Both advance models are DSR-measured; see
+        // Documentation/Terminals/Terminal compatibility survey.md.
+        // Ghostty needs no skin-tone strip — it is the only measured terminal
+        // that merges Fitzpatrick clusters into the 2 cells the layout claims
+        // — but under-advances its VS-15 chrome glyphs and SF Symbols. Warp
+        // draws skin tones as base + swatch exactly like iTerm2, so it takes
+        // the same strip, then a CUF for its lone-regional-indicator
+        // under-advance. All models are DSR-measured; see
+        // Documentation/Terminals/Terminal compatibility survey.md.
+        let compensated = compensatingCursorAdvance(clipped)
+        // A reset is not always a sequence of its OWN, and the restoration below
+        // matches only the literal `ESC[0m`.
+        //
+        // `collapsingAdjacentSGR()` renders a line's first absolute run as
+        // `ESC[0;<params>m` — reset and styling in one sequence — so anything
+        // that collapses before reaching here arrives in that spelling. The
+        // opacity resolution does, at the seam where it splices a faded span.
+        // Unseen by the replacement, those cells cleared the row's background
+        // and showed the TERMINAL's instead: white on Apple Terminal's light
+        // profile, black on a dark one. Reported as the Animation page's fading
+        // and breathing text having a white background.
+        //
+        // Split back apart rather than matched separately, so there is one
+        // spelling for the restoration to find — and `collapsingAdjacentSGR()`
+        // at the end of this function puts the pieces together again, with the
+        // background now between them.
+        let mainWithBg = Self.restoringBackground(in: compensated, bgCode: bgCode, reset: reset)
+        let padding = max(0, terminalWidth - clippedWidth)
+        let line = bgCode + eraseLine + mainWithBg + String.spaces(padding) + reset
+        // Last, after every compensation has had the bytes it expects to match
+        // on. The line above is assembled from styled fragments, each ending in
+        // a reset, each of which then has the row's background put back — so a
+        // row of uniformly-styled cells restates its styling once per fragment.
+        // Measured on one frame of a divider drag: 2,565 escapes for 4,800
+        // cells, 19,974 of the frame's 32,394 bytes. See
+        // ``String/collapsingAdjacentSGR()``.
+        return (line.collapsingAdjacentSGR(), runs)
+    }
+
+    /// `runs` cut to the first `width` cells: what is left of each that is on
+    /// screen.
+    private static func cut(_ runs: [HairlineMarker.Run], toWidth width: Int) -> [HairlineMarker.Run] {
+        runs.compactMap { run in
+            guard run.column < width else { return nil }
+            var cut = run
+            cut.width = min(run.width, width - run.column)
+            return cut
+        }
+    }
+
+    /// Drops every cache if whether this host draws hairlines changed since the
+    /// last frame (``appliedHairlines``).
+    private func invalidateIfHairlinesChanged() {
+        let current = KittyGraphics.isHairlineSupported
+        guard appliedHairlines != current else { return }
+        appliedHairlines = current
+        hairlineRows = []
+        invalidate()
+    }
+
+    /// `line` cut to `width` cells, and its visible width, guarding the peaks
+    /// of the over-advancers in the model in force: a cluster whose claim fits
+    /// but whose emission would reach past the right edge is replaced with
+    /// spaces of its claimed width.
+    ///
+    /// Terminal.app's measured model has such clusters, and so may a set of
+    /// hand-built quirks (`.pullBack` tones, tag flags), which outranks it as
+    /// it does in ``compensatingCursorAdvance(_:)``. Every other host advances
+    /// no cluster past its claim, so its rows take the plain clip. The guard
+    /// matters with autowrap on or off: such a peak wraps the row into the next
+    /// one, or, as TUI runs (`Terminal.outputModesOn`), pins the cursor at
+    /// the last column, and the pull-back after it then lands short. The
+    /// quirks' guard also replaces a peak that ends ON the last cell, which
+    /// leaves the cursor no column past it; Terminal.app's still keeps one
+    /// there, a bet made with autowrap on, which Apple Terminal keeps
+    /// (`Terminal.keepsAutowrap`) until its card.
+    private func clippedToRightEdge(_ line: String, width: Int) -> (String, Int) {
+        // `TerminalClient.simulatedQuirks` rather than ``model``: they outrank
+        // everything else in it, and one static read is all a row that is not
+        // being explored should pay.
+        if let quirks = TerminalClient.simulatedQuirks {
+            return line.ansiAwarePrefixWithWidth(visibleCount: width, guardingPeaksOf: quirks)
+        }
+        return isAppleTerminal
+            ? line.ansiAwarePrefixForTerminalAppWithWidth(visibleCount: width)
+            : line.ansiAwarePrefixWithWidth(visibleCount: width)
+    }
+
+    /// `text` with this host's cursor-advance divergences compensated for.
+    ///
+    /// This writer's flags, resolved to a ``TerminalClient/Program`` and handed
+    /// to ``TerminalClient/compensating(_:for:tmuxSkinTones:)``,
+    /// which holds the actual table — one copy, shared with the public API,
+    /// because two copies of it would drift and the symptom of the drift is a
+    /// row that looks right until something on it changes.
+    ///
+    /// Everything this writer emits goes through here, because there is more
+    /// than one caller and they have to agree: `buildLine` compensates a whole
+    /// row on its way to the screen, and the animation replay compensates the
+    /// frame it splices into a row already there. A frame that skipped this
+    /// reached Terminal.app bare — the row painted correctly once and then
+    /// shifted a cell left on every tick of its pulse, which is exactly what an
+    /// uncompensated emission looks like.
+    ///
+    /// - Parameters:
+    ///   - text: A whole row, or a fragment of one.
+    func compensatingCursorAdvance(_ text: String) -> String {
+        switch model {
+        case .custom(let quirks):
+            return text.withCursorCompensation(for: quirks)
+        case .program(let program):
+            return TerminalClient.compensating(
+                text, for: program,
+                tmuxSkinTones: tmuxSkinToneScope)
+        }
+    }
+
+    /// Which set of workarounds this writer is applying — a measured host's, or
+    /// a hand-built one being explored.
+    enum RenderingModel: Equatable {
+        /// A terminal TUI has measured.
+        case program(TerminalClient.Program)
+        /// A set of switches somebody is trying out against an unmeasured one.
+        case custom(TerminalQuirks)
+    }
+
+    /// The model in force. Hand-built quirks outrank a simulated program, which
+    /// outranks what was detected: each is a more specific answer than the one
+    /// below it, and only the last is ever true of a shipping app.
+    private var model: RenderingModel {
+        if let quirks = TerminalClient.simulatedQuirks { return .custom(quirks) }
+        if let simulated = TerminalClient.simulated { return .program(simulated) }
+        return .program(detectedProgram)
+    }
+
+    /// Which terminal's model this writer is built for.
+    ///
+    /// tmux first, and that is not merely defensive: a pane started from a tmux
+    /// older than 3.2 can carry `$TMUX` (→ `isTmux`) and the outer terminal's
+    /// `TERM_PROGRAM` at once. The initialiser already zeroes the native flags
+    /// when `isTmux`, so this ordering agrees with it rather than depending on
+    /// it.
+    /// Drops every cache if the model changed since the last frame.
+    private func invalidateIfProgramChanged() {
+        let current = model
+        guard appliedModel != current else { return }
+        appliedModel = current
+        invalidate()
+    }
+
+    /// One row this writer has already built, with `run` showing `frame`.
+    ///
+    /// The animation tick, and the reason it lives here rather than at the call
+    /// site: a run's frames are *rendered content*, and rendered content
+    /// reaches a terminal only through this type, because this is where the
+    /// host's cursor-advance model is. A frame spliced straight into a built
+    /// row has never met that model — so on Terminal.app a row carrying `⚙️`
+    /// painted correctly on the frame that rendered it and then shifted
+    /// everything after the emoji one cell left on every tick of its pulse,
+    /// which is precisely what an uncompensated emission measures as
+    /// (`row_probe.py`, retired 2026-08-28 — `Tools/TerminalProbes/README.md`
+    /// says what asks its question now; the record is in
+    /// `Documentation/Terminals/Terminal compatibility survey.md`).
+    ///
+    /// The compensation cannot move a cell — it erases, draws and steps, and
+    /// writes no visible characters — so the splice arithmetic below is
+    /// unaffected by it.
+    ///
+    /// The frame's FIELDS are the other half, and the order the two happen in is
+    /// this function's. The frame arrives with no field under its ink, because the
+    /// view drew it over whatever its containers painted; the splice paints each
+    /// cell the frame leaves bare in the field the containers painted beneath THAT
+    /// cell — the run's ground, on this row's page (``AnimatedCellRun/ground``,
+    /// ``AnimatedCellRun/fields(onPage:)``) — restated straight after every
+    /// reset in the frame, collapsed `ESC[0;…m` spellings included
+    /// (`String.paintedOver(fields:)`), and in whatever else they restated there
+    /// beside it: a row that reverses restates its 7 and ink, and a spinner in one
+    /// drawn in the field alone came out unreversed on every tick. It does that
+    /// BEFORE the compensation, which
+    /// is why the compensation is handed to it rather than applied here first: on
+    /// a host that erases under a glyph it advances too little over, the
+    /// compensation writes an `ECH` in front of the glyph, and the erase paints in
+    /// whatever background is in force at that moment. Compensated first, a `⚙️`
+    /// after a collapsed reset is erased over the terminal's own background and
+    /// only then given its field, which the glyph covers and its second cell does
+    /// not: that cell keeps the terminal's colour on every tick — the hole the
+    /// erase exists to fill, put back by the erase.
+    ///
+    /// Until 2026-09-24 the frame was put through ``restoringBackground(in:bgCode:reset:)``
+    /// here, compensated, and spliced over the one field the row showed under the
+    /// run's first cell: the page after every reset, and before the first one
+    /// whatever the render had drawn there. The page is wrong in any container that
+    /// paints a field of its own — a compact tab chip nested in another tab
+    /// breathed with its right cap in the page's colour inside the outer tab's
+    /// surface — and what the render drew is wrong wherever the drawn frame gave a
+    /// cell a field of its own: a `.plain` field's block caret, drawn visible,
+    /// never blinked off. See `Documentation/Terminals/Terminal compatibility survey.md`.
+    ///
+    /// The fields come in read, not as the ground and the page to read them from:
+    /// both are fixed from one render to the next, so the run loop reads them once
+    /// per render (`ReplayableFrame.fields(ofRun:)`) rather than once per tick.
+    ///
+    /// - Parameters:
+    ///   - run: The run being advanced.
+    ///   - frame: The run's picture for this tick, as the view rendered it.
+    ///   - line: The row `run` sits on, as `buildOutputLines` produced it.
+    ///   - fields: The fields under the run's cells: its records read on the page
+    ///     that row was built on, `run.fields(onPage:)`.
+    func patchingAnimatedRun(
+        _ run: AnimatedCellRun, showing frame: String, in line: String,
+        fields: AnimatedCellRun.GroundFields
+    ) -> String {
+        // A list draws the frames of a row's breath as it draws the row, so a
+        // frame on a row a hairline runs along carries the line's mark. The
+        // line is the render's to place, and a breath moves no boundary: the
+        // mark is taken out here and the layer is not told (``HairlineLayer``).
+        let frame = appliedHairlines ? HairlineMarker.stripping(frame) : frame
+        return FrameBuffer.patchingAnimatedCells(
+            in: line, with: frame, atColumn: run.offsetX, width: run.width,
+            fields: fields, compensating: compensatingCursorAdvance)
+    }
+
+    /// Compares new content lines with the previous frame and writes only changed lines.
+    ///
+    /// - Returns: Whether it wrote anything, and so moved the cursor.
+    @discardableResult
+    func writeContentDiff(
+        newLines: [String],
+        terminal: any TerminalProtocol,
+        startRow: Int,
+        terminalWidth: Int,
+        bgCode: String,
+        reset: String
+    ) -> Bool {
+        movedCursor = false
+        let changedRows = writeDiff(
+            newLines: newLines, previousLines: previousContentLines, terminal: terminal,
+            startRow: startRow, terminalWidth: terminalWidth)
+        repaintRightEdge(
+            changedRows: changedRows,
+            in: newLines,
+            terminal: terminal,
+            startRow: startRow,
+            terminalWidth: terminalWidth,
+            bgCode: bgCode,
+            reset: reset
+        )
+        previousContentLines = newLines
+        return movedCursor
+    }
+
+    /// Moves `terminal`'s cursor, and notes that this pass did
+    /// (``movedCursor``).
+    private func moveCursor(on terminal: any TerminalProtocol, toRow row: Int, column: Int) {
+        movedCursor = true
+        terminal.moveCursor(toRow: row, column: column)
+    }
+
+    /// Invalidates all cached previous frames, forcing a full repaint on the next render.
+    func invalidate() {
+        previousContentLines = []
+        contentReuse = LineReuseCache()
+        contentCells = CellCache()
+        // The cached frames are gone, so the next pass writes whole lines.
+        // A built row states its BACKGROUND, not a reset, so the belief is
+        // dropped rather than reset: `nil` makes the whole-line arm close the
+        // chain first, which is what an invalidation — the moment something
+        // outside this writer may have happened to the screen — needs.
+        terminalStyle = nil
+    }
+
+    /// Hands the terminal back unstyled, and forgets what it was.
+    ///
+    /// Call before giving the terminal to anything else — the shell on the way
+    /// out, a job-control suspend — because ``terminalStyle`` lets a frame end
+    /// with styling still in force. Leaving the alternate screen does NOT
+    /// restore SGR, so without this a suspended or exited app could tint the
+    /// shell it hands control back to.
+    func restoreDefaultStyling(on terminal: any TerminalProtocol) {
+        if terminalStyle?.isDefault != true { terminal.write("\u{1B}[0m") }
+        terminalStyle = SGRState()
+    }
+
+    /// Forgets what the terminal is wearing, because something that is not this
+    /// writer has written to it.
+    ///
+    /// ``ViewRenderer`` calls it after flushing styled lines straight to the
+    /// terminal for a one-off render outside the run loop, and the run loop
+    /// after the frame dump draws its notice over the frame.
+    func forgetTerminalStyling() {
+        terminalStyle = nil
+    }
+
+    /// Computes which row indices have changed between two frames.
+    ///
+    /// Core diff algorithm, extracted as a static pure function for testability.
+    static func computeChangedRows(newLines: [String], previousLines: [String]) -> [Int] {
+        var changedRows: [Int] = []
+        for row in 0..<newLines.count {
+            if row >= previousLines.count || previousLines[row] != newLines[row] {
+                changedRows.append(row)
+            }
+        }
+        return changedRows
+    }
+}
+
+// MARK: - Private Helpers
+
+extension FrameDiffWriter {
+    /// Writes only the lines that differ between two frames — and within each of
+    /// those, only the cell runs that differ. See
+    /// ``String/ansiCellDiff(replacing:width:mergingGapsUpTo:)`` for what
+    /// makes a run, and when it declines to answer.
+    ///
+    /// - Returns: The row indices that were actually written (needed by
+    ///   ``repaintRightEdge`` to scope its workaround to only changed rows).
+    @discardableResult
+    fileprivate func writeDiff(
+        newLines: [String], previousLines: [String], terminal: any TerminalProtocol,
+        startRow: Int, terminalWidth: Int
+    ) -> [Int] {
+        let changedRows = Self.computeChangedRows(newLines: newLines, previousLines: previousLines)
+        var cache = contentCells
+        cache.fit(to: newLines.count)
+        defer { contentCells = cache }
+
+        // The styling this pass has left the terminal in, carried from row to
+        // row. Rows are written in ascending order with nothing between them but
+        // cursor moves, and a cursor move is not styling — so a span opening the
+        // next row can say only what changed, exactly as one opening the next
+        // run within a row does. Measured over a divider drag, `ESC[0m` alone
+        // appeared 1,898 times in one capture: a row's worth of styling stated
+        // afresh, per row, to say what a handful of parameters would.
+        //
+        // Seeded from what the LAST pass left in force — see ``terminalStyle``.
+        // `nil` there means "not known", which is the honest state before this
+        // writer has written anything, or after something else has.
+        var emitted = terminalStyle
+        defer { terminalStyle = emitted }
+        for row in changedRows {
+            switch spanDiff(
+                newLines: newLines, previousLines: previousLines, row: row,
+                terminalWidth: terminalWidth, cache: &cache, emitted: &emitted)
+            {
+            case .identical:
+                // The two spellings land the terminal in the same place, so
+                // there is nothing to draw — but the row still counts as
+                // written, because `repaintRightEdge` scopes itself to rows
+                // whose CONTENT it has to reason about, not to rows that moved.
+                continue
+            case .spans(let spans):
+                for span in spans {
+                    moveCursor(on: terminal, toRow: startRow + row, column: span.column + 1)
+                    terminal.write(span.content)
+                }
+            case .wholeLine:
+                moveCursor(on: terminal, toRow: startRow + row, column: 1)
+                // A built row opens by STATING ITS BACKGROUND, not by resetting,
+                // so anything else this pass carried in — a bold, an underline,
+                // a reverse — would still be in force, and the `ESC[2K` the row
+                // opens with would erase under it. Close the chain first.
+                // `!= true`, not `== false`: `nil` is "not known" — after
+                // `invalidate()`, a one-off render, or the right-edge repaint —
+                // and an unknown state is exactly the one that has to be
+                // closed. Spelled `== false` this skipped the reset, and the
+                // first whole row after a resize kept the previous pass's
+                // underline or reverse across its erase and its glyphs.
+                if emitted?.isDefault != true { terminal.write("\u{1B}[0m") }
+                terminal.write(newLines[row])
+                emitted = SGRState()  // every built row ends with a reset
+            }
+        }
+        // Clear excess old lines when the previous frame had more rows.
+        // Each output line already contains ESC[2K (from buildOutputLines),
+        // but these extra rows have no corresponding new line, so we erase
+        // them explicitly with the terminal's default background.
+        //
+        // THIS is what the pass's closing reset was for, and it is the only
+        // thing that was: `ESC[2K` clears with the background in force, so a
+        // row this pass is not painting must not inherit the colour of one it
+        // is. Reset here rather than unconditionally at the end — a pass that
+        // erases nothing hands its styling to the next one, which is the whole
+        // saving (see ``terminalStyle``).
+        if previousLines.count > newLines.count {
+            if emitted?.isDefault != true {
+                terminal.write("\u{1B}[0m")
+                emitted = SGRState()
+            }
+            let eraseEntireLine = "\u{1B}[2K"
+            for row in newLines.count..<previousLines.count {
+                moveCursor(on: terminal, toRow: startRow + row, column: 1)
+                terminal.write(eraseEntireLine)
+            }
+        }
+
+        return changedRows
+    }
+
+    /// How many unchanged columns may sit inside one written run.
+    ///
+    /// Closing a run and opening another costs a cursor move plus a restatement
+    /// of styling — call it twenty bytes — so bridging a short gap of unchanged
+    /// cells is cheaper than skipping it. Measured over a divider drag at
+    /// 140×42, the total is flat from about 4 to about 16 and rises sharply
+    /// outside that: 2,628 bytes a frame at a gap of 4, 2,577 at 8, 2,606 at 16,
+    /// 2,971 at 0 (a cursor move for every isolated cell) and 4,232 at
+    /// unbounded (one run per row, which is the prefix/suffix trim and little
+    /// more). Eight sits in the middle of the flat stretch.
+    private static let spanMergeGap = 8
+
+    /// The per-row plan, or ``ANSICellDiff/wholeLine`` when there is no previous
+    /// row to diff against or the row is one the cell walk declines.
+    private func spanDiff(
+        newLines: [String], previousLines: [String], row: Int, terminalWidth: Int,
+        cache: inout CellCache, emitted: inout SGRState?
+    ) -> ANSICellDiff {
+        guard row < previousLines.count else { return .wholeLine }
+        let previous =
+            cache.cells(matching: previousLines[row], at: row)
+            ?? ANSIRowCells(decomposing: previousLines[row], width: terminalWidth)
+        guard let previous,
+            let new = ANSIRowCells(decomposing: newLines[row], width: terminalWidth)
+        else { return .wholeLine }
+        cache.remember(new, line: newLines[row], at: row)
+        return new.diff(
+            replacing: previous, mergingGapsUpTo: Self.spanMergeGap, continuing: &emitted)
+    }
+
+    /// Workaround for a Terminal.app rendering quirk: when a skin-tone-
+    /// modified emoji (e.g. 🤙🏽 = U+1F919 U+1F3FD) appears on a line that
+    /// fills to the terminal's right edge, Terminal.app leaves the last 2
+    /// cells of that row at the default terminal background. They cannot be
+    /// repainted by normal in-line output (the emoji apparently consumes 2
+    /// phantom cells of line budget that `strippedLength` doesn't track,
+    /// causing the line to wrap and the cursor to end up on the next row).
+    ///
+    /// The fix is to reposition the cursor by absolute (row, column) and
+    /// emit `ESC[K` with the background colour active. Only applied to rows
+    /// that were actually written this frame — it's only 2 cells of overdraw
+    /// per changed row.
+    fileprivate func repaintRightEdge(
+        changedRows: [Int],
+        in lines: [String],
+        terminal: any TerminalProtocol,
+        startRow: Int,
+        terminalWidth: Int,
+        bgCode: String,
+        reset: String
+    ) {
+        // The right-edge phantom-cell repaint is a Terminal.app-only workaround;
+        // on every other terminal the main pass already paints the edge.
+        guard isAppleTerminal, terminalWidth > 1 else { return }
+        // Terminal.app leaves the rightmost 2 cells of a row at the default
+        // terminal background whenever the row contains an emoji whose glyph
+        // width and cursor advance disagree — VS-16 pictographic emoji
+        // (under-advance), or a Fitzpatrick skin-tone cluster whose modifier
+        // survived ``withTerminalAppCursorCompensation`` (i.e. it was the
+        // last visible character on the line).  ``containsTerminalAppCursorAdvanceQuirk``
+        // identifies those rows; everything else has its right edge painted
+        // correctly by the main pass.  A blanket repaint would be destructive
+        // at narrower widths where a wide character (CJK, 🥳, etc.) straddles
+        // the boundary — erasing the last 2 cells would destroy its right half.
+        //
+        // Two passes so borders and right-aligned text from the view system
+        // are not permanently destroyed:
+        //   1. ESC[K to erase the cells (with the bg colour active so they
+        //      land on the app's background if step 2 fails).
+        //   2. Re-write the actual content that belongs there using the
+        //      accumulated SGR context so colours and styles are correct.
+        let repaintCol = terminalWidth - 1  // 1-indexed; covers last 2 cells
+        let splitAt    = terminalWidth - 2  // visible-cell offset of repaintCol
+
+        for row in changedRows where row < lines.count {
+            guard lines[row].containsTerminalAppCursorAdvanceQuirk else { continue }
+
+            // Pass 1: erase with bg to unlock any phantom cells. The chain is
+            // closed first — `bgCode` sets a background and clears nothing,
+            // and the pass that just ended leaves its last cell's attributes
+            // in force (spans never close), so a reverse or an underline
+            // carried in would be what the erase painted the two cells with.
+            moveCursor(on: terminal, toRow: startRow + row, column: repaintCol)
+            if terminalStyle?.isDefault != true { terminal.write(reset) }
+            terminal.write(bgCode + "\u{1B}[K" + reset)
+
+            // Pass 2: re-write the correct content now that the cells are unlocked.
+            // Use ansiSGRContextAndCleanSuffix (not ansiSGRContextAndSuffix) so that
+            // any CUF sequences injected by withTerminalAppCursorCompensation are
+            // stripped from the suffix — writing a CUF at repaintCol would push the
+            // cursor past the terminal edge, wrapping subsequent characters to the
+            // next row and causing content to appear in the wrong place.
+            if let suffix = lines[row].ansiSGRContextAndCleanSuffix(from: splitAt) {
+                moveCursor(on: terminal, toRow: startRow + row, column: repaintCol)
+                terminal.write(suffix)
+            }
+            // Sequences this writer did not model: the row's own SGR context,
+            // replayed. What the terminal is wearing afterwards is no longer
+            // something ``terminalStyle`` can claim to know.
+            terminalStyle = nil
+        }
+    }
+}

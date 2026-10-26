@@ -1,12 +1,12 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Clusters.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
-import TUIkitCore
-import TUIkitWidthCorpus
+import TUI
+import TUICore
+import TUIWidthCorpus
 
 /// One grapheme cluster worth showing, and why it is worth showing.
 ///
@@ -86,7 +86,7 @@ enum Clusters {
     /// 2 here stopped being the widest claim the day widening shipped: under
     /// Apple Terminal's traits a family ZWJ sequence claims 8 and a skin-tone
     /// cluster 5, and every one of those rows then closed its bar columns to
-    /// the right of the ruler while TUIkit's claim matched the host exactly.
+    /// the right of the ruler while TUI's claim matched the host exactly.
     static var field: Int {
         all.map { $0.character.terminalWidth }.max() ?? 2
     }

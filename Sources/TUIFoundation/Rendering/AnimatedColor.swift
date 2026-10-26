@@ -1,0 +1,254 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  AnimatedColor.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import TUICore
+
+/// A colour that varies over one of the terminal's animation clocks, given as
+/// every frame of its cycle rather than as the one showing now.
+///
+/// Hand one to a modifier that paints — ``View/border(_:style:width:)-(AnimatedColor,_,_)`` — and
+/// that modifier animates the cells it drew, by leaving ``AnimatedCellRun``s
+/// for the run loop to advance. Nothing re-renders per tick, and you never
+/// compute an offset: the thing that knows where the cells are is the thing
+/// that placed them.
+///
+/// The usual source is the shared focus clock:
+///
+/// ```swift
+/// struct Target: View {
+///     @Environment(\.isFocused) private var isFocused
+///     @Environment(\.selectionEmphasis) private var emphasis
+///     @Environment(\.palette) private var palette
+///
+///     var body: some View {
+///         Text("Right-click me")
+///             .border(emphasis.animatedColor(
+///                 isFocused, dim: palette.border, bright: palette.accent))
+///     }
+/// }
+/// ```
+///
+/// A colour that does not vary is still an `AnimatedColor` — `AnimatedColor(.red)`
+/// is one frame — so a call site does not have to branch on whether anything is
+/// animating. ``isAnimating`` is what the framework branches on, and it is false
+/// for a single frame *and* for several identical ones.
+///
+/// A faded colour is blended as well, as long as every frame is at one alpha: a
+/// replayed run is blended at one alpha per cell. The example above under a faded
+/// `.tint` is not — its accent is faded and its border is not — and shows at full
+/// strength. See <doc:AnimatingYourOwnView>.
+public struct AnimatedColor: Sendable, Equatable {
+    /// A colour that does not vary is stored AS one colour, not as an array of
+    /// one. Every bordered container in a frame builds one of these, and an
+    /// array — even of a single element — is a heap allocation apiece; a
+    /// paired A/B measured that at ~1% of a table frame before this split.
+    fileprivate enum Storage: Sendable, Equatable {
+        case constant(Color)
+        case cycle([Color])
+    }
+
+    private let storage: Storage
+
+    /// Where the clock is now — the index to draw immediately. Taken modulo
+    /// ``frames``' count on use, because a clock's tick count is unbounded and
+    /// keeps running while nothing is animating.
+    public let step: Int
+
+    /// The clock that advances it.
+    public let clock: AnimationClock
+
+    /// How many ticks of 1/60 s each frame is shown for, at least 1: the rate a run
+    /// built from this colour steps at, on ``clock``.
+    public let frameTicks: Int
+
+    /// One colour per frame of a full cycle. Never empty.
+    ///
+    /// Materialised on demand: prefer ``current`` and ``isAnimating``, which
+    /// answer without building an array.
+    public var frames: [Color] {
+        switch storage {
+        case .constant(let colour): [colour]
+        case .cycle(let frames): frames
+        }
+    }
+
+    /// A colour that does not vary.
+    public init(_ color: Color) {
+        storage = .constant(color)
+        step = 0
+        clock = .cursor
+        frameTicks = AnimationClock.standardFrameTicks
+    }
+
+    /// A colour given as every frame of its cycle.
+    ///
+    /// - Parameters:
+    ///   - frames: One colour per frame. An empty array is treated as a single
+    ///     terminal-default frame rather than trapping — a colour is not the
+    ///     place to take an app down.
+    ///   - step: Which frame is showing now.
+    ///   - frameTicks: How many ticks of 1/60 s each frame is shown for. Defaults to
+    ///     ``AnimationClock/standardFrameTicks``, 50 ms, and a count below 1 is
+    ///     taken as 1, as ``AnimatedCellRun`` takes it.
+    ///   - clock: The clock that advances it.
+    public init(
+        frames: [Color], step: Int, frameTicks: Int? = nil, clock: AnimationClock = .cursor
+    ) {
+        switch frames.count {
+        case 0: storage = .constant(.default)
+        case 1: storage = .constant(frames[0])
+        default: storage = .cycle(frames)
+        }
+        self.step = step
+        self.clock = clock
+        self.frameTicks = max(1, frameTicks ?? AnimationClock.standardFrameTicks)
+    }
+
+    /// The colour to draw in the frame being rendered now.
+    public var current: Color {
+        switch storage {
+        case .constant(let colour): colour
+        case .cycle(let frames): frames[step.modulo(frames.count)]
+        }
+    }
+
+    /// Which frame of the cycle the render is drawing.
+    ///
+    /// ``AnimatedRunAlpha/drawnIndex`` must be exactly this for a payload built beside
+    /// `run(...)`'s frames, so it comes from here rather than being spelled again at the
+    /// call site — `step` is unbounded and wrapping it is where two spellings drift.
+    public var drawnIndex: Int {
+        guard case .cycle(let frames) = storage else { return 0 }
+        return step.modulo(frames.count)
+    }
+
+    /// Whether this actually varies.
+    ///
+    /// False for a single frame, and false for several identical ones — a
+    /// 256-colour terminal quantises many a ramp down to one entry, and a run
+    /// whose frames are all the same emits bytes per tick to change nothing.
+    public var isAnimating: Bool {
+        guard case .cycle(let frames) = storage else { return false }
+        return frames.contains { $0 != frames[0] }
+    }
+
+    /// Whether every frame is at one alpha — whether one static claim is true of every
+    /// replayed frame (§59). Not a property of the type: a pulse interpolates alpha as
+    /// a fourth channel, so this type's own example (`dim: palette.border, bright:
+    /// palette.accent`) under `.tint(.red.opacity(0.5))` is a different alpha each tick.
+    var hasOneAlpha: Bool {
+        guard case .cycle(let frames) = storage else { return true }
+        return frames.allSatisfy { $0.alpha == frames[0].alpha }
+    }
+
+    /// The colour at an arbitrary point in the cycle — for a caller drawing
+    /// several things that must stay in phase with each other.
+    public func color(atStep step: Int) -> Color {
+        switch storage {
+        case .constant(let colour): colour
+        case .cycle(let frames): frames[step.modulo(frames.count)]
+        }
+    }
+
+    /// The same colour with every frame resolved against `palette`, so a
+    /// semantic endpoint (`.palette.accent`) becomes a concrete one.
+    public func resolved(with palette: any Palette) -> Self {
+        switch storage {
+        case .constant(let colour): Self(colour.resolve(with: palette))
+        case .cycle(let frames):
+            Self(
+                frames: frames.map { $0.resolve(with: palette) }, step: step,
+                frameTicks: frameTicks, clock: clock)
+        }
+    }
+
+    /// A run that redraws `width` cells at `(offsetX, offsetY)` once per frame,
+    /// or `nil` when this colour does not animate.
+    ///
+    /// `draw` must produce the same cells the ordinary render drew, at the
+    /// colour it is handed. The `nil` case is not an omission to paper over: a
+    /// still picture was already drawn, and a run would have the loop rewrite it
+    /// every tick to no visible effect.
+    public func run(offsetX: Int, offsetY: Int, draw: (Color) -> String) -> AnimatedCellRun? {
+        run(offsetX: offsetX, offsetY: offsetY) { _, colour in draw(colour) }
+    }
+
+    /// A run whose `draw` is also told WHICH frame it is drawing, for a caller
+    /// that has something else to keep in phase with this colour — a second
+    /// animated element sharing the same clock, drawn into the same cells.
+    public func run(
+        offsetX: Int, offsetY: Int, drawAtStep draw: (Int, Color) -> String
+    ) -> AnimatedCellRun? {
+        guard case .cycle(let frames) = storage, isAnimating else { return nil }
+        let drawn = frames.enumerated().map { draw($0.offset, $0.element) }
+        guard let first = drawn.first else { return nil }
+        return AnimatedCellRun(
+            offsetX: offsetX, offsetY: offsetY, width: first.strippedLength,
+            frames: drawn, frameTicks: frameTicks, clock: clock)
+    }
+}
+
+extension Int {
+    /// A non-negative remainder, because a clock's step is unbounded and the
+    /// `%` operator keeps the sign of the dividend.
+    fileprivate func modulo(_ divisor: Int) -> Int {
+        guard divisor > 0 else { return 0 }
+        let remainder = self % divisor
+        return remainder < 0 ? remainder + divisor : remainder
+    }
+}
+
+// MARK: - From the shared focus clock
+
+extension SelectionEmphasisClock {
+    /// The focus emphasis as an animated colour, for a modifier to paint with.
+    ///
+    /// The cheap counterpart to `emphasis(isFocused).color(dim:bright:)`: that
+    /// one resolves THIS TICK's colour and reads the clock to do it, which
+    /// makes the frame unreplayable and costs a full render pass per tick. This
+    /// one carries the whole cycle, computed from a static formula, so the
+    /// modifier that paints with it can hand the loop the finished frames.
+    ///
+    /// - Parameters:
+    ///   - isFocused: Whether the element this describes holds the focus. An
+    ///     unfocused element does not animate, and asking is free.
+    ///   - dim: The recessive endpoint.
+    ///   - bright: The visible endpoint.
+    @MainActor
+    public func animatedColor(_ isFocused: Bool, dim: Color, bright: Color) -> AnimatedColor {
+        let cycle = self.cycle(isFocused)
+        return cycle.animatedColor(dim: dim, bright: bright)
+    }
+}
+
+extension SelectionEmphasisCycle {
+    /// This cycle as an animated colour between two endpoints.
+    ///
+    /// The same thing ``SelectionEmphasisClock/animatedColor(_:dim:bright:)``
+    /// produces, for a caller that already has the cycle in hand.
+    @MainActor
+    public func animatedColor(dim: Color, bright: Color) -> AnimatedColor {
+        AnimatedColor(
+            frames: colors(dim: dim, bright: bright), step: step,
+            frameTicks: timing.frameTicks, clock: timing.clock)
+    }
+}
+
+// MARK: - Value Hash
+
+/// Read by a `switch` — a cycle holds an array, so the enum is not trivial and
+/// its bytes cannot be read whole — and each case's payload by its own plan.
+/// See `_ValueHashing`.
+extension AnimatedColor.Storage: _ValueHashing {
+    static func _mixValueHash(
+        at pointer: UnsafeRawPointer, into hash: inout UInt64, plans: ValueHashPlans
+    ) -> Bool {
+        switch pointer.assumingMemoryBound(to: Self.self).pointee {
+        case .constant(let colour): plans.mixCase(0, colour, into: &hash)
+        case .cycle(let colours): plans.mixCase(1, colours, into: &hash)
+        }
+    }
+}

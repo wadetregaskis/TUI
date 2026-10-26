@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  MenusSession.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 // MARK: - What is open
 
@@ -63,12 +63,12 @@ final class MenusSession: StressSession {
     /// a hit map that runs the row beside the one clicked.
     private(set) var expectedLast: String? = "—"
     /// Where the focus must be once a closed menu has handed it back, and the
-    /// step whose frame first shows it. TUIkit hands it back at the end of the
+    /// step whose frame first shows it. TUI hands it back at the end of the
     /// pass that closes the menu, after the page has drawn — it asks for the
     /// next frame to show it (`FocusManager.endRenderPass`) — so the page's
     /// `@FocusState` reads it one frame late.
     private(set) var focusAfterClose: (focus: String, from: Int)?
-    /// A context menu that TUIkit closed because its document went out of the
+    /// A context menu that TUI closed because its document went out of the
     /// list's window — a document inserted above it, the terminal made
     /// shorter — and so must not come back when the document does.
     private(set) var lost: OpenMenu.Kind?
@@ -126,7 +126,7 @@ final class MenusSession: StressSession {
     /// the model or the terminal under it.
     private func stepInMenu(_ menu: OpenMenu) -> SessionStep {
         // A context menu whose document left the list's window went with it:
-        // the lazy stack stopped drawing the row that presents it, and TUIkit
+        // the lazy stack stopped drawing the row that presents it, and TUI
         // closed it and handed the focus back to the page. What the frame
         // before this step showed is how the session knows.
         if case .context(let id) = menu.kind, !shows(menu.kind), !showsDocument(id) {

@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Strings_gFiles.swift
 //
 //  Created by Wade Tregaskis
@@ -15,7 +15,7 @@ extension ExampleStrings {
     static let gFiles: [String: [String: String]] = [
         "en": [
             "menu.item.files": "File Panels",
-            "page.files.intro": "SwiftUI's file panels, drawn by TUIkit: each button presents one over the page, browsing this machine's files from the folder the Example was started in.",
+            "page.files.intro": "SwiftUI's file panels, drawn by TUI: each button presents one over the page, browsing this machine's files from the folder the Example was started in.",
             "page.files.openSection": "Open · .fileImporter",
             "page.files.open": "Open a File…",
             "page.files.openMessage": "Choose any file to open",
@@ -24,7 +24,7 @@ extension ExampleStrings {
             "page.files.chooseFolder": "Choose a Folder…",
             "page.files.saveSection": "Save · .fileExporter",
             "page.files.noteLabel": "Note",
-            "page.files.noteText": "A note from the TUIkit Example",
+            "page.files.noteText": "A note from the TUI Example",
             "page.files.noteName": "Note",
             "page.files.save": "Save the Note…",
             "page.files.saveAsLabel": "Export As:",
@@ -46,7 +46,7 @@ extension ExampleStrings {
         ],
         "de": [
             "menu.item.files": "Dateidialoge",
-            "page.files.intro": "Die Dateidialoge von SwiftUI, von TUIkit gezeichnet: Jede Taste zeigt einen über der Seite an, der die Dateien dieses Rechners ab dem Ordner durchsucht, in dem das Beispiel gestartet wurde.",
+            "page.files.intro": "Die Dateidialoge von SwiftUI, von TUI gezeichnet: Jede Taste zeigt einen über der Seite an, der die Dateien dieses Rechners ab dem Ordner durchsucht, in dem das Beispiel gestartet wurde.",
             "page.files.openSection": "Öffnen · .fileImporter",
             "page.files.open": "Datei öffnen …",
             "page.files.openMessage": "Wähle eine beliebige Datei zum Öffnen",
@@ -55,7 +55,7 @@ extension ExampleStrings {
             "page.files.chooseFolder": "Ordner auswählen …",
             "page.files.saveSection": "Sichern · .fileExporter",
             "page.files.noteLabel": "Notiz",
-            "page.files.noteText": "Eine Notiz aus dem TUIkit-Beispiel",
+            "page.files.noteText": "Eine Notiz aus dem TUI-Beispiel",
             "page.files.noteName": "Notiz",
             "page.files.save": "Notiz sichern …",
             "page.files.saveAsLabel": "Exportieren als:",
@@ -77,7 +77,7 @@ extension ExampleStrings {
         ],
         "fr": [
             "menu.item.files": "Panneaux de fichiers",
-            "page.files.intro": "Les panneaux de fichiers de SwiftUI, dessinés par TUIkit : chaque bouton en présente un par-dessus la page, qui parcourt les fichiers de cette machine à partir du dossier où l'exemple a été lancé.",
+            "page.files.intro": "Les panneaux de fichiers de SwiftUI, dessinés par TUI : chaque bouton en présente un par-dessus la page, qui parcourt les fichiers de cette machine à partir du dossier où l'exemple a été lancé.",
             "page.files.openSection": "Ouvrir · .fileImporter",
             "page.files.open": "Ouvrir un fichier…",
             "page.files.openMessage": "Choisissez un fichier à ouvrir",
@@ -86,7 +86,7 @@ extension ExampleStrings {
             "page.files.chooseFolder": "Choisir un dossier…",
             "page.files.saveSection": "Enregistrer · .fileExporter",
             "page.files.noteLabel": "Note",
-            "page.files.noteText": "Une note de l'exemple TUIkit",
+            "page.files.noteText": "Une note de l'exemple TUI",
             "page.files.noteName": "Note",
             "page.files.save": "Enregistrer la note…",
             "page.files.saveAsLabel": "Exporter sous :",
@@ -108,7 +108,7 @@ extension ExampleStrings {
         ],
         "it": [
             "menu.item.files": "Pannelli file",
-            "page.files.intro": "I pannelli file di SwiftUI, disegnati da TUIkit: ogni pulsante ne presenta uno sopra la pagina, che sfoglia i file di questa macchina a partire dalla cartella in cui è stato avviato l'esempio.",
+            "page.files.intro": "I pannelli file di SwiftUI, disegnati da TUI: ogni pulsante ne presenta uno sopra la pagina, che sfoglia i file di questa macchina a partire dalla cartella in cui è stato avviato l'esempio.",
             "page.files.openSection": "Apri · .fileImporter",
             "page.files.open": "Apri un file…",
             "page.files.openMessage": "Scegli un file qualsiasi da aprire",
@@ -117,7 +117,7 @@ extension ExampleStrings {
             "page.files.chooseFolder": "Scegli una cartella…",
             "page.files.saveSection": "Salva · .fileExporter",
             "page.files.noteLabel": "Nota",
-            "page.files.noteText": "Una nota dall'esempio di TUIkit",
+            "page.files.noteText": "Una nota dall'esempio di TUI",
             "page.files.noteName": "Nota",
             "page.files.save": "Salva la nota…",
             "page.files.saveAsLabel": "Esporta come:",
@@ -139,7 +139,7 @@ extension ExampleStrings {
         ],
         "es": [
             "menu.item.files": "Paneles de archivos",
-            "page.files.intro": "Los paneles de archivos de SwiftUI, dibujados por TUIkit: cada botón presenta uno sobre la página, que recorre los archivos de esta máquina desde la carpeta en la que se inició el ejemplo.",
+            "page.files.intro": "Los paneles de archivos de SwiftUI, dibujados por TUI: cada botón presenta uno sobre la página, que recorre los archivos de esta máquina desde la carpeta en la que se inició el ejemplo.",
             "page.files.openSection": "Abrir · .fileImporter",
             "page.files.open": "Abrir un archivo…",
             "page.files.openMessage": "Elige cualquier archivo para abrir",
@@ -148,7 +148,7 @@ extension ExampleStrings {
             "page.files.chooseFolder": "Elegir una carpeta…",
             "page.files.saveSection": "Guardar · .fileExporter",
             "page.files.noteLabel": "Nota",
-            "page.files.noteText": "Una nota del ejemplo de TUIkit",
+            "page.files.noteText": "Una nota del ejemplo de TUI",
             "page.files.noteName": "Nota",
             "page.files.save": "Guardar la nota…",
             "page.files.saveAsLabel": "Exportar como:",
@@ -170,7 +170,7 @@ extension ExampleStrings {
         ],
         "zh": [
             "menu.item.files": "文件面板",
-            "page.files.intro": "SwiftUI 的文件面板，由 TUIkit 绘制：每个按钮都会在页面上方呈现一个面板，从启动示例的文件夹开始浏览这台机器上的文件。",
+            "page.files.intro": "SwiftUI 的文件面板，由 TUI 绘制：每个按钮都会在页面上方呈现一个面板，从启动示例的文件夹开始浏览这台机器上的文件。",
             "page.files.openSection": "打开 · .fileImporter",
             "page.files.open": "打开文件…",
             "page.files.openMessage": "选择要打开的任意文件",
@@ -179,7 +179,7 @@ extension ExampleStrings {
             "page.files.chooseFolder": "选取文件夹…",
             "page.files.saveSection": "存储 · .fileExporter",
             "page.files.noteLabel": "备忘录",
-            "page.files.noteText": "来自 TUIkit 示例的备忘录",
+            "page.files.noteText": "来自 TUI 示例的备忘录",
             "page.files.noteName": "备忘录",
             "page.files.save": "存储备忘录…",
             "page.files.saveAsLabel": "导出为：",
@@ -201,7 +201,7 @@ extension ExampleStrings {
         ],
         "ja": [
             "menu.item.files": "ファイルパネル",
-            "page.files.intro": "TUIkit が描く SwiftUI のファイルパネルです。各ボタンでページの上にパネルが表示され、Example を起動したフォルダからこのマシンのファイルをブラウズします。",
+            "page.files.intro": "TUI が描く SwiftUI のファイルパネルです。各ボタンでページの上にパネルが表示され、Example を起動したフォルダからこのマシンのファイルをブラウズします。",
             "page.files.openSection": "開く · .fileImporter",
             "page.files.open": "ファイルを開く…",
             "page.files.openMessage": "開くファイルを選択してください",
@@ -210,7 +210,7 @@ extension ExampleStrings {
             "page.files.chooseFolder": "フォルダを選択…",
             "page.files.saveSection": "保存 · .fileExporter",
             "page.files.noteLabel": "メモ",
-            "page.files.noteText": "TUIkit の Example からのメモ",
+            "page.files.noteText": "TUI の Example からのメモ",
             "page.files.noteName": "メモ",
             "page.files.save": "メモを保存…",
             "page.files.saveAsLabel": "書き出し名:",

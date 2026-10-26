@@ -1,0 +1,138 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  FilePanelColumns.swift
+//
+//  The columns of a file panel's table.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import TUIFoundation
+import TUITables
+
+/// The four columns a file panel lists a folder's items in, as a macOS panel's
+/// list view has them: Name, Size, Date Modified and Kind. Each sorts by its
+/// own value (a click on its header, or the table's sort keys); folders stay
+/// first whatever the order (``FileBrowser/arrange(_:showsHiddenFiles:sortOrder:)``).
+///
+/// A narrow panel gives way from the right: Kind goes first, then Date
+/// Modified, then Size, each where the name would otherwise have fewer than
+/// ``nameRoom`` cells beside it (``shown(inWidth:)``). A name is what a row is
+/// told by; with every column kept at its width whatever the width, a panel
+/// 64 columns wide showed each name in four cells, `fil…`, beside eighteen of
+/// `Plain Text Docum…`, and one 50 wide a bare `…`.
+@MainActor
+enum FilePanelColumns {
+    /// The cells a name keeps before a column beside it gives way.
+    static let nameRoom = 20
+
+    /// The widths of the columns beside the name, in the order they stay:
+    /// Size's, Date Modified's, and the width Kind starts at.
+    static let besideName = [9, 20, 14]
+
+    /// What a table draws around its columns besides their widths: an inset
+    /// at each side, and the spacing between two columns (`Table`'s inset
+    /// style and default spacing), counted generously.
+    private static let inset = 4
+    private static let spacing = 2
+
+    /// How many of the columns beside the name — Size, Date Modified, Kind,
+    /// in that order — a table `width` cells wide shows, each where the name
+    /// keeps ``nameRoom`` cells beside it and the ones before it.
+    static func shown(inWidth width: Int) -> Int {
+        var used = inset + nameRoom
+        var count = 0
+        for columnWidth in besideName {
+            used += spacing + columnWidth
+            guard used <= width else { break }
+            count += 1
+        }
+        return count
+    }
+
+    /// The columns a table `width` cells wide shows: the name always,
+    /// starting at ``nameRoom`` and taking whatever width the others leave,
+    /// and as many of the others as ``shown(inWidth:)`` says. `browser` reads
+    /// the folder an outline's branch opens on.
+    @TableColumnBuilder<FileEntry, KeyPathComparator<FileEntry>>
+    static func fitting(
+        _ width: Int, browser: FileBrowser
+    ) -> some TableColumnContent<FileEntry, KeyPathComparator<FileEntry>> {
+        let shown = shown(inWidth: width)
+        TableColumn(
+            LocalizationService.shared.string(for: LocalizationKey.Label.name), sortUsing: FileBrowser.nameOrder
+        ) { entry in
+            nameCell(entry, browser: browser)
+        }
+        .width(ideal: nameRoom)
+        if shown >= 1 {
+            TableColumn(
+                LocalizationService.shared.string(for: LocalizationKey.FilePanel.columnSize),
+                sortUsing: KeyPathComparator(\FileEntry.sortSize)
+            ) { entry in
+                cell(entry.sizeText, entry)
+            }
+            .width(besideName[0])
+            .alignment(.trailing)
+        }
+        if shown >= 2 {
+            TableColumn(
+                LocalizationService.shared.string(for: LocalizationKey.FilePanel.columnDateModified),
+                sortUsing: KeyPathComparator(\FileEntry.sortDate)
+            ) { entry in
+                cell(entry.modifiedText, entry)
+            }
+            .width(besideName[1])
+        }
+        if shown >= 3 {
+            TableColumn(
+                LocalizationService.shared.string(for: LocalizationKey.FilePanel.columnKind),
+                sortUsing: KeyPathComparator(\FileEntry.kind)
+            ) { entry in
+                cell(entry.kind, entry)
+            }
+            .width(min: 6, ideal: besideName[2], max: 18)
+        }
+    }
+
+    /// An item's name, after its icon where the terminal draws one
+    /// (``FilePanelIcon``): a folder's bold, and ending in a slash where it
+    /// has no icon to say it is a folder. Typing finds it by the name alone.
+    ///
+    /// A branch's placeholder says "Loading…" while its folder is read, and
+    /// its appearing is what asks for the read: the row shows only once the
+    /// outline opens the branch, so a folder is read when, and only when, it
+    /// is opened. In a task of its own, not the view's `.task`: a table that
+    /// serves a row from its memo draws none of the row's views, which ended
+    /// the view's task part-way through the read.
+    ///
+    /// Typing finds a row by its name, stated outside the cell's two forms,
+    /// where the table's probe looks for it (`statedTypeSelectEquivalent`): it
+    /// does not see into a conditional, and found the drawn text instead,
+    /// which begins with the icon. A placeholder is out of type select.
+    static func nameCell(_ entry: FileEntry, browser: FileBrowser) -> some View {
+        nameCellContent(entry, browser: browser)
+            .typeSelectEquivalent(entry.isPlaceholder ? "" : entry.name)
+    }
+
+    /// ``nameCell(_:browser:)``'s two forms.
+    @ViewBuilder
+    private static func nameCellContent(_ entry: FileEntry, browser: FileBrowser) -> some View {
+        if entry.isPlaceholder {
+            Text(LocalizationService.shared.string(for: LocalizationKey.FilePanel.loading))
+                .foregroundStyle(.palette.foregroundTertiary)
+                .onAppear {
+                    Task { await browser.loadFolder(entry.placeholderFolder) }
+                }
+        } else {
+            FilePanelNameCell(entry: entry)
+        }
+    }
+
+    /// A cell's text, in the faint tier where the row is dimmed
+    /// (``FileEntry/isDimmed``), as a disabled row of a table draws.
+    static func cell(_ text: String, _ entry: FileEntry, bold: Bool = false) -> Text {
+        let drawn = Text(text).bold(bold)
+        return entry.isDimmed ? drawn.foregroundStyle(.palette.foregroundTertiary) : drawn
+    }
+}

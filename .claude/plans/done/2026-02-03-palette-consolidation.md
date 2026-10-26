@@ -43,8 +43,8 @@ A single `SystemPalette: BlockPalette` struct that takes a `SystemPalette.Preset
 
 ### What changes
 
-1. **Delete**: 6 palette files in `Sources/TUIkit/Styling/Palettes/`
-2. **New**: `PalettePreset.swift` in `Sources/TUIkit/Styling/Palettes/`. Uenum + SystemPalette + tuning data
+1. **Delete**: 6 palette files in `Sources/TUI/Styling/Palettes/`
+2. **New**: `PalettePreset.swift` in `Sources/TUI/Styling/Palettes/`. Uenum + SystemPalette + tuning data
 3. **Update**: `PaletteRegistry` in `Theme.swift`. Ubuild from `SystemPalette.Preset.allCases`
 4. **Update**: `PaletteKey` default. Uuse `SystemPalette(.green)`
 5. **Update**: Doc comments referencing `GreenPalette()` etc. → `SystemPalette(.green)`

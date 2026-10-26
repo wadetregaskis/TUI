@@ -121,7 +121,7 @@ itself, so the call nearer the view won.) Row mode and the bound
 
 SwiftUI's third role, **`.alignment`**, says where content SHORTER than the
 viewport sits, and its unlabelled `.defaultScrollAnchor(.bottom)` states it too:
-three rows of a chat sit at the bottom of the view (measured). TUIkit's
+three rows of a chat sit at the bottom of the view (measured). TUI's
 `ScrollView` now does the same (decisions A8), at the anchor's `y` of the room
 left over, rounded down to a line. It is a placement, not a policy, so it is not
 quantised to the edges as the other two roles are, and it changes nothing about
@@ -695,7 +695,7 @@ Measured on macOS 15.8, a 300×200 window with rows 20 points tall
 - An eager `VStack` holds nothing, and neither does macOS's `List` (its origin
   stays, its rows move).
 
-### What TUIkit does
+### What TUI does
 
 With nothing else holding it, a scroll view keeps the row at the top of its
 viewport on its line as rows are inserted, removed or resized above it, and the

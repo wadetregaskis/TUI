@@ -1,11 +1,11 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  FilePanelsPage.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 #if canImport(UniformTypeIdentifiers)
     import UniformTypeIdentifiers
@@ -14,7 +14,7 @@ import TUIkit
 // MARK: - File Panels Page
 
 /// The file panels: SwiftUI's `fileImporter`, `fileExporter` and `fileMover`,
-/// presented as the open and save panels TUIkit draws, with what each handed
+/// presented as the open and save panels TUI draws, with what each handed
 /// back: beside each button, its panel's result (the paths chosen, where it
 /// saved, or "Cancelled"), cleared to "—" as the panel opens. Every panel here
 /// browses the real file system, from the folder the Example was started in.

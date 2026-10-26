@@ -2,20 +2,20 @@
 """Hairline probe: can a Kitty graphics CLASSIC placement draw a thin line
 exactly on the boundary between two text rows, on this host?
 
-Every separator TUIkit draws today costs a whole row: `.listRowSeparator`
+Every separator TUI draws today costs a whole row: `.listRowSeparator`
 puts a faint `─` rule on a line of its own. A line one or two pixels thick on
 the boundary between two rows would cost none. The research behind this probe
 (2026-10-08, kept outside the repository; this docstring restates the plan
 and the kill criteria it set) found one way to draw it, and it is not the
-Unicode placeholders TUIkit uses for pictures, whose cells hold no text. It
+Unicode placeholders TUI uses for pictures, whose cells hold no text. It
 is a CLASSIC placement, drawn at the cursor and outside the cell grid: at
 `Y=0` on the lower row (the top edge of that row), cropped with `x,y,w,h`
 from one shared strip per colour, with `C=1` so the cursor stays put, always
 with a placement id, and at `z=-1` (above the cell's background, under its
-glyphs). TUIkit has never emitted a classic placement, and no host has been
+glyphs). TUI has never emitted a classic placement, and no host has been
 measured drawing one. This measures that.
 
-Run INSIDE the terminal under test; nothing here needs TUIkit built.
+Run INSIDE the terminal under test; nothing here needs TUI built.
 
   python3 hairline_probe.py          # automatic checks, then a card per
                                      #   question that a person answers by key
@@ -35,7 +35,7 @@ unanswered as `<host>-<version>-hairline-auto.json`. Then prints a summary. A
 run that stops early still writes its record, with `aborted` saying why, and
 exits 1.
 
-It runs on the ALTERNATE screen throughout, where TUIkit draws. kitty and
+It runs on the ALTERNATE screen throughout, where TUI draws. kitty and
 Ghostty keep one image store per screen, so a strip sent on the primary
 screen is not there to place on the alternate one (Q8 measures exactly that).
 It refuses Apple Terminal, which prints APC payloads as text. On a host that
@@ -88,7 +88,7 @@ Q3  What is the pixel unit?  COARSE, automatic: a `C=0` placement 10 cells
     instead of being clipped by the edge of the grid, each under a bar ▏
     at the run's end. One line per distinct width: `ws_xpixel x run //
     ws_col` (the formula the design uses), `run x (ws_xpixel // ws_col)`
-    (TUIkit's integer cell width), and the `CSI 14 t` and `CSI 16 t`
+    (TUI's integer cell width), and the `CSI 14 t` and `CSI 16 t`
     equivalents. The person says which ends exactly at its bar. Records
     ws_xpixel, ws_col and the three XTWINOPS replies.
 Q4  Is the line on the boundary, in the right layer?  CARD: four bands (the
@@ -101,7 +101,7 @@ Q4  Is the line on the boundary, in the right layer?  CARD: four bands (the
     under the glyphs, `z=+1` over the glyphs, and the third on the default
     band only.
 Q5  Do rewrites keep it?  CARD: lines under four rows; then row B is
-    rewritten after `ESC[2K` (the way every whole-line rewrite TUIkit sends
+    rewritten after `ESC[2K` (the way every whole-line rewrite TUI sends
     opens), row C is written over without erasing (the span diff), and row D
     is erased with ECH and written. Row A is left alone. WezTerm's source
     says B loses its line.
@@ -111,7 +111,7 @@ Q6  Delete and re-place.  SENDS two placements of one strip, deletes one by
     (the strip had no placement in between, and kitty evicts such images
     first under quota pressure). Then an uppercase `d=I` on a scratch image
     and a placement of it, which should answer `ENOENT` (the data freed:
-    TUIkit's cleanup path). READS every reply; `OK` on a re-place means the
+    TUI's cleanup path). READS every reply; `OK` on a re-place means the
     data was kept. CARD: both lines shown; line 1 gone and line 2 kept;
     line 1 back; line 1 back again; line 2 still gone.
 Q7  Flicker and tearing on moves.  READS DECRQM `?2026` and the
@@ -164,16 +164,16 @@ that host, which needs an identity for it); Q8 shows lines surviving ED 2
 or `?1049l` (cleanup must delete them all, which the design does). What a
 control says cannot be judged goes in `criteria.unjudged`.
 
-Choices the research leaves to TUIkit, taken here as the simplest that
+Choices the research leaves to TUI, taken here as the simplest that
 works, so that a reading means one thing:
 
 - **Thickness**: `max(1, cell height // 17)` px, with the cell height from
-  TIOCGWINSZ in integer division as TUIkit computes it: 2 px at Ghostty's
+  TIOCGWINSZ in integer division as TUI computes it: 2 px at Ghostty's
   34, 1 px at 16. The strip is that tall.
 - **Crop width**: `ws_xpixel x columns // ws_col`, rounded DOWN, so a line
   is never wider than its run and at most one pixel short; after Q3, the
   same rule by `CSI 14 t`'s or `CSI 16 t`'s measure where only that one is
-  the unit. A host that reports no pixel size gets TUIkit's default
+  the unit. A host that reports no pixel size gets TUI's default
   8-pixel cell.
 - **One strip, one colour, raw RGB** (`f=24`, no `o=z`): a line is opaque,
   so alpha buys nothing, and deflate is `graphics_compression_probe.py`'s
@@ -188,8 +188,8 @@ works, so that a reading means one thing:
   the previous card's placements by id: ED 2 is Q8's subject.
 - **`X` and `Y` are left out.** Both default to 0, the cell's top-left
   corner, which is where the design puts the line.
-- **Image ids** 0xFFFFF0-0xFFFFF4, beside TUIkit's handshake ids at the top
-  of the 24-bit range. TUIkit's store counts up from 1 and wraps just below
+- **Image ids** 0xFFFFF0-0xFFFFF4, beside TUI's handshake ids at the top
+  of the 24-bit range. TUI's store counts up from 1 and wraps just below
   the handshake's ids, so a real hairline layer must reserve a range of its
   own; the probe only keeps out of the way.
 - **Q7's frames** write the text first and the placement after it, both
@@ -1052,7 +1052,7 @@ class Probe:
         self.header["xtversion"] = sync_probe.xtversion(self.fd)
         self.header["host"], self.header["host_named_from"] = host_identity(
             self.header["stamp"]["env"], self.header["xtversion"])
-        # DECSC, the query, DECRC and erase-below, as TUIkit's handshake asks
+        # DECSC, the query, DECRC and erase-below, as TUI's handshake asks
         # it: whatever a host that prints APC printed is wiped at once.
         raw = self.ask(b"\x1b7" + query() + b"\x1b8\x1b[J")
         self.header["graphics_query"] = {"reply": placement_probe.render(raw),
@@ -1223,7 +1223,7 @@ class Probe:
     def q5(self):
         q5 = self.section("Q5", "Do rewrites of the row the line sits on keep it?")
         self.card("4/9", "Q5: rewriting the row under the line",
-                  "Four lines are placed; then rows B, C and D are rewritten the ways TUIkit "
+                  "Four lines are placed; then rows B, C and D are rewritten the ways TUI "
                   "rewrites a row.")
         self.ensure_strip()
         first = 5

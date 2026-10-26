@@ -1,18 +1,18 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  AlignmentCheckView.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
-/// The visual proof, and the only part of this app that does not take TUIkit's
+/// The visual proof, and the only part of this app that does not take TUI's
 /// word for anything: every row closes its bar at the same column, so a bar out
-/// of line is a cluster this terminal handles in a way TUIkit does not yet know
+/// of line is a cluster this terminal handles in a way TUI does not yet know
 /// about.
 ///
 /// Why it is worth looking at rather than reading a table: the table on the
-/// previous screen is what TUIkit *believes*, assembled from measurements taken
+/// previous screen is what TUI *believes*, assembled from measurements taken
 /// on other machines. This is what your terminal, your font and your settings
 /// actually do — and those settings matter (iTerm2's Unicode-version and
 /// ambiguous-width options change the answer).
@@ -39,7 +39,7 @@ struct AlignmentCheckView: View {
                 .foregroundStyle(.palette.foregroundSecondary)
             Text(
                 "A bar pushed left or right marks a cluster this terminal measures differently "
-                    + "from TUIkit — that row is the bug report."
+                    + "from TUI — that row is the bug report."
             )
             .foregroundStyle(.palette.foregroundSecondary)
         }

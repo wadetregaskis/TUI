@@ -16,25 +16,25 @@
 >   keyboard features the kitty protocol's negotiation decides, and Option as Meta, learnt from an
 >   Option chord that arrives as one (never settled as unsupported: a composed character cannot be told
 >   from one typed on a layout that has it).
-> - **Not built:** `terminalName` and `explanation(for:)`. TUIkit names the terminal through
+> - **Not built:** `terminalName` and `explanation(for:)`. TUI names the terminal through
 >   `TerminalClient.current`, and the Example writes its own words (`CapabilityNote`, the Terminal
->   page's list), so no explanation strings were added to TUIkit's tables.
+>   page's list), so no explanation strings were added to TUI's tables.
 >
-> Each feature's documentation (`Sources/TUIkitTerminalHost/Capabilities/TerminalCapabilities+Feature.swift`)
+> Each feature's documentation (`Sources/TUITerminalHost/Capabilities/TerminalCapabilities+Feature.swift`)
 > says how it is determined; the survey's "Where the adaptations live" lists the sources.
 
 The owner's item 9: the Example should say, only where it is true, that a feature it shows
 does not work in the terminal in front of you. For example, the Text Styles page's patterned
 underlines should carry a quiet note under Apple Terminal, which paints `4:3` as a coloured
 background. Today the Example hard-codes such notes for everyone. Doing it properly needs a way
-for an app to ask TUIkit what this terminal does. The owner worried that such an API might be
+for an app to ask TUI what this terminal does. The owner worried that such an API might be
 invasive or complex, and asked for a draft to see how it would work. This is that draft. Nothing
 is built.
 
-## What TUIkit already knows
+## What TUI already knows
 
-TUIkit already decides each of these per host, from measured tables in TUIkitTerminalHost and
-TUIkitCore, and uses the answer to avoid sending what a terminal would misdraw:
+TUI already decides each of these per host, from measured tables in TUITerminalHost and
+TUICore, and uses the answer to avoid sending what a terminal would misdraw:
 
 | Feature | Where the answer lives today | Public? |
 |---|---|---|
@@ -83,17 +83,17 @@ public struct TerminalCapabilities: Sendable, Equatable {
 }
 ```
 
-- **Three answers, not two.** `.unknown` covers a terminal TUIkit has not measured: it draws a
+- **Three answers, not two.** `.unknown` covers a terminal TUI has not measured: it draws a
   plain underline there, as it does today, but an app should not claim the terminal "does not
   support" something nobody has checked.
-- **Read-only, and the same answers TUIkit itself acts on.** Each subscript reads the table the
+- **Read-only, and the same answers TUI itself acts on.** Each subscript reads the table the
   renderer already uses, so the app's note can never disagree with what is drawn. An app that
   wants to *change* behaviour keeps the existing switches (`terminalHyperlinks(_:)`,
   `terminalGraphics(_:)`), which this does not replace.
-- **Words included.** `explanation(for:)` returns TUIkit's own sentence, translated with its other
+- **Words included.** `explanation(for:)` returns TUI's own sentence, translated with its other
   strings, built from the measured facts: "Apple Terminal paints this as a coloured background, so
-  TUIkit draws a plain underline". That keeps the wording, and its accuracy, in one place.
-- **Not a detection API.** It says what TUIkit concluded, and how it named the terminal stays
+  TUI draws a plain underline". That keeps the wording, and its accuracy, in one place.
+- **Not a detection API.** It says what TUI concluded, and how it named the terminal stays
   `TerminalClient.current`.
 
 ## How the Example would use it
@@ -117,7 +117,7 @@ pages move to it.
   (`TerminalClient.current` is cached), a struct of a dozen enums. It is `Equatable`, so memos
   below it stay valid, unlike the uncomparable environment writes that turned caching off before
   (memory: environment-existential-memo-blocker). Only views that read it pay.
-- **Code:** one file in TUIkitFoundation for the type and the environment key, plus the
+- **Code:** one file in TUIFoundation for the type and the environment key, plus the
   localisation keys for the explanations (seven languages). No renderer changes.
 - **Upkeep:** each new measured feature adds a case. The explanations sit next to the tables,
   so a re-measured host updates both. A test can check that every feature has an explanation for
@@ -129,9 +129,9 @@ pages move to it.
    depth belongs here (it can change at run time when a user forces it) or stays `ColorDepth`.
 2. **Granularity:** is `patternedUnderline` (curly, dotted and dashed together) fine, or one case
    per shape? Every measured terminal so far treats them as a group.
-3. **Scope:** expose only what TUIkit measures, or also keys an app might want (the kitty
+3. **Scope:** expose only what TUI measures, or also keys an app might want (the kitty
    keyboard protocol's modifier-only reports, which item 25's underlines would use)?
 
 **Recommendation:** build it as above, at about a day including the Example's notes and the
-seven languages. It is additive, TUI-specific and read-only, and it reuses the tables TUIkit
+seven languages. It is additive, TUI-specific and read-only, and it reuses the tables TUI
 already maintains.

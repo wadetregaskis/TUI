@@ -98,7 +98,7 @@ struct Probe {
         dump("t_uneven", MeshGradient(width: 5, height: 2, points: pts, colors: ramp + ramp), width: 401, height: 11, to: dir)
         dump("t_uneven_linear", MeshGradient(width: 5, height: 2, points: pts, colors: ramp + ramp, smoothsColors: false), width: 401, height: 11, to: dir)
 
-        // The doc example at a TUIkit-like size, for test pins: 40×10 "cells".
+        // The doc example at a TUI-like size, for test pins: 40×10 "cells".
         dump("doc_small", MeshGradient(width: 3, height: 3, points: regular(3, 3), colors: [
             .red, .purple, .indigo, .orange, .white, .blue, .yellow, .green, .mint,
         ]), width: 400, height: 200, to: dir)

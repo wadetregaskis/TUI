@@ -13,7 +13,7 @@ question about making "compact" an app-wide setting.
 
 ## 0. In one page
 
-**What is hard-coded today.** TUIkit has two pieces of chrome, and both live in
+**What is hard-coded today.** TUI has two pieces of chrome, and both live in
 `RenderLoop` outside the view tree. The **app header** is already opt-in: no
 `.appHeader { }` means no header. The **status bar** is not. The system quit item
 is always in it (`StatusBarState.currentSystemItems`, StatusBarState.swift:306-325),
@@ -49,7 +49,7 @@ exists *because* content declares items, deep in the tree.
    structural: it comes from `Scene.commands`, which is known before the walk.
 3. **Every bar is opt-in.**
    - The **bottom bar** is the status bar. It exists when something is placed
-     in it. TUIkit's key-hint line becomes a view, `StatusBar()`, that an app
+     in it. TUI's key-hint line becomes a view, `StatusBar()`, that an app
      places there.
    - The **top bar** exists when items are placed there, and stands in for
      `.appHeader`, which is deleted.
@@ -66,7 +66,7 @@ questions are in §8. Each can be answered in a line.
 
 ---
 
-## 1. The problem in TUIkit's terms
+## 1. The problem in TUI's terms
 
 The owner has three goals:
 
@@ -77,7 +77,7 @@ The owner has three goals:
 3. **An optional menu bar** carries `CommandMenu`/`CommandGroup` content.
    Everything in it stays reachable with the menu bar absent.
 
-Four constraints follow from how TUIkit renders:
+Four constraints follow from how TUI renders:
 
 - **Heights before content.** The content area is the terminal minus the
   chrome, and the walk needs it before it starts. Chrome whose *presence*
@@ -307,7 +307,7 @@ spellings are noted where ported iOS code uses them.
 
 ### 3.3 The 44 symbols in A28, by verdict
 
-The full list is in `TUIkit-session-notes/plan/w15_symbols.txt`.
+The full list is in `TUI-session-notes/plan/w15_symbols.txt`.
 
 - **Implement.**
   - `View.toolbar(content:)`, in both the `ViewBuilder` and `ToolbarContentBuilder` forms;
@@ -318,7 +318,7 @@ The full list is in `TUIkit-session-notes/plan/w15_symbols.txt`.
     bar's fill, or no fill, instead of `palette.appHeaderBackground`/`statusBarBackground`;
   - `toolbarItemHidden(_:)`;
   - `toolbarRole(_:)`/`ToolbarRole`: `.editor` puts the title at leading,
-    `.automatic` is the TUIkit default;
+    `.automatic` is the TUI default;
   - `toolbarTitleMenu`/`ToolbarTitleMenu`: the title becomes a pull-down `Menu` trigger;
   - `ToolbarLabelStyle` and `\.toolbarLabelStyle`: map onto `labelStyle`, now
     that `Image(systemName:)` draws glyphs;
@@ -329,7 +329,7 @@ The full list is in `TUIkit-session-notes/plan/w15_symbols.txt`.
   `UnifiedCompactWindowToolbarStyle` (with `showsTitle:`) and
   `ExpandedWindowToolbarStyle`, through `Scene.windowToolbarStyle(_:)`. The
   decisions doc sent these to option 1 because "the terminal owns" the window
-  toolbar. Under opt-in chrome TUIkit draws the top bar itself, so that reason
+  toolbar. Under opt-in chrome TUI draws the top bar itself, so that reason
   no longer holds.
 - **Follow other answers.**
   - `toolbarTitleDisplayMode` and `tabBarMinimizeBehavior` follow O8. Under
@@ -355,7 +355,7 @@ The `Commands*` family adds roughly forty more (§3.5).
 ### 3.4 Where `StatusBarItem` fits
 
 The owner calls the status bar "really just a bottom toolbar". The bar is
-indeed just that. **What TUIkit puts in it is its own thing:**
+indeed just that. **What TUI puts in it is its own thing:**
 
 - a line of key hints;
 - per focus section, with merge or replace composition;
@@ -728,7 +728,7 @@ Escape and Return still do what the focused control says.
 2. **Placement model.** Should `.toolbar` items join window-level bars, as
    SwiftUI does (D1/D2)? Or should each draw beside the view that declares it,
    like `safeAreaInset` (D3)? *Recommend: window-level, D2.*
-3. **The hint line.** Is TUIkit's key-hint line a view the app places in the
+3. **The hint line.** Is TUI's key-hint line a view the app places in the
    bottom bar (`StatusBar()`)? Or a bar switched on by a TUI-specific scene
    modifier? *Recommend: a view; the README and template show it.*
 4. **Menu bar display.** Does declaring `.commands { }` show the menu bar by
@@ -740,7 +740,7 @@ Escape and Return still do what the focused control says.
    Terminal.app and iTerm2.*
 6. **Bare-key defaults with no chrome to show them.** Keep `q` quit live. Make
    `a` (appearance) and `t` (theme) opt-in, as `t` nearly is already?
-   *Recommend: yes. A bare `a` restyling every TUIkit app is a hard-coded
+   *Recommend: yes. A bare `a` restyling every TUI app is a hard-coded
    chrome default.*
 7. **A21, compact app-wide.** Should one scene-wide style, spelt with SwiftUI's
    `.windowToolbarStyle(_:)`, govern every bar? The mapping would be

@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Strings_g23.swift
 //
 //  Created by Wade Tregaskis
@@ -17,7 +17,7 @@ extension ExampleStrings {
     static let g23: [String: [String: String]] = [
         "en": [
             "page.terminal.capabilitiesSection": "What this terminal can do · \\.terminalCapabilities",
-            "page.terminal.capabilitiesExplain": "What TUIkit knows of this terminal: from its tables of measured terminals, from what the terminal answered at launch, and from what your keys have shown since. “not known” means nobody has measured it here. Press Option and a letter: if it arrives as a chord, Option sent as Meta turns to yes.",
+            "page.terminal.capabilitiesExplain": "What TUI knows of this terminal: from its tables of measured terminals, from what the terminal answered at launch, and from what your keys have shown since. “not known” means nobody has measured it here. Press Option and a letter: if it arrives as a chord, Option sent as Meta turns to yes.",
             "page.terminal.colorDepth": "Colours",
             "page.terminal.depth.none": "none",
             "page.terminal.depth.16": "16",
@@ -53,7 +53,7 @@ extension ExampleStrings {
         ],
         "de": [
             "page.terminal.capabilitiesSection": "Was dieses Terminal kann · \\.terminalCapabilities",
-            "page.terminal.capabilitiesExplain": "Was TUIkit über dieses Terminal weiß: aus seinen Tabellen gemessener Terminals, aus dem, was das Terminal beim Start geantwortet hat, und aus dem, was deine Tasten seither gezeigt haben. „unbekannt“ heißt, dass es hier niemand gemessen hat. Drück Option und einen Buchstaben: Kommt er als Kombination an, wird „Option als Meta“ zu ja.",
+            "page.terminal.capabilitiesExplain": "Was TUI über dieses Terminal weiß: aus seinen Tabellen gemessener Terminals, aus dem, was das Terminal beim Start geantwortet hat, und aus dem, was deine Tasten seither gezeigt haben. „unbekannt“ heißt, dass es hier niemand gemessen hat. Drück Option und einen Buchstaben: Kommt er als Kombination an, wird „Option als Meta“ zu ja.",
             "page.terminal.colorDepth": "Farben",
             "page.terminal.depth.none": "keine",
             "page.terminal.depth.16": "16",
@@ -89,7 +89,7 @@ extension ExampleStrings {
         ],
         "fr": [
             "page.terminal.capabilitiesSection": "Ce que ce terminal sait faire · \\.terminalCapabilities",
-            "page.terminal.capabilitiesExplain": "Ce que TUIkit sait de ce terminal : d’après ses tables de terminaux mesurés, ce que le terminal a répondu au lancement et ce que vos touches ont montré depuis. « inconnu » veut dire que personne ne l’a mesuré ici. Appuyez sur Option et une lettre : si elle arrive comme un raccourci, « Option comme Méta » passe à oui.",
+            "page.terminal.capabilitiesExplain": "Ce que TUI sait de ce terminal : d’après ses tables de terminaux mesurés, ce que le terminal a répondu au lancement et ce que vos touches ont montré depuis. « inconnu » veut dire que personne ne l’a mesuré ici. Appuyez sur Option et une lettre : si elle arrive comme un raccourci, « Option comme Méta » passe à oui.",
             "page.terminal.colorDepth": "Couleurs",
             "page.terminal.depth.none": "aucune",
             "page.terminal.depth.16": "16",
@@ -125,7 +125,7 @@ extension ExampleStrings {
         ],
         "it": [
             "page.terminal.capabilitiesSection": "Cosa sa fare questo terminale · \\.terminalCapabilities",
-            "page.terminal.capabilitiesExplain": "Ciò che TUIkit sa di questo terminale: dalle sue tabelle di terminali misurati, da ciò che il terminale ha risposto all’avvio e da ciò che i tuoi tasti hanno mostrato da allora. «sconosciuto» vuol dire che nessuno l’ha misurato qui. Premi Opzione e una lettera: se arriva come combinazione, «Opzione come Meta» diventa sì.",
+            "page.terminal.capabilitiesExplain": "Ciò che TUI sa di questo terminale: dalle sue tabelle di terminali misurati, da ciò che il terminale ha risposto all’avvio e da ciò che i tuoi tasti hanno mostrato da allora. «sconosciuto» vuol dire che nessuno l’ha misurato qui. Premi Opzione e una lettera: se arriva come combinazione, «Opzione come Meta» diventa sì.",
             "page.terminal.colorDepth": "Colori",
             "page.terminal.depth.none": "nessuno",
             "page.terminal.depth.16": "16",
@@ -161,7 +161,7 @@ extension ExampleStrings {
         ],
         "es": [
             "page.terminal.capabilitiesSection": "Lo que este terminal sabe hacer · \\.terminalCapabilities",
-            "page.terminal.capabilitiesExplain": "Lo que TUIkit sabe de este terminal: por sus tablas de terminales medidos, por lo que el terminal respondió al arrancar y por lo que tus teclas han mostrado desde entonces. «desconocido» significa que nadie lo ha medido aquí. Pulsa Opción y una letra: si llega como combinación, «Opción como Meta» pasa a sí.",
+            "page.terminal.capabilitiesExplain": "Lo que TUI sabe de este terminal: por sus tablas de terminales medidos, por lo que el terminal respondió al arrancar y por lo que tus teclas han mostrado desde entonces. «desconocido» significa que nadie lo ha medido aquí. Pulsa Opción y una letra: si llega como combinación, «Opción como Meta» pasa a sí.",
             "page.terminal.colorDepth": "Colores",
             "page.terminal.depth.none": "ninguno",
             "page.terminal.depth.16": "16",
@@ -197,7 +197,7 @@ extension ExampleStrings {
         ],
         "zh": [
             "page.terminal.capabilitiesSection": "这个终端能做什么 · \\.terminalCapabilities",
-            "page.terminal.capabilitiesExplain": "TUIkit 对这个终端的了解：来自它测量过的终端表、终端在启动时的回答，以及此后你的按键所显示的。“未知”表示这里没有人测量过。按下 Option 和一个字母：如果它作为组合键到达，“Option 作为 Meta”就会变为是。",
+            "page.terminal.capabilitiesExplain": "TUI 对这个终端的了解：来自它测量过的终端表、终端在启动时的回答，以及此后你的按键所显示的。“未知”表示这里没有人测量过。按下 Option 和一个字母：如果它作为组合键到达，“Option 作为 Meta”就会变为是。",
             "page.terminal.colorDepth": "颜色",
             "page.terminal.depth.none": "无",
             "page.terminal.depth.16": "16",
@@ -233,7 +233,7 @@ extension ExampleStrings {
         ],
         "ja": [
             "page.terminal.capabilitiesSection": "このターミナルにできること · \\.terminalCapabilities",
-            "page.terminal.capabilitiesExplain": "TUIkit がこのターミナルについて知っていること。計測済みターミナルの表、起動時のターミナルの応答、それ以降のキー入力からわかったことです。「不明」はここで誰も計測していないことを表します。Option と文字キーを押してください。組み合わせとして届けば「Option を Meta として送る」が「はい」になります。",
+            "page.terminal.capabilitiesExplain": "TUI がこのターミナルについて知っていること。計測済みターミナルの表、起動時のターミナルの応答、それ以降のキー入力からわかったことです。「不明」はここで誰も計測していないことを表します。Option と文字キーを押してください。組み合わせとして届けば「Option を Meta として送る」が「はい」になります。",
             "page.terminal.colorDepth": "色数",
             "page.terminal.depth.none": "なし",
             "page.terminal.depth.16": "16",

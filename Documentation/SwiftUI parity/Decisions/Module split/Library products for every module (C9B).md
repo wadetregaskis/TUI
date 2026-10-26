@@ -3,8 +3,8 @@
 *Lane C9B shipped item C9b, 2026-10-11, after the owner's decision ("C9b: do it. As I understand it, we can have
 the umbrella target, as well as the individuals, all with their own products, but if a user happens to overlap the
 two it won't cause any harm."): a library product for every module the umbrella re-exports and for
-TUIkitFoundation, beside `TUIkit`; ColorPicker's gradient, tone-curve and channel-curve editors in a module of their
-own, TUIkitColorEditors (SIZE3's Q7, change (1)); the user guide (`Sources/TUIkit/TUIkit.docc/Articles/ChoosingProducts.md`,
+TUIFoundation, beside `TUI`; ColorPicker's gradient, tone-curve and channel-curve editors in a module of their
+own, TUIColorEditors (SIZE3's Q7, change (1)); the user guide (`Sources/TUI/TUI.docc/Articles/ChoosingProducts.md`,
 with C9a's notes on where the module still shows); a "which module provides it" index generated with the docs; and a
 CI fixture that builds and runs one app per product. The research is
 [`Per-module products (2026-10-11)`](<../../../Historical/Per-module products (2026-10-11).md>). This file holds the
@@ -49,14 +49,14 @@ declare, measured. It cost 47.9 s locally (swift.org 6.4.0, clean, 2026-10-11).
 Price: one more debug build of every module per run there; it would catch a Linux-only import (a module that names a
 sibling only inside an `#if os(Linux)` arm), which the macOS lane cannot see.
 
-## B-C9B-3 — TUIkitView and TUIkitImage re-export the lower modules their API names
+## B-C9B-3 — TUIView and TUIImage re-export the lower modules their API names
 
 **Shipped 2026-10-19, (a)** (the split plan's own rule, §4 Q4, and the owner's 10-07 concern about long import
-lists, settled it). `TUIkitView`'s API names `TUIkitCore`'s `FrameBuffer` (`Renderable`) and `TUIkitStyling`'s
-`Color` (a `View` there), and `TUIkitImage`'s names `Color` (`ASCIIPalette`), so a client of either product alone
-had to import those modules beside it: with only `import TUIkitView`, a primitive view failed with "cannot find type
-'FrameBuffer' in scope". Each now has an `Exports.swift`, as every carved module has: `TUIkitView` re-exports
-`TUIkitCore` and `TUIkitStyling`, and `TUIkitImage` re-exports `TUIkitStyling`. One import covers either product;
-the product fixture's two apps write only that import. `TUIkitCore` and `TUIkitStyling` still re-export nothing,
-and need not: neither's API names another module's types. TUIkit's own modules imported both already, so no name
+lists, settled it). `TUIView`'s API names `TUICore`'s `FrameBuffer` (`Renderable`) and `TUIStyling`'s
+`Color` (a `View` there), and `TUIImage`'s names `Color` (`ASCIIPalette`), so a client of either product alone
+had to import those modules beside it: with only `import TUIView`, a primitive view failed with "cannot find type
+'FrameBuffer' in scope". Each now has an `Exports.swift`, as every carved module has: `TUIView` re-exports
+`TUICore` and `TUIStyling`, and `TUIImage` re-exports `TUIStyling`. One import covers either product;
+the product fixture's two apps write only that import. `TUICore` and `TUIStyling` still re-export nothing,
+and need not: neither's API names another module's types. TUI's own modules imported both already, so no name
 resolves differently. Until then (from the C9B review round) the docs said what to import beside the two.

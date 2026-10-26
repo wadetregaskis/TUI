@@ -20,7 +20,7 @@ SwiftUI portability).
 
 ## 1. Start with the bug
 
-Type this into TUIkit as it stood before Stage 1 landed (`e89b802e`,
+Type this into TUI as it stood before Stage 1 landed (`e89b802e`,
 2026-07-16):
 
 ```swift
@@ -182,7 +182,7 @@ The scrollbar thumb needs "how far through are we?" — `y / totalHeight`,
 the number we refuse to compute. **Estimate it, and say so:** use item
 index, refined as rows are measured. The thumb may drift and settle. This
 is a terminal scrollbar; every virtualised list makes this trade, and
-`maxOffset` above already does. Uniform-height content (TUIkit's default
+`maxOffset` above already does. Uniform-height content (TUI's default
 `List`/`Table` line mode) is exact anyway (§5i).
 
 ---
@@ -203,7 +203,7 @@ other disagreements follow from that choice.
 | **react-window / TanStack Virtual** | absolute pixels + estimates + corrections | while visible (+ overscan); not in the DOM otherwise | **no** — off-DOM rows invisible to focus and AT; `aria-rowcount` lies to compensate | `FixedSizeList` is a *separate component* |
 | **React Native** `FlatList` | absolute pixels + estimates | windowed | `scrollToIndex` **fails** without `getItemLayout` or a rendered row (`onScrollToIndexFailed`) | `getItemLayout` oracle |
 | **CSS** `content-visibility: auto` | n/a (browser scrolling) | **always in the DOM**; layout/paint skipped | **yes** — focus, find-in-page, `scrollIntoView` force layout on demand | `contain-intrinsic-size` estimate |
-| **TUIkit** (this design) | **anchor**: identity + offset | windowed (§5g) | **yes** — directional query (§5d) + locate (§5b) | extent oracle (§5i) |
+| **TUI** (this design) | **anchor**: identity + offset | windowed (§5g) | **yes** — directional query (§5d) + locate (§5b) | extent oracle (§5i) |
 
 ### The two camps
 
@@ -299,7 +299,7 @@ containers *probing* each child — O(N) before pruning. The chain already
 holds the answer.)
 
 `ViewIdentity` is `Hashable` and public — it is the key type throughout.
-(`IdentityNode.Step` is **not** usable: internal to TUIkitCore, `Sendable`
+(`IdentityNode.Step` is **not** usable: internal to TUICore, `Sendable`
 only, and its `.typed(Any.Type, …)` payload isn't `Hashable`.)
 
 ### 5b. One traversal, many visitors — and it must be seekable
@@ -438,15 +438,15 @@ Two rules make this safe:
   produce a byte-identical frame, only slower. There must be a test that
   clears it every frame and asserts identical output.
 - **Key on the proposal; never clear on it.** `RenderCache.SizeKey`
-  (`TUIkitView/Rendering/RenderCache.swift:141`) is already public,
+  (`TUIView/Rendering/RenderCache.swift:141`) is already public,
   `Hashable`, and carries identity + proposal + available size +
   explicit-size flags. Reuse that shape. "Clear when the proposal changes"
   would be self-defeating: `resolveScrollbars` re-measures at several widths
   within a single frame, so a clear-on-change rule throws the cache away up
   to three times per frame.
 - **Ownership and eviction already exist.** One framework-owned store keyed
-  by `ViewIdentity`, living beside `RenderCache` in **TUIkitView** (the
-  module below TUIkit, so containers can reach it), read through
+  by `ViewIdentity`, living beside `RenderCache` in **TUIView** (the
+  module below TUI, so containers can reach it), read through
   `RenderContext`, GC'd by the existing `markActive` (`:306`) /
   `removeInactive` (`:321`). No new lifecycle, no new module edge.
 
@@ -482,7 +482,7 @@ observability, and the design must keep them distinct:
   become viewport signals — and therefore it is a *semantic*, not an
   optimisation.
 
-The rule that keeps TUIkit portable (§9) is:
+The rule that keeps TUI portable (§9) is:
 
 > **Existence windowing is legal exactly where SwiftUI is lazy** —
 > `LazyVStack`, `LazyHStack`, `List`, `Table` — **and nowhere else.** A
@@ -973,7 +973,7 @@ VStack {                                          // ← not Lazy
 
 All 100 impressions log immediately, viewport notwithstanding — because a
 plain `VStack`'s children exist from mount, in SwiftUI and therefore in
-TUIkit. If we "fixed" this by firing lazily, we would be silently
+TUI. If we "fixed" this by firing lazily, we would be silently
 changing what ported code does. Paint windowing still applies; the rows
 simply exist without being drawn.
 
@@ -1076,12 +1076,12 @@ off-screen rows focusable — nothing did.)
 
 **7j. Separate retained layout tree (Flutter `RenderObject`).** The
 canonical "layout is retained though rendering isn't" answer, and honestly
-the closest thing to a rival. **Why it loses *for TUIkit*:** it's a
+the closest thing to a rival. **Why it loses *for TUI*:** it's a
 ground-up re-architecture of a shipping immediate-mode renderer to buy what
 §5e's cache buys incrementally. And §4 shows it doesn't even buy the
 feature: Flutter has the retained tree *and* the 500-button bug (unbuilt
 sliver children aren't focus-traversable), because retention doesn't
-answer "where is what I never built". If TUIkit were greenfield this would
+answer "where is what I never built". If TUI were greenfield this would
 deserve a real hearing — as infrastructure, not as the fix.
 
 **7h. Adopt SwiftUI's `Layout` shape.** `sizeThatFits(proposal:subviews:cache:)`
@@ -1105,7 +1105,7 @@ a cache can't answer for content never seen, so cold reveal is undefined and
 as §5e — the distinction is *cache, never source of truth*.
 
 **7d. UIKit-style imperative chain (`scrollRectToVisible`).** **Why it
-loses:** it presumes retained geometry. TUIkit rebuilds every frame, and at
+loses:** it presumes retained geometry. TUI rebuilds every frame, and at
 event time nothing off-screen has geometry, so it must run a layout query —
 becoming §5 with ceremony. Its inner-first cascade is adopted (§5b).
 
@@ -1177,7 +1177,7 @@ full-render fallback quietly re-closes the path we're opening.
 
 ## 9. What downstream code notices
 
-The goal is that SwiftUI code drops into TUIkit unmodified. Scored
+The goal is that SwiftUI code drops into TUI unmodified. Scored
 against that, this design's ledger:
 
 **Invisible (the bulk of it).** `LayoutPlacing`, visitors, anchors,
@@ -1191,7 +1191,7 @@ containers, and those carry it.
 - Off-window lazy rows keep their `@State` (§5h). Today they lose it;
   SwiftUI keeps it. Ported code with stateful rows stops misbehaving.
 - `focus(id:)` / Tab reaches everything that exists (§1). SwiftUI's
-  platform focus reaches off-screen `List` rows; TUIkit couldn't.
+  platform focus reaches off-screen `List` rows; TUI couldn't.
 - `ScrollViewReader` / `ScrollViewProxy.scrollTo(_:anchor:)` — a parity
   gap today, nearly free at Stage 2 (§13), with SwiftUI's exact
   signature including the anchor.
@@ -1231,7 +1231,7 @@ TUI-specific shape, `db9d3e8a`, 2026-07-21 — and a SwiftUI-matching
 the thing SwiftUI spends it on.)
 TUI-specific surface stays where it always goes: optional modifiers
 (`.focusID`, an extent-oracle hint if we ever expose one), never required
-parameters — so SwiftUI source stays valid TUIkit source.
+parameters — so SwiftUI source stays valid TUI source.
 
 ---
 
@@ -1294,7 +1294,7 @@ happens for the workloads that need 50M rows.
   *for the windowed stack* — calls `measureFixedByRendering` →
   `renderToBuffer(isMeasuring: true)` → but the windowing branch requires
   `!context.isMeasuring` (`:272-274`) → so it **falls through to the eager
-  path and renders every child**. TUIkit's only windowing implementation is
+  path and renders every child**. TUI's only windowing implementation is
   defeated by its own measure pass. 16 files call `measureFixedByRendering`.
   Until Stage 3, "measure is cheaper than render" is **false** — measure
   *is* render. (§5h's probe confirmed this from the outside: every
@@ -1350,7 +1350,7 @@ answers:
 
 Stage 6 needed no protocol change, so §10's falsification criterion held.
 One honest limit: `LayoutPlacing` has exactly one conformer, `_VStackCore`
-(`StackLayoutPlacing.swift:80`) — TUIkit's only windowing stack — not
+(`StackLayoutPlacing.swift:80`) — TUI's only windowing stack — not
 `_HStackCore`, `List` or `Section`. **Left:** Stage 2 (§5c's locate visitor and
 reveal generation; neither a `LocateResult` nor a reveal generation exists yet)
 and Stage 5's hoist of locate above `renderedContent`, which waits on it.

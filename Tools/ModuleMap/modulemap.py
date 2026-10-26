@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The planned split of TUIkit into modules, checked against today's single module.
+"""The planned split of TUI into modules, checked against today's single module.
 
     python3 Tools/ModuleMap/modulemap.py check            # findings under map.json; exit 1 on a new one
     python3 Tools/ModuleMap/modulemap.py check --github   # CI: an error annotation per new finding, and exit 1
@@ -57,7 +57,7 @@ def resolve(M, R, files):
     one; for a file map.json does not list, the module its directory compiles into: `Rules.seed`, as `assign` places
     it). In a file no rule pins, an extension of a type another module declares goes with the type. A file whose
     directory is a module IS pinned, so its extensions stay in the target the file compiles into (an unmapped
-    `extension TerminalClient` under Sources/TUIkitFoundation is TUIkitFoundation's until `assign --write` says
+    `extension TerminalClient` under Sources/TUIFoundation is TUIFoundation's until `assign --write` says
     otherwise, and is reported by `unmapped_files`). One exception: in a
     split file, a declaration it does not name beside exactly one entry no declaration claims, both of the same
     name (`View(ext)`), is that entry's declaration edited (a member added above its first one, or renamed), not a
@@ -235,7 +235,7 @@ def run(a):
         raise SystemExit(f'rules.json: a lower list names {", ".join(unknown)}, which is not a module beside '
                          f'{R.source} that its sources import')
     # Every lower module the sources see must be in the index, not only the ones a list names: a list denies the
-    # ones it leaves out (TUIkitFoundation leaves out TUIkitImage), and a module the index lacks would deny nothing.
+    # ones it leaves out (TUIFoundation leaves out TUIImage), and a module the index lacks would deny nothing.
     unread = sorted(M.lower_visible - M.lower_modules)
     if unread and any(ls is not None for ls in R.lower.values()):
         raise SystemExit(f'modulemap: the index has no definitions of {", ".join(unread)}, which {R.source} imports, '

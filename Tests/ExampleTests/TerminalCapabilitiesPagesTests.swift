@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TerminalCapabilitiesPagesTests.swift
 //
 //  Where the Example says what this terminal can do (`\.terminalCapabilities`):
@@ -11,10 +11,10 @@
 import Testing
 
 @testable import Example
-import TUIkit
-@testable import TUIkitApp
-@testable import TUIkitFoundation
-@testable import TUIkitTerminalHost
+import TUI
+@testable import TUIApp
+@testable import TUIFoundation
+@testable import TUITerminalHost
 
 extension TextStylesPage: ExamplePageContent {}
 extension TerminalCapabilitiesDemo: ExamplePageContent {}

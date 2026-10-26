@@ -28,8 +28,8 @@ Contents:
 
 ### Single-module LLVM emission
 
-**What it is.** `-enable-single-module-llvm-emission` on TUIkit's own modules,
-behind a package trait as the other TUIkit-scoped compile flags are. Each
+**What it is.** `-enable-single-module-llvm-emission` on TUI's own modules,
+behind a package trait as the other TUI-scoped compile flags are. Each
 module is then emitted as one LLVM module, which lets LLVM merge and drop more
 than per-file emission does.
 
@@ -45,9 +45,9 @@ than per-file emission does.
 | frame time, cold, median over the scenarios | | | about +0.6% (dashboard +2.0%) |
 
 The box was busy for the warm run, so its figures are indicative. Every build
-of TUIkit would pay the compile time, and peak compile memory rose by 0.2 to
+of TUI would pay the compile time, and peak compile memory rose by 0.2 to
 0.45 GB (measured on a busy box, indicative). Debug information is close but
-not equal: about 4% of TUIkit's functions lose a symbol of their own, and 2%
+not equal: about 4% of TUI's functions lose a symbol of their own, and 2%
 of the lines that hold code lose their line rows (session notes
 `SYMS/notes.md` §2.2).
 
@@ -64,7 +64,7 @@ compiler on which the build-time or run-time cost goes away.
 type record is kept only if its type and protocol are otherwise used. Today
 every record is kept, and a kept record keeps its witness table and its code,
 which is why a "Hello" app keeps `Table`'s renderer. It is the app's build
-that chooses it, not TUIkit's.
+that chooses it, not TUI's.
 
 **What it buys (measured,** session notes `SIZE3/answers.md` Q9): "Hello"
 −36%, `Stress` −28%. Three kinds of reflection descriptor (closure captures,
@@ -73,18 +73,18 @@ name types such as `_TableCore`, so they keep whole modules alive. With that
 fixed upstream, "Hello" would be 3.73 MB, −67.6% (emulated, not built).
 
 **Why not now.** The flags are hidden and experimental, and their known
-problems apply to TUIkit: records stripped before the merge have crashed an
+problems apply to TUI: records stripped before the merge have crashed an
 app (swift#65021, open); links take 35–40 s instead of 2 s; SwiftPM's final
 link loses the debug information for LTO code (spm#6890); on Swift 6.4 with
 SwiftBuild a plain `swift build` fails if the root package has a library
 product; on Linux nothing is stripped (measured); and `_typeByName` cannot find
 a type nothing references, which a saved `NavigationPath` can name. No run-time
-A/B has been run. The compiler-flag stack TUIkit can apply by itself reaches
+A/B has been run. The compiler-flag stack TUI can apply by itself reaches
 about the same size without LTO (−37.0% against −36.3%).
 
 **What would reopen it.** The upstream fix that stops the three descriptor
 kinds being always kept (a feature request is drafted in the session notes,
-`SIZE3/q/condrec-request.md`), then a run-time A/B. Until both exist TUIkit
+`SIZE3/q/condrec-request.md`), then a run-time A/B. Until both exist TUI
 does not recommend the mode.
 
 ### The machine outliner and mergeable traps
@@ -102,7 +102,7 @@ repeated instruction sequences into shared `OUTLINED_FUNCTION_n` bodies, and
 
 - With the outliner, a stop or a profile sample inside an outlined body reads
   `OUTLINED_FUNCTION_n` at `<compiler-generated>:0`, shared by many callers.
-- With mergeable traps, a crash inside TUIkit keeps the function's name but not
+- With mergeable traps, a crash inside TUI keeps the function's name but not
   which check failed or where: an index out of range on line 2, another on line
   3 and a failed precondition on line 4 all stop at the same address, in lldb
   and in the crash report.
@@ -167,7 +167,7 @@ time on a hot path. Decided in
 **What it is.** The navigation coordinator, the dialog suppression toggle,
 the search objects and the notification service live in `AnyObject?`
 environment slots, and each read pays an `as?`
-(`swift_dynamicCastClass`): 10 sites in TUIkitNavigation, one of them per
+(`swift_dynamicCastClass`): 10 sites in TUINavigation, one of them per
 `NavigationLink` row. `unsafeDowncast` would be sound only if the slot's type
 were guaranteed by construction, and today it is a convention: the slot
 subscript is `package`, so any module of the package can write any object into
@@ -203,7 +203,7 @@ where it is written and once in the function its macro generates. Moving the
 body out of the closure halves that. The smaller of the two rewrites keeps the
 body in the test as a local `@Sendable @MainActor func inChild() async { … }`
 passed as `performing: inChild`; it ran correctly on Swift 6.2.4, 6.3.3 and
-6.4.0, and cannot take a capture list, which no TUIkit exit test uses.
+6.4.0, and cannot take a capture list, which no TUI exit test uses.
 
 **What it buys (measured,** session notes `EXITTC/research.md` §8.1): about
 2 s of a ~700 s whole-module type check of the test target (≈0.2%), across
@@ -225,7 +225,7 @@ type-check than in the per-module targets (8.2 against 5.4 ms in debug batch
 jobs when lane TC1 measured it), partly from the umbrella import and
 `@testable`, partly from the target's own `==` overloads. Two fuller options
 were priced in
-[B-TC1-1](<SwiftUI parity/Decisions/Compile time and binary size/Type-check time (TC1).md#b-tc1-1-tuikittests-expect-floor-only-the-outliers-were-rewritten>):
+[B-TC1-1](<SwiftUI parity/Decisions/Compile time and binary size/Type-check time (TC1).md#b-tc1-1-tuitests-expect-floor-only-the-outliers-were-rewritten>):
 rewrite every `#expect` over 20 ms (4,100 lines, 123 s of whole-module type
 checking, 48 s of batch CPU), or move tests into module-only targets that
 import nothing else.
@@ -236,7 +236,7 @@ that module and its dependencies only
 ([A-TS-1](<SwiftUI parity/Decisions/Compile time and binary size/Test targets split by module (TS).md>)),
 after lane TT2 (b377b5f24, 2026-10-10) had split the umbrella suite by area.
 What is left of this floor is the one target that still imports the umbrella,
-`TUIkitIntegrationTests` (164 files, by design: its tests cross modules). Its
+`TUIIntegrationTests` (164 files, by design: its tests cross modules). Its
 size there is unmeasured.
 
 **What would reopen it.** A per-`#expect` measurement of the integration
@@ -278,16 +278,16 @@ about half a day.
 candidate was declined. ⌃] is the partner of ⌃[; ⌃\\ is the shell's quit, kept
 as the backup to ⌃C; ⌥M types µ; ⎋ M would make Escape wait; the F-keys are
 prime and do not arrive reliably where the OS takes them; and ⌃^ is too
-obscure (Apple Terminal sends nothing for ⌃6, and `^^` for ⌃⇧6). TUIkit's own
+obscure (Apple Terminal sends nothing for ⌃6, and `^^` for ⌃⇧6). TUI's own
 selection (A13, shipped 2026-10-05) covers what is drawn.
 
-**What would reopen it.** A key the owner accepts, or a host where TUIkit's
+**What would reopen it.** A key the owner accepts, or a host where TUI's
 own selection cannot reach what a user needs to copy.
 
 ### Each `Text` its own selection (A13.5)
 
 **What it is.** Selection that follows one `Text`'s characters, wrapped lines
-and all, rather than the rectangle or run of cells TUIkit's screen selection
+and all, rather than the rectangle or run of cells TUI's screen selection
 takes: design D2 of
 [the text-editing study](<SwiftUI parity/Design studies/Text selection and editing design study, A13, A42 and A43 (2026-10-04).md#d2--each-text-its-own-selection-the-fuller-version>).
 
@@ -307,8 +307,8 @@ cells. iTerm2, Ghostty, kitty, foot and WezTerm implement it (session notes
 `SCROLLX/notes.md`, 2026-10-12, from each terminal's source).
 
 **Why not now.** It carries no scroll amount, phase or velocity, so it does not
-help B27, and no TUIkit feature needs sub-cell positions today. Its hazards:
-1006 and 1016 are one setting, the last one set wins, and TUIkit re-sends
+help B27, and no TUI feature needs sub-cell positions today. Its hazards:
+1006 and 1016 are one setting, the last one set wins, and TUI re-sends
 `?1006h` on every tracking-mode change, which would silently drop a 1016
 session back to cells; teardown would need `?1016l`; and iTerm2 reports 1016
 positions in points but its 2048 sizes in device pixels (2x apart on Retina),

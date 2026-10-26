@@ -9,7 +9,7 @@ generated files never enter the history and clones do not grow.
 | Path | What | Built by |
 |---|---|---|
 | `/` | the landing page — a placeholder until the project has a website — linking to the three below | `Tools/Site/index.html` |
-| `/docs/` | the DocC reference; `/docs/` itself redirects to `/docs/documentation/tuikit/` | `Tools/BuildDocs/build-docs.sh --static-hosting --hosting-base-path <base>/docs`, on macOS as CI's `docs` job does |
+| `/docs/` | the DocC reference; `/docs/` itself redirects to `/docs/documentation/tui/` | `Tools/BuildDocs/build-docs.sh --static-hosting --hosting-base-path <base>/docs`, on macOS as CI's `docs` job does |
 | `/demo/` | the Example app in WebAssembly, which loads only when the visitor presses *Run* | `Tools/Web/build.sh`, in CI's `swift:6.3.3-noble` + wasm SDK pair |
 | `/media/<version>/<name>` | every asset of that version's GitHub release (tag `v<version>`) | `gh release download` |
 | `/media/latest/<name>` | the newest version's, or before any version has media, the release tagged `media` | `gh release download` |
@@ -17,7 +17,7 @@ generated files never enter the history and clones do not grow.
 
 On a project site the base is `https://<owner>.github.io/<repository>/`, so
 for this repository today: `https://wadetregaskis.github.io/TUIkit/`, with the
-docs at `…/TUIkit/docs/documentation/tuikit/` and the demo at `…/TUIkit/demo/`.
+docs at `…/TUI/docs/documentation/tui/` and the demo at `…/TUI/demo/`.
 Nothing in the workflow or the scripts names the repository: the base path
 comes from `actions/configure-pages` and the links from `github.repository`,
 so a rename (or a custom domain) needs no edit. Links to the old address

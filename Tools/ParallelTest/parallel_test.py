@@ -133,7 +133,7 @@ SUMMARY_RE = re.compile(
 KNOWN_ISSUES_RE = re.compile(r"(\d+) known issues?")
 
 # The event stream spells a test's ID with its declaration site appended:
-#   TUIkitViewTests.BindableTests/projectedValueRoundTrip()/BindableTests.swift:41:6
+#   TUIViewTests.BindableTests/projectedValueRoundTrip()/BindableTests.swift:41:6
 # `--list-tests` and the xunit output both omit that, so strip it to join them.
 SOURCE_LOC_RE = re.compile(r"/[^/]+\.swift:\d+:\d+$")
 
@@ -668,7 +668,7 @@ def test_cmd(tc, binary, filt, xunit=None, events=None, serial=False, extra=()):
 def select_ids(ids, pattern):
     """Apply a user `--filter` here rather than at the helper.
 
-    `--list-tests` IGNORES `--filter`: asking it to list `^TUIkitViewTests\\.`
+    `--list-tests` IGNORES `--filter`: asking it to list `^TUIViewTests\\.`
     returns all 7,573 tests, so a filtered run built from its output would
     quietly run the whole suite. Selecting in Python also keeps the partition
     proof authoritative — the groups are derived from exactly the set of IDs

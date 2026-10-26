@@ -7,7 +7,7 @@ asks the running app for the frame that shows it (the module split's R1 put
 the halves apart, because the service sits below the views and cannot name the
 app's render state). The unit tests cover each half; only a live run can say
 the halves still meet — that the words on screen change, the app's own and
-TUIkit's alike, and that the choice is there on the next launch.
+TUI's alike, and that the choice is there on the next launch.
 
 The subject is the Example's Theme page, whose Language picker calls
 `setLanguage(_:)`. Three runs, all on one fresh config directory:
@@ -45,7 +45,7 @@ import pyte
 COLS, ROWS = 120, 40
 
 # Each language's words for the two things checked: the Example's own section
-# header (`page.theme.language`, a string the app registered) and TUIkit's own
+# header (`page.theme.language`, a string the app registered) and TUI's own
 # quit item in the status bar (`statusbar.quit`).
 WORDS = {
     "en": {"header": "Language", "quit": "quit"},

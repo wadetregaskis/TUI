@@ -48,20 +48,20 @@ and is drawn only on ticks where the line changes.
 ## 1. Where the animated offset lives, who moves it, and how a frame reads it
 
 **Today.** A scroll view's offset is `ScrollViewHandler.scrollOffset`
-(`Sources/TUIkitFoundation/Focus/ScrollViewHandler.swift:106`). It is in whole
+(`Sources/TUIFoundation/Focus/ScrollViewHandler.swift:106`). It is in whole
 lines and is the one value that both event-time code (keys, wheel) and the
 render read. Programmatic placements go through `jumpProgrammatically(to:)`
 (`ScrollViewHandler.swift:423-426`):
 
 - a seek resolved by drawing the content at the request
-  (`Sources/TUIkitFoundation/Views/ScrollView.swift:635-670`);
+  (`Sources/TUIFoundation/Views/ScrollView.swift:635-670`);
 - a bound position's edge or offset (`ScrollView+ScrollPosition.swift:44-65`).
 
 `scrollTo` parks a request on every registered scroll view and asks for a frame
 (`ScrollViewReader.swift:154-162`). That request goes through
 `AppState.setNeedsRender()`, which stamps the ambient transaction
-(`Sources/TUIkitView/State/State.swift:63-66, 100`). The loop publishes that
-transaction for exactly one pass (`Sources/TUIkitApp/App/RenderLoop+Animation.swift:70`).
+(`Sources/TUIView/State/State.swift:63-66, 100`). The loop publishes that
+transaction for exactly one pass (`Sources/TUIApp/App/RenderLoop+Animation.swift:70`).
 So the frame that consumes the request already sees the `withAnimation`
 transaction, which is how B30 reads `scrollTargetAnchor`
 (`ScrollView+ScrollPosition.swift:27`).
@@ -80,14 +80,14 @@ the horizontal axis's conformer does too. It holds:
 
 Each frame steps the offset by `round(distance × fraction) − covered` through
 `scrollFine(by:)`. That step costs O(step), and it is a line step for a list
-too (`Sources/TUIkitLists/Focus/ItemListHandler+Keys.swift:551`). The fraction
+too (`Sources/TUILists/Focus/ItemListHandler+Keys.swift:551`). The fraction
 comes from `Animation.fraction(at:)` and the end from `isFinished(at:)`
-(`Sources/TUIkitCore/Animation/Animation.swift:559, 592`). A spring's overshoot
+(`Sources/TUICore/Animation/Animation.swift:559, 592`). A spring's overshoot
 shows inside the content and is clamped at its ends. A repeating animation
 glides on its first pass only.
 
 **Why not `AnimationStore`?** It is the shared "where has the picture got to"
-store (`Sources/TUIkitView/Animation/AnimationStore.swift:195`), and
+store (`Sources/TUIView/Animation/AnimationStore.swift:195`), and
 `ChildGlide` uses it (`ChildGlide.swift:259-261`). It does not fit here for
 three reasons:
 
@@ -195,7 +195,7 @@ keeps handling `.interacting`. The `.animating` comment
   moves the viewport only; the focus cursor and the selection stay put, as
   `scroll(toRow:)` promises. **A gap found while writing this:** neither reports
   any scroll phase today. No `onScrollPhaseChange` observer is read in
-  `TUIkitLists` or `TUIkitTables`, where SwiftUI's `List` is a scroll view and
+  `TUILists` or `TUITables`, where SwiftUI's `List` is a scroll view and
   reports them. `.animating` on a list needs that reporting first (piece 6).
 - **Nested scroll views.** A request is parked on every registered view, and
   each resolves it against its own content (`ScrollViewReader.swift:144-162`).
@@ -223,7 +223,7 @@ alike. This is A-D3M-1 (scroll offsets are spatial motion,
 (`ChildGlide.swift:251-253`). Without a scheduler (`canAnimate` false, a
 one-off render) it jumps too. A jump changes no phase, as an unanimated
 `scrollTo` changes none (measured, B27). D3M's line "Scrolling is never
-animated in TUIkit" (`D3M.md:166`) is rewritten when this ships.
+animated in TUI" (`D3M.md:166`) is rewritten when this ships.
 
 ## 4. The TUI-only keyboard opt-in
 
@@ -315,8 +315,8 @@ to the lists.
 ## 6. Tests that would pin it
 
 Clocks are pinned as the existing tests pin them: `frameNowNanos` on the
-context (`Tests/TUIkitEffectsTests/StackGlideTests.swift:125`) and
-`handler.phaseNow` (`Tests/TUIkitAppTests/OnScrollPhaseChangeTests.swift:45`).
+context (`Tests/TUIEffectsTests/StackGlideTests.swift:125`) and
+`handler.phaseNow` (`Tests/TUIAppTests/OnScrollPhaseChangeTests.swift:45`).
 
 1. An animated `scrollTo` draws the start on its first frame, then whole-line
    offsets that never move backwards under an ease, then the target. An

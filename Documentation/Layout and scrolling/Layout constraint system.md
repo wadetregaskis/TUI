@@ -1,8 +1,8 @@
 # Plan: a more powerful width/height constraint system
 
-This document is a design discussion, not yet a specification. It catalogues what TUIkit's layout pipeline can express today, lists the constraint shapes that are currently awkward or impossible to express, and proposes a direction. The intent is to lock in a direction with the user before any of it is implemented.
+This document is a design discussion, not yet a specification. It catalogues what TUI's layout pipeline can express today, lists the constraint shapes that are currently awkward or impossible to express, and proposes a direction. The intent is to lock in a direction with the user before any of it is implemented.
 
-## What TUIkit can express today
+## What TUI can express today
 
 Layout runs in two passes. Views conform to `Layoutable` and implement `sizeThatFits(proposal:context:)`, which returns a `ViewSize`:
 
@@ -56,10 +56,10 @@ Today min/max lives on the flexible-frame form. There's no way to wrap an arbitr
 The current `isWidthFlexible: Bool` flag is binary — a view either takes extra space or it doesn't. There's no way to say "I'd like extra space if there is any, but only up to 2× my ideal size." For a button that should grow with extra room but not become absurdly wide on a wide terminal, this is exactly what's needed.
 
 **7. Cross-axis dependency.**
-Some content's height depends on its width — wrapping text being the canonical example. SwiftUI's layout pass handles this transparently because each view sees a `ProposedSize` and can reply with a derived `ViewSize`. TUIkit's `ProposedSize` does support this, but the public-facing `.frame(...)` surface doesn't make it discoverable how to thread an intrinsic relationship through. A "give me what fits in width W" idiom is needed for text-heavy layouts.
+Some content's height depends on its width — wrapping text being the canonical example. SwiftUI's layout pass handles this transparently because each view sees a `ProposedSize` and can reply with a derived `ViewSize`. TUI's `ProposedSize` does support this, but the public-facing `.frame(...)` surface doesn't make it discoverable how to thread an intrinsic relationship through. A "give me what fits in width W" idiom is needed for text-heavy layouts.
 
 **8. Alignment under shrink.**
-When content is larger than the proposal, alignment of the truncated view matters (leading vs trailing vs center clipping). `_HStackCore` / `_VStackCore` handle this internally and `.layoutPriority(_:)` has since shipped — for custom `Layout`s, read as `LayoutSubview.priority`; TUIkit's own stacks deliberately do not consult it, distributing by the flexibility each child reports instead (the API doc says so). What is still not expressible is a priority the *stacks* honour.
+When content is larger than the proposal, alignment of the truncated view matters (leading vs trailing vs center clipping). `_HStackCore` / `_VStackCore` handle this internally and `.layoutPriority(_:)` has since shipped — for custom `Layout`s, read as `LayoutSubview.priority`; TUI's own stacks deliberately do not consult it, distributing by the flexibility each child reports instead (the API doc says so). What is still not expressible is a priority the *stacks* honour.
 
 ## Proposed direction
 

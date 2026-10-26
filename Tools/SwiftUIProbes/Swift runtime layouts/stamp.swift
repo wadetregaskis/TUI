@@ -1,7 +1,7 @@
 import Darwin
 
 // DYNVCLAIM (2026-10-12), angle "swiftui-first": what a creation stamp in
-// TUIkit's StateBacking.init would cost per @State constructed. The init
+// TUI's StateBacking.init would cost per @State constructed. The init
 // allocates the backing and its box (two objects), as State(wrappedValue:)
 // does today; each variant adds one way of reading "when was this made".
 // macOS arm64, -O. Unmeasured anywhere else.

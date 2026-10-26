@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Cross-platform build & test runner for TUIkit.
+# Cross-platform build & test runner for TUI.
 # Runs swift build + swift test on both macOS (native) and Linux (Docker).
 #
 # Usage:

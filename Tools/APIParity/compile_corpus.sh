@@ -1,8 +1,8 @@
 #!/bin/sh
-#  🖥️ TUIkit — Terminal UI Kit for Swift
+#  🖥️ TUI — A Terminal UI framework for Swift
 #  compile_corpus.sh
 #
-#  Type-checks CompileCorpus.swift against the built TUIkit modules. Nothing is
+#  Type-checks CompileCorpus.swift against the built TUI modules. Nothing is
 #  run and nothing is linked: a clean exit IS the assertion, because every
 #  snippet in that file is SwiftUI source that must bind to something here.
 #
@@ -26,5 +26,5 @@ swiftc -typecheck -I "$modules" "$here/CompileCorpus.swift"
 # On its own, never beside the file above: that one imports AppKit for the
 # bridges, and within one compilation an import in one file loads its module
 # for all of them — which is the very leak this one proves is gone.
-swiftc -typecheck -I "$modules" "$here/CompileCorpusTUIkitOnly.swift"
-echo "compile corpus: every SwiftUI snippet type-checks against TUIkit"
+swiftc -typecheck -I "$modules" "$here/CompileCorpusTUIOnly.swift"
+echo "compile corpus: every SwiftUI snippet type-checks against TUI"

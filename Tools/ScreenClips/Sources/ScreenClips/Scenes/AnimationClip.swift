@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  AnimationClip.swift
 //
 //  `animation`: a habit tracker that moves — a tab underline gliding between
@@ -9,7 +9,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 @MainActor
 let animationClip = Clip(
@@ -33,7 +33,7 @@ let animationClip = Clip(
 
 struct AnimationApp: App {
     var body: some Scene {
-        WindowGroup("TUIkit · Habits") {
+        WindowGroup("TUI · Habits") {
             HabitTracker()
                 .palette(SystemPalette(.blue))
         }

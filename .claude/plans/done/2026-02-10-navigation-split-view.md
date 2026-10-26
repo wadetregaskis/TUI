@@ -2,7 +2,7 @@
 
 ## Preface
 
-NavigationSplitView brings a two- or three-column navigation layout to TUIkit, enabling master-detail patterns common in terminal applications like file managers, music players, or database browsers. The view renders entirely within the content area between AppHeader and StatusBar, respecting existing layout constraints. Each column becomes its own focus section, allowing Tab navigation between sidebar, content, and detail areas. Column visibility can be controlled programmatically, and styles determine whether columns resize or overlay.
+NavigationSplitView brings a two- or three-column navigation layout to TUI, enabling master-detail patterns common in terminal applications like file managers, music players, or database browsers. The view renders entirely within the content area between AppHeader and StatusBar, respecting existing layout constraints. Each column becomes its own focus section, allowing Tab navigation between sidebar, content, and detail areas. Column visibility can be controlled programmatically, and styles determine whether columns resize or overlay.
 
 ## Context
 
@@ -13,7 +13,7 @@ SwiftUI's NavigationSplitView (iOS 16+) provides:
 - Column identification via `NavigationSplitViewColumn`
 - Styles: `automatic`, `balanced`, `prominentDetail`
 
-TUIkit constraints:
+TUI constraints:
 - Terminal has fixed character width (no fractional columns)
 - AppHeader and StatusBar consume vertical space; NavigationSplitView renders in the remaining content area
 - No mouse interaction; keyboard-only navigation via focus sections
@@ -217,14 +217,14 @@ private struct _NavigationSplitViewCore: View, Renderable {
 
 ### New Files
 
-- `Sources/TUIkit/Views/NavigationSplitView.swift`
-- `Sources/TUIkit/Styles/NavigationSplitViewStyle.swift`
-- `Sources/TUIkit/Modifiers/NavigationSplitViewColumnWidthModifier.swift`
-- `Tests/TUIkitTests/NavigationSplitViewTests.swift`
+- `Sources/TUI/Views/NavigationSplitView.swift`
+- `Sources/TUI/Styles/NavigationSplitViewStyle.swift`
+- `Sources/TUI/Modifiers/NavigationSplitViewColumnWidthModifier.swift`
+- `Tests/TUITests/NavigationSplitViewTests.swift`
 
 ### Modified Files
 
-- `Sources/TUIkit/Rendering/Renderable.swift` (added `withAvailableWidth` helper)
+- `Sources/TUI/Rendering/Renderable.swift` (added `withAvailableWidth` helper)
 
 ## Open Questions
 

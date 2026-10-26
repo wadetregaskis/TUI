@@ -3,7 +3,7 @@
 *A companion to [`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>),
 written by the lane that committed the binary-size study of 2026-10-10 to
 [`Documentation/Historical/Binary size study (2026-10-10)/`](<../../../Historical/Binary size study (2026-10-10)>)
-and the SwiftUI probes that TUIkit's code cites to
+and the SwiftUI probes that TUI's code cites to
 [`Tools/SwiftUIProbes/`](<../../../../Tools/SwiftUIProbes>) (the owner, 2026-10-12:
 "The SIZE3 report.md, README.md, and probe sources are fine to commit. 233 KB
 is substantial but worth it"). It holds only what that work raised that was

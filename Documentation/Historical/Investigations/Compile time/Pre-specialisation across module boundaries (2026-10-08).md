@@ -8,7 +8,7 @@
 
 ## Question
 
-Once TUIkit is split into modules, a generic function called from another module runs unspecialised unless the
+Once TUI is split into modules, a generic function called from another module runs unspecialised unless the
 caller can see its body. Could pre-made specialisations, `@_specialize(exported: true, where …)` or SE-0460's
 `@specialized` behind an `#if`, recover the cost instead? The owner, 2026-10-08, asked for an evaluation, and set
 its limit: it "only really works if the specializations … are relatively few and predictable".
@@ -23,8 +23,8 @@ its limit: it "only really works if the specializations … are relatively few a
   whose call names exactly that type calls it directly; every other type, every `-Onone` client and every call
   through a witness table gets the generic entry point. It also switches off default cross-module optimisation for
   that function, so a small function that would have been inlined gets an opaque call instead.
-- **None of TUIkit's hot crossings fits.** They are generic over the caller's own views, data and IDs, which
-  TUIkitFoundation cannot name. The few closed sets are better served by an `@inlinable` shim, by making the function
+- **None of TUI's hot crossings fits.** They are generic over the caller's own views, data and IDs, which
+  TUIFoundation cannot name. The few closed sets are better served by an `@inlinable` shim, by making the function
   non-generic, or by nothing.
 
 ## Key measurements
@@ -41,13 +41,13 @@ requirements or stored properties.
 | a library type made generic over a client type | generic |
 | a partial specialisation (`T: _Trivial(64)`) called with concrete types | the optimised client's compiler crashes |
 
-Each pre-made body is code every app keeps, used or not, unless TUIkit is compiled with `-internalize-at-link` (on
+Each pre-made body is code every app keeps, used or not, unless TUI is compiled with `-internalize-at-link` (on
 macOS release builds by default since 2026-10-11): in the toy, six bodies were about 1,004 B, and the linked
 `__text` grew by 868 B.
 
 ## Reasoning
 
-A crossing fits an exported specialisation only when it is generic, hot, has a few type arguments TUIkitFoundation
+A crossing fits an exported specialisation only when it is generic, hot, has a few type arguments TUIFoundation
 can name, and has concrete callers. Measured against the inventory:
 
 - **Containers, modifiers, stacks, `Button.init`:** the type arguments are the caller's views; nothing writable.
@@ -67,7 +67,7 @@ can name, and has concrete callers. Measured against the inventory:
   non-generic core (step B5c).
 - `_OpacityView.fading`, also generic only in name, was left generic: its one cross-module caller calls it out of
   line, as before the split (decisions
-  C-SPB5c-1 in [SPB5c](<../../../SwiftUI parity/Decisions/Module split/Step B5c, carving TUIkitBitmaps (SPB5c).md>)).
+  C-SPB5c-1 in [SPB5c](<../../../SwiftUI parity/Decisions/Module split/Step B5c, carving TUIBitmaps (SPB5c).md>)).
 - No `@_specialize` or `@specialized` in `Sources` at 5369ea867. The split's own recoveries used `@inlinable`
   ([the module split's run-time cost](<../Module split/The module split's run-time cost, step by step (2026-10-10).md>)).
 

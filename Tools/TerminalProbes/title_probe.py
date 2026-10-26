@@ -4,14 +4,14 @@
 title back (XTWINOPS 21), and swallow every one of those sequences without
 printing any of it?
 
-TUIkit titles the terminal's window with the window in front's title
+TUI titles the terminal's window with the window in front's title
 (`TerminalHostState`, refusal review P15): `ESC ] 2 ; title ESC \\` on a
 change, the terminal's own title pushed with `CSI 22 ; 2 t` before the first,
 and popped with `CSI 23 ; 2 t` on suspend, on exit and for a window with no
 title. See Documentation/Terminals/Terminal compatibility survey.md, "The window
 title". This measures what that rests on.
 
-Run INSIDE the terminal under test. Nothing here needs TUIkit built.
+Run INSIDE the terminal under test. Nothing here needs TUI built.
 
   python3 title_probe.py            # measure, then put the title back
   python3 title_probe.py --hold 20  # ...and hold the probe's title up for 20 s
@@ -19,10 +19,10 @@ Run INSIDE the terminal under test. Nothing here needs TUIkit built.
 
 Writes JSON to $PROBE_OUT (default ./title_probe.json) and prints a summary.
 
-1. **Leak.** The cursor column (DSR 6) before and after each sequence TUIkit
+1. **Leak.** The cursor column (DSR 6) before and after each sequence TUI
    sends — OSC 2 with ST and with BEL, the push, the pop, a pop with nothing
    pushed — and the report request, on the primary and the alternate screen
-   (TUIkit's). A column that moved means the host printed part of it.
+   (TUI's). A column that moved means the host printed part of it.
 
 2. **Report.** `CSI 21 t`, fenced by `CSI 5 n` (every measured host answers
    DSR 5): the title as the host reports it, `OSC l title ST`, or nothing.
@@ -99,7 +99,7 @@ def reported_title(fd):
 
 
 LEAK_ROWS = [
-    ("osc2_st", set_title("tuikit-leak", ST), "OSC 2 ended by ST, as TUIkit sends it"),
+    ("osc2_st", set_title("tuikit-leak", ST), "OSC 2 ended by ST, as TUI sends it"),
     ("osc2_bel", set_title("tuikit-leak", BEL), "OSC 2 ended by BEL"),
     ("push", PUSH, "XTWINOPS 22;2: push the window title"),
     ("pop", POP, "XTWINOPS 23;2: pop it"),

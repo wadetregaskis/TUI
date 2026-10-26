@@ -1,0 +1,678 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  ScrollGranularityTests.swift
+//
+//  Line steps and row steps — line-centric scrolling (the default, and
+//  `.scrollGranularity(.line)`) steps the viewport one terminal LINE at a time
+//  through multi-line rows, clipping the top row partially; whole-row steps
+//  (opt-in, as SwiftUI's `.scrollTargetBehavior(.viewAligned)`) keep the
+//  classic whole-row-jump behaviour. Selection and focus stay row-based in both.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIApp
+@testable import TUICore
+@testable import TUIFoundation
+@testable import TUILists
+@testable import TUIListsTestSupport
+import TUITables
+@testable import TUITestSupport
+
+@MainActor
+@Suite("Scroll granularity (line vs row)")
+struct ScrollGranularityTests {
+
+    // MARK: - Handler stepping
+
+    /// A handler over `count` rows of `height` lines each, in a viewport
+    /// sized for `visibleRows` whole rows.
+    private func makeHandler(
+        count: Int, rowHeight: Int, contentHeight: Int, granularity: ScrollStepUnit
+    ) -> ItemListHandler<Int> {
+        let handler = ItemListHandler<Int>(
+            focusID: "test", itemCount: count,
+            viewportHeight: max(1, contentHeight / rowHeight),
+            selectionMode: .single)
+        handler.contentHeight = contentHeight
+        handler.rowHeight = { _ in rowHeight }
+        handler.scrollStepUnit = granularity
+        handler.itemIDs = Array(0..<count)
+        return handler
+    }
+
+    @Test("Line granularity: each fine step moves one line through a tall row")
+    func lineStepsThroughTallRow() {
+        let handler = makeHandler(count: 10, rowHeight: 3, contentHeight: 9, granularity: .line)
+
+        #expect(handler.scrollFine(by: 1))
+        #expect(handler.scrollOffset == 0)
+        #expect(handler.scrollTopClipLines == 1, "first step clips one line off the top row")
+
+        #expect(handler.scrollFine(by: 1))
+        #expect(handler.scrollTopClipLines == 2)
+
+        #expect(handler.scrollFine(by: 1))
+        #expect(handler.scrollOffset == 1, "third step rolls into the next row")
+        #expect(handler.scrollTopClipLines == 0)
+    }
+
+    @Test("Line granularity: stepping back up re-enters the previous row's last line")
+    func lineStepsBackUp() {
+        let handler = makeHandler(count: 10, rowHeight: 3, contentHeight: 9, granularity: .line)
+        handler.scrollOffset = 2
+        handler.scrollTopClipLines = 0
+
+        #expect(handler.scrollFine(by: -1))
+        #expect(handler.scrollOffset == 1)
+        #expect(handler.scrollTopClipLines == 2, "enters the row above at its LAST line")
+
+        #expect(handler.scrollFine(by: -2))
+        #expect(handler.scrollOffset == 1)
+        #expect(handler.scrollTopClipLines == 0)
+
+        #expect(!handler.scrollFine(by: -100) || handler.scrollOffset == 0)
+        handler.scrollFine(by: -100)
+        #expect(handler.scrollOffset == 0 && handler.scrollTopClipLines == 0, "clamped at the top")
+        #expect(!handler.scrollFine(by: -1), "at the very top a further up-step reports no movement")
+    }
+
+    /// The protocol requirement's own doc promises a sub-row-unit conformer
+    /// discards the clip on an absolute jump — the override was missing, so a
+    /// generic caller's Home (the focus system's section scroll, a mid-drag
+    /// navigator) left the top row still partially scrolled off at offset 0.
+    @Test("An absolute jump discards the sub-row clip")
+    func scrollToOffsetClearsClip() {
+        let handler = makeHandler(count: 10, rowHeight: 3, contentHeight: 9, granularity: .line)
+        #expect(handler.scrollFine(by: 4))
+        #expect(handler.scrollOffset == 1 && handler.scrollTopClipLines == 1)
+
+        handler.scrollToOffset(0)
+        #expect(handler.scrollOffset == 0)
+        #expect(handler.scrollTopClipLines == 0, "Home must show the very top")
+    }
+
+    @Test("Row granularity: fine steps jump whole rows (the classic behaviour)")
+    func rowGranularityJumpsRows() {
+        let handler = makeHandler(count: 10, rowHeight: 3, contentHeight: 9, granularity: .row)
+
+        #expect(handler.scrollFine(by: 1))
+        #expect(handler.scrollOffset == 1)
+        #expect(handler.scrollTopClipLines == 0, "row granularity never clips")
+    }
+
+    /// A window that covers every row is not the same thing as a list that fits.
+    /// `viewportHeight` counts the row STRADDLING the viewport's bottom edge as
+    /// visible — `ScrollRowWindow.resolve` admits it and `_ListCore` publishes
+    /// `max(1, visibleRows.count)` — so `extent == viewportHeight` while the
+    /// walked bound still names an offset at which that row is whole. Gating the
+    /// step on the subtraction instead of the bound left the wheel, the bar's
+    /// arrows and its page-track all dead at offset 0.
+    @Test("Row granularity: a full window still scrolls to reveal the straddling row")
+    func rowGranularityReachesStraddlingRow() {
+        // Six two-line rows in an 11-line content area: rows 0…4 take ten lines
+        // and row 5 is drawn one line deep, so all six rows are on screen.
+        let handler = makeHandler(count: 6, rowHeight: 2, contentHeight: 11, granularity: .row)
+        // What `_ListCore` writes after the window walk. `makeHandler`'s
+        // whole-rows-only estimate (5) misses the straddling row, and it is
+        // counting it that makes the two sides equal.
+        handler.viewportHeight = 6
+
+        #expect(handler.extent == handler.viewportHeight, "six rows, six 'visible'")
+        #expect(handler.maxOffset == 1, "…and offset 1 shows rows 1…5 whole")
+
+        #expect(handler.scrollFine(by: 3), "a wheel tick has somewhere to go")
+        #expect(handler.scrollOffset == 1)
+        #expect(handler.scrollTopClipLines == 0, "row granularity never clips")
+    }
+
+    @Test("Single-line rows: line and row granularity are identical")
+    func singleLineRowsIdentical() {
+        let line = makeHandler(count: 10, rowHeight: 1, contentHeight: 5, granularity: .line)
+        let row = makeHandler(count: 10, rowHeight: 1, contentHeight: 5, granularity: .row)
+        for _ in 0..<3 {
+            line.scrollFine(by: 1)
+            row.scrollFine(by: 1)
+        }
+        #expect(line.scrollOffset == row.scrollOffset)
+        #expect(line.scrollTopClipLines == 0)
+    }
+
+    @Test("Line granularity stops at the row-aligned bottom (no clip past maxOffset)")
+    func lineStopsAtBottom() {
+        let handler = makeHandler(count: 4, rowHeight: 3, contentHeight: 9, granularity: .line)
+        handler.scrollFine(by: 100)
+        #expect(handler.scrollOffset == handler.maxOffset)
+        #expect(handler.scrollTopClipLines == 0, "the bottom rest position is row-aligned")
+        #expect(!handler.scrollFine(by: 1), "no movement past the bottom")
+    }
+
+    @Test("Focus reveal clears the top clip so the focused row is fully visible")
+    func revealClearsClip() {
+        let handler = makeHandler(count: 10, rowHeight: 3, contentHeight: 9, granularity: .line)
+        handler.scrollFine(by: 1)  // (row 0, clip 1)
+        #expect(handler.scrollTopClipLines == 1)
+
+        handler.focusedIndex = 0
+        handler.ensureFocusedItemVisible()
+        #expect(handler.scrollTopClipLines == 0, "the focused top row must be fully shown")
+        #expect(handler.scrollOffset == 0)
+    }
+
+    /// A row taller than the row budget cannot be shown whole, and the reveal
+    /// must show its HEAD. The scroll-up branch says so outright — "A focused row
+    /// must be FULLY visible" — and the scroll-down branch overrode it, because
+    /// `covered` starts at the tail row's own height: when that alone exceeds the
+    /// budget the walk-up never runs, so `covered - budget` is a slice of the
+    /// FOCUSED row rather than of a row above it.
+    ///
+    /// Not parameterised over granularity: `ensureFocusedItemVisible` never reads
+    /// it on this path, and with `followMargin == .none` the margin is 0 rows
+    /// either way, so a second arm would run the same arithmetic twice.
+    @Test("A row taller than the budget is revealed from its head, not its tail")
+    func oversizedRowRevealsItsHead() {
+        // 5-line rows in a 6-line content area: both "N more" lines are
+        // reserved, so the rows get 4 — one less than a single row needs.
+        let handler = makeHandler(count: 10, rowHeight: 5, contentHeight: 6, granularity: .line)
+        #expect(handler.rowLineBudget == 4, "precondition: a 5-line row overflows the budget")
+        handler.scrollOffset = 5
+        handler.focusedIndex = 3
+        handler.ensureFocusedItemVisible()
+        #expect(handler.scrollOffset == 3, "the row the cursor moved onto is the top row")
+        #expect(
+            handler.scrollTopClipLines == 0,
+            "revealing an oversized row must show its FIRST line, not its last")
+
+        // Down onto an oversized row goes through the guard's OTHER arm
+        // (`top > scrollOffset`), which moves the offset and carried the same bad
+        // clip — so bounding the clip fixes both arms where gating the guard
+        // would have fixed one.
+        let down = makeHandler(count: 10, rowHeight: 5, contentHeight: 6, granularity: .line)
+        down.focusedIndex = 2
+        down.ensureFocusedItemVisible()
+        #expect(down.scrollOffset == 2, "the reveal scrolls down to the focused row")
+        #expect(
+            down.scrollTopClipLines == 0,
+            "arriving from ABOVE must also show the oversized row's head")
+
+        // Row 0 with nothing above it, and a two-line clip — more than an
+        // "▲ N more" line costs, so `ScrollWindowOrigin.absorbing` cannot fold
+        // the loss away either: it is on screen.
+        let tall = makeHandler(count: 10, rowHeight: 6, contentHeight: 6, granularity: .line)
+        tall.focusedIndex = 0
+        tall.ensureFocusedItemVisible()
+        #expect(tall.scrollOffset == 0)
+        #expect(
+            tall.scrollTopClipLines == 0,
+            "row 0 has nothing above it — its head cannot be scrolled past")
+    }
+
+    @Test("clampTopClip keeps a sub-row position under either granularity")
+    func clampTopClipRules() {
+        let handler = makeHandler(count: 10, rowHeight: 3, contentHeight: 9, granularity: .line)
+        handler.scrollTopClipLines = 2
+        handler.scrollStepUnit = .row
+        handler.clampTopClip()
+        #expect(
+            handler.scrollTopClipLines == 2,
+            """
+            row granularity sizes a scroll STEP; it is not a lattice the \
+            viewport must sit on. A reveal or a centred anchor may legitimately \
+            leave it mid-row, and `scrollFine` is what re-aligns.
+            """)
+
+        handler.scrollStepUnit = .line
+        // maxOffset short-circuits to a cheap floor until the offset nears
+        // the tail (documented ItemListHandler behaviour) — walk there with
+        // fine steps the way real scrolling does, then verify the bottom
+        // clears any residual clip.
+        handler.scrollFine(by: 1000)
+        #expect(handler.scrollOffset == 8, "10×3-line rows in 9 lines bottom out at row 8")
+        handler.scrollTopClipLines = 2
+        handler.clampTopClip()
+        #expect(handler.scrollTopClipLines == 0)
+    }
+
+    // MARK: - List rendering
+
+    /// Renders a six-row list (each row `linesPerRow` tall), delivers
+    /// `wheelTicks` wheel events through the real mouse-dispatch path (each
+    /// event is the default three fine steps), and returns the final frame's
+    /// stripped lines.
+    /// Like ``renderList(granularity:linesPerRow:wheelTicks:)`` but returns
+    /// every frame's buffer, for asserting across-scroll invariants (constant
+    /// height, partial bottom rows).
+    /// A row can render nothing at all — a conditional row whose branch went empty —
+    /// while the line clip lives on the handler, measured against the lines the row had
+    /// LAST frame. `clampTopClip()` is what stops that reaching the renderers: it runs
+    /// on every render pass with this frame's heights, before the window resolves, and a
+    /// row of no lines has no line to clip to. Pinned here because the arithmetic
+    /// downstream — `min(topClip, lines.count - 1)` in both twins — is only total while
+    /// this holds.
+    @Test("A row that empties under a line clip draws, and takes the clip with it")
+    func emptiedRowDropsItsClip() throws {
+        final class Branch {
+            var isTall = true
+        }
+        let branch = Branch()
+        let context = makeRenderContext(width: 20, height: 6)
+        let view = List(selection: .constant(Int?.none)) {
+            ForEach(0..<4, id: \.self) { row in
+                if row == 0 {
+                    if branch.isTall { Text("r0a\nr0b\nr0c") } else { EmptyView() }
+                } else {
+                    Text("r\(row)")
+                }
+            }
+        }
+        _ = renderToBuffer(view, context: context)
+        let handler = try #require(
+            context.environment.focusManager?.currentFocused as? ItemListHandler<Int>)
+
+        // Two of the tall row's three lines scrolled off: the frame starts at its last.
+        handler.scrollTopClipLines = 2
+        context.renderCache?.clearAll()
+        let clipped = renderToBuffer(view, context: context).lines.map(\.stripped)
+        #expect(clipped.contains { $0.contains("r0c") }, "\(clipped)")
+        #expect(!clipped.contains { $0.contains("r0a") }, "the clip took the first lines: \(clipped)")
+
+        // The row now draws nothing, with the clip still standing on the handler.
+        branch.isTall = false
+        handler.scrollTopClipLines = 2
+        context.renderCache?.clearAll()
+        let emptied = renderToBuffer(view, context: context).lines.map(\.stripped)
+        #expect(handler.scrollTopClipLines == 0, "the clip outlived the lines it was measured against")
+        #expect(
+            emptied.contains { $0.contains("r1") } && emptied.contains { $0.contains("r3") },
+            "the rows below it are drawn: \(emptied)")
+    }
+
+    private func renderListFrames(
+        granularity: ScrollStepUnit = .line,
+        linesPerRow: Int = 3,
+        wheelTicks: Int = 0
+    ) -> [FrameBuffer] {
+        let tui = TUIContext()
+        var env = EnvironmentValues()
+        env.focusManager = FocusManager()
+        env.applyRuntimeServices(from: tui)
+        env.scrollTargetBehavior = granularity.behavior
+        let dispatcher = tui.mouseEventDispatcher
+        dispatcher.setActiveSupport(.standard)
+
+        let view = List(selection: .constant(String?.none)) {
+            ForEach(["a", "b", "c", "d", "e", "f"], id: \.self) { name in
+                Text((1...linesPerRow).map { "\(name)-\($0)" }.joined(separator: "\n"))
+            }
+        }
+        // The "N more" lines are what this case is about (#555): the default is
+        // a scrollbar, which spends a column rather than the line at issue here.
+        .scrollIndicatorStyle(.text)
+        .frame(height: 11)
+
+        func renderOnce() -> FrameBuffer {
+            var context = RenderContext(
+                availableWidth: 24, availableHeight: 14, environment: env, tuiContext: tui)
+            context.hasExplicitWidth = true
+            context.hasExplicitHeight = true
+            return renderToBuffer(view, context: context)
+        }
+
+        var frames = [renderOnce()]
+        for _ in 0..<wheelTicks {
+            let buffer = frames[frames.count - 1]
+            dispatcher.setRegions(buffer.hitTestRegions)
+            guard let region = buffer.hitTestRegions.max(by: { $0.height < $1.height }) else {
+                Issue.record("expected the list's hit-test region")
+                break
+            }
+            _ = dispatcher.dispatch(
+                MouseEvent(
+                    button: .scrollDown, phase: .scrolled,
+                    x: region.offsetX + 2, y: region.offsetY + 2))
+            frames.append(renderOnce())
+        }
+        return frames
+    }
+
+    private func renderList(
+        granularity: ScrollStepUnit = .line,
+        linesPerRow: Int = 3,
+        wheelTicks: Int = 0,
+        frameHeight: Int = 11,
+        showsScrollbar: Bool = false
+    ) -> String {
+        let tui = TUIContext()
+        var env = EnvironmentValues()
+        env.focusManager = FocusManager()
+        env.applyRuntimeServices(from: tui)
+        env.scrollTargetBehavior = granularity.behavior
+        let dispatcher = tui.mouseEventDispatcher
+        dispatcher.setActiveSupport(.standard)
+
+        let view = List(selection: .constant(String?.none)) {
+            ForEach(["a", "b", "c", "d", "e", "f"], id: \.self) { name in
+                Text((1...linesPerRow).map { "\(name)-\($0)" }.joined(separator: "\n"))
+            }
+        }
+        // `showsScrollbar` picks the STYLE, not the visibility (#555): before the
+        // split, `.hidden` was the only way to ask for the "N more" lines.
+        .scrollIndicatorStyle(showsScrollbar ? .scrollbar : .text)
+        .frame(height: frameHeight)
+
+        func renderOnce() -> FrameBuffer {
+            var context = RenderContext(
+                availableWidth: 24, availableHeight: 14, environment: env, tuiContext: tui)
+            context.hasExplicitWidth = true
+            context.hasExplicitHeight = true
+            return renderToBuffer(view, context: context)
+        }
+
+        var buffer = renderOnce()
+        for tick in 0..<wheelTicks {
+            dispatcher.setRegions(buffer.hitTestRegions)
+            guard let region = buffer.hitTestRegions.max(by: { $0.height < $1.height }) else {
+                Issue.record("expected the list's hit-test region")
+                break
+            }
+            _ = tick
+            _ = dispatcher.dispatch(
+                MouseEvent(
+                    button: .scrollDown, phase: .scrolled,
+                    x: region.offsetX + 2, y: region.offsetY + 2))
+            buffer = renderOnce()
+        }
+        return buffer.lines.map(\.stripped).joined(separator: "\n")
+    }
+
+    @Test("List (line granularity): the height stays constant, clipping the bottom row")
+    func listLineGranularityConstantHeight() {
+        // Three-line rows in an 11-line frame: the content area can't hold a
+        // whole number of rows, so the bottom row must be PARTIALLY clipped
+        // — never pushing the list taller — and the height must not change
+        // as the window scrolls through different row phases.
+        let frames = renderListFrames(linesPerRow: 3, wheelTicks: 5)
+        let heights = Set(frames.map(\.height))
+        #expect(heights.count == 1, "the list's height never changes: \(frames.map(\.height))")
+
+        // At the top: rows a and b fit whole; row c is clipped mid-row.
+        let first = frames[0].lines.map(\.stripped).joined(separator: "\n")
+        #expect(first.contains("c-1"), "the partial bottom row's first lines show:\n\(first)")
+        #expect(!first.contains("c-3"), "…but its last line is clipped off:\n\(first)")
+    }
+
+    @Test("List (line granularity): a wheel event moves three LINES, clipping the top row")
+    func listRendersClippedTopRow() {
+        // Four-line rows: one wheel event (three fine steps) leaves the top
+        // row partially visible — its first three lines scrolled off, its
+        // fourth still on screen.
+        let body = renderList(linesPerRow: 4, wheelTicks: 1)
+        #expect(!body.contains("a-3"), "the top row's first three lines are scrolled off:\n\(body)")
+        #expect(body.contains("a-4"), "the top row's last line still shows:\n\(body)")
+        #expect(body.contains("1 more row above"), "the above indicator marks the partial row (singular):\n\(body)")
+    }
+
+    /// Line granularity, ONE fine step: exactly one line is hidden above, and
+    /// an "▲ 1 more row above" indicator would spend a whole line reporting
+    /// the single line it hides — pure loss, and it says "row" when only a
+    /// line is off-screen. The `Table` absorbs that clip (it draws from the
+    /// un-clipped origin, the freed indicator line paying for the absorbed
+    /// line exactly, so nothing below moves); the `List` must too.
+    @Test("List: a one-line top clip is drawn, not announced")
+    func listAbsorbsOneLineTopClip() {
+        let tui = TUIContext()
+        let focusManager = FocusManager()
+        var env = EnvironmentValues()
+        env.focusManager = focusManager
+        env.applyRuntimeServices(from: tui)
+        env.scrollTargetBehavior = ScrollStepUnit.line.behavior
+
+        let view = List(selection: .constant(String?.none)) {
+            ForEach(["a", "b", "c", "d", "e", "f"], id: \.self) { name in
+                Text((1...3).map { "\(name)-\($0)" }.joined(separator: "\n"))
+            }
+        }
+        // The "N more" lines are what this case is about (#555): the default is
+        // a scrollbar, which spends a column rather than the line at issue here.
+        .scrollIndicatorStyle(.text)
+        .frame(height: 11)
+
+        func renderOnce() -> String {
+            var context = RenderContext(
+                availableWidth: 24, availableHeight: 14, environment: env, tuiContext: tui)
+            context.hasExplicitWidth = true
+            context.hasExplicitHeight = true
+            return renderToBuffer(view, context: context).lines.map(\.stripped)
+                .joined(separator: "\n")
+        }
+
+        let atTop = renderOnce()
+        let handler = focusManager.currentFocused as? ItemListHandler<String>
+        #expect(handler != nil, "the list registers as the focused element")
+        #expect(handler?.scrollFine(by: 1) == true)
+        #expect(handler?.scrollOffset == 0, "one line into the first row")
+        #expect(handler?.scrollTopClipLines == 1)
+
+        let body = renderOnce()
+        #expect(
+            !body.contains("more row above"),
+            "a single hidden line does not earn an indicator line:\n\(body)")
+        #expect(body.contains("a-1"), "the absorbed line is drawn instead:\n\(body)")
+        // The freed indicator line pays for the absorbed line exactly, so the
+        // absorbed frame IS the un-scrolled frame — nothing below moves.
+        #expect(body == atTop, "the absorbed frame draws the un-clipped window:\n\(body)")
+    }
+
+    @Test("List (row granularity): the straddling row is part-drawn, indicator and all")
+    func listRowGranularityFillsAndKeepsBelowIndicator() {
+        // Six 3-line rows in an 11-line frame → a 9-line content area. Rows a,
+        // b, c sum to exactly 9, leaving no line for "▼ N more rows below" — so
+        // the indicator takes one and row c is drawn two lines deep.
+        //
+        // Neither half can be given up. Emitting c whole cost the indicator:
+        // the container's blind bottom clamp ate it, and the list looked as
+        // though it ended at row c. But keeping WHOLE rows cost the ninth line
+        // instead, which is the bug the user reported — the viewport visibly
+        // short of the height it had reserved.
+        let body = renderList(granularity: .row, linesPerRow: 3)
+        #expect(body.contains("more rows below"), "the below indicator survives:\n\(body)")
+        #expect(body.contains("c-2"), "the straddling row is drawn as far as it fits:\n\(body)")
+        #expect(!body.contains("c-3"), "…and no further:\n\(body)")
+    }
+
+    @Test("List: the bottom edge is cut the same way under either granularity")
+    func listGranularityAgreesAtTheBottomEdge() {
+        // 4-line rows in a 9-line content area with a scrollbar, so there is no
+        // indicator line for anything to hide behind: two rows fit and the
+        // third is drawn one line deep.
+        //
+        // Granularity sizes a STEP and decides where the top may rest, so at
+        // the SAME resting offset the two modes have nothing left to disagree
+        // about. This is where they used to: `.row` left that ninth line blank.
+        func body(_ granularity: ScrollStepUnit) -> String {
+            renderList(
+                granularity: granularity, linesPerRow: 4, frameHeight: 11, showsScrollbar: true)
+        }
+        let row = body(.row)
+        #expect(row.contains("c-1"), "the ninth line is spent on row c:\n\(row)")
+        #expect(!row.contains("c-2"), "…and the rest of it clipped:\n\(row)")
+        #expect(row == body(.line), "the two modes draw the same frame at rest:\n\(row)")
+    }
+
+    /// The same rule from the outside, and the reason the step has to ask the
+    /// bound: with every row inside the window there is still one offset left,
+    /// and until it did, the wheel could not take it.
+    @Test("List (row granularity): the wheel reaches the straddling row's last line")
+    func listRowGranularityWheelLeavesTheTop() {
+        // Six 2-line rows in an 11-line content area with a scrollbar — so no
+        // indicator line comes out of the area, and the resting-offset snap
+        // (text indicators only) cannot pull offset 1 back to 0. Rows a…e take
+        // ten lines and row f is drawn one line deep, which makes `extent` and
+        // `viewportHeight` both 6 while the bound is offset 1, where b…f are
+        // all whole.
+        func body(ticks: Int) -> String {
+            renderList(
+                granularity: .row, linesPerRow: 2, wheelTicks: ticks, frameHeight: 13,
+                showsScrollbar: true)
+        }
+        let atTop = body(ticks: 0)
+        #expect(atTop.contains("f-1"), "precondition — the last row straddles:\n\(atTop)")
+        #expect(!atTop.contains("f-2"), "precondition — its tail is clipped:\n\(atTop)")
+
+        let scrolled = body(ticks: 1)
+        #expect(scrolled.contains("f-2"), "one tick reveals the clipped tail:\n\(scrolled)")
+        #expect(!scrolled.contains("a-1"), "…by moving off row a:\n\(scrolled)")
+    }
+
+    @Test("List (row granularity): a wheel event moves three whole ROWS")
+    func listRowGranularityJumpsWholeRow() {
+        let body = renderList(granularity: .row, wheelTicks: 1)
+        #expect(!body.contains("a-1") && !body.contains("c-3"), "rows a-c entirely gone:\n\(body)")
+        #expect(body.contains("d-1"), "row d is the new top — 3 rows per event:\n\(body)")
+    }
+
+    @Test("List (line granularity): repeated ticks reach the bottom row-aligned")
+    func listLineTicksReachBottom() {
+        let body = renderList(wheelTicks: 30)
+        #expect(body.contains("f-3"), "the last row's last line is reachable:\n\(body)")
+        #expect(!body.contains("more rows below"), "nothing remains below at the bottom:\n\(body)")
+    }
+
+    // MARK: - Table rendering
+
+    /// The Table Demo's fixed-height shape: variable-height rows (lineLimit
+    /// wraps them to 1-3 lines) in a fixed frame, driven by real wheel
+    /// events. Mirrors the List harness above — the Table line-granularity
+    /// path shipped with NO render coverage, and the demo's toggle silently
+    /// did nothing.
+    private struct NoteRow: Identifiable {
+        let id: Int
+        let index: String
+        let note: String
+    }
+
+    private func renderTableFrames(
+        granularity: ScrollStepUnit = .line,
+        wheelTicks: Int = 0
+    ) -> [FrameBuffer] {
+        let tui = TUIContext()
+        var env = EnvironmentValues()
+        env.focusManager = FocusManager()
+        env.applyRuntimeServices(from: tui)
+        // The page-level default deliberately DIFFERS from the demo's own
+        // .scrollTargetBehavior modifier (applied on the table below), which
+        // must win for its subtree.
+        env.scrollTargetBehavior = (granularity == .line ? ScrollStepUnit.row : .line).behavior
+        let dispatcher = tui.mouseEventDispatcher
+        dispatcher.setActiveSupport(.standard)
+
+        // Rows n1…n9: the first is one line, the rest wrap to three — chosen
+        // so whole rows UNDERFILL the viewport at offset 0 (1+3+3 = 7 of 8
+        // budget lines), the exact phase where a row-granular window leaves
+        // line mode a hole and row mode a shrunken table.
+        let rows = (1...9).map { n in
+            NoteRow(
+                id: n, index: "n\(n)",
+                note: n == 1
+                    ? "w1x0"
+                    : (0...2).map { "w\(n)x\($0) word word" }.joined(separator: " "))
+        }
+        // The demo's exact wrapper: the table sits inside the page's outer
+        // ScrollView (content measured at natural height), in a VStack.
+        let view = ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("caption")
+                Table(rows, selection: .constant(Set<Int>())) {
+                    TableColumn("#", value: \NoteRow.index).width(4)
+                    TableColumn("Note", value: \NoteRow.note).lineLimit(3)
+                }
+                .frame(height: 12)
+                .scrollIndicators(.visible)
+                .scrollIndicatorStyle(.scrollbar)
+                .scrollTargetBehavior(AnyScrollTargetBehavior(granularity.behavior))
+            }
+        }
+
+        func renderOnce() -> FrameBuffer {
+            var context = RenderContext(
+                availableWidth: 30, availableHeight: 16, environment: env, tuiContext: tui)
+            context.hasExplicitWidth = true
+            context.hasExplicitHeight = true
+            return renderToBuffer(view, context: context)
+        }
+
+        var frames = [renderOnce()]
+        for _ in 0..<wheelTicks {
+            let buffer = frames[frames.count - 1]
+            dispatcher.setRegions(buffer.hitTestRegions)
+            guard let region = buffer.hitTestRegions.max(by: { $0.height < $1.height }) else {
+                Issue.record("expected the table's hit-test region")
+                break
+            }
+            _ = dispatcher.dispatch(
+                MouseEvent(
+                    button: .scrollDown, phase: .scrolled,
+                    x: region.offsetX + 2, y: region.offsetY + 2))
+            frames.append(renderOnce())
+        }
+        return frames
+    }
+
+    /// The table's own bordered height (╭ to ╰) — the outer ScrollView pads
+    /// the buffer to a constant size, so `buffer.height` can NOT detect the
+    /// table's frame breathing; only the border box can.
+    private func tableBoxHeight(_ buffer: FrameBuffer) -> Int {
+        let stripped = buffer.lines.map(\.stripped)
+        guard let top = stripped.firstIndex(where: { $0.contains("╭") }),
+            let bottom = stripped.lastIndex(where: { $0.contains("╰") })
+        else { return 0 }
+        return bottom - top + 1
+    }
+
+    @Test("Table (line granularity): the height stays constant while scrolling")
+    func tableLineGranularityConstantHeight() {
+        let frames = renderTableFrames(wheelTicks: 6)
+        let heights = frames.map(tableBoxHeight)
+        #expect(Set(heights).count == 1, "the table's box never changes: \(heights)")
+    }
+
+    @Test("Table (row granularity): the height ALSO stays constant")
+    func tableRowGranularityConstantHeight() {
+        // Whole rows can't always fill the viewport exactly, so the row at the
+        // bottom edge is drawn as far as it fits — a fixed-height table's frame
+        // never breathes as rows of different heights scroll through.
+        let frames = renderTableFrames(granularity: .row, wheelTicks: 6)
+        let heights = frames.map(tableBoxHeight)
+        #expect(Set(heights).count == 1, "the table's box never changes: \(heights)")
+    }
+
+    @Test("Table (line granularity): a wheel event moves LINES, not whole rows")
+    func tableLineGranularityMovesLines() {
+        let frames = renderTableFrames(wheelTicks: 1)
+        let before = frames[0].lines.map(\.stripped).joined(separator: "\n")
+        let after = frames[1].lines.map(\.stripped).joined(separator: "\n")
+        // n1 is one line, n2 is three: one wheel event (three fine steps)
+        // scrolls past n1 and clips into n2 — n2's later lines remain while
+        // its first wrapped line is gone.
+        #expect(before.contains("n1"), "precondition — top row visible:\n\(before)")
+        #expect(!after.contains("n1"), "the one-line first row scrolled off:\n\(after)")
+        // One wheel = three fine steps: past n1 (one line) and two lines
+        // into n2 — only n2's LAST wrapped line remains visible.
+        #expect(
+            after.contains("w2x2") && !after.contains("w2x0"),
+            "row n2 shows only its tail (first lines clipped):\n\(after)")
+    }
+
+    @Test("Table (row granularity): the same wheel event jumps whole rows")
+    func tableRowGranularityJumpsWholeRows() {
+        let frames = renderTableFrames(granularity: .row, wheelTicks: 1)
+        let after = frames[1].lines.map(\.stripped).joined(separator: "\n")
+        #expect(!after.contains("n1"), "row 1 gone:\n\(after)")
+        // Row granularity never clips: whichever row is now on top shows
+        // from its FIRST wrapped line.
+        if after.contains("w2x1") {
+            #expect(after.contains("w2x0"), "row-granularity rows are whole:\n\(after)")
+        }
+    }
+}

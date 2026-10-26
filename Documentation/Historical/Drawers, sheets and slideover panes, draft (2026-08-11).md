@@ -40,7 +40,7 @@ the app also binds `selection:` and builds its own control, at which point the
 detent set is doing no work the app is not already doing.
 
 So the honest reading of the current state: **detents are a parity shim, not a
-feature.** They keep SwiftUI code compiling. They do not give a TUIkit user
+feature.** They keep SwiftUI code compiling. They do not give a TUI user
 anything.
 
 Two ways out, and they are not exclusive:

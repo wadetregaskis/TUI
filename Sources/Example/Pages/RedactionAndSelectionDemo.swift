@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  RedactionAndSelectionDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Two things a view's text can be told: to draw as a placeholder while its
 /// content is not ready (`.redacted(reason: .placeholder)`, with `.unredacted()`
@@ -50,7 +50,7 @@ struct RedactionAndSelectionDemo: View {
                     // A drag selects within this text, and no further.
                     Text("page.textStyles.selection.enabled")
                         .textSelection(.enabled)
-                    // A drag here selects nothing: TUIkit's selection is off.
+                    // A drag here selects nothing: TUI's selection is off.
                     Text("page.textStyles.selection.disabled")
                         .foregroundStyle(.palette.foregroundTertiary)
                         .textSelection(.disabled)

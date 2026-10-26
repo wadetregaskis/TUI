@@ -12,7 +12,7 @@ SwiftUI 6.5.4 on macOS 15.8.1 with offscreen `NSHostingView`s (probes in
 
 ## A. Needs a decision
 
-### A-GUIDE-1. SwiftUI's lazy stacks ignore an explicit alignment guide; TUIkit's honour it — decided: keep honouring it
+### A-GUIDE-1. SwiftUI's lazy stacks ignore an explicit alignment guide; TUI's honour it — decided: keep honouring it
 
 *`LazyVStack(alignment:spacing:pinnedViews:content:)`,
 `LazyHStack(alignment:spacing:pinnedViews:content:)`,
@@ -28,7 +28,7 @@ that lies inside the view (`d.width`), with the row inside a `ForEach`, and for
 `LazyHStack(alignment: .top)`. An eager `VStack` with the same rows honours the
 guide.
 
-TUIkit's lazy stacks honour it, by design: `AlignmentGuideModifierTests`
+TUI's lazy stacks honour it, by design: `AlignmentGuideModifierTests`
 "A guide on a lazy stack's row is not silently inert" pins it, and the placed
 and windowed runs share the eager stacks' `AlignmentGuideRun` (this lane checked
 them against the eager rule: a placed lazy column sizes to its run, and a
@@ -45,7 +45,7 @@ bear out; it, and LayoutSystem.md, now say what was measured.
    around. Price: an app that relied on a guide in a lazy stack sees it stop
    working, as it would in SwiftUI.
 2. *Keep honouring it* and record it as a deviation in the compatibility doc.
-   Price: a SwiftUI app moved to TUIkit lays out differently in a lazy stack
+   Price: a SwiftUI app moved to TUI lays out differently in a lazy stack
    that carries a guide (rare: SwiftUI ignores it, so such code does nothing
    there).
 
@@ -105,7 +105,7 @@ propagation was built on, used one view per inner stack, where a built-in
 guide is reported too. So the rule appears to be: a stack reports a built-in
 guide (`.leading`, `.top`) only when it has one view, and a custom guide from
 several (hypothesis: the built-in guides' `_combineExplicit` differs;
-unmeasured beyond these rows, and the text baselines not at all). TUIkit reports both, merged by the mean
+unmeasured beyond these rows, and the text baselines not at all). TUI reports both, merged by the mean
 (`combineExplicit`), so its layout differs from SwiftUI's in the rows above.
 
 **Options.**
@@ -113,7 +113,7 @@ unmeasured beyond these rows, and the text baselines not at all). TUIkit reports
    baselines, three views, a stack with spacers), then answer `nil` from a
    multi-view stack for the built-in guides it does not report. Price: a probe
    lane and a change to `combineExplicit`'s callers; layouts that relied on
-   TUIkit's merge move.
+   TUI's merge move.
 2. *Keep* and record the deviation.
 
 Recommended: 1, in a lane of its own (it is not a guide-value question, so it
@@ -141,7 +141,7 @@ rule here is free of exceptions:
   guide through (`VStack { G }`), but not through a `ForEach` of one, an `if`
   or `AnyLayout`. It looks like an implementation shortcut (hypothesis).
 
-TUIkit today reports edge guides out of eager stacks of several views, merged
+TUI today reports edge guides out of eager stacks of several views, merged
 by the mean, which gives odd results: `VStack(alignment: .center) { G (leading
 5); S (leading 1) }` puts the outer row's guide at column 4, where no child
 aligned (SwiftUI: 0). Its `Layout`s count the baselines as built-in guides, so
@@ -199,7 +199,7 @@ answering before it resolves the children.
 content, a column a flexible child fills, a lazy column's window*
 
 SwiftUI's rule, measured, is that each view sits at `max(guides) - its guide`
-and the stack is as big as that needs. TUIkit now places a run so, and when the
+and the stack is as big as that needs. TUI now places a run so, and when the
 region is bigger than the run, moves the run as a whole toward the region's own
 guide only as far as all of it still fits: `anchor = min(max(M, regionGuide(E)),
 M + room)`, where `room = max(0, E - contentExtent)`.
@@ -216,7 +216,7 @@ clamp pulls back only the views that would fall outside, as before.
 past its proposal, and the parent places and clips it. Measured: in a 400-point
 host, `VStack(alignment: .trailing)` holding a 3-wide view with trailing guide
 0, a 6-wide view and a view with `maxWidth: .infinity` is 403 wide, the
-flexible view at 0 and the 3-wide one at 400. **Price:** every TUIkit container
+flexible view at 0 and the 3-wide one at 400. **Price:** every TUI container
 holds its report to its proposal ("never advertise a size larger than the
 constraint", `_VStackCore.sizeThatFits`), and the parent's buffer is the size
 it reported, so this is a change to every container's contract, not to the
@@ -261,7 +261,7 @@ non-finite guide is still the view's own origin.
 The brief suggested the bound be the container's available extent plus the
 views' sizes, with a hard cap for unbounded proposals. The bound shipped is the
 hard cap alone, 4,096 cells — the natural-extent ladder's first rung, half of
-which TUIkit already takes as more than any real bound offers
+which TUI already takes as more than any real bound offers
 (`isNaturalExtentBudget`) — floored at the region's own extent and its widest
 view, which are drawn already. This said a view pushed that far is past any
 terminal's edge with either bound, so nothing visible differs. That is wrong
@@ -349,7 +349,7 @@ frame's far edge; an `.overlay` or `.background` on a 20-wide view does the
 same, and `.frame(height:alignment: .top)` likewise down the column. SwiftUI
 does not clip a frame, so the child draws outside it.
 
-TUIkit places the child at the nearest position to SwiftUI's that keeps all of
+TUI places the child at the nearest position to SwiftUI's that keeps all of
 it inside the region — `min(max(0, x), extent - size)` — as it places a child
 wider than its region (`childOffset(childWidth:in:)`), so the six-cell view is
 drawn whole. Before this lane's two fixes the guide was first held to the
@@ -360,7 +360,7 @@ every other measured placement is unchanged
 **The fuller version** draws the child where SwiftUI puts it: the part inside
 the region, clipped, or all of it as an overflow layer outside the frame's
 buffer (`OffsetView` draws one). **Price:** a region would stop containing its
-content, which every TUIkit container assumes of a buffer (its size is its
+content, which every TUI container assumes of a buffer (its size is its
 extent), or a child past the edge would be cut — showing six cells' worth of a
 view as one or none, where today it is whole.
 
@@ -368,7 +368,7 @@ view as one or none, where today it is whole.
 (a bouncing scale-in, say), and asked to explore SwiftUI's unclipped
 placement. SwiftUI does not clip a view to its frame by default (measured for
 frame, overlay, background, offset and scale; scroll views and the clipping
-modifiers do clip). TUIkit clips every view to the space it was given, as a
+modifiers do clip). TUI clips every view to the space it was given, as a
 safety net, but `scrollClipDisabled`'s overflow layers already draw past a
 region in SwiftUI's stacking order, painting only the cells they draw, with
 their hit regions travelling with them. Generalised to the placement sites,

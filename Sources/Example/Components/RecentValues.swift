@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  RecentValues.swift
 //
 //  A tiny most-recently-used list persisted through `@AppStorage` as a JSON

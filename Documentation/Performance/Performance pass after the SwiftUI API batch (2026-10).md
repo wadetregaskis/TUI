@@ -259,7 +259,7 @@ The owed A/Bs the decisions doc names that this pass did run:
 
 ## 7. Found on the way
 
-- **A stale incremental build.** A stored property added to a TUIkitView
+- **A stale incremental build.** A stored property added to a TUIView
   class left the debug test build reading the old field offset of `public let
   animations`, and a test crashed 6/6 until the build directory was removed.
   Clean both build directories after any class layout change, before testing
@@ -289,7 +289,7 @@ byte-identical frames to `d5fa453c5` on nine scenarios. Four changes measured
 as nothing or worse and were not committed.
 
 **The largest find was not the batch's.** `EnvironmentValues`' key getter
-lives in TUIkitCore, and every accessor that calls it is in another module,
+lives in TUICore, and every accessor that calls it is in another module,
 so it ran unspecialised. Its `as? K.Value` makes a `K.Value?`, and the
 compiler fetched `Optional<K.Value>`'s metadata at the getter's entry, on
 every read, hit or miss. That was 16.6% of a `scrolleager` frame (base 14.5%)

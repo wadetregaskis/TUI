@@ -1,14 +1,14 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  main.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
-//  This app demonstrates TUIkit capabilities through various demo pages.
+//  This app demonstrates TUI capabilities through various demo pages.
 //  Use the menu to navigate between demos.
 //
 
 import Foundation
-import TUIkit
+import TUI
 
 // MARK: - Main App
 
@@ -69,13 +69,13 @@ struct ExampleApp: App {
         // the same reason, so the bars' buttons follow it too.
         .environment(\.controlStyle, styling.controlStyle)
         // The menu bar, on the top row: declaring commands shows it. The app's
-        // menu (with Settings…), Edit, Window and Help are TUIkit's; View and
+        // menu (with Settings…), Edit, Window and Help are TUI's; View and
         // Go add the Example's own. F10 opens it, as does a click on a title.
         .commands { ExampleCommands(palette: $palette, styling: $styling) }
         // What the app menu's About says: a SwiftPM executable has no
-        // Info.plist to say it, so the scene does (a TUIkit modifier).
+        // Info.plist to say it, so the scene does (a TUI modifier).
         .aboutPanel(
-            applicationName: "TUIkit Example", applicationVersion: tuiKitVersion,
+            applicationName: "TUI Example", applicationVersion: tuiKitVersion,
             copyright: "Copyright © 2026 Frank Gregor & Wade Tregaskis · MIT License",
             credits: L("about.credits"))
     }

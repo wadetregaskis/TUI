@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  StressStrings+English.swift
 //
 //  Created by LAYERED.work
@@ -23,7 +23,7 @@
 extension StressStrings {
     static let en: [String: String] = [
         // MARK: shell
-        "stress.shell.menu.title": "TUIkit — Stress Test",
+        "stress.shell.menu.title": "TUI — Stress Test",
         "stress.shell.label.scale": "scale",
         "stress.shell.label.seed": "seed",
         "stress.shell.label.autopilot": "autopilot",

@@ -24,26 +24,26 @@ what the standard command sets add.*
 
 ### B-O13-1. The commands are a module of their own, the vocabulary with them
 
-*`TUIkitCommands`*
+*`TUICommands`*
 
 The lane brief asked for a new leaf module over the app, chrome and menu
 modules. REFO's sketch offered a cut: the vocabulary (`Commands`,
-`CommandMenu`, `CommandGroup`, the placements) in TUIkitMenus, by the module
+`CommandMenu`, `CommandGroup`, the placements) in TUIMenus, by the module
 plan's topic rule ("menus and commands"), and the scene modifiers and the bar
 in the leaf.
 
-**Shipped:** everything in the leaf, `TUIkitCommands`, built on TUIkitApp. The
+**Shipped:** everything in the leaf, `TUICommands`, built on TUIApp. The
 vocabulary has no client without `Scene.commands(content:)`, which needs
 `Scene`; split, the two modules would have shared `package` surface (the walk
 that turns commands into menus) for no app that uses one without the other.
-The bar's drop-downs are TUIkitFoundation's menu engine, so the module needs
-nothing of TUIkitMenus. The run loop and the chrome host reach the bar through
+The bar's drop-downs are TUIFoundation's menu engine, so the module needs
+nothing of TUIMenus. The run loop and the chrome host reach the bar through
 hooks that name nothing of it (`SceneCommandsDeclaration`,
 `WindowChromeState.menuBar`), so an app that declares no commands links none of
-it. Like TUIkitApp, it has no Windows build.
+it. Like TUIApp, it has no Windows build.
 
 **The fuller version** is REFO's cut, if a library of commands that builds
-without TUIkitApp ever matters (for the Windows port, say): about half a day,
+without TUIApp ever matters (for the Windows port, say): about half a day,
 moving five files and widening the walk to `package`.
 
 ### B-O13-2. The page's own shortcut on a command's key is asked first
@@ -134,7 +134,7 @@ the underline waits on knowing the host's Option setting.
 On macOS a `WindowGroup` brings its own commands — the app's menu, the Edit
 menu's Undo, Redo, Cut, Copy, Paste, Delete and Select All, and more — and
 AppKit enables each by asking the responder chain whether anything would take
-it. TUIkit has the keys those commands stand for, and no responder chain.
+it. TUI has the keys those commands stand for, and no responder chain.
 
 **Shipped:** the commands a terminal app has, each the way to a key the app
 already has, so the menu bar is a way to them and never the only one: About
@@ -156,7 +156,7 @@ whether its focus path or its own key handling would take ⌘X, ⌘C or ⌘V
 (`KeyEventDispatcher.declaresFocusPathBinding` already answers it for the
 commands; a text field's own copy would need asking too), and disable the item
 that nothing would. About half a day. Separately, a disabled item shows no key
-(as every disabled menu row in TUIkit does today, `KeyboardShortcutRegistrar.claim`),
+(as every disabled menu row in TUI does today, `KeyboardShortcutRegistrar.claim`),
 where macOS greys the key with the item: a one-line change to every menu, so
 not made here.
 
@@ -209,7 +209,7 @@ Speech submenus.
   keys, ⌃F (⌘F's Control chord, which the editor yields to its find bar) and
   ⌃G (B81, 2026-10-19; Find… pressed ⌃G until then).
 
-**The fuller version:** submenus, which TUIkit's menus do not have (a `Menu`
+**The fuller version:** submenus, which TUI's menus do not have (a `Menu`
 inside a menu draws as a control on its row), so Find's own submenu (Find
 Next, Find Previous, Use Selection, Jump to Selection) and Transformations
 (upper, lower, capitalised, which a text control could do) — about a day with
@@ -220,7 +220,7 @@ counterpart.
 
 ### C-O13-1. `onCommand(_:perform:)`
 
-A command sent up the responder chain by an Objective-C `Selector`. TUIkit has
+A command sent up the responder chain by an Objective-C `Selector`. TUI has
 no responder chain and no Objective-C runtime on Linux; what reaches the focused
 view is SwiftUI's own focus-path commands (`onMoveCommand`, `onExitCommand`,
 `onDeleteCommand`, `onCopyCommand`, …). Declined since refusal review O13
@@ -234,7 +234,7 @@ has neither. `parity-map.json`: `notImplemented`.
 
 ### C-O13-3. `TextFormattingCommands`, until the rich-text editor
 
-Its Font and Text submenus format a rich-text selection. TUIkit's text controls
+Its Font and Text submenus format a rich-text selection. TUI's text controls
 hold plain text until A42's rich-text `TextEditor` lands, so the commands would
 do nothing (rule 2): they fail to compile instead. With A42 they are the bar's
 like `TextEditingCommands`, and they carry the formatting chords: the owner

@@ -34,7 +34,7 @@ linear animation.*
 the view below moves with it in step — 70 → 63 → 55 → … → 10 as it folds
 away, 10 → 17 → 25 → … → 70 as it opens.
 
-**What TUIkit does now.** The body is drawn by scrubbing between its phases
+**What TUI does now.** The body is drawn by scrubbing between its phases
 (B52) inside the size it has at rest, and since FB16 the layout changes at
 once and every child whose place changed glides there with the change: the
 row below goes 70 → 10 as the view folds, in step with it when the
@@ -156,8 +156,8 @@ SwiftUI draws a view's two branches overlapping at its origin while they
 cross-fade, the one leaving beneath (`tr1.out` T8). A conditional drawn whole
 has no canvas of its own to draw beneath on: its layout is the new branch's,
 at once, and only a container composites a fade against what is beneath it
-(`FrameBuffer.layered`, in `TUIkitFoundation`; the conditional is in
-`TUIkitView`, below it). So the branch leaving is drawn past the conditional's
+(`FrameBuffer.layered`, in `TUIFoundation`; the conditional is in
+`TUIView`, below it). So the branch leaving is drawn past the conditional's
 frame, as content drawn past a view's region is (`FrameBuffer.drawnPastSlot`),
 which lands it over the new branch. For two fades crossing, over and beneath
 are the same blend with the weights swapped: half-way, each is half there.
@@ -168,7 +168,7 @@ transition of its own is drawn so: one with none goes at once
 
 **The fuller version:** move the layering compositor (`FrameBuffer.layered`
 and the claims it resolves, `FrameBuffer+ClaimsOverNothing.swift`, with the
-wake its runs ask for) down into `TUIkitView`, so a conditional can draw the
+wake its runs ask for) down into `TUIView`, so a conditional can draw the
 leaving branch beneath. About a day, most of it the module move and its
 checks (`Tools/ModuleMap`); nothing a user would see but the order of two
 fades.

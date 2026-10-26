@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
-"""Does a TUIkit program run without its resource bundle — and in English?
+"""Does a TUI program run without its resource bundle — and in English?
 
 A terminal program is often shipped as one file: copied out of `.build`, put in
-a release archive, installed by a formula. TUIkit's translations and VERSION
+a release archive, installed by a formula. TUI's translations and VERSION
 are in a SwiftPM resource bundle beside the executable
-(`TUIkit_TUIkitStrings.bundle`, `.resources` off Apple platforms), and SwiftPM's
+(`TUI_TUIStrings.bundle`, `.resources` off Apple platforms), and SwiftPM's
 generated `Bundle.module` stops the program (`fatalError`) where it finds none —
-which, until TUIkit looked for the bundle itself, was every such program, at
+which, until TUI looked for the bundle itself, was every such program, at
 launch. Unit tests cannot see this: a test runs beside its build's bundle.
 
 So this copies Stress out of the build directory, and runs one headless session
-(`--session settings --steps 2 --show`, which draws TUIkit's own status bar)
+(`--session settings --steps 2 --show`, which draws TUI's own status bar)
 three ways, each under `LANGUAGE=de` and a fresh config directory:
 
-  1. ALONE in a directory — it must exit 0 and draw TUIkit's words in ENGLISH:
+  1. ALONE in a directory — it must exit 0 and draw TUI's words in ENGLISH:
      the German is in the bundle, and the English is compiled in;
   2. with the bundle copied BESIDE it, as an installer would — in GERMAN;
   3. through a symbolic link to (2) from another directory, as a formula links
@@ -42,13 +42,13 @@ import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
-TRANSLATIONS = os.path.join(REPO, "Sources", "TUIkitStrings", "Localization", "translations")
+TRANSLATIONS = os.path.join(REPO, "Sources", "TUIStrings", "Localization", "translations")
 SESSION = ["--session", "settings", "--steps", "2", "--show"]
 KEY = "statusbar.quit"
 
 
 def word(language):
-    """TUIkit's word for KEY in `language`, from the source tree's table."""
+    """TUI's word for KEY in `language`, from the source tree's table."""
     with open(os.path.join(TRANSLATIONS, f"{language}.json"), encoding="utf-8") as handle:
         return json.load(handle)[KEY]
 
@@ -77,9 +77,9 @@ def says(output, text):
 def main():
     build_dir = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(REPO, ".build", "debug"))
     binary = os.path.join(build_dir, "Stress")
-    bundles = sorted(glob.glob(os.path.join(build_dir, "TUIkit_TUIkitStrings.*")))
+    bundles = sorted(glob.glob(os.path.join(build_dir, "TUI_TUIStrings.*")))
     if not os.path.isfile(binary) or not bundles:
-        print(f"error: {build_dir} has no Stress, or no TUIkit_TUIkitStrings bundle beside it", file=sys.stderr)
+        print(f"error: {build_dir} has no Stress, or no TUI_TUIStrings bundle beside it", file=sys.stderr)
         return 1
     english, german = word("en"), word("de")
     failures = []

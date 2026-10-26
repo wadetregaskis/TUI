@@ -8,7 +8,7 @@
 
 ## As-built summary (what actually shipped)
 
-- **Event model** — `MouseEvent` (`Sources/TUIkitCore/Input/
+- **Event model** — `MouseEvent` (`Sources/TUICore/Input/
   MouseEvent.swift`) uses `button: MouseButton` + `phase:
   MousePhase` + `x`/`y` + `shift`/`ctrl`/`meta`, rather than the
   `kind` + `row`/`column` shape sketched here. The wrapper enum
@@ -16,19 +16,19 @@
   (`TerminalInput.swift`), not `InputEvent`.
 - **Parsing** — `MouseEvent.parseSGR` and `MouseEvent.parseLegacy`
   (SGR `ESC [ < b ; x ; y M/m` and legacy X10). Covered by
-  `Tests/TUIkitTests/MouseEventSGRParsingTests.swift`.
+  `Tests/TUITests/MouseEventSGRParsingTests.swift`.
 - **Terminal** — `Terminal.readEvent() -> TerminalInput?`
   (internal to `Terminal`, not on `TerminalProtocol`). Mouse
   modes (`?1000h`/`?1002h`/`?1003h`/`?1006h`) are enabled per
   `MouseSupport` config via `applyMouseSupport()` and disabled
   in `disableRawMode()`, so no escape leakage on exit. The
   opt-in surface is the `MouseSupport` struct
-  (`Sources/TUIkit/App/MouseSupport.swift`) with presets:
+  (`Sources/TUI/App/MouseSupport.swift`) with presets:
   `.disabled`, `.scrollOnly`, `.standard`, `.full`.
 - **Dispatch** — the run loop in `App.swift` switches on
   `TerminalInput`; mouse events route through
   `MouseEventDispatcher` against per-frame `HitTestRegion`s
-  (`Sources/TUIkitCore/Input/HitTestRegion.swift`). Re-render is
+  (`Sources/TUICore/Input/HitTestRegion.swift`). Re-render is
   triggered only when a handler reports the event consumed.
   (Mouse dispatch lives in the run loop rather than inside
   `InputHandler` — a deliberate split from the key chain.)
@@ -40,12 +40,12 @@
   toggle selection per the list's selection mode.
 - **Generic click dispatch (v3)** — region-based dispatch
   reaches all focusable controls; `OnMouseEventModifier`
-  (`Sources/TUIkit/Modifiers/OnMouseEventModifier.swift`) is the
+  (`Sources/TUI/Modifiers/OnMouseEventModifier.swift`) is the
   public per-view registration API. Hover (`.entered`/`.exited`)
   is wired across Button, Toggle, Slider, Stepper, Picker,
   SecureField, RadioButton, and status-bar items.
 - **Beyond the original non-goals** — `DragGestureModifier`
-  (`Sources/TUIkit/Modifiers/DragGestureModifier.swift`) adds
+  (`Sources/TUI/Modifiers/DragGestureModifier.swift`) adds
   drag-gesture support, which this plan listed as a v1 non-goal.
 
 ## Acceptance criteria — all met

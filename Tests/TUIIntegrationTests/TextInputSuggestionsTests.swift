@@ -1,0 +1,699 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  TextInputSuggestionsTests.swift
+//
+//  The combo-box surface: `.textInputSuggestions` menus on TextField
+//  (extraction, keyboard navigation, rendering, mouse), plus divider support
+//  in the shared drop-down machinery (Divider inside Picker content).
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+import TUI
+@testable import TUIApp
+@testable import TUICore
+@testable import TUIFoundation
+@testable import TUIPickers
+@testable import TUITestSupport
+@testable import TUITextInput
+
+// MARK: - Extraction
+
+@MainActor
+@Suite("Text-input suggestion extraction")
+struct TextSuggestionExtractionTests {
+
+    /// The entries of `suggestions`, resolved as a field's modifier resolves
+    /// them.
+    private func entries(_ suggestions: some View) -> [_TextSuggestionEntry] {
+        textSuggestionEntries(of: suggestions, in: makeRenderContext(width: 40, height: 12))
+    }
+
+    private func kinds(_ entries: [_TextSuggestionEntry]) -> [String] {
+        entries.map { entry in
+            switch entry {
+            case .option: "option"
+            case .token: "token"
+            case .divider: "divider"
+            }
+        }
+    }
+
+    @Test("Texts, dividers, and explicit completions extract in order")
+    func basicExtraction() {
+        @ViewBuilder func content() -> some View {
+            Text("alpha")
+            Divider()
+            Text("labelled").textInputCompletion("expanded value")
+        }
+        let found = entries(content())
+        #expect(kinds(found) == ["option", "divider", "option"])
+        guard case .option(let completion, _) = found[2] else {
+            Issue.record("expected an option entry")
+            return
+        }
+        #expect(completion == "expanded value")
+        guard case .option(let derived, _) = found[0] else {
+            Issue.record("expected an option entry")
+            return
+        }
+        #expect(derived == nil, "a plain Text derives its completion at render time")
+    }
+
+    @Test("Edge and adjacent dividers are collapsed")
+    func dividerNormalization() {
+        @ViewBuilder func content() -> some View {
+            Divider()
+            Text("a")
+            Divider()
+            Divider()
+            Text("b")
+            Divider()
+        }
+        #expect(kinds(entries(content())) == ["option", "divider", "option"])
+    }
+
+    @Test("ForEach and conditional groups contribute entries")
+    func structuredExtraction() {
+        @MainActor
+        @ViewBuilder func suggestions(withRecents: Bool) -> some View {
+            ForEach(["x", "y"], id: \.self) { Text($0) }
+            if withRecents {
+                Divider()
+                Text("recent")
+            }
+        }
+        #expect(kinds(entries(suggestions(withRecents: true)))
+            == ["option", "option", "divider", "option"])
+        #expect(kinds(entries(suggestions(withRecents: false)))
+            == ["option", "option"])
+    }
+}
+
+// MARK: - Keyboard
+
+@MainActor
+@Suite("Text-input suggestion keyboard navigation")
+struct TextSuggestionKeyboardTests {
+
+    private final class TextBox {
+        var value = ""
+        var submitted = 0
+        var binding: Binding<String> {
+            Binding(get: { self.value }, set: { self.value = $0 })
+        }
+    }
+
+    private func makeHandler(_ box: TextBox, completions: [String]) -> TextFieldHandler {
+        let handler = TextFieldHandler(focusID: "combo", text: box.binding)
+        handler.suggestionChoices = completions.map { .completion($0) }
+        handler.onSubmit = { box.submitted += 1 }
+        return handler
+    }
+
+    @Test("Down opens the menu and walks it, stopping at the last row")
+    func downNavigation() {
+        let box = TextBox()
+        let handler = makeHandler(box, completions: ["alpha", "beta"])
+
+        #expect(!handler.suggestionsOpen, "the menu is closed until asked for")
+        #expect(handler.handleKeyEvent(KeyEvent(key: .down)))
+        #expect(handler.suggestionsOpen, "Down is the keyboard open gesture")
+        #expect(handler.suggestionHighlight == 0)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .down)))
+        #expect(handler.suggestionHighlight == 1)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .down)))
+        #expect(handler.suggestionHighlight == 1, "Down stops at the last suggestion")
+    }
+
+    @Test("Opening lands on the current value's row when there is one")
+    func openHighlightsCurrentValue() {
+        let box = TextBox()
+        box.value = "beta"
+        let handler = makeHandler(box, completions: ["alpha", "beta"])
+
+        _ = handler.handleKeyEvent(KeyEvent(key: .down))
+        #expect(handler.suggestionHighlight == 1, "the ✓ row is where the menu opens")
+    }
+
+    @Test("The disclosure toggle opens and closes the menu")
+    func disclosureToggles() {
+        let box = TextBox()
+        let handler = makeHandler(box, completions: ["alpha"])
+
+        handler.toggleSuggestionsOpen()
+        #expect(handler.suggestionsOpen)
+        #expect(handler.suggestionHighlight == nil, "a pointer open leaves the keyboard at the caret")
+        handler.toggleSuggestionsOpen()
+        #expect(!handler.suggestionsOpen)
+    }
+
+    /// The menu is entered from either end and then held: Down clamps at the
+    /// last row, Up clamps at the first. Up used to fall back out to the caret
+    /// from row 0, which together with the entry rule below made a ring that
+    /// only turned one way — endlessly upward, a hard stop downward.
+    @Test("Up clamps at the first row rather than falling back to the caret")
+    func upClampsAtTheFirstRow() {
+        let box = TextBox()
+        box.value = "abc"
+        let handler = makeHandler(box, completions: ["alpha", "beta", "gamma"])
+        handler.cursorPosition = 3
+
+        _ = handler.handleKeyEvent(KeyEvent(key: .down))
+        #expect(handler.suggestionHighlight == 0)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .up)), "consumed by the menu")
+        #expect(handler.suggestionHighlight == 0, "held at the top")
+        #expect(
+            handler.cursorPosition == 3,
+            "and NOT leaked to the field, where Up means 'caret to start'")
+    }
+
+    /// The symmetry that would have caught the one-way ring: both ends clamp.
+    @Test("Down clamps at the last row")
+    func downClampsAtTheLastRow() {
+        let box = TextBox()
+        let handler = makeHandler(box, completions: ["alpha", "beta", "gamma"])
+        for _ in 0..<5 { _ = handler.handleKeyEvent(KeyEvent(key: .down)) }
+        #expect(handler.suggestionHighlight == 2)
+    }
+
+    /// The counterpart for a menu opened with nothing highlighted (a pointer
+    /// open, or text that matches no row): the FIRST Up must reach the bottom
+    /// row rather than falling through to the field.
+    @Test("The first Up in an unhighlighted open menu takes the last row")
+    func firstUpTakesTheLastRow() {
+        let box = TextBox()
+        box.value = "zzz"
+        let handler = makeHandler(box, completions: ["alpha", "beta", "gamma"])
+        handler.toggleSuggestionsOpen()
+        #expect(handler.suggestionHighlight == nil, "sanity: nothing matches 'zzz'")
+
+        _ = handler.handleKeyEvent(KeyEvent(key: .up))
+        #expect(handler.suggestionHighlight == 2)
+    }
+
+    // MARK: - Jump navigation (shared with Picker / Menu / RadioButtonGroup)
+
+    @Test("End jumps to the last suggestion, Home back to the first")
+    func homeEndJump() {
+        let box = TextBox()
+        let handler = makeHandler(box, completions: ["a", "b", "c", "d", "e"])
+
+        _ = handler.handleKeyEvent(KeyEvent(key: .down))  // open, highlight 0
+        #expect(handler.suggestionHighlight == 0)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .end)))
+        #expect(handler.suggestionHighlight == 4)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .home)))
+        #expect(handler.suggestionHighlight == 0)
+    }
+
+    @Test("PageDown / PageUp move by a visible page of the pop-up")
+    func pageJump() {
+        let box = TextBox()
+        let handler = makeHandler(box, completions: (0..<10).map { "row\($0)" })
+        handler.suggestionScroll.viewportHeight = 3
+
+        _ = handler.handleKeyEvent(KeyEvent(key: .down))  // highlight 0
+        #expect(handler.handleKeyEvent(KeyEvent(key: .pageDown)))
+        #expect(handler.suggestionHighlight == 3)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .pageDown)))
+        #expect(handler.suggestionHighlight == 6)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .pageUp)))
+        #expect(handler.suggestionHighlight == 3)
+    }
+
+    @Test("Shift + Up/Down accelerates by the step multiplier, clamped at the ends")
+    func shiftAccelerated() {
+        let box = TextBox()
+        let handler = makeHandler(box, completions: (0..<10).map { "row\($0)" })
+        handler.shiftStepMultiplier = 4
+
+        _ = handler.handleKeyEvent(KeyEvent(key: .down))  // highlight 0
+        #expect(handler.handleKeyEvent(KeyEvent(key: .down, shift: true)))
+        #expect(handler.suggestionHighlight == 4)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .down, shift: true)))
+        #expect(handler.suggestionHighlight == 8)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .down, shift: true)))
+        #expect(handler.suggestionHighlight == 9, "clamps at the last row, never wraps")
+        #expect(handler.handleKeyEvent(KeyEvent(key: .up, shift: true)))
+        #expect(handler.suggestionHighlight == 5)
+    }
+
+    /// The jump keys belong to the OPEN menu, however it was opened.
+    ///
+    /// They used to depend on whether a row happened to be highlighted yet,
+    /// which made them work or not work depending on the opening gesture: a
+    /// Down-open put the highlight on row 0 and Home/End then drove the menu,
+    /// while a pointer-open whose text matched nothing left it nil and the same
+    /// keys moved the caret instead. Same menu, same keys, different answers.
+    @Test(
+        "Every unshifted key reaches a pointer-opened menu",
+        arguments: [(Key.home, 0), (.end, 2), (.pageDown, 0), (.pageUp, 2), (.down, 0), (.up, 2)])
+    func jumpKeysReachAPointerOpenedMenu(key: Key, expected: Int) {
+        let box = TextBox()
+        box.value = "typed"  // matches no completion, so the menu opens unhighlighted
+        let handler = makeHandler(box, completions: ["a", "b", "c"])
+        handler.cursorPosition = 5
+
+        handler.toggleSuggestionsOpen()
+        #expect(handler.suggestionsOpen)
+        #expect(handler.suggestionHighlight == nil, "a pointer open highlights nothing")
+
+        #expect(handler.handleKeyEvent(KeyEvent(key: key)), "the open menu takes it")
+        #expect(handler.suggestionHighlight == expected)
+    }
+
+    /// The one key that stays with the field: at the caret, Shift+arrow means
+    /// "extend the selection", which is a text gesture and not a menu one.
+    @Test(
+        "A shifted arrow at the caret still belongs to the field",
+        arguments: [KeyEvent(key: .down, shift: true), KeyEvent(key: .up, shift: true)])
+    func caretKeepsShiftedArrows(key: KeyEvent) {
+        let box = TextBox()
+        box.value = "typed"
+        let handler = makeHandler(box, completions: ["a", "b", "c"])
+        handler.cursorPosition = 5
+
+        handler.toggleSuggestionsOpen()
+        #expect(handler.suggestionHighlight == nil)
+        _ = handler.handleKeyEvent(key)
+        #expect(handler.suggestionHighlight == nil, "it did not enter the menu")
+    }
+
+    @Test("Shift+Down does not open a closed menu — only a plain Down does")
+    func shiftDoesNotOpenTheMenu() {
+        let box = TextBox()
+        let handler = makeHandler(box, completions: ["a", "b"])
+
+        _ = handler.handleKeyEvent(KeyEvent(key: .down, shift: true))
+        #expect(!handler.suggestionsOpen, "Shift+Down is a field gesture, not the open gesture")
+        _ = handler.handleKeyEvent(KeyEvent(key: .down))
+        #expect(handler.suggestionsOpen)
+    }
+
+    @Test("Enter accepts the highlighted suggestion and submits")
+    func enterAccepts() {
+        let box = TextBox()
+        box.value = "al"
+        let handler = makeHandler(box, completions: ["alpha", "beta"])
+
+        _ = handler.handleKeyEvent(KeyEvent(key: .down))
+        #expect(handler.handleKeyEvent(KeyEvent(key: .enter)))
+        #expect(box.value == "alpha")
+        #expect(box.submitted == 1, "picking a suggestion fires onSubmit")
+        #expect(handler.suggestionHighlight == nil)
+        #expect(!handler.suggestionsOpen, "the menu closes after a pick")
+        #expect(handler.cursorPosition == 5, "caret lands at the end of the completion")
+    }
+
+    @Test("Enter with no highlight submits the typed text as usual")
+    func enterWithoutHighlightSubmits() {
+        let box = TextBox()
+        box.value = "custom"
+        let handler = makeHandler(box, completions: ["alpha"])
+
+        #expect(handler.handleKeyEvent(KeyEvent(key: .enter)))
+        #expect(box.value == "custom")
+        #expect(box.submitted == 1)
+        #expect(!handler.suggestionsOpen)
+    }
+
+    @Test("Escape closes the open menu; a second Escape falls through")
+    func escapeCloses() {
+        let box = TextBox()
+        let handler = makeHandler(box, completions: ["alpha"])
+
+        _ = handler.handleKeyEvent(KeyEvent(key: .down))  // open
+        #expect(handler.suggestionsActive)
+        #expect(handler.handleKeyEvent(KeyEvent(key: .escape)))
+        #expect(!handler.suggestionsOpen)
+        #expect(!handler.suggestionsActive)
+        #expect(
+            !handler.handleKeyEvent(KeyEvent(key: .escape)),
+            "with the menu closed, Escape falls through to the page")
+
+        // Typing does NOT re-open the menu — opening is an explicit gesture.
+        _ = handler.handleKeyEvent(KeyEvent(key: .character("c")))
+        #expect(!handler.suggestionsOpen)
+    }
+
+    @Test("Gaining focus does not open the menu; losing focus closes it")
+    func focusDoesNotOpen() {
+        let box = TextBox()
+        let handler = makeHandler(box, completions: ["alpha"])
+        var editing: [Bool] = []
+        handler.onEditingChanged = { editing.append($0) }
+
+        handler.onFocusReceived()
+        #expect(!handler.suggestionsOpen, "focus alone must not open the menu")
+
+        _ = handler.handleKeyEvent(KeyEvent(key: .down))  // open explicitly
+        handler.onFocusLost()
+        #expect(!handler.suggestionsOpen, "the menu never outlives the focus session")
+        #expect(editing == [true, false], "onEditingChanged brackets the focus session")
+    }
+
+    /// Shift+Down over a field that HAS suggestions but a **closed** menu. (The
+    /// name once said "while the menu shows", but nothing here opens it — the
+    /// three states are covered separately: closed here; open-at-the-caret in
+    /// `caretKeepsFieldGestures`; open-with-a-highlight in `shiftAccelerated`,
+    /// where it deliberately jumps the menu instead.)
+    @Test("Shift+Down keeps its select-to-end meaning while the menu is closed")
+    func shiftDownStillSelects() {
+        let box = TextBox()
+        box.value = "abc"
+        let handler = makeHandler(box, completions: ["alpha"])
+        handler.cursorPosition = 0
+
+        #expect(!handler.suggestionsOpen, "precondition: the menu is closed")
+        _ = handler.handleKeyEvent(KeyEvent(key: .down, shift: true))
+        #expect(handler.suggestionHighlight == nil)
+        #expect(handler.selectionRange == 0..<3)
+    }
+}
+
+// MARK: - Rendering + Mouse
+
+@MainActor
+@Suite("Text-input suggestions menu", .serialized)
+struct TextSuggestionMenuTests {
+
+    private final class TextBox {
+        var value = ""
+        var binding: Binding<String> {
+            Binding(get: { self.value }, set: { self.value = $0 })
+        }
+    }
+
+    private func makeEnvironment(tui: TUIContext, focus: FocusManager) -> EnvironmentValues {
+        var env = EnvironmentValues()
+        env.focusManager = focus
+        env.applyRuntimeServices(from: tui)
+        env.terminalWidth = 60
+        env.terminalHeight = 20
+        return env
+    }
+
+    private func makeField(_ box: TextBox) -> some View {
+        TextField("Value", text: box.binding)
+            .focusID("combo")
+            .textInputSuggestions {
+                Text("alpha")
+                Text("beta")
+                Divider()
+                Text("recent one")
+            }
+            .frame(width: 24)
+    }
+
+    private func render(
+        _ view: some View, tui: TUIContext, focus: FocusManager, env: EnvironmentValues
+    ) -> FrameBuffer {
+        let context = RenderContext(
+            availableWidth: 60, availableHeight: 20, environment: env, tuiContext: tui)
+        focus.beginRenderPass()
+        let buffer = renderToBuffer(view, context: context)
+        focus.endRenderPass()
+        return buffer
+    }
+
+    @Test("An unfocused field shows the ▾ affordance and no menu")
+    func unfocusedAffordance() {
+        let tui = TUIContext()
+        let focus = FocusManager()
+        let env = makeEnvironment(tui: tui, focus: focus)
+        let box = TextBox()
+
+        // A second focusable holds the focus — a lone field would auto-focus
+        // and legitimately open its menu.
+        let view = VStack {
+            Button("Other") {}.focusID("other")
+            makeField(box)
+        }
+        _ = render(view, tui: tui, focus: focus, env: env)
+        focus.focus(id: "other")
+        let buffer = render(view, tui: tui, focus: focus, env: env)
+        let composited = buffer.compositingOverlays(
+            maxWidth: 60, maxHeight: 20, palette: env.palette)
+        let screen = composited.lines.map(\.stripped).joined(separator: "\n")
+        #expect(screen.contains(DropdownMenu.closedCaret), "the combo affordance shows: \(screen)")
+        #expect(!screen.contains("alpha"), "no menu while unfocused: \(screen)")
+    }
+
+    @Test("Down on the focused field opens the menu with dividers between groups")
+    func focusedMenu() {
+        let tui = TUIContext()
+        let focus = FocusManager()
+        let env = makeEnvironment(tui: tui, focus: focus)
+        let box = TextBox()
+        let field = makeField(box)
+
+        _ = render(field, tui: tui, focus: focus, env: env)  // register
+        focus.focus(id: "combo")
+        _ = render(field, tui: tui, focus: focus, env: env)  // sync completions
+        _ = focus.dispatchKeyEvent(KeyEvent(key: .down))  // the open gesture
+        let buffer = render(field, tui: tui, focus: focus, env: env)
+        let composited = buffer.compositingOverlays(
+            maxWidth: 60, maxHeight: 20, palette: env.palette)
+        let lines = composited.lines.map(\.stripped)
+        let screen = lines.joined(separator: "\n")
+
+        #expect(screen.contains("alpha") && screen.contains("recent one"), "menu open: \(screen)")
+        #expect(screen.contains(DropdownMenu.openCaret), "the affordance flips to ▴")
+        // The divider renders as a rule row between "beta" and "recent one".
+        let betaRow = lines.firstIndex { $0.contains("beta") }
+        let recentRow = lines.firstIndex { $0.contains("recent one") }
+        if let betaRow, let recentRow {
+            #expect(recentRow == betaRow + 2, "one rule row sits between the groups")
+            #expect(lines[betaRow + 1].contains("──"), "the divider is a horizontal rule")
+        } else {
+            Issue.record("could not locate menu rows in: \(screen)")
+        }
+    }
+
+    @Test("Clicking a suggestion row fills the field")
+    func clickPicksSuggestion() {
+        let tui = TUIContext()
+        let focus = FocusManager()
+        let env = makeEnvironment(tui: tui, focus: focus)
+        let dispatcher = tui.mouseEventDispatcher
+        dispatcher.setActiveSupport(.standard)
+        let box = TextBox()
+        let field = makeField(box)
+
+        _ = render(field, tui: tui, focus: focus, env: env)
+        focus.focus(id: "combo")
+        _ = render(field, tui: tui, focus: focus, env: env)
+        _ = focus.dispatchKeyEvent(KeyEvent(key: .down))
+        let buffer = render(field, tui: tui, focus: focus, env: env)
+        let composited = buffer.compositingOverlays(
+            maxWidth: 60, maxHeight: 20, palette: env.palette)
+
+        guard let (row, column) = locate("beta", in: composited) else {
+            Issue.record(
+                "could not find beta row in:\n\(composited.lines.map(\.stripped).joined(separator: "\n"))"
+            )
+            return
+        }
+        dispatcher.setRegions(composited.hitTestRegions)
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: column, y: row))
+        let consumed = dispatcher.dispatch(
+            MouseEvent(button: .left, phase: .released, x: column, y: row))
+        #expect(consumed, "the row click lands on a hit region")
+        #expect(box.value == "beta", "clicking the row fills the field")
+    }
+
+    @Test("The current value's row carries the ✓ marker")
+    func currentValueMarker() {
+        let tui = TUIContext()
+        let focus = FocusManager()
+        let env = makeEnvironment(tui: tui, focus: focus)
+        let box = TextBox()
+        box.value = "beta"
+        let field = makeField(box)
+
+        _ = render(field, tui: tui, focus: focus, env: env)
+        focus.focus(id: "combo")
+        _ = render(field, tui: tui, focus: focus, env: env)
+        _ = focus.dispatchKeyEvent(KeyEvent(key: .down))
+        let buffer = render(field, tui: tui, focus: focus, env: env)
+        let composited = buffer.compositingOverlays(
+            maxWidth: 60, maxHeight: 20, palette: env.palette)
+        // Skip the field's own line (it shows "beta" too); the menu rows
+        // start beneath it.
+        let betaLine = composited.lines.dropFirst().map(\.stripped).first { $0.contains("beta") }
+        #expect(betaLine?.contains(DropdownMenu.selectedMarker) == true, "\(betaLine ?? "nil")")
+    }
+
+    @Test("The menu grows wider than a narrow control to fit its options")
+    func menuExceedsControlWidth() {
+        let tui = TUIContext()
+        let focus = FocusManager()
+        var env = makeEnvironment(tui: tui, focus: focus)
+        env.terminalWidth = 60
+        let box = TextBox()
+        // A 10-cell field offering an option far wider than the field: the
+        // pop-up must NOT truncate it to the control's width.
+        let field = TextField("Value", text: box.binding)
+            .focusID("combo")
+            .textInputSuggestions {
+                Text("solid background option")
+            }
+            .frame(width: 10)
+
+        _ = render(field, tui: tui, focus: focus, env: env)
+        focus.focus(id: "combo")
+        _ = render(field, tui: tui, focus: focus, env: env)
+        _ = focus.dispatchKeyEvent(KeyEvent(key: .down))
+        let buffer = render(field, tui: tui, focus: focus, env: env)
+        let composited = buffer.compositingOverlays(
+            maxWidth: 60, maxHeight: 20, palette: env.palette)
+        let screen = composited.lines.map(\.stripped).joined(separator: "\n")
+        #expect(
+            screen.contains("solid background option"),
+            "the full label shows, wider than the field: \(screen)")
+    }
+
+    @Test("Clicking the ▾ disclosure toggles the menu open and closed")
+    func disclosureClickToggles() {
+        let tui = TUIContext()
+        let focus = FocusManager()
+        let env = makeEnvironment(tui: tui, focus: focus)
+        let dispatcher = tui.mouseEventDispatcher
+        dispatcher.setActiveSupport(.standard)
+        let box = TextBox()
+        let field = makeField(box)
+
+        func renderAndWire() -> FrameBuffer {
+            let buffer = render(field, tui: tui, focus: focus, env: env)
+            let composited = buffer.compositingOverlays(
+                maxWidth: 60, maxHeight: 20, palette: env.palette)
+            dispatcher.setRegions(composited.hitTestRegions)
+            return composited
+        }
+        _ = renderAndWire()
+
+        // The frame is 24 wide: closing cap at x=23, the disclosure in the
+        // two cells before it.
+        func clickDisclosure() {
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: 22, y: 0))
+            _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: 22, y: 0))
+        }
+        clickDisclosure()
+        var screen = renderAndWire().lines.map(\.stripped).joined(separator: "\n")
+        #expect(screen.contains("alpha"), "the disclosure click opens the menu: \(screen)")
+
+        clickDisclosure()
+        screen = renderAndWire().lines.map(\.stripped).joined(separator: "\n")
+        #expect(!screen.contains("alpha"), "a second click closes it: \(screen)")
+    }
+
+    /// The click target is wider than the arrow, and this says how much wider.
+    ///
+    /// The `▾` is ONE cell. The pad to its left has always counted; the closing
+    /// cap to its right had not, so a pointer one cell wide of a one-cell
+    /// target focused the field and dropped the caret at the end instead —
+    /// which is not what someone reaching for the arrow meant, and not a miss
+    /// they can see coming. The cap has no click behaviour of its own, so
+    /// nothing is taken from anything else.
+    @Test(
+        "The arrow, its pad and the cap beside it all open the menu",
+        arguments: [21, 22, 23])
+    func disclosureLeeway(column: Int) {
+        let tui = TUIContext()
+        let focus = FocusManager()
+        let env = makeEnvironment(tui: tui, focus: focus)
+        let dispatcher = tui.mouseEventDispatcher
+        dispatcher.setActiveSupport(.standard)
+        let box = TextBox()
+        let field = makeField(box)
+
+        func renderAndWire() -> FrameBuffer {
+            let buffer = render(field, tui: tui, focus: focus, env: env)
+            let composited = buffer.compositingOverlays(
+                maxWidth: 60, maxHeight: 20, palette: env.palette)
+            dispatcher.setRegions(composited.hitTestRegions)
+            return composited
+        }
+        _ = renderAndWire()
+
+        // The frame is 24 wide: content, then the pad at 21, the `▾` at 22 and
+        // the closing cap at 23.
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: column, y: 0))
+        _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: column, y: 0))
+        let screen = renderAndWire().lines.map(\.stripped).joined(separator: "\n")
+        #expect(screen.contains("alpha"), "a click at x=\(column) did not open the menu: \(screen)")
+    }
+
+    /// The (y, x) of `needle`'s first character in the buffer, or nil.
+    private func locate(_ needle: String, in buffer: FrameBuffer) -> (row: Int, column: Int)? {
+        for (row, line) in buffer.lines.enumerated() {
+            let stripped = line.stripped
+            if let range = stripped.range(of: needle) {
+                return (row, stripped.distance(from: stripped.startIndex, to: range.lowerBound))
+            }
+        }
+        return nil
+    }
+}
+
+// MARK: - Dividers in Picker + Menu
+
+@MainActor
+@Suite("Menu dividers")
+struct MenuDividerTests {
+
+    @Test("A Divider in Picker content becomes a rule row in the drop-down")
+    func pickerDivider() throws {
+        let context = makeRenderContext()
+        var choice = AnyHashable("a")
+        let binding = Binding<AnyHashable>(get: { choice }, set: { choice = $0 })
+
+        let entries: [_PickerEntry<AnyHashable>] = [
+            .option(tag: AnyHashable("a"), label: AnyView(Text("Apple"))),
+            .divider,
+            .option(tag: AnyHashable("b"), label: AnyView(Text("Banana"))),
+        ]
+        let core = _PickerMenuCore(
+            entries: entries, selection: binding, focusID: "menu-picker", isDisabled: false)
+
+        _ = renderToBuffer(core, context: context)
+        let key = StateStorage.StateKey(identity: context.identity, propertyIndex: 0)
+        let box: StateBox<_PickerMenuHandler> = context.environment.stateStorage!.storage(
+            for: key,
+            default: _PickerMenuHandler(
+                focusID: "menu-picker",
+                selection: binding,
+                itemValues: [],
+                canBeFocused: true))
+        box.value.isOpen = true
+
+        let open = renderToBuffer(core, context: context)
+        let layer = try #require(open.overlays.first)
+        let lines = layer.content.lines.map(\.stripped)
+        // Top border, Apple, rule, Banana, bottom border.
+        #expect(lines.count == 5)
+        #expect(lines[1].contains("Apple"))
+        #expect(lines[2].contains("──"), "the divider renders as a rule: \(lines[2])")
+        #expect(lines[3].contains("Banana"))
+        // Only the two options are keyboard-navigable.
+        #expect(box.value.itemValues.count == 2)
+    }
+
+    @Test("The Picker extracts Divider entries from its content")
+    func pickerExtraction() {
+        @ViewBuilder func content() -> some View {
+            Text("A").tag("a")
+            Divider()
+            Text("B").tag("b")
+        }
+        let options = _PickerOptionsReader<String, _, EmptyView>(content: content()) { _, _ in EmptyView() }
+            .entries(in: makeRenderContext(width: 20, height: 5))
+        #expect(options.count == 3)
+        guard case .divider = options[1] else {
+            Issue.record("expected a divider entry")
+            return
+        }
+    }
+}

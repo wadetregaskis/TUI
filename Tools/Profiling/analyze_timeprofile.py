@@ -11,7 +11,7 @@ then aggregates CPU time by:
   • inclusive  — every distinct function on a sample's stack
   • module     — per-binary self time (your code vs. system libraries)
   • app only   — self/inclusive restricted to non-system binaries, i.e.
-                 TUIkit + Example, so your own hot code stands out
+                 TUI + Example, so your own hot code stands out
 
 Why not just use DuckDB / the instruments-analyzer skill? Instruments'
 XML writes everything it has written before as a reference, at two levels:
@@ -288,7 +288,7 @@ def analyze(trace: str, run: int, top: int, thread_filter: str, state_filter: st
             # Self time answers "where was the CPU", and for this framework the
             # answer is mostly `swift_release`, `swift_retain` and `malloc` —
             # true, and useless, because none of those is a thing anyone can go
-            # and fix. They are caused by whatever TUIkit frame is sitting just
+            # and fix. They are caused by whatever TUI frame is sitting just
             # underneath them on the stack. Walking leaf-to-root to the first
             # app frame turns "the runtime is busy" into "this function is
             # making it busy", which is the question worth asking.
@@ -372,7 +372,7 @@ def main():
                          "Instruments cannot launch or attach to (e.g. the live `Stress` "
                          "under autopilot, emission included)")
     ap.add_argument("--blame", metavar="PATTERN", nargs="?", const="", default=None,
-                    help="attribute samples to the nearest TUIkit/app frame beneath "
+                    help="attribute samples to the nearest TUI/app frame beneath "
                          "the leaf, instead of to the leaf itself. With no PATTERN, "
                          "every sample; with one (a regex matched against the leaf "
                          "name), only samples that bottomed out there — e.g. "
@@ -428,9 +428,9 @@ def main():
                 r["incl_ms"], t, r["top"])
     print_table("Self time by module (your code vs. system)",
                 r["mod_ms"], t, r["top"])
-    print_table("APP ONLY — self time in TUIkit / Example",
+    print_table("APP ONLY — self time in TUI / Example",
                 r["app_self_ms"], t, r["top"])
-    print_table("APP ONLY — inclusive time in TUIkit / Example",
+    print_table("APP ONLY — inclusive time in TUI / Example",
                 r["app_incl_ms"], t, r["top"])
     if args.blame is not None:
         matched = r["blame_matched_ms"]

@@ -1,11 +1,11 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  LayoutPage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 /// Collects the indices of the ``LazyVStack`` rows that actually rendered this
 /// frame. Because a row only emits its preference when it renders — and a

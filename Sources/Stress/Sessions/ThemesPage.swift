@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ThemesPage.swift
 //
 //  The `themes` session's page and model: a small task manager whose every
@@ -10,7 +10,7 @@
 //  License: MIT
 
 import Observation
-import TUIkit
+import TUI
 
 // MARK: - The board
 
@@ -69,7 +69,7 @@ enum ThemeFocus: Hashable {
 // MARK: - The custom palette
 
 /// A palette of the session's own, stated in full: a light page in a blue
-/// ink with a teal accent, nothing like any palette TUIkit ships, so a colour
+/// ink with a teal accent, nothing like any palette TUI ships, so a colour
 /// of it left on the screen after a switch is unmistakable.
 struct HarbourPalette: Palette {
     let id = "stress-harbour"
@@ -197,7 +197,7 @@ private struct ThemeLookLine: View {
 }
 
 /// A task: its title, owner and number — in the row's own ink, as the
-/// contrast floors TUIkit promises assume.
+/// contrast floors TUI promises assume.
 private struct ThemeTaskRow: View {
     let task: ThemeBoard.Task
 

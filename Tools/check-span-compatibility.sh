@@ -1,12 +1,12 @@
 #!/bin/bash
 # check-span-compatibility.sh [FILE...]
 #
-# Fails if a TUIkit executable links `libswiftCompatibilitySpan.dylib` — a load
+# Fails if a TUI executable links `libswiftCompatibilitySpan.dylib` — a load
 # command naming it (strong or weak), or a symbol imported from it — or if a
-# module that a TUIkit library product ships refers to a symbol that library
+# module that a TUI library product ships refers to a symbol that library
 # would provide. With no arguments it checks the release build: the Stress and
 # Example executables, and the objects of every module of every library
-# product (TUIkitAppKit's among them, which no executable here links). It
+# product (TUIAppKit's among them, which no executable here links). It
 # builds nothing: run `swift build -c release` first. It asks `$SWIFT`
 # (default `swift`, as CI's workflow sets it) where the build is and which
 # modules the library products ship. A FILE argument ending in `.o` is checked
@@ -36,17 +36,17 @@
 # Concrete, specialised code that uses a Span type needs none of those symbols:
 # every method is inlined. Unspecialised generic code does, and so does anything
 # that asks for a Span type's metadata (reflection, a cast, an existential). In
-# TUIkit's case it was swift-collections' DequeModule, whose public generic
+# TUI's case it was swift-collections' DequeModule, whose public generic
 # entry points reference `OutputSpan`'s metadata accessor and are linked into
 # every program that links DequeModule, called or not, because Swift never
 # dead-strips a public symbol. Whether the load came out strong or weak was
 # decided by the deployment target swift-collections was compiled for, not by
-# TUIkit: Swift 6.2.4's SwiftPM compiled it for macOS 10.13, older than
+# TUI: Swift 6.2.4's SwiftPM compiled it for macOS 10.13, older than
 # OutputSpan, so the reference was weak (and NULL below macOS 26); Swift 6.4's
 # compiles it for macOS 12, so it was strong, and a copied-out app died at
 # launch (measured 2026-10-10 on macOS 15.8 with Xcode 26.3's Swift 6.2.4 and
-# swift.org's 6.4.0, swift-collections 1.5.1). TUIkit has used its own buffers
-# since (Sources/TUIkitApp/Rendering/InputByteBuffer.swift).
+# swift.org's 6.4.0, swift-collections 1.5.1). TUI has used its own buffers
+# since (Sources/TUIApp/Rendering/InputByteBuffer.swift).
 #
 # Weak is not good enough either: a weak import of a symbol the compiler
 # believes is always there is called without a check, so it is a jump to NULL
@@ -54,7 +54,7 @@
 # or strong, and any import.
 #
 # WHY THE OBJECTS TOO. An executable shows only the modules it links, and
-# TUIkitAppKit is a library product that no executable in this package links:
+# TUIAppKit is a library product that no executable in this package links:
 # a Span-family reference there would reach every app that links it — called
 # or not, as DequeModule's did — and no executable here would show it. So the
 # objects of every module a library product ships are read as well, for any
@@ -90,12 +90,12 @@
 # generic code, in a cast or existential, or in a dependency — swift-collections
 # 1.4 and later reference OutputSpan from DequeModule. Use the type only where
 # its uses specialise, or not at all. `@available(macOS 26, *)` does not help:
-# the compiler treats the Span types as available on every target TUIkit
+# the compiler treats the Span types as available on every target TUI
 # supports (they back-deploy), so a reference from code marked macOS 26 is
 # still strong (measured 2026-10-10, Swift 6.4.0, macOS 14 target: an
 # `@available(macOS 26, *)` generic function appending to an `OutputSpan` gave
 # the executable linking it a strong LC_LOAD_DYLIB of the library). Raising
-# TUIkit's deployment target to macOS 26 would silence this, and would drop
+# TUI's deployment target to macOS 26 would silence this, and would drop
 # macOS 14 and 15.
 set -u -o pipefail
 

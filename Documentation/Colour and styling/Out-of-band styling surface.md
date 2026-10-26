@@ -27,7 +27,7 @@ would buy us has already been paid down per-site (see §1).
 
 ### 1.1 The inline-metadata debt
 
-`FrameBuffer` (`Sources/TUIkitCore/Rendering/FrameBuffer.swift`, 819 lines) is
+`FrameBuffer` (`Sources/TUICore/Rendering/FrameBuffer.swift`, 819 lines) is
 the value type every view renders into and every layout container stacks,
 overlays, and clips each frame. Its single styled surface is:
 
@@ -41,7 +41,7 @@ Style lives **inline**, interleaved into the text as SGR escape sequences.
 Every operation that reasons about columns — width, clip, pad, splice,
 composite — must therefore parse ANSI back out of the string, count visible
 cells around the escapes, and (for composite/background) reconstruct and
-re-emit SGR state. That machinery is `Sources/TUIkitCore/Extensions/String+TerminalWidth.swift`
+re-emit SGR state. That machinery is `Sources/TUICore/Extensions/String+TerminalWidth.swift`
 (1,128 lines): `strippedLength`, `forEachVisibleANSIRun`, `ansiSegments`,
 `ansiAwarePrefix(WithWidth)`, `ansiAwareSuffix`, `ansiAwareSlice`,
 `ansiStateBefore`, `ansiSGRContextAndCleanSuffix`, `leadingANSISequences`.
@@ -597,11 +597,11 @@ is where the escalation-to-B trigger is checked.
 
 | Harness (committed) | Invocation | Scenarios | Proves |
 |---|---|---|---|
-| **`Benchmarks/TUIkitBenchmarks`** (ordo-one) | `swift package benchmark` (baselines in `.benchmarkBaselines/`) | `FrameBufferBenchmarks` covers exactly the combine ops: `init(lines:)` width *plain 50×120* + *ANSI 50×110*, `appendVertically ×50`, `appendHorizontally two 50×120`, `composited overlay at (5,10)`, `clamped to 80×24`; plus `render/*`, `layout/*`, `list/*` | **Primary A/B engine.** Metrics already configured in `Benchmarks.swift`: `.cpuTotal, .wallClock, .mallocCountTotal, .peakMemoryResident` — the owner's *wall-clock/frame, bytes-allocated/frame, peak RSS* out of the box |
+| **`Benchmarks/TUIBenchmarks`** (ordo-one) | `swift package benchmark` (baselines in `.benchmarkBaselines/`) | `FrameBufferBenchmarks` covers exactly the combine ops: `init(lines:)` width *plain 50×120* + *ANSI 50×110*, `appendVertically ×50`, `appendHorizontally two 50×120`, `composited overlay at (5,10)`, `clamped to 80×24`; plus `render/*`, `layout/*`, `list/*` | **Primary A/B engine.** Metrics already configured in `Benchmarks.swift`: `.cpuTotal, .wallClock, .mallocCountTotal, .peakMemoryResident` — the owner's *wall-clock/frame, bytes-allocated/frame, peak RSS* out of the box |
 | **`Stress --bench`** | `swift run -c release Stress -- --bench --scenario <id> --iterations N [--cold]` → per-frame µs + checksum | `megalist, table, table-multiline, tables-scroll, tables-vstack, deep, fanout, modifiers, textwall, anyview, dashboard, framedcolumns, churn, kitchensink` | App-shaped per-frame wall; **cold** (worst-case fresh state/cache) vs **warm** (steady state). Seeded → byte-identical trees across A and B |
 | **`Tools/Profiling`** Time Profiler | `record.sh <scenario>` (Mode B, PTY) or `xctrace --launch` on `Stress --bench` (Mode A, no attach) → `analyze_timeprofile.py` | `tour, list, table, emoji, scroll`; FrameBuffer micro trees | **Central CPU thesis check** (§7.4): `strippedLength` / `forEachVisibleANSIRun` / `ansiAware*` inclusive share must collapse |
 | **`Tools/Profiling/idle_cpu.py`** | `idle_cpu.py BIN [settle] [window] [keys]` | any static screen | **Hard idle gate** — flush-encode must stay diff-gated to changed rows |
-| **Golden snapshots** (`Tests/TUIkitTestSupport/__Snapshots__`) | `swift test` (record with `TUIKIT_RECORD_SNAPSHOTS=1`) | full corpus | **Correctness gate** — rekey to structural `(text, styleRuns)` equality |
+| **Golden snapshots** (`Tests/TUITestSupport/__Snapshots__`) | `swift test` (record with `TUIKIT_RECORD_SNAPSHOTS=1`) | full corpus | **Correctness gate** — rekey to structural `(text, styleRuns)` equality |
 
 ### 7.3 Metrics (mapped to the owner's words)
 
@@ -694,7 +694,7 @@ behind the shim *before* a single producer is permanently rewritten.
   the easiest to drop.
 - **Lossless SGR round-trip during migration.** The shim's `set` must parse
   every SGR `ANSIRenderer` can emit; anything unmodeled is lost on round-trip.
-  Tractable — TUIkit owns its `ANSIRenderer` — but must be audited (256/truecolor,
+  Tractable — TUI owns its `ANSIRenderer` — but must be audited (256/truecolor,
   all 8 attributes) and OSC/hyperlinks explicitly handled or excluded. The
   Step 0 round-trip test is the guard.
 - **Snapshot / memo rekey.** Synth SGR coalescing is not guaranteed

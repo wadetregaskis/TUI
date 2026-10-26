@@ -50,7 +50,7 @@ ssh to Ghostty, every unmeasured terminal — it fits what it is offered, as all
 images did before. `ImageFitTarget` gained `.naturalSize` as its default, so
 `.imageFitTarget(.proposedSize)` is now the way to ask for the old fitting on
 every terminal; `.imageCellPoints(_:)` lets an app state the cell for a
-terminal TUIkit cannot ask.
+terminal TUI cannot ask.
 
 **Judgement calls in it:**
 
@@ -58,7 +58,7 @@ terminal TUIkit cannot ask.
   draw every image twice or half its size on a 1× display or a Linux host.
 - **Ghostty locally uses the MAIN display's scale.** A Ghostty window on an
   external display of another scale draws its images half or twice their
-  natural size. Which display the window is on is not something TUIkit can
+  natural size. Which display the window is on is not something TUI can
   ask from inside the terminal today.
 - **Unmeasured hosts keep fitting.** kitty, WezTerm, foot, Alacritty and the
   rest report pixels too, but in a unit nobody here has checked; each is a
@@ -97,13 +97,13 @@ before (`ImageResizingTests`).
 
 ### B-D3M-4. The doubled format-style statics stay, and three calls inside B50
 
-*`TUIkitAppKit` (B50); `FormatStyle`/`DiscreteFormatStyle` `.offset(to:)`,
+*`TUIAppKit` (B50); `FormatStyle`/`DiscreteFormatStyle` `.offset(to:)`,
 `.reference(to:)`, `.timer(…)`, `.stopwatch(…)`*
 
-**Shipped:** the bridges to Apple's graphics types are the `TUIkitAppKit`
-product, and nothing TUIkit is built from imports AppKit, so an app that
-imports only TUIkit sees nothing of SwiftUICore
-(`CompileCorpusTUIkitOnly.swift` proves it, and fails if AppKit is imported).
+**Shipped:** the bridges to Apple's graphics types are the `TUIAppKit`
+product, and nothing TUI is built from imports AppKit, so an app that
+imports only TUI sees nothing of SwiftUICore
+(`CompileCorpusTUIOnly.swift` proves it, and fails if AppKit is imported).
 
 **Calls made along the way:**
 
@@ -114,7 +114,7 @@ imports only TUIkit sees nothing of SwiftUICore
   exactly this configuration, and library evolution needs unsafe flags a
   dependency cannot carry. So no module below the bridges may import AppKit at
   all — a test now guards that (`AppKitBridgeTests`).
-- **TUIkitImage decodes through ImageIO instead of `NSImage`**, its one reason
+- **TUIImage decodes through ImageIO instead of `NSImage`**, its one reason
   to import AppKit. It turns a picture by its EXIF orientation as `NSImage`
   did, and of a file holding several images (an icon's sizes, a
   multi-resolution TIFF) it decodes the largest within the app's pixel limit,
@@ -124,21 +124,21 @@ imports only TUIkit sees nothing of SwiftUICore
 - **The `CGColor` and `CGImage` bridges moved too**, though Core Graphics does
   not import SwiftUICore: one module for "Apple's graphics types" reads better
   than a split by which framework happens to import which. Moving them back to
-  TUIkit is a few lines if you would rather they need no extra import.
+  TUI is a few lines if you would rather they need no extra import.
 
 **Built 2026-10-19** (option 4, settled by the parity rule: B50 covered AppKit,
 not Core Graphics): a PDF is read again on Apple platforms, its first page
 rasterised through `CGPDFDocument` at one pixel a point (`PlatformImageLoader`,
 `PDFDecodingTests`), and an asset catalogue's image set may hold one; the
-`CGColor` and `CGImage` bridges are TUIkit's own, behind
-`canImport(CoreGraphics)` (`Color+CoreGraphics.swift` in TUIkitStyling,
-`Image+CoreGraphics.swift` in TUIkitBitmaps). EPS stays unread, and Linux reads
+`CGColor` and `CGImage` bridges are TUI's own, behind
+`canImport(CoreGraphics)` (`Color+CoreGraphics.swift` in TUIStyling,
+`Image+CoreGraphics.swift` in TUIBitmaps). EPS stays unread, and Linux reads
 no PDF.
 - **The doubled statics stay.** Re-measured with a three-module probe: with
-  TUIkit free of AppKit, a single declaration on `FormatStyle` serves an app
-  that imports TUIkit alone — `Date.now.formatted(.offset(to: d))` included —
+  TUI free of AppKit, a single declaration on `FormatStyle` serves an app
+  that imports TUI alone — `Date.now.formatted(.offset(to: d))` included —
   but is ambiguous in a `DiscreteFormatStyle` context for an app that also
-  imports `TUIkitAppKit` (or AppKit). The pair works for both, so removing the
+  imports `TUIAppKit` (or AppKit). The pair works for both, so removing the
   `DiscreteFormatStyle` copies would trade a compile error for every app that
   bridges a colour.
 

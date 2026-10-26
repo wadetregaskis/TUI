@@ -1,4 +1,4 @@
-//  🖥️ TUIKit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  main.swift  —  GenerateImageGlyphs
 //
 //  Created by Wade Tregaskis
@@ -12,7 +12,7 @@
 //  candidate glyph in a reference monospace font (SF Mono Regular 11 by
 //  default — the font macOS Terminal.app uses) via CoreText, measures its
 //  ink, and emits ONE calibrated table into
-//  `Sources/TUIkitImage/ImageGlyphCalibration.generated.swift`:
+//  `Sources/TUIImage/ImageGlyphCalibration.generated.swift`:
 //
 //    • `generatedGlyphCalibration` — per glyph, the TOTAL ink coverage over
 //      the whole cell (for density-ramp selection) and the raw 6-region
@@ -22,7 +22,7 @@
 //      Unicode range and derives the ideal sized subsets at load.
 //
 //  The sampling geometry (`ShapeRegion`) is not duplicated here: generate.sh
-//  compiles the framework's own `Sources/TUIkitImage/ShapeSampling.swift` into
+//  compiles the framework's own `Sources/TUIImage/ShapeSampling.swift` into
 //  this tool, so the circles and spiral are the exact same source the runtime
 //  samples the image with.
 //
@@ -146,7 +146,7 @@ let shapeGlyphs: [Character] = (0x20...0x7E).map { Character(UnicodeScalar($0)!)
 /// chosen for strong spatial signatures and near-universal terminal-font
 /// coverage (Block Elements, Box Drawing, and the common Geometric Shapes —
 /// all single-cell in terminal fonts; the width test in ImageTests pins
-/// that against TUIkit's own width tables):
+/// that against TUI's own width tables):
 ///
 /// - shades for even tone, half blocks, quadrants, and the FULL horizontal
 ///   + vertical eighth-block ladders (including the often-forgotten upper
@@ -221,7 +221,7 @@ for glyph in shapeGlyphs + unicodeExtraGlyphs {
 func fmt(_ value: Double) -> String { String(format: "%.4f", value) }
 
 var out = """
-//  🖥️ TUIKit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ImageGlyphCalibration.generated.swift
 //
 //  Created by Wade Tregaskis
@@ -259,7 +259,7 @@ func escaped(_ ch: Character) -> String {
     }
 }
 
-let outputPath = "Sources/TUIkitImage/ImageGlyphCalibration.generated.swift"
+let outputPath = "Sources/TUIImage/ImageGlyphCalibration.generated.swift"
 try! out.write(toFile: outputPath, atomically: true, encoding: .utf8)
 
 // Summary + sanity checks (T upper-heavy, _ lower-heavy; the quadrants and

@@ -1,0 +1,458 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  ItemListHandler+Anchor.swift
+//
+//  How `List` and `Table` honour `Documentation/Layout and scrolling/Scroll anchoring.md` §1.1 —
+//  every mode, in one place, expressed in the list's ROW-based scroll offset:
+//
+//  - **Row**: a bound `.anchorPosition(.row(id))` (set directly, or via the
+//    §1.2 selection shadow-switch) pins that row, so the offset adjusts to keep
+//    it on its screen line as rows change around it. The counterpart of the
+//    LazyVStack windowed paths' `offsetHoldingDesignatedRow`.
+//  - **Bottom**: follow-the-log — the offset tracks the tail as rows arrive.
+//  - **Top** and **Window**: nothing to do here. No data change moves an
+//    offset of 0 away from the top, and snapping to the top unconditionally
+//    would be worse than useless: it would nail a `.defaultScrollAnchor(.top)`
+//    list to row 0 and make it unscrollable. Away from the top, the row at the
+//    top keeps its line as the rows above it change (`holdTopRow`, the
+//    default ``ScrollWindowHold/topRow``), or, under
+//    ``ScrollWindowHold/offset``, the row-indexed offset stays as it is.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import TUIFoundation
+
+extension ItemListHandler {
+
+    /// Applies whichever anchor mode is in effect. Called once per RENDER pass
+    /// (it mutates the persistent scroll offset) by
+    /// ``settleScrollPosition(measuring:overflowing:drawsTextIndicators:firstRowHeight:)``,
+    /// after the frame's row count, viewport, row heights and **id resolver** are
+    /// wired — the resolver because a `.row` anchor is a row KEY, and without it
+    /// there is nothing to hold.
+    ///
+    /// This used to say "and the ordinary clamp has run" as though that mattered.
+    /// It does not: measured both ways, over a `.row` anchor adopted on a stranded
+    /// offset and a `.bottom` anchor whose list shrinks under it, the offsets,
+    /// held rows and cursors come out identical. Both paths below are defensive
+    /// about the offset they are handed — ``applyRowAnchorHold()`` re-derives its
+    /// held row when its own clamp moves the destination, and it and
+    /// `followBottomEdge()` each zero `scrollTopClipLines` rather than leaving a
+    /// clip behind — so the clamp has nothing left to correct.
+    ///
+    /// A no-op for a list that neither binds `.anchorPosition` nor declares a
+    /// `defaultScrollAnchor` — which is every list written before this feature.
+    func applyAnchorHold() {
+        let bound = anchorPositionBinding?.wrappedValue
+        adoptWrittenAnchor(bound)
+        // The OPENING frame consults the `.initialOffset` anchor and every
+        // frame after it the `.sizeChanges` one — the same value for any list
+        // that used the unlabelled modifier. See `ScrollAnchorMode.governing`.
+        let declared = ScrollAnchorMode.governing(
+            opening: declaredOpeningAnchorMode, standing: declaredAnchorMode,
+            hasOpened: hasOpened)
+        let mode = ScrollAnchorMode.effective(boundAnchor: bound, declared: declared)
+        // A change made under `.scrollContentOffsetAdjustmentBehavior =
+        // .disabled` moves nothing: the follow stays where it is, which
+        // releases it (engagement is positional), and a held row is let go —
+        // adopted afresh where the change left it, so the offset does not move
+        // to keep it on its old line, and held there from the next change on.
+        // Adopted on this frame, not the next: adopted there, it was adopted
+        // where the NEXT change left it, and that change, made without the
+        // transaction, went unheld too. The app's own write to the binding,
+        // above, is not an adjustment and still jumps.
+        if offsetAdjustmentSuspended, hasOpened {
+            forgetRowAnchor()
+            if mode == .row { applyRowAnchorHold() }
+            bottomFollowBound = maxOffset
+            return
+        }
+        switch mode {
+        case .row:
+            applyRowAnchorHold()
+        case .bottom:
+            forgetRowAnchor()
+            followBottomEdge()
+        case .top, .window:
+            forgetRowAnchor()
+        }
+        bottomFollowBound = maxOffset
+        // The opening frame is spent; `applyAnchorHold` is render-pass only, so
+        // reaching here means a real frame was placed.
+        hasOpened = true
+    }
+
+    /// Jumps to an edge the app just *wrote* into the binding — §3.2's
+    /// `anchor(to:)`. Only the change jumps; the standing policy afterwards is
+    /// positional, so the user can still scroll away from the edge.
+    ///
+    /// A first sighting is the list appearing rather than the app writing, and
+    /// is left alone: the declared anchor's own opening placement (the
+    /// `bottomFollowBound == 0` first-frame glue below) handles it.
+    private func adoptWrittenAnchor(_ bound: ScrollAnchor<AnyHashable>?) {
+        guard lastBoundAnchor != .some(bound) else { return }
+        let isFirstSighting = lastBoundAnchor == nil
+        lastBoundAnchor = .some(bound)
+        guard !isFirstSighting else { return }
+        switch bound {
+        case .top:
+            scrollOffset = 0
+            scrollTopClipLines = 0
+        case .bottom:
+            scrollOffset = settledMaxOffset
+            scrollTopClipLines = 0
+        default:
+            break
+        }
+    }
+
+    /// Follow-the-log: while the view is AT the tail, keep it there as rows
+    /// arrive. Engagement is positional — being at the bottom *is* the
+    /// engagement, so scrolling up releases the follow and scrolling back down
+    /// re-engages it, with no stored flag to get out of step. Mirrors
+    /// `_ScrollViewCore.isGluedToBottom`.
+    ///
+    /// **The focus cursor comes along — but only when the tail advances.** A
+    /// focused list's scroll position is owned by its cursor —
+    /// `ensureFocusedItemVisible()` runs whenever focus is (re-)received and
+    /// drags the viewport back to whatever row the cursor is on, which is the
+    /// shipped "the selection must stay visible" invariant. So a follow that
+    /// moved the offset alone would be undone within the same frame, leaving
+    /// `.bottom` inert on any focused list: the cursor starts at row 0, row 0
+    /// is not visible from the tail, and the reveal wins. Carrying the cursor
+    /// to the last row is what "follow the log" means anyway — the newest row
+    /// is the interesting one.
+    ///
+    /// The carry fires on frames where the tail actually ADVANCED (the opening
+    /// placement, an append, a re-engagement), **never on a steady glued
+    /// frame**. Snapping every glued render made the arrow keys dead: Up moved
+    /// the cursor to a row that was already visible, so no offset moved, so
+    /// the next render was still glued and snapped the cursor straight back —
+    /// the release path this comment used to promise ("arrowing up moves the
+    /// offset off the tail") could never engage, because the cursor was reset
+    /// before it could ever walk to the viewport's top edge. With the carry
+    /// scoped to advances, arrowing up walks freely inside the viewport; when
+    /// the walk reaches the top edge it moves the offset, which releases the
+    /// follow (positional, as ever), and arrowing back down to the tail
+    /// re-engages it.
+    private func followBottomEdge() {
+        // Recorded whatever happens below: re-engagement compares against the
+        // tail as the USER last saw it, not the one the newest rows just made.
+        let tailBefore = bottomFollowTail
+        defer { bottomFollowTail = tailRowIndex }
+        guard scrollOffset >= bottomFollowBound else { return }
+        // The cursor is the user's place in the list, and it outranks the tail.
+        // Once they have moved it off the row this follow parked it on, the
+        // follow is over — it must not keep scrolling, or the row they went to
+        // is dragged out from under them on the next append, which is exactly
+        // what "moving the selection up from the bottom doesn't break the
+        // anchor" was. Scrolling back to the tail re-engages it (positional, as
+        // ever), and so does walking the cursor back to the last row.
+        if isFocusEngaged, let carried = bottomFollowCursor,
+            focusedIndex != carried, focusedIndex != tailBefore
+        {
+            return
+        }
+        let offsetBefore = scrollOffset
+        // `settledMaxOffset`, not `maxOffset`: the latter early-outs to a cheap
+        // LOWER bound while the offset is nowhere near the tail (so as not to
+        // materialise tail row heights every frame on a huge list), which would
+        // leave the follow a row or two short — visible as the last rows still
+        // being cut off after an append. Following the tail is exactly the case
+        // that has to pay for the exact answer.
+        scrollOffset = settledMaxOffset
+        // Offsets alone can't detect an advance: a list shorter than its
+        // viewport appends at offset 0 forever, and the cursor must still
+        // chase its tail.
+        let tailAdvanced = scrollOffset != offsetBefore || itemCount != bottomFollowItemCount
+        bottomFollowItemCount = itemCount
+        guard tailAdvanced else { return }
+        // The tail sits on a whole-row boundary, so any line-granularity clip
+        // carried from the previous top row no longer describes anything.
+        scrollTopClipLines = 0
+        // The cursor comes too. Measured, not assumed: gating this on
+        // `isFocusEngaged` — so an unfocused log view would scroll without
+        // lighting a row — leaves the follow inert, because
+        // `ensureFocusedItemVisible()` runs for every list and drags the
+        // viewport back to whatever row the cursor is on. Detaching the cursor
+        // from the anchor needs that reveal to know the anchor owns the offset;
+        // until then the two move together.
+        focusedIndex = tailRowIndex
+        bottomFollowCursor = focusedIndex
+    }
+
+    /// The top-row hold (``ScrollWindowHold/topRow``, `Documentation/Layout and
+    /// scrolling/Scroll anchoring.md` §5): moves ``scrollOffset`` by however
+    /// many rows were inserted or removed above the row remembered at the top
+    /// (``rememberTopRow()``), so it — and the rows on screen with it — keeps
+    /// its line, as SwiftUI's lazy stacks keep theirs. When that row itself
+    /// went, the row that followed it takes its place — unless it is still
+    /// right after that place, or the row before it right before, where only
+    /// the row's id changed (and not where the row before it now sits right
+    /// before the row after it, the top row gone from between them); when neither the row before it nor the row after
+    /// it is still beside it, the rows were rearranged — a sort — and nothing
+    /// is held, as SwiftUI holds nothing through a reorder (measured), rather
+    /// than scrolling to wherever the top row went. Asked of the row after it
+    /// alone, rows inserted above it with one just after it, or with the row
+    /// after it removed, were taken for a sort.
+    ///
+    /// A SHIFT, not a placement, so a scroll made since the last frame is kept,
+    /// and one whose rows above the top did not change moves nothing — one id
+    /// read. Nothing is held at the top (rows inserted above show, as
+    /// SwiftUI's do, measured), while following the tail (the follow places
+    /// the frame), for a change made under "no adjustment", or under
+    /// ``ScrollWindowHold/offset``; a held `.row` anchor, applied after this,
+    /// has the last word.
+    ///
+    /// The focus cursor moves with the rows when it is on the top row or below
+    /// it: it is a row index, so left alone it would point at another row —
+    /// and the next key's reveal would scroll back to it, undoing the hold.
+    ///
+    /// A move the list made itself (``movedRowsPendingFrames``, on the first
+    /// frame that finds the rows moved, within a few frames and 150 ms) is not held
+    /// either: it put the cursor on the row it moved and revealed it, and the
+    /// rows it moved are no change made above the reader. Held, a row moved onto the top row's
+    /// place — moved up a page from the last row on screen, or dropped on the
+    /// first — pushed the top row down one, which the hold took for a row
+    /// inserted above it: it scrolled the moved row out of view and moved the
+    /// cursor, already on that row, by one more, onto the old top row, where
+    /// the next chord acted.
+    ///
+    /// Render pass only, before the clamps; ``settleScrollPosition(measuring:overflowing:drawsTextIndicators:firstRowHeight:)``
+    /// calls it.
+    func holdTopRow() {
+        defer { lastWindowHold = windowHold }
+        heldTopVerified = false
+        guard windowHold == .topRow, let heldID = heldTopID else {
+            movedRowsPendingFrames = 0
+            return
+        }
+        if id(at: heldTopOrdinal) == heldID {
+            heldTopVerified = true
+            // A move of the list's own not in the data yet: wait a frame less.
+            movedRowsPendingFrames = max(0, movedRowsPendingFrames - 1)
+            return
+        }
+        // The rows moved under the top row: a move of the list's own, if one
+        // is awaited, is this, and is not held.
+        let ownMove = movedRowsPendingFrames > 0
+        movedRowsPendingFrames = 0
+        let declared = ScrollAnchorMode.governing(
+            opening: declaredOpeningAnchorMode, standing: declaredAnchorMode, hasOpened: hasOpened)
+        let mode = ScrollAnchorMode.effective(
+            boundAnchor: anchorPositionBinding?.wrappedValue, declared: declared)
+        let followsTail = mode == .bottom && scrollOffset >= bottomFollowBound
+        guard lastWindowHold == .topRow, hasOpened, !offsetAdjustmentSuspended, !followsTail,
+            !ownMove, scrollOffset > 0 || scrollTopClipLines > 0
+        else { return }
+        let found = index(of: heldID, near: heldTopOrdinal)
+        if let found, !keepsANeighbour(at: found) { return }
+        let now: Int
+        if let found {
+            now = found
+        } else {
+            // Gone: the row after it is put where it was — unless one row
+            // still stands between it and the row before it, the row in the
+            // place replaced where it stood (its id changed). That is so when
+            // the row before it is still right before that place, or the row
+            // after it still right after the place the top row had (the row
+            // before renamed too, or a first row, which has none) — but not
+            // when the row before it is now right before the row after it:
+            // the top row went from between them. Asked of the row before it
+            // alone, the top row renamed with the row above it took the place
+            // for gone; asked of "still right after" alone, the top row
+            // removed with one row inserted above took it for kept, and put
+            // the row from above the screen on top.
+            guard let next = heldTopNextID, let nextNow = index(of: next, near: heldTopOrdinal + 1) else { return }
+            let place = nextNow - 1
+            let closedUp = heldTopPreviousID.map { id(at: place) == $0 } ?? false
+            let placeKept =
+                !closedUp && (place == heldTopOrdinal || heldTopPreviousID.map { id(at: place - 1) == $0 } == true)
+            now = placeKept ? place : nextNow
+        }
+        let shift = now - heldTopOrdinal
+        scrollOffset = max(0, scrollOffset + shift)
+        if focusedIndex >= heldTopOrdinal, itemCount > 0 {
+            focusedIndex = max(0, min(itemCount - 1, focusedIndex + shift))
+        }
+    }
+
+    /// Remembers the row at the top of the viewport for the next frame's
+    /// ``holdTopRow()``: the first row at or below ``scrollOffset`` that has an
+    /// id (a section's header has none), within a viewport of rows, and the ids
+    /// of the rows before and after it. Reads nothing when the offset is where it was
+    /// remembered and this frame found the row there, with as many rows as when
+    /// the ids beside it were read — a row inserted or removed beside it leaves
+    /// it in place, and unread, the row after it went stale: the top row
+    /// renamed later put the row two after it on top — nor at the top, where
+    /// nothing is held: a list at rest at its top, which most are most of the
+    /// time, pays nothing at all (an id can cost a build of its row, see
+    /// ``id(at:)``). A scroll away from the top in the same frame as a change
+    /// above is then not held, which needs both at once.
+    func rememberTopRow() {
+        guard windowHold == .topRow, scrollOffset > 0 || scrollTopClipLines > 0 else {
+            heldTopID = nil
+            return
+        }
+        if heldTopVerified, heldTopOffset == scrollOffset, heldTopItemCount == itemCount { return }
+        heldTopOffset = scrollOffset
+        heldTopItemCount = itemCount
+        heldTopID = nil
+        heldTopNextID = nil
+        heldTopPreviousID = nil
+        var ordinal = scrollOffset
+        while ordinal < min(itemCount, scrollOffset + max(1, viewportHeight)) {
+            if let id = id(at: ordinal) {
+                heldTopID = id
+                heldTopOrdinal = ordinal
+                heldTopNextID = self.id(at: ordinal + 1)
+                heldTopPreviousID = self.id(at: ordinal - 1)
+                return
+            }
+            ordinal += 1
+        }
+    }
+
+    /// Whether the row before the held top row or the row after it is still
+    /// beside it, now that it is at `index` — or it had neither.
+    private func keepsANeighbour(at index: Int) -> Bool {
+        let previous = heldTopPreviousID.map { id(at: index - 1) == $0 }
+        let next = heldTopNextID.map { id(at: index + 1) == $0 }
+        return previous == true || next == true || (previous == nil && next == nil)
+    }
+
+    /// The last row a cursor can sit on. `selectableIndices` is empty for an
+    /// all-content list, meaning "every row" — the same fallback the End key
+    /// uses.
+    private var tailRowIndex: Int {
+        lastLandingRow(orElse: max(0, itemCount - 1))
+    }
+
+    /// Drops the row-hold memo, so re-designating the same row later adopts it
+    /// afresh rather than reusing a screen line chosen against a viewport and
+    /// dataset that no longer exist.
+    private func forgetRowAnchor() {
+        anchorHeldKey = nil
+        anchorHeldOrdinal = nil
+    }
+
+    /// Holds a bound `.anchorPosition(.row(id))` in place: adjusts
+    /// ``scrollOffset`` so the anchored row keeps the screen position it had
+    /// when adopted, as rows are inserted or removed around it.
+    ///
+    /// A no-op unless a `.row` anchor is bound to a row that exists in this
+    /// list, so a list without `.anchorPosition` (every existing List/Table) is
+    /// wholly unaffected. Render pass only (it mutates the persistent offset);
+    /// call it after the id resolver and the viewport/extent are wired.
+    ///
+    /// The offset works in ROWS, so the hold does too: the anchored row is kept
+    /// at the same row index from the top of the viewport, which for the common
+    /// single-line rows is the same screen line. Adoption records that row when
+    /// the designation changes; a later edit that forces the row off its line
+    /// (an edge clamps the offset) re-anchors it where it landed rather than
+    /// letting it spring back — matching the LazyVStack paths.
+    func applyRowAnchorHold() {
+        guard let anchor = anchorPositionBinding?.wrappedValue,
+            case .row(let key) = anchor,
+            let value = key.base as? SelectionValue,
+            let ordinal = resolveAnchorOrdinal(key: key, value: value)
+        else {
+            anchorHeldKey = nil
+            anchorHeldOrdinal = nil
+            return
+        }
+        // A row held mid-list shows BOTH "N more above/below" indicators, and
+        // `viewportHeight` reserved only the above one. Reserve the below one
+        // too (unless a scrollbar draws no indicator lines) so a row revealed
+        // from off-screen lands clear of the bottom indicator rather than one
+        // line under it. An already-visible row's line is ≤ this, so adopting
+        // it is unaffected.
+        let lastRow = lastHoldableRow(for: ordinal)
+        func held(landingAt row: Int) -> Int { min(max(row, 0), lastRow) }
+        if anchorHeldKey != key {
+            anchorHeldKey = key
+            anchorHeldRow = held(landingAt: ordinal - scrollOffset)
+        }
+        // The viewport can shrink between frames as indicators appear; keep the
+        // held line inside it.
+        anchorHeldRow = min(anchorHeldRow, lastRow)
+        let desired = ordinal - anchorHeldRow
+        // Clamped against the bound at the DESTINATION: `maxOffset` early-outs
+        // to a cheap lower bound for offsets that cannot reach the tail, and a
+        // hold that jumps a long way down — designating a row far below the
+        // current viewport — would be clamped to it and still leave the
+        // anchored row short of view.
+        let clamped = min(max(desired, 0), resolvedMaxOffset(reaching: desired))
+        if clamped != desired { anchorHeldRow = held(landingAt: ordinal - clamped) }
+        scrollOffset = clamped
+        // Holding pins the row on a whole-row boundary; any line-granularity
+        // sub-row clip on the old top row no longer applies.
+        scrollTopClipLines = 0
+    }
+
+    /// The lowest screen ROW the anchored row may be held at: how many whole
+    /// rows fit above it, counting real heights up from it.
+    ///
+    /// ``viewportHeight`` cannot answer this. A `List` finalises it to a
+    /// visible-ROW count only AFTER the window is built, so when the hold runs
+    /// it is still the provisional LINE count — and over multi-line rows those
+    /// differ by a factor of the row height, so the clamp admitted row
+    /// positions far below the fold and the "held" row landed off screen. The
+    /// `Table` twin escapes it only because its own count is offset-independent.
+    ///
+    /// Walking real heights up from the anchored row asks the question
+    /// directly, needs no convention from the caller, and costs O(viewport) on
+    /// rows this frame renders anyway — they are precisely the window the hold
+    /// is about to produce, and a `List`'s row-height closure is lazy and
+    /// memoised.
+    ///
+    /// Falls back to the line arithmetic when there are no row heights to walk:
+    /// a single-line `Table` (where rows and lines are the same thing anyway)
+    /// and the handler's own unit tests, which set no content height.
+    private func lastHoldableRow(for ordinal: Int) -> Int {
+        guard let rowHeight, contentHeight != nil else { return lastHoldableLineRow }
+        let budget = rowLineBudget
+        var used = max(1, rowHeight(ordinal))
+        var rows = 0
+        var index = ordinal - 1
+        while index >= 0, used + max(1, rowHeight(index)) <= budget {
+            used += max(1, rowHeight(index))
+            rows += 1
+            index -= 1
+        }
+        return rows
+    }
+
+    /// The single-line answer, for a `Table` whose rows are its lines.
+    ///
+    /// NOT `viewportHeight` minus the indicator reservation: on the single-line
+    /// `Table` path `viewportHeight` is still PROVISIONAL when the hold is
+    /// applied — `contentHeight - 1`, the 'above' line already taken out — so
+    /// subtracting the reservation from it again put the last holdable row one
+    /// line too high under a bar (a bar spends no line) and two too high with
+    /// the indicators hidden, and designating the row already on the last line
+    /// scrolled the table by that much. The capacity is what the chrome actually
+    /// spends: two lines for the "▲/▼ N more" pair, nothing otherwise.
+    private var lastHoldableLineRow: Int {
+        if let contentHeight {
+            return max(0, contentHeight - (reservesIndicatorLine ? 2 : 0) - 1)
+        }
+        // The handler's own unit tests set no content height; there
+        // `viewportHeight` is the real one.
+        return max(0, viewportHeight - (showsScrollbar ? 1 : 2))
+    }
+
+    /// The held anchor row's current ordinal, via an O(1) memo (the key usually
+    /// stays put frame to frame) falling back to a search outward from it
+    /// (``index(of:near:)``) only when the data around it actually shifted.
+    private func resolveAnchorOrdinal(key: AnyHashable, value: SelectionValue) -> Int? {
+        if key == anchorHeldKey, let memo = anchorHeldOrdinal,
+            memo < itemCount, id(at: memo) == value
+        {
+            return memo
+        }
+        let ordinal = anchorHeldOrdinal.map { index(of: value, near: $0) } ?? index(of: value)
+        anchorHeldOrdinal = ordinal
+        return ordinal
+    }
+}

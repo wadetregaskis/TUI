@@ -29,7 +29,7 @@ is reported shown wherever it is laid out; and a view removed from the tree
 reports nothing. SwiftUI's lazy stacks destroy a row that scrolls out of their
 window, and it reports nothing until it is made again.
 
-What ships follows all of that except the last: a row a TUIkit lazy stack stops
+What ships follows all of that except the last: a row a TUI lazy stack stops
 drawing is still in the tree (its state is kept), and is reported hidden if it
 was shown — option 1 of A7 ("fires `false` for a marker that has vanished").
 A removed view is told nothing, as in SwiftUI; the two are told apart by
@@ -210,9 +210,9 @@ cell).
 
 `CoordinateSpace.named(AnyHashable)` holds any `Hashable`, and nothing says the
 value inside is safe to share; SwiftUI's two types are not `Sendable` either
-(their symbol graph lists `Equatable` and `Hashable`). TUIkit's
+(their symbol graph lists `Equatable` and `Hashable`). TUI's
 `CoordinateSpace` was `Sendable` while it had only `.local` and `.global`;
-nothing in TUIkit relied on it.
+nothing in TUI relied on it.
 
 `hasGlobalPosition` existed to say when `frame(in: .global)` had fallen back to
 the local frame. `.global` is exact now, so the property answered nothing, and
@@ -320,7 +320,7 @@ drawing it, measuring the content where it aligns by size (memo hits: the
 same measures its own `sizeThatFits` took). The ones that align by size also
 move a `.gradientExtent(.subtree)` ramp, which they did not before; `.offset`
 and `.position` move only the geometry origin, keeping the colour where the
-layout put the view (the extent is TUIkit's own, so SwiftUI has no answer
+layout put the view (the extent is TUI's own, so SwiftUI has no answer
 to measure; this keeps today's colours under an offset).
 
 Left to the residual: the scene root's centring of content smaller than the
@@ -343,8 +343,8 @@ A/Bs), when the Stress counter shows a shape paying for them.
 study's option (a), approved by the owner on 2026-10-24*
 
 **Built (2026-10-24).** The architecture study ([SwiftUI's update model beside
-TUIkit's](<../../../Investigations/SwiftUI's update model beside TUIkit's (2026-10-24).md>),
-§5 option (a)) found that the frames TUIkit showed and SwiftUI does not — a
+TUI's](<../../../Investigations/SwiftUI's update model beside TUI's (2026-10-24).md>),
+§5 option (a)) found that the frames TUI showed and SwiftUI does not — a
 page that loads in `onAppear` drawn empty for a frame, or torn (the views
 before the loader old, the ones after new), a value an `onChange` derives a
 frame behind its source, the flow-layout idiom laid out once from empty
@@ -405,7 +405,7 @@ So, as SwiftUI does:
    tried to update multiple times per frame." and "Bound preference IntKey
    tried to update multiple times per frame." Counted per action as it runs,
    so a discarded drawing's count nothing. SwiftUI's limit reads as twice per
-   *draw*; TUIkit's draw is the written frame, whose walks a chain may end
+   *draw*; TUI's draw is the written frame, whose walks a chain may end
    partway through, so a self-feeding action can run twice in each of two
    frames before a third run in one is refused — four runs where SwiftUI
    made three (`EffectSettlingTests.selfTriggeringOnChangeIsCutOff`). An

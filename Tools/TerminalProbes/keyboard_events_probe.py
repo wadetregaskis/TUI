@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Kitty keyboard protocol EVENT probe: with the flags TUIkit pushes, what
+"""Kitty keyboard protocol EVENT probe: with the flags TUI pushes, what
 does each key the user presses actually send?
 
-Pushes `CSI > 31 u` (all five enhancements, as TUIkit asks for them), asks
+Pushes `CSI > 31 u` (all five enhancements, as TUI asks for them), asks
 what the terminal took, then logs every read raw and decoded, until Ctrl-C
 (in any encoding) or two minutes of silence. Pops the flags on the way out,
 including on an exception.
 
 The decoder here is written from the specification
 (<https://sw.kovidgoyal.net/kitty/keyboard-protocol/>), independently of
-TUIkit's `KittyKeyDecoder`, so a disagreement between the two is worth a
+TUI's `KittyKeyDecoder`, so a disagreement between the two is worth a
 look: the log is the ground truth, and both decoders are claims about it.
 
 The keys worth pressing, and why, are listed in
@@ -19,7 +19,7 @@ the log.
 
 Run INSIDE the terminal under test. Writes to $PROBE_OUT (default
 ./keyboard_events_probe.log), appending; prints each decoded event as it comes.
-`PROBE_ALT=1` runs on the alternate screen, as TUIkit does.
+`PROBE_ALT=1` runs on the alternate screen, as TUI does.
 """
 import os, re, select, signal, sys, termios, time, tty
 

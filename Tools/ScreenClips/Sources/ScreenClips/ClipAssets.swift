@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ClipAssets.swift
 //
 //  Where a clip's pictures are: beside the player, where regenerate.sh stages

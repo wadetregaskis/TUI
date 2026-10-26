@@ -183,18 +183,18 @@ Note: Modifier views with closures (`KeyPressModifier`, `OnAppearModifier`, `Tas
 
 | File | Change |
 |---|---|
-| `Sources/TUIkit/Rendering/RenderLoop.swift` | Environment snapshot comparison, `clearAll()` on change |
-| `Sources/TUIkit/Rendering/RenderCache.swift` | `EnvironmentSnapshot` struct, `Stats` struct, debug logging |
-| `Sources/TUIkit/State/State.swift` | Doc comment on `AppState.setNeedsRender()` |
-| `Sources/TUIkit/Views/Text.swift` | `TextStyle: Equatable`, `Text: Equatable` |
-| `Sources/TUIkit/Views/Stacks.swift` | `Alignment: Equatable`, conditional `Equatable` on stacks |
-| `Sources/TUIkit/Views/ContainerView.swift` | `ContainerConfig: Equatable`, conditional `Equatable` |
-| `Sources/TUIkit/Views/Panel.swift` | Conditional `Equatable` |
-| `Sources/TUIkit/Views/Card.swift` | Conditional `Equatable` |
-| `Sources/TUIkit/Views/Dialog.swift` | Conditional `Equatable` |
-| `Sources/TUIkit/Views/Box.swift` | Conditional `Equatable` |
-| `Sources/TUIkit/Modifiers/*.swift` | Conditional `Equatable` on modifier views |
-| `Sources/TUIkit/Rendering/RenderCache.swift` | Stats struct, debug logging |
+| `Sources/TUI/Rendering/RenderLoop.swift` | Environment snapshot comparison, `clearAll()` on change |
+| `Sources/TUI/Rendering/RenderCache.swift` | `EnvironmentSnapshot` struct, `Stats` struct, debug logging |
+| `Sources/TUI/State/State.swift` | Doc comment on `AppState.setNeedsRender()` |
+| `Sources/TUI/Views/Text.swift` | `TextStyle: Equatable`, `Text: Equatable` |
+| `Sources/TUI/Views/Stacks.swift` | `Alignment: Equatable`, conditional `Equatable` on stacks |
+| `Sources/TUI/Views/ContainerView.swift` | `ContainerConfig: Equatable`, conditional `Equatable` |
+| `Sources/TUI/Views/Panel.swift` | Conditional `Equatable` |
+| `Sources/TUI/Views/Card.swift` | Conditional `Equatable` |
+| `Sources/TUI/Views/Dialog.swift` | Conditional `Equatable` |
+| `Sources/TUI/Views/Box.swift` | Conditional `Equatable` |
+| `Sources/TUI/Modifiers/*.swift` | Conditional `Equatable` on modifier views |
+| `Sources/TUI/Rendering/RenderCache.swift` | Stats struct, debug logging |
 | `Example/Sources/Pages/*.swift` | Subview extraction, `.equatable()` usage |
 | DocC articles | Phase 5+6 documentation |
 

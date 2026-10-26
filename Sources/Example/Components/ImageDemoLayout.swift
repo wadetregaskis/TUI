@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ImageDemoLayout.swift
 //
 //  The shape of an image demo page — the picture and its controls side by
@@ -13,7 +13,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// A picture, and the pane of controls that drives it.
 struct ImageDemoLayout<Content: View>: View {

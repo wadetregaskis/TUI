@@ -17,7 +17,7 @@ SDK, 2026-10-18) by offscreen `NSHostingView` probes,
 (`mg1.swift`, `mg2.swift`, `mg2b.swift`, `mg3.swift`, each with what it
 printed), which read the presentation frames of the layer tree, so they see
 where SwiftUI draws a view rather than where it lays it out.
-`Tests/TUIkitEffectsTests/MatchedGeometryEffectTests.swift` pins each finding
+`Tests/TUIEffectsTests/MatchedGeometryEffectTests.swift` pins each finding
 in cells.*
 
 ## What was measured
@@ -35,7 +35,7 @@ in cells.*
   is drawn from the matched frame's corner offset by twice its anchor's share
   of the difference: a centred 10×10 in a 40×20 frame at (30, 10), against the
   frame's bottom-trailing corner (`mg1` S1, S9, S10, S11; `mg2b` G1–G7). It
-  looks like an alignment applied twice; TUIkit draws it there too, since it
+  looks like an alignment applied twice; TUI draws it there too, since it
   is what SwiftUI code ported here was written against.
 - **A source's own `properties` change nothing**; a follower's do (`mg2` F13).
 - **Two sources:** the follower took the later one's frame, and so did the
@@ -58,7 +58,7 @@ in cells.*
 *`View.matchedGeometryEffect(id:in:properties:anchor:isSource:)`*
 
 SwiftUI carries the removed view toward the inserted one's frame while its
-removal transition plays (`mg3` A1, A2). TUIkit draws a removed view from the
+removal transition plays (`mg3` A1, A2). TUI draws a removed view from the
 picture it last drew, at its slot (Deliberate deviations A3), so the picture
 stays where it was and fades there; the inserted view is carried from it. An
 `if`/`else` whose branch flips changes at once (Deliberate deviations,
@@ -106,7 +106,7 @@ faded by the `if`'s fade either, while `.opacity` fades its displaced drawing
 (`_OpacityView.fadingOverlays`).
 
 **Fuller version:** fade a view's own layers in both transition fades as
-`.opacity` does — which moves `fadingOverlays` down to `TUIkitView`, beside
+`.opacity` does — which moves `fadingOverlays` down to `TUIView`, beside
 `DefaultTransition` — so a carried view fades in as it moves, and an
 `.offset` child fades with its `if`. About half a day with tests; it touches
 the transition code lane FB16 is changing, so it waits for that lane. Whether
@@ -114,7 +114,7 @@ a carried view should fade at all in a terminal is worth a look then: a solid
 view moving reads better on a cell grid than one fading in as it moves.
 
 **Done 2026-10-19 (lane TRANSITIONS2).** Both fades reach a view's layers
-drawn past its slot (`OpacityFading`, moved down to `TUIkitView`): a carried
+drawn past its slot (`OpacityFading`, moved down to `TUIView`): a carried
 view fades as it moves, and an `.offset` child with its `if`, as SwiftUI's do
 (`mg3.out` A1, A2; `Tools/SwiftUIProbes/Transitions/tr3.out` T14, T15).
 
@@ -124,7 +124,7 @@ view fades as it moves, and an `.offset` child with its `if`, as SwiftUI's do
 
 Apple's documentation calls more than one source undefined. SwiftUI was
 measured giving followers the later source's frame, and giving it to the
-earlier source too (`mg1` S10). TUIkit gives followers the last source drawn,
+earlier source too (`mg1` S10). TUI gives followers the last source drawn,
 and draws every source at its own frame.
 
 **Fuller version:** draw the earlier sources at the last one's frame as well,
@@ -173,7 +173,7 @@ is now.
 
 Four calls the ruling left open:
 
-- **Which animation.** TUIkit's stack changes at once, and a `NavigationLink`
+- **Which animation.** TUI's stack changes at once, and a `NavigationLink`
   pushes outside any `withAnimation`; SwiftUI animates a push regardless. The
   zoom takes the change's animation where it has one and `Animation.default`
   where it does not, and does not play where the transaction disables

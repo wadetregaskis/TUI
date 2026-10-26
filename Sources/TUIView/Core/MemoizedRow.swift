@@ -1,0 +1,294 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  MemoizedRow.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import TUICore
+
+// MARK: - Type-erased Equatable
+
+/// A type-erased `Equatable` value, for a comparison whose operands' type is
+/// not statically known to conform to `Equatable`: a `List`'s or `Table`'s
+/// data compared frame to frame, a lifecycle modifier's `id`.
+///
+/// Comparing two boxes is an `Element == Element` only when the dynamic types
+/// match; a type mismatch compares unequal. Not a row memo's key any longer:
+/// `ForEach` recovers the conformance at run time (`element as? any
+/// Equatable`) and keys the row by the element OPENED from that, as its own
+/// type, which compares with one cast and its own `==` and hashes as plain
+/// words (see `ForEach.memoizedChild(keyedBy:element:key:)`).
+public struct AnyEquatableBox: Equatable {
+    @usableFromInline let value: any Equatable
+
+    public init<E: Equatable>(_ value: E) {
+        self.value = value
+    }
+
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        // Open `lhs`'s existential to its concrete type, then compare against
+        // `rhs` cast to that same type. This is exactly the old stored `isEqual`
+        // closure — `(rhs as? typeof(lhs)) == lhs` — but without allocating a
+        // heap closure per box: a `ForEach`/`List` row built one box per
+        // element every frame, when rows were keyed by it, so that per-row
+        // closure allocation was pure churn on the hottest general path. A
+        // dynamic-type mismatch casts to nil and compares unequal, so values of
+        // two types never produce a false cache hit.
+        func equal<L: Equatable>(_ lhsValue: L) -> Bool {
+            (rhs.value as? L) == lhsValue
+        }
+        return equal(lhs.value)
+    }
+}
+
+// MARK: - Memoized Row
+
+/// Memoizes a row's render (and measure) by the value of its *data element*,
+/// rather than by the view value (`EquatableView`) — because a `ForEach` row is
+/// `content(element)`, an arbitrary non-`Equatable` view, but is a pure function
+/// of its `Equatable` element. `ForEach.extractListRows` wraps rows in this
+/// automatically when the element is `Equatable`.
+///
+/// A row is the natural unit for a list: `List` renders every row to a buffer
+/// each frame (then windows to the viewport), so unchanged rows re-render
+/// needlessly. Keying the existing `RenderCache` on the element collapses that —
+/// one `Element ==` skips the whole row subtree.
+///
+/// ## Correctness
+///
+/// Reuses `RenderCache` and its lifecycle. `@State` / `@Observable` changes
+/// already invalidate the cache (`StateBox.didSet` → `clearAffected`, keyed on
+/// the changed identity's ancestors — which includes the row), so a stateful
+/// row is re-rendered when its state changes; no special handling needed.
+///
+/// The one thing the cache deliberately does **not** invalidate is the
+/// per-frame pulse tick, so this declines to cache a row that would freeze:
+///   - an **interactive** subtree (a focused, pulsing control) — detected by
+///     hit-test regions / overlays in the row's rendered buffer; or
+///   - a subtree that reads a **per-frame-volatile** environment value
+///     (`pulsePhase`) — detected via a ``VolatileReadTracker``.
+///
+/// **Known hole — captured data.** The memo assumes a row is a pure function
+/// of its element. A row whose content *captures* mutable data from outside
+/// its own subtree (e.g. `ForEach(0..<2) { _ in row drawn from some outer
+/// state }`) can serve a stale buffer when that data changes: the element key
+/// is unchanged, so nothing but `clearAffected` can save it.
+///
+/// **Which writes save it, and which do not** — measured 2026-08-24, because
+/// the boundary decides whether a given `ForEach` is a bug or merely ugly.
+/// `clearAffected(by:)` drops the writer's identity, its ANCESTORS and its
+/// DESCENDANTS. So:
+///
+/// - **A write from an ancestor reaches the row.** `@State` in an enclosing
+///   view — the overwhelmingly common case — clears the row and it rebuilds.
+///   This is why the pattern survives in so much code without being noticed.
+/// - **A write from a COUSIN does not.** State owned by a sibling subtree is
+///   neither, so the clear matches nothing and the row keeps its buffer for as
+///   long as its element is unchanged.
+///
+/// The second is not hypothetical. `ColorPickerPanel`'s preview block was
+/// `ForEach(0..<5)` reading a colour from outside, and the writes that moved
+/// that colour came from the panel's OWN sliders and tabs — `_TabViewCore`,
+/// `_EditableValueField`, siblings of the block. Measured on the live app:
+/// four slider drags, six `clearAffected` calls, `0 of 5` entries dropped
+/// every time, and the swatch held the colour the dialog opened with while the
+/// read-out beside it — the same value, not memoized — followed every drag.
+///
+/// Undetectable here (closures are opaque). Framework views must not build
+/// display-only rows from captured mutable data under an `Equatable`-element
+/// `ForEach` — iterate the data itself (so it IS the element), or drop the
+/// `ForEach`. The gradient editor's frozen preview strip was this exact shape.
+///
+/// **The hole covers actions too.** A served row makes its replayable
+/// registrations again (`EffectJournal`), and what it replays is the handler it
+/// built when it rendered. A handler that reads data captured from a cousin
+/// subtree keeps the old data, and nothing shows it: a stale picture can be
+/// seen, a stale action only does the wrong thing. The rule above is the same
+/// for a row that acts on captured data as for one that draws it.
+///
+/// For `List` the selection highlight is applied *outside* the cached row
+/// buffer, so selection/scroll never invalidate it — only the row's own content
+/// matters.
+///
+/// It is `Renderable` (and so adds no child identity), so the inner content
+/// keeps whatever identity it would have had unwrapped: the memo is
+/// identity-transparent to `@State` / focus.
+public struct _MemoizedRow<Element: Equatable, Source, Content: View>: View, Renderable, Layoutable {
+    public let element: Element
+    /// The value the row is built FROM, and the builder that builds it.
+    ///
+    /// Deliberately not a built `Content`. The memo's whole premise is that
+    /// most rows hit — 94% of them in the `fanout` stress scenario — and on a
+    /// hit the built row view is never looked at: the cached buffer (or cached
+    /// size) is returned and the view is discarded. Building it eagerly, once
+    /// per row per pass, was `ForEach.makeChild`'s 21% of that scenario's
+    /// frame, nearly all of it thrown away.
+    ///
+    /// A `(Source) -> Content` rather than a captured `() -> Content` so
+    /// deferral costs no allocation: `build` is the enclosing `ForEach`'s own
+    /// content closure, which already exists and is shared by every row, so
+    /// storing it is a retain. A per-row capturing closure would trade the row
+    /// view's allocations for a closure box's, one per row per pass.
+    private let source: Source
+    private let build: (Source) -> Content
+
+    /// The row view. **Builds it** — call once, and only where the memo has
+    /// already missed.
+    private var content: Content { build(source) }
+
+    /// Memoizes `build(source)` under the key `element`.
+    public init(element: Element, source: Source, build: @escaping (Source) -> Content) {
+        self.element = element
+        self.source = source
+        self.build = build
+    }
+
+    /// Memoizes an already-built row.
+    ///
+    /// For a caller that already holds the built row — which, in the framework,
+    /// none does: `ForEach` and `List`'s row extraction both use
+    /// ``init(element:source:build:)``, so a served row never builds its view.
+    /// Tests construct rows this way. The identity builder captures nothing, so
+    /// it is a static thunk, not an allocation.
+    public init(element: Element, content: Content) where Source == Content {
+        self.init(element: element, source: content, build: { $0 })
+    }
+
+    public var body: Never {
+        fatalError("_MemoizedRow renders via Renderable")
+    }
+
+    /// Memoized by the row's DATA ELEMENT, through the shared value memo — see
+    /// `renderValueMemoized(key:viewType:context:build:render:)`.
+    ///
+    /// The soundness argument is this type's own, and it is the weaker of the
+    /// two the shared memo serves. `EquatableView` keys on the whole view value,
+    /// so a hit means the very thing that would have been rendered compares
+    /// equal. Here the key is the element and the claim is that the row is a pure
+    /// function of it — true for a row built from its element, and NOT true for
+    /// one that captures mutable data from outside its own subtree, which is the
+    /// known hole documented on the type above.
+    ///
+    /// The weaker claim is exactly why this half is the one worth verifying, and
+    /// under `TUIKIT_VERIFY_RENDER_MEMO` it now is. It was not: the shared memo
+    /// took a `verifies` flag and this caller passed `false`, so the standing CI
+    /// net — `Stress --selfcheck` with that variable set, whose whole job is to
+    /// catch a memo serving a stale picture — checked **nothing**, because every
+    /// buffer that harness serves is one of these (no scenario uses
+    /// `.equatable()`). It now checks 4,565 of them across 14 of the 21
+    /// scenarios.
+    public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        renderValueMemoized(
+            key: element, viewType: Content.self, context: context, build: { content },
+            render: { TUIView.renderToBuffer($0, context: $1) })
+    }
+
+    /// The size twin, same shared implementation.
+    ///
+    /// `content` is a computed property that BUILDS the row, so it must be
+    /// touched only inside `build` — which the memo calls only on a miss.
+    /// That is the whole reason the row view is not a stored property: 94% of
+    /// rows hit in the `fanout` stress scenario, and building the view eagerly
+    /// once per row per pass was `ForEach.makeChild`'s 21% of that frame, nearly
+    /// all of it thrown away.
+    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measureValueMemoized(
+            key: element, proposal: proposal, context: context, build: { content },
+            measure: { measureChild($0, proposal: proposal, context: $1) })
+    }
+}
+
+// MARK: - Seeing past the wrapper
+
+/// A value memo, asked what it wraps.
+///
+/// ``_MemoizedRow`` is `Renderable` and therefore *opaque*: a container that
+/// reads a child's view VALUE — `List` asking whether a row is a `Section`, so
+/// it can splice that section's own rows in — finds the wrapper, not the row.
+/// This is the way through. It is the same class of problem the `memoisable`
+/// gate in `ForEach.makeChild` already solves for alignment guides, z-index and
+/// spacers; those are answered by a static witness on the row type, while this
+/// question belongs to a framework layer above `TUIView` and cannot be.
+///
+/// The two members are deliberately separate. ``memoizedContentType`` answers
+/// *what the row is* without building it, so an ordinary row keeps the memo's
+/// whole saving (94% of rows hit in the `fanout` scenario, and building them
+/// eagerly was 21% of that frame). ``memoizedContent`` builds — for the caller
+/// that has already learned from the type that it must.
+@MainActor
+public protocol _ValueMemoWrapping {
+    /// The wrapped row's type, without building the row.
+    var memoizedContentType: any View.Type { get }
+
+    /// The wrapped row itself. **Builds it** — see the type's note above.
+    var memoizedContent: any View { get }
+}
+
+extension _MemoizedRow: _ValueMemoWrapping {
+    public var memoizedContentType: any View.Type { Content.self }
+    public var memoizedContent: any View { content }
+}
+
+// MARK: - Prefix extension
+
+/// A value that can say whether another value of its own type is a PREFIX of
+/// it — the same leading elements, in the same order, with none lost.
+///
+/// `Equatable` answers "must this be re-derived from scratch"; this answers
+/// "how much of it still holds". The difference is the whole of an incremental
+/// aggregate: a maximum over a collection that GREW is the old maximum joined
+/// with the new elements, where a maximum over a collection that lost members
+/// has to be taken again.
+///
+/// Deliberately not an `extends(_: Self)` requirement: the caller holds an
+/// ``AnyEquatableBox``, whose payload is an existential, and a same-type
+/// requirement cannot be called through one. The `Any` is narrowed by a cast in
+/// each conformance, and a dynamic-type mismatch answers `false` — the same
+/// shape, and the same conservatism, as ``AnyEquatableBox/==(_:_:)``.
+public protocol PrefixExtending {
+    /// Whether `previous` is a prefix of this value.
+    func extends(_ previous: Any) -> Bool
+}
+
+extension AnyEquatableBox {
+    /// Whether the data this box holds begins with the data `previous` holds.
+    ///
+    /// `false` whenever the question cannot be answered cheaply — a payload
+    /// that is not ``PrefixExtending``, a different dynamic type, a collection
+    /// that shrank — which means "re-derive", and is always safe.
+    public func extends(_ previous: AnyEquatableBox) -> Bool {
+        guard let extending = value as? any PrefixExtending else { return false }
+        return extending.extends(previous.value)
+    }
+}
+
+/// `ForEach(0..<n)` — the overwhelmingly common growing collection, and the one
+/// case this answers in O(1) rather than by comparing elements.
+///
+/// The lower bound must MATCH, not merely contain: a window that slides
+/// (`n..<m` with `n` rising, a tailing log with a cap) has dropped rows, and a
+/// maximum over a set that lost members may have come from one of them.
+extension Range: PrefixExtending where Bound: Strideable, Bound.Stride: SignedInteger {
+    public func extends(_ previous: Any) -> Bool {
+        guard let previous = previous as? Self else { return false }
+        return previous.lowerBound == lowerBound && previous.upperBound <= upperBound
+    }
+}
+
+/// The general case: a leading-element comparison, O(previous.count) — which is
+/// a scan of `Equatable` elements against a scan that would BUILD AND MEASURE a
+/// view per element, and the two are not close. The count test alone rejects
+/// every collection that shrank, before an element is touched.
+extension Array: PrefixExtending where Element: Equatable {
+    public func extends(_ previous: Any) -> Bool {
+        guard let previous = previous as? Self, previous.count <= count else { return false }
+        return prefix(previous.count).elementsEqual(previous)
+    }
+}
+
+extension ContiguousArray: PrefixExtending where Element: Equatable {
+    public func extends(_ previous: Any) -> Bool {
+        guard let previous = previous as? Self, previous.count <= count else { return false }
+        return prefix(previous.count).elementsEqual(previous)
+    }
+}

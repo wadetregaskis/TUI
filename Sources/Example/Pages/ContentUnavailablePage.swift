@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ContentUnavailablePage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// `ContentUnavailableView` demo — the standard placeholder for empty states
 /// (no results, nothing selected, an empty inbox, …), shown across its

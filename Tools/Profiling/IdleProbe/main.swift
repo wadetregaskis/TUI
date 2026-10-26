@@ -1,11 +1,11 @@
-//  🖥️ TUIKit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  IdleProbe/main.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 #if canImport(Glibc)
     import Glibc
@@ -40,7 +40,7 @@ import TUIkit
 //
 // Two modes serve `Tools/Smoke/quit_key_smoke.py` instead, which wants the
 // smallest app for a different question — what the terminal driver does with
-// the Control keys while TUIkit runs: `keys` shows each key the app hears,
+// the Control keys while TUI runs: `keys` shows each key the app hears,
 // and `hang` blocks its main thread once on screen; in `keys`,
 // `IDLE_PROBE_SHORTCUTS` binds Control shortcuts and `IDLE_PROBE_STALL_KEY`
 // names a key that stalls the main thread for three seconds (`KeyEcho`). So does

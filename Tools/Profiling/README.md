@@ -1,13 +1,13 @@
-# Profiling TUIkit
+# Profiling TUI
 
-Tooling for CPU-profiling TUIkit with Instruments' **Time Profiler**, from
+Tooling for CPU-profiling TUI with Instruments' **Time Profiler**, from
 the command line, with the results parsed into a ranked list of hot
 functions. No GUI, no external Python packages — just the macOS toolchain
 (`xcrun xctrace`) and the Python standard library.
 
 ## Why this exists
 
-TUIkit's render pipeline is `@MainActor`-isolated, which blocks the
+TUI's render pipeline is `@MainActor`-isolated, which blocks the
 `ordo-one/benchmark` suite from measuring whole-view rendering (it traps
 on a main-thread `DispatchSemaphore`; see
 `Documentation/Performance/Benchmark coverage and deferred MainActor benchmarks.md`).
@@ -20,7 +20,7 @@ that repeatable.
 > README used to claim. It is false on Linux: from the first suspension
 > point onward the main actor is drained by a cooperative pool thread, not
 > the process main thread (measured; see the "Thread correctness" note in
-> `Sources/TUIkitCore/Concurrency/StackGuard.swift`). Profile by sampling
+> `Sources/TUICore/Concurrency/StackGuard.swift`). Profile by sampling
 > the process, not by assuming which thread the render is on.
 
 ## Two profiling modes
@@ -283,7 +283,7 @@ the previous step's.
 > **`--blame` is usually the one you want.** Self time says where the CPU was,
 > and for this framework the honest answer is `swift_release`, `swift_retain`
 > and `malloc` — true, and useless, because none of them is a thing anyone can
-> go and fix. `--blame` credits each sample to the nearest TUIkit frame
+> go and fix. `--blame` credits each sample to the nearest TUI frame
 > *beneath* the leaf, turning "the runtime is busy" into "this function is
 > making it busy". With a regex it restricts to samples that bottomed out in a
 > particular kind of work:
@@ -333,7 +333,7 @@ aggregates CPU time into five views:
 - **Self time** — leaf frame of each sample (where the CPU actually was)
 - **Inclusive time** — every distinct function on a sample's stack
 - **By module** — your code vs. system libraries
-- **App only (self / inclusive)** — restricted to TUIkit / Example
+- **App only (self / inclusive)** — restricted to TUI / Example
 
 ```bash
 python3 Tools/Profiling/analyze_timeprofile.py profiling-traces/emoji-….trace
@@ -580,7 +580,7 @@ bordered rows — the value-based measure memo), `stackRows` (plain
 `ForEach` rows in a `VStack` — the automatic `Equatable`-element row
 memo), `list` (a long `List` of `ForEach` rows — the lazy visible-window
 row rendering), and `form` (a settings page of interactive controls).
-Seeds: the shapes in `Benchmarks/TUIkitBenchmarks/RenderBenchmarks.swift`
+Seeds: the shapes in `Benchmarks/TUIBenchmarks/RenderBenchmarks.swift`
 and the layout tests.
 
 ```bash

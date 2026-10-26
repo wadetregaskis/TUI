@@ -5,7 +5,7 @@ behaviour here?" A-DYNP-1 is in
 `git show fca696a35:Documentation/SwiftUI-API-completion-decisions-DYNP.md`.
 
 Labels: **measured** = I ran it here. **established** = read from Apple's SDK
-or docs, or from TUIkit source at fca696a35. **OpenSwiftUI** = read from
+or docs, or from TUI source at fca696a35. **OpenSwiftUI** = read from
 OpenSwiftUI, a reverse-engineered reimplementation, not Apple's code.
 **hypothesis** = not verified.
 
@@ -183,9 +183,9 @@ own `@State`.
   the initial value and will not update." and the matching `Environment`
   message.
 
-**TUIkit column.** Read from fca696a35. TUIkit was not built.
+**TUI column.** Read from fca696a35. TUI was not built.
 
-| Case (field of a struct view) | SwiftUI (measured) | +Optional conformance (measured) | TUIkit fca696a35 (read) | Same? |
+| Case (field of a struct view) | SwiftUI (measured) | +Optional conformance (measured) | TUI fca696a35 (read) | Same? |
 |---|---|---|---|---|
 | B1 plain `var p: Full` | U W E S | U W E S | U W E S | yes |
 | B2 `var p: Full?` (non-nil) | — | U W E S | U W E S | **no (A-DYNP-1)** |
@@ -213,28 +213,28 @@ Two more observations, not part of the question:
   conformance it did not. A hypothesis: SwiftUI saw an uninstalled
   binding's read and made the parent depend on the state. Either way,
   SwiftUI skipping an optional `Binding` costs an extra body, not a stale
-  value. Not compared for TUIkit.
+  value. Not compared for TUI.
 - **Pass-through modifiers**, measured in `passmod.out`. SwiftUI 6.5.4
   neither runs a modifier's `body` nor calls `update()` on its properties
   when the body returns `content` unchanged. `content.padding(1)` does run
-  both. This is unrelated to A-DYNP-1, and TUIkit's behaviour here is not
+  both. This is unrelated to A-DYNP-1, and TUI's behaviour here is not
   checked. It may be worth a parity check.
 
-### TUIkit, the code behind its column (established, fca696a35)
+### TUI, the code behind its column (established, fca696a35)
 
-TUIkit finds properties from the value, not the declared type. Its walks use
+TUI finds properties from the value, not the declared type. Its walks use
 `Mirror` and a dynamic cast on each child: `State.swift:668-702`
 (`bindStateProperties`) and `EnvironmentProperty.swift:260-272`.
 `NestedProperties.container` (`DynamicProperty.swift:77-81`) descends into
 any value that `is any DynamicProperty || is any ViewModifier`.
 
 A Swift dynamic cast from `Any` looks through `Optional` and through
-existential boxes, and `Mirror` opens both. That is why TUIkit reaches the
+existential boxes, and `Mirror` opens both. That is why TUI reaches the
 B2, (v), (vi), (vii-a) and (vii-c) cases. A class instance's `Mirror` lists
-its stored properties, so TUIkit also reaches inside (vii-f).
+its stored properties, so TUI also reaches inside (vii-f).
 
 Plain structs, tuples, arrays and non-conforming enums fail the cast, so
-TUIkit skips them, as SwiftUI does.
+TUI skips them, as SwiftUI does.
 
 The write-back follows the same paths:
 
@@ -269,11 +269,11 @@ reason is a hypothesis.
 ## 5. New divergences found (beyond A-DYNP-1)
 
 **1. Existential fields, (vii-a).** For `any DynamicProperty` and `Any`
-fields, SwiftUI does nothing. TUIkit binds, resolves, updates and writes
-back. B-DYNP-2 already says TUIkit looks into existentials. It is not
+fields, SwiftUI does nothing. TUI binds, resolves, updates and writes
+back. B-DYNP-2 already says TUI looks into existentials. It is not
 written down as a divergence from SwiftUI.
 
-**2. A `ViewModifier` stored in a view's field, (vii-c).** TUIkit treats it
+**2. A `ViewModifier` stored in a view's field, (vii-c).** TUI treats it
 as a property container, because its walks look into every `ViewModifier`
 value: that is how `ModifiedContent`'s modifier gets its properties. SwiftUI
 gives such a field nothing. When the modifier is applied, SwiftUI gives
@@ -281,12 +281,12 @@ properties only to the copy inside `ModifiedContent`.
 
 **3. A class property's contents, (vii-f).** SwiftUI runs a class property's
 `update()`, but never installs the `@State` or `@Environment` inside it.
-TUIkit installs both. This also answers the open note in A-DYNP-1: a `weak`
+TUI installs both. This also answers the open note in A-DYNP-1: a `weak`
 field's contents are not installed in SwiftUI. That follows from (vii-f)
 plus case 4; it was not measured directly.
 
 **4. Enum `DynamicProperty` fields, (iii-b).** SwiftUI writes the payload
-back. TUIkit runs `update()` on a copy. This is the B-DYNP-1 limitation,
+back. TUI runs `update()` on a copy. This is the B-DYNP-1 limitation,
 which also applies to an enum property, not only to an enum view; B-DYNP-1
 names only the view.
 
@@ -306,41 +306,41 @@ lose its value and `kept` would start with `x`'s.
 The same could happen with an existential field whose type changes, or an
 enum view whose cases hold different numbers of `@State`. SwiftUI keys each
 box by field offset, with separate per-case buffers that reset when the case
-changes, so it has no such shift. This needs a TUIkit test before anyone
+changes, so it has no such shift. This needs a TUI test before anyone
 relies on it.
 
 ## 6. What this means for A-DYNP-1, and a recommendation
 
-The optional case is one example of a general difference. TUIkit finds
+The optional case is one example of a general difference. TUI finds
 properties from values, using casts that look through `Optional` and `any`,
 and into modifiers and class instances. SwiftUI uses the declared field type
 and requires a conformance.
 
-- **(a) Keep TUIkit's behaviour.** No working SwiftUI app depends on what
-  TUIkit adds: in SwiftUI those properties are inert, and SwiftUI warns at
-  run time when there is `@State` or `@Environment` inside. TUIkit keeps
+- **(a) Keep TUI's behaviour.** No working SwiftUI app depends on what
+  TUI adds: in SwiftUI those properties are inert, and SwiftUI warns at
+  run time when there is `@State` or `@Environment` inside. TUI keeps
   paying for it:
   - the walk on every frame for a type that holds an optional (B-DYNP-2),
   - the state-key shift in §5.5 (hypothesis),
-  - code that works on TUIkit and silently does nothing on SwiftUI.
+  - code that works on TUI and silently does nothing on SwiftUI.
 - **(b) Match SwiftUI.** This is more than "one rule in two walks". To
   match all the rows above, the walks would descend only where the
   **declared** field type conforms (`RuntimeFields` already gives the type
   and offset). That removes optionals, existentials, a class's contents, and
   modifiers stored in a view. `ModifiedContent`'s own modifier must still
-  be descended into, since that is how TUIkit gives a modifier its
+  be descended into, since that is how TUI gives a modifier its
   properties.
   - Possible benefits (hypothesis, not measured): the answer could be
     cached per type, as SwiftUI's `DynamicPropertyCache` is. That would end
     the per-frame `Mirror` walk for most types, and most of B-DYNP-2's value
     checks, except for enums.
-  - Price: an app relying on TUIkit's looking through would lose it, its
-    environment going back to the default. TUIkit is pre-1.0 and keeps no
+  - Price: an app relying on TUI's looking through would lose it, its
+    environment going back to the default. TUI is pre-1.0 and keeps no
     compatibility shims.
 
 **Recommendation: (b).** Do it as the declared-type rule, in two steps:
 
-1. Optionals and existentials, which is A-DYNP-1 proper. Add a TUIkit test
+1. Optionals and existentials, which is A-DYNP-1 proper. Add a TUI test
    for §5.5 first, so the step shows whether the shift was real.
 2. Modifiers stored in a view, and a class's contents.
 

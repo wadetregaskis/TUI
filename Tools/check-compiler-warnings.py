@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""check-compiler-warnings.py — fail on any warning a build log holds from TUIkit's own code.
+"""check-compiler-warnings.py — fail on any warning a build log holds from TUI's own code.
 
-TUIkit keeps a zero-warning build, every target included (CONTRIBUTING.md, "What CI
+TUI keeps a zero-warning build, every target included (CONTRIBUTING.md, "What CI
 covers"): a warning left standing trains everyone to read past the next one, and
 this codebase's have been real findings — a flag returned and read by nobody, a test
 whose `#require` meant it had never asserted anything. CI builds from a clean checkout
@@ -10,16 +10,16 @@ incremental build, which is the trap when counting by hand.
 
 Reads one or more build logs (`swift build … 2>&1 | tee LOG`) and reports each
 distinct warning once: compiler diagnostics with a location, and the build system's
-own (`warning: 'TUIkit': found 1 file(s) which are unhandled`, a linker's `ld:
+own (`warning: 'TUI': found 1 file(s) which are unhandled`, a linker's `ld:
 warning:`). A diagnostic in a dependency's checkout (`…/checkouts/…`) is not
-TUIkit's to fix and is counted apart, printed, and not failed on.
+TUI's to fix and is counted apart, printed, and not failed on.
 
 Usage:
     Tools/check-compiler-warnings.py [--github] LOG [LOG …]
 
 --github writes each finding as an error annotation as well.
 
-Exit status: 0 if no log holds a warning from TUIkit's code, 1 if one does, 2 if a
+Exit status: 0 if no log holds a warning from TUI's code, 1 if one does, 2 if a
 log cannot be read.
 """
 
@@ -67,9 +67,9 @@ def main(argv):
     for line in sorted(dependencies):
         print(f"(a dependency's, not counted) {line}")
     if not own:
-        print(f"No compiler warnings from TUIkit's code in {len(paths)} build log(s).")
+        print(f"No compiler warnings from TUI's code in {len(paths)} build log(s).")
         return 0
-    print(f"error: {len(own)} warning(s) from TUIkit's code — the build must have none:")
+    print(f"error: {len(own)} warning(s) from TUI's code — the build must have none:")
     for line, located in own.items():
         print(f"  {line}")
         if github:

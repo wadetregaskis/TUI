@@ -174,8 +174,8 @@ via `stateStorage.invalidateDescendants(of:)`.
 
 ### Phase 1: Infrastructure ✅
 
-- [x] 1. **`ViewIdentity`** type (`Sources/TUIkit/State/ViewIdentity.swift`)
-- [x] 2. **`StateStorage`** type (`Sources/TUIkit/State/StateStorage.swift`)
+- [x] 1. **`ViewIdentity`** type (`Sources/TUI/State/ViewIdentity.swift`)
+- [x] 2. **`StateStorage`** type (`Sources/TUI/State/StateStorage.swift`)
 - [x] 3. **`StateRegistration`** counter enum (in `State.swift`)
 - [x] 4. **`RenderContext`** extended with `identity: ViewIdentity` and helper methods
 - [x] 5. **`TUIContext`** extended with `stateStorage: StateStorage`

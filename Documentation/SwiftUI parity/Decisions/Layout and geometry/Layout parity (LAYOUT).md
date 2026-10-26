@@ -118,7 +118,7 @@ goes back to the owner); the numbers are under B19 in
 
 Measured: SwiftUI's `AnyView(G)`, as a stack's child, reports `G`'s leading
 guide (C at 5), and `VStack { AnyView(G) }` reports none, an `AnyView`'s
-count being unknown from its type (A-GUIDE-2). TUIkit's `AnyView` reports
+count being unknown from its type (A-GUIDE-2). TUI's `AnyView` reports
 none in either case: its static witness cannot say what it erases, and
 answering "may" for every `AnyView` would put every loop of erased rows off
 its row memo and every stack holding one on the guide path. The second case
@@ -184,7 +184,7 @@ half a day for the requirement; the others an hour each, with a probe each.
 
 Measured: SwiftUI's `Grid` reports a custom guide and a text baseline set in
 a cell, and no edge guide, even from a grid of one cell (`layout1.out` case
-C). TUIkit's `Grid` forwards the static witness but answers no guide query,
+C). TUI's `Grid` forwards the static witness but answers no guide query,
 so it reports none of any kind; `GridLayout`, the same grid as a `Layout`,
 reports custom guides and baselines through the layout's default.
 
@@ -251,7 +251,7 @@ Text("abc").frame(idealWidth: 10, alignment: .trailing); Text(long) }
 its content's (found in review). Measure and render agree
 (`FrameIdealOfferedNothingTests`).
 
-**Not shipped: the height** (deviations L16). A TUIkit stack asks a child its
+**Not shipped: the height** (deviations L16). A TUI stack asks a child its
 natural height with no height, so a frame answering its ideal height to that
 ask would be laid out at its ideal in every column.
 

@@ -19,7 +19,7 @@ let allDiagrams: [Diagram] = [
 /// AppLifecycle.md — setup, the demand-driven main loop, and teardown.
 let lifecycleMainLoop = Diagram(
     name: "lifecycle-main-loop",
-    title: "TUIkit application lifecycle and demand-driven main loop",
+    title: "TUI application lifecycle and demand-driven main loop",
     nodes: [
         Node(id: "setup", title: "Terminal setup",
              detail: ["install signals · alt screen · raw mode · mouse"], kind: .terminal),
@@ -57,7 +57,7 @@ let lifecycleMainLoop = Diagram(
 /// Architecture.md — the demand-driven, frame-capped event loop.
 let architectureEventLoop = Diagram(
     name: "architecture-event-loop",
-    title: "TUIkit demand-driven, frame-capped event loop",
+    title: "TUI demand-driven, frame-capped event loop",
     nodes: [
         Node(id: "init", title: "Subsystems initialised",
              detail: ["Terminal · AppState · Focus · TUIContext",
@@ -89,7 +89,7 @@ let architectureEventLoop = Diagram(
 /// services are grouped in the box).
 let lifecycleSubsystemInit = Diagram(
     name: "lifecycle-subsystem-init",
-    title: "TUIkit subsystem initialisation",
+    title: "TUI subsystem initialisation",
     nodes: [
         Node(id: "main", title: "@main", kind: .terminal),
         Node(id: "appMain", title: "App.main()"),

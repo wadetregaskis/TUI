@@ -1,0 +1,279 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  Color+ANSICodes.swift
+//
+//  A colour's own SGR parameters, at whatever depth the terminal has.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+/// The SGR parameters one colour spells on one channel, as values: what
+/// ``Color/foregroundParameters(depth:)`` and ``Color/backgroundParameters(depth:)``
+/// decide, before anything is written.
+///
+/// The decision and its spelling are kept apart so that the decision can be
+/// spelled two ways without being made twice: as the `[String]` that
+/// ``Color/foregroundCodes(depth:)`` has always returned, for the callers that
+/// rewrite parameters one at a time, and straight into an SGR introducer being
+/// written (`ANSIRenderer.styleSequence(for:)`), which used to build that array,
+/// grow another with it, join them and interpolate the result — four or five
+/// allocations for every styled run the framework draws.
+package enum SGRColourParameters: Equatable, Sendable {
+    /// No parameters: the depth draws no colour.
+    case none
+    /// One whole parameter — a 16-colour slot (30–37, 90–97 or 40–47, 100–107)
+    /// or the terminal's default (39, 49).
+    case code(UInt8)
+    /// The extended 256-colour form: `<extended>;5;<index>`.
+    case indexed(UInt8)
+    /// The extended direct-colour form: `<extended>;2;<r>;<g>;<b>`.
+    case rgb(UInt8, UInt8, UInt8)
+
+    /// The extended-colour introducer on the foreground channel.
+    package static let extendedForeground = "38"
+
+    /// The extended-colour introducer on the background channel.
+    package static let extendedBackground = "48"
+
+    /// These parameters as the separate strings an SGR sequence joins with `;`.
+    ///
+    /// - Parameter extended: The channel's extended-colour introducer,
+    ///   ``extendedForeground`` or ``extendedBackground``.
+    package func codes(extended: String) -> [String] {
+        switch self {
+        case .none: []
+        case .code(let code): ["\(code)"]
+        case .indexed(let index): [extended, "5", "\(index)"]
+        case .rgb(let red, let green, let blue): [extended, "2", "\(red)", "\(green)", "\(blue)"]
+        }
+    }
+}
+
+extension Color {
+    /// What is said when this colour, translucent, reaches the SGR emitter: the
+    /// debug assertion in ``foregroundParameters(depth:)`` and
+    /// ``backgroundParameters(depth:)``, and the release build's one report
+    /// through `SoftTrap` from `ANSIRenderer`. One spelling, so the two builds
+    /// say the same thing.
+    package var translucentEmissionMessage: String {
+        "a translucent colour reached the ANSI emitter (alpha \(alpha)): the view "
+            + "that painted it does not carry alpha to the compositor, so it renders "
+            + "opaque. See 'Opacity as composition.md' §16; prefer .opacity(_:) on "
+            + "the VIEW for a fade that works everywhere."
+    }
+
+    /// This colour downsampled to fit `depth`.
+    ///
+    /// Colours that already fit pass through unchanged; higher-depth ones are
+    /// quantised to the nearest representable value.
+    ///
+    /// - Parameter depth: The target colour depth.
+    /// - Returns: The downsampled colour.
+    package func downsampled(to depth: ColorDepth) -> Color {
+        switch (depth, value) {
+        case (.truecolor, _), (.noColor, _):
+            return self
+        case (.palette256, .rgb):
+            return downsampledToPalette256()
+        case (.basic16, .rgb), (.basic16, .palette256):
+            return downsampledToANSI16()
+        default:
+            return self
+        }
+    }
+
+    /// The SGR parameters that set this colour as the FOREGROUND, downsampled
+    /// to `depth`. Empty at ``ColorDepth/noColor``, which draws no colour at
+    /// all.
+    ///
+    /// - Parameter depth: The colour depth to quantise for.
+    /// - Returns: The parameter strings, ready to join with `;`.
+    package func foregroundCodes(depth: ColorDepth = ColorDepth.current) -> [String] {
+        foregroundParameters(depth: depth).codes(extended: SGRColourParameters.extendedForeground)
+    }
+
+    /// The BACKGROUND twin of ``foregroundCodes(depth:)``.
+    ///
+    /// - Parameter depth: The colour depth to quantise for.
+    /// - Returns: The parameter strings, ready to join with `;`.
+    package func backgroundCodes(depth: ColorDepth = ColorDepth.current) -> [String] {
+        backgroundParameters(depth: depth).codes(extended: SGRColourParameters.extendedBackground)
+    }
+
+    /// What ``foregroundCodes(depth:)`` spells, as values — the one place the
+    /// foreground's parameters are decided.
+    ///
+    /// - Parameter depth: The colour depth to quantise for.
+    /// - Returns: The parameters; ``SGRColourParameters/none`` at
+    ///   ``ColorDepth/noColor``.
+    package func foregroundParameters(depth: ColorDepth = ColorDepth.current) -> SGRColourParameters {
+        // NO ALPHA CHECK HERE, and it is worth saying why, because the obvious
+        // improvement is to add one and it was tried and measured.
+        //
+        // A fully transparent colour has a sensible answer available — emit no
+        // parameters, so the cell keeps the colour it had — and returning it here
+        // would stop an unmigrated path rendering `.clear` as the solid black its
+        // underlying value is. But this function is the hottest in the framework
+        // (SGR emission was once measured at 97% of a truecolor frame), and in a
+        // RELEASE build the assertion below compiles out entirely, so a check is
+        // genuinely new work on every colour emitted. Paired A/B, 16 reps:
+        //
+        //   with `if alpha == 0 { return [] }`   textwall +3.3%  fanout +3.0%
+        //   merged into the `.noColor` guard      textwall +0.9%  fanout +2.1%
+        //
+        // — a permanent tax on every page to protect a path that has not been
+        // migrated. So it is not paid here. The place it costs nothing is the PAINT
+        // SITE, which runs once per view rather than once per run, and which is
+        // where each of §16's entry points gets it as that entry point is migrated.
+        //
+        // Making it free by giving `ColorValue` a `.transparent` case does not work
+        // either, and not for cost reasons: it would strip the components, and
+        // `Gradient(colors: [.red, .clear])` needs them to fade toward a
+        // transparent RED, while `.red.opacity(0)` animated back up must return red
+        // rather than black.
+        //
+        // A translucent colour reaching this line therefore means the view that
+        // painted it does not yet carry alpha to the compositor.
+        //
+        // An assertion rather than a `fatalError` (which is what `.semantic`
+        // gets): this is an unmigrated path rather than a broken invariant, and it
+        // degrades to what the framework did before alpha existed. Loud in a debug
+        // build, never a crash in someone's terminal. A release build reports it
+        // once through `SoftTrap`, from `ANSIRenderer`, which draws every styled
+        // run: this module cannot reach `SoftTrap` (it has no TUICore below
+        // it). Section 16 of `Documentation/Colour and styling/Opacity as
+        // composition.md` lists which paths honour it.
+        assert(isOpaque, translucentEmissionMessage)
+        return uncheckedForegroundParameters(depth: depth)
+    }
+
+    /// ``foregroundParameters(depth:)`` without its assertion: for a caller
+    /// that has checked the colour's alpha itself. `ANSIRenderer` reports a
+    /// translucent colour through `SoftTrap` before it spells it, which a
+    /// debug build stops at as the assertion would; with a test's reporter
+    /// bound instead, the colour is spelled at full strength, as a release
+    /// build spells it.
+    ///
+    /// - Parameter depth: The colour depth to quantise for.
+    /// - Returns: The parameters; ``SGRColourParameters/none`` at
+    ///   ``ColorDepth/noColor``.
+    package func uncheckedForegroundParameters(depth: ColorDepth = ColorDepth.current) -> SGRColourParameters {
+        if depth == .noColor { return .none }
+        switch downsampled(to: depth).value {
+        case .ansi(let slot): return .code(slot.foregroundCode)
+        case .palette256(let index): return .indexed(index)
+        case .rgb(let red, let green, let blue): return .rgb(red, green, blue)
+        case .terminalDefault, .terminalForeground: return .code(ANSIColor.defaultForegroundCode)
+        // No SGR names the default BACKGROUND as a foreground. Once the terminal
+        // has reported it, this slot gets that RGB, quantised as an `.rgb` of it
+        // would be; `downsampled` left it alone above because it cannot see the
+        // slot. Until then there is no RGB to spell and none is guessed, so this
+        // slot gets its own default.
+        case .terminalBackground:
+            guard let paper = rgbComponents else { return .code(ANSIColor.defaultForegroundCode) }
+            return Self.rgb(paper.red, paper.green, paper.blue).uncheckedForegroundParameters(depth: depth)
+        case .semantic:
+            fatalError(
+                "Semantic color must be resolved before rendering. Call Color.resolve(with:) first."
+            )
+        // A named colour that follows the scheme, unresolved: its light value, which
+        // is what a colour with no palette means (`resolve(in: EnvironmentValues())`).
+        // Not a trap, as `.semantic` is: there IS an answer, and a view resolving
+        // its colours with the palette never gets here.
+        case .system(let name):
+            return name.color(in: .light).uncheckedForegroundParameters(depth: depth)
+        // A light-and-dark colour (an asset catalogue's) unresolved: its light
+        // value, for the same reason.
+        case .lightDark(let index):
+            return index.color(in: .light).uncheckedForegroundParameters(depth: depth)
+        }
+    }
+
+    /// The BACKGROUND twin of ``foregroundParameters(depth:)``: what
+    /// ``backgroundCodes(depth:)`` spells, as values.
+    ///
+    /// - Parameter depth: The colour depth to quantise for.
+    /// - Returns: The parameters; ``SGRColourParameters/none`` at
+    ///   ``ColorDepth/noColor``.
+    package func backgroundParameters(depth: ColorDepth = ColorDepth.current) -> SGRColourParameters {
+        // NO ALPHA CHECK HERE, and it is worth saying why, because the obvious
+        // improvement is to add one and it was tried and measured.
+        //
+        // A fully transparent colour has a sensible answer available — emit no
+        // parameters, so the cell keeps the colour it had — and returning it here
+        // would stop an unmigrated path rendering `.clear` as the solid black its
+        // underlying value is. But this function is the hottest in the framework
+        // (SGR emission was once measured at 97% of a truecolor frame), and in a
+        // RELEASE build the assertion below compiles out entirely, so a check is
+        // genuinely new work on every colour emitted. Paired A/B, 16 reps:
+        //
+        //   with `if alpha == 0 { return [] }`   textwall +3.3%  fanout +3.0%
+        //   merged into the `.noColor` guard      textwall +0.9%  fanout +2.1%
+        //
+        // — a permanent tax on every page to protect a path that has not been
+        // migrated. So it is not paid here. The place it costs nothing is the PAINT
+        // SITE, which runs once per view rather than once per run, and which is
+        // where each of §16's entry points gets it as that entry point is migrated.
+        //
+        // Making it free by giving `ColorValue` a `.transparent` case does not work
+        // either, and not for cost reasons: it would strip the components, and
+        // `Gradient(colors: [.red, .clear])` needs them to fade toward a
+        // transparent RED, while `.red.opacity(0)` animated back up must return red
+        // rather than black.
+        //
+        // A translucent colour reaching this line therefore means the view that
+        // painted it does not yet carry alpha to the compositor.
+        //
+        // An assertion rather than a `fatalError` (which is what `.semantic`
+        // gets): this is an unmigrated path rather than a broken invariant, and it
+        // degrades to what the framework did before alpha existed. Loud in a debug
+        // build, never a crash in someone's terminal. A release build reports it
+        // once through `SoftTrap`, from `ANSIRenderer`, which draws every styled
+        // run: this module cannot reach `SoftTrap` (it has no TUICore below
+        // it). Section 16 of `Documentation/Colour and styling/Opacity as
+        // composition.md` lists which paths honour it.
+        assert(isOpaque, translucentEmissionMessage)
+        return uncheckedBackgroundParameters(depth: depth)
+    }
+
+    /// The BACKGROUND twin of ``uncheckedForegroundParameters(depth:)``:
+    /// ``backgroundParameters(depth:)`` without its assertion.
+    ///
+    /// - Parameter depth: The colour depth to quantise for.
+    /// - Returns: The parameters; ``SGRColourParameters/none`` at
+    ///   ``ColorDepth/noColor``.
+    package func uncheckedBackgroundParameters(depth: ColorDepth = ColorDepth.current) -> SGRColourParameters {
+        if depth == .noColor { return .none }
+        switch downsampled(to: depth).value {
+        case .ansi(let slot): return .code(slot.backgroundCode)
+        case .palette256(let index): return .indexed(index)
+        case .rgb(let red, let green, let blue): return .rgb(red, green, blue)
+        case .terminalDefault, .terminalBackground: return .code(ANSIColor.defaultBackgroundCode)
+        // The twin of the foreground's arm: no SGR names the default foreground
+        // as a background, so this is the reported RGB, quantised, or this slot's
+        // own default while there is none.
+        case .terminalForeground:
+            guard let ink = rgbComponents else { return .code(ANSIColor.defaultBackgroundCode) }
+            return Self.rgb(ink.red, ink.green, ink.blue).uncheckedBackgroundParameters(depth: depth)
+        case .semantic:
+            fatalError(
+                "Semantic color must be resolved before rendering. Call Color.resolve(with:) first."
+            )
+        // The twin of the foreground's arm: the light value, unresolved.
+        case .system(let name):
+            return name.color(in: .light).uncheckedBackgroundParameters(depth: depth)
+        case .lightDark(let index):
+            return index.color(in: .light).uncheckedBackgroundParameters(depth: depth)
+        }
+    }
+
+    /// The whole escape sequence that sets this colour as the background, or
+    /// `""` where the depth draws no colour.
+    ///
+    /// - Parameter depth: The colour depth to quantise for.
+    /// - Returns: The escape sequence.
+    package func backgroundEscape(depth: ColorDepth = ColorDepth.current) -> String {
+        let codes = backgroundCodes(depth: depth)
+        guard !codes.isEmpty else { return "" }
+        return "\u{1B}[" + codes.joined(separator: ";") + "m"
+    }
+}

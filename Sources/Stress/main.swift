@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  main.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 //
-//  A performance stress harness for TUIkit, shaped like an app. Its PRIMARY
+//  A performance stress harness for TUI, shaped like an app. Its PRIMARY
 //  purpose is to be a reproducible instrument for profiling and optimisation:
 //  large, deep, wide view hierarchies over pseudo-randomly synthesised data
 //  (seeded, so nothing is stored on disk and runs are comparable). It can also
@@ -34,7 +34,7 @@
 
 import Dispatch
 import Foundation
-import TUIkit
+import TUI
 
 // Register the harness's own localized strings with the shared
 // LocalizationService before any UI renders, so `L(_:)` resolves them. Harmless
@@ -65,7 +65,7 @@ func refuseStripes(in mode: String) {
 // and said the interactive menu shows the rest, which shows titles only.
 let scenarioIDs = await MainActor.run { Scenarios.all.map(\.id).joined(separator: ", ") }
 let usageText = """
-    Stress — a performance stress harness for TUIkit.
+    Stress — a performance stress harness for TUI.
 
     Interactive:  Stress
     Self-check:   Stress --selfcheck [--scale N]

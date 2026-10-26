@@ -40,10 +40,10 @@ All implementation phases completed:
 
 | File | Changes |
 |------|---------|
-| `Sources/TUIkit/Core/SelectableListRow.swift` | NEW: ListRowType enum + SelectableListRow struct |
-| `Sources/TUIkit/Views/List.swift` | Extract/flatten sections, classify rows by type, reset alt-colors per section |
-| `Sources/TUIkit/Focus/ItemListHandler.swift` | Skip logic for non-selectable rows in moveFocus() |
-| `Tests/TUIkitTests/SectionListIntegrationTests.swift` | NEW: Integration tests |
+| `Sources/TUI/Core/SelectableListRow.swift` | NEW: ListRowType enum + SelectableListRow struct |
+| `Sources/TUI/Views/List.swift` | Extract/flatten sections, classify rows by type, reset alt-colors per section |
+| `Sources/TUI/Focus/ItemListHandler.swift` | Skip logic for non-selectable rows in moveFocus() |
+| `Tests/TUITests/SectionListIntegrationTests.swift` | NEW: Integration tests |
 
 ## Design Decisions
 

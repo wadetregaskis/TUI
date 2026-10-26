@@ -102,7 +102,7 @@ The refactoring moves all rendering logic to an internal `_ContainerViewCore` st
 **Low-risk**, mechanical refactoring. ~2-3 hours.
 
 ## Files Changed
-- `Sources/TUIkit/Views/ContainerView.swift` (main)
+- `Sources/TUI/Views/ContainerView.swift` (main)
 - Possibly minimal changes to test files if needed
 
 ## Dependencies

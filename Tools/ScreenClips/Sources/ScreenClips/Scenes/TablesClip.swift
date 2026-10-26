@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TablesClip.swift
 //
 //  `tables`: an activity monitor's process table, its numbers live — scrolled
@@ -9,7 +9,7 @@
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 @MainActor
 let tablesClip = Clip(
@@ -50,7 +50,7 @@ private func tablesScript() -> [Step] {
 
 struct TablesApp: App {
     var body: some Scene {
-        WindowGroup("TUIkit · Tables") {
+        WindowGroup("TUI · Tables") {
             ActivityMonitor()
                 .palette(AppleTerminalPalette(.ocean))
         }

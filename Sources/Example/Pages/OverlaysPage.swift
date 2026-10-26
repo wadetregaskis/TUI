@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  OverlaysPage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
-import TUIkit
+import TUI
 
 // MARK: - Overlay Demo Variants
 
@@ -555,7 +555,7 @@ struct OverlaysPage: View {
                     // TextField in a plain VStack shows its title only as
                     // PLACEHOLDER text inside the field (and nothing at all once
                     // a prompt is supplied, or once the field has content) —
-                    // which is exactly what TUIkit already did. Only inside a
+                    // which is exactly what TUI already did. Only inside a
                     // Form does the title become a real label, right-aligned in
                     // a shared column with the fields' left edges in line.
                     //

@@ -67,5 +67,5 @@
     "full_screen": 0.083327292,
     "full_screen_cells": "162x56"
   },
-  "rendered": "no image — the placement is refused by name (UnicodePlaceholderUnsupported), so the placeholder cells draw as missing glyphs. TUIkit does not emit them here."
+  "rendered": "no image — the placement is refused by name (UnicodePlaceholderUnsupported), so the placeholder cells draw as missing glyphs. TUI does not emit them here."
 }

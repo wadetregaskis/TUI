@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Drive a TUIkit terminal app inside a real pseudo-terminal (PTY): set the
+Drive a TUI terminal app inside a real pseudo-terminal (PTY): set the
 window size, feed it a scripted sequence of keyboard + mouse input, and
 continuously drain its ANSI output so the child never blocks on a full
 PTY buffer.
 
-A TUIkit app needs a real TTY — it puts stdin in raw mode (`tcsetattr`)
+A TUI app needs a real TTY — it puts stdin in raw mode (`tcsetattr`)
 and asks for the window size with `ioctl(TIOCGWINSZ)`. Pipes don't
 satisfy that; a PTY does. This script is the "end-to-end" profiling
 driver: it exercises the full input -> dispatch -> render -> diff ->
@@ -26,7 +26,7 @@ Usage:
 `write_steps`). The stream itself carries no markers, so every byte count taken
 from it is still the app's own.
 
-Quits the app cleanly with 'q' (TUIkit's default quit shortcut) from the main
+Quits the app cleanly with 'q' (TUI's default quit shortcut) from the main
 menu, falling back to SIGTERM/SIGKILL — and then exiting 2, because an app that
 did not quit was not where the scenario thought it was.
 
@@ -64,7 +64,7 @@ PAGE_KEYS = {
 }
 
 
-# The status request every TUIkit startup exchange ends with, and the reply
+# The status request every TUI startup exchange ends with, and the reply
 # every terminal sends (`TerminalQueryReplies.statusFence`). A PTY answers
 # nothing, so without `--answer-fence` the identity, graphics and colour
 # exchanges each wait out their half-second deadline: the first frame comes
@@ -92,7 +92,7 @@ def mouse_sgr(button, col, row, press):
 # was). The second Escape leaves the page; on the menu an Escape does nothing,
 # so a page that needed only one pays nothing for it.
 #
-# The second 150 ms after the first: TUIkit holds a lone ESC for two loop
+# The second 150 ms after the first: TUI holds a lone ESC for two loop
 # rounds (`Terminal.bareEscStaleFrames`) to tell the Escape key from the start
 # of a sequence, and a byte that arrives inside the hold joins it — ESC ESC is
 # ONE Alt+Escape. Measured on an idle menu (debug build), the hold is under
@@ -220,7 +220,7 @@ def config_directory():
     """Where the driven app keeps its `@AppStorage` for this run.
 
     Never where it keeps it for the user. With `TUIKIT_CONFIG_DIR` unset, a
-    TUIkit app on macOS stores its settings in the real preferences domain
+    TUI app on macOS stores its settings in the real preferences domain
     (`~/Library/Preferences/Example.plist`) — and UserDefaults ignores a
     `$HOME` override, so the variable is the only thing that isolates it. This
     driver used to pass its own environment straight through, so every

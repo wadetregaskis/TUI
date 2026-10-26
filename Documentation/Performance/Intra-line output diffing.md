@@ -50,7 +50,7 @@ matter. The drag is a 2–3× on a number that is the whole cost of the gesture.
 
 ## What was built
 
-`String.ansiCellDiff(replacing:width:mergingGapsUpTo:)` in `TUIkitCore` returns
+`String.ansiCellDiff(replacing:width:mergingGapsUpTo:)` in `TUICore` returns
 one of three answers for a row:
 
 - `identical` — the two rows paint the same cells in the same styling. Not the
@@ -138,7 +138,7 @@ finding that out took a probe rather than a proof.
    the whole-line path on every row that demonstrates one.
 5. **Correctness exposure is high — it needs a corpus, not just unit tests.**
    Agreed, and there are three layers:
-   - `Tests/TUIkitCoreTests/CellSpanDiffTests.swift` grades the plan against an
+   - `Tests/TUICoreTests/CellSpanDiffTests.swift` grades the plan against an
      independent reference terminal: paint the previous row, apply the plan, and
      the screen must equal painting the new row outright. Hand-picked cases
      (cursor blink at each edge, style-only changes, a wide-emoji row, a

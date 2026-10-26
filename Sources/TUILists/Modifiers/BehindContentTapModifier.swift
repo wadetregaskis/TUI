@@ -1,0 +1,81 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  BehindContentTapModifier.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import TUICore
+import TUIFoundation
+
+/// A left-click target BEHIND its content rather than in front of it.
+///
+/// ``OnMouseEventModifier`` — and so `.onTapGesture` — appends its region after the
+/// content's, which makes it the innermost match on every cell: it takes each click
+/// from whatever it wraps, and a `Button` inside never sees one. This inserts its region
+/// at index 0 instead, the fallback-region convention `_ListCore`, `.contextMenu` and
+/// `ScrollView` already follow inline. A control inside wins its own clicks, and a
+/// click that lands on nothing interactive reaches this.
+///
+/// For a row whose label should do what its control does, where the control and any
+/// interactive content in the label must keep their own clicks.
+struct _BehindContentTapModifier<Content: View>: View {
+    let content: Content
+
+    /// Run on the release of a left click this region claimed.
+    let action: () -> Void
+
+    var body: Never {
+        fatalError("_BehindContentTapModifier renders via Renderable")
+    }
+}
+
+extension _BehindContentTapModifier: Renderable {
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        var buffer = TUIView.renderToBuffer(content, context: context)
+        // A measure sees no events, and a disabled view takes none — the rule
+        // `Button` applies to itself.
+        guard !context.isMeasuring, context.environment.isEnabled,
+            let dispatcher = context.environment.mouseEventDispatcher,
+            buffer.width > 0, buffer.height > 0
+        else { return buffer }
+        let action = self.action
+        let handlerID = dispatcher.register(in: context) { event in
+            guard event.button == .left else { return false }
+            switch event.phase {
+            // Claimed, so the release routes back here even if the pointer moved.
+            case .pressed: return true
+            case .released:
+                action()
+                return true
+            default: return false
+            }
+        }
+        buffer.hitTestRegions.insert(contentsOf: buffer.frameHitRegions(handlerID: handlerID), at: 0)
+        return buffer
+    }
+}
+
+extension _BehindContentTapModifier: Layoutable {
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        measureChild(content, proposal: proposal, context: context)
+    }
+}
+
+// MARK: - Seeing Through the Wrapper (the READ direction)
+
+/// Names its content so a container asking for a z-index or an alignment guide
+/// can look through this wrapper instead of stopping at it. Read-only: it does
+/// NOT conform to ``ContentRewrapping``, so nothing about it is distributed to
+/// the members of multi-view content.
+extension _BehindContentTapModifier: SingleContentWrapper {
+    var wrappedContent: Content { content }
+
+    /// Its content is laid out in its own context (``SingleContentWrapper/wrappedContentContext(_:)``).
+    func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+}
+
+// MARK: - Removal Transitions
+
+/// Draws its content unchanged, at its own identity, so a removal transition
+/// written inside it plays — see `DrawsContentUnchanged`.
+extension _BehindContentTapModifier: DrawsContentUnchanged {}

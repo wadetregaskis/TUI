@@ -2,7 +2,7 @@
 """Terminal cell aspect-ratio probe. Run INSIDE the terminal under test.
 
 Reports the cell's height:width ratio two ways:
-  1. ioctl(TIOCGWINSZ) ws_xpixel/ws_ypixel — the free path TUIkit's
+  1. ioctl(TIOCGWINSZ) ws_xpixel/ws_ypixel — the free path TUI's
      `Terminal.cellPixelAspect()` uses. Many terminals report 0 here.
   2. the CSI 14 t (text-area pixels) + CSI 18 t (text-area chars) escape
      query — the fallback when the ioctl fields are 0.

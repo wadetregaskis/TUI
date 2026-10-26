@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  NavigationClip.swift
 //
 //  `navigation`: a field guide in a three-column split view — a category in
@@ -8,7 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 @MainActor
 let navigationClip = Clip(
@@ -39,7 +39,7 @@ private func navigationScript() -> [Step] {
 
 struct NavigationApp: App {
     var body: some Scene {
-        WindowGroup("TUIkit · Field Guide") {
+        WindowGroup("TUI · Field Guide") {
             FieldGuide()
                 .palette(AppleTerminalPalette(.grass))
         }

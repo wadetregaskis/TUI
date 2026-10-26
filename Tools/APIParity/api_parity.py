@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Compare TUIkit's public API against SwiftUI's, symbol by symbol.
+"""Compare TUI's public API against SwiftUI's, symbol by symbol.
 
     Tools/APIParity/api_parity.py            # extract, compare, report
     Tools/APIParity/api_parity.py --check    # same, but exit 1 on new gaps (CI)
     Tools/APIParity/api_parity.py --accept   # record today's gaps as the baseline
     Tools/APIParity/api_parity.py --stale    # only audit the curated map
-    Tools/APIParity/api_parity.py --deprecated  # SwiftUI's deprecations TUIkit still has
+    Tools/APIParity/api_parity.py --deprecated  # SwiftUI's deprecations TUI still has
 
 Everything the comparison rests on is derived, never asserted:
 
@@ -17,29 +17,29 @@ Everything the comparison rests on is derived, never asserted:
     conforming type — 79,162 of SwiftUI's 83,254 entries on the SDK this was
     written against. Those are one declaration each and are dropped.
   * Deprecated and unavailable symbols are dropped from both sides. Keeping
-    them charges TUIkit with gaps for surface SwiftUI is itself retiring, and
+    them charges TUI with gaps for surface SwiftUI is itself retiring, and
     reports anything either side still has as absent from BOTH. Availability
     is judged on macOS alone: `Slider` is unavailable on tvOS and that says
     nothing about whether a terminal can draw one.
 
 `--deprecated` asks the question that rule hides: which declarations SwiftUI
-has deprecated on macOS does TUIkit still implement? Dropped from both sides,
+has deprecated on macOS does TUI still implement? Dropped from both sides,
 they read as neither a gap nor a match, and on 2026-10-12 nine of them had gone
 unnoticed that way. It lists each with how SwiftUI deprecates it — a version,
 unconditionally, or "soft" (`deprecated: 100000.0`, no warning yet) — and
 whether a LIVE SwiftUI overload shares its key, in which case only the two
-declarations, printed side by side, say which one TUIkit has. A report: it
+declarations, printed side by side, say which one TUI has. A report: it
 fails nothing. Run it against each new SDK.
 
 What is left is a real difference, and every real difference is either
 explained by `parity-map.json` or reported. The map is the curated half — a
-rename TUIkit made on purpose, or a capability a character grid cannot carry —
+rename TUI made on purpose, or a capability a character grid cannot carry —
 and the tool audits it back: an entry naming a symbol that no longer exists, or
 claiming something is unimplemented when it now is, is reported as STALE. A map
 that is never wrong is a map nobody is reading.
 
 Two kinds of drift are treated differently, on purpose. A recorded GAP that has
-closed FAILS `--check`: it is a claim about TUIkit's own API, and leaving it
+closed FAILS `--check`: it is a claim about TUI's own API, and leaving it
 unrecorded is how the baseline goes quietly out of date. A recorded argument-label
 DEVIATION that no longer reproduces only WARNS, because those track the SDK rather
 than this package.
@@ -67,14 +67,14 @@ SWIFTUI_MODULES = ["SwiftUI", "SwiftUICore"]
 # Each module's graph holds only what that module declares (an `@_exported`
 # re-export is not copied into it), so the umbrella's own graph is empty and
 # the public API is the union of the modules it re-exports. A module carved out
-# of TUIkitFoundation, or peeled out of a coarse group, joins this list then.
+# of TUIFoundation, or peeled out of a coarse group, joins this list then.
 TUIKIT_MODULES = [
-    "TUIkit", "TUIkitApp", "TUIkitBitmaps", "TUIkitChrome", "TUIkitColorPicker", "TUIkitCommands", "TUIkitCurveEditors",
-    "TUIkitEffects", "TUIkitFilePanels", "TUIkitForms", "TUIkitGrid", "TUIkitLists", "TUIkitMenus", "TUIkitNavigation",
-    "TUIkitNumericControls", "TUIkitPickers", "TUIkitPresentation", "TUIkitScenes", "TUIkitSearch", "TUIkitTabImages",
-    "TUIkitTables", "TUIkitTabs", "TUIkitTextInput",
-    "TUIkitFoundation", "TUIkitStrings", "TUIkitTerminalHost", "TUIkitCore", "TUIkitStyling", "TUIkitView",
-    "TUIkitAppKit", "TUIkitFilePanelsAppKit",
+    "TUI", "TUIApp", "TUIBitmaps", "TUIChrome", "TUIColorPicker", "TUICommands", "TUICurveEditors",
+    "TUIEffects", "TUIFilePanels", "TUIForms", "TUIGrid", "TUILists", "TUIMenus", "TUINavigation",
+    "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes", "TUISearch", "TUITabImages",
+    "TUITables", "TUITabs", "TUITextInput",
+    "TUIFoundation", "TUIStrings", "TUITerminalHost", "TUICore", "TUIStyling", "TUIView",
+    "TUIAppKit", "TUIFilePanelsAppKit",
 ]
 
 # The symbol kinds a caller can name. Deliberately excludes the ones that are
@@ -145,8 +145,8 @@ def load_symbols(directory, modules, collect_defaults=False, follow_aliases=Fals
     compile corpus (see the README), not here.
 
     With `follow_aliases`, a typealias of a type declared here also names that
-    type's members (see the end of this function). TUIkit's graph is read
-    this way and SwiftUI's is not: the question is whether TUIkit offers a
+    type's members (see the end of this function). TUI's graph is read
+    this way and SwiftUI's is not: the question is whether TUI offers a
     spelling, and SwiftUI's own aliases (`Body`, the attribute scopes') would
     copy whole type trees into the vocabulary being matched.
 
@@ -219,7 +219,7 @@ def load_symbols(directory, modules, collect_defaults=False, follow_aliases=Fals
             for member, kind in SYNTHESIZED_REQUIREMENTS[target]:
                 symbols.setdefault(f"{owner}.{member}", kind)
     # A typealias names its target's members too: `Text.Case.uppercase` is
-    # written against TUIkit's `Text.Case = TextCase`, whose graph files the
+    # written against TUI's `Text.Case = TextCase`, whose graph files the
     # member under `TextCase` alone, so the nested spelling read as a gap.
     # Only an alias of a type declared in these modules is followed; one of a
     # standard-library or Foundation type has no members here to copy.
@@ -319,7 +319,7 @@ def unavailable(symbol, platform="macOS"):
     and every member they own — from SwiftUI's side of the diff. That hid
     2,177 live macOS symbols, 180 of them `View` modifiers.
 
-    It is not symmetric, either: TUIkit annotates no platform unavailability,
+    It is not symmetric, either: TUI annotates no platform unavailability,
     so the rule only ever subtracted from SwiftUI, turning real gaps into
     silence. Deprecation and obsoletion still count from any domain-less
     (`@available(*, deprecated)`) entry, which is how both sides spell it.
@@ -412,9 +412,9 @@ def declarations(directory, modules, keys):
 
 
 def deprecated_hits(deprecated, live, tuikit, tuikit_defaults):
-    """The deprecated SwiftUI keys TUIkit spells: exactly, or by a call that
-    compiles against a TUIkit overload with more, defaulted, parameters (the
-    `source_compatible` rule). Each with the TUIkit key it reached, and whether
+    """The deprecated SwiftUI keys TUI spells: exactly, or by a call that
+    compiles against a TUI overload with more, defaulted, parameters (the
+    `source_compatible` rule). Each with the TUI key it reached, and whether
     a live SwiftUI overload shares the deprecated key."""
     compatible = source_compatible({key: entries[0]["kind"] for key, entries in deprecated.items()},
                                    tuikit, tuikit_defaults)
@@ -428,9 +428,9 @@ def deprecated_hits(deprecated, live, tuikit, tuikit_defaults):
 
 
 def deprecated_report(hits, tuikit_declarations):
-    print(f"SwiftUI declarations deprecated on macOS that TUIkit still has: {len(hits)}")
+    print(f"SwiftUI declarations deprecated on macOS that TUI still has: {len(hits)}")
     print("A key collapses overloads: where a live SwiftUI overload shares one, compare the")
-    print("declarations to see which TUIkit implements.")
+    print("declarations to see which TUI implements.")
     for hit in hits:
         ways = sorted({entry["how"] for entry in hit["swiftui"]})
         shared = "  (a live SwiftUI overload shares the key)" if hit["shared"] else ""
@@ -439,7 +439,7 @@ def deprecated_report(hits, tuikit_declarations):
         for entry in hit["swiftui"]:
             print(f"      SwiftUI  {entry['decl']}   ({entry['how']})")
         for declaration, where in tuikit_declarations.get(hit["tuikit"], []):
-            print(f"      TUIkit   {declaration}   {where}")
+            print(f"      TUI   {declaration}   {where}")
 
 
 def load_map():
@@ -483,7 +483,7 @@ def signature(key):
 
 
 def label_deviations(swiftui, tuikit, compatible=None):
-    """Absent SwiftUI symbols whose name AND arity TUIkit has, spelled
+    """Absent SwiftUI symbols whose name AND arity TUI has, spelled
     differently.
 
     A different label is worse than an absence: the capability is there, so
@@ -495,12 +495,12 @@ def label_deviations(swiftui, tuikit, compatible=None):
     Arity has to match for this to mean anything; without it every missing
     overload would look like a misspelling.
 
-    A TUIkit declaration that is itself SwiftUI API is never a candidate. It
+    A TUI declaration that is itself SwiftUI API is never a candidate. It
     matches SwiftUI exactly, so it cannot be a misspelling of a DIFFERENT
     SwiftUI declaration: `View.toolbar(removing:)` is not
     `View.toolbar(content:)` spelt wrong, it is `toolbar(removing:)`.
     Without this rule, implementing one overload of a family makes it look
-    like a misspelling of every same-arity sibling TUIkit has not got.
+    like a misspelling of every same-arity sibling TUI has not got.
 
     Nor is a SwiftUI call that already COMPILES (`compatible`, from
     `source_compatible`). `border(_:width:)` binds to `border(_:style:width:)`
@@ -535,13 +535,13 @@ def label_deviations(swiftui, tuikit, compatible=None):
 def source_compatible(swiftui, tuikit, tuikit_defaults):
     """Absent SwiftUI symbols that a SwiftUI call site nonetheless compiles to.
 
-    TUIkit is aiming at SOURCE compatibility, not identical declarations, so a
-    TUIkit function may add optional parameters of its own:
+    TUI is aiming at SOURCE compatibility, not identical declarations, so a
+    TUI function may add optional parameters of its own:
     `alert(_:isPresented:actions:message:)` is spelled
     `alert(_:isPresented:actions:message:borderStyle:borderColor:titleColor:)`
     here, and `border(_:width:)` is `border(_:style:width:)`. The SwiftUI call
     compiles verbatim in both cases. Comparing argument labels alone cannot see
-    that, so those read as gaps — the report claiming TUIkit has no `.alert`,
+    that, so those read as gaps — the report claiming TUI has no `.alert`,
     which is false, and a report that cries wolf is one nobody reads.
 
     The extras need not be trailing: `omittable` implements Swift's actual rule
@@ -552,7 +552,7 @@ def source_compatible(swiftui, tuikit, tuikit_defaults):
 
     What it proves is that the call COMPILES, not that it MEANS the same
     thing: `fixedSize()` reaches `fixedSize(horizontal:vertical:)` whatever
-    those defaults are, and it is only right because TUIkit defaults both to
+    those defaults are, and it is only right because TUI defaults both to
     `true` as SwiftUI does. Flipping such a default would turn a match here
     into a silent behaviour difference, which is why every one of these is
     printed rather than quietly folded into the explained count — and why each
@@ -617,14 +617,14 @@ def audit_map(swiftui, tuikit, parity_map):
         elif entry["tuikit"] not in tuikit:
             stale.append(
                 (key, "renamed",
-                 f"TUIkit no longer has the replacement `{entry['tuikit']}`"))
+                 f"TUI no longer has the replacement `{entry['tuikit']}`"))
     for section in ("notImplemented", "differentShape"):
         for key in sorted(parity_map[section]):
             if key not in swiftui:
                 stale.append((key, section, "SwiftUI no longer has this symbol"))
             elif key in tuikit:
                 stale.append((key, section,
-                              "TUIkit has this symbol now — delete the entry"))
+                              "TUI has this symbol now — delete the entry"))
     # A family pattern that matches nothing absent is either obsolete or was
     # always wrong. Checked one PATTERN at a time, not one rule at a time: a
     # rule is a list of spellings for the same reason, and a live sibling hides
@@ -646,7 +646,7 @@ def report(swiftui, tuikit, gaps, explained, stale, deviations, baseline, compat
         print(f"  BASELINE RECORDED AGAINST: {recorded}")
     print(f"SwiftUI:    {len(swiftui):>5} live public symbols "
           f"({'+'.join(SWIFTUI_MODULES)})")
-    print(f"TUIkit:     {len(tuikit):>5} live public symbols "
+    print(f"TUI:     {len(tuikit):>5} live public symbols "
           f"({', '.join(TUIKIT_MODULES)})")
     shared = len(set(swiftui) & set(tuikit))
     print(f"shared:     {shared:>5} symbols by name")
@@ -662,7 +662,7 @@ def report(swiftui, tuikit, gaps, explained, stale, deviations, baseline, compat
     fixed = sorted(known - set(gaps))
 
     if gaps:
-        print("\nUnexplained differences — SwiftUI has these, TUIkit does not.")
+        print("\nUnexplained differences — SwiftUI has these, TUI does not.")
         print("Grouped by the type they belong to; a bare name is a top-level type.")
         by_owner = {}
         for key in gaps:
@@ -699,13 +699,13 @@ def report(swiftui, tuikit, gaps, explained, stale, deviations, baseline, compat
             mark = "NEW " if key in set(fresh) else "    "
             print(f"  {mark}SwiftUI {key}")
             for candidate in deviations[key][:2]:
-                print(f"       TUIkit  {candidate}")
+                print(f"       TUI  {candidate}")
         if len(fresh or deviations) > LIST_LIMIT:
             print(f"  … and {len(fresh or deviations) - LIST_LIMIT} more")
 
     # A recorded deviation that no longer reproduces WARNS; it does not fail.
     # The asymmetry with `fixed` below is deliberate: a closed GAP is a claim
-    # about TUIkit's own API and leaving it unrecorded is how the baseline goes
+    # about TUI's own API and leaving it unrecorded is how the baseline goes
     # quietly out of date, whereas a label deviation tracks the SDK, which moves
     # under us — failing on one would turn every toolchain bump into a red build
     # with nothing for anyone to fix. Computed outside the `if deviations:`
@@ -750,7 +750,7 @@ def main():
     parser.add_argument("--stale", action="store_true",
                         help="only audit the curated map")
     parser.add_argument("--deprecated", action="store_true",
-                        help="list SwiftUI's macOS deprecations that TUIkit still implements (a report)")
+                        help="list SwiftUI's macOS deprecations that TUI still implements (a report)")
     parser.add_argument("--json", metavar="PATH", help="also write the full result as JSON")
     parser.add_argument("--work-dir", help="keep the symbol graphs here (they are large)")
     parser.add_argument("--target", default="arm64-apple-macosx26.0")
@@ -763,7 +763,7 @@ def main():
         swiftui_dir = os.path.join(work, "swiftui")
         tuikit_dir = os.path.join(work, "tuikit")
 
-        # TUIkit's modules have to exist before they can be read.
+        # TUI's modules have to exist before they can be read.
         built = run(["swift", "build"], cwd=REPO)
         if built.returncode:
             sys.exit(f"swift build failed:\n{built.stderr}")

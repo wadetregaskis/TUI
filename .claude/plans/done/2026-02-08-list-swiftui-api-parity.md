@@ -2,7 +2,7 @@
 
 ## Preface
 
-TUIkit's List component gains SwiftUI API parity with Section grouping, badges, list styles, selection control, and alternating row backgrounds. Section enables hierarchical organization with headers and footers. The `.badge()` modifier displays counts or labels right-aligned in rows. ListStyle provides visual variants like `.plain` and `.insetGrouped`. Per-item selection can be disabled via `.selectionDisabled()`. The `.listRowSeparator()` modifier is implemented as a stub with a warning since separators are not visually supported in TUIkit.
+TUI's List component gains SwiftUI API parity with Section grouping, badges, list styles, selection control, and alternating row backgrounds. Section enables hierarchical organization with headers and footers. The `.badge()` modifier displays counts or labels right-aligned in rows. ListStyle provides visual variants like `.plain` and `.insetGrouped`. Per-item selection can be disabled via `.selectionDisabled()`. The `.listRowSeparator()` modifier is implemented as a stub with a warning since separators are not visually supported in TUI.
 
 ## Completed
 
@@ -60,19 +60,19 @@ All phases implemented:
 
 | File | Type |
 |------|------|
-| `Sources/TUIkit/Views/Section.swift` | Created |
-| `Sources/TUIkit/Views/List.swift` | Modified |
-| `Sources/TUIkit/Styles/ListStyle.swift` | Created |
-| `Sources/TUIkit/Modifiers/BadgeModifier.swift` | Created |
-| `Sources/TUIkit/Modifiers/SelectionDisabledModifier.swift` | Created |
-| `Sources/TUIkit/Modifiers/ListRowSeparatorModifier.swift` | Created |
-| `Sources/TUIkit/Extensions/View+Badge.swift` | Created |
-| `Sources/TUIkit/Extensions/View+SelectionDisabled.swift` | Created |
-| `Sources/TUIkit/Extensions/View+ListRowSeparator.swift` | Created |
-| `Sources/TUIkit/Environment/Environment.swift` | Modified |
-| `Tests/TUIkitTests/SectionTests.swift` | Created |
-| `Tests/TUIkitTests/SectionListIntegrationTests.swift` | Created |
-| `Tests/TUIkitTests/ListStyleTests.swift` | Created |
-| `Tests/TUIkitTests/BadgeModifierTests.swift` | Created |
-| `Tests/TUIkitTests/SelectionDisabledTests.swift` | Created |
-| `Tests/TUIkitTests/ListRowSeparatorTests.swift` | Created |
+| `Sources/TUI/Views/Section.swift` | Created |
+| `Sources/TUI/Views/List.swift` | Modified |
+| `Sources/TUI/Styles/ListStyle.swift` | Created |
+| `Sources/TUI/Modifiers/BadgeModifier.swift` | Created |
+| `Sources/TUI/Modifiers/SelectionDisabledModifier.swift` | Created |
+| `Sources/TUI/Modifiers/ListRowSeparatorModifier.swift` | Created |
+| `Sources/TUI/Extensions/View+Badge.swift` | Created |
+| `Sources/TUI/Extensions/View+SelectionDisabled.swift` | Created |
+| `Sources/TUI/Extensions/View+ListRowSeparator.swift` | Created |
+| `Sources/TUI/Environment/Environment.swift` | Modified |
+| `Tests/TUITests/SectionTests.swift` | Created |
+| `Tests/TUITests/SectionListIntegrationTests.swift` | Created |
+| `Tests/TUITests/ListStyleTests.swift` | Created |
+| `Tests/TUITests/BadgeModifierTests.swift` | Created |
+| `Tests/TUITests/SelectionDisabledTests.swift` | Created |
+| `Tests/TUITests/ListRowSeparatorTests.swift` | Created |

@@ -1,15 +1,15 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  EmojiPage.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
 /// Emoji rendering demo / inspector page.
 ///
-/// Showcases all the Terminal.app emoji rendering quirks TUIkit has to
+/// Showcases all the Terminal.app emoji rendering quirks TUI has to
 /// work around, and provides a searchable browse-everything view of the
 /// emoji corpus.  Built using ``Unicode.Scalar.Properties`` so the list
 /// stays accurate against whatever Unicode version the running toolchain
@@ -92,7 +92,7 @@ struct EmojiPage: View {
                     // ZWJ: one composed glyph on most hosts, separate
                     // components on Warp — and on BOTH Apple Terminal and Warp
                     // the cluster reserves the sum of its parts, so a row
-                    // budgeted at 2 cells wraps. The class TUIkit widened the
+                    // budgeted at 2 cells wraps. The class TUI widened the
                     // claim for; without a row here the page could not show it.
                     BugCaseRow(label: "page.emoji.bugZWJLabel",
                                description: "page.emoji.bugZWJDesc",

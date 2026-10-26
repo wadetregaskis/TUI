@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Synchronized output (DEC mode 2026) probe: is the pair TUIkit wraps a
+"""Synchronized output (DEC mode 2026) probe: is the pair TUI wraps a
 multi-row frame in harmless here, does the terminal say it implements the
 mode, and how long does it hold a display nobody lets go of?
 
-TUIkit sends `CSI ? 2026 h` before a frame that writes more than one row and
+TUI sends `CSI ? 2026 h` before a frame that writes more than one row and
 `CSI ? 2026 l` after it, to every host, without asking (see
 `Terminal.beginSynchronizedUpdate()` and Documentation/Terminals/Terminal compatibility survey.md,
 "Synchronized output (mode 2026)"). This measures what that rests on.
 
-Run INSIDE the terminal under test; nothing here needs TUIkit built.
+Run INSIDE the terminal under test; nothing here needs TUI built.
 
   python3 sync_probe.py                 # the leak check and the mode survey
   python3 sync_probe.py --hold-timeout  # ...then a hold left open, by eye
 
 Writes JSON to $PROBE_OUT (default ./sync_probe.json) and prints a summary.
-`PROBE_ALT=1` runs on the alternate screen, where TUIkit draws.
+`PROBE_ALT=1` runs on the alternate screen, where TUI draws.
 
 1. **Leak.** The cursor column (DSR 6, `CSI 6 n`) before and after the pair,
    with nothing between them. A column that moved means the terminal printed

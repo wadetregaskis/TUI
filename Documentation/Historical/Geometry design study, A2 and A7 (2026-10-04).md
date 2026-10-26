@@ -44,9 +44,9 @@ in RenderContext padding that already exists (stride stays 104).
 
 ---
 
-## 1. The problem in TUIkit's terms
+## 1. The problem in TUI's terms
 
-TUIkit fuses SwiftUI's two top-down phases — *place* and *draw* — into one
+TUI fuses SwiftUI's two top-down phases — *place* and *draw* — into one
 bottom-up walk: a container renders a child into a `FrameBuffer`, and only then
 composites it at an offset. So a view learns where it is only after it has
 already been built. `GeometryProxy` must answer while its content closure runs,
@@ -64,7 +64,7 @@ solutions:
 rectangle is known. (a) is needed *before the asker's content exists*, which is
 the only part that forces either a prediction or a re-render.
 
-**One simplification the whole design leans on:** TUIkit geometry is
+**One simplification the whole design leans on:** TUI geometry is
 translation-only. Every space is the root shifted by a constant; there is no
 scale or rotation (A27 recommends declining the transforms — if option 2 ships,
 a scale must stay non-geometric, as the `.scale` transition already draws). So
@@ -91,7 +91,7 @@ dislikes is confined to rows 1, 2 (L2 only) and 5.
 ## 2. Existing machinery (file:line at `f56c419d`)
 
 **Proxies and readers**
-- `GeometryProxy` — `Sources/TUIkitFoundation/Views/GeometryReader.swift:25`; `globalOrigin`
+- `GeometryProxy` — `Sources/TUIFoundation/Views/GeometryReader.swift:25`; `globalOrigin`
   `:30` is never set by any caller; `frame(in:)` `:49–58` falls back to local;
   `hasGlobalPosition` `:70`.
 - `_GeometryReaderCore` `:203`: greedy (`sizeThatFits` `:213` never builds the
@@ -99,25 +99,25 @@ dislikes is confined to rows 1, 2 (L2 only) and 5.
   — the property that lets one correction converge. `contentContext(noting:in:)`
   `:266` notes the size and `clearAffected` `:274` below on change: the pattern
   a resolved origin must follow.
-- `OnGeometryChangeModifier` — `Sources/TUIkitFoundation/Modifiers/OnGeometryChangeModifier.swift:88`;
+- `OnGeometryChangeModifier` — `Sources/TUIFoundation/Modifiers/OnGeometryChangeModifier.swift:88`;
   compares at render and records a render side effect `:103` (declines every
   ancestor memo); proxy built from the rendered size `:125`.
-- `_VisualEffectView.renderToBuffer` — `Sources/TUIkitEffects/Modifiers/VisualEffect.swift:108`:
+- `_VisualEffectView.renderToBuffer` — `Sources/TUIEffects/Modifiers/VisualEffect.swift:108`:
   renders content, THEN builds the proxy from the buffer and applies
   `_applied(to:context:)` (`:44`) — an effect is already a post-render buffer
   transform.
 
 **Things that already travel up (G1's carrier)**
-- `FrameBuffer.hitTestRegions` — `Sources/TUIkitCore/Rendering/FrameBuffer.swift:152`;
+- `FrameBuffer.hitTestRegions` — `Sources/TUICore/Rendering/FrameBuffer.swift:152`;
   shifted by every combinator (`shiftedHitTestRegions` `:1243`, `replacingLines`
   `:1142`); grep finds 102 references in 51 files across the three modules.
-- `HitTestRegion` — `Sources/TUIkitCore/Input/HitTestRegion.swift:29`: `topClip` /
+- `HitTestRegion` — `Sources/TUICore/Input/HitTestRegion.swift:29`: `topClip` /
   `leftClip` and `localOriginY/X` (`:118`, `:122`) keep the UNCLIPPED origin through
   a scroll view; `clipped(toColumns:rows:)` `:182` drops a region with no
   surviving area; `HandlerID` is a `UInt64` `:208` (room for a reserved range).
-- `MouseEventDispatcher.regionOffset(for:)` — `Sources/TUIkitFoundation/App/MouseEventDispatcher.swift:973`:
+- `MouseEventDispatcher.regionOffset(for:)` — `Sources/TUIFoundation/App/MouseEventDispatcher.swift:973`:
   the absolute, unclipped origin of any region after the frame.
-  **`RegionOrigin` (`Sources/TUIkitFoundation/Modifiers/OnHoverModifier.swift:124`) already
+  **`RegionOrigin` (`Sources/TUIFoundation/Modifiers/OnHoverModifier.swift:124`) already
   answers `.global` for pointer events this way** — observed up, looked up
   lazily. Hover observers are skipped for claiming (`hoverObserverIDs`,
   `MouseEventDispatcher.swift:151, 913–916`): precedent for a region that
@@ -130,9 +130,9 @@ dislikes is confined to rows 1, 2 (L2 only) and 5.
   overlay layers (the W05 brief's choice).
 
 **Things that already travel down (G3's carrier)**
-- `RenderContext.gradientFrame` — `Sources/TUIkitView/Rendering/RenderContext.swift:343`;
+- `RenderContext.gradientFrame` — `Sources/TUIView/Rendering/RenderContext.swift:343`;
   `gradientContentFrame` `:358`; `placingGradientChild(_:x:y:)` `:371`.
-  `GradientFrame` (`Sources/TUIkitCore/Rendering/GradientFrame.swift:22`) already
+  `GradientFrame` (`Sources/TUICore/Rendering/GradientFrame.swift:22`) already
   carries `originX/originY`.
 - Grep finds 13 `placingGradientChild` calls in 8 files: `_VStackCore.renderClip`
   (`VStack.swift:466–487`), the windowed paths (`VStack.swift:620–624, 963–988`,
@@ -142,10 +142,10 @@ dislikes is confined to rows 1, 2 (L2 only) and 5.
   list's window and chrome), plus `OutlineGroup.swift:464`, `ListRowExtractor.swift:385`.
   Placement helpers: `StackGradientPlacement.swift` (`gradientOffsets`,
   `windowGradientPlacement` for both stacks).
-- `LayoutPlacing` — `Sources/TUIkitView/Rendering/LayoutPlacing.swift:89`: placement
+- `LayoutPlacing` — `Sources/TUIView/Rendering/LayoutPlacing.swift:89`: placement
   by measurement; implemented only by `_VStackCore` (`StackLayoutPlacing.swift:219`),
   and it reports `x = 0` (`LayoutPlacing.swift:33–37`).
-- `BufferModifier.adjustContext` — `Sources/TUIkitView/Core/BufferModifier.swift:127`,
+- `BufferModifier.adjustContext` — `Sources/TUIView/Core/BufferModifier.swift:127`,
   called before the content renders (`ModifiedView.renderToBuffer` `:235`):
   where a padding/border can translate an origin.
 
@@ -165,14 +165,14 @@ the stride moving to 112). No test pins the stride today.
   the content band in the same call when the reveal moved past it.
 
 **Owners/storage**
-- `PreferenceLayerModifier.renderToBuffer` — `Sources/TUIkitFoundation/Modifiers/PreferenceLayerModifier.swift:33`:
+- `PreferenceLayerModifier.renderToBuffer` — `Sources/TUIFoundation/Modifiers/PreferenceLayerModifier.swift:33`:
   push, render base, pop, build layer, composite (`compositeLayer`,
   `LayerComposite.swift:152/196`). The anchor table belongs between `pop()` and
   `transform`.
-- StateKey negative ranges — `Sources/TUIkitView/State/StateStorage.swift:54–70`;
+- StateKey negative ranges — `Sources/TUIView/State/StateStorage.swift:54–70`;
   `-90…` is free at this commit (the W05 brief claimed it; two lanes are open —
   re-check at landing).
-- `VolatileReadTracker.recordUnkeyedRead()` — `Sources/TUIkitCore/Environment/VolatileReadTracker.swift:246`:
+- `VolatileReadTracker.recordUnkeyedRead()` — `Sources/TUICore/Environment/VolatileReadTracker.swift:246`:
   "a read of a value no memo keys on"; the buffer memo's store gate refuses it.
 
 **ScrollView render order** (`ScrollView.swift:416–627`): offset decided

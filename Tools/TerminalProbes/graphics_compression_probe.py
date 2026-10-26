@@ -2,7 +2,7 @@
 """Kitty DEFLATED TRANSMISSION probe: does `o=z` reach the screen?
 
 The graphics protocol lets a transmission be zlib-compressed (`o=z`, RFC 1950,
-compressed BEFORE base64). TUIkit uses it, where the terminal says it can,
+compressed BEFORE base64). TUI uses it, where the terminal says it can,
 because a gradient rendered as pixels is seventeen identical rows and deflates
 by an order of magnitude — and because it can borrow the host's own `libz` at
 runtime rather than carry an encoder.
@@ -11,7 +11,7 @@ Two questions, because "acknowledged" and "drawn" are different facts (iTerm2
 acknowledged every placement command for a day and drew nothing — see
 `placeholder_spelling_probe.py`):
 
-1. **Is a deflated transmission acknowledged?** The same 32×32 block TUIkit's
+1. **Is a deflated transmission acknowledged?** The same 32×32 block TUI's
    startup handshake sends, `q=0` so the reply comes back. `OK` means the
    bytes were understood; an error names why; silence is a terminal with no
    protocol at all. The SIZE of the probe is what makes it honest: twenty-six
@@ -33,7 +33,7 @@ import probe_stamp
 FENCE_TIMEOUT = 1.0
 IMAGE_TIMEOUT = 4.0  # a picture is decoded and drawn, not merely parsed
 
-# TUIkit's own probe block: 32×32 RGBA of nothing, deflated.
+# TUI's own probe block: 32×32 RGBA of nothing, deflated.
 BLOCK = zlib.compress(bytes(32 * 32 * 4), 6)
 
 

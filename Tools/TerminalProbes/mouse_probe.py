@@ -6,7 +6,7 @@ Writes captured bytes to $PROBE_OUT if set, else to ./mouse_probe.log
 
 PROBE_SHIFT_ESCAPE=1 also sends XTSHIFTESCAPE (`CSI > 1 s`) once reporting is
 on, asking the terminal to report Shift-modified clicks rather than keep them
-for its own selection, as TUIkit does; `CSI > 0 s` hands Shift back at exit.
+for its own selection, as TUI does; `CSI > 0 s` hands Shift back at exit.
 Shift-click with it set and without, and compare: a Shift-click the terminal
 reports carries +4 in the button code (`<4;x;yM`); one it keeps is not in the
 log at all. Anything the terminal answers to the sequence lands in the log as

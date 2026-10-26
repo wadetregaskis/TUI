@@ -92,7 +92,7 @@ shipped; A13 has). Two calls the study left open:
 - **Not on Apple Terminal.** Its reading of `CSI > … s` is unmeasured, and a
   parser that ignored the `>` would take it for SCOSC and save the cursor.
   It needs nothing either: it has no Shift bypass, and reports the Shift bit
-  on a click. So TUIkit sends nothing there, rather than risk a sequence for
+  on a click. So TUI sends nothing there, rather than risk a sequence for
   no gain. The other hosts get it whatever they document: one that ignores it
   is unchanged.
 - **`TUIKIT_SHIFT_CLICKS=0`** keeps it from being sent anywhere: the user's

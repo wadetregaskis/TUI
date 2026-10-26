@@ -9,14 +9,14 @@
 
 A release hello world built with swift.org's Swift 6.4.0 and copied out of `.build` stopped before `main` on
 macOS 15.8.1: `dyld: Library not loaded: @rpath/libswiftCompatibilitySpan.dylib` (2026-10-10). Xcode's 6.2.4 build
-of the same code ran. Why, is TUIkit's own use of `Span` to blame, and what should TUIkit do? The owner then asked
+of the same code ran. Why, is TUI's own use of `Span` to blame, and what should TUI do? The owner then asked
 for "the exact nature of the problem", and whether swift-collections' fix would have downsides.
 
 ## Answer
 
-- **Not TUIkit's Span code.** No TUIkit object referred to any of the 33 symbols the library serves. The one import
+- **Not TUI's Span code.** No TUI object referred to any of the 33 symbols the library serves. The one import
   was `OutputSpan`'s metadata accessor, `$ss10OutputSpanVMa`, from swift-collections' unspecialised generic
-  `RigidDeque`/`UniqueDeque` code, which TUIkit never called. Swift keeps every public symbol, so linking
+  `RigidDeque`/`UniqueDeque` code, which TUI never called. Swift keeps every public symbol, so linking
   DequeModule linked the reference.
 - **Not a compiler bug either: two intended changes collided.** swift-collections 1.4 built Deque on code that fills
   an `OutputSpan`, and SwiftPM 6.4 compiles a package for macOS 12 instead of 10.13. At 12 the import is strong
@@ -24,7 +24,7 @@ for "the exact nature of the problem", and whether swift-collections' fix would 
   library from 26 only, and SwiftPM ships nothing beside an executable.
 - **Weak is not a fix.** A weakly linked symbol is NULL below macOS 26: a one-line program calling into it died
   at `pc 0x0`. It is safe only where the code needing it provably never runs there.
-- **TUIkit dropped swift-collections.** TUIkitApp, its only user, keeps stdin bytes in a buffer of its own
+- **TUI dropped swift-collections.** TUIApp, its only user, keeps stdin bytes in a buffer of its own
   (`InputByteBuffer`) and decoded events in `InputQueue`, about 300 lines that touch no Span type. That also saves
   about 165 KB per app.
 
@@ -39,8 +39,8 @@ deleted and nothing placed beside the binary.
 | Hello, 6.4.0, copied out | stops at launch, exit 134 |
 | Hello, Stress and Example, Xcode's 6.2.4, copied out | full PTY sessions pass (import weak) |
 | DequeModule's 108 KB in a linked app | 100 B dead-stripped |
-| swift-collections' cost in Hello | about 165 KB, of which TUIkit used 5.4 KB |
-| TUIkit's own Span patterns that link the library strongly | none on main (three patterns found, below) |
+| swift-collections' cost in Hello | about 165 KB, of which TUI used 5.4 KB |
+| TUI's own Span patterns that link the library strongly | none on main (three patterns found, below) |
 
 The patterns that make a strong link, measured on both toolchains: requesting a Span type's metadata
 (`Span<T>.self`, or as an argument to unspecialised generic code); mutating a `MutableSpan` or `OutputSpan` in a
@@ -49,7 +49,7 @@ prevents none of them, and a debug build links the library more often than a rel
 
 ## Reasoning
 
-Options were priced against "every TUIkit app deployable with no action by its author":
+Options were priced against "every TUI app deployable with no action by its author":
 
 - **Replace Deque (chosen).** Works on every toolchain and build system, costs app authors nothing, and is the size
   win.
@@ -64,11 +64,11 @@ Options were priced against "every TUIkit app deployable with no action by its a
   cannot fix it.
 
 If a swift-collections release ever links nothing for a Deque-only client, deployability stops being a reason;
-then the choice is about 300 lines of TUIkit's own against about 165 KB per app.
+then the choice is about 300 lines of TUI's own against about 165 KB per app.
 
 ## What landed
 
-- `02863940b`: TUIkitApp's own buffers; swift-collections out of `Package.swift`.
+- `02863940b`: TUIApp's own buffers; swift-collections out of `Package.swift`.
 - `914137ed6`, `c69521c23`, `aafa4a3cf`: `Tools/check-span-compatibility.sh`, run by CI on a release build. It fails
   on any load of the library, strong or weak, and on any symbol imported from it, in the executables and in every
   library module's objects. The owner asked for a unit test if cheap; it stays in CI because a debug build links the
@@ -85,4 +85,4 @@ and that under Swift Build an executable gets the `@loader_path` rpath only thro
 (`SIZE3/q/spanq/swift-package-manager-issue.md`). The compiler team already calls the 6.4 combination a regression
 and shipped an opt-in flag for it (swiftlang/swift#91294).
 
-Part of [where the bytes of a TUIkit app go](<Where the bytes of a TUIkit app go (2026-10-10).md>).
+Part of [where the bytes of a TUI app go](<Where the bytes of a TUI app go (2026-10-10).md>).

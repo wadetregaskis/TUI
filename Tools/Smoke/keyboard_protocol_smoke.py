@@ -24,7 +24,7 @@ stack as the specification says. Cases:
      still quits.
   4. SIGABRT after the push: the flags are popped on the way down, and the
      shell's line discipline (echo, canonical input) is put back.
-  5. SIGHUP and SIGUSR1, which terminate by default and nothing in TUIkit
+  5. SIGHUP and SIGUSR1, which terminate by default and nothing in TUI
      handles, and SIGTERM, which the run loop turns into an orderly
      shutdown: each pops the flags and puts the line discipline back. A
      terminal that does not speak the protocol gets its line discipline back
@@ -230,9 +230,9 @@ term.pump(2.0)
 check(term.stack == [], "resume: still quits, popping on the way")
 term.finish()
 
-# 4. A crash. The Swift runtime's backtracer, which runs after TUIkit's
+# 4. A crash. The Swift runtime's backtracer, which runs after TUI's
 # handler, would otherwise go interactive on a terminal — setting raw mode
-# itself and waiting half a minute for a key — and the check is of TUIkit.
+# itself and waiting half a minute for a key — and the check is of TUI.
 term = FakeTerminal(speaks_protocol=True, env={"SWIFT_BACKTRACE": "interactive=no"})
 term.pump(3.0)
 mark = len(term.out)
@@ -242,7 +242,7 @@ check(POP in term.out[mark:] and term.stack == [], "abort: popped on the way dow
 check(line_discipline_restored(term), "abort: the shell's line discipline is back")
 term.finish()
 
-# 5. The terminations: two nothing in TUIkit handles, and the orderly one.
+# 5. The terminations: two nothing in TUI handles, and the orderly one.
 for sig in (signal.SIGHUP, signal.SIGUSR1, signal.SIGTERM):
     name = signal.Signals(sig).name
     term = FakeTerminal(speaks_protocol=True)

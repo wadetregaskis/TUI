@@ -37,7 +37,7 @@ moved read costs one call and return more, whatever the global. The largest:
 
 | global | new cross-module sites | where |
 |---|---|---|
-| `LocalizationService.shared` (TUIkitStrings since B2) | 157 | every localized label the substrate and the carved modules look up |
+| `LocalizationService.shared` (TUIStrings since B2) | 157 | every localized label the substrate and the carved modules look up |
 | `VerticalAlignment.center`, `HorizontalAlignment.leading` / `.center`, `Alignment.topLeading` | 26, 24, 16, 9 | default arguments of `HStack`/`VStack`/`ZStack` built in a carved module, among them `_NavigationLinkCore.button`'s and `_OutlineRow.branchRow`'s, per row |
 | `ButtonRole.cancel` | 16 | dialogs and alerts |
 | `ANSIRenderer.reset`, and 12 sites of its other escape strings | 14 + 12 | `reset` per list and table row (`_TableCore.renderRowUncached`, `renderMultiLineRow`, `ListRowContent.init`) and per frame; the others at startup and shutdown |
@@ -60,9 +60,9 @@ hand another module a global's constant value. The options:
 
 ### A-SPH2-2. A feature-object slot costs a cast on every read — decided: the cast stays
 
-*Sources/TUIkitFoundation/Environment/FeatureObjectSlots.swift (step K1, a2195f6bd) — no API*
+*Sources/TUIFoundation/Environment/FeatureObjectSlots.swift (step K1, a2195f6bd) — no API*
 
-**Owner (2026-10-12): keep the `as?`.** TUIkit uses `unsafeDowncast` only where the cast is guaranteed by
+**Owner (2026-10-12): keep the `as?`.** TUI uses `unsafeDowncast` only where the cast is guaranteed by
 construction, and here it is not. That a slot holds its accessor's type is a convention: `subscript(featureObject:)`
 is `package`, so any module of the package can write any object into any slot, and only review would notice. With
 `as?` a wrong object reads as absent; with `unsafeDowncast` it would be undefined behaviour in release. The second
@@ -75,7 +75,7 @@ K1 made the navigation coordinator, the dialog suppression toggle, the search ob
 `AnyObject?` environment slots that the substrate declares and clears, each read through its feature's typed
 accessor (`self[featureObject: .navigationCoordinator] as? NavigationCoordinator`). A read is still one call into the
 environment's storage, as the typed key's was at c181ec0f9, so `@inlinable` on the slot subscript would remove
-nothing; what the slot adds is the `as?` (`swift_dynamicCastClass`) and an unknown-object release. TUIkitNavigation
+nothing; what the slot adds is the `as?` (`swift_dynamicCastClass`) and an unknown-object release. TUINavigation
 reads or writes a slot at 10 call sites (none at c181ec0f9, where each was a typed key's getter): per
 `NavigationLink` row (`_NavigationLinkCore.button`), and in `NavigationStack`'s, the alerts' and the destination
 and presentation modifiers' renders. The options:
@@ -87,19 +87,19 @@ and presentation modifiers' renders. The options:
 
 ### A-SPH2-3. A list row's buffer is borrowed through an out-of-line coroutine — superseded
 
-*Sources/TUIkitFoundation/Views/LazyListRowContent.swift (`buffer`), TUIkitLists' row code — no API*
+*Sources/TUIFoundation/Views/LazyListRowContent.swift (`buffer`), TUILists' row code — no API*
 
 **Superseded on 2026-10-08: fixed, not accepted.** This entry recommended accepting the 25 read-coroutine calls step
-B6 left in TUIkitLists' row code, and priced them at two calls per read. That price was wrong. Each read also
+B6 left in TUILists' row code, and priced them at two calls per read. That price was wrong. Each read also
 heap-allocated the coroutine's 88-byte frame, copied the 64-byte `FrameBuffer` into it, and freed it in the
 continuation, and the callers added outlined `FrameBuffer` copies. The profile that found it estimated the cost at
 about 3% of a `megalist` frame and 2.3% of a `kitchensink` one.
 
 The owner approved the remedy. `buffer` and `badge` are `@inlinable` over a `@usableFromInline` `cached` and
-`resolveIfNeeded()`, so TUIkitLists calls `resolveIfNeeded()` directly, as c181ec0f9's list code did. It is the one
+`resolveIfNeeded()`, so TUILists calls `resolveIfNeeded()` directly, as c181ec0f9's list code did. It is the one
 exception to CONTRIBUTING.md's rule on class stored properties ("Crossing a module boundary"), allowed because every
 access to `cached` was already dynamic. `LazyListRowContent.cached`'s doc comment holds the evidence.
-`ANSIRenderer.colorize` (31 sites from TUIkitLists), which this entry also mentioned, is B-SPH-1's, priced there.
+`ANSIRenderer.colorize` (31 sites from TUILists), which this entry also mentioned, is B-SPH-1's, priced there.
 
 ## C. Declined
 

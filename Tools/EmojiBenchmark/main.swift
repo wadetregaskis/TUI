@@ -1,4 +1,4 @@
-//  🖥️ TUIKit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  EmojiBenchmark / main.swift
 //
 //  Measures how long it takes to classify the scalars/clusters in a
@@ -15,7 +15,7 @@
 //  property query.
 
 import Foundation
-import TUIkitCore
+import TUICore
 
 // MARK: - Workload
 
@@ -26,7 +26,7 @@ import TUIkitCore
 let representativeRow = " │   Pure Swift   │   │   Declarative    │   │    Composable     │   │   Unicode compatible   │ "
 let emojiHeavyRow     = "🤙🏽 🥳 🤙🏽 🥳 🤙🏽 🥳 🤙🏽 🥳 🤙🏽 🥳 🤙🏽 🥳 🤙🏽 🥳 🤙🏽 🥳 🤙🏽 🥳 🤙🏽 🥳 🤙🏽 🥳 🤙🏽 🥳 🤙🏽"
 let cjkRow            = "所有语言 中文 日本語 한국어 中文 日本語 한국어 中文 日本語 한국어 中文 日本語 한국어 中文 日本語 한국어"
-let mixedFullRow      = " ╭────────────────╮ │ 🤙🏽 World 你好 🥳 ╰──╯ 🖥️ TUIkit "
+let mixedFullRow      = " ╭────────────────╮ │ 🤙🏽 World 你好 🥳 ╰──╯ 🖥️ TUI "
 
 let testRows: [(String, String)] = [
     ("representative (boxes + emoji)", representativeRow),

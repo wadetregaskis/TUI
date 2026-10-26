@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Prints a static alignment card: each row is |<c>|<c>|<c>|X with a ruler.
-A cluster that paints the 2 cells TUIkit claims puts every X in the same
+A cluster that paints the 2 cells TUI claims puts every X in the same
 column; one that paints more pushes X right, one that paints less pulls it
 left, and three copies make a one-cell error a three-cell one.
 
@@ -34,7 +34,7 @@ rows = [
     ("blocks",       "██"),
     ("halfpair",     "▐▌"),
     # Non-emoji scalars in the pictographic planes. These paint ONE cell on
-    # every measured host; TUIkit claimed 2 until 2026-08-26, so their X sat
+    # every measured host; TUI claimed 2 until 2026-08-26, so their X sat
     # three columns right of the ruler's.
     ("mahjong",      "\U0001F000"),
     ("domino",       "\U0001F060"),

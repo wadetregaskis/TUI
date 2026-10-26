@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ProcessesSession.swift
 //
 //  Created by Wade Tregaskis
@@ -6,7 +6,7 @@
 
 import Foundation
 import Observation
-import TUIkit
+import TUI
 
 // MARK: - The table
 

@@ -71,7 +71,7 @@ private struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable
 
 ### What Uses ContainerView?
 ```bash
-grep -r "ContainerView" Sources/TUIkit/Views/ --include="*.swift" | grep -v "ContainerView.swift"
+grep -r "ContainerView" Sources/TUI/Views/ --include="*.swift" | grep -v "ContainerView.swift"
 ```
 
 Likely users:

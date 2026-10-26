@@ -1,0 +1,534 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  TextWrapping.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import TUICore
+
+/// Pure text-layout helpers shared by ``Text`` and any view that lays plain text
+/// into a bounded region — notably a multi-line ``Table`` cell.
+///
+/// This is the one place that decides how textual content "expands to fit" while
+/// staying inside finite bounds, so every view that shows text behaves the same
+/// way: an explicit line break starts a new line; a long line soft-wraps on word
+/// boundaries; and a line budget keeps the lines that fit, folding the remainder
+/// into the last visible line truncated with an ellipsis so the loss is shown
+/// rather than silently dropped.
+@MainActor
+package enum TextWrapping {
+    /// Wrapped text paired with each line's visible width in terminal cells.
+    ///
+    /// Word-wrapping already knows each line's width as it builds it, so the
+    /// `…Measured` entry points surface it here for free rather than forcing
+    /// every downstream consumer (``Text``'s ``FrameBuffer`` construction, a
+    /// `VStack` aligning a wrapped column) to re-`strippedLength` the lines every
+    /// frame. The widths describe the *plain* `lines`; styling them with ANSI
+    /// codes (zero visible cells) leaves the widths unchanged.
+    ///
+    /// - Invariant: `widths.count == lines.count` and, for every index,
+    ///   `widths[i] == lines[i].strippedLength`.
+    struct Wrapped {
+        /// The wrapped (and possibly truncated/folded) lines.
+        let lines: [String]
+        /// Each line's visible width in terminal cells.
+        let widths: [Int]
+    }
+
+    /// Splits `text` on explicit line breaks (`\n`, `\r\n`, `\r`) and soft-wraps
+    /// each paragraph on word boundaries so every returned line fits `width`
+    /// terminal cells. Never empty. A single word longer than `width` is placed on
+    /// its own line (the caller truncates it). `width <= 0` returns the paragraphs
+    /// unwrapped.
+    package static func wrap(_ text: String, width: Int) -> [String] {
+        wrapMeasured(text, width: width).lines
+    }
+
+    /// Like ``wrap(_:width:)`` but also returns each line's visible width.
+    ///
+    /// The widths are accumulated while wrapping (each line's width is known the
+    /// moment the line is finished), so this costs nothing beyond ``wrap`` — the
+    /// per-line `strippedLength` the width already needs. For the `width <= 0`
+    /// passthrough the widths are measured once from the (unwrapped) paragraphs.
+    static func wrapMeasured(_ text: String, width: Int) -> Wrapped {
+        // Memoized, because the same (text, width) is wrapped many times per
+        // frame. Profiling the Example's Table page (Instruments, 4,745
+        // samples): `TextWrapping.fit` was 68.3% of the frame inclusive,
+        // `fitMeasured` 58.0%, `wrapMeasured` 47.6% — reached over and over
+        // through `heightOf` in `_TableCore.buildMultiLineContent`, because a
+        // Table asks each cell's height during EVERY measure pass and then
+        // wraps the same text again to draw it. Nothing about the answer
+        // changes between those calls: wrapping is a pure function of the text
+        // and the width, so the repeats are pure waste.
+        //
+        // Pure, though, in one input the key does not carry: the host's width
+        // CLAIM. `terminalWidth` reads `TerminalWidthTraits.current` for ZWJ
+        // and skin-tone clusters and for the chrome glyphs a host overhangs,
+        // so the same (text, width) wraps to different widths — and breaks in
+        // different places — under another host, and `TerminalClient.simulated`
+        // moves that claim at runtime. This memo predates the claim and said
+        // "a plain memo with no invalidation — there is no state to go stale",
+        // and kept answering that way: after a host switch `RenderCache`
+        // dropped its sizes and re-asked `Text`, which re-asked here and got
+        // the OLD host's widths back, so a label measured before the switch
+        // disagreed with an identical one first drawn after it. The claim is
+        // checked by generation rather than folded into the key, so a switch
+        // frees the old host's entries instead of leaving them to the cap.
+        dropMemosIfClaimMoved()
+        // The width-independent table first: it holds the common case (a label
+        // that fits, a source line nothing wraps), and a text in it is answered
+        // by one probe where the keyed table would need one per budget.
+        if width > 0, let known = unwrapped[text], known.widths[0] <= width { return known }
+        if let hit = cache[WrapKey(text: text, width: width)] { return hit }
+        let wrapped = uncachedWrapMeasured(text, width: width)
+        if width > 0, wrapped.lines.count == 1, wrapped.lines[0] == text {
+            if unwrapped.count >= cacheLimit { unwrapped.removeAll(keepingCapacity: true) }
+            unwrapped[text] = wrapped
+            return wrapped
+        }
+        // A flat cap rather than an LRU: entries are small, a frame's working
+        // set is far below this, and a cliff-edge flush costs one re-wrap of
+        // whatever is still on screen. Tracking recency would cost more than
+        // it saves at this size.
+        if cache.count >= cacheLimit { cache.removeAll(keepingCapacity: true) }
+        cache[WrapKey(text: text, width: width)] = wrapped
+        return wrapped
+    }
+
+    /// The identity of a wrap: its explicit inputs. The one implicit input,
+    /// the host's width claim, is deliberately not a field — see
+    /// ``dropMemosIfClaimMoved()``.
+    private struct WrapKey: Hashable {
+        let text: String
+        let width: Int
+    }
+
+    /// The identity of a fit: the wrap's inputs plus the fold/truncation ones.
+    private struct FitKey: Hashable {
+        let text: String
+        let width: Int
+        let maxLines: Int?
+        let mode: TruncationMode
+        let atWordBoundary: Bool
+    }
+
+    private static let cacheLimit = 4096
+    private static var cache: [WrapKey: Wrapped] = [:]
+    private static var fitCache: [FitKey: Wrapped] = [:]
+
+    /// The wrap of a text that came back from one AS ITSELF — one line, byte
+    /// for byte — keyed by the text alone.
+    ///
+    /// The whole ``Wrapped`` and not just its width, so a hit hands back the
+    /// arrays it already has: rebuilding `Wrapped(lines: [text], widths: [n])`
+    /// per hit allocated two arrays where the keyed table allocates none, and
+    /// gave back in churn most of what the table saved (`scrollfollow` +2.8%).
+    ///
+    /// Such a text did not wrap, and cannot wrap at any WIDER budget either, so
+    /// its answer is a property of the text and one entry serves every budget
+    /// above it. That is not a refinement of ``cache``; it is the fix for a way
+    /// ``cache`` was being defeated. The keyed table holds one entry per (text,
+    /// width), and the questions asked of a stack arrive at several widths:
+    /// `measureNaturalExtent` re-measures the whole content once per rung of its
+    /// budget ladder, and `resolveScrollbars` asks again at a viewport one cell
+    /// narrower after reserving a bar. A two-thousand-line editor therefore
+    /// filed four thousand entries for two thousand texts, blew the flat cap,
+    /// and flushed — taking the RENDER's own entries with it, so nothing was
+    /// ever served. Measured on `app-shapes/code-editor-tailing`: the cache
+    /// flushed 3.3 times per frame.
+    ///
+    /// Filled only from a proven result, never from a guess: the text is stored
+    /// when a real wrap returned it unchanged, so nothing here rests on an
+    /// assumption about what `wrapParagraph` does to indents, trailing spaces or
+    /// a CJK run. And dropped by ``dropMemosIfClaimMoved()`` with the others,
+    /// because a width is exactly what a host's claim changes.
+    private static var unwrapped: [String: Wrapped] = [:]
+
+    /// The `TerminalWidthTraits.generation` both memos were filled under.
+    ///
+    /// Starts at zero instead of reading the counter, so its initializer is a
+    /// constant rather than a cross-module read: if startup's traits publish
+    /// has already bumped the counter, the first lookup just empties two
+    /// memos that are still empty.
+    private static var memoizedUnderWidthGeneration = 0
+
+    /// Empties both memos when the process-wide width claim has moved since
+    /// they were filled — the check `RenderCache.beginRenderPass()` makes for
+    /// its own memos, which never reached these two.
+    ///
+    /// Per lookup, not per render pass: this enum has no pass of its own, and
+    /// its callers — `Text`, a `Table` cell, both tooltip styles, tests — do
+    /// not cross one shared boundary to hang the check on. Ahead of a lookup
+    /// that hashes the whole string it costs two integer loads and a compare.
+    ///
+    /// Blind, like `RenderCache`, to a `TerminalWidthTraits.withTraits` pin,
+    /// which does not bump the counter: a wrap under a pin fills this shared
+    /// memo with the pinned claim, so a test that wraps under one should
+    /// ``clearWrapCache()`` on both sides of it.
+    private static func dropMemosIfClaimMoved() {
+        let generation = TerminalWidthTraits.generation
+        guard generation != memoizedUnderWidthGeneration else { return }
+        memoizedUnderWidthGeneration = generation
+        cache.removeAll()
+        fitCache.removeAll()
+        unwrapped.removeAll()
+    }
+
+    /// Clears the wrap and fit memos. For tests that want to measure cold.
+    static func clearWrapCache() {
+        cache.removeAll()
+        fitCache.removeAll()
+        unwrapped.removeAll()
+    }
+
+    private static func uncachedWrapMeasured(_ text: String, width: Int) -> Wrapped {
+        let paragraphs = text.split(
+            omittingEmptySubsequences: false,
+            whereSeparator: { $0 == "\n" || $0 == "\r\n" || $0 == "\r" }
+        )
+        guard width > 0 else {
+            let lines = paragraphs.isEmpty ? [""] : paragraphs.map(String.init)
+            return Wrapped(lines: lines, widths: lines.map(\.strippedLength))
+        }
+        var lines: [String] = []
+        var widths: [Int] = []
+        for paragraph in paragraphs {
+            let wrapped = wrapParagraph(String(paragraph), width: width)
+            lines.append(contentsOf: wrapped.lines)
+            widths.append(contentsOf: wrapped.widths)
+        }
+        if lines.isEmpty {
+            return Wrapped(lines: [""], widths: [0])
+        }
+        return Wrapped(lines: lines, widths: widths)
+    }
+
+    /// Lays `text` into at most `maxLines` lines of at most `width` cells.
+    ///
+    /// Wraps (see ``wrap(_:width:)``); then, if the result overflows the budget,
+    /// keeps the lines that fit and folds the remainder into the last visible line
+    /// truncated with an ellipsis; finally truncates any line still wider than
+    /// `width` (a single over-long word). `maxLines == nil` keeps every wrapped
+    /// line. Returns plain (unstyled) lines.
+    package static func fit(
+        _ text: String,
+        width: Int,
+        maxLines: Int?,
+        mode: TruncationMode = .tail,
+        atWordBoundary: Bool = false
+    ) -> [String] {
+        fitMeasured(
+            text, width: width, maxLines: maxLines, mode: mode, atWordBoundary: atWordBoundary
+        ).lines
+    }
+
+    /// Like ``fit(_:width:maxLines:mode:atWordBoundary:)`` but also returns each
+    /// final line's visible width.
+    ///
+    /// The maxLines fold and the per-line `StringProtocol.truncatedToWidth(_:mode:atWordBoundary:forceEllipsis:)`
+    /// pass rewrite line content, so the widths are recomputed from the *final*
+    /// lines — a truncated or folded line's width is its post-truncation visible
+    /// width (always `<= width`). When neither transform fires (the common case:
+    /// the wrapped lines already fit and there's no line-limit overflow) the
+    /// returned lines are identical to ``wrapMeasured``'s and reuse its widths
+    /// directly, so no re-measure happens at all.
+    static func fitMeasured(
+        _ text: String,
+        width: Int,
+        maxLines: Int?,
+        mode: TruncationMode = .tail,
+        atWordBoundary: Bool = false
+    ) -> Wrapped {
+        // Memoized like `wrapMeasured`, and for the same purity reason — but
+        // this one is NOT redundant with that memo: the maxLines fold and the
+        // per-line truncation run AFTER the wrap lookup, so a line-limited
+        // cell paid `foldRemainder` (a character-by-character re-walk of the
+        // source, ending in a regex) on every call even when the wrap itself
+        // was a hit. A multi-line Table asks this for every visible cell and
+        // for every cell the scrollbar's extent estimator samples, every
+        // frame: on table-multiline, `fit` was 50.8% of the frame inclusive
+        // and `foldRemainder` alone 19.4%.
+        //
+        // Only the line-LIMITED call is worth the key: without `maxLines` the
+        // fold cannot run and the post-wrap work is one width check per line,
+        // which costs less than hashing the text a second time — memoizing
+        // unconditionally measured scrollfollow +1.2% and modifiers +1.1%
+        // for no fold ever saved, against table-multiline −60% from exactly
+        // the limited calls this key admits.
+        guard maxLines != nil else {
+            return uncachedFitMeasured(
+                text, width: width, maxLines: nil, mode: mode, atWordBoundary: atWordBoundary)
+        }
+        // Checked here and not only inside `wrapMeasured`: a hit below returns
+        // before the wrap is ever asked, so a wrap-side check alone would still
+        // serve a fit folded or truncated under the old host's claim.
+        dropMemosIfClaimMoved()
+        let key = FitKey(
+            text: text, width: width, maxLines: maxLines, mode: mode,
+            atWordBoundary: atWordBoundary)
+        if let hit = fitCache[key] { return hit }
+        let result = uncachedFitMeasured(
+            text, width: width, maxLines: maxLines, mode: mode, atWordBoundary: atWordBoundary)
+        if fitCache.count >= cacheLimit { fitCache.removeAll(keepingCapacity: true) }
+        fitCache[key] = result
+        return result
+    }
+
+    private static func uncachedFitMeasured(
+        _ text: String,
+        width: Int,
+        maxLines: Int?,
+        mode: TruncationMode,
+        atWordBoundary: Bool
+    ) -> Wrapped {
+        let wrapped = wrapMeasured(text, width: width)
+        var lines = wrapped.lines
+        var changed = false
+
+        if let maxLines, maxLines >= 1, lines.count > maxLines {
+            let keptCount = max(0, maxLines - 1)
+            var kept = Array(lines.prefix(keptCount))
+            // The fold rebuilt from the SOURCE, so each former boundary
+            // contributes exactly what the wrap consumed there: the space a
+            // word-break ate, or NOTHING at an ideograph break. Joining the
+            // wrapped lines with " " invented a separator per boundary inside
+            // space-less text — spurious gaps in continuous CJK prose, each
+            // displacing a real character from the width budget.
+            let remainder = foldRemainder(of: text, afterConsuming: kept)
+            kept.append(
+                remainder.truncatedToWidth(
+                    width, mode: mode, atWordBoundary: atWordBoundary, forceEllipsis: true))
+            lines = kept
+            changed = true
+        }
+
+        // Truncate any line still wider than `width` (a single over-long word, or
+        // the just-folded last line). `truncatedToWidth` returns its input
+        // unchanged when it already fits.
+        for index in lines.indices {
+            let truncated =
+                lines[index].truncatedToWidth(width, mode: mode, atWordBoundary: atWordBoundary)
+            if truncated != lines[index] {
+                lines[index] = truncated
+                changed = true
+            }
+        }
+
+        // When neither transform rewrote any line, the lines are exactly
+        // `wrapMeasured`'s and its widths still describe them — the hot path, with
+        // no re-measure. Otherwise recompute the widths from the final lines (a
+        // truncated/folded line's width is its post-truncation visible width).
+        let widths = changed ? lines.map(\.strippedLength) : wrapped.widths
+        return Wrapped(lines: lines, widths: widths)
+    }
+
+    /// Wraps a single paragraph (no embedded line breaks) on word boundaries so
+    /// each returned line fits `width` terminal cells, returning each line's
+    /// visible width alongside (tracked for free while wrapping). Never empty.
+    ///
+    /// Leading spaces are preserved as an indent on the first line (see below);
+    /// interior and trailing spaces are preserved as written.
+    /// - Parameter firstLineWidth: The budget for the FIRST line only, when it
+    ///   differs from `width` — the indent case below, where the leading run
+    ///   eats into line 1 and nothing else. `nil` means every line gets `width`.
+    /// The source's tail once the kept lines are consumed — matching each
+    /// kept character against the source, skipping only the whitespace and
+    /// newlines the wrap consumed at breaks. Newlines inside the tail read
+    /// joined, as the line-based fold always rendered them.
+    private static func foldRemainder(of text: String, afterConsuming kept: [String]) -> String {
+        var cursor = text.startIndex
+        for line in kept {
+            for character in line {
+                while cursor < text.endIndex, text[cursor] != character,
+                    text[cursor].isWhitespace || text[cursor].isNewline
+                {
+                    cursor = text.index(after: cursor)
+                }
+                guard cursor < text.endIndex, text[cursor] == character else { continue }
+                cursor = text.index(after: cursor)
+            }
+        }
+        while cursor < text.endIndex, text[cursor].isWhitespace || text[cursor].isNewline {
+            cursor = text.index(after: cursor)
+        }
+        return String(text[cursor...]).replacingOccurrences(
+            of: "[\r\n]+", with: " ", options: .regularExpression)
+    }
+
+    private static func wrapParagraph(
+        _ text: String, width: Int, firstLineWidth: Int? = nil
+    ) -> Wrapped {
+        // A leading space is content — an indent — not a wrap opportunity, and
+        // the word walk below cannot say so on its own: splitting `" Cut"` on
+        // spaces yields `["", "Cut"]`, and an empty FIRST token is
+        // indistinguishable from "nothing on this line yet", so the indent was
+        // silently swallowed (`Text("  Item")` drew `"Item"`). Interior and
+        // trailing spaces never had the problem — only the leading run, which
+        // is exactly the one an author writes on purpose.
+        //
+        // Peel the run off, wrap the rest in the room that leaves, and put it
+        // back on the FIRST line only: a soft-wrapped continuation starts at
+        // the margin, as it does everywhere else. As with a single over-long
+        // word, an indent wider than `width` is emitted anyway and left for the
+        // caller to truncate.
+        let indent = text.prefix { $0 == " " }
+        if !indent.isEmpty {
+            // Reduce the budget for the FIRST line only. Recursing at the
+            // reduced width made every CONTINUATION up to `indent.count` cells
+            // narrower than the space it actually renders into — they start at
+            // the margin, so they have the full width — which wrapped them
+            // earlier than needed and, under a line limit, folded away content
+            // that fits. The recursion is depth-1 (`dropFirst` strips every
+            // leading space, so the branch cannot re-enter) and the `max(1, …)`
+            // clamp stays exactly where it was, which is what keeps the
+            // indent-wider-than-width contract.
+            let wrapped = wrapParagraph(
+                String(text.dropFirst(indent.count)),
+                width: width,
+                firstLineWidth: max(1, width - indent.count))
+            var lines = wrapped.lines
+            var widths = wrapped.widths
+            lines[0] = indent + lines[0]
+            widths[0] += indent.count
+            return Wrapped(lines: lines, widths: widths)
+        }
+
+        // Spaces are the only break opportunity the word walk below knows, so
+        // a space-less CJK paragraph was classified as one giant "word",
+        // placed on a single line, and then truncated by the fit pass — all
+        // content past the first visual line silently dropped, in every
+        // localisation that doesn't put spaces between words. Wide characters
+        // carry their own break opportunities (a break is permitted between
+        // ideographs, as UAX #14 allows), so any paragraph containing one
+        // takes the wide-aware walk. ASCII-and-narrow prose — the hot path —
+        // keeps the allocation-lean space split below.
+        let firstBudget = firstLineWidth ?? width
+        if text.contains(where: { $0.terminalWidth >= 2 }) {
+            return wrapWithWideBreaks(text, width: width, firstLineWidth: firstBudget)
+        }
+
+        let words = text.split(separator: " ", omittingEmptySubsequences: false)
+        var lines: [String] = []
+        var widths: [Int] = []
+        var currentLine = ""
+        var currentLineWidth = 0
+
+        // Widens to `width` at the first break: only line 1 pays for an indent.
+        var budget = firstBudget
+        for word in words {
+            let wordStr = String(word)
+            let wordWidth = wordStr.strippedLength
+            if currentLine.isEmpty {
+                currentLine = wordStr
+                currentLineWidth = wordWidth
+            } else if currentLineWidth + 1 + wordWidth <= budget {
+                currentLine += " " + wordStr
+                currentLineWidth += 1 + wordWidth
+            } else {
+                lines.append(currentLine)
+                widths.append(currentLineWidth)
+                currentLine = wordStr
+                currentLineWidth = wordWidth
+                budget = width
+            }
+        }
+
+        if !currentLine.isEmpty {
+            lines.append(currentLine)
+            widths.append(currentLineWidth)
+        }
+
+        if lines.isEmpty {
+            return Wrapped(lines: [""], widths: [0])
+        }
+        return Wrapped(lines: lines, widths: widths)
+    }
+
+    /// The wide-aware twin of the space walk: wraps a paragraph that contains
+    /// at least one 2-cell character, breaking at spaces AND between wide
+    /// characters (each wide character is its own unit, breakable on both
+    /// sides — the basic UAX #14 ideograph rule; kinsoku refinements like
+    /// "don't start a line with 。" are deliberately out of scope here).
+    ///
+    /// Narrow runs (Latin words inside CJK prose, "TUI" in a Japanese
+    /// sentence) stay unbreakable units exactly as the space walk treats them,
+    /// so mixed-script text wraps the way both scripts expect. A space at a
+    /// line break is consumed by the break (as in the space walk); interior
+    /// and trailing spaces that don't sit at a break are preserved.
+    private static func wrapWithWideBreaks(
+        _ text: String, width: Int, firstLineWidth: Int? = nil
+    ) -> Wrapped {
+        // As in the space walk: only line 1 pays for a leading indent.
+        var budget = firstLineWidth ?? width
+        var lines: [String] = []
+        var widths: [Int] = []
+        var line = ""
+        var lineWidth = 0
+        var pendingSpaces = 0
+
+        func commitLine() {
+            lines.append(line)
+            widths.append(lineWidth)
+            line = ""
+            lineWidth = 0
+            pendingSpaces = 0  // a break consumes the whitespace at it
+            budget = width
+        }
+
+        /// Places one unbreakable unit, gluing any pending interior spaces.
+        func place(_ unit: String, unitWidth: Int) {
+            if line.isEmpty {
+                // Even an over-wide unit goes on its own line — the caller
+                // truncates, as with the space walk's over-long word.
+                line = unit
+                lineWidth = unitWidth
+            } else if lineWidth + pendingSpaces + unitWidth <= budget {
+                line += String.spaces(pendingSpaces) + unit
+                lineWidth += pendingSpaces + unitWidth
+            } else {
+                commitLine()
+                line = unit
+                lineWidth = unitWidth
+            }
+            pendingSpaces = 0
+        }
+
+        var narrowRun = ""
+        var narrowRunWidth = 0
+        func flushNarrowRun() {
+            guard !narrowRun.isEmpty else { return }
+            place(narrowRun, unitWidth: narrowRunWidth)
+            narrowRun = ""
+            narrowRunWidth = 0
+        }
+
+        for character in text {
+            if character == " " {
+                flushNarrowRun()
+                pendingSpaces += 1
+            } else if character.terminalWidth >= 2 {
+                flushNarrowRun()
+                place(String(character), unitWidth: character.terminalWidth)
+            } else {
+                narrowRun.append(character)
+                narrowRunWidth += character.terminalWidth
+            }
+        }
+        flushNarrowRun()
+        // Trailing spaces are content when they fit (the space walk preserves
+        // them the same way); at a break they'd be consumed anyway.
+        if pendingSpaces > 0, !line.isEmpty, lineWidth + pendingSpaces <= budget {
+            line += String.spaces(pendingSpaces)
+            lineWidth += pendingSpaces
+        }
+        if !line.isEmpty {
+            commitLine()
+        }
+
+        if lines.isEmpty {
+            return Wrapped(lines: [""], widths: [0])
+        }
+        return Wrapped(lines: lines, widths: widths)
+    }
+}

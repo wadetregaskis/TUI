@@ -2,24 +2,24 @@
 """Generate the "which module provides X" index: each public type, function and modifier, with its module and the
 library product a client depends on to get it.
 
-An app on the `TUIkit` product never needs this: `import TUIkit` is everything. An app or a library that depends on
+An app on the `TUI` product never needs this: `import TUI` is everything. An app or a library that depends on
 per-module products does, because a name it uses without that module's product is an error that names no module
 ("cannot find 'Table' in scope", "value of type 'Text' has no member 'tableStyle'"), and the reference build-docs.sh
-makes deliberately files every symbol under `TUIkit` (unify_symbol_graphs.py). So build-docs.sh runs this over the
+makes deliberately files every symbol under `TUI` (unify_symbol_graphs.py). So build-docs.sh runs this over the
 same symbol graphs, before they are unified, and puts the index into its staged copy of the catalog as the article
 ModuleIndex.md: generated with the reference, so it is never staler than the reference itself, and nothing in the
 repository has to be regenerated when API changes.
 
 Where a symbol comes from is in the graph's FILE NAME, which the unifier renames: `M.symbols.json` holds module M's
 own declarations, and `M@N.symbols.json` M's extensions of module N's types (`View.tableStyle(_:)`, declared in
-TUIkitTables on TUIkitView's `View`, is in `TUIkitTables@TUIkitView.symbols.json`).
+TUITables on TUIView's `View`, is in `TUITables@TUIView.symbols.json`).
 
 What gets a row:
 - every public top-level declaration of a module (types, protocols, functions, macros, global values);
 - every public member a module declares on ANOTHER module's type (a modifier on `View`, an initializer on `Image`
   or `Color`), at any depth, unless it belongs to a type that module declares in that same extension (that type's
   own row covers it) or is a type alias (an associated type's witness, `ForEach.TableRowBody`);
-- the members a module declares in an extension of one of its OWN protocols (`View`'s modifiers in TUIkitView), as
+- the members a module declares in an extension of one of its OWN protocols (`View`'s modifiers in TUIView), as
   a protocol's members are what one looks up by name; members of a module's own concrete types are found through
   the type.
 Not: names with a component starting `_` (the framework's own plumbing, public only so its modules can share it), and
@@ -27,8 +27,8 @@ a protocol extension's members repeated on each conforming type (their identifie
 Overloads share one row. A name declared by two modules (`View.toolbar(_:)`) has a row for each.
 
 The product is read from `swift package describe --type json`: a module's own product where it has one, else the
-smallest library product (other than the umbrella) that contains it, which for TUIkitStrings and
-TUIkitTerminalHost is TUIkitFoundation, the module that re-exports them.
+smallest library product (other than the umbrella) that contains it, which for TUIStrings and
+TUITerminalHost is TUIFoundation, the module that re-exports them.
 
 Usage:
     which_module.py SYMBOL_GRAPH_DIR --describe DESCRIBE_JSON --template ARTICLE [--output FILE]
@@ -40,12 +40,12 @@ what follows it there (a note for a reader of an ungenerated copy) is replaced b
 
 Every library product's module must contribute a row, or the graphs did not cover it and the script fails, except a
 module named with --allow-empty: one that declares nothing on the platform the docs are built on. build-docs.sh
-names TUIkitAppKit and TUIkitFilePanelsAppKit off Apple platforms, since all of each is `#if canImport(AppKit)`.
+names TUIAppKit and TUIFilePanelsAppKit off Apple platforms, since all of each is `#if canImport(AppKit)`.
 
---verify-rendered checks that DocC's render JSON of the page (`data/documentation/tuikit/moduleindex.json` in the
+--verify-rendered checks that DocC's render JSON of the page (`data/documentation/tui/moduleindex.json` in the
 archive) is the generated index, not the template: that it holds the generated summary line, and a table under the
 index's header with as many rows as that line counts. build-docs.sh runs it after converting. The template names
-modules too (`TUIkitTables` gives you `List` too), so a search of the page for a module's name cannot tell them apart.
+modules too (`TUITables` gives you `List` too), so a search of the page for a module's name cannot tell them apart.
 
 Python 3 standard library only.
 """
@@ -58,7 +58,7 @@ import sys
 from typing import Optional
 
 HEADING = "## The index"
-UMBRELLA = "TUIkit"
+UMBRELLA = "TUI"
 COLUMNS = ["Name", "Kind", "Module", "Product"]
 # The line above the table, which only a generated page has; --verify-rendered reads the count back from it.
 SUMMARY = (

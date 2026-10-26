@@ -3,10 +3,10 @@
 *Scoping note, 2026-08-19. **Status: §6.1, §6.2 and §6.4 are done.** §6.3 was
 attempted as part of §6.4 and turned out to be unsound in its general form —
 see §5.3 and §8. The standing constraint below is answered in §8: the
-TUIkit-specific spellings stay, and now for a reason rather than by default.*
+TUI-specific spellings stay, and now for a reason rather than by default.*
 
 *Standing constraint on §6.4: when the SwiftUI-style API can do all of this
-correctly and at the same cost, the TUIkit-specific spellings it replaces —
+correctly and at the same cost, the TUI-specific spellings it replaces —
 ``AnimatedColor``, `animatedCells(_:)`, `SelectionEmphasisCycle` — come out.
 They are steps toward that, not a parallel surface to maintain beside it.*
 
@@ -28,7 +28,7 @@ take.
 ## 2. What is public today
 
 More than I expected, and less than is useful. Verified by compiling the
-following inside `Example`, which is a separate module and sees only TUIkit's
+following inside `Example`, which is a separate module and sees only TUI's
 public API:
 
 ```swift
@@ -63,7 +63,7 @@ struct MyControl: View {
 That compiles and works. `Renderable`, `FrameBuffer.animatedCells`,
 `AnimatedCellRun`, `AnimationClock`, `SelectionEmphasisCycle` and its `run`
 overloads, `\.isFocused` and `\.selectionEmphasis` are all public and all
-re-exported from `TUIkit`.
+re-exported from `TUI`.
 
 So the answer to "is the mechanism available at all?" is **yes**. The answer to
 "can an app be as efficient as the built-ins?" is **yes in principle, no in
@@ -110,7 +110,7 @@ per-feature plumbing, not a general mechanism.
 ### 3.3 A hand-written `Renderable` cannot style a string — **answered for strings; borders still internal**
 
 `ANSIRenderer` and `BorderRenderer` are internal. An app writing its own
-`Renderable` can render child views (`TUIkitView.renderToBuffer(_:context:)` is
+`Renderable` can render child views (`TUIView.renderToBuffer(_:context:)` is
 public, though it needs the module qualifier because the instance method of the
 same name shadows it) but cannot ask the framework for "this glyph, in this
 colour" or "a top border of this width" without hand-writing escape sequences —
@@ -147,7 +147,7 @@ expose it.
 The two SwiftUI APIs that *look* relevant are both the expensive path:
 
 - **`TimelineView(.animation) { context in … }`** re-evaluates its content on a
-  schedule. In TUIkit terms that is precisely "read the clock while rendering" —
+  schedule. In TUI terms that is precisely "read the clock while rendering" —
   the thing being replaced. It exists for content that genuinely cannot be
   described as an interpolation (a clock face, a particle field), and is
   usually paired with `Canvas` to keep the re-evaluated subtree small.
@@ -177,7 +177,7 @@ Shipped as `View.animatedCells(_:)`, `String.styled(foreground:…)` and the
 `AnimatingYourOwnView` article. A fourth thing turned out to be missing and went
 with it: `.focusable()` made a view a Tab stop and never published
 `\.isFocused`, so an app's own control could hold the focus with no way to say
-so. `PublicAnimationAPITests` imports TUIkit *without* `@testable`, so the
+so. `PublicAnimationAPITests` imports TUI *without* `@testable`, so the
 recipe is checked against the surface an app actually sees.
 
 - **Buys:** the ceiling. Anything the built-ins can do, an app can do.
@@ -282,7 +282,7 @@ each phase and nothing is rendered sixteen times.
 The endpoint 5.2 and 5.3 both point at: an app declares a value animatable, and
 the framework decides how to serve it — pre-rendered runs when the value is
 finite and the geometry is stable, a re-render when it is not. `.animation(_:)`
-and `withAnimation` would then mean something in TUIkit, and the run machinery
+and `withAnimation` would then mean something in TUI, and the run machinery
 becomes an implementation detail nobody outside the framework names.
 
 That is a much larger piece of work and it needs the interpolation model first
@@ -349,7 +349,7 @@ runs replaying over a screen the caret is still repainting. See
 ## 8. What §6.4 turned out to be, and what stays
 
 `withAnimation` works, and the answer to the standing constraint is: **the
-TUIkit-specific spellings stay.** Not for want of trying to retire them — three
+TUI-specific spellings stay.** Not for want of trying to retire them — three
 things came out of building it that the scoping above could not have known.
 
 **A terminal has no render server.** SwiftUI's efficiency comes from handing an

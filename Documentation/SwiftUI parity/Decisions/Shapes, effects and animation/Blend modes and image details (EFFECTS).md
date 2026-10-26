@@ -14,7 +14,7 @@ its edges, follows.
 - **B-D3M-3.** A tiled image repeats at its natural size, and cap insets are
   points, where the terminal's cell size in points is known.
 - **B-D3M-4.** A PDF is read again on Apple platforms, through Core Graphics, and
-  the `CGColor` and `CGImage` bridges are TUIkit's own.
+  the `CGColor` and `CGImage` bridges are TUI's own.
 - **B22, the look owed.** The faint content levels were rendered at 16 and 256
   colours over every shipped palette; the result is in B22, and the levels
   that vanish are A-EFFECTS-1.
@@ -56,8 +56,8 @@ Options:
    at 16 colours every level below the first is one colour, so the ordering is
    lost but nothing vanishes.
 3. **At 16 colours, draw the faint levels dim (SGR 2) in the primary's
-   colour**, and floor them at 256 as in 2. Every terminal TUIkit supports
-   draws SGR 2 as a fainter ink, and TUIkit already uses it for a faint row
+   colour**, and floor them at 256 as in 2. Every terminal TUI supports
+   draws SGR 2 as a fainter ink, and TUI already uses it for a faint row
    (`Opacity as composition.md` §102). *Price:* as 2, and `.secondary` becomes
    distinct from `.primary` at 16 colours too, which it is not today.
 

@@ -1,13 +1,13 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  IdentificationView.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Foundation
-import TUIkit
+import TUI
 
-/// How TUIkit decided which terminal is painting this app, and what each signal
+/// How TUI decided which terminal is painting this app, and what each signal
 /// had to say.
 ///
 /// The reason this is worth a whole screen: the signals differ enormously in
@@ -52,7 +52,7 @@ struct IdentificationView: View {
             }
             Text(
                 client.program == .unidentified
-                    ? "Nothing is being compensated. A terminal TUIkit cannot name is assumed to render correctly."
+                    ? "Nothing is being compensated. A terminal TUI cannot name is assumed to render correctly."
                     : "This terminal's measured quirks are being compensated for."
             )
             .foregroundStyle(.palette.foregroundSecondary)

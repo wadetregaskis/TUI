@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Does the app pin DEC mode 2027 when — and ONLY when — it should?
 
-TUIkit's Ghostty advance model was measured with mode 2027 (grapheme
+TUI's Ghostty advance model was measured with mode 2027 (grapheme
 clustering) set, which is Ghostty's default. The mode persists across
 processes, so a program that resets it and exits without restoring leaves
 later sessions in a state where six of eleven measured cluster classes move

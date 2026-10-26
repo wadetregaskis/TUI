@@ -1,7 +1,7 @@
 # Completing the SwiftUI API: decisions from lane BT1
 
 *Lane BT1 carried out the package-side half of the owner's request of
-2026-10-06 — cut TUIkit's clean release compile time ("many minutes for some
+2026-10-06 — cut TUI's clean release compile time ("many minutes for some
 people") and its release binary size — using the analysis in the session notes'
 `buildtime/report.md`. It changed no public API. This file holds the judgement
 calls the work reached that the request did not already settle, in the format

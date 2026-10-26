@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ClipCues.swift
 //
 //  The app's end of the cue pipe: the player writes a cue a line at a time,

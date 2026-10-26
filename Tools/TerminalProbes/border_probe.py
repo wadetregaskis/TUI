@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Is a running TUIkit app's right border a straight vertical line?
+"""Is a running TUI app's right border a straight vertical line?
 
 The end-to-end question — "did any row shear?" — asked of pixels rather than of
 a person. A sheared row ends short or long, so the rightmost inked column
@@ -15,7 +15,7 @@ where it belongs on a real screen full of real content.
     python3 border_probe.py SHOT.png [-o OUT.json]
 
 Point it at a screenshot of the whole screen: it finds the app's own background
-(TUIkit paints one, unlike a bare shell) and crops to that before measuring, so
+(TUI paints one, unlike a bare shell) and crops to that before measuring, so
 the desktop and other windows cannot contribute an edge.
 
 Exit status is 1 if any scanline's right edge is more than `--slack` pixels from
@@ -35,7 +35,7 @@ INK_DISTANCE = 60
 def app_area(image):
     """Crop to the app's painted background, or return the image unchanged.
 
-    A TUIkit app fills its screen with a background colour; a desktop does not.
+    A TUI app fills its screen with a background colour; a desktop does not.
     Taking the largest dark, high-count colour as that background finds the text
     area without needing the window's geometry from the window server — which is
     just as well, since asking for it needs an accessibility permission that

@@ -71,13 +71,13 @@ the gradient view's frame (short block reaches only `#C86A84` where the long one
 reaches `#747CD1`) and costs you either a duplicated copy of the content or its
 interactivity — the masked view is what hit-tests, and it is the gradient.
 (`.overlay(gradient.blendMode(.sourceAtop)).compositingGroup()` duplicates
-nothing and keeps hit-testing. TUIkit draws it since 2026-10-19: `sourceAtop`
+nothing and keeps hit-testing. TUI draws it since 2026-10-19: `sourceAtop`
 over text keeps the letters and inks them in the gradient, and adds no field
 (`Opacity as composition.md` §110).)
 
 ### Stop semantics, which nothing documents
 
-Measured, and all three must be pinned by test or TUIkit will diverge silently:
+Measured, and all three must be pinned by test or TUI will diverge silently:
 
 - **Unsorted stops render as if sorted.** `red@0.8, blue@0.2` renders blue→red.
 - **Duplicate locations make a hard edge** — `#FF3B2F | #007BFE` at adjacent px.
@@ -135,7 +135,7 @@ as do `.foregroundStyle(MyStyle())`, `Rectangle().fill(MyStyle())`,
 `.foregroundStyle(.red, .blue)`.
 
 Revision 2's justifying example was also backwards. `.foregroundStyle(.thickMaterial)`
-would **not** compile-and-do-nothing under a TUIkit `ShapeStyle`: `.thickMaterial`
+would **not** compile-and-do-nothing under a TUI `ShapeStyle`: `.thickMaterial`
 is a static member on `ShapeStyle where Self == Material`, and with no `Material`
 type the member does not exist, so the source fails to compile — which is
 exactly what the parity rules demand. **What compiles is decided by which types
@@ -166,11 +166,11 @@ environment cannot be compared, and the slot then cannot be kept honest.
 > different and stronger reason.
 >
 > `RenderCache.noteAppliedEnvironment` does test `value is any Equatable`
-> ([RenderCache.swift:1061](../../Sources/TUIkitView/Rendering/RenderCache.swift)),
+> ([RenderCache.swift:1061](../../Sources/TUIView/Rendering/RenderCache.swift)),
 > but it only RETURNS `.incomparable`; it never sets that flag. The only writes
 > are in `EnvironmentModifier`
-> ([Environment.swift:47](../../Sources/TUIkitView/Environment/Environment.swift)
-> and [:140](../../Sources/TUIkitView/Environment/Environment.swift)), on the
+> ([Environment.swift:47](../../Sources/TUIView/Environment/Environment.swift)
+> and [:140](../../Sources/TUIView/Environment/Environment.swift)), on the
 > strength of its own `.incomparable` arm — and the slot proposed here is not
 > published through that modifier. `_StyleEnvironmentView` publishes it, matches
 > `.changed` alone, and so refuses nothing. Nor does an existential answer `no`
@@ -180,7 +180,7 @@ environment cannot be compared, and the slot then cannot be kept honest.
 > The real consequence of `.incomparable` at a site that matches `.changed`
 > alone is that the answer falls through ignored and the slot is DEADENED
 > (`previous.isComparable = false`,
-> [RenderCache.swift:1079](../../Sources/TUIkitView/Rendering/RenderCache.swift)):
+> [RenderCache.swift:1079](../../Sources/TUIView/Rendering/RenderCache.swift)):
 > it can never report a change again, so the subtree keeps the ink it was
 > painted with. Wrong pixels, not lost memoization. Since `ShapeStyle` ships
 > with no `Equatable` refinement, a third-party style in that slot is exactly
@@ -202,11 +202,11 @@ reaches a `Paint` through its own `resolve(in:)`, exactly as SwiftUI's does.
 
 ## 3. The type family
 
-`UnitPoint` already exists in TUIkit with all ten SwiftUI constants
-([UnitPoint.swift](../../Sources/TUIkitFoundation/Views/UnitPoint.swift)), so most of this is
+`UnitPoint` already exists in TUI with all ten SwiftUI constants
+([UnitPoint.swift](../../Sources/TUIFoundation/Views/UnitPoint.swift)), so most of this is
 source-**identical**.
 
-| SwiftUI | TUIkit | note |
+| SwiftUI | TUI | note |
 |---|---|---|
 | `Gradient(colors:)` / `(stops:)`, `Gradient.Stop(color:location:)` | same | also `: ShapeStyle`, meaning a **vertical** linear gradient (§1) |
 | `LinearGradient(gradient:startPoint:endPoint:)` and its `colors:` / `stops:` twins | same | ✓ identical |
@@ -231,8 +231,8 @@ source-**identical**.
 error. It does not: `startRadius: 5, endRadius: 200` — the overwhelmingly common
 spelling — compiles unchanged under `Int` and silently means 200 *cells*. `Int`
 only rejects the rare fractional literal. The honest argument for `Int` is
-**consistency**: every other dimension in TUIkit is `Int` cells
-([frame(width:height:)](../../Sources/TUIkitFoundation/Extensions/View+Layout.swift)), and a
+**consistency**: every other dimension in TUI is `Int` cells
+([frame(width:height:)](../../Sources/TUIFoundation/Extensions/View+Layout.swift)), and a
 `CGFloat` here would be the sole exception. That is a weaker argument than
 revision 2 made, and it is the true one. Whichever is chosen, the spec hole must
 be closed: **a radius is measured along the horizontal axis in cells, and the
@@ -278,7 +278,7 @@ emitted no foreground SGR — in a walk over the assembled buffer. **That premis
 is false and the walk is too expensive.**
 
 *False:* no leaf emits ink with the foreground unset.
-[Text.swift:717](../../Sources/TUIkitFoundation/Views/Text.swift) fills
+[Text.swift:717](../../Sources/TUIFoundation/Views/Text.swift) fills
 `cascaded.foreground ?? environment.foregroundStyle ?? palette.foreground` and
 `ANSIRenderer` emits codes whenever `foregroundColor != nil`. Counted across the
 framework: **152 styled-emission sites in 41 files**, 31 of them reading
@@ -294,7 +294,7 @@ costs **~330 µs**, one `splicing` per line **~350 µs**, `ansiSGRStateAt` per l
 the frame, every frame, and loses to the manual N-modifier version (40 nodes ×
 1.5–5 µs ≈ 60–200 µs) by 2–5×. That fails requirement (b) outright.
 
-**The walk is avoidable.** [VStack.swift:265](../../Sources/TUIkitFoundation/Views/VStack.swift):
+**The walk is avoidable.** [VStack.swift:265](../../Sources/TUIFoundation/Views/VStack.swift):
 
 ```
 // === PASS 1: Measure every child's natural size ===
@@ -345,13 +345,13 @@ cell, forever.
 Revision 2 argued from `Resolved == Never` that "SwiftUI can flatten a colour
 and cannot flatten a gradient". That is over-read: `Resolved == Never` means
 *primitive — not decomposable through the public API*; SwiftUI flattens
-internally via `_apply`. The claim is withdrawn. The TUIkit rule stands on its
+internally via `_apply`. The claim is withdrawn. The TUI rule stands on its
 own merits, which are sufficient:
 
 > **A gradient is accepted where a colour is PAINTED. Where a colour is DERIVED
 > FROM, it collapses to a stated representative — and the API says which one.**
 
-TUIkit's chrome derives colours constantly —
+TUI's chrome derives colours constantly —
 `ensuringRenderedContrast(atLeast:against:)`, the button styles' face / border /
 label chain, `ScrollbarColors`' separation and groove rules, the pulse ramps —
 and each needs one colour to do arithmetic with. So:
@@ -366,7 +366,7 @@ gradient there would collapse at each of them, differently.
 **A one-cell view is not this case in principle but is in practice.** A `Toggle`'s
 indicator has a position, so it *could* sample. But its colour is state-derived
 (`palette.accent` when on, `foreground` when off, hovered variants —
-[_ToggleCore.swift:144](../../Sources/TUIkitFoundation/Views/_ToggleCore.swift)), and a
+[_ToggleCore.swift:144](../../Sources/TUIFoundation/Views/_ToggleCore.swift)), and a
 derived colour must stay stated or the control loses its signalling. Under
 `.subtree` such controls therefore keep their own colours and do **not**
 participate. Revision 2 claimed the opposite; it was wrong, and the honest rule
@@ -423,12 +423,12 @@ hand** when used.
 ### 7.1 Nothing when unused
 
 `EnvironmentValues` is `[ObjectIdentifier: Any]`
-([EnvironmentKey.swift:46](../../Sources/TUIkitCore/Environment/EnvironmentKey.swift)),
+([EnvironmentKey.swift:46](../../Sources/TUICore/Environment/EnvironmentKey.swift)),
 not a struct of fields — so revision 2's "one more field, one optional read" was
 wrong twice over. The framework already hoisted `renderCache` and `stateStorage`
 out of that dictionary into `RenderContext` because those getters measured
 **4.5% and 5.2% of CPU**
-([RenderContext.swift:42](../../Sources/TUIkitView/Rendering/RenderContext.swift)),
+([RenderContext.swift:42](../../Sources/TUIView/Rendering/RenderContext.swift)),
 and the `.foregroundStyle` doc explicitly refuses a per-`Text` store lookup on
 exactly that ground.
 
@@ -445,7 +445,7 @@ performance answer.** It goes in the *existing* `foregroundStyle` slot:
   unconditional second probe.
 
 `EnvironmentValues.foregroundStyle` changes from `Color?` to `Paint?`. Pre-1.0,
-no shims. (Note that TUIkit's `foregroundStyle(_ style: Color?)` is already
+no shims. (Note that TUI's `foregroundStyle(_ style: Color?)` is already
 off-parity — SwiftUI's takes no Optional; only `tint` does. The new generic
 overload must be non-optional or `.foregroundStyle(nil)` becomes ambiguous.)
 
@@ -459,7 +459,7 @@ measure pass must skip gradient work entirely (`context.isMeasuring`) or
 
 A leaf resolves its own ramp. The one real subtlety is that
 `TextRunAttribution` splits on **source-run membership walking `Character`s**
-([Text+Concatenation.swift:133](../../Sources/TUIkitFoundation/Views/Text+Concatenation.swift#L133)),
+([Text+Concatenation.swift:133](../../Sources/TUIFoundation/Views/Text+Concatenation.swift#L133)),
 while a gradient needs **display-cell-indexed** bands — character index ≠ cell
 index for CJK and emoji, and a band boundary must not split a two-cell glyph.
 Plus §1's finding that the extent is the whole text block: `t` comes from the
@@ -487,7 +487,7 @@ six. Truecolor is one run per cell: **760–960 bytes for a 40-cell line against
   review's conclusion here was wrong; the byte measurement stands, its
   consequence does not.
 - **At any depth but `.palette256`, `quantisedRamp` returns raw interpolated
-  RGB** ([Color+Downsampling.swift:118](../../Sources/TUIkitStyling/Color/Color+Downsampling.swift)),
+  RGB** ([Color+Downsampling.swift:118](../../Sources/TUIStyling/Color/Color+Downsampling.swift)),
   so every cell is a distinct `Color`. Run-grouping must happen on the
   **depth-resolved** colour or a 16-colour terminal emits one SGR per cell to
   paint runs that render identically.
@@ -501,7 +501,7 @@ Against the manual alternative:
 
 ### 7.3 Two fixes to `quantisedRamp` this needs anyway
 
-Both visible at [Color+Downsampling.swift:110](../../Sources/TUIkitStyling/Color/Color+Downsampling.swift):
+Both visible at [Color+Downsampling.swift:110](../../Sources/TUIStyling/Color/Color+Downsampling.swift):
 
 - **It samples before it consults its cache** (`sampled` is built at :111–117,
   the lookup is at :122–125), so a cache *hit* still pays the whole
@@ -595,7 +595,7 @@ claims slack and never demands any.
   sub-rectangle that changes every frame — which neither `GradientExtent` nor
   `.in(_:)` can express. Two knobs, two questions.
 - **What a real AppKit control does with `.tint(gradient)`** (§1). Blocks
-  nothing — the §5 rule stands on TUIkit's own needs — but it would be good to
+  nothing — the §5 rule stands on TUI's own needs — but it would be good to
   know.
 
 ---
@@ -628,7 +628,7 @@ The survey first, because it changed the mechanism. A container knows a child's
 offset **along its own axis** before it renders it — `VStack` distributes
 heights in PASS 1, `HStack` widths — and its **cross-axis** offset only
 afterwards, because alignment needs the rendered sizes
-([VStack.swift:297](../../Sources/TUIkitFoundation/Views/VStack.swift) renders every
+([VStack.swift:297](../../Sources/TUIFoundation/Views/VStack.swift) renders every
 child before PASS 3 computes `alignmentWidth`). So the cross-axis offset is
 predicted from the child's MEASURED size, which is exact wherever measure and
 render agree and shifts a colour rather than a cell when they do not.
@@ -678,12 +678,12 @@ single entry.
 The other three geometries, pinned the same way §1 was: `ImageRenderer` over a
 `41 × 41` (and `81 × 41`) frame, read back cell by cell. Three of the five
 answers are not the obvious ones, and every one of them is now a test in
-[GradientGeometryTests.swift](../../Tests/TUIkitAppTests/GradientGeometryTests.swift).
+[GradientGeometryTests.swift](../../Tests/TUIAppTests/GradientGeometryTests.swift).
 
 **A radius is absolute, so a circle stays a circle.** `RadialGradient(…,
 startRadius: 5, endRadius: 15)` gave the same colour at `d = 10` horizontally,
 vertically and diagonally, in a square frame and in one twice as wide. That is
-what forces the deviation: TUIkit's "pixels" are cells about twice as tall as
+what forces the deviation: TUI's "pixels" are cells about twice as tall as
 they are wide, so honouring the radius equally in both axes would draw an
 ellipse. The radius is horizontal cells and the vertical is derived through
 `imageCellAspect` — the divergence keeps the *appearance* SwiftUI has, which is
@@ -888,7 +888,7 @@ dimmed styling.
 ## 14. A toolchain bug the feature stepped on
 
 `ZStack { Color.red; Text("hi").frame(width: 4) }` **segfaults in a debug
-build** — Swift 6.2.4, before any TUIkit code runs. Not a layout bug and not a
+build** — Swift 6.2.4, before any TUI code runs. Not a layout bug and not a
 rendering bug: it dies instantiating the metadata for the `@ViewBuilder` pack,
 so it never reaches `_ZStackCore` (an `fputs` at the top of `renderToBuffer`
 never fires, and neither does the first statement of the test that builds it).
@@ -909,15 +909,15 @@ Two properties, both required:
 1. **A parameter pack.** The same two views in an ordinary two-parameter
    generic struct instantiate happily; only `TupleView<each V: View>` dies.
 2. **A conformance declared in a module that owns neither the type nor the
-   protocol.** `Color` is `TUIkitStyling`'s, `View` is `TUIkitView`'s, and
-   `Color: View` is written in `TUIkit` — the only such conformance in the
+   protocol.** `Color` is `TUIStyling`'s, `View` is `TUIView`'s, and
+   `Color: View` is written in `TUI` — the only such conformance in the
    framework. Reproduced from scratch on unrelated types (`BorderStyle: View`,
    `ContentMode: View`, declared in the test module) with the same crash, and
    the shape of the `body` makes no difference — opaque, concrete or `Never`
    all crash.
 
 > **Reduced to twenty lines, in `Tools/CompilerBugs/PackMetadataSegfault`.**
-> The narrowing below was done against TUIkit; the standalone package is what
+> The narrowing below was done against TUI; the standalone package is what
 > should be reported upstream, and what to re-run against a new toolchain.
 > Three ingredients, each necessary: a struct that STORES a parameter pack, one
 > element whose conformance is declared in a module owning neither the type nor
@@ -934,7 +934,7 @@ neither a stale-build artefact nor something about `swift-testing`. Rebuilt with
 the **Swift 6.5-dev snapshot of 2026-08-30** and it segfaults there too, in the
 same two cases and no others.
 
-(That snapshot cannot compile TUIkit as it stands, for an unrelated reason: a
+(That snapshot cannot compile TUI as it stands, for an unrelated reason: a
 `swift-frontend` assertion in the `LoadableByAddress` SIL pass on
 `MouseEventDispatcher.pendingHoverExit`, a tuple-in-an-`Optional` property.
 Rewriting the tuple as a small struct gets past it, which is how the check above
@@ -943,23 +943,23 @@ was run — and is now the shipped shape. That one is reduced to twelve lines in
 
 ### The fix, and what it cost
 
-Moving the conformance into `TUIkitView`, the module that owns `View`, makes it
+Moving the conformance into `TUIView`, the module that owns `View`, makes it
 go away — confirmed on both toolchains. That is what shipped, and it is not one
 line:
 
 | Moved | From → To | Why it had to |
 |---|---|---|
-| `Color.foregroundCodes` / `backgroundCodes` / `downsampled(to:)` / `backgroundEscape` | `ANSIRenderer` (`TUIkit`) → `Color+ANSICodes.swift` (`TUIkitStyling`) | The fill has to be painted from `TUIkitView`, which needs a colour's escape. They depend on nothing above `TUIkitStyling`, and reading `colour.backgroundCodes()` is better than `ANSIRenderer.backgroundCodes(for: colour)` anyway |
-| `PaletteEnvironment.swift` | `TUIkit` → `TUIkitView` | A semantic colour is a palette reference; the fill must resolve it |
-| `ColorAnimation.swift` | `TUIkit` → `TUIkitView` | So a `Color` used as a view still FADES under `withAnimation`. Everything it needs was already in `TUIkitCore`/`TUIkitView` |
-| `_StyleFillBlock` + `extension Color: View` | `TUIkit` → `TUIkitView` | The conformance itself, and the body it returns |
+| `Color.foregroundCodes` / `backgroundCodes` / `downsampled(to:)` / `backgroundEscape` | `ANSIRenderer` (`TUI`) → `Color+ANSICodes.swift` (`TUIStyling`) | The fill has to be painted from `TUIView`, which needs a colour's escape. They depend on nothing above `TUIStyling`, and reading `colour.backgroundCodes()` is better than `ANSIRenderer.backgroundCodes(for: colour)` anyway |
+| `PaletteEnvironment.swift` | `TUI` → `TUIView` | A semantic colour is a palette reference; the fill must resolve it |
+| `ColorAnimation.swift` | `TUI` → `TUIView` | So a `Color` used as a view still FADES under `withAnimation`. Everything it needs was already in `TUICore`/`TUIView` |
+| `_StyleFillBlock` + `extension Color: View` | `TUI` → `TUIView` | The conformance itself, and the body it returns |
 
-`TUIkitView` gains a dependency on `TUIkitStyling` for this and nothing else.
-The four gradient types are unaffected — they are `TUIkit`'s own, so their
+`TUIView` gains a dependency on `TUIStyling` for this and nothing else.
+The four gradient types are unaffected — they are `TUI`'s own, so their
 conformances were already in the module that declares them, and they keep
 `_StyleFillBlock().background(self)`.
 
-The one real cost is that a flat `Color` is now painted in `TUIkitView` rather
+The one real cost is that a flat `Color` is now painted in `TUIView` rather
 than through `.background(_:)`, so there are two paths where there was one.
 `StyleAsViewTests` pins them byte-identical over the same rectangle, semantic
 colours included, so they cannot quietly drift apart.
@@ -1380,7 +1380,7 @@ through arithmetic on them. `Int(_: Double)` traps on a NaN or an infinity, so
 `UnitPoint(x: .nan, y: 0)` — a `0/0` three view-layers away — killed the process
 on the next frame, from inside `RampSampler`.
 
-The house rule this falls under: **TUIkit must not trap because of TUIkit.** A
+The house rule this falls under: **TUI must not trap because of TUI.** A
 caller handing a gradient a NaN has a bug, and it is defensible for a public API
 to trap on input that is semantically *bad* rather than merely unexpected — but
 the trap here was not the API's judgement about its argument, it was our own

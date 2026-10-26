@@ -1,0 +1,177 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  ScrollAnchor.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import TUICore
+
+// MARK: - Scroll anchor
+
+/// What a scrollable is anchored to — the user-facing vocabulary for
+/// `Documentation/Layout and scrolling/Scroll anchoring.md` §1.1, bound through
+/// ``TUI/View/anchorPosition(_:)``.
+///
+/// Note that ``top`` / ``bottom`` are **positional** policies while `row` is
+/// an **identity** policy, and they are deliberately not interchangeable: under
+/// a data change at that edge they diverge. `.bottom` follows appends — it
+/// re-targets to whatever the last row now is — whereas `.row(lastID)` pins to
+/// that specific row and lets new rows arrive *below* it. Likewise a prepend
+/// leaves `.top` on the new first row but leaves `.row(firstID)` showing the old
+/// one, now at ordinal 1. Encoding the edges as sentinel row ids would collapse
+/// exactly the distinction they exist to express.
+public enum ScrollAnchor<ID: Hashable>: Equatable {
+    /// Stay at the top, whatever rows are added / removed / moved.
+    case top
+
+    /// Stay at the bottom — follow-the-log.
+    case bottom
+
+    /// Keep this specific row in place as rows change around it.
+    case row(ID)
+
+    /// Explicitly *no* anchor — released, as a user scroll releases one: what
+    /// is on screen stays where it is as the content changes, by the
+    /// ``ScrollWindowHold`` in force — the row at the top keeps its line (the
+    /// default), or the offset keeps its value in lines. Distinct from a `nil`
+    /// binding — see ``TUI/View/anchorPosition(_:)``.
+    case window
+}
+
+// MARK: - Type-erased form
+
+/// ``ScrollAnchor`` with its row id erased, so the binding can live in the
+/// environment (which cannot hold a generic). `AnyHashable` preserves the base
+/// value, so a `.row` written by the framework maps back to the app's own `ID`
+/// without loss.
+package typealias ErasedScrollAnchor = ScrollAnchor<AnyHashable>
+
+extension ErasedScrollAnchor {
+    /// The stable row key this anchor names, in the same spelling `ForEach`
+    /// builds its child keys with — or `nil` for the non-identity cases.
+    var rowKey: String? {
+        if case .row(let id) = self { return identityKey(id.base) }
+        return nil
+    }
+}
+
+/// The binding `.anchorPosition` hands the scrollables below it, and the anchor
+/// it held when the modifier applied it.
+///
+/// Compared by that snapshot. A `Binding` is not `Equatable`, and an environment
+/// value that cannot be compared turns off every memo beneath it: every row of a
+/// list or lazy stack bound with `.anchorPosition` was drawn afresh every frame.
+/// Nor could two bindings be compared by what they hold — both read the same
+/// live storage, so they would always agree, and a changed anchor would never
+/// clear what was drawn under the old one. The snapshot is taken in the body
+/// that applies the modifier, so a new anchor arrives as a new snapshot: the
+/// subtree below is cleared, as it was before, and an unchanged one lets its
+/// memos serve.
+///
+/// Readers still read the LIVE value (``wrappedValue``), and the handlers keep
+/// the ``binding`` to write a user's scroll back through.
+///
+/// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
+@usableFromInline
+package struct AnchorPositionBinding: Equatable {
+    package let binding: Binding<ErasedScrollAnchor?>
+    let snapshot: ErasedScrollAnchor?
+
+    init(_ binding: Binding<ErasedScrollAnchor?>) {
+        self.binding = binding
+        snapshot = binding.wrappedValue
+    }
+
+    /// The anchor the binding holds now.
+    var wrappedValue: ErasedScrollAnchor? { binding.wrappedValue }
+
+    @usableFromInline
+    package static func == (lhs: Self, rhs: Self) -> Bool { lhs.snapshot == rhs.snapshot }
+}
+
+/// `@usableFromInline`, so internal rather than `private`, with its default: the
+/// `@inlinable` accessor reads it (module split step A3).
+@usableFromInline
+struct AnchorPositionKey: EnvironmentKey {
+    // `Binding` is not `Sendable`, so the immutable `nil` default needs
+    // `nonisolated(unsafe)` — the value never mutates, so it is genuinely safe
+    // (the same treatment `\.editMode` gets).
+    @usableFromInline nonisolated(unsafe) static let defaultValue: AnchorPositionBinding? = nil
+}
+
+extension EnvironmentValues {
+    /// The bound anchor override for scrollables in this subtree, or `nil` when
+    /// none was supplied. See ``TUI/View/anchorPosition(_:)``.
+    @inlinable
+    package var anchorPosition: AnchorPositionBinding? {
+        get { self[AnchorPositionKey.self] }
+        set { self[AnchorPositionKey.self] = newValue }
+    }
+}
+
+// MARK: - Modifier
+
+extension View {
+    /// Binds the anchor a scrollable in this subtree is currently holding —
+    /// readable to observe it, writable to change it.
+    ///
+    /// The binding is **optional, and `nil` is meaningful**: it means *no
+    /// departure from the declared anchor*, i.e. whatever
+    /// ``TUI/View/defaultScrollAnchor(_:)`` said (or Window, its default —
+    /// where the rows on screen stay put as the content changes, as
+    /// ``ScrollWindowHold`` says). A non-`nil` value overrides that
+    /// declaration.
+    ///
+    /// ```swift
+    /// List { … }
+    ///     .defaultScrollAnchor(.bottom)     // declared: follow-the-log
+    ///     .anchorPosition($anchor)          // live override / observation
+    /// ```
+    ///
+    /// | Value | Meaning |
+    /// |---|---|
+    /// | `nil` | Following the declared anchor |
+    /// | `.window` | Released — the user scrolled away |
+    /// | `.row(id)` | Pinned to that row |
+    /// | `.top` / `.bottom` | Explicit edge override |
+    ///
+    /// Writing `nil` therefore *restores the declared anchor* — which is why no
+    /// imperative `restoreDefaultAnchor()` is needed. And because `.window` and
+    /// `nil` are distinct, "am I still following the log?" is simply
+    /// `anchor == nil`: a released scrollable reads `.window`, an untouched one
+    /// reads `nil`.
+    ///
+    /// - Parameter anchor: The bound anchor override.
+    /// - Returns: A view whose scrollables read and write that anchor.
+    public func anchorPosition<ID: Hashable>(
+        _ anchor: Binding<ScrollAnchor<ID>?>
+    ) -> some View {
+        // Erase ID ↔ AnyHashable. `AnyHashable` keeps the base value, so a
+        // `.row` round-trips back to the caller's own ID type; a `.row` whose
+        // base is some *other* type (only reachable if two differently-typed
+        // bindings target one scrollable) is treated as no override rather than
+        // force-cast.
+        let erased = Binding<ErasedScrollAnchor?>(
+            get: {
+                switch anchor.wrappedValue {
+                case .none: return nil
+                case .top: return .top
+                case .bottom: return .bottom
+                case .window: return .window
+                case .row(let id): return .row(AnyHashable(id))
+                }
+            },
+            set: { newValue in
+                switch newValue {
+                case .none: anchor.wrappedValue = nil
+                case .top: anchor.wrappedValue = .top
+                case .bottom: anchor.wrappedValue = .bottom
+                case .window: anchor.wrappedValue = .window
+                case .row(let erasedID):
+                    guard let id = erasedID.base as? ID else { return }
+                    anchor.wrappedValue = .row(id)
+                }
+            })
+        return environment(\.anchorPosition, AnchorPositionBinding(erased))
+    }
+}

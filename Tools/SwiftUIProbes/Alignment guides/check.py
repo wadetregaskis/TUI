@@ -1,5 +1,5 @@
 import re, math, sys, os
-# Reads guide.out (SwiftUI) and tuikit.out (TUIkit at 45e9a1f7a, before the GUIDE fix) beside this script.
+# Reads guide.out (SwiftUI) and tuikit.out (TUI at 45e9a1f7a, before the GUIDE fix) beside this script.
 here = os.path.dirname(os.path.abspath(__file__))
 pat = re.compile(r'(VStack|HStack)\((\w+)\) G [wh]=(\d+) guide=(-?\d+) \| S [wh]=(\d+) \|\| G\.[xy]=(-?\d+) S\.[xy]=(-?\d+) stack\.[wh]=(\d+)')
 def own(al, size):
@@ -26,7 +26,7 @@ for fn, model in [('guide.out', swiftui), ('tuikit.out', tuikit)]:
         else: bad+=1; print(fn, 'MISMATCH', line.strip(), 'model', want)
     print(fn, model.__name__, 'match', ok, 'mismatch', bad)
 
-# Attribution: which of the two TUIkit rules makes each divergent row differ.
+# Attribution: which of the two TUI rules makes each divergent row differ.
 def tuikit_noclamp(al, gw, g, sw):
     sizes=[gw,sw]; pos=[g, own(al,sw)]; M=max(pos)
     ext=max(max(math.ceil(M-p+s) for p,s in zip(pos,sizes)), max(sizes))
@@ -41,7 +41,7 @@ for line in open(os.path.join(here, 'tuikit.out')):
     m=pat.search(line)
     if m: _, al, gw, g, sw, *_ = m.groups(); cases.append((al,int(gw),int(g),int(sw)))
 diff=[c for c in cases if tuikit(*c)!=swiftui(*c)]
-print('rows', len(cases), 'TUIkit != SwiftUI', len(diff))
+print('rows', len(cases), 'TUI != SwiftUI', len(diff))
 print(' fixed by removing clamp alone:', sum(tuikit_noclamp(*c)==swiftui(*c) for c in diff))
 print(' fixed by removing anchor alone:', sum(tuikit_noanchor(*c)==swiftui(*c) for c in diff))
 print(' need both removed:', sum(tuikit_noclamp(*c)!=swiftui(*c) and tuikit_noanchor(*c)!=swiftui(*c) for c in diff))

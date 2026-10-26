@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ReorderFeedbackChoice.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// The drag-to-reorder feedback choices the Lists demo offers, mapped to the
 /// framework's `RowReorderFeedback` values. Apply the chosen one with

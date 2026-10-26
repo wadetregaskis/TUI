@@ -265,16 +265,16 @@ The two-pass layout system is functional. Remaining cleanup can be done incremen
 
 ## Files to Modify
 
-- `Sources/TUIkit/Rendering/Renderable.swift` - Add new types and protocol
-- `Sources/TUIkit/Rendering/RenderContext.swift` - Remove hasExplicit flags
-- `Sources/TUIkit/Views/Stacks.swift` - Two-pass layout
-- `Sources/TUIkit/Views/TextField.swift` - Flexible width
-- `Sources/TUIkit/Views/SecureField.swift` - Flexible width
-- `Sources/TUIkit/Views/Slider.swift` - Flexible width
-- `Sources/TUIkit/Views/Spacer.swift` - sizeThatFits
-- `Sources/TUIkit/Views/ContainerView.swift` - Use content size
-- `Sources/TUIkit/Views/Text.swift` - sizeThatFits (if separate file)
-- `Tests/TUIkitTests/LayoutTests.swift` - New test file
+- `Sources/TUI/Rendering/Renderable.swift` - Add new types and protocol
+- `Sources/TUI/Rendering/RenderContext.swift` - Remove hasExplicit flags
+- `Sources/TUI/Views/Stacks.swift` - Two-pass layout
+- `Sources/TUI/Views/TextField.swift` - Flexible width
+- `Sources/TUI/Views/SecureField.swift` - Flexible width
+- `Sources/TUI/Views/Slider.swift` - Flexible width
+- `Sources/TUI/Views/Spacer.swift` - sizeThatFits
+- `Sources/TUI/Views/ContainerView.swift` - Use content size
+- `Sources/TUI/Views/Text.swift` - sizeThatFits (if separate file)
+- `Tests/TUITests/LayoutTests.swift` - New test file
 - Multiple existing test files - Update for new behavior
 
 ## Dependencies

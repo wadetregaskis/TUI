@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TextWall.swift
 //
 //  Created by LAYERED.work
 //  License: MIT
 
-import TUIkit
+import TUI
 
 // MARK: - Text Wall
 
@@ -36,7 +36,7 @@ private struct TextWallView: View {
         // of (seed, index) and never changes between frames, so regenerating it
         // on every render — as the inline `Synth.sentence(...)` in `body` did —
         // measured the harness's RNG + string joins (~20% of the trace) instead
-        // of TUIkit's text layout. A real app likewise computes its text once and
+        // of TUI's text layout. A real app likewise computes its text once and
         // stores it, rather than rebuilding it in `body`. Regenerated only when
         // `count`/`seed` change (a new config makes a new view → new `init`).
         var headers: [String] = []

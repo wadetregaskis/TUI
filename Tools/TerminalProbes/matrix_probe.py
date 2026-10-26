@@ -4,7 +4,7 @@
 The question this answers: for each cluster the corpus knows terminals disagree
 about, which emission strategies WORK on the terminal running this probe — and
 in which of the specific ways the others fail. One run produces the whole truth
-table, so a decision ("what should TUIkit emit for skin tones on this host")
+table, so a decision ("what should TUI emit for skin tones on this host")
 is read off a table instead of assembled from one-off experiments.
 
 ## The strategies

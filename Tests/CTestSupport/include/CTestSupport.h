@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  CTestSupport.h
 //
 //  Shapes a test needs that only the C importer makes: Swift cannot declare

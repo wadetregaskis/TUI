@@ -7,7 +7,7 @@ for a virtual one. The conclusion drawn from that — "iTerm2 does not implement
 Unicode placeholders" — is one explanation. Here is another, and it is cheaper
 to test than to argue about:
 
-**TUIkit spells each placeholder cell with TWO combining marks** — row and
+**TUI spells each placeholder cell with TWO combining marks** — row and
 column — and omits the third, which states the most significant byte of the
 image id (`KittyGraphics+Placeholders.swift`, "two marks per cell"). The
 protocol allows that: a missing third mark means the id has no high byte.
@@ -16,7 +16,7 @@ it into the id, looks up an image that was never transmitted — and draws
 nothing, having acknowledged everything. Which is exactly what was measured.
 
 The other thing never separated from it is the foreground SPELLING. The id
-travels in the foreground colour, and TUIkit uses the 24-bit form
+travels in the foreground colour, and TUI uses the 24-bit form
 (`ESC[38;2;r;g;bm`) because one spelling carries the whole range. kitty's own
 documentation example uses the 256-colour form (`ESC[38;5;Nm`). Both are
 "read as numbers", and `KittyGraphics+Placeholders.swift` says both "were
@@ -27,7 +27,7 @@ So: four cells of one 2x2 table, one image, no deletions, nothing to undo.
 
     1  two marks   256-colour foreground   (kitty's own doc example)
     2  three marks 256-colour foreground
-    3  two marks   24-bit foreground       <- what TUIkit ships today
+    3  two marks   24-bit foreground       <- what TUI ships today
     4  three marks 24-bit foreground
 
 If 3 is blank and 4 draws, the whole question is +2 bytes per cell. If 1 draws
@@ -135,7 +135,7 @@ def cells(marks, direct_colour, columns, rows):
 CASES = [
     (2, False, "two marks,   256-colour fg   (kitty's own doc example)"),
     (3, False, "three marks, 256-colour fg"),
-    (2, True, "two marks,   24-bit fg        <- what TUIkit ships today"),
+    (2, True, "two marks,   24-bit fg        <- what TUI ships today"),
     (3, True, "three marks, 24-bit fg"),
 ]
 
@@ -225,7 +225,7 @@ QUESTIONS = """
   Report which of 1 2 3 4 drew, and the advance line.
 
     3 blank, 4 draws ............... the missing THIRD MARK is the cause.
-                                     TUIkit appends U+0305 to every cell,
+                                     TUI appends U+0305 to every cell,
                                      +2 bytes, and iTerm2 works on the
                                      pipeline that already exists.
     1 draws, 3 blank ............... the FOREGROUND SPELLING is the cause:
@@ -236,7 +236,7 @@ QUESTIONS = """
     none draws ..................... placeholders really are unimplemented;
                                      the earlier conclusion stands.
     all four draw .................. this host is fine and the fault is in
-                                     something else TUIkit sends.
+                                     something else TUI sends.
 """
 
 

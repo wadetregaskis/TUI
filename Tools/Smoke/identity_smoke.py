@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Drive a TUIkit app under a PTY that impersonates a known terminal, and check
+"""Drive a TUI app under a PTY that impersonates a known terminal, and check
 that the app identifies it — or correctly declines to.
 
 Why a PTY and not a unit test: the unit tests cover the parse
@@ -30,7 +30,7 @@ import select
 import sys
 import time
 
-# What each impersonated terminal answers, and whether TUIkit should then
+# What each impersonated terminal answers, and whether TUI should then
 # compensate. Apple Terminal's replies are measured (455.1 / macOS 15.7, through
 # ssh, identity_probe.py); Ghostty's DA strings were read from its shipped
 # binary and its XTVERSION from Documentation/Terminals/Terminal compatibility survey.md.

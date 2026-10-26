@@ -36,7 +36,7 @@ conditions. Sixteen kinds of file live here:
   `unmeasured` until somebody looks at the card.
 - **`<terminal>-<version>-placement.json`** — PLACEMENT records
   (`placement_probe.py`): one Kitty image transmitted and placed through
-  Unicode placeholders — the mechanism TUIkit ships — with the host's reply
+  Unicode placeholders — the mechanism TUI ships — with the host's reply
   to each command, the cursor advance over a placeholder row, and the
   human-filled `rendered`. These are what the graphics design rests on; the
   iTerm2 third-mark finding of 2026-09-03 came out of this probe.
@@ -57,7 +57,7 @@ conditions. Sixteen kinds of file live here:
   when it ran `--auto` or went unanswered. Two so far, both answered to the
   end on 2026-10-08: Ghostty 1.3.1 and iTerm2 3.7.3.
 - **`<terminal>-<version>-title.json`** — WINDOW-TITLE records
-  (`title_probe.py`): the DSR column after each title sequence TUIkit sends
+  (`title_probe.py`): the DSR column after each title sequence TUI sends
   (`OSC 2`, the push and the pop of the title stack, a pop with nothing
   pushed, the report request) on both screens, and the title the host
   reports (`CSI 21 t`, or tmux's `#{pane_title}`) after a set, a push and a
@@ -86,7 +86,7 @@ conditions. Sixteen kinds of file live here:
 - **`<terminal>-<version>-identity.json`** — IDENTITY records
   (`identity_probe.py`): the reply to each query a host could be identified
   by — DA1, DA2, DA3, XTVERSION, XTGETTCAP `TN` — and to the status report
-  `CSI 5 n` TUIkit fences its exchanges with, and in `XTVERSION+DSR5` the
+  `CSI 5 n` TUI fences its exchanges with, and in `XTVERSION+DSR5` the
   replies to an XTVERSION with the status report behind it, in the order
   they arrived. Five
   so far: Apple Terminal 455.1, iTerm2 3.7.6, Warp, Ghostty
@@ -106,7 +106,7 @@ conditions. Sixteen kinds of file live here:
   1.3.1.
 
 - **`<terminal>-<version>-progress.json`** — PROGRESS-BAR records
-  (`progress_probe.py`): the DSR column after each progress report TUIkit
+  (`progress_probe.py`): the DSR column after each progress report TUI
   sends (`OSC 9 ; 4` with each state, with and without a value, and the
   removal) on both screens, and, inside tmux, the pane's bar as tmux keeps it
   (`#{pane_pb_state}`, `#{pane_pb_progress}`) after each; with `--timeout`,
@@ -198,7 +198,7 @@ earlier version of this note concluded from the paint that "the row does not
 shear at all", which is FALSE: the advance governs wrapping, and a full-width
 row budgeted at the painted 2 wraps (measured 2026-08-26). The paint governs
 followers, the store governs later absolute writes, the reserve governs the
-edge. An advance here that disagrees with TUIkit's width claim is a
+edge. An advance here that disagrees with TUI's width claim is a
 hypothesis about rendering; confirm it with the wrap test plus
 `landing_probe.py`/`treatment_card.py` — `visual_card.py` answers paint
 only — before compensating. The project has reached a wrong conclusion from
@@ -213,7 +213,7 @@ cd Tools/TerminalProbes
 PROBE_ALT=1 PROBE_OUT=data/<terminal>-<version>-alternate.json python3 advance_probe.py
 ```
 
-`PROBE_ALT=1` measures the alternate screen, which is where TUIkit apps run and
+`PROBE_ALT=1` measures the alternate screen, which is where TUI apps run and
 what every model here is built from. A primary-screen record is welcome
 alongside it — the difference between the two is itself a finding — but it is
 not what the models use.

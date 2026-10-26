@@ -4,12 +4,12 @@ on the clipboard, how large a copy does it take, what does an empty or
 malformed payload do to the clipboard, and does it say so in its Device
 Attributes?
 
-TUIkit copies through OSC 52 where a terminal is known to write it, and through
+TUI copies through OSC 52 where a terminal is known to write it, and through
 the system clipboard helper only when the terminal is on this machine (see
 `ClipboardWriter` and Documentation/Terminals/Terminal compatibility survey.md, "OSC 52
 clipboard writes"). This measures what that table rests on.
 
-Run INSIDE the terminal under test. Nothing here needs TUIkit built.
+Run INSIDE the terminal under test. Nothing here needs TUI built.
 
   python3 clipboard_probe.py                # leak, identity, write, ceiling
   python3 clipboard_probe.py --destructive  # ...and the empty and malformed
@@ -20,7 +20,7 @@ Run INSIDE the terminal under test. Nothing here needs TUIkit built.
                                             #    holds what cannot be put back
 
 Writes JSON to $PROBE_OUT (default ./clipboard_probe.json) and prints a
-summary. `PROBE_ALT=1` runs on the alternate screen, where TUIkit draws.
+summary. `PROBE_ALT=1` runs on the alternate screen, where TUI draws.
 
 **Self-verifying where it can be.** On the machine whose clipboard the
 terminal writes, the read-back is `pbpaste` (macOS), `wl-paste` (Wayland), or
@@ -55,7 +55,7 @@ empty.
    clipboard it writes or put it back.
 
 2. **Identity.** XTVERSION, DA1 and DA2, DSR-fenced. Whether `52` is among
-   DA1's parameters is recorded on its own: TUIkit lets DA1 *add* a terminal to
+   DA1's parameters is recorded on its own: TUI lets DA1 *add* a terminal to
    its table, never take one off (a terminal that writes by default need not
    list 52). Run iTerm2 twice, with "Applications in terminal may access
    clipboard" (Settings > General > Selection) on and off: if DA1's 52 followed
@@ -63,9 +63,9 @@ empty.
    lists 52 either way, 2026-10-19), and Ghostty 1.3.1 lists it too.
 
 3. **Write.** A fresh nonce as `ESC ] 52 ; c ; <base64> ESC \`, the exact
-   spelling TUIkit sends, then the read-back. Also the BEL terminator, and the
+   spelling TUI sends, then the read-back. Also the BEL terminator, and the
    empty selector (`ESC ] 52 ; ; …`): xterm reads that as `s0`, Ghostty as `c`,
-   which is why TUIkit spells `c`.
+   which is why TUI spells `c`.
 
 4. **Ceiling.** Payloads of 1 KiB to 1 MiB of text, each a fresh nonce: the
    largest that arrives whole. Ghostty documents no limit; tmux and some hosts
@@ -75,7 +75,7 @@ empty.
    payload (`ESC ] 52 ; c ; ESC \`), then a sentinel again and a payload that
    is not base64 (`!!!!`). Ghostty's documentation says the second CLEARS the
    clipboard: "If d is neither a valid Base64-encoded string or the character
-   ?, all clipboards listed in t are cleared." TUIkit never sends either.
+   ?, all clipboards listed in t are cleared." TUI never sends either.
 
 6. **tmux.** `tmux -V`, `set-clipboard`, `allow-passthrough`, and whether tmux
    kept the write as a paste buffer (`show-buffer`), which is what
@@ -84,7 +84,7 @@ empty.
    iTerm2: whether tmux forwards the write to the outer terminal is the
    read-back's answer.
 
-TUIkit never asks the terminal to READ the clipboard (`?`): Ghostty asks the
+TUI never asks the terminal to READ the clipboard (`?`): Ghostty asks the
 user first by default, and the reply arrives in the input stream. Paste stays
 the terminal's own, through bracketed paste.
 """
@@ -128,7 +128,7 @@ def cursor(fd):
 
 
 def osc52(text, selector=b"c", terminator=ST):
-    """The write TUIkit sends: one selector, unwrapped base64, ST."""
+    """The write TUI sends: one selector, unwrapped base64, ST."""
     payload = base64.b64encode(text.encode("utf-8"))
     return b"\x1b]52;" + selector + b";" + payload + terminator
 

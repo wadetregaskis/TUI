@@ -1,16 +1,16 @@
-# Where the bytes go in TUIkit's release build
+# Where the bytes go in TUI's release build
 
 > **What this is.** The binary-size study of 2026-10-10, which the maintainers' working notes call SIZE3: where
-> the bytes of TUIkit's built libraries and of a linked app go, measured at 247de05f9 on Swift 6.4.0 and Xcode's
+> the bytes of TUI's built libraries and of a linked app go, measured at 247de05f9 on Swift 6.4.0 and Xcode's
 > 6.2.4; the levers that would shrink them, priced; the questions it put to the owner (§5); and the follow-up
 > measurements the owner asked for the same day (§6). How the artifacts were built, and the full byte inventory,
 > are in [How the measurements were taken.md](<How the measurements were taken.md>), beside this file.
 >
 > **Historical; decided since.** This is the state of 2026-10-10. What landed or was decided after it:
 >
-> - **A program copied out of `.build` launches on macOS 14 and 15** (lane NODQ, aafa4a3cf): TUIkitApp reads stdin
->   into buffers of its own, and TUIkit no longer depends on swift-collections, so its three modules, counted in
->   the tables below, are no longer in a TUIkit app.
+> - **A program copied out of `.build` launches on macOS 14 and 15** (lane NODQ, aafa4a3cf): TUIApp reads stdin
+>   into buffers of its own, and TUI no longer depends on swift-collections, so its three modules, counted in
+>   the tables below, are no longer in a TUI app.
 > - **A program without its resource bundle runs, in English** (e5445e2cd), so §6.7's trap is gone: see
 >   [Running without the resource bundle (BNDL).md](<../../SwiftUI parity/Decisions/Compile time and binary size/Running without the resource bundle (BNDL).md>).
 > - **The SF Symbols names are front-coded** in blocks of 16 (lane SFQ, eef95ccc9), §2.5's first option, and the
@@ -19,9 +19,9 @@
 >   README's "Shipping size" recipe and the `-deduplicate` check, `Tools/DedupCheck` (lane SHIP, 6122a8646): see
 >   [Shipping size (SHIP).md](<../../SwiftUI parity/Decisions/Compile time and binary size/Shipping size (SHIP).md>)
 >   and the [README](<../../../README.md#shipping-size>).
-> - **TUIkit's symbols stay out of the program's export table**, behind a second default-on trait,
->   `UnexportTUIkitSymbols`, and ColorPicker's tone-curve and channel-curve editors are a module of their own,
->   TUIkitCurveEditors (lane SHIP2, 4b1e00743): see
+> - **TUI's symbols stay out of the program's export table**, behind a second default-on trait,
+>   `UnexportTUISymbols`, and ColorPicker's tone-curve and channel-curve editors are a module of their own,
+>   TUICurveEditors (lane SHIP2, 4b1e00743): see
 >   [Shipping size and products, second round (SHIP2).md](<../../SwiftUI parity/Decisions/Compile time and binary size/Shipping size and products, second round (SHIP2).md>).
 > - **Every module is a library product of its own** (C9b, lane C9B, 3df96c964), lever 5: see
 >   [Per-module products (2026-10-11).md](<../Per-module products (2026-10-11).md>) and
@@ -35,22 +35,22 @@
 > **Paths.** The angle files (`angle-*.md`), `critic.md`, the artifacts (`artifacts/…`), the follow-up lanes'
 > notes (`fu/…`), the earlier study SIZE2, and the scripts this report names (`buckets.py`, `usage.py`,
 > `dupes/relink.py`) are in the maintainers' working notes, in the folder SIZE3; none of them is in this
-> repository. Line numbers into TUIkit's sources are at 247de05f9.
+> repository. Line numbers into TUI's sources are at 247de05f9.
 
 Report for review, 2026-10-10. It brings together the six SIZE3 angles (`angle-composition.md`, `angle-symbols.md`, `angle-names.md`, `angle-dupes.md`, `angle-data.md`, `angle-usage.md`) and applies the corrections in `critic.md`. The artifacts are in the working notes' SIZE3 folder, under `artifacts/`. Nothing here is a decision; section 5 lists what needs one.
 
 **What was measured.**
-- **Source:** TUIkit main at 247de05f9, built in release mode with each build system's defaults (`-O`, whole-module, `-g`).
+- **Source:** TUI main at 247de05f9, built in release mode with each build system's defaults (`-O`, whole-module, `-g`).
 - **Toolchains:**
   - `6.4.0` is swift.org 6.4.0 with SwiftBuild, the default build system in 6.4.
   - `6.2.4` is Xcode 26.3's compiler with SwiftPM's native build system.
 - **Linker:** Xcode's ld-1230.1 for both.
 - **The libraries:**
-  - the 25 TUIkit modules of the umbrella product;
+  - the 25 TUI modules of the umbrella product;
   - swift-collections;
   - the C image decoder (CSTBImage).
 
-  TUIkitAppKit (163 KB of objects) is outside the umbrella and left out.
+  TUIAppKit (163 KB of objects) is outside the umbrella and left out.
 - **Apps:** Hello is an app with one `Text`; Stress is the package's stress app. App sizes are after `strip` unless a row says otherwise.
 
 **Labels.**
@@ -60,9 +60,9 @@ Report for review, 2026-10-10. It brings together the six SIZE3 angles (`angle-c
 
 In tables, a number is measured unless its cell or the column header says otherwise. Causes are marked **established** or **hypothesis**.
 
-**Why the library bytes matter today.** TUIkit ships as source, so each consumer's machine builds these libraries.
+**Why the library bytes matter today.** TUI ships as source, so each consumer's machine builds these libraries.
 - The bytes land in each consumer's build directory: each SIZE3 scratch build was 0.6–1.1 GB.
-- They would only be downloaded in a binary distribution, which TUIkit does not have.
+- They would only be downloaded in a binary distribution, which TUI does not have.
 - An app's bytes are what users download and run.
 
 ## 1. Summary
@@ -93,7 +93,7 @@ The per-file objects are what both build systems compile: 1,235 objects, one per
 
 The same bytes in other forms (measured, 6.4.0):
 - **SwiftBuild's merged objects:** 42,439,273 B. They carry no DWARF; a 13.65 MB debug map points back at the per-file objects instead.
-- **A `libtool` archive of the per-file objects** (`libTUIkit-all.a`): 95,804,080 B, of which the archive's symbol index is 8,816,112 B.
+- **A `libtool` archive of the per-file objects** (`libTUI-all.a`): 95,804,080 B, of which the archive's symbol index is 8,816,112 B.
 - **One dynamic library of the whole umbrella:** 13,616,080 B after `strip -S -x`.
 
 ### A linked, stripped app (measured)
@@ -118,7 +118,7 @@ How to read the table:
 
 1. **Debug info is most of the built libraries.**
    - DWARF and its relocations are 47.4 MB (54.6%) of the 86.9 MB of 6.4.0 objects (measured).
-   - Building TUIkit's modules without `-g` takes their objects from 85.0 to 36.4 MB (−48.6 MB, measured).
+   - Building TUI's modules without `-g` takes their objects from 85.0 to 36.4 MB (−48.6 MB, measured).
    - Line tables only takes them to 66.5 MB (−18.5 MB, measured).
    - None of this reaches an app.
 2. **Names come next, and module names are a fifth of them.**
@@ -128,7 +128,7 @@ How to read the table:
 3. **Code is a tenth of the libraries but nearly three quarters of an app.**
    - `__text` is 8.6 MB (9.9%) of the objects and 72% of a stripped Hello (measured).
    - Swift runtime metadata is 0.61 MB (5.3%) of Hello. Both compilers emit the same amount to within 0.4% (measured on the objects).
-4. **Today every app carries all of TUIkit.**
+4. **Today every app carries all of TUI.**
    - Hello keeps 98.9% of the library bytes it links (measured).
    - Each of 17 small apps that add one API family to Hello is exactly one 16 KB page larger (measured).
    - The cause is established: every public symbol and every conformance record is a root that dead stripping must keep.
@@ -157,8 +157,8 @@ How to read the table:
 |---|--:|--:|---|
 | per-file objects (1,235) | 86,881,328 | 90,238,248 | 54.6% / 57.1% debug info |
 | SwiftBuild's per-module `ld -r` objects (29) | 42,439,273 | — | what 6.4.0's apps link; DWARF swapped for a 13,653,930 B debug map |
-| `libTUIkit-all.a` (libtool, per-file objects) | 95,804,080 | 99,003,448 | index 8,816,112 / 8,767,984 (with headers) |
-| SwiftBuild's own `libTUIkit.a` | 44,273,328 | — | index and headers 1,834,055 |
+| `libTUI-all.a` (libtool, per-file objects) | 95,804,080 | 99,003,448 | index 8,816,112 / 8,767,984 (with headers) |
+| SwiftBuild's own `libTUI.a` | 44,273,328 | — | index and headers 1,834,055 |
 | module files (`.swiftmodule` + `.swiftsourceinfo` + `.swiftdoc` + `.abi.json`) | 24,831,768 | 24,433,164 | compile inputs only; never in an app |
 | umbrella dylib, unstripped / `strip -S -x` | 25,618,376 / 13,616,080 | 25,524,408 / 13,768,144 | |
 | 29 per-module dylibs, unstripped / stripped | 28,030,456 / 16,046,192 | 28,858,056 / 16,515,728 | 2.43 MB more than one dylib, stripped |
@@ -173,30 +173,30 @@ How to read the table:
   - The link drops names (−24.8 MB), relocations (−4.8 MB), compact unwind (−1.8 MB) and linker hints (−0.45 MB).
   - It adds the export trie, a code signature, stubs and fixups.
   - Dead stripping removes only 117,656 B (1.1%), half of it the unused C image decoder (measured).
-- **Umbrella dylib to Hello.** Section by section the two agree within 0.7%. An app that imports `TUIkit` is the library plus its own code, nothing less.
-- **Symbolicating SwiftBuild's `libTUIkit.a`.** It has no DWARF, so it can be symbolicated only while the intermediate per-file objects exist (inferred from how a debug map works; not tested).
+- **Umbrella dylib to Hello.** Section by section the two agree within 0.7%. An app that imports `TUI` is the library plus its own code, nothing less.
+- **Symbolicating SwiftBuild's `libTUI.a`.** It has no DWARF, so it can be symbolicated only while the intermediate per-file objects exist (inferred from how a debug map works; not tested).
 
 **Per module** (6.4.0 per-file objects; the last column is the module's live section bytes in Hello's link map; measured):
 
 | module | objects | share | of which DWARF | `__text` | share of code | live in Hello |
 |---|--:|--:|--:|--:|--:|--:|
-| TUIkitFoundation | 35,145,096 | 40.5% | 17,233,068 | 3,187,068 | 37.0% | 3,878,217 |
-| TUIkitView | 5,015,248 | 5.8% | 2,413,771 | 534,500 | 6.2% | 635,666 |
-| TUIkitCore | 4,743,432 | 5.5% | 2,660,661 | 496,072 | 5.8% | 567,845 |
-| TUIkitLists | 4,232,352 | 4.9% | 1,981,062 | 489,332 | 5.7% | 566,071 |
-| TUIkitTables | 3,364,680 | 3.9% | 1,619,146 | 430,924 | 5.0% | 497,215 |
-| TUIkitStyling | 3,120,344 | 3.6% | 1,807,141 | 319,096 | 3.7% | 373,271 |
-| TUIkitApp | 2,875,736 | 3.3% | 1,497,977 | 250,356 | 2.9% | 299,228 |
-| TUIkitTextInput | 2,869,400 | 3.3% | 1,560,216 | 274,496 | 3.2% | 308,742 |
-| TUIkitNumericControls | 2,673,088 | 3.1% | 1,374,304 | 319,308 | 3.7% | 358,032 |
-| TUIkitStrings | 2,426,720 | 2.8% | 975,366 | 201,980 | 2.3% | 510,646 |
+| TUIFoundation | 35,145,096 | 40.5% | 17,233,068 | 3,187,068 | 37.0% | 3,878,217 |
+| TUIView | 5,015,248 | 5.8% | 2,413,771 | 534,500 | 6.2% | 635,666 |
+| TUICore | 4,743,432 | 5.5% | 2,660,661 | 496,072 | 5.8% | 567,845 |
+| TUILists | 4,232,352 | 4.9% | 1,981,062 | 489,332 | 5.7% | 566,071 |
+| TUITables | 3,364,680 | 3.9% | 1,619,146 | 430,924 | 5.0% | 497,215 |
+| TUIStyling | 3,120,344 | 3.6% | 1,807,141 | 319,096 | 3.7% | 373,271 |
+| TUIApp | 2,875,736 | 3.3% | 1,497,977 | 250,356 | 2.9% | 299,228 |
+| TUITextInput | 2,869,400 | 3.3% | 1,560,216 | 274,496 | 3.2% | 308,742 |
+| TUINumericControls | 2,673,088 | 3.1% | 1,374,304 | 319,308 | 3.7% | 358,032 |
+| TUIStrings | 2,426,720 | 2.8% | 975,366 | 201,980 | 2.3% | 510,646 |
 | the other 19 | 20,415,232 | 23.5% | 9,845,328 | 2,116,024 | 24.6% | 2,492,531 |
 | **total** | **86,881,328** | | **42,968,040** | **8,619,156** | | **10,487,464** |
 
 **The shape is the same in every module.**
-- In every TUIkit Swift module, code is 15–29% of the non-debug object bytes and names are 35–50%.
-- **TUIkitStrings** is the exception: it holds the 200 KB SF Symbols name blob.
-- **TUIkitFoundation** is about 40% of everything. Its weight caps what any per-module scheme can save.
+- In every TUI Swift module, code is 15–29% of the non-debug object bytes and names are 35–50%.
+- **TUIStrings** is the exception: it holds the 200 KB SF Symbols name blob.
+- **TUIFoundation** is about 40% of everything. Its weight caps what any per-module scheme can save.
 
 **Per source file (measured).**
 - `Table.swift` and `_ListCore.swift` hold 4.4% of all code: 195,828 and 182,384 B of `__text`.
@@ -240,9 +240,9 @@ Composition's version of this table put 107 KB of merged value witnesses under "
 
 | bucket | libraries | share | Hello |
 |---|--:|--:|--:|
-| TUIkit's own code: functions, accessors, closures, own specialisations, thunks | 5,013,616 | 48.8% | 4,944,348 |
+| TUI's own code: functions, accessors, closures, own specialisations, thunks | 5,013,616 | 48.8% | 4,944,348 |
 | type machinery the compiler generates: value witnesses, witness thunks and tables, metadata, descriptors | 3,284,268 | 31.9% | 3,311,246 |
-| stdlib and Foundation generics instantiated for TUIkit's types | 1,185,940 | 11.5% | 1,185,216 |
+| stdlib and Foundation generics instantiated for TUI's types | 1,185,940 | 11.5% | 1,185,216 |
 | data: C strings, static tables, key paths | 500,951 | 4.9% | 138,974 (anonymous in an app) |
 | swift-collections | 133,421 | 1.3% | 127,376 |
 | other data and labels (left out of the angle's table) | 106,820 | 1.0% | 5,902 |
@@ -266,14 +266,14 @@ Composition's version of this table put 107 KB of merged value witnesses under "
 | `Color` | 57,762 |
 | `Text` | 53,872 |
 
-The median TUIkit type costs 1,060 B. The largest owners overall are stdlib types instantiated for TUIkit:
+The median TUI type costs 1,060 B. The largest owners overall are stdlib types instantiated for TUI:
 - `_NativeDictionary`, 252,340 B;
 - `String`, 108,468 B;
 - `_ArrayBuffer`, 97,260 B;
 - sorting (`UnsafeMutableBufferPointer`), 95,144 B.
 
 **Generic specialisations (measured).**
-- 87% instantiate stdlib generics: 989,412 of 1,138,064 B. TUIkit's own generics are 127,520 B.
+- 87% instantiate stdlib generics: 989,412 of 1,138,064 B. TUI's own generics are 127,520 B.
 - Dictionary machinery is 331,716 B over 211 key/value combinations, about 1.6 KB per `Dictionary<K, V>` a module mutates.
 - Sorting is 146,384 B. Of that, 103,648 B comes from 35 call sites that sort with a closure literal. Each got a private copy of the merge sort, about 3 KB apiece.
 
@@ -303,7 +303,7 @@ The median TUIkit type costs 1,060 B. The largest owners overall are stdlib type
 - 1.83 MB of identifiers.
 
 The source has only 278 `@inlinable` and no `@_alwaysEmitIntoClient`. The symbols angle estimated that at least 95% of the SIL comes from the compiler's default cross-module optimisation (CMO). **A measurement contradicts that.**
-- Turning CMO off removes only 706 KB of TUIkit's 2.60 MB of SIL (27%).
+- Turning CMO off removes only 706 KB of TUI's 2.60 MB of SIL (27%).
 - What the remaining 1.89 MB is has not been broken down.
 - CMO pays for itself: without it Hello grows 99,648 B and Stress 183,184 B (measured).
 
@@ -350,7 +350,7 @@ The long names are generic types, not long identifiers. Defined names have a med
 | stripped Stress | −16,997 (−0.13%) |
 
 - **Per character dropped:**
-  - in the objects, about 102 KB for TUIkitFoundation, 55 KB for TUIkitView and 47 KB for TUIkitCore;
+  - in the objects, about 102 KB for TUIFoundation, 55 KB for TUIView and 47 KB for TUICore;
   - in an app, almost nothing.
 - **Why the app barely moves:**
   - `strip` removes the mangled names.
@@ -389,9 +389,9 @@ The long names are generic types, not long identifiers. Defined names have a med
 | mangled type-reference text (in a 133,364 B section that is half 4-byte symbolic references) | 54,066 | — | data |
 | Objective-C class and ivar names | 33,529 | 36,777 | data |
 
-These rows are not a fourth partition, and they do not add to the §1 total. The in-section strings (about 0.33 MB besides the SF table) are part of the 16.2% data row. All of TUIkit's module names together are about 12 KB of a stripped Hello.
+These rows are not a fourth partition, and they do not add to the §1 total. The in-section strings (about 0.33 MB besides the SF table) are part of the 16.2% data row. All of TUI's module names together are about 12 KB of a stripped Hello.
 
-**Reflection metadata stays (established from the source).** `@State` and `@Environment` are found with `Mirror(reflecting:).children` (`Sources/TUIkitView/State/State.swift:662`, `Sources/TUIkitView/Environment/EnvironmentProperty.swift:258`).
+**Reflection metadata stays (established from the source).** `@State` and `@Environment` are found with `Mirror(reflecting:).children` (`Sources/TUIView/State/State.swift:662`, `Sources/TUIView/Environment/EnvironmentProperty.swift:258`).
 
 | flag | Hello | what it breaks |
 |---|--:|---|
@@ -433,7 +433,7 @@ The two levers overlap by about 100 KB (measured). Each is explained below.
     - SwiftBuild itself passing the flag;
     - a 6.4 build with `--build-system native`.
   - **A user cannot fix it.** User `-Xlinker` flags do not reach the prelink (established from the build log).
-  - **The fix has a library-side cost.** SwiftBuild's own `libTUIkit.a` index would list the hidden symbols again: up to about +5.7 MB of index (estimate). An app never carries that index.
+  - **The fix has a library-side cost.** SwiftBuild's own `libTUI.a` index would list the hidden symbols again: up to about +5.7 MB of index (estimate). An app never carries that index.
 - **ld's deduplication is off.**
   - **Why it is off.** Swift's link step passes no dedup flag, and ld-1230's default then folds nothing.
   - **What `-Xlinker -deduplicate` folds.** About 20,000 identical functions in Hello. By kind (model):
@@ -451,7 +451,7 @@ The two levers overlap by about 100 KB (measured). Each is explained below.
     - That the linker has a Swift-specific switch suggests Apple supports folding them. That the Swift runtime never compares those addresses is a hypothesis.
     - No deduplicated binary has been run.
 - **Near-identical code is another 654 KB (model).** It has the same instructions but different call targets, and no shipping tool merges it.
-- **TUIkit's own generics duplicated across modules: 4.5 KB** (measured). Not worth a change.
+- **TUI's own generics duplicated across modules: 4.5 KB** (measured). Not worth a change.
 - **Strings and constant data are not where the duplication is.**
   - C strings are merged at link time.
   - Field-name strings repeat 37.7 KB in Hello, which ld cannot merge.
@@ -474,7 +474,7 @@ The two levers overlap by about 100 KB (measured). Each is explained below.
 
 **Build options** (all measured). The figures come from a plain-`swiftc` harness with the same flags on both toolchains. App deltas are against the harness's own stripped base, which has no SwiftBuild duplicates: 11,120,040 B for Hello and 12,575,768 B for Stress.
 
-| option | library objects (TUIkit's 25 modules) | Hello | Stress | runtime |
+| option | library objects (TUI's 25 modules) | Hello | Stress | runtime |
 |---|---|--:|--:|---|
 | `-g` (both build systems' release default) vs none | 85.0 vs 36.4 MB (DWARF 49.3%) | +33,024 | +33,024 | none |
 | `-gline-tables-only` instead of `-g` | 66.5 MB (−18.5 MB) | 0 | 0 | none |
@@ -488,7 +488,7 @@ The two levers overlap by about 100 KB (measured). Each is explained below.
 | ThinLTO | bitcode ×1.93 | +782,624 (+7.0%) | +782,336 (+6.2%) | unmeasured |
 | full LTO | bitcode ×1.86 | +235,728 (+2.1%) | — | unmeasured |
 | full LTO + internalize + conditional runtime records + `-no_exported_symbols` | | −4,038,160 (−36.3%) | −3,239,104 (−25.8%) | unmeasured; Stress `--selfcheck` passes |
-| `-enable-library-evolution` | both compilers crash on TUIkitCore (`FrameBuffer.lines` modify accessor) | — | — | — |
+| `-enable-library-evolution` | both compilers crash on TUICore (`FrameBuffer.lines` modify accessor) | — | — | — |
 | `-enable-cmo-everything` | `.swiftmodule` ×4–8, then both compilers crash | — | — | — |
 
 Notes on the table:
@@ -575,7 +575,7 @@ What C9b would change for each sample app:
 
 **The two threads together: usage and the built libraries.** Under C9b, a consumer compiles and stores only the modules its app needs.
 - Hello's 11 modules are 57.2 of the 86.9 MB of objects (−34%) and 10.2 of the 15.1 MB of `.swiftmodule` (−32%). These are estimates: sums of the measured per-module sizes.
-- TUIkitFoundation alone is 61% of the objects Hello needs, which caps the gain on the library side.
+- TUIFoundation alone is 61% of the objects Hello needs, which caps the gain on the library side.
 - The compile time of such a build was not measured.
 
 ## 3. Levers
@@ -591,18 +591,18 @@ These matter today for build directories, caches and CI disk, and for a binary d
 
 | lever | library bytes (6.4.0) | effect on apps | cost | who | confidence |
 |---|--:|---|---|---|---|
-| build without DWARF | −48.6 MB of 85.0 MB of objects (TUIkit's 25 modules) | 0; `-g` costs a stripped app +33 KB | no source-level debugging from these objects | distributor; consumer's build settings | measured |
+| build without DWARF | −48.6 MB of 85.0 MB of objects (TUI's 25 modules) | 0; `-g` costs a stripped app +33 KB | no source-level debugging from these objects | distributor; consumer's build settings | measured |
 | `-gline-tables-only` | −18.5 MB of 85.0 MB | 0 | the debugger has file:line, no variables or types | as above | measured |
 | archive index (`__.SYMDEF`) | 8.8 MB of the 95.8 MB per-file archive. It lists 86,459 hidden weak definitions. SwiftBuild's merged form needs only 1.8 MB because its merge hides them, and that hiding is exactly what creates the 350 KB of app duplicates | a trade-off with the prelink fix: up to +5.7 MB of index (estimate) against −350 KB per app | none | build system | measured; the +5.7 MB is an estimate |
 | one dynamic library, not 29 | −2,430,112 B stripped (13.6 vs 16.0 MB) | n/a | product layout | package, if dynamic products ship | measured |
 | dylib `strip -x -T` instead of `-S -x` | −2,135,248 B (−15.7%) | n/a | none expected; the stripped dylib was never loaded | distributor | size measured |
 | `-deduplicate` on the dylib | −818,208 B (−6.0%); with the prelink fix −1,068,192 B | n/a | as for apps (§3.2) | product maintainer | measured |
-| drop `.swiftsourceinfo` from a binary distribution | −5.28 MB | 0 | IDE jump-to-source into TUIkit | distributor | estimate (file size; role established, untested) |
+| drop `.swiftsourceinfo` from a binary distribution | −5.28 MB | 0 | IDE jump-to-source into TUI | distributor | estimate (file size; role established, untested) |
 | `-no-serialize-debugging-options` | about −0.44 to −0.47 MB of `.swiftmodule`, and no build-machine paths | 0 | the debugger may need search paths | distributor | size measured as a difference; the flag's effect is untested |
 | SF Symbols front-coding | −149,784 B | the same in every macOS app | a decode per lookup (§3.2) | package | estimate |
 | rename modules to 3 characters | −2.64 MB of objects (−3.0%) | −17 KB | breaks every import; not recommended | — | estimate |
 | halve non-public identifiers | −1.30 MB (−1.5%) | −27 KB | readability; not recommended | — | estimate |
-| library evolution (for a binary distribution) | `.swiftmodule` −37% for the one module that compiled | `__text` +3.7% | resilient access, slower | package | blocked: both compilers crash on TUIkitCore |
+| library evolution (for a binary distribution) | `.swiftmodule` −37% for the one module that compiled | `__text` +3.7% | resilient access, slower | package | blocked: both compilers crash on TUICore |
 
 ### 3.2 On linked apps, ranked
 
@@ -611,21 +611,21 @@ All figures are 6.4.0. Stripped Hello is 11,502,960 B and stripped Stress 13,008
 | # | lever | libraries | Hello | Stress | runtime cost | compile-time cost | API / debuggability cost | who | confidence | effort |
 |--:|---|---|--:|--:|---|---|---|---|---|---|
 | 1 | `-Xlinker -no_exported_symbols` (Xcode `LD_EXPORT_SYMBOLS = NO`) | n/a | −778,280 (−6.8%) | −781,472 (−6.0%) | none: no code changes | none | the app can't serve its symbols to plugins; nothing is lost for a stripped app, whose trie `strip` already emptied | app developer | measured; three relinks agree to 8 B; selfcheck passed at B1 | a README line |
-| 2 | `-internalize-at-link` on every module (`-Xswiftc -Xfrontend -Xswiftc -internalize-at-link`) | ≈ 0 (one flag bit per symbol) | −1.62 MB (−14.6% of the harness base; real flag, per-file link) / −1.74 MB (−15.1%; emulated, SwiftBuild link) | −1.52 MB (−12.1%) / −1.62 MB (−12.5%) | ±1% per frame, measured before the split on 6.2.4 | none | static links only: no dynamic TUIkit, no plugins calling the app's TUIkit | app developer | bytes measured and emulated; the runtime A/B predates the split | a README line + a re-A/B on the split tree |
-| 3 | SwiftBuild's prelink keeps private externs (upstream fix), or users build with `--build-system native` on 6.4 | objects unchanged; SwiftBuild's `libTUIkit.a` index grows by up to 5.7 MB (estimate) | −350,192 (−3.0%) | −400,064 (−3.1%) | none expected: one copy instead of one per module; possibly slightly faster, with one metadata cache per type instead of one per module (hypothesis) | none | none | swift-build upstream; users via the native build system (deprecated in 6.4; untested there) | measured two ways, agreeing to 32 B | an upstream issue + a README note |
+| 2 | `-internalize-at-link` on every module (`-Xswiftc -Xfrontend -Xswiftc -internalize-at-link`) | ≈ 0 (one flag bit per symbol) | −1.62 MB (−14.6% of the harness base; real flag, per-file link) / −1.74 MB (−15.1%; emulated, SwiftBuild link) | −1.52 MB (−12.1%) / −1.62 MB (−12.5%) | ±1% per frame, measured before the split on 6.2.4 | none | static links only: no dynamic TUI, no plugins calling the app's TUI | app developer | bytes measured and emulated; the runtime A/B predates the split | a README line + a re-A/B on the split tree |
+| 3 | SwiftBuild's prelink keeps private externs (upstream fix), or users build with `--build-system native` on 6.4 | objects unchanged; SwiftBuild's `libTUI.a` index grows by up to 5.7 MB (estimate) | −350,192 (−3.0%) | −400,064 (−3.1%) | none expected: one copy instead of one per module; possibly slightly faster, with one metadata cache per type instead of one per module (hypothesis) | none | none | swift-build upstream; users via the native build system (deprecated in 6.4; untested there) | measured two ways, agreeing to 32 B | an upstream issue + a README note |
 | 4 | `-Xlinker -deduplicate` | umbrella dylib −818,208 | −818,208 (−7.1%) | −936,000 (−7.2%) | unmeasured; expected neutral or slightly better. No folded binary has run | none (links take about 1 s) | folded functions share an address, so crash reports and profiler samples name one of several siblings; `Tools/Profiling` builds must not use it | app developer; dylib maintainer | bytes measured; safety unknown | selfcheck + golden snapshots + quiet-box A/B, then a README line |
 | 5 | per-module library products (C9b) | 0 in objects and archives; a consumer builds only what its app needs (Hello: 57.2 of 86.9 MB, estimate) | −4,060,432 (−35.3%) | −497,424 (−3.8%) | none expected: identical machine code (unmeasured) | less for small apps (Hello compiles 11 of 29 modules; unmeasured) | users pick products and import per module; the umbrella stays | package (planned; deferred "for now") | measured relinks, assuming each product links exactly its module closure | the planned step C9b |
 | 6 | `strip -N` after `strip` | n/a | −102,480 (−0.9%) | −105,776 (−0.8%) | none expected | none | `nm` and `otool` on the shipped binary lose import names | app developer | size measured; `codesign -v` passes; launch untested | a launch check, then a README line |
 | 7 | SF Symbols names front-coded (already approved) | −149,784 (estimate) | ≈ −148 KB (−1.3%) | ≈ −148 KB (−1.1%) | a block decode per uncached lookup (estimate: under 1 µs); `Label(systemImage:)` looks a name up on every body, so it needs the A/B | none | none | package | bytes estimated from the current 8,466 names | a small lane |
 | 8 | `@_alwaysEmitIntoClient` on the fixed-arity builder overloads (Table columns and rows, Tabs, Toolbar, Slider ticks) | −102,172 (estimate) | ≈ −107 KB (−0.9%) | ≈ −80 to −100 KB | none expected: client copies are specialised | apps compile the arities they call | none (library evolution is off) | package | estimate from measured symbols. Overlaps internalize, which drops them anyway, and C9b, under which Hello keeps only Toolbar's (≈ 15 KB) | small |
 | 9 | `@_alwaysEmitIntoClient` on public `View` modifier wrappers | ≈ −130 KB (estimate) | ≈ −110 to −150 KB | ≈ −100 to −140 KB | changes inlining at every call site, so it needs the A/B | apps compile the modifiers they use | modifier frames move into callers | package | estimate; a probe compiles on 6.2.4 and 6.4.0 | medium: 534 modifiers |
-| 10 | full LTO + internalize + conditional runtime records (+ `-no_exported_symbols`) | objects become bitcode (×1.86) | −4,038,160 (−36.3%, measured on the harness); −4,117,472 (−35.8%, emulated on SwiftBuild's link); with C9b −7,071,344 (−61.5%, emulated, never run) | −3,239,104 (−25.8%); with C9b −3,965,344 (−30.5%, emulated) | unmeasured; Stress `--selfcheck` passes | a full-LTO link of Hello takes 35–55 s, and every app link re-optimises all of TUIkit | experimental flags with open compiler issues; LTO dSYMs may be incomplete | app developer | bytes measured; correctness only smoke-tested | at most, document as experimental |
+| 10 | full LTO + internalize + conditional runtime records (+ `-no_exported_symbols`) | objects become bitcode (×1.86) | −4,038,160 (−36.3%, measured on the harness); −4,117,472 (−35.8%, emulated on SwiftBuild's link); with C9b −7,071,344 (−61.5%, emulated, never run) | −3,239,104 (−25.8%); with C9b −3,965,344 (−30.5%, emulated) | unmeasured; Stress `--selfcheck` passes | a full-LTO link of Hello takes 35–55 s, and every app link re-optimises all of TUI | experimental flags with open compiler issues; LTO dSYMs may be incomplete | app developer | bytes measured; correctness only smoke-tested | at most, document as experimental |
 | 11 | one shared sort helper for the 35 sorts that each got a private merge sort | −28 to −95 KB (estimate, depending on how many sites move) | the same | the same | cold sites: none. The 13 render-path sites add an indirect compare per comparison, so they need the A/B | none | none | package | estimate | small–medium |
 | 12 | fold the six Bool `View` trait requirements into one `_traits` | ≈ −29 KB (estimate); ≈ −15 KB once dedup is on | the same | the same | traits are queried per child on every render, so it needs the A/B | none | changes underscored requirements (not SwiftUI API) | package | estimate | medium |
 | 13 | flatten the glyph calibration table to static data | ≈ −20 KB (estimate) | ≈ −16 KB (one page) | the same | none: it is built once today | none | none | package | estimate | small |
 | 14 | one helper for the 188 `_*Core` `fatalError` bodies | negligible | ≈ −15 to −25 KB (estimate) | the same | none: the path runs only on a bug | none | the crash's file:line names the helper | package | estimate | small |
 
-Levers 1–4 and 6 are link or strip flags that only the app developer can set, so they belong in a README size recipe. That recipe has been owed since SIZE2. Levers 5 and 7–14 are changes to TUIkit itself.
+Levers 1–4 and 6 are link or strip flags that only the app developer can set, so they belong in a README size recipe. That recipe has been owed since SIZE2. Levers 5 and 7–14 are changes to TUI itself.
 
 ### 3.3 How the levers combine
 
@@ -670,13 +670,13 @@ Also not measured:
 | Launch time, page-in and dirty memory | binary size reaches users mainly this way, and no angle measured it | a launch benchmark of Hello and Stress, before and after the recipe | a small harness |
 | What a 6.4 build with `--build-system native` looks like | it is the remedy users can apply today for the prelink duplicates; its other size effects are unknown | one build of Hello and Stress | one build slot |
 | Whether SwiftBuild accepts the fix, as `-keep_private_externs` on its prelink or as `-Xxcbuild KEEP_PRIVATE_EXTERNS=YES` | it is the remedy for every 6.4 user | try the setting; file upstream | small |
-| How much SwiftBuild's own `libTUIkit.a` grows with that fix | it is the fix's library-side cost (up to +5.7 MB, estimate) | build its archive with the flag | one build |
+| How much SwiftBuild's own `libTUI.a` grows with that fix | it is the fix's library-side cost (up to +5.7 MB, estimate) | build its archive with the flag | one build |
 | Linux | no angle covers it; there, every public function is a retained root (SIZE2) | the same artifacts on the Linux static SDK | a build lane |
 | Xcode-project consumers | it is a hypothesis that Xcode prelinks package targets the same way; whether Archive strips and whether links deduplicate is unknown | one Xcode archive of Hello | small |
 | Debug-configuration library sizes | all six angles measured release builds only | one debug build | small |
 | What the 1.89 MB of SIL that stays without CMO is | it is about an eighth of the `.swiftmodule` bytes, and unexplained | break the SIL block down by kind | analysis only |
 | Why 6.4 grows more per module carve than 6.2.4 (+72.7 vs +39.5 KB for one carve) | it decides whether further carves cost more on 6.4 | relink one carve with and without the prelink fix | link-only |
-| What keeps TUIkitLists alive under conditional records | the −61.5% C9b figure depends on the emulation being right | `-why_live` on Lists' type descriptors under `cond` (the script is written but has not run) | link-only |
+| What keeps TUILists alive under conditional records | the −61.5% C9b figure depends on the emulation being right | `-why_live` on Lists' type descriptors under `cond` (the script is written but has not run) | link-only |
 | C9b's real product shape | the −35% assumes one product per module closure | decide the products, then relink | design + link |
 | Whether every app needs the resource bundle | it decides whether the SF table may move into the bundle | check which entry points reach `Bundle.module` | analysis |
 | Whether `strip -N` binaries launch | it decides lever 6 | launch one | trivial |
@@ -689,7 +689,7 @@ Also not measured:
    - Without dedup, the recipe saves about 2 MB (−18%) of Hello (emulated). Dedup would add an amount not yet measured.
 2. **Upstream reports.** Shall I draft three issues for you to file? (I never file or comment on issues myself.)
    - swift-build: the prelink drops `-keep_private_externs`, costing every 6.4 app 3% (measured).
-   - swiftlang/swift: library evolution crashes on TUIkitCore.
+   - swiftlang/swift: library evolution crashes on TUICore.
    - swiftlang/swift: `-enable-cmo-everything` crashes.
 
    Separately: once a native 6.4 build has been measured, should the README tell 6.4 users about `--build-system native`, which 6.4 marks deprecated?
@@ -756,10 +756,10 @@ Every row that includes internalize is emulated, and so are the C9b columns. The
 **One real semantic effect (established by a probe).** A computed property's key path is identified by its getter's address. So once identical getters are folded, two different key paths compare equal.
 - On 6.4.0 this happens only with `-deduplicate`. On 6.2.4 it already happens without it, for getters in the same file.
 - In Stress the folded pairs are aliases and constants, but on 6.2.4 they also include `EnvironmentValues.buttonStyle` and `installedButtonAppearance`. Those two share a getter but have different setters.
-- TUIkit's three key-path comparisons are unaffected today: the memo's environment slots, the root palette lookup, and Table's same-column check.
+- TUI's three key-path comparisons are unaffected today: the memo's environment slots, the root palette lookup, and Table's same-column check.
 - The one function-address comparison, `FatalSignalTerminalRestore.endsTheProcess`, is safe.
 
-**Verdict:** safe for TUIkit as it stands, but a latent hazard for any future identity use of key paths. Before the README recommends dedup, it needs a PTY run and a runtime A/B.
+**Verdict:** safe for TUI as it stands, but a latent hazard for any future identity use of key paths. Before the README recommends dedup, it needs a PTY run and a runtime A/B.
 
 ### 6.3 Swift 6.4 with `--build-system native` (measured)
 
@@ -779,7 +779,7 @@ Every row that includes internalize is emulated, and so are the C9b columns. The
   - clang's override hook.
 - **The fix, emulated by adding the flag to SwiftBuild's own commands:**
   - Hello −350,192 (−3.04%) and Stress −400,032 (−3.08%);
-  - SwiftBuild's `libTUIkit.a` grows by +5,687,984 B (+12.8%), all of it archive index.
+  - SwiftBuild's `libTUI.a` grows by +5,687,984 B (+12.8%), all of it archive index.
 - **It belongs to swift-package-manager, not swift-build.** A draft issue for the owner to file is in the working notes' SIZE3 folder, `fu/prelink/issue-draft.md`.
 
 ### 6.5 Does a `strip -N` binary work? Yes (measured)
@@ -804,9 +804,9 @@ Result: Hello with C9b −61.9% (was −61.5%). With all modules the emulation i
 
 **(c) The +33 KB that `-g` adds to a stripped app** is `__unwind_info` (+24.9 KB) and `__eh_frame` (+1.5 KB). It crosses two pages. With `-g`, LLVM emits unwind info for `nounwind` functions too (established).
 
-### 6.7 Side finding: every TUIkit app traps at launch without its resource bundle (measured, cause established)
+### 6.7 Side finding: every TUI app traps at launch without its resource bundle (measured, cause established)
 
-- **The crash:** without `TUIkit_TUIkitStrings.bundle` beside the binary, Hello traps on both toolchains with `Fatal error: unable to find bundle named TUIkit_TUIkitStrings`.
+- **The crash:** without `TUI_TUIStrings.bundle` beside the binary, Hello traps on both toolchains with `Fatal error: unable to find bundle named TUI_TUIStrings`.
 - **The path:** `LocalizationService.shared` → `loadTranslationsFromBundle` → `moduleResourceURL` → SwiftPM's generated `Bundle.module`, which calls `fatalError`. This happens during `RenderLoop.buildEnvironment()`.
 - **It is a bug, not a size question.** Terminal apps are often shipped as a single binary (Homebrew, a release download).
 - **The fix:** fall back to the untranslated (English) strings when the bundle is missing.

@@ -1,0 +1,1008 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  ScrollView+Content.swift
+//
+//  The content half of `_ScrollViewCore`: measuring the content's natural
+//  extents, rendering it through the windowing/slicing machinery, and
+//  splicing the "N more" indicator rows. Split from `ScrollView.swift`,
+//  which had reached the file-length limit; the position half already lives
+//  in `ScrollView+ScrollPosition.swift`.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import TUICore
+import TUIView
+
+// MARK: - One Drawing of the Content
+
+/// One drawing of a scroll view's content: what `renderedContent` drew, and
+/// which of its lines are real — what the frame windows, and what a drawing
+/// made again when the frame's offset moved past it replaces whole.
+struct ScrollContentDrawing {
+    /// The content as drawn: the band, when the content drew only a slice of
+    /// itself.
+    var buffer: FrameBuffer
+
+    /// For a sliced reply, where the band starts in the content and how tall
+    /// the whole content is (an estimate past what was drawn, as
+    /// `totalIsEstimate` says); `nil` when ``buffer`` is the whole content.
+    var slice: (originY: Int, totalHeight: Int, totalIsEstimate: Bool)?
+
+    /// The lines of a full-height ``buffer`` that hold real rows, when it holds
+    /// placeholders elsewhere (``ScrollContentReply/drawnLines``); `nil` when
+    /// every line it holds is drawn.
+    var drawnLines: Range<Int>?
+
+    /// Where the content's top-left was placed in the viewport for the readers
+    /// it drew: minus the offsets the drawing was made at. When the frame's
+    /// offset settles elsewhere, what they were predicted is moved by the
+    /// difference (`_ScrollViewCore.settlePlacement`).
+    var placement: CellPoint
+
+    /// The content lines this drawing really drew — the slice's band, or the
+    /// drawn lines of a full-height canvas — or `nil` for eager content, all of
+    /// which is drawn.
+    var band: Range<Int>? {
+        slice.map { $0.originY..<$0.originY + buffer.height } ?? drawnLines
+    }
+}
+
+extension _ScrollViewCore {
+    /// The context the content is measured and drawn in, at every site that
+    /// asks it anything: under its OWN child identity (see `contentExtents`),
+    /// marked as the scroll content's origin (`scrollContentOriginDepth`), so a
+    /// windowed stack below can tell from a measure whether its render will
+    /// band it or draw it whole.
+    ///
+    /// One helper for every site because the answer depends on it: the measure
+    /// memo keys on no context but the widths, so a stack asked once with the
+    /// origin (the extents) and once without (this view's ideal size) could be
+    /// served the other ask's answer — and the ideal size is the content's own,
+    /// as in SwiftUI, which for a nested stack is the height it draws.
+    func contentContext(_ context: RenderContext) -> RenderContext {
+        // Under the type of the app's content even when margins wrap it, so the
+        // content's identity — its `@State`, its focus — is the same with them
+        // and without. The value is the metatype, which is what the identity
+        // keys on; the cast is made only by the copy that draws margins.
+        let identityType: Any.Type =
+            appliesContentMargins
+            ? (Content.self as? any MarginedScrollContent.Type)?.appContentType ?? Content.self
+            : Content.self
+        var contentContext = context.withChildIdentity(type: identityType)
+        // The visibility from above, back: `showsIndicators = false` is this
+        // view's, and a scroll view nested in the content keeps its own
+        // indicators (measured on SwiftUI).
+        if hidesAutomaticIndicators { contentContext.environment.restoreIndicatorsAboveShowsIndicators() }
+        // The content margins are this view's, not its content's: a scroll view
+        // nested in the content has none of its own (measured on SwiftUI).
+        // Written only when set, since almost no scroll view has any. A
+        // framework scroller takes none, and leaves them to its content's.
+        if !isChrome, !contentContext.environment.contentMargins.isEmpty {
+            contentContext.environment.contentMargins = ContentMargins()
+        }
+        if !isChrome, !contentContext.environment.safeAreaContentMargins.isZero {
+            contentContext.environment.safeAreaContentMargins = EdgeInsets()
+        }
+        // So are the scroll observers: only the first scroll view reports. A
+        // framework scroller claims none, and leaves them to its content's.
+        if !isChrome, !contentContext.environment.scrollObservers.isEmpty {
+            contentContext.environment.scrollObservers = ScrollObservers()
+        }
+        // And the `.scrollPosition` binding: a `List`, a `Table` or a scroll
+        // view in the content neither follows this view's write-backs nor
+        // writes its own rows into it (measured on SwiftUI, macOS 15.8:
+        // `Tools/SwiftUIProbes/Nested scroll position`). Read by both, each
+        // took the other's write-back for a request, and the two drove each
+        // other's positions.
+        if !isChrome, contentContext.environment.scrollPositionBinding != nil {
+            contentContext.environment.scrollPositionBinding = nil
+        }
+        // And a scroll target layout mark: one stated around this scroll view's
+        // own content is not one on a scroll view nested in it.
+        if contentContext.environment.isScrollTargetLayout {
+            contentContext.environment.isScrollTargetLayout = false
+        }
+        // And a sheet's size, which its box takes (`consumeSheetSize()`),
+        // along the axes this view scrolls: it offers its content as much as
+        // it wants along them, so the boxes in it are their content's size
+        // there, as SwiftUI's are (measured on macOS 15.6: two `GroupBox`es in
+        // a `ScrollView` in a `.form` sheet 400 points tall are 43 points
+        // each, as outside one). Passed on, each box in it took the whole of
+        // the sheet's height. Across them it offers its own extent, so a box
+        // in a vertical scroll view still spans the sheet's width.
+        contentContext.consumeSheetSize(along: axes)
+        // Depth plus one, so 0 can mean "no scroll content". A chain too deep
+        // for two bytes is marked as none, which answers as the estimate did.
+        let depth = contentContext.identity.depth + 1
+        contentContext.scrollContentOriginDepth = depth < Int(UInt16.max) ? UInt16(depth) : 0
+        return contentContext
+    }
+
+    /// The content's natural extents at a candidate viewport, WITHOUT building a
+    /// buffer — the same measures `renderedContent` uses to size its render, so the
+    /// scrollbar-reservation decision matches what will actually be drawn.
+    ///
+    /// `height` is the rendered buffer's height, `max(viewportHeight,
+    /// naturalHeight)`: the natural height comes from ``measureNaturalExtent`` — a
+    /// stack's measure clamps its report to `availableHeight`, so any FIXED budget
+    /// is a ceiling on how tall content can be, and the ladder grows the budget
+    /// until the content stops filling it instead of guessing one — under an
+    /// unspecified height proposal, which collapses a flexible filler such as
+    /// `Spacer()` to its minimum. (Rendering into a fixed tall canvas would instead
+    /// let a Spacer expand to thousands of lines and report a phantom overflow.)
+    /// `width` is the render width: the content's natural width when horizontal
+    /// scrolling is on — so it can be wider than the viewport and scroll, rather
+    /// than wrapping to fit — else `contentWidth`.
+    ///
+    /// Measures under the content's OWN child identity, distinct from the
+    /// ScrollView's: otherwise a directly-stateful content view would bind its
+    /// `@State` (property indices 0, 1, …) at the ScrollView's identity, colliding
+    /// with the ScrollView's own state keys (handler, focusID, …). `renderedContent`
+    /// uses the same identity, so state hydrates consistently.
+    func contentExtents(
+        contentWidth: Int, viewportHeight: Int, horizontal: Bool, context: RenderContext
+    ) -> (width: Int, height: Int) {
+        var measureContext = contentCanvasContext(
+            contentWidth: contentWidth, viewportHeight: viewportHeight,
+            horizontal: horizontal, context: context)
+        measureContext.availableHeight = naturalExtentStartingBudget(forVisible: viewportHeight)
+
+        let renderWidth: Int
+        if horizontal {
+            // Content that FILLS the probe's budget has no width of its own: it
+            // reported the rung and would have reported any other, so it is
+            // drawn at the viewport, which it fills. Taken as a width, the rung
+            // became the canvas — thousands of blank columns to scroll through.
+            renderWidth = max(
+                contentWidth,
+                naturalContentWidth(contentWidth: contentWidth, canvas: measureContext) ?? contentWidth)
+        } else {
+            renderWidth = contentWidth
+        }
+
+        measureContext.availableWidth = renderWidth
+        let natural = measureNaturalExtent(
+            content, along: .vertical,
+            proposal: ProposedSize(width: renderWidth, height: nil),
+            context: measureContext,
+            startingBudget: naturalExtentStartingBudget(forVisible: viewportHeight))
+        return (width: renderWidth, height: max(viewportHeight, natural.height))
+    }
+
+    /// The content's own width on a horizontal view's measure `canvas`, or
+    /// `nil` for content that fills whatever it is offered, which has none.
+    func naturalContentWidth(contentWidth: Int, canvas: RenderContext) -> Int? {
+        let natural = naturalExtent(
+            content, along: .horizontal,
+            proposal: ProposedSize(width: nil, height: nil),
+            context: canvas,
+            startingBudget: naturalExtentStartingBudget(forVisible: contentWidth))
+        return natural.fillsBudget ? nil : natural.size.width
+    }
+
+    /// Whether the content, laid out at `contentWidth` on the canvas
+    /// ``contentExtents(contentWidth:viewportHeight:horizontal:context:)``
+    /// measures a vertical view's content on, is taller than `viewportHeight` —
+    /// asked at the natural-extent ladder's first rung, and not climbed past it;
+    /// or, `oneLinePast`, one line past the viewport (below).
+    ///
+    /// The question the scrollbar's first round asks, and all it needs to: see
+    /// ``resolveScrollbars(viewportWidth:viewportHeight:horizontal:knownHorizontalBar:textLines:lastContentHeight:contentWalksNestedStacks:context:)``.
+    /// The climb is what made the round dear. A lazy stack past the windowing
+    /// threshold reports its estimate clamped to the budget it is offered, and a
+    /// clamp says nothing about what lies past it, so the ladder climbs by eight
+    /// until its budget clears the whole estimate, asking the stack's sampled
+    /// rows again at every rung — three rungs for a hundred thousand rows of one
+    /// and two lines. The first rung already knows the content overflows: it
+    /// offers thousands of lines, and content that fills them is taller than
+    /// any viewport.
+    ///
+    /// The first rung rather than one line past the viewport, because it is
+    /// the ladder's own question. A yes is the ladder's yes for everything but
+    /// content that goes from filling thousands of lines to fitting a screenful
+    /// as it is offered more. A no leaves the ladder its first rung in the
+    /// pass's memo, wherever the memo keeps it. And a measure that files
+    /// something per budget — a `TabView`'s per-extent tab sizes, written as it
+    /// is measured — is asked the budget it would have been asked anyway:
+    /// offered one line past the viewport, a tab view in an overflowing scroll
+    /// view filed a new extent on the first frame that took this path, and the
+    /// write asked for one frame more (`TabViewIdleRenderTests`). What that
+    /// gives up is small for most content: an eager stack measures every row
+    /// whatever it is offered, and a windowed one at the content's origin its
+    /// sample.
+    ///
+    /// Not for a windowed stack NESTED below other content — under a header, or
+    /// in a row of an outer lazy stack. It measures every row its budget
+    /// reaches (`anchoredSizeThatFits`), so at the first rung it walks every row
+    /// it holds, at a width nothing is drawn at: a whole walk more a frame, and
+    /// for lazy stacks in the rows of an outer one, nearly half the frame (forty
+    /// groups of 300 rows: 27,122 rows built on the frame after a write, against
+    /// 14,662 one line past the viewport). So for content the view has seen
+    /// walk one (`ScrollViewHandler.contentWalksNestedStacks`) the caller asks
+    /// `oneLinePast` instead, and each nested walk stops a screenful in. A yes
+    /// there is the ladder's yes for content whose height does not shrink as its
+    /// budget grows — the assumption
+    /// ``contentOverflowsVertically(viewportHeight:reported:context:)``, the
+    /// ideal size's twin, already makes, with the same exception,
+    /// `ViewThatFits(in: .vertical)` — and a no is not trusted, as at the rung.
+    ///
+    /// The smaller budget brings back the two costs the rung avoids, neither
+    /// of which changes an answer. A tab view in such content files its size
+    /// at the smaller budget and asks for one frame more — once for each
+    /// viewport height the view is first laid out at, not once overall (a
+    /// probe: one subtree clear on the second frame at each new height, none
+    /// with the rung; switching tabs cost nothing more). And a
+    /// natural size the pass already holds for the content at this width can
+    /// serve the question only if it fits one line past the viewport, so
+    /// taller content is measured once more for it. The hint is never cleared
+    /// (see there), so content that has stopped walking a nested stack keeps
+    /// paying both, for no walk saved.
+    ///
+    /// ## An eager column stops a line past the viewport
+    ///
+    /// At the rung, "an eager stack measures every row whatever it is
+    /// offered": a column of three hundred rows was measured whole for a yes
+    /// its first screenful already gave, and then whole again a column
+    /// narrower for the scroll range — two walks of the content a frame, a
+    /// quarter of the `churn` frame each. So for content whose measure is, by
+    /// its type, an eager column's (`measuresAsEagerColumn`: a `VStack`, or a
+    /// view of the app's own whose body is one), the rung's question is asked
+    /// with the overflow mark (`RenderContext.asksOverflow`) at one line past
+    /// the viewport. The column asks each row exactly what the rung asks it —
+    /// the mark cleared, the rung's budget — and stops once its rows and gaps
+    /// reach the line past the viewport, reporting that line, which is what
+    /// the whole column reports there. So the answer is the rung's for every
+    /// such content, `ViewThatFits` and filling rows included, every row's
+    /// answer and memo entry is the one it had, and a tab view among the rows
+    /// files the extent it always did; only the column's own answer is
+    /// partial, and the mark keeps it apart from every unmarked ask. A column
+    /// that fits walks its rows once, as at the rung, and answers from them;
+    /// but its unmarked answer is not filed, so a no leaves the ladder its rows
+    /// rather than the column, and the ladder re-sums them — a lookup per row,
+    /// on a frame whose content overflowed at the view's latest render and
+    /// fits now, the only frames that ask `resolveScrollbars`'s first round
+    /// and get a no.
+    /// Not with `oneLinePast`, whose rows are asked one line past the viewport
+    /// on purpose; nor for any other content, where something between the
+    /// probe and a column could read the width it stopped at.
+    func contentOverflowsCanvas(
+        contentWidth: Int, viewportHeight: Int, oneLinePast: Bool = false, context: RenderContext
+    ) -> Bool {
+        // The ladder's first rung, as `contentExtents` and then
+        // `measureNaturalExtent` ask it of a vertical view's content: the same
+        // canvas, no ideal-width mark, the width stated, the starting budget —
+        // or one line past the viewport, or, marked, one line past it for an
+        // eager column that asks its rows the rung (above). The stated width
+        // is the context's own but for a view no column wide, whose first
+        // round still asks at one.
+        var probe = contentCanvasContext(
+            contentWidth: contentWidth, viewportHeight: viewportHeight, horizontal: false,
+            context: context
+        ).askingIdealWidth(false)
+        probe.availableWidth = contentWidth
+        if !oneLinePast, viewportHeight >= 0, viewportHeight < Int.max, measuresAsEagerColumn(Content.self) {
+            probe = probe.askingOverflow()
+            probe.availableHeight = viewportHeight + 1
+        } else {
+            probe.availableHeight =
+                oneLinePast && viewportHeight < Int.max
+                ? viewportHeight + 1 : naturalExtentStartingBudget(forVisible: viewportHeight)
+        }
+        return measureChild(
+            content, proposal: ProposedSize(width: contentWidth, height: nil), context: probe
+        ).height > viewportHeight
+    }
+
+    /// The context the content is laid out in at a candidate viewport: its own
+    /// child identity (see ``contentExtents(contentWidth:viewportHeight:horizontal:context:)``),
+    /// the visible viewport published, and the whole-content-width mark as the
+    /// axes say.
+    ///
+    /// One builder for the measure and the render. They wrote these out
+    /// separately, and the canvas they describe has to be the same one: content
+    /// measured on one canvas and drawn on another is sized for a picture it is
+    /// not drawn as.
+    func contentCanvasContext(
+        contentWidth: Int, viewportHeight: Int, horizontal: Bool, context: RenderContext
+    ) -> RenderContext {
+        var canvas = contentContext(context)
+        // Publish the visible viewport so descendants can fit to it instead of the
+        // (unbounded, below) measure canvas — e.g. Image's `.imageFitTarget(.viewport)`.
+        canvas.environment.scrollViewportSize = ScrollViewportSize(
+            width: contentWidth, height: viewportHeight)
+        // What a glass container draws is not clipped to this viewport, so
+        // the glass in here draws itself.
+        canvas.environment.leaveGlassEffectContainer()
+        // A windowed stack's width means every row here exactly when this
+        // scrolls horizontally — see `asksWholeContentWidth`. Written only when
+        // it differs, since most scroll views are vertical inside nothing.
+        if canvas.environment.asksWholeContentWidth != horizontal {
+            canvas.environment.asksWholeContentWidth = horizontal
+        }
+        return canvas
+    }
+
+    /// Renders the content to its full (unwindowed) buffer, sized via
+    /// ``contentExtents(contentWidth:viewportHeight:horizontal:context:)`` so a
+    /// flexible filler behaves well: a Spacer expands only as far as the viewport
+    /// (spreading content across the visible area when it fits — e.g.
+    /// `VStack { Text; Spacer; Text }` puts the two at top and bottom) and collapses
+    /// when the content is taller, so it scrolls without the filler forcing extra
+    /// height.
+    ///
+    /// - Parameter settledExtents: The extents `resolveScrollbars` already
+    ///   measured at these exact dimensions, when it has them. Handed down
+    ///   rather than re-derived: both this and the reservation loop's final
+    ///   round ask ``contentExtents`` the same question with the same numbers,
+    ///   and each answer is a walk of the natural-extent budget ladder over the
+    ///   whole content. `nil` re-measures, which is what the direct callers
+    ///   (tests, and the non-`.automatic` scrollbar path) get.
+    /// - Parameter remeasured: Whether this is the render again after a render
+    ///   that refuted the content's measure (below), which is not repeated.
+    /// - Parameter checkpoint: Where the walk stood before the content's first
+    ///   drawing this frame, put back before the content is drawn again here.
+    /// - Parameter horizontalScrollOffset: The horizontal offset the drawing is
+    ///   made at, which places the content for its readers (the vertical one
+    ///   is `verticalScrollOffset`).
+    /// - Parameter slide: How far the window will be slid up over the
+    ///   content past the offset — the overscroll excursion less the alignment
+    ///   anchor's shift — which places the content for its readers too: `0`
+    ///   where nothing carries an origin to read it
+    ///   (``contentSlide(handler:viewportHeight:context:)``).
+    func renderedContent(
+        contentWidth: Int, viewportHeight: Int, horizontal: Bool,
+        verticalScrollOffset: Int, horizontalScrollOffset: Int = 0, slide: Int = 0, seek: ScrollToRequest? = nil,
+        edgeInset: Int = 0, handler: ScrollViewHandler? = nil, checkpoint: RenderWalkCheckpoint? = nil,
+        context: RenderContext, settledExtents: (width: Int, height: Int)? = nil,
+        topRowHold: TopRowHold = .off, remeasured: Bool = false
+    ) -> (
+        buffer: FrameBuffer,
+        slice: (originY: Int, totalHeight: Int, totalIsEstimate: Bool)?,
+        /// The offset the content rendered at in answer to a seek, a
+        /// designated row or the top-row hold, and whether it is only the
+        /// hold's (``ScrollContentReply/resolvedOffsetIsHold``).
+        seek: (offset: Int, isHold: Bool)?,
+        /// The extents the content was rendered against. Returned rather than
+        /// left inside because the horizontal axis is metered from the WIDTH of
+        /// them: the buffer is a band now, and a caller that had to fall back to
+        /// its width would lose every row outside it. `settledExtents` cannot
+        /// serve — it is `nil` for the direct callers (tests, and the
+        /// non-`.automatic` scrollbar path).
+        extents: (width: Int, height: Int),
+        /// The lines of a full-height buffer that hold real rows, when it holds
+        /// placeholders elsewhere (``ScrollContentReply/drawnLines``); `nil`
+        /// when every line it holds is drawn — a slice, or eager content.
+        drawnLines: Range<Int>?,
+        /// Where the content was placed in the viewport for the readers it
+        /// drew (``ScrollContentDrawing/placement``).
+        placement: CellPoint
+    ) {
+        let extents =
+            settledExtents
+            ?? contentExtents(
+                contentWidth: contentWidth, viewportHeight: viewportHeight,
+                horizontal: horizontal, context: context)
+        // A committed render never carries the ideal-width mark: under it a
+        // filler reports its content rather than filling, which is a measure's
+        // question and never a drawn frame's.
+        var measureContext = contentCanvasContext(
+            contentWidth: contentWidth, viewportHeight: viewportHeight,
+            horizontal: horizontal, context: context
+        ).askingIdealWidth(false)
+        // Publish the visible vertical slice so a direct `LazyVStack` renders only
+        // the rows intersecting the viewport (true windowing) rather than every
+        // row into the tall canvas. The offset is this frame's already-clamped
+        // value; the final clip (`windowedBuffer`) uses the same value, so they
+        // agree for stable content. `contentIdentity` restricts consumption to
+        // the direct content (a lazy stack under a header is NOT at the scroll
+        // origin); the `reply` slot lets the stack return a compact band +
+        // metadata (Stage 6) instead of a full-height canvas of mostly blank
+        // lines.
+        //
+        // On BOTH axes since 2026-09-22. It was vertical-only on the reasoning
+        // that "horizontal scrolling has no row concept" — true of the
+        // horizontal axis, and not of the rows the vertical one still has — but
+        // what actually held it there was that the horizontal EXTENT was metered
+        // from the rendered buffer's width, so windowing the rows would have
+        // taken the width of every row outside the band with it. The extent is
+        // measured now (`StackContentWidth.swift`), independently of what the
+        // render drew, so `syncHorizontalAxis` meters from that and the rows are
+        // free to be windowed.
+        let contentReply = ScrollContentReply()
+        let reply: ScrollContentReply? = contentReply
+        measureContext.environment.scrollContentWindow = ScrollContentWindow(
+            offset: verticalScrollOffset, viewportHeight: viewportHeight,
+            contentIdentity: measureContext.identity,
+            reply: contentReply, edgeInset: edgeInset,
+            // Only sample when someone is bound to hear it.
+            reportsIDAt: context.isMeasuring
+                ? nil : pageScrollPosition(context.environment)?.anchor,
+            // A seek names a ROW, so it rides the window exactly when there are
+            // rows to name — whenever the VERTICAL axis scrolls, and not merely
+            // when the horizontal one does not. One boolean used to gate both
+            // the window and the seek, so `scrollTo` was refused on
+            // `ScrollView([.horizontal, .vertical])` by accident: that shape has
+            // exactly the row structure a seek needs. It stays refused on a
+            // purely horizontal view, where `scrollTo` would be asking about
+            // columns and this window has nothing to say about them.
+            seek: axes.contains(.vertical) ? seek : nil,
+            // …and on a purely horizontal view it names a column, which a
+            // horizontal stack at the origin finds for the offset below.
+            columnSeek: axes.contains(.vertical) || !horizontal ? nil : seek,
+            // …and the column it shows, for a bound position to read back.
+            columnReport: axes.contains(.vertical) || !horizontal || context.isMeasuring
+                ? nil
+                : pageScrollPosition(context.environment).map {
+                    ScrollContentWindow.ColumnReport(
+                        offset: horizontalScrollOffset, viewportWidth: contentWidth, unitX: $0.columnUnitX)
+                },
+            // The rows of a marked stack, for a behaviour to settle on.
+            reportsTargetLayout: handler?.scrollTargeting != nil,
+            // Any stack's rows, and their ids, for the visibility observers.
+            reportsTargetVisibility: asksTargetVisibility(context),
+            // The row at the top, held as the content above it changes — on
+            // the frame's first drawing, which the caller says.
+            topRowHold: context.isMeasuring ? .off : topRowHold)
+        measureContext.availableWidth = extents.width
+        measureContext.availableHeight = extents.height
+        // The content is placed at minus the offsets this drawing is made at,
+        // in the viewport: so a reader is told where it is in the viewport
+        // (`.scrollView`) before it is drawn, at whatever offset that is, and
+        // the carried origin of everything below moves as the content does
+        // (design study A2, rung 2). The ramp a gradient runs down the content
+        // stays put — it spans the content, not the viewport.
+        let placement = CellPoint(
+            x: horizontal ? (handler?.horizontalAlignmentShift ?? 0) - horizontalScrollOffset : 0,
+            y: -verticalScrollOffset - slide)
+        measureContext = measureContext.placingChild(gradient: nil, x: placement.x, y: placement.y)
+        let buffer = TUIView.renderToBuffer(content, context: measureContext)
+        if contentReply.measureWentStale, !remeasured, !context.isMeasuring {
+            // The canvas was the height of a measure this render refuted, so
+            // the lines past it were cut, and a seek resolved among them would
+            // be clamped back into it (``ScrollContentReply/measureWentStale``).
+            // Measured again, the canvas is the content's true height, and
+            // drawn again at the offset the seek resolved — the request itself
+            // is spent — the frame shows the row it asked for. Once in a
+            // stack's life: the refutation is for good. The scrollbars keep
+            // this frame's answer, which the refuted height could only make
+            // wrong for content it had fit within the viewport. The walk is
+            // put back first, so the second drawing takes the first's ids.
+            checkpoint?.rewind(context: context)
+            var redrawn = renderedContent(
+                contentWidth: contentWidth, viewportHeight: viewportHeight,
+                horizontal: horizontal,
+                verticalScrollOffset: contentReply.seekResolvedOffset ?? verticalScrollOffset,
+                horizontalScrollOffset: horizontalScrollOffset, slide: slide, edgeInset: edgeInset,
+                handler: handler, checkpoint: checkpoint, context: context,
+                // The first drawing held what there was to hold; this one,
+                // at the offset that drawing settled on, only keeps track.
+                topRowHold: topRowHold == .off ? .off : .tracking, remeasured: true)
+            redrawn.seek = contentReply.seekResolvedOffset.map { ($0, contentReply.resolvedOffsetIsHold) }
+            return redrawn
+        }
+        if let column = contentReply.seekResolvedColumn, let seek, !remeasured, !context.isMeasuring {
+            // A column sought: the offset that shows it, by the request's
+            // anchor, adopted as a row's is — any overscroll excursion dropped
+            // with it. Drawn again at that offset when it moves, so what reads
+            // its place in the viewport reads the place it is drawn at. Once:
+            // the request is spent. Made inside an animation, it glides there
+            // instead, and this drawing, at where the view stands, is the
+            // glide's first frame; a glide's landing, sought again, jumps.
+            let target = seek.columnOffset(
+                targetX: column.origin, width: column.length, currentOffset: horizontalScrollOffset,
+                viewportWidth: contentWidth, totalWidth: extents.width)
+            let glides =
+                handler.map {
+                    !$0.pendingScrollToIsLanding
+                        && glideIfAnimated(
+                            handler: $0, horizontally: true, to: target, landing: .seek(seek),
+                            viewport: CellSize(width: contentWidth, height: viewportHeight), context: context)
+                } ?? false
+            if !glides {
+                handler?.stopGlide(horizontally: true)
+                handler?.horizontal.scrollOffset = target
+                handler?.horizontal.clearOverscroll()
+            }
+            if !glides, target != horizontalScrollOffset {
+                checkpoint?.rewind(context: context)
+                var redrawn = renderedContent(
+                    contentWidth: contentWidth, viewportHeight: viewportHeight, horizontal: horizontal,
+                    verticalScrollOffset: contentReply.seekResolvedOffset ?? verticalScrollOffset,
+                    horizontalScrollOffset: target, slide: slide, edgeInset: edgeInset,
+                    handler: handler, checkpoint: checkpoint, context: context, settledExtents: extents,
+                    topRowHold: topRowHold == .off ? .off : .tracking, remeasured: true)
+                redrawn.seek = redrawn.seek ?? contentReply.seekResolvedOffset.map { ($0, contentReply.resolvedOffsetIsHold) }
+                return redrawn
+            }
+        }
+        // Not while gliding: a bound position is told the row or column it
+        // lands on, not every one it passes, or each glide frame would draw
+        // the app's body again.
+        if let id = reply?.anchorID, let handler, !context.isMeasuring, !handler.isGliding {
+            reportVisibleID(id, handler: handler, context: context)
+        }
+        if let handler, !context.isMeasuring, handler.scrollTargeting != nil {
+            handler.scrollTargeting?.rows = contentReply.targetLayoutRows ?? .none
+            handler.scrollTargeting?.columns = contentReply.targetLayoutColumns ?? .none
+        }
+        if let handler, asksTargetVisibility(context) { recordTargetVisibility(contentReply, handler: handler) }
+        // After the row is reported: a user scroll since the last frame turns a
+        // bound position's request into the user's position. Once a frame — the
+        // flag is spent here, and the content's later renders find it clear.
+        if let handler { settleUserPositioning(handler: handler, context: context) }
+        if let reply, let origin = reply.sliceOriginY, let total = reply.sliceTotalHeight {
+            return (
+                buffer, (origin, total, reply.sliceTotalIsEstimate),
+                reply.seekResolvedOffset.map { ($0, reply.resolvedOffsetIsHold) }, extents, nil, placement)
+        }
+        return (
+            buffer, nil, reply?.seekResolvedOffset.map { ($0, reply?.resolvedOffsetIsHold ?? false) }, extents,
+            reply?.drawnLines, placement)
+    }
+
+    // MARK: Windowing
+
+    /// Builds the visible-window buffer from `full`, dropping
+    /// overlays and hit-test regions that fall entirely outside
+    /// the viewport and shifting the rest up by `scrollOffset`.
+    ///
+    /// - Parameter clipsLayers: Whether the content's floating layers are cut
+    ///   at the viewport — `false` under `scrollClipDisabled`, which lets them
+    ///   float past it (``viewportOverlay(_:shiftedByX:y:width:height:clips:)``).
+    func windowedBuffer(
+        full: FrameBuffer,
+        scrollOffset: Int,
+        viewportHeight: Int,
+        viewportWidth: Int,
+        horizontalEnabled: Bool,
+        horizontalOffset: Int,
+        clipsLayers: Bool = true
+    ) -> FrameBuffer {
+        guard viewportHeight > 0 else {
+            return FrameBuffer(lines: [], width: viewportWidth)
+        }
+
+        // Slice the visible lines, padding each one to the full
+        // viewport width and topping up missing rows so the
+        // ScrollView fills the space it was given on BOTH axes.
+        // Without the per-line padding the result buffer's
+        // effective width would follow the longest line (which
+        // might just be a 'N more above' indicator — far
+        // shorter than the proposed width). When horizontal scrolling is on, each
+        // line is first sliced to the visible column window (carrying SGR state).
+        // Each visible line's width from what the content buffer already
+        // knows — a stack pads its lines to one width and says so — rather
+        // than a scan per line per frame to learn it, and the window's own
+        // buffer says what it knows in turn, so the scrollbar and the writer
+        // do not scan either. A horizontal slice changes the width, so only
+        // the vertical case carries it; the rest measure as before.
+        let window = full.lines.dropFirst(scrollOffset).prefix(viewportHeight)
+        var visibleLines: [String] = []
+        visibleLines.reserveCapacity(viewportHeight)
+        var visibleWidths: [Int] = []
+        visibleWidths.reserveCapacity(viewportHeight)
+        for (offset, line) in window.enumerated() {
+            if horizontalEnabled {
+                // A negative offset is narrow content placed across the window
+                // by its alignment anchor: blank columns first.
+                let lead = max(0, -horizontalOffset)
+                let sliced = line.ansiAwareSlice(
+                    visibleStart: max(0, horizontalOffset), visibleCount: max(0, viewportWidth - lead))
+                visibleLines.append((lead > 0 ? String.spaces(lead) + sliced : sliced).padToVisibleWidth(viewportWidth))
+                visibleWidths.append(max(viewportWidth, lead + sliced.strippedLength))
+                continue
+            }
+            let known: Int? =
+                full.linesAreUniformWidth ? full.width : full.lineWidths?[scrollOffset + offset]
+            let width = known ?? line.strippedLength
+            if width >= viewportWidth {
+                visibleLines.append(line)
+                visibleWidths.append(width)
+            } else {
+                visibleLines.append(line.padToVisibleWidth(viewportWidth, knownVisibleWidth: width))
+                visibleWidths.append(viewportWidth)
+            }
+        }
+        if visibleLines.count < viewportHeight {
+            let blank = String.spaces(viewportWidth)
+            let missing = viewportHeight - visibleLines.count
+            visibleLines.append(contentsOf: Array(repeating: blank, count: missing))
+            visibleWidths.append(contentsOf: repeatElement(viewportWidth, count: missing))
+        }
+        let uniform = visibleWidths.allSatisfy { $0 == viewportWidth }
+
+        // Filter + shift overlays. An overlay is kept if its
+        // vertical span intersects [scrollOffset, scrollOffset
+        // + viewportHeight). Its offsetY is shifted up by
+        // scrollOffset so it stays anchored to its content.
+        // Centred layers (modals/alerts) are screen-anchored, not
+        // content-anchored: they ride through untouched no matter
+        // where their attachment point has scrolled to — a presented
+        // dialog must not vanish because its trigger scrolled away.
+        let viewportTop = scrollOffset
+        let viewportBottom = scrollOffset + viewportHeight
+        let dx = horizontalEnabled ? -horizontalOffset : 0
+        let visibleOverlays = full.overlays.compactMap {
+            viewportOverlay(
+                $0, shiftedByX: dx, y: -scrollOffset, width: viewportWidth, height: viewportHeight,
+                clips: clipsLayers)
+        }
+
+        // The same filter-and-shift the overlays got, and the same trim — which
+        // the overlay pass gets for free from `OverlayLayer.placed()`'s own clip
+        // and this one has to ask for.
+        let visibleRegions = full.hitTestRegions.compactMap { region -> HitTestRegion? in
+            // Into viewport coordinates first, then trimmed to the viewport —
+            // which is the SAME clip a region gets from any other clipping
+            // container, so it is the shared one rather than a second copy of
+            // its arithmetic. The order is safe because a translation records
+            // nothing: `topClip`/`leftClip` count cells CUT AWAY, and moving a
+            // rectangle cuts none, so `clip(shift(r))` and `shift(clip(r))`
+            // agree on both (see `HitTestRegion.shifted(byX:y:)`). This used to
+            // be written out here, clipping the Y axis in content coordinates
+            // and the X axis in viewport ones, which is why it read as two
+            // different pieces of arithmetic for one operation.
+            //
+            // `shifted` carries `focusID`, and it MUST: reveal-on-focus finds
+            // its target by that, and dropping it here — silently, since the
+            // initializer defaults it to nil — once made an ENCLOSING
+            // ScrollView unable to locate a focused control living inside this
+            // one, so nested scroll views could not reveal.
+            //
+            // And `clipped` accumulates rather than assigns, which is the other
+            // thing this has to keep. Where a region BEGINS is not where it can
+            // be clicked: a drop destination wrapping a scrolled page starts
+            // above the viewport, and a drop point localised against its
+            // clipped top came out short by exactly the scroll offset — the
+            // poof puff drawn that far up the screen.
+            //
+            // The trim itself is as final for a region as for a line. A control
+            // straddling the top kept its full height at a negative offsetY, so
+            // the parent placed it over rows above the ScrollView; one
+            // straddling the bottom kept rows past the last visible line. Since
+            // regions are hit-tested innermost-first, those phantom rows won —
+            // a click on a Button sitting above the scroller reached a
+            // half-scrolled-off row inside it instead. The X axis had the twin
+            // defect, and the vertical scrollbar was one of its victims.
+            region.shifted(byX: dx, y: -scrollOffset)
+                .clipped(toColumns: 0..<viewportWidth, rows: 0..<viewportHeight)
+        }
+
+        // Animated runs are a claim about single rows, so unlike a region they
+        // are not clipped but kept or dropped whole: a run scrolled out of the
+        // viewport must stop, or it would repaint on a clock over whatever row
+        // took its place. Survivors move into viewport coordinates with the
+        // lines they describe.
+        // What a run this viewport cannot carry leaves behind — see `droppedRunClaims`
+        // below, and §69.1 for why a run must not be the only carrier of an alpha.
+        var droppedRunClaims: [OpacityRegion] = []
+        let visibleRuns = full.animatedCells.compactMap { run -> AnimatedCellRun? in
+            guard run.offsetY >= viewportTop, run.offsetY < viewportBottom else { return nil }
+            // Horizontally too, and for the same reason: a run carried past
+            // either edge keeps repainting at a column that is no longer its
+            // own. Off the left it patches at a negative column, which pads the
+            // row out to the run's width and makes the line WIDER than the
+            // terminal — it then wraps and smears the row below, and the diff
+            // writer, which believes that row is untouched, never repairs it.
+            let shiftedX = run.offsetX + dx
+            guard shiftedX >= 0, shiftedX + run.width <= viewportWidth else {
+                // Dropped on GEOMETRY, while `visibleOpacity` below clips and KEEPS every
+                // region — so a run stating its alpha per frame would take the only
+                // statement about those cells with it and they would render at full
+                // strength. The concrete shape: a bordered box wider than its viewport,
+                // whose top and bottom rules are dropped here while its width-1 side
+                // walls survive, drawing an opaque rule with faded walls. Its drawn
+                // frame degrades to an ordinary claim instead (§69.1).
+                droppedRunClaims += run.alpha?
+                    .drawnRegions(forRunAt: run.offsetX, offsetY: run.offsetY) ?? []
+                return nil
+            }
+            return run.shifted(byX: dx, y: -scrollOffset)
+        }
+
+        // Opacity regions clip like hit regions rather than being dropped like
+        // runs: a rectangle of faded cells that straddles the viewport edge is
+        // still faded for the part of it that shows, and keeping its full
+        // height would fade rows belonging to whatever sits outside the
+        // scroller.
+        //
+        // Which makes it the SAME two-axis trim, through the same shared
+        // helper, that the hit regions above already take — not a second piece
+        // of arithmetic. It was a second piece, and it clipped only Y. A
+        // horizontally-scrolling view renders its content at its NATURAL width
+        // (`contentExtents`: `max(contentWidth, natural.width)`) while this
+        // function slices the LINES to the window, so a fade over a 60-cell
+        // line inside a 20-cell viewport was carried up as a rectangle 60 wide
+        // on a buffer declaring 20 — and nothing downstream cut it either,
+        // because `clamped`'s fast path only asks whether the buffer's DECLARED
+        // width fits. At the root that reached forty columns which were never
+        // this scroller's: an `HStack` sibling beside it faded, and so did the
+        // view's OWN vertical scrollbar, which `appendVerticalScrollbar` writes
+        // at column `contentWidth`. The commit that introduced this block said
+        // "a region wider than a row must not reach the scrollbar", and clipped
+        // one axis.
+        //
+        // Trimmed to the buffer's DECLARED width, unconditionally — the rule
+        // `clamped` already applies to a region, and the rule the hit regions
+        // take here. Not free: the vertical-only path above keeps a line WIDER
+        // than the viewport whole rather than slicing it, so there the columns
+        // past `viewportWidth` are drawn and now come out unfaded. That is the
+        // declared-vs-drawn width defect showing through rather than this trim
+        // — a region naming columns its buffer disclaims cannot be placed by
+        // anything upstream, and every container that clips would cut it
+        // anyway.
+        //
+        // Shifted first and clipped second, for the reason the hit-region block
+        // gives — and here without even that block's caveat: an opacity region
+        // carries no clip counters for a translation to disturb.
+        let visibleOpacity = (full.opacityRegions + droppedRunClaims)
+            .compactMap { region -> OpacityRegion? in
+                region.shifted(byX: dx, y: -scrollOffset)
+                    .clipped(toColumns: 0..<viewportWidth, rows: 0..<viewportHeight)
+            }
+
+        var result = FrameBuffer(
+            lines: visibleLines, width: viewportWidth,
+            uniformWidth: uniform, lineWidths: uniform ? nil : visibleWidths)
+        result.overlays = visibleOverlays
+        result.hitTestRegions = visibleRegions
+        result.animatedCells = visibleRuns
+        result.opacityRegions = visibleOpacity
+        return result
+    }
+
+    /// A content layer as this viewport shows it: moved by `(dx, dy)` into the
+    /// viewport's coordinates, then culled and clipped to its `width` × `height`
+    /// — or `nil` when nothing of it belongs there.
+    ///
+    /// One rule for both of the things that move content inside the viewport:
+    /// the window (`windowedBuffer`) and the overscroll slide drawn after it
+    /// (`applyOverscroll`). The slide carried its layers by `replacingLines`
+    /// alone, a translation that culls and clips nothing, so a layer it pushed
+    /// out of the viewport kept painting beside it.
+    ///
+    /// Under `scrollClipDisabled` (`clips` false) a layer that is a piece of
+    /// the content is neither culled nor cut: it floats where the content puts
+    /// it, past the viewport as within it, as the content's own lines do.
+    func viewportOverlay(
+        _ overlay: OverlayLayer, shiftedByX dx: Int, y dy: Int, width: Int, height: Int, clips: Bool = true
+    ) -> OverlayLayer? {
+        guard !overlay.centered else { return overlay }
+        if !clips, !overlay.isOpaque { return overlay.shifted(byX: dx, y: dy) }
+        // The overlay's extent includes its ANCHOR (the control spanning
+        // `anchorHeight` rows immediately above `offsetY`): a drop-down
+        // attached to a control on the LAST visible row starts exactly at the
+        // viewport's bottom edge, and culling it by the popup's own span alone
+        // silently discarded it — the root compositor (whose job the
+        // flip-above-the-anchor placement is) never saw it, so opening
+        // such a picker showed nothing. With no anchor this reduces to
+        // the popup's own span, exactly the old test. Culled in viewport
+        // coordinates, which is the same test the window used to write in
+        // content ones: `offsetY + dy + h > 0` is `offsetY + h > scrollOffset`.
+        let topY = overlay.offsetY + dy - overlay.anchorHeight
+        let bottomY = overlay.offsetY + dy + overlay.content.height
+        guard bottomY > 0, topY < height else { return pinnedAtTheEdge(overlay, shiftedByX: dx, y: dy, height: height) }
+        let shifted = overlay.shifted(byX: dx, y: dy)
+        // A scroll view clips its CONTENT to its bounds, as SwiftUI's does
+        // — `View.scrollClipDisabled(_:)` is the modifier that turns that
+        // off, and it documents the default. Until now nothing here clipped
+        // a layer at all, so `.offset(x: 7)` on a row of a 12-wide scroller
+        // painted three columns of the page beside it.
+        //
+        // Only the layers that ARE content: a layer that is a surface
+        // (`isOpaque`) is a window over the page — a drop-down, a menu, a
+        // toast — and SwiftUI does not clip a presentation to the scroller
+        // its trigger sits in either. The culling above already lets those
+        // through whole, including the flip-above-the-anchor case that
+        // needs `anchorHeight`.
+        guard !shifted.isOpaque else { return shifted }
+        return shifted.clipped(toWidth: width, height: height)
+    }
+
+    /// A layer whose anchor, and all of it, the content has moved out of the
+    /// viewport: a surface that holds the input pinned inside it, at the edge
+    /// its anchor left by — or, for anything else, nothing.
+    ///
+    /// A surface that holds the input (``OverlayLayer/holdsInput``) is only
+    /// ever emitted while it is presented — a menu, a drop-down, a combo box's
+    /// suggestions, a popover — and takes the keyboard or every press outside
+    /// it. Culled with its anchor, it went on holding them unseen: a
+    /// context menu open on the last visible row of a list, when a document
+    /// arrived above, was gone from the screen while Down and Return walked
+    /// and ran it, and came back when its row did. It is a window over the
+    /// page, not a piece of the content it scrolls (the reason it escapes the
+    /// clip above), so it stays, flush with the viewport's edge on the side
+    /// its anchor went: its top at the top when the anchor went up, its bottom
+    /// at the bottom when it went down. Its anchor is not beside it any more,
+    /// so it declares none, and the compositor does not flip it off one.
+    ///
+    /// Not every surface: a tooltip is opaque and takes nothing, and pinned,
+    /// the tooltips of every row out of view under `.tooltips(.always)`
+    /// stacked up at the edge over the rows in it. It goes with its anchor, as
+    /// a displaced piece of the content (`.offset`) does.
+    func pinnedAtTheEdge(_ overlay: OverlayLayer, shiftedByX dx: Int, y dy: Int, height: Int) -> OverlayLayer? {
+        guard overlay.holdsInput else { return nil }
+        var pinned = overlay.shifted(byX: dx, y: dy)
+        let anchorWentUp = overlay.offsetY + dy + overlay.content.height <= 0
+        pinned.offsetY = anchorWentUp ? 0 : max(0, height - overlay.content.height)
+        pinned.anchorHeight = 0
+        return pinned
+    }
+
+    // MARK: Indicators
+
+    /// Replaces the top and / or bottom lines of `buffer` with
+    /// scroll-indicator strings when the content extends past
+    /// the visible area. Returns `buffer` unchanged when there
+    /// is nothing to scroll to.
+    ///
+    /// - Parameter always: Whether both lines are drawn whatever is hidden —
+    ///   ``EnvironmentValues/alwaysShowsVerticalTextIndicators``. Then the
+    ///   viewport gives up its first and last line at every offset, which is the
+    ///   point: `.visible` asks for the affordance, not for a hint that comes and
+    ///   goes and resizes the content under the reader as it does.
+    func applyScrollIndicators(
+        to buffer: FrameBuffer,
+        handler: ScrollViewHandler,
+        width: Int,
+        palette: any Palette,
+        surface: Color,
+        cycle: SelectionEmphasisCycle?,
+        flash: Double? = nil,
+        locale: Locale,
+        always: Bool = false,
+        reserving: Bool = false
+    ) -> FrameBuffer {
+        guard buffer.height > 0 else { return buffer }
+        guard always || handler.hasContentAbove || handler.hasContentBelow else {
+            return buffer
+        }
+        if reserving {
+            return reservingScrollIndicators(
+                around: buffer, handler: handler, width: width, palette: palette,
+                surface: surface, cycle: cycle, flash: flash, locale: locale)
+        }
+
+        var lines = buffer.lines
+        // The indicators' own runs, so a focused scroll view breathes them
+        // without the page being rendered again on every tick of the clock.
+        var runs: [AnimatedCellRun] = []
+        /// The indicators' own claims, on the rows they were drawn on.
+        var claims: [OpacityRegion] = []
+        /// The rows the indicators overwrite — whatever the content had
+        /// animating on them goes with them.
+        var replacedRows: Set<Int> = []
+
+        if always || handler.hasContentAbove, !lines.isEmpty {
+            // Indicator rows are padded to full viewport width
+            // — without padding the resulting buffer's effective
+            // width collapses to the indicator's own length.
+            let indicator = renderScrollIndicator(
+                direction: .up,
+                count: handler.rowsAbove,
+                unit: .lines,
+                width: width,
+                palette: palette,
+                approximate: handler.contentHeightIsEstimate,
+                cycle: cycle,
+                flash: flash,
+                over: surface,
+                locale: locale
+            )
+            lines[0] = indicator.text.padToVisibleWidth(width)
+            replacedRows.insert(0)
+            claims += indicator.claims(atRow: 0)
+            if let animation = indicator.animation { runs.append(animation) }
+        }
+
+        if always || handler.hasContentBelow, lines.count >= 1 {
+            let indicator = renderScrollIndicator(
+                direction: .down,
+                count: handler.rowsBelow,
+                unit: .lines,
+                width: width,
+                palette: palette,
+                approximate: handler.contentHeightIsEstimate,
+                cycle: cycle,
+                flash: flash,
+                over: surface,
+                locale: locale
+            )
+            lines[lines.count - 1] = indicator.text.padToVisibleWidth(width)
+            replacedRows.insert(lines.count - 1)
+            claims += indicator.claims(atRow: lines.count - 1)
+            // The renderer builds every run at row 0 — it does not know which
+            // row its caller put the indicator on — so move this one down to
+            // the row it was actually drawn on.
+            if let animation = indicator.animation {
+                runs.append(animation.shifted(byX: 0, y: lines.count - 1))
+            }
+        }
+        var result = buffer.replacingLines(lines)
+        // The indicator OVERWROTE those rows, so whatever the content had
+        // animating on them is gone with them — a surviving run would repaint a
+        // focus ring's cells over the "▲ 3 more above" text, on a clock, for as
+        // long as the row stayed the first one.
+        result.animatedCells = result.animatedCells.filter { !replacedRows.contains($0.offsetY) }
+        // …and whatever the content CLAIMED on them goes too. Left, a translucent
+        // line's claim sat under "▼ 3 more below" and faded the indicator at an
+        // alpha nobody painted it with — the run filter above, missing its twin.
+        // The replaced rows are only ever the edges, so one clip to the band that
+        // survives does it, with no slivers: the trim a clipping container makes.
+        let kept =
+            (replacedRows.contains(0) ? 1 : 0)
+            ..< (replacedRows.contains(lines.count - 1) ? lines.count - 1 : lines.count)
+        result.opacityRegions = result.opacityRegions.compactMap {
+            kept.isEmpty ? nil : $0.clipped(toColumns: 0..<Int.max, rows: kept)
+        }
+        // The indicators' own claims go in after that cut, not through it: they are
+        // the one thing on those rows that owes anything now.
+        result.opacityRegions += claims
+        result.animatedCells += runs
+        return result
+    }
+
+    /// Both indicator lines, around a content window that was made two lines
+    /// shorter to hold them.
+    ///
+    /// The other path OVERWRITES the viewport's first and last line, and can:
+    /// under ``ScrollIndicatorVisibility/automatic`` an indicator is there only
+    /// when there IS content past it, so the line it covers is one the reader
+    /// reaches at a neighbouring offset. Under
+    /// ``ScrollIndicatorVisibility/visible`` both lines are drawn at every
+    /// offset, and an overwritten line is then one the reader can NEVER see: the
+    /// top line is content line `scrollOffset`, so line 0 goes at offset 0 and
+    /// nowhere else shows it, and the last content line only ever sits on the
+    /// bottom line, at `maxOffset`. The document's first and last lines were
+    /// silently and permanently gone.
+    ///
+    /// `List` and `Table` never had this because they take the two lines out of
+    /// their ROW budget — the reservation and the drawing are one answer there.
+    /// This is a `ScrollView`'s version of that: the caller shortens the content
+    /// window by two lines (so `viewportHeight`, and with it `maxOffset`, follow)
+    /// and the content is shifted down one row to sit between them. Everything
+    /// riding on those lines — hit regions, animated runs, overlays, opacity —
+    /// moves with them, which is what `overlayShiftY` is for.
+    private func reservingScrollIndicators(
+        around buffer: FrameBuffer,
+        handler: ScrollViewHandler,
+        width: Int,
+        palette: any Palette,
+        surface: Color,
+        cycle: SelectionEmphasisCycle?,
+        flash: Double?,
+        locale: Locale
+    ) -> FrameBuffer {
+        func line(_ direction: ScrollIndicatorDirection, count: Int) -> ScrollIndicatorLine {
+            renderScrollIndicator(
+                direction: direction, count: count, unit: .lines, width: width,
+                palette: palette, approximate: handler.contentHeightIsEstimate,
+                cycle: cycle, flash: flash, over: surface, locale: locale)
+        }
+        let above = line(.up, count: handler.rowsAbove)
+        let below = line(.down, count: handler.rowsBelow)
+        var result = buffer.replacingLines(
+            [above.text.padToVisibleWidth(width)] + buffer.lines
+                + [below.text.padToVisibleWidth(width)],
+            width: width, uniformWidth: true, overlayShiftY: 1)
+        if let run = above.animation { result.animatedCells.append(run) }
+        // The renderer builds every run at row 0, so the bottom one moves to the
+        // row it was actually drawn on — as the overwriting path does.
+        if let run = below.animation {
+            result.animatedCells.append(run.shifted(byX: 0, y: result.height - 1))
+        }
+        // And the claims, the same way. The content's own moved down a row with it
+        // in `replacingLines`, so neither line's row carries one of those.
+        result.opacityRegions += above.claims(atRow: 0) + below.claims(atRow: result.height - 1)
+        return result
+    }
+}
+
+extension ScrollView {
+    /// A scroll view takes all it is offered on both axes, whatever it holds:
+    /// `_ScrollViewCore.sizeThatFits` answers flexible on every measure, and
+    /// what the body puts round it (`.disabled`, the background) leaves the
+    /// size alone. See ``View/_fillsItsOffer``.
+    public static var _fillsItsOffer: Bool { true }
+}

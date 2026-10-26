@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Prints a static alignment card for RIGHT-TO-LEFT text.
 
-TUIkit lays cells out in logical order and assumes the terminal paints them
+TUI lays cells out in logical order and assumes the terminal paints them
 that way. A terminal that implements the Unicode bidirectional algorithm does
-not: a Hebrew or Arabic letter reorders the run around it, so what TUIkit
+not: a Hebrew or Arabic letter reorders the run around it, so what TUI
 thinks is in column 7 is painted somewhere else and every column after it
 shears. Nothing in `Documentation/Terminals/Terminal compatibility survey.md` records which
 hosts do this, because it has never been measured.
@@ -12,7 +12,7 @@ This card measures it. Every row is  |<sample>|X  and there are two answers
 in it, one mechanical and one that needs a pair of eyes:
 
   * The X column tests ADVANCE. A row whose X moves is being painted at a
-    different width than TUIkit counted, and every column after it shears.
+    different width than TUI counted, and every column after it shears.
   * The `digits_after_rtl` row tests ORDER, which the X cannot: each row here
     begins with ASCII, so the paragraph is left-to-right and a terminal
     applying the bidirectional algorithm reverses an RTL run *inside the
@@ -20,7 +20,7 @@ in it, one mechanical and one that needs a pair of eyes:
     also drags the digits across, so it displays as `123 בא ab` — digits hard
     against the opening `|` instead of in the middle. Look for that.
 
-  * `plain`     — the sample as TUIkit would emit it today.
+  * `plain`     — the sample as TUI would emit it today.
   * `forced`    — the same sample with each RTL run wrapped in
                   U+202D LEFT-TO-RIGHT OVERRIDE … U+202C POP DIRECTIONAL
                   FORMATTING, which is the standard way to ask for logical
@@ -36,7 +36,7 @@ import sys
 
 LRO, PDF = "‭", "‬"
 
-# Each sample is nine cells wide by TUIkit's count, so every X should land in
+# Each sample is nine cells wide by TUI's count, so every X should land in
 # the same column whatever the row.
 SAMPLES = [
     ("ascii", "abcdefghi"),
@@ -77,7 +77,7 @@ def main():
     for name, sample in SAMPLES:
         print("%-16s|%s|X   (forced)" % (name, forced(sample)))
     print()
-    print("A row whose X moves is painted at a width TUIkit did not count.")
+    print("A row whose X moves is painted at a width TUI did not count.")
     print("REORDERING is the other question, and the X cannot answer it:")
     print("look at digits_after_rtl. Logical order puts 123 in the middle;")
     print("a terminal that reorders puts it first, against the opening |.")

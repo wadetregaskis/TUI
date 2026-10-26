@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  StepBehavior.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// A scroll target behaviour that leaves every step where it lands — the
 /// line-by-line scrolling a scrollable does with no behaviour at all, as a

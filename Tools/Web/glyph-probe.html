@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  🖥️ TUIkit — Terminal UI Kit for Swift
+  🖥️ TUI — A Terminal UI framework for Swift
   glyph-probe.html — measures a browser terminal against the width corpus.
 
   The Python probes in `Tools/TerminalProbes/` measure a real terminal by
@@ -47,7 +47,7 @@
     <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@xterm/addon-unicode-graphemes@0.5.0-beta.301/lib/addon-unicode-graphemes.js"></script>
     <script type="module">
       // Inputs, copied into the site by `Tools/Web/build.sh --probe-data`:
-      // the shared corpus, TUIkit's own width for each cluster, and the records
+      // the shared corpus, TUI's own width for each cluster, and the records
       // the Python probes wrote for real terminals.
       const data = (name) => fetch("./probe-data/" + name).then((r) => r.json());
       const corpus = await data("width-corpus.json");
@@ -130,7 +130,7 @@
         }
       }
 
-      // The comparison is against TUIkit's OWN width for each cluster —
+      // The comparison is against TUI's OWN width for each cluster —
       // `String.strippedLength`, dumped to `tuikit-widths.json` — not a table
       // written here. A hand-written expectation is a second opinion about
       // Unicode, and the only opinion that matters is the one the layout uses.
@@ -169,7 +169,7 @@
           if (entry.advance === want) agree += 1;
           else if (want === 2 && entry.advance === 1) narrowEmoji += 1;
         }
-        summary.push(`${name} — activeVersion ${record.activated}: ${agree}/${total} agree with TUIkit (${narrowEmoji} drawn one cell wide)`);
+        summary.push(`${name} — activeVersion ${record.activated}: ${agree}/${total} agree with TUI (${narrowEmoji} drawn one cell wide)`);
         rows.push({ name, record });
       }
       if (sharedSubset) {
@@ -185,7 +185,7 @@
       document.getElementById("summary").innerHTML = summary.join("<br>");
 
       // ── Capabilities ───────────────────────────────────────────────────
-      // Widths are only half of what TUIkit needs from a terminal. The rest is
+      // Widths are only half of what TUI needs from a terminal. The rest is
       // asked the same way the framework asks at startup — write the query,
       // read what comes back on the input channel — so the answers here are
       // the terminal's own, not a reading of its documentation.

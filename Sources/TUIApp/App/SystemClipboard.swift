@@ -1,0 +1,353 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  SystemClipboard.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import TUIFoundation
+
+#if canImport(Darwin)
+    import Darwin
+#elseif canImport(Glibc)
+    import Glibc
+#elseif canImport(Musl)
+    import Musl
+#endif
+
+/// This machine's clipboard, reached through the platform's helper binaries
+/// (`pbcopy`/`pbpaste` on macOS; `wl-copy`/`wl-paste` under Wayland and
+/// `xclip`/`xsel` under X11 on Linux) with hardened child I/O.
+///
+/// **This machine's, which is not always the user's.** Over ssh it is the
+/// server's clipboard. Nothing calls this directly to copy: ``ClipboardWriter``
+/// decides, and writes here only when the terminal is on this machine (see
+/// ``SessionLocality``); otherwise it sends the copy to the terminal as
+/// OSC 52, or says it could not copy.
+///
+/// Every exchange with a helper is **bounded and non-blocking**, because the
+/// helpers fail in ways that would otherwise take the whole app with them —
+/// these are real behaviours, not hypotheticals:
+///
+/// - a helper can exit before reading its stdin (`xclip` on a headless box
+///   prints "Error: Can't open display" and quits), which makes a blocking
+///   write die on the broken pipe;
+/// - a helper can stop reading while stdin still has data (wedged X
+///   connection), which makes a blocking write of more than the ~64 KB pipe
+///   buffer hang forever;
+/// - a helper can hang without ever closing its stdout, which makes
+///   `readDataToEndOfFile` hang forever.
+///
+/// The clipboard is driven synchronously from the input path (a Ctrl+C/V/X in
+/// a text field), so "hang forever" means the main actor blocks — and while it
+/// is blocked, the dispatch-source signal handlers can't run either, so even
+/// Ctrl+C can't kill the app. Hence: pipe fds are switched to `O_NONBLOCK`,
+/// every I/O loop and the exit reap check a wall-clock deadline, and a child
+/// that outlives its deadline is terminated. On failure the operation reports
+/// cleanly (`false`/`nil`) instead of crashing or wedging.
+#if canImport(WASILibc)
+
+/// The clipboard, on a platform that cannot reach one.
+///
+/// Every route this type takes on other platforms is a subprocess — `pbcopy`,
+/// `xclip`, `wl-copy` — and wasip1 has no way to start one. A browser has a
+/// clipboard, but it is the *page's*, reachable only through JavaScript, and
+/// nothing in the WASI interface crosses that gap.
+///
+/// So copy does nothing and paste finds nothing, which is the same answer this
+/// type already gives on a Linux box with no helper installed. Text fields keep
+/// working: their editing is theirs, and only the system exchange is missing.
+/// A host that wants the real thing has an escape hatch that needs no clipboard
+/// at all — OSC 52, which the terminal itself acts on.
+enum SystemClipboard {
+    /// Never: there is no helper to run.
+    static let hasHelper = false
+
+    /// Discards the text: there is nowhere to put it.
+    @discardableResult
+    static func copy(_ text: String) -> Bool { false }
+
+    /// Always `nil`: there is nowhere to read from.
+    static func paste() -> String? { nil }
+}
+
+#else
+
+enum SystemClipboard {
+    /// One-time SIGPIPE suppression for processes that never ran an `App`
+    /// (unit tests, harnesses). `SignalManager.install` also ignores SIGPIPE
+    /// for the app itself; doing it again here is an idempotent no-op. Without
+    /// it, the first write to an already-exited helper would deliver SIGPIPE
+    /// and terminate the *host* process before the `EPIPE` handling below ever
+    /// ran.
+    private static let ignoreSIGPIPE: Void = {
+        signal(SIGPIPE, SIG_IGN)
+    }()
+
+    /// How long any one clipboard exchange may take before it is abandoned.
+    /// The helpers normally answer in single-digit milliseconds; two seconds
+    /// is generous enough for a loaded machine and a multi-megabyte payload,
+    /// while keeping a wedged helper from freezing the app for longer than a
+    /// noticeable-but-survivable moment.
+    static let defaultDeadline: TimeInterval = 2.0
+
+    // MARK: - Public surface
+
+    /// A helper: the program and arguments that copy with it, and those that
+    /// paste.
+    struct Helper: Equatable {
+        let copyTool: String
+        let copyArguments: [String]
+        let pasteTool: String
+        let pasteArguments: [String]
+    }
+
+    /// The helpers that can reach a clipboard here, in the order they are
+    /// tried — posed on the environment and the files that exist, so a test
+    /// can ask without either.
+    ///
+    /// On Linux a helper is only worth running with a display to talk to:
+    /// `wl-copy` needs `WAYLAND_DISPLAY`, and `xclip` and `xsel` need
+    /// `DISPLAY`. Without one there is no clipboard to reach — a text
+    /// console, a container — and ``hasHelper`` says so up front instead of
+    /// letting `xclip` fail with "Can't open display" on every copy.
+    static func helpers(
+        environment: [String: String], exists: (String) -> Bool = FileManager.default.fileExists(atPath:)
+    ) -> [Helper] {
+        #if os(macOS)
+            guard exists("/usr/bin/pbcopy") else { return [] }
+            return [
+                Helper(
+                    copyTool: "/usr/bin/pbcopy", copyArguments: [], pasteTool: "/usr/bin/pbpaste",
+                    pasteArguments: [])
+            ]
+        #else
+            var found: [Helper] = []
+            if environment["WAYLAND_DISPLAY"]?.isEmpty == false,
+                let directory = ["/usr/bin", "/usr/local/bin"].first(where: { exists("\($0)/wl-copy") })
+            {
+                found.append(
+                    Helper(
+                        copyTool: "\(directory)/wl-copy", copyArguments: [],
+                        pasteTool: "\(directory)/wl-paste", pasteArguments: ["--no-newline"]))
+            }
+            if environment["DISPLAY"]?.isEmpty == false {
+                if exists("/usr/bin/xclip") {
+                    found.append(
+                        Helper(
+                            copyTool: "/usr/bin/xclip", copyArguments: ["-selection", "clipboard"],
+                            pasteTool: "/usr/bin/xclip", pasteArguments: ["-selection", "clipboard", "-o"]))
+                }
+                if exists("/usr/bin/xsel") {
+                    found.append(
+                        Helper(
+                            copyTool: "/usr/bin/xsel", copyArguments: ["--clipboard", "--input"],
+                            pasteTool: "/usr/bin/xsel", pasteArguments: ["--clipboard", "--output"]))
+                }
+            }
+            return found
+        #endif
+    }
+
+    /// This process's helpers, found once.
+    private static let processHelpers = helpers(environment: ProcessInfo.processInfo.environment)
+
+    /// Whether this machine has a clipboard helper to run.
+    static var hasHelper: Bool { !processHelpers.isEmpty }
+
+    /// Copies `text` to this machine's clipboard, and answers whether a
+    /// helper took it. Fails quietly when no helper is available or the
+    /// helper misbehaves — clipboard trouble must never take the app down
+    /// with it.
+    @discardableResult
+    static func copy(_ text: String) -> Bool {
+        processHelpers.contains { helper in
+            run(
+                tool: helper.copyTool, arguments: helper.copyArguments, writing: Data(text.utf8),
+                readsOutput: false) != nil
+        }
+    }
+
+    /// Returns the system clipboard's text, or `nil` when no helper is
+    /// available, the helper misbehaves, or the content isn't UTF-8.
+    static func paste() -> String? {
+        for helper in processHelpers {
+            if let text = textFromHelper(tool: helper.pasteTool, arguments: helper.pasteArguments) {
+                return text
+            }
+        }
+        return nil
+    }
+
+    private static func textFromHelper(tool: String, arguments: [String]) -> String? {
+        guard let data = run(tool: tool, arguments: arguments, writing: nil, readsOutput: true),
+            var result = String(bytes: data, encoding: .utf8)
+        else { return nil }
+        // Strip the single trailing newline the helpers append.
+        if result.hasSuffix("\n") {
+            result.removeLast()
+        }
+        return result
+    }
+
+    // MARK: - Bounded child I/O
+
+    /// Runs `tool`, optionally feeding `input` to its stdin and/or collecting
+    /// its stdout, all under `deadline`. Returns the collected stdout (empty
+    /// `Data` for a write-only exchange) on success; `nil` on any failure —
+    /// tool missing, deadline passed, pipe broken, non-zero exit.
+    ///
+    /// Internal (not fileprivate) so tests can drive it against scripted
+    /// stand-ins for the real helpers — the failure modes it exists to survive
+    /// (child exits without reading; child stops reading mid-payload; child
+    /// never closes stdout) can't be arranged with the genuine clipboard.
+    static func run(
+        tool: String,
+        arguments: [String],
+        writing input: Data?,
+        readsOutput: Bool,
+        deadline: TimeInterval = defaultDeadline
+    ) -> Data? {
+        _ = ignoreSIGPIPE
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: tool)
+        process.arguments = arguments
+        process.standardError = FileHandle.nullDevice
+
+        let stdinPipe = input != nil ? Pipe() : nil
+        if let stdinPipe { process.standardInput = stdinPipe }
+        let stdoutPipe = readsOutput ? Pipe() : nil
+        // Never the app's own stdout, which is the terminal: `wl-copy` leaves a
+        // child behind to serve the clipboard, and it would hold the tty.
+        process.standardOutput = stdoutPipe ?? FileHandle.nullDevice
+
+        do {
+            try process.run()
+        } catch {
+            return nil
+        }
+        let limit = MonotonicClock.nowNanoseconds &+ UInt64(max(0, deadline) * 1_000_000_000)
+
+        var wroteEverything = true
+        if let input, let stdinPipe {
+            wroteEverything = write(input, to: stdinPipe.fileHandleForWriting, until: limit)
+            // Close our write end regardless, so the child sees EOF and can
+            // finish; a failed write already means the exchange has failed.
+            try? stdinPipe.fileHandleForWriting.close()
+        }
+
+        var output = Data()
+        var readEverything = true
+        if let stdoutPipe {
+            readEverything = read(into: &output, from: stdoutPipe.fileHandleForReading, until: limit)
+        }
+
+        // Reap within the deadline; a child that outlives it is wedged — kill
+        // it rather than leave a zombie holding the clipboard hostage.
+        while process.isRunning {
+            if MonotonicClock.nowNanoseconds >= limit {
+                process.terminate()
+                return nil
+            }
+            Thread.sleep(forTimeInterval: 0.002)
+        }
+
+        guard wroteEverything, readEverything, process.terminationStatus == 0 else { return nil }
+        return output
+    }
+
+    /// Writes all of `data` to `handle` with `O_NONBLOCK` + deadline polling.
+    /// A plain blocking write cannot be bounded from outside: once the pipe
+    /// buffer fills against a child that stopped reading, it parks the thread
+    /// in the kernel and no amount of checking afterwards helps.
+    private static func write(_ data: Data, to handle: FileHandle, until limit: UInt64) -> Bool {
+        let fd = handle.fileDescriptor
+        guard makeNonBlocking(fd) else { return false }
+        var offset = 0
+        while offset < data.count {
+            let written = data.withUnsafeBytes { (buffer: UnsafeRawBufferPointer) -> Int in
+                // Module-qualified, because Foundation's overlay exposes an
+                // instance method also called `write` and the bare name is
+                // ambiguous on Darwin; one arm per libc the import ladder
+                // above admits — the musl arm was missing, so that toolchain
+                // could not compile this file.
+                #if canImport(Darwin)
+                    Darwin.write(fd, buffer.baseAddress! + offset, data.count - offset)
+                #elseif canImport(Glibc)
+                    Glibc.write(fd, buffer.baseAddress! + offset, data.count - offset)
+                #else
+                    Musl.write(fd, buffer.baseAddress! + offset, data.count - offset)
+                #endif
+            }
+            if written > 0 {
+                offset += written
+            } else if written < 0 && (errno == EAGAIN || errno == EWOULDBLOCK) {
+                if MonotonicClock.nowNanoseconds >= limit { return false }
+                Thread.sleep(forTimeInterval: 0.002)
+            } else if written < 0 && errno == EINTR {
+                continue
+            } else {
+                return false  // EPIPE (child gone), or any other write failure
+            }
+        }
+        return true
+    }
+
+    /// Reads `handle` to EOF into `output` with `O_NONBLOCK` + deadline
+    /// polling. Same reasoning as the write side: `readDataToEndOfFile`
+    /// blocks until the child closes its stdout, which a hung child never
+    /// does.
+    private static func read(into output: inout Data, from handle: FileHandle, until limit: UInt64) -> Bool {
+        let fd = handle.fileDescriptor
+        guard makeNonBlocking(fd) else { return false }
+        var buffer = [UInt8](repeating: 0, count: 64 * 1024)
+        while true {
+            let count = buffer.withUnsafeMutableBytes { raw in
+                #if canImport(Darwin)
+                    Darwin.read(fd, raw.baseAddress, raw.count)
+                #elseif canImport(Glibc)
+                    Glibc.read(fd, raw.baseAddress, raw.count)
+                #else
+                    Musl.read(fd, raw.baseAddress, raw.count)  // see `write` above
+                #endif
+            }
+            if count > 0 {
+                output.append(contentsOf: buffer[0..<count])
+            } else if count == 0 {
+                return true  // EOF — the child closed its end
+            } else if errno == EAGAIN || errno == EWOULDBLOCK {
+                if MonotonicClock.nowNanoseconds >= limit { return false }
+                Thread.sleep(forTimeInterval: 0.002)
+            } else if errno == EINTR {
+                continue
+            } else {
+                return false
+            }
+        }
+    }
+
+    private static func makeNonBlocking(_ fd: Int32) -> Bool {
+        let flags = fcntl(fd, F_GETFL)
+        guard flags >= 0 else { return false }
+        return fcntl(fd, F_SETFL, flags | O_NONBLOCK) >= 0
+    }
+}
+
+#endif
+
+// MARK: - As the writer reaches it
+
+extension SystemClipboard {
+    /// This machine's clipboard as ``ClipboardWriter`` reaches it — the
+    /// helpers above, behind the substrate's ``ClipboardBackend`` — and what
+    /// the app's run loop installs into the ``TUIContext`` it creates. Nothing
+    /// else does, so no other context runs a helper.
+    struct Backend: ClipboardBackend {
+        var isAvailable: Bool { SystemClipboard.hasHelper }
+
+        func write(_ text: String) -> Bool { SystemClipboard.copy(text) }
+
+        func read() -> String? { SystemClipboard.paste() }
+    }
+}

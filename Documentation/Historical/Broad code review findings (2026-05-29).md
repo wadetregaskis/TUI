@@ -1,7 +1,7 @@
 # Broad code-review findings (29/5/2026)
 
-A broad pass over the library source (Sources/TUIkit,
-TUIkitCore, TUIkitStyling, TUIkitView, TUIkitImage; the example
+A broad pass over the library source (Sources/TUI,
+TUICore, TUIStyling, TUIView, TUIImage; the example
 app was out of scope) looking for correctness bugs,
 inefficiencies, and refactoring/readability opportunities.
 
@@ -21,7 +21,7 @@ listed under "Checked and rejected" so it isn't re-chased later.
 
 ### Consolidate ANSI-sequence scanning in `String+TerminalWidth.swift`
 
-- **File:** `Sources/TUIkitCore/Extensions/String+TerminalWidth.swift`
+- **File:** `Sources/TUICore/Extensions/String+TerminalWidth.swift`
   (672 lines — over the project's ~500-line guideline).
 - **What:** The "scan past an ANSI escape sequence
   (`ESC [ … final-byte`)" logic is open-coded in roughly a dozen

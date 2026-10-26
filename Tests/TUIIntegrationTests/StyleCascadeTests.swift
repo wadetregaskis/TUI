@@ -1,0 +1,640 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  StyleCascadeTests.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import Testing
+
+import TUI
+@testable import TUIFoundation
+@testable import TUITestSupport
+
+/// The `r;g;b` SGR parameter fragment for a resolved colour — matches both
+/// foreground (`38;2;…`) and background (`48;2;…`) uses in a rendered line.
+@MainActor
+private func sgrTriplet(_ color: Color) -> String {
+    guard let (red, green, blue) = color.rgbComponents else { return "unresolved" }
+    return "2;\(red);\(green);\(blue)"
+}
+
+@MainActor
+@Suite("Style cascade")
+struct StyleCascadeTests {
+
+    private func context(width: Int = 40, height: Int = 8) -> RenderContext {
+        RenderContext(availableWidth: width, availableHeight: height, tuiContext: TUIContext()).isolatingRenderCache()
+    }
+
+    /// All SGR parameter codes present across a rendered buffer (e.g. "1" = bold,
+    /// "2" = dim, "3" = italic, "4" = underline, "9" = strikethrough).
+    private func sgrCodes(_ buffer: FrameBuffer) -> Set<String> {
+        var codes: Set<String> = []
+        for line in buffer.lines {
+            var rest = Substring(line)
+            while let start = rest.range(of: "\u{1B}[") {
+                rest = rest[start.upperBound...]
+                guard let m = rest.firstIndex(of: "m") else { break }
+                for code in rest[..<m].split(separator: ";") { codes.insert(String(code)) }
+                rest = rest[rest.index(after: m)...]
+            }
+        }
+        return codes
+    }
+
+    // MARK: - StyleAttributes.merged
+
+    @Test("merged: self wins per property, base fills the rest")
+    func mergedPerProperty() {
+        let base = StyleAttributes(bold: true, dim: true)
+        let over = StyleAttributes(bold: false, italic: true)
+        let result = over.merged(over: base)
+        #expect(result.bold == false)     // over wins
+        #expect(result.italic == true)    // only over sets it
+        #expect(result.dim == true)       // only base sets it
+    }
+
+    // MARK: - StyleCascade.resolve
+
+    @Test("resolve: innermost matching entry wins, per property")
+    func resolveProximityPerProperty() {
+        let cascade = StyleCascade()
+            .appending(.text, StyleAttributes(bold: true, dim: true))      // outer
+            .appending(.text, StyleAttributes(bold: false))                // inner
+        let resolved = cascade.resolve(for: [.all, .text])
+        #expect(resolved.bold == false)   // inner overrides
+        #expect(resolved.dim == true)     // outer persists (inner didn't set it)
+    }
+
+    @Test("resolve: only entries whose scope matches apply")
+    func resolveScopeMatching() {
+        let cascade = StyleCascade()
+            .appending(.control(.button), StyleAttributes(bold: true))
+            .appending(.semanticColor(.foregroundSecondary), StyleAttributes(dim: true))
+        // A plain text view matches .all/.text but neither of the above.
+        #expect(cascade.resolve(for: [.all, .text]).bold == nil)
+        #expect(cascade.resolve(for: [.all, .text]).dim == nil)
+        // Add the secondary role to the scope path → the dim entry now applies.
+        #expect(cascade.resolve(for: [.all, .text, .semanticColor(.foregroundSecondary)]).dim == true)
+    }
+
+    @Test("appending empty attributes is a no-op")
+    func appendingEmptyIsNoop() {
+        #expect(StyleCascade().appending(.text, StyleAttributes()).isEmpty)
+    }
+
+    // MARK: - Text integration
+
+    @Test("Container .bold() makes descendant text bold")
+    func containerBold() {
+        let view = VStack { Text("Hi") }.bold()
+        #expect(sgrCodes(renderToBuffer(view, context: context())).contains("1"))
+    }
+
+    @Test("italic / underline / strikethrough cascade to text")
+    func otherAttributesCascade() {
+        #expect(sgrCodes(renderToBuffer(Text("Hi").style(.text, StyleAttributes(italic: true)), context: context())).contains("3"))
+        #expect(sgrCodes(renderToBuffer(Text("Hi").underline(), context: context())).contains("4"))
+        #expect(sgrCodes(renderToBuffer(Text("Hi").strikethrough(), context: context())).contains("9"))
+    }
+
+    @Test("The broad .italic() modifier italicises text, and an inner .italic(false) wins")
+    func broadItalicModifier() {
+        // The bare modifier emits SGR 3 (its siblings .underline()/.strikethrough()
+        // are covered above; .italic() was previously only reached via .style()).
+        #expect(sgrCodes(renderToBuffer(Text("Hi").italic(), context: context())).contains("3"))
+        // Proximity override, mirroring .bold(): an inner .italic(false) beats an
+        // outer .italic().
+        let nested = VStack { Text("Hi").italic(false) }.italic()
+        #expect(!sgrCodes(renderToBuffer(nested, context: context())).contains("3"))
+    }
+
+    @Test("Proximity: an inner .bold(false) overrides an outer .bold()")
+    func innerOverridesOuter() {
+        let view = VStack { Text("Hi").bold(false) }.bold()
+        #expect(!sgrCodes(renderToBuffer(view, context: context())).contains("1"))
+    }
+
+    // MARK: - A Text can now say NO (Parity work blocked on a decision, §9)
+
+    @Test("A Text's own .bold(false) beats an ancestor's .bold()")
+    func textStatedFalseBeatsTheCascade() {
+        // Before `TextStyle` went tri-state this could not be written: the
+        // parameter did not exist, and had it existed the merge was an `||`, so
+        // a `false` here was indistinguishable from silence and the ancestor
+        // won. It now binds to `Text.bold(_:)` rather than the cascading
+        // `View.bold(_:)`, and reaches the same answer by a different route.
+        let view = VStack { Text("Hi").bold(false) }.bold()
+        #expect(!sgrCodes(renderToBuffer(view, context: context())).contains("1"))
+
+        // …and silence still inherits, which is the half a blanket "Text wins"
+        // would break.
+        let quiet = VStack { Text("Hi") }.bold()
+        #expect(sgrCodes(renderToBuffer(quiet, context: context())).contains("1"))
+    }
+
+    @Test("Every emphasis a cascade can state, a Text can decline")
+    func allFiveCanBeDeclined() {
+        // One test over all five rather than five tests, because the claim is
+        // that the SET is complete: a flag left as a plain `Bool` would be the
+        // one that silently could not opt out.
+        //
+        // Asserted by BYTE EQUALITY against an unstyled render, not by looking
+        // for an SGR code. `sgrCodes` splits every parameter of every sequence,
+        // so a truecolor foreground (`38;2;51;255;51`) contributes a "2" that
+        // is indistinguishable from SGR 2 (faint) — which is exactly how the
+        // first draft of this test failed on `dim` alone. Equality also says
+        // something stronger: the decline undoes the cascade EXACTLY, leaving
+        // no residue.
+        func check(
+            _ what: String,
+            cascade: (AnyView) -> AnyView,
+            decline: (Text) -> Text
+        ) {
+            let plain = renderToBuffer(AnyView(VStack { Text("x") }), context: context()).lines
+            let inherited = renderToBuffer(
+                cascade(AnyView(VStack { Text("x") })), context: context()).lines
+            let declined = renderToBuffer(
+                cascade(AnyView(VStack { decline(Text("x")) })), context: context()).lines
+            #expect(inherited != plain, "\(what): the cascade must do something to begin with")
+            #expect(declined == plain, "\(what): a stated false must undo it")
+        }
+
+        check("bold", cascade: { AnyView($0.bold()) }, decline: { $0.bold(false) })
+        check("italic", cascade: { AnyView($0.italic()) }, decline: { $0.italic(false) })
+        check("underline", cascade: { AnyView($0.underline()) }, decline: { $0.underline(false) })
+        check(
+            "strikethrough", cascade: { AnyView($0.strikethrough()) },
+            decline: { $0.strikethrough(false) })
+        // Dim through the CASCADE, not `View.dimmed()`: that one is a buffer
+        // post-processor which rewrites the rendered lines, so nothing inside
+        // it can decline — see `Text.dim(_:)`.
+        check(
+            "dim", cascade: { AnyView($0.style(.text) { $0.dim = true }) },
+            decline: { $0.dim(false) })
+    }
+
+    @Test("Redaction still dims text that asked not to be")
+    func redactionOverridesAStatedFalse() {
+        // The one OR left in the merge, and it is deliberate: `.invalidated`
+        // says the content is STALE — the system speaking, not a preference —
+        // so it outranks the nearest statement.
+        //
+        // Compared by bytes for the reason above — every `Text` emits a
+        // truecolor foreground, whose `38;2;…` puts a "2" in `sgrCodes` that
+        // cannot be told from SGR 2. Asserting the code would pass here even if
+        // redaction did nothing at all.
+        let declined = VStack { Text("Hi").dim(false) }
+        let plain = renderToBuffer(declined, context: context()).lines
+        let redacted = renderToBuffer(
+            declined.redacted(reason: .invalidated), context: context()).lines
+        #expect(redacted != plain, "redaction dimmed it anyway: \(redacted)")
+    }
+
+    @Test("Per-Text .bold() wins over a container .bold(false)")
+    func perTextWins() {
+        let view = VStack { Text("Hi").bold() }.bold(false)
+        #expect(sgrCodes(renderToBuffer(view, context: context())).contains("1"))
+    }
+
+    @Test("Role-scoped dim applies only to text drawn with that palette role")
+    func semanticRoleScoped() {
+        // Was asserted as `sgrCodes(...).contains("2")`, which could not fail:
+        // every `Text` emits a truecolor foreground and `38;2;51;255;51` puts a
+        // "2" in that set. Deleting the `.style` entry outright left the test
+        // green. Comparing rendered BYTES per line tests both halves of the
+        // claim — that the entry reaches the matching text, and that it reaches
+        // ONLY that one, which the old form never touched at all.
+        @MainActor func lines(styled: Bool) -> [String] {
+            let stack = VStack {
+                Text("plain")
+                Text("secondary").foregroundStyle(.palette.foregroundSecondary)
+            }
+            let view: AnyView =
+                styled
+                ? AnyView(stack.style(.semanticColor(.foregroundSecondary)) { $0.dim = true })
+                : AnyView(stack)
+            return renderToBuffer(view, context: context()).lines
+        }
+        let plainRun = lines(styled: false)
+        let scopedRun = lines(styled: true)
+        #expect(scopedRun[1] != plainRun[1], "the secondary-coloured text picked the entry up")
+        #expect(scopedRun[0] == plainRun[0], "…and the plain text did not")
+    }
+
+    @Test("textCase transforms the rendered text")
+    func textCaseTransforms() {
+        let upper = renderToBuffer(VStack { Text("Hello") }.textCase(.uppercase), context: context())
+        #expect(upper.lines.contains { $0.contains("HELLO") })
+        let lower = renderToBuffer(VStack { Text("Hello") }.textCase(.lowercase), context: context())
+        #expect(lower.lines.contains { $0.contains("hello") })
+    }
+
+    @Test("fontWeight maps to bold / faint")
+    func fontWeightMapping() {
+        // The faint half was `sgrCodes(...).contains("2")` and could not fail —
+        // see `semanticRoleScoped`. Weights are compared against `.regular`,
+        // the weight that maps to neither, and against each other.
+        @MainActor func rendered(_ weight: FontWeight) -> [String] {
+            renderToBuffer(Text("Hi").fontWeight(weight), context: context()).lines
+        }
+        let regular = rendered(.regular)
+        #expect(rendered(.bold) != regular, "a heavy weight renders differently")
+        #expect(rendered(.light) != regular, "a light weight renders differently")
+        #expect(rendered(.bold) != rendered(.light), "…and not the SAME differently")
+        // The bold half was sound (SGR 1 collides with nothing), so it stays as
+        // the one direct check that the difference is the attribute expected.
+        #expect(sgrCodes(renderToBuffer(Text("Hi").fontWeight(.bold), context: context())).contains("1"))
+    }
+
+    // MARK: - Scoped colour
+
+    @Test("A scoped foreground colours text via the cascade")
+    func cascadeForeground() {
+        let view = VStack { Text("Hi") }.style(.text, StyleAttributes(foreground: .rgb(10, 20, 30)))
+        let line = renderToBuffer(view, context: context()).lines.joined()
+        #expect(line.contains("38;2;10;20;30"))
+    }
+
+    @Test("A role-scoped foreground recolours only text with that palette role")
+    func cascadeSemanticForeground() {
+        let view = VStack {
+            Text("primary")
+            Text("secondary").foregroundStyle(.palette.foregroundSecondary)
+        }
+        .style(.semanticColor(.foregroundSecondary), StyleAttributes(foreground: .rgb(1, 2, 3)))
+        let line = renderToBuffer(view, context: context()).lines.joined()
+        #expect(line.contains("38;2;1;2;3"), "secondary text should be recoloured")
+    }
+
+    // MARK: - Chrome roles (Section header/footer)
+
+    @Test("A section header is bold + dim by default")
+    func chromeHeaderDefault() {
+        // In a `List`: outside one a section's header has no chrome (B16).
+        let section = Section("Header") { Text("Body") }
+        let header = renderToBuffer(List { section }, context: context()).lines.first { $0.contains("Header") } ?? ""
+        // bold (1) then dim (2) as the leading style codes.
+        #expect(header.contains("\u{1B}[1;2"))
+    }
+
+    @Test("A .chrome(.sectionHeader) override turns off the default bold, keeping dim")
+    func chromeHeaderBoldOff() {
+        let section = Section("Header") { Text("Body") }
+            .style(.chrome(.sectionHeader)) { $0.bold = false }
+        let header = renderToBuffer(List { section }, context: context()).lines.first { $0.contains("Header") } ?? ""
+        #expect(!header.contains("\u{1B}[1;2"), "bold should be off")
+        #expect(header.contains("\u{1B}[2;") || header.contains("\u{1B}[2m"), "dim should remain")
+    }
+
+    @Test("A .chrome(.sectionHeader) override can uppercase the header")
+    func chromeHeaderUppercase() {
+        let section = Section("Header") { Text("Body") }
+            .style(.chrome(.sectionHeader)) { $0.textCase = .uppercase }
+        let lines = renderToBuffer(List { section }, context: context()).lines
+        #expect(lines.contains { $0.contains("HEADER") }, "header should be uppercased")
+        #expect(lines.contains { $0.contains("Body") }, "body should be unaffected")
+    }
+
+    @Test("A custom header opting into .chrome inherits app-wide textCase but not the default dim")
+    func customChromeHeaderInheritsCaseNotDim() {
+        // Mirrors Example's DemoSection title: a bold + underlined header
+        // that opts into `.chrome(.sectionHeader)` to pick up an app-wide textCase
+        // toggle, while locally clearing the role's default dim so it stays crisp.
+        // The inner `dim = false` and the outer `textCase` target different
+        // properties, so the per-property cascade keeps both.
+        func header(uppercase: Bool) -> some View {
+            Text("Preset Palette")
+                .bold()
+                .underline()
+                .environment(\.chromeRole, .sectionHeader)
+                .style(.chrome(.sectionHeader)) { $0.dim = false }
+                .style(.chrome(.sectionHeader)) { $0.textCase = uppercase ? .uppercase : nil }
+        }
+
+        // The title is always bold, so the section-header default dim would show as
+        // the leading `ESC[1;2` (bold;dim). Its absence proves dim is suppressed.
+        let off = renderToBuffer(header(uppercase: false), context: context()).lines.first ?? ""
+        #expect(off.contains("Preset Palette"), "off: original case is preserved")
+        #expect(!off.contains("\u{1B}[1;2"), "off: the chrome default dim is suppressed")
+
+        let on = renderToBuffer(header(uppercase: true), context: context()).lines.first ?? ""
+        #expect(on.contains("PRESET PALETTE"), "on: the header is uppercased")
+        #expect(!on.contains("\u{1B}[1;2"), "on: still no dim")
+        #expect(on.contains("\u{1B}[1;") && on.contains("4"), "on: stays bold + underlined")
+    }
+}
+
+@MainActor
+@Suite("Button style cascade")
+struct ButtonStyleCascadeTests {
+
+    @Test(".buttonTextStyle colours the button label")
+    func buttonTextForeground() {
+        let view = Button("Save") {}.buttonTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
+        #expect(line.contains("38;2;7;8;9"))
+    }
+
+    @Test("A destructive role keeps its colour despite a broad button override")
+    func destructiveStaysLoadBearing() {
+        let view = Button("Delete", role: .destructive) {}
+            .buttonTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
+        #expect(!line.contains("38;2;7;8;9"), "destructive label must not take the broad override")
+    }
+
+    @Test("Variant scoping targets only the matching button variant")
+    func variantScoping() {
+        // .automatic targets the default style → applies.
+        let matched = Button("A") {}.buttonTextStyle(.automatic) { $0.foreground = .rgb(7, 8, 9) }
+        #expect(renderToBuffer(matched, context: makeRenderContext()).lines.joined().contains("38;2;7;8;9"))
+        // .borderedProminent targets the bordered-prominent style → does not apply to a default button.
+        let unmatched = Button("A") {}.buttonTextStyle(.borderedProminent) { $0.foreground = .rgb(7, 8, 9) }
+        #expect(!renderToBuffer(unmatched, context: makeRenderContext()).lines.joined().contains("38;2;7;8;9"))
+    }
+}
+
+@MainActor
+@Suite("Toggle style cascade")
+struct ToggleStyleCascadeTests {
+
+    @Test(".toggleTextStyle colours the toggle label")
+    func toggleTextForeground() {
+        let view = Toggle("Wi-Fi", isOn: .constant(true))
+            .toggleTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
+        #expect(line.contains("38;2;7;8;9"))
+    }
+
+    @Test("A broad .control(.button) entry does not touch a toggle label")
+    func toggleIgnoresButtonScope() {
+        let view = Toggle("Wi-Fi", isOn: .constant(true))
+            .buttonTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
+        #expect(!line.contains("38;2;7;8;9"))
+    }
+}
+
+@MainActor
+@Suite("Theme bundle")
+struct ThemeBundleTests {
+
+    @Test(".theme applies palette + tint + scoped styles together")
+    func themeBundle() {
+        let theme = Theme(
+            palette: AppleTerminalPalette(.ocean),
+            tint: .rgb(7, 8, 9),
+            styles: [
+                StyleCascade.Entry(
+                    scope: .chrome(.sectionHeader),
+                    attributes: StyleAttributes(textCase: .uppercase))
+            ])
+        // The section in a `List`, whose section headers take the chrome role
+        // a theme styles; in a stack a header is drawn as written (B16).
+        let view = VStack {
+            // A face for the tint to reach: the solid family's (the default draws lines).
+            Button("Save") {}.buttonStyle(.borderedProminent).appearance(.block)
+            List { Section("settings") { Text("body") } }
+        }
+        .theme(theme)
+        let buffer = renderToBuffer(view, context: makeRenderContext(width: 40, height: 12))
+        let joined = buffer.lines.joined()
+        // The tint reaches the button as its face: the accent blended over
+        // the palette background (the label itself is contrast-floored, so
+        // the raw tint RGB shows in the fill, not the text).
+        let face = Color.rgb(7, 8, 9).opacity(
+            ViewConstants.focusBorderDim, over: AppleTerminalPalette(.ocean).background)
+        #expect(joined.contains(sgrTriplet(face)), "theme tint reaches the button face")
+        #expect(
+            buffer.lines.contains { $0.contains("SETTINGS") },
+            "theme's chrome style uppercases the section header")
+    }
+
+    @Test(".theme installs a control style for the subtree")
+    func themeControlStyle() {
+        let theme = Theme(palette: SystemPalette(.green), buttonStyle: .plain)
+        // Plain buttons have no caps; the default style's are the filled
+        // face's half-blocks (or, in lines, parentheses). Applying the theme
+        // should make the button render plain.
+        let themed = renderToBuffer(
+            VStack { Button("X") {} }.theme(theme), context: makeRenderContext()
+        ).lines.joined().stripped
+        #expect(!themed.contains { "▐▌()".contains($0) }, "theme buttonStyle should make it plain")
+    }
+}
+
+@MainActor
+@Suite("Tint")
+struct TintTests {
+
+    @Test("tint recolours a control's accent affordance")
+    func tintButtonAccent() {
+        let context = makeRenderContext()
+        // On a face: the solid family's (the default draws lines).
+        let view = Button("Save") {}.buttonStyle(.borderedProminent).tint(.rgb(7, 8, 9)).appearance(.block)
+        let line = renderToBuffer(view, context: context).lines.joined()
+        // The tint shows as the button's face (accent blended over the
+        // background); the label is contrast-floored against that face.
+        let face = Color.rgb(7, 8, 9).opacity(
+            ViewConstants.focusBorderDim, over: context.environment.palette.background)
+        #expect(line.contains(sgrTriplet(face)))
+    }
+
+    @Test("tint cascades from a container to a toggle's ON mark")
+    func tintCascadesToToggle() {
+        // Rendered unfocused: a checked square shows the (tinted) accent solid;
+        // a focused one would pulse it, lerping away from the exact tint RGB.
+        let view = VStack { Toggle("Wi-Fi", isOn: .constant(true)) }.tint(.rgb(7, 8, 9))
+        let line = renderToBuffer(view, context: makeBareRenderContext()).lines.joined()
+        #expect(line.contains("38;2;7;8;9"))
+    }
+
+    @Test("A semantic tint (.palette.success) resolves and doesn't trap the renderer")
+    func semanticTintResolves() {
+        // Regression: a `.semantic` tint reached the ANSI renderer unresolved and
+        // trapped (fatalError). TintedPalette now resolves the tint against its base.
+        let context = makeRenderContext()
+        let view = Button("Save") {}.buttonStyle(.borderedProminent).tint(.palette.success)
+        let buffer = renderToBuffer(view, context: context)
+        #expect(!buffer.isEmpty)
+        // It resolves to the palette's concrete success colour.
+        if let (r, g, b) = Color.palette.success.resolve(with: context.environment.palette).rgbComponents {
+            #expect(buffer.lines.joined().contains("38;2;\(r);\(g);\(b)"))
+        }
+    }
+
+    @Test("A nested tint overrides an outer one")
+    func nestedTintWins() {
+        let view = VStack {
+            VStack { Toggle("Inner", isOn: .constant(true)) }.tint(.rgb(7, 8, 9))
+        }
+        .tint(.rgb(1, 2, 3))
+        let line = renderToBuffer(view, context: makeBareRenderContext()).lines.joined()
+        #expect(line.contains("38;2;7;8;9"))      // inner tint (unfocused → solid)
+    }
+}
+
+@MainActor
+@Suite("Cascading disabled")
+struct CascadingDisabledTests {
+
+    @Test("A container .disabled() disables a control like its own .disabled()")
+    func containerDisablesControl() {
+        let viaContainer = VStack { Button("Save") {} }.disabled()
+        let viaInstance = VStack { Button("Save") {}.disabled() }
+        let a = renderToBuffer(viaContainer, context: makeRenderContext()).lines
+        let b = renderToBuffer(viaInstance, context: makeRenderContext()).lines
+        #expect(a == b)
+    }
+
+    @Test("Disabled is additive — a descendant cannot re-enable")
+    func disabledIsAdditive() {
+        // Inner .disabled(false) must NOT re-enable inside a disabled container.
+        let reEnabled = VStack { Button("Save") {}.disabled(false) }.disabled(true)
+        let plainDisabled = VStack { Button("Save") {} }.disabled(true)
+        let a = renderToBuffer(reEnabled, context: makeRenderContext()).lines
+        let b = renderToBuffer(plainDisabled, context: makeRenderContext()).lines
+        #expect(a == b)
+    }
+
+    @Test("An enabled control renders differently from a disabled one")
+    func enabledDiffersFromDisabled() {
+        let enabled = renderToBuffer(VStack { Button("Save") {} }, context: makeRenderContext()).lines
+        let disabled = renderToBuffer(VStack { Button("Save") {} }.disabled(), context: makeRenderContext()).lines
+        #expect(enabled != disabled)
+    }
+}
+
+@MainActor
+@Suite("Slider style cascade")
+struct SliderStyleCascadeTests {
+
+    @Test(".sliderTextStyle colours the value read-out")
+    func sliderValueForeground() {
+        let view = Slider(value: .constant(0.5)).sliderTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
+        #expect(line.contains("38;2;7;8;9"))
+    }
+}
+
+@MainActor
+@Suite("Picker style cascade")
+struct PickerStyleCascadeTests {
+
+    @Test(".pickerTextStyle colours the picker's option text")
+    func pickerOptionForeground() {
+        let view = Picker("Theme", selection: .constant(1)) {
+            Text("One").tag(1)
+            Text("Two").tag(2)
+        }
+        .pickerStyle(.radioGroup)
+        .pickerTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
+        #expect(line.contains("38;2;7;8;9"))
+    }
+}
+
+@MainActor
+@Suite("Stepper style cascade")
+struct StepperStyleCascadeTests {
+
+    @Test(".stepperTextStyle colours the value read-out")
+    func stepperValueForeground() {
+        let view = Stepper("Quantity", value: .constant(5))
+            .stepperTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
+        #expect(line.contains("38;2;7;8;9"))
+    }
+}
+
+@MainActor
+@Suite("TextField style cascade")
+struct TextFieldStyleCascadeTests {
+
+    @Test(".textFieldTextStyle colours the entered text")
+    func textFieldForeground() {
+        let view = TextField("Name", text: .constant("hello"))
+            .textFieldTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
+        #expect(line.contains("38;2;7;8;9"))
+    }
+
+    @Test("A semantic .textFieldTextStyle foreground resolves instead of trapping")
+    func textFieldSemanticForegroundResolves() {
+        // Regression: `.textFieldTextStyle { $0.foreground = .palette.accent }`
+        // put a *semantic* colour in the cascade, which the field handed to
+        // ANSIRenderer unresolved — and ANSIRenderer traps on `.semantic`. (This
+        // is what crashed Example's Text Fields page.) The semantic accent
+        // must resolve to a concrete RGB. Non-empty text guarantees the entered-
+        // text path runs rather than the dim-prompt branch.
+        let view = TextField("Name", text: .constant("Ada"))
+            .textFieldTextStyle { $0.foreground = .palette.accent }
+        let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
+        // Reaching this line at all proves it didn't trap; a concrete foreground
+        // SGR (38;2;r;g;b) proves the semantic accent was resolved, not raw.
+        #expect(line.contains("38;2;"))
+    }
+}
+
+@MainActor
+@Suite("List/Table row style cascade")
+struct ListRowStyleCascadeTests {
+
+    // List/Table row content is ordinary Text. Its colour is styleable both
+    // per-row (on the row's own Text) and broadly (`.foregroundStyle` reaches
+    // rows). NOTE: container-level *attribute* cascade (e.g. `.bold()` on the
+    // List itself) does not yet reach row text — the lazy row-buffer path does
+    // not re-key on the style cascade. Tracked as a follow-up in
+    // Documentation/Colour and styling/Styling and theming design.md. Per-row attributes and broad
+    // foreground (below) are the supported styling for rows today.
+
+    @Test("Broad .foregroundStyle reaches List row text")
+    func listRowForeground() {
+        let view = List {
+            ForEach(["Alpha"], id: \.self) { Text($0) }
+        }
+        .foregroundStyle(.rgb(7, 8, 9))
+        let line = renderToBuffer(view, context: makeRenderContext(width: 30, height: 8)).lines.joined()
+        #expect(line.contains("38;2;7;8;9"))
+    }
+
+    @Test("A row's own Text styling renders in the List")
+    func perRowStyling() {
+        let view = List {
+            ForEach(["Alpha"], id: \.self) { Text($0).foregroundStyle(.rgb(7, 8, 9)) }
+        }
+        let line = renderToBuffer(view, context: makeRenderContext(width: 30, height: 8)).lines.joined()
+        #expect(line.contains("38;2;7;8;9"))
+    }
+}
+
+@MainActor
+@Suite("RadioButton style cascade")
+struct RadioButtonStyleCascadeTests {
+
+    @Test(".radioButtonTextStyle colours the radio labels")
+    func radioForeground() {
+        let view = RadioButtonGroup(selection: .constant("a")) {
+            RadioButtonItem("a", "Alpha")
+            RadioButtonItem("b", "Beta")
+        }
+        .radioButtonTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
+        #expect(line.contains("38;2;7;8;9"))
+    }
+
+    @Test("A picker's radio options keep the .picker identity, not .radioButton")
+    func pickerRadioKeepsPickerIdentity() {
+        // .radioButtonTextStyle must NOT reach a picker's radio-group options —
+        // RadioButton claims `.radioButton` only when not already inside a control.
+        let view = Picker("X", selection: .constant(1)) {
+            Text("One").tag(1)
+            Text("Two").tag(2)
+        }
+        .pickerStyle(.radioGroup)
+        .radioButtonTextStyle { $0.foreground = .rgb(7, 8, 9) }
+        let line = renderToBuffer(view, context: makeRenderContext()).lines.joined()
+        #expect(!line.contains("38;2;7;8;9"))
+    }
+}

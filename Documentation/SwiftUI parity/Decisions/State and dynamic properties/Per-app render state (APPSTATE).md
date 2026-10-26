@@ -111,7 +111,7 @@ queue per app in a later lane, with the API change.
 
 ### B-APPSTATE-1. A change with no view in hand asks the app whose work made it
 
-*`AmbientApp.renderState`, a task local in TUIkitCore; `StoredKey.didChange()`,
+*`AmbientApp.renderState`, a task local in TUICore; `StoredKey.didChange()`,
 `DismissAction()`, `reportObservedChange(at:to:fallback:)`; and
 `LocalizationService.setLanguage(_:)`, `register(translations:)` beside
 B-APPSTATE-4*

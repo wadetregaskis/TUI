@@ -4,7 +4,7 @@ and code with comments and string contents blanked out.
 It is not a parser. It tracks strings (normal, multi-line, raw, with interpolation), nested block comments and
 bracket depth, which is all the module map needs to answer three questions about a line: which top-level
 declaration's text holds it, which `#if` branches enclose it, and what its code says without its comments.
-Regex literals are not lexed (TUIkit has none).
+Regex literals are not lexed (TUI has none).
 """
 import re
 

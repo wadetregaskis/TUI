@@ -8,7 +8,7 @@ The four targets by area below no longer exist; the support target's guard
 *Lane TT2 landed the test-target split the owner approved on 2026-10-08 ("fine,
 if it has a notable benefit"), which lane TT1 had measured as an experiment: the
 umbrella suite, one test target of 1,178 files, is four test targets by area
-and a plain support target, TUIkitTestSupport. It changed no public API and
+and a plain support target, TUITestSupport. It changed no public API and
 nothing the library does. This file holds the judgement calls the work reached
 that the brief did not already settle, in the format of
 [`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>):*
@@ -24,7 +24,7 @@ There is no A or C entry.
 
 ### B-TT2-1. The support target compiles empty in a release build, and a release test build turns it on by hand
 
-*TUIkitTestSupport: 42 files, every one `@testable import`ing library modules*
+*TUITestSupport: 42 files, every one `@testable import`ing library modules*
 
 `swift build` builds every target that is not a test target, so a plain support
 target is built by `swift build -c release` too, where nothing has testability,
@@ -67,9 +67,9 @@ how many that is was not measured.
 *Tools/ParallelTest, `fill_weights`*
 
 The cache is keyed by test ID, and an ID names its module, so the 6,628 tests
-that moved out of `TUIkitTests` are unknown to a cache calibrated before the
-split, and their suites' recorded work is filed under `TUIkitTests.<Suite>`,
-which `fill_weights` does not match to `TUIkitAppTests.<Suite>`. They are priced
+that moved out of `TUITests` are unknown to a cache calibrated before the
+split, and their suites' recorded work is filed under `TUITests.<Suite>`,
+which `fill_weights` does not match to `TUIAppTests.<Suite>`. They are priced
 at the median until `--calibrate` runs again, which the README now says. CI
 keeps no cache.
 

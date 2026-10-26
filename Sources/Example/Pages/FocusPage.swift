@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  FocusPage.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Focus & raw-input demo page.
 ///
@@ -106,7 +106,7 @@ struct FocusPage: View {
 
     // MARK: - Helpers
 
-    /// A key event as the logger shows it: named as TUIkit names every key,
+    /// A key event as the logger shows it: named as TUI names every key,
     /// macOS's way — the modifiers in the order ⌃ ⌥ ⇧ ⌘, then the key (`⌃⇧Z`,
     /// `⇧⇥`, `⎋`, `F5`) — or "(paste)" for pasted text, which is not a key.
     private func describeKey(_ event: KeyEvent) -> String {

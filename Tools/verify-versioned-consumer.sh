@@ -11,8 +11,8 @@
 # The consumer here does not merely compile — it RUNS, and checks two things
 # that only exist at runtime:
 #
-#   tuiKitVersion                  reads Sources/TUIkitStrings/VERSION from
-#                                  TUIkit's resource bundle, and answers
+#   tuiKitVersion                  reads Sources/TUIStrings/VERSION from
+#                                  TUI's resource bundle, and answers
 #                                  "unknown" if the bundle cannot be found. A
 #                                  compile-only check would sail straight past
 #                                  that.
@@ -46,7 +46,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 TEMP_DIR="$(mktemp -d)"
-PACKAGE_REPO="$TEMP_DIR/TUIkit"
+PACKAGE_REPO="$TEMP_DIR/TUI"
 CONSUMER_DIR="$TEMP_DIR/Consumer"
 
 trap 'rm -rf "$TEMP_DIR"' EXIT
@@ -63,7 +63,7 @@ cat > "$CONSUMER_DIR/Package.swift" <<EOF
 import PackageDescription
 
 let package = Package(
-    name: "TUIkitConsumer",
+    name: "TUIConsumer",
     platforms: [.macOS(.v14)],
     dependencies: [
         .package(url: "file://$PACKAGE_REPO", exact: "1.0.0")
@@ -71,32 +71,32 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "Consumer",
-            dependencies: [.product(name: "TUIkit", package: "TUIkit")]
+            dependencies: [.product(name: "TUI", package: "TUI")]
         )
     ]
 )
 EOF
 
-# Plain `import TUIkit` — no @testable — so anything the public surface fails to
+# Plain `import TUI` — no @testable — so anything the public surface fails to
 # expose fails here. Then the two resource reads, each with the failure spelled
 # out, because a gate is only useful if its failure explains itself.
 cat > "$CONSUMER_DIR/Sources/Consumer/main.swift" <<'EOF'
-// Foundation for `exit` — importing TUIkit does not bring it in, and a
+// Foundation for `exit` — importing TUI does not bring it in, and a
 // consumer's own imports are its business. That it has to be said here is a
 // small proof the gate is honest: nothing is being handed to this program.
 import Foundation
-import TUIkit
+import TUI
 
 var failures: [String] = []
 
-// Resolves Sources/TUIkitStrings/VERSION from TUIkit's resource bundle, or answers "unknown".
+// Resolves Sources/TUIStrings/VERSION from TUI's resource bundle, or answers "unknown".
 if tuiKitVersion == "unknown" || tuiKitVersion.isEmpty {
     failures.append(
         """
         tuiKitVersion is "\(tuiKitVersion)".
-        The VERSION resource did not resolve from TUIkit's resource bundle when TUIkit was
-        built as a dependency. Check the `resources:` entry for the TUIkitStrings
-        target, whose bundle (TUIkit_TUIkitStrings) holds it.
+        The VERSION resource did not resolve from TUI's resource bundle when TUI was
+        built as a dependency. Check the `resources:` entry for the TUIStrings
+        target, whose bundle (TUI_TUIStrings) holds it.
         """)
 }
 
@@ -118,7 +118,7 @@ guard failures.isEmpty else {
     exit(1)
 }
 
-print("versioned consumer OK — TUIkit \(tuiKitVersion), button.cancel = \(cancel)")
+print("versioned consumer OK — TUI \(tuiKitVersion), button.cancel = \(cancel)")
 EOF
 
 printf '── Resolving\n'

@@ -245,7 +245,7 @@ verdict:
 | `async_without_await` | 3 | 4 | The wasip1 `SignalManager.install(wake:)` no-op keeps the real one's `async` signature; two test helpers are the `.task { await … }` bodies under test; one test is `async` with nothing to await. |
 | `shorthand_argument` | 1 | 6 | Style: `$0` or `$1` a few lines into a closure. |
 | `raw_value_for_camel_cased_codable_enum` | 0 | 7 | All in `TerminalQuirks` (`SkinTones`, `Keycaps`): public `Codable` enums whose wire spelling is the case name by design. The rule assumes a snake_case format; raw values equal to the case names would only restate them. |
-| `accessibility_label_for_image` / `accessibility_trait_for_button` | 2 / 1 | 3 / 2 | SwiftUI accessibility rules matching TUIkit's own `Image` and `.onTapGesture`. A terminal has no VoiceOver, so they stay off. |
+| `accessibility_label_for_image` / `accessibility_trait_for_button` | 2 / 1 | 3 / 2 | SwiftUI accessibility rules matching TUI's own `Image` and `.onTapGesture`. A terminal has no VoiceOver, so they stay off. |
 
 ### Analyzer rules — a different workflow (5)
 

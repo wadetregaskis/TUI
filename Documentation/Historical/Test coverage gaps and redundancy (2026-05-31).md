@@ -16,23 +16,23 @@ These have **no test file referencing them at all** and sit on
 core paths:
 
 - **`AppStorage` / `StorageBackend` / `JSONFileStorage` /
-  `UserDefaultsStorage`** (`Sources/TUIkit/State/`). Persistence
+  `UserDefaultsStorage`** (`Sources/TUI/State/`). Persistence
   logic — Codable round-trips, the XDG/`~/.config` path
   resolution, the Linux-vs-Apple backend split, debounced
   writes — is entirely untested. This is the highest-value gap:
   it's pure, mockable (inject a `StorageBackend`), and a
   silent bug here loses user data.
 - **`StdinArrivalStream` / `StdinArrivalNotifier`**
-  (`Sources/TUIkit/App/`). The input-arrival race that replaced
+  (`Sources/TUI/App/`). The input-arrival race that replaced
   the bare `Task.sleep`. Async + `DispatchSource`; testable with
   a pipe FD. Untested.
-- **`ViewRenderer`** (`Sources/TUIkit/Rendering/`). The core
+- **`ViewRenderer`** (`Sources/TUI/Rendering/`). The core
   view→buffer entry point. Exercised incidentally but has no
   dedicated suite.
 
 ### High — no dedicated tests, but more contained / harder
 
-- **`InputHandler`** (`Sources/TUIkit/App/`). Only *indirect*
+- **`InputHandler`** (`Sources/TUI/App/`). Only *indirect*
   coverage (2 integration files reference it); no suite drives
   the five-layer dispatch chain directly. Worth a dedicated
   suite: synthesise `KeyEvent`s and assert which layer consumes
@@ -40,10 +40,10 @@ core paths:
   default), including the modal-Escape special case. Mockable
   via the existing `MockTerminal` + synthetic events.
 - **`OnMouseEventModifier`** and **`DragGestureModifier`**
-  (`Sources/TUIkit/Modifiers/`). The public mouse-event and
+  (`Sources/TUI/Modifiers/`). The public mouse-event and
   drag-gesture entry points — zero references. Mouse plumbing
   underneath is tested, but these surfaces aren't.
-- **`SignalManager`** (`Sources/TUIkit/App/`). Installs real
+- **`SignalManager`** (`Sources/TUI/App/`). Installs real
   SIGINT/SIGWINCH handlers — genuinely awkward to unit-test
   without side effects. Recommendation: either a narrow test of
   the non-installing logic, or a **documented rationale** that
@@ -58,7 +58,7 @@ core paths:
 - **`LocalizedString` / localization** — no references;
   low runtime risk but easy to cover (lookup, fallback,
   interpolation).
-- **View extensions** (`Sources/TUIkit/Extensions/`, ~10 files)
+- **View extensions** (`Sources/TUI/Extensions/`, ~10 files)
   — no dedicated tests; behaviour is partly exercised through
   View tests. The project-analysis plan calls for targeted
   coverage here.
@@ -121,8 +121,8 @@ little gain.
 
 Context-creation and ANSI/render-assertion helpers are
 copy-pasted across many files; there is one good shared mock
-(`Tests/TUIkitTests/Mocks/MockTerminal.swift`). A
-`Tests/TUIkitTests/TestHelpers/` area for the common
+(`Tests/TUITests/Mocks/MockTerminal.swift`). A
+`Tests/TUITests/TestHelpers/` area for the common
 `makeContext()` / render-verifier helpers would cut duplication —
 but it's a broad, churny migration touching many files, so it's
 pinned for a decision rather than done unilaterally (see

@@ -1,7 +1,7 @@
 import Foundation
 
 /// The visual role of a node, which picks its fill colour and shape.
-/// Fills are TUIkit's green-terminal palette; text is always white, so the
+/// Fills are TUI's green-terminal palette; text is always white, so the
 /// fills read on both light and dark page backgrounds.
 enum NodeKind {
     case normal     // an ordinary step (teal)

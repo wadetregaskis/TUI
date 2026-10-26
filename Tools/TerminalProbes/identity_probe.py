@@ -2,8 +2,8 @@
 """Terminal IDENTITY probe: asks the terminal who it is, over escape sequences
 rather than environment variables.
 
-Why this exists: `TERM_PROGRAM` is how TUIkit recognises its host, and ssh does
-not forward it (OpenSSH sends `LANG` and `LC_*` only). A TUIkit app reached over
+Why this exists: `TERM_PROGRAM` is how TUI recognises its host, and ssh does
+not forward it (OpenSSH sends `LANG` and `LC_*` only). A TUI app reached over
 ssh therefore sees an unidentified terminal and applies NO cursor-advance
 compensation, which shifts every row carrying an under-advancing cluster — the
 exact class of bug `Documentation/Terminals/Terminal compatibility survey.md` exists to record.
@@ -30,11 +30,11 @@ QUERIES = [
     ("DA3", b"\x1b[=c", "Tertiary Device Attributes — DCS!|…ST"),
     ("XTVERSION", b"\x1b[>0q", "Terminal name and version — DCS>|…ST"),
     ("XTGETTCAP_TN", b"\x1bP+q544e\x1b\\", "terminfo 'TN' (terminal name) — DCS…ST"),
-    # TUIkit's own exchanges end on DSR 5 (answered ESC[0n) since a4bd70fbe, not on
+    # TUI's own exchanges end on DSR 5 (answered ESC[0n) since a4bd70fbe, not on
     # the cursor report: a CPR can also come from a Shift-F3 typed during startup.
     # These two record that the host answers it, and answers it AFTER the query
     # before it, which is what lets it end an exchange.
-    ("DSR5", b"\x1b[5n", "Device status — ESC[0n; TUIkit's exchange fence"),
+    ("DSR5", b"\x1b[5n", "Device status — ESC[0n; TUI's exchange fence"),
     ("XTVERSION+DSR5", b"\x1b[>0q\x1b[5n", "XTVERSION's reply (if any), THEN ESC[0n"),
 ]
 

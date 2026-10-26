@@ -8,7 +8,7 @@ swift run TerminalClientQuirks
 ```
 
 Terminals disagree about how far the cursor moves over a grapheme cluster.
-`Documentation/Terminals/Terminal compatibility survey.md` catalogues the disagreements and TUIkit
+`Documentation/Terminals/Terminal compatibility survey.md` catalogues the disagreements and TUI
 compensates for them automatically — but only for a terminal it can *name*, and
 only in the ways that terminal has been *measured* to need. This app is the view
 into both halves, and the tool for extending them.
@@ -23,31 +23,31 @@ how far each reaches, plus whatever the terminal answered when asked directly
 (DA1, DA2, XTVERSION).
 
 The Identity screen also answers a question that is *not* a quirk: whether this
-terminal honours **OSC 8 hyperlinks**, what TUIkit decided and why, and two
+terminal honours **OSC 8 hyperlinks**, what TUI decided and why, and two
 links that look identical — one carrying the escape, one with it turned off —
 so hovering them settles it. Nothing else can: no escape sequence asks a
 terminal whether it implements OSC 8, and the affordance is a gesture the
 terminal handles above the mouse-reporting protocol, which is both why it is
 worth having and why the application cannot observe it. Emitting the sequence
 is safe on every host measured, so `TUIKIT_HYPERLINKS=1` is a reasonable thing
-to try on a terminal TUIkit has never seen.
+to try on a terminal TUI has never seen.
 
 **Render as** — apply another terminal's workarounds, live, to the whole app.
 Picking your own terminal should leave the Alignment screen straight; picking a
 different one should visibly break it.
 
 **Quirks** — the measured advance model for the terminal in force: for each class
-of cluster, the width TUIkit lays it out as, the cells the terminal actually
+of cluster, the width TUI lays it out as, the cells the terminal actually
 moves, and the workaround applied where they differ.
 
 **Alignment** — the check that takes none of the above on trust. Every row closes
 its bar in the same column; a bar out of line is a cluster this terminal handles
-in a way TUIkit does not yet know about. Your font and your terminal's settings
+in a way TUI does not yet know about. Your font and your terminal's settings
 matter here (iTerm2's Unicode-version and ambiguous-width options change the
 answer), which is why this is worth looking at even on a terminal that is
 already supported.
 
-## Adding a terminal TUIkit does not know
+## Adding a terminal TUI does not know
 
 **Custom** builds a workaround set for an unmeasured terminal, one switch per
 class of cluster, with the alignment strip rendered through whatever is
@@ -58,7 +58,7 @@ if a row breaks, it does not. The switches are:
 |---|---|
 | VS-16 pictographs | 🖥️ ❤️ ✏️ paint two cells, advance one |
 | Bare pictographs | 🛡 🖥 — same, with no selector at all |
-| VS-15 chrome glyphs | ⬛︎ ⬜︎ — TUIkit draws toggles with these |
+| VS-15 chrome glyphs | ⬛︎ ⬜︎ — TUI draws toggles with these |
 | Lone regional indicators | 🇦 on its own (a flag pair is a separate switch) |
 | Skin tones on a narrow base | ☝🏻 ✍🏽 🏋🏽 merge into ONE cell against a 2-cell claim (Ghostty on both planes, iTerm2 on the SMP form) |
 | Flag pairs | 🇺🇸 — correct on every terminal measured so far |
@@ -86,6 +86,6 @@ is.
 
 A way to turn workarounds on permanently. Every compensation works around a
 measured *defect*, so applying one to a terminal that does not have it breaks
-output that was correct — which is why TUIkit compensates nothing for a terminal
+output that was correct — which is why TUI compensates nothing for a terminal
 it cannot name, and why the overrides here reset when the app exits. To name a
 terminal permanently, set `TUIKIT_TERM_PROGRAM` in your shell.

@@ -33,7 +33,7 @@ Extract and formalize reusable components needed by both List and Table includin
 ## Implementation Steps
 
 ### Phase 1: Create FocusableItemListHandler
-1. Create new file: `Sources/TUIkit/Internal/FocusableItemListHandler.swift`
+1. Create new file: `Sources/TUI/Internal/FocusableItemListHandler.swift`
 2. Extract from List's `ListHandler`:
    - `focusedIndex`, `scrollOffset`, `viewportHeight`, `rowCount`
    - `focusUp()`, `focusDown()`, `focusHome()`, `focusEnd()`, `focusPageUp()`, `focusPageDown()`
@@ -42,7 +42,7 @@ Extract and formalize reusable components needed by both List and Table includin
 4. Add proper documentation
 
 ### Phase 2: Create SelectionStateManager
-1. Create new file: `Sources/TUIkit/Internal/SelectionStateManager.swift`
+1. Create new file: `Sources/TUI/Internal/SelectionStateManager.swift`
 2. Generic class: `SelectionStateManager<SelectionValue: Hashable>`
 3. Properties:
    - `binding: Binding<AnyHashable>?`
@@ -55,14 +55,14 @@ Extract and formalize reusable components needed by both List and Table includin
 5. Type-erasure utilities for `Binding<SelectionValue>` → `Binding<AnyHashable>`
 
 ### Phase 3: Create ItemStateRenderer Utilities
-1. Create new file: `Sources/TUIkit/Internal/ItemStateRenderer.swift`
+1. Create new file: `Sources/TUI/Internal/ItemStateRenderer.swift`
 2. Function: `renderItemWithState()`
    - Parameters: `content: String`, `isFocused: Bool`, `isSelected: Bool`, `palette: Palette`
    - Returns: styled string with background color, etc.
 3. Optionally: helper for scroll indicators
 
 ### Phase 4: Create renderFocusableContainer Helper
-1. Create new file: `Sources/TUIkit/Internal/FocusableContainerRenderer.swift`
+1. Create new file: `Sources/TUI/Internal/FocusableContainerRenderer.swift`
 2. Function: `renderFocusableContainer()`
    - Similar signature to `renderContainer()`
    - Plus: focus handler, selection manager, item renderer
@@ -86,7 +86,7 @@ Extract and formalize reusable components needed by both List and Table includin
 ## Implementation Plan
 
 ### Phase 1: Create FocusableItemListHandler
-1. Create new file: `Sources/TUIkit/Internal/FocusableItemListHandler.swift`
+1. Create new file: `Sources/TUI/Internal/FocusableItemListHandler.swift`
 2. Extract from List's `ListHandler`:
    - `focusedIndex`, `scrollOffset`, `viewportHeight`, `rowCount`
    - `focusUp()`, `focusDown()`, `focusHome()`, `focusEnd()`, `focusPageUp()`, `focusPageDown()`
@@ -95,20 +95,20 @@ Extract and formalize reusable components needed by both List and Table includin
 4. Add proper documentation
 
 ### Phase 2: Create SelectionStateManager
-1. Create new file: `Sources/TUIkit/Internal/SelectionStateManager.swift`
+1. Create new file: `Sources/TUI/Internal/SelectionStateManager.swift`
 2. Generic class: `SelectionStateManager<SelectionValue: Hashable>`
 3. Properties: `binding`, `selectedValue`
 4. Methods: `select(index:)`, `select(value:)`, `isSelected(index:)`, `isSelected(value:)`
 5. Type-erasure utilities for Binding
 
 ### Phase 3: Create ItemStateRenderer Utilities
-1. Create new file: `Sources/TUIkit/Internal/ItemStateRenderer.swift`
+1. Create new file: `Sources/TUI/Internal/ItemStateRenderer.swift`
 2. Function: `renderItemWithState()` with content, isFocused, isSelected, palette
 3. Returns styled string with background color
 4. Optionally: helper for scroll indicators
 
 ### Phase 4: Create renderFocusableContainer Helper
-1. Create new file: `Sources/TUIkit/Internal/FocusableContainerRenderer.swift`
+1. Create new file: `Sources/TUI/Internal/FocusableContainerRenderer.swift`
 2. Function: `renderFocusableContainer()`
 3. Similar signature to `renderContainer()` plus focus handler, selection manager, item renderer
 4. Returns: `FrameBuffer`
@@ -148,9 +148,9 @@ Extract and formalize reusable components needed by both List and Table includin
 **Moderate**, requires careful design. ~4-5 hours.
 
 ## Files Created
-- `Sources/TUIkit/Internal/FocusableItemListHandler.swift`
-- `Sources/TUIkit/Internal/SelectionStateManager.swift`
-- `Sources/TUIkit/Internal/ItemStateRenderer.swift`
-- `Sources/TUIkit/Internal/FocusableContainerRenderer.swift`
-- `Tests/TUIkitTests/FocusableItemListHandlerTests.swift`
-- `Tests/TUIkitTests/SelectionStateManagerTests.swift`
+- `Sources/TUI/Internal/FocusableItemListHandler.swift`
+- `Sources/TUI/Internal/SelectionStateManager.swift`
+- `Sources/TUI/Internal/ItemStateRenderer.swift`
+- `Sources/TUI/Internal/FocusableContainerRenderer.swift`
+- `Tests/TUITests/FocusableItemListHandlerTests.swift`
+- `Tests/TUITests/SelectionStateManagerTests.swift`

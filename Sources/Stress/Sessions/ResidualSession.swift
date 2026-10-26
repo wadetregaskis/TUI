@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ResidualSession.swift
 //
 //  Rows that draw what is NOT their element. A `ForEach` row is memoized by
@@ -45,7 +45,7 @@
 //  License: MIT
 
 import Observation
-import TUIkit
+import TUI
 
 // MARK: - The model
 

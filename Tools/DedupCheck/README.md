@@ -1,6 +1,6 @@
 # DedupCheck
 
-Keeps TUIkit correct in an app linked with `-Xlinker -deduplicate`, which the README offers app developers as a
+Keeps TUI correct in an app linked with `-Xlinker -deduplicate`, which the README offers app developers as a
 size option (README, "Shipping size"). With it, ld merges byte-identical functions, across the whole app, onto one
 address. Swift code can observe a function's address in two ways, and either can change its answer:
 
@@ -14,20 +14,20 @@ reviewed facts), and fails on anything the manifest does not account for:
 
 | part | what it reads | fails when |
 |---|---|---|
-| **K1** key paths TUIkit forms | every key-path pattern (`l_keypath*`) in TUIkit's objects, whose relocations name the getter that identifies each computed component; the binary's symbol table gives each getter's address | two of them share an address, a root and a value type, both are writable, and their setters differ (DIVERGENT: equal key paths that write different things), unless `key_path_aliases` lists exactly that group with a reason (a getter that later folds into a listed group makes it a new one). A read-only key path never equals a writable one, so a group is split into its writable and its read-only members, and each is judged alone. Read-only and same-setter aliases are listed, not failed: they read the same thing |
-| **K2** consumers | every function in TUIkit's objects that references the standard library's key-path `==`, `hashValue`, `hash(into:)` or its Equatable/Hashable conformances, or Foundation's `KeyPathComparator`/`SortDescriptor` ones | one is not in `key_path_consumers`. This catches what no source search sees: a synthesized `==` on a struct holding a key path, a `Dictionary` or `Set` specialisation |
+| **K1** key paths TUI forms | every key-path pattern (`l_keypath*`) in TUI's objects, whose relocations name the getter that identifies each computed component; the binary's symbol table gives each getter's address | two of them share an address, a root and a value type, both are writable, and their setters differ (DIVERGENT: equal key paths that write different things), unless `key_path_aliases` lists exactly that group with a reason (a getter that later folds into a listed group makes it a new one). A read-only key path never equals a writable one, so a group is split into its writable and its read-only members, and each is judged alone. Read-only and same-setter aliases are listed, not failed: they read the same thing |
+| **K2** consumers | every function in TUI's objects that references the standard library's key-path `==`, `hashValue`, `hash(into:)` or its Equatable/Hashable conformances, or Foundation's `KeyPathComparator`/`SortDescriptor` ones | one is not in `key_path_consumers`. This catches what no source search sees: a synthesized `==` on a struct holding a key path, a `Dictionary` or `Set` specialisation |
 | **F1** address-taken C functions | relocations that take the address of a Swift `@convention(c)` entry point | one is not in `c_function_addresses` |
 | **F2** compared addresses | the functions whose demangled names the `address_identity` patterns match | one shares its address with another function, or a pattern matches no function in the binary (a renamed function, or a binary that does not link it): a pattern that matches nothing would check nothing |
 | **K3** (report only) | every getter in the binary that shares its address with another of one root and value type, stored properties left out | never: it lists the key paths an app *could* form that would compare equal |
 
-TUIkit's objects are those of the modules `manifest.json`'s `modules` names; every other module is the app's,
+TUI's objects are those of the modules `manifest.json`'s `modules` names; every other module is the app's,
 reported and never failed. It reads arm64 Mach-O only (a universal binary: `lipo -thin arm64` first) and exits 2,
-never 0, when it cannot check: no objects, none of TUIkit's, no key path in them, a stripped binary, a key-path getter
+never 0, when it cannot check: no objects, none of TUI's, no key path in them, a stripped binary, a key-path getter
 sharing an address with another whose demangled name it cannot read.
 
 Not covered: key paths or functions that reach `==` through a dynamic cast (`x as? any Hashable`) or generic code
 that never names them; an `unsafeBitCast` of a Swift closure; and K1 for a module the checked binary does not link
-(Stress links every library module but TUIkitAppKit, TUIkitFilePanelsAppKit and TUIkitMacros). Two SwiftLint rules in `.swiftlint.yml`,
+(Stress links every library module but TUIAppKit, TUIFilePanelsAppKit and TUIMacros). Two SwiftLint rules in `.swiftlint.yml`,
 `key_path_identity` and `function_address_identity`, flag a new comparison or bit cast at the source, before any
 build; each site that means it carries a `swiftlint:disable` with its reason and manifest entry. `lint-cases/` holds
 what they must and must not flag, and `test-lint-rules.sh` (CI's lint job) checks them.
@@ -42,8 +42,8 @@ python3 Tools/DedupCheck/dedup_check.py --binary "$(swift build -c release --sho
 python3 -m unittest discover -s Tools/DedupCheck -p 'test_*.py'     # the tool's own tests: no build, under 1 s
 ```
 
-- **`--disable-dead-strip`** keeps every key path TUIkit's objects form in the binary. TUIkit's default trait
-  `DeadStripUnusedAPI` lets a link drop the TUIkit code an app does not reach, and a dead-stripped Stress kept 227
+- **`--disable-dead-strip`** keeps every key path TUI's objects form in the binary. TUI's default trait
+  `DeadStripUnusedAPI` lets a link drop the TUI code an app does not reach, and a dead-stripped Stress kept 227
   (Swift 6.2.4) or 288 (6.4.0) of the 315 key-path getters; linked whole, 313 (measured 2026-10-11). Folding pairs
   identical functions, so the whole link shows every pair a smaller one could.
 - **`--objects .build`** works with either build system: the check reads no debug build (its unspecialised code
@@ -59,9 +59,9 @@ python3 -m unittest discover -s Tools/DedupCheck -p 'test_*.py'     # the tool's
 
 `ci-check.sh` runs on the "macOS 26 · Swift 6.4" and "macOS 15 · Xcode 26" (Xcode's 6.2.4) lanes, after their release
 builds, because which functions fold is the compiler's: it relinks Stress whole with `-Xlinker -deduplicate` and runs
-the check, then links Stress, Example and IdleProbe with the same flag as an app developer would (TUIkit's default
-traits on, so TUIkit's symbols are out of the export table, which it checks: none of the three may export a
-symbol of a TUIkit module), strips them, and runs `Stress --selfcheck` (render memo
+the check, then links Stress, Example and IdleProbe with the same flag as an app developer would (TUI's default
+traits on, so TUI's symbols are out of the export table, which it checks: none of the three may export a
+symbol of a TUI module), strips them, and runs `Stress --selfcheck` (render memo
 verified) and the quick PTY smoke on the stripped programs. Links only, no compile. Run it locally the same way, after
 `swift build -c release`.
 
@@ -74,7 +74,7 @@ binary and the release build's objects, so run it before `strip`:
 
 ```sh
 swift build -c release -Xlinker -deduplicate
-python3 <TUIkit checkout>/Tools/DedupCheck/dedup_check.py --report \
+python3 <TUI checkout>/Tools/DedupCheck/dedup_check.py --report \
     --binary "$(swift build -c release --show-bin-path)/MyApp" --objects .build
 ```
 

@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  UndoDemo.swift
 //
 //  Created by Wade Tregaskis
@@ -6,7 +6,7 @@
 
 import Foundation
 import Observation
-import TUIkit
+import TUI
 
 /// The app's undo: changes registered with `\.undoManager` are taken back by
 /// ⌃Z and put back by redo — the status bar names both keys while there is a

@@ -1,0 +1,333 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  ModalPresentationModifier+Live.swift
+//
+//  A sheet whose content lets the page behind it through
+//  (`presentationBackgroundInteraction(.enabled)`): docked at the bottom of the
+//  content area under a page laid out in the rows above it — a pane beside the
+//  page, as a `VSplitView`'s are, rather than a modal over it (decisions A19,
+//  design C).
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import TUIChrome
+import TUICore
+import TUIFoundation
+
+// MARK: - The rule a live sheet docks by
+
+/// Whether a presented sheet is docked live, and how.
+enum LiveSheet {
+    /// The fewest rows a docked sheet may take, and the page above it keep:
+    /// one bordered row each. Shorter, the sheet is a modal over the whole
+    /// page — which on a short terminal is what the feature comes to, a
+    /// documented run-time capability (decisions A18).
+    static let minimumRows = 3
+
+    /// Where among the popovers a docked sheet is composited: above a page's
+    /// displaced drawing (`.offset`, `.position`, at -1), below the page's own
+    /// drop-downs, menus and tooltips (at 0), which open over it as they open
+    /// over anything else on the page.
+    static let zIndex = -0.5
+
+    /// The rows a sheet resting at `detents`' height docks in a content area
+    /// `extent` rows tall, or `nil` when it is a modal: its content lets the
+    /// page through at that height (`interaction`), and both it and the page
+    /// above it have ``minimumRows``. A sheet without detents is a modal: its
+    /// height is its content's, known only once the content has drawn — and
+    /// the page's height has to be known before.
+    ///
+    /// So is one presented from inside a presentation that holds the keyboard
+    /// (`environment.isInModalPresentation`): what is behind it is that
+    /// presentation, not a page that could share the keyboard with it. Docked
+    /// there, it reflowed the dimmed page under both, and the presentation
+    /// around it took the focus back every frame and kept the input grabbed,
+    /// so nothing in it could be reached from the keyboard.
+    ///
+    /// And so is one its presenter's `entry` keeps off the dock
+    /// (``PresentationEntry/isKeptOffTheDock``).
+    @MainActor
+    static func dock(
+        detents: PresentedDetents?, interaction: PresentationBackgroundInteraction, extent: Int,
+        environment: EnvironmentValues, entry: PresentationEntry?
+    ) -> Int? {
+        guard !environment.isInModalPresentation, entry?.isKeptOffTheDock != true,
+            let height = detents?.height, height >= minimumRows,
+            extent - height >= minimumRows,
+            interaction.letsThePageThrough(atHeight: height, extent: extent, environment: environment)
+        else { return nil }
+        return height
+    }
+
+    /// What the presenter resolved for a presented frame, handed whole to the
+    /// live branch and to the sheet's drawing (`drawSheet`).
+    struct Presented {
+        let sectionID: String
+        let modalContext: RenderContext
+        let detents: PresentedDetents?
+        let isGrabbed: Bool
+        let gate: DismissalGate
+        let escape: (_ isRepeat: Bool) -> Void
+        let dismissIsDisabled: Bool
+    }
+}
+
+/// Whether a presented sheet has taken the focus since it was presented — a
+/// box at the presenter's identity, emptied on its closed frames and when an
+/// `item:` sheet is presented for another item
+/// (`ModalPresentationModifier.startOver(context:)`).
+///
+/// A modal sheet takes the focus on every frame it is drawn
+/// (`FocusManager.activatePresentedSection(id:)`); a live one only on entry,
+/// or it would take the focus back from the page on the frame after every Tab
+/// out of it. Set only against the real focus manager: a presenter drawn into
+/// another presentation's throwaway backdrop has not entered anything.
+final class PresentationEntry {
+    var hasEntered = false
+
+    /// Whether the sheet is a modal, not docked, for as long as it stays
+    /// presented: set when its presenter, drawn now, was left out of a lazy
+    /// container's window on the frame laid out short by the sheet's dock
+    /// (`FocusManager.presenterWentUndrawnUnderItsDock(_:)`) — a row of a lazy
+    /// stack or a list that the shortened page left out. Docked again, the
+    /// row would leave again, and the sheet with it.
+    ///
+    /// Kept when an `item:` sheet is switched to another item
+    /// (`startOver(forItem:context:)`), which does not move the row; cleared
+    /// only on a frame the sheet is closed.
+    var isKeptOffTheDock = false
+
+    /// The rows the live sheet was last drawn in, where that was fewer than
+    /// its detent — content with no box, which keeps its own height
+    /// (`sheetDetentHeight`) — or `nil` where it filled the detent.
+    ///
+    /// What it docks, then, rather than the detent: the rows between the
+    /// page and a sheet that does not fill them would belong to nothing. Kept
+    /// only while short, so a sheet that fills its detent docks the detent
+    /// the reader moves it to on that very frame, never a frame late.
+    var rowsShortOfDetent: Int?
+
+    /// The identity key of the item the sheet was last presented for, for
+    /// the `item:` forms — `nil` for the `isPresented:` forms, which are
+    /// about nothing.
+    var itemKey: String?
+
+    /// The identity the presented content is drawn at, from the first frame
+    /// it is drawn there until the sheet is closed or presented for another
+    /// item: the subtree whose state goes then
+    /// (`ModalPresentationModifier.startOver(context:)`).
+    var contentIdentity: ViewIdentity?
+}
+
+// MARK: - Presenting live
+
+extension ModalPresentationModifier {
+    /// Posts, for the root, the rows this presented sheet docks
+    /// (`FocusManager.notePresentationDock(id:resolver:)`), where its content
+    /// lets the page through (`presented`: the content built for this frame,
+    /// and what it says of the page). A dismissed sheet posts too
+    /// (``postUnbuiltDock(sectionID:context:)``).
+    ///
+    /// A presented sheet whose presenter its own dock pushed out of the
+    /// page's lazy window, drawn again now the page is whole, is kept off the
+    /// dock from here on (``PresentationEntry/isKeptOffTheDock``): a modal,
+    /// which leaves the page its height and the presenter its row. Pushed
+    /// out, not merely undrawn: drawn into a backdrop, which posts nothing
+    /// (below), or away for a frame with its tab, it is not held.
+    ///
+    /// Posted with the presenter's identity, which is what the ledger asks
+    /// about (`FocusManager.settlePresentationDock(laidOutBy:in:storage:)`).
+    ///
+    /// Posted only to a focus manager a root lays the page out by
+    /// (`FocusManager.takesPresentationDocks`) — never a backdrop's, a
+    /// focus-reach probe's or a snapshot's, which nothing asks.
+    func postDock(
+        presented: (modal: Modal, interaction: PresentationBackgroundInteraction), sectionID: String,
+        context: RenderContext
+    ) {
+        guard presented.interaction.isEnabled, let focusManager = Self.dockLedger(context) else { return }
+        let isPresented = self.isPresented
+        let environment = context.environment
+        let state = detentState(context: context)
+        let entry = presentationEntry(context: context)
+        if focusManager.presenterWentUndrawnUnderItsDock(sectionID) { entry.isKeptOffTheDock = true }
+        focusManager.notePresentationDock(id: sectionID, presenter: context.identity) { contentHeight in
+            guard isPresented.wrappedValue else { return nil }
+            return Self.dockedRows(presented, extent: contentHeight, environment: environment, state: state, entry: entry)
+        }
+    }
+
+    /// Posts, for the root, the rows this dismissed sheet would dock were it
+    /// presented by the time the root asks — every frame it is dismissed — so
+    /// that a sheet the app presents between two frames is laid out docked on
+    /// the first frame it is drawn: the resolver reads the binding when the
+    /// root asks, before the walk, and only then — presented by then — builds
+    /// the content, to learn whether it lets the page through and at what
+    /// detent. A sheet's content is never built while it is dismissed
+    /// (``modal``). Not posted where it could never dock
+    /// (``postsDockWhileDismissed``): an `item:` sheet's first frame is learnt
+    /// late, and settles on the next.
+    ///
+    /// One closure and one entry in the ledger, and nothing else until the
+    /// root asks, which a dismissed sheet answers with one read of its
+    /// binding. What the presenter keeps for a presentation — the detent the
+    /// reader moved it to, the hold off the dock, the rows it drew short of
+    /// its detent — is emptied on every frame the sheet is closed, straight
+    /// after this post (`startOver(context:)`), so a sheet presented before
+    /// the root asks rests where a new one does: the resolver makes a fresh
+    /// detent record then, and keeps no entry. Looked up here, they cost every
+    /// dismissed sheet two lookups in the state storage and two reads of its
+    /// binding per frame, and one never presented a new detent record, for
+    /// nothing.
+    func postUnbuiltDock(sectionID: String, context: RenderContext) {
+        guard let focusManager = Self.dockLedger(context) else { return }
+        let isPresented = self.isPresented
+        let build = self.modal
+        let (style, sizeClasses) = (self.style, self.sizeClasses)
+        let environment = context.environment
+        focusManager.notePresentationDock(id: sectionID, presenter: context.identity) { contentHeight in
+            guard isPresented.wrappedValue, let live = Self.live(build(), style: style, sizeClasses: sizeClasses)
+            else { return nil }
+            return Self.dockedRows(
+                live, extent: contentHeight, environment: environment, state: SheetDetentState(), entry: nil)
+        }
+    }
+
+    /// The focus manager a sheet drawn in `context` posts its dock to, or
+    /// `nil` where it posts none: while measuring, and where no root reads
+    /// the manager's docks (`FocusManager.takesPresentationDocks`).
+    @MainActor
+    private static func dockLedger(_ context: RenderContext) -> FocusManager? {
+        guard !context.isMeasuring, let focusManager = context.environment.focusManager,
+            focusManager.takesPresentationDocks
+        else { return nil }
+        return focusManager
+    }
+
+    /// The rows `live` docks in a content area `extent` rows tall, by the
+    /// presenter's records of it (`state`, `entry`; ``LiveSheet/dock(detents:interaction:extent:environment:entry:)``).
+    @MainActor
+    private static func dockedRows(
+        _ live: (modal: Modal, interaction: PresentationBackgroundInteraction), extent: Int,
+        environment: EnvironmentValues, state: SheetDetentState, entry: PresentationEntry?
+    ) -> Int? {
+        let detents = PresentedDetents(of: live.modal, extent: extent, environment: environment, state: state)
+        let rows = LiveSheet.dock(
+            detents: detents, interaction: live.interaction, extent: extent, environment: environment, entry: entry)
+        // Content with no box docks the rows it draws, not its detent's.
+        return rows.map { min($0, entry?.rowsShortOfDetent ?? $0) }
+    }
+
+    /// `modal`, built for a sheet presented since its presenter last drew,
+    /// and what it says of the page behind it — or `nil` where it does not
+    /// let the page through, or is presented as a cover (`style`,
+    /// `sizeClasses`: ``presentedStyle(of:)``).
+    @MainActor
+    private static func live(_ modal: Modal, style: Style, sizeClasses: PresentationSizeClasses?)
+        -> (modal: Modal, interaction: PresentationBackgroundInteraction)?
+    {
+        guard presentedStyle(of: modal, style: style, sizeClasses: sizeClasses) == .sheet,
+            let interaction = presentationTrait(PresentationBackgroundInteractionProviding.self, of: modal)?
+                .backgroundInteraction,
+            interaction.isEnabled
+        else { return nil }
+        return (modal, interaction)
+    }
+
+    /// The presented sheet, live: the page it wraps drawn as itself, and the
+    /// sheet docked at the bottom of the content area — in the rows the root
+    /// laid the page out short by (`FocusManager.presentationDock(in:storage:)`), or
+    /// over the page's bottom rows on a frame the dock was learnt late.
+    ///
+    /// None of what a modal does to hold the page still: no isolation, no
+    /// input grab, no modal mark, no dimming, the page's regions and runs kept.
+    /// What is the sheet's is its PANE's instead (`renderingPane`): its
+    /// shortcuts, its claim on Escape, its focus sections.
+    func renderLive(
+        _ presented: LiveSheet.Presented, modal: Modal, contentContext: RenderContext, context: RenderContext
+    ) -> FrameBuffer {
+        var baseBuffer = TUIView.renderToBuffer(content, context: contentContext)
+        // The sheet's section after the page's, so it is last in the Tab ring.
+        let escapeItemRegistration = context.isMeasuring ? nil : joinThePage(presented, modal: modal, context: context)
+        // The presenter's manual boxes — see the modal branch.
+        context.stateStorage?.markActive(context.identity)
+        var sheet = renderingPane(presented.sectionID, context: context) {
+            drawSheet(
+                presented, modal: modal, style: .sheet, escapeItemRegistration: escapeItemRegistration,
+                context: context)
+        }
+        if !context.isMeasuring, let detentHeight = presented.detents?.height {
+            // Short of its detent, the sheet docks the rows it drew (`postDock`).
+            presentationEntry(context: context).rowsShortOfDetent =
+                sheet.height < detentHeight ? sheet.height : nil
+        }
+        guard !sheet.isEmpty else { return baseBuffer }
+        if !context.isMeasuring { blockThePage(under: &sheet, context: context) }
+        baseBuffer.overlays.append(
+            .dockedAtBottom(content: sheet, level: .popover, zIndex: LiveSheet.zIndex, dimsBackground: false)
+                .presenting(presented.modalContext.identity))
+        return baseBuffer
+    }
+
+    /// Makes the live sheet a pane beside the page for this frame: its focus
+    /// section registered, and activated on ENTRY only; the quit key stopped
+    /// if its content asked; and — unless its content forbade interactive
+    /// dismissal — Escape bound to dismissing it, on the status bar (an item
+    /// of its section, which shows while the focus is there) and as a key
+    /// handler that hears Escape only while the focus is in its pane: with
+    /// the focus on the page, Escape is the page's (owner Q6).
+    ///
+    /// - Returns: The ESC item's registration, or `nil` when none was
+    ///   published.
+    private func joinThePage(_ presented: LiveSheet.Presented, modal: Modal, context: RenderContext) -> Int? {
+        let sectionID = presented.sectionID
+        // Per-frame registrations, as the modal branch's (`takeKeyboard`).
+        context.environment.volatileReadTracker?.recordRenderSideEffect()
+        let focusManager = context.environment.focusManager
+        focusManager?.registerSection(id: sectionID)
+        // Presenting moves the focus into the sheet, as every sheet does; a
+        // reader who has since moved it to the page keeps it there.
+        let entry = presentationEntry(context: context)
+        if !entry.hasEntered, let focusManager, !focusManager.isBackdrop {
+            focusManager.activatePresentedSection(id: sectionID)
+            entry.hasEntered = true
+        }
+        if presentationPreventsTermination(of: modal) {
+            context.environment.statusBar?.preventQuit()
+        }
+        guard !presented.dismissIsDisabled else { return nil }
+        let escape = presented.escape
+        let registration = context.environment.statusBar?.registerSectionItems(
+            sectionID: sectionID, items: [escapeItem(gate: presented.gate, escape: escape)], composition: .merge)
+        let gate = presented.gate
+        context.environment.keyEventDispatcher?.addHandler(sectionID: sectionID) { event in
+            guard event.key == .escape, focusManager?.activePaneID == sectionID, !gate.interactiveDismissIsDisabled
+            else { return false }
+            escape(event.phase == .repeat)
+            return true
+        }
+        return registration
+    }
+
+    /// A region under the whole sheet that takes every press, release, drag
+    /// and wheel tick its own controls leave — inserted first, so each of
+    /// them wins over it.
+    ///
+    /// No page row lies under a docked sheet, except on the frame its dock is
+    /// learnt late, when the sheet is drawn over the page's bottom rows: a
+    /// click on a blank cell of the sheet then reached the page control under
+    /// it. Overlay regions are appended after the page's rather than punched
+    /// out of them, so a sheet has to say that its cells are its own.
+    private func blockThePage(under sheet: inout FrameBuffer, context: RenderContext) {
+        guard let dispatcher = context.environment.mouseEventDispatcher else { return }
+        let handlerID = dispatcher.register(in: context) { event in
+            switch event.phase {
+            case .entered, .exited, .moved: false
+            default: true
+            }
+        }
+        sheet.hitTestRegions.insert(
+            HitTestRegion(offsetX: 0, offsetY: 0, width: sheet.width, height: sheet.height, handlerID: handlerID),
+            at: 0)
+    }
+}

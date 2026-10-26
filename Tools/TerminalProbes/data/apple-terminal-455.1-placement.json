@@ -68,5 +68,5 @@
     "full_screen": null,
     "full_screen_cells": "80x24"
   },
-  "rendered": "no image — no APC parser at all. TUIkit does not emit them here, and the probe skips the large transmit for the same reason."
+  "rendered": "no image — no APC parser at all. TUI does not emit them here, and the probe skips the large transmit for the same reason."
 }

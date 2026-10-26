@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ClipboardButtonsDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// The system buttons that do one thing to text: `PasteButton`, which reads
 /// the clipboard as the type it is asked for, and `RenameButton`, which runs

@@ -16,7 +16,7 @@
   "leaks": {
     "primary": {
       "osc2_st": {
-        "what": "OSC 2 ended by ST, as TUIkit sends it",
+        "what": "OSC 2 ended by ST, as TUI sends it",
         "measured_column": 3,
         "swallowed": true,
         "bytes": "<ESC>]2;tuikit-leak<ESC>\\"
@@ -54,7 +54,7 @@
     },
     "alternate": {
       "osc2_st": {
-        "what": "OSC 2 ended by ST, as TUIkit sends it",
+        "what": "OSC 2 ended by ST, as TUI sends it",
         "measured_column": 3,
         "swallowed": true,
         "bytes": "<ESC>]2;tuikit-leak<ESC>\\"

@@ -1,16 +1,16 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  RowTransferDemo.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Rows that both reorder *and* travel: two lists whose rows can be dropped on
 /// each other's rows to change the order, or on the other list to change which
 /// list they are in.
 ///
-/// This is the other half of the story the `.onMove` section tells. TUIkit has
+/// This is the other half of the story the `.onMove` section tells. TUI has
 /// two separate mechanisms, and the difference is worth knowing:
 ///
 ///   - **`.onMove` on a `ForEach`** is the built-in reorder. The `List` owns the

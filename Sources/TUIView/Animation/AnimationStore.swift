@@ -1,0 +1,745 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  AnimationStore.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+
+import TUICore
+
+/// What each animating thing in the tree is doing, and where its picture has
+/// got to.
+///
+/// A terminal rebuilds its whole frame from the view tree, so nothing about a
+/// view persists between passes except what a store like this remembers. An
+/// animation is precisely a thing that must persist: the tree says the value is
+/// `1`, and the picture has to keep saying `0.4` until the animation is done.
+/// So the store holds, per animating place, where the value was when the change
+/// arrived, where it is going, and when it started — and every pass asks it
+/// what to draw.
+///
+/// ## What it is keyed by
+///
+/// A ``ViewIdentity`` (the view's structural position, as `@State` uses), plus
+/// the *type* that owns the animation and a slot within it. The type is needed
+/// because modifiers do not descend the identity — `.opacity(x)` renders at its
+/// content's identity — so two different animatable modifiers wrapping the same
+/// view would otherwise collide. Nesting the same modifier twice changes its
+/// generic type, so that case is distinguished too.
+///
+/// Deliberately NOT a per-frame claimed counter, which is how `onChange`
+/// disambiguates: a counter is only stable if every pass walks the tree the
+/// same way, and the measure walk does not — it visits subtrees the render
+/// walk skips, and vice versa. A key built from what the code says rather than
+/// from what the walk did is the same in both.
+public final class AnimationStore: @unchecked Sendable {
+
+    /// Identifies one animating value at one place in the tree.
+    public struct Key: Hashable, Sendable {
+        /// The view's structural position.
+        public let identity: ViewIdentity
+
+        /// The type that owns the animation — the animatable view, or the
+        /// modifier that paints with the value.
+        public let owner: ObjectIdentifier
+
+        /// Which of that type's animatable values this is. `0` unless a type
+        /// animates more than one thing.
+        public let slot: Int
+
+        /// Creates a key.
+        public init(identity: ViewIdentity, owner: ObjectIdentifier, slot: Int = 0) {
+            self.identity = identity
+            self.owner = owner
+            self.slot = slot
+        }
+    }
+
+    /// One animating value's history. Type-erased for the same reason
+    /// `StateStorage.trackedValues` is: the store is one dictionary and the
+    /// values in it are of whatever type each call site animates.
+    private struct Record {
+        /// Where the picture was when this animation began — and, once the
+        /// animation has retired (`animation == nil`), where it SETTLED.
+        ///
+        /// The settled value is not always the target: an even-count
+        /// autoreversing animation ends back where it started, so retiring to
+        /// the target would snap the picture on the next unrelated render.
+        /// Every nil-animation store keeps this invariant — first sight and
+        /// unanimated snaps settle AT the target, retirement settles at
+        /// whatever the final frame presented.
+        var from: Any
+
+        /// What the tree last said the value is.
+        var target: Any
+
+        /// What is running, or `nil` when the picture has arrived.
+        var animation: Animation?
+
+        /// When it began, on the frame clock.
+        var startNanos: Int64
+
+        /// Whether this frame's render handed the run loop the whole cycle
+        /// pre-rendered, so the loop needs no further renders for it.
+        ///
+        /// Cleared every pass by ``beginRenderPass()`` and re-declared by
+        /// whoever emitted the runs, exactly as the animation scheduler makes
+        /// a view re-declare its rate: a producer that stops emitting (its
+        /// content changed shape, its cycle grew past the cap) stops being
+        /// counted as served and the loop starts rendering for it again.
+        var servedByRuns = false
+
+        /// The pass this record was last asked about. See ``pass``.
+        var lastPass: UInt64 = 0
+
+        /// The pass and walk a first sight stored this record in — `nil` once
+        /// anything has stored over it. See
+        /// ``value(for:target:animation:nowNanos:isMeasuring:)``.
+        var appeared: (pass: UInt64, walk: UInt64)?
+
+        /// The animations of earlier changes still running beside this one,
+        /// each with the change it animates — `nil`, nearly always, when
+        /// nothing overlaps. See ``Segment``.
+        var earlier: [Segment]?
+
+        /// Whether this record settled somewhere other than its target: a
+        /// retired even-count autoreverse, which presents `from` (see
+        /// ``from``). Said by whoever builds the record, which alone knows the
+        /// two values' type.
+        var isDisplaced = false
+
+        /// Whether this record can present anything but its target: something
+        /// is running (finished or not, until it retires), or it settled away
+        /// from it. Counted in ``unsettledCount``.
+        var isUnsettled: Bool { animation != nil || isDisplaced }
+    }
+
+    /// An earlier change's animation, still running beside a later one —
+    /// SwiftUI's additive model: a change that interrupts an animation which
+    /// does not merge with it (`Animation.shouldMerge`) animates only its own
+    /// part of the way, from the earlier target to its own, and the earlier
+    /// animation runs on to where it was headed. What is drawn is the later
+    /// animation's value less what each earlier one has yet to cover.
+    private struct Segment {
+        /// The change this animated: its target, less where it started.
+        let delta: Any
+        let animation: Animation
+        let startNanos: Int64
+    }
+
+    private var records: [Key: Record] = [:]
+
+    /// How many of ``records`` are ``Record/isUnsettled``: kept by every write
+    /// and removal, so ``presentsEveryTarget`` is a load and a compare.
+    private var unsettledCount = 0
+
+    /// The pass each `View.animation(_:value:)` trigger was last seen on.
+    private var triggerPasses: [Key: UInt64] = [:]
+
+    /// The last value each `View.animation(_:value:)` saw, so it can tell a
+    /// change from a re-render. Kept here rather than in `StateStorage`'s
+    /// tracked values because those are keyed by a *positionally claimed*
+    /// property index, and this is read on the measure walk as well as the
+    /// render one — where the claim order does not hold.
+    private var triggers: [Key: Any] = [:]
+
+    /// Which pass is being rendered, so a record can carry the last one it was
+    /// asked about and the prune becomes a comparison.
+    ///
+    /// The store cannot lean on `StateStorage`'s active-identity set the way
+    /// `@State` does, and finding that out cost a live debugging session: a
+    /// modifier that animates — `.opacity(_:)` — is a `Renderable`, and a
+    /// `Renderable` renders at its PARENT's identity and marks nothing active.
+    /// So every record here was pruned on the pass that created it, and every
+    /// pass then saw a first sight, which never animates. The fade froze on its
+    /// target and the loop went quiet, which looks exactly like success.
+    ///
+    /// Re-declaration instead: anything the tree asks about is alive, and
+    /// anything it stops asking about has left. A stamp rather than a
+    /// `Set<Key>` of everything seen, because with `.padding` and `.frame`
+    /// animatable this is touched once per layout node per walk, and hashing a
+    /// key into a second table is the kind of cost that only shows up on a tree
+    /// deep enough to measure it twice.
+    private var pass: UInt64 = 0
+
+    /// Which walk of the pass is being rendered — see ``beginWalk()``.
+    private var walk: UInt64 = 0
+
+    /// Whether anything declared itself served by runs last pass, so the clear
+    /// sweep can be skipped entirely when nothing did.
+    private var servedAnyByRuns = false
+
+    /// A transition body being drawn part-way between two of its phases, which
+    /// answers every lookup while it is installed — see ``TransitionScrub``.
+    ///
+    /// `nil` but for the length of one such draw. The one cost it puts on
+    /// everything else is a load and a compare in ``isSettled(_:at:isMeasuring:)``
+    /// and ``value(for:target:animation:nowNanos:isMeasuring:)``: a field of
+    /// this object, beside the records already being read, not an environment
+    /// probe or a field of every `RenderContext` copy.
+    package var scrub: TransitionScrub?
+
+    /// Where the animations a pass starts are reported, for the completions
+    /// waiting on them — see ``AnimationCompletionTracker``. Wired by the
+    /// ``StateStorage`` that owns both.
+    package var completionTracker: AnimationCompletionTracker?
+
+    /// Creates an empty store.
+    public init() {}
+
+    /// How many animating values are being tracked (tests, diagnostics).
+    public var count: Int { records.count }
+
+    /// Whether every value the store is asked about draws exactly what the
+    /// tree says it is, unless a change made now animates: no record is
+    /// running or settled away from its target, and no transition scrub is
+    /// answering for the records.
+    ///
+    /// What lets the measure walk skip the store (WL-Q3,
+    /// ``animatedValue(of:owner:context:isMeasuring:)``): a measure writes
+    /// nothing, so where this holds and no animation is in force its every
+    /// lookup answers the target — and a lookup is not cheap on a deep tree,
+    /// where the key's identity is compared node by node to the root.
+    package var presentsEveryTarget: Bool { unsettledCount == 0 && scrub == nil }
+}
+
+// MARK: - Asking what to draw
+
+extension AnimationStore {
+    /// The value to draw this frame for `key`, given what the tree now says it
+    /// is and how the change was meant to arrive.
+    ///
+    /// - Parameters:
+    ///   - key: The animating value's place in the tree.
+    ///   - target: What the view tree says the value is now.
+    ///   - animation: The animation in force for this change, or `nil` to snap.
+    ///   - nowNanos: The frame's timestamp. The *frame's*, not a live reading:
+    ///     a pass may walk the tree more than once, and two walks of one frame
+    ///     must agree on what the picture shows.
+    ///   - isMeasuring: Whether this is a measure pass, which must not mutate.
+    /// - Returns: The value to draw.
+    public func value<D: VectorArithmetic>(
+        for key: Key, target: D, animation: Animation?, nowNanos: Int64, isMeasuring: Bool
+    ) -> D {
+        // A transition body drawn part-way answers from its own two renders,
+        // and must neither read nor write the records — see `TransitionScrub`.
+        if let scrub { return scrub.value(for: key, target: target) }
+        // The settled case is answered by ``isSettled(_:at:isMeasuring:)``
+        // before this is reached; what follows is the first sight, the
+        // change, and the animation in flight.
+        guard var record = records[key],
+            let from = record.from as? D,
+            let recorded = record.target as? D
+        else {
+            // First sight of this value. An appearance is not a change, so it
+            // does not animate — a view that faded in from nothing every time it
+            // scrolled into view would be a distraction, not an animation, and
+            // SwiftUI does not do it either.
+            store(appearance(of: target, at: nowNanos), for: key, isMeasuring: isMeasuring)
+            return target
+        }
+        // The re-declaration, on an entry already in hand.
+        if record.lastPass != pass, !isMeasuring {
+            record.lastPass = pass
+            records[key] = record
+        }
+
+        let presented = presented(record, from: from, target: recorded, nowNanos: nowNanos)
+
+        guard recorded != target else {
+            // Unchanged. Retire a finished animation so the next frame does not
+            // have to ask again, and so the loop stops rendering for it.
+            //
+            // Retire to what the final frame PRESENTED, not to the target: an
+            // even-count autoreversing animation finishes at fraction 0 — back
+            // at `from` — and retiring to the target made the very next
+            // unrelated render (a key press, minutes later) snap the picture
+            // from the start value to the target. The target is still recorded
+            // as `target`, so an unchanged re-declaration stays settled and a
+            // NEW value animates from where the picture actually is.
+            if let running = record.animation, running.isFinished(at: elapsed(record, nowNanos)),
+                Self.earlierFinished(record, at: nowNanos)
+            {
+                store(
+                    Record(
+                        from: presented, target: recorded, animation: nil, startNanos: nowNanos,
+                        isDisplaced: presented != recorded),
+                    for: key, isMeasuring: isMeasuring)
+            }
+            return presented
+        }
+
+        if let appeared = record.appeared, appeared.pass == pass, appeared.walk != walk {
+            // Changed since a first sight in an earlier walk of THIS pass —
+            // one the pass then walked again (the scene root's geometry
+            // correction, which walks the whole scene again; a
+            // geometry owner drawing a reader again with where it really is,
+            // ``beginWalk()``), whose drawing is never shown. So this is still
+            // the appearance, and does not animate either: animated, it slid
+            // from the first walk's value, a motion nothing on screen made.
+            store(appearance(of: target, at: nowNanos), for: key, isMeasuring: isMeasuring)
+            return target
+        }
+
+        guard let animation else {
+            // Changed, with nothing to animate it: the picture jumps, and any
+            // animation that WAS running is abandoned where it stood. That is
+            // what an unanimated change means — not "finish the old one first".
+            store(Record(from: target, target: target, animation: nil, startNanos: nowNanos),
+                for: key, isMeasuring: isMeasuring)
+            return target
+        }
+
+        store(
+            retargeted(record, from: from, to: target, by: animation, presented: presented, nowNanos: nowNanos),
+            for: key, isMeasuring: isMeasuring)
+        noteStarted(animation, at: nowNanos, key: key, isMeasuring: isMeasuring)
+        return presented
+    }
+
+    /// How present a view arriving at `key` is — `0` on the frame it appears
+    /// under an animation, rising to `1`.
+    ///
+    /// The deliberate opposite of ``value(for:target:animation:nowNanos:isMeasuring:)``,
+    /// which never animates a first sight: an appearance is exactly what a
+    /// transition animates, and everything else is exactly what it must not.
+    /// Without an animation, or once the arrival is over, this is `1` and the
+    /// view is simply drawn.
+    public func arrivalPhase(
+        for key: Key, animation: Animation?, nowNanos: Int64, isMeasuring: Bool
+    ) -> Double {
+        if let record = records[key], let from = record.from as? Double,
+            let target = record.target as? Double
+        {
+            let phase = presented(record, from: from, target: target, nowNanos: nowNanos)
+            // An arrival over is retired as a value's is, at what it presented,
+            // so a view that arrived under an animation does not keep the store
+            // unsettled (``presentsEveryTarget``) for as long as it stays.
+            if let running = record.animation, running.isFinished(at: elapsed(record, nowNanos)),
+                Self.earlierFinished(record, at: nowNanos)
+            {
+                store(
+                    Record(
+                        from: phase, target: target, animation: nil, startNanos: nowNanos,
+                        isDisplaced: phase != target),
+                    for: key, isMeasuring: isMeasuring)
+            } else if record.lastPass != pass, !isMeasuring {
+                records[key]?.lastPass = pass
+            }
+            return phase
+        }
+        guard let animation else {
+            store(
+                Record(from: 1.0, target: 1.0, animation: nil, startNanos: nowNanos),
+                for: key, isMeasuring: isMeasuring)
+            return 1
+        }
+        store(
+            Record(from: 0.0, target: 1.0, animation: animation, startNanos: nowNanos),
+            for: key, isMeasuring: isMeasuring)
+        noteStarted(animation, at: nowNanos, key: key, isMeasuring: isMeasuring)
+        return 0
+    }
+
+    /// Reports an animation this pass started to the completions waiting on
+    /// the change — a measure starts nothing.
+    private func noteStarted(
+        _ animation: Animation, at nowNanos: Int64, key: Key, isMeasuring: Bool
+    ) {
+        guard !isMeasuring, let completionTracker, completionTracker.isCollecting else { return }
+        completionTracker.noteStarted(animation, at: nowNanos, key: key)
+    }
+
+    /// Where the picture of the value at `key` is at `nowNanos` — what an
+    /// unchanged value there would draw — or `nil` where nothing of type `D`
+    /// is recorded (a first sight) or while a transition scrub draws, which
+    /// answers from its own renders. Reads only: asking writes nothing.
+    package func presentedValue<D: VectorArithmetic>(at key: Key, as _: D.Type, nowNanos: Int64) -> D? {
+        guard scrub == nil, let record = records[key],
+            let from = record.from as? D, let target = record.target as? D
+        else { return nil }
+        return presented(record, from: from, target: target, nowNanos: nowNanos)
+    }
+
+    /// Whether anything is recorded at `key` — whether the tree still asks
+    /// about the value there.
+    package func hasRecord(at key: Key) -> Bool {
+        records[key] != nil
+    }
+
+    /// How many earlier changes' animations the record at `key` still keeps
+    /// beside its own; `nil` without a record. For tests.
+    func earlierCount(at key: Key) -> Int? {
+        records[key].map { $0.earlier?.count ?? 0 }
+    }
+
+    /// Whether the value at `key` is still moving at `nowNanos`.
+    package func isAnimating(at key: Key, nowNanos: Int64) -> Bool {
+        guard let record = records[key], let animation = record.animation else { return false }
+        return !animation.isFinished(at: elapsed(record, nowNanos)) || !Self.earlierFinished(record, at: nowNanos)
+    }
+
+    /// Whether `value` differs from the last one seen at `key`.
+    ///
+    /// First sight is **not** a change: a view appearing is not a value moving,
+    /// so `.animation(_:value:)` does not animate a subtree into existence.
+    ///
+    /// Records on render passes only, so a measure that runs before the render
+    /// of the same frame reaches the same answer it will.
+    public func triggerChanged<V: Equatable>(
+        _ value: V, for key: Key, isMeasuring: Bool
+    ) -> Bool {
+        let previous = triggers[key] as? V
+        if !isMeasuring {
+            triggers[key] = value
+            triggerPasses[key] = pass
+        }
+        guard let previous else { return false }
+        return previous != value
+    }
+
+    /// Whether anything is still moving at `nowNanos` — the run loop's whole
+    /// question, asked once per frame rather than per animating view.
+    public func hasLiveAnimations(at nowNanos: Int64) -> Bool {
+        records.values.contains { record in
+            guard let animation = record.animation, !record.servedByRuns else { return false }
+            return !animation.isFinished(at: elapsed(record, nowNanos)) || !Self.earlierFinished(record, at: nowNanos)
+        }
+    }
+
+    /// The repeating animation at `key` sampled onto the replay clock, or `nil`
+    /// when there is nothing repeating there (or its cycle is too long to hold).
+    ///
+    /// Asking changes nothing: a caller that asks and then cannot emit runs —
+    /// because its phases disagreed about the shape of the picture — must leave
+    /// the animation being rendered for. Declaring it served is a separate,
+    /// deliberate step, so the "a dropped run looks like a win" trap cannot be
+    /// sprung by an early return.
+    ///
+    /// - Parameters:
+    ///   - key: The animating value's place in the tree.
+    ///   - nowNanos: This frame's timestamp.
+    ///   - step: The replay clock's step count for this frame. See
+    ///     ``AnimationFrame/step``.
+    public func cycle<D: VectorArithmetic & Sendable>(
+        for key: Key, nowNanos: Int64, step: Int
+    ) -> AnimationCycle<D>? {
+        // A scrubbed body is a picture of one instant, not a cycle to replay.
+        guard scrub == nil, let record = records[key],
+            let animation = record.animation, animation.repeatsForever, record.earlier == nil,
+            let from = record.from as? D, let target = record.target as? D
+        else { return nil }
+        return AnimationCycle<D>(
+            animation: animation, from: from, to: target,
+            startNanos: record.startNanos, nowNanos: nowNanos, step: step)
+    }
+
+    /// Declares that this frame handed the run loop the whole cycle at `key`,
+    /// so the loop needs no further renders for it.
+    ///
+    /// Re-declared every frame — ``beginRenderPass()`` clears it — exactly as
+    /// an animating view re-declares its rate to the scheduler. A producer that
+    /// stops emitting runs starts being rendered for again on the next frame.
+    public func noteServedByRuns(_ key: Key) {
+        records[key]?.servedByRuns = true
+        servedAnyByRuns = true
+    }
+
+    /// Starts another walk of the tree within the pass — the drawing a walk
+    /// makes after this replaces what the walks before it drew, so a value
+    /// first seen by one of those and seen differently now has still not
+    /// been shown, and appears rather than animates.
+    ///
+    /// Called from ``StateStorage/beginSceneRender()`` (every walk of the
+    /// scene, the first one included), and by a view that draws its subtree
+    /// again within one walk (a geometry owner's correction, a scroll view's
+    /// band drawn again at a new offset).
+    public func beginWalk() {
+        walk &+= 1
+    }
+
+    /// Which walk of the pass is being rendered — see ``beginWalk()``.
+    package var currentWalk: UInt64 { walk }
+
+    /// Records the value at `key` as standing at `value`, settled there, where
+    /// nothing has asked about it before — so that the next
+    /// ``value(for:target:animation:nowNanos:isMeasuring:)`` with a different
+    /// target animates FROM `value`, where a first sight would draw the
+    /// target at once.
+    ///
+    /// For a value whose last position is known to something other than the
+    /// store: a container's child, whose placement the container remembers
+    /// (``PlacementStore``) and asks the store about only while it moves. A
+    /// record already here is left alone — the value is in flight, and its
+    /// picture is where the next change starts from. Not marked as an
+    /// appearance, so a change on the same walk animates.
+    package func settle<D: VectorArithmetic>(_ key: Key, at value: D, nowNanos: Int64) {
+        guard scrub == nil, records[key] == nil else { return }
+        store(Record(from: value, target: value, animation: nil, startNanos: nowNanos), for: key, isMeasuring: false)
+    }
+
+    /// A record of `target` first seen now: settled at it, nothing running.
+    private func appearance<D>(of target: D, at nowNanos: Int64) -> Record {
+        Record(from: target, target: target, animation: nil, startNanos: nowNanos, appeared: (pass, walk))
+    }
+
+    /// Starts a pass: nothing has been asked about yet, and nothing has been
+    /// served by runs yet.
+    ///
+    /// Called from ``StateStorage/beginRenderPass()``.
+    public func beginRenderPass() {
+        pass &+= 1
+        // Gated on a flag rather than swept: with `.padding` and `.frame`
+        // animatable, `records` holds an entry per layout node, and a page with
+        // a thousand of them would walk all thousand every frame to clear a
+        // flag almost none of them ever set.
+        guard servedAnyByRuns else { return }
+        servedAnyByRuns = false
+        for key in records.keys where records[key]?.servedByRuns == true {
+            records[key]?.servedByRuns = false
+        }
+    }
+
+    /// Whether `key` is settled at `target`: recorded, unchanged, and with
+    /// nothing running — so there is nothing to substitute and nothing to
+    /// store. One lookup, two casts, no environment read.
+    ///
+    /// This is the answer for every animatable view but the animating ones, on
+    /// every frame, which makes it the store's hot path: with `.padding`,
+    /// `.frame` and `.offset` animatable there is an entry per layout node,
+    /// asked once per render and once more per uncached measure.
+    /// ``value(for:target:animation:nowNanos:isMeasuring:)`` answered the same
+    /// question at the cost of two lookups — a copy out of the record and a
+    /// write back to stamp the pass, each hashing and structurally comparing
+    /// the identity — plus a cast of both halves and, before it was even
+    /// called, three environment probes for a transaction that is almost never
+    /// there. Measured on the menu render benchmark (500 renders, debug), the
+    /// frame the modifiers became animatable cost +25%: 0.356 → 0.451 s.
+    ///
+    /// A settled record presents `from`, not `target` (a retired even-count
+    /// autoreverse leaves the two apart — see `Record.from`), so BOTH must
+    /// equal `target` for there to be nothing to draw differently.
+    ///
+    /// Stamps the pass in place when rendering, so the record stays alive
+    /// without being copied out and written back.
+    ///
+    /// **It pays only where records EXIST, which is why the other three
+    /// `value(for:…)` call sites deliberately do not use it.** Where there is no
+    /// record — a `.padding()` or `.foregroundStyle` on a view that has never
+    /// animated, which is nearly all of them — this is a dictionary lookup that
+    /// misses, and `value(for:…)` then does the same lookup again: pure added
+    /// cost. Measured (`ab_bench.py`, 15 reps, idle box) with the guard added to
+    /// `BufferModifier._animated`, `ColorAnimation.resolving` and
+    /// `PaintAnimation.scalar`:
+    ///
+    ///     modifiers      +0.8%  (CI +0.4% … +1.1%)   slower
+    ///     deep           −0.9%  (CI −1.6% … −0.7%)   faster
+    ///     menus          −1.2%  (CI −2.2% … −0.9%)   faster
+    ///     framedcolumns  −0.1%   dashboard −0.9%   gradients −0.0%   all inside noise
+    ///
+    /// A wash, with a real regression on the modifier-dense scenario it was
+    /// aimed at, so it was reverted. The view half above keeps it because its
+    /// records DO exist: an `Animatable` view that reached the store once has a
+    /// record from then on, and the guard answers from it. Anything that
+    /// revisits this needs the settled test and the value fetch to share ONE
+    /// lookup, not two.
+    public func isSettled<D: VectorArithmetic>(_ key: Key, at target: D, isMeasuring: Bool) -> Bool {
+        // Never settled while a scrub is drawing: the value must reach
+        // `value(for:…)`, where the scrub answers it.
+        guard scrub == nil, let index = records.index(forKey: key),
+            records.values[index].animation == nil,
+            let recorded = records.values[index].target as? D, recorded == target,
+            let from = records.values[index].from as? D, from == target
+        else { return false }
+        if !isMeasuring, records.values[index].lastPass != pass {
+            records.values[index].lastPass = pass
+        }
+        return true
+    }
+
+    /// Where the picture is now, under whatever is running.
+    private func presented<D: VectorArithmetic>(
+        _ record: Record, from: D, target: D, nowNanos: Int64
+    ) -> D {
+        // A record with no animation is settled, and `from` is where it
+        // settled (see `Record.from`). For every nil-animation record but a
+        // retired even-count autoreverse the two are equal, so this changes
+        // nothing there.
+        guard let animation = record.animation else { return from }
+        var value = from.interpolated(
+            towards: target, amount: animation.fraction(at: elapsed(record, nowNanos)))
+        if let earlier = record.earlier {
+            for segment in earlier {
+                guard let delta = segment.delta as? D else { continue }
+                let time = Double(nowNanos - segment.startNanos) / 1_000_000_000
+                // A finished one has arrived, whatever its curve last said:
+                // an even count of autoreversing passes ends where it began,
+                // and its change snaps to the target then, as SwiftUI's does.
+                guard !segment.animation.isFinished(at: time) else { continue }
+                value -= delta.scaled(by: 1 - segment.animation.fraction(at: time))
+            }
+        }
+        return value
+    }
+
+    /// Whether every earlier change's animation at `record` has finished.
+    private static func earlierFinished(_ record: Record, at nowNanos: Int64) -> Bool {
+        record.earlier?.allSatisfy {
+            $0.animation.isFinished(at: Double(nowNanos - $0.startNanos) / 1_000_000_000)
+        } ?? true
+    }
+
+    /// The record of a change to `target` animated by `animation`, arriving
+    /// while the picture stands at `presented` — SwiftUI's two ways to take
+    /// over a running animation (O3).
+    ///
+    /// - **It merges** (`Animation.shouldMerge(previous:…)`, which a spring
+    ///   answers yes): the new animation replaces the running one from where
+    ///   the picture is, carrying how fast it is moving — a spring keeps its
+    ///   momentum, where it used to restart at rest.
+    /// - **It does not**: the running animation goes on beside it to where it
+    ///   was headed, and the new one animates only the rest of the way, from
+    ///   that target to its own (see ``Segment``).
+    ///
+    /// With nothing running, it starts from where the picture is, at rest, as
+    /// it always did: a retarget from a settled picture has nothing to carry.
+    private func retargeted<D: VectorArithmetic>(
+        _ record: Record, from: D, to target: D, by animation: Animation, presented: D, nowNanos: Int64
+    ) -> Record {
+        guard let running = record.animation, !running.isFinished(at: elapsed(record, nowNanos)),
+            let recorded = record.target as? D
+        else {
+            return Record(from: presented, target: target, animation: animation, startNanos: nowNanos)
+        }
+        var context = AnimationContext<D>()
+        let elapsedTime = elapsed(record, nowNanos)
+        if animation.shouldMerge(previous: running, value: target - presented, time: elapsedTime, context: &context) {
+            // From the running animation's own value, not the picture: the
+            // earlier changes still running beside it go on subtracting what
+            // they have yet to cover, and starting from the picture would
+            // count that twice.
+            let own = from.interpolated(towards: recorded, amount: running.fraction(at: elapsedTime))
+            let velocity = Self.velocity(of: running, from: from, target: recorded, at: elapsedTime)
+            return Record(
+                from: own, target: target,
+                animation: animation.carrying(velocity: Self.share(of: velocity, along: target - own)),
+                startNanos: nowNanos, earlier: record.earlier)
+        }
+        // Only the ones still running: a finished one adds nothing, and a
+        // value retargeted on every frame would otherwise keep them all.
+        var earlier = (record.earlier ?? []).filter {
+            !$0.animation.isFinished(at: Double(nowNanos - $0.startNanos) / 1_000_000_000)
+        }
+        earlier.append(Segment(delta: recorded - from, animation: running, startNanos: record.startNanos))
+        return Record(from: recorded, target: target, animation: animation, startNanos: nowNanos, earlier: earlier)
+    }
+
+    /// How fast `animation`, taking a value from `from` to `target`, moves it
+    /// `time` seconds in, per second: the change across the frame before.
+    private static func velocity<D: VectorArithmetic>(
+        of animation: Animation, from: D, target: D, at time: TimeInterval
+    ) -> D {
+        // The frame grid every animation steps on: 1/60 s.
+        let frame = 1.0 / 60
+        guard time >= frame else { return .zero }
+        let before = from.interpolated(towards: target, amount: animation.fraction(at: time - frame))
+        let now = from.interpolated(towards: target, amount: animation.fraction(at: time))
+        return (now - before).scaled(by: 1 / frame)
+    }
+
+    /// `velocity` as a share of `change` per second — the part of it along
+    /// the change, which is all a spring's initial velocity can say.
+    private static func share<D: VectorArithmetic>(of velocity: D, along change: D) -> Double {
+        let changeSquared = change.magnitudeSquared
+        guard changeSquared > 0 else { return 0 }
+        // The dot product, from magnitudes: |v + c|² = |v|² + 2 v·c + |c|².
+        let dot = ((velocity + change).magnitudeSquared - velocity.magnitudeSquared - changeSquared) / 2
+        return dot / changeSquared
+    }
+
+    private func elapsed(_ record: Record, _ nowNanos: Int64) -> TimeInterval {
+        Double(nowNanos - record.startNanos) / 1_000_000_000
+    }
+
+    /// Writes a record, unless this is a measure pass.
+    ///
+    /// Measuring must be free of side effects — it happens an unpredictable
+    /// number of times per frame, and on subtrees that are never drawn — so it
+    /// reads the store and never writes it. It still gets the right answer:
+    /// every branch above computes the value it returns *before* deciding what
+    /// to store, so measure and render agree on the frame a change lands.
+    private func store(_ record: Record, for key: Key, isMeasuring: Bool) {
+        guard !isMeasuring else { return }
+        var stamped = record
+        stamped.lastPass = pass
+        let unsettles = stamped.isUnsettled ? 1 : 0
+        // Swapped in through the subscript, which keeps the key already filed
+        // and hands back the record it replaces, in one lookup. NOT
+        // `updateValue(_:forKey:)`, which files the NEW key over the old: an
+        // equal identity, but another object, and `removeDescendants(of:)`
+        // and the transitions' pinned identities then disagreed about it
+        // (seven custom-transition and reduce-motion tests failed).
+        var replaced: Record? = stamped
+        swap(&records[key], &replaced)
+        unsettledCount += unsettles - (replaced?.isUnsettled == true ? 1 : 0)
+    }
+
+    /// Removes the record at `key`, keeping ``unsettledCount``.
+    private func removeRecord(at key: Key) {
+        if records.removeValue(forKey: key)?.isUnsettled == true { unsettledCount -= 1 }
+    }
+}
+
+// MARK: - Lifetime
+
+extension AnimationStore {
+    /// Drops the animations the tree stopped asking about.
+    ///
+    /// Called from ``StateStorage/endRenderPass()``. Keyed on what was asked
+    /// this pass rather than on `@State`'s active-identity set: a modifier that
+    /// animates is a `Renderable`, which renders at its parent's identity and
+    /// marks nothing active, so that set can never answer this question.
+    public func endRenderPass() {
+        guard !records.isEmpty || !triggers.isEmpty else { return }
+        // Collect-then-remove rather than `filter`, which builds a WHOLE NEW
+        // dictionary every pass. On a deeply nested tree that is thousands of
+        // entries reallocated per frame to drop, almost always, none of them —
+        // it measured as most of a +7.6% on `deep`.
+        var stale: [Key] = []
+        for (key, record) in records where record.lastPass != pass { stale.append(key) }
+        for key in stale { removeRecord(at: key) }
+
+        guard !triggers.isEmpty else { return }
+        var staleTriggers: [Key] = []
+        for (key, seen) in triggerPasses where seen != pass { staleTriggers.append(key) }
+        for key in staleTriggers {
+            triggers.removeValue(forKey: key)
+            triggerPasses.removeValue(forKey: key)
+        }
+    }
+
+    /// Drops the animations of everything below `ancestor`, and at it where
+    /// `includingItself` — what `StateStorage/invalidateDescendants(of:includingItself:)`
+    /// performs for state.
+    public func removeDescendants(of ancestor: ViewIdentity, includingItself: Bool = false) {
+        let isStale = { (identity: ViewIdentity) in
+            ancestor.isAncestor(of: identity) || (includingItself && identity == ancestor)
+        }
+        for key in records.keys where isStale(key.identity) {
+            removeRecord(at: key)
+        }
+        for key in triggers.keys where isStale(key.identity) {
+            triggers.removeValue(forKey: key)
+            triggerPasses.removeValue(forKey: key)
+        }
+    }
+
+    /// Drops everything.
+    public func removeAll() {
+        records.removeAll()
+        unsettledCount = 0
+        triggers.removeAll()
+        triggerPasses.removeAll()
+    }
+}

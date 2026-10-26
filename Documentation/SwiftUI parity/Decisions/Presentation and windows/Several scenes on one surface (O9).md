@@ -7,7 +7,7 @@ several scenes in one body (`SceneBuilder`'s variadic `buildBlock`,
 after the owner's ruling on refusal review O9 (2026-10-12: (b), secondary scenes
 are full-surface covers stacked over the main one; leave room for a real
 windowing model later). Every scene presentation goes through one internal
-presenter (`ScenePresenter`, in TUIkitApp), whose first policy is that one; a
+presenter (`ScenePresenter`, in TUIApp), whose first policy is that one; a
 tiling or overlapping manager replaces the policy, not the API. Where the work
 reached a judgement call the ruling did not settle, the safe option shipped and
 is written up here, in the format of
@@ -147,26 +147,26 @@ without asking, as they can only be reached when nothing modal is up in it.
 whether `dismiss()` at the root follows the transaction too. It needs a session
 that can open windows (none could here); five minutes there with the probe.
 
-### B-O9-5. The scenes shown over the windows are a module of their own, TUIkitScenes
+### B-O9-5. The scenes shown over the windows are a module of their own, TUIScenes
 
-*`TUIkitScenes`: `Settings`, `AlertScene`, the scene dialog modifiers*
+*`TUIScenes`: `Settings`, `AlertScene`, the scene dialog modifiers*
 
 A `Settings` scene is drawn with a sheet and an `AlertScene` with an alert, and
-the scene dialog modifiers write TUIkitPresentation's dialog environment; the
-scene presenter, in TUIkitApp, links none of TUIkitPresentation.
+the scene dialog modifiers write TUIPresentation's dialog environment; the
+scene presenter, in TUIApp, links none of TUIPresentation.
 
-**Shipped:** a leaf, `TUIkitScenes`, on TUIkitApp and TUIkitPresentation, as
-lane O13's `TUIkitCommands` is (B-O13-1): the presenter reaches its scenes
+**Shipped:** a leaf, `TUIScenes`, on TUIApp and TUIPresentation, as
+lane O13's `TUICommands` is (B-O13-1): the presenter reaches its scenes
 through a hook that names nothing of it (`OverlayScene`: the view that presents
 the scene), so an app that declares neither links none of it. The window
 scenes — `Window`, `WindowGroup`'s new forms — and the presenter stay in
-TUIkitApp, which draws them with the window chrome it has; the actions, their
-environment values and `SettingsLink` sit in TUIkitFoundation beside
+TUIApp, which draws them with the window chrome it has; the actions, their
+environment values and `SettingsLink` sit in TUIFoundation beside
 `DismissAction`, where any view can read them.
 
-**The fuller version** is TUIkitApp depending on TUIkitPresentation, with these
-in it: one module fewer, at the price of TUIkitPresentation's code in every app
-on TUIkitApp alone; the owner's à-la-carte rule (A52) prices that against it.
+**The fuller version** is TUIApp depending on TUIPresentation, with these
+in it: one module fewer, at the price of TUIPresentation's code in every app
+on TUIApp alone; the owner's à-la-carte rule (A52) prices that against it.
 
 ### B-O9-6. `Settings` is a sheet over the window in front
 
@@ -221,7 +221,7 @@ sheet's own presentations' order). Five minutes there with the probe.
 *`@SceneStorage`, `EnvironmentValues.sceneStorageNamespace`*
 
 SwiftUI keeps `@SceneStorage` per window and restores it with the window when
-the system restores the app's windows. TUIkit keeps it in the store
+the system restores the app's windows. TUI keeps it in the store
 `@AppStorage` uses, which outlives the app, and restores no windows: the window
 opened at launch is the app's, and the others are opened by the app.
 
@@ -353,7 +353,7 @@ shows a menu bar. A `Window`'s key opens its window or brings it to the front;
 a group's opens a new window of it, presenting its default value or `nil`;
 `Settings`'s presents the settings sheet, ⌘, by default, and `nil` takes the
 key away. Settings… and a `Window`'s item in the Window menu show the key.
-A window group has no key unless one is stated: TUIkit's menu bar has no
+A window group has no key unless one is stated: TUI's menu bar has no
 File ▸ New Window for it to be the key of (B-O9-9), and ⌘N would arrive as
 ⌃N, which a terminal app's own views often bind.
 

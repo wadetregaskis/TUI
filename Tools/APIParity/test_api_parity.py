@@ -26,7 +26,7 @@ def symbols(*keys):
 class LabelDeviationTests(unittest.TestCase):
 
     def test_a_swiftui_declaration_is_never_a_misspelling_of_another(self):
-        # `toolbar(removing:)` is exact SwiftUI API. That TUIkit lacks
+        # `toolbar(removing:)` is exact SwiftUI API. That TUI lacks
         # `toolbar(content:)` does not make the one it has a misspelling.
         swiftui = symbols("View.toolbar(content:)", "View.toolbar(removing:)")
         tuikit = symbols("View.toolbar(removing:)")
@@ -40,8 +40,8 @@ class LabelDeviationTests(unittest.TestCase):
             {"View.onHover(perform:)": ["View.onHover(action:)"]})
 
     def test_only_the_misspelt_candidates_are_kept(self):
-        # Two TUIkit overloads with the same name and arity: one is SwiftUI's
-        # own `toolbar(removing:)`, the other is TUIkit's own spelling.
+        # Two TUI overloads with the same name and arity: one is SwiftUI's
+        # own `toolbar(removing:)`, the other is TUI's own spelling.
         swiftui = symbols("View.toolbar(content:)", "View.toolbar(removing:)")
         tuikit = symbols("View.toolbar(removing:)", "View.toolbar(items:)")
         self.assertEqual(
@@ -83,34 +83,34 @@ class SynthesizedConformanceTests(unittest.TestCase):
         def symbol(precise, kind, *path):
             return {"identifier": {"precise": precise}, "kind": {"identifier": kind},
                     "pathComponents": list(path), "accessLevel": "public"}
-        graph = {"symbols": [symbol("s:6TUIkit5AngleV", "swift.struct", "Angle"),
-                             symbol("s:6TUIkit5AngleV4fromACs7Decoder_p_tKcfc",
+        graph = {"symbols": [symbol("s:3TUI5AngleV", "swift.struct", "Angle"),
+                             symbol("s:3TUI5AngleV4fromACs7Decoder_p_tKcfc",
                                     "swift.init", "Angle", "init(from:)")],
                  "relationships": relationships}
-        with open(os.path.join(directory, "TUIkit.symbols.json"), "w") as handle:
+        with open(os.path.join(directory, "TUI.symbols.json"), "w") as handle:
             json.dump(graph, handle)
 
     def test_a_codable_type_has_encode_to(self):
         with tempfile.TemporaryDirectory() as directory:
             self.graph(directory, [
-                {"kind": "conformsTo", "source": "s:6TUIkit5AngleV", "target": "s:SE"},
-                {"kind": "conformsTo", "source": "s:6TUIkit5AngleV", "target": "s:Se"}])
-            loaded = api_parity.load_symbols(directory, ["TUIkit"])
+                {"kind": "conformsTo", "source": "s:3TUI5AngleV", "target": "s:SE"},
+                {"kind": "conformsTo", "source": "s:3TUI5AngleV", "target": "s:Se"}])
+            loaded = api_parity.load_symbols(directory, ["TUI"])
         self.assertIn("Angle.encode(to:)", loaded)
         self.assertIn("Angle.init(from:)", loaded)
 
     def test_a_raw_valued_enum_has_raw_value(self):
         with tempfile.TemporaryDirectory() as directory:
             self.graph(directory, [
-                {"kind": "conformsTo", "source": "s:6TUIkit5AngleV", "target": "s:SY"}])
-            loaded = api_parity.load_symbols(directory, ["TUIkit"])
+                {"kind": "conformsTo", "source": "s:3TUI5AngleV", "target": "s:SY"}])
+            loaded = api_parity.load_symbols(directory, ["TUI"])
         self.assertEqual(loaded.get("Angle.rawValue"), "var")
 
     def test_without_the_conformance_there_is_no_encode_to(self):
         with tempfile.TemporaryDirectory() as directory:
             self.graph(directory, [
-                {"kind": "conformsTo", "source": "s:6TUIkit5AngleV", "target": "s:SQ"}])
-            loaded = api_parity.load_symbols(directory, ["TUIkit"])
+                {"kind": "conformsTo", "source": "s:3TUI5AngleV", "target": "s:SQ"}])
+            loaded = api_parity.load_symbols(directory, ["TUI"])
         self.assertNotIn("Angle.encode(to:)", loaded)
 
 

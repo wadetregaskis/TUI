@@ -1,9 +1,9 @@
-# Compiler bugs TUIkit has hit
+# Compiler bugs TUI has hit
 
 Seven Swift bugs the framework works around. Each has a self-contained repro here
 so the workaround can be checked against a new toolchain and deleted the moment
 it stops being needed — and so they can be reported upstream without anyone
-having to build TUIkit.
+having to build TUI.
 
 The first two were found in August 2026. Toolchains: **Apple Swift 6.2.4**
 (`swiftlang-6.2.4.1.4`, Xcode) and the **6.5-dev snapshot of 2026-08-30**
@@ -59,14 +59,14 @@ The protocol needs no requirements at all — `protocol P {}` is enough — so t
 is not about associated types, `Never` conformances, actor isolation, result
 builders or anything else the SwiftUI-shaped original suggested.
 
-**Where TUIkit hit it:** `Color: View`. `Color` is `TUIkitStyling`'s, `View` is
-`TUIkitView`'s, and the conformance was written in the module above both
-(the single TUIkit module, then; TUIkitFoundation since module split step B1) —
+**Where TUI hit it:** `Color: View`. `Color` is `TUIStyling`'s, `View` is
+`TUIView`'s, and the conformance was written in the module above both
+(the single TUI module, then; TUIFoundation since module split step B1) —
 ingredient 2. `TupleView` is ingredient 1, and every `@ViewBuilder` block
 containing `Color.red` beside something like `Text("hi").frame(width: 4)` (whose
 return type is opaque) is ingredient 3. **Workaround:** the conformance now
-lives in `TUIkitView`, which is why that module depends on `TUIkitStyling` — see
-`Sources/TUIkitView/Core/ColorAsView.swift`.
+lives in `TUIView`, which is why that module depends on `TUIStyling` — see
+`Sources/TUIView/Core/ColorAsView.swift`.
 
 ---
 
@@ -134,7 +134,7 @@ is not a clean bill. A program that stores, reads, mutates and clears such a
 property printed the right values with both, at `-Onone` and `-O`, so no wrong
 code was seen, but that one program is all that was checked.
 
-**Where TUIkit hit it:** `MouseEventDispatcher.pendingHoverExit` was
+**Where TUI hit it:** `MouseEventDispatcher.pendingHoverExit` was
 `(region: HitTestRegion, handler: (MouseEvent) -> Bool)?` — `HitTestRegion` is
 well over three words and `MouseEvent` is eight, so both thresholds were met.
 **Workaround:** a named struct instead of the tuple, the table's last row, which
@@ -239,13 +239,13 @@ leaving the flag `false`. It is in `release/6.3` and
 cherry-pick to 6.2 was found. That it is the fix is not confirmed: nobody has
 built it on its own.
 
-**Where TUIkit hit it:** `TupleView: @preconcurrency Equatable`, spelled like
+**Where TUI hit it:** `TupleView: @preconcurrency Equatable`, spelled like
 every other view's conformance. `TupleView<each V>` has the pack, and its `==`
 is main-actor isolated because `View` is. `swift build` with swift.org's 6.2.4
-aborted in `TUIkitView`, natively on macOS as well as in the Linux static-SDK
+aborted in `TUIView`, natively on macOS as well as in the Linux static-SDK
 and WebAssembly builds that first showed it. **Workaround:** `extension
 TupleView: @MainActor Equatable`, the isolated conformance in the table's last
-row. See `Sources/TUIkitView/Core/TupleViews.swift`. No other view has a pack,
+row. See `Sources/TUIView/Core/TupleViews.swift`. No other view has a pack,
 so the rest keep `@preconcurrency`. The workaround is needed for as long as
 swift.org's 6.2 builds are supported.
 
@@ -354,14 +354,14 @@ and <https://github.com/swiftlang/swift/pull/86159> took the fix to
 and `swift-6.2.4-RELEASE` do not, and no cherry-pick to 6.2 was found. #86131's
 own regression test aborts swift.org's 6.2.4.
 
-**Where TUIkit hit it:** the crumb trail in `NavigationStack`'s bar,
+**Where TUI hit it:** the crumb trail in `NavigationStack`'s bar,
 `ForEach(Array(crumbs.enumerated()), id: \.offset) { _, crumb in crumbView(…) }`,
 in a method of `_NavigationStackCore<Root>`, where `crumbView` returns
 `some View`. The destructuring closure is the conversion, `Root` makes the
 context generic, and `crumbView`'s result is the opaque type. It was the next
 thing swift.org's 6.2.4 stopped on once section 3 was worked around.
 **Workaround:** `{ pair in crumbView(pair.element, …) }`, one closure parameter
-and so no conversion. See `Sources/TUIkitNavigation/Views/NavigationStack.swift`. The
+and so no conversion. See `Sources/TUINavigation/Views/NavigationStack.swift`. The
 workaround is needed for as long as swift.org's 6.2 builds are supported.
 
 ---
@@ -489,7 +489,7 @@ erasure to function conversions, and
 <https://github.com/swiftlang/swift/issues/45208> (SR-2603) is an older crash
 with the same `==`-picks-`AnyHashable` shape but no `Optional`.
 
-**TUIkit's exposure: none in the code swift.org's 6.2.4 compiles.** The wrong
+**TUI's exposure: none in the code swift.org's 6.2.4 compiles.** The wrong
 code is exactly the argument-type mismatch that the assertion checks, so a
 compiler built with assertions aborts where one without them would emit it.
 swift.org's 6.2.4 (+assertions) builds the package, its tests and its
@@ -500,7 +500,7 @@ miscompile. It covers only what a macOS build compiles, not `#if` branches for
 other platforms, but `git grep` finds `AnyHashable` in no file that has an `#if`
 at all.
 
-**Where TUIkit hit it:** tests of the instants a spinner's run next steps at,
+**Where TUI hit it:** tests of the instants a spinner's run next steps at,
 written for f857c2c1 as `#expect(scheduler.nextFiring(after: now) == 9 *
 116_666_667)`, where `nextFiring` returns an `Int64?`. swift.org's 6.2.4
 aborted. Xcode's 6.2.4 would have compiled it without complaint. A plain-Swift
@@ -614,7 +614,7 @@ green here while 6.3.3 was red.
 **Upstream.** No issue was found for it when this was diagnosed. The reduction is
 small and needs only `import Testing`, so it is worth reporting.
 
-**Where TUIkit hit it:** four sites in two test files —
+**Where TUI hit it:** four sites in two test files —
 `ReversedTextSelectionTests.swift` (three) and `LiveTerminalPaletteRenderTests.swift`
 (one) — each a `#expect` whose closure was followed by a `filter` over cells of
 `(character: Character, state: SGRState)` inside a `TerminalColors.withCurrent`
@@ -694,8 +694,8 @@ including 6.4, so there is nothing to wait for.
 **Upstream.** No issue was found for it. The reduction is four lines and needs
 only `import Foundation`.
 
-**Where TUIkit hit it:** `_TableCore.rowsSignature(of:)`
-(`Sources/TUIkitTables/Views/Table.swift`), which asks whether a table's rows can be
+**Where TUI hit it:** `_TableCore.rowsSignature(of:)`
+(`Sources/TUITables/Views/Table.swift`), which asks whether a table's rows can be
 compared so that a `.fit` column's width can be kept across frames. Written
 against the concrete `[Value]` — or against `[Row]` in a generic helper — it
 drew the warning, and the zero-warnings rule made it a build failure in

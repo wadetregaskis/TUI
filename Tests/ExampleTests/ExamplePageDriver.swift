@@ -1,13 +1,13 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ExamplePageDriver.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 @testable import Example
-import TUIkit
-@testable import TUIkitApp
-@testable import TUIkitFoundation
+import TUI
+@testable import TUIApp
+@testable import TUIFoundation
 
 /// One Example page (or part of one) in a ``HeadlessApp``, driven the way a
 /// person drives it: a click on what is on screen, a key to the focused

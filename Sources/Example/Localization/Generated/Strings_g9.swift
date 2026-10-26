@@ -1,5 +1,5 @@
 // swiftlint:disable line_length
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Strings_g9.swift
 //
 //  Created by Wade Tregaskis

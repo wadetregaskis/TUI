@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  TabViewPage.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// TabView demo page.
 ///
@@ -106,7 +106,7 @@ struct TabViewPage: View {
                         Toggle("page.tabView.notifications", isOn: $notify)
                     }
                     Tab("page.tabView.about", value: 2) {
-                        Text("TUIkit · v1.0")
+                        Text("TUI · v1.0")
                     }
                 }
                 .tabViewStyle(.compact)

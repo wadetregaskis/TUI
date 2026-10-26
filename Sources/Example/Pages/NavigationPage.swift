@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  NavigationPage.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// One of the things you can navigate to — the value a `NavigationLink` puts on
 /// the path, and the one a `.navigationDestination(for:)` turns into a screen.

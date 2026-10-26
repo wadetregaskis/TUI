@@ -263,7 +263,7 @@ def main():
     1. Does a coloured square appear beside any of those labels? That is the
        protocol working.
     2. Does any of them leave VISIBLE JUNK — base64, `File=inline`, `#0!24~`?
-       That host has no parser for the family and TUIkit must never emit it.
+       That host has no parser for the family and TUI must never emit it.
     3. Does the row afterwards still line up? A protocol that draws and then
        leaves the cursor somewhere unexpected is usable but needs its
        placement measured, which is what the Δrow/Δcol above records.

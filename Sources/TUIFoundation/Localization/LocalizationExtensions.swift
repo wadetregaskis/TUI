@@ -1,0 +1,105 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  LocalizationExtensions.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+// MARK: - Text Localization Convenience
+
+extension Text {
+    /// Creates a text view with a localized string using a dot-notation key.
+    ///
+    /// # Example
+    ///
+    /// ```swift
+    /// Text(localized: "button.ok")
+    /// ```
+    ///
+    /// This is an alternative to `LocalizedString("button.ok")` for cases where
+    /// you need a `Text` view directly (e.g., as a return value from a computed property).
+    ///
+    /// - Parameter key: The dot-notation key for the localized string.
+    public init(localized key: String) {
+        let localizedValue = LocalizationService.shared.string(for: key)
+        self.init(localizedValue)
+    }
+}
+
+// MARK: - Changing What the Service Holds
+
+/// The two calls that change what `LocalizationService` reads, each the
+/// service's own half followed by a request for the frame that shows it. Here,
+/// beside the views, and not on the service: the service sits below the views
+/// and the app's render state (`AppState`), and once TUI is split into
+/// modules it cannot name them. So the service keeps the change and this asks
+/// for the frame, with no hook or registry between the two.
+///
+/// The frame is asked of every app running from the service — its run loop
+/// notes it for the length of its run — and of the app whose work made the
+/// change (`AmbientApp`), a headless app's (`appsShowingChanges`). So a
+/// language picked in an app's settings, translations registered as it
+/// draws, and either made on a queue of a framework's own — a download's
+/// callback, a `DispatchQueue.global()` block — all reach the screen. A change
+/// made before any app runs — translations registered in an app's `main` —
+/// asks no app, and needs none: the first frame is still to come.
+extension LocalizationService {
+    /// Changes the active language and persists the preference.
+    ///
+    /// The app draws again, in the new language, wherever this is called
+    /// from: an event handler, a task, a queue of the app's own.
+    ///
+    /// - Parameter language: The new language to activate.
+    public func setLanguage(_ language: Language) {
+        setLanguageWithoutRendering(language)
+        for app in appsShowingChanges { app.setNeedsRender() }
+    }
+
+    /// Registers additional translations supplied by the host application.
+    ///
+    /// The framework only bundles translations for its own strings; an app uses
+    /// this to localize its own UI through the same service. The outer dictionary
+    /// is keyed by language code (`Language.rawValue` — e.g. `"en"`, `"de"`,
+    /// `"zh"`); the inner dictionary maps dot-notation keys to localized strings.
+    /// Registrations merge across calls and take precedence over the bundled
+    /// framework strings for the same key. The app draws again, so visible
+    /// strings refresh, wherever this is called from — at startup, before the
+    /// app runs, there is nothing to draw again.
+    ///
+    /// ```swift
+    /// LocalizationService.shared.register(translations: [
+    ///     "en": ["app.title": "Settings"],
+    ///     "de": ["app.title": "Einstellungen"],
+    /// ])
+    /// ```
+    ///
+    /// - Parameter translations: Language-code-keyed translation tables to add.
+    public func register(translations: [String: [String: String]]) {
+        registerWithoutRendering(translations: translations)
+        // With a cache clear: a memoized row's strings are outside its memo
+        // key, so a re-render alone served the pre-registration text for as
+        // long as the row's element compared equal. Asked once the service
+        // has let go of its lock, as `setLanguage(_:)` has always asked.
+        for app in appsShowingChanges { app.setNeedsRenderWithCacheClear() }
+    }
+}
+
+// MARK: - Appearance
+
+extension Appearance {
+    /// The appearance's name in the app's language.
+    ///
+    /// ``name`` is the identifier capitalised — "Rounded", "Doubleline" — which
+    /// is the right thing for a `Cyclable`'s identity and the wrong thing for a
+    /// settings screen, where it appeared verbatim in every language.
+    ///
+    /// Here rather than on ``Appearance`` itself because the type lives in
+    /// `TUIStyling`, below the localization service; this module can see
+    /// both. Falls back to ``name`` for an appearance an app added, unless the
+    /// app's own strings name it: TUI has no translation of its key, so the
+    /// app's are read (see ``LocalizationService``).
+    public var localizedName: String {
+        let key = "appearance.\(rawId.rawValue)"
+        let localized = LocalizationService.shared.frameworkString(for: key)
+        return localized == key ? name : localized
+    }
+}

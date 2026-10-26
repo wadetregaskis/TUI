@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  StatePersistencePage.swift
 //
 //  Created by Wade Tregaskis
@@ -6,7 +6,7 @@
 
 import Foundation
 import Observation
-import TUIkit
+import TUI
 
 /// An observable model, demonstrated with `@Bindable` on the page below.
 @Observable private final class DemoSettings {

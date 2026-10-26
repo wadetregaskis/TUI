@@ -1,4 +1,4 @@
-# TUIkit styling & theming — design
+# TUI styling & theming — design
 
 Status: **implemented** (phases 1–7 shipped; the List/Table container-attribute
 cascade follow-up closed 2026-10-18). This document is the reference for the
@@ -30,10 +30,10 @@ commits.
 
 ## 2. What already exists (reuse, don't reinvent)
 
-TUIkit already has the SwiftUI-style cascade this needs:
+TUI already has the SwiftUI-style cascade this needs:
 
 - `EnvironmentModifier` threads `EnvironmentValues` to **all** descendants through
-  `RenderContext.environment` (TUIkitView/Environment/Environment.swift).
+  `RenderContext.environment` (TUIView/Environment/Environment.swift).
 - Style values already cascade and resolve **explicit > environment > default**:
   `.foregroundStyle` (`ForegroundStyleKey`), `.palette`, `.appearance`,
   `.buttonStyle`, `.listStyle`, `.pickerStyle`, `.indeterminateStyle`, `.badge`, …
@@ -347,7 +347,7 @@ SwiftUI-parity surface.
 ## 7. How SwiftUI approaches this — a comparison
 
 SwiftUI is the model we hew to. It's worth being precise about what it does, what it
-*doesn't*, and where TUIkit deliberately extends it.
+*doesn't*, and where TUI deliberately extends it.
 
 ### 7.1 SwiftUI has no `Theme` type
 
@@ -365,11 +365,11 @@ WindowGroup {
 }
 ```
 ```swift
-// TUIkit — a Theme bundles the same intent into one value + modifier.
+// TUI — a Theme bundles the same intent into one value + modifier.
 WindowGroup { ContentView() }
     .theme(.ocean)        // palette + appearance + tint + scoped style defaults
 ```
-TUIkit keeps the SwiftUI building blocks *and* adds the bundle as a convenience.
+TUI keeps the SwiftUI building blocks *and* adds the bundle as a convenience.
 
 ### 7.2 Resolution: innermost wins, no specificity
 
@@ -383,10 +383,10 @@ Text("Hi")
     .foregroundColor(.blue)   // outer → overridden
 ```
 ```swift
-// TUIkit — same rule (§3.4). Innermost wins, per property.
+// TUI — same rule (§3.4). Innermost wins, per property.
 Text("Hi").foregroundStyle(.red).foregroundStyle(.blue)   // → red
 ```
-TUIkit adds **scopes** so an entry can target a subset of views, but precedence
+TUI adds **scopes** so an entry can target a subset of views, but precedence
 between ancestors is still pure proximity — i.e. SwiftUI's rule, generalised.
 
 ### 7.3 Broad content styling
@@ -402,7 +402,7 @@ VStack {
 .foregroundStyle(.blue)
 ```
 ```swift
-// TUIkit — identical (foregroundStyle feeds the .text scope; soft-default styles
+// TUI — identical (foregroundStyle feeds the .text scope; soft-default styles
 // let button labels inherit it — §3.5).
 VStack {
     Text("Title")
@@ -420,12 +420,12 @@ Text("Subtitle").foregroundStyle(.secondary)
 VStack { Text("a"); Text("b") }.fontWeight(.semibold).textCase(.uppercase)
 ```
 ```swift
-// TUIkit — palette roles play the role of SwiftUI's hierarchical styles, and the
+// TUI — palette roles play the role of SwiftUI's hierarchical styles, and the
 // same container-level modifiers cascade (no real fonts in a terminal, so weight
 // maps to bold/regular/faint).
 Text("Subtitle").foregroundStyle(.palette.foregroundSecondary)
 VStack { Text("a"); Text("b") }.fontWeight(.bold).textCase(.uppercase)
-// plus a role rule TUIkit adds: "secondary-coloured text is always dim"
+// plus a role rule TUI adds: "secondary-coloured text is always dim"
 .style(.semanticColor(.foregroundSecondary)) { $0.dim = true }
 ```
 
@@ -447,12 +447,12 @@ struct MyButton: ButtonStyle {
 Form { … }.buttonStyle(MyButton())     // applies to all buttons in scope
 ```
 ```swift
-// TUIkit — the same per-control style protocol exists (ButtonStyle + configuration
+// TUI — the same per-control style protocol exists (ButtonStyle + configuration
 // carrying role/state). Structural restyling works the SwiftUI way.
 Form { … }.buttonStyle(MyButtonStyle())
 ```
 
-### 7.5 Where TUIkit extends SwiftUI
+### 7.5 Where TUI extends SwiftUI
 
 SwiftUI can target **"all buttons"** (`.buttonStyle`) and **"this button"**
 (explicit), and handles variants *inside* a style. What it can **not** do
@@ -471,7 +471,7 @@ struct DefaultBlue: ButtonStyle {
 .buttonStyle(DefaultBlue())
 ```
 ```swift
-// TUIkit — the scoped cascade tweaks one property of one variant, keeping the
+// TUI — the scoped cascade tweaks one property of one variant, keeping the
 // default style intact.
 RootView().buttonTextStyle(.default) { $0.foreground = .blue }
 ```
@@ -481,9 +481,9 @@ over SwiftUI's broad modifiers + style protocols.** Broad modifiers and `*Style`
 protocols stay SwiftUI-identical; `StyleScope`/`.style(_:_:)`/`Theme` are the
 clearly-marked TUI extensions.
 
-### 7.6 Goal → SwiftUI → TUIkit
+### 7.6 Goal → SwiftUI → TUI
 
-| Goal | SwiftUI | TUIkit |
+| Goal | SwiftUI | TUI |
 |---|---|---|
 | App-wide accent | `.tint(_:)` | `.tint(_:)` (identical) |
 | All text blue | `.foregroundStyle(.blue)` | `.foregroundStyle(.blue)` (identical) |

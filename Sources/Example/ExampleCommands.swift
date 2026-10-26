@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ExampleCommands.swift
 //
 //  The Example's menu bar: the commands it declares on its scene, acting on
@@ -8,20 +8,20 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 // MARK: - The Commands
 
 /// What the Example adds to the menu bar. The bar itself — the app's menu,
 /// Edit with Undo, Redo, Cut, Copy and Paste, and Help with its tooltips — is
-/// TUIkit's, from declaring any commands at all; this adds:
+/// TUI's, from declaring any commands at all; this adds:
 ///
 /// - **Edit:** Find… and Find Next (``TextEditingCommands``), enabled while a
 ///   text editor has the focus.
-/// - **View:** TUIkit's ``DisplayCommands`` — Palette, Border Style and
+/// - **View:** TUI's ``DisplayCommands`` — Palette, Border Style and
 ///   Control Style, each a submenu of its choices with the current one
 ///   checked — bound to the app's own palette and control style, which the
-///   scene applies; Border Style acts on the appearance manager, and TUIkit
+///   scene applies; Border Style acts on the appearance manager, and TUI
 ///   disables it while the Theme page's custom border is in force (the
 ///   scene's `.appearance(_:)`), which a built-in one would not show through.
 ///   Then Text Styling, the Example's own: a submenu of two `Toggle`s, each a
@@ -29,13 +29,13 @@ import TUIkit
 /// - **Go**, as Finder's: the main menu (disabled on it), and the previous and
 ///   next demo page.
 ///
-/// No File menu: an app with no documents has nothing for it, and TUIkit draws
+/// No File menu: an app with no documents has nothing for it, and TUI draws
 /// a standard menu only when something is in it.
 ///
 /// **The Go menu's keys.** Finder's Back and Forward are ⌘[ and ⌘], whose
 /// Control chords a terminal cannot send: ⌃[ is Escape's byte, and ⌃] one
-/// TUIkit does not read. Of the Control letters a terminal sends as
-/// themselves, the Example and TUIkit already bind A (a list's select all),
+/// TUI does not read. Of the Control letters a terminal sends as
+/// themselves, the Example and TUI already bind A (a list's select all),
 /// C, V, X, Z and Y (the clipboard, undo and redo), D, K, R and S (a list's or table's
 /// row keys, and the sidebar), F and G (a text editor's find), and N, O and S
 /// (the Menus page's ⌘ shortcuts); E keeps a text editor's end of line. So

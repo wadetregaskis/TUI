@@ -1,5 +1,5 @@
 {
- "note": "TUIkit's own width for every cluster in width-corpus.json — `String.strippedLength`, which is what the layout counts with. Generated, not authored: it is here so a probe can say whether a terminal agrees with the framework without linking against it. Regenerate by building a small executable against the package and printing `text.strippedLength` per cluster (see Tools/Web/glyph-probe.html's header).",
+ "note": "TUI's own width for every cluster in width-corpus.json — `String.strippedLength`, which is what the layout counts with. Generated, not authored: it is here so a probe can say whether a terminal agrees with the framework without linking against it. Regenerate by building a small executable against the package and printing `text.strippedLength` per cluster (see Tools/Web/glyph-probe.html's header).",
  "tuikit_version": "0.6.0",
  "widths": {
   "alarm": 2,

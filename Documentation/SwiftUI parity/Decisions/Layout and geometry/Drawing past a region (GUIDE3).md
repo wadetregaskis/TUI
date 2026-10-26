@@ -27,7 +27,7 @@ alignment (measured, GUIDE2 `g2c`: a 40-wide view in a 20-wide
 `.frame(alignment: .leading)` draws 20 cells past the frame's trailing edge,
 centred it draws 10 past each). The lane's mechanism draws past a region
 whatever a placement puts outside it, and it ships for the placements a guide
-makes. It does not ship for content larger than its region, because in TUIkit
+makes. It does not ship for content larger than its region, because in TUI
 no content reaches a placement site larger than its region in a way that
 means what it means in SwiftUI:
 

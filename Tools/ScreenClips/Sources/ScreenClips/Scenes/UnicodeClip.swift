@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  UnicodeClip.swift
 //
 //  `unicode`: one phrasebook, filmed in Ghostty, iTerm2, Terminal.app and
@@ -9,7 +9,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 @MainActor
 let unicodeClip = Clip(
@@ -36,7 +36,7 @@ private func unicodeScript() -> [Step] {
 
 struct UnicodeApp: App {
     var body: some Scene {
-        WindowGroup("TUIkit · Unicode") {
+        WindowGroup("TUI · Unicode") {
             Phrasebook()
                 .frame(width: 80, height: 24, alignment: .topLeading)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -59,7 +59,7 @@ struct Greeting: Identifiable {
 /// No Devanagari: Apple Terminal draws it at the font's proportional advance
 /// and moves the rest of its row left, which no emission repairs (Terminal
 /// compatibility survey, "What Apple Terminal paints"), and this clip is
-/// filmed there too. And no Arabic or Hebrew: TUIkit does not reorder a
+/// filmed there too. And no Arabic or Hebrew: TUI does not reorder a
 /// right-to-left run, nor do the terminals filmed, so it would read backwards
 /// (the survey's "Right-to-left text").
 struct Phrasebook: View {

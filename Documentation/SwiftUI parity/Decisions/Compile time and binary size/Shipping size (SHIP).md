@@ -41,11 +41,11 @@ which needs a release build first: 260 s of build with 6.3.3 on the
 development machine, plus the step's six minutes or so (runners unmeasured).
 Worth it only once 6.3 is known to fold differently from 6.2.4.
 
-### B-SHIP-2. Package.swift's unsafe flags: every one behind a trait; link flags only TUIkit's unexport patterns
+### B-SHIP-2. Package.swift's unsafe flags: every one behind a trait; link flags only TUI's unexport patterns
 
 *`Tools/validate-package-manifest.sh` (commit "A macOS release build lets the
 app's link drop …"; the link-flag exception from the commit that keeps
-TUIkit's symbols out of the app's export table, 2026-10-12)*
+TUI's symbols out of the app's export table, 2026-10-12)*
 
 **Shipped:** the manifest check, which failed on any `unsafeFlags` because
 SwiftPM used to refuse them in a versioned dependency, fails on any
@@ -56,15 +56,15 @@ on the app's own link: the owner's rule that app-wide link flags are the
 developer's opt-in), with one exception since 2026-10-12, the owner's
 "-unexported_symbol sounds worth doing": a linker setting whose flags are
 nothing but `-Xlinker -unexported_symbol -Xlinker '_$s<length><module>*'`,
-where `<module>` is a target of this manifest named `TUIkit…` and
+where `<module>` is a target of this manifest named `TUI…` and
 `<length>` its length. Such a pattern matches only symbols Swift names under a
-TUIkit module; the check refuses a
+TUI module; the check refuses a
 wider wildcard, another package's module, a wrong length, a list file, or any
 other flag beside the patterns (its self-test has each case). It still
 reaches the app in three ways, which Package.swift and the README spell out:
 it lands on a developer's own `.dynamic` library too; the developer's own
-extensions of TUIkit's types and protocols, whose symbols Swift names after
-the extended type's module, leave the exports with TUIkit's (this entry first
+extensions of TUI's types and protocols, whose symbols Swift names after
+the extended type's module, leave the exports with TUI's (this entry first
 said the patterns changed nothing of the app's own, which the lane's review
 found false the same day); and ld refuses it
 beside an export list (B-SHIP2-1 in
@@ -80,7 +80,7 @@ no client could turn such a flag off; nothing in the package needs it today.
 *`Tools/check-span-compatibility.sh` (its header, "WHY NOT A UNIT TEST"), on
 CI's "macOS 26 · Swift 6.4" lane*
 
-**Asked:** a check that fails if TUIkit starts depending on
+**Asked:** a check that fails if TUI starts depending on
 `libswiftCompatibilitySpan.dylib`, "ideally in unit tests, if it's cheap enough
 and makes sense there, but at the very least in CI".
 
@@ -93,7 +93,7 @@ and nothing at -O. The same source built as a library gets an
 `LC_LOAD_DYLIB @rpath/libswiftCompatibilitySpan.dylib` at -Onone and none at
 -O.
 
-- A test that reads the load commands of the image holding TUIkit's code (the
+- A test that reads the load commands of the image holding TUI's code (the
   form item 4 described) would fail on code that ships clean.
 - A test that asserts the test process never loaded the library (review round
   1's suggestion; a 6.2.4 test run does not load it today, measured) fails in
@@ -107,10 +107,10 @@ would pass now and fail later on a change that ships nothing new.
 
 **What ships instead:** the CI check on the 6.4 lane's release build. It reads
 Stress, Example and the objects of every module a library product ships,
-TUIkitAppKit's among them, which no executable links: "28 objects of 28
+TUIAppKit's among them, which no executable links: "28 objects of 28
 library modules … none refers to a Span-family symbol" on this tree.
 
 **If you want a unit test anyway:** it is cheap, one image's load commands. The
-price is the false failure above, the first time TUIkit hands a `Span` to a
+price is the false failure above, the first time TUI hands a `Span` to a
 generic function. Its fix would be an allow-list of debug-only references,
 which is the release check's job.

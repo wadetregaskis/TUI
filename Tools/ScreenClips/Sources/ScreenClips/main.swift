@@ -1,7 +1,7 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  main.swift
 //
-//  ScreenClips: the README's clips, each a TUIkit app that plays itself.
+//  ScreenClips: the README's clips, each a TUI app that plays itself.
 //
 //      ScreenClips list                      every clip: id, size, length, terminal, title
 //      ScreenClips info <clip>               one clip's size and length, as shell variables

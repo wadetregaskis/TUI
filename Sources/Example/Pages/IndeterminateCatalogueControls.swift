@@ -1,10 +1,10 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  IndeterminateCatalogueControls.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// The ProgressView page's controls for its indeterminate catalogue: the speed
 /// every bar in it runs at, and the width they are all drawn at.

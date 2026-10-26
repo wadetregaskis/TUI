@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Drive a TUIkit app in a PTY and examine the bytes it ACTUALLY emitted.
+"""Drive a TUI app in a PTY and examine the bytes it ACTUALLY emitted.
 
 `tui_walk.py` and `tui_screens.py` decode the child's output with `pyte` and
 ask questions about the resulting screen. That is the right tool for almost
@@ -38,7 +38,7 @@ Usage:
                [--term-program Apple_Terminal] [--cols N] [--rows N]
                [--args "--page textInput"] [--blink]
 
-`--term-program` forces the host TUIkit detects, so a compensation path can be
+`--term-program` forces the host TUI detects, so a compensation path can be
 exercised from any terminal (including CI). `--cluster` turns the byte counts
 into a verdict: exit 1 if any emission of it in the watch phase is missing the
 compensation the built rows carry, 2 if the phase never carried it at all
@@ -99,7 +99,7 @@ def parse_keys(script):
 
 
 class Child:
-    """A TUIkit app on the other end of a PTY, and every byte it has sent."""
+    """A TUI app on the other end of a PTY, and every byte it has sent."""
 
     def __init__(self, binary, cols, rows, term_program, arguments=()):
         self.all = bytearray()

@@ -1,7 +1,7 @@
 # Completing the SwiftUI API: decisions from lane TC1
 
 *Lane TC1 is the type-check half of the owner's request of 2026-10-07 to cut
-TUIkit's clean release compile time: profile the build with
+TUI's clean release compile time: profile the build with
 `-debug-time-function-bodies` and `-debug-time-expression-type-checking` and
 make the simple fixes that ease the compiler's work, in the modules the split
 has already carved out and in the test targets, which every lane builds. It
@@ -23,14 +23,14 @@ build's batch jobs do), min of 3 runs; both are noisy to about ±10%.
 
 ### A-TC1-1. Exit tests' bodies could move into helper functions
 
-*38 `#expect(processExitsWith:)` tests in 18 files of TUIkitTests*
+*38 `#expect(processExitsWith:)` tests in 18 files of TUITests*
 
 Swift Testing 6.2's exit-test macro type-checks the closure's body twice: once
 where it is written, as part of the `#expect` expression, and once in the
 function the macro generates from a copy of it. Each of these closures holds a
 whole test (`await MainActor.run { … }` with several `#expect`s inside), so
 each exit test costs 200–700 ms to type-check, the largest single items left in
-TUIkitTests after this lane.
+TUITests after this lane.
 
 Moving a body into a `@MainActor private static func …Body()` and calling it
 from the closure (`await MainActor.run { Self.gateOpenReachesTheOpenerBody() }`)
@@ -70,13 +70,13 @@ Still yours to answer.
 
 ## B. Shipped the safe option
 
-### B-TC1-1. TUIkitTests' `#expect` floor: only the outliers were rewritten
+### B-TC1-1. TUITests' `#expect` floor: only the outliers were rewritten
 
-*TUIkitTests, about 25,000 `#expect`/`#require` lines*
+*TUITests, about 25,000 `#expect`/`#require` lines*
 
-In TUIkitTests an `#expect` costs 14.8 ms to type-check on average in a WMO run
+In TUITests an `#expect` costs 14.8 ms to type-check on average in a WMO run
 and 8.2 ms in the debug build's batch jobs; in the per-module test targets
-(TUIkitCoreTests, TUIkitStylingTests, TUIkitViewTests, TUIkitImageTests) it is
+(TUICoreTests, TUIStylingTests, TUIViewTests, TUIImageTests) it is
 3–4 ms (5.4 in batch). With 25,000 of them, that floor is most of the target's
 374 s (WMO) / 241 s (batch CPU) of expression type checking. The lane rewrote
 the outliers only: about a hundred lines of 44 ms to 4.4 s each, by naming an
@@ -87,16 +87,16 @@ failure message still prints both sides).
 A probe (40 trivial `#expect(xs.count == N)`, primary-file, median of 3)
 priced the floor's parts:
 
-| probe file's imports | in TUIkitTests | in TUIkitCoreTests |
+| probe file's imports | in TUITests | in TUICoreTests |
 |---|---|---|
 | `Testing` only | 5.9 ms per `#expect` | 3.6 ms |
-| `Testing`, `TUIkitCore` | 6.3 ms | 3.6 ms |
-| `Testing`, `TUIkit` | 7.0 ms | — |
-| `Testing`, `TUIkit`, `@testable TUIkitFoundation` | 8.1 ms | — |
+| `Testing`, `TUICore` | 6.3 ms | 3.6 ms |
+| `Testing`, `TUI` | 7.0 ms | — |
+| `Testing`, `TUI`, `@testable TUIFoundation` | 8.1 ms | — |
 
 So about two thirds of the difference is the module itself, not the file's
-imports: a plain `a == b` in TUIkitTests weighs 169 `==` overloads against 105
-in TUIkitCoreTests, the 64 extra being TUIkitTests' own hand-written `static
+imports: a plain `a == b` in TUITests weighs 169 `==` overloads against 105
+in TUICoreTests, the 64 extra being TUITests' own hand-written `static
 func ==` (66 of them, mostly memo-test views whose partial equality is the
 point of the test, so they cannot be synthesized). The rest is the umbrella
 import and `@testable`.
@@ -106,7 +106,7 @@ import and `@testable`.
 - **Rewrite every `#expect` over 20 ms** (4,100 lines, 123 s in WMO, 48 s of
   batch CPU): a churn pass over a fifth of the suite for perhaps half of that,
   each line a typed `let` more. Not recommended.
-- **Move tests out of TUIkitTests as the split carves modules**, into per-module
+- **Move tests out of TUITests as the split carves modules**, into per-module
   test targets that import only their module: the floor there is half, and
   each target compiles in parallel. This is the structural lever, and it
   belongs to the split's test-target plan rather than to this lane.
@@ -114,7 +114,7 @@ import and `@testable`.
 **Status, 2026-10-10.** Lane TT2 (b377b5f24) split the umbrella suite into four
 test targets **by area**, each under 8,000 `#expect`s, rather than into
 module-only targets: all four still import the umbrella and `@testable`
-TUIkitTestSupport. Measured by TT2 (CPU, two repeats): a one-file test edit
+TUITestSupport. Measured by TT2 (CPU, two repeats): a one-file test edit
 costs about 18 CPU s instead of about 60, and a rebuild of every test file
 100 s (6.2.4) and 228 s (6.4.0) less, at or above what the module-only lever
 was estimated to buy; wall time moved only 5 to 12 s. What is left is the import
@@ -127,7 +127,7 @@ rebuild, by estimate); both fuller versions are recorded in
 ### C-TC1-1. MemberImportVisibility on the test targets
 
 It would hide Foundation's operator members from the test files that do not
-import Foundation (950 of TUIkitTests' 1,177). Measured on two such files
+import Foundation (950 of TUITests' 1,177). Measured on two such files
 (primary-file, 547 expressions): 1,009.2 ms without it, 1,016.2 ms with it —
 no change, and two files needed `import Foundation` added. Operator lookup is
 not what that feature scopes.

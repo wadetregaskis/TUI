@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Strings_g21.swift
 //
 //  Created by Wade Tregaskis
@@ -8,7 +8,7 @@
 //  which titles the terminal while it is in front; the Inspector window
 //  (a `Window` scene, opened with `openWindow`), the Settings scene (a sheet),
 //  and the Menus page's section on them. The menu bar's own items (Settings…,
-//  Close Window, the Window menu) are TUIkit's strings. English is the source
+//  Close Window, the Window menu) are TUI's strings. English is the source
 //  of truth; every other language carries the same key set.
 
 // A sentence a translator reads whole is one string on one line.
@@ -20,7 +20,7 @@ extension ExampleStrings {
             "page.menus.scenesSection": "Scenes · openWindow, Settings",
             "page.menus.scenesInstruction": "The Example declares three scenes: this window, an Inspector window and Settings. The Inspector opens over the whole terminal, from here or the Window menu; this window carries on behind it, and Escape or Close brings it back as it was. Settings comes up as a sheet: from the link here, the app menu's Settings…, or ⌃,.",
             "page.menus.openInspector": "Open Inspector",
-            "app.windowTitle": "TUIkit Example",
+            "app.windowTitle": "TUI Example",
             "inspector.title": "Inspector",
             "inspector.explain": "A Window scene, opened over the main window with openWindow(id:). Its @SceneStorage is its own: the count below is kept for this window, apart from the main window's.",
             "inspector.count": "Count",
@@ -35,7 +35,7 @@ extension ExampleStrings {
             "page.menus.scenesSection": "Szenen · openWindow, Settings",
             "page.menus.scenesInstruction": "Das Beispiel deklariert drei Szenen: dieses Fenster, ein Inspektor-Fenster und die Einstellungen. Der Inspektor öffnet sich über dem ganzen Terminal, von hier oder aus dem Menü „Fenster“; dieses Fenster läuft dahinter weiter, und Esc oder Schließen bringt es zurück, wie es war. Die Einstellungen erscheinen als Sheet: über den Link hier, „Einstellungen …“ im App-Menü oder ⌃,.",
             "page.menus.openInspector": "Inspektor öffnen",
-            "app.windowTitle": "TUIkit-Beispiel",
+            "app.windowTitle": "TUI-Beispiel",
             "inspector.title": "Inspektor",
             "inspector.explain": "Eine Window-Szene, mit openWindow(id:) über dem Hauptfenster geöffnet. Ihr @SceneStorage gehört ihr allein: Der Zähler unten wird für dieses Fenster geführt, getrennt von dem des Hauptfensters.",
             "inspector.count": "Zählen",
@@ -50,7 +50,7 @@ extension ExampleStrings {
             "page.menus.scenesSection": "Scènes · openWindow, Settings",
             "page.menus.scenesInstruction": "L'exemple déclare trois scènes : cette fenêtre, une fenêtre Inspecteur et les réglages. L'inspecteur s'ouvre sur tout le terminal, depuis ici ou le menu Fenêtre ; cette fenêtre continue derrière lui, et Échap ou Fermer la ramène telle qu'elle était. Les réglages s'affichent en feuille : par le lien ici, Réglages… dans le menu de l'app, ou ⌃,.",
             "page.menus.openInspector": "Ouvrir l'inspecteur",
-            "app.windowTitle": "Exemple TUIkit",
+            "app.windowTitle": "Exemple TUI",
             "inspector.title": "Inspecteur",
             "inspector.explain": "Une scène Window, ouverte par-dessus la fenêtre principale avec openWindow(id:). Son @SceneStorage lui appartient : le compte ci-dessous est gardé pour cette fenêtre, à part de celui de la fenêtre principale.",
             "inspector.count": "Compter",
@@ -65,7 +65,7 @@ extension ExampleStrings {
             "page.menus.scenesSection": "Scene · openWindow, Settings",
             "page.menus.scenesInstruction": "L'esempio dichiara tre scene: questa finestra, una finestra Ispettore e le impostazioni. L'ispettore si apre su tutto il terminale, da qui o dal menu Finestra; questa finestra continua dietro di esso, ed Esc o Chiudi la riporta com'era. Le impostazioni compaiono come foglio: dal link qui, da Impostazioni… nel menu dell'app, o con ⌃,.",
             "page.menus.openInspector": "Apri ispettore",
-            "app.windowTitle": "Esempio TUIkit",
+            "app.windowTitle": "Esempio TUI",
             "inspector.title": "Ispettore",
             "inspector.explain": "Una scena Window, aperta sopra la finestra principale con openWindow(id:). Il suo @SceneStorage è suo: il conteggio qui sotto è tenuto per questa finestra, separato da quello della finestra principale.",
             "inspector.count": "Conta",
@@ -80,7 +80,7 @@ extension ExampleStrings {
             "page.menus.scenesSection": "Escenas · openWindow, Settings",
             "page.menus.scenesInstruction": "El ejemplo declara tres escenas: esta ventana, una ventana Inspector y los ajustes. El inspector se abre sobre todo el terminal, desde aquí o desde el menú Ventana; esta ventana sigue detrás de él, y Esc o Cerrar la devuelve tal como estaba. Los ajustes aparecen como hoja: desde el enlace de aquí, Ajustes… en el menú de la app, o ⌃,.",
             "page.menus.openInspector": "Abrir inspector",
-            "app.windowTitle": "Ejemplo de TUIkit",
+            "app.windowTitle": "Ejemplo de TUI",
             "inspector.title": "Inspector",
             "inspector.explain": "Una escena Window, abierta sobre la ventana principal con openWindow(id:). Su @SceneStorage es suyo: la cuenta de abajo se guarda para esta ventana, aparte de la de la ventana principal.",
             "inspector.count": "Contar",
@@ -95,7 +95,7 @@ extension ExampleStrings {
             "page.menus.scenesSection": "场景 · openWindow、Settings",
             "page.menus.scenesInstruction": "本示例声明了三个场景：这个窗口、一个检查器窗口和设置。检查器从这里或“窗口”菜单打开，覆盖整个终端；这个窗口在它后面继续运行，按 Esc 或“关闭”即可原样回来。设置以表单形式出现：通过这里的链接、应用菜单中的“设置…”或 ⌃,。",
             "page.menus.openInspector": "打开检查器",
-            "app.windowTitle": "TUIkit 示例",
+            "app.windowTitle": "TUI 示例",
             "inspector.title": "检查器",
             "inspector.explain": "一个 Window 场景，用 openWindow(id:) 在主窗口上方打开。它的 @SceneStorage 归它自己：下面的计数为这个窗口单独保存，与主窗口的分开。",
             "inspector.count": "计数",
@@ -110,7 +110,7 @@ extension ExampleStrings {
             "page.menus.scenesSection": "シーン · openWindow、Settings",
             "page.menus.scenesInstruction": "このサンプルは 3 つのシーンを宣言しています。このウインドウ、インスペクタウインドウ、設定です。インスペクタはここか「ウインドウ」メニューから開き、端末全体を覆います。このウインドウはその後ろで動き続け、Esc か「閉じる」で元のまま戻ります。設定はシートとして表示されます。ここのリンク、アプリメニューの「設定…」、または ⌃, から開きます。",
             "page.menus.openInspector": "インスペクタを開く",
-            "app.windowTitle": "TUIkit サンプル",
+            "app.windowTitle": "TUI サンプル",
             "inspector.title": "インスペクタ",
             "inspector.explain": "Window シーンです。openWindow(id:) でメインウインドウの上に開きます。@SceneStorage はこのウインドウ専用で、下のカウントはメインウインドウとは別に保存されます。",
             "inspector.count": "数える",

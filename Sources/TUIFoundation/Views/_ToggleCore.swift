@@ -1,0 +1,954 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  _ToggleCore.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+// MARK: - Internal Core View
+
+/// StateStorage property indices for ``_ToggleCore``. Lifted
+/// out of the generic struct because Swift does not allow
+/// static stored properties in generic types.
+private enum ToggleStateIndex {
+    // Negative: the label renders at the core's own identity, and 0...
+    // belongs to a composite label's own @State. See
+    // `StateStorage.StateKey`'s reserved-range table.
+    static let focusID = -50
+    static let isHovered = -51
+}
+
+/// Child-identity indices for ``_ToggleCore``'s own subviews, so their `@State`
+/// and focus slots stay distinct from each other and from the label's.
+private enum ToggleChildIndex {
+    /// The controls ``Toggle/toggleContent(_:)`` governs.
+    static let governedContent = 0
+    /// The row a toggle becomes inside an open pop-up menu.
+    static let menuRow = 1
+}
+
+/// The switch style's knob glyphs, selected by the ambient ``ToggleCharacterSet``'s
+/// glyph repertoire (lifted out of the generic core for testability).
+enum SwitchIndicatorGlyphs {
+    /// Under ``ToggleCharacterSet/emoji``, the knob is the emoji-repertoire large
+    /// square in text presentation — ONE glyph spanning two cells, which
+    /// Terminal.app draws seamlessly where it shows visible seams between
+    /// adjacent FULL BLOCK cells. Every other style gets ▐▌ (right + left
+    /// half blocks): a one-cell-wide knob centred across its two cells, with
+    /// half a cell of TRACK showing on either side. The visible track margin
+    /// is what makes the knob read at all — the knob is drawn in the page
+    /// background colour, so an edge-to-edge ██ knob melts into the page
+    /// beside the switch and the whole control collapses to a bare colour
+    /// chip (found evaluating iTerm2, where `automatic` falls back to this
+    /// repertoire; the emoji square gets the same effect for free from its
+    /// glyph's intrinsic inset). Both knobs are two cells, so the 3-cell
+    /// track geometry never changes; the half blocks are plain Block
+    /// Elements — SGR-tintable, no variation selector to mis-measure
+    /// (issue #9).
+    static func knob(for style: ToggleCharacterSet) -> String {
+        style == .emoji ? "\u{2B1B}\u{FE0E}" : "\u{2590}\u{258C}"  // ⬛︎ : ▐▌
+    }
+
+    /// The sliding knob of the bracketed (ASCII) switch: `[o ]` / `[ o]`.
+    /// A plain letter, so the style stays honest for terminals/fonts where
+    /// the block glyphs are the reason `.ascii` was chosen.
+    static let asciiKnob = "o"
+}
+
+/// Internal view that handles the actual rendering of Toggle.
+struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
+    // In `Toggle`'s order, for its reason: no padding over a `Text` label.
+    let focusID: String?
+
+    /// The controls this toggle governs — see ``Toggle/toggleContent(_:)``.
+    let content: (@MainActor () -> AnyView)?
+
+    let label: Label
+    let isDisabled: Bool
+    let isOn: Binding<Bool>
+
+    /// Set for a toggle built by ``Toggle/init(_:)``: draw only, in the state
+    /// given, and register nothing — see ``ToggleProxy``.
+    var proxy: ToggleProxy = []
+
+    var body: Never {
+        fatalError("_ToggleCore renders via Renderable")
+    }
+
+    /// Size from one render (the label is flattened into the `<mark> label` row, so
+    /// its width can't be derived structurally), with flexibility taken from the
+    /// label: the toggle fills its width iff its label does. The single-render
+    /// fallback would size it the same, but always reports fixed — this adds the
+    /// structural label probe so a flexible label still makes the toggle flexible.
+    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        // Inside an open pop-up menu this toggle IS a menu row — see
+        // ``menuRow(context:)`` — so it is the row that gets measured, not a
+        // checkbox the menu would then not draw.
+        if context.environment.menuRowSink != nil {
+            return measureChild(
+                menuRow(context: context), proposal: proposal,
+                context: menuRowContext(context))
+        }
+        let size = measureFixedByRendering(self, proposal: proposal, context: context)
+        let labelFlexible = measureChild(label, proposal: proposal, context: context).isWidthFlexible
+        return ViewSize(width: size.width, height: size.height, isWidthFlexible: labelFlexible)
+    }
+
+    private typealias StateIndex = ToggleStateIndex
+    private typealias ChildIndex = ToggleChildIndex
+
+    /// One coloured piece of an indicator: the cells, the ink, and the field
+    /// beneath them when the style paints one.
+    ///
+    /// An indicator is two or three differently-coloured runs on one row, and
+    /// before this the strings were built by concatenating `colorize` calls while
+    /// nothing said where each run STARTED. That is fine for bytes and useless for
+    /// an ``OpacityRegion``, which needs a column. Describing the runs once and
+    /// deriving both from it is what keeps a claim on the cells it is a claim
+    /// about — a `⬛︎` is two cells wide and a `[` is one, so a hardcoded offset is
+    /// wrong under two `ToggleCharacterSet`s out of three.
+    private struct IndicatorRun {
+        let text: String
+        let ink: Color
+        var field: Color?
+    }
+
+    /// One run's bytes, stating its colours' opaque spelling — an SGR emitter has
+    /// no backdrop to composite against, so the alpha travels as a claim instead.
+    private static func painted(_ run: IndicatorRun) -> String {
+        ANSIRenderer.colorize(
+            run.text, foreground: run.ink.opaqueSpelling,
+            background: run.field?.opaqueSpelling)
+    }
+
+    /// The claims a visited sequence of runs owes, in the columns they landed in.
+    ///
+    /// Takes a VISITOR rather than an array, and that is measured rather than
+    /// stylistic. Describing an indicator as `[IndicatorRun]` cost `framedcolumns`
+    /// — the Toggle-heavy stress scenario — **+2.2%**, because the description is
+    /// rebuilt for every phase of a focus pulse, of every toggle, every frame, and
+    /// each rebuild is a heap allocation. Visiting allocates nothing, and the bytes
+    /// and the claims still read one description so their widths cannot drift.
+    private static func claims(
+        visiting runs: ((IndicatorRun) -> Void) -> Void
+    ) -> [OpacityRegion] {
+        // A first pass over the COLOURS alone, before any width is measured.
+        // `strippedLength` is a grapheme walk, and an indicator drawn in opaque
+        // colours — every indicator in nearly every app — would otherwise pay one
+        // per run per frame to discover it owes nothing.
+        //
+        // Measured as NOTHING: `framedcolumns` (24 toggles) went +0.6% → +0.5%,
+        // which is inside its own noise. Kept anyway, and this is the reason rather
+        // than an imagined saving — an indicator's runs are one to three ASCII or
+        // single-glyph strings, so each scan takes the byte fast path, and the count
+        // scales with the number of controls on the page rather than with anything
+        // this scenario varies. It is strictly less work and cannot diverge from the
+        // second pass, since both walk the same visitor.
+        var isTranslucent = false
+        runs { isTranslucent = isTranslucent || !$0.ink.isOpaque || $0.field?.isOpaque == false }
+        guard isTranslucent else { return [] }
+
+        var column = 0
+        var claims: [OpacityRegion] = []
+        runs { run in
+            let width = run.text.strippedLength
+            defer { column += width }
+            if let claim = OpacityRegion.claim(
+                offsetX: column, width: width, height: 1, ink: run.ink, field: run.field)
+            {
+                claims.append(claim)
+            }
+        }
+        return claims
+    }
+
+    /// The styled checkbox indicator (■/□ by default, `[x]`/`[ ]` under
+    /// `.toggleCharacterSet(.ascii)`) for the toggle's current state, themed for
+    /// focus / disabled, and floored against the hover face when it has one.
+    private func styledToggleIndicator(
+        isOnValue: Bool, isDisabled: Bool, isFocused: Bool, isHovered: Bool,
+        context: RenderContext
+    ) -> (text: String, animation: AnimatedCellRun?, claims: [OpacityRegion]) {
+        let palette = context.environment.palette
+        let brackets = bracketCycle(
+            isDisabled: isDisabled, isFocused: isFocused, isHovered: isHovered, context: context)
+
+        // The checkbox glyphs come from the configurable ``ToggleCharacterSet`` (■/□
+        // by default, `[x]`/`[ ]` under `.toggleCharacterSet(.ascii)`).
+        // `effectiveToggleCharacterSet`, NOT `toggleCharacterSet`: `.automatic` is a marker
+        // that must be resolved against this frame's terminal here, at the point
+        // of drawing — that is what lets it follow a tmux client change.
+        let style = context.environment.effectiveToggleCharacterSet
+        // Mixed — on for some of what it governs (`Toggle(sources:isOn:)`), or a
+        // configuration that says so — shows its own mark, in the on colour:
+        // something is on.
+        let isMixed = proxy.contains(.isMixed)
+        let mark = isMixed ? style.mixedMark : isOnValue ? style.onMark : style.offMark
+        let isOnValue = isOnValue || isMixed
+
+        // One function DESCRIBES the indicator at a given bracket colour; the bytes
+        // and the claims are both derived from it, so the animation's frames are
+        // the same cells the render draws and a claim is on the cells it names.
+        func runs(_ bracketColor: Color, _ visit: (IndicatorRun) -> Void) {
+            guard !style.openBracket.isEmpty else {
+                // Self-contained glyph (unicode squares): its *shape* shows on/off, so
+                // its colour is free to show state — accent when checked, plus the
+                // focus / hover / disabled tints the brackets would otherwise carry.
+                let markColor =
+                    (isOnValue && !isDisabled && !isFocused)
+                    ? (isHovered ? palette.hoveredForeground(palette.accent) : palette.accent)
+                    : bracketColor
+                visit(IndicatorRun(text: mark, ink: markColor))
+                return
+            }
+            // Two-tone bracketed (ASCII): the brackets show focus while the
+            // inner mark shows on/off (accent when checked, dimmed when
+            // disabled; the OFF mark is a space, so its colour is moot).
+            visit(IndicatorRun(text: style.openBracket, ink: bracketColor))
+            visit(
+                IndicatorRun(
+                    text: mark,
+                    ink: indicatorMarkColor(
+                        isOnValue: isOnValue, isDisabled: isDisabled, isHovered: isHovered,
+                        context: context)))
+            visit(IndicatorRun(text: style.closeBracket, ink: bracketColor))
+        }
+        func draw(_ bracketColor: Color) -> String {
+            var painted = ""
+            runs(bracketColor) { painted += Self.painted($0) }
+            return painted
+        }
+        let animation = brackets.run(draw: draw)
+        // Claimed while it pulses too: the only colour that moves is the brackets',
+        // between two spent ends, so the claim taken now is every frame's (§57).
+        return (
+            draw(brackets.now), animation,
+            brackets.claims { colour in Self.claims(visiting: { runs(colour, $0) }) })
+    }
+
+    /// Bracket color for the two-tone bracketed indicators (checkbox `[x]` and
+    /// switch `[o ]`): pulsing accent when focused, the normal foreground when
+    /// simply unfocused, and dimmed only when actually disabled.
+    /// (An unfocused-but-enabled control must stay readable — dimming it
+    /// to the disabled style made the brackets almost invisible against
+    /// the terminal background.)
+    ///
+    /// Hover LIFTS the resting colour (``Palette/hoveredForeground(_:)``)
+    /// rather than tinting it. It once swapped the brackets to
+    /// ``Palette/hoveredControlFace`` — a *fill* colour used as a foreground —
+    /// so the pointer made the indicator fade toward the page, which reads as
+    /// "disabled"; and it briefly painted the row's face instead, which a
+    /// toggle has no business doing, since it draws over its parent's
+    /// background rather than owning one.
+    private func bracketCycle(
+        isDisabled: Bool, isFocused: Bool, isHovered: Bool, context: RenderContext
+    ) -> IndicatorCycle {
+        let palette = context.environment.palette
+        let resting: Color
+        if isDisabled {
+            resting = palette.foregroundTertiary.opacity(
+                ViewConstants.disabledForeground, over: palette.background)
+        } else if isHovered {
+            resting = palette.hoveredForeground(palette.foreground)
+        } else {
+            resting = palette.foreground
+        }
+        // Both ends from `accentPulse()` — see §21. A `dim` from there beside a
+        // bright of `palette.accent` had the two disagreeing about a translucent
+        // accent, the dim end spending its alpha and the bright end carrying it.
+        let pulse = palette.accentPulse()
+        return IndicatorCycle(
+            isFocused: isFocused && !isDisabled,
+            dim: pulse.dim,
+            bright: pulse.bright,
+            resting: resting,
+            context: context)
+    }
+
+    /// One animated colour of an indicator, taken as a whole cycle.
+    ///
+    /// A cycle rather than "this tick's colour" because that is what lets the
+    /// toggle hand those cells to the run loop as an ``AnimatedCellRun``. Asking
+    /// for the live phase instead is a volatile read: it keeps the clock running
+    /// and re-renders the whole page, several times a second, to recolour two
+    /// cells. Building the cycle reads no clock at all.
+    private struct IndicatorCycle {
+        let cycle: SelectionEmphasisCycle
+
+        /// What the indicator shows when it is NOT focused — disabled, hovered,
+        /// or simply at rest. Held separately because a still cycle sits at
+        /// `bright`: right for a selection mark, wrong for chrome that recedes.
+        let resting: Color
+
+        let dim: Color
+        let bright: Color
+
+        @MainActor
+        init(isFocused: Bool, dim: Color, bright: Color, resting: Color, context: RenderContext) {
+            cycle = context.environment.selectionEmphasis.cycle(isFocused)
+            self.dim = dim
+            self.bright = bright
+            self.resting = resting
+        }
+
+        /// The colour to draw right now.
+        @MainActor
+        var now: Color { cycle.isFocused ? cycle.colorNow(dim: dim, bright: bright) : resting }
+
+        /// The indicator's run — it opens the toggle's row, so its offset is the
+        /// buffer's origin. Nil when the indicator is not breathing.
+        @MainActor
+        func run(draw: (Color) -> String) -> AnimatedCellRun? {
+            cycle.run(dim: dim, bright: bright, offsetX: 0, offsetY: 0, draw: draw)
+        }
+
+        /// The claims this indicator owes: the drawn frame's, which every frame of its
+        /// run shares. The only colour that moves is this cycle's, and both of its ends
+        /// spend their alpha (`accentPulse` for the brackets, `SwitchTrackBreath` for a
+        /// coloured track), so a moving cell owes nothing in any frame
+        /// and a still one — the mark, the knob — owes the same in all. Asserted,
+        /// because a breath whose ends disagree is silent otherwise (§44).
+        @MainActor
+        func claims(at claimsAt: (Color) -> [OpacityRegion]) -> [OpacityRegion] {
+            if cycle.isAnimating {
+                // Every frame's claims, built for the assertion — as the scrollbar's and
+                // the scroll indicator's are.
+                assertFramesOweOneClaim(
+                    cycle.colors(dim: dim, bright: bright).map(claimsAt), "a toggle's indicator")
+            }
+            return claimsAt(now)
+        }
+    }
+
+    /// Mark color for the two-tone bracketed indicators: accent when on, plain
+    /// foreground when off, dimmed when disabled — the state channel the
+    /// brackets (focus channel) don't carry.
+    private func indicatorMarkColor(
+        isOnValue: Bool, isDisabled: Bool, isHovered: Bool, context: RenderContext
+    ) -> Color {
+        let palette = context.environment.palette
+        if isDisabled {
+            return palette.foregroundTertiary.opacity(
+                ViewConstants.disabledForeground, over: palette.background)
+        }
+        let base = isOnValue ? palette.accent : palette.foreground
+        return isHovered ? palette.hoveredForeground(base) : base
+    }
+
+    /// A switch track: a two-cell knob (██, or ⬛︎ under the `.emoji` checkbox
+    /// style) on the side the switch points to — left for off, right for on —
+    /// over a coloured track so it reads as a two-position switch rather than
+    /// a checkbox, mirroring a macOS switch.
+    ///
+    /// The track colour carries the state, distinctly in all three states:
+    /// - **on**: the accent (highlight) colour, like macOS's blue;
+    /// - **off**: the palette's tertiary tone, separated from the page and the accent;
+    /// - **disabled**: the off track faded halfway toward the page.
+    ///
+    /// The off track is `SwitchTrackBreath.offTrack(in:)`: a palette rung, so it
+    /// follows the theme, moved until it stands off both the page the knob is drawn
+    /// in and the accent the same track turns when on. Disabled is that track faded
+    /// toward the page, so it is always quieter than off and the two never look
+    /// alike. The knob is the background colour so it contrasts the track on light
+    /// and dark terminals alike.
+    ///
+    /// That is the switch where controls are filled — the default. Where they are
+    /// drawn in lines, Braille dots or not at all (``ControlStyle``), it is a knob
+    /// between the family's caps instead (``linesSwitchIndicator(_:isOnValue:isDisabled:isFocused:isHovered:context:)``),
+    /// and under the `.ascii` character set the bracketed `[o ]` in every family.
+    private func styledSwitchIndicator(
+        isOnValue: Bool, isDisabled: Bool, isFocused: Bool, isHovered: Bool,
+        context: RenderContext
+    ) -> (text: String, animation: AnimatedCellRun?, claims: [OpacityRegion]) {
+        let palette = context.environment.palette
+        // The knob follows the checkbox style's glyph repertoire (see
+        // ``SwitchIndicatorGlyphs/knob(for:)``): the seamless two-cell emoji
+        // square under `.emoji`, two half blocks otherwise — and under a
+        // bracketed style (`.ascii`), a bracketed track with a sliding `o`.
+        // Resolved, not raw: the comparisons below are against concrete styles,
+        // which an unresolved `.automatic` marker could never equal.
+        let style = context.environment.effectiveToggleCharacterSet
+
+        if !style.openBracket.isEmpty {
+            // Bracketed (ASCII) switch: `[o ]` off, `[ o]` on — the knob slides
+            // like the coloured-track switch, inside the same bracket chrome as
+            // the `[x]` checkbox. Two-tone like the checkbox: brackets carry
+            // focus / disabled, the knob carries state (accent when on,
+            // foreground when off). No background colours at all, keeping the
+            // style honest for terminals/fonts where the block glyphs are the
+            // reason `.ascii` was chosen — so it holds under every control
+            // style, a lines face's glyphs among the ones it avoids.
+            let knob = SwitchIndicatorGlyphs.asciiKnob
+            return knobBetweenCaps(
+                (style.openBracket, style.closeBracket), knob: knob, isOnValue: isOnValue,
+                capsCycle: bracketCycle(
+                    isDisabled: isDisabled, isFocused: isFocused, isHovered: isHovered, context: context),
+                knobInk: indicatorMarkColor(
+                    isOnValue: isOnValue, isDisabled: isDisabled, isHovered: isHovered, context: context))
+        }
+
+        if let track = ControlEnds.SwitchTrack(in: context.environment) {
+            return linesSwitchIndicator(
+                track, isOnValue: isOnValue, isDisabled: isDisabled, isFocused: isFocused,
+                isHovered: isHovered, context: context)
+        }
+
+        let knob = SwitchIndicatorGlyphs.knob(for: style)
+
+        var trackColor: Color
+        let knobColor: Color
+        if isDisabled {
+            // The off track faded halfway toward the page background — reads as
+            // greyed-out / inactive on dark AND light palettes (a fade toward
+            // black turned the disabled track *more* prominent than "off" on
+            // light backgrounds), while staying distinct from the off track.
+            trackColor = SwitchTrackBreath.offTrack(in: palette).opacity(
+                ViewConstants.disabledForeground, over: palette.background)
+            knobColor = palette.background
+        } else if isOnValue {
+            trackColor = palette.accent
+            knobColor = palette.background
+        } else {
+            // Off: the palette's tertiary tone, separated from the accent (and the
+            // page), so a switch that's off never reads as a dimmer "on".
+            trackColor = SwitchTrackBreath.offTrack(in: palette)
+            knobColor = palette.background
+        }
+        // The track IS this style's foreground — it is the coloured thing the
+        // eye reads — so the pointer lifts it, exactly as it lifts the brackets
+        // of the styles that have them.
+        if isHovered {
+            trackColor = palette.hoveredForeground(trackColor)
+        }
+
+        // Focused: the TRACK breathes — the coloured-track styles have no
+        // bracket chrome to pulse, so the switch's own background carries the
+        // focus animation (same SelectionIndicator convention as the
+        // bracketed styles). The endpoints stay within the state's own hue —
+        // accent for on, the off track lifted toward the foreground for off —
+        // so the breathing never misreads as a state change, and the knob's
+        // half-block margin keeps it visible at the dim end of the pulse.
+        // Both ends spend their alpha over the page — see `SwitchTrackBreath`.
+        let ends = SwitchTrackBreath.ends(track: trackColor, isOn: isOnValue, palette: palette)
+        let track = IndicatorCycle(
+            isFocused: isFocused && !isDisabled,
+            dim: ends.dim,
+            bright: ends.bright,
+            resting: trackColor,
+            context: context)
+
+        // Off: knob then a blank cell; on: a blank cell then knob.
+        let cells = isOnValue ? " " + knob : knob + " "
+        func runs(_ background: Color, _ visit: (IndicatorRun) -> Void) {
+            visit(IndicatorRun(text: cells, ink: knobColor, field: background))
+        }
+        func draw(_ background: Color) -> String {
+            var painted = ""
+            runs(background) { painted += Self.painted($0) }
+            return painted
+        }
+        let animation = track.run(draw: draw)
+        // Claimed while it breathes, as the bracketed indicators are: both of the
+        // track's ends spend, so the claim taken now is every frame's (§58).
+        return (
+            draw(track.now), animation,
+            track.claims { colour in Self.claims(visiting: { runs(colour, $0) }) })
+    }
+
+    /// A switch where controls are not filled (``ControlEnds/SwitchTrack``):
+    /// `(○ )` / `( ●)` and the other shapes' caps. The caps are the lines'
+    /// ink — a lines button's, lifted under the pointer and faded while
+    /// disabled — and breathe the accent while focused, as a lines button's
+    /// do; the knob is the accent when on and the tertiary ink when off,
+    /// lifted under the pointer, faded while disabled. With no caps
+    /// (``ControlStyle/blank``) the knob breathes the focus itself.
+    private func linesSwitchIndicator(
+        _ track: ControlEnds.SwitchTrack, isOnValue: Bool, isDisabled: Bool, isFocused: Bool,
+        isHovered: Bool, context: RenderContext
+    ) -> (text: String, animation: AnimatedCellRun?, claims: [OpacityRegion]) {
+        let palette = context.environment.palette
+        var knobInk: Color
+        if isDisabled {
+            knobInk = palette.foregroundTertiary.opacity(ViewConstants.disabledForeground, over: palette.background)
+        } else {
+            knobInk = isOnValue ? palette.accent : palette.foregroundTertiary
+            if isHovered { knobInk = palette.hoveredForeground(knobInk) }
+        }
+        let hasCaps = track.ends.kind != .none
+        let resting =
+            hasCaps
+            ? ControlEnds.lineInk(
+                palette: palette, surface: context.environment.enclosingSurface, hovered: isHovered,
+                disabled: isDisabled)
+            : knobInk
+        let pulse = palette.accentPulse()
+        let cycle = IndicatorCycle(
+            isFocused: isFocused && !isDisabled, dim: pulse.dim, bright: pulse.bright, resting: resting,
+            context: context)
+        let knob = String(isOnValue ? ControlEnds.SwitchTrack.onKnob : track.offKnob)
+        return knobBetweenCaps(
+            hasCaps ? (String(track.ends.open), String(track.ends.close)) : nil, knob: knob,
+            isOnValue: isOnValue, capsCycle: cycle, knobInk: hasCaps ? knobInk : nil)
+    }
+
+    /// A knob and a blank cell — the knob on the left when off, on the right
+    /// when on — between two caps, which carry the focus in `capsCycle`'s
+    /// colour while the knob carries the state in `knobInk`: the ASCII switch
+    /// and a lines switch. With no caps, or no `knobInk`, the knob is drawn in
+    /// the cycle's colour, and so breathes the focus itself.
+    private func knobBetweenCaps(
+        _ caps: (open: String, close: String)?, knob: String, isOnValue: Bool, capsCycle: IndicatorCycle,
+        knobInk: Color?
+    ) -> (text: String, animation: AnimatedCellRun?, claims: [OpacityRegion]) {
+        func runs(_ capColour: Color, _ visit: (IndicatorRun) -> Void) {
+            let ink = knobInk ?? capColour
+            // The blank half of the track is a space in the knob's own colour: no
+            // ink lands on it, so a claim over it changes nothing, and describing it
+            // as a run is what keeps the closing cap's COLUMN right.
+            let (first, second) = isOnValue ? (" ", knob) : (knob, " ")
+            if let caps { visit(IndicatorRun(text: caps.open, ink: capColour)) }
+            visit(IndicatorRun(text: first, ink: ink))
+            visit(IndicatorRun(text: second, ink: ink))
+            if let caps { visit(IndicatorRun(text: caps.close, ink: capColour)) }
+        }
+        func draw(_ capColour: Color) -> String {
+            var painted = ""
+            runs(capColour) { painted += Self.painted($0) }
+            return painted
+        }
+        // Claimed while it pulses, as the checkbox is: only the caps move.
+        return (
+            draw(capsCycle.now), capsCycle.run(draw: draw),
+            capsCycle.claims { colour in Self.claims(visiting: { runs(colour, $0) }) })
+    }
+
+    /// The buffer for one of the built-in toggle styles: the indicator, the
+    /// label composed beside it, and the indicator's animation run.
+    ///
+    /// The switch style renders a two-position track (knob left = off, right =
+    /// on) on a distinct background, so it reads as a switch rather than a
+    /// checkbox; the others use the checkbox glyph.
+    private func builtInStyleBuffer(
+        isSwitch: Bool, isOnValue: Bool, isDisabled: Bool, isFocused: Bool, isHovered: Bool,
+        labelContext: RenderContext, palette: any Palette, context: RenderContext
+    ) -> (buffer: FrameBuffer, clickWidth: Int, clickHeight: Int, indent: Int) {
+        let styledIndicator =
+            isSwitch
+            ? styledSwitchIndicator(
+                isOnValue: isOnValue, isDisabled: isDisabled,
+                isFocused: isFocused, isHovered: isHovered, context: context)
+            : styledToggleIndicator(
+                isOnValue: isOnValue, isDisabled: isDisabled,
+                isFocused: isFocused, isHovered: isHovered, context: context)
+
+        let composed = composeLabelBuffer(
+            indicator: styledIndicator.text, labelContext: labelContext,
+            isDisabled: isDisabled, palette: palette)
+        var buffer = composed.buffer
+        // The indicator opens the toggle's first row, so its run needs no
+        // shifting. Handing it to the run loop is what lets the focus indicator
+        // breathe without re-rendering the page around it.
+        if !context.isMeasuring, let animation = styledIndicator.animation {
+            buffer.animatedCells = [animation]
+        }
+        // The indicator opens the first row, so its claims need no shifting either.
+        // Every indicator claims while it pulses too: its claims hold for every frame
+        // (`IndicatorCycle.claims(at:)`).
+        buffer.opacityRegions += styledIndicator.claims
+        return (
+            buffer, composed.titleWidth, composed.titleRows,
+            Self.labelIndent(forIndicator: styledIndicator.text))
+    }
+
+    /// The column the label starts in: the indicator's own width plus the space
+    /// after it.
+    ///
+    /// One function, because three things line up on it — a multi-view label's
+    /// subtitle, the controls `toggleContent(_:)` carries, and nothing else may
+    /// guess it. The indicator is a `ToggleCharacterSet` resolved against the
+    /// terminal at render time, so its width is `■` = 1, `⬛︎` = 2, `[x]` = 3,
+    /// and a hardcoded indent is wrong on two terminals out of three.
+    static func labelIndent(forIndicator indicator: String) -> Int {
+        FrameBuffer(lines: [indicator]).width + 1
+    }
+
+    /// Composes a built-in toggle's buffer from its indicator and label.
+    ///
+    /// A single-view label is flattened onto the indicator line, as before. A
+    /// label closure holding two or more views is the SwiftUI "title +
+    /// explanatory text" form: the first view becomes the clickable title on the
+    /// indicator line, and the rest become an explanatory subtitle on the line(s)
+    /// below — indented to the title column and drawn in the secondary colour, the
+    /// macOS checkbox-with-help-text convention. The subtitle is not a click
+    /// target.
+    ///
+    /// - Returns: the composed buffer, plus the width and row count of the
+    ///   clickable title (the indicator line) for the hit-test region.
+    private func composeLabelBuffer(
+        indicator: String, labelContext: RenderContext, isDisabled: Bool, palette: any Palette
+    ) -> (buffer: FrameBuffer, titleWidth: Int, titleRows: Int) {
+        // `.labelsHidden()` leaves the indicator alone — the box IS the
+        // control — and takes the separating space with the words, so the
+        // toggle is one glyph wide rather than a glyph and a gap. Every part
+        // goes, subtitle included: an explanatory line under a label that is
+        // not there explains nothing.
+        guard !labelContext.environment.controlLabelsAreHidden else {
+            let buffer = FrameBuffer(lines: [indicator])
+            return (buffer, buffer.width, buffer.height)
+        }
+        let parts = resolveChildViews(from: label, context: labelContext)
+
+        // Single-view label: flatten the whole label next to the indicator.
+        guard parts.count >= 2 else {
+            let labelText = TUIView.renderToBuffer(label, context: labelContext)
+                .lines.joined(separator: " ")
+            let buffer = FrameBuffer(lines: [indicator + " " + labelText])
+            return (buffer, buffer.width, buffer.height)
+        }
+
+        // Title = the first label view, flattened onto the indicator line.
+        let titleText = renderLabelPart(parts[0], maxWidth: nil, context: labelContext)
+            .lines.joined(separator: " ")
+        let titleLine = indicator + " " + titleText
+        let titleWidth = FrameBuffer(lines: [titleLine]).width
+
+        // Subtitle = the remaining label views: secondary, and indented to the
+        // title column (past "<indicator> ") so it left-aligns to the label, not
+        // the box. A disabled toggle keeps the inherited dimmed colour.
+        var subtitleContext = labelContext
+        subtitleContext.environment.controlKind = nil
+        if !isDisabled {
+            subtitleContext = subtitleContext.settingNotedEnvironment(
+                \.foregroundStyle,
+                to: subtitleContext.environment.foregroundStyle.keepingShadows(on: .color(palette.foregroundSecondary)), paint: true)
+        }
+        let indent = Self.labelIndent(forIndicator: indicator)
+        let indentString = String.spaces(indent)
+        // Wrap the subtitle to the width left after the indent. The enclosing
+        // stack hands the toggle the same `availableWidth` in both the measure
+        // pass (it proposes `.unspecified`, which falls back to `availableWidth`)
+        // and the render pass (it renders children at `availableWidth`), so
+        // wrapping to this width is layout-consistent — exactly as a wrapping
+        // `Text` is.
+        let subtitleWidth = max(1, labelContext.availableWidth - indent)
+
+        var lines = [titleLine]
+        for index in 1..<parts.count {
+            for line in renderLabelPart(parts[index], maxWidth: subtitleWidth, context: subtitleContext).lines {
+                lines.append(indentString + line)
+            }
+        }
+        return (FrameBuffer(lines: lines), titleWidth, 1)
+    }
+
+    /// Renders a single label part, wrapped to `maxWidth` when given (the
+    /// subtitle), or at its natural size when `maxWidth` is nil (the title).
+    private func renderLabelPart(_ part: ChildView, maxWidth: Int?, context: RenderContext) -> FrameBuffer {
+        let size = part.measure(proposal: ProposedSize(width: maxWidth, height: nil), context: context)
+        return part.render(width: maxWidth ?? size.width, height: size.height, context: context)
+    }
+
+    /// This toggle as a row of an open pop-up menu: a ``Button`` whose label is
+    /// the toggle's own state mark followed by the toggle's own label.
+    ///
+    /// A `Button`, and not a toggle drawn inside a menu, because a pop-up menu's
+    /// row is not a control that happens to sit in a column — it is a
+    /// *participant*. It claims an ordinal from the menu's ``MenuRowSink`` so
+    /// the arrows have somewhere to land, publishes its action so Return and a
+    /// click reach it, and names its hit-test region by that ordinal so the
+    /// column can slice the menu's lines back into rows. Every one of those is
+    /// `_ButtonCore`'s, and lifting them into a channel a `_ToggleCore` could
+    /// call too would have left the SECOND half — the row's look — still
+    /// reachable only from a `ButtonStyle`: the bar that spans the menu's
+    /// interior and breathes, the key-equivalent column at the trailing edge,
+    /// the hover wash, all of them `_MenuItemButtonStyle`'s and none of them
+    /// something a toggle drawing its own focus glow would pick up. Composing
+    /// the row out of the view that already has both is the whole fix.
+    ///
+    /// It is SwiftUI's shape as well: a `Toggle` in a menu is a menu item with a
+    /// state mark, not a switch drawn in one. What it costs is stated on
+    /// ``Toggle`` — a custom ``ToggleStyle`` and ``Toggle/toggleContent(_:)``
+    /// have no menu row to draw into, and neither reaches this branch.
+    ///
+    /// Dismissal comes free and correct: a `Button` in a menu runs its action
+    /// and then the menu's dismiss, which ``View/menuActionDismissBehavior(_:)``
+    /// is what suppresses — so a sticky toggle is `.disabled` on that modifier
+    /// and nothing here.
+    @MainActor
+    private func menuRow(context: RenderContext) -> some View {
+        let binding = isOn
+        let marks = context.environment.effectiveToggleCharacterSet
+        let mark = binding.wrappedValue ? marks.onMark : marks.offMark
+        return Button {
+            binding.wrappedValue.toggle()
+        } label: {
+            HStack(spacing: 1) {
+                // Verbatim: these are glyphs, not display text, and a
+                // `LocalizedStringKey` lookup on "■" would be a dictionary miss
+                // on every frame of every menu.
+                Text(verbatim: marks.openBracket + mark + marks.closeBracket)
+                label
+            }
+        }
+        .disabled(isDisabled)
+    }
+
+    /// The identity ``menuRow(context:)`` renders at — a step off this core's,
+    /// because indices `0...` at the core's own identity belong to a composite
+    /// label's `@State`, and the row's `Button` keeps its focus id, hover and
+    /// press boxes there.
+    private func menuRowContext(_ context: RenderContext) -> RenderContext {
+        context.withChildIdentity(erasedType: Label.self, index: ChildIndex.menuRow)
+    }
+
+    /// What this toggle's focus and pointer state is, registering it with the
+    /// focus system as it goes — or, for a stand-in, what it was told.
+    private struct Interaction {
+        let isProxy: Bool
+        let focusID: String
+        let isFocused: Bool
+        let hoverBox: StateBox<Bool>
+        let isHovered: Bool
+    }
+
+    @MainActor
+    private func interactionState(isDisabled: Bool, context: RenderContext) -> Interaction {
+        // A stand-in drawn by a custom style's body (``Toggle/init(_:)``) has
+        // the real toggle's state handed to it and registers nothing: the focus,
+        // the keys and the click are the real toggle's, and one control must be
+        // one focus stop.
+        let isProxy = proxy.contains(.isProxy)
+        let persistedFocusID: String
+        let isFocused: Bool
+        let hoverBox: StateBox<Bool>
+        let isHovered: Bool
+        let stateStorage = context.stateStorage!
+        if isProxy {
+            persistedFocusID = ""
+            isFocused = proxy.contains(.isFocused)
+            hoverBox = StateBox(false)
+            isHovered = proxy.contains(.isHovered)
+        } else {
+            persistedFocusID = FocusRegistration.persistFocusID(
+                context: context,
+                explicitFocusID: focusID,
+                defaultPrefix: "toggle",
+                propertyIndex: StateIndex.focusID
+            )
+            let binding = isOn
+            let handler = ActionHandler(
+                focusID: persistedFocusID,
+                action: { binding.wrappedValue.toggle() },
+                canBeFocused: !isDisabled
+            )
+            FocusRegistration.register(
+                context: context, handler: handler, focusID: persistedFocusID)
+            // A `.keyboardShortcut` on the toggle flips it, as SwiftUI's
+            // shortcuts "activate a button or toggle". A held key flips it
+            // once: a toggle has no repeat behaviour to ask for more.
+            KeyboardShortcutRegistrar.claim(
+                action: { binding.wrappedValue.toggle() }, isDisabled: isDisabled, repeats: false,
+                context: context)
+            // Drawing only — see `RenderContext.indicatesFocus(_:)`. Space still
+            // flips it.
+            isFocused = context.indicatesFocus(
+                FocusRegistration.isFocused(context: context, focusID: persistedFocusID))
+            FocusRegistration.publishActivationLabel(
+                LocalizationService.shared.string(for: LocalizationKey.StatusBar.toggle),
+                context: context, isFocused: isFocused)
+
+            // Hover state — flipped by the dispatcher on .entered / .exited events
+            // synthesised from motion. Not suppressed by focus: the two say
+            // different things (where the keyboard is, where the mouse is) and the
+            // toggle answers them in different ink — the brackets pulse for focus,
+            // the label and the mark lift for the pointer. Suppressed when
+            // disabled, which has nothing to answer with.
+            let hoverKey = StateStorage.StateKey(
+                identity: context.identity, propertyIndex: StateIndex.isHovered)
+            hoverBox = stateStorage.storage(for: hoverKey, default: false)
+            // A paused drag resting on a `.button` toggle draws it hovered
+            // while the spring-loading pause runs and as it fires (owner ruling
+            // B82); a toggle has no pressed look, and its flip is the emphasis.
+            let springLoads = context.environment.dragAndDropSession?.springLoadPhase(of: context.identity) != nil
+            isHovered = !isDisabled && (hoverBox.value || springLoads)
+        }
+        return Interaction(
+            isProxy: isProxy, focusID: persistedFocusID, isFocused: isFocused,
+            hoverBox: hoverBox, isHovered: isHovered)
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if context.environment.menuRowSink != nil {
+            return TUIView.renderToBuffer(
+                menuRow(context: context), context: menuRowContext(context))
+        }
+        let isDisabled = self.isDisabled || !context.environment.isEnabled
+        let palette = context.environment.palette
+
+        let interaction = interactionState(isDisabled: isDisabled, context: context)
+        let (isProxy, persistedFocusID, isFocused, hoverBox, isHovered) = (
+            interaction.isProxy, interaction.focusID, interaction.isFocused,
+            interaction.hoverBox, interaction.isHovered)
+        let isOnValue = isOn.wrappedValue
+
+        // The built-in styles render procedurally (focus glow + `ToggleCharacterSet`
+        // glyphs); a custom `ToggleStyle` renders through its `makeBody`. Either
+        // way the interaction wiring below (focus, mouse) is the core's job.
+        var buffer: FrameBuffer
+        // Extent of the *clickable* part of the toggle (the indicator + title
+        // row). An explanatory subtitle below the title is not a click target,
+        // so the hit region must not extend over it.
+        let clickWidth: Int
+        let clickHeight: Int
+        /// The column ``Toggle/toggleContent(_:)``'s controls start in.
+        let contentIndent: Int
+        let toggleStyle = context.environment.toggleStyle
+        if toggleStyle is DefaultToggleStyle || toggleStyle is CheckboxToggleStyle
+            || toggleStyle is SwitchToggleStyle {
+            // Render the label, keeping its colour styling. Stripping the ANSI
+            // here left the label with no foreground colour at all, so it drew
+            // in the terminal's default — unreadable against the themed
+            // background. A disabled toggle dims its label; otherwise the label
+            // inherits the normal foreground colour.
+            var labelContext = context
+            // Tag the label subtree so its Text resolves `.control(.toggle)` style
+            // entries (e.g. `.toggleTextStyle { … }`).
+            labelContext.environment.controlKind = .toggle
+            if isDisabled {
+                labelContext = labelContext.settingNotedEnvironment(
+                    \.foregroundStyle,
+                    to: labelContext.environment.foregroundStyle.keepingShadows(
+                        on: .color(
+                            palette.foregroundTertiary.opacity(
+                                ViewConstants.disabledForeground, over: palette.background))), paint: true)
+            } else if isHovered {
+                // The whole row answers the pointer, not just the indicator: the
+                // whole row is what the click hits. Whatever colour is in force
+                // is what gets lifted — the app's own included, since the lift
+                // keeps its hue and a colour nobody lifts is a colour that never
+                // answers. Same rule as a plain `Button`'s label.
+                let base =
+                    labelContext.environment.foregroundStyle?.representative
+                    ?? labelContext.environment.styleCascade
+                        .resolve(for: [.all, .text, .control(.toggle)]).foreground
+                    ?? palette.foreground
+                labelContext = labelContext.settingNotedEnvironment(
+                    \.foregroundStyle,
+                    to: labelContext.environment.foregroundStyle.keepingShadows(on: .color(palette.hoveredForeground(base))), paint: true)
+            }
+
+            let built = builtInStyleBuffer(
+                isSwitch: toggleStyle is SwitchToggleStyle, isOnValue: isOnValue, isDisabled: isDisabled, isFocused: isFocused,
+                isHovered: isHovered, labelContext: labelContext, palette: palette,
+                context: context)
+            buffer = built.buffer
+            clickWidth = built.clickWidth
+            clickHeight = built.clickHeight
+            contentIndent = built.indent
+        } else {
+            let configuration = ToggleStyleConfiguration(
+                label: AnyView(label),
+                isOn: isOn,
+                isMixed: proxy.contains(.isMixed),
+                isFocused: isFocused && !isDisabled,
+                isHovered: isHovered,
+                isEnabled: !isDisabled)
+            // The body sees the style that was in force where this one was set,
+            // so a `Toggle(configuration)` in it draws the toggle this style was
+            // applied over rather than recursing into this style again.
+            var bodyContext = context
+            bodyContext.environment.toggleStyleChain = context.environment.toggleStyleChain.inside
+            buffer = toggleStyle.makeBuffer(configuration: configuration, context: bodyContext)
+            clickWidth = buffer.width
+            clickHeight = buffer.height
+            // A custom style draws its own indicator — there is nothing here to
+            // measure, so content under it is not indented under one.
+            contentIndent = 0
+        }
+
+        // What the toggle governs, under it and indented to its label. Drawn
+        // whether the toggle is on or off — so the rows below do not move as it
+        // is flipped — but live only while it is on, which is also what keeps
+        // it out of the focus ring when it does not apply. Its own identity, a
+        // step off the core's, because indices 0... at the core's identity
+        // belong to a composite LABEL's `@State`.
+        if let content {
+            let governed = content()
+                .padding(.leading, contentIndent)
+                .disabled(isDisabled || !isOnValue)
+            buffer.appendVertically(
+                TUIView.renderToBuffer(
+                    governed,
+                    context: context.withChildIdentity(
+                        erasedType: AnyView.self, index: ChildIndex.governedContent)))
+        }
+
+        if !isProxy {
+            registerPointer(
+                on: &buffer, focusID: persistedFocusID, hoverBox: hoverBox,
+                clickWidth: clickWidth, clickHeight: clickHeight, isDisabled: isDisabled,
+                context: context)
+        }
+
+        return buffer
+    }
+
+    /// Hit-test region: a left-button release anywhere on the toggle row flips
+    /// its value, mirroring how Space / Enter activate it. The same region
+    /// drives the hover state machine — .entered / .exited (synthesised by the
+    /// dispatcher) flip the hover StateBox.
+    ///
+    /// The region covers the indicator-and-title row ONLY. Neither a
+    /// multi-view label's subtitle nor the controls ``Toggle/toggleContent(_:)``
+    /// carries is a click target: clicking a slider under a toggle must move
+    /// the slider, not flip the switch out from under it.
+    @MainActor
+    private func registerPointer(
+        on buffer: inout FrameBuffer, focusID persistedFocusID: String,
+        hoverBox: StateBox<Bool>, clickWidth: Int, clickHeight: Int, isDisabled: Bool,
+        context: RenderContext
+    ) {
+        guard !isDisabled, !context.isMeasuring,
+            let mouseDispatcher = context.environment.mouseEventDispatcher
+        else { return }
+        mouseDispatcher.requestFeature(.motion, in: context)
+        let focusManager = context.environment.focusManager
+        let captureFocusID = persistedFocusID
+        let toggleBinding = isOn
+        let handlerID = mouseDispatcher.register(in: context, hoverBox: hoverBox) { event in
+            switch event.phase {
+            case .pressed where event.button == .left:
+                return true
+            case .released where event.button == .left:
+                focusManager?.focus(id: captureFocusID)
+                toggleBinding.wrappedValue.toggle()
+                return true
+            default:
+                return false
+            }
+        }
+        buffer.hitTestRegions.append(
+            HitTestRegion(
+                offsetX: 0,
+                offsetY: 0,
+                width: clickWidth,
+                height: clickHeight,
+                handlerID: handlerID,
+                focusID: persistedFocusID
+            )
+        )
+        // A `.button` toggle is a button, and a drag held still over it under
+        // `.enabled` flips it as a click would; a checkbox is not spring-loaded
+        // under any behavior (both measured on macOS 15.8), and nor is a
+        // switch, which AppKit's `NSSwitch` cannot spring-load.
+        if context.environment.toggleStyle is ButtonToggleStyle,
+            context.environment.springLoadingBehavior.allows(byDefault: false),
+            let session = context.environment.dragAndDropSession
+        {
+            session.registerSpringLoadTarget(
+                DragAndDropSession.SpringLoadTarget(
+                    handlerID: handlerID, identity: context.identity,
+                    activate: { toggleBinding.wrappedValue.toggle() }),
+                in: context)
+        }
+    }
+}

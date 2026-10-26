@@ -193,7 +193,7 @@ is one shape round all of its members. A cell is joined or not, so here:
   rim was drawn, and a faded one's glass at full strength). A faded glass is
   also a surface of its own, and one shape has one. A `List` does not stop
   it; a glass in a list row inside a container joins as though the list were
-  not clipping it. Nothing else in TUIkit draws glass in lists.
+  not clipping it. Nothing else in TUI draws glass in lists.
 
 **Alternatives.**
 

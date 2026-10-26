@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  Strings_g1.swift
 //
 //  Created by LAYERED.work
@@ -82,7 +82,7 @@ extension ExampleStrings {
             "page.textStyles.redacted.loading": "Still loading",
             "page.textStyles.redacted.heading": "Contact",
             "page.textStyles.section.selection": "Selecting text (.textSelection)",
-            "page.textStyles.selection.explain": "Drag across either line. TUIkit selects what is drawn by itself; .textSelection says where it may.",
+            "page.textStyles.selection.explain": "Drag across either line. TUI selects what is drawn by itself; .textSelection says where it may.",
             "page.textStyles.selection.enabled": "A drag selects within this line (.enabled)",
             "page.textStyles.selection.disabled": "A drag here selects nothing (.disabled)",
             "page.textStyles.chromeExplain": "A Section's header/footer styling is themeable via .style(.chrome(...)); headers are bold + dim by default.",
@@ -92,7 +92,7 @@ extension ExampleStrings {
 
             // page.colors
             "page.colors.section.named": "Named Colours",
-            "page.colors.named.note": "SwiftUI's fifteen and TUIkit's magenta, fixed RGB on every terminal: Color.red",
+            "page.colors.named.note": "SwiftUI's fifteen and TUI's magenta, fixed RGB on every terminal: Color.red",
             "page.colors.red": "Red",
             "page.colors.orange": "Orange",
             "page.colors.yellow": "Yellow",
@@ -440,7 +440,7 @@ extension ExampleStrings {
             "page.textStyles.redacted.loading": "Lädt noch",
             "page.textStyles.redacted.heading": "Kontakt",
             "page.textStyles.section.selection": "Text auswählen (.textSelection)",
-            "page.textStyles.selection.explain": "Ziehe über eine der Zeilen. TUIkit wählt Gezeichnetes selbst aus; .textSelection sagt, wo es das darf.",
+            "page.textStyles.selection.explain": "Ziehe über eine der Zeilen. TUI wählt Gezeichnetes selbst aus; .textSelection sagt, wo es das darf.",
             "page.textStyles.selection.enabled": "Ein Ziehen wählt innerhalb dieser Zeile aus (.enabled)",
             "page.textStyles.selection.disabled": "Ein Ziehen hier wählt nichts aus (.disabled)",
             "page.textStyles.chromeExplain": "Die Kopf-/Fußzeilengestaltung eines Abschnitts ist über .style(.chrome(...)) anpassbar; Überschriften sind standardmäßig fett + abgeblendet.",
@@ -450,7 +450,7 @@ extension ExampleStrings {
 
             // page.colors
             "page.colors.section.named": "Benannte Farben",
-            "page.colors.named.note": "SwiftUIs fünfzehn und TUIkits Magenta, festes RGB auf jedem Terminal: Color.red",
+            "page.colors.named.note": "SwiftUIs fünfzehn und TUIs Magenta, festes RGB auf jedem Terminal: Color.red",
             "page.colors.red": "Rot",
             "page.colors.orange": "Orange",
             "page.colors.yellow": "Gelb",
@@ -798,7 +798,7 @@ extension ExampleStrings {
             "page.textStyles.redacted.loading": "Chargement en cours",
             "page.textStyles.redacted.heading": "Contact",
             "page.textStyles.section.selection": "Sélectionner du texte (.textSelection)",
-            "page.textStyles.selection.explain": "Faites glisser sur l'une des lignes. TUIkit sélectionne lui-même ce qui est dessiné ; .textSelection dit où il le peut.",
+            "page.textStyles.selection.explain": "Faites glisser sur l'une des lignes. TUI sélectionne lui-même ce qui est dessiné ; .textSelection dit où il le peut.",
             "page.textStyles.selection.enabled": "Un glissement sélectionne dans cette ligne (.enabled)",
             "page.textStyles.selection.disabled": "Un glissement ici ne sélectionne rien (.disabled)",
             "page.textStyles.chromeExplain": "Le style d'en-tête/pied de page d'une Section est thématisable via .style(.chrome(...)) ; les en-têtes sont gras + atténués par défaut.",
@@ -808,7 +808,7 @@ extension ExampleStrings {
 
             // page.colors
             "page.colors.section.named": "Couleurs nommées",
-            "page.colors.named.note": "Les quinze de SwiftUI et le magenta de TUIkit, en RVB fixe sur tout terminal : Color.red",
+            "page.colors.named.note": "Les quinze de SwiftUI et le magenta de TUI, en RVB fixe sur tout terminal : Color.red",
             "page.colors.red": "Rouge",
             "page.colors.orange": "Orange",
             "page.colors.yellow": "Jaune",
@@ -1156,7 +1156,7 @@ extension ExampleStrings {
             "page.textStyles.redacted.loading": "Caricamento in corso",
             "page.textStyles.redacted.heading": "Contatto",
             "page.textStyles.section.selection": "Selezionare testo (.textSelection)",
-            "page.textStyles.selection.explain": "Trascina su una delle righe. TUIkit seleziona da sé ciò che è disegnato; .textSelection dice dove può farlo.",
+            "page.textStyles.selection.explain": "Trascina su una delle righe. TUI seleziona da sé ciò che è disegnato; .textSelection dice dove può farlo.",
             "page.textStyles.selection.enabled": "Un trascinamento seleziona in questa riga (.enabled)",
             "page.textStyles.selection.disabled": "Un trascinamento qui non seleziona nulla (.disabled)",
             "page.textStyles.chromeExplain": "Lo stile di intestazione/piè di pagina di una Section è personalizzabile tramite .style(.chrome(...)); le intestazioni sono grassetto + attenuate per impostazione predefinita.",
@@ -1166,7 +1166,7 @@ extension ExampleStrings {
 
             // page.colors
             "page.colors.section.named": "Colori con nome",
-            "page.colors.named.note": "I quindici di SwiftUI e il magenta di TUIkit, RGB fisso su ogni terminale: Color.red",
+            "page.colors.named.note": "I quindici di SwiftUI e il magenta di TUI, RGB fisso su ogni terminale: Color.red",
             "page.colors.red": "Rosso",
             "page.colors.orange": "Arancione",
             "page.colors.yellow": "Giallo",
@@ -1514,7 +1514,7 @@ extension ExampleStrings {
             "page.textStyles.redacted.loading": "Aún cargando",
             "page.textStyles.redacted.heading": "Contacto",
             "page.textStyles.section.selection": "Seleccionar texto (.textSelection)",
-            "page.textStyles.selection.explain": "Arrastra sobre cualquiera de las líneas. TUIkit selecciona por sí mismo lo dibujado; .textSelection dice dónde puede.",
+            "page.textStyles.selection.explain": "Arrastra sobre cualquiera de las líneas. TUI selecciona por sí mismo lo dibujado; .textSelection dice dónde puede.",
             "page.textStyles.selection.enabled": "Arrastrar selecciona dentro de esta línea (.enabled)",
             "page.textStyles.selection.disabled": "Arrastrar aquí no selecciona nada (.disabled)",
             "page.textStyles.chromeExplain": "El estilo de encabezado/pie de una Section es personalizable mediante .style(.chrome(...)); los encabezados son negrita + atenuados de forma predeterminada.",
@@ -1524,7 +1524,7 @@ extension ExampleStrings {
 
             // page.colors
             "page.colors.section.named": "Colores con nombre",
-            "page.colors.named.note": "Los quince de SwiftUI y el magenta de TUIkit, RGB fijo en cualquier terminal: Color.red",
+            "page.colors.named.note": "Los quince de SwiftUI y el magenta de TUI, RGB fijo en cualquier terminal: Color.red",
             "page.colors.red": "Rojo",
             "page.colors.orange": "Naranja",
             "page.colors.yellow": "Amarillo",
@@ -1872,7 +1872,7 @@ extension ExampleStrings {
             "page.textStyles.redacted.loading": "仍在载入",
             "page.textStyles.redacted.heading": "联系人",
             "page.textStyles.section.selection": "选择文本（.textSelection）",
-            "page.textStyles.selection.explain": "在任一行上拖动。TUIkit 自行选择绘制出的内容；.textSelection 规定在哪里可以选择。",
+            "page.textStyles.selection.explain": "在任一行上拖动。TUI 自行选择绘制出的内容；.textSelection 规定在哪里可以选择。",
             "page.textStyles.selection.enabled": "拖动只在这一行内选择（.enabled）",
             "page.textStyles.selection.disabled": "在这里拖动不会选择任何内容（.disabled）",
             "page.textStyles.chromeExplain": "Section 的页眉/页脚样式可通过 .style(.chrome(...)) 主题化；标题默认为粗体 + 暗淡。",
@@ -1882,7 +1882,7 @@ extension ExampleStrings {
 
             // page.colors
             "page.colors.section.named": "命名颜色",
-            "page.colors.named.note": "SwiftUI 的十五种颜色和 TUIkit 的品红，在任何终端上都是固定 RGB：Color.red",
+            "page.colors.named.note": "SwiftUI 的十五种颜色和 TUI 的品红，在任何终端上都是固定 RGB：Color.red",
             "page.colors.red": "红色",
             "page.colors.orange": "橙色",
             "page.colors.yellow": "黄色",
@@ -2230,7 +2230,7 @@ extension ExampleStrings {
             "page.textStyles.redacted.loading": "読み込み中",
             "page.textStyles.redacted.heading": "連絡先",
             "page.textStyles.section.selection": "テキストの選択（.textSelection）",
-            "page.textStyles.selection.explain": "どちらかの行をドラッグしてください。TUIkit は描かれたものを自分で選択し、.textSelection がどこで選択できるかを決めます。",
+            "page.textStyles.selection.explain": "どちらかの行をドラッグしてください。TUI は描かれたものを自分で選択し、.textSelection がどこで選択できるかを決めます。",
             "page.textStyles.selection.enabled": "ドラッグはこの行の中だけを選択します（.enabled）",
             "page.textStyles.selection.disabled": "ここでドラッグしても何も選択されません（.disabled）",
             "page.textStyles.chromeExplain": "Section のヘッダー/フッターのスタイルは .style(.chrome(...)) でテーマ設定できます。ヘッダーはデフォルトで太字 + 薄字です。",
@@ -2240,7 +2240,7 @@ extension ExampleStrings {
 
             // page.colors
             "page.colors.section.named": "名前付きカラー",
-            "page.colors.named.note": "SwiftUIの15色とTUIkitのマゼンタ。どの端末でも固定のRGB：Color.red",
+            "page.colors.named.note": "SwiftUIの15色とTUIのマゼンタ。どの端末でも固定のRGB：Color.red",
             "page.colors.red": "赤",
             "page.colors.orange": "オレンジ",
             "page.colors.yellow": "黄",

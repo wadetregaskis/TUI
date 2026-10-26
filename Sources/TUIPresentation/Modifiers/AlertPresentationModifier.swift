@@ -1,0 +1,398 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  AlertPresentationModifier.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import TUIFoundation
+
+/// A modifier that presents an alert dialog when a binding is true.
+///
+/// This modifier mirrors SwiftUI's `.alert(isPresented:)` API. When `isPresented`
+/// is `true`, the base content is dimmed and the alert is shown centered on top.
+/// When `false`, only the base content is rendered.
+///
+/// ## Example
+///
+/// ```swift
+/// VStack {
+///     Text("Main content")
+/// }
+/// .alert("Warning", isPresented: $showAlert) {
+///     Button("Yes") { save() }
+///     Button("No", role: .cancel) {}
+/// } message: {
+///     Text("Are you sure?")
+/// }
+/// ```
+///
+/// Choosing any action closes the alert, as it does in SwiftUI — an action does
+/// not need to flip `isPresented` itself. Escape is the `.cancel`-role button:
+/// it runs that action, if there is one, and closes the alert either way. The
+/// status bar says so while the alert is up.
+public struct AlertPresentationModifier<Content: View, Actions: View, Message: View>: View {
+    /// The base content to render.
+    let content: Content
+
+    /// Binding to control alert visibility.
+    let isPresented: Binding<Bool>
+
+    /// The alert title.
+    let title: String
+
+    /// The alert message content (optional).
+    let message: Message?
+
+    /// The alert action buttons.
+    let actions: Actions
+
+    /// Alert border style (optional).
+    let borderStyle: BorderStyle?
+
+    /// Alert border color (optional).
+    let borderColor: Color?
+
+    /// Alert title color (optional).
+    let titleColor: Color?
+
+    /// Stack the action buttons vertically (a confirmation-dialog action sheet)
+    /// rather than the default horizontal alert row.
+    var verticalButtons: Bool = false
+
+    /// Whether the alert describes an error — the `error:` forms — which is
+    /// what a ``DialogSeverity/automatic`` severity makes critical.
+    var presentsError: Bool = false
+
+    /// The actions as the dialog draws them, with SwiftUI's implicit button:
+    /// a confirmation dialog — the vertical form, which nothing else uses —
+    /// with no `.cancel` button gets a standard Cancel, and an alert with no
+    /// buttons a standard OK.
+    var shownActions: _ImplicitDialogActions<Actions> {
+        _ImplicitDialogActions(actions: actions, isConfirmation: verticalButtons)
+    }
+
+    public var body: Never {
+        fatalError("AlertPresentationModifier renders via Renderable")
+    }
+}
+
+// MARK: - Renderable
+
+extension AlertPresentationModifier: Renderable {
+    public func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // A focus section unique to THIS alert instance, so stacked alerts /
+        // modals each isolate (only the topmost active section is interactive).
+        let sectionID = "alert-\(context.identity.path)"
+
+        // Each subtree gets its OWN child identity (mirrors
+        // ModalPresentationModifier): rendered at the modifier's identity, an
+        // action's / the content's first `@State` would share StateStorage key
+        // (identity, 0) with this modifier's drag-handler slot, and the two
+        // boxes would replace each other every frame. The content identity is
+        // identical in both branches so page state survives presentation.
+        let contentContext = context.withChildIdentity(type: Content.self, index: 0)
+
+        // If not presented, just return base content. Tear down the alert's
+        // focus section if it's still active (the alert was just dismissed), so
+        // the page's focus — and a ScrollView's scroll position — is restored
+        // rather than jumping to the top.
+        guard isPresented.wrappedValue else {
+            if !context.isMeasuring {
+                // Deactivation mutates focus state — a render side effect
+                // (see the presentation branch below).
+                context.environment.volatileReadTracker?.recordRenderSideEffect()
+                context.environment.focusManager?.deactivateSection(id: sectionID)
+                // Recentre next time it opens.
+                DialogDrag.reset(context: context, propertyIndex: StateIndex.dragHandler)
+            }
+            return TUIView.renderToBuffer(content, context: contentContext)
+        }
+
+        // Render message content to string if provided
+        let messageString: String
+        if let message {
+            let messageBuffer = TUIView.renderToBuffer(
+                message, context: context.withChildIdentity(type: Message.self, index: 2))
+            messageString = messageBuffer.lines.joined(separator: "\n").stripped
+        } else {
+            messageString = ""
+        }
+
+        // Build the alert view
+        let alert = AlertPanel(
+            title: title,
+            message: messageString,
+            borderStyle: borderStyle,
+            borderColor: borderColor,
+            titleColor: titleColor,
+            verticalButtons: verticalButtons,
+            actions: { shownActions }
+        )
+
+        // Register the alert focus section and activate it FIRST, so the page
+        // beneath registers its controls in the now-inactive page section (and
+        // can't steal focus/scroll) while the alert's own controls auto-focus.
+        if !context.isMeasuring {
+            // Section registration/activation is a per-frame render side
+            // effect: a memoised replay of this subtree would skip it, leaving
+            // an alert that no longer grabs focus. Declare it so value/measure
+            // memos decline caching.
+            context.environment.volatileReadTracker?.recordRenderSideEffect()
+            let focusManager = context.environment.focusManager
+            focusManager?.registerSection(id: sectionID)
+            // As a PRESENTED section, the same rule every presenter follows:
+            // never taken back from a surface stacked on this one. See
+            // `FocusManager.activatePresentedSection(id:)`.
+            focusManager?.activatePresentedSection(id: sectionID)
+            // Mark this section input-grabbing so the app's global default key
+            // bindings (appearance/theme) don't fire behind the alert.
+            focusManager?.markSectionModal(id: sectionID)
+            // …and take the keyboard, so only handlers rendered inside the
+            // alert run. Isolation already covers the page BENEATH; this also
+            // covers a sibling elsewhere in the tree.
+            context.environment.keyEventDispatcher!.grabInput(sectionID: sectionID)
+            // A claim on Escape made before this, outside the alert, names a
+            // key the alert now holds (`StatusBarState.withdrawEscapeClaim`).
+            context.environment.statusBar?.withdrawEscapeClaim()
+            // Whether the quit key works while the dialog is drawn: as
+            // `.dialogPreventsAppTermination(_:)` outside this modifier says,
+            // and by macOS's automatic rule where it says nothing.
+            let environment = context.environment
+            if Self.preventsTermination(
+                stated: environment.dialogPreventsAppTermination,
+                buttons: alertActions(from: shownActions, in: context),
+                isCritical: environment.dialogSeverity == .critical
+                    || (environment.dialogSeverity == .automatic && presentsError))
+            {
+                environment.statusBar?.preventQuit()
+            }
+
+            // Escape ANSWERS the alert with its cancel button, rather than
+            // merely closing it. An alert is a question; a `.cancel`-role button
+            // is its "no", and Escape is how a keyboard says no — which is why
+            // macOS gives Cancel the Escape key equivalent, and what
+            // ``ButtonRole/cancel`` has always documented. Closing without
+            // running that action is a different outcome: the caller is never
+            // told what the user chose, so a dialog escaped rather than clicked
+            // silently reports nothing at all.
+            //
+            // With no `.cancel` role, a button written with
+            // `.keyboardShortcut(.cancelAction)` is the "no": a macOS alert
+            // gives that button Escape (`AlertAction`, `escapeAction`).
+            //
+            // A disabled cancel button cannot be chosen by pointer or keyboard,
+            // so Escape does not choose it either; nor is one invented when the
+            // alert has neither. Both cases just close.
+            let isPresented = self.isPresented
+            let cancel = alertActions(from: shownActions, in: context).escapeAction
+            let dismiss = {
+                cancel?.button.action()
+                isPresented.wrappedValue = false
+            }
+
+            // Saying so on the STATUS BAR is what makes Escape work at all, not
+            // merely discoverable. `InputHandler` runs the status bar (layer 1)
+            // BEFORE the view key handlers (layer 2), so a page carrying its own
+            // "⎋ back" item would otherwise eat the key and navigate away with
+            // the alert still on screen. Publishing this item takes the key
+            // first AND stops the bar lying about where it goes. Section items
+            // are cleared each render pass, so dismissing restores the page's
+            // own item. Same mechanism, and the same reasoning, as
+            // `ModalPresentationModifier`.
+            //
+            // The general form of that hazard is closed now: the backdrop
+            // render publishes into a THROWAWAY status bar and shortcut
+            // registry (`isolatedForBackground`), so the page's items neither
+            // show nor fire while an alert is up. This item is still what
+            // makes Escape mean "dismiss" rather than nothing.
+            let dismissItem = StatusBarItem(
+                shortcut: Shortcut.escape,
+                    label: LocalizationService.shared.string(
+                        for: LocalizationKey.StatusBar.dismiss),
+                    action: dismiss)
+            context.environment.statusBar?.registerSectionItems(
+                sectionID: sectionID, items: [dismissItem], composition: .merge)
+
+            // The same dismissal, as a key handler, for a tree rendered without
+            // the app's status bar (a test harness, an embedded surface): there
+            // is no layer 1 to claim ESC there, so this is the only route. In a
+            // running app the item above fires first and this never runs.
+            context.environment.keyEventDispatcher!.addHandler(sectionID: sectionID) { event in
+                guard event.key == .escape else { return false }
+                dismiss()
+                return true
+            }
+        }
+
+        // The drag-offset handler below is a MANUAL box at this identity, and
+        // nothing else hydrates it — endRenderPass would prune it every frame,
+        // resetting a dragged dialog to centre on the next render. Same gotcha
+        // NavigationPresentationModifier documents, answered the same way.
+        context.stateStorage?.markActive(context.identity)
+
+        // Render the page beneath as an inert backdrop, isolated from the live
+        // focus / key / state systems (`isolatedForBackground`). The alert section
+        // is already active, so a background control rendered into the real focus
+        // manager would resolve to that section and steal the focus the alert's
+        // own actions should auto-receive — and stay live to hotkeys. Isolation
+        // keeps the real manager seeing only the alert, silences page `onKeyEvent`,
+        // and (via throwaway state) preserves the page's scroll/@State. The root
+        // compositor dims this buffer for the backdrop; mouse is isolated by that
+        // dimmed backdrop dropping the page's hit-test regions.
+        var baseBuffer = TUIView.renderToBuffer(
+            content, context: contentContext.isolatedForBackground())
+
+        // The page beneath is inert, and that has to be SAID rather than
+        // arrived at. Until now it was a side effect of dimming: the root
+        // compositor's backdrop pass rebuilds the buffer and drops its
+        // hit-test regions on the way. That covers a sheet, which dims — and
+        // leaves a `.fullScreenCover`, which deliberately does not, with every
+        // control underneath it still clickable. A cover over a page with a
+        // button drew "Loading…" and still fired the button when the blank
+        // cell above it was clicked.
+        //
+        // Dropped here instead, for both styles, so inertness follows from
+        // presenting rather than from a rendering detail that only one style
+        // performs.
+        //
+        // The RUNS stay: an alert always dims, so the page around it is on
+        // screen and has to keep moving. `dimmedAsBackdrop` flattens their
+        // frames with the rows, and `composited` punches out whatever the
+        // alert covers. See the same note on `ModalPresentationModifier`.
+        // The geometry markers stay, as they do there.
+        baseBuffer.removeHitTargets()
+
+        // Render the alert against the CONTENT AREA (screen minus the window's
+        // bars), not the full terminal height, in the alert section. The
+        // compositor clamps overlays to that content area top-biased, so a tall
+        // alert (a long message) built against the full height would lose its
+        // bottom rows — the action buttons and bottom border — under the status
+        // bar. Building against `overlayContentHeight` keeps the footer visible.
+        var alertContext = context
+            .withChildIdentity(erasedType: AlertPanel<Actions>.self, index: 1)
+            .withAvailableWidth(context.environment.terminalWidth)
+            .withAvailableHeight(context.environment.overlayContentHeight)
+        alertContext.environment.activeFocusSectionID = sectionID
+        alertContext.leavePresenter()
+        alertContext.environment.dialogPresentsError = presentsError
+        // Choosing an action dismisses the alert, as it does in SwiftUI: an
+        // alert is a question, and any of its buttons is an answer. `Button`
+        // reads this and runs it after the caller's own action, so the action
+        // does not have to (and no longer should) flip the binding itself —
+        // writing `false` twice is harmless, so existing code keeps working.
+        //
+        // Deliberately set on the ALERT's context only: the page beneath is
+        // rendered from `contentContext`, so its buttons never see it.
+        let dismissAlert = isPresented
+        alertContext.environment.dismissMenu = DismissMenuAction {
+            dismissAlert.wrappedValue = false
+        }
+        // `dismissMenu` is one channel serving two presentations, so the switch
+        // that governs MENU items must not reach an alert's buttons: an alert is
+        // a question and its buttons are answers, whatever a `.menuActionDismissBehavior`
+        // higher up the page said about menus. Re-asserted rather than merely
+        // left alone, because the environment cascades in from outside.
+        alertContext.environment.menuActionDismissBehavior = .enabled
+        // And the SwiftUI-facing spelling of the same thing. `dismissMenu` is
+        // the internal channel `Button` consults; `\.dismiss` is what an app
+        // author writes. Without it the alert's own actions inherit the
+        // top-level meaning of dismissal, which is to quit the application.
+        // Closes without choosing, exactly as `dismissMenu` does.
+        alertContext.environment.isPresented = true
+        alertContext.environment.dismiss = DismissAction {
+            dismissAlert.wrappedValue = false
+        }
+        var alertBuffer = renderPresentedDialog(
+            alert, context: alertContext,
+            capHeight: context.environment.overlayContentHeight)
+
+        guard !alertBuffer.isEmpty else { return baseBuffer }
+
+        // Make the alert draggable by its title/border; the compositor clamps it
+        // fully on screen.
+        let dragOffset = DialogDrag.offset(
+            for: &alertBuffer, context: context, propertyIndex: StateIndex.dragHandler)
+
+        // Float the alert to the screen root: it composites centred over the whole
+        // screen and dims everything beneath, from any attachment point.
+        baseBuffer.overlays.append(
+            OverlayLayer(
+                offsetX: dragOffset.x, offsetY: dragOffset.y, content: alertBuffer,
+                level: .alert, centered: true, dimsBackground: true
+            ).presenting(alertContext.identity))
+        return baseBuffer
+    }
+}
+
+/// StateStorage property indices for ``AlertPresentationModifier``. A free enum
+/// because the modifier is generic (which can't hold static stored properties).
+private enum StateIndex {
+    static let dragHandler = 0
+}
+
+// MARK: - Layoutable
+
+extension AlertPresentationModifier: Layoutable {
+    /// The alert is *presented over* the page (a centred overlay on the dimmed
+    /// base, which spans the page), so the layout footprint is the base
+    /// `content` — both when dismissed and when presented. Forwarding also keeps
+    /// the focus-section / status-bar side-effects on the render pass; a measure
+    /// must not register or activate sections.
+    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        // The content's child identity mirrors the render path so
+        // measure-time @State binds to the same boxes.
+        measureChild(
+            content, proposal: proposal,
+            context: context.withChildIdentity(type: Content.self, index: 0))
+    }
+}
+
+// MARK: - Implicit buttons
+
+/// A dialog's actions with the button SwiftUI adds when the app gave none.
+///
+/// An alert: "If no actions are present, the system includes a standard
+/// \"OK\" action." A confirmation dialog: "Dialogs include a standard dismiss
+/// action by default. If you provide a button with a role of
+/// ``ButtonRole/cancel``, that button takes the place of the default dismiss
+/// action." Each does nothing but close the dialog, as every one of a
+/// dialog's buttons closes it after its action.
+struct _ImplicitDialogActions<A: View>: View, ButtonProvider {
+    let actions: A
+    /// A confirmation dialog, which gets a Cancel, rather than an alert,
+    /// which gets an OK.
+    let isConfirmation: Bool
+
+    var body: some View { actions }
+
+    func extractActions(in context: RenderContext) -> [AlertAction] {
+        let actions = alertActions(from: actions, in: context)
+        if isConfirmation {
+            guard !actions.contains(where: { $0.role == .cancel }) else { return actions }
+            return actions + [
+                AlertAction(
+                    Button(
+                        LocalizationService.shared.string(for: LocalizationKey.Button.cancel), role: .cancel,
+                        action: {}))
+            ]
+        }
+        guard actions.isEmpty else { return actions }
+        return [AlertAction(Button(LocalizationService.shared.string(for: LocalizationKey.Button.ok), action: {}))]
+    }
+}
+
+// MARK: - In a Form
+
+/// An alert or a confirmation dialog written on a form row — `Button("Delete")
+/// { … }.confirmationDialog(…)` — goes around the row the form lays out, which
+/// keeps its place, as SwiftUI's form keeps it (measured, `Tools/SwiftUIProbes/Form rows`).
+extension AlertPresentationModifier: FormRowRewrapping {
+    package var formRowContent: Content { content }
+
+    package func rewrappingFormRow<V: View>(_ row: V) -> any View {
+        AlertPresentationModifier<V, Actions, Message>(
+            content: row, isPresented: isPresented, title: title, message: message, actions: actions,
+            borderStyle: borderStyle, borderColor: borderColor, titleColor: titleColor,
+            verticalButtons: verticalButtons, presentsError: presentsError)
+    }
+}

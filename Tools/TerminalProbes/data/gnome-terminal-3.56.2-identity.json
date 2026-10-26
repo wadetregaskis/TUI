@@ -52,7 +52,7 @@
       "query": "<ESC>[5n",
       "reply": "<ESC>[0n",
       "raw": "\u001b[0n",
-      "what": "Device status — ESC[0n; TUIkit's exchange fence"
+      "what": "Device status — ESC[0n; TUI's exchange fence"
     },
     "XTVERSION+DSR5": {
       "query": "<ESC>[>0q<ESC>[5n",

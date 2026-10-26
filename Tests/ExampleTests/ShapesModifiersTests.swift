@@ -1,4 +1,4 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ShapesModifiersTests.swift
 //
 //  Created by Wade Tregaskis
@@ -7,8 +7,8 @@
 import Testing
 
 @testable import Example
-import TUIkit
-@testable import TUIkitApp
+import TUI
+@testable import TUIApp
 
 extension ShapesPage: ExamplePageContent {}
 

@@ -81,7 +81,7 @@ The specification is the project owner's, and is taken as given:
 
 `help(_:)` goes on *any* view, so it cannot ride the focus system — most views
 it will be written on are not focusable. What every such view needs is a
-hit-test region, so the pointer can be known to be over it, and TUIkit already
+hit-test region, so the pointer can be known to be over it, and TUI already
 has the modifier that establishes one: `.onHover`.
 
 So `HelpModifier` is `.onHover` plus a publication, and it publishes to a

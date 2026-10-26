@@ -1,0 +1,217 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  SFSymbolTests.swift
+//
+//  Created by LAYERED.work
+//  License: MIT
+
+import Testing
+import TUICore
+
+@testable import TUIFoundation
+@testable import TUIStrings
+@testable import TUITestSupport
+@testable import TUIView
+
+/// Coverage for SF Symbol support: the Plane-16 PUA width/advance classification
+/// (`Character.terminalWidth` / `terminalAppCursorAdvance`, which is
+/// cross-platform — a pure range check), the Apple-only name → glyph resolver
+/// (``SFSymbol``), and ``Label/init(_:systemImage:)``.
+///
+/// Codepoint anchors (`star.fill` = U+1002C3, `checkmark` = U+100185) come
+/// straight from the SF Symbols app's own table — the same values the generator
+/// bakes — so these lock the data in too.
+@MainActor
+@Suite("SF Symbols")
+struct SFSymbolTests {
+
+    /// The Private Use Area glyph at `codepoint`. A typed helper rather than
+    /// `String(Unicode.Scalar(…)!)` inline: inside `#expect`, that spelling took
+    /// the type checker 41-43 ms a line to choose among `String.init`s (lane
+    /// TC1's primary-file measurement, min of 3 runs).
+    private func pua(_ codepoint: UInt32) -> String {
+        String(Unicode.Scalar(codepoint)!)
+    }
+
+    // MARK: - Layer 1: width + Terminal.app cursor advance (cross-platform)
+
+    @Test("An SF Symbol PUA scalar is a width-2, advance-1 under-advancer")
+    func puaWidthAndAdvance() {
+        // star.fill — well inside the Plane-16 PUA SF Symbols range.
+        let glyph = Character(Unicode.Scalar(0x10_02C3)!)
+        #expect(glyph.terminalWidth == 2)
+        #expect(glyph.terminalAppCursorAdvance == 1)
+    }
+
+    @Test("The PUA-B range is classified at its boundaries, not beyond")
+    func puaBoundaries() {
+        #expect(Character(Unicode.Scalar(0x10_0000)!).terminalWidth == 2)  // first PUA-B
+        #expect(Character(Unicode.Scalar(0x10_FFFD)!).terminalWidth == 2)  // last PUA-B
+        // Just below the plane — a plain ideograph-less codepoint stays 1 cell.
+        #expect(Character(Unicode.Scalar(0x0F_FFFD)!).terminalWidth == 1)
+    }
+
+    @Test("A line carrying a symbol glyph gets a CUF(1) Terminal.app compensation")
+    func compensationInjectsCUF() {
+        let line = "x" + pua(0x10_02C3) + "y"
+        // The glyph claims 2 cells but advances 1, so a CUF(1) is injected to
+        // push the cursor to the glyph's visual end (same path as VS-16 emoji).
+        #expect(line.withTerminalAppCursorCompensation().contains("\u{1B}[1C"))
+    }
+
+    // MARK: - Resolver
+
+    @Test("glyph(named:) resolves a known symbol to its PUA glyph (Apple), nil elsewhere")
+    func resolverKnownSymbol() {
+        #if canImport(AppKit)
+        #expect(SFSymbol.glyph(named: "star.fill") == pua(0x10_02C3))
+        #expect(SFSymbol.glyph(named: "checkmark") == pua(0x10_0185))
+        #expect(!SFSymbol.all.isEmpty)
+        #else
+        #expect(SFSymbol.glyph(named: "star.fill") == nil)
+        #expect(SFSymbol.all.isEmpty)
+        #endif
+    }
+
+    @Test("glyph(named:) returns nil for an unknown symbol name")
+    func resolverUnknownSymbol() {
+        #expect(SFSymbol.glyph(named: "definitely.not.a.real.symbol.xyzzy") == nil)
+    }
+
+    #if canImport(AppKit)
+    @Test("Binary search resolves an exact name that is a prefix of others")
+    func resolverPrefixBoundary() {
+        // `star` is a prefix of `star.fill`, `star.circle`, … — the binary
+        // search must return star's own glyph (U+1002C2), not a neighbour's.
+        #expect(SFSymbol.glyph(named: "star") == pua(0x10_02C2))
+        #expect(SFSymbol.glyph(named: "star.fill") == pua(0x10_02C3))
+        #expect(SFSymbol.glyph(named: "star") != SFSymbol.glyph(named: "star.fill"))
+        // An almost-match that isn't a real name still misses.
+        #expect(SFSymbol.glyph(named: "star.fil") == nil)
+    }
+    #endif
+
+    #if canImport(AppKit)
+    @Test("Each of the four codepoints packed into one element reads back in table order, and the last name too")
+    func packedCodepointLanes() {
+        // The table's first four names share its first `UInt64`, one per 16-bit
+        // lane, highest first; `zzz` is the last name, in an element whose two
+        // low lanes are padding. Values from the SF Symbols app's own table.
+        #expect(SFSymbol.glyph(named: "0.circle") == pua(0x10_0038))
+        #expect(SFSymbol.glyph(named: "0.circle.ar") == pua(0x10_1867))
+        #expect(SFSymbol.glyph(named: "0.circle.fill") == pua(0x10_0039))
+        #expect(SFSymbol.glyph(named: "0.circle.fill.ar") == pua(0x10_1868))
+        #expect(SFSymbol.glyph(named: "zzz") == pua(0x10_0583))
+        #expect(SFSymbol.all.count == SFSymbol.bakedCount)
+    }
+    #endif
+
+    #if canImport(AppKit)
+    @Test("The baked table is well-formed: PUA glyphs, sorted, unique names")
+    func tableWellFormed() {
+        let all = SFSymbol.all
+        #expect(all.count > 5000)
+        #expect(all == all.sorted { $0.name < $1.name })  // sorted ascending by name
+        #expect(Set(all.map(\.name)).count == all.count)  // names unique
+        // Every glyph is exactly one Plane-16 PUA scalar.
+        for entry in all {
+            let scalars = Array(entry.glyph.unicodeScalars)
+            #expect(scalars.count == 1)
+            if let value = scalars.first?.value {
+                #expect((0x10_0000...0x10_FFFD).contains(value))
+            }
+        }
+    }
+    #endif
+
+    // MARK: - Label
+
+    @Test("Label(_:systemImage:) always renders its title")
+    func labelRendersTitle() {
+        let text = renderToBuffer(
+            Label("Favourites", systemImage: "star.fill"), context: makeBareRenderContext()
+        ).lines.map { $0.stripped }.joined()
+        #expect(text.contains("Favourites"))
+    }
+
+    #if canImport(AppKit)
+    @Test("Label shows the symbol glyph before the title only when the font is present")
+    func labelShowsGlyph() {
+        let text = renderToBuffer(
+            Label("Star", systemImage: "star.fill"), context: makeBareRenderContext()
+        ).lines.map { $0.stripped }.joined()
+        let glyph = pua(0x10_02C3)
+        if SFSymbol.isFontAvailable {
+            // The SF Symbols font is installed here — the glyph renders.
+            #expect(text.contains(glyph))
+        } else {
+            // No font: the glyph is suppressed so it can't draw as a missing-glyph
+            // box; the label falls back to its title alone.
+            #expect(!text.contains(glyph))
+        }
+        #expect(text.contains("Star"))
+    }
+    #endif
+
+    @Test("canRender is the conjunction, and both halves are load-bearing")
+    func canRenderIsTheConjunction() {
+        // The predicate `Label`, `_SymbolIcon` and so `Image(systemName:)` all
+        // gate on. Asserting it as an IDENTITY rather than as fixed values is
+        // what makes it mean the same thing on a machine with the SF Symbols
+        // font and one without — the two cases this rule exists to separate.
+        #expect(
+            SFSymbol.canRender(named: "star.fill")
+                == (SFSymbol.isFontAvailable && SFSymbol.glyph(named: "star.fill") != nil))
+
+        // A name nobody has heard of fails the resolvability half everywhere,
+        // font or no font.
+        #expect(!SFSymbol.canRender(named: "definitely.not.a.symbol"))
+    }
+
+    @Test("isFontAvailable gates rendering, consistent with resolvability")
+    func fontAvailabilityConsistent() {
+        // A `static let`, so it's evaluated once — reading it just must not crash
+        // constructing the CoreText probe.
+        let available = SFSymbol.isFontAvailable
+        #if !canImport(CoreText)
+        // No CoreText (Linux): nothing can draw the Private-Use glyphs.
+        #expect(available == false)
+        #endif
+        // Availability is a strictly stronger claim than resolvability: if symbols
+        // are renderable here, the anchor name must at least resolve to a glyph.
+        if available {
+            #expect(SFSymbol.glyph(named: "star.fill") != nil)
+        }
+    }
+
+    #if canImport(AppKit)
+    @Test("The font probe's constant is star.fill's codepoint in the table")
+    func fontProbeScalarIsStarFill() {
+        // `isFontAvailable` probes CoreText with this constant rather than
+        // looking `star.fill` up, so a Mac without the font never reads the
+        // table. The generator writes it beside the table; a table regenerated
+        // with `star.fill` moved and the constant left behind fails here.
+        #expect(SFSymbol.fontProbeScalar == SFSymbol.scalar(forName: "star.fill"))
+    }
+    #endif
+
+    @Test("Label with an unresolvable symbol renders title-only, no leading gap")
+    func labelUnresolvedTitleOnly() {
+        // An unknown name resolves to nothing on every platform → just the title,
+        // with no icon column and no stray leading space.
+        let lines = renderToBuffer(
+            Label("Plain", systemImage: "definitely.not.a.real.symbol.xyzzy"),
+            context: makeBareRenderContext()
+        ).lines.map { $0.stripped }
+        #expect(lines.joined().contains("Plain"))
+        #expect(lines.first?.hasPrefix(" ") == false)
+    }
+
+    @Test("Label(title:icon:) composes a custom icon and title")
+    func labelCustomIconTitle() {
+        let text = renderToBuffer(
+            Label { Text("Inbox") } icon: { Text("@") }, context: makeBareRenderContext()
+        ).lines.map { $0.stripped }.joined()
+        #expect(text.contains("@"))
+        #expect(text.contains("Inbox"))
+    }
+}

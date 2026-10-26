@@ -1,0 +1,1106 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  Terminal+Input.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import TUIFoundation
+
+// MARK: - Turning bytes from stdin into events
+
+/// The input parser: bracketed paste, CSI / SS3 / meta sequences, mouse
+/// reports, focus reports, typed UTF-8, the kitty keyboard protocol's key
+/// reports while it is on (`KittyKeyDecoder`), and the Escape-versus-sequence
+/// disambiguation that holds a lone `ESC` for a round rather than committing
+/// it.
+///
+/// A focus report (`ESC [ I` / `ESC [ O`, mode 1004) is delivered as
+/// `TerminalInput.focusChanged`, never as a key. Behind an Escape it would
+/// otherwise be read as one meta-prefixed chord — see
+/// ``tryExtractMetaPrefixed()``.
+///
+/// Split out of `Terminal.swift` because that file had reached its length
+/// limit and this is the coherent half to lift: everything here reads and
+/// consumes ``Terminal/input``, and nothing here writes to the terminal. The
+/// state it works on has to stay on the type itself — an extension cannot hold
+/// stored properties — which is why the buffer, the paste flag, the stale
+/// counter and the two deferred-`ESC` flags are declared over there and are
+/// module-internal rather than private. Nothing outside this module can see
+/// ``Terminal`` at all.
+extension Terminal {
+    /// The bracketed-paste start marker (`ESC [ 2 0 0 ~`).
+    private static let pasteStart: [UInt8] = [
+        0x1B, 0x5B, 0x32, 0x30, 0x30, 0x7E,
+    ]
+
+    /// The bracketed-paste end marker (`ESC [ 2 0 1 ~`).
+    private static let pasteEnd: [UInt8] = [
+        0x1B, 0x5B, 0x32, 0x30, 0x31, 0x7E,
+    ]
+
+    /// The focus-in report (`ESC [ I`), sent while focus reporting (mode 1004)
+    /// is on when the terminal window, tab or pane gains focus.
+    private static let focusIn: [UInt8] = [0x1B, 0x5B, 0x49]
+
+    /// The focus-out report (`ESC [ O`), its counterpart for losing focus.
+    private static let focusOut: [UInt8] = [0x1B, 0x5B, 0x4F]
+
+    /// Whether `byte` turns a preceding `ESC` into the introducer of a
+    /// sequence, rather than leaving that `ESC` standing as the Escape key:
+    /// CSI `[`, SS3 `O`, or one of the string-terminated families' introducers
+    /// (`] P X ^ _`).
+    ///
+    /// One copy of the rule because three places have to ask it — the two
+    /// deferred-`ESC` re-attaches in ``readEvent()`` and the stale-partial arm
+    /// in ``resolveStuckPartial()``. The re-attaches used to list only `[` and
+    /// `O`, so a reply split across two `read()`s — its `ESC` in the first,
+    /// `_Gi=1;OK ESC \` in the second — committed the Escape key and then
+    /// typed the payload out, which is exactly what the string-family branch
+    /// of ``tryExtractRegularEvent()`` exists to prevent.
+    private static func continuesEscapeSequence(_ byte: UInt8) -> Bool {
+        byte == 0x5B || byte == 0x4F || String.isStringFamilyIntroducer(UInt32(byte))
+    }
+
+    /// Stale frames before a lone `ESC` is committed (the Escape-vs-sequence
+    /// timeout). Short, so Escape stays responsive.
+    private static let bareEscStaleFrames = 2
+
+    /// Stale frames of TOTAL silence before an unterminated bracketed paste is
+    /// delivered anyway. These are passes of the run loop that read nothing,
+    /// one ``readEvent()`` each: a second at the loop's 25 ms input poll
+    /// (`FramePacer.pendingInputPollNanos`), less while something else wakes
+    /// the loop sooner — two-thirds of one while an animation runs at 60
+    /// frames a second. Far longer than any gap inside a real paste, which
+    /// arrives as a continuous stream, and short enough that a user does not
+    /// sit in front of an app that has stopped answering the keyboard.
+    ///
+    /// It is the one way the rest of a paste is still read as keys: what the
+    /// terminal sends after such a pause comes after the paste has ended.
+    /// While the pause lasts, nothing tells a paste whose end marker was lost
+    /// from one that has only stopped for a moment, and the first must not
+    /// keep the keyboard.
+    ///
+    /// Without it the ONLY way out of paste mode was the end marker or the 1 MiB
+    /// cap: a paste whose `ESC[201~` never arrived swallowed every subsequent
+    /// keystroke into the paste buffer, forever, and the app looked frozen to
+    /// input while still rendering.
+    private static let stalledPasteStaleFrames = 40
+
+    /// Stale frames before an incomplete `ESC [` / `ESC O` is abandoned as a
+    /// dead sequence. Generous: a read-split sequence's tail arrives within a
+    /// frame or two, so by the time we reach this any real terminator is long
+    /// present — we only get here for a sequence the terminal truly never
+    /// finished. Until then we keep waiting rather than stranding its bytes
+    /// (the leak that turned a split mouse report's `M` into a keystroke).
+    private static let deadSequenceStaleFrames = 8
+
+    /// Tries to peel one complete regular (non-paste) event off the
+    /// front of ``input``. Returns the raw bytes, or `nil` if
+    /// the buffer doesn't have a complete sequence yet — in which
+    /// case the bytes already there stay put for the next call.
+    private func tryExtractRegularEvent() -> [UInt8]? {
+        // What is left of a sequence given up on as over-long goes first,
+        // unread (``abandonSequence(_:)``).
+        if abandonedSequence != nil, !skipAbandonedSequence() { return nil }
+        guard !input.isEmpty else { return nil }
+        let first = input[0]
+
+        // Plain (non-escape) byte: an ASCII event, or the lead of a multi-byte
+        // UTF-8 character (typed é/ß/中/emoji — anything a keyboard layout or
+        // IME produces beyond ASCII).
+        if first != 0x1B {
+            return tryExtractPlainText()
+        }
+
+        // ESC + ?  — need at least the byte after ESC.
+        guard input.count >= 2 else { return nil }
+        let second = input[1]
+
+        if second == 0x5B {  // ESC [ = CSI
+            return tryExtractCSI()
+        }
+
+        if second == 0x4F {  // ESC O = SS3: application-mode keys, F1-F4
+            return tryExtractSS3()
+        }
+
+        if second == 0x1B {
+            return tryExtractMetaPrefixed()
+        }
+
+        // A reply the application never asked for — a graphics acknowledgement,
+        // an OSC colour answer, a DCS report. These are OUTPUT the terminal
+        // volunteered, and the parser used to hand them to the app as TYPING:
+        // `ESC _ G i=7;OK ESC \` arrived as Alt+underscore followed by the
+        // keystrokes `G i = 7 ; O K`, and `=` is a shortcut (zoom, on the image
+        // pages) — so a single stray acknowledgement moved a control the user
+        // never touched.
+        //
+        // It was always possible for a terminal to volunteer one. It became
+        // likely when TUI started sending graphics commands, which are
+        // acknowledged unless every one of them says `q=2`, and "every one" is
+        // exactly the kind of thing that is true until it is not. Swallowing
+        // the reply is right whether or not it was asked for: this parser reads
+        // the keyboard, and nothing here is the keyboard.
+        //
+        // Swallowed, but not always thrown away: an OSC 10, 11 or 4 answer says
+        // what the terminal paints, and the startup exchange stops listening half
+        // a second after it asks, so one that arrives later — tmux's sixteen
+        // slots, a terminal whose theme changed — is kept for the run loop (see
+        // `Terminal+Replies.swift`). Nothing else is.
+        //
+        // Recursion, like `tryExtractMetaPrefixed()`, and bounded by the same
+        // thing: each pass consumes bytes, and the buffer is finite.
+        if String.isStringFamilyIntroducer(UInt32(second)) {
+            guard let length = stringSequenceLength() else {
+                // No terminator yet, and none in as many bytes as a reply runs to.
+                return input.count >= Self.maxStringSequenceBytes ? abandonSequence(.string) : nil
+            }
+            noteVolunteeredColorReply(headOfInputLength: length)
+            noteClipboardReply(headOfInputLength: length)
+            consume(length)
+            // A paste that reply completed goes ahead of whatever follows it
+            // (``extractDeliverableEvent()``).
+            if completedMIMEPaste != nil { return [] }
+            return tryExtractRegularEvent()
+        }
+
+        if second >= 0x80 {
+            return tryExtractMetaOnText()
+        }
+
+        // Alt+key — 2 bytes total.
+        let bytes = [first, second]
+        consume(2)
+
+        return bytes
+    }
+
+    /// Meta-prefixed escape sequence ("option as meta key"): ESC + a full
+    /// CSI/SS3 sequence, e.g. Option-Shift-Tab = ESC ESC [ Z. Assumes `input`
+    /// starts with `ESC ESC`.
+    ///
+    /// Consuming just the two ESCs here stranded the sequence's tail as
+    /// literal keystrokes — the `[` then fired a page shortcut. Extract the
+    /// INNER event and re-attach the meta prefix; if the inner sequence hasn't
+    /// fully arrived, put the prefix back and wait (the stale-partial
+    /// machinery handles a dead one).
+    ///
+    /// The prefix rides only on a KEY (``takesMetaPrefix(_:)``), and only on
+    /// the one straight after it: a sequence there that is cut short or
+    /// skipped as over-long leaves it nothing to ride on. In front of anything
+    /// else the first ESC is the Escape key, pressed just before the terminal
+    /// sent that, so it goes out alone and what follows parses on its own:
+    ///
+    /// - A focus report, a mouse report, a paste's start marker. Re-attached,
+    ///   the pair reached `KeyEvent.parse`, which reads `ESC ESC` and anything
+    ///   after it that is not a key as Option+Escape: no Escape, a chord nobody
+    ///   pressed, the report lost — and behind the start marker, no paste: its
+    ///   text was typed out as keys.
+    /// - A terminal reply. Nothing prefixes one. An OSC, DCS, APC, PM or SOS
+    ///   is told by its introducer, so the Escape goes at once, without
+    ///   waiting for the reply to end; a CSI that is not a key (a DA answer)
+    ///   is told once it has. Until 2026-10-11 a reply swallowed whole handed
+    ///   the prefix to the event AFTER it (Escape, a reply and `a` in one read
+    ///   was Option-a), and one skipped as over-long (``abandonSequence(_:)``)
+    ///   took it along when its rest had not arrived.
+    ///
+    /// The deferred-`ESC ESC` re-attach in `readEvent()` arrives here too, so
+    /// all of this covers a split read as well.
+    ///
+    /// Apart from ``tryExtractRegularEvent()``, which was at its complexity
+    /// limit, and which this recurses into for the inner event.
+    private func tryExtractMetaPrefixed() -> [UInt8]? {
+        if input.count >= 3, String.isStringFamilyIntroducer(UInt32(input[2])) {
+            consume(1)
+            return [0x1B]
+        }
+        consume(1)
+        let held = input.count
+        if let inner = tryExtractRegularEvent() {
+            // Bytes consumed beyond the event's own were a sequence swallowed
+            // or skipped in front of it.
+            if held - input.count == inner.count, Self.takesMetaPrefix(inner) {
+                return [0x1B] + inner
+            }
+            // An Escape the inner read settled on after dropping what came
+            // behind it (a sequence cut short, a mis-framed lead) goes after
+            // this one as it is. Put back, its `ESC` became the meta prefix of
+            // whatever followed the dropped bytes: `ESC ESC ESC [1;2 ESC [A`
+            // was Escape and Option+Up until 2026-10-18. Everything else put
+            // back reads the same again.
+            if inner == [0x1B] {
+                if let escape = finalize(bytes: inner) { queuedInputs.append(escape) }
+                return [0x1B]
+            }
+            input.prepend(contentsOf: inner)
+            return [0x1B]
+        }
+        // Bytes consumed and no event: what came straight after the `ESC` is
+        // gone, so the `ESC` had nothing to prefix and is the Escape key. It
+        // was a sequence a new `ESC` cut short, which the CSI and SS3
+        // extractors drop, or an over-long one being skipped, its rest perhaps
+        // still to come (``abandonSequence(_:)``). Put back, the `ESC` became
+        // the prefix of whatever came next — `ESC ESC [1;2 ESC [A` was
+        // Option+Up until 2026-10-11 — and in front of a skip it read as a
+        // new sequence cutting the skip short, and the rest was typed.
+        if input.count != held { return [0x1B] }
+        input.prepend(0x1B)
+        return nil
+    }
+
+    /// Alt + a multi-byte character: a meta-sending terminal prefixes
+    /// whatever the keyboard produced, ASCII or not (Option+ß under a German
+    /// layout arrives as `ESC` + the two bytes of ß). Assumes `input` starts
+    /// with `ESC` and a byte of 0x80 or more. Same put-the-prefix-back dance
+    /// as ``tryExtractMetaPrefixed()`` when the character's tail hasn't
+    /// arrived yet.
+    ///
+    /// A lead the parser drops as mis-framed (its tail cut short by an `ESC`,
+    /// or an orphan continuation byte) leaves the `ESC` nothing to prefix, as
+    /// a sequence cut short does in ``tryExtractMetaPrefixed()``: it is the
+    /// Escape key. Put back, it became the prefix of the sequence that cut
+    /// the lead short, so `ESC 0xC3 ESC [A` was Option+Up until 2026-10-18.
+    ///
+    /// Apart from ``tryExtractRegularEvent()``, which is at its complexity
+    /// limit.
+    private func tryExtractMetaOnText() -> [UInt8]? {
+        consume(1)
+        let held = input.count
+        if let inner = tryExtractPlainText() {
+            return [0x1B] + inner
+        }
+        if input.count != held { return [0x1B] }
+        input.prepend(0x1B)
+        return nil
+    }
+
+    /// Whether `sequence`, an event read straight after an `ESC`, is a key
+    /// that `ESC` can be the meta prefix of: one `KeyEvent.parse` reads, and
+    /// not a report or the start of a paste.
+    ///
+    /// The reports are named because the key parser does not refuse them
+    /// all: a legacy mouse report's last byte is a coordinate, and at row 33
+    /// it is `A`, which reads as Up.
+    private static func takesMetaPrefix(_ sequence: [UInt8]) -> Bool {
+        if sequence == focusIn || sequence == focusOut || sequence == pasteStart { return false }
+        // `ESC [ <`, an SGR mouse report; `ESC [ M`, a legacy one.
+        if sequence.count >= 3, sequence[1] == 0x5B, sequence[2] == 0x3C || sequence[2] == 0x4D {
+            return false
+        }
+        return KeyEvent.parse(sequence) != nil
+    }
+
+    /// Peels one complete plain-text event off the front of the buffer: a
+    /// single ASCII byte, or the full byte run of one multi-byte UTF-8
+    /// scalar. Returns `nil` when a scalar's continuation bytes are still in
+    /// flight (a split read — the stale-partial machinery bounds the wait,
+    /// popping a truly stranded lead via its "any other stuck byte" arm).
+    ///
+    /// The old path consumed ONE byte unconditionally, and
+    /// `KeyEvent.parseSingleByte` returns nil for anything ≥ 0x80 — so every
+    /// non-ASCII character a user typed was discarded byte by byte. The
+    /// multi-byte branch in `KeyEvent.parse` existed but was unreachable from
+    /// the live parser; only bracketed paste could deliver non-ASCII text.
+    ///
+    /// Malformed bytes (an orphan continuation, an overlong or out-of-range
+    /// lead, a lead whose followers aren't continuations) are dropped one at
+    /// a time in the loop, so garbage can't swallow the innocent bytes after
+    /// it — and can't recurse either, which a self-call here would on a long
+    /// garbage run.
+    private func tryExtractPlainText() -> [UInt8]? {
+        while !input.isEmpty, input[0] != 0x1B {
+            let first = input[0]
+            if first < 0x80 {
+                consume(1)
+                return [first]
+            }
+            guard let length = Self.utf8SequenceLength(lead: first) else {
+                consume(1)  // orphan continuation / invalid lead: drop it
+                continue
+            }
+            guard input.count >= length else { return nil }  // tail in flight
+            var isValid = true
+            for index in 1..<length where input[index] & 0xC0 != 0x80 {
+                isValid = false
+                break
+            }
+            guard isValid else {
+                consume(1)  // mis-framed lead: drop it, re-parse what follows
+                continue
+            }
+            var bytes = [UInt8]()
+            bytes.reserveCapacity(length)
+            for index in 0..<length { bytes.append(input[index]) }
+            consume(length)
+            return bytes
+        }
+        // Empty, or dropping garbage uncovered an ESC — the next call's
+        // escape paths own that.
+        return nil
+    }
+
+    /// The byte length of the UTF-8 sequence this lead byte begins, or `nil`
+    /// when it cannot begin one (a bare continuation byte, the overlong
+    /// C0/C1 leads, or leads beyond U+10FFFF's F4).
+    private static func utf8SequenceLength(lead: UInt8) -> Int? {
+        switch lead {
+        case 0x00...0x7F: return 1
+        case 0xC2...0xDF: return 2
+        case 0xE0...0xEF: return 3
+        case 0xF0...0xF4: return 4
+        default: return nil
+        }
+    }
+
+    /// SS3 extractor — assumes `input` starts with `ESC O`. An SS3 key is
+    /// `ESC O`, a modifier where a terminal sends one (`2`, as in
+    /// `ESC O 2 P`, or `1;5`: ``SS3Modifier``), and then the key's own byte.
+    /// Returns the whole sequence, or `nil` while the key's byte has not
+    /// arrived. `KeyEvent.parse` says which key it is.
+    ///
+    /// Three shapes are not SS3 keys, and all are a meta-sending terminal's
+    /// Alt-Shift-O, which it spells `ESC O` too:
+    ///
+    /// - An `ESC` where the key's byte should be: Alt-Shift-O typed before
+    ///   another sequence. Behind no parameters, the chord is returned and the
+    ///   sequence parses on its own; taken as the key's byte, it stranded the
+    ///   rest of that sequence as keystrokes. Behind parameters, they are
+    ///   dropped with the `ESC O`, as the CSI extractor drops a sequence a new
+    ///   `ESC` cut short.
+    /// - A parameter byte no modifier spells: a digit too many (`17`,
+    ///   `123`), a `;` anywhere but after a lone `1`, a second `;`, or a
+    ///   byte that is not a digit. The chord goes out at once, and those
+    ///   bytes after it as typing.
+    /// - A `1;` that the next byte ends: the same.
+    /// - A modifier, or none, and then a byte that ends no SS3 key
+    ///   (`ESC O z`, `ESC O 2 a`; ``KeyEvent/endsSS3Key(_:)``): the same,
+    ///   rather than the whole run dropped as a key no terminal sends.
+    ///
+    /// What cannot be told apart is Alt-Shift-O followed, before the
+    /// dead-sequence wait runs out (``deadSequenceStaleFrames``), by bytes
+    /// that spell a key: `ESC O A` is Up, and `ESC O 5 x` Ctrl and the
+    /// keypad's 8. The parser is split-invariant by design, so the timing of
+    /// the bytes cannot decide. A modifier that the key's byte never follows
+    /// is dropped with its `ESC O` once that wait runs out, as an unfinished
+    /// CSI is.
+    private func tryExtractSS3() -> [UInt8]? {
+        var end = 2
+        // At most four bytes: no modifier is spelled longer than `1;16`.
+        var parameters: [UInt8] = []
+        while end < input.count, (0x30...0x3F).contains(input[end]) {
+            parameters.append(input[end])
+            end += 1
+            if SS3Modifier(parameters) == .invalid {
+                consume(2)
+                return [0x1B, 0x4F]
+            }
+        }
+        guard end < input.count else { return nil }  // the key's byte is in flight
+        if input[end] == 0x1B {
+            consume(end)
+            return end == 2 ? [0x1B, 0x4F] : nil
+        }
+        if SS3Modifier(parameters) == .partial || !KeyEvent.endsSS3Key(input[end]) {
+            consume(2)
+            return [0x1B, 0x4F]
+        }
+        var bytes = [UInt8]()
+        bytes.reserveCapacity(end + 1)
+        for index in 0...end { bytes.append(input[index]) }
+        consume(end + 1)
+        return bytes
+    }
+
+    /// CSI extractor — assumes `input` starts with `ESC [`
+    /// and the buffer has at least 2 bytes. Returns the full
+    /// sequence bytes on success or `nil` if the terminator hasn't
+    /// arrived yet.
+    private func tryExtractCSI() -> [UInt8]? {
+        guard input.count >= 3 else { return nil }
+        let firstParam = input[2]
+
+        // Legacy ("X10") mouse: ESC [ M <button+32> <x+32> <y+32>
+        // M is the *introducer*, not the terminator, and the three
+        // trailing bytes have no terminator either, so we just
+        // require six bytes total.
+        //
+        // Each of those three is biased by 32, so none is an `ESC`: one there
+        // is a new sequence that cut this one short, and is dropped with it as
+        // the walk below drops a CSI cut short. `ESC [` is also a meta-sending
+        // terminal's Option-[, so Option-[, `M` and then a paste is `ESC [ M`
+        // and the paste's start marker; until 2026-10-11 that marker went
+        // into the report, `MouseEvent.parseLegacy` refused it, and the paste
+        // was typed out as keys.
+        //
+        // Except a coordinate's: one past 223 does not fit a byte, and a
+        // terminal that let it wrap would spell column or row 251 as `ESC`
+        // (a hypothesis: xterm sends a 0 byte past the end, and no measured
+        // terminal wraps). Taken as a new sequence, that `ESC` and the byte
+        // after it arrived as an Option chord. So an `ESC` in a coordinate's
+        // place cuts the report short only when an introducer follows it
+        // (``continuesEscapeSequence(_:)``), as one does in every sequence
+        // that could cut in (a meta prefix's `ESC ESC` is cut at the second),
+        // and nothing is decided until the byte after it arrives. Otherwise
+        // it is the coordinate, and the report is malformed and dropped. The
+        // button's byte is not a coordinate: it stays as it was.
+        if firstParam == 0x4D {
+            for index in 3..<min(input.count, 6) where input[index] == 0x1B {
+                if index > 3 {
+                    guard index + 1 < input.count else { return nil }
+                    guard Self.continuesEscapeSequence(input[index + 1]) else { continue }
+                }
+                consume(index)
+                return nil
+            }
+            guard input.count >= 6 else { return nil }
+            var bytes = [UInt8]()
+            bytes.reserveCapacity(6)
+            for i in 0..<6 { bytes.append(input[i]) }
+            consume(6)
+            return bytes
+        }
+
+        // Single-letter CSI (e.g. ESC[A for Up Arrow): the first
+        // byte after `[` is already a terminator.
+        if firstParam >= 0x40 && firstParam <= 0x7E {
+            let bytes = [input[0], input[1], firstParam]
+            consume(3)
+            return bytes
+        }
+
+        // Scan forward for a real terminator (letter or `~`).
+        //
+        // Bounded by ``maxControlSequenceBytes``, NOT by a keystroke-sized budget: a CSI
+        // is not only a key. DA, DSR and DECRPM answers are CSIs too, and a
+        // real xterm-class `ESC[?63;1;2;4;6;9;15;16;18;21;22;28;29c` is 37
+        // bytes. The old 32-byte cap truncated it and RETURNED the prefix,
+        // which the key parser then discarded — stranding `8;29c` at the head
+        // of the buffer with no `ESC` in front of it, to be typed out as five
+        // keystrokes.
+        //
+        // From the byte straight after `[`: the arms above rule out only a
+        // final byte and the legacy mouse report's `M` there, and an `ESC`
+        // there is a new sequence like an `ESC` anywhere later. The walk began
+        // one byte on until 2026-10-11, and took `ESC [ ESC [` for one CSI
+        // ending at the second `[`: a meta-sending terminal's Option-[, which
+        // is `ESC [`, followed by a paste typed the paste out as keys, and
+        // followed by a mouse report typed out the report's coordinates.
+        //
+        // Resuming where the last walk of the same sequence stopped, so one
+        // arriving a few bytes a read is walked once (`sequenceWalkStart(_:)`);
+        // not behind a meta prefix, whose walk starts over each pass
+        // (`sequenceWalk`).
+        var i = sequenceWalkStart(2)
+        let cap = min(input.count, Self.maxControlSequenceBytes)
+
+        while i < cap {
+            let b = input[i]
+            if b == 0x1B {
+                // A new escape sequence started before this one terminated, so
+                // this one was truncated (its terminator never arrived). Drop
+                // just the malformed prefix and let the new sequence parse from
+                // its `ESC` — otherwise its `[` would be mistaken for this
+                // sequence's terminator and the rest would leak as keystrokes.
+                consume(i)
+                return nil
+            }
+            if b >= 0x40 && b <= 0x7E {
+                var bytes = [UInt8]()
+                bytes.reserveCapacity(i + 1)
+                for j in 0...i { bytes.append(input[j]) }
+                consume(i + 1)
+                return bytes
+            }
+            i += 1
+        }
+
+        // Past the cap with no terminator: no longer held, whatever it started
+        // as, and still not typing. The prefix is not returned (the caller
+        // only discards bytes it cannot parse, so that leaked them), and the
+        // rest is not left to the key parser either (dropping the first 4 KiB
+        // and no more typed the rest out until 2026-10-11): it is skipped to
+        // the final byte.
+        if input.count >= Self.maxControlSequenceBytes { return abandonSequence(.controlSequence) }
+
+        // Otherwise the buffer simply doesn't have the terminator yet. (The
+        // wait is bounded by `deadSequenceStaleFrames`, not by the cap: the cap
+        // only catches a terminal that keeps sending, since a pass on which
+        // bytes arrive does not count toward that wait.)
+        noteSequenceWalk(stoppedAt: i)
+        return nil
+    }
+
+    /// Gives up holding the over-long sequence at the head of the buffer, and
+    /// goes on to what follows it: the sequence's introducer is consumed here,
+    /// and the rest of it is skipped, now and on as many later calls as it
+    /// takes to arrive (``skipAbandonedSequence()``).
+    ///
+    /// Returns the next event, as the string-family branch of
+    /// ``tryExtractRegularEvent()`` does after a reply it swallows whole.
+    private func abandonSequence(_ family: AbandonedSequence) -> [UInt8]? {
+        consume(2)
+        abandonedSequence = family
+        return tryExtractRegularEvent()
+    }
+
+    /// While `inPasteMode` is set, scans ``input`` for the
+    /// paste end marker. If found, builds a paste event from the
+    /// content between markers and consumes through the end marker.
+    /// Otherwise returns `nil` and leaves the buffer intact.
+    private func tryExtractPaste() -> TerminalInput? {
+        let endMarker = Self.pasteEnd
+        guard input.count >= endMarker.count else { return nil }
+
+        // Scan for the end marker, RESUMING where the last pass stopped rather
+        // than restarting at zero. Note: the start marker is no longer in the
+        // buffer — `readEvent()` consumed it before setting `inPasteMode`.
+        //
+        // Nothing is consumed from the front while a paste is open, so a byte
+        // ruled out on one pass is still that same byte, still ruled out, on
+        // the next; and one pass happens per `readEvent()`, each of which adds
+        // at most one 4 KiB drain. Rescanning from zero therefore made a paste
+        // quadratic in its own size — a 512 KiB paste took 52 s of CPU in a
+        // debug build, against 0.44 s for 64 KiB, and the run loop calls this
+        // twice per frame while it waits.
+        //
+        // Only an `ESC` can begin the marker, and `memchr` finds each one, so
+        // the rest is compared at those alone. Until 2026-10-12 every byte was
+        // compared through the buffer's checked subscript: about 200 ns a byte
+        // in a debug build, 3.5 s to scan a 16 MiB paste of prose where
+        // `memchr` takes 0.1 s, and 0.34 s against 0.04 s for 64 MiB
+        // optimised (measured, macOS, Swift 6.2.4).
+        let searchEnd = input.count - endMarker.count + 1
+        var start = pasteScanCursor
+        while start < searchEnd, let escape = input.firstIndex(of: endMarker[0], in: start..<searchEnd) {
+            var match = true
+            for i in 1..<endMarker.count where input[escape + i] != endMarker[i] {
+                match = false
+                break
+            }
+            if match {
+                // Content is everything before the marker.
+                let event = pasteEvent(bufferedContent: escape)
+                consume(escape + endMarker.count)
+                inPasteMode = false
+                return event
+            }
+            start = escape + 1
+        }
+
+        // No end marker yet. Back the cursor up by one byte less than the
+        // marker's length: a marker STRADDLING the boundary — `ESC [ 2` in this
+        // drain and `0 1 ~` in the next — has to be matched from its first
+        // byte, and that first byte is inside the tail we just failed on.
+        pasteScanCursor = input.count - (endMarker.count - 1)
+        return nil
+    }
+
+    /// Ends a paste whose end marker never arrived, delivering whatever was
+    /// buffered as the paste it evidently was.
+    ///
+    /// Delivering beats discarding: the bytes are the user's pasted text, and
+    /// the alternative to both is the wedge this exists to prevent. With
+    /// nothing buffered it just leaves paste mode — there is nothing to
+    /// deliver, and a paste event carrying "" would be noise.
+    private func abandonStalledPaste() -> TerminalInput? {
+        defer { inPasteMode = false }
+        guard !input.isEmpty else { return nil }
+
+        let event = pasteEvent(bufferedContent: input.count)
+        consume(input.count)
+        return event
+    }
+
+    /// The paste event for the first `length` bytes of ``input``, which it
+    /// reads where they lie and does not consume.
+    ///
+    /// One copy of this for the two ways a paste ends, at its end marker and
+    /// at the stall timeout, so that what the app is handed cannot differ
+    /// between them. Text that is not UTF-8 is read a byte to a character
+    /// (Latin-1) rather than dropped.
+    ///
+    /// The string is made straight from the buffer's storage, so it is the
+    /// one copy of the paste on its way to the app, except on macOS 14, where
+    /// the decoder makes one more (``utf8Text(_:)``). Until 2026-10-12 the bytes
+    /// were copied into an array first: one more copy the size of the paste,
+    /// alive with the buffer and the string, which made a 64 MiB paste peak
+    /// at 3.6 times its size where it now peaks at 2.6 (measured, macOS 15;
+    /// see ``inPasteMode``).
+    private func pasteEvent(bufferedContent length: Int) -> TerminalInput {
+        let text = input.withUnsafeBufferPointer(prefix: length) { bytes in
+            Self.utf8Text(bytes) ?? Self.latin1Text(bytes)
+        }
+        return .key(KeyEvent(key: .paste(text)))
+    }
+
+    /// `bytes` as a string, or `nil` when they are not UTF-8.
+    ///
+    /// The standard library's validating initialiser checks the bytes and
+    /// then copies them into the string, once: it allocates nothing else (its
+    /// body is inlinable, and reads contiguous storage where it lies). It is
+    /// new in macOS 15. On macOS 14 this is Foundation's decoder, which decoded
+    /// every paste until 2026-10-12, so a paste there decodes as it did, and
+    /// costs what it did: that `String(bytes:encoding:)` is not inlinable, so
+    /// macOS 14's own runs, and its source (the Swift overlay's
+    /// `NSStringAPI.swift`) copies the bytes into an array before decoding
+    /// them, a second copy of the paste while the decode runs (recalled from
+    /// that source, not measured). The two keep a byte-order mark alike
+    /// (measured on macOS 15; these tests run on macOS 15 and later, so the
+    /// macOS 14 path is not exercised by them).
+    nonisolated static func utf8Text(_ bytes: UnsafeBufferPointer<UInt8>) -> String? {
+        if #available(macOS 15, *) {
+            return String(validating: bytes, as: UTF8.self)
+        }
+        return String(bytes: bytes, encoding: .utf8)
+    }
+
+    /// `bytes` read a byte to a character, as Latin-1: what a paste that is
+    /// not UTF-8 arrives as.
+    ///
+    /// Written as UTF-8 straight into the storage of the string returned —
+    /// one byte for each byte below 0x80, two for each above, sized exactly
+    /// beforehand — so the decode holds the bytes and the string, and nothing
+    /// else. Two earlier spellings each built an array on the way, though
+    /// neither reads as if it did. Mapping each byte to a `Character` (until
+    /// 2026-10-11) made an array of 16-byte `Character`s: 256 MiB for a paste
+    /// of 16 MiB. Appending `Unicode.Scalar`s to the string's
+    /// `unicodeScalars` (the same day) made one of 4-byte scalars: the
+    /// standard library's `append(contentsOf:)` there is not inlinable, and
+    /// its body maps the sequence to a `[UInt32]`, decodes that as UTF-32 into
+    /// a second string and concatenates the two, so the reserved capacity was
+    /// thrown away and the text copied once more: decoding a paste of 16 MiB
+    /// grew the process by 144 MiB, where writing the UTF-8 grows it by
+    /// the 32 MiB of the text (measured, `LargePasteTests`).
+    ///
+    /// `nonisolated`: it reads nothing of the terminal's, and that test calls
+    /// it from an exit test's body, which is not on the main actor.
+    nonisolated static func latin1Text(_ bytes: UnsafeBufferPointer<UInt8>) -> String {
+        let length = bytes.count + bytes.reduce(0) { $0 + Int($1 >> 7) }
+        return String(unsafeUninitializedCapacity: length) { buffer in
+            var index = 0
+            for byte in bytes {
+                if byte < 0x80 {
+                    buffer[index] = byte
+                    index += 1
+                } else {
+                    // U+0080 to U+00FF: 110000xx 10xxxxxx.
+                    buffer[index] = 0xC0 | byte >> 6
+                    buffer[index + 1] = 0x80 | byte & 0x3F
+                    index += 2
+                }
+            }
+            return index
+        }
+    }
+
+    /// Whether the parser is holding something that needs another
+    /// ``readEvent()`` soon to resolve, even if no new bytes arrive: a lone
+    /// `ESC` mid Escape-vs-sequence disambiguation, a deferred bare `ESC`, an
+    /// incomplete escape sequence awaiting its terminator, the rest of an
+    /// over-long one being skipped (``abandonedSequence``), or an open paste.
+    ///
+    /// The run loop reads this to schedule a bounded wake while it's true, so
+    /// these resolve on a wall-clock deadline (a prompt Escape, a dropped dead
+    /// sequence) instead of waiting for unrelated input or animation to tick the
+    /// loop. It's `false` the rest of the time, so a genuinely idle screen still
+    /// blocks with zero wakeups.
+    ///
+    /// ``inPasteMode`` is here even though it is not "bytes we are holding":
+    /// paste mode with an EMPTY buffer is the one state whose only exit is a
+    /// timeout, and ``stalledPasteStaleFrames`` advances only inside
+    /// ``readEvent()``. Leaving it out meant a terminal that emitted `ESC[200~`
+    /// and then lost the paste wedged the parser — the loop blocked, so the
+    /// timeout that exists precisely to escape that state never ticked, and the
+    /// user's next keystroke was swallowed as paste content instead of being
+    /// dispatched.
+    var hasPendingInput: Bool {
+        !input.isEmpty || pendingBareEsc || pendingAltEsc || inPasteMode || !queuedInputs.isEmpty
+            || abandonedSequence != nil
+    }
+
+    /// Peels sequences off the front of the buffer until one of them is
+    /// something the app can be told about, and returns it — `nil` once the
+    /// buffer runs out of complete sequences, or once paste mode opens.
+    ///
+    /// The LOOP is the point. ``finalize(bytes:)`` returns nil for sequences it
+    /// recognises and deliberately drops: a CSI whose final byte
+    /// `KeyEvent.parseCSISequence` does not model (a `ESC[?62;22c` device
+    /// answer, a stray `ESC[24;80R`, a late `ESC[?2027;1$y`), and a legacy mouse
+    /// report that is malformed. Returning that nil straight to the caller made
+    /// it indistinguishable from "the buffer is empty", so `App`'s
+    /// `while let input = terminal.readEvent()` ended the frame's drain with
+    /// the user's real keystrokes still buffered behind the dropped sequence —
+    /// and `appendDrain` had already emptied the kernel buffer, so no stdin
+    /// wake could arrive and they came out one per 25 ms poll.
+    ///
+    /// The string-terminated families already avoid this by recursing inside
+    /// ``tryExtractRegularEvent()``; the CSI drop happens inside `finalize`,
+    /// where it cannot, so the recovery belongs here.
+    private func extractDeliverableEvent() -> TerminalInput? {
+        while let bytes = tryExtractRegularEvent() {
+            staleFrames = 0
+            if let paste = completedMIMEPaste {
+                completedMIMEPaste = nil
+                return paste
+            }
+            if let event = finalize(bytes: bytes) { return event }
+            // STOP, rather than go round again, when that was the paste-start
+            // marker and its content has not all arrived: the bytes behind it
+            // are the paste, not keystrokes.
+            if inPasteMode { return nil }
+        }
+        return nil
+    }
+
+    /// One `readEvent()` round while a bracketed paste is open: everything in
+    /// the buffer is paste content, so no key parsing happens here at all.
+    ///
+    /// Lifted out of ``readEvent()`` rather than left inline because it always
+    /// returns, so it is a whole branch rather than a step, and because
+    /// ``readEvent()`` was at its cyclomatic limit.
+    private func pumpPasteMode() -> TerminalInput? {
+        if let event = tryExtractPaste() {
+            staleFrames = 0
+            return event
+        }
+        // Paste content is still in flight. Give the kernel one
+        // chance to deliver more right now, but don't sleep —
+        // the main loop will spin again in ~24ms.
+        let added = appendDrain()
+        if added > 0, let event = tryExtractPaste() {
+            staleFrames = 0
+            return event
+        }
+        // A real paste arrives as a continuous stream, so a frame that
+        // brought NO bytes at all is the only thing that counts against
+        // it; a slow one simply keeps resetting the count. Total silence
+        // for a second means the end marker is not coming — a dropped
+        // `ESC[201~`, or a terminal that abandoned the paste — and paste
+        // mode must end, or every keystroke from here on is swallowed into
+        // the buffer and the app stops answering the keyboard entirely.
+        if added > 0 {
+            staleFrames = 0
+        } else {
+            staleFrames += 1
+            if staleFrames >= Self.stalledPasteStaleFrames {
+                staleFrames = 0
+                return abandonStalledPaste()
+            }
+        }
+        return nil
+    }
+
+    /// Reads up to one complete event from the input stream.
+    /// Returns `nil` when nothing is ready right now.
+    ///
+    /// This is the single entry point for the input pipeline. It
+    /// drains stdin opportunistically (once per call, only when
+    /// the buffer is empty or a partial sequence needs more
+    /// bytes), parses events out of the buffer, and never blocks
+    /// the run loop.
+    func readEvent() -> TerminalInput? {
+        // The rest of a sequence that decoded to more than one event goes
+        // first: its bytes arrived before anything still in the buffer.
+        if let queued = queuedInputs.popFirst() { return queued }
+
+        // Make sure there's something to inspect.
+        if input.isEmpty {
+            appendDrain()
+        }
+
+        // Resolve a deferred bare ESC (armed by `resolveStuckPartial`). If a
+        // sequence introducer is now at the front, the earlier `ESC` was that
+        // sequence's introducer, split into a later read — re-attach it and
+        // parse the real sequence (no Escape emitted, no `[` leaked as a literal
+        // page shortcut). Otherwise the `ESC` really was the Escape key: commit
+        // it now (the next byte, if any, is handled on the following call).
+        if pendingBareEsc {
+            pendingBareEsc = false
+            if !input.isEmpty, Self.continuesEscapeSequence(input[0]) {
+                input.prepend(0x1B)
+            } else {
+                return finalize(bytes: [0x1B])
+            }
+        }
+
+        // The same one-round hold for a deferred `ESC ESC`. The ambiguity is
+        // the same shape one level in: the second ESC may be the Escape key
+        // (Option+Escape) or the introducer of a sequence whose tail is still
+        // in flight (`ESC ESC [ Z` is Option-Shift-Tab). Re-attach both when an
+        // introducer turns up; otherwise the chord stands.
+        if pendingAltEsc {
+            pendingAltEsc = false
+            if !input.isEmpty, Self.continuesEscapeSequence(input[0]) {
+                input.prepend(contentsOf: [0x1B, 0x1B])
+            } else {
+                return finalize(bytes: [0x1B, 0x1B])
+            }
+        }
+
+        if inPasteMode { return pumpPasteMode() }
+
+        if let event = extractDeliverableEvent() { return event }
+        // `finalize` may have just opened paste mode with the content still in
+        // flight. Everything left in the buffer is that content, so leave it to
+        // the paste branch above on the next pump rather than parsing it here.
+        if inPasteMode { return nil }
+
+        // No complete event yet. Try one more drain in case the
+        // kernel has the missing bytes ready right now.
+        let added = appendDrain()
+        if added > 0 {
+            if let event = extractDeliverableEvent() { return event }
+            if inPasteMode { return nil }
+        }
+
+        // Still nothing. If the buffer's empty there's no partial to
+        // worry about; just return nil. (Unless a skip is waiting on the rest
+        // of a sequence: its wait has to run out on quiet frames too.)
+        guard !input.isEmpty || abandonedSequence != nil else {
+            staleFrames = 0
+            return nil
+        }
+
+        // We have a stuck partial at the front. Wait one more frame
+        // for the rest; if still nothing comes, give up on the front
+        // of the buffer. This recovers bare Esc (which looks identical
+        // to a partial CSI introducer until something definitive
+        // arrives) and any truncated sequence the terminal will
+        // never finish.
+        if added == 0 {
+            staleFrames += 1
+            return resolveStuckPartial()
+        }
+
+        restartWaitOfLongSequence()
+        return nil
+    }
+
+    /// Starts the dead-sequence wait again for the unfinished sequence at the
+    /// front of the buffer, which a read has just added to, once it is longer
+    /// than a read (``readChunk``).
+    ///
+    /// A sequence that long is arriving as a stream, a reply or a key report
+    /// carrying a long text. Typing that joins a lost one adds about a byte a
+    /// pass: it would take over a minute of a key on every pass to make one a
+    /// read long, and the wait drops it at the eighth pass without one.
+    ///
+    /// Started again by each read that adds to it, the wait is the one the
+    /// skip of a sequence past its limit has (``skipAbandonedSequence()``),
+    /// which took over every sequence at 4 KiB, a read, until the limits went
+    /// to 16 and 64 KiB on 2026-10-12. For a sequence between a read and its
+    /// limit the wait then counted only quiet passes, however many bytes came
+    /// between them (review round 1 of lane PASTE2): a reply arriving in
+    /// pieces, with pauses adding up to the wait (a slow link, under ssh; not
+    /// measured), was dropped part way and its rest typed out as keys, a
+    /// clipboard answer's base64 or a key report's digits.
+    ///
+    /// Shorter than a read, the wait still counts every quiet pass in all, so
+    /// typing after a lost sequence cannot make it longer (decisions-PASTE,
+    /// B-PASTE-2).
+    private func restartWaitOfLongSequence() {
+        if input.count > Self.readChunk { staleFrames = 0 }
+    }
+
+    /// Called once per stale frame while a partial sits at the front of the
+    /// buffer (or while the rest of an over-long sequence is awaited), and
+    /// decides — based on how long it has been stuck — how to make
+    /// progress without ever stranding part of a split escape sequence as a
+    /// literal keystroke. Returns an event only when it pops a lone non-ESC
+    /// byte; otherwise `nil` (still waiting, or it deferred/discarded).
+    ///
+    /// - A lone `ESC` is *deferred* (``pendingBareEsc``) after the short
+    ///   ``bareEscStaleFrames`` timeout, not committed outright: its
+    ///   continuation may be a CSI/SS3 sequence — or a terminal reply — split
+    ///   into a later read. The next ``readEvent()`` re-attaches it if an
+    ///   introducer arrived, else commits the Escape.
+    /// - An incomplete `ESC [` / `ESC O` is unambiguously a control sequence, so
+    ///   we KEEP WAITING for its terminator — a read-split sequence's tail
+    ///   (arrow, mouse report, …) arrives on a later read and completes it.
+    ///   Stranding it instead leaked bytes as keystrokes: the introducer `[`
+    ///   (→ Sliders page) or, for a mouse drag, the terminator `M` (→ a stray
+    ///   key). Only after the generous ``deadSequenceStaleFrames`` timeout — by
+    ///   which point any real terminator has long arrived — is a truly dead
+    ///   sequence dropped as a unit.
+    /// - Any other stuck byte is consumed singly to make progress.
+    private func resolveStuckPartial() -> TerminalInput? {
+        // Skipping the rest of an over-long sequence, with nothing buffered or
+        // only an `ESC` that may be its `ST`: the skip ends after as many quiet
+        // passes as an unfinished sequence waits, so a terminal that never
+        // finishes one cannot take the keyboard with it. They are counted from
+        // the last byte the skip consumed (``skipAbandonedSequence()``), where
+        // an unfinished sequence's are counted in all. An `ESC` left behind is
+        // then an ordinary lone one.
+        if abandonedSequence != nil {
+            if staleFrames >= Self.deadSequenceStaleFrames {
+                staleFrames = 0
+                abandonedSequence = nil
+            }
+            return nil
+        }
+        let first = input[0]
+
+        if first == 0x1B {
+            if input.count == 1 {
+                // Lone ESC — Escape-vs-sequence ambiguity. Defer after the
+                // short timeout so a split sequence's tail can still cancel it.
+                if staleFrames >= Self.bareEscStaleFrames {
+                    staleFrames = 0
+                    input.removeFirst(1)
+                    pendingBareEsc = true
+                }
+                return nil
+            }
+            if Self.continuesEscapeSequence(input[1]) {
+                // Incomplete CSI/SS3, or a terminal reply whose terminator has
+                // not arrived: wait for it; drop only a long-dead sequence.
+                if staleFrames >= Self.deadSequenceStaleFrames {
+                    staleFrames = 0
+                    // Except an ESC and a string introducer with nothing at
+                    // all behind them: no reply stops after its introducer,
+                    // but a meta-sending terminal's Option chord on that key
+                    // does — Option-_ is `ESC _`, Option-] is `ESC ]`. Redo is
+                    // on Option-_ where nothing better reaches the app, so it
+                    // is delivered, a long-dead-sequence wait late, rather than
+                    // dropped. (Not `[` or `O`: a key's own CSI and SS3 split
+                    // across reads far more often than a reply does.)
+                    if input.count == 2, String.isStringFamilyIntroducer(UInt32(input[1])) {
+                        let chord = [input[0], input[1]]
+                        consume(2)
+                        return finalize(bytes: chord)
+                    }
+                    consume(input.count)
+                }
+                return nil
+            }
+            if input[1] == 0x1B {
+                // ESC ESC — a meta prefix in front of another escape sequence.
+                // With something behind it the inner sequence is simply
+                // incomplete, and the same rule applies as for a bare CSI: keep
+                // waiting, because committing now strands the tail as literal
+                // keystrokes.
+                guard input.count == 2 else {
+                    if staleFrames >= Self.deadSequenceStaleFrames {
+                        staleFrames = 0
+                        consume(input.count)
+                    }
+                    return nil
+                }
+                // With nothing behind it once the wait is up, the inner event
+                // IS the Escape key: Option+Escape on a meta-sending terminal,
+                // which `KeyEvent.parse` decodes as alt+escape. Popping one
+                // byte at a time (the generic stuck-byte arm below) instead
+                // delivered TWO Escapes, so one keystroke backed out of two
+                // levels of UI — and made the parser's alt+escape decoding
+                // unreachable from a live terminal.
+                //
+                // The trade: an Escape pressed twice fast enough that both land
+                // in ONE read now reads as that chord instead. A human's two
+                // presses are milliseconds apart and land in separate reads
+                // unless a slow frame batches them, and the recovery is to
+                // press Escape again — against one keystroke reliably doing
+                // two things.
+                if staleFrames >= Self.bareEscStaleFrames {
+                    staleFrames = 0
+                    consume(2)
+                    pendingAltEsc = true
+                }
+                return nil
+            }
+        }
+
+        // Any other stuck byte (not a recognised escape introducer): make
+        // progress by popping one, after the short timeout.
+        if staleFrames >= Self.bareEscStaleFrames {
+            staleFrames = 0
+            if let byte = input.popFirst() {
+                return finalize(bytes: [byte])
+            }
+        }
+        return nil
+    }
+
+    /// Wraps raw event bytes into a ``TerminalInput``. Detects
+    /// the bracketed-paste start marker and flips into paste mode.
+    private func finalize(bytes: [UInt8]) -> TerminalInput? {
+        // SGR mouse report: ESC [ < … M / m
+        if bytes.count >= 9, bytes[0] == 0x1B, bytes[1] == 0x5B, bytes[2] == 0x3C {
+            if let mouse = MouseEvent.parseSGR(bytes) {
+                return .mouse(mouse)
+            }
+        }
+
+        // Legacy mouse report: ESC [ M <b> <x> <y>
+        if bytes.count == 6, bytes[0] == 0x1B, bytes[1] == 0x5B, bytes[2] == 0x4D {
+            if let mouse = MouseEvent.parseLegacy(bytes) {
+                return .mouse(mouse)
+            }
+            // Recognisably a legacy report but malformed — drop it
+            // rather than letting the coord bytes leak as keystrokes.
+            return nil
+        }
+
+        // Bracketed paste start: switch into paste mode and try to
+        // extract the content right now if it's already buffered.
+        if bytes == Self.pasteStart {
+            inPasteMode = true
+            return tryExtractPaste()
+        }
+
+        // Focus reports, before the key parser: it models neither final byte
+        // and would drop them.
+        if bytes == Self.focusIn { return .focusChanged(isFocused: true) }
+        if bytes == Self.focusOut {
+            // Under the kitty keyboard protocol, the keys held are forgotten:
+            // their releases go to the window that has the focus now.
+            if !keyboardEnhancement.isEmpty, let released = KittyKeyDecoder.focusLost(memory: &keyboardMemory) {
+                queuedInputs.append(released)
+            }
+            return .focusChanged(isFocused: false)
+        }
+
+        // While the kitty keyboard protocol is on, a CSI is read in its
+        // grammar, whose legacy-looking forms mean something else (bit 8 is
+        // ⌘, not Option) and which carry a repeat or a release. Anything it
+        // does not claim — an SS3 key, a lone byte, a reply — goes on to the
+        // legacy parser below as before.
+        if !keyboardEnhancement.isEmpty, bytes.count >= 3, bytes[0] == 0x1B, bytes[1] == 0x5B,
+            let decoded = KittyKeyDecoder.decode(bytes, memory: &keyboardMemory)
+        {
+            guard let first = decoded.first else { return nil }
+            queuedInputs.append(contentsOf: decoded.dropFirst())
+            return first
+        }
+
+        if let key = KeyEvent.parse(bytes) {
+            // Apple Terminal encodes Shift on a function key by sending a
+            // DIFFERENT function key (Shift+F5…F12 → the VT220 F13…F20
+            // sequences), so the chord has to be reassembled here rather than
+            // by whoever binds it. Measured; see Terminal compatibility survey.md.
+            return .key(
+                TerminalHost.isAppleTerminal
+                    ? key.normalizingLegacyShiftedFunctionKeys() : key)
+        }
+        // Not a key, and about to be dropped: a `CSI ? 997 ; Ps n` report is the
+        // terminal saying which theme it is now in, and nothing else in the
+        // process will hear it. The OSC answers are kept where the string-family
+        // branch consumes them, which is before anything reaches here.
+        noteVolunteeredColorReply(bytes)
+        return nil
+    }
+
+    /// Reads a key event from the terminal — back-compat for the
+    /// ``TerminalProtocol`` interface. New code should call
+    /// ``readEvent()`` and switch on the returned ``TerminalInput``.
+    ///
+    /// If the next event is a mouse event or a focus report it is consumed
+    /// and `nil` is returned — the legacy interface has nowhere to surface
+    /// it. Callers that care about either must use `readEvent()`.
+    func readKeyEvent() -> KeyEvent? {
+        guard let event = readEvent() else { return nil }
+        if case .key(let key) = event { return key }
+        return nil
+    }
+}

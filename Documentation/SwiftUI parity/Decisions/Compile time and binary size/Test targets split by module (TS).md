@@ -15,11 +15,11 @@ format of [`SwiftUI API completion decisions.md`](<../SwiftUI API completion dec
 ## The shape
 
 A test file lives in the target of the highest module it needs, counting what
-its helpers need: `TUIkitFoundationTests` (271 files), `TUIkitAppTests` (255),
+its helpers need: `TUIFoundationTests` (271 files), `TUIAppTests` (255),
 one target per feature module (21, from 2 files to 115), and
-`TUIkitIntegrationTests` (163), the one target that still depends on every
+`TUIIntegrationTests` (163), the one target that still depends on every
 module. Helpers live in support targets split the same way:
-`TUIkitTestSupport`, `TUIkitAppTestSupport`, and five feature ones. The 11,561
+`TUITestSupport`, `TUIAppTestSupport`, and five feature ones. The 11,561
 tests are the same, by name, before and after.
 
 ## Build times
@@ -32,28 +32,28 @@ after a private and a public edit in three modules, each reverted and rebuilt
 |---|---|---|
 | clean (two runs each) | 122, 121 → 105, 121 s | 120, 107 → 114, 112 s |
 | no-op | 2.0 → 1.8 s | 3.0 → 3.8 s |
-| an edit in TUIkitMenus (a leaf) | 59–65 → 22–23 s | 87–92 → 33–35 s |
-| an edit in TUIkitLists (a middle) | 62–63 → 31–32 s | 90–94 → 53–54 s |
-| an edit in TUIkitFoundation | 79–87 → 69–75 s | 119–121 → 130–137 s |
-| an edit in TUIkitView (a low module) | 17 → 53–56 s | 109–113 → 133–141 s |
+| an edit in TUIMenus (a leaf) | 59–65 → 22–23 s | 87–92 → 33–35 s |
+| an edit in TUILists (a middle) | 62–63 → 31–32 s | 90–94 → 53–54 s |
+| an edit in TUIFoundation | 79–87 → 69–75 s | 119–121 → 130–137 s |
+| an edit in TUIView (a low module) | 17 → 53–56 s | 109–113 → 133–141 s |
 
 An edit to a feature module, where most work happens, rebuilds 40–65% less
 time. A clean build is unchanged within the noise. An edit low in the stack
-costs more on 6.4, and on 6.2 for TUIkitView: see B-TS-2 and A-TS-1.
+costs more on 6.4, and on 6.2 for TUIView: see B-TS-2 and A-TS-1.
 
 ## B. Shipped the safe option
 
 ### B-TS-1. A feature's tests that drive the App live with the feature, not with the integration tests
 
-*61 files needed TUIkitLists and TUIkitApp, 36 TUIkitTables and TUIkitApp, …*
+*61 files needed TUILists and TUIApp, 36 TUITables and TUIApp, …*
 
 The request named an integration target for tests needing two modules. Most
-tests that need a feature module also need TUIkitApp — `applyRuntimeServices(from:)`,
+tests that need a feature module also need TUIApp — `applyRuntimeServices(from:)`,
 which builds a render pass's environment, or one of the App-level harnesses —
 and sending them all to the integration target left it at 437 files, the
-largest. A feature's target depends on TUIkitApp instead where one of its files
-needs it. An edit to TUIkitApp then rebuilds those feature targets too, as it
-rebuilds every target above TUIkitApp anyway; an edit to the feature still
+largest. A feature's target depends on TUIApp instead where one of its files
+needs it. An edit to TUIApp then rebuilds those feature targets too, as it
+rebuilds every target above TUIApp anyway; an edit to the feature still
 rebuilds only the feature's tests and the integration ones.
 
 ### B-TS-2. A test target names every module its files import
@@ -61,14 +61,14 @@ rebuilds only the feature's tests and the integration ones.
 *Package.swift, the generated `dependencies:` lists*
 
 A test target depends on each module its files import, the low ones
-(TUIkitCore, TUIkitView, …) included, although TUIkitFoundation re-exports
-them. That is what makes an edit to TUIkitView take longer under 6.2's native
+(TUICore, TUIView, …) included, although TUIFoundation re-exports
+them. That is what makes an edit to TUIView take longer under 6.2's native
 build system than before the split (17 s → 55 s): that build system rebuilds a
 target only when one of the modules it names changes, and does not see a module
 reached through a re-export (the stale-build bug the session notes record, with
 a minimal repro on the owner's Desktop). Before the split, no test target named
-TUIkitView, so an edit to it rebuilt no tests at all — tests that call
-TUIkitView directly kept running stale code until a clean build. Naming the
+TUIView, so an edit to it rebuilt no tests at all — tests that call
+TUIView directly kept running stale code until a clean build. Naming the
 modules makes those tests rebuild.
 
 **The fuller version** would name only the top modules, restoring the old
@@ -95,16 +95,16 @@ placed; a new file is placed by hand, by CONTRIBUTING.md's rule, and
 *Answered by the owner on 2026-10-23: keep the small test targets separate for
 now.* Option 2 was not run, and nothing about the split has changed.
 
-Under 6.4's build system, which has no stale-build hole, an edit to TUIkitView
+Under 6.4's build system, which has no stale-build hole, an edit to TUIView
 takes 133–141 s after the split against 109–113 s before (+23%), and one to
-TUIkitFoundation 130–137 s against 119–121 s (+11%), while edits to feature
+TUIFoundation 130–137 s against 119–121 s (+11%), while edits to feature
 modules take 41–62% less. The first draft of this entry guessed at the cause:
 the number of test products, which swift-build links one per test target (27
-then, against 10 before; 28 since lane O13 added `TUIkitCommandsTests`). It had
+then, against 10 before; 28 since lane O13 added `TUICommandsTests`). It had
 not measured it. Options:
 
 1. **Keep it as it is.** An edit to one of the 18 feature modules saves 35–60 s
-   on 6.4; one to TUIkitFoundation or below costs 11–28 s more.
+   on 6.4; one to TUIFoundation or below costs 11–28 s more.
 2. **Merge the smallest targets** (Forms 6 files, CurveEditors 2, AppKit 4, Grid 8,
    Search 12) into the integration target: fewer products, and those modules'
    own edits rebuild the integration tests instead. Not measured.
@@ -116,7 +116,7 @@ being the owner's call, and a bug report written if the cause was in the
 build system.
 
 **What the investigation found.** Two causes, neither of them the product count.
-The measurements are of a private edit to `BufferModifier.swift` in TUIkitView
+The measurements are of a private edit to `BufferModifier.swift` in TUIView
 on swiftly's 6.4.0, `swift build --build-tests`, with the running compiler
 processes sampled every 0.25 s (session notes, `TESTSPLIT/slow64`).
 
@@ -136,10 +136,10 @@ processes sampled every 0.25 s (session notes, `TESTSPLIT/slow64`).
 
   | 6.4.0, after the split | private edit | public edit |
   |---|---|---|
-  | TUIkitMenus | 33.6, 33.3 s | 34.7, 32.6 s |
-  | TUIkitLists | 53.2, 53.7 s | 54.3, 54.1 s |
-  | TUIkitFoundation | 136.5, 136.0 s | 134.9, 129.6 s |
-  | TUIkitView | 138.3, 141.1 s | 135.9, 133.4 s |
+  | TUIMenus | 33.6, 33.3 s | 34.7, 32.6 s |
+  | TUILists | 53.2, 53.7 s | 54.3, 54.1 s |
+  | TUIFoundation | 136.5, 136.0 s | 134.9, 129.6 s |
+  | TUIView | 138.3, 141.1 s | 135.9, 133.4 s |
 
   (each edit and its revert.) A private edit changes nothing a dependent can
   see, yet it is rebuilt.
@@ -149,7 +149,7 @@ Desktop on 2026-10-15, one for each cause, the first with the list of what was
 tried. Neither is kept in the repository.
 
 **Why it matters.** Since 2026-10-10, 425 of the 604 commits that touched
-`Sources` touched TUIkitFoundation or a module below it (`git log` at
+`Sources` touched TUIFoundation or a module below it (`git log` at
 01d6da6a9), so the slower case is the common one. The faster one, an edit to a
 feature module, is the edit the split was made for.
 
@@ -157,5 +157,5 @@ feature module, is the edit the split was made for.
 parallel test-target compilation, an edit low in the stack would cost the
 longest target and not the sum of them, and the split would be a gain for every
 edit. Short of that, the merge of option 2 is the experiment to run, on a quiet
-machine, timing an edit to each of the five modules and to TUIkitFoundation
+machine, timing an edit to each of the five modules and to TUIFoundation
 against the products as they are; it lands only on the owner's word.

@@ -1,17 +1,17 @@
-//  🖥️ TUIkit — Terminal UI Kit for Swift
+//  🖥️ TUI — A Terminal UI framework for Swift
 //  ClientPickerView.swift
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import TUIkit
+import TUI
 
 /// Renders the whole app as though it were running under a different terminal.
 ///
 /// Not a preview — the selection drives the real
-/// ``TUIkit/TerminalClient/simulated``, so every row this app draws (including
+/// ``TUI/TerminalClient/simulated``, so every row this app draws (including
 /// this one, the tab strip and the status bar) is built through the selected
-/// terminal's workarounds. That is the point: on a terminal whose quirks TUIkit
+/// terminal's workarounds. That is the point: on a terminal whose quirks TUI
 /// has measured, picking that terminal makes the Alignment screen line up, and
 /// picking a different one visibly breaks it. What breaks, and how, is the
 /// evidence.
@@ -98,7 +98,7 @@ struct ClientPickerView: View {
             Text("Why this is a diagnostic and not a setting").bold()
             Text(
                 "Choosing the wrong terminal here applies workarounds for defects yours does not "
-                    + "have, which breaks output that was correct. TUIkit ships with no override "
+                    + "have, which breaks output that was correct. TUI ships with no override "
                     + "for that reason: absent explicit evidence, a terminal is assumed to render "
                     + "correctly."
             )

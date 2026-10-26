@@ -1,6 +1,6 @@
 # Terminal graphics protocols — Sixel, iTerm2, Kitty
 
-**Question:** should TUIkit draw with real pixels where the terminal can, and
+**Question:** should TUI draw with real pixels where the terminal can, and
 if so, with which protocol and how far beyond `Image` should it go?
 
 **Recommendation, up front:** ship **one** protocol — the **Kitty graphics
@@ -9,7 +9,7 @@ handshake rather than by a host table, with the existing half-block renderer
 kept as the universal fallback. Do not ship Sixel. Do not ship the iTerm2
 protocol. The reasoning is below; the short version is that placeholders are
 the only mechanism of the three that puts an image **inside the cell grid**,
-and everything TUIkit does to a view — measuring it, clipping it, scrolling
+and everything TUI does to a view — measuring it, clipping it, scrolling
 it, compositing a modal over it, diffing it against last frame — is defined on
 cells.
 
@@ -73,7 +73,7 @@ PLACE_AFTER_DELETE  <ESC>_Gi=31;ENOENT:Put command refers to non-existent image 
 iTerm2 really is tracking images by id and really is processing placement
 commands; it accepts every one of them and then never composites the pixels
 into the cells. The handshake asks *"will you accept a virtual placement?"*
-and gets a truthful yes. The question TUIkit needs answered is *"will you
+and gets a truthful yes. The question TUI needs answered is *"will you
 DRAW it?"*, and nothing in the protocol asks that.
 
 **The placeholder cells come back BLANK**, which decides how bad this is.
@@ -95,7 +95,7 @@ why neither is ruled out:
 | `placement_probe.py`'s card — blank | `f=24` | `m=1` … `m=0` |
 | a real `Image` — blank | `f=24` (measured on the wire) | `m=1` … `m=0` |
 
-`f=24` is the suspicious one on timing: TUIkit sent `f=32` for everything
+`f=24` is the suspicious one on timing: TUI sent `f=32` for everything
 until `2eb6c256`, which added three-bytes-a-pixel for opaque photographs
 hours after graphics shipped in `eb829a29` on the same day. An opaque
 photograph is exactly what the Example draws. But chunking is an equally good
@@ -141,7 +141,7 @@ requires the mark, and without it looks up an image nobody transmitted, then
 acknowledges every command and paints an empty rectangle. Which is why the
 handshake could not catch it — every answer was true.
 
-TUIkit now emits the mark. `KittyGraphics.maximumImageID` caps ids at 24 bits
+TUI now emits the mark. `KittyGraphics.maximumImageID` caps ids at 24 bits
 precisely so it is always the mark for zero, so it is a constant two bytes per
 cell and nothing else changes: kitty and Ghostty compute `(0 << 24) | fg`
 either way. **iTerm2 is a fully supported graphics host**, on the pipeline that
@@ -154,7 +154,7 @@ A second iTerm2 defect fell out of the first probe and stands on its own: a
 CHUNKED transmission is acknowledged `i=0` instead of the image's id, where a
 single-escape one reports it correctly. The image is stored under the right id
 — every placement that follows succeeds — so it is a reply defect, and it
-costs TUIkit nothing because the render path sends `q=2` and reads no replies.
+costs TUI nothing because the render path sends `q=2` and reads no replies.
 It would break any client matching acknowledgements to requests by id.
 
 Two notes on the probes, because both cost a round trip. The first version of
@@ -292,12 +292,12 @@ partial, **?** unknown.
 |---|---|
 | Sixel or iTerm2 images and **no** Kitty at all | **14** — 7 of them on by default, 6 behind a flag, patch or terminal-ID setting, 1 unverified |
 | Kitty APC graphics | **14** — 12 read from source or project docs, 2 resting only on kitty's list |
-| …of which **Unicode placeholders**, which is all TUIkit emits | **5** — kitty, iTerm2, Ghostty, Rio, patched st |
+| …of which **Unicode placeholders**, which is all TUI emits | **5** — kitty, iTerm2, Ghostty, Rio, patched st |
 | …of which explicitly **not** placeholders | **6** — WezTerm, Contour, Konsole, Warp, Zellij, xterm.js |
 | …unknown | 3 — wayst, AbsoluteTelnet, Mobile SSH |
 | Placeholder hosts that *also* speak Sixel or iTerm2 | 2 — iTerm2 and Rio |
 
-So the ecosystem does not say what §3.1 says. **TUIkit's pictures reach five
+So the ecosystem does not say what §3.1 says. **TUI's pictures reach five
 terminals**, and the largest single group of hosts it misses is not the Sixel
 crowd at all: it is the **six that implement the Kitty protocol and not the
 placeholder**. What that group needs is not a second protocol — it is a second
@@ -337,7 +337,7 @@ document people quote:
 
 ## 4. Why placements, and not pixels at the cursor
 
-TUIkit renders into `FrameBuffer`: rows of styled strings, measured in cells.
+TUI renders into `FrameBuffer`: rows of styled strings, measured in cells.
 Everything the framework does downstream is defined on that unit — `clamped`
 clips it, `composited(with:at:)` overlays it, `ScrollView` windows it,
 `FrameDiffWriter` diffs it cell by cell and rewrites only the runs that differ.
@@ -354,7 +354,7 @@ the cell's foreground colour and the row/column of the image encoded in
 combining diacritics. The terminal composites the image over exactly those
 cells.
 
-An image placed that way is, to every part of TUIkit:
+An image placed that way is, to every part of TUI:
 
 - **C cells wide and R rows tall** — so `strippedLength`, `clamped`, and every
   layout container already handle it;
@@ -414,7 +414,7 @@ spec:
   borrowed at runtime (`SystemZlib`) and gated on a second handshake
   question; `f=100` is not. See §10 and the top of that document.
 - **Lifetime** — images must be deleted by id when their view goes away, or the
-  terminal's image store fills. This is the one genuinely new resource TUIkit
+  terminal's image store fills. This is the one genuinely new resource TUI
   would own, and it wants the same discipline `LifecycleManager` already applies
   to view tokens.
 - **Fallback** — unchanged. Half blocks remain the renderer for every host
@@ -430,7 +430,7 @@ The user's question was whether graphics could solve problems elsewhere: layer
 composition, high-fidelity gradients, and so on. One boundary settles most of
 it, and it is worth stating once:
 
-> **TUIkit cannot draw text into an image, because it does not have the
+> **TUI cannot draw text into an image, because it does not have the
 > terminal's font.** Everything that would require rasterising the app's own
 > text — a blur, a drop shadow under a label, real anti-aliasing, sub-pixel
 > placement, an opacity fade of mixed content — is out of reach whatever the
@@ -443,8 +443,8 @@ With that fixed, each idea sorts cleanly:
 |---|---|---|
 | **High-fidelity `Image`** | **the reason to do this** | ~50× the pixels. A 120×40 terminal is 120×80 half-block "pixels" and roughly 840×600 real ones. No palette quantisation, no contrast floor, no cursor-advance compensation. |
 | **Charts, sparklines, plots** | **yes, later** | A plot's interior is pure geometry with no text in it; axis labels stay cells. This is the second-best fit after `Image` and needs nothing new beyond a drawing surface. |
-| **Gradients / images behind text** | **interesting, conditional** | Kitty places images below text with a negative `z`, so a true-colour gradient could sit behind ordinary styled cells. The condition is real: the text cells must state **no background**, or the background paints over the image. TUIkit paints backgrounds nearly everywhere, so this is a change to how backgrounds are emitted, not a drawing feature. And gradients already render well at truecolor — the gain is smooth diagonals and sub-cell vertical steps, not colour fidelity. |
-| **Layer composition / `.opacity`** | **no** | TUIkit blends colours in software because the terminal has no alpha for text. The content being faded is text, and see the boundary above. A protocol that composites images with cells does not help composite cells with cells. |
+| **Gradients / images behind text** | **interesting, conditional** | Kitty places images below text with a negative `z`, so a true-colour gradient could sit behind ordinary styled cells. The condition is real: the text cells must state **no background**, or the background paints over the image. TUI paints backgrounds nearly everywhere, so this is a change to how backgrounds are emitted, not a drawing feature. And gradients already render well at truecolor — the gain is smooth diagonals and sub-cell vertical steps, not colour fidelity. |
+| **Layer composition / `.opacity`** | **no** | TUI blends colours in software because the terminal has no alpha for text. The content being faded is text, and see the boundary above. A protocol that composites images with cells does not help composite cells with cells. |
 | **Rounded corners, borders, shadows** | **no, for chrome around text** | Same boundary. Feasible only for ornament that contains no text, which is not what a border is for. |
 | **Icons / SF Symbols** | **marginal** | They already render from the font where the font has them, at zero bytes. An image version would work on more hosts at the cost of transmitting bitmaps and matching the font's metrics. |
 | **Animation / video** | **defer** | Kitty can drive animation frames itself, which would let a spinner run with no app-side clock at all — attractive against the idle-render work in `Full performance profile of Stress and the Example (2026-08).md`, and far too narrow a win to lead with. |
@@ -692,7 +692,7 @@ buys nothing — and at zoom 2 on a 135x48 grid of Retina cells the unclamped
 size is 56 MB of RGBA resampled up from a 1101x1080 photograph, which is what
 "super slow to load" turned out to mean. An opaque picture is sent as `f=24`,
 three bytes a pixel instead of four. It also deletes by id when the view goes away,
-which is the one genuinely new resource TUIkit now owns — nothing in the
+which is the one genuinely new resource TUI now owns — nothing in the
 terminal will free it otherwise.
 
 ---
@@ -919,7 +919,7 @@ writer knows about, so the writer has to decide when to re-emit. The rule falls
 out of the diff — re-emit a run whenever its row is one the diff chose to write
 — and that covers content change, movement, and being uncovered. It does not
 cover damage the app did not cause: a resize, an alternate-screen switch,
-another process writing to the terminal. TUIkit already has whole-frame
+another process writing to the terminal. TUI already has whole-frame
 invalidation for those (`invalidate()`, `invalidateIfProgramChanged()`), and
 each of those paths would have to force every image run to re-emit rather than
 trusting `previousLines`.
@@ -1032,7 +1032,7 @@ worth having; the protocol it should be pointed at first is not Sixel. **§12.**
 
 §3.2 counted six terminals that implement the Kitty graphics protocol and
 explicitly not the Unicode placeholder: **WezTerm, Contour, Konsole, Warp,
-Zellij and xterm.js**. TUIkit emits only placeholders, so it draws nothing on
+Zellij and xterm.js**. TUI emits only placeholders, so it draws nothing on
 any of them, and they are a larger group than any this framework currently
 reaches. They want no new protocol. They want the *other* placement of the
 protocol already built.
@@ -1062,7 +1062,7 @@ protocol threw away. §11's costs were four, and this loses three of them:
 | Erase-then-draw (§11.3) | **stays**, for the same reason |
 
 Two more keys are there and are not needed: `z` places an image below text, and
-TUIkit resolves z-order in the buffer before the terminal sees anything; and a
+TUI resolves z-order in the buffer before the terminal sees anything; and a
 placement has its own id (`p`), so a picture can be *deleted* rather than
 overdrawn, which is a cleaner answer to a view disappearing than any Sixel has.
 
@@ -1117,7 +1117,7 @@ person looks at. Until they are answered this is a design and not a plan.
 ### 12.5 Verdict
 
 **This is the cheapest coverage available, by a wide margin, and it should be
-measured before Sixel is reconsidered.** It roughly doubles the hosts TUIkit
+measured before Sixel is reconsidered.** It roughly doubles the hosts TUI
 draws on — five to eleven — for one new placement model, one new handshake
 question, and §11's writer substitution and damage model, with the encoder, the
 compression, the image store and the lifetime discipline all reused as they
@@ -1129,7 +1129,7 @@ two encoders and a host table to reach and these six cost neither. What §6 did
 not consider is that the protocol it *did* choose has two placement models and
 this framework only ever built one.
 
-## 13. The first classic placements TUIkit sends: hairline list separators — built 2026-10-24
+## 13. The first classic placements TUI sends: hairline list separators — built 2026-10-24
 
 §11's writer substitution has its first user, and it is not `Image`: the
 `.hairline` list separator look (decisions A-D6L-2, the owner's option 4;
@@ -1146,4 +1146,4 @@ placeholders only, so no host gains pictures from this. The handshake asks no
 classic-placement question either; the lines are gated on a measured host
 (Ghostty) instead (`KittyGraphics.isHairlineSupported`), with
 `TUIKIT_HAIRLINES=1` to try any other. The per-host rules are in
-`Documentation/Terminals/Terminal compatibility survey.md`, "What TUIkit draws".
+`Documentation/Terminals/Terminal compatibility survey.md`, "What TUI draws".

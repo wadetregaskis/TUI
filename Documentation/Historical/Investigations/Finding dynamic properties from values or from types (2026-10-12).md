@@ -1,6 +1,6 @@
 # Finding dynamic properties from values or from types
 
-> **Status:** decided and landed. The owner approved building the hybrid on 2026-10-12, keeping TUIkit's additional
+> **Status:** decided and landed. The owner approved building the hybrid on 2026-10-12, keeping TUI's additional
 > reaches; optional fields stay supported (the owner's ruling of 2026-10-12). Lane DYNVFIX landed it on 2026-10-12
 > (`57dfdb4d2`), and lane DYNVCLAIM replaced its per-object claim for class properties held by several views
 > (`1b7fa6ed3`, 2026-10-13; see "How the additions are kept" below). Investigated 2026-10-10 to 2026-10-12. **Working notes** (not in git):
@@ -10,7 +10,7 @@
 
 ## Question
 
-Before each `body`, TUIkit must find a view's dynamic properties (`@State`, `@Environment`, an app's own
+Before each `body`, TUI must find a view's dynamic properties (`@State`, `@Environment`, an app's own
 `DynamicProperty`) to bind, resolve and update them. It walks the view's stored values with `Mirror`; SwiftUI works
 from the declared types of the view's fields. The owner asked three things in turn:
 
@@ -33,11 +33,11 @@ from the declared types of the view's fields. The owner asked three things in tu
 - **Keep optional support, decided by type.** It lets a property be present conditionally without moving it into a
   child view, and it keeps its state across a `nil` gap, as SwiftUI does with the conformance. The price is
   portability the other way: on SwiftUI the same code silently skips `update()`. The owner ruled to keep it.
-- **The value walk has ten confirmed bugs, each now a failing test.** Six are legal SwiftUI code that fails on TUIkit
+- **The value walk has ten confirmed bugs, each now a failing test.** Six are legal SwiftUI code that fails on TUI
   (two of them crash): one value holding a `@State`, used in two places, has the first place's binding write the
   second's state (1); a custom `Mirror` resets state every frame (2); a stored modifier's `update()` runs twice (5);
   an enum property's payload is not written back (6); class properties that reach each other crash every walk with
-  SIGSEGV (8); a dead `unowned` reference that the view never reads traps on its first body (9). Four are bugs in what TUIkit adds beyond SwiftUI: a shared class
+  SIGSEGV (8); a dead `unowned` reference that the view never reads traps on its first body (9). Four are bugs in what TUI adds beyond SwiftUI: a shared class
   property's contents leak between views (3, 4), and a result depends on the first value drawn (7, 10).
 - **A hybrid fixes all ten:** a plan per view type built from field metadata (as SwiftUI caches one), deciding by
   value only at optional and existential fields; each view copy given its own state box; an enum's payload written
@@ -49,10 +49,10 @@ from the declared types of the view's fields. The owner asked three things in tu
 ## Key measurements
 
 SwiftUI 6.5.4 on macOS 15.8.1, an offscreen `NSHostingView`, probes built with Xcode's swiftc 6.2.4 and run with
-`OS_ACTIVITY_DT_MODE=YES` so SwiftUI's run-time warnings show. TUIkit's column was read from its source at
+`OS_ACTIVITY_DT_MODE=YES` so SwiftUI's run-time warnings show. TUI's column was read from its source at
 fca696a35; the ten bugs are failing tests on 0064b34bb.
 
-| case (a field of a struct view, holding a property with `update()`, `@Environment` and `@State`) | SwiftUI | SwiftUI with the `Optional` conformance | TUIkit |
+| case (a field of a struct view, holding a property with `update()`, `@Environment` and `@State`) | SwiftUI | SwiftUI with the `Optional` conformance | TUI |
 |---|---|---|---|
 | a plain field | all four work | all four | all four |
 | an optional field, non-nil | none; warns | all four | all four |
@@ -68,7 +68,7 @@ fca696a35; the ten bugs are failing tests on 0064b34bb.
   value or the declared type is what decides. Field metadata is needed for bugs 2 and 9 whatever decides, and it
   lets the answer be cached per type, which also removes the per-frame `Mirror` walks (two per `body`, each child
   boxed; timing owed).
-- **How the additions are kept:** the owner chose to keep TUIkit's reaches rather than drop them to SwiftUI's.
+- **How the additions are kept:** the owner chose to keep TUI's reaches rather than drop them to SwiftUI's.
   Per the lane's design, a shared object's contents belonged to the first view in a render pass that reaches it, so
   every holder read one state (bugs 3 and 4 fixed without dropping the reach); that claim did not converge in review,
   and lane DYNVCLAIM replaced it: the object owns its state, every view drawn holding it is redrawn by a write, and
