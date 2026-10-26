@@ -434,6 +434,26 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 
 ---
 
+### L17. A child with no extent takes no stack spacing
+
+- **SwiftUI:** a stack charges its spacing on both sides of every child that
+  is a view, whatever its size: a `VStack(spacing: 10)` of two `Text`s is 42
+  points, and an empty `VStack` or `Color.clear.frame(height: 0)` between them
+  makes it 52. A `nil` or an `EmptyView` adds nothing, being no child at all
+  (measured 2026-09-24, the guide's `NSHostingView` probe).
+- **TUI:** spacing goes only between children that take a row (a column, in
+  an `HStack`) or are spacers (`totalLinearSpacing(occupiedChildren:spacing:)`,
+  pinned by `EmptyContentLayoutTests.emptyStackTakesNoSpacing`), so an empty
+  child adds nothing, as `nil` and `EmptyView` do.
+- **Why:** a gap is a whole blank row here, and a child with nothing in it
+  should not cost two: "A B" becomes "A C B" when C arrives, never "A, two
+  gaps, B" while it is empty. It also keeps `EmptyView` and an empty view
+  agreeing, which SwiftUI's rule does not; and nothing jumps that would not
+  have to, since siblings move once, by C's first row and its gap, as C
+  appears.
+- **Decided:** the owner, 2026-10-26 (S3-NO-EXTENT-SPACING): keep TUI's rule.
+  **Owner.**
+
 ## State and data flow
 
 ### S1. A dynamic property in an optional field is live
@@ -2374,6 +2394,5 @@ on. Each waits on the work, or on the ruling, its State names.
 | In a lazy stack, a `Grid`, a `List` and a `Table`, a view that an `if`/`else`'s branch, a `switch` or a `ForEach` row puts in under an animation appears at once, where SwiftUI's fades in (`.opacity`), and one with a `.transition(_:)` goes at once, where SwiftUI's plays it on the way out. An `if`'s view fades in and out everywhere (2026-10-14); a branch, a case and a row fade in, and play their own removal, in an eager stack, a `ZStack`, a `Layout` and a conditional drawn whole (2026-10-19), and go at once with none (A10) | [ChildFade.swift](../../Sources/TUIView/Animation/ChildFade.swift), [B-TRANSITIONS2-1](<Decisions/Shapes, effects and animation/Transition follow-ups (TRANSITIONS2).md#b-transitions2-1-a-branch-a-case-and-a-row-fade-in-where-a-container-remembers-its-children>) | Lane: the containers that window their rows or lay out a lattice keep no memory of their children yet (B-FB16-2, B-FB16-3, B-FB16-5); the fuller version is priced with theirs |
 | A `TableColumn`'s header and a `Tab`'s title draw their key's Markdown words but not its styles (a field's title is plain words, as SwiftUI's placeholder is); every other control's title key is drawn styled (2026-10-15, 2026-10-18) | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-a-controls-title-key-parsed-though-a-column-header-and-a-tab-title-draw-only-its-words>), [B-PARITYMISC-3](<Decisions/Small parity items (PARITYMISC).md#b-paritymisc-3-a-column-header-and-a-tab-title-draw-their-keys-markdown-words-not-its-styles>) | Lane: the fuller version draws the styles |
 | A modifier reaches multi-view content through some wrappers only | [§3](<SwiftUI compatibility guide.md#3-open-divergence>) | Open divergence |
-| A child with no extent (an empty `VStack`, `Color.clear.frame(height: 0)`) takes no stack spacing; SwiftUI's takes it on both sides (measured 2026-09-24) | [§3](<SwiftUI compatibility guide.md#a-child-with-no-extent-takes-no-stack-spacing>) | Open divergence; the Example's Animation page relies on it |
 | An `indirect` enum case's `update()` changes are not written back; nor any enum payload's on WebAssembly and Windows | [B-DYNVFIX-2](<Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-2-an-indirect-enum-cases-payload-and-every-payload-on-webassembly-and-windows-is-updated-on-a-copy>) | Known; fuller version priced |
 | A class property (S6): a closure made in a view other than the first drawn holding the object reads the first one's environment (a sheet's Done calling its page's `dismiss`); the `@State` in an enum case in a long-lived object follows the case's payload | [B-DYNVFIX-3](<Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md#b-dynvfix-3-what-a-class-property-holds-is-the-objects-every-view-drawn-holding-it-is-redrawn-by-its-writes-each-reads-its-own-environment-while-it-draws-and-an-object-made-with-a-view-value-keeps-its-views-state>) | Known; the fuller version priced |

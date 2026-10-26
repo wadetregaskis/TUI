@@ -1485,6 +1485,11 @@ be handed to each member of a group.
 
 ### A child with no extent takes no stack spacing
 
+**Decided (owner, 2026-10-26): TUI's rule stays**, a deliberate deviation
+([L17](<Deliberate deviations from SwiftUI.md#l17-a-child-with-no-extent-takes-no-stack-spacing>)):
+a child with nothing in it costs no blank rows, and `EmptyView` and an empty
+view agree. What follows is the record of how the two differ.
+
 SwiftUI charges a stack's spacing on both sides of every child that is a view,
 whatever its size. Measured with the `NSHostingView` probe above (macOS 15.8,
 2026-09-24): a `VStack(spacing: 10)` of two `Text`s is 42 points; an empty
