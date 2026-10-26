@@ -83,6 +83,12 @@ extension ScenePresenter {
         return settings.configuration.keyboardShortcut ?? KeyboardShortcut(",", modifiers: .command)
     }
 
+    /// File ▸ Close's key, ⌘W, as on macOS.
+    package static let closeShortcut = KeyboardShortcut("w", modifiers: .command)
+
+    /// File ▸ Close All's key, ⌥⌘W, as on macOS.
+    package static let closeAllShortcut = KeyboardShortcut("w", modifiers: [.command, .option])
+
     /// The key that opens the window scene `entry`, if its
     /// `.keyboardShortcut` states one. A window scene has no key by default:
     /// SwiftUI's window group has ⌘N, through the File menu's New Window,
@@ -107,6 +113,15 @@ extension ScenePresenter {
         }
         if let shortcut = settingsShortcut {
             keys.append((shortcut, { [weak self] in self?.presentSettings() }))
+        }
+        // File ▸ Close and Close All, for an app that can have more than one
+        // window open. Registered as commands, so a key of the window's own
+        // content wins; and a text field's Ctrl-W, the word rubout, never
+        // reaches them, since the field takes the chord before any shortcut
+        // (owner ruling O9, 2026-10-26: ⌃W is the field's).
+        if opensSeveralWindows {
+            keys.append((Self.closeShortcut, { [weak self] in self?.closeFrontWindow() }))
+            keys.append((Self.closeAllShortcut, { [weak self] in self?.closeAllWindows() }))
         }
         guard !keys.isEmpty else { return }
         registry.registeringCommands {

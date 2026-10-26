@@ -137,6 +137,8 @@
   "menu.aboutVersion": "バージョン %@",
   "menu.settings": "設定…",
   "menu.closeWindow": "ウインドウを閉じる",
+  "menu.close": "閉じる",
+  "menu.closeAll": "すべてを閉じる",
   "menu.showWindow": "%@を表示",
   "menu.hideWindow": "%@を非表示",
   "menu.find": "検索…",

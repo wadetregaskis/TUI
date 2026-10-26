@@ -286,6 +286,12 @@ public enum LocalizationKey {
         /// The menu bar's Window ▸ Close Window: the window in front, when another
         /// is open behind it.
         case closeWindow = "menu.closeWindow"
+        /// The menu bar's File ▸ Close (⌘W): the window in front, when another
+        /// is open behind it.
+        case close = "menu.close"
+        /// The menu bar's File ▸ Close All (⌥⌘W): every window that may close
+        /// but the one at the back.
+        case closeAll = "menu.closeAll"
         /// A `WindowVisibilityToggle`'s default label while its window is not in
         /// front: `%@` is the window's title.
         case showWindow = "menu.showWindow"

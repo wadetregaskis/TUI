@@ -96,6 +96,22 @@ extension ScenePresenter {
         close([front.serial])
     }
 
+    /// The windows File ▸ Close All closes: every window the person may close
+    /// — one whose content did not disable its dismissal and that shows no
+    /// modal presentation — but never the last one open, which the app
+    /// menu's Quit closes: where every window may close, the one at the back
+    /// stays, the window the app opened first unless it was closed since.
+    package var windowsCloseAllCloses: [Int] {
+        var closable = windows.filter { $0.closesInteractively && !$0.showsModalPresentation }
+        if closable.count == windows.count { closable.removeFirst() }
+        return closable.map(\.serial)
+    }
+
+    /// Closes every window ``windowsCloseAllCloses`` names: File ▸ Close All.
+    package func closeAllWindows() {
+        close(windowsCloseAllCloses)
+    }
+
     /// Opens the `Window` scene `id`, or brings its window to the front.
     package func openScene(_ id: String) {
         open(WindowTarget(id: id))

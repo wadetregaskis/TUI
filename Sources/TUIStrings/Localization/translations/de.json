@@ -137,6 +137,8 @@
   "menu.aboutVersion": "Version %@",
   "menu.settings": "Einstellungen …",
   "menu.closeWindow": "Fenster schließen",
+  "menu.close": "Schließen",
+  "menu.closeAll": "Alle schließen",
   "menu.showWindow": "%@ einblenden",
   "menu.hideWindow": "%@ ausblenden",
   "menu.find": "Suchen …",

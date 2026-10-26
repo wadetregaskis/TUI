@@ -29,8 +29,9 @@ import TUI
 /// - **Go**, as Finder's: the main menu (disabled on it), and the previous and
 ///   next demo page.
 ///
-/// No File menu: an app with no documents has nothing for it, and TUI draws
-/// a standard menu only when something is in it.
+/// The File menu is TUI's: Close (⌘W) and Close All (⌥⌘W), since the Example
+/// opens more than one window. With no documents, the Example adds nothing to
+/// it.
 ///
 /// **The Go menu's keys.** Finder's Back and Forward are ⌘[ and ⌘], whose
 /// Control chords a terminal cannot send: ⌃[ is Escape's byte, and ⌃] one

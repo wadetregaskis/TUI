@@ -46,12 +46,14 @@ struct ExampleMenuBarTests {
         frame(app)
     }
 
-    @Test("The bar has View and Go but no File menu, and Go shows its keys")
+    /// The Example opens several windows, so its File menu holds Close and
+    /// Close All (owner ruling O9, 2026-10-26).
+    @Test("The bar has File, View and Go, and Go shows its keys")
     mutating func goMenu() throws {
         let app = launched()
         let bar = rows(app)[0]
         #expect(bar.contains(" View ") && bar.contains(" \(text("commands.go")) "), "\(bar)")
-        #expect(!bar.contains(" File "), "\(bar)")
+        #expect(bar.contains(" File "), "\(bar)")
         try open(text("commands.go"), in: app)
         let menu = rows(app)
         #expect(menu.contains { $0.contains(text("commands.previousPage")) && $0.contains("⌃B") }, "\(menu)")

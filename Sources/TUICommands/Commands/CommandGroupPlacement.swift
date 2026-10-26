@@ -102,7 +102,11 @@ public struct CommandGroupPlacement: Hashable, Sendable {
 
     /// Placement for commands that save open documents and close windows.
     ///
-    /// Empty by default.
+    /// By default, for an app that can have more than one window open, this
+    /// group includes "Close" (⌘W), closing the window in front, and "Close
+    /// All" (⌥⌘W), closing every window that may close but the one at the
+    /// back. A focused text field keeps Ctrl-W, the stand-in for ⌘W, as its
+    /// word rubout.
     public static let saveItem = Self(.saveItem)
 
     /// Placement for commands that relate to importing and exporting data

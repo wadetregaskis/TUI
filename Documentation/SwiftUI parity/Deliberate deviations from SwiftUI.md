@@ -2268,7 +2268,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `Settings` scene as a sheet.
 - **Decided:** [B-O9-6](<Decisions/Presentation and windows/Several scenes on one surface (O9).md#b-o9-6-settings-is-a-sheet-over-the-window-in-front>). **Owner.**
 
-### W13. The Window menu closes a window; File has no New Window or Close
+### W13. The Window menu closes a window; File has Close and Close All but no New Window
 
 - **SwiftUI:** with several window groups, File ▸ New is a submenu with a New
   *Title* Window per group, and File holds Close (⌘W) and Close All (⌥⌘W); the
@@ -2277,13 +2277,18 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **TUI:** for an app that can have more than one window open — more than
   one window scene, or a window group that `openWindow` or its key opens more
   windows of — the Window menu holds Close Window, the open windows (the one in
-  front checked) and the `Window` scenes; File gains nothing
-  (`SceneMenuBarTests`). An app whose one window is all it can have has no
-  Window menu.
+  front checked) and the `Window` scenes (`SceneMenuBarTests`), and File holds
+  Close (⌘W) and Close All (⌥⌘W) since 2026-10-26 (`FileCloseCommandsTests`).
+  Close All leaves the window at the back open, since closing the last window
+  quits. A focused text field keeps Ctrl-W, ⌘W's stand-in, as its word
+  rubout, and a key of the window's own content on ⌘W wins over Close. File
+  has no New *Title* Window. An app whose one window is all it can have has
+  neither menu.
 - **Why:** a terminal has no minimising, zooming or bringing to front of other
-  apps' windows, and ⌘W and ⌥⌘W reach a terminal app only as `commandKey`
-  chords a text field may use; Close sits beside the list of windows it acts
-  on, and Escape, which closes a window opened over another, is its key.
+  apps' windows. ⌘W and ⌥⌘W reach a terminal app only as `commandKey` chords,
+  and Ctrl-W is a text field's word rubout, which the owner put first
+  (ruling O9, 2026-10-26). New Window's ⌘N is Ctrl-N, a text field's next
+  line, and is not built.
 - **Decided:** [B-O9-9](<Decisions/Presentation and windows/Several scenes on one surface (O9).md#b-o9-9-the-window-menu-lists-the-windows-and-closes-the-one-in-front>). **Lane.**
 
 ### W14. A file panel is TUI's own, browsing the machine the app runs on

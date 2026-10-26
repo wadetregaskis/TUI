@@ -29,6 +29,7 @@ import TUIFoundation
 /// | `undoRedo` | Undo, Redo | the app's `UndoManager`; disabled with nothing to undo or redo | the scene's undo and redo keys |
 /// | `pasteboard` | Cut, Copy, Paste | ⌘X, ⌘C, ⌘V to the focused view, after the menu closes | the same, through `commandKey` |
 /// | `help` | Show Tooltips; Show All Tooltips | whether tooltips show at all; every tooltip on the screen at once (`TooltipState`); each disabled where no view on the screen has help | —; ⌥ and the help key (⌥?) |
+/// | `saveItem` | Close; Close All | closes the window in front; every window that may close but the one at the back; each disabled where it would close nothing (the Window menu's rule) | ⌘W; ⌥⌘W — a focused text field keeps Ctrl-W, its word rubout |
 /// | `windowArrangement` | Close Window | closes the window in front; disabled where the person may not: the last, one whose content disabled its dismissal, one showing a sheet | Escape |
 /// | `windowList` | each open window, the one in front checked | brings it to the front | — |
 /// | `singleWindowList` | each `Window` scene | opens it, or brings its window to the front | its `.keyboardShortcut`, if it states one |
@@ -68,6 +69,8 @@ struct SceneOwnCommands {
             return environment.scenePresenter.flatMap {
                 windowItems(group, presenter: $0, appName: environment.resolvedAboutPanel.name)
             }
+        case .saveItem:
+            return environment.scenePresenter.flatMap(closeItems)
         case .appTermination:
             let quit = environment.statusBar?.quitShortcut ?? .q
             let title = LocalizedStringKey.substituting(
@@ -103,6 +106,23 @@ struct SceneOwnCommands {
         return Self.items("settings") {
             Button(title) { openSettings() }
                 .keyboardShortcutHint(shortcut)
+        }
+    }
+
+    /// File ▸ Close and Close All, for an app that can open more than one
+    /// window: the window in front, and every window that may close but the
+    /// one at the back, on ⌘W and ⌥⌘W, which the presenter binds. A focused
+    /// text field keeps Ctrl-W, the word rubout (owner ruling O9, 2026-10-26).
+    private func closeItems(_ presenter: ScenePresenter) -> CommandItems? {
+        guard presenter.opensSeveralWindows else { return nil }
+        let service = LocalizationService.shared
+        return Self.items("close") {
+            Button(service.string(for: LocalizationKey.Menu.close)) { presenter.closeFrontWindow() }
+                .keyboardShortcutHint(ScenePresenter.closeShortcut)
+                .disabled(!presenter.canCloseFrontWindow)
+            Button(service.string(for: LocalizationKey.Menu.closeAll)) { presenter.closeAllWindows() }
+                .keyboardShortcutHint(ScenePresenter.closeAllShortcut)
+                .disabled(presenter.windowsCloseAllCloses.isEmpty)
         }
     }
 

@@ -277,9 +277,15 @@ reading for; and File's New *Title* Window, Close and Close All: a group's
 window opens from what the app offers, and Close is the Window menu's here,
 beside the list it acts on (deviation W13).
 
-**The fuller version** adds File ▸ New with an item per window group (a new
-window of it) and Close / Close All on ⌘W and ⌥⌘W through `commandKey` — keys
-a text field may want (⌃W deletes a word), so the owner's call; about two hours.
+**Since built, in part (owner ruling O9, 2026-10-26: "prioritise ^W in text
+fields, with the menu items only working when the focus is outside a text
+field"):** File ▸ Close (⌘W) and Close All (⌥⌘W), registered as commands so
+a key of the window's content wins, and never reaching a focused text field,
+whose Ctrl-W is now readline's word rubout. Close All leaves the window at the
+back open. `FileCloseCommandsTests`.
+
+**The fuller version, still to build:** File ▸ New with an item per window
+group (a new window of it), whose ⌘N is a text field's Ctrl-N.
 
 ### B-O9-10. A window's content can take the person's ways to close it away
 
