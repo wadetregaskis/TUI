@@ -146,8 +146,7 @@ private struct _ZStackCore<Content: View>: View, Renderable {
             }
             return buffers.reduce(FrameBuffer()) {
                 $0.compositedCarryingClaimsOverNothing(
-                    with: $1, at: (x: 0, y: 0), palette: context.environment.palette,
-                    linearLight: context.environment.blendsInLinearLight)
+                    with: $1, at: (x: 0, y: 0), in: CompositeEnvironment(context.environment))
             }
         }
 

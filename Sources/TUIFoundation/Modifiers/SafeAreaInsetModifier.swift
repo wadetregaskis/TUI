@@ -133,13 +133,10 @@ extension SafeAreaInsetModifier: Renderable {
             insetPosition = (insetLeads ? 0 : baseBuffer.width + gap, insetY)
         }
 
-        let palette = context.environment.palette
+        let composite = CompositeEnvironment(context.environment)
         var result = FrameBuffer(emptyWithWidth: width, height: height)
-        let linearLight = context.environment.blendsInLinearLight
-        result.compositeCarryingClaimsOverNothing(
-            with: baseBuffer, at: basePosition, palette: palette, linearLight: linearLight)
-        result.compositeCarryingClaimsOverNothing(
-            with: insetBuffer, at: insetPosition, palette: palette, linearLight: linearLight)
+        result.compositeCarryingClaimsOverNothing(with: baseBuffer, at: basePosition, in: composite)
+        result.compositeCarryingClaimsOverNothing(with: insetBuffer, at: insetPosition, in: composite)
         return result
     }
 }

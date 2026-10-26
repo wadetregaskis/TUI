@@ -271,7 +271,7 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
             panes.sizes, children: children, bounds: bounds, total: total, across: across, context: context)
         panes.bounds = bounds
 
-        let palette = context.environment.palette
+        let composite = CompositeEnvironment(context.environment)
         // The pane after the last divider's toggle, an inspector's; its panes
         // are no inspector's last pane.
         let trailingToggle = axis == .horizontal ? context.environment.trailingPaneToggle : nil
@@ -285,14 +285,14 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
                 width: axis == .horizontal ? size : across, height: axis == .horizontal ? across : size,
                 context: paneContext)
             result.compositeCarryingClaimsOverNothing(
-                with: buffer, at: position(offset), palette: palette, linearLight: context.environment.blendsInLinearLight)
+                with: buffer, at: position(offset), in: composite)
             offset += size
             guard index + 1 < children.count else { break }
             let divider = dividerBuffer(
                 index: index, panes: panes, length: across,
                 hides: index == children.count - 2 ? trailingToggle : nil, context: context)
             result.compositeCarryingClaimsOverNothing(
-                with: divider, at: position(offset), palette: palette, linearLight: context.environment.blendsInLinearLight)
+                with: divider, at: position(offset), in: composite)
             offset += 1
         }
         return result.clamped(toWidth: width, height: height)

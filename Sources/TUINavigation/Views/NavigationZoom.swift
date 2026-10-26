@@ -158,8 +158,7 @@ extension NavigationCoordinator {
                 aspect: environment.imageCellAspect)
         }
         return ZoomEdge(
-            kept: kept, shadow: configuration.shadow?.style(at: remaining), palette: environment.palette,
-            linearLight: environment.blendsInLinearLight)
+            kept: kept, shadow: configuration.shadow?.style(at: remaining), composite: CompositeEnvironment(environment))
     }
 
     /// Starts a zoom if the path's change calls for one: a push of a screen
@@ -279,11 +278,9 @@ struct ZoomEdge {
     var kept: [[Range<Int>]]?
     /// The shadow the rectangle casts, or `nil`.
     var shadow: ShadowStyle?
-    /// The palette the shadow resolves and blends in.
-    var palette: (any Palette)?
-    /// Whether the edge's claims mix in linear light, inside a
-    /// `drawingGroup(colorMode: .linear)`.
-    var linearLight = false
+    /// The environment the shadow resolves and blends in: its palette, and
+    /// whether the edge's claims mix in linear light.
+    var composite: CompositeEnvironment?
 
     /// `part` — a piece of the rectangle whose top-leading cell is at
     /// `offset` in it — with the cells the clip shape leaves out cleared, so
@@ -307,26 +304,26 @@ struct ZoomEdge {
     /// nothing resolved against `base`, so the screen under a cut corner
     /// shows there.
     func laying(_ piece: FrameBuffer, onto base: FrameBuffer, at position: (x: Int, y: Int)) -> FrameBuffer {
-        guard kept != nil, let palette else { return base.composited(with: piece, at: position) }
+        guard kept != nil, let composite else { return base.composited(with: piece, at: position) }
         var laid = base
-        laid.compositeCarryingClaimsOverNothing(with: piece, at: position, palette: palette, linearLight: linearLight)
+        laid.compositeCarryingClaimsOverNothing(with: piece, at: position, in: composite)
         return laid
     }
 
     /// `base` with the shadow of the rectangle at `rect` — of its clip shape,
     /// where it has one — laid over it, cut to `size`, the stack's.
     func shadowing(_ base: FrameBuffer, from rect: CellRect, within size: CellSize) -> FrameBuffer {
-        guard let shadow, let palette else { return base }
+        guard let shadow, let composite else { return base }
         let solid = String(repeating: "█", count: rect.width)
         let caster = clipping(FrameBuffer(lines: Array(repeating: solid, count: rect.height)), at: (0, 0))
-        guard let cast = FrameBuffer.dropShadowLayer(castBy: caster, style: shadow, palette: palette),
+        guard let cast = FrameBuffer.dropShadowLayer(castBy: caster, style: shadow, palette: composite.palette),
             let inside = OverlayLayer(
                 offsetX: rect.x + cast.origin.x, offsetY: rect.y + cast.origin.y, content: cast.layer
             ).cropped(x: 0, y: 0, width: size.width, height: size.height)
         else { return base }
         var shadowed = base
         shadowed.compositeCarryingClaimsOverNothing(
-            with: inside.content, at: (inside.offsetX, inside.offsetY), palette: palette, linearLight: linearLight)
+            with: inside.content, at: (inside.offsetX, inside.offsetY), in: composite)
         return shadowed
     }
 }

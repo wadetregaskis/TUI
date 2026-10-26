@@ -56,8 +56,7 @@ extension FrameBuffer {
             }
             showingThrough += result.runsShowingThrough(buffer, at: (x: dx, y: dy))
             result = result.compositedCarryingClaimsOverNothing(
-                with: buffer, at: (x: dx, y: dy), palette: context.environment.palette,
-                linearLight: context.environment.blendsInLinearLight)
+                with: buffer, at: (x: dx, y: dy), in: CompositeEnvironment(context.environment))
         }
         if !showingThrough.isEmpty {
             context.requestWake(

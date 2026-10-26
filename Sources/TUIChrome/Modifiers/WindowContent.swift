@@ -24,15 +24,14 @@ func windowContent(
         background.view,
         context: context.withChildIdentity(type: ContainerBackgroundPlacement.self, index: 1))
 
-    let palette = context.environment.palette
-    let linearLight = context.environment.blendsInLinearLight
+    let composite = CompositeEnvironment(context.environment)
     var result = FrameBuffer(emptyWithWidth: width, height: height)
     result.compositeCarryingClaimsOverNothing(
         with: backgroundBuffer,
         at: (
             x: background.alignment.horizontal.childOffset(childWidth: backgroundBuffer.width, in: width),
             y: background.alignment.vertical.childOffset(childHeight: backgroundBuffer.height, in: height)),
-        palette: palette, linearLight: linearLight)
+        in: composite)
     // Centred as `WindowGroup` centres its content with no background.
     let showingThrough = result.runsShowingThrough(
         content, at: (x: max(0, (width - content.width) / 2), y: max(0, (height - content.height) / 2)))
@@ -43,6 +42,6 @@ func windowContent(
     }
     result.compositeCarryingClaimsOverNothing(
         with: content, at: (x: max(0, (width - content.width) / 2), y: max(0, (height - content.height) / 2)),
-        palette: palette, linearLight: linearLight)
+        in: composite)
     return result.clamped(toWidth: width, height: height)
 }

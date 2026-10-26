@@ -257,8 +257,7 @@ func compositeDrawnLayer(
     // layers, lifted after the base's: over whatever the base floats past it.
     return clampedToBase(
         baseBuffer.compositedCarryingClaimsOverNothing(
-            with: overlayBuffer, at: offset, palette: context.environment.palette,
-            linearLight: context.environment.blendsInLinearLight),
+            with: overlayBuffer, at: offset, in: CompositeEnvironment(context.environment)),
         baseBuffer)
 }
 
@@ -318,13 +317,12 @@ func compositeDrawnLayer(
     // size, the layer onto it at its offset, then the base over both — asking
     // for a render at each step of a run of the layer whose field the base
     // shows and whose frames turn it.
-    let palette = context.environment.palette
+    let composite = CompositeEnvironment(context.environment)
     var result = FrameBuffer(emptyWithWidth: baseBuffer.width, height: baseBuffer.height)
     // What the layer draws past the base's frame rides among its floating
     // layers, lifted before the base's: under whatever the base floats past
     // it, and cut under the base's cells as the base lands.
-    let linearLight = context.environment.blendsInLinearLight
-    result.compositeCarryingClaimsOverNothing(with: layerBuffer, at: offset, palette: palette, linearLight: linearLight)
+    result.compositeCarryingClaimsOverNothing(with: layerBuffer, at: offset, in: composite)
     let showingThrough = result.runsShowingThrough(baseBuffer, at: (x: 0, y: 0))
     if !showingThrough.isEmpty {
         context.requestWake(
@@ -332,7 +330,7 @@ func compositeDrawnLayer(
             forNextStepOf: showingThrough.map { ($0.clock, $0.frameTicks) })
     }
     result.compositeCarryingClaimsOverNothing(
-        with: baseBuffer, at: (x: 0, y: 0), palette: palette, linearLight: linearLight)
+        with: baseBuffer, at: (x: 0, y: 0), in: composite)
     return clampedToBase(result, baseBuffer)
 }
 

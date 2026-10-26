@@ -46,7 +46,7 @@ struct ShadowModifier: BufferModifier, Equatable {
             return buffer.castingDropShadow(drawn, context: context, owner: owner)
         case .inner:
             return buffer.castingInnerShadow(
-                drawn, palette: context.environment.palette, linearLight: context.environment.blendsInLinearLight)
+                drawn, in: CompositeEnvironment(context.environment))
         }
     }
 }

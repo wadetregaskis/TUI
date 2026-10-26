@@ -132,20 +132,18 @@ extension FrameBuffer {
     /// carried up where it shows nothing (``splittingClaims(overNothingIn:at:)``),
     /// and a covered cell the blend leaves with no field left unsaid. This buffer's
     /// own claims under the overlay — an earlier layer's, carried up over the canvas
-    /// it landed on — are settled first (``settlingClaims(under:at:palette:linearLight:)``).
+    /// it landed on — are settled first (``settlingClaims(under:at:in:)``).
     ///
     /// - Parameters:
     ///   - overlay: The layer to draw on top.
     ///   - position: Where it lands, in this buffer's cells.
-    ///   - palette: Resolves SGR 39 and the terminal's own colours.
-    ///   - linearLight: Whether the claims spent here mix in linear light: the
-    ///     compositor's ``EnvironmentValues/blendsInLinearLight``, inside a
-    ///     `drawingGroup(colorMode: .linear)`.
+    ///   - composite: What the compositor's environment says about spending
+    ///     the claims here: the palette, and whether they mix in linear light.
     /// - Returns: The composite, carrying what was not resolved here.
     func compositedCarryingClaimsOverNothing(
-        with overlay: Self, at position: (x: Int, y: Int), palette: any Palette, linearLight: Bool
+        with overlay: Self, at position: (x: Int, y: Int), in composite: CompositeEnvironment
     ) -> Self {
-        let (base, layer, kept) = prepared(overlay, at: position, palette: palette, linearLight: linearLight)
+        let (base, layer, kept) = prepared(overlay, at: position, in: composite)
         var result = base.composited(
             with: layer, at: position, overlayIsPainted: false,
             terminalForeground: { Self.reportedTerminalForegroundField })
@@ -153,14 +151,15 @@ extension FrameBuffer {
         return result
     }
 
-    /// ``compositedCarryingClaimsOverNothing(with:at:palette:linearLight:)`` in
+    /// ``compositedCarryingClaimsOverNothing(with:at:in:)`` in
     /// place, for a canvas many layers are folded into (``composite(with:at:)``).
     package mutating func compositeCarryingClaimsOverNothing(
-        with overlay: Self, at position: (x: Int, y: Int), palette: any Palette, linearLight: Bool
+        with overlay: Self, at position: (x: Int, y: Int), in composite: CompositeEnvironment
     ) {
-        let (base, layer, kept) = prepared(overlay, at: position, palette: palette, linearLight: linearLight)
+        let (base, layer, kept) = prepared(overlay, at: position, in: composite)
         self = base
-        composite(with: layer, at: position, terminalForeground: { Self.reportedTerminalForegroundField })
+        // `self.`: the parameter `composite` shadows this method.
+        self.composite(with: layer, at: position, terminalForeground: { Self.reportedTerminalForegroundField })
         if !kept.isEmpty { opacityRegions = kept + opacityRegions }
     }
 
@@ -170,16 +169,16 @@ extension FrameBuffer {
     /// the overlay's cells, which the composite punches with the rest of its footprint
     /// and the caller puts back in front.
     private func prepared(
-        _ overlay: Self, at position: (x: Int, y: Int), palette: any Palette, linearLight: Bool
+        _ overlay: Self, at position: (x: Int, y: Int), in composite: CompositeEnvironment
     ) -> (base: Self, layer: Self, kept: [OpacityRegion]) {
         let split = overlay.splittingClaims(overNothingIn: self, at: position)
-        let settled = settlingClaims(under: split.here, at: position, palette: palette, linearLight: linearLight)
+        let settled = settlingClaims(under: split.here, at: position, in: composite)
         var landing = settled.layer
         // Only the claims spent here: what goes up lands outside, where the
         // compositor there says how it mixes.
-        if linearLight { landing.opacityRegions.placeInLinearLight() }
+        if composite.linearLight { landing.opacityRegions.placeInLinearLight() }
         var resolved = landing.resolvingOpacity(
-            over: settled.base, at: position, surface: palette.background, palette: palette,
+            over: settled.base, at: position, surface: composite.palette.background, palette: composite.palette,
             statingTheSurface: false, fillingStatedTerminalField: true, buildingRuns: true)
         resolved.opacityRegions = split.carried + settled.carried
         resolved.animatedCells += split.setAside

@@ -478,8 +478,7 @@ public struct _LayoutCore<L: Layout, Content: View>: View, Renderable, Layoutabl
             // each child covers a couple of rows.
             showingThrough += result.runsShowingThrough(rendered, at: (x: entry.x, y: entry.y))
             result.compositeCarryingClaimsOverNothing(
-                with: rendered, at: (x: entry.x, y: entry.y), palette: context.environment.palette,
-                linearLight: context.environment.blendsInLinearLight)
+                with: rendered, at: (x: entry.x, y: entry.y), in: CompositeEnvironment(context.environment))
         }
         // An earlier subview's runs a later one shows the field of, whose frames turn
         // it: punched under the later one, they ask for a render at their steps.

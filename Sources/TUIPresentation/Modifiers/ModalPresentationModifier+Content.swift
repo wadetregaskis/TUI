@@ -111,7 +111,7 @@ extension ModalPresentationModifier {
         guard buffer.width > 0, !(buffer.linesAreUniformWidth && height == buffer.height) else { return buffer }
         var box = FrameBuffer(emptyWithWidth: buffer.width, height: height)
         // A sheet is outside any drawing group its presenter is in.
-        box.compositeCarryingClaimsOverNothing(with: buffer, at: (x: 0, y: 0), palette: palette, linearLight: false)
+        box.compositeCarryingClaimsOverNothing(with: buffer, at: (x: 0, y: 0), in: CompositeEnvironment(palette: palette, linearLight: false))
         return box
     }
 
