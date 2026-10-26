@@ -102,7 +102,9 @@ public enum TrackStyle: Sendable, Equatable {
     /// `leading` is drawn once at the left of the filled region;
     /// `trailing` once at the right of the filled region; `middle` is
     /// repeated across the gap between them. Background cells are filled with
-    /// `backgroundPattern` (a space by default), padded out to the track's width.
+    /// `backgroundPattern` (a space by default), laid from the track's first cell
+    /// to its last, which the fill covers as it grows: the pattern stays put, so
+    /// `("", "", "ᗧ")` over `"• "` eats dots that wait for it.
     ///
     /// `coloring` selects how the lit region is coloured: the control's
     /// own filled colour (``SegmentColoring/automatic``, the default), one

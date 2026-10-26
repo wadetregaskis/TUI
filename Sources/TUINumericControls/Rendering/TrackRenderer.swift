@@ -663,16 +663,13 @@ extension TrackRenderer {
 
         let emptyCellCount = max(0, width - filledCount)
         if emptyCellCount > 0 {
+            // The pattern is the track's, laid from its first cell, and the fill
+            // covers it: cell i shows the pattern's cell i mod its width, wherever
+            // the fill ends. Laid from the fill's end, it slid along with the fill,
+            // and a Pac-Man's dots moved ahead of him rather than waiting to be eaten.
             let backgroundPatternWidth = max(1, backgroundPattern.strippedLength)
-            let emptyReps = emptyCellCount / backgroundPatternWidth
-            let emptyRemainder = emptyCellCount - emptyReps * backgroundPatternWidth
-            var empty = ""
-            if emptyReps > 0 {
-                empty += String(repeating: backgroundPattern, count: emptyReps)
-            }
-            if emptyRemainder > 0 {
-                empty += backgroundPattern.ansiAwarePrefix(visibleCount: emptyRemainder)
-            }
+            let laid = String(repeating: backgroundPattern, count: width / backgroundPatternWidth + 1)
+            let empty = laid.ansiAwareSlice(visibleStart: filledCount, visibleCount: emptyCellCount)
             row.append(empty, cells: emptyCellCount, ink: backgroundColor)
         }
         return row
