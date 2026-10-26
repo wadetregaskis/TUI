@@ -323,8 +323,10 @@ extension InboxVariantSession {
     ///   not lit. (The list's cursor need not be on the screen: a list that
     ///   does not hold the focus does not keep it in view as the page is
     ///   laid out short, and a resize cuts the viewport it was revealed in.)
-    /// - past the threshold the page above the sheet is dimmed, every inked
-    ///   cell of it; at or below it, it is not.
+    /// - past the threshold the page above the sheet is veiled, no inked cell
+    ///   of it in the page's own body ink; at or below it, it is not. (Under
+    ///   the veil the list's cursor is still drawn, faded and inert, so the
+    ///   focus check above is the live sheet's alone.)
     ///
     /// Not on the frames that present the sheet again and dismiss it, which
     /// are drawn before the focus they hand over is painted. Presenting, the
@@ -345,15 +347,24 @@ extension InboxVariantSession {
         let handleLit = rule.map { Self.isHandleLit(cells.rows[$0]) } ?? false
         let cursorShown = listShowsItsCursor(lines, cells, in: pageRows)
         let focusInSheet = DockedGeometry.statusLine(of: lines)?.contains("⎋") == true
-        if handleLit, cursorShown { return "both panes show the focus: the grabber's handle and the list's cursor" }
+        // Under a modal sheet the page is veiled and inert: its list's cursor
+        // is still drawn, faded with everything else, and shows no focus.
+        if handleLit, cursorShown, geometry?.isModal != true {
+            return "both panes show the focus: the grabber's handle and the list's cursor"
+        }
         if focusInSheet, !handleLit { return "the focus is in the sheet, and its grabber's handle is not lit" }
         if !focusInSheet, handleLit { return "the focus is on the page, and the sheet's grabber's handle is lit" }
         guard let geometry, let rule, rule > 0 else { return nil }
         let inked = pageRows.flatMap { cells.rows[$0] }.filter(\.hasInk)
         guard !inked.isEmpty else { return nil }
-        let dimmed = inked.allSatisfy(\.isDim)
-        if geometry.isModal, !dimmed { return "past its threshold the sheet leaves the page above it undimmed" }
-        if !geometry.isModal, dimmed { return "the page beside the live sheet is dimmed" }
+        // Veiled (`FrameBuffer.veiledAsBackdrop`): every colour moved toward the
+        // overlay colour, so no inked cell is left in the page's own body ink.
+        let bodyInk = ScreenCell.name(ColorDepth.withCurrent(.truecolor) {
+            SystemPalette(.green).foreground.resolve(with: SystemPalette(.green))
+        })
+        let dimmed = !inked.contains { ScreenCell.name($0.foreground) == bodyInk }
+        if geometry.isModal, !dimmed { return "past its threshold the sheet leaves the page above it unveiled" }
+        if !geometry.isModal, dimmed { return "the page beside the live sheet is veiled" }
         return nil
     }
 
