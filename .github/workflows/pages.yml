@@ -86,7 +86,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: .build/repositories
-          key: pages-swiftpm-${{ runner.os }}-${{ hashFiles('Package.resolved') }}
+          key: pages-swiftpm-${{ runner.os }}-${{ hashFiles('Package.swift') }}
 
       - name: Build DocC documentation
         env:
@@ -139,7 +139,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: .build/repositories
-          key: pages-swiftpm-wasm-${{ hashFiles('Package.resolved') }}
+          key: pages-swiftpm-wasm-${{ hashFiles('Package.swift') }}
 
       # Release, and without wasm-opt: build.sh ships the linker's output
       # when there is none, and no binaryen has been tried on this module yet

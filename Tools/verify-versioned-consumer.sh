@@ -39,8 +39,9 @@
 #
 # Exit status: 0 if a versioned consumer resolves, builds, and runs.
 #
-# Needs no network: the dependency is a local throwaway repository, and the
-# package's own dependencies come from the checked-in Package.resolved.
+# The dependency is a local throwaway repository. The package's own dependencies
+# resolve as a consumer's would, to the newest versions its manifest allows, so
+# they need the network or SwiftPM's cache.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."

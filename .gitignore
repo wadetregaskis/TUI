@@ -89,3 +89,7 @@ Tools/Web/site/glyph-probe.html
 # Working notes: investigation notes, scripts, probes and measurements kept beside the repository but never
 # committed (large or easily reproduced). Their committed summaries are Documentation/Investigations/.
 /Documentation/Working notes/
+
+# Package.resolved: a library's pins reach no consumer (SwiftPM ignores a dependency's), so
+# tracking them only made CI test versions nobody gets (owner, PACKAGE-RESOLVED, 2026-10-26).
+/Package.resolved
