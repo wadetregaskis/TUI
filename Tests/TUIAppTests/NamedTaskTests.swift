@@ -15,20 +15,15 @@ import TUIApp
 @testable import TUITestSupport
 
 /// Whether this runtime names tasks: macOS 26, and Swift 6.2's runtime
-/// elsewhere. Built against an SDK whose standard library has no task names
-/// (macOS 15's), nothing is named either.
+/// elsewhere.
 private var runtimeNamesTasks: Bool {
-    #if !canImport(Darwin) || canImport(FoundationModels)
-        if #available(macOS 26, *) { return true }
-    #endif
+    if #available(macOS 26, *) { return true }
     return false
 }
 
 /// The name of the task this is called from, where the runtime names tasks.
 nonisolated private func currentTaskName() -> String? {
-    #if !canImport(Darwin) || canImport(FoundationModels)
-        if #available(macOS 26, *) { return Task.name }
-    #endif
+    if #available(macOS 26, *) { return Task.name }
     return nil
 }
 

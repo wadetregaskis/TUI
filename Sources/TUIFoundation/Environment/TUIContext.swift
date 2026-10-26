@@ -284,19 +284,11 @@ extension LifecycleManager {
         // Pinning it to `@MainActor` here instead — the behaviour in between —
         // was safe but left an app no way to say "not on the main actor",
         // which the isolation-carrying parameter now allows.
-        // Named only where the SDK's standard library is 6.2's: a macOS 15
-        // SDK carries 6.1's, which has no task names — see CONTRIBUTING.md,
-        // "Build, Test & Lint".
-        #if !canImport(Darwin) || canImport(FoundationModels)
-            if let name, #available(macOS 26, *) {
-                tasks[token] = Task(name: name, priority: priority, operation: operation)
-            } else {
-                tasks[token] = Task(priority: priority, operation: operation)
-            }
-        #else
-            _ = name
+        if let name, #available(macOS 26, *) {
+            tasks[token] = Task(name: name, priority: priority, operation: operation)
+        } else {
             tasks[token] = Task(priority: priority, operation: operation)
-        #endif
+        }
     }
 
     /// Cancels and removes the task associated with the given token.

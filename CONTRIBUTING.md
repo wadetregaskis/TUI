@@ -243,18 +243,12 @@ support in 0.64.0.
 ## Build, Test & Lint
 
 ```bash
-# Build. With swiftly's `swift` the SDK is whichever `xcode-select` points at:
-# Xcode's (macOS 26) or the Command Line Tools' (macOS 15.5 here). Use Xcode's,
-# or Command Line Tools 26: the macOS 15 SDK carries the standard library and
-# Observation of Swift 6.1, under a 6.2 compiler. TUI's own modules build
-# against it — no `InlineArray` or task names there, each behind
-# `#if !canImport(Darwin) || canImport(FoundationModels)` (FoundationModels
-# arriving with the macOS 26 SDK), and no main-actor `UndoManager`, which
-# `MainActorUndoManager` and `TextUndoStep` bridge — and so do the Example
-# and Stress apps, `@Observable` classes and all (an `env -i` build into a
-# fresh scratch path with swiftly's 6.2.4 and the Command Line Tools' 15.5
-# SDK, 2026-10-23; on 2026-10-16 their `@Observable` classes failed to
-# expand there, which no longer reproduces).
+# Build. With swiftly's `swift` the SDK is whichever `xcode-select` points at.
+# TUI needs Swift 6.2 or newer, and on macOS that means an SDK from Xcode 26 or
+# Command Line Tools 26 (or newer), whose interfaces are 6.2's: Xcode 26.3 runs
+# on macOS 15. The macOS 15 SDKs (Command Line Tools 16.x) carry Swift 6.1's
+# interfaces and are not supported, so nothing is built or tested against them
+# (owner ruling SDK15-CI, 2026-10-26).
 swift build
 
 # Build with Xcode's own toolchain too, if `swift` on your PATH is a swift.org

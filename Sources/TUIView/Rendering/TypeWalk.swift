@@ -65,16 +65,10 @@ extension Dictionary: _ElementTypesProviding {
     package static var elementTypes: [Any.Type] { [Key.self, Value.self] }
 }
 
-// Where the SDK's standard library is 6.2's: a macOS 15 SDK carries 6.1's,
-// which has no `InlineArray` — see CONTRIBUTING.md, "Build, Test & Lint".
-// FoundationModels arrives with the macOS 26 SDK; off Darwin the toolchain's
-// own standard library is the one in use.
-#if !canImport(Darwin) || canImport(FoundationModels)
 @available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, visionOS 26.0, *)
 extension InlineArray: _ElementTypesProviding where Element: Copyable {
     package static var elementTypes: [Any.Type] { [Element.self] }
 }
-#endif
 
 extension Binding: _ReadsItsSource {}
 
