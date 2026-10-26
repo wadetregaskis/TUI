@@ -40,6 +40,7 @@ extension EnvironmentValues {
         // person chose something, so the default costs no write per frame.
         if let trigger = context.tooltipState.menuTrigger { tooltipTrigger = trigger }
         terminalImageStore = context.terminalImageStore
+        appScopedObjects = context.appScopedObjects
         renderCache = context.renderCache
         preferenceStorage = context.preferences
         localizationService = LocalizationService.shared

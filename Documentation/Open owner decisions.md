@@ -36,7 +36,7 @@ This section records the answers you gave on 2026-10-23, what each one sets in m
 | [OOB-STYLING](#oob-styling) | Explore later along (a). | Kept open; reminder when the queue runs out. |
 | [PACKAGE-RESOLVED](#package-resolved) | You committed it; asked for other considerations. | Committed (965a4884b); pros and cons below — your call. |
 | [SDK15-CI](#sdk15-ci) | Asked about the newest SDK on 15.8 and an Xcode with the 6.2 standard library. | Answered below — your call. |
-| [SINGLETON-CACHES](#singleton-caches) | (c). | Partly done (lane DOCS2): the rule is clarified and the palette store documented; injecting URLImageCache and bounding it still needs code (queued). |
+| [SINGLETON-CACHES](#singleton-caches) | (c). | Done (lane DOCS2; lane IMAGECACHE, 2026-10-25): the rule is clarified and the palette store documented; `URLImageCache.shared` is gone — each app has its own, found through the environment (`.urlImageCache(_:)` overrides it), bounded at 64 MiB, least recently used first, kept in the app context's `AppScopedObjects` because the context cannot name the image module. |
 | [WINDOWS-PORT](#windows-port) | (b); don't make future Windows work harder. | Bookkeeping queued for after the push. |
 | [A-D6L-1](#a-d6l-1) | Not deciding yet; keep open. | Kept open; reminder at the end of the queue. |
 | [A-D6L-2](#a-d6l-2) | (4). | Prototype built (lane-hairline, 2026-10-24): `.listSeparatorStyle(_:)`; on Ghostty `.automatic` separators are SwiftUI's default, drawn as Kitty hairlines that take no row; elsewhere off, as before. To look: `Tools/TerminalProbes/hairline_review.py`. |

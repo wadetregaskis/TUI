@@ -326,13 +326,15 @@ private struct _AsyncImageCore<Content: View>: View, Renderable, Layoutable {
         lifecycle.registerDisappear(token: token) { [lifecycle] in lifecycle.cancelTask(token: token) }
         guard let url else { return }
         let address = url.absoluteString
-        let timeout = context.environment.imageURLTimeout
-        let maxPixels = context.environment.imageMaxPixelCount
+        let settings = _ImageCore.LoadSettings(
+            maxPixelCount: context.environment.imageMaxPixelCount,
+            urlTimeout: context.environment.imageURLTimeout,
+            urlCache: context.environment.resolvedURLImageCache)
         let transaction = self.transaction
         let scale = self.scale
         lifecycle.startTask(token: token, priority: .userInitiated) {
             guard let loaded = await _ImageCore.loadPhase(
-                source: .url(address), maxPixelCount: maxPixels, urlTimeout: timeout)
+                source: .url(address), settings: settings)
             else { return }
             await MainActor.run {
                 // As `Image`'s load: a cancellation that arrives during the hop

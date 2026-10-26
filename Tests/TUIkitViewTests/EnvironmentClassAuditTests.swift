@@ -46,6 +46,8 @@ struct EnvironmentClassAuditTests {
         "ModifierKeyMonitor": "service: its state is read through the monitor's own invalidation",
         "ScrollToRegistry": "mailbox: scroll targets are registered into it",
         "TerminalImageStore": "mailbox: pictures are registered into it for the writer",
+        "AppScopedObjects": "service: per-app objects an optional module keeps, made once and kept",
+        "URLImageCache": "service: a load reads and fills it off the main actor; what is drawn comes from @State",
         "PresentedWindowSlot": "app level: read by the presented window's root, not by rows",
         "SceneOverlayList": "app level: read by the scene's root, not by rows",
         "ScreenSelection": "chrome level: read by the window's chrome host, not by rows",

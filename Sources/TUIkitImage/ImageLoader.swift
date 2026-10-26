@@ -543,38 +543,73 @@ extension PlatformImageLoader {
 
 // MARK: - URL Image Cache
 
-/// A session-scoped cache for images downloaded from URLs.
+/// A cache of the images downloaded from URLs, decoded, bounded in bytes.
 ///
-/// Cached entries persist for the lifetime of the application.
-/// Thread-safe via an internal lock.
+/// Not process-wide: each app has its own, which `Image` and `AsyncImage`
+/// find through the environment, and `.urlImageCache(_:)` gives a subtree a
+/// different one — a test's own, say, which nothing else can see. Outside an
+/// app nothing is cached. (CLAUDE.md, No Singletons: a cache holding what an
+/// app sees travels through the environment.)
+///
+/// Bounded by the bytes its images take, four a pixel: past ``byteLimit`` the
+/// least recently used go first. A single image larger than the limit is not
+/// kept at all. Thread-safe through an internal lock: a load decodes off the
+/// main actor.
 public final class URLImageCache: @unchecked Sendable {
-    /// Shared session cache.
-    public static let shared = URLImageCache()
+    /// The bytes the cache keeps at most, by default: 64 MiB, about eleven
+    /// full-HD pictures.
+    public static let defaultByteLimit = 64 << 20
 
-    private var cache: [String: RGBAImage] = [:]
+    /// The bytes the cache keeps at most.
+    public let byteLimit: Int
+
+    private var entries: [String: (image: RGBAImage, lastUse: UInt64)] = [:]
+    private var bytes = 0
+    private var clock: UInt64 = 0
     private let lock = NSLock()
 
-    /// Creates an empty cache.
-    ///
-    /// `loadImage(fromURL:cache:…)` takes the cache to use, which was always
-    /// the point — an app that wants its own, or a test that wants one nobody
-    /// else can see, should not be reaching into a process-wide singleton. The
-    /// initializer being private made that parameter accept exactly one value,
-    /// so the seam existed on paper only.
-    public init() {}
+    /// Creates an empty cache that keeps at most `byteLimit` bytes of images.
+    public init(byteLimit: Int = URLImageCache.defaultByteLimit) {
+        self.byteLimit = max(0, byteLimit)
+    }
+
+    /// The bytes the cached images take now.
+    public var byteCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return bytes
+    }
 
     /// Returns a cached image for the given URL string, or nil.
     public func get(_ urlString: String) -> RGBAImage? {
         lock.lock()
         defer { lock.unlock() }
-        return cache[urlString]
+        guard let entry = entries[urlString] else { return nil }
+        clock &+= 1
+        entries[urlString] = (entry.image, clock)
+        return entry.image
     }
 
-    /// Stores an image in the cache for the given URL string.
+    /// Stores an image in the cache for the given URL string, letting the
+    /// least recently used go until it fits.
     public func set(_ urlString: String, image: RGBAImage) {
+        let cost = Self.cost(of: image)
         lock.lock()
         defer { lock.unlock() }
-        cache[urlString] = image
+        if let old = entries.removeValue(forKey: urlString) { bytes -= Self.cost(of: old.image) }
+        guard cost <= byteLimit else { return }
+        while bytes + cost > byteLimit, let oldest = entries.min(by: { $0.value.lastUse < $1.value.lastUse }) {
+            entries.removeValue(forKey: oldest.key)
+            bytes -= Self.cost(of: oldest.value.image)
+        }
+        clock &+= 1
+        entries[urlString] = (image, clock)
+        bytes += cost
+    }
+
+    /// What an image costs the cache: four bytes a pixel.
+    private static func cost(of image: RGBAImage) -> Int {
+        image.width * image.height * 4
     }
 }
 
@@ -582,10 +617,11 @@ public final class URLImageCache: @unchecked Sendable {
 
 extension PlatformImageLoader {
 
-    /// Loads an image from a URL, using the session cache.
+    /// Loads an image from a URL, through `cache` when there is one.
     ///
-    /// On first access the image is downloaded and cached; subsequent calls
-    /// for the same URL return the cached copy.
+    /// On first access the image is downloaded and kept in `cache`; later
+    /// calls for the same URL with the same cache return the kept copy. With
+    /// no cache, every call downloads.
     ///
     /// The download *suspends* — it never blocks the calling thread — and it
     /// honours cancellation: cancelling the enclosing task cancels the
@@ -601,7 +637,7 @@ extension PlatformImageLoader {
     ///
     /// - Parameters:
     ///   - urlString: The URL to download.
-    ///   - cache: The image cache to use.
+    ///   - cache: The image cache to use, or `nil` to cache nothing.
     ///   - timeout: The download timeout in seconds (default: 30).
     ///   - maxPixelCount: The maximum allowed total pixel count, or `nil` for no limit.
     /// - Returns: The decoded image.
@@ -609,13 +645,13 @@ extension PlatformImageLoader {
     ///   on network or decoding failure, or if the image exceeds the size limit.
     public func loadImage(
         fromURL urlString: String,
-        cache: URLImageCache = .shared,
+        cache: URLImageCache? = nil,
         timeout: TimeInterval = 30,
         maxPixelCount: Int? = nil
     ) async throws -> RGBAImage {
-        if let cached = cache.get(urlString) {
+        if let cached = cache?.get(urlString) {
             // A cache hit still has to clear the caller's limit. The cache is
-            // keyed by URL alone and shared across the process, but
+            // keyed by URL alone and shared by an app's views, but
             // `maxPixelCount` comes from the environment and so differs from
             // one view to the next — so without this, the FIRST load decides
             // for everyone. A view with no limit warms the cache; a later view
@@ -664,7 +700,7 @@ extension PlatformImageLoader {
         }
 
         let image = try loadImage(from: data, maxPixelCount: maxPixelCount)
-        cache.set(urlString, image: image)
+        cache?.set(urlString, image: image)
         return image
         #endif
     }

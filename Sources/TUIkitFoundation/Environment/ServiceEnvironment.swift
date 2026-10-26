@@ -127,6 +127,10 @@ private struct TerminalImageStoreKey: EnvironmentKey {
     static let defaultValue: TerminalImageStore? = nil
 }
 
+private struct AppScopedObjectsKey: EnvironmentKey {
+    static let defaultValue: AppScopedObjects? = nil
+}
+
 // MARK: - EnvironmentValues Extensions
 
 extension EnvironmentValues {
@@ -188,6 +192,14 @@ extension EnvironmentValues {
     package var terminalImageStore: TerminalImageStore? {
         get { self[TerminalImageStoreKey.self] }
         set { self[TerminalImageStoreKey.self] = newValue }
+    }
+
+    /// The objects this app's optional modules keep for it
+    /// (``AppScopedObjects``), or `nil` outside a live app — where a module
+    /// keeps nothing across renders.
+    package var appScopedObjects: AppScopedObjects? {
+        get { self[AppScopedObjectsKey.self] }
+        set { self[AppScopedObjectsKey.self] = newValue }
     }
 
     /// The values this app last copied, or `nil` outside a live app — where a

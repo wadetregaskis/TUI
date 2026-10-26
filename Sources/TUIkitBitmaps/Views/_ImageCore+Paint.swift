@@ -59,8 +59,12 @@ extension _ImageCore {
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             manageLoadLifecycle(
                 lifecycle: lifecycle, token: "image-paint-\(identity.path)", phaseBox: phaseBox,
-                lastSourceBox: lastSourceBox, maxPixelCount: context.environment.imageMaxPixelCount,
-                urlTimeout: context.environment.imageURLTimeout, imageStore: nil, loads: decoded == nil)
+                lastSourceBox: lastSourceBox,
+                load: Self.LoadSettings(
+                    maxPixelCount: context.environment.imageMaxPixelCount,
+                    urlTimeout: context.environment.imageURLTimeout,
+                    urlCache: context.environment.resolvedURLImageCache),
+                imageStore: nil, loads: decoded == nil)
         }
         guard case .success(let image) = phaseBox.value else { return nil }
         let holder: StateBox<PaintPixelsHolder> = stateStorage.storage(

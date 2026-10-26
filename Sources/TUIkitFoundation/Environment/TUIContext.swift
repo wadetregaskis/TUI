@@ -376,6 +376,11 @@ package final class TUIContext: @unchecked Sendable {
     /// contexts would delete one context's images out from under the other.
     package let terminalImageStore = TerminalImageStore()
 
+    /// The objects the app's optional modules keep for it, one of each type —
+    /// the URL image cache, say, which this module cannot name
+    /// (``AppScopedObjects``).
+    package let appScopedObjects = AppScopedObjects()
+
     /// The help text a frame may show, and how it became the candidate.
     ///
     /// A plain stored property with no init parameter, like

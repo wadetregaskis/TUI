@@ -321,4 +321,25 @@ extension View {
     public func imageURLTimeout(_ seconds: TimeInterval) -> some View {
         environment(\.imageURLTimeout, seconds)
     }
+
+    /// Sets the cache the images in this view load URLs through — in place of
+    /// the app's own, which every app has, bounded at
+    /// ``URLImageCache/defaultByteLimit``.
+    ///
+    /// A test that wants a cache nothing else sees, or an app that wants a
+    /// different bound for one part of itself, hands its views its own:
+    ///
+    /// ```swift
+    /// Gallery()
+    ///     .urlImageCache(URLImageCache(byteLimit: 256 << 20))
+    /// ```
+    ///
+    /// `URLImageCache(byteLimit: 0)` keeps nothing. TUI-specific: SwiftUI's
+    /// `AsyncImage` goes through the URL loading system's own cache.
+    ///
+    /// - Parameter cache: The cache, or `nil` for the app's own.
+    /// - Returns: A modified view.
+    public func urlImageCache(_ cache: URLImageCache?) -> some View {
+        environment(\.urlImageCache, cache)
+    }
 }

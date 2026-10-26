@@ -22,11 +22,15 @@ import TUIkitBitmaps
 @Suite("AsyncImage")
 struct AsyncImageTests {
 
-    /// A URL the shared cache answers, so the load succeeds with no network.
+    /// This test's own cache, which no other test sees: the views are handed
+    /// it (`.urlImageCache(_:)`).
+    private let cache = URLImageCache()
+
+    /// A URL the test's cache answers, so the load succeeds with no network.
     private func cachedURL() -> URL {
         let address = "tuikit-test://async-image/\(UUID().uuidString).png"
         let red = RGBA(r: 255, g: 0, b: 0)
-        URLImageCache.shared.set(address, image: RGBAImage(width: 4, height: 4, pixels: Array(repeating: red, count: 16)))
+        cache.set(address, image: RGBAImage(width: 4, height: 4, pixels: Array(repeating: red, count: 16)))
         return URL(string: address)!
     }
 
@@ -47,6 +51,7 @@ struct AsyncImageTests {
                 Text(phaseName(phase))
                 if let image = phase.image { image.frame(width: 4, height: 2) }
             }
+            .urlImageCache(cache)
         }
         let first = harness.frame(view())
         #expect(first.lines.first?.stripped.hasPrefix("empty") == true)

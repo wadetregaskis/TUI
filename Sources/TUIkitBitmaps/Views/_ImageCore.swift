@@ -234,7 +234,9 @@ struct _ImageCore: View, Renderable, Layoutable {
             manageLoadLifecycle(
                 lifecycle: lifecycle, token: token,
                 phaseBox: phaseBox, lastSourceBox: lastSourceBox,
-                maxPixelCount: maxPixelCount, urlTimeout: urlTimeout,
+                load: LoadSettings(
+                    maxPixelCount: maxPixelCount, urlTimeout: urlTimeout,
+                    urlCache: context.environment.resolvedURLImageCache),
                 imageStore: context.environment.terminalImageStore, loads: decoded == nil)
             // Written only when the owner changes, as the source is: a write
             // asks for a frame.
@@ -335,6 +337,16 @@ struct _ImageCore: View, Renderable, Layoutable {
 // MARK: - Load Lifecycle
 
 extension _ImageCore {
+    /// What a load reads of the environment, read on the main actor during
+    /// the render and handed to the decode, which runs off it.
+    struct LoadSettings: Sendable {
+        /// The largest picture, in pixels, the load accepts.
+        let maxPixelCount: Int?
+        /// How long a download may take, in seconds.
+        let urlTimeout: Double
+        /// The cache a URL loads through (`resolvedURLImageCache`), or `nil`.
+        let urlCache: URLImageCache?
+    }
 
     /// Render-pass-only load management: resets the phase on a source change,
     /// starts the load task on first appearance, and registers the
@@ -346,8 +358,7 @@ extension _ImageCore {
         token: String,
         phaseBox: StateBox<ImageLoadingPhase>,
         lastSourceBox: StateBox<ImageSource?>,
-        maxPixelCount: Int?,
-        urlTimeout: Double,
+        load settings: LoadSettings,
         imageStore: TerminalImageStore?,
         loads: Bool
     ) {
@@ -386,8 +397,7 @@ extension _ImageCore {
                 // the CoW pixel array is heap corruption, not a glitch). This
                 // is the one place the framework itself wrote @State off-main.
                 guard
-                    let phase = await Self.loadPhase(
-                        source: src, maxPixelCount: maxPixelCount, urlTimeout: urlTimeout)
+                    let phase = await Self.loadPhase(source: src, settings: settings)
                 else { return }
                 await MainActor.run {
                     // Cancellation is observed HERE, not (only) inside the
@@ -431,20 +441,20 @@ extension _ImageCore {
     /// the result on the main actor, where every other `@State` write happens.
     @concurrent
     static func loadPhase(
-        source: ImageSource, maxPixelCount: Int?, urlTimeout: Double
+        source: ImageSource, settings: LoadSettings
     ) async -> ImageLoadingPhase? {
         let loader = PlatformImageLoader()
         do {
             let rawImage: RGBAImage
             switch source {
             case .file(let path):
-                rawImage = try loader.loadImage(from: path, maxPixelCount: maxPixelCount)
+                rawImage = try loader.loadImage(from: path, maxPixelCount: settings.maxPixelCount)
             case .url(let urlString):
                 rawImage = try await loader.loadImage(
                     fromURL: urlString,
-                    cache: .shared,
-                    timeout: urlTimeout,
-                    maxPixelCount: maxPixelCount
+                    cache: settings.urlCache,
+                    timeout: settings.urlTimeout,
+                    maxPixelCount: settings.maxPixelCount
                 )
             }
             // Store the raw image; conversion happens per render pass.

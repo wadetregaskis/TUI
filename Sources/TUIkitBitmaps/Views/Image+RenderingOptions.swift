@@ -96,6 +96,10 @@ private struct ImageURLTimeoutKey: EnvironmentKey {
     static let defaultValue: TimeInterval = 30
 }
 
+private struct URLImageCacheKey: EnvironmentKey {
+    static let defaultValue: URLImageCache? = nil
+}
+
 /// The reference box an image scales to fit — see ``View/imageFitTarget(_:)``.
 ///
 /// `.fit`/`.fill` (``ContentMode``) decides *how* an image scales relative to a box;
@@ -233,6 +237,21 @@ extension EnvironmentValues {
     var imageURLTimeout: TimeInterval {
         get { self[ImageURLTimeoutKey.self] }
         set { self[ImageURLTimeoutKey.self] = newValue }
+    }
+
+    /// The cache images downloaded from URLs are kept in, when a subtree names
+    /// one (``View/urlImageCache(_:)``); `nil` leaves it to the app's own.
+    var urlImageCache: URLImageCache? {
+        get { self[URLImageCacheKey.self] }
+        set { self[URLImageCacheKey.self] = newValue }
+    }
+
+    /// The cache a URL image loads through: the subtree's, else the app's own,
+    /// made when the app first loads one — and none outside an app, where
+    /// every load downloads.
+    @MainActor
+    var resolvedURLImageCache: URLImageCache? {
+        urlImageCache ?? appScopedObjects?.object { URLImageCache() }
     }
 
     /// The reference box images scale to fit — their natural size, the
