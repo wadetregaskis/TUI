@@ -12,7 +12,8 @@ import Testing
 /// An adaptive palette chooses from the colours the output HAS.
 ///
 /// It used to choose in continuous colour and be quantised afterwards, and the
-/// entries collapsed onto each other: on `demo-image.jpg` at 256 colours, asking
+/// entries collapsed onto each other: on the Example's demo picture of the time
+/// (`demo-image.jpg` before 2026-10-25) at 256 colours, asking
 /// for five gave four — a palette *bit-identical* to the one four gave, which is
 /// the reported "4 to 5 changes nothing, same for 8 to 9 and 9 to 10" exactly —
 /// and asking for 256 gave 51, which is why Least error at 256 colours looked

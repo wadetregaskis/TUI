@@ -16,7 +16,8 @@ extension ASCIIPalette {
     /// An adaptive palette exists to spend the terminal's colours well, and a
     /// palette derived without knowing what those colours ARE cannot. The
     /// derivation used to run in continuous colour and be quantised afterwards,
-    /// which collapses entries onto each other: on `demo-image.jpg` at 256
+    /// which collapses entries onto each other: on the Example's demo picture of
+    /// the time (`demo-image.jpg` before 2026-10-25) at 256
     /// colours, asking for five gave four — a palette **bit-identical** to the
     /// one four gave — and asking for 256 gave 51, which is why "Least error at
     /// 256 colours" looked worse than plain 256-colour mode on Terminal.app.

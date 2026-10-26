@@ -331,7 +331,7 @@ struct AdaptivePaletteTests {
         #expect(wasted.isEmpty, "\(wasted)")
     }
 
-    /// The owner's own picture, at the size fine blocks sample it for 96×47 cells
+    /// The Example's demo picture, at the size fine blocks sample it for 96×47 cells
     /// (one pixel per half cell). Found by `#filePath`, which the package's other
     /// tests already rely on: the tests run from the checkout.
     @Test("On the Example's demo picture a least-error entry draws nothing only when no unused colour would help")

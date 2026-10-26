@@ -238,7 +238,8 @@ resolution actually transmitted, which is what decides the bytes — and the
 store answers a box-only change with a placement alone.
 
 **Measured, and the estimate above was optimistic.** Example's image page under
-a PTY, ten resize steps, `demo-image.jpg` (1101×1080):
+a PTY, ten resize steps, the demo picture of the time (`demo-image.jpg`, 1101×1080,
+replaced on 2026-10-25 by a painted one; the old file is in the history):
 
 | sweep | before | after |
 |---|---|---|

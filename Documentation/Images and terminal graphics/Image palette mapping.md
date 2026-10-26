@@ -415,12 +415,15 @@ Measured, applying rule 3 per pixel:
 | random sweep answered from the ramp | 6.4% | **0.23%** |
 | mean OKLab error, random sweep | 0.0384 | 0.0433 |
 | mean OKLab error, near-neutral band | 0.0124 | **0.0260** (2.1×) |
-| `demo-image.jpg` at 220×220, mean OKLab error | 0.0225 | **0.0381** (1.7×) |
+| the former `demo-image.jpg`¹ at 220×220, mean OKLab error | 0.0225 | **0.0381** (1.7×) |
+
+¹ The Example's demo picture until 2026-10-25, when a painted one replaced it;
+the measurements on this page used the old one, which is in the history.
 
 The near-neutral row is the one that matters, because that is what a photograph
 is mostly made of. A dark blue-grey `(96,100,106)` — ten units of spread between
 its channels — comes back `(95,95,135)` under rule 3, a navy with forty. The
-picture's greys **invent a hue**: on `demo-image.jpg` the brushed-metal ring
+picture's greys **invent a hue**: on the former `demo-image.jpg` the brushed-metal ring
 broke into flat teal and lavender patches. The number that names the cause is
 the first row: the gate fires for essentially every pixel that is not exactly
 neutral, so the only fine-grained tonal detail this palette has is unreachable.
@@ -546,7 +549,7 @@ Asking for 256 gave 51.
 The fix is to choose from the target's own colours in the first place:
 `ASCIIPalette.AdaptationTarget`, an associated value on the request, with
 `.automatic` (whatever the output is) and `.depth(_:)` for each of the four.
-Measured on `demo-image.jpg` (1101×1080, 5,078 populated 5-bit cells), weighted
+Measured on the former `demo-image.jpg`¹ (1101×1080, 5,078 populated 5-bit cells), weighted
 mean OKLab error at `.palette256`, `.leastError`:
 
 | n | 4 | 5 | 8 | 9 | 10 | 16 | 32 | 64 | 128 | 256 |
