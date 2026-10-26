@@ -254,3 +254,8 @@ let clips: [Clip] = [
     mixerClip, unicodeClip, imagesClip, glyphsClip, tablesClip, materialsClip, dragDropClip, themingClip, animationClip,
     stylesClip, tracksClip, menusClip, textEditClip, navigationClip, controlsClip, todoClip,
 ]
+
+/// Scenes for reviewing a change before any clip uses it: run and played by
+/// name like a clip, and left out of `list`, so nothing films them all.
+@MainActor
+let reviewScenes: [Clip] = [frostReviewClip]

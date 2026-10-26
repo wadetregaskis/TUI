@@ -20,7 +20,7 @@ let arguments = Array(CommandLine.arguments.dropFirst())
 
 @MainActor
 func clip(named id: String?) -> Clip {
-    guard let id, let clip = clips.first(where: { $0.id == id }) else {
+    guard let id, let clip = (clips + reviewScenes).first(where: { $0.id == id }) else {
         let known = clips.map(\.id).joined(separator: ", ")
         FileHandle.standardError.write(Data("ScreenClips: no clip named \(id ?? "(none)"); known: \(known)\n".utf8))
         exit(2)
