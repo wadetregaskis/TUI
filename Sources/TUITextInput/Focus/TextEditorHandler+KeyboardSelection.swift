@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUICore
+
 extension TextEditorHandler {
     /// Handles a key that selects, or that ends a selection by moving to its
     /// edge; `false` for every other key, which the editor then handles.
