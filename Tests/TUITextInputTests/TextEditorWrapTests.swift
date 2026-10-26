@@ -172,10 +172,9 @@ struct TextEditorWrapTests {
     }
 
     /// Shift+Down from a drag's head on a wrapped row's first character
-    /// moves the caret to the next row, as from any head on that row. The
-    /// editor has no keyboard selection: the key drops the selection, as
-    /// every editing key does (a vertical field's Shift+Down extends it).
-    @Test("Upstream, Shift+Down from a drag head on a row's first cell moves the caret a row and drops the selection")
+    /// moves the caret to the next row, as from any head on that row, and
+    /// extends the selection there, as a vertical field's Shift+Down does.
+    @Test("Upstream, Shift+Down from a drag head on a row's first cell moves the caret a row and extends the selection")
     func upstreamShiftDownFromRowStartHead() throws {
         let (harness, page, handler) = try editor("aa bbbbb ccccc ddddd", width: 6, affinity: .upstream)
         let rowY = try #require(harness.frame(page).lines.firstIndex { $0.stripped.hasPrefix("ccccc") })
@@ -191,7 +190,7 @@ struct TextEditorWrapTests {
         let rows = try #require(handler.wrappedRows())
         #expect(handler.caretRow(in: rows) == 3)
         #expect(caret(handler) == [0, 16])
-        #expect(handler.selectionRange == nil)
+        #expect(handler.selectionRange?.end == TextEditorPosition(line: 0, column: 16))
     }
 
     /// A drag that comes back onto its press leaves no selection, and its

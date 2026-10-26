@@ -35,9 +35,9 @@ final class TextEditorHandler: PersistedFocusable {
     var cursorLine = 0
     /// The cursor column, a character offset into the cursor line.
     var cursorColumn = 0
-    /// The selection anchor, or nil when there is no selection. A drag or
-    /// Shift-click sets it; the selection then spans anchor…cursor. Set by the
-    /// mouse handler and consumed/cleared by the next keystroke.
+    /// The selection anchor, or nil when there is no selection. A drag, a
+    /// Shift-click or a Shift-motion key sets it; the selection then spans
+    /// anchor…cursor, and the next edit consumes it.
     var selectionAnchor: TextEditorPosition?
 
     /// A rectangular selection, an Option-drag's, in place of the selection
@@ -374,10 +374,11 @@ final class TextEditorHandler: PersistedFocusable {
         // What the content type turns away goes no further, and leaves the
         // selection be: it is consumed, with a ring of the bell.
         guard let event = admitted(event) else { return true }
-        // A drag/Shift-click selection is consumed by the next edit (delete, or
-        // delete-then-insert) and cleared by any other key. This lets mouse
-        // selection drive editing without the editor carrying a full
-        // keyboard-selection model.
+        // Shift with a motion key selects, and a plain Left or Right lands at
+        // the selection's edge (`TextEditorHandler+KeyboardSelection.swift`).
+        if handleSelectionKey(event) { return true }
+        // A selection, however it was made, is consumed by the next edit
+        // (delete, or delete-then-insert) and cleared by any other key.
         if let span = selectionRange {
             if !event.ctrl, !event.alt, let handled = replace(with: event.key, removing: { deleteSelection(span) }) {
                 return handled
@@ -661,7 +662,7 @@ final class TextEditorHandler: PersistedFocusable {
         syncDesiredColumn()
     }
 
-    private func moveLeft() {
+    func moveLeft() {
         if cursorColumn > 0 {
             cursorColumn -= 1
         } else if cursorLine > 0 {
@@ -671,7 +672,7 @@ final class TextEditorHandler: PersistedFocusable {
         syncDesiredColumn()
     }
 
-    private func moveRight() {
+    func moveRight() {
         let lines = readLines()
         if cursorColumn < lines[cursorLine].count {
             cursorColumn += 1
@@ -684,7 +685,7 @@ final class TextEditorHandler: PersistedFocusable {
 
     /// Moves the cursor up/down a line, preserving the desired column where the
     /// target line is long enough.
-    private func moveVertical(by delta: Int) {
+    func moveVertical(by delta: Int) {
         if let rows = wrappedRows() {
             moveByRows(delta, in: rows, pastTheEnds: true)
             return
@@ -698,7 +699,7 @@ final class TextEditorHandler: PersistedFocusable {
     }
 
     /// Moves the cursor up/down a screenful (Page Up / Page Down, Ctrl-V).
-    private func movePage(by pages: Int) {
+    func movePage(by pages: Int) {
         let step = max(1, viewportHeight - 1)
         if let rows = wrappedRows() {
             moveByRows(pages * step, in: rows, pastTheEnds: false)
@@ -723,13 +724,13 @@ final class TextEditorHandler: PersistedFocusable {
         syncDesiredColumn()
     }
 
-    private func moveToStartOfDocument() {
+    func moveToStartOfDocument() {
         cursorLine = 0
         cursorColumn = 0
         desiredColumn = 0
     }
 
-    private func moveToEndOfDocument() {
+    func moveToEndOfDocument() {
         let lines = readLines()
         cursorLine = lines.count - 1
         cursorColumn = lines[cursorLine].count
@@ -750,7 +751,7 @@ final class TextEditorHandler: PersistedFocusable {
         WordBoundary.next(in: line, from: column)
     }
 
-    private func moveWordLeft() {
+    func moveWordLeft() {
         if cursorColumn == 0 {
             moveLeft()  // cross to the end of the previous line
             return
@@ -759,7 +760,7 @@ final class TextEditorHandler: PersistedFocusable {
         syncDesiredColumn()
     }
 
-    private func moveWordRight() {
+    func moveWordRight() {
         let line = readLines()[cursorLine]
         if cursorColumn >= line.count {
             moveRight()  // cross to the start of the next line
