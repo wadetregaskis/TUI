@@ -54,6 +54,24 @@ extension RenderCache {
     public func clearAffected(
         by identity: ViewIdentity, keepingSizes: Bool = false, includingDescendants: Bool = true
     ) {
+        clearEntries(by: identity, keepingSizes: keepingSizes, includingDescendants: includingDescendants)
+        // And what is drawn here but cached elsewhere: a subview a container
+        // puts in this subtree draws at its declarer's identity, under this
+        // subtree's environment (``noteHostedMember(_:host:)``). A worklist, so
+        // members hosted under members are followed, each once.
+        guard includingDescendants, !hostedMembers.isEmpty else { return }
+        var visited: Set<ViewIdentity> = [identity]
+        var pending = membersHosted(under: identity)
+        while let member = pending.popLast() {
+            guard visited.insert(member).inserted else { continue }
+            clearEntries(by: member, keepingSizes: keepingSizes, includingDescendants: true)
+            pending += membersHosted(under: member)
+        }
+    }
+
+    /// ``clearAffected(by:keepingSizes:includingDescendants:)`` without the
+    /// hosted members.
+    private func clearEntries(by identity: ViewIdentity, keepingSizes: Bool, includingDescendants: Bool) {
         if !keepingSizes { sizeClearGeneration &+= 1 }
         stats.subtreeClears += 1
         // The hashes of `identity` and every ancestor of it, so "is the cached

@@ -512,6 +512,11 @@ public final class RenderCache: @unchecked Sendable {
     /// and the prune may touch it.
     var appliedEnvironment: [EnvironmentSlot: AppliedEnvironment] = [:]
 
+    /// The members drawn away from their own identity, by the identity of the
+    /// place they are drawn — see ``noteHostedMember(_:host:)``. Internal, for
+    /// the clear and the prune only.
+    var hostedMembers: [ViewIdentity: HostedMembers] = [:]
+
     /// The content type each `AnyView` drew last, keyed by its identity's hash
     /// folded with its depth — see ``noteErasedContent(_:identity:depth:)``.
     /// Internal for the same reason as ``appliedEnvironment``.
@@ -1449,6 +1454,11 @@ extension RenderCache {
             staleErasures.append(key)
         }
         for key in staleErasures { erasedContent.removeValue(forKey: key) }
+        var staleHosts: [ViewIdentity] = []
+        for (host, record) in hostedMembers where record.lastSeenFrame < frameCounter && !isLive(host) {
+            staleHosts.append(host)
+        }
+        for host in staleHosts { hostedMembers.removeValue(forKey: host) }
     }
 
     /// How many passes apart ``removeInactive()`` sweeps the environment slots
@@ -1478,6 +1488,7 @@ extension RenderCache {
         retainedSubtreeRoots.removeAll()
         appliedEnvironment.removeAll()
         erasedContent.removeAll()
+        hostedMembers.removeAll()
         revalidation.endPass()
         stats = Stats()
         statsAtFrameStart = Stats()

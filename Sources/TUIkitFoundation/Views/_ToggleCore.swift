@@ -617,8 +617,9 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
         var subtitleContext = labelContext
         subtitleContext.environment.controlKind = nil
         if !isDisabled {
-            subtitleContext.environment.foregroundStyle = subtitleContext.environment.foregroundStyle
-                .keepingShadows(on: .color(palette.foregroundSecondary))
+            subtitleContext = subtitleContext.settingNotedEnvironment(
+                \.foregroundStyle,
+                to: subtitleContext.environment.foregroundStyle.keepingShadows(on: .color(palette.foregroundSecondary)), paint: true)
         }
         let indent = Self.labelIndent(forIndicator: indicator)
         let indentString = String.spaces(indent)
@@ -813,10 +814,12 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             // entries (e.g. `.toggleTextStyle { … }`).
             labelContext.environment.controlKind = .toggle
             if isDisabled {
-                labelContext.environment.foregroundStyle = labelContext.environment.foregroundStyle.keepingShadows(
-                    on: .color(
-                        palette.foregroundTertiary.opacity(
-                            ViewConstants.disabledForeground, over: palette.background)))
+                labelContext = labelContext.settingNotedEnvironment(
+                    \.foregroundStyle,
+                    to: labelContext.environment.foregroundStyle.keepingShadows(
+                        on: .color(
+                            palette.foregroundTertiary.opacity(
+                                ViewConstants.disabledForeground, over: palette.background))), paint: true)
             } else if isHovered {
                 // The whole row answers the pointer, not just the indicator: the
                 // whole row is what the click hits. Whatever colour is in force
@@ -828,8 +831,9 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
                     ?? labelContext.environment.styleCascade
                         .resolve(for: [.all, .text, .control(.toggle)]).foreground
                     ?? palette.foreground
-                labelContext.environment.foregroundStyle = labelContext.environment.foregroundStyle.keepingShadows(
-                    on: .color(palette.hoveredForeground(base)))
+                labelContext = labelContext.settingNotedEnvironment(
+                    \.foregroundStyle,
+                    to: labelContext.environment.foregroundStyle.keepingShadows(on: .color(palette.hoveredForeground(base))), paint: true)
             }
 
             let built = builtInStyleBuffer(

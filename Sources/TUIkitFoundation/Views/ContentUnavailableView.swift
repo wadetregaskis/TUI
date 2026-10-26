@@ -312,7 +312,7 @@ private struct _ContentUnavailableViewCore<Label: View, Description: View, Actio
         var descContext = context.withChildIdentity(
             erasedType: type(of: description), index: 1)
         if descContext.environment.foregroundStyle == nil {
-            descContext.environment.foregroundStyle = .color(palette.foregroundSecondary)
+            descContext = descContext.settingNotedEnvironment(\.foregroundStyle, to: .color(palette.foregroundSecondary), paint: true)
         }
         let descBuffer = TUIkitView.renderToBuffer(description, context: descContext)
 

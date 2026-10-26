@@ -56,15 +56,47 @@ extension EnvironmentModifier: Renderable {
     /// render, and for a caller that takes the content apart instead of
     /// drawing it whole: a `List` reading the rows of a `Section` this wraps.
     package func contentContext(_ context: RenderContext) -> RenderContext {
-        // Create modified environment and render content with it.
-        // The modified context carries the environment through the render tree —
-        // no global state sync needed.
-        let uncomparable = noteEnvironmentChange(value, at: keyPath, context: context)
-        var modifiedEnvironment = context.environment.setting(keyPath, to: value)
+        context.settingNotedEnvironment(keyPath, to: value)
+    }
+}
+
+extension RenderContext {
+    /// This context with `value` at `keyPath`, noted for the caches below as an
+    /// environment modifier notes what it injects — for a view that sets a
+    /// value on the context it draws a child with, rather than wrapping the
+    /// child in a modifier.
+    ///
+    /// Assigned straight into `environment` instead, a value is compared by
+    /// nothing: a memoized child drawn under it is served what it drew under
+    /// the old value whenever its own value is unchanged. A segmented picker
+    /// inks each segment's label by its state, and focusing the picker left the
+    /// selected segment in its resting colour (the file panel's path control,
+    /// found by `TUIKIT_VERIFY_RENDER_MEMO`); a hovered toggle's or radio
+    /// button's label could keep its unhovered ink.
+    ///
+    /// `paint` for an ink, which moves no cell: only the render walk notes it,
+    /// and its clear keeps the memoized sizes. A control works its ink out from
+    /// the focus or the pointer, which its measure may not see as its render
+    /// does, and a slot is compared once a pass — so the measure's value,
+    /// noted first, would answer for the render's. And a picker whose
+    /// selection moves every frame re-inks two segments a row: measured
+    /// (`pickers`), noting on both walks and clearing sizes cost a tenth of
+    /// its frame.
+    package func settingNotedEnvironment<V>(
+        _ keyPath: WritableKeyPath<EnvironmentValues, V>, to value: V, paint: Bool = false
+    ) -> RenderContext {
+        if paint, isMeasuring {
+            var modified = self
+            modified.environment[keyPath: keyPath] = value
+            modified.environmentApplicationDepth += 1
+            return modified
+        }
+        let uncomparable = noteEnvironmentChange(value, at: keyPath, context: self, paint: paint)
+        var modifiedEnvironment = environment.setting(keyPath, to: value)
         if uncomparable { modifiedEnvironment.hasUncomparableEnvironmentValue = true }
-        // Derived from `context.environment` one line up, so the services are
-        // the same two objects and the mirrors need no re-deriving.
-        var modifiedContext = context.withDerivedEnvironment(modifiedEnvironment)
+        // Derived from `environment` one line up, so the services are the same
+        // two objects and the mirrors need no re-deriving.
+        var modifiedContext = withDerivedEnvironment(modifiedEnvironment)
         modifiedContext.environmentApplicationDepth += 1
         return modifiedContext
     }
@@ -111,7 +143,7 @@ extension EnvironmentModifier: Renderable {
 /// - Returns: `true` when the injected value is uncomparable, so the caller
 ///   marks the environment it passes down.
 private func noteEnvironmentChange<V>(
-    _ value: V, at keyPath: WritableKeyPath<EnvironmentValues, V>, context: RenderContext
+    _ value: V, at keyPath: WritableKeyPath<EnvironmentValues, V>, context: RenderContext, paint: Bool = false
 ) -> Bool {
     guard let cache = context.renderCache else { return false }
     // A palette is noted as every other keeper of one compares it —
@@ -133,7 +165,9 @@ private func noteEnvironmentChange<V>(
         keyPath: keyPath, depth: context.environmentApplicationDepth)
     {
     case .changed:
-        cache.clearAffected(by: context.identity)
+        // A paint moves no cell: the memoized sizes below stay, as
+        // `.foregroundStyle(_:)`'s own clear keeps them.
+        cache.clearAffected(by: context.identity, keepingSizes: paint)
     case .incomparable:
         // Two routes, because a memoizing view can sit on either side of
         // this modifier. Below it: the tracker exists by then, and

@@ -149,13 +149,24 @@ private struct _SubviewCore: View, Renderable, Layoutable {
     }
 
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        child.measure(proposal: proposal, context: context)
+        notingHost(context)
+        return child.measure(proposal: proposal, context: context)
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        child.render(
+        notingHost(context)
+        return child.render(
             width: max(0, context.availableWidth), height: max(0, context.availableHeight),
             context: context)
+    }
+
+    /// Records the place the member is drawn as its host, so a change of
+    /// environment there reaches what is cached at the member's own identity
+    /// (`RenderCache.noteHostedMember(_:host:)`): a container that inks its
+    /// subviews by its own state was served each member in its old ink.
+    private func notingHost(_ context: RenderContext) {
+        guard let cache = context.renderCache, let member = child.pinnedIdentity else { return }
+        cache.noteHostedMember(member, host: context.identity)
     }
 }
 

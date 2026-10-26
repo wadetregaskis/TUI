@@ -802,8 +802,9 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
                 ?? labelContext.environment.styleCascade
                     .resolve(for: [.all, .text, .control(.radioButton)]).foreground
                 ?? palette.foreground
-            labelContext.environment.foregroundStyle = labelContext.environment.foregroundStyle.keepingShadows(
-                on: .color(palette.hoveredForeground(base)))
+            labelContext = labelContext.settingNotedEnvironment(
+                \.foregroundStyle,
+                to: labelContext.environment.foregroundStyle.keepingShadows(on: .color(palette.hoveredForeground(base))), paint: true)
         }
         let labelBuffer = item.labelBuilder().renderToBuffer(context: labelContext)
 

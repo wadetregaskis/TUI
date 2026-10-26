@@ -262,8 +262,8 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
         labelContext = labelContext.withAvailableWidth(
             max(context.availableWidth, context.environment.terminalWidth))
         if let ink = labelInk(for: segment, isMarked: isMarked, face: face, context: context) {
-            labelContext.environment.foregroundStyle = labelContext.environment.foregroundStyle.keepingShadows(
-                on: .color(ink))
+            labelContext = labelContext.settingNotedEnvironment(
+                \.foregroundStyle, to: labelContext.environment.foregroundStyle.keepingShadows(on: .color(ink)), paint: true)
         }
         let rendered = TUIkitView.renderToBuffer(label.bold(isMarked), context: labelContext)
         let pad = String.spaces(padding)
