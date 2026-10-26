@@ -312,7 +312,7 @@ extension ModalPresentationModifier: Renderable {
         // something else happened to render: measured on the Example's
         // Progress page, about 2.5 pictures a second against the 30 it manages
         // with nothing presented, each one a full re-render of page, dim and
-        // dialog rather than a splice. Kept, `dimmedAsBackdrop` flattens the
+        // dialog rather than a splice. Kept, `veiledAsBackdrop` fades the
         // frames with the rows and the loop replays them; `composited` punches
         // out whatever the dialog covers, so nothing repaints through it.
         if style == .fullScreen {

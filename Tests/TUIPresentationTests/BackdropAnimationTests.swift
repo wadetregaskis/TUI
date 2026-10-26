@@ -92,8 +92,10 @@ struct BackdropAnimationTests {
     /// The same run, flattened by the same rule as the row it sits in. A frame
     /// that reached the terminal in its own colours would show as a bright
     /// notch in a line that is one uniform dim span.
-    @Test("The backdrop's frames are dimmed, not the page's own colours")
-    func framesAreFlattenedWithTheRows() {
+    /// That each replayed frame draws what a render draws behind a sheet is
+    /// `ReplayedRunFieldTests`' "behind a sheet" case; this pins the veil.
+    @Test("The backdrop row is veiled, not drawn in the page's own colours, and its runs keep their width")
+    func rowsAreVeiledAndRunsKeepTheirWidth() {
         let presented = BoolBox()
         let composited = screen(
             AnimatedPage().modal(isPresented: presented.binding) { Text("DIALOG") })
@@ -101,23 +103,24 @@ struct BackdropAnimationTests {
             Issue.record("no run on the backdrop's top row")
             return
         }
-        let row = composited.lines[0]
-        // Compared as the styling each OPENS with rather than against a fixed
-        // sequence: the flatten emits one SGR run and `collapsingAdjacentSGR`
-        // folds the dim into it, so the answer is `ESC[2;38;…;48;…m` and not a
-        // standalone `ESC[2m`. What has to hold is that the frame and the row
-        // open the same way.
-        let rowStyle = Self.leadingStyle(of: row)
-        #expect(rowStyle.contains("2;"), "the backdrop row is not dim: \(rowStyle.debugDescription)")
+        // Compared as the colours each OPENS with: the row's run may start
+        // with a reset (`0;`) that a frame spliced into it does not repeat.
+        let rowStyle = Self.leadingColours(of: composited.lines[0])
+        let pageStyle = Self.leadingColours(of: screen(AnimatedPage()).lines[0])
+        #expect(rowStyle != pageStyle, "the backdrop row kept the page's own colours: \(rowStyle.debugDescription)")
         for index in run.frames.indices {
             let frame = run.frame(atIndex: index)
             #expect(
                 frame.stripped.count == run.frames[0].stripped.count,
                 "frame \(index) changed the run's width")
-            #expect(
-                Self.leadingStyle(of: frame) == rowStyle,
-                "frame \(index) opens differently from the row it splices into")
         }
+    }
+
+    /// The SGR a string opens with, before its first printed cell, without a
+    /// leading reset.
+    private static func leadingColours(of text: String) -> String {
+        let style = leadingStyle(of: text)
+        return style.hasPrefix("\u{1B}[0;") ? "\u{1B}[" + style.dropFirst(4) : style
     }
 
     /// The escape sequences a string opens with, before its first printed cell.
@@ -132,18 +135,18 @@ struct BackdropAnimationTests {
         return style
     }
 
-    /// A run whose every frame flattens to the same picture is dropped. The
-    /// block glyphs are chrome, so an indeterminate `.pulse` bar has nothing
-    /// left to show once they are spaces — and a run kept alive there holds
-    /// the animation clock open to repaint an unchanging row forever.
-    @Test("A run with nothing left to animate is dropped")
-    func flattenedRunsAreDropped() {
+    /// A run behind a sheet keeps its glyphs, veiled, so it keeps animating:
+    /// an indeterminate `.pulse` bar goes on pulsing behind the dialog. (The
+    /// flatten that came before dropped block glyphs as ornaments, so such a
+    /// bar had nothing left to show, and its run was dropped.)
+    @Test("A run behind a sheet keeps animating, veiled")
+    func veiledRunsKeepAnimating() {
         let presented = BoolBox()
         let composited = screen(
             AnimatedPage().modal(isPresented: presented.binding) { Text("DIALOG") })
         #expect(
-            !composited.animatedCells.contains { $0.offsetY == 1 },
-            "an all-ornament run survived the flatten with nothing to show")
+            composited.animatedCells.contains { $0.offsetY == 1 },
+            "the bar's run was dropped behind the sheet")
     }
 
     /// The other half: a full-screen cover hides the page completely, so its

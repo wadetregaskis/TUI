@@ -211,6 +211,8 @@ All of these are pre-1.0 changes with no old spelling kept.
 
 - Inside GNU screen a copy is sent to the terminal through screen's passthrough and reported "Sent", where it was "Not copied". In a tmux pane whose `allow-passthrough` is on, a copy goes through tmux's passthrough when `set-clipboard` is not `on`, and is reported "Sent". Measured on screen 4.00.03 and tmux 3.7c with `Tools/TerminalProbes/keeper_passthrough_probe.py`.
 
+- The page behind a sheet or an alert stays visible: everything on it keeps its glyphs and attributes, and its colours fade halfway toward the palette's overlay colour, where it used to be redrawn as plain text in two colours, with pictures drawn in text cells, bars and borders left blank. It is still inert. `.dimmed()` keeps the two-colour look.
+
 - `TextEditor` selects from the keyboard, as `TextField` does: Shift-←/→ a character, Shift-Option-←/→ a word, Shift-↑/↓ a line, Shift-Page Up/Down a page, Shift-Home/End to the document's ends. A plain ← or → with a selection lands at its start or end. It used to select only with the mouse, and Shift-arrows just moved the caret.
 
 - A focused radio group, or a segmented picker, moves its cursor onto a selection made elsewhere: a menu, a shortcut, another control over the same binding. It used to keep its cursor where it was and mark two options, the new selection and the focused one, with the same bullet.

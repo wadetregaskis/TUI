@@ -4221,6 +4221,8 @@ across both resolves one of them at the other's alpha — §23.2's mistake again
 
 ### 68.5 The wash a modal dims its page with
 
+(Since 2026-10-25 a modal veils its page instead, §112; this wash is what `.dimmed()` draws.)
+
 `dimmedAsBackdrop` flattens the page under a modal to one foreground on one background,
 and those are `foregroundTertiary` and `overlayBackground` — both of which carry a faded
 theme's alpha since §39. Both went to the emitter.
@@ -7641,3 +7643,24 @@ what is left is the averaging; the rest is spelling a picture whose every cell i
 the frost's row parse with the blend was tried and measured no better (51.9% → 53.2%), so it was
 not kept. `.materialFrost(.none)` is (c)'s path exactly: no averages are made. `Stress --scenario
 translucent --variant material` draws a row of changing text under a thin material on every row.
+
+## 112. A modal veils its page rather than flattening it (2026-10-25)
+
+The page behind a sheet or an alert was flattened (§68.5): every row redrawn as text in
+`foregroundTertiary` on `overlayBackground`, with block, line and indicator glyphs dropped
+as ornaments. That left the page's words and lost everything drawn in glyphs: a picture in
+half blocks, a bar, a chart and a border came out as blank cells. The owner's ruling: the
+page stays mostly as it was, visibly deactivated and inaccessible.
+
+`FrameBuffer.veiledAsBackdrop(by:surface:palette:)` does that with the composite this
+document describes. The page's own fades are resolved first, against the page's surface.
+Then the whole page gets one region at `FrameBuffer.modalVeilOpacity` (½), resolved over
+nothing with `overlayBackground` as its surface. A glyph over nothing draws at every
+opacity (§10), so every character survives. Each of its two colours moves halfway toward
+the overlay colour. A run fades frame by frame with its row, as a faded spinner does, so
+the page keeps moving. A row holding a terminal-graphics picture is passed over as every
+fade passes it (its foreground is the image's id), so the picture stays at full strength
+behind the dialog. Hit-test regions are dropped, as before, and pending overlays ride
+through.
+
+`.dimmed()` keeps the flatten, which is the look it asks for.

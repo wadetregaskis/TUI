@@ -256,7 +256,7 @@ extension AlertPresentationModifier: Renderable {
         // performs.
         //
         // The RUNS stay: an alert always dims, so the page around it is on
-        // screen and has to keep moving. `dimmedAsBackdrop` flattens their
+        // screen and has to keep moving. `veiledAsBackdrop` fades their
         // frames with the rows, and `composited` punches out whatever the
         // alert covers. See the same note on `ModalPresentationModifier`.
         // The geometry markers stay, as they do there.
