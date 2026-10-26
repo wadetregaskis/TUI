@@ -57,8 +57,19 @@ struct Player {
 
         // The child's arguments, made before the fork: between fork and exec
         // the child may only make async-signal-safe calls, and malloc is not.
-        let executable = Bundle.main.executablePath ?? CommandLine.arguments[0]
-        var argv: [UnsafeMutablePointer<CChar>?] = [executable, "--child", clip.id].map { $0.withCString { strdup($0) } }
+        // A clip of a real app (`Clip.command`) runs that app, staged beside the
+        // player; any other runs this binary's own scene in the child.
+        let executable: String
+        var arguments: [String]
+        if let command = clip.command, let program = command.first {
+            executable = ClipAssets.path(program)
+            arguments = [executable] + command.dropFirst()
+            for (name, value) in clip.environment { setenv(name, value, 1) }
+        } else {
+            executable = Bundle.main.executablePath ?? CommandLine.arguments[0]
+            arguments = [executable, "--child", clip.id]
+        }
+        var argv: [UnsafeMutablePointer<CChar>?] = arguments.map { $0.withCString { strdup($0) } }
         argv.append(nil)
         var master: Int32 = -1
         let child = forkpty(&master, nil, nil, &size)

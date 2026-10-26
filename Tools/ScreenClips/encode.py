@@ -40,7 +40,7 @@ FFMPEG = shutil.which('ffmpeg') or '/opt/homebrew/bin/ffmpeg'
 FFPROBE = shutil.which('ffprobe') or '/opt/homebrew/bin/ffprobe'
 
 # The names the carousel puts on its cards.
-TERMINAL_NAMES = {'ghostty': 'Ghostty', 'iterm': 'iTerm2', 'apple': 'Terminal', 'warp': 'Warp'}
+TERMINAL_NAMES = {'ghostty': 'Ghostty', 'iterm': 'iTerm2', 'apple': 'Apple Terminal', 'warp': 'Warp'}
 
 
 # ── Reading a run ───────────────────────────────────────────────────────────────────────────────────────────────────

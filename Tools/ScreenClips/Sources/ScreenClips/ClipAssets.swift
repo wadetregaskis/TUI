@@ -2,7 +2,7 @@
 //  ClipAssets.swift
 //
 //  Where a clip's pictures are: beside the player, where regenerate.sh stages
-//  them: the photos make_photos.py paints.
+//  them: the owner's photographs, from Photos/.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -19,8 +19,8 @@ enum ClipAssets {
         directory.appendingPathComponent(name).path
     }
 
-    /// One of make_photos.py's pictures, by name (`glacier`).
+    /// One of the photographs in Photos/, by name (`burrowing-owl`).
     static func photo(_ name: String) -> String {
-        path("photos/\(name).png")
+        path("photos/\(name).webp")
     }
 }

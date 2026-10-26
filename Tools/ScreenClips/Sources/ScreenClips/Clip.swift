@@ -174,9 +174,16 @@ struct Clip {
     /// The script, played once the app has settled. Its first step should be a
     /// `.camera` shot: without one the camera frames the whole grid.
     let script: [Step]
+    /// A real app to film instead of a scene of this package: a program staged
+    /// beside the player (regenerate.sh stages the Example) and its arguments.
+    /// The script's keys drive it as they drive a scene; it has no cues.
+    var command: [String]?
+    /// Variables set for `command` (`TUIKIT_GRAPHICS=0`, say).
+    var environment: [String: String] = [:]
     /// Runs the app: called in the child the player starts under its own
-    /// pseudo-terminal, and does not return until the app quits.
-    let run: @MainActor () async -> Void
+    /// pseudo-terminal, and does not return until the app quits. Unused for a
+    /// clip with a `command`.
+    var run: @MainActor () async -> Void = {}
 
     /// How long the script runs, waits included.
     var duration: Double {
@@ -245,5 +252,5 @@ struct Clip {
 @MainActor
 let clips: [Clip] = [
     mixerClip, unicodeClip, imagesClip, glyphsClip, tablesClip, materialsClip, dragDropClip, themingClip, animationClip,
-    stylesClip, tracksClip, menusClip, textEditClip, navigationClip, controlsClip, searchClip, todoClip,
+    stylesClip, tracksClip, menusClip, textEditClip, navigationClip, controlsClip, todoClip,
 ]

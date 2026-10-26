@@ -1,7 +1,7 @@
 #!/bin/zsh
 # regenerate.sh — films the README's clips in real terminal windows and encodes them as looping animated WebPs.
 #
-#   Tools/ScreenClips/regenerate.sh [--terminal ghostty|iterm|apple|warp] [--out DIR] [--scale S] [--mp4]
+#   Tools/ScreenClips/regenerate.sh [--terminal ghostty|iterm|apple|warp] [--out DIR] [--scale S] [--fps N] [--mp4]
 #                                   [--composite] [--no-build] [--keep-frames] [--encode-only] [clip ...]
 #   Tools/ScreenClips/regenerate.sh --publish [--out DIR]
 #
@@ -31,6 +31,7 @@ repo=${here:h:h}
 terminal_override=""
 out="$here/.build/media"
 scale=2
+fps=60
 mp4=0
 composite=0
 build=1
@@ -43,6 +44,7 @@ while (( $# )); do
         --terminal) terminal_override=$2; shift 2 ;;
         --out) out=${2:A}; shift 2 ;;
         --scale) scale=$2; shift 2 ;;
+        --fps) fps=$2; shift 2 ;;
         --mp4) mp4=1; shift ;;
         --composite) mp4=1; composite=1; shift ;;
         --no-build) build=0; shift ;;
@@ -76,6 +78,8 @@ unset SDKROOT
 swift_cmd=(${=SWIFT:-xcrun swift})  # xcrun honours DEVELOPER_DIR; a bare `swift` may be another toolchain
 if (( build )); then
     $swift_cmd build -c release --package-path $here
+    # The Example too: the `glyphs` clip films the real app (Clip.command).
+    $swift_cmd build -c release --package-path $here/../.. --product Example
 fi
 
 # Staged where every terminal may run it: Ghostty is refused files under ~/Documents. So are the clips' own files
@@ -90,7 +94,10 @@ if (( ! encode_only )); then
     rm -rf $stage/bin/*(N)
     cp $bin/ScreenClips $bin/WindowRecorder $stage/bin/
     for bundle in $bin/*.bundle(N); do cp -R $bundle $stage/bin/; done
-    python3 $here/make_photos.py $stage/bin/photos >/dev/null  # the photo library's pictures, painted
+    example_bin=$($swift_cmd build -c release --package-path $here/../.. --show-bin-path | grep '^/' | tail -1)
+    cp $example_bin/Example $stage/bin/
+    for bundle in $example_bin/*.bundle(N); do cp -R $bundle $stage/bin/; done  # TUI_Example (its picture) and the rest
+    cp -R $here/Photos $stage/bin/photos  # the owner's photographs, which the photo library and viewers show
 fi
 
 (( ${#clips_wanted} )) || clips_wanted=(${(f)"$($player list | cut -f1)"})
@@ -221,7 +228,7 @@ EOF
     open_$chosen
     rc=0
     $recorder --pid $pid $which_window --refront $front --out $run/frames --markers $markers \
-        --scale $scale --timeout $(( ${duration%.*} + 40 )) || rc=$?
+        --scale $scale --fps $fps --timeout $(( ${duration%.*} + 40 )) || rc=$?
     close_$chosen
     (( rc == 0 )) || { print -u2 "regenerate.sh: filming $name failed ($rc); frames in $run"; exit 1 }
 }
@@ -249,7 +256,7 @@ for clip in $clips_wanted; do
     (( encode_only )) || film
     run=$work/$name
     encode=(python3 $here/encode.py clip $run/frames $run/markers $out/$name.webp --framing $run/framing.json
-            --cursor $cursor --hot-spot $hot_spot)
+            --fps $fps --cursor $cursor --hot-spot $hot_spot)
     (( mp4 )) && { encode+=(--mp4 $work/$name.mp4); movies+=$work/$name.mp4 }
     $encode
     (( keep )) || rm -rf $run/frames

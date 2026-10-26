@@ -451,16 +451,25 @@ func saveCursor(to path: String) throws {
     let cursor = NSCursor.arrow
     let scale = NSScreen.main?.backingScaleFactor ?? 2
     let size = cursor.image.size
-    var rect = NSRect(x: 0, y: 0, width: size.width * scale, height: size.height * scale)
-    guard let image = cursor.image.cgImage(forProposedRect: &rect, context: nil, hints: nil) else {
-        Options.usage("the arrow pointer has no image")
-    }
-    let bitmap = NSBitmapImageRep(cgImage: image)
+    // Drawn into a bitmap of exactly the pointer's size at the screen's scale.
+    // `cgImage(forProposedRect:)` hands back whichever representation it
+    // likes best, and the arrow's include large ones (for the accessibility
+    // pointer sizes): written as they came, the clips drew a pointer several
+    // times its size.
+    let width = Int((size.width * scale).rounded()), height = Int((size.height * scale).rounded())
+    guard let bitmap = NSBitmapImageRep(
+        bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height, bitsPerSample: 8, samplesPerPixel: 4,
+        hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
+        let context = NSGraphicsContext(bitmapImageRep: bitmap)
+    else { Options.usage("the arrow pointer could not be drawn") }
+    NSGraphicsContext.saveGraphicsState()
+    NSGraphicsContext.current = context
+    cursor.image.draw(in: NSRect(x: 0, y: 0, width: width, height: height))
+    NSGraphicsContext.restoreGraphicsState()
     guard let png = bitmap.representation(using: .png, properties: [:]) else {
         Options.usage("the arrow pointer could not be written as a PNG")
     }
     try png.write(to: URL(fileURLWithPath: path))
     let hotSpot = cursor.hotSpot
-    print(Int((hotSpot.x * Double(image.width) / size.width).rounded()),
-          Int((hotSpot.y * Double(image.height) / size.height).rounded()))
+    print(Int((hotSpot.x * scale).rounded()), Int((hotSpot.y * scale).rounded()))
 }
