@@ -979,14 +979,3 @@ extension TextEditorHandler {
         writeLines(lines)
     }
 }
-
-/// A position in a ``TextEditor``: a line and a character column, ordered
-/// top-to-bottom then left-to-right.
-struct TextEditorPosition: Comparable {
-    var line: Int
-    var column: Int
-
-    static func < (lhs: Self, rhs: Self) -> Bool {
-        lhs.line != rhs.line ? lhs.line < rhs.line : lhs.column < rhs.column
-    }
-}
