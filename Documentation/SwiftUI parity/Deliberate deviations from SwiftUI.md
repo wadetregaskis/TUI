@@ -118,7 +118,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   frame was drawn ([§1](<SwiftUI compatibility guide.md#1-match>), the Env / prefs row).
 - **Why:** U1's reason. Flooring a midpoint before subtracting a half-size
   moves a centred view by a cell in 210 of 861 (extent, size) cases.
-- **Decided:** [§2.2](<SwiftUI compatibility guide.md#22-geometry-is-integer-never-cgpointcgsizecgrect>), [B-D5G-5](<Decisions/Layout and geometry/Coordinate spaces, geometry and scroll visibility (D5G).md#b-d5g-5-cellrect-gains-minx-miny-origin-and-size--and-still-no-midxmidy>). **Recorded.**
+- **Decided:** [§2.2](<SwiftUI compatibility guide.md#22-geometry-is-integer-never-cgpointcgsizecgrect>), [B-D5G-5](<../Historical/Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md#b-d5g-5-cellrect-gains-minx-miny-origin-and-size--and-still-no-midxmidy>). **Recorded.**
 
 ### U3. Default spacing and padding are one cell or none
 
@@ -132,10 +132,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** terminals are dense. A blank column reads as a word gap and a blank
   row as a paragraph break; adjacent lines are already apart.
 - **Decided:** [§2.1](<SwiftUI compatibility guide.md#21-interface-measurements-are-int-not-cgfloat>) (its note on stacks),
-  [§1](<SwiftUI compatibility guide.md#1-match>) (the Grid and Lazy grids rows), [B25](<Decisions/SwiftUI API completion decisions.md#b25-safeareapadding-is-padding-or-a-scroll-views-content-margin>).
+  [§1](<SwiftUI compatibility guide.md#1-match>) (the Grid and Lazy grids rows), [B25](<../Historical/Layout and geometry/Safe areas, size classes and layout direction.md#b25-safeareapadding-is-padding-or-a-scroll-views-content-margin>).
   **Recorded.** A row resolves `nil` per pair of views: none beside a custom
-  `Layout` that asks for none on that edge ([B20](<Decisions/SwiftUI API completion decisions.md#b20-a-stacks-spacing-nil-is-resolved-per-pair-of-neighbours>)),
-  except one inside an `AnyView`, which keeps the column here ([B-BITEMS1-3](<Decisions/Default focus, drop badges and stack spacing (BITEMS1).md#b-bitems1-3-a-rows-spacing-nil-per-pair-reaches-layouts-and-the-wrappers-that-move-no-edge>)).
+  `Layout` that asks for none on that edge ([B20](<../Historical/Layout and geometry/Stack spacing, and what a container counts as its children.md#b20-a-stacks-spacing-nil-is-resolved-per-pair-of-neighbours>)),
+  except one inside an `AnyView`, which keeps the column here ([B-BITEMS1-3](<../Historical/Layout and geometry/Stack spacing, and what a container counts as its children.md#b-bitems1-3-a-rows-spacing-nil-per-pair-reaches-layouts-and-the-wrappers-that-move-no-edge>)).
 
 ### U4. Gesture distances are cells along either axis
 
@@ -213,7 +213,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   and the exact slot walk measures every row on every frame, which is what
   keeps the alignment column still as rows scroll in. Not measured on a big
   list.
-- **Decided:** [A-GUIDE-1](<Decisions/Layout and geometry/Alignment guides outside their view (GUIDE).md#a-guide-1-swiftuis-lazy-stacks-ignore-an-explicit-alignment-guide-tuis-honour-it--decided-keep-honouring-it>). **Owner** (2026-10-12: keep).
+- **Decided:** [A-GUIDE-1](<../Historical/Layout and geometry/Alignment guides that travel out of their view.md#a-guide-1-swiftuis-lazy-stacks-ignore-an-explicit-alignment-guide-tuis-honour-it--decided-keep-honouring-it>). **Owner** (2026-10-12: keep).
 
 ### L5. A view does not draw outside the size it reports
 
@@ -240,11 +240,11 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   drew another would leave every container above it guessing, and measuring
   would stop agreeing with drawing.
 - **Decided:** [§1](<SwiftUI compatibility guide.md#1-match>) (the Modifiers row, on `overlay`),
-  [B-D3M-2](<Decisions/Presentation and windows/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-2-an-images-natural-size-is-known-on-four-hosts-and-ghosttys-only-locally>), [B-GUIDE-1](<Decisions/Layout and geometry/Alignment guides outside their view (GUIDE).md#b-guide-1-a-region-smaller-than-the-run-keeps-the-runs-leading-edge-on-its-own>),
-  [B-GUIDE-3](<Decisions/Layout and geometry/Alignment guides outside their view (GUIDE).md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>). **Recorded**; the guide placements were
+  [B-D3M-2](<Decisions/Presentation and windows/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-2-an-images-natural-size-is-known-on-four-hosts-and-ghosttys-only-locally>), [B-GUIDE-1](<../Historical/Layout and geometry/Drawing past a region.md#b-guide-1-a-region-smaller-than-the-run-keeps-the-runs-leading-edge-on-its-own>),
+  [B-GUIDE-3](<../Historical/Layout and geometry/Drawing past a region.md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>). **Recorded**; the guide placements were
   closed by the owner's 2026-10-12 ruling ("try to support it"), and content
   drawn at its own size in a frame, an overlay or a background on 2026-10-18
-  ([B-GUIDE3-1](<Decisions/Layout and geometry/Drawing past a region (GUIDE3).md#b-guide3-1-content-larger-than-its-frame-or-base-is-still-cut>));
+  ([B-GUIDE3-1](<../Historical/Layout and geometry/Drawing past a region.md#b-guide3-1-content-larger-than-its-frame-or-base-is-still-cut>));
   a stack or another container still cuts what overhangs it (B-GUIDE3-1-P3).
   The other exceptions are displaced drawing, L6,
   and a drop shadow, which is drawn past its view the same way, at the view's
@@ -266,7 +266,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** a cell holds one glyph and has no transparency, so being over a
   neighbour means erasing it.
 - **Decided:** [§2.9](<SwiftUI compatibility guide.md#29-what-clips-a-floating-layer-and-how-far-a-spring-may-carry-a-view>),
-  [B-GUIDE3-4](<Decisions/Layout and geometry/Drawing past a region (GUIDE3).md#b-guide3-4-offset-and-position-still-float-over-the-views-after-them>).
+  [B-GUIDE3-4](<../Historical/Layout and geometry/Drawing past a region.md#b-guide3-4-offset-and-position-still-float-over-the-views-after-them>).
   **Medium.**
 
 ### L7. Lazy containers window what they draw; they do not defer creation
@@ -301,7 +301,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   otherwise hugs them.
 - **Why:** pinning needs the section to know which lines are its header, and
   windowing by section keeps a long stack's cost to what it draws.
-- **Decided:** [B-D1S-1](<Decisions/Layout and geometry/Sections and subview counting in stacks and loops (D1S).md#b-d1s-1-a-lazy-stack-keeps-its-own-sections-whole-all-of-them-pinned-a-loops-unpinned>), [B70](<Decisions/SwiftUI API completion decisions.md#b70-a-sectioned-lazyvgrid-is-a-stack-of-sections-each-around-a-grid-of-its-views>). **Lane.**
+- **Decided:** [B-D1S-1](<../Historical/Layout and geometry/Sections and pinned headers in lazy stacks.md#b-d1s-1-a-lazy-stack-keeps-its-own-sections-whole-all-of-them-pinned-a-loops-unpinned>), [B70](<../Historical/Layout and geometry/Sections and pinned headers in lazy stacks.md#b70-a-sectioned-lazyvgrid-is-a-stack-of-sections-each-around-a-grid-of-its-views>). **Lane.**
 
 ### L9. Some shapes of content count as one child
 
@@ -315,13 +315,13 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   a modified view of the app's own, or one whose body is an `AnyView` or an
   effect on several views, is one child (a body that is an `if`/`else` or a
   modifier on several views is taken apart since 2026-10-19, decisions
-  [B-LAYOUT-8](<Decisions/Layout and geometry/Layout parity (LAYOUT).md#b-layout-8-a-body-that-is-an-ifelse-or-a-modifier-on-several-views-is-those-views-a-modifier-on-such-a-view-is-still-one-child>)). A stack neither draws
+  [B-LAYOUT-8](<../Historical/Layout and geometry/Stack spacing, and what a container counts as its children.md#b-layout-8-a-body-that-is-an-ifelse-or-a-modifier-on-several-views-is-those-views-a-modifier-on-such-a-view-is-still-one-child>)). A stack neither draws
   nor spaces an empty child, so only an app's own `Layout`, which counts
   subviews, sees the first difference.
 - **Why:** counting these exactly means building every row on every walk,
   which costs a lazy stack its window and a loop its row memo.
-- **Decided:** [B-D1S-3](<Decisions/Layout and geometry/Sections and subview counting in stacks and loops (D1S).md#b-d1s-3-an-anyview-that-is-a-loops-row-is-one-child>), [B-D1S-5](<Decisions/Layout and geometry/Sections and subview counting in stacks and loops (D1S).md#b-d1s-5-a-loop-whose-rows-vary-is-built-to-be-counted>),
-  [B-D1S-6](<Decisions/Layout and geometry/Sections and subview counting in stacks and loops (D1S).md#b-d1s-6-a-modified-view-of-the-apps-own-or-one-whose-body-is-an-ifelse-is-one-child>). **Lane.**
+- **Decided:** [B-D1S-3](<../Historical/Layout and geometry/Stack spacing, and what a container counts as its children.md#b-d1s-3-an-anyview-that-is-a-loops-row-is-one-child>), [B-D1S-5](<../Historical/Layout and geometry/Stack spacing, and what a container counts as its children.md#b-d1s-5-a-loop-whose-rows-vary-is-built-to-be-counted>),
+  [B-D1S-6](<../Historical/Layout and geometry/Stack spacing, and what a container counts as its children.md#b-d1s-6-a-modified-view-of-the-apps-own-or-one-whose-body-is-an-ifelse-is-one-child>). **Lane.**
 
 ### L10. `safeAreaInset` puts the bar beside the view; there is no safe area
 
@@ -335,7 +335,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** in a cell grid the difference shows only as colour under the bar's
   blank cells, and a real safe area costs a field on the layout's hot path
   and a parity risk at every container.
-- **Decided:** [B6](<Decisions/SwiftUI API completion decisions.md#b6-safeareainset-puts-the-bar-beside-the-view-there-is-no-safe-area>), [B25](<Decisions/SwiftUI API completion decisions.md#b25-safeareapadding-is-padding-or-a-scroll-views-content-margin>). **Owner** (2026-10-12: not
+- **Decided:** [B6](<../Historical/Layout and geometry/Safe areas, size classes and layout direction.md#b6-safeareainset-puts-the-bar-beside-the-view-there-is-no-safe-area>), [B25](<../Historical/Layout and geometry/Safe areas, size classes and layout direction.md#b25-safeareapadding-is-padding-or-a-scroll-views-content-margin>). **Owner** (2026-10-12: not
   convinced; do not build the safe area).
 
 ### L11. A border moves a guide by its ring, and a few wrappers stop one
@@ -365,7 +365,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   moves its content without saying by how much would report a position from
   the wrong coordinate space. A wrong position is worse than a documented
   stop.
-- **Decided:** [SA-L11](<Decisions/Layout and geometry/Layout parity (LAYOUT).md#b-layout-3-a-border-moves-a-guide-by-its-ring-and-a-few-wrappers-stop-one>).
+- **Decided:** [SA-L11](<../Historical/Layout and geometry/Alignment guides that travel out of their view.md#b-layout-3-a-border-moves-a-guide-by-its-ring-and-a-few-wrappers-stop-one>).
   **Lane.**
 
 ### L13. A guide pushes a view at most 2^20 cells, and a runaway guide is reported
@@ -393,7 +393,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   SwiftUI does not stop on it, but what it places is no position either. A
   small terminal squeezes rows to nothing, where `d.width / d.height` is
   legitimately infinite.
-- **Decided:** [B-GUIDE-2](<Decisions/Layout and geometry/Alignment guides outside their view (GUIDE).md#b-guide-2-one-guide-pushes-a-view-at-most-4096-cells-whatever-the-containers-extent--decided-220-and-a-push-past-it-reported>).
+- **Decided:** [B-GUIDE-2](<../Historical/Layout and geometry/Alignment guides that travel out of their view.md#b-guide-2-one-guide-pushes-a-view-at-most-4096-cells-whatever-the-containers-extent--decided-220-and-a-push-past-it-reported>).
   **Owner** (2026-10-12: 2^20, a push past it reported, an environment
   variable to override it).
 
@@ -429,7 +429,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   content's. The width has a mark of its own for the true ask (the
   ideal-width probe, and `.fixedSize()`'s flag when it draws). A height mark
   would take another bit of the measure generation.
-- **Decided:** [B-LAYOUT-6](<Decisions/Layout and geometry/Layout parity (LAYOUT).md#b-layout-6-a-frames-ideal-is-its-size-offered-nothing-across-not-down>).
+- **Decided:** [B-LAYOUT-6](<../Historical/Layout and geometry/Sharing space: overfull columns and ideal sizes.md#b-layout-6-a-frames-ideal-is-its-size-offered-nothing-across-not-down>).
   **Lane.**
 
 ---
@@ -637,7 +637,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   compile. `flipsForRightToLeftLayoutDirection(_:)` returns the view.
 - **Why:** nothing would honour a write yet, and a write that is accepted and
   ignored is what rule 2 forbids.
-- **Decided:** [B1](<Decisions/SwiftUI API completion decisions.md#b1-layoutdirection-is-read-only-always-left-to-right>), [B74](<Decisions/SwiftUI API completion decisions.md#b74-sidebarrowsize-is-read-only-always-medium>). **Lane** (2026-10-12: the
+- **Decided:** [B1](<../Historical/Layout and geometry/Safe areas, size classes and layout direction.md#b1-layoutdirection-is-read-only-always-left-to-right>), [B74](<Decisions/SwiftUI API completion decisions.md#b74-sidebarrowsize-is-read-only-always-medium>). **Lane** (2026-10-12: the
   owner still wants right-to-left, out of scope for now). `\.legibilityWeight`
   was a third, and is settable and honoured since 2026-10-13 ([B2](<Decisions/SwiftUI API completion decisions.md#b2-legibilityweight-is-settable-and-every-text-drawing-site-steps-its-weight>)).
 
@@ -1889,7 +1889,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   does.
 - **Why:** a cell holds one glyph, so a row's text showing beside a short
   header reads as one garbled line.
-- **Decided:** [B66](<Decisions/SwiftUI API completion decisions.md#b66-a-pinned-header-covers-the-rows-under-it-swiftuis-lets-them-show-through>), [B67](<Decisions/SwiftUI API completion decisions.md#b67-under-the-n-more-above-line-a-pinned-header-sits-below-it>), [B69](<Decisions/SwiftUI API completion decisions.md#b69-focus-keeps-a-row-clear-of-a-pinned-header-a-seek-does-not>).
+- **Decided:** [B66](<../Historical/Layout and geometry/Sections and pinned headers in lazy stacks.md#b66-a-pinned-header-covers-the-rows-under-it-swiftuis-lets-them-show-through>), [B67](<../Historical/Layout and geometry/Sections and pinned headers in lazy stacks.md#b67-under-the-n-more-above-line-a-pinned-header-sits-below-it>), [B69](<../Historical/Layout and geometry/Sections and pinned headers in lazy stacks.md#b69-focus-keeps-a-row-clear-of-a-pinned-header-a-seek-does-not>).
   **Medium.**
 
 ### R10. Scroll visibility and coordinate spaces
@@ -1907,7 +1907,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   "hidden" must hear it. A list renders its rows into a window under its
   chrome, and tells them its own origin until it knows where the window put
   them.
-- **Decided:** [B-D5G-1](<Decisions/Layout and geometry/Coordinate spaces, geometry and scroll visibility (D5G).md#b-d5g-1-scroll-visibility-a-removed-view-is-not-reported-a-row-windowed-out-of-a-lazy-stack-is>), [B-D5G-9](<Decisions/Layout and geometry/Coordinate spaces, geometry and scroll visibility (D5G).md#b-d5g-9-a-lists-rows-are-not-placed-by-the-prediction-and-a-list-does-not-own-scrollview>),
+- **Decided:** [B-D5G-1](<../Historical/Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md#b-d5g-1-scroll-visibility-a-removed-view-is-not-reported-a-row-windowed-out-of-a-lazy-stack-is>), [B-D5G-9](<../Historical/Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md#b-d5g-9-a-lists-rows-are-not-placed-by-the-prediction-and-a-list-does-not-own-scrollview>),
   [ScrollViewReader.swift](../../Sources/TUIFoundation/Views/ScrollViewReader.swift#L47-L52).
   **Lane.**
 
@@ -2099,7 +2099,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 | Dragging a sidebar section | (a landing line between sections: not measured) | dropped onto another section's header, it takes that one's place | [B-LISTS2-4](<Decisions/Lists and tables/Lists, tabs and tables, settled parity items (LISTS2).md#b-lists2-4-a-sidebars-sections-move-among-the-identified-sections-and-a-drag-drops-onto-a-header>), **Lane** |
 | `modifierKeyAlternate` in a menu | gets the modified view's shortcut plus its modifiers | takes no shortcut of its own | [B-D1K-2](<Decisions/Input, clipboard and text editing/Kitty keyboard protocol, key-press phases and UndoManager (D1K).md#b-d1k-2-a-modifier-key-alternate-in-a-menu-does-not-inherit-the-modified-views-shortcut>), **Lane** |
 | A compact `DatePicker`'s calendar | (macOS keyboard unmeasured) | takes the keyboard as it opens | [B-D2C-2](<Decisions/Presentation and windows/Pickers and sheet sizes (D2C).md#b-d2c-2-a-compact-date-pickers-calendar-takes-the-keyboard-as-it-opens>), **Lane** |
-| A `Section` that is a lazy stack row's `ZStack`'s only child | not the stack's own; does not pin | pins | [B68](<Decisions/SwiftUI API completion decisions.md#b68-which-sections-are-the-stacks-own-the-next-stack-down-and-one-sibling-step>), **Lane** |
+| A `Section` that is a lazy stack row's `ZStack`'s only child | not the stack's own; does not pin | pins | [B68](<../Historical/Layout and geometry/Sections and pinned headers in lazy stacks.md#b68-which-sections-are-the-stacks-own-the-next-stack-down-and-one-sibling-step>), **Lane** |
 | `.searchable`'s field | in the toolbar, presented by a click; scopes show while search is presented (documented) | always drawn at the top of the subtree; scopes show while it has the focus or a query | [B38](<Decisions/SwiftUI API completion decisions.md#b38-search-scopes-show-while-the-search-is-under-way-by-a-terminals-reading-of-presented-and-cancelled>), **Lane** |
 | `.searchable` on a `TabView` (macOS 26) | the field goes into the `.search` tab (documented, unmeasured) | a field above the whole tab view | [A50](<Decisions/SwiftUI API completion decisions.md#a50-search-in-a-tab-view-macos-26-the-search-tab-and-its-activation>), **Owner** (2026-10-04: defer until macOS 26 can be measured) |
 | `SystemFormatStyle.DateReference` between the measured readings | keeps a time zone of its own; turns at a new year's first instant (measured) | uses the calendar's zone; turns half a second early | [B49](<Decisions/SwiftUI API completion decisions.md#b49-systemformatstyle-where-the-rules-go-beyond-the-measurements>), **Lane** |
@@ -2386,7 +2386,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `onScrollVisibilityChange` reports it hidden (R10).
 - **Why:** L7's: TUI keeps no view objects, so nothing ends a row's state
   while the stack still lists the row.
-- **Decided:** [§2.8](<SwiftUI compatibility guide.md#28-lazy-stacks-window-the-render-list-is-the-scalable-container>), [B-D5G-1](<Decisions/Layout and geometry/Coordinate spaces, geometry and scroll visibility (D5G).md#b-d5g-1-scroll-visibility-a-removed-view-is-not-reported-a-row-windowed-out-of-a-lazy-stack-is>). **Recorded.**
+- **Decided:** [§2.8](<SwiftUI compatibility guide.md#28-lazy-stacks-window-the-render-list-is-the-scalable-container>), [B-D5G-1](<../Historical/Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md#b-d5g-1-scroll-visibility-a-removed-view-is-not-reported-a-row-windowed-out-of-a-lazy-stack-is>). **Recorded.**
 
 ### F2. Animations carry on in an inactive scene
 
@@ -2407,9 +2407,9 @@ on. Each waits on the work, or on the ruling, its State names.
 
 | Difference | Where | State |
 |---|---|---|
-| Size classes, `\.displayScale`, `\.dynamicTypeSize` and `\.isLuminanceReduced` are settable; the size classes are read by `.viewAligned`, and a written `.compact` makes a popover a sheet (a tab's too, since 2026-10-24), collapses a `NavigationSplitView` (A21), shows a `Table`'s first column alone and a `.sidebarAdaptable` tab view's strip (a `.bordered` or `.grouped` one's too, under `tabBarMinimizeBehavior`'s `.automatic`, since 2026-10-24), while nothing reads the other three. On macOS SwiftUI's own text ignores the last three too (measured), so this is a planned extension past macOS, not a difference from it | [B3](<Decisions/SwiftUI API completion decisions.md#b3-size-classes-are-settable-and-nothing-tui-draws-reads-them>) | Owner 2026-10-12: follow a written `.compact` where possible (popover to sheet, split-view collapse, compact `Table` and sidebar tab view); keep the defaults. All four shipped 2026-10-13 |
+| Size classes, `\.displayScale`, `\.dynamicTypeSize` and `\.isLuminanceReduced` are settable; the size classes are read by `.viewAligned`, and a written `.compact` makes a popover a sheet (a tab's too, since 2026-10-24), collapses a `NavigationSplitView` (A21), shows a `Table`'s first column alone and a `.sidebarAdaptable` tab view's strip (a `.bordered` or `.grouped` one's too, under `tabBarMinimizeBehavior`'s `.automatic`, since 2026-10-24), while nothing reads the other three. On macOS SwiftUI's own text ignores the last three too (measured), so this is a planned extension past macOS, not a difference from it | [B3](<../Historical/Layout and geometry/Safe areas, size classes and layout direction.md#b3-size-classes-are-settable-and-nothing-tui-draws-reads-them>) | Owner 2026-10-12: follow a written `.compact` where possible (popover to sheet, split-view collapse, compact `Table` and sidebar tab view); keep the defaults. All four shipped 2026-10-13 |
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<Decisions/SwiftUI API completion decisions.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
-| A column places its children of one priority in order, cutting the trailing ones, where SwiftUI's shares its height as it shares a row's width (rows have since L14, 2026-10-13) | [`distributeInOrder`](../../Sources/TUIFoundation/Rendering/LinearSpaceDistribution.swift) | Owner 2026-10-13: follow SwiftUI. Landed and reverted for its cost (2400f2948): every overfull column asks each child its minimum, down the whole tree, every frame — counted, and the options priced, in [decisions A-LAYOUT-1](<Decisions/Layout and geometry/Layout parity (LAYOUT).md#a-layout-1-a-column-shares-an-overfull-height-only-once-a-childs-minimum-is-cheap-to-ask>). Waits on that, and on a fix: shared, a column squeezes a control of several lines in the middle |
+| A column places its children of one priority in order, cutting the trailing ones, where SwiftUI's shares its height as it shares a row's width (rows have since L14, 2026-10-13) | [`distributeInOrder`](../../Sources/TUIFoundation/Rendering/LinearSpaceDistribution.swift) | Owner 2026-10-13: follow SwiftUI. Landed and reverted for its cost (2400f2948): every overfull column asks each child its minimum, down the whole tree, every frame — counted, and the options priced, in [decisions A-LAYOUT-1](<../Historical/Layout and geometry/Sharing space: overfull columns and ideal sizes.md#a-layout-1-a-column-shares-an-overfull-height-only-once-a-childs-minimum-is-cheap-to-ask>). Waits on that, and on a fix: shared, a column squeezes a control of several lines in the middle |
 | In a lazy stack, a `Grid`, a `List` and a `Table`, a view that an `if`/`else`'s branch, a `switch` or a `ForEach` row puts in under an animation appears at once, where SwiftUI's fades in (`.opacity`), and one with a `.transition(_:)` goes at once, where SwiftUI's plays it on the way out. An `if`'s view fades in and out everywhere (2026-10-14); a branch, a case and a row fade in, and play their own removal, in an eager stack, a `ZStack`, a `Layout` and a conditional drawn whole (2026-10-19), and go at once with none (A10) | [ChildFade.swift](../../Sources/TUIView/Animation/ChildFade.swift), [B-TRANSITIONS2-1](<Decisions/Shapes, effects and animation/Transition follow-ups (TRANSITIONS2).md#b-transitions2-1-a-branch-a-case-and-a-row-fade-in-where-a-container-remembers-its-children>) | Lane: the containers that window their rows or lay out a lattice keep no memory of their children yet (B-FB16-2, B-FB16-3, B-FB16-5); the fuller version is priced with theirs |
 | A `TableColumn`'s header and a `Tab`'s title draw their key's Markdown words but not its styles (a field's title is plain words, as SwiftUI's placeholder is); every other control's title key is drawn styled (2026-10-15, 2026-10-18) | [B87](<Decisions/SwiftUI API completion decisions.md#b87-markdown-in-a-controls-title-key-parsed-though-a-column-header-and-a-tab-title-draw-only-its-words>), [B-PARITYMISC-3](<Decisions/Small parity items (PARITYMISC).md#b-paritymisc-3-a-column-header-and-a-tab-title-draw-their-keys-markdown-words-not-its-styles>) | Lane: the fuller version draws the styles |
 | A modifier reaches multi-view content through some wrappers only | [§3](<SwiftUI compatibility guide.md#3-open-divergence>) | Open divergence |

@@ -158,7 +158,7 @@ messages cite that path), and what cites it.
   `Tests/TUIFoundationTests/EmptyContentLayoutTests.swift`;
   `Sources/TUIView/Core/PrimitiveViews.swift`, `Sources/TUIFoundation/Modifiers/OverlayModifier.swift`,
   `Sources/TUIView/Rendering/StaticViewListCount.swift`;
-  `Documentation/SwiftUI parity/Decisions/Layout and geometry/Alignment guides outside their view (GUIDE).md`.
+  `Documentation/Historical/Layout and geometry/README.md`.
 
 ### List pinned headers and row stripes
 
@@ -198,7 +198,7 @@ messages cite that path), and what cites it.
   `Tests/TUIIntegrationTests/SectionPartsTests.swift`, `Tests/TUIListsTests/CompositeMembersTests.swift`,
   `Tests/TUIListsTests/ListMultiViewRowEditingTests.swift`,
   `Tests/TUIFormsTests/FormWrappedSectionTests.swift`, `Tests/TUIMenusTests/MenuSectionTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/Layout and geometry/Sections and subview counting in stacks and loops (D1S).md`.
+  `Documentation/Historical/Layout and geometry/README.md`.
 
 ### Pinned section headers and footers
 
@@ -339,7 +339,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
 - **Was:** `SCROLL/probe/`.
 - **Cited by:** `Sources/TUIEffects/Geometry/ScrollTransitionConfiguration.swift`;
-  `Documentation/SwiftUI parity/Decisions/Layout and geometry/Coordinate spaces, geometry and scroll visibility (D5G).md` (B-D5G-8);
+  `Documentation/Historical/Layout and geometry/README.md` (B-D5G-8);
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
 ### Scroll target behaviours
@@ -871,8 +871,8 @@ messages cite that path), and what cites it.
   `vis3`).
 - **Ran:** macOS 15, 2026-10-05.
 - **Was:** `D5G/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/Layout and geometry/Coordinate spaces, geometry and scroll visibility (D5G).md`;
-  `Documentation/Historical/Geometry design study, A2 and A7 (2026-10-04).md`.
+- **Cited by:** `Documentation/Historical/Layout and geometry/README.md`;
+  `Documentation/Historical/Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md`.
 
 ### Scroll position, margins and disabled scrolling (DECB)
 

@@ -1459,7 +1459,7 @@ question.
 - **Where a view will be drawn, for the view itself** (`GeometryProxy.frame(in:)`
   in a named space, `.global` or a scroll view's, anchors, `scrollTransition`):
   not this design's question, and answered without it (2026-10-05, decisions
-  A2, design study `Historical/Geometry design study, A2 and A7 (2026-10-04).md`). A view
+  A2, design study `Historical/Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md`). A view
   stamps a geometry marker its space's owner reads back out of what it drew
   (the truth), and the containers that place a child before drawing it carry
   its origin down (the prediction, `RenderContext.placingChild(gradient:x:y:)`);

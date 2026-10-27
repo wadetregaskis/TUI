@@ -717,9 +717,9 @@ The reasons:
   TUI uses single-pass rendering with no layout phase", which is this document's subject in one line.
 - [Locating things without drawing them](<../../../Layout and scrolling/Locating things without drawing them.md>):
   §7 weighs retained trees (7i), a retained layout tree (7j) and SwiftUI's `Layout` shape (7h).
-- [Geometry design study, A2 and A7](<../../Geometry design study, A2 and A7 (2026-10-04).md>): G1,
+- [Geometry design study, A2 and A7](<../../Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md>): G1,
   G3, G4 and the container audit.
-- [Decisions D5G](<../../../SwiftUI parity/Decisions/Layout and geometry/Coordinate spaces, geometry and scroll visibility (D5G).md>):
+- [Decisions D5G](<../../Layout and geometry/Where a view is: coordinate spaces, geometry readers and scroll visibility.md>):
   B-D5G-2, -3, -4 (lane EFFECTS rewrites it), -9 and -10.
 - [Discarded render passes and redundant frames](<../../../Performance/Discarded render passes and redundant frames.md>):
   the 2026-08-07 analysis of writes during the walk and of `onAppear` timing that option (a) revisits.

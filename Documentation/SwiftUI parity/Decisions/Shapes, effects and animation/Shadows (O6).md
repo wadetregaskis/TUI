@@ -85,7 +85,7 @@ there, laid under the view by `.background { … }`'s own compositor
 cell the view leaves clear, and it resolves against whatever is behind the
 view where that is known; past the frame it is overflow
 (`FrameBuffer.splitPlacing`, decisions
-[B-GUIDE-3](<../Layout and geometry/Alignment guides outside their view (GUIDE).md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>)),
+[B-GUIDE-3](<../../../Historical/Layout and geometry/Drawing past a region.md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>)),
 drawn at the screen root over the views before the shadowed one, cut under the
 views after it, and clipped by a scroll view, a list, a table cell or a surface
 as SwiftUI clips a shadow at a scroll view's edge.
