@@ -158,7 +158,7 @@ extension TabContent {
     public func dropDestination<T>(
         for payloadType: T.Type = T.self, action: @escaping ([T]) -> Void
     ) -> some TabContent<TabValue> {
-        let drop = _TableRowDrop(accepts: { $0 is T }, perform: { action($0.compactMap { $0 as? T }) })
+        let drop = _TableRowDrop(accepts: { DragAndDropSession.items(of: $0).allSatisfy { $0 is T } }, perform: { action($0.compactMap { $0 as? T }) })
         return _TabTraitContent(content: self) { $0.interactions.drops.append(drop) }
     }
 }
@@ -352,7 +352,7 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
             on: &buffer, context: context,
             accepts: { payload in drops.contains { $0.accepts(payload) } },
             perform: { payload, _ in
-                for drop in drops where drop.accepts(payload) { drop.perform([payload]) }
+                for drop in drops where drop.accepts(payload) { drop.perform(DragAndDropSession.items(of: payload)) }
                 return true
             },
             setTargeted: setTargeted)

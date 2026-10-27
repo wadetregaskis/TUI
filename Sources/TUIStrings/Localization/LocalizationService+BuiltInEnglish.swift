@@ -84,6 +84,7 @@ extension LocalizationService {
       "label.gradient": "Gradient",
       "label.noResults": "No Results",
       "label.noResultsFor": "No Results for '%@'",
+      "label.dragMore": "+%@ more",
       "label.noResultsHint": "Check the spelling or try a new search.",
       "label.suppressDialog": "Do not show this message again",
       "label.find": "Find",

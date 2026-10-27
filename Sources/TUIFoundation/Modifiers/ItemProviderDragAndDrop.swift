@@ -21,6 +21,8 @@
     /// a `Transferable`, so an `onDrop` hears them too.
     package enum ItemProviders {
         static func of(_ payload: Any?) -> [NSItemProvider] {
+            // A selection's values: each one's providers, in order.
+            if let selection = payload as? DragItems { return selection.items.flatMap { of($0) } }
             switch payload {
             case let provider as NSItemProvider: return [provider]
             case let providers as [NSItemProvider]: return providers

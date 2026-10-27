@@ -311,7 +311,7 @@ extension Table {
     ) -> Table {
         var copy = self
         copy.dropInsertion = _TableDropInsertion(
-            accepts: { $0 is Payload }, takes: nil,
+            accepts: { DragAndDropSession.items(of: $0).allSatisfy { $0 is Payload } }, takes: nil,
             perform: { index, values in action(values.compactMap { $0 as? Payload }, index) })
         return copy
     }
@@ -3398,7 +3398,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     // pointer: refused, and the drag flies home.
                     if insertion.takes != nil, handler.externalDropSlot == nil { return false }
                     drawing.reportingChanges(to: slot) {
-                        insertion.perform(handler.takeExternalDropSlot(), [payload])
+                        insertion.perform(handler.takeExternalDropSlot(), DragAndDropSession.items(of: payload))
                     }
                     return true
                 },

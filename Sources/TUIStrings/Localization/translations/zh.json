@@ -54,6 +54,7 @@
   "label.gradient": "渐变",
   "label.noResults": "无结果",
   "label.noResultsFor": "没有“%@”的结果",
+  "label.dragMore": "另外%@项",
   "label.noResultsHint": "请检查拼写或尝试新的搜索。",
   "label.suppressDialog": "不再显示此消息",
   "label.find": "查找",

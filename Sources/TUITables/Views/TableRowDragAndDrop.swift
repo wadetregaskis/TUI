@@ -151,7 +151,7 @@ extension TableRowContent {
         for payloadType: T.Type = T.self, action: @escaping ([T]) -> Void
     ) -> some TableRowContent<TableRowValue> {
         let drop = _TableRowDrop(
-            accepts: { $0 is T }, perform: { action($0.compactMap { $0 as? T }) })
+            accepts: { DragAndDropSession.items(of: $0).allSatisfy { $0 is T } }, perform: { action($0.compactMap { $0 as? T }) })
         return ModifiedContent(content: self, modifier: _DropDestinationTableRowModifier(drop: drop))
     }
 }
@@ -178,7 +178,8 @@ extension DynamicTableRowContent {
         ModifiedContent(
             content: self,
             modifier: OnInsertTableRowModifier(
-                accepts: { $0 is T }, perform: { offset, values in action(values.compactMap { $0 as? T }, offset) }))
+                accepts: { DragAndDropSession.items(of: $0).allSatisfy { $0 is T } },
+                perform: { offset, values in action(values.compactMap { $0 as? T }, offset) }))
     }
 }
 
@@ -263,6 +264,36 @@ enum _TableRowDragRegions {
     /// such a row is the drag's; a press released without moving passes
     /// through to the table as a click. The zones go in first, behind it, so
     /// they never take a press — a drag finds a zone at any depth.
+    /// Makes the drag just begun from row `grabbed` carry the table's selection,
+    /// in the table's order, where that row is one of several selected; Shift
+    /// held as it began extends the selection to the row first, as a
+    /// Shift-click does (decisions DRAG-SELECTION, 2026-10-27: the Mac's way).
+    /// Every row's payload is in its traits, so nothing has to be drawn.
+    @MainActor
+    static func carrySelection<ID: Hashable>(
+        grabbed: Int, handler: ItemListHandler<ID>, traits: [_TableRowTraits], session: DragAndDropSession
+    ) {
+        guard let drag = session.active, !drag.carriesSelection, let binding = handler.multiSelection,
+            let grabbedID = handler.id(at: grabbed)
+        else { return }
+        if drag.startedWithShift { handler.extendSelection(to: grabbed) }
+        let selection = binding.wrappedValue
+        guard selection.count > 1, selection.contains(grabbedID) else {
+            session.carriesNoSelection()
+            return
+        }
+        var items: [Any] = []
+        for index in traits.indices where handler.id(at: index).map(selection.contains) == true {
+            if let value = traits[index].dragPayload?() { items.append(value) }
+        }
+        guard items.count > 1 else {
+            session.carriesNoSelection()
+            return
+        }
+        session.carrySelection(
+            items, sources: [], preview: DragAndDropSession.selectionPreview(drag.preview, count: items.count))
+    }
+
     @MainActor
     static func register<ID: Hashable>(
         to buffer: inout FrameBuffer,
@@ -294,6 +325,7 @@ enum _TableRowDragRegions {
                             payload: value, preview: FrameBuffer(lines: [frames.last ?? ""]),
                             morph: frames.map { FrameBuffer(lines: [$0]) },
                             grabX: grab.x, grabY: grab.y, anchor: anchor, allowedOperations: allowed)
+                        carrySelection(grabbed: index, handler: handler, traits: traits, session: session)
                     },
                     onDragMove: { _ in session.dragMoved() },
                     onDragEnd: { _ in _ = session.performDrop() })
@@ -308,7 +340,7 @@ enum _TableRowDragRegions {
                 on: &zone, context: context,
                 accepts: { payload in drops.contains { $0.accepts(payload) } },
                 perform: { payload, _ in
-                    for drop in drops where drop.accepts(payload) { drop.perform([payload]) }
+                    for drop in drops where drop.accepts(payload) { drop.perform(DragAndDropSession.items(of: payload)) }
                     return true
                 },
                 setTargeted: { targeted in

@@ -54,6 +54,7 @@
   "label.gradient": "Verlauf",
   "label.noResults": "Keine Ergebnisse",
   "label.noResultsFor": "Keine Ergebnisse für „%@“",
+  "label.dragMore": "+%@ weitere",
   "label.noResultsHint": "Prüfen Sie die Schreibweise oder starten Sie eine neue Suche.",
   "label.suppressDialog": "Diese Meldung nicht mehr anzeigen",
   "label.find": "Suchen",

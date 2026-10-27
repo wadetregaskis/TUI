@@ -30,7 +30,9 @@ session values ship; nothing hands them out yet.
    carry's first part on 2026-10-27 (A53-KEYBOARD-DRAG below).
 5. **2026-10-26, found while filming:** a `.draggable` row in a multi-selection
    drags only itself; asked whether it should carry the selection, as AppKit's
-   tables do (DRAG-SELECTION, open).
+   tables do (DRAG-SELECTION). The owner, 2026-10-27: the Mac's way, whatever
+   SwiftUI does, Shift-drag extending the selection first, as in Finder. Built
+   the same day (below).
 
 ## Where it stands
 
@@ -54,8 +56,9 @@ Escape puts it back. Its second part followed the same night: a `‹` cue on
 every stop it can reach, Return and Escape named in the status bar, and a
 list as one stop whose rows Up and Down move between. **Owed:** "Pick Up" in
 a draggable's context menu, which needs a way for a modifier to add a menu
-item; the image well's badge probed in a real window.
-**Open:** DRAG-SELECTION. DEPR-DROPDEST's line is in the compatibility guide
+item. The image well's badge, probed in a real window on 2026-10-27, is
+"+" (it answers Copy), as TUI's destinations show.
+DEPR-DROPDEST's line is in the compatibility guide
 (the Drag and drop row: SwiftUI's older `dropDestination(for:action:isTargeted:)`,
 soft-deprecated, kept while the `isEnabled:` form's `DropSession` waits on
 A53).
@@ -543,3 +546,30 @@ terminal app drags inside itself, without AppKit, and Linux has no AppKit at
 all. The review listed both as its CONFIRM for P18. They are now the only
 declined members of the family, each with its own `notImplemented` entry; the
 family rule that declined the rest is gone.
+
+### DRAG-SELECTION. Dragging a selected row carries the selection
+
+*`draggable(_:)` on a `List` row and `TableRow.draggable(_:)`, in a list or
+table with a `Set` selection*
+
+Asked 2026-10-26, answered 2026-10-27: the Mac's way, whatever SwiftUI's is.
+In Finder dragging one of several selected items carries them all, and the
+one modifier that changes anything is Shift, which extends the selection to
+the item first, as a Shift-click does, and then drags it.
+
+Built: a drag from a row that is one of several selected carries every
+selected row's payload, in the container's order, and a destination is handed
+them all in one call (`DragItems`; each destination takes the bundle where
+every value is its type: `dropDestination`, a loop's and a table's insertion,
+a table row's, a tab's, the item-provider ones). A `List` gathers on the frame
+after the drag begins: every `.draggable` drawn while the list gathers notes
+its payload (`DragAndDropSession.notePayload`, journalled so a memo serving the
+row notes it too), and the selected rows outside the window are drawn on that
+frame alone to note theirs. A `Table` has each row's payload in its traits and
+gathers as the drag begins. The selected rows are drawn as gone while the drag
+is out; a cancelled drag's preview flies home to the grabbed row, and the
+others come back at once. The preview is the grabbed row with "+N more" under
+it (`label.dragMore`, in the seven languages). Shift held as the drag starts
+extends the selection to the row first. Not yet: the keyboard's Copy and
+carry, which still take the focused row alone (`ListDragSelectionTests`,
+`TableRowDragAndDropTests`).

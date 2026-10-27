@@ -51,7 +51,6 @@ been in force since 2026-10-18.
 
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
-| DRAG-SELECTION | A `.draggable` row in a multi-selection drags only itself (List and Table), and `dropDestination` receives one item. Should dragging a selected row carry every selected row, as AppKit's tables do (probe SwiftUI first)? | Yes, after the probe. | Each row drags alone. |
 | IMAGE-PAGE-PHOTO | The Example's image page shows the bald eagle, whose feather detail no block glyph can draw. Which photograph replaces it: the galago, the trillium or the snail? | The galago. | The eagle stays. |
 | GLASS-BORDER-GAP | Under glass, the one-cell gap between a `.border()` and the material: inset the border and lay the glass under it, as the Materials clip now does by hand? | Yes, as a `.border()` inset with the material reaching under it. | The gap stays. |
 
@@ -98,6 +97,7 @@ been in force since 2026-10-18.
 | A-O10-1 | 2, generic beyond `Data` (strings, `Codable`). | Done: `fileExporter(isPresented:contents:…)` and `fileExporter(isPresented:encoding:…)`, on every platform. |
 | A-FORMS-1 | 2: follow SwiftUI. | Done: a bare button in the control column (columns), at the row's leading edge (grouped). |
 | ENV-VARS | Rename `TUIKIT_` to `TUI_`. | Done (`af22656f9`). |
+| DRAG-SELECTION | The Mac's way: the whole selection; Shift-drag extends it first. | Done for the mouse, List and Table; the keyboard's Copy and carry still take one row. |
 
 ## Answered later on 2026-10-26
 

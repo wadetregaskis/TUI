@@ -98,6 +98,9 @@ public enum LocalizationKey {
         case noResults = "label.noResults"
         /// Carries the query as `%@`, so a translation can move it.
         case noResultsFor = "label.noResultsFor"
+        /// A selection's drag preview, under the grabbed row: how many more rows
+        /// it carries, as `%@` (decisions DRAG-SELECTION).
+        case dragMore = "label.dragMore"
         case noResultsHint = "label.noResultsHint"
         /// The default title of `dialogSuppressionToggle(isSuppressed:)`.
         case suppressDialog = "label.suppressDialog"

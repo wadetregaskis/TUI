@@ -80,7 +80,7 @@ extension ItemListHandler {
 
     /// Extends the selection to `index` (Home/End): the cursor jumps there
     /// and the span from the anchor is selected.
-    func extendSelection(to index: Int) {
+    package func extendSelection(to index: Int) {
         if selectionAnchor == nil { selectionAnchor = focusedIndex }
         focusedIndex = max(0, min(itemCount - 1, index))
         ensureFocusedItemVisible()

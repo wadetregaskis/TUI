@@ -107,7 +107,7 @@ extension ForEach where Content: View {
     ) -> ForEach {
         var copy = self
         copy.dropInsertion = (
-            accepts: { $0 is Payload },
+            accepts: { DragAndDropSession.items(of: $0).allSatisfy { $0 is Payload } },
             perform: { index, values in action(values.compactMap { $0 as? Payload }, index) }
         )
         return copy

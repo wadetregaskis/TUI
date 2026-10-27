@@ -902,13 +902,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let palette = context.environment.palette
         let style = context.environment.listStyle
         let stateStorage = context.stateStorage!
+        // Started as the rows are extracted (`armSelectionGathering`), ended
+        // whatever the rows came to.
+        defer { endSelectionGathering(context: context) }
 
         // Rows beyond the viewport are skipped, not gone: retain their state
         // (see StateStorage.retainSubtree). Render path only, per the
         // measure-side-effect rule.
-        if !context.isMeasuring {
-            stateStorage.retainSubtree(context.identity)
-        }
+        if !context.isMeasuring { stateStorage.retainSubtree(context.identity) }
 
         // Two border cells or none, on each axis: top + bottom rows, and left +
         // right columns.
@@ -1019,6 +1020,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             content = _ListContentView(
                 lines: result.lines, runs: result.runs, claims: result.claims, knownWidth: result.lineWidth)
             renderState = result.state
+            gatherDraggedSelection(source: source, handler: result.state.handler, context: context)
         }
 
         // Pad content to fill the available height (SwiftUI
@@ -1685,6 +1687,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         rowContext: RenderContext, editRestrictions: RowEditRestrictions, stateStorage: StateStorage,
         context: RenderContext
     ) -> RowSource<SelectionValue> {
+        armSelectionGathering(context: context)
         if let (handler, focusID) = registerOwnFocusStop(stateStorage: stateStorage, context: context) {
             editRestrictions.sectionsInUse = (
                 cursorRow: FocusRegistration.isFocused(context: context, focusID: focusID)
@@ -3570,7 +3573,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 accepts: insertion.accepts,
                 perform: { payload, _ in
                     drawing.reportingChanges(to: slot) {
-                        insertion.perform(handler.takeExternalDropSlot(), [payload])
+                        insertion.perform(handler.takeExternalDropSlot(), DragAndDropSession.items(of: payload))
                     }
                     return true
                 },

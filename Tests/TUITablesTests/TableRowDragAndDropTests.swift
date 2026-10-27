@@ -86,6 +86,36 @@ struct TableRowDragAndDropTests {
         #expect(log.entries == ["dropped [\"pear\"]"], "\(buffer.lines.map(\.stripped))")
     }
 
+    /// Decisions DRAG-SELECTION (2026-10-27): the Mac's way, as a List's.
+    @Test("Dragging one of several selected rows carries them all, in the table's order")
+    func draggableRowCarriesTheSelection() {
+        let log = Log()
+        var selection: Set<String> = ["plum", "apple"]
+        let harness = InputChainHarness(width: 30, height: 14)
+        let fruit = self.fruit
+        func build() -> some View {
+            VStack(alignment: .leading, spacing: 0) {
+                Table(of: Fruit.self, selection: Binding(get: { selection }, set: { selection = $0 })) {
+                    TableColumn("Name", value: \.name)
+                } rows: {
+                    ForEach(fruit) { item in
+                        TableRow(item).draggable(item.name)
+                    }
+                }
+                .frame(height: 7)
+                Text("ZONE==========").dropDestination(for: String.self) { values, _ in
+                    log.entries.append("dropped \(values)")
+                    return true
+                }
+            }
+        }
+        let buffer = harness.frame(build())
+        let plum = line(of: "plum", in: buffer)
+        let zone = line(of: "ZONE", in: buffer)
+        carry(harness, from: (x: 4, y: plum), to: (x: 3, y: zone), build)
+        #expect(log.entries == ["dropped [\"apple\", \"plum\"]"], "\(buffer.lines.map(\.stripped))")
+    }
+
     @Test("A press on a draggable row released without moving selects it")
     func draggableRowStillClicks() {
         var selection: String?

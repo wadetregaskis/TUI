@@ -54,6 +54,7 @@
   "label.gradient": "Dégradé",
   "label.noResults": "Aucun résultat",
   "label.noResultsFor": "Aucun résultat pour « %@ »",
+  "label.dragMore": "+%@ de plus",
   "label.noResultsHint": "Vérifiez l'orthographe ou lancez une nouvelle recherche.",
   "label.suppressDialog": "Ne plus afficher ce message",
   "label.find": "Rechercher",

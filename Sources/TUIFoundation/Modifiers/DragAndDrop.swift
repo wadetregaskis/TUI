@@ -142,6 +142,16 @@ extension DraggableModifier: Renderable, Layoutable {
         previewBuffer.overlays = []
 
         let payload = self.payload
+        // Told to a container gathering a selection this frame, and journalled so a
+        // memo serving this view tells it too (decisions DRAG-SELECTION).
+        session.notePayload({ payload() }, for: identity)
+        if let journal = context.recordingEffectJournal {
+            let token = context.environment.keyChannelToken
+            journal.append(
+                EffectJournal.Entry(kind: Self.payloadKind, channelToken: token) { replay in
+                    replay.environment.dragAndDropSession?.notePayload({ payload() }, for: identity)
+                })
+        }
         let capturedPreview = previewBuffer
         let anchor = context.environment.dragPreviewAnchor
         let allowed = context.environment.allowedDragOperations
@@ -178,6 +188,12 @@ extension DraggableModifier: Renderable, Layoutable {
         }
         return buffer
     }
+}
+
+extension DraggableModifier {
+    /// The journal kind of a `.draggable`'s payload, told to a container
+    /// gathering a selection.
+    static var payloadKind: EffectJournal.Kind { EffectJournal.Kind("draggablePayload") }
 }
 
 /// Whether `value` is an optional holding nothing, whatever it wraps.
@@ -399,10 +415,13 @@ extension DropDestinationModifier: Renderable, Layoutable {
         }
         DropZone.install(
             on: &buffer, context: context,
-            accepts: { $0 is Payload },
+            // A selection's values (`DragItems`) land here where every one is
+            // a `Payload`, all in one call, in the selection's order.
+            accepts: { DragAndDropSession.items(of: $0).allSatisfy { $0 is Payload } },
             perform: { payload, info in
-                guard let typed = payload as? Payload else { return false }
-                return action([typed], info)
+                let typed = DragAndDropSession.items(of: payload).compactMap { $0 as? Payload }
+                guard !typed.isEmpty else { return false }
+                return action(typed, info)
             },
             setTargeted: isTargeted, focusIDs: stops)
         return buffer

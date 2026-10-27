@@ -54,6 +54,7 @@
   "label.gradient": "Sfumatura",
   "label.noResults": "Nessun risultato",
   "label.noResultsFor": "Nessun risultato per «%@»",
+  "label.dragMore": "+%@ altri",
   "label.noResultsHint": "Controlla l'ortografia o prova una nuova ricerca.",
   "label.suppressDialog": "Non mostrare più questo messaggio",
   "label.find": "Trova",

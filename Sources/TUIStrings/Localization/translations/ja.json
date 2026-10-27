@@ -54,6 +54,7 @@
   "label.gradient": "グラデーション",
   "label.noResults": "結果なし",
   "label.noResultsFor": "「%@」の結果なし",
+  "label.dragMore": "ほか%@件",
   "label.noResultsHint": "スペルを確認するか、別のキーワードで検索してください。",
   "label.suppressDialog": "今後このメッセージを表示しない",
   "label.find": "検索",
