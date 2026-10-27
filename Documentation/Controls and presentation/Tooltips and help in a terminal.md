@@ -5,7 +5,7 @@ the focus.** The owner ruled on 2026-10-12 that `help(_:)` must work on them,
 by hover and by an app-wide help feature. Hover always did. The app-wide
 feature is `.tooltips(.always)`, whose panels now avoid one another (§5, "Many
 panels at once"); a keyboard route of its own for such a view is not built
-(decisions [HELP](<../SwiftUI parity/Decisions/Presentation and windows/Help on views that cannot take the focus (HELP).md>) B-HELP-2), nor is the
+(decisions [HELP](<../Historical/Presentation and windows/Help and tooltips on every view.md>) B-HELP-2), nor is the
 owner's punted "help browse" mode. Two defects found then are fixed: a focus-revealed
 tooltip never reached the status bar, the default presentation, so `?` showed
 nothing with the default style; and `.onFocus` with a delay above zero never

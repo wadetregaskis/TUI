@@ -1,0 +1,14 @@
+# Shapes, effects and animation: how it came to be
+
+One story per subject: transitions, timing, shapes, shadows, matched geometry, materials and glass, pixel effects, accessibility settings. The live design of opacity and materials is [Opacity as composition](<../../Colour and styling/Opacity as composition.md>). Each story has the record of its decisions below it (see the [Historical README](../README.md) for the arrangement).
+
+| Story | In short |
+|---|---|
+| [Accessibility settings: reduce motion, transparency and contrast](<Accessibility settings: reduce motion, transparency and contrast.md>) | Reduce motion, reduce transparency, differentiate without colour and increase contrast are read as reduce motion is: the host's setting in local sessions only, each with a `TUIKIT_*` override, and TUI's own drawing honours them (P5, option c).  |
+| [Animation timing: curves, springs, keyframes and completions](<Animation timing: curves, springs, keyframes and completions.md>) | Curves, springs and keyframe timelines are SwiftUI's arithmetic, measured, except where its answers contradict its own documentation (B57) and two spring quirks kept and one not (B58).  |
+| [Inserting and removing views: transitions and the default fade](<Inserting and removing views: transitions and the default fade.md>) | SwiftUI's model, measured in a real app on macOS 15.8: when a container's children change, every view whose frame changes glides to its new frame, a leaving view keeps its room and is drawn beneath its siblings, and the eager stacks, `ZStack` and a `Layout` glide in whole cells; lazy stacks, `Grid`, `List` and `Table` change at once. **Open:** a question never answered. |
+| [Matched geometry and the zoom transition](<Matched geometry and the zoom transition.md>) | The owner's O4 ruling (2026-10-12): a full re-layout at the interpolated frame each animation frame.  |
+| [Materials and glass](<Materials and glass.md>) | A material is a translucent surface laid over a frost of what is behind it: the glyphs dropped and each cell the average of a box around it, the box set by thickness or `.materialFrost(_:)`.  |
+| [Pixel effects: transforms, masks, drawingGroup, blend modes and meshes](<Pixel effects: transforms, masks, drawingGroup, blend modes and meshes.md>) | The six view transforms are declined, and the geometric visual effects follow them (A39). **Open:** a question never answered. |
+| [Shadows](<Shadows.md>) | `View.shadow(color:radius:x:y:)` casts from the cells a view paints, falling off by whole rings (the owner's O6 (b), 2026-10-12: cells as they are, documented).  |
+| [Shapes](<Shapes.md>) | Shapes use square units (x in columns, y in rows × `\.imageCellAspect`), live in TUIFoundation with their rasterizer, and draw half blocks at their coverage; a rectangle-family stroke is a box of light lines. **Open:** a question never answered. |

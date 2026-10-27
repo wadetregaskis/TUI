@@ -496,7 +496,7 @@ Keys: `ImagePaint`, with W13's `ShapeStyle.image(_:sourceRect:scale:)`.
 
 **Shipped 2026-10-19** with lane W1B (`Sources/TUIFoundation/Styling/ImagePaint.swift`,
 sampled through `SampledCells` as a mesh is; decisions
-[B-W1B-4](<Decisions/Shapes, effects and animation/What the shapes unblocked (W1B).md#b-w1b-4-an-image-paint-is-sampled-cell-by-cell-and-paints-nothing-until-its-picture-is-there>)).
+[B-W1B-4](<../Historical/Shapes, effects and animation/Shapes.md#b-w1b-4-an-image-paint-is-sampled-cell-by-cell-and-paints-nothing-until-its-picture-is-there>)).
 The picture over blank cells is not taken: an image paint is cells.
 
 ---
@@ -546,7 +546,7 @@ pixel-identical on macOS, since its effect is only on hit-testing.
 hit area to the cells it keeps, carried to the modifiers around it as geometry
 markers, and `.dragPreview` cuts a drag's preview; `.focusEffect` and
 `.accessibility` are omitted (`Sources/TUIFoundation/Modifiers/ContentShapeModifier.swift`,
-decisions [B-W1B-3](<Decisions/Shapes, effects and animation/What the shapes unblocked (W1B).md#b-w1b-3-a-content-shape-is-carried-to-the-modifiers-around-it-as-geometry-markers>),
+decisions [B-W1B-3](<../Historical/Shapes, effects and animation/Shapes.md#b-w1b-3-a-content-shape-is-carried-to-the-modifiers-around-it-as-geometry-markers>),
 C-W1B-1).
 
 ### P4. `SymbolEffectTransition` — M, with W12's `symbolEffect`
@@ -998,7 +998,7 @@ deviations A8, decisions O4).
 `Sources/TUINavigation/Views/NavigationZoom.swift`; Deliberate deviations
 A9). The configuration's `clipShape(_:)` and `shadow(color:radius:x:y:)`
 **shipped 2026-10-19** with lane W1B (decisions
-[B-W1B-2](<Decisions/Shapes, effects and animation/What the shapes unblocked (W1B).md#b-w1b-2-a-zoom-sources-clip-shape-and-shadow-shrink-to-nothing-as-the-rectangle-grows>)).
+[B-W1B-2](<../Historical/Shapes, effects and animation/Matched geometry and the zoom transition.md#b-w1b-2-a-zoom-sources-clip-shape-and-shadow-shrink-to-nothing-as-the-rectangle-grows>)).
 
 ### O5. Materials and Glass: `MaterialActiveAppearance`, plus differentShape `Material`, W13's `*Material`, `\.backgroundMaterial`, P14's `Glass*`
 
@@ -1025,7 +1025,7 @@ Lane owed: the materials about a day; Glass one to two days after W1, since
 Deliberate deviations C5). **Glass shipped 2026-10-18** (lane GLASS: `Glass`,
 `glassEffect(_:in:)`, `GlassEffectContainer`, the union, id and transition
 modifiers, and the glass button styles; Deliberate deviations C11, decisions
-[GLASS](<Decisions/Shapes, effects and animation/Glass (GLASS).md>)): the material's surface with option (c)'s
+[GLASS](<../Historical/Shapes, effects and animation/Materials and glass.md>)): the material's surface with option (c)'s
 highlighted rim, drawn in the appearance's lines. **The frost shipped
 2026-10-24** (owner ruling O5-FROSTED, 2026-10-23): first as (c), the glyphs
 dropped and the fields tinted as before, after (b)'s neighbourhood average
@@ -1056,11 +1056,11 @@ look too heavy in the Example.
 
 **`View.shadow(color:radius:x:y:)` and `ShadowStyle` shipped 2026-10-18**
 (`Sources/TUIFoundation/Modifiers/ShadowModifier.swift`, Deliberate
-deviations C10, decisions [Shadows (O6)](<Decisions/Shapes, effects and animation/Shadows (O6).md>)).
+deviations C10, decisions [Shadows (O6)](<../Historical/Shapes, effects and animation/Shadows.md>)).
 `ShapeStyle.shadow(_:)`, the one consumer of a `ShadowStyle` and so the only
 route to `.inner`, **shipped 2026-10-19** with lane W1B
 (`Sources/TUIFoundation/Styling/ShapeStyle+Shadow.swift`, decisions
-[B-W1B-1](<Decisions/Shapes, effects and animation/What the shapes unblocked (W1B).md#b-w1b-1-a-styles-shadow-is-cast-by-whatever-draws-with-it-from-the-cells-it-drew>)).
+[B-W1B-1](<../Historical/Shapes, effects and animation/Shadows.md#b-w1b-1-a-styles-shadow-is-cast-by-whatever-draws-with-it-from-the-cells-it-drew>)).
 
 ### O7. `ScrollEdgeEffectStyle` (+ W10 `scrollEdgeEffectStyle`/`Hidden`) — S–M
 
@@ -1277,7 +1277,7 @@ elsewhere, with `\.terminalFeatures.pointerShapes` as the run-time check; the
 reset on exit, suspend and a fatal signal; TUI's own controls' shapes built
 and off until a host's reset is read off `pointer_shape_card.py`.
 `image(_:hotSpot:)` and `pointerVisibility(_:)` stay refused. See
-[Pointer shapes (O12)](<Decisions/Terminals/Pointer shapes (O12).md>).
+[Pointer shapes (O12)](<../Historical/Terminals/Pointer shapes.md>).
 Lane owed: about two and a half days, plus a probe that takes screenshots,
 since the shape is not in the byte stream, and a `Terminal compatibility survey.md`
 entry. `pointerVisibility` and `.image(_:hotSpot:)` stay refused.
@@ -1314,7 +1314,7 @@ and menu modules; its Window menu comes with O9.
 scene modifiers, the bar with its keys, the scene's own commands and four of
 the standard sets. What it decided, and what waits (Settings… and the Window
 menu on O9, `TextFormattingCommands` on A42), is in
-[`Decisions/Menus, toolbars and chrome/The menu bar (O13).md`](<Decisions/Menus, toolbars and chrome/The menu bar (O13).md>).
+[`Decisions/Menus, toolbars and chrome/The menu bar (O13).md`](<../Historical/Menus, toolbars and chrome/The menu bar.md>).
 
 ### O14. `ControlSize` (+ W06 `controlSize` modifiers) — M–L
 

@@ -67,7 +67,7 @@ messages cite that path), and what cites it.
   (`enumfields.swift`: none, for one with three cases, two with payloads).
 - **Ran:** macOS 15, 2026-10-10.
 - **Was:** `DYNP/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/State and dynamic properties/DynamicProperty update write-back (DYNP).md`;
+- **Cited by:** `Documentation/Historical/State and dynamic properties/Finding dynamic properties, and writing back what update() changes.md`;
   `Tests/TUIFoundationTests/DynamicPropertyTests.swift`, `Tests/TUIFoundationTests/ObservableInvalidationScopeTests.swift`. The
   probes of the next three folders reuse its harness.
 
@@ -94,8 +94,8 @@ messages cite that path), and what cites it.
   `Sources/TUIView/State/NestedPropertyBinding.swift`, `Sources/TUIView/State/PropertyPlans.swift`,
   `Sources/TUIView/State/State.swift`; `Tests/TUIFoundationTests/DynamicPropertyStateKeyTests.swift` and the other
   `DynamicProperty*Tests.swift` files, `Tests/TUIFoundationTests/StateSharedValueTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/State and dynamic properties/State keys inside a DynamicProperty (SKEY).md`,
-  `Documentation/SwiftUI parity/Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md`,
+  `Documentation/Historical/State and dynamic properties/Finding dynamic properties, and writing back what update() changes.md`,
+  `Documentation/Historical/State and dynamic properties/Finding dynamic properties, and writing back what update() changes.md`,
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
 
 ### Class properties held by several views
@@ -113,7 +113,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, 2026-10-12; `cls.swift` against the macOS 15.5 SDK.
 - **Was:** `DYNVCLAIM/swiftui-first/` (`cls.swift`) and `DYNVCLAIM/object-owned/swiftui/` (`memo.swift`).
 - **Cited by:** `Sources/TUIView/State/PropertyWalk.swift`, `Sources/TUIView/State/PropertyWalk+Objects.swift`;
-  `Documentation/SwiftUI parity/Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md`.
+  `Documentation/Historical/State and dynamic properties/Finding dynamic properties, and writing back what update() changes.md`.
 
 ### State keys in dynamic properties
 
@@ -125,7 +125,7 @@ messages cite that path), and what cites it.
 - **Was:** `SKEY/probe/`.
 - **Cited by:** `Sources/TUIView/State/NestedPropertyBinding.swift`, `Sources/TUIView/State/StateStorage.swift`;
   `Tests/TUIFoundationTests/DynamicPropertyStateKeyTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/State and dynamic properties/State keys inside a DynamicProperty (SKEY).md`.
+  `Documentation/Historical/State and dynamic properties/Finding dynamic properties, and writing back what update() changes.md`.
 
 ### Alignment guides
 
@@ -231,7 +231,7 @@ messages cite that path), and what cites it.
 - **Was:** `DYNVFIX/probe/`; `stamp.swift` `DYNVCLAIM/swiftui-first/`.
 - **Cited by:** `Sources/TUIView/Rendering/FieldDescriptors.swift`, `Sources/TUIView/State/EnumPayloads.swift`,
   `Sources/TUIView/State/DynamicTypes.swift`, `Sources/TUIView/State/State.swift` (`stamp.out`);
-  `Documentation/SwiftUI parity/Decisions/State and dynamic properties/Finding dynamic properties from declared types (DYNVFIX).md`.
+  `Documentation/Historical/State and dynamic properties/Finding dynamic properties, and writing back what update() changes.md`.
 
 ### Localization keys
 
@@ -301,7 +301,7 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIView/State/State.swift` (`AppState.transactionScopeEnded(_:)`);
   `Tests/TUIIntegrationTests/ObservedChangeTransactionTests.swift`;
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (A7);
-  `Documentation/SwiftUI parity/Decisions/State and dynamic properties/Per-app render state (APPSTATE).md` (B-APPSTATE-2).
+  `Documentation/Historical/State and dynamic properties/Per-app render state: no singletons.md` (B-APPSTATE-2).
 
 ### Scroll anchoring
 
@@ -486,7 +486,7 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIEffects/Geometry/MatchedGeometryEffect.swift`;
   `Tests/TUIEffectsTests/MatchedGeometryEffectTests.swift`; `Documentation/SwiftUI parity/Deliberate
   deviations from SwiftUI.md` (A8), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the
-  Animation row); `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Matched geometry and the zoom transition (O4).md`.
+  Animation row); `Documentation/Historical/Shapes, effects and animation/Matched geometry and the zoom transition.md`.
 
 ### Shadowed shape styles
 
@@ -522,7 +522,7 @@ messages cite that path), and what cites it.
 - **Was:** `W1B/probe/`.
 - **Cited by:** `Sources/TUIFoundation/Styling/ImagePaint.swift`, `Sources/TUIFoundation/Styling/ShapeStyle.swift`
   (`in(_:)`), `Tests/TUIBitmapsTests/ImagePaintTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/What the shapes unblocked (W1B).md` (B-W1B-4).
+  `Documentation/Historical/Shapes, effects and animation/Shapes.md` (B-W1B-4).
 
 ### Transitions
 
@@ -557,9 +557,9 @@ messages cite that path), and what cites it.
   `Tests/TUIEffectsTests/TransitionAnimationTests.swift`, `Tests/TUIEffectsTests/BranchAndRowFadeTests.swift`,
   `Tests/TUIEffectsTests/DefaultTransitionTests.swift`; `Documentation/SwiftUI parity/Deliberate deviations
   from SwiftUI.md` (A3, A6), `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Animation row);
-  `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Transition follow-ups (TRANSITIONS2).md`,
-  `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Matched geometry and the zoom transition (O4).md` (B-O4-2),
-  `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Visual effects rulings (VISUALS).md` (A34);
+  `Documentation/Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md`,
+  `Documentation/Historical/Shapes, effects and animation/Matched geometry and the zoom transition.md` (B-O4-2),
+  `Documentation/Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md` (A34);
   `Sources/TUIEffects/Animation/BuiltInTransitions.swift`, `Tests/TUIEffectsTests/BlurReplaceTransitionTests.swift`.
 
 ### Badge prominence
@@ -689,7 +689,7 @@ messages cite that path), and what cites it.
   `Tests/TUIIntegrationTests/PickerInMenuTests.swift`, `Tests/TUIIntegrationTests/MenuBarSubmenuTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (§1, Controls; Presentation),
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (W15, W16),
-  `Documentation/SwiftUI parity/Decisions/Menus, toolbars and chrome/Menu parity (MENUS).md`.
+  `Documentation/Historical/Menus, toolbars and chrome/Pop-up menus: submenus, type select and an alert's buttons.md`.
 
 ### Blend modes
 
@@ -706,7 +706,7 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUICore/Rendering/BlendMode.swift`,
   `Sources/TUIFoundation/Styling/Color+BlendMode.swift`; `Tests/TUIFoundationTests/BlendModeTests.swift`;
   `Documentation/Colour and styling/Opacity as composition.md`,
-  `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Blend modes and image details (EFFECTS).md`.
+  `Documentation/Historical/Shapes, effects and animation/Pixel effects: transforms, masks, drawingGroup, blend modes and meshes.md`.
 
 ### Search field clear button
 
@@ -907,7 +907,7 @@ messages cite that path), and what cites it.
   long dashed line costs).
 - **Ran:** macOS 15.8, 2026-10-18.
 - **Was:** `W1/probe/` and `W1/probe2/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Shapes (W1).md`;
+- **Cited by:** `Documentation/Historical/Shapes, effects and animation/Shapes.md`;
   `Sources/TUIFoundation/Shapes/Path+Builders.swift`, `Sources/TUIFoundation/Rendering/ShapeStroker.swift`;
   `Tests/TUIFoundationTests/PathTests.swift`, `Tests/TUIFoundationTests/ShapeTests.swift`.
 
@@ -920,7 +920,7 @@ messages cite that path), and what cites it.
   Animation presentation frames every 0.5 s, per column and per phase (`insert` and `remove` lines).
 - **Ran:** macOS 15.8, 2026-10-17.
 - **Was:** `plan/fb16/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/Shapes, effects and animation/Insertion and removal model (FB16).md`,
+- **Cited by:** `Documentation/Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md`,
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`; `Sources/TUIEffects/Animation/TransitionModifier.swift`,
   `Sources/TUIFoundation/Views/StackGlide.swift`, `Sources/TUIView/Animation/ChildGlide.swift`,
   `Sources/TUIView/Animation/PlacementStore.swift`; `Tests/ExampleTests/AnimationPageShowHideTests.swift`,
@@ -969,7 +969,7 @@ messages cite that path), and what cites it.
   key equivalent is routed is unmeasured.
 - **Ran:** macOS 15.8, 2026-10-18.
 - **Was:** `O13/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/Menus, toolbars and chrome/The menu bar (O13).md`,
+- **Cited by:** `Documentation/Historical/Menus, toolbars and chrome/The menu bar.md`,
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`,
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`; `Sources/TUIApp/App/SceneCommandsDeclaration.swift`,
   `Sources/TUICommands/Commands/CommandGroup.swift`, `Sources/TUICommands/Commands/CommandGroupPlacement.swift`,
@@ -1056,7 +1056,7 @@ messages cite that path), and what cites it.
   `OS_ACTIVITY_DT_MODE=YES` (SwiftUI's runtime warnings appear in the log as `[runtime] …`) and writes
   `<case>.out`, its stacks demangled. The times and frame numbers in the `.out` files differ from run to run; the
   order of events did not, over four runs of each case, except in the two ways that
-  `Documentation/Historical/Investigations/Update model/SwiftUI's update and effect ordering, measured (2026-10-24).md` names.
+  `Documentation/Historical/State and dynamic properties/The update model: when effects run.md` names.
 - **Answers:** no effect ran inside a body or inside a `Layout` call: SwiftUI runs them in `Update.dispatchActions()`,
   either from `ViewRendererHost.render(…)` inside `NSHostingView.layout()` or from `Update.end()` at the end of a
   graph update in SwiftUI's own run-loop observer. A state write in `onAppear`, `onChange` or `onPreferenceChange` is
@@ -1071,4 +1071,4 @@ messages cite that path), and what cites it.
   view update, this will cause undefined behavior." and is lost.
 - **Ran:** macOS 15.8.1 (SwiftUI of macOS 15.8.1), Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK,
   2026-10-24.
-- **Cited by:** `Documentation/Historical/Investigations/Update model/SwiftUI's update and effect ordering, measured (2026-10-24).md`.
+- **Cited by:** `Documentation/Historical/State and dynamic properties/The update model: when effects run.md`.

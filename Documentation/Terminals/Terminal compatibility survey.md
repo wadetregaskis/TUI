@@ -6651,7 +6651,7 @@ about 289 KB (0.8%). Without the markers the two runs held 286.8 KB and
 `TUIKIT_SYNCHRONIZED_OUTPUT=0`: the tour's timing moves a few frames from run
 to run, a spread as large as the markers. On `splitdrag`, which needs
 `--answer-fence` (without it the scripted press lands before the app is up and
-misses the divider, `Ghostty adoption, phase 1 (G1).md` B-G1-2): 58
+misses the divider, B-G1-2 in `Historical/Terminals/Adopting what Ghostty documents: synchronized output, autowrap, progress and attention.md`): 58
 frames held, 928 bytes of markers in 196 KB (0.5%); the run with the switch
 off wrote 211 KB, the drag's frame count moving with its timing.
 

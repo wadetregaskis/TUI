@@ -26,7 +26,12 @@ place:
 | [Input, keys and gestures](<Input, keys and gestures/>) | The kitty keyboard protocol; how keys are named; gestures and taps; drag and drop; large pastes; focus and focused values. |
 | [Layout and geometry](<Layout and geometry/>) | Alignment guides that travel; drawing past a region; stack spacing and what a container counts as its children; sections and pinned headers in lazy stacks; where a view is (coordinate spaces, geometry readers, scroll visibility); sharing space; safe areas, size classes and layout direction. |
 | [Lists, tables and tabs](<Lists, tables and tabs/>) | Stripes, surfaces and separators; badges and row prominence; acting on rows; table columns; type select, Home and End; which rows a list draws; tab views. |
+| [Menus, toolbars and chrome](<Menus, toolbars and chrome/>) | Pop-up menus; the menu bar; toolbars and opt-in window chrome. |
+| [Presentation and windows](<Presentation and windows/>) | Sheets and the page behind; windows; file panels; help and tooltips; compact adaptation; dialogs and pickers. |
 | [Scrolling](Scrolling/) | Holding the reader's place; paging and view-aligned scrolling; content past a scroll view's edge; scroll phases, animated scrolling, flash and bounce; scroll position and visibility; measuring a scroll view's content. |
+| [Shapes, effects and animation](<Shapes, effects and animation/>) | Transitions; animation timing; shapes; shadows; matched geometry; materials and glass; pixel effects; accessibility settings. |
+| [State and dynamic properties](<State and dynamic properties/>) | Finding dynamic properties; class properties held by several views; per-app render state; the update model. |
+| [Terminals](<Terminals/>) | Adopting Ghostty's documented features; the host ledger; pointer shapes; grapheme widths; terminal capabilities for apps. |
 | [Text, editing and the clipboard](<Text, editing and the clipboard/>) | Copying out of a terminal; text fields and the wrapping editor; undo; links, Markdown and attributed text; formatting and live text. |
 
 [Index of decision ids](<Index of decision ids.md>) finds the story holding any id (B30,
