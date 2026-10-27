@@ -240,6 +240,9 @@ struct _SwatchGridCore: View, Renderable {
                         handler.commit(to: index)
                         return true
                     }
+                    // A click: a release off the swatch picks nothing
+                    // (decisions B89).
+                    dispatcher.fileClickRecognizer(.plain, for: handlerID, in: context)
                     buffer.hitTestRegions.append(
                         HitTestRegion(
                             offsetX: col * cellWidth, offsetY: row * cellHeight,

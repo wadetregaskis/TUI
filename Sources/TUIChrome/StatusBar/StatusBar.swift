@@ -737,6 +737,8 @@ private struct _StatusBarCore: View, Renderable {
                     return false
                 }
             }
+            // A click: a release off the item runs nothing (decisions B89).
+            dispatcher.fileClickRecognizer(.plain, for: handlerID, in: context)
             result.hitTestRegions.append(
                 HitTestRegion(
                     offsetX: columnOffset + columnInLine,

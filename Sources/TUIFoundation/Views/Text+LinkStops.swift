@@ -387,6 +387,10 @@ private struct _TextLinksCore: View, Renderable {
                     return false
                 }
             }
+            // A click (decisions B89): what ranks it against a gesture around
+            // the text. Its own test above stays — a release over another
+            // piece of the same link is no click on this one.
+            dispatcher.fileClickRecognizer(.plain, for: handlerID, in: context)
             return HitTestRegion(
                 offsetX: span.column, offsetY: span.row, width: width, height: 1, handlerID: handlerID,
                 focusID: focusID)

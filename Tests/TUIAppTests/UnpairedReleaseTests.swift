@@ -94,12 +94,13 @@ struct UnpairedReleaseTests {
         #expect(counter.taps == 1, "an ordinary click still works")
     }
 
-    /// Press on the button, drag off it, release elsewhere: macOS cancels the
-    /// click. TUI deliberately does not — the press captures the gesture, so
-    /// the release comes back to the button wherever the pointer ended up.
-    /// Pinned here so the change above cannot quietly take it away.
-    @Test("A press on the Button still activates it if the pointer drifts off")
-    func pressCapturesEvenIfTheReleaseDrifts() {
+    /// Press on the button, drag off it, release elsewhere: no click, as on
+    /// macOS, where a plain button's press fails when released off it
+    /// (decisions B89, measured on macOS 15.8). The press still captures the
+    /// gesture — the release comes back to the button, which is what lets it
+    /// fail rather than reach whatever the pointer ended over.
+    @Test("A press on the Button released off it does not activate it")
+    func pressReleasedOffTheButtonFails() {
         let counter = Counter()
         let view = VStack(alignment: .leading) {
             Text("somewhere else")
@@ -116,6 +117,6 @@ struct UnpairedReleaseTests {
                 button: .left, phase: .pressed, x: button.offsetX + 1, y: button.offsetY))
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .released, x: 0, y: 0))
 
-        #expect(counter.taps == 1, "the press owns the gesture wherever it ends")
+        #expect(counter.taps == 0, "released off the button, the click fails")
     }
 }

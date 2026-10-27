@@ -11,8 +11,9 @@ B89 to B94, C15, A48, B-F2-1 to 3, B-ST3-1, B-INPUT-1, B-INPUT-3.*
 `onTapGesture` and `onLongPressGesture` are gestures; timed recognizers run
 on the frame clock; distances are cells; a drag's velocity is an average of
 report-to-report speeds; a row and a tap have separate double-click windows.
-A control takes a press once the gestures ahead of it give up, and cannot
-wait for them. Shift-clicks are asked for app-wide (not on Apple Terminal).
+A control that acts on its click is a recognizer (B89): it fails when released
+off it, takes the press at once behind an undecided gesture, and waits for that
+gesture to decide. Shift-clicks are asked for app-wide (not on Apple Terminal).
 Multi-contact gestures and the window drag are declined.
 
 ## How it unfolded
@@ -29,12 +30,13 @@ Multi-contact gestures and the window drag are declined.
    now (B89); swipe actions as revealed buttons, ⇧→ / ⇧← to reveal, again for
    the full swipe, Ctrl-L / Ctrl-T fallbacks, `RowAction` rebindable, with a
    PTY trackpad-burst test (A48). A48 was built that night, its wheel replayed
-   from representative bytes; B89 is not built yet.
+   from representative bytes.
+5. **2026-10-27, lane B89** made the click controls recognizers.
 
 ## Where it stands
 
-Shipped as the record says; **owed:** B89's full recognizers (ruled on
-2026-10-26), and a real trackpad swipe recorded for A48's burst gap.
+Shipped as the record says; **owed:** a real trackpad swipe recorded for
+A48's burst gap.
 
 ## For a future reader
 
@@ -76,6 +78,36 @@ Where that differs from macOS:
 handler reports possible, recognized and failed, and accepts a cancel. A day
 and a half — fifteen-odd controls, and every mouse test that reads a
 control's press.
+
+**Fuller version shipped (lane B89, 2026-10-27; the owner's ruling of
+2026-10-26).** A control that acts on its click files a click recognizer
+beside its region (`ClickRecognizer`,
+`Sources/TUIFoundation/App/MouseEventDispatcher+ClickRecognizers.swift`):
+`Button` (but not a menu trigger, which acts on the press, nor a repeating
+button, whose hold is the activation), `Toggle`, a radio group's and a
+segmented picker's options, a text link, a `TabView` tab, the swatch grids'
+swatches, a status bar item, the graphical date picker's calendar, and the
+click target behind a row's label that does what its control does. Its press
+is then a recognizer:
+
+- **Released off the control, it fails** and acts on nothing, with or without
+  a gesture around it. Before, a press released anywhere was the control's
+  click. A `Button`'s pressed look follows the pointer off it and back.
+- **In an arena it takes the press at once**, even behind an undecided gesture:
+  a button under `.highPriorityGesture(LongPressGesture())` draws pressed at
+  once. It holds back what is ranked after it, as an undecided gesture does.
+  Its release waits until everything ahead of it has given up. A gesture
+  ahead that recognizes cancels it: it is drawn up again and acts on nothing.
+- **What is attached after it hears the press once it fails**: a
+  `.gesture(DragGesture())` on a button reports its end when the press is
+  released off the button, as measured on macOS.
+
+What stays as before: a control that acts on the press itself — a menu
+trigger, a text field, a slider, a list's reorder — still waits for the
+gestures ahead of it. That is how a recognizer treats an event it recognizes
+at once. A `List` row's selection, made at the release, still waits for a
+double tap on the row to give up; macOS's table selects at the press, before
+the double tap is decided. The tests are `ControlPressRecognizerTests`.
 
 ### B90. Distances are cells along either axis
 

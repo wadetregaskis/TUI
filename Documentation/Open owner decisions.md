@@ -66,7 +66,7 @@ been in force since 2026-10-18.
 | B-D5C-1 | (1): the existential overload stays. | Nothing to change. |
 | B63-CTRLJ | LF is Ctrl-J. | Done in lane SMALL1026: a vertical field's newline; Return where nothing takes it. |
 | B63-KITTY | Ctrl-Return: an app's handler, then a context menu, then U+2028 in a vertical field or `TextEditor`; a plain CR stays Return. | Done (`f5ae4baff`). |
-| B89 | Full gesture recognisers for every control, now. | Queued. |
+| B89 | Full gesture recognisers for every control, now. | Done (2026-10-27) for every control that acts on its click: it fails when released off it, draws pressed at once behind an undecided gesture, and a gesture attached after it hears the press once it fails. A control that acts on the press itself waits, as a recognizer would. |
 | A48 | The recommendation: buttons revealed in the row, ⇧→ / ⇧← (again for the full swipe), Ctrl-L / Ctrl-T fallbacks. | Done (2026-10-26): keys, clicks and the horizontal wheel. **Needs you:** a real trackpad swipe recorded in Apple Terminal and iTerm2 (the burst gap is an estimate, 250 ms, and the replay test uses representative bytes). |
 | A53-KEYBOARD-DRAG | The carry mode, after its prerequisite (`.draggable` as a focus stop with Copy and Paste). | Prerequisite done (2026-10-26); the carry mode is next. |
 | B-BITEMS1-1 | The three-party model. | Done (2026-10-26): `dragConfiguration(_:)`, the destination's proposal, the modifier flip, the narrowing and the badge. The image well's badge (Generic, not Copy?) is still to be probed in a real window. |

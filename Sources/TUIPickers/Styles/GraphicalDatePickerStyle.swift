@@ -404,6 +404,8 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
             handler.pick(day: day)
             return true
         }
+        // A click: a release off the calendar picks nothing (decisions B89).
+        dispatcher.fileClickRecognizer(.plain, for: handlerID, in: context)
         buffer.hitTestRegions.append(
             HitTestRegion(
                 offsetX: 0, offsetY: 0, width: Self.width, height: Self.height,

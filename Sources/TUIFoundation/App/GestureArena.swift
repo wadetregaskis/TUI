@@ -116,6 +116,29 @@ final class GestureArena {
     /// hit-testing: the arena is done.
     private(set) var handedOff = false
 
+    /// The control ranked here whose press is a recognizer
+    /// (``ClickRecognizer``), while it is undecided: given the press at once,
+    /// and waiting for its release, or for what is ahead of it to give up.
+    private var recognizing: Recognizing?
+
+    /// A control's press that its click recognizer took — what it is
+    /// waiting on.
+    private struct Recognizing {
+        /// Its place in ``ranked``.
+        let index: Int
+
+        /// The capture the press was taken into.
+        let capture: MouseEventDispatcher.PressCapture
+
+        /// The release, over the control, that came while something ahead of
+        /// it was still undecided: given to it once they have all given up.
+        var heldRelease: MouseEvent?
+    }
+
+    /// A control whose press is a recognizer recognized: its release over
+    /// it was given to it, and everything after it was cancelled.
+    private var controlRecognized = false
+
     init(ranked: [Entry], simultaneous: [Contender], press: MouseEvent) {
         self.ranked = ranked
         self.simultaneous = simultaneous
@@ -212,13 +235,19 @@ final class GestureArena {
 
     /// Whether the control at `index` still waits for this arena's press.
     private func owesClick(at index: Int) -> Bool {
-        guard case .control = ranked[index], !controlTookPress, !handedOff else { return false }
+        guard case .control = ranked[index], !controlTookPress, !handedOff, !controlRecognized else { return false }
         return !controlsOut.contains(index)
     }
 
     /// Lets go of every gesture this arena holds back, and of every one it
     /// feeds, as it is dropped.
     func leave() {
+        // Dropped while a control's press is undecided — its release lost to
+        // a press that superseded it: the control is given up.
+        if let recognizing {
+            self.recognizing = nil
+            recognizing.capture.recognizer?.cancel()
+        }
         for index in ranked.indices where heldHere[index] {
             heldHere[index] = false
             ranked[index].contender?.holdCount -= 1
@@ -252,7 +281,7 @@ final class GestureArena {
             let step =
                 switch ranked[index] {
                 case .gesture(let contender):
-                    advance(contender, at: index, by: input, releasedHere: released)
+                    advance(contender, at: index, by: input, releasedHere: released, dispatcher: dispatcher)
                 case .control(let region):
                     advance(region, at: index, by: input, released: released, dispatcher: dispatcher)
                 }
@@ -315,7 +344,10 @@ final class GestureArena {
     ///
     /// - Parameter releasedHere: Whether everything ahead of it in this arena
     ///   has given up.
-    private func advance(_ contender: Contender, at index: Int, by input: Input?, releasedHere: Bool) -> Step {
+    private func advance(
+        _ contender: Contender, at index: Int, by input: Input?, releasedHere: Bool,
+        dispatcher: MouseEventDispatcher
+    ) -> Step {
         guard !contender.isOut, let root = contender.participant.root else { return .passed }
         // Its view gone, it waits to be given up, holding what it held.
         if contender.isDeparted { return .holding }
@@ -347,7 +379,7 @@ final class GestureArena {
             return .passed
         }
         guard released, root.phase.hasRecognized else { return .holding }
-        cancel(after: index)
+        cancel(after: index, dispatcher: dispatcher)
         return .decided
     }
 
@@ -359,6 +391,16 @@ final class GestureArena {
     ) -> Step {
         if controlTookPress { return .holding }
         if controlsOut.contains(index) { return .passed }
+        if recognizing?.index == index {
+            return advanceRecognizing(at: index, by: input, released: released, dispatcher: dispatcher)
+        }
+        // A control whose press is a recognizer is given it at once, ahead of
+        // an undecided gesture or not, and decides at its release (B89).
+        if recognizing == nil, case .pointer(let event, _)? = input, event.phase == .pressed,
+            dispatcher.clickRecognizers[region.handlerID] != nil
+        {
+            return takeAtOnce(region, at: index, dispatcher: dispatcher)
+        }
         guard released else { return .waiting }
         // Released without an event of its own — by a clock tick or a
         // cancellation — after the button came up: the release it missed is
@@ -381,16 +423,71 @@ final class GestureArena {
             return .passed
         case .captured:
             controlTookPress = true
-            cancel(after: index)
+            cancel(after: index, dispatcher: dispatcher)
             if let release { _ = dispatcher.routeAgainstItsPress(release) }
             return .decided
         case .handedOff:
             // A menu-opening press: the rest of the gesture belongs to the
             // menu, hit-tested live. Nothing here hears it.
             handedOff = true
-            cancel(after: -1)
+            cancel(after: -1, dispatcher: dispatcher)
             return .decided
         }
+    }
+
+    /// Offers the press, at once, to a control whose press is a recognizer:
+    /// taken, it is undecided, and holds back what is ranked after it, as an
+    /// undecided gesture does.
+    private func takeAtOnce(_ region: HitTestRegion, at index: Int, dispatcher: MouseEventDispatcher) -> Step {
+        switch dispatcher.offer(press, to: region) {
+        case .declined:
+            controlsOut.insert(index)
+            return .passed
+        case .captured:
+            guard let capture = dispatcher.pressedHandlers[.left] else { return .passed }
+            recognizing = Recognizing(index: index, capture: capture)
+            return .holding
+        case .handedOff:
+            handedOff = true
+            cancel(after: -1, dispatcher: dispatcher)
+            return .decided
+        }
+    }
+
+    /// One turn of the control whose press its click recognizer took: a drag
+    /// goes to it, the release decides it — over the control, recognized once
+    /// everything ahead of it has given up; off it, failed — and a release
+    /// held back is given to it once they have.
+    private func advanceRecognizing(
+        at index: Int, by input: Input?, released: Bool, dispatcher: MouseEventDispatcher
+    ) -> Step {
+        guard var state = recognizing else { return .passed }
+        if case .pointer(let event, _)? = input {
+            switch event.phase {
+            case .dragged where state.heldRelease == nil:
+                _ = dispatcher.routeAgainstItsPress(event)
+            case .released where state.heldRelease == nil:
+                dispatcher.pressedHandlers[.left] = nil
+                guard dispatcher.isOver(event, ranked[index].handlerID) else {
+                    // Released off it: failed. What is after it goes on.
+                    recognizing = nil
+                    controlsOut.insert(index)
+                    state.capture.recognizer?.cancel()
+                    return .passed
+                }
+                state.heldRelease = event
+                recognizing = state
+            default:
+                break
+            }
+        }
+        guard let release = state.heldRelease else { return .holding }
+        guard released else { return .waiting }
+        recognizing = nil
+        controlRecognized = true
+        cancel(after: index, dispatcher: dispatcher)
+        dispatcher.deliver(release, to: state.capture)
+        return .decided
     }
 
     /// Whether the arena has nothing left to decide: the button is up, and no
@@ -402,7 +499,8 @@ final class GestureArena {
         // means something ahead of it is, but with another press's arena
         // holding it back, this one stays to decide what comes after it.
         if contenders.contains(where: { !$0.isOut && (isEngaged($0) || $0.isHeldBack) }) { return false }
-        if controlTookPress { return true }
+        if recognizing != nil { return false }
+        if controlTookPress || controlRecognized { return true }
         return !ranked.indices.contains { index in
             if case .control = ranked[index] { return !controlsOut.contains(index) }
             return false
@@ -458,13 +556,22 @@ final class GestureArena {
     /// Cancels every entry ranked after `index` — a gesture ahead of them has
     /// recognized, or a control has taken the press — and, for an `index` of
     /// `-1`, every simultaneous gesture too.
-    private func cancel(after index: Int) {
+    private func cancel(after index: Int, dispatcher: MouseEventDispatcher) {
         for later in ranked.indices where later > index {
             switch ranked[later] {
             case .gesture(let contender):
                 cancel(contender)
-            case .control:
+            case .control(let region):
                 controlsOut.insert(later)
+                // A control whose press its recognizer took is cancelled.
+                if let recognizing, recognizing.index == later {
+                    self.recognizing = nil
+                    if recognizing.heldRelease == nil {
+                        dispatcher.cancelRecognizedClick(region.handlerID)
+                    } else {
+                        recognizing.capture.recognizer?.cancel()
+                    }
+                }
             }
         }
         if index < 0 { simultaneous.forEach(cancel) }

@@ -691,6 +691,8 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                 if !isDisabledTab, let v = value.base as? SelectionValue { capture.wrappedValue = v }
                 return true
             }
+            // A click: a release off the tab selects nothing (decisions B89).
+            dispatcher.fileClickRecognizer(.plain, for: handlerID, in: context)
             buffer.hitTestRegions.append(
                 HitTestRegion(
                     offsetX: region.x, offsetY: region.y, width: region.width, height: region.height,

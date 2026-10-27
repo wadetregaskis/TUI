@@ -381,6 +381,9 @@ struct _Color256GridCore: View, Renderable {
                     handler.commit(to: index)
                     return true
                 }
+                // A click: a release off the swatch picks nothing
+                // (decisions B89).
+                dispatcher.fileClickRecognizer(.plain, for: handlerID, in: context)
                 // Mouse-only: no `focusID`. Carrying it on all 256 identical
                 // one-line cells is what broke arrow-key reveal —
                 // `revealTarget` resolves a within-control move to the SMALLEST

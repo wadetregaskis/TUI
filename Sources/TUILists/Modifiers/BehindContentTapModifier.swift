@@ -50,6 +50,8 @@ extension _BehindContentTapModifier: Renderable {
             default: return false
             }
         }
+        // A tap: a release off the content behind runs nothing (decisions B89).
+        dispatcher.fileClickRecognizer(.plain, for: handlerID, in: context)
         buffer.hitTestRegions.insert(contentsOf: buffer.frameHitRegions(handlerID: handlerID), at: 0)
         return buffer
     }

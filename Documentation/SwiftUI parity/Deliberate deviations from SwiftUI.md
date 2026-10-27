@@ -838,20 +838,21 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   owner asked whether OSC 52 was in the path, and what portable versions would
   take) and removed, since nothing was left to build. **Medium.**
 
-### I8. A control takes the press once the gestures ahead of it give up
+### I8. A row's selection waits for a gesture on the row
 
-- **SwiftUI:** a plain-style button fails when its press is released off it, and
-  a drag attached to it then reports its end (measured, macOS 15.8, lane 17g's
-  probes).
-- **TUI:** a control is not a recognizer. It is given the press once every
-  gesture ranked ahead of it has given up, and then owns it: a drag attached to
-  a button never hears the press, and a control behind an undecided gesture
-  draws its pressed state late (a double-tap gesture on a `List` row holds the
-  row's selection back by the double-tap interval).
-- **Why:** TUI's controls act on the press at once; making each a
-  recognizer that can wait or fail is B89's fuller version.
-- **Decided:** [B89](<../Historical/Input, keys and gestures/Gestures, taps and the press a control takes.md#b89-a-control-takes-the-press-once-the-gestures-ahead-of-it-give-up-it-cannot-wait>). **Lane** (the fuller version turns about
-  fifteen controls into recognizers).
+- **SwiftUI:** a plain-style button fails when its press is released off it,
+  and a drag attached to it then reports its end (measured, macOS 15.8, lane
+  17g's probes). A `List` selects the row at the press, before a double tap
+  on the row is decided.
+- **TUI:** a control that acts on its click is a recognizer, as on macOS
+  (B89's fuller version, 2026-10-27). One that acts on the press itself, such
+  as a text field or a slider, waits for the gestures ahead of it to give up.
+  A `List` row selects at the release, so a `.gesture(TapGesture(count: 2))`
+  on the row holds its selection back by the double-tap interval.
+- **Why:** TUI's list selects at the release, where a click is told from a
+  reorder drag. Selecting at the press would be a change to the list, not to
+  the arena, and has not been made.
+- **Decided:** [B89](<../Historical/Input, keys and gestures/Gestures, taps and the press a control takes.md#b89-a-control-takes-the-press-once-the-gestures-ahead-of-it-give-up-it-cannot-wait>). **Lane.**
 
 ### I9. Gesture timing
 

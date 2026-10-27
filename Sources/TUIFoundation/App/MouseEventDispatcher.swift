@@ -83,6 +83,15 @@ package final class MouseEventDispatcher: @unchecked Sendable {
         let handler: (MouseEvent) -> Bool
         let regionOffsetX: Int
         let regionOffsetY: Int
+
+        /// The id of the region the press was taken in, or `nil` for a press
+        /// the dispatcher holds itself (``HeldPress``).
+        var handlerID: HitTestRegion.HandlerID?
+
+        /// The control's click recognizer, as filed at the press — captured
+        /// with the closure, for the same reason — or `nil` for a control
+        /// that files none (``ClickRecognizer``).
+        var recognizer: ClickRecognizer?
     }
 
     /// The handler that most recently consumed a button-down event for
@@ -348,6 +357,11 @@ package final class MouseEventDispatcher: @unchecked Sendable {
     /// (and every memo replay) that registers them.
     var pressRoles: [HitTestRegion.HandlerID: PressRole] = [:]
 
+    /// The controls whose press is a recognizer, by handler id — see
+    /// ``ClickRecognizer``. Cleared with the handler table, refiled by every
+    /// walk (and every memo replay) that registers them.
+    var clickRecognizers: [HitTestRegion.HandlerID: ClickRecognizer] = [:]
+
     /// The selection scopes on screen — a ``View/textSelection(_:)``'s, and a
     /// bordered container's interior — by the handler id of the region each
     /// filed. Cleared with the handler table.
@@ -443,6 +457,7 @@ extension MouseEventDispatcher {
         gestureRoles.removeAll(keepingCapacity: true)
         disabledGestureParticipants.removeAll(keepingCapacity: true)
         pressRoles.removeAll(keepingCapacity: true)
+        clickRecognizers.removeAll(keepingCapacity: true)
         selectionScopes.removeAll(keepingCapacity: true)
         _enabledSelectionScopeCount = 0
         gestureFilingsUnread = true
@@ -1106,7 +1121,9 @@ extension MouseEventDispatcher {
         pressedHandlers[event.button] = PressCapture(
             handler: handler,
             regionOffsetX: region.localOriginX,
-            regionOffsetY: region.localOriginY
+            regionOffsetY: region.localOriginY,
+            handlerID: region.handlerID,
+            recognizer: event.button == .left ? clickRecognizers[region.handlerID] : nil
         )
         return .captured
     }
@@ -1132,9 +1149,13 @@ extension MouseEventDispatcher {
         // When a button is held, every subsequent event for it goes to the
         // handler that took the press, wherever the cursor sits now.
         if let capture = pressedHandlers[event.button] {
-            let localized = localize(
-                event, byOffsetX: capture.regionOffsetX, offsetY: capture.regionOffsetY)
-            _ = capture.handler(localized)
+            // A control whose press is a recognizer: a release off it fails
+            // it, and acts on nothing (decisions B89).
+            if let recognizer = capture.recognizer {
+                MainActor.assumeIsolated { routeRecognizedClick(event, to: capture, recognizer: recognizer) }
+            } else {
+                deliver(event, to: capture)
+            }
             if event.phase == .released {
                 pressedHandlers[event.button] = nil
             }

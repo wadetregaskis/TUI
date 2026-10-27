@@ -609,6 +609,8 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
                         return false
                     }
                 }
+                // A click: a release off it chooses nothing (decisions B89).
+                mouseDispatcher.fileClickRecognizer(.plain, for: mouseHandlerID, in: context)
                 buffer.hitTestRegions.append(
                     HitTestRegion(
                         offsetX: region.x,

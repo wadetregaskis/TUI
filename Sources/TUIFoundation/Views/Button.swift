@@ -765,6 +765,15 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                     return false
                 }
             }
+            // Its press is a recognizer: released off the button it acts on
+            // nothing, and a gesture ranked ahead that recognizes cancels it
+            // (decisions B89). Not a menu trigger's, which acts on the press,
+            // nor a repeating button's, whose hold is the activation.
+            if !isMenuTrigger, repeatTimer == nil {
+                mouseDispatcher.fileClickRecognizer(
+                    ClickRecognizer(cancel: { capturePressBox.value = false }, track: { capturePressBox.value = $0 }),
+                    for: handlerID, in: context)
+            }
             // A pointing hand over it, where TUI's controls set their
             // own shapes; not over a menu's rows, which a menu shows as a
             // list (decisions O12, B-O12-6).

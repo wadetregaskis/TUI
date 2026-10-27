@@ -129,6 +129,14 @@ before them and ``View/simultaneousGesture(_:including:)`` beside them, and a
 up the ones after it, so a double tap written inside a single tap delays the
 single tap until a second click can no longer come.
 
+A control that acts on its click — a `Button`, a `Toggle`, a picker's option,
+a tab — is a recognizer too, as a plain-style button is on macOS. Released off
+the control, its press fails and acts on nothing. Behind a gesture that has
+not decided, it draws pressed at once and acts once that gesture gives up. A
+gesture attached to it with `gesture` hears the press once it fails, so a
+`DragGesture` on a button reports its end when the press is released off the
+button.
+
 A gesture has no keyboard route of its own, on macOS or here. A control keeps
 its own — a `Button` attached to a gesture still activates on Return — and a
 gesture on a plain view needs a key of the app's, or a terminal without mouse

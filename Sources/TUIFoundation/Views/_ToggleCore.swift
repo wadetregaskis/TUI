@@ -929,6 +929,8 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
                 return false
             }
         }
+        // A click: a release off it toggles nothing (decisions B89).
+        mouseDispatcher.fileClickRecognizer(.plain, for: handlerID, in: context)
         buffer.hitTestRegions.append(
             HitTestRegion(
                 offsetX: 0,

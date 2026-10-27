@@ -419,6 +419,8 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
                     return false
                 }
             }
+            // A click: a release off it chooses nothing (decisions B89).
+            dispatcher.fileClickRecognizer(.plain, for: id, in: context)
             buffer.hitTestRegions.append(
                 HitTestRegion(
                     offsetX: region.x, offsetY: 0, width: region.width, height: 1, handlerID: id,
