@@ -17,6 +17,9 @@ let materialsClip = Clip(
     columns: 112,
     rows: 30,
     output: 800,
+    // Photographs, and blurs of them: WebP blocks them at the default quality.
+    quality: 90,
+    budgetKB: 900,
     script: [
         .camera(Shot(x: 0, y: 3, width: 76, height: 25)),
         .wait(1.2), .cue("panel"),

@@ -19,6 +19,9 @@ let imagesClip = Clip(
     columns: 112,
     rows: 32,
     output: 800,
+    // Photographs, and blurs of them: WebP blocks them at the default quality.
+    quality: 90,
+    budgetKB: 900,
     // The first six: the list is longer than the walk, as a library is.
     script: viewerScript(steps: 6),
     run: { await ImagesApp.main() }
@@ -35,6 +38,9 @@ let glyphsClip = Clip(
     columns: 112,
     rows: 32,
     output: 800,
+    // Photographs, and blurs of them: WebP blocks them at the default quality.
+    quality: 90,
+    budgetKB: 900,
     script: glyphsScript(),
     command: ["Example", "--page", "imageFile"],
     environment: ["TUIKIT_GRAPHICS": "0"]

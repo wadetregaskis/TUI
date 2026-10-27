@@ -585,8 +585,10 @@ def main():
             cursor = (Image.open(options.cursor).convert('RGBA'), hot_spot)
         sequence = clip_sequence(read_frames(options.frames), markers, framing, options.fps, options.radius, workdir,
                                  cursor=cursor)
-        size, quality = encode_within_budget(sequence, options.out, options.quality, options.min_quality,
-                                             options.budget_kb)
+        # A clip may ask for its own quality and budget (`Clip.quality`, `Clip.budgetKB`): photographs and blurs
+        # show WebP's blocks at the default 75 where flat colour does not.
+        size, quality = encode_within_budget(sequence, options.out, framing.get('quality', options.quality),
+                                             options.min_quality, framing.get('budgetKB', options.budget_kb))
         report(options.out, size, sequence, quality)
         if options.mp4:
             size = encode_mp4(sequence, options.mp4, int(options.fps))

@@ -186,6 +186,12 @@ struct Clip {
     /// three-column grid, about 800 for a flagship row (twice the CSS size, for
     /// Retina screens). The height follows from the first shot's proportions.
     var output = 560
+    /// The WebP quality to encode at, where not encode.py's default (75), and
+    /// the budget it steps the quality down to fit, where not its default
+    /// (450 KB): photographs and blurs show the encoder's blocks at 75 where
+    /// flat colour does not.
+    var quality: Int?
+    var budgetKB: Int?
     /// The script, played once the app has settled. Its first step should be a
     /// `.camera` shot: without one the camera frames the whole grid.
     let script: [Step]
@@ -251,15 +257,17 @@ struct Clip {
             let columns: Int
             let rows: Int
             let output: Int
+            let quality: Int?
+            let budgetKB: Int?
             let keys: [Key]
             let pointer: [PointerEvent]
         }
         let framing = Framing(
-            columns: columns, rows: rows, output: output, keys: cameraKeys.map { Key(at: $0.at, shot: $0.shot) },
-            pointer: pointerEvents)
+            columns: columns, rows: rows, output: output, quality: quality, budgetKB: budgetKB,
+            keys: cameraKeys.map { Key(at: $0.at, shot: $0.shot) }, pointer: pointerEvents)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        return String(decoding: (try? encoder.encode(framing)) ?? Data("{}".utf8), as: UTF8.self)
+        return (try? encoder.encode(framing)).flatMap { String(bytes: $0, encoding: .utf8) } ?? "{}"
     }
 }
 

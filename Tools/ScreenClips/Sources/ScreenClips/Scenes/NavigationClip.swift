@@ -20,6 +20,9 @@ let navigationClip = Clip(
     columns: 112,
     rows: 16,
     output: 800,
+    // Photographs, and blurs of them: WebP blocks them at the default quality.
+    quality: 90,
+    budgetKB: 900,
     script: navigationScript(),
     run: { await NavigationApp.main() }
 )
