@@ -19,13 +19,15 @@ private struct MenuApp: App {
                 Button("Second") {}
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .controlPointerStyle(.link)
         }
     }
 }
 
 /// A `Menu`'s trigger is a button, and is given its hand where TUI's
-/// controls set their own shapes; its rows are a list, and are not
-/// (decisions O12, B-O12-6).
+/// controls set their own shapes and the app asks for a hand over every
+/// control (`controlPointerStyle(.link)`, decisions A-O12-1); its rows are a
+/// list, and are not, even then (decisions O12, B-O12-6).
 @MainActor
 @Suite("Menus' pointer shapes")
 struct MenuPointerShapeTests {

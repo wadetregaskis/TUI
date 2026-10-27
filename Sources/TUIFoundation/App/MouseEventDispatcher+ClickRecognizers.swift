@@ -66,10 +66,19 @@ extension MouseEventDispatcher {
     /// a served subtree files it again.
     @MainActor
     package func fileClickRecognizer(
-        _ recognizer: ClickRecognizer, for id: HitTestRegion.HandlerID, in context: RenderContext
+        _ recognizer: ClickRecognizer, for id: HitTestRegion.HandlerID, in context: RenderContext,
+        offersHand: Bool = true
     ) {
         guard !context.isMeasuring else { return }
         clickRecognizers[id] = recognizer
+        // Every control that acts on its click files here, so here is where an
+        // app that asked for a hand over every clickable control gets it
+        // (`controlPointerStyle(.link)`, decisions A-O12-1).
+        // `offersHand: false` for a caller that decides its own (a `Button`,
+        // whose menu rows keep the arrow).
+        if offersHand, context.environment.controlPointerStyle == .link {
+            fileControlPointerShape(.link, for: id, in: context)
+        }
         context.environment.volatileReadTracker?.recordReplayableEffect()
         guard let journal = context.recordingEffectJournal else { return }
         let token = context.environment.keyChannelToken

@@ -41,7 +41,6 @@ been in force since 2026-10-18.
 | A-LAYOUT-1 | A column shares an overfull height only once a child's minimum is cheap to ask (the attempt cost +11 to +34%). | 2: make a child's minimum cheap to ask (a static witness), then land the sharing. | A column cuts its trailing children where SwiftUI squeezes them all. |
 | A-APPSTATE-1 | `LocalizationService.shared` goes with draw-time lookup (now landed). | (b): the locale is the language, as SwiftUI's is, built on LOCALE-B. | The shared service stays. |
 | A-APPSTATE-2 | Three more process-wide statics: the notification queue, the default store, the URL opener. | Exempt the default store and the URL opener (documented on the CLAUDE.md rule); make the notification queue per app later. | All three stay shared. |
-| A-O12-1 | A hand pointer over every button, or over links only? | Links only: the Mac's convention, and what your Q2 answer named. About an hour. | Buttons and links (off everywhere until a host's reset is read). |
 | A-CHURN-1 | Presume last frame's scrollbar (hysteresis), skipping the first measuring round? | As now: the round is exact, and with the early stop it costs a screenful. | As now. |
 | A-CHURN-2 | Overlay scrollbars that take no column? | Decline: it would reverse R4 and R5, and is not needed for performance. | Bars keep a column. |
 | A-O9-1 | `\.supportsMultipleWindows` is `true`. | `true`, as shipped. | `true`. |
@@ -96,6 +95,7 @@ been in force since 2026-10-18.
 | Id | Answer | Status |
 |---|---|---|
 | A-EFFECTS-1 | 3: never invisible; dim and the other attributes widen the palette. | Done: faint in the ink's colour at 16 colours, a step toward it at 256. |
+| A-O12-1 | Configurable, app-wide (a Mac's links-only or a web page's every clickable control). | Done: `controlPointerStyle(_:)`, `.automatic` (links only, the default) or `.link`. |
 
 ## Answered on 2026-10-27
 

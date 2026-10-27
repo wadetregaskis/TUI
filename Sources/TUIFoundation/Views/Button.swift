@@ -772,12 +772,19 @@ private struct _ButtonCore: View, Renderable, Layoutable {
             if !isMenuTrigger, repeatTimer == nil {
                 mouseDispatcher.fileClickRecognizer(
                     ClickRecognizer(cancel: { capturePressBox.value = false }, track: { capturePressBox.value = $0 }),
-                    for: handlerID, in: context)
+                    for: handlerID, in: context, offersHand: false)
             }
-            // A pointing hand over it, where TUI's controls set their
-            // own shapes; not over a menu's rows, which a menu shows as a
-            // list (decisions O12, B-O12-6).
-            if menuOrdinal == nil { mouseDispatcher.fileControlPointerShape(.link, for: handlerID, in: context) }
+            // A pointing hand over it, where TUI's controls set their own
+            // shapes: over a link-styled button always, over any other where
+            // the app asks for a hand over every control (decisions A-O12-1,
+            // `controlPointerStyle(_:)`); never over a menu's rows, which a
+            // menu shows as a list (decisions O12, B-O12-6).
+            if menuOrdinal == nil,
+                style is _LinkButtonStyle || (style as? _AppearanceButtonStyle)?.appearance == .link
+                    || context.environment.controlPointerStyle == .link
+            {
+                mouseDispatcher.fileControlPointerShape(.link, for: handlerID, in: context)
+            }
             buffer.hitTestRegions += buffer.frameHitRegions(
                 handlerID: handlerID,
                 // A menu row names itself by its ordinal: it has no focus id
