@@ -18,7 +18,12 @@ Documentation/Terminals/Terminal compatibility survey.md, "Keys a sheet's grabbe
 and the menu bar's (F10, and ⌥F for Alt with a title's first letter) — see the
 survey's "The menu bar's keys". On a Mac keyboard F10 is the mute key unless fn is
 held or System Settings → Keyboard says to use F1, F2, etc. as standard function
-keys: record which was pressed, F10 or fn-F10, and that setting.
+keys, so it asks for F10 twice, without fn and with it: record that setting. And
+⇧F1, which shows help at the lowest priority (B-HELP-2): what each host sends
+for it is unmeasured.
+
+`PROBE_KEYS` asks only the keys it names, by the ids in KEYS, comma-separated —
+`PROBE_KEYS=f10,fn_f10,shift_f1` for the menu bar's and help's keys alone.
 
 Run INSIDE the terminal under test, from its DEFAULT profile, once on each
 screen: TUI draws on the alternate screen (`PROBE_ALT=1`), and a host's
@@ -47,13 +52,20 @@ KEYS = [
     ("ctrl_down", "⌃↓ Control-Down"),
     ("shift_up", "⇧↑ Shift-Up"),
     ("option_up", "⌥↑ Option-Up"),
-    ("f10", "F10 (fn-F10 on a Mac keyboard)"),
+    ("f10", "F10 alone, without fn"),
+    ("fn_f10", "fn-F10 (hold fn)"),
+    ("shift_f1", "⇧F1 Shift-F1 (with fn if F1 alone dims the screen)"),
     ("option_f", "⌥F Option-F"),
 ]
 
 # The legacy spellings each could arrive as, in the xterm family's grammar.
-FINALS = {"A": "up", "B": "down", "C": "right", "D": "left", "H": "home", "F": "end"}
-TILDES = {1: "home", 7: "home", 4: "end", 8: "end", 5: "page_up", 6: "page_down", 21: "f10"}
+FINALS = {"A": "up", "B": "down", "C": "right", "D": "left", "H": "home", "F": "end",
+          "P": "f1", "Q": "f2", "R": "f3", "S": "f4"}
+TILDES = {1: "home", 7: "home", 4: "end", 8: "end", 5: "page_up", 6: "page_down",
+          11: "f1", 12: "f2", 13: "f3", 14: "f4", 21: "f10", 23: "f11", 24: "f12"}
+# SS3 P to S are F1 to F4 in the normal mode; SS3 A to D are the arrows only in
+# the cursor keys' application mode.
+SS3_FUNCTION_KEYS = "PQRS"
 MODIFIERS = {2: "shift", 3: "option", 4: "shift+option", 5: "control", 6: "shift+control",
              7: "option+control", 8: "shift+option+control"}
 
@@ -73,7 +85,8 @@ def decode(raw):
     if text.startswith("\x1b\x1b"):
         prefix, text = "option+", text[1:]
     if text.startswith("\x1bO") and len(text) == 3 and text[2] in FINALS:
-        return prefix + FINALS[text[2]] + " (application mode)"
+        mode = "" if text[2] in SS3_FUNCTION_KEYS else " (application mode)"
+        return prefix + FINALS[text[2]] + mode
     if not text.startswith("\x1b[") or len(text) < 3:
         return None
     body, final = text[2:-1], text[-1]
@@ -102,6 +115,11 @@ def read_key(fd):
 def main():
     use_alt = os.environ.get("PROBE_ALT") == "1"
     out_path = os.environ.get("PROBE_OUT", "key_probe.json")
+    wanted = [k for k in os.environ.get("PROBE_KEYS", "").split(",") if k]
+    unknown = set(wanted) - {key for key, _ in KEYS}
+    if unknown:
+        sys.exit(f"PROBE_KEYS names keys this probe does not ask: {', '.join(sorted(unknown))}")
+    keys = [(key, label) for key, label in KEYS if not wanted or key in wanted]
     fd = sys.stdin.fileno()
     old = termios.tcgetattr(fd)
     tty.setraw(fd)
@@ -111,7 +129,7 @@ def main():
             os.write(fd, b"\x1b[?1049h")
         result["stamp"] = probe_stamp.stamp(fd, "key_probe", use_alt)
         os.write(fd, b"\x1b[2J\x1b[H")
-        for key, label in KEYS:
+        for key, label in keys:
             os.write(fd, f"\r\nPress {label} once (waiting {WAIT:g} s; Ctrl-C ends): ".encode())
             raw = read_key(fd)
             if raw == b"\x03":
@@ -131,7 +149,7 @@ def main():
     env = result["stamp"]["env"]
     print(f"{env.get('TERM_PROGRAM', '?')} {env.get('TERM_PROGRAM_VERSION', '')} "
           f"on the {'alternate' if use_alt else 'primary'} screen")
-    for key, label in KEYS:
+    for key, label in keys:
         reading = result["keys"].get(key)
         if reading is None:
             continue
