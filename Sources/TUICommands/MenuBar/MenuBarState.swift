@@ -70,13 +70,6 @@ final class MenuBarState {
         highlightedTitle = 0
     }
 
-    /// Moves the bar mode's highlight `offset` titles along among `count`,
-    /// wrapping round the ends as the open menus' arrows do.
-    func highlight(step offset: Int, among count: Int) {
-        guard let highlightedTitle, count > 0 else { return }
-        self.highlightedTitle = ((highlightedTitle + offset) % count + count) % count
-    }
-
     /// Highlights title `index` in the bar mode, as the pointer passing over it does.
     func highlight(_ index: Int) {
         guard highlightedTitle != nil else { return }
