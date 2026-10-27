@@ -84,8 +84,11 @@ struct FilePanelLargeFolderTests {
         // The cursor is on file3.bin, a dimmed row; on file3.txt, it is in the
         // selection, and Return chooses the selection: the text files alone.
         driver.press(.down)
+        // The screen Return is pressed on, for a failure to show: once, in a
+        // gate's full suite, Return chose nothing, and alone it never has.
+        let before = driver.screen()
         driver.press(.enter)
-        #expect(caller.chosen.count == Self.pairs)
+        #expect(caller.chosen.count == Self.pairs, "the screen Return was pressed on:\n\(before)")
         #expect(caller.chosen.allSatisfy { $0.pathExtension == "txt" })
     }
 }
