@@ -9,9 +9,9 @@ control size. Ids: O14, A-FORMS-1, B-FORMS-1 to 7.*
 A labelled control is a field row; the modifiers a form puts back around a row
 are named one by one; a grouped form starts a colour picker at 45% of the row.
 At `.mini` a text field drops its caps; a switch under Lines is a knob between
-the shape's caps. Where a bare `Button` goes in a columns form (A-FORMS-1) was
-listed for the owner on 2026-10-18 and never answered (recommended: the value
-column, as SwiftUI measured).
+the shape's caps. A bare `Button` goes in the control column of a columns form and at the row's
+leading edge of a grouped one, as SwiftUI measured (A-FORMS-1, answered
+2026-10-27).
 
 ## The record
 
@@ -37,6 +37,11 @@ undocumented deviation or a bug.
 
 **Recommendation:** 2. Parity is the rule, and the TUI-specific
 `formRowAlignment(_:)` already exists for the dialog's look.
+
+**Answered 2026-10-27: 2.** Built: a bare button starts in the control column of
+a columns form, where a checkbox does, and at the row's leading edge of a grouped
+form; `.formRowAlignment(.trailing)` puts one at the trailing edge
+(`FormTests`).
 
 ### B-FORMS-1. A labelled control is a field row; a text field and a switch toggle are not yet
 

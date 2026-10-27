@@ -14,7 +14,7 @@ import TUIFoundation
 ///
 /// - ``FormStyle/columns`` (and ``FormStyle/automatic``, the default) — the
 ///   classic macOS layout: field labels right-aligned to a shared pillar, controls
-///   left-aligned in the column after it, push buttons right-aligned, section
+///   left-aligned in the column after it, push buttons in that column too, section
 ///   headers bold and right-aligned to the pillar, sections separated by a blank
 ///   line.
 /// - ``FormStyle/grouped`` — each ``Section`` drawn as a bordered group, and
@@ -37,8 +37,11 @@ import TUIFoundation
 ///   it in `LabeledContent` unless you want a separate field label to its left.
 ///   In a grouped form a `Toggle`'s label leads the row and its checkbox trails
 ///   it, as SwiftUI's does; there the box takes the click.
-/// - **Buttons** — a `Button` is right-aligned (macOS places confirmation buttons
-///   on the right).
+/// - **Buttons** — a `Button` written bare sits in the control column, where a
+///   checkbox does, and in a grouped form at the row's leading edge: where
+///   SwiftUI's form puts it (measured, `Tools/SwiftUIProbes/Form rows`).
+///   ``View/formRowAlignment(_:)`` puts one elsewhere, a dialog's confirmation
+///   button at the trailing edge with `.formRowAlignment(.trailing)`.
 ///
 /// ```swift
 /// Form {
@@ -47,7 +50,7 @@ import TUIFoundation
 ///     }
 ///     Section("Notifications") {
 ///         Toggle("Push", isOn: $push)          // box-first, fully clickable
-///         Button("Sign Out", role: .destructive) {}   // right-aligned
+///         Button("Sign Out", role: .destructive) {}   // in the control column
 ///     }
 /// }
 /// ```
@@ -77,7 +80,8 @@ enum _FormRowKind {
     /// with its own (clickable) label — or in a grouped form, where it has a
     /// label to move (`parts`), its label leading and the control trailing.
     case control(AnyView, parts: (label: AnyView, control: AnyView)?)
-    /// A push button: right-aligned to the form's content width.
+    /// A push button: in the control column (columns), at the row's leading
+    /// edge (grouped).
     case button(AnyView)
     /// Anything else: a full-width row.
     case plain(AnyView)
@@ -85,7 +89,7 @@ enum _FormRowKind {
 
 /// A form row: its kind plus an optional explicit horizontal alignment from
 /// ``View/formRowAlignment(_:)``, which overrides the kind's default
-/// (e.g. a button's right-alignment).
+/// (e.g. a button's place in the control column).
 struct _FormRow {
     var kind: _FormRowKind
     var alignment: HorizontalAlignment?
@@ -160,7 +164,7 @@ enum _FormElement {
     case group([Self], branch: String?)
 }
 
-/// A control a ``Form`` right-aligns (a push button). Conformed by ``Button``.
+/// A control a ``Form`` lays out as a push button. Conformed by ``Button``.
 protocol FormButtonRow {}
 extension Button: FormButtonRow {}
 
@@ -169,12 +173,12 @@ extension Button: FormButtonRow {}
 extension View {
     /// Overrides a row's horizontal alignment within a ``Form``'s **columns**
     /// layout, taking precedence over the kind's default (e.g. left-align a
-    /// `Button` that would otherwise be right-aligned). Outside a columns form it
+    /// `Button` that would otherwise sit in the control column). Outside a columns form it
     /// has no effect.
     ///
     /// ```swift
     /// Form {
-    ///     Button("Reset") { … }.formRowAlignment(.leading)  // not right-aligned
+    ///     Button("Done") { … }.formRowAlignment(.trailing)  // at the trailing edge
     /// }
     /// ```
     ///
@@ -265,19 +269,20 @@ private func rewrappedRowView(_ row: _FormRow, pillar: Int) -> some View {
 }
 
 /// Builds one row's view. An explicit ``View/formRowAlignment(_:)``
-/// frames the row to `contentWidth` at that alignment (columns only); otherwise a
-/// button defaults to right-aligned and every other kind keeps its natural width.
-/// `contentWidth` is 0 in grouped, where row-level horizontal alignment doesn't
-/// apply.
+/// frames the row to `contentWidth` at that alignment; otherwise every kind keeps
+/// its natural width, a button in the control column where `inControlColumn`
+/// (columns), as SwiftUI's columns form puts one (measured: a bare button starts
+/// where a checkbox does), and at the row's leading edge where not (grouped).
+/// `contentWidth` is 0 while the form measures its rows.
 @MainActor @ViewBuilder
-private func formRowView(_ row: _FormRow, pillar: Int, contentWidth: Int) -> some View {
+private func formRowView(
+    _ row: _FormRow, pillar: Int, contentWidth: Int, inControlColumn: Bool = true
+) -> some View {
     let base = rewrappedRowView(row, pillar: pillar)
     if contentWidth > 0, let alignment = row.alignment {
-        // Explicit override (e.g. left-align a button that defaults to the right).
         base.frame(width: contentWidth, alignment: Alignment(horizontal: alignment, vertical: .center))
-    } else if contentWidth > 0, case .button = row.kind {
-        // Buttons default to the content edge in columns.
-        base.frame(width: contentWidth, alignment: .trailing)
+    } else if inControlColumn, case .button = row.kind {
+        base.padding(.leading, controlIndent(pillar: pillar))
     } else {
         base
     }
@@ -366,13 +371,13 @@ private func groupView(branch: String?, spacing: Int, @ViewBuilder _ elements: (
 /// Grouped layout for one element: a section is a bordered box (its title bold
 /// above it); a bare row renders as-is. Every section box is framed to the same
 /// `contentWidth` (the form's widest row) so the boxes' right borders line up
-/// vertically, and buttons right-align to that edge inside the box — matching the
-/// columns layout's button rule.
+/// vertically, and a button sits at its row's leading edge, as SwiftUI's
+/// grouped form puts one (measured).
 @MainActor @ViewBuilder
 private func groupedElementView(_ element: _FormElement, pillar: Int, contentWidth: Int) -> some View {
     switch element {
     case .row(let row):
-        formRowView(row, pillar: pillar, contentWidth: contentWidth)
+        formRowView(row, pillar: pillar, contentWidth: contentWidth, inControlColumn: false)
     case .section(let section):
         VStack(alignment: .leading, spacing: 0) {
             if let header = section.header { header.bold() }
@@ -419,20 +424,12 @@ private func groupedSectionRowView(_ element: _FormElement, pillar: Int) -> some
     }
 }
 
-/// One row inside a grouped section's box. The box is framed to a uniform width,
-/// so a button right-aligns to *that* width with a leading `Spacer` (not a fixed
-/// frame — the form's `contentWidth` is measured at the wider form edge and would
-/// overshoot the bordered box); everything else keeps its natural per-kind layout.
+/// One row inside a grouped section's box, at its natural per-kind layout: a
+/// button at the row's leading edge, as SwiftUI's grouped form puts one
+/// (measured).
 @MainActor @ViewBuilder
 private func groupedRowView(_ row: _FormRow, pillar: Int) -> some View {
-    if case .button = row.kind {
-        HStack(spacing: 0) {
-            Spacer(minLength: 0)
-            rewrappedRowView(row, pillar: pillar)
-        }
-    } else {
-        rewrappedRowView(row, pillar: pillar)
-    }
+    rewrappedRowView(row, pillar: pillar)
 }
 
 // MARK: - Internal Core View
@@ -510,8 +507,8 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
 
         let elements = formElements(from: content, in: context.withChildIdentity(type: _FormContentWalk.self))
         let pillar = pillarWidth(of: elements, context: context)
-        // The widest non-button row drives both layouts now: in columns it's the
-        // edge buttons right-align to; in grouped it's the shared box width.
+        // The widest non-button row: in columns the width a row with a
+        // `formRowAlignment` is framed to; in grouped the shared box width.
         let contentWidth = contentWidth(of: elements, pillar: pillar, context: context)
 
         let column = VStack(alignment: .leading, spacing: grouped ? 1 : 0) {
@@ -561,8 +558,8 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
             .max() ?? 0
     }
 
-    /// The form's content width: the widest non-button row (buttons are sized to
-    /// this so they right-align to the content edge in columns).
+    /// The form's content width: the widest non-button row, which a row with a
+    /// ``View/formRowAlignment(_:)`` is framed to.
     private func contentWidth(of elements: [_FormElement], pillar: Int, context: RenderContext) -> Int {
         formRows(of: elements)
             .compactMap { row -> Int? in

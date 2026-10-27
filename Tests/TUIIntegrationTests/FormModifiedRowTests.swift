@@ -226,7 +226,7 @@ struct FormModifiedRowTests {
         #expect(rows(button.keyboardShortcut(.defaultAction)).first { $0.contains("Sign Out") } == bare)
     }
 
-    @Test("Help written on a Button row keeps it right-aligned")
+    @Test("Help written on a Button row keeps its place")
     func modifiedButtonRow() {
         func buttonRow(_ button: some View) -> String {
             lines(Form { LabeledContent("Account email", value: "ada@example.com"); button })

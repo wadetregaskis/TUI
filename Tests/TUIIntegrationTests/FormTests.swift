@@ -293,41 +293,75 @@ struct FormTests {
         #expect(row.contains("Wi-Fi"))
     }
 
-    @Test("A Button is right-aligned in the columns layout")
-    func buttonRightAlignedColumns() {
-        let out = lines(
+    /// Where "Sign Out" starts on the row that draws it.
+    private func signOutColumn(_ out: [String]) -> Int? {
+        guard let row = out.first(where: { $0.contains("Sign Out") }),
+            let range = row.range(of: "Sign Out")
+        else { return nil }
+        return row.distance(from: row.startIndex, to: range.lowerBound)
+    }
+
+    /// SwiftUI's columns form puts a bare button where a checkbox goes, in the
+    /// control column after the label pillar (`Tools/SwiftUIProbes/Form rows`,
+    /// "Button bare": its row starts where a Toggle's does). A-FORMS-1, the
+    /// owner's option 2 (2026-10-27); it was right-aligned before.
+    @Test("A Button sits in the control column of the columns layout, as SwiftUI's does")
+    func buttonInControlColumn() {
+        let inForm = signOutColumn(lines(
             Form {
                 LabeledContent("Account email", value: "ada@example.com")
                 Button("Sign Out") {}
-            })
-        let buttonRow = out.first { $0.contains("Sign Out") } ?? ""
-        // Right-aligned to the content edge → leading whitespace before the button.
-        #expect(buttonRow.hasPrefix(" "))
-        #expect(buttonRow.contains("Sign Out"))
+            }))
+        let atEdge = signOutColumn(lines(
+            Form {
+                LabeledContent("Account email", value: "ada@example.com")
+                Button("Sign Out") {}.formRowAlignment(.leading)
+            }))
+        // The pillar is "Account email", 13 cells; the control column starts a
+        // cell after it.
+        #expect(inForm != nil && atEdge != nil)
+        #expect((inForm ?? 0) - (atEdge ?? 0) == "Account email".count + 1)
     }
 
-    @Test("formRowAlignment(.leading) overrides a button's default right-alignment")
-    func formRowAlignmentOverridesButton() {
-        // A field gives the form a content width wider than the button, so a
-        // right-aligned button gains leading whitespace and a left-aligned one
-        // does not — letting us tell the two apart.
-        let defaultOut = lines(
+    @Test("formRowAlignment(.trailing) puts a button at the form's trailing edge")
+    func formRowAlignmentTrailingButton() {
+        let inColumn = signOutColumn(lines(
             Form {
                 LabeledContent("Account email", value: "ada@example.com")
-                Button("Reset") {}
-            })
-        let overriddenOut = lines(
+                Button("Sign Out") {}
+            }))
+        let trailing = lines(
             Form {
                 LabeledContent("Account email", value: "ada@example.com")
-                Button("Reset") {}.formRowAlignment(.leading)
+                Button("Sign Out") {}.formRowAlignment(.trailing)
             })
-        let defaultRow = defaultOut.first { $0.contains("Reset") } ?? ""
-        let overriddenRow = overriddenOut.first { $0.contains("Reset") } ?? ""
-        // Default: right-aligned → leading whitespace. Override: left-aligned → the
-        // button (its chrome) starts at column 0, so no leading whitespace.
-        #expect(defaultRow.hasPrefix(" "), "default button should be right-aligned: \(defaultOut)")
-        #expect(!overriddenRow.hasPrefix(" ") && overriddenRow.contains("Reset"),
-                "overridden button should be left-aligned: \(overriddenOut)")
+        let field = trailing.first { $0.contains("ada@example.com") } ?? ""
+        let button = trailing.first { $0.contains("Sign Out") } ?? ""
+        // Trailing: the button's row ends where the widest row does.
+        #expect((signOutColumn(trailing) ?? 0) > (inColumn ?? 0))
+        #expect(
+            button.trimmingCharacters(in: .whitespaces).isEmpty == false
+                && button.count <= field.count)
+    }
+
+    /// SwiftUI's grouped form puts a bare button at its row's leading edge, where
+    /// a field's label starts (measured, "Button bare" in the grouped table).
+    @Test("A Button sits at its row's leading edge in a grouped form, as SwiftUI's does")
+    func buttonLeadingInGrouped() {
+        let out = lines(
+            Form {
+                Section {
+                    LabeledContent("Account email", value: "ada@example.com")
+                    Button("Sign Out") {}
+                }
+            }
+            .formStyle(.grouped))
+        let atEdge = signOutColumn(lines(Form { Button("Sign Out") {}.formRowAlignment(.leading) }))
+        let label = out.first { $0.contains("Account email") }.flatMap { row in
+            row.range(of: "Account email").map { row.distance(from: row.startIndex, to: $0.lowerBound) }
+        }
+        #expect(label != nil && atEdge != nil)
+        #expect(signOutColumn(out) == (label ?? 0) + (atEdge ?? 0))
     }
 
     @Test("A columns section header is right-aligned to the pillar")
