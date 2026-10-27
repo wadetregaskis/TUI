@@ -202,6 +202,50 @@ package struct MenuAnchor {
     }
 }
 
+/// Takes the keyboard for a menu presented in `sectionID`, as every menu
+/// does while it is up: a presented section, input-grabbing so global
+/// chrome hotkeys don't fire behind it, holding the keyboard but not the
+/// focus, and closed (`dismiss`) if a frame goes by without it. Escape
+/// closes it, and the status bar says so.
+///
+/// Shared by ``presentMenuPopover(items:over:controller:sectionID:itemsIndex:anchor:dismiss:passThrough:context:)``
+/// and a menu bar's titles while the keyboard walks them with no menu open.
+@MainActor
+package func claimKeyboardAsMenu(sectionID: String, dismiss: @escaping () -> Void, context: RenderContext) {
+    context.environment.volatileReadTracker?.recordRenderSideEffect()
+    let focusManager = context.environment.focusManager
+    focusManager?.registerSection(id: sectionID)
+    // As a PRESENTED section, the same rule every presenter follows: never
+    // taken back from a surface stacked on this one. See
+    // `FocusManager.activatePresentedSection(id:)`.
+    focusManager?.activatePresentedSection(id: sectionID)
+    // Input-grabbing so global chrome hotkeys don't fire behind the menu.
+    focusManager?.markSectionModal(id: sectionID)
+    // A menu takes the keyboard, not the focus: its items and the page go on
+    // reading the focused values of what was focused where it was opened
+    // (`FocusManager.focusedValuesIdentity`).
+    focusManager?.markSectionMenu(id: sectionID)
+    // Closed if a frame goes by without it: see `FocusManager.notePresentation`.
+    focusManager?.notePresentation(id: sectionID, dismiss: dismiss)
+    // The section deliberately holds NO focus: a pop-up's rows report to the
+    // controller, not to the focus ring. Something may still register in here
+    // (a tall menu's own ScrollView does), and without this the end of the
+    // render pass would hand it the focus for want of anything better.
+    focusManager?.markSectionFocusOptional(id: sectionID)
+    // Take the keyboard for this section. Isolating the presenter's own subtree
+    // silences what is BENEATH the menu, but a menu hangs off one view — its
+    // siblings are elsewhere in the tree and render into the live dispatcher
+    // every frame, keeping their handlers.
+    context.environment.keyEventDispatcher!.grabInput(sectionID: sectionID)
+    // Escape closes the MENU, not the page. Claiming the label is what makes
+    // that true as well as discoverable: `InputHandler` routes ESC to the focus
+    // system before the status bar when an override is posted, and without it
+    // the status bar's own "⎋ back" won — so Escape in an open Menu dismissed
+    // the whole page behind it. The Picker drop-down has always claimed it;
+    // this is the same claim, from the presentation both share.
+    context.environment.statusBar?.escapeLabelOverride = MenuPresentationLabels.popUp.close
+}
+
 /// Presents `items` as a floating menu over `base`, anchored at
 /// (`anchor.x`, `anchor.y`) in `base`'s own coordinate space.
 ///
@@ -244,44 +288,13 @@ package func presentMenuPopover<Items: View>(
     // dismiss backdrop and every row's click region go through it.
     guard !context.isMeasuring, context.environment.mouseEventDispatcher != nil else { return }
 
-    context.environment.volatileReadTracker?.recordRenderSideEffect()
-    let focusManager = context.environment.focusManager
-    focusManager?.registerSection(id: sectionID)
-    // As a PRESENTED section, the same rule every presenter follows: never
-    // taken back from a surface stacked on this one. See
-    // `FocusManager.activatePresentedSection(id:)`.
-    focusManager?.activatePresentedSection(id: sectionID)
-    // Input-grabbing so global chrome hotkeys don't fire behind the menu.
-    focusManager?.markSectionModal(id: sectionID)
-    // A menu takes the keyboard, not the focus: its items and the page go on
-    // reading the focused values of what was focused where it was opened
-    // (`FocusManager.focusedValuesIdentity`).
-    focusManager?.markSectionMenu(id: sectionID)
-    // Closed if a frame goes by without it: see `FocusManager.notePresentation`.
-    focusManager?.notePresentation(id: sectionID, dismiss: dismiss)
-    // The section deliberately holds NO focus: a pop-up's rows report to the
-    // controller, not to the focus ring. Something may still register in here
-    // (a tall menu's own ScrollView does), and without this the end of the
-    // render pass would hand it the focus for want of anything better.
-    focusManager?.markSectionFocusOptional(id: sectionID)
-    // Take the keyboard for this section. Isolating the presenter's own subtree
-    // silences what is BENEATH the menu, but a menu hangs off one view — its
-    // siblings are elsewhere in the tree and render into the live dispatcher
-    // every frame, keeping their handlers.
-    context.environment.keyEventDispatcher!.grabInput(sectionID: sectionID)
+    claimKeyboardAsMenu(sectionID: sectionID, dismiss: dismiss, context: context)
     // A typed character finds a row by its title (type select), in whichever
     // of the menus open the keys are in: asked by the input handler as a
     // focused list is asked, after the handler below declines it.
     context.environment.keyEventDispatcher!.setTypeSelectTarget(
         TypeSelectTarget(typeSelect: { controller.typeSelect($0) }),
         sectionID: sectionID)
-    // Escape closes the MENU, not the page. Claiming the label is what makes
-    // that true as well as discoverable: `InputHandler` routes ESC to the focus
-    // system before the status bar when an override is posted, and without it
-    // the status bar's own "⎋ back" won — so Escape in an open Menu dismissed
-    // the whole page behind it. The Picker drop-down has always claimed it;
-    // this is the same claim, from the presentation both share.
-    context.environment.statusBar?.escapeLabelOverride = MenuPresentationLabels.popUp.close
     attachMenuKeys(controller: controller, sectionID: sectionID, dismiss: dismiss, context: context)
 
     var menuContext = context
