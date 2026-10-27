@@ -276,6 +276,9 @@ struct MousePage: View {
                         .foregroundStyle(.palette.foregroundSecondary)
                     Text("page.mouse.dragOutHint")
                         .foregroundStyle(.palette.foregroundSecondary)
+                    // The keyboard's way: a carry (A53-KEYBOARD-DRAG).
+                    Text("page.mouse.dragKeysHint")
+                        .foregroundStyle(.palette.foregroundSecondary)
                     // Three drag demos, one per layer, and none of them
                     // spare: this section is the API, the auto-scroll
                     // section below is what a SCROLLABLE does during a
