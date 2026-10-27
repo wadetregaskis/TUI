@@ -3,7 +3,7 @@
 *Started 2026-10-03. This is the working plan for closing every SwiftUI API gap
 that `Tools/APIParity` reports. It is updated as waves land. Owner decisions that
 come up along the way do NOT live here: they are collected in
-[`SwiftUI API completion decisions.md`](<Decisions/SwiftUI API completion decisions.md>)
+[the main decisions record](<../Historical/SwiftUI parity process/Completing the SwiftUI API.md>)
 for review once the straightforward work is done.*
 
 ## Where we start

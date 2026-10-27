@@ -333,7 +333,7 @@ ask — may this view scroll at all — is `.scrollDisabled`, already the
 ## Appendix: animated scrolling, the design and its price (B27, option 3)
 
 *Written 2026-10-24 for the owner's answer to
-[B27-ANIMATING](<../Owner decisions, 2026-10-18 to 2026-10-25.md#b27-animating>) (option 3,
+[B27-ANIMATING](<../SwiftUI parity process/The owner's decisions, 2026-10-18 to 2026-10-25.md#b27-animating>) (option 3,
 2026-10-23). Line references are to `main` at `83d6292fd`.*
 
 **Status: built, 2026-10-24, in the eight pieces below** (`git log --grep

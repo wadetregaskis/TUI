@@ -145,7 +145,7 @@ initialiser's pass time, min of 3); packed, the same 8466 offsets are 2117
 elements (16,936 bytes, the last element's two unused lanes included) and take
 74 ms. The name offsets, `nameStarts` (8467 `UInt32`s), cost the same 0.3 s
 and were left as they were (`B-BT1-1` in
-`Documentation/SwiftUI parity/Decisions/Compile time and binary size/Release compile time and binary size, package side (BT1).md`) until front-coding
+`Documentation/Historical/Module split, compile time and binary size/Binary size.md`) until front-coding
 replaced them with `blockStarts`, 531 elements.
 
 **Front-coded since 2026-10-11.** Until then `nameBlob` held every name in full,

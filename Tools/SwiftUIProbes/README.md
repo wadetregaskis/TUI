@@ -213,7 +213,7 @@ messages cite that path), and what cites it.
 - **Was:** `w10b/probe/`.
 - **Cited by:** `Tests/TUIIntegrationTests/PinnedRowSectionTests.swift`,
   `Tests/TUIGridTests/LazyGridSectionTests.swift`; wave 10b's entries in
-  `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`.
+  `Documentation/Historical/` (found by id through its `Index of decision ids.md`).
 ### Swift runtime layouts
 
 - **Asks:** not SwiftUI but the Swift runtime: the layouts the planned property walk reads, each checked before
@@ -286,7 +286,7 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIView/Animation/KeyframeCurve.swift`, `Sources/TUICore/Animation/Animation.swift`;
   `Tests/TUICoreTests/AnimationTimingTests.swift`, `Tests/TUIFoundationTests/KeyframeTimelineTests.swift`,
   `Tests/TUIFoundationTests/SpringTests.swift`, `Tests/TUIFoundationTests/UnitCurveTests.swift`; wave 12's entries in
-  `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`.
+  `Documentation/Historical/` (found by id through its `Index of decision ids.md`).
 
 ### Transactions of observed changes
 
@@ -443,7 +443,7 @@ messages cite that path), and what cites it.
   `Sources/TUIFoundation/Views/StackSpacingPreference.swift`, `Sources/TUIView/Rendering/ChildInfo.swift`;
   `Tests/TUIGridTests/ViewSpacingTests.swift`, `Tests/TUIGridTests/StackSpacingPerPairTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (the Layout row); B20 in
-  `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`;
+  `Documentation/Historical/Layout and geometry/Stack spacing, and what a container counts as its children.md`;
   `Documentation/Historical/Layout and geometry/Stack spacing, and what a container counts as its children.md`.
 
 ### Flexible frames
@@ -505,8 +505,8 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-19; both print the same on a rerun.
 - **Was:** `W1B/probe/` (`stacked.swift` as `q6.swift`).
 - **Cited by:** `Sources/TUIFoundation/Styling/ShapeStyle+Shadow.swift`,
-  `Tests/TUIIntegrationTests/ShapeStyleShadowTests.swift`; `Documentation/SwiftUI parity/Decisions/What the
-  shapes unblocked (W1B).md` (B-W1B-1).
+  `Tests/TUIIntegrationTests/ShapeStyleShadowTests.swift`; `Documentation/Historical/Shapes, effects and
+  animation/Shadows.md` (B-W1B-1).
 
 ### Image paint
 
@@ -573,7 +573,7 @@ messages cite that path), and what cites it.
 - **Was:** `LISTS/probe/`.
 - **Cited by:** `Sources/TUIFoundation/Modifiers/BadgeModifier.swift`,
   `Tests/TUIListsTests/BadgeProminenceTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (B72),
+  `Documentation/Historical/Lists, tables and tabs/Badges and the prominence of a row.md` (B72),
   `Documentation/Historical/Lists, tables and tabs/Badges and the prominence of a row.md` (B-LISTS-1).
 
 ### Hierarchical table insertions
@@ -590,7 +590,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
 - **Was:** `LISTS2/probe/`.
 - **Cited by:** `Sources/TUITables/Views/TableOutline.swift`, `Tests/TUITablesTests/TableRowDragAndDropTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (B80).
+  `Documentation/Historical/Input, keys and gestures/Drag and drop.md` (B80).
 
 ### Picker sections
 
@@ -654,7 +654,7 @@ messages cite that path), and what cites it.
   `Sources/TUINumericControls/Views/NumericControls+Form.swift`, `Sources/TUIColorPicker/Views/ColorPicker.swift`),
   `Tests/TUIIntegrationTests/FormModifiedRowTests.swift`, `Tests/TUIIntegrationTests/FormLabelledControlTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (Containers, `Form`);
-  `Documentation/SwiftUI parity/SwiftUI semantic audit (2026-08).md` (item 8, and the verifiers' finding on labelled
+  `Documentation/Historical/SwiftUI parity process/The semantic audit of August 2026.md` (item 8, and the verifiers' finding on labelled
   controls).
 
 ### Menu items and alert buttons
@@ -733,7 +733,7 @@ messages cite that path), and what cites it.
   citing documents.
 - **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-03.
 - **Was:** `w06b/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (wave 6b's entries);
+- **Cited by:** wave 6b's entries in `Documentation/Historical/` (found by id through its `Index of decision ids.md`);
   `Documentation/SwiftUI parity/Design studies/Text selection and editing design study, A13, A42 and A43 (2026-10-04).md`.
 
 ### Table questions, compile and runtime (wave 8a)
@@ -751,7 +751,7 @@ messages cite that path), and what cites it.
   SwiftUI.
 - **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-03.
 - **Was:** `w08a/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (wave 8a's entries).
+- **Cited by:** wave 8a's entries in `Documentation/Historical/` (found by id through its `Index of decision ids.md`).
 
 ### Tab badges, sections and customization (wave 8b)
 
@@ -765,7 +765,7 @@ messages cite that path), and what cites it.
   kept here.
 - **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-03 and 2026-10-04. macOS 26 API could not be probed.
 - **Was:** `w08b/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (wave 8b's entries).
+- **Cited by:** wave 8b's entries in `Documentation/Historical/` (found by id through its `Index of decision ids.md`).
 
 ### Scroll geometry, margins and the wheel (wave 10)
 
@@ -780,7 +780,7 @@ messages cite that path), and what cites it.
 - **Files:** the ten `.swift` files; `common.swift` is the offscreen host.
 - **Ran:** macOS 15, 2026-10-03.
 - **Was:** `w10/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (wave 10's entries).
+- **Cited by:** wave 10's entries in `Documentation/Historical/` (found by id through its `Index of decision ids.md`).
 
 ### Live text formats read back (wave 11a)
 
@@ -798,7 +798,7 @@ messages cite that path), and what cites it.
   anchored relative-date readings, has no program of its own here.
 - **Ran:** macOS 15, 2026-10-03. A pass on macOS 26 is owed.
 - **Was:** `w11a/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (wave 11a's entries).
+- **Cited by:** wave 11a's entries in `Documentation/Historical/` (found by id through its `Index of decision ids.md`).
 
 ### Foundation shims and a text snapshot (wave 17)
 
@@ -810,7 +810,7 @@ messages cite that path), and what cites it.
   which of them compile there.
 - **Ran:** `p.swift` on macOS 15.8, 2026-10-03; `lx*.swift` with Swift 6.3.3's static Linux SDK.
 - **Was:** `w17/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md`.
+- **Cited by:** `Documentation/Historical/SwiftUI parity process/The refusals re-examined (wave 17).md`.
 
 ### Spring loading (lane 17d)
 
@@ -823,8 +823,8 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-04; `spring7.swift` macOS 15.8.1, 2026-10-24. The drag-session
   family is macOS 26's and is from its doc comments.
 - **Was:** `w17d/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (lane 17d's entries,
-  B82); `Sources/TUIColorPicker/Views/ColorPicker.swift`.
+- **Cited by:** lane 17d's entries,
+  B82 in `Documentation/Historical/` (found by id through its `Index of decision ids.md`); `Sources/TUIColorPicker/Views/ColorPicker.swift`.
 
 ### Gestures (lane 17g)
 
@@ -837,7 +837,7 @@ messages cite that path), and what cites it.
   `taps.out` are results whose programs are not kept.
 - **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-04.
 - **Was:** `w17g/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (lane 17g's entries),
+- **Cited by:** lane 17g's entries in `Documentation/Historical/` (found by id through its `Index of decision ids.md`),
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
 
 ### Mesh gradient fits (lane 17m)
@@ -854,7 +854,7 @@ messages cite that path), and what cites it.
   again; the scripts name the cases.
 - **Ran:** macOS 15.8, the macOS 26.2 SDK, 2026-10-04.
 - **Was:** `w17m/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md` (lane 17m's entry),
+- **Cited by:** lane 17m's entry in `Documentation/Historical/` (found by id through its `Index of decision ids.md`),
   `Tests/TUIFoundationTests/MeshGradientTests.swift`.
 
 ### Coordinate spaces and scroll visibility (D5G)
@@ -888,7 +888,7 @@ messages cite that path), and what cites it.
   here and not in TUI.
 - **Ran:** macOS 15.8, 2026-10-12.
 - **Was:** `DECB/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md`,
+- **Cited by:** `Documentation/Historical/` (found by id through its `Index of decision ids.md`),
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
 
 ### Shape paths (W1)
@@ -941,7 +941,7 @@ messages cite that path), and what cites it.
   macro's diagnostics) check the `@Entry` macro on both sides.
 - **Ran:** macOS 15, 2026-10-18.
 - **Was:** `PARITYMISC/probes/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/Small parity items (PARITYMISC).md`,
+- **Cited by:** `Documentation/Historical/Text, editing and the clipboard/Text fields and the wrapping editor.md`,
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
 
 ### Undo and the pointer leaving (INPUT)
@@ -992,7 +992,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1, Xcode's `swiftc`, the macOS 26.2 SDK, 2026-10-24.
 - **Cited by:** `Sources/TUIFoundation/Views/DroppedMembers.swift`,
   `Sources/TUIPickers/Views/_PickerOptionsReader.swift`, `Sources/TUIPresentation/Views/AlertActions.swift`;
-  `Documentation/SwiftUI parity/SwiftUI semantic audit (2026-08).md` (root cause 5).
+  `Documentation/Historical/SwiftUI parity process/The semantic audit of August 2026.md` (root cause 5).
 
 ### Named colours by scheme
 
@@ -1005,7 +1005,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1, Xcode's `swiftc`, the macOS 26.2 SDK, 2026-10-24.
 - **Cited by:** `Sources/TUIStyling/Color/SystemColor.swift`, `Sources/TUIStyling/Color/Color.swift`,
   `Tests/TUIStylingTests/NamedColorTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md`
+  `Documentation/Historical/Colour and styling/Named colours, asset catalogues and dark values.md`
   (B-D6M-3).
 
 ### Interpolated values drawn (TEXTFMT)

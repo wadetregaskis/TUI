@@ -61,6 +61,7 @@ for.
 
 ## For a future reader
 
+- **B-FU2-2** (a two-axis pager's horizontal bar and its container) was a follow-up lane FU2 recorded and lane SCROLL settled on 2026-10-19 (B-SCROLL-2); its entry is the last below.
 - **Owed: B-D2S-6 as the owner ruled on 2026-10-26** — variable pages where
   possible, blanks where not, never a cut row; and "▲ 0 more" should not show
   at a count of zero (the 10-23 analysis recommended a bare dim arrow or a
@@ -300,3 +301,35 @@ avoids it.
   does. The anchored path (a lazy stack over 256 rows of varying height) knows
   only the rows of its band, so a step past them settles on the furthest it
   knows.
+
+### B-FU2-2. A two-axis pager's container leaves out a horizontal bar only when it is `.visible`
+
+*`containerRelativeFrame` inside `ScrollView([.horizontal, .vertical])` under a
+scroll target behaviour (scroll lane review 3, item 2)*
+
+**Shipped:** the container takes the horizontal bar's row off where the bar is
+known before anything is measured — `.visible`, which is always drawn — so a
+container-sized page is the page `.paging` steps. Under `.automatic` the bar
+comes with overflow, which is decided by measuring the content after its
+container is published, so such a pager's container-sized pages are a row
+taller than the step and drift by it at each stop; the container's doc and the
+compatibility doc say so, and how to avoid it.
+
+**The fuller version** decides the automatic bar first: measure the content's
+width at the unreserved container (a second measure for a two-axis pager, the
+only view that pays), or take the bar from the frame before (no measure, one
+frame of drift when the bar first appears). About two hours with tests.
+
+**Done 2026-10-19 (lane SCROLL), the first way.** A view under a scroll target
+behaviour that scrolls across, with an `.automatic` horizontal bar, measures
+its content's width at the whole viewport before it publishes the container
+(`_ScrollViewCore.horizontalBarDecidedFirst`), in a measure generation keyed
+by the container's height, as the text-style pager's overflow probe is; wider,
+and the bar's row comes off the container and the bar rounds start with it.
+So a two-axis pager's container-sized pages are the step, and a horizontal
+pager's container-sized cards end above the bar instead of under it. Content
+that fits the whole width and overflows only once a vertical bar takes its
+column is left to the rounds, as before. The frame before was not used: a
+frame would then depend on its history, which the memo verifiers and the
+selfcheck compare against a fresh render. Views with no behaviour keep the
+old container (decisions SCROLL B-SCROLL-2).

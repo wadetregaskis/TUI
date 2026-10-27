@@ -26,6 +26,7 @@ tab title draw only its words.
 
 ## For a future reader
 
+- **A column header and a tab title** draw their key's Markdown words, not its styles (B-PARITYMISC-3, below).
 - **Open: Apple's `^[…](attrs)` syntax with unparseable attributes** — Foundation
   draws the bracket text alone, TUI keeps the literal (5 in 20,000 fuzz
   strings). Investigate Foundation's rule.
@@ -305,7 +306,7 @@ Tests: `MarkdownTitleTests`.
 its `Text`, and its placeholder draws the words plain, as SwiftUI's does
 (measured); a header and a tab title draw the words in their own style, the
 styles not yet
-([B-PARITYMISC-3](<../../SwiftUI parity/Decisions/Small parity items (PARITYMISC).md#b-paritymisc-3-a-column-header-and-a-tab-title-draw-their-keys-markdown-words-not-its-styles>)).
+([B-PARITYMISC-3](#b-paritymisc-3-a-column-header-and-a-tab-title-draw-their-keys-markdown-words-not-its-styles)).
 
 ### B88. An attributed format interpolated into a key draws the characters only
 
@@ -373,3 +374,30 @@ level, not as glyphs in a run of text. `parity-map.json` has a family entry.
 
 `AttributeScopes.SwiftUIAttributes.accessibility` needed no entry of its own.
 The existing Accessibility family covers it.
+
+### B-PARITYMISC-3. A column header and a tab title draw their key's Markdown words, not its styles
+
+*`TableColumn`'s `LocalizedStringKey` initializers, `Tab`'s, and
+`TextField`'s (B87's three leftovers)*
+
+Measured on macOS 15 (2026-10-18, probes in
+`Tools/SwiftUIProbes/Small parity items (PARITYMISC)/b87/`): SwiftUI parses Markdown in all three. A
+`TextField`'s title becomes its placeholder as plain words
+(`TextField("**Bold** and *it*", …)` has the placeholder string "Bold and
+it", no attributes); a `TableColumn`'s header is styled (`"**Name** *x*"`
+draws a semibold "Name" and an italic "x"); a `Tab`'s title draws exactly as
+a `Text` of the key does.
+
+**Shipped:** a field's title is its key's `Text`, so the placeholder draws its
+words plain, exactly as SwiftUI's. A header and a tab title, which TUI
+measures, truncates and draws as strings in a style of its own (the header
+bold in the secondary ink, the strip's cells), take the key's words with the
+delimiters gone (`LocalizedStringKey.titleWords`) and draw them in that
+style.
+
+**The fuller version** draws the styles too: the header row appending a cell
+as styled runs rather than one ink (`ClaimingRow` takes one style a cell
+today), and the strip and the sidebar drawing a tab's title as a `Text`. A
+header is already bold, so only italic, strikethrough and a code span would
+show. About half a day each, and an A/B, since both are drawn every frame
+(B87's own change cost `app-shapes` +2.3%).

@@ -127,7 +127,7 @@ struct HelpTooltipTests {
     /// A `NavigationSplitView` divider registers with the focus manager directly,
     /// so `FocusRegistration.register`'s help hook never runs for it and `.help`
     /// on one would work on hover and do nothing on the keyboard. That is the
-    /// failure `Documentation/Historical/Parity work blocked on a decision (2026-10-12).md` predicted for this
+    /// failure `Documentation/Historical/SwiftUI parity process/Completing the SwiftUI API.md` predicted for this
     /// exact site — "would work for every other focusable and silently not for
     /// that one" — and it takes a test rather than a comment, because the next
     /// thing hung off that seam will miss it the same way.

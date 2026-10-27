@@ -2,8 +2,8 @@
 // a colour resolved in a bare environment (as a view body sees one) answers.
 //
 // Cited by Sources/TUIStyling/Color/SystemColor.swift and
-// Documentation/SwiftUI parity/Decisions/Named colours, localisation lookup and
-// the swift-syntax range (D6M).md. Top-level code: build it alone.
+// Documentation/Historical/Colour and styling/Named colours, asset catalogues
+// and dark values.md. Top-level code: build it alone.
 import AppKit
 import SwiftUI
 

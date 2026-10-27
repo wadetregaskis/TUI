@@ -11,6 +11,10 @@ only, each with a `TUIKIT_*` override, and TUI's own drawing honours them
 (P5, option c). Reduce motion holds still only spatial motion (A-D3M-1). The
 owner kept the "certain locality" standard (O1-LOOSEN, no change, 2026-10-23).
 
+## For a future reader
+
+- **Reduce motion does not hold still an app's own animations** (C-FU2-1), only TUI's spatial motion.
+
 ## The record
 
 ### A-D3M-1. What else reduce motion should hold still — decided 2026-10-05
@@ -75,3 +79,14 @@ for the app's views. `\.accessibilityVoiceOverEnabled` stays refused.
 **Cost:** three more environment writes at the root a frame, and, on
 macOS, three more preference reads per host reading (launch, focus in); on
 GNOME one more `gsettings` run per reading.
+
+### C-FU2-1. Reduce motion does not hold still an app's own animations
+
+*`EnvironmentValues.accessibilityReduceMotion` (A-D3M-1)*
+
+Reduce motion holds still the movement TUI's own modifiers make — an
+animated offset, position, padding or fixed frame, a visual effect's offset, a
+drag preview's lift and fly-back. An `Animatable` view of the app's own, a
+keyframe animator's tracks and a custom `Layout`'s data animate as before:
+TUI cannot tell which of an app's numbers are positions, and SwiftUI leaves
+them to the app too, which reads `\.accessibilityReduceMotion`.

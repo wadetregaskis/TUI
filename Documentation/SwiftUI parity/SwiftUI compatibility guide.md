@@ -80,7 +80,7 @@ medium keeps for free is honoured; a request it silently discards is not.
 > `.local`, `.global` and `.named(_:)` bind to).
 
 **This file is about vocabulary; behaviour is audited separately.**
-[SwiftUI semantic audit (2026-08).md](<SwiftUI semantic audit (2026-08).md>) compares
+[SwiftUI semantic audit (2026-08).md](<../Historical/SwiftUI parity process/The semantic audit of August 2026.md>) compares
 what each shared API *means* against Apple's own doc comments, family by family.
 Several rows below are contradicted by it — a ✓ here has never implied that the
 semantics were checked, and now there is a place where they were.
@@ -1793,7 +1793,7 @@ SwiftUI API (the CLAUDE.md rule).
 | `.scrollWindowHold(_:)` (`ScrollWindowHold.topRow`/`.offset`, `\.scrollWindowHold`) | what a scroll view keeps in place when rows are inserted, removed or resized above the ones it shows and nothing else holds it: the row at its top (the default, as SwiftUI's lazy stacks keep theirs, measured) or its offset in lines. SwiftUI has no setting for it, and `defaultScrollAnchor(_:for: .sizeChanges)` does not change it there (measured; decisions B-SCROLLANCHOR-2) |
 | `.onRenderPass(_:)` (`RenderPass.measure`/`.render`) | instrumentation hook: observe a view's participation in measurement vs real rendering (e.g. what a lazy container measures but never draws) |
 | `.maxFrameRate` (App) | cap redraw rate |
-| Per-module library products (`TUIApp`, `TUILists`, `TUITables` … and `TUIFoundation`) beside the `TUI` product | SwiftUI is one framework with one import, and so is TUI by default: the `TUI` product and `import TUI` are everything. An app or a library may instead depend on the products of the modules it uses, and compiles and links only those and what they are built on (a hello world on `TUIApp`: 5,964,832 bytes stripped against 9,552,376 on `TUI`, Swift 6.4.0, 2026-10-11). Mixing the two is safe; a `.dynamic` library built from TUI beside a statically linked TUI product is not. Either way a type's reflected name, and the mangled names `NavigationPath.codable` stores, name the module that declares it (`TUILists.List<…>`). `Sources/TUI/TUI.docc/Articles/ChoosingProducts.md`; the evidence, `Documentation/Historical/Per-module products (2026-10-11).md` |
+| Per-module library products (`TUIApp`, `TUILists`, `TUITables` … and `TUIFoundation`) beside the `TUI` product | SwiftUI is one framework with one import, and so is TUI by default: the `TUI` product and `import TUI` are everything. An app or a library may instead depend on the products of the modules it uses, and compiles and links only those and what they are built on (a hello world on `TUIApp`: 5,964,832 bytes stripped against 9,552,376 on `TUI`, Swift 6.4.0, 2026-10-11). Mixing the two is safe; a `.dynamic` library built from TUI beside a statically linked TUI product is not. Either way a type's reflected name, and the mangled names `NavigationPath.codable` stores, name the module that declares it (`TUILists.List<…>`). `Sources/TUI/TUI.docc/Articles/ChoosingProducts.md`; the evidence, `Documentation/Historical/Module split, compile time and binary size/Per-module products.md` |
 
 ---
 

@@ -8,7 +8,7 @@
 ## Question
 
 Every app kept all of TUI because public symbols and conformance records are dead-strip roots
-([where the bytes go](<../Historical/Investigations/Binary size/Where the bytes of a TUI app go (2026-10-10).md>)).
+([where the bytes go](<../Historical/Module split, compile time and binary size/Binary size.md>)).
 `-internalize-at-link` removes the first kind of root. Can the second go too, so that an app keeps only the types it
 uses, and is the build mode that does it ready to recommend? (The SIZE3 review's question 9, and the owner's
 follow-up asking for the feature request.)

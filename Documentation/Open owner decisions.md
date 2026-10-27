@@ -2,7 +2,7 @@
 
 What is waiting on you, re-checked on the evening of 2026-10-26 against `main`, after a full audit of the record, the notes and the queue. Most questions were put to you between
 2026-10-18 and 2026-10-26. The full write-ups of those asked by 2026-10-25, with the options and the
-evidence, are in the historical record, [Owner decisions, 2026-10-18 to 2026-10-25](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md>). That record also holds every
+evidence, are in the historical record, [Owner decisions, 2026-10-18 to 2026-10-25](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-18 to 2026-10-25.md>). That record also holds every
 question you have already answered and what each answer set in motion. None of these blocks other work:
 each has a default, which holds until you answer.
 
@@ -23,7 +23,7 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 ### Sixteen lane questions of 2026-10-18 that were never answered
 
 The lanes building on 2026-10-18 wrote these as they landed. They were listed at the end of the
-record ([From the lanes building on 2026-10-18](<Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#from-the-lanes-building-on-2026-10-18>)),
+record ([From the lanes building on 2026-10-18](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-18 to 2026-10-25.md#from-the-lanes-building-on-2026-10-18>)),
 never answered, and dropped from this page when the record moved to `Historical/` on 2026-10-25
 (found by the audit of 2026-10-26). Each entry there links to the full write-up. Each default has
 been in force since 2026-10-18.

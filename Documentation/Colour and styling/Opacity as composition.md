@@ -1834,7 +1834,7 @@ stated reason: *"There is no opacity channel — terminal colours have no alpha 
 simply gone, and what was left is worse than a plain omission: the control
 **displayed** an alpha it gave no way to **edit**. Built in §32.
 
-`Documentation/SwiftUI parity/SwiftUI semantic audit (2026-08).md` listed this among "the refusals that
+`Documentation/Historical/SwiftUI parity process/The semantic audit of August 2026.md` listed this among "the refusals that
 pass the test". It has been moved out. The audit's own tally is worth updating with
 it: five out of five refusals examined across audits have now turned out to be wrong
 or to expire.

@@ -15,6 +15,7 @@ its rows but does not predict their places before drawing them.
 
 ## For a future reader
 
+- **`OutlineSubgroupChildren`** is declined: TUI's `OutlineGroup` drops the two generic parameters that are always the same (C10, below).
 - **Owed:** a `Table` honouring `scrollClipDisabled` (about half a day,
   B-LISTS2-5), and the overflow rows' clicks (about two hours).
 
@@ -127,3 +128,17 @@ loops.
 **The alternative:** aim by the pointer's column, as the outline view does —
 left of the deeper level's indentation, the shallower loop. A drag's column
 is known; about two hours, with the gap drawn at the matching indentation.
+
+### C10. `OutlineSubgroupChildren`
+
+*`OutlineSubgroupChildren`*
+
+The content type of the `DisclosureGroup` that is SwiftUI's
+`OutlineGroup<…, Subgroup>` for views — a type only ever written inside
+`OutlineGroup`'s full generic signature. TUI's `OutlineGroup` declares
+the three generic parameters that carry information and drops the two that
+are always the same (`Parent` is `Leaf`; `Subgroup` is that one
+`DisclosureGroup`), as its documentation records, so there is no subgroup
+type for this to be the content of. Every `OutlineGroup` initializer, for
+views and for table rows, is SwiftUI's; only spelling the type out by hand
+differs.

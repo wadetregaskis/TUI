@@ -165,7 +165,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** in cells a circle would be twice as tall as it is wide; in pixels the
   numbers are large and wrong by up to 2.3× where the terminal does not say its
   cell size. The aspect is a ratio, in which the display scale cancels.
-- **Decided:** [O0](<Refusals re-examined, wave 17 (2026-10-03).md#o0-shapes-the-unit-of-shapepathin--gates-w1>),
+- **Decided:** [O0](<../Historical/SwiftUI parity process/The refusals re-examined (wave 17).md#o0-shapes-the-unit-of-shapepathin--gates-w1>),
   ruled 2026-10-12: (B); [§2.12](<SwiftUI compatibility guide.md#212-a-shapes-unit-is-square-a-column-across-the-same-down>). **Owner.**
 
 ---
@@ -240,7 +240,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   drew another would leave every container above it guessing, and measuring
   would stop agreeing with drawing.
 - **Decided:** [§1](<SwiftUI compatibility guide.md#1-match>) (the Modifiers row, on `overlay`),
-  [B-D3M-2](<Decisions/Presentation and windows/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-2-an-images-natural-size-is-known-on-four-hosts-and-ghosttys-only-locally>), [B-GUIDE-1](<../Historical/Layout and geometry/Drawing past a region.md#b-guide-1-a-region-smaller-than-the-run-keeps-the-runs-leading-edge-on-its-own>),
+  [B-D3M-2](<../Historical/Images and terminal graphics/An image's natural size, tiles and caps.md#b-d3m-2-an-images-natural-size-is-known-on-four-hosts-and-ghosttys-only-locally>), [B-GUIDE-1](<../Historical/Layout and geometry/Drawing past a region.md#b-guide-1-a-region-smaller-than-the-run-keeps-the-runs-leading-edge-on-its-own>),
   [B-GUIDE-3](<../Historical/Layout and geometry/Drawing past a region.md#b-guide-3-one-child-whose-guide-would-put-it-outside-its-region-is-held-inside-it>). **Recorded**; the guide placements were
   closed by the owner's 2026-10-12 ruling ("try to support it"), and content
   drawn at its own size in a frame, an overlay or a background on 2026-10-18
@@ -592,7 +592,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** a soft trap is the framework's answer to a programming error with a
   safe fallback: loud where the developer is looking, never a crash in someone's
   terminal. S4 drops a write past a collection's end for the same reason.
-- **Decided:** [B-PARITYMISC-1](<Decisions/Small parity items (PARITYMISC).md#b-paritymisc-1-a-wrong-typed-write-through-an-anyhashable-projection-is-reported-and-dropped>). **Lane.**
+- **Decided:** [B-PARITYMISC-1](<../Historical/Controls and forms/Sliders, selections and search.md#b-paritymisc-1-a-wrong-typed-write-through-an-anyhashable-projection-is-reported-and-dropped>). **Lane.**
 
 ---
 
@@ -639,7 +639,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   ignored is what rule 2 forbids.
 - **Decided:** [B1](<../Historical/Layout and geometry/Safe areas, size classes and layout direction.md#b1-layoutdirection-is-read-only-always-left-to-right>), [B74](<../Historical/Lists, tables and tabs/Badges and the prominence of a row.md#b74-sidebarrowsize-is-read-only-always-medium>). **Lane** (2026-10-12: the
   owner still wants right-to-left, out of scope for now). `\.legibilityWeight`
-  was a third, and is settable and honoured since 2026-10-13 ([B2](<Decisions/SwiftUI API completion decisions.md#b2-legibilityweight-is-settable-and-every-text-drawing-site-steps-its-weight>)).
+  was a third, and is settable and honoured since 2026-10-13 ([B2](<../Historical/Colour and styling/Content levels, foreground styles and legibility weight.md#b2-legibilityweight-is-settable-and-every-text-drawing-site-steps-its-weight>)).
 
 ### E2. Reduce motion holds TUI's own spatial animations still
 
@@ -659,7 +659,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   ([ReduceMotion.swift](../../Sources/TUIApp/Environment/ReduceMotion.swift#L4-L9)).
 - **Why:** the owner's reading: motion means movement in x and y, and the
   framework's own movement should honour the setting.
-- **Decided:** [A-D3M-1](<../Historical/Shapes, effects and animation/Accessibility settings: reduce motion, transparency and contrast.md#a-d3m-1-what-else-reduce-motion-should-hold-still--decided-2026-10-05>), [C-FU2-1](<Decisions/Follow-ups on reduce motion, localisation and scrolling (FU2).md#c-fu2-1-reduce-motion-does-not-hold-still-an-apps-own-animations>).
+- **Decided:** [A-D3M-1](<../Historical/Shapes, effects and animation/Accessibility settings: reduce motion, transparency and contrast.md#a-d3m-1-what-else-reduce-motion-should-hold-still--decided-2026-10-05>), [C-FU2-1](<../Historical/Shapes, effects and animation/Accessibility settings: reduce motion, transparency and contrast.md#c-fu2-1-reduce-motion-does-not-hold-still-an-apps-own-animations>).
   **Owner** (2026-10-05).
 
 ### E5. The display preferences come from the user's variables, and from the host only where it is local
@@ -699,7 +699,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `LocaleStringLanguageTests`).
 - **Why:** TUI keeps the fallback every one of its lookups has, rather than
   copying a limitation: a missing translation shows the text it stands in for.
-- **Decided:** [B-PARITYMISC-5](<Decisions/Small parity items (PARITYMISC).md#b-paritymisc-5-a-locale-override-re-reads-a-texts-key-not-a-buttons-title>). **Lane.**
+- **Decided:** [B-PARITYMISC-5](<../Historical/Localization/Which language a key is read in.md#b-paritymisc-5-a-locale-override-re-reads-a-texts-key-not-a-buttons-title>). **Lane.**
 
 ---
 
@@ -944,7 +944,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   languages are read up to and including the first one TUI ships, then
   English.
 - **Why:** an app gets some strings rather than keys, and can borrow TUI's.
-- **Decided:** [A14](<Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md#a14s-lookup-order--decided-2026-10-05>), [B-FU2-1](<Decisions/Follow-ups on reduce motion, localisation and scrolling (FU2).md#b-fu2-1-a-language-tui-does-not-ship-is-read-only-as-far-as-the-first-it-does>). **Owner**
+- **Decided:** [A14](<../Historical/Localization/Which language a key is read in.md#a14s-lookup-order--decided-2026-10-05>), [B-FU2-1](<../Historical/Localization/Which language a key is read in.md#b-fu2-1-a-language-tui-does-not-ship-is-read-only-as-far-as-the-first-it-does>). **Owner**
   (2026-10-05).
 
 ### T3. Markdown in a `Text` key is TUI's own parse
@@ -1069,7 +1069,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   name, an address part, `.dateTime`) filters nothing. A `TextEditor` filters
   as a field does, and a line break is a character like any other, refused
   where the type cannot hold one, as in a vertical field (2026-10-18,
-  [B-PARITYMISC-2](<Decisions/Small parity items (PARITYMISC).md#b-paritymisc-2-every-nstextcontenttype-is-spelled-free-text-types-filter-nothing-and-a-texteditor-filters-as-a-field-does>)).
+  [B-PARITYMISC-2](<../Historical/Text, editing and the clipboard/Text fields and the wrapping editor.md#b-paritymisc-2-every-nstextcontenttype-is-spelled-free-text-types-filter-nothing-and-a-texteditor-filters-as-a-field-does>)).
 - **Why:** a terminal has no autofill, so the type was given a meaning a
   terminal can carry.
 - **Decided:** [TextContentType.swift](../../Sources/TUIStyling/Styles/TextContentType.swift#L11-L17).
@@ -1149,7 +1149,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   every cell run; there is room for a two-byte place in a table and one alpha,
   not for two colours.
 - **Decided:** the owner's ruling B-D6M-1, option 3 (2026-10-24), built as
-  [B-D6M-4](<Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md#b-d6m-4-an-asset-catalogue-colour-chooses-its-variant-where-it-is-drawn>);
+  [B-D6M-4](<../Historical/Colour and styling/Named colours, asset catalogues and dark values.md#b-d6m-4-an-asset-catalogue-colour-chooses-its-variant-where-it-is-drawn>);
   [§1](<SwiftUI compatibility guide.md#1-match>) (the Color values row). **Owner.**
 
 ### C2. A gradient is one or two samples a cell, corrected for the cell's shape
@@ -1191,7 +1191,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** `Text.foregroundStyle` returning `Text` takes only a `Color`, so that
   a gradient on one fragment of a concatenation fails to compile rather than
   being lost.
-- **Decided:** [B22](<Decisions/SwiftUI API completion decisions.md#b22-the-content-levels-and-the-two--and-three-style-foregroundstyle>), [§3](<SwiftUI compatibility guide.md#closed-foregroundstyle-takes-some-shapestyle>). **Lane.**
+- **Decided:** [B22](<../Historical/Colour and styling/Content levels, foreground styles and legibility weight.md#b22-the-content-levels-and-the-two--and-three-style-foregroundstyle>), [§3](<SwiftUI compatibility guide.md#closed-foregroundstyle-takes-some-shapestyle>). **Lane.**
 
 ### C4. Images size by cells, and are read once
 
@@ -1211,8 +1211,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   font installed).
 - **Why:** a cell grid has no points unless the terminal says how big a cell
   is; noticing an in-place edit would mean hashing pixels every frame.
-- **Decided:** [§2.4](<SwiftUI compatibility guide.md#24-image-is-textascii-sf-symbols-render-as-glyphs-in-narrow-circumstances>), [B-D3M-2](<Decisions/Presentation and windows/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-2-an-images-natural-size-is-known-on-four-hosts-and-ghosttys-only-locally>),
-  [B-D3M-3](<Decisions/Presentation and windows/Dialogs, image sizes, format styles and reduce motion (D3M).md#b-d3m-3-tiles-and-caps-follow-the-natural-size-and-caps-are-in-points>). **Medium**, with **Lane** choices.
+- **Decided:** [§2.4](<SwiftUI compatibility guide.md#24-image-is-textascii-sf-symbols-render-as-glyphs-in-narrow-circumstances>), [B-D3M-2](<../Historical/Images and terminal graphics/An image's natural size, tiles and caps.md#b-d3m-2-an-images-natural-size-is-known-on-four-hosts-and-ghosttys-only-locally>),
+  [B-D3M-3](<../Historical/Images and terminal graphics/An image's natural size, tiles and caps.md#b-d3m-3-tiles-and-caps-follow-the-natural-size-and-caps-are-in-points>). **Medium**, with **Lane** choices.
 
 ### C5. A material frosts what is behind it and is a translucent surface
 
@@ -1242,7 +1242,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   blur does to a letter at that scale. The box is about as tall as it is
   wide because a cell is about twice as tall as it is wide; the thinnest
   blurs along its row alone (`Opacity as composition.md` §111).
-- **Decided:** [O5](<Refusals re-examined, wave 17 (2026-10-03).md#o5-materials-and-glass-materialactiveappearance-plus-differentshape-material-w13s-material-backgroundmaterial-p14s-glass>),
+- **Decided:** [O5](<../Historical/SwiftUI parity process/The refusals re-examined (wave 17).md#o5-materials-and-glass-materialactiveappearance-plus-differentshape-material-w13s-material-backgroundmaterial-p14s-glass>),
   ruled 2026-10-12: option (b); the frost, [O5-FROSTED](<../Historical/Shapes, effects and animation/Materials and glass.md#o5-frosted-a-material-frosts-what-is-behind-it>),
   ruled 2026-10-23: (b), or (c) if (b)'s cost is significant; shipped as (c),
   then as (b) once the owner had seen both (2026-10-24), its degree
@@ -1344,7 +1344,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   that matters to a shadow is whether the view paints it. The limit is cost: a
   shadow costs the square of its radius at every render and every frame
   ([B-O6-1](<../Historical/Shapes, effects and animation/Shadows.md#b-o6-1-a-shadow-is-cast-by-the-cells-a-view-paints-and-falls-off-by-whole-rings>)).
-- **Decided:** [O6](<Refusals re-examined, wave 17 (2026-10-03).md#o6-shadowstyle--w16-shadow-w13-shapestyleshadow--m>),
+- **Decided:** [O6](<../Historical/SwiftUI parity process/The refusals re-examined (wave 17).md#o6-shadowstyle--w16-shadow-w13-shapestyleshadow--m>),
   ruled 2026-10-12: option (b), cells as-is, documented;
   [B-O6-1](<../Historical/Shapes, effects and animation/Shadows.md#b-o6-1-a-shadow-is-cast-by-the-cells-a-view-paints-and-falls-off-by-whole-rings>). **Owner.**
 
@@ -1378,7 +1378,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   (C5); a rim is what is
   left of glass's edge at cell resolution, and drawn in the appearance's lines
   it sits beside the app's boxes and buttons as one of them.
-- **Decided:** [O5](<Refusals re-examined, wave 17 (2026-10-03).md#o5-materials-and-glass-materialactiveappearance-plus-differentshape-material-w13s-material-backgroundmaterial-p14s-glass>),
+- **Decided:** [O5](<../Historical/SwiftUI parity process/The refusals re-examined (wave 17).md#o5-materials-and-glass-materialactiveappearance-plus-differentshape-material-w13s-material-backgroundmaterial-p14s-glass>),
   ruled 2026-10-12: option (b) for Glass, with option (c)'s rim;
   [B-GLASS-1](<../Historical/Shapes, effects and animation/Materials and glass.md#b-glass-1-glass-is-a-materials-surface-with-a-highlighted-rim-behind-the-view>),
   [B-GLASS-2](<../Historical/Shapes, effects and animation/Materials and glass.md#b-glass-2-the-rim-is-drawn-in-the-appearances-family>),
@@ -1611,7 +1611,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   re-layout per frame, with translation where the sizes are equal); a
   removed view's content is the picture it last drew (A3), which cannot be
   laid out again.
-- **Decided:** [O4](<Refusals re-examined, wave 17 (2026-10-03).md#o4-matched-geometry-matchedgeometryproperties--w12-matchedgeometryeffect-zoom-matchedtransitionsourceconfiguration-emptymatchedtransitionsourceconfiguration--w09-matchedtransitionsource-navigationtransitionzoom>),
+- **Decided:** [O4](<../Historical/SwiftUI parity process/The refusals re-examined (wave 17).md#o4-matched-geometry-matchedgeometryproperties--w12-matchedgeometryeffect-zoom-matchedtransitionsourceconfiguration-emptymatchedtransitionsourceconfiguration--w09-matchedtransitionsource-navigationtransitionzoom>),
   [B-O4-1, B-O4-2, B-O4-7](<../Historical/Shapes, effects and animation/Matched geometry and the zoom transition.md>).
   **Owner** (the re-layout), **Lane** (the rest).
 
@@ -1639,7 +1639,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   (`ZoomNavigationTransitionTests`, `ZoomScalingTests`.)
 - **Why:** a cell cannot be scaled (refusal review O4, ruled 2026-10-12: the
   zoom is the `.scale` reveal generalised).
-- **Decided:** [O4](<Refusals re-examined, wave 17 (2026-10-03).md#o4-matched-geometry-matchedgeometryproperties--w12-matchedgeometryeffect-zoom-matchedtransitionsourceconfiguration-emptymatchedtransitionsourceconfiguration--w09-matchedtransitionsource-navigationtransitionzoom>),
+- **Decided:** [O4](<../Historical/SwiftUI parity process/The refusals re-examined (wave 17).md#o4-matched-geometry-matchedgeometryproperties--w12-matchedgeometryeffect-zoom-matchedtransitionsourceconfiguration-emptymatchedtransitionsourceconfiguration--w09-matchedtransitionsource-navigationtransitionzoom>),
   [B-O4-5](<../Historical/Shapes, effects and animation/Matched geometry and the zoom transition.md>). **Owner** (the reveal),
   **Lane** (the default animation).
 
@@ -1742,7 +1742,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** a terminal reports no gesture phases and no momentum, and draws
   no line between two of its rows ([the design
   note](<../Historical/Scrolling/Scroll phases, animated scrolling, flash and bounce.md#appendix-animated-scrolling-the-design-and-its-price-b27-option-3>)).
-- **Decided:** [B27](<../Historical/Scrolling/Scroll phases, animated scrolling, flash and bounce.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B27-ANIMATING](<../Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b27-animating>), [B30](<../Historical/Scrolling/Holding the reader's place as rows change above.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [B31](<../Historical/Scrolling/Scroll phases, animated scrolling, flash and bounce.md#b31-bounce-behaviour-gates-the-overscroll-allowance-and-always-springs-back>).
+- **Decided:** [B27](<../Historical/Scrolling/Scroll phases, animated scrolling, flash and bounce.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B27-ANIMATING](<../Historical/SwiftUI parity process/The owner's decisions, 2026-10-18 to 2026-10-25.md#b27-animating>), [B30](<../Historical/Scrolling/Holding the reader's place as rows change above.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [B31](<../Historical/Scrolling/Scroll phases, animated scrolling, flash and bounce.md#b31-bounce-behaviour-gates-the-overscroll-allowance-and-always-springs-back>).
   **Medium**. The owner decided on 2026-10-12 that the velocity is (0, 0) at
   both changes, as SwiftUI reports it, and to add a bounce under `.always`;
   both shipped 2026-10-13.
@@ -2100,7 +2100,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 | `modifierKeyAlternate` in a menu | gets the modified view's shortcut plus its modifiers | takes no shortcut of its own | [B-D1K-2](<../Historical/Input, keys and gestures/The kitty keyboard protocol and modified keys.md#b-d1k-2-a-modifier-key-alternate-in-a-menu-does-not-inherit-the-modified-views-shortcut>), **Lane** |
 | A compact `DatePicker`'s calendar | (macOS keyboard unmeasured) | takes the keyboard as it opens | [B-D2C-2](<../Historical/Presentation and windows/Dialogs and pickers.md#b-d2c-2-a-compact-date-pickers-calendar-takes-the-keyboard-as-it-opens>), **Lane** |
 | A `Section` that is a lazy stack row's `ZStack`'s only child | not the stack's own; does not pin | pins | [B68](<../Historical/Layout and geometry/Sections and pinned headers in lazy stacks.md#b68-which-sections-are-the-stacks-own-the-next-stack-down-and-one-sibling-step>), **Lane** |
-| `.searchable`'s field | in the toolbar, presented by a click; scopes show while search is presented (documented) | always drawn at the top of the subtree; scopes show while it has the focus or a query | [B38](<Decisions/SwiftUI API completion decisions.md#b38-search-scopes-show-while-the-search-is-under-way-by-a-terminals-reading-of-presented-and-cancelled>), **Lane** |
+| `.searchable`'s field | in the toolbar, presented by a click; scopes show while search is presented (documented) | always drawn at the top of the subtree; scopes show while it has the focus or a query | [B38](<../Historical/Controls and forms/Sliders, selections and search.md#b38-search-scopes-show-while-the-search-is-under-way-by-a-terminals-reading-of-presented-and-cancelled>), **Lane** |
 | `.searchable` on a `TabView` (macOS 26) | the field goes into the `.search` tab (documented, unmeasured) | a field above the whole tab view | [A50](<../Historical/Lists, tables and tabs/Tab views: labels, sidebars, customization and minimizing.md#a50-search-in-a-tab-view-macos-26-the-search-tab-and-its-activation>), **Owner** (2026-10-04: defer until macOS 26 can be measured) |
 | `SystemFormatStyle.DateReference` between the measured readings | keeps a time zone of its own; turns at a new year's first instant (measured) | uses the calendar's zone; turns half a second early | [B49](<../Historical/Text, editing and the clipboard/Formatting and live text.md#b49-systemformatstyle-where-the-rules-go-beyond-the-measurements>), **Lane** |
 | An attributed format interpolated into a key | (a custom style's colours: not measured) | draws the characters only | [B88](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b88-an-attributed-format-interpolated-into-a-key-draws-the-characters-only>), **Recorded** |
@@ -2327,7 +2327,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   cursor is apart from the selection in every TUI list (V2). A remote
   session's app reads the remote disk, so that is the one to browse, and the
   user is told it is not theirs.
-- **Decided:** refusal review [O10](<Refusals re-examined, wave 17 (2026-10-03).md#o10-file-panels-from-p16--ml>),
+- **Decided:** refusal review [O10](<../Historical/SwiftUI parity process/The refusals re-examined (wave 17).md#o10-file-panels-from-p16--ml>),
   ruled 2026-10-12; the details are [B-O10-1 to B-O10-4](<../Historical/Presentation and windows/File panels.md>).
   **Owner** (the panel), **Lane** (the details).
 
@@ -2411,7 +2411,7 @@ on. Each waits on the work, or on the ruling, its State names.
 | `KeyboardShortcut.Localization` does not mirror under right-to-left | [B8](<../Historical/Input, keys and gestures/How keys are named: shortcut symbols and spellings.md#b8-keyboardshortcutlocalization-is-recorded-and-every-strategy-behaves-as-custom>) | Owner 2026-10-12: mirror once right-to-left lands |
 | A column places its children of one priority in order, cutting the trailing ones, where SwiftUI's shares its height as it shares a row's width (rows have since L14, 2026-10-13) | [`distributeInOrder`](../../Sources/TUIFoundation/Rendering/LinearSpaceDistribution.swift) | Owner 2026-10-13: follow SwiftUI. Landed and reverted for its cost (2400f2948): every overfull column asks each child its minimum, down the whole tree, every frame — counted, and the options priced, in [decisions A-LAYOUT-1](<../Historical/Layout and geometry/Sharing space: overfull columns and ideal sizes.md#a-layout-1-a-column-shares-an-overfull-height-only-once-a-childs-minimum-is-cheap-to-ask>). Waits on that, and on a fix: shared, a column squeezes a control of several lines in the middle |
 | In a lazy stack, a `Grid`, a `List` and a `Table`, a view that an `if`/`else`'s branch, a `switch` or a `ForEach` row puts in under an animation appears at once, where SwiftUI's fades in (`.opacity`), and one with a `.transition(_:)` goes at once, where SwiftUI's plays it on the way out. An `if`'s view fades in and out everywhere (2026-10-14); a branch, a case and a row fade in, and play their own removal, in an eager stack, a `ZStack`, a `Layout` and a conditional drawn whole (2026-10-19), and go at once with none (A10) | [ChildFade.swift](../../Sources/TUIView/Animation/ChildFade.swift), [B-TRANSITIONS2-1](<../Historical/Shapes, effects and animation/Inserting and removing views: transitions and the default fade.md#b-transitions2-1-a-branch-a-case-and-a-row-fade-in-where-a-container-remembers-its-children>) | Lane: the containers that window their rows or lay out a lattice keep no memory of their children yet (B-FB16-2, B-FB16-3, B-FB16-5); the fuller version is priced with theirs |
-| A `TableColumn`'s header and a `Tab`'s title draw their key's Markdown words but not its styles (a field's title is plain words, as SwiftUI's placeholder is); every other control's title key is drawn styled (2026-10-15, 2026-10-18) | [B87](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b87-markdown-in-a-controls-title-key-parsed-though-a-column-header-and-a-tab-title-draw-only-its-words>), [B-PARITYMISC-3](<Decisions/Small parity items (PARITYMISC).md#b-paritymisc-3-a-column-header-and-a-tab-title-draw-their-keys-markdown-words-not-its-styles>) | Lane: the fuller version draws the styles |
+| A `TableColumn`'s header and a `Tab`'s title draw their key's Markdown words but not its styles (a field's title is plain words, as SwiftUI's placeholder is); every other control's title key is drawn styled (2026-10-15, 2026-10-18) | [B87](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b87-markdown-in-a-controls-title-key-parsed-though-a-column-header-and-a-tab-title-draw-only-its-words>), [B-PARITYMISC-3](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b-paritymisc-3-a-column-header-and-a-tab-title-draw-their-keys-markdown-words-not-its-styles>) | Lane: the fuller version draws the styles |
 | A modifier reaches multi-view content through some wrappers only | [§3](<SwiftUI compatibility guide.md#3-open-divergence>) | Open divergence |
 | An `indirect` enum case's `update()` changes are not written back; nor any enum payload's on WebAssembly and Windows | [B-DYNVFIX-2](<../Historical/State and dynamic properties/Finding dynamic properties, and writing back what update() changes.md#b-dynvfix-2-an-indirect-enum-cases-payload-and-every-payload-on-webassembly-and-windows-is-updated-on-a-copy>) | Known; fuller version priced |
 | A class property (S6): a closure made in a view other than the first drawn holding the object reads the first one's environment (a sheet's Done calling its page's `dismiss`); the `@State` in an enum case in a long-lived object follows the case's payload | [B-DYNVFIX-3](<../Historical/State and dynamic properties/A class property held by several views.md#b-dynvfix-3-what-a-class-property-holds-is-the-objects-every-view-drawn-holding-it-is-redrawn-by-its-writes-each-reads-its-own-environment-while-it-draws-and-an-object-made-with-a-view-value-keeps-its-views-state>) | Known; the fuller version priced |

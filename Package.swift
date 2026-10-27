@@ -25,8 +25,8 @@ let package = Package(
         // its files can see. So a target that depends on `TUI` compiles and links every module below,
         // whichever of them it imports, and one that depends on `TUILists` alone compiles and links
         // TUILists and what TUILists is built on, and nothing else (measured on a miniature of this
-        // package: Documentation/Historical/Per-module products (2026-10-11).md, which also has the rest of
-        // what is said here).
+        // package: `Per-module products.md` in Documentation/Historical/Module split, compile time and
+        // binary size/, which also has the rest of what is said here).
 
         // ── The umbrella: the default ───────────────────────────────────────────────────────────────────
         // `import TUI` is the whole framework, as `import SwiftUI` is the whole of SwiftUI: every module

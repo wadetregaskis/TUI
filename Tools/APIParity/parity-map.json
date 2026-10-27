@@ -132,7 +132,7 @@
         "EnvironmentValues.searchSuggestionsPlacement",
         "View.searchSuggestions(_:for:)"
       ],
-      "why": "SwiftUI can put a searchable field's suggestions in two places — a pop-up menu, or in the content beneath the field — so it needs a placement type and a per-placement visibility. TUI has one place: the field's drop-down (Sources/TUITextInput/Views/TextInputSuggestions.swift, the same DropdownMenu the Picker uses). `View.searchSuggestions(_:)` and `View.searchCompletion(_:)` are implemented against it. Shipping the `for:` overload would mean either honouring one case of an OptionSet and silently ignoring the other — the partial-seam shape declined twice in Documentation/Historical/Parity work blocked on a decision (2026-10-12).md — or inventing an in-content suggestions surface, which is a feature rather than parity plumbing."
+      "why": "SwiftUI can put a searchable field's suggestions in two places — a pop-up menu, or in the content beneath the field — so it needs a placement type and a per-placement visibility. TUI has one place: the field's drop-down (Sources/TUITextInput/Views/TextInputSuggestions.swift, the same DropdownMenu the Picker uses). `View.searchSuggestions(_:)` and `View.searchCompletion(_:)` are implemented against it. Shipping the `for:` overload would mean either honouring one case of an OptionSet and silently ignoring the other — the partial-seam shape declined twice in Documentation/Historical/SwiftUI parity process/Completing the SwiftUI API.md — or inventing an in-content suggestions surface, which is a feature rather than parity plumbing."
     },
     {
       "match": [
@@ -325,7 +325,7 @@
         "Image.init(_:variableValue:bundle:*",
         "Image.init(decorative:variableValue:bundle:)"
       ],
-      "why": "The modifiers, environment values and initialisers over Image.Scale, SymbolRenderingMode, SymbolColorRenderingMode and SymbolVariableValueMode, whose types are declined above. An SF Symbol here is one codepoint drawn at the terminal's font size in the cell's single foreground colour (Sources/TUIStrings/SFSymbols/SFSymbol.swift). So there is no relative size to pick (macOS honours imageScale: 17×16 → 23×20 points, measured), no layers to colour separately (macOS draws even single-layer `star` differently under .hierarchical), and no variable-value layers to fill. Confirmed in Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md (Symbols)."
+      "why": "The modifiers, environment values and initialisers over Image.Scale, SymbolRenderingMode, SymbolColorRenderingMode and SymbolVariableValueMode, whose types are declined above. An SF Symbol here is one codepoint drawn at the terminal's font size in the cell's single foreground colour (Sources/TUIStrings/SFSymbols/SFSymbol.swift). So there is no relative size to pick (macOS honours imageScale: 17×16 → 23×20 points, measured), no layers to colour separately (macOS draws even single-layer `star` differently under .hierarchical), and no variable-value layers to fill. Confirmed in Documentation/Historical/SwiftUI parity process/The refusals re-examined (wave 17).md (Symbols)."
     },
     {
       "match": [
@@ -338,14 +338,14 @@
         "View.lineHeight(_:)",
         "EnvironmentValues.lineHeight"
       ],
-      "why": "Sub-cell typography: kerning and tracking move glyphs by fractions of a point, baselineOffset raises a run within its line, and lineHeight sets the distance between baselines. Cells advance in whole columns and rows, and the emulator places each glyph within its cell, so none of these could be more than accepted and ignored. Confirmed in Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md (P8's omissions, and the Font.Leading verdict: a grid can only move whole rows)."
+      "why": "Sub-cell typography: kerning and tracking move glyphs by fractions of a point, baselineOffset raises a run within its line, and lineHeight sets the distance between baselines. Cells advance in whole columns and rows, and the emulator places each glyph within its cell, so none of these could be more than accepted and ignored. Confirmed in Documentation/Historical/SwiftUI parity process/The refusals re-examined (wave 17).md (P8's omissions, and the Font.Leading verdict: a grid can only move whole rows)."
     },
     {
       "match": [
         "View.writingToolsAffordanceVisibility(_:)",
         "View.textInputFormattingControlVisibility(_:for:)"
       ],
-      "why": "Affordances the operating system draws over a text view: Apple Intelligence's Writing Tools button, and the rich-text formatting control bar. Nothing in a terminal app is OS-drawn, and neither service reaches a terminal. TextInputFormattingControlPlacement is declined for the same reason (Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md)."
+      "why": "Affordances the operating system draws over a text view: Apple Intelligence's Writing Tools button, and the rich-text formatting control bar. Nothing in a terminal app is OS-drawn, and neither service reaches a terminal. TextInputFormattingControlPlacement is declined for the same reason (Documentation/Historical/SwiftUI parity process/The refusals re-examined (wave 17).md)."
     },
     {
       "match": [
@@ -353,7 +353,7 @@
         "View.typesettingLanguage(_:isEnabled:)",
         "Text.typesettingLanguage(_:isEnabled:)"
       ],
-      "why": "A run's typesetting language sets its line height, line breaking and spacing. Line height is the terminal's row and spacing is whole cells; TUI's word wrapper breaks at spaces and at characters a line cannot hold, whatever the language. So a language changes none of the three and could only be accepted and ignored. See Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md C8."
+      "why": "A run's typesetting language sets its line height, line breaking and spacing. Line height is the terminal's row and spacing is whole cells; TUI's word wrapper breaks at spaces and at characters a line cannot hold, whatever the language. So a language changes none of the three and could only be accepted and ignored. See Documentation/Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md C8."
     },
     {
       "match": [
@@ -647,10 +647,10 @@
       "why": "The environment half of minimumScaleFactor(_:); absent for the same reason — glyph size belongs to the terminal emulator, not to the app."
     },
     "Font.Design.rounded": {
-      "why": "A rounded face. The terminal draws every cell in the one face its user configured, and no escape sequence asks for another. Font.Design ships .default and .monospaced, the two that describe the terminal's face (Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md P1)."
+      "why": "A rounded face. The terminal draws every cell in the one face its user configured, and no escape sequence asks for another. Font.Design ships .default and .monospaced, the two that describe the terminal's face (Documentation/Historical/SwiftUI parity process/The refusals re-examined (wave 17).md P1)."
     },
     "Font.Design.serif": {
-      "why": "A serif face. The terminal draws every cell in the one face its user configured, and no escape sequence asks for another; macOS's serif also widens text (31 → 34 pt, measured), which a cell cannot. Font.Design ships .default and .monospaced, the two that describe the terminal's face (Documentation/SwiftUI parity/Refusals re-examined, wave 17 (2026-10-03).md P1)."
+      "why": "A serif face. The terminal draws every cell in the one face its user configured, and no escape sequence asks for another; macOS's serif also widens text (31 → 34 pt, measured), which a cell cannot. Font.Design ships .default and .monospaced, the two that describe the terminal's face (Documentation/Historical/SwiftUI parity process/The refusals re-examined (wave 17).md P1)."
     },
     "Font.Leading": {
       "why": "Leading is the space between baselines, measured in fractions of a point. A terminal's baselines are one cell apart, always. The nearest expressible thing is a WHOLE blank row between lines, which TUI spells `View.lineSpacing(_:)` (Sources/TUIFoundation/Environment/LineSpacing.swift) — a different unit and a different meaning, so it is not this API under another name."

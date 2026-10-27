@@ -3632,7 +3632,7 @@ and which resolves to something we did choose, or ``Color/default``, which is
 explicitly the user's. Naming `Color.ansi(.blue)` and hoping is the one option
 with no defensible reading. (This is the reasoning that re-pointed
 ``Color/primary``/``Color/secondary``/``Color/accentColor`` at palette roles;
-see `Documentation/Historical/Parity work blocked on a decision (2026-10-12).md` §1–2 for the decision.)
+see `Documentation/Historical/SwiftUI parity process/Completing the SwiftUI API.md` §1–2 for the decision.)
 
 ---
 

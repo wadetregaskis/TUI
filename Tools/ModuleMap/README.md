@@ -61,7 +61,7 @@ index unit, it warns: rebuild, then check again.
 | `checks.py` | The checks | |
 | `indexstore.py`, `swiftsource.py` | Reading the index store, and just enough of a Swift lexer | |
 
-The design behind the map is `Documentation/Historical/Module split plan, revision 4 (2026-10-07).md` (the refined
+The design behind the map is `Documentation/Historical/Module split, compile time and binary size/The module split.md` (the refined
 plan, after the owner's answers of 2026-10-07; why it exists is in `Compile time and binary size analysis
 (2026-10-07).md` beside it). This tool is the plan's step A1; `rules.json` is revision 4's map, committed at step A1′
 with the `lower` lists, and its base module is named TUIFoundation (the owner's choice, after the plan was written). The assigner is the research assigner
@@ -400,7 +400,7 @@ it everywhere in `rules.json`, `git mv` its directory (and fix Package.swift: th
 module's name is public API: renaming or removing one breaks the build of every client that lists it, and moving a
 public type into another module changes its `String(reflecting:)` and the mangled names a saved `NavigationPath`
 holds, for umbrella clients too. Prefer a move down the map (into a module every leaf re-exports), which breaks no
-client's imports (Documentation/Historical/Per-module products (2026-10-11).md, E4).
+client's imports (Documentation/Historical/Module split, compile time and binary size/Per-module products.md, E4).
 
 After editing, run `assign`. It prints the module table and how many declarations would change module. Read the
 `explain` output for anything surprising, then `assign --write`, and commit `rules.json` and `map.json` together.

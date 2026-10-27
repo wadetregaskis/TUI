@@ -551,7 +551,7 @@ jobs:
       # on macOS, scans every target's imports: it failed a miniature package
       # on an undeclared module dependency in every clean run, where SwiftPM's
       # own build system can find such a module by luck
-      # (Documentation/Historical/Per-module products (2026-10-11).md, E5),
+      # (Documentation/Historical/Module split, compile time and binary size/Per-module products.md, E5),
       # and the script fails on its warning when it only warns. An import of
       # TUILists planted in TUIGrid failed it locally (the
       # TUIGrid app's link). The Linux 6.4 and Xcode 27 lanes' default

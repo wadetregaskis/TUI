@@ -3,8 +3,7 @@
 //
 //  `contentMargins`: space a scroll view keeps around its content, inside the
 //  scrollable area. The SwiftUI behaviours pinned here were measured on macOS
-//  15 (Documentation/SwiftUI parity/Decisions/SwiftUI API completion decisions.md names the
-//  probes).
+//  15 (Tools/SwiftUIProbes/README.md names the probes).
 //
 //  Created by Wade Tregaskis
 //  License: MIT

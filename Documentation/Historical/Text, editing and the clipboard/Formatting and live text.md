@@ -23,6 +23,10 @@ header — and is read once in a navigation title and an alert, as measured. The
    (DEPR-CATCHALL). Lane TEXTFMT built both on 2026-10-24; NUMFMT followed.
 3. **2026-10-26, FORMATTER:** skip both forms, and document why.
 
+## For a future reader
+
+- **A gradient on one interpolated fragment** is written as its description (B-PARITYMISC-4), and the doubled format-style statics stay (B-D3M-4); both below.
+
 ## The record
 
 ### B49. `SystemFormatStyle`: where the rules go beyond the measurements
@@ -246,3 +250,74 @@ read.
 **The fuller version:** carry the `Text` (or `LiveWords`) into the tooltip and
 the strip, read it per frame and declare its change; about two hours each, and
 worth it only once SwiftUI's own is measured live.
+
+### B-PARITYMISC-4. A gradient on one interpolated fragment is written as its description
+
+*`LocalizedStringKey.StringInterpolation.appendInterpolation(_:)`, the
+catch-all; `Text + Text`, removed*
+
+`Text + Text` is gone (SwiftUI deprecated it in macOS 26; the owner's ruling
+[21] of 2026-10-12), replaced by SwiftUI's own replacement: an interpolated
+`Text` keeps its styling. One thing `+` did differently: a gradient on one
+fragment, `Text("a").foregroundStyle(gradient) + Text("b")`, failed to
+compile, because `foregroundStyle` with a gradient returns a view, not a
+`Text`. Interpolated, that view takes the catch-all `appendInterpolation(_:)`
+and is written as its description, which SwiftUI's catch-all (deprecated
+there, with a warning) does too.
+
+**Shipped:** the interpolation as SwiftUI has it; the hole is recorded in the
+compatibility guide's gradient note.
+
+**The fuller version** closes it: an unavailable `appendInterpolation` for a
+view that is not a `Text` or an `Image`, so the spelling fails to compile as it
+did under `+`, or SwiftUI's typed overloads with the catch-all retired (the
+DEPR audit's tenth item). The first is an hour but also refuses
+`\(Color.red)`, which SwiftUI accepts with a warning; the second is half a
+day and decides what each SwiftUI-accepted type writes.
+
+### B-D3M-4. The doubled format-style statics stay, and three calls inside B50
+
+*`TUIAppKit` (B50); `FormatStyle`/`DiscreteFormatStyle` `.offset(to:)`,
+`.reference(to:)`, `.timer(…)`, `.stopwatch(…)`*
+
+**Shipped:** the bridges to Apple's graphics types are the `TUIAppKit`
+product, and nothing TUI is built from imports AppKit, so an app that
+imports only TUI sees nothing of SwiftUICore
+(`CompileCorpusTUIOnly.swift` proves it, and fails if AppKit is imported).
+
+**Calls made along the way:**
+
+- **`internal import AppKit` was not enough.** A two-module probe (Swift
+  6.2.4, macOS 15) shows a SwiftPM library built without library evolution
+  still makes its client load an internally imported module, and SwiftUICore's
+  members with it. `@_implementationOnly` hides it but warns of instability in
+  exactly this configuration, and library evolution needs unsafe flags a
+  dependency cannot carry. So no module below the bridges may import AppKit at
+  all — a test now guards that (`AppKitBridgeTests`).
+- **TUIImage decodes through ImageIO instead of `NSImage`**, its one reason
+  to import AppKit. It turns a picture by its EXIF orientation as `NSImage`
+  did, and of a file holding several images (an icon's sizes, a
+  multi-resolution TIFF) it decodes the largest within the app's pixel limit,
+  where ImageIO's first is often an icon's smallest. Vector formats `NSImage` rasterised (PDF, EPS)
+  are no longer read; no app in the tree used one. Rasterising PDF through Core Graphics
+  (`CGPDFDocument`) would bring them back without AppKit: about an hour.
+- **The `CGColor` and `CGImage` bridges moved too**, though Core Graphics does
+  not import SwiftUICore: one module for "Apple's graphics types" reads better
+  than a split by which framework happens to import which. Moving them back to
+  TUI is a few lines if you would rather they need no extra import.
+
+**Built 2026-10-19** (option 4, settled by the parity rule: B50 covered AppKit,
+not Core Graphics): a PDF is read again on Apple platforms, its first page
+rasterised through `CGPDFDocument` at one pixel a point (`PlatformImageLoader`,
+`PDFDecodingTests`), and an asset catalogue's image set may hold one; the
+`CGColor` and `CGImage` bridges are TUI's own, behind
+`canImport(CoreGraphics)` (`Color+CoreGraphics.swift` in TUIStyling,
+`Image+CoreGraphics.swift` in TUIBitmaps). EPS stays unread, and Linux reads
+no PDF.
+- **The doubled statics stay.** Re-measured with a three-module probe: with
+  TUI free of AppKit, a single declaration on `FormatStyle` serves an app
+  that imports TUI alone — `Date.now.formatted(.offset(to: d))` included —
+  but is ambiguous in a `DiscreteFormatStyle` context for an app that also
+  imports `TUIAppKit` (or AppKit). The pair works for both, so removing the
+  `DiscreteFormatStyle` copies would trade a compile error for every app that
+  bridges a colour.

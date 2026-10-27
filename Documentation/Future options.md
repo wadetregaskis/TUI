@@ -160,7 +160,7 @@ with replacing the singleton.
 
 **What would reopen it.** A profile showing an addressor call costing real
 time on a hot path. Decided in
-[A-SPH2-1](<SwiftUI parity/Decisions/Module split/Cost recovery, inlinable audit and package storage (SPH2).md#a-sph2-1-a-static-let-read-from-another-module-calls-its-addressor--decided-keep-the-addressor>).
+[A-SPH2-1](<Historical/Module split, compile time and binary size/Winning back the module split's cost.md#a-sph2-1-a-static-let-read-from-another-module-calls-its-addressor--decided-keep-the-addressor>).
 
 ### Typed feature-object keys
 
@@ -190,7 +190,7 @@ unmeasured and could be negative.
 
 **What would reopen it.** `swift_dynamicCastClass` showing on a row path in a
 profile. Decided in
-[A-SPH2-2](<SwiftUI parity/Decisions/Module split/Cost recovery, inlinable audit and package storage (SPH2).md#a-sph2-2-a-feature-object-slot-costs-a-cast-on-every-read--decided-the-cast-stays>).
+[A-SPH2-2](<Historical/Module split, compile time and binary size/Winning back the module split's cost.md#a-sph2-2-a-feature-object-slot-costs-a-cast-on-every-read--decided-the-cast-stays>).
 
 ---
 
@@ -213,7 +213,7 @@ overstated it at least 3.5 times.
 **Why not now.** The body is what the child process checks; moved out, the
 test reads only `#expect(processExitsWith: .success) { … inChild … }`. The
 recommendation, (c) leave them, stands, and the question is still the owner's:
-[A-TC1-1](<SwiftUI parity/Decisions/Compile time and binary size/Type-check time (TC1).md#a-tc1-1-exit-tests-bodies-could-move-into-helper-functions>).
+[A-TC1-1](<Historical/Module split, compile time and binary size/Compile time and the test targets.md#a-tc1-1-exit-tests-bodies-could-move-into-helper-functions>).
 
 **What would reopen it.** Exit tests growing to a visible share of the test
 build.
@@ -225,7 +225,7 @@ type-check than in the per-module targets (8.2 against 5.4 ms in debug batch
 jobs when lane TC1 measured it), partly from the umbrella import and
 `@testable`, partly from the target's own `==` overloads. Two fuller options
 were priced in
-[B-TC1-1](<SwiftUI parity/Decisions/Compile time and binary size/Type-check time (TC1).md#b-tc1-1-tuitests-expect-floor-only-the-outliers-were-rewritten>):
+[B-TC1-1](<Historical/Module split, compile time and binary size/Compile time and the test targets.md#b-tc1-1-tuitests-expect-floor-only-the-outliers-were-rewritten>):
 rewrite every `#expect` over 20 ms (4,100 lines, 123 s of whole-module type
 checking, 48 s of batch CPU), or move tests into module-only targets that
 import nothing else.
@@ -233,7 +233,7 @@ import nothing else.
 **Where it stands.** The second option was taken: lane TESTSPLIT (9df2c1c1a,
 2026-10-14) moved every test into a target of the module it tests, importing
 that module and its dependencies only
-([A-TS-1](<SwiftUI parity/Decisions/Compile time and binary size/Test targets split by module (TS).md>)),
+([A-TS-1](<Historical/Module split, compile time and binary size/Compile time and the test targets.md>)),
 after lane TT2 (b377b5f24, 2026-10-10) had split the umbrella suite by area.
 What is left of this floor is the one target that still imports the umbrella,
 `TUIIntegrationTests` (164 files, by design: its tests cross modules). Its

@@ -799,7 +799,7 @@ extension _NavigationSplitViewCore {
         // seam has to be repeated here or silently misses this control alone.
         // `help(_:)` is the first such thing: without this, `.help` on a split
         // divider works on hover and does nothing on the keyboard, which is the
-        // failure mode `Documentation/Historical/Parity work blocked on a decision (2026-10-12).md` predicted for
+        // failure mode `Documentation/Historical/SwiftUI parity process/Completing the SwiftUI API.md` predicted for
         // exactly this site.
         FocusRegistration.publishHelpText(context: context, focusID: sectionID)
 

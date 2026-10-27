@@ -41,7 +41,7 @@ extension Color {
     /// > reads where nothing has set a palette: a `Color` has room for one
     /// > opacity, and a system colour already follows the scheme by itself. So
     /// > does every set once a process has made 65,536 different pairs. See
-    /// > `Documentation/SwiftUI parity/Decisions/Named colours, localisation lookup and the swift-syntax range (D6M).md` (B-D6M-1, B-D6M-4).
+    /// > `Documentation/Historical/Colour and styling/Named colours, asset catalogues and dark values.md` (B-D6M-1, B-D6M-4).
     ///
     /// - Parameters:
     ///   - name: The name of the color resource to look for.
