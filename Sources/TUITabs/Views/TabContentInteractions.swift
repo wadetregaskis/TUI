@@ -331,11 +331,14 @@ struct _TabInteractionsHost<Content: View>: View, Renderable, Layoutable {
         else { return }
         let preview = FrameBuffer(lines: [" \(title) "])
         let anchor = context.environment.dragPreviewAnchor
+        let allowed = context.environment.allowedDragOperations
         _DragHandle.install(
             on: &buffer, context: context, dispatcher: dispatcher,
             onDragBegin: { _, grab in
                 guard let value = payload() else { return }
-                session.begin(payload: value, preview: preview, grabX: grab.x, grabY: grab.y, anchor: anchor)
+                session.begin(
+                    payload: value, preview: preview, grabX: grab.x, grabY: grab.y, anchor: anchor,
+                    allowedOperations: allowed)
             },
             onDragMove: { _ in session.dragMoved() },
             onDragEnd: { _ in _ = session.performDrop() })

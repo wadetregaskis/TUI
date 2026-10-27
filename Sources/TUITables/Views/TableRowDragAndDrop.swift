@@ -282,6 +282,7 @@ enum _TableRowDragRegions {
         for row in rows where traits.indices.contains(row.index) {
             let rowTraits = traits[row.index]
             if let payload = rowTraits.dragPayload {
+                let allowed = context.environment.allowedDragOperations
                 var surface = FrameBuffer(emptyWithWidth: columns.count, height: max(1, row.height))
                 let index = row.index
                 _DragHandle.install(
@@ -292,7 +293,7 @@ enum _TableRowDragRegions {
                         session.begin(
                             payload: value, preview: FrameBuffer(lines: [frames.last ?? ""]),
                             morph: frames.map { FrameBuffer(lines: [$0]) },
-                            grabX: grab.x, grabY: grab.y, anchor: anchor)
+                            grabX: grab.x, grabY: grab.y, anchor: anchor, allowedOperations: allowed)
                     },
                     onDragMove: { _ in session.dragMoved() },
                     onDragEnd: { _ in _ = session.performDrop() })

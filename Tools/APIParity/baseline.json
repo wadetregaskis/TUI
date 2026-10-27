@@ -46,7 +46,6 @@
   "Text.WritingDirectionStrategy.layoutBased",
   "Text.customAttribute(_:)",
   "View.attributedTextFormattingDefinition(_:)",
-  "View.dragConfiguration(_:)",
   "View.dragContainer(for:in:_:)",
   "View.dragContainer(for:itemID:in:_:)",
   "View.dragContainerSelection(_:containerNamespace:)",

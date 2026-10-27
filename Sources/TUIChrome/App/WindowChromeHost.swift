@@ -363,12 +363,20 @@ package struct _WindowChromeHost<Content: View>: View, Renderable {
         // way out of the row it came from. See `liftedPreviewFrame()` for why
         // that blend lives at the draw site rather than in the anchor math.
         //
-        // It wears a badge in its top-right cell naming the operation the
-        // destination under it proposes, macOS's pointer badge (decisions B10).
+        // It wears a badge in its top-right cell naming the operation a drop
+        // there would be, macOS's pointer badge (decisions B10, B-BITEMS1-1).
         if let frame = dragSession?.liftedPreviewFrame(),
             let preview = dragSession?.liftedPreviewContent()
         {
             let palette = context.environment.palette
+            // Option held on the keyboard flips the operation, where the
+            // terminal reports it held alone: read here, as the badge draws,
+            // which asks for a frame when it changes, so the badge follows
+            // the key with the pointer still (B-BITEMS1-1).
+            if let monitor = context.environment.modifierKeyMonitor {
+                if !context.isMeasuring { monitor.noteDrawnFrom(.option) }
+                dragSession?.keyboardFlipsOperation = monitor.current.contains(.option)
+            }
             centered.overlays.append(
                 OverlayLayer(
                     offsetX: frame.x,

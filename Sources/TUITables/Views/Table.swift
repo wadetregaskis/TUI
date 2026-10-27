@@ -3416,7 +3416,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     drawing.reportingChanges(to: slot) {
                         handler.hoverExternalDrop(atContentY: y - interiorTopY)
                     }
-                }),
+                },
+                identity: context.identity),
             in: context)
     }
 
@@ -3637,7 +3638,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
         session.begin(
             payload: RowReorderPayload(), preview: steady, morph: morph,
-            grabX: grabX, grabY: handler.reorderHeldRowsAboveGrab.count)
+            grabX: grabX, grabY: handler.reorderHeldRowsAboveGrab.count, allowedOperations: [.move])
     }
 
     /// The visible rows' bands, in order, with the TOP clip taken off — the

@@ -218,7 +218,7 @@ private struct _SectionHeaderHandle: View, Renderable, Layoutable {
             onDragBegin: { _, grab in
                 session.begin(
                     payload: _SidebarSectionDrag(section: section, mover: own), preview: preview,
-                    grabX: grab.x, grabY: grab.y, anchor: anchor, source: identity)
+                    grabX: grab.x, grabY: grab.y, anchor: anchor, source: identity, allowedOperations: [.move])
             },
             onDragMove: { _ in session.dragMoved() },
             onDragEnd: { _ in _ = session.performDrop() })

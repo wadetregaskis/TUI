@@ -3586,7 +3586,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     drawing.reportingChanges(to: slot) {
                         handler.hoverExternalDrop(atContentY: y - topInset)
                     }
-                }),
+                },
+                identity: context.identity),
             in: context)
     }
     /// What a click on a row DOES: activate it, disclose it, or select it.
@@ -3845,7 +3846,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                             // floating copy under the pointer.
                             dragSession.begin(
                                 payload: RowReorderPayload(), preview: preview,
-                                grabX: grab.x, grabY: grab.y + above)
+                                grabX: grab.x, grabY: grab.y + above, allowedOperations: [.move])
                         } else {
                             // …and advance it on every later movement. `begin`
                             // samples the cursor once; only `dragMoved` tracks

@@ -43,10 +43,37 @@ extension DropOperation {
 // MARK: - The badge on the preview
 
 extension DragAndDropSession {
-    /// The operation the destination under the drag proposes now, or `nil`
-    /// while the drag is over nothing that proposes one.
+    /// The operation a drop where the drag is now would be
+    /// (``effectiveOperation(for:)``), or `nil` while it is over no
+    /// destination.
     package var proposedOperation: DropOperation? {
-        active?.targeted?.proposedOperation?()
+        active?.targeted.flatMap(effectiveOperation(for:))
+    }
+
+    /// The operation a drop on `target` would be, macOS's three-party model
+    /// (owner ruling B-BITEMS1-1): the destination proposes one — its own, or
+    /// else a move into the container the drag came from and a copy anywhere
+    /// else; the one pointer modifier the terminal delivers (or Option, where
+    /// the terminal reports keys held alone) flips a copy to a move and back;
+    /// and the source's allowed operations narrow it — the other of the two
+    /// where only that is allowed, `.forbidden` where neither is, which refuses
+    /// the drop. An alias, a delete, a cancel or a forbidden proposal is the
+    /// destination's own and stands.
+    package func effectiveOperation(for target: Target) -> DropOperation? {
+        guard let drag = active else { return nil }
+        let proposal =
+            target.proposedOperation?()
+            ?? (target.identity.map { isDragSource(within: $0) } == true ? .move : .copy)
+        guard proposal == .copy || proposal == .move else { return proposal }
+        let flipped = (lastAbsoluteEvent?.meta == true) != keyboardFlipsOperation
+        let wanted: DropOperation = flipped ? (proposal == .copy ? .move : .copy) : proposal
+        let other: DropOperation = wanted == .copy ? .move : .copy
+        // A copy or a move, as the source's set spells it.
+        func allows(_ operation: DropOperation) -> Bool {
+            drag.allowedOperations.contains(operation == .copy ? .copy : .move)
+        }
+        if allows(wanted) { return wanted }
+        return allows(other) ? other : .forbidden
     }
 
     /// `preview` with `operation`'s badge on the last cell of its top row, or

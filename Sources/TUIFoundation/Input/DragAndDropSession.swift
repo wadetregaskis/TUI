@@ -130,6 +130,12 @@ package final class DragAndDropSession: @unchecked Sendable {
         /// has heard the move, so a delegate's latest proposal is the answer.
         package var proposedOperation: (() -> DropOperation?)?
 
+        /// The destination view's identity: where a destination proposes no
+        /// operation of its own, a drop into the container the drag came from
+        /// — one the source is inside — proposes a move, and anywhere else a
+        /// copy (owner ruling B-BITEMS1-1). `nil` proposes a copy.
+        package var identity: ViewIdentity?
+
         /// The memberwise initializer, spelled out because the synthesized one
         /// is internal and TUILists makes these, for the lists, and
         /// TUITables, for the tables.
@@ -139,8 +145,10 @@ package final class DragAndDropSession: @unchecked Sendable {
             perform: @escaping (Any, MouseEvent) -> Bool,
             setTargeted: @escaping (Bool) -> Void,
             hovering: ((_ x: Int, _ y: Int) -> Void)? = nil,
-            proposedOperation: (() -> DropOperation?)? = nil
+            proposedOperation: (() -> DropOperation?)? = nil,
+            identity: ViewIdentity? = nil
         ) {
+            self.identity = identity
             self.handlerID = handlerID
             self.accepts = accepts
             self.perform = perform
@@ -233,9 +241,21 @@ package final class DragAndDropSession: @unchecked Sendable {
     }
 
     /// The drag in flight, or `nil`.
+    /// Whether a modifier held on the keyboard flips the drag's operation —
+    /// Option, where the terminal reports a modifier held alone (the kitty
+    /// keyboard protocol). Set by the window as it draws the drag, from the
+    /// keys it reads, so the badge follows the key with the pointer still.
+    package var keyboardFlipsOperation = false
+
     package struct ActiveDrag {
         /// The dragged value, type-erased (drops re-match it by type).
         package let payload: Any
+
+        /// The operations the drag's source allows within the app — a
+        /// `.draggable`'s `dragConfiguration`, a copy by default; a reorder's,
+        /// a move. What a destination proposes is narrowed to these
+        /// (``DragAndDropSession/effectiveOperation(for:)``).
+        var allowedOperations: DropOperation.Set = [.copy]
 
         /// The floating preview drawn at the cursor by the root scene render.
         ///
@@ -545,12 +565,15 @@ package final class DragAndDropSession: @unchecked Sendable {
     ///   - source: The identity of the view the gesture started in, so that
     ///     view — and any container holding it — can render it as gone while
     ///     it is in the user's hand.
+    ///   - allowedOperations: The operations the source allows within the
+    ///     app: a copy unless it says otherwise; a reorder, a move.
     package func begin(
         payload: Any, preview: FrameBuffer,
         morph: [FrameBuffer] = [],
         grabX: Int = 0, grabY: Int = 0,
         anchor: DragPreviewAnchor = .grabPoint,
-        source: ViewIdentity? = nil
+        source: ViewIdentity? = nil,
+        allowedOperations: DropOperation.Set = [.copy]
     ) {
         guard let event = lastAbsoluteEvent else { return }
         self.source = source
@@ -571,6 +594,7 @@ package final class DragAndDropSession: @unchecked Sendable {
             grabY: min(max(0, grabY), max(0, preview.height - 1)),
             anchor: anchor,
             cursorX: event.x, cursorY: event.y, targetedID: nil, targeted: nil)
+        _active?.allowedOperations = allowedOperations
         if let drag = active {
             let press = pressAbsoluteEvent ?? event
             let home = Self.previewOrigin(cursorX: press.x, cursorY: press.y, drag: drag)
@@ -748,9 +772,11 @@ package final class DragAndDropSession: @unchecked Sendable {
             cancelReturningToOrigin()
             return false
         }
-        // A destination can accept the TYPE and still refuse this particular
-        // drop (a full queue, a duplicate); that is a refusal like any other.
-        guard target.perform(drag.payload, event) else {
+        // An operation the source does not allow, either way round, is a
+        // refusal (owner ruling B-BITEMS1-1); so is a destination that can
+        // accept the TYPE and still refuses this particular drop (a full
+        // queue, a duplicate).
+        guard effectiveOperation(for: target) != .forbidden, target.perform(drag.payload, event) else {
             cancelReturningToOrigin()
             return false
         }

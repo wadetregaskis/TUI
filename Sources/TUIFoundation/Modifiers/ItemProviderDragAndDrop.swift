@@ -282,8 +282,16 @@
 
         /// The operation the delegate proposes now, for the preview's badge:
         /// `nil` until it has validated the drag, and when it refused it.
+        /// The delegate's proposal: `nil` while it proposes nothing (the
+        /// session's own rule, a copy or a move, then decides), and a cancel
+        /// where it refused the drag — a drop there is no drop, and wears no
+        /// badge.
         func proposedOperation() -> DropOperation? {
-            state.validated == true ? state.operation : nil
+            switch state.validated {
+            case true?: state.operation
+            case false?: .cancel
+            case nil: nil
+            }
         }
 
         func perform(_ payload: Any, _ info: DropInfo) -> Bool {

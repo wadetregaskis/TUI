@@ -38,7 +38,16 @@ Shipped as above, and A53's prerequisite (2026-10-26): Copy on a focused
 — a stop of the content's own where it has one (a draggable `Button` keeps
 its single stop), else one of the modifier's, which publishes `\.isFocused`;
 none in a list row (the list is the row's stop) or while disabled
-(`TransferKeys`). **Owed:** A53's carry mode, and the three-party model.
+(`TransferKeys`); and B-BITEMS1-1's three-party model the same night:
+`dragConfiguration(_:)` states what a source allows (a copy by default, a
+row reorder a move), a destination proposes (a delegate its own; else a move
+into the container the drag came from — one the source is inside — and a
+copy anywhere else), the pointer's one modifier or Option held on the
+keyboard flips a copy and a move, and the source's set narrows it: the other
+where only that is allowed, `.forbidden` and a refused drop where neither is.
+The badge names the result, so a plain `dropDestination` now wears `+`. A
+delegate that refuses the drag proposes `.cancel`, unbadged. **Owed:** A53's
+carry mode; the image well's badge probed in a real window.
 **Open:** DRAG-SELECTION. DEPR-DROPDEST's line is in the compatibility guide
 (the Drag and drop row: SwiftUI's older `dropDestination(for:action:isTargeted:)`,
 soft-deprecated, kept while the `isEnabled:` form's `DropSession` waits on

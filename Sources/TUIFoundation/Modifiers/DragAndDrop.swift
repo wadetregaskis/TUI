@@ -145,6 +145,7 @@ extension DraggableModifier: Renderable, Layoutable {
         let payload = self.payload
         let capturedPreview = previewBuffer
         let anchor = context.environment.dragPreviewAnchor
+        let allowed = context.environment.allowedDragOperations
         _DragHandle.install(
             on: &buffer,
             context: context,
@@ -157,7 +158,7 @@ extension DraggableModifier: Renderable, Layoutable {
                 guard !isNilOptional(value) else { return }
                 session.begin(
                     payload: value, preview: capturedPreview,
-                    grabX: grab.x, grabY: grab.y, anchor: anchor, source: identity)
+                    grabX: grab.x, grabY: grab.y, anchor: anchor, source: identity, allowedOperations: allowed)
             },
             onDragMove: { _ in session.dragMoved() },
             onDragEnd: { _ in
@@ -472,7 +473,8 @@ package enum DropZone {
             accepts: accepts,
             perform: { payload, event in perform(payload, info(at: event, carrying: payload)) },
             setTargeted: setTargeted,
-            proposedOperation: proposedOperation
+            proposedOperation: proposedOperation,
+            identity: context.identity
         )
         if hovering != nil || hoveringInfo != nil {
             target.hovering = { x, y in

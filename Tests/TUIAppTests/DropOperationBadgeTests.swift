@@ -135,21 +135,23 @@ struct DropOperationBadgeTests {
         }
 
         @Test(
-            "A delegate's proposal names the badge",
+            "A delegate's proposal names the badge, narrowed to what the source allows",
             arguments: [
-                (DropOperation.copy, Character("+")), (.alias, "\u{2197}"), (.forbidden, "\u{2298}"),
-                (.move, "P"), (.delete, "P"), (.cancel, "P"),
+                (DropOperation.copy, DropOperation.copy, Character("+")), (.alias, .alias, "\u{2197}"),
+                (.forbidden, .forbidden, "\u{2298}"), (.move, .copy, "+"), (.delete, .delete, "P"),
+                (.cancel, .cancel, "P"),
             ])
-        func delegateProposal(operation: DropOperation, glyph: Character) throws {
+        func delegateProposal(operation: DropOperation, effective: DropOperation, glyph: Character) throws {
+            // A `.draggable` allows a copy only, so a proposed move is a copy.
             let harness = InputChainHarness(width: 30, height: 8)
             let page = tree(Text("ZONE========").onDrop(of: [.text], delegate: Proposing(operation: operation)))
             harness.frame(page)
             hold(harness)
-            #expect(harness.tui.dragAndDropSession.proposedOperation == operation)
+            #expect(harness.tui.dragAndDropSession.proposedOperation == effective)
             #expect(try corner(harness, page) == glyph)
         }
 
-        @Test("A delegate that proposes nothing keeps copy; one that refuses the drag shows no badge")
+        @Test("A delegate that proposes nothing keeps copy; one that refuses the drag is a cancel, unbadged")
         func delegateDefaultsAndRefusal() throws {
             let harness = InputChainHarness(width: 30, height: 8)
             let keeps = tree(Text("ZONE========").onDrop(of: [.text], delegate: Proposing(operation: nil)))
@@ -161,19 +163,74 @@ struct DropOperationBadgeTests {
             let page = tree(Text("ZONE========").onDrop(of: [.text], delegate: Proposing(valid: false, operation: .copy)))
             refusing.frame(page)
             hold(refusing)
-            #expect(refusing.tui.dragAndDropSession.proposedOperation == nil)
+            #expect(refusing.tui.dragAndDropSession.proposedOperation == .cancel)
             #expect(try corner(refusing, page) == "P")
         }
 
-        @Test("TUI's own dropDestination proposes nothing, so wears no badge")
-        func dropDestinationShowsNone() throws {
-            let harness = InputChainHarness(width: 30, height: 8)
-            let page = tree(Text("ZONE========").dropDestination(for: String.self, action: { _, _ in true }, isTargeted: { _ in }))
-            harness.frame(page)
-            hold(harness)
-            #expect(harness.tui.dragAndDropSession.active?.targeted != nil, "the drag is over the destination")
-            #expect(harness.tui.dragAndDropSession.proposedOperation == nil)
-            #expect(try corner(harness, page) == "P")
-        }
     #endif
+
+    // MARK: - The three-party model (owner ruling B-BITEMS1-1)
+
+    /// A chip that allows `operations` within the app, three lines above a
+    /// zone, both inside a destination when `around`, else the zone alone one.
+    private func modelTree(_ configuration: DragConfiguration?, around: Bool) -> some View {
+        let zone = Text("ZONE========")
+        let chip = Text("CHIP").draggable("apple")
+        let column = VStack(alignment: .leading, spacing: 0) {
+            if let configuration { chip.dragConfiguration(configuration) } else { chip }
+            Text("").frame(height: 3)
+            if around { zone } else { zone.dropDestination(for: String.self) { _, _ in } }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        return _WindowChromeHost(
+            content: Group {
+                if around { column.dropDestination(for: String.self) { _, _ in } } else { column }
+            })
+    }
+
+    private func held(_ page: some View, meta: Bool = false) -> InputChainHarness {
+        let harness = InputChainHarness(width: 30, height: 8)
+        harness.frame(page)
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 1, y: 0))
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 2, y: 2))
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 3, y: 4))
+        harness.mouse(MouseEvent(button: .left, phase: .dragged, x: 4, y: 4, meta: meta))
+        harness.frame(page)
+        return harness
+    }
+
+    @Test("TUI's own dropDestination proposes a copy into another container, and wears +")
+    func dropDestinationCopies() {
+        let harness = held(modelTree(nil, around: false))
+        #expect(harness.tui.dragAndDropSession.active?.targeted != nil, "the drag is over the destination")
+        #expect(harness.tui.dragAndDropSession.proposedOperation == .copy)
+    }
+
+    @Test("Into the container the drag came from it proposes a move, where the source allows one")
+    func moveWithinTheContainer() {
+        let moving = held(modelTree(DragConfiguration(allowMove: true), around: true))
+        #expect(moving.tui.dragAndDropSession.proposedOperation == .move)
+        // The source allows a copy only: the move is a copy.
+        let copying = held(modelTree(nil, around: true))
+        #expect(copying.tui.dragAndDropSession.proposedOperation == .copy)
+    }
+
+    @Test("The pointer's modifier flips a copy to a move and back")
+    func modifierFlips() {
+        let flipped = held(modelTree(DragConfiguration(allowMove: true), around: true), meta: true)
+        #expect(flipped.tui.dragAndDropSession.proposedOperation == .copy)
+        let flippedOut = held(modelTree(DragConfiguration(allowMove: true), around: false), meta: true)
+        #expect(flippedOut.tui.dragAndDropSession.proposedOperation == .move)
+    }
+
+    @Test("A source that allows neither a copy nor a move is forbidden there, and the drop is refused")
+    func neitherAllowed() {
+        let page = modelTree(
+            DragConfiguration(operationsWithinApp: .init(allowCopy: false), operationsOutsideApp: .init()),
+            around: false)
+        let harness = held(page)
+        #expect(harness.tui.dragAndDropSession.proposedOperation == .forbidden)
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 4, y: 4))
+        #expect(harness.tui.dragAndDropSession.returnFlight != nil, "the drop was refused and the chip flies home")
+    }
 }

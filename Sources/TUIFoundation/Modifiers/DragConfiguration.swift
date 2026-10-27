@@ -13,11 +13,11 @@
 /// The behavior of the drag, proposed by the dragging source — SwiftUI's
 /// `DragConfiguration`.
 ///
-/// The value exists; the `dragConfiguration(_:)` modifier that applies one is
-/// an open question (decisions A53), so its spelling does not compile
-/// here. A macOS 26 API, written from its documentation: nothing about it
+/// Applied with ``View/dragConfiguration(_:)`` (owner ruling B-BITEMS1-1).
+/// TUI's drags stay inside the app, so ``operationsWithinApp`` is the one that
+/// counts. A macOS 26 API, written from its documentation: nothing about it
 /// could be measured on macOS 15.8.
-public struct DragConfiguration: CustomDebugStringConvertible {
+public struct DragConfiguration: CustomDebugStringConvertible, Sendable {
     /// Describes the drag operations suggested to destinations within the
     /// app.
     ///
@@ -185,4 +185,43 @@ public struct DragDropPreviewsFormation: Hashable, Sendable, CustomStringConvert
 
     /// `.stack`.
     public var description: String { "." + name }
+}
+
+// MARK: - Applying a configuration
+
+extension View {
+    /// Configures the drags that begin inside this view: the operations their
+    /// source allows — SwiftUI's `dragConfiguration(_:)`.
+    ///
+    /// A drop's operation is the destination's proposal — a move into the
+    /// container the drag came from, a copy anywhere else, the one pointer
+    /// modifier the terminal delivers flipping the two — narrowed to these:
+    /// the other of the two where only that is allowed, and refused where
+    /// neither is. The preview's badge names it. Without a configuration a
+    /// drag allows a copy; a row reorder allows a move (owner ruling
+    /// B-BITEMS1-1).
+    ///
+    /// - Parameter configuration: The operations the drags allow.
+    /// - Returns: A view whose drags carry the configuration.
+    public func dragConfiguration(_ configuration: DragConfiguration) -> some View {
+        environment(\.dragConfiguration, configuration)
+    }
+}
+
+private struct DragConfigurationKey: EnvironmentKey {
+    static let defaultValue: DragConfiguration? = nil
+}
+
+extension EnvironmentValues {
+    /// The configuration ``View/dragConfiguration(_:)`` set for the drags
+    /// beginning below it, or `nil`: a copy.
+    package var dragConfiguration: DragConfiguration? {
+        get { self[DragConfigurationKey.self] }
+        set { self[DragConfigurationKey.self] = newValue }
+    }
+
+    /// The operations a drag beginning here allows within the app.
+    package var allowedDragOperations: DropOperation.Set {
+        dragConfiguration?.operationsWithinApp.operations ?? [.copy]
+    }
 }
