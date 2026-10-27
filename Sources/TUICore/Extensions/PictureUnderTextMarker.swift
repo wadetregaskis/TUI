@@ -143,7 +143,7 @@ extension KittyGraphics {
     /// Whether the terminal painting this app's output draws a Kitty classic
     /// placement under text — below the glyphs, above a cell's default field
     /// (`z=-1`) — so a glyph over a frosted picture can stand on the picture
-    /// itself rather than on its average colour (``PictureUnderTextMarker``).
+    /// itself rather than on its average colour (`PictureUnderTextMarker`).
     /// Published from `TerminalClient.applyGraphicsSupport()`.
     ///
     /// A table of hosts somebody measured, ANDed with the handshake, as

@@ -196,7 +196,7 @@ extension KittyGraphics {
             return Character(String(scalars))
         }
 
-        /// The cell as ``placeholderRows(id:columns:rows:)`` spells it: the id in a
+        /// The cell as ``placeholderRows(id:columns:rows:placement:)`` spells it: the id in a
         /// direct-colour foreground, then the placeholder and its three marks,
         /// the foreground left in force.
         public var spelled: String {
@@ -213,7 +213,7 @@ extension KittyGraphics {
     /// placeholder and its marks, and the id the colour carries — or `nil` for
     /// anything else.
     ///
-    /// The inverse of ``placeholderRows(id:columns:rows:)`` for one cell, which
+    /// The inverse of ``placeholderRows(id:columns:rows:placement:)`` for one cell, which
     /// is how what is drawn behind a translucent layer is recognised as a
     /// picture rather than blended as a colour (`TerminalImageStore`'s derived
     /// images). A cell with no third mark is read with a high byte of zero, as
