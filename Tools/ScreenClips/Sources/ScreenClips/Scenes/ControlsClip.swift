@@ -36,8 +36,9 @@ private func controlsScript() -> [Step] {
     // Guests, up by five; the gauges fill.
     script += [.tab, .wait(0.3)]
     script += Step.repeat(.right, 5, interval: 0.3)
-    // An alert a day before.
-    script += [.wait(0.3), .tab, .wait(0.3), .right, .wait(0.4), .right, .wait(0.5)]
+    // An alert a day before: the arrows move the segmented control's cursor,
+    // Space chooses.
+    script += [.wait(0.3), .tab, .wait(0.3), .right, .wait(0.4), .right, .wait(0.3), .space, .wait(0.6)]
     // The calendar, past the label's swatch: three days on, a week down,
     // chosen. (The swatch's colour panel is a dialog taller than the whole
     // clip, so the clip leaves it shut.)
@@ -133,7 +134,7 @@ struct EventPlanner: View {
                     .foregroundStyle(.palette.foregroundSecondary)
                 Text(verbatim: repeats == "Never" ? "Once" : "Repeats \(repeats.lowercased())")
                     .foregroundStyle(.palette.foregroundSecondary)
-                Text(verbatim: alert == "None" ? place : "\(place) · alert \(alert) before")
+                Text(verbatim: alert == "None" ? place : "\(place) · \(alert) alert")
                     .foregroundStyle(.palette.foregroundSecondary)
                 HStack(spacing: 2) {
                     Gauge(value: Double(guests), in: 0...40) {

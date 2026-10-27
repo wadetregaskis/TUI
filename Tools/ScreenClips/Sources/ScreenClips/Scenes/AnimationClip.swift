@@ -20,7 +20,8 @@ let animationClip = Clip(
     rows: 30,
     output: 800,
     // Today's habits done, one at a time; then the week, and the month, each
-    // showing what was just done; then back to today, reset, for the loop.
+    // showing what was just done; then back to today, and once it is in, the
+    // habits flying home for the loop.
     script: [
         .camera(Shot(x: 0, y: 2, width: 62, height: 18)),
         .wait(0.9), .cue("done"),
@@ -28,7 +29,8 @@ let animationClip = Clip(
         .wait(1.2), .cue("done"),
         .wait(1.4), .cue("tab 1"),
         .wait(1.9), .cue("tab 2"),
-        .wait(1.9), .cue("tab 0"), .cue("reset"),
+        .wait(1.9), .cue("tab 0"),
+        .wait(0.8), .cue("reset"),
         .wait(1.4),
     ],
     run: { await AnimationApp.main() }
