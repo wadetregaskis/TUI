@@ -104,6 +104,8 @@ struct MenuBarHelpTests {
     private mutating func chooseHelp<A: App>(item downs: Int, in app: HeadlessApp<A>) {
         app.send(KeyEvent(key: .f10))
         frame(app)
+        app.send(KeyEvent(key: .down))
+        frame(app)
         app.send(KeyEvent(key: .left))
         frame(app)
         for _ in 0..<downs {
@@ -121,6 +123,8 @@ struct MenuBarHelpTests {
         #expect(app.screen[0].stripped.contains("Help"), "\(app.screen[0].stripped)")
         app.send(KeyEvent(key: .f10))
         frame(app)
+        app.send(KeyEvent(key: .down))
+        frame(app)
         app.send(KeyEvent(key: .left))
         frame(app)
         let rows = app.screen.map(\.stripped)
@@ -136,6 +140,8 @@ struct MenuBarHelpTests {
         chooseHelp(item: 1, in: app)
         #expect(shows("Explains the label", app) && shows("Explains the button", app), "\(app.screen.map(\.stripped))")
         app.send(KeyEvent(key: .f10))
+        frame(app)
+        app.send(KeyEvent(key: .down))
         frame(app)
         app.send(KeyEvent(key: .left))
         frame(app)

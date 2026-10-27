@@ -1,9 +1,10 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  MenuBarOpeningTests.swift
 //
-//  Opening the menu bar's menus: a click on a title, F10, Alt and a title's
-//  first letter; with one open, Left and Right, F10, Escape and Return. The
-//  bar is not in the Tab ring.
+//  Opening the menu bar's menus: a click on a title, F10's bar mode (the
+//  arrows, a title's letter, Return; Escape, F10 or any other key leaves),
+//  Alt and a title's first letter; with one open, Left and Right, F10, Escape
+//  and Return. The bar is not in the Tab ring.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -115,11 +116,17 @@ struct MenuBarOpeningTests {
         rows(app).dropFirst().contains { $0.contains(text) }
     }
 
-    @Test("F10 opens the first menu with its first item highlighted, and Return chooses it")
-    func f10Opens() {
+    @Test("F10 highlights the first title and opens nothing; Down opens it, its first item highlighted")
+    func f10WalksTheTitles() {
         let (app, clock) = launched(TwoMenusApp())
         #expect(!shows("A1", app), "sanity: every menu closed")
+        let bar = app.screen[0]
         #expect(app.send(KeyEvent(key: .f10)))
+        clock.frame(app)
+        #expect(!shows("A1", app), "F10 opens no menu: \(rows(app))")
+        // The same titles, drawn differently: the first lit, the letters underlined.
+        #expect(app.screen[0].stripped == bar.stripped && app.screen[0] != bar, "\(app.screen[0].debugDescription)")
+        app.send(KeyEvent(key: .down))
         clock.frame(app)
         #expect(shows("A1", app) && shows("A2", app), "\(rows(app))")
         app.send(KeyEvent(key: .enter))
@@ -128,10 +135,74 @@ struct MenuBarOpeningTests {
         #expect(!shows("A1", app), "choosing closed the menu: \(rows(app))")
     }
 
+    @Test("In the bar mode Right moves along the titles and Return opens the one highlighted")
+    func barModeArrows() {
+        let (app, clock) = launched(TwoMenusApp())
+        for key: Key in [.f10, .right, .enter] {
+            app.send(KeyEvent(key: key))
+            clock.frame(app)
+        }
+        #expect(shows("B1", app) && !shows("A1", app), "\(rows(app))")
+        app.send(KeyEvent(key: .enter))
+        #expect(OpeningProbe.shared.log == ["b1"], "a keyboard-opened menu highlights its first item")
+    }
+
+    @Test("In the bar mode a title's letter opens its menu, without Option")
+    func barModeLetter() {
+        let (app, clock) = launched(TwoMenusApp())
+        app.send(KeyEvent(key: .f10))
+        clock.frame(app)
+        app.send(KeyEvent(key: .character("b")))
+        clock.frame(app)
+        #expect(shows("B1", app), "\(rows(app))")
+    }
+
+    @Test("Escape, F10 and any other key leave the bar mode, and the page does not hear the key")
+    func barModeLeaves() {
+        for key: Key in [.escape, .f10, .character("x"), .tab] {
+            let (app, clock) = launched(TwoMenusApp())
+            app.send(KeyEvent(key: .f10))
+            clock.frame(app)
+            app.send(KeyEvent(key: key))
+            clock.frame(app)
+            // Out of the mode: Down goes to the page again, and opens nothing.
+            app.send(KeyEvent(key: .down))
+            clock.frame(app)
+            #expect(!shows("A1", app), "\(key): \(rows(app))")
+            app.send(KeyEvent(key: .enter))
+            #expect(OpeningProbe.shared.log.allSatisfy { $0.hasPrefix("page") }, "\(key): \(OpeningProbe.shared.log)")
+        }
+    }
+
+    @Test("A click away from the titles leaves the bar mode and is spent on it; a click on a title opens it")
+    func barModePointer() throws {
+        let (app, clock) = launched(TwoMenusApp())
+        app.send(KeyEvent(key: .f10))
+        clock.frame(app)
+        let page = try #require(rows(app).firstIndex { $0.contains("PageA") })
+        let column = try #require(rows(app)[page].range(of: "PageA")).lowerBound.utf16Offset(in: rows(app)[page])
+        app.send(MouseEvent(button: .left, phase: .pressed, x: column + 1, y: page))
+        app.send(MouseEvent(button: .left, phase: .released, x: column + 1, y: page))
+        clock.frame(app)
+        #expect(OpeningProbe.shared.log.isEmpty, "the click left the mode and pressed nothing")
+        app.send(KeyEvent(key: .down))
+        clock.frame(app)
+        #expect(!shows("A1", app), "out of the mode: \(rows(app))")
+        app.send(KeyEvent(key: .f10))
+        clock.frame(app)
+        let beta = try title("Beta", app)
+        app.send(MouseEvent(button: .left, phase: .pressed, x: beta, y: 0))
+        app.send(MouseEvent(button: .left, phase: .released, x: beta, y: 0))
+        clock.frame(app)
+        #expect(shows("B1", app), "\(rows(app))")
+    }
+
     @Test("Down moves the highlight; Escape closes the menu and the page has its focus back")
     func escapeRestoresTheFocus() {
         let (app, clock) = launched(TwoMenusApp())
         app.send(KeyEvent(key: .f10))
+        clock.frame(app)
+        app.send(KeyEvent(key: .down))
         clock.frame(app)
         app.send(KeyEvent(key: .escape))
         clock.frame(app)
@@ -139,6 +210,8 @@ struct MenuBarOpeningTests {
         app.send(KeyEvent(key: .enter))
         #expect(OpeningProbe.shared.log == ["page a"], "Return is the focused page button's again")
         app.send(KeyEvent(key: .f10))
+        clock.frame(app)
+        app.send(KeyEvent(key: .down))
         clock.frame(app)
         app.send(KeyEvent(key: .down))
         clock.frame(app)
@@ -150,6 +223,8 @@ struct MenuBarOpeningTests {
     func arrowsStep() {
         let (app, clock) = launched(TwoMenusApp())
         app.send(KeyEvent(key: .f10))
+        clock.frame(app)
+        app.send(KeyEvent(key: .down))
         clock.frame(app)
         app.send(KeyEvent(key: .right))
         clock.frame(app)
@@ -168,6 +243,8 @@ struct MenuBarOpeningTests {
     func f10Closes() {
         let (app, clock) = launched(TwoMenusApp())
         app.send(KeyEvent(key: .f10))
+        clock.frame(app)
+        app.send(KeyEvent(key: .down))
         clock.frame(app)
         app.send(KeyEvent(key: .f10))
         clock.frame(app)
@@ -323,6 +400,8 @@ struct MenuBarOpeningTests {
         let beta = try title("Beta", app)
         app.send(KeyEvent(key: .f10))
         clock.frame(app)
+        app.send(KeyEvent(key: .down))
+        clock.frame(app)
         app.send(MouseEvent(button: .left, phase: .pressed, x: beta, y: 0))
         app.send(MouseEvent(button: .left, phase: .released, x: beta, y: 0))
         clock.frame(app)
@@ -345,6 +424,8 @@ struct MenuBarOpeningTests {
     func shortcutWhileOpen() {
         let (app, clock) = launched(TwoMenusApp())
         app.send(KeyEvent(key: .f10))
+        clock.frame(app)
+        app.send(KeyEvent(key: .down))
         clock.frame(app)
         app.send(KeyEvent(key: .character("y"), ctrl: true))
         #expect(OpeningProbe.shared.log == ["a2"])
@@ -381,6 +462,8 @@ struct MenuBarOpeningTests {
         let (app, clock) = launched(SheetLaterApp())
         app.send(KeyEvent(key: .f10))
         clock.frame(app)
+        app.send(KeyEvent(key: .down))
+        clock.frame(app)
         #expect(shows("A1", app), "sanity: the menu is open: \(rows(app))")
         OpeningProbe.shared.showsSheet = true
         clock.frame(app)
@@ -390,6 +473,25 @@ struct MenuBarOpeningTests {
         clock.frame(app)
         clock.frame(app)
         #expect(!shows("SHEET", app) && !shows("A1", app), "\(rows(app))")
+    }
+
+    @Test(
+        "What a key does in the bar mode",
+        arguments: [
+            (KeyEvent(key: .left), _MenuBarCore.BarModeAction.highlight(2)),
+            (KeyEvent(key: .right), .highlight(1)),
+            (KeyEvent(key: .down), .open(0)),
+            (KeyEvent(key: .enter), .open(0)),
+            (KeyEvent(key: .character("e")), .open(1)),
+            (KeyEvent(key: .character("F"), alt: true), .open(2)),
+            (KeyEvent(key: .character("q")), .leave),
+            (KeyEvent(key: .character("e"), ctrl: true), .leave),
+            (KeyEvent(key: .escape), .leave),
+            (KeyEvent(key: .f10), .leave),
+        ])
+    func barModeActions(event: KeyEvent, action: _MenuBarCore.BarModeAction) {
+        // The app's menu (no letter), Edit, and File.
+        #expect(_MenuBarCore.barModeAction(for: event, highlighted: 0, mnemonics: [nil, "e", "f"]) == action)
     }
 
     @Test("The page's own F10 handler is asked before the menu bar")

@@ -83,6 +83,7 @@ struct MenuBarSubmenuTests {
         let driver = Driver()
         driver.key(.f10)
         driver.key(.down)
+        driver.key(.down)
         driver.key(.right)
         #expect(driver.shows("M1") && driver.shows("A1"), "the submenu opened beside Alpha: \(driver.rows)")
         #expect(!driver.shows("B1"), "Right did not step to Beta: \(driver.rows)")
@@ -96,6 +97,7 @@ struct MenuBarSubmenuTests {
     func arrowsInTheSubmenu() {
         let driver = Driver()
         driver.key(.f10)
+        driver.key(.down)
         driver.key(.down)
         driver.key(.right)
         driver.key(.left)

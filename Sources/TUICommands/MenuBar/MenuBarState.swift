@@ -8,7 +8,8 @@
 
 import TUIFoundation
 
-/// Which of the menu bar's menus is open, and its highlight — a manual
+/// Which of the menu bar's menus is open, and its highlight, or which title
+/// the keyboard is on with every menu closed (``highlightedTitle``) — a manual
 /// `StateStorage` box (not `@State`) the bar marks active each frame, the
 /// pattern a pop-up `Menu`'s `MenuPopupState` follows.
 @MainActor
@@ -16,6 +17,10 @@ final class MenuBarState {
     /// The open menu's place among the bar's menus, or `nil` with every menu
     /// closed.
     private(set) var openMenu: Int?
+
+    /// The title the keyboard is on while it walks the bar with every menu
+    /// closed — the bar mode F10 enters — or `nil` outside it.
+    private(set) var highlightedTitle: Int?
 
     /// The open menu's highlight and rows. A new one for each menu opened, so
     /// a menu never starts from another's rows.
@@ -38,6 +43,7 @@ final class MenuBarState {
     /// for the pointer, which has chosen nothing yet.
     func open(_ index: Int, withSelection: Bool) {
         if openMenu != index { controller = MenuPopupController() }
+        highlightedTitle = nil
         openMenu = index
         controller.opened(withSelection: withSelection)
     }
@@ -50,9 +56,30 @@ final class MenuBarState {
         open(((openMenu + offset) % count + count) % count, withSelection: true)
     }
 
-    /// Closes the open menu, if any. Idempotent.
+    /// Closes the open menu, if any, and leaves the bar mode. Idempotent.
     func close() {
         openMenu = nil
+        highlightedTitle = nil
         controller.closed()
+    }
+
+    /// Enters the bar mode with every menu closed and the first title
+    /// highlighted, as F10 does.
+    func enterBarMode() {
+        close()
+        highlightedTitle = 0
+    }
+
+    /// Moves the bar mode's highlight `offset` titles along among `count`,
+    /// wrapping round the ends as the open menus' arrows do.
+    func highlight(step offset: Int, among count: Int) {
+        guard let highlightedTitle, count > 0 else { return }
+        self.highlightedTitle = ((highlightedTitle + offset) % count + count) % count
+    }
+
+    /// Highlights title `index` in the bar mode, as the pointer passing over it does.
+    func highlight(_ index: Int) {
+        guard highlightedTitle != nil else { return }
+        highlightedTitle = index
     }
 }

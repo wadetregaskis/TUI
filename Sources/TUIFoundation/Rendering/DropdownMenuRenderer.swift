@@ -327,7 +327,7 @@ package enum DropdownMenu {
     /// menu bar's menu is how the bar's titles, under the backdrop, still
     /// follow the pointer (``MenuBackdropPassThrough``).
     @MainActor
-    static func attachDismissBackdrop(
+    package static func attachDismissBackdrop(
         to buffer: inout FrameBuffer, context: RenderContext, spendsClicksInside: Bool = false,
         passThrough: MenuBackdropPassThrough? = nil, onDismiss: @escaping () -> Void
     ) {

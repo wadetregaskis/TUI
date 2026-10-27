@@ -128,7 +128,7 @@ struct DisplayCommandsTests {
     /// Opens View, goes `row` rows down to a submenu, opens it, and chooses its
     /// `item`th option (from 0).
     private mutating func choose<A: App>(row: Int, item: Int, in app: HeadlessApp<A>) {
-        for key: Key in [.f10] + Array(repeating: .down, count: row) + [.right] + Array(repeating: .down, count: item)
+        for key: Key in [.f10, .down] + Array(repeating: .down, count: row) + [.right] + Array(repeating: .down, count: item)
             + [.enter]
         {
             app.send(KeyEvent(key: key))
@@ -142,7 +142,7 @@ struct DisplayCommandsTests {
     /// submenu of disabled items, which opens, as macOS's — presses Return,
     /// which has no item to choose, and closes the menus.
     private mutating func tryDisabled<A: App>(row: Int, in app: HeadlessApp<A>) {
-        for key: Key in [.f10] + Array(repeating: .down, count: row) + [.right, .enter, .escape, .escape] {
+        for key: Key in [.f10, .down] + Array(repeating: .down, count: row) + [.right, .enter, .escape, .escape] {
             app.send(KeyEvent(key: key))
             frame(app)
         }
@@ -150,7 +150,7 @@ struct DisplayCommandsTests {
 
     /// The rows of the submenu `row` rows down View, opened.
     private mutating func submenuRows<A: App>(row: Int, in app: HeadlessApp<A>) -> [String] {
-        for key: Key in [.f10] + Array(repeating: .down, count: row) + [.right] {
+        for key: Key in [.f10, .down] + Array(repeating: .down, count: row) + [.right] {
             app.send(KeyEvent(key: key))
             frame(app)
         }
@@ -167,6 +167,8 @@ struct DisplayCommandsTests {
         let app = launched(ManagedApp())
         #expect(rows(app)[0].contains("View"), "\(rows(app))")
         app.send(KeyEvent(key: .f10))
+        frame(app)
+        app.send(KeyEvent(key: .down))
         frame(app)
         let menu = rows(app)
         for title in ["Palette", "Border Style", "Control Style"] {

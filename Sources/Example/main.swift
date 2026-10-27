@@ -70,7 +70,7 @@ struct ExampleApp: App {
         .environment(\.controlStyle, styling.controlStyle)
         // The menu bar, on the top row: declaring commands shows it. The app's
         // menu (with Settings…), Edit, Window and Help are TUI's; View and
-        // Go add the Example's own. F10 opens it, as does a click on a title.
+        // Go add the Example's own. F10 walks its titles and a title's letter opens one, as does a click on a title.
         .commands { ExampleCommands(palette: $palette, styling: $styling) }
         // What the app menu's About says: a SwiftPM executable has no
         // Info.plist to say it, so the scene does (a TUI modifier).

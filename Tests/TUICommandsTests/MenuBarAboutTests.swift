@@ -100,6 +100,8 @@ struct MenuBarAboutTests {
         #expect(rows()[0].hasPrefix(" Notes  Edit  Note"), "\(rows()[0])")
         app.send(KeyEvent(key: .f10))
         frame()
+        app.send(KeyEvent(key: .down))
+        frame()
         #expect(rows().contains { $0.contains("About Notes") }, "\(rows())")
         #expect(rows().contains { $0.contains("Quit Notes") }, "\(rows())")
         app.send(KeyEvent(key: .enter))

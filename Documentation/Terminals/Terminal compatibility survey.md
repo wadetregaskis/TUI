@@ -5839,7 +5839,7 @@ hosts' documentation say, and how TUI reads it.
 
 | Key | What a host sends | TUI reads it as | Under the kitty keyboard protocol |
 |---|---|---|---|
-| **F10** | `ESC[21~`, the VT220 code, in the xterm family and Apple Terminal alike (Apple Terminal re-codes only the *shifted* function keys, above) | F10: the menu bar's first menu opens (`_MenuBarCore.isMenuBarKey`) | `CSI 21~`, unchanged |
+| **F10** | `ESC[21~`, the VT220 code, in the xterm family and Apple Terminal alike (Apple Terminal re-codes only the *shifted* function keys, above) | F10: the menu bar's bar mode, its first title lit and no menu open (`_MenuBarCore.isMenuBarKey`; owner, 2026-10-26, O13-KEYS) | `CSI 21~`, unchanged |
 | **⌥ and a letter** | `ESC` and the letter where Option is sent as Meta (Apple Terminal's "Use Option as Meta key", iTerm2's Esc+, Ghostty's `macos-option-as-alt`; none the default — expected, not measured); otherwise the character Option composes (⌥F is `ƒ`), which no binding names | Alt and the letter: the menu whose letter it is opens (one per title, no two the same: `MenuBarMnemonics`), below any app shortcut on the chord (a framework default) | `CSI <letter>;3u` where the host reports Option as Alt |
 | A click on a title | SGR mouse reporting, as every click | opens that menu | the same |
 
@@ -5852,7 +5852,15 @@ F10 (unverified). Shift-F10 stays the context menu's (above).
 **What reaches the bar on every host:** a click, and F10 (or fn-F10). Alt and a
 letter work only where Option is sent as Meta, which is why the bar has F10 and
 the click as well, and why every command's own shortcut works with the bar
-closed.
+closed. F10 enters the bar mode (2026-10-26, O13-KEYS): the first title lit, the
+letters underlined whatever the host reports of Option, and the plain letter
+opening its menu — so the letters reach every host there, where ⌥ and a letter
+does not. macOS's own route to a menu bar, Control-F2, belongs to the terminal
+emulator's menu bar and never reaches the app (expected, not measured).
+
+*Still unmeasured (2026-10-26):* pressing a key needs a person at the keyboard —
+the session that built the bar mode cannot send one (AppleScript is not
+authorised, and the terminals take only clicks from it).
 
 **Showing the letters (2026-10-24, lane MENUBAR).** Each title's letter is
 underlined while Option is held — where the terminal tells TUI that Option
@@ -5900,7 +5908,7 @@ the screen, or hides them again — the menu bar's Help ▸ Show All Tooltips.
 **Why Option and not another modifier:** Shift is already in `?` on most layouts,
 and Control-? is Backspace wherever the kitty protocol is not spoken. Option is
 the one that survives, where the host sends it as Meta; elsewhere the menu item
-is the way to it (F10, then ← to Help), as the menu bar is to everything. An F-key
+is the way to it (F10, ← to Help, ↓), as the menu bar is to everything. An F-key
 was declined for the help key itself (F-keys are often taken system-wide).
 
 *To measure:* `Tools/TerminalProbes/key_probe.py` with `⌥?` and `⇧F1` added,

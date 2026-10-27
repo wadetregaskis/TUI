@@ -127,7 +127,8 @@ struct SceneMenuBarTests {
 
     private func screen<A: App>(_ app: HeadlessApp<A>) -> String { rows(app).joined(separator: "\n") }
 
-    /// Opens the menu titled `title` from the keyboard: F10, then Right to it.
+    /// Opens the menu titled `title` from the keyboard: F10, Right along the
+    /// titles to it, and Down.
     private mutating func open<A: App>(_ title: String, in app: HeadlessApp<A>) {
         let titles = rows(app)[0].split(separator: " ").map(String.init)
         let index = titles.firstIndex(of: title) ?? 0
@@ -137,6 +138,8 @@ struct SceneMenuBarTests {
             app.send(KeyEvent(key: .right))
             frame(app)
         }
+        app.send(KeyEvent(key: .down))
+        frame(app)
     }
 
     /// Chooses the item `downs` places past the open menu's first.

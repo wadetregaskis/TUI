@@ -156,6 +156,7 @@ struct FileCloseCommandsTests {
     mutating func fileMenuShowsThem() {
         let app = welcoming(.button)
         send(KeyEvent(key: .f10), to: app)
+        send(KeyEvent(key: .down), to: app)
         send(KeyEvent(key: .right), to: app)
         let screen = app.screen.map(\.stripped).joined(separator: "\n")
         #expect(screen.contains("Close All"), "\(screen)")

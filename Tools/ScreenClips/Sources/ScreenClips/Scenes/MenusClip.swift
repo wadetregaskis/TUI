@@ -38,10 +38,12 @@ private func key(_ step: Step, _ caption: String) -> [Step] {
 
 private func menusScript() -> [Step] {
     var script: [Step] = [.camera(Shot(x: 0, y: 0, width: 52, height: 15)), .wait(0.9)]
-    // The menu bar: the app menu opens, across File and Edit to Message, down
-    // to Flag, and into it: the first message is flagged red.
+    // The menu bar: F10 lights the app menu's title, → moves to File and ↓
+    // opens it, across Edit to Message, down to Flag, and into it: the first
+    // message is flagged red.
     script += key(.f10, "F10  menu bar") + [.wait(0.8)]
-    script += key(.right, "→  next menu") + [.wait(0.6), .down, .wait(0.35), .down, .wait(0.5)]
+    script += key(.right, "→  next title") + [.wait(0.6)]
+    script += key(.down, "↓  open") + [.wait(0.6), .down, .wait(0.35), .down, .wait(0.5)]
     script += [.right, .wait(0.6), .right, .wait(0.6)]
     script += [.cue("key ↓  down the menu")] + Step.repeat(.down, 4, interval: 0.35)
     script += [.wait(0.3)] + key(.right, "→  into Flag") + [.wait(0.8)]

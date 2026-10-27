@@ -839,12 +839,16 @@ and a command reads the focused view's `@FocusedValue` as of the frame its key
 is pressed after: the bar is drawn after the page. A press on a title opens its
 menu, and as on a Mac the press may go on down it: let go on an item and it
 runs, let go away from every row and the menu closes, and a click that does
-not move leaves it open to choose from. F10 opens the first (fn-F10 on a Mac keyboard; a page's own handler of
-F10 is asked first), and Alt with a title's letter opens that menu where
-the terminal sends Option as Meta — each title's first letter not taken by one
-before it, so no two share one, none a focused text field keeps (⌥B, ⌥F), and
-underlined while Option is held where the terminal reports it (the kitty
-keyboard protocol)
+not move leaves it open to choose from. F10 (fn-F10 on a Mac keyboard; a page's own handler of
+F10 is asked first) lights the first title and opens nothing: the bar mode of
+the text interfaces before the Mac's, the one route to the bar every host
+delivers. In it ← and → move along the titles, ↓, ↑, Return, Space or a title's
+letter open its menu, and Escape, F10 or any other key leaves, the key spent on
+leaving; a click away leaves too. Alt with a title's letter opens that menu
+directly where the terminal sends Option as Meta — each title's first letter
+not taken by one before it, so no two share one, none a focused text field
+keeps (⌥B, ⌥F), and underlined in the bar mode and while Option is held where
+the terminal reports it (the kitty keyboard protocol)
 ([Terminal compatibility survey.md](<../Terminals/Terminal compatibility survey.md>),
 "The menu bar's keys"); with one open, Left and Right step to the menus beside
 it, F10 and Escape close it, and the page has its focus back. With one open the

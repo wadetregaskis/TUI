@@ -10,7 +10,8 @@ B-MENUBAR-1 to 4, O13-KEYS.*
 
 `CommandMenu`, `CommandGroup`, the placements and `.commands` are drawn on the
 window's top row, in `TUICommands`. A page's own shortcut on a command's key
-is asked first; nothing works from behind a modal; Alt-letter opens a menu.
+is asked first; nothing works from behind a modal; F10 walks the titles (the
+bar mode), where a title's letter opens its menu, as Alt-letter does anywhere.
 The standard command sets are those a terminal app has; About reads the scene,
 then the Info.plist, then the process; a Help menu of TUI's own shows tooltips;
 `DisplayCommands` adds View ▸ Palette and Border Style.
@@ -25,11 +26,25 @@ then the Info.plist, then the process; a Help menu of TUI's own shows tooltips;
 3. **2026-10-23, O13-KEYS:** the owner asked for other macOS routes, per-menu
    jump keys and earlier CLI systems, and a proposal; **2026-10-26:** the
    recommendation — F10 enters bar mode, mnemonics only then, and F10 and
-   fn-F10 measured. **Not yet built.**
+   fn-F10 measured. The bar mode was built the same day (below); the
+   measurements wait on a person at the keyboard.
 
 ## Where it stands
 
-Shipped; **owed:** O13-KEYS (F10 bar mode, mnemonics, the measurements).
+Shipped, F10's bar mode included; **owed:** F10 and fn-F10 measured on Apple
+Terminal, iTerm2 and Ghostty (`Tools/TerminalProbes/key_probe.py`), which needs
+the owner's hands: a key press cannot be sent from the session.
+
+## For a future reader
+
+- F10 used to open the first menu. Since the bar mode it lights the first title
+  and opens nothing; F10 then ↓ is what F10 alone used to be, and the tests that
+  open a menu from the keyboard were rewritten that way.
+- In the bar mode a key that means nothing there is spent on leaving it, not
+  passed to the page: a stray letter is no more meant for a text field than for
+  the bar. Revisit if that surprises users.
+- Mnemonics are shown in the bar mode on every host, and also while Option is
+  held where the terminal reports it (kept from lane MENUBAR).
 
 ## The record
 
@@ -441,3 +456,26 @@ it with a second regional language to justify the mechanism.
 **The fuller version:** decode ⌃] (`0x1D`) so Next Page can be Finder's ⌘], with
 ⌃B for Back. An hour with a survey row, but ⌃[ stays Escape, so the pair would
 not match.
+
+### O13-KEYS. F10 enters the bar mode
+
+*`_MenuBarCore+BarMode.swift`, `MenuBarState.highlightedTitle`*
+
+The owner (2026-10-23) asked for other macOS routes to the menu bar, per-menu
+jump keys and the earlier command-line systems' answers; on 2026-10-26 they
+took the recommendation. macOS's own keys (Control-F2, Control-F8,
+Shift-Command-?) go to the terminal emulator's menu bar and never reach the
+app; CUA's F10, Turbo Vision, Midnight Commander's F9 and Emacs's M-` all use a
+short mode entered with one key, with letters local to it.
+
+**Built (2026-10-26):** F10 lights the first title and opens nothing, every
+title's letter underlined. ← and → move along the titles, round the ends; ↓,
+↑, Return, Space or a title's letter (with or without Option) open its menu,
+first item highlighted; Escape and F10 leave, and so does any other key, spent
+on leaving. The mode takes the keyboard as an open menu does
+(`claimKeyboardAsMenu`, shared with `presentMenuPopover`), and the pointer as
+one does: a press away from the titles leaves and is spent, a press on a title
+opens it, and the pointer over a title lights it. One letter table serves the
+mode and Alt-letter (`MenuBarMnemonics`). Behind a modal F10 does nothing, as
+before.
+

@@ -236,6 +236,8 @@ struct MenuBarTests {
         frame()
         app.send(KeyEvent(key: .f10))
         frame()
+        app.send(KeyEvent(key: .down))
+        frame()
         frame()
         let asked = app.framesAsked
         frame()

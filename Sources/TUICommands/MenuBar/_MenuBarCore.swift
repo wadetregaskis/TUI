@@ -19,10 +19,13 @@ import TUIFoundation
 /// after the page has published this frame's focused values.
 ///
 /// **Opening a menu.** A press on a title — dragged down the menu and let go
-/// on an item, it runs the item, as a Mac's menu bar does — F10 (the first
-/// menu), or Alt and a title's letter where the terminal sends Option as Meta
-/// (``MenuBarMnemonics``: one per title, no two the same, underlined while
-/// Option is held where the terminal reports it). With a menu open, Left and
+/// on an item, it runs the item, as a Mac's menu bar does — F10, which walks
+/// the titles with every menu closed (the bar mode,
+/// ``walkTitles(_:over:state:titleIDs:sectionID:context:)``: a title's letter,
+/// Down or Return opens its menu), or Alt and a title's letter where the
+/// terminal sends Option as Meta (``MenuBarMnemonics``: one per title, no two
+/// the same, underlined in the bar mode and while Option is held where the
+/// terminal reports it). With a menu open, Left and
 /// Right step to the menu beside it, F10 and Escape close it, and Alt and a
 /// letter open that menu instead; and the pointer moved or dragged onto
 /// another title opens its menu, as on a Mac
@@ -77,10 +80,12 @@ struct _MenuBarCore: View, Renderable {
         let isInert = context.environment.drawsBackdrop
         if isInert { state.close() }
         let menus = resolvedMenus(context: context)
-        if let open = state.openMenu, open >= menus.count { state.close() }
+        if let open = state.openMenu ?? state.highlightedTitle, open >= menus.count { state.close() }
         registerShortcuts(of: menus, except: state.openMenu, context: context)
 
-        let titles = titleRow(menus, open: state.openMenu, context: context)
+        let titles = titleRow(
+            menus, open: state.openMenu ?? state.highlightedTitle, walking: state.highlightedTitle != nil,
+            context: context)
         var buffer = FrameBuffer(lines: [titles.line])
         guard !isInert else { return buffer }
         let titleIDs = attachTitleRegions(to: &buffer, titles, state: state, context: context)
@@ -90,6 +95,8 @@ struct _MenuBarCore: View, Renderable {
                 menus[open], at: open, over: &buffer, state: state,
                 titles: titles, tracking: titleTracking(titleIDs, state: state, context: context),
                 sectionID: sectionID, context: context)
+        } else if state.highlightedTitle != nil {
+            walkTitles(titles, over: &buffer, state: state, titleIDs: titleIDs, sectionID: sectionID, context: context)
         } else {
             // A menu just closed hands the focus back to the page.
             context.environment.focusManager?.deactivateSection(id: sectionID)
@@ -194,10 +201,11 @@ extension _MenuBarCore {
 
     /// The row of titles: each menu's with a cell on each side, one after
     /// another from the left edge, the app's menu in bold, as a menu bar's
-    /// first title is, and the open menu's in reverse. While Option is held,
-    /// where the terminal reports it (``showsMnemonics(_:)``), each title's
-    /// letter is underlined.
-    func titleRow(_ menus: [ResolvedCommandMenu], open: Int?, context: RenderContext) -> TitleRow {
+    /// first title is, and the open menu's — or, `walking` the bar with every
+    /// menu closed, the highlighted title's — in reverse. In the bar mode, and
+    /// while Option is held where the terminal reports it
+    /// (``showsMnemonics(_:)``), each title's letter is underlined.
+    func titleRow(_ menus: [ResolvedCommandMenu], open: Int?, walking: Bool, context: RenderContext) -> TitleRow {
         let appName = context.environment.resolvedAboutPanel.name
         var drawn = menus.enumerated().map { index, menu in
             self.line(chunk(title(of: menu, appName: appName), open: index == open, context), context)
@@ -209,7 +217,7 @@ extension _MenuBarCore {
         }
         let kept = MenuBarMnemonics.kept(by: context.environment.focusManager?.currentFocused)
         let mnemonics = MenuBarMnemonics.assign(plain, keeping: kept)
-        if showsMnemonics(context) {
+        if walking || showsMnemonics(context) {
             for (index, letter) in mnemonics.enumerated() {
                 guard let letter, let title = plain[index], let parts = MenuBarMnemonics.split(title, at: letter)
                 else { continue }

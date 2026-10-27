@@ -1,8 +1,9 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  _MenuBarCore+Opening.swift
 //
-//  How the menu bar's menus open and close: a click on a title, F10, and Alt
-//  with a title's first letter; with a menu open, Left and Right, F10, Escape.
+//  How the menu bar's menus open and close: a click on a title, F10's bar
+//  mode, and Alt with a title's letter; with a menu open, Left and Right, F10,
+//  Escape.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -98,11 +99,12 @@ extension _MenuBarCore {
         }
     }
 
-    /// With every menu closed: F10 opens the first menu, and Alt with a
-    /// title's letter (``MenuBarMnemonics``: its first not taken by a title
-    /// before it, no two the same) opens that menu — each with its first item
+    /// With every menu closed: F10 enters the bar mode
+    /// (``walkTitles(_:over:state:titleIDs:sectionID:context:)``), and Alt
+    /// with a title's letter (``MenuBarMnemonics``: its first not taken by a
+    /// title before it, no two the same) opens that menu, with its first item
     /// highlighted, since the keyboard opened it. The app's menu has no letter
-    /// (``TitleRow/mnemonics``): F10 is its key.
+    /// (``TitleRow/mnemonics``): F10 and the arrows reach it.
     ///
     /// F10 is a key handler: a function key is no keyboard shortcut. It is
     /// filed FIRST in the frame's handlers (`insertHandler(at:)`), which the
@@ -121,7 +123,7 @@ extension _MenuBarCore {
         guard !titles.columns.isEmpty else { return }
         context.environment.keyEventDispatcher?.insertHandler(at: 0) { [weak state] event in
             guard Self.isMenuBarKey(event), let state else { return false }
-            state.open(0, withSelection: true)
+            state.enterBarMode()
             return true
         }
         guard let registry = context.environment.keyboardShortcutRegistry else { return }

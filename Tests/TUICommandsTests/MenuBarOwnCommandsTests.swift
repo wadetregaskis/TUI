@@ -118,6 +118,8 @@ struct MenuBarOwnCommandsTests {
     private mutating func choose<A: App>(_ title: Int, item downs: Int, in app: HeadlessApp<A>) {
         app.send(KeyEvent(key: .f10))
         frame(app)
+        app.send(KeyEvent(key: .down))
+        frame(app)
         for _ in 0..<title {
             app.send(KeyEvent(key: .right))
             frame(app)
@@ -172,6 +174,8 @@ struct MenuBarOwnCommandsTests {
         undo.registerUndo(withTarget: count) { $0.value = 0 }
         frame(app)
         app.send(KeyEvent(key: .f10))
+        frame(app)
+        app.send(KeyEvent(key: .down))
         frame(app)
         app.send(KeyEvent(key: .right))
         frame(app)

@@ -184,6 +184,8 @@ struct StandardCommandSetsTests {
     private mutating func chooseFirst<A: App>(in app: HeadlessApp<A>) {
         app.send(KeyEvent(key: .f10))
         frame(app)
+        app.send(KeyEvent(key: .down))
+        frame(app)
         app.send(KeyEvent(key: .enter))
         frame(app)
         frame(app)
@@ -193,6 +195,8 @@ struct StandardCommandSetsTests {
     /// The open menu's rows: every row below the bar.
     private mutating func menuRows<A: App>(of app: HeadlessApp<A>) -> [String] {
         app.send(KeyEvent(key: .f10))
+        frame(app)
+        app.send(KeyEvent(key: .down))
         frame(app)
         let shown = Array(rows(app).dropFirst())
         app.send(KeyEvent(key: .escape))
@@ -254,6 +258,8 @@ struct StandardCommandSetsTests {
         let menu = menuRows(of: app)
         #expect(menu.contains { $0.contains("Customize Toolbar") }, "\(menu)")
         app.send(KeyEvent(key: .f10))
+        frame(app)
+        app.send(KeyEvent(key: .down))
         frame(app)
         app.send(KeyEvent(key: .down))
         frame(app)
