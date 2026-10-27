@@ -262,6 +262,9 @@ enum ScrollViewStateIndex {
     static let lastFocusedID = 2
     static let lastInteractionGen = 3
     static let lastViewport = 4
+    /// Whether the content sizes itself against the container
+    /// (``ContainerReadNote``).
+    static let containerRead = 5
 }
 
 /// A lightweight String-box used by ``_ScrollViewCore`` to track
@@ -492,7 +495,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         /// lookups for an answer the second of them decides
         /// (`verticalScrollIndicators(overflowing:)` asks them in the other
         /// order, because there the visibility decides).
-        init(_ environment: EnvironmentValues, landsScrollTargets: () -> Bool, overflows: () -> Bool) {
+        init(
+            _ environment: EnvironmentValues, landsScrollTargets: () -> Bool, overflows: () -> Bool,
+            pageIsFixed: () -> Bool = { true }
+        ) {
             guard environment.scrollIndicatorStyle == .text else {
                 (text, alwaysShown, reservedForTargets) = (false, false, false)
                 return
@@ -501,7 +507,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             text = visibility.showsIndicator(overflowing: true)
             // `alwaysShowsVerticalTextIndicators`, from the two reads in hand.
             alwaysShown = visibility == .visible
-            reservedForTargets = text && !alwaysShown && landsScrollTargets() && overflows()
+            reservedForTargets = text && !alwaysShown && landsScrollTargets() && overflows() && pageIsFixed()
         }
 
         /// Whether the pair is drawn, whether it is reserved rather than written
@@ -548,7 +554,32 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             axes.contains(.vertical) && scrollTargetBehaviorInForce(context.environment) != nil
         } overflows: {
             contentOverflowsWindow(viewport: viewport, horizontalBar: horizontalBar, context: context)
+        } pageIsFixed: {
+            // Asked after the overflow measure, which runs the content's
+            // bodies: a `containerRelativeFrame` among them has noted its read.
+            pageIsFixed(context)
         }
+    }
+
+    /// Whether this view's pages are one size at every stop, so the pair is
+    /// reserved out of them (owner ruling B-D2S-6): under `.viewAligned`,
+    /// which must land a row whole below "▲", under a behaviour of the app's
+    /// own, and for content sized against the container — a page made by a
+    /// `containerRelativeFrame` is one size. Anything else under `.paging`
+    /// varies: the pair comes and goes over the content, and a page is the
+    /// window between whatever of it shows (`ScrollViewTargeting.overwrittenEdgeLines`).
+    func pageIsFixed(_ context: RenderContext) -> Bool {
+        guard scrollTargetBehaviorInForce(context.environment) is PagingScrollTargetBehavior else { return true }
+        return containerReadNote(context)?.read != false
+    }
+
+    /// The note this view's content reports reading its container on, kept in
+    /// its state storage; `nil` with none.
+    func containerReadNote(_ context: RenderContext) -> ContainerReadNote? {
+        context.stateStorage?.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: ScrollViewStateIndex.containerRead),
+            default: ContainerReadNote()
+        ).value
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
@@ -959,6 +990,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // already outside it. That is the whole of `ScrollChrome.edgeInset`'s
         // answer, and the seek, the content window and the reveal read it too.
         handler.textIndicatorInset = chrome.edgeInset
+        // Under `.paging` with pages that vary, the pair draws over the window's
+        // edge lines, and a page is the window less them (B-D2S-6).
+        if !context.isMeasuring, handler.scrollTargeting != nil {
+            handler.scrollTargeting?.overwrittenEdgeLines = chrome.overwritesEdgeLines ? 2 : 0
+        }
         let contentWidth = max(
             1, viewportWidth - (bars.vertical ? context.environment.scrollbarWidth + indicatorMargins.trailing : 0))
         // Where narrow content sits across the window, decided with the window.

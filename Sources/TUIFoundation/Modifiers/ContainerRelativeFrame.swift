@@ -75,12 +75,16 @@ struct _ContainerRelativeFrame<Content: View>: View {
     let length: (Int, Axis) -> Int
 
     @Environment(\.containerRelativeSize) private var container
+    @Environment(\.containerReadNote) private var readNote
 
     var body: some View {
+        // Tells a scroll view its content is sized against its container,
+        // so its pages cannot vary in size (``ContainerReadNote``).
+        if container != nil, axes.contains(.vertical) { readNote?.read = true }
         // Outside every container — a view rendered on its own, with no scene
         // around it — there is nothing to be relative to, and the view keeps
         // the size it was proposed.
-        content.frame(
+        return content.frame(
             width: container.flatMap { axes.contains(.horizontal) ? max(0, length($0.width, .horizontal)) : nil },
             height: container.flatMap { axes.contains(.vertical) ? max(0, length($0.height, .vertical)) : nil },
             alignment: alignment)
@@ -161,5 +165,40 @@ extension View {
 extension _ContainerRelativeFrame: ResolvesOwnEnvironment {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _container.resolveEnvironment(environment)
+        _readNote.resolveEnvironment(environment)
+    }
+}
+
+/// Whether a scroll view's content sizes itself against the container the
+/// scroll view publishes — a `containerRelativeFrame` down the scroll axis —
+/// which the scroll view hands its content and reads back (owner ruling
+/// B-D2S-6): content that does keeps a page whose size cannot vary, so the
+/// "N more" pair is reserved out of it under a behaviour; content that does
+/// not lets the pair come and go, and a page vary with it.
+///
+/// Set while a `containerRelativeFrame`'s body runs, and kept: a memoised
+/// subtree runs no body on the frames it is served, so the answer is the
+/// first frame's, and once yes stays yes. Compared by identity, so handing
+/// the same note to the content every frame changes no memo key.
+@MainActor
+package final class ContainerReadNote: Equatable {
+    /// Whether the content has read the container.
+    package var read = false
+
+    package init() {}
+
+    package nonisolated static func == (lhs: ContainerReadNote, rhs: ContainerReadNote) -> Bool { lhs === rhs }
+}
+
+private struct ContainerReadNoteKey: EnvironmentKey {
+    static let defaultValue: ContainerReadNote? = nil
+}
+
+extension EnvironmentValues {
+    /// The note a scroll view's content reports a container read on
+    /// (``ContainerReadNote``), or `nil` outside a scroll view's content.
+    package var containerReadNote: ContainerReadNote? {
+        get { self[ContainerReadNoteKey.self] }
+        set { self[ContainerReadNoteKey.self] = newValue }
     }
 }

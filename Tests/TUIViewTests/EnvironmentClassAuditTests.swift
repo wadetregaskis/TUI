@@ -41,6 +41,7 @@ struct EnvironmentClassAuditTests {
         "MenuOpenAction": "provider-kept (@State); called at event time to open a menu",
         "DismissalGate": "provider-kept (state storage); asked at event time whether a dismissal may proceed",
         "MenuRowSink": "mailbox kept by the menu's controller: rows publish into it",
+        "ContainerReadNote": "mailbox kept by a scroll view: a containerRelativeFrame notes its read into it; the scroll view reads it, no row draws from it",
         "_TabMenuOpeners": "mailbox: each tab files its menu's opener into it every frame",
         "SearchSelectionBox": "provider-kept box, its binding refreshed every render; the field reads it where it draws",
         "ModifierKeyMonitor": "service: its state is read through the monitor's own invalidation",

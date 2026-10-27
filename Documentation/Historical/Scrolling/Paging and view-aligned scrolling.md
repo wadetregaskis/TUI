@@ -49,24 +49,24 @@ at each end exactly where a page is meant to fit.
 4. **2026-10-26, the owner on B-D2S-6.** Asked whether "▲ 0 more" should ever
    show, the owner went further: variable page sizes where they can be had,
    blank reserved lines where they cannot (or would cost too much), and never
-   a row cut off. The blanks were built that night; variable pages wait on a
-   design question (below). B-D2S-7 was put to the owner again that day by
-   mistake (it had shipped on 10-19).
+   a row cut off. The blanks were built that night, and the variable pages
+   the night after. B-D2S-7 was put to the owner again that day by mistake (it
+   had shipped on 10-19).
 
 ## Where it stands
 
-Shipped as described, with the blanks of the owner's 10-26 refinement of
-B-D2S-6; its variable pages are owed, on a question to the owner. The lists' anchors under `.viewAligned` (B-D2S-3) and a custom
+Shipped as described, with the owner's 10-26 refinement of B-D2S-6: variable
+pages under `.paging`, blanks where a page cannot vary. Owed: a multi-line row
+cut at a `.paging` boundary. The lists' anchors under `.viewAligned` (B-D2S-3) and a custom
 behaviour on a list (B-D2S-2) are recorded fuller versions nobody has asked
 for.
 
 ## For a future reader
 
 - **B-FU2-2** (a two-axis pager's horizontal bar and its container) was a follow-up lane FU2 recorded and lane SCROLL settled on 2026-10-19 (B-SCROLL-2); its entry is the last below.
-- **Owed: B-D2S-6's variable pages** (the owner, 2026-10-26: variable pages
-  where possible, blanks where not, never a cut row). The blanks are built: a
-  line reserved under a behaviour, with nothing past it, is blank rather than
-  "▲ 0 more"; `.visible` keeps its counts.
+- **Owed: B-D2S-6's "never a row cut"** for rows taller than a line under
+  `.paging`: a page boundary can fall inside such a row. The fix is in the
+  entry below (step 4); line content, the common case, is never cut.
 - **R15 is a judgement that SwiftUI slipped.** If a later SwiftUI changes its
   half-margin page, re-measure with the probe and follow it either way.
 - **SwiftUI consults a behaviour only on a gesture or a resize**, which is
@@ -201,33 +201,33 @@ a line with nothing past its edge is drawn blank — at the first stop the top
 line, at the last the bottom one. `.visible`, which asked for the pair, keeps
 its counts, zero included.
 
-**Variable pages, not built — the design, and the question.** A page can only
-vary where nothing is sized against the container, because a
-`containerRelativeFrame` page is sized once, against one container: in a window
-a line taller at the first stop (no "▲" needed there) it would show a line of
-the next page, and in a window two lines taller at a short last page it would
-show part of the one before. So:
+**Variable pages (built 2026-10-27).** A page can only vary where nothing is
+sized against the container: a `containerRelativeFrame` page is sized once,
+against one container.
 
-1. The scroll view learns whether its content reads the container. Today
-   nothing records a read: `_ContainerRelativeFrame` would note one on a
-   reader the scroll view hands its content, kept on the handler — sticky,
-   because a memoised subtree reads nothing on the frames it is served, so it
-   would be cleared only when the content's identity changes.
-2. Content that reads it keeps today's reservation, with the blanks.
-3. Content that does not lets the pair come and go, as `.automatic` does with
-   no behaviour, and `.paging` steps by the window at each stop: the line just
-   below the window is the first line of the next window, beneath its "▲";
-   back, the previous window ends just above the current one. Every line is
-   read at some stop.
-4. "Never a row cut": `.paging` knows lines, not rows. Where the content is a
-   `scrollTargetLayout` stack (as `.viewAligned` reads it), a page could end at
-   the last whole row and leave the rest blank, so the next page starts with
-   the row that did not fit.
-
-The question for the owner: is (4) part of "never a row cut off", or is that
-about container-sized pages only (which (2) already keeps whole)? (3) without
-(4) splits a multi-line row across two pages, as `.paging` without the pair
-does today. About a day for (1)–(3), half a day more for (4).
+1. The scroll view learns whether its content reads the container: a
+   `containerRelativeFrame` down the scroll axis notes the read on a
+   `ContainerReadNote` the scroll view hands its content, kept in its state
+   storage — once yes, yes, since a memoised subtree runs no body on the
+   frames it is served. Asked after the overflow measure, which runs the
+   content's bodies.
+2. Where a page cannot vary — content that reads the container,
+   `.viewAligned` (it must land a row whole below "▲"), a behaviour of the
+   app's own — the pair stays reserved, with the blanks.
+3. Anything else under `.paging` lets the pair come and go over the content,
+   as `.automatic` draws it, and `.paging` is handed a container two lines
+   shorter than the window (`ScrollViewTargeting.overwrittenEdgeLines`). So
+   every step lands the line after the last one read under "▲": the first
+   page, with no "▲", reads a line more, and the last runs to the end. Every
+   line is read once, but at the end, where the last stop is clamped and
+   repeats what the stop before it showed, as SwiftUI's does.
+4. **Not built: "never a row cut"** for rows taller than a line. `.paging`
+   knows lines, not rows: where the content is a `scrollTargetLayout` stack
+   (as `.viewAligned` reads it), a page should end at its last whole row and
+   draw the rest blank, so the next page starts with the row that did not
+   fit. The owner's "never a row cut off" (2026-10-26, and "no repeats/skips,
+   indicators only when needed or .visible, no blank rows" before it) asks for
+   it; half a day.
 
 ### B-D2S-7. A scroll target behaviour's container and content include the content margins
 

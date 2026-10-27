@@ -73,7 +73,7 @@ struct ScrollTextIndicatorReservationTests {
         #expect(result.indicators == 0)
     }
 
-    @Test("Content that overflows still has the pair reserved, at every stop")
+    @Test("Paged content that overflows lets the pair come and go: no line held at an edge with nothing past it")
     func overflowingContentReserves() {
         let frames = ScrollTargetFrames(width: 30, height: 10)
         let view = ScrollView { rows(11) }.frame(height: 10)
@@ -81,15 +81,15 @@ struct ScrollTextIndicatorReservationTests {
             .scrollIndicatorStyle(.text)
             .scrollTargetBehavior(.paging)
         frames.render(view)
-        #expect(drawn(frames).rows == Array(0..<8))
-        // Reserved at the top too, where nothing is above: blank there, not
-        // "▲ 0 more" (owner ruling B-D2S-6).
+        // Its pages can vary (nothing in it is sized against the container),
+        // so the pair comes and goes as `.automatic` draws it (owner ruling
+        // B-D2S-6): at the top only "▼", over the last line.
+        #expect(drawn(frames).rows == Array(0..<9))
         #expect(drawn(frames).indicators == 1)
-        #expect(frames.last.lines.first?.stripped.trimmingCharacters(in: .whitespaces).isEmpty == true)
         frames.wheel(.scrollDown)
         frames.render(view)
-        #expect(drawn(frames).rows == Array(3..<11))
-        #expect(drawn(frames).indicators == 1, "at the end, the line below is the blank one")
+        #expect(drawn(frames).rows == Array(2..<11))
+        #expect(drawn(frames).indicators == 1, "at the end, only \"▲\"")
     }
 
     @Test("Under .visible the pair keeps its counts, zero included")
@@ -197,7 +197,7 @@ struct ScrollTextIndicatorReservationTests {
     /// content as tall as the viewport overflows the window by that row. The
     /// decision was asked of the whole viewport, so it reserved nothing, and
     /// the pair was drawn over the window's edge lines under the behaviour.
-    @Test("Content that overflows only by an always-drawn horizontal bar's row still has the pair reserved")
+    @Test("Content that overflows only by an always-drawn horizontal bar's row is seen to overflow")
     func overflowByTheBarsRowReserves() {
         let frames = ScrollTargetFrames(width: 20, height: 10)
         let view = ScrollView([.horizontal, .vertical]) {
@@ -212,9 +212,9 @@ struct ScrollTextIndicatorReservationTests {
         frames.render(view)
         frames.render(view)
         let result = drawn(frames)
-        #expect(result.rows == Array(0..<7), "\(frames.last.lines.map(\.stripped))")
-        // Reserved: the top line is held, blank with nothing above (B-D2S-6).
+        #expect(result.rows == Array(0..<8), "\(frames.last.lines.map(\.stripped))")
+        // Paged lines, which can vary: only "▼", over the window's last line
+        // above the bar (B-D2S-6).
         #expect(result.indicators == 1)
-        #expect(frames.last.lines.first?.stripped.trimmingCharacters(in: .whitespaces).isEmpty == true)
     }
 }

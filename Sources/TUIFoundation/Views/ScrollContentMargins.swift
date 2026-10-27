@@ -268,7 +268,13 @@ extension _ScrollViewCore {
     ) -> (
         context: RenderContext, width: Int, height: Int, textLines: TextIndicatorLines, horizontalBar: Bool
     ) {
-        let context = hidingAutomaticIndicators(context)
+        var context = hidingAutomaticIndicators(context)
+        // The note the content reports a container read on, for the pair's
+        // reservation (``pageIsFixed(_:)``): handed to everything that runs
+        // the content's bodies from here, the overflow measures included.
+        if scrollTargetBehaviorInForce(context.environment) != nil {
+            context.environment.containerReadNote = containerReadNote(context)
+        }
         let width = context.availableWidth
         let height = max(0, context.availableHeight)
         let size = CellSize(width: max(0, width), height: height)

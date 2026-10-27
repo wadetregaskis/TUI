@@ -91,7 +91,7 @@ struct ScrollTargetBehaviorTests {
         }
     }
 
-    @Test("Paging under the \"N more\" lines: they are kept out of the page, so every line is read")
+    @Test("Paging under the \"N more\" lines: pages vary with the lines shown, and every line is read once")
     func pagingUnderTextIndicators() {
         let frames = Frames()
         let view = ScrollView { scrollTargetRows(30) }
@@ -108,9 +108,11 @@ struct ScrollTargetBehaviorTests {
             read.formUnion(readableRows(frames))
             stops.append(frames.scrollView?.scrollOffset ?? -1)
         }
-        // Eight lines a page, between the two lines the indicators keep at
-        // every stop; the last page ends at the end.
-        #expect(stops == [0, 8, 16, 22, 22], "\(stops)")
+        // The pair comes and goes over the content (owner ruling B-D2S-6):
+        // the first page, with no "▲", reads lines 0–8; each step after it is
+        // the eight lines between the pair, so the line under "▲" is the one
+        // after the last read; the last page runs to the end.
+        #expect(stops == [0, 8, 16, 20, 20], "\(stops)")
         #expect(read == Set(0..<30), "never readable: \(Set(0..<30).subtracting(read).sorted())")
     }
 

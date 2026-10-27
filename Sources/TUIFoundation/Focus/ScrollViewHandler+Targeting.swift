@@ -42,6 +42,13 @@ struct ScrollViewTargeting {
     /// less them, as SwiftUI's does
     /// (``ScrollViewHandler/targetedOffsets(proposedX:proposedY:velocity:)``).
     var margins = EdgeInsets()
+    /// How many of the window's lines the "N more" pair draws over the content
+    /// — two where it comes and goes under `.paging` (its pages vary, owner
+    /// ruling B-D2S-6), else none — as the last frame drew it. A page is the
+    /// window less them, so a step reads the line below the last one shown,
+    /// under "▲": the first page, with no "▲", is a line longer, and the last
+    /// runs to the end.
+    var overwrittenEdgeLines = 0
 }
 
 extension ScrollViewHandler {
@@ -79,7 +86,7 @@ extension ScrollViewHandler {
         let along = margins.top + margins.bottom
         let container = CellSize(
             width: max(0, (scrollsAcross ? horizontal.viewportHeight : targeting.width) - across),
-            height: max(0, viewportHeight - along))
+            height: max(0, viewportHeight - along - targeting.overwrittenEdgeLines))
         let original = ScrollTarget(
             rect: CellRect(
                 x: horizontal.scrollOffset, y: scrollOffset,
@@ -192,7 +199,8 @@ extension _ScrollViewCore {
         handler.scrollTargeting = ScrollViewTargeting(
             behavior: behavior, axes: axes, environment: context.environment.detachedFromRuntime(),
             width: previous?.width ?? 0, rows: previous?.rows ?? .none, columns: previous?.columns ?? .none,
-            margins: appliesContentMargins ? resolvedContentMargins(context.environment) : EdgeInsets())
+            margins: appliesContentMargins ? resolvedContentMargins(context.environment) : EdgeInsets(),
+            overwrittenEdgeLines: previous?.overwrittenEdgeLines ?? 0)
     }
 
     /// The scroll target behaviour this view lands its user's steps under, or
