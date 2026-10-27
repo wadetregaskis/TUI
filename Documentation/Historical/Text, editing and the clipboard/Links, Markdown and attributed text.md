@@ -27,9 +27,18 @@ tab title draw only its words.
 ## For a future reader
 
 - **A column header and a tab title** draw their key's Markdown words, not its styles (B-PARITYMISC-3, below).
-- **Open: Apple's `^[…](attrs)` syntax with unparseable attributes** — Foundation
-  draws the bracket text alone, TUI keeps the literal (5 in 20,000 fuzz
-  strings). Investigate Foundation's rule.
+- **Apple's `^[…](attrs)` syntax with unparseable attributes — resolved
+  2026-10-27.** Foundation (macOS 15.8) draws the bracket text whatever the
+  attributes hold, parsed or not. It keeps the literal only where the syntax
+  itself fails: no `(` right after the `]`, or no `)` balancing it. It finds
+  that `)` as it does a link destination's: parentheses balanced, a backslash
+  escaping, and quotes sheltering nothing, so `^[x](a: ")")` closes at the
+  quoted `)` and `^[x](a: "(")` stays literal. TUI kept the literal for
+  unbalanced quotes, since its scan respected them (the 5 in 20,000 fuzz
+  strings); it now scans as Foundation does
+  (`InlineMarkdownParser.parseAttributeTail`,
+  `Tools/SwiftUIProbes/Markdown attribute syntax/`, the cases in
+  `InlineMarkdownTests`).
 
 ## The record
 

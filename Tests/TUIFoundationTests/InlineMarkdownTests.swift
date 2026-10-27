@@ -165,6 +165,18 @@ struct InlineMarkdownTests {
         ("^[**a**](x: 1)", "«a»2"),
         ("^[2 apple](inflect: true)", "«2 apple»"),
         ("^[a]", "«^[a]»"),
+        // Foundation's rule for the attributes' parentheses (macOS 15.8):
+        // balanced, a backslash escaping, quotes sheltering nothing, and what
+        // they hold never parsed for whether to draw the text.
+        ("^[x](garbage)", "«x»"),
+        ("^[x](a: \"unterminated)", "«x»"),
+        ("^[x](a: (1))", "«x»"),
+        ("^[x](a: (1)", "«^[x](a: (1)»"),
+        ("^[x](a: 1))", "«x)»"),
+        ("^[x](a: \"(\")", "«^[x](a: \"(\")»"),
+        ("^[x](a: \")\")", "«x\")»"),
+        ("^[x](a: \\))", "«x»"),
+        ("^[x] (a: 1)", "«^[x] (a: 1)»"),
         ("[https://example.com]", "«[https://example.com]»"),
         ("[a](u) https://e.com", "«a»→u« »«https://e.com»→https://e.com"),
         ("https://example.com/a_b_c", "«https://example.com/a_b_c»→https://example.com/a_b_c"),

@@ -962,6 +962,16 @@ messages cite that path), and what cites it.
   `Sources/TUIFoundation/Focus/TextUndoBridge.swift`, `Sources/TUITextInput/Focus/TextUndoHistory.swift`;
   `Tests/TUITextInputTests/TextUndoCoalescingTests.swift`.
 
+### Markdown attribute syntax
+
+- **Asks:** what Foundation's Markdown parser does with Apple's `^[text](attributes)` when the attributes do not
+  parse, and how it finds the `)` that ends them: forty-odd cases parsed with `.inlineOnlyPreservingWhitespace`,
+  each one's characters printed (B86's open item).
+- **Files:** `attrs.swift`, `attrs.out`.
+- **Ran:** macOS 15.8, Xcode's Swift 6.2.4, 2026-10-27.
+- **Cited by:** `Sources/TUIStrings/Rendering/InlineMarkdownParser.swift`;
+  `Documentation/Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md`.
+
 ### Picker pop-up highlight
 
 - **Asks:** which item a `.menu`-style `Picker`'s pop-up highlights when the pointer opens it: the current value, or

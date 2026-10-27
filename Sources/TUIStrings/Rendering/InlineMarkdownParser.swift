@@ -431,27 +431,24 @@ struct InlineMarkdownParser {
         return index
     }
 
-    /// The `(…)` of Apple's `^[text](attributes)`: anything, parentheses
-    /// balanced and quotes respected. TUI reads none of the attributes —
-    /// it has no inflection — so this only finds the end.
+    /// The `(…)` of Apple's `^[text](attributes)`: anything up to the `)`
+    /// that balances it, a backslash escaping the character after it — and
+    /// nothing else. Quotes shelter no parenthesis, and attributes that do not
+    /// parse are no reason to keep the text literal: Foundation draws the
+    /// bracket text whatever the attributes say, `^[x](a: ")")` closing at the
+    /// quoted `)` and `^[x](a: "(")` left literal, unbalanced (measured on
+    /// macOS 15.8, B86's open item; `Tools/SwiftUIProbes/Markdown attribute
+    /// syntax/attrs.swift`). TUI reads none of the attributes — it has no
+    /// inflection — so this only finds the end.
     private mutating func parseAttributeTail() -> Void? {
         guard atom(at: position)?.is("(") == true else { return nil }
         var index = position + 1
         var depth = 0
-        var quote: Unicode.Scalar?
         while let atom = atom(at: index) {
             defer { index += 1 }
             guard let scalar = atom.scalar else { continue }
-            if let open = quote {
-                if scalar == "\\" {
-                    index += 1
-                } else if scalar == open {
-                    quote = nil
-                }
-                continue
-            }
             switch scalar {
-            case "\"", "'": quote = scalar
+            case "\\": index += 1
             case "(": depth += 1
             case ")":
                 if depth == 0 {
