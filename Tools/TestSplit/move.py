@@ -159,7 +159,7 @@ def prune(text, allowed):
     return re.sub(r"(?m)^[ \t]*(@testable )?import (\w+)\n", keep, text)
 
 
-GUARD = "#if TUIKIT_TEST_SUPPORT && canImport(Testing)"
+GUARD = "#if TUI_TEST_SUPPORT && canImport(Testing)"
 GUARD_COMMENT = ("// Built for tests only: a plain `swift build -c release` compiles this file empty (see "
                  "TUITestSupport in Package.swift).")
 
@@ -200,7 +200,7 @@ def write_package(deps, fixtures_holder):
     """Replaces the umbrella suite's four test targets and its support target with the split's."""
     text = open("Package.swift").read()
     start = text.index("        // The umbrella suite: integration tests + every test that exercises")
-    end_marker = """            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
+    end_marker = """            swiftSettings: [.define("TUI_TEST_SUPPORT", .when(configuration: .debug))]
         ),
 """
     end = text.index(end_marker, start) + len(end_marker)
@@ -225,7 +225,7 @@ def write_package(deps, fixtures_holder):
         '        // target, as CTestSupport is, which `swift build` builds even without `--build-tests`: in a release',
         '        // build, which has no testability, its `@testable import`s of the library would fail ("module',
         '        // \'TUIFoundation\' was not compiled for testing"). So every file is wrapped in',
-        '        // `#if TUIKIT_TEST_SUPPORT && canImport(Testing)`, which these targets define for debug builds',
+        '        // `#if TUI_TEST_SUPPORT && canImport(Testing)`, which these targets define for debug builds',
         '        // only, and a release build compiles them empty. The alternatives, measured 2026-10-10 in a probe',
         '        // package (lane TT2) on Swift 6.2.4, 6.3.3 and 6.4.0: as a test target the others depend on,',
         "        // 6.4's build system still builds it in release; `swift build -c release --product <a library",
@@ -265,7 +265,7 @@ def write_package(deps, fixtures_holder):
         if support:
             exclude = ', exclude: ["__Snapshots__"]' if target == SUPPORT else ""
             lines += [tail + ",", f'            path: "Tests/{target}"{exclude},',
-                      '            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]']
+                      '            swiftSettings: [.define("TUI_TEST_SUPPORT", .when(configuration: .debug))]']
         elif target == fixtures_holder:
             lines += [tail + ",", '            exclude: ["__Fixtures__"]']
         else:

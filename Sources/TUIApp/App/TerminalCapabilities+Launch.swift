@@ -35,25 +35,25 @@ extension TerminalCapabilities {
                 .notifications,
                 as: status(
                     uses: features.postsNotifications,
-                    forced: isForced(override: nil, variable: "TUIKIT_NOTIFICATIONS", in: environment),
+                    forced: isForced(override: nil, variable: "TUI_NOTIFICATIONS", in: environment),
                     evidence: program == .unidentified ? .unidentified : .known))
             .settling(
                 .pointerShapes,
                 as: status(
                     uses: features.pointerShapes,
-                    forced: environment["TUIKIT_POINTER_SHAPES"] == "all"
+                    forced: environment["TUI_POINTER_SHAPES"] == "all"
                         || isForced(
-                            override: TerminalClient.pointerShapeSupport, variable: "TUIKIT_POINTER_SHAPES",
+                            override: TerminalClient.pointerShapeSupport, variable: "TUI_POINTER_SHAPES",
                             in: environment),
                     evidence: pointerShapesEvidence(program)))
     }
 
     /// The graphics ladder (`TerminalClient.graphicsSupported`): an override
-    /// or `TUIKIT_GRAPHICS` settles it; else the handshake's answer, and
+    /// or `TUI_GRAPHICS` settles it; else the handshake's answer, and
     /// undetermined where it never ran.
     @MainActor
     static func picturesStatus(environment: [String: String]) -> Status {
-        if isForced(override: TerminalClient.graphicsSupport, variable: "TUIKIT_GRAPHICS", in: environment) {
+        if isForced(override: TerminalClient.graphicsSupport, variable: "TUI_GRAPHICS", in: environment) {
             return TerminalClient.graphicsSupported ? .supported : .unsupported
         }
         switch TerminalClient.detectedGraphics {
@@ -78,7 +78,7 @@ extension TerminalCapabilities {
             }
         return status(
             uses: TerminalClient.hyperlinksSupported,
-            forced: isForced(override: TerminalClient.hyperlinkSupport, variable: "TUIKIT_HYPERLINKS", in: environment),
+            forced: isForced(override: TerminalClient.hyperlinkSupport, variable: "TUI_HYPERLINKS", in: environment),
             evidence: evidence)
     }
 
@@ -90,7 +90,7 @@ extension TerminalCapabilities {
     @MainActor
     static func clipboardWritesStatus(program: TerminalClient.Program, environment: [String: String]) -> Status {
         let forced = isForced(
-            override: TerminalClient.clipboardWriteSupport, variable: "TUIKIT_OSC52", in: environment)
+            override: TerminalClient.clipboardWriteSupport, variable: "TUI_OSC52", in: environment)
         if program == .tmux, !forced { return .undetermined }
         switch TerminalClient.clipboardWrites {
         case .honoured: return .supported
@@ -112,11 +112,11 @@ extension TerminalCapabilities {
 
     /// What a progress bar that does not show says of the terminal, for
     /// ``Feature/progressReports``, which is supported where it shows:
-    /// unsupported where `TUIKIT_PROGRESS` turned it off, on a terminal TUI
+    /// unsupported where `TUI_PROGRESS` turned it off, on a terminal TUI
     /// knows draws none, and under tmux, which was asked about the terminals
     /// attached; undetermined on a terminal TUI did not identify.
     static func progressAbsence(program: TerminalClient.Program, environment: [String: String]) -> Status {
-        let forced = isForced(override: nil, variable: "TUIKIT_PROGRESS", in: environment)
+        let forced = isForced(override: nil, variable: "TUI_PROGRESS", in: environment)
         return program == .unidentified && !forced ? .undetermined : .unsupported
     }
 }

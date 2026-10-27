@@ -816,7 +816,7 @@ frame's picture, and declares a render side effect so the memo never serves
 a cached row naming an image that has been freed.
 
 **Measured through a PTY, 2026-09-04** — `Tools/Smoke/raw_probe.py` on the
-Example with `TUIKIT_GRAPHICS=1 TUIKIT_GRAPHICS_COMPRESSION=1` (so the
+Example with `TUI_GRAPHICS=1 TUI_GRAPHICS_COMPRESSION=1` (so the
 handshake is skipped and the answer forced; the PTY reports no pixel size,
 so the cell is the 8×16 default), 120×40, 2.6 s of capture per page:
 
@@ -835,7 +835,7 @@ picture was sent twice.
 Ghostty *acknowledge* `o=z` and whether they *draw* a deflated picture are
 both open, and `Terminal compatibility survey.md` carries the empty table. Until a
 row is filled in, the framework acts on the host's own answer at startup —
-which is what the handshake is for — and `TUIKIT_GRAPHICS_COMPRESSION=0` is
+which is what the handshake is for — and `TUI_GRAPHICS_COMPRESSION=0` is
 the switch for a host that says yes and draws nothing. The gradient pictures
 themselves rest on mechanisms every drawing host HAS been measured to do
 (§8), so a host that draws `Image` draws them.
@@ -1145,7 +1145,7 @@ What it does NOT do yet is what §12 is about: `Image` still draws through
 placeholders only, so no host gains pictures from this. The handshake asks no
 classic-placement question either; the lines are gated on a measured host
 (Ghostty) instead (`KittyGraphics.isHairlineSupported`), with
-`TUIKIT_HAIRLINES=1` to try any other. The per-host rules are in
+`TUI_HAIRLINES=1` to try any other. The per-host rules are in
 `Documentation/Terminals/Terminal compatibility survey.md`, "What TUI draws".
 
 ## 14. Frosting a picture the terminal draws — probed 2026-10-26
@@ -1301,7 +1301,7 @@ everywhere it is not measured to work.
 
 **Built (2026-10-26).** Where `KittyGraphics.isPictureUnderTextSupported`
 (Ghostty that places pictures; `TerminalClient.pictureUnderTextSupport`, then
-`TUIKIT_PICTURES_UNDER_TEXT=1`/`0`, override the table), a glyph over a
+`TUI_PICTURES_UNDER_TEXT=1`/`0`, override the table), a glyph over a
 frosted picture stands on the terminal's own field and carries a private
 mark, `ESC[7745:…m`, naming the copy and the rectangle of its pixels the
 cell covers (`PictureUnderTextMarker`, sharing `SGRMarks` with the hairline

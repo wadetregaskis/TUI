@@ -9,7 +9,7 @@
 
 import Foundation
 
-/// True iff `TUIKIT_DEBUG_FOCUS=1` was set in the environment at
+/// True iff `TUI_DEBUG_FOCUS=1` was set in the environment at
 /// process start.
 ///
 /// Read once at module-load time; flipping the variable mid-run has
@@ -17,10 +17,10 @@ import Foundation
 /// diagnostic logging across the framework. The cached boolean
 /// means each call site costs a single branch in the hot path.
 internal let isFocusDebugEnabled: Bool =
-    ProcessInfo.processInfo.environment["TUIKIT_DEBUG_FOCUS"] == "1"
+    ProcessInfo.processInfo.environment["TUI_DEBUG_FOCUS"] == "1"
 
 /// Appends a one-line, timestamped diagnostic to
-/// `/tmp/tuikit-debug.log` when `TUIKIT_DEBUG_FOCUS=1`.
+/// `/tmp/tuikit-debug.log` when `TUI_DEBUG_FOCUS=1`.
 ///
 /// When the flag is unset (the common case) the `message`
 /// autoclosure is not evaluated and the function returns

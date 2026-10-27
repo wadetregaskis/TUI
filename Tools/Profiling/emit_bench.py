@@ -85,8 +85,8 @@ def measure(binary, scenario, host, settle, window, cols, rows):
             env["TERM"] = "xterm-256color"
             env["TERM_PROGRAM"] = host
             # A probe must never touch the user's real config.
-            env["TUIKIT_CONFIG_DIR"] = os.environ.get(
-                "TUIKIT_CONFIG_DIR", "/tmp/tuikit-emit-bench-config")
+            env["TUI_CONFIG_DIR"] = os.environ.get(
+                "TUI_CONFIG_DIR", "/tmp/tuikit-emit-bench-config")
             env.pop("TMUX", None)
             os.execve(binary, [binary, "--autopilot", "--scenario", scenario], env)
         except Exception:

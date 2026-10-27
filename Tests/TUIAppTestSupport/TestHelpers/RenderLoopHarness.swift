@@ -11,7 +11,7 @@
 //  License: MIT
 
 // Built for tests only: a plain `swift build -c release` compiles this file empty (see TUITestSupport in Package.swift).
-#if TUIKIT_TEST_SUPPORT && canImport(Testing)
+#if TUI_TEST_SUPPORT && canImport(Testing)
 
 @testable import TUIApp
 @testable import TUICore
@@ -68,9 +68,9 @@ final class RenderLoopHarness {
     /// What the loop publishes about the terminal's colours goes to
     /// ``publishedColors``.
     ///
-    /// `accessibility` is what the app runner reads from the `TUIKIT_*`
-    /// accessibility variables (`TUIKIT_REDUCE_MOTION`), and `keyNotation` what
-    /// it reads from `TUIKIT_KEY_SYMBOLS`; a test states them, and by default
+    /// `accessibility` is what the app runner reads from the `TUI_*`
+    /// accessibility variables (`TUI_REDUCE_MOTION`), and `keyNotation` what
+    /// it reads from `TUI_KEY_SYMBOLS`; a test states them, and by default
     /// the loop draws as if all were unset.
     ///
     /// `clientCapabilities`, where given, is what the terminals in front of the

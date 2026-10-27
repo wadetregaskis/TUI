@@ -3,7 +3,7 @@
 //
 //  How keys are written on screen: the symbols macOS draws, or their names
 //  spelled out for a terminal font that has no glyph for the symbols — the
-//  user's `TUIKIT_KEY_SYMBOLS=0`, or the app's own `.keyNotation(_:)`.
+//  user's `TUI_KEY_SYMBOLS=0`, or the app's own `.keyNotation(_:)`.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -21,7 +21,7 @@ import TUICore
 /// draws a box instead; for a user whose font lacks them, the keys can be
 /// spelled out: `Ctrl-Shift-Z`, `Esc`, `Return`, `Shift-Tab`.
 ///
-/// The user asks for the names with `TUIKIT_KEY_SYMBOLS=0` in the environment
+/// The user asks for the names with `TUI_KEY_SYMBOLS=0` in the environment
 /// the app runs in, and an app with `Scene.keyNotation(_:)`. The status bar
 /// and a menu's shortcut column follow ``EnvironmentValues/keyNotation``; text
 /// of the app's own that names a key follows it through ``spelling(_:)``.
@@ -131,7 +131,7 @@ extension EnvironmentValues {
     /// How the status bar and a menu's shortcut column write keys — see
     /// ``KeyNotation``.
     ///
-    /// ``KeyNotation/symbols`` unless the user set `TUIKIT_KEY_SYMBOLS=0` in
+    /// ``KeyNotation/symbols`` unless the user set `TUI_KEY_SYMBOLS=0` in
     /// the environment the app runs in (``TerminalClient/keyNotationRequested``)
     /// or the app asked for the names with the TUI-specific
     /// `Scene.keyNotation(_:)`. Read-only, so that a view cannot hand symbols
@@ -147,7 +147,7 @@ extension EnvironmentValues {
 
 extension TerminalClient {
     /// How the user asked for keys to be written: ``KeyNotation/spelledOut``
-    /// with `TUIKIT_KEY_SYMBOLS=0` in the environment the app was started in,
+    /// with `TUI_KEY_SYMBOLS=0` in the environment the app was started in,
     /// for a terminal font with no glyph for the symbols, and
     /// ``KeyNotation/symbols`` otherwise. Read once, at first use.
     ///
@@ -162,6 +162,6 @@ extension TerminalClient {
     /// The rule behind ``keyNotationRequested``, posed on its input so it can
     /// be asked without changing what a whole process reads.
     static func keyNotationRequested(environment: [String: String]) -> KeyNotation {
-        environment["TUIKIT_KEY_SYMBOLS"] == "0" ? .spelledOut : .symbols
+        environment["TUI_KEY_SYMBOLS"] == "0" ? .spelledOut : .symbols
     }
 }

@@ -116,7 +116,7 @@ func renderValueMemoized<Key: Equatable, Row>(
         // inner row re-rendered from scratch though none of them had.
         cache.retainSubtree(identity)
         // Both callers verify. This used to be a `verifies` parameter that
-        // `_MemoizedRow` passed `false`, so under `TUIKIT_VERIFY_RENDER_MEMO`
+        // `_MemoizedRow` passed `false`, so under `TUI_VERIFY_RENDER_MEMO`
         // the standing CI net checked no row serve at all — and rows are what
         // the net mostly has to check, since `ForEach` wraps every Equatable
         // element in a `_MemoizedRow` and nothing in `Stress` uses
@@ -271,7 +271,7 @@ private func replayEffects(_ effects: [EffectJournal.Entry], context: RenderCont
     for effect in effects { journal.append(effect.retagged(token)) }
 }
 
-/// A hit under `TUIKIT_VERIFY_RENDER_MEMO`: renders the subtree fresh,
+/// A hit under `TUI_VERIFY_RENDER_MEMO`: renders the subtree fresh,
 /// compares it with what was stored, and returns the FRESH render.
 ///
 /// The fresh render registers for real, so the stored registrations are NOT

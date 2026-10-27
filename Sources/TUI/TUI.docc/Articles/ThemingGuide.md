@@ -168,7 +168,7 @@ These stay literal on purpose:
   which tone you are looking at, which a theme would not know.
 - **Fallbacks for input that has no colour**: an empty gradient, or an animated
   colour with no frames.
-- **The frame-dump debug overlay** (`TUIKIT_DEBUG_FRAME_DUMP=1`), a diagnostic.
+- **The frame-dump debug overlay** (`TUI_DEBUG_FRAME_DUMP=1`), a diagnostic.
 
 ## Editing Colors at Runtime
 

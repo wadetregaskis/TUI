@@ -82,7 +82,7 @@ HOSTS = {
 
 STRIPPED = (
     "TERM_PROGRAM", "TERM_PROGRAM_VERSION", "LC_TERMINAL", "LC_TERMINAL_VERSION",
-    "TMUX", "TMUX_PANE", "TUIKIT_TERM_PROGRAM",
+    "TMUX", "TMUX_PANE", "TUI_TERM_PROGRAM",
 )
 
 GLYPH = "\U0001F5A5"          # 🖥 — the Example header's emoji, VS-16 in the app
@@ -98,7 +98,7 @@ def run(binary, replies, seconds, config_dir):
                 os.environ.pop(key, None)
             os.environ["TERM"] = "xterm-256color"
             # Never the real preferences.
-            os.environ["TUIKIT_CONFIG_DIR"] = config_dir
+            os.environ["TUI_CONFIG_DIR"] = config_dir
             os.execv(binary, [binary])
         except Exception:
             pass

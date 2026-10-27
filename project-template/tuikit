@@ -6,7 +6,7 @@
 set -e
 
 VERSION="1.0.0"
-TUIKIT_INSTALL_PATH="/usr/local/bin/tuikit"
+TUI_INSTALL_PATH="/usr/local/bin/tuikit"
 
 # Colors
 BLUE='\033[0;34m'
@@ -18,8 +18,8 @@ NC='\033[0m' # No Color
 # Uninstall tuikit
 uninstall_tuikit() {
     echo -e "${YELLOW}Removing tuikit...${NC}"
-    if [ -f "$TUIKIT_INSTALL_PATH" ]; then
-        sudo rm -f "$TUIKIT_INSTALL_PATH" 2>/dev/null || rm -f "$TUIKIT_INSTALL_PATH"
+    if [ -f "$TUI_INSTALL_PATH" ]; then
+        sudo rm -f "$TUI_INSTALL_PATH" 2>/dev/null || rm -f "$TUI_INSTALL_PATH"
     fi
     echo -e "${GREEN}tuikit has been removed.${NC}"
 }

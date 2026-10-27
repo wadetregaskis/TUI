@@ -87,9 +87,9 @@ struct BodyMutationDiagnosticTests {
     func reportTextOnStandardError() async {
         let result = await #expect(processExitsWith: .success, observing: [\.standardErrorContent]) {
             await MainActor.run {
-                // An inherited TUIKIT_DIAGNOSTICS_FILE would send the report to
+                // An inherited TUI_DIAGNOSTICS_FILE would send the report to
                 // that file instead, and this test would read nothing.
-                ProcessWideState.setEnvironment("TUIKIT_DIAGNOSTICS_FILE", to: nil)
+                ProcessWideState.setEnvironment("TUI_DIAGNOSTICS_FILE", to: nil)
                 let (context, diagnostic) = makeContextWithDiagnostic()
                 diagnostic.beginTraversal()
                 _ = renderToBuffer(MutatingProbe(), context: context)

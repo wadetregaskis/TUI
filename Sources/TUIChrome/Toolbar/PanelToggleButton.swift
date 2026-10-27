@@ -44,7 +44,7 @@ struct _PanelToggleButton: View, Renderable, Layoutable {
     /// registered — finding no toggle and drawing nothing — and again after,
     /// in the same pass, with the same identity and the same view value. Read
     /// unannounced, the per-pass measure memo served the first answer, 0 × 0,
-    /// to the second (found by `TUIKIT_VERIFY_MEASURE_MEMO`).
+    /// to the second (found by `TUI_VERIFY_MEASURE_MEMO`).
     private func toggle(_ context: RenderContext) -> PanelToggle? {
         switch context.environment.panelToggleScope(panel) {
         case .window:

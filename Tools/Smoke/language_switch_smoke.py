@@ -65,7 +65,7 @@ class App:
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             try:
-                os.environ["TUIKIT_CONFIG_DIR"] = config_dir
+                os.environ["TUI_CONFIG_DIR"] = config_dir
                 os.environ["TERM"] = "xterm-256color"
                 # The language the environment asks for, so run 1 starts in English
                 # whatever this machine's own is. Every variable the service reads

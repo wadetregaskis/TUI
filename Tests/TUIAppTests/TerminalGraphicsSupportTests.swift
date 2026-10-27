@@ -4,7 +4,7 @@
 //  The twin of `TerminalHyperlinkSupportTests`, which the graphics side's own
 //  doc comments repeatedly point at — and which was 100% covered while this
 //  file was 0%. Two documented rules had nothing holding them: the precedence
-//  ladder (override, then `TUIKIT_GRAPHICS`, then the handshake), and the
+//  ladder (override, then `TUI_GRAPHICS`, then the handshake), and the
 //  deliberate asymmetry that `simulated` does NOT change the answer here.
 //
 //  Created by Wade Tregaskis
@@ -37,7 +37,7 @@ struct TerminalGraphicsSupportTests {
     private static func answer(_ override: Bool?, _ environment: String?) -> Bool {
         TerminalClient.graphicsSupported(
             override: override,
-            environment: environment.map { ["TUIKIT_GRAPHICS": $0] } ?? [:],
+            environment: environment.map { ["TUI_GRAPHICS": $0] } ?? [:],
             detected: nil)
     }
 
@@ -49,7 +49,7 @@ struct TerminalGraphicsSupportTests {
         }
     }
 
-    @Test("TUIKIT_GRAPHICS answers for the user when the app has not")
+    @Test("TUI_GRAPHICS answers for the user when the app has not")
     func environmentAnswersWhereTheAppHasNot() {
         #expect(Self.answer(nil, "1"))
         #expect(!Self.answer(nil, "0"))
@@ -60,13 +60,13 @@ struct TerminalGraphicsSupportTests {
     @Test("Only `1` and `0` are answers; anything else falls through to the handshake")
     func otherEnvironmentValuesAreNotAnswers() {
         // The switch has no `default: true` arm by design — a stray
-        // `TUIKIT_GRAPHICS=yes` must not turn pictures on for a terminal that
+        // `TUI_GRAPHICS=yes` must not turn pictures on for a terminal that
         // was never asked. Asked both ways, so falling through is seen to
         // reach the handshake's answer rather than a constant.
         for value in ["yes", "true", "", "01"] {
             for detected in [false, true] {
                 let answer = TerminalClient.graphicsSupported(
-                    override: nil, environment: ["TUIKIT_GRAPHICS": value], detected: detected)
+                    override: nil, environment: ["TUI_GRAPHICS": value], detected: detected)
                 #expect(answer == detected, "\(value.debugDescription), handshake \(detected)")
             }
         }
@@ -83,8 +83,8 @@ struct TerminalGraphicsSupportTests {
     func simulationDoesNotChangeTheAnswer() async {
         await #expect(processExitsWith: .success) {
             await MainActor.run {
-                ProcessWideState.setEnvironment("TUIKIT_GRAPHICS", to: nil)
-                ProcessWideState.setEnvironment("TUIKIT_HYPERLINKS", to: nil)
+                ProcessWideState.setEnvironment("TUI_GRAPHICS", to: nil)
+                ProcessWideState.setEnvironment("TUI_HYPERLINKS", to: nil)
                 ProcessWideState.simulated = .ghostty
                 // Ghostty draws pictures and honours links, so if the graphics
                 // answer read through `simulated` this would be true.
@@ -101,7 +101,7 @@ struct TerminalGraphicsSupportTests {
     func overrideIsPublished() async {
         await #expect(processExitsWith: .success) {
             await MainActor.run {
-                ProcessWideState.setEnvironment("TUIKIT_GRAPHICS", to: nil)
+                ProcessWideState.setEnvironment("TUI_GRAPHICS", to: nil)
                 ProcessWideState.graphicsSupport = true
                 #expect(KittyGraphics.isSupported)
                 // And back: clearing the override republishes the ladder's
@@ -119,14 +119,14 @@ struct TerminalGraphicsSupportTests {
     func applyPublishesOnDemand() async {
         await #expect(processExitsWith: .success) {
             await MainActor.run {
-                ProcessWideState.setEnvironment("TUIKIT_GRAPHICS", to: "1")
+                ProcessWideState.setEnvironment("TUI_GRAPHICS", to: "1")
                 // Written behind the accessor's back, as the startup path's
                 // publish would find it.
                 ProcessWideState.picturesSupported = false
                 ProcessWideState.applyGraphicsSupport()
                 #expect(KittyGraphics.isSupported)
 
-                ProcessWideState.setEnvironment("TUIKIT_GRAPHICS", to: nil)
+                ProcessWideState.setEnvironment("TUI_GRAPHICS", to: nil)
                 ProcessWideState.applyGraphicsSupport()
                 #expect(!KittyGraphics.isSupported, "and back to the default once nothing forces it")
             }

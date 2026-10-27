@@ -2,7 +2,7 @@
 //  AccessibilityPreferencesTests.swift
 //
 //  Reduce transparency, differentiate without colour and increase contrast,
-//  read as reduce motion is (owner ruling P5 (c)): the user's `TUIKIT_*`
+//  read as reduce motion is (owner ruling P5 (c)): the user's `TUI_*`
 //  variables and the host's settings reach the root, and the defaults are
 //  SwiftUI's on macOS.
 //
@@ -56,14 +56,14 @@ private struct PreferencesApp: App {
 @MainActor
 @Suite("Accessibility preferences beyond reduce motion")
 struct AccessibilityPreferencesTests {
-    @Test("Each TUIKIT_* variable set to 1 asks for its preference, and nothing else does")
+    @Test("Each TUI_* variable set to 1 asks for its preference, and nothing else does")
     func variables() {
         #expect(
             TerminalClient.accessibilityRequested(environment: [
-                "TUIKIT_REDUCE_TRANSPARENCY": "1", "TUIKIT_DIFFERENTIATE_WITHOUT_COLOR": "1",
-                "TUIKIT_INCREASE_CONTRAST": "1",
+                "TUI_REDUCE_TRANSPARENCY": "1", "TUI_DIFFERENTIATE_WITHOUT_COLOR": "1",
+                "TUI_INCREASE_CONTRAST": "1",
             ]) == [.reduceTransparency, .differentiateWithoutColor, .increaseContrast])
-        #expect(TerminalClient.accessibilityRequested(environment: ["TUIKIT_INCREASE_CONTRAST": "0"]).isEmpty)
+        #expect(TerminalClient.accessibilityRequested(environment: ["TUI_INCREASE_CONTRAST": "0"]).isEmpty)
         #expect(TerminalClient.accessibilityRequested(environment: [:]).isEmpty)
     }
 

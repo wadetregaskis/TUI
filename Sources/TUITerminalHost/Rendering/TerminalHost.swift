@@ -155,7 +155,7 @@ package enum TerminalHost {
     ///
     /// Three signals, in precedence order:
     ///
-    /// 1. **`TUIKIT_TERM_PROGRAM`** — an explicit answer from the user, in the
+    /// 1. **`TUI_TERM_PROGRAM`** — an explicit answer from the user, in the
     ///    same vocabulary as `TERM_PROGRAM` (`Apple_Terminal`, `iTerm.app`,
     ///    `ghostty`, `WarpTerminal`, `tmux`). First because it is the only
     ///    signal that can name a host the other two cannot, and because
@@ -177,7 +177,7 @@ package enum TerminalHost {
     ///   names it — which stays a real possibility, and is why this is an
     ///   Optional rather than a defaulted string.
     static func hostProgram(environment: [String: String]) -> String? {
-        if let forced = environment["TUIKIT_TERM_PROGRAM"], !forced.isEmpty { return forced }
+        if let forced = environment["TUI_TERM_PROGRAM"], !forced.isEmpty { return forced }
         if let native = environment["TERM_PROGRAM"], !native.isEmpty { return native }
         if let forwarded = environment["LC_TERMINAL"], !forwarded.isEmpty,
             let name = forwardedTerminalNames[forwarded]
@@ -265,7 +265,7 @@ package enum TerminalHost {
     /// Across an ssh hop this rests on `LC_TERMINAL`, which iTerm2's shell
     /// integration sets and ssh's `LC_*` rule forwards — so an iTerm2 reached
     /// remotely is identified only when that integration is installed. Without
-    /// it, `TUIKIT_TERM_PROGRAM` is the answer.
+    /// it, `TUI_TERM_PROGRAM` is the answer.
     static func detectITerm2(environment: [String: String]) -> Bool {
         hostProgram(environment: environment) == "iTerm.app"
     }

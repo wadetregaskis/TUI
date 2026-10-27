@@ -99,7 +99,7 @@ done
 
 # The guard opens the file's code, after its header comment and the comment
 # above the guard, and the file's last line is its `#endif`.
-guard='#if TUIKIT_TEST_SUPPORT && canImport(Testing)'
+guard='#if TUI_TEST_SUPPORT && canImport(Testing)'
 while IFS= read -r file; do
     first=$(grep -m 1 -vE '^[[:space:]]*(//.*)?$' "$file" || true)
     last=$(grep -vE '^[[:space:]]*$' "$file" | tail -1)

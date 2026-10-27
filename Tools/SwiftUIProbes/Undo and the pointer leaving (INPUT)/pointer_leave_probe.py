@@ -14,7 +14,7 @@ screen = pyte.Screen(cols, rows)
 stream = pyte.ByteStream(screen)
 pid, fd = pty.fork()
 if pid == 0:
-    env = dict(os.environ, TUIKIT_CONFIG_DIR=config, TERM="xterm-256color", COLORTERM="truecolor")
+    env = dict(os.environ, TUI_CONFIG_DIR=config, TERM="xterm-256color", COLORTERM="truecolor")
     os.execve(binary, [binary, "--page", "help"], env)
 fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
 

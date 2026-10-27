@@ -19,11 +19,11 @@ import TUIFoundation
 #endif
 
 /// Whether the backtick frame-dump debug shortcut is armed — opt-in via
-/// `TUIKIT_DEBUG_FRAME_DUMP=1`, same convention as `TUIKIT_DEBUG_FOCUS`.
+/// `TUI_DEBUG_FRAME_DUMP=1`, same convention as `TUI_DEBUG_FOCUS`.
 /// File-scope (the runner is generic, which forbids static stored properties)
 /// and read once: it's consulted per keystroke.
 private let frameDumpEnabled: Bool =
-    getenv("TUIKIT_DEBUG_FRAME_DUMP").map { String(cString: $0) == "1" } ?? false
+    getenv("TUI_DEBUG_FRAME_DUMP").map { String(cString: $0) == "1" } ?? false
 
 // MARK: - App Protocol
 
@@ -1052,7 +1052,7 @@ extension AppRunner {
                 focusManager.noteInputSource(.keyboard)
                 tuiContext.mouseEventDispatcher.noteInput()
                 // "`": dump the current frame to a file (debug shortcut, not
-                // consumed). Opt-in via TUIKIT_DEBUG_FRAME_DUMP=1 — unguarded,
+                // consumed). Opt-in via TUI_DEBUG_FRAME_DUMP=1 — unguarded,
                 // every backtick ANYWHERE (typing one into a TextField, a
                 // Markdown snippet in a TextEditor) silently wrote a frame
                 // file into the user's working directory. Force a full
@@ -1191,7 +1191,7 @@ extension TerminalHost {
     /// - Parameter name: a `TERM_PROGRAM`-style name, as
     ///   ``nameFromDeviceAttributes(_:)`` returns.
     static func seedDiscoveredHost(_ name: String) {
-        setenv("TUIKIT_TERM_PROGRAM", name, 1)
+        setenv("TUI_TERM_PROGRAM", name, 1)
     }
 }
 

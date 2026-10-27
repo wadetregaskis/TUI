@@ -22,7 +22,7 @@ extension Scene {
     /// ``KeyNotation/spelledOut`` sets ``EnvironmentValues/keyNotation`` for
     /// everything the scene draws, the status bar included. It never turns the
     /// symbols back on: ``KeyNotation/symbols`` means the app does not ask for
-    /// the names, and a user who asked for them with `TUIKIT_KEY_SYMBOLS=0`
+    /// the names, and a user who asked for them with `TUI_KEY_SYMBOLS=0`
     /// still gets them — it is the user who knows what their font can draw.
     ///
     /// - Parameter notation: How to write keys.

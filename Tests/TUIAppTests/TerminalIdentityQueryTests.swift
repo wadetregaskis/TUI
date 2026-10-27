@@ -213,7 +213,7 @@ struct TerminalIdentityQueryTests {
         #expect(discovered == "Apple_Terminal")
         // The seed goes into the environment, so spell out what the detectors
         // then see rather than mutating this process's own.
-        let environment = ["TUIKIT_TERM_PROGRAM": discovered ?? ""]
+        let environment = ["TUI_TERM_PROGRAM": discovered ?? ""]
         let writer = FrameDiffWriter(program: TerminalHost.detectProgram(environment: environment))
         let line = writer.buildOutputLines(
             buffer: FrameBuffer(text: "🖥️X"), terminalWidth: 8, terminalHeight: 1,
@@ -231,7 +231,7 @@ struct TerminalIdentityQueryTests {
     @Test("setenv is visible through ProcessInfo, which the seed depends on")
     func seedingMechanismWorks() async {
         await #expect(processExitsWith: .success) {
-            let key = "TUIKIT_SEED_MECHANISM_PROBE"
+            let key = "TUI_SEED_MECHANISM_PROBE"
             #expect(ProcessInfo.processInfo.environment[key] == nil, "the fixture: a key nothing sets")
             ProcessWideState.setEnvironment(key, to: "Apple_Terminal")
             #expect(ProcessInfo.processInfo.environment[key] == "Apple_Terminal")

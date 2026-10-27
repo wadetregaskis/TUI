@@ -41,7 +41,7 @@ struct CustomizablePalette: Palette, Hashable {
     var cursorColor: Color
 
     /// A fade applied to every colour this snapshots, read from the environment:
-    /// `TUIKIT_EXAMPLE_PALETTE_ALPHA=0.5` makes the whole app translucent.
+    /// `TUI_EXAMPLE_PALETTE_ALPHA=0.5` makes the whole app translucent.
     ///
     /// A debugging seam, off unless the variable is set, and it lives here because
     /// this is the one place the app's every colour passes through. What it is for
@@ -54,11 +54,11 @@ struct CustomizablePalette: Palette, Hashable {
     /// An invalid or absent value fades nothing, so a typo cannot quietly half-run
     /// the check.
     private static var debugFade: Double? {
-        debugAlpha("TUIKIT_EXAMPLE_PALETTE_ALPHA")
+        debugAlpha("TUI_EXAMPLE_PALETTE_ALPHA")
     }
 
     /// The same seam for the four GROUNDS, which `debugFade` deliberately leaves alone:
-    /// `TUIKIT_EXAMPLE_GROUND_ALPHA=0.5` fades the page, header, status bar and overlay
+    /// `TUI_EXAMPLE_GROUND_ALPHA=0.5` fades the page, header, status bar and overlay
     /// backgrounds and nothing else.
     ///
     /// Separate because a translucent ground asks a different question — whether the
@@ -67,7 +67,7 @@ struct CustomizablePalette: Palette, Hashable {
     /// `Documentation/Colour and styling/Opacity as composition.md`. Run the faded-palette sweep with it set
     /// (the sweep passes its environment through) to prove that across every page.
     private static var debugGroundFade: Double? {
-        debugAlpha("TUIKIT_EXAMPLE_GROUND_ALPHA")
+        debugAlpha("TUI_EXAMPLE_GROUND_ALPHA")
     }
 
     /// An alpha in 0…1 read from `variable`; anything else fades nothing, so a typo cannot

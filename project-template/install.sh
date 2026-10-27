@@ -7,7 +7,7 @@ set -e
 
 VERSION="1.0.0"
 SCRIPT_NAME="tuikit"
-TUIKIT_URL="https://raw.githubusercontent.com/wadetregaskis/TUIkit/main/project-template/tuikit"
+TUI_URL="https://raw.githubusercontent.com/wadetregaskis/TUIkit/main/project-template/tuikit"
 
 # Colors (friendly pastels)
 CYAN='\033[0;96m'
@@ -99,9 +99,9 @@ install() {
     # Download tuikit script from GitHub
     echo -e "  ${DIM}Downloading tuikit...${NC}"
     if command -v curl &> /dev/null; then
-        curl -fsSL "$TUIKIT_URL" -o "$INSTALL_PATH/$SCRIPT_NAME"
+        curl -fsSL "$TUI_URL" -o "$INSTALL_PATH/$SCRIPT_NAME"
     elif command -v wget &> /dev/null; then
-        wget -q "$TUIKIT_URL" -O "$INSTALL_PATH/$SCRIPT_NAME"
+        wget -q "$TUI_URL" -O "$INSTALL_PATH/$SCRIPT_NAME"
     else
         echo -e "  ${RED}Error:${NC} curl or wget required"
         exit 1

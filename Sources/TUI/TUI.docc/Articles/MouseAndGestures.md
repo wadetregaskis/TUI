@@ -402,7 +402,7 @@ A terminal that speaks kitty's clipboard protocol, OSC 5522, is sent every
 form a copy has beside its text — a link's Copy Link as a URI list, its
 Copy as Markdown as Markdown, a screen selection with its colours, weight
 and decoration as HTML — so an app that pastes those takes them as such;
-`TUIKIT_OSC5522=1` or `0` overrides what the terminal said. Such a terminal
+`TUI_OSC5522=1` or `0` overrides what the terminal said. Such a terminal
 hands a paste over with its types too: a picture on the clipboard reaches a
 view's `onPasteCommand(of: [.png])` as a PNG, beside any text.
 

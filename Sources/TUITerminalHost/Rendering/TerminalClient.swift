@@ -35,7 +35,7 @@ import TUICore
 /// ```swift
 /// let client = TerminalClient.current
 /// if client.program == .unidentified {
-///     print("Set TUIKIT_TERM_PROGRAM if emoji look misaligned.")
+///     print("Set TUI_TERM_PROGRAM if emoji look misaligned.")
 /// }
 /// ```
 public struct TerminalClient: Sendable, Equatable {
@@ -91,7 +91,7 @@ public struct TerminalClient: Sendable, Equatable {
     /// What named the terminal — the diagnostic half of this type, because the
     /// signals differ sharply in how far they reach.
     public enum Signal: String, Sendable, Equatable {
-        /// `TUIKIT_TERM_PROGRAM`, set by the user. The only signal that can
+        /// `TUI_TERM_PROGRAM`, set by the user. The only signal that can
         /// name a host none of the others reach.
         case explicitOverride
         /// `TERM_PROGRAM`, set by the terminal. Authoritative, but **does not
@@ -164,7 +164,7 @@ public struct TerminalClient: Sendable, Equatable {
         let program: Program = TerminalHost.detectProgram(environment: environment)
 
         // Order matters, and differs from the resolver's: the Device Attributes
-        // answer is SEEDED into `TUIKIT_TERM_PROGRAM`, so asking the
+        // answer is SEEDED into `TUI_TERM_PROGRAM`, so asking the
         // environment first would report every discovered host as a user
         // override and hide the mechanism this type exists to explain.
         let named = identity.flatMap(TerminalHost.nameFromDeviceAttributes) != nil
@@ -173,7 +173,7 @@ public struct TerminalClient: Sendable, Equatable {
                 .tmuxSession
             } else if named {
                 .deviceAttributes
-            } else if environment["TUIKIT_TERM_PROGRAM"]?.isEmpty == false {
+            } else if environment["TUI_TERM_PROGRAM"]?.isEmpty == false {
                 .explicitOverride
             } else if environment["TERM_PROGRAM"]?.isEmpty == false {
                 .termProgram
@@ -194,7 +194,7 @@ public struct TerminalClient: Sendable, Equatable {
             program: program,
             namedBy: signal,
             name: program.termProgramName ?? environment["TERM_PROGRAM"]
-                ?? environment["TUIKIT_TERM_PROGRAM"],
+                ?? environment["TUI_TERM_PROGRAM"],
             primaryDeviceAttributes: identity?.primaryAttributes,
             secondaryDeviceAttributes: identity?.secondaryAttributes,
             answeredVersionQuery: identity?.answeredVersion ?? false,

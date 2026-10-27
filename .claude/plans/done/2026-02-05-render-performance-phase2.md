@@ -2,7 +2,7 @@
 
 ## Preface
 
-Subtree memoization is activated: environment snapshot comparison in `RenderLoop` automatically invalidates cache on theme/palette changes; core types (Text, Alignment, ContainerConfig, etc.) gain `Equatable` conformance; example app extracts view subcomponents and applies `.equatable()` for real cache benefit. Debug logging (via `TUIKIT_DEBUG_RENDER` env var) tracks cache hits/misses per identity. Between state changes, identical views now skip re-rendering entirely.
+Subtree memoization is activated: environment snapshot comparison in `RenderLoop` automatically invalidates cache on theme/palette changes; core types (Text, Alignment, ContainerConfig, etc.) gain `Equatable` conformance; example app extracts view subcomponents and applies `.equatable()` for real cache benefit. Debug logging (via `TUI_DEBUG_RENDER` env var) tracks cache hits/misses per identity. Between state changes, identical views now skip re-rendering entirely.
 
 ## Completed
 
@@ -21,7 +21,7 @@ Subtree memoization is activated: environment snapshot comparison in `RenderLoop
 - [x] Add conditional Equatable to ContainerView, Panel, Card, Dialog
 - [x] Add conditional Equatable to FlexibleFrameView, OverlayModifier, DimmedModifier
 - [x] Add RenderCache.Stats struct
-- [x] Implement debug logging with TUIKIT_DEBUG_RENDER env var
+- [x] Implement debug logging with TUI_DEBUG_RENDER env var
 - [x] Extract view subcomponents for memoization (FeatureBox, ContainerTypesRow, SettingsAndAlignmentRow)
 - [x] Apply .equatable() in MainMenuPage and ContainersPage
 - [x] Update RenderCycle.md DocC article
@@ -153,7 +153,7 @@ Note: Modifier views with closures (`KeyPressModifier`, `OnAppearModifier`, `Tas
 - [x] Add `RenderCache.Stats` struct with hits/misses/stores/clears, hitRate, delta(since:)
 - [x] Increment counters in `lookup` (hit/miss), `clearAll` (clears), `store`
 - [x] `private(set) var stats` + `statsAtFrameStart` for per-frame deltas
-- [x] `TUIKIT_DEBUG_RENDER=1` env var: per-identity HIT/MISS/STORE logs + FRAME summary
+- [x] `TUI_DEBUG_RENDER=1` env var: per-identity HIT/MISS/STORE logs + FRAME summary
 - [x] `logDebug(@autoclosure)` with zero cost when disabled, stderr output
 - [x] 11 new tests for stats counting, delta, reset
 - Deferred: `View._printChanges()` equivalent for future work

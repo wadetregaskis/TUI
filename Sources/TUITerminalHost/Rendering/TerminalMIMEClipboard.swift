@@ -13,7 +13,7 @@ import Foundation
 extension TerminalClient {
     /// Force the answer to ``mimeClipboard``, whatever was detected: `true`
     /// sends every terminal copy by OSC 5522, `false` never does. `nil`, the
-    /// default, defers to `TUIKIT_OSC5522` (`1` or `0`), then to what the
+    /// default, defers to `TUI_OSC5522` (`1` or `0`), then to what the
     /// startup exchange learned.
     @MainActor public static var mimeClipboardSupport: Bool?
 
@@ -44,7 +44,7 @@ extension TerminalClient {
     /// The ladder behind ``mimeClipboard``, posed on its inputs.
     static func mimeClipboard(environment: [String: String], override: Bool?, detected: Bool) -> Bool {
         if let override { return override }
-        switch environment["TUIKIT_OSC5522"] {
+        switch environment["TUI_OSC5522"] {
         case "1": return true
         case "0": return false
         default: return detected

@@ -2,7 +2,7 @@
 //  KeyNotationTests.swift
 //
 //  Keys spelled out for a terminal font with no glyph for macOS's symbols: the
-//  names, where they come from — the user's `TUIKIT_KEY_SYMBOLS=0`, the app's
+//  names, where they come from — the user's `TUI_KEY_SYMBOLS=0`, the app's
 //  `Scene.keyNotation(_:)` — and where they are drawn: the status bar and a
 //  menu's shortcut column.
 //
@@ -99,10 +99,10 @@ struct KeyNotationTests {
 
     // MARK: - Where the notation comes from
 
-    @Test("The user asks with TUIKIT_KEY_SYMBOLS=0, and nothing else asks")
+    @Test("The user asks with TUI_KEY_SYMBOLS=0, and nothing else asks")
     func environmentVariable() {
-        #expect(TerminalClient.keyNotationRequested(environment: ["TUIKIT_KEY_SYMBOLS": "0"]) == .spelledOut)
-        #expect(TerminalClient.keyNotationRequested(environment: ["TUIKIT_KEY_SYMBOLS": "1"]) == .symbols)
+        #expect(TerminalClient.keyNotationRequested(environment: ["TUI_KEY_SYMBOLS": "0"]) == .spelledOut)
+        #expect(TerminalClient.keyNotationRequested(environment: ["TUI_KEY_SYMBOLS": "1"]) == .symbols)
         #expect(TerminalClient.keyNotationRequested(environment: [:]) == .symbols)
         #expect(EnvironmentValues().keyNotation == .symbols, "a key's default does not read the process")
     }
@@ -156,9 +156,9 @@ struct KeyNotationTests {
         #expect(typed.contains("q quit") && typed.contains("N new") && typed.contains("⌃Z undo"), "\(typed)")
     }
 
-    @Test("The user's TUIKIT_KEY_SYMBOLS=0, as the app runner reads it, reaches the status bar")
+    @Test("The user's TUI_KEY_SYMBOLS=0, as the app runner reads it, reaches the status bar")
     func userSettingReachesTheStatusBar() {
-        let asked = TerminalClient.keyNotationRequested(environment: ["TUIKIT_KEY_SYMBOLS": "0"])
+        let asked = TerminalClient.keyNotationRequested(environment: ["TUI_KEY_SYMBOLS": "0"])
         let harness = RenderLoopHarness()
         _ = harness.loop(KeyNotationProbeApp(), keyNotation: asked).render()
         #expect(harness.terminal.writtenOutput.joined().stripped.contains("Esc back"))

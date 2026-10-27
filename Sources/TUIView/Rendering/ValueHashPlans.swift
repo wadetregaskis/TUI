@@ -67,7 +67,7 @@ package final class ValueHashPlans {
     private let running: UnsafeMutablePointer<Running>
     private let builder: ValueHashPlanBuilder
 
-    #if TUIKIT_VALUE_HASH_CENSUS
+    #if TUI_VALUE_HASH_CENSUS
     /// What the hash did with these plans — see ``ValueHashCensus``.
     package var census = ValueHashCensus()
     #endif
@@ -293,7 +293,7 @@ extension ValueHashPlans {
             mixDefinedRun(base, from: 0, count: plan.pointee.size, into: &hash)
             return true
         case .bypass:
-            #if TUIKIT_VALUE_HASH_CENSUS
+            #if TUI_VALUE_HASH_CENSUS
             census.noteStepBypass(plan.pointee.bypassReason ?? "")
             #endif
             return false

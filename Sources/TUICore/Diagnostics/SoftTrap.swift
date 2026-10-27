@@ -16,7 +16,7 @@
 ///
 /// Where a release report goes follows ``DiagnosticChannel``:
 ///
-/// - `TUIKIT_DIAGNOSTICS_FILE` names a file, and the report is appended to it
+/// - `TUI_DIAGNOSTICS_FILE` names a file, and the report is appended to it
 ///   straight away.
 /// - Otherwise the report goes to stderr. While an app owns the terminal,
 ///   stderr is the screen it is drawing, so the report is held and written

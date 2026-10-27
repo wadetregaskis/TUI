@@ -29,7 +29,7 @@ import TUICore
 /// has been declared local: over ssh it would run on the wrong machine, and
 /// the framework cannot tell which machine it is on (3a96d8fc). A tool that
 /// knows it is local turns it on through ``TerminalClient/urlOpeningSupport``,
-/// and `TUIKIT_OPEN_URLS=1` lets a user answer for their own session. Only a
+/// and `TUI_OPEN_URLS=1` lets a user answer for their own session. Only a
 /// running app reaches the opener at all — an action read from its
 /// environment, or one the app makes itself and calls directly: a headless
 /// run, a snapshot or a test launches nothing, whatever the setting. A

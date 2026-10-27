@@ -58,7 +58,7 @@ package func appConfigDirectory() -> URL {
     // "sandboxed" run would otherwise read and write the developer's own
     // preferences. Setting it also switches `@AppStorage` to file-backed
     // storage under this directory (see ``StorageDefaults/backend``).
-    if let override = ProcessInfo.processInfo.environment["TUIKIT_CONFIG_DIR"],
+    if let override = ProcessInfo.processInfo.environment["TUI_CONFIG_DIR"],
         !override.isEmpty
     {
         return URL(fileURLWithPath: override).appendingPathComponent(appName)

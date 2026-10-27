@@ -37,7 +37,7 @@ import TUICore
 /// passes on. Requests made between two frames are written together: each
 /// message once, and the bell once. Nothing reports whether the person saw
 /// it. ``EnvironmentValues/terminalCapabilities``' ``TerminalCapabilities/Feature/notifications`` says
-/// which this terminal gets, and `TUIKIT_NOTIFICATIONS=1` or `0` is the
+/// which this terminal gets, and `TUI_NOTIFICATIONS=1` or `0` is the
 /// user's switch.
 ///
 /// TUI-specific, with no SwiftUI counterpart: a Mac app would bounce its Dock

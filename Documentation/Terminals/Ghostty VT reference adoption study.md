@@ -156,8 +156,8 @@ How output items are measured:
   erase the tail with EL rather than erasing first. That is O3's padding
   trim.
 - **API.** None: it is not a SwiftUI concept, and nothing an app chooses.
-  `TUIKIT_SYNCHRONIZED_OUTPUT=0` is the user's off switch, in the shape of
-  the keyboard lane's `TUIKIT_KEYBOARD_PROTOCOL=0`.
+  `TUI_SYNCHRONIZED_OUTPUT=0` is the user's off switch, in the shape of
+  the keyboard lane's `TUI_KEYBOARD_PROTOCOL=0`.
 - **Degrades.** A host without the mode ignores it.
   - The shape (`?`, no intermediate) was measured clean on Terminal.app,
     iTerm2, Ghostty and Warp (Terminal compatibility survey.md:550-566).
@@ -284,7 +284,7 @@ terminal owns it, not the render loop: see C2's "One owner".)
 has a documented run-time check:
 - a per-`Program` table on `TerminalClient`, in the shape of
   `honoursHyperlinks(_:)` (TerminalHyperlinkSupport.swift:77-82);
-- an app override and a `TUIKIT_*` environment switch;
+- an app override and a `TUI_*` environment switch;
 - surfaced to views as **one** environment value, shaped like the keyboard
   lane's `\.keyboardReporting` (KeyboardReportingEnvironment.swift in that
   lane).
@@ -386,7 +386,7 @@ that rule. Ghostty's page (and its config reference) adds:
 **Built (2026-10-19, lane GHOSTTY, step V8):** `.terminalProgress(_:)` and
 `TerminalProgress` as below, on the ledger (`TerminalHostState`), sent only to
 the hosts documented to draw one — Ghostty, iTerm2 and tmux — with
-`TUIKIT_PROGRESS` the user's switch; the keep-alive every 5 s from a wake
+`TUI_PROGRESS` the user's switch; the keep-alive every 5 s from a wake
 that draws nothing; `9;4;0` on suspend, exit and in the signal debt. The
 run-time check is `\.terminalFeatures.showsProgress` (`TerminalFeatures`, the
 one capability value this study asked for, created here). tmux measured with
@@ -471,7 +471,7 @@ The look on Ghostty and iTerm2 is owed. Decisions B-GHOSTTY-1 to 5.
 **Built 2026-10-18 (lane INPUT), app-wide** — the Q1 recommendation's second
 step, A13's screen selection having shipped: `> 1` as mouse reporting comes
 on, `> 0` as it goes off and at every teardown and in the signal debt; not on
-Apple Terminal; `TUIKIT_SHIFT_CLICKS=0` the user's switch;
+Apple Terminal; `TUI_SHIFT_CLICKS=0` the user's switch;
 `mouse_probe.py`'s `PROBE_SHIFT_ESCAPE=1` the probe. The per-host measurements
 are owed, by hand (`Terminal compatibility survey.md`, "Shift-clicks reaching
 the app").
@@ -492,7 +492,7 @@ the app").
   selection gives users TUI's own selection.
 - **API.** Nothing public: an internal flag on `MouseSupport`, set by the
   consumers and applied in `applyMouseSupport`. This is mouse-mode state, so
-  it does not need the ledger. User switch: `TUIKIT_SHIFT_CLICKS=0`.
+  it does not need the ledger. User switch: `TUI_SHIFT_CLICKS=0`.
 - **Degrades.** Ignored where unsupported.
   - The `>`-marker family (`CSI > 1;2 m`) already goes to every host
     (Terminal.swift:436).
@@ -513,7 +513,7 @@ after a space) and the title's sanitiser; `BEL` everywhere else, and for a
 message with nothing to say. Under tmux it is the bell: tmux 3.7c passes no
 `OSC 9` on and does pass `BEL` (measured, `progress_probe.py
 --tmux-forwarding`). The run-time check is
-`\.terminalFeatures.postsNotifications`; `TUIKIT_NOTIFICATIONS` the user's
+`\.terminalFeatures.postsNotifications`; `TUI_NOTIFICATIONS` the user's
 switch. Whether a notification appears is owed to a look. Decisions
 B-GHOSTTY-6 to 8.
 
@@ -557,7 +557,7 @@ B-GHOSTTY-6 to 8.
   - Keypad digits carry `.numericPad`, the modifier the keyboard lane adds.
   - Under the kitty protocol these keys arrive as `CSI … u`, so this is the
     legacy path: Apple Terminal, unidentified hosts, and
-    `TUIKIT_KEYBOARD_PROTOCOL=0`.
+    `TUI_KEYBOARD_PROTOCOL=0`.
 - **Cost.** 2–3 hours.
 - **Tests.** A `KeyEvent` table, and `InputSplitInvarianceTests` over every
   SS3 spelling split at every byte.
@@ -939,7 +939,7 @@ lane's OSC 52 drain. Land V2 before that lane launches, or after it lands.
 
 | Step | What | Files | Tests | Terminals / probe |
 |---|---|---|---|---|
-| V6 | C5: XTSHIFTESCAPE while a Shift-click consumer is focused | `Sources/TUIFoundation/App/MouseSupport.swift`, `Terminal.swift` (`applyMouseSupport`), the consumers' registration (List selection, TextField, TextEditor mouse handlers), `FatalSignalTerminalRestore.swift`, compat doc | `> 1` / `> 0` follow focus; teardown and debt; `TUIKIT_SHIFT_CLICKS=0` | `mouse_probe.py` Shift-clicks with and without on Ghostty, Warp, iTerm2, Apple Terminal (CPR leak check), kitty |
+| V6 | C5: XTSHIFTESCAPE while a Shift-click consumer is focused | `Sources/TUIFoundation/App/MouseSupport.swift`, `Terminal.swift` (`applyMouseSupport`), the consumers' registration (List selection, TextField, TextEditor mouse handlers), `FatalSignalTerminalRestore.swift`, compat doc | `> 1` / `> 0` follow focus; teardown and debt; `TUI_SHIFT_CLICKS=0` | `mouse_probe.py` Shift-clicks with and without on Ghostty, Warp, iTerm2, Apple Terminal (CPR leak check), kitty |
 
 ### Phase 4 — after A28 lands (and Q2–Q5)
 

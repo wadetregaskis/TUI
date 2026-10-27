@@ -19,7 +19,7 @@ import TUICore
 /// knows whether the person sees what is sent.
 ///
 /// It follows from which terminal TUI identified at startup and the user's
-/// `TUIKIT_*` switches, and is fixed for the run — but for whether the
+/// `TUI_*` switches, and is fixed for the run — but for whether the
 /// progress bar shows under tmux, which follows the terminals attached to it
 /// as they come and go. See `Documentation/Terminals/Terminal compatibility
 /// survey.md`, "Pointer shapes (OSC 22)" and "Progress and attention".
@@ -31,14 +31,14 @@ package struct TerminalFeatures: Hashable, Sendable {
     /// foot, iTerm2 from 3.5.0, xterm), unless turned off; `false` elsewhere,
     /// unless turned on. The app turns it either way with
     /// `TerminalClient.pointerShapeSupport`, and the user with
-    /// `TUIKIT_POINTER_SHAPES` (`1` or `0`).
+    /// `TUI_POINTER_SHAPES` (`1` or `0`).
     package let pointerShapes: Bool
 
     /// Whether TUI's own controls set the pointer's shape without being
     /// asked: the I-beam over a text field, a pointing hand over a link or a
     /// button, a resize arrow over a split view's divider or a table's column
     /// edge. Only where a person has seen the terminal put its pointer back as
-    /// the app leaves — no terminal yet — or where `TUIKIT_POINTER_SHAPES=all`
+    /// the app leaves — no terminal yet — or where `TUI_POINTER_SHAPES=all`
     /// asks for them.
     package let controlPointerShapes: Bool
 
@@ -52,7 +52,7 @@ package struct TerminalFeatures: Hashable, Sendable {
     /// detach, so this can change while the app runs.
     ///
     /// A user turns progress on for a terminal TUI does not know, or off,
-    /// with `TUIKIT_PROGRESS=1` or `0`.
+    /// with `TUI_PROGRESS=1` or `0`.
     package let showsProgress: Bool
 
     /// Whether the terminal posts a desktop notification, so
@@ -61,7 +61,7 @@ package struct TerminalFeatures: Hashable, Sendable {
     /// nothing of what it is for.
     ///
     /// A user keeps every request to the bell, or turns notifications on for
-    /// a terminal TUI does not know, with `TUIKIT_NOTIFICATIONS=0` or `1`.
+    /// a terminal TUI does not know, with `TUI_NOTIFICATIONS=0` or `1`.
     package let postsNotifications: Bool
 
     /// A terminal that does none of these: what a view rendered outside a

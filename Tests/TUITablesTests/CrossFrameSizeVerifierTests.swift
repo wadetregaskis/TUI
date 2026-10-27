@@ -2,7 +2,7 @@
 //  CrossFrameSizeVerifierTests.swift
 //
 //  Every size the render cache keeps ACROSS frames is a claim that nothing it
-//  was measured from has moved, and `TUIKIT_VERIFY_MEASURE_MEMO` is how that
+//  was measured from has moved, and `TUI_VERIFY_MEASURE_MEMO` is how that
 //  claim is checked: the size is measured again, a disagreement is reported,
 //  and the fresh size is the one laid out. The value memo's sizes were checked;
 //  the two containers that keep a size of their own in the same table — a

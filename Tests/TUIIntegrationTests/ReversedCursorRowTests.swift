@@ -460,7 +460,7 @@ struct ReversedCursorRowTests {
     // MARK: - The picture
 
     /// A reversal changes colours only, so every glyph and every width is where it was.
-    /// Recorded with `TUIKIT_RECORD_SNAPSHOTS=1`, as the corpus in `SnapshotCorpusTests`
+    /// Recorded with `TUI_RECORD_SNAPSHOTS=1`, as the corpus in `SnapshotCorpusTests`
     /// is; a moved glyph shows up as a diff against the committed grid.
     @Test("A reversed cursor row moves no glyph")
     func snapshots() {

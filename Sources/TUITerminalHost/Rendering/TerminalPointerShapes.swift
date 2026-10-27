@@ -369,7 +369,7 @@ extension TerminalClient {
     ///
     /// `true` turns shapes on for a host with no documentation here (spoken to
     /// in CSS's names); `false` turns them off on one that has it. `nil` (the
-    /// default) means the table, unless `TUIKIT_POINTER_SHAPES` is set in the
+    /// default) means the table, unless `TUI_POINTER_SHAPES` is set in the
     /// environment: `1` on, `0` off, and `all` on with TUI's own controls'
     /// shapes as well.
     ///
@@ -399,7 +399,7 @@ extension TerminalClient {
             switch override {
             case .some(let override): override
             case .none:
-                switch environment["TUIKIT_POINTER_SHAPES"] {
+                switch environment["TUI_POINTER_SHAPES"] {
                 case "1", "all": true
                 case "0": false
                 default: nil
@@ -416,9 +416,9 @@ extension TerminalClient {
     /// asked — the I-beam over a text field, a hand over a link or a button,
     /// a resize arrow over a divider — on `host`: where a person has seen its
     /// pointer put back as the app leaves (``PointerShapeHost/resetIsMeasured``,
-    /// iTerm2 so far), or where `TUIKIT_POINTER_SHAPES=all` asks for them.
+    /// iTerm2 so far), or where `TUI_POINTER_SHAPES=all` asks for them.
     package static func builtInPointerShapes(host: PointerShapeHost?, environment: [String: String]) -> Bool {
         guard let host else { return false }
-        return environment["TUIKIT_POINTER_SHAPES"] == "all" || host.resetIsMeasured
+        return environment["TUI_POINTER_SHAPES"] == "all" || host.resetIsMeasured
     }
 }

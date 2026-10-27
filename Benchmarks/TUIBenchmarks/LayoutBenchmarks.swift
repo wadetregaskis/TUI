@@ -31,7 +31,7 @@ import TUI
 /// SIGTRAP. The skip is wired via
 /// ``viewBenchmarkConfiguration()`` (which sets
 /// `Configuration.skip = true` when
-/// `TUIKIT_BENCH_RUN_VIEW` is unset). Task #31 — moving
+/// `TUI_BENCH_RUN_VIEW` is unset). Task #31 — moving
 /// the render pipeline off MainActor onto a dedicated
 /// global actor — unblocks these.
 enum LayoutBenchmarks {

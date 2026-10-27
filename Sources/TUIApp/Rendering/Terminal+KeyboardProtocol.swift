@@ -154,7 +154,7 @@ extension Terminal {
 
     /// Whether the startup exchange asks this terminal about the protocol at
     /// all: not Apple Terminal, which does not speak it, and not where
-    /// `TUIKIT_KEYBOARD_PROTOCOL=0` is set — the user's way out, should a
+    /// `TUI_KEYBOARD_PROTOCOL=0` is set — the user's way out, should a
     /// terminal claim the protocol and then encode keys in a way TUI
     /// misreads.
     var asksKeyboardProtocol: Bool {
@@ -163,9 +163,9 @@ extension Terminal {
     }
 
     /// Whether the environment lets TUI ask for the protocol at all: yes,
-    /// unless `TUIKIT_KEYBOARD_PROTOCOL` is `0`.
+    /// unless `TUI_KEYBOARD_PROTOCOL` is `0`.
     nonisolated static func keyboardProtocolAllowed(environment: [String: String]) -> Bool {
-        environment["TUIKIT_KEYBOARD_PROTOCOL"] != "0"
+        environment["TUI_KEYBOARD_PROTOCOL"] != "0"
     }
 
     /// The negotiation behind ``negotiateKeyboardProtocol(timeout:)``, without

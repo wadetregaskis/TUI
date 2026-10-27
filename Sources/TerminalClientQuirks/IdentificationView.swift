@@ -70,11 +70,11 @@ struct IdentificationView: View {
             Text("Signals").bold()
             ForEach(Self.environmentSignals, id: \.variable) { signal in
                 let value = ProcessInfo.processInfo.environment[signal.variable]
-                // The framework SEEDS `TUIKIT_TERM_PROGRAM` itself when only the
+                // The framework SEEDS `TUI_TERM_PROGRAM` itself when only the
                 // Device Attributes reply named the host, so on that hop the
                 // variable is set and was not set by anyone; the fixed caption
                 // called it an explicit override.
-                let seeded = signal.variable == "TUIKIT_TERM_PROGRAM" && client.namedBy == .deviceAttributes
+                let seeded = signal.variable == "TUI_TERM_PROGRAM" && client.namedBy == .deviceAttributes
                 HStack(spacing: 1) {
                     Text(pad(signal.variable, 22))
                         .foregroundStyle(.palette.foregroundSecondary)
@@ -99,7 +99,7 @@ struct IdentificationView: View {
     }
 
     private static let environmentSignals = [
-        EnvironmentSignal(variable: "TUIKIT_TERM_PROGRAM", reach: "explicit; always wins"),
+        EnvironmentSignal(variable: "TUI_TERM_PROGRAM", reach: "explicit; always wins"),
         EnvironmentSignal(variable: "TERM_PROGRAM", reach: "local only — ssh drops it"),
         EnvironmentSignal(variable: "LC_TERMINAL", reach: "iTerm2 only; ssh forwards LC_*"),
         EnvironmentSignal(variable: "TMUX", reach: "a tmux pane"),
@@ -152,7 +152,7 @@ struct IdentificationView: View {
             Text("If glyphs look misaligned").bold()
             Text("Name the terminal yourself and restart:")
                 .foregroundStyle(.palette.foregroundSecondary)
-            Text("    export TUIKIT_TERM_PROGRAM=Apple_Terminal")
+            Text("    export TUI_TERM_PROGRAM=Apple_Terminal")
             Text("Accepted: Apple_Terminal, iTerm.app, ghostty, WarpTerminal, gnome-terminal, tmux.")
                 .foregroundStyle(.palette.foregroundTertiary)
             Text("If your terminal is not one of those, the Alignment tab shows what to report.")
@@ -196,7 +196,7 @@ struct IdentificationView: View {
 
     private func describe(_ signal: TerminalClient.Signal) -> String {
         switch signal {
-        case .explicitOverride: "TUIKIT_TERM_PROGRAM (explicit override)"
+        case .explicitOverride: "TUI_TERM_PROGRAM (explicit override)"
         case .termProgram: "TERM_PROGRAM (set locally by the terminal)"
         case .forwardedLocale: "LC_TERMINAL (forwarded across ssh)"
         case .termType: "TERM (the termtype, which ssh carries in its pty-req)"

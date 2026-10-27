@@ -37,13 +37,13 @@ swift run -c release Stress -- --bench --scenario fanout --iterations 2000 --col
 
 | Env | Flag | Meaning |
 |---|---|---|
-| `TUIKIT_STRESS_SCENARIO` | `--scenario <id>` | boot directly into a scenario |
-| `TUIKIT_STRESS_VARIANT` | `--variant <id>` | pick a variant of a matrix scenario (see below) |
-| `TUIKIT_STRESS_SCALE` | `--scale <n>` | size multiplier (1 is already heavy; 10/100 are pathological) |
-| `TUIKIT_STRESS_SEED` | `--seed <n>` | synthetic-data seed |
-| `TUIKIT_STRESS_AUTOPILOT` | `--autopilot` | self-drive continuous re-renders |
-| `TUIKIT_STRESS_STRIPES` | `--stripes <b>` | `--bench` of a scenario only: draw it under `.alternatingRowBackgrounds(<b>)` — `automatic`, `enabled` or `disabled` — to price the stripe on one binary (see below); any other run that states it, or any other value, stops |
-| `TUIKIT_HAIRLINES` | — | `1`: `--bench` as if the terminal drew `.hairline` list separators (a list then marks its rows for them; the run loop that places them is not benched) |
+| `TUI_STRESS_SCENARIO` | `--scenario <id>` | boot directly into a scenario |
+| `TUI_STRESS_VARIANT` | `--variant <id>` | pick a variant of a matrix scenario (see below) |
+| `TUI_STRESS_SCALE` | `--scale <n>` | size multiplier (1 is already heavy; 10/100 are pathological) |
+| `TUI_STRESS_SEED` | `--seed <n>` | synthetic-data seed |
+| `TUI_STRESS_AUTOPILOT` | `--autopilot` | self-drive continuous re-renders |
+| `TUI_STRESS_STRIPES` | `--stripes <b>` | `--bench` of a scenario only: draw it under `.alternatingRowBackgrounds(<b>)` — `automatic`, `enabled` or `disabled` — to price the stripe on one binary (see below); any other run that states it, or any other value, stops |
+| `TUI_HAIRLINES` | — | `1`: `--bench` as if the terminal drew `.hairline` list separators (a list then marks its rows for them; the run loop that places them is not benched) |
 
 `--variants` lists every matrix scenario's variants, grouped by the axis each
 one varies. `--bench` also takes `--iterations N`, `--cols C`, `--rows R`, and `--cold`
@@ -66,7 +66,7 @@ timed a process that grew by that much every frame.
 `disabled` and `automatic` differ by the stripe's own work — the background
 each striped line states, its paint — and nothing else, where two builds also
 differ by code layout. `ab_bench.py` passes its environment to both binaries
-and no flags of its own, so `TUIKIT_STRESS_STRIPES=disabled` before it runs
+and no flags of its own, so `TUI_STRESS_STRIPES=disabled` before it runs
 both binaries unstriped (an older build ignores it); to A/B one build against
 itself, give it two one-line wrapper scripts, each `exec`ing the binary under
 one setting.
@@ -137,7 +137,7 @@ swift run Stress -- --bench --scenario table-api --variant width-fit
 
 `--selfcheck` renders every variant of every matrix scenario, not just the one a
 config selects, so the whole space is smoke-tested (and, with
-`TUIKIT_VERIFY_RENDER_MEMO=1`, memo-verified) on every run.
+`TUI_VERIFY_RENDER_MEMO=1`, memo-verified) on every run.
 
 `controls` is the narrowest kind: one control per variant, so a change to that
 control's per-render cost reads in its variant and is not diluted by a page
@@ -289,12 +289,12 @@ with what it is. The runner reports those frames apart, as
 land ahead of the fix of what it found — a test's `withKnownIssue`, for a
 session. The fix takes the entry out.
 
-Under `TUIKIT_VERIFY_RENDER_MEMO=1` a session run also reports what the
+Under `TUI_VERIFY_RENDER_MEMO=1` a session run also reports what the
 render-memo verifier found — every served buffer re-rendered and compared, and
 the registrations it replays with the ones a fresh render makes — and fails on
 any, naming the steps. The twin compares whole frames; the verifier compares
 each serve, including those no frame shows (a navigation stack's covered root,
-the focus-reach probe's rows). `TUIKIT_VERIFY_MEASURE_MEMO=1` does the same for
+the focus-reach probe's rows). `TUI_VERIFY_MEASURE_MEMO=1` does the same for
 sizes — every size served by either measure memo, the per-pass one and the
 cross-frame one, re-measured and compared — and a run fails on any of those
 too.
@@ -336,7 +336,7 @@ memos at the end of every frame.
 | `log-observable` | `log` with `.scrollPosition(id:)` bound through `@Bindable` |
 | `log-captures` | `log` whose rows carry a tap handler capturing the parent's growing list through `self`: today one copy of the list is alive at a time; a memo that serves rows keeps each drawn row's handler, and the list it captured when drawn |
 | `image-rows` | a `List` of rows each holding a decoded 64×32 picture (8 KB of pixels) that arrive, leave and are replaced: the resident size of what a memo keeps of a row's VALUE |
-| `accumulate` | a clock moving every step over four readers of an `@Observable` property nothing writes until the end — a drawn body, a body only measured (`ViewThatFits`' unchosen candidate), a custom `ButtonStyle`'s `makeBody` and a `@Bindable`-bound `Toggle`. Every body evaluated under observation arms a registration on what it read, freed when that is written, when the model it read is deinitialized, or when the observation lease it was armed under retires — once nothing the render cache keeps depends on it — so what is alive stays flat however long the run; under `TUIKIT_OBSERVATION_RETIREMENT=never`, the cache as it was before leases, a reader drawn every frame of a property nobody writes adds one a frame for as long as the model lives. Reports resident size every 9,000 steps (a quarter of an hour at 10 Hz) and, at the end, how long the first write took: every registration still armed runs inside it. Play it without `--verify` for its numbers — the twin's registrations are in the same process |
+| `accumulate` | a clock moving every step over four readers of an `@Observable` property nothing writes until the end — a drawn body, a body only measured (`ViewThatFits`' unchosen candidate), a custom `ButtonStyle`'s `makeBody` and a `@Bindable`-bound `Toggle`. Every body evaluated under observation arms a registration on what it read, freed when that is written, when the model it read is deinitialized, or when the observation lease it was armed under retires — once nothing the render cache keeps depends on it — so what is alive stays flat however long the run; under `TUI_OBSERVATION_RETIREMENT=never`, the cache as it was before leases, a reader drawn every frame of a property nobody writes adds one a frame for as long as the model lives. Reports resident size every 9,000 steps (a quarter of an hour at 10 Hz) and, at the end, how long the first write took: every registration still armed runs inside it. Play it without `--verify` for its numbers — the twin's registrations are in the same process |
 | `menus` | a document manager run from its menus: pop-up `Menu`s in the four corners (File top-left, View top-right, Export bottom-left, Help bottom-right), a `Picker(.menu)` status filter, a `.contextMenu` on every document, an inline `Menu` beside the list and a `TextField` whose `.textInputSuggestions` offer tags. Each is opened by the keyboard (Return, Shift+F10 on a document, Down in the field), by a click that leaves it up, and by a press dragged onto a row; walked with the arrows and End, chosen from with Return or a click, dismissed with Escape or a click elsewhere — while documents arrive, leave, are renamed and promoted under an open menu, the File menu's own recent items change while it is up, and the terminal is made short and narrow around it (six sizes, 36 to 120 wide, 12 to 40 tall). The page's `@FocusState` is on its status line, so the checks can say, from the model and the session's own moves: the open menu's box is whole inside the content and draws every row or a way to reach the rest; the row the session walked to is the one painted apart (read from the styled frame), or none after a pointer opened a pop-up menu; every command chosen ran exactly once, and was the one chosen (`MenuDesk.last`, not only a count, which a click that runs the row beside it would pass), and the filter holds the option chosen; no label of a closed menu is left on the screen; and the focus is back where it was once the frame after a close has settled — TUI hands it back at the end of the pass that closes the menu, so the page reads it one frame late. Type-select is not played: TUI's menus have none. Its first runs found that a click under an app header landed that many rows lower in `HeadlessApp` and opened a menu as the keyboard does; that the first line of a wrapped menu item answered no click; that Tab left the focus on a document the list did not scroll into view, a context menu's focus stop publishing no id for the scroll view to find; and that an open menu whose anchor scrolls out of its scroll view went from the screen but stayed open, holding the keyboard and coming back with its row. Now an eager stack's menu stays on the screen, pinned at the edge, and a lazy stack's closes with its undrawn row and hands the focus back — which the session expects when the row's number is gone from the list, and holds the menu to never coming back |
 | `themes` | a task list beside a form, a table, a tinted band and a translucent line, used — rows walked and selected, the form tabbed through, typed into, toggled and saved — while its look changes: the app's palette cycled with `t` through all seventeen TUI ships (Green … Solid Colors, and the one that follows the terminal), light and dark among them; the form put on a palette of the session's own (`HarbourPalette`, light, on its own page); the table in any shipped palette; the colour depth pinned to truecolour, 256 and 16 colours (`StressSession.colorDepth`, around the whole step); a tint flipped over a band of controls; quiet steps while the focused rows breathe. Its checks read the painted frame (`ThemesChecks.swift`): no colour spelled for another depth (24 bits at 256 colours, an index TUI computed at truecolour); the page in the app's palette's background; no role colour of a palette the look has just left that no blend of the roles in use could make (truecolour only: the cube lands blends on other palettes' entries); the list showing its cursor exactly while it holds the focus; and a table of `ContrastPromise`s, the floors TUI promises today — the cursor row on the accent's breath and on the wash's at `rowBreathPeakContrastFloor`, a selected row on its tint 3.0 and a plain one 4.5 (the audit's pairs, shipped palettes only), an enabled button's label at `labelContrastFloor` and a disabled one's at `disabledLabelContrastFloor` through the cube — each at the depths it is promised at. A row's kind is read from the fill it is drawn on, not from a cursor the session walks. Add a promise to the table to hold every frame to it. It found that `.palette(_:)` turned the value memos off below it for good whenever the palette was not `Equatable` — a custom one as the Theming guide writes it, or the Terminal palette once the environment has grounded it: 300 steps with the whole page under `.palette(_:)` of the palette it already had gave 668 value-memo hits and 1,780 rows served, against 1,891 and 2,700 without, until the modifier compared a palette as `ComparablePalette` does (today's script: 1,939 and 2,782, with the wrap or without). Every check was perturbed and bites. Its first runs found no fault in TUI's colours; they found that a row an input handler draws is spelled at whatever depth the handler runs at, so a session pinning its depth must pin the input too, and that `.palette(_:)` on a subtree changes what it draws with and not what is behind it — as a colour scheme does in SwiftUI — so a subtree in a light palette over a dark page must paint its own |
 | `glides` | parts of a page coming and going under `withAnimation`, one step in seven, often before the last change has landed, with linear, eased and spring animations: siblings gliding in an eager `VStack` and `HStack`, a `ZStack` re-centring a layer, a `Layout`'s subviews moving, a row gliding inside an `.equatable()` card whose detail is swapped for a line (a branch, so no `.transition` draws it afresh and hides a memo that kept a frame of the glide; the branch taken fades in only while it comes), a detail leaving and arriving with a transition inside an `.equatable()` note, both served between changes, a banner that is the whole content of a stack of its own in a stack with gaps, a detail folding away under a `Transition` of the app's own whose body changes the view's height (drawn by scrubbing, the rows below gliding — decisions B52), and a loop's middle row fading in with no transition written, and going at once. The only session whose frames are drawn mid-glide: every other one's changes are unanimated, so its stacks only ever draw settled, and its twin and the memo verifiers never see a glide or a removal playing. Its checks say that every part that has had time to land is drawn or not as the model says, and that a column and the banner's stack have closed up or opened to the rows their layout gives |
@@ -382,7 +382,7 @@ finish), then one line of per-step counts — registrations armed, fired and
 cancelled; the leases' computations opened, leases made, kept results used
 and scopes that read a sentinel; and the view types known to read — and each
 checkpoint adds what is alive. `--bench --scenario <id> --census` prints the
-same line per frame for a scenario. `TUIKIT_OBSERVATION_RETIREMENT` picks the
+same line per frame for a scenario. `TUI_OBSERVATION_RETIREMENT` picks the
 rule a process's caches cancel by — `leases`, the default; `never`, the cache
 before leases, for a baseline in the same build; or the naive `perReader` and
 `perReaderAndPrune`, which the tests keep as negative controls.

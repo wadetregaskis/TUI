@@ -130,7 +130,7 @@ extension TerminalClient {
     /// honours, `false` never sends OSC 52.
     ///
     /// `nil` (the default) means "use the measured table", unless
-    /// `TUIKIT_OSC52` is set in the environment — `1` for on, `0` for off —
+    /// `TUI_OSC52` is set in the environment — `1` for on, `0` for off —
     /// which is how a user turns copying on for a terminal TUI does not
     /// know, without the application knowing anything about it.
     @MainActor public static var clipboardWriteSupport: Bool?
@@ -138,7 +138,7 @@ extension TerminalClient {
     /// How far the terminal painting this app's output can be trusted with an
     /// OSC 52 write.
     ///
-    /// In order: ``clipboardWriteSupport``; then `TUIKIT_OSC52`; then, in a
+    /// In order: ``clipboardWriteSupport``; then `TUI_OSC52`; then, in a
     /// tmux pane, tmux's `set-clipboard` (`on` is
     /// ``ClipboardWriteSupport/unconfirmed``), or else its `allow-passthrough`
     /// (`on` or `all` is unconfirmed too, the write wrapped for tmux), anything
@@ -213,7 +213,7 @@ extension TerminalClient {
     /// The ladder behind ``clipboardWrites``, posed on its inputs so it can be
     /// asked without a terminal.
     ///
-    /// 1. `TUIKIT_OSC52`: `1` honoured — wrapped for GNU screen inside one,
+    /// 1. `TUI_OSC52`: `1` honoured — wrapped for GNU screen inside one,
     ///    which drops it bare — `0` unsupported.
     /// 2. tmux: `set-clipboard on` is ``ClipboardWriteSupport/unconfirmed`` —
     ///    tmux keeps the write as a buffer and passes it on only to a client
@@ -273,7 +273,7 @@ extension TerminalClient {
         tmuxClients: [SessionLocality.AttachedClient]? = nil
     ) -> ClipboardDelivery {
         let screen = screenPassthrough(environment: environment, program: program)
-        switch environment["TUIKIT_OSC52"] {
+        switch environment["TUI_OSC52"] {
         case "1": return ClipboardDelivery(.honoured, passthrough: screen)
         case "0": return ClipboardDelivery(.unsupported)
         default: break

@@ -3,7 +3,7 @@
 //
 //  `\.accessibilityReduceTransparency` and `\.accessibilityDifferentiateWithoutColor`
 //  (owner ruling P5 (c), 2026-10-23): read as `\.accessibilityReduceMotion` is
-//  — the user's `TUIKIT_*` variable, or the host's own setting where TUI is
+//  — the user's `TUI_*` variable, or the host's own setting where TUI is
 //  sure the user is at this machine — and written at the root by the app
 //  runner. `\.colorSchemeContrast`, the third, is with the device values
 //  (`DeviceEnvironment.swift`).
@@ -32,7 +32,7 @@ extension EnvironmentValues {
     /// materials, and the glass made of them, are drawn opaque, as one that
     /// does not appear active already is.
     ///
-    /// `true` when the user set `TUIKIT_REDUCE_TRANSPARENCY=1` in the
+    /// `true` when the user set `TUI_REDUCE_TRANSPARENCY=1` in the
     /// environment the app runs in, or when macOS's Reduce transparency is on
     /// where TUI is sure the user is at this machine, as for
     /// ``accessibilityReduceMotion``: read at launch and whenever the terminal
@@ -59,7 +59,7 @@ extension EnvironmentValues {
     /// change with it yet (they are designed apart, under the focus colour
     /// rules: owner ruling P5).
     ///
-    /// `true` when the user set `TUIKIT_DIFFERENTIATE_WITHOUT_COLOR=1` in the
+    /// `true` when the user set `TUI_DIFFERENTIATE_WITHOUT_COLOR=1` in the
     /// environment the app runs in, or when macOS's Differentiate without
     /// colour is on where TUI is sure the user is at this machine, as for
     /// ``accessibilityReduceMotion``. GNOME has no such setting. Read-only, as

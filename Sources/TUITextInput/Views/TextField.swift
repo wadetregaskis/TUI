@@ -768,7 +768,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             for: hoverKey, default: false)
         let isHovered = !isDisabled && hoverBox.value
 
-        // Diagnostic (TUIKIT_DEBUG_FOCUS=1): on every render, log
+        // Diagnostic (TUI_DEBUG_FOCUS=1): on every render, log
         // what *this* field's binding is reading, what focus it
         // has, and its identity path. When the visible bug is
         // "I typed Z into Search but it's showing up in Input",

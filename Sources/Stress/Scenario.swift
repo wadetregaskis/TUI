@@ -18,7 +18,7 @@ import TUI
 /// (For AnyView-free micro-profiling of a specific shape, add a tree to
 /// `Tools/Profiling/RenderHarness/Trees.swift` instead.)
 struct Scenario {
-    /// Stable id used by `--scenario` / `TUIKIT_STRESS_SCENARIO`. Also the key
+    /// Stable id used by `--scenario` / `TUI_STRESS_SCENARIO`. Also the key
     /// stem for this scenario's localized strings (`stress.scenario.<id>.*`).
     let id: String
     /// Menu title, in English. The interactive shell shows ``localizedTitle``;

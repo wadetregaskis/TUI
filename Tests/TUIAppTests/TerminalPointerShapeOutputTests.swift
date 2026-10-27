@@ -117,7 +117,7 @@ struct TerminalPointerShapeOutputTests {
         "A terminal not documented to take OSC 22 is sent nothing and owed nothing",
         arguments: [
             ["TERM_PROGRAM": "Apple_Terminal"], ["TERM_PROGRAM": "WarpTerminal"], ["TERM_PROGRAM": "tmux"],
-            ["TERM": "xterm-256color"], ["TERM_PROGRAM": "ghostty", "TUIKIT_POINTER_SHAPES": "0"],
+            ["TERM": "xterm-256color"], ["TERM_PROGRAM": "ghostty", "TUI_POINTER_SHAPES": "0"],
         ])
     func inertElsewhere(environment: [String: String]) {
         let (terminal, output) = ScriptedTerminalOutput.terminal(environment: environment)

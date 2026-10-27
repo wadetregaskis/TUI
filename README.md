@@ -146,7 +146,7 @@ and why.
 
 - **7 languages built-in**: English, German, French, Italian, Spanish, Simplified Chinese, Japanese
 - **Type-safe string constants**: the compile-time-verified `LocalizationKey` namespace
-- **Persistent language selection**: stored per-app in the platform config dir (macOS `~/Library/Application Support/<App>`, Linux `$XDG_CONFIG_HOME/<App>`); set `TUIKIT_CONFIG_DIR` to relocate ALL of an app's persisted state (`@AppStorage` included) — the isolation hook for test harnesses, since `UserDefaults` on macOS ignores `$HOME`
+- **Persistent language selection**: stored per-app in the platform config dir (macOS `~/Library/Application Support/<App>`, Linux `$XDG_CONFIG_HOME/<App>`); set `TUI_CONFIG_DIR` to relocate ALL of an app's persisted state (`@AppStorage` included) — the isolation hook for test harnesses, since `UserDefaults` on macOS ignores `$HOME`
 - **Fallback chain**: current language → English → key itself
 - **Thread-safe operations**: safe language switching at runtime
 
@@ -386,7 +386,7 @@ For complete documentation, see the [Localization Guide](https://github.com/wade
 
 - [swift-docc-plugin](https://github.com/swiftlang/swift-docc-plugin) — documentation
 - [swift-syntax](https://github.com/swiftlang/swift-syntax) — the `@Animatable` and `@Entry` macros' compiler plugin, built only for an app that depends on the `TUIMacros` product (every client resolves and fetches it)
-- [ordo-one/benchmark](https://github.com/ordo-one/package-benchmark) — performance benchmarks, opt-in via the `TUIKIT_BENCHMARKS` flag: `TUIKIT_BENCHMARKS=1 swift package benchmark` (kept out of the default build/test graph)
+- [ordo-one/benchmark](https://github.com/ordo-one/package-benchmark) — performance benchmarks, opt-in via the `TUI_BENCHMARKS` flag: `TUI_BENCHMARKS=1 swift package benchmark` (kept out of the default build/test graph)
 
 ## Project structure
 
@@ -517,7 +517,7 @@ Tools/
 Benchmarks/
 └── TUIBenchmarks/     ordo-one/package-benchmark suite (color, frame buffer, image,
                           input parsing, layout, list/table, render, scroll, text width,
-                          view identity); run via `TUIKIT_BENCHMARKS=1 swift package benchmark`
+                          view identity); run via `TUI_BENCHMARKS=1 swift package benchmark`
 ```
 
 `import TUI` re-exports every module: `TUIFoundation` (the views and modifiers), `TUIApp` (`App`, `Scene` and the run loop), `TUICommands` (`Commands`, `CommandMenu`, `CommandGroup` and the menu bar a scene's `.commands` draws), `TUIFilePanels` (`fileImporter`, `fileExporter`, `fileMover` and the open and save panels TUI draws for them), `TUIScenes` (the `Settings` scene and `AlertScene`), `TUIColorPicker` (`ColorPicker`, `ColorPickerPanel` and `GradientEditorPanel`), `TUICurveEditors` (the tone-curve and channel-curve editors), `TUINavigation` (the navigation containers), `TUIPresentation` (alerts, dialogs, sheets and the presentation modifiers), `TUILists` (lists), `TUITables` (tables), `TUITabs` (tab views), `TUITabImages` (`Tab`'s `image:` initialisers, which find the image by name), `TUIGrid` (grids), `TUIChrome` (the status bar, toolbars, notifications and tooltips), `TUIEffects` (transitions and visual effects), `TUIMenus` (`Menu`, `ControlGroup` and `.contextMenu`), `TUIBitmaps` (`Image` from a file, a URL or a bundle, `AsyncImage` and the `.image*` options), `TUITextInput` (the text fields and editors), `TUIForms` (`Form`, `LabeledContent`, `GroupBox` and the other view groupings), `TUISearch` (`.searchable`, search tokens and scopes), `TUIPickers` (`Picker`, `RadioButtonGroup` and `DatePicker`), `TUINumericControls` (`Slider`, `Stepper`, `Gauge` and `ProgressView`) and `TUICore`, `TUIStyling`, `TUIView`, and `TUIImage` (via `@_exported`). Each of these is also a library product of its own (TUIStrings and TUITerminalHost come with `TUIFoundation`); [Choosing products](https://github.com/wadetregaskis/TUIkit/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md) says when to depend on them instead. The AppKit bridges — `Color(nsColor:)`, `NSColor(_:)` and `Image(nsImage:)` — are the separate `TUIAppKit` product: add `import TUIAppKit` where you use them. The Core Graphics ones — `Color(cgColor:)`, `Color.Resolved.cgColor`, `Image(_:scale:orientation:label:)` and `Image(decorative:scale:orientation:)` — need only TUI, on Apple platforms. They are kept out of TUI because AppKit imports SwiftUICore, and a module that imports AppKit makes every app importing it see SwiftUI's own extension members (its `FormatStyle.offset(to:)` and others) beside TUI's.
@@ -529,7 +529,7 @@ Benchmarks/
 
 ## Developer notes
 
-- Benchmarks: `TUIKIT_BENCHMARKS=1 swift package benchmark` (full suite) — see `Benchmarks/TUIBenchmarks`. The `TUIKIT_BENCHMARKS` flag opts the `ordo-one/benchmark` dependency into the graph; without it the default build/test stays benchmark-free (no jemalloc requirement, no plugin deprecation warnings).
+- Benchmarks: `TUI_BENCHMARKS=1 swift package benchmark` (full suite) — see `Benchmarks/TUIBenchmarks`. The `TUI_BENCHMARKS` flag opts the `ordo-one/benchmark` dependency into the graph; without it the default build/test stays benchmark-free (no jemalloc requirement, no plugin deprecation warnings).
 - Profiling: see [Tools/Profiling/README.md](Tools/Profiling/README.md) (Instruments Time Profiler via a PTY, plus the no-PTY `RenderHarness` for `xctrace --launch`).
 
 ## License

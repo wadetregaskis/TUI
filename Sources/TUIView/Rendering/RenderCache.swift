@@ -81,7 +81,7 @@ import TUIStyling
 ///
 /// ## Debug Logging
 ///
-/// Set the environment variable `TUIKIT_DEBUG_RENDER=1` to enable per-frame
+/// Set the environment variable `TUI_DEBUG_RENDER=1` to enable per-frame
 /// cache statistics logging to stderr. This logs hit/miss counts, cache size,
 /// and individual identity lookups to help diagnose memoization effectiveness.
 ///
@@ -115,7 +115,7 @@ public final class RenderCache: @unchecked Sendable {
     ///
     /// What differs from `SizeKey`, and it is worth saying plainly: a collision
     /// here serves the OTHER subtree's cells — wrong pixels — where `SizeKey`'s
-    /// serves a wrong number. `TUIKIT_VERIFY_RENDER_MEMO` re-renders every serve
+    /// serves a wrong number. `TUI_VERIFY_RENDER_MEMO` re-renders every serve
     /// and compares the cells, which is the standing check on exactly that; it
     /// cannot see a 64-bit collision, but it is the net for a fumbled guard.
     ///
@@ -343,7 +343,7 @@ public final class RenderCache: @unchecked Sendable {
     ///
     /// Separate from the per-frame pair above, which ``beginRenderPass()``
     /// resets. A benchmark run wants the total over its iterations, not the
-    /// last frame's — and wants it without `TUIKIT_DEBUG_RENDER`, because the
+    /// last frame's — and wants it without `TUI_DEBUG_RENDER`, because the
     /// number is the only way to tell a memo that never engaged from one that
     /// engaged and did not pay (this memo shipped inert once already).
     public private(set) var measureMemoTotals: (hits: Int, misses: Int) = (0, 0)
@@ -490,7 +490,7 @@ public final class RenderCache: @unchecked Sendable {
     private var activeIdentities: Set<ViewIdentity> = []
 
     /// What the last ``removeInactive()`` walked and dropped — the
-    /// `TUIKIT_DEBUG_RENDER` frame line prints it, since the retained-subtree
+    /// `TUI_DEBUG_RENDER` frame line prints it, since the retained-subtree
     /// walk is per entry NOT marked active and its cost is the count of those.
     private var lastPrune = (renderEntries: 0, sizeEntries: 0, retainedChecks: 0, prunedRender: 0, prunedSizes: 0)
 
@@ -597,7 +597,7 @@ public final class RenderCache: @unchecked Sendable {
     /// environment's `AnimationFrame` has no room left in its inline buffer.
     package var terminalResizedAtNanos: Int64?
 
-    /// Reports `@State` written mid-walk, when `TUIKIT_DIAGNOSE_BODY_MUTATION=1`
+    /// Reports `@State` written mid-walk, when `TUI_DIAGNOSE_BODY_MUTATION=1`
     /// asked for it. `nil` otherwise, which is the whole of its cost.
     public var bodyMutationDiagnostic: BodyMutationDiagnostic? =
         BodyMutationDiagnostic.isEnabled ? BodyMutationDiagnostic() : nil
@@ -646,9 +646,9 @@ public final class RenderCache: @unchecked Sendable {
     /// outliving nothing keeps nothing alive.
     package weak var internedIDTable: (any InternedIDTable)?
 
-    /// Whether debug logging is enabled via the `TUIKIT_DEBUG_RENDER` environment variable.
+    /// Whether debug logging is enabled via the `TUI_DEBUG_RENDER` environment variable.
     public static let debugEnabled: Bool = {
-        ProcessInfo.processInfo.environment["TUIKIT_DEBUG_RENDER"] == "1"
+        ProcessInfo.processInfo.environment["TUI_DEBUG_RENDER"] == "1"
     }()
 
     /// Creates an empty render cache.
@@ -1597,7 +1597,7 @@ extension RenderCache {
 // MARK: - Private Helpers
 
 extension RenderCache {
-    /// Writes a debug message to stderr when `TUIKIT_DEBUG_RENDER=1` is set.
+    /// Writes a debug message to stderr when `TUI_DEBUG_RENDER=1` is set.
     ///
     /// Uses stderr so debug output never interferes with the terminal UI
     /// rendered on stdout. Redirect with `2>render.log` to capture.

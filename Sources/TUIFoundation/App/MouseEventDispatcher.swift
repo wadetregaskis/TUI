@@ -944,7 +944,7 @@ extension MouseEventDispatcher {
     /// - Returns: `true` if a handler consumed the event.
     @discardableResult
     package func dispatch(_ event: MouseEvent) -> Bool {
-        // Diagnostic (TUIKIT_DEBUG_FOCUS=1): log every press/release
+        // Diagnostic (TUI_DEBUG_FOCUS=1): log every press/release
         // with the click coords (in content-area space), the
         // registered regions, and which — if any — matched. Used to
         // diagnose "I clicked the field but no focus event fired"

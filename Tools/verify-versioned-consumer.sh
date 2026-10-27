@@ -131,6 +131,6 @@ swift build --package-path "$CONSUMER_DIR"
 printf '── Running\n'
 # German, for the translation check; and a config directory of its own, so no
 # language a user once chose (which outranks the environment) is read.
-LANGUAGE=de TUIKIT_CONFIG_DIR="$TEMP_DIR/config" swift run --package-path "$CONSUMER_DIR" Consumer
+LANGUAGE=de TUI_CONFIG_DIR="$TEMP_DIR/config" swift run --package-path "$CONSUMER_DIR" Consumer
 
 printf '\nVersioned consumer gate passed\n'

@@ -152,11 +152,11 @@ struct TerminalCapabilitiesPublishingTests {
     func launchHonoursSwitches() {
         let on = TerminalCapabilities.atLaunch(
             features: TerminalFeatures(pointerShapes: true, postsNotifications: true), reporting: .legacy,
-            environment: ["TUIKIT_NOTIFICATIONS": "1", "TUIKIT_POINTER_SHAPES": "all"])
+            environment: ["TUI_NOTIFICATIONS": "1", "TUI_POINTER_SHAPES": "all"])
         #expect(on.supports([.notifications, .pointerShapes]))
         let off = TerminalCapabilities.atLaunch(
             features: .none, reporting: .legacy,
-            environment: ["TUIKIT_NOTIFICATIONS": "0", "TUIKIT_POINTER_SHAPES": "0"])
+            environment: ["TUI_NOTIFICATIONS": "0", "TUI_POINTER_SHAPES": "0"])
         #expect(off.status(of: [.notifications, .pointerShapes]) == .unsupported)
     }
 
@@ -164,7 +164,7 @@ struct TerminalCapabilitiesPublishingTests {
     func progressAbsence() {
         #expect(TerminalCapabilities.progressAbsence(program: .unidentified, environment: [:]) == .undetermined)
         #expect(
-            TerminalCapabilities.progressAbsence(program: .unidentified, environment: ["TUIKIT_PROGRESS": "0"])
+            TerminalCapabilities.progressAbsence(program: .unidentified, environment: ["TUI_PROGRESS": "0"])
                 == .unsupported)
         for program in TerminalClient.Program.allCases where program != .unidentified {
             #expect(TerminalCapabilities.progressAbsence(program: program, environment: [:]) == .unsupported)

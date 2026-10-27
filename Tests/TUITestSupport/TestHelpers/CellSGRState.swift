@@ -10,7 +10,7 @@
 //  License: MIT
 
 // Built for tests only: a plain `swift build -c release` compiles this file empty (see TUITestSupport in Package.swift).
-#if TUIKIT_TEST_SUPPORT && canImport(Testing)
+#if TUI_TEST_SUPPORT && canImport(Testing)
 
 @testable import TUICore
 @testable import TUIFoundation

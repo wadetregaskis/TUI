@@ -49,7 +49,7 @@ struct TerminalHostIdentificationTests {
     }
 
     @Test(
-        "TUIKIT_TERM_PROGRAM names the host an ssh hop stripped",
+        "TUI_TERM_PROGRAM names the host an ssh hop stripped",
         arguments: [
             ("Apple_Terminal", true, false, false, false),
             ("iTerm.app", false, true, false, false),
@@ -60,7 +60,7 @@ struct TerminalHostIdentificationTests {
         forced: String, apple: Bool, iterm: Bool, ghostty: Bool, warp: Bool
     ) {
         var env = Self.sshSession
-        env["TUIKIT_TERM_PROGRAM"] = forced
+        env["TUI_TERM_PROGRAM"] = forced
         #expect(TerminalHost.detectAppleTerminal(environment: env) == apple)
         #expect(TerminalHost.detectITerm2(environment: env) == iterm)
         #expect(TerminalHost.detectGhostty(environment: env) == ghostty)
@@ -73,7 +73,7 @@ struct TerminalHostIdentificationTests {
         // remote shell that sets TERM_PROGRAM to something other than the
         // terminal actually painting the glyphs. The person who set the
         // override has said which one that is.
-        let env = ["TERM_PROGRAM": "iTerm.app", "TUIKIT_TERM_PROGRAM": "Apple_Terminal"]
+        let env = ["TERM_PROGRAM": "iTerm.app", "TUI_TERM_PROGRAM": "Apple_Terminal"]
         #expect(TerminalHost.detectAppleTerminal(environment: env))
         #expect(!TerminalHost.detectITerm2(environment: env))
     }
@@ -150,9 +150,9 @@ struct TerminalHostIdentificationTests {
     @Test("An empty value is not a name")
     func emptyValuesAreIgnored() {
         // An exported-but-empty variable must fall through to the next signal,
-        // not mask it — `export TUIKIT_TERM_PROGRAM=` is a common way to
+        // not mask it — `export TUI_TERM_PROGRAM=` is a common way to
         // "unset" something in a shell profile.
-        let env = ["TUIKIT_TERM_PROGRAM": "", "TERM_PROGRAM": "Apple_Terminal"]
+        let env = ["TUI_TERM_PROGRAM": "", "TERM_PROGRAM": "Apple_Terminal"]
         #expect(TerminalHost.detectAppleTerminal(environment: env))
         #expect(TerminalHost.hostProgram(environment: ["TERM_PROGRAM": ""]) == nil)
     }
@@ -160,7 +160,7 @@ struct TerminalHostIdentificationTests {
     @Test("tmux is still recognised by $TMUX, and nameable by the override")
     func tmuxUnaffected() {
         #expect(TerminalHost.detectTmux(environment: ["TMUX": "/tmp/tmux-501/default,1,0"]))
-        #expect(TerminalHost.detectTmux(environment: ["TUIKIT_TERM_PROGRAM": "tmux"]))
+        #expect(TerminalHost.detectTmux(environment: ["TUI_TERM_PROGRAM": "tmux"]))
         #expect(!TerminalHost.detectTmux(environment: Self.sshSession))
     }
 
@@ -173,7 +173,7 @@ struct TerminalHostIdentificationTests {
         // the whole ssh identification path do its work and discard the answer
         // on exactly the systems people ssh into most.
         var env = Self.sshSession
-        env["TUIKIT_TERM_PROGRAM"] = "Apple_Terminal"
+        env["TUI_TERM_PROGRAM"] = "Apple_Terminal"
         #expect(TerminalHost.detectAppleTerminal(environment: env))
         // …and the process-wide answer agrees with the predicate, on whichever
         // platform is running this test.
@@ -208,7 +208,7 @@ struct TerminalHostIdentificationTests {
         #expect(!row(environment: Self.sshSession).contains(cursorForward))
 
         var named = Self.sshSession
-        named["TUIKIT_TERM_PROGRAM"] = "Apple_Terminal"
+        named["TUI_TERM_PROGRAM"] = "Apple_Terminal"
         #expect(row(environment: named).contains(cursorForward))
         // And it is the same row a local Terminal.app would have produced.
         #expect(row(environment: named) == row(environment: ["TERM_PROGRAM": "Apple_Terminal"]))

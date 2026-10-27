@@ -33,16 +33,16 @@ import TUI
 /// app's run loop installs, so no browser is launched either way.) So it runs
 /// in an exit test, whose child process no other test shares. See
 /// `ProcessWideState`. These used to set and restore the override and
-/// `TUIKIT_OPEN_URLS` in the shared process, `.serialized`, which kept out
+/// `TUI_OPEN_URLS` in the shared process, `.serialized`, which kept out
 /// only this suite's own tests and other main-actor ones.
 @MainActor
 @Suite("Opening a URL is off unless something says this machine is the user's")
 struct TerminalURLOpeningTests {
 
-    /// The ladder, asked with `TUIKIT_OPEN_URLS` set to `value` or unset.
+    /// The ladder, asked with `TUI_OPEN_URLS` set to `value` or unset.
     private static func answer(override: Bool?, environment value: String?) -> Bool {
         TerminalClient.urlOpeningEnabled(
-            override: override, environment: value.map { ["TUIKIT_OPEN_URLS": $0] } ?? [:])
+            override: override, environment: value.map { ["TUI_OPEN_URLS": $0] } ?? [:])
     }
 
     @Test("The default is off")
@@ -58,13 +58,13 @@ struct TerminalURLOpeningTests {
 
     /// The doc promised this and the code could not deliver it: the `"0"`
     /// arm sat behind the override, where nothing ever reached it.
-    @Test("TUIKIT_OPEN_URLS=0 is a kill switch, even against an app that turned it on")
+    @Test("TUI_OPEN_URLS=0 is a kill switch, even against an app that turned it on")
     func environmentZeroWins() {
         #expect(!Self.answer(override: true, environment: "0"))
         #expect(!Self.answer(override: nil, environment: "0"))
     }
 
-    @Test("TUIKIT_OPEN_URLS=1 answers for the user only where the app has not answered")
+    @Test("TUI_OPEN_URLS=1 answers for the user only where the app has not answered")
     func environmentOneIsAnOptIn() {
         #expect(Self.answer(override: nil, environment: "1"))
         #expect(!Self.answer(override: false, environment: "1"))
@@ -75,26 +75,26 @@ struct TerminalURLOpeningTests {
     /// `nonisolated`, because that path has no actor — so setting the override
     /// and not publishing it would change nothing where it counts.
     ///
-    /// An exit test, because the publication is the subject. `TUIKIT_OPEN_URLS`
+    /// An exit test, because the publication is the subject. `TUI_OPEN_URLS`
     /// is cleared first, in the child, so a developer who exported `0` cannot
     /// veto the override being published.
     ///
     /// The ladder's own tests above pose it on arguments, so they cannot see
     /// what the live answer passes it. The last part here can: the process's
-    /// own `TUIKIT_OPEN_URLS=0` vetoing the real override, live and published.
+    /// own `TUI_OPEN_URLS=0` vetoing the real override, live and published.
     @Test("Setting the override publishes it to the path that reads it")
     func overridePublishes() async {
         await #expect(processExitsWith: .success) {
             await MainActor.run {
-                ProcessWideState.setEnvironment("TUIKIT_OPEN_URLS", to: nil)
+                ProcessWideState.setEnvironment("TUI_OPEN_URLS", to: nil)
                 ProcessWideState.urlOpeningSupport = true
                 #expect(TerminalURLOpening.isEnabled)
                 ProcessWideState.urlOpeningSupport = false
                 #expect(!TerminalURLOpening.isEnabled)
 
-                ProcessWideState.setEnvironment("TUIKIT_OPEN_URLS", to: "0")
+                ProcessWideState.setEnvironment("TUI_OPEN_URLS", to: "0")
                 ProcessWideState.urlOpeningSupport = true
-                #expect(!TerminalClient.urlOpeningEnabled, "the process's TUIKIT_OPEN_URLS=0 reaches the ladder")
+                #expect(!TerminalClient.urlOpeningEnabled, "the process's TUI_OPEN_URLS=0 reaches the ladder")
                 #expect(!TerminalURLOpening.isEnabled, "and what is published is its veto")
             }
         }
@@ -197,7 +197,7 @@ struct URLOpenerBackendTests {
     func gateOpenReachesTheOpener() async {
         await #expect(processExitsWith: .success) {
             await MainActor.run {
-                ProcessWideState.setEnvironment("TUIKIT_OPEN_URLS", to: nil)
+                ProcessWideState.setEnvironment("TUI_OPEN_URLS", to: nil)
                 ProcessWideState.urlOpeningSupport = true
                 #expect(TerminalURLOpening.isEnabled)
 
@@ -225,7 +225,7 @@ struct URLOpenerBackendTests {
     func handMadeActionReachesTheRunLoopOpener() async {
         await #expect(processExitsWith: .success) {
             await MainActor.run {
-                ProcessWideState.setEnvironment("TUIKIT_OPEN_URLS", to: nil)
+                ProcessWideState.setEnvironment("TUI_OPEN_URLS", to: nil)
                 ProcessWideState.urlOpeningSupport = true
                 #expect(TerminalURLOpening.isEnabled)
 

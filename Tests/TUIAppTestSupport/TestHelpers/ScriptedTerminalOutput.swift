@@ -10,7 +10,7 @@
 //  License: MIT
 
 // Built for tests only: a plain `swift build -c release` compiles this file empty (see TUITestSupport in Package.swift).
-#if TUIKIT_TEST_SUPPORT && canImport(Testing)
+#if TUI_TEST_SUPPORT && canImport(Testing)
 
 @testable import TUIApp
 @testable import TUIFoundation
@@ -63,7 +63,7 @@ final class ScriptedTerminalOutput {
     /// leaves the process's termios and signal handlers alone, arming its
     /// debt here instead (see `Terminal.exchangeTransport`).
     ///
-    /// - Parameter environment: What the terminal reads its `TUIKIT_*`
+    /// - Parameter environment: What the terminal reads its `TUI_*`
     ///   switches from: none set, unless a test sets one.
     static func terminal(environment: [String: String] = [:]) -> (Terminal, ScriptedTerminalOutput) {
         let terminal = Terminal(environment: environment)

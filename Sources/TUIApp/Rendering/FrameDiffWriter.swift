@@ -375,9 +375,9 @@ extension FrameDiffWriter {
         return lines
     }
 
-    /// `TUIKIT_DEBUG_RENDER=1`, the same switch as `RenderCache`'s frame line.
+    /// `TUI_DEBUG_RENDER=1`, the same switch as `RenderCache`'s frame line.
     private static let debugEnabled =
-        ProcessInfo.processInfo.environment["TUIKIT_DEBUG_RENDER"] == "1"
+        ProcessInfo.processInfo.environment["TUI_DEBUG_RENDER"] == "1"
 
     /// `styled` with the row's background put back after every reset.
     ///

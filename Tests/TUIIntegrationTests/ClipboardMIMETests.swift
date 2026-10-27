@@ -145,13 +145,13 @@ struct ClipboardMIMETests {
         #expect(local.takePendingSequences().isEmpty)
     }
 
-    @Test("The ladder: an override, then TUIKIT_OSC5522, then what the terminal said")
+    @Test("The ladder: an override, then TUI_OSC5522, then what the terminal said")
     func ladder() {
         #expect(TerminalClient.mimeClipboard(environment: [:], override: nil, detected: true))
         #expect(!TerminalClient.mimeClipboard(environment: [:], override: nil, detected: false))
-        #expect(TerminalClient.mimeClipboard(environment: ["TUIKIT_OSC5522": "1"], override: nil, detected: false))
-        #expect(!TerminalClient.mimeClipboard(environment: ["TUIKIT_OSC5522": "0"], override: nil, detected: true))
-        #expect(!TerminalClient.mimeClipboard(environment: ["TUIKIT_OSC5522": "1"], override: false, detected: true))
+        #expect(TerminalClient.mimeClipboard(environment: ["TUI_OSC5522": "1"], override: nil, detected: false))
+        #expect(!TerminalClient.mimeClipboard(environment: ["TUI_OSC5522": "0"], override: nil, detected: true))
+        #expect(!TerminalClient.mimeClipboard(environment: ["TUI_OSC5522": "1"], override: false, detected: true))
     }
 
     @Test("Only hosts that consume DECRQM, and may say yes, are asked")

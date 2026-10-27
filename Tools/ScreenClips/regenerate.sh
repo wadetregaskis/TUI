@@ -216,7 +216,7 @@ film() {
 # than writing a second set of markers.
 cd '$run'
 mkdir '$run/played' 2>/dev/null || exit 0
-export TUIKIT_CONFIG_DIR='$run/config'
+export TUI_CONFIG_DIR='$run/config'
 printf '\e]0;%s\a' 'TUI · $title'
 (( $resize )) && printf '\e[8;%d;%dt' $rows $columns
 exec '$player' play '$clip' --markers '$markers'

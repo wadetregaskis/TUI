@@ -66,8 +66,8 @@ def visit(binary, index, alpha, config_root):
             "TERM": "xterm-256color",
             # Never the developer's real preferences, and one directory per page so
             # a page that writes settings cannot steer the next one.
-            "TUIKIT_CONFIG_DIR": os.path.join(config_root, f"page-{index}"),
-            "TUIKIT_EXAMPLE_PALETTE_ALPHA": str(alpha),
+            "TUI_CONFIG_DIR": os.path.join(config_root, f"page-{index}"),
+            "TUI_EXAMPLE_PALETTE_ALPHA": str(alpha),
             "SWIFT_BACKTRACE": "enable=yes,interactive=no",
         })
     os.close(slave)

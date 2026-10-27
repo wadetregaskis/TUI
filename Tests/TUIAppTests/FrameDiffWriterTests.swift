@@ -286,19 +286,19 @@ struct FrameDiffWriterTerminalGatingTests {
         #expect(!TerminalHost.detectAppleTerminal(environment: ["TERM_PROGRAM": "iTerm.app"]))
         #expect(!TerminalHost.detectAppleTerminal(environment: [:]))
 
-        // `TUIKIT_TERM_PROGRAM` outranks it, in BOTH directions. This is the
+        // `TUI_TERM_PROGRAM` outranks it, in BOTH directions. This is the
         // case the variable exists for (Terminal compatibility survey.md): Terminal.app
         // sets no forwarded signal and answers no XTVERSION, so across an ssh
         // hop the explicit override is the only thing that names it.
         #expect(
             TerminalHost.detectAppleTerminal(
                 environment: [
-                    "TERM_PROGRAM": "iTerm.app", "TUIKIT_TERM_PROGRAM": "Apple_Terminal",
+                    "TERM_PROGRAM": "iTerm.app", "TUI_TERM_PROGRAM": "Apple_Terminal",
                 ]))
         #expect(
             !TerminalHost.detectAppleTerminal(
                 environment: [
-                    "TERM_PROGRAM": "Apple_Terminal", "TUIKIT_TERM_PROGRAM": "iTerm.app",
+                    "TERM_PROGRAM": "Apple_Terminal", "TUI_TERM_PROGRAM": "iTerm.app",
                 ]))
 
         // The two weaker signals name other terminals only, so they answer a
@@ -312,7 +312,7 @@ struct FrameDiffWriterTerminalGatingTests {
     ///
     /// Not re-derived from `TERM_PROGRAM` — the earlier version of this test
     /// did that, and so failed on a defect-free build for anyone who had
-    /// followed the documentation's own `export TUIKIT_TERM_PROGRAM=…`
+    /// followed the documentation's own `export TUI_TERM_PROGRAM=…`
     /// instruction, since the override wins in `hostProgram` and the
     /// expectation never saw it. And deliberately not under `#if os(macOS)`:
     /// `isAppleTerminal` is not platform-gated, because over ssh a Mac running

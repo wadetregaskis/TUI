@@ -1,7 +1,7 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  RenderMemoVerifierTests.swift
 //
-//  `TUIKIT_VERIFY_RENDER_MEMO` re-renders every served buffer and reports what
+//  `TUI_VERIFY_RENDER_MEMO` re-renders every served buffer and reports what
 //  disagrees. It exists because a served buffer can be wrong in a way nothing
 //  else notices: the memo's claim is that an equal view value at the same size
 //  draws the same cells, and that quietly depends on everything ELSE the subtree
@@ -115,7 +115,7 @@ struct RenderMemoVerifierTests {
         // saves and must never be on in an app. Asserted against the variable
         // rather than against `false`, because the whole suite is also run WITH
         // the mode on — where the honest expectation is the opposite.
-        let asked = ProcessInfo.processInfo.environment["TUIKIT_VERIFY_RENDER_MEMO"] != nil
+        let asked = ProcessInfo.processInfo.environment["TUI_VERIFY_RENDER_MEMO"] != nil
         #expect(RenderCache.verifiesRenderMemo == asked)
     }
 }

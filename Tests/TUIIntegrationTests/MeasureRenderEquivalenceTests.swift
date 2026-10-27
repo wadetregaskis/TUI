@@ -34,7 +34,7 @@ import TUI
 /// measure fallback's heuristic — it over-reports flexibility for wrapping
 /// content (it calls any view that reflows wider "flexible"), so it is NOT the
 /// contract and is intentionally not asserted against. Being descriptive, it
-/// runs only when asked for: `TUIKIT_MEASURE_FLEX_PROBE=1`.
+/// runs only when asked for: `TUI_MEASURE_FLEX_PROBE=1`.
 @MainActor
 @Suite("Measure/render equivalence")
 struct MeasureRenderEquivalenceTests {
@@ -47,7 +47,7 @@ struct MeasureRenderEquivalenceTests {
     private let height = 24
 
     /// Whether to run the descriptive `+8` flexibility probe. Off unless asked
-    /// for, with `TUIKIT_MEASURE_FLEX_PROBE=1`.
+    /// for, with `TUI_MEASURE_FLEX_PROBE=1`.
     ///
     /// It is one of the three renders `compare(_:_:)` makes per width — a third
     /// of this suite's renders — and **nothing asserts on what it finds**: its
@@ -55,10 +55,10 @@ struct MeasureRenderEquivalenceTests {
     /// contract itself is pinned by ``flexibilityContract()`` and by the size
     /// invariant, neither of which consults the probe, so switching it off
     /// removes no assertion. Same shape as this suite's neighbours'
-    /// diagnostic switches (`TUIKIT_VERIFY_RENDER_MEMO`,
-    /// `TUIKIT_RECORD_SNAPSHOTS`): any value at all turns it on.
+    /// diagnostic switches (`TUI_VERIFY_RENDER_MEMO`,
+    /// `TUI_RECORD_SNAPSHOTS`): any value at all turns it on.
     private static let runsFlexProbe =
-        ProcessInfo.processInfo.environment["TUIKIT_MEASURE_FLEX_PROBE"] != nil
+        ProcessInfo.processInfo.environment["TUI_MEASURE_FLEX_PROBE"] != nil
 
     /// Per-axis check. Working contract: a NON-flexible axis must measure
     /// exactly what it renders; a FLEXIBLE axis reports a *minimum* and the
@@ -329,7 +329,7 @@ struct MeasureRenderEquivalenceTests {
         print("---- diverged types (size): \(divergedTypes.sorted().joined(separator: ", "))")
         print("\n========== FLEXIBILITY: sizeThatFits vs +8 probe (descriptive, NOT a bug list) ==========")
         if !Self.runsFlexProbe {
-            print("  (not run — set TUIKIT_MEASURE_FLEX_PROBE=1)")
+            print("  (not run — set TUI_MEASURE_FLEX_PROBE=1)")
         } else if flexDiv.isEmpty {
             print("  (none)")
         } else {

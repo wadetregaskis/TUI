@@ -191,7 +191,7 @@ let package = Package(
         // B-D6M-2.
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "602.0.0"..<"700.0.0"),
         // ordo-one/benchmark is added conditionally at the bottom of this file
-        // (gated on TUIKIT_BENCHMARKS), so the default build/test graph stays
+        // (gated on TUI_BENCHMARKS), so the default build/test graph stays
         // free of its plugin's upstream deprecation warnings and the jemalloc
         // build requirement.
     ],
@@ -701,7 +701,7 @@ let package = Package(
         // target, as CTestSupport is, which `swift build` builds even without `--build-tests`: in a release
         // build, which has no testability, its `@testable import`s of the library would fail ("module
         // 'TUIFoundation' was not compiled for testing"). So every file is wrapped in
-        // `#if TUIKIT_TEST_SUPPORT && canImport(Testing)`, which these targets define for debug builds
+        // `#if TUI_TEST_SUPPORT && canImport(Testing)`, which these targets define for debug builds
         // only, and a release build compiles them empty. The alternatives, measured 2026-10-10 in a probe
         // package (lane TT2) on Swift 6.2.4, 6.3.3 and 6.4.0: as a test target the others depend on,
         // 6.4's build system still builds it in release; `swift build -c release --product <a library
@@ -719,7 +719,7 @@ let package = Package(
                 "TUICore", "TUIFoundation", "TUIStrings", "TUIStyling", "TUIView",
             ],
             path: "Tests/TUITestSupport", exclude: ["__Snapshots__"],
-            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
+            swiftSettings: [.define("TUI_TEST_SUPPORT", .when(configuration: .debug))]
         ),
         .target(
             name: "TUIAppTestSupport",
@@ -728,7 +728,7 @@ let package = Package(
                 "TUIView",
             ],
             path: "Tests/TUIAppTestSupport",
-            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
+            swiftSettings: [.define("TUI_TEST_SUPPORT", .when(configuration: .debug))]
         ),
         .target(
             name: "TUIBitmapsTestSupport",
@@ -736,7 +736,7 @@ let package = Package(
                 "TUIBitmaps", "TUIFoundation", "TUITestSupport",
             ],
             path: "Tests/TUIBitmapsTestSupport",
-            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
+            swiftSettings: [.define("TUI_TEST_SUPPORT", .when(configuration: .debug))]
         ),
         .target(
             name: "TUIListsTestSupport",
@@ -744,7 +744,7 @@ let package = Package(
                 "TUIApp", "TUICore", "TUIFoundation", "TUILists", "TUITestSupport",
             ],
             path: "Tests/TUIListsTestSupport",
-            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
+            swiftSettings: [.define("TUI_TEST_SUPPORT", .when(configuration: .debug))]
         ),
         .target(
             name: "TUITablesTestSupport",
@@ -753,7 +753,7 @@ let package = Package(
                 "TUIView",
             ],
             path: "Tests/TUITablesTestSupport",
-            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
+            swiftSettings: [.define("TUI_TEST_SUPPORT", .when(configuration: .debug))]
         ),
         .target(
             name: "TUITabsTestSupport",
@@ -761,7 +761,7 @@ let package = Package(
                 "TUIFoundation", "TUITabs", "TUITestSupport",
             ],
             path: "Tests/TUITabsTestSupport",
-            swiftSettings: [.define("TUIKIT_TEST_SUPPORT", .when(configuration: .debug))]
+            swiftSettings: [.define("TUI_TEST_SUPPORT", .when(configuration: .debug))]
         ),
         .testTarget(
             name: "TUIAppKitTests",
@@ -1144,10 +1144,10 @@ for target in package.targets where target.type == .regular && libraryModules.co
 // pulls in the benchmark dependency. That keeps test output free of the plugin's
 // upstream PackagePlugin deprecation warnings and removes the jemalloc build
 // requirement for ordinary development. Enable benchmarking by exporting
-// TUIKIT_BENCHMARKS, e.g.
-//   TUIKIT_BENCHMARKS=1 swift package benchmark
-//   TUIKIT_BENCHMARKS=1 swift package benchmark run TUIBenchmarks <name>
-if Context.environment["TUIKIT_BENCHMARKS"] != nil {
+// TUI_BENCHMARKS, e.g.
+//   TUI_BENCHMARKS=1 swift package benchmark
+//   TUI_BENCHMARKS=1 swift package benchmark run TUIBenchmarks <name>
+if Context.environment["TUI_BENCHMARKS"] != nil {
     package.dependencies.append(
         .package(url: "https://github.com/ordo-one/benchmark", from: "1.29.4", traits: [])
     )

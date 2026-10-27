@@ -341,7 +341,7 @@ when unset), the visual/aspect probes print to the terminal.
   separators (decisions A-D6L-2): a line along the top of every row, taking no
   row. Its docstring lists what to look at — the boundary, the focused row,
   scrolling, a menu over the list, resize, quit, and where a line ends.
-  `--force` draws them on a host the table leaves out (`TUIKIT_HAIRLINES=1`),
+  `--force` draws them on a host the table leaves out (`TUI_HAIRLINES=1`),
   `--off` draws the same list without them. Run from the repository root.
 
   ```sh

@@ -91,7 +91,7 @@ COLUMNS, BOX_WIDTH, BOX_HEIGHT, TOP = 3, 26, 3, 3
 
 def detect_scheme(env):
     """The naming scheme TUI would choose here (PointerShapeHost.detect)."""
-    program = env.get("TUIKIT_TERM_PROGRAM") or env.get("TERM_PROGRAM", "")
+    program = env.get("TUI_TERM_PROGRAM") or env.get("TERM_PROGRAM", "")
     if program == "iTerm.app" or env.get("LC_TERMINAL") == "iTerm2":
         return "iterm2"
     if env.get("XTERM_VERSION") and program in ("", "xterm"):

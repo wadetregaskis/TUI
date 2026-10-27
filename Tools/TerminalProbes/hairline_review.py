@@ -9,8 +9,8 @@ two list rows, taking no row (decisions A-D6L-2, the owner's option 4).
 
     python3 Tools/TerminalProbes/hairline_review.py            # Stress's megalist
     python3 Tools/TerminalProbes/hairline_review.py example    # the Example app
-    python3 Tools/TerminalProbes/hairline_review.py --force    # TUIKIT_HAIRLINES=1
-    python3 Tools/TerminalProbes/hairline_review.py --off      # TUIKIT_HAIRLINES=0
+    python3 Tools/TerminalProbes/hairline_review.py --force    # TUI_HAIRLINES=1
+    python3 Tools/TerminalProbes/hairline_review.py --off      # TUI_HAIRLINES=0
 
 Run it from the repository root, in the terminal to be judged. Ghostty draws
 the lines by default; iTerm2, kitty and WezTerm only with `--force`, because
@@ -50,7 +50,7 @@ SWIFT = ["xcrun", "swift"]
 os.environ.setdefault("DEVELOPER_DIR", "/Applications/Xcode.app/Contents/Developer")
 
 TARGETS = {
-    "megalist": ("Stress", {"TUIKIT_STRESS_SCENARIO": "megalist"}),
+    "megalist": ("Stress", {"TUI_STRESS_SCENARIO": "megalist"}),
     "example": ("Example", {}),
 }
 
@@ -62,9 +62,9 @@ def main(argv):
         if argument in TARGETS:
             target = argument
         elif argument == "--force":
-            environment["TUIKIT_HAIRLINES"] = "1"
+            environment["TUI_HAIRLINES"] = "1"
         elif argument == "--off":
-            environment["TUIKIT_HAIRLINES"] = "0"
+            environment["TUI_HAIRLINES"] = "0"
         else:
             print(__doc__)
             return 2

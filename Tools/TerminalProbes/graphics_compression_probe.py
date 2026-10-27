@@ -20,7 +20,7 @@ acknowledged every placement command for a day and drew nothing — see
 2. **Does a deflated picture DRAW?** A hue ramp, transmitted deflated and
    placed directly at the cursor (`a=T`), beside the same ramp transmitted raw.
    A person compares them. If the deflated one is blank or garbage, the
-   terminal lied in (1) and `TUIKIT_GRAPHICS_COMPRESSION=0` is the answer for
+   terminal lied in (1) and `TUI_GRAPHICS_COMPRESSION=0` is the answer for
    it until it is fixed.
 
 Run INSIDE the terminal under test. Writes JSON to $PROBE_OUT (default

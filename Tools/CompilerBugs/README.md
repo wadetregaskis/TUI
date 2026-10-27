@@ -493,7 +493,7 @@ with the same `==`-picks-`AnyHashable` shape but no `Optional`.
 code is exactly the argument-type mismatch that the assertion checks, so a
 compiler built with assertions aborts where one without them would emit it.
 swift.org's 6.2.4 (+assertions) builds the package, its tests and its
-benchmarks from clean with no warnings (`TUIKIT_BENCHMARKS=1 swift build
+benchmarks from clean with no warnings (`TUI_BENCHMARKS=1 swift build
 --build-tests`, 2026-09-14), so none of that code forms this conversion. Keeping
 that compiler as the local default `swift` therefore also detects this
 miscompile. It covers only what a macOS build compiles, not `#if` branches for

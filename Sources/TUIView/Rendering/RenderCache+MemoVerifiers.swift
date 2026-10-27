@@ -1,8 +1,8 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  RenderCache+MemoVerifiers.swift
 //
-//  The memo verifiers: `TUIKIT_VERIFY_MEASURE_MEMO` and
-//  `TUIKIT_VERIFY_RENDER_MEMO`, which check every size and buffer a memo
+//  The memo verifiers: `TUI_VERIFY_MEASURE_MEMO` and
+//  `TUI_VERIFY_RENDER_MEMO`, which check every size and buffer a memo
 //  serves against a fresh measure or render, and where what they find goes.
 //
 //  Created by Wade Tregaskis
@@ -20,7 +20,7 @@ extension RenderCache {
     /// memo's claim — that a size taken under one vertical budget answers a
     /// query made under another — is a claim about every `sizeThatFits` beneath
     /// it, and the only direct check of it is to make both measurements and
-    /// compare. Set by `TUIKIT_VERIFY_MEASURE_MEMO`, or assigned directly by a
+    /// compare. Set by `TUI_VERIFY_MEASURE_MEMO`, or assigned directly by a
     /// test; ``measureMemoMismatches`` collects what it finds.
     ///
     /// A pixel-level guard alone is not enough, which is the reason this exists
@@ -32,7 +32,7 @@ extension RenderCache {
     /// ``verifiesRenderMemo`` draws its fresh render — see there for why that
     /// makes it a debugging aid and never a fix.
     @MainActor public static var verifiesMeasureMemo =
-        ProcessInfo.processInfo.environment["TUIKIT_VERIFY_MEASURE_MEMO"] != nil
+        ProcessInfo.processInfo.environment["TUI_VERIFY_MEASURE_MEMO"] != nil
 
     /// What ``verifiesMeasureMemo`` found: one line per served size that a fresh
     /// measurement disagreed with. Capped, because a broken memo produces them
@@ -46,7 +46,7 @@ extension RenderCache {
     /// walked through a PTY, which is the only place a real app's tree is
     /// measured — says where to put the report instead.
     @MainActor static let measureMemoMismatchLog: String? = {
-        guard let value = ProcessInfo.processInfo.environment["TUIKIT_VERIFY_MEASURE_MEMO"],
+        guard let value = ProcessInfo.processInfo.environment["TUI_VERIFY_MEASURE_MEMO"],
             value.contains("/")
         else { return nil }
         return value
@@ -69,7 +69,7 @@ extension RenderCache {
     /// memo just saved and compare the cells, which costs more than the memo
     /// saves and so is never on in an app.
     ///
-    /// Set by `TUIKIT_VERIFY_RENDER_MEMO`, or assigned directly by a test.
+    /// Set by `TUI_VERIFY_RENDER_MEMO`, or assigned directly by a test.
     /// ``renderMemoMismatches`` collects what it finds.
     ///
     /// Where a served buffer disagrees, the FRESH render is drawn. That makes
@@ -82,13 +82,13 @@ extension RenderCache {
     /// state is not reaching it (the Render Cycle article's "Checking What the
     /// Cache Serves" has the recipe).
     @MainActor public static var verifiesRenderMemo =
-        ProcessInfo.processInfo.environment["TUIKIT_VERIFY_RENDER_MEMO"] != nil
+        ProcessInfo.processInfo.environment["TUI_VERIFY_RENDER_MEMO"] != nil
 
     /// Where ``verifiesRenderMemo`` writes what it finds, when the environment
     /// variable names a path rather than just switching the mode on — an app has
     /// nowhere to print a diagnostic that would not corrupt the frame under test.
     @MainActor static let renderMemoMismatchLog: String? = {
-        guard let value = ProcessInfo.processInfo.environment["TUIKIT_VERIFY_RENDER_MEMO"],
+        guard let value = ProcessInfo.processInfo.environment["TUI_VERIFY_RENDER_MEMO"],
             value.contains("/")
         else { return nil }
         return value

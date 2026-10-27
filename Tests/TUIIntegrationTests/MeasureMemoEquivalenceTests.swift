@@ -66,7 +66,7 @@ struct MeasureMemoEquivalenceTests {
         // something that draws differently for it, so the picture alone would
         // let a real one through.
         // Restored to what it WAS, not to `false`. Under
-        // `TUIKIT_VERIFY_MEASURE_MEMO=1` the flag starts true for the whole
+        // `TUI_VERIFY_MEASURE_MEMO=1` the flag starts true for the whole
         // process and every suite's memo hits are checked against a fresh
         // measurement; a `defer` that put it back to `false` disarmed that for
         // everything scheduled after this suite, in the one mode whose entire
@@ -291,7 +291,7 @@ struct MeasureMemoEquivalenceTests {
     /// and it will catch a collision on any run where the allocator hands back
     /// the same addresses. The deterministic half of the claim is
     /// `MenuRowMeasureKeyingTests`; the reliable end-to-end check is
-    /// `TUIKIT_VERIFY_MEASURE_MEMO` over a PTY walk of a real app.
+    /// `TUI_VERIFY_MEASURE_MEMO` over a PTY walk of a real app.
     ///
     /// Width 26 is the band: narrower and the labels wrap during the hug too,
     /// so both asks agree and there is nothing to get wrong; wider and nothing
@@ -329,7 +329,7 @@ struct MeasureMemoEquivalenceTests {
     ///
     /// `bothWays` arms `verifiesMeasureMemo` for the duration of a case, and
     /// used to disarm it unconditionally afterwards. Under
-    /// `TUIKIT_VERIFY_MEASURE_MEMO=1` — where the whole unit suite is supposed
+    /// `TUI_VERIFY_MEASURE_MEMO=1` — where the whole unit suite is supposed
     /// to check every hit — that turned the mode off for every suite scheduled
     /// after this one, silently, in the run whose only purpose is to have it on.
     ///

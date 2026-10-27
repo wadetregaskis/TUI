@@ -44,7 +44,7 @@ case's terminal would, and reads the bytes. The first frame is recognised by
 the Example header's glyph, as in `identity_smoke.py`. Exit 0 if every case
 matches.
 
-The clear grounds come from the Example's `TUIKIT_EXAMPLE_GROUND_ALPHA` seam at
+The clear grounds come from the Example's `TUI_EXAMPLE_GROUND_ALPHA` seam at
 0, which fades its page, app header, status bar and overlay to alpha 0. That is
 not `.clear` spelled as such (black at alpha 0) but the green preset's own
 grounds at alpha 0, and grounding treats the two alike: a root at alpha 0 is
@@ -96,7 +96,7 @@ OSC_4 = b"\x1b]4;"
 
 STRIPPED = (
     "TERM_PROGRAM", "TERM_PROGRAM_VERSION", "LC_TERMINAL", "LC_TERMINAL_VERSION",
-    "TMUX", "TMUX_PANE", "TUIKIT_TERM_PROGRAM", "COLORFGBG", "STY",
+    "TMUX", "TMUX_PANE", "TUI_TERM_PROGRAM", "COLORFGBG", "STY",
 )
 
 GLYPH = "\U0001F5A5".encode()   # 🖥, the Example header's emoji: frame one is up
@@ -112,7 +112,7 @@ SGR = re.compile(rb"\x1b\[([0-9;]*)m")
 BLACK_GROUND = re.compile(rb"[\[;]48;2;0;0;0[;m]")
 
 # Every ground at alpha 0, and a terminal that takes RGB (see the docstring).
-CLEAR_GROUNDS = {"TUIKIT_EXAMPLE_GROUND_ALPHA": "0", "COLORTERM": "truecolor"}
+CLEAR_GROUNDS = {"TUI_EXAMPLE_GROUND_ALPHA": "0", "COLORTERM": "truecolor"}
 
 
 def spec(rgb):
@@ -159,7 +159,7 @@ def run(binary, case, config_dir, seconds):
             for name in STRIPPED:
                 os.environ.pop(name, None)
             os.environ["TERM"] = "xterm-256color"
-            os.environ["TUIKIT_CONFIG_DIR"] = config_dir
+            os.environ["TUI_CONFIG_DIR"] = config_dir
             os.environ.update(environment)
             if tmux:
                 # A socket that does not exist, so the app's tmux commands (its

@@ -32,9 +32,9 @@ that repeatable.
 | **A′ — headless image harness** | `ASCIIConverter` over a picture, per cell and per pixel separately | ✅ working (`ImageHarness`) |
 
 Mode B is the realism check. Mode A is the microscope for iterating on a
-fix; it pairs with the existing `TUIKIT_BENCHMARKS=1 swift package benchmark`
+fix; it pairs with the existing `TUI_BENCHMARKS=1 swift package benchmark`
 malloc/CPU counters for regression guards (benchmarks are opt-in behind the
-`TUIKIT_BENCHMARKS` flag).
+`TUI_BENCHMARKS` flag).
 
 > **`--attach` vs `--launch`.** Mode B has `drive.py` fork the app in a
 > PTY and points `xctrace record --attach <pid>` at it. Some environments
@@ -282,9 +282,9 @@ Escapes — one may only close a combo field's suggestions — and quits the app
 with `q` from there; an app that does not quit is reported as an error (exit
 2), since the scenario's keys went somewhere it did not mean them to.
 
-The app runs with `TUIKIT_CONFIG_DIR` set to a fresh temporary directory,
+The app runs with `TUI_CONFIG_DIR` set to a fresh temporary directory,
 deleted when the run ends, so a profile neither reads nor writes your own
-settings and every run starts from the defaults. Set `TUIKIT_CONFIG_DIR`
+settings and every run starts from the defaults. Set `TUI_CONFIG_DIR`
 yourself to profile against a particular saved state; that directory is used
 as given and kept. `python3 Tools/Profiling/test_drive.py` checks both.
 
@@ -415,7 +415,7 @@ python3 Tools/Profiling/idle_cpu.py BIN 3 10 --page spinners --wakeups
 
 `--page NAME` launches the binary with `--page NAME` (the Example lands on that
 `DemoPage` case without navigating); positional `keys` still drive there by
-keystroke instead. The child always runs with `TUIKIT_CONFIG_DIR` pointed at a
+keystroke instead. The child always runs with `TUI_CONFIG_DIR` pointed at a
 fresh temporary directory, removed afterwards, so a probe never touches the
 user's settings.
 

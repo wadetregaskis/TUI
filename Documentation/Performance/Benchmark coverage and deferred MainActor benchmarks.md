@@ -28,7 +28,7 @@ under the current harness.
 The escape hatch in code is `skipViewBenchmarks` /
 `viewBenchmarkConfiguration()` in `Benchmarks/TUIBenchmarks/
 Benchmarks.swift`: view-using suites stamp `skip:` true unless
-`TUIKIT_BENCH_RUN_VIEW=1`. With that env var set they *attempt*
+`TUI_BENCH_RUN_VIEW=1`. With that env var set they *attempt*
 to run and SIGTRAP — useful only as a smoke test once a
 workaround lands.
 

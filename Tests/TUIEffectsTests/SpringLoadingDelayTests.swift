@@ -2,7 +2,7 @@
 //  SpringLoadingDelayTests.swift
 //
 //  Where `\.springLoadingDelay` comes from (owner ruling B82): the user's
-//  `TUIKIT_SPRING_LOADING_DELAY`, the host's own setting where the user is at
+//  `TUI_SPRING_LOADING_DELAY`, the host's own setting where the user is at
 //  it, macOS's default half second otherwise — and `.springLoadingDelay(_:)`
 //  over all three.
 //
@@ -21,10 +21,10 @@ import Testing
 @MainActor
 @Suite("Spring-loading delay: the user's, the host's, the app's")
 struct SpringLoadingDelayTests {
-    @Test("TUIKIT_SPRING_LOADING_DELAY is seconds, zero or more; anything else says nothing")
+    @Test("TUI_SPRING_LOADING_DELAY is seconds, zero or more; anything else says nothing")
     func userVariable() {
         func asked(_ text: String?) -> Duration? {
-            TerminalClient.springLoadingDelayRequested(environment: text.map { ["TUIKIT_SPRING_LOADING_DELAY": $0] } ?? [:])
+            TerminalClient.springLoadingDelayRequested(environment: text.map { ["TUI_SPRING_LOADING_DELAY": $0] } ?? [:])
         }
         #expect(asked("0.3") == .milliseconds(300))
         #expect(asked("1") == .seconds(1))

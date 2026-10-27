@@ -103,7 +103,7 @@ WEIGHTS = os.path.join(WORK, "weights.json")
 # /tmp rather than $TMPDIR, which can differ per sandbox or agent, and a flock
 # rather than a pid file: the kernel drops it when its holder exits, however
 # that happens, so a crashed run never leaves the next one waiting.
-LOCK_PATH = os.environ.get("TUIKIT_PARALLEL_TEST_LOCK", "/tmp/tuikit-parallel-test.lock")
+LOCK_PATH = os.environ.get("TUI_PARALLEL_TEST_LOCK", "/tmp/tuikit-parallel-test.lock")
 
 # swift-testing's final line. Everything after "seconds" is one clause built
 # from a three-way switch on (any error, any warning, any known issue), and it
@@ -619,7 +619,7 @@ def child_env(tc, slot):
     """Per-process isolation.
 
     Each process gets its own config directory and TMPDIR: the persistence
-    tests write real files under TUIKIT_CONFIG_DIR, and N processes sharing one
+    tests write real files under TUI_CONFIG_DIR, and N processes sharing one
     would race. Everything else the suite touches that is process-global
     (signal handlers, TERM, fd 2, the colour report) is per-process already,
     which is the whole point of using processes.
@@ -635,7 +635,7 @@ def child_env(tc, slot):
         # would latch ColorDepth to .noColor, disabling ANSI escapes in tests
         # that assert on rendered colours.
         del env["TERM"]
-    for key, sub in (("TUIKIT_CONFIG_DIR", "config"), ("TMPDIR", "tmp")):
+    for key, sub in (("TUI_CONFIG_DIR", "config"), ("TMPDIR", "tmp")):
         d = os.path.join(WORK, "slot%d" % slot, sub)
         os.makedirs(d, exist_ok=True)
         env[key] = d

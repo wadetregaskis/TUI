@@ -60,7 +60,7 @@ package final class RevalidationState {
     /// Whether a suspect is re-checked and served when it is unchanged (C4c),
     /// rather than dropped as a hard drain would have dropped it. On, now
     /// that every framework environment class has a decision
-    /// (`EnvironmentClassAuditTests`); `TUIKIT_OPTION_C=0` turns it off, to
+    /// (`EnvironmentClassAuditTests`); `TUI_OPTION_C=0` turns it off, to
     /// compare a frame drawn without it.
     package var servesRechecked = RevalidationState.servesRecheckedByDefault
 
@@ -75,7 +75,7 @@ package final class RevalidationState {
     }
 
     private static let servesRecheckedByDefault =
-        ProcessInfo.processInfo.environment["TUIKIT_OPTION_C"] != "0"
+        ProcessInfo.processInfo.environment["TUI_OPTION_C"] != "0"
 
     /// The passes begun: what a cooldown is counted in.
     private var pass = 0

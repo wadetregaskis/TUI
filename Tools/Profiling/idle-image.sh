@@ -26,7 +26,7 @@
 # burning CPU afterwards is the render path rather than the decoder. Pass a real
 # file to measure a decoded image instead.
 #
-# Each run gets its own TUIKIT_CONFIG_DIR. Without that a PTY probe writes to
+# Each run gets its own TUI_CONFIG_DIR. Without that a PTY probe writes to
 # the real preferences directory — $HOME does not isolate it on macOS.
 
 set -euo pipefail
@@ -49,7 +49,7 @@ for mode in text image spinner; do
     reading="$(
         IDLE_PROBE_MODE="$mode" \
         IDLE_PROBE_IMAGE="$IMAGE" \
-        TUIKIT_CONFIG_DIR="$config_dir" \
+        TUI_CONFIG_DIR="$config_dir" \
             python3 Tools/Profiling/idle_cpu.py "$BIN" 2.5 "$WINDOW" 2>&1 | tail -1
     )" || reading="FAILED"
     rm -rf "$config_dir"

@@ -253,10 +253,10 @@ struct KeyboardProtocolNegotiationTests {
         #expect(!KeyboardProtocolQuery.sawFence(Array("\u{1B}[?31u".utf8)))
     }
 
-    @Test("TUIKIT_KEYBOARD_PROTOCOL=0 keeps TUI from asking; anything else lets it")
+    @Test("TUI_KEYBOARD_PROTOCOL=0 keeps TUI from asking; anything else lets it")
     func environmentOptOut() {
-        #expect(!Terminal.keyboardProtocolAllowed(environment: ["TUIKIT_KEYBOARD_PROTOCOL": "0"]))
-        #expect(Terminal.keyboardProtocolAllowed(environment: ["TUIKIT_KEYBOARD_PROTOCOL": "1"]))
+        #expect(!Terminal.keyboardProtocolAllowed(environment: ["TUI_KEYBOARD_PROTOCOL": "0"]))
+        #expect(Terminal.keyboardProtocolAllowed(environment: ["TUI_KEYBOARD_PROTOCOL": "1"]))
         #expect(Terminal.keyboardProtocolAllowed(environment: [:]))
     }
 

@@ -9,7 +9,7 @@ Usage:
 Visits item i (for i in 0..<count) as: Down×i, Enter, wait, [KEYS], Esc.
 KEYS is a comma list of: down, up, enter, esc, tab, space, or wait<seconds>,
 each optionally repeated as `down*5`. The child runs with an isolated
-TUIKIT_CONFIG_DIR (never the user's real preferences) and TERM=xterm-256color.
+TUI_CONFIG_DIR (never the user's real preferences) and TERM=xterm-256color.
 `--application-keys` sends the arrows as `ESC O B` and so on, as a terminal
 left in application cursor-key mode does; `--min-items N` fails a walk that
 stopped short of N items.
@@ -80,10 +80,10 @@ def main() -> int:
     pid, fd = pty.fork()
     if pid == 0:
         try:
-            os.environ["TUIKIT_CONFIG_DIR"] = config_dir
+            os.environ["TUI_CONFIG_DIR"] = config_dir
             os.environ["TERM"] = "xterm-256color"
             if args.scale:
-                os.environ["TUIKIT_STRESS_SCALE"] = str(args.scale)
+                os.environ["TUI_STRESS_SCALE"] = str(args.scale)
             os.execv(args.binary, [args.binary])
         except Exception:
             pass

@@ -25,7 +25,7 @@ import TUICore
 ///
 /// Fixed for the run: the terminal is asked once, before the first frame. A
 /// user can keep TUI from asking — leaving every terminal in its legacy
-/// encodings — with `TUIKIT_KEYBOARD_PROTOCOL=0`.
+/// encodings — with `TUI_KEYBOARD_PROTOCOL=0`.
 /// See `Documentation/Terminals/Terminal compatibility survey.md`, "The kitty keyboard
 /// protocol", for which terminals say they speak it.
 package struct KeyboardReporting: Hashable, Sendable {

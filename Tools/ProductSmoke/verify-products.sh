@@ -91,7 +91,7 @@ Tools/stage-versioned-package.sh "$PACKAGE_REPO" 1.0.0
 # The fixture is copied out, so that its build and Package.resolved stay out of the tree.
 mkdir -p "$FIXTURE"
 cp -R Tools/ProductSmoke/Package.swift Tools/ProductSmoke/Sources "$FIXTURE/"
-export TUIKIT_PRODUCT_SMOKE_URL="file://$PACKAGE_REPO"
+export TUI_PRODUCT_SMOKE_URL="file://$PACKAGE_REPO"
 
 printf '── Building every app\n'
 BUILD_LOG="$TEMP_DIR/build.log"

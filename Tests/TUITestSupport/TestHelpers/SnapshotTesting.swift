@@ -5,7 +5,7 @@
 //  License: MIT
 
 // Built for tests only: a plain `swift build -c release` compiles this file empty (see TUITestSupport in Package.swift).
-#if TUIKIT_TEST_SUPPORT && canImport(Testing)
+#if TUI_TEST_SUPPORT && canImport(Testing)
 
 import Foundation
 import Testing
@@ -25,7 +25,7 @@ import Testing
 /// the files are stable and diffable) while preserving exactly what the layout
 /// engine controls — widths, heights, and where each glyph lands.
 ///
-/// To accept intended changes, re-run with `TUIKIT_RECORD_SNAPSHOTS=1`, which
+/// To accept intended changes, re-run with `TUI_RECORD_SNAPSHOTS=1`, which
 /// (over)writes the goldens instead of comparing.
 
 /// The committed golden directory (`Tests/TUITestSupport/__Snapshots__`).
@@ -37,7 +37,7 @@ private func snapshotsDirectory() -> URL {
 }
 
 private var isRecordingSnapshots: Bool {
-    ProcessInfo.processInfo.environment["TUIKIT_RECORD_SNAPSHOTS"] != nil
+    ProcessInfo.processInfo.environment["TUI_RECORD_SNAPSHOTS"] != nil
 }
 
 /// Serialises a buffer to its reviewable snapshot form: a `# WxH` header (so a
@@ -111,7 +111,7 @@ func assertSnapshot(_ name: String, of buffer: FrameBuffer) {
     } else {
         write(actual, to: actualURL)
         let message =
-            "Snapshot '\(name)' changed (accept with TUIKIT_RECORD_SNAPSHOTS=1):\n"
+            "Snapshot '\(name)' changed (accept with TUI_RECORD_SNAPSHOTS=1):\n"
             + snapshotDiff(golden: golden, actual: actual)
         Issue.record("\(message)")
     }

@@ -10,7 +10,7 @@ import Testing
 
 /// Which hosts are sent a desktop notification (`OSC 9`) for
 /// `requestAttention(_:)` rather than the bell, and how the answer is reached:
-/// the user's `TUIKIT_NOTIFICATIONS`, then the table of hosts documented to
+/// the user's `TUI_NOTIFICATIONS`, then the table of hosts documented to
 /// post one. Asked on its inputs.
 @Suite("Terminal notification support")
 struct TerminalNotificationSupportTests {
@@ -33,11 +33,11 @@ struct TerminalNotificationSupportTests {
         #expect(TerminalClient.honoursNotifications(program) == posts)
     }
 
-    @Test("TUIKIT_NOTIFICATIONS outranks the table both ways, and anything else leaves it to the table")
+    @Test("TUI_NOTIFICATIONS outranks the table both ways, and anything else leaves it to the table")
     func environmentOutranksTheTable() {
-        #expect(TerminalClient.notificationsSupported(environment: ["TUIKIT_NOTIFICATIONS": "1"], program: .tmux))
-        #expect(!TerminalClient.notificationsSupported(environment: ["TUIKIT_NOTIFICATIONS": "0"], program: .ghostty))
-        #expect(TerminalClient.notificationsSupported(environment: ["TUIKIT_NOTIFICATIONS": ""], program: .iTerm2))
+        #expect(TerminalClient.notificationsSupported(environment: ["TUI_NOTIFICATIONS": "1"], program: .tmux))
+        #expect(!TerminalClient.notificationsSupported(environment: ["TUI_NOTIFICATIONS": "0"], program: .ghostty))
+        #expect(TerminalClient.notificationsSupported(environment: ["TUI_NOTIFICATIONS": ""], program: .iTerm2))
         #expect(!TerminalClient.notificationsSupported(environment: [:], program: .appleTerminal))
     }
 }

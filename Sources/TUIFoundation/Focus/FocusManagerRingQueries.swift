@@ -33,7 +33,7 @@ extension FocusManager {
 
     /// Diagnostic one-line summary of the focus manager's section
     /// state. Used by the gated logging across the framework when
-    /// `TUIKIT_DEBUG_FOCUS=1`; not part of the public API.
+    /// `TUI_DEBUG_FOCUS=1`; not part of the public API.
     internal func debugSectionsSummary() -> String {
         let parts = sections.map { section -> String in
             let active = section.id == activeSectionIdentifier ? "*" : ""

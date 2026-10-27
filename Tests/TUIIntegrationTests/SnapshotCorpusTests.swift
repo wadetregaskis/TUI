@@ -14,7 +14,7 @@ import TUI
 /// changes — especially from the flexibility-contract work, where a change to how
 /// `sizeThatFits` / render-fill / distribution behave should surface here for
 /// every affected view. See `SnapshotTesting.swift` for the harness; accept
-/// intended changes with `TUIKIT_RECORD_SNAPSHOTS=1`.
+/// intended changes with `TUI_RECORD_SNAPSHOTS=1`.
 ///
 /// The cases lean deliberately on the flexibility-sensitive paths: `Spacer`
 /// distribution, `.frame(maxWidth:)`, `ScrollView` size-to-content, `ViewThatFits`

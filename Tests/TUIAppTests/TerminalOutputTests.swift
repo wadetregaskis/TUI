@@ -73,12 +73,12 @@ extension TerminalOutputTests {
         #expect(output.bytes.contains(Terminal.inputModesOff + Terminal.shiftEscapeOff))
     }
 
-    /// `TUIKIT_SHIFT_CLICKS=0`, the user's way back to the terminal's own
+    /// `TUI_SHIFT_CLICKS=0`, the user's way back to the terminal's own
     /// Shift-click and Shift-drag; and Apple Terminal, which keeps no Shift
     /// bypass and whose reading of the sequence is unmeasured.
     @Test(
-        "Nothing is asked where TUIKIT_SHIFT_CLICKS=0 is set, or on Apple Terminal",
-        arguments: [["TERM_PROGRAM": "ghostty", "TUIKIT_SHIFT_CLICKS": "0"], ["TERM_PROGRAM": "Apple_Terminal"]])
+        "Nothing is asked where TUI_SHIFT_CLICKS=0 is set, or on Apple Terminal",
+        arguments: [["TERM_PROGRAM": "ghostty", "TUI_SHIFT_CLICKS": "0"], ["TERM_PROGRAM": "Apple_Terminal"]])
     func shiftEscapeWithheld(environment: [String: String]) {
         let (terminal, output) = ScriptedTerminalOutput.terminal(environment: environment)
         terminal.enableRawMode()
@@ -217,7 +217,7 @@ extension TerminalOutputTests {
         terminal.enableRawMode()
         #expect(output.bytes.contains("\u{1B}[?7l"))
 
-        let (quiet, _) = ScriptedTerminalOutput.terminal(environment: ["TUIKIT_SYNCHRONIZED_OUTPUT": "0"])
+        let (quiet, _) = ScriptedTerminalOutput.terminal(environment: ["TUI_SYNCHRONIZED_OUTPUT": "0"])
         #expect(quiet.outputModesOff == "\u{1B}[?7h", "owed whether or not frames are held")
     }
 
@@ -246,9 +246,9 @@ extension TerminalOutputTests {
         terminal.enableRawMode()
         #expect(output.bytes.contains("\u{1B}[?7l"))
         output.clear()
-        terminal.keepAutowrapIfAppleTerminal(environment: ["TUIKIT_TERM_PROGRAM": "Apple_Terminal"])
+        terminal.keepAutowrapIfAppleTerminal(environment: ["TUI_TERM_PROGRAM": "Apple_Terminal"])
         #expect(output.writes == ["\u{1B}[?7h"])
-        terminal.keepAutowrapIfAppleTerminal(environment: ["TUIKIT_TERM_PROGRAM": "Apple_Terminal"])
+        terminal.keepAutowrapIfAppleTerminal(environment: ["TUI_TERM_PROGRAM": "Apple_Terminal"])
         #expect(output.writes == ["\u{1B}[?7h"], "once")
         terminal.disableRawMode()
         output.clear()
@@ -259,7 +259,7 @@ extension TerminalOutputTests {
         let (ghostty, ghosttyOutput) = ScriptedTerminalOutput.terminal()
         ghostty.enableRawMode()
         ghosttyOutput.clear()
-        ghostty.keepAutowrapIfAppleTerminal(environment: ["TUIKIT_TERM_PROGRAM": "ghostty"])
+        ghostty.keepAutowrapIfAppleTerminal(environment: ["TUI_TERM_PROGRAM": "ghostty"])
         #expect(ghosttyOutput.writes.isEmpty, "another host keeps it off")
     }
 

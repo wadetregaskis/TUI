@@ -63,7 +63,7 @@ extension TerminalCapabilities {
     }
 
     /// The answer for a feature TUI turns on or off by a ladder — an app's
-    /// override, then the user's `TUIKIT_*` switch, then a table of
+    /// override, then the user's `TUI_*` switch, then a table of
     /// terminals: `uses`, whether it ended up on; `forced`, whether the
     /// override or the switch decided it; `evidence`, how far the table
     /// reaches this terminal.
@@ -79,7 +79,7 @@ extension TerminalCapabilities {
         }
     }
 
-    /// Whether the app's `override` or the user's `TUIKIT_*` switch
+    /// Whether the app's `override` or the user's `TUI_*` switch
     /// `variable`, set to `1` or `0` in `environment`, decides a feature — the
     /// two rungs every ladder here starts with.
     package static func isForced(override: Bool?, variable: String, in environment: [String: String]) -> Bool {

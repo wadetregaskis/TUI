@@ -57,9 +57,9 @@ struct HyperlinkCheckView: View {
     /// shell profile is otherwise indistinguishable from a measurement.
     private var reason: String {
         if TerminalClient.hyperlinkSupport != nil { return "set in code this session" }
-        switch ProcessInfo.processInfo.environment["TUIKIT_HYPERLINKS"] {
-        case "1": return "TUIKIT_HYPERLINKS=1"
-        case "0": return "TUIKIT_HYPERLINKS=0"
+        switch ProcessInfo.processInfo.environment["TUI_HYPERLINKS"] {
+        case "1": return "TUI_HYPERLINKS=1"
+        case "0": return "TUI_HYPERLINKS=0"
         default:
             return TerminalClient.honoursHyperlinks(client.program)
                 ? "measured: this host honours them"
@@ -98,7 +98,7 @@ struct HyperlinkCheckView: View {
             "Emitting the sequence is safe on every terminal measured: one with an OSC parser "
                 + "swallows it whether or not it implements the command. So the cost of this "
                 + "being wrong is a link that does nothing, not a corrupted row — which is why "
-                + "TUIKIT_HYPERLINKS=1 is a reasonable thing to try on a terminal TUI has "
+                + "TUI_HYPERLINKS=1 is a reasonable thing to try on a terminal TUI has "
                 + "never measured. Report what you find."
         )
         .foregroundStyle(.palette.foregroundSecondary)

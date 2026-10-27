@@ -240,18 +240,18 @@ struct AlignmentGuideTests {
                 == AlignmentGuideRun.maximumPush)
     }
 
-    @Test("The push bound is 2^20 cells, and TUIKIT_MAX_ALIGNMENT_PUSH overrides it")
+    @Test("The push bound is 2^20 cells, and TUI_MAX_ALIGNMENT_PUSH overrides it")
     func maximumPushAndItsOverride() {
         #expect(AlignmentGuideRun.defaultMaximumPush == 1_048_576)
         #expect(AlignmentGuideRun.maximumPush(environment: [:]) == 1_048_576)
-        #expect(AlignmentGuideRun.maximumPush(environment: ["TUIKIT_MAX_ALIGNMENT_PUSH": "5000000"]) == 5_000_000)
-        #expect(AlignmentGuideRun.maximumPush(environment: ["TUIKIT_MAX_ALIGNMENT_PUSH": " 12 "]) == 12)
+        #expect(AlignmentGuideRun.maximumPush(environment: ["TUI_MAX_ALIGNMENT_PUSH": "5000000"]) == 5_000_000)
+        #expect(AlignmentGuideRun.maximumPush(environment: ["TUI_MAX_ALIGNMENT_PUSH": " 12 "]) == 12)
         // Held to 2^30, so a pushed run's extent still fits a 32-bit `Int`.
         #expect(
-            AlignmentGuideRun.maximumPush(environment: ["TUIKIT_MAX_ALIGNMENT_PUSH": "\(Int.max)"]) == 1 << 30)
+            AlignmentGuideRun.maximumPush(environment: ["TUI_MAX_ALIGNMENT_PUSH": "\(Int.max)"]) == 1 << 30)
         for unusable in ["0", "-5", "lots", "", "1e9"] {
             #expect(
-                AlignmentGuideRun.maximumPush(environment: ["TUIKIT_MAX_ALIGNMENT_PUSH": unusable]) == 1_048_576,
+                AlignmentGuideRun.maximumPush(environment: ["TUI_MAX_ALIGNMENT_PUSH": unusable]) == 1_048_576,
                 "\(unusable)")
         }
     }

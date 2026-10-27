@@ -52,7 +52,7 @@ import TUICore
 /// views that read the value again; nothing changes it per frame.
 ///
 /// Read-only: an app changes what TUI sends with the switches each feature
-/// names (`TerminalClient.hyperlinkSupport`, `TUIKIT_GRAPHICS`, …), set before
+/// names (`TerminalClient.hyperlinkSupport`, `TUI_GRAPHICS`, …), set before
 /// the app runs, and the answers here follow them. Colour depth is not a feature but a level, and stays
 /// `ColorDepth`, which `colorDepth` passes through.
 public struct TerminalCapabilities: Hashable, Sendable {

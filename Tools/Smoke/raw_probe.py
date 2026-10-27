@@ -56,7 +56,7 @@ hold is under half the median or over half as long again, or the on and off
 halves' means differ by over a fifth of it; 2 if the phase held under six
 holds (inconclusive — the caret was not blinking).
 
-The child runs with an isolated TUIKIT_CONFIG_DIR, never the real preferences.
+The child runs with an isolated TUI_CONFIG_DIR, never the real preferences.
 """
 import argparse
 import fcntl
@@ -108,7 +108,7 @@ class Child:
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             try:
-                os.environ["TUIKIT_CONFIG_DIR"] = os.path.join(
+                os.environ["TUI_CONFIG_DIR"] = os.path.join(
                     os.environ.get("TMPDIR", "/tmp"), "tuikit-raw-probe")
                 os.environ["TERM"] = "xterm-256color"
                 if term_program:

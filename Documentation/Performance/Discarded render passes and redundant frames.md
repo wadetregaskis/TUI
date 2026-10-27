@@ -214,7 +214,7 @@ app, to remove a startup one-off.
 5. The cheap generalisation is available and free: **a view that read-modify-
    writes its own state should compare before assigning.** That is the
    `_ImageCore` fix (`75a732fa`) as a rule, and it needs no machinery.
-6. `TUIKIT_DIAGNOSE_BODY_MUTATION=1` names any view that breaks (5). That is how
+6. `TUI_DIAGNOSE_BODY_MUTATION=1` names any view that breaks (5). That is how
    the next one gets found in a run rather than an investigation.
 
 ## See also

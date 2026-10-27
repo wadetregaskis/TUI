@@ -170,7 +170,7 @@ public struct _MemoizedRow<Element: Equatable, Source, Content: View>: View, Ren
     /// known hole documented on the type above.
     ///
     /// The weaker claim is exactly why this half is the one worth verifying, and
-    /// under `TUIKIT_VERIFY_RENDER_MEMO` it now is. It was not: the shared memo
+    /// under `TUI_VERIFY_RENDER_MEMO` it now is. It was not: the shared memo
     /// took a `verifies` flag and this caller passed `false`, so the standing CI
     /// net — `Stress --selfcheck` with that variable set, whose whole job is to
     /// catch a memo serving a stale picture — checked **nothing**, because every

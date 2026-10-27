@@ -14,7 +14,7 @@
 //  These assert on the REGISTRIES and on the drop, never on the rendered
 //  lines. The buffer is identical either way, and a write journalled nowhere
 //  is recorded by neither side of the render-memo verifier's comparison — so
-//  `TUIKIT_VERIFY_RENDER_MEMO` reported no mismatch at all while every one of
+//  `TUI_VERIFY_RENDER_MEMO` reported no mismatch at all while every one of
 //  these was being dropped.
 //
 //  Created by Wade Tregaskis

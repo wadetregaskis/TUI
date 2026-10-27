@@ -73,7 +73,7 @@ self.onmessage = async (event) => {
       TERM: "xterm-256color",
       COLORTERM: "truecolor",
       LANG: message.language ?? "en_US.UTF-8",
-      TUIKIT_CONFIG_DIR: "/config",
+      TUI_CONFIG_DIR: "/config",
       ...(message.env ?? {}),
     },
     files,

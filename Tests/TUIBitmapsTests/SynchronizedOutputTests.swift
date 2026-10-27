@@ -76,15 +76,15 @@ struct SynchronizedOutputTests {
         #expect(terminal.lastFrameData == Array((graphics + "\u{1B}[1;1Hx").utf8))
     }
 
-    @Test("TUIKIT_SYNCHRONIZED_OUTPUT=0 holds nothing, and owes nothing")
+    @Test("TUI_SYNCHRONIZED_OUTPUT=0 holds nothing, and owes nothing")
     func offSwitch() {
         let (terminal, output) = ScriptedTerminalOutput.terminal(
-            environment: ["TUIKIT_SYNCHRONIZED_OUTPUT": "0"])
+            environment: ["TUI_SYNCHRONIZED_OUTPUT": "0"])
         frame(on: terminal, rows: [1, 2, 3])
         #expect(output.writes == ["\u{1B}[1;1Hx\u{1B}[2;1Hx\u{1B}[3;1Hx"])
         #expect(!terminal.signalDebt.contains(Self.end))
         #expect(Terminal.synchronizedOutputAllowed(environment: [:]))
-        #expect(Terminal.synchronizedOutputAllowed(environment: ["TUIKIT_SYNCHRONIZED_OUTPUT": "1"]))
+        #expect(Terminal.synchronizedOutputAllowed(environment: ["TUI_SYNCHRONIZED_OUTPUT": "1"]))
     }
 
     @Test("The end marker is the first thing the teardown sends, and leads the debt a fatal signal pays")

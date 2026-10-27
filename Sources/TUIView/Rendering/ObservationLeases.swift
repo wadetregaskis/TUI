@@ -62,10 +62,10 @@ package final class ObservationLeases {
         case leases
     }
 
-    /// What a new cache starts with: `TUIKIT_OBSERVATION_RETIREMENT` when it
+    /// What a new cache starts with: `TUI_OBSERVATION_RETIREMENT` when it
     /// names a rule, otherwise `leases`.
     package static let defaultRetirement: Retirement = {
-        guard let name = ProcessInfo.processInfo.environment["TUIKIT_OBSERVATION_RETIREMENT"],
+        guard let name = ProcessInfo.processInfo.environment["TUI_OBSERVATION_RETIREMENT"],
             let rule = Retirement(rawValue: name)
         else { return .leases }
         return rule

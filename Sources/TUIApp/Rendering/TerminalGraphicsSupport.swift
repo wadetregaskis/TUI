@@ -45,7 +45,7 @@ extension TerminalClient {
     /// `.braille` or a custom ramp does not want a photograph appearing on
     /// Ghostty and nowhere else.
     ///
-    /// `nil` (the default) means "use the handshake", unless `TUIKIT_GRAPHICS`
+    /// `nil` (the default) means "use the handshake", unless `TUI_GRAPHICS`
     /// is set — `1` for on, `0` for off — which is how a user answers for
     /// their own terminal without the application knowing anything about it,
     /// and how the round trip is skipped entirely.
@@ -59,7 +59,7 @@ extension TerminalClient {
     /// Force whether transmissions are deflated, whatever was detected.
     ///
     /// The same three-way ladder as ``graphicsSupport`` — this, then
-    /// `TUIKIT_GRAPHICS_COMPRESSION` (`1` or `0`), then the handshake — and
+    /// `TUI_GRAPHICS_COMPRESSION` (`1` or `0`), then the handshake — and
     /// it can only ever turn compression ON where pictures are on at all and
     /// a zlib was found: `true` on a host with no `libz` still sends raw
     /// pixels, because there is nothing to deflate with. Off is the answer to
@@ -109,7 +109,7 @@ extension TerminalClient {
         override: Bool?, environment: [String: String], detected: Bool?
     ) -> Bool {
         if let override { return override }
-        switch environment["TUIKIT_GRAPHICS"] {
+        switch environment["TUI_GRAPHICS"] {
         case "1": return true
         case "0": return false
         default: return detected ?? false
@@ -122,7 +122,7 @@ extension TerminalClient {
     @MainActor public static var graphicsCompressionSupported: Bool {
         guard graphicsSupported, SystemZlib.isAvailable else { return false }
         if let graphicsCompressionSupport { return graphicsCompressionSupport }
-        switch ProcessInfo.processInfo.environment["TUIKIT_GRAPHICS_COMPRESSION"] {
+        switch ProcessInfo.processInfo.environment["TUI_GRAPHICS_COMPRESSION"] {
         case "1": return true
         case "0": return false
         default: return detectedGraphicsCompression ?? false
@@ -136,7 +136,7 @@ extension TerminalClient {
     /// are everywhere else.
     ///
     /// The same three-way ladder as ``graphicsSupport``: this, then
-    /// `TUIKIT_HAIRLINES` (`1` or `0`), then the table of measured hosts
+    /// `TUI_HAIRLINES` (`1` or `0`), then the table of measured hosts
     /// (``hairlinesSupported``).
     @MainActor public static var hairlineSupport: Bool? {
         didSet {
@@ -172,14 +172,14 @@ extension TerminalClient {
     /// its cell's pixels, which the line's length is counted in. iTerm2 3.7.3
     /// drew the line too, in a pixel unit no query revealed, so a line there
     /// ends short of its row; kitty and WezTerm are unmeasured; Konsole hides
-    /// the layer the line needs. Each is one `TUIKIT_HAIRLINES=1` away from
+    /// the layer the line needs. Each is one `TUI_HAIRLINES=1` away from
     /// being tried. See `Documentation/Terminals/Terminal compatibility survey.md`.
     static func hairlinesSupported(
         override: Bool?, environment: [String: String], graphics: Bool, program: Program,
         reportsCellPixels: Bool
     ) -> Bool {
         if let override { return override }
-        switch environment["TUIKIT_HAIRLINES"] {
+        switch environment["TUI_HAIRLINES"] {
         case "1": return true
         case "0": return false
         default: return graphics && program == .ghostty && reportsCellPixels
@@ -193,7 +193,7 @@ extension TerminalClient {
     /// `false` for the average-colour cells everywhere.
     ///
     /// The same ladder as ``hairlineSupport``: this, then
-    /// `TUIKIT_PICTURES_UNDER_TEXT` (`1` or `0`), then the measured hosts
+    /// `TUI_PICTURES_UNDER_TEXT` (`1` or `0`), then the measured hosts
     /// (``picturesUnderTextSupported``).
     @MainActor public static var pictureUnderTextSupport: Bool? {
         didSet {
@@ -222,7 +222,7 @@ extension TerminalClient {
         override: Bool?, environment: [String: String], graphics: Bool, program: Program
     ) -> Bool {
         if let override { return override }
-        switch environment["TUIKIT_PICTURES_UNDER_TEXT"] {
+        switch environment["TUI_PICTURES_UNDER_TEXT"] {
         case "1": return true
         case "0": return false
         default: return graphics && program == .ghostty
@@ -233,7 +233,7 @@ extension TerminalClient {
     /// publishes the result.
     ///
     /// Skips the round trip whenever something has already decided — an
-    /// override, or `TUIKIT_GRAPHICS` — because the exchange costs a terminal
+    /// override, or `TUI_GRAPHICS` — because the exchange costs a terminal
     /// round trip at startup and there is no reason to pay it for an answer
     /// nobody will read.
     ///
@@ -244,7 +244,7 @@ extension TerminalClient {
         defer { applyGraphicsSupport() }
         detectedCellPixels = terminal.cellPixelSize() != nil
         guard graphicsSupport == nil else { return }
-        let forced = ProcessInfo.processInfo.environment["TUIKIT_GRAPHICS"]
+        let forced = ProcessInfo.processInfo.environment["TUI_GRAPHICS"]
         guard forced != "1", forced != "0" else { return }
         let answers = terminal.queryGraphicsSupport()
         detectedGraphics = answers.placement

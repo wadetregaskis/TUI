@@ -28,7 +28,7 @@ extension EnvironmentValues {
     /// `com.apple.springing.delay`). An app run in a terminal reads it the
     /// same way where TUI is sure the user is at the machine the app runs
     /// on, and otherwise takes macOS's default, half a second; the user's
-    /// `TUIKIT_SPRING_LOADING_DELAY` (in seconds) overrides either. That is
+    /// `TUI_SPRING_LOADING_DELAY` (in seconds) overrides either. That is
     /// what the root of every frame holds, and this value's default outside
     /// an app's run loop is half a second.
     public var springLoadingDelay: Duration {
@@ -61,7 +61,7 @@ extension View {
 
 extension TerminalClient {
     /// The spring-loading delay the user asked for with
-    /// `TUIKIT_SPRING_LOADING_DELAY` — in seconds, `0.3` or `1` — in the
+    /// `TUI_SPRING_LOADING_DELAY` — in seconds, `0.3` or `1` — in the
     /// environment the app was started in, or `nil` where it is unset or no
     /// duration of zero or more. Read once, at first use.
     ///
@@ -73,7 +73,7 @@ extension TerminalClient {
 
     /// The rule behind ``springLoadingDelayRequested``, posed on its input.
     package static func springLoadingDelayRequested(environment: [String: String]) -> Duration? {
-        guard let text = environment["TUIKIT_SPRING_LOADING_DELAY"],
+        guard let text = environment["TUI_SPRING_LOADING_DELAY"],
             let seconds = Double(text.trimmingCharacters(in: .whitespaces)), seconds.isFinite, seconds >= 0
         else { return nil }
         return .milliseconds(Int64((seconds * 1000).rounded()))

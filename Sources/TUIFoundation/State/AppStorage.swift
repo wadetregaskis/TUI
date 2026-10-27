@@ -301,7 +301,7 @@ public enum StorageDefaults {
     ///   does not reliably persist there — written under `appConfigDirectory()`
     ///   (`$XDG_CONFIG_HOME/<app>/settings.json`, else `~/.config/<app>/…`).
     ///
-    /// Setting `TUIKIT_CONFIG_DIR` in the environment overrides both: storage
+    /// Setting `TUI_CONFIG_DIR` in the environment overrides both: storage
     /// becomes file-backed under that directory on every platform. That is the
     /// isolation hook for test harnesses — on Apple platforms `UserDefaults`
     /// ignores a `$HOME` override, so without it a "sandboxed" run reads and
@@ -309,7 +309,7 @@ public enum StorageDefaults {
     ///
     /// Override before creating any `@AppStorage` properties to use a custom backend.
     nonisolated(unsafe) public static var backend: StorageBackend = {
-        if let override = ProcessInfo.processInfo.environment["TUIKIT_CONFIG_DIR"],
+        if let override = ProcessInfo.processInfo.environment["TUI_CONFIG_DIR"],
             !override.isEmpty
         {
             // JSONFileStorage roots itself at appConfigDirectory(), which

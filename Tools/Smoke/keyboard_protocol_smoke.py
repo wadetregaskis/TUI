@@ -31,7 +31,7 @@ stack as the specification says. Cases:
      from SIGHUP too.
 
 Usage:  python3 Tools/Smoke/keyboard_protocol_smoke.py [path-to-binary]
-Exits 0 when every case holds. Uses an isolated TUIKIT_CONFIG_DIR.
+Exits 0 when every case holds. Uses an isolated TUI_CONFIG_DIR.
 """
 
 import atexit
@@ -55,7 +55,7 @@ ENTER_ALT = b"\x1b[?1049h"
 
 STRIPPED = (
     "TERM_PROGRAM", "TERM_PROGRAM_VERSION", "LC_TERMINAL", "LC_TERMINAL_VERSION",
-    "TMUX", "TMUX_PANE", "TUIKIT_TERM_PROGRAM",
+    "TMUX", "TMUX_PANE", "TUI_TERM_PROGRAM",
 )
 
 failures = []
@@ -91,7 +91,7 @@ class FakeTerminal:
                     os.environ.pop(key, None)
                 os.environ["TERM"] = "xterm-256color"
                 os.environ["LANG"] = "en_US.UTF-8"
-                os.environ["TUIKIT_CONFIG_DIR"] = config
+                os.environ["TUI_CONFIG_DIR"] = config
                 os.environ.update(env or {})
                 os.execv(BINARY, [BINARY])
             except Exception:
@@ -189,9 +189,9 @@ check(POP not in term.out, "legacy: nothing popped")
 term.finish()
 
 # 2b. A terminal that speaks it, with the user's opt-out set.
-os.environ["TUIKIT_KEYBOARD_PROTOCOL"] = "0"
+os.environ["TUI_KEYBOARD_PROTOCOL"] = "0"
 term = FakeTerminal(speaks_protocol=True)
-del os.environ["TUIKIT_KEYBOARD_PROTOCOL"]
+del os.environ["TUI_KEYBOARD_PROTOCOL"]
 term.pump(3.0)
 check(QUERY not in term.out, "opted out: not even asked")
 term.send(b"q")

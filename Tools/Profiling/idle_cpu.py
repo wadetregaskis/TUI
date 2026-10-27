@@ -33,7 +33,7 @@ Output, over the window:
 A static screen → ~0 / 0 / 0; an animating screen (spinner, focused pulse, text
 cursor) → non-zero, continuously.
 
-The child runs with `TUIKIT_CONFIG_DIR` set to a fresh temporary directory, so a
+The child runs with `TUI_CONFIG_DIR` set to a fresh temporary directory, so a
 run cannot read or write the user's settings, and the directory is removed
 afterwards. The run is bounded by an alarm, and the child's whole process group
 is killed and reaped on the way out.
@@ -80,7 +80,7 @@ if pid == 0:  # child: become the controlling tty for `binary`
             os.close(slave)
         env = dict(os.environ)
         env["TERM"] = "xterm-256color"
-        env["TUIKIT_CONFIG_DIR"] = config_dir
+        env["TUI_CONFIG_DIR"] = config_dir
         os.execve(binary, argv, env)
     except Exception:
         pass

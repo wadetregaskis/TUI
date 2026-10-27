@@ -15,7 +15,7 @@
 //  every one of them on the writer's thread. TUI cancels a registration
 //  once nothing the render cache keeps depends on the evaluation that armed
 //  it (`ObservationLeases`), so what is alive stays flat however long the
-//  run; `TUIKIT_OBSERVATION_RETIREMENT=never` plays it as the cache played it
+//  run; `TUI_OBSERVATION_RETIREMENT=never` plays it as the cache played it
 //  before, which is the baseline. Option C observes more readers (a style's
 //  body, a control's `Binding`), and each is a reader of this kind; this
 //  session is the long run their cost is measured on, reader by reader.

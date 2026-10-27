@@ -149,7 +149,7 @@ extension EnvironmentValues {
     /// answer under the default setting — otherwise.
     ///
     /// A terminal reports no contrast setting, so the ask is the user's
-    /// `TUIKIT_INCREASE_CONTRAST=1` in the environment the app runs in, or the
+    /// `TUI_INCREASE_CONTRAST=1` in the environment the app runs in, or the
     /// host's Increase contrast (GNOME's high contrast) where TUI is sure the
     /// user is at this machine, as for
     /// ``EnvironmentValues/accessibilityReduceMotion`` (owner ruling P5 (c)).

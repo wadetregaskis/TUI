@@ -59,7 +59,7 @@ struct MemoCounts {
     /// which is the only build that counts it; otherwise nothing.
     @MainActor
     static func printValueHashCensus(of cache: RenderCache?) {
-        #if TUIKIT_VALUE_HASH_CENSUS
+        #if TUI_VALUE_HASH_CENSUS
         for line in cache?.valueHashPlans.census.report() ?? [] { print("  " + line) }
         #endif
     }

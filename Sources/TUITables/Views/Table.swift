@@ -5730,7 +5730,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     /// Re-composes a served row and reports a disagreement, under
-    /// `TUIKIT_VERIFY_RENDER_MEMO`.
+    /// `TUI_VERIFY_RENDER_MEMO`.
     ///
     /// The value memo gets this from `verifyServe`; a store that lives outside
     /// the render cache has to say it, and saying it is the price of living

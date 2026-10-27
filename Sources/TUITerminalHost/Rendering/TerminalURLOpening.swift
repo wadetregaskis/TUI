@@ -140,10 +140,10 @@ extension TerminalClient {
     /// ## Turning it on
     ///
     /// `true` for a tool that knows it is local — a local-only developer
-    /// utility, an app whose own launcher guarantees it. `TUIKIT_OPEN_URLS=1`
+    /// utility, an app whose own launcher guarantees it. `TUI_OPEN_URLS=1`
     /// in the environment does the same, which is how a USER answers for their
     /// own session without the application knowing anything about it, and
-    /// `TUIKIT_OPEN_URLS=0` forces it off against an app that turned it on.
+    /// `TUI_OPEN_URLS=0` forces it off against an app that turned it on.
     ///
     /// An app that wants to open URLs its own way needs none of this: an
     /// `OpenURLAction` handler that does the work and returns
@@ -167,7 +167,7 @@ extension TerminalClient {
     /// `ColorDepth.detect(environment:)` has — so it can be asked without
     /// setting anything a whole process reads.
     static func urlOpeningEnabled(override: Bool?, environment: [String: String]) -> Bool {
-        let environment = environment["TUIKIT_OPEN_URLS"]
+        let environment = environment["TUI_OPEN_URLS"]
         // `=0` FIRST, ahead of the app's own answer. A user who exported it is
         // saying "not on this machine", and the app cannot know better: it is
         // the one party here that does not know where it is running. (This

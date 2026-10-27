@@ -63,7 +63,7 @@ else
 fi
 
 # Never the developer's — or the runner's — real preferences.
-export TUIKIT_CONFIG_DIR="${TUIKIT_CONFIG_DIR:-${TMPDIR:-/tmp}/tuikit-smoke-config}"
+export TUI_CONFIG_DIR="${TUI_CONFIG_DIR:-${TMPDIR:-/tmp}/tuikit-smoke-config}"
 
 # Item counts are entries in each app's top-level menu. An empty count means
 # "ask the app": `Example --pages` prints `DemoPage.allCases.count` and

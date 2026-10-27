@@ -467,7 +467,7 @@ route is a mode, as in tmux:
     reached through the render context's services, not a static.
   - **When:** the host is in a measured table
     (`TerminalClient.honoursClipboardWrites(_:)`), with
-    `clipboardWriteSupport: Bool?` and `TUIKIT_OSC52` as overrides — the
+    `clipboardWriteSupport: Bool?` and `TUI_OSC52` as overrides — the
     hyperlink ladder, line for line.
   - **tmux:** see below.
 - **The local helper when the session looks local.** No `SSH_CONNECTION`,
@@ -874,7 +874,7 @@ and selectable-`Text` probes (the `Tools/SwiftUIProbes/Vertical TextField keys, 
 for SwiftUI's selectable-`Text` answers to §4.1's rows.
 
 **C1. The clipboard writer.** Add `TerminalClient.honoursClipboardWrites`,
-`clipboardWriteSupport`, `TUIKIT_OSC52`; the OSC 52 queue drained in
+`clipboardWriteSupport`, `TUI_OSC52`; the OSC 52 queue drained in
 `writeFrame`; the local and remote ladder; `wl-copy`.
 
 - **Tests:** a `ClipboardRouteTests` table (override, environment, host ×

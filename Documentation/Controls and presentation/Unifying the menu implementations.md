@@ -168,5 +168,5 @@ inline style still has a renderer of its own, `renderMenuColumn`
 `swift test` in full, not filtered — `RenderBottleneckTests`,
 `RenderPerformanceTests` and `MeasureRenderEquivalenceTests` all render an inline
 menu and are the accidental tripwires. Then a PTY walk of both apps at 24 and 12
-rows over Menus, Overlays, the main menu and Picker, with `TUIKIT_CONFIG_DIR` set
+rows over Menus, Overlays, the main menu and Picker, with `TUI_CONFIG_DIR` set
 so the probe cannot touch real preferences.

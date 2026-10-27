@@ -31,7 +31,7 @@ import TUI
 @testable import TUITestSupport
 
 /// A dark page whose focus wash is translucent, as the Example's faded palette makes
-/// every wash (`TUIKIT_EXAMPLE_PALETTE_ALPHA`).
+/// every wash (`TUI_EXAMPLE_PALETTE_ALPHA`).
 private struct TranslucentWashPalette: Palette {
     let id = "cursor-row-translucent-wash"
     let name = "Translucent wash"

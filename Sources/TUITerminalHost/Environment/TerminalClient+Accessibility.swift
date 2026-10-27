@@ -2,7 +2,7 @@
 //  TerminalClient+Accessibility.swift
 //
 //  The accessibility preferences TUI reads from where the app runs: the
-//  user's `TUIKIT_*` variables, and the host's own settings.
+//  user's `TUI_*` variables, and the host's own settings.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -34,20 +34,20 @@ package struct AccessibilityPreferences: OptionSet, Sendable, Hashable {
     /// More contrast: `colorSchemeContrast` answers `.increased`.
     package static let increaseContrast = Self(rawValue: 1 << 3)
 
-    /// Each preference, the `TUIKIT_*` variable that asks for it, and the
+    /// Each preference, the `TUI_*` variable that asks for it, and the
     /// `com.apple.universalaccess` key that is macOS's setting for it.
     static let named: [(preference: Self, variable: String, macOSKey: String)] = [
-        (.reduceMotion, "TUIKIT_REDUCE_MOTION", "reduceMotion"),
-        (.reduceTransparency, "TUIKIT_REDUCE_TRANSPARENCY", "reduceTransparency"),
-        (.differentiateWithoutColor, "TUIKIT_DIFFERENTIATE_WITHOUT_COLOR", "differentiateWithoutColor"),
-        (.increaseContrast, "TUIKIT_INCREASE_CONTRAST", "increaseContrast"),
+        (.reduceMotion, "TUI_REDUCE_MOTION", "reduceMotion"),
+        (.reduceTransparency, "TUI_REDUCE_TRANSPARENCY", "reduceTransparency"),
+        (.differentiateWithoutColor, "TUI_DIFFERENTIATE_WITHOUT_COLOR", "differentiateWithoutColor"),
+        (.increaseContrast, "TUI_INCREASE_CONTRAST", "increaseContrast"),
     ]
 }
 
 // MARK: - The user's setting
 
 extension TerminalClient {
-    /// Whether the user asked for less motion: `TUIKIT_REDUCE_MOTION=1` in
+    /// Whether the user asked for less motion: `TUI_REDUCE_MOTION=1` in
     /// the environment the app was started in. Read once, at first use.
     ///
     /// The app runner hands it to its render loop, which writes it into the
@@ -61,14 +61,14 @@ extension TerminalClient {
     /// The rule behind ``reduceMotionRequested``, posed on its input so it can
     /// be asked without changing what a whole process reads.
     static func reduceMotionRequested(environment: [String: String]) -> Bool {
-        environment["TUIKIT_REDUCE_MOTION"] == "1"
+        environment["TUI_REDUCE_MOTION"] == "1"
     }
 
     /// Every preference the user asked for in the environment the app was
     /// started in, each with its variable set to `1`, as
-    /// ``reduceMotionRequested`` reads its one: `TUIKIT_REDUCE_MOTION`,
-    /// `TUIKIT_REDUCE_TRANSPARENCY`, `TUIKIT_DIFFERENTIATE_WITHOUT_COLOR` and
-    /// `TUIKIT_INCREASE_CONTRAST`. Read once, at first use; only the app
+    /// ``reduceMotionRequested`` reads its one: `TUI_REDUCE_MOTION`,
+    /// `TUI_REDUCE_TRANSPARENCY`, `TUI_DIFFERENTIATE_WITHOUT_COLOR` and
+    /// `TUI_INCREASE_CONTRAST`. Read once, at first use; only the app
     /// runner reads it.
     package static let accessibilityRequested: AccessibilityPreferences =
         accessibilityRequested(environment: ProcessInfo.processInfo.environment)

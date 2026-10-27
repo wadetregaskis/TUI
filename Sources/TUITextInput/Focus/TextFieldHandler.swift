@@ -839,7 +839,7 @@ extension TextFieldHandler {
         write(updated)
         cursorPosition += 1
 
-        // Diagnostic (TUIKIT_DEBUG_FOCUS=1): identify which @State
+        // Diagnostic (TUI_DEBUG_FOCUS=1): identify which @State
         // we actually wrote through. Bindings don't carry identity,
         // but the wrappedValue pair is enough to spot the wrong-
         // field-receiving-input class of bug.

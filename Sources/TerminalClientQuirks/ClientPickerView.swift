@@ -103,7 +103,7 @@ struct ClientPickerView: View {
                     + "correctly."
             )
             .foregroundStyle(.palette.foregroundSecondary)
-            Text("To make a choice permanent, set TUIKIT_TERM_PROGRAM in your shell instead.")
+            Text("To make a choice permanent, set TUI_TERM_PROGRAM in your shell instead.")
                 .foregroundStyle(.palette.foregroundTertiary)
         }
         .padding(1)

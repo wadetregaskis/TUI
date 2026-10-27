@@ -38,7 +38,7 @@ extension TerminalClient {
     ///
     /// kitty draws it too, from 0.47.0 (its changelog), but TUI has no
     /// ``Program`` for kitty, and before 0.38 kitty posted any `OSC 9` as a
-    /// notification, a progress report's digits included; `TUIKIT_PROGRESS=1`
+    /// notification, a progress report's digits included; `TUI_PROGRESS=1`
     /// turns it on there. See `Documentation/Terminals/Terminal compatibility
     /// survey.md`, "Progress and attention".
     public static func honoursProgressReports(_ program: Program) -> Bool {
@@ -60,13 +60,13 @@ extension TerminalClient {
     }
 
     /// The ladder behind ``progressReportsSupported``, posed on its inputs so
-    /// it can be asked without a terminal: `TUIKIT_PROGRESS` — `1` for on, `0`
+    /// it can be asked without a terminal: `TUI_PROGRESS` — `1` for on, `0`
     /// for off, which is how a user turns progress on for a terminal TUI
     /// does not know, or off for one it does — then the table.
     static func progressReportsSupported(
         environment: [String: String], program: @autoclosure () -> Program
     ) -> Bool {
-        switch environment["TUIKIT_PROGRESS"] {
+        switch environment["TUI_PROGRESS"] {
         case "1": return true
         case "0": return false
         default: return honoursProgressReports(program())

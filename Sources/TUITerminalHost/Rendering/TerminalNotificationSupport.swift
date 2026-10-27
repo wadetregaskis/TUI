@@ -31,7 +31,7 @@ extension TerminalClient {
     /// | unidentified | no | the bell, which every terminal has |
     ///
     /// kitty posts it too (its desktop-notifications documentation), but has
-    /// no ``Program``; `TUIKIT_NOTIFICATIONS=1` turns it on there. See
+    /// no ``Program``; `TUI_NOTIFICATIONS=1` turns it on there. See
     /// `Documentation/Terminals/Terminal compatibility survey.md`, "Progress
     /// and attention".
     public static func honoursNotifications(_ program: Program) -> Bool {
@@ -51,13 +51,13 @@ extension TerminalClient {
     }
 
     /// The ladder behind ``notificationsSupported``, posed on its inputs:
-    /// `TUIKIT_NOTIFICATIONS` — `1` for on, `0` for off, which is how a user
+    /// `TUI_NOTIFICATIONS` — `1` for on, `0` for off, which is how a user
     /// keeps every request to the bell, or turns notifications on for a
     /// terminal TUI does not know — then the table.
     static func notificationsSupported(
         environment: [String: String], program: @autoclosure () -> Program
     ) -> Bool {
-        switch environment["TUIKIT_NOTIFICATIONS"] {
+        switch environment["TUI_NOTIFICATIONS"] {
         case "1": return true
         case "0": return false
         default: return honoursNotifications(program())

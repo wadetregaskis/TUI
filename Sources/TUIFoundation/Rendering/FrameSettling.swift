@@ -110,7 +110,7 @@ package enum FrameSettling {
     }
 
     /// Counts how a frame settled, on the stage and — when
-    /// `TUIKIT_DIAGNOSE_BODY_MUTATION` is set — on the diagnostic channel.
+    /// `TUI_DIAGNOSE_BODY_MUTATION` is set — on the diagnostic channel.
     private static func note(rewalks: Int, stillWriting: Bool, storage: StateStorage?, cache: RenderCache?) {
         storage?.effectStage.noteSettled(rewalks: rewalks, stillWriting: stillWriting)
         cache?.bodyMutationDiagnostic?.noteSettled(rewalks: rewalks, stillWriting: stillWriting)

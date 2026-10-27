@@ -24,7 +24,7 @@ snapshot is linted:
 With --dump-dir every snapshot is also written to DIR/item<NN>-<step>.txt
 (plain text) for human review; lint findings print with their snapshot name.
 Exit code: 0 = no findings and app survived; 1 otherwise. The child runs with
-an isolated TUIKIT_CONFIG_DIR and TERM=xterm-256color, like tui_walk.py.
+an isolated TUI_CONFIG_DIR and TERM=xterm-256color, like tui_walk.py.
 """
 import argparse
 import fcntl
@@ -153,10 +153,10 @@ def main() -> int:
     pid, fd = pty.fork()
     if pid == 0:
         try:
-            os.environ["TUIKIT_CONFIG_DIR"] = config_dir
+            os.environ["TUI_CONFIG_DIR"] = config_dir
             os.environ["TERM"] = "xterm-256color"
             if args.scale:
-                os.environ["TUIKIT_STRESS_SCALE"] = str(args.scale)
+                os.environ["TUI_STRESS_SCALE"] = str(args.scale)
             os.execv(args.binary, [args.binary])
         except Exception:
             pass

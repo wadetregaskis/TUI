@@ -53,7 +53,7 @@ extension ExampleStrings {
             "page.buttons.links.noteAppleTerminal": "Apple Terminal has no hyperlink support at all: it swallows the escape and keeps nothing, so TUI does not send one.",
             "page.buttons.links.noteWarp": "Warp handles links only outside the alternate screen — the only buffer a TUI app ever draws into — so the escape would be stored nowhere and is not sent. ⇧-click selects text.",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal (VTE) honours OSC 8 hyperlinks. Hold Ctrl and click to follow the link, or right-click to open or copy the destination.",
-            "page.buttons.links.noteUnidentified": "This terminal was not identified, so links are off: an unmeasured host gets the answer that cannot hurt. Set TUIKIT_HYPERLINKS=1 if yours does support them.",
+            "page.buttons.links.noteUnidentified": "This terminal was not identified, so links are off: an unmeasured host gets the answer that cannot hurt. Set TUI_HYPERLINKS=1 if yours does support them.",
         ],
 
         "de": [
@@ -89,7 +89,7 @@ extension ExampleStrings {
             "page.buttons.links.noteAppleTerminal": "Apple Terminal unterstützt Hyperlinks überhaupt nicht: Es verschluckt die Sequenz und behält nichts, deshalb sendet TUI keine.",
             "page.buttons.links.noteWarp": "Warp verarbeitet Links nur außerhalb des alternativen Bildschirms — dem einzigen Puffer, in den eine TUI-App zeichnet — die Sequenz würde also nirgends gespeichert und wird nicht gesendet. ⇧-Klick markiert Text.",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal (VTE) beachtet OSC-8-Hyperlinks. Strg gedrückt halten und klicken, um dem Link zu folgen, oder rechtsklicken zum Öffnen oder Kopieren des Ziels.",
-            "page.buttons.links.noteUnidentified": "Dieses Terminal wurde nicht erkannt, daher sind Links aus: Ein nicht vermessener Host bekommt die Antwort, die nicht schaden kann. TUIKIT_HYPERLINKS=1 setzen, falls Ihres sie unterstützt.",
+            "page.buttons.links.noteUnidentified": "Dieses Terminal wurde nicht erkannt, daher sind Links aus: Ein nicht vermessener Host bekommt die Antwort, die nicht schaden kann. TUI_HYPERLINKS=1 setzen, falls Ihres sie unterstützt.",
         ],
 
         "fr": [
@@ -125,7 +125,7 @@ extension ExampleStrings {
             "page.buttons.links.noteAppleTerminal": "Apple Terminal ne gère aucun hyperlien : il avale la séquence et ne conserve rien, donc TUI n'en envoie pas.",
             "page.buttons.links.noteWarp": "Warp ne traite les liens qu'en dehors de l'écran alternatif — le seul tampon où dessine une application TUI — la séquence ne serait donc stockée nulle part et n'est pas envoyée. Le ⇧-clic sélectionne du texte.",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal (VTE) honore les hyperliens OSC 8. Maintenez Ctrl et cliquez pour suivre le lien, ou faites un clic droit pour ouvrir ou copier la destination.",
-            "page.buttons.links.noteUnidentified": "Ce terminal n'a pas été identifié, les liens sont donc désactivés : un hôte non mesuré reçoit la réponse qui ne peut pas nuire. Définissez TUIKIT_HYPERLINKS=1 si le vôtre les gère.",
+            "page.buttons.links.noteUnidentified": "Ce terminal n'a pas été identifié, les liens sont donc désactivés : un hôte non mesuré reçoit la réponse qui ne peut pas nuire. Définissez TUI_HYPERLINKS=1 si le vôtre les gère.",
         ],
 
         "it": [
@@ -161,7 +161,7 @@ extension ExampleStrings {
             "page.buttons.links.noteAppleTerminal": "Apple Terminal non gestisce affatto gli hyperlink: ingoia la sequenza e non conserva nulla, quindi TUI non ne invia.",
             "page.buttons.links.noteWarp": "Warp gestisce i collegamenti solo fuori dallo schermo alternativo — l'unico buffer in cui disegna un'app TUI — quindi la sequenza non verrebbe memorizzata da nessuna parte e non viene inviata. Il ⇧-clic seleziona il testo.",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal (VTE) onora i collegamenti ipertestuali OSC 8. Tieni premuto Ctrl e fai clic per seguire il collegamento, o fai clic con il tasto destro per aprire o copiare la destinazione.",
-            "page.buttons.links.noteUnidentified": "Questo terminale non è stato identificato, quindi i collegamenti sono disattivati: un host non misurato riceve la risposta che non può nuocere. Imposta TUIKIT_HYPERLINKS=1 se il tuo li supporta.",
+            "page.buttons.links.noteUnidentified": "Questo terminale non è stato identificato, quindi i collegamenti sono disattivati: un host non misurato riceve la risposta che non può nuocere. Imposta TUI_HYPERLINKS=1 se il tuo li supporta.",
         ],
 
         "es": [
@@ -197,7 +197,7 @@ extension ExampleStrings {
             "page.buttons.links.noteAppleTerminal": "Apple Terminal no admite hiperenlaces en absoluto: se traga la secuencia y no conserva nada, así que TUI no envía ninguna.",
             "page.buttons.links.noteWarp": "Warp solo gestiona enlaces fuera de la pantalla alternativa — el único búfer en el que dibuja una app TUI — de modo que la secuencia no se guardaría en ningún sitio y no se envía. El ⇧-clic selecciona texto.",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal (VTE) respeta los hiperenlaces OSC 8. Mantén pulsado Ctrl y haz clic para seguir el enlace, o haz clic derecho para abrir o copiar el destino.",
-            "page.buttons.links.noteUnidentified": "Este terminal no se identificó, así que los enlaces están desactivados: un host sin medir recibe la respuesta que no puede hacer daño. Define TUIKIT_HYPERLINKS=1 si el tuyo sí los admite.",
+            "page.buttons.links.noteUnidentified": "Este terminal no se identificó, así que los enlaces están desactivados: un host sin medir recibe la respuesta que no puede hacer daño. Define TUI_HYPERLINKS=1 si el tuyo sí los admite.",
         ],
 
         "zh": [
@@ -233,7 +233,7 @@ extension ExampleStrings {
             "page.buttons.links.noteAppleTerminal": "Apple Terminal 完全不支持超链接：它吞掉该序列且不保留任何内容，因此 TUI 不会发送。",
             "page.buttons.links.noteWarp": "Warp 仅在备用屏幕之外处理链接，而备用屏幕是 TUI 应用唯一绘制的缓冲区——序列无处可存，因此不发送。⇧-点击会选择文本。",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal（VTE）支持 OSC 8 超链接。按住 Ctrl 并单击以打开链接，或右键单击以打开或复制目标地址。",
-            "page.buttons.links.noteUnidentified": "未能识别此终端，因此链接已关闭：未经实测的主机采用不会造成损害的答案。若你的终端支持，请设置 TUIKIT_HYPERLINKS=1。",
+            "page.buttons.links.noteUnidentified": "未能识别此终端，因此链接已关闭：未经实测的主机采用不会造成损害的答案。若你的终端支持，请设置 TUI_HYPERLINKS=1。",
         ],
 
         "ja": [
@@ -269,7 +269,7 @@ extension ExampleStrings {
             "page.buttons.links.noteAppleTerminal": "Apple Terminal はハイパーリンクを一切扱いません。シーケンスを飲み込んで何も保持しないため、TUI は送信しません。",
             "page.buttons.links.noteWarp": "Warp は代替画面の外でしかリンクを扱いません。TUI アプリが描画するのは代替画面だけなので、シーケンスはどこにも保存されず、送信しません。⇧-クリックはテキストを選択します。",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal（VTE）は OSC 8 ハイパーリンクを認識します。Ctrl を押しながらクリックしてリンクを開くか、右クリックして移動先を開くかコピーします。",
-            "page.buttons.links.noteUnidentified": "この端末は識別できなかったためリンクは無効です。未計測のホストには害のない答えを返します。対応しているなら TUIKIT_HYPERLINKS=1 を設定してください。",
+            "page.buttons.links.noteUnidentified": "この端末は識別できなかったためリンクは無効です。未計測のホストには害のない答えを返します。対応しているなら TUI_HYPERLINKS=1 を設定してください。",
         ],
     ]
 }

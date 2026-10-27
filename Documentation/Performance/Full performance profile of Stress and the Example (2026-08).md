@@ -46,7 +46,7 @@ deleted after analysis; nothing was committed.
 > about to profile with the same flags, and check the binary exists first.
 
 **Example — per-page cost.** One live PTY session at 150×50 walking all 32
-pages, with `TUIKIT_CONFIG_DIR` set to a scratch directory (never the user's
+pages, with `TUI_CONFIG_DIR` set to a scratch directory (never the user's
 real preferences). Per page: `idle%` is CPU over a 2 s window with no input;
 `ms/pass` is CPU per forced full render, driven by toggling the pty window
 between two adjacent widths — a resize forces a genuine relayout on *every*
@@ -2104,7 +2104,7 @@ scenarios indistinguishable. `menus` flat at −1.0%, as the correction above
 predicted — the scenarios that moved are exactly the ones where the buffer memo
 SERVES, and `--bench` prints `render: 2000` entries a frame on `fanout`, which is
 why it is the headline. Checksums and prune summaries identical,
-`TUIKIT_VERIFY_RENDER_MEMO` clean on 21/21.
+`TUI_VERIFY_RENDER_MEMO` clean on 21/21.
 
 What is left of item 4 is `activeIdentities: Set<ViewIdentity>`
 (`RenderCache.swift`), which pays the same walk in `removeInactive`'s `contains`
@@ -2117,7 +2117,7 @@ pass longer. Memory, never wrong pixels. Its own commit, its own measurement.
 item 4's `entries` table, on `7db94fe9`'s own recipe — an `identityHash` key with the `ViewIdentity` moved
 into `CacheEntry` (already a `final class`) for `isLive`/`affects`. It is the
 only survivor with a current measured size, a proven recipe, and a standing
-verification net (`TUIKIT_VERIFY_RENDER_MEMO` checks 4,565 row serves). Two
+verification net (`TUI_VERIFY_RENDER_MEMO` checks 4,565 row serves). Two
 risks worth stating: a collision here shows as **wrong pixels** rather than a
 wrong number, and `perf-dead-ends` item 7's prohibition on hash-keying
 `ViewIdentity` **does** still bind `StateStorage.StateKey` — where a collision
@@ -3412,7 +3412,7 @@ overhead":
     deep             31.5       9.5     10.5
     megalist          4.3       1.2      0.5
 
-`TUIKIT_DEBUG_RENDER=1` on the live app said why: `CLEAR ALL (64 entries)`
+`TUI_DEBUG_RENDER=1` on the live app said why: `CLEAR ALL (64 entries)`
 on 78 of 80 frames, hit rate 8%. `Renderable.swift` evaluated every
 composite body under `withObservationTracking`, and its `onChange` was
 `AppState.setNeedsRenderWithCacheClear()` → `clearAll()` at the next frame.
@@ -3556,7 +3556,7 @@ attributing either.
 
 ## 47. Seven hundred entries, all retained, each climbing to every root (2026-09-05, night)
 
-The `TUIKIT_DEBUG_RENDER` frame line gained the prune's own counts, and on
+The `TUI_DEBUG_RENDER` frame line gained the prune's own counts, and on
 the live dashboard they read: 64 buffers, 724 sizes, **764 unmarked, 764
 retained, 0 dropped** — every frame. A memo hit at a card's root marks
 nothing below it; it declares the subtree retained, and the prune then
@@ -3822,7 +3822,7 @@ arms and any `Layout` written outside the package all stay budget-shaped.
 diffs the pictures. On its own it is too weak: with `_VStackCore` deliberately
 claiming natural *through* its clamp, every case still passed, because a wrong
 size only redraws the screen where something draws differently for it. So the
-memo also has `RenderCache.verifiesMeasureMemo` (`TUIKIT_VERIFY_MEASURE_MEMO`,
+memo also has `RenderCache.verifiesMeasureMemo` (`TUI_VERIFY_MEASURE_MEMO`,
 or a path to log to), which re-measures every hit and reports any the fresh
 measurement disagrees with. With that on, the same mutation is caught
 immediately and names itself: *served 40x10 (natural) but a fresh measure at
@@ -3856,7 +3856,7 @@ Bench checksums identical on every scenario; the suite passes (6,164 tests, 21
 known issues); the PTY walk of `Example` reaches all 35 items.
 
 The bench is not the app, so the same pair was run live —
-`idle_cpu.py <binary> 2 6` with `TUIKIT_STRESS_AUTOPILOT=1`, each reading taken
+`idle_cpu.py <binary> 2 6` with `TUI_STRESS_AUTOPILOT=1`, each reading taken
 twice and identical to a tenth of a percent both times:
 
     scenario     CPU before   CPU after   render bytes/s before → after
@@ -4570,7 +4570,7 @@ filed under.
 
 **The live instance.** `_FormLayout.pillarWidth` measures every field LABEL to find the
 column they align to, and measures them all at the form's OWN identity — so identity, type
-and both widths are equal across the rows and the bytes decide. `TUIKIT_VERIFY_MEASURE_MEMO`
+and both widths are equal across the rows and the bytes decide. `TUI_VERIFY_MEASURE_MEMO`
 over `tui_walk`'s 35-page sweep of the Example reported 9 mismatches on one run and 19 on
 the next, every one of them an `AnyView`, every one on the natural arm, all under the Form
 page's `Section`. Sizes of 4, 5, 6, 7, 8 and 15 cells served for one another.
@@ -4977,7 +4977,7 @@ dense, 47,277 and 47,333 runs, 105,485 steps; before the framework's enums, `Tex
 bypass there was, and `Text` was the most frequently stepped type). The totals move by a few
 dozen from run to run — in `dashboard` and `kitchensink`, whose content moves with the
 clock; the eight scenarios above repeat exactly.
-`TUIKIT_VERIFY_MEASURE_MEMO=1 TUIKIT_VERIFY_RENDER_MEMO=1 Stress --selfcheck`: all 89 cases
+`TUI_VERIFY_MEASURE_MEMO=1 TUI_VERIFY_RENDER_MEMO=1 Stress --selfcheck`: all 89 cases
 (30 scenarios) and 19 sessions clean.
 
 ### Not measured here, and still open

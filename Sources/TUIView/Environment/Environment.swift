@@ -71,7 +71,7 @@ extension RenderContext {
     /// the old value whenever its own value is unchanged. A segmented picker
     /// inks each segment's label by its state, and focusing the picker left the
     /// selected segment in its resting colour (the file panel's path control,
-    /// found by `TUIKIT_VERIFY_RENDER_MEMO`); a hovered toggle's or radio
+    /// found by `TUI_VERIFY_RENDER_MEMO`); a hovered toggle's or radio
     /// button's label could keep its unhovered ink.
     ///
     /// `paint` for an ink, which moves no cell: only the render walk notes it,

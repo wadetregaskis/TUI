@@ -39,7 +39,7 @@ and no nominal (`nan`), and pulls `clock`'s own median down. Those rows are the
 harness, not the app; they are left out of the summary line.
 
 Needs `pyte`, like `page_open.py` and `Tools/Smoke/tui_walk.py`. The child runs
-with `TUIKIT_CONFIG_DIR` set to a fresh temporary directory, removed afterwards;
+with `TUI_CONFIG_DIR` set to a fresh temporary directory, removed afterwards;
 the run is bounded by an alarm, and the child's process group is killed and
 reaped on the way out.
 """
@@ -89,7 +89,7 @@ config_dir = tempfile.mkdtemp(prefix="tuikit-animation-rate-")
 pid, fd = pty.fork()
 if pid == 0:
     try:
-        env = dict(os.environ, TERM="xterm-256color", TUIKIT_CONFIG_DIR=config_dir,
+        env = dict(os.environ, TERM="xterm-256color", TUI_CONFIG_DIR=config_dir,
                    COLUMNS=str(args.cols), LINES=str(args.rows))
         os.execve(args.binary, [args.binary, "--page", args.page], env)
     except Exception:

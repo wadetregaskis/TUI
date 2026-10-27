@@ -141,7 +141,7 @@ Three things worth knowing before you reach for it:
   with a width and a height, is a logic error — an assertion in a debug build,
   reported once in a release build — and the view sits as if its guide were at
   its own origin. The
-  `TUIKIT_MAX_ALIGNMENT_PUSH` environment variable raises the bound for a
+  `TUI_MAX_ALIGNMENT_PUSH` environment variable raises the bound for a
   canvas that really is larger.
 - **A guide travels up through the views that know where they put it,
   and how far depends on its kind.** A custom guide, or a text baseline,

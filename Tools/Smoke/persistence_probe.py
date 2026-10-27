@@ -61,7 +61,7 @@ class App:
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             try:
-                os.environ["TUIKIT_CONFIG_DIR"] = config_dir
+                os.environ["TUI_CONFIG_DIR"] = config_dir
                 os.environ["TERM"] = "xterm-256color"
                 os.execv(binary, [binary])
             except Exception:

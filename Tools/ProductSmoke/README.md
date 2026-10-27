@@ -16,6 +16,6 @@ Tools/ProductSmoke/verify-products.sh --keep   # and keep the scratch directory
 (`python3 -m unittest discover -s Tools/ProductSmoke -p 'test_*.py'`; no build).
 
 A new library product needs an app here: add `Sources/Uses<Product>/main.swift` and the product's name to
-`Package.swift`'s `products`. The manifest reads TUI's URL from `TUIKIT_PRODUCT_SMOKE_URL`, which the script
+`Package.swift`'s `products`. The manifest reads TUI's URL from `TUI_PRODUCT_SMOKE_URL`, which the script
 sets, so the fixture is not meant to be opened on its own. It must never hold a dynamic product: Swift Build turns
 the modules a dynamic product shares into dynamic libraries across the whole graph.

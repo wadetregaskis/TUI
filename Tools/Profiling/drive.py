@@ -30,9 +30,9 @@ Quits the app cleanly with 'q' (TUI's default quit shortcut) from the main
 menu, falling back to SIGTERM/SIGKILL — and then exiting 2, because an app that
 did not quit was not where the scenario thought it was.
 
-The app never sees the user's own settings: it runs with `TUIKIT_CONFIG_DIR`
+The app never sees the user's own settings: it runs with `TUI_CONFIG_DIR`
 pointing at a fresh temporary directory, deleted afterwards, unless the caller
-set `TUIKIT_CONFIG_DIR` itself (then that directory is used and kept). See
+set `TUI_CONFIG_DIR` itself (then that directory is used and kept). See
 `config_directory`.
 """
 import argparse
@@ -219,7 +219,7 @@ def build_scenario(name, rows, cols):
 def config_directory():
     """Where the driven app keeps its `@AppStorage` for this run.
 
-    Never where it keeps it for the user. With `TUIKIT_CONFIG_DIR` unset, a
+    Never where it keeps it for the user. With `TUI_CONFIG_DIR` unset, a
     TUI app on macOS stores its settings in the real preferences domain
     (`~/Library/Preferences/Example.plist`) — and UserDefaults ignores a
     `$HOME` override, so the variable is the only thing that isolates it. This
@@ -234,7 +234,7 @@ def config_directory():
     run measures. A directory the caller names is used as given and left in
     place: that caller wants the state kept.
     """
-    chosen = os.environ.get("TUIKIT_CONFIG_DIR")
+    chosen = os.environ.get("TUI_CONFIG_DIR")
     if chosen:
         return chosen
     fresh = tempfile.mkdtemp(prefix="tuikit-drive-")
@@ -359,7 +359,7 @@ def main():
             login_tty_compat(slave)  # setsid + TIOCSCTTY + dup2(0,1,2) + close
             env = dict(os.environ)
             env.update(TERM="xterm-256color", COLUMNS=str(args.cols), LINES=str(args.rows),
-                       TUIKIT_CONFIG_DIR=config_dir)
+                       TUI_CONFIG_DIR=config_dir)
             os.execve(args.binary, [args.binary], env)
         except Exception:
             pass

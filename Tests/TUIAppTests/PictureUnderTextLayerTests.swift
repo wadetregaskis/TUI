@@ -44,11 +44,11 @@ struct PictureUnderTextHostTests {
         #expect(!supported(program: program))
     }
 
-    @Test("TUIKIT_PICTURES_UNDER_TEXT answers for the terminal, and the override for both")
+    @Test("TUI_PICTURES_UNDER_TEXT answers for the terminal, and the override for both")
     func ladder() {
-        #expect(supported(environment: ["TUIKIT_PICTURES_UNDER_TEXT": "1"], graphics: false, program: .iTerm2))
-        #expect(!supported(environment: ["TUIKIT_PICTURES_UNDER_TEXT": "0"]))
-        #expect(supported(override: true, environment: ["TUIKIT_PICTURES_UNDER_TEXT": "0"], program: .unidentified))
+        #expect(supported(environment: ["TUI_PICTURES_UNDER_TEXT": "1"], graphics: false, program: .iTerm2))
+        #expect(!supported(environment: ["TUI_PICTURES_UNDER_TEXT": "0"]))
+        #expect(supported(override: true, environment: ["TUI_PICTURES_UNDER_TEXT": "0"], program: .unidentified))
         #expect(!supported(override: false))
     }
 }

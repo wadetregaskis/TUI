@@ -562,7 +562,7 @@ on Shift-U `U redo`. A chord with ⌃, ⌥ or ⌘ in it is written as a menu
 writes it there too (`⌃Z`, `⌃⇧Z`).
 
 The symbols are drawn in the terminal's font. For a font with no glyph for
-them, the user sets `TUIKIT_KEY_SYMBOLS=0`, or the app asks with
+them, the user sets `TUI_KEY_SYMBOLS=0`, or the app asks with
 `.keyNotation(.spelledOut)` on its scene, and the status bar and a menu's
 shortcut column write the keys' names instead: `Ctrl-Shift-Z`, `Esc`,
 `Shift-Tab` (see ``KeyNotation``). Text of your own that names a key follows

@@ -43,7 +43,7 @@ let glyphsClip = Clip(
     budgetKB: 900,
     script: glyphsScript(),
     command: ["Example", "--page", "imageFile"],
-    environment: ["TUIKIT_GRAPHICS": "0"]
+    environment: ["TUI_GRAPHICS": "0"]
 )
 
 /// From fine blocks in true colour: ASCII, then shape matching on (after the

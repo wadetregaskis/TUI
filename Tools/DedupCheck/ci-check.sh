@@ -71,7 +71,7 @@ for product in "${products[@]}"; do
 done
 
 echo "── stripped Stress --selfcheck, render memo verified ──"
-TUIKIT_VERIFY_RENDER_MEMO=1 "$bin/Stress" --selfcheck
+TUI_VERIFY_RENDER_MEMO=1 "$bin/Stress" --selfcheck
 
 echo "── stripped programs in a real PTY ──"
 Tools/Smoke/ci-pty-smoke.sh quick "$relbin"

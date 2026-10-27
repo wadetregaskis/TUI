@@ -151,7 +151,7 @@ struct TerminalPointerShapeSupportTests {
         #expect(PointerShapeHost.sequence(naming: "pointer") == "\u{1B}]22;pointer\u{1B}\\")
     }
 
-    @Test("The override, then TUIKIT_POINTER_SHAPES, then the table")
+    @Test("The override, then TUI_POINTER_SHAPES, then the table")
     func ladder() {
         let ghostty = ["TERM_PROGRAM": "ghostty"]
         let unnamed = ["TERM": "xterm-256color"]
@@ -160,24 +160,24 @@ struct TerminalPointerShapeSupportTests {
         #expect(TerminalClient.pointerShapeHost(override: false, environment: ghostty) == nil)
         #expect(TerminalClient.pointerShapeHost(override: true, environment: unnamed) == .unnamed)
         #expect(
-            TerminalClient.pointerShapeHost(override: nil, environment: ghostty.merging(["TUIKIT_POINTER_SHAPES": "0"]) { $1 })
+            TerminalClient.pointerShapeHost(override: nil, environment: ghostty.merging(["TUI_POINTER_SHAPES": "0"]) { $1 })
                 == nil)
         #expect(
-            TerminalClient.pointerShapeHost(override: nil, environment: unnamed.merging(["TUIKIT_POINTER_SHAPES": "1"]) { $1 })
+            TerminalClient.pointerShapeHost(override: nil, environment: unnamed.merging(["TUI_POINTER_SHAPES": "1"]) { $1 })
                 == .unnamed)
         #expect(
             TerminalClient.pointerShapeHost(
-                override: false, environment: ghostty.merging(["TUIKIT_POINTER_SHAPES": "all"]) { $1 }) == nil,
+                override: false, environment: ghostty.merging(["TUI_POINTER_SHAPES": "all"]) { $1 }) == nil,
             "the app's override beats the environment")
     }
 
-    @Test("TUI's own controls set shapes where a host's reset is measured, iTerm2 so far, or where TUIKIT_POINTER_SHAPES=all asks")
+    @Test("TUI's own controls set shapes where a host's reset is measured, iTerm2 so far, or where TUI_POINTER_SHAPES=all asks")
     func builtInShapes() {
         #expect(TerminalClient.builtInPointerShapes(host: .iTerm2, environment: [:]), "its reset read by the owner")
         for host: PointerShapeHost in [.ghostty, .kitty, .foot, .xterm, .unnamed] {
             #expect(!TerminalClient.builtInPointerShapes(host: host, environment: [:]), "\(host): reset unread")
         }
-        #expect(TerminalClient.builtInPointerShapes(host: .ghostty, environment: ["TUIKIT_POINTER_SHAPES": "all"]))
-        #expect(!TerminalClient.builtInPointerShapes(host: nil, environment: ["TUIKIT_POINTER_SHAPES": "all"]))
+        #expect(TerminalClient.builtInPointerShapes(host: .ghostty, environment: ["TUI_POINTER_SHAPES": "all"]))
+        #expect(!TerminalClient.builtInPointerShapes(host: nil, environment: ["TUI_POINTER_SHAPES": "all"]))
     }
 }

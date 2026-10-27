@@ -211,14 +211,14 @@ struct ClipboardTerminalSupportTests {
                 program: .unidentified, deviceAttributes: "\u{1B}[?64;52c", tmuxSetClipboard: nil,
                 expected: .unconfirmed, passthrough: .screen),
             Self(
-                name: "TUIKIT_OSC52=1 outranks screen, and is wrapped for it",
-                environment: ["TUIKIT_OSC52": "1", "STY": "4242.pts-0.desk"], program: .appleTerminal,
+                name: "TUI_OSC52=1 outranks screen, and is wrapped for it",
+                environment: ["TUI_OSC52": "1", "STY": "4242.pts-0.desk"], program: .appleTerminal,
                 deviceAttributes: nil, tmuxSetClipboard: nil, expected: .honoured, passthrough: .screen),
             Self(
-                name: "TUIKIT_OSC52=1 turns it on", environment: ["TUIKIT_OSC52": "1"],
+                name: "TUI_OSC52=1 turns it on", environment: ["TUI_OSC52": "1"],
                 program: .appleTerminal, deviceAttributes: nil, tmuxSetClipboard: nil, expected: .honoured),
             Self(
-                name: "TUIKIT_OSC52=0 turns it off", environment: ["TUIKIT_OSC52": "0"], program: .ghostty,
+                name: "TUI_OSC52=0 turns it off", environment: ["TUI_OSC52": "0"], program: .ghostty,
                 deviceAttributes: nil, tmuxSetClipboard: nil, expected: .unsupported),
         ]
     }
@@ -242,10 +242,10 @@ struct ClipboardTerminalSupportTests {
     func simulationDoesNotChangeTheAnswer() async {
         await #expect(processExitsWith: .success) {
             await MainActor.run {
-                for name in ["TUIKIT_OSC52", "TMUX", "KITTY_WINDOW_ID", "LC_TERMINAL"] {
+                for name in ["TUI_OSC52", "TMUX", "KITTY_WINDOW_ID", "LC_TERMINAL"] {
                     ProcessWideState.setEnvironment(name, to: nil)
                 }
-                ProcessWideState.setEnvironment("TUIKIT_TERM_PROGRAM", to: "Apple_Terminal")
+                ProcessWideState.setEnvironment("TUI_TERM_PROGRAM", to: "Apple_Terminal")
                 ProcessWideState.setEnvironment("TERM", to: "xterm-256color")
                 #expect(TerminalClient.clipboardWrites == .unsupported)
                 ProcessWideState.simulated = .ghostty

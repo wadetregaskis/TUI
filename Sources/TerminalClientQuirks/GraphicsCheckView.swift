@@ -55,9 +55,9 @@ struct GraphicsCheckView: View {
     /// worth telling apart on screen.
     private var reason: String {
         if TerminalClient.graphicsSupport != nil { return "set in code this session" }
-        switch ProcessInfo.processInfo.environment["TUIKIT_GRAPHICS"] {
-        case "1": return "TUIKIT_GRAPHICS=1 — the handshake was skipped"
-        case "0": return "TUIKIT_GRAPHICS=0 — the handshake was skipped"
+        switch ProcessInfo.processInfo.environment["TUI_GRAPHICS"] {
+        case "1": return "TUI_GRAPHICS=1 — the handshake was skipped"
+        case "0": return "TUI_GRAPHICS=0 — the handshake was skipped"
         default:
             switch TerminalClient.detectedGraphics {
             case true: return "the terminal acknowledged a virtual placement"
@@ -95,9 +95,9 @@ struct GraphicsCheckView: View {
             "Unlike the hyperlink above, this one is NOT safe to force blindly. The protocol "
                 + "rides an APC sequence and Apple Terminal does not parse APC — it prints the "
                 + "payload, which for a full-screen image is megabytes of base64 across the "
-                + "screen. TUIKIT_GRAPHICS=1 is for a terminal you know implements Kitty "
+                + "screen. TUI_GRAPHICS=1 is for a terminal you know implements Kitty "
                 + "placements and that the handshake could not reach (inside a multiplexer "
-                + "that swallows it, say). TUIKIT_GRAPHICS=0 is always safe: it draws the "
+                + "that swallows it, say). TUI_GRAPHICS=0 is always safe: it draws the "
                 + "picture out of characters, as this framework always has."
         )
         .foregroundStyle(.palette.foregroundSecondary)

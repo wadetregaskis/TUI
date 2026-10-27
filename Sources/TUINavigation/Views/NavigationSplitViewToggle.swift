@@ -278,7 +278,7 @@ extension _NavigationSplitViewCore {
     /// through the context's render cache, which asks the run loop for a frame
     /// and, at that frame's start, drops the cached buffers of the split and of
     /// everything above it, so no memo serves the handles drawn this frame.
-    /// Under `TUIKIT_DIAGNOSE_BODY_MUTATION` this is reported as a write during
+    /// Under `TUI_DIAGNOSE_BODY_MUTATION` this is reported as a write during
     /// the walk, which it is; it happens once per change of answer, not per frame.
     func recordToggleRemoval(
         of column: NavigationSplitViewColumn, from scope: PreferenceValues,

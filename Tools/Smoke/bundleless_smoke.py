@@ -57,7 +57,7 @@ def run(binary, scratch, name):
     """One run of the session; returns (problem or None, output)."""
     config = os.path.join(scratch, f"config-{name}")
     env = {k: v for k, v in os.environ.items() if k not in ("LANG", "LC_ALL", "LC_MESSAGES")}
-    env.update({"LANGUAGE": "de", "TUIKIT_CONFIG_DIR": config, "TERM": "xterm-256color"})
+    env.update({"LANGUAGE": "de", "TUI_CONFIG_DIR": config, "TERM": "xterm-256color"})
     try:
         result = subprocess.run([binary, *SESSION], env=env, capture_output=True, text=True, timeout=120)
     except subprocess.TimeoutExpired:

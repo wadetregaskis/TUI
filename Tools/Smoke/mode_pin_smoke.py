@@ -49,7 +49,7 @@ CASES = [
 
 STRIPPED = (
     "TERM_PROGRAM", "TERM_PROGRAM_VERSION", "LC_TERMINAL", "LC_TERMINAL_VERSION",
-    "TMUX", "TMUX_PANE", "TUIKIT_TERM_PROGRAM",
+    "TMUX", "TMUX_PANE", "TUI_TERM_PROGRAM",
 )
 
 DECRQM = b"\x1b[?2027$p"
@@ -65,7 +65,7 @@ def run(binary, termtype, decrpm, config_dir, seconds):
             for key in STRIPPED:
                 os.environ.pop(key, None)
             os.environ["TERM"] = termtype
-            os.environ["TUIKIT_CONFIG_DIR"] = config_dir
+            os.environ["TUI_CONFIG_DIR"] = config_dir
             os.execv(binary, [binary])
         except Exception:
             pass

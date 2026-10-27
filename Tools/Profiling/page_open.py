@@ -36,9 +36,9 @@ env["TERM"] = "xterm-256color"
 if os.environ.get("PROBE_HOST"):
     env["TERM_PROGRAM"] = os.environ["PROBE_HOST"]
 # Its own config directory, so a run cannot read or write the user's state.
-env["TUIKIT_CONFIG_DIR"] = os.path.join(
+env["TUI_CONFIG_DIR"] = os.path.join(
     os.environ.get("TMPDIR", "/tmp"), "tuikit-page-open-probe")
-os.makedirs(env["TUIKIT_CONFIG_DIR"], exist_ok=True)
+os.makedirs(env["TUI_CONFIG_DIR"], exist_ok=True)
 
 pid, fd = pty.fork()
 if pid == 0:

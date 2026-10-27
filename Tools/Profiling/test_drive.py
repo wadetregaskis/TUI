@@ -12,7 +12,7 @@ about where the `tour`'s keys land in the real Example, drives a built one
 
 What they guard is where the app's persisted state goes. `record.sh` — the
 profiling flow CLAUDE.md sends everyone through — runs `drive.py`, and a
-TUI app writes its `@AppStorage` wherever `TUIKIT_CONFIG_DIR` says, or,
+TUI app writes its `@AppStorage` wherever `TUI_CONFIG_DIR` says, or,
 with it unset on macOS, into the user's real preferences domain
 (`~/Library/Preferences/Example.plist`; UserDefaults ignores a `$HOME`
 override, so nothing short of the variable isolates it). The driver passed
@@ -41,7 +41,7 @@ _DRIVE = os.path.join(_HERE, "drive.py")
 # ends the way a real one does rather than by the driver killing it.
 _STUB = """\
 import json, os, sys, tty
-config = os.environ.get("TUIKIT_CONFIG_DIR", "")
+config = os.environ.get("TUI_CONFIG_DIR", "")
 with open(os.environ["DRIVE_TEST_REPORT"], "w") as report:
     json.dump({"config": config, "existed": bool(config) and os.path.isdir(config)}, report)
 if config:
@@ -68,10 +68,10 @@ class TestConfigIsolation(unittest.TestCase):
     def drive(self, name, config_dir=None):
         """One `drive.py` run of the stub; returns what the stub reported."""
         report = os.path.join(self.scratch, f"{name}.json")
-        env = {key: value for key, value in os.environ.items() if key != "TUIKIT_CONFIG_DIR"}
+        env = {key: value for key, value in os.environ.items() if key != "TUI_CONFIG_DIR"}
         env["DRIVE_TEST_REPORT"] = report
         if config_dir is not None:
-            env["TUIKIT_CONFIG_DIR"] = config_dir
+            env["TUI_CONFIG_DIR"] = config_dir
         # `list` is the shortest scenario that types anything: ~2 s.
         subprocess.run(
             [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", "0.1", "--quiet"],
@@ -83,7 +83,7 @@ class TestConfigIsolation(unittest.TestCase):
         first = self.drive("first")
         self.assertNotEqual(
             first["config"], "",
-            "the app was launched with no TUIKIT_CONFIG_DIR, so on macOS it read and wrote "
+            "the app was launched with no TUI_CONFIG_DIR, so on macOS it read and wrote "
             "the developer's real preferences")
         self.assertTrue(first["existed"], "the directory the app was given did not exist")
         self.assertFalse(
@@ -146,7 +146,7 @@ class TestStepMarkers(unittest.TestCase):
         finally:
             sys.path.remove(_HERE)
         dump = os.path.join(self.scratch, "list.ansi")
-        env = dict(os.environ, TUIKIT_CONFIG_DIR=self.scratch)
+        env = dict(os.environ, TUI_CONFIG_DIR=self.scratch)
         subprocess.run(
             [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", "0.1",
              "--rows", "30", "--cols", "90", "--dump", dump, "--quiet"],
@@ -240,7 +240,7 @@ class TestAnswerFence(unittest.TestCase):
 
     def answered(self, *flags):
         report = os.path.join(self.scratch, "fence.json")
-        env = dict(os.environ, TUIKIT_CONFIG_DIR=self.scratch, DRIVE_TEST_REPORT=report)
+        env = dict(os.environ, TUI_CONFIG_DIR=self.scratch, DRIVE_TEST_REPORT=report)
         subprocess.run(
             [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", "1",
              "--quiet", *flags],
@@ -305,7 +305,7 @@ class TestAnswerFenceWhileTracing(unittest.TestCase):
 
     def test_a_request_during_the_warm_up_is_answered(self):
         report = os.path.join(self.scratch, "fence.json")
-        env = dict(os.environ, TUIKIT_CONFIG_DIR=self.scratch, DRIVE_TEST_REPORT=report,
+        env = dict(os.environ, TUI_CONFIG_DIR=self.scratch, DRIVE_TEST_REPORT=report,
                    PATH=self.bin + os.pathsep + os.environ.get("PATH", ""))
         subprocess.run(
             [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", "1",
@@ -344,7 +344,7 @@ class TestTourStaysOnItsRoute(unittest.TestCase):
         self.addCleanup(shutil.rmtree, scratch, ignore_errors=True)
         # Named explicitly, not left to the driver: this must be isolated
         # whichever `drive.py` it runs against.
-        env = dict(os.environ, TUIKIT_CONFIG_DIR=scratch)
+        env = dict(os.environ, TUI_CONFIG_DIR=scratch)
         # A long settle: in a PTY that answers none of its startup queries, a
         # debug Example takes ~1.5 s to start reading keys, and everything
         # sent before then is parsed as one batch — a different question.

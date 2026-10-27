@@ -16,16 +16,16 @@
 //    --bench        timed render loop of one scenario (no PTY; for xctrace --launch)
 //
 //  Common options (env var | flag):
-//    TUIKIT_STRESS_SCENARIO | --scenario <id>   pick a scenario
-//    TUIKIT_STRESS_VARIANT  | --variant <id>     pick a variant of a matrix scenario
+//    TUI_STRESS_SCENARIO | --scenario <id>   pick a scenario
+//    TUI_STRESS_VARIANT  | --variant <id>     pick a variant of a matrix scenario
 //    --variants                                  list every matrix scenario's variants
-//    TUIKIT_STRESS_SCALE    | --scale <n>        size multiplier (1 is already heavy)
-//    TUIKIT_STRESS_SEED     | --seed <n>         synthetic-data seed
-//    TUIKIT_STRESS_AUTOPILOT| --autopilot        self-drive continuous re-renders
+//    TUI_STRESS_SCALE    | --scale <n>        size multiplier (1 is already heavy)
+//    TUI_STRESS_SEED     | --seed <n>         synthetic-data seed
+//    TUI_STRESS_AUTOPILOT| --autopilot        self-drive continuous re-renders
 //    --bench options: --iterations <n> --cols <c> --rows <r> --cold
-//    TUIKIT_STRESS_STRIPES  | --stripes <b>      --bench under .alternatingRowBackgrounds(<b>): automatic, enabled, disabled
+//    TUI_STRESS_STRIPES  | --stripes <b>      --bench under .alternatingRowBackgrounds(<b>): automatic, enabled, disabled
 //                                                (a scenario only: any other run, or another value, stops)
-//    TUIKIT_HAIRLINES=1                          --bench as if the terminal drew hairline list separators
+//    TUI_HAIRLINES=1                          --bench as if the terminal drew hairline list separators
 //
 //  Sessions (interaction scripts played over time — see Sessions/Session.swift):
 //    --sessions                                  list them
@@ -50,14 +50,14 @@ func flagValue(_ name: String) -> String? {
     return rawArgs[i + 1]
 }
 
-/// Stops a run that states `--stripes` (or `TUIKIT_STRESS_STRIPES`) in a mode
+/// Stops a run that states `--stripes` (or `TUI_STRESS_STRIPES`) in a mode
 /// that would draw nothing under it — `mode` draws pages of its own — rather
 /// than let an A/B meant to price the stripe time the striped build under a
 /// setting that says otherwise. Only `--bench` of a scenario draws under it
 /// (`Headless.benchView`); a session builds its own app around its own page.
 func refuseStripes(in mode: String) {
     guard config.stripes != nil else { return }
-    print("\(mode): --stripes / TUIKIT_STRESS_STRIPES applies to --bench of a scenario only, and this run would ignore it")
+    print("\(mode): --stripes / TUI_STRESS_STRIPES applies to --bench of a scenario only, and this run would ignore it")
     exit(1)
 }
 
@@ -155,10 +155,10 @@ if rawArgs.contains("--help") || rawArgs.contains("-h") {
     exit(failures == 0 ? 0 : 1)
 } else if rawArgs.contains("--bench") {
     // A bench draws no terminal, so nothing answers whether it draws hairlines:
-    // `TUIKIT_HAIRLINES=1` says yes, to price what a list's `.hairline`
+    // `TUI_HAIRLINES=1` says yes, to price what a list's `.hairline`
     // separators cost the render on a host that draws them (the marks; the
     // writer and the placements are the run loop's, which a bench does not run).
-    if ProcessInfo.processInfo.environment["TUIKIT_HAIRLINES"] == "1" {
+    if ProcessInfo.processInfo.environment["TUI_HAIRLINES"] == "1" {
         await MainActor.run { KittyGraphics.isHairlineSupported = true }
     }
     let iterations = flagValue("--iterations").flatMap(Int.init) ?? 2_000

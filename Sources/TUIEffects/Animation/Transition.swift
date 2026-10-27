@@ -202,7 +202,7 @@ public struct TransitionProperties: Sendable, Equatable {
     /// When it does, the transition is replaced by `.opacity` wherever
     /// ``EnvironmentValues/accessibilityReduceMotion`` is `true` — as SwiftUI
     /// replaces it when Reduce Motion is on. In a terminal that is the user's
-    /// `TUIKIT_REDUCE_MOTION=1` or the app's `Scene.reduceMotion(_:)`; the
+    /// `TUI_REDUCE_MOTION=1` or the app's `Scene.reduceMotion(_:)`; the
     /// replacement keeps the transition's own animation, if it has one.
     ///
     /// Defaults to `true`.

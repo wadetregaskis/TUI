@@ -189,10 +189,10 @@ final class DrivenSession {
     /// every retain and release of it on the runtime's slow path. `nil` where
     /// the probe cannot read this runtime's layout.
     let renderCacheSideTable: () -> Bool?
-    /// What `TUIKIT_VERIFY_RENDER_MEMO` found: each served buffer that a fresh
+    /// What `TUI_VERIFY_RENDER_MEMO` found: each served buffer that a fresh
     /// render of the same subtree disagreed with. Empty unless it is set.
     let staleServes: () -> [String]
-    /// What `TUIKIT_VERIFY_MEASURE_MEMO` found: each served size, from either
+    /// What `TUI_VERIFY_MEASURE_MEMO` found: each served size, from either
     /// size memo, that a fresh measure disagreed with. Empty unless it is set.
     let staleSizes: () -> [String]
     /// The render cache's own counts so far: what the value memos served, missed

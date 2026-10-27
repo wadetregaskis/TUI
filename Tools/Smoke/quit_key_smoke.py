@@ -57,7 +57,7 @@ that answers the startup exchange, and checks:
      read. With a ⌃\\ binding, which masks the quit key, nothing is popped.
 
 Usage:  python3 Tools/Smoke/quit_key_smoke.py [path-to-IdleProbe]
-Exits 0 when every case holds. Uses an isolated TUIKIT_CONFIG_DIR, and no
+Exits 0 when every case holds. Uses an isolated TUI_CONFIG_DIR, and no
 core files (RLIMIT_CORE 0 in the child).
 """
 
@@ -83,7 +83,7 @@ FOCUS_REPORTS_OFF = b"\x1b[?1004l"
 
 STRIPPED = (
     "TERM_PROGRAM", "TERM_PROGRAM_VERSION", "LC_TERMINAL", "LC_TERMINAL_VERSION",
-    "TMUX", "TMUX_PANE", "TUIKIT_TERM_PROGRAM",
+    "TMUX", "TMUX_PANE", "TUI_TERM_PROGRAM",
 )
 
 failures = []
@@ -124,7 +124,7 @@ class App:
         child_env.update({
             "TERM": "xterm-256color",
             "LANG": "en_US.UTF-8",
-            "TUIKIT_CONFIG_DIR": tempfile.mkdtemp(dir=SCRATCH),
+            "TUI_CONFIG_DIR": tempfile.mkdtemp(dir=SCRATCH),
         })
         child_env.update(env or {})
         self.pid = os.fork()

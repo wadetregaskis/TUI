@@ -7,7 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-#if TUIKIT_VALUE_HASH_CENSUS
+#if TUI_VALUE_HASH_CENSUS
 /// The value hash's lookups by the shape of the plan that answered them, and
 /// the types behind anything but the dense shape.
 ///

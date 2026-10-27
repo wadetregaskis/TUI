@@ -20,7 +20,7 @@ suspend round trip:
 Usage:  python3 Tools/Smoke/suspend_probe.py [path-to-binary]
 
 Exits 0 on success; prints FAIL lines and exits 1 otherwise. Uses an isolated
-TUIKIT_CONFIG_DIR so the probe never touches real preferences.
+TUI_CONFIG_DIR so the probe never touches real preferences.
 """
 
 import atexit
@@ -62,10 +62,10 @@ def check(condition: bool, label: str) -> None:
 env = dict(os.environ)
 env["TERM"] = "xterm-256color"
 env["LANG"] = "en_US.UTF-8"
-env["TUIKIT_CONFIG_DIR"] = tempfile.mkdtemp(prefix="tuikit-suspend-probe-")
+env["TUI_CONFIG_DIR"] = tempfile.mkdtemp(prefix="tuikit-suspend-probe-")
 # Removed when the probe ends, however it ends; the forked child execs, or ends by os._exit if exec fails, so
 # never runs it.
-atexit.register(shutil.rmtree, env["TUIKIT_CONFIG_DIR"], ignore_errors=True)
+atexit.register(shutil.rmtree, env["TUI_CONFIG_DIR"], ignore_errors=True)
 
 pid, fd = pty.fork()
 if pid == 0:

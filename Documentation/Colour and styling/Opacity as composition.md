@@ -4084,7 +4084,7 @@ recovered what the last one had missed rather than what nobody had looked at.
 
 So the app was run instead, with translucency everywhere. `CustomizablePalette.init(from:)`
 in the example takes a snapshot of every semantic colour, and
-`TUIKIT_EXAMPLE_PALETTE_ALPHA=0.5` now fades all of them but the four grounds — the grounds
+`TUI_EXAMPLE_PALETTE_ALPHA=0.5` now fades all of them but the four grounds — the grounds
 being a claim about how present a LAYER is rather than about paint, so fading them tests the
 compositor instead and makes every cell owe something, which buries the one that does not.
 In a debug build the emitter's assertion is armed, so any unclaimed paint site is a trap
@@ -4540,7 +4540,7 @@ rather than left in its doc comment.
 seventh, and the sweep could not have found it: the poke sequence is fixed
 (`tab tab space down space right tab space up`) and cannot drive the Images page's radio
 group to Mono and then toggle "Theme colours", and every page gets a fresh
-`TUIKIT_CONFIG_DIR`, so no persisted setting steers it there either. It took a reader.
+`TUI_CONFIG_DIR`, so no persisted setting steers it there either. It took a reader.
 
 `_ImageCore.inked(_:mode:palette:)` is the post-cache pass that gives `.mono` art the
 theme's ink and paper — applied after the render cache deliberately, because the cache is
@@ -4868,7 +4868,7 @@ terminal has not reported its page, a root at half alpha or more keeps the opaqu
 this section introduced, and below half is that page.
 
 Proven across the app, not only at the sites read: the Example's
-`TUIKIT_EXAMPLE_GROUND_ALPHA` seam fades the four grounds and nothing else, and the faded-
+`TUI_EXAMPLE_GROUND_ALPHA` seam fades the four grounds and nothing else, and the faded-
 palette sweep, which passes its environment through, runs every page under it.
 
 **Seven claims became no-ops, and the tests that pinned them now say so.** A resize grip's

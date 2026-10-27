@@ -15,8 +15,8 @@ import Foundation
 /// all there. It lives in `TUICore` so that every module can report through
 /// it, whichever layer notices the problem.
 package enum DiagnosticChannel {
-    /// Where reports go. `TUIKIT_DIAGNOSTICS_FILE` names a file; otherwise
-    /// stderr, matching `TUIKIT_DEBUG_RENDER`.
+    /// Where reports go. `TUI_DIAGNOSTICS_FILE` names a file; otherwise
+    /// stderr, matching `TUI_DEBUG_RENDER`.
     ///
     /// A file is the better channel and the reason is the same one that makes
     /// this whole area awkward: a TUI owns the terminal, so stderr lands on the
@@ -26,7 +26,7 @@ package enum DiagnosticChannel {
     ///
     /// Read once: the environment cannot change what a run already reported.
     package static let destination: String? =
-        ProcessInfo.processInfo.environment["TUIKIT_DIAGNOSTICS_FILE"]
+        ProcessInfo.processInfo.environment["TUI_DIAGNOSTICS_FILE"]
 
     /// Appends `text` wherever reports are configured to go.
     package static func emit(_ text: String) {

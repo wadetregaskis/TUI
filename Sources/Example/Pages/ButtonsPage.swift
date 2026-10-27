@@ -539,7 +539,7 @@ struct ButtonsPage: View {
     private var terminalHyperlinkStatus: some View {
         // `.effective` rather than `.current` — it is what
         // `hyperlinksSupported` itself reads, so simulating a host (the
-        // TerminalClientQuirks app, or `TUIKIT_TERM_PROGRAM`) moves the name and
+        // TerminalClientQuirks app, or `TUI_TERM_PROGRAM`) moves the name and
         // the verdict together. Asking `.current` here would print one
         // terminal's name beside another terminal's answer.
         let program = TerminalClient.effective.program

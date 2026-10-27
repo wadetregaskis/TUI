@@ -14,12 +14,12 @@ import TUI
 /// main thread on a `DispatchSemaphore` while async
 /// benchmark closures run. Calling `await MainActor.run`
 /// from those closures deadlocks against the blocked main
-/// thread → SIGTRAP. Set `TUIKIT_BENCH_RUN_VIEW=1` to
+/// thread → SIGTRAP. Set `TUI_BENCH_RUN_VIEW=1` to
 /// attempt the view benchmarks anyway (they will crash
 /// until #31 — moving TUI's render pipeline off
 /// MainActor onto a dedicated global actor — lands).
 let skipViewBenchmarks =
-    ProcessInfo.processInfo.environment["TUIKIT_BENCH_RUN_VIEW"] != "1"
+    ProcessInfo.processInfo.environment["TUI_BENCH_RUN_VIEW"] != "1"
 
 /// Configuration helper for view-using benchmarks. Stamps
 /// the default config with `skip: skipViewBenchmarks` so
@@ -65,12 +65,12 @@ let benchmarks: @Sendable () -> Void = {
         ],
         timeUnits: .microseconds,
         // 1 s per benchmark when run via the Plugin from
-        // macOS. Override with TUIKIT_BENCH_MAX_DURATION_MS
+        // macOS. Override with TUI_BENCH_MAX_DURATION_MS
         // when running under a tighter wallclock budget (CI
         // smoke tests, sandboxed environments where 24
         // benchmarks × 1 s is too long).
         maxDuration: .milliseconds(
-            Int(ProcessInfo.processInfo.environment["TUIKIT_BENCH_MAX_DURATION_MS"] ?? "1000") ?? 1000
+            Int(ProcessInfo.processInfo.environment["TUI_BENCH_MAX_DURATION_MS"] ?? "1000") ?? 1000
         )
     )
 
@@ -79,7 +79,7 @@ let benchmarks: @Sendable () -> Void = {
     // manifest of what's being measured.
     //
     // View-rendering suites (currently skipped by default,
-    // gated on TUIKIT_BENCH_RUN_VIEW — see `skipViewBenchmarks`)
+    // gated on TUI_BENCH_RUN_VIEW — see `skipViewBenchmarks`)
     // because they cross onto `@MainActor`:
     LayoutBenchmarks.register()
     RenderBenchmarks.register()

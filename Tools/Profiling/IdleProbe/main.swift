@@ -30,12 +30,12 @@ import TUI
 //
 //     swift build -c release --product IdleProbe
 //     BIN="$(swift build -c release --product IdleProbe --show-bin-path)/IdleProbe"
-//     TUIKIT_CONFIG_DIR=$(mktemp -d) IDLE_PROBE_MODE=text  python3 Tools/Profiling/idle_cpu.py "$BIN"
-//     TUIKIT_CONFIG_DIR=$(mktemp -d) IDLE_PROBE_MODE=image python3 Tools/Profiling/idle_cpu.py "$BIN"
+//     TUI_CONFIG_DIR=$(mktemp -d) IDLE_PROBE_MODE=text  python3 Tools/Profiling/idle_cpu.py "$BIN"
+//     TUI_CONFIG_DIR=$(mktemp -d) IDLE_PROBE_MODE=image python3 Tools/Profiling/idle_cpu.py "$BIN"
 //
 // `Tools/Profiling/idle-image.sh` does exactly that, both modes, one command.
 //
-// TUIKIT_CONFIG_DIR matters: without it a PTY probe writes to the real
+// TUI_CONFIG_DIR matters: without it a PTY probe writes to the real
 // preferences directory. $HOME does not isolate it on macOS.
 //
 // Two modes serve `Tools/Smoke/quit_key_smoke.py` instead, which wants the

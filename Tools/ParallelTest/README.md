@@ -122,7 +122,7 @@ It still differs from `swift test` in three ways worth knowing:
 | environment | meaning |
 |---|---|
 | `SWIFT` | the `swift` to build, list and run with, e.g. `xcrun --toolchain org.swift.640202609131a swift`; default `swift` from `PATH` |
-| `TUIKIT_PARALLEL_TEST_LOCK` | the run lock's path (see below) |
+| `TUI_PARALLEL_TEST_LOCK` | the run lock's path (see below) |
 
 `--calibrate` writes `.build/parallel-test/weights.json`. It is worth re-running
 when the suite has grown a lot, but it is not required for correctness: the
@@ -140,7 +140,7 @@ before either.
 ## One run at a time
 
 A run takes a machine-wide lock (`/tmp/tuikit-parallel-test.lock`, or
-`$TUIKIT_PARALLEL_TEST_LOCK`) before it builds, so a second run — from another
+`$TUI_PARALLEL_TEST_LOCK`) before it builds, so a second run — from another
 worktree, or an agent — waits for the first and says whose run it is waiting
 for. One run already fills half the cores with test processes; on the 16 GiB
 machine this is used on, two at once, with their builds, push each other into

@@ -26,16 +26,16 @@ import TUICore
 /// ## Enabling it
 ///
 /// Off by default, and free when off — the only cost is one optional check per
-/// invalidation. Set `TUIKIT_DIAGNOSE_BODY_MUTATION=1`:
+/// invalidation. Set `TUI_DIAGNOSE_BODY_MUTATION=1`:
 ///
 /// ```
-/// TUIKIT_DIAGNOSE_BODY_MUTATION=1 swift run Example 2>mutations.log
+/// TUI_DIAGNOSE_BODY_MUTATION=1 swift run Example 2>mutations.log
 /// ```
 ///
-/// Reports go to **stderr**, matching `TUIKIT_DEBUG_RENDER` — stdout is the
+/// Reports go to **stderr**, matching `TUI_DEBUG_RENDER` — stdout is the
 /// terminal UI, so anything written there corrupts the frame. Redirect to
 /// capture; a TUI run without a redirect will scribble on its own screen, which
-/// is the honest trade for having no other channel. `TUIKIT_DIAGNOSTICS_FILE`
+/// is the honest trade for having no other channel. `TUI_DIAGNOSTICS_FILE`
 /// names a file to append them to instead, which is the channel every
 /// framework diagnostic shares.
 ///
@@ -76,7 +76,7 @@ public final class BodyMutationDiagnostic: @unchecked Sendable {
     /// Whether the environment asked for this. Read once: the answer cannot
     /// change within a run, and this is consulted on the invalidation path.
     public static let isEnabled: Bool =
-        ProcessInfo.processInfo.environment["TUIKIT_DIAGNOSE_BODY_MUTATION"] == "1"
+        ProcessInfo.processInfo.environment["TUI_DIAGNOSE_BODY_MUTATION"] == "1"
 
     private let lock = NSLock()
     /// The thread currently walking the tree, or `nil` outside a walk.

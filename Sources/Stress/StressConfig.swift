@@ -14,10 +14,10 @@ import TUI
 /// (which override the environment).
 ///
 /// Environment:
-/// - `TUIKIT_STRESS_SCENARIO` — id to boot directly into (skips the menu).
-/// - `TUIKIT_STRESS_SCALE`    — integer multiplier on every scenario's size.
-/// - `TUIKIT_STRESS_SEED`     — RNG seed for synthetic data.
-/// - `TUIKIT_STRESS_AUTOPILOT`— `1`/`true` to self-drive continuous re-renders.
+/// - `TUI_STRESS_SCENARIO` — id to boot directly into (skips the menu).
+/// - `TUI_STRESS_SCALE`    — integer multiplier on every scenario's size.
+/// - `TUI_STRESS_SEED`     — RNG seed for synthetic data.
+/// - `TUI_STRESS_AUTOPILOT`— `1`/`true` to self-drive continuous re-renders.
 ///
 /// CLI (see `main.swift`): `--scenario`, `--scale`, `--seed`, `--autopilot`,
 /// plus the headless modes `--selfcheck` and `--bench`.
@@ -61,7 +61,7 @@ struct StressConfig {
     /// For pricing the stripe on ONE binary: the same build timed under
     /// `disabled` and under `automatic` differs by the stripe's own cost and
     /// nothing else, where two builds also differ by code layout, which has
-    /// moved identical code by several per cent. `TUIKIT_STRESS_STRIPES` is the
+    /// moved identical code by several per cent. `TUI_STRESS_STRIPES` is the
     /// spelling `ab_bench.py` can carry, since it passes its environment to
     /// both binaries and no flags of its own.
     ///
@@ -72,7 +72,7 @@ struct StressConfig {
     /// never time the striped build under a setting that says otherwise.
     var stripes: AlternatingRowBackgroundBehavior?
 
-    /// A stated `--stripes` / `TUIKIT_STRESS_STRIPES` value that names no
+    /// A stated `--stripes` / `TUI_STRESS_STRIPES` value that names no
     /// behaviour (`--stripes disable`; empty after a trailing `--stripes`),
     /// kept so `main.swift` can refuse the run rather than drop it silently.
     var unknownStripes: String?
@@ -114,12 +114,12 @@ struct StressConfig {
     /// The environment half, split from the argument half only to keep each
     /// under the complexity limit — every option is readable in one of them.
     private mutating func applyEnvironment(_ env: [String: String]) {
-        if let s = env["TUIKIT_STRESS_SCALE"], let value = Int(s) { scale = max(1, value) }
-        if let s = env["TUIKIT_STRESS_SEED"], let value = UInt64(s) { seed = value }
-        if let s = env["TUIKIT_STRESS_AUTOPILOT"] { autopilot = (s == "1" || s.lowercased() == "true") }
-        if let s = env["TUIKIT_STRESS_SCENARIO"], !s.isEmpty { initialScenario = s }
-        if let s = env["TUIKIT_STRESS_VARIANT"], !s.isEmpty { variant = s }
-        if let s = env["TUIKIT_STRESS_STRIPES"], !s.isEmpty { stateStripes(named: s) }
+        if let s = env["TUI_STRESS_SCALE"], let value = Int(s) { scale = max(1, value) }
+        if let s = env["TUI_STRESS_SEED"], let value = UInt64(s) { seed = value }
+        if let s = env["TUI_STRESS_AUTOPILOT"] { autopilot = (s == "1" || s.lowercased() == "true") }
+        if let s = env["TUI_STRESS_SCENARIO"], !s.isEmpty { initialScenario = s }
+        if let s = env["TUI_STRESS_VARIANT"], !s.isEmpty { variant = s }
+        if let s = env["TUI_STRESS_STRIPES"], !s.isEmpty { stateStripes(named: s) }
     }
 
     /// The CLI half, which overrides the environment.

@@ -56,7 +56,7 @@ func viewValueHash<V: View>(_ view: V, plans: ValueHashPlans) -> Int? {
     let plan = plans.plan(for: V.self)
     if plan.pointee.shape != .dense { plans.armStackCheck() }
     let hash = valueHash(of: view, plan: plan, plans: plans)
-    #if TUIKIT_VALUE_HASH_CENSUS
+    #if TUI_VALUE_HASH_CENSUS
     plans.census.note(V.self, plan: plan, hashed: hash != nil)
     #endif
     return hash

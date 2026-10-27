@@ -378,7 +378,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   (measured 2026-10-12 at the root only, decisions B-GUIDE-2).
 - **TUI:** one guide pushes a view at most 1,048,576 cells along its
   container (`AlignmentGuideRun.maximumPush`), or as far as the container's
-  extent or its widest view if that is further; the `TUIKIT_MAX_ALIGNMENT_PUSH`
+  extent or its widest view if that is further; the `TUI_MAX_ALIGNMENT_PUSH`
   environment variable raises it, up to 2^30. A push past it, and a guide that
   is not a finite number (NaN, `+∞` or `-∞`) on a view with a width and a
   height, is a logic error,
@@ -655,7 +655,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   their end. Fades, colours, a shadow's radius, the focus breath, spinners and
   progress still animate. An app's own
   `Animatable` values are left to the app, as in SwiftUI. The value comes from
-  the user's `TUIKIT_REDUCE_MOTION`, the app's TUI-only
+  the user's `TUI_REDUCE_MOTION`, the app's TUI-only
   `Scene.reduceMotion(_:)`, or the system setting only where TUI is sure
   the user is at this machine (refusal review O1, 2026-10-14): the machine an
   app runs on need not be the one its user sits at
@@ -671,8 +671,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `\.accessibilityDifferentiateWithoutColor` and `\.colorSchemeContrast`
   report the system's settings, and the system's controls change with them
   (Apple's documentation; not measured).
-- **TUI:** each is set by the user's `TUIKIT_REDUCE_TRANSPARENCY=1`,
-  `TUIKIT_DIFFERENTIATE_WITHOUT_COLOR=1` or `TUIKIT_INCREASE_CONTRAST=1`, or
+- **TUI:** each is set by the user's `TUI_REDUCE_TRANSPARENCY=1`,
+  `TUI_DIFFERENTIATE_WITHOUT_COLOR=1` or `TUI_INCREASE_CONTRAST=1`, or
   by the host's setting only where TUI is sure the user is at this machine,
   as reduce motion is (E2): macOS's Reduce transparency, Differentiate without
   colour and Increase contrast, and GNOME's high contrast (GNOME has no
@@ -888,7 +888,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   move, a delete or a cancel. A drop session's `localSession` is
   never `nil`. A spring-loaded control activates after the user's
   spring-loading delay where the session is local, and half a second
-  elsewhere (or `TUIKIT_SPRING_LOADING_DELAY`, or an app's
+  elsewhere (or `TUI_SPRING_LOADING_DELAY`, or an app's
   `.springLoadingDelay(_:)`), drawn hovered while it waits and pressed as it
   fires, as macOS draws it.
 - **Why:** there is no system pasteboard to drag through, CoreTransferable is

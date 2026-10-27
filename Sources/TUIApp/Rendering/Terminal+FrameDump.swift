@@ -14,7 +14,7 @@ extension Terminal {
     /// top-left corner (``frameDumpNotice(_:)``).
     ///
     /// Triggered by the backtick key — only when the app was launched with
-    /// `TUIKIT_DEBUG_FRAME_DUMP=1` (see the run loop's key handling). The file
+    /// `TUI_DEBUG_FRAME_DUMP=1` (see the run loop's key handling). The file
     /// can be opened in a hex viewer or piped through `cat` in another
     /// terminal to inspect the exact sequences sent for a given frame.
     ///

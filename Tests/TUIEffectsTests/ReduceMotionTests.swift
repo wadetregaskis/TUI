@@ -2,7 +2,7 @@
 //  ReduceMotionTests.swift
 //
 //  `\.accessibilityReduceMotion`: where it comes from — the user's
-//  `TUIKIT_REDUCE_MOTION`, the app's `Scene.reduceMotion(_:)` — and what follows
+//  `TUI_REDUCE_MOTION`, the app's `Scene.reduceMotion(_:)` — and what follows
 //  it: a transition with motion plays as a fade.
 //
 //  Created by Wade Tregaskis
@@ -122,18 +122,18 @@ struct ReduceMotionTests {
         #expect(reduced.removalAnimation == slow.removalAnimation)
     }
 
-    @Test("The user asks with TUIKIT_REDUCE_MOTION=1, and nothing else asks")
+    @Test("The user asks with TUI_REDUCE_MOTION=1, and nothing else asks")
     func environmentVariable() {
-        #expect(TerminalClient.reduceMotionRequested(environment: ["TUIKIT_REDUCE_MOTION": "1"]))
-        #expect(!TerminalClient.reduceMotionRequested(environment: ["TUIKIT_REDUCE_MOTION": "0"]))
+        #expect(TerminalClient.reduceMotionRequested(environment: ["TUI_REDUCE_MOTION": "1"]))
+        #expect(!TerminalClient.reduceMotionRequested(environment: ["TUI_REDUCE_MOTION": "0"]))
         #expect(!TerminalClient.reduceMotionRequested(environment: [:]))
     }
 
-    /// The review's failing input: with `TUIKIT_REDUCE_MOTION=1` exported in
+    /// The review's failing input: with `TUI_REDUCE_MOTION=1` exported in
     /// the shell that ran the tests, every `HeadlessApp` played its moves as
     /// fades, because the loop read the process's environment itself. Only
     /// the app runner reads it now, and hands it to its loop.
-    @Test("A headless app and a test's loop draw as if TUIKIT_REDUCE_MOTION were unset, wherever they run")
+    @Test("A headless app and a test's loop draw as if TUI_REDUCE_MOTION were unset, wherever they run")
     func headlessLoopsIgnoreTheProcess() {
         let headlessProbe = ReduceMotionProbe()
         let headless = HeadlessApp(ReduceMotionProbeApp(probe: headlessProbe), width: 20, height: 4)
@@ -145,9 +145,9 @@ struct ReduceMotionTests {
         #expect(loopProbe.seen == false)
     }
 
-    @Test("The user's TUIKIT_REDUCE_MOTION=1, as the app runner reads it, reaches the root, and the scene cannot turn it off")
+    @Test("The user's TUI_REDUCE_MOTION=1, as the app runner reads it, reaches the root, and the scene cannot turn it off")
     func userSettingReachesTheRoot() {
-        let asked = TerminalClient.accessibilityRequested(environment: ["TUIKIT_REDUCE_MOTION": "1"])
+        let asked = TerminalClient.accessibilityRequested(environment: ["TUI_REDUCE_MOTION": "1"])
         #expect(asked == [.reduceMotion])
         let probe = ReduceMotionProbe()
         RenderLoopHarness().loop(ReduceMotionProbeApp(probe: probe), accessibility: asked).render()

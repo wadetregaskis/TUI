@@ -2,7 +2,7 @@
 //  AccessibilityReduceMotion.swift
 //
 //  `\.accessibilityReduceMotion`: whether to reduce motion. Where the answer
-//  comes from in a terminal — the user's `TUIKIT_REDUCE_MOTION`, the system's
+//  comes from in a terminal — the user's `TUI_REDUCE_MOTION`, the system's
 //  setting where the user is provably at this machine, or the app's own
 //  `.reduceMotion()` on its scene — is TUI's (`ReduceMotion.swift`).
 //
@@ -50,7 +50,7 @@ extension EnvironmentValues {
     /// because over ssh the preference would be the server's. It is read at
     /// launch and whenever the terminal regains the focus: macOS's Reduce
     /// motion, or GNOME's animations switched off. It is also `true` when the
-    /// user set `TUIKIT_REDUCE_MOTION=1` in the environment the app runs in
+    /// user set `TUI_REDUCE_MOTION=1` in the environment the app runs in
     /// (``TerminalClient/reduceMotionRequested``), wherever that is, or the
     /// app asked for it with the TUI-specific `Scene.reduceMotion(_:)`.
     /// Read-only, as SwiftUI's is.

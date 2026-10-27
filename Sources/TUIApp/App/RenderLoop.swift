@@ -340,8 +340,8 @@ internal final class RenderLoop<A: App> {
     /// attached to tmux are without a tmux to ask.
     private let probeClientCapabilities: @Sendable () -> ClientCapabilities?
 
-    /// What the user asked for with the `TUIKIT_*` accessibility variables
-    /// (`TUIKIT_REDUCE_MOTION=1` and its three siblings), as the app runner
+    /// What the user asked for with the `TUI_*` accessibility variables
+    /// (`TUI_REDUCE_MOTION=1` and its three siblings), as the app runner
     /// read them from the process: written at the root of every frame
     /// (``EnvironmentValues/accessibilityReduceMotion``,
     /// ``EnvironmentValues/accessibilityReduceTransparency``,
@@ -361,7 +361,7 @@ internal final class RenderLoop<A: App> {
     /// loop but the app runner's, for the same reason.
     var hostAccessibility: AccessibilityPreferences = []
 
-    /// How the user asked for keys to be written with `TUIKIT_KEY_SYMBOLS`, as
+    /// How the user asked for keys to be written with `TUI_KEY_SYMBOLS`, as
     /// the app runner read it from the process: written at the root of every
     /// frame as ``EnvironmentValues/keyNotation``.
     ///
@@ -371,7 +371,7 @@ internal final class RenderLoop<A: App> {
     private let keyNotation: KeyNotation
 
     /// The spring-loading delay the user asked for with
-    /// `TUIKIT_SPRING_LOADING_DELAY`, as the app runner read it from the
+    /// `TUI_SPRING_LOADING_DELAY`, as the app runner read it from the
     /// process, or `nil`: written at the root of every frame as
     /// ``EnvironmentValues/springLoadingDelay``, over the host's own (owner
     /// ruling B82). `nil` unless the runner says otherwise, for the reason
@@ -955,7 +955,7 @@ extension RenderLoop {
             environment.controlStyle = style
         }
         environment.notificationService = NotificationService.current
-        // The user's `TUIKIT_REDUCE_MOTION`, and the host's own Reduce Motion
+        // The user's `TUI_REDUCE_MOTION`, and the host's own Reduce Motion
         // where the user is provably at this machine, at the root, where the
         // app runner passed them (see `requestedAccessibility`,
         // `hostAccessibility`); a scene's own `.reduceMotion(_:)` is applied
@@ -966,10 +966,10 @@ extension RenderLoop {
         environment.accessibilityReduceTransparency = accessibility.contains(.reduceTransparency)
         environment.accessibilityDifferentiateWithoutColor = accessibility.contains(.differentiateWithoutColor)
         environment.colorSchemeContrast = accessibility.contains(.increaseContrast) ? .increased : .standard
-        // The user's `TUIKIT_KEY_SYMBOLS` likewise; a scene's `.keyNotation(_:)`
+        // The user's `TUI_KEY_SYMBOLS` likewise; a scene's `.keyNotation(_:)`
         // can only add to it.
         environment.keyNotation = keyNotation
-        // The user's spring-loading delay: their `TUIKIT_SPRING_LOADING_DELAY`,
+        // The user's spring-loading delay: their `TUI_SPRING_LOADING_DELAY`,
         // else the host's where they are provably at it, else macOS's default
         // (the key's own). A view's `.springLoadingDelay(_:)` overrides it.
         if let delay = springLoadingDelayRequested ?? hostSpringLoadingDelay {

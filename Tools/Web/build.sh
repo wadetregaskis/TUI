@@ -27,8 +27,8 @@
 #
 set -euo pipefail
 
-TOOLCHAIN_VERSION="${TUIKIT_WASM_TOOLCHAIN:-6.3.3}"
-SDK_NAME="${TUIKIT_WASM_SDK:-swift-${TOOLCHAIN_VERSION}-RELEASE_wasm}"
+TOOLCHAIN_VERSION="${TUI_WASM_TOOLCHAIN:-6.3.3}"
+SDK_NAME="${TUI_WASM_SDK:-swift-${TOOLCHAIN_VERSION}-RELEASE_wasm}"
 CONFIGURATION="release"
 RUN_WASM_OPT=1
 
@@ -47,9 +47,9 @@ SITE="$ROOT/Tools/Web/site"
 # target wasm (see above), so it is the swift.org toolchain swiftly installs,
 # by path. Elsewhere there is no Xcode to dodge, and the `swift` on PATH is a
 # swift.org toolchain already — the Pages workflow builds in CI's
-# `swift:6.3.3-noble` container. `TUIKIT_WASM_SWIFT` overrides both.
-if [ -n "${TUIKIT_WASM_SWIFT:-}" ]; then
-    SWIFT="$TUIKIT_WASM_SWIFT"
+# `swift:6.3.3-noble` container. `TUI_WASM_SWIFT` overrides both.
+if [ -n "${TUI_WASM_SWIFT:-}" ]; then
+    SWIFT="$TUI_WASM_SWIFT"
 elif [ "$(uname -s)" = Darwin ]; then
     SWIFT="$HOME/Library/Developer/Toolchains/swift-${TOOLCHAIN_VERSION}-RELEASE.xctoolchain/usr/bin/swift"
 else

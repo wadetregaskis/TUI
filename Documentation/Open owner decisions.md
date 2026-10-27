@@ -109,8 +109,7 @@ been in force since 2026-10-18.
   now playing, the weather; the 10-24 pick was the slider driving a gauge.
 - **The Animation clip** is settled (2026-10-26): it keeps ordinary view animation, and the photo zoom
   went into the Navigation clip.
-- **Environment variables.** The rename kept the `TUIKIT_…` variables as they are, since a bare `TUI_`
-  prefix could collide with other tools. Say if you want them renamed too.
+- **Environment variables** (answered 2026-10-27: rename): every `TUIKIT_` variable is `TUI_` now.
 - **The page behind a sheet** is now veiled rather than flattened (your ruling of 2026-10-25), with a
   cost of +6.4% on a frame with a sheet open in the notes session, and a gain of 11.8% in another. Look
   at it when you can.

@@ -628,7 +628,7 @@ editor is drawn again, and the others are served.
 **The contract this rests on is SwiftUI's.** A row's `==` must cover everything
 the row draws. One that leaves something out — compares an id, say, while the
 row draws a title — is served showing the old title after the parent writes a
-new one, as SwiftUI would show it. Run with `TUIKIT_VERIFY_RENDER_MEMO=1` to find
+new one, as SwiftUI would show it. Run with `TUI_VERIFY_RENDER_MEMO=1` to find
 such a row: every served buffer is drawn again and compared, and a mismatch is
 reported and the fresh one drawn (<doc:RenderCycle#Checking-What-the-Cache-Serves>).
 A row that is not `Equatable` is drawn again after its parent writes, as before.
@@ -773,7 +773,7 @@ anyway, and a sibling rendered after the memo could take a shortcut that belongs
 to the button inside it. The key cannot rule that out either, being made of the
 view value below the modifier.
 
-Under `TUIKIT_VERIFY_RENDER_MEMO` a hit renders fresh instead, which registers
+Under `TUI_VERIFY_RENDER_MEMO` a hit renders fresh instead, which registers
 for real, and the verifier compares the kinds and number of registrations that
 render makes against the stored ones.
 
@@ -807,7 +807,7 @@ and lost them the same way, the moment a memoized container could be stored at
 all. All three registrations are recorded and replayed now, through
 `DragAndDropRegistrar`.
 
-`TUIKIT_VERIFY_RENDER_MEMO` could not have found this. It re-renders a served
+`TUI_VERIFY_RENDER_MEMO` could not have found this. It re-renders a served
 subtree and compares the buffer, plus the kinds and number of registrations that
 render *records* — and a write journalled nowhere is recorded by neither side,
 while the buffer is identical whether the target was filed or not. A test for
@@ -851,7 +851,7 @@ The following types have `Equatable` conformance, enabling `.equatable()` on vie
 
 ### Debug Logging
 
-Set `TUIKIT_DEBUG_RENDER=1` to enable per-frame cache statistics on stderr:
+Set `TUI_DEBUG_RENDER=1` to enable per-frame cache statistics on stderr:
 
 ```
 [RenderCache] STORE Root/MainMenuPage/FeatureBox
@@ -869,7 +869,7 @@ cache serving it a picture drawn from stale state, or is the new state not
 reaching it at all? Two debugging switches answer it:
 
 ```sh
-TUIKIT_VERIFY_RENDER_MEMO=/tmp/memo.log TUIKIT_VERIFY_MEASURE_MEMO=/tmp/memo.log swift run MyApp
+TUI_VERIFY_RENDER_MEMO=/tmp/memo.log TUI_VERIFY_MEASURE_MEMO=/tmp/memo.log swift run MyApp
 ```
 
 With them on, every buffer and size the cache serves is rendered or measured

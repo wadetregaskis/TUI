@@ -56,7 +56,7 @@ struct TerminalHyperlinkSupportTests {
     }
 
     /// An exit test, because `simulated` reaching the live answer is the
-    /// subject. `TUIKIT_HYPERLINKS` is cleared first, in the child, so a
+    /// subject. `TUI_HYPERLINKS` is cleared first, in the child, so a
     /// developer who exported it cannot answer in the table's place.
     ///
     /// The ladder's own tests below pose it on arguments, so they cannot see
@@ -67,15 +67,15 @@ struct TerminalHyperlinkSupportTests {
     func simulationChangesTheAnswer() async {
         await #expect(processExitsWith: .success) {
             await MainActor.run {
-                ProcessWideState.setEnvironment("TUIKIT_HYPERLINKS", to: nil)
+                ProcessWideState.setEnvironment("TUI_HYPERLINKS", to: nil)
                 ProcessWideState.simulated = .ghostty
                 #expect(TerminalClient.hyperlinksSupported)
                 ProcessWideState.simulated = .appleTerminal
                 #expect(!TerminalClient.hyperlinksSupported)
 
-                ProcessWideState.setEnvironment("TUIKIT_HYPERLINKS", to: "1")
-                #expect(TerminalClient.hyperlinksSupported, "the process's TUIKIT_HYPERLINKS=1 reaches the ladder")
-                ProcessWideState.setEnvironment("TUIKIT_HYPERLINKS", to: nil)
+                ProcessWideState.setEnvironment("TUI_HYPERLINKS", to: "1")
+                #expect(TerminalClient.hyperlinksSupported, "the process's TUI_HYPERLINKS=1 reaches the ladder")
+                ProcessWideState.setEnvironment("TUI_HYPERLINKS", to: nil)
                 ProcessWideState.hyperlinkSupport = true
                 #expect(TerminalClient.hyperlinksSupported, "the real override reaches the ladder")
                 #expect(TerminalHyperlink.isSupported, "and is published to the path that reads it")
@@ -99,7 +99,7 @@ struct TerminalHyperlinkSupportTests {
     func overrideLeavesTheHostUnread() async {
         await #expect(processExitsWith: .success) {
             await MainActor.run {
-                for name in ["TUIKIT_TERM_PROGRAM", "TERM_PROGRAM", "LC_TERMINAL", "TERM", "TMUX"] {
+                for name in ["TUI_TERM_PROGRAM", "TERM_PROGRAM", "LC_TERMINAL", "TERM", "TMUX"] {
                     ProcessWideState.setEnvironment(name, to: nil)
                 }
                 ProcessWideState.hyperlinkSupport = false  // the app's init
@@ -125,10 +125,10 @@ struct TerminalHyperlinkSupportTests {
 
     /// How a user turns links on for their own terminal without the app knowing
     /// anything about it — and off again. Only `1` and `0` are answers.
-    @Test("TUIKIT_HYPERLINKS answers where the app has not, and the override outranks it")
+    @Test("TUI_HYPERLINKS answers where the app has not, and the override outranks it")
     func environmentAnswersWhereTheAppHasNot() {
         func answer(_ override: Bool?, _ value: String?, _ program: TerminalClient.Program) -> Bool {
-            let environment = value.map { ["TUIKIT_HYPERLINKS": $0] } ?? [:]
+            let environment = value.map { ["TUI_HYPERLINKS": $0] } ?? [:]
             return TerminalClient.hyperlinksSupported(
                 override: override, environment: environment, program: program)
         }

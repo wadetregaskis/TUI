@@ -173,13 +173,13 @@ struct TerminalCapabilitiesTests {
         #expect(TerminalCapabilities.status(uses: uses, forced: forced, evidence: evidence) == status)
     }
 
-    @Test("An app's override or a TUIKIT_ switch of 1 or 0 forces a feature; anything else does not")
+    @Test("An app's override or a TUI_ switch of 1 or 0 forces a feature; anything else does not")
     func forcing() {
-        #expect(TerminalCapabilities.isForced(override: false, variable: "TUIKIT_X", in: [:]))
-        #expect(TerminalCapabilities.isForced(override: nil, variable: "TUIKIT_X", in: ["TUIKIT_X": "1"]))
-        #expect(TerminalCapabilities.isForced(override: nil, variable: "TUIKIT_X", in: ["TUIKIT_X": "0"]))
-        #expect(!TerminalCapabilities.isForced(override: nil, variable: "TUIKIT_X", in: ["TUIKIT_X": "yes"]))
-        #expect(!TerminalCapabilities.isForced(override: nil, variable: "TUIKIT_X", in: ["TUIKIT_Y": "1"]))
+        #expect(TerminalCapabilities.isForced(override: false, variable: "TUI_X", in: [:]))
+        #expect(TerminalCapabilities.isForced(override: nil, variable: "TUI_X", in: ["TUI_X": "1"]))
+        #expect(TerminalCapabilities.isForced(override: nil, variable: "TUI_X", in: ["TUI_X": "0"]))
+        #expect(!TerminalCapabilities.isForced(override: nil, variable: "TUI_X", in: ["TUI_X": "yes"]))
+        #expect(!TerminalCapabilities.isForced(override: nil, variable: "TUI_X", in: ["TUI_Y": "1"]))
     }
 
     // MARK: The keyboard negotiation

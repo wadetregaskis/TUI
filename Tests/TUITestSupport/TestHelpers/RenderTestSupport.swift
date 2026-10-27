@@ -5,7 +5,7 @@
 //  License: MIT
 
 // Built for tests only: a plain `swift build -c release` compiles this file empty (see TUITestSupport in Package.swift).
-#if TUIKIT_TEST_SUPPORT && canImport(Testing)
+#if TUI_TEST_SUPPORT && canImport(Testing)
 
 import Testing
 
@@ -183,7 +183,7 @@ func renderToScreen(_ view: some View, context: RenderContext) -> FrameBuffer {
 
 // MARK: - Counting renders under the memo verifier
 
-/// The extra renders `TUIKIT_VERIFY_RENDER_MEMO` adds on top of the ones a test
+/// The extra renders `TUI_VERIFY_RENDER_MEMO` adds on top of the ones a test
 /// is counting: one per SERVED buffer, because that is how the verifier checks a
 /// serve — it renders the subtree again and compares the cells.
 ///

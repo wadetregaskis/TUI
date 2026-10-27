@@ -230,7 +230,7 @@ enum Headless {
             let trimmedBefore = StackGuard.truncationCount
             // TWICE, with the pass lifecycle between, because a memo only
             // SERVES on a second render — so a one-render check never exercised
-            // the buffer memo at all, and `TUIKIT_VERIFY_RENDER_MEMO` had
+            // the buffer memo at all, and `TUI_VERIFY_RENDER_MEMO` had
             // nothing to verify. The second render is what the verifier reads.
             channels.beginWalk()
             context.environment.stateStorage?.beginRenderPass()
@@ -389,7 +389,7 @@ enum Headless {
     /// The value-memo line is `RenderCache.stats`, which counts the buffer half
     /// AND the size half of `.equatable()` and the `ForEach` row memo together,
     /// so a scenario whose rows never store a buffer can still show stores and
-    /// hits there. `TUIKIT_DEBUG_RENDER=1` logs the buffer half alone. The totals
+    /// hits there. `TUI_DEBUG_RENDER=1` logs the buffer half alone. The totals
     /// include the warm-up (under `--cold`, they are the last frame's context
     /// only). Beside the key-handler count they say whether a scenario's
     /// registrations keep its rows out of the cache, which nothing else printed
@@ -568,7 +568,7 @@ enum Headless {
         }
         MemoCounts.printValueHashCensus(of: warm.renderCache)
         observation?.report(frames: iterations)
-        // `TUIKIT_VERIFY_MEASURE_MEMO=1` re-measures every memo hit and reports
+        // `TUI_VERIFY_MEASURE_MEMO=1` re-measures every memo hit and reports
         // any the fresh measurement disagrees with — the direct check on the
         // memo's cross-budget claim, run over whichever scenario is at hand.
         let mismatches = warm.renderCache?.measureMemoMismatches ?? []

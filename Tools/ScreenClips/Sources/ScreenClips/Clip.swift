@@ -199,7 +199,7 @@ struct Clip {
     /// beside the player (regenerate.sh stages the Example) and its arguments.
     /// The script's keys drive it as they drive a scene; it has no cues.
     var command: [String]?
-    /// Variables set for `command` (`TUIKIT_GRAPHICS=0`, say).
+    /// Variables set for `command` (`TUI_GRAPHICS=0`, say).
     var environment: [String: String] = [:]
     /// Runs the app: called in the child the player starts under its own
     /// pseudo-terminal, and does not return until the app quits. Unused for a

@@ -85,7 +85,7 @@ extension TerminalCapabilities {
         /// does; unsupported where it does not, and on Apple Terminal, which is
         /// not asked because it prints the question. Settled on every terminal
         /// TUI runs in. `TerminalClient.graphicsSupport` or
-        /// `TUIKIT_GRAPHICS` (`1` or `0`) settles it either way without asking.
+        /// `TUI_GRAPHICS` (`1` or `0`) settles it either way without asking.
         public static let pictures = Self(rawValue: 1 << 16)
 
         // MARK: Host integration
@@ -99,7 +99,7 @@ extension TerminalCapabilities {
         /// terminal TUI did not identify, which is sent no link, and under
         /// tmux, which keeps the link and passes it only to the terminals
         /// attached that it credits with links. `TerminalClient.hyperlinkSupport`
-        /// or `TUIKIT_HYPERLINKS` (`1` or `0`) settles it either way.
+        /// or `TUI_HYPERLINKS` (`1` or `0`) settles it either way.
         public static let hyperlinks = Self(rawValue: 1 << 24)
 
         /// A copy reaches the clipboard through the terminal (OSC 52), where
@@ -111,7 +111,7 @@ extension TerminalCapabilities {
         /// which writes only with a setting no program can read; under tmux
         /// and GNU screen, whose own options decide at each copy; and on a
         /// terminal TUI did not identify. `TerminalClient.clipboardWriteSupport`
-        /// or `TUIKIT_OSC52` (`1` or `0`) settles it either way.
+        /// or `TUI_OSC52` (`1` or `0`) settles it either way.
         public static let clipboardWrites = Self(rawValue: 1 << 25)
 
         /// `requestAttention(_:)` posts a desktop notification (OSC 9) rather
@@ -120,7 +120,7 @@ extension TerminalCapabilities {
         /// From TUI's table, at launch: supported on Ghostty and iTerm2;
         /// unsupported on Apple Terminal, Warp, GNOME Terminal and tmux, which
         /// passes none on. Undetermined on a terminal TUI did not identify.
-        /// `TUIKIT_NOTIFICATIONS` (`1` or `0`) settles it either way.
+        /// `TUI_NOTIFICATIONS` (`1` or `0`) settles it either way.
         public static let notifications = Self(rawValue: 1 << 26)
 
         /// `terminalProgress(_:)` shows as a bar the terminal draws on its tab
@@ -131,7 +131,7 @@ extension TerminalCapabilities {
         /// it follows the terminals attached, asked again as they attach and
         /// detach, and can change while the app runs: supported while every
         /// one draws the bar tmux passes on. Undetermined on a terminal TUI
-        /// did not identify. `TUIKIT_PROGRESS` (`1` or `0`) settles it either
+        /// did not identify. `TUI_PROGRESS` (`1` or `0`) settles it either
         /// way.
         public static let progressReports = Self(rawValue: 1 << 27)
 
@@ -142,7 +142,7 @@ extension TerminalCapabilities {
         /// xterm); unsupported on Apple Terminal and Warp, which document
         /// none. Undetermined on GNOME Terminal, under tmux, and on a terminal
         /// TUI did not identify. `TerminalClient.pointerShapeSupport` or
-        /// `TUIKIT_POINTER_SHAPES` (`1` or `0`) settles it either way.
+        /// `TUI_POINTER_SHAPES` (`1` or `0`) settles it either way.
         public static let pointerShapes = Self(rawValue: 1 << 28)
 
         // MARK: Keyboard
@@ -155,7 +155,7 @@ extension TerminalCapabilities {
         /// answers its query, and each is supported where the terminal took
         /// the part of it this needs. Unsupported where it does not speak the
         /// protocol, on Apple Terminal, which is not asked, and wherever
-        /// `TUIKIT_KEYBOARD_PROTOCOL=0` keeps TUI from asking. Settled on
+        /// `TUI_KEYBOARD_PROTOCOL=0` keeps TUI from asking. Settled on
         /// every terminal TUI runs in.
         ///
         /// Where it is supported, a binding on one of those chords fires, and

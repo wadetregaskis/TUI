@@ -525,7 +525,7 @@ needs the keys' names spelled out instead, not a wider claim.
 
 **Spelled out, where the font has no glyph for them.** The symbols are drawn
 in the terminal's font, which TUI cannot see, so the user can turn them off
-with `TUIKIT_KEY_SYMBOLS=0` and an app with `Scene.keyNotation(.spelledOut)`;
+with `TUI_KEY_SYMBOLS=0` and an app with `Scene.keyNotation(.spelledOut)`;
 the status bar and a menu's shortcut column then write `Ctrl-Shift-Z`, `Esc`,
 `Return`, `Shift-Tab`, `Backspace`, `Del`, `Home`, `End`, `PgUp`, `PgDn`
 (`KeyNotation`). The arrows stay arrows, being in every font a terminal uses,
@@ -533,7 +533,7 @@ and the function keys and the space bar are words already. **No host is
 measured unable to draw the symbols**, so none defaults to the names: the
 symbols are the default everywhere until a measurement above says otherwise,
 and such a host's default would be set where the app runner reads
-`TUIKIT_KEY_SYMBOLS` (`TerminalClient.keyNotationRequested`).
+`TUI_KEY_SYMBOLS` (`TerminalClient.keyNotationRequested`).
 
 ### The drop-operation badge — advance measured 2026-10-13
 
@@ -660,7 +660,7 @@ without it the main menu draws no symbol (see tmux's "The defect this closed").
 | `TERM` | **Ghostty only** | ✓ | the termtype travels in ssh's `pty-req` (RFC 4254 §6.2) |
 | XTVERSION (`ESC[>0q`) | iTerm2, Ghostty, Warp, GNOME Terminal | ✓ | GNOME Terminal answers `VTE(8001)`; **Apple Terminal answers nothing** |
 | Process-ancestry walk | local apps | ✗ | over ssh the parent is `sshd` |
-| `TUIKIT_TERM_PROGRAM` | anything | ✓ | explicit override, same vocabulary as `TERM_PROGRAM` |
+| `TUI_TERM_PROGRAM` | anything | ✓ | explicit override, same vocabulary as `TERM_PROGRAM` |
 
 **`TERM` as an identity — added 2026-08-26.** Measured across the four hosts,
 only one names itself:
@@ -695,14 +695,14 @@ it. `TERM_PROGRAM` still outranks it, so a downgraded `TERM` beside a local
 
 The one host that most needs naming is the one no remote-capable signal
 reaches: Apple Terminal sets no forwarded variable and answers no XTVERSION.
-Hence `TUIKIT_TERM_PROGRAM`, which a remote shell profile or an ssh
+Hence `TUI_TERM_PROGRAM`, which a remote shell profile or an ssh
 `SendEnv`/`AcceptEnv` pair can set:
 
 ```sh
-export TUIKIT_TERM_PROGRAM=Apple_Terminal
+export TUI_TERM_PROGRAM=Apple_Terminal
 ```
 
-Precedence is `TUIKIT_TERM_PROGRAM` → `TERM_PROGRAM` → `LC_TERMINAL` →
+Precedence is `TUI_TERM_PROGRAM` → `TERM_PROGRAM` → `LC_TERMINAL` →
 `TERM`: the explicit answer first, the local answer next, the forwarded one
 after that because it can arrive stale from a hop further back, and the
 termtype last because it is the weakest — most terminals set a value that
@@ -2171,7 +2171,7 @@ text is no use to a full-screen layout (see `Terminal graphics protocols.md`
 
 **The trap this sets.** An `OK` to the placement query is exactly what TUI's
 handshake looks for, so a framework that trusted it would emit placeholder
-cells into a terminal that draws none. Forced on with `TUIKIT_GRAPHICS=1` and
+cells into a terminal that draws none. Forced on with `TUI_GRAPHICS=1` and
 both betas loaded, the Example's Colors page emitted 444 placeholder cells
 across six gradient rows and drew **blank space** where the ramps belong —
 which, given the paragraph above, says the page drew nothing rather than that
@@ -2604,7 +2604,7 @@ whether modifier bits survive that path.
 
 **Reproduce:** `tmux -L probe new-session -d -x 120 -y 40 -e PROBE_OUT=/tmp/t.json
 'python3 Tools/TerminalProbes/advance_probe.py; sleep 2'` then read `/tmp/t.json`.
-Always use a dedicated `-L <socket>` and set `TUIKIT_CONFIG_DIR` so probes
+Always use a dedicated `-L <socket>` and set `TUI_CONFIG_DIR` so probes
 never touch a real session or the user's preferences.
 
 ---
@@ -2625,7 +2625,7 @@ Linux 6.12.107+deb13-arm64, GNOME Shell 48 on Wayland, 2026-10-23. DSR-probed wi
 | `GNOME_TERMINAL_SERVICE` | `:1....` | D-Bus service bus name |
 | `TERM` | `xterm-256color` | standard xterm termtype |
 | `COLORTERM` | `truecolor` | 24-bit direct colour supported |
-| `TUIKIT_TERM_PROGRAM` | `gnome-terminal` | explicit override |
+| `TUI_TERM_PROGRAM` | `gnome-terminal` | explicit override |
 
 Over ssh or across detached contexts where environment variables are absent, GNOME Terminal answers Device Attributes:
 - **DA1 (`ESC[c`):** `ESC[?61;1;21;22;28c` (starts with `?61;`, identifying VT220 / VTE).
@@ -3772,7 +3772,7 @@ path, so it never reaches the user's browser over ssh at all.
 
 **As of 2026-09-03 TUI does not take the application path at all.**
 `OpenURLAction`'s system opener is gated behind
-`TerminalClient.urlOpeningSupport` / `TUIKIT_OPEN_URLS`, and both default to
+`TerminalClient.urlOpeningSupport` / `TUI_OPEN_URLS`, and both default to
 off. The reasoning is that the framework cannot tell which machine it is on:
 `SSH_CONNECTION`, `SSH_TTY` and `SSH_CLIENT` are reliable when PRESENT and
 prove nothing when absent — gone under `sudo` and `su`, and a tmux, screen or
@@ -3787,7 +3787,7 @@ So the terminal's column above is the only one TUI relies on, and a `Link`
 is not silent as a result: it carries the OSC 8 escape where the host honours
 one, and activating it raises a popover with the destination to read and copy
 (`LinkDisplay`). An app that knows it is local sets `urlOpeningSupport = true`;
-a user answers for their own session with `TUIKIT_OPEN_URLS=1`; and an app
+a user answers for their own session with `TUI_OPEN_URLS=1`; and an app
 with its own opening handler is not gated at all, because what is gated is
 only the framework launching a process on the user's behalf. That launcher is
 injected (`URLOpenerBackend`), and only the app's run loop installs it, into the
@@ -3801,7 +3801,7 @@ too.
 **The remedy that already exists** for the escape is identification, not code:
 `TERM_PROGRAM`
 does not survive an ssh hop, so a terminal that would have got an OSC 8 escape
-often falls to `.unidentified` and gets none. `TUIKIT_HYPERLINKS=1` on the
+often falls to `.unidentified` and gets none. `TUI_HYPERLINKS=1` on the
 remote host restores emission (`TerminalHyperlinkSupport.swift`), via `SendEnv`
 / `AcceptEnv` or a line in a remote profile. `LC_TERMINAL` survives the hop on
 its own where iTerm2's shell integration is installed.
@@ -3845,7 +3845,7 @@ one string in Warp that bounds its link handling excludes exactly that.
 Claiming a capability this framework's own users could not reach is worse
 than claiming none — it turns "this terminal does not do that" into "this
 framework is broken here". `TerminalClient.hyperlinkSupport = true`
-(or `TUIKIT_HYPERLINKS=1`) overrides it for anyone who finds otherwise.
+(or `TUI_HYPERLINKS=1`) overrides it for anyone who finds otherwise.
 
 ### tmux honours it, and then decides who else may see it
 
@@ -4022,7 +4022,7 @@ the terminal posts one (iTerm2's `OSC 9`), and rings the bell everywhere else
 Only to a host documented to take one (`TerminalClient.honoursProgressReports`):
 Ghostty and iTerm2, which draw it, and tmux, which keeps it for the pane and
 passes it on to a client that draws it. Elsewhere nothing is sent.
-`TUIKIT_PROGRESS=1` turns it on for any host, `0` off for every one. The
+`TUI_PROGRESS=1` turns it on for any host, `0` off for every one. The
 5 s is a margin inside Ghostty's limit (below); a host that keeps a bar
 unprompted is sent the same dozen bytes again every 5 s, but for tmux, which
 is sent none (it keeps the bar, and passes no repeat on).
@@ -4106,7 +4106,7 @@ runs itself in the pane to send every sequence):
 
 Only to a host documented to post one (`TerminalClient.honoursNotifications`):
 Ghostty and iTerm2. `\.terminalCapabilities`' `.notifications` says which
-this is; `TUIKIT_NOTIFICATIONS=1` sends notifications to any host, `0` keeps every
+this is; `TUI_NOTIFICATIONS=1` sends notifications to any host, `0` keeps every
 request to the bell. Nothing reports whether the person saw either.
 
 | Host | Posts `OSC 9` | Evidence | The bell |
@@ -4133,7 +4133,7 @@ client, with the `progressbar` feature or without, and its `BEL` reached both.
   with someone there to give it.
 - **The leak check on the GUI hosts**: both screens, on Ghostty and iTerm2,
   which TUI sends it to, and on Apple Terminal and Warp, which it sends it
-  to only under `TUIKIT_PROGRESS=1`.
+  to only under `TUI_PROGRESS=1`.
 
 ---
 
@@ -4183,7 +4183,7 @@ changes nothing seen today. The card that would show it is the graphics probe
 re-run on Ghostty and Apple Terminal, expecting nothing printed
 (`Documentation/Terminals/Ghostty VT reference adoption study.md`, K6).
 
-The frame dump (`TUIKIT_DEBUG_FRAME_DUMP=1`, the backtick key) made the same
+The frame dump (`TUI_DEBUG_FRAME_DUMP=1`, the backtick key) made the same
 swap later the same day for the notice it draws over the frame's top-left
 corner. That one mattered more than cosmetically: the diff writer carries its
 styling from one frame to the next, so a restore that left SGR reset by the
@@ -4262,7 +4262,7 @@ rerun, whose replies are identical.
 Run `Tools/TerminalProbes/graphics_compression_probe.py` inside each host: it
 asks both questions and prints the same ramp raw and deflated, one under the
 other, for a person to compare. Until a host has a row here, the answer TUI
-acts on is the host's own at startup — and `TUIKIT_GRAPHICS_COMPRESSION=0`
+acts on is the host's own at startup — and `TUI_GRAPHICS_COMPRESSION=0`
 turns it off for a host that acknowledges and then draws nothing.
 
 ### The image placeholder advances ONE cell, on every host — measured 2026-09-02, iTerm2 added 2026-09-04
@@ -4555,8 +4555,8 @@ unit is settled for Ghostty by eye; iTerm2 and the rest stay unconfirmed.
 | | Drawn | z | Crop of a run of n columns | Why |
 |---|---|---|---|---|
 | Ghostty (any version; 1.3.1 measured) | yes, where the handshake says it places pictures and `TIOCGWINSZ` reports pixels | `+1` | n × (`ws_xpixel` // `ws_col`) px — 16n on the measured window | the one host meeting every criterion; Q3's exact unit OPEN |
-| iTerm2 3.7.3 | only under `TUIKIT_HAIRLINES=1` | `-1` | the same rule: 14n px, which Q1 found short of the run | no pixel unit found (Q3) |
-| kitty, WezTerm, Rio, Konsole, Warp, xterm.js, anything else | only under `TUIKIT_HAIRLINES=1` | `-1` | the same rule | unmeasured (Konsole: `z<0` hidden under painted cells, source-read) |
+| iTerm2 3.7.3 | only under `TUI_HAIRLINES=1` | `-1` | the same rule: 14n px, which Q1 found short of the run | no pixel unit found (Q3) |
+| kitty, WezTerm, Rio, Konsole, Warp, xterm.js, anything else | only under `TUI_HAIRLINES=1` | `-1` | the same rule | unmeasured (Konsole: `z<0` hidden under painted cells, source-read) |
 | tmux, Apple Terminal | never by default | — | — | tmux keeps no placement; Apple Terminal prints APC |
 
 What every drawn line is: a strip per colour, the screen's width by
@@ -4573,7 +4573,7 @@ deletes every strip and places every line again, which also covers Ghostty
 freeing strips on `ESC[2J` and the screen switch. A suspend and a quit delete
 every strip before leaving the alternate screen (iTerm2 would otherwise show
 the lines on the shell's screen, Q8). A `SIGQUIT`'s farewell deletes images,
-not strips: on Ghostty the screen switch frees them; under `TUIKIT_HAIRLINES=1`
+not strips: on Ghostty the screen switch frees them; under `TUI_HAIRLINES=1`
 on iTerm2 a line can be left behind.
 
 Open, to be read off the review: whether Ghostty's line ends short, exact or
@@ -4623,7 +4623,7 @@ cells, at `z=-1` (`Tools/TerminalProbes/frost_over_image_card.py`, panel D):
 
 So only Ghostty does it unasked (`TerminalClient.picturesUnderTextSupported`);
 everywhere else the glyph stands on the copy's average colour, a block behind
-each letter. `TUIKIT_PICTURES_UNDER_TEXT=1` tries it anywhere. Graphics notes
+each letter. `TUI_PICTURES_UNDER_TEXT=1` tries it anywhere. Graphics notes
 §14.5.
 
 ## Measured advance table (divergences and key rows)
@@ -6022,9 +6022,9 @@ The specification is <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>.
 - **Publishes** what was taken as `\.terminalCapabilities`' keyboard features
   (`.disambiguatedKeys` to `.numericPad`), so an app can tell which of
   SwiftUI's keyboard features work here.
-- **Stays out** where `TUIKIT_KEYBOARD_PROTOCOL=0` is set: the user's way out
+- **Stays out** where `TUI_KEYBOARD_PROTOCOL=0` is set: the user's way out
   should a terminal claim the protocol and encode keys in a way TUI
-  misreads, as `TUIKIT_HYPERLINKS=0` is for links.
+  misreads, as `TUI_HYPERLINKS=0` is for links.
 
 `Tools/Smoke/keyboard_protocol_smoke.py` checks all of that against a PTY
 that plays a terminal by the specification (CI runs it). That checks TUI,
@@ -6348,7 +6348,7 @@ a table's or a text control's selection, and TUI's own drag selects the
 screen, so the terminal's Shift-drag selection is the one given up. Not sent
 on Apple Terminal, which reports the Shift bit and has no Shift bypass to
 turn off, and whose reading of `CSI > … s` is unmeasured (a parser that
-ignored the `>` would save the cursor, SCOSC). `TUIKIT_SHIFT_CLICKS=0` keeps
+ignored the `>` would save the cursor, SCOSC). `TUI_SHIFT_CLICKS=0` keeps
 it from being sent anywhere, the user's way back to the terminal's own
 Shift-click and Shift-drag.
 
@@ -6394,7 +6394,7 @@ leaves: it has nothing to put back, and on a host whose reset is unread the
 empty name is unmeasured too. After any
 mouse mode change the shape is written again, because Ghostty resets it on
 one. A host not in the table below is sent nothing and owed nothing.
-`TUIKIT_POINTER_SHAPES=0` turns it off, `1` turns it on for a host not in the
+`TUI_POINTER_SHAPES=0` turns it off, `1` turns it on for a host not in the
 table (in CSS names), and `all` also turns on TUI's own controls' shapes
 (the I-beam over a text field, a hand over a link or a button, a resize arrow
 over a divider or a table's column edge), which are otherwise on only where
@@ -6628,7 +6628,7 @@ content). Adopted from Ghostty's VT reference
   the same shape, printed nothing on five hosts. Its DECRQM query
   (`CSI ? 2026 $ p`) is the shape Apple Terminal prints, and setting the mode
   needs no answer, so TUI never sends it.
-- **`TUIKIT_SYNCHRONIZED_OUTPUT=0`** turns it off: no markers, and none owed.
+- **`TUI_SYNCHRONIZED_OUTPUT=0`** turns it off: no markers, and none owed.
 
 `SynchronizedOutputTests` pins all of the above, the marker's place in a
 rendered frame included.
@@ -6668,13 +6668,13 @@ iTerm2, on the alternate screen (`PROBE_ALT=1`):
    host's timeout. Watch it, or record the screen.
 3. By eye, on Ghostty: drag Example's split divider (the gesture
    `Tools/Profiling/drive.py --scenario splitdrag` scripts), with
-   `TUIKIT_SYNCHRONIZED_OUTPUT=0` and without.
+   `TUI_SYNCHRONIZED_OUTPUT=0` and without.
 
 Bytes, captured 2026-10-05 with `drive.py --scenario tour --dump` (160×50,
 debug build): 146 and 149 frames held in two runs, 2.3 KB of markers in
 about 289 KB (0.8%). Without the markers the two runs held 286.8 KB and
 289.2 KB, against 286.1 KB and 286.4 KB in two runs with
-`TUIKIT_SYNCHRONIZED_OUTPUT=0`: the tour's timing moves a few frames from run
+`TUI_SYNCHRONIZED_OUTPUT=0`: the tour's timing moves a few frames from run
 to run, a spread as large as the markers. On `splitdrag`, which needs
 `--answer-fence` (without it the scripted press lands before the app is up and
 misses the divider, B-G1-2 in `Historical/Terminals/Adopting what Ghostty documents: synchronized output, autowrap, progress and attention.md`): 58
@@ -6874,7 +6874,7 @@ the client's terminal, the wrapped write reaches screen bare and is dropped
 there, and the copy is "Not copied", as under `on`. Through either
 passthrough a copy is its text alone: its other types (OSC 5522) are not sent.
 
-`TUIKIT_OSC52=1` makes every copy an OSC 52 to a terminal taken to honour it,
+`TUI_OSC52=1` makes every copy an OSC 52 to a terminal taken to honour it,
 for a host TUI does not know; `0` never sends one. An app can do the same
 with `TerminalClient.clipboardWriteSupport`. `TerminalClient.simulated`, the
 diagnostic that draws as another terminal, does not change where a copy
@@ -7039,7 +7039,7 @@ of any DECRQM, and iTerm2's answer is known. Where the answer is yes, a copy
 sent to the terminal goes by OSC 5522 with every form the app has of it — a
 link as `text/uri-list`, Markdown as `text/markdown` — and its text as
 `text/plain`, and a screen selection as `text/html` (its cells' colours,
-weight and decoration); `TUIKIT_OSC5522=1` or `0` overrides.
+weight and decoration); `TUI_OSC5522=1` or `0` overrides.
 
 **Paste events (mode 5522, kitty 0.44.1 and later).** Where a terminal says
 it takes OSC 5522, TUI also sets `CSI ? 5522 h` (and resets it with the
@@ -7127,7 +7127,7 @@ named by the environment or, over ssh, as soon as the startup exchange names
 it: raw mode has sent `?7l` by then, and `?7h` follows at once, before the
 first frame. `?7h` is still in its teardown and debt, where it is harmless.
 
-The frame dump's notice (`TUIKIT_DEBUG_FRAME_DUMP=1`, the backtick) turns
+The frame dump's notice (`TUI_DEBUG_FRAME_DUMP=1`, the backtick) turns
 autowrap on for itself and off again inside its `ESC 7` / `ESC 8`, so a path
 wider than the screen wraps onto the rows below it as it always did, rather
 than losing its file name at the right edge.

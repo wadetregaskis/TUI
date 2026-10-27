@@ -40,7 +40,7 @@ next release branch's nightlies take that place when it is cut.
 
 **Compiler warnings.** The build has none, in every target, and the 6.2 macOS
 lane (`macos-15`) fails if it gains one: it builds every target from a clean
-checkout, then `TUIBenchmarks` (`TUIKIT_BENCHMARKS=1`, which no other step
+checkout, then `TUIBenchmarks` (`TUI_BENCHMARKS=1`, which no other step
 builds), and `Tools/check-compiler-warnings.py` reads both logs. A warning in a
 dependency's own code is printed and not counted. Locally, a count means
 nothing after an incremental build, which compiles only what changed: build
@@ -616,7 +616,7 @@ anything at run time:
   target's files use stays in that target. A test file `@testable import`s
   the support targets whose helpers it uses.
   Every file of a support target is wrapped in
-  `#if TUIKIT_TEST_SUPPORT && canImport(Testing)`, under a comment that says
+  `#if TUI_TEST_SUPPORT && canImport(Testing)`, under a comment that says
   why; copy both into a new file there. `swift build -c release` builds the
   target too, without testability, so it must compile empty there
   (`Package.swift` says what else was measured). It holds no `@Test` and no

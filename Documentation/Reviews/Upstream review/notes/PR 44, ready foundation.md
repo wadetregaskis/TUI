@@ -113,7 +113,7 @@ Tags only, at ~20 s warm locally. See `.github/workflows/ci.yml`.
 
 ### Deliberately not — `reject`
 
-`0916a406` gates the performance suites behind `TUIKIT_RUN_PERFORMANCE_TESTS`.
+`0916a406` gates the performance suites behind `TUI_RUN_PERFORMANCE_TESTS`.
 Ours cost nothing worth avoiding — the whole suite is 3,680 tests in ~17 s — and
 a benchmark that only runs when someone remembers to ask is a benchmark that
 stops catching regressions. Keep them in the default path.

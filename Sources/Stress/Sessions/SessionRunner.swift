@@ -77,13 +77,13 @@ enum SessionRunner {
         var divergentSteps: [Int] = []
         /// The first few of those, described.
         var divergences: [String] = []
-        /// Whether `TUIKIT_VERIFY_RENDER_MEMO` was set, and what it found on the
+        /// Whether `TUI_VERIFY_RENDER_MEMO` was set, and what it found on the
         /// warm instance: served buffers that a fresh render disagreed with.
         var memoVerified = false
         var staleServes: [String] = []
         /// The steps whose frames served them.
         var staleServeSteps: [Int] = []
-        /// Whether `TUIKIT_VERIFY_MEASURE_MEMO` was set, and what it found on
+        /// Whether `TUI_VERIFY_MEASURE_MEMO` was set, and what it found on
         /// the warm instance: served sizes that a fresh measure disagreed with.
         var sizesVerified = false
         var staleSizes: [String] = []

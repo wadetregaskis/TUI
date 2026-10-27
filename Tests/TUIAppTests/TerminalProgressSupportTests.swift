@@ -9,7 +9,7 @@ import Testing
 @testable import TUITerminalHost
 
 /// Which hosts are sent a progress report (`OSC 9 ; 4`), and how the answer is
-/// reached: the user's `TUIKIT_PROGRESS`, then the table of hosts documented
+/// reached: the user's `TUI_PROGRESS`, then the table of hosts documented
 /// to draw one. Asked on its inputs, so nothing here sets anything a whole
 /// process reads.
 @Suite("Terminal progress support")
@@ -33,11 +33,11 @@ struct TerminalProgressSupportTests {
         #expect(TerminalClient.honoursProgressReports(program) == draws)
     }
 
-    @Test("TUIKIT_PROGRESS outranks the table both ways, and anything else leaves it to the table")
+    @Test("TUI_PROGRESS outranks the table both ways, and anything else leaves it to the table")
     func environmentOutranksTheTable() {
-        #expect(TerminalClient.progressReportsSupported(environment: ["TUIKIT_PROGRESS": "1"], program: .appleTerminal))
-        #expect(!TerminalClient.progressReportsSupported(environment: ["TUIKIT_PROGRESS": "0"], program: .ghostty))
-        #expect(TerminalClient.progressReportsSupported(environment: ["TUIKIT_PROGRESS": "yes"], program: .iTerm2))
+        #expect(TerminalClient.progressReportsSupported(environment: ["TUI_PROGRESS": "1"], program: .appleTerminal))
+        #expect(!TerminalClient.progressReportsSupported(environment: ["TUI_PROGRESS": "0"], program: .ghostty))
+        #expect(TerminalClient.progressReportsSupported(environment: ["TUI_PROGRESS": "yes"], program: .iTerm2))
         #expect(!TerminalClient.progressReportsSupported(environment: [:], program: .warp))
     }
 
@@ -48,7 +48,7 @@ struct TerminalProgressSupportTests {
             read = true
             return .ghostty
         }
-        _ = TerminalClient.progressReportsSupported(environment: ["TUIKIT_PROGRESS": "0"], program: program())
+        _ = TerminalClient.progressReportsSupported(environment: ["TUI_PROGRESS": "0"], program: program())
         #expect(!read)
     }
 }

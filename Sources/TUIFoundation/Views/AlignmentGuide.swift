@@ -136,13 +136,13 @@ extension View {
     /// — a division by a value near zero, a unit mix-up — and so is a guide
     /// that is not a finite number (`.nan`, `.infinity`, `-.infinity`) on a
     /// view with a width and a height: a debug build stops with an assertion,
-    /// and a release build reports it once (to `TUIKIT_DIAGNOSTICS_FILE`, or
+    /// and a release build reports it once (to `TUI_DIAGNOSTICS_FILE`, or
     /// to stderr when the app gives the terminal back) and places the view as
     /// if its guide were at its own origin. SwiftUI places a finite one
     /// without a word, stops on `.infinity` or `.nan`, and places a view whose
     /// guide is `-.infinity` at an infinite x without stopping (measured). A
     /// canvas that really is larger can raise the bound with the
-    /// `TUIKIT_MAX_ALIGNMENT_PUSH` environment variable, a number of cells up
+    /// `TUI_MAX_ALIGNMENT_PUSH` environment variable, a number of cells up
     /// to 2^30.
     ///
     /// `.frame(alignment:)`, `.overlay(alignment:)` and
@@ -466,7 +466,7 @@ struct AlignmentGuideRun {
 
     /// The furthest, in cells, one guide falling short of another may push a
     /// child along the run: 2^20 (1,048,576), unless the
-    /// `TUIKIT_MAX_ALIGNMENT_PUSH` environment variable says otherwise
+    /// `TUI_MAX_ALIGNMENT_PUSH` environment variable says otherwise
     /// (``maximumPush(environment:)``).
     ///
     /// SwiftUI uses a guide exactly as given, inside its own view or not
@@ -504,7 +504,7 @@ struct AlignmentGuideRun {
     /// ``maximumPush`` when the environment does not set one: 2^20 cells.
     static let defaultMaximumPush = 1 << 20
 
-    /// The most `TUIKIT_MAX_ALIGNMENT_PUSH` can raise the bound to: 2^30 cells.
+    /// The most `TUI_MAX_ALIGNMENT_PUSH` can raise the bound to: 2^30 cells.
     ///
     /// A pushed run is drawn as lines that long, and its extent plus a view's
     /// size must still fit an `Int` where `Int` is 32 bits (WebAssembly's
@@ -515,11 +515,11 @@ struct AlignmentGuideRun {
     /// The rule behind ``maximumPush``, posed on its input so it can be asked
     /// without changing what a whole process reads.
     ///
-    /// `TUIKIT_MAX_ALIGNMENT_PUSH` set to a whole number of cells from 1 up
+    /// `TUI_MAX_ALIGNMENT_PUSH` set to a whole number of cells from 1 up
     /// replaces ``defaultMaximumPush``, held to ``largestMaximumPush``; unset,
     /// or anything else, leaves the default.
     static func maximumPush(environment: [String: String]) -> Int {
-        guard let text = environment["TUIKIT_MAX_ALIGNMENT_PUSH"],
+        guard let text = environment["TUI_MAX_ALIGNMENT_PUSH"],
             let cells = Int(text.trimmingCharacters(in: .whitespaces)), cells > 0
         else { return defaultMaximumPush }
         return min(cells, largestMaximumPush)
@@ -736,7 +736,7 @@ extension AlignmentGuideRun {
         "An alignment guide (alignmentGuide(_:computeValue:)) would push a view more than \(bound) cells "
             + "along its container: a logic error, such as a division by a value near zero or a unit mix-up. "
             + "The view is placed as if its guide were at its own origin. "
-            + "TUIKIT_MAX_ALIGNMENT_PUSH raises the bound for a canvas that really is that large."
+            + "TUI_MAX_ALIGNMENT_PUSH raises the bound for a canvas that really is that large."
     }
 
     /// The report for a guide that is `value`, not a number, on a view with a

@@ -29,7 +29,7 @@ so hovering them settles it. Nothing else can: no escape sequence asks a
 terminal whether it implements OSC 8, and the affordance is a gesture the
 terminal handles above the mouse-reporting protocol, which is both why it is
 worth having and why the application cannot observe it. Emitting the sequence
-is safe on every host measured, so `TUIKIT_HYPERLINKS=1` is a reasonable thing
+is safe on every host measured, so `TUI_HYPERLINKS=1` is a reasonable thing
 to try on a terminal TUI has never seen.
 
 **Render as** — apply another terminal's workarounds, live, to the whole app.
@@ -88,4 +88,4 @@ A way to turn workarounds on permanently. Every compensation works around a
 measured *defect*, so applying one to a terminal that does not have it breaks
 output that was correct — which is why TUI compensates nothing for a terminal
 it cannot name, and why the overrides here reset when the app exits. To name a
-terminal permanently, set `TUIKIT_TERM_PROGRAM` in your shell.
+terminal permanently, set `TUI_TERM_PROGRAM` in your shell.

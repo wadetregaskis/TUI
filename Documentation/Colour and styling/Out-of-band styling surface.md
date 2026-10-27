@@ -601,7 +601,7 @@ is where the escalation-to-B trigger is checked.
 | **`Stress --bench`** | `swift run -c release Stress -- --bench --scenario <id> --iterations N [--cold]` → per-frame µs + checksum | `megalist, table, table-multiline, tables-scroll, tables-vstack, deep, fanout, modifiers, textwall, anyview, dashboard, framedcolumns, churn, kitchensink` | App-shaped per-frame wall; **cold** (worst-case fresh state/cache) vs **warm** (steady state). Seeded → byte-identical trees across A and B |
 | **`Tools/Profiling`** Time Profiler | `record.sh <scenario>` (Mode B, PTY) or `xctrace --launch` on `Stress --bench` (Mode A, no attach) → `analyze_timeprofile.py` | `tour, list, table, emoji, scroll`; FrameBuffer micro trees | **Central CPU thesis check** (§7.4): `strippedLength` / `forEachVisibleANSIRun` / `ansiAware*` inclusive share must collapse |
 | **`Tools/Profiling/idle_cpu.py`** | `idle_cpu.py BIN [settle] [window] [keys]` | any static screen | **Hard idle gate** — flush-encode must stay diff-gated to changed rows |
-| **Golden snapshots** (`Tests/TUITestSupport/__Snapshots__`) | `swift test` (record with `TUIKIT_RECORD_SNAPSHOTS=1`) | full corpus | **Correctness gate** — rekey to structural `(text, styleRuns)` equality |
+| **Golden snapshots** (`Tests/TUITestSupport/__Snapshots__`) | `swift test` (record with `TUI_RECORD_SNAPSHOTS=1`) | full corpus | **Correctness gate** — rekey to structural `(text, styleRuns)` equality |
 
 ### 7.3 Metrics (mapped to the owner's words)
 

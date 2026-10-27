@@ -415,7 +415,7 @@ jobs:
       # selected per invocation. Every later step goes through $SWIFT so the
       # build/test/smoke steps stay identical across every cell.
       #
-      # TUIKIT_CONFIG_DIR keeps the apps off the runner's real preferences
+      # TUI_CONFIG_DIR keeps the apps off the runner's real preferences
       # (AppStorage honours it on every platform). It is set here rather than
       # in a job-level `env:` because the `runner` context only exists inside
       # steps — hence the $RUNNER_TEMP variable.
@@ -432,7 +432,7 @@ jobs:
           else
             echo "SWIFT=swift" >> "$GITHUB_ENV"
           fi
-          echo "TUIKIT_CONFIG_DIR=$RUNNER_TEMP/tuikit-config" >> "$GITHUB_ENV"
+          echo "TUI_CONFIG_DIR=$RUNNER_TEMP/tuikit-config" >> "$GITHUB_ENV"
 
       - name: Toolchain version
         run: $SWIFT --version
@@ -526,7 +526,7 @@ jobs:
         # pixels and no error otherwise, and which nothing else here would
         # notice. Costs one extra render per scenario.
         env:
-          TUIKIT_VERIFY_RENDER_MEMO: "1"
+          TUI_VERIFY_RENDER_MEMO: "1"
         run: $SWIFT run Stress --selfcheck
 
       - name: Smoke — drive both apps in a real PTY (${{ matrix.smoke }})
@@ -658,7 +658,7 @@ jobs:
       # (CONTRIBUTING.md, "What CI covers"). This lane checks: its Build step
       # compiled everything from a clean checkout (no cache), so nothing hides
       # behind an incremental build; `TUIBenchmarks`, which only
-      # TUIKIT_BENCHMARKS adds to the graph and no other step builds, is built
+      # TUI_BENCHMARKS adds to the graph and no other step builds, is built
       # here. Swift 6.2, the oldest Swift TUI supports, on macOS: the lane
       # whose diagnostics every contributor's Xcode 26 shows. A warning in a
       # dependency's own code (the benchmark plugin's deprecations) is printed
@@ -667,7 +667,7 @@ jobs:
       - name: Build the benchmarks
         if: matrix.warnings_check
         env:
-          TUIKIT_BENCHMARKS: "1"
+          TUI_BENCHMARKS: "1"
         run: |
           set -o pipefail
           $SWIFT build --target TUIBenchmarks 2>&1 | tee "$RUNNER_TEMP/benchmarks-build.log"
@@ -714,7 +714,7 @@ jobs:
       # this step builds debug on macOS, so code compiled only in release
       # (today one line, SoftTrap.report's `log.report`), only on another
       # platform, or only under an opt-in define such as
-      # TUIKIT_VALUE_HASH_CENSUS is not counted here. Set on the command line
+      # TUI_VALUE_HASH_CENSUS is not counted here. Set on the command line
       # only: in Package.swift it would reach every client's build of TUI.
       # Swift Build (6.4's default) passes
       # `-Xswiftc -Xfrontend` through as the native build system does. Last in
@@ -794,11 +794,11 @@ jobs:
 
       # Container jobs run as root over a workspace owned by the runner user,
       # which trips git's dubious-ownership guard and, through it, SwiftPM.
-      # TUIKIT_CONFIG_DIR keeps the apps off the runner's real preferences.
+      # TUI_CONFIG_DIR keeps the apps off the runner's real preferences.
       - name: Trust the workspace and isolate preferences
         run: |
           git config --global --add safe.directory '*'
-          echo "TUIKIT_CONFIG_DIR=$RUNNER_TEMP/tuikit-config" >> "$GITHUB_ENV"
+          echo "TUI_CONFIG_DIR=$RUNNER_TEMP/tuikit-config" >> "$GITHUB_ENV"
 
       - name: Toolchain version
         run: swift --version
@@ -836,7 +836,7 @@ jobs:
 
       - name: Smoke — headless render of every scenario
         env:
-          TUIKIT_VERIFY_RENDER_MEMO: "1"
+          TUI_VERIFY_RENDER_MEMO: "1"
         run: swift run Stress --selfcheck
 
       - name: Smoke — drive both apps in a real PTY (${{ matrix.smoke }})
@@ -1395,7 +1395,7 @@ jobs:
         continue-on-error: true
         timeout-minutes: 30
         env:
-          TUIKIT_VERIFY_RENDER_MEMO: "1"
+          TUI_VERIFY_RENDER_MEMO: "1"
         run: swift run Stress --selfcheck
 
   # ── WebAssembly ────────────────────────────────────────────────────────────

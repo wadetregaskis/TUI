@@ -65,7 +65,7 @@ final class Terminal: HostStateKeeping {
 
     /// Whether TUI asks for Shift-modified mouse events while it reports
     /// the mouse (XTSHIFTESCAPE, ``shiftEscapeOn``): not where
-    /// `TUIKIT_SHIFT_CLICKS=0` is set, the user's way back to the terminal's
+    /// `TUI_SHIFT_CLICKS=0` is set, the user's way back to the terminal's
     /// own Shift-click and Shift-drag, and not on Apple Terminal, which keeps
     /// no Shift bypass to turn off and whose reading of `CSI > … s` is
     /// unmeasured (one that ignored the `>` would save the cursor, SCOSC).
@@ -74,7 +74,7 @@ final class Terminal: HostStateKeeping {
 
     /// The terminal TUI sets the pointer's shape on, in its names (OSC 22,
     /// ``showPointerShape(_:)``), or `nil` where it leaves the pointer alone:
-    /// `TerminalClient.pointerShapeSupport`, then `TUIKIT_POINTER_SHAPES`,
+    /// `TerminalClient.pointerShapeSupport`, then `TUI_POINTER_SHAPES`,
     /// then the hosts documented to take it. Decided once, as the terminal is
     /// made: every such host names itself in the environment, so the startup
     /// exchange has nothing to add.
@@ -470,7 +470,7 @@ final class Terminal: HostStateKeeping {
 
     /// Whether a frame that writes more than one row holds the terminal's
     /// display while it is drawn (DEC mode 2026, synchronized output): yes,
-    /// unless `TUIKIT_SYNCHRONIZED_OUTPUT=0`. See
+    /// unless `TUI_SYNCHRONIZED_OUTPUT=0`. See
     /// ``beginSynchronizedUpdate()``.
     let synchronizesOutput: Bool
 
@@ -505,7 +505,7 @@ final class Terminal: HostStateKeeping {
 
     /// Creates a new terminal instance.
     ///
-    /// - Parameter environment: Where `TUIKIT_SYNCHRONIZED_OUTPUT` is read
+    /// - Parameter environment: Where `TUI_SYNCHRONIZED_OUTPUT` is read
     ///   from, and the host that decides ``keepsAutowrap``: the process's
     ///   own, unless a test poses another.
     init(environment: [String: String] = ProcessInfo.processInfo.environment) {
@@ -1113,7 +1113,7 @@ extension Terminal {
     /// shipped). Ghostty honours it under its default
     /// `mouse-shift-capture = false` (its documentation; its `never` and
     /// `always` override the app); the other measured hosts document
-    /// nothing, and are expected to ignore it. `TUIKIT_SHIFT_CLICKS=0`
+    /// nothing, and are expected to ignore it. `TUI_SHIFT_CLICKS=0`
     /// keeps it from being sent. See `Terminal compatibility survey.md`,
     /// "Shift-clicks reaching the app (XTSHIFTESCAPE)".
     static let shiftEscapeOn = "\u{1B}[>1s"
@@ -1124,9 +1124,9 @@ extension Terminal {
     static let shiftEscapeOff = "\u{1B}[>0s"
 
     /// Whether the environment lets TUI ask for Shift-clicks: yes, unless
-    /// `TUIKIT_SHIFT_CLICKS` is `0`.
+    /// `TUI_SHIFT_CLICKS` is `0`.
     nonisolated static func shiftClicksAllowed(environment: [String: String]) -> Bool {
-        environment["TUIKIT_SHIFT_CLICKS"] != "0"
+        environment["TUI_SHIFT_CLICKS"] != "0"
     }
 
     /// The tracking modes we know about. Higher values are strict
@@ -1236,7 +1236,7 @@ extension Terminal {
     /// Warp (`Documentation/Terminals/Terminal compatibility survey.md`, "Asking the terminal —
     /// Device Attributes"). Nothing is asked first: its DECRQM query is the
     /// one shape Apple Terminal prints, and setting the mode needs no answer.
-    /// `TUIKIT_SYNCHRONIZED_OUTPUT=0` turns it off, should a terminal take it
+    /// `TUI_SYNCHRONIZED_OUTPUT=0` turns it off, should a terminal take it
     /// badly; see "Synchronized output (mode 2026)" there.
     ///
     /// Does nothing outside a frame, a second time in one, or when turned off.
@@ -1249,10 +1249,10 @@ extension Terminal {
     }
 
     /// Whether the environment lets frames be held at all: yes, unless
-    /// `TUIKIT_SYNCHRONIZED_OUTPUT` is `0` — the user's way out, in the shape
-    /// of `TUIKIT_KEYBOARD_PROTOCOL=0`.
+    /// `TUI_SYNCHRONIZED_OUTPUT` is `0` — the user's way out, in the shape
+    /// of `TUI_KEYBOARD_PROTOCOL=0`.
     nonisolated static func synchronizedOutputAllowed(environment: [String: String]) -> Bool {
-        environment["TUIKIT_SYNCHRONIZED_OUTPUT"] != "0"
+        environment["TUI_SYNCHRONIZED_OUTPUT"] != "0"
     }
 
     /// Writes a string to the terminal.

@@ -149,7 +149,7 @@ extension TerminalClient {
     /// handling links it meant to keep.
     ///
     /// `nil` (the default) means "use the measured table", unless
-    /// `TUIKIT_HYPERLINKS` is set in the environment — `1` for on, `0` for off
+    /// `TUI_HYPERLINKS` is set in the environment — `1` for on, `0` for off
     /// — which is how a user turns links on for their own terminal without the
     /// application knowing anything about it.
     @MainActor public static var hyperlinkSupport: Bool? {
@@ -203,7 +203,7 @@ extension TerminalClient {
         override: Bool?, environment: [String: String], program: @autoclosure () -> Program
     ) -> Bool {
         if let override { return override }
-        switch environment["TUIKIT_HYPERLINKS"] {
+        switch environment["TUI_HYPERLINKS"] {
         case "1": return true
         case "0": return false
         default: return honoursHyperlinks(program())
