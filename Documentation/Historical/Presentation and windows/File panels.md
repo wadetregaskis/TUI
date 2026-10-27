@@ -12,8 +12,9 @@ panel, a question before replacing. Since 2026-10-24 they look as the Mac's
 do: an enclosing-folder button, a segmented path control, list and column
 views, a file-type pop-up, icons per entry (emoji, SF Symbols, or the system's
 own through Kitty graphics where the app asks), and room between the parts at
-larger control sizes. On Linux there is no save panel, since every
-`fileExporter` takes an Apple-only type (A-O10-1, never answered).
+larger control sizes. On Linux, where every SwiftUI `fileExporter` takes an
+Apple-only type, two TUI-only exporters save a value's bytes or an `Encodable`
+value on every platform (A-O10-1, answered 2026-10-27).
 
 ## How it unfolded
 
@@ -58,6 +59,17 @@ but cannot ask where to save one, though the save panel itself is portable
 SwiftUI has, and it is what a Linux app needs. 3 and 4 make SwiftUI source
 compile on Linux, which none of the other Apple-only API does (A18).
 
+
+**Answered 2026-10-27: 2, and more generic than `Data`** ("strings and maybe
+anything that's `Codable`"). Built, on every platform:
+`fileExporter(isPresented:contents:contentType:defaultFilename:onCompletion:onCancellation:)`
+takes a `FileExportContents` — `Data` as it is, a `String` as UTF-8, or a type
+of the app's own that answers per content type — and
+`fileExporter(isPresented:encoding:contentType:defaultFilename:onCompletion:onCancellation:)`
+takes any `Encodable` value, written as a property list where the type is one
+and as JSON (sorted keys, pretty-printed) otherwise, JSON by default. Both are
+the save panel and atomic write of the other exporters; an error making the
+contents ends the save with it (`FileContentsExporterTests`).
 ### B-O10-1. The open panel is a sheet of TUI's own: a folder's items in a table
 
 *`View.fileImporter(isPresented:allowedContentTypes:onCompletion:)` and its two
@@ -300,7 +312,7 @@ when it saves, from the item the latest body gave, never on every body.
 `Transferable` is CoreTransferable's, which Linux does not have, so on Linux
 these two forms are absent and fail to compile (decisions A18, option 1:
 platform API where the feature is intrinsically the platform's). What Linux
-should have instead is A-O10-1.
+has instead is A-O10-1's two exporters.
 
 ### B-O10-12. `FileDocument` ships on Apple platforms, to be written; nothing in TUI reads one
 

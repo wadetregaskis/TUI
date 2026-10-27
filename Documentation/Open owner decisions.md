@@ -36,7 +36,6 @@ been in force since 2026-10-18.
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
 | A-WIDTHS-1 | What does an unidentified host claim for a conjunct: one cluster's width, or a width per code point? | 1 for now (clustered), then measure xterm and VTE (and kitty) with `advance_probe.py` before choosing. | Clustered. |
-| A-O10-1 | Linux has no save panel, since every `fileExporter` takes an Apple-only type. | 2: a TUI-only exporter form that takes `Data`, adding no second spelling of SwiftUI's. | Linux apps can open and move files but not ask where to save one. |
 | A-FB16-1 | A container's own size changes at once, where SwiftUI's frame glides (the unbuilt half of your FB16 (a′)). | 1 now (record positions-only as a deviation); 2 if the Example's section borders read badly. | Sizes jump. |
 | A-LAYOUT-1 | A column shares an overfull height only once a child's minimum is cheap to ask (the attempt cost +11 to +34%). | 2: make a child's minimum cheap to ask (a static witness), then land the sharing. | A column cuts its trailing children where SwiftUI squeezes them all. |
 | A-APPSTATE-1 | `LocalizationService.shared` goes with draw-time lookup (now landed). | (b): the locale is the language, as SwiftUI's is, built on LOCALE-B. | The shared service stays. |
@@ -96,12 +95,9 @@ been in force since 2026-10-18.
 | A-EFFECTS-1 | 3: never invisible; dim and the other attributes widen the palette. | Done: faint in the ink's colour at 16 colours, a step toward it at 256. |
 | A-O12-1 | Configurable, app-wide (a Mac's links-only or a web page's every clickable control). | Done: `controlPointerStyle(_:)`, `.automatic` (links only, the default) or `.link`. |
 | A-MODALS-1 | 3, if macOS agrees: it does (measured). | Done: behind a modal only its own shortcuts and status bar items show and fire. |
-
-## Answered on 2026-10-27
-
-| Id | Answer | Status |
-|---|---|---|
+| A-O10-1 | 2, generic beyond `Data` (strings, `Codable`). | Done: `fileExporter(isPresented:contents:…)` and `fileExporter(isPresented:encoding:…)`, on every platform. |
 | A-FORMS-1 | 2: follow SwiftUI. | Done: a bare button in the control column (columns), at the row's leading edge (grouped). |
+| ENV-VARS | Rename `TUIKIT_` to `TUI_`. | Done (`af22656f9`). |
 
 ## Answered later on 2026-10-26
 
