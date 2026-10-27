@@ -79,23 +79,51 @@ QUICK_SCENARIOS = [
 ]
 
 
+def listed_scenarios(binary):
+    """Every scenario `binary --help` lists, or `None` when it lists none."""
+    try:
+        out = subprocess.run([binary, "--help"], capture_output=True, text=True,
+                             timeout=30).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    for line in out.splitlines():
+        if "," in line and "scenario" not in line.lower():
+            ids = [part.strip() for part in line.split(",")]
+            if len(ids) > 5 and all(part and " " not in part for part in ids):
+                return ids
+    return None
+
+
 def scenario_ids(binary):
     """The scenarios `binary` actually has, minus the ones the sweep excludes.
 
     Asked of the binary rather than hard-coded so a new scenario joins the sweep
     the day it is written.
     """
-    try:
-        out = subprocess.run([binary, "--help"], capture_output=True, text=True,
-                             timeout=30).stdout
-    except (OSError, subprocess.SubprocessError):
+    ids = listed_scenarios(binary)
+    if ids is None:
         return list(FALLBACK_SCENARIOS)
-    for line in out.splitlines():
-        if "," in line and "scenario" not in line.lower():
-            ids = [part.strip() for part in line.split(",")]
-            if len(ids) > 5 and all(part and " " not in part for part in ids):
-                return [name for name in ids if name not in EXCLUDED_FROM_SWEEP]
-    return list(FALLBACK_SCENARIOS)
+    return [name for name in ids if name not in EXCLUDED_FROM_SWEEP]
+
+
+def runnable_by_both(scenarios, old, new):
+    """`scenarios` less those either binary does not have, and those left out.
+
+    A binary built from before a scenario was written exits on it, which used
+    to end the whole run there (B71's A/B, 2026-10-27: `glide` against a base
+    from 10-03 lost the scenarios after it). A `scenario/variant` or a
+    `session/<id>` is checked by the scenario it names; a binary that lists
+    none is trusted.
+    """
+    kept, missing = [], []
+    listings = [listed_scenarios(binary) for binary in (old, new)]
+    for scenario in scenarios:
+        base = scenario.partition("/")[0]
+        if base == "session" or all(ids is None or base in ids for ids in listings):
+            kept.append(scenario)
+        else:
+            missing.append(scenario)
+    return kept, missing
 
 WALL_RE = re.compile(r"(?<!-)\bper-frame=([0-9.]+)")  # not `cpu-per-frame=`
 CPU_RE = re.compile(r"cpu-per-frame=([0-9.]+)")
@@ -228,6 +256,9 @@ def main():
     args = parser.parse_args()
     if args.scenarios is None:
         args.scenarios = QUICK_SCENARIOS if args.quick else scenario_ids(args.old)
+    args.scenarios, missing = runnable_by_both(args.scenarios, args.old, args.new)
+    if missing:
+        print(f"  skipped (not in both binaries): {' '.join(missing)}\n")
     if args.reps is None:
         args.reps = 12 if args.quick else 10
     if args.target_seconds is None:
