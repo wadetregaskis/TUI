@@ -10,6 +10,11 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 ## Owner actions
 
+- **B-F2-4, once in Ghostty:** run `IDLE_PROBE_MODE=hang ~/Library/Caches/tuikit-probe/owner-keys/IdleProbe`
+  (a release `IdleProbe`, staged there because Ghostty may not open files under `~/Documents`), press ⌃\\
+  once, wait about two seconds, and press it again: the app should quit at the second press, the terminal
+  restored. Under the kitty keyboard protocol ⌃\\ arrives as a key report, and only the stall watchdog
+  makes a hung app quit.
 - **Push `main`.** Local `main` is several hundred commits ahead of GitHub (last pushed 2026-10-24, `9f8439764`).
   It includes the rename to TUI (`c5cdfca27`): pushing it renames every module and product for anyone
   depending on `main`.
@@ -60,7 +65,7 @@ been in force since 2026-10-18.
 | Id | Answer | Status |
 |---|---|---|
 | B-D6M-2 | (a): swift-syntax is cloned by everyone, compiled only by macro users. | Nothing to change. |
-| B-DYNVFIX-3 | (c), the dispatching identity; then (b), then (a), if each is too costly after optimisation. | (c) built (2026-10-27): a click, a key, a gesture or a `.task` inside a holder reads that holder's environment. Its A/B is owed for a quiet machine and decides whether it stays. |
+| B-DYNVFIX-3 | (c), the dispatching identity; then (b), then (a), if each is too costly after optimisation. | (c) built (2026-10-27): a click, a key, a gesture or a `.task` inside a holder reads that holder's environment. Its A/B (2026-10-27, 35 scenarios warm and cold, the flagged ones re-run at 40 reps) found no measurable cost, so (c) stays. |
 | PACKAGE-RESOLVED | Untrack it and ignore it. | Done in lane SMALL1026. |
 | SDK15-CI | (c): the macOS 15 SDKs are not supported. | Done in lane SMALL1026: the guards and CONTRIBUTING. |
 | B-D5C-1 | (1): the existential overload stays. | Nothing to change. |
@@ -70,8 +75,8 @@ been in force since 2026-10-18.
 | A48 | The recommendation: buttons revealed in the row, ⇧→ / ⇧← (again for the full swipe), Ctrl-L / Ctrl-T fallbacks. | Done (2026-10-26): keys, clicks and the horizontal wheel. **Needs you:** a real trackpad swipe recorded in Apple Terminal and iTerm2 (the burst gap is an estimate, 250 ms, and the replay test uses representative bytes). |
 | A53-KEYBOARD-DRAG | The carry mode, after its prerequisite (`.draggable` as a focus stop with Copy and Paste). | Prerequisite done (2026-10-26). The carry is done (2026-10-27): Ctrl-R picks up; Tab and the arrows move among the stops that can take it, which are marked with a `‹`; Up and Down move between a list's rows; Return drops and Escape puts it back, both named in the status bar; Space flips copy and move. No idle expiry, because a slow hand would lose what it carried. Still owed: Pick Up in a context menu, which needs a way for a modifier to add a menu item. |
 | B-BITEMS1-1 | The three-party model. | Done (2026-10-26): `dragConfiguration(_:)`, the destination's proposal, the modifier flip, the narrowing and the badge. The image well's badge (Generic, not Copy?) is still to be probed in a real window. |
-| O13-KEYS | The recommendation: F10 enters bar mode; measure F10 and fn-F10. | Bar mode done (2026-10-26). **Needs you:** F10 and fn-F10 pressed in Apple Terminal, iTerm2 and Ghostty with `Tools/TerminalProbes/key_probe.py` (a key press cannot be sent from here). |
-| B-HELP-2 | Shift-F1 at the lowest priority (any app or built-in handler takes it first); ⌥? toggles all help; a menu-bar item where Option does not arrive. | Done (`897751413`); what each terminal sends for Shift-F1 is still to be measured. |
+| O13-KEYS | The recommendation: F10 enters bar mode; measure F10 and fn-F10. | Bar mode done (2026-10-26). **Needs you:** F10 and fn-F10 pressed in Apple Terminal, iTerm2 and Ghostty: `PROBE_KEYS=f10,fn_f10,shift_f1 python3 Tools/TerminalProbes/key_probe.py` in each (a key press cannot be sent from here), and whether the standard-function-keys setting is on. |
+| B-HELP-2 | Shift-F1 at the lowest priority (any app or built-in handler takes it first); ⌥? toggles all help; a menu-bar item where Option does not arrive. | Done (`897751413`); what each terminal sends for Shift-F1 is still to be measured, in the same `key_probe.py` run as O13-KEYS. |
 | B-PASTE-1-EDITOR | Undo as edits, not snapshots, with exhaustive tests that the stack cannot drift from the text; and undo for every built-in control that changes a value. | Undo as edits done (2026-10-26), checked against the snapshot history by a differential test. The controls' undo done the same night: toggles, pickers, sliders, steppers, date fields and calendar, colour grids, curve editors. |
 | B75 | Draw a tab's custom label view in its chip (variable heights allowed); text labels keep their path and cost. | Done (2026-10-26): drawn whole in its chip, the row as tall as its tallest label. |
 | B86 | Both now: the full entity table, stored compressed, and link reference definitions. | Done (`b3ab3f8b5`, `813a00cb3`). |
@@ -82,7 +87,7 @@ been in force since 2026-10-18.
 | B-D2S-6 | Variable page sizes where they can be had; blank rows where they cannot, or cost too much; never a row cut off. | Done (2026-10-27): variable pages under `.paging` (the pair comes and goes; every line read once), blanks where a page cannot vary (container-sized pages, `.viewAligned`). Never a row cut (2026-10-27): over a `scrollTargetLayout`'s rows, `.paging` draws the row a page would cut blank and starts the next page with it. |
 | S3-NO-EXTENT-SPACING | Yes: a child with no rows takes no gap. | Done: deliberate deviation L17. |
 | FORMATTER | Skip both: an inferior API with a better replacement (`format:`), and on Linux a custom `Formatter` does not parse. | Done: refusals wave 17, O11. |
-| D2S-SCROLLCLIP | As SwiftUI: overflow shows through the blank cells inside a later line too. | Built (2026-10-27): a later view hides the overflow only under its runs of painted cells. Its A/B of the geometry is owed for a quiet machine; only a buffer carrying overflow pays. |
+| D2S-SCROLLCLIP | As SwiftUI: overflow shows through the blank cells inside a later line too. | Built (2026-10-27): a later view hides the overflow only under its runs of painted cells. Its A/B (2026-10-27) found no measurable cost. |
 | B-D2S-7 | As SwiftUI: `.paging` and `.viewAligned` honour `.contentMargins`, after a resize probe. | Not open: built on 2026-10-19 after the probe (lane SCROLL), and listed here by mistake. One measured SwiftUI quirk is not copied: its `.paging` page is half the top margin longer (deviation R15). |
 | TEXT2-INTERIOR | The default stays (opt-out allowed, not opt-in); try to cut its cost. | Queued. |
 | OPACITY-28.2 | Not open: you answered it on 2026-09-10 (carry: a surface stepped off a faded page is as faded as the page), and it shipped then (`cff2e7190`, Opacity §39). Listed here by mistake. | Done. |
@@ -102,10 +107,8 @@ been in force since 2026-10-18.
 
 - **The README's hero clip.** You haven't chosen. Candidates filmed or sketched: the system monitor,
   now playing, the weather; the 10-24 pick was the slider driving a gauge.
-- **The Animation clip.** Five ideas to choose from: a photo wall opening into a full-size picture with
-  the zoom transition (recommended); a now-playing card with cross-fades, rolling digits and a spectrum;
-  a system monitor with streaming sparklines, springing gauges and re-sorting rows; a weather strip with
-  scroll transitions and a moving sun; a keyframed launch sequence with phase-animated buttons.
+- **The Animation clip** is settled (2026-10-26): it keeps ordinary view animation, and the photo zoom
+  went into the Navigation clip.
 - **Environment variables.** The rename kept the `TUIKIT_…` variables as they are, since a bare `TUI_`
   prefix could collide with other tools. Say if you want them renamed too.
 - **The page behind a sheet** is now veiled rather than flattened (your ruling of 2026-10-25), with a
