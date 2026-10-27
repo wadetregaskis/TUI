@@ -223,40 +223,19 @@ struct FieldGuide: View {
         }
     }
 
-    /// A species' photo on a screen of its own, zoomed up from its page.
+    /// A species' photo on a screen of its own, zoomed up from its page: the
+    /// zoom scales and moves the photo with its rectangle, from the
+    /// thumbnail's size and place, and folds it back the same way.
     private func photoScreen(_ entry: Species) -> some View {
-        GrowingPhoto(entry: entry)
-            .padding(.horizontal, 1)
-            .navigationTitle("Photo")
-            .navigationTransition(.zoom(sourceID: entry.id, in: zoom))
-    }
-}
-
-/// A species' photo that grows, as its screen zooms in, from the size and place
-/// of the thumbnail it was opened from to as large as the column lets it be:
-/// the zoom reveals the screen through a growing rectangle, and the photo
-/// grows with it, on the same curve (`.default`), so it reads as the
-/// thumbnail scaling up.
-struct GrowingPhoto: View {
-    let entry: Species
-    @State private var grown = false
-
-    /// The thumbnail's frame on the species' page, and its column there: past
-    /// the facts (30) and the gap beside them (2).
-    private static let thumbnail = (width: 16, height: 6, x: 32)
-
-    var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Image(.file(ClipAssets.photo(entry.photo)))
                 .resizable()
                 .scaledToFit()
-                .frame(
-                    width: grown ? 62 : Self.thumbnail.width, height: grown ? 12 : Self.thumbnail.height,
-                    alignment: grown ? .center : .topLeading)
-                .offset(x: grown ? 0 : Self.thumbnail.x)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             Text(verbatim: "\(entry.photo).webp").foregroundStyle(.palette.foregroundSecondary)
         }
-        .onAppear { withAnimation(.default) { grown = true } }
+        .padding(.horizontal, 1)
+        .navigationTitle("Photo")
+        .navigationTransition(.zoom(sourceID: entry.id, in: zoom))
     }
 }

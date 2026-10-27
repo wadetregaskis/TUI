@@ -1630,7 +1630,13 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   and its `shadow(color:radius:x:y:)` falls on the screen it grows over, in
   cells; both go from the source's to nothing as the rectangle reaches the
   stack ([B-W1B-2](<Decisions/Shapes, effects and animation/What the shapes unblocked (W1B).md#b-w1b-2-a-zoom-sources-clip-shape-and-shadow-shrink-to-nothing-as-the-rectangle-grows>)).
-  (`ZoomNavigationTransitionTests`.)
+  A picture the terminal draws (Kitty graphics) on the screen being
+  revealed or folded away IS scaled, and moved with the rectangle, by the
+  map that takes the stack to it — a photo zoomed up from its thumbnail
+  grows from the thumbnail's size and place — drawn by a second placement of
+  its image, so no pixels are sent (since 2026-10-26; the owner: "it should
+  scale and move, whereas it's scaling and *clipping*").
+  (`ZoomNavigationTransitionTests`, `ZoomScalingTests`.)
 - **Why:** a cell cannot be scaled (refusal review O4, ruled 2026-10-12: the
   zoom is the `.scale` reveal generalised).
 - **Decided:** [O4](<Refusals re-examined, wave 17 (2026-10-03).md#o4-matched-geometry-matchedgeometryproperties--w12-matchedgeometryeffect-zoom-matchedtransitionsourceconfiguration-emptymatchedtransitionsourceconfiguration--w09-matchedtransitionsource-navigationtransitionzoom>),

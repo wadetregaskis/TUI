@@ -234,6 +234,12 @@ struct DerivedImages {
         return escapes
     }
 
+    /// The box copy `copyID` is placed in, in cells: its picture's.
+    func box(ofCopy copyID: KittyGraphics.ImageID) -> (columns: Int, rows: Int)? {
+        guard let origin = origins[copyID], let source = sources[origin.source] else { return nil }
+        return (source.columns, source.rows)
+    }
+
     /// The rectangle of copy `copyID`'s pixels, as it was sent, that its cell
     /// (`column`, `row`) draws: what a classic placement crops it to, to lay
     /// that cell of it under a glyph (`PictureUnderTextMarker`). Edges at

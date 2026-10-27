@@ -69,7 +69,8 @@ import TUIView
 ///   (`.navigationTransition(.zoom(sourceID:in:))` on the screen, with
 ///   ``View/matchedTransitionSource(id:in:)`` on the view it zooms from): it is
 ///   then revealed from its source's frame, and folded back into it when it is
-///   popped (``ZoomNavigationTransition``).
+///   popped (``ZoomNavigationTransition``); a picture on it is scaled and moved
+///   with the rectangle rather than cut by it.
 public struct NavigationStack<Root: View>: View {
 
     /// Where the path is kept. Every case is normalised to the same pair of

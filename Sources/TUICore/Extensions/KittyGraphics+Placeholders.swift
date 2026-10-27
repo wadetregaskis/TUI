@@ -44,20 +44,30 @@ extension KittyGraphics {
     /// ``Unicode/Scalar/terminalImagePlaceholder`` records the other half of
     /// that decision: such a row declines the cell-span diff outright.
     ///
+    /// - Parameter placement: Which of the image's virtual placements the cells
+    ///   draw, named in their underline colour (`58;5;n`) — the second, `2`,
+    ///   a navigation zoom scales a picture with — or `nil` for the one TUI
+    ///   places every image with (``placement(id:columns:rows:placement:)``),
+    ///   which cells naming none draw.
     /// - Returns: the rows, or `[]` for a request the protocol cannot express
-    ///   — a non-positive size, an id outside ``maximumImageID``, or an extent
-    ///   past ``maximumCellExtent``.
-    public static func placeholderRows(id: ImageID, columns: Int, rows: Int) -> [String] {
+    ///   — a non-positive size, an id outside ``maximumImageID``, an extent
+    ///   past ``maximumCellExtent``, or a placement outside `1...255`.
+    public static func placeholderRows(
+        id: ImageID, columns: Int, rows: Int, placement: UInt32? = nil
+    ) -> [String] {
         guard id > 0, id <= maximumImageID,
             columns > 0, rows > 0,
-            columns <= maximumCellExtent, rows <= maximumCellExtent
+            columns <= maximumCellExtent, rows <= maximumCellExtent,
+            (placement ?? 1) >= 1, (placement ?? 1) <= 255
         else { return [] }
 
         // The id, in the foreground colour. A direct-colour triple rather than
         // the 256-colour form (both are read as numbers, and both were
         // measured to work) because one spelling carries the whole 24-bit
         // range, and one spelling is one thing to get right.
-        let prefix = "\u{1B}[38;2;\((id >> 16) & 0xFF);\((id >> 8) & 0xFF);\(id & 0xFF)m"
+        let prefix =
+            "\u{1B}[38;2;\((id >> 16) & 0xFF);\((id >> 8) & 0xFF);\(id & 0xFF)m"
+            + (placement.map { "\u{1B}[58;5;\($0)m" } ?? "")
 
         return (0..<rows).map { row in
             var line = prefix
@@ -95,7 +105,7 @@ extension KittyGraphics {
             // a transparent image composites over whatever that background is,
             // so resetting the lot here would flatten every picture with alpha
             // onto the terminal's default rather than onto the page.
-            line += "\u{1B}[39m"
+            line += placement == nil ? "\u{1B}[39m" : "\u{1B}[39;59m"
             return line
         }
     }

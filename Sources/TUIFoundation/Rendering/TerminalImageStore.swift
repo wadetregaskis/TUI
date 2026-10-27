@@ -179,6 +179,11 @@ package final class TerminalImageStore: @unchecked Sendable {
     /// tints only if what is behind changes; past this, the oldest goes, with
     /// its copies.
     static let backdropLimit = 6
+
+    /// The box each image's second placement was last given
+    /// (``scaledPlaceholderRows(of:columns:rows:)``), so a size it already has
+    /// is not sent again.
+    private var scaledBoxes: [KittyGraphics.ImageID: (columns: Int, rows: Int)] = [:]
     private var pending = ""
     /// Copies of the pictures, changed for a translucent layer over them.
     private var derivedImages = DerivedImages()
@@ -422,6 +427,34 @@ package final class TerminalImageStore: @unchecked Sendable {
     /// frost's backdrop takes for that cell (``DerivedImages/cellPixels(of:column:row:)``).
     package func cellPixels(of cell: KittyGraphics.PlaceholderCell) -> [UInt8]? {
         derivedImages.cellPixels(of: cell.id, column: cell.column, row: cell.row)
+    }
+
+    // MARK: - Scaled
+
+    /// The cells that draw image `id` — a picture, or a copy of one — scaled
+    /// to `columns` × `rows`, by a second placement of it (`p=2`) the cells
+    /// name in their underline colour, so its own placement, and every cell
+    /// that draws it, is untouched: what a navigation zoom draws a picture
+    /// with as its rectangle grows or shrinks (`NavigationZoom`). The
+    /// placement is sent when its box changes, and costs no pixels.
+    package func scaledPlaceholderRows(
+        of id: KittyGraphics.ImageID, columns: Int, rows: Int
+    ) -> [String]? {
+        guard images[id] != nil || derivedImages.isCopy(id) else { return nil }
+        let cells = KittyGraphics.placeholderRows(id: id, columns: columns, rows: rows, placement: 2)
+        guard !cells.isEmpty else { return nil }
+        if scaledBoxes[id].map({ $0 != (columns, rows) }) ?? true {
+            pending += KittyGraphics.placement(id: id, columns: columns, rows: rows, placement: 2)
+            scaledBoxes[id] = (columns, rows)
+        }
+        return cells
+    }
+
+    /// The box image `id` — a picture, or a copy of one — is placed in, in
+    /// cells: what its cells' rows and columns count across.
+    package func placementBox(of id: KittyGraphics.ImageID) -> (columns: Int, rows: Int)? {
+        if let image = images[id] { return (image.slot.columns, image.slot.rows) }
+        return derivedImages.box(ofCopy: id)
     }
 
     // MARK: - Owning

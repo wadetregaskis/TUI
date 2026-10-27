@@ -3,7 +3,8 @@
 //
 //  The zoom navigation transition, as a NavigationStack draws it: a reveal of
 //  the pushed screen through a rectangle growing from its source's frame, and
-//  the same rectangle shrinking back into the source when it is popped.
+//  the same rectangle shrinking back into the source when it is popped — its
+//  pictures scaled and moved with the rectangle (NavigationZoom+Pictures.swift).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -133,11 +134,15 @@ extension NavigationCoordinator {
                     .withAvailableSize(width: max(0, rect.width), height: max(0, rect.height)))
         }
         let edge = Self.edge(of: rect, configuration: running.configuration, remaining: 1 - present, context: context)
+        let scaling = context.environment.terminalImageStore.map { ZoomScaling(whole: whole, images: $0) }
         switch running.direction {
         case .reveal:
-            return Self.revealing(buffer, through: rect, over: running.still, fill: fill, edge: edge)
+            return Self.revealing(
+                buffer, through: rect, over: running.still, fill: fill, edge: edge, scaling: scaling)
         case .conceal:
-            return Self.revealing(running.still, through: rect, over: buffer, fill: fill, edge: edge, keepsBase: true)
+            return Self.revealing(
+                running.still, through: rect, over: buffer, fill: fill, edge: edge, keepsBase: true,
+                scaling: scaling)
         }
     }
 
@@ -229,7 +234,7 @@ extension NavigationCoordinator {
     /// once the zoom is over, as it would have at once without one.
     static func revealing(
         _ top: FrameBuffer, through rect: CellRect, over base: FrameBuffer, fill: FrameBuffer?,
-        edge: ZoomEdge = ZoomEdge(), keepsBase: Bool = false
+        edge: ZoomEdge = ZoomEdge(), keepsBase: Bool = false, scaling: ZoomScaling? = nil
     ) -> FrameBuffer {
         let size = CellSize(width: max(top.width, base.width), height: max(top.height, base.height))
         var result = keepsBase ? padded(base, to: size) : picture(base, fittedTo: size)
@@ -238,7 +243,11 @@ extension NavigationCoordinator {
             result = edge.laying(
                 edge.clipping(FrameBuffer(lines: fill.lines), at: (0, 0)), onto: result, at: (rect.x, rect.y))
         }
-        let layer = OverlayLayer(offsetX: 0, offsetY: 0, content: keepsBase ? picture(top, fittedTo: size) : top)
+        // The layer's pictures are not cut by the rectangle: they are lifted out
+        // and drawn again below, scaled and moved with it.
+        var content = keepsBase ? picture(top, fittedTo: size) : top
+        let pictures = scaling.map { $0.liftingPictures(out: &content) } ?? []
+        let layer = OverlayLayer(offsetX: 0, offsetY: 0, content: content)
         let visible = CellRect(
             x: max(0, rect.x), y: max(0, rect.y),
             width: min(rect.maxX, size.width) - max(0, rect.x), height: min(rect.maxY, size.height) - max(0, rect.y))
@@ -254,7 +263,14 @@ extension NavigationCoordinator {
             return result
         }
         let clipped = edge.clipping(part.content, at: (part.offsetX - rect.x, part.offsetY - rect.y))
-        return edge.laying(clipped, onto: result, at: (part.offsetX, part.offsetY))
+        result = edge.laying(clipped, onto: result, at: (part.offsetX, part.offsetY))
+        guard let scaling else { return result }
+        for picture in pictures {
+            guard let drawn = scaling.drawing(picture, into: rect, within: visible) else { continue }
+            let cut = edge.clipping(drawn.cells, at: (drawn.x - rect.x, drawn.y - rect.y))
+            result = edge.laying(cut, onto: result, at: (drawn.x, drawn.y))
+        }
+        return result
     }
 
     /// `buffer`, its payloads with it, padded with blank cells to `size`.

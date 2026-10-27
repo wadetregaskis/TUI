@@ -208,9 +208,14 @@ public enum KittyGraphics {
     /// iTerm2. With `p=1` both replace it, as the protocol says a placement
     /// with the same id does. The cells name no placement, and both draw the
     /// image's one placement for them.
-    public static func placement(id: ImageID, columns: Int, rows: Int) -> String {
-        guard id > 0, id <= maximumImageID, columns > 0, rows > 0 else { return "" }
-        return "\u{1B}_Ga=p,U=1,q=2,i=\(id),p=1,c=\(columns),r=\(rows)\u{1B}\\"
+    ///
+    /// - Parameter placement: Which placement: `1`, the one every image is
+    ///   drawn by, or another — a navigation zoom's scaled picture is `2` —
+    ///   which cells name in their underline colour
+    ///   (``placeholderRows(id:columns:rows:placement:)``).
+    public static func placement(id: ImageID, columns: Int, rows: Int, placement: UInt32 = 1) -> String {
+        guard id > 0, id <= maximumImageID, columns > 0, rows > 0, placement > 0 else { return "" }
+        return "\u{1B}_Ga=p,U=1,q=2,i=\(id),p=\(placement),c=\(columns),r=\(rows)\u{1B}\\"
     }
 
     /// The escape that deletes image `id` and frees its data.
