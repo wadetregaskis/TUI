@@ -13,7 +13,7 @@ them (A39). `mask(alignment:_:)` keeps a view's cells where another draws;
 honoured per cell, as the colour effects are (W5). A mesh is one sample a
 cell, or a picture where the terminal takes one; a ramp's blank cells are two
 samples where Block Elements fill the line (B95). At 16 colours the faint
-content levels vanish (A-EFFECTS-1, never answered).
+content levels vanished (A-EFFECTS-1, answered 2026-10-27: option 3, built).
 
 ## How it unfolded
 
@@ -175,6 +175,17 @@ Options:
 **Recommendation:** 3. It keeps the levels visible and ordered as far as 16
 colours can, with the attribute terminals already provide for exactly this,
 and changes nothing at 24-bit colour.
+
+**Answered 2026-10-27: 3** ("better to fall back to some or all of the levels
+looking the same than to let them become invisible"; use dim and the other
+attributes to widen the palette). Built in the cell blend
+(`OpacityBlend.legibleFaintInk`): a translucent ink the display would draw in
+its field's colour, or at full strength where it is below three quarters, is
+drawn in its own colour, faint, at 16 colours; at 256 it steps toward full
+strength until the palette has an entry that is not the field's. A translucent
+INK only: a view faded by `.opacity(_:)` still fades to nothing. Levels may meet
+on one colour at 256; none vanishes on any shipped palette at either depth
+(`FaintLevelsAuditTests`).
 
 ### B95. A mesh is one sample a cell on a glyph terminal, and a picture where the terminal takes one
 

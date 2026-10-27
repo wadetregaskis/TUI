@@ -812,6 +812,20 @@ extension FrameBuffer {
         result.foreground = foreground
         result.background = background
         result.style = result.style.settingForeground(foreground).settingBackground(background)
+        // A translucent ink the display cannot show — `.tertiary` text at 16 colours,
+        // whose nearest colour is the page — is drawn legibly instead: faint (SGR 2)
+        // in its own colour at 16, the first step toward its colour that the 256
+        // palette tells from the field at 256. Never invisible (A-EFFECTS-1, the
+        // owner's option 3, 2026-10-27). A translucent INK only, never a layer's
+        // opacity: a view faded to nothing is meant to go.
+        if mode == .normal, sourceDraws, sourcePaintsInk, alpha.ink > 0, alpha.ink < 1, let sourceInk,
+            let legible = Self.legibleFaintInk(
+                foreground, ink: sourceInk, inkAlpha: alpha.ink, field: background ?? surface)
+        {
+            result.foreground = legible.ink
+            result.style = result.style.settingForeground(legible.ink)
+            if legible.faint { result.style.apply("\u{1B}[2m") }
+        }
         // A glyph whose ink is the page the terminal has not reported, drawn ON that
         // page, draws nothing. It is invisible, but the foreground slot has no
         // spelling for that page and emits 39, so the glyph would show at full
@@ -830,6 +844,41 @@ extension FrameBuffer {
             result.style.apply("\u{1B}[24;25;29m")
         }
         return result
+    }
+
+    /// The ink to draw instead of `blended` — a translucent `ink` at `inkAlpha`
+    /// over `field` — where the display's colours cannot show it, and whether to
+    /// draw it faint; `nil` where `blended` shows as it is.
+    ///
+    /// At 16 colours the nearest colour to a faint ink is often the field itself,
+    /// and otherwise often the ink at full strength: `.tertiary` vanished into the
+    /// page and `.secondary` drew as `.primary` (`FaintLevelsAuditTests`). Both are
+    /// drawn in the ink's own colour, faint, which every supported terminal draws
+    /// as a fainter ink: the one thing between the ink and the page that 16 colours
+    /// offer. At 256 the levels only vanish, and the palette has colours between, so
+    /// the ink steps toward full strength until it lands on one that is not the
+    /// field's. Levels may meet on one colour; none disappears (owner, 2026-10-27).
+    /// Truecolour draws what it is given.
+    static func legibleFaintInk(
+        _ blended: Color?, ink: Color, inkAlpha: Double, field: Color
+    ) -> (ink: Color, faint: Bool)? {
+        let depth = ColorDepth.current
+        guard depth == .basic16 || depth == .palette256, let blended else { return nil }
+        let page = field.downsampled(to: depth)
+        let shown = blended.downsampled(to: depth)
+        if depth == .basic16 {
+            let whole = ink.downsampled(to: depth)
+            // Faint stands for "about half": nearer the truth than full strength for an
+            // ink below three quarters, which `.secondary` (0.5, stored as 128/255) is.
+            guard whole != page, shown == page || (shown == whole && inkAlpha < 0.75) else { return nil }
+            return (ink, true)
+        }
+        guard shown == page else { return nil }
+        for step in 1...16 {
+            let stronger = ink.opacity(inkAlpha + (1 - inkAlpha) * Double(step) / 16, over: field)
+            if stronger.downsampled(to: depth) != page { return (stronger, false) }
+        }
+        return nil
     }
 
     /// Whether `ink` is the terminal's page, unreported, and `field` is that page too.

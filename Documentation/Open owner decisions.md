@@ -25,7 +25,7 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 ## Decisions waiting on you
 
-### Sixteen lane questions of 2026-10-18 that were never answered
+### Lane questions of 2026-10-18 that were never answered
 
 The lanes building on 2026-10-18 wrote these as they landed. They were listed at the end of the
 record ([From the lanes building on 2026-10-18](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-18 to 2026-10-25.md#from-the-lanes-building-on-2026-10-18>)),
@@ -35,7 +35,6 @@ been in force since 2026-10-18.
 
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
-| A-EFFECTS-1 | The faint content levels (`.secondary` to `.quinary` under a `foregroundStyle`) vanish at 16 colours, and the faintest at 256. | 3: at 16 colours draw the faint levels dim (SGR 2) in the primary's colour; nothing changes at 24-bit. | The faintest levels draw nothing at low colour depths. |
 | A-WIDTHS-1 | What does an unidentified host claim for a conjunct: one cluster's width, or a width per code point? | 1 for now (clustered), then measure xterm and VTE (and kitty) with `advance_probe.py` before choosing. | Clustered. |
 | A-O10-1 | Linux has no save panel, since every `fileExporter` takes an Apple-only type. | 2: a TUI-only exporter form that takes `Data`, adding no second spelling of SwiftUI's. | Linux apps can open and move files but not ask where to save one. |
 | A-FORMS-1 | A bare `Button` in a columns form: at the trailing edge (TUI) or in the value column (SwiftUI, measured)? | 2: the value column, as SwiftUI; `formRowAlignment(_:)` keeps the dialog look. | Trailing edge, an undocumented deviation. |
@@ -92,6 +91,12 @@ been in force since 2026-10-18.
 | TEXT2-INTERIOR | The default stays (opt-out allowed, not opt-in); try to cut its cost. | Queued. |
 | OPACITY-28.2 | Not open: you answered it on 2026-09-10 (carry: a surface stepped off a faded page is as faded as the page), and it shipped then (`cff2e7190`, Opacity §39). Listed here by mistake. | Done. |
 | OPACITY-92 | Try it. | Done (`1ad2199fe`): a hidden view asks for no frames unless it presents a sheet. |
+
+## Answered on 2026-10-27
+
+| Id | Answer | Status |
+|---|---|---|
+| A-EFFECTS-1 | 3: never invisible; dim and the other attributes widen the palette. | Done: faint in the ink's colour at 16 colours, a step toward it at 256. |
 
 ## Answered later on 2026-10-26
 
