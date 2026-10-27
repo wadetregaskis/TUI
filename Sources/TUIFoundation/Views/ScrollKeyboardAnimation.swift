@@ -2,9 +2,9 @@
 //  ScrollKeyboardAnimation.swift
 //
 //  The TUI-only opt-in that makes a scrollable's Page Up/Down and Home/End
-//  glide rather than jump (decisions B27-ANIMATING; the design note's §4,
-//  `Documentation/SwiftUI parity/Decisions/Scrolling/Animated scrolling, a
-//  design (B27).md`).
+//  glide rather than jump (decisions B27-ANIMATING; the design note's §4, the
+//  appendix of `Documentation/Historical/Scrolling/Scroll phases, animated
+//  scrolling, flash and bounce.md`).
 //
 //  Created by Wade Tregaskis
 //  License: MIT

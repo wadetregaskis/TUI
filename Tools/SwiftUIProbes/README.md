@@ -326,7 +326,7 @@ messages cite that path), and what cites it.
   `Sources/TUIFoundation/Views/StackTopRowHold.swift`, `Sources/TUILists/Focus/ItemListHandler+Anchor.swift`,
   `Tests/TUITablesTests/ScrollWindowHoldTests.swift`; `Documentation/Layout and scrolling/Scroll
   anchoring.md` §5; `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R13, R14);
-  `Documentation/SwiftUI parity/Decisions/Scrolling/Scroll anchoring default (SCROLLANCHOR).md`.
+  `Documentation/Historical/Scrolling/README.md`.
 
 ### Scroll transitions
 
@@ -360,8 +360,8 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIFoundation/Focus/ScrollViewHandler+Targeting.swift`,
   `Sources/TUIFoundation/Views/ScrollTargetBehaviors.swift`; `Tests/TUIAppTests/ScrollTargetViewAlignedTests.swift`,
   `Tests/TUIIntegrationTests/ScrollTargetBehaviorTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/Scrolling/Scroll anchors, target behaviours and clipping (D2S).md` (B-D2S-7),
-  `Documentation/SwiftUI parity/Decisions/Scrolling/Scrolling fixes and parity (SCROLL).md` (B-SCROLL-1),
+  `Documentation/Historical/Scrolling/README.md` (B-D2S-7),
+  `Documentation/Historical/Scrolling/README.md` (B-SCROLL-1),
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (R15).
 
 ### Scroll to a row
@@ -374,7 +374,7 @@ messages cite that path), and what cites it.
   moves nothing where the row already shows. Top-level code, built alone.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
 - **Was:** `SCROLL/probe/`.
-- **Cited by:** `Documentation/SwiftUI parity/Decisions/Scrolling/Scrolling fixes and parity (SCROLL).md` (C-SCROLL-1);
+- **Cited by:** `Documentation/Historical/Scrolling/README.md` (C-SCROLL-1);
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
 ### Nested scroll position
@@ -390,7 +390,7 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
 - **Cited by:** `Sources/TUIFoundation/Views/ScrollView+Content.swift`;
   `Tests/TUITablesTests/ListScrollPositionTests.swift`;
-  `Documentation/SwiftUI parity/Decisions/Scrolling/Scrolling fixes and parity (SCROLL).md` (B-SCROLL-6);
+  `Documentation/Historical/Scrolling/README.md` (B-SCROLL-6);
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
 ### Ragged text in a larger frame

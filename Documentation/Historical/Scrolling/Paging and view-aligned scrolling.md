@@ -1,17 +1,81 @@
-# Completing the SwiftUI API: decisions from lane D2S
+# Paging and view-aligned scrolling
 
-*Lane D2S implemented the owner's decisions A8 (`ScrollAnchorRole.alignment`),
-A9 (`scrollContentBackground`), A6 (scroll target behaviours) and A10
-(`scrollClipDisabled`). This file holds the judgement calls the work reached that
-the owner's decisions did not already settle, in the format of
-[`SwiftUI API completion decisions.md`](<../SwiftUI API completion decisions.md>):*
+*How SwiftUI's scroll target behaviours (`.paging`, `.viewAligned`, an app's
+own `ScrollTargetBehavior`) and the alignment anchor role came to TUI, and
+what each scrollable does with them. Ids: A6, A8, B-D2S-1, B-D2S-2, B-D2S-3,
+B-D2S-6, B-D2S-7, B-SCROLL-1, B-SCROLL-2; deviation R15.*
 
-- **A-D2S-n — needs your decision.** Nothing has shipped for these.
-- **B-D2S-n — shipped the safe option.** Says what the fuller version would be,
-  and its price.
-- **C-D2S-n — declined.** With the `parity-map.json` reason.
+## In short
 
-## B. Shipped the safe option
+A `ScrollView` honours every behaviour, built-in or the app's own, with
+SwiftUI's geometry: the container is the window less the content margins, a
+row or card lands at the top or leading margin, and a page sized with
+`containerRelativeFrame` is exactly the step. `List` and `Table` honour the
+two built-in behaviours in whole rows, and never consult an app's own, as
+SwiftUI's macOS `List` does not either. Under a behaviour, a scroll view
+whose indicator style is `.text` keeps its "▲ N more" / "▼ N more" lines
+reserved at every stop, so every page lands whole between them.
+
+## The problem
+
+SwiftUI's paging idiom is `.scrollTargetBehavior(.paging)` over pages sized
+with `.containerRelativeFrame`. In a terminal three things work against it:
+offsets are whole lines, a list's offset is a row and a clip rather than a
+point, and TUI's `.text` indicator style draws "N more" lines over the first
+and last lines of the viewport, which makes the visible area a line shorter
+at each end exactly where a page is meant to fit.
+
+## How it unfolded
+
+1. **The owner's decisions A6, A8, A9 and A10.** Behaviours on `ScrollView`,
+   and `.paging` and `.viewAligned` on `List` and `Table` too; the
+   `.alignment` anchor role (A8). Lane D2S built them. SwiftUI's `List` was
+   measured never to call a custom behaviour (B-D2S-2), so the lists honour
+   only the two built-ins. `ScrollGranularity.row` was folded into
+   `.viewAligned` and removed (the notes at the end).
+2. **The "N more" lines.** Two reviews pulled opposite ways: handed the whole
+   viewport, `.paging` left the lines under the indicators unread at every
+   stop; handed the lines between them, it stopped off every
+   container-sized page. The rule that shipped reserves the pair at every
+   stop under a behaviour (B-D2S-6).
+3. **2026-10-19, lane SCROLL: margins.** The owner settled B-D2S-7 as "probe,
+   then follow SwiftUI". A resize probe (`Tools/SwiftUIProbes/Scroll target
+   behaviours/`) confirmed the documented reading, and behaviours now get
+   SwiftUI's container, content and target. One measured quirk was not copied:
+   SwiftUI's own `.paging` steps half the top margin more than the container
+   (B-SCROLL-1, R15). The same day the horizontal case of the alignment role
+   was built (B-D2S-1) and a pager's `.automatic` horizontal bar was settled
+   before its container (B-SCROLL-2).
+4. **2026-10-26, the owner on B-D2S-6.** Asked whether "▲ 0 more" should ever
+   show, the owner went further: variable page sizes where they can be had,
+   blank reserved lines where they cannot (or would cost too much), and never
+   a row cut off. **Not yet built.** B-D2S-7 was put to the owner again that
+   day by mistake (it had shipped on 10-19).
+
+## Where it stands
+
+Shipped as described, except the owner's 10-26 refinement of B-D2S-6, which
+is owed. The lists' anchors under `.viewAligned` (B-D2S-3) and a custom
+behaviour on a list (B-D2S-2) are recorded fuller versions nobody has asked
+for.
+
+## For a future reader
+
+- **Owed: B-D2S-6 as the owner ruled on 2026-10-26** — variable pages where
+  possible, blanks where not, never a cut row; and "▲ 0 more" should not show
+  at a count of zero (the 10-23 analysis recommended a bare dim arrow or a
+  blank line).
+- **R15 is a judgement that SwiftUI slipped.** If a later SwiftUI changes its
+  half-margin page, re-measure with the probe and follow it either way.
+- **SwiftUI consults a behaviour only on a gesture or a resize**, which is
+  why the margins needed a resize probe; anything else about behaviours that
+  needs measuring needs that probe too.
+- **`.viewAligned` finds rows only in the stack that is the scroll view's
+  content** (through a section header or the margins). A marked stack further
+  in scrolls freely; past 256 rows of varying height the anchored path knows
+  only its band's rows.
+
+## The record
 
 ### B-D2S-1. The alignment role places content on the vertical axis only
 
@@ -88,68 +152,6 @@ so the row nearest the anchor meets the view's anchor point — a walk of the
 heights of the rows on screen, which the list already makes for its reveal.
 About half a day, with tests over rows of mixed heights.
 
-### B-D2S-4. `scrollClipDisabled` reaches `ScrollView`; `List` and `Table` keep clipping
-
-*`View.scrollClipDisabled(_:)` (A10)*
-
-The owner's A10 decision is about the scroll view: its content past the
-viewport draws as a floating layer around it, over the neighbours, with its hit
-regions. That ships for `ScrollView`. SwiftUI's `List` on macOS honours the
-modifier too (measured on macOS 15: rows draw on below a 100-point list's frame
-when it is set, and do not when it is not), and TUI's `List` and `Table`
-still clip: the modifier compiles on them and changes nothing.
-
-**The fuller version:** a list draws only the rows its window walks, so it
-would draw a row or two past each edge under the modifier (its band, as a lazy
-stack's), and hand them out as the scroll view's overflow layers are; the
-header, the border and the indicators stay where they are. About half a day
-for both, with tests, and no cost to a list without the modifier.
-
-**`List`: built (2026-10-19, lane LISTS2).** Under the modifier a list draws
-the row before its window and the one after — each with the lines of the
-window's edge row the window cut — just outside its frame, as overflow layers
-at its place in the stacking order, composed as its rows are (the cursor's and
-the selection's looks, the stripes). They are drawn, not clicked: the list's
-click mapping covers its frame, and carrying the rows' own regions and a
-row click out to them is about two hours more. A `Table` still clips: its two
-composers (single- and multi-line rows) each need the same, about half a day
-(lane LISTS2's decisions, B-LISTS2-5).
-
-### B-D2S-5. A later view hides an unclipped scroll view's overflow from its first painted cell to its last
-
-Under `scrollClipDisabled`, the content after a scroll view hides the scroll
-view's overflow where that content draws — SwiftUI's stacking (measured). A
-terminal cell is drawn or not, so "where it draws" has to be said in cells.
-Shipped: on each line of the later content, from its first painted cell (a
-glyph other than a space; a space styled to show — a background, reverse
-video, an underline, a strikethrough, an overline; or a cell an animated run
-repaints) to its last; the unstyled blank
-cells either side — a stack's alignment padding, an overlay's `Spacer`, an
-`.offset` view's empty footprint — hide nothing, and the overflow shows there
-as SwiftUI's does. The overflow is drawn by the same rule: its blank cells at
-either end of a line draw nothing and take no click.
-
-**Clicks follow the drawing.** A TUI tap covers its view's whole frame,
-padding included, and where the overflow draws over a later view's padding the
-overflow takes the click there: `Text("OK").frame(width: 12,
-alignment: .leading).onTapGesture { … }` under a scroll view whose row 2 runs
-down into it draws "OKw 2", and a click on the "w 2" is row 2's, while "OK" and
-the padding past the overflow's last cell stay OK's. That is SwiftUI's routing
-for a view with no `contentShape` — its padding is not hit at all — and the
-alternative, the later view keeping its frame under the overflow, sends a
-click on visible overflow text to the view beside it. With a `contentShape`
-SwiftUI's later view takes that area; TUI has no `contentShape` yet (a
-baseline gap waiting on shapes), and when it lands its shape should cut the
-overflow's regions as a painted cell does. Pinned by
-`laterViewPaddingClicksFollowTheDrawing`.
-
-**The fuller version:** treat EVERY unstyled blank cell as transparent, inside
-a line too, so the overflow shows between the words of a later `Text` as it
-does between SwiftUI's glyphs. It is a small change (cut per run of painted
-cells rather than per line, an hour or two with tests, no cost where nothing is
-unclipped), but two texts interleaved cell by cell are hardly legible, which is
-why it is not the default. Owner's call.
-
 ### B-D2S-6. Under a scroll target behaviour, the "N more" lines are kept out of the content
 
 The `.text` indicator style draws "▲ N more" / "▼ N more" over a scroll view's
@@ -224,6 +226,59 @@ and leading margins with it. `.paging` steps the container, so a page lands
 inside the margins and a container-sized page is the step — where SwiftUI's
 own page is half the top (leading) margin longer, which is not copied
 (decisions SCROLL B-SCROLL-1, deviation R15).
+
+### B-SCROLL-1. `.paging` under a top or leading margin steps the container, not SwiftUI's half-margin longer page
+
+*`PagingScrollTargetBehavior` in a `ScrollView` with `.contentMargins`
+(B-D2S-7, which you settled as "probe, then follow SwiftUI")*
+
+The probe (`Tools/SwiftUIProbes/Scroll target behaviours/`) confirmed
+SwiftUI's documented reading of a behaviour's context: the container is the
+bounds less the margins, the content its size without them, the target the
+area inside them. `.viewAligned` follows it: a row (or a carousel's card)
+lands at the top (leading) margin, the one before it showing in the margin.
+That shipped, and so did `.paging` stepping the container — every page lands
+inside the margins, and a page sized with `containerRelativeFrame` is the page
+a step moves.
+
+SwiftUI's own `.paging` does not quite: its page is the container plus HALF
+the top margin (vertically) or the leading margin (horizontally), at every
+size measured (top 20, 30, 40, 60; with bottom 0, 10, 20; leading 20 and 40),
+and the container exactly when only the bottom or trailing margin is set.
+So under a top margin of 40 SwiftUI steps 90 points through a 70-point
+window: no container-sized page lines up with any stop, and each stop shows
+20 points more of the page before. Nothing in its documentation describes
+that, and it looks like an arithmetic slip, so it is recorded as deviation
+R15 rather than copied.
+
+**The other version:** copy it — `paged(…)`'s page lengthened by half the
+top or leading margin, rounded down to whole cells. Ten minutes and a test;
+but it would undo the one thing a paging view under margins is for, and an
+app sizing its pages to the container would see them drift.
+
+### B-SCROLL-2. Only a pager decides its `.automatic` horizontal bar before its container
+
+*`containerRelativeFrame` in a `ScrollView` that scrolls across, with the
+default `.automatic` horizontal indicator (B-FU2-2)*
+
+**Shipped:** a view under a scroll target behaviour decides an `.automatic`
+horizontal bar by a measure of its content's width before it publishes the
+container, so the bar's row comes off a container-sized page and the page is
+the step (FU2's fuller version). A view under no behaviour decides the bar as
+before, by the rounds that measure the content in its container, and its
+container keeps the bar's row. In a two-axis view that is a page one line
+taller than the window, which scrolls to that line like any other; in a
+`ScrollView(.horizontal)` with no behaviour, whose content cannot scroll
+down, a card sized to the container's height has its last line under the bar.
+
+**The other version:** every view that scrolls across with an `.automatic`
+bar decides it first. Price: one more measure of the content's width on every
+frame of every such view (a wide table in a horizontal scroll view, every
+two-axis view), in a generation of its own, so it cannot warm the render's
+memo either, where today only pagers pay it. Without a behaviour the drift is
+not a defect, only the horizontal-only card's last line is, and
+`.scrollIndicators(.visible, axes: .horizontal)` or a card a line shorter
+avoids it.
 
 ### Notes on A6 that are not decisions
 

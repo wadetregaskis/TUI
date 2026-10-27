@@ -1,21 +1,178 @@
-# The scroll anchoring default: decisions from lane SCROLLANCHOR
+# Holding the reader's place as rows change above
 
-*Lane SCROLLANCHOR, 2026-10-12, shipped decisions B30's two owed items: the
-reader that was missing (a windowed lazy stack's held row ignored "no
-adjustment") and the default — with no anchor declared, rows inserted above
-the top row keep the reader's place, as SwiftUI's do, configurable either way
-(the owner's ruling of 2026-10-12). SwiftUI was measured on macOS 15.8 with an
-offscreen `NSHostingView` (`Tools/SwiftUIProbes/Scroll anchoring/hold.swift`,
-its output beside it). The design is `Documentation/Layout and
-scrolling/Scroll anchoring.md` §5. The format is that of the main decisions
-file:*
+*The story of what a scroll view does with its offset when rows are inserted,
+removed or resized above the row at the top of its viewport. Ids: B30,
+A-SCROLLANCHOR-1, B-SCROLLANCHOR-1 to 6, C-SCROLLANCHOR-1 and 2; deviations
+R11 to R14. The design itself is live, in
+[Scroll anchoring.md](<../../Layout and scrolling/Scroll anchoring.md>) §5.*
 
-- **A-SCROLLANCHOR-n — needs your decision.**
-- **B-SCROLLANCHOR-n — shipped the safe option.** Says what the fuller version
-  would be, and its price.
-- **C-SCROLLANCHOR-n — declined.** With the reason.
+## In short
 
-## A. Needs your decision
+With no anchor declared, a scroll view keeps the row at the top of its
+viewport where it is as rows change above it: inserted, removed, or resized.
+That is SwiftUI's lazy stack's behaviour, extended to removals and resizes,
+and to `List` and `Table`, which on macOS keep their offset instead. The old
+behaviour, the offset kept in lines, is one TUI-specific modifier away:
+`.scrollWindowHold(.offset)`. Shipped 2026-10-12, refined 2026-10-13; it
+costs nothing measurable (no A/B scenario past +0.8%).
+
+## The problem
+
+TUI's anchoring design of 2026-07-17 (`Scroll anchoring.md`) gave a scroll
+view four modes. In the default, Window, the offset was kept in line
+coordinates, so rows inserted above the screen pushed the rows on screen down:
+a "load earlier messages" list, or a log growing above what the reader was
+looking at, jumped. Nobody had asked for that; it was simply what an offset in
+lines does.
+
+The question surfaced sideways, on 2026-10-12, while shipping SwiftUI's
+`Transaction` scroll members (B30, below). Measuring how SwiftUI treats
+`scrollContentOffsetAdjustmentBehavior = .disabled` showed what it adjusts by
+default: a lazy stack holds its top row when rows arrive above it (the offset
+moves 200 → 300 for one insertion). That made TUI's default the larger gap.
+
+## How it unfolded
+
+1. **2026-10-12, B30.** The transaction members shipped. Asked whether to keep
+   the Window default (and record a deviation) or hold the top row as SwiftUI
+   does, the owner chose SwiftUI's behaviour, configurable either way, with
+   licence to redesign the anchoring API where that made it cleaner (pre-1.0,
+   no compatibility spellings).
+2. **2026-10-12, lane SCROLLANCHOR.** SwiftUI was measured on macOS 15.8 with
+   an offscreen `NSHostingView` (`Tools/SwiftUIProbes/Scroll anchoring/`):
+   insertions, removals, resizes, reorders, renames, and what each
+   `defaultScrollAnchor` role changes (nothing, for this). The hold shipped
+   for a lazy stack on all three of its paths and for `List` and `Table`,
+   with the TUI-specific opt-out (B-SCROLLANCHOR-2). Where SwiftUI holds only
+   insertions, TUI holds removals and resizes too (B-SCROLLANCHOR-1, R14).
+3. **2026-10-13, A-SCROLLANCHOR-1.** macOS's `List` turned out not to hold at
+   all. The owner kept the hold for `List` and `Table`: "I feel like they
+   should be consistent, unless there's some apparent reason why not? And
+   keeping the place (not the offset) seems like a better default." (R13.)
+4. **2026-10-13, lane SCROLLB and two review rounds.** Reorders, renames, a
+   move applied a frame late, and the cursor of a `List` each needed a rule;
+   the entries below record each fix and what it still cannot tell apart.
+
+## Where it stands
+
+Shipped and stable. The hold is one memory shared by the lazy stack's three
+paths (exact walk, uniform window, anchored window) and by `List` and
+`Table`, so a stack behaves the same either side of the 256-row threshold.
+It governs only what nothing else holds: Window mode, and an edge mode away
+from its edge; following the tail, a seek, a designated row and "no
+adjustment" keep their own rules.
+
+## For a future reader
+
+- **The cases the hold still gets wrong**, each rare and each recorded below:
+  a change that inserts above and also changes the rows on both sides of the
+  top row (B-SCROLLANCHOR-5); the top row and the row above it renamed in the
+  same update as rows arrive above (held a row too far); the top row removed
+  with the row above it, in an update whose insertions above leave the row
+  count unchanged (B-SCROLLANCHOR-6); an `onMove` that takes longer than 150
+  ms or three frames to apply (B-SCROLLANCHOR-4).
+- **An eager `VStack` never holds** (C-SCROLLANCHOR-1), as SwiftUI's does not;
+  the advice is a `LazyVStack`. Revisit only if an app needs the hold on an
+  eager column and will pay for it on the hottest stack there is.
+- **Above 256 rows of differing heights the offset is approximate** after an
+  insertion above (B-SCROLLANCHOR-3): the rows on screen are exact, the
+  scrollbar and "N more above" near the truth.
+- **macOS measurements only.** iOS's `List` was never measured; if a port
+  wants iOS's behaviour, measure it first.
+- **SwiftUI's `ScrollPosition.scrollTo(id:anchor:)` ignored its own anchor**
+  when measured (R11). If a later SwiftUI fixes that, the deviation can go.
+
+## The record
+
+How each part was asked, decided and shipped, in the words of the day.
+
+### B30. The `Transaction` scroll members: what "no adjustment" suspends
+
+*`Transaction.scrollTargetAnchor`, `Transaction.scrollContentOffsetAdjustmentBehavior`
+(and `ScrollContentOffsetAdjustmentBehavior`, whose `differentShape` map entry
+goes), `Transaction.scrollPositionUpdatePreservesVelocity`*
+
+The run loop already publishes the transaction a change was made under for the
+frame that renders it, so a scroll view can read all three where it decides.
+
+- **`scrollTargetAnchor`**: preferred to a `.scrollPosition(id:anchor:)`
+  modifier's anchor (SwiftUI's documentation says so); for a `ScrollPosition`
+  request or a `ScrollViewProxy.scrollTo` that names an anchor of its own, the
+  call's wins, and one that names none takes the transaction's. SwiftUI does
+  not say which wins there; the call is the more specific statement.
+- **`scrollContentOffsetAdjustmentBehavior = .disabled`** suspends a declared
+  anchor's adjustments for the change: a `ScrollView`, `List` or `Table`
+  following its tail does not follow, which leaves it short of the new tail
+  and so releases the follow, exactly as a user scroll does (engagement is
+  positional); a `List`, a `Table` or a windowed lazy stack holding a row
+  (`.anchorPosition(.row)`) lets it go and holds it again from the line the
+  change left it on. The opening placement is not an adjustment and is kept;
+  an app's own write to a bound `.anchorPosition` still jumps.
+- **`scrollPositionUpdatePreservesVelocity`** is recorded and met by the
+  medium: no scroll here has momentum, so nothing is moving for a
+  programmatic change to stop or spare.
+
+`Transaction` lives below `UnitPoint`, and every `Binding` carries one
+inline, so the anchor is stored in two bytes — hundredths of the viewport,
+finer than any terminal's row — and the switches share one byte with
+`disablesAnimations`. A binding grows by two bytes and gains no padding (a
+titled `Toggle`: 195 → 197, `ControlLayoutPaddingTests`); stored as two
+`Double`s and three `Bool`s it grew by twenty-four and left five undefined.
+
+**You asked (2026-10-12) what the gap is, and what I recommend.** Measured on
+macOS 15.8 (a 300×200 window, rows 20 high; `Tools/SwiftUIProbes/Scroll position, margins and disabled scrolling (DECB)/anchor/`
+and `Tools/SwiftUIProbes/Scroll position, margins and disabled scrolling (DECB)/disabled/`):
+
+- **`ScrollViewProxy.scrollTo`:** the call's anchor wins over the
+  transaction's, and with none the transaction's applies. That is TUI's
+  rule exactly.
+- **`ScrollPosition.scrollTo(id:anchor:)`:** SwiftUI ignored the call's anchor
+  (`.top` and `.center` both landed at the minimal position) and applied the
+  transaction's even over a `.bottom` call. TUI honours the call's anchor
+  first. That looks like a SwiftUI defect, so TUI's rule stays, recorded as
+  a deliberate deviation
+  ([Deliberate deviations from SwiftUI.md R11](<../../SwiftUI parity/Deliberate deviations from SwiftUI.md#r11-scrollpositionscrolltoidanchor-honours-its-own-anchor>)).
+- **`.disabled`** stops SwiftUI's lazy-stack bottom follow and its hold of the
+  top row on an insertion above, as it stops TUI's follows. SwiftUI ignores
+  it for an eager `VStack`, which follows anyway; TUI treats eager and lazy
+  alike. Kept, and recorded
+  ([Deliberate deviations from SwiftUI.md R12](<../../SwiftUI parity/Deliberate deviations from SwiftUI.md#r12-no-adjustment-suspends-an-eager-stacks-follow-too>)).
+- **The larger gap is the default.** With no `scrollPosition` at all, SwiftUI
+  keeps the top row in place when rows are inserted above it (a lazy stack,
+  one insertion: the offset moves 200 → 300). TUI's Window default, from
+  your 2026-07-17 anchoring spec, leaves the offset in line coordinates, so the
+  rows shift and a "load earlier messages" list jumps.
+
+**Shipped 2026-10-12 (SCROLLANCHOR):** the reader that was missing inside
+TUI — a windowed `LazyVStack`'s `.anchorPosition(.row)` hold ignored "no
+adjustment". All three of the stack's paths now let the row go, and adopt it
+on the change's own frame where the change left it. `List` and `Table` adopt
+it there too: they adopted it a frame later, where the NEXT change left it,
+so a second change, made without the transaction, went unheld as well.
+
+**Asked 2026-10-12:** keep TUI's Window default and record it as a
+deviation, or hold the top row by default as SwiftUI does? The second reverses
+part of `Scroll anchoring.md`'s first slice for views that declare no anchor,
+at a cost not measured.
+
+**Owner, 2026-10-12 (later):** follow SwiftUI. With no anchor declared, rows
+inserted above the top row keep the reader's place. Make it configurable
+either way, and redesign TUI's existing anchoring API where that makes it
+cleaner (pre-1.0, no compatibility spellings). **Lane owed** (SCROLLANCHOR),
+together with the missing reader above; the cost is measured in that lane.
+
+**Shipped 2026-10-12 (SCROLLANCHOR):** with nothing else holding it, a scroll
+view keeps the row at the top of its viewport where it is as rows are
+inserted, removed or resized above it — a lazy stack on all three of its paths,
+`List` and `Table` — and holds nothing at the top, while following the tail,
+for a seek, or for a change made under "no adjustment".
+`.scrollWindowHold(.offset)` (TUI-specific: no SwiftUI spelling expresses it,
+measured) keeps the offset in lines, the old default. Design in `Scroll
+anchoring.md` §5; the lane's own entries are below, among them
+[A-SCROLLANCHOR-1](#a-scrollanchor-1-list-and-table-hold-their-top-row-where-macoss-list-does-not): `List` and `Table` hold as the stacks do, though macOS's
+`List` keeps its offset (measured); you kept that on 2026-10-13, for one rule
+across scrollables. Cost: neutral in the A/B (no scenario past +0.8%,
+2026-10-13).
 
 ### A-SCROLLANCHOR-1. `List` and `Table` hold their top row, where macOS's `List` does not
 
@@ -45,8 +202,6 @@ about, and the switch is one modifier either way.
 consistent, unless there's some apparent reason why not? And keeping the place
 (not the offset) seems like a better default." `List` and `Table` hold their
 top row as the lazy stacks do.
-
-## B. Shipped the safe option
 
 ### B-SCROLLANCHOR-1. A removal above, and a row above growing, are held as an insertion is
 
@@ -228,8 +383,6 @@ insertions above leave the count where it was (ids 9 and 10 removed and two
 rows inserted at the start, the view at 10). The place is kept, and the row
 that was above the screen (8) is drawn on top, where the rule before the
 first fix put the row after (11) there.
-
-## C. Declined
 
 ### C-SCROLLANCHOR-2. The anchored walk's top-row hold has no ladder
 

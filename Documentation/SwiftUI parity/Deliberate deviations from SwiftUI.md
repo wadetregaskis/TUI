@@ -1741,8 +1741,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
     instead). A push into an allowance never glides.
 - **Why:** a terminal reports no gesture phases and no momentum, and draws
   no line between two of its rows ([the design
-  note](<Decisions/Scrolling/Animated scrolling, a design (B27).md>)).
-- **Decided:** [B27](<Decisions/SwiftUI API completion decisions.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B27-ANIMATING](<../Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b27-animating>), [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [B31](<Decisions/SwiftUI API completion decisions.md#b31-bounce-behaviour-gates-the-overscroll-allowance-and-always-springs-back>).
+  note](<../Historical/Scrolling/Scroll phases, animated scrolling, flash and bounce.md#appendix-animated-scrolling-the-design-and-its-price-b27-option-3>)).
+- **Decided:** [B27](<../Historical/Scrolling/Scroll phases, animated scrolling, flash and bounce.md#b27-scroll-phases-interacting-until-a-quarter-of-a-second-of-quiet-and-no-velocity>), [B27-ANIMATING](<../Historical/Owner decisions, 2026-10-18 to 2026-10-25.md#b27-animating>), [B30](<../Historical/Scrolling/Holding the reader's place as rows change above.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), [B31](<../Historical/Scrolling/Scroll phases, animated scrolling, flash and bounce.md#b31-bounce-behaviour-gates-the-overscroll-allowance-and-always-springs-back>).
   **Medium**. The owner decided on 2026-10-12 that the velocity is (0, 0) at
   both changes, as SwiftUI reports it, and to add a bounce under `.always`;
   both shipped 2026-10-13.
@@ -1762,7 +1762,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** an offset is whole rows, so there is no centre to hold between two
   of them, and the anchor modes are defined over rows.
 - **Decided:** [UnitPoint.swift](../../Sources/TUIFoundation/Views/UnitPoint.swift#L224-L235),
-  [B-D2S-1](<Decisions/Scrolling/Scroll anchors, target behaviours and clipping (D2S).md#b-d2s-1-the-alignment-role-places-content-on-the-vertical-axis-only>). **Recorded.**
+  [B-D2S-1](<../Historical/Scrolling/Paging and view-aligned scrolling.md#b-d2s-1-the-alignment-role-places-content-on-the-vertical-axis-only>). **Recorded.**
 
 ### R3. `ScrollPosition.viewID` answers sooner
 
@@ -1828,7 +1828,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   says `.scrollContent`, and one that wants it moved says `.scrollIndicators`.
 - **Decided:** decisions B24, folded here and removed on 2026-10-12 (the owner
   asked what was recommended; keeping this rule was, with the measurement
-  above); [B28](<Decisions/SwiftUI API completion decisions.md#b28-scrollindicatorsflash-flashes-the-indicators-for-half-a-second>). **Medium**. The owner asked for a flash to be
+  above); [B28](<../Historical/Scrolling/Scroll phases, animated scrolling, flash and bounce.md#b28-scrollindicatorsflash-flashes-the-indicators-for-half-a-second>). **Medium**. The owner asked for a flash to be
   built (2026-10-12): a highlight, shipped 2026-10-13.
 
 ### R6. Rows are reported without `scrollTargetLayout()`
@@ -1864,8 +1864,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   outside its frame (drawn, not clicked), and a `Table` keeps clipping.
 - **Why:** a list's offset is a row and a clip; a custom behaviour would need
   every row's height above the viewport, the walk a list exists not to make.
-- **Decided:** [B-D2S-2](<Decisions/Scrolling/Scroll anchors, target behaviours and clipping (D2S).md#b-d2s-2-list-and-table-honour-the-built-in-behaviours-and-no-behaviour-of-the-apps-own>), [B-D2S-3](<Decisions/Scrolling/Scroll anchors, target behaviours and clipping (D2S).md#b-d2s-3-in-a-list-or-table-viewaligned-aligns-rows-at-the-top-whatever-its-anchor>),
-  [B-D2S-4](<Decisions/Scrolling/Scroll anchors, target behaviours and clipping (D2S).md#b-d2s-4-scrollclipdisabled-reaches-scrollview-list-and-table-keep-clipping>). **Lane.**
+- **Decided:** [B-D2S-2](<../Historical/Scrolling/Paging and view-aligned scrolling.md#b-d2s-2-list-and-table-honour-the-built-in-behaviours-and-no-behaviour-of-the-apps-own>), [B-D2S-3](<../Historical/Scrolling/Paging and view-aligned scrolling.md#b-d2s-3-in-a-list-or-table-viewaligned-aligns-rows-at-the-top-whatever-its-anchor>),
+  [B-D2S-4](<../Historical/Scrolling/Content past a scroll view's edge.md#b-d2s-4-scrollclipdisabled-reaches-scrollview-list-and-table-keep-clipping>). **Lane.**
 
 ### R8. An unclipped scroll view's overflow is hidden line by line
 
@@ -1876,7 +1876,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   overflow drawn there is the overflow's.
 - **Why:** a cell is drawn or not, so "where it draws" has to be said in
   cells.
-- **Decided:** [B-D2S-5](<Decisions/Scrolling/Scroll anchors, target behaviours and clipping (D2S).md#b-d2s-5-a-later-view-hides-an-unclipped-scroll-views-overflow-from-its-first-painted-cell-to-its-last>). **Medium.**
+- **Decided:** [B-D2S-5](<../Historical/Scrolling/Content past a scroll view's edge.md#b-d2s-5-a-later-view-hides-an-unclipped-scroll-views-overflow-from-its-first-painted-cell-to-its-last>). **Medium.**
 
 ### R9. A pinned header is opaque, and focus keeps rows clear of it
 
@@ -1922,7 +1922,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **TUI:** both honour the call's anchor first, then the transaction's.
 - **Why:** SwiftUI's `ScrollPosition` reading looks like a defect, and one
   rule for both seeks is easier to rely on.
-- **Decided:** [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), recorded as a deliberate deviation on
+- **Decided:** [B30](<../Historical/Scrolling/Holding the reader's place as rows change above.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), recorded as a deliberate deviation on
   2026-10-12. **Lane.**
 
 ### R12. "No adjustment" suspends an eager stack's follow too
@@ -1936,7 +1936,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   change in a `ScrollView`, `List` or `Table`, whether the content is eager or
   lazy.
 - **Why:** one rule for both kinds of stack; SwiftUI's split looks incidental.
-- **Decided:** [B30](<Decisions/SwiftUI API completion decisions.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), recorded as a deliberate deviation on
+- **Decided:** [B30](<../Historical/Scrolling/Holding the reader's place as rows change above.md#b30-the-transaction-scroll-members-what-no-adjustment-suspends>), recorded as a deliberate deviation on
   2026-10-12. **Lane.**
 
 ### R13. `List` and `Table` hold the row at their top
@@ -1952,7 +1952,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   behaviour.
 - **Why:** the owner's ruling is to keep the reader's place when rows arrive
   above, and a list is where that matters most; one rule for every scrollable.
-- **Decided:** [A-SCROLLANCHOR-1](<Decisions/Scrolling/Scroll anchoring default (SCROLLANCHOR).md#a-scrollanchor-1-list-and-table-hold-their-top-row-where-macoss-list-does-not>).
+- **Decided:** [A-SCROLLANCHOR-1](<../Historical/Scrolling/Holding the reader's place as rows change above.md#a-scrollanchor-1-list-and-table-hold-their-top-row-where-macoss-list-does-not>).
   **Owner** (2026-10-13: one rule for every scrollable, and the place, not the
   offset, is the better default).
 
@@ -1973,7 +1973,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   (`beside.out` case 2, B-SCROLLANCHOR-6).
 - **Why:** the reader's place does not depend on which way the rows above
   changed, and one rule is simpler to rely on.
-- **Decided:** [B-SCROLLANCHOR-1](<Decisions/Scrolling/Scroll anchoring default (SCROLLANCHOR).md#b-scrollanchor-1-a-removal-above-and-a-row-above-growing-are-held-as-an-insertion-is>).
+- **Decided:** [B-SCROLLANCHOR-1](<../Historical/Scrolling/Holding the reader's place as rows change above.md#b-scrollanchor-1-a-removal-above-and-a-row-above-growing-are-held-as-an-insertion-is>).
   **Lane.**
 
 ### R15. Under a top or leading margin, `.paging` steps the container
@@ -1991,7 +1991,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Why:** SwiftUI's page matches nothing an app can size its pages to, and
   nothing in its documentation describes it; it looks like a slip, and
   copying it would make container-sized pages drift under margins.
-- **Decided:** [B-SCROLL-1](<Decisions/Scrolling/Scrolling fixes and parity (SCROLL).md#b-scroll-1-paging-under-a-top-or-leading-margin-steps-the-container-not-swiftuis-half-margin-longer-page>).
+- **Decided:** [B-SCROLL-1](<../Historical/Scrolling/Paging and view-aligned scrolling.md#b-scroll-1-paging-under-a-top-or-leading-margin-steps-the-container-not-swiftuis-half-margin-longer-page>).
   **Lane.**
 
 ---

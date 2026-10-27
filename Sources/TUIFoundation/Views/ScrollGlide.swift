@@ -4,8 +4,8 @@
 //  A programmatic scroll made inside an animation, on its way: the distance
 //  it has still to travel, stepped a whole line at a time along the
 //  animation's curve, once a frame (decisions B27-ANIMATING; the design is
-//  `Documentation/SwiftUI parity/Decisions/Scrolling/Animated scrolling, a
-//  design (B27).md`).
+//  the appendix of `Documentation/Historical/Scrolling/Scroll phases,
+//  animated scrolling, flash and bounce.md`).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
