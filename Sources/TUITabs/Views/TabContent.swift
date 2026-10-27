@@ -69,10 +69,15 @@ struct _RawTab {
     /// or nothing for a tab with no label.
     var title: String
 
-    /// A label of the app's own (`Tab(content:label:)`), whose text the tab
-    /// view takes by rendering it once it has a context — `nil` for the
+    /// A label of the app's own (`Tab(content:label:)`), which the strip draws
+    /// inside the tab's chip once the tab view has a context — `nil` for the
     /// default label, whose text is ``title``.
     var customLabel: AnyView?
+
+    /// ``customLabel``'s size in cells, measured once the tab view has a
+    /// context (`_TabViewCore.measuringCustomLabels(_:)`) — `nil` for a text
+    /// label, and before then. A row of chips is as tall as its tallest label.
+    var labelCells: CellSize?
 
     /// The picture an `image:` initialiser named, which a sidebar's row draws
     /// before the title; a strip's chip draws the title alone.

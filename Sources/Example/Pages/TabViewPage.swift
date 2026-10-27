@@ -57,6 +57,7 @@ struct TabViewPage: View {
     @State private var adjustableSelection = 0
     @State private var headerAlignment: HeaderAlignment = .center
     @State private var foldStrip = true
+    @State private var forecastSelection = 0
     // Off (default) sizes the box to the tallest tab so it never jumps as you
     // switch; on sizes it to whichever tab is visible. Drives
     // `.tabViewContentSizing(_:)` on the adjustable demo below.
@@ -199,6 +200,10 @@ struct TabViewPage: View {
                 }
             }
 
+            DemoSection("page.tabView.customLabels") {
+                forecastTabs
+            }
+
             KeyboardHelpSection(
                 "page.tabView.navigation",
                 shortcuts: [
@@ -213,6 +218,33 @@ struct TabViewPage: View {
         .scrollableDemoPage()
         .navigationTitle("menu.item.tabViews")
     }
+
+    /// Tabs with labels of their own (`Tab(content:label:)`): two lines each,
+    /// the day in the strip's ink and the temperatures in colours of their
+    /// own, so the strip is two lines tall and the active day still breathes.
+    private var forecastTabs: some View {
+        TabView(selection: $forecastSelection) {
+            ForEach(Self.forecast.indices, id: \.self) { index in
+                let day = Self.forecast[index]
+                Tab(value: index) {
+                    Text(verbatim: "\(day.high)° / \(day.low)°")
+                } label: {
+                    VStack(spacing: 0) {
+                        Text(verbatim: "#\(index + 1)")
+                        HStack(spacing: 1) {
+                            Text(verbatim: "\(day.high)°").foregroundStyle(Color.rgb(230, 120, 50))
+                            Text(verbatim: "\(day.low)°").foregroundStyle(Color.rgb(90, 150, 230))
+                        }
+                    }
+                }
+            }
+        }
+        .tabViewStyle(.compact)
+        .tabViewHeaderAlignment(.leading)
+    }
+
+    /// The forecast the custom labels show.
+    private static let forecast: [(high: Int, low: Int)] = [(24, 13), (21, 12), (18, 9), (22, 11)]
 
     /// Tab views inside tab views.
     ///

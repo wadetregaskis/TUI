@@ -31,8 +31,10 @@ import TUIStyling
 ///
 /// The label is drawn in the tab view's strip as text: the title, after the
 /// SF Symbol `systemImage` names where the terminal can draw that symbol (see
-/// ``Label/init(_:systemImage:)-(LocalizedStringKey,_)``), and the text of a
-/// label view of your own (`Tab(content:label:)`). The `image:` forms find
+/// ``Label/init(_:systemImage:)-(LocalizedStringKey,_)``). A label view of
+/// your own (`Tab(content:label:)`) is drawn whole inside the tab's chip, in
+/// the strip's ink where it states no colour of its own, and as tall as it
+/// draws: a row of the strip is as tall as its tallest label. The `image:` forms find
 /// the image they name as `Image(_:bundle:)` finds it, as `Label(_:image:)`'s
 /// do, and are declared in TUITabImages, a module built on this one and
 /// TUIBitmaps: a `.sidebarAdaptable` sidebar's row draws the picture in the
@@ -250,7 +252,8 @@ extension Tab where Value == Never, Label == DefaultTabLabel {
 extension Tab {
     /// Creates a tab with a label of your own, selected by `value`.
     ///
-    /// The strip draws the label's text.
+    /// The strip draws the label inside the tab's chip, in the strip's ink
+    /// where it states no colour of its own.
     ///
     /// - Parameters:
     ///   - value: The selection value that selects this tab.

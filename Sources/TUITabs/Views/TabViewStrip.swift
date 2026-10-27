@@ -15,7 +15,11 @@ extension _TabViewCore {
 
     /// Lays out the wrapped, aligned compact chip rows. Returns the lines (each
     /// padded to `width`), the per-tab click regions in strip coordinates, and
-    /// the active chip's animation run if it is breathing.
+    /// the active chip's animation runs if it is breathing, one per line.
+    ///
+    /// A row is as tall as its tallest label (``labelRowHeight(_:)``): one line
+    /// unless a label of the app's own draws more, and every chip on it that
+    /// tall, its caps on every line.
     ///
     /// The chips' caps are a button's in the family in force (``ControlEnds``),
     /// read at `.regular`: a chip is two cells wider than its label under every
@@ -62,13 +66,14 @@ extension _TabViewCore {
         // The active chip's line caps breathe the focus with its label, as a
         // lines button's do (`capsInk`, the colour they are drawn in now).
         func drawChip(
-            _ index: Int, background: Color, foreground: Color, active: Bool, capsInk: Color
+            _ index: Int, line: Int, height: Int, label: DrawnTabLabel?, background: Color, foreground: Color,
+            active: Bool, capsInk: Color
         ) -> ClaimingRow {
             var row = ClaimingRow()
             cap(ends.open, active: active, background: background, ink: capsInk, into: &row)
-            row.append(contentsOf: tabLabelBody(
-                index, background: background, foreground: foreground, active: active, palette: palette,
-                legibility: legibility))
+            row.append(contentsOf: tabLabelLine(
+                index, line: (line, height), label: label, background: background, foreground: foreground,
+                active: active, palette: palette, legibility: legibility))
             cap(ends.close, active: active, background: background, ink: capsInk, into: &row)
             return row
         }
@@ -83,9 +88,11 @@ extension _TabViewCore {
             }
         }
 
-        for (y, row) in rows.enumerated() {
+        var y = 0
+        for row in rows {
+            let height = labelRowHeight(row)
             let offset = max(0, alignment.childOffset(childWidth: compactRowWidth(row), in: width))
-            var line = String.spaces(offset)
+            var rowLines = Array(repeating: String.spaces(offset), count: height)
             var x = offset
             for i in row {
                 // The active chip takes the surface (breathing when focused);
@@ -96,32 +103,51 @@ extension _TabViewCore {
                 // not a disabled tab's, which a click does nothing to.
                 let hovered = i == hoveredIndex && !(active && chip.isBreathing) && !tabs[i].isDisabled
                 let resting = active ? chip.labelNow : restingInk(i, inactive: inactiveFg, palette: palette)
-                let drawn = drawChip(
-                    i, background: active ? chip.surface : inactiveBg,
-                    foreground: hovered ? palette.hoveredForeground(resting) : resting,
-                    active: active, capsInk: active ? chip.capsNow(resting: lineInk) : lineInk)
-                line += drawn.text
-                claims += drawn.claims.map { $0.shifted(byX: x, y: y) }
-                let chipWidth = tabWidth(i, style: .compact)  // body + the two caps
-                regions.append((x: x, y: y, width: chipWidth, height: 1, index: i))
-                // Only lines caps breathe: a filled chip's caps are its fill,
-                // which holds still while the label breathes.
-                let run =
-                    !active ? nil
-                    : ends.kind == .lines
-                        ? chip.run(offsetX: x, offsetY: y, capsResting: lineInk) { label, caps in
-                            drawChip(i, background: chip.surface, foreground: label, active: true, capsInk: caps).text
-                        }
-                        : chip.run(offsetX: x, offsetY: y, draw: {
-                            drawChip(i, background: chip.surface, foreground: $0, active: true, capsInk: lineInk).text
-                        })
-                if let run {
-                    animatedCells.append(run)
+                let foreground = hovered ? palette.hoveredForeground(resting) : resting
+                let background = active ? chip.surface : inactiveBg
+                // A label of the app's own, drawn once for the chip: the active
+                // one in the ink its breath starts from, which each frame and the
+                // line drawn now recolour.
+                let label = drawnLabel(
+                    i, height: height, ink: active ? chip.labelDim : foreground, background: background,
+                    active: active, context: context)
+                let capsInk = active ? chip.capsNow(resting: lineInk) : lineInk
+                for line in 0..<height {
+                    let drawn = drawChip(
+                        i, line: line, height: height, label: label, background: background, foreground: foreground,
+                        active: active, capsInk: capsInk)
+                    rowLines[line] += drawn.text
+                    claims += drawn.claims.map { $0.shifted(byX: x, y: y + line) }
+                    // Only lines caps breathe: a filled chip's caps are its fill,
+                    // which holds still while the label breathes — so a line of
+                    // fill between such caps has nothing to breathe.
+                    let run =
+                        !active ? nil
+                        : ends.kind == .lines
+                            ? chip.run(offsetX: x, offsetY: y + line, capsResting: lineInk) { ink, caps in
+                                drawChip(
+                                    i, line: line, height: height, label: label, background: chip.surface,
+                                    foreground: ink, active: true, capsInk: caps
+                                ).text
+                            }
+                            : !labelLineIsInked(i, line: line, height: height) ? nil
+                            : chip.run(offsetX: x, offsetY: y + line, draw: {
+                                drawChip(
+                                    i, line: line, height: height, label: label, background: chip.surface,
+                                    foreground: $0, active: true, capsInk: lineInk
+                                ).text
+                            })
+                    if let run {
+                        animatedCells.append(run)
+                    }
                 }
+                let chipWidth = tabWidth(i, style: .compact)  // body + the two caps
+                regions.append((x: x, y: y, width: chipWidth, height: height, index: i))
                 x += chipWidth
             }
-            if x < width { line += String.spaces(width - x) }
-            lines.append(line)
+            if x < width { rowLines = rowLines.map { $0 + String.spaces(width - x) } }
+            lines += rowLines
+            y += height
         }
         return (lines, regions, animatedCells, claims)
     }
@@ -144,11 +170,14 @@ extension _TabViewCore {
         let alignment: HorizontalAlignment
         /// `\.legibilityWeight`, which draws the tabs' labels a tier heavier.
         let legibility: LegibilityWeight?
+        /// What a label of the app's own is drawn in.
+        let context: RenderContext
     }
 
-    /// Draws the folder-tab strip: per row, a line of tab tops and a line of
-    /// labels, and under the last row the content box's top border curving
-    /// around the active tab.
+    /// Draws the folder-tab strip: per row, a line of tab tops and its labels'
+    /// lines (one, unless a label of the app's own draws more:
+    /// ``labelRowHeight(_:)``), and under the last row the content box's top
+    /// border curving around the active tab.
     ///
     /// Returns the lines, the per-tab click regions, and the active chip's
     /// animation run. The regions and the run are in box coordinates, which are
@@ -172,10 +201,13 @@ extension _TabViewCore {
         // One function draws a tab's label so the animation's frames are the
         // same cells the render draws. The walls either side are border chrome
         // and do not breathe, so a folder tab's run is its body only.
-        func drawLabel(_ index: Int, background: Color, foreground: Color, active: Bool) -> ClaimingRow {
-            tabLabelBody(
-                index, background: background, foreground: foreground, active: active,
-                palette: style.palette, legibility: style.legibility)
+        func drawLabel(
+            _ index: Int, line: Int, height: Int, label: DrawnTabLabel?, background: Color, foreground: Color,
+            active: Bool
+        ) -> ClaimingRow {
+            tabLabelLine(
+                index, line: (line, height), label: label, background: background, foreground: foreground,
+                active: active, palette: style.palette, legibility: style.legibility)
         }
 
         var lines: [ClaimingRow] = []
@@ -222,47 +254,66 @@ extension _TabViewCore {
             tops.skip(cells: style.boxWidth - off - top.count)
             lines.append(tops)
 
-            // Tab labels: `│ title │ title │ …`, the active chip on the surface.
+            // Tab labels: `│ title │ title │ …`, the active chip on the surface,
+            // each of the row's label lines between the same walls.
             let labelsY = lines.count
-            var labels = ClaimingRow()
-            labels.skip(cells: off)
+            let height = labelRowHeight(row)
+            var labels = Array(repeating: ClaimingRow(), count: height)
+            for line in labels.indices { labels[line].skip(cells: off) }
             for (k, i) in row.enumerated() {
                 let active = i == selectedIndex
                 let hovered = i == style.hoveredIndex && !(active && chip.isBreathing) && !tabs[i].isDisabled
                 let resting =
                     active ? chip.labelNow : restingInk(i, inactive: style.inactiveFg, palette: style.palette)
-                labels.append(String(glyphs.wall), cells: 1, ink: style.border, field: glyphs.field(style.border))
-                // One column reached two ways: this row's, which places the claim,
-                // and `bodySpans`', which places the run and the click region.
-                // Asserted, because a run one cell off repaints a wall forever.
-                assert(
-                    labels.cells == bodySpans[k].start,
-                    "folder label at \(labels.cells), span at \(bodySpans[k].start)")
-                labels.append(contentsOf: drawLabel(
-                    i, background: active ? chip.surface : style.inactiveBg,
-                    foreground: hovered ? style.palette.hoveredForeground(resting) : resting,
-                    active: active))
+                let foreground = hovered ? style.palette.hoveredForeground(resting) : resting
+                let background = active ? chip.surface : style.inactiveBg
+                // Drawn once for the tab, as a compact chip's is.
+                let label = drawnLabel(
+                    i, height: height, ink: active ? chip.labelDim : foreground, background: background,
+                    active: active, context: style.context)
+                for line in 0..<height {
+                    labels[line].append(
+                        String(glyphs.wall), cells: 1, ink: style.border, field: glyphs.field(style.border))
+                    // One column reached two ways: this row's, which places the claim,
+                    // and `bodySpans`', which places the run and the click region.
+                    // Asserted, because a run one cell off repaints a wall forever.
+                    assert(
+                        labels[line].cells == bodySpans[k].start,
+                        "folder label at \(labels[line].cells), span at \(bodySpans[k].start)")
+                    labels[line].append(contentsOf: drawLabel(
+                        i, line: line, height: height, label: label, background: background,
+                        foreground: foreground, active: active))
+                    if active, labelLineIsInked(i, line: line, height: height),
+                        let run = chip.run(
+                            offsetX: bodySpans[k].start, offsetY: labelsY + line,
+                            draw: {
+                                drawLabel(
+                                    i, line: line, height: height, label: label, background: chip.surface,
+                                    foreground: $0, active: true
+                                ).text
+                            })
+                    {
+                        animatedCells.append(run)
+                    }
+                }
                 // The chrome above and below a tab is the tab's, not the
-                // page's: a folder tab is drawn as three rows and read as one
-                // control, so a click on the line over the title should not
-                // miss. The top border always belongs to it; the row below
-                // does too on the bottom row, where it is the content box's
-                // own border — higher up it is the NEXT row's top border, and
-                // two tabs claiming one row would make the answer arbitrary.
+                // page's: a folder tab is drawn as its tops, its labels and
+                // the line under them, and read as one control, so a click on
+                // the line over the title should not miss. The top border
+                // always belongs to it; the line below does too on the bottom
+                // row, where it is the content box's own border — higher up it
+                // is the NEXT row's top border, and two tabs claiming one line
+                // would make the answer arbitrary.
                 regions.append((
                     x: bodySpans[k].start, y: labelsY - 1, width: bodySpans[k].len,
-                    height: isBottom ? 3 : 2, index: i))
-                if active,
-                    let run = chip.run(
-                        offsetX: bodySpans[k].start, offsetY: labelsY,
-                        draw: { drawLabel(i, background: chip.surface, foreground: $0, active: true).text })
-                {
-                    animatedCells.append(run)
-                }
+                    height: height + (isBottom ? 2 : 1), index: i))
             }
-            labels.append(String(glyphs.rightWall), cells: 1, ink: style.border, field: glyphs.field(style.border))
-            labels.skip(cells: style.boxWidth - off - folderRowWidth(row))
-            lines.append(labels)
+            for line in labels.indices {
+                labels[line].append(
+                    String(glyphs.rightWall), cells: 1, ink: style.border, field: glyphs.field(style.border))
+                labels[line].skip(cells: style.boxWidth - off - folderRowWidth(row))
+            }
+            lines += labels
 
             // Under the active (bottom) row: the content box's top border, curving
             // up to wrap the active tab and opening (surface gap) beneath it.

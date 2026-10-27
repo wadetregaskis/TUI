@@ -308,18 +308,19 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// Under the default wrap the strip folds at `available`, the width it is
     /// laid out in, so its rows are known before any content is measured. Under
     /// `.toContentWidth` it folds at the widest tab — which is what this measure
-    /// finds — so the strip is taken at its one-row minimum there, and a strip
-    /// that folds onto more rows still measures its content a row too tall per
-    /// extra row (two in the bordered style).
+    /// finds — so the strip is taken at its one-row minimum there (as tall as
+    /// its tallest label), and a strip that folds onto more rows still measures
+    /// its content too tall by each extra row's labels (and tops, in the
+    /// bordered style).
     private func contentMeasureHeight(available: Int, context: RenderContext) -> Int {
         // No strip at all beside a sidebar, which draws the tabs instead.
         guard showsStrip(context) else { return context.availableHeight }
         let rows =
             context.environment.tabViewHeaderWrap == .toContentWidth
-            ? 1 : stripRowGroups(style: .compact, available: available).count
-        // Each strip row, and under `.bordered` each row's tops plus the box's
-        // content border and bottom — the render's own `chrome`.
-        let chrome = context.environment.tabStripLook == .bordered ? 2 * rows + 2 : rows
+            ? [Array(tabs.indices)] : stripRowGroups(style: .compact, available: available)
+        // The render's own `chrome`: each strip row's labels, and under
+        // `.bordered` each row's tops plus the box's content border and bottom.
+        let chrome = stripChrome(rows, bordered: context.environment.tabStripLook == .bordered)
         return max(0, context.availableHeight - chrome)
     }
 
@@ -511,33 +512,9 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         return (rows, centers)
     }
 
-    /// This core with every label of the app's own (`Tab(content:label:)`)
-    /// replaced by its text, or `nil` when no tab has one — nearly always.
-    ///
-    /// The strip draws a tab's label as text, in its own ink and on its own
-    /// field, so a label view is rendered — as a measure, which registers
-    /// nothing — and its first line taken without its colours. Each label
-    /// renders under an identity of its tab's, so one with `@State` keeps it.
-    private func resolvingCustomLabels(_ context: RenderContext) -> Self? {
-        guard tabs.contains(where: { $0.customLabel != nil }) else { return nil }
-        var labelContext = context
-        labelContext.isMeasuring = true
-        let resolved = tabs.map { tab -> _RawTab in
-            guard let label = tab.customLabel else { return tab }
-            var tab = tab
-            let text = TUIView.renderToBuffer(
-                label, context: labelContext.withBranchIdentity("tab-label-\(tab.value)")
-            ).lines.first?.stripped ?? ""
-            tab.title = String(text.reversed().drop { $0 == " " }.reversed())
-            tab.customLabel = nil
-            return tab
-        }
-        return Self(selection: selection, tabs: resolved)
-    }
-
     func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
-        if let resolved = resolvingCustomLabels(context) {
-            return resolved.sizeThatFits(proposal: proposal, context: context)
+        if let measured = measuringCustomLabels(context) {
+            return measured.sizeThatFits(proposal: proposal, context: context)
         }
         guard !tabs.isEmpty else { return ViewSize.fixed(0, 0) }
         let style = context.environment.tabStripLook
@@ -547,14 +524,15 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
 
         if style == .bordered {
             // Size to the widest tab; the strip wraps per the header-wrap mode.
-            // Box chrome: each tab row is 2 lines (tops + labels) + the
-            // content-border line + the bottom border, plus a 1-cell border side.
+            // Box chrome: each tab row is its tops line and its labels' lines,
+            // then the content-border line and the bottom border, plus a 1-cell
+            // border side.
             let avail = max(1, ctx.availableWidth - 2)
             let widest = widestContentWidth(insets: insets, available: avail, context: ctx)
             let rows = stripRowGroups(
                 style: .compact,
                 available: stripWrapBudget(widest: widest, available: avail, context: ctx))
-            let chrome = 2 * rows.count + 2
+            let chrome = stripChrome(rows, bordered: true)
             // Size to the TALLEST tab (stable across switches), not just the
             // selected one — mirroring the widest-tab width.
             let contentHeight = tallestContentHeight(insets: insets, available: avail, context: ctx)
@@ -579,12 +557,12 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             insets: insets, available: ctx.availableWidth, context: ctx)
         let panelWidth = max(widest, rows.map(compactRowWidth).max() ?? 0)
         return ViewSize(
-            width: panelWidth, height: rows.count + contentHeight,
+            width: panelWidth, height: stripChrome(rows, bordered: false) + contentHeight,
             isWidthFlexible: false, isHeightFlexible: false)
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        if let resolved = resolvingCustomLabels(context) { return resolved.renderToBuffer(context: context) }
+        if let measured = measuringCustomLabels(context) { return measured.renderToBuffer(context: context) }
         guard !tabs.isEmpty else { return FrameBuffer() }
         let style = context.environment.tabStripLook
         let palette = context.environment.palette
@@ -761,7 +739,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                 available: stripWrapBudget(widest: widest, available: avail, context: context)),
             selectedIndex: selectedIndex)
         guard !rows.isEmpty else { return FrameBuffer() }
-        let chrome = 2 * rows.count + 2  // each row: tops + labels; plus content-border + bottom
+        let chrome = stripChrome(rows, bordered: true)
         let interior = max(widest, rows.map(folderRowWidth).max() ?? 0)
         let boxWidth = interior + 2
 
@@ -786,7 +764,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                 inactiveFg: inactiveFg, hoveredIndex: liftedTab(context: context),
                 palette: palette, inactiveBg: inactiveBg,
                 border: border, glyphs: glyphs, surface: surface, interior: interior, boxWidth: boxWidth,
-                alignment: alignment, legibility: context.environment.legibilityWeight))
+                alignment: alignment, legibility: context.environment.legibilityWeight, context: context))
         /// Every line of the box, the strip's first. Each carries its own claims,
         /// placed on the row it lands on when the box is flattened below.
         var box = strip.lines
@@ -966,9 +944,11 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// the panel it sizes, the folder-tab walls, the click regions — is derived
     /// from this one number. Counting Characters here drew a strip wider than it
     /// measured, so the box came out ragged and the click regions slid left of
-    /// the tabs they belong to.
+    /// the tabs they belong to. A label of the app's own is as wide as it
+    /// measured (``_RawTab/labelCells``).
     func tabWidth(_ index: Int, style: _TabStripLook) -> Int {
-        let body = tabs[index].title.strippedLength + tabs[index].badgeSuffix.strippedLength + 2  // " title "
+        let label = tabs[index].labelCells?.width ?? tabs[index].title.strippedLength
+        let body = label + tabs[index].badgeSuffix.strippedLength + 2  // " title "
         return style == .compact ? body + 2 : body
     }
 
@@ -1066,7 +1046,8 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // wide as the panel clamps to the panel and fills it (leftPad 0). Clamp
         // preserves the content's hit regions, so its controls stay clickable
         // once centred.
-        var contentCtx = contentContext(context, stripHeight: rows.count, available: context.availableWidth)
+        var contentCtx = contentContext(
+            context, stripHeight: stripChrome(rows, bordered: false), available: context.availableWidth)
         let widths = selectedTabWidths(
             insets: insets, available: context.availableWidth, panelWidth: panelWidth,
             drawnHeight: contentCtx.availableHeight, context: context)

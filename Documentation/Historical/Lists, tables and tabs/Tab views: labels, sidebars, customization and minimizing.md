@@ -26,12 +26,12 @@ module of their own. `TabView` with plain-view content stays declined.
    in `TUITabImages`). TABBARMIN: (b), built (B96). SA-82: decline (C16).
 4. **2026-10-26, B75:** asked what SwiftUI does, the owner chose: draw a tab's
    custom label view inside its chip (variable heights allowed), keeping text
-   labels' path and cost untouched. **Not yet built.**
+   labels' path and cost untouched. Built the same day (below).
 
 ## Where it stands
 
-Shipped as above; B75's custom label views are owed; A50 is deferred to the
-macOS 26/27 pass.
+Shipped as above, a custom label view drawn whole in its chip; A50 is deferred
+to the macOS 26/27 pass.
 
 ## The record
 
@@ -58,6 +58,23 @@ fill as its background, spliced in finished, its own runs and claims carried.
 The breath would have to repaint it per frame, which the strip's run does by
 redrawing the chip's text today. Half a day, most of it the breath and the
 folder style's walls.
+
+**Built (owner, 2026-10-26: the fuller version, variable heights allowed;
+text labels keep their path and cost):** the label is measured once the tab
+view has a context and drawn whole in its chip, centred in a row as tall as
+the row's tallest label; a text label sits on that row's middle line, and a
+badge beside the label's middle line. Where the label states no colour it is
+drawn in the strip's ink, bold on the active tab; its own colours stay. The
+breath does not render the label again per step: the label is drawn once in
+the breath's resting ink, and each frame rewrites that ink
+(`SGRColorRewrite`), one run per line. So a colour of the label's own that is
+exactly the resting ink breathes with it. A folder tab's walls run down every
+line, and its click region covers its tops, its lines and, on the bottom row,
+the border under them. A label is drawn, not used: it registers nothing, as
+the chip is the control.
+
+**For a future reader:** a strip with no label of the app's own draws the
+bytes it drew before; `TabCustomLabelTests` pins the rest.
 
 ### B76. The sidebar style: a list beside the content, chosen with Return
 
