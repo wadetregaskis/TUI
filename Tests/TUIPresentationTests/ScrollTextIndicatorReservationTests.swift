@@ -82,11 +82,25 @@ struct ScrollTextIndicatorReservationTests {
             .scrollTargetBehavior(.paging)
         frames.render(view)
         #expect(drawn(frames).rows == Array(0..<8))
-        #expect(drawn(frames).indicators == 2)
+        // Reserved at the top too, where nothing is above: blank there, not
+        // "▲ 0 more" (owner ruling B-D2S-6).
+        #expect(drawn(frames).indicators == 1)
+        #expect(frames.last.lines.first?.stripped.trimmingCharacters(in: .whitespaces).isEmpty == true)
         frames.wheel(.scrollDown)
         frames.render(view)
         #expect(drawn(frames).rows == Array(3..<11))
-        #expect(drawn(frames).indicators == 2)
+        #expect(drawn(frames).indicators == 1, "at the end, the line below is the blank one")
+    }
+
+    @Test("Under .visible the pair keeps its counts, zero included")
+    func visibleKeepsZero() {
+        let frames = ScrollTargetFrames(width: 30, height: 10)
+        frames.render(
+            ScrollView { rows(11) }.frame(height: 10)
+                .scrollIndicators(.visible)
+                .scrollIndicatorStyle(.text)
+                .scrollTargetBehavior(.paging))
+        #expect(frames.last.lines.first?.stripped.contains("0 more") == true, "\(frames.last.lines.map(\.stripped))")
     }
 
     /// `.visible` reserves the pair at every offset whatever the content, so a
@@ -199,6 +213,8 @@ struct ScrollTextIndicatorReservationTests {
         frames.render(view)
         let result = drawn(frames)
         #expect(result.rows == Array(0..<7), "\(frames.last.lines.map(\.stripped))")
-        #expect(result.indicators == 2)
+        // Reserved: the top line is held, blank with nothing above (B-D2S-6).
+        #expect(result.indicators == 1)
+        #expect(frames.last.lines.first?.stripped.trimmingCharacters(in: .whitespaces).isEmpty == true)
     }
 }

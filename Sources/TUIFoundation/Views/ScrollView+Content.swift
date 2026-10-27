@@ -852,16 +852,25 @@ extension _ScrollViewCore {
         flash: Double? = nil,
         locale: Locale,
         always: Bool = false,
-        reserving: Bool = false
+        reserving: Bool = false,
+        blanksAtZero: Bool = false
     ) -> FrameBuffer {
         guard buffer.height > 0 else { return buffer }
         guard always || handler.hasContentAbove || handler.hasContentBelow else {
             return buffer
         }
         if reserving {
-            return reservingScrollIndicators(
-                around: buffer, handler: handler, width: width, palette: palette,
-                surface: surface, cycle: cycle, flash: flash, locale: locale)
+            return reservingScrollIndicators(around: buffer, handler: handler, width: width) { direction, count in
+                // A line reserved for a scroll target behaviour, with nothing
+                // past its edge: blank, so the page reads as a page and not as
+                // "▲ 0 more" (owner ruling B-D2S-6). `.visible` asked for the
+                // pair, and keeps its counts.
+                if blanksAtZero, count == 0 { return ScrollIndicatorLine(drawn: ClaimingRow(), animation: nil) }
+                return renderScrollIndicator(
+                    direction: direction, count: count, unit: .lines, width: width,
+                    palette: palette, approximate: handler.contentHeightIsEstimate,
+                    cycle: cycle, flash: flash, over: surface, locale: locale)
+            }
         }
 
         var lines = buffer.lines
@@ -964,24 +973,14 @@ extension _ScrollViewCore {
     /// and the content is shifted down one row to sit between them. Everything
     /// riding on those lines — hit regions, animated runs, overlays, opacity —
     /// moves with them, which is what `overlayShiftY` is for.
+    ///
+    /// `line` draws each of the two, given its direction and its count.
     private func reservingScrollIndicators(
-        around buffer: FrameBuffer,
-        handler: ScrollViewHandler,
-        width: Int,
-        palette: any Palette,
-        surface: Color,
-        cycle: SelectionEmphasisCycle?,
-        flash: Double?,
-        locale: Locale
+        around buffer: FrameBuffer, handler: ScrollViewHandler, width: Int,
+        line: (ScrollIndicatorDirection, Int) -> ScrollIndicatorLine
     ) -> FrameBuffer {
-        func line(_ direction: ScrollIndicatorDirection, count: Int) -> ScrollIndicatorLine {
-            renderScrollIndicator(
-                direction: direction, count: count, unit: .lines, width: width,
-                palette: palette, approximate: handler.contentHeightIsEstimate,
-                cycle: cycle, flash: flash, over: surface, locale: locale)
-        }
-        let above = line(.up, count: handler.rowsAbove)
-        let below = line(.down, count: handler.rowsBelow)
+        let above = line(.up, handler.rowsAbove)
+        let below = line(.down, handler.rowsBelow)
         var result = buffer.replacingLines(
             [above.text.padToVisibleWidth(width)] + buffer.lines
                 + [below.text.padToVisibleWidth(width)],

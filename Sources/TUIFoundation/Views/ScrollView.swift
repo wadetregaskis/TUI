@@ -1047,7 +1047,11 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
                 locale: context.environment.locale,
                 // Reserved is drawn at every offset: the two are one answer.
                 always: chrome.reservesIndicatorLines,
-                reserving: chrome.reservesIndicatorLines
+                reserving: chrome.reservesIndicatorLines,
+                // Reserved for a scroll target behaviour rather than asked for
+                // (`.visible`): nothing past an edge leaves its line blank, not
+                // "▲ 0 more" (owner ruling B-D2S-6).
+                blanksAtZero: !context.environment.alwaysShowsVerticalTextIndicators
             )
             attachIndicatorMouseHandlers(
                 to: &visibleBuffer, contentWidth: contentWidth,

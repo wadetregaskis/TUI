@@ -79,7 +79,7 @@ been in force since 2026-10-18.
 | O9 | ⌃W stays delete-word in text fields; File ▸ Close and Close All (⌘W, ⌥⌘W) only where the focus is outside a text field and nothing else takes the key. | Done (`301c60b47`, `e57e3cb0c`). |
 | INERT-APIS (wave 17) | No stubs: an API that does nothing on macOS either is implemented for real, doing what its user would expect, or not at all. | Recorded. |
 | B82 | Not open: answered 2026-10-23, built 2026-10-24. | Done. |
-| B-D2S-6 | Variable page sizes where they can be had; blank rows where they cannot, or cost too much; never a row cut off. | Queued. |
+| B-D2S-6 | Variable page sizes where they can be had; blank rows where they cannot, or cost too much; never a row cut off. | Blanks done (2026-10-26): a reserved line with nothing past it is blank, not "▲ 0 more". **Needs you:** variable pages — see the paging story's B-D2S-6 entry for the design and the one question. |
 | S3-NO-EXTENT-SPACING | Yes: a child with no rows takes no gap. | Done: deliberate deviation L17. |
 | FORMATTER | Skip both: an inferior API with a better replacement (`format:`), and on Linux a custom `Formatter` does not parse. | Done: refusals wave 17, O11. |
 | D2S-SCROLLCLIP | As SwiftUI: overflow shows through the blank cells inside a later line too. | Queued, with an A/B of the geometry. |

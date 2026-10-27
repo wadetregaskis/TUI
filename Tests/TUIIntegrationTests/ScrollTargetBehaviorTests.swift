@@ -143,8 +143,14 @@ struct ScrollTargetBehaviorTests {
         for page in 0..<5 {
             let lines = frames.last.lines.map(\.stripped)
             // The window is lines 1 to 8: the "N more" lines are the first and
-            // the last, at every stop.
-            #expect(lines.first?.contains("more") == true && lines.last?.contains("more") == true, "\(lines)")
+            // the last, at every stop — under a behaviour (`.automatic`) blank
+            // where nothing is past that edge (B-D2S-6), under `.visible`
+            // counting zero.
+            func edge(_ line: String?, hidden: Bool) -> Bool {
+                visibility == .automatic && !hidden
+                    ? line?.trimmingCharacters(in: .whitespaces).isEmpty == true : line?.contains("more") == true
+            }
+            #expect(edge(lines.first, hidden: page > 0) && edge(lines.last, hidden: page < 4), "\(lines)")
             #expect(lines[1].contains("top \(page)") && lines[8].contains("end \(page)"), "page \(page): \(lines)")
             #expect(lines.count { $0.contains("top") || $0.contains("end") } == 2, "one page: \(lines)")
             frames.wheel(.scrollDown)
