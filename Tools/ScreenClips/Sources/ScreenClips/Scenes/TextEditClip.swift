@@ -17,7 +17,9 @@ let textEditClip = Clip(
     id: "textedit",
     title: "Text editing",
     columns: 112,
-    rows: 30,
+    // As tall as a 16:10 frame of the editor needs, its status bar — where
+    // each chord is captioned — on the last row filmed.
+    rows: 24,
     terminal: "warp",
     script: textEditScript(),
     run: { await TextEditApp.main() }
@@ -44,7 +46,7 @@ private let redo = Step.keys("\u{1B}[122;6u")
 
 /// Each feature, shown on the line of the note that names it.
 private func textEditScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 76, height: 15)), .wait(0.8)]
+    var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 78, height: 22)), .wait(0.8)]
     let park: [Step] = [.point(column: Editor.rest.column, row: Editor.rest.row), .wait(0.5)]
     // "Click anywhere to put the caret there." — on "anywhere".
     script += Step.click(Editor.left + 7, Editor.top + 2) + [.wait(0.4)] + park
@@ -115,7 +117,10 @@ struct NotesEditor: View {
     /// The chord last pressed and what it does, captioned until the next.
     @State private var caption: String?
 
-    private let notes = ["Editing in TUI", "Reading list", "Recipes", "Book club", "Ideas"]
+    private let notes = [
+        "Editing in TUI", "Reading list", "Recipes", "Book club", "Ideas", "Trip to Lisbon", "Gift ideas",
+        "Garden plan",
+    ]
 
     var body: some View {
         HStack(alignment: .top, spacing: 1) {
@@ -140,7 +145,10 @@ struct NotesEditor: View {
                 .foregroundStyle(.palette.foregroundTertiary)
             }
         }
+        // As wide as the camera, so the status bar's captions end on camera.
+        .frame(width: 76)
         .padding(.horizontal, 1)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .toolbar {
             ToolbarItem(placement: .navigation) { Text(verbatim: "Notes") }
         }

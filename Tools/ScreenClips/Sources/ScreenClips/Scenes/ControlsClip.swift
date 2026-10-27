@@ -16,7 +16,8 @@ let controlsClip = Clip(
     id: "controls",
     title: "Controls",
     columns: 112,
-    rows: 20,
+    // As tall as a 16:10 frame of the planner needs.
+    rows: 30,
     output: 800,
     script: controlsScript(),
     run: { await ControlsApp.main() }
@@ -27,7 +28,7 @@ let controlsClip = Clip(
 /// the calendar to its day: one Tab to each control, in the form's order, the
 /// calendar last, beside the form.
 private func controlsScript() -> [Step] {
-    var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 92, height: 15)), .wait(0.6)]
+    var script: [Step] = [.camera(Shot(x: 0, y: 2, width: 90, height: 25)), .wait(0.6)]
     script += Step.type("Launch party", interval: 0.07)
     // Past the place, already filled in, to Repeat: the pop-up, two down, chosen.
     script += [.wait(0.3), .tab, .wait(0.15), .tab, .wait(0.3), .space, .wait(0.6), .down, .wait(0.3), .down, .wait(0.4), .enter, .wait(0.6)]
@@ -59,7 +60,9 @@ struct ControlsApp: App {
 
 /// An event planner: the built-in controls a real form reaches for, beyond a
 /// field and a toggle — a calendar, a pop-up menu, a switch, a stepper
-/// driving gauges, and the colour panel — with what they make beside them.
+/// driving gauges, and the colour panel — with what they make beside them,
+/// and below, the evening's notes and who has said they will come: a planner
+/// as full as a real one fills the 16:10 frame.
 struct EventPlanner: View {
     @State private var title = ""
     @State private var date = Self.start
@@ -69,6 +72,19 @@ struct EventPlanner: View {
     @State private var alert = "None"
     @State private var guests = 12
     @State private var colour = Color(red: 0.36, green: 0.55, blue: 0.95)
+    @State private var notes = """
+        6:00  Drinks on the deck
+        7:00  Dinner in the long room
+        8:30  Slides, and the thank-yous
+        9:30  Music until late
+
+        Bring the slides and the clicker.
+        RSVP by Friday, please.
+        """
+    /// Who has said they will come, by name.
+    @State private var coming: Set<String> = ["Ada Lovelace", "Grace Hopper", "Alan Turing"]
+
+    private let invited = ["Ada Lovelace", "Grace Hopper", "Alan Turing", "Katherine Johnson", "Claude Shannon"]
 
     /// The calendar opens on 14 November 2026, the same every run.
     static let start: Date = {
@@ -81,13 +97,36 @@ struct EventPlanner: View {
     private let alerts = ["None", "1 h", "1 day"]
 
     var body: some View {
-        HStack(alignment: .top, spacing: 2) {
-            form
-            DatePicker("Date", selection: $date, displayedComponents: .date)
-                .datePickerStyle(.graphical)
-                .labelsHidden()
-                .fixedSize()
-            invitation
+        VStack(alignment: .leading, spacing: 1) {
+            HStack(alignment: .top, spacing: 2) {
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(alignment: .top, spacing: 2) {
+                        form
+                        DatePicker("Date", selection: $date, displayedComponents: .date)
+                            .datePickerStyle(.graphical)
+                            .labelsHidden()
+                            .fixedSize()
+                    }
+                    GroupBox("Notes") {
+                        TextEditor(text: $notes)
+                            .frame(height: 9)
+                    }
+                    .frame(width: 56)
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    invitation
+                    GroupBox("Coming") {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(invited, id: \.self) { name in
+                                Toggle(name, isOn: Binding(
+                                    get: { coming.contains(name) },
+                                    set: { if $0 { coming.insert(name) } else { coming.remove(name) } }))
+                            }
+                        }
+                    }
+                    .frame(width: 32)
+                }
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(.horizontal, 1)
@@ -156,6 +195,6 @@ struct EventPlanner: View {
                 .padding(.top, 1)
             }
         }
-        .frame(width: 30)
+        .frame(width: 32)
     }
 }
