@@ -1326,7 +1326,7 @@ behind it (`FrameBuffer.frostBackdrop`): each picture cell its small copy's
 pixels (2 × 4 a cell), every other cell a block of its effective colour, read
 as far as the frost's boxes reach and blurred at that width, then cut to what
 the glass covers. The store files it as a picture of no view, never sent
-(`TerminalImageStore.backdrop(pixels:columns:rows:)`, the same pixels the
+(`TerminalImageStore.backdrop(pixels:columns:rows:pixelsPerCell:)`, the same pixels the
 same id, the oldest of six let go with its copies), and the frost hands the
 blend its cells in place of what was behind (`FrostFields.backdropRows`):
 each covered cell draws the backdrop's copy tinted by the glass — one image
@@ -1343,3 +1343,18 @@ its own. The layer gathers runs of rows below one another — the same cells
 across, the same image, the next row of its pixels — into blocks
 (`PictureUnderTextLayer.blocks(of:)`), so the whole glass is one classic
 placement, scaled as one picture.
+
+**How fine (2026-10-26).** The backdrop has 2 × 4 pixels a cell by default,
+and a cell is about 18 × 37 pixels on a Retina screen: the terminal scales it
+up nine times each way, which the owner saw as "a tad pixelated". Nothing but
+cost holds it there — bytes (32 a cell, sent again whenever what is behind the
+glass changes), the blur's work, and a picture's detail, which the small copy
+lacks — so `.materialFrostResolution(_:)` (TUI-specific) sets it for a
+subtree in the terminal's own pixels: `.native` (Ghostty's 16 × 34 a cell
+here), or `.downsampled(by: n)`, each `n` × `n` of them merged into one;
+`.automatic`, the default, stays 2 × 4 whatever the terminal. The frost claim
+carries the pixels a cell (`OpacityRegion.Frost.averaging`), a picture
+cell's pixels are sampled from the picture's own where they were kept
+(`DerivedImages.cellPixels(of:column:row:across:down:)`), and the blur is a
+running sum, which costs a pixel the same whatever its radius. The
+Example's Colors page shows factors 8, 4, 2 and 1 side by side.

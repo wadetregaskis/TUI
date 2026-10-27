@@ -112,7 +112,7 @@ struct MaterialFrostTests {
     func boxesByThickness() {
         let order: [Material] = [.ultraThin, .thin, .regular, .thick, .ultraThick]
         let reaches = order.map { material -> (columns: UInt8, rows: UInt8) in
-            guard case .averaging(let columns, let rows) = material.frost else { return (0, 0) }
+            guard case .averaging(let columns, let rows, _, _) = material.frost else { return (0, 0) }
             return (columns, rows)
         }
         for (smaller, larger) in zip(reaches, reaches.dropFirst()) {
@@ -120,6 +120,31 @@ struct MaterialFrostTests {
         }
         for reach in reaches { #expect(reach.columns >= reach.rows * 2 && reach.columns > 0) }
         #expect(Material.bar.frost == Material.thick.frost)
+    }
+
+    @Test("materialFrostResolution rides the frost claim, in the terminal's pixels; the box is untouched")
+    func resolutionRidesTheClaim() {
+        var environment = EnvironmentValues()
+        environment.appearsActive = true
+        #expect(Material.thin.paint(in: environment).frost == Material.thin.frost, "coarse is scale 1")
+        environment.imageCellPixels = TerminalCellPixels(width: 16, height: 34)
+        environment.materialFrostResolution = .downsampled(by: 4)
+        guard case .averaging(let columns, let rows, let across, let down)? = Material.thin.paint(in: environment).frost,
+            case .averaging(let ownColumns, let ownRows, _, _) = Material.thin.frost
+        else {
+            Issue.record("\(String(describing: Material.thin.paint(in: environment).frost))")
+            return
+        }
+        #expect((across, down) == (4, 9), "16 x 34 by 4, rounded")
+        #expect(columns == ownColumns && rows == ownRows, "the box is the thickness's")
+        environment.materialFrostResolution = .native
+        #expect(Material.thin.paint(in: environment).frost?.pixelsPerCell == [16, 34])
+        environment.materialFrostResolution = .downsampled(by: 100)
+        #expect(Material.thin.paint(in: environment).frost?.pixelsPerCell == [1, 1], "at least a pixel a cell")
+        environment.materialFrostResolution = .downsampled(by: 0)
+        #expect(environment.materialFrostResolution == .native, "a factor below 1 is 1")
+        environment.materialFrost = .none
+        #expect(Material.thin.paint(in: environment).frost == OpacityRegion.Frost.droppingGlyphs, "nothing to resolve")
     }
 
     @Test("materialFrost sets the box for a subtree, over the thickness's")
@@ -248,5 +273,13 @@ struct MaterialFrostTests {
         #expect(letter > 0.1 && letter < 0.5)
         #expect(FrameBuffer.frostCoverage(of: "─") < letter)
         #expect(FrameBuffer.frostCoverage(of: "Ä") == FrameBuffer.frostCoverage(of: "A"))
+    }
+}
+
+extension OpacityRegion.Frost {
+    /// The pixels a cell an averaging frost asks for, or `nil` for none.
+    fileprivate var pixelsPerCell: [Int]? {
+        guard case .averaging(_, _, let across, let down) = self else { return nil }
+        return [Int(across), Int(down)]
     }
 }

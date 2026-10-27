@@ -132,7 +132,7 @@ extension Glass {
     /// does a material's.
     func frost(in environment: EnvironmentValues) -> OpacityRegion.Frost {
         let thinner: Material = variant == .clear ? .ultraThin : .thin
-        return environment.materialFrost.resolved(thickness: thinner.frost)
+        return environment.resolvedFrost(thickness: thinner.frost)
     }
 
     /// The surface: the tint or the page's background, at the material's

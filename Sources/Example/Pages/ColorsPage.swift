@@ -245,6 +245,8 @@ struct ColorsPage: View {
 
             GlassDemo()
 
+            FrostResolutionDemo()
+
             ShadowsDemo()
 
             ColorEffectsDemo()

@@ -50,9 +50,13 @@ struct FrostBackdropTests {
         }
     }
 
-    private func frosted(_ base: FrameBuffer, store: TerminalImageStore?) -> FrameBuffer {
+    private func frosted(
+        _ base: FrameBuffer, store: TerminalImageStore?, resolution: MaterialFrostResolution = .automatic
+    ) -> FrameBuffer {
         let context = makeRenderContext(width: 7, height: 2)
-        let glass = renderToBuffer(Color.clear.frame(width: 7, height: 2).background(.thinMaterial), context: context)
+        let glass = renderToBuffer(
+            Color.clear.frame(width: 7, height: 2).background(.thinMaterial).materialFrostResolution(resolution),
+            context: context)
         // As a floating layer is spent over the finished page, at the root.
         return base.compositedResolvingOpacity(
             with: glass, at: (x: 0, y: 0), palette: context.environment.palette, images: store)
@@ -90,6 +94,19 @@ struct FrostBackdropTests {
         let blocks = PictureUnderTextLayer.blocks(of: rows.map(\.runs))
         let block = try #require(blocks.values.first)
         #expect(blocks.count == 1 && block.row == 0 && block.rows == 2, "one placement for the glass")
+    }
+
+    /// The context's cell is the default 8 × 16 pixels a terminal that reports
+    /// none is taken to have.
+    @Test("A finer resolution sends the glass's picture at that many pixels a cell", arguments: [
+        (MaterialFrostResolution.automatic, "s=14,v=8,"), (.downsampled(by: 2), "s=28,v=16,"), (.native, "s=56,v=32,"),
+    ])
+    func resolution(resolution: MaterialFrostResolution, size: String) throws {
+        let store = TerminalImageStore()
+        let line = frosted(page(store), store: store, resolution: resolution).lines[0]
+        #expect(pictureCells(line).allSatisfy { $0 != nil }, "the glass still draws one picture")
+        let sent = store.takePending()
+        #expect(sent.contains(size), "7 x 2 cells at the resolution's pixels: \(sent.prefix(200))")
     }
 
     @Test("With no picture behind, the frost is the averages, as before")

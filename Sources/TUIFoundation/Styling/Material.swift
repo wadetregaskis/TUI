@@ -120,7 +120,7 @@ extension Material: ShapeStyle {
     public func paint(in environment: EnvironmentValues) -> Paint {
         let colour = surface(isBar ? Color.palette.statusBarBackground : Color.palette.background, in: environment)
         return colour.isOpaque
-            ? .color(colour) : .frosted(.color(colour), environment.materialFrost.resolved(thickness: frost))
+            ? .color(colour) : .frosted(.color(colour), environment.resolvedFrost(thickness: frost))
     }
 
     /// `surface` as this material paints it in `environment`: at the

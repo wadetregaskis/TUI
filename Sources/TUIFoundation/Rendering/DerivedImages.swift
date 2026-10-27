@@ -90,6 +90,11 @@ struct DerivedImages {
     private struct Source {
         let columns: Int
         let rows: Int
+        /// Its small copy's pixels a cell: ``DerivedImages/pixelsAcross`` ×
+        /// ``DerivedImages/pixelsDown``, or a frost backdrop's own
+        /// (`MaterialFrostResolution`).
+        var across = DerivedImages.pixelsAcross
+        var down = DerivedImages.pixelsDown
         let pixels: [UInt8]
         /// The picture's own pixels, as RGBA, where they fit ``DerivedImages/fullPixelLimit``.
         var full: (bytes: [UInt8], width: Int, height: Int)?
@@ -97,8 +102,8 @@ struct DerivedImages {
         /// The transforms in the order they were made, oldest first.
         var order: [ImageTransform] = []
 
-        var width: Int { columns * DerivedImages.pixelsAcross }
-        var height: Int { rows * DerivedImages.pixelsDown }
+        var width: Int { columns * across }
+        var height: Int { rows * down }
     }
 
     /// One derived copy in the terminal.
@@ -127,15 +132,17 @@ struct DerivedImages {
     // MARK: - Pictures
 
     /// Keeps a small copy of picture `id`, from the pixels it was transmitted
-    /// with, to derive copies of it from.
+    /// with, to derive copies of it from: `pixelsPerCell` a cell, by default
+    /// ``pixelsAcross`` × ``pixelsDown``.
     mutating func remember(
         _ id: KittyGraphics.ImageID, columns: Int, rows: Int,
-        pixels: (bytes: [UInt8], format: KittyGraphics.PixelFormat, width: Int, height: Int)
+        pixels: (bytes: [UInt8], format: KittyGraphics.PixelFormat, width: Int, height: Int),
+        pixelsPerCell: (across: Int, down: Int) = (Self.pixelsAcross, Self.pixelsDown)
     ) {
         var source = Source(
-            columns: columns, rows: rows,
+            columns: columns, rows: rows, across: pixelsPerCell.across, down: pixelsPerCell.down,
             pixels: Self.downsampled(
-                pixels, to: (columns * Self.pixelsAcross, rows * Self.pixelsDown)))
+                pixels, to: (columns * pixelsPerCell.across, rows * pixelsPerCell.down)))
         if pixels.width * pixels.height * 4 <= Self.fullPixelLimit {
             source.full = (Self.rgba(pixels), pixels.width, pixels.height)
         }
@@ -169,10 +176,10 @@ struct DerivedImages {
         guard let source = sources[id] else { return }
         for copy in source.copies.values { origins.removeValue(forKey: copy.id) }
         var resized = Source(
-            columns: columns, rows: rows,
+            columns: columns, rows: rows, across: source.across, down: source.down,
             pixels: Self.downsampled(
                 (source.pixels, .rgba, source.width, source.height),
-                to: (columns * Self.pixelsAcross, rows * Self.pixelsDown)))
+                to: (columns * source.across, rows * source.down)))
         // The same picture in a new box: its own pixels still are its pixels.
         resized.full = source.full
         sources[id] = resized
@@ -211,7 +218,9 @@ struct DerivedImages {
                 escapes += KittyGraphics.delete(id: gone.id)
             }
         }
-        let pixels = Self.applying(transform, to: source.pixels, width: source.width, height: source.height)
+        let pixels = Self.applying(
+            transform, to: source.pixels, width: source.width, height: source.height,
+            pixelsPerCell: (source.across, source.down))
         // An unblurred copy keeps the picture's detail, from its own pixels where
         // they were kept; a blurred one has none to keep, and the small copy is it.
         let sent: (width: Int, height: Int)
@@ -271,15 +280,15 @@ struct DerivedImages {
             (0..<source.columns).contains(column), (0..<source.rows).contains(row)
         else { return nil }
         var sums = (0, 0, 0)
-        for y in (row * Self.pixelsDown)..<((row + 1) * Self.pixelsDown) {
-            for x in (column * Self.pixelsAcross)..<((column + 1) * Self.pixelsAcross) {
+        for y in (row * source.down)..<((row + 1) * source.down) {
+            for x in (column * source.across)..<((column + 1) * source.across) {
                 let at = (y * source.width + x) * 4
                 sums.0 += Int(copy.pixels[at])
                 sums.1 += Int(copy.pixels[at + 1])
                 sums.2 += Int(copy.pixels[at + 2])
             }
         }
-        let count = Self.pixelsAcross * Self.pixelsDown
+        let count = source.across * source.down
         return (UInt8(sums.0 / count), UInt8(sums.1 / count), UInt8(sums.2 / count))
     }
 
@@ -322,16 +331,19 @@ struct DerivedImages {
         return out
     }
 
-    /// `pixels` (RGBA, `width` × `height`) changed by `transform`: blurred over
-    /// about a cell — a box blur run twice each way, which is close to a
-    /// Gaussian — then mixed toward each of its colours in turn.
-    /// Alpha is left alone, so a transparent picture stays transparent.
-    static func applying(_ transform: ImageTransform, to pixels: [UInt8], width: Int, height: Int) -> [UInt8] {
+    /// `pixels` (RGBA, `width` × `height`, `pixelsPerCell` a cell) changed by
+    /// `transform`: blurred over about a cell — a box blur run twice each way,
+    /// which is close to a Gaussian — then mixed toward each of its colours in
+    /// turn. Alpha is left alone, so a transparent picture stays transparent.
+    static func applying(
+        _ transform: ImageTransform, to pixels: [UInt8], width: Int, height: Int,
+        pixelsPerCell: (across: Int, down: Int) = (pixelsAcross, pixelsDown)
+    ) -> [UInt8] {
         var out = pixels
         if transform.blurs {
             for _ in 0..<2 {
-                out = boxBlurred(out, width: width, height: height, radius: (pixelsAcross, 0))
-                out = boxBlurred(out, width: width, height: height, radius: (0, pixelsDown))
+                out = boxBlurred(out, width: width, height: height, radius: (max(1, pixelsPerCell.across), 0))
+                out = boxBlurred(out, width: width, height: height, radius: (0, max(1, pixelsPerCell.down)))
             }
         }
         for mix in transform.mixes { apply(mix, to: &out) }
@@ -363,13 +375,16 @@ struct DerivedImages {
         }
     }
 
-    /// `pixels` (RGBA, `width` × `height`, ``pixelsAcross`` × ``pixelsDown`` a
-    /// cell) blurred as a material frosts a box `reach` cells either way: a
-    /// box blur run twice each way, each half the reach, which is close to a
-    /// Gaussian as wide as the box (`FrameBuffer.frostBackdrop`).
-    static func frosted(_ pixels: [UInt8], width: Int, height: Int, reach: (columns: Int, rows: Int)) -> [UInt8] {
-        let across = max(1, (reach.columns * pixelsAcross + 1) / 2)
-        let down = max(1, (reach.rows * pixelsDown + 1) / 2)
+    /// `pixels` (RGBA, `width` × `height`, `pixelsPerCell` a cell) blurred as a
+    /// material frosts a box `reach` cells either way: a box blur run twice
+    /// each way, each half the reach, which is close to a Gaussian as wide as
+    /// the box (`FrameBuffer.frostBackdrop`).
+    static func frosted(
+        _ pixels: [UInt8], width: Int, height: Int, reach: (columns: Int, rows: Int),
+        pixelsPerCell: (across: Int, down: Int) = (pixelsAcross, pixelsDown)
+    ) -> [UInt8] {
+        let across = max(1, (reach.columns * pixelsPerCell.across + 1) / 2)
+        let down = max(1, (reach.rows * pixelsPerCell.down + 1) / 2)
         var out = pixels
         for _ in 0..<2 {
             out = boxBlurred(out, width: width, height: height, radius: (across, 0))
@@ -378,27 +393,58 @@ struct DerivedImages {
         return out
     }
 
-    /// The small copy's pixels of cell (`column`, `row`) of picture `id`, or of
-    /// the copy `id` names — ``pixelsAcross`` × ``pixelsDown`` RGBA, row by row —
-    /// or `nil` for an unknown image or a cell outside it.
-    func cellPixels(of id: KittyGraphics.ImageID, column: Int, row: Int) -> [UInt8]? {
+    /// Cell (`column`, `row`) of picture `id`, or of the copy `id` names, as
+    /// `across` × `down` RGBA pixels, row by row — what a frost's backdrop takes
+    /// for that cell — or `nil` for an unknown image or a cell outside it.
+    ///
+    /// Sampled from the finest pixels kept: a picture's own where they were
+    /// kept, a copy's as it was made, else the small copy; each output pixel
+    /// the mean of the pixels under it, as ``downsampled(_:to:)`` takes them,
+    /// or the one it falls in where there are fewer pixels than asked for.
+    func cellPixels(
+        of id: KittyGraphics.ImageID, column: Int, row: Int, across: Int = pixelsAcross, down: Int = pixelsDown
+    ) -> [UInt8]? {
         let source: Source
-        let pixels: [UInt8]
+        let image: (bytes: [UInt8], width: Int, height: Int)
         if let known = sources[id] {
-            (source, pixels) = (known, known.pixels)
+            source = known
+            image = known.full ?? (known.pixels, known.width, known.height)
         } else if let origin = origins[id], let known = sources[origin.source],
             let copy = known.copies[origin.transform]
         {
-            (source, pixels) = (known, copy.pixels)
+            source = known
+            image = (copy.pixels, known.width, known.height)
         } else {
             return nil
         }
-        guard (0..<source.columns).contains(column), (0..<source.rows).contains(row) else { return nil }
+        guard (0..<source.columns).contains(column), (0..<source.rows).contains(row), across > 0, down > 0,
+            image.width > 0, image.height > 0
+        else { return nil }
+        // The whole image's pixel grid at `across` × `down` a cell; this cell's
+        // part of it.
+        let gridWidth = source.columns * across
+        let gridHeight = source.rows * down
         var out: [UInt8] = []
-        out.reserveCapacity(Self.pixelsAcross * Self.pixelsDown * 4)
-        for y in (row * Self.pixelsDown)..<((row + 1) * Self.pixelsDown) {
-            let start = (y * source.width + column * Self.pixelsAcross) * 4
-            out += pixels[start..<(start + Self.pixelsAcross * 4)]
+        out.reserveCapacity(across * down * 4)
+        for y in (row * down)..<((row + 1) * down) {
+            let top = y * image.height / gridHeight
+            let bottom = max(top + 1, (y + 1) * image.height / gridHeight)
+            for x in (column * across)..<((column + 1) * across) {
+                let left = x * image.width / gridWidth
+                let right = max(left + 1, (x + 1) * image.width / gridWidth)
+                var sums = (0, 0, 0, 0)
+                for sy in top..<bottom {
+                    for sx in left..<right {
+                        let at = (sy * image.width + sx) * 4
+                        sums.0 += Int(image.bytes[at])
+                        sums.1 += Int(image.bytes[at + 1])
+                        sums.2 += Int(image.bytes[at + 2])
+                        sums.3 += Int(image.bytes[at + 3])
+                    }
+                }
+                let count = (bottom - top) * (right - left)
+                out += [UInt8(sums.0 / count), UInt8(sums.1 / count), UInt8(sums.2 / count), UInt8(sums.3 / count)]
+            }
         }
         return out
     }

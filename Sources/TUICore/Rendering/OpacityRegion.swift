@@ -252,7 +252,11 @@ extension OpacityRegion {
         /// The glyphs dropped and each cell the average of the cells
         /// `columns` either side of it and `rows` above and below — a box
         /// `2 × columns + 1` wide and `2 × rows + 1` tall.
-        case averaging(columns: UInt8, rows: UInt8)
+        ///
+        /// Where a picture the terminal draws is behind, what is behind is
+        /// frosted as one picture of `pixelsAcross` × `pixelsDown` pixels a
+        /// cell (`MaterialFrostResolution`).
+        case averaging(columns: UInt8, rows: UInt8, pixelsAcross: UInt8 = 2, pixelsDown: UInt8 = 4)
     }
 }
 

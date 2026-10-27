@@ -163,7 +163,7 @@ package final class TerminalImageStore: @unchecked Sendable {
     private var holds: [String: Set<KittyGraphics.ImageID>] = [:]
 
     /// What a frost made of everything behind it where a picture was there
-    /// (``backdrop(pixels:columns:rows:)``), newest last: pictures of no view,
+    /// (``backdrop(pixels:columns:rows:pixelsPerCell:)``), newest last: pictures of no view,
     /// never sent themselves, which their tinted copies are made from.
     private var backdrops: [(key: BackdropKey, id: KittyGraphics.ImageID)] = []
 
@@ -389,15 +389,19 @@ package final class TerminalImageStore: @unchecked Sendable {
     // MARK: - Frost backdrops
 
     /// The id of a picture of what is behind a frost, `columns` × `rows` cells
-    /// of `pixels` (RGBA, ``DerivedImages/pixelsAcross`` × ``DerivedImages/pixelsDown``
-    /// a cell, already blurred): the pictures there and the cells between
+    /// of `pixels` (RGBA, `pixelsPerCell` a cell — by default
+    /// ``DerivedImages/pixelsAcross`` × ``DerivedImages/pixelsDown`` — already
+    /// blurred): the pictures there and the cells between
     /// them, as one image, so the frost blurs across their edges
     /// (`FrameBuffer.frostBackdrop`). Never sent: the cells under the glass
     /// draw its copy tinted by the glass (``derived(_:by:)``), made from it as
     /// from any picture. The same pixels in the same box are the same id.
-    package func backdrop(pixels: [UInt8], columns: Int, rows: Int) -> KittyGraphics.ImageID? {
-        guard columns > 0, rows > 0,
-            pixels.count == columns * DerivedImages.pixelsAcross * rows * DerivedImages.pixelsDown * 4
+    package func backdrop(
+        pixels: [UInt8], columns: Int, rows: Int,
+        pixelsPerCell: (across: Int, down: Int) = (DerivedImages.pixelsAcross, DerivedImages.pixelsDown)
+    ) -> KittyGraphics.ImageID? {
+        guard columns > 0, rows > 0, pixelsPerCell.across > 0, pixelsPerCell.down > 0,
+            pixels.count == columns * pixelsPerCell.across * rows * pixelsPerCell.down * 4
         else { return nil }
         let key = BackdropKey(columns: columns, rows: rows, pixels: pixels)
         if let index = backdrops.firstIndex(where: { $0.key == key }) {
@@ -408,7 +412,8 @@ package final class TerminalImageStore: @unchecked Sendable {
         let id = claimID()
         derivedImages.remember(
             id, columns: columns, rows: rows,
-            pixels: (pixels, .rgba, columns * DerivedImages.pixelsAcross, rows * DerivedImages.pixelsDown))
+            pixels: (pixels, .rgba, columns * pixelsPerCell.across, rows * pixelsPerCell.down),
+            pixelsPerCell: pixelsPerCell)
         backdrops.append((key, id))
         if backdrops.count > Self.backdropLimit {
             let oldest = backdrops.removeFirst()
@@ -417,16 +422,19 @@ package final class TerminalImageStore: @unchecked Sendable {
         return id
     }
 
-    /// Whether `id` is a frost's backdrop (``backdrop(pixels:columns:rows:)``),
+    /// Whether `id` is a frost's backdrop (``backdrop(pixels:columns:rows:pixelsPerCell:)``),
     /// already blurred: its copies are not blurred again.
     package func isBackdrop(_ id: KittyGraphics.ImageID) -> Bool {
         backdrops.contains { $0.id == id }
     }
 
     /// The small copy's pixels of `cell` of a picture or a copy — what a
-    /// frost's backdrop takes for that cell (``DerivedImages/cellPixels(of:column:row:)``).
-    package func cellPixels(of cell: KittyGraphics.PlaceholderCell) -> [UInt8]? {
-        derivedImages.cellPixels(of: cell.id, column: cell.column, row: cell.row)
+    /// frost's backdrop takes for that cell (``DerivedImages/cellPixels(of:column:row:across:down:)``).
+    package func cellPixels(
+        of cell: KittyGraphics.PlaceholderCell, across: Int = DerivedImages.pixelsAcross,
+        down: Int = DerivedImages.pixelsDown
+    ) -> [UInt8]? {
+        derivedImages.cellPixels(of: cell.id, column: cell.column, row: cell.row, across: across, down: down)
     }
 
     // MARK: - Scaled

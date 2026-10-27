@@ -17,7 +17,7 @@ extension FrameBuffer {
     /// its cell of a backdrop: a picture of the cells read behind the frost,
     /// each picture cell its small copy's pixels and every other cell its
     /// effective colour (``effectiveRGB(of:surface:defaultForeground:)``),
-    /// blurred as the frost's box blurs (``DerivedImages/frosted(_:width:height:reach:)``)
+    /// blurred as the frost's box blurs (``DerivedImages/frosted(_:width:height:reach:pixelsPerCell:)``)
     /// and cut to `covered` — or no rows at all, where no picture is behind.
     ///
     /// Before, each picture was frosted on its own, inside its own box, and
@@ -34,10 +34,15 @@ extension FrameBuffer {
     ///   - covered: Their union's bounds.
     ///   - read: What the frost read: `covered` and its boxes' reach.
     ///   - reach: The largest box's reach, in cells either way.
+    ///   - pixelsPerCell: The pixels a cell the backdrop has
+    ///     (`MaterialFrostResolution`).
     static func frostBackdrop(
         parsed: [Int: [RowCell?]], boxes: [(columns: Range<Int>, rows: Range<Int>)],
         covered: (columns: Range<Int>, rows: Range<Int>), read: (columns: Range<Int>, rows: Range<Int>),
-        reach: (columns: Int, rows: Int), surface: Color, defaultForeground: Color, images: TerminalImageStore
+        reach: (columns: Int, rows: Int),
+        pixelsPerCell: (across: Int, down: Int) = (DerivedImages.pixelsAcross, DerivedImages.pixelsDown),
+        surface: Color, defaultForeground: Color,
+        images: TerminalImageStore
     ) -> [Int: [RowCell?]] {
         // Only where a picture is behind: anywhere else the averages are the frost.
         let picturesBehind = read.rows.contains { row in
@@ -49,8 +54,8 @@ extension FrameBuffer {
         }
         guard picturesBehind else { return [:] }
 
-        let across = DerivedImages.pixelsAcross
-        let down = DerivedImages.pixelsDown
+        let across = max(1, pixelsPerCell.across)
+        let down = max(1, pixelsPerCell.down)
         let width = read.columns.count * across
         let height = read.rows.count * down
         var pixels = [UInt8](repeating: 0, count: width * height * 4)
@@ -60,15 +65,16 @@ extension FrameBuffer {
             for (columnIndex, column) in read.columns.enumerated() {
                 let cell = cells.indices.contains(column) ? cells[column] : nil
                 let block = Self.backdropPixels(
-                    of: cell, surface: surfaceRGB, surfaceColour: surface, defaultForeground: defaultForeground,
-                    images: images)
+                    of: cell, across: across, down: down, surface: surfaceRGB, surfaceColour: surface,
+                    defaultForeground: defaultForeground, images: images)
                 for y in 0..<down {
                     let start = ((rowIndex * down + y) * width + columnIndex * across) * 4
                     pixels.replaceSubrange(start..<(start + across * 4), with: block[(y * across * 4)..<((y + 1) * across * 4)])
                 }
             }
         }
-        let blurred = DerivedImages.frosted(pixels, width: width, height: height, reach: reach)
+        let blurred = DerivedImages.frosted(
+            pixels, width: width, height: height, reach: reach, pixelsPerCell: (across, down))
         // Cut to what the boxes cover.
         let left = (covered.columns.lowerBound - read.columns.lowerBound) * across
         let top = (covered.rows.lowerBound - read.rows.lowerBound) * down
@@ -79,7 +85,9 @@ extension FrameBuffer {
             let start = (y * width + left) * 4
             cut += blurred[start..<(start + cutWidth * 4)]
         }
-        guard let id = images.backdrop(pixels: cut, columns: covered.columns.count, rows: covered.rows.count)
+        guard
+            let id = images.backdrop(
+                pixels: cut, columns: covered.columns.count, rows: covered.rows.count, pixelsPerCell: (across, down))
         else { return [:] }
 
         var rows: [Int: [RowCell?]] = [:]
@@ -97,18 +105,18 @@ extension FrameBuffer {
         return rows
     }
 
-    /// One cell's pixels in a backdrop, RGBA, ``DerivedImages/pixelsAcross`` ×
-    /// ``DerivedImages/pixelsDown``: a picture cell's small copy, or a solid
-    /// block of any other cell's effective colour — the surface past a line's
-    /// end, and transparent where no colour has an RGB.
+    /// One cell's pixels in a backdrop, RGBA, `across` × `down`: a picture
+    /// cell's, sampled at that size, or a solid block of any other cell's
+    /// effective colour — the surface past a line's end, and transparent where
+    /// no colour has an RGB.
     private static func backdropPixels(
-        of cell: RowCell?, surface: (red: UInt8, green: UInt8, blue: UInt8)?, surfaceColour: Color,
-        defaultForeground: Color, images: TerminalImageStore
+        of cell: RowCell?, across: Int, down: Int, surface: (red: UInt8, green: UInt8, blue: UInt8)?,
+        surfaceColour: Color, defaultForeground: Color, images: TerminalImageStore
     ) -> [UInt8] {
-        let count = DerivedImages.pixelsAcross * DerivedImages.pixelsDown
+        let count = across * down
         if let cell, let ink = cell.foreground?.rgbComponents,
             let picture = KittyGraphics.placeholderCell(cell.character, foreground: ink),
-            let block = images.cellPixels(of: picture)
+            let block = images.cellPixels(of: picture, across: across, down: down)
         {
             return block
         }

@@ -160,8 +160,11 @@ extension FrameBuffer {
     ) -> FrostFields? {
         typealias Box = (columns: Range<Int>, rows: Range<Int>, reachX: Int, reachY: Int)
         var boxes: [Box] = []
+        // The finest resolution any claim asks a picture behind it frosted at.
+        var pixelsPerCell = (across: 1, down: 1)
         for claim in claims {
-            guard case .averaging(let reachX, let reachY)? = claim.frost else { continue }
+            guard case .averaging(let reachX, let reachY, let across, let down)? = claim.frost else { continue }
+            pixelsPerCell = (max(pixelsPerCell.across, Int(across)), max(pixelsPerCell.down, Int(down)))
             let left = max(0, claim.offsetX + position.x)
             let right = min(width, claim.offsetX + position.x + claim.width)
             let top = max(0, claim.offsetY + position.y)
@@ -206,7 +209,7 @@ extension FrameBuffer {
             result.backdropRows = Self.frostBackdrop(
                 parsed: parsedRows, boxes: boxes.map { ($0.columns, $0.rows) }, covered: covered,
                 read: (readColumns, readRows), reach: (boxes.last?.reachX ?? 0, boxes.last?.reachY ?? 0),
-                surface: surface, defaultForeground: defaultForeground, images: images)
+                pixelsPerCell: pixelsPerCell, surface: surface, defaultForeground: defaultForeground, images: images)
         }
         return result
     }
