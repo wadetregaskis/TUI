@@ -1309,4 +1309,28 @@ mark). The diff writer reads the marked runs back off the finished frame and
 takes the marks out; `PictureUnderTextLayer` places each run — the copy
 cropped to the run's pixels, scaled to its cells, `z=-1` — and deletes it
 when it goes, sending only what changed. Everywhere else the glyph stands on
-the copy's average colour, as before.
+the copy's average colour, as before
+
+### 14.6 One backdrop under the glass (2026-10-26)
+
+Frosted one picture at a time (§14.2), each photo blurred inside its own box,
+the glass showed hard rectangles where a photo ended, and the page between
+photos frosted cell by cell, beside smooth pixels; and a picture's cells,
+read as colours by the box averages, lent the averages the image's id as
+ink, darkening every gutter beside a photo. The owner: "the jagged-looking
+frosting, where the images behind have rectangles cut off in the blurred
+version".
+
+Now, where a frost covers any picture, it makes one picture of everything
+behind it (`FrameBuffer.frostBackdrop`): each picture cell its small copy's
+pixels (2 × 4 a cell), every other cell a block of its effective colour, read
+as far as the frost's boxes reach and blurred at that width, then cut to what
+the glass covers. The store files it as a picture of no view, never sent
+(`TerminalImageStore.backdrop(pixels:columns:rows:)`, the same pixels the
+same id, the oldest of six let go with its copies), and the frost hands the
+blend its cells in place of what was behind (`FrostFields.backdropRows`):
+each covered cell draws the backdrop's copy tinted by the glass — one image
+across the photos and the gaps between them — and a glyph stands on it as on
+any picture (§14.5 where the terminal can). A picture's cell no longer lends
+the averages any colour. With no picture behind, the frost is the averages,
+as before..

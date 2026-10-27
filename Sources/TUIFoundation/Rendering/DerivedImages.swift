@@ -357,6 +357,46 @@ struct DerivedImages {
         }
     }
 
+    /// `pixels` (RGBA, `width` × `height`, ``pixelsAcross`` × ``pixelsDown`` a
+    /// cell) blurred as a material frosts a box `reach` cells either way: a
+    /// box blur run twice each way, each half the reach, which is close to a
+    /// Gaussian as wide as the box (`FrameBuffer.frostBackdrop`).
+    static func frosted(_ pixels: [UInt8], width: Int, height: Int, reach: (columns: Int, rows: Int)) -> [UInt8] {
+        let across = max(1, (reach.columns * pixelsAcross + 1) / 2)
+        let down = max(1, (reach.rows * pixelsDown + 1) / 2)
+        var out = pixels
+        for _ in 0..<2 {
+            out = boxBlurred(out, width: width, height: height, radius: (across, 0))
+            out = boxBlurred(out, width: width, height: height, radius: (0, down))
+        }
+        return out
+    }
+
+    /// The small copy's pixels of cell (`column`, `row`) of picture `id`, or of
+    /// the copy `id` names — ``pixelsAcross`` × ``pixelsDown`` RGBA, row by row —
+    /// or `nil` for an unknown image or a cell outside it.
+    func cellPixels(of id: KittyGraphics.ImageID, column: Int, row: Int) -> [UInt8]? {
+        let source: Source
+        let pixels: [UInt8]
+        if let known = sources[id] {
+            (source, pixels) = (known, known.pixels)
+        } else if let origin = origins[id], let known = sources[origin.source],
+            let copy = known.copies[origin.transform]
+        {
+            (source, pixels) = (known, copy.pixels)
+        } else {
+            return nil
+        }
+        guard (0..<source.columns).contains(column), (0..<source.rows).contains(row) else { return nil }
+        var out: [UInt8] = []
+        out.reserveCapacity(Self.pixelsAcross * Self.pixelsDown * 4)
+        for y in (row * Self.pixelsDown)..<((row + 1) * Self.pixelsDown) {
+            let start = (y * source.width + column * Self.pixelsAcross) * 4
+            out += pixels[start..<(start + Self.pixelsAcross * 4)]
+        }
+        return out
+    }
+
     /// One pass of a box blur `radius` pixels across or down, the edges held.
     private static func boxBlurred(
         _ pixels: [UInt8], width: Int, height: Int, radius: (across: Int, down: Int)

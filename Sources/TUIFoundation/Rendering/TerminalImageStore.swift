@@ -161,6 +161,24 @@ package final class TerminalImageStore: @unchecked Sendable {
     /// The images each holding token keeps (``hold(picturesIn:for:)``): a
     /// token that draws none of them itself.
     private var holds: [String: Set<KittyGraphics.ImageID>] = [:]
+
+    /// What a frost made of everything behind it where a picture was there
+    /// (``backdrop(pixels:columns:rows:)``), newest last: pictures of no view,
+    /// never sent themselves, which their tinted copies are made from.
+    private var backdrops: [(key: BackdropKey, id: KittyGraphics.ImageID)] = []
+
+    /// A backdrop's pixels and its box, which say everything about it: a frost
+    /// that makes the same one again, frame after frame, is given the same id.
+    private struct BackdropKey: Hashable {
+        let columns: Int
+        let rows: Int
+        let pixels: [UInt8]
+    }
+
+    /// How many backdrops are kept. A glass fading in makes one at each of its
+    /// tints only if what is behind changes; past this, the oldest goes, with
+    /// its copies.
+    static let backdropLimit = 6
     private var pending = ""
     /// Copies of the pictures, changed for a translucent layer over them.
     private var derivedImages = DerivedImages()
@@ -340,7 +358,7 @@ package final class TerminalImageStore: @unchecked Sendable {
                 KittyGraphics.PlaceholderCell(id: origin.source, row: cell.row, column: cell.column),
                 by: origin.transform.followed(by: transform))
         }
-        guard images[cell.id] != nil else { return nil }
+        guard images[cell.id] != nil || isBackdrop(cell.id) else { return nil }
         if let copy = derivedImages.existingCopy(of: cell.id, by: transform) {
             return KittyGraphics.PlaceholderCell(id: copy, row: cell.row, column: cell.column)
         }
@@ -361,6 +379,49 @@ package final class TerminalImageStore: @unchecked Sendable {
                 of: origin.source, by: origin.transform.followed(by: transform), column: cell.column, row: cell.row)
         }
         return derivedImages.average(of: cell.id, by: transform, column: cell.column, row: cell.row)
+    }
+
+    // MARK: - Frost backdrops
+
+    /// The id of a picture of what is behind a frost, `columns` × `rows` cells
+    /// of `pixels` (RGBA, ``DerivedImages/pixelsAcross`` × ``DerivedImages/pixelsDown``
+    /// a cell, already blurred): the pictures there and the cells between
+    /// them, as one image, so the frost blurs across their edges
+    /// (`FrameBuffer.frostBackdrop`). Never sent: the cells under the glass
+    /// draw its copy tinted by the glass (``derived(_:by:)``), made from it as
+    /// from any picture. The same pixels in the same box are the same id.
+    package func backdrop(pixels: [UInt8], columns: Int, rows: Int) -> KittyGraphics.ImageID? {
+        guard columns > 0, rows > 0,
+            pixels.count == columns * DerivedImages.pixelsAcross * rows * DerivedImages.pixelsDown * 4
+        else { return nil }
+        let key = BackdropKey(columns: columns, rows: rows, pixels: pixels)
+        if let index = backdrops.firstIndex(where: { $0.key == key }) {
+            let known = backdrops.remove(at: index)
+            backdrops.append(known)
+            return known.id
+        }
+        let id = claimID()
+        derivedImages.remember(
+            id, columns: columns, rows: rows,
+            pixels: (pixels, .rgba, columns * DerivedImages.pixelsAcross, rows * DerivedImages.pixelsDown))
+        backdrops.append((key, id))
+        if backdrops.count > Self.backdropLimit {
+            let oldest = backdrops.removeFirst()
+            for copy in derivedImages.forget(oldest.id) { pending += KittyGraphics.delete(id: copy) }
+        }
+        return id
+    }
+
+    /// Whether `id` is a frost's backdrop (``backdrop(pixels:columns:rows:)``),
+    /// already blurred: its copies are not blurred again.
+    package func isBackdrop(_ id: KittyGraphics.ImageID) -> Bool {
+        backdrops.contains { $0.id == id }
+    }
+
+    /// The small copy's pixels of `cell` of a picture or a copy — what a
+    /// frost's backdrop takes for that cell (``DerivedImages/cellPixels(of:column:row:)``).
+    package func cellPixels(of cell: KittyGraphics.PlaceholderCell) -> [UInt8]? {
+        derivedImages.cellPixels(of: cell.id, column: cell.column, row: cell.row)
     }
 
     // MARK: - Owning
@@ -444,6 +505,8 @@ package final class TerminalImageStore: @unchecked Sendable {
         images.removeAll()
         slots.removeAll()
         entries.removeAll()
+        for backdrop in backdrops { derivedImages.forget(backdrop.id) }
+        backdrops.removeAll()
         _generation += 1
     }
 
@@ -461,9 +524,14 @@ package final class TerminalImageStore: @unchecked Sendable {
     package func farewell(fitting limit: Int = .max) -> String {
         var farewell = ""
         // Each picture's copies after it, sorted too.
-        let deletes = images.values.sorted(by: { $0.arrival < $1.arrival }).flatMap { image in
-            [image.id] + derivedImages.copyIDs(of: image.id)
+        // A backdrop is never sent itself, only its copies, after the pictures,
+        // in the order the backdrops were made.
+        // Two statements: one expression of both took the type-check guard past
+        // its limit.
+        var deletes: [KittyGraphics.ImageID] = images.values.sorted(by: { $0.arrival < $1.arrival }).flatMap {
+            [$0.id] + derivedImages.copyIDs(of: $0.id)
         }
+        for backdrop in backdrops { deletes += derivedImages.copyIDs(of: backdrop.id) }
         for id in deletes {
             let delete = KittyGraphics.delete(id: id)
             guard farewell.utf8.count + delete.utf8.count <= limit else { break }
@@ -558,7 +626,7 @@ package final class TerminalImageStore: @unchecked Sendable {
         for _ in 0..<KittyGraphics.maximumImageID {
             let candidate = nextID
             nextID = candidate >= KittyGraphics.maximumImageID - 2 ? 1 : candidate + 1
-            if images[candidate] == nil, !derivedImages.isCopy(candidate) { return candidate }
+            if images[candidate] == nil, !derivedImages.isCopy(candidate), !isBackdrop(candidate) { return candidate }
         }
         return 1
     }

@@ -100,7 +100,9 @@ extension FrameBuffer {
         let field = (painter?.colour ?? cell.background)?.rgbComponents
         let fraction = field == nil ? 0 : painter.map { $0.layer * $0.field } ?? alpha.layer * alpha.field
         let paintsGlyph = cell.character != " " || cell.style.paintsInkOnBlankCell
-        let transform = ImageTransform(blurs: alpha.frosts, toward: field ?? (0, 0, 0), fraction: fraction)
+        // A frost's backdrop is blurred already (`FrameBuffer.frostBackdrop`).
+        let transform = ImageTransform(
+            blurs: alpha.frosts && !images.isBackdrop(picture.id), toward: field ?? (0, 0, 0), fraction: fraction)
         guard !transform.isIdentity || paintsGlyph else { return behind }
         guard let copy = images.derived(picture, by: transform) else { return nil }
         if paintsGlyph {

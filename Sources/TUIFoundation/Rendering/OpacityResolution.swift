@@ -183,7 +183,8 @@ extension FrameBuffer {
         let frostFields =
             !destination.isEmpty && translucent.contains(where: \.frosts)
             ? destination.frostFields(
-                under: translucent, at: position, surface: resolvedSurface, defaultForeground: resolvedForeground)
+                under: translucent, at: position, surface: resolvedSurface, defaultForeground: resolvedForeground,
+                images: images)
             : nil
 
         // One row at a time, and each row rebuilt by the SAME function whatever

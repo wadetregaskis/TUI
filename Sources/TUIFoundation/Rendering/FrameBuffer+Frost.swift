@@ -91,14 +91,24 @@ struct FrostFields {
     /// (``destinationCells(row:through:)``).
     var parsedRows: [Int: [FrameBuffer.RowCell?]] = [:]
 
+    /// Where a picture is behind the frost: the parsed rows with every cell an
+    /// averaging claim covers replaced by its cell of the frost's backdrop
+    /// (`FrameBuffer.frostBackdrop`) — what the blend reads as behind it, so
+    /// each draws the backdrop tinted by the glass, blurred across the
+    /// pictures' edges and the cells between them as one image. Empty where no
+    /// picture is behind.
+    var backdropRows: [Int: [FrameBuffer.RowCell?]] = [:]
+
     /// Destination row `row` taken apart through column `through`, as the
-    /// blend would take it apart, where the averages already did that far.
+    /// blend would take it apart, where the averages already did that far —
+    /// with the frost's backdrop in place of what it covers, where it made
+    /// one (``backdropRows``).
     ///
     /// A parse through fewer columns is the prefix of one through more: the
     /// walk only ever stops early, and a zero-width scalar joins the cell before
     /// it, which is in the prefix whenever the scalar is.
     func destinationCells(row: Int, through: Int) -> ArraySlice<FrameBuffer.RowCell?>? {
-        guard let cells = parsedRows[row], cells.count >= through else { return nil }
+        guard let cells = backdropRows[row] ?? parsedRows[row], cells.count >= through else { return nil }
         return cells.prefix(max(0, through))
     }
 
@@ -142,8 +152,11 @@ extension FrameBuffer {
     ///   - position: Where the layer lands in this buffer.
     ///   - surface: What a cell stating no field shows, resolved.
     ///   - defaultForeground: What a glyph stating no ink is drawn in, resolved.
+    ///   - images: The pictures' store, which makes a backdrop where a picture
+    ///     is behind (``FrostFields/backdropRows``); `nil` for none.
     func frostFields(
-        under claims: [OpacityRegion], at position: (x: Int, y: Int), surface: Color, defaultForeground: Color
+        under claims: [OpacityRegion], at position: (x: Int, y: Int), surface: Color, defaultForeground: Color,
+        images: TerminalImageStore? = nil
     ) -> FrostFields? {
         typealias Box = (columns: Range<Int>, rows: Range<Int>, reachX: Int, reachY: Int)
         var boxes: [Box] = []
@@ -188,6 +201,12 @@ extension FrameBuffer {
                     result.fields[base + column] = table.average(top: top, bottom: bottom, left: left, right: right)
                 }
             }
+        }
+        if let images {
+            result.backdropRows = Self.frostBackdrop(
+                parsed: parsedRows, boxes: boxes.map { ($0.columns, $0.rows) }, covered: covered,
+                read: (readColumns, readRows), reach: (boxes.last?.reachX ?? 0, boxes.last?.reachY ?? 0),
+                surface: surface, defaultForeground: defaultForeground, images: images)
         }
         return result
     }
@@ -237,9 +256,13 @@ extension FrameBuffer {
 
     /// `cell`'s effective colour, as a frost averages it: its field, with its
     /// ink over it at its glyph's coverage — or `nil` where that has no RGB.
-    private static func effectiveRGB(
+    static func effectiveRGB(
         of cell: RowCell, surface: Color, defaultForeground: Color
     ) -> (red: UInt8, green: UInt8, blue: UInt8)? {
+        // A picture's cell has no colour of its own to give: its "ink" is the
+        // image's id, which read as a colour darkened every box beside a
+        // photograph. Left out of the average; a backdrop takes its pixels.
+        guard cell.character.unicodeScalars.first != .terminalImagePlaceholder else { return nil }
         let field = cell.background ?? surface
         let coverage = frostCoverage(of: cell.character)
         guard coverage > 0 else { return field.rgbComponents }
