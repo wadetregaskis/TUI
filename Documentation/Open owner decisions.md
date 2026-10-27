@@ -1,6 +1,6 @@
 # Open owner decisions
 
-What is waiting on you, re-checked on the evening of 2026-10-26 against `main`, after a full audit of the record, the notes and the queue. Most questions were put to you between
+What is waiting on you, re-checked on the evening of 2026-10-26 against `main`, after a full audit of the record, the notes and the queue, and kept up as the night of 2026-10-27's work landed. Most questions were put to you between
 2026-10-18 and 2026-10-26. The full write-ups of those asked by 2026-10-25, with the options and the
 evidence, are in the historical record, [Owner decisions, 2026-10-18 to 2026-10-25](<Historical/SwiftUI parity process/The owner's decisions, 2026-10-18 to 2026-10-25.md>). That record also holds every
 question you have already answered and what each answer set in motion. None of these blocks other work:
