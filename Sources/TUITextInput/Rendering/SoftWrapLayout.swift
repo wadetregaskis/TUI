@@ -45,10 +45,10 @@ import TUIFoundation
 /// An offset where a row was soft-wrapped is both the end of that row and the
 /// start of the next. Which one the caret is drawn at is its affinity:
 /// ``TextSelectionAffinity/upstream`` draws it at the end of the earlier row,
-/// and anything else at the start of the later one. That is where the macOS
-/// text system draws an insertion point moved there by an arrow key; one put
-/// there by typing or a click it draws upstream (both measured on macOS 15.8),
-/// a lean per caret this layout does not keep.
+/// and anything else at the start of the later one. Under `.automatic` the
+/// handlers pass the caret's own lean (``CaretLean``), as the macOS text
+/// system keeps one per caret: upstream after an edit, downstream after an
+/// arrow key (measured on macOS 15.8).
 ///
 /// Shared by the vertical field and ``TextEditor`` (decisions B62 and A43): the
 /// field gives each character one width, the editor a width that depends on its

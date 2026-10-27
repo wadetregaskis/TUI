@@ -172,6 +172,9 @@ enum TextFieldMouseHandler {
                     return true
                 }
                 handler.multiClickRun = nil
+                // A caret a click puts down is on the row clicked
+                // (`TextFieldHandler.caretLean`).
+                handler.caretLean = .downstream
                 if event.shift {
                     // Shift-click: keep the anchor, extend to the clicked column.
                     handler.startOrExtendSelection()

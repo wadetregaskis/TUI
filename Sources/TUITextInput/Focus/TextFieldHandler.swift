@@ -187,6 +187,14 @@ final class TextFieldHandler: PersistedFocusable {
     /// The affinity reported with each selection written to the app.
     var selectionAffinity: TextSelectionAffinity = .automatic
 
+    /// Which row the caret leans to where its offset is both the end of a
+    /// wrapped row and the start of the next, under `.automatic`, as the macOS
+    /// text system keeps it per caret (``CaretLean``): upstream after an edit,
+    /// Ctrl-E or a selection the app writes; downstream after an arrow key,
+    /// Ctrl-A or a click. A field whose affinity is `.upstream` or
+    /// `.downstream` draws every caret by that.
+    var caretLean: TextSelectionAffinity = .downstream
+
     /// The selection last exchanged with the app, as character offsets, so
     /// each side writes only a change.
     var exchangedSelection: Range<Int>?
@@ -525,6 +533,8 @@ extension TextFieldHandler {
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
         defer { publishSelection() }
         defer { forgetMovedRowStartHead() }
+        let before = (text: text.wrappedValue, caret: cursorPosition)
+        defer { noteCaretLean(after: event, from: before) }
         normalizeStaleState()
         // A key brings a wheel-scrolled field back to the caret, as the
         // editor's does.

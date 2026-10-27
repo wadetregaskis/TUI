@@ -23,11 +23,13 @@ extension TextEditorHandler {
         rows.row(ofLine: cursorLine, column: cursorColumn, affinity: caretAffinity)
     }
 
-    /// The affinity the caret's row is read by: the editor's, except for a
+    /// The affinity the caret's row is read by: the editor's — under
+    /// `.automatic`, the caret's own lean (``caretLean``) — except for a
     /// selection's head the pointer put on a wrapped row's first character
     /// (``rowStartHead``), which is read on that row.
     var caretAffinity: TextSelectionAffinity {
-        rowStartHead == cursor ? .downstream : selectionAffinity
+        if rowStartHead == cursor { return .downstream }
+        return selectionAffinity == .automatic ? caretLean : selectionAffinity
     }
 
     /// The caret's column in its row: what Up and Down keep.

@@ -82,11 +82,21 @@ extension TextFieldHandler {
         return layout.row(of: cursorPosition, affinity: caretAffinity) == layout.rows.count - 1
     }
 
-    /// The affinity the caret's row is read by: the field's, except for a
+    /// The affinity the caret's row is read by: the field's — under
+    /// `.automatic`, the caret's own lean (``caretLean``) — except for a
     /// selection's head the pointer put on a wrapped row's first character
     /// (``rowStartHead``), which is read on that row.
     var caretAffinity: TextSelectionAffinity {
-        rowStartHead == cursorPosition ? .downstream : selectionAffinity
+        if rowStartHead == cursorPosition { return .downstream }
+        return selectionAffinity == .automatic ? caretLean : selectionAffinity
+    }
+
+    /// Leans the caret as the key that just ran leaves it (``caretLean``,
+    /// ``CaretLean``).
+    func noteCaretLean(after event: KeyEvent, from before: (text: String, caret: Int)) {
+        caretLean = CaretLean.after(
+            event, edited: text.wrappedValue != before.text, moved: cursorPosition != before.caret,
+            current: caretLean)
     }
 
     /// Ends ``rowStartHead``'s reading once a key has moved the head off

@@ -13,10 +13,12 @@
 /// Where a wrapped line ends, one position is both the end of one row and the
 /// start of the next. Upstream puts the caret at the end of the earlier row;
 /// downstream at the start of the later one. A vertical ``TextField`` draws its
-/// caret there by the affinity, and `.automatic` as downstream, which is where
-/// the macOS text system draws an insertion point an arrow key moved there
-/// (macOS leans one placed by typing or a click upstream instead, per caret,
-/// which TUI does not track). Up and Down, and a click past a wrapped row's
+/// caret there by the affinity. Under `.automatic` each caret keeps its own
+/// lean, as the macOS text system does (measured on macOS 15.8): an edit —
+/// typing, a deletion, a paste — and the end of a line (Ctrl-E) leave it
+/// upstream, and so does a selection the app writes; an arrow key, a word
+/// move, the start of a line (Ctrl-A) and a click leave it downstream. Up and
+/// Down, and a click past a wrapped row's
 /// end, keep to the row the affinity picks: under `.upstream` the start of a
 /// wrapped row is the end of the row before it, so a caret moved or clicked
 /// onto that row lands after its first character. A selection's ends are not

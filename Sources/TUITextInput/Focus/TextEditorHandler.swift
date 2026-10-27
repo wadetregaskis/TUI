@@ -75,6 +75,14 @@ final class TextEditorHandler: PersistedFocusable {
     /// The affinity reported with each selection written to the app.
     var selectionAffinity: TextSelectionAffinity = .automatic
 
+    /// Which row the caret leans to where its offset is both the end of a
+    /// wrapped row and the start of the next, under `.automatic`, as the macOS
+    /// text system keeps it per caret (``CaretLean``): upstream after an edit,
+    /// Ctrl-E or a selection the app writes; downstream after an arrow key,
+    /// Ctrl-A or a click. An editor whose affinity is `.upstream` or
+    /// `.downstream` draws every caret by that.
+    var caretLean: TextSelectionAffinity = .downstream
+
     /// Whether Ctrl-F goes on to the editor's find bar rather than moving
     /// forward a character (decisions B81): set by the editor where it has a
     /// bar to open. Right arrow moves forward a character still.
@@ -277,6 +285,11 @@ final class TextEditorHandler: PersistedFocusable {
     func handleKeyEvent(_ event: KeyEvent) -> Bool {
         defer { publishSelection() }
         defer { forgetMovedRowStartHead() }
+        let before = (text: text.wrappedValue, caret: cursor)
+        defer {
+            caretLean = CaretLean.after(
+                event, edited: text.wrappedValue != before.text, moved: cursor != before.caret, current: caretLean)
+        }
         // A key brings a wheel-scrolled view back to the caret, as an
         // NSTextView's does — a modifier on its own included, which no
         // terminal reports.

@@ -310,6 +310,29 @@ struct VerticalTextFieldTests {
         #expect(caretRow(.upstream) == 0)
     }
 
+    /// D4X-FULLER: under `.automatic` each caret keeps the lean the macOS
+    /// text system gives it — upstream after an edit, downstream after an
+    /// arrow key (`CaretLean`).
+    @Test("An edit that leaves the caret where a row wrapped draws it on the earlier row; an arrow key, the later")
+    func caretLeanPerCaret() {
+        let model = Model("hello xworld")
+        let harness = InputChainHarness(width: 7)
+        let view = { field(model) }
+        func caretRow() -> Int? { harness.frame(view()).animatedCells.first.map(\.offsetY) }
+        // After the "x", then Backspace: the caret is at 6, where "hello "
+        // wrapped, and an edit leaves it upstream.
+        harness.play([KeyEvent(key: .home)] + Array(repeating: KeyEvent(key: .right), count: 7), view)
+        harness.play([KeyEvent(key: .backspace)], view)
+        #expect(model.text == "hello world")
+        #expect(caretRow() == 0, "after the deletion, at the end of the earlier row")
+        harness.play([KeyEvent(key: .left), KeyEvent(key: .right)], view)
+        #expect(caretRow() == 1, "after an arrow key, at the start of the later row")
+        // The space deleted and typed again, up to the wrap: upstream again.
+        harness.play([KeyEvent(key: .backspace), KeyEvent(key: .space)], view)
+        #expect(model.text == "hello world")
+        #expect(caretRow() == 0)
+    }
+
     @Test("A press puts the caret on the row and column it landed on")
     func pointer() {
         let harness = InputChainHarness(width: 12)

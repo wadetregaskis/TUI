@@ -1,0 +1,15 @@
+set 12 (baseline)            caret 12+0 affinity upstream caretRect.y 366.0 x 197.3525390625 fragment.y 16.0
+Backspace from 13            caret 12+0 affinity upstream caretRect.y 366.0 x 197.3525390625 fragment.y 16.0
+Forward Delete at 12         caret 12+0 affinity upstream caretRect.y 366.0 x 197.3525390625 fragment.y 16.0
+Down from 0                  caret 12+0 affinity downstream caretRect.y 365.5 x 120.0 fragment.y 16.0
+Up from 24                   caret 11+0 affinity upstream caretRect.y 366.0 x 193.7724609375 fragment.y 0.0
+Cmd-Left from 14             caret 12+0 affinity downstream caretRect.y 365.5 x 120.0 fragment.y 16.0
+Cmd-Right from 5             caret 12+0 affinity upstream caretRect.y 366.0 x 197.3525390625 fragment.y 16.0
+Ctrl-A from 14               caret 0+0 affinity downstream caretRect.y 366.0 x 120.0 fragment.y 0.0
+Ctrl-E from 5                caret 39+0 affinity upstream caretRect.y 365.0 x 195.791015625 fragment.y 32.0
+Right from 11                caret 12+0 affinity downstream caretRect.y 365.5 x 120.0 fragment.y 16.0
+Opt-Right from 8 (word)      caret 15+0 affinity downstream caretRect.y 365.5 x 143.7275390625 fragment.y 16.0
+Cmd-Left, then Fwd Delete    caret 12+0 affinity upstream caretRect.y 366.0 x 197.3525390625 fragment.y 16.0
+Cmd-Left, Right, Backspace   caret 12+0 affinity upstream caretRect.y 366.0 x 197.3525390625 fragment.y 16.0
+Backspace x3 from 15         caret 12+0 affinity upstream caretRect.y 366.0 x 197.3525390625 fragment.y 0.0
+Cmd-Right at 12 (upstream)   caret 12+0 affinity upstream caretRect.y 366.0 x 197.3525390625 fragment.y 16.0

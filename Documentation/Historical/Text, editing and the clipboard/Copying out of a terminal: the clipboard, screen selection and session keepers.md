@@ -404,7 +404,8 @@ listed — all fixed — these remain:
   content area — a scroll view shortened by a tooltip's row — loses the
   selection for good; a change of the terminal's height leaves one displaced
   (no highlight, no keys) until the height comes back.
-- **Upstream affinity** (B-D4X-16): one affinity per view, not per caret;
+- **Upstream affinity** (B-D4X-16): one affinity per view, not per caret —
+  a lean per caret under `.automatic` shipped 2026-10-27 (D4X-FULLER);
   downstream, a drag to a wrapped row's margin stops before its hanging
   space.
 - **Right-press hand-off** (review 2 of 9873ddc07) — fixed: drags that

@@ -99,7 +99,8 @@ so it has nothing for them to page, and leaves them to the view around it.
   end of the earlier row. The two draw the same offset in different places, and
   the next character typed goes to the same place either way. About half a day
   to track the lean through each kind of motion, after measuring the motions
-  not yet measured (deletion, Up and Down, Home and End).
+  not yet measured (deletion, Up and Down, Home and End). **Built 2026-10-27**
+  (D4X-FULLER, below B-D4X-16).
 - **A scroll indicator** while the text is taller than the field, as the
   editor draws one. A field on one line shows no indicator for its sideways
   scroll either. Half a day, mostly finding a column for it: the margin cell is
@@ -283,6 +284,25 @@ view's affinity as the default. Half a day in `SoftWrapLayout` and the two
 handlers. Downstream, the mirror case is unchanged from before the rule: a
 drag ending on a wrapped row's trailing margin stops before its hanging
 space, which a drag onto the next row takes.
+
+**Fuller version shipped (lane LEAN, 2026-10-27; D4X-FULLER, settled
+2026-10-18).** Under `.automatic` the vertical field and the wrapping editor
+each keep a lean per caret (`caretLean`), set by the rule in `CaretLean`.
+The motions B62 left unmeasured were probed first, on macOS 15.8
+(`Tools/SwiftUIProbes/Vertical TextField keys, caret and size (wave
+6b)/affinity-motions.swift` and `.out`):
+
+| Leaves the caret | Motions |
+|---|---|
+| upstream, at the end of the earlier row | typing; Backspace and Forward Delete, from either lean; a paste; ⌘→ and Ctrl-E, the end of a line; a selection set from outside the text view |
+| downstream, at the start of the later row | Left, Right, Up and Down; Option's word moves; ⌘← and Ctrl-A, the start of a line |
+
+A key that neither edits nor moves the caret leaves the lean as it was. A
+click puts the caret on the row clicked, which, at the offsets a click can
+reach, is downstream. Under an explicit `.upstream` or `.downstream` every
+caret is drawn by that, as before. The tests are
+`VerticalTextFieldTests.caretLeanPerCaret` and
+`TextEditorWrapTests.caretLeanPerCaret`.
 
 ### B81. The find bar: Ctrl-F opens it, Ctrl-G finds the next match, and its options are a row
 

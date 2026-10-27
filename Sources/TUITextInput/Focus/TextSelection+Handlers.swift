@@ -27,6 +27,8 @@ extension TextFieldHandler {
         let upper = min(max(lower, wanted.upperBound), count)
         selectionAnchor = lower == upper ? nil : lower
         cursorPosition = upper
+        // As the macOS text system leans a selection set from outside it.
+        caretLean = .upstream
         exchangedSelection = lower..<upper
     }
 
@@ -79,6 +81,8 @@ extension TextEditorHandler {
         cursorLine = caret.line
         cursorColumn = caret.column
         syncDesiredColumn(lines)
+        // As the macOS text system leans a selection set from outside it.
+        caretLean = .upstream
         exchangedSelection = wanted
     }
 

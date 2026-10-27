@@ -752,6 +752,9 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                 focusManager?.focus(id: focusID)
                 handler.isWheelScrolled = false
                 handler.multiClickRun = nil
+                // A caret a click puts down is on the row clicked
+                // (`TextEditorHandler.caretLean`).
+                handler.caretLean = .downstream
                 // Every press starts afresh: a block goes with the rest.
                 handler.block = nil
                 if event.meta {

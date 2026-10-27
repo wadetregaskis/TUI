@@ -86,6 +86,22 @@ struct TextEditorWrapTests {
         #expect(visited == [[0, 22], [0, 37], [0, 52], [1, 5], [2, 7]])
     }
 
+    /// D4X-FULLER: under `.automatic` the caret keeps the lean the macOS text
+    /// system gives it — upstream after an edit, downstream after an arrow key
+    /// (`CaretLean`).
+    @Test("An edit that leaves the caret where a row wrapped leans it upstream; an arrow key, downstream")
+    func caretLeanPerCaret() throws {
+        let (harness, page, handler) = try editor("aaaa bbbb cccc", width: 6)
+        handler.moveCursor(toLine: 0, column: 6)
+        press(harness, page, KeyEvent(key: .backspace))
+        #expect(caret(handler) == [0, 5], "at the wrap after \"aaaa \"")
+        #expect(handler.caretAffinity == .upstream)
+        press(harness, page, KeyEvent(key: .left))
+        press(harness, page, KeyEvent(key: .right))
+        #expect(caret(handler) == [0, 5])
+        #expect(handler.caretAffinity == .downstream)
+    }
+
     /// Upstream, the start of a wrapped row is drawn at the end of the row
     /// before it. Down put the caret there and read its row back upstream —
     /// the row it came from — so every later Down came back to the same place.
