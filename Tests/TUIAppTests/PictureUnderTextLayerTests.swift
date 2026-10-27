@@ -84,6 +84,21 @@ struct PictureUnderTextLayerTests {
         #expect(sent.hold.contains("a=p,i=42,p=\(placement),x=6,y=4,w=10,h=4,c=5,r=1,C=1,z=-1,q=2"))
     }
 
+    @Test("Runs on rows below one another that carry on the image's pixels are one placement, as tall as they are")
+    func blocks() {
+        let layer = PictureUnderTextLayer()
+        let column = (0..<3).map { [PictureUnderTextMarker.Run(column: 2, columns: 5, image: 42, x: 0, y: $0 * 4, width: 10, height: 4)] }
+        let sent = frame(layer, [[]] + column)
+        #expect(sent.moves.map(\.row) == [2])
+        let placement = PictureUnderTextLayer.placementID(row: 1, index: 0)
+        #expect(sent.hold.contains("a=p,i=42,p=\(placement),x=0,y=0,w=10,h=12,c=5,r=3,C=1,z=-1,q=2"))
+        // A run that does not carry on — other pixels across — starts a block of its own.
+        let broken = PictureUnderTextLayer.blocks(of: [
+            [run(0, 4)], [PictureUnderTextMarker.Run(column: 0, columns: 4, image: 42, x: 2, y: 8, width: 8, height: 4)],
+        ])
+        #expect(broken.count == 2)
+    }
+
     @Test("An unchanged frame sends nothing")
     func idleFrame() {
         let layer = PictureUnderTextLayer()

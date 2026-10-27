@@ -69,6 +69,29 @@ struct FrostBackdropTests {
         #expect(store.takePending().contains("a=t"), "its tinted copy reaches the terminal")
     }
 
+    /// With only a glyph's cell laid, a seam showed around each word where a
+    /// placeholder cell met a laid one.
+    @Test("Where the terminal lays pictures under text, the whole glass is laid, as one block")
+    func wholeGlassLaid() throws {
+        let store = TerminalImageStore()
+        let base = page(store)
+        let rows = KittyGraphics.withPictureUnderTextSupport(true) {
+            let context = makeRenderContext(width: 7, height: 2)
+            let glass = renderToBuffer(
+                Text(verbatim: "ab").frame(width: 7, height: 2).background(.thinMaterial), context: context)
+            return base.compositedResolvingOpacity(
+                with: glass, at: (x: 0, y: 0), palette: context.environment.palette, images: store
+            ).lines.map { PictureUnderTextMarker.extracting($0) }
+        }
+        for row in rows {
+            #expect(pictureCells(row.line).allSatisfy { $0 == nil }, "no cell draws the backdrop itself")
+            #expect(row.runs.map(\.column) == [0] && row.runs.map(\.columns) == [7], "every cell marked, glyph or none")
+        }
+        let blocks = PictureUnderTextLayer.blocks(of: rows.map(\.runs))
+        let block = try #require(blocks.values.first)
+        #expect(blocks.count == 1 && block.row == 0 && block.rows == 2, "one placement for the glass")
+    }
+
     @Test("With no picture behind, the frost is the averages, as before")
     func noPicturesNoBackdrop() {
         let store = TerminalImageStore()

@@ -1333,4 +1333,13 @@ each covered cell draws the backdrop's copy tinted by the glass — one image
 across the photos and the gaps between them — and a glyph stands on it as on
 any picture (§14.5 where the terminal can). A picture's cell no longer lends
 the averages any colour. With no picture behind, the frost is the averages,
-as before..
+as before.
+
+Where the terminal lays a picture under text (§14.5), every cell over the
+backdrop carries the mark, not only a glyph's (`overPicture`): with only the
+glyphs laid, a seam showed around each word, where a placeholder cell met a
+laid one — two drawings of a few pixels a cell, each scaled and sampled on
+its own. The layer gathers runs of rows below one another — the same cells
+across, the same image, the next row of its pixels — into blocks
+(`PictureUnderTextLayer.blocks(of:)`), so the whole glass is one classic
+placement, scaled as one picture.
