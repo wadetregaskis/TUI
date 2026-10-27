@@ -60,6 +60,10 @@ final class MouseHandlerIDTable {
     /// The id minted for each `(identity, slot)`.
     private var interned: [Key: Record] = [:]
 
+    /// The view each interned id was minted for: whose handler an event goes
+    /// to, which it is dispatched from (``MouseEventDispatcher/owner(of:)``).
+    private(set) var owners: [HitTestRegion.HandlerID: ViewIdentity] = [:]
+
     /// How many handlers each identity has registered so far in THIS walk, so
     /// the next one takes the next slot. Emptied by ``beginWalk()``.
     private var slotsUsed: [ViewIdentity: Int] = [:]
@@ -115,6 +119,7 @@ final class MouseHandlerIDTable {
         }
         let id = freshID()
         interned[key] = Record(id: id, askedAt: pruneSerial)
+        owners[id] = identity
         return id
     }
 
@@ -167,7 +172,9 @@ extension MouseHandlerIDTable {
         where record.askedAt != serial && !isRetained(key.identity) {
             stale.append(key)
         }
-        for key in stale { interned.removeValue(forKey: key) }
+        for key in stale {
+            if let record = interned.removeValue(forKey: key) { owners.removeValue(forKey: record.id) }
+        }
         pruneSerial &+= 1
     }
 }

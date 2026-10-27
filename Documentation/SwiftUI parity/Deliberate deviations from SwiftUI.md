@@ -558,18 +558,21 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   served from the memo included. An object made anew with each value of the
   one view holding it keeps that view's state from frame to frame, as a view
   value's `@State` does. Its ids are its own. Its `@Environment` is each
-  holding view's while that view's body and what it built run, and at rest —
-  in an action's closure — the first view's drawn holding it. Every holder
+  holding view's while that view's body and what it built run. In a closure
+  dispatched from inside a holder — a click, a key, a gesture, a `.task` —
+  it is that holder's; at rest — a timer, a detached task — the first view's
+  drawn holding it. Every holder
   walks it before its body, and its own `update()` runs there, as SwiftUI's
   does.
 - **Why:** the owner's ruling (2026-10-12) keeps what TUI supported: a
   class wrapper made per view value, and `@Environment(Model.self)` inside
   one. Binding it per view, as before, sent one view's writes into another's
   state and read another's environment in its closures (DYNV bugs 3 and 4).
-- **Left:** an environment-scoped action read through the object, such as
-  `dismiss`, acts for the first view drawn holding it, so a sheet sharing its
-  page's object and calling the object's `dismiss` calls the page's, and stays
-  open; read it in the view instead. The `@State` in an enum's case inside
+- **Left:** an environment-scoped action read through the object from a
+  timer or a detached task, such as `dismiss`, acts for the first view drawn
+  holding it; read it in the view instead. (From a click, a key, a gesture or
+  a `.task`, it acts for the holder it was dispatched from: a sheet's Done
+  calls the sheet's `dismiss`.) The `@State` in an enum's case inside
   a long-lived object is the case's payload's: setting the case anew starts it
   at its defaults, and a payload kept and put back brings its state back. And
   an object made on demand in a body and kept, first shown in the pass it was

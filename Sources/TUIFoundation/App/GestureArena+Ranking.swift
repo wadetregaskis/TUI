@@ -42,6 +42,10 @@ extension GestureArena {
         /// Its region, as of the latest press it is contending for.
         var region: HitTestRegion
 
+        /// The view its gesture is attached to, which its callbacks run as
+        /// dispatched from (`StateRegistration.dispatchingIdentity`).
+        var owner: ViewIdentity?
+
         /// Out of the running: it failed or was cancelled, so it holds nothing
         /// up.
         var isOut = false

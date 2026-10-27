@@ -9,8 +9,9 @@ of 2026-10-12, appended.*
 
 What a class property holds is the object's: every view drawn holding it is
 redrawn by its writes, each read. An object's ids come from its own path, so
-a chain of objects made with a view's values shares one. The one known limit:
-closures made in any holder read the first holder's environment.
+a chain of objects made with a view's values shares one. A closure dispatched
+from inside a holder — a click, a key, a gesture, a `.task` — reads that
+holder's environment; a timer or a detached task reads the first holder's.
 
 ## How it unfolded
 
@@ -20,7 +21,9 @@ closures made in any holder read the first holder's environment.
    prototype a cheap fix, or build the full per-dispatch identity.
 3. **2026-10-26, the owner:** (c), the dispatching identity, prototyped; then
    (b), then (a), if each is too costly after optimisation ("Fine, (c)" after
-   my correctness caveat). **Not yet built.**
+   my correctness caveat).
+4. **2026-10-27, lane DISPATCHID:** (c) built (below, under B-DYNVFIX-3).
+   Its A/B, which decides whether it stays, is owed for a quiet machine.
 
 ## The record
 
@@ -269,6 +272,37 @@ on every `@Environment` read in every app, and dispatch plumbing; and it is
 still wrong for closures run from timers or detached tasks. A cheaper
 candidate, unbuilt and unmeasured: at the end of each pass, make primary the
 holder whose subtree holds the focused element.
+
+**Fuller version built (lane DISPATCHID, 2026-10-27; option (c), the owner's
+ruling of 2026-10-26).**
+
+- **The dispatching identity.** `StateRegistration.dispatchingIdentity`, a
+  task-local, is the view a closure runs for:
+  - a key runs as from the focused view (`InputHandler.handle`);
+  - a mouse handler, offered an event or handed the rest of its press, runs
+    as from the view that registered it, which the handler-id table now
+    remembers (`MouseHandlerIDTable.owners`);
+  - a gesture's callbacks run as from its view (`GestureArena.Contender.owner`);
+  - a `.task` is started inside the scope, so the `Task` carries it.
+- **The environments.** Each render walk notes its holder's environment in
+  the object's `@Environment` boxes (`EnvironmentBox.noteEnvironment`). They
+  are kept in the box, with the object, not on the hub, which the state
+  storage keeps: an environment holds the storage, and a hub holding one
+  never let the storage go (`DynamicPropertyObjectEnvironmentTests`' leak
+  test). A holder that no longer holds the object is forgotten at the next
+  note.
+- **The read.** While a dispatch runs, an object held by more than one view
+  reads the environment of the innermost holder that is the dispatching view
+  or one of its ancestors. Elsewhere it reads the box's, as before: its own
+  holder's while it draws, the primary's at rest. An `@Environment` outside
+  every object pays one test of its box's holder count.
+- **Still the primary's:** a timer, a detached task, GCD, a hover handler
+  (`onHover`, `.help`, which the prototype does not bind), and a held press's
+  click on a pane's background (`PressRole`).
+
+**Owed:** the A/B. The ruling keeps (c) only if its cost after optimisation
+is acceptable, falling back to (b) and then (a). The tests are
+`DispatchedObjectEnvironmentTests`.
 
 ### B-DYNVCLAIM-1. An object's ids are made from its own path, and a chain of objects made with a view's values shares one
 

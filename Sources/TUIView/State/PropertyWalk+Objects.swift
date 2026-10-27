@@ -328,6 +328,11 @@ extension PropertyWalk {
                 case .none: break
                 }
             }
+            // Each holder's environment, for a closure dispatched from inside
+            // it (``EnvironmentBox/read()``): a render walk's, never a measure's.
+            if !isMeasuring, let hub = object.hub {
+                box.noteEnvironment(environment, of: identity, hub: hub)
+            }
             box.environment = environment
         } else if let resolvable = leaf.environment {
             if resolvesSharedStores(of: object) {

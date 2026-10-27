@@ -108,7 +108,8 @@ extension MouseEventDispatcher {
     /// Hands `event` to the handler that took its press, in that press's
     /// region's coordinates.
     func deliver(_ event: MouseEvent, to capture: PressCapture) {
-        _ = capture.handler(localize(event, byOffsetX: capture.regionOffsetX, offsetY: capture.regionOffsetY))
+        let localized = localize(event, byOffsetX: capture.regionOffsetX, offsetY: capture.regionOffsetY)
+        _ = StateRegistration.dispatching(from: capture.handlerID.flatMap(owner(of:))) { capture.handler(localized) }
     }
 
     /// Gives up the press a click recognizer took, if its capture is still

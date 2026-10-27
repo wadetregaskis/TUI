@@ -6,6 +6,7 @@
 
 import Foundation
 import TUIFoundation
+import TUIView
 
 // MARK: - Input Handler
 
@@ -185,7 +186,9 @@ extension InputHandler {
     ///   so a genuine no-op key doesn't wake the loop.
     @discardableResult
     func handle(_ event: KeyEvent) -> Bool {
-        let taken = dispatchKey(event)
+        // A key acts from the focused view: an object several views hold
+        // reads that view's holder's environment meanwhile (B-DYNVFIX-3 (c)).
+        let taken = StateRegistration.dispatching(from: focusManager.focusedIdentity) { dispatchKey(event) }
         // A key press nothing took rings the bell, as an unhandled key does
         // on a Mac (NSBeep): typing at a page with nothing to type into,
         // an arrow at the end of a list that has nowhere to go. A release, or

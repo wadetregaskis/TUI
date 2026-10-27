@@ -408,6 +408,26 @@ public enum StateRegistration {
     /// ``withHydration(environment:_:)``.
     @TaskLocal public static var activeEnvironment: EnvironmentValues?
 
+    /// The view an event's handler, a gesture's callback or a `.task` is
+    /// running for, while it runs (decisions B-DYNVFIX-3, option (c), the
+    /// owner's ruling of 2026-10-26): what an `@Environment` inside a class
+    /// property several views hold reads by — the environment of the holder
+    /// that view is in (``ObjectHub/environment(dispatchedFrom:)``), so a
+    /// sheet's Done calls the sheet's `dismiss`, not the page's. `nil`
+    /// elsewhere — a body, a timer, a detached task — where the object reads
+    /// its primary holder's at rest, as before.
+    ///
+    /// Bound with ``dispatching(from:_:)``. A `@TaskLocal`, so a `Task` made
+    /// inside the scope carries it; a detached task, GCD and a `Timer` do not.
+    @TaskLocal package static var dispatchingIdentity: ViewIdentity?
+
+    /// Runs `body` as dispatched from `identity`'s view
+    /// (``dispatchingIdentity``); as is, for `nil`.
+    package static func dispatching<R>(from identity: ViewIdentity?, _ body: () -> R) -> R {
+        guard let identity else { return body() }
+        return $dispatchingIdentity.withValue(identity, operation: body)
+    }
+
     /// Evaluates `block` with `context`'s environment published as
     /// ``activeEnvironment``. Needed whenever `view.body` is evaluated outside
     /// the normal `renderToBuffer` dispatch (e.g. in `measureChild`). The name

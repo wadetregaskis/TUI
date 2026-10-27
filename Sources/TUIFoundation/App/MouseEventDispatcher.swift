@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUICore
+import TUIView
 
 // MARK: - Mouse Feature
 
@@ -764,6 +765,12 @@ extension MouseEventDispatcher {
         handlers[id]
     }
 
+    /// The view the handler `id` names was registered for, which an event it
+    /// takes is dispatched from (``StateRegistration/dispatchingIdentity``).
+    func owner(of id: HitTestRegion.HandlerID) -> ViewIdentity? {
+        handlerIDs.owners[id]
+    }
+
     /// Called by a handler *while it is consuming a press* to give the rest of
     /// the gesture away: the `.dragged` / `.released` events that follow are
     /// hit-tested live, against whatever is on screen by then, instead of being
@@ -1107,7 +1114,9 @@ extension MouseEventDispatcher {
         let localized = localize(
             event, byOffsetX: region.localOriginX, offsetY: region.localOriginY)
         gestureHandedOff = false
-        guard handler(localized) else { return .declined }
+        guard StateRegistration.dispatching(from: owner(of: region.handlerID), { handler(localized) }) else {
+            return .declined
+        }
         // A press captures the rest of the gesture — unless the handler handed
         // it off (``handOffGesture()``), which a menu-opening press does so the
         // drag and release find the open menu. That hand-off is recorded,

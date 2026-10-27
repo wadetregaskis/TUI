@@ -8,6 +8,7 @@
 //  License: MIT
 
 import TUICore
+import TUIView
 
 // MARK: - Arena
 
@@ -362,13 +363,13 @@ final class GestureArena {
             // The end came before this input, so it is reported first; the
             // input then goes to it as to any gesture under way.
             contender.isHeldBack = false
-            root.flush()
+            StateRegistration.dispatching(from: contender.owner) { root.flush() }
             if let input { feed(contender, input, deliver: true) }
         } else if released {
             if let input { feed(contender, input, deliver: !contender.isHeldBack) }
             if contender.isHeldBack {
                 contender.isHeldBack = false
-                root.flush()
+                StateRegistration.dispatching(from: contender.owner) { root.flush() }
             }
         } else if let input, !holdsEnd {
             feed(contender, input, deliver: false)
@@ -543,6 +544,12 @@ final class GestureArena {
     /// Feeds `input` to one contender, in its region's cells.
     private func feed(_ contender: Contender, _ input: Input, deliver: Bool) {
         guard let root = contender.participant.root else { return }
+        // Its callbacks run as dispatched from the gesture's view
+        // (`StateRegistration.dispatchingIdentity`).
+        StateRegistration.dispatching(from: contender.owner) { feedNow(root, contender, input, deliver: deliver) }
+    }
+
+    private func feedNow(_ root: GestureNodeBase, _ contender: Contender, _ input: Input, deliver: Bool) {
         switch input {
         case .tick(let now):
             root.receive(.tick(now), deliver: deliver)

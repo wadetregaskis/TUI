@@ -147,7 +147,7 @@ public struct Environment<Value> {
     /// (valid inside closures); falls back to the active render environment, then
     /// the framework defaults.
     public var wrappedValue: Value {
-        let env = box.environment ?? StateRegistration.activeEnvironment ?? EnvironmentValues()
+        let env = box.read() ?? StateRegistration.activeEnvironment ?? EnvironmentValues()
         if let keyPath { return env[keyPath: keyPath] }
         // An optional lookup names the optional's type: look up the wrapped
         // one, and read `nil` where it is absent.
@@ -193,6 +193,42 @@ final class EnvironmentBox {
     /// The identity of the view the box was resolved for, by the property
     /// walk; `nil` until then.
     var place: ViewIdentity?
+
+    /// For a box inside a class property's object, each holder's environment
+    /// as its last render walk resolved the box to — kept here, with the
+    /// object, not on its hub, which the state storage keeps: an environment
+    /// holds the storage, and a hub holding one never let the storage go.
+    /// While a closure dispatched from inside one of the holders runs, the
+    /// box reads that holder's (``StateRegistration/dispatchingIdentity``).
+    private(set) var holders: [ViewIdentity: EnvironmentValues] = [:]
+
+    /// The object's hub, which says which views hold the object now. Weak:
+    /// the hub belongs to the state storage, and the object can outlive it.
+    weak var hub: ObjectHub?
+
+    /// Notes `environment` as `holder`'s, forgetting the views that hold the
+    /// object no longer.
+    func noteEnvironment(_ environment: EnvironmentValues, of holder: ViewIdentity, hub: ObjectHub) {
+        self.hub = hub
+        if holders.count > 1 { holders = holders.filter { $0.key == holder || hub.isHeld(by: $0.key) } }
+        holders[holder] = environment
+    }
+
+    /// What the `@Environment` reads: inside an object several views hold,
+    /// while a dispatch from inside one of them runs, that holder's
+    /// environment — the innermost holder that is the dispatching view or
+    /// one of its ancestors; else the box's.
+    func read() -> EnvironmentValues? {
+        guard holders.count > 1, let identity = StateRegistration.dispatchingIdentity else { return environment }
+        var best: (depth: Int, environment: EnvironmentValues)?
+        for (holder, environment) in holders
+        where holder.depth > (best?.depth ?? -1) && (holder == identity || holder.isAncestor(of: identity))
+            && hub?.isHeld(by: holder) == true
+        {
+            best = (holder.depth, environment)
+        }
+        return best?.environment ?? environment
+    }
 }
 
 /// An `@Environment` the property walk resolves for the place its view is

@@ -255,6 +255,9 @@ extension MouseEventDispatcher {
         }
         // No gesture under this press: it goes through ordinary dispatch.
         guard let (ranked, simultaneous) = ranking else { return nil }
+        for contender in ranked.compactMap(\.contender) + simultaneous {
+            contender.owner = owner(of: contender.region.handlerID)
+        }
         let arena = GestureArena(ranked: ranked, simultaneous: simultaneous, press: event)
         arena.adopt(from: gestureArenas)
         gestureArenas.removeAll { previous in

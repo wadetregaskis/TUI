@@ -183,7 +183,8 @@ extension TaskModifier: Renderable {
             let isFirstAppear = !lifecycle.hasAppeared(token: token)
             _ = lifecycle.recordAppear(token: token) {}
             if isFirstAppear {
-                lifecycle.startTask(token: token, priority: priority, name: name, operation: task)
+                lifecycle.startTask(
+                    token: token, priority: priority, name: name, identity: context.identity, operation: task)
             }
 
             // Cancel the task when the view leaves the tree.

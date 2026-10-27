@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import TUIView
 
 // MARK: - Lifecycle Manager
 
@@ -246,6 +247,7 @@ extension LifecycleManager {
         token: String,
         priority: TaskPriority,
         name: String? = nil,
+        identity: ViewIdentity? = nil,
         @_inheritActorContext operation: sending @escaping @isolated(any) @Sendable () async ->
             Void
     ) {
@@ -254,11 +256,11 @@ extension LifecycleManager {
         // never starts, and the drawing made in its place starts its own.
         if let stage = effectStage, stage.isStaging {
             stage.perform(as: .appearance) { [self] in
-                startTaskNow(token: token, priority: priority, name: name, operation: operation)
+                startTaskNow(token: token, priority: priority, name: name, identity: identity, operation: operation)
             }
             return
         }
-        startTaskNow(token: token, priority: priority, name: name, operation: operation)
+        startTaskNow(token: token, priority: priority, name: name, identity: identity, operation: operation)
     }
 
     /// ``startTask(token:priority:name:operation:)``'s work, done now.
@@ -266,6 +268,7 @@ extension LifecycleManager {
         token: String,
         priority: TaskPriority,
         name: String?,
+        identity: ViewIdentity?,
         operation: @escaping @isolated(any) @Sendable () async -> Void
     ) {
         lock.lock()
@@ -284,10 +287,14 @@ extension LifecycleManager {
         // Pinning it to `@MainActor` here instead — the behaviour in between —
         // was safe but left an app no way to say "not on the main actor",
         // which the isolation-carrying parameter now allows.
-        if let name, #available(macOS 26, *) {
-            tasks[token] = Task(name: name, priority: priority, operation: operation)
-        } else {
-            tasks[token] = Task(priority: priority, operation: operation)
+        // As dispatched from the view the task belongs to, which a `Task`
+        // carries (`StateRegistration.dispatchingIdentity`).
+        StateRegistration.dispatching(from: identity) {
+            if let name, #available(macOS 26, *) {
+                tasks[token] = Task(name: name, priority: priority, operation: operation)
+            } else {
+                tasks[token] = Task(priority: priority, operation: operation)
+            }
         }
     }
 

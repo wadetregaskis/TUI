@@ -60,7 +60,7 @@ been in force since 2026-10-18.
 | Id | Answer | Status |
 |---|---|---|
 | B-D6M-2 | (a): swift-syntax is cloned by everyone, compiled only by macro users. | Nothing to change. |
-| B-DYNVFIX-3 | (c), the dispatching identity; then (b), then (a), if each is too costly after optimisation. | Queued. |
+| B-DYNVFIX-3 | (c), the dispatching identity; then (b), then (a), if each is too costly after optimisation. | (c) built (2026-10-27): a click, a key, a gesture or a `.task` inside a holder reads that holder's environment. Its A/B is owed for a quiet machine and decides whether it stays. |
 | PACKAGE-RESOLVED | Untrack it and ignore it. | Done in lane SMALL1026. |
 | SDK15-CI | (c): the macOS 15 SDKs are not supported. | Done in lane SMALL1026: the guards and CONTRIBUTING. |
 | B-D5C-1 | (1): the existential overload stays. | Nothing to change. |
